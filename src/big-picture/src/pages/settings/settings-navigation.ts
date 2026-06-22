@@ -1,4 +1,4 @@
-import type { FocusOverrideTarget } from "../../services";
+import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import { getItemFocusTarget } from "../../helpers";
 import {
   BIG_PICTURE_HEADER_REGION_ID,
@@ -18,6 +18,7 @@ export const DOWNLOADS_SOURCES_ACTIONS_REGION_ID =
 export const DOWNLOADS_SOURCES_SYNC_BUTTON_ID = "downloads-sources-sync-button";
 export const DOWNLOADS_SOURCES_DELETE_ALL_BUTTON_ID =
   "downloads-sources-delete-all-button";
+export const DOWNLOADS_SOURCES_EMPTY_STATE_ID = "downloads-sources-empty-state";
 export const NOTIFICATIONS_LIBRARY_SECTION_REGION_ID =
   "notifications-library-section-region";
 export const NOTIFICATIONS_ACHIEVEMENTS_SECTION_REGION_ID =
@@ -29,6 +30,15 @@ export const NOTIFICATIONS_ACHIEVEMENTS_POSITION_SELECT_ID =
 export const NOTIFICATIONS_ACHIEVEMENTS_TEST_BUTTON_ID =
   "notifications-achievements-test-button";
 export const CONTENT_SECTION_REGION_ID = "content-section-region";
+export const BIG_PICTURE_SECTION_REGION_ID = "big-picture-section-region";
+export const BIG_PICTURE_STARTUP_SECTION_REGION_ID =
+  "big-picture-startup-section-region";
+export const BIG_PICTURE_AUDIO_SECTION_REGION_ID =
+  "big-picture-audio-section-region";
+export const BIG_PICTURE_DIAGNOSTICS_SECTION_REGION_ID =
+  "big-picture-diagnostics-section-region";
+export const BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID =
+  "big-picture-diagnostics-position-select";
 export const COMPATIBILITY_SECTION_REGION_ID = "compatibility-section-region";
 export const INTEGRATIONS_SECTION_REGION_ID = "integrations-section-region";
 export const ACCOUNT_PRIVACY_PRIVACY_SELECT_ID =
@@ -120,6 +130,13 @@ export const CONTENT_ITEM_FOCUS_IDS = {
   showHiddenAchievementsDescription:
     "content-show-hidden-achievements-description",
   enableSteamAchievements: "content-enable-steam-achievements",
+} as const;
+
+export const BIG_PICTURE_ITEM_FOCUS_IDS = {
+  launchInBigPicture: "big-picture-launch-in-big-picture",
+  enableSounds: "big-picture-enable-sounds",
+  enableVirtualKeyboard: "big-picture-enable-virtual-keyboard",
+  enableDiagnostics: "big-picture-enable-diagnostics",
 } as const;
 
 export const COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID =
@@ -217,4 +234,56 @@ export function getEmulationCloudMenuFocusId(saveId: string) {
 
 export function getEmulationCloudRestoreTargetFocusId(cardFilePath: string) {
   return `emulation-cloud-restore-target-${sanitizeEmulationFocusToken(cardFilePath)}`;
+}
+
+export function getEmulationCloudRestoreTargetNavigationOverrides({
+  cardFilePath,
+  firstCardFilePath,
+  lastCardFilePath,
+  pickButtonId,
+}: {
+  cardFilePath: string;
+  firstCardFilePath?: string;
+  lastCardFilePath?: string;
+  pickButtonId: string;
+}): FocusOverrides | undefined {
+  const isFirstTarget = firstCardFilePath === cardFilePath;
+  const isLastTarget = lastCardFilePath === cardFilePath;
+
+  if (!isFirstTarget && !isLastTarget) {
+    return undefined;
+  }
+
+  return {
+    ...(isFirstTarget
+      ? {
+          up: {
+            type: "block" as const,
+          },
+        }
+      : {}),
+    ...(isLastTarget
+      ? {
+          down: {
+            type: "item" as const,
+            itemId: pickButtonId,
+          },
+        }
+      : {}),
+  };
+}
+
+export function getEmulationCloudRestoreButtonNavigationOverrides(
+  selectedTarget: string | null
+): FocusOverrides | undefined {
+  if (!selectedTarget) {
+    return undefined;
+  }
+
+  return {
+    up: {
+      type: "item",
+      itemId: getEmulationCloudRestoreTargetFocusId(selectedTarget),
+    },
+  };
 }

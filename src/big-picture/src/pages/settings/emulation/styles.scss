@@ -22,6 +22,16 @@
 .emulation-settings__scan-modal,
 .emu-save-modal__restore,
 .emu-save-modal__rename {
+  .emu-save-modal__target {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
+      outline: none;
+      box-shadow:
+        inset 0 0 0 1px var(--primary),
+        0 0 0 1px var(--primary);
+    }
+  }
+
   .button {
     &:focus-visible,
     &[data-focus-visible="true"] {
@@ -775,6 +785,36 @@
     flex-shrink: 0;
   }
 
+  &__memcard-backup-progress {
+    margin: 2px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__memcard-backup-progress-label {
+    font-size: 12px;
+    color: #8e919b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__memcard-backup-progress-track {
+    height: 5px;
+    width: 100%;
+    border-radius: 999px;
+    background: #1c1c1c;
+    overflow: hidden;
+  }
+
+  &__memcard-backup-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #fafafa;
+    transition: width 0.2s ease;
+  }
+
   &__memcard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -944,15 +984,19 @@
   }
 
   &__cloud-grid {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(max(200px, calc((100% - 3 * 16px) / 4)), 1fr)
+    );
     align-items: stretch;
-    gap: 16px;
+    column-gap: 16px;
+    row-gap: 40px;
     width: 100%;
   }
 
   &__cloud-card {
     box-sizing: border-box;
-    flex: 1 1 0;
     min-width: 0;
     height: 153px;
     background: #0d0d0d;
@@ -1062,7 +1106,7 @@
   &__targets {
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 4px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -1088,7 +1132,10 @@
     }
 
     &[data-focus-visible="true"] {
-      @include emulation-primary-focus-ring;
+      outline: none;
+      box-shadow:
+        inset 0 0 0 1px var(--primary),
+        0 0 0 1px var(--primary);
     }
   }
 
@@ -1213,10 +1260,6 @@
   .emulator-detail__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .emulator-detail__cloud-grid {
-    flex-wrap: wrap;
-  }
 }
 
 @media (max-width: 820px) {
@@ -1242,7 +1285,7 @@
   }
 
   .emulator-detail__cloud-grid {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .emulator-detail__memcard-grid {

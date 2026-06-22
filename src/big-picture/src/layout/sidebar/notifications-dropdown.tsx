@@ -39,6 +39,7 @@ import {
   useNavigationActions,
   useNavigationScreenActions,
 } from "../../hooks";
+import { getPreferredGameAssets } from "../../helpers";
 import type {
   FriendRequestAction,
   LibraryGame,
@@ -128,6 +129,16 @@ function getApiNotificationContent(notification: Notification) {
         title: `${notification.variables.gameTitle ?? "Your review"} got an upvote`,
         description: `${notification.variables.upvoteCount ?? "1"} upvotes on your review.`,
       };
+    case "REVIEW_ANSWER":
+      return {
+        title: `New reply to your review for ${notification.variables.gameTitle ?? "your review"}`,
+        description: `${notification.variables.answerAuthorDisplayName ?? "Someone"} replied to your review.`,
+      };
+    case "REVIEW_ANSWER_UPVOTE":
+      return {
+        title: `Your reply for ${notification.variables.gameTitle ?? "a review"} got an upvote`,
+        description: `${notification.variables.upvoteCount ?? "1"} upvotes on your reply.`,
+      };
     default:
       return {
         title: "Notification",
@@ -200,7 +211,7 @@ function getGameImageUrlFromLibrary(
       libraryGame.objectId === gameRoute.objectId
   );
 
-  return game?.iconUrl ?? null;
+  return getPreferredGameAssets(game, null).iconUrl;
 }
 
 function getApiNotificationIsServerRead(
@@ -403,6 +414,7 @@ export function SidebarNotificationsDropdown({
       const target = event.target as HTMLElement | null;
       if (
         target?.closest(".sidebar-notifications-dropdown") ||
+        target?.closest(".context-menu") ||
         target === anchorRef.current ||
         anchorRef.current?.contains(target)
       ) {

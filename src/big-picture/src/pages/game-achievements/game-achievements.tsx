@@ -21,7 +21,7 @@ import "./styles.scss";
 export default function GameAchievements() {
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const navigate = useNavigate();
-  const { shopDetails, achievements, isLoading } = useGameDetails(
+  const { shopDetails, game, achievements, isLoading } = useGameDetails(
     objectId!,
     shop!
   );
@@ -69,7 +69,7 @@ export default function GameAchievements() {
   return (
     <VerticalFocusGroup regionId={GAME_ACHIEVEMENTS_PAGE_REGION_ID} asChild>
       <div className="game-achievements-page">
-        <GameAchievementsHero shopDetails={shopDetails} />
+        <GameAchievementsHero shopDetails={shopDetails} game={game} />
 
         <div className="game-achievements-page__content">
           <UserAchievementsSummary
@@ -89,10 +89,11 @@ export default function GameAchievements() {
               asChild
             >
               <ul className="game-achievements-page__list">
-                {achievements.map((achievement) => (
+                {achievements.map((achievement, index) => (
                   <AchievementRow
                     key={achievement.name}
                     achievement={achievement}
+                    stealFocusOnAppear={index === 0}
                   />
                 ))}
               </ul>

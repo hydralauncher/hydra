@@ -33,6 +33,8 @@ if (!gotTheLock) app.quit();
 
 if (process.platform !== "linux") {
   app.commandLine.appendSwitch("--no-sandbox");
+} else {
+  app.commandLine.appendSwitch("ozone-platform-hint", "auto");
 }
 
 i18n.init({

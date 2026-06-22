@@ -46,6 +46,12 @@ import type {
   EmulatorConfig,
   EmulatorConfigMap,
   EmulatorSystem,
+  EmulationBackupProgress,
+  EmulatorBinary,
+  EmulatorInstallProgress,
+  EmulatorInstallResult,
+  ResolvedInstallOption,
+  DetectedRom,
   EmulationCloudSave,
   EmulationSavePlatform,
   MemcardRestoreResult,
@@ -128,7 +134,8 @@ declare global {
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getGameAssets: (
       objectId: string,
-      shop: GameShop
+      shop: GameShop,
+      options?: { forceFresh?: boolean }
     ) => Promise<ShopAssets | null>;
     onUpdateAchievements: (
       objectId: string,
@@ -207,6 +214,11 @@ declare global {
       shop: GameShop,
       objectId: string,
       executablePath: string | null
+    ) => Promise<void>;
+    updateTrackingExecutablePaths: (
+      shop: GameShop,
+      objectId: string,
+      trackingExecutablePaths: string[]
     ) => Promise<void>;
     addGameToFavorites: (shop: GameShop, objectId: string) => Promise<void>;
     removeGameFromFavorites: (
@@ -406,6 +418,7 @@ declare global {
       system: EmulatorSystem,
       folderId: string
     ) => Promise<EmulatorConfig>;
+    listEmulatorRoms: (system: EmulatorSystem) => Promise<DetectedRom[]>;
     toggleRomFolderSubfolders: (
       system: EmulatorSystem,
       folderId: string,
@@ -418,6 +431,20 @@ declare global {
     checkPs3Firmware: (
       executablePath: string | null
     ) => Promise<{ installed: boolean }>;
+    checkEmulatorBios: (
+      system: EmulatorSystem,
+      executablePath: string | null
+    ) => Promise<{ installed: boolean }>;
+    getEmulatorInstallOptions: (
+      binary: EmulatorBinary
+    ) => Promise<ResolvedInstallOption[]>;
+    installEmulator: (
+      binary: EmulatorBinary,
+      optionId: string
+    ) => Promise<EmulatorInstallResult>;
+    onEmulatorInstallProgress: (
+      cb: (payload: EmulatorInstallProgress) => void
+    ) => () => void;
     startRomScan: (
       system: EmulatorSystem,
       folderPath: string,
@@ -506,6 +533,10 @@ declare global {
       platform: EmulationSavePlatform,
       cardFilePath: string
     ) => Promise<{ uploaded: number; total: number }>;
+    onEmulationBackupProgress: (
+      cb: (payload: EmulationBackupProgress) => void
+    ) => () => Electron.IpcRenderer;
+    getActiveEmulationBackups: () => Promise<EmulationBackupProgress[]>;
     listEmulationSaves: (
       platform: EmulationSavePlatform,
       objectId?: string | null
@@ -606,7 +637,7 @@ declare global {
     onBackupDownloadComplete: (
       objectId: string,
       shop: GameShop,
-      cb: () => void
+      cb: (success: boolean) => void
     ) => () => Electron.IpcRenderer;
     onUploadComplete: (
       objectId: string,
@@ -711,6 +742,7 @@ declare global {
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;
     platform: NodeJS.Platform;
+    isWayland: boolean;
 
     /* Auto update */
     onAutoUpdaterEvent: (
@@ -837,6 +869,13 @@ declare global {
     closeGameLauncherWindow: () => Promise<void>;
     openMainWindow: () => Promise<void>;
     isMainWindowOpen: () => Promise<boolean>;
+
+    /* Main Window Controls */
+    minimizeMainWindow: () => Promise<void>;
+    toggleMaximizeMainWindow: () => Promise<void>;
+    closeMainWindow: () => Promise<void>;
+    isMainWindowMaximized: () => Promise<boolean>;
+    onWindowMaximizeChange: (cb: (isMaximized: boolean) => void) => () => void;
 
     /* Big Picture Window */
     openBigPictureWindow: () => Promise<void>;

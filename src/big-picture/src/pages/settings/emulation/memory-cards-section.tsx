@@ -37,6 +37,10 @@ import {
 } from "../../../hooks";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
 import {
+  resolveCardBackupProgress,
+  useEmulationBackupProgress,
+} from "@renderer/hooks/use-emulation-backup-progress";
+import {
   EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID,
   EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID,
   EMULATION_DETAIL_MEMORY_CARDS_REGION_ID,
@@ -371,7 +375,8 @@ export function MemoryCardsSection({
   const [scanInput, setScanInput] = useState<MemcardScanInput | null>(null);
   const [exportingKey, setExportingKey] = useState<string | null>(null);
   const [backingUpKey, setBackingUpKey] = useState<string | null>(null);
-  const [backingUpCard, setBackingUpCard] = useState<string | null>(null);
+  const { backupProgressByCard, backupCard } =
+    useEmulationBackupProgress(platform);
   const [forgetCardTarget, setForgetCardTarget] = useState<{
     cardFilePath: string;
     cardLabel: string;
@@ -489,26 +494,19 @@ export function MemoryCardsSection({
   );
 
   const handleBackupAll = useCallback(
-    async (cardFilePath: string) => {
-      setBackingUpCard(cardFilePath);
-      try {
-        const result =
-          await globalThis.window.electron.uploadEmulationSavesForCard(
-            platform,
-            cardFilePath
-          );
+    async (cardFilePath: string, recordCount: number) => {
+      const result = await backupCard(cardFilePath, recordCount);
+      if (result) {
         showSuccessToast("Cloud backup complete", {
           ...SETTINGS_TOAST_OPTIONS,
           message: `${result.uploaded}/${result.total} saves uploaded.`,
         });
         onUploaded?.();
-      } catch {
+      } else {
         showErrorToast("Cloud backup failed", SETTINGS_TOAST_OPTIONS);
-      } finally {
-        setBackingUpCard(null);
       }
     },
-    [onUploaded, platform, showErrorToast, showSuccessToast]
+    [onUploaded, backupCard, showErrorToast, showSuccessToast]
   );
 
   const handleForgetCard = useCallback(async () => {
@@ -591,6 +589,17 @@ export function MemoryCardsSection({
               const firstRecordMenuId = firstRecord
                 ? getEmulationMemcardMenuFocusId(saveKey(firstRecord))
                 : null;
+              const {
+                isBackingUp,
+                total: progressTotal,
+                done: progressDone,
+                label: progressLabel,
+                percent: progressPercent,
+              } = resolveCardBackupProgress(
+                backupProgressByCard,
+                cardFilePath,
+                records.length
+              );
               return (
                 <div
                   key={cardFilePath}
@@ -724,14 +733,22 @@ export function MemoryCardsSection({
                           type="button"
                           className="emulator-detail__memcard-backup-all"
                           onClick={() => {
-                            void handleBackupAll(cardFilePath);
+                            handleBackupAll(cardFilePath, records.length).catch(
+                              () => {}
+                            );
                           }}
-                          disabled={backingUpCard === cardFilePath}
+                          disabled={isBackingUp}
                         >
                           <UploadIcon size={13} />
                           <span>
-                            {backingUpCard === cardFilePath
-                              ? t("cloud_backing_up")
+                            {isBackingUp
+                              ? `${t("cloud_backing_up")} ${t(
+                                  "setup_scan_count",
+                                  {
+                                    processed: progressDone,
+                                    total: progressTotal,
+                                  }
+                                )}`
                               : t("cloud_backup_all")}
                           </span>
                         </button>
@@ -791,6 +808,25 @@ export function MemoryCardsSection({
                       {t("remove")}
                     </Button>
                   </div>
+
+                  {isBackingUp ? (
+                    <div className="emulator-detail__memcard-backup-progress">
+                      <div className="emulator-detail__memcard-backup-progress-track">
+                        <div
+                          className="emulator-detail__memcard-backup-progress-fill"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                      {progressLabel ? (
+                        <span
+                          className="emulator-detail__memcard-backup-progress-label"
+                          title={progressLabel}
+                        >
+                          {progressLabel}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {!isCollapsed ? (
                     <GridFocusGroup className="emulator-detail__memcard-grid">

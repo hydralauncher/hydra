@@ -59,6 +59,8 @@ export interface Game {
   protonPath?: string | null;
   executablePath?: string | null;
   executablePathUpdatedAt?: Date | null;
+  trackingExecutablePaths?: string[] | null;
+  trackingExecutablePathsUpdatedAt?: Date | null;
   launchOptions?: string | null;
   autoRunMangohud?: boolean | null;
   autoRunGamemode?: boolean | null;
@@ -77,6 +79,7 @@ export interface Game {
   discs?: ClassicsDisc[];
   selectedDiscPath?: string | null;
   dontAskDiscSelection?: boolean;
+  romSizeBytes?: number | null;
 }
 
 export interface Download {
@@ -123,6 +126,14 @@ export type AchievementCustomNotificationPosition =
   | "bottom-center"
   | "bottom-right";
 
+export type BigPictureDiagnosticsPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
+
 export interface DownloadDirectoryPreference {
   path: string;
   createdAt: string;
@@ -131,6 +142,7 @@ export interface DownloadDirectoryPreference {
 
 export interface UserPreferences {
   downloadsPath?: string | null;
+  defaultWinePrefixPath?: string | null;
   downloadDirectories?: DownloadDirectoryPreference[];
   optionalDownloadsPaths?: string[];
   ggDealsApiKey?: string | null;
@@ -165,6 +177,10 @@ export interface UserPreferences {
   hideToTrayOnGameStart?: boolean;
   enableNewDownloadOptionsBadges?: boolean;
   createStartMenuShortcut?: boolean;
+  bigPictureSoundsEnabled?: boolean;
+  bigPictureVirtualKeyboardEnabled?: boolean;
+  bigPictureDiagnosticsEnabled?: boolean;
+  bigPictureDiagnosticsPosition?: BigPictureDiagnosticsPosition;
   maxDownloadSpeedBytesPerSecond?: number | null;
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;

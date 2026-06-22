@@ -35,6 +35,7 @@ export * from "./focus-item";
 export * from "./diagnostics";
 export * from "./dropdown-select";
 export * from "./download-source-card";
+export * from "./empty-state";
 export * from "./context-menu";
 export * from "./scroll-area";
 export * from "./route-anchor";

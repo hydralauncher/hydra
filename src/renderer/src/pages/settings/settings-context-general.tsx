@@ -63,7 +63,6 @@ export function SettingsContextGeneral({
     startMinimized: false,
     hideToTrayOnGameStart: false,
     launchToLibraryPage: false,
-    launchInBigPicture: false,
     enableAutoInstall: false,
   });
 
@@ -109,7 +108,6 @@ export function SettingsContextGeneral({
       startMinimized: userPreferences.startMinimized ?? false,
       hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
       launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
-      launchInBigPicture: userPreferences.launchInBigPicture ?? false,
       enableAutoInstall: userPreferences.enableAutoInstall ?? false,
     });
   }, [userPreferences, defaultDownloadsPath]);
@@ -276,16 +274,6 @@ export function SettingsContextGeneral({
           onChange={() =>
             handleChange({
               launchToLibraryPage: !form.launchToLibraryPage,
-            })
-          }
-        />
-
-        <CheckboxField
-          label={t("launch_hydra_in_big_picture")}
-          checked={form.launchInBigPicture}
-          onChange={() =>
-            handleChange({
-              launchInBigPicture: !form.launchInBigPicture,
             })
           }
         />

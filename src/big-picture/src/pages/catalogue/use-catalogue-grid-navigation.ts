@@ -11,50 +11,15 @@ import {
   getCatalogueFocusPosition,
   getClosestPositionInDirection,
 } from "./navigation-geometry";
+import {
+  groupItemsIntoRows,
+  getClosestItemByCenterX,
+} from "../../helpers/row-navigation-utils";
 
 interface GridItemPosition extends CatalogueFocusPosition {
   top: number;
   left: number;
   centerX: number;
-}
-
-const ROW_TOLERANCE_PX = 24;
-
-function groupItemsIntoRows(items: GridItemPosition[]) {
-  const sortedItems = [...items].sort((leftItem, rightItem) => {
-    if (Math.abs(leftItem.top - rightItem.top) > ROW_TOLERANCE_PX) {
-      return leftItem.top - rightItem.top;
-    }
-
-    return leftItem.left - rightItem.left;
-  });
-
-  return sortedItems.reduce<GridItemPosition[][]>((rows, item) => {
-    const lastRow = rows.at(-1);
-
-    if (!lastRow || Math.abs(lastRow[0].top - item.top) > ROW_TOLERANCE_PX) {
-      rows.push([item]);
-      return rows;
-    }
-
-    lastRow.push(item);
-    lastRow.sort((leftItem, rightItem) => leftItem.left - rightItem.left);
-    return rows;
-  }, []);
-}
-
-function getClosestItemByCenterX(
-  items: GridItemPosition[] | undefined,
-  centerX: number
-) {
-  if (!items?.length) return null;
-
-  return [...items].sort((leftItem, rightItem) => {
-    return (
-      Math.abs(leftItem.centerX - centerX) -
-      Math.abs(rightItem.centerX - centerX)
-    );
-  })[0];
 }
 
 function buildFocusOverridesForGridItem(

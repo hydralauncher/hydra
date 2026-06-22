@@ -256,6 +256,7 @@ export interface UserProfile {
     backupsPerGameLimit: number;
   };
   badges: string[];
+  badgesDetails?: { badge: string; unlockedAt: string }[];
   hasCompletedWrapped2025: boolean;
 }
 
@@ -388,7 +389,8 @@ export type NotificationType =
   | "FRIEND_REQUEST_ACCEPTED"
   | "BADGE_RECEIVED"
   | "REVIEW_UPVOTE"
-  | "REVIEW_ANSWER";
+  | "REVIEW_ANSWER"
+  | "REVIEW_ANSWER_UPVOTE";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"
