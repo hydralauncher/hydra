@@ -1200,7 +1200,16 @@
     "setup_step_label_done": "Готово",
     "remove_emulator": "Удалить эмулятор",
     "remove_emulator_title": "Удалить {{name}} из Hydra?",
-    "remove_emulator_description": "Hydra забудет путь к {{name}} и все сопоставленные папки ROM. Сам эмулятор и ваши файлы ROM останутся на диске. Вы сможете повторно запустить настройку позже."
+    "remove_emulator_description": "Hydra забудет путь к {{name}} и все сопоставленные папки ROM. Сам эмулятор и ваши файлы ROM останутся на диске. Вы сможете повторно запустить настройку позже.",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Запуск",
+    "big_picture_audio": "Звук",
+    "big_picture_input": "Ввод",
+    "big_picture_diagnostics": "Диагностика",
+    "big_picture_enable_sounds": "Включить звуки Big Picture",
+    "big_picture_enable_virtual_keyboard": "Включить виртуальную клавиатуру",
+    "big_picture_enable_diagnostics": "Включить диагностику",
+    "big_picture_diagnostics_position": "Положение диагностики"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
