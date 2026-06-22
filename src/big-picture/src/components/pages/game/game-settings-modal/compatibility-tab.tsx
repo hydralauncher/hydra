@@ -85,6 +85,9 @@ export function GameCompatibilitySettingsTab({
     game.autoRunMangohud ?? false
   );
   const [winePickerOpen, setWinePickerOpen] = useState(false);
+  const [winePickerInitialPath, setWinePickerInitialPath] = useState<
+    string | undefined
+  >();
 
   useEffect(() => {
     setSelectedProtonPath(game.protonPath ?? "");
@@ -151,9 +154,11 @@ export function GameCompatibilitySettingsTab({
     return options;
   }, [protonVersions, t, getProtonSourceDescription]);
 
-  const handleSelectWinePrefix = useCallback(() => {
+  const handleSelectWinePrefix = useCallback(async () => {
+    const defaultPath = await electron.getDefaultWinePrefixSelectionPath();
+    setWinePickerInitialPath(winePrefixPath ?? defaultPath ?? undefined);
     setWinePickerOpen(true);
-  }, []);
+  }, [electron, winePrefixPath]);
 
   const handleWinePrefixPicked = useCallback(
     async (path: string) => {
@@ -345,6 +350,7 @@ export function GameCompatibilitySettingsTab({
         onClose={() => setWinePickerOpen(false)}
         onSelect={handleWinePrefixPicked}
         title={t("wine_prefix")}
+        initialPath={winePickerInitialPath}
         selectDirectory
       />
     </VerticalFocusGroup>

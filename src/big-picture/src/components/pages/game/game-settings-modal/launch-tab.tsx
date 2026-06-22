@@ -519,9 +519,24 @@ function LaunchOptionsSection({
   );
 }
 
-const EXEC_FILTERS: FileFilter[] = [
-  { name: "Game executable", extensions: ["exe", "lnk"] },
-];
+function getExecFilters(platform: string): FileFilter[] {
+  if (platform === "linux") {
+    return [
+      {
+        name: "Game executable",
+        extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
+      },
+    ];
+  }
+
+  if (platform === "darwin") {
+    return [{ name: "Game executable", extensions: ["app"] }];
+  }
+
+  return [
+    { name: "Game executable", extensions: ["exe", "lnk", "bat", "cmd"] },
+  ];
+}
 
 export function GameLaunchSettingsTab({
   game,
@@ -598,10 +613,7 @@ export function GameLaunchSettingsTab({
       ? await globalThis.window.electron.getEmulatorRomExtensions(system)
       : ["*"];
 
-    setDiscFilters([
-      { name: t("rom_file"), extensions },
-      { name: t("all_files"), extensions: ["*"] },
-    ]);
+    setDiscFilters([{ name: t("rom_file"), extensions }]);
     setDiscPickerOpen(true);
   }, [game.platform, t]);
 
@@ -655,7 +667,7 @@ export function GameLaunchSettingsTab({
         onClose={handleExecPickerClose}
         onSelect={handleExecPicked}
         title={t("executable_section_title")}
-        filters={EXEC_FILTERS}
+        filters={getExecFilters(globalThis.window.electron.platform)}
       />
 
       <FileExplorerModal

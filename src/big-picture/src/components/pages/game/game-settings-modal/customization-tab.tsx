@@ -13,10 +13,7 @@ import {
   type FileFilter,
   VerticalFocusGroup,
 } from "../../../common";
-import {
-  imageExtensions,
-  resolvePreferredGameAssets,
-} from "../../../../helpers";
+import { resolvePreferredGameAssets } from "../../../../helpers";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 
 import "./customization-tab.scss";
@@ -120,7 +117,7 @@ function getFallbackPreviewState(
 }
 
 const ASSET_FILTERS: FileFilter[] = [
-  { name: "Image files", extensions: [...imageExtensions] },
+  { name: "Image files", extensions: ["jpg", "jpeg", "png", "gif", "webp"] },
 ];
 
 export function GameCustomizationSettingsTab({
