@@ -46,6 +46,29 @@ export interface GamepadLayout {
   platforms?: GamepadPlatform[];
 }
 
+function makeAxisDpad(xAxis: number, yAxis: number): GamepadInputMapping[] {
+  return [
+    { axis: yAxis, source: "axis-button", direction: "negative", type: GamepadButtonType.DPAD_UP },
+    { axis: yAxis, source: "axis-button", direction: "positive", type: GamepadButtonType.DPAD_DOWN },
+    { axis: xAxis, source: "axis-button", direction: "negative", type: GamepadButtonType.DPAD_LEFT },
+    { axis: xAxis, source: "axis-button", direction: "positive", type: GamepadButtonType.DPAD_RIGHT },
+  ];
+}
+
+function makeStickAxes(
+  lx: number,
+  ly: number,
+  rx: number,
+  ry: number
+): GamepadInputMapping[] {
+  return [
+    { index: lx, source: "axis", type: GamepadAxisType.LEFT_STICK_X },
+    { index: ly, source: "axis", type: GamepadAxisType.LEFT_STICK_Y },
+    { index: rx, source: "axis", type: GamepadAxisType.RIGHT_STICK_X },
+    { index: ry, source: "axis", type: GamepadAxisType.RIGHT_STICK_Y },
+  ];
+}
+
 const STANDARD_GAMEPAD_MAPPINGS: GamepadInputMapping[] = [
   { index: 0, source: "button", type: GamepadButtonType.BUTTON_A },
   { index: 1, source: "button", type: GamepadButtonType.BUTTON_B },
@@ -64,10 +87,7 @@ const STANDARD_GAMEPAD_MAPPINGS: GamepadInputMapping[] = [
   { index: 14, source: "button", type: GamepadButtonType.DPAD_LEFT },
   { index: 15, source: "button", type: GamepadButtonType.DPAD_RIGHT },
   { index: 16, source: "button", type: GamepadButtonType.HOME },
-  { index: 0, source: "axis", type: GamepadAxisType.LEFT_STICK_X },
-  { index: 1, source: "axis", type: GamepadAxisType.LEFT_STICK_Y },
-  { index: 2, source: "axis", type: GamepadAxisType.RIGHT_STICK_X },
-  { index: 3, source: "axis", type: GamepadAxisType.RIGHT_STICK_Y },
+  ...makeStickAxes(0, 1, 2, 3),
 ];
 
 const PLAYSTATION_GAMEPAD_MAPPINGS: GamepadInputMapping[] = [
@@ -89,34 +109,8 @@ const LINUX_XINPUT_MAPPINGS: GamepadInputMapping[] = [
   { index: 8, source: "button", type: GamepadButtonType.HOME },
   { index: 9, source: "button", type: GamepadButtonType.LEFT_STICK_PRESS },
   { index: 10, source: "button", type: GamepadButtonType.RIGHT_STICK_PRESS },
-  {
-    axis: 7,
-    source: "axis-button",
-    direction: "negative",
-    type: GamepadButtonType.DPAD_UP,
-  },
-  {
-    axis: 7,
-    source: "axis-button",
-    direction: "positive",
-    type: GamepadButtonType.DPAD_DOWN,
-  },
-  {
-    axis: 6,
-    source: "axis-button",
-    direction: "negative",
-    type: GamepadButtonType.DPAD_LEFT,
-  },
-  {
-    axis: 6,
-    source: "axis-button",
-    direction: "positive",
-    type: GamepadButtonType.DPAD_RIGHT,
-  },
-  { index: 0, source: "axis", type: GamepadAxisType.LEFT_STICK_X },
-  { index: 1, source: "axis", type: GamepadAxisType.LEFT_STICK_Y },
-  { index: 3, source: "axis", type: GamepadAxisType.RIGHT_STICK_X },
-  { index: 4, source: "axis", type: GamepadAxisType.RIGHT_STICK_Y },
+  ...makeAxisDpad(6, 7),
+  ...makeStickAxes(0, 1, 3, 4),
 ];
 
 const LINUX_IBUFFALO_MAPPINGS: GamepadInputMapping[] = [
@@ -128,30 +122,7 @@ const LINUX_IBUFFALO_MAPPINGS: GamepadInputMapping[] = [
   { index: 5, source: "button", type: GamepadButtonType.RIGHT_TRIGGER },
   { index: 6, source: "button", type: GamepadButtonType.BACK },
   { index: 7, source: "button", type: GamepadButtonType.START },
-  {
-    axis: 1,
-    source: "axis-button",
-    direction: "negative",
-    type: GamepadButtonType.DPAD_UP,
-  },
-  {
-    axis: 1,
-    source: "axis-button",
-    direction: "positive",
-    type: GamepadButtonType.DPAD_DOWN,
-  },
-  {
-    axis: 0,
-    source: "axis-button",
-    direction: "negative",
-    type: GamepadButtonType.DPAD_LEFT,
-  },
-  {
-    axis: 0,
-    source: "axis-button",
-    direction: "positive",
-    type: GamepadButtonType.DPAD_RIGHT,
-  },
+  ...makeAxisDpad(0, 1),
 ];
 
 const LINUX_XGEAR_MAPPINGS: GamepadInputMapping[] = [
@@ -163,66 +134,32 @@ const LINUX_XGEAR_MAPPINGS: GamepadInputMapping[] = [
   { index: 7, source: "button", type: GamepadButtonType.RIGHT_BUMPER },
   { index: 4, source: "button", type: GamepadButtonType.LEFT_TRIGGER },
   { index: 5, source: "button", type: GamepadButtonType.RIGHT_TRIGGER },
-  {
-    axis: 5,
-    source: "axis-button",
-    direction: "negative",
-    type: GamepadButtonType.DPAD_UP,
-  },
-  {
-    axis: 5,
-    source: "axis-button",
-    direction: "positive",
-    type: GamepadButtonType.DPAD_DOWN,
-  },
-  {
-    axis: 4,
-    source: "axis-button",
-    direction: "negative",
-    type: GamepadButtonType.DPAD_LEFT,
-  },
-  {
-    axis: 4,
-    source: "axis-button",
-    direction: "positive",
-    type: GamepadButtonType.DPAD_RIGHT,
-  },
-  { index: 0, source: "axis", type: GamepadAxisType.LEFT_STICK_X },
-  { index: 1, source: "axis", type: GamepadAxisType.LEFT_STICK_Y },
-  { index: 3, source: "axis", type: GamepadAxisType.RIGHT_STICK_X },
-  { index: 2, source: "axis", type: GamepadAxisType.RIGHT_STICK_Y },
+  ...makeAxisDpad(4, 5),
+  ...makeStickAxes(0, 1, 3, 2),
 ];
 
 const LINUX_DRAGONRISE_MAPPINGS: GamepadInputMapping[] = [
   ...STANDARD_GAMEPAD_MAPPINGS,
-  {
-    axis: 6,
-    source: "axis-button",
-    direction: "negative",
-    type: GamepadButtonType.DPAD_UP,
-  },
-  {
-    axis: 6,
-    source: "axis-button",
-    direction: "positive",
-    type: GamepadButtonType.DPAD_DOWN,
-  },
-  {
-    axis: 5,
-    source: "axis-button",
-    direction: "negative",
-    type: GamepadButtonType.DPAD_LEFT,
-  },
-  {
-    axis: 5,
-    source: "axis-button",
-    direction: "positive",
-    type: GamepadButtonType.DPAD_RIGHT,
-  },
-  { index: 0, source: "axis", type: GamepadAxisType.LEFT_STICK_X },
-  { index: 1, source: "axis", type: GamepadAxisType.LEFT_STICK_Y },
-  { index: 3, source: "axis", type: GamepadAxisType.RIGHT_STICK_X },
-  { index: 4, source: "axis", type: GamepadAxisType.RIGHT_STICK_Y },
+  ...makeAxisDpad(5, 6),
+  ...makeStickAxes(0, 1, 3, 4),
+];
+
+const LINUX_8BITDO_ULTIMATE2_DI_MAPPINGS: GamepadInputMapping[] = [
+  { index: 0, source: "button", type: GamepadButtonType.BUTTON_B },
+  { index: 1, source: "button", type: GamepadButtonType.BUTTON_A },
+  { index: 3, source: "button", type: GamepadButtonType.BUTTON_Y },
+  { index: 4, source: "button", type: GamepadButtonType.BUTTON_X },
+  { index: 6, source: "button", type: GamepadButtonType.LEFT_BUMPER },
+  { index: 7, source: "button", type: GamepadButtonType.RIGHT_BUMPER },
+  { index: 8, source: "button", type: GamepadButtonType.LEFT_TRIGGER },
+  { index: 9, source: "button", type: GamepadButtonType.RIGHT_TRIGGER },
+  { index: 10, source: "button", type: GamepadButtonType.BACK },
+  { index: 11, source: "button", type: GamepadButtonType.START },
+  { index: 13, source: "button", type: GamepadButtonType.LEFT_STICK_PRESS },
+  { index: 14, source: "button", type: GamepadButtonType.RIGHT_STICK_PRESS },
+  { index: 15, source: "button", type: GamepadButtonType.HOME },
+  ...makeAxisDpad(4, 5),
+  ...makeStickAxes(0, 1, 2, 3),
 ];
 
 const GAMEPAD_LAYOUTS: GamepadLayout[] = [
@@ -265,55 +202,10 @@ const GAMEPAD_LAYOUTS: GamepadLayout[] = [
     mappings: STANDARD_GAMEPAD_MAPPINGS,
   },
   {
-    // 8BitDo Ultimate 2 Wireless in DirectInput mode.
-    // Chromium does not apply standard remapping for this device, so raw
-    // button indices are used. LB/RB sit at indices 6/7, triggers at 4/5.
     name: "Linux 8BitDo Ultimate 2 Wireless Controller (DirectInput)",
     platforms: ["linux"],
     idPatterns: [/Vendor:\s*2dc8\s+Product:\s*3109/i],
-    mappings: [
-      { index: 0, source: "button", type: GamepadButtonType.BUTTON_B },
-      { index: 1, source: "button", type: GamepadButtonType.BUTTON_A },
-      { index: 3, source: "button", type: GamepadButtonType.BUTTON_Y },
-      { index: 4, source: "button", type: GamepadButtonType.BUTTON_X },
-      { index: 6, source: "button", type: GamepadButtonType.LEFT_BUMPER },
-      { index: 7, source: "button", type: GamepadButtonType.RIGHT_BUMPER },
-      { index: 8, source: "button", type: GamepadButtonType.LEFT_TRIGGER },
-      { index: 9, source: "button", type: GamepadButtonType.RIGHT_TRIGGER },
-      { index: 10, source: "button", type: GamepadButtonType.BACK },
-      { index: 11, source: "button", type: GamepadButtonType.START },
-      { index: 13, source: "button", type: GamepadButtonType.LEFT_STICK_PRESS },
-      { index: 14, source: "button", type: GamepadButtonType.RIGHT_STICK_PRESS },
-      { index: 15, source: "button", type: GamepadButtonType.HOME },
-      {
-        axis: 5,
-        source: "axis-button",
-        direction: "negative",
-        type: GamepadButtonType.DPAD_UP,
-      },
-      {
-        axis: 5,
-        source: "axis-button",
-        direction: "positive",
-        type: GamepadButtonType.DPAD_DOWN,
-      },
-      {
-        axis: 4,
-        source: "axis-button",
-        direction: "negative",
-        type: GamepadButtonType.DPAD_LEFT,
-      },
-      {
-        axis: 4,
-        source: "axis-button",
-        direction: "positive",
-        type: GamepadButtonType.DPAD_RIGHT,
-      },
-      { index: 0, source: "axis", type: GamepadAxisType.LEFT_STICK_X },
-      { index: 1, source: "axis", type: GamepadAxisType.LEFT_STICK_Y },
-      { index: 2, source: "axis", type: GamepadAxisType.RIGHT_STICK_X },
-      { index: 3, source: "axis", type: GamepadAxisType.RIGHT_STICK_Y },
-    ],
+    mappings: LINUX_8BITDO_ULTIMATE2_DI_MAPPINGS,
   },
   {
     name: "Standard Gamepad",
