@@ -259,10 +259,61 @@ const GAMEPAD_LAYOUTS: GamepadLayout[] = [
     mappings: LINUX_XGEAR_MAPPINGS,
   },
   {
-    name: "Linux 8BitDo Ultimate Wireless Controller",
+    name: "Linux 8BitDo Ultimate Wireless Controller (XInput)",
     platforms: ["linux"],
     idPatterns: [/Vendor:\s*2dc8\s+Product:\s*3106/i],
     mappings: STANDARD_GAMEPAD_MAPPINGS,
+  },
+  {
+    // 8BitDo Ultimate 2 Wireless in DirectInput mode.
+    // Chromium does not apply standard remapping for this device, so raw
+    // button indices are used. LB/RB sit at indices 6/7, triggers at 4/5.
+    name: "Linux 8BitDo Ultimate 2 Wireless Controller (DirectInput)",
+    platforms: ["linux"],
+    idPatterns: [/Vendor:\s*2dc8\s+Product:\s*3109/i],
+    mappings: [
+      { index: 0, source: "button", type: GamepadButtonType.BUTTON_B },
+      { index: 1, source: "button", type: GamepadButtonType.BUTTON_A },
+      { index: 3, source: "button", type: GamepadButtonType.BUTTON_Y },
+      { index: 4, source: "button", type: GamepadButtonType.BUTTON_X },
+      { index: 6, source: "button", type: GamepadButtonType.LEFT_BUMPER },
+      { index: 7, source: "button", type: GamepadButtonType.RIGHT_BUMPER },
+      { index: 8, source: "button", type: GamepadButtonType.LEFT_TRIGGER },
+      { index: 9, source: "button", type: GamepadButtonType.RIGHT_TRIGGER },
+      { index: 10, source: "button", type: GamepadButtonType.BACK },
+      { index: 11, source: "button", type: GamepadButtonType.START },
+      { index: 13, source: "button", type: GamepadButtonType.LEFT_STICK_PRESS },
+      { index: 14, source: "button", type: GamepadButtonType.RIGHT_STICK_PRESS },
+      { index: 15, source: "button", type: GamepadButtonType.HOME },
+      {
+        axis: 5,
+        source: "axis-button",
+        direction: "negative",
+        type: GamepadButtonType.DPAD_UP,
+      },
+      {
+        axis: 5,
+        source: "axis-button",
+        direction: "positive",
+        type: GamepadButtonType.DPAD_DOWN,
+      },
+      {
+        axis: 4,
+        source: "axis-button",
+        direction: "negative",
+        type: GamepadButtonType.DPAD_LEFT,
+      },
+      {
+        axis: 4,
+        source: "axis-button",
+        direction: "positive",
+        type: GamepadButtonType.DPAD_RIGHT,
+      },
+      { index: 0, source: "axis", type: GamepadAxisType.LEFT_STICK_X },
+      { index: 1, source: "axis", type: GamepadAxisType.LEFT_STICK_Y },
+      { index: 2, source: "axis", type: GamepadAxisType.RIGHT_STICK_X },
+      { index: 3, source: "axis", type: GamepadAxisType.RIGHT_STICK_Y },
+    ],
   },
   {
     name: "Standard Gamepad",
@@ -340,6 +391,10 @@ function getNavigatorPlatformText() {
 }
 
 export const getGamepadLayout = (gamepad: globalThis.Gamepad) => {
+  if (gamepad.mapping === "standard") {
+    return STANDARD_GAMEPAD_LAYOUT ?? GAMEPAD_LAYOUTS[0];
+  }
+
   const platform = getGamepadPlatform();
 
   for (const layout of GAMEPAD_LAYOUTS) {
