@@ -1109,7 +1109,6 @@
     "bios_note": "BIOS files are managed by {{name}}. Hydra cannot install BIOS for you. Set them up inside {{name}}.",
     "remove_rom_folder_title": "Remove ROM folder",
     "remove_rom_folder_description": "{{path}} will no longer be scanned. The folder and its files stay on your disk.",
-    "remove": "Remove",
     "cancel_remove": "Cancel",
     "stat_games": "GAMES",
     "stat_storage": "STORAGE",
@@ -1197,7 +1196,16 @@
     "setup_step_label_done": "Done",
     "remove_emulator": "Remove emulator",
     "remove_emulator_title": "Remove {{name}} from Hydra?",
-    "remove_emulator_description": "Hydra will forget the {{name}} path and all mapped ROM folders. The emulator itself and your ROM files stay on disk. You can re-run setup afterwards."
+    "remove_emulator_description": "Hydra will forget the {{name}} path and all mapped ROM folders. The emulator itself and your ROM files stay on disk. You can re-run setup afterwards.",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Startup",
+    "big_picture_audio": "Audio",
+    "big_picture_input": "Input",
+    "big_picture_diagnostics": "Diagnostics",
+    "big_picture_enable_sounds": "Enable Big Picture sounds",
+    "big_picture_enable_virtual_keyboard": "Enable Big Picture virtual keyboard",
+    "big_picture_enable_diagnostics": "Enable navigation diagnostics",
+    "big_picture_diagnostics_position": "Diagnostics position"
   },
   "notifications": {
     "download_complete": "Download complete",

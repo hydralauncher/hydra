@@ -9,6 +9,7 @@ import {
   buildGameDetailsPath,
   generateRandomGradient,
 } from "@renderer/helpers";
+import { LINUX_GAME_EXECUTABLE_EXTENSIONS } from "@shared";
 
 import "./sidebar-adding-custom-game-modal.scss";
 
@@ -36,7 +37,7 @@ export function SidebarAddingCustomGameModal({
         ? [
             {
               name: t("custom_game_modal_executable"),
-              extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
+              extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS,
             },
             { name: t("all_files", { ns: "game_details" }), extensions: ["*"] },
           ]
