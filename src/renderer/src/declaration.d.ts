@@ -72,6 +72,21 @@ declare global {
     export default content;
   }
 
+  type FileExplorerEntry = {
+    name: string;
+    path: string;
+    isDirectory: boolean;
+    isFile: boolean;
+    extension: string;
+    size: number;
+  };
+
+  type FileExplorerPathInfo = {
+    exists: boolean;
+    isDirectory: boolean;
+    isFile: boolean;
+  };
+
   interface Electron {
     /* Torrenting */
     startGameDownload: (
@@ -663,21 +678,8 @@ declare global {
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
-    readDirectory: (path: string) => Promise<
-      Array<{
-        name: string;
-        path: string;
-        isDirectory: boolean;
-        isFile: boolean;
-        extension: string;
-        size: number;
-      }>
-    >;
-    getPathInfo: (path: string) => Promise<{
-      exists: boolean;
-      isDirectory: boolean;
-      isFile: boolean;
-    }>;
+    readDirectory: (path: string) => Promise<FileExplorerEntry[]>;
+    getPathInfo: (path: string) => Promise<FileExplorerPathInfo>;
     listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
@@ -948,8 +950,8 @@ declare global {
     cancelGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
 
     /* Event listeners for transfer progress */
-    on: (channel: string, listener: (...args: any[]) => void) => void;
-    off: (channel: string, listener: (...args: any[]) => void) => void;
+    on: (channel: string, listener: (...args: unknown[]) => void) => void;
+    off: (channel: string, listener: (...args: unknown[]) => void) => void;
   }
 
   interface Window {

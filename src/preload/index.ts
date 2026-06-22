@@ -39,6 +39,12 @@ import type {
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 
+const fileExplorerApi = {
+  readDirectory: (path: string) => ipcRenderer.invoke("readDirectory", path),
+  getPathInfo: (path: string) => ipcRenderer.invoke("getPathInfo", path),
+  listDrives: () => ipcRenderer.invoke("listDrives"),
+};
+
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>
@@ -859,9 +865,7 @@ contextBridge.exposeInMainWorld("electron", {
   getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
-  readDirectory: (path: string) => ipcRenderer.invoke("readDirectory", path),
-  getPathInfo: (path: string) => ipcRenderer.invoke("getPathInfo", path),
-  listDrives: () => ipcRenderer.invoke("listDrives"),
+  ...fileExplorerApi,
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>

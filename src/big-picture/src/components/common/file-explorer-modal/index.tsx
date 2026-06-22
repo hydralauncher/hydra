@@ -129,7 +129,7 @@ export function FileExplorerModal(props: Readonly<FileExplorerModalProps>) {
                 <EmptyState
                   className="file-explorer__empty"
                   icon={<FolderOpenIcon size={32} weight="fill" />}
-                  title={vm.EMPTY_FOLDER_TITLE}
+                  title={vm.emptyTitle}
                 />
               )}
 
