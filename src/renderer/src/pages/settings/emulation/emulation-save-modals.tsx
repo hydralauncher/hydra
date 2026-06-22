@@ -65,10 +65,15 @@ export function RestoreModal({
 
   useEffect(() => {
     if (!save) return;
+    let cancelled = false;
     window.electron.getMemcardRestoreTargets(platform).then((found) => {
+      if (cancelled) return;
       setTargets(found);
       setSelected((prev) => prev ?? found[0]?.cardFilePath ?? null);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [save, platform]);
 
   useEffect(() => {
