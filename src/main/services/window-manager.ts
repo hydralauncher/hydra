@@ -599,7 +599,6 @@ export class WindowManager {
         this.AUTH_WINDOW_HEIGHT +
         this.AUTH_WINDOW_TITLE_BAR_HEIGHT +
         this.AUTH_WINDOW_BORDER * 2,
-      backgroundColor: "#1c1c1c",
       parent: parentWindow,
       modal: true,
       show: false,
@@ -607,6 +606,9 @@ export class WindowManager {
       resizable: false,
       frame: false,
       icon,
+      ...(isLinuxWayland
+        ? { transparent: true, backgroundColor: "#00000000" }
+        : { backgroundColor: "#1c1c1c" }),
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
