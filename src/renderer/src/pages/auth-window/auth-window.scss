@@ -6,7 +6,7 @@ $auth-title-bar-height: 34px;
   height: 100vh;
   box-sizing: border-box;
   border: 1px solid globals.$border-color;
-  border-radius: 8px;
+  border-radius: 0 0 8px 8px;
   background-color: globals.$dark-background-color;
   overflow: hidden;
 

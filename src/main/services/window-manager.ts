@@ -518,6 +518,7 @@ export class WindowManager {
   private static readonly AUTH_WINDOW_HEIGHT = 640;
   private static readonly AUTH_WINDOW_TITLE_BAR_HEIGHT = 34;
   private static readonly AUTH_WINDOW_BORDER = 1;
+  private static readonly AUTH_WINDOW_BORDER_RADIUS = 8;
 
   private static bindAuthNavigation(
     contents: Electron.WebContents,
@@ -633,6 +634,7 @@ export class WindowManager {
       width: this.AUTH_WINDOW_WIDTH,
       height: this.AUTH_WINDOW_HEIGHT,
     });
+    authView.setBorderRadius(this.AUTH_WINDOW_BORDER_RADIUS);
 
     this.loadWindowURL(authWindow, "auth-window");
     authView.webContents.loadURL(authUrl);
