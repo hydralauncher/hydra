@@ -1,3 +1,7 @@
+.file-explorer-modal {
+  max-height: min(100%, calc(100vh - 4rem), 60vh);
+}
+
 .file-explorer {
   display: flex;
   flex-direction: column;

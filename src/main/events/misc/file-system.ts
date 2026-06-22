@@ -1,5 +1,6 @@
-import { lstat, readdir } from "node:fs/promises";
+import { access, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
+import { platform } from "node:os";
 import { registerEvent } from "../register-event";
 
 export interface DirectoryEntry {
@@ -9,7 +10,12 @@ export interface DirectoryEntry {
   isFile: boolean;
   extension: string;
   size: number;
-  fileCount: number;
+}
+
+export interface PathInfo {
+  exists: boolean;
+  isDirectory: boolean;
+  isFile: boolean;
 }
 
 const readDirectory = async (
@@ -33,21 +39,13 @@ const readDirectory = async (
       }
 
       let size = 0;
-      let fileCount = 0;
 
       if (isFile) {
         try {
-          const stat = await lstat(fullPath);
-          size = stat.size;
+          const stats = await stat(fullPath);
+          size = stats.size;
         } catch {
-          // Skip files that can't be accessed
-        }
-      } else if (isDirectory) {
-        try {
-          const dirEntries = await readdir(fullPath);
-          fileCount = dirEntries.length;
-        } catch {
-          // Skip directories that can't be accessed
+          // File may not be accessible
         }
       }
 
@@ -58,7 +56,6 @@ const readDirectory = async (
         isFile,
         extension: ext,
         size,
-        fileCount,
       };
     })
   );
@@ -78,4 +75,48 @@ const readDirectory = async (
   return result;
 };
 
+const getPathInfo = async (
+  _event: Electron.IpcMainInvokeEvent,
+  filePath: string
+): Promise<PathInfo> => {
+  try {
+    const stats = await stat(filePath);
+    return {
+      exists: true,
+      isDirectory: stats.isDirectory(),
+      isFile: stats.isFile(),
+    };
+  } catch {
+    return {
+      exists: false,
+      isDirectory: false,
+      isFile: false,
+    };
+  }
+};
+
+const listDrives = async (): Promise<string[]> => {
+  if (platform() === "win32") {
+    const drives: string[] = [];
+
+    for (let i = 0; i < 26; i++) {
+      const letter = String.fromCodePoint(65 + i);
+      const root = `${letter}:\\`;
+
+      try {
+        await access(root);
+        drives.push(root);
+      } catch {
+        // Drive doesn't exist
+      }
+    }
+
+    return drives;
+  }
+
+  return ["/"];
+};
+
 registerEvent("readDirectory", readDirectory);
+registerEvent("getPathInfo", getPathInfo);
+registerEvent("listDrives", listDrives);

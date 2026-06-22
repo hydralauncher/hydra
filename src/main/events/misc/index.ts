@@ -17,6 +17,4 @@ import "./reset-common-redist-preflight";
 import "./save-temp-file";
 import "./show-item-in-folder";
 import "./show-open-dialog";
-import "./read-directory";
-import "./get-path-info";
-import "./list-drives";
+import "./file-system";
