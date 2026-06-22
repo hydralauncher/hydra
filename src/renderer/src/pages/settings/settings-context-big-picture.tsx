@@ -19,7 +19,8 @@ export function SettingsContextBigPicture() {
     bigPictureSoundsEnabled: true,
     bigPictureVirtualKeyboardEnabled: true,
     bigPictureDiagnosticsEnabled: false,
-    bigPictureDiagnosticsPosition: "bottom-center" as BigPictureDiagnosticsPosition,
+    bigPictureDiagnosticsPosition:
+      "bottom-center" as BigPictureDiagnosticsPosition,
   });
 
   useEffect(() => {
@@ -110,8 +111,7 @@ export function SettingsContextBigPicture() {
           checked={form.bigPictureDiagnosticsEnabled}
           onChange={() =>
             handleChange({
-              bigPictureDiagnosticsEnabled:
-                !form.bigPictureDiagnosticsEnabled,
+              bigPictureDiagnosticsEnabled: !form.bigPictureDiagnosticsEnabled,
             })
           }
         />
@@ -121,8 +121,8 @@ export function SettingsContextBigPicture() {
           value={form.bigPictureDiagnosticsPosition}
           onChange={(e) =>
             handleChange({
-              bigPictureDiagnosticsPosition:
-                e.target.value as BigPictureDiagnosticsPosition,
+              bigPictureDiagnosticsPosition: e.target
+                .value as BigPictureDiagnosticsPosition,
             })
           }
           options={diagnosticsPositionOptions}
