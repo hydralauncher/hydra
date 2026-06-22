@@ -663,6 +663,23 @@ declare global {
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
+    readDirectory: (path: string) => Promise<
+      Array<{
+        name: string;
+        path: string;
+        isDirectory: boolean;
+        isFile: boolean;
+        extension: string;
+        size: number;
+        fileCount: number;
+      }>
+    >;
+    getPathInfo: (path: string) => Promise<{
+      exists: boolean;
+      isDirectory: boolean;
+      isFile: boolean;
+    }>;
+    listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
     getProcessedFriendImage: (
