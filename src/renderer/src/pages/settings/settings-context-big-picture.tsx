@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { CheckboxField, SelectField } from "@renderer/components";
@@ -43,20 +43,24 @@ export function SettingsContextBigPicture() {
     updateUserPreferences(values);
   };
 
-  const diagnosticsPositionOptions = (
-    [
-      "top-left",
-      "top-center",
-      "top-right",
-      "bottom-left",
-      "bottom-center",
-      "bottom-right",
-    ] as BigPictureDiagnosticsPosition[]
-  ).map((position) => ({
-    key: position,
-    value: position,
-    label: t(position),
-  }));
+  const diagnosticsPositionOptions = useMemo(
+    () =>
+      (
+        [
+          "top-left",
+          "top-center",
+          "top-right",
+          "bottom-left",
+          "bottom-center",
+          "bottom-right",
+        ] as BigPictureDiagnosticsPosition[]
+      ).map((position) => ({
+        key: position,
+        value: position,
+        label: t(position),
+      })),
+    [t]
+  );
 
   return (
     <div className="settings-context-panel">
