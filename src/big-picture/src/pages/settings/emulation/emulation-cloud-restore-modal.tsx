@@ -71,6 +71,11 @@ export function EmulationCloudRestoreModal({
     useState<MemcardFormatState | null>(null);
   const [isBusy, setIsBusy] = useState(false);
 
+  const unformattedKey =
+    platform === "ps2"
+      ? "cloud_restore_unformatted_ps2"
+      : "cloud_restore_unformatted";
+
   useEffect(() => {
     if (!save) return;
 
@@ -234,9 +239,7 @@ export function EmulationCloudRestoreModal({
         </div>
 
         {selectedFormat === "unformatted" && (
-          <p className="emu-save-modal__hint">
-            {t("cloud_restore_unformatted")}
-          </p>
+          <p className="emu-save-modal__hint">{t(unformattedKey)}</p>
         )}
 
         <HorizontalFocusGroup

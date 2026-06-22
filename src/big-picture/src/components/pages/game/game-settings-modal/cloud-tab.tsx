@@ -77,6 +77,10 @@ function EmulationRestoreModal({
 }>) {
   const { t } = useTranslation("settings");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const unformattedKey =
+    platform === "ps2"
+      ? "cloud_restore_unformatted_ps2"
+      : "cloud_restore_unformatted";
   return (
     <EmulationCloudRestoreModal
       save={save}
@@ -86,11 +90,7 @@ function EmulationRestoreModal({
       onRestoreSuccess={() => showSuccessToast(t("cloud_restore_success"))}
       onRestoreError={(reason) =>
         showErrorToast(
-          t(
-            reason === "unformatted"
-              ? "cloud_restore_unformatted"
-              : "cloud_restore_failed"
-          )
+          t(reason === "unformatted" ? unformattedKey : "cloud_restore_failed")
         )
       }
       regionId={RESTORE_MODAL_REGION_ID}
