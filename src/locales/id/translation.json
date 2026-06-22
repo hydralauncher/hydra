@@ -856,7 +856,16 @@
     "create_shortcuts_on_download": "Buat pintasan desktop dan Start Menu saat game selesai diunduh",
     "default_wine_prefix": "Lokasi default prefix Wine",
     "default_proton_version": "Versi Proton default",
-    "default_proton_version_description": "Pilih versi Proton yang digunakan oleh mode Otomatis saat game tidak memiliki pengaturan kustom"
+    "default_proton_version_description": "Pilih versi Proton yang digunakan oleh mode Otomatis saat game tidak memiliki pengaturan kustom",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Mulai",
+    "big_picture_audio": "Audio",
+    "big_picture_input": "Masukan",
+    "big_picture_diagnostics": "Diagnostik",
+    "big_picture_enable_sounds": "Aktifkan suara Big Picture",
+    "big_picture_enable_virtual_keyboard": "Aktifkan papan ketik virtual",
+    "big_picture_enable_diagnostics": "Aktifkan diagnostik navigasi",
+    "big_picture_diagnostics_position": "Posisi diagnostik"
   },
   "notifications": {
     "download_complete": "Unduhan selesai",

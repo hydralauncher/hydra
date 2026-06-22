@@ -1106,7 +1106,16 @@
     "setup_step_label_done": "Concluído",
     "remove_emulator": "Remover emulador",
     "remove_emulator_title": "Remover o {{name}} do Hydra?",
-    "remove_emulator_description": "O Hydra esquecerá o caminho do {{name}} e todas as pastas de ROM mapeadas. O emulador em si e seus arquivos de ROM permanecem no disco. Você pode executar a configuração novamente depois."
+    "remove_emulator_description": "O Hydra esquecerá o caminho do {{name}} e todas as pastas de ROM mapeadas. O emulador em si e seus arquivos de ROM permanecem no disco. Você pode executar a configuração novamente depois.",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Inicialização",
+    "big_picture_audio": "Áudio",
+    "big_picture_input": "Entrada",
+    "big_picture_diagnostics": "Diagnóstico",
+    "big_picture_enable_sounds": "Ativar sons do Big Picture",
+    "big_picture_enable_virtual_keyboard": "Ativar teclado virtual",
+    "big_picture_enable_diagnostics": "Ativar diagnóstico de navegação",
+    "big_picture_diagnostics_position": "Posição do diagnóstico"
   },
   "notifications": {
     "download_complete": "Download concluído",
