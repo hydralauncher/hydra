@@ -3,6 +3,11 @@
 $auth-title-bar-height: 34px;
 
 .auth-window {
+  height: 100vh;
+  box-sizing: border-box;
+  border: 1px solid globals.$border-color;
+  overflow: hidden;
+
   &__title-bar {
     position: relative;
     display: flex;
