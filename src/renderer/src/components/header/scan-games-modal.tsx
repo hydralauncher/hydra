@@ -26,7 +26,6 @@ interface ScanResult {
 
 interface RemoveExecutableResult {
   removedGames: { title: string }[];
-  total: number;
 }
 
 export interface ScanGamesModalProps {
@@ -99,6 +98,18 @@ export function ScanGamesModal({
   const handleRemoveFolder = (folder: string) => {
     setSelectedFolders((prev) => prev.filter((item) => item !== folder));
   };
+
+  let closeButtonLabel: string;
+
+  if (scanResult) {
+    closeButtonLabel = isRemovingExecutables
+      ? t("scan_games_hide")
+      : t("scan_games_close");
+  } else if (isScanning || isRemovingExecutables) {
+    closeButtonLabel = t("scan_games_hide");
+  } else {
+    closeButtonLabel = t("scan_games_cancel");
+  }
 
   return (
     <Modal
@@ -249,7 +260,6 @@ export function ScanGamesModal({
                   <p className="scan-games-modal__result">
                     {t("remove_executables_result", {
                       removed: removeExecutableResult.removedGames.length,
-                      total: removeExecutableResult.total,
                     })}
                   </p>
 
@@ -276,13 +286,7 @@ export function ScanGamesModal({
 
         <div className="scan-games-modal__actions">
           <Button theme="outline" onClick={handleClose}>
-            {scanResult
-              ? isRemovingExecutables
-                ? t("scan_games_hide")
-                : t("scan_games_close")
-              : isScanning || isRemovingExecutables
-                ? t("scan_games_hide")
-                : t("scan_games_cancel")}
+            {closeButtonLabel}
           </Button>
           {!scanResult && !isRemovingExecutables && !isScanning && (
             <Button
