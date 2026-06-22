@@ -4,7 +4,7 @@
   overflow: hidden;
 
   width: min(100%, 42rem);
-  max-height: min(100%, calc(100vh - 4rem), 60vh);
+  max-height: min(100%, calc(100vh - 4rem));
   border-radius: calc(var(--spacing-unit) * 3);
 
   background-color: var(--background);

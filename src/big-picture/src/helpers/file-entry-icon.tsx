@@ -41,7 +41,6 @@ export interface DirectoryEntry {
   isFile: boolean;
   extension: string;
   size: number;
-  fileCount: number;
 }
 
 const iconProps = {

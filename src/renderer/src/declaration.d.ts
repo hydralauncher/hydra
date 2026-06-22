@@ -671,7 +671,6 @@ declare global {
         isFile: boolean;
         extension: string;
         size: number;
-        fileCount: number;
       }>
     >;
     getPathInfo: (path: string) => Promise<{
