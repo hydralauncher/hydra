@@ -420,10 +420,13 @@ export function GameDetailsContextProvider({
   const selectGameExecutable = async () => {
     const downloadsPath = await getDownloadsPath();
 
-    const filters = getGameExecutableFilters(window.electron.platform, {
-      executable: t("game_executable"),
-      allFiles: t("all_files"),
-    });
+    const filters = getGameExecutableFilters(
+      globalThis.window.electron.platform,
+      {
+        executable: t("game_executable"),
+        allFiles: t("all_files"),
+      }
+    );
 
     return window.electron
       .showOpenDialog({
