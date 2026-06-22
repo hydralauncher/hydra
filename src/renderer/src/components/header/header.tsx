@@ -115,7 +115,6 @@ export function Header() {
   } | null>(null);
   const [removeExeResult, setRemoveExeResult] = useState<{
     removedGames: { title: string }[];
-    total: number;
   } | null>(null);
 
   const { t } = useTranslation("header");
@@ -337,7 +336,7 @@ export function Header() {
 
     try {
       const exeResult =
-        await window.electron.removeUninstalledGameExecutables();
+        await globalThis.electron.removeUninstalledGameExecutables();
       setRemoveExeResult(exeResult);
 
       setIsRemovingExecutables(false);

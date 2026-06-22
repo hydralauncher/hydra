@@ -42,7 +42,7 @@ const removeUninstalledGameExecutables = async () => {
   if (removedGames.length > 0) {
     WindowManager.sendToAppWindows("on-library-batch-complete");
   }
-  return { removedGames: removedGames, total: gamesToCheck.length };
+  return { removedGames: removedGames };
 };
 
 registerEvent(
