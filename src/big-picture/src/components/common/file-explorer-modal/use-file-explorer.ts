@@ -20,6 +20,26 @@ const SKELETON_COUNT = 6;
 const PATH_INPUT_PLACEHOLDER = "Select a location";
 const DRIVES_LABEL = "Drives";
 const EMPTY_FOLDER_TITLE = "This folder is empty";
+const EMPTY_DIRECTORY_CHOICE_TITLE = "No folders found";
+
+const ERROR_MESSAGES: Record<string, string> = {
+  EACCES: "You don't have permission to open this location.",
+  ENOENT: "This location doesn't exist.",
+  ENOTDIR: "This is not a directory.",
+};
+
+function getErrorMessage(err: unknown): string {
+  const code =
+    err instanceof Error && "code" in err
+      ? (err as Record<string, unknown>).code
+      : undefined;
+
+  if (typeof code === "string") {
+    return ERROR_MESSAGES[code] ?? "This location can't be opened.";
+  }
+
+  return "This location can't be opened.";
+}
 
 export interface FileExplorerModalProps {
   visible: boolean;
@@ -89,10 +109,7 @@ export function useFileExplorer({
         if (!cancelled) setEntries(result);
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to read directory"
-          );
-
+          setError(getErrorMessage(err));
           setEntries([]);
         }
       } finally {
@@ -122,7 +139,7 @@ export function useFileExplorer({
         const result = await globalThis.window.electron.listDrives();
         if (!cancelled) setDrives(result);
       } catch {
-        if (!cancelled) setDrives(["/"]);
+        // Drives failed to load — user can type a path manually
       }
     };
 
@@ -146,10 +163,15 @@ export function useFileExplorer({
     if (!currentPath) return onClose();
 
     const parent = getParentPath(currentPath);
-    if (!parent) return onClose();
+    if (parent) return setCurrentPath(parent);
 
-    setCurrentPath(parent);
-  }, [currentPath, onClose]);
+    if (drives.length > 0) {
+      setCurrentPath("");
+      return;
+    }
+
+    onClose();
+  }, [currentPath, drives.length, onClose]);
 
   const handleBHold = useCallback(() => {
     onClose();
@@ -200,11 +222,17 @@ export function useFileExplorer({
     [handlePathEnter]
   );
 
-  const hasParent = Boolean(currentPath && getParentPath(currentPath));
+  const hasParent = Boolean(
+    (currentPath && getParentPath(currentPath)) ||
+      (currentPath && drives.length > 0)
+  );
+
   const goToParent = useCallback(() => {
     const parent = getParentPath(currentPath);
-    if (parent) setCurrentPath(parent);
-  }, [currentPath]);
+    if (parent) return setCurrentPath(parent);
+
+    if (drives.length > 0) setCurrentPath("");
+  }, [currentPath, drives.length]);
 
   const showSelectThisDir = selectDirectory && currentPath;
   const showDriveList = !currentPath && drives.length > 0;
@@ -226,7 +254,9 @@ export function useFileExplorer({
     SKELETON_COUNT,
     PATH_INPUT_PLACEHOLDER,
     DRIVES_LABEL,
-    EMPTY_FOLDER_TITLE,
+    emptyTitle: selectDirectory
+      ? EMPTY_DIRECTORY_CHOICE_TITLE
+      : EMPTY_FOLDER_TITLE,
     showSelectThisDir,
     showDriveList,
     hasParent,

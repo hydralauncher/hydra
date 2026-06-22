@@ -18,10 +18,23 @@ export interface PathInfo {
   isFile: boolean;
 }
 
+function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
+  if (!event.senderFrame) {
+    throw new Error("Unauthorized IPC sender");
+  }
+
+  const url = event.senderFrame.url;
+  if (!url.startsWith("app://") && !url.startsWith("file://")) {
+    throw new Error("Unauthorized IPC sender");
+  }
+}
+
 const readDirectory = async (
-  _event: Electron.IpcMainInvokeEvent,
+  event: Electron.IpcMainInvokeEvent,
   dirPath: string
 ): Promise<DirectoryEntry[]> => {
+  assertTrustedSender(event);
+
   const entries = await readdir(dirPath, { withFileTypes: true });
 
   const result: DirectoryEntry[] = await Promise.all(
@@ -76,9 +89,11 @@ const readDirectory = async (
 };
 
 const getPathInfo = async (
-  _event: Electron.IpcMainInvokeEvent,
+  event: Electron.IpcMainInvokeEvent,
   filePath: string
 ): Promise<PathInfo> => {
+  assertTrustedSender(event);
+
   try {
     const stats = await stat(filePath);
     return {
