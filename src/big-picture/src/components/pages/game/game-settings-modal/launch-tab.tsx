@@ -2,22 +2,25 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
   getSkuRegion,
   getSkuRegionFlag,
+  platformToSystem,
   type SkuRegion,
 } from "@renderer/helpers";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { DiscIcon } from "@phosphor-icons/react";
 import { FolderOpen, HardDrive, Monitor, Trash } from "lucide-react";
-import type { ReactNode } from "react";
+import { useCallback, type ReactNode, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import {
   Button,
   Checkbox,
   DropdownSelect,
+  FileExplorerModal,
   FocusItem,
   HorizontalFocusGroup,
   Input,
   Tooltip,
   Typography,
+  type FileFilter,
   VerticalFocusGroup,
 } from "../../../common";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
@@ -79,7 +82,7 @@ export interface GameLaunchSettingsProps {
   creatingSteamShortcut: boolean;
   steamShortcutExists: boolean;
   shouldShowCreateStartMenuShortcut: boolean;
-  onChangeExecutableLocation: () => Promise<void>;
+  onProcessExecPath: (path: string) => Promise<void>;
   onClearExecutablePath: () => Promise<void>;
   onOpenSaveFolder: () => Promise<void>;
   onChangeLaunchOptions: (value: string) => void;
@@ -90,7 +93,7 @@ export interface GameLaunchSettingsProps {
   onDeleteSteamShortcut: () => Promise<void>;
   onSelectDisc: (path: string) => Promise<void>;
   onToggleDontAskDiscSelection: (checked: boolean) => Promise<void>;
-  onAddDiscFile: () => Promise<void>;
+  onProcessDiscPath: (path: string) => Promise<void>;
   onRemoveSelectedDisc: () => Promise<void>;
   onRemoveAllDiscs: () => Promise<void>;
 }
@@ -100,7 +103,7 @@ interface LaunchboxDiscsSectionProps {
   selectedDisc: NonNullable<LibraryGame["discs"]>[number] | null;
   dontAskDiscSelection: LibraryGame["dontAskDiscSelection"];
   onSelectDisc: (path: string) => Promise<void>;
-  onAddDiscFile: () => Promise<void>;
+  onAddDiscFile: () => void;
   onRemoveSelectedDisc: () => Promise<void>;
   onRemoveAllDiscs: () => Promise<void>;
   onToggleDontAskDiscSelection: (checked: boolean) => Promise<void>;
@@ -161,9 +164,7 @@ function LaunchboxDiscsSection({
               focusId={GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID}
               variant="primary"
               icon={<DiscIcon size={20} />}
-              onClick={() => {
-                void onAddDiscFile();
-              }}
+              onClick={() => onAddDiscFile()}
             >
               {t("add_disc")}
             </Button>
@@ -176,9 +177,7 @@ function LaunchboxDiscsSection({
               focusId={GAME_LAUNCH_SETTINGS_ADD_DISC_FILE_ID}
               variant="secondary"
               icon={<DiscIcon size={20} />}
-              onClick={() => {
-                void onAddDiscFile();
-              }}
+              onClick={() => onAddDiscFile()}
             >
               {t("add_disc")}
             </Button>
@@ -229,7 +228,7 @@ interface ExecutableSectionProps {
   saveFolderTooltipContent: string;
   loadingSaveFolder: boolean;
   saveFolderPath: string | null;
-  onChangeExecutableLocation: () => Promise<void>;
+  onOpenExecPicker: () => void;
   onClearExecutablePath: () => Promise<void>;
   onOpenSaveFolder: () => Promise<void>;
 }
@@ -240,7 +239,7 @@ function ExecutableSection({
   saveFolderTooltipContent,
   loadingSaveFolder,
   saveFolderPath,
-  onChangeExecutableLocation,
+  onOpenExecPicker,
   onClearExecutablePath,
   onOpenSaveFolder,
 }: Readonly<ExecutableSectionProps>) {
@@ -260,7 +259,7 @@ function ExecutableSection({
           <div>
             <FocusItem
               id={GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID}
-              actions={{ primary: () => void onChangeExecutableLocation() }}
+              actions={{ primary: () => onOpenExecPicker() }}
               asChild
             >
               <button
@@ -270,7 +269,7 @@ function ExecutableSection({
                     ? ""
                     : " game-launch-settings-tab__exec-path-button--placeholder"
                 }`}
-                onClick={() => void onChangeExecutableLocation()}
+                onClick={() => onOpenExecPicker()}
               >
                 {executablePath ?? t("no_executable_selected")}
               </button>
@@ -296,7 +295,7 @@ function ExecutableSection({
                 focusId={GAME_LAUNCH_SETTINGS_EXEC_PATH_SELECT_ID}
                 variant="secondary"
                 icon={<FolderOpen size={16} />}
-                onClick={() => void onChangeExecutableLocation()}
+                onClick={() => onOpenExecPicker()}
                 focusNavigationOverrides={{
                   left: {
                     type: "item",
@@ -520,6 +519,10 @@ function LaunchOptionsSection({
   );
 }
 
+const EXEC_FILTERS: FileFilter[] = [
+  { name: "Game executable", extensions: ["exe", "lnk"] },
+];
+
 export function GameLaunchSettingsTab({
   game,
   launchOptions,
@@ -528,7 +531,7 @@ export function GameLaunchSettingsTab({
   creatingSteamShortcut,
   steamShortcutExists,
   shouldShowCreateStartMenuShortcut,
-  onChangeExecutableLocation,
+  onProcessExecPath,
   onClearExecutablePath,
   onOpenSaveFolder,
   onChangeLaunchOptions,
@@ -539,11 +542,14 @@ export function GameLaunchSettingsTab({
   onDeleteSteamShortcut,
   onSelectDisc,
   onToggleDontAskDiscSelection,
-  onAddDiscFile,
+  onProcessDiscPath,
   onRemoveSelectedDisc,
   onRemoveAllDiscs,
 }: Readonly<GameLaunchSettingsProps>) {
   const { t } = useTranslation("game_details");
+  const [execPickerOpen, setExecPickerOpen] = useState(false);
+  const [discPickerOpen, setDiscPickerOpen] = useState(false);
+  const [discFilters, setDiscFilters] = useState<FileFilter[]>([]);
   const isCustomGame = game.shop === "custom";
   const discs = game.discs ?? [];
   const selectedDisc =
@@ -558,48 +564,107 @@ export function GameLaunchSettingsTab({
     t
   );
 
+  const handleExecPicked = useCallback(
+    (path: string) => {
+      setExecPickerOpen(false);
+      void onProcessExecPath(path);
+    },
+    [onProcessExecPath]
+  );
+
+  const handleExecPickerClose = useCallback(() => {
+    setExecPickerOpen(false);
+  }, []);
+
+  const handleOpenExecPicker = useCallback(() => {
+    setExecPickerOpen(true);
+  }, []);
+
+  const handleDiscPicked = useCallback(
+    (path: string) => {
+      setDiscPickerOpen(false);
+      void onProcessDiscPath(path);
+    },
+    [onProcessDiscPath]
+  );
+
+  const handleDiscPickerClose = useCallback(() => {
+    setDiscPickerOpen(false);
+  }, []);
+
+  const handleOpenDiscPicker = useCallback(async () => {
+    const system = platformToSystem(game.platform);
+    const extensions = system
+      ? await globalThis.window.electron.getEmulatorRomExtensions(system)
+      : ["*"];
+
+    setDiscFilters([
+      { name: t("rom_file"), extensions },
+      { name: t("all_files"), extensions: ["*"] },
+    ]);
+    setDiscPickerOpen(true);
+  }, [game.platform, t]);
+
   return (
-    <VerticalFocusGroup className="game-launch-settings-tab">
-      {game.shop === "launchbox" ? (
-        <LaunchboxDiscsSection
-          discs={discs}
-          selectedDisc={selectedDisc}
-          dontAskDiscSelection={game.dontAskDiscSelection}
-          onSelectDisc={onSelectDisc}
-          onAddDiscFile={onAddDiscFile}
-          onRemoveSelectedDisc={onRemoveSelectedDisc}
-          onRemoveAllDiscs={onRemoveAllDiscs}
-          onToggleDontAskDiscSelection={onToggleDontAskDiscSelection}
-        />
-      ) : (
-        <ExecutableSection
-          executablePath={game.executablePath}
-          showSaveFolderButton={showSaveFolderButton}
-          saveFolderTooltipContent={saveFolderTooltipContent}
-          loadingSaveFolder={loadingSaveFolder}
-          saveFolderPath={saveFolderPath}
-          onChangeExecutableLocation={onChangeExecutableLocation}
-          onClearExecutablePath={onClearExecutablePath}
-          onOpenSaveFolder={onOpenSaveFolder}
-        />
-      )}
+    <>
+      <VerticalFocusGroup className="game-launch-settings-tab">
+        {game.shop === "launchbox" ? (
+          <LaunchboxDiscsSection
+            discs={discs}
+            selectedDisc={selectedDisc}
+            dontAskDiscSelection={game.dontAskDiscSelection}
+            onSelectDisc={onSelectDisc}
+            onAddDiscFile={handleOpenDiscPicker}
+            onRemoveSelectedDisc={onRemoveSelectedDisc}
+            onRemoveAllDiscs={onRemoveAllDiscs}
+            onToggleDontAskDiscSelection={onToggleDontAskDiscSelection}
+          />
+        ) : (
+          <ExecutableSection
+            executablePath={game.executablePath}
+            showSaveFolderButton={showSaveFolderButton}
+            saveFolderTooltipContent={saveFolderTooltipContent}
+            loadingSaveFolder={loadingSaveFolder}
+            saveFolderPath={saveFolderPath}
+            onOpenExecPicker={handleOpenExecPicker}
+            onClearExecutablePath={onClearExecutablePath}
+            onOpenSaveFolder={onOpenSaveFolder}
+          />
+        )}
 
-      <ShortcutSection
-        isCustomGame={isCustomGame}
-        shouldShowCreateStartMenuShortcut={shouldShowCreateStartMenuShortcut}
-        creatingSteamShortcut={creatingSteamShortcut}
-        steamShortcutExists={steamShortcutExists}
-        onCreateShortcut={onCreateShortcut}
-        onCreateSteamShortcut={onCreateSteamShortcut}
-        onDeleteSteamShortcut={onDeleteSteamShortcut}
+        <ShortcutSection
+          isCustomGame={isCustomGame}
+          shouldShowCreateStartMenuShortcut={shouldShowCreateStartMenuShortcut}
+          creatingSteamShortcut={creatingSteamShortcut}
+          steamShortcutExists={steamShortcutExists}
+          onCreateShortcut={onCreateShortcut}
+          onCreateSteamShortcut={onCreateSteamShortcut}
+          onDeleteSteamShortcut={onDeleteSteamShortcut}
+        />
+
+        <LaunchOptionsSection
+          launchOptions={launchOptions}
+          onChangeLaunchOptions={onChangeLaunchOptions}
+          onBlurLaunchOptions={onBlurLaunchOptions}
+          onClearLaunchOptions={onClearLaunchOptions}
+        />
+      </VerticalFocusGroup>
+
+      <FileExplorerModal
+        visible={execPickerOpen}
+        onClose={handleExecPickerClose}
+        onSelect={handleExecPicked}
+        title={t("executable_section_title")}
+        filters={EXEC_FILTERS}
       />
 
-      <LaunchOptionsSection
-        launchOptions={launchOptions}
-        onChangeLaunchOptions={onChangeLaunchOptions}
-        onBlurLaunchOptions={onBlurLaunchOptions}
-        onClearLaunchOptions={onClearLaunchOptions}
+      <FileExplorerModal
+        visible={discPickerOpen}
+        onClose={handleDiscPickerClose}
+        onSelect={handleDiscPicked}
+        title={t("add_disc")}
+        filters={discFilters}
       />
-    </VerticalFocusGroup>
+    </>
   );
 }

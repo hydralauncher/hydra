@@ -51,6 +51,27 @@ export interface FileExplorerModalProps {
   selectDirectory?: boolean;
 }
 
+function resolveStartPath(initialPath?: string): Promise<string> {
+  if (initialPath) {
+    return globalThis.window.electron
+      .getPathInfo(initialPath)
+      .then((info) =>
+        info.exists && info.isFile
+          ? (getParentPath(initialPath) ?? initialPath)
+          : initialPath
+      )
+      .catch(() => initialPath);
+  }
+
+  return globalThis.window.electron
+    .getUserPreferences()
+    .then((prefs) => prefs?.downloadsPath)
+    .catch(() => null)
+    .then(
+      (path) => path ?? globalThis.window.electron.getDefaultDownloadsPath()
+    );
+}
+
 export function useFileExplorer({
   visible,
   onClose,
@@ -59,12 +80,12 @@ export function useFileExplorer({
   filters,
   selectDirectory = false,
 }: Readonly<FileExplorerModalProps>) {
-  const [currentPath, setCurrentPath] = useState<string>(initialPath ?? "");
+  const [currentPath, setCurrentPath] = useState<string>("");
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
   const [drives, setDrives] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pathInputValue, setPathInputValue] = useState(initialPath ?? "");
+  const [pathInputValue, setPathInputValue] = useState("");
   const pathInputRef = useRef<HTMLInputElement | null>(null);
   const generatedId = useId();
   const fileListRegionId = `file-explorer-region-${generatedId.replaceAll(":", "")}`;
@@ -75,9 +96,15 @@ export function useFileExplorer({
       return;
     }
 
-    if (initialPath) {
-      setCurrentPath(initialPath);
-    }
+    let cancelled = false;
+
+    resolveStartPath(initialPath).then((path) => {
+      if (!cancelled) setCurrentPath(path);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [visible, initialPath]);
 
   useEffect(() => {

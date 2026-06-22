@@ -2,7 +2,7 @@ import type { LibraryGame } from "@types";
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { platformToSystem } from "@renderer/helpers";
+
 import { useBigPictureToast } from "../../../../hooks";
 import {
   applyClassicsDiscUpdate,
@@ -303,23 +303,9 @@ export function useGameSettingsModalState({
     }
   }, [game, gameTitle, saveGameTitle, showErrorToast, t, updatingGameTitle]);
 
-  const handleSelectCustomizationAsset = useCallback(
-    async (assetType: CustomAssetType) => {
+  const handleProcessAssetPath = useCallback(
+    async (sourcePath: string, assetType: CustomAssetType) => {
       if (!game) return;
-
-      const { filePaths } = await globalThis.window.electron.showOpenDialog({
-        properties: ["openFile"],
-        filters: [
-          {
-            name: "Image files",
-            extensions: ["jpg", "jpeg", "png", "gif", "webp"],
-          },
-        ],
-      });
-
-      const sourcePath = filePaths?.[0];
-
-      if (!sourcePath) return;
 
       try {
         const copiedAssetUrl =
@@ -382,64 +368,33 @@ export function useGameSettingsModalState({
     };
   }, [game, launchOptions, persistLaunchOptions, visible]);
 
-  const getDownloadsPath = useCallback(async () => {
-    const userPreferences = await globalThis.window.electron
-      .getUserPreferences()
-      .catch(() => null);
+  const handleProcessExecPath = useCallback(
+    async (path: string) => {
+      if (!game) return;
 
-    return (
-      userPreferences?.downloadsPath ??
-      (await globalThis.window.electron.getDefaultDownloadsPath())
-    );
-  }, []);
+      const gameUsingPath =
+        await globalThis.window.electron.verifyExecutablePathInUse(path);
 
-  const selectGameExecutable = useCallback(async () => {
-    const downloadsPath = await getDownloadsPath();
-    const { filePaths } = await globalThis.window.electron.showOpenDialog({
-      properties: ["openFile"],
-      defaultPath: downloadsPath,
-      filters: [
-        {
-          name: "Game executable",
-          extensions: ["exe", "lnk"],
-        },
-      ],
-    });
+      if (
+        gameUsingPath &&
+        (gameUsingPath.objectId !== game.objectId ||
+          gameUsingPath.shop !== game.shop)
+      ) {
+        showErrorToast(
+          t("executable_path_in_use", { game: gameUsingPath.title })
+        );
+        return;
+      }
 
-    if (filePaths && filePaths.length > 0) {
-      return filePaths[0];
-    }
-
-    return null;
-  }, [getDownloadsPath]);
-
-  const handleChangeExecutableLocation = useCallback(async () => {
-    if (!game) return;
-
-    const path = await selectGameExecutable();
-    if (!path) return;
-
-    const gameUsingPath =
-      await globalThis.window.electron.verifyExecutablePathInUse(path);
-
-    if (
-      gameUsingPath &&
-      (gameUsingPath.objectId !== game.objectId ||
-        gameUsingPath.shop !== game.shop)
-    ) {
-      showErrorToast(
-        t("executable_path_in_use", { game: gameUsingPath.title })
+      await globalThis.window.electron.updateExecutablePath(
+        game.shop,
+        game.objectId,
+        path
       );
-      return;
-    }
-
-    await globalThis.window.electron.updateExecutablePath(
-      game.shop,
-      game.objectId,
-      path
-    );
-    await updateGame();
-  }, [game, selectGameExecutable, showErrorToast, t, updateGame]);
+      await updateGame();
+    },
+    [game, showErrorToast, t, updateGame]
+  );
 
   const handleClearExecutablePath = useCallback(async () => {
     if (!game) return;
@@ -583,23 +538,12 @@ export function useGameSettingsModalState({
     [game, updateClassicsDisc]
   );
 
-  const handleAddDiscFile = useCallback(async () => {
-    if (!game) return;
-
-    const system = platformToSystem(game.platform);
-    const extensions = system
-      ? await globalThis.window.electron.getEmulatorRomExtensions(system)
-      : ["*"];
-    const result = await globalThis.window.electron.showOpenDialog({
-      properties: ["openFile"],
-      filters: [
-        { name: t("rom_file"), extensions },
-        { name: t("all_files"), extensions: ["*"] },
-      ],
-    });
-    if (result.canceled || !result.filePaths[0]) return;
-    await addDiscFromPath(result.filePaths[0]);
-  }, [addDiscFromPath, game, t]);
+  const handleProcessDiscPath = useCallback(
+    async (path: string) => {
+      await addDiscFromPath(path);
+    },
+    [addDiscFromPath]
+  );
 
   const handleRemoveSelectedDisc = useCallback(async () => {
     if (!game || !selectedDisc) return;
@@ -666,7 +610,7 @@ export function useGameSettingsModalState({
       steamShortcutExists,
       shouldShowCreateStartMenuShortcut:
         globalThis.window.electron.platform === "win32",
-      onChangeExecutableLocation: handleChangeExecutableLocation,
+      onProcessExecPath: handleProcessExecPath,
       onClearExecutablePath: handleClearExecutablePath,
       onOpenSaveFolder: handleOpenSaveFolder,
       onChangeLaunchOptions: setLaunchOptions,
@@ -677,22 +621,22 @@ export function useGameSettingsModalState({
       onDeleteSteamShortcut: handleDeleteSteamShortcut,
       onSelectDisc: handleSelectDisc,
       onToggleDontAskDiscSelection: handleToggleDontAskDiscSelection,
-      onAddDiscFile: handleAddDiscFile,
+      onProcessDiscPath: handleProcessDiscPath,
       onRemoveSelectedDisc: handleRemoveSelectedDisc,
       onRemoveAllDiscs: handleRemoveAllDiscs,
     } satisfies GameLaunchSettingsProps;
   }, [
     creatingSteamShortcut,
     game,
-    handleAddDiscFile,
     handleBlurLaunchOptions,
-    handleChangeExecutableLocation,
+    handleProcessExecPath,
     handleClearExecutablePath,
     handleClearLaunchOptions,
     handleCreateShortcut,
     handleCreateSteamShortcut,
     handleDeleteSteamShortcut,
     handleOpenSaveFolder,
+    handleProcessDiscPath,
     handleRemoveAllDiscs,
     handleRemoveSelectedDisc,
     handleSelectDisc,
@@ -712,7 +656,7 @@ export function useGameSettingsModalState({
       updatingGameTitle,
       onChangeGameTitle: handleChangeGameTitle,
       onBlurGameTitle: handleBlurGameTitle,
-      onSelectAsset: handleSelectCustomizationAsset,
+      onProcessAssetPath: handleProcessAssetPath,
       onClearAsset: handleClearCustomizationAsset,
     } satisfies GameCustomizationSettingsProps;
   }, [
@@ -721,7 +665,7 @@ export function useGameSettingsModalState({
     handleBlurGameTitle,
     handleChangeGameTitle,
     handleClearCustomizationAsset,
-    handleSelectCustomizationAsset,
+    handleProcessAssetPath,
     updatingGameTitle,
   ]);
 

@@ -5,13 +5,18 @@ import { Trash } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  FileExplorerModal,
   FocusItem,
   Input,
   Tabs,
   type TabsItem,
+  type FileFilter,
   VerticalFocusGroup,
 } from "../../../common";
-import { resolvePreferredGameAssets } from "../../../../helpers";
+import {
+  imageExtensions,
+  resolvePreferredGameAssets,
+} from "../../../../helpers";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 
 import "./customization-tab.scss";
@@ -42,7 +47,10 @@ export interface GameCustomizationSettingsProps {
   updatingGameTitle: boolean;
   onChangeGameTitle: (event: ChangeEvent<HTMLInputElement>) => void;
   onBlurGameTitle: () => Promise<void>;
-  onSelectAsset: (assetType: AssetTab) => Promise<void>;
+  onProcessAssetPath: (
+    sourcePath: string,
+    assetType: AssetTab
+  ) => Promise<void>;
   onClearAsset: (assetType: AssetTab) => Promise<void>;
 }
 
@@ -111,13 +119,17 @@ function getFallbackPreviewState(
   };
 }
 
+const ASSET_FILTERS: FileFilter[] = [
+  { name: "Image files", extensions: [...imageExtensions] },
+];
+
 export function GameCustomizationSettingsTab({
   game,
   gameTitle,
   updatingGameTitle,
   onChangeGameTitle,
   onBlurGameTitle,
-  onSelectAsset,
+  onProcessAssetPath,
   onClearAsset,
 }: Readonly<GameCustomizationSettingsProps>) {
   const { t } = useTranslation("big_picture");
@@ -127,6 +139,7 @@ export function GameCustomizationSettingsTab({
     () => getAssetPreviewState(game)
   );
   const [pendingAssetTab, setPendingAssetTab] = useState<AssetTab | null>(null);
+  const [assetPickerOpen, setAssetPickerOpen] = useState(false);
   const assetTabItems = useMemo(
     () =>
       [
@@ -153,6 +166,24 @@ export function GameCustomizationSettingsTab({
   const assetFrameSize = ASSET_FRAME_SIZES[selectedAssetTab];
   const hasCustomAsset = assetPreviewState[selectedAssetTab].hasCustom;
   const assetImageSource = assetPreviewState[selectedAssetTab].src;
+
+  const handleAssetPicked = useCallback(
+    (path: string) => {
+      setAssetPickerOpen(false);
+      setPendingAssetTab(selectedAssetTab);
+
+      void onProcessAssetPath(path, selectedAssetTab).finally(() => {
+        setPendingAssetTab(null);
+      });
+    },
+    [onProcessAssetPath, selectedAssetTab]
+  );
+
+  const handleAssetPickerClose = useCallback(() => {
+    setAssetPickerOpen(false);
+    setPendingAssetTab(null);
+  }, []);
+
   const handleAssetPreviewAction = useCallback(() => {
     if (pendingAssetTab) return;
 
@@ -171,20 +202,8 @@ export function GameCustomizationSettingsTab({
       return;
     }
 
-    setPendingAssetTab(selectedAssetTab);
-    void onSelectAsset(selectedAssetTab).finally(() => {
-      setPendingAssetTab((currentTab) =>
-        currentTab === selectedAssetTab ? null : currentTab
-      );
-    });
-  }, [
-    game,
-    hasCustomAsset,
-    onClearAsset,
-    onSelectAsset,
-    pendingAssetTab,
-    selectedAssetTab,
-  ]);
+    setAssetPickerOpen(true);
+  }, [game, hasCustomAsset, onClearAsset, pendingAssetTab, selectedAssetTab]);
 
   useEffect(() => {
     setAssetPreviewState(getAssetPreviewState(game));
@@ -192,102 +211,112 @@ export function GameCustomizationSettingsTab({
   }, [game]);
 
   return (
-    <VerticalFocusGroup className="game-customization-settings-tab">
-      <SettingsSection
-        className="game-customization-settings-tab__section"
-        title={t("edit_game_modal_section_title")}
-        description={t("edit_game_modal_section_title_description")}
-      >
-        <div className="game-customization-settings-tab__section-content">
-          <Input
-            focusId={GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID}
-            placeholder={t("edit_game_modal_enter_title")}
-            value={gameTitle}
-            disabled={updatingGameTitle}
-            onChange={onChangeGameTitle}
-            onBlur={() => {
-              void onBlurGameTitle();
-            }}
-          />
-        </div>
-      </SettingsSection>
-
-      <SettingsSection
-        className="game-customization-settings-tab__section game-customization-settings-tab__section--assets"
-        title={t("edit_game_modal_assets")}
-        description={t("edit_game_modal_section_assets_description")}
-      >
-        <div className="game-customization-settings-tab__section-content game-customization-settings-tab__section-content--assets">
-          <Tabs
-            items={assetTabItems}
-            value={selectedAssetTab}
-            defaultValue="icon"
-            onValueChange={handleAssetTabChange}
-            itemsFocusable={false}
-            animateSegmentedIndicator={hasAssetTabsInteracted}
-            variant="segmented"
-            ariaLabel={t("edit_game_modal_assets")}
-            className="game-customization-settings-tab__asset-tabs"
-          />
-
-          <div className="game-customization-settings-tab__asset-preview">
-            <FocusItem
-              id={GAME_CUSTOMIZATION_SETTINGS_ASSET_PREVIEW_ID}
-              asChild
-              actions={{
-                primary: handleAssetPreviewAction,
+    <>
+      <VerticalFocusGroup className="game-customization-settings-tab">
+        <SettingsSection
+          className="game-customization-settings-tab__section"
+          title={t("edit_game_modal_section_title")}
+          description={t("edit_game_modal_section_title_description")}
+        >
+          <div className="game-customization-settings-tab__section-content">
+            <Input
+              focusId={GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID}
+              placeholder={t("edit_game_modal_enter_title")}
+              value={gameTitle}
+              disabled={updatingGameTitle}
+              onChange={onChangeGameTitle}
+              onBlur={() => {
+                void onBlurGameTitle();
               }}
-            >
-              <button
-                type="button"
-                className="game-customization-settings-tab__asset-preview-frame"
-                onClick={handleAssetPreviewAction}
-                style={{
-                  width: assetFrameSize.width,
-                  height: assetFrameSize.height,
-                }}
-                aria-label={
-                  hasCustomAsset
-                    ? t("edit_game_modal_remove_asset")
-                    : t("edit_game_modal_assets")
-                }
-              >
-                {assetImageSource ? (
-                  <img
-                    className="game-customization-settings-tab__asset-preview-image"
-                    src={assetImageSource}
-                    alt={gameTitle}
-                    draggable={false}
-                  />
-                ) : null}
+            />
+          </div>
+        </SettingsSection>
 
-                <span
-                  className={`game-customization-settings-tab__asset-preview-overlay${
+        <SettingsSection
+          className="game-customization-settings-tab__section game-customization-settings-tab__section--assets"
+          title={t("edit_game_modal_assets")}
+          description={t("edit_game_modal_section_assets_description")}
+        >
+          <div className="game-customization-settings-tab__section-content game-customization-settings-tab__section-content--assets">
+            <Tabs
+              items={assetTabItems}
+              value={selectedAssetTab}
+              defaultValue="icon"
+              onValueChange={handleAssetTabChange}
+              itemsFocusable={false}
+              animateSegmentedIndicator={hasAssetTabsInteracted}
+              variant="segmented"
+              ariaLabel={t("edit_game_modal_assets")}
+              className="game-customization-settings-tab__asset-tabs"
+            />
+
+            <div className="game-customization-settings-tab__asset-preview">
+              <FocusItem
+                id={GAME_CUSTOMIZATION_SETTINGS_ASSET_PREVIEW_ID}
+                asChild
+                actions={{
+                  primary: handleAssetPreviewAction,
+                }}
+              >
+                <button
+                  type="button"
+                  className="game-customization-settings-tab__asset-preview-frame"
+                  onClick={handleAssetPreviewAction}
+                  style={{
+                    width: assetFrameSize.width,
+                    height: assetFrameSize.height,
+                  }}
+                  aria-label={
                     hasCustomAsset
-                      ? " game-customization-settings-tab__asset-preview-overlay--danger"
-                      : ""
-                  }`}
-                  aria-hidden="true"
+                      ? t("edit_game_modal_remove_asset")
+                      : t("edit_game_modal_assets")
+                  }
                 >
+                  {assetImageSource ? (
+                    <img
+                      className="game-customization-settings-tab__asset-preview-image"
+                      src={assetImageSource}
+                      alt={gameTitle}
+                      draggable={false}
+                    />
+                  ) : null}
+
                   <span
-                    className={`game-customization-settings-tab__asset-preview-overlay-icon${
+                    className={`game-customization-settings-tab__asset-preview-overlay${
                       hasCustomAsset
-                        ? " game-customization-settings-tab__asset-preview-overlay-icon--danger"
+                        ? " game-customization-settings-tab__asset-preview-overlay--danger"
                         : ""
                     }`}
+                    aria-hidden="true"
                   >
-                    {hasCustomAsset ? (
-                      <Trash size={20} />
-                    ) : (
-                      <PencilIcon size={22} />
-                    )}
+                    <span
+                      className={`game-customization-settings-tab__asset-preview-overlay-icon${
+                        hasCustomAsset
+                          ? " game-customization-settings-tab__asset-preview-overlay-icon--danger"
+                          : ""
+                      }`}
+                    >
+                      {hasCustomAsset ? (
+                        <Trash size={20} />
+                      ) : (
+                        <PencilIcon size={22} />
+                      )}
+                    </span>
                   </span>
-                </span>
-              </button>
-            </FocusItem>
+                </button>
+              </FocusItem>
+            </div>
           </div>
-        </div>
-      </SettingsSection>
-    </VerticalFocusGroup>
+        </SettingsSection>
+      </VerticalFocusGroup>
+
+      <FileExplorerModal
+        visible={assetPickerOpen}
+        onClose={handleAssetPickerClose}
+        onSelect={handleAssetPicked}
+        title={t("edit_game_modal_assets")}
+        filters={ASSET_FILTERS}
+      />
+    </>
   );
 }
