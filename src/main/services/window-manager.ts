@@ -517,6 +517,7 @@ export class WindowManager {
   private static readonly AUTH_WINDOW_WIDTH = 600;
   private static readonly AUTH_WINDOW_HEIGHT = 640;
   private static readonly AUTH_WINDOW_TITLE_BAR_HEIGHT = 34;
+  private static readonly AUTH_WINDOW_BORDER = 1;
 
   private static bindAuthNavigation(
     contents: Electron.WebContents,
@@ -593,8 +594,11 @@ export class WindowManager {
     authUrl: string
   ) {
     const authWindow = new BrowserWindow({
-      width: this.AUTH_WINDOW_WIDTH,
-      height: this.AUTH_WINDOW_HEIGHT + this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
+      width: this.AUTH_WINDOW_WIDTH + this.AUTH_WINDOW_BORDER * 2,
+      height:
+        this.AUTH_WINDOW_HEIGHT +
+        this.AUTH_WINDOW_TITLE_BAR_HEIGHT +
+        this.AUTH_WINDOW_BORDER * 2,
       backgroundColor: "#1c1c1c",
       parent: parentWindow,
       modal: true,
@@ -622,8 +626,8 @@ export class WindowManager {
 
     authWindow.contentView.addChildView(authView);
     authView.setBounds({
-      x: 0,
-      y: this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
+      x: this.AUTH_WINDOW_BORDER,
+      y: this.AUTH_WINDOW_BORDER + this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
       width: this.AUTH_WINDOW_WIDTH,
       height: this.AUTH_WINDOW_HEIGHT,
     });
