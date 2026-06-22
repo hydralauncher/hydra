@@ -1035,6 +1035,7 @@
     "cloud_restore_success": "Partida restaurada en tu tarjeta de memoria",
     "cloud_restore_failed": "No se pudo restaurar esta partida",
     "cloud_restore_unformatted": "Esta tarjeta de memoria aún no está formateada. Formatéala en el administrador de tarjetas de memoria de tu emulador antes de restaurar una partida en ella.",
+    "cloud_restore_unformatted_ps2": "Esta tarjeta de memoria no está formateada. Crea una partida guardada en ella para que PCSX2 la formatee automáticamente.",
     "cloud_more_actions": "Más acciones",
     "cloud_delete": "Eliminar",
     "cloud_delete_title": "¿Eliminar esta partida en la nube?",

@@ -91,6 +91,11 @@ export function RestoreModal({
     };
   }, [selected, platform]);
 
+  const unformattedKey =
+    platform === "ps2"
+      ? "cloud_restore_unformatted_ps2"
+      : "cloud_restore_unformatted";
+
   const handlePickFile = useCallback(async () => {
     const result = await window.electron.showOpenDialog({
       properties: ["openFile"],
@@ -123,7 +128,7 @@ export function RestoreModal({
         showErrorToast(
           t(
             res.reason === "unformatted"
-              ? "cloud_restore_unformatted"
+              ? unformattedKey
               : "cloud_restore_failed"
           )
         );
@@ -135,6 +140,7 @@ export function RestoreModal({
     save,
     selected,
     platform,
+    unformattedKey,
     showSuccessToast,
     showErrorToast,
     t,
@@ -179,9 +185,7 @@ export function RestoreModal({
         </ul>
 
         {selectedFormat === "unformatted" && (
-          <p className="emu-save-modal__hint">
-            {t("cloud_restore_unformatted")}
-          </p>
+          <p className="emu-save-modal__hint">{t(unformattedKey)}</p>
         )}
 
         <div className="emu-save-modal__actions">
