@@ -1083,6 +1083,8 @@ contextBridge.exposeInMainWorld("electron", {
   signOut: () => ipcRenderer.invoke("signOut"),
   openAuthWindow: (page: AuthPage) =>
     ipcRenderer.invoke("openAuthWindow", page),
+  minimizeAuthWindow: () => ipcRenderer.invoke("minimizeAuthWindow"),
+  closeAuthWindow: () => ipcRenderer.invoke("closeAuthWindow"),
   getSessionHash: () => ipcRenderer.invoke("getSessionHash"),
   onSignIn: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();

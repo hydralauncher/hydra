@@ -1153,7 +1153,16 @@
     "big_picture_output_device": "Big Picture output device",
     "system_default_audio_device": "System default audio device",
     "default_audio_device": "Default",
-    "missing_audio_device": "Missing audio device"
+    "missing_audio_device": "Missing audio device",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Démarrage",
+    "big_picture_audio": "Audio",
+    "big_picture_input": "Entrée",
+    "big_picture_diagnostics": "Diagnostics",
+    "big_picture_enable_sounds": "Activer les sons de Big Picture",
+    "big_picture_enable_virtual_keyboard": "Activer le clavier virtuel",
+    "big_picture_enable_diagnostics": "Activer les diagnostics de navigation",
+    "big_picture_diagnostics_position": "Position des diagnostics"
   },
   "classics_onboarding": {
     "title": "Bienvenue dans Hydra Classics",

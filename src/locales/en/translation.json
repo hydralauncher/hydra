@@ -1204,7 +1204,16 @@
     "big_picture_output_device": "Big Picture output device",
     "system_default_audio_device": "System default audio device",
     "default_audio_device": "Default",
-    "missing_audio_device": "Missing audio device"
+    "missing_audio_device": "Missing audio device",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Startup",
+    "big_picture_audio": "Audio",
+    "big_picture_input": "Input",
+    "big_picture_diagnostics": "Diagnostics",
+    "big_picture_enable_sounds": "Enable Big Picture sounds",
+    "big_picture_enable_virtual_keyboard": "Enable Big Picture virtual keyboard",
+    "big_picture_enable_diagnostics": "Enable navigation diagnostics",
+    "big_picture_diagnostics_position": "Diagnostics position"
   },
   "notifications": {
     "download_complete": "Download complete",

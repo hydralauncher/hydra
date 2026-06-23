@@ -867,7 +867,16 @@
     "big_picture_output_device": "Big Picture output device",
     "system_default_audio_device": "System default audio device",
     "default_audio_device": "Default",
-    "missing_audio_device": "Missing audio device"
+    "missing_audio_device": "Missing audio device",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Uruchamianie",
+    "big_picture_audio": "Audio",
+    "big_picture_input": "Wejście",
+    "big_picture_diagnostics": "Diagnostyka",
+    "big_picture_enable_sounds": "Włącz dźwięki Big Picture",
+    "big_picture_enable_virtual_keyboard": "Włącz wirtualną klawiaturę",
+    "big_picture_enable_diagnostics": "Włącz diagnostykę nawigacji",
+    "big_picture_diagnostics_position": "Pozycja diagnostyki"
   },
   "notifications": {
     "new_update_available": "Dostępna wersja {{version}}",

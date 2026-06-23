@@ -1206,7 +1206,16 @@
     "big_picture_output_device": "Big Picture output device",
     "system_default_audio_device": "System default audio device",
     "default_audio_device": "Default",
-    "missing_audio_device": "Missing audio device"
+    "missing_audio_device": "Missing audio device",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Запуск",
+    "big_picture_audio": "Звук",
+    "big_picture_input": "Ввод",
+    "big_picture_diagnostics": "Диагностика",
+    "big_picture_enable_sounds": "Включить звуки Big Picture",
+    "big_picture_enable_virtual_keyboard": "Включить виртуальную клавиатуру",
+    "big_picture_enable_diagnostics": "Включить диагностику",
+    "big_picture_diagnostics_position": "Положение диагностики"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",

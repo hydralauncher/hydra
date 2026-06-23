@@ -864,7 +864,16 @@
     "big_picture_output_device": "Big Picture output device",
     "system_default_audio_device": "System default audio device",
     "default_audio_device": "Default",
-    "missing_audio_device": "Missing audio device"
+    "missing_audio_device": "Missing audio device",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Mulai",
+    "big_picture_audio": "Audio",
+    "big_picture_input": "Masukan",
+    "big_picture_diagnostics": "Diagnostik",
+    "big_picture_enable_sounds": "Aktifkan suara Big Picture",
+    "big_picture_enable_virtual_keyboard": "Aktifkan papan ketik virtual",
+    "big_picture_enable_diagnostics": "Aktifkan diagnostik navigasi",
+    "big_picture_diagnostics_position": "Posisi diagnostik"
   },
   "notifications": {
     "download_complete": "Unduhan selesai",

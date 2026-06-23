@@ -16,6 +16,7 @@ import {
   MenuItem,
   MenuItemConstructorOptions,
   Tray,
+  WebContentsView,
   app,
   nativeImage,
   screen,
@@ -41,6 +42,7 @@ export class WindowManager {
   public static gameLauncherWindow: Electron.BrowserWindow | null = null;
   private static bigPicture: Electron.BrowserWindow | null = null;
   private static friendsWindow: Electron.BrowserWindow | null = null;
+  private static authWindow: Electron.BrowserWindow | null = null;
   private static deferredMainMaximize = false;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
@@ -514,61 +516,154 @@ export class WindowManager {
     this.mainWindow?.webContents.send("on-open-add-friend-modal");
   }
 
+  private static readonly AUTH_WINDOW_WIDTH = 600;
+  private static readonly AUTH_WINDOW_HEIGHT = 640;
+  private static readonly AUTH_WINDOW_TITLE_BAR_HEIGHT = 34;
+  private static readonly AUTH_WINDOW_BORDER = 1;
+
+  private static bindAuthNavigation(
+    contents: Electron.WebContents,
+    closeWindow: () => void
+  ) {
+    contents.on("will-navigate", (_event, url) => {
+      if (url.startsWith("hydralauncher://auth")) {
+        closeWindow();
+
+        HydraApi.handleExternalAuth(url);
+        return;
+      }
+
+      if (url.startsWith("hydralauncher://update-account")) {
+        closeWindow();
+
+        WindowManager.sendToAppWindows("on-account-updated");
+      }
+    });
+  }
+
   public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
     const parentWindow =
       this.bigPicture && !this.bigPicture.isDestroyed()
         ? this.bigPicture
         : this.mainWindow;
 
-    if (parentWindow && !parentWindow.isDestroyed()) {
-      const authWindow = new BrowserWindow({
-        width: 600,
-        height: 640,
-        backgroundColor: "#1c1c1c",
-        parent: parentWindow,
-        modal: true,
-        show: false,
-        maximizable: false,
-        resizable: false,
-        minimizable: false,
-        webPreferences: {
-          sandbox: false,
-          nodeIntegrationInSubFrames: true,
-        },
-      });
+    if (!parentWindow || parentWindow.isDestroyed()) return;
 
-      authWindow.removeMenu();
+    const authUrl = `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`;
 
-      if (!app.isPackaged) authWindow.webContents.openDevTools();
+    if (process.platform === "linux") {
+      this.openLinuxAuthWindow(parentWindow, authUrl);
+      return;
+    }
 
-      authWindow.loadURL(
-        `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`
-      );
+    const authWindow = new BrowserWindow({
+      width: this.AUTH_WINDOW_WIDTH,
+      height: this.AUTH_WINDOW_HEIGHT,
+      backgroundColor: "#1c1c1c",
+      parent: parentWindow,
+      modal: true,
+      show: false,
+      maximizable: false,
+      resizable: false,
+      minimizable: false,
+      webPreferences: {
+        sandbox: false,
+        nodeIntegrationInSubFrames: true,
+      },
+    });
 
-      authWindow.once("ready-to-show", () => {
-        authWindow.show();
-      });
+    authWindow.removeMenu();
 
-      authWindow.once("closed", () => {
-        if (!parentWindow.isDestroyed()) {
-          parentWindow.focus();
-        }
-      });
+    if (!app.isPackaged) authWindow.webContents.openDevTools();
 
-      authWindow.webContents.on("will-navigate", (_event, url) => {
-        if (url.startsWith("hydralauncher://auth")) {
-          authWindow.close();
+    authWindow.loadURL(authUrl);
 
-          HydraApi.handleExternalAuth(url);
-          return;
-        }
+    authWindow.once("ready-to-show", () => {
+      authWindow.show();
+    });
 
-        if (url.startsWith("hydralauncher://update-account")) {
-          authWindow.close();
+    authWindow.once("closed", () => {
+      if (!parentWindow.isDestroyed()) {
+        parentWindow.focus();
+      }
+    });
 
-          WindowManager.sendToAppWindows("on-account-updated");
-        }
-      });
+    this.bindAuthNavigation(authWindow.webContents, () => authWindow.close());
+  }
+
+  private static openLinuxAuthWindow(
+    parentWindow: Electron.BrowserWindow,
+    authUrl: string
+  ) {
+    const authWindow = new BrowserWindow({
+      width: this.AUTH_WINDOW_WIDTH + this.AUTH_WINDOW_BORDER * 2,
+      height:
+        this.AUTH_WINDOW_HEIGHT +
+        this.AUTH_WINDOW_TITLE_BAR_HEIGHT +
+        this.AUTH_WINDOW_BORDER * 2,
+      parent: parentWindow,
+      modal: true,
+      show: false,
+      maximizable: false,
+      resizable: false,
+      frame: false,
+      icon,
+      backgroundColor: "#1c1c1c",
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.authWindow = authWindow;
+
+    authWindow.removeMenu();
+
+    const authView = new WebContentsView({
+      webPreferences: {
+        sandbox: false,
+        nodeIntegrationInSubFrames: true,
+      },
+    });
+
+    authWindow.contentView.addChildView(authView);
+    authView.setBounds({
+      x: this.AUTH_WINDOW_BORDER,
+      y: this.AUTH_WINDOW_BORDER + this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
+      width: this.AUTH_WINDOW_WIDTH,
+      height: this.AUTH_WINDOW_HEIGHT,
+    });
+
+    this.loadWindowURL(authWindow, "auth-window");
+    authView.webContents.loadURL(authUrl);
+
+    if (!app.isPackaged) authView.webContents.openDevTools();
+
+    authWindow.once("ready-to-show", () => {
+      authWindow.show();
+    });
+
+    authWindow.once("closed", () => {
+      this.authWindow = null;
+      if (!parentWindow.isDestroyed()) {
+        parentWindow.focus();
+      }
+    });
+
+    this.bindAuthNavigation(authView.webContents, () => {
+      if (!authWindow.isDestroyed()) authWindow.close();
+    });
+  }
+
+  public static minimizeAuthWindow() {
+    if (this.authWindow && !this.authWindow.isDestroyed()) {
+      this.authWindow.minimize();
+    }
+  }
+
+  public static closeAuthWindow() {
+    if (this.authWindow && !this.authWindow.isDestroyed()) {
+      this.authWindow.close();
     }
   }
 
