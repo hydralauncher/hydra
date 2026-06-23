@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
 } from "@renderer/components/dropdown-menu/dropdown-menu";
 import {
+  AlertIcon,
   ArrowDownIcon,
   ArrowUpIcon,
   ClockIcon,
@@ -261,7 +262,7 @@ interface HeroDownloadViewProps {
   pauseDownload: (shop: GameShop, objectId: string) => void;
   resumeDownload: (shop: GameShop, objectId: string) => void;
   onCancelClick: (shop: GameShop, objectId: string) => void;
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }
 
 function HeroDownloadView({
@@ -303,6 +304,16 @@ function HeroDownloadView({
     !lastPacket?.isCheckingFiles &&
     !hasEta;
   const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
+
+  const isStalled = Boolean(
+    isGameDownloading && !isGameExtracting && lastPacket?.isStalled
+  );
+  const retrySeconds =
+    isStalled &&
+    typeof lastPacket?.retryingInMs === "number" &&
+    lastPacket.retryingInMs > 0
+      ? Math.ceil(lastPacket.retryingInMs / 1000)
+      : null;
 
   return (
     <div className="download-group download-group--hero">
@@ -364,11 +375,22 @@ function HeroDownloadView({
               <div className="download-group__progress-info-row">
                 {!lastPacket?.isCheckingFiles && !isGameExtracting && (
                   <span className="download-group__progress-time">
-                    {shouldShowEta && (
+                    {isStalled ? (
                       <>
-                        <ClockIcon size={14} />
-                        {hasEta ? etaText : tGameDetails("calculating_eta")}
+                        <AlertIcon size={14} />
+                        {retrySeconds !== null
+                          ? t("download_stalled_retrying", {
+                              seconds: retrySeconds,
+                            })
+                          : t("download_stalled")}
                       </>
+                    ) : (
+                      shouldShowEta && (
+                        <>
+                          <ClockIcon size={14} />
+                          {hasEta ? etaText : tGameDetails("calculating_eta")}
+                        </>
+                      )
                     )}
                   </span>
                 )}

@@ -708,6 +708,8 @@
     "no_downloads_title": "Such empty",
     "no_downloads_description": "You haven't downloaded anything with Hydra yet, but it's never too late to start.",
     "checking_files": "Checking files…",
+    "download_stalled": "Download stalled, reconnecting…",
+    "download_stalled_retrying": "Download stalled, retrying in {{seconds}}s…",
     "seeding": "Seeding",
     "stop_seeding": "Stop seeding",
     "resume_seeding": "Resume seeding",

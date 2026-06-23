@@ -709,6 +709,8 @@
     "no_downloads_title": "Здесь так пусто...",
     "no_downloads_description": "Вы ещё ничего не скачали через Hydra, но никогда не поздно начать.",
     "checking_files": "Проверка файлов…",
+    "download_stalled": "Загрузка зависла, переподключение…",
+    "download_stalled_retrying": "Загрузка зависла, повтор через {{seconds}} с…",
     "seeding": "Раздача",
     "stop_seeding": "Остановить раздачу",
     "resume_seeding": "Возобновить раздачу",

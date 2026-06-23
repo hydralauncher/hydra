@@ -414,6 +414,8 @@ export class DownloadManager {
         download: updatedDownload,
         batchFilesTotal,
         batchFilesDownloaded,
+        isStalled: status.isStalled,
+        retryingInMs: status.retryingInMs,
       };
     } catch (err) {
       logger.error("[DownloadManager] Error getting JS download status:", err);

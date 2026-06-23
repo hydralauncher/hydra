@@ -350,14 +350,30 @@ export function useBigPictureDownloadsPageData() {
       statusLabel = "Checking files";
     } else if (lastPacket?.isDownloadingMetadata) {
       statusLabel = "Downloading metadata";
+    } else if (lastPacket?.isStalled) {
+      statusLabel = "Stalled";
     } else {
       statusLabel = "In progress";
     }
 
+    const stallRetrySeconds =
+      lastPacket?.isStalled &&
+      typeof lastPacket.retryingInMs === "number" &&
+      lastPacket.retryingInMs > 0
+        ? Math.ceil(lastPacket.retryingInMs / 1000)
+        : null;
+
     if (!isPausedHero && download.status !== "error") {
-      speedLabel = isExtracting
-        ? "Preparing files"
-        : formatSpeed(lastPacket?.downloadSpeed ?? 0, userPreferences);
+      if (isExtracting) {
+        speedLabel = "Preparing files";
+      } else if (lastPacket?.isStalled) {
+        speedLabel =
+          stallRetrySeconds !== null
+            ? `Retrying in ${stallRetrySeconds}s`
+            : "Reconnecting…";
+      } else {
+        speedLabel = formatSpeed(lastPacket?.downloadSpeed ?? 0, userPreferences);
+      }
     }
 
     return {

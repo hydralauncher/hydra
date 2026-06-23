@@ -24,6 +24,8 @@ export interface DownloadProgress {
   download: Download;
   batchFilesTotal?: number;
   batchFilesDownloaded?: number;
+  isStalled?: boolean;
+  retryingInMs?: number | null;
 }
 
 /* TorBox */
