@@ -31,6 +31,10 @@ import {
   DEFAULT_DOWNLOAD_USER_AGENT,
   JsHttpDownloader,
 } from "./js-http-downloader";
+import {
+  clampProgress,
+  isRetryableHttpStatus,
+} from "./js-http-downloader-helpers";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import {
   getDownloadLayoutStateRecord,
@@ -65,6 +69,7 @@ export class DownloadManager {
   private static isPreparingDownload = false;
   private static allDebridBatch: AllDebridBatchState | null = null;
   private static maxDownloadSpeedBytesPerSecond: number | null = null;
+  private static startGeneration = 0;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -379,6 +384,8 @@ export class DownloadManager {
           downloadSpeed = batch.batchSpeed;
         }
       }
+
+      progress = clampProgress(progress);
 
       const effectiveFileSize = fileSize > 0 ? fileSize : download.fileSize;
 
@@ -907,6 +914,10 @@ export class DownloadManager {
     const isActiveDownload = downloadKey === this.downloadingGameId;
 
     if (isActiveDownload) {
+      // Invalidate any in-flight startDownload preparation for this slot so a
+      // late-resolving prepare cannot spawn a downloader after cancellation.
+      this.startGeneration += 1;
+
       if (this.usingJsDownloader && this.jsDownloader) {
         logger.log("[DownloadManager] Cancelling JS download");
         this.jsDownloader.cancelDownload();
@@ -1056,18 +1067,30 @@ export class DownloadManager {
               `downloaded=${dlStatus.bytesDownloaded} expected=${expectedSize}. ` +
               `The download URL may have returned an error page.`
           );
+          const mismatchDownloadId = this.allDebridBatch?.downloadId;
           this.cleanupBatch();
+          if (mismatchDownloadId) {
+            await this.handleRuntimeDownloadError(
+              mismatchDownloadId,
+              new Error(
+                "An AllDebrid file returned fewer bytes than expected. The link may have expired."
+              )
+            );
+          }
           return;
         }
 
-        batch.completedBytes += Math.max(
-          entry.size ?? 0,
-          dlStatus.bytesDownloaded
-        );
+        const bankedBytes =
+          entry.size && entry.size > 0 ? entry.size : dlStatus.bytesDownloaded;
+        batch.completedBytes += bankedBytes;
         batch.currentIndex += 1;
       } catch (err) {
         logger.error("[DownloadManager] AllDebrid batch entry error:", err);
+        const failedDownloadId = this.allDebridBatch?.downloadId;
         this.cleanupBatch();
+        if (failedDownloadId) {
+          await this.handleRuntimeDownloadError(failedDownloadId, err);
+        }
         return;
       }
     }
@@ -1504,8 +1527,6 @@ export class DownloadManager {
     url: string;
     headers?: Record<string, string>;
   }) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const headers: Record<string, string> = { ...options.headers };
     const hasUserAgentHeader = Object.keys(headers).some(
       (key) => key.toLowerCase() === "user-agent"
@@ -1515,43 +1536,78 @@ export class DownloadManager {
       headers["User-Agent"] = DEFAULT_DOWNLOAD_USER_AGENT;
     }
 
-    try {
-      const response = await fetch(options.url, {
-        method: "GET",
-        headers,
-        signal: controller.signal,
-      });
-      const contentType = response.headers.get("content-type") ?? "unknown";
-      const contentLength = response.headers.get("content-length") ?? "unknown";
+    const hasAcceptEncoding = Object.keys(headers).some(
+      (key) => key.toLowerCase() === "accept-encoding"
+    );
 
-      logger.log(
-        `[DownloadManager] Preflight response status=${response.status} content-type=${contentType} content-length=${contentLength}`
-      );
+    if (!hasAcceptEncoding) {
+      headers["Accept-Encoding"] = "identity";
+    }
 
-      await response.body?.cancel().catch(() => undefined);
+    const MAX_PREFLIGHT_ATTEMPTS = 3;
 
-      if (response.status >= 400) {
-        throw new Error(
-          `The download link is not available (HTTP ${response.status}).`
+    for (let attempt = 1; ; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      try {
+        const response = await fetch(options.url, {
+          method: "GET",
+          headers,
+          signal: controller.signal,
+        });
+        const contentType = response.headers.get("content-type") ?? "unknown";
+        const contentLength =
+          response.headers.get("content-length") ?? "unknown";
+
+        logger.log(
+          `[DownloadManager] Preflight response status=${response.status} content-type=${contentType} content-length=${contentLength}`
         );
-      }
 
-      if (
-        contentType.includes("text/html") ||
-        contentType.includes("application/xhtml")
-      ) {
-        throw new Error(
-          "The download link returned a web page instead of a file. It may have expired or be invalid."
-        );
-      }
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        throw new Error("Download URL validation timed out");
-      }
+        await response.body?.cancel().catch(() => undefined);
 
-      throw error;
-    } finally {
-      clearTimeout(timeoutId);
+        if (isRetryableHttpStatus(response.status)) {
+          // Transient (rate limit / gateway hiccup). Do not fail the start:
+          // retry briefly, then let the downloader's own retry loop take over.
+          if (attempt < MAX_PREFLIGHT_ATTEMPTS) {
+            logger.log(
+              `[DownloadManager] Preflight got transient HTTP ${response.status}; retrying (${attempt}/${MAX_PREFLIGHT_ATTEMPTS})`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+
+          logger.warn(
+            `[DownloadManager] Preflight still HTTP ${response.status} after ${MAX_PREFLIGHT_ATTEMPTS} attempts; allowing the download to start and retry`
+          );
+          return;
+        }
+
+        if (response.status >= 400) {
+          throw new Error(
+            `The download link is not available (HTTP ${response.status}).`
+          );
+        }
+
+        if (
+          contentType.includes("text/html") ||
+          contentType.includes("application/xhtml")
+        ) {
+          throw new Error(
+            "The download link returned a web page instead of a file. It may have expired or be invalid."
+          );
+        }
+
+        return;
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          throw new Error("Download URL validation timed out");
+        }
+
+        throw error;
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
   }
 
@@ -1562,7 +1618,10 @@ export class DownloadManager {
     if (isHttp) {
       logger.log("[DownloadManager] Using JS HTTP downloader");
 
-      // Set preparing state immediately so UI knows download is starting
+      // Set preparing state immediately so UI knows download is starting.
+      // The generation token lets a concurrent cancel/restart for the same id
+      // invalidate this in-flight preparation before it spawns a downloader.
+      const myGeneration = ++this.startGeneration;
       this.downloadingGameId = downloadId;
       this.isPreparingDownload = true;
       this.usingJsDownloader = true;
@@ -1579,7 +1638,7 @@ export class DownloadManager {
             throw new Error(DownloadError.NotCachedOnAllDebrid);
           }
 
-          this.allDebridBatch = {
+          const batchState: AllDebridBatchState = {
             downloadId,
             savePath: download.downloadPath,
             entries: entries.map((entry) => ({
@@ -1596,6 +1655,17 @@ export class DownloadManager {
             batchSpeed: 0,
           };
 
+          if (
+            this.downloadingGameId !== downloadId ||
+            this.startGeneration !== myGeneration
+          ) {
+            logger.log(
+              "[DownloadManager] Download was superseded during preparation; aborting start"
+            );
+            return;
+          }
+
+          this.allDebridBatch = batchState;
           this.jsDownloader = new JsHttpDownloader();
           this.jsDownloader.setMaxDownloadSpeedBytesPerSecond(
             this.maxDownloadSpeedBytesPerSecond
@@ -1611,6 +1681,16 @@ export class DownloadManager {
             this.usingJsDownloader = false;
             this.downloadingGameId = null;
             throw new Error("Failed to get download options for JS downloader");
+          }
+
+          if (
+            this.downloadingGameId !== downloadId ||
+            this.startGeneration !== myGeneration
+          ) {
+            logger.log(
+              "[DownloadManager] Download was superseded during preparation; aborting start"
+            );
+            return;
           }
 
           this.jsDownloader = new JsHttpDownloader();
