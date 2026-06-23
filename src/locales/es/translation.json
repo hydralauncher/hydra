@@ -1152,11 +1152,13 @@
     "remove_emulator_description": "Hydra olvidará la ruta de {{name}} y todas las carpetas de ROMs mapeadas. El emulador y tus archivos ROM permanecen en el disco. Puedes volver a ejecutar la configuración después.",
     "big_picture": "Big Picture",
     "big_picture_startup": "Inicio",
+    "big_picture_behavior": "Comportamiento",
     "big_picture_audio": "Audio",
     "big_picture_input": "Entrada",
     "big_picture_diagnostics": "Diagnóstico",
     "big_picture_enable_sounds": "Activar sonidos de Big Picture",
     "big_picture_enable_virtual_keyboard": "Activar teclado virtual",
+    "big_picture_restore_focus_on_game_close": "Restore Big Picture focus after closing a game",
     "big_picture_enable_diagnostics": "Activar diagnóstico de navegación",
     "big_picture_diagnostics_position": "Posición del diagnóstico"
   },

@@ -1199,11 +1199,13 @@
     "remove_emulator_description": "Hydra will forget the {{name}} path and all mapped ROM folders. The emulator itself and your ROM files stay on disk. You can re-run setup afterwards.",
     "big_picture": "Big Picture",
     "big_picture_startup": "Startup",
+    "big_picture_behavior": "Behavior",
     "big_picture_audio": "Audio",
     "big_picture_input": "Input",
     "big_picture_diagnostics": "Diagnostics",
     "big_picture_enable_sounds": "Enable Big Picture sounds",
     "big_picture_enable_virtual_keyboard": "Enable Big Picture virtual keyboard",
+    "big_picture_restore_focus_on_game_close": "Restore Big Picture focus after closing a game",
     "big_picture_enable_diagnostics": "Enable navigation diagnostics",
     "big_picture_diagnostics_position": "Diagnostics position"
   },

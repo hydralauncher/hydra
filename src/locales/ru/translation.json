@@ -1201,11 +1201,13 @@
     "remove_emulator_description": "Hydra забудет путь к {{name}} и все сопоставленные папки ROM. Сам эмулятор и ваши файлы ROM останутся на диске. Вы сможете повторно запустить настройку позже.",
     "big_picture": "Big Picture",
     "big_picture_startup": "Запуск",
+    "big_picture_behavior": "Поведение",
     "big_picture_audio": "Звук",
     "big_picture_input": "Ввод",
     "big_picture_diagnostics": "Диагностика",
     "big_picture_enable_sounds": "Включить звуки Big Picture",
     "big_picture_enable_virtual_keyboard": "Включить виртуальную клавиатуру",
+    "big_picture_restore_focus_on_game_close": "Restore Big Picture focus after closing a game",
     "big_picture_enable_diagnostics": "Включить диагностику",
     "big_picture_diagnostics_position": "Положение диагностики"
   },

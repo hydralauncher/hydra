@@ -805,11 +805,13 @@
     "create_torbox_account": "Clica aqui se ainda não tens uma conta do TorBox",
     "big_picture": "Big Picture",
     "big_picture_startup": "Inicialização",
+    "big_picture_behavior": "Comportamento",
     "big_picture_audio": "Áudio",
     "big_picture_input": "Entrada",
     "big_picture_diagnostics": "Diagnóstico",
     "big_picture_enable_sounds": "Ativar sons do Big Picture",
     "big_picture_enable_virtual_keyboard": "Ativar teclado virtual",
+    "big_picture_restore_focus_on_game_close": "Restore Big Picture focus after closing a game",
     "big_picture_enable_diagnostics": "Ativar diagnóstico de navegação",
     "big_picture_diagnostics_position": "Posição do diagnóstico"
   },

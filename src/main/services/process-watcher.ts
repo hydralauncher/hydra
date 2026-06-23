@@ -466,6 +466,18 @@ function onTickGame(game: Game) {
   }
 }
 
+const restoreBigPictureFocusOnGameCloseIfEnabled = () =>
+  db
+    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    })
+    .then((userPreferences) => {
+      if (!userPreferences?.restoreBigPictureFocusOnGameClose) return;
+
+      WindowManager.focusBigPictureIfOpen();
+    })
+    .catch(() => {});
+
 const onCloseGame = (game: Game) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
   const now = performance.now();
@@ -491,6 +503,8 @@ const onCloseGame = (game: Game) => {
   };
 
   gamesSublevel.put(gameKey, updatedGame);
+
+  void restoreBigPictureFocusOnGameCloseIfEnabled();
 
   if (game.shop === "custom") return;
 
