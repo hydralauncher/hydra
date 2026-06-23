@@ -1,0 +1,66 @@
+@use "../../scss/globals.scss";
+
+$auth-title-bar-height: 34px;
+
+.auth-window {
+  height: 100vh;
+  box-sizing: border-box;
+  border: 1px solid globals.$border-color;
+  background-color: globals.$dark-background-color;
+  overflow: hidden;
+
+  &__title-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: $auth-title-bar-height;
+    min-height: $auth-title-bar-height;
+    padding: 0 0 0 calc(globals.$spacing-unit * 2);
+    background-color: globals.$dark-background-color;
+    border-bottom: 1px solid globals.$border-color;
+    -webkit-app-region: drag;
+    z-index: globals.$title-bar-z-index;
+
+    h4 {
+      margin: 0;
+      font-size: globals.$small-font-size;
+      font-weight: 500;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__window-controls {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-left: auto;
+    -webkit-app-region: no-drag;
+  }
+
+  &__window-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background-color: #606060;
+      color: #dadbe1;
+    }
+
+    &--close:hover {
+      background-color: globals.$error-color;
+      color: #ffffff;
+    }
+  }
+}

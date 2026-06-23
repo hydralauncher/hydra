@@ -802,7 +802,16 @@
     "debrid": "Debrid",
     "debrid_description": "Serviços Debrid são transferidores premium sem restrições que permitem transferir rapidamente ficheiros alojados em vários serviços de alojamento de ficheiros, limitados apenas pela velocidade de internet.",
     "create_real_debrid_account": "Clica aqui se ainda não tens uma conta do Real-Debrid",
-    "create_torbox_account": "Clica aqui se ainda não tens uma conta do TorBox"
+    "create_torbox_account": "Clica aqui se ainda não tens uma conta do TorBox",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Inicialização",
+    "big_picture_audio": "Áudio",
+    "big_picture_input": "Entrada",
+    "big_picture_diagnostics": "Diagnóstico",
+    "big_picture_enable_sounds": "Ativar sons do Big Picture",
+    "big_picture_enable_virtual_keyboard": "Ativar teclado virtual",
+    "big_picture_enable_diagnostics": "Ativar diagnóstico de navegação",
+    "big_picture_diagnostics_position": "Posição do diagnóstico"
   },
   "notifications": {
     "download_complete": "Transferência concluída",

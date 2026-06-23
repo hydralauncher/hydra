@@ -27,7 +27,7 @@ import {
   GameDetailsContext,
   GameOptionsCategoryId,
 } from "./game-details.context.types";
-import { SteamContentDescriptor } from "@shared";
+import { getGameExecutableFilters, SteamContentDescriptor } from "@shared";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
@@ -420,23 +420,13 @@ export function GameDetailsContextProvider({
   const selectGameExecutable = async () => {
     const downloadsPath = await getDownloadsPath();
 
-    const filters =
-      window.electron.platform === "linux"
-        ? [
-            {
-              name: t("game_executable"),
-              extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
-            },
-            { name: t("all_files"), extensions: ["*"] },
-          ]
-        : window.electron.platform === "darwin"
-          ? [{ name: t("game_executable"), extensions: ["app"] }]
-          : [
-              {
-                name: t("game_executable"),
-                extensions: ["exe", "lnk", "bat", "cmd"],
-              },
-            ];
+    const filters = getGameExecutableFilters(
+      globalThis.window.electron.platform,
+      {
+        executable: t("game_executable"),
+        allFiles: t("all_files"),
+      }
+    );
 
     return window.electron
       .showOpenDialog({
