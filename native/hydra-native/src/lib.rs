@@ -424,10 +424,8 @@ pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
     use std::ptr;
 
     use windows_sys::Win32::Foundation::{FALSE, HWND, TRUE};
-    use windows_sys::Win32::System::Threading::GetCurrentThreadId;
-    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-        AttachThreadInput, SetFocus,
-    };
+    use windows_sys::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::SetFocus;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId, IsIconic,
         IsWindow, SetForegroundWindow, SetWindowPos, ShowWindow,
