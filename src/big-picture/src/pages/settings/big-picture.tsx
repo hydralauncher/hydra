@@ -10,11 +10,11 @@ import { useUserPreferences } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import {
   BIG_PICTURE_AUDIO_SECTION_REGION_ID,
+  BIG_PICTURE_BEHAVIOR_SECTION_REGION_ID,
   BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID,
   BIG_PICTURE_DIAGNOSTICS_SECTION_REGION_ID,
   BIG_PICTURE_ITEM_FOCUS_IDS,
   BIG_PICTURE_SECTION_REGION_ID,
-  BIG_PICTURE_STARTUP_SECTION_REGION_ID,
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
@@ -29,6 +29,7 @@ interface BigPictureForm {
   bigPictureVirtualKeyboardEnabled: boolean;
   bigPictureDiagnosticsEnabled: boolean;
   bigPictureDiagnosticsPosition: BigPictureDiagnosticsPosition;
+  restoreBigPictureFocusOnGameClose: boolean;
 }
 
 interface BigPictureItem {
@@ -45,13 +46,14 @@ const DEFAULT_FORM: BigPictureForm = {
   bigPictureVirtualKeyboardEnabled: true,
   bigPictureDiagnosticsEnabled: false,
   bigPictureDiagnosticsPosition: "bottom-center",
+  restoreBigPictureFocusOnGameClose: false,
 };
 
 function getPositionLabel(
   position: BigPictureDiagnosticsPosition,
   t: (key: string) => string
 ) {
-  return t(`settings_diagnostics_position_${position.replace(/-/g, "_")}`);
+  return t(`settings_diagnostics_position_${position.replaceAll("-", "_")}`);
 }
 
 export function BigPictureSettingsSection({
@@ -73,6 +75,8 @@ export function BigPictureSettingsSection({
         userPreferences.bigPictureDiagnosticsEnabled ?? false,
       bigPictureDiagnosticsPosition:
         userPreferences.bigPictureDiagnosticsPosition ?? "bottom-center",
+      restoreBigPictureFocusOnGameClose:
+        userPreferences.restoreBigPictureFocusOnGameClose ?? false,
     });
   }, [userPreferences]);
 
@@ -113,6 +117,13 @@ export function BigPictureSettingsSection({
     [updateUserPreferences]
   );
 
+  const handleRestoreFocusOnGameCloseChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ restoreBigPictureFocusOnGameClose: checked });
+    },
+    [updateUserPreferences]
+  );
+
   const handleDiagnosticsPositionChange = useCallback(
     (position: BigPictureDiagnosticsPosition) => {
       updateUserPreferences({ bigPictureDiagnosticsPosition: position });
@@ -120,7 +131,7 @@ export function BigPictureSettingsSection({
     [updateUserPreferences]
   );
 
-  const startupItems = useMemo<BigPictureItem[]>(() => {
+  const behaviorItems = useMemo<BigPictureItem[]>(() => {
     return [
       {
         id: "launch-in-big-picture",
@@ -129,8 +140,21 @@ export function BigPictureSettingsSection({
         checked: form.launchInBigPicture,
         onChange: handleLaunchInBigPictureChange,
       },
+      {
+        id: "restore-focus-on-game-close",
+        focusId: BIG_PICTURE_ITEM_FOCUS_IDS.restoreFocusOnGameClose,
+        label: t("settings_restore_big_picture_focus_on_game_close"),
+        checked: form.restoreBigPictureFocusOnGameClose,
+        onChange: handleRestoreFocusOnGameCloseChange,
+      },
     ];
-  }, [form.launchInBigPicture, handleLaunchInBigPictureChange]);
+  }, [
+    form.launchInBigPicture,
+    form.restoreBigPictureFocusOnGameClose,
+    handleLaunchInBigPictureChange,
+    handleRestoreFocusOnGameCloseChange,
+    t,
+  ]);
 
   const inputItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -142,7 +166,7 @@ export function BigPictureSettingsSection({
         onChange: handleVirtualKeyboardChange,
       },
     ];
-  }, [form.bigPictureVirtualKeyboardEnabled, handleVirtualKeyboardChange]);
+  }, [form.bigPictureVirtualKeyboardEnabled, handleVirtualKeyboardChange, t]);
 
   const audioItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -154,7 +178,7 @@ export function BigPictureSettingsSection({
         onChange: handleBigPictureSoundsChange,
       },
     ];
-  }, [form.bigPictureSoundsEnabled, handleBigPictureSoundsChange]);
+  }, [form.bigPictureSoundsEnabled, handleBigPictureSoundsChange, t]);
 
   const diagnosticsItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -166,7 +190,7 @@ export function BigPictureSettingsSection({
         onChange: handleDiagnosticsEnabledChange,
       },
     ];
-  }, [form.bigPictureDiagnosticsEnabled, handleDiagnosticsEnabledChange]);
+  }, [form.bigPictureDiagnosticsEnabled, handleDiagnosticsEnabledChange, t]);
 
   const diagnosticsPositionOptions = useMemo<
     Array<DropdownSelectOption<BigPictureDiagnosticsPosition>>
@@ -184,7 +208,7 @@ export function BigPictureSettingsSection({
       value: position,
       label: getPositionLabel(position, t),
     }));
-  }, []);
+  }, [t]);
 
   const inputNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -228,7 +252,7 @@ export function BigPictureSettingsSection({
   >(() => {
     const previousFallback: FocusOverrideTarget = {
       type: "item",
-      itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
+      itemId: BIG_PICTURE_ITEM_FOCUS_IDS.restoreFocusOnGameClose,
     };
 
     return Object.fromEntries(
@@ -260,13 +284,13 @@ export function BigPictureSettingsSection({
     );
   }, [audioItems]);
 
-  const startupNavigationOverridesByFocusId = useMemo<
+  const behaviorNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
   >(() => {
     return Object.fromEntries(
-      startupItems.map((item, index) => {
-        const previousItem = startupItems[index - 1];
-        const nextItem = startupItems[index + 1];
+      behaviorItems.map((item, index) => {
+        const previousItem = behaviorItems[index - 1];
+        const nextItem = behaviorItems[index + 1];
 
         return [
           item.focusId,
@@ -290,7 +314,7 @@ export function BigPictureSettingsSection({
         ];
       })
     );
-  }, [startupItems]);
+  }, [behaviorItems]);
 
   const diagnosticsNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -354,15 +378,15 @@ export function BigPictureSettingsSection({
       }
     >
       <SettingsSection
-        title={t("settings_startup_section_title")}
-        description={t("settings_startup_section_description")}
+        title={t("settings_behavior_section_title")}
+        description={t("settings_behavior_section_description")}
       >
         <VerticalFocusGroup
-          regionId={BIG_PICTURE_STARTUP_SECTION_REGION_ID}
+          regionId={BIG_PICTURE_BEHAVIOR_SECTION_REGION_ID}
           asChild
         >
           <div className="big-picture-settings-section__content">
-            {startupItems.map((item) => (
+            {behaviorItems.map((item) => (
               <Checkbox
                 key={item.id}
                 id={item.id}
@@ -370,7 +394,7 @@ export function BigPictureSettingsSection({
                 checked={item.checked}
                 focusId={item.focusId}
                 navigationOverrides={
-                  startupNavigationOverridesByFocusId[item.focusId]
+                  behaviorNavigationOverridesByFocusId[item.focusId]
                 }
                 block
                 onChange={item.onChange}

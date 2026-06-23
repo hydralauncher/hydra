@@ -21,6 +21,7 @@ export function SettingsContextBigPicture() {
     bigPictureDiagnosticsEnabled: false,
     bigPictureDiagnosticsPosition:
       "bottom-center" as BigPictureDiagnosticsPosition,
+    restoreBigPictureFocusOnGameClose: false,
   });
 
   useEffect(() => {
@@ -35,6 +36,8 @@ export function SettingsContextBigPicture() {
         userPreferences.bigPictureDiagnosticsEnabled ?? false,
       bigPictureDiagnosticsPosition:
         userPreferences.bigPictureDiagnosticsPosition ?? "bottom-center",
+      restoreBigPictureFocusOnGameClose:
+        userPreferences.restoreBigPictureFocusOnGameClose ?? false,
     });
   }, [userPreferences]);
 
@@ -65,7 +68,7 @@ export function SettingsContextBigPicture() {
   return (
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
-        <h3>{t("big_picture_startup")}</h3>
+        <h3>{t("big_picture_behavior")}</h3>
 
         <CheckboxField
           label={t("launch_hydra_in_big_picture")}
@@ -73,6 +76,17 @@ export function SettingsContextBigPicture() {
           onChange={() =>
             handleChange({
               launchInBigPicture: !form.launchInBigPicture,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("big_picture_restore_focus_on_game_close")}
+          checked={form.restoreBigPictureFocusOnGameClose}
+          onChange={() =>
+            handleChange({
+              restoreBigPictureFocusOnGameClose:
+                !form.restoreBigPictureFocusOnGameClose,
             })
           }
         />

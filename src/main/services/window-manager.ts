@@ -489,6 +489,17 @@ export class WindowManager {
     }
   }
 
+  public static focusBigPictureIfOpen() {
+    const bigPicture = this.bigPicture;
+
+    if (!bigPicture || bigPicture.isDestroyed()) return;
+
+    if (bigPicture.isMinimized()) bigPicture.restore();
+
+    bigPicture.show();
+    bigPicture.focus();
+  }
+
   public static isMainWindowMaximized() {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) return false;
     return this.mainWindow.isMaximized();

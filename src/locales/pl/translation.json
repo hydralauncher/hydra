@@ -862,11 +862,13 @@
     "compatibility": "Kompatybilność",
     "big_picture": "Big Picture",
     "big_picture_startup": "Uruchamianie",
+    "big_picture_behavior": "Behavior",
     "big_picture_audio": "Audio",
     "big_picture_input": "Wejście",
     "big_picture_diagnostics": "Diagnostyka",
     "big_picture_enable_sounds": "Włącz dźwięki Big Picture",
     "big_picture_enable_virtual_keyboard": "Włącz wirtualną klawiaturę",
+    "big_picture_restore_focus_on_game_close": "Restore Big Picture focus after closing a game",
     "big_picture_enable_diagnostics": "Włącz diagnostykę nawigacji",
     "big_picture_diagnostics_position": "Pozycja diagnostyki"
   },

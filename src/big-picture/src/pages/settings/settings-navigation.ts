@@ -31,8 +31,8 @@ export const NOTIFICATIONS_ACHIEVEMENTS_TEST_BUTTON_ID =
   "notifications-achievements-test-button";
 export const CONTENT_SECTION_REGION_ID = "content-section-region";
 export const BIG_PICTURE_SECTION_REGION_ID = "big-picture-section-region";
-export const BIG_PICTURE_STARTUP_SECTION_REGION_ID =
-  "big-picture-startup-section-region";
+export const BIG_PICTURE_BEHAVIOR_SECTION_REGION_ID =
+  "big-picture-behavior-section-region";
 export const BIG_PICTURE_AUDIO_SECTION_REGION_ID =
   "big-picture-audio-section-region";
 export const BIG_PICTURE_DIAGNOSTICS_SECTION_REGION_ID =
@@ -137,6 +137,7 @@ export const BIG_PICTURE_ITEM_FOCUS_IDS = {
   enableSounds: "big-picture-enable-sounds",
   enableVirtualKeyboard: "big-picture-enable-virtual-keyboard",
   enableDiagnostics: "big-picture-enable-diagnostics",
+  restoreFocusOnGameClose: "big-picture-restore-focus-on-game-close",
 } as const;
 
 export const COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID =

@@ -187,6 +187,7 @@ export interface UserPreferences {
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
+  restoreBigPictureFocusOnGameClose?: boolean;
 }
 
 export interface ScreenState {

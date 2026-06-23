@@ -859,11 +859,13 @@
     "default_proton_version_description": "Pilih versi Proton yang digunakan oleh mode Otomatis saat game tidak memiliki pengaturan kustom",
     "big_picture": "Big Picture",
     "big_picture_startup": "Mulai",
+    "big_picture_behavior": "Behavior",
     "big_picture_audio": "Audio",
     "big_picture_input": "Masukan",
     "big_picture_diagnostics": "Diagnostik",
     "big_picture_enable_sounds": "Aktifkan suara Big Picture",
     "big_picture_enable_virtual_keyboard": "Aktifkan papan ketik virtual",
+    "big_picture_restore_focus_on_game_close": "Restore Big Picture focus after closing a game",
     "big_picture_enable_diagnostics": "Aktifkan diagnostik navigasi",
     "big_picture_diagnostics_position": "Posisi diagnostik"
   },
