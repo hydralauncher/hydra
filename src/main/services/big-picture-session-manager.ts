@@ -90,6 +90,20 @@ export class BigPictureSessionManager {
     }
   }
 
+  public static async applyAudioPreference(userPreferences: UserPreferences) {
+    if (!this.snapshot) {
+      return false;
+    }
+
+    const targetAudioDeviceId =
+      userPreferences.bigPictureSoundsEnabled === false
+        ? this.snapshot.defaultAudioDeviceId
+        : (userPreferences.bigPictureAudioDeviceId ??
+          this.snapshot.defaultAudioDeviceId);
+
+    return AudioDeviceManager.setDefaultAudioDevice(targetAudioDeviceId);
+  }
+
   public static async restore() {
     const snapshot = this.snapshot;
     this.snapshot = null;

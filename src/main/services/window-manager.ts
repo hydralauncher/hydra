@@ -136,6 +136,61 @@ export class WindowManager {
     main.setSkipTaskbar(false);
   }
 
+  private static placeBigPictureWindowOnDisplay(
+    window: BrowserWindow,
+    display: Electron.Display
+  ) {
+    const targetBounds =
+      process.platform === "linux" ? display.workArea : display.bounds;
+
+    window.setBounds(
+      {
+        x: targetBounds.x,
+        y: targetBounds.y,
+        width: targetBounds.width,
+        height: targetBounds.height,
+      },
+      false
+    );
+    window.setPosition(targetBounds.x, targetBounds.y, false);
+    window.setSize(targetBounds.width, targetBounds.height, false);
+  }
+
+  private static useNativeBigPictureFullscreen() {
+    return process.platform !== "linux";
+  }
+
+  private static presentBigPictureWindow(
+    window: BrowserWindow,
+    display: Electron.Display
+  ) {
+    this.placeBigPictureWindowOnDisplay(window, display);
+
+    if (this.useNativeBigPictureFullscreen()) {
+      window.setFullScreen(true);
+      return;
+    }
+
+    window.setVisibleOnAllWorkspaces(false);
+    this.placeBigPictureWindowOnDisplay(window, display);
+  }
+
+  private static scheduleBigPictureWindowPlacement(display: Electron.Display) {
+    if (process.platform !== "linux") return;
+
+    for (const delayMs of [100, 500, 1_000, 2_000]) {
+      setTimeout(() => {
+        if (!this.bigPicture || this.bigPicture.isDestroyed()) {
+          return;
+        }
+
+        this.placeBigPictureWindowOnDisplay(this.bigPicture, display);
+        this.bigPicture.moveTop();
+        this.bigPicture.focus();
+      }, delayMs);
+    }
+  }
+
   public static sendToAppWindows(channel: string, ...args: unknown[]) {
     const windows = [this.mainWindow, this.bigPicture, this.friendsWindow];
 
@@ -342,6 +397,7 @@ export class WindowManager {
 
   public static async openBigPictureWindow() {
     if (this.bigPicture) {
+      await this.applyBigPictureDisplayPreference();
       this.bigPicture.focus();
       return;
     }
@@ -354,7 +410,10 @@ export class WindowManager {
 
     await BigPictureSessionManager.apply();
     const targetDisplay = await DisplayManager.getBigPictureDisplay();
-    const targetBounds = targetDisplay.bounds;
+    const targetBounds =
+      process.platform === "linux"
+        ? targetDisplay.workArea
+        : targetDisplay.bounds;
 
     this.bigPicture = new BrowserWindow({
       x: targetBounds.x,
@@ -389,8 +448,17 @@ export class WindowManager {
         main.setOpacity(1);
         this.disableMainWindowWhileBigPictureIsOpen();
       }
-      this.bigPicture?.show();
-      this.bigPicture?.setFullScreen(true);
+
+      if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+        this.placeBigPictureWindowOnDisplay(this.bigPicture, targetDisplay);
+      }
+
+      if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+        this.bigPicture.show();
+        this.placeBigPictureWindowOnDisplay(this.bigPicture, targetDisplay);
+        this.presentBigPictureWindow(this.bigPicture, targetDisplay);
+        this.scheduleBigPictureWindowPlacement(targetDisplay);
+      }
       this.bigPicture?.focus();
     });
 
@@ -411,6 +479,31 @@ export class WindowManager {
         logger.warn("Failed to restore Big Picture session settings", error);
       });
     });
+  }
+
+  public static async applyBigPictureDisplayPreference() {
+    if (!this.bigPicture || this.bigPicture.isDestroyed()) {
+      return;
+    }
+
+    const targetDisplay = await DisplayManager.getBigPictureDisplay();
+    const wasFullScreen = this.bigPicture.isFullScreen();
+
+    if (wasFullScreen) {
+      this.bigPicture.setFullScreen(false);
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+
+    this.presentBigPictureWindow(this.bigPicture, targetDisplay);
+    this.scheduleBigPictureWindowPlacement(targetDisplay);
+
+    if (wasFullScreen && this.useNativeBigPictureFullscreen()) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      this.placeBigPictureWindowOnDisplay(this.bigPicture, targetDisplay);
+    }
+
+    this.bigPicture.show();
+    this.bigPicture.focus();
   }
 
   public static openFriendsWindow() {

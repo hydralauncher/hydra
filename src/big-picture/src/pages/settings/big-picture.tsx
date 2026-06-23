@@ -141,6 +141,10 @@ export function BigPictureSettingsSection({
 
   const handleBigPictureDisplayChange = useCallback(
     async (displayId: string) => {
+      const selectedDisplay = displays.find(
+        (display) => display.id === displayId
+      );
+
       setForm((current) => ({
         ...current,
         bigPictureDisplayId: displayId,
@@ -149,9 +153,10 @@ export function BigPictureSettingsSection({
       await globalThis.window.electron.updateUserPreferences({
         bigPictureDisplayId:
           displayId === DEFAULT_BIG_PICTURE_DISPLAY_ID ? null : displayId,
+        bigPictureDisplayBounds: selectedDisplay?.bounds ?? null,
       });
     },
-    []
+    [displays]
   );
 
   const handleBigPictureAudioDeviceChange = useCallback(
@@ -335,7 +340,9 @@ export function BigPictureSettingsSection({
   >(() => {
     const previousFallback: FocusOverrideTarget = {
       type: "item",
-      itemId: BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID,
+      itemId: form.bigPictureSoundsEnabled
+        ? BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID
+        : BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
     };
 
     return Object.fromEntries(
@@ -365,14 +372,16 @@ export function BigPictureSettingsSection({
         ];
       })
     );
-  }, [inputItems]);
+  }, [form.bigPictureSoundsEnabled, inputItems]);
 
   const audioNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
   >(() => {
     const previousFallback: FocusOverrideTarget = {
       type: "item",
-      itemId: BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID,
+      itemId: form.launchInBigPicture
+        ? BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID
+        : BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
     };
 
     return Object.fromEntries(
@@ -396,13 +405,15 @@ export function BigPictureSettingsSection({
                 }
               : {
                   type: "item",
-                  itemId: BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID,
+                  itemId: form.bigPictureSoundsEnabled
+                    ? BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID
+                    : BIG_PICTURE_ITEM_FOCUS_IDS.enableVirtualKeyboard,
                 },
           } satisfies FocusOverrides,
         ];
       })
     );
-  }, [audioItems]);
+  }, [audioItems, form.bigPictureSoundsEnabled, form.launchInBigPicture]);
 
   const startupNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -428,13 +439,15 @@ export function BigPictureSettingsSection({
                 }
               : {
                   type: "item",
-                  itemId: BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID,
+                  itemId: form.launchInBigPicture
+                    ? BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID
+                    : BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
                 },
           } satisfies FocusOverrides,
         ];
       })
     );
-  }, [startupItems]);
+  }, [form.launchInBigPicture, startupItems]);
 
   const diagnosticsNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -554,6 +567,7 @@ export function BigPictureSettingsSection({
               label={t("settings_big_picture_launching_monitor")}
               value={form.bigPictureDisplayId}
               options={displayOptions}
+              disabled={!form.launchInBigPicture}
               focusId={BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID}
               focusNavigationOverrides={displaySelectNavigationOverrides}
               onValueChange={handleBigPictureDisplayChange}
@@ -591,6 +605,7 @@ export function BigPictureSettingsSection({
               label={t("settings_big_picture_output_device")}
               value={form.bigPictureAudioDeviceId}
               options={audioDeviceOptions}
+              disabled={!form.bigPictureSoundsEnabled}
               focusId={BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID}
               focusNavigationOverrides={audioDeviceSelectNavigationOverrides}
               onValueChange={handleBigPictureAudioDeviceChange}
