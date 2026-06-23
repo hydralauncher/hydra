@@ -372,7 +372,10 @@ export function useBigPictureDownloadsPageData() {
             ? `Retrying in ${stallRetrySeconds}s`
             : "Reconnecting…";
       } else {
-        speedLabel = formatSpeed(lastPacket?.downloadSpeed ?? 0, userPreferences);
+        speedLabel = formatSpeed(
+          lastPacket?.downloadSpeed ?? 0,
+          userPreferences
+        );
       }
     }
 
