@@ -424,12 +424,11 @@ pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
     use std::ptr;
 
     use windows_sys::Win32::Foundation::{BOOL, FALSE, HWND, TRUE};
-    use windows_sys::Win32::System::Threading::{
-        AttachThreadInput, GetCurrentThreadId,
-    };
+    use windows_sys::Win32::System::Threading::GetCurrentThreadId;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId, IsIconic,
-        IsWindow, SetFocus, SetForegroundWindow, SetWindowPos, ShowWindow,
+        AttachThreadInput, BringWindowToTop, GetForegroundWindow,
+        GetWindowThreadProcessId, IsIconic, IsWindow, SetFocus, SetForegroundWindow,
+        SetWindowPos, ShowWindow,
         HWND_NOTOPMOST, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, SWP_SHOWWINDOW,
         SW_RESTORE, SW_SHOW,
     };
@@ -530,22 +529,6 @@ pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
 pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
     use std::ptr;
 
-    let is_wayland = std::env::var("WAYLAND_DISPLAY").is_ok()
-        || std::env::var("XDG_SESSION_TYPE")
-            .map(|v| v == "wayland")
-            .unwrap_or(false);
-
-    if is_wayland {
-        return NativeWindowFocusResult {
-            platform: "linux".to_string(),
-            status: "unsupported-wayland".to_string(),
-            focused: false,
-            message: Some(
-                "Wayland does not allow programmatic window focus".to_string(),
-            ),
-        };
-    }
-
     let xid = if native_handle.len() >= std::mem::size_of::<std::ffi::c_ulong>() {
         unsafe { *(native_handle.as_ptr() as *const std::ffi::c_ulong) }
     } else {
@@ -566,8 +549,32 @@ pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
         };
     }
 
+    let xlib = match x11_dl::xlib::Xlib::open() {
+        Ok(lib) => lib,
+        Err(_) => {
+            let is_wayland = std::env::var("WAYLAND_DISPLAY").is_ok()
+                || std::env::var("XDG_SESSION_TYPE")
+                    .map(|v| v == "wayland")
+                    .unwrap_or(false);
+
+            return NativeWindowFocusResult {
+                platform: "linux".to_string(),
+                status: if is_wayland {
+                    "unsupported-wayland"
+                } else {
+                    "failed"
+                }
+                .to_string(),
+                focused: false,
+                message: Some(
+                    "XOpenDisplay failed — no X11 display available".to_string(),
+                ),
+            };
+        }
+    };
+
     unsafe {
-        let display = x11::xlib::XOpenDisplay(ptr::null());
+        let display = (xlib.XOpenDisplay)(ptr::null());
         if display.is_null() {
             return NativeWindowFocusResult {
                 platform: "linux".to_string(),
@@ -577,17 +584,20 @@ pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
             };
         }
 
-        x11::xlib::XRaiseWindow(display, xid);
-        x11::xlib::XSetInputFocus(display, xid, x11::xlib::RevertToPointerRoot, 0);
-        x11::xlib::XFlush(display);
-        x11::xlib::XCloseDisplay(display);
+        (xlib.XRaiseWindow)(display, xid);
+        (xlib.XSetInputFocus)(display, xid, x11_dl::xlib::RevertToPointerRoot, 0);
+        (xlib.XFlush)(display);
+        (xlib.XCloseDisplay)(display);
     }
 
     NativeWindowFocusResult {
         platform: "linux".to_string(),
         status: "raised".to_string(),
         focused: false,
-        message: Some("X11 API called but window manager may have ignored focus request".to_string()),
+        message: Some(
+            "X11 API called but window manager may have ignored focus request"
+                .to_string(),
+        ),
     }
 }
 

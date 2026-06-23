@@ -23,7 +23,7 @@ windows-sys = { version = "0.61", features = [
 ] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-x11 = { version = "2", features = ["xlib"] }
+x11-dl = "2"
 
 [build-dependencies]
 napi-build = "2.3.1"
