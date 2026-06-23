@@ -46,7 +46,7 @@ const DEFAULT_FORM: BigPictureForm = {
   bigPictureVirtualKeyboardEnabled: true,
   bigPictureDiagnosticsEnabled: false,
   bigPictureDiagnosticsPosition: "bottom-center",
-  restoreBigPictureFocusOnGameClose: false,
+  restoreBigPictureFocusOnGameClose: true,
 };
 
 function getPositionLabel(
@@ -76,7 +76,7 @@ export function BigPictureSettingsSection({
       bigPictureDiagnosticsPosition:
         userPreferences.bigPictureDiagnosticsPosition ?? "bottom-center",
       restoreBigPictureFocusOnGameClose:
-        userPreferences.restoreBigPictureFocusOnGameClose ?? false,
+        userPreferences.restoreBigPictureFocusOnGameClose ?? true,
     });
   }, [userPreferences]);
 

@@ -9,7 +9,7 @@ export const restoreBigPictureFocusOnGameCloseIfEnabled = () => {
       valueEncoding: "json",
     })
     .then((userPreferences) => {
-      if (!userPreferences?.restoreBigPictureFocusOnGameClose) return;
+      if (userPreferences?.restoreBigPictureFocusOnGameClose === false) return;
 
       WindowManager.focusBigPictureIfOpen();
     })

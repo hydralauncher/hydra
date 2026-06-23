@@ -21,7 +21,7 @@ export function SettingsContextBigPicture() {
     bigPictureDiagnosticsEnabled: false,
     bigPictureDiagnosticsPosition:
       "bottom-center" as BigPictureDiagnosticsPosition,
-    restoreBigPictureFocusOnGameClose: false,
+    restoreBigPictureFocusOnGameClose: true,
   });
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function SettingsContextBigPicture() {
       bigPictureDiagnosticsPosition:
         userPreferences.bigPictureDiagnosticsPosition ?? "bottom-center",
       restoreBigPictureFocusOnGameClose:
-        userPreferences.restoreBigPictureFocusOnGameClose ?? false,
+        userPreferences.restoreBigPictureFocusOnGameClose ?? true,
     });
   }, [userPreferences]);
 
