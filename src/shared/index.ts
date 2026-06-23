@@ -128,29 +128,52 @@ export const formatName = pipe<string>(
 );
 
 const realDebridHosts = ["https://1fichier.com", "https://mediafire.com"];
+const torboxHosts = [
+  "https://1fichier.com",
+  "https://www.mediafire.com",
+  "https://gofile.io",
+  "https://pixeldrain.com",
+  "https://vikingfile.com",
+];
 
 export const getDownloadersForUri = (uri: string) => {
-  if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
+  const downloaders: Downloader[] = [];
 
-  if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
-  if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
+  if (uri.startsWith("https://gofile.io")) downloaders.push(Downloader.Gofile);
+
+  if (uri.startsWith("https://pixeldrain.com"))
+    downloaders.push(Downloader.PixelDrain);
+  if (uri.startsWith("https://datanodes.to"))
+    downloaders.push(Downloader.Datanodes);
   if (uri.startsWith("https://www.mediafire.com"))
-    return [Downloader.Mediafire];
+    downloaders.push(Downloader.Mediafire);
+  if (
+    uri.startsWith("https://buzzheavier.com") ||
+    uri.startsWith("https://bzzhr.co") ||
+    uri.startsWith("https://fuckingfast.net")
+  ) {
+    downloaders.push(Downloader.Buzzheavier);
+  }
   if (uri.startsWith("https://fuckingfast.co")) {
-    return [Downloader.FuckingFast];
+    downloaders.push(Downloader.FuckingFast);
   }
   if (
     uri.startsWith("https://vikingfile.com") ||
     uri.startsWith("https://vik1ngfile.site")
   ) {
-    return [Downloader.VikingFile];
+    downloaders.push(Downloader.VikingFile);
   }
   if (uri.startsWith("https://www.rootz.so")) {
-    return [Downloader.Rootz];
+    downloaders.push(Downloader.Rootz);
   }
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
-    return [Downloader.RealDebrid];
+    downloaders.push(Downloader.RealDebrid);
+
+  if (torboxHosts.some((host) => uri.startsWith(host)))
+    downloaders.push(Downloader.TorBox);
+
+  if (downloaders.length) return Array.from(new Set(downloaders));
 
   if (uri.startsWith("magnet:")) {
     return [
