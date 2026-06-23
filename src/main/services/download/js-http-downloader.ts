@@ -353,7 +353,8 @@ export class JsHttpDownloader {
 
     const contentLength = response.headers.get("content-length");
     if (contentLength) {
-      this.fileSize = startByte + Number.parseInt(contentLength, 10);
+      const length = Number.parseInt(contentLength, 10);
+      this.fileSize = response.status === HTTP_OK ? length : startByte + length;
     }
   }
 
@@ -426,21 +427,18 @@ export class JsHttpDownloader {
       );
     }
 
-    let effectiveStartByte = startByte;
+    this.parseFileSize(response, startByte);
+
     const serverIgnoredRange = startByte > 0 && response.status === HTTP_OK;
+    const bytesToSkip = serverIgnoredRange ? startByte : 0;
     if (serverIgnoredRange) {
       logger.log(
-        "[JsHttpDownloader] Server ignored the Range header and returned the full file (HTTP 200). Restarting from the beginning to avoid an oversized, corrupt file."
+        `[JsHttpDownloader] Server ignored the Range header and returned the full file (HTTP 200). Discarding the first ${startByte} bytes from the response and appending to the existing partial instead of restarting.`
       );
-      effectiveStartByte = 0;
-      this.bytesDownloaded = 0;
-      this.resetSpeedTracking();
     }
 
-    this.parseFileSize(response, effectiveStartByte);
-
     let actualFilePath = filePath;
-    if (effectiveStartByte === 0) {
+    if (startByte === 0) {
       const urlDerivedFilename = path.basename(filePath);
       const headerFilename = this.parseContentDisposition(response);
       if (headerFilename) {
@@ -465,32 +463,17 @@ export class JsHttpDownloader {
       }
     }
 
-    if (
-      serverIgnoredRange &&
-      actualFilePath !== filePath &&
-      fs.existsSync(filePath)
-    ) {
-      try {
-        fs.unlinkSync(filePath);
-        logger.log(
-          `[JsHttpDownloader] Removed stale partial file after filename changed on restart: ${filePath}`
-        );
-      } catch (err) {
-        logger.error(
-          "[JsHttpDownloader] Failed to remove stale partial file on restart:",
-          err
-        );
-      }
-    }
-
     if (!response.body) {
       throw new Error("Response body is null");
     }
 
-    const flags = effectiveStartByte > 0 ? "a" : "w";
+    const flags = startByte > 0 ? "a" : "w";
     this.writeStream = fs.createWriteStream(actualFilePath, { flags });
 
-    const readableStream = this.createReadableStream(response.body.getReader());
+    const readableStream = this.createReadableStream(
+      response.body.getReader(),
+      bytesToSkip
+    );
     await pipeline(readableStream, this.writeStream);
 
     this.status = "complete";
@@ -549,9 +532,14 @@ export class JsHttpDownloader {
   }
 
   private createReadableStream(
-    reader: ReadableStreamDefaultReader<Uint8Array>
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    bytesToSkip = 0
   ): Readable {
     const applyThrottle = this.applyThrottle.bind(this);
+    let remainingToSkip = bytesToSkip;
+    const markActivity = () => {
+      this.lastDataReceivedAt = Date.now();
+    };
     const onChunk = (length: number) => {
       this.bytesDownloaded += length;
       this.lastDataReceivedAt = Date.now();
@@ -562,15 +550,29 @@ export class JsHttpDownloader {
       read() {
         void (async () => {
           try {
-            const { done, value } = await reader.read();
-            if (done) {
-              this.push(null);
-              return;
-            }
+            let pushed = false;
+            while (!pushed) {
+              const { done, value } = await reader.read();
+              if (done) {
+                this.push(null);
+                return;
+              }
 
-            await applyThrottle(value.length);
-            onChunk(value.length);
-            this.push(Buffer.from(value));
+              markActivity();
+              await applyThrottle(value.length);
+
+              if (remainingToSkip >= value.length) {
+                remainingToSkip -= value.length;
+                continue;
+              }
+
+              const chunk =
+                remainingToSkip > 0 ? value.subarray(remainingToSkip) : value;
+              remainingToSkip = 0;
+              onChunk(chunk.length);
+              this.push(Buffer.from(chunk));
+              pushed = true;
+            }
           } catch (err) {
             this.destroy(err as Error);
           }
