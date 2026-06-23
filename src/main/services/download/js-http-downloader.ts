@@ -27,6 +27,10 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 8000;
 const STALL_CHECK_INTERVAL_MS = 2000;
+const HTTP_OK = 200;
+const HTTP_PARTIAL_CONTENT = 206;
+const HTTP_RANGE_NOT_SATISFIABLE = 416;
+const HTTP_CLIENT_ERROR_THRESHOLD = 400;
 export const DEFAULT_DOWNLOAD_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
 
@@ -383,7 +387,7 @@ export class JsHttpDownloader {
       `[JsHttpDownloader] Response status=${response.status} content-type=${contentType} content-length=${contentLength}`
     );
 
-    if (response.status === 416 && startByte > 0) {
+    if (response.status === HTTP_RANGE_NOT_SATISFIABLE && startByte > 0) {
       const remoteTotalSize = this.parseTotalSizeFrom416(response);
 
       if (remoteTotalSize !== null && startByte === remoteTotalSize) {
@@ -404,11 +408,11 @@ export class JsHttpDownloader {
       );
     }
 
-    if (response.status >= 400) {
+    if (response.status >= HTTP_CLIENT_ERROR_THRESHOLD) {
       throw new HttpDownloadStatusError(response.status);
     }
 
-    if (!response.ok && response.status !== 206) {
+    if (!response.ok && response.status !== HTTP_PARTIAL_CONTENT) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
@@ -423,7 +427,8 @@ export class JsHttpDownloader {
     }
 
     let effectiveStartByte = startByte;
-    if (startByte > 0 && response.status === 200) {
+    const serverIgnoredRange = startByte > 0 && response.status === HTTP_OK;
+    if (serverIgnoredRange) {
       logger.log(
         "[JsHttpDownloader] Server ignored the Range header and returned the full file (HTTP 200). Restarting from the beginning to avoid an oversized, corrupt file."
       );
@@ -456,6 +461,24 @@ export class JsHttpDownloader {
       } else if (usedFallback) {
         logger.log(
           "[JsHttpDownloader] Content-Disposition filename not found, using fallback filename"
+        );
+      }
+    }
+
+    if (
+      serverIgnoredRange &&
+      actualFilePath !== filePath &&
+      fs.existsSync(filePath)
+    ) {
+      try {
+        fs.unlinkSync(filePath);
+        logger.log(
+          `[JsHttpDownloader] Removed stale partial file after filename changed on restart: ${filePath}`
+        );
+      } catch (err) {
+        logger.error(
+          "[JsHttpDownloader] Failed to remove stale partial file on restart:",
+          err
         );
       }
     }
