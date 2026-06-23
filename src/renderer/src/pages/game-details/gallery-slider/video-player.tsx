@@ -1,7 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PlayIcon } from "@primer/octicons-react";
 import { useHlsVideo } from "@shared";
+
+const PLAY_ICON_SIZE = 24;
 
 interface VideoPlayerProps {
   videoSrc?: string;
@@ -33,6 +35,10 @@ export function VideoPlayer({
   const isHls = videoType === "application/x-mpegURL";
 
   const [started, setStarted] = useState(!loadOnDemand);
+
+  useEffect(() => {
+    setStarted(!loadOnDemand);
+  }, [loadOnDemand]);
 
   useHlsVideo(videoRef, {
     videoSrc,
@@ -96,7 +102,7 @@ export function VideoPlayer({
           aria-label={t("play")}
         >
           <div className="gallery-slider__video-play-icon">
-            <PlayIcon size={24} />
+            <PlayIcon size={PLAY_ICON_SIZE} />
           </div>
         </button>
       )}
