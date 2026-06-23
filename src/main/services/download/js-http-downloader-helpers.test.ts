@@ -220,6 +220,13 @@ describe("isRetryableDownloadError", () => {
     const err = Object.assign(new Error("HTTP 403"), { retryable: false });
     assert.equal(isRetryableDownloadError(err), false);
   });
+
+  it("an explicit retryable:false overrides matching message fragments", () => {
+    const err = Object.assign(new Error("connection reset by peer"), {
+      retryable: false,
+    });
+    assert.equal(isRetryableDownloadError(err), false);
+  });
 });
 
 describe("isRetryableHttpStatus", () => {

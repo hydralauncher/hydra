@@ -1545,6 +1545,7 @@ export class DownloadManager {
     }
 
     const MAX_PREFLIGHT_ATTEMPTS = 3;
+    const PREFLIGHT_RETRY_BASE_DELAY_MS = 1000;
 
     for (let attempt = 1; ; attempt++) {
       const controller = new AbortController();
@@ -1573,7 +1574,9 @@ export class DownloadManager {
             logger.log(
               `[DownloadManager] Preflight got transient HTTP ${response.status}; retrying (${attempt}/${MAX_PREFLIGHT_ATTEMPTS})`
             );
-            await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+            await new Promise((resolve) =>
+              setTimeout(resolve, PREFLIGHT_RETRY_BASE_DELAY_MS * attempt)
+            );
             continue;
           }
 

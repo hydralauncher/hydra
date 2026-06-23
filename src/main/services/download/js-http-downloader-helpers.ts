@@ -44,7 +44,9 @@ export function isRetryableHttpStatus(status: number): boolean {
 export function isRetryableDownloadError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
 
-  if ((err as { retryable?: unknown }).retryable === true) return true;
+  const retryableFlag = (err as { retryable?: unknown }).retryable;
+  if (retryableFlag === true) return true;
+  if (retryableFlag === false) return false;
 
   const nodeError = err as NodeJS.ErrnoException;
   if (nodeError.code && RETRYABLE_ERROR_CODES.has(nodeError.code)) {
