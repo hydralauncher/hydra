@@ -39,6 +39,17 @@ describe("isRetryableDownloadError", () => {
     );
     assert.equal(isRetryableDownloadError(new Error("boom")), false);
   });
+
+  it("only matches the exact undici 'terminated' message, not substrings", () => {
+    assert.equal(
+      isRetryableDownloadError(new Error("Session terminated by user")),
+      false
+    );
+    assert.equal(
+      isRetryableDownloadError(new Error("Process terminated")),
+      false
+    );
+  });
 });
 
 describe("resolveResumeFilename", () => {
