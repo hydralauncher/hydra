@@ -1,5 +1,3 @@
-import path from "node:path";
-
 export const RETRYABLE_ERROR_CODES = new Set([
   "ECONNRESET",
   "ETIMEDOUT",
@@ -30,7 +28,7 @@ export function isRetryableDownloadError(err: Error): boolean {
     return true;
   }
 
-  const message = err.message.toLowerCase();
+  const message = err.message.toLowerCase().trim();
   return (
     message.includes("network") ||
     message.includes("socket") ||
@@ -40,7 +38,7 @@ export function isRetryableDownloadError(err: Error): boolean {
     message.includes("econnreset") ||
     message.includes("etimedout") ||
     message.includes("fetch failed") ||
-    message.includes("terminated")
+    message === "terminated"
   );
 }
 
@@ -80,13 +78,6 @@ export function shouldRestartFromIgnoredRange(
   responseStatus: number
 ): boolean {
   return startByte > 0 && responseStatus === 200;
-}
-
-export function resolveDownloadFilePath(
-  savePath: string,
-  filename: string
-): string {
-  return path.join(savePath, filename);
 }
 
 export function shouldResetRetryBudget(
