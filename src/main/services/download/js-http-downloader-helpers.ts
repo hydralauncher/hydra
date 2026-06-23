@@ -86,8 +86,11 @@ export function shouldResetRetryBudget(
   retryCount: number,
   bytesDownloaded: number,
   bytesAtAttemptStart: number,
-  thresholdBytes: number
+  thresholdBytes: number,
+  rangeIgnoredRestart: boolean
 ): boolean {
+  if (rangeIgnoredRestart) return false;
+
   return (
     retryCount > 0 && bytesDownloaded - bytesAtAttemptStart >= thresholdBytes
   );

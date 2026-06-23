@@ -114,16 +114,26 @@ describe("shouldResetRetryBudget", () => {
   const threshold = PROGRESS_RESET_THRESHOLD_BYTES;
 
   it("resets once enough fresh data has flowed after a retry", () => {
-    assert.equal(shouldResetRetryBudget(3, threshold, 0, threshold), true);
+    assert.equal(
+      shouldResetRetryBudget(3, threshold, 0, threshold, false),
+      true
+    );
   });
 
   it("does not reset before the progress threshold is crossed", () => {
-    assert.equal(shouldResetRetryBudget(3, 1024, 0, threshold), false);
+    assert.equal(shouldResetRetryBudget(3, 1024, 0, threshold, false), false);
   });
 
   it("never resets when no retry is in flight", () => {
     assert.equal(
-      shouldResetRetryBudget(0, threshold * 10, 0, threshold),
+      shouldResetRetryBudget(0, threshold * 10, 0, threshold, false),
+      false
+    );
+  });
+
+  it("does not reset on a range-ignored restart, even past the threshold (prevents an infinite restart loop)", () => {
+    assert.equal(
+      shouldResetRetryBudget(3, threshold * 10, 0, threshold, true),
       false
     );
   });

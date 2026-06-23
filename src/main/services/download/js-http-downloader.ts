@@ -62,6 +62,7 @@ export class JsHttpDownloader {
 
   private retryCount = 0;
   private bytesAtAttemptStart = 0;
+  private wasRangeIgnoredRestart = false;
   private lastDataReceivedAt = Date.now();
   private stallCheckInterval: NodeJS.Timeout | null = null;
   private isPaused = false;
@@ -94,6 +95,7 @@ export class JsHttpDownloader {
     this.isStallRetry = false;
     this.fileSize = 0;
     this.knownFilename = null;
+    this.wasRangeIgnoredRestart = false;
     this.resetThrottleWindow();
     await this.startDownloadWithRetry();
   }
@@ -417,8 +419,13 @@ export class JsHttpDownloader {
       );
     }
 
+    this.wasRangeIgnoredRestart = shouldRestartFromIgnoredRange(
+      startByte,
+      response.status
+    );
+
     let effectiveStartByte = startByte;
-    if (shouldRestartFromIgnoredRange(startByte, response.status)) {
+    if (this.wasRangeIgnoredRestart) {
       logger.log(
         "[JsHttpDownloader] Server ignored the Range request (HTTP 200 for a resumed download). " +
           "Restarting the file from byte 0 to avoid appending a duplicate stream."
@@ -537,7 +544,8 @@ export class JsHttpDownloader {
           this.retryCount,
           this.bytesDownloaded,
           this.bytesAtAttemptStart,
-          PROGRESS_RESET_THRESHOLD_BYTES
+          PROGRESS_RESET_THRESHOLD_BYTES,
+          this.wasRangeIgnoredRestart
         )
       ) {
         logger.log(
@@ -689,6 +697,8 @@ export class JsHttpDownloader {
     this.knownFilename = null;
     this.isDownloading = false;
     this.retryCount = 0;
+    this.bytesAtAttemptStart = 0;
+    this.wasRangeIgnoredRestart = false;
     this.isStallRetry = false;
     this.resetThrottleWindow();
   }
