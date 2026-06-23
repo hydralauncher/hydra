@@ -148,7 +148,6 @@ export function BigPictureSettingsSection({
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.restoreFocusOnGameClose,
         label: t("settings_restore_big_picture_focus_on_game_close"),
         checked: form.restoreBigPictureFocusOnGameClose,
-        disabled: isWayland,
         secondaryText: isWayland
           ? t("settings_restore_big_picture_focus_wayland_hint")
           : undefined,

@@ -4,19 +4,7 @@ import type { UserPreferences } from "@types";
 import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
 
-const isWayland =
-  process.platform === "linux" &&
-  (process.env.XDG_SESSION_TYPE === "wayland" ||
-    Boolean(process.env.WAYLAND_DISPLAY));
-
 export const restoreBigPictureFocusOnGameCloseIfEnabled = () => {
-  if (isWayland) {
-    logger.info(
-      "Wayland detected — Big Picture focus restoration is not supported"
-    );
-    return;
-  }
-
   setTimeout(() => {
     void (async () => {
       try {
@@ -27,14 +15,14 @@ export const restoreBigPictureFocusOnGameCloseIfEnabled = () => {
 
         if (userPreferences?.restoreBigPictureFocusOnGameClose === false)
           return;
-
-        WindowManager.focusBigPictureIfOpen();
       } catch (error) {
         logger.error(
-          "restoreBigPictureFocusOnGameCloseIfEnabled failed",
+          "restoreBigPictureFocusOnGameCloseIfEnabled failed to read prefs",
           error
         );
       }
+
+      WindowManager.focusBigPictureIfOpen();
     })();
   }, 250);
 };

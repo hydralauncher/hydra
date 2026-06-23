@@ -34,6 +34,7 @@ export const Checkbox = ({
 
   const handleBlockClick = (e: MouseEvent<HTMLDivElement>) => {
     if (!props.block) return;
+    if (props.disabled) return;
     if ((e.target as HTMLElement).closest(".checkbox__input")) return;
     if (
       (e.target as HTMLElement).closest(

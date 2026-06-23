@@ -84,7 +84,6 @@ export function SettingsContextBigPicture() {
         <CheckboxField
           label={t("big_picture_restore_focus_on_game_close")}
           checked={form.restoreBigPictureFocusOnGameClose}
-          disabled={isWayland}
           onChange={() =>
             handleChange({
               restoreBigPictureFocusOnGameClose:

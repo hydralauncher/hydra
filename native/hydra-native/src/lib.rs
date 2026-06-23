@@ -423,7 +423,7 @@ pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
     use std::mem;
     use std::ptr;
 
-    use windows_sys::Win32::Foundation::{BOOL, HWND, TRUE};
+    use windows_sys::Win32::Foundation::{BOOL, FALSE, HWND, TRUE};
     use windows_sys::Win32::System::Threading::{
         AttachThreadInput, GetCurrentThreadId,
     };
@@ -446,7 +446,7 @@ pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
     };
 
     unsafe {
-        if IsWindow(hwnd) == BOOL(0) {
+        if IsWindow(hwnd) == FALSE {
             return NativeWindowFocusResult {
                 platform: "windows".to_string(),
                 status: "invalid-handle".to_string(),
@@ -455,7 +455,7 @@ pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
             };
         }
 
-        if IsIconic(hwnd) != BOOL(0) {
+        if IsIconic(hwnd) != FALSE {
             ShowWindow(hwnd, SW_RESTORE);
         } else {
             ShowWindow(hwnd, SW_SHOW);
@@ -493,11 +493,17 @@ pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
         let current_thread = GetCurrentThreadId();
         let foreground_thread = GetWindowThreadProcessId(foreground_window, ptr::null_mut());
 
-        AttachThreadInput(current_thread, foreground_thread, TRUE);
-        SetForegroundWindow(hwnd);
-        BringWindowToTop(hwnd);
-        SetFocus(hwnd);
-        AttachThreadInput(current_thread, foreground_thread, BOOL(0));
+        let attached = AttachThreadInput(current_thread, foreground_thread, TRUE) != FALSE;
+        if attached {
+            SetForegroundWindow(hwnd);
+            BringWindowToTop(hwnd);
+            SetFocus(hwnd);
+            AttachThreadInput(current_thread, foreground_thread, FALSE);
+        } else {
+            SetForegroundWindow(hwnd);
+            BringWindowToTop(hwnd);
+            SetFocus(hwnd);
+        }
 
         let now_focused = GetForegroundWindow() == hwnd;
 
@@ -579,9 +585,9 @@ pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
 
     NativeWindowFocusResult {
         platform: "linux".to_string(),
-        status: "focused".to_string(),
-        focused: true,
-        message: None,
+        status: "raised".to_string(),
+        focused: false,
+        message: Some("X11 API called but window manager may have ignored focus request".to_string()),
     }
 }
 
