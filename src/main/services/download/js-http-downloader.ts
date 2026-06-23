@@ -111,6 +111,7 @@ export class JsHttpDownloader {
         this.status = "active";
         this.isDownloading = true;
         this.isStallRetry = false;
+        this.wasRangeIgnoredRestart = false;
         this.lastDataReceivedAt = Date.now();
 
         const { url, savePath, filename, headers = {} } = this.currentOptions;

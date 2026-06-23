@@ -113,6 +113,10 @@ export function classifyRetryOutcome(input: {
 
   if (input.isRetryable && !input.canRetry) return "error-exhausted";
 
+  // Today every non-stall abort comes from pause/cancel, which set isPaused
+  // first, so this is caught above. Kept so an abort from any future caller
+  // that does not set isPaused still pauses rather than falling through to an
+  // error.
   if (input.isAbortError && !input.wasStallRetry) return "paused";
 
   return "error";
