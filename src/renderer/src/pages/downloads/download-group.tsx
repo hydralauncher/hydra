@@ -265,6 +265,58 @@ interface HeroDownloadViewProps {
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
+interface HeroProgressEtaProps {
+  isGameDownloading: boolean;
+  isGameExtracting: boolean;
+  lastPacket: ReturnType<typeof useDownload>["lastPacket"];
+  calculateETA: () => string | null;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}
+
+function HeroProgressEta({
+  isGameDownloading,
+  isGameExtracting,
+  lastPacket,
+  calculateETA,
+  t,
+}: Readonly<HeroProgressEtaProps>) {
+  const { t: tGameDetails } = useTranslation("game_details");
+
+  if (lastPacket?.isCheckingFiles || isGameExtracting) {
+    return null;
+  }
+
+  if (isGameDownloading && lastPacket?.isStalled) {
+    const retrySeconds =
+      typeof lastPacket.retryingInMs === "number" && lastPacket.retryingInMs > 0
+        ? Math.ceil(lastPacket.retryingInMs / 1000)
+        : null;
+
+    return (
+      <span className="download-group__progress-time">
+        <AlertIcon size={14} />
+        {retrySeconds === null
+          ? t("download_stalled")
+          : t("download_stalled_retrying", { seconds: retrySeconds })}
+      </span>
+    );
+  }
+
+  if (!isGameDownloading) {
+    return <span className="download-group__progress-time" />;
+  }
+
+  const etaText = calculateETA();
+  const hasEta = !!etaText && etaText.trim() !== "" && etaText !== "0";
+
+  return (
+    <span className="download-group__progress-time">
+      <ClockIcon size={14} />
+      {hasEta ? etaText : tGameDetails("calculating_eta")}
+    </span>
+  );
+}
+
 function HeroDownloadView({
   game,
   isGameDownloading,
@@ -284,36 +336,10 @@ function HeroDownloadView({
   t,
 }: Readonly<HeroDownloadViewProps>) {
   const navigate = useNavigate();
-  const { t: tGameDetails } = useTranslation("game_details");
 
   const handleLogoClick = useCallback(() => {
     navigate(buildGameDetailsPath(game));
   }, [navigate, game]);
-
-  const etaText = calculateETA();
-  const hasEta =
-    isGameDownloading &&
-    !isGameExtracting &&
-    !lastPacket?.isCheckingFiles &&
-    !!etaText &&
-    etaText.trim() !== "" &&
-    etaText !== "0";
-  const shouldShowEtaPlaceholder =
-    isGameDownloading &&
-    !isGameExtracting &&
-    !lastPacket?.isCheckingFiles &&
-    !hasEta;
-  const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
-
-  const isStalled = Boolean(
-    isGameDownloading && !isGameExtracting && lastPacket?.isStalled
-  );
-  const retrySeconds =
-    isStalled &&
-    typeof lastPacket?.retryingInMs === "number" &&
-    lastPacket.retryingInMs > 0
-      ? Math.ceil(lastPacket.retryingInMs / 1000)
-      : null;
 
   return (
     <div className="download-group download-group--hero">
@@ -373,27 +399,13 @@ function HeroDownloadView({
                 <span></span>
               </div>
               <div className="download-group__progress-info-row">
-                {!lastPacket?.isCheckingFiles && !isGameExtracting && (
-                  <span className="download-group__progress-time">
-                    {isStalled ? (
-                      <>
-                        <AlertIcon size={14} />
-                        {retrySeconds !== null
-                          ? t("download_stalled_retrying", {
-                              seconds: retrySeconds,
-                            })
-                          : t("download_stalled")}
-                      </>
-                    ) : (
-                      shouldShowEta && (
-                        <>
-                          <ClockIcon size={14} />
-                          {hasEta ? etaText : tGameDetails("calculating_eta")}
-                        </>
-                      )
-                    )}
-                  </span>
-                )}
+                <HeroProgressEta
+                  isGameDownloading={isGameDownloading}
+                  isGameExtracting={isGameExtracting}
+                  lastPacket={lastPacket}
+                  calculateETA={calculateETA}
+                  t={t}
+                />
                 <span className="download-group__progress-percentage">
                   <AnimatedPercentage value={currentProgress} />
                 </span>

@@ -368,9 +368,9 @@ export function useBigPictureDownloadsPageData() {
         speedLabel = "Preparing files";
       } else if (lastPacket?.isStalled) {
         speedLabel =
-          stallRetrySeconds !== null
-            ? `Retrying in ${stallRetrySeconds}s`
-            : "Reconnecting…";
+          stallRetrySeconds === null
+            ? "Reconnecting…"
+            : `Retrying in ${stallRetrySeconds}s`;
       } else {
         speedLabel = formatSpeed(
           lastPacket?.downloadSpeed ?? 0,
