@@ -33,6 +33,14 @@ type HydraNativeModule = {
     preserveAnimation: boolean
   ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
+  focusWindow: (nativeWindowHandle: Buffer) => NativeWindowFocusResult;
+};
+
+export type NativeWindowFocusResult = {
+  platform: string;
+  status: string;
+  focused: boolean;
+  message?: string;
 };
 
 export type SystemProcessMap = {
@@ -269,6 +277,24 @@ export class NativeAddon {
     } catch (error) {
       logger.error("Failed to process friend image via native addon", error);
       throw error;
+    }
+  }
+
+  public static focusWindow(nativeWindowHandle: Buffer): NativeWindowFocusResult {
+    try {
+      return this.load().focusWindow(nativeWindowHandle);
+    } catch (error) {
+      return {
+        platform:
+          process.platform === "win32"
+            ? "windows"
+            : process.platform === "linux"
+              ? "linux"
+              : "unknown",
+        status: "failed",
+        focused: false,
+        message: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 

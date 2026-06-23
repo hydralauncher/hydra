@@ -408,3 +408,190 @@ fn mime_type_from_image_format(format: Option<ImageFormat>) -> Option<&'static s
         _ => None,
     }
 }
+
+#[napi(object)]
+pub struct NativeWindowFocusResult {
+    pub platform: String,
+    pub status: String,
+    pub focused: bool,
+    pub message: Option<String>,
+}
+
+#[cfg(windows)]
+#[napi]
+pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
+    use std::mem;
+    use std::ptr;
+
+    use windows_sys::Win32::Foundation::{BOOL, HWND, TRUE};
+    use windows_sys::Win32::System::Threading::{
+        AttachThreadInput, GetCurrentThreadId,
+    };
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId, IsIconic,
+        IsWindow, SetFocus, SetForegroundWindow, SetWindowPos, ShowWindow,
+        HWND_NOTOPMOST, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, SWP_SHOWWINDOW,
+        SW_RESTORE, SW_SHOW,
+    };
+
+    let hwnd = if native_handle.len() >= mem::size_of::<HWND>() {
+        unsafe { *(native_handle.as_ptr() as *const HWND) }
+    } else {
+        return NativeWindowFocusResult {
+            platform: "windows".to_string(),
+            status: "invalid-handle".to_string(),
+            focused: false,
+            message: Some("native handle too short".to_string()),
+        };
+    };
+
+    unsafe {
+        if IsWindow(hwnd) == BOOL(0) {
+            return NativeWindowFocusResult {
+                platform: "windows".to_string(),
+                status: "invalid-handle".to_string(),
+                focused: false,
+                message: Some("not a valid window handle".to_string()),
+            };
+        }
+
+        if IsIconic(hwnd) != BOOL(0) {
+            ShowWindow(hwnd, SW_RESTORE);
+        } else {
+            ShowWindow(hwnd, SW_SHOW);
+        }
+
+        SetWindowPos(
+            hwnd,
+            HWND_TOPMOST,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
+        );
+        SetWindowPos(
+            hwnd,
+            HWND_NOTOPMOST,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
+        );
+
+        let foreground_window = GetForegroundWindow();
+        if foreground_window == hwnd {
+            return NativeWindowFocusResult {
+                platform: "windows".to_string(),
+                status: "focused".to_string(),
+                focused: true,
+                message: None,
+            };
+        }
+
+        let current_thread = GetCurrentThreadId();
+        let foreground_thread = GetWindowThreadProcessId(foreground_window, ptr::null_mut());
+
+        AttachThreadInput(current_thread, foreground_thread, TRUE);
+        SetForegroundWindow(hwnd);
+        BringWindowToTop(hwnd);
+        SetFocus(hwnd);
+        AttachThreadInput(current_thread, foreground_thread, BOOL(0));
+
+        let now_focused = GetForegroundWindow() == hwnd;
+
+        if now_focused {
+            NativeWindowFocusResult {
+                platform: "windows".to_string(),
+                status: "focused".to_string(),
+                focused: true,
+                message: None,
+            }
+        } else {
+            NativeWindowFocusResult {
+                platform: "windows".to_string(),
+                status: "raised".to_string(),
+                focused: false,
+                message: Some("after AttachThreadInput trick, foreground window still differs".to_string()),
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[napi]
+pub fn focus_window(native_handle: Vec<u8>) -> NativeWindowFocusResult {
+    use std::ptr;
+
+    let is_wayland = std::env::var("WAYLAND_DISPLAY").is_ok()
+        || std::env::var("XDG_SESSION_TYPE")
+            .map(|v| v == "wayland")
+            .unwrap_or(false);
+
+    if is_wayland {
+        return NativeWindowFocusResult {
+            platform: "linux".to_string(),
+            status: "unsupported-wayland".to_string(),
+            focused: false,
+            message: Some(
+                "Wayland does not allow programmatic window focus".to_string(),
+            ),
+        };
+    }
+
+    let xid = if native_handle.len() >= std::mem::size_of::<std::ffi::c_ulong>() {
+        unsafe { *(native_handle.as_ptr() as *const std::ffi::c_ulong) }
+    } else {
+        return NativeWindowFocusResult {
+            platform: "linux".to_string(),
+            status: "invalid-handle".to_string(),
+            focused: false,
+            message: Some("native handle too short for XID".to_string()),
+        };
+    };
+
+    if xid == 0 {
+        return NativeWindowFocusResult {
+            platform: "linux".to_string(),
+            status: "invalid-handle".to_string(),
+            focused: false,
+            message: Some("XID is null".to_string()),
+        };
+    }
+
+    unsafe {
+        let display = x11::xlib::XOpenDisplay(ptr::null());
+        if display.is_null() {
+            return NativeWindowFocusResult {
+                platform: "linux".to_string(),
+                status: "failed".to_string(),
+                focused: false,
+                message: Some("XOpenDisplay returned null".to_string()),
+            };
+        }
+
+        x11::xlib::XRaiseWindow(display, xid);
+        x11::xlib::XSetInputFocus(display, xid, x11::xlib::RevertToPointerRoot, 0);
+        x11::xlib::XFlush(display);
+        x11::xlib::XCloseDisplay(display);
+    }
+
+    NativeWindowFocusResult {
+        platform: "linux".to_string(),
+        status: "focused".to_string(),
+        focused: true,
+        message: None,
+    }
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
+#[napi]
+pub fn focus_window(_native_handle: Vec<u8>) -> NativeWindowFocusResult {
+    NativeWindowFocusResult {
+        platform: std::env::consts::OS.to_string(),
+        status: "unsupported-platform".to_string(),
+        focused: false,
+        message: Some("window focus not implemented for this platform".to_string()),
+    }
+}

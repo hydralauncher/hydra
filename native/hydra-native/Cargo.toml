@@ -15,5 +15,15 @@ sysinfo = "0.37.2"
 tokio = { version = "1.50.0", features = ["rt"] }
 uuid = { version = "1.11.0", features = ["v4"] }
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_System_Threading",
+] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11 = { version = "2", features = ["xlib"] }
+
 [build-dependencies]
 napi-build = "2.3.1"

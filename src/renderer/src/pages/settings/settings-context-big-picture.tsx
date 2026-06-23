@@ -13,6 +13,7 @@ export function SettingsContextBigPicture() {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+  const isWayland = globalThis.window.electron.isWayland;
 
   const [form, setForm] = useState({
     launchInBigPicture: false,
@@ -83,6 +84,7 @@ export function SettingsContextBigPicture() {
         <CheckboxField
           label={t("big_picture_restore_focus_on_game_close")}
           checked={form.restoreBigPictureFocusOnGameClose}
+          disabled={isWayland}
           onChange={() =>
             handleChange({
               restoreBigPictureFocusOnGameClose:
@@ -90,6 +92,11 @@ export function SettingsContextBigPicture() {
             })
           }
         />
+        {isWayland && (
+          <p className="settings-context-panel__hint">
+            {t("big_picture_restore_focus_wayland_hint")}
+          </p>
+        )}
       </div>
 
       <div className="settings-context-panel__group">

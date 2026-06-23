@@ -37,6 +37,8 @@ interface BigPictureItem {
   focusId: string;
   label: string;
   checked: boolean;
+  disabled?: boolean;
+  secondaryText?: string;
   onChange: (checked: boolean) => void;
 }
 
@@ -61,6 +63,7 @@ export function BigPictureSettingsSection({
 }: Readonly<BigPictureSettingsSectionProps>) {
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
+  const isWayland = globalThis.window.electron.isWayland;
   const [form, setForm] = useState<BigPictureForm>(DEFAULT_FORM);
 
   useEffect(() => {
@@ -145,6 +148,10 @@ export function BigPictureSettingsSection({
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.restoreFocusOnGameClose,
         label: t("settings_restore_big_picture_focus_on_game_close"),
         checked: form.restoreBigPictureFocusOnGameClose,
+        disabled: isWayland,
+        secondaryText: isWayland
+          ? t("settings_restore_big_picture_focus_wayland_hint")
+          : undefined,
         onChange: handleRestoreFocusOnGameCloseChange,
       },
     ];
@@ -153,6 +160,7 @@ export function BigPictureSettingsSection({
     form.restoreBigPictureFocusOnGameClose,
     handleLaunchInBigPictureChange,
     handleRestoreFocusOnGameCloseChange,
+    isWayland,
     t,
   ]);
 
@@ -392,6 +400,8 @@ export function BigPictureSettingsSection({
                 id={item.id}
                 label={item.label}
                 checked={item.checked}
+                disabled={item.disabled}
+                secondaryText={item.secondaryText}
                 focusId={item.focusId}
                 navigationOverrides={
                   behaviorNavigationOverridesByFocusId[item.focusId]
