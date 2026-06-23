@@ -496,8 +496,11 @@ export class WindowManager {
 
     if (bigPicture.isMinimized()) bigPicture.restore();
 
+    // this is going to work, bitch
+    bigPicture.setAlwaysOnTop(true);
     bigPicture.show();
     bigPicture.focus();
+    bigPicture.setAlwaysOnTop(false);
   }
 
   public static isMainWindowMaximized() {
