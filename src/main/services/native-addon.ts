@@ -280,7 +280,9 @@ export class NativeAddon {
     }
   }
 
-  public static focusWindow(nativeWindowHandle: Buffer): NativeWindowFocusResult {
+  public static focusWindow(
+    nativeWindowHandle: Buffer
+  ): NativeWindowFocusResult {
     try {
       return this.load().focusWindow(nativeWindowHandle);
     } catch (error) {
