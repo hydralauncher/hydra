@@ -28,6 +28,7 @@ import path from "node:path";
 import UserAgent from "user-agents";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
+import { NativeAddon } from "./native-addon";
 
 const isLinuxWayland =
   process.platform === "linux" &&
@@ -350,11 +351,14 @@ export class WindowManager {
       })
       .catch(() => null);
 
-    const targetDisplay = this.mainWindow?.isDestroyed()
-      ? null
-      : this.mainWindow
-        ? screen.getDisplayMatching(this.mainWindow.getBounds())
-        : screen.getPrimaryDisplay();
+    const targetDisplay = (() => {
+      if (this.mainWindow?.isDestroyed()) return null;
+      if (this.mainWindow)
+        return screen.getDisplayMatching(this.mainWindow.getBounds());
+
+      return screen.getPrimaryDisplay();
+    })();
+
     const targetBounds =
       targetDisplay?.bounds ?? screen.getPrimaryDisplay().bounds;
 
@@ -495,12 +499,21 @@ export class WindowManager {
     if (!bigPicture || bigPicture.isDestroyed()) return;
 
     if (bigPicture.isMinimized()) bigPicture.restore();
+    if (!bigPicture.isVisible()) bigPicture.show();
 
-    // this is going to work, bitch
-    bigPicture.setAlwaysOnTop(true);
-    bigPicture.show();
-    bigPicture.focus();
-    bigPicture.setAlwaysOnTop(false);
+    const handle = bigPicture.getNativeWindowHandle();
+    if (!handle) {
+      bigPicture.show();
+      bigPicture.focus();
+      return;
+    }
+
+    const result = NativeAddon.focusWindow(handle);
+    if (!result.focused) {
+      logger.warn("native focus did not achieve full focus", result);
+      bigPicture.show();
+      bigPicture.focus();
+    }
   }
 
   public static isMainWindowMaximized() {

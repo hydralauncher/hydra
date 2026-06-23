@@ -744,6 +744,7 @@
     "settings_launch_in_big_picture": "Launch Hydra in Big Picture",
     "settings_enable_virtual_keyboard": "Enable virtual keyboard",
     "settings_restore_big_picture_focus_on_game_close": "Restore Big Picture focus after closing a game",
+    "settings_restore_big_picture_focus_wayland_hint": "Not supported on Wayland. Switch to X11/XWayland to use this feature.",
     "settings_enable_big_picture_sounds": "Enable Big Picture sounds",
     "settings_enable_diagnostics": "Enable diagnostics",
     "settings_diagnostics_position": "Diagnostics position",
