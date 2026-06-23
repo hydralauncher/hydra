@@ -4,6 +4,7 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import type { EmulatorSystem, Game, GameShop } from "@types";
 
 import { trackGamePlaytime } from "../library-sync";
+import { restoreBigPictureFocusOnGameCloseIfEnabled } from "../restore-big-picture-focus";
 import { logger } from "../logger";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
 
@@ -148,6 +149,8 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   };
 
   await gamesSublevel.put(gameKey, updated);
+
+  restoreBigPictureFocusOnGameCloseIfEnabled();
 
   if (game.shop === "custom") return;
 

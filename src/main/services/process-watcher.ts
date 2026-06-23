@@ -1,6 +1,7 @@
 import { WindowManager } from "./window-manager";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { createGame, trackGamePlaytime } from "./library-sync";
+import { restoreBigPictureFocusOnGameCloseIfEnabled } from "./restore-big-picture-focus";
 import type { Game, GameRunning, UserPreferences } from "@types";
 import axios from "axios";
 import { db, gamesSublevel, levelKeys } from "@main/level";
@@ -466,18 +467,6 @@ function onTickGame(game: Game) {
   }
 }
 
-const restoreBigPictureFocusOnGameCloseIfEnabled = () =>
-  db
-    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-      valueEncoding: "json",
-    })
-    .then((userPreferences) => {
-      if (!userPreferences?.restoreBigPictureFocusOnGameClose) return;
-
-      WindowManager.focusBigPictureIfOpen();
-    })
-    .catch(() => {});
-
 const onCloseGame = (game: Game) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
   const now = performance.now();
@@ -504,7 +493,7 @@ const onCloseGame = (game: Game) => {
 
   gamesSublevel.put(gameKey, updatedGame);
 
-  void restoreBigPictureFocusOnGameCloseIfEnabled();
+  restoreBigPictureFocusOnGameCloseIfEnabled();
 
   if (game.shop === "custom") return;
 
