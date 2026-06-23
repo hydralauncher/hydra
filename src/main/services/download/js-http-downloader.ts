@@ -6,6 +6,7 @@ import { logger } from "../logger";
 import {
   classifyRetryOutcome,
   isRetryableDownloadError,
+  PROGRESS_RESET_THRESHOLD_BYTES,
   resolveResumeFilename,
   shouldResetRetryBudget,
   shouldRestartFromIgnoredRange,
@@ -34,7 +35,6 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 30000;
 const STALL_CHECK_INTERVAL_MS = 2000;
-const PROGRESS_RESET_THRESHOLD_BYTES = 4 * 1024 * 1024;
 export const DEFAULT_DOWNLOAD_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
 
@@ -101,49 +101,51 @@ export class JsHttpDownloader {
   private async startDownloadWithRetry(): Promise<void> {
     if (!this.currentOptions) return;
 
-    while (!this.isPaused) {
-      if (!this.currentOptions) return;
+    try {
+      while (!this.isPaused) {
+        if (!this.currentOptions) return;
 
-      this.abortController = new AbortController();
-      this.status = "active";
-      this.isDownloading = true;
-      this.isStallRetry = false;
-      this.lastDataReceivedAt = Date.now();
+        this.abortController = new AbortController();
+        this.status = "active";
+        this.isDownloading = true;
+        this.isStallRetry = false;
+        this.lastDataReceivedAt = Date.now();
 
-      const { url, savePath, filename, headers = {} } = this.currentOptions;
-      const { filePath, startByte, usedFallback } = this.prepareDownloadPath(
-        savePath,
-        filename,
-        url
-      );
-      const requestHeaders = this.buildRequestHeaders(headers, startByte);
-
-      this.startStallDetection();
-
-      try {
-        await this.executeDownload(
-          url,
-          requestHeaders,
-          filePath,
-          startByte,
+        const { url, savePath, filename, headers = {} } = this.currentOptions;
+        const { filePath, startByte, usedFallback } = this.prepareDownloadPath(
           savePath,
-          usedFallback
+          filename,
+          url
         );
-        break;
-      } catch (err) {
-        const shouldRetry = await this.handleDownloadErrorWithRetry(
-          err as Error
-        );
-        if (!shouldRetry) {
-          break;
-        }
-      } finally {
-        this.stopStallDetection();
-        this.cleanupResources();
-      }
-    }
+        const requestHeaders = this.buildRequestHeaders(headers, startByte);
 
-    this.isDownloading = false;
+        this.startStallDetection();
+
+        try {
+          await this.executeDownload(
+            url,
+            requestHeaders,
+            filePath,
+            startByte,
+            savePath,
+            usedFallback
+          );
+          break;
+        } catch (err) {
+          const shouldRetry = await this.handleDownloadErrorWithRetry(
+            err as Error
+          );
+          if (!shouldRetry) {
+            break;
+          }
+        } finally {
+          this.stopStallDetection();
+          this.cleanupResources();
+        }
+      }
+    } finally {
+      this.isDownloading = false;
+    }
   }
 
   private startStallDetection(): void {

@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   classifyRetryOutcome,
   isRetryableDownloadError,
+  PROGRESS_RESET_THRESHOLD_BYTES,
   resolveResumeFilename,
   shouldResetRetryBudget,
   shouldRestartFromIgnoredRange,
@@ -110,7 +111,7 @@ describe("shouldRestartFromIgnoredRange", () => {
 });
 
 describe("shouldResetRetryBudget", () => {
-  const threshold = 4 * 1024 * 1024;
+  const threshold = PROGRESS_RESET_THRESHOLD_BYTES;
 
   it("resets once enough fresh data has flowed after a retry", () => {
     assert.equal(shouldResetRetryBudget(3, threshold, 0, threshold), true);

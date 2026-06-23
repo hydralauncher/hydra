@@ -1,3 +1,5 @@
+export const PROGRESS_RESET_THRESHOLD_BYTES = 4 * 1024 * 1024;
+
 export const RETRYABLE_ERROR_CODES = new Set([
   "ECONNRESET",
   "ETIMEDOUT",
