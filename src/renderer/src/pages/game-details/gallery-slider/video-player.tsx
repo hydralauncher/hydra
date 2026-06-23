@@ -1,4 +1,6 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { PlayIcon } from "@primer/octicons-react";
 import { useHlsVideo } from "@shared";
 
 interface VideoPlayerProps {
@@ -11,6 +13,7 @@ interface VideoPlayerProps {
   controls?: boolean;
   tabIndex?: number;
   className?: string;
+  loadOnDemand?: boolean;
 }
 
 export function VideoPlayer({
@@ -23,36 +26,34 @@ export function VideoPlayer({
   controls = true,
   tabIndex = -1,
   className,
+  loadOnDemand = false,
 }: Readonly<VideoPlayerProps>) {
+  const { t } = useTranslation("game_details");
   const videoRef = useRef<HTMLVideoElement>(null);
   const isHls = videoType === "application/x-mpegURL";
+
+  const [started, setStarted] = useState(!loadOnDemand);
 
   useHlsVideo(videoRef, {
     videoSrc,
     videoType,
-    autoplay,
+    load: started,
+    autoplay: autoplay || (loadOnDemand && started),
     muted,
     loop,
   });
 
-  if (isHls) {
-    return (
-      <video
-        ref={videoRef}
-        controls={controls}
-        className={className}
-        poster={poster}
-        loop={loop}
-        muted={muted}
-        autoPlay={autoplay}
-        tabIndex={tabIndex}
-      >
-        <track kind="captions" />
-      </video>
-    );
-  }
+  const handleManualStart = () => {
+    setStarted(true);
 
-  return (
+    if (!isHls) {
+      videoRef.current?.play().catch(() => {});
+    }
+  };
+
+  const showOverlay = loadOnDemand && !started;
+
+  const video = isHls ? (
     <video
       ref={videoRef}
       controls={controls}
@@ -61,10 +62,44 @@ export function VideoPlayer({
       loop={loop}
       muted={muted}
       autoPlay={autoplay}
+      preload={started ? "auto" : "none"}
+      tabIndex={tabIndex}
+    >
+      <track kind="captions" />
+    </video>
+  ) : (
+    <video
+      ref={videoRef}
+      controls={controls}
+      className={className}
+      poster={poster}
+      loop={loop}
+      muted={muted}
+      autoPlay={autoplay}
+      preload={started ? "auto" : "none"}
       tabIndex={tabIndex}
     >
       {videoSrc && <source src={videoSrc} type={videoType} />}
       <track kind="captions" />
     </video>
+  );
+
+  return (
+    <div className="gallery-slider__video-wrapper">
+      {video}
+
+      {showOverlay && (
+        <button
+          type="button"
+          className="gallery-slider__video-play-button"
+          onClick={handleManualStart}
+          aria-label={t("play")}
+        >
+          <div className="gallery-slider__video-play-icon">
+            <PlayIcon size={24} />
+          </div>
+        </button>
+      )}
+    </div>
   );
 }
