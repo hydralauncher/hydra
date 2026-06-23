@@ -21,6 +21,8 @@ export interface JsHttpDownloaderStatus {
   numSeeds: number;
   status: "active" | "paused" | "complete" | "error";
   bytesDownloaded: number;
+  isStalled: boolean;
+  retryingInMs: number | null;
 }
 
 export interface JsHttpDownloaderOptions {
@@ -33,8 +35,8 @@ export interface JsHttpDownloaderOptions {
 const MAX_RETRY_ATTEMPTS = 10;
 const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 8000;
-const STALL_TIMEOUT_MS = 12000;
-const STALL_CHECK_INTERVAL_MS = 2000;
+const STALL_TIMEOUT_MS = 6000;
+const STALL_CHECK_INTERVAL_MS = 1000;
 export const DEFAULT_DOWNLOAD_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
 
@@ -63,7 +65,9 @@ export class JsHttpDownloader {
   private retryCount = 0;
   private bytesAtAttemptStart = 0;
   private wasRangeIgnoredRestart = false;
-  private lastDataReceivedAt = Date.now();
+  private pendingReadSince: number | null = null;
+  private stalled = false;
+  private nextRetryAt: number | null = null;
   private stallCheckInterval: NodeJS.Timeout | null = null;
   private isPaused = false;
   private isStallRetry = false;
@@ -96,6 +100,9 @@ export class JsHttpDownloader {
     this.fileSize = 0;
     this.knownFilename = null;
     this.wasRangeIgnoredRestart = false;
+    this.stalled = false;
+    this.nextRetryAt = null;
+    this.pendingReadSince = null;
     this.resetThrottleWindow();
     await this.startDownloadWithRetry();
   }
@@ -112,7 +119,8 @@ export class JsHttpDownloader {
         this.isDownloading = true;
         this.isStallRetry = false;
         this.wasRangeIgnoredRestart = false;
-        this.lastDataReceivedAt = Date.now();
+        this.nextRetryAt = null;
+        this.pendingReadSince = null;
 
         const { url, savePath, filename, headers = {} } = this.currentOptions;
         const { filePath, startByte, usedFallback } = this.prepareDownloadPath(
@@ -158,10 +166,14 @@ export class JsHttpDownloader {
         return;
       }
 
-      const timeSinceLastData = Date.now() - this.lastDataReceivedAt;
-      if (timeSinceLastData > STALL_TIMEOUT_MS) {
+      if (this.pendingReadSince === null) {
+        return;
+      }
+
+      const timeWaitingForData = Date.now() - this.pendingReadSince;
+      if (timeWaitingForData > STALL_TIMEOUT_MS) {
         logger.log(
-          `[JsHttpDownloader] Download stalled (no data for ${Math.round(timeSinceLastData / 1000)}s), triggering retry`
+          `[JsHttpDownloader] Download stalled (no data for ${Math.round(timeWaitingForData / 1000)}s), triggering retry`
         );
         this.triggerRetry();
       }
@@ -177,6 +189,7 @@ export class JsHttpDownloader {
 
   private triggerRetry(): void {
     this.isStallRetry = true;
+    this.stalled = true;
     if (this.abortController) {
       this.abortController.abort();
     }
@@ -210,6 +223,8 @@ export class JsHttpDownloader {
             `Retry ${this.retryCount}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`
         );
 
+        this.stalled = true;
+        this.nextRetryAt = Date.now() + delay;
         await this.sleep(delay);
         return !this.isPaused;
       }
@@ -538,7 +553,8 @@ export class JsHttpDownloader {
     const applyThrottle = this.applyThrottle.bind(this);
     const onChunk = (length: number) => {
       this.bytesDownloaded += length;
-      this.lastDataReceivedAt = Date.now();
+      this.stalled = false;
+      this.nextRetryAt = null;
 
       if (
         shouldResetRetryBudget(
@@ -558,11 +574,20 @@ export class JsHttpDownloader {
       this.updateSpeed();
     };
 
+    const markReadPending = () => {
+      this.pendingReadSince = Date.now();
+    };
+    const clearReadPending = () => {
+      this.pendingReadSince = null;
+    };
+
     return new Readable({
       read() {
         void (async () => {
+          markReadPending();
           try {
             const { done, value } = await reader.read();
+            clearReadPending();
             if (done) {
               this.push(null);
               return;
@@ -572,6 +597,7 @@ export class JsHttpDownloader {
             onChunk(value.length);
             this.push(Buffer.from(value));
           } catch (err) {
+            clearReadPending();
             this.destroy(err as Error);
           }
         })();
@@ -613,6 +639,8 @@ export class JsHttpDownloader {
     }
     this.status = "paused";
     this.downloadSpeed = 0;
+    this.stalled = false;
+    this.nextRetryAt = null;
   }
 
   cancelDownload(deleteFile = true): void {
@@ -656,6 +684,12 @@ export class JsHttpDownloader {
       progress = this.bytesDownloaded / this.fileSize;
     }
 
+    const isStalled = this.status === "active" && this.stalled;
+    const retryingInMs =
+      isStalled && this.nextRetryAt !== null
+        ? Math.max(0, this.nextRetryAt - Date.now())
+        : null;
+
     return {
       folderName: this.folderName,
       fileSize: this.fileSize,
@@ -665,6 +699,8 @@ export class JsHttpDownloader {
       numSeeds: 0,
       status: this.status,
       bytesDownloaded: this.bytesDownloaded,
+      isStalled,
+      retryingInMs,
     };
   }
 
@@ -701,6 +737,9 @@ export class JsHttpDownloader {
     this.bytesAtAttemptStart = 0;
     this.wasRangeIgnoredRestart = false;
     this.isStallRetry = false;
+    this.stalled = false;
+    this.nextRetryAt = null;
+    this.pendingReadSince = null;
     this.resetThrottleWindow();
   }
 }

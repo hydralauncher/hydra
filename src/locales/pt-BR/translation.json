@@ -617,6 +617,8 @@
     "no_downloads_title": "Nada por aqui…",
     "no_downloads_description": "Você ainda não baixou nada pelo Hydra, mas nunca é tarde para começar.",
     "checking_files": "Verificando arquivos…",
+    "download_stalled": "Download travado, reconectando…",
+    "download_stalled_retrying": "Download travado, tentando novamente em {{seconds}}s…",
     "seeding": "Semeando",
     "stop_seeding": "Parar de semear",
     "resume_seeding": "Semear",

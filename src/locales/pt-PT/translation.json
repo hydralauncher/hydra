@@ -530,6 +530,8 @@
     "no_downloads_title": "Nada por aqui…",
     "no_downloads_description": "Ainda não descarregaste nada pelo Hydra, mas nunca é tarde para começar.",
     "checking_files": "A verificar ficheiros…",
+    "download_stalled": "Transferência bloqueada, a reconectar…",
+    "download_stalled_retrying": "Transferência bloqueada, a tentar novamente em {{seconds}}s…",
     "seeding": "A semear",
     "stop_seeding": "Parar de semear",
     "resume_seeding": "Semear",
