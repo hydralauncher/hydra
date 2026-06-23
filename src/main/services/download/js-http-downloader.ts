@@ -3,6 +3,13 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { logger } from "../logger";
+import {
+  classifyRetryOutcome,
+  isRetryableDownloadError,
+  resolveResumeFilename,
+  shouldResetRetryBudget,
+  shouldRestartFromIgnoredRange,
+} from "./js-http-downloader-helpers";
 
 export interface JsHttpDownloaderStatus {
   folderName: string;
@@ -25,24 +32,11 @@ export interface JsHttpDownloaderOptions {
 const MAX_RETRY_ATTEMPTS = 10;
 const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15000;
-const STALL_TIMEOUT_MS = 8000;
+const STALL_TIMEOUT_MS = 30000;
 const STALL_CHECK_INTERVAL_MS = 2000;
+const PROGRESS_RESET_THRESHOLD_BYTES = 4 * 1024 * 1024;
 export const DEFAULT_DOWNLOAD_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
-
-const RETRYABLE_ERROR_CODES = new Set([
-  "ECONNRESET",
-  "ETIMEDOUT",
-  "ECONNREFUSED",
-  "ENOTFOUND",
-  "ENETUNREACH",
-  "EHOSTUNREACH",
-  "EPIPE",
-  "EAI_AGAIN",
-  "ECONNABORTED",
-  "ESOCKETTIMEDOUT",
-  "ERR_STREAM_PREMATURE_CLOSE",
-]);
 
 class HttpDownloadStatusError extends Error {
   constructor(public readonly statusCode: number) {
@@ -55,6 +49,7 @@ export class JsHttpDownloader {
   private abortController: AbortController | null = null;
   private writeStream: fs.WriteStream | null = null;
   private currentOptions: JsHttpDownloaderOptions | null = null;
+  private knownFilename: string | null = null;
 
   private bytesDownloaded = 0;
   private fileSize = 0;
@@ -66,6 +61,7 @@ export class JsHttpDownloader {
   private isDownloading = false;
 
   private retryCount = 0;
+  private bytesAtAttemptStart = 0;
   private lastDataReceivedAt = Date.now();
   private stallCheckInterval: NodeJS.Timeout | null = null;
   private isPaused = false;
@@ -97,6 +93,7 @@ export class JsHttpDownloader {
     this.retryCount = 0;
     this.isStallRetry = false;
     this.fileSize = 0;
+    this.knownFilename = null;
     this.resetThrottleWindow();
     await this.startDownloadWithRetry();
   }
@@ -180,67 +177,61 @@ export class JsHttpDownloader {
     }
   }
 
-  private isRetryableError(err: Error): boolean {
-    const nodeError = err as NodeJS.ErrnoException;
-    if (nodeError.code && RETRYABLE_ERROR_CODES.has(nodeError.code)) {
-      return true;
-    }
-
-    const message = err.message.toLowerCase();
-    if (
-      message.includes("network") ||
-      message.includes("socket") ||
-      message.includes("connection") ||
-      message.includes("timeout") ||
-      message.includes("aborted") ||
-      message.includes("econnreset") ||
-      message.includes("etimedout") ||
-      message.includes("fetch failed")
-    ) {
-      return true;
-    }
-
-    return false;
-  }
-
   private async handleDownloadErrorWithRetry(err: Error): Promise<boolean> {
     const wasStallRetry = this.isStallRetry;
-
-    if (this.isPaused && !wasStallRetry) {
-      logger.log("[JsHttpDownloader] Download paused by user");
-      this.status = "paused";
-      return false;
-    }
-
     const isAbortError = err.name === "AbortError";
-    const isRetryable = wasStallRetry || this.isRetryableError(err);
+    const isRetryable = wasStallRetry || isRetryableDownloadError(err);
     const canRetry = this.retryCount < MAX_RETRY_ATTEMPTS;
 
-    if (isRetryable && canRetry && !this.isPaused) {
-      this.retryCount++;
-      const delay = Math.min(
-        INITIAL_RETRY_DELAY_MS * Math.pow(2, this.retryCount - 1),
-        MAX_RETRY_DELAY_MS
-      );
+    const decision = classifyRetryOutcome({
+      isPaused: this.isPaused,
+      wasStallRetry,
+      isAbortError,
+      isRetryable,
+      canRetry,
+    });
 
-      const reason = wasStallRetry ? "stall detected" : err.message;
-      logger.log(
-        `[JsHttpDownloader] Retryable error (${reason}). ` +
-          `Retry ${this.retryCount}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`
-      );
+    switch (decision) {
+      case "retry": {
+        this.retryCount++;
+        const delay = Math.min(
+          INITIAL_RETRY_DELAY_MS * Math.pow(2, this.retryCount - 1),
+          MAX_RETRY_DELAY_MS
+        );
 
-      await this.sleep(delay);
-      return !this.isPaused;
+        const reason = wasStallRetry ? "stall detected" : err.message;
+        logger.log(
+          `[JsHttpDownloader] Retryable error (${reason}). ` +
+            `Retry ${this.retryCount}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`
+        );
+
+        await this.sleep(delay);
+        return !this.isPaused;
+      }
+
+      case "paused": {
+        logger.log("[JsHttpDownloader] Download paused");
+        this.status = "paused";
+        return false;
+      }
+
+      case "error-exhausted": {
+        logger.error(
+          `[JsHttpDownloader] Giving up after ${this.retryCount} retries`
+        );
+        this.status = "error";
+        throw wasStallRetry
+          ? new Error(
+              "Download stalled repeatedly and could not be resumed after multiple retries."
+            )
+          : err;
+      }
+
+      default: {
+        this.handleDownloadError(err);
+        return false;
+      }
     }
-
-    if (isAbortError && !wasStallRetry) {
-      logger.log("[JsHttpDownloader] Download aborted");
-      this.status = "paused";
-    } else {
-      this.handleDownloadError(err);
-    }
-
-    return false;
   }
 
   private sleep(ms: number): Promise<void> {
@@ -284,9 +275,11 @@ export class JsHttpDownloader {
     filename: string | undefined,
     url: string
   ): { filePath: string; startByte: number; usedFallback: boolean } {
-    const extractedFilename = filename || this.extractFilename(url);
-    const usedFallback = !extractedFilename;
-    const resolvedFilename = extractedFilename || "download";
+    const { filename: resolvedFilename, usedFallback } = resolveResumeFilename({
+      knownFilename: this.knownFilename,
+      optionFilename: filename,
+      url,
+    });
     this.folderName = resolvedFilename;
     const filePath = path.join(savePath, resolvedFilename);
 
@@ -422,10 +415,21 @@ export class JsHttpDownloader {
       );
     }
 
-    this.parseFileSize(response, startByte);
+    let effectiveStartByte = startByte;
+    if (shouldRestartFromIgnoredRange(startByte, response.status)) {
+      logger.log(
+        "[JsHttpDownloader] Server ignored the Range request (HTTP 200 for a resumed download). " +
+          "Restarting the file from byte 0 to avoid appending a duplicate stream."
+      );
+      effectiveStartByte = 0;
+      this.bytesDownloaded = 0;
+      this.resetSpeedTracking();
+    }
+
+    this.parseFileSize(response, effectiveStartByte);
 
     let actualFilePath = filePath;
-    if (startByte === 0) {
+    if (effectiveStartByte === 0) {
       const urlDerivedFilename = path.basename(filePath);
       const headerFilename = this.parseContentDisposition(response);
       if (headerFilename) {
@@ -436,6 +440,7 @@ export class JsHttpDownloader {
         }
         actualFilePath = path.join(savePath, headerFilename);
         this.folderName = headerFilename;
+        this.knownFilename = headerFilename;
         const targetDir = path.dirname(actualFilePath);
         if (!fs.existsSync(targetDir)) {
           fs.mkdirSync(targetDir, { recursive: true });
@@ -454,8 +459,10 @@ export class JsHttpDownloader {
       throw new Error("Response body is null");
     }
 
-    const flags = startByte > 0 ? "a" : "w";
+    const flags = effectiveStartByte > 0 ? "a" : "w";
     this.writeStream = fs.createWriteStream(actualFilePath, { flags });
+
+    this.bytesAtAttemptStart = this.bytesDownloaded;
 
     const readableStream = this.createReadableStream(response.body.getReader());
     await pipeline(readableStream, this.writeStream);
@@ -522,6 +529,21 @@ export class JsHttpDownloader {
     const onChunk = (length: number) => {
       this.bytesDownloaded += length;
       this.lastDataReceivedAt = Date.now();
+
+      if (
+        shouldResetRetryBudget(
+          this.retryCount,
+          this.bytesDownloaded,
+          this.bytesAtAttemptStart,
+          PROGRESS_RESET_THRESHOLD_BYTES
+        )
+      ) {
+        logger.log(
+          "[JsHttpDownloader] Download recovered and data is flowing; resetting retry budget"
+        );
+        this.retryCount = 0;
+      }
+
       this.updateSpeed();
     };
 
@@ -647,22 +669,6 @@ export class JsHttpDownloader {
     }
   }
 
-  private extractFilename(url: string): string | undefined {
-    try {
-      const urlObj = new URL(url);
-      const pathname = urlObj.pathname;
-      const pathParts = pathname.split("/");
-      const filename = pathParts.at(-1);
-
-      if (filename?.includes(".") && filename.length > 0) {
-        return decodeURIComponent(filename);
-      }
-    } catch {
-      // Invalid URL
-    }
-    return undefined;
-  }
-
   private cleanupResources(): void {
     if (this.writeStream) {
       this.writeStream.close();
@@ -678,6 +684,7 @@ export class JsHttpDownloader {
     this.downloadSpeed = 0;
     this.status = "paused";
     this.folderName = "";
+    this.knownFilename = null;
     this.isDownloading = false;
     this.retryCount = 0;
     this.isStallRetry = false;
