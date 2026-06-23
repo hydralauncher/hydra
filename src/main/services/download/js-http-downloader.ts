@@ -422,10 +422,20 @@ export class JsHttpDownloader {
       );
     }
 
-    this.parseFileSize(response, startByte);
+    let effectiveStartByte = startByte;
+    if (startByte > 0 && response.status === 200) {
+      logger.log(
+        "[JsHttpDownloader] Server ignored the Range header and returned the full file (HTTP 200). Restarting from the beginning to avoid an oversized, corrupt file."
+      );
+      effectiveStartByte = 0;
+      this.bytesDownloaded = 0;
+      this.resetSpeedTracking();
+    }
+
+    this.parseFileSize(response, effectiveStartByte);
 
     let actualFilePath = filePath;
-    if (startByte === 0) {
+    if (effectiveStartByte === 0) {
       const urlDerivedFilename = path.basename(filePath);
       const headerFilename = this.parseContentDisposition(response);
       if (headerFilename) {
@@ -454,7 +464,7 @@ export class JsHttpDownloader {
       throw new Error("Response body is null");
     }
 
-    const flags = startByte > 0 ? "a" : "w";
+    const flags = effectiveStartByte > 0 ? "a" : "w";
     this.writeStream = fs.createWriteStream(actualFilePath, { flags });
 
     const readableStream = this.createReadableStream(response.body.getReader());
