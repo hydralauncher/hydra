@@ -72,6 +72,18 @@ const extractPs12Sku = async (filePath: string): Promise<string | null> => {
     return null;
   }
 
+  const targetExists = await fs
+    .access(target)
+    .then(() => true)
+    .catch(() => false);
+  if (!targetExists) {
+    logger.warn("[extract-sku] sniff target missing on disk", {
+      filePath,
+      target,
+    });
+    return null;
+  }
+
   let fh: import("node:fs/promises").FileHandle | null = null;
   try {
     fh = await fs.open(target, "r");
