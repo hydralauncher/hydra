@@ -4,6 +4,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
+import { NativeAddon } from "./native-addon";
 import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
@@ -28,7 +29,6 @@ import path from "node:path";
 import UserAgent from "user-agents";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
-import { NativeAddon } from "./native-addon";
 
 const isLinuxWayland =
   process.platform === "linux" &&
@@ -500,6 +500,23 @@ export class WindowManager {
 
     if (bigPicture.isMinimized()) bigPicture.restore();
     if (!bigPicture.isVisible()) bigPicture.show();
+
+    bigPicture.hide();
+
+    setTimeout(() => {
+      const bp = this.bigPicture;
+      if (!bp || bp.isDestroyed()) return;
+
+      bp.show();
+      bp.focus();
+      bp.webContents.focus();
+    }, 50);
+  }
+
+  // @ts-expect-error — kept for reference (native focus path, currently unused on all platforms)
+  private static focusBigPictureNative() {
+    const bigPicture = this.bigPicture;
+    if (!bigPicture || bigPicture.isDestroyed()) return;
 
     const handle = bigPicture.getNativeWindowHandle();
     if (!handle) {
