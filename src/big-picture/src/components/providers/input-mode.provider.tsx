@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
-import { useInputModeStore } from "../../stores";
+import { useInputModeStore, useNavigationStore } from "../../stores";
 
 export function InputModeProvider() {
   return (
     <>
       <InputModeAttributeSync />
       <InputModeMouseDetector />
+      <InputModeFocusCleanup />
       <InputModeOverlay />
     </>
   );
@@ -60,6 +61,23 @@ function InputModeMouseDetector() {
       });
     };
   }, [setMouseMode]);
+
+  return null;
+}
+
+function InputModeFocusCleanup() {
+  const mode = useInputModeStore((state) => state.mode);
+  const prevModeRef = useRef(mode);
+
+  useLayoutEffect(() => {
+    const prevMode = prevModeRef.current;
+    prevModeRef.current = mode;
+
+    if (prevMode !== "gamepad" || mode !== "mouse") return;
+
+    (document.activeElement as HTMLElement)?.blur();
+    useNavigationStore.setState({ currentFocusId: null });
+  }, [mode]);
 
   return null;
 }
