@@ -59,7 +59,7 @@ export function SettingsContextDownloads() {
   >([]);
 
   useEffect(() => {
-    window.electron
+    globalThis.electron
       .getNetworkInterfaces()
       .then(setNetworkInterfaces)
       .catch(() => setNetworkInterfaces([]));

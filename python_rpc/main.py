@@ -86,7 +86,6 @@ metadata_semaphore = threading.BoundedSemaphore(value=2)
 # This can be streamed down from Node
 downloading_game_id = -1
 current_download_limit = None
-current_network_interface = None
 
 torrent_session = lt.session(
     {"listen_interfaces": "0.0.0.0:{port}".format(port=torrent_port)}
@@ -278,8 +277,9 @@ def apply_network_interface(interface):
             "Bound torrent client to network interface: %s",
             interface or "default (all adapters)",
         )
-    except Exception as error:
-        logger.error("Failed to bind torrent client to interface: %s", error)
+    except Exception:
+        logger.exception("Failed to bind torrent client to interface")
+
 
 def validate_rpc_password_value(password: Optional[str]):
     if rpc_password == "":
@@ -463,7 +463,6 @@ def torrent_files(data: Optional[dict] = None):
 def action(data: Optional[dict] = None):
     global downloading_game_id
     global current_download_limit
-    global current_network_interface
 
     data = data or {}
     action_name = data.get("action")
@@ -547,10 +546,9 @@ def action(data: Optional[dict] = None):
             for downloader in active_downloaders:
                 apply_download_limit(downloader)
         elif action_name == "set_network_interface":
-            current_network_interface = normalize_network_interface(
-                data.get("interface")
+            apply_network_interface(
+                normalize_network_interface(data.get("interface"))
             )
-            apply_network_interface(current_network_interface)
         else:
             raise RpcError("invalid_action")
     except RpcError:
