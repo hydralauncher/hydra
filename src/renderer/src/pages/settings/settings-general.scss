@@ -25,6 +25,17 @@
     font-style: italic;
   }
 
+  &__network-interface {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__network-interface-hint {
+    font-size: 13px;
+    color: globals.$muted-color;
+  }
+
   &__volume-control {
     display: flex;
     flex-direction: column;

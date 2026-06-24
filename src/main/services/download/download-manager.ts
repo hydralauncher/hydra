@@ -266,11 +266,41 @@ export class DownloadManager {
       });
   }
 
+  private static async getPersistedNetworkInterface() {
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+
+    return userPreferences?.torrentNetworkInterface ?? null;
+  }
+
+  public static async applyNetworkInterface(
+    value?: string | null
+  ): Promise<void> {
+    const networkInterface =
+      value === undefined ? await this.getPersistedNetworkInterface() : value;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_network_interface",
+        interface: networkInterface ?? "",
+      })
+      .catch((error) => {
+        logger.error(
+          "[DownloadManager] Failed to update RPC network interface:",
+          error
+        );
+      });
+  }
+
   public static async startRPC(
     download?: Download,
     downloadsToSeed?: Download[]
   ) {
     await PythonRPC.spawn();
+
+    await this.applyNetworkInterface();
 
     if (downloadsToSeed?.length) {
       for (const seedDownload of downloadsToSeed) {
