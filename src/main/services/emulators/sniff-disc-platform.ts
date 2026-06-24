@@ -37,6 +37,27 @@ export const sniffDiscImage = async (
   }
 };
 
+const resolveCueRef = async (dir: string, ref: string): Promise<string> => {
+  const base = path.basename(ref.replace(/\\/g, "/"));
+  const resolved = path.resolve(dir, base);
+
+  try {
+    await fs.access(resolved);
+    return resolved;
+  } catch {
+    try {
+      const entries = await fs.readdir(dir);
+      const match = entries.find(
+        (entry) => entry.toLowerCase() === base.toLowerCase()
+      );
+      if (match) return path.resolve(dir, match);
+    } catch {
+      return resolved;
+    }
+    return resolved;
+  }
+};
+
 export const parseCueReferencedFiles = async (
   cuePath: string
 ): Promise<string[]> => {
@@ -44,7 +65,7 @@ export const parseCueReferencedFiles = async (
     const content = await fs.readFile(cuePath, "utf-8");
     const dir = path.dirname(cuePath);
     const matches = [...content.matchAll(/FILE\s+"(.+?)"\s+\w+/gi)];
-    return matches.map((m) => path.resolve(dir, m[1]));
+    return Promise.all(matches.map((m) => resolveCueRef(dir, m[1])));
   } catch {
     return [];
   }
