@@ -44,6 +44,17 @@ jobs:
       - name: Build Python RPC with cx_Freeze
         run: python python_rpc/setup.py build
 
+      - name: Install Flatpak build tooling
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder elfutils
+          flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub \
+            org.freedesktop.Platform//23.08 \
+            org.freedesktop.Sdk//23.08 \
+            org.electronjs.Electron2.BaseApp//23.08
+
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -92,6 +103,7 @@ jobs:
             dist/*.dmg
             dist/*.deb
             dist/*.rpm
+            dist/*.flatpak
             dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
@@ -122,6 +134,7 @@ jobs:
             dist/*.snap
             dist/*.deb
             dist/*.rpm
+            dist/*.flatpak
             dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
