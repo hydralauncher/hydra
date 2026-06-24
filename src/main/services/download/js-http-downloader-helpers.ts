@@ -41,6 +41,28 @@ export function isRetryableHttpStatus(status: number): boolean {
   return RETRYABLE_HTTP_STATUS.has(status);
 }
 
+// Parse a Retry-After header (delta-seconds or HTTP-date) into milliseconds.
+export function parseRetryAfterMs(
+  headerValue: string | null,
+  nowMs: number
+): number | null {
+  if (!headerValue) return null;
+
+  const trimmed = headerValue.trim();
+  if (trimmed === "") return null;
+
+  if (/^\d+$/.test(trimmed)) {
+    return Number.parseInt(trimmed, 10) * 1000;
+  }
+
+  const dateMs = Date.parse(trimmed);
+  if (Number.isFinite(dateMs)) {
+    return Math.max(0, dateMs - nowMs);
+  }
+
+  return null;
+}
+
 export function isRetryableDownloadError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
 

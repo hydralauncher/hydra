@@ -11,6 +11,7 @@ import {
   isRetryableHttpStatus,
   MAX_BUDGET_RESETS,
   MAX_RESTARTS_FROM_ZERO,
+  parseRetryAfterMs,
   PROGRESS_RESET_THRESHOLD_BYTES,
   resolveResumeAction,
   shouldResetRetryBudget,
@@ -36,6 +37,8 @@ export interface JsHttpDownloaderOptions {
 }
 
 const MAX_RETRY_ATTEMPTS = 10;
+const MAX_STATUS_RETRY_ATTEMPTS = 4;
+const MAX_RETRY_AFTER_MS = 20000;
 const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 30000;
@@ -46,7 +49,8 @@ export const DEFAULT_DOWNLOAD_USER_AGENT =
 class HttpDownloadStatusError extends Error {
   constructor(
     public readonly statusCode: number,
-    public readonly retryable = false
+    public readonly retryable = false,
+    public readonly retryAfterMs: number | null = null
   ) {
     super(`The download link is not available (HTTP ${statusCode}).`);
     this.name = "HttpDownloadStatusError";
@@ -69,6 +73,7 @@ export class JsHttpDownloader {
   private isDownloading = false;
 
   private retryCount = 0;
+  private statusRetryCount = 0;
   private budgetResets = 0;
   private attemptBytesReceived = 0;
   private restartCount = 0;
@@ -101,6 +106,7 @@ export class JsHttpDownloader {
     this.currentOptions = options;
     this.isPaused = false;
     this.retryCount = 0;
+    this.statusRetryCount = 0;
     this.budgetResets = 0;
     this.attemptBytesReceived = 0;
     this.restartCount = 0;
@@ -206,6 +212,8 @@ export class JsHttpDownloader {
     const wasStallRetry = this.isStallRetry;
     const isAbortError = err.name === "AbortError";
     const isRetryable = wasStallRetry || isRetryableDownloadError(err);
+    const transientStatus =
+      err instanceof HttpDownloadStatusError && err.retryable;
 
     if (
       shouldResetRetryBudget(
@@ -219,12 +227,42 @@ export class JsHttpDownloader {
         "[JsHttpDownloader] Data is flowing again; resetting retry budget"
       );
       this.retryCount = 0;
+      this.statusRetryCount = 0;
       this.budgetResets += 1;
     }
 
-    const canRetry = this.retryCount < MAX_RETRY_ATTEMPTS;
+    if (transientStatus) {
+      // A rate-limited or temporarily-unavailable server gets a short,
+      // dedicated budget so it fails quickly with a clear error instead of
+      // masquerading as a stalled download for minutes.
+      const statusError = err as HttpDownloadStatusError;
+      if (this.statusRetryCount < MAX_STATUS_RETRY_ATTEMPTS) {
+        this.statusRetryCount++;
+        const backoff = Math.min(
+          INITIAL_RETRY_DELAY_MS * Math.pow(2, this.statusRetryCount - 1),
+          MAX_RETRY_DELAY_MS
+        );
+        const delay =
+          statusError.retryAfterMs !== null
+            ? Math.min(statusError.retryAfterMs, MAX_RETRY_AFTER_MS)
+            : backoff;
+        logger.log(
+          `[JsHttpDownloader] Server unavailable (HTTP ${statusError.statusCode}). ` +
+            `Retry ${this.statusRetryCount}/${MAX_STATUS_RETRY_ATTEMPTS} in ${delay}ms`
+        );
+        await this.sleep(delay);
+        return !this.isPaused;
+      }
 
-    if (isRetryable && canRetry) {
+      this.handleDownloadError(
+        new Error(
+          `The download server is rate-limiting or temporarily unavailable (HTTP ${statusError.statusCode}). Try again later or use another source.`
+        )
+      );
+      return false;
+    }
+
+    if (isRetryable && this.retryCount < MAX_RETRY_ATTEMPTS) {
       this.retryCount++;
       const delay = Math.min(
         INITIAL_RETRY_DELAY_MS * Math.pow(2, this.retryCount - 1),
@@ -441,7 +479,8 @@ export class JsHttpDownloader {
     if (response.status >= 400) {
       throw new HttpDownloadStatusError(
         response.status,
-        isRetryableHttpStatus(response.status)
+        isRetryableHttpStatus(response.status),
+        parseRetryAfterMs(response.headers.get("retry-after"), Date.now())
       );
     }
 
@@ -550,6 +589,7 @@ export class JsHttpDownloader {
 
     this.status = "complete";
     this.retryCount = 0;
+    this.statusRetryCount = 0;
     this.budgetResets = 0;
     this.restartCount = 0;
     this.downloadSpeed = 0;
@@ -698,6 +738,7 @@ export class JsHttpDownloader {
     this.isDownloading = false;
     this.isPaused = false;
     this.retryCount = 0;
+    this.statusRetryCount = 0;
     this.budgetResets = 0;
     this.attemptBytesReceived = 0;
     this.restartCount = 0;
@@ -818,6 +859,7 @@ export class JsHttpDownloader {
     this.folderName = "";
     this.isDownloading = false;
     this.retryCount = 0;
+    this.statusRetryCount = 0;
     this.budgetResets = 0;
     this.attemptBytesReceived = 0;
     this.restartCount = 0;
