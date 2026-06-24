@@ -91,12 +91,12 @@ current_download_limit = None
 def create_torrent_session(settings):
     # Under Flatpak, downloads may target document-portal FUSE paths where
     # libtorrent 2.x's default mmap disk I/O is unsafe. Prefer the posix
-    # backend there; fall back to the default if this binding predates
-    # string-based disk_io_constructor selection.
-    if os.environ.get("FLATPAK_ID"):
+    # backend there; fall back to the default if this binding predates the
+    # posix_disk_io_constructor (older libtorrent).
+    if os.environ.get("FLATPAK_ID") and hasattr(lt, "posix_disk_io_constructor"):
         try:
             params = lt.session_params(settings)
-            params.disk_io_constructor = "posix_disk_io_constructor"
+            params.disk_io_constructor = lt.posix_disk_io_constructor
             session = lt.session(params)
             logger.info("Torrent session using posix disk I/O (Flatpak)")
             return session
