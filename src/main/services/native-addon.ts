@@ -33,6 +33,7 @@ type HydraNativeModule = {
     preserveAnimation: boolean
   ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
+  getXattr: (filePath: string, name: string) => string | null;
 };
 
 export type SystemProcessMap = {
@@ -269,6 +270,15 @@ export class NativeAddon {
     } catch (error) {
       logger.error("Failed to process friend image via native addon", error);
       throw error;
+    }
+  }
+
+  public static getXattr(filePath: string, name: string): string | null {
+    try {
+      return this.load().getXattr(filePath, name);
+    } catch (error) {
+      logger.error("Failed to read xattr via native addon", error);
+      return null;
     }
   }
 

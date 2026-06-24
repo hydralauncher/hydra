@@ -12,6 +12,10 @@ extraResources:
 files:
   - "!**/.vscode/*"
   - "!src/*"
+  # Local dev tooling: direnv caches and Python venvs contain symlinks into
+  # the nix store, which trips electron-builder's asar integrity check.
+  - "!.direnv/**"
+  - "!.venv*/**"
   - "!native/hydra-native/target"
   - "!native/hydra-native/target/**"
   - "!electron.vite.config.{js,ts,mjs,cjs}"
@@ -62,12 +66,37 @@ linux:
     - snap
     - deb
     - rpm
+    - flatpak
   maintainer: electronjs.org
   category: Game
   mimeTypes:
     - x-scheme-handler/hydralauncher
 appImage:
   artifactName: ${name}-${version}.${ext}
+flatpak:
+  artifactName: ${name}-${version}.${ext}
+  runtime: org.freedesktop.Platform
+  runtimeVersion: "23.08"
+  sdk: org.freedesktop.Sdk
+  base: org.electronjs.Electron2.BaseApp
+  baseVersion: "23.08"
+  branch: stable
+  finishArgs:
+    - --share=ipc
+    - --share=network
+    - --socket=x11
+    - --socket=wayland
+    - --socket=pulseaudio
+    - --device=dri
+    # Full host filesystem access is the default so user-picked download and
+    # library folders are reached as native paths (no document-portal FUSE
+    # overhead). Privacy-conscious users can tighten this with e.g.
+    #   flatpak override --user --nofilesystem=host \
+    #     --filesystem=xdg-download gg.hydralauncher.hydra
+    # The portal/PathGrants plumbing still handles any folder reached that way.
+    - --filesystem=host
+    - --talk-name=org.freedesktop.Notifications
+    - --talk-name=org.freedesktop.ScreenSaver
 npmRebuild: false
 publish:
   provider: github

@@ -1,8 +1,14 @@
 import { app } from "electron";
 import path from "node:path";
+import { isFlatpak } from "./helpers/sandbox";
 import { SystemPath } from "./services/system-path";
 
-export const defaultDownloadsPath = SystemPath.getPath("downloads");
+// Under Flatpak only the Hydra subfolder of xdg-download is statically
+// granted (--filesystem=xdg-download/Hydra:create), keeping default
+// downloads off the document-portal FUSE mount.
+export const defaultDownloadsPath = isFlatpak
+  ? path.join(SystemPath.getPath("downloads"), "Hydra")
+  : SystemPath.getPath("downloads");
 
 export const isStaging = import.meta.env.MAIN_VITE_API_URL.includes("staging");
 

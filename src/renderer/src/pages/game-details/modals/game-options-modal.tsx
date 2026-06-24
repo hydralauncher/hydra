@@ -26,6 +26,7 @@ import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import {
   useAppSelector,
+  useDisplayPath,
   useDownload,
   useGameCollections,
   useLibrary,
@@ -724,8 +725,9 @@ export function GameOptionsModal({
   const defaultHydraWinePrefixPath = defaultWinePrefixPath
     ? `${defaultWinePrefixPath}/${game.objectId}`
     : null;
-  const displayedWinePrefixPath =
-    game.winePrefixPath ?? defaultHydraWinePrefixPath;
+  const displayedWinePrefixPath = useDisplayPath(
+    game.winePrefixPath ?? defaultHydraWinePrefixPath
+  );
 
   const categories = useMemo(
     () => [

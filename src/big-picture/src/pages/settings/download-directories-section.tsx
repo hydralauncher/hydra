@@ -53,6 +53,7 @@ interface DownloadDirectoriesSectionProps {
 interface DownloadDirectory {
   title: string;
   path: string;
+  displayPath: string;
   freeBytes: number;
   totalBytes: number;
   isSelected: boolean;
@@ -358,6 +359,40 @@ export function DownloadDirectoriesSection({
     };
   }, [resolvedDirectories]);
 
+  const [displayPathByPath, setDisplayPathByPath] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDisplayPaths = async () => {
+      const paths = resolvedDirectories?.allPaths ?? [];
+
+      const entries = await Promise.all(
+        paths.map(async (path) => {
+          try {
+            const displayPath =
+              await globalThis.window.electron.getDisplayPath(path);
+            return [path, displayPath] as const;
+          } catch {
+            return [path, path] as const;
+          }
+        })
+      );
+
+      if (cancelled) return;
+
+      setDisplayPathByPath(Object.fromEntries(entries));
+    };
+
+    void loadDisplayPaths();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedDirectories]);
+
   const directories = useMemo<Array<DownloadDirectory>>(() => {
     if (!resolvedDirectories) {
       return [];
@@ -367,17 +402,19 @@ export function DownloadDirectoriesSection({
       const diskUsage = diskUsageByPath[path] ?? EMPTY_DISK_USAGE;
       const isSelected = path === resolvedDirectories.defaultPath;
       const canRemove = resolvedDirectories.optionalPaths.includes(path);
+      const displayPath = displayPathByPath[path] ?? path;
 
       return {
-        title: getDownloadDirectoryTitle(path),
+        title: getDownloadDirectoryTitle(displayPath),
         path,
+        displayPath,
         freeBytes: diskUsage.free,
         totalBytes: diskUsage.total,
         isSelected,
         canRemove,
       };
     });
-  }, [diskUsageByPath, resolvedDirectories]);
+  }, [diskUsageByPath, displayPathByPath, resolvedDirectories]);
 
   const directoryOptions = useMemo<Array<DropdownSelectOption<string>>>(() => {
     return directories.map((directory) => ({
@@ -575,7 +612,7 @@ export function DownloadDirectoriesSection({
               <UserDiskItem
                 key={directory.path}
                 title={directory.title}
-                path={directory.path}
+                path={directory.displayPath}
                 freeBytes={directory.freeBytes}
                 totalBytes={directory.totalBytes}
                 isSelected={directory.isSelected}

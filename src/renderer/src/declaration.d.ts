@@ -662,7 +662,11 @@ declare global {
     isPortableVersion: () => Promise<boolean>;
     showOpenDialog: (
       options: Electron.OpenDialogOptions
-    ) => Promise<Electron.OpenDialogReturnValue>;
+    ) => Promise<Electron.OpenDialogReturnValue & { displayPaths: string[] }>;
+    getDisplayPath: (accessPath: string) => Promise<string>;
+    onPathGrantsLost: (
+      cb: (displayPaths: string[]) => void
+    ) => () => Electron.IpcRenderer;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
     getProcessedFriendImage: (
