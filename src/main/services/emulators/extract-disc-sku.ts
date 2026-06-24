@@ -54,36 +54,7 @@ const extractCsoSku = async (filePath: string): Promise<string | null> => {
   return sku;
 };
 
-const extractPs12Sku = async (filePath: string): Promise<string | null> => {
-  const lower = filePath.toLowerCase();
-  if (lower.endsWith(".chd")) {
-    return extractChdSku(filePath);
-  }
-  if (lower.endsWith(".cso")) {
-    return extractCsoSku(filePath);
-  }
-
-  const target = await resolveSniffTarget(filePath);
-  logger.log("[extract-sku] start", { filePath, target });
-  if (!target) {
-    logger.log("[extract-sku] no sniff target (unsupported format)", {
-      filePath,
-    });
-    return null;
-  }
-
-  const targetExists = await fs
-    .access(target)
-    .then(() => true)
-    .catch(() => false);
-  if (!targetExists) {
-    logger.warn("[extract-sku] sniff target missing on disk", {
-      filePath,
-      target,
-    });
-    return null;
-  }
-
+const scanTargetForSku = async (target: string): Promise<string | null> => {
   let fh: import("node:fs/promises").FileHandle | null = null;
   try {
     fh = await fs.open(target, "r");
@@ -153,6 +124,39 @@ const extractPs12Sku = async (filePath: string): Promise<string | null> => {
   } finally {
     await fh?.close();
   }
+};
+
+const extractPs12Sku = async (filePath: string): Promise<string | null> => {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith(".chd")) {
+    return extractChdSku(filePath);
+  }
+  if (lower.endsWith(".cso")) {
+    return extractCsoSku(filePath);
+  }
+
+  const target = await resolveSniffTarget(filePath);
+  logger.log("[extract-sku] start", { filePath, target });
+  if (!target) {
+    logger.log("[extract-sku] no sniff target (unsupported format)", {
+      filePath,
+    });
+    return null;
+  }
+
+  const targetExists = await fs
+    .access(target)
+    .then(() => true)
+    .catch(() => false);
+  if (!targetExists) {
+    logger.warn("[extract-sku] sniff target missing on disk", {
+      filePath,
+      target,
+    });
+    return null;
+  }
+
+  return scanTargetForSku(target);
 };
 
 const findKeyOffset = (
