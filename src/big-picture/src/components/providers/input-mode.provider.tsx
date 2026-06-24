@@ -79,8 +79,6 @@ function InputModeOverlay() {
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={overlayRef}
-      role="none"
-      aria-hidden="true"
       style={{
         position: "fixed",
         inset: 0,
