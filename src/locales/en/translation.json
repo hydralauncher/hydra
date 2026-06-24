@@ -771,7 +771,7 @@
     "download_behavior": "Download behavior",
     "network_interface": "Network adapter for torrents",
     "network_interface_default": "Default (all adapters)",
-    "network_interface_hint": "Bind the torrent client to a specific adapter, such as a VPN. While bound, torrents only connect through that adapter, and downloads stop if it goes down (no traffic leaks through your regular connection).",
+    "network_interface_hint": "Force torrents through a specific adapter, like a VPN. If it disconnects, downloads stop instead of leaking.",
     "network_interface_unavailable": "unavailable",
     "library_notifications": "Library notifications",
     "achievement_notifications": "Achievement notifications",

@@ -681,7 +681,7 @@
     "download_behavior": "Comportamento de download",
     "network_interface": "Adaptador de rede para torrents",
     "network_interface_default": "Padrão (todos os adaptadores)",
-    "network_interface_hint": "Vincula o cliente de torrent a um adaptador específico, como uma VPN. Enquanto vinculado, os torrents só se conectam por esse adaptador e os downloads param se ele cair (sem vazamento de tráfego pela sua conexão normal).",
+    "network_interface_hint": "Força os torrents por um adaptador específico, como uma VPN. Se ele cair, os downloads param em vez de vazar.",
     "network_interface_unavailable": "indisponível",
     "library_notifications": "Notificações da biblioteca",
     "achievement_notifications": "Notificações de conquistas",
