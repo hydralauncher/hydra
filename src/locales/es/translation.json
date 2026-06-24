@@ -733,7 +733,7 @@
     "download_behavior": "Comportamiento de descarga",
     "network_interface": "Adaptador de red para torrents",
     "network_interface_default": "Predeterminado (todos los adaptadores)",
-    "network_interface_hint": "Vincula el cliente de torrents a un adaptador específico, como una VPN. Mientras está vinculado, los torrents solo se conectan a través de ese adaptador y las descargas se detienen si deja de funcionar (sin fugas de tráfico por tu conexión habitual).",
+    "network_interface_hint": "Fuerza los torrents a través de un adaptador específico, como una VPN. Si se desconecta, las descargas se detienen en lugar de filtrarse.",
     "network_interface_unavailable": "no disponible",
     "library_notifications": "Notificaciones de la librería",
     "achievement_notifications": "Notificaciones de logros",
