@@ -509,11 +509,22 @@ export class WindowManager {
     }
 
     const result = NativeAddon.focusWindow(handle);
-    if (!result.focused) {
+
+    if (result.focused) {
+      logger.info("native focus: focused");
+    } else {
       logger.warn("native focus did not achieve full focus", result);
-      bigPicture.show();
-      bigPicture.focus();
     }
+
+    bigPicture.show();
+    bigPicture.focus();
+    bigPicture.webContents.focus();
+
+    logger.info(
+      "bigPicture.isFocused()=%s webContents.isFocused()=%s",
+      bigPicture.isFocused(),
+      bigPicture.webContents.isFocused()
+    );
   }
 
   public static isMainWindowMaximized() {
