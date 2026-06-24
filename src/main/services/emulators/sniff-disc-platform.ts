@@ -41,7 +41,7 @@ const resolveCueRef = async (
   dir: string,
   ref: string
 ): Promise<string | null> => {
-  const base = path.basename(ref.replace(/\\/g, "/"));
+  const base = path.basename(ref.replaceAll("\\", "/"));
   const resolved = path.resolve(dir, base);
 
   try {
