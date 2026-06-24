@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
-import { useInputModeStore, useNavigationStore } from "../../stores";
+import {
+  useInputModeStore,
+  useNavigationStore,
+  useVirtualKeyboardStore,
+} from "../../stores";
 import { MAX_OVERLAY_Z_INDEX } from "../../constants";
+import { GamepadService } from "../../services";
 
 export function InputModeProvider() {
   return (
     <>
       <InputModeAttributeSync />
+      <InputModeGamepadDetector />
       <InputModeMouseDetector />
       <InputModeFocusCleanup />
       <InputModeOverlay />
@@ -26,6 +32,16 @@ function InputModeAttributeSync() {
       delete root.dataset.bpInputMode;
     };
   }, [mode]);
+
+  return null;
+}
+
+function InputModeGamepadDetector() {
+  useEffect(() => {
+    return GamepadService.getInstance().onAnyButtonPress(() => {
+      useInputModeStore.getState().setGamepadMode();
+    });
+  }, []);
 
   return null;
 }
@@ -86,6 +102,8 @@ function InputModeFocusCleanup() {
 
     (document.activeElement as HTMLElement)?.blur();
     useNavigationStore.setState({ currentFocusId: null });
+    useVirtualKeyboardStore.setState({ target: null });
+    useVirtualKeyboardStore.getState().closeKeyboard?.({ restoreFocus: false });
   }, [mode]);
 
   return null;

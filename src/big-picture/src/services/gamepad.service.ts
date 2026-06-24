@@ -102,6 +102,7 @@ export class GamepadService {
   private readonly stickMoveCallbacks: StickMoveCallbacks = new Map();
   private readonly layoutCache = new Map<string, GamepadLayout>();
   private readonly stateChangeCallbacks = new Set<() => void>();
+  private readonly anyButtonPressCallbacks = new Set<() => void>();
   private readonly stickStatesByGamepad = new Map<
     number,
     GamepadStickStateSet
@@ -690,6 +691,14 @@ export class GamepadService {
     type: GamepadButtonType,
     meta: GamepadInputEventMeta
   ): void {
+    this.anyButtonPressCallbacks.forEach((callback) => {
+      try {
+        callback();
+      } catch (error) {
+        console.error("Error in any-button-press callback:", error);
+      }
+    });
+
     const callbacks = this.buttonPressCallbacks.get(type);
     if (!callbacks) return;
 
@@ -726,6 +735,14 @@ export class GamepadService {
       if (callbackSet.size === 0) {
         this.buttonPressCallbacks.delete(type);
       }
+    };
+  }
+
+  public onAnyButtonPress(callback: () => void): () => void {
+    this.anyButtonPressCallbacks.add(callback);
+
+    return () => {
+      this.anyButtonPressCallbacks.delete(callback);
     };
   }
 
