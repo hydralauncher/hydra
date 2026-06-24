@@ -8,6 +8,7 @@ import {
   isRetryableDownloadError,
   isRetryableHttpStatus,
   MAX_BUDGET_RESETS,
+  parseRetryAfterMs,
   PROGRESS_RESET_THRESHOLD_BYTES,
   resolveResumeAction,
   shouldResetRetryBudget,
@@ -240,6 +241,32 @@ describe("isRetryableHttpStatus", () => {
     for (const s of [400, 401, 403, 404, 410]) {
       assert.equal(isRetryableHttpStatus(s), false, `status ${s}`);
     }
+  });
+});
+
+describe("parseRetryAfterMs", () => {
+  it("parses delta-seconds", () => {
+    assert.equal(parseRetryAfterMs("5", 1_000_000), 5000);
+    assert.equal(parseRetryAfterMs("0", 1_000_000), 0);
+  });
+
+  it("parses an HTTP-date relative to now", () => {
+    const now = Date.parse("2026-01-01T00:00:00Z");
+    assert.equal(
+      parseRetryAfterMs("Thu, 01 Jan 2026 00:00:30 GMT", now),
+      30000
+    );
+  });
+
+  it("never returns a negative wait for a past date", () => {
+    const now = Date.parse("2026-01-01T00:01:00Z");
+    assert.equal(parseRetryAfterMs("Thu, 01 Jan 2026 00:00:00 GMT", now), 0);
+  });
+
+  it("returns null for missing or unparseable values", () => {
+    assert.equal(parseRetryAfterMs(null, 1_000_000), null);
+    assert.equal(parseRetryAfterMs("", 1_000_000), null);
+    assert.equal(parseRetryAfterMs("soon", 1_000_000), null);
   });
 });
 
