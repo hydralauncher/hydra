@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { useInputModeStore, useNavigationStore } from "../../stores";
+import { MAX_OVERLAY_Z_INDEX } from "../../constants";
 
 export function InputModeProvider() {
   return (
@@ -19,10 +20,10 @@ function InputModeAttributeSync() {
     const root = document.getElementById("big-picture");
     if (!root) return;
 
-    root.setAttribute("data-bp-input-mode", mode);
+    root.dataset.bpInputMode = mode;
 
     return () => {
-      root.removeAttribute("data-bp-input-mode");
+      delete root.dataset.bpInputMode;
     };
   }, [mode]);
 
@@ -38,25 +39,33 @@ function InputModeMouseDetector() {
       setMouseMode();
     };
 
-    window.addEventListener("mousemove", handlePointerActivity, {
+    globalThis.window.addEventListener("mousemove", handlePointerActivity, {
       capture: true,
     });
-    window.addEventListener("mousedown", handlePointerActivity, {
+    globalThis.window.addEventListener("mousedown", handlePointerActivity, {
       capture: true,
     });
-    window.addEventListener("wheel", handlePointerActivity, {
+    globalThis.window.addEventListener("wheel", handlePointerActivity, {
       capture: true,
       passive: true,
     });
 
     return () => {
-      window.removeEventListener("mousemove", handlePointerActivity, {
-        capture: true,
-      });
-      window.removeEventListener("mousedown", handlePointerActivity, {
-        capture: true,
-      });
-      window.removeEventListener("wheel", handlePointerActivity, {
+      globalThis.window.removeEventListener(
+        "mousemove",
+        handlePointerActivity,
+        {
+          capture: true,
+        }
+      );
+      globalThis.window.removeEventListener(
+        "mousedown",
+        handlePointerActivity,
+        {
+          capture: true,
+        }
+      );
+      globalThis.window.removeEventListener("wheel", handlePointerActivity, {
         capture: true,
       });
     };
@@ -85,7 +94,6 @@ function InputModeFocusCleanup() {
 function InputModeOverlay() {
   const mode = useInputModeStore((state) => state.mode);
   const setMouseMode = useInputModeStore((state) => state.setMouseMode);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
 
   const handlePointerActivity = useCallback(() => {
     setMouseMode();
@@ -96,11 +104,10 @@ function InputModeOverlay() {
   return (
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
-      ref={overlayRef}
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 2147483647,
+        zIndex: MAX_OVERLAY_Z_INDEX,
         cursor: "none",
         pointerEvents: "auto",
       }}
@@ -108,7 +115,6 @@ function InputModeOverlay() {
       onMouseDown={handlePointerActivity}
       onPointerDown={handlePointerActivity}
       onPointerMove={handlePointerActivity}
-      onWheel={handlePointerActivity}
       onContextMenu={(e) => {
         e.preventDefault();
         setMouseMode();
