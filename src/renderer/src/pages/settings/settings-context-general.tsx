@@ -11,7 +11,7 @@ import {
 } from "@renderer/components";
 import type { DownloadDirectoryPreference } from "@types";
 import { settingsContext } from "@renderer/context";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useDisplayPath } from "@renderer/hooks";
 import languageResources from "@locales";
 import {
   prepareDefaultDownloadPathSync,
@@ -125,6 +125,8 @@ export function SettingsContextGeneral({
     changeLanguage(value);
   };
 
+  const downloadsDisplayPath = useDisplayPath(form.downloadsPath);
+
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       defaultPath: form.downloadsPath,
@@ -193,7 +195,7 @@ export function SettingsContextGeneral({
 
         <TextField
           label={t("downloads_path")}
-          value={form.downloadsPath}
+          value={downloadsDisplayPath}
           readOnly
           disabled
           rightContent={

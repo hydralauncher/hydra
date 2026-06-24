@@ -27,8 +27,19 @@ import {
   logger,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
+import { isDocPortalPath, isFlatpak } from "./helpers/sandbox";
 import { getDirSize } from "./services/download/helpers";
 import { GofileApi } from "./services/hosters";
+import { PathGrants } from "./services/path-grants";
+
+// Under Flatpak, a download path granted through the document portal can
+// become unreachable when the grant is revoked. This is distinct from
+// missing files: the data is still on disk, the sandbox just lost access.
+const hasLostPathGrant = async (download: Download): Promise<boolean> => {
+  if (!isFlatpak || !isDocPortalPath(download.downloadPath)) return false;
+
+  return !(await PathGrants.verifyAccess(download.downloadPath));
+};
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -54,6 +65,13 @@ const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
 
 export const loadState = async () => {
   await Lock.acquireLock();
+
+  if (isFlatpak) {
+    // The statically-granted default downloads folder (xdg-download/Hydra)
+    // does not exist on first run; writability checks expect it to.
+    const { defaultDownloadsPath } = await import("./constants");
+    fs.mkdirSync(defaultDownloadsPath, { recursive: true });
+  }
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -117,6 +135,8 @@ export const loadState = async () => {
 
   const downloadsToSeed: Download[] = [];
 
+  const lostGrantPaths: string[] = [];
+
   for (const game of normalizedDownloads) {
     if (
       !game.shouldSeed ||
@@ -125,6 +145,25 @@ export const loadState = async () => {
       game.status !== "seeding" ||
       game.uri === null
     ) {
+      continue;
+    }
+
+    if (await hasLostPathGrant(game)) {
+      const gameKey = levelKeys.game(game.shop, game.objectId);
+
+      // Keep progress and shouldSeed intact: the files still exist on the
+      // host, seeding can resume once the user grants access again.
+      await downloadsSublevel.put(gameKey, {
+        ...game,
+        status: "paused",
+        queued: false,
+      });
+
+      lostGrantPaths.push(game.downloadPath);
+
+      logger.warn(
+        `[Startup] Lost portal grant for ${gameKey} at ${game.downloadPath}; download was paused`
+      );
       continue;
     }
 
@@ -180,6 +219,13 @@ export const loadState = async () => {
   }
 
   WindowManager.sendDownloadsUpdated();
+
+  if (lostGrantPaths.length > 0) {
+    const displayPaths = await Promise.all(
+      lostGrantPaths.map((grantPath) => PathGrants.getDisplayPath(grantPath))
+    );
+    WindowManager.sendToAppWindows("on-path-grants-lost", displayPaths);
+  }
 
   startMainLoop();
 

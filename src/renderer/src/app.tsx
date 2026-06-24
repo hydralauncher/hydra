@@ -114,6 +114,22 @@ export function App() {
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
+    const unsubscribe = window.electron.onPathGrantsLost((displayPaths) => {
+      showErrorToast(
+        t("lost_folder_access"),
+        t("lost_folder_access_description", {
+          paths: displayPaths.join(", "),
+        }),
+        12_000
+      );
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [showErrorToast, t]);
+
+  useEffect(() => {
     const unsubscribe = window.electron.onUserPreferencesUpdated(
       (preferences) => {
         if (!preferences) {

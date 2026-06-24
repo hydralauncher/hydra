@@ -45,7 +45,16 @@ export function CloudSyncFilesModal({
       setSelectedFileMappingMethod(FileMappingMethod.Automatic);
     }
 
-    setValue("customBackupPath", backupPreview?.customBackupPath ?? null);
+    const customBackupPath = backupPreview?.customBackupPath ?? null;
+
+    if (customBackupPath) {
+      window.electron
+        .getDisplayPath(customBackupPath)
+        .then((displayPath) => setValue("customBackupPath", displayPath))
+        .catch(() => setValue("customBackupPath", customBackupPath));
+    } else {
+      setValue("customBackupPath", null);
+    }
   }, [visible, setValue, backupPreview]);
 
   const files = useMemo(() => {
@@ -63,13 +72,13 @@ export function CloudSyncFilesModal({
   }, [backupPreview]);
 
   const handleAddCustomPathClick = useCallback(async () => {
-    const { filePaths } = await window.electron.showOpenDialog({
+    const { filePaths, displayPaths } = await window.electron.showOpenDialog({
       properties: ["openDirectory"],
     });
 
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
-      setValue("customBackupPath", path);
+      setValue("customBackupPath", displayPaths?.[0] ?? path);
 
       await window.electron.selectGameBackupPath(shop, objectId!, path);
       showSuccessToast(t("custom_backup_location_set"));

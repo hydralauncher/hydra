@@ -20,6 +20,7 @@ import {
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import {
   useAppSelector,
+  useDisplayPath,
   useDownload,
   useFeature,
   useToast,
@@ -929,6 +930,8 @@ export function DownloadSettingsModal({
     setSelectedTorrentIndices(new Set());
   }, []);
 
+  const selectedDisplayPath = useDisplayPath(selectedPath);
+
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await globalThis.electron.showOpenDialog({
       defaultPath: selectedPath,
@@ -1400,7 +1403,7 @@ export function DownloadSettingsModal({
 
         <div className="download-settings-modal__downloads-path-field">
           <TextField
-            value={selectedPath}
+            value={selectedDisplayPath}
             readOnly
             disabled
             label={t("download_path")}

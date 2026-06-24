@@ -14,7 +14,7 @@ import {
 } from "@renderer/components";
 import type { DownloadDirectoryPreference } from "@types";
 import { useTranslation } from "react-i18next";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useDisplayPath } from "@renderer/hooks";
 import { changeLanguage } from "i18next";
 import languageResources from "@locales";
 import { orderBy } from "lodash-es";
@@ -203,6 +203,8 @@ export function SettingsGeneral() {
     window.electron.updateAchievementCustomNotificationWindow();
   };
 
+  const downloadsDisplayPath = useDisplayPath(form.downloadsPath);
+
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       defaultPath: form.downloadsPath,
@@ -290,7 +292,7 @@ export function SettingsGeneral() {
     <div className="settings-general">
       <TextField
         label={t("downloads_path")}
-        value={form.downloadsPath}
+        value={downloadsDisplayPath}
         readOnly
         disabled
         rightContent={

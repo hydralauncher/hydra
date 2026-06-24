@@ -775,6 +775,14 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
   },
+  onPathGrantsLost: (cb: (displayPaths: string[]) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      displayPaths: string[]
+    ) => cb(displayPaths);
+    ipcRenderer.on("on-path-grants-lost", listener);
+    return () => ipcRenderer.removeListener("on-path-grants-lost", listener);
+  },
   onDownloadsUpdated: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-downloads-updated", listener);
@@ -917,6 +925,8 @@ contextBridge.exposeInMainWorld("electron", {
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   ...fileExplorerApi,
+  getDisplayPath: (accessPath: string) =>
+    ipcRenderer.invoke("getDisplayPath", accessPath),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>
