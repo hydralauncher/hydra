@@ -19,7 +19,7 @@
   }
 
   &__disabled-hint {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     color: globals.$muted-color;
     margin-top: calc(globals.$spacing-unit * -1);
     font-style: italic;
@@ -33,7 +33,7 @@
   }
 
   &__network-interface-hint {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     color: globals.$muted-color;
   }
 

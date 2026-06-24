@@ -279,7 +279,7 @@ export class DownloadManager {
     value?: string | null
   ): Promise<void> {
     const networkInterface =
-      value === undefined ? await this.getPersistedNetworkInterface() : value;
+      value ?? (await this.getPersistedNetworkInterface());
 
     await PythonRPC.rpc
       .call("action", {
