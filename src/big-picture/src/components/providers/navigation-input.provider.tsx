@@ -1,6 +1,10 @@
 import { useGamepad, useNavigationActions } from "../../hooks";
 import { GamepadService, NavigationAudioService } from "../../services";
-import { useNavigationHistoryStore, useNavigationStore } from "../../stores";
+import {
+  useNavigationHistoryStore,
+  useNavigationStore,
+  useInputModeStore,
+} from "../../stores";
 import { GamepadAxisDirection, GamepadButtonType } from "../../types";
 import {
   type ReactNode,
@@ -365,6 +369,7 @@ export function NavigationInputProvider({
 
   useEffect(() => {
     const unsubDpadUp = onButtonPressed(GamepadButtonType.DPAD_UP, (event) => {
+      useInputModeStore.getState().setGamepadMode();
       if (!isInputActive || isSystemSwitcherActiveRef.current) return;
       if (!isActiveGamepadEvent(event)) return;
 
@@ -376,6 +381,7 @@ export function NavigationInputProvider({
     const unsubDpadLeft = onButtonPressed(
       GamepadButtonType.DPAD_LEFT,
       (event) => {
+        useInputModeStore.getState().setGamepadMode();
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -388,6 +394,7 @@ export function NavigationInputProvider({
     const unsubDpadDown = onButtonPressed(
       GamepadButtonType.DPAD_DOWN,
       (event) => {
+        useInputModeStore.getState().setGamepadMode();
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -400,6 +407,7 @@ export function NavigationInputProvider({
     const unsubDpadRight = onButtonPressed(
       GamepadButtonType.DPAD_RIGHT,
       (event) => {
+        useInputModeStore.getState().setGamepadMode();
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -413,6 +421,7 @@ export function NavigationInputProvider({
       "left",
       GamepadAxisDirection.UP,
       (event) => {
+        useInputModeStore.getState().setGamepadMode();
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -426,6 +435,7 @@ export function NavigationInputProvider({
       "left",
       GamepadAxisDirection.LEFT,
       (event) => {
+        useInputModeStore.getState().setGamepadMode();
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -439,6 +449,7 @@ export function NavigationInputProvider({
       "left",
       GamepadAxisDirection.DOWN,
       (event) => {
+        useInputModeStore.getState().setGamepadMode();
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -452,6 +463,7 @@ export function NavigationInputProvider({
       "left",
       GamepadAxisDirection.RIGHT,
       (event) => {
+        useInputModeStore.getState().setGamepadMode();
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -510,6 +522,11 @@ export function NavigationInputProvider({
 
       resetHoldSessions();
       return;
+    }
+
+    const anyButtonPressed = Object.values(buttonStates).some(Boolean);
+    if (anyButtonPressed) {
+      useInputModeStore.getState().setGamepadMode();
     }
 
     const holdSessions = holdSessionsRef.current;
