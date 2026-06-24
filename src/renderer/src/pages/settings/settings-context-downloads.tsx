@@ -1,9 +1,10 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField, TextField } from "@renderer/components";
+import { CheckboxField, SelectField, TextField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
+import type { NetworkInterface } from "@types";
 import { SettingsDownloadSources } from "./settings-download-sources";
 
 import "./settings-general.scss";
@@ -50,7 +51,19 @@ export function SettingsContextDownloads() {
     createStartMenuShortcut: true,
     maxDownloadSpeedMegabytes: "",
     deleteArchiveFilesAfterExtractionByDefault: false,
+    torrentNetworkInterface: "",
   });
+
+  const [networkInterfaces, setNetworkInterfaces] = useState<
+    NetworkInterface[]
+  >([]);
+
+  useEffect(() => {
+    window.electron
+      .getNetworkInterfaces()
+      .then(setNetworkInterfaces)
+      .catch(() => setNetworkInterfaces([]));
+  }, []);
 
   useEffect(() => {
     if (!userPreferences) return;
@@ -72,8 +85,39 @@ export function SettingsContextDownloads() {
           : "",
       deleteArchiveFilesAfterExtractionByDefault:
         userPreferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
+      torrentNetworkInterface: userPreferences.torrentNetworkInterface ?? "",
     });
   }, [userPreferences]);
+
+  const networkInterfaceOptions = useMemo(() => {
+    const options = [
+      { key: "default", value: "", label: t("network_interface_default") },
+      ...networkInterfaces.map((networkInterface) => {
+        const ipv4 = networkInterface.addresses.find(
+          (address) => !address.includes(":")
+        );
+
+        return {
+          key: networkInterface.name,
+          value: networkInterface.name,
+          label: ipv4
+            ? `${networkInterface.name} (${ipv4})`
+            : networkInterface.name,
+        };
+      }),
+    ];
+
+    const selected = form.torrentNetworkInterface;
+    if (selected && !options.some((option) => option.value === selected)) {
+      options.push({
+        key: selected,
+        value: selected,
+        label: `${selected} (${t("network_interface_unavailable")})`,
+      });
+    }
+
+    return options;
+  }, [networkInterfaces, form.torrentNetworkInterface, t]);
 
   const handleChange = (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
@@ -158,6 +202,20 @@ export function SettingsContextDownloads() {
           onBlur={handleMaxDownloadSpeedBlur}
           placeholder={t("max_download_speed_unlimited")}
         />
+
+        <div className="settings-general__network-interface">
+          <SelectField
+            label={t("network_interface")}
+            value={form.torrentNetworkInterface}
+            onChange={(event) =>
+              handleChange({ torrentNetworkInterface: event.target.value })
+            }
+            options={networkInterfaceOptions}
+          />
+          <small className="settings-general__network-interface-hint">
+            {t("network_interface_hint")}
+          </small>
+        </div>
 
         <CheckboxField
           label={t("seed_after_download_complete")}
