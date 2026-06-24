@@ -55,6 +55,10 @@ export interface AppProps {
   children: React.ReactNode;
 }
 
+// Lost-folder-access toast stays up longer than usual so the user has time
+// to read the affected folder paths.
+const LOST_FOLDER_ACCESS_TOAST_DURATION = 12_000;
+
 type WorkWondersWithKnowledge = WorkWonders & {
   knowledge?: {
     initKnowledgeWidget?: () => void;
@@ -119,7 +123,7 @@ export function App() {
         t("lost_folder_access_description", {
           paths: displayPaths.join(", "),
         }),
-        12_000
+        LOST_FOLDER_ACCESS_TOAST_DURATION
       );
     });
 

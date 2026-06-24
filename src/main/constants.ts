@@ -3,9 +3,9 @@ import path from "node:path";
 import { isFlatpak } from "./helpers/sandbox";
 import { SystemPath } from "./services/system-path";
 
-// Under Flatpak only the Hydra subfolder of xdg-download is statically
-// granted (--filesystem=xdg-download/Hydra:create), keeping default
-// downloads off the document-portal FUSE mount.
+// Under Flatpak the full host filesystem is accessible (--filesystem=host),
+// so the default downloads folder is the Hydra subfolder of xdg-download,
+// which is guaranteed to exist and requires no portal grant.
 export const defaultDownloadsPath = isFlatpak
   ? path.join(SystemPath.getPath("downloads"), "Hydra")
   : SystemPath.getPath("downloads");
