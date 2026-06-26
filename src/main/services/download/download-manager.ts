@@ -1556,15 +1556,14 @@ export class DownloadManager {
     }
   }
 
-  private static async validateJsDownloadResponse(options: {
-    url: string;
-    headers?: Record<string, string>;
-  }) {
-    const headers: Record<string, string> = { ...options.headers };
+  private static buildPreflightHeaders(
+    base?: Record<string, string>
+  ): Record<string, string> {
+    const headers: Record<string, string> = { ...base };
+
     const hasUserAgentHeader = Object.keys(headers).some(
       (key) => key.toLowerCase() === "user-agent"
     );
-
     if (!hasUserAgentHeader) {
       headers["User-Agent"] = DEFAULT_DOWNLOAD_USER_AGENT;
     }
@@ -1572,78 +1571,99 @@ export class DownloadManager {
     const hasAcceptEncoding = Object.keys(headers).some(
       (key) => key.toLowerCase() === "accept-encoding"
     );
-
     if (!hasAcceptEncoding) {
       headers["Accept-Encoding"] = "identity";
     }
 
+    return headers;
+  }
+
+  private static async runPreflightAttempt(
+    url: string,
+    headers: Record<string, string>,
+    attempt: number,
+    maxAttempts: number
+  ): Promise<"done" | "retry"> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers,
+        signal: controller.signal,
+      });
+      const contentType = response.headers.get("content-type") ?? "unknown";
+      const contentLength = response.headers.get("content-length") ?? "unknown";
+
+      logger.log(
+        `[DownloadManager] Preflight response status=${response.status} content-type=${contentType} content-length=${contentLength}`
+      );
+
+      await response.body?.cancel().catch(() => undefined);
+
+      if (isRetryableHttpStatus(response.status)) {
+        if (attempt < maxAttempts) {
+          logger.log(
+            `[DownloadManager] Preflight got transient HTTP ${response.status}; retrying (${attempt}/${maxAttempts})`
+          );
+          return "retry";
+        }
+
+        logger.warn(
+          `[DownloadManager] Preflight still HTTP ${response.status} after ${maxAttempts} attempts; allowing the download to start and retry`
+        );
+        return "done";
+      }
+
+      if (response.status >= 400) {
+        throw new Error(
+          `The download link is not available (HTTP ${response.status}).`
+        );
+      }
+
+      if (
+        contentType.includes("text/html") ||
+        contentType.includes("application/xhtml")
+      ) {
+        throw new Error(
+          "The download link returned a web page instead of a file. It may have expired or be invalid."
+        );
+      }
+
+      return "done";
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Download URL validation timed out");
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  private static async validateJsDownloadResponse(options: {
+    url: string;
+    headers?: Record<string, string>;
+  }) {
+    const headers = this.buildPreflightHeaders(options.headers);
     const MAX_PREFLIGHT_ATTEMPTS = 3;
     const PREFLIGHT_RETRY_BASE_DELAY_MS = 1000;
 
-    for (let attempt = 1; ; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+    for (let attempt = 1; attempt <= MAX_PREFLIGHT_ATTEMPTS; attempt++) {
+      const verdict = await this.runPreflightAttempt(
+        options.url,
+        headers,
+        attempt,
+        MAX_PREFLIGHT_ATTEMPTS
+      );
 
-      try {
-        const response = await fetch(options.url, {
-          method: "GET",
-          headers,
-          signal: controller.signal,
-        });
-        const contentType = response.headers.get("content-type") ?? "unknown";
-        const contentLength =
-          response.headers.get("content-length") ?? "unknown";
+      if (verdict === "done") return;
 
-        logger.log(
-          `[DownloadManager] Preflight response status=${response.status} content-type=${contentType} content-length=${contentLength}`
-        );
-
-        await response.body?.cancel().catch(() => undefined);
-
-        if (isRetryableHttpStatus(response.status)) {
-          // Transient (rate limit / gateway hiccup). Do not fail the start:
-          // retry briefly, then let the downloader's own retry loop take over.
-          if (attempt < MAX_PREFLIGHT_ATTEMPTS) {
-            logger.log(
-              `[DownloadManager] Preflight got transient HTTP ${response.status}; retrying (${attempt}/${MAX_PREFLIGHT_ATTEMPTS})`
-            );
-            await new Promise((resolve) =>
-              setTimeout(resolve, PREFLIGHT_RETRY_BASE_DELAY_MS * attempt)
-            );
-            continue;
-          }
-
-          logger.warn(
-            `[DownloadManager] Preflight still HTTP ${response.status} after ${MAX_PREFLIGHT_ATTEMPTS} attempts; allowing the download to start and retry`
-          );
-          return;
-        }
-
-        if (response.status >= 400) {
-          throw new Error(
-            `The download link is not available (HTTP ${response.status}).`
-          );
-        }
-
-        if (
-          contentType.includes("text/html") ||
-          contentType.includes("application/xhtml")
-        ) {
-          throw new Error(
-            "The download link returned a web page instead of a file. It may have expired or be invalid."
-          );
-        }
-
-        return;
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") {
-          throw new Error("Download URL validation timed out");
-        }
-
-        throw error;
-      } finally {
-        clearTimeout(timeoutId);
-      }
+      await new Promise((resolve) =>
+        setTimeout(resolve, PREFLIGHT_RETRY_BASE_DELAY_MS * attempt)
+      );
     }
   }
 
