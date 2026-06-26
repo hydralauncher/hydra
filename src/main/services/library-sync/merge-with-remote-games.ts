@@ -57,6 +57,8 @@ const fetchAllGamesForShop = async (
       skip,
     });
 
+    if (!page) break;
+
     all.push(...page);
 
     if (page.length < PAGE_SIZE) break;
@@ -162,24 +164,28 @@ export const mergeWithRemoteGames = async () => {
             : null);
 
         const mergedIconUrl = game.iconUrl ?? localGameShopAsset?.iconUrl;
-        const mergedHeroUrl = game.libraryHeroImageUrl ?? localGameShopAsset?.libraryHeroImageUrl;
+        const mergedHeroUrl =
+          game.libraryHeroImageUrl ?? localGameShopAsset?.libraryHeroImageUrl;
 
         // If we still have no icon/hero, force cache expiry so getGameAssets refetches
-        const updatedAt = (!mergedIconUrl || !mergedHeroUrl)
-          ? 0
-          : (localGameShopAsset?.updatedAt ?? 0);
+        const updatedAt =
+          !mergedIconUrl || !mergedHeroUrl
+            ? 0
+            : (localGameShopAsset?.updatedAt ?? 0);
 
         await gamesShopAssetsSublevel.put(gameKey, {
           shop: game.shop,
           objectId: game.objectId,
-          title: localGame?.title || game.title || localGameShopAsset?.title,
-          coverImageUrl: coverImageUrl ?? localGameShopAsset?.coverImageUrl,
-          libraryHeroImageUrl: mergedHeroUrl,
-          libraryImageUrl: game.libraryImageUrl ?? localGameShopAsset?.libraryImageUrl,
-          logoImageUrl: game.logoImageUrl ?? localGameShopAsset?.logoImageUrl,
-          iconUrl: mergedIconUrl,
-          logoPosition: game.logoPosition ?? localGameShopAsset?.logoPosition,
-          downloadSources: game.downloadSources ?? localGameShopAsset?.downloadSources ?? [],
+          title: localGame?.title || game.title || localGameShopAsset?.title || "",
+          coverImageUrl: coverImageUrl ?? localGameShopAsset?.coverImageUrl ?? null,
+          libraryHeroImageUrl: mergedHeroUrl ?? null,
+          libraryImageUrl:
+            game.libraryImageUrl ?? localGameShopAsset?.libraryImageUrl ?? null,
+          logoImageUrl: game.logoImageUrl ?? localGameShopAsset?.logoImageUrl ?? null,
+          iconUrl: mergedIconUrl ?? null,
+          logoPosition: game.logoPosition ?? localGameShopAsset?.logoPosition ?? null,
+          downloadSources:
+            game.downloadSources ?? localGameShopAsset?.downloadSources ?? [],
           updatedAt,
         });
       }

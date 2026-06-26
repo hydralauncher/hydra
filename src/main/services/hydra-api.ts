@@ -42,9 +42,17 @@ export class HydraApi {
 
   private static readonly OFFICIAL_ONLY_SUFFIXES = ["/reviews"];
 
-  private static selfHostedConfig: { url: string; masterToken: string; userToken: string | null } | null = null;
+  private static selfHostedConfig: {
+    url: string;
+    masterToken: string;
+    userToken: string | null;
+  } | null = null;
 
-  public static setSelfHostedConfig(url: string, masterToken: string, userToken?: string | null) {
+  public static setSelfHostedConfig(
+    url: string,
+    masterToken: string,
+    userToken?: string | null
+  ) {
     this.selfHostedConfig = { url, masterToken, userToken: userToken ?? null };
     if (this.instance) this.instance.defaults.baseURL = url;
   }
@@ -71,7 +79,9 @@ export class HydraApi {
   public static async getOfficialProfile() {
     if (!this.userAuth.authToken) return null;
     return this.officialInstance
-      .get("/profile/me", { headers: { Authorization: `Bearer ${this.userAuth.authToken}` } })
+      .get("/profile/me", {
+        headers: { Authorization: `Bearer ${this.userAuth.authToken}` },
+      })
       .then((r) => r.data)
       .catch(() => null);
   }
@@ -85,23 +95,32 @@ export class HydraApi {
     return { Authorization: `Bearer ${this.userAuth.authToken}` };
   }
 
-  public static async patchOfficial<T = unknown>(url: string, data?: unknown): Promise<T> {
+  public static async patchOfficial<T = unknown>(
+    url: string,
+    data?: unknown
+  ): Promise<T> {
     return this.officialInstance
       .patch<T>(url, data, { headers: this.officialAuthHeaders() })
       .then((r) => r.data);
   }
 
-  public static async postOfficial<T = unknown>(url: string, data?: unknown): Promise<T> {
+  public static async postOfficial<T = unknown>(
+    url: string,
+    data?: unknown
+  ): Promise<T> {
     return this.officialInstance
       .post<T>(url, data, { headers: this.officialAuthHeaders() })
       .then((r) => r.data);
   }
 
-  private static readonly UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  private static readonly UUID_REGEX =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   private static isOfficialOnlyUrl(url: string) {
-    if (this.OFFICIAL_ONLY_PREFIXES.some((prefix) => url.startsWith(prefix))) return true;
-    if (this.OFFICIAL_ONLY_SUFFIXES.some((suffix) => url.includes(suffix))) return true;
+    if (this.OFFICIAL_ONLY_PREFIXES.some((prefix) => url.startsWith(prefix)))
+      return true;
+    if (this.OFFICIAL_ONLY_SUFFIXES.some((suffix) => url.includes(suffix)))
+      return true;
     // /users/<id> — route to official if id is not a UUID (official uses short IDs)
     const usersMatch = url.match(/^\/users\/([^/?]+)/);
     if (usersMatch && !this.UUID_REGEX.test(usersMatch[1])) return true;
@@ -306,9 +325,14 @@ export class HydraApi {
 
     const userAuth = result.at(0) as Auth | undefined;
     const user = result.at(1) as User | undefined;
-    const userPreferences = result.at(2) as import("@types").UserPreferences | undefined;
+    const userPreferences = result.at(2) as
+      | import("@types").UserPreferences
+      | undefined;
 
-    if (userPreferences?.selfHostedApiUrl && userPreferences?.selfHostedApiToken) {
+    if (
+      userPreferences?.selfHostedApiUrl &&
+      userPreferences?.selfHostedApiToken
+    ) {
       this.setSelfHostedConfig(
         userPreferences.selfHostedApiUrl,
         userPreferences.selfHostedApiToken,
@@ -393,22 +417,25 @@ export class HydraApi {
   }
 
   private static getAxiosConfig(url?: string) {
-    const useSelfHosted = this.selfHostedConfig && url && !this.isOfficialOnlyUrl(url);
+    const useSelfHosted =
+      this.selfHostedConfig && url && !this.isOfficialOnlyUrl(url);
     if (useSelfHosted) {
-      const token = this.selfHostedConfig!.userToken ?? this.selfHostedConfig!.masterToken;
+      const token =
+        this.selfHostedConfig!.userToken ?? this.selfHostedConfig!.masterToken;
       return { headers: { Authorization: `Bearer ${token}` } };
     }
     // Official request — use official token if available
     if (this.userAuth.authToken) {
-      return { headers: { Authorization: `Bearer ${this.userAuth.authToken}` } };
+      return {
+        headers: { Authorization: `Bearer ${this.userAuth.authToken}` },
+      };
     }
     return { headers: {} };
   }
 
   private static readonly handleUnauthorizedError = (err) => {
     if (err instanceof AxiosError && err.response?.status === 401) {
-      // In self-hosted mode, 401 from official API is expected — return null silently
-      if (this.selfHostedConfig) return null;
+      if (this.selfHostedConfig) throw err;
 
       logger.error(
         "401 - Current credentials:",

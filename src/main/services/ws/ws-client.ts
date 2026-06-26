@@ -21,7 +21,9 @@ export class WSClient {
     if (HydraApi.isSelfHosted()) return;
 
     try {
-      const { token } = await HydraApi.post<{ token: string }>("/auth/ws");
+      const response = await HydraApi.post<{ token: string }>("/auth/ws");
+      if (!response) return;
+      const { token } = response;
 
       this.ws = new WebSocket(import.meta.env.MAIN_VITE_WS_URL, {
         headers: {

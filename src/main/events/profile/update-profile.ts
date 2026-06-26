@@ -34,6 +34,8 @@ const uploadImage = async (
     }
   );
 
+  if (!response) throw new Error("Failed to get presigned URL");
+
   const mimeType = await fileTypeFromFile(imagePath);
 
   await axios.put(response.presignedUrl, fileBuffer, {

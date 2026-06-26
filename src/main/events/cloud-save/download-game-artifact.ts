@@ -112,9 +112,7 @@ const restoreLudusaviBackup = (
     [...restoredFiles].map((f) => path.extname(f).toLowerCase()).filter(Boolean)
   );
 
-  const restoredDirs = new Set(
-    [...restoredFiles].map((f) => path.dirname(f))
-  );
+  const restoredDirs = new Set([...restoredFiles].map((f) => path.dirname(f)));
 
   for (const dir of restoredDirs) {
     if (!fs.existsSync(dir)) continue;
@@ -145,17 +143,21 @@ const downloadGameArtifact = async (
       objectId
     );
 
-    const {
-      downloadUrl,
-      objectKey,
-      homeDir,
-      winePrefixPath: artifactWinePrefixPath,
-    } = await HydraApi.post<{
+    const artifactInfo = await HydraApi.post<{
       downloadUrl: string;
       objectKey: string;
       homeDir: string;
       winePrefixPath: string | null;
     }>(`/profile/games/artifacts/${gameArtifactId}/download`);
+
+    if (!artifactInfo) throw new Error("Failed to get download URL");
+
+    const {
+      downloadUrl,
+      objectKey,
+      homeDir,
+      winePrefixPath: artifactWinePrefixPath,
+    } = artifactInfo;
 
     const zipLocation = path.join(SystemPath.getPath("userData"), objectKey);
     const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
