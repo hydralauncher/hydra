@@ -18,6 +18,8 @@ export class WSClient {
   static async connect() {
     this.shouldReconnect = true;
 
+    if (HydraApi.isSelfHosted()) return;
+
     try {
       const { token } = await HydraApi.post<{ token: string }>("/auth/ws");
 

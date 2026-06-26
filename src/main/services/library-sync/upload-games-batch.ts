@@ -4,6 +4,7 @@ import { mergeWithRemoteGames } from "./merge-with-remote-games";
 import { WindowManager } from "../window-manager";
 import { AchievementWatcherManager } from "../achievements/achievement-watcher-manager";
 import { gamesSublevel } from "@main/level";
+import { logger } from "@main/services/logger";
 
 export const uploadGamesBatch = async () => {
   const games = await gamesSublevel
@@ -16,6 +17,8 @@ export const uploadGamesBatch = async () => {
       );
     });
 
+  logger.log(`uploadGamesBatch: ${games.length} games to upload`);
+
   const gamesChunks = chunk(games, 30);
 
   for (const chunk of gamesChunks) {
@@ -24,6 +27,7 @@ export const uploadGamesBatch = async () => {
       chunk.map((game) => {
         return {
           objectId: game.objectId,
+          title: game.title,
           playTimeInMilliseconds: Math.trunc(game.playTimeInMilliseconds),
           shop: game.shop,
           lastTimePlayed: game.lastTimePlayed,
@@ -31,7 +35,7 @@ export const uploadGamesBatch = async () => {
           isPinned: game.isPinned ?? false,
         };
       })
-    ).catch(() => {});
+    ).catch((e) => { logger.error("uploadGamesBatch error:", e.message); });
   }
 
   await mergeWithRemoteGames();

@@ -12,6 +12,7 @@ export interface UserProfileContext {
   heroBackground: string;
   /* Indicates if the current user is viewing their own profile */
   isMe: boolean;
+  isMyOfficialProfile: boolean;
   userStats: UserStats | null;
   getUserProfile: () => Promise<void>;
   getUserStats: (shops?: string[]) => Promise<void>;
@@ -36,6 +37,7 @@ export const userProfileContext = createContext<UserProfileContext>({
   userProfile: null,
   heroBackground: DEFAULT_USER_PROFILE_BACKGROUND,
   isMe: false,
+  isMyOfficialProfile: false,
   userStats: null,
   getUserProfile: async () => {},
   getUserStats: async (_shops?: string[]) => {},
@@ -67,7 +69,17 @@ export function UserProfileContextProvider({
   userId,
 }: Readonly<UserProfileContextProviderProps>) {
   const { userDetails } = useAppSelector((state) => state.userDetails);
+  const userPreferences = useAppSelector((state) => state.userPreferences.value);
+  const isSelfHosted = Boolean(userPreferences?.selfHostedApiUrl);
   const authUserId = userDetails?.id;
+
+  const [officialUserId, setOfficialUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isSelfHosted) {
+      window.electron.getOfficialProfile().then((p) => setOfficialUserId(p?.id ?? null)).catch(() => {});
+    }
+  }, [isSelfHosted]);
 
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
@@ -84,7 +96,8 @@ export function UserProfileContextProvider({
   const [isLoadingLibraryGames, setIsLoadingLibraryGames] = useState(false);
   const previousUserIdRef = useRef(userId);
 
-  const isMe = userDetails?.id === userProfile?.id;
+  const isMe = userProfile?.id === authUserId || (isSelfHosted && userProfile?.id === officialUserId);
+  const isMyOfficialProfile = isSelfHosted && userProfile?.id === officialUserId;
 
   const getHeroBackgroundFromImageUrl = async (imageUrl: string) => {
     const output = await average(imageUrl, { amount: 1, format: "hex" });
@@ -276,6 +289,7 @@ export function UserProfileContextProvider({
         userProfile,
         heroBackground,
         isMe,
+        isMyOfficialProfile,
         getUserProfile,
         getUserStats,
         getUserLibraryGames,

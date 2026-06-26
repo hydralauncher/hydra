@@ -28,7 +28,7 @@ export function UploadBackgroundImageButton() {
 
   const { t } = useTranslation("user_profile");
 
-  const { isMe, setSelectedBackgroundImage, userProfile, getUserProfile } =
+  const { isMe, isMyOfficialProfile, setSelectedBackgroundImage, userProfile, getUserProfile } =
     useContext(userProfileContext);
   const { patchUser, fetchUserDetails } = useUserDetails();
 
@@ -146,7 +146,7 @@ export function UploadBackgroundImageButton() {
     };
   }, [isMenuOpen]);
 
-  if (!isMe) return null;
+  if (!isMe || isMyOfficialProfile) return null;
 
   // Non-subscribers always see the button, but clicking it presents the Hydra
   // Cloud promo (highlighting profile customization) instead of the file picker.

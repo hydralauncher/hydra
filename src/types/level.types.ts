@@ -187,6 +187,9 @@ export interface UserPreferences {
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
+  selfHostedApiUrl?: string | null;
+  selfHostedApiToken?: string | null;      // master token — proves access to instance
+  selfHostedUserToken?: string | null;     // user JWT — from login/register
 }
 
 export interface ScreenState {

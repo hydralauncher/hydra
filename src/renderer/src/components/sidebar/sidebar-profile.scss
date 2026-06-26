@@ -171,3 +171,28 @@
     transform: translateY(-8px);
   }
 }
+
+.sidebar-profile__official-avatar {
+  position: relative;
+  margin-right: 4px;
+}
+
+.sidebar-profile__official-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  display: flex;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.sidebar-profile__dropdown--official {
+  left: 0;
+  min-width: 180px;
+}

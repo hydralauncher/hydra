@@ -750,6 +750,12 @@ declare global {
     /* Auth */
     getAuth: () => Promise<Auth | null>;
     signOut: () => Promise<void>;
+    selfHostedSignIn: (userToken: string) => Promise<void>;
+    importFromHydraCloud: (officialToken: string) => Promise<{ imported: number; achievements: number }>;
+    openHydraCloudImport: () => Promise<{ imported: number; achievements: number }>;
+    getOfficialProfile: () => Promise<any>;
+    signInOfficial: () => Promise<void>;
+    onOfficialSignIn: (cb: () => void) => () => void;
     openAuthWindow: (page: AuthPage) => Promise<void>;
     minimizeAuthWindow: () => Promise<void>;
     closeAuthWindow: () => Promise<void>;

@@ -1,0 +1,49 @@
+.self-hosted-auth {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #1c1c1c;
+  color: #fff;
+}
+
+.self-hosted-auth__title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #111;
+  -webkit-app-region: drag;
+}
+
+.self-hosted-auth__close {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  -webkit-app-region: no-drag;
+}
+
+.self-hosted-auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  flex: 1;
+}
+
+.self-hosted-auth__error {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin: 0;
+}
+
+.self-hosted-auth__switch {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: underline;
+  align-self: center;
+}

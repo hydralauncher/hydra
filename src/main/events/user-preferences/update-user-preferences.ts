@@ -6,7 +6,7 @@ import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager, Wine } from "@main/services";
+import { DownloadManager, HydraApi, Wine } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 
@@ -93,6 +93,21 @@ const updateUserPreferences = async (
     await DownloadManager.applyDownloadSpeedLimit(
       preferences.maxDownloadSpeedBytesPerSecond ?? null
     );
+  }
+
+  if (
+    Object.hasOwn(preferences, "selfHostedApiUrl") ||
+    Object.hasOwn(preferences, "selfHostedApiToken") ||
+    Object.hasOwn(preferences, "selfHostedUserToken")
+  ) {
+    const url = updatedPreferences.selfHostedApiUrl;
+    const masterToken = updatedPreferences.selfHostedApiToken;
+    const userToken = updatedPreferences.selfHostedUserToken;
+    if (url && masterToken) {
+      HydraApi.setSelfHostedConfig(url, masterToken, userToken);
+    } else {
+      HydraApi.clearSelfHostedConfig();
+    }
   }
 };
 

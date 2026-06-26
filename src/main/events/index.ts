@@ -29,6 +29,8 @@ ipcMain.handle("getVersion", () => appVersion);
 ipcMain.handle("isStaging", () => isStaging);
 ipcMain.handle("isPortableVersion", () => isPortableVersion());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);
-ipcMain.handle("getCloudIframeUrl", () =>
-  new URL("/cloud", import.meta.env.MAIN_VITE_CHECKOUT_URL).toString()
-);
+ipcMain.handle("getCloudIframeUrl", () => {
+  const base = import.meta.env.MAIN_VITE_CHECKOUT_URL;
+  if (!base) return null;
+  return new URL("/cloud", base).toString();
+});

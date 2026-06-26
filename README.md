@@ -5,7 +5,7 @@
   <h1 align="center">Hydra Launcher</h1>
 
   <p align="center">
-    <strong>Hydra Launcher is an open-source gaming platform created to be the single tool that you need in order to manage your gaming library. Hydra is written in Node.js (Electron, React, Typescript), Python, and Rust.</strong>
+    <strong>Fork of <a href="https://github.com/hydralauncher/hydra">hydralauncher/hydra</a> with self-hosted API support, dual accounts, and cloud save improvements.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -15,6 +15,13 @@
 ![Hydra Launcher Home Page](./docs/screenshot.png)
 
 </div>
+
+## Fork additions
+
+- **Self-hosted API** — run your own backend for cloud saves, achievements and accounts: [entitybtw/hydra-selfhosted](https://github.com/entitybtw/hydra-selfhosted)
+- **Dual accounts** — use both official Hydra account and self-hosted simultaneously; sidebar shows both profiles
+- **Cloud save restore improvements** — diff-based restore deletes stale save files not present in backup (prevents old levels/slots persisting after restore)
+- **Official profile editing** — Edit Profile on the official account tab edits the official account, not the self-hosted one
 
 ## Features
 

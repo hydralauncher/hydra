@@ -1205,7 +1205,11 @@
     "big_picture_enable_sounds": "Enable Big Picture sounds",
     "big_picture_enable_virtual_keyboard": "Enable Big Picture virtual keyboard",
     "big_picture_enable_diagnostics": "Enable navigation diagnostics",
-    "big_picture_diagnostics_position": "Diagnostics position"
+    "big_picture_diagnostics_position": "Diagnostics position",
+    "self_hosted_api": "Self-Hosted API",
+    "enable_self_hosted_api": "Enable self-hosted API",
+    "self_hosted_api_url": "API URL",
+    "self_hosted_api_token": "Access token"
   },
   "notifications": {
     "download_complete": "Download complete",

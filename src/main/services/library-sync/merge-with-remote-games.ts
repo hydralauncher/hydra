@@ -155,26 +155,32 @@ export const mergeWithRemoteGames = async () => {
 
         const localGameShopAsset = await gamesShopAssetsSublevel.get(gameKey);
 
-        // Construct coverImageUrl if not provided by backend (Steam games use predictable pattern)
         const coverImageUrl =
           game.coverImageUrl ||
           (game.shop === "steam"
             ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${game.objectId}/library_600x900_2x.jpg`
             : null);
 
+        const mergedIconUrl = game.iconUrl ?? localGameShopAsset?.iconUrl;
+        const mergedHeroUrl = game.libraryHeroImageUrl ?? localGameShopAsset?.libraryHeroImageUrl;
+
+        // If we still have no icon/hero, force cache expiry so getGameAssets refetches
+        const updatedAt = (!mergedIconUrl || !mergedHeroUrl)
+          ? 0
+          : (localGameShopAsset?.updatedAt ?? 0);
+
         await gamesShopAssetsSublevel.put(gameKey, {
-          updatedAt: Date.now(),
-          ...localGameShopAsset,
           shop: game.shop,
           objectId: game.objectId,
-          title: localGame?.title || game.title, // Preserve local title if it exists
-          coverImageUrl,
-          libraryHeroImageUrl: game.libraryHeroImageUrl,
-          libraryImageUrl: game.libraryImageUrl,
-          logoImageUrl: game.logoImageUrl,
-          iconUrl: game.iconUrl,
-          logoPosition: game.logoPosition,
-          downloadSources: game.downloadSources,
+          title: localGame?.title || game.title || localGameShopAsset?.title,
+          coverImageUrl: coverImageUrl ?? localGameShopAsset?.coverImageUrl,
+          libraryHeroImageUrl: mergedHeroUrl,
+          libraryImageUrl: game.libraryImageUrl ?? localGameShopAsset?.libraryImageUrl,
+          logoImageUrl: game.logoImageUrl ?? localGameShopAsset?.logoImageUrl,
+          iconUrl: mergedIconUrl,
+          logoPosition: game.logoPosition ?? localGameShopAsset?.logoPosition,
+          downloadSources: game.downloadSources ?? localGameShopAsset?.downloadSources ?? [],
+          updatedAt,
         });
       }
     })

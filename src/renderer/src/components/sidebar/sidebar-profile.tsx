@@ -28,6 +28,11 @@ export function SidebarProfile() {
   const { showSuccessToast } = useToast();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
+  const userPreferences = useAppSelector((state) => state.userPreferences.value);
+  const isSelfHosted = Boolean(userPreferences?.selfHostedApiUrl);
+
+  const [officialProfile, setOfficialProfile] = useState<{ displayName: string; profileImageUrl: string | null; id: string } | null>(null);
+  const [officialDropdownOpen, setOfficialDropdownOpen] = useState(false);
 
   const [notificationCount, setNotificationCount] = useState(0);
   const [onlineFriendsCount, setOnlineFriendsCount] = useState(0);
@@ -61,6 +66,18 @@ export function SidebarProfile() {
     }
     fetchLocalNotificationCount();
   }, [fetchLocalNotificationCount]);
+
+  useEffect(() => {
+    if (!isSelfHosted) return;
+    window.electron.getOfficialProfile().then(setOfficialProfile).catch(() => {});
+    const unsubSignIn = window.electron.onOfficialSignIn(() => {
+      window.electron.getOfficialProfile().then(setOfficialProfile).catch(() => {});
+    });
+    const unsubUpdated = window.electron.onProfileUpdated(() => {
+      window.electron.getOfficialProfile().then(setOfficialProfile).catch(() => {});
+    });
+    return () => { unsubSignIn(); unsubUpdated(); };
+  }, [isSelfHosted]);
 
   useEffect(() => {
     fetchLocalNotificationCount();
@@ -243,6 +260,33 @@ export function SidebarProfile() {
 
   return (
     <div className="sidebar-profile" ref={containerRef}>
+      {isSelfHosted && (
+        <div className="sidebar-profile__official-avatar">
+          <button
+            type="button"
+            title={officialProfile ? officialProfile.displayName : "Sign in to Hydra Cloud"}
+            className="sidebar-profile__official-btn"
+            onClick={() => {
+              if (officialProfile) {
+                setOfficialDropdownOpen((o) => !o);
+              } else {
+                window.electron.signInOfficial();
+              }
+            }}
+          >
+            <Avatar size={28} src={officialProfile?.profileImageUrl} alt={officialProfile?.displayName ?? "Hydra Cloud"} />
+          </button>
+          {officialDropdownOpen && officialProfile && (
+            <div className="sidebar-profile__dropdown sidebar-profile__dropdown--official">
+              <button type="button" className="sidebar-profile__dropdown-item"
+                onClick={() => { setOfficialDropdownOpen(false); navigate(`/profile/${officialProfile.id}`); }}>
+                <PersonIcon size={16} />
+                <span>{officialProfile.displayName} (Official)</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       <button
         type="button"
         className={`sidebar-profile__button${dropdownOpen ? " sidebar-profile__button--active" : ""}`}

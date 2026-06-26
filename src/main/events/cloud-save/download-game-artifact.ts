@@ -57,6 +57,8 @@ const restoreLudusaviBackup = (
   const userProfilePath =
     CloudSync.getWindowsLikeUserProfilePath(winePrefixPath);
 
+  const restoredFiles = new Set<string>();
+
   manifest.backups.forEach((backup) => {
     Object.keys(backup.files).forEach((key) => {
       const sourcePathWithDrives = Object.entries(manifest.drives).reduce(
@@ -83,6 +85,8 @@ const restoreLudusaviBackup = (
           addWinePrefixToWindowsPath(publicProfilePath, winePrefixPath)
         );
 
+      restoredFiles.add(destinationPath);
+
       logger.info(`Moving ${sourcePath} to ${destinationPath}`);
 
       fs.mkdirSync(path.dirname(destinationPath), { recursive: true });
@@ -91,9 +95,41 @@ const restoreLudusaviBackup = (
         fs.unlinkSync(destinationPath);
       }
 
-      fs.renameSync(sourcePath, destinationPath);
+      try {
+        fs.renameSync(sourcePath, destinationPath);
+      } catch (err: any) {
+        if (err.code === "EXDEV") {
+          fs.copyFileSync(sourcePath, destinationPath);
+          fs.unlinkSync(sourcePath);
+        } else {
+          throw err;
+        }
+      }
     });
   });
+
+  const restoredExtensions = new Set(
+    [...restoredFiles].map((f) => path.extname(f).toLowerCase()).filter(Boolean)
+  );
+
+  const restoredDirs = new Set(
+    [...restoredFiles].map((f) => path.dirname(f))
+  );
+
+  for (const dir of restoredDirs) {
+    if (!fs.existsSync(dir)) continue;
+    for (const entry of fs.readdirSync(dir)) {
+      const fullPath = path.join(dir, entry);
+      if (
+        !restoredFiles.has(fullPath) &&
+        fs.statSync(fullPath).isFile() &&
+        restoredExtensions.has(path.extname(entry).toLowerCase())
+      ) {
+        logger.info(`Removing extra file not in backup: ${fullPath}`);
+        fs.unlinkSync(fullPath);
+      }
+    }
+  }
 };
 
 const downloadGameArtifact = async (

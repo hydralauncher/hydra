@@ -7,6 +7,11 @@ const openAuthWindow = async (
   _event: Electron.IpcMainInvokeEvent,
   page: AuthPage
 ) => {
+  if (HydraApi.isSelfHosted()) {
+    WindowManager.openSelfHostedAuthWindow();
+    return;
+  }
+
   const searchParams = new URLSearchParams({
     lng: i18next.language,
   });

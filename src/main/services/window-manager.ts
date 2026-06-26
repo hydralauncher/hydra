@@ -24,7 +24,7 @@ import {
 } from "electron";
 import { t } from "i18next";
 import { orderBy, slice } from "lodash-es";
-import path from "node:path";
+import path, { join } from "node:path";
 import UserAgent from "user-agents";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
@@ -1120,5 +1120,35 @@ export class WindowManager {
       tray.addListener("click", showContextMenu);
       tray.addListener("right-click", showContextMenu);
     }
+  }
+
+  public static openSelfHostedAuthWindow() {
+    const parentWindow = this.mainWindow;
+    if (!parentWindow || parentWindow.isDestroyed()) return;
+
+    const win = new BrowserWindow({
+      width: this.AUTH_WINDOW_WIDTH,
+      height: this.AUTH_WINDOW_HEIGHT,
+      backgroundColor: "#1c1c1c",
+      parent: parentWindow,
+      modal: true,
+      show: false,
+      maximizable: false,
+      resizable: false,
+      minimizable: false,
+      webPreferences: {
+        preload: join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.authWindow = win;
+    win.removeMenu();
+    this.loadWindowURL(win, "self-hosted-auth");
+    win.once("ready-to-show", () => win.show());
+    win.once("closed", () => {
+      this.authWindow = null;
+      if (!parentWindow.isDestroyed()) parentWindow.focus();
+    });
   }
 }

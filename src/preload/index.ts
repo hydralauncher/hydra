@@ -1063,6 +1063,16 @@ contextBridge.exposeInMainWorld("electron", {
   /* Auth */
   getAuth: () => ipcRenderer.invoke("getAuth"),
   signOut: () => ipcRenderer.invoke("signOut"),
+  selfHostedSignIn: (userToken: string) => ipcRenderer.invoke("selfHostedSignIn", userToken),
+  importFromHydraCloud: (officialToken: string) => ipcRenderer.invoke("importFromHydraCloud", officialToken),
+  openHydraCloudImport: () => ipcRenderer.invoke("openHydraCloudImport"),
+  getOfficialProfile: () => ipcRenderer.invoke("getOfficialProfile"),
+  signInOfficial: () => ipcRenderer.invoke("signInOfficial"),
+  onOfficialSignIn: (cb: () => void) => {
+    const handler = () => cb();
+    ipcRenderer.on("on-official-signin", handler);
+    return () => ipcRenderer.off("on-official-signin", handler);
+  },
   openAuthWindow: (page: AuthPage) =>
     ipcRenderer.invoke("openAuthWindow", page),
   minimizeAuthWindow: () => ipcRenderer.invoke("minimizeAuthWindow"),

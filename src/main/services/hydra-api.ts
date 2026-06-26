@@ -28,9 +28,92 @@ interface HydraApiUserAuth {
 
 export class HydraApi {
   private static instance: AxiosInstance;
+  private static officialInstance: AxiosInstance;
 
   private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5; // 5 minutes
   private static readonly ADD_LOG_INTERCEPTOR = true;
+
+  private static readonly OFFICIAL_ONLY_PREFIXES = [
+    "/catalogue",
+    "/games/",
+    "/decky",
+    "/auth/ws",
+  ];
+
+  private static readonly OFFICIAL_ONLY_SUFFIXES = ["/reviews"];
+
+  private static selfHostedConfig: { url: string; masterToken: string; userToken: string | null } | null = null;
+
+  public static setSelfHostedConfig(url: string, masterToken: string, userToken?: string | null) {
+    this.selfHostedConfig = { url, masterToken, userToken: userToken ?? null };
+    if (this.instance) this.instance.defaults.baseURL = url;
+  }
+
+  public static setSelfHostedUserToken(userToken: string) {
+    if (this.selfHostedConfig) this.selfHostedConfig.userToken = userToken;
+  }
+
+  public static clearSelfHostedConfig() {
+    this.selfHostedConfig = null;
+    if (this.instance)
+      this.instance.defaults.baseURL = import.meta.env.MAIN_VITE_API_URL;
+  }
+
+  public static isSelfHosted() {
+    return this.selfHostedConfig !== null;
+  }
+
+  public static getOfficialUserAuth() {
+    if (!this.userAuth.authToken) return null;
+    return this.userAuth;
+  }
+
+  public static async getOfficialProfile() {
+    if (!this.userAuth.authToken) return null;
+    return this.officialInstance
+      .get("/profile/me", { headers: { Authorization: `Bearer ${this.userAuth.authToken}` } })
+      .then((r) => r.data)
+      .catch(() => null);
+  }
+
+  public static isSelfHostedAuthenticated() {
+    return this.selfHostedConfig?.userToken != null;
+  }
+
+  private static officialAuthHeaders() {
+    if (!this.userAuth.authToken) return {};
+    return { Authorization: `Bearer ${this.userAuth.authToken}` };
+  }
+
+  public static async patchOfficial<T = unknown>(url: string, data?: unknown): Promise<T> {
+    return this.officialInstance
+      .patch<T>(url, data, { headers: this.officialAuthHeaders() })
+      .then((r) => r.data);
+  }
+
+  public static async postOfficial<T = unknown>(url: string, data?: unknown): Promise<T> {
+    return this.officialInstance
+      .post<T>(url, data, { headers: this.officialAuthHeaders() })
+      .then((r) => r.data);
+  }
+
+  private static readonly UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  private static isOfficialOnlyUrl(url: string) {
+    if (this.OFFICIAL_ONLY_PREFIXES.some((prefix) => url.startsWith(prefix))) return true;
+    if (this.OFFICIAL_ONLY_SUFFIXES.some((suffix) => url.includes(suffix))) return true;
+    // /users/<id> — route to official if id is not a UUID (official uses short IDs)
+    const usersMatch = url.match(/^\/users\/([^/?]+)/);
+    if (usersMatch && !this.UUID_REGEX.test(usersMatch[1])) return true;
+    return false;
+  }
+
+  private static getInstanceForUrl(url: string): AxiosInstance {
+    if (this.selfHostedConfig && !this.isOfficialOnlyUrl(url)) {
+      return this.instance;
+    }
+    return this.officialInstance ?? this.instance;
+  }
 
   private static secondsToMilliseconds(seconds: number) {
     return seconds * 1000;
@@ -48,6 +131,7 @@ export class HydraApi {
   }
 
   public static hasActiveSubscription() {
+    if (this.selfHostedConfig) return true;
     const expiresAt = new Date(this.userAuth.subscription?.expiresAt ?? 0);
     return expiresAt > new Date();
   }
@@ -101,15 +185,20 @@ export class HydraApi {
     });
 
     if (WindowManager.mainWindow) {
-      WindowManager.mainWindow.webContents.send("on-signin");
-      await clearGamesRemoteIds();
-      void uploadGamesBatch();
+      if (this.selfHostedConfig) {
+        // Official login while self-hosted is active — just notify UI, don't disturb self-hosted sync
+        WindowManager.mainWindow.webContents.send("on-official-signin");
+      } else {
+        WindowManager.mainWindow.webContents.send("on-signin");
+        await clearGamesRemoteIds();
+        void uploadGamesBatch();
 
-      WSClient.close();
-      WSClient.connect();
+        WSClient.close();
+        WSClient.connect();
 
-      const { syncDownloadSourcesFromApi } = await import("./user");
-      syncDownloadSourcesFromApi();
+        const { syncDownloadSourcesFromApi } = await import("./user");
+        syncDownloadSourcesFromApi();
+      }
     }
   }
 
@@ -127,6 +216,11 @@ export class HydraApi {
 
   static async setupApi() {
     this.instance = axios.create({
+      baseURL: import.meta.env.MAIN_VITE_API_URL,
+      headers: { "User-Agent": `Hydra Launcher v${appVersion}` },
+    });
+
+    this.officialInstance = axios.create({
       baseURL: import.meta.env.MAIN_VITE_API_URL,
       headers: { "User-Agent": `Hydra Launcher v${appVersion}` },
     });
@@ -205,12 +299,22 @@ export class HydraApi {
       );
     }
 
-    const result = await db.getMany<string>([levelKeys.auth, levelKeys.user], {
-      valueEncoding: "json",
-    });
+    const result = await db.getMany<string>(
+      [levelKeys.auth, levelKeys.user, levelKeys.userPreferences],
+      { valueEncoding: "json" }
+    );
 
     const userAuth = result.at(0) as Auth | undefined;
     const user = result.at(1) as User | undefined;
+    const userPreferences = result.at(2) as import("@types").UserPreferences | undefined;
+
+    if (userPreferences?.selfHostedApiUrl && userPreferences?.selfHostedApiToken) {
+      this.setSelfHostedConfig(
+        userPreferences.selfHostedApiUrl,
+        userPreferences.selfHostedApiToken,
+        userPreferences.selfHostedUserToken
+      );
+    }
 
     this.userAuth = {
       authToken: userAuth?.accessToken ?? "",
@@ -221,13 +325,20 @@ export class HydraApi {
         : null,
     };
 
-    const updatedUserData = await getUserData();
+    if (!this.selfHostedConfig) {
+      const updatedUserData = await getUserData();
 
-    this.userAuth.subscription = updatedUserData?.subscription
-      ? {
-          expiresAt: updatedUserData.subscription.expiresAt,
-        }
-      : null;
+      this.userAuth.subscription = updatedUserData?.subscription
+        ? {
+            expiresAt: updatedUserData.subscription.expiresAt,
+          }
+        : null;
+    } else if (this.selfHostedConfig.userToken) {
+      // Self-hosted with userToken — sync library on startup
+      const { uploadGamesBatch } = await import("./library-sync");
+      await clearGamesRemoteIds();
+      void uploadGamesBatch();
+    }
   }
 
   private static sendSignOutEvent() {
@@ -281,16 +392,24 @@ export class HydraApi {
     }
   }
 
-  private static getAxiosConfig() {
-    return {
-      headers: {
-        Authorization: `Bearer ${this.userAuth.authToken}`,
-      },
-    };
+  private static getAxiosConfig(url?: string) {
+    const useSelfHosted = this.selfHostedConfig && url && !this.isOfficialOnlyUrl(url);
+    if (useSelfHosted) {
+      const token = this.selfHostedConfig!.userToken ?? this.selfHostedConfig!.masterToken;
+      return { headers: { Authorization: `Bearer ${token}` } };
+    }
+    // Official request — use official token if available
+    if (this.userAuth.authToken) {
+      return { headers: { Authorization: `Bearer ${this.userAuth.authToken}` } };
+    }
+    return { headers: {} };
   }
 
   private static readonly handleUnauthorizedError = (err) => {
     if (err instanceof AxiosError && err.response?.status === 401) {
+      // In self-hosted mode, 401 from official API is expected — return null silently
+      if (this.selfHostedConfig) return null;
+
       logger.error(
         "401 - Current credentials:",
         this.userAuth,
@@ -321,9 +440,16 @@ export class HydraApi {
     throw err;
   };
 
-  private static async validateOptions(options?: HydraApiOptions) {
+  private static async validateOptions(url: string, options?: HydraApiOptions) {
+    const isOfficial = !this.selfHostedConfig || this.isOfficialOnlyUrl(url);
+
     const needsAuth = options?.needsAuth == undefined || options.needsAuth;
     const needsSubscription = options?.needsSubscription === true;
+
+    if (!isOfficial) return;
+
+    // In self-hosted mode, official-only requests are best-effort (no official JWT)
+    if (this.selfHostedConfig) return;
 
     if (needsAuth) {
       if (!this.isLoggedIn()) throw new UserNotLoggedInError();
@@ -340,15 +466,15 @@ export class HydraApi {
     params?: any,
     options?: HydraApiOptions
   ) {
-    await this.validateOptions(options);
+    await this.validateOptions(url, options);
 
     const headers = {
-      ...this.getAxiosConfig().headers,
+      ...this.getAxiosConfig(url).headers,
       "Hydra-If-Modified-Since": options?.ifModifiedSince?.toUTCString(),
     };
 
-    return this.instance
-      .get<T>(url, { params, ...this.getAxiosConfig(), headers })
+    return this.getInstanceForUrl(url)
+      .get<T>(url, { params, ...this.getAxiosConfig(url), headers })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
@@ -358,10 +484,10 @@ export class HydraApi {
     data?: any,
     options?: HydraApiOptions
   ) {
-    await this.validateOptions(options);
+    await this.validateOptions(url, options);
 
-    return this.instance
-      .post<T>(url, data, this.getAxiosConfig())
+    return this.getInstanceForUrl(url)
+      .post<T>(url, data, this.getAxiosConfig(url))
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
@@ -371,10 +497,10 @@ export class HydraApi {
     data?: any,
     options?: HydraApiOptions
   ) {
-    await this.validateOptions(options);
+    await this.validateOptions(url, options);
 
-    return this.instance
-      .put<T>(url, data, this.getAxiosConfig())
+    return this.getInstanceForUrl(url)
+      .put<T>(url, data, this.getAxiosConfig(url))
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
@@ -384,19 +510,19 @@ export class HydraApi {
     data?: any,
     options?: HydraApiOptions
   ) {
-    await this.validateOptions(options);
+    await this.validateOptions(url, options);
 
-    return this.instance
-      .patch<T>(url, data, this.getAxiosConfig())
+    return this.getInstanceForUrl(url)
+      .patch<T>(url, data, this.getAxiosConfig(url))
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
   static async delete<T = any>(url: string, options?: HydraApiOptions) {
-    await this.validateOptions(options);
+    await this.validateOptions(url, options);
 
-    return this.instance
-      .delete<T>(url, this.getAxiosConfig())
+    return this.getInstanceForUrl(url)
+      .delete<T>(url, this.getAxiosConfig(url))
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
