@@ -21,7 +21,10 @@ export default function SelfHostedAuth() {
       const res = await fetch(`${baseUrl}/auth/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: form.username, password: form.password }),
+        body: JSON.stringify({
+          username: form.username,
+          password: form.password,
+        }),
       });
 
       if (!res.ok) {
@@ -43,20 +46,24 @@ export default function SelfHostedAuth() {
     <div className="self-hosted-auth">
       <div className="self-hosted-auth__title-bar">
         <span>Self-Hosted</span>
-        <button className="self-hosted-auth__close" onClick={() => window.electron.closeAuthWindow()}>✕</button>
+        <button
+          className="self-hosted-auth__close"
+          onClick={() => window.electron.closeAuthWindow()}
+        >
+          ✕
+        </button>
       </div>
 
       <form className="self-hosted-auth__form" onSubmit={handleSubmit}>
-        <h2>{mode === "login" ? "Вход" : "Регистрация"}</h2>
+        <h2>{mode === "login" ? "Sign in" : "Register"}</h2>
 
         <TextField
-          label="Имя пользователя"
+          label="Username"
           value={form.username}
           onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-          autoFocus
         />
         <TextField
-          label="Пароль"
+          label="Password"
           type="password"
           value={form.password}
           onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
@@ -64,16 +71,24 @@ export default function SelfHostedAuth() {
 
         {error && <p className="self-hosted-auth__error">{error}</p>}
 
-        <Button type="submit" disabled={loading || !form.username || !form.password}>
-          {loading ? "..." : mode === "login" ? "Войти" : "Зарегистрироваться"}
+        <Button
+          type="submit"
+          disabled={loading || !form.username || !form.password}
+        >
+          {loading ? "..." : mode === "login" ? "Sign in" : "Register"}
         </Button>
 
         <button
           type="button"
           className="self-hosted-auth__switch"
-          onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(null); }}
+          onClick={() => {
+            setMode(mode === "login" ? "register" : "login");
+            setError(null);
+          }}
         >
-          {mode === "login" ? "Нет аккаунта? Зарегистрироваться" : "Уже есть аккаунт? Войти"}
+          {mode === "login"
+            ? "No account? Register"
+            : "Already have an account? Sign in"}
         </button>
       </form>
     </div>
