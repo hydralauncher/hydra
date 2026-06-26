@@ -303,6 +303,7 @@ function HeroDownloadView({
     !lastPacket?.isCheckingFiles &&
     !hasEta;
   const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
+  const isReconnecting = !isGameExtracting && !!lastPacket?.isReconnecting;
 
   return (
     <div className="download-group download-group--hero">
@@ -351,14 +352,21 @@ function HeroDownloadView({
                     {t("checking_files")}
                   </span>
                 )}
-                {!isGameExtracting && !lastPacket?.isCheckingFiles && (
-                  <span className="download-group__progress-size">
-                    <DownloadIcon size={14} />
-                    {isGameDownloading && lastPacket
-                      ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
-                      : `${formatBytes(game.download?.bytesDownloaded ?? 0)} / ${finalDownloadSize}`}
+                {isReconnecting && !lastPacket?.isCheckingFiles && (
+                  <span className="download-group__progress-status">
+                    {t("reconnecting")}
                   </span>
                 )}
+                {!isGameExtracting &&
+                  !lastPacket?.isCheckingFiles &&
+                  !isReconnecting && (
+                    <span className="download-group__progress-size">
+                      <DownloadIcon size={14} />
+                      {isGameDownloading && lastPacket
+                        ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
+                        : `${formatBytes(game.download?.bytesDownloaded ?? 0)} / ${finalDownloadSize}`}
+                    </span>
+                  )}
                 <span></span>
               </div>
               <div className="download-group__progress-info-row">

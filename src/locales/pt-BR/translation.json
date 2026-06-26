@@ -145,6 +145,7 @@
     "scan_games_scan_again": "Escanear Novamente"
   },
   "bottom_panel": {
+    "reconnecting": "Reconectando {{title}}…",
     "no_downloads_in_progress": "Sem downloads em andamento",
     "downloading_metadata": "Baixando metadados de {{title}}…",
     "downloading": "Baixando {{title}}… ({{percentage}} concluído) - Conclusão {{eta}} - {{speed}}",
@@ -590,6 +591,7 @@
     "loading": "Carregando…"
   },
   "downloads": {
+    "reconnecting": "Reconectando…",
     "resume": "Retomar",
     "pause": "Pausar",
     "eta": "Conclusão {{eta}}",

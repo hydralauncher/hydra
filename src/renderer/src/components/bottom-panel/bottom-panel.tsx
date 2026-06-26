@@ -89,6 +89,11 @@ export function BottomPanel() {
       : undefined;
 
     if (game) {
+      if (lastPacket?.isReconnecting)
+        return t("reconnecting", {
+          title: game.title,
+        });
+
       if (lastPacket?.isCheckingFiles)
         return t("checking_files", {
           title: game.title,

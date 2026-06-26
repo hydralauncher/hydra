@@ -75,6 +75,38 @@ export class DownloadManager {
     return this.downloadingGameId !== null;
   }
 
+  public static get isJsDownloadActive(): boolean {
+    return (
+      this.usingJsDownloader &&
+      this.jsDownloader !== null &&
+      this.downloadingGameId !== null
+    );
+  }
+
+  public static getActiveDownloadId(): string | null {
+    return this.downloadingGameId;
+  }
+
+  public static notifyReconnecting(value: boolean): void {
+    if (this.usingJsDownloader && this.jsDownloader) {
+      this.jsDownloader.setReconnecting(value);
+    }
+  }
+
+  public static reconnectActiveDownload(): void {
+    if (this.usingJsDownloader && this.jsDownloader) {
+      this.jsDownloader.reconnect();
+    }
+  }
+
+  public static isActiveDownloadReconnecting(): boolean {
+    return (
+      this.usingJsDownloader &&
+      this.jsDownloader !== null &&
+      this.jsDownloader.getDownloadStatus()?.isReconnecting === true
+    );
+  }
+
   private static extractFilename(
     url: string,
     originalUrl?: string
@@ -416,6 +448,7 @@ export class DownloadManager {
         ),
         isDownloadingMetadata: false,
         isCheckingFiles: false,
+        isReconnecting: status.isReconnecting,
         progress,
         gameId: downloadId,
         download: updatedDownload,
