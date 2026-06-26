@@ -6,6 +6,7 @@ import { ImportThemeModal } from "./modals/import-theme-modal";
 import { settingsContext } from "@renderer/context";
 import { useNavigate } from "react-router-dom";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import { buildSettingsPath } from "@renderer/helpers";
 
 interface SettingsAppearanceProps {
   appearance: {
@@ -63,7 +64,7 @@ export function SettingsAppearance({
       });
       setHasShownModal(true);
 
-      navigate("/settings", { replace: true });
+      navigate(buildSettingsPath(), { replace: true });
       clearTheme();
     }
   }, [

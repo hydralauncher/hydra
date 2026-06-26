@@ -1,10 +1,40 @@
 @use "../../scss/globals.scss";
 
+$settings-overlay-padding: calc(globals.$spacing-unit * 3);
+$settings-overlay-backdrop-opacity: 0.55;
+
 .settings {
-  &__container {
-    padding: 24px;
-    width: 100%;
+  &__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: $settings-overlay-padding;
+    background: rgba(0, 0, 0, $settings-overlay-backdrop-opacity);
+  }
+
+  &__container {
+    width: min(1120px, 100%);
+    height: min(760px, 100%);
+    display: flex;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+  }
+
+  &__modal-container {
+    width: min(1120px, 100%);
+    height: min(760px, 100%);
+    display: flex;
+
+    .settings__container {
+      width: 100%;
+      height: 100%;
+    }
   }
 
   &__content {
@@ -16,6 +46,24 @@
     border-radius: 8px;
     display: flex;
     overflow: hidden;
+    position: relative;
+  }
+
+  &__close-button {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition: all ease 0.2s;
+
+    &:hover {
+      opacity: 0.75;
+    }
   }
 
   &__sidebar {
@@ -111,7 +159,8 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2.5);
     min-width: 0;
-    padding: calc(globals.$spacing-unit * 2.5);
+    padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 7)
+      calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2.5);
     overflow: auto;
   }
 

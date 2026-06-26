@@ -42,11 +42,16 @@ import {
   useState,
 } from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import { Tooltip } from "react-tooltip";
 import "./download-settings-modal.scss";
 import { RealDebridInfoModal } from "./real-debrid-info-modal";
 import { gameDetailsContext } from "@renderer/context";
-import { platformToSystem } from "@renderer/helpers";
+import {
+  buildSettingsLocationState,
+  buildSettingsPath,
+  platformToSystem,
+} from "@renderer/helpers";
 
 export interface DownloadSettingsModalProps {
   visible: boolean;
@@ -239,6 +244,7 @@ export function DownloadSettingsModal({
   repack,
 }: Readonly<DownloadSettingsModalProps>) {
   const { t } = useTranslation("game_details");
+  const location = useLocation();
 
   const { game, shopDetails, shop } = useContext(gameDetailsContext);
 
@@ -1428,7 +1434,10 @@ export function DownloadSettingsModal({
 
           <p className="download-settings-modal__hint-text">
             <Trans i18nKey="select_folder_hint" ns="game_details">
-              <Link to="/settings" />
+              <Link
+                to={buildSettingsPath({ tab: "downloads" })}
+                state={buildSettingsLocationState(location)}
+              />
             </Trans>
           </p>
         </div>

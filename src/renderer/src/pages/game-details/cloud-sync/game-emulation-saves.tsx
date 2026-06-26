@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ClockIcon,
   CodeIcon,
@@ -16,6 +16,8 @@ import {
 
 import { Button, ConfirmationModal } from "@renderer/components";
 import {
+  buildSettingsLocationState,
+  buildSettingsPath,
   getSkuRegion,
   getSkuRegionFlag,
   getSkuRegionFromSaveIdentity,
@@ -55,6 +57,7 @@ export function GameEmulationSaves({
   const { showSuccessToast, showErrorToast } = useToast();
   const { hasActiveSubscription } = useUserDetails();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [cloudSaves, setCloudSaves] = useState<EmulationCloudSave[]>([]);
   const [records, setRecords] = useState<MemoryCardSaveRecord[]>([]);
@@ -171,7 +174,12 @@ export function GameEmulationSaves({
           <Button
             theme="outline"
             onClick={() =>
-              navigate(`/settings?tab=emulation&system=${platform}`)
+              navigate(
+                buildSettingsPath({ tab: "emulation", system: platform }),
+                {
+                  state: buildSettingsLocationState(location),
+                }
+              )
             }
           >
             <PlusIcon size={14} />
