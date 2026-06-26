@@ -66,10 +66,9 @@ export class PathGrants {
    * Returns the persisted grants whose access paths are no longer reachable
    * (revoked grant, reset portal database, or missing doc mount).
    *
-   * TODO: not yet wired into startup recovery, which currently only checks
-   * download paths via `hasLostPathGrant` (see main.ts). A follow-up should
-   * use this to also recover wine-prefix, proton, and game-executable portal
-   * paths whose grants were lost.
+   * Used by startup recovery (see `notifyLostPathGrants` in main.ts) to surface
+   * lost wine-prefix, proton, and game-executable portal grants, alongside the
+   * download paths handled directly via `hasLostPathGrant`.
    */
   public static async listBroken(): Promise<PathGrant[]> {
     if (!isFlatpak) return [];
