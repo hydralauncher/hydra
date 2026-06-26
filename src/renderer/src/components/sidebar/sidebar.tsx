@@ -270,13 +270,6 @@ export function Sidebar() {
   };
 
   const handleSidebarItemClick = (path: string) => {
-    if (
-      path === "/settings" &&
-      globalThis.location.hash.startsWith("#/settings")
-    ) {
-      return;
-    }
-
     if (path !== location.pathname) {
       if (path === "/settings") {
         navigate(path, { state: buildSettingsLocationState(location) });

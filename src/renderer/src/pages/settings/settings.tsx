@@ -5,7 +5,7 @@ import {
 } from "@renderer/context";
 import { SettingsAccount } from "./settings-account";
 import { useUserDetails } from "@renderer/hooks";
-import { Fragment, useEffect, useMemo } from "react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 import "./settings.scss";
 import {
   BellIcon,
@@ -32,15 +32,25 @@ export interface SettingsProps {
 }
 
 export default function Settings({ onClose }: Readonly<SettingsProps>) {
-  const { t } = useTranslation("settings");
+  const { t } = useTranslation(["settings", "modal"]);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const { userDetails } = useUserDetails();
 
   useEffect(() => {
     if (!onClose) return;
 
+    const isTopMostDialog = () => {
+      const openDialogs = document.querySelectorAll("[role=dialog]");
+
+      return (
+        openDialogs.length &&
+        openDialogs[openDialogs.length - 1] === containerRef.current
+      );
+    };
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && isTopMostDialog()) onClose();
     };
 
     globalThis.addEventListener("keydown", onKeyDown);
@@ -160,7 +170,7 @@ export default function Settings({ onClose }: Readonly<SettingsProps>) {
                     type="button"
                     className="settings__close-button"
                     onClick={onClose}
-                    aria-label="Close"
+                    aria-label={t("modal:close")}
                   >
                     <XIcon size={24} />
                   </button>
@@ -229,6 +239,7 @@ export default function Settings({ onClose }: Readonly<SettingsProps>) {
             return (
               <div className="settings__overlay">
                 <div
+                  ref={containerRef}
                   className="settings__container"
                   role="dialog"
                   aria-modal

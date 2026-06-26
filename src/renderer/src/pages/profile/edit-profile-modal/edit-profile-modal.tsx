@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 import { DeviceCameraIcon } from "@primer/octicons-react";
 import {
@@ -37,7 +37,6 @@ export function EditProfileModal(
 ) {
   const { t } = useTranslation("user_profile");
   const location = useLocation();
-  const navigate = useNavigate();
 
   const schema = yup.object({
     displayName: yup
@@ -205,12 +204,8 @@ export function EditProfileModal(
             <Link
               to={buildSettingsPath({ tab: "account_privacy" })}
               state={buildSettingsLocationState(location)}
-              onClick={(event) => {
-                event.preventDefault();
+              onClick={() => {
                 props.onClose();
-                navigate(buildSettingsPath({ tab: "account_privacy" }), {
-                  state: buildSettingsLocationState(location),
-                });
               }}
             />
           </Trans>
