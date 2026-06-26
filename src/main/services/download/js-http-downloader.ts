@@ -240,6 +240,8 @@ export class JsHttpDownloader {
 
     if (isRetryable && this.retryCount < MAX_RETRY_ATTEMPTS) {
       this.retryCount++;
+      this.isReconnecting = true;
+      this.downloadSpeed = 0;
       const delay = Math.min(
         INITIAL_RETRY_DELAY_MS * Math.pow(2, this.retryCount - 1),
         MAX_RETRY_DELAY_MS
@@ -745,6 +747,7 @@ export class JsHttpDownloader {
   }
 
   private handleDownloadError(err: Error): void {
+    this.isReconnecting = false;
     if (
       err.name === "AbortError" ||
       (err as NodeJS.ErrnoException).code === "ERR_STREAM_PREMATURE_CLOSE"
