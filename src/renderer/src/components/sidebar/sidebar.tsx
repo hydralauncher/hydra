@@ -17,7 +17,10 @@ import { routes } from "./routes";
 
 import "./sidebar.scss";
 
-import { buildGameDetailsPath } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  buildSettingsLocationState,
+} from "@renderer/helpers";
 import { useFormat } from "@renderer/hooks/use-format";
 
 import {
@@ -267,7 +270,19 @@ export function Sidebar() {
   };
 
   const handleSidebarItemClick = (path: string) => {
+    if (
+      path === "/settings" &&
+      globalThis.location.hash.startsWith("#/settings")
+    ) {
+      return;
+    }
+
     if (path !== location.pathname) {
+      if (path === "/settings") {
+        navigate(path, { state: buildSettingsLocationState(location) });
+        return;
+      }
+
       navigate(path);
     }
   };

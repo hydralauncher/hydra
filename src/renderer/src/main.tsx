@@ -1,10 +1,16 @@
-import React from "react";
+import React, { useCallback } from "react";
 import ReactDOM from "react-dom/client";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
-import { HashRouter, Route, Routes } from "react-router-dom";
+import {
+  HashRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
 import "@fontsource/noto-sans/400.css";
 import "@fontsource/noto-sans/500.css";
@@ -109,48 +115,79 @@ globalThis.electron.onUserPreferencesUpdated((preferences) => {
   }
 });
 
+function AppRoutes() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const backgroundLocation = (
+    location.state as { backgroundLocation?: typeof location } | null
+  )?.backgroundLocation;
+  const isSettingsModal = location.pathname === "/settings";
+
+  const routesLocation = isSettingsModal
+    ? (backgroundLocation ?? { ...location, pathname: "/", search: "" })
+    : location;
+
+  const closeSettings = useCallback(() => {
+    if (backgroundLocation) {
+      navigate(
+        `${backgroundLocation.pathname}${backgroundLocation.search}${backgroundLocation.hash}`,
+        { replace: true, state: backgroundLocation.state }
+      );
+    } else {
+      navigate("/", { replace: true });
+    }
+  }, [backgroundLocation, navigate]);
+
+  return (
+    <>
+      <AchievementNotificationOverlay />
+      <Routes location={routesLocation}>
+        <Route element={<App />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/catalogue" element={<Catalogue />} />
+          <Route path="/library" element={<Library />} />
+          <Route path="/downloads" element={<Downloads />} />
+          <Route path="/game/:shop/:objectId" element={<GameDetails />} />
+          <Route path="/profile/:userId" element={<Profile />} />
+          <Route path="/achievements" element={<Achievements />} />
+          <Route path="/notifications" element={<Notifications />} />
+        </Route>
+
+        <Route path="/theme-editor" element={<ThemeEditor />} />
+        <Route
+          path="/achievement-notification"
+          element={<AchievementNotification />}
+        />
+        <Route path="/game-launcher" element={<GameLauncher />} />
+        <Route path="/friends-window" element={<FriendsWindow />} />
+        <Route path="/auth-window" element={<AuthWindow />} />
+
+        <Route path="/big-picture" element={<BigPictureApp />}>
+          <Route index element={<BigPictureHome />} />
+          <Route path="catalogue" element={<BigPictureCatalogue />} />
+          <Route path="component-lab" element={<BigPictureComponentLab />} />
+          <Route path="downloads" element={<BigPictureDownloads />} />
+          <Route path="settings" element={<BigPictureSettings />} />
+          <Route path="library" element={<BigPictureLibrary />} />
+          <Route path="profile/:userId?" element={<BigPictureProfile />} />
+          <Route path="game/:shop/:objectId" element={<BigPictureGame />} />
+          <Route
+            path="game/:shop/:objectId/achievements"
+            element={<BigPictureGameAchievements />}
+          />
+        </Route>
+      </Routes>
+
+      {isSettingsModal && <Settings onClose={closeSettings} />}
+    </>
+  );
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
       <HashRouter>
-        <AchievementNotificationOverlay />
-        <Routes>
-          <Route element={<App />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/catalogue" element={<Catalogue />} />
-            <Route path="/library" element={<Library />} />
-            <Route path="/downloads" element={<Downloads />} />
-            <Route path="/game/:shop/:objectId" element={<GameDetails />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/profile/:userId" element={<Profile />} />
-            <Route path="/achievements" element={<Achievements />} />
-            <Route path="/notifications" element={<Notifications />} />
-          </Route>
-
-          <Route path="/theme-editor" element={<ThemeEditor />} />
-          <Route
-            path="/achievement-notification"
-            element={<AchievementNotification />}
-          />
-          <Route path="/game-launcher" element={<GameLauncher />} />
-          <Route path="/friends-window" element={<FriendsWindow />} />
-          <Route path="/auth-window" element={<AuthWindow />} />
-
-          <Route path="/big-picture" element={<BigPictureApp />}>
-            <Route index element={<BigPictureHome />} />
-            <Route path="catalogue" element={<BigPictureCatalogue />} />
-            <Route path="component-lab" element={<BigPictureComponentLab />} />
-            <Route path="downloads" element={<BigPictureDownloads />} />
-            <Route path="settings" element={<BigPictureSettings />} />
-            <Route path="library" element={<BigPictureLibrary />} />
-            <Route path="profile/:userId?" element={<BigPictureProfile />} />
-            <Route path="game/:shop/:objectId" element={<BigPictureGame />} />
-            <Route
-              path="game/:shop/:objectId/achievements"
-              element={<BigPictureGameAchievements />}
-            />
-          </Route>
-        </Routes>
+        <AppRoutes />
       </HashRouter>
     </Provider>
   </React.StrictMode>

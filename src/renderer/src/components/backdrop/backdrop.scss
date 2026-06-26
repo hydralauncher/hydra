@@ -10,7 +10,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: globals.$backdrop-z-index;
+  z-index: calc(globals.$modal-z-index + 1);
   top: 0;
   padding: calc(globals.$spacing-unit * 3);
   backdrop-filter: blur(2px);

@@ -18,9 +18,13 @@ import {
 } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { gameDetailsContext } from "@renderer/context";
-import { getClassicsLaunchErrorCode } from "@renderer/helpers";
+import {
+  buildSettingsLocationState,
+  buildSettingsPath,
+  getClassicsLaunchErrorCode,
+} from "@renderer/helpers";
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
 
 import "./hero-panel-actions.scss";
@@ -60,6 +64,7 @@ export function HeroPanelActions() {
   const { showSuccessToast, showErrorToast } = useToast();
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [showDiscSelectionModal, setShowDiscSelectionModal] = useState(false);
   const [pendingClassicsLaunch, setPendingClassicsLaunch] = useState<{
@@ -216,7 +221,9 @@ export function HeroPanelActions() {
       const code = getClassicsLaunchErrorCode(error);
       if (code === "EMULATOR_NOT_CONFIGURED") {
         showErrorToast(t("emulator_not_configured_toast"));
-        navigate("/settings?tab=emulation");
+        navigate(buildSettingsPath({ tab: "emulation" }), {
+          state: buildSettingsLocationState(location),
+        });
       } else if (code === "PLATFORM_UNKNOWN") {
         showErrorToast(t("platform_unknown_toast"));
       } else if (code === "NO_DISC") {
