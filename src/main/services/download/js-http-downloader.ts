@@ -27,6 +27,7 @@ export interface JsHttpDownloaderStatus {
   numSeeds: number;
   status: "active" | "paused" | "complete" | "error";
   bytesDownloaded: number;
+  isReconnecting: boolean;
 }
 
 export interface JsHttpDownloaderOptions {
@@ -43,6 +44,7 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 30000;
 const STALL_CHECK_INTERVAL_MS = 2000;
+const RECONNECT_RETRY_DELAY_MS = 500;
 export const DEFAULT_DOWNLOAD_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
 
@@ -81,6 +83,8 @@ export class JsHttpDownloader {
   private stallCheckInterval: NodeJS.Timeout | null = null;
   private isPaused = false;
   private isStallRetry = false;
+  private isReconnecting = false;
+  private isReconnectRetry = false;
   private maxDownloadSpeedBytesPerSecond: number | null = null;
   private throttleWindowStart = Date.now();
   private bytesTransferredInThrottleWindow = 0;
@@ -111,6 +115,8 @@ export class JsHttpDownloader {
     this.attemptBytesReceived = 0;
     this.restartCount = 0;
     this.isStallRetry = false;
+    this.isReconnecting = false;
+    this.isReconnectRetry = false;
     this.fileSize = 0;
     this.resolvedFilename = null;
     this.pendingReadSince = null;
@@ -210,8 +216,11 @@ export class JsHttpDownloader {
     }
 
     const wasStallRetry = this.isStallRetry;
+    const wasReconnect = this.isReconnectRetry;
+    this.isReconnectRetry = false;
     const isAbortError = err.name === "AbortError";
-    const isRetryable = wasStallRetry || isRetryableDownloadError(err);
+    const isRetryable =
+      wasStallRetry || wasReconnect || isRetryableDownloadError(err);
     const transientStatus =
       err instanceof HttpDownloadStatusError && err.retryable;
 
@@ -260,6 +269,14 @@ export class JsHttpDownloader {
         )
       );
       return false;
+    }
+
+    if (wasReconnect) {
+      logger.log(
+        `[JsHttpDownloader] Reconnecting after a network change; resuming in ${RECONNECT_RETRY_DELAY_MS}ms`
+      );
+      await this.sleep(RECONNECT_RETRY_DELAY_MS);
+      return !this.isPaused;
     }
 
     if (isRetryable && this.retryCount < MAX_RETRY_ATTEMPTS) {
@@ -592,6 +609,7 @@ export class JsHttpDownloader {
     this.statusRetryCount = 0;
     this.budgetResets = 0;
     this.restartCount = 0;
+    this.isReconnecting = false;
     this.downloadSpeed = 0;
     logger.log(
       `[JsHttpDownloader] Download complete (${this.bytesDownloaded} bytes)`
@@ -660,6 +678,9 @@ export class JsHttpDownloader {
       this.attemptBytesReceived += length;
     };
     const onChunk = (length: number) => {
+      if (this.isReconnecting) {
+        this.isReconnecting = false;
+      }
       this.bytesDownloaded += length;
       this.updateSpeed();
     };
@@ -743,8 +764,40 @@ export class JsHttpDownloader {
     this.attemptBytesReceived = 0;
     this.restartCount = 0;
     this.isStallRetry = false;
+    this.isReconnecting = false;
+    this.isReconnectRetry = false;
     this.pendingReadSince = null;
     await this.startDownloadWithRetry();
+  }
+
+  setReconnecting(value: boolean): void {
+    this.isReconnecting = value;
+    if (value) {
+      this.downloadSpeed = 0;
+    }
+  }
+
+  reconnect(): void {
+    if (!this.isDownloading || this.isPaused) return;
+
+    logger.log(
+      "[JsHttpDownloader] Network change detected; reconnecting and resuming"
+    );
+    this.isReconnecting = true;
+    this.isReconnectRetry = true;
+    this.downloadSpeed = 0;
+    this.pendingReadSince = null;
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+  }
+
+  stopForNoNetwork(): void {
+    logger.log(
+      "[JsHttpDownloader] No internet connection; pausing download and keeping the partial file"
+    );
+    this.isReconnecting = false;
+    this.pauseDownload();
   }
 
   pauseDownload(): void {
@@ -810,6 +863,7 @@ export class JsHttpDownloader {
       numSeeds: 0,
       status: this.status,
       bytesDownloaded: this.bytesDownloaded,
+      isReconnecting: this.isReconnecting,
     };
   }
 
@@ -865,6 +919,8 @@ export class JsHttpDownloader {
     this.restartCount = 0;
     this.pendingReadSince = null;
     this.isStallRetry = false;
+    this.isReconnecting = false;
+    this.isReconnectRetry = false;
     this.resetThrottleWindow();
   }
 }
