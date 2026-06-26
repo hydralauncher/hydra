@@ -224,51 +224,10 @@ export class JsHttpDownloader {
     const transientStatus =
       err instanceof HttpDownloadStatusError && err.retryable;
 
-    if (
-      shouldResetRetryBudget(
-        this.attemptBytesReceived,
-        this.budgetResets,
-        PROGRESS_RESET_THRESHOLD_BYTES,
-        MAX_BUDGET_RESETS
-      )
-    ) {
-      logger.log(
-        "[JsHttpDownloader] Data is flowing again; resetting retry budget"
-      );
-      this.retryCount = 0;
-      this.statusRetryCount = 0;
-      this.budgetResets += 1;
-    }
+    this.maybeResetRetryBudget();
 
     if (transientStatus) {
-      // A rate-limited or temporarily-unavailable server gets a short,
-      // dedicated budget so it fails quickly with a clear error instead of
-      // masquerading as a stalled download for minutes.
-      const statusError = err as HttpDownloadStatusError;
-      if (this.statusRetryCount < MAX_STATUS_RETRY_ATTEMPTS) {
-        this.statusRetryCount++;
-        const backoff = Math.min(
-          INITIAL_RETRY_DELAY_MS * Math.pow(2, this.statusRetryCount - 1),
-          MAX_RETRY_DELAY_MS
-        );
-        const delay =
-          statusError.retryAfterMs !== null
-            ? Math.min(statusError.retryAfterMs, MAX_RETRY_AFTER_MS)
-            : backoff;
-        logger.log(
-          `[JsHttpDownloader] Server unavailable (HTTP ${statusError.statusCode}). ` +
-            `Retry ${this.statusRetryCount}/${MAX_STATUS_RETRY_ATTEMPTS} in ${delay}ms`
-        );
-        await this.sleep(delay);
-        return !this.isPaused;
-      }
-
-      this.handleDownloadError(
-        new Error(
-          `The download server is rate-limiting or temporarily unavailable (HTTP ${statusError.statusCode}). Try again later or use another source.`
-        )
-      );
-      return false;
+      return this.handleTransientStatusError(err as HttpDownloadStatusError);
     }
 
     if (wasReconnect) {
@@ -313,6 +272,53 @@ export class JsHttpDownloader {
 
     this.handleDownloadError(err);
     return false;
+  }
+
+  private maybeResetRetryBudget(): void {
+    if (
+      shouldResetRetryBudget(
+        this.attemptBytesReceived,
+        this.budgetResets,
+        PROGRESS_RESET_THRESHOLD_BYTES,
+        MAX_BUDGET_RESETS
+      )
+    ) {
+      logger.log(
+        "[JsHttpDownloader] Data is flowing again; resetting retry budget"
+      );
+      this.retryCount = 0;
+      this.statusRetryCount = 0;
+      this.budgetResets += 1;
+    }
+  }
+
+  private async handleTransientStatusError(
+    statusError: HttpDownloadStatusError
+  ): Promise<boolean> {
+    if (this.statusRetryCount >= MAX_STATUS_RETRY_ATTEMPTS) {
+      this.handleDownloadError(
+        new Error(
+          `The download server is rate-limiting or temporarily unavailable (HTTP ${statusError.statusCode}). Try again later or use another source.`
+        )
+      );
+      return false;
+    }
+
+    this.statusRetryCount++;
+    const backoff = Math.min(
+      INITIAL_RETRY_DELAY_MS * Math.pow(2, this.statusRetryCount - 1),
+      MAX_RETRY_DELAY_MS
+    );
+    const delay =
+      statusError.retryAfterMs === null
+        ? backoff
+        : Math.min(statusError.retryAfterMs, MAX_RETRY_AFTER_MS);
+    logger.log(
+      `[JsHttpDownloader] Server unavailable (HTTP ${statusError.statusCode}). ` +
+        `Retry ${this.statusRetryCount}/${MAX_STATUS_RETRY_ATTEMPTS} in ${delay}ms`
+    );
+    await this.sleep(delay);
+    return !this.isPaused;
   }
 
   private sleep(ms: number): Promise<void> {
