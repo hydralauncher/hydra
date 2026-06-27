@@ -12,8 +12,9 @@ export function SettingsContextIntegrations() {
         <SettingsDebrid />
       </div>
 
+      <hr className="settings-context-panel__divider" />
+
       <div className="settings-context-panel__group">
-        <h3>{t("retroachievements")}</h3>
         <SettingsRetroAchievements />
       </div>
     </div>
