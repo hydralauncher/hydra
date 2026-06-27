@@ -18,6 +18,8 @@ const RETRO_ACHIEVEMENTS_WEB_API_KEY_URL =
 
 const INTEGRATION_ENDPOINT = "/profile/integrations/retroachievements";
 
+const STATUS_ICON_SIZE = 14;
+
 type RetroAchievementsIntegration =
   | { connected: false }
   | {
@@ -113,13 +115,13 @@ export function SettingsRetroAchievements() {
           }
         );
 
-      await updateUserPreferences({
-        retroAchievementsWebApiKey: webApiKey,
-      });
-
       setIntegration(status);
       setForm((prev) => ({ ...prev, password: "" }));
       showSuccessToast(t("retroachievements_account_linked"));
+
+      await updateUserPreferences({
+        retroAchievementsWebApiKey: webApiKey,
+      }).catch(() => {});
     } catch (err) {
       const message = err instanceof Error ? err.message : undefined;
       showErrorToast(getConnectErrorMessage(message));
@@ -134,11 +136,13 @@ export function SettingsRetroAchievements() {
     try {
       await window.electron.hydraApi.delete(INTEGRATION_ENDPOINT);
 
-      await updateUserPreferences({ retroAchievementsWebApiKey: null });
-
       setIntegration({ connected: false });
       setForm({ username: "", password: "", webApiKey: "" });
       showSuccessToast(t("retroachievements_account_unlinked"));
+
+      await updateUserPreferences({ retroAchievementsWebApiKey: null }).catch(
+        () => {}
+      );
     } catch {
       showErrorToast(t("retroachievements_connect_error"));
     } finally {
@@ -175,9 +179,9 @@ export function SettingsRetroAchievements() {
             }`}
           >
             {isInvalid ? (
-              <AlertIcon size={14} />
+              <AlertIcon size={STATUS_ICON_SIZE} />
             ) : (
-              <CheckCircleFillIcon size={14} />
+              <CheckCircleFillIcon size={STATUS_ICON_SIZE} />
             )}
             {isInvalid
               ? t("retroachievements_status_invalid_credentials")
