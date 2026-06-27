@@ -1,0 +1,55 @@
+@use "../../scss/globals.scss";
+
+.settings-retroachievements {
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__submit-button {
+    align-self: flex-end;
+  }
+
+  &__description-container {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    align-items: flex-start;
+  }
+
+  &__create-account {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__connected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__account {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__username {
+    font-weight: bold;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: globals.$success-color;
+    font-size: globals.$small-font-size;
+
+    &--warning {
+      color: globals.$warning-color;
+    }
+  }
+}
