@@ -73,7 +73,7 @@ export function SettingsRetroAchievements() {
   useEffect(() => {
     let active = true;
 
-    window.electron.hydraApi
+    globalThis.window.electron.hydraApi
       .get<RetroAchievementsIntegration>(INTEGRATION_ENDPOINT)
       .then((status) => {
         if (active) setIntegration(status);
@@ -124,7 +124,7 @@ export function SettingsRetroAchievements() {
 
     try {
       const status =
-        await window.electron.hydraApi.post<RetroAchievementsIntegration>(
+        await globalThis.window.electron.hydraApi.post<RetroAchievementsIntegration>(
           `${INTEGRATION_ENDPOINT}/connect`,
           {
             data: {
@@ -154,7 +154,7 @@ export function SettingsRetroAchievements() {
     setIsSubmitting(true);
 
     try {
-      await window.electron.hydraApi.delete(INTEGRATION_ENDPOINT);
+      await globalThis.window.electron.hydraApi.delete(INTEGRATION_ENDPOINT);
 
       setIntegration({ connected: false });
       setForm({ username: "", password: "", webApiKey: "" });
@@ -175,7 +175,7 @@ export function SettingsRetroAchievements() {
 
     try {
       const status =
-        await window.electron.hydraApi.get<RetroAchievementsIntegration>(
+        await globalThis.window.electron.hydraApi.get<RetroAchievementsIntegration>(
           INTEGRATION_ENDPOINT
         );
 
