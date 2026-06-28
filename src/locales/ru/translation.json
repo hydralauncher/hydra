@@ -923,7 +923,6 @@
     "retroachievements_connect_error": "Не удалось подключить учётную запись RetroAchievements. Попробуйте ещё раз.",
     "retroachievements_update": "Обновить",
     "retroachievements_status_updated": "Статус учётной записи обновлён",
-    "retroachievements_sync_note": "Статус учётной записи синхронизируется с RetroAchievements примерно раз в час, поэтому недавние изменения, например новое имя пользователя, могут появиться здесь в течение часа.",
     "name_min_length": "Название темы должно содержать не менее 3 символов",
     "import_theme": "Импортировать тему",
     "import_theme_description": "Вы импортируете {{theme}} из магазина тем",
