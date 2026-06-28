@@ -363,12 +363,18 @@ export function SettingsRetroAchievements() {
         <h3 className="settings-debrid__section-title">
           {t("retroachievements")}
         </h3>
-        {integration.connected && (
-          <CheckCircleFillIcon
-            size={CHEVRON_ICON_SIZE}
-            className="settings-debrid__check-icon"
-          />
-        )}
+        {integration.connected &&
+          (integration.status === "invalid_credentials" ? (
+            <AlertIcon
+              size={CHEVRON_ICON_SIZE}
+              className="settings-retroachievements__header-icon--warning"
+            />
+          ) : (
+            <CheckCircleFillIcon
+              size={CHEVRON_ICON_SIZE}
+              className="settings-debrid__check-icon"
+            />
+          ))}
       </div>
 
       {!isCollapsed && renderBody()}

@@ -86,4 +86,9 @@
     flex-wrap: wrap;
     gap: globals.$spacing-unit;
   }
+
+  &__header-icon--warning {
+    flex-shrink: 0;
+    color: globals.$warning-color;
+  }
 }
