@@ -8,7 +8,9 @@ import {
   AlertIcon,
   CheckCircleFillIcon,
   ChevronRightIcon,
+  InfoIcon,
   LinkExternalIcon,
+  SyncIcon,
 } from "@primer/octicons-react";
 
 import "./settings-debrid.scss";
@@ -44,6 +46,7 @@ export function SettingsRetroAchievements() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [integration, setIntegration] = useState<RetroAchievementsIntegration>({
     connected: false,
   });
@@ -156,6 +159,24 @@ export function SettingsRetroAchievements() {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+
+    try {
+      const status =
+        await window.electron.hydraApi.get<RetroAchievementsIntegration>(
+          INTEGRATION_ENDPOINT
+        );
+
+      setIntegration(status);
+      showSuccessToast(t("retroachievements_status_updated"));
+    } catch {
+      showErrorToast(t("retroachievements_connect_error"));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const isConnectDisabled =
     !form.username.trim() ||
     !form.password.trim() ||
@@ -196,13 +217,29 @@ export function SettingsRetroAchievements() {
             </span>
           </div>
 
-          <Button
-            theme="outline"
-            onClick={handleDisconnect}
-            disabled={isSubmitting}
-          >
-            {t("retroachievements_disconnect")}
-          </Button>
+          <div className="settings-retroachievements__actions">
+            <Button
+              theme="outline"
+              onClick={handleRefresh}
+              disabled={isRefreshing || isSubmitting}
+            >
+              <SyncIcon size={STATUS_ICON_SIZE} />
+              {t("retroachievements_update")}
+            </Button>
+
+            <Button
+              theme="outline"
+              onClick={handleDisconnect}
+              disabled={isSubmitting || isRefreshing}
+            >
+              {t("retroachievements_disconnect")}
+            </Button>
+          </div>
+
+          <p className="settings-retroachievements__sync-note">
+            <InfoIcon size={STATUS_ICON_SIZE} />
+            <span>{t("retroachievements_sync_note")}</span>
+          </p>
         </div>
       );
     }
