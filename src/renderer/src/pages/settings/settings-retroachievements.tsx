@@ -8,7 +8,6 @@ import {
   AlertIcon,
   CheckCircleFillIcon,
   ChevronRightIcon,
-  InfoIcon,
   LinkExternalIcon,
   SyncIcon,
 } from "@primer/octicons-react";
@@ -218,14 +217,16 @@ export function SettingsRetroAchievements() {
           </div>
 
           <div className="settings-retroachievements__actions">
-            <Button
-              theme="outline"
-              onClick={handleRefresh}
-              disabled={isRefreshing || isSubmitting}
-            >
-              <SyncIcon size={STATUS_ICON_SIZE} />
-              {t("retroachievements_update")}
-            </Button>
+            {!isInvalid && (
+              <Button
+                theme="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing || isSubmitting}
+              >
+                <SyncIcon size={STATUS_ICON_SIZE} />
+                {t("retroachievements_update")}
+              </Button>
+            )}
 
             <Button
               theme="outline"
@@ -235,11 +236,6 @@ export function SettingsRetroAchievements() {
               {t("retroachievements_disconnect")}
             </Button>
           </div>
-
-          <p className="settings-retroachievements__sync-note">
-            <InfoIcon size={STATUS_ICON_SIZE} />
-            <span>{t("retroachievements_sync_note")}</span>
-          </p>
         </div>
       );
     }

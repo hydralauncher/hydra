@@ -878,7 +878,6 @@
     "retroachievements_connect_error": "No se pudo conectar tu cuenta de RetroAchievements. Inténtalo de nuevo.",
     "retroachievements_update": "Actualizar",
     "retroachievements_status_updated": "Estado de la cuenta actualizado",
-    "retroachievements_sync_note": "El estado de la cuenta se sincroniza desde RetroAchievements aproximadamente una vez por hora, por lo que los cambios recientes como un nuevo nombre de usuario pueden tardar hasta una hora en aparecer aquí.",
     "name_min_length": "El nombre del tema debe tener mínimo 3 carácteres",
     "import_theme": "Importar tema",
     "import_theme_description": "Vas a importar el tema {{theme}} desde la tienda de temas",
