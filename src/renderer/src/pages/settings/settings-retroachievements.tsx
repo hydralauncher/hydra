@@ -9,6 +9,7 @@ import {
   CheckCircleFillIcon,
   ChevronRightIcon,
   LinkExternalIcon,
+  PersonIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 
@@ -21,8 +22,12 @@ const RETRO_ACHIEVEMENTS_WEB_API_KEY_URL =
 
 const INTEGRATION_ENDPOINT = "/profile/integrations/retroachievements";
 
+const RETRO_ACHIEVEMENTS_USER_PIC_URL =
+  "https://media.retroachievements.org/UserPic";
+
 const STATUS_ICON_SIZE = 14;
 const CHEVRON_ICON_SIZE = 16;
+const AVATAR_FALLBACK_ICON_SIZE = 28;
 
 type RetroAchievementsIntegration =
   | { connected: false }
@@ -57,6 +62,13 @@ export function SettingsRetroAchievements() {
   const [isCollapsed, setIsCollapsed] = useState(
     () => !userPreferences?.retroAchievementsWebApiKey
   );
+  const [avatarError, setAvatarError] = useState(false);
+
+  const connectedUsername = integration.connected ? integration.username : null;
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [connectedUsername]);
 
   useEffect(() => {
     let active = true;
@@ -196,24 +208,40 @@ export function SettingsRetroAchievements() {
 
       return (
         <div className="settings-retroachievements__connected">
-          <div className="settings-retroachievements__account">
-            <span className="settings-retroachievements__username">
-              {integration.username}
-            </span>
-            <span
-              className={`settings-retroachievements__status ${
-                isInvalid ? "settings-retroachievements__status--warning" : ""
-              }`}
-            >
-              {isInvalid ? (
-                <AlertIcon size={STATUS_ICON_SIZE} />
+          <div className="settings-retroachievements__profile">
+            <div className="settings-retroachievements__avatar">
+              {avatarError ? (
+                <PersonIcon size={AVATAR_FALLBACK_ICON_SIZE} />
               ) : (
-                <CheckCircleFillIcon size={STATUS_ICON_SIZE} />
+                <img
+                  src={`${RETRO_ACHIEVEMENTS_USER_PIC_URL}/${encodeURIComponent(
+                    integration.username
+                  )}.png`}
+                  alt={integration.username}
+                  onError={() => setAvatarError(true)}
+                />
               )}
-              {isInvalid
-                ? t("retroachievements_status_invalid_credentials")
-                : t("retroachievements_status_active")}
-            </span>
+            </div>
+
+            <div className="settings-retroachievements__account">
+              <span className="settings-retroachievements__username">
+                {integration.username}
+              </span>
+              <span
+                className={`settings-retroachievements__status ${
+                  isInvalid ? "settings-retroachievements__status--warning" : ""
+                }`}
+              >
+                {isInvalid ? (
+                  <AlertIcon size={STATUS_ICON_SIZE} />
+                ) : (
+                  <CheckCircleFillIcon size={STATUS_ICON_SIZE} />
+                )}
+                {isInvalid
+                  ? t("retroachievements_status_invalid_credentials")
+                  : t("retroachievements_status_active")}
+              </span>
+            </div>
           </div>
 
           <div className="settings-retroachievements__actions">
@@ -229,7 +257,7 @@ export function SettingsRetroAchievements() {
             )}
 
             <Button
-              theme="outline"
+              theme="danger"
               onClick={handleDisconnect}
               disabled={isSubmitting || isRefreshing}
             >
