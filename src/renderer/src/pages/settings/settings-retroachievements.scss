@@ -26,8 +26,7 @@
 
   &__connected {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
   }
 
@@ -50,6 +49,27 @@
 
     &--warning {
       color: globals.$warning-color;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+  }
+
+  &__sync-note {
+    display: flex;
+    align-items: flex-start;
+    gap: globals.$spacing-unit;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: globals.$small-font-size;
+    line-height: 1.5;
+
+    svg {
+      flex-shrink: 0;
+      margin-top: 2px;
     }
   }
 }
