@@ -178,7 +178,9 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
 
     if (userPreferences?.retroAchievementsWebApiKey) {
       HydraApi.post(
-        `/profile/games/${game.shop}/${game.objectId}/retroachievements/sync`
+        `/profile/games/${game.shop}/${game.objectId}/retroachievements/sync`,
+        undefined,
+        { needsSubscription: true }
       ).catch(() => {});
     }
   }
