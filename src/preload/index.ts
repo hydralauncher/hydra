@@ -1059,6 +1059,17 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   getUnlockedAchievements: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getUnlockedAchievements", objectId, shop),
+  getRetroAchievementsAchievements: (
+    objectId: string,
+    shop: GameShop,
+    raGameId: number
+  ) =>
+    ipcRenderer.invoke(
+      "getRetroAchievementsAchievements",
+      objectId,
+      shop,
+      raGameId
+    ),
 
   /* Auth */
   getAuth: () => ipcRenderer.invoke("getAuth"),

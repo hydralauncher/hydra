@@ -768,6 +768,11 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<UserAchievement[]>;
+    getRetroAchievementsAchievements: (
+      objectId: string,
+      shop: GameShop,
+      raGameId: number
+    ) => Promise<UserAchievement[] | null>;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;

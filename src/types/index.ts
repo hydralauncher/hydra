@@ -63,6 +63,7 @@ export type ShopDetails = SteamAppDetails & {
   objectId: string;
   platform?: string;
   skus?: string[];
+  raGameId?: number | null;
 };
 
 export type ShopDetailsWithAssets = ShopDetails & {

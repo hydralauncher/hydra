@@ -1,8 +1,9 @@
 import type { ChildProcess } from "node:child_process";
 
-import { gamesSublevel, levelKeys } from "@main/level";
-import type { EmulatorSystem, Game, GameShop } from "@types";
+import { db, gamesSublevel, levelKeys } from "@main/level";
+import type { EmulatorSystem, Game, GameShop, UserPreferences } from "@types";
 
+import { HydraApi } from "../hydra-api";
 import { trackGamePlaytime } from "../library-sync";
 import { logger } from "../logger";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
@@ -168,4 +169,17 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
         unsyncedDeltaPlayTimeInMilliseconds: pendingDelta,
       });
     });
+
+  if (game.shop === "launchbox") {
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+
+    if (userPreferences?.retroAchievementsWebApiKey) {
+      HydraApi.post(
+        `/profile/games/${game.shop}/${game.objectId}/retroachievements/sync`
+      ).catch(() => {});
+    }
+  }
 };

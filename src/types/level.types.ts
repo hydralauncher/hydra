@@ -152,6 +152,7 @@ export interface UserPreferences {
   allDebridApiToken?: string | null;
   torBoxApiToken?: string | null;
   retroAchievementsWebApiKey?: string | null;
+  retroAchievementsUsername?: string | null;
   preferQuitInsteadOfHiding?: boolean;
   runAtStartup?: boolean;
   startMinimized?: boolean;
