@@ -207,7 +207,7 @@
     "platforms": "Платформы"
   },
   "game_details": {
-    "bios_not_configured_toast": "Требуется BIOS. Настройте BIOS для PS1/PS2 в Настройки → Эмуляция перед запуском.",
+    "bios_not_configured_toast": "BIOS не найден. Добавьте папку BIOS в настройках эмуляции.",
     "open_download_options": "Открыть источники",
     "download_options_zero": "Нет источников",
     "download_options_one": "{{count}} источник",

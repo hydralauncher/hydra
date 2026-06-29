@@ -207,7 +207,7 @@
     "platforms": "Platforms"
   },
   "game_details": {
-    "bios_not_configured_toast": "BIOS required. Configure your PS1/PS2 BIOS in Settings → Emulation before launching.",
+    "bios_not_configured_toast": "BIOS not found. Please add BIOS folder in Emulation settings.",
     "open_download_options": "Open download options",
     "download_options_zero": "No download option",
     "download_options_one": "{{count}} download option",
