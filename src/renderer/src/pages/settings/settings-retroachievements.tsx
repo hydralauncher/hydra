@@ -141,6 +141,7 @@ export function SettingsRetroAchievements() {
 
       await updateUserPreferences({
         retroAchievementsWebApiKey: webApiKey,
+        retroAchievementsUsername: status.connected ? status.username : null,
       }).catch(() => {});
     } catch (err) {
       const message = err instanceof Error ? err.message : undefined;
@@ -160,9 +161,10 @@ export function SettingsRetroAchievements() {
       setForm({ username: "", password: "", webApiKey: "" });
       showSuccessToast(t("retroachievements_account_unlinked"));
 
-      await updateUserPreferences({ retroAchievementsWebApiKey: null }).catch(
-        () => {}
-      );
+      await updateUserPreferences({
+        retroAchievementsWebApiKey: null,
+        retroAchievementsUsername: null,
+      }).catch(() => {});
     } catch {
       showErrorToast(t("retroachievements_connect_error"));
     } finally {
@@ -181,6 +183,10 @@ export function SettingsRetroAchievements() {
 
       setIntegration(status);
       showSuccessToast(t("retroachievements_status_updated"));
+
+      await updateUserPreferences({
+        retroAchievementsUsername: status.connected ? status.username : null,
+      }).catch(() => {});
     } catch {
       showErrorToast(t("retroachievements_connect_error"));
     } finally {

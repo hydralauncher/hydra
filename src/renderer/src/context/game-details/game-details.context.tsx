@@ -136,6 +136,28 @@ export function GameDetailsContextProvider({
         if (result?.assets) {
           setIsLoading(false);
         }
+
+        if (userDetails && shop !== "custom") {
+          const useRetroAchievements =
+            shop === "launchbox" &&
+            Boolean(result?.raGameId) &&
+            Boolean(userPreferences?.retroAchievementsWebApiKey);
+
+          const achievementsRequest = useRetroAchievements
+            ? window.electron.getRetroAchievementsAchievements(
+                objectId,
+                shop,
+                result!.raGameId!
+              )
+            : window.electron.getUnlockedAchievements(objectId, shop);
+
+          achievementsRequest
+            .then((achievements) => {
+              if (abortController.signal.aborted) return;
+              if (achievements) setAchievements(achievements);
+            })
+            .catch(() => void 0);
+        }
       });
 
     if (shop !== "custom") {
@@ -164,22 +186,13 @@ export function GameDetailsContextProvider({
         if (abortController.signal.aborted) return;
         setIsLoading(false);
       });
-
-    if (userDetails && shop !== "custom") {
-      window.electron
-        .getUnlockedAchievements(objectId, shop)
-        .then((achievements) => {
-          if (abortController.signal.aborted) return;
-          setAchievements(achievements);
-        })
-        .catch(() => void 0);
-    }
   }, [
     i18n.language,
     objectId,
     shop,
     userDetails,
     userPreferences?.disableNsfwAlert,
+    userPreferences?.retroAchievementsWebApiKey,
   ]);
 
   const refreshGameDetails = useCallback(async () => {

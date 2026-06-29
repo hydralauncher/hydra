@@ -1363,6 +1363,8 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} logros",
     "achievements_unlocked_for_game": "Desbloqueaste {{achievementCount}} nuevos logros para {{gameTitle}}",
     "hidden_achievement_tooltip": "Este es un logro oculto",
+    "hardcore": "Hardcore",
+    "hardcore_unlocked_at": "Desbloqueado en hardcore el: {{date}}",
     "achievement_earn_points": "Conseguí {{points}} puntos por este logro",
     "earned_points": "Puntos obtenidos:",
     "available_points": "Puntos disponibles:",

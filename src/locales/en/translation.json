@@ -1489,6 +1489,8 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievements",
     "achievements_unlocked_for_game": "Unlocked {{achievementCount}} new achievements for {{gameTitle}}",
     "hidden_achievement_tooltip": "This is a hidden achievement",
+    "hardcore": "Hardcore",
+    "hardcore_unlocked_at": "Hardcore unlocked at: {{date}}",
     "achievement_earn_points": "Earn {{points}} points with this achievement",
     "earned_points": "Earned points:",
     "available_points": "Available points:",

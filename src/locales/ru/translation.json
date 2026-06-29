@@ -1492,6 +1492,8 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} достижений",
     "achievements_unlocked_for_game": "Разблокировано {{achievementCount}} новых достижений для {{gameTitle}}",
     "hidden_achievement_tooltip": "Это скрытое достижение",
+    "hardcore": "Хардкор",
+    "hardcore_unlocked_at": "Получено в хардкоре: {{date}}",
     "achievement_earn_points": "Заработайте {{points}} очков с этим достижением",
     "earned_points": "Заработано очков:",
     "available_points": "Доступные очки:",
