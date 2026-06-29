@@ -144,12 +144,15 @@ export function GameDetailsContextProvider({
             Boolean(userPreferences?.retroAchievementsWebApiKey);
 
           const achievementsRequest = useRetroAchievements
-            ? window.electron.getRetroAchievementsAchievements(
+            ? globalThis.window.electron.getRetroAchievementsAchievements(
                 objectId,
                 shop,
                 result!.raGameId!
               )
-            : window.electron.getUnlockedAchievements(objectId, shop);
+            : globalThis.window.electron.getUnlockedAchievements(
+                objectId,
+                shop
+              );
 
           achievementsRequest
             .then((achievements) => {
