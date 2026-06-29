@@ -35,7 +35,7 @@ export class RetroAchievementsClient {
     const response =
       await this.instance.get<RetroAchievementsGameInfoAndUserProgress>(
         "/API_GetGameInfoAndUserProgress.php",
-        { params: { z: username, y: webApiKey, g: raGameId } }
+        { params: { u: username, y: webApiKey, g: raGameId } }
       );
 
     return response.data;
