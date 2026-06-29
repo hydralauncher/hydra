@@ -28,6 +28,8 @@ const PS1_BIOS_MAX_BYTES = 16 * 1024 * 1024;
 const PS2_BIOS_MIN_BYTES = 4 * 1024 * 1024;
 const PS2_BIOS_MAX_BYTES = 8 * 1024 * 1024;
 
+const MAX_REJECTED_LOG_ENTRIES = 10;
+
 const SIZE_LIMITS: Record<"ps1" | "ps2", { min: number; max: number }> = {
   ps1: { min: PS1_BIOS_MIN_BYTES, max: PS1_BIOS_MAX_BYTES },
   ps2: { min: PS2_BIOS_MIN_BYTES, max: PS2_BIOS_MAX_BYTES },
@@ -229,7 +231,7 @@ const hasPlausibleBios = async (
     dir,
     system,
     matched,
-    rejected: rejected.slice(0, 10),
+    rejected: rejected.slice(0, MAX_REJECTED_LOG_ENTRIES),
   });
   return matched;
 };
