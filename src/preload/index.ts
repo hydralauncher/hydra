@@ -170,6 +170,8 @@ contextBridge.exposeInMainWorld("electron", {
     system: EmulatorSystem,
     executablePath: string | null
   ) => ipcRenderer.invoke("setEmulatorExecutablePath", system, executablePath),
+  setEmulatorBiosPath: (system: EmulatorSystem, biosPath: string | null) =>
+    ipcRenderer.invoke("setEmulatorBiosPath", system, biosPath),
   addRomFolder: (
     system: EmulatorSystem,
     folderPath: string,
@@ -202,8 +204,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("rescanEmulator", system, language),
   checkPs3Firmware: (executablePath: string | null) =>
     ipcRenderer.invoke("checkPs3Firmware", executablePath),
-  checkEmulatorBios: (system: EmulatorSystem, executablePath: string | null) =>
-    ipcRenderer.invoke("checkEmulatorBios", system, executablePath),
+  checkEmulatorBios: (
+    system: EmulatorSystem,
+    executablePath: string | null,
+    manualBiosPath?: string | null
+  ) =>
+    ipcRenderer.invoke(
+      "checkEmulatorBios",
+      system,
+      executablePath,
+      manualBiosPath ?? null
+    ),
   getEmulatorInstallOptions: (binary: EmulatorBinary) =>
     ipcRenderer.invoke("getEmulatorInstallOptions", binary),
   installEmulator: (binary: EmulatorBinary, optionId: string) =>
