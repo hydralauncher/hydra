@@ -235,6 +235,19 @@
     border-radius: 8px;
   }
 
+  &__bios-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 4px 12px 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #c0c1c7;
+    background: rgba(192, 193, 199, 0.12);
+  }
+
   &__exec-label {
     font-size: 12px;
     font-weight: 500;

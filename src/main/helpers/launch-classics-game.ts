@@ -68,7 +68,8 @@ export const launchClassicsGame = async (
   if (system === "ps1" || system === "ps2") {
     const biosInstalled = await emulators.isEmulatorBiosInstalled(
       system,
-      config.executablePath
+      config.executablePath,
+      config.biosPath
     );
     if (!biosInstalled) {
       throw new BiosNotConfiguredError(system);

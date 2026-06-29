@@ -5,13 +5,24 @@ import type { EmulatorSystem } from "@types";
 const checkEmulatorBios = async (
   _event: Electron.IpcMainInvokeEvent,
   system: EmulatorSystem,
-  executablePath: string | null
+  executablePath: string | null,
+  manualBiosPath: string | null = null
 ) => {
-  const installed = await emulators.isEmulatorBiosInstalled(
+  if (system !== "ps1" && system !== "ps2") {
+    const installed = await emulators.isEmulatorBiosInstalled(
+      system,
+      executablePath,
+      manualBiosPath
+    );
+    return { installed, detectedPath: null };
+  }
+
+  const detectedPath = await emulators.resolveInstalledBiosDir(
     system,
-    executablePath
+    executablePath,
+    manualBiosPath
   );
-  return { installed };
+  return { installed: detectedPath !== null, detectedPath };
 };
 
 registerEvent("checkEmulatorBios", checkEmulatorBios);

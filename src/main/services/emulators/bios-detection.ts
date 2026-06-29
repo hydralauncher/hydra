@@ -3,9 +3,10 @@ import path from "node:path";
 
 import type { EmulatorSystem } from "@types";
 
+import { logger } from "@main/services/logger";
+
 import {
   duckstationConfigCandidates,
-  findExistingConfig,
   pcsx2ConfigCandidates,
 } from "./emulator-config";
 
@@ -32,6 +33,24 @@ const SIZE_LIMITS: Record<"ps1" | "ps2", { min: number; max: number }> = {
   ps2: { min: PS2_BIOS_MIN_BYTES, max: PS2_BIOS_MAX_BYTES },
 };
 
+const isOneDrivePath = (filePath: string): boolean => {
+  const lower = filePath.toLowerCase();
+  if (lower.split(/[\\/]/).includes("onedrive")) return true;
+  for (const key of ["OneDrive", "OneDriveConsumer", "OneDriveCommercial"]) {
+    const root = process.env[key];
+    if (root && lower.startsWith(root.toLowerCase())) return true;
+  }
+  return false;
+};
+
+const logReadFailure = (filePath: string, error: unknown): void => {
+  logger.warn("[bios-detection] read failed", {
+    filePath,
+    onedrive: isOneDrivePath(filePath),
+    error: `${error}`,
+  });
+};
+
 const readIniBiosDir = async (
   iniPath: string,
   sectionName: string,
@@ -55,18 +74,26 @@ const readIniBiosDir = async (
         return path.isAbsolute(value) ? value : path.join(root, value);
       }
     }
-  } catch {
+  } catch (error) {
+    logReadFailure(iniPath, error);
     return null;
   }
   return null;
 };
 
 export const resolvePs1BiosDirs = async (
-  executablePath: string | null
+  executablePath: string | null,
+  manualBiosPath: string | null = null
 ): Promise<string[]> => {
   const dirs: string[] = [];
-  const iniPath = findExistingConfig(duckstationConfigCandidates());
-  if (iniPath) {
+  if (manualBiosPath) dirs.push(manualBiosPath);
+
+  const candidates = duckstationConfigCandidates();
+  const foundConfigs: string[] = [];
+
+  for (const iniPath of candidates) {
+    if (!existsSync(iniPath)) continue;
+    foundConfigs.push(iniPath);
     const override = await readIniBiosDir(
       iniPath,
       "bios",
@@ -75,21 +102,37 @@ export const resolvePs1BiosDirs = async (
     );
     if (override) dirs.push(override);
   }
-  for (const candidate of duckstationConfigCandidates()) {
+
+  for (const candidate of candidates) {
     dirs.push(path.join(path.dirname(candidate), "bios"));
   }
   if (executablePath) {
     dirs.push(path.join(path.dirname(executablePath), "bios"));
   }
-  return Array.from(new Set(dirs)).filter((dir) => existsSync(dir));
+
+  const resolved = Array.from(new Set(dirs)).filter((dir) => existsSync(dir));
+  logger.info("[bios-detection] ps1 bios dirs", {
+    executablePath,
+    manualBiosPath,
+    foundConfigs,
+    resolved,
+  });
+  return resolved;
 };
 
 export const resolvePs2BiosDirs = async (
-  executablePath: string | null
+  executablePath: string | null,
+  manualBiosPath: string | null = null
 ): Promise<string[]> => {
   const dirs: string[] = [];
-  const iniPath = findExistingConfig(pcsx2ConfigCandidates(executablePath));
-  if (iniPath) {
+  if (manualBiosPath) dirs.push(manualBiosPath);
+
+  const candidates = pcsx2ConfigCandidates(executablePath);
+  const foundConfigs: string[] = [];
+
+  for (const iniPath of [...candidates].reverse()) {
+    if (!existsSync(iniPath)) continue;
+    foundConfigs.push(iniPath);
     const override = await readIniBiosDir(
       iniPath,
       "folders",
@@ -98,10 +141,19 @@ export const resolvePs2BiosDirs = async (
     );
     if (override) dirs.push(override);
   }
-  for (const candidate of pcsx2ConfigCandidates(executablePath)) {
+
+  for (const candidate of candidates) {
     dirs.push(path.join(path.dirname(path.dirname(candidate)), "bios"));
   }
-  return Array.from(new Set(dirs)).filter((dir) => existsSync(dir));
+
+  const resolved = Array.from(new Set(dirs)).filter((dir) => existsSync(dir));
+  logger.info("[bios-detection] ps2 bios dirs", {
+    executablePath,
+    manualBiosPath,
+    foundConfigs,
+    resolved,
+  });
+  return resolved;
 };
 
 const PS1_BIOS_SIGNATURE = Buffer.from("Sony Computer Entertainment");
@@ -124,7 +176,8 @@ const fileLooksLikeBios = async (
 
     if (system === "ps1") return head.includes(PS1_BIOS_SIGNATURE);
     return head.includes(PS2_RESET) && head.includes(PS2_ROMVER);
-  } catch {
+  } catch (error) {
+    logReadFailure(filePath, error);
     return false;
   } finally {
     await handle?.close();
@@ -140,9 +193,13 @@ const hasPlausibleBios = async (
   let entries: import("node:fs").Dirent[];
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
-  } catch {
+  } catch (error) {
+    logger.info("[bios-detection] unreadable dir", { dir, error: `${error}` });
     return false;
   }
+
+  let matched = false;
+  const rejected: { name: string; size: number; reason: string }[] = [];
 
   for (const entry of entries) {
     if (entry.isDirectory()) continue;
@@ -157,37 +214,82 @@ const hasPlausibleBios = async (
       continue;
     }
 
-    if (size < limits.min || size > limits.max) continue;
-    if (await fileLooksLikeBios(filePath, system)) return true;
+    if (size < limits.min || size > limits.max) {
+      rejected.push({ name: entry.name, size, reason: "size-out-of-band" });
+      continue;
+    }
+    if (await fileLooksLikeBios(filePath, system)) {
+      matched = true;
+      break;
+    }
+    rejected.push({ name: entry.name, size, reason: "signature-mismatch" });
   }
-  return false;
+
+  logger.info("[bios-detection] scanned dir", {
+    dir,
+    system,
+    matched,
+    rejected: rejected.slice(0, 10),
+  });
+  return matched;
+};
+
+const firstBiosDir = async (
+  dirs: string[],
+  system: "ps1" | "ps2"
+): Promise<string | null> => {
+  for (const dir of dirs) {
+    if (await hasPlausibleBios(dir, system)) return dir;
+  }
+  return null;
+};
+
+export const resolveInstalledBiosDir = async (
+  system: EmulatorSystem,
+  executablePath: string | null,
+  manualBiosPath: string | null = null
+): Promise<string | null> => {
+  if (system === "ps1") {
+    return firstBiosDir(
+      await resolvePs1BiosDirs(executablePath, manualBiosPath),
+      "ps1"
+    );
+  }
+  if (system === "ps2") {
+    return firstBiosDir(
+      await resolvePs2BiosDirs(executablePath, manualBiosPath),
+      "ps2"
+    );
+  }
+  return null;
 };
 
 export const isPs1BiosInstalled = async (
-  executablePath: string | null
+  executablePath: string | null,
+  manualBiosPath: string | null = null
 ): Promise<boolean> => {
-  const dirs = await resolvePs1BiosDirs(executablePath);
-  for (const dir of dirs) {
-    if (await hasPlausibleBios(dir, "ps1")) return true;
-  }
-  return false;
+  const dirs = await resolvePs1BiosDirs(executablePath, manualBiosPath);
+  return (await firstBiosDir(dirs, "ps1")) !== null;
 };
 
 export const isPs2BiosInstalled = async (
-  executablePath: string | null
+  executablePath: string | null,
+  manualBiosPath: string | null = null
 ): Promise<boolean> => {
-  const dirs = await resolvePs2BiosDirs(executablePath);
-  for (const dir of dirs) {
-    if (await hasPlausibleBios(dir, "ps2")) return true;
-  }
-  return false;
+  const dirs = await resolvePs2BiosDirs(executablePath, manualBiosPath);
+  return (await firstBiosDir(dirs, "ps2")) !== null;
 };
 
 export const isEmulatorBiosInstalled = async (
   system: EmulatorSystem,
-  executablePath: string | null
+  executablePath: string | null,
+  manualBiosPath: string | null = null
 ): Promise<boolean> => {
-  if (system === "ps1") return isPs1BiosInstalled(executablePath);
-  if (system === "ps2") return isPs2BiosInstalled(executablePath);
+  if (system === "ps1") {
+    return isPs1BiosInstalled(executablePath, manualBiosPath);
+  }
+  if (system === "ps2") {
+    return isPs2BiosInstalled(executablePath, manualBiosPath);
+  }
   return true;
 };
