@@ -138,7 +138,7 @@
     "calculating_eta_batch": "Downloading {{title}}… ({{percentage}} complete {{filesDownloaded}}/{{filesTotal}} files) - Calculating remaining time…"
   },
   "game_details": {
-    "bios_not_configured_toast": "BIOS necessária. Configure a BIOS da sua PS1/PS2 em Definições → Emulação antes de iniciar.",
+    "bios_not_configured_toast": "BIOS não encontrada. Adicione a pasta da BIOS nas definições de Emulação.",
     "open_download_options": "Ver opções de transferência",
     "download_options_zero": "Sem opções de transferência",
     "download_options_one": "{{count}} opção de transferência",
