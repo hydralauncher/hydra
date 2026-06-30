@@ -66,47 +66,16 @@ linux:
     - snap
     - deb
     - rpm
-    - flatpak
   maintainer: electronjs.org
   category: Game
   mimeTypes:
     - x-scheme-handler/hydralauncher
 appImage:
   artifactName: ${name}-${version}.${ext}
-flatpak:
-  artifactName: ${name}-${version}.${ext}
-  runtime: org.freedesktop.Platform
-  runtimeVersion: "23.08"
-  sdk: org.freedesktop.Sdk
-  base: org.electronjs.Electron2.BaseApp
-  baseVersion: "23.08"
-  branch: stable
-  finishArgs:
-    - --share=ipc
-    - --share=network
-    - --socket=x11
-    - --socket=wayland
-    - --socket=pulseaudio
-    # Games are launched through umu/Proton, whose pressure-vessel runtime needs
-    # to run 32-bit helpers and spin up its own nested bwrap container. Without
-    # these the launch dies with "Cannot determine ld.so for i386-linux-gnu"
-    # (32-bit exec blocked by seccomp), "bwrap: Can't find source path" (nested
-    # namespace denied) and "/dev/shm not shared" (flatpak#4214). This is the
-    # standard permission set game-launcher Flatpaks (Steam, Bottles, Heroic)
-    # ship for Proton.
-    - --allow=multiarch
-    - --allow=devel
-    - --allow=per-app-dev-shm
-    - --device=all
-    # Full host filesystem access is the default so user-picked download and
-    # library folders are reached as native paths (no document-portal FUSE
-    # overhead). Privacy-conscious users can tighten this with e.g.
-    #   flatpak override --user --nofilesystem=host \
-    #     --filesystem=xdg-download gg.hydralauncher.hydra
-    # The portal/PathGrants plumbing still handles any folder reached that way.
-    - --filesystem=host
-    - --talk-name=org.freedesktop.Notifications
-    - --talk-name=org.freedesktop.ScreenSaver
+# The Flatpak is built from the hand-authored flatpak-builder manifest in
+# flatpak/ (via `npm run build:flatpak`), not electron-builder's flatpak target,
+# because electron-builder can't declare the i386 runtime extensions Proton's
+# pressure-vessel needs in the sandbox. See flatpak/README.md.
 npmRebuild: false
 publish:
   provider: github

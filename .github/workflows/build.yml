@@ -53,14 +53,15 @@ jobs:
           sudo apt-get install -y flatpak flatpak-builder elfutils
           flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub \
-            org.freedesktop.Platform//23.08 \
-            org.freedesktop.Sdk//23.08 \
-            org.electronjs.Electron2.BaseApp//23.08
+            org.freedesktop.Platform//25.08 \
+            org.freedesktop.Sdk//25.08 \
+            org.electronjs.Electron2.BaseApp//25.08
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
           yarn build:linux
+          node scripts/build-flatpak.cjs
         env:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
@@ -163,14 +164,15 @@ jobs:
           sudo apt-get install -y flatpak flatpak-builder elfutils
           flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub \
-            org.freedesktop.Platform//23.08 \
-            org.freedesktop.Sdk//23.08 \
-            org.electronjs.Electron2.BaseApp//23.08
+            org.freedesktop.Platform//25.08 \
+            org.freedesktop.Sdk//25.08 \
+            org.electronjs.Electron2.BaseApp//25.08
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
           yarn build:linux
+          node scripts/build-flatpak.cjs
         env:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_AUTH_URL }}
