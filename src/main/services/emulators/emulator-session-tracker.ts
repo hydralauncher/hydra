@@ -1,11 +1,11 @@
 import type { ChildProcess } from "node:child_process";
 
-import { db, gamesSublevel, levelKeys } from "@main/level";
-import type { EmulatorSystem, Game, GameShop, UserPreferences } from "@types";
+import { gamesSublevel, levelKeys } from "@main/level";
+import type { EmulatorSystem, Game, GameShop } from "@types";
 
-import { HydraApi } from "../hydra-api";
 import { trackGamePlaytime } from "../library-sync";
 import { logger } from "../logger";
+import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
 
 export interface EmulatorSession {
@@ -171,17 +171,9 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
     });
 
   if (game.shop === "launchbox") {
-    const userPreferences = await db.get<string, UserPreferences | null>(
-      levelKeys.userPreferences,
-      { valueEncoding: "json" }
-    );
-
-    if (userPreferences?.retroAchievementsWebApiKey) {
-      HydraApi.post(
-        `/profile/games/${game.shop}/${game.objectId}/retroachievements/sync`,
-        undefined,
-        { needsSubscription: true }
-      ).catch(() => {});
-    }
+    void syncRetroAchievements({
+      objectId: game.objectId,
+      shop: game.shop,
+    });
   }
 };
