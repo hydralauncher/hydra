@@ -9,14 +9,20 @@
 #
 # Build with: npm run build:flatpak (see scripts/build-flatpak.cjs).
 app-id: gg.hydralauncher.hydra
+# Track the same freedesktop runtime the Steam Flatpak ships on. Older runtimes
+# (23.08) carry a flatpak/bwrap that can't pass file descriptors into Proton's
+# nested pressure-vessel container ("bwrap: Can't find source path
+# /proc/self/fd/NN"); 25.08 is new enough for the nested sandbox to come up.
 runtime: org.freedesktop.Platform
-runtime-version: "23.08"
+runtime-version: "25.08"
 sdk: org.freedesktop.Sdk
 base: org.electronjs.Electron2.BaseApp
-base-version: "23.08"
+base-version: "25.08"
 branch: stable
 command: electron-wrapper
 separate-locales: false
+# Steam requires this for its container runtime to work; keep parity.
+require-version: "1.12.0"
 
 finish-args:
   - --share=ipc
@@ -52,21 +58,21 @@ finish-args:
 add-extensions:
   org.freedesktop.Platform.Compat.i386:
     directory: lib/i386-linux-gnu
-    version: "23.08"
+    version: "25.08"
     add-ld-path: lib
     no-autodownload: false
     autodelete: false
 
   org.freedesktop.Platform.Compat.i386.Debug:
     directory: lib/debug/lib/i386-linux-gnu
-    version: "23.08"
+    version: "25.08"
     no-autodownload: true
     autodelete: true
 
   org.freedesktop.Platform.GL32:
     directory: lib/i386-linux-gnu/GL
     version: "1.4"
-    versions: "23.08;1.4"
+    versions: "25.08;1.4"
     subdirectories: true
     no-autodownload: true
     autodelete: false
