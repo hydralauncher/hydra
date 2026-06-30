@@ -627,6 +627,7 @@
     "platform_unknown_toast": "No se pudo determinar el sistema del emulador para este juego.",
     "no_disc_toast": "No hay ningún disco disponible para este juego.",
     "launch_failed_toast": "Error al iniciar el juego",
+    "pkg_installing_toast": "Instalando el PKG en RPCS3. Cuando termine, pulsa Jugar de nuevo para iniciar el juego.",
     "rpcs3_already_running_title": "RPCS3 ya se está ejecutando",
     "rpcs3_already_running_description": "RPCS3 solo permite una instancia. ¿Cerrar la sesión en ejecución para iniciar este juego?",
     "rpcs3_already_running_confirm": "Cerrar e iniciar"
