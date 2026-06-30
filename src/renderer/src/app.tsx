@@ -118,15 +118,17 @@ export function App() {
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onPathGrantsLost((displayPaths) => {
-      showErrorToast(
-        t("lost_folder_access"),
-        t("lost_folder_access_description", {
-          paths: displayPaths.join(", "),
-        }),
-        LOST_FOLDER_ACCESS_TOAST_DURATION
-      );
-    });
+    const unsubscribe = globalThis.window.electron.onPathGrantsLost(
+      (displayPaths) => {
+        showErrorToast(
+          t("lost_folder_access"),
+          t("lost_folder_access_description", {
+            paths: displayPaths.join(", "),
+          }),
+          LOST_FOLDER_ACCESS_TOAST_DURATION
+        );
+      }
+    );
 
     return () => {
       unsubscribe();

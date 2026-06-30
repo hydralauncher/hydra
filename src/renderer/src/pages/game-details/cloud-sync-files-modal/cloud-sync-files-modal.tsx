@@ -48,7 +48,7 @@ export function CloudSyncFilesModal({
     const customBackupPath = backupPreview?.customBackupPath ?? null;
 
     if (customBackupPath) {
-      window.electron
+      globalThis.window.electron
         .getDisplayPath(customBackupPath)
         .then((displayPath) => setValue("customBackupPath", displayPath))
         .catch(() => setValue("customBackupPath", customBackupPath));
@@ -72,9 +72,10 @@ export function CloudSyncFilesModal({
   }, [backupPreview]);
 
   const handleAddCustomPathClick = useCallback(async () => {
-    const { filePaths, displayPaths } = await window.electron.showOpenDialog({
-      properties: ["openDirectory"],
-    });
+    const { filePaths, displayPaths } =
+      await globalThis.window.electron.showOpenDialog({
+        properties: ["openDirectory"],
+      });
 
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
