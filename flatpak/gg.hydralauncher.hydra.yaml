@@ -38,10 +38,18 @@ finish-args:
   - --allow=devel
   - --allow=per-app-dev-shm
   - --device=all
-  # Default to full host access for native-path I/O performance. Users can
-  # tighten this with `flatpak override --user --nofilesystem=host
-  # --filesystem=xdg-download gg.hydralauncher.hydra`; the i386 extensions below
-  # are what keep Proton working once host access is removed.
+  # Default to full host access for native-path I/O performance. Users who want
+  # a tighter sandbox can drop host access and grant only what's needed; Proton
+  # still works (the i386 extensions + portal sub-sandbox below are what keep it
+  # working once host access is removed), e.g.:
+  #   flatpak override --user --nofilesystem=host \
+  #     --filesystem=xdg-download \
+  #     --filesystem=xdg-data/Steam:create \
+  #     --filesystem=xdg-data/umu:create \
+  #     gg.hydralauncher.hydra
+  # plus --filesystem=<library> if games live outside xdg-download. (Granting
+  # only xdg-download is enough to browse/download but NOT to launch Windows
+  # games: pressure-vessel must also reach the umu runtime and Proton build.)
   - --filesystem=host
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.freedesktop.ScreenSaver
