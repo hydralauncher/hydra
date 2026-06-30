@@ -3,6 +3,9 @@ node_modules/
 __pycache__
 dist
 out
+.flatpak-builder/
+.flatpak-builder-build/
+.flatpak-repo/
 .DS_Store
 *.log*
 *.tsbuildinfo

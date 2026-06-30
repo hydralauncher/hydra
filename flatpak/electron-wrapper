@@ -1,0 +1,7 @@
+#!/bin/sh
+# Launch the Electron app through the Electron BaseApp's zypak wrapper so the
+# Chromium sandbox works inside Flatpak. Mirrors the wrapper electron-builder
+# generates for its own flatpak target.
+export TMPDIR="$XDG_RUNTIME_DIR/app/$FLATPAK_ID"
+
+exec zypak-wrapper "hydralauncher" "$@"
