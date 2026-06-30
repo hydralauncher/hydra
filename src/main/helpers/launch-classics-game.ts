@@ -31,6 +31,32 @@ export class BiosNotConfiguredError extends Error {
   }
 }
 
+export class PkgInstallingError extends Error {
+  code = "PKG_INSTALLING" as const;
+  system: EmulatorSystem;
+  constructor(system: EmulatorSystem) {
+    super(`Installing PKG for system ${system}`);
+    this.system = system;
+  }
+}
+
+const isPkgPath = (filePath: string): boolean =>
+  filePath.toLowerCase().endsWith(".pkg");
+
+const spawnRpcs3PkgInstall = (
+  executableTarget: string,
+  pkgPath: string
+): void => {
+  const child = spawn(executableTarget, ["--installpkg", pkgPath], {
+    shell: false,
+    detached: true,
+    stdio: "ignore",
+    cwd: path.dirname(executableTarget),
+    env: { ...process.env },
+  });
+  child.unref();
+};
+
 export interface LaunchClassicsGameOptions {
   shop: GameShop;
   objectId: string;
@@ -96,6 +122,29 @@ export const launchClassicsGame = async (
 
   const selectedDisc = game?.discs?.find((d) => d.path === discPath) ?? null;
 
+  const executablePath = path.normalize(config.executablePath);
+  const executableTarget =
+    emulators.resolveEmulatorExecutableTarget(executablePath);
+
+  if (!executableTarget || !existsSync(executableTarget)) {
+    throw new EmulatorNotConfiguredError(system);
+  }
+
+  let bootTarget = discPath;
+  if (system === "ps3" && isPkgPath(discPath)) {
+    const titleId = await emulators.extractTitleIdFromPkg(discPath);
+    const installedEboot = titleId
+      ? emulators.findInstalledPs3GameEboot(config.executablePath, titleId)
+      : null;
+
+    if (installedEboot) {
+      bootTarget = installedEboot;
+    } else {
+      spawnRpcs3PkgInstall(executableTarget, discPath);
+      throw new PkgInstallingError(system);
+    }
+  }
+
   if (game) {
     await gamesSublevel.put(gameKey, {
       ...game,
@@ -104,14 +153,7 @@ export const launchClassicsGame = async (
     });
   }
 
-  const baseArgs = buildEmulatorArgs(config.binary, discPath);
-  const executablePath = path.normalize(config.executablePath);
-  const executableTarget =
-    emulators.resolveEmulatorExecutableTarget(executablePath);
-
-  if (!executableTarget || !existsSync(executableTarget)) {
-    throw new EmulatorNotConfiguredError(system);
-  }
+  const baseArgs = buildEmulatorArgs(config.binary, bootTarget);
 
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executableTarget,
