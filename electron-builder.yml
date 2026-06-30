@@ -12,10 +12,6 @@ extraResources:
 files:
   - "!**/.vscode/*"
   - "!src/*"
-  # Local dev tooling: direnv caches and Python venvs contain symlinks into
-  # the nix store, which trips electron-builder's asar integrity check.
-  - "!.direnv/**"
-  - "!.venv*/**"
   - "!native/hydra-native/target"
   - "!native/hydra-native/target/**"
   - "!electron.vite.config.{js,ts,mjs,cjs}"
