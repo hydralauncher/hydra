@@ -66,13 +66,19 @@ export const launchClassicsGame = async (
   // emulator is spawned detached with stdio "ignore" so its own error never
   // reaches us. Detect the missing BIOS up front and block the launch instead.
   if (system === "ps1" || system === "ps2") {
-    const biosInstalled = await emulators.isEmulatorBiosInstalled(
+    const biosDir = await emulators.resolveInstalledBiosDir(
       system,
       config.executablePath,
       config.biosPath
     );
-    if (!biosInstalled) {
+    if (!biosDir) {
       throw new BiosNotConfiguredError(system);
+    }
+    if (biosDir !== config.biosPath) {
+      await emulators.updateEmulatorConfig(system, (current) => ({
+        ...current,
+        biosPath: biosDir,
+      }));
     }
   }
 

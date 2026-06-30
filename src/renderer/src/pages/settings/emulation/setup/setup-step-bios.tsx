@@ -44,6 +44,10 @@ export function SetupStepBios({
       setInstalled(result.installed);
       setDetectedPath(result.detectedPath);
       onBiosStatusChange(result.installed);
+      if (result.detectedPath && result.detectedPath !== biosPath) {
+        setBiosPath(result.detectedPath);
+        onConfigChange?.({ ...config, biosPath: result.detectedPath });
+      }
     } finally {
       setChecking(false);
     }
@@ -104,13 +108,13 @@ export function SetupStepBios({
       <div className="setup-modal__bios-picker">
         <span
           className={`setup-modal__bios-path${
-            (biosPath ?? detectedPath)
+            (detectedPath ?? biosPath)
               ? ""
               : " setup-modal__bios-path--placeholder"
           }`}
-          title={biosPath ?? detectedPath ?? undefined}
+          title={detectedPath ?? biosPath ?? undefined}
         >
-          {biosPath ?? detectedPath ?? t("bios_folder_none")}
+          {detectedPath ?? biosPath ?? t("bios_folder_none")}
         </span>
         <Button
           theme="outline"

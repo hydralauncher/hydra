@@ -22,6 +22,14 @@ const checkEmulatorBios = async (
     executablePath,
     manualBiosPath
   );
+
+  if (detectedPath && detectedPath !== manualBiosPath) {
+    await emulators.updateEmulatorConfig(system, (current) => ({
+      ...current,
+      biosPath: detectedPath,
+    }));
+  }
+
   return { installed: detectedPath !== null, detectedPath };
 };
 
