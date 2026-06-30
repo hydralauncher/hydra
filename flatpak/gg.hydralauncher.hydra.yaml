@@ -21,8 +21,6 @@ base-version: "25.08"
 branch: stable
 command: electron-wrapper
 separate-locales: false
-# Steam requires this for its container runtime to work; keep parity.
-require-version: "1.12.0"
 
 finish-args:
   - --share=ipc
