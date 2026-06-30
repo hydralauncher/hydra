@@ -651,6 +651,14 @@ export default function Game() {
           return;
         }
 
+        if (code === "PKG_UNREADABLE") {
+          showErrorToast("Unsupported PKG", {
+            message:
+              "Hydra could not read this package. Install and launch it from RPCS3 directly.",
+          });
+          return;
+        }
+
         if (code === "EMULATOR_ALREADY_RUNNING") {
           setPendingClassicsLaunch({ discPath });
           return;

@@ -340,6 +340,7 @@
     "no_disc_toast": "Для этой игры нет доступного диска.",
     "launch_failed_toast": "Не удалось запустить игру",
     "pkg_installing_toast": "Установка PKG в RPCS3. После завершения нажмите «Играть» ещё раз, чтобы запустить игру.",
+    "pkg_unreadable_toast": "Не удалось прочитать этот PKG. Установите и запустите игру напрямую через RPCS3.",
     "rpcs3_already_running_title": "RPCS3 уже запущен",
     "rpcs3_already_running_description": "RPCS3 допускает только один экземпляр. Закрыть запущенную сессию, чтобы запустить эту игру?",
     "rpcs3_already_running_confirm": "Закрыть и запустить",

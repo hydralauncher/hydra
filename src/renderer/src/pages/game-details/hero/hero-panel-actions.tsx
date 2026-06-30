@@ -223,6 +223,8 @@ export function HeroPanelActions() {
         showErrorToast(t("no_disc_toast"));
       } else if (code === "PKG_INSTALLING") {
         showSuccessToast(t("pkg_installing_toast"));
+      } else if (code === "PKG_UNREADABLE") {
+        showErrorToast(t("pkg_unreadable_toast"));
       } else if (code === "EMULATOR_ALREADY_RUNNING") {
         setPendingClassicsLaunch({ discPath });
       } else {
