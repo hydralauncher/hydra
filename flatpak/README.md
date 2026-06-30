@@ -94,6 +94,6 @@ launch Windows ones, because pressure-vessel can't reach the umu/Proton dirs.
   sandbox). electron-builder's flatpak target can't declare these, which is the
   whole reason for this manifest.
 - **`--talk-name=org.freedesktop.Flatpak`** — pressure-vessel builds its container
-  as a Flatpak portal *sub-sandbox* (`steam-runtime-launch-client` →
+  as a Flatpak portal _sub-sandbox_ (`steam-runtime-launch-client` →
   `org.freedesktop.portal.Flatpak`) rather than a raw nested bwrap.
 - **Runtime `25.08`** — matches the Steam Flatpak.

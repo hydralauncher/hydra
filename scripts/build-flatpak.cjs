@@ -79,7 +79,9 @@ const stripBundledGlibc = () => {
       const target = path.join(dir, lib);
       if (fs.existsSync(target)) {
         fs.rmSync(target);
-        console.log(`stripped bundled glibc: ${path.relative(repoRoot, target)}`);
+        console.log(
+          `stripped bundled glibc: ${path.relative(repoRoot, target)}`
+        );
       }
     }
   }
