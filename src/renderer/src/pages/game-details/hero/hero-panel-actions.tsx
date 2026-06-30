@@ -217,6 +217,9 @@ export function HeroPanelActions() {
       if (code === "EMULATOR_NOT_CONFIGURED") {
         showErrorToast(t("emulator_not_configured_toast"));
         navigate("/settings?tab=emulation");
+      } else if (code === "BIOS_NOT_CONFIGURED") {
+        showErrorToast(t("bios_not_configured_toast"));
+        navigate("/settings?tab=emulation");
       } else if (code === "PLATFORM_UNKNOWN") {
         showErrorToast(t("platform_unknown_toast"));
       } else if (code === "NO_DISC") {
