@@ -36,7 +36,7 @@ export function SetupStepBios({
   const probe = async (overridePath: string | null = biosPath) => {
     setChecking(true);
     try {
-      const result = await window.electron.checkEmulatorBios(
+      const result = await globalThis.window.electron.checkEmulatorBios(
         system,
         config.executablePath,
         overridePath
@@ -50,14 +50,17 @@ export function SetupStepBios({
   };
 
   const handleSelectFolder = async () => {
-    const result = await window.electron.showOpenDialog({
+    const result = await globalThis.window.electron.showOpenDialog({
       properties: ["openDirectory"],
       defaultPath: biosPath ?? undefined,
     });
     if (result.canceled || result.filePaths.length === 0) return;
 
     const folderPath = result.filePaths[0];
-    const next = await window.electron.setEmulatorBiosPath(system, folderPath);
+    const next = await globalThis.window.electron.setEmulatorBiosPath(
+      system,
+      folderPath
+    );
     setBiosPath(next.biosPath);
     onConfigChange?.(next);
     await probe(next.biosPath);

@@ -35,6 +35,7 @@ import type { EmulatorConfig, RomFolder } from "@types";
 
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
+import { BiosSection } from "./bios-section";
 import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
 import { RomsDetectedSection } from "./roms-detected-section";
@@ -94,9 +95,6 @@ export function EmulatorDetail({
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [executableExists, setExecutableExists] = useState<boolean>(true);
-  const [biosInstalled, setBiosInstalled] = useState<boolean | null>(null);
-  const [biosDetectedPath, setBiosDetectedPath] = useState<string | null>(null);
-  const [biosChecking, setBiosChecking] = useState(false);
 
   const supportsMemoryCards =
     config.system === "ps2" || config.system === "ps1";
@@ -122,49 +120,6 @@ export function EmulatorDetail({
       cancelled = true;
     };
   }, [config.system, config.executablePath]);
-
-  const probeBios = useCallback(
-    async (overridePath: string | null = config.biosPath) => {
-      if (!supportsBios) return;
-      setBiosChecking(true);
-      try {
-        const result = await window.electron.checkEmulatorBios(
-          config.system,
-          config.executablePath,
-          overridePath
-        );
-        setBiosInstalled(result.installed);
-        setBiosDetectedPath(result.detectedPath);
-      } finally {
-        setBiosChecking(false);
-      }
-    },
-    [config.system, config.executablePath, config.biosPath, supportsBios]
-  );
-
-  useEffect(() => {
-    void probeBios();
-  }, [probeBios]);
-
-  const handleBrowseBios = useCallback(async () => {
-    const result = await window.electron.showOpenDialog({
-      properties: ["openDirectory"],
-      defaultPath: config.biosPath ?? undefined,
-    });
-    if (result.canceled || result.filePaths.length === 0) return;
-
-    setBusy(true);
-    try {
-      const next = await window.electron.setEmulatorBiosPath(
-        config.system,
-        result.filePaths[0]
-      );
-      onChange(next);
-      await probeBios(next.biosPath);
-    } finally {
-      setBusy(false);
-    }
-  }, [config.system, config.biosPath, onChange, probeBios]);
 
   const handleConfirmRemoveEmulator = useCallback(async () => {
     setBusy(true);
@@ -539,71 +494,7 @@ export function EmulatorDetail({
           </section>
 
           {supportsBios && (
-            <section className="emulator-detail__section">
-              <header className="emulator-detail__section-header">
-                <div className="emulator-detail__section-text">
-                  <h3>{t("bios_section_title")}</h3>
-                  <p>{t("bios_section_description", { name: binaryName })}</p>
-                </div>
-                <span className="emulator-detail__bios-status">
-                  {biosInstalled ? (
-                    <CheckCircleFillIcon size={14} />
-                  ) : (
-                    <ClockIcon size={14} />
-                  )}
-                  <span>
-                    {biosInstalled
-                      ? t("setup_bios_found")
-                      : t("setup_bios_not_yet")}
-                  </span>
-                </span>
-              </header>
-
-              <div className="emulator-detail__exec-path-row">
-                <button
-                  type="button"
-                  className="emulator-detail__exec-path-box"
-                  onClick={handleBrowseBios}
-                  disabled={busy}
-                  title={t("setup_bios_select_folder")}
-                  aria-label={t("setup_bios_select_folder")}
-                >
-                  <span
-                    className={`emulator-detail__exec-path-text${(config.biosPath ?? biosDetectedPath) ? "" : " emulator-detail__exec-path-text--placeholder"}`}
-                    title={config.biosPath ?? biosDetectedPath ?? undefined}
-                  >
-                    {config.biosPath ??
-                      biosDetectedPath ??
-                      t("bios_folder_none")}
-                  </span>
-                </button>
-                <div className="emulator-detail__exec-actions">
-                  <Button
-                    theme="outline"
-                    onClick={() => probeBios()}
-                    disabled={busy || biosChecking}
-                  >
-                    <SyncIcon
-                      size={13}
-                      className={
-                        biosChecking
-                          ? "emulator-detail__redetect-icon--spinning"
-                          : undefined
-                      }
-                    />
-                    <span>{t("setup_bios_check_again")}</span>
-                  </Button>
-                  <Button
-                    theme="primary"
-                    onClick={handleBrowseBios}
-                    disabled={busy}
-                  >
-                    <FileDirectoryIcon size={16} />
-                    <span>{t("setup_bios_select_folder")}</span>
-                  </Button>
-                </div>
-              </div>
-            </section>
+            <BiosSection config={config} disabled={busy} onChange={onChange} />
           )}
 
           {isConfigured && (
