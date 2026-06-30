@@ -46,7 +46,7 @@ const buildEmulatorArgs = (
     case "duckstation":
       return ["-batch", "-fullscreen", "--", discPath];
     case "pcsx2":
-      return ["-batch", "-fullscreen", "--", discPath];
+      return ["-fullscreen", "--", discPath];
     case "rpcs3":
       return ["--no-gui", discPath];
   }
