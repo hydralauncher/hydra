@@ -11,7 +11,9 @@
     "error_overlay_details": "Подробнее",
     "error_boundary_origin": "Источник",
     "error_boundary_component_trace": "Трассировка компонентов",
-    "error_boundary_restart": "Перезапустить"
+    "error_boundary_restart": "Перезапустить",
+    "lost_folder_access": "Доступ к папке потерян",
+    "lost_folder_access_description": "Hydra больше не может получить доступ к: {{paths}}. Выберите папку заново в её настройках, чтобы восстановить доступ."
   },
   "home": {
     "surprise_me": "Удиви меня",
