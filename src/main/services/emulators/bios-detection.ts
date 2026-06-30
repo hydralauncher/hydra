@@ -86,26 +86,13 @@ const readIniBiosDir = async (
   return null;
 };
 
-const manualBiosDirs = (
-  manualBiosPath: string,
-  system: "ps1" | "ps2"
-): string[] => {
-  const dirs = existsSync(manualBiosPath) ? [manualBiosPath] : [];
-  logger.info("[bios-detection] manual bios dir", {
-    system,
-    manualBiosPath,
-    resolved: dirs,
-  });
-  return dirs;
-};
-
 export const resolvePs1BiosDirs = async (
   executablePath: string | null,
   manualBiosPath: string | null = null
 ): Promise<string[]> => {
-  if (manualBiosPath) return manualBiosDirs(manualBiosPath, "ps1");
-
   const dirs: string[] = [];
+  if (manualBiosPath) dirs.push(manualBiosPath);
+
   const candidates = duckstationConfigCandidates();
   const foundConfigs: string[] = [];
 
@@ -142,9 +129,9 @@ export const resolvePs2BiosDirs = async (
   executablePath: string | null,
   manualBiosPath: string | null = null
 ): Promise<string[]> => {
-  if (manualBiosPath) return manualBiosDirs(manualBiosPath, "ps2");
-
   const dirs: string[] = [];
+  if (manualBiosPath) dirs.push(manualBiosPath);
+
   const candidates = pcsx2ConfigCandidates(executablePath);
   const foundConfigs: string[] = [];
 

@@ -42,11 +42,14 @@ export function BiosSection({
         );
         setInstalled(result.installed);
         setDetectedPath(result.detectedPath);
+        if (result.detectedPath && result.detectedPath !== config.biosPath) {
+          onChange({ ...config, biosPath: result.detectedPath });
+        }
       } finally {
         setChecking(false);
       }
     },
-    [config.system, config.executablePath, config.biosPath]
+    [config, onChange]
   );
 
   useEffect(() => {
@@ -73,7 +76,7 @@ export function BiosSection({
     }
   }, [config.system, config.biosPath, onChange, probe]);
 
-  const effectivePath = config.biosPath ?? detectedPath;
+  const effectivePath = detectedPath ?? config.biosPath;
   const controlsDisabled = disabled || busy;
 
   return (
