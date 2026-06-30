@@ -19,7 +19,7 @@ export function useDisplayPath(accessPath: string | null | undefined) {
 
     setDisplayPath(accessPath);
 
-    window.electron
+    globalThis.window.electron
       .getDisplayPath(accessPath)
       .then((resolved) => {
         if (!cancelled) setDisplayPath(resolved);
