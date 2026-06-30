@@ -1,7 +1,9 @@
 {
   "language_name": "Español",
   "app": {
-    "successfully_signed_in": "Iniciaste sesión exitosamente"
+    "successfully_signed_in": "Iniciaste sesión exitosamente",
+    "lost_folder_access": "Acceso a la carpeta perdido",
+    "lost_folder_access_description": "Hydra ya no puede acceder a: {{paths}}. Vuelve a seleccionar la carpeta en su configuración para restaurar el acceso."
   },
   "home": {
     "surprise_me": "¡Sorpréndeme!",

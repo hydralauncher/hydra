@@ -1,7 +1,9 @@
 {
   "language_name": "Русский",
   "app": {
-    "successfully_signed_in": "Успешный вход"
+    "successfully_signed_in": "Успешный вход",
+    "lost_folder_access": "Доступ к папке потерян",
+    "lost_folder_access_description": "Hydra больше не может получить доступ к: {{paths}}. Выберите папку заново в её настройках, чтобы восстановить доступ."
   },
   "home": {
     "surprise_me": "Удиви меня",
