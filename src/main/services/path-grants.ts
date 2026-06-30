@@ -69,6 +69,10 @@ export class PathGrants {
    * Used by startup recovery (see `notifyLostPathGrants` in main.ts) to surface
    * lost wine-prefix, proton, and game-executable portal grants, alongside the
    * download paths handled directly via `hasLostPathGrant`.
+   *
+   * Broken grants are pruned as they are found: a doc-portal id only lapses
+   * once, so surfacing it a single time (and dropping it) avoids the same
+   * stale grant re-toasting on every subsequent launch.
    */
   public static async listBroken(): Promise<PathGrant[]> {
     if (!isFlatpak) return [];
@@ -83,6 +87,7 @@ export class PathGrants {
     for await (const grant of pathGrantsSublevel.values()) {
       if (!(await this.verifyAccess(grant.accessPath))) {
         broken.push(grant);
+        await this.removeGrant(grant.accessPath);
       }
     }
 
