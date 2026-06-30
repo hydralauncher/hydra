@@ -45,11 +45,14 @@ const isOneDrivePath = (filePath: string): boolean => {
   return false;
 };
 
+const describeError = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
 const logReadFailure = (filePath: string, error: unknown): void => {
   logger.warn("[bios-detection] read failed", {
     filePath,
     onedrive: isOneDrivePath(filePath),
-    error: `${error}`,
+    error: describeError(error),
   });
 };
 
@@ -196,7 +199,10 @@ const hasPlausibleBios = async (
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
   } catch (error) {
-    logger.info("[bios-detection] unreadable dir", { dir, error: `${error}` });
+    logger.info("[bios-detection] unreadable dir", {
+      dir,
+      error: describeError(error),
+    });
     return false;
   }
 
