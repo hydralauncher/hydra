@@ -87,7 +87,17 @@ flatpak:
     - --socket=x11
     - --socket=wayland
     - --socket=pulseaudio
-    - --device=dri
+    # Games are launched through umu/Proton, whose pressure-vessel runtime needs
+    # to run 32-bit helpers and spin up its own nested bwrap container. Without
+    # these the launch dies with "Cannot determine ld.so for i386-linux-gnu"
+    # (32-bit exec blocked by seccomp), "bwrap: Can't find source path" (nested
+    # namespace denied) and "/dev/shm not shared" (flatpak#4214). This is the
+    # standard permission set game-launcher Flatpaks (Steam, Bottles, Heroic)
+    # ship for Proton.
+    - --allow=multiarch
+    - --allow=devel
+    - --allow=per-app-dev-shm
+    - --device=all
     # Full host filesystem access is the default so user-picked download and
     # library folders are reached as native paths (no document-portal FUSE
     # overhead). Privacy-conscious users can tighten this with e.g.
