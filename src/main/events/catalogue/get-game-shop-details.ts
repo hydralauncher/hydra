@@ -25,7 +25,7 @@ interface LaunchboxBasic {
   coverImageUrl: string | null;
   releaseDate: string | null;
   releaseYear: number | null;
-  raGameId: number | null;
+  retroAchievementsGameId: number | null;
 }
 
 interface LaunchboxShopDetailsAssets {
@@ -73,7 +73,7 @@ const mapLaunchboxToShopDetails = (
     name: data?.title ?? basic?.title ?? "",
     platform: entry?.platform ?? data?.platform ?? undefined,
     skus: entry?.skus ?? undefined,
-    raGameId: basic?.raGameId ?? null,
+    retroAchievementsGameId: basic?.retroAchievementsGameId ?? null,
     steam_appid: 0,
     detailed_description: description,
     about_the_game: description,
@@ -117,7 +117,7 @@ const getLaunchboxShopDetails = async (
   const cacheHasNewFields =
     cachedData &&
     (cachedData.platform || cachedData.skus) &&
-    "raGameId" in cachedData;
+    "retroAchievementsGameId" in cachedData;
   if (cachedData && cacheHasNewFields) {
     return { ...cachedData, assets: cachedAssets ?? null };
   }
