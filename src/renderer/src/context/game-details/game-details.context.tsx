@@ -140,14 +140,14 @@ export function GameDetailsContextProvider({
         if (userDetails && shop !== "custom") {
           const useRetroAchievements =
             shop === "launchbox" &&
-            Boolean(result?.raGameId) &&
+            Boolean(result?.retroAchievementsGameId) &&
             Boolean(userPreferences?.retroAchievementsWebApiKey);
 
           const achievementsRequest = useRetroAchievements
             ? globalThis.window.electron.getRetroAchievementsAchievements(
                 objectId,
                 shop,
-                result!.raGameId!
+                result!.retroAchievementsGameId!
               )
             : globalThis.window.electron.getUnlockedAchievements(
                 objectId,
