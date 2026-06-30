@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { defaultDownloadsPath } from "@main/constants";
 import { isDocPortalPath, isFlatpak } from "@main/helpers/sandbox";
 import { db, levelKeys } from "@main/level";
@@ -20,7 +21,7 @@ export const getDownloadsPath = async () => {
     if (
       isFlatpak &&
       isDocPortalPath(downloadsPath) &&
-      !(await PathGrants.verifyAccess(downloadsPath))
+      !(await PathGrants.verifyAccess(downloadsPath, fs.constants.W_OK))
     ) {
       logger.warn(
         `Downloads path ${downloadsPath} is no longer accessible; falling back to default`

@@ -53,9 +53,17 @@ export class PathGrants {
     return this.resolveHostPath(accessPath);
   }
 
-  public static async verifyAccess(accessPath: string): Promise<boolean> {
+  /**
+   * Checks whether the sandbox can still reach `accessPath`. Defaults to a
+   * read check; pass `fs.constants.W_OK` for download targets, where what
+   * actually matters is whether we can still write into the folder.
+   */
+  public static async verifyAccess(
+    accessPath: string,
+    mode: number = fs.constants.R_OK
+  ): Promise<boolean> {
     try {
-      await fs.promises.access(accessPath, fs.constants.R_OK);
+      await fs.promises.access(accessPath, mode);
       return true;
     } catch {
       return false;
