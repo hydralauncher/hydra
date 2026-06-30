@@ -47,7 +47,11 @@ const hasLostPathGrant = async (download: Download): Promise<boolean> => {
   // revoked grant, so we don't pause every download at once.
   if (!isDocPortalMountAvailable()) return false;
 
-  return !(await PathGrants.verifyAccess(download.downloadPath));
+  // A download target is only usable if we can still write into it.
+  return !(await PathGrants.verifyAccess(
+    download.downloadPath,
+    fs.constants.W_OK
+  ));
 };
 
 // Surfaces every portal path that became unreachable: the download paths we
