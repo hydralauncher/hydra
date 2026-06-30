@@ -1332,7 +1332,7 @@ const reportNetworkStatus = (online: boolean, switched = false) => {
   });
 };
 
-if (typeof globalThis.window !== "undefined") {
+if (globalThis.window !== undefined) {
   globalThis.addEventListener("online", () => reportNetworkStatus(true, true));
   globalThis.addEventListener("offline", () => reportNetworkStatus(false));
 
