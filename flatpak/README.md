@@ -43,8 +43,8 @@ machine must have them installed (Compat.i386 auto-downloads; GL32 is pulled by
 
 ```sh
 flatpak install -y flathub \
-  org.freedesktop.Platform.Compat.i386//23.08 \
-  org.freedesktop.Platform.GL32.default//23.08
+  org.freedesktop.Platform.Compat.i386//25.08 \
+  org.freedesktop.Platform.GL32.default//25.08
 ```
 
 ## How this matches the Steam / Lutris Flatpaks
@@ -54,34 +54,46 @@ permission set used here (`devel;multiarch;per-app-dev-shm`, `device=all`).
 Two further details were taken from them:
 
 - **`--talk-name=org.freedesktop.Flatpak`** (Lutris ships this). It lets
-  pressure-vessel ask the Flatpak portal to build its container as a *sub-sandbox*
+  pressure-vessel ask the Flatpak portal to build its container as a _sub-sandbox_
   (`steam-runtime-launch-client` → `org.freedesktop.portal.Flatpak`) instead of a
   raw nested `bwrap`. With it, the launch reaches the portal spawn — verified:
   `Connected to flatpak-portal: org.freedesktop.portal.Flatpak`.
 - **Runtime `25.08`** — the version the Steam Flatpak ships on, vs the 23.08 the
   rest of Hydra used.
 
-## Status / known limitation
+## Tightened-sandbox game launch
 
-The i386 wall is cleared with this manifest — verified: the 32-bit runtime
-mounts and `Cannot determine ld.so for i386-linux-gnu` no longer appears.
+With this manifest, launching Windows games via Proton works **both** in the
+default `--filesystem=host` mode and in a tightened sandbox — verified
+end-to-end (game window opens) with:
 
-One blocker remains for game launch in the tightened sandbox. After
-pressure-vessel switches to the portal sub-sandbox path, the spawn still fails:
-
+```sh
+flatpak override --user --nofilesystem=host \
+  --filesystem=xdg-download \
+  --filesystem=xdg-data/Steam:create \
+  --filesystem=xdg-data/umu:create \
+  gg.hydralauncher.hydra
+# + --filesystem=<library> if games are kept outside xdg-download
 ```
-bwrap: Can't find source path /proc/self/fd/NN: No such file or directory
-```
 
-This is the portal → host-`bwrap` fd-passing, not nested-namespace support
-(the kernel allows nested userns here, and the host Flatpak is 1.16.6).
-It was ruled **out** as a document-portal issue — the same error occurs whether
-the game is launched from `/run/flatpak/doc/...` or its real host path — so it is
-an interaction between the bleeding-edge umu/`steamrt3` sniper runtime and the
-portal `Spawn` fd handling, independent of the game's location. None of the
-levers available to the manifest (permissions, `25.08`, `talk-name=Flatpak`,
-`PRESSURE_VESSEL_COPY_RUNTIME=1`) close it. Remaining options are upstream
-(report to umu/pressure-vessel, or pin an older `steamrt3`).
+`--filesystem=host` is **not** required. The floor is: the game library, the umu
+runtime (`xdg-data/umu`) and the Proton build (`xdg-data/Steam`). `pressure-vessel`
+runs in Hydra's process and opens fds to all of those before handing them to the
+Flatpak portal to build the container; if a path is outside the granted scope the
+`open()` fails and the portal's bwrap reports
+`Can't find source path /proc/self/fd/NN`. (`--filesystem=home`, the scope the
+Lutris Flatpak uses, also works and is simpler but broader.)
 
-Default `--filesystem=host` mode launches games today; tightened-mode Windows
-games remain work in progress.
+Granting **only** `xdg-download` is enough to browse and download games but not to
+launch Windows ones, because pressure-vessel can't reach the umu/Proton dirs.
+
+### What it took
+
+- **i386 runtime** (`Compat.i386` + `GL32` extensions) — without it the launch
+  died at `Cannot determine ld.so for i386-linux-gnu` (no 32-bit loader in the
+  sandbox). electron-builder's flatpak target can't declare these, which is the
+  whole reason for this manifest.
+- **`--talk-name=org.freedesktop.Flatpak`** — pressure-vessel builds its container
+  as a Flatpak portal *sub-sandbox* (`steam-runtime-launch-client` →
+  `org.freedesktop.portal.Flatpak`) rather than a raw nested bwrap.
+- **Runtime `25.08`** — matches the Steam Flatpak.
