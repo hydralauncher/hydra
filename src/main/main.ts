@@ -26,6 +26,7 @@ import {
   WindowManager,
   logger,
 } from "@main/services";
+import { defaultDownloadsPath } from "./constants";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import {
   isDocPortalMountAvailable,
@@ -106,7 +107,6 @@ export const loadState = async () => {
   if (isFlatpak) {
     // The statically-granted default downloads folder (xdg-download/Hydra)
     // does not exist on first run; writability checks expect it to.
-    const { defaultDownloadsPath } = await import("./constants");
     fs.mkdirSync(defaultDownloadsPath, { recursive: true });
   }
 
