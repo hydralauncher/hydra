@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Hydra
+Exec=electron-wrapper %U
+Terminal=false
+Type=Application
+Icon=gg.hydralauncher.hydra
+StartupWMClass=Hydra
+Comment=Open source game launcher
+MimeType=x-scheme-handler/hydralauncher;
+Categories=Game;

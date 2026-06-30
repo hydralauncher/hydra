@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>gg.hydralauncher.hydra</id>
+  <name>Hydra</name>
+  <summary>Open source game launcher</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="gg.hydralauncher">
+    <name>Hydra</name>
+  </developer>
+  <description>
+    <p>
+      Hydra is an open source game launcher with its own embedded BitTorrent
+      client and a self-managed repack scraper.
+    </p>
+  </description>
+  <launchable type="desktop-id">gg.hydralauncher.hydra.desktop</launchable>
+  <url type="homepage">https://hydralauncher.gg</url>
+  <content_rating type="oars-1.1"/>
+</component>
