@@ -167,6 +167,22 @@ const openClassicsGame = async (
       );
     }
 
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "PKG_UNREADABLE"
+    ) {
+      throw Object.assign(
+        codedLaunchError(
+          "PKG_UNREADABLE",
+          `PKG_UNREADABLE: Could not read PKG title id for ${system}`,
+          { objectId, system }
+        ),
+        { system }
+      );
+    }
+
     logger.error("Failed to launch classics game", error);
     throw error;
   }

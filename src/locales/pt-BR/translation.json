@@ -578,6 +578,7 @@
     "no_disc_toast": "Nenhum disco disponível para este jogo.",
     "launch_failed_toast": "Falha ao iniciar o jogo",
     "pkg_installing_toast": "Instalando o PKG no RPCS3. Quando terminar, clique em Jogar novamente para iniciar o jogo.",
+    "pkg_unreadable_toast": "Não foi possível ler este PKG. Instale e inicie o jogo diretamente pelo RPCS3.",
     "rpcs3_already_running_title": "O RPCS3 já está em execução",
     "rpcs3_already_running_description": "O RPCS3 só permite uma instância. Fechar a sessão em execução para iniciar este jogo?",
     "rpcs3_already_running_confirm": "Fechar e iniciar"

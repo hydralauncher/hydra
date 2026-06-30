@@ -6,6 +6,7 @@ import { emulators, logger } from "@main/services";
 import type {
   EmulatorBinary,
   EmulatorSystem,
+  Game,
   GameShop,
   UserPreferences,
 } from "@types";
@@ -40,6 +41,15 @@ export class PkgInstallingError extends Error {
   }
 }
 
+export class PkgUnreadableError extends Error {
+  code = "PKG_UNREADABLE" as const;
+  system: EmulatorSystem;
+  constructor(system: EmulatorSystem) {
+    super(`Could not read PKG title id for system ${system}`);
+    this.system = system;
+  }
+}
+
 const isPkgPath = (filePath: string): boolean =>
   filePath.toLowerCase().endsWith(".pkg");
 
@@ -54,7 +64,35 @@ const spawnRpcs3PkgInstall = (
     cwd: path.dirname(executableTarget),
     env: { ...process.env },
   });
+  child.on("error", (error) => {
+    logger.error("Failed to spawn RPCS3 for PKG install", error);
+  });
   child.unref();
+};
+
+const resolvePs3PkgBootTarget = async (params: {
+  executablePath: string;
+  executableTarget: string;
+  pkgPath: string;
+  system: EmulatorSystem;
+}): Promise<string> => {
+  const { executablePath, executableTarget, pkgPath, system } = params;
+
+  const titleId = await emulators.extractTitleIdFromPkg(pkgPath);
+  if (!titleId) {
+    throw new PkgUnreadableError(system);
+  }
+
+  const installedEboot = emulators.findInstalledPs3GameEboot(
+    executablePath,
+    titleId
+  );
+  if (installedEboot) {
+    return installedEboot;
+  }
+
+  spawnRpcs3PkgInstall(executableTarget, pkgPath);
+  throw new PkgInstallingError(system);
 };
 
 export interface LaunchClassicsGameOptions {
@@ -78,6 +116,39 @@ const buildEmulatorArgs = (
   }
 };
 
+const assertBiosInstalled = async (
+  system: EmulatorSystem,
+  executablePath: string
+): Promise<void> => {
+  if (system !== "ps1" && system !== "ps2") return;
+
+  const biosInstalled = await emulators.isEmulatorBiosInstalled(
+    system,
+    executablePath
+  );
+  if (!biosInstalled) {
+    throw new BiosNotConfiguredError(system);
+  }
+};
+
+const resolveEmulatorWrappers = (
+  preferences: UserPreferences | null,
+  game: Game | undefined
+): string[] => {
+  const useMangohud =
+    (preferences?.autoRunMangohud === true || game?.autoRunMangohud === true) &&
+    isMangohudAvailable();
+
+  const useGamemode =
+    (preferences?.autoRunGamemode === true || game?.autoRunGamemode === true) &&
+    isGamemodeAvailable();
+
+  return [
+    ...(useGamemode ? ["gamemoderun"] : []),
+    ...(useMangohud ? ["mangohud"] : []),
+  ];
+};
+
 export const launchClassicsGame = async (
   options: LaunchClassicsGameOptions
 ): Promise<void> => {
@@ -91,15 +162,7 @@ export const launchClassicsGame = async (
   // DuckStation/PCSX2 silently crash on launch when no BIOS is present, and the
   // emulator is spawned detached with stdio "ignore" so its own error never
   // reaches us. Detect the missing BIOS up front and block the launch instead.
-  if (system === "ps1" || system === "ps2") {
-    const biosInstalled = await emulators.isEmulatorBiosInstalled(
-      system,
-      config.executablePath
-    );
-    if (!biosInstalled) {
-      throw new BiosNotConfiguredError(system);
-    }
-  }
+  await assertBiosInstalled(system, config.executablePath);
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
@@ -110,15 +173,7 @@ export const launchClassicsGame = async (
     })
     .catch(() => null);
 
-  const useMangohud =
-    (userPreferences?.autoRunMangohud === true ||
-      game?.autoRunMangohud === true) &&
-    isMangohudAvailable();
-
-  const useGamemode =
-    (userPreferences?.autoRunGamemode === true ||
-      game?.autoRunGamemode === true) &&
-    isGamemodeAvailable();
+  const wrapperCommands = resolveEmulatorWrappers(userPreferences, game);
 
   const selectedDisc = game?.discs?.find((d) => d.path === discPath) ?? null;
 
@@ -130,20 +185,15 @@ export const launchClassicsGame = async (
     throw new EmulatorNotConfiguredError(system);
   }
 
-  let bootTarget = discPath;
-  if (system === "ps3" && isPkgPath(discPath)) {
-    const titleId = await emulators.extractTitleIdFromPkg(discPath);
-    const installedEboot = titleId
-      ? emulators.findInstalledPs3GameEboot(config.executablePath, titleId)
-      : null;
-
-    if (installedEboot) {
-      bootTarget = installedEboot;
-    } else {
-      spawnRpcs3PkgInstall(executableTarget, discPath);
-      throw new PkgInstallingError(system);
-    }
-  }
+  const bootTarget =
+    system === "ps3" && isPkgPath(discPath)
+      ? await resolvePs3PkgBootTarget({
+          executablePath: config.executablePath,
+          executableTarget,
+          pkgPath: discPath,
+          system,
+        })
+      : discPath;
 
   if (game) {
     await gamesSublevel.put(gameKey, {
@@ -159,10 +209,7 @@ export const launchClassicsGame = async (
     baseCommand: executableTarget,
     baseArgs,
     launchOptions: null,
-    wrapperCommands: [
-      ...(useGamemode ? ["gamemoderun"] : []),
-      ...(useMangohud ? ["mangohud"] : []),
-    ],
+    wrapperCommands,
   });
 
   const workingDirectory = path.dirname(executableTarget);
