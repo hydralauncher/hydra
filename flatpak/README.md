@@ -47,24 +47,41 @@ flatpak install -y flathub \
   org.freedesktop.Platform.GL32.default//23.08
 ```
 
+## How this matches the Steam / Lutris Flatpaks
+
+Both the Steam and Lutris Flatpaks run Proton in-sandbox with the same core
+permission set used here (`devel;multiarch;per-app-dev-shm`, `device=all`).
+Two further details were taken from them:
+
+- **`--talk-name=org.freedesktop.Flatpak`** (Lutris ships this). It lets
+  pressure-vessel ask the Flatpak portal to build its container as a *sub-sandbox*
+  (`steam-runtime-launch-client` → `org.freedesktop.portal.Flatpak`) instead of a
+  raw nested `bwrap`. With it, the launch reaches the portal spawn — verified:
+  `Connected to flatpak-portal: org.freedesktop.portal.Flatpak`.
+- **Runtime `25.08`** — the version the Steam Flatpak ships on, vs the 23.08 the
+  rest of Hydra used.
+
 ## Status / known limitation
 
 The i386 wall is cleared with this manifest — verified: the 32-bit runtime
 mounts and `Cannot determine ld.so for i386-linux-gnu` no longer appears.
 
-A **separate** blocker remains for game launch in the tightened sandbox:
-pressure-vessel still fails to bring up its container with
+One blocker remains for game launch in the tightened sandbox. After
+pressure-vessel switches to the portal sub-sandbox path, the spawn still fails:
 
 ```
 bwrap: Can't find source path /proc/self/fd/NN: No such file or directory
 ```
 
-The kernel allows nested user namespaces here, so this is pressure-vessel's
-fd-passing to its bundled `bwrap` not surviving the Flatpak sandbox — a known
-hard pressure-vessel-in-Flatpak interaction that permissions/env vars
-(`--talk-name=org.freedesktop.Flatpak`, `PRESSURE_VESSEL_COPY_RUNTIME=1`) did
-not resolve. Closing it likely needs routing the launch through
-`flatpak-spawn --host`, or an upstream pressure-vessel fix.
+This is the portal → host-`bwrap` fd-passing, not nested-namespace support
+(the kernel allows nested userns here, and the host Flatpak is 1.16.6).
+It was ruled **out** as a document-portal issue — the same error occurs whether
+the game is launched from `/run/flatpak/doc/...` or its real host path — so it is
+an interaction between the bleeding-edge umu/`steamrt3` sniper runtime and the
+portal `Spawn` fd handling, independent of the game's location. None of the
+levers available to the manifest (permissions, `25.08`, `talk-name=Flatpak`,
+`PRESSURE_VESSEL_COPY_RUNTIME=1`) close it. Remaining options are upstream
+(report to umu/pressure-vessel, or pin an older `steamrt3`).
 
 Default `--filesystem=host` mode launches games today; tightened-mode Windows
 games remain work in progress.

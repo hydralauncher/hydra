@@ -54,4 +54,6 @@ run("flatpak-builder", [
 fs.mkdirSync(distDir, { recursive: true });
 run("flatpak", ["build-bundle", repoDir, bundlePath, appId, branch]);
 
-console.log(`\nFlatpak bundle written to ${path.relative(repoRoot, bundlePath)}`);
+console.log(
+  `\nFlatpak bundle written to ${path.relative(repoRoot, bundlePath)}`
+);
