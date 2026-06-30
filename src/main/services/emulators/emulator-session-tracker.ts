@@ -171,9 +171,11 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
     });
 
   if (game.shop === "launchbox") {
-    void syncRetroAchievements({
+    syncRetroAchievements({
       objectId: game.objectId,
       shop: game.shop,
+    }).catch((error) => {
+      logger.error("Failed to sync RetroAchievements on session end", error);
     });
   }
 };

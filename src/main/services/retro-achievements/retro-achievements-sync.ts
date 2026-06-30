@@ -57,7 +57,13 @@ export const syncRetroAchievements = async ({
   const webApiKey = userPreferences?.retroAchievementsWebApiKey;
   const username = userPreferences?.retroAchievementsUsername;
 
-  if (!webApiKey || !username) return null;
+  if (!webApiKey || !username) {
+    logger.info("RetroAchievements sync skipped: missing credentials", {
+      hasWebApiKey: Boolean(webApiKey),
+      hasUsername: Boolean(username),
+    });
+    return null;
+  }
 
   const gameId = await resolveRetroAchievementsGameId(
     objectId,
@@ -65,7 +71,13 @@ export const syncRetroAchievements = async ({
     retroAchievementsGameId
   );
 
-  if (!gameId) return null;
+  if (!gameId) {
+    logger.info("RetroAchievements sync skipped: no game mapping", {
+      objectId,
+      shop,
+    });
+    return null;
+  }
 
   const data = await RetroAchievementsClient.getGameInfoAndUserProgress({
     username,
@@ -122,6 +134,14 @@ export const syncRetroAchievements = async ({
     unlockedAchievements: Array.from(unlockedByName.values()),
     updatedAt: Date.now(),
     language: cachedAchievements?.language,
+  });
+
+  logger.info("RetroAchievements progress fetched", {
+    objectId,
+    shop,
+    gameId,
+    remoteCount: remoteAchievements.length,
+    newUnlockCount,
   });
 
   if (newUnlockCount > 0) {
