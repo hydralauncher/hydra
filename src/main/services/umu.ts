@@ -8,6 +8,7 @@ import { logsPath } from "@main/constants";
 import { logger } from "./logger";
 import type { ProtonVersion } from "@types";
 import { resolveLaunchCommand } from "@main/helpers/resolve-launch-command";
+import { getLaunchWorkingDirectory } from "@main/helpers/get-launch-working-directory";
 
 const isValidProtonDirectory = (directoryPath: string) => {
   const protonFilePath = path.join(directoryPath, "proton");
@@ -215,7 +216,9 @@ export class Umu {
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
-    const workingDirectory = path.dirname(executablePath);
+    const workingDirectory = getLaunchWorkingDirectory(
+      path.dirname(executablePath)
+    );
     const umuLogPath = getUmuLogPath();
     const umuBinaryPath = getUmuBinaryPath();
     const pythonPath = getCompatiblePythonPath();
