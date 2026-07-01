@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { randomInt } from "node:crypto";
 import type {
   AchievementNotificationVariation,
   AchievementNotificationVariationSound,
@@ -10,24 +9,6 @@ const AUDIO_FORMATS = new Set([".wav", ".mp3", ".ogg", ".m4a"]);
 
 export const isSupportedAchievementSoundFile = (filePath: string) =>
   AUDIO_FORMATS.has(path.extname(filePath).toLowerCase());
-
-export const resolveRandomAchievementSoundFromFolder = async (
-  folderPath: string
-): Promise<string | null> => {
-  if (!folderPath || !fs.existsSync(folderPath)) return null;
-
-  const entries = await fs.promises.readdir(folderPath, {
-    withFileTypes: true,
-  });
-  const soundFiles = entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => path.join(folderPath, entry.name))
-    .filter(isSupportedAchievementSoundFile);
-
-  if (!soundFiles.length) return null;
-
-  return soundFiles[randomInt(soundFiles.length)];
-};
 
 export const getStructuredAchievementSoundPath = async (
   sound: AchievementNotificationVariationSound | undefined
@@ -46,10 +27,6 @@ export const getStructuredAchievementSoundPath = async (
     }
 
     return null;
-  }
-
-  if (sound.mode === "folder" && sound.folderPath) {
-    return resolveRandomAchievementSoundFromFolder(sound.folderPath);
   }
 
   return null;

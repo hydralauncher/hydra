@@ -16,16 +16,11 @@ export interface Theme {
 
 export type AchievementNotificationVariation = "main" | "rare" | "platinum";
 
-export type AchievementNotificationSoundMode =
-  | "default"
-  | "file"
-  | "folder"
-  | "muted";
+export type AchievementNotificationSoundMode = "default" | "file" | "muted";
 
 export interface AchievementNotificationVariationSound {
   mode: AchievementNotificationSoundMode;
   filePath?: string;
-  folderPath?: string;
   volume?: number;
 }
 
