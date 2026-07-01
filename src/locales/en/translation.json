@@ -527,7 +527,7 @@
     "reset_achievements": "Reset achievements",
     "reset_achievements_description": "This will reset all achievements for {{game}}",
     "reset_achievements_retroachievements_note": "Reset the achievements on RetroAchievements first, otherwise they will sync back to Hydra.",
-    "reset_achievements_retroachievements_link": "Reset achievements on RetroAchievements",
+    "reset_achievements_retroachievements_link": "Open RetroAchievements Website",
     "reset_achievements_retroachievements_confirm": "I have already reset the achievements for this game on RetroAchievements",
     "reset_achievements_title": "Are you sure?",
     "reset_achievements_success": "Achievements successfully reset",

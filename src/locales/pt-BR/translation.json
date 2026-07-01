@@ -329,7 +329,7 @@
     "reset_achievements": "Resetar conquistas",
     "reset_achievements_description": "Isso irá resetar todas as conquistas de {{game}}",
     "reset_achievements_retroachievements_note": "Resete as conquistas no RetroAchievements primeiro, caso contrário elas serão sincronizadas de volta para o Hydra.",
-    "reset_achievements_retroachievements_link": "Resetar conquistas no RetroAchievements",
+    "reset_achievements_retroachievements_link": "Abrir site do RetroAchievements",
     "reset_achievements_retroachievements_confirm": "Já resetei as conquistas deste jogo no RetroAchievements",
     "reset_achievements_title": "Tem certeza?",
     "reset_achievements_success": "Conquistas resetadas com sucesso",
