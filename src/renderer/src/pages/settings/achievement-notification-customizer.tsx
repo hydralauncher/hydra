@@ -439,16 +439,19 @@ export function AchievementNotificationCustomizer({
   );
 
   const createProfile = useCallback(
-    async (snapshot: {
-      customizer: AchievementNotificationCustomizerData;
-      profileName: string;
-    }) => {
+    async (
+      snapshot: {
+        customizer: AchievementNotificationCustomizerData;
+        profileName: string;
+      },
+      activate = false
+    ) => {
       const now = new Date();
       const theme: Theme = {
         id: generateUUID(),
         name: snapshot.profileName.trim() || getProfileName(),
         isActive: false,
-        achievementNotificationCustomizerActive: false,
+        achievementNotificationCustomizerActive: activate,
         code: "",
         achievementNotificationCustomizer: snapshot.customizer,
         createdAt: now,
@@ -459,7 +462,7 @@ export function AchievementNotificationCustomizer({
       await window.electron.updateAchievementNotificationProfile(theme.id, {
         name: theme.name,
         customizer: snapshot.customizer,
-        achievementNotificationCustomizerActive: true,
+        achievementNotificationCustomizerActive: activate,
       });
       await window.electron.updateAchievementCustomNotificationWindow();
       await loadProfiles(theme.id);
@@ -492,7 +495,7 @@ export function AchievementNotificationCustomizer({
       setProfileName(snapshot.profileName);
       setCustomizer(snapshot.customizer);
 
-      void createProfile(snapshot).finally(() => {
+      void createProfile(snapshot, false).finally(() => {
         isCreatingProfileRef.current = false;
       });
     },

@@ -198,10 +198,6 @@ export const mergeAchievements = async (
           )
         );
 
-        await WindowManager.updateNotificationWindowPosition(
-          achievementPositions[0]
-        );
-
         achievementsInfo.forEach((achievement, index) => {
           WindowManager.notificationWindow?.webContents.send(
             "on-achievement-unlocked",

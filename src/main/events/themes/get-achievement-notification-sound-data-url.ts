@@ -11,8 +11,15 @@ import {
 import { themesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
 
+const MAX_ACHIEVEMENT_SOUND_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+
 const getSoundDataUrl = async (soundPath: string): Promise<string | null> => {
   if (!fs.existsSync(soundPath)) return null;
+
+  const stats = await fs.promises.stat(soundPath);
+  if (stats.size > MAX_ACHIEVEMENT_SOUND_FILE_SIZE_BYTES) {
+    return null;
+  }
 
   const buffer = await fs.promises.readFile(soundPath);
   const ext = path.extname(soundPath).toLowerCase().slice(1);

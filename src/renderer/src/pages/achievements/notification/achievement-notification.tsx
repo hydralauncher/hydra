@@ -87,7 +87,7 @@ export function AchievementNotification() {
           iconUrl: hydraIcon,
         };
 
-        setAchievements([{ achievement, position }]);
+        setAchievements(queueAchievements(position, [achievement]));
       }
     );
 
@@ -171,15 +171,18 @@ export function AchievementNotification() {
 
     getAchievementNotificationRenderSettings(
       queuedAchievement.achievement
-    ).then((settings) => {
+    ).then(async (settings) => {
       if (cancelled) return;
 
       const nextPosition = settings?.position ?? queuedAchievement.position;
 
       setPosition(nextPosition);
-      window.electron
+      await window.electron
         .updateAchievementNotificationWindowPosition(nextPosition)
         .catch(() => {});
+
+      if (cancelled) return;
+
       notificationTimeoutRef.current =
         settings?.displayTime ?? NOTIFICATION_TIMEOUT;
       setCurrentAchievement(queuedAchievement.achievement);
