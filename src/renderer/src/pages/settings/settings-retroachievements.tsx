@@ -210,7 +210,8 @@ export function SettingsRetroAchievements() {
     }
 
     if (integration.connected) {
-      const isInvalid = integration.retroAchievementsAccountStatus === "invalid_credentials";
+      const isInvalid =
+        integration.retroAchievementsAccountStatus === "invalid_credentials";
 
       return (
         <div className="settings-retroachievements__connected">
@@ -370,7 +371,8 @@ export function SettingsRetroAchievements() {
           {t("retroachievements")}
         </h3>
         {integration.connected &&
-          (integration.retroAchievementsAccountStatus === "invalid_credentials" ? (
+          (integration.retroAchievementsAccountStatus ===
+          "invalid_credentials" ? (
             <AlertIcon
               size={CHEVRON_ICON_SIZE}
               className="settings-retroachievements__header-icon--warning"
