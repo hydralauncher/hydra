@@ -5,9 +5,8 @@ import {
   ClockIcon,
   StarFillIcon,
   CommentDiscussionIcon,
-  TrophyIcon,
-  AlertIcon,
 } from "@primer/octicons-react";
+import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@renderer/components";
@@ -222,10 +221,9 @@ export function NotificationItem({
   const isReviewAnswerUpvote = notification.type === "REVIEW_ANSWER_UPVOTE";
   const isReview = isReviewUpvote || isReviewAnswer || isReviewAnswerUpvote;
 
-  const isRetroAchievementsSuccess =
+  const isRetroAchievements =
     notification.type === "RETROACHIEVEMENTS_CONNECTED" ||
-    notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED";
-  const isRetroAchievementsAlert =
+    notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED" ||
     notification.type === "RETROACHIEVEMENTS_CREDENTIALS_INVALID" ||
     notification.type === "RETROACHIEVEMENTS_SYNC_FAILED";
 
@@ -233,11 +231,8 @@ export function NotificationItem({
     if (notification.pictureUrl) {
       return <img src={notification.pictureUrl} alt="" />;
     }
-    if (isRetroAchievementsSuccess) {
-      return <TrophyIcon size={24} />;
-    }
-    if (isRetroAchievementsAlert) {
-      return <AlertIcon size={24} />;
+    if (isRetroAchievements) {
+      return <img src={retroAchievementsLogo} alt="" />;
     }
     if (isReviewUpvote || isReviewAnswerUpvote) {
       return <StarFillIcon size={24} />;
@@ -262,6 +257,7 @@ export function NotificationItem({
         className={cn("notification-item__picture", {
           "notification-item__badge-picture": isBadge,
           "notification-item__review-picture": isReview,
+          "notification-item__ra-picture": isRetroAchievements,
         })}
       >
         {getIcon()}
