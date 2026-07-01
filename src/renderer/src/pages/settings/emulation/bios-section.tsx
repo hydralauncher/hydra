@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  CheckCircleFillIcon,
-  ClockIcon,
-  FileDirectoryIcon,
-  SyncIcon,
-} from "@primer/octicons-react";
+import { FileDirectoryIcon, SyncIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
+import { useToast } from "@renderer/hooks";
 import type { EmulatorConfig } from "@types";
 
+import { EmulatorResourceRow } from "./emulator-resource-row";
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 
 interface BiosSectionProps {
@@ -24,6 +21,7 @@ export function BiosSection({
   onChange,
 }: Readonly<BiosSectionProps>) {
   const { t } = useTranslation("settings");
+  const { showSuccessToast, showErrorToast } = useToast();
   const [installed, setInstalled] = useState<boolean | null>(null);
   const [detectedPath, setDetectedPath] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -45,6 +43,7 @@ export function BiosSection({
         if (result.detectedPath && result.detectedPath !== config.biosPath) {
           onChange({ ...config, biosPath: result.detectedPath });
         }
+        return result.installed;
       } finally {
         setChecking(false);
       }
@@ -55,6 +54,12 @@ export function BiosSection({
   useEffect(() => {
     probe().catch(() => {});
   }, [probe]);
+
+  const handleRedetect = useCallback(async () => {
+    const found = await probe();
+    if (found) showSuccessToast(t("setup_bios_found"));
+    else showErrorToast(t("setup_bios_not_yet"));
+  }, [probe, showSuccessToast, showErrorToast, t]);
 
   const handleBrowse = useCallback(async () => {
     const result = await globalThis.window.electron.showOpenDialog({
@@ -80,44 +85,23 @@ export function BiosSection({
   const controlsDisabled = disabled || busy;
 
   return (
-    <section className="emulator-detail__section">
-      <header className="emulator-detail__section-header">
-        <div className="emulator-detail__section-text">
-          <h3>{t("bios_section_title")}</h3>
-          <p>{t("bios_section_description", { name: binaryName })}</p>
-        </div>
-        <span className="emulator-detail__bios-status">
-          {installed ? (
-            <CheckCircleFillIcon size={14} />
-          ) : (
-            <ClockIcon size={14} />
-          )}
-          <span>
-            {installed ? t("setup_bios_found") : t("setup_bios_not_yet")}
-          </span>
-        </span>
-      </header>
-
-      <div className="emulator-detail__exec-path-row">
-        <button
-          type="button"
-          className="emulator-detail__exec-path-box"
-          onClick={handleBrowse}
-          disabled={controlsDisabled}
-          title={t("setup_bios_select_folder")}
-          aria-label={t("setup_bios_select_folder")}
-        >
-          <span
-            className={`emulator-detail__exec-path-text${effectivePath ? "" : " emulator-detail__exec-path-text--placeholder"}`}
-            title={effectivePath ?? undefined}
-          >
-            {effectivePath ?? t("bios_folder_none")}
-          </span>
-        </button>
-        <div className="emulator-detail__exec-actions">
+    <EmulatorResourceRow
+      title={t("bios_section_title")}
+      description={t("bios_section_description", { name: binaryName })}
+      detected={!!installed}
+      statusLabel={installed ? t("setup_bios_found") : t("not_detected")}
+      path={{
+        text: effectivePath,
+        placeholder: t("bios_folder_none"),
+        onClick: handleBrowse,
+        disabled: controlsDisabled,
+        title: t("setup_bios_select_folder"),
+      }}
+      actions={
+        <>
           <Button
             theme="outline"
-            onClick={() => probe()}
+            onClick={handleRedetect}
             disabled={controlsDisabled || checking}
           >
             <SyncIcon
@@ -128,7 +112,7 @@ export function BiosSection({
                   : undefined
               }
             />
-            <span>{t("setup_bios_check_again")}</span>
+            <span>{t("re_detect")}</span>
           </Button>
           <Button
             theme="primary"
@@ -136,10 +120,10 @@ export function BiosSection({
             disabled={controlsDisabled}
           >
             <FileDirectoryIcon size={16} />
-            <span>{t("setup_bios_select_folder")}</span>
+            <span>{t("browse")}</span>
           </Button>
-        </div>
-      </div>
-    </section>
+        </>
+      }
+    />
   );
 }

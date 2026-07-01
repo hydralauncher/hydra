@@ -1,22 +1,12 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import {
-  AlertIcon,
   ChevronLeftIcon,
-  CheckCircleFillIcon,
   ClockIcon,
   DatabaseIcon,
   FileDirectoryIcon,
   InfoIcon,
-  PackageIcon,
   PlusIcon,
   SyncIcon,
   TrashIcon,
@@ -36,6 +26,8 @@ import type { EmulatorConfig, RomFolder } from "@types";
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
 import { BiosSection } from "./bios-section";
+import { FirmwareSection } from "./firmware-section";
+import { EmulatorResourceRow } from "./emulator-resource-row";
 import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
 import { RomsDetectedSection } from "./roms-detected-section";
@@ -99,6 +91,7 @@ export function EmulatorDetail({
   const supportsMemoryCards =
     config.system === "ps2" || config.system === "ps1";
   const supportsBios = supportsMemoryCards;
+  const supportsFirmware = config.system === "ps3";
 
   const [activeTab, setActiveTab] = useState<EmulatorTab>("emulator");
 
@@ -310,21 +303,6 @@ export function EmulatorDetail({
     { id: "library", label: t("tab_library") },
   ];
 
-  let statusBadge: ReactNode = null;
-  if (isConfigured) {
-    statusBadge = executableExists ? (
-      <span className="emulator-detail__synced">
-        <CheckCircleFillIcon size={14} />
-        <span>{t("synced")}</span>
-      </span>
-    ) : (
-      <span className="emulator-detail__path-missing">
-        <AlertIcon size={14} />
-        <span>{t("executable_missing")}</span>
-      </span>
-    );
-  }
-
   return (
     <div className="emulator-detail">
       <button
@@ -408,64 +386,26 @@ export function EmulatorDetail({
 
       {activeTab === "emulator" && (
         <>
-          <section className="emulator-detail__section">
-            <header className="emulator-detail__section-header">
-              <div className="emulator-detail__section-text">
-                <h3>{t("supported_emulators_title")}</h3>
-                <p>
-                  {t("supported_emulators_description", { name: binaryName })}
-                </p>
-              </div>
-            </header>
-
-            <div className="emulator-detail__row emulator-detail__supported">
-              {binaryIcon ? (
-                <img
-                  src={binaryIcon}
-                  alt=""
-                  className="emulator-detail__exec-icon"
-                  aria-hidden="true"
-                />
-              ) : (
-                <PackageIcon size={24} />
-              )}
-              <div className="emulator-detail__supported-info">
-                <span className="emulator-detail__exec-name">{binaryName}</span>
-                {config.detectedVersion && (
-                  <span className="emulator-detail__exec-version">
-                    v{config.detectedVersion}
-                  </span>
-                )}
-              </div>
-              {statusBadge}
-            </div>
-          </section>
-
-          <section className="emulator-detail__section">
-            <header className="emulator-detail__section-header">
-              <div className="emulator-detail__section-text">
-                <h3>{t("executable_path_title")}</h3>
-                <p>{t("executable_path_description")}</p>
-              </div>
-            </header>
-
-            <div className="emulator-detail__exec-path-row">
-              <button
-                type="button"
-                className="emulator-detail__exec-path-box"
-                onClick={handleBrowseExecutable}
-                disabled={busy}
-                title={t("change_executable_path")}
-                aria-label={t("change_executable_path")}
-              >
-                <span
-                  className={`emulator-detail__exec-path-text${config.executablePath ? "" : " emulator-detail__exec-path-text--placeholder"}`}
-                  title={config.executablePath ?? undefined}
-                >
-                  {config.executablePath ?? t("select_executable_placeholder")}
-                </span>
-              </button>
-              <div className="emulator-detail__exec-actions">
+          <EmulatorResourceRow
+            title={t("executable_path_title")}
+            description={t("executable_path_description")}
+            detected={isConfigured && executableExists}
+            statusLabel={
+              isConfigured
+                ? executableExists
+                  ? t("synced")
+                  : t("executable_missing")
+                : t("not_detected")
+            }
+            path={{
+              text: config.executablePath,
+              placeholder: t("select_executable_placeholder"),
+              onClick: handleBrowseExecutable,
+              disabled: busy,
+              title: t("change_executable_path"),
+            }}
+            actions={
+              <>
                 <Button
                   theme="outline"
                   onClick={handleRedetect}
@@ -487,14 +427,18 @@ export function EmulatorDetail({
                   disabled={busy}
                 >
                   <FileDirectoryIcon size={16} />
-                  <span>{t("browse_files")}</span>
+                  <span>{t("browse")}</span>
                 </Button>
-              </div>
-            </div>
-          </section>
+              </>
+            }
+          />
 
           {supportsBios && (
             <BiosSection config={config} disabled={busy} onChange={onChange} />
+          )}
+
+          {supportsFirmware && (
+            <FirmwareSection config={config} disabled={busy} />
           )}
 
           {isConfigured && (

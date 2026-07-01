@@ -44,7 +44,7 @@ const buildEmulatorArgs = (
 ): string[] => {
   switch (binary) {
     case "duckstation":
-      return ["-batch", "-fullscreen", "--", discPath];
+      return ["-fullscreen", "--", discPath];
     case "pcsx2":
       return ["-fullscreen", "--", discPath];
     case "rpcs3":
