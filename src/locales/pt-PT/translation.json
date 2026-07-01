@@ -1104,8 +1104,6 @@
     "review_answer_description": "{{displayName}} respondeu à tua avaliação",
     "review_answer_upvote_title": "A tua resposta a {{gameTitle}} recebeu votos positivos!",
     "review_answer_upvote_description": "A tua resposta recebeu {{count}} novos votos positivos",
-    "retroachievements_connected_title": "RetroAchievements ligado",
-    "retroachievements_connected_description": "A tua conta do RetroAchievements está agora ligada.",
     "retroachievements_credentials_restored_title": "RetroAchievements religado",
     "retroachievements_credentials_restored_description": "As tuas credenciais do RetroAchievements estão a funcionar novamente.",
     "retroachievements_credentials_invalid_title": "RetroAchievements precisa de atenção",

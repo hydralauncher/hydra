@@ -179,12 +179,6 @@ export function NotificationItem({
           }),
           showActions: false,
         };
-      case "RETROACHIEVEMENTS_CONNECTED":
-        return {
-          title: t("retroachievements_connected_title"),
-          description: t("retroachievements_connected_description"),
-          showActions: false,
-        };
       case "RETROACHIEVEMENTS_CREDENTIALS_RESTORED":
         return {
           title: t("retroachievements_credentials_restored_title"),
@@ -222,7 +216,6 @@ export function NotificationItem({
   const isReview = isReviewUpvote || isReviewAnswer || isReviewAnswerUpvote;
 
   const isRetroAchievements =
-    notification.type === "RETROACHIEVEMENTS_CONNECTED" ||
     notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED" ||
     notification.type === "RETROACHIEVEMENTS_CREDENTIALS_INVALID" ||
     notification.type === "RETROACHIEVEMENTS_SYNC_FAILED";
