@@ -91,4 +91,11 @@
     flex-shrink: 0;
     color: globals.$warning-color;
   }
+
+  &__title-logo {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
 }
