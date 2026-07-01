@@ -16,6 +16,7 @@ const RESTORE_PRIMARY_DISPLAY_POLL_INTERVAL_MS = 100;
 
 export class BigPictureSessionManager {
   private static snapshot: BigPictureRestoreSnapshot | null = null;
+  private static restorePromise: Promise<void> | null = null;
 
   private static async waitForPrimaryDisplaySourceName(
     sourceName: string,
@@ -63,7 +64,24 @@ export class BigPictureSessionManager {
     return false;
   }
 
+  private static async waitForPendingRestore() {
+    if (!this.restorePromise) {
+      return;
+    }
+
+    try {
+      await this.restorePromise;
+    } catch (error) {
+      logger.warn(
+        "Failed to finish pending Big Picture restore before applying preferences",
+        error
+      );
+    }
+  }
+
   public static async apply() {
+    await this.waitForPendingRestore();
+
     if (this.snapshot) {
       return;
     }
@@ -91,7 +109,7 @@ export class BigPictureSessionManager {
   }
 
   public static async applyAudioPreference(userPreferences: UserPreferences) {
-    if (!this.snapshot) {
+    if (!this.snapshot || this.restorePromise) {
       return false;
     }
 
@@ -104,14 +122,7 @@ export class BigPictureSessionManager {
     return AudioDeviceManager.setDefaultAudioDevice(targetAudioDeviceId);
   }
 
-  public static async restore() {
-    const snapshot = this.snapshot;
-    this.snapshot = null;
-
-    if (!snapshot) {
-      return;
-    }
-
+  private static async restoreSnapshot(snapshot: BigPictureRestoreSnapshot) {
     if (snapshot.primaryDisplaySourceName) {
       const restored = await this.restorePrimaryDisplay(
         snapshot.primaryDisplaySourceName
@@ -129,5 +140,27 @@ export class BigPictureSessionManager {
         snapshot.defaultAudioDeviceId
       );
     }
+  }
+
+  public static async restore() {
+    if (this.restorePromise) {
+      return this.restorePromise;
+    }
+
+    const snapshot = this.snapshot;
+
+    if (!snapshot) {
+      return;
+    }
+
+    this.restorePromise = this.restoreSnapshot(snapshot).finally(() => {
+      if (this.snapshot === snapshot) {
+        this.snapshot = null;
+      }
+
+      this.restorePromise = null;
+    });
+
+    return this.restorePromise;
   }
 }
