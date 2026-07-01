@@ -160,6 +160,10 @@ export class WindowManager {
     return process.platform !== "linux";
   }
 
+  private static isActiveBigPictureWindow(window: BrowserWindow) {
+    return this.bigPicture === window && !window.isDestroyed();
+  }
+
   private static presentBigPictureWindow(
     window: BrowserWindow,
     display: Electron.Display
@@ -482,28 +486,48 @@ export class WindowManager {
   }
 
   public static async applyBigPictureDisplayPreference() {
-    if (!this.bigPicture || this.bigPicture.isDestroyed()) {
+    const bigPicture = this.bigPicture;
+
+    if (!bigPicture || bigPicture.isDestroyed()) {
       return;
     }
 
     const targetDisplay = await DisplayManager.getBigPictureDisplay();
-    const wasFullScreen = this.bigPicture.isFullScreen();
 
-    if (wasFullScreen) {
-      this.bigPicture.setFullScreen(false);
-      await new Promise((resolve) => setTimeout(resolve, 150));
+    if (!this.isActiveBigPictureWindow(bigPicture)) {
+      return;
     }
 
-    this.presentBigPictureWindow(this.bigPicture, targetDisplay);
+    const wasFullScreen = bigPicture.isFullScreen();
+
+    if (wasFullScreen) {
+      bigPicture.setFullScreen(false);
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      if (!this.isActiveBigPictureWindow(bigPicture)) {
+        return;
+      }
+    }
+
+    this.presentBigPictureWindow(bigPicture, targetDisplay);
     this.scheduleBigPictureWindowPlacement(targetDisplay);
 
     if (wasFullScreen && this.useNativeBigPictureFullscreen()) {
       await new Promise((resolve) => setTimeout(resolve, 150));
-      this.placeBigPictureWindowOnDisplay(this.bigPicture, targetDisplay);
+
+      if (!this.isActiveBigPictureWindow(bigPicture)) {
+        return;
+      }
+
+      this.placeBigPictureWindowOnDisplay(bigPicture, targetDisplay);
     }
 
-    this.bigPicture.show();
-    this.bigPicture.focus();
+    if (!this.isActiveBigPictureWindow(bigPicture)) {
+      return;
+    }
+
+    bigPicture.show();
+    bigPicture.focus();
   }
 
   public static openFriendsWindow() {
