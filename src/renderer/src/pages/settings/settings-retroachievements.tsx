@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { Button, Link, TextField } from "@renderer/components";
+import { Button, Link, Modal, TextField } from "@renderer/components";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import {
@@ -66,6 +66,9 @@ export function SettingsRetroAchievements() {
     () => !userPreferences?.retroAchievementsWebApiKey
   );
   const [avatarError, setAvatarError] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+  const [showDeleteAchievementsModal, setShowDeleteAchievementsModal] =
+    useState(false);
 
   const connectedUsername = integration.connected ? integration.username : null;
 
@@ -134,6 +137,7 @@ export function SettingsRetroAchievements() {
               username: form.username.trim(),
               password: form.password,
               webApiKey,
+              deleteAchievements: false,
             },
           }
         );
@@ -154,11 +158,15 @@ export function SettingsRetroAchievements() {
     }
   };
 
-  const handleDisconnect = async () => {
+  const handleDisconnect = async (deleteAchievements: boolean) => {
+    setShowDisconnectModal(false);
+    setShowDeleteAchievementsModal(false);
     setIsSubmitting(true);
 
     try {
-      await globalThis.window.electron.hydraApi.delete(INTEGRATION_ENDPOINT);
+      await globalThis.window.electron.hydraApi.delete(
+        `${INTEGRATION_ENDPOINT}?deleteAchievements=${deleteAchievements}`
+      );
 
       setIntegration({ connected: false });
       setForm({ username: "", password: "", webApiKey: "" });
@@ -268,7 +276,7 @@ export function SettingsRetroAchievements() {
 
             <Button
               theme="danger"
-              onClick={handleDisconnect}
+              onClick={() => setShowDisconnectModal(true)}
               disabled={isSubmitting || isRefreshing}
             >
               {t("retroachievements_disconnect")}
@@ -353,58 +361,111 @@ export function SettingsRetroAchievements() {
   };
 
   return (
-    <div
-      className={`settings-debrid__section ${
-        isCollapsed ? "" : "settings-debrid__section--expanded"
-      }`}
-    >
-      <div className="settings-debrid__section-header">
-        <button
-          type="button"
-          className="settings-debrid__collapse-button"
-          onClick={() => setIsCollapsed((prev) => !prev)}
-          aria-label={
-            isCollapsed
-              ? t("expand_debrid_section", {
-                  provider: t("retroachievements"),
-                })
-              : t("collapse_debrid_section", {
-                  provider: t("retroachievements"),
-                })
-          }
-        >
-          <span
-            className={`settings-debrid__collapse-icon ${
-              isCollapsed ? "" : "settings-debrid__collapse-icon--expanded"
-            }`}
+    <>
+      <div
+        className={`settings-debrid__section ${
+          isCollapsed ? "" : "settings-debrid__section--expanded"
+        }`}
+      >
+        <div className="settings-debrid__section-header">
+          <button
+            type="button"
+            className="settings-debrid__collapse-button"
+            onClick={() => setIsCollapsed((prev) => !prev)}
+            aria-label={
+              isCollapsed
+                ? t("expand_debrid_section", {
+                    provider: t("retroachievements"),
+                  })
+                : t("collapse_debrid_section", {
+                    provider: t("retroachievements"),
+                  })
+            }
           >
-            <ChevronRightIcon size={CHEVRON_ICON_SIZE} />
-          </span>
-        </button>
-        <h3 className="settings-debrid__section-title">
-          {t("retroachievements")}
-        </h3>
-        <img
-          src={retroAchievementsLogo}
-          alt=""
-          className="settings-retroachievements__title-logo"
-        />
-        {integration.connected &&
-          (integration.retroAchievementsAccountStatus ===
-          "invalid_credentials" ? (
-            <AlertIcon
-              size={CHEVRON_ICON_SIZE}
-              className="settings-retroachievements__header-icon--warning"
-            />
-          ) : (
-            <CheckCircleFillIcon
-              size={CHEVRON_ICON_SIZE}
-              className="settings-debrid__check-icon"
-            />
-          ))}
+            <span
+              className={`settings-debrid__collapse-icon ${
+                isCollapsed ? "" : "settings-debrid__collapse-icon--expanded"
+              }`}
+            >
+              <ChevronRightIcon size={CHEVRON_ICON_SIZE} />
+            </span>
+          </button>
+          <h3 className="settings-debrid__section-title">
+            {t("retroachievements")}
+          </h3>
+          <img
+            src={retroAchievementsLogo}
+            alt=""
+            className="settings-retroachievements__title-logo"
+          />
+          {integration.connected &&
+            (integration.retroAchievementsAccountStatus ===
+            "invalid_credentials" ? (
+              <AlertIcon
+                size={CHEVRON_ICON_SIZE}
+                className="settings-retroachievements__header-icon--warning"
+              />
+            ) : (
+              <CheckCircleFillIcon
+                size={CHEVRON_ICON_SIZE}
+                className="settings-debrid__check-icon"
+              />
+            ))}
+        </div>
+
+        {!isCollapsed && renderBody()}
       </div>
 
-      {!isCollapsed && renderBody()}
-    </div>
+      <Modal
+        visible={showDisconnectModal}
+        onClose={() => setShowDisconnectModal(false)}
+        title={t("retroachievements_disconnect_title")}
+        description={t("retroachievements_disconnect_description")}
+      >
+        <div className="settings-retroachievements__modal-actions">
+          <Button
+            theme="outline"
+            onClick={() => handleDisconnect(false)}
+            disabled={isSubmitting}
+          >
+            {t("retroachievements_keep_achievements")}
+          </Button>
+          <Button
+            theme="danger"
+            onClick={() => {
+              setShowDisconnectModal(false);
+              setShowDeleteAchievementsModal(true);
+            }}
+            disabled={isSubmitting}
+          >
+            {t("retroachievements_delete_achievements")}
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        visible={showDeleteAchievementsModal}
+        onClose={() => setShowDeleteAchievementsModal(false)}
+        title={t("retroachievements_delete_confirm_title")}
+        description={t("retroachievements_delete_confirm_description")}
+      >
+        <div className="settings-retroachievements__modal-actions">
+          <Button
+            theme="outline"
+            onClick={() => setShowDeleteAchievementsModal(false)}
+            disabled={isSubmitting}
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            theme="danger"
+            onClick={() => handleDisconnect(true)}
+            disabled={isSubmitting}
+          >
+            {t("retroachievements_delete_confirm_button")}
+          </Button>
+        </div>
+      </Modal>
+    </>
   );
 }

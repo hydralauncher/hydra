@@ -115,4 +115,11 @@
     object-fit: contain;
     flex-shrink: 0;
   }
+
+  &__modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
 }
