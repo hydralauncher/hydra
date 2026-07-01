@@ -281,13 +281,10 @@ export function AchievementNotificationCustomizer({
     []
   );
 
-  const handlePositionChange = async (
+  const handlePositionChange = (
     nextPosition: AchievementCustomNotificationPosition
   ) => {
     updateSelectedStyle({ position: nextPosition });
-    await window.electron.updateUserPreferences({
-      achievementCustomNotificationPosition: nextPosition,
-    });
   };
 
   const handleProfileChange = async (profileId: string) => {
@@ -660,9 +657,6 @@ export function AchievementNotificationCustomizer({
 
   const handleTestLive = async () => {
     await flushCurrentProfile();
-    await window.electron.updateUserPreferences({
-      achievementCustomNotificationPosition: selectedPosition,
-    });
     await window.electron.showAchievementTestNotification(
       selectedVariation,
       selectedPosition

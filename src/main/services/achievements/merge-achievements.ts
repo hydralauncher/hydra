@@ -145,13 +145,6 @@ export const mergeAchievements = async (
     const customEnabled =
       userPreferences.achievementCustomNotificationsEnabled !== false &&
       process.platform !== "darwin";
-    const achievementPositions = customEnabled
-      ? await Promise.all(
-          achievementsInfo.map((achievement) =>
-            WindowManager.getAchievementNotificationPosition(achievement)
-          )
-        )
-      : [];
 
     const publishOsNotification = () =>
       publishNewAchievementNotification({
@@ -165,7 +158,17 @@ export const mergeAchievements = async (
     if (process.platform === "linux") {
       let shownInApp = false;
 
-      if (customEnabled && achievementsInfo.length) {
+      if (
+        customEnabled &&
+        achievementsInfo.length &&
+        WindowManager.hasFocusedAchievementNotificationTarget()
+      ) {
+        const achievementPositions = await Promise.all(
+          achievementsInfo.map((achievement) =>
+            WindowManager.getAchievementNotificationPosition(achievement)
+          )
+        );
+
         shownInApp = WindowManager.sendAchievementToFocusedWindow(
           achievementPositions[0],
           [achievementsInfo[0]]
@@ -189,6 +192,12 @@ export const mergeAchievements = async (
         customEnabled && !!WindowManager.notificationWindow;
 
       if (shouldUseCustomNotification && achievementsInfo.length) {
+        const achievementPositions = await Promise.all(
+          achievementsInfo.map((achievement) =>
+            WindowManager.getAchievementNotificationPosition(achievement)
+          )
+        );
+
         await WindowManager.updateNotificationWindowPosition(
           achievementPositions[0]
         );

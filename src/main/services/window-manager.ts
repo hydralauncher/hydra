@@ -773,6 +773,14 @@ export class WindowManager {
     return false;
   }
 
+  public static hasFocusedAchievementNotificationTarget(): boolean {
+    const candidates = [this.bigPicture, this.mainWindow];
+
+    return candidates.some(
+      (window) => window && !window.isDestroyed() && window.isFocused()
+    );
+  }
+
   public static async createNotificationWindow({
     forceCustomNotification = false,
     useDefaultProfile = false,

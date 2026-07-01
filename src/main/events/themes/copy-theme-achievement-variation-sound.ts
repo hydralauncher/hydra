@@ -1,7 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { AchievementNotificationVariation } from "@types";
-import { getThemePath, getVariationSoundAssetName } from "@main/helpers";
+import {
+  getThemePath,
+  getVariationSoundAssetName,
+  isSupportedAchievementSoundFile,
+} from "@main/helpers";
 import { themesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
 
@@ -13,6 +17,10 @@ const copyThemeAchievementVariationSound = async (
 ): Promise<void> => {
   if (!sourcePath || !fs.existsSync(sourcePath)) {
     throw new Error("Source file does not exist");
+  }
+
+  if (!isSupportedAchievementSoundFile(sourcePath)) {
+    throw new Error("Unsupported achievement sound file");
   }
 
   const theme = await themesSublevel.get(themeId);

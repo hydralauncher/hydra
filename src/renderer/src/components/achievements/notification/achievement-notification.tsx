@@ -28,13 +28,16 @@ export function AchievementNotificationItem({
   const [customStyle, setCustomStyle] = useState<CSSProperties>({});
 
   useEffect(() => {
+    if (customStyleOverride) {
+      setCustomStyle(customStyleOverride);
+      return;
+    }
+
     let cancelled = false;
 
     getAchievementNotificationRenderSettings(achievement).then((settings) => {
       if (cancelled) return;
-      setCustomStyle(
-        (customStyleOverride ?? settings?.cssVariables ?? {}) as CSSProperties
-      );
+      setCustomStyle((settings?.cssVariables ?? {}) as CSSProperties);
     });
 
     return () => {
