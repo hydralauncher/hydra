@@ -5,7 +5,7 @@ import type {
   UserAchievement,
   UserPreferences,
 } from "@types";
-import { SubscriptionRequiredError, UserNotLoggedInError } from "@shared";
+import { UserNotLoggedInError } from "@shared";
 
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
@@ -146,16 +146,9 @@ export const syncRetroAchievements = async ({
 
   if (newUnlockCount > 0) {
     HydraApi.post(
-      `/profile/games/${shop}/${objectId}/retroachievements/sync`,
-      undefined,
-      { needsSubscription: true }
+      `/profile/games/${shop}/${objectId}/retroachievements/sync`
     ).catch((err) => {
-      if (
-        err instanceof SubscriptionRequiredError ||
-        err instanceof UserNotLoggedInError
-      ) {
-        return;
-      }
+      if (err instanceof UserNotLoggedInError) return;
 
       logger.error("Failed to enqueue RetroAchievements sync", err);
     });

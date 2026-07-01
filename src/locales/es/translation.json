@@ -1468,8 +1468,6 @@
     "review_answer_description": "{{displayName}} respondió a tu reseña",
     "review_answer_upvote_title": "¡Tu respuesta a {{gameTitle}} recibió votos!",
     "review_answer_upvote_description": "Tu respuesta recibió {{count}} nuevos votos",
-    "retroachievements_connected_title": "RetroAchievements conectado",
-    "retroachievements_connected_description": "Tu cuenta de RetroAchievements ya está conectada.",
     "retroachievements_credentials_restored_title": "RetroAchievements reconectado",
     "retroachievements_credentials_restored_description": "Tus credenciales de RetroAchievements vuelven a funcionar.",
     "retroachievements_credentials_invalid_title": "RetroAchievements necesita atención",

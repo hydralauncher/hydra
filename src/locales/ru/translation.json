@@ -1560,8 +1560,6 @@
     "review_answer_description": "{{displayName}} ответил на ваш отзыв",
     "review_answer_upvote_title": "Ваш ответ на {{gameTitle}} получил голоса!",
     "review_answer_upvote_description": "Ваш ответ получил {{count}} новых голосов",
-    "retroachievements_connected_title": "RetroAchievements подключён",
-    "retroachievements_connected_description": "Ваша учётная запись RetroAchievements теперь подключена.",
     "retroachievements_credentials_restored_title": "RetroAchievements снова подключён",
     "retroachievements_credentials_restored_description": "Ваши учётные данные RetroAchievements снова работают.",
     "retroachievements_credentials_invalid_title": "RetroAchievements требует внимания",
