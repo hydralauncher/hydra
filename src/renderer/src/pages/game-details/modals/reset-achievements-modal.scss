@@ -14,6 +14,12 @@
     line-height: 1.5;
   }
 
+  &__retroachievements-link {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
   &__actions {
     display: flex;
     width: 100%;

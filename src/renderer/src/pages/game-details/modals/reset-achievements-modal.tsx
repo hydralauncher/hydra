@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { LinkExternalIcon } from "@primer/octicons-react";
 import { Button, CheckboxField, Link, Modal } from "@renderer/components";
 import type { Game } from "@types";
 import "./reset-achievements-modal.scss";
@@ -57,7 +58,11 @@ export function ResetAchievementsModal({
             {t("reset_achievements_retroachievements_note")}
           </p>
 
-          <Link to={RETRO_ACHIEVEMENTS_SETTINGS_URL}>
+          <Link
+            to={RETRO_ACHIEVEMENTS_SETTINGS_URL}
+            className="reset-achievements-modal__retroachievements-link"
+          >
+            <LinkExternalIcon />
             {t("reset_achievements_retroachievements_link")}
           </Link>
 

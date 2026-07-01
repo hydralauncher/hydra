@@ -528,7 +528,7 @@
     "reset_achievements": "Сброс достижений",
     "reset_achievements_description": "Это сбросит все достижения для {{game}}",
     "reset_achievements_retroachievements_note": "Сначала сбросьте достижения в RetroAchievements, иначе они снова синхронизируются с Hydra.",
-    "reset_achievements_retroachievements_link": "Сбросить достижения в RetroAchievements",
+    "reset_achievements_retroachievements_link": "Открыть сайт RetroAchievements",
     "reset_achievements_retroachievements_confirm": "Я уже сбросил достижения для этой игры в RetroAchievements",
     "reset_achievements_title": "Вы уверены?",
     "reset_achievements_success": "Достижения успешно сброшены",
