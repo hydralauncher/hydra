@@ -5,6 +5,7 @@ import {
   AchievementNotificationInfo,
 } from "@types";
 import {
+  getAchievementNotificationRenderSettings,
   getAchievementSoundUrl,
   getAchievementSoundVolume,
 } from "@renderer/helpers";
@@ -37,14 +38,19 @@ export function AchievementNotificationOverlay() {
 
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
+  const notificationTimeoutRef = useRef(NOTIFICATION_TIMEOUT);
 
-  const playAudio = useCallback(async () => {
-    const soundUrl = await getAchievementSoundUrl();
-    const volume = await getAchievementSoundVolume();
-    const audio = new Audio(soundUrl);
-    audio.volume = volume;
-    audio.play();
-  }, []);
+  const playAudio = useCallback(
+    async (achievement: AchievementNotificationInfo) => {
+      const soundUrl = await getAchievementSoundUrl(achievement);
+      if (!soundUrl) return;
+      const volume = await getAchievementSoundVolume(achievement);
+      const audio = new Audio(soundUrl);
+      audio.volume = volume;
+      audio.play();
+    },
+    []
+  );
 
   useEffect(() => {
     const onInAppAchievementUnlocked =
@@ -60,7 +66,7 @@ export function AchievementNotificationOverlay() {
         if (!nextAchievements?.length) return;
         if (nextPosition) setPosition(nextPosition);
         setAchievements((current) => current.concat(nextAchievements));
-        playAudio();
+        playAudio(nextAchievements[0]);
       }
     );
 
@@ -99,7 +105,7 @@ export function AchievementNotificationOverlay() {
     cancelAnimationFrame(achievementAnimation.current);
     achievementAnimation.current = requestAnimationFrame(
       function animateLock(time) {
-        if (time - zero > NOTIFICATION_TIMEOUT) {
+        if (time - zero > notificationTimeoutRef.current) {
           zero = performance.now();
           startAnimateClosing();
         }
@@ -110,7 +116,12 @@ export function AchievementNotificationOverlay() {
 
   useEffect(() => {
     if (achievements.length) {
-      setCurrentAchievement(achievements[0]);
+      const achievement = achievements[0];
+      setCurrentAchievement(achievement);
+      getAchievementNotificationRenderSettings(achievement).then((settings) => {
+        notificationTimeoutRef.current =
+          settings?.displayTime ?? NOTIFICATION_TIMEOUT;
+      });
     }
   }, [achievements]);
 

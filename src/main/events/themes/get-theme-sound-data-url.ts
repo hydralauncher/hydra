@@ -4,14 +4,16 @@ import { themesSublevel } from "@main/level";
 import fs from "node:fs";
 import path from "node:path";
 import { logger } from "@main/services";
+import type { AchievementNotificationVariation } from "@types";
 
 const getThemeSoundDataUrl = async (
   _event: Electron.IpcMainInvokeEvent,
-  themeId: string
+  themeId: string,
+  variation?: AchievementNotificationVariation
 ): Promise<string | null> => {
   try {
     const theme = await themesSublevel.get(themeId);
-    const soundPath = getThemeSoundPath(themeId, theme?.name);
+    const soundPath = getThemeSoundPath(themeId, theme?.name, variation);
 
     if (!soundPath || !fs.existsSync(soundPath)) {
       return null;

@@ -366,18 +366,23 @@ export class AchievementWatcherManager {
         valueEncoding: "json",
       }
     );
-
     const shouldUseCustomNotification =
       userPreferences.achievementCustomNotificationsEnabled !== false &&
       process.platform !== "darwin" &&
       !!WindowManager.notificationWindow;
 
     if (shouldUseCustomNotification) {
+      const position = await WindowManager.getAchievementNotificationPosition(
+        undefined,
+        "main"
+      );
+
+      await WindowManager.updateNotificationWindowPosition(position);
       WindowManager.notificationWindow?.webContents.send(
         "on-combined-achievements-unlocked",
         totalNewGamesWithAchievements,
         totalNewAchievements,
-        userPreferences.achievementCustomNotificationPosition ?? "top-left"
+        position
       );
     } else {
       publishCombinedNewAchievementNotification(

@@ -145,9 +145,9 @@ export const mergeAchievements = async (
     const customEnabled =
       userPreferences.achievementCustomNotificationsEnabled !== false &&
       process.platform !== "darwin";
-
-    const position =
-      userPreferences.achievementCustomNotificationPosition ?? "top-left";
+    const position = await WindowManager.getAchievementNotificationPosition(
+      achievementsInfo[0]
+    );
 
     const publishOsNotification = () =>
       publishNewAchievementNotification({
@@ -174,6 +174,7 @@ export const mergeAchievements = async (
         customEnabled && !!WindowManager.notificationWindow;
 
       if (shouldUseCustomNotification) {
+        await WindowManager.updateNotificationWindowPosition(position);
         WindowManager.notificationWindow?.webContents.send(
           "on-achievement-unlocked",
           position,

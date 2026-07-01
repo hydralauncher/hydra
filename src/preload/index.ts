@@ -19,7 +19,10 @@ import type {
   ShortcutLocation,
   CreateSteamShortcutOptions,
   AchievementCustomNotificationPosition,
+  AchievementNotificationCustomizer,
   AchievementNotificationInfo,
+  AchievementNotificationVariation,
+  AchievementNotificationVariationSound,
   ProtonVersion,
   TorrentFilesResponse,
   DownloadLayoutState,
@@ -1158,8 +1161,11 @@ contextBridge.exposeInMainWorld("electron", {
   },
   updateAchievementCustomNotificationWindow: () =>
     ipcRenderer.invoke("updateAchievementCustomNotificationWindow"),
-  showAchievementTestNotification: () =>
-    ipcRenderer.invoke("showAchievementTestNotification"),
+  showAchievementTestNotification: (
+    variation?: AchievementNotificationVariation,
+    position?: AchievementCustomNotificationPosition
+  ) =>
+    ipcRenderer.invoke("showAchievementTestNotification", variation, position),
 
   /* Themes */
   addCustomTheme: (theme: Theme) => ipcRenderer.invoke("addCustomTheme", theme),
@@ -1169,6 +1175,27 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteCustomTheme", themeId),
   updateCustomTheme: (themeId: string, code: string) =>
     ipcRenderer.invoke("updateCustomTheme", themeId, code),
+  updateAchievementNotificationCustomizer: (
+    themeId: string,
+    customizer: AchievementNotificationCustomizer
+  ) =>
+    ipcRenderer.invoke(
+      "updateAchievementNotificationCustomizer",
+      themeId,
+      customizer
+    ),
+  updateAchievementNotificationProfile: (
+    themeId: string,
+    payload: {
+      name: string;
+      customizer: AchievementNotificationCustomizer;
+    }
+  ) =>
+    ipcRenderer.invoke(
+      "updateAchievementNotificationProfile",
+      themeId,
+      payload
+    ),
   getCustomThemeById: (themeId: string) =>
     ipcRenderer.invoke("getCustomThemeById", themeId),
   getActiveCustomTheme: () => ipcRenderer.invoke("getActiveCustomTheme"),
@@ -1176,12 +1203,45 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("toggleCustomTheme", themeId, isActive),
   copyThemeAchievementSound: (themeId: string, sourcePath: string) =>
     ipcRenderer.invoke("copyThemeAchievementSound", themeId, sourcePath),
+  copyThemeAchievementVariationSound: (
+    themeId: string,
+    variation: AchievementNotificationVariation,
+    sourcePath: string
+  ) =>
+    ipcRenderer.invoke(
+      "copyThemeAchievementVariationSound",
+      themeId,
+      variation,
+      sourcePath
+    ),
   removeThemeAchievementSound: (themeId: string) =>
     ipcRenderer.invoke("removeThemeAchievementSound", themeId),
+  removeThemeAchievementVariationSound: (
+    themeId: string,
+    variation: AchievementNotificationVariation
+  ) =>
+    ipcRenderer.invoke(
+      "removeThemeAchievementVariationSound",
+      themeId,
+      variation
+    ),
   getThemeSoundPath: (themeId: string) =>
     ipcRenderer.invoke("getThemeSoundPath", themeId),
-  getThemeSoundDataUrl: (themeId: string) =>
-    ipcRenderer.invoke("getThemeSoundDataUrl", themeId),
+  getThemeSoundDataUrl: (
+    themeId: string,
+    variation?: AchievementNotificationVariation
+  ) => ipcRenderer.invoke("getThemeSoundDataUrl", themeId, variation),
+  getAchievementNotificationSoundDataUrl: (
+    themeId: string,
+    variation: AchievementNotificationVariation,
+    sound?: AchievementNotificationVariationSound
+  ) =>
+    ipcRenderer.invoke(
+      "getAchievementNotificationSoundDataUrl",
+      themeId,
+      variation,
+      sound
+    ),
   importThemeSoundFromStore: (
     themeId: string,
     themeName: string,
@@ -1197,6 +1257,10 @@ contextBridge.exposeInMainWorld("electron", {
   /* Editor */
   openEditorWindow: (themeId: string) =>
     ipcRenderer.invoke("openEditorWindow", themeId),
+  openAchievementNotificationCustomizerWindow: () =>
+    ipcRenderer.invoke("openAchievementNotificationCustomizerWindow"),
+  closeAchievementNotificationCustomizerWindow: () =>
+    ipcRenderer.invoke("closeAchievementNotificationCustomizerWindow"),
   onCustomThemeUpdated: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-custom-theme-updated", listener);
