@@ -65,7 +65,7 @@ export class BigPictureSessionManager {
   }
 
   private static async waitForPendingRestore() {
-    if (!this.restorePromise) {
+    if (this.restorePromise === null) {
       return;
     }
 
@@ -82,7 +82,7 @@ export class BigPictureSessionManager {
   public static async apply() {
     await this.waitForPendingRestore();
 
-    if (this.snapshot) {
+    if (this.snapshot !== null) {
       return;
     }
 
@@ -109,7 +109,7 @@ export class BigPictureSessionManager {
   }
 
   public static async applyAudioPreference(userPreferences: UserPreferences) {
-    if (!this.snapshot || this.restorePromise) {
+    if (this.snapshot === null || this.restorePromise !== null) {
       return false;
     }
 
@@ -143,13 +143,13 @@ export class BigPictureSessionManager {
   }
 
   public static async restore() {
-    if (this.restorePromise) {
+    if (this.restorePromise !== null) {
       return this.restorePromise;
     }
 
     const snapshot = this.snapshot;
 
-    if (!snapshot) {
+    if (snapshot === null) {
       return;
     }
 
