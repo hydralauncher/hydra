@@ -11,7 +11,7 @@ Implemented features:
   - Main: default payload.
   - Rare: `isRare`.
   - 100%: `isPlatinum`.
-- `isHidden` does not affect variation, sound, routing, preset, or category selection; the existing hidden visual treatment remains layered on top.
+- `isHidden` does not affect variation, sound, or position selection; the existing hidden visual treatment remains layered on top.
 - Live preview is local to settings and does not send OS or in-app notifications.
 - Test live sends existing-shaped achievement notification payloads through the existing platform path and is available only when custom notifications are enabled.
 - Windows external achievement notification rendering consumes structured CSS variables for colors, outline, radius, shadow, and default notification sizing.

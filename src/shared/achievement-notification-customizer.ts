@@ -14,21 +14,15 @@ export const ACHIEVEMENT_NOTIFICATION_VARIATIONS = [
   "platinum",
 ] as const satisfies AchievementNotificationVariation[];
 
-export const ACHIEVEMENT_NOTIFICATION_PRESETS = [
-  "hydra",
-  "steam-deck",
-  "xbox",
-  "playstation",
-  "windows",
-] as const;
-
 export const DEFAULT_ACHIEVEMENT_NOTIFICATION_SOUND_VOLUME = 1;
 
+const ACHIEVEMENT_NOTIFICATION_WIDTH = 360;
+const ACHIEVEMENT_NOTIFICATION_HEIGHT = 140;
+const ACHIEVEMENT_NOTIFICATION_FONT_FAMILY = "Noto Sans";
+const ACHIEVEMENT_NOTIFICATION_ICON_SIZE = 64;
+
 const baseVariationStyle: AchievementNotificationVariationStyle = {
-  preset: "hydra",
   position: "top-left",
-  width: 360,
-  height: 140,
   scale: 1,
   displayTime: 4000,
   opacity: 1,
@@ -36,8 +30,6 @@ const baseVariationStyle: AchievementNotificationVariationStyle = {
   titleColor: "#c0c1c7",
   descriptionColor: "#dadbe1",
   accentColor: "#c0c1c7",
-  fontFamily: "Noto Sans",
-  iconSize: 64,
   radius: 0,
   outlineWidth: 1,
   outlineColor: "#ffffff1a",
@@ -207,13 +199,13 @@ export const getAchievementNotificationCssVariables = (
   style: AchievementNotificationVariationStyle
 ): Record<string, string> => {
   return {
-    "--achievement-notification-width": `${style.width}px`,
-    "--achievement-notification-height": `${style.height}px`,
+    "--achievement-notification-width": `${ACHIEVEMENT_NOTIFICATION_WIDTH}px`,
+    "--achievement-notification-height": `${ACHIEVEMENT_NOTIFICATION_HEIGHT}px`,
     "--achievement-notification-scaled-width": `${Math.ceil(
-      style.width * style.scale
+      ACHIEVEMENT_NOTIFICATION_WIDTH * style.scale
     )}px`,
     "--achievement-notification-scaled-height": `${Math.ceil(
-      style.height * style.scale
+      ACHIEVEMENT_NOTIFICATION_HEIGHT * style.scale
     )}px`,
     "--achievement-notification-scale": `${style.scale}`,
     "--achievement-notification-opacity": `${style.opacity}`,
@@ -221,8 +213,9 @@ export const getAchievementNotificationCssVariables = (
     "--achievement-notification-title-color": style.titleColor,
     "--achievement-notification-description-color": style.descriptionColor,
     "--achievement-notification-accent-color": style.accentColor,
-    "--achievement-notification-font-family": style.fontFamily,
-    "--achievement-notification-icon-size": `${style.iconSize}px`,
+    "--achievement-notification-font-family":
+      ACHIEVEMENT_NOTIFICATION_FONT_FAMILY,
+    "--achievement-notification-icon-size": `${ACHIEVEMENT_NOTIFICATION_ICON_SIZE}px`,
     "--achievement-notification-radius": `${style.radius}px`,
     "--achievement-notification-outline-width": `${style.outlineWidth}px`,
     "--achievement-notification-outline-color": style.outlineColor,
@@ -240,8 +233,8 @@ export const getAchievementNotificationWindowSize = (
   const sizes = ACHIEVEMENT_NOTIFICATION_VARIATIONS.map((variation) => {
     const style = getAchievementNotificationStyle(customizer, variation);
     return {
-      width: Math.ceil(style.width * style.scale),
-      height: Math.ceil(style.height * style.scale),
+      width: Math.ceil(ACHIEVEMENT_NOTIFICATION_WIDTH * style.scale),
+      height: Math.ceil(ACHIEVEMENT_NOTIFICATION_HEIGHT * style.scale),
     };
   });
 

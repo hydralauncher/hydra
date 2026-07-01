@@ -74,7 +74,7 @@ test("legacy themes merge with structured defaults", () => {
       variations: {
         main: {
           ...DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER.variations.main,
-          width: 420,
+          background: "#123456",
         },
         rare: DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER.variations.rare,
         platinum:
@@ -83,7 +83,7 @@ test("legacy themes merge with structured defaults", () => {
     },
   });
 
-  assert.equal(customizer.variations.main.width, 420);
+  assert.equal(customizer.variations.main.background, "#123456");
   assert.equal(
     customizer.variations.rare.accentColor,
     DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER.variations.rare.accentColor
@@ -184,7 +184,7 @@ test("customizer is ignored when achievement or custom notifications are disable
   );
 });
 
-test("window bounds account for custom size and scale", () => {
+test("window bounds account for scale", () => {
   assert.deepEqual(
     getAchievementNotificationWindowSize({
       achievementNotificationCustomizer: {
@@ -192,8 +192,6 @@ test("window bounds account for custom size and scale", () => {
         variations: {
           main: {
             ...DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER.variations.main,
-            width: 400,
-            height: 100,
             scale: 1.5,
           },
           rare: DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER.variations.rare,
@@ -202,7 +200,7 @@ test("window bounds account for custom size and scale", () => {
         },
       },
     }),
-    { width: 600, height: 150 }
+    { width: 540, height: 210 }
   );
 });
 

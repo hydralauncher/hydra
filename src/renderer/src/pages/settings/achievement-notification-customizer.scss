@@ -207,7 +207,7 @@
     }
   }
 
-  &__layout {
+  &__content {
     display: grid;
     grid-template-columns: minmax(420px, 1fr) minmax(340px, 460px);
     gap: 16px;
@@ -270,7 +270,7 @@
 
 @media (max-width: 980px) {
   .achievement-notification-customizer {
-    &__layout {
+    &__content {
       grid-template-columns: 1fr;
     }
 

@@ -25,10 +25,7 @@ export interface AchievementNotificationVariationSound {
 }
 
 export interface AchievementNotificationVariationStyle {
-  preset: string;
   position?: AchievementCustomNotificationPosition;
-  width: number;
-  height: number;
   scale: number;
   displayTime: number;
   opacity: number;
@@ -36,12 +33,9 @@ export interface AchievementNotificationVariationStyle {
   titleColor: string;
   descriptionColor: string;
   accentColor: string;
-  fontFamily: string;
-  iconSize: number;
   radius: number;
   outlineWidth: number;
   outlineColor: string;
-  shadow?: string;
   shadowColor: string;
   shadowIntensity: number;
 }

@@ -781,7 +781,7 @@ export function AchievementNotificationCustomizer({
             </div>
           </div>
 
-          <div className="achievement-notification-customizer__layout">
+          <div className="achievement-notification-customizer__content">
             <div className="achievement-notification-customizer__controls">
               <div className="achievement-notification-customizer__section">
                 <div className="achievement-notification-customizer__section-heading">
