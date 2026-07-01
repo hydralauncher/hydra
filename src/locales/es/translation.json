@@ -861,6 +861,8 @@
     "retroachievements": "RetroAchievements",
     "retroachievements_description": "Conecta tu cuenta de RetroAchievements para sincronizar tus logros de juegos clásicos y de emuladores en Hydra.",
     "retroachievements_create_account": "Haz clic aquí si aún no tienes una cuenta de RetroAchievements",
+    "retroachievements_emulator_note": "También debes conectar tu cuenta de RetroAchievements en los ajustes de tu emulador para que los logros se desbloqueen.",
+    "retroachievements_view_guide": "Ver guía",
     "retroachievements_username": "Nombre de usuario",
     "retroachievements_password": "Contraseña",
     "retroachievements_web_api_key": "Clave de Web API",
