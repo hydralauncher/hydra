@@ -31,8 +31,14 @@
     line-height: 1.5;
   }
 
-  &__guide-button {
-    align-self: flex-start;
+  &__guide-tooltip {
+    cursor: pointer;
+    vertical-align: middle;
+    color: var(--text-secondary);
+
+    &:hover {
+      color: #fff;
+    }
   }
 
   &__connected {

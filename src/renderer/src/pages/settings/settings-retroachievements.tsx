@@ -6,11 +6,11 @@ import { useAppSelector, useToast } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import {
   AlertIcon,
-  BookIcon,
   CheckCircleFillIcon,
   ChevronRightIcon,
   LinkExternalIcon,
   PersonIcon,
+  QuestionIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 
@@ -296,18 +296,15 @@ export function SettingsRetroAchievements() {
           </Link>
 
           <p className="settings-retroachievements__emulator-note">
-            {t("retroachievements_emulator_note")}
+            {t("retroachievements_emulator_note")}{" "}
+            <small
+              className="settings-retroachievements__guide-tooltip"
+              data-open-article="retroachievements-emulators"
+              title={t("retroachievements_view_guide")}
+            >
+              <QuestionIcon size={12} />
+            </small>
           </p>
-
-          <Button
-            type="button"
-            theme="outline"
-            onClick={() => {}}
-            className="settings-retroachievements__guide-button"
-          >
-            <BookIcon size={STATUS_ICON_SIZE} />
-            {t("retroachievements_view_guide")}
-          </Button>
         </div>
 
         <TextField
