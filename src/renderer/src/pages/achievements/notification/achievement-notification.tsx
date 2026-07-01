@@ -13,6 +13,7 @@ import {
 } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import hydraIcon from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
@@ -68,7 +69,7 @@ export function AchievementNotification() {
             isHidden: false,
             isRare: false,
             isPlatinum: false,
-            iconUrl: "https://cdn.losbroxas.org/favicon.svg",
+            iconUrl: hydraIcon,
           },
         ]);
 
@@ -80,7 +81,7 @@ export function AchievementNotification() {
           isHidden: false,
           isRare: false,
           isPlatinum: false,
-          iconUrl: "https://cdn.losbroxas.org/favicon.svg",
+          iconUrl: hydraIcon,
         });
       }
     );
@@ -132,35 +133,48 @@ export function AchievementNotification() {
   }, []);
 
   useEffect(() => {
-    if (hasAchievementsPending) {
-      setIsClosing(false);
-      setIsVisible(true);
-
-      let zero = performance.now();
-      cancelAnimationFrame(closingAnimation.current);
-      cancelAnimationFrame(visibleAnimation.current);
-      cancelAnimationFrame(achievementAnimation.current);
-      achievementAnimation.current = requestAnimationFrame(
-        function animateLock(time) {
-          if (time - zero > notificationTimeoutRef.current) {
-            zero = performance.now();
-            startAnimateClosing();
-          }
-          achievementAnimation.current = requestAnimationFrame(animateLock);
-        }
-      );
+    if (!hasAchievementsPending || !currentAchievement) {
+      return;
     }
+
+    setIsClosing(false);
+    setIsVisible(true);
+
+    let zero = performance.now();
+    cancelAnimationFrame(closingAnimation.current);
+    cancelAnimationFrame(visibleAnimation.current);
+    cancelAnimationFrame(achievementAnimation.current);
+    achievementAnimation.current = requestAnimationFrame(
+      function animateLock(time) {
+        if (time - zero > notificationTimeoutRef.current) {
+          zero = performance.now();
+          startAnimateClosing();
+        }
+        achievementAnimation.current = requestAnimationFrame(animateLock);
+      }
+    );
   }, [hasAchievementsPending, startAnimateClosing, currentAchievement]);
 
   useEffect(() => {
-    if (achievements.length) {
-      const achievement = achievements[0];
-      setCurrentAchievement(achievement);
-      getAchievementNotificationRenderSettings(achievement).then((settings) => {
+    if (!achievements.length) {
+      setCurrentAchievement(null);
+      return;
+    }
+
+    let cancelled = false;
+    const achievement = achievements[0];
+
+    getAchievementNotificationRenderSettings(achievement).then((settings) => {
+      if (!cancelled) {
         notificationTimeoutRef.current =
           settings?.displayTime ?? NOTIFICATION_TIMEOUT;
-      });
-    }
+        setCurrentAchievement(achievement);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [achievements]);
 
   const loadAndApplyTheme = useCallback(async () => {

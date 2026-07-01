@@ -95,7 +95,7 @@ export function AchievementNotificationOverlay() {
   }, []);
 
   useEffect(() => {
-    if (!hasAchievementsPending) return;
+    if (!hasAchievementsPending || !currentAchievement) return;
 
     setIsClosing(false);
     setIsVisible(true);
@@ -115,14 +115,25 @@ export function AchievementNotificationOverlay() {
   }, [hasAchievementsPending, startAnimateClosing, currentAchievement]);
 
   useEffect(() => {
-    if (achievements.length) {
-      const achievement = achievements[0];
-      setCurrentAchievement(achievement);
-      getAchievementNotificationRenderSettings(achievement).then((settings) => {
+    if (!achievements.length) {
+      setCurrentAchievement(null);
+      return;
+    }
+
+    let cancelled = false;
+    const achievement = achievements[0];
+
+    getAchievementNotificationRenderSettings(achievement).then((settings) => {
+      if (!cancelled) {
         notificationTimeoutRef.current =
           settings?.displayTime ?? NOTIFICATION_TIMEOUT;
-      });
-    }
+        setCurrentAchievement(achievement);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [achievements]);
 
   if (!isVisible || !currentAchievement) return null;

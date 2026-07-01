@@ -7,6 +7,7 @@ import {
   AuthPage,
   DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
   generateAchievementCustomNotificationTest,
+  getActiveAchievementNotificationTheme,
   getAchievementNotificationPosition,
   getAchievementNotificationVariation,
   getAchievementNotificationWindowPosition,
@@ -681,10 +682,18 @@ export class WindowManager {
   private static readonly NOTIFICATION_WINDOW_WIDTH = 360;
   private static readonly NOTIFICATION_WINDOW_HEIGHT = 140;
 
-  private static async getNotificationWindowSize() {
+  private static async getNotificationWindowSize(useDefaultProfile = false) {
+    if (useDefaultProfile) {
+      return getAchievementNotificationWindowSize({
+        achievementNotificationCustomizer:
+          DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
+      });
+    }
+
     const allThemes = await themesSublevel.values().all();
-    const activeTheme = allThemes.find((theme) => theme.isActive);
-    return getAchievementNotificationWindowSize(activeTheme);
+    const activeNotificationTheme =
+      getActiveAchievementNotificationTheme(allThemes);
+    return getAchievementNotificationWindowSize(activeNotificationTheme);
   }
 
   public static async getAchievementNotificationPosition(
@@ -700,16 +709,19 @@ export class WindowManager {
         valueEncoding: "json",
       }),
     ]);
-    const activeTheme = allThemes.find((theme) => theme.isActive);
+    const activeNotificationTheme =
+      getActiveAchievementNotificationTheme(allThemes);
     const fallback =
       userPreferences?.achievementCustomNotificationPosition ?? "top-left";
 
-    if (!activeTheme) return fallback;
+    if (!activeNotificationTheme) return fallback;
 
     const variation = achievement
       ? getAchievementNotificationVariation(achievement)
       : fallbackVariation;
-    const customizer = getThemeAchievementNotificationCustomizer(activeTheme);
+    const customizer = getThemeAchievementNotificationCustomizer(
+      activeNotificationTheme
+    );
 
     return getAchievementNotificationPosition(customizer, variation, fallback);
   }
@@ -763,7 +775,11 @@ export class WindowManager {
 
   public static async createNotificationWindow({
     forceCustomNotification = false,
-  }: { forceCustomNotification?: boolean } = {}) {
+    useDefaultProfile = false,
+  }: {
+    forceCustomNotification?: boolean;
+    useDefaultProfile?: boolean;
+  } = {}) {
     if (this.notificationWindow) return;
 
     if (process.platform === "darwin" || process.platform === "linux") {
@@ -785,9 +801,11 @@ export class WindowManager {
       return;
     }
 
-    const size = await this.getNotificationWindowSize();
+    const size = await this.getNotificationWindowSize(useDefaultProfile);
     const position = await this.getAchievementNotificationPosition();
     const { x, y } = await this.getNotificationWindowPosition(position, size);
+    const roundedX = Math.round(x);
+    const roundedY = Math.round(y);
 
     this.notificationWindow = new BrowserWindow({
       transparent: true,
@@ -800,14 +818,13 @@ export class WindowManager {
       frame: false,
       width: size.width,
       height: size.height,
-      x,
-      y,
+      x: roundedX,
+      y: roundedY,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
       },
     });
-    this.notificationWindow.setPosition(Math.round(x), Math.round(y));
     this.notificationWindow.setIgnoreMouseEvents(true);
 
     this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
@@ -875,6 +892,7 @@ export class WindowManager {
     if (!this.notificationWindow) {
       await this.createNotificationWindow({
         forceCustomNotification: shouldUseDefaultProfile,
+        useDefaultProfile: shouldUseDefaultProfile,
       });
     }
 
@@ -890,7 +908,10 @@ export class WindowManager {
       });
     }
 
-    await this.updateNotificationWindowPosition(position);
+    await this.updateNotificationWindowPosition(
+      position,
+      shouldUseDefaultProfile
+    );
     this.notificationWindow?.webContents.send(
       "on-achievement-unlocked",
       position,
@@ -899,15 +920,14 @@ export class WindowManager {
   }
 
   public static async updateNotificationWindowPosition(
-    position: AchievementCustomNotificationPosition
+    position: AchievementCustomNotificationPosition,
+    useDefaultProfile = false
   ) {
     if (!this.notificationWindow) return;
 
-    const size = await this.getNotificationWindowSize();
+    const size = await this.getNotificationWindowSize(useDefaultProfile);
     const { x, y } = await this.getNotificationWindowPosition(position, size);
 
-    this.notificationWindow.setSize(size.width, size.height);
-    this.notificationWindow.setPosition(Math.round(x), Math.round(y));
     this.notificationWindow.setBounds({
       x: Math.round(x),
       y: Math.round(y),

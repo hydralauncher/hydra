@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
+  getActiveAchievementNotificationTheme,
   getEffectiveAchievementNotificationSoundVolume,
   getAchievementNotificationCssVariables,
   getAchievementNotificationSound,
@@ -181,6 +182,36 @@ test("customizer is ignored when achievement or custom notifications are disable
       achievementCustomNotificationsEnabled: false,
     }),
     false
+  );
+});
+
+test("active notification profile is independent from active CSS theme", () => {
+  const cssTheme = {
+    isActive: true,
+  };
+  const notificationProfile = {
+    isActive: false,
+    achievementNotificationCustomizerActive: true,
+    achievementNotificationCustomizer:
+      DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
+  };
+
+  assert.equal(
+    getActiveAchievementNotificationTheme([cssTheme, notificationProfile]),
+    notificationProfile
+  );
+});
+
+test("active CSS theme with customizer remains a fallback notification profile", () => {
+  const cssThemeWithCustomizer = {
+    isActive: true,
+    achievementNotificationCustomizer:
+      DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
+  };
+
+  assert.equal(
+    getActiveAchievementNotificationTheme([cssThemeWithCustomizer]),
+    cssThemeWithCustomizer
   );
 });
 

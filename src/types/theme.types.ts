@@ -9,6 +9,7 @@ export interface Theme {
   code: string;
   hasCustomSound?: boolean;
   originalSoundPath?: string;
+  achievementNotificationCustomizerActive?: boolean;
   achievementNotificationCustomizer?: AchievementNotificationCustomizer;
   createdAt: Date;
   updatedAt: Date;

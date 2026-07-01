@@ -23,6 +23,7 @@ import { Button, SelectField, TextField } from "@renderer/components";
 import { generateUUID } from "@renderer/helpers";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
+import hydraIcon from "@renderer/assets/icons/hydra.svg?url";
 import {
   BellIcon,
   PlayIcon,
@@ -42,6 +43,11 @@ const audioExtensions = ["wav", "mp3", "ogg", "m4a"];
 const defaultProfileOption = "__default_profile__";
 const newProfileOption = "__new_profile__";
 const autosaveDelay = 600;
+const scaleRange = { min: 0.6, max: 2, step: 0.05 };
+const radiusRange = { min: 0, max: 40, step: 1 };
+const outlineRange = { min: 0, max: 8, step: 1 };
+const shadowRange = { min: 0, max: 100, step: 1 };
+const soundVolumeRange = { min: 0, max: 100, step: 1 };
 const positionOptions: AchievementCustomNotificationPosition[] = [
   "top-left",
   "top-center",
@@ -59,7 +65,7 @@ const getPreviewAchievement = (
     variation === "rare"
       ? "A rare hidden achievement preview"
       : "Live preview without sending a notification",
-  iconUrl: "https://cdn.losbroxas.org/favicon.svg",
+  iconUrl: hydraIcon,
   points: 2440,
   isHidden: variation === "rare",
   isRare: variation === "rare",
@@ -155,13 +161,19 @@ export function AchievementNotificationCustomizer({
   const loadProfiles = useCallback(
     async (preferredThemeId?: string) => {
       const themes = (await levelDBService.values("themes")) as Theme[];
+      const notificationProfiles = themes.filter(
+        (theme) => theme.achievementNotificationCustomizer
+      );
       const theme =
         preferredThemeId === defaultProfileOption
           ? null
-          : (themes.find(
+          : (notificationProfiles.find(
               (currentTheme) => currentTheme.id === preferredThemeId
             ) ??
-            themes.find((currentTheme) => currentTheme.isActive) ??
+            notificationProfiles.find(
+              (currentTheme) =>
+                currentTheme.achievementNotificationCustomizerActive
+            ) ??
             null);
 
       const nextIsDefaultProfile = !theme;
@@ -173,7 +185,7 @@ export function AchievementNotificationCustomizer({
         profileName: nextProfileName,
       });
 
-      setProfiles(themes);
+      setProfiles(notificationProfiles);
       setActiveTheme(theme);
       setIsDefaultProfileSelected(nextIsDefaultProfile);
       setProfileName(nextProfileName);
@@ -212,7 +224,7 @@ export function AchievementNotificationCustomizer({
       ...profiles.map((profile) => ({
         key: profile.id,
         value: profile.id,
-        label: profile.isActive
+        label: profile.achievementNotificationCustomizerActive
           ? t("active_profile_option", { name: profile.name })
           : profile.name,
       })),
@@ -434,24 +446,24 @@ export function AchievementNotificationCustomizer({
       customizer: AchievementNotificationCustomizerData;
       profileName: string;
     }) => {
-      const themes = (await levelDBService.values("themes")) as Theme[];
-      const active = themes.find((theme) => theme.isActive);
       const now = new Date();
       const theme: Theme = {
         id: generateUUID(),
         name: snapshot.profileName.trim() || getProfileName(),
-        isActive: true,
+        isActive: false,
+        achievementNotificationCustomizerActive: false,
         code: "",
         achievementNotificationCustomizer: snapshot.customizer,
         createdAt: now,
         updatedAt: now,
       };
 
-      if (active) {
-        await window.electron.toggleCustomTheme(active.id, false);
-      }
-
       await window.electron.addCustomTheme(theme);
+      await window.electron.updateAchievementNotificationProfile(theme.id, {
+        name: theme.name,
+        customizer: snapshot.customizer,
+        achievementNotificationCustomizerActive: true,
+      });
       await window.electron.updateAchievementCustomNotificationWindow();
       await loadProfiles(theme.id);
     },
@@ -523,12 +535,11 @@ export function AchievementNotificationCustomizer({
   const activateProfile = async () => {
     if (!activeTheme) return;
 
-    const currentActive = profiles.find((profile) => profile.isActive);
-    if (currentActive && currentActive.id !== activeTheme.id) {
-      await window.electron.toggleCustomTheme(currentActive.id, false);
-    }
-
-    await window.electron.toggleCustomTheme(activeTheme.id, true);
+    await window.electron.updateAchievementNotificationProfile(activeTheme.id, {
+      name: activeTheme.name,
+      customizer,
+      achievementNotificationCustomizerActive: true,
+    });
     await window.electron.updateAchievementCustomNotificationWindow();
     await loadProfiles(activeTheme.id);
   };
@@ -753,7 +764,10 @@ export function AchievementNotificationCustomizer({
               </Button>
               <Button
                 theme="outline"
-                disabled={!activeTheme || activeTheme.isActive}
+                disabled={
+                  !activeTheme ||
+                  activeTheme.achievementNotificationCustomizerActive
+                }
                 onClick={activateProfile}
               >
                 {t("activate_profile")}
@@ -812,9 +826,9 @@ export function AchievementNotificationCustomizer({
                     {t("scale")}
                     <input
                       type="range"
-                      min="0.6"
-                      max="2"
-                      step="0.05"
+                      min={scaleRange.min}
+                      max={scaleRange.max}
+                      step={scaleRange.step}
                       value={selectedStyle.scale}
                       onChange={(event) =>
                         updateSelectedStyle({
@@ -886,9 +900,9 @@ export function AchievementNotificationCustomizer({
                     {t("radius")}
                     <input
                       type="range"
-                      min="0"
-                      max="40"
-                      step="1"
+                      min={radiusRange.min}
+                      max={radiusRange.max}
+                      step={radiusRange.step}
                       value={selectedStyle.radius}
                       onChange={(event) =>
                         updateSelectedStyle({
@@ -903,9 +917,9 @@ export function AchievementNotificationCustomizer({
                     {t("outline")}
                     <input
                       type="range"
-                      min="0"
-                      max="8"
-                      step="1"
+                      min={outlineRange.min}
+                      max={outlineRange.max}
+                      step={outlineRange.step}
                       value={selectedStyle.outlineWidth}
                       onChange={(event) =>
                         updateSelectedStyle({
@@ -920,9 +934,9 @@ export function AchievementNotificationCustomizer({
                     {t("shadow")}
                     <input
                       type="range"
-                      min="0"
-                      max="100"
-                      step="1"
+                      min={shadowRange.min}
+                      max={shadowRange.max}
+                      step={shadowRange.step}
                       value={selectedStyle.shadowIntensity}
                       onChange={(event) =>
                         updateSelectedStyle({
@@ -1002,9 +1016,9 @@ export function AchievementNotificationCustomizer({
                     {t("sound_volume")}
                     <input
                       type="range"
-                      min="0"
-                      max="100"
-                      step="1"
+                      min={soundVolumeRange.min}
+                      max={soundVolumeRange.max}
+                      step={soundVolumeRange.step}
                       value={selectedSoundVolume}
                       disabled={selectedSound.mode === "muted"}
                       onChange={(event) =>

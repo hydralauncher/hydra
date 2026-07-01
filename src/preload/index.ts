@@ -1189,6 +1189,7 @@ contextBridge.exposeInMainWorld("electron", {
     payload: {
       name: string;
       customizer: AchievementNotificationCustomizer;
+      achievementNotificationCustomizerActive?: boolean;
     }
   ) =>
     ipcRenderer.invoke(

@@ -8,6 +8,7 @@ import type {
 } from "@types";
 import {
   DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
+  getActiveAchievementNotificationTheme,
   getEffectiveAchievementNotificationSoundVolume,
   getAchievementNotificationSound,
   getAchievementNotificationCssVariables,
@@ -172,7 +173,11 @@ const getActiveTheme = async (): Promise<Theme | null> => {
   return allThemes.find((theme) => theme.isActive) ?? null;
 };
 
-export const getActiveAchievementNotificationTheme = getActiveTheme;
+export const getActiveAchievementNotificationProfile =
+  async (): Promise<Theme | null> => {
+    const allThemes = (await levelDBService.values("themes")) as Theme[];
+    return getActiveAchievementNotificationTheme(allThemes);
+  };
 
 export const getAchievementSoundUrl = async (
   achievement?: Pick<
@@ -193,6 +198,8 @@ export const getAchievementSoundUrl = async (
       achievementCustomNotificationsEnabled?: boolean;
     } | null;
     const activeTheme = await getActiveTheme();
+    const activeAchievementNotificationTheme =
+      await getActiveAchievementNotificationProfile();
     const variation: AchievementNotificationVariation = achievement
       ? getAchievementNotificationVariation(achievement)
       : "main";
@@ -206,15 +213,17 @@ export const getAchievementSoundUrl = async (
     }
 
     if (
-      activeTheme &&
+      activeAchievementNotificationTheme &&
       achievement &&
       isAchievementNotificationCustomizerEnabled(prefs)
     ) {
-      const customizer = getThemeAchievementNotificationCustomizer(activeTheme);
+      const customizer = getThemeAchievementNotificationCustomizer(
+        activeAchievementNotificationTheme
+      );
       const sound = getAchievementNotificationSound(customizer, variation);
       const soundDataUrl =
         await window.electron.getAchievementNotificationSoundDataUrl(
-          activeTheme.id,
+          activeAchievementNotificationTheme.id,
           variation,
           sound
         );
@@ -280,11 +289,13 @@ export const getAchievementSoundVolume = async (
     }
 
     if (achievement && isAchievementNotificationCustomizerEnabled(prefs)) {
-      const activeTheme = await getActiveTheme();
-      if (activeTheme) {
+      const activeAchievementNotificationTheme =
+        await getActiveAchievementNotificationProfile();
+      if (activeAchievementNotificationTheme) {
         const variation = getAchievementNotificationVariation(achievement);
-        const customizer =
-          getThemeAchievementNotificationCustomizer(activeTheme);
+        const customizer = getThemeAchievementNotificationCustomizer(
+          activeAchievementNotificationTheme
+        );
         const sound = getAchievementNotificationSound(customizer, variation);
 
         if (sound.volume !== undefined) {
@@ -330,7 +341,9 @@ export const getAchievementNotificationRenderSettings = async (
     const customizer =
       prefs?.achievementCustomNotificationsEnabled === false
         ? DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER
-        : getThemeAchievementNotificationCustomizer(await getActiveTheme());
+        : getThemeAchievementNotificationCustomizer(
+            await getActiveAchievementNotificationProfile()
+          );
     const style = getAchievementNotificationStyle(customizer, variation);
 
     return {

@@ -20,6 +20,13 @@ const ACHIEVEMENT_NOTIFICATION_WIDTH = 360;
 const ACHIEVEMENT_NOTIFICATION_HEIGHT = 140;
 const ACHIEVEMENT_NOTIFICATION_FONT_FAMILY = "Noto Sans";
 const ACHIEVEMENT_NOTIFICATION_ICON_SIZE = 64;
+const SHADOW_BLUR_BASE = 8;
+const SHADOW_BLUR_SCALE = 0.28;
+const SHADOW_SPREAD_SCALE = 0.03;
+const SHADOW_ALPHA_BASE = 0.18;
+const SHADOW_ALPHA_DIVISOR = 220;
+const SHADOW_ALPHA_MAX = 0.62;
+const SHADOW_COLOR_MIX_SCALE = 0.45;
 
 const baseVariationStyle: AchievementNotificationVariationStyle = {
   position: "top-left",
@@ -123,13 +130,37 @@ const getShadowFromIntensity = (
     return "none";
   }
 
-  const blur = Math.round(8 + normalizedIntensity * 0.28);
-  const spread = Math.round(normalizedIntensity * 0.03);
-  const alpha = Math.min(0.18 + normalizedIntensity / 220, 0.62);
+  const blur = Math.round(
+    SHADOW_BLUR_BASE + normalizedIntensity * SHADOW_BLUR_SCALE
+  );
+  const spread = Math.round(normalizedIntensity * SHADOW_SPREAD_SCALE);
+  const alpha = Math.min(
+    SHADOW_ALPHA_BASE + normalizedIntensity / SHADOW_ALPHA_DIVISOR,
+    SHADOW_ALPHA_MAX
+  );
 
   return `0 4px ${blur}px ${spread}px color-mix(in srgb, ${shadowColor} ${Math.round(
-    normalizedIntensity * 0.45
+    normalizedIntensity * SHADOW_COLOR_MIX_SCALE
   )}%, rgba(0, 0, 0, ${alpha}))`;
+};
+
+export const getActiveAchievementNotificationTheme = <
+  T extends Pick<
+    Theme,
+    | "isActive"
+    | "achievementNotificationCustomizer"
+    | "achievementNotificationCustomizerActive"
+  >,
+>(
+  themes: T[]
+): T | null => {
+  return (
+    themes.find((theme) => theme.achievementNotificationCustomizerActive) ??
+    themes.find(
+      (theme) => theme.isActive && theme.achievementNotificationCustomizer
+    ) ??
+    null
+  );
 };
 
 export const getThemeAchievementNotificationCustomizer = (

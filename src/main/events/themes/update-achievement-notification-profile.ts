@@ -9,6 +9,7 @@ const updateAchievementNotificationProfile = async (
   payload: {
     name: string;
     customizer: AchievementNotificationCustomizer;
+    achievementNotificationCustomizerActive?: boolean;
   }
 ) => {
   const theme = await themesSublevel.get(themeId);
@@ -17,10 +18,32 @@ const updateAchievementNotificationProfile = async (
     throw new Error("Theme not found");
   }
 
+  if (payload.achievementNotificationCustomizerActive) {
+    const allThemes = await themesSublevel.values().all();
+    await Promise.all(
+      allThemes
+        .filter(
+          (currentTheme) =>
+            currentTheme.id !== themeId &&
+            currentTheme.achievementNotificationCustomizerActive
+        )
+        .map((currentTheme) =>
+          themesSublevel.put(currentTheme.id, {
+            ...currentTheme,
+            achievementNotificationCustomizerActive: false,
+            updatedAt: new Date(),
+          })
+        )
+    );
+  }
+
   await themesSublevel.put(themeId, {
     ...theme,
     name: payload.name.trim() || theme.name,
     achievementNotificationCustomizer: payload.customizer,
+    achievementNotificationCustomizerActive:
+      payload.achievementNotificationCustomizerActive ??
+      theme.achievementNotificationCustomizerActive,
     updatedAt: new Date(),
   });
 

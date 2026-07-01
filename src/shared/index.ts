@@ -205,6 +205,9 @@ export const formatDate = (
   return format(date, language == "en" ? "MM-dd-yyyy" : "dd/MM/yyyy");
 };
 
+const ACHIEVEMENT_TEST_ICON_URL =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23000'/%3E%3Cpath fill='%23fff' d='M20 18h24v8c0 7-5 13-12 15-7-2-12-8-12-15v-8Zm4 4v4c0 5 3 9 8 11 5-2 8-6 8-11v-4H24Zm-8 4h4v5c-4 0-7-2-8-6l4-1Zm28 0h4l4 1c-1 4-4 6-8 6v-7ZM28 42h8v4h6v4H22v-4h6v-4Z'/%3E%3C/svg%3E";
+
 export const generateAchievementCustomNotificationTest = (
   t: any,
   language?: string,
@@ -219,7 +222,7 @@ export const generateAchievementCustomNotificationTest = (
       ns: "notifications",
       lng: language ?? "en",
     }),
-    iconUrl: "https://cdn.losbroxas.org/favicon.svg",
+    iconUrl: ACHIEVEMENT_TEST_ICON_URL,
     points: 2440,
     isHidden: options.isHidden ?? false,
     isRare: options.isRare ?? false,

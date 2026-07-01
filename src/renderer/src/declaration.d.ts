@@ -856,6 +856,7 @@ declare global {
       payload: {
         name: string;
         customizer: AchievementNotificationCustomizer;
+        achievementNotificationCustomizerActive?: boolean;
       }
     ) => Promise<void>;
     getCustomThemeById: (themeId: string) => Promise<Theme | null>;
