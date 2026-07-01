@@ -5,6 +5,8 @@ import {
   ClockIcon,
   StarFillIcon,
   CommentDiscussionIcon,
+  TrophyIcon,
+  AlertIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +31,10 @@ const parseNotificationUrl = (notificationUrl: string): string => {
 
   if (url.pathname === "/badges" && badgeName) {
     return `/badges/${badgeName}`;
+  }
+
+  if (url.pathname === "/profile/integrations/retroachievements") {
+    return "/settings?tab=integrations";
   }
 
   if (url.pathname.startsWith("/game/")) {
@@ -174,6 +180,30 @@ export function NotificationItem({
           }),
           showActions: false,
         };
+      case "RETROACHIEVEMENTS_CONNECTED":
+        return {
+          title: t("retroachievements_connected_title"),
+          description: t("retroachievements_connected_description"),
+          showActions: false,
+        };
+      case "RETROACHIEVEMENTS_CREDENTIALS_RESTORED":
+        return {
+          title: t("retroachievements_credentials_restored_title"),
+          description: t("retroachievements_credentials_restored_description"),
+          showActions: false,
+        };
+      case "RETROACHIEVEMENTS_CREDENTIALS_INVALID":
+        return {
+          title: t("retroachievements_credentials_invalid_title"),
+          description: t("retroachievements_credentials_invalid_description"),
+          showActions: false,
+        };
+      case "RETROACHIEVEMENTS_SYNC_FAILED":
+        return {
+          title: t("retroachievements_sync_failed_title"),
+          description: t("retroachievements_sync_failed_description"),
+          showActions: false,
+        };
       default:
         return {
           title: t("notification"),
@@ -190,9 +220,22 @@ export function NotificationItem({
   const isReviewAnswerUpvote = notification.type === "REVIEW_ANSWER_UPVOTE";
   const isReview = isReviewUpvote || isReviewAnswer || isReviewAnswerUpvote;
 
+  const isRetroAchievementsSuccess =
+    notification.type === "RETROACHIEVEMENTS_CONNECTED" ||
+    notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED";
+  const isRetroAchievementsAlert =
+    notification.type === "RETROACHIEVEMENTS_CREDENTIALS_INVALID" ||
+    notification.type === "RETROACHIEVEMENTS_SYNC_FAILED";
+
   const getIcon = () => {
     if (notification.pictureUrl) {
       return <img src={notification.pictureUrl} alt="" />;
+    }
+    if (isRetroAchievementsSuccess) {
+      return <TrophyIcon size={24} />;
+    }
+    if (isRetroAchievementsAlert) {
+      return <AlertIcon size={24} />;
     }
     if (isReviewUpvote || isReviewAnswerUpvote) {
       return <StarFillIcon size={24} />;
