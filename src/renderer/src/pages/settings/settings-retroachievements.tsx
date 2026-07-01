@@ -76,7 +76,7 @@ export function SettingsRetroAchievements() {
   const [showDeleteAchievementsModal, setShowDeleteAchievementsModal] =
     useState(false);
   const [deleteAchievementsOnDisconnect, setDeleteAchievementsOnDisconnect] =
-    useState(false);
+    useState(true);
 
   const connectedUsername = integration.connected ? integration.username : null;
 
@@ -168,7 +168,7 @@ export function SettingsRetroAchievements() {
 
   const closeDisconnectModal = () => {
     setShowDisconnectModal(false);
-    setDeleteAchievementsOnDisconnect(false);
+    setDeleteAchievementsOnDisconnect(true);
   };
 
   const handleConfirmDisconnect = () => {
@@ -184,7 +184,7 @@ export function SettingsRetroAchievements() {
   const handleDisconnect = async (deleteAchievements: boolean) => {
     setShowDisconnectModal(false);
     setShowDeleteAchievementsModal(false);
-    setDeleteAchievementsOnDisconnect(false);
+    setDeleteAchievementsOnDisconnect(true);
     setIsSubmitting(true);
 
     try {
@@ -301,7 +301,7 @@ export function SettingsRetroAchievements() {
             <Button
               theme="danger"
               onClick={() => {
-                setDeleteAchievementsOnDisconnect(false);
+                setDeleteAchievementsOnDisconnect(true);
                 setShowDisconnectModal(true);
               }}
               disabled={isSubmitting || isRefreshing}
