@@ -12,6 +12,22 @@ import {
 import { AchievementNotificationItem } from "./achievement-notification";
 
 const NOTIFICATION_TIMEOUT = 4000;
+const fallbackPosition: AchievementCustomNotificationPosition = "top-left";
+
+type QueuedAchievementNotification = {
+  achievement: AchievementNotificationInfo;
+  position: AchievementCustomNotificationPosition;
+};
+
+const queueAchievements = (
+  position: AchievementCustomNotificationPosition | undefined,
+  achievements: AchievementNotificationInfo[]
+): QueuedAchievementNotification[] => {
+  return achievements.map((achievement) => ({
+    achievement,
+    position: position ?? fallbackPosition,
+  }));
+};
 
 const anchorByPosition: Record<
   AchievementCustomNotificationPosition,
@@ -31,7 +47,7 @@ export function AchievementNotificationOverlay() {
   const [position, setPosition] =
     useState<AchievementCustomNotificationPosition>("top-left");
   const [achievements, setAchievements] = useState<
-    AchievementNotificationInfo[]
+    QueuedAchievementNotification[]
   >([]);
   const [currentAchievement, setCurrentAchievement] =
     useState<AchievementNotificationInfo | null>(null);
@@ -65,14 +81,16 @@ export function AchievementNotificationOverlay() {
       (nextPosition, nextAchievements) => {
         if (!nextAchievements?.length) return;
         if (nextPosition) setPosition(nextPosition);
-        setAchievements((current) => current.concat(nextAchievements));
-        playAudio(nextAchievements[0]);
+        setAchievements((current) =>
+          current.concat(queueAchievements(nextPosition, nextAchievements))
+        );
       }
     );
 
     return () => unsubscribe();
-  }, [playAudio]);
+  }, []);
 
+  const queuedAchievement = achievements[0];
   const hasAchievementsPending = achievements.length > 0;
 
   const startAnimateClosing = useCallback(() => {
@@ -115,26 +133,29 @@ export function AchievementNotificationOverlay() {
   }, [hasAchievementsPending, startAnimateClosing, currentAchievement]);
 
   useEffect(() => {
-    if (!achievements.length) {
+    if (!queuedAchievement) {
       setCurrentAchievement(null);
       return;
     }
 
     let cancelled = false;
-    const achievement = achievements[0];
 
-    getAchievementNotificationRenderSettings(achievement).then((settings) => {
-      if (!cancelled) {
-        notificationTimeoutRef.current =
-          settings?.displayTime ?? NOTIFICATION_TIMEOUT;
-        setCurrentAchievement(achievement);
-      }
+    getAchievementNotificationRenderSettings(
+      queuedAchievement.achievement
+    ).then((settings) => {
+      if (cancelled) return;
+
+      setPosition(settings?.position ?? queuedAchievement.position);
+      notificationTimeoutRef.current =
+        settings?.displayTime ?? NOTIFICATION_TIMEOUT;
+      setCurrentAchievement(queuedAchievement.achievement);
+      playAudio(queuedAchievement.achievement);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [achievements]);
+  }, [queuedAchievement, playAudio]);
 
   if (!isVisible || !currentAchievement) return null;
 

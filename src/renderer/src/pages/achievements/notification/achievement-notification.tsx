@@ -19,6 +19,22 @@ import styles from "../../../components/achievements/notification/achievement-no
 import root from "react-shadow";
 
 const NOTIFICATION_TIMEOUT = 4000;
+const fallbackPosition: AchievementCustomNotificationPosition = "top-left";
+
+type QueuedAchievementNotification = {
+  achievement: AchievementNotificationInfo;
+  position: AchievementCustomNotificationPosition;
+};
+
+const queueAchievements = (
+  position: AchievementCustomNotificationPosition | undefined,
+  achievements: AchievementNotificationInfo[]
+): QueuedAchievementNotification[] => {
+  return achievements.map((achievement) => ({
+    achievement,
+    position: position ?? fallbackPosition,
+  }));
+};
 
 export function AchievementNotification() {
   const { t } = useTranslation("achievement");
@@ -29,7 +45,7 @@ export function AchievementNotification() {
     useState<AchievementCustomNotificationPosition>("top-left");
 
   const [achievements, setAchievements] = useState<
-    AchievementNotificationInfo[]
+    QueuedAchievementNotification[]
   >([]);
   const [currentAchievement, setCurrentAchievement] =
     useState<AchievementNotificationInfo | null>(null);
@@ -60,20 +76,7 @@ export function AchievementNotification() {
 
         setPosition(position);
 
-        setAchievements([
-          {
-            title: t("new_achievements_unlocked", {
-              gameCount,
-              achievementCount,
-            }),
-            isHidden: false,
-            isRare: false,
-            isPlatinum: false,
-            iconUrl: hydraIcon,
-          },
-        ]);
-
-        playAudio({
+        const achievement = {
           title: t("new_achievements_unlocked", {
             gameCount,
             achievementCount,
@@ -82,14 +85,16 @@ export function AchievementNotification() {
           isRare: false,
           isPlatinum: false,
           iconUrl: hydraIcon,
-        });
+        };
+
+        setAchievements([{ achievement, position }]);
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [t, playAudio]);
+  }, [t]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onAchievementUnlocked(
@@ -99,17 +104,18 @@ export function AchievementNotification() {
           setPosition(position);
         }
 
-        setAchievements((ach) => ach.concat(achievements));
-
-        playAudio(achievements[0]);
+        setAchievements((ach) =>
+          ach.concat(queueAchievements(position, achievements))
+        );
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [playAudio]);
+  }, []);
 
+  const queuedAchievement = achievements[0];
   const hasAchievementsPending = achievements.length > 0;
 
   const startAnimateClosing = useCallback(() => {
@@ -156,26 +162,34 @@ export function AchievementNotification() {
   }, [hasAchievementsPending, startAnimateClosing, currentAchievement]);
 
   useEffect(() => {
-    if (!achievements.length) {
+    if (!queuedAchievement) {
       setCurrentAchievement(null);
       return;
     }
 
     let cancelled = false;
-    const achievement = achievements[0];
 
-    getAchievementNotificationRenderSettings(achievement).then((settings) => {
-      if (!cancelled) {
-        notificationTimeoutRef.current =
-          settings?.displayTime ?? NOTIFICATION_TIMEOUT;
-        setCurrentAchievement(achievement);
-      }
+    getAchievementNotificationRenderSettings(
+      queuedAchievement.achievement
+    ).then((settings) => {
+      if (cancelled) return;
+
+      const nextPosition = settings?.position ?? queuedAchievement.position;
+
+      setPosition(nextPosition);
+      window.electron
+        .updateAchievementNotificationWindowPosition(nextPosition)
+        .catch(() => {});
+      notificationTimeoutRef.current =
+        settings?.displayTime ?? NOTIFICATION_TIMEOUT;
+      setCurrentAchievement(queuedAchievement.achievement);
+      playAudio(queuedAchievement.achievement);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [achievements]);
+  }, [queuedAchievement, playAudio]);
 
   const loadAndApplyTheme = useCallback(async () => {
     if (!shadowRootRef) return;

@@ -1161,6 +1161,10 @@ contextBridge.exposeInMainWorld("electron", {
   },
   updateAchievementCustomNotificationWindow: () =>
     ipcRenderer.invoke("updateAchievementCustomNotificationWindow"),
+  updateAchievementNotificationWindowPosition: (
+    position: AchievementCustomNotificationPosition
+  ) =>
+    ipcRenderer.invoke("updateAchievementNotificationWindowPosition", position),
   showAchievementTestNotification: (
     variation?: AchievementNotificationVariation,
     position?: AchievementCustomNotificationPosition

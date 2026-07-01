@@ -1,4 +1,5 @@
 import type {
+  AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
   AchievementNotificationVariation,
   EmulatorBinary,
@@ -12,6 +13,7 @@ import {
   getEffectiveAchievementNotificationSoundVolume,
   getAchievementNotificationSound,
   getAchievementNotificationCssVariables,
+  getAchievementNotificationPosition as resolveAchievementNotificationPosition,
   getAchievementNotificationStyle,
   getAchievementNotificationVariation,
   getThemeAchievementNotificationCustomizer,
@@ -322,6 +324,7 @@ export const getAchievementNotificationRenderSettings = async (
 ): Promise<{
   cssVariables: Record<string, string>;
   displayTime: number;
+  position: AchievementCustomNotificationPosition;
 } | null> => {
   try {
     const prefs = (await levelDBService.get(
@@ -331,6 +334,7 @@ export const getAchievementNotificationRenderSettings = async (
     )) as {
       achievementNotificationsEnabled?: boolean;
       achievementCustomNotificationsEnabled?: boolean;
+      achievementCustomNotificationPosition?: AchievementCustomNotificationPosition;
     } | null;
 
     if (prefs?.achievementNotificationsEnabled === false) {
@@ -345,10 +349,17 @@ export const getAchievementNotificationRenderSettings = async (
             await getActiveAchievementNotificationProfile()
           );
     const style = getAchievementNotificationStyle(customizer, variation);
+    const fallbackPosition =
+      prefs?.achievementCustomNotificationPosition ?? "top-left";
 
     return {
       cssVariables: getAchievementNotificationCssVariables(style),
       displayTime: style.displayTime,
+      position: resolveAchievementNotificationPosition(
+        customizer,
+        variation,
+        fallbackPosition
+      ),
     };
   } catch (error) {
     console.error(

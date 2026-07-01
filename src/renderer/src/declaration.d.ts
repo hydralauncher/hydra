@@ -836,6 +836,9 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     updateAchievementCustomNotificationWindow: () => Promise<void>;
+    updateAchievementNotificationWindowPosition: (
+      position: AchievementCustomNotificationPosition
+    ) => Promise<void>;
     showAchievementTestNotification: (
       variation?: AchievementNotificationVariation,
       position?: AchievementCustomNotificationPosition
