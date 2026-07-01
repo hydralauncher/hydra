@@ -449,15 +449,15 @@ export function SettingsRetroAchievements() {
         title={t("retroachievements_disconnect_title")}
       >
         <div className="settings-retroachievements__modal">
+          <p className="settings-retroachievements__modal-note">
+            {t("retroachievements_disconnect_description")}
+          </p>
+
           <CheckboxField
             label={t("retroachievements_delete_on_disconnect")}
             checked={deleteAchievementsOnDisconnect}
             onChange={() => setDeleteAchievementsOnDisconnect((prev) => !prev)}
           />
-
-          <p className="settings-retroachievements__modal-note">
-            {t("retroachievements_disconnect_description")}
-          </p>
 
           <div className="settings-retroachievements__modal-actions">
             <Button
