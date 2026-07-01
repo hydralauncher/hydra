@@ -235,7 +235,14 @@
     border-radius: 8px;
   }
 
-  &__bios-status {
+  &__res-header-end {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  &__res-status {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -246,6 +253,31 @@
     font-weight: 400;
     color: #d4d5db;
     background: #26262b;
+
+    &--found {
+      color: #6ee7a0;
+    }
+
+    &--warn {
+      color: #fbbf24;
+    }
+  }
+
+  &__res-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-size: 12px;
+    color: #8e919b;
+    cursor: pointer;
+
+    &:hover {
+      color: #c0c1c7;
+      text-decoration: underline;
+    }
   }
 
   &__exec-label {
@@ -1032,6 +1064,10 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 16px;
+
+    &--actions-only {
+      justify-content: flex-end;
+    }
   }
 
   &__exec-path-box {
