@@ -201,7 +201,9 @@ export function NotificationItem({
       case "RETROACHIEVEMENTS_SYNC_FAILED":
         return {
           title: t("retroachievements_sync_failed_title"),
-          description: t("retroachievements_sync_failed_description"),
+          description: t("retroachievements_sync_failed_description", {
+            gameTitle: notification.variables.gameTitle,
+          }),
           showActions: false,
         };
       default:

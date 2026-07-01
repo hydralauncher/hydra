@@ -1468,7 +1468,7 @@
     "retroachievements_credentials_invalid_title": "RetroAchievements precisa de atenção",
     "retroachievements_credentials_invalid_description": "Suas credenciais do RetroAchievements não são mais válidas. Reconecte sua conta.",
     "retroachievements_sync_failed_title": "Falha na sincronização do RetroAchievements",
-    "retroachievements_sync_failed_description": "Não foi possível sincronizar seu progresso do RetroAchievements. Tente novamente mais tarde.",
+    "retroachievements_sync_failed_description": "Não foi possível sincronizar seu progresso do RetroAchievements em {{gameTitle}}. Tente novamente mais tarde.",
     "marked_all_as_read": "Todas as notificações marcadas como lidas",
     "failed_to_mark_as_read": "Falha ao marcar notificações como lidas",
     "cleared_all": "Todas as notificações limpas",
