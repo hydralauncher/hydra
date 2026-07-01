@@ -8,14 +8,14 @@ export function SettingsContextIntegrations() {
   return (
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
-        <h3>{t("debrid_services")}</h3>
-        <SettingsDebrid />
+        <SettingsRetroAchievements />
       </div>
 
       <hr className="settings-context-panel__divider" />
 
       <div className="settings-context-panel__group">
-        <SettingsRetroAchievements />
+        <h3>{t("debrid_services")}</h3>
+        <SettingsDebrid />
       </div>
     </div>
   );
