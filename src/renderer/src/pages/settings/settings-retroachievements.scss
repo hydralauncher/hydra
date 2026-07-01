@@ -116,6 +116,18 @@
     flex-shrink: 0;
   }
 
+  &__modal {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__modal-note {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
   &__modal-actions {
     display: flex;
     justify-content: flex-end;

@@ -1,7 +1,13 @@
 import { useContext, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { Button, Link, Modal, TextField } from "@renderer/components";
+import {
+  Button,
+  CheckboxField,
+  Link,
+  Modal,
+  TextField,
+} from "@renderer/components";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import {
@@ -68,6 +74,8 @@ export function SettingsRetroAchievements() {
   const [avatarError, setAvatarError] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [showDeleteAchievementsModal, setShowDeleteAchievementsModal] =
+    useState(false);
+  const [deleteAchievementsOnDisconnect, setDeleteAchievementsOnDisconnect] =
     useState(false);
 
   const connectedUsername = integration.connected ? integration.username : null;
@@ -158,9 +166,25 @@ export function SettingsRetroAchievements() {
     }
   };
 
+  const closeDisconnectModal = () => {
+    setShowDisconnectModal(false);
+    setDeleteAchievementsOnDisconnect(false);
+  };
+
+  const handleConfirmDisconnect = () => {
+    if (deleteAchievementsOnDisconnect) {
+      setShowDisconnectModal(false);
+      setShowDeleteAchievementsModal(true);
+      return;
+    }
+
+    handleDisconnect(false);
+  };
+
   const handleDisconnect = async (deleteAchievements: boolean) => {
     setShowDisconnectModal(false);
     setShowDeleteAchievementsModal(false);
+    setDeleteAchievementsOnDisconnect(false);
     setIsSubmitting(true);
 
     try {
@@ -276,7 +300,10 @@ export function SettingsRetroAchievements() {
 
             <Button
               theme="danger"
-              onClick={() => setShowDisconnectModal(true)}
+              onClick={() => {
+                setDeleteAchievementsOnDisconnect(false);
+                setShowDisconnectModal(true);
+              }}
               disabled={isSubmitting || isRefreshing}
             >
               {t("retroachievements_disconnect")}
@@ -418,28 +445,36 @@ export function SettingsRetroAchievements() {
 
       <Modal
         visible={showDisconnectModal}
-        onClose={() => setShowDisconnectModal(false)}
+        onClose={closeDisconnectModal}
         title={t("retroachievements_disconnect_title")}
-        description={t("retroachievements_disconnect_description")}
       >
-        <div className="settings-retroachievements__modal-actions">
-          <Button
-            theme="outline"
-            onClick={() => handleDisconnect(false)}
-            disabled={isSubmitting}
-          >
-            {t("retroachievements_keep_achievements")}
-          </Button>
-          <Button
-            theme="danger"
-            onClick={() => {
-              setShowDisconnectModal(false);
-              setShowDeleteAchievementsModal(true);
-            }}
-            disabled={isSubmitting}
-          >
-            {t("retroachievements_delete_achievements")}
-          </Button>
+        <div className="settings-retroachievements__modal">
+          <CheckboxField
+            label={t("retroachievements_delete_on_disconnect")}
+            checked={deleteAchievementsOnDisconnect}
+            onChange={() => setDeleteAchievementsOnDisconnect((prev) => !prev)}
+          />
+
+          <p className="settings-retroachievements__modal-note">
+            {t("retroachievements_disconnect_description")}
+          </p>
+
+          <div className="settings-retroachievements__modal-actions">
+            <Button
+              theme="outline"
+              onClick={closeDisconnectModal}
+              disabled={isSubmitting}
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              theme="danger"
+              onClick={handleConfirmDisconnect}
+              disabled={isSubmitting}
+            >
+              {t("retroachievements_disconnect")}
+            </Button>
+          </div>
         </div>
       </Modal>
 
