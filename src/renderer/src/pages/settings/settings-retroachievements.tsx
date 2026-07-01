@@ -13,6 +13,8 @@ import {
   SyncIcon,
 } from "@primer/octicons-react";
 
+import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
+
 import "./settings-debrid.scss";
 import "./settings-retroachievements.scss";
 
@@ -370,6 +372,11 @@ export function SettingsRetroAchievements() {
         <h3 className="settings-debrid__section-title">
           {t("retroachievements")}
         </h3>
+        <img
+          src={retroAchievementsLogo}
+          alt=""
+          className="settings-retroachievements__title-logo"
+        />
         {integration.connected &&
           (integration.retroAchievementsAccountStatus ===
           "invalid_credentials" ? (
