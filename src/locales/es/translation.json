@@ -1357,6 +1357,7 @@
     "achievement_unlocked": "Logro desbloqueado",
     "user_achievements": "Logros de {{displayName}}",
     "your_achievements": "Tus logros",
+    "connect_retroachievements_prompt": "Conecta RetroAchievements para seguir tu progreso",
     "unlocked_at": "Desbloqueado el: {{date}}",
     "subscription_needed": "Se requiere una suscripción a Hydra Cloud para ver esto",
     "new_achievements_unlocked": "Desbloqueaste {{achievementCount}} nuevos logros de {{gameCount}} juegos",

@@ -1,0 +1,33 @@
+@use "../../scss/globals.scss";
+
+.retro-achievements-connect-banner {
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit * 1.5);
+  width: 100%;
+  padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.04);
+  color: globals.$muted-color;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  &__logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    flex: 1;
+    text-align: left;
+    font-size: globals.$small-font-size;
+  }
+}

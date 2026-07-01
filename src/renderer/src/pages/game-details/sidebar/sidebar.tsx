@@ -24,6 +24,7 @@ import { LaunchboxDetailsSection } from "./launchbox-details-section";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { ControllerSupportSection } from "./controller-support-section";
@@ -213,6 +214,8 @@ export function Sidebar() {
             achievementsCount: achievements.length,
           })}
         >
+          <RetroAchievementsConnectBanner />
+
           <ul className="list">
             {!hasActiveSubscription && (
               <button
