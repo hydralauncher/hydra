@@ -5,7 +5,7 @@ import type { Game } from "@types";
 import "./reset-achievements-modal.scss";
 
 const RETRO_ACHIEVEMENTS_SETTINGS_URL =
-  "https://retroachievements.org/settings";
+  "https://retroachievements.org/settings#resettable-game-select";
 
 type ResetAchievementsModalProps = Readonly<{
   visible: boolean;
