@@ -1,6 +1,19 @@
 @use "../../../scss/globals.scss";
 
 .reset-achievements-modal {
+  &__retroachievements {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__retroachievements-note {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
   &__actions {
     display: flex;
     width: 100%;
