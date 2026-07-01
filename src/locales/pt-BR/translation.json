@@ -1350,6 +1350,7 @@
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
     "your_achievements": "Suas Conquistas",
+    "connect_retroachievements_prompt": "Conecte o RetroAchievements para acompanhar seu progresso",
     "user_achievements": "Conquistas de {{displayName}}",
     "unlocked_at": "Desbloqueada em: {{date}}",
     "subscription_needed": "Você precisa de uma assinatura Hydra Cloud para visualizar este conteúdo",
