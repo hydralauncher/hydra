@@ -906,6 +906,8 @@
     "retroachievements": "RetroAchievements",
     "retroachievements_description": "Подключите свою учётную запись RetroAchievements, чтобы синхронизировать достижения из эмуляторов и классических игр с Hydra.",
     "retroachievements_create_account": "Нажмите здесь, если у вас ещё нет учётной записи RetroAchievements",
+    "retroachievements_emulator_note": "Также необходимо подключить учётную запись RetroAchievements в настройках эмулятора, чтобы достижения открывались.",
+    "retroachievements_view_guide": "Открыть руководство",
     "retroachievements_username": "Имя пользователя",
     "retroachievements_password": "Пароль",
     "retroachievements_web_api_key": "Ключ Web API",

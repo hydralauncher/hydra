@@ -905,6 +905,8 @@
     "retroachievements": "RetroAchievements",
     "retroachievements_description": "Connect your RetroAchievements account to sync your unlocks from emulator and classic games into Hydra.",
     "retroachievements_create_account": "Click here if you don't have a RetroAchievements account yet",
+    "retroachievements_emulator_note": "You also need to connect your RetroAchievements account in your emulator's settings for achievements to unlock.",
+    "retroachievements_view_guide": "View guide",
     "retroachievements_username": "Username",
     "retroachievements_password": "Password",
     "retroachievements_web_api_key": "Web API Key",

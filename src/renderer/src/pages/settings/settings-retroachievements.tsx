@@ -6,6 +6,7 @@ import { useAppSelector, useToast } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import {
   AlertIcon,
+  BookIcon,
   CheckCircleFillIcon,
   ChevronRightIcon,
   LinkExternalIcon,
@@ -293,6 +294,20 @@ export function SettingsRetroAchievements() {
             <LinkExternalIcon />
             {t("retroachievements_create_account")}
           </Link>
+
+          <p className="settings-retroachievements__emulator-note">
+            {t("retroachievements_emulator_note")}
+          </p>
+
+          <Button
+            type="button"
+            theme="outline"
+            onClick={() => {}}
+            className="settings-retroachievements__guide-button"
+          >
+            <BookIcon size={STATUS_ICON_SIZE} />
+            {t("retroachievements_view_guide")}
+          </Button>
         </div>
 
         <TextField
