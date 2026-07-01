@@ -3,31 +3,36 @@
 .retro-achievements-connect-banner {
   display: flex;
   align-items: center;
-  gap: calc(globals.$spacing-unit * 1.5);
+  justify-content: center;
+  gap: globals.$spacing-unit;
   width: 100%;
-  padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
-  border: 1px solid globals.$border-color;
-  border-radius: 8px;
-  background-color: rgba(255, 255, 255, 0.04);
+  padding: globals.$spacing-unit 0;
+  border: none;
+  background: none;
   color: globals.$muted-color;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: color 0.2s ease;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.08);
     color: #fff;
+
+    .retro-achievements-connect-banner__text {
+      text-decoration: underline;
+    }
   }
 
   &__logo {
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
     object-fit: contain;
     flex-shrink: 0;
   }
 
   &__text {
-    flex: 1;
-    text-align: left;
     font-size: globals.$small-font-size;
+  }
+
+  svg {
+    flex-shrink: 0;
   }
 }

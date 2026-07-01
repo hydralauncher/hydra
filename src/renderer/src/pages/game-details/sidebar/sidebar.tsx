@@ -214,9 +214,9 @@ export function Sidebar() {
             achievementsCount: achievements.length,
           })}
         >
-          <RetroAchievementsConnectBanner />
-
           <ul className="list">
+            <RetroAchievementsConnectBanner />
+
             {!hasActiveSubscription && (
               <button
                 className="subscription-required-button"
