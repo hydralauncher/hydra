@@ -342,24 +342,27 @@ export const getAchievementNotificationRenderSettings = async (
     }
 
     const variation = getAchievementNotificationVariation(achievement);
-    const customizer =
-      prefs?.achievementCustomNotificationsEnabled === false
-        ? DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER
-        : getThemeAchievementNotificationCustomizer(
-            await getActiveAchievementNotificationProfile()
-          );
-    const style = getAchievementNotificationStyle(customizer, variation);
     const fallbackPosition =
       prefs?.achievementCustomNotificationPosition ?? "top-left";
+    const activeAchievementNotificationProfile =
+      prefs?.achievementCustomNotificationsEnabled === false
+        ? null
+        : await getActiveAchievementNotificationProfile();
+    const customizer = getThemeAchievementNotificationCustomizer(
+      activeAchievementNotificationProfile
+    );
+    const style = getAchievementNotificationStyle(customizer, variation);
 
     return {
       cssVariables: getAchievementNotificationCssVariables(style),
       displayTime: style.displayTime,
-      position: resolveAchievementNotificationPosition(
-        customizer,
-        variation,
-        fallbackPosition
-      ),
+      position: activeAchievementNotificationProfile
+        ? resolveAchievementNotificationPosition(
+            customizer,
+            variation,
+            fallbackPosition
+          )
+        : fallbackPosition,
     };
   } catch (error) {
     console.error(
