@@ -33,6 +33,7 @@ import type {
   EmulationBackupProgress,
   EmulationCloudSave,
   EmulationSavePlatform,
+  MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
 } from "@types";
@@ -376,6 +377,11 @@ contextBridge.exposeInMainWorld("electron", {
     platform: EmulationSavePlatform
   ): Promise<MemcardRestoreTarget[]> =>
     ipcRenderer.invoke("getMemcardRestoreTargets", platform),
+  inspectMemcard: (
+    platform: EmulationSavePlatform,
+    cardFilePath: string
+  ): Promise<MemcardFormatState> =>
+    ipcRenderer.invoke("inspectMemcard", platform, cardFilePath),
   restoreEmulationSave: (
     platform: EmulationSavePlatform,
     saveId: string,

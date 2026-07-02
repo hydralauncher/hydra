@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 
 import {
   findDataOffset,
+  inspectPs1Card,
   listPs1Saves,
   readPs1SaveContents,
 } from "./ps1-memory-card";
@@ -111,6 +112,7 @@ const chainFrom = (directory: Buffer, firstBlock: number): number[] => {
 export interface Ps1ImportResult {
   ok: boolean;
   error?: string;
+  reason?: "unformatted";
   identifier?: string;
 }
 
@@ -192,6 +194,14 @@ export const importMcsIntoCard = async (
   const mcs = parseMcsBuffer(mcsBuffer);
   if (!mcs) return { ok: false, error: "Invalid .mcs data" };
 
+  if ((await inspectPs1Card(cardFilePath)) === "unformatted") {
+    return {
+      ok: false,
+      reason: "unformatted",
+      error: "The memory card is not formatted",
+    };
+  }
+
   const backupPath = `${cardFilePath}.hydra-bak`;
   try {
     await fs.copyFile(cardFilePath, backupPath);
@@ -212,7 +222,11 @@ export const importMcsIntoCard = async (
     const dataOffset = findDataOffset(fileBuf, fileBuf.length);
     if (dataOffset === null) {
       await restore();
-      return { ok: false, error: "Not a writable PS1 memory card" };
+      return {
+        ok: false,
+        reason: "unformatted",
+        error: "Not a writable PS1 memory card",
+      };
     }
     const applied = applyMcsToCard(fileBuf.subarray(dataOffset), mcs);
     if (!applied.ok) {
