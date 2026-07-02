@@ -261,7 +261,7 @@ interface HeroDownloadViewProps {
   pauseDownload: (shop: GameShop, objectId: string) => void;
   resumeDownload: (shop: GameShop, objectId: string) => void;
   onCancelClick: (shop: GameShop, objectId: string) => void;
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }
 
 function HeroDownloadView({
@@ -303,6 +303,10 @@ function HeroDownloadView({
     !lastPacket?.isCheckingFiles &&
     !hasEta;
   const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
+  const isRecovering = !isGameExtracting && !!lastPacket?.isRecovering;
+  const recoveryPercent = Math.round((lastPacket?.recoveryProgress ?? 0) * 100);
+  const isReconnecting =
+    !isGameExtracting && !isRecovering && !!lastPacket?.isReconnecting;
 
   return (
     <div className="download-group download-group--hero">
@@ -351,14 +355,27 @@ function HeroDownloadView({
                     {t("checking_files")}
                   </span>
                 )}
-                {!isGameExtracting && !lastPacket?.isCheckingFiles && (
-                  <span className="download-group__progress-size">
-                    <DownloadIcon size={14} />
-                    {isGameDownloading && lastPacket
-                      ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
-                      : `${formatBytes(game.download?.bytesDownloaded ?? 0)} / ${finalDownloadSize}`}
+                {isRecovering && !lastPacket?.isCheckingFiles && (
+                  <span className="download-group__progress-status">
+                    {t("recovering", { percentage: `${recoveryPercent}%` })}
                   </span>
                 )}
+                {isReconnecting && !lastPacket?.isCheckingFiles && (
+                  <span className="download-group__progress-status">
+                    {t("reconnecting")}
+                  </span>
+                )}
+                {!isGameExtracting &&
+                  !lastPacket?.isCheckingFiles &&
+                  !isReconnecting &&
+                  !isRecovering && (
+                    <span className="download-group__progress-size">
+                      <DownloadIcon size={14} />
+                      {isGameDownloading && lastPacket
+                        ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
+                        : `${formatBytes(game.download?.bytesDownloaded ?? 0)} / ${finalDownloadSize}`}
+                    </span>
+                  )}
                 <span></span>
               </div>
               <div className="download-group__progress-info-row">
