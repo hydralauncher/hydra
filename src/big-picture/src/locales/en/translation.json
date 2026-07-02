@@ -758,6 +758,7 @@
     "file_explorer_error_enoent": "This location doesn't exist.",
     "file_explorer_error_enotdir": "This is not a directory.",
     "file_explorer_error_default": "This location can't be opened.",
+    "file_explorer_filters": "File filters",
     "file_explorer_select_this_directory": "Select this directory",
     "file_explorer_select_download_directory": "Select Download Directory"
   }

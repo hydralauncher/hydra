@@ -747,6 +747,7 @@
     "file_explorer_error_enoent": "Esta ubicación no existe.",
     "file_explorer_error_enotdir": "Esta ruta no es una carpeta.",
     "file_explorer_error_default": "No se puede abrir esta ubicación.",
+    "file_explorer_filters": "Filtros de archivo",
     "file_explorer_select_this_directory": "Seleccionar esta carpeta",
     "file_explorer_select_download_directory": "Seleccionar directorio de descarga"
   }

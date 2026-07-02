@@ -6,9 +6,11 @@ export interface FileFilter {
   extensions: string[];
 }
 
-interface NormalizedFilters {
-  specificExtensions: Set<string>;
-  hasWildcard: boolean;
+export interface FilterGroup {
+  id: string;
+  label: string;
+  mode: "all" | "extensions";
+  extensions: Set<string>;
 }
 
 const WINDOWS_DRIVE_RE = /^[A-Za-z]:$/;
@@ -54,33 +56,56 @@ export function getEntryMeta(entry: DirectoryEntry): string {
 
 export function normalizeFilters(
   filters?: FileFilter[]
-): NormalizedFilters | null {
-  if (!filters || filters.length === 0) return null;
+): FilterGroup[] {
+  if (!filters || filters.length === 0) return [];
 
-  const allExtensions = filters.flatMap((f) => f.extensions);
-  const hasWildcard = allExtensions.includes("*");
-  const specificExtensions = allExtensions.filter((ext) => ext !== "*");
+  const normalizedFilters: FilterGroup[] = [];
 
-  if (specificExtensions.length === 0 && !hasWildcard) return null;
+  filters.forEach((filter, index) => {
+    const normalizedExtensions = Array.from(
+      new Set(
+        filter.extensions
+          .map((extension) => extension.trim().toLowerCase())
+          .filter(Boolean)
+      )
+    );
 
-  return {
-    specificExtensions: new Set(
-      specificExtensions.map((ext) => ext.toLowerCase())
-    ),
-    hasWildcard,
-  };
+    const specificExtensions = normalizedExtensions.filter(
+      (extension) => extension !== "*"
+    );
+
+    if (specificExtensions.length > 0) {
+      normalizedFilters.push({
+        id: `file-explorer-filter-${index}`,
+        label: filter.name,
+        mode: "extensions",
+        extensions: new Set(specificExtensions),
+      });
+      return;
+    }
+
+    if (normalizedExtensions.includes("*")) {
+      normalizedFilters.push({
+        id: `file-explorer-filter-${index}`,
+        label: filter.name,
+        mode: "all",
+        extensions: new Set<string>(),
+      });
+    }
+  });
+
+  return normalizedFilters;
 }
 
 export function matchesFilters(
   entry: DirectoryEntry,
-  filters: NormalizedFilters | null,
+  activeFilter: FilterGroup | null,
   directoryOnly: boolean
 ): boolean {
   if (directoryOnly && !entry.isDirectory) return false;
   if (entry.isDirectory) return true;
-  if (!filters) return true;
-  if (filters.specificExtensions.size === 0) return filters.hasWildcard;
-  if (filters.specificExtensions.has(entry.extension)) return true;
+  if (!activeFilter) return true;
+  if (activeFilter.mode === "all") return true;
 
-  return filters.hasWildcard && entry.extension === "";
+  return activeFilter.extensions.has(entry.extension);
 }
