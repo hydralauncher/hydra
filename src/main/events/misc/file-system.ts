@@ -114,10 +114,26 @@ const readDirectory = async (
     async (entry): Promise<DirectoryEntry> => {
       const fullPath = join(dirPath, entry.name);
       const name = entry.name;
+      const isSymbolicLink = entry.isSymbolicLink();
+
+      let stats: Awaited<ReturnType<typeof stat>> | null = null;
+      if (isSymbolicLink || entry.isFile()) {
+        try {
+          stats = await stat(fullPath);
+        } catch {
+          // Path may not be accessible
+        }
+      }
+
+      const isDirectoryCandidate = stats
+        ? stats.isDirectory()
+        : entry.isDirectory();
       const isMacApp =
-        entry.isDirectory() && name.toLowerCase().endsWith(".app");
-      const isDirectory = entry.isDirectory() && !isMacApp;
-      const isFile = entry.isFile() || isMacApp;
+        isDirectoryCandidate && name.toLowerCase().endsWith(".app");
+      const isDirectory = isDirectoryCandidate && !isMacApp;
+      const isFile = stats
+        ? stats.isFile() || isMacApp
+        : entry.isFile() || isMacApp;
 
       let ext = "";
       if (isFile && name.includes(".")) {
@@ -127,11 +143,15 @@ const readDirectory = async (
       let size = 0;
 
       if (isFile) {
-        try {
-          const stats = await stat(fullPath);
+        if (stats) {
           size = stats.size;
-        } catch {
-          // File may not be accessible
+        } else {
+          try {
+            const fileStats = await stat(fullPath);
+            size = fileStats.size;
+          } catch {
+            // File may not be accessible
+          }
         }
       }
 
@@ -183,23 +203,23 @@ const getPathInfo = async (
   }
 };
 
-const listDrives = async (): Promise<string[]> => {
-  if (platform() === "win32") {
-    const drives: string[] = [];
+const listDrives = async (
+  event: Electron.IpcMainInvokeEvent
+): Promise<string[]> => {
+  assertTrustedSender(event);
 
-    for (let i = 0; i < 26; i++) {
+  if (platform() === "win32") {
+    const driveChecks = Array.from({ length: 26 }, (_, i) => {
       const letter = String.fromCodePoint(65 + i);
       const root = `${letter}:\\`;
 
-      try {
-        await access(root);
-        drives.push(root);
-      } catch {
-        // Drive doesn't exist
-      }
-    }
+      return access(root)
+        .then(() => root)
+        .catch(() => null);
+    });
 
-    return drives;
+    const drives = await Promise.all(driveChecks);
+    return drives.filter((drive): drive is string => drive !== null);
   }
 
   return ["/"];
