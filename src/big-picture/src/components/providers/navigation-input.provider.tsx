@@ -369,6 +369,10 @@ export function NavigationInputProvider({
 
   useEffect(() => {
     const unsubDpadUp = onButtonPressed(GamepadButtonType.DPAD_UP, (event) => {
+      if (useInputModeStore.getState().pendingGamepadFocus) {
+        useInputModeStore.getState().clearPendingGamepadFocus();
+        return;
+      }
       if (!isInputActive || isSystemSwitcherActiveRef.current) return;
       if (!isActiveGamepadEvent(event)) return;
 
@@ -380,6 +384,10 @@ export function NavigationInputProvider({
     const unsubDpadLeft = onButtonPressed(
       GamepadButtonType.DPAD_LEFT,
       (event) => {
+        if (useInputModeStore.getState().pendingGamepadFocus) {
+          useInputModeStore.getState().clearPendingGamepadFocus();
+          return;
+        }
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -392,6 +400,10 @@ export function NavigationInputProvider({
     const unsubDpadDown = onButtonPressed(
       GamepadButtonType.DPAD_DOWN,
       (event) => {
+        if (useInputModeStore.getState().pendingGamepadFocus) {
+          useInputModeStore.getState().clearPendingGamepadFocus();
+          return;
+        }
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -404,6 +416,10 @@ export function NavigationInputProvider({
     const unsubDpadRight = onButtonPressed(
       GamepadButtonType.DPAD_RIGHT,
       (event) => {
+        if (useInputModeStore.getState().pendingGamepadFocus) {
+          useInputModeStore.getState().clearPendingGamepadFocus();
+          return;
+        }
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -418,6 +434,10 @@ export function NavigationInputProvider({
       GamepadAxisDirection.UP,
       (event) => {
         useInputModeStore.getState().setGamepadMode();
+        if (useInputModeStore.getState().pendingGamepadFocus) {
+          useInputModeStore.getState().clearPendingGamepadFocus();
+          return;
+        }
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -432,6 +452,10 @@ export function NavigationInputProvider({
       GamepadAxisDirection.LEFT,
       (event) => {
         useInputModeStore.getState().setGamepadMode();
+        if (useInputModeStore.getState().pendingGamepadFocus) {
+          useInputModeStore.getState().clearPendingGamepadFocus();
+          return;
+        }
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -446,6 +470,10 @@ export function NavigationInputProvider({
       GamepadAxisDirection.DOWN,
       (event) => {
         useInputModeStore.getState().setGamepadMode();
+        if (useInputModeStore.getState().pendingGamepadFocus) {
+          useInputModeStore.getState().clearPendingGamepadFocus();
+          return;
+        }
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -460,6 +488,10 @@ export function NavigationInputProvider({
       GamepadAxisDirection.RIGHT,
       (event) => {
         useInputModeStore.getState().setGamepadMode();
+        if (useInputModeStore.getState().pendingGamepadFocus) {
+          useInputModeStore.getState().clearPendingGamepadFocus();
+          return;
+        }
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -523,6 +555,10 @@ export function NavigationInputProvider({
     const anyButtonPressed = Object.values(buttonStates).some(Boolean);
     if (anyButtonPressed) {
       useInputModeStore.getState().setGamepadMode();
+      if (useInputModeStore.getState().pendingGamepadFocus) {
+        useInputModeStore.getState().clearPendingGamepadFocus();
+        return;
+      }
     }
 
     const holdSessions = holdSessionsRef.current;
