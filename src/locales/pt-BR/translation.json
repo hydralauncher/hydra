@@ -142,7 +142,16 @@
     "scan_games_no_results": "Não conseguimos encontrar nenhum jogo instalado.",
     "scan_games_in_progress": "Escaneando seus discos por jogos instalados...",
     "scan_games_close": "Fechar",
-    "scan_games_scan_again": "Escanear Novamente"
+    "scan_games_scan_again": "Escanear Novamente",
+    "scan_games_in_progress_hint": "Você pode fechar este modal, receberá uma notificação quando terminar.",
+    "scan_games_hide": "Ocultar",
+    "scan_games_mode_automatic": "Automaticamente",
+    "scan_games_mode_manual": "Manualmente",
+    "scan_games_folders_title": "Pastas para escanear",
+    "scan_games_add_folder": "Adicionar pasta",
+    "scan_games_remove_folder": "Remover pasta",
+    "scan_games_folders_hint_manual": "Adicione pelo menos uma pasta para escanear por jogos.",
+    "scan_games_detection_warning": "A detecção depende de uma lista mantida pela comunidade de jogos conhecidos e pode estar desatualizada, então alguns jogos podem não ser encontrados."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sem downloads em andamento",
@@ -579,7 +588,50 @@
     "launch_failed_toast": "Falha ao iniciar o jogo",
     "rpcs3_already_running_title": "O RPCS3 já está em execução",
     "rpcs3_already_running_description": "O RPCS3 só permite uma instância. Fechar a sessão em execução para iniciar este jogo?",
-    "rpcs3_already_running_confirm": "Fechar e iniciar"
+    "rpcs3_already_running_confirm": "Fechar e iniciar",
+    "next_step": "Próximo passo",
+    "torrent_files_disclaimer": "Opção avançada: se você não sabe o que isso faz, mantenha a seleção padrão.",
+    "selected_size": "Tamanho selecionado",
+    "clear_file_selection": "Limpar",
+    "remove_all_discs": "Remover Todos os Discos",
+    "collection": "Coleção",
+    "create_collection": "Criar coleção",
+    "no_collection": "Sem coleção",
+    "game_collection_updated": "Coleção atualizada",
+    "failed_update_game_collection": "Falha ao atualizar coleção",
+    "details": "Detalhes",
+    "platform": "Plataforma",
+    "genres": "Gêneros",
+    "regions": "Regiões",
+    "region_us": "EUA",
+    "region_eu": "Europa",
+    "region_jp": "Japão",
+    "region_kr": "Coreia",
+    "region_asia": "Ásia",
+    "download_error_invalid_magnet": "Link magnet inválido.",
+    "download_error_torrent_metadata_timeout": "Tempo esgotado ao buscar metadados do torrent. Por favor, tente novamente.",
+    "download_error_torrent_metadata_incomplete": "Os metadados do torrent estão incompletos e não podem ser processados agora.",
+    "download_error_torrent_no_files_selected": "Selecione pelo menos um arquivo do torrent para iniciar o download.",
+    "download_error_torrent_invalid_file_selection": "Os arquivos selecionados do torrent são inválidos. Recarregue e tente novamente.",
+    "download_error_torrent_too_many_files": "Este torrent tem arquivos demais para exibir com segurança.",
+    "download_error_torrent_files_unavailable": "Não foi possível buscar os arquivos do torrent. Por favor, tente novamente.",
+    "transferring": "Transferindo...",
+    "view_progress": "Ver progresso",
+    "game_size": "Tamanho do jogo",
+    "free_of": "livre de",
+    "current": "atual",
+    "or_enter_path": "Ou insira o caminho manualmente",
+    "destination_folder_placeholder": "ex.: D:\\Games",
+    "detecting_drives": "Detectando unidades...",
+    "browse": "Explorar",
+    "controller_support": "Suporte a controle",
+    "controller_support_full_label": "Suporte completo",
+    "controller_support_full_description": "Ótimo com controles Xbox e PlayStation.",
+    "controller_support_partial_label": "Suporte parcial",
+    "controller_support_partial_description": "Alguns menus podem exigir teclado e mouse.",
+    "controller_support_none_label": "Sem suporte oficial",
+    "controller_support_xbox_label": "Controle Xbox",
+    "controller_support_playstation_label": "Controle PlayStation"
   },
   "activation": {
     "title": "Ativação",
@@ -631,7 +683,9 @@
     "peak": "PICO",
     "move_up": "Mover para cima",
     "move_down": "Mover para baixo",
-    "files": "FILES"
+    "files": "FILES",
+    "extraction_failed_title": "Extração falhou",
+    "extraction_failed_description": "O Hydra não conseguiu extrair este arquivo. Verifique a integridade do arquivo/espaço em disco e tente extrair novamente."
   },
   "settings": {
     "setup_official_website": "Site oficial",
@@ -1117,7 +1171,10 @@
     "big_picture_enable_sounds": "Ativar sons do Big Picture",
     "big_picture_enable_virtual_keyboard": "Ativar teclado virtual",
     "big_picture_enable_diagnostics": "Ativar diagnóstico de navegação",
-    "big_picture_diagnostics_position": "Posição do diagnóstico"
+    "big_picture_diagnostics_position": "Posição do diagnóstico",
+    "setup_match_wrong_platform": "plataforma errada",
+    "setup_run_in_background": "Executar em segundo plano",
+    "scanning_system_label": "Escaneando {{system}}…"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -1193,7 +1250,8 @@
     "active_filters": "Filtros ativos",
     "no_genres": "Sem categorias",
     "mode_classics": "Clássicos",
-    "mode_modern_games": "Jogos Modernos"
+    "mode_modern_games": "Jogos Modernos",
+    "platforms": "Plataformas"
   },
   "modal": {
     "close": "Botão de fechar"
@@ -1329,7 +1387,10 @@
     "no_reviews": "Ainda não há avaliações",
     "delete_review": "Excluir avaliação",
     "classics": "Clássicos",
-    "platform_classics": "Clássicos"
+    "platform_classics": "Clássicos",
+    "platform": "Plataformas",
+    "platform_all": "Todos",
+    "platform_pc": "PC"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
@@ -1410,7 +1471,20 @@
     "installed_tooltip": "Executável definido, pronto para jogar",
     "importing_classics_title": "Importando seus clássicos",
     "importing_classics_description": "Estamos escaneando suas pastas de ROM para trazer seus clássicos de volta. Isso pode levar um momento.",
-    "all_consoles": "Todos os Consoles"
+    "all_consoles": "Todos os Consoles",
+    "new_folder": "Nova Pasta",
+    "context_menu_accessible_label": "Menu de contexto do jogo",
+    "context_menu_launch_game": "Iniciar Jogo",
+    "context_menu_download_game": "Baixar Jogo",
+    "context_menu_open_game_page": "Abrir Página do Jogo",
+    "context_menu_remove_from_favorites": "Remover dos Favoritos",
+    "context_menu_mark_as_favorite": "Marcar como Favorito",
+    "context_menu_view_achievements": "Ver Conquistas",
+    "context_menu_share": "Compartilhar",
+    "context_menu_options": "Opções",
+    "context_menu_uninstall": "Desinstalar",
+    "context_menu_remove_from_library": "Remover da Biblioteca",
+    "context_menu_add_to_library": "Adicionar à Biblioteca"
   },
   "notifications_page": {
     "title": "Notificações",
@@ -1484,7 +1558,9 @@
     "no_results": "Nenhum amigo encontrado",
     "no_friends": "Nenhum amigo online",
     "try_again": "Algo deu errado. Tente novamente.",
-    "copied": "Copiado!"
+    "copied": "Copiado!",
+    "minimize": "Minimizar",
+    "close": "Fechar"
   },
   "classics_onboarding": {
     "title": "Bem-vindo ao Hydra Classics",
