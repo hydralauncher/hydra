@@ -154,6 +154,8 @@
     "scan_games_detection_warning": "Обнаружение основано на поддерживаемом сообществом списке известных игр и может быть устаревшим, поэтому некоторые игры могут быть не найдены."
   },
   "bottom_panel": {
+    "reconnecting": "Переподключение к {{title}}…",
+    "recovering": "Восстановление {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Нет активных загрузок",
     "downloading_metadata": "Загрузка метаданных {{title}}…",
     "downloading": "Загрузка {{title}}… ({{percentage}} завершено) - Окончание {{eta}} - {{speed}}",
@@ -682,6 +684,8 @@
     "loading": "Загрузка…"
   },
   "downloads": {
+    "reconnecting": "Переподключение…",
+    "recovering": "Восстановление загрузки… {{percentage}}",
     "resume": "Возобновить",
     "pause": "Приостановить",
     "eta": "Окончание {{eta}}",
