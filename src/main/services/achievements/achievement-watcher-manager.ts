@@ -7,7 +7,7 @@ import {
   findAchievementFiles,
   findAllAchievementFiles,
   getAlternativeObjectIds,
-} from "./find-achivement-files";
+} from "./find-achievement-files";
 import type {
   AchievementFile,
   Game,
