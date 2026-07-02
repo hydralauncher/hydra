@@ -43,6 +43,8 @@ interface AchievementNotificationCustomizerProps {
 const audioExtensions = ["wav", "mp3", "ogg", "m4a"];
 const defaultProfileOption = "__default_profile__";
 const newProfileOption = "__new_profile__";
+const customizerCloseRequestChannel =
+  "on-achievement-notification-customizer-close-requested";
 const autosaveDelay = 600;
 const defaultMasterAchievementSoundVolume = 0.15;
 const scaleRange = { min: 0.6, max: 2, step: 0.05 };
@@ -748,15 +750,40 @@ export function AchievementNotificationCustomizer({
     );
   };
 
+  const handleClose = useCallback(async () => {
+    await flushCurrentProfile();
+    await globalThis.electron.closeAchievementNotificationCustomizerWindow(
+      true
+    );
+  }, [flushCurrentProfile]);
+
+  useEffect(() => {
+    const handleCloseRequested = () => {
+      handleClose().catch((error) => {
+        console.error(
+          "Failed to close achievement notification customizer",
+          error
+        );
+      });
+    };
+
+    globalThis.electron.on(customizerCloseRequestChannel, handleCloseRequested);
+
+    return () => {
+      globalThis.electron.off(
+        customizerCloseRequestChannel,
+        handleCloseRequested
+      );
+    };
+  }, [handleClose]);
+
   return (
     <section className="achievement-notification-customizer">
       <div className="achievement-notification-customizer__titlebar">
         <span>{t("window_title")}</span>
         <button
           type="button"
-          onClick={() =>
-            globalThis.electron.closeAchievementNotificationCustomizerWindow()
-          }
+          onClick={handleClose}
           aria-label={t("close")}
           title={t("close")}
         >

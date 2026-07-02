@@ -55,6 +55,7 @@ export class WindowManager {
   private static authWindow: Electron.BrowserWindow | null = null;
   private static achievementNotificationCustomizerWindow: Electron.BrowserWindow | null =
     null;
+  private static forceCloseAchievementNotificationCustomizerWindow = false;
   private static deferredMainMaximize = false;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
@@ -1071,13 +1072,28 @@ export class WindowManager {
       }
     });
 
-    customizerWindow.on("close", () => {
+    customizerWindow.on("close", (event) => {
+      if (!this.forceCloseAchievementNotificationCustomizerWindow) {
+        event.preventDefault();
+        customizerWindow.webContents.send(
+          "on-achievement-notification-customizer-close-requested"
+        );
+        return;
+      }
+
+      this.forceCloseAchievementNotificationCustomizerWindow = false;
       this.achievementNotificationCustomizerWindow = null;
     });
   }
 
-  public static closeAchievementNotificationCustomizerWindow() {
-    this.achievementNotificationCustomizerWindow?.close();
+  public static closeAchievementNotificationCustomizerWindow(force = false) {
+    if (!this.achievementNotificationCustomizerWindow) {
+      this.forceCloseAchievementNotificationCustomizerWindow = false;
+      return;
+    }
+
+    this.forceCloseAchievementNotificationCustomizerWindow = force;
+    this.achievementNotificationCustomizerWindow.close();
   }
 
   private static readonly GAME_LAUNCHER_WINDOW_WIDTH = 550;

@@ -898,7 +898,9 @@ declare global {
     /* Editor */
     openEditorWindow: (themeId: string) => Promise<void>;
     openAchievementNotificationCustomizerWindow: () => Promise<void>;
-    closeAchievementNotificationCustomizerWindow: () => Promise<void>;
+    closeAchievementNotificationCustomizerWindow: (
+      force?: boolean
+    ) => Promise<void>;
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
 

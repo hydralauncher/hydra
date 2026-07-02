@@ -322,10 +322,3 @@ export const getAchievementNotificationWindowPosition = (
     y: display.y,
   };
 };
-
-export const getVariationSoundFileName = (
-  variation: AchievementNotificationVariation,
-  extension: string
-) => {
-  return `achievement-${variation}${extension}`;
-};

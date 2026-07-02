@@ -1264,8 +1264,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openEditorWindow", themeId),
   openAchievementNotificationCustomizerWindow: () =>
     ipcRenderer.invoke("openAchievementNotificationCustomizerWindow"),
-  closeAchievementNotificationCustomizerWindow: () =>
-    ipcRenderer.invoke("closeAchievementNotificationCustomizerWindow"),
+  closeAchievementNotificationCustomizerWindow: (force?: boolean) =>
+    ipcRenderer.invoke("closeAchievementNotificationCustomizerWindow", force),
   onCustomThemeUpdated: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-custom-theme-updated", listener);
