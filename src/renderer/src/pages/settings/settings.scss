@@ -135,4 +135,12 @@
     gap: calc(globals.$spacing-unit * 1.5);
     padding-top: calc(globals.$spacing-unit * 1.5);
   }
+
+  &__divider {
+    width: 100%;
+    height: 0;
+    margin: 0;
+    border: none;
+    border-top: 1px solid globals.$border-color;
+  }
 }
