@@ -7,6 +7,8 @@ export const IS_BROWSER =
 
 export const IS_DESKTOP = IS_BROWSER && !!globalThis.window.electron;
 
+export const MAX_OVERLAY_Z_INDEX = 2_147_483_647;
+
 export const DOWNLOADER_NAME: Record<Downloader, string> = {
   [Downloader.RealDebrid]: "Real-Debrid",
   [Downloader.Torrent]: "Torrent",
