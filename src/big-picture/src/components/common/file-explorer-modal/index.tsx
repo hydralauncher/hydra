@@ -7,7 +7,6 @@ import {
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "../modal";
-import { Tabs, type TabsItem } from "../tabs";
 import { VerticalFocusGroup } from "../vertical-focus-group";
 import { EmptyState } from "../empty-state";
 import { Skeleton } from "../skeleton";
@@ -33,7 +32,6 @@ function getEntryFocusId(path: string) {
 function getInitialFocusId(vm: ReturnType<typeof useFileExplorer>) {
   const firstDrive = vm.drives[0];
   const firstEntry = vm.filteredEntries[0];
-  const firstFilterTab = vm.filterTabItems[0];
 
   if (vm.showSelectThisDir) {
     return "file-explorer-select-dir";
@@ -47,10 +45,6 @@ function getInitialFocusId(vm: ReturnType<typeof useFileExplorer>) {
     return getEntryFocusId(firstEntry.path);
   }
 
-  if (vm.shouldShowFilterTabs && firstFilterTab) {
-    return firstFilterTab.id;
-  }
-
   return undefined;
 }
 
@@ -58,7 +52,6 @@ export function FileExplorerModal(props: Readonly<FileExplorerModalProps>) {
   const { t } = useTranslation("big_picture");
   const vm = useFileExplorer(props);
   const initialFocusId = getInitialFocusId(vm);
-  const filterTabItems = vm.filterTabItems as Array<TabsItem<string>>;
 
   return (
     <Modal
@@ -115,19 +108,6 @@ export function FileExplorerModal(props: Readonly<FileExplorerModalProps>) {
             regionId={vm.fileListRegionId}
             className="file-explorer__list"
           >
-            {vm.shouldShowFilterTabs && (
-              <div className="file-explorer__filters">
-                <Tabs
-                  items={filterTabItems}
-                  value={vm.activeFilterId ?? undefined}
-                  onValueChange={vm.selectFilter}
-                  variant="segmented"
-                  ariaLabel={vm.filterLabel}
-                  className="file-explorer__filter-tabs"
-                />
-              </div>
-            )}
-
             {vm.showSelectThisDir && (
               <FocusItem
                 id="file-explorer-select-dir"
