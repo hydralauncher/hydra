@@ -8,7 +8,13 @@ const getRetroAchievementsAchievements = async (
   shop: GameShop,
   retroAchievementsGameId: number
 ): Promise<UserAchievement[] | null> => {
-  return syncRetroAchievements({ objectId, shop, retroAchievementsGameId });
+  const result = await syncRetroAchievements({
+    objectId,
+    shop,
+    retroAchievementsGameId,
+  });
+
+  return result.achievements;
 };
 
 registerEvent(
