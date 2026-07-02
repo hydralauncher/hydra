@@ -22,10 +22,22 @@
   }
 
   &__disabled-hint {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     color: globals.$muted-color;
     margin-top: calc(globals.$spacing-unit * -1);
     font-style: italic;
+  }
+
+  &__network-interface {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    margin-block: calc(globals.$spacing-unit * 2);
+  }
+
+  &__network-interface-hint {
+    font-size: globals.$hint-font-size;
+    color: globals.$muted-color;
   }
 
   &__volume-control {

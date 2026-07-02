@@ -82,7 +82,6 @@ export default function Settings() {
         label: t("emulation"),
         icon: <Gamepad2 size={16} />,
         group: "classics" as const,
-        badge: t("new_badge"),
       },
     ],
     [t, userDetails]
@@ -143,7 +142,6 @@ export default function Settings() {
                         ? (categories[index - 1] as { group?: string }).group
                         : undefined;
                     const currentGroup = (category as { group?: string }).group;
-                    const badge = (category as { badge?: string }).badge;
                     const showGroupHeader =
                       currentGroup && currentGroup !== prevGroup;
 
@@ -174,11 +172,6 @@ export default function Settings() {
                           <span className="settings__sidebar-button-label">
                             {category.label}
                           </span>
-                          {badge && (
-                            <span className="settings__sidebar-button-badge">
-                              {badge}
-                            </span>
-                          )}
                         </button>
                       </Fragment>
                     );

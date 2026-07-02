@@ -13,7 +13,11 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
 import { AuthPage } from "@shared";
 import { logger } from "@renderer/logger";
-import type { NotificationCountResponse, ProfileFriends } from "@types";
+import type {
+  NotificationCountResponse,
+  NotificationsChangedDetail,
+  ProfileFriends,
+} from "@types";
 import { useDispatch } from "react-redux";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import "./sidebar-profile.scss";
@@ -85,7 +89,18 @@ export function SidebarProfile() {
   }, [fetchLocalNotificationCount]);
 
   useEffect(() => {
-    const handleNotificationsChange = () => {
+    const handleNotificationsChange = (event: Event) => {
+      const detail = (event as CustomEvent<NotificationsChangedDetail>).detail;
+
+      if (detail?.resetApiUnread) {
+        apiNotificationCountRef.current = 0;
+      } else if (typeof detail?.apiUnreadDelta === "number") {
+        apiNotificationCountRef.current = Math.max(
+          0,
+          apiNotificationCountRef.current + detail.apiUnreadDelta
+        );
+      }
+
       fetchLocalNotificationCount();
     };
     window.addEventListener("notificationsChanged", handleNotificationsChange);

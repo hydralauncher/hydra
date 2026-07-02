@@ -36,6 +36,7 @@ import type {
   EmulationBackupProgress,
   EmulationCloudSave,
   EmulationSavePlatform,
+  MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
 } from "@types";
@@ -179,6 +180,8 @@ contextBridge.exposeInMainWorld("electron", {
     system: EmulatorSystem,
     executablePath: string | null
   ) => ipcRenderer.invoke("setEmulatorExecutablePath", system, executablePath),
+  setEmulatorBiosPath: (system: EmulatorSystem, biosPath: string | null) =>
+    ipcRenderer.invoke("setEmulatorBiosPath", system, biosPath),
   addRomFolder: (
     system: EmulatorSystem,
     folderPath: string,
@@ -211,8 +214,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("rescanEmulator", system, language),
   checkPs3Firmware: (executablePath: string | null) =>
     ipcRenderer.invoke("checkPs3Firmware", executablePath),
-  checkEmulatorBios: (system: EmulatorSystem, executablePath: string | null) =>
-    ipcRenderer.invoke("checkEmulatorBios", system, executablePath),
+  checkEmulatorBios: (
+    system: EmulatorSystem,
+    executablePath: string | null,
+    manualBiosPath?: string | null
+  ) =>
+    ipcRenderer.invoke(
+      "checkEmulatorBios",
+      system,
+      executablePath,
+      manualBiosPath ?? null
+    ),
   getEmulatorInstallOptions: (binary: EmulatorBinary) =>
     ipcRenderer.invoke("getEmulatorInstallOptions", binary),
   installEmulator: (binary: EmulatorBinary, optionId: string) =>
@@ -368,6 +380,11 @@ contextBridge.exposeInMainWorld("electron", {
     platform: EmulationSavePlatform
   ): Promise<MemcardRestoreTarget[]> =>
     ipcRenderer.invoke("getMemcardRestoreTargets", platform),
+  inspectMemcard: (
+    platform: EmulationSavePlatform,
+    cardFilePath: string
+  ): Promise<MemcardFormatState> =>
+    ipcRenderer.invoke("inspectMemcard", platform, cardFilePath),
   restoreEmulationSave: (
     platform: EmulationSavePlatform,
     saveId: string,
@@ -787,6 +804,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDiskFreeSpace", path),
   checkFolderWritePermission: (path: string) =>
     ipcRenderer.invoke("checkFolderWritePermission", path),
+  getNetworkInterfaces: () => ipcRenderer.invoke("getNetworkInterfaces"),
 
   /* Cloud save */
   uploadSaveGame: (
@@ -1069,6 +1087,19 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   getUnlockedAchievements: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getUnlockedAchievements", objectId, shop),
+  getRetroAchievementsAchievements: (
+    objectId: string,
+    shop: GameShop,
+    raGameId: number
+  ) =>
+    ipcRenderer.invoke(
+      "getRetroAchievementsAchievements",
+      objectId,
+      shop,
+      raGameId
+    ),
+  resetRetroAchievementsAchievements: () =>
+    ipcRenderer.invoke("resetRetroAchievementsAchievements"),
 
   /* Auth */
   getAuth: () => ipcRenderer.invoke("getAuth"),

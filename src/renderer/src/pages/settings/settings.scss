@@ -69,19 +69,6 @@
     &-label {
       flex: 1;
     }
-
-    &-badge {
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.4px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      color: #fafafa;
-      border: 1px solid transparent;
-      background:
-        linear-gradient(#3f3f3f, #3f3f3f) padding-box,
-        globals.$classics-rainbow border-box;
-    }
   }
 
   &__sidebar-group {
@@ -147,5 +134,13 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
     padding-top: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__divider {
+    width: 100%;
+    height: 0;
+    margin: 0;
+    border: none;
+    border-top: 1px solid globals.$border-color;
   }
 }
