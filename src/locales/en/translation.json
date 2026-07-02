@@ -133,9 +133,9 @@
     "settings": "Settings",
     "version_available_install": "Version {{version}} available. Click here to restart and install.",
     "version_available_download": "Version {{version}} available. Click here to download.",
-    "scan_games_tooltip": "Scan PC for installed games",
-    "scan_games_title": "Scan PC for installed games",
-    "scan_games_description": "This will scan your disks for known game executables.\nThis may take several minutes.",
+    "scan_games_tooltip": "Sync Installed Games with Library",
+    "scan_games_title": "Sync Installed Games with Library",
+    "scan_games_description": "This will: \n 1. Scan your disks for known game executables \n 2. Remove uninstalled executables from the library.\nThis may take several minutes.",
     "scan_games_start": "Start Scan",
     "scan_games_cancel": "Cancel",
     "scan_games_result": "Found {{found}} of {{total}} games without executable path",
@@ -151,7 +151,10 @@
     "scan_games_add_folder": "Add folder",
     "scan_games_remove_folder": "Remove folder",
     "scan_games_folders_hint_manual": "Add at least one folder to scan for games.",
-    "scan_games_detection_warning": "Detection relies on a community-maintained list of known games and may be outdated, so some games might not be found."
+    "scan_games_detection_warning": "Detection relies on a community-maintained list of known games and may be outdated, so some games might not be found.",
+    "remove_executables_in_progress": "Checking for uninstalled game executables...",
+    "remove_executables_result": "Removed {{removed}} stale game executable paths",
+    "remove_executables_no_results": "No uninstalled game executables found."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
