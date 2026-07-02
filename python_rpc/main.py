@@ -256,12 +256,18 @@ def normalize_network_interface(value):
     return trimmed or None
 
 
+def build_listen_interface(token):
+    if ":" in token:
+        return "[{addr}]:{port}".format(addr=token, port=torrent_port)
+
+    return "{addr}:{port}".format(addr=token, port=torrent_port)
+
+
 def apply_network_interface(interface):
     if interface:
-        listen_interfaces = "{iface}:{port}".format(
-            iface=interface, port=torrent_port
-        )
-        outgoing_interfaces = interface
+        tokens = [token.strip() for token in interface.split(",") if token.strip()]
+        listen_interfaces = ",".join(build_listen_interface(token) for token in tokens)
+        outgoing_interfaces = ",".join(tokens)
     else:
         listen_interfaces = "0.0.0.0:{port}".format(port=torrent_port)
         outgoing_interfaces = ""
