@@ -1,10 +1,5 @@
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import {
-  getSkuRegion,
-  getSkuRegionFlag,
-  platformToSystem,
-  type SkuRegion,
-} from "@renderer/helpers";
+import { getSkuRegion, getSkuRegionFlag, type SkuRegion } from "@renderer/helpers";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { DiscIcon } from "@phosphor-icons/react";
 import { FolderOpen, HardDrive, Monitor, Trash } from "lucide-react";
@@ -82,6 +77,9 @@ export interface GameLaunchSettingsProps {
   creatingSteamShortcut: boolean;
   steamShortcutExists: boolean;
   shouldShowCreateStartMenuShortcut: boolean;
+  execPickerInitialPath: string;
+  execPickerFilters: FileFilter[];
+  discPickerFilters: FileFilter[];
   onProcessExecPath: (path: string) => Promise<void>;
   onClearExecutablePath: () => Promise<void>;
   onOpenSaveFolder: () => Promise<void>;
@@ -519,25 +517,6 @@ function LaunchOptionsSection({
   );
 }
 
-function getExecFilters(platform: string): FileFilter[] {
-  if (platform === "linux") {
-    return [
-      {
-        name: "Game executable",
-        extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
-      },
-    ];
-  }
-
-  if (platform === "darwin") {
-    return [{ name: "Game executable", extensions: ["app"] }];
-  }
-
-  return [
-    { name: "Game executable", extensions: ["exe", "lnk", "bat", "cmd"] },
-  ];
-}
-
 export function GameLaunchSettingsTab({
   game,
   launchOptions,
@@ -546,6 +525,9 @@ export function GameLaunchSettingsTab({
   creatingSteamShortcut,
   steamShortcutExists,
   shouldShowCreateStartMenuShortcut,
+  execPickerInitialPath,
+  execPickerFilters,
+  discPickerFilters,
   onProcessExecPath,
   onClearExecutablePath,
   onOpenSaveFolder,
@@ -564,7 +546,6 @@ export function GameLaunchSettingsTab({
   const { t } = useTranslation("game_details");
   const [execPickerOpen, setExecPickerOpen] = useState(false);
   const [discPickerOpen, setDiscPickerOpen] = useState(false);
-  const [discFilters, setDiscFilters] = useState<FileFilter[]>([]);
   const isCustomGame = game.shop === "custom";
   const discs = game.discs ?? [];
   const selectedDisc =
@@ -607,15 +588,9 @@ export function GameLaunchSettingsTab({
     setDiscPickerOpen(false);
   }, []);
 
-  const handleOpenDiscPicker = useCallback(async () => {
-    const system = platformToSystem(game.platform);
-    const extensions = system
-      ? await globalThis.window.electron.getEmulatorRomExtensions(system)
-      : ["*"];
-
-    setDiscFilters([{ name: t("rom_file"), extensions }]);
+  const handleOpenDiscPicker = useCallback(() => {
     setDiscPickerOpen(true);
-  }, [game.platform, t]);
+  }, []);
 
   return (
     <>
@@ -667,7 +642,8 @@ export function GameLaunchSettingsTab({
         onClose={handleExecPickerClose}
         onSelect={handleExecPicked}
         title={t("executable_section_title")}
-        filters={getExecFilters(globalThis.window.electron.platform)}
+        initialPath={execPickerInitialPath}
+        filters={execPickerFilters}
       />
 
       <FileExplorerModal
@@ -675,7 +651,7 @@ export function GameLaunchSettingsTab({
         onClose={handleDiscPickerClose}
         onSelect={handleDiscPicked}
         title={t("add_disc")}
-        filters={discFilters}
+        filters={discPickerFilters}
       />
     </>
   );

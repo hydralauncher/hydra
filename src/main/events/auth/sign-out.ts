@@ -2,7 +2,7 @@ import { registerEvent } from "../register-event";
 import {
   DownloadManager,
   HydraApi,
-  WSClient,
+  SSEClient,
   WindowManager,
   emulators,
   gamesPlaytime,
@@ -52,7 +52,7 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
     HydraApi.post("/auth/logout").catch(() => {}),
   ]);
 
-  WSClient.close();
+  SSEClient.close();
 };
 
 registerEvent("signOut", signOut);

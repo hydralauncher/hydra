@@ -42,6 +42,7 @@ export interface GameCustomizationSettingsProps {
   game: LibraryGame;
   gameTitle: string;
   updatingGameTitle: boolean;
+  assetPickerFilters: FileFilter[];
   onChangeGameTitle: (event: ChangeEvent<HTMLInputElement>) => void;
   onBlurGameTitle: () => Promise<void>;
   onProcessAssetPath: (
@@ -116,14 +117,11 @@ function getFallbackPreviewState(
   };
 }
 
-const ASSET_FILTERS: FileFilter[] = [
-  { name: "Image files", extensions: ["jpg", "jpeg", "png", "gif", "webp"] },
-];
-
 export function GameCustomizationSettingsTab({
   game,
   gameTitle,
   updatingGameTitle,
+  assetPickerFilters,
   onChangeGameTitle,
   onBlurGameTitle,
   onProcessAssetPath,
@@ -312,7 +310,7 @@ export function GameCustomizationSettingsTab({
         onClose={handleAssetPickerClose}
         onSelect={handleAssetPicked}
         title={t("edit_game_modal_assets")}
-        filters={ASSET_FILTERS}
+        filters={assetPickerFilters}
       />
     </>
   );

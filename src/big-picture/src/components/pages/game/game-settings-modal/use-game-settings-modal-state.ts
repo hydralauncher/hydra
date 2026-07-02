@@ -2,7 +2,9 @@ import type { LibraryGame } from "@types";
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import { platformToSystem } from "@renderer/helpers";
+import { getGameExecutableFilters } from "@shared";
+import type { FileFilter } from "../../../common";
 import { useBigPictureToast } from "../../../../hooks";
 import {
   applyClassicsDiscUpdate,
@@ -30,6 +32,9 @@ interface UseGameSettingsModalStateResult {
 }
 
 type CustomAssetType = "icon" | "logo" | "hero";
+const ASSET_PICKER_FILTERS: FileFilter[] = [
+  { name: "Image files", extensions: ["jpg", "jpeg", "png", "gif", "webp"] },
+];
 
 export function useGameSettingsModalState({
   game,
@@ -49,6 +54,8 @@ export function useGameSettingsModalState({
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     () => game?.automaticCloudSync ?? false
   );
+  const [execPickerInitialPath, setExecPickerInitialPath] = useState("");
+  const [discPickerFilters, setDiscPickerFilters] = useState<FileFilter[]>([]);
   const launchOptionsDebounceRef = useRef<number | null>(null);
   const persistedLaunchOptionsRef = useRef("");
   const selectedDisc = useMemo(() => {
@@ -64,6 +71,60 @@ export function useGameSettingsModalState({
   useEffect(() => {
     setAutomaticCloudSync(game?.automaticCloudSync ?? false);
   }, [game?.automaticCloudSync]);
+
+  const getDownloadsPath = useCallback(async () => {
+    const userPreferences = await globalThis.window.electron
+      .getUserPreferences()
+      .catch(() => null);
+
+    return (
+      userPreferences?.downloadsPath ??
+      (await globalThis.window.electron.getDefaultDownloadsPath())
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!visible || game?.shop === "launchbox") return;
+
+    let cancelled = false;
+
+    getDownloadsPath().then((path) => {
+      if (!cancelled) setExecPickerInitialPath(path);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [game?.shop, getDownloadsPath, visible]);
+
+  useEffect(() => {
+    if (!visible || !game || game.shop !== "launchbox") {
+      setDiscPickerFilters([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadDiscFilters = async () => {
+      const system = platformToSystem(game.platform);
+      const extensions = system
+        ? await globalThis.window.electron.getEmulatorRomExtensions(system)
+        : ["*"];
+
+      if (!cancelled) {
+        setDiscPickerFilters([
+          { name: t("rom_file"), extensions },
+          { name: t("all_files"), extensions: ["*"] },
+        ]);
+      }
+    };
+
+    void loadDiscFilters();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [game, t, visible]);
 
   useEffect(() => {
     if (!visible) return;
@@ -368,6 +429,15 @@ export function useGameSettingsModalState({
     };
   }, [game, launchOptions, persistLaunchOptions, visible]);
 
+  const execPickerFilters = useMemo(
+    () =>
+      getGameExecutableFilters(globalThis.window.electron.platform, {
+        executable: t("game_executable"),
+        allFiles: t("all_files"),
+      }),
+    [t]
+  );
+
   const handleProcessExecPath = useCallback(
     async (path: string) => {
       if (!game) return;
@@ -610,6 +680,9 @@ export function useGameSettingsModalState({
       steamShortcutExists,
       shouldShowCreateStartMenuShortcut:
         globalThis.window.electron.platform === "win32",
+      execPickerInitialPath,
+      execPickerFilters,
+      discPickerFilters,
       onProcessExecPath: handleProcessExecPath,
       onClearExecutablePath: handleClearExecutablePath,
       onOpenSaveFolder: handleOpenSaveFolder,
@@ -627,6 +700,9 @@ export function useGameSettingsModalState({
     } satisfies GameLaunchSettingsProps;
   }, [
     creatingSteamShortcut,
+    discPickerFilters,
+    execPickerFilters,
+    execPickerInitialPath,
     game,
     handleBlurLaunchOptions,
     handleProcessExecPath,
@@ -654,6 +730,7 @@ export function useGameSettingsModalState({
       game,
       gameTitle,
       updatingGameTitle,
+      assetPickerFilters: ASSET_PICKER_FILTERS,
       onChangeGameTitle: handleChangeGameTitle,
       onBlurGameTitle: handleBlurGameTitle,
       onProcessAssetPath: handleProcessAssetPath,
