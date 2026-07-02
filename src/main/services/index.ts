@@ -15,7 +15,7 @@ export * from "./7zip";
 export * from "./game-files-manager";
 export * from "./game-executables";
 export * from "./common-redist-manager";
-export * from "./ws";
+export * from "./sse";
 export * from "./system-path";
 export * from "./library-sync";
 export * from "./wine";

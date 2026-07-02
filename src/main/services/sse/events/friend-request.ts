@@ -1,4 +1,4 @@
-import type { FriendRequest } from "@main/generated/envelope";
+import type { FriendRequest } from "../types";
 import { HydraApi } from "@main/services/hydra-api";
 import { publishNewFriendRequestNotification } from "@main/services/notifications";
 import { WindowManager } from "@main/services/window-manager";

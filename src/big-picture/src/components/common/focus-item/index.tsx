@@ -16,7 +16,11 @@ import {
   NavigationService,
   type NavigationNodeState,
 } from "../../../services";
-import { useNavigationIsFocused, useNavigationStore } from "../../../stores";
+import {
+  useNavigationIsFocused,
+  useNavigationStore,
+  useInputModeStore,
+} from "../../../stores";
 import {
   type FocusEvent,
   type ReactNode,
@@ -70,6 +74,7 @@ export function FocusItem({
   const resolvedId = id ?? `focus-item-${generatedId.replaceAll(":", "")}`;
   const isFocused = useNavigationIsFocused(resolvedId);
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const inputMode = useInputModeStore((state) => state.mode);
   const isMeasurement = useIsMeasurement();
 
   const resolvedActions = useMemo(
@@ -177,6 +182,10 @@ export function FocusItem({
 
   const handleDomFocus = useCallback(
     (_event: FocusEvent<HTMLElement>) => {
+      if (useInputModeStore.getState().mode !== "gamepad") {
+        return;
+      }
+
       if (effectiveNavigationState !== "active") {
         return;
       }
@@ -198,7 +207,7 @@ export function FocusItem({
         id={resolvedId}
         ref={ref}
         data-focused={isFocused}
-        data-focus-visible={isFocused || undefined}
+        data-focus-visible={(isFocused && inputMode === "gamepad") || undefined}
         data-focus-wrapper={!asChild || undefined}
         data-has-primary={actionsMeta.hasPrimary || undefined}
         data-has-secondary={actionsMeta.hasSecondary || undefined}
