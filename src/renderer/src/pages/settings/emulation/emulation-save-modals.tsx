@@ -6,6 +6,7 @@ import { useToast } from "@renderer/hooks";
 import type {
   EmulationCloudSave,
   EmulationSavePlatform,
+  MemcardFormatState,
   MemcardRestoreTarget,
 } from "@types";
 
@@ -58,15 +59,47 @@ export function RestoreModal({
   const { showSuccessToast, showErrorToast } = useToast();
   const [targets, setTargets] = useState<MemcardRestoreTarget[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] =
+    useState<MemcardFormatState | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!save) return;
+    let cancelled = false;
     window.electron.getMemcardRestoreTargets(platform).then((found) => {
+      if (cancelled) return;
       setTargets(found);
       setSelected((prev) => prev ?? found[0]?.cardFilePath ?? null);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [save, platform]);
+
+  useEffect(() => {
+    if (!selected) {
+      setSelectedFormat(null);
+      return;
+    }
+    let cancelled = false;
+    setSelectedFormat(null);
+    window.electron
+      .inspectMemcard(platform, selected)
+      .then((state) => {
+        if (!cancelled) setSelectedFormat(state);
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedFormat("unreadable");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, platform]);
+
+  const unformattedKey =
+    platform === "ps2"
+      ? "cloud_restore_unformatted_ps2"
+      : "cloud_restore_unformatted";
 
   const handlePickFile = useCallback(async () => {
     const result = await window.electron.showOpenDialog({
@@ -97,7 +130,13 @@ export function RestoreModal({
         onRestored();
         onClose();
       } else {
-        showErrorToast(t("cloud_restore_failed"));
+        showErrorToast(
+          t(
+            res.reason === "unformatted"
+              ? unformattedKey
+              : "cloud_restore_failed"
+          )
+        );
       }
     } finally {
       setBusy(false);
@@ -106,6 +145,7 @@ export function RestoreModal({
     save,
     selected,
     platform,
+    unformattedKey,
     showSuccessToast,
     showErrorToast,
     t,
@@ -149,6 +189,10 @@ export function RestoreModal({
           )}
         </ul>
 
+        {selectedFormat === "unformatted" && (
+          <p className="emu-save-modal__hint">{t(unformattedKey)}</p>
+        )}
+
         <div className="emu-save-modal__actions">
           <Button theme="outline" onClick={handlePickFile} disabled={busy}>
             {t("cloud_restore_pick_file")}
@@ -156,7 +200,12 @@ export function RestoreModal({
           <Button
             theme="primary"
             onClick={handleRestore}
-            disabled={busy || !selected}
+            disabled={
+              busy ||
+              !selected ||
+              !selectedFormat ||
+              selectedFormat === "unformatted"
+            }
           >
             {busy ? t("cloud_restoring") : t("cloud_restore_confirm")}
           </Button>
