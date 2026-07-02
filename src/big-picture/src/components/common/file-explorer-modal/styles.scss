@@ -103,6 +103,14 @@
     letter-spacing: 0.05em;
   }
 
+  &__filters {
+    padding: calc(var(--spacing-unit) * 2) 0;
+  }
+
+  &__filter-tabs {
+    width: 100%;
+  }
+
   &__item {
     display: flex;
     align-items: center;
