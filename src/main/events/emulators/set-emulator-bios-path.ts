@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import { registerEvent } from "../register-event";
@@ -13,7 +13,8 @@ const setEmulatorBiosPath = async (
   let resolvedPath: string | null = null;
   if (biosPath) {
     const normalized = path.normalize(biosPath);
-    if (existsSync(normalized) && statSync(normalized).isDirectory()) {
+    const stat = await fs.stat(normalized).catch(() => null);
+    if (stat?.isDirectory()) {
       resolvedPath = normalized;
     }
   }
