@@ -424,6 +424,10 @@ declare global {
       system: EmulatorSystem,
       executablePath: string | null
     ) => Promise<EmulatorConfig>;
+    setEmulatorBiosPath: (
+      system: EmulatorSystem,
+      biosPath: string | null
+    ) => Promise<EmulatorConfig>;
     addRomFolder: (
       system: EmulatorSystem,
       folderPath: string,
@@ -449,8 +453,9 @@ declare global {
     ) => Promise<{ installed: boolean }>;
     checkEmulatorBios: (
       system: EmulatorSystem,
-      executablePath: string | null
-    ) => Promise<{ installed: boolean }>;
+      executablePath: string | null,
+      manualBiosPath?: string | null
+    ) => Promise<{ installed: boolean; detectedPath: string | null }>;
     getEmulatorInstallOptions: (
       binary: EmulatorBinary
     ) => Promise<ResolvedInstallOption[]>;

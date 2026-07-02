@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  SyncIcon,
-} from "@primer/octicons-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@primer/octicons-react";
 
-import { Button, TextField } from "@renderer/components";
+import { TextField } from "@renderer/components";
 import { getRegionsFromSkus, getSkuRegionFlag } from "@renderer/helpers";
 import { formatBytes } from "@shared";
 import type { DetectedRom, EmulatorSystem } from "@types";
@@ -14,8 +10,6 @@ import type { DetectedRom, EmulatorSystem } from "@types";
 interface Props {
   system: EmulatorSystem;
   systemLabel: string;
-  onRescan: () => void;
-  disabled?: boolean;
   refreshKey?: number;
 }
 
@@ -24,8 +18,6 @@ const PAGE_SIZE = 12;
 export function RomsDetectedSection({
   system,
   systemLabel,
-  onRescan,
-  disabled,
   refreshKey,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
@@ -80,10 +72,6 @@ export function RomsDetectedSection({
           <h3>{t("roms_detected_title")}</h3>
           <p>{t("roms_detected_description", { system: systemLabel })}</p>
         </div>
-        <Button theme="outline" onClick={onRescan} disabled={disabled}>
-          <SyncIcon size={13} />
-          <span>{t("rescan")}</span>
-        </Button>
       </header>
 
       {roms.length === 0 ? (
