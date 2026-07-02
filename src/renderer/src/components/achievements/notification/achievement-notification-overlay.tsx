@@ -51,6 +51,8 @@ export function AchievementNotificationOverlay() {
   >([]);
   const [currentAchievement, setCurrentAchievement] =
     useState<AchievementNotificationInfo | null>(null);
+  const [currentAchievementStyle, setCurrentAchievementStyle] =
+    useState<CSSProperties>({});
 
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
@@ -135,6 +137,7 @@ export function AchievementNotificationOverlay() {
   useEffect(() => {
     if (!queuedAchievement) {
       setCurrentAchievement(null);
+      setCurrentAchievementStyle({});
       return;
     }
 
@@ -148,6 +151,9 @@ export function AchievementNotificationOverlay() {
       setPosition(settings?.position ?? queuedAchievement.position);
       notificationTimeoutRef.current =
         settings?.displayTime ?? NOTIFICATION_TIMEOUT;
+      setCurrentAchievementStyle(
+        (settings?.cssVariables ?? {}) as CSSProperties
+      );
       setCurrentAchievement(queuedAchievement.achievement);
       playAudio(queuedAchievement.achievement);
     });
@@ -174,6 +180,7 @@ export function AchievementNotificationOverlay() {
         achievement={currentAchievement}
         isClosing={isClosing}
         position={position}
+        customStyle={currentAchievementStyle}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AchievementCustomNotificationPosition,
@@ -49,6 +50,8 @@ export function AchievementNotification() {
   >([]);
   const [currentAchievement, setCurrentAchievement] =
     useState<AchievementNotificationInfo | null>(null);
+  const [currentAchievementStyle, setCurrentAchievementStyle] =
+    useState<CSSProperties>({});
 
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
@@ -164,6 +167,7 @@ export function AchievementNotification() {
   useEffect(() => {
     if (!queuedAchievement) {
       setCurrentAchievement(null);
+      setCurrentAchievementStyle({});
       return;
     }
 
@@ -185,6 +189,9 @@ export function AchievementNotification() {
 
       notificationTimeoutRef.current =
         settings?.displayTime ?? NOTIFICATION_TIMEOUT;
+      setCurrentAchievementStyle(
+        (settings?.cssVariables ?? {}) as CSSProperties
+      );
       setCurrentAchievement(queuedAchievement.achievement);
       playAudio(queuedAchievement.achievement);
     });
@@ -234,6 +241,7 @@ export function AchievementNotification() {
             achievement={currentAchievement}
             isClosing={isClosing}
             position={position}
+            customStyle={currentAchievementStyle}
           />
         )}
       </section>

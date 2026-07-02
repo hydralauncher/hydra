@@ -13,6 +13,7 @@ import {
   ACHIEVEMENT_NOTIFICATION_VARIATIONS,
   DEFAULT_ACHIEVEMENT_NOTIFICATION_SOUND_VOLUME,
   DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
+  getEffectiveAchievementNotificationSoundVolume,
   getAchievementNotificationCssVariables,
   getAchievementNotificationPosition,
   getAchievementNotificationSound,
@@ -43,6 +44,7 @@ const audioExtensions = ["wav", "mp3", "ogg", "m4a"];
 const defaultProfileOption = "__default_profile__";
 const newProfileOption = "__new_profile__";
 const autosaveDelay = 600;
+const defaultMasterAchievementSoundVolume = 0.15;
 const scaleRange = { min: 0.6, max: 2, step: 0.05 };
 const radiusRange = { min: 0, max: 40, step: 1 };
 const outlineRange = { min: 0, max: 8, step: 1 };
@@ -151,6 +153,23 @@ function updateSound(
 const getProfileName = () => {
   const now = new Date();
   return `Achievement notifications ${now.toLocaleString()}`;
+};
+
+const getMasterAchievementSoundVolume = async () => {
+  try {
+    const preferences = (await levelDBService.get(
+      "userPreferences",
+      null,
+      "json"
+    )) as { achievementSoundVolume?: number } | null;
+
+    return (
+      preferences?.achievementSoundVolume ?? defaultMasterAchievementSoundVolume
+    );
+  } catch (error) {
+    console.error("Failed to load achievement sound volume", error);
+    return defaultMasterAchievementSoundVolume;
+  }
 };
 
 const getAutosaveSnapshot = ({
@@ -455,8 +474,12 @@ export function AchievementNotificationCustomizer({
 
     if (soundUrl === "") return;
 
+    const masterVolume = await getMasterAchievementSoundVolume();
     const audio = new Audio(soundUrl ?? defaultSound);
-    audio.volume = selectedSoundVolume / 100;
+    audio.volume = getEffectiveAchievementNotificationSoundVolume(
+      masterVolume,
+      selectedSound.volume
+    );
     audio.play();
   };
 
