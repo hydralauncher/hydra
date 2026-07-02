@@ -9,6 +9,7 @@ export function InputModeProvider() {
       <InputModeAttributeSync />
       <InputModeGamepadDetector />
       <InputModeMouseDetector />
+      <InputModeMouseFocusTracker />
       <InputModeFocusCleanup />
       <InputModeOverlay />
     </>
@@ -96,6 +97,42 @@ function InputModeMouseDetector() {
       });
     };
   }, [setMouseMode]);
+
+  return null;
+}
+
+function InputModeMouseFocusTracker() {
+  const setLastMouseFocusId = useInputModeStore(
+    (state) => state.setLastMouseFocusId
+  );
+
+  useEffect(() => {
+    const handleMouseOver = (e: MouseEvent) => {
+      if (useInputModeStore.getState().mode !== "mouse") return;
+
+      const target = e.target as HTMLElement;
+      const focusItem = target.closest("[data-navigation-state]");
+      if (!focusItem?.id) return;
+      if (focusItem.id === useInputModeStore.getState().lastMouseFocusId)
+        return;
+
+      const node = NavigationService.getInstance().getNode(focusItem.id);
+
+      if (node) {
+        setLastMouseFocusId(focusItem.id);
+      }
+    };
+
+    globalThis.window.addEventListener("mouseover", handleMouseOver, {
+      capture: true,
+    });
+
+    return () => {
+      globalThis.window.removeEventListener("mouseover", handleMouseOver, {
+        capture: true,
+      });
+    };
+  }, [setLastMouseFocusId]);
 
   return null;
 }
