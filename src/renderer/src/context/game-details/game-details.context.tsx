@@ -139,7 +139,6 @@ export function GameDetailsContextProvider({
         if (userDetails && shop !== "custom") {
           const useRetroAchievements =
             shop === "launchbox" &&
-            Boolean(result?.retroAchievementsGameId) &&
             Boolean(userPreferences?.retroAchievementsWebApiKey);
 
           if (useRetroAchievements) {
@@ -147,7 +146,7 @@ export function GameDetailsContextProvider({
               .getRetroAchievementsAchievements(
                 objectId,
                 shop,
-                result!.retroAchievementsGameId!
+                result?.retroAchievementsGameId ?? undefined
               )
               .then((achievements) => {
                 if (abortController.signal.aborted) return;

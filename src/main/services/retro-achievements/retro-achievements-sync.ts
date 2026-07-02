@@ -7,7 +7,12 @@ import type {
 } from "@types";
 import { UserNotLoggedInError } from "@shared";
 
-import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
+import {
+  db,
+  gameAchievementsSublevel,
+  gamesShopCacheSublevel,
+  levelKeys,
+} from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { getGameAchievementData } from "../achievements/get-game-achievement-data";
@@ -70,6 +75,31 @@ const resolveRetroAchievementsGameId = async (
     return retroAchievementsGameId;
   }
 
+  const language = await db
+    .get<string, string>(levelKeys.language, {
+      valueEncoding: "utf8",
+    })
+    .then((value) => value || "en")
+    .catch(() => "en");
+
+  const cachedShopDetails = await gamesShopCacheSublevel
+    .get(levelKeys.gameShopCacheItem(shop, objectId, language))
+    .catch(() => null);
+
+  if (typeof cachedShopDetails?.retroAchievementsGameId === "number") {
+    return cachedShopDetails.retroAchievementsGameId;
+  }
+
+  const cachedEntries = await gamesShopCacheSublevel.iterator().all();
+  for (const [key, details] of cachedEntries) {
+    if (
+      key.startsWith(`${shop}:${objectId}:`) &&
+      typeof details?.retroAchievementsGameId === "number"
+    ) {
+      return details.retroAchievementsGameId;
+    }
+  }
+
   const game = await HydraApi.get<{
     retroAchievementsGameId: number | null;
   } | null>(`/games/${shop}/${objectId}`, null, { needsAuth: false }).catch(
@@ -85,9 +115,17 @@ interface SyncRetroAchievementsParams {
   retroAchievementsGameId?: number;
 }
 
+type RetroAchievementsSyncStatus =
+  | "success"
+  | "missing_credentials"
+  | "no_mapping"
+  | "catalogue_unavailable"
+  | "progress_unavailable";
+
 interface RetroAchievementsSyncResult {
   achievements: UserAchievement[];
   didChange: boolean;
+  status: RetroAchievementsSyncStatus;
 }
 
 const buildRetroAchievementsView = (
@@ -125,13 +163,10 @@ export const syncRetroAchievements = async ({
   const username = userPreferences?.retroAchievementsUsername;
 
   if (!webApiKey || !username) {
-    logger.info("RetroAchievements sync skipped: missing credentials", {
-      hasWebApiKey: Boolean(webApiKey),
-      hasUsername: Boolean(username),
-    });
     return {
       achievements: await buildAchievementsFromCache(objectId, shop),
       didChange: false,
+      status: "missing_credentials",
     };
   }
 
@@ -142,17 +177,15 @@ export const syncRetroAchievements = async ({
   );
 
   if (!gameId) {
-    logger.info("RetroAchievements sync skipped: no game mapping", {
-      objectId,
-      shop,
-    });
     return {
       achievements: await buildAchievementsFromCache(objectId, shop),
       didChange: false,
+      status: "no_mapping",
     };
   }
 
   let catalogue: SteamAchievement[];
+  let catalogueStatus: RetroAchievementsSyncResult["status"] = "success";
   try {
     catalogue = await getGameAchievementData(objectId, shop, false);
   } catch (err) {
@@ -160,7 +193,15 @@ export const syncRetroAchievements = async ({
     return {
       achievements: await buildAchievementsFromCache(objectId, shop),
       didChange: false,
+      status: "catalogue_unavailable",
     };
+  }
+
+  if (catalogue.length === 0) {
+    const cachedAchievements = await gameAchievementsSublevel.get(gameKey);
+    if ((cachedAchievements?.achievements?.length ?? 0) === 0) {
+      catalogueStatus = "catalogue_unavailable";
+    }
   }
 
   let data: RetroAchievementsGameInfoAndUserProgress;
@@ -175,6 +216,7 @@ export const syncRetroAchievements = async ({
     return {
       achievements: await buildAchievementsFromCache(objectId, shop),
       didChange: false,
+      status: "progress_unavailable",
     };
   }
 
@@ -258,5 +300,6 @@ export const syncRetroAchievements = async ({
   return {
     achievements,
     didChange,
+    status: catalogueStatus,
   };
 };

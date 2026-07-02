@@ -801,7 +801,7 @@ declare global {
     getRetroAchievementsAchievements: (
       objectId: string,
       shop: GameShop,
-      raGameId: number
+      raGameId?: number
     ) => Promise<UserAchievement[] | null>;
     resetRetroAchievementsAchievements: () => Promise<void>;
 

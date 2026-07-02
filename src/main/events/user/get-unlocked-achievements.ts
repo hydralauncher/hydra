@@ -75,13 +75,20 @@ export const getUnlockedAchievements = async (
     });
 };
 
-const getUnlockedAchievementsEvent = async (
-  _event: Electron.IpcMainInvokeEvent,
+export const syncAndGetUnlockedAchievements = async (
   objectId: string,
   shop: GameShop
 ): Promise<UserAchievement[]> => {
   await AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
   return getUnlockedAchievements(objectId, shop, false);
+};
+
+const getUnlockedAchievementsEvent = async (
+  _event: Electron.IpcMainInvokeEvent,
+  objectId: string,
+  shop: GameShop
+): Promise<UserAchievement[]> => {
+  return syncAndGetUnlockedAchievements(objectId, shop);
 };
 
 registerEvent("getUnlockedAchievements", getUnlockedAchievementsEvent);
