@@ -21,7 +21,7 @@ import {
   DeckyPlugin,
   DownloadSourcesChecker,
   DownloadOrchestrator,
-  WSClient,
+  SSEClient,
   Wine,
   WindowManager,
   logger,
@@ -102,7 +102,10 @@ export const loadState = async () => {
     (async () => {
       await DownloadSourcesChecker.checkForChanges();
     })();
-    WSClient.connect();
+
+    if (HydraApi.isLoggedIn()) {
+      SSEClient.connect();
+    }
   });
 
   const downloadToResume =

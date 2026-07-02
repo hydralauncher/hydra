@@ -19,7 +19,11 @@ import {
   useNavigationScreenActions,
   useUserPreferences,
 } from "../../../hooks";
-import { useNavigationStore, useVirtualKeyboardStore } from "../../../stores";
+import {
+  useNavigationStore,
+  useInputModeStore,
+  useVirtualKeyboardStore,
+} from "../../../stores";
 import { GamepadButtonType } from "../../../types";
 
 type EditableTarget = HTMLInputElement | HTMLTextAreaElement | HTMLElement;
@@ -281,7 +285,7 @@ function getVirtualKeyboardNavigationOverrides(
         return left.position.centerColumn - right.position.centerColumn;
       });
     const firstEntry = rowEntries[0];
-    const lastEntry = rowEntries[rowEntries.length - 1];
+    const lastEntry = rowEntries.at(-1);
 
     if (firstEntry && lastEntry) {
       setBoundaryNavigationOverride(
@@ -312,7 +316,7 @@ function getVirtualKeyboardNavigationOverrides(
         return top.position.centerRow - bottom.position.centerRow;
       });
     const firstEntry = columnEntries[0];
-    const lastEntry = columnEntries[columnEntries.length - 1];
+    const lastEntry = columnEntries.at(-1);
 
     if (firstEntry && lastEntry) {
       setBoundaryNavigationOverride(
@@ -1068,6 +1072,7 @@ export function VirtualKeyboardProvider() {
 
       if (!isEditableTarget(nextTarget)) return;
       if (!isVirtualKeyboardEnabled) return;
+      if (useInputModeStore.getState().mode !== "gamepad") return;
 
       if (suppressedTargetRef.current === nextTarget) return;
 
