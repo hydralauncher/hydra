@@ -10,6 +10,7 @@ const emptyConfig = (system: EmulatorSystem): EmulatorConfig => ({
   executablePath: null,
   detectedVersion: null,
   detectedAt: null,
+  biosPath: null,
   romFolders: [],
   lastScanAt: null,
   totalFiles: 0,

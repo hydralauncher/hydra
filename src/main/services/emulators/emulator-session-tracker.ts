@@ -5,6 +5,7 @@ import type { EmulatorSystem, Game, GameShop } from "@types";
 
 import { trackGamePlaytime } from "../library-sync";
 import { logger } from "../logger";
+import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
 
 export interface EmulatorSession {
@@ -168,4 +169,13 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
         unsyncedDeltaPlayTimeInMilliseconds: pendingDelta,
       });
     });
+
+  if (game.shop === "launchbox") {
+    syncRetroAchievements({
+      objectId: game.objectId,
+      shop: game.shop,
+    }).catch((error) => {
+      logger.error("Failed to sync RetroAchievements on session end", error);
+    });
+  }
 };

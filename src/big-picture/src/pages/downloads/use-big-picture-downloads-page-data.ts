@@ -346,6 +346,12 @@ export function useBigPictureDownloadsPageData() {
       pauseOrResumeAction = "resume";
     } else if (isExtracting) {
       statusLabel = "Extracting";
+    } else if (lastPacket?.isRecovering) {
+      statusLabel = `Recovering download… ${Math.round(
+        (lastPacket.recoveryProgress ?? 0) * 100
+      )}%`;
+    } else if (lastPacket?.isReconnecting) {
+      statusLabel = "Reconnecting…";
     } else if (lastPacket?.isCheckingFiles) {
       statusLabel = "Checking files";
     } else if (lastPacket?.isDownloadingMetadata) {
@@ -579,6 +585,7 @@ export function useBigPictureDownloadsPageData() {
 
     const shouldZeroSpeed =
       activeGame.download.extracting ||
+      lastPacket?.isReconnecting ||
       lastPacket?.isCheckingFiles ||
       lastPacket?.isDownloadingMetadata ||
       lastPacket?.gameId !== activeGame.id;
@@ -603,6 +610,7 @@ export function useBigPictureDownloadsPageData() {
     activeGame,
     lastPacket?.downloadSpeed,
     lastPacket?.gameId,
+    lastPacket?.isReconnecting,
     lastPacket?.isCheckingFiles,
     lastPacket?.isDownloadingMetadata,
     lastPacket?.numPeers,

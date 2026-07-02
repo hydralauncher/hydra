@@ -20,10 +20,6 @@ const hydraApiCall = async (
   const { method, url, data, params, options } = payload;
 
   const getErrorMessage = (error: unknown): string | null => {
-    if (error instanceof Error && error.message) {
-      return error.message;
-    }
-
     if (typeof error === "object" && error !== null) {
       const response = (
         error as { response?: { data?: { message?: unknown } } }
@@ -33,6 +29,10 @@ const hydraApiCall = async (
       if (typeof responseMessage === "string") {
         return responseMessage;
       }
+    }
+
+    if (error instanceof Error && error.message) {
+      return error.message;
     }
 
     return null;

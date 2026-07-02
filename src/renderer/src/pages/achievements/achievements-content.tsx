@@ -16,6 +16,7 @@ import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
 import { ComparedAchievementPanel } from "./compared-achievement-panel";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import "./achievements-content.scss";
 
 interface UserInfo {
@@ -249,6 +250,8 @@ export function AchievementsContent({
             </div>
           </div>
         )}
+
+        <RetroAchievementsConnectBanner />
 
         {otherUser ? (
           <>
