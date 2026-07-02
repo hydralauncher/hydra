@@ -1,7 +1,6 @@
 import "./download-directories-section.scss";
 
 import type { DiskUsage, UserPreferences } from "@types";
-import { DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID } from "./settings-navigation";
 import {
   MAX_DOWNLOAD_DIRECTORIES,
   MAX_OPTIONAL_DOWNLOAD_DIRECTORIES,
@@ -25,12 +24,14 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Button,
   ContextMenu,
   DropdownSelect,
   type DropdownSelectOption,
+  FileExplorerModal,
   GridFocusGroup,
   HorizontalFocusGroup,
   UserDiskItem,
@@ -44,6 +45,7 @@ import { SettingsSection } from "./settings-section";
 import {
   SETTINGS_HEADER_RETURN_TARGET,
   SETTINGS_SIDEBAR_RETURN_TARGET,
+  DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID,
 } from "./settings-navigation";
 
 interface DownloadDirectoriesSectionProps {
@@ -231,26 +233,45 @@ function getDirectoryCardNavigationOverrides(
   const belowSlot = rowBelow
     ? getClosestVerticalNeighbor(slot, rowBelow)
     : null;
+  const blockTarget = { type: "block" as const };
+
+  let leftTarget: FocusOverrides["left"];
+  if (previousSlot) {
+    leftTarget = getItemFocusTarget(focusIds[previousSlot.index]);
+  } else if (index === 0) {
+    leftTarget = SETTINGS_SIDEBAR_RETURN_TARGET;
+  } else {
+    leftTarget = blockTarget;
+  }
+
+  let rightTarget: FocusOverrides["right"];
+  if (nextSlot) {
+    rightTarget = getItemFocusTarget(focusIds[nextSlot.index]);
+  } else {
+    rightTarget = blockTarget;
+  }
+
+  let upTarget: FocusOverrides["up"];
+  if (aboveSlot) {
+    upTarget = getItemFocusTarget(focusIds[aboveSlot.index]);
+  } else {
+    upTarget = getItemFocusTarget(
+      getDirectoryCardControlUpTargetId(directoryCount, index)
+    );
+  }
+
+  let downTarget: FocusOverrides["down"];
+  if (belowSlot) {
+    downTarget = getItemFocusTarget(focusIds[belowSlot.index]);
+  } else {
+    downTarget = undefined;
+  }
 
   return {
-    left: previousSlot
-      ? getItemFocusTarget(focusIds[previousSlot.index])
-      : index === 0
-        ? SETTINGS_SIDEBAR_RETURN_TARGET
-        : { type: "block" },
-    right: nextSlot
-      ? getItemFocusTarget(focusIds[nextSlot.index])
-      : { type: "block" },
-    up:
-      aboveSlot != null
-        ? getItemFocusTarget(focusIds[aboveSlot.index])
-        : getItemFocusTarget(
-            getDirectoryCardControlUpTargetId(directoryCount, index)
-          ),
-    down:
-      belowSlot != null
-        ? getItemFocusTarget(focusIds[belowSlot.index])
-        : undefined,
+    left: leftTarget,
+    right: rightTarget,
+    up: upTarget,
+    down: downTarget,
   };
 }
 
@@ -294,6 +315,7 @@ function persistDownloadDirectoryPreferences(
 export function DownloadDirectoriesSection({
   className,
 }: Readonly<DownloadDirectoriesSectionProps>) {
+  const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
   const [diskUsageByPath, setDiskUsageByPath] = useState<
@@ -302,6 +324,7 @@ export function DownloadDirectoriesSection({
   const [directoryMenu, setDirectoryMenu] = useState<DirectoryMenuState | null>(
     null
   );
+  const [filePickerOpen, setFilePickerOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -458,27 +481,29 @@ export function DownloadDirectoriesSection({
       return;
     }
 
-    const { filePaths } = await globalThis.window.electron.showOpenDialog({
-      defaultPath: resolvedDirectories.defaultPath,
-      properties: ["openDirectory"],
-    });
-    const nextPath = filePaths?.[0];
+    setFilePickerOpen(true);
+  }, [canAddDirectory, defaultDownloadsPath, resolvedDirectories]);
 
-    if (!nextPath) return;
+  const handleFilePickerSelect = useCallback(
+    async (nextPath: string) => {
+      setFilePickerOpen(false);
 
-    const nextPreferences = addOptionalDownloadDirectory(
-      userPreferences,
-      nextPath,
-      defaultDownloadsPath
-    );
+      if (!nextPath || !defaultDownloadsPath) return;
 
-    await persistDownloadDirectoryPreferences(nextPreferences);
-  }, [
-    canAddDirectory,
-    defaultDownloadsPath,
-    resolvedDirectories,
-    userPreferences,
-  ]);
+      const nextPreferences = addOptionalDownloadDirectory(
+        userPreferences,
+        nextPath,
+        defaultDownloadsPath
+      );
+
+      await persistDownloadDirectoryPreferences(nextPreferences);
+    },
+    [defaultDownloadsPath, userPreferences]
+  );
+
+  const handleFilePickerClose = useCallback(() => {
+    setFilePickerOpen(false);
+  }, []);
 
   const handleRemoveDirectory = useCallback(
     async (pathToRemove: string) => {
@@ -645,6 +670,15 @@ export function DownloadDirectoriesSection({
         position={directoryMenu?.position ?? { x: 0, y: 0 }}
         restoreFocusId={directoryMenu?.restoreFocusId ?? null}
         onClose={() => setDirectoryMenu(null)}
+      />
+
+      <FileExplorerModal
+        visible={filePickerOpen}
+        onClose={handleFilePickerClose}
+        onSelect={handleFilePickerSelect}
+        title={t("file_explorer_select_download_directory")}
+        initialPath={resolvedDirectories?.defaultPath}
+        selectDirectory
       />
     </SettingsSection>
   );

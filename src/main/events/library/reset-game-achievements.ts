@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { findAchievementFiles } from "@main/services/achievements/find-achivement-files";
+import { findAchievementFiles } from "@main/services/achievements/find-achievement-files";
 import fs from "fs";
 import { achievementsLogger, HydraApi, WindowManager } from "@main/services";
 import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
