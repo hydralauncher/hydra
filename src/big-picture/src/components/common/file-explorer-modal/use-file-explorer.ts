@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useNavigationScreenActions } from "../../../hooks";
 import { type DirectoryEntry } from "../../../helpers";
 import {
@@ -85,8 +77,6 @@ export function useFileExplorer({
   const [drives, setDrives] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pathInputValue, setPathInputValue] = useState("");
-  const pathInputRef = useRef<HTMLInputElement | null>(null);
   const generatedId = useId();
   const fileListRegionId = `file-explorer-region-${generatedId.replaceAll(":", "")}`;
 
@@ -106,10 +96,6 @@ export function useFileExplorer({
       cancelled = true;
     };
   }, [visible, initialPath]);
-
-  useEffect(() => {
-    setPathInputValue(currentPath);
-  }, [currentPath]);
 
   useEffect(() => {
     if (!visible) {
@@ -187,10 +173,10 @@ export function useFileExplorer({
   }, [entries, allowedExtensions, drives, selectDirectory, currentPath]);
 
   const handleBPress = useCallback(() => {
-    if (!currentPath) return onClose();
-
     const parent = getParentPath(currentPath);
     if (parent) return setCurrentPath(parent);
+
+    if (!currentPath) return onClose();
 
     if (drives.length > 0) {
       setCurrentPath("");
@@ -225,30 +211,6 @@ export function useFileExplorer({
     onSelect(currentPath);
   }, [currentPath, onSelect]);
 
-  const handlePathEnter = useCallback(async () => {
-    const target = pathInputValue.trim();
-    if (!target) return;
-
-    try {
-      const info = await globalThis.window.electron.getPathInfo(target);
-      if (info.exists && info.isDirectory) {
-        setCurrentPath(target);
-      } else setPathInputValue(currentPath);
-    } catch {
-      setPathInputValue(currentPath);
-    }
-  }, [pathInputValue, currentPath]);
-
-  const handlePathInputKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handlePathEnter();
-      }
-    },
-    [handlePathEnter]
-  );
-
   const hasParent = Boolean(
     (currentPath && getParentPath(currentPath)) ||
       (currentPath && drives.length > 0)
@@ -270,9 +232,6 @@ export function useFileExplorer({
 
   return {
     currentPath,
-    pathInputValue,
-    setPathInputValue,
-    pathInputRef,
     fileListRegionId,
     isLoading,
     error,
@@ -289,7 +248,6 @@ export function useFileExplorer({
     hasParent,
     handleEntrySelect,
     handleSelectThisDirectory,
-    handlePathInputKeyDown,
     goToParent,
     navigateToDrive,
   };
