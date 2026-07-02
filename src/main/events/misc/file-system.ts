@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { platform } from "node:os";
 import { registerEvent } from "../register-event";
 
-export interface DirectoryEntry {
+const FILE_STAT_CONCURRENCY = 32;
+
+interface DirectoryEntry {
   name: string;
   path: string;
   isDirectory: boolean;
@@ -13,7 +15,7 @@ export interface DirectoryEntry {
   size: number;
 }
 
-export interface PathInfo {
+interface PathInfo {
   exists: boolean;
   isDirectory: boolean;
   isFile: boolean;
@@ -75,6 +77,29 @@ function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
   }
 }
 
+async function mapWithConcurrency<TItem, TResult>(
+  items: TItem[],
+  limit: number,
+  mapper: (item: TItem) => Promise<TResult>
+): Promise<TResult[]> {
+  const results: TResult[] = new Array(items.length);
+  let currentIndex = 0;
+
+  const worker = async () => {
+    while (currentIndex < items.length) {
+      const nextIndex = currentIndex;
+      currentIndex += 1;
+      results[nextIndex] = await mapper(items[nextIndex]);
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker())
+  );
+
+  return results;
+}
+
 const readDirectory = async (
   event: Electron.IpcMainInvokeEvent,
   dirPath: string
@@ -83,8 +108,10 @@ const readDirectory = async (
 
   const entries = await readdir(dirPath, { withFileTypes: true });
 
-  const result: DirectoryEntry[] = await Promise.all(
-    entries.map(async (entry) => {
+  const result = await mapWithConcurrency(
+    entries,
+    FILE_STAT_CONCURRENCY,
+    async (entry): Promise<DirectoryEntry> => {
       const fullPath = join(dirPath, entry.name);
       const name = entry.name;
       const isMacApp =
@@ -116,7 +143,7 @@ const readDirectory = async (
         extension: ext,
         size,
       };
-    })
+    }
   );
 
   const collator = new Intl.Collator(undefined, {

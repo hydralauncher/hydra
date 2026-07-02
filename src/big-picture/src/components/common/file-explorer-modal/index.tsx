@@ -5,6 +5,7 @@ import {
   FolderIcon,
   FolderOpenIcon,
 } from "@phosphor-icons/react";
+import { useTranslation } from "react-i18next";
 import { Modal } from "../modal";
 import { VerticalFocusGroup } from "../vertical-focus-group";
 import { EmptyState } from "../empty-state";
@@ -48,6 +49,7 @@ function getInitialFocusId(vm: ReturnType<typeof useFileExplorer>) {
 }
 
 export function FileExplorerModal(props: Readonly<FileExplorerModalProps>) {
+  const { t } = useTranslation("big_picture");
   const vm = useFileExplorer(props);
   const initialFocusId = getInitialFocusId(vm);
 
@@ -120,7 +122,7 @@ export function FileExplorerModal(props: Readonly<FileExplorerModalProps>) {
                     <CheckCircleIcon size={22} weight="fill" />
                   </span>
 
-                  <span>Select this directory</span>
+                  <span>{t("file_explorer_select_this_directory")}</span>
                 </button>
               </FocusItem>
             )}

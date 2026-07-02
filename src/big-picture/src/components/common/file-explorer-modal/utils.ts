@@ -1,5 +1,5 @@
-import type { DirectoryEntry } from "../../../helpers";
 import { formatBytes } from "@shared";
+import type { DirectoryEntry } from "../../../helpers";
 
 export interface FileFilter {
   name: string;
@@ -7,21 +7,39 @@ export interface FileFilter {
 }
 
 const WINDOWS_DRIVE_RE = /^[A-Za-z]:$/;
+const WINDOWS_ROOT_RE = /^[A-Za-z]:[\\/]?$/;
 
 export function getParentPath(path: string): string | null {
   if (!path) return null;
 
-  const normalized = path.replaceAll("\\", "/").replace(/\/$/, "");
+  const isWindowsPath = path.includes("\\") || /^[A-Za-z]:([\\/]|$)/.test(path);
+
+  if (isWindowsPath) {
+    const trimmedPath = path.replace(/[\\/]+$/, "");
+
+    if (WINDOWS_ROOT_RE.test(path) || WINDOWS_DRIVE_RE.test(trimmedPath)) {
+      return null;
+    }
+
+    const lastSeparator = Math.max(
+      trimmedPath.lastIndexOf("\\"),
+      trimmedPath.lastIndexOf("/")
+    );
+
+    if (lastSeparator === -1) return null;
+
+    const parent = trimmedPath.slice(0, lastSeparator).replaceAll("/", "\\");
+    return WINDOWS_DRIVE_RE.test(parent) ? `${parent}\\` : parent || null;
+  }
+
+  const normalized = path.replace(/\/$/, "");
 
   if (normalized === "/") return null;
-  if (WINDOWS_DRIVE_RE.test(normalized)) return null;
 
   const lastSlash = normalized.lastIndexOf("/");
   if (lastSlash === -1) return null;
 
-  const parent = normalized.substring(0, lastSlash) || "/";
-
-  return WINDOWS_DRIVE_RE.test(parent) ? parent + "/" : parent;
+  return normalized.substring(0, lastSlash) || "/";
 }
 
 export function getEntryMeta(entry: DirectoryEntry): string {
@@ -33,9 +51,11 @@ export function normalizeFilters(filters?: FileFilter[]): Set<string> | null {
   if (!filters || filters.length === 0) return null;
 
   const allExtensions = filters.flatMap((f) => f.extensions);
-  if (allExtensions.includes("*")) return null;
+  const specificExtensions = allExtensions.filter((ext) => ext !== "*");
 
-  return new Set(allExtensions.map((ext) => ext.toLowerCase()));
+  if (specificExtensions.length === 0) return null;
+
+  return new Set(specificExtensions.map((ext) => ext.toLowerCase()));
 }
 
 export function matchesFilters(

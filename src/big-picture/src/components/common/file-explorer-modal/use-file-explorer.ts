@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigationScreenActions } from "../../../hooks";
-import { type DirectoryEntry } from "../../../helpers";
+import type { DirectoryEntry } from "../../../helpers";
 import {
   getParentPath,
   matchesFilters,
@@ -9,28 +10,21 @@ import {
 } from "./utils";
 
 const SKELETON_COUNT = 6;
-const PATH_INPUT_PLACEHOLDER = "Select a location";
-const DRIVES_LABEL = "Drives";
-const EMPTY_FOLDER_TITLE = "This folder is empty";
-const EMPTY_DIRECTORY_CHOICE_TITLE = "No folders found";
-
-const ERROR_MESSAGES: Record<string, string> = {
-  EACCES: "You don't have permission to open this location.",
-  ENOENT: "This location doesn't exist.",
-  ENOTDIR: "This is not a directory.",
-};
-
-function getErrorMessage(err: unknown): string {
+function getErrorMessage(
+  err: unknown,
+  errorMessages: Record<string, string>,
+  fallbackMessage: string
+): string {
   const code =
     err instanceof Error && "code" in err
       ? (err as Record<string, unknown>).code
       : undefined;
 
   if (typeof code === "string") {
-    return ERROR_MESSAGES[code] ?? "This location can't be opened.";
+    return errorMessages[code] ?? fallbackMessage;
   }
 
-  return "This location can't be opened.";
+  return fallbackMessage;
 }
 
 export interface FileExplorerModalProps {
@@ -72,6 +66,7 @@ export function useFileExplorer({
   filters,
   selectDirectory = false,
 }: Readonly<FileExplorerModalProps>) {
+  const { t } = useTranslation("big_picture");
   const [currentPath, setCurrentPath] = useState<string>("");
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
   const [drives, setDrives] = useState<string[]>([]);
@@ -79,6 +74,19 @@ export function useFileExplorer({
   const [error, setError] = useState<string | null>(null);
   const generatedId = useId();
   const fileListRegionId = `file-explorer-region-${generatedId.replaceAll(":", "")}`;
+  const pathInputPlaceholder = t("file_explorer_path_placeholder");
+  const drivesLabel = t("file_explorer_drives");
+  const emptyFolderTitle = t("file_explorer_empty_folder");
+  const emptyDirectoryChoiceTitle = t("file_explorer_empty_directory");
+  const fileExplorerErrorFallback = t("file_explorer_error_default");
+  const fileExplorerErrorMessages = useMemo(
+    () => ({
+      EACCES: t("file_explorer_error_eacces"),
+      ENOENT: t("file_explorer_error_enoent"),
+      ENOTDIR: t("file_explorer_error_enotdir"),
+    }),
+    [t]
+  );
 
   useEffect(() => {
     if (!visible) {
@@ -122,7 +130,13 @@ export function useFileExplorer({
         if (!cancelled) setEntries(result);
       } catch (err) {
         if (!cancelled) {
-          setError(getErrorMessage(err));
+          setError(
+            getErrorMessage(
+              err,
+              fileExplorerErrorMessages,
+              fileExplorerErrorFallback
+            )
+          );
           setEntries([]);
         }
       } finally {
@@ -137,7 +151,12 @@ export function useFileExplorer({
     return () => {
       cancelled = true;
     };
-  }, [visible, currentPath]);
+  }, [
+    visible,
+    currentPath,
+    fileExplorerErrorFallback,
+    fileExplorerErrorMessages,
+  ]);
 
   useEffect(() => {
     if (!visible || currentPath) {
@@ -152,7 +171,7 @@ export function useFileExplorer({
         const result = await globalThis.window.electron.listDrives();
         if (!cancelled) setDrives(result);
       } catch {
-        // Drives failed to load — user can type a path manually
+        // Drives failed to load — the explorer can still use the current path.
       }
     };
 
@@ -223,7 +242,7 @@ export function useFileExplorer({
     if (drives.length > 0) setCurrentPath("");
   }, [currentPath, drives.length]);
 
-  const showSelectThisDir = selectDirectory && currentPath;
+  const showSelectThisDir = Boolean(selectDirectory && currentPath);
   const showDriveList = !currentPath && drives.length > 0;
 
   const navigateToDrive = useCallback((drive: string) => {
@@ -238,11 +257,9 @@ export function useFileExplorer({
     drives,
     filteredEntries,
     SKELETON_COUNT,
-    PATH_INPUT_PLACEHOLDER,
-    DRIVES_LABEL,
-    emptyTitle: selectDirectory
-      ? EMPTY_DIRECTORY_CHOICE_TITLE
-      : EMPTY_FOLDER_TITLE,
+    PATH_INPUT_PLACEHOLDER: pathInputPlaceholder,
+    DRIVES_LABEL: drivesLabel,
+    emptyTitle: selectDirectory ? emptyDirectoryChoiceTitle : emptyFolderTitle,
     showSelectThisDir,
     showDriveList,
     hasParent,

@@ -32,9 +32,7 @@ interface UseGameSettingsModalStateResult {
 }
 
 type CustomAssetType = "icon" | "logo" | "hero";
-const ASSET_PICKER_FILTERS: FileFilter[] = [
-  { name: "Image files", extensions: ["jpg", "jpeg", "png", "gif", "webp"] },
-];
+const IMAGE_FILE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"] as const;
 
 export function useGameSettingsModalState({
   game,
@@ -42,7 +40,7 @@ export function useGameSettingsModalState({
   updateGame,
   refreshGameDetails,
 }: Readonly<UseGameSettingsModalStateParams>): UseGameSettingsModalStateResult {
-  const { t } = useTranslation("game_details");
+  const { t } = useTranslation(["game_details", "sidebar"]);
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const [gameTitle, setGameTitle] = useState("");
   const [launchOptions, setLaunchOptions] = useState("");
@@ -98,7 +96,7 @@ export function useGameSettingsModalState({
   }, [game?.shop, getDownloadsPath, visible]);
 
   useEffect(() => {
-    if (!visible || !game || game.shop !== "launchbox") {
+    if (!visible || game?.shop !== "launchbox") {
       setDiscPickerFilters([]);
       return;
     }
@@ -438,6 +436,16 @@ export function useGameSettingsModalState({
     [t]
   );
 
+  const assetPickerFilters = useMemo<FileFilter[]>(
+    () => [
+      {
+        name: t("edit_game_modal_image_filter", { ns: "sidebar" }),
+        extensions: [...IMAGE_FILE_EXTENSIONS],
+      },
+    ],
+    [t]
+  );
+
   const handleProcessExecPath = useCallback(
     async (path: string) => {
       if (!game) return;
@@ -730,7 +738,7 @@ export function useGameSettingsModalState({
       game,
       gameTitle,
       updatingGameTitle,
-      assetPickerFilters: ASSET_PICKER_FILTERS,
+      assetPickerFilters,
       onChangeGameTitle: handleChangeGameTitle,
       onBlurGameTitle: handleBlurGameTitle,
       onProcessAssetPath: handleProcessAssetPath,
@@ -739,6 +747,7 @@ export function useGameSettingsModalState({
   }, [
     game,
     gameTitle,
+    assetPickerFilters,
     handleBlurGameTitle,
     handleChangeGameTitle,
     handleClearCustomizationAsset,
