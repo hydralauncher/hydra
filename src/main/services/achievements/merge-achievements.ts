@@ -38,6 +38,7 @@ const saveAchievementsOnLocal = async (
         unlockedAchievements: unlockedAchievements,
         updatedAt: gameAchievement?.updatedAt,
         language: gameAchievement?.language,
+        catalogueValidator: gameAchievement?.catalogueValidator,
       });
 
       if (!sendUpdateEvent) return;

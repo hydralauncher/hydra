@@ -17,6 +17,8 @@ export interface HydraApiOptions {
   needsAuth?: boolean;
   needsSubscription?: boolean;
   ifModifiedSince?: Date;
+  ifNoneMatch?: string;
+  validateStatus?: (status: number) => boolean;
 }
 
 interface HydraApiUserAuth {
@@ -346,11 +348,45 @@ export class HydraApi {
     const headers = {
       ...this.getAxiosConfig().headers,
       "Hydra-If-Modified-Since": options?.ifModifiedSince?.toUTCString(),
+      "If-None-Match": options?.ifNoneMatch,
     };
 
     return this.instance
-      .get<T>(url, { params, ...this.getAxiosConfig(), headers })
+      .get<T>(url, {
+        params,
+        ...this.getAxiosConfig(),
+        headers,
+        validateStatus: options?.validateStatus,
+      })
       .then((response) => response.data)
+      .catch(this.handleUnauthorizedError);
+  }
+
+  static async getResponse<T = any>(
+    url: string,
+    params?: any,
+    options?: HydraApiOptions
+  ) {
+    await this.validateOptions(options);
+
+    const headers = {
+      ...this.getAxiosConfig().headers,
+      "Hydra-If-Modified-Since": options?.ifModifiedSince?.toUTCString(),
+      "If-None-Match": options?.ifNoneMatch,
+    };
+
+    return this.instance
+      .get<T>(url, {
+        params,
+        ...this.getAxiosConfig(),
+        headers,
+        validateStatus: options?.validateStatus,
+      })
+      .then((response) => ({
+        status: response.status,
+        data: response.data,
+        headers: response.headers,
+      }))
       .catch(this.handleUnauthorizedError);
   }
 
