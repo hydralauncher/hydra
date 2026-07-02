@@ -10,7 +10,10 @@ import { UserNotLoggedInError } from "@shared";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
-import { RetroAchievementsClient } from "./retro-achievements-client";
+import {
+  RetroAchievementsClient,
+  type RetroAchievementsGameInfoAndUserProgress,
+} from "./retro-achievements-client";
 
 const RA_BADGE_URL = "https://media.retroachievements.org/Badge";
 
@@ -18,6 +21,45 @@ const toMillis = (date?: string) => {
   if (!date) return null;
   const time = new Date(`${date.replace(" ", "T")}Z`).getTime();
   return Number.isNaN(time) ? null : time;
+};
+
+const sortAchievements = (a: UserAchievement, b: UserAchievement) => {
+  if (a.unlocked && !b.unlocked) return -1;
+  if (!a.unlocked && b.unlocked) return 1;
+  if (a.unlocked && b.unlocked) {
+    return b.unlockTime! - a.unlockTime!;
+  }
+  return Number(a.hidden) - Number(b.hidden);
+};
+
+const buildAchievementsFromCache = async (
+  objectId: string,
+  shop: GameShop
+): Promise<UserAchievement[]> => {
+  const cached = await gameAchievementsSublevel.get(
+    levelKeys.game(shop, objectId)
+  );
+
+  if (!cached) return [];
+
+  const unlockedByName = new Map<string, UnlockedAchievement>();
+  for (const unlocked of cached.unlockedAchievements ?? []) {
+    unlockedByName.set(unlocked.name.toUpperCase(), unlocked);
+  }
+
+  return (cached.achievements ?? [])
+    .map((achievementData) => {
+      const unlocked = unlockedByName.get(achievementData.name.toUpperCase());
+
+      return {
+        ...achievementData,
+        unlocked: Boolean(unlocked),
+        unlockTime: unlocked?.unlockTime ?? null,
+        hardcoreUnlockTime: null,
+        source: "retroachievements" as const,
+      };
+    })
+    .sort(sortAchievements);
 };
 
 const resolveRetroAchievementsGameId = async (
@@ -62,7 +104,7 @@ export const syncRetroAchievements = async ({
       hasWebApiKey: Boolean(webApiKey),
       hasUsername: Boolean(username),
     });
-    return null;
+    return buildAchievementsFromCache(objectId, shop);
   }
 
   const gameId = await resolveRetroAchievementsGameId(
@@ -76,14 +118,20 @@ export const syncRetroAchievements = async ({
       objectId,
       shop,
     });
-    return null;
+    return buildAchievementsFromCache(objectId, shop);
   }
 
-  const data = await RetroAchievementsClient.getGameInfoAndUserProgress({
-    username,
-    webApiKey,
-    raGameId: gameId,
-  });
+  let data: RetroAchievementsGameInfoAndUserProgress;
+  try {
+    data = await RetroAchievementsClient.getGameInfoAndUserProgress({
+      username,
+      webApiKey,
+      raGameId: gameId,
+    });
+  } catch (err) {
+    logger.error("Failed to fetch RetroAchievements progress", err);
+    return buildAchievementsFromCache(objectId, shop);
+  }
 
   const remoteAchievements = Object.values(data.Achievements ?? {});
 
@@ -167,12 +215,5 @@ export const syncRetroAchievements = async ({
         source: "retroachievements" as const,
       };
     })
-    .sort((a, b) => {
-      if (a.unlocked && !b.unlocked) return -1;
-      if (!a.unlocked && b.unlocked) return 1;
-      if (a.unlocked && b.unlocked) {
-        return b.unlockTime! - a.unlockTime!;
-      }
-      return Number(a.hidden) - Number(b.hidden);
-    });
+    .sort(sortAchievements);
 };
