@@ -100,7 +100,10 @@ export class BigPictureSessionManager {
 
     await DisplayManager.prepareBigPictureDisplayForLaunch();
 
-    if (userPreferences?.bigPictureAudioDeviceId) {
+    if (
+      userPreferences?.bigPictureSoundsEnabled !== false &&
+      userPreferences?.bigPictureAudioDeviceId
+    ) {
       await AudioDeviceManager.setDefaultAudioDevice(
         userPreferences.bigPictureAudioDeviceId
       );
