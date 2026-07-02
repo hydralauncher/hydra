@@ -704,6 +704,11 @@
     "game_options": "Настройки игры",
     "delete_backup": "Удалить копию",
     "cloud_backup_options": "Параметры копии",
+    "uploading_backup": "Загрузка резервной копии…",
+    "restoring_backup": "Восстановление резервной копии ({{progress}})…",
+    "loading_save_preview": "Поиск сохранений…",
+    "no_backup_preview": "Сохранения для этой игры не найдены",
+    "max_number_of_artifacts_reached": "Достигнуто максимальное количество резервных копий для этой игры",
     "cloud_delete_backup_description": "Удалить из ваших облачных резервных копий?"
   },
   "format": {
@@ -723,6 +728,12 @@
     "download_sources_removed_few": "{{count}} источника загрузок удалены",
     "download_sources_removed_many": "{{count}} источников загрузок удалены",
     "download_sources_removed_other": "{{count}} источника загрузок удалены",
+    "remove_from_library": "Удалить из библиотеки",
+    "remove_from_library_description": "Игра {{game}} будет удалена из вашей библиотеки",
+    "reset_achievements": "Сбросить достижения",
+    "reset_achievements_description": "Ваши достижения для {{game}} будут удалены локально и в облаке",
+    "remove_game_files": "Удалить файлы игры",
+    "remove_game_files_description": "Загруженные файлы для {{game}} будут удалены",
     "edit_game_modal_section_title": "Название игры",
     "edit_game_modal_section_title_description": "Измените название, которое отображается для этой игры в вашей библиотеке.",
     "edit_game_modal_section_assets_description": "Выберите, какое оформление вы хотите настроить для этой игры.",
@@ -746,6 +757,16 @@
     "settings_diagnostics_position_top_right": "Сверху справа",
     "settings_diagnostics_position_bottom_left": "Снизу слева",
     "settings_diagnostics_position_bottom_center": "Снизу по центру",
-    "settings_diagnostics_position_bottom_right": "Снизу справа"
+    "settings_diagnostics_position_bottom_right": "Снизу справа",
+    "file_explorer_path_placeholder": "Выберите расположение",
+    "file_explorer_drives": "Диски",
+    "file_explorer_empty_folder": "Эта папка пуста",
+    "file_explorer_empty_directory": "Папки не найдены",
+    "file_explorer_error_eacces": "У вас нет прав для открытия этого расположения.",
+    "file_explorer_error_enoent": "Это расположение не существует.",
+    "file_explorer_error_enotdir": "Этот путь не является папкой.",
+    "file_explorer_error_default": "Не удалось открыть это расположение.",
+    "file_explorer_select_this_directory": "Выбрать эту папку",
+    "file_explorer_select_download_directory": "Выбрать папку загрузки"
   }
 }

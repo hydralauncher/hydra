@@ -145,6 +145,8 @@
     "scan_games_scan_again": "Escanear nuevamente"
   },
   "bottom_panel": {
+    "reconnecting": "Reconectando {{title}}…",
+    "recovering": "Recuperando {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Sin descargas en progreso",
     "downloading_metadata": "Descargando metadatos de {{title}}…",
     "downloading": "Descargando {{title}}… ({{percentage}} completado) - Finalizando {{eta}} - {{speed}}",
@@ -497,6 +499,15 @@
     "properties": "Propiedades",
     "rating": "Calificación",
     "rating_count": "Calificación",
+    "details": "Detalles",
+    "platform": "Plataforma",
+    "genres": "Géneros",
+    "regions": "Regiones",
+    "region_us": "EE. UU.",
+    "region_eu": "Europa",
+    "region_jp": "Japón",
+    "region_kr": "Corea",
+    "region_asia": "Asia",
     "rating_negative": "Negativa",
     "rating_neutral": "Neutral",
     "rating_positive": "Positiva",
@@ -642,6 +653,8 @@
     "loading": "Cargando…"
   },
   "downloads": {
+    "reconnecting": "Reconectando…",
+    "recovering": "Recuperando descarga… {{percentage}}",
     "resume": "Resumir",
     "pause": "Pausar",
     "eta": "Tiempo de finalizción {{eta}}",
@@ -1333,6 +1346,9 @@
     "no_reviews": "Sin reseñas aún",
     "delete_review": "Eliminar reseña",
     "classics": "Clásicos",
+    "platform": "Plataformas",
+    "platform_all": "Todas",
+    "platform_pc": "PC",
     "platform_classics": "Clásicos"
   },
   "achievement": {

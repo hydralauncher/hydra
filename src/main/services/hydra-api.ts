@@ -11,7 +11,7 @@ import { getUserData } from "./user/get-user-data";
 import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
-import { WSClient } from "./ws";
+import { SSEClient } from "./sse";
 
 export interface HydraApiOptions {
   needsAuth?: boolean;
@@ -105,8 +105,8 @@ export class HydraApi {
       await clearGamesRemoteIds();
       void uploadGamesBatch();
 
-      WSClient.close();
-      WSClient.connect();
+      SSEClient.close();
+      SSEClient.connect();
 
       const { syncDownloadSourcesFromApi } = await import("./user");
       syncDownloadSourcesFromApi();
@@ -315,6 +315,7 @@ export class HydraApi {
         },
       ]);
 
+      SSEClient.close();
       this.sendSignOutEvent();
     }
 
