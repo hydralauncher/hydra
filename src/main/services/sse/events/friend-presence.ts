@@ -1,4 +1,4 @@
-import type { FriendPresence } from "@main/generated/envelope";
+import type { FriendPresence } from "../types";
 import { WindowManager } from "@main/services/window-manager";
 
 export const friendPresenceEvent = (payload: FriendPresence) => {
