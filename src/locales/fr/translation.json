@@ -1145,7 +1145,16 @@
     "setup_step_label_done": "Terminé",
     "remove_emulator": "Supprimer l'émulateur",
     "remove_emulator_title": "Supprimer {{name}} d'Hydra ?",
-    "remove_emulator_description": "Hydra oubliera le chemin de {{name}} et tous les dossiers ROM mappés. L'émulateur lui-même et vos fichiers ROM restent sur le disque. Vous pouvez relancer la configuration ensuite."
+    "remove_emulator_description": "Hydra oubliera le chemin de {{name}} et tous les dossiers ROM mappés. L'émulateur lui-même et vos fichiers ROM restent sur le disque. Vous pouvez relancer la configuration ensuite.",
+    "big_picture": "Big Picture",
+    "big_picture_startup": "Démarrage",
+    "big_picture_audio": "Audio",
+    "big_picture_input": "Entrée",
+    "big_picture_diagnostics": "Diagnostics",
+    "big_picture_enable_sounds": "Activer les sons de Big Picture",
+    "big_picture_enable_virtual_keyboard": "Activer le clavier virtuel",
+    "big_picture_enable_diagnostics": "Activer les diagnostics de navigation",
+    "big_picture_diagnostics_position": "Position des diagnostics"
   },
   "classics_onboarding": {
     "title": "Bienvenue dans Hydra Classics",

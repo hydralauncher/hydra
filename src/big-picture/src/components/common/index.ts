@@ -36,6 +36,7 @@ export * from "./diagnostics";
 export * from "./dropdown-select";
 export * from "./download-source-card";
 export * from "./empty-state";
+export * from "./file-explorer-modal";
 export * from "./context-menu";
 export * from "./scroll-area";
 export * from "./route-anchor";

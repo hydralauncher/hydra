@@ -3,7 +3,6 @@ import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { setHeaderTitle } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
-import { getSteamLanguage } from "@renderer/helpers";
 import {
   useAppDispatch,
   useAppSelector,
@@ -27,7 +26,7 @@ import {
   GameDetailsContext,
   GameOptionsCategoryId,
 } from "./game-details.context.types";
-import { SteamContentDescriptor } from "@shared";
+import { getGameExecutableFilters, SteamContentDescriptor } from "@shared";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
@@ -118,7 +117,7 @@ export function GameDetailsContextProvider({
     abortControllerRef.current = abortController;
 
     const shopDetailsPromise = window.electron
-      .getGameShopDetails(objectId, shop, getSteamLanguage(i18n.language))
+      .getGameShopDetails(objectId, shop, i18n.language)
       .then((result) => {
         if (abortController.signal.aborted) return;
 
@@ -135,6 +134,37 @@ export function GameDetailsContextProvider({
 
         if (result?.assets) {
           setIsLoading(false);
+        }
+
+        if (userDetails && shop !== "custom") {
+          const useRetroAchievements =
+            shop === "launchbox" &&
+            Boolean(result?.retroAchievementsGameId) &&
+            Boolean(userPreferences?.retroAchievementsWebApiKey);
+
+          if (useRetroAchievements) {
+            globalThis.window.electron
+              .getRetroAchievementsAchievements(
+                objectId,
+                shop,
+                result!.retroAchievementsGameId!
+              )
+              .then((achievements) => {
+                if (abortController.signal.aborted) return;
+                setAchievements(achievements ?? []);
+              })
+              .catch(() => {
+                if (!abortController.signal.aborted) setAchievements([]);
+              });
+          } else {
+            globalThis.window.electron
+              .getUnlockedAchievements(objectId, shop)
+              .then((achievements) => {
+                if (abortController.signal.aborted) return;
+                if (achievements) setAchievements(achievements);
+              })
+              .catch(() => void 0);
+          }
         }
       });
 
@@ -164,22 +194,13 @@ export function GameDetailsContextProvider({
         if (abortController.signal.aborted) return;
         setIsLoading(false);
       });
-
-    if (userDetails && shop !== "custom") {
-      window.electron
-        .getUnlockedAchievements(objectId, shop)
-        .then((achievements) => {
-          if (abortController.signal.aborted) return;
-          setAchievements(achievements);
-        })
-        .catch(() => void 0);
-    }
   }, [
     i18n.language,
     objectId,
     shop,
     userDetails,
     userPreferences?.disableNsfwAlert,
+    userPreferences?.retroAchievementsWebApiKey,
   ]);
 
   const refreshGameDetails = useCallback(async () => {
@@ -420,23 +441,13 @@ export function GameDetailsContextProvider({
   const selectGameExecutable = async () => {
     const downloadsPath = await getDownloadsPath();
 
-    const filters =
-      window.electron.platform === "linux"
-        ? [
-            {
-              name: t("game_executable"),
-              extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
-            },
-            { name: t("all_files"), extensions: ["*"] },
-          ]
-        : window.electron.platform === "darwin"
-          ? [{ name: t("game_executable"), extensions: ["app"] }]
-          : [
-              {
-                name: t("game_executable"),
-                extensions: ["exe", "lnk", "bat", "cmd"],
-              },
-            ];
+    const filters = getGameExecutableFilters(
+      globalThis.window.electron.platform,
+      {
+        executable: t("game_executable"),
+        allFiles: t("all_files"),
+      }
+    );
 
     return window.electron
       .showOpenDialog({

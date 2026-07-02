@@ -63,6 +63,7 @@ export type ShopDetails = SteamAppDetails & {
   objectId: string;
   platform?: string;
   skus?: string[];
+  retroAchievementsGameId?: number | null;
 };
 
 export type ShopDetailsWithAssets = ShopDetails & {
@@ -390,7 +391,10 @@ export type NotificationType =
   | "BADGE_RECEIVED"
   | "REVIEW_UPVOTE"
   | "REVIEW_ANSWER"
-  | "REVIEW_ANSWER_UPVOTE";
+  | "REVIEW_ANSWER_UPVOTE"
+  | "RETROACHIEVEMENTS_CREDENTIALS_RESTORED"
+  | "RETROACHIEVEMENTS_CREDENTIALS_INVALID"
+  | "RETROACHIEVEMENTS_SYNC_FAILED";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"

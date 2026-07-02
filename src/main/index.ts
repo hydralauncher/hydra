@@ -1,4 +1,4 @@
-import { app, BrowserWindow, net, protocol } from "electron";
+import { app, BrowserWindow, net, powerMonitor, protocol } from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
@@ -10,6 +10,8 @@ import {
   WindowManager,
   Lock,
   PowerSaveBlockerManager,
+  DownloadOrchestrator,
+  SSEClient,
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
@@ -149,6 +151,15 @@ app.whenReady().then(async () => {
   });
 
   await loadState();
+
+  // Suspend can outlive the 60s stall watchdog; reconnect right away instead
+  powerMonitor.on("resume", () => {
+    SSEClient.reconnectNow();
+    DownloadOrchestrator.onNetworkStatusChanged({
+      online: true,
+      switched: true,
+    });
+  });
 
   const language = await db
     .get<string, string>(levelKeys.language, {
