@@ -1,7 +1,19 @@
 import { useGamepad, useNavigationActions } from "../../hooks";
-import { GamepadService, NavigationAudioService } from "../../services";
-import { useNavigationHistoryStore, useNavigationStore } from "../../stores";
+import {
+  GamepadService,
+  NavigationAudioService,
+  NavigationService,
+} from "../../services";
+import {
+  useNavigationHistoryStore,
+  useNavigationStore,
+  useInputModeStore,
+} from "../../stores";
 import { GamepadAxisDirection, GamepadButtonType } from "../../types";
+import {
+  BIG_PICTURE_CONTENT_REGION_ID,
+  getBigPictureContentEntryRegionIdFromPathname,
+} from "../../layout/navigation";
 import {
   type ReactNode,
   useCallback,
@@ -9,7 +21,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface NavigationInputProviderProps {
   children: ReactNode;
@@ -102,8 +114,10 @@ export function NavigationInputProvider({
   children,
 }: Readonly<NavigationInputProviderProps>) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const {
     moveFocus,
+    setFocusRegion,
     triggerPrimary,
     triggerItemPress,
     triggerItemHold,
@@ -129,6 +143,28 @@ export function NavigationInputProvider({
   const ignoredPressedButtonsRef = useRef(new Set<HoldManagedButton>());
   const isSystemSwitcherActiveRef = useRef(false);
   const [isInputActive, setIsInputActive] = useState(isWindowInputActive);
+  const recoverGamepadFocusOrFallback = useCallback(() => {
+    useInputModeStore.getState().setGamepadMode();
+
+    if (useInputModeStore.getState().pendingGamepadFocus) {
+      useInputModeStore.getState().clearPendingGamepadFocus();
+      return true;
+    }
+
+    if (NavigationService.getInstance().getCurrentFocusId()) {
+      return false;
+    }
+
+    const contentRegionId =
+      getBigPictureContentEntryRegionIdFromPathname(pathname) ??
+      BIG_PICTURE_CONTENT_REGION_ID;
+
+    return Boolean(
+      setFocusRegion(contentRegionId, "right", {
+        preferRememberedFocus: false,
+      })
+    );
+  }, [pathname, setFocusRegion]);
 
   const warnActionConflict = useCallback(
     (
@@ -307,6 +343,7 @@ export function NavigationInputProvider({
 
       if (event.key === "ArrowUp" || key === "w") {
         event.preventDefault();
+        if (recoverGamepadFocusOrFallback()) return;
         if (!triggerScreenDirection("up", event)) {
           moveFocus("up");
         }
@@ -314,6 +351,7 @@ export function NavigationInputProvider({
 
       if (event.key === "ArrowLeft" || key === "a") {
         event.preventDefault();
+        if (recoverGamepadFocusOrFallback()) return;
         if (!triggerScreenDirection("left", event)) {
           moveFocus("left");
         }
@@ -321,6 +359,7 @@ export function NavigationInputProvider({
 
       if (event.key === "ArrowDown" || key === "s") {
         event.preventDefault();
+        if (recoverGamepadFocusOrFallback()) return;
         if (!triggerScreenDirection("down", event)) {
           moveFocus("down");
         }
@@ -328,6 +367,7 @@ export function NavigationInputProvider({
 
       if (event.key === "ArrowRight" || key === "d") {
         event.preventDefault();
+        if (recoverGamepadFocusOrFallback()) return;
         if (!triggerScreenDirection("right", event)) {
           moveFocus("right");
         }
@@ -357,6 +397,7 @@ export function NavigationInputProvider({
   }, [
     isInputActive,
     moveFocus,
+    recoverGamepadFocusOrFallback,
     triggerBackAction,
     triggerPrimary,
     triggerScreenDirection,
@@ -367,6 +408,7 @@ export function NavigationInputProvider({
     const unsubDpadUp = onButtonPressed(GamepadButtonType.DPAD_UP, (event) => {
       if (!isInputActive || isSystemSwitcherActiveRef.current) return;
       if (!isActiveGamepadEvent(event)) return;
+      if (recoverGamepadFocusOrFallback()) return;
 
       if (!triggerScreenDirection("up")) {
         moveFocus("up");
@@ -378,6 +420,7 @@ export function NavigationInputProvider({
       (event) => {
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
+        if (recoverGamepadFocusOrFallback()) return;
 
         if (!triggerScreenDirection("left")) {
           moveFocus("left");
@@ -390,6 +433,7 @@ export function NavigationInputProvider({
       (event) => {
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
+        if (recoverGamepadFocusOrFallback()) return;
 
         if (!triggerScreenDirection("down")) {
           moveFocus("down");
@@ -402,6 +446,7 @@ export function NavigationInputProvider({
       (event) => {
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
+        if (recoverGamepadFocusOrFallback()) return;
 
         if (!triggerScreenDirection("right")) {
           moveFocus("right");
@@ -415,6 +460,7 @@ export function NavigationInputProvider({
       (event) => {
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
+        if (recoverGamepadFocusOrFallback()) return;
 
         if (!triggerScreenDirection("up")) {
           moveFocus("up");
@@ -428,6 +474,7 @@ export function NavigationInputProvider({
       (event) => {
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
+        if (recoverGamepadFocusOrFallback()) return;
 
         if (!triggerScreenDirection("left")) {
           moveFocus("left");
@@ -441,6 +488,7 @@ export function NavigationInputProvider({
       (event) => {
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
+        if (recoverGamepadFocusOrFallback()) return;
 
         if (!triggerScreenDirection("down")) {
           moveFocus("down");
@@ -454,6 +502,7 @@ export function NavigationInputProvider({
       (event) => {
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
+        if (recoverGamepadFocusOrFallback()) return;
 
         if (!triggerScreenDirection("right")) {
           moveFocus("right");
@@ -477,6 +526,7 @@ export function NavigationInputProvider({
     moveFocus,
     onButtonPressed,
     onStickMove,
+    recoverGamepadFocusOrFallback,
     triggerScreenDirection,
   ]);
 
@@ -510,6 +560,13 @@ export function NavigationInputProvider({
 
       resetHoldSessions();
       return;
+    }
+
+    const anyButtonPressed = Object.values(buttonStates).some(Boolean);
+    if (anyButtonPressed) {
+      if (recoverGamepadFocusOrFallback()) {
+        return;
+      }
     }
 
     const holdSessions = holdSessionsRef.current;
@@ -638,6 +695,9 @@ export function NavigationInputProvider({
     hasScreenPressAction,
     hasScreenHoldAction,
     warnActionConflict,
+    resetHoldSessions,
+    recoverGamepadFocusOrFallback,
+    triggerBackAction,
   ]);
 
   useEffect(() => {
