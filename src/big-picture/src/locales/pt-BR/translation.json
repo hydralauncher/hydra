@@ -752,7 +752,6 @@
     "file_explorer_error_enoent": "Este local não existe.",
     "file_explorer_error_enotdir": "Este caminho não é um diretório.",
     "file_explorer_error_default": "Não foi possível abrir este local.",
-    "file_explorer_filters": "Filtros de arquivo",
     "file_explorer_select_this_directory": "Selecionar esta pasta",
     "file_explorer_select_download_directory": "Selecionar diretório de download"
   }

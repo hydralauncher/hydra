@@ -73,12 +73,10 @@ export function useFileExplorer({
   const [isLoading, setIsLoading] = useState(false);
   const [isResolvingStartPath, setIsResolvingStartPath] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
   const generatedId = useId();
   const fileListRegionId = `file-explorer-region-${generatedId.replaceAll(":", "")}`;
   const pathInputPlaceholder = t("file_explorer_path_placeholder");
   const drivesLabel = t("file_explorer_drives");
-  const filterLabel = t("file_explorer_filters");
   const emptyFolderTitle = t("file_explorer_empty_folder");
   const emptyDirectoryChoiceTitle = t("file_explorer_empty_directory");
   const fileExplorerErrorFallback = t("file_explorer_error_default");
@@ -90,18 +88,7 @@ export function useFileExplorer({
     }),
     [t]
   );
-  const filterGroups = useMemo(() => normalizeFilters(filters), [filters]);
-
-  const activeFilter = useMemo(() => {
-    if (filterGroups.length === 0) return null;
-
-    return (
-      filterGroups.find((group) => group.id === activeFilterId) ??
-      filterGroups.find((group) => group.mode === "extensions") ??
-      filterGroups[0] ??
-      null
-    );
-  }, [activeFilterId, filterGroups]);
+  const effectiveFilters = useMemo(() => normalizeFilters(filters), [filters]);
 
   useEffect(() => {
     if (!visible) {
@@ -111,7 +98,6 @@ export function useFileExplorer({
       setIsLoading(false);
       setIsResolvingStartPath(false);
       setError(null);
-      setActiveFilterId(null);
       return;
     }
 
@@ -213,32 +199,12 @@ export function useFileExplorer({
     };
   }, [visible]);
 
-  useEffect(() => {
-    if (!visible) return;
-    if (filterGroups.length === 0) {
-      setActiveFilterId(null);
-      return;
-    }
-
-    const hasActiveFilter = filterGroups.some(
-      (group) => group.id === activeFilterId
-    );
-
-    if (hasActiveFilter) return;
-
-    const defaultFilter =
-      filterGroups.find((group) => group.mode === "extensions") ??
-      filterGroups[0];
-
-    setActiveFilterId(defaultFilter?.id ?? null);
-  }, [visible, filterGroups, activeFilterId]);
-
   const filteredEntries = useMemo(() => {
     if (drives.length > 0 && !currentPath) return [];
     return entries.filter((entry) =>
-      matchesFilters(entry, activeFilter, selectDirectory)
+      matchesFilters(entry, effectiveFilters, selectDirectory)
     );
-  }, [entries, activeFilter, drives, selectDirectory, currentPath]);
+  }, [entries, effectiveFilters, drives, selectDirectory, currentPath]);
 
   const handleBPress = useCallback(() => {
     const parent = getParentPath(currentPath);
@@ -298,28 +264,9 @@ export function useFileExplorer({
     setCurrentPath(drive);
   }, []);
 
-  const selectFilter = useCallback((filterId: string) => {
-    setActiveFilterId(filterId);
-  }, []);
-
-  const shouldShowFilterTabs = filterGroups.length > 1;
-
-  const filterTabItems = useMemo(
-    () =>
-      filterGroups.map((group) => ({
-        id: group.id,
-        value: group.id,
-        label: group.label,
-      })),
-    [filterGroups]
-  );
-
   return {
-    activeFilterId,
     currentPath,
     fileListRegionId,
-    filterLabel,
-    filterTabItems,
     isLoading,
     error,
     drives,
@@ -330,12 +277,10 @@ export function useFileExplorer({
     emptyTitle: selectDirectory ? emptyDirectoryChoiceTitle : emptyFolderTitle,
     showSelectThisDir,
     showDriveList,
-    shouldShowFilterTabs,
     hasParent,
     handleEntrySelect,
     handleSelectThisDirectory,
     goToParent,
     navigateToDrive,
-    selectFilter,
   };
 }
