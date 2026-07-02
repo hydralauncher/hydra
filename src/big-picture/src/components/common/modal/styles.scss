@@ -14,11 +14,11 @@
   &__header {
     display: flex;
     position: relative;
-    align-items: flex-start;
-    justify-content: space-between;
     overflow: hidden;
 
     padding: calc(var(--spacing-unit) * 6);
+    gap: calc(var(--spacing-unit) * 2);
+    flex-shrink: 0;
 
     flex-direction: column;
 

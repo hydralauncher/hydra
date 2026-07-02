@@ -464,6 +464,7 @@
   }
 
   &__media-carousel-surface {
+    position: relative;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -481,6 +482,26 @@
       outline: var(--media-carousel-outline-width) solid #fff;
       outline-offset: var(--media-carousel-outline-offset);
     }
+  }
+
+  &__media-carousel-play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  &__media-carousel-play-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.6);
   }
 
   &__media-carousel-placeholder {
