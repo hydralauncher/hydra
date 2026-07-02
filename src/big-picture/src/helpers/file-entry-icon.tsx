@@ -116,7 +116,6 @@ export const audioExtensions = new Set([
   "umx",
   "ac3",
   "dts",
-  "mka",
   "tta",
   "wv",
   "ra",
