@@ -9,6 +9,15 @@ import type { EmulatorSystem } from "@types";
 const SECTION_RE = /^\s*\[(.+?)\]\s*$/;
 const RECURSIVE_RE = /^\s*RecursivePaths\s*=\s*(.+?)\s*$/i;
 
+const windowsDocumentsDirs = (home: string): string[] => {
+  const dirs = [path.join(home, "Documents")];
+  for (const key of ["OneDrive", "OneDriveConsumer", "OneDriveCommercial"]) {
+    const root = process.env[key];
+    if (root) dirs.push(path.join(root, "Documents"));
+  }
+  return Array.from(new Set(dirs));
+};
+
 export const duckstationConfigCandidates = (): string[] => {
   const home = homedir();
   if (process.platform === "win32") {
@@ -16,7 +25,9 @@ export const duckstationConfigCandidates = (): string[] => {
       process.env["LOCALAPPDATA"] ?? path.join(home, "AppData", "Local");
     return [
       path.join(local, "DuckStation", "settings.ini"),
-      path.join(home, "Documents", "DuckStation", "settings.ini"),
+      ...windowsDocumentsDirs(home).map((docs) =>
+        path.join(docs, "DuckStation", "settings.ini")
+      ),
     ];
   }
   return [
@@ -45,7 +56,9 @@ export const pcsx2ConfigCandidates = (
     const local =
       process.env["LOCALAPPDATA"] ?? path.join(home, "AppData", "Local");
     return [
-      path.join(home, "Documents", "PCSX2", "inis", "PCSX2.ini"),
+      ...windowsDocumentsDirs(home).map((docs) =>
+        path.join(docs, "PCSX2", "inis", "PCSX2.ini")
+      ),
       path.join(local, "PCSX2", "inis", "PCSX2.ini"),
       ...(beside ? [beside] : []),
     ];
