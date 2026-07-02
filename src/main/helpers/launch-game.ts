@@ -296,6 +296,102 @@ const launchWindowsBinaryOnLinux = async (
   return false;
 };
 
+type PlatformLaunchOptions = {
+  gameKey: string;
+  objectId: string;
+  parsedPath: string;
+  game: Game | undefined;
+  launchOptions: string | null | undefined;
+  useMangohud: boolean;
+  useGamemode: boolean;
+};
+
+const getLaunchDisplay = async (launchSource?: LaunchSource) => {
+  if (launchSource !== "big-picture") {
+    return undefined;
+  }
+
+  return DisplayManager.getBigPictureDisplay();
+};
+
+const runWindowsLaunchPreflight = async (shop: GameShop, objectId: string) => {
+  if (process.platform !== "win32") {
+    return;
+  }
+
+  try {
+    logger.log("Starting preflight check for game launch", {
+      shop,
+      objectId,
+    });
+    const preflightPassed = await CommonRedistManager.runPreflight();
+    logger.log("Preflight check result", { passed: preflightPassed });
+  } catch (error) {
+    logger.error(
+      "Preflight check failed with error, continuing with launch",
+      error
+    );
+  }
+};
+
+const prepareBigPictureDisplayForLaunchSource = async (
+  launchSource?: LaunchSource
+) => {
+  if (launchSource !== "big-picture") {
+    return;
+  }
+
+  await DisplayManager.prepareBigPictureDisplayForLaunch();
+};
+
+const launchOnLinux = async ({
+  gameKey,
+  objectId,
+  parsedPath,
+  game,
+  launchOptions,
+  useMangohud,
+  useGamemode,
+}: PlatformLaunchOptions) => {
+  if (isWindowsExecutable(parsedPath)) {
+    const launched = await launchWindowsBinaryOnLinux(
+      gameKey,
+      objectId,
+      parsedPath,
+      game,
+      launchOptions,
+      useMangohud,
+      useGamemode
+    );
+
+    if (launched) return null;
+  }
+
+  const pid = launchNatively(
+    parsedPath,
+    launchOptions,
+    useMangohud,
+    useGamemode
+  );
+
+  if (pid !== null) launchedGamePids.set(gameKey, pid);
+
+  return pid;
+};
+
+const launchForCurrentPlatform = async (options: PlatformLaunchOptions) => {
+  if (process.platform === "linux") {
+    return launchOnLinux(options);
+  }
+
+  return launchNatively(
+    options.parsedPath,
+    options.launchOptions,
+    options.useMangohud,
+    options.useGamemode
+  );
+};
+
 /**
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
@@ -334,63 +430,23 @@ export const launchGame = async (
     });
   }
 
-  const launchDisplay =
-    launchSource === "big-picture"
-      ? await DisplayManager.getBigPictureDisplay()
-      : undefined;
+  const launchDisplay = await getLaunchDisplay(launchSource);
 
   await WindowManager.createGameLauncherWindow(shop, objectId, launchDisplay);
 
-  // Run preflight check for common redistributables (Windows only)
-  // Wrapped in try/catch to ensure game launch is never blocked
-  if (process.platform === "win32") {
-    try {
-      logger.log("Starting preflight check for game launch", {
-        shop,
-        objectId,
-      });
-      const preflightPassed = await CommonRedistManager.runPreflight();
-      logger.log("Preflight check result", { passed: preflightPassed });
-    } catch (error) {
-      logger.error(
-        "Preflight check failed with error, continuing with launch",
-        error
-      );
-    }
-  }
+  await runWindowsLaunchPreflight(shop, objectId);
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  if (launchSource === "big-picture") {
-    await DisplayManager.prepareBigPictureDisplayForLaunch();
-  }
+  await prepareBigPictureDisplayForLaunchSource(launchSource);
 
-  if (process.platform === "linux") {
-    if (isWindowsExecutable(parsedPath)) {
-      const launched = await launchWindowsBinaryOnLinux(
-        gameKey,
-        objectId,
-        parsedPath,
-        game,
-        launchOptions,
-        useMangohud,
-        useGamemode
-      );
-
-      if (launched) return null;
-    }
-
-    const pid = launchNatively(
-      parsedPath,
-      launchOptions,
-      useMangohud,
-      useGamemode
-    );
-
-    if (pid !== null) launchedGamePids.set(gameKey, pid);
-
-    return pid;
-  }
-
-  return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+  return launchForCurrentPlatform({
+    gameKey,
+    objectId,
+    parsedPath,
+    game,
+    launchOptions,
+    useMangohud,
+    useGamemode,
+  });
 };
