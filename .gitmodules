@@ -1,3 +1,0 @@
-[submodule "proto"]
-	path = proto
-	url = https://github.com/hydralauncher/hydra-protos.git
