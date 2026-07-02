@@ -66,7 +66,87 @@ function withInsertedId(ids: string[], id: string, targetIndex?: number) {
   return nextIds;
 }
 
+const NO_INTERNET_GRACE_MS = 15000;
+const RECONNECT_DEBOUNCE_MS = 2000;
+
 export class DownloadOrchestrator {
+  private static isOnline = true;
+  private static reconnectGraceTimer: NodeJS.Timeout | null = null;
+  private static lastReconnectAt = 0;
+
+  static onNetworkStatusChanged(payload: {
+    online: boolean;
+    switched?: boolean;
+  }) {
+    const { online } = payload;
+
+    if (!DownloadManager.isJsDownloadActive) {
+      this.isOnline = online;
+      this.clearReconnectGrace();
+      return;
+    }
+
+    if (!online) {
+      if (this.isOnline) {
+        logger.log(
+          "[DownloadOrchestrator] Connection lost during download; waiting for it to come back"
+        );
+      }
+      this.isOnline = false;
+      DownloadManager.notifyReconnecting(true);
+
+      if (!this.reconnectGraceTimer) {
+        this.reconnectGraceTimer = setTimeout(() => {
+          this.reconnectGraceTimer = null;
+          if (this.isOnline) return;
+
+          if (!DownloadManager.isActiveDownloadReconnecting()) {
+            this.isOnline = true;
+            return;
+          }
+
+          void this.stopActiveDownloadForNoNetwork();
+        }, NO_INTERNET_GRACE_MS);
+      }
+      return;
+    }
+
+    this.isOnline = true;
+    this.clearReconnectGrace();
+
+    const now = Date.now();
+    if (now - this.lastReconnectAt < RECONNECT_DEBOUNCE_MS) return;
+    this.lastReconnectAt = now;
+
+    logger.log(
+      "[DownloadOrchestrator] Connection available; resuming the active download"
+    );
+    DownloadManager.reconnectActiveDownload();
+  }
+
+  private static clearReconnectGrace() {
+    if (this.reconnectGraceTimer) {
+      clearTimeout(this.reconnectGraceTimer);
+      this.reconnectGraceTimer = null;
+    }
+  }
+
+  private static async stopActiveDownloadForNoNetwork() {
+    const downloadId = DownloadManager.getActiveDownloadId();
+    if (!downloadId) return;
+
+    const download = await downloadsSublevel.get(downloadId).catch(() => null);
+    if (!download) return;
+
+    logger.log(
+      "[DownloadOrchestrator] No connection after the grace window; pausing the download"
+    );
+    await this.pauseDownload(download, {
+      reason: "paused",
+      startNextQueued: false,
+    });
+  }
+
   private static async getAllDownloads() {
     return downloadsSublevel.values().all();
   }

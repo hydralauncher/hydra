@@ -432,6 +432,7 @@ export function EmulatorSetupModal({
               config={config}
               systemLabel={systemShort}
               onBiosStatusChange={setBiosOk}
+              onConfigChange={setConfig}
               onSkip={handleSkip}
             />
           )}

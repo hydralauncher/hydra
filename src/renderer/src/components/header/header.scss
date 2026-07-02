@@ -59,6 +59,7 @@
   &__action-button {
     color: inherit;
     cursor: pointer;
+    -webkit-app-region: no-drag;
     transition: all ease 0.2s;
     padding: globals.$spacing-unit;
     display: flex;

@@ -94,6 +94,12 @@ const updateUserPreferences = async (
       preferences.maxDownloadSpeedBytesPerSecond ?? null
     );
   }
+
+  if (Object.hasOwn(preferences, "torrentNetworkInterface")) {
+    await DownloadManager.applyNetworkInterface(
+      preferences.torrentNetworkInterface ?? null
+    );
+  }
 };
 
 registerEvent("updateUserPreferences", updateUserPreferences);
