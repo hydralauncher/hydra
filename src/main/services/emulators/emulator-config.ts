@@ -247,6 +247,28 @@ export const rpcs3DefaultGamesDirs = (
 ): string[] =>
   rpcs3ConfigRoots(executablePath).map((r) => path.join(r, "games"));
 
+export const findInstalledPs3GameEboot = (
+  executablePath: string | null,
+  titleId: string
+): string | null => {
+  const normalizedTitleId = titleId.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  if (!normalizedTitleId) return null;
+
+  for (const root of rpcs3ConfigRoots(executablePath)) {
+    const eboot = path.join(
+      root,
+      "dev_hdd0",
+      "game",
+      normalizedTitleId,
+      "USRDIR",
+      "EBOOT.BIN"
+    );
+    if (existsSync(eboot)) return eboot;
+  }
+
+  return null;
+};
+
 export const rpcs3GamesYmlCandidates = (
   executablePath: string | null
 ): string[] =>

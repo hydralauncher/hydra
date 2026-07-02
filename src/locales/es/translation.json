@@ -145,6 +145,8 @@
     "scan_games_scan_again": "Escanear nuevamente"
   },
   "bottom_panel": {
+    "reconnecting": "Reconectando {{title}}…",
+    "recovering": "Recuperando {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Sin descargas en progreso",
     "downloading_metadata": "Descargando metadatos de {{title}}…",
     "downloading": "Descargando {{title}}… ({{percentage}} completado) - Finalizando {{eta}} - {{speed}}",
@@ -500,6 +502,15 @@
     "properties": "Propiedades",
     "rating": "Calificación",
     "rating_count": "Calificación",
+    "details": "Detalles",
+    "platform": "Plataforma",
+    "genres": "Géneros",
+    "regions": "Regiones",
+    "region_us": "EE. UU.",
+    "region_eu": "Europa",
+    "region_jp": "Japón",
+    "region_kr": "Corea",
+    "region_asia": "Asia",
     "rating_negative": "Negativa",
     "rating_neutral": "Neutral",
     "rating_positive": "Positiva",
@@ -630,6 +641,8 @@
     "platform_unknown_toast": "No se pudo determinar el sistema del emulador para este juego.",
     "no_disc_toast": "No hay ningún disco disponible para este juego.",
     "launch_failed_toast": "Error al iniciar el juego",
+    "pkg_installing_toast": "Instalando el PKG en RPCS3. Cuando termine, pulsa Jugar de nuevo para iniciar el juego.",
+    "pkg_unreadable_toast": "No se pudo leer este PKG. Instálalo e inícialo directamente desde RPCS3.",
     "rpcs3_already_running_title": "RPCS3 ya se está ejecutando",
     "rpcs3_already_running_description": "RPCS3 solo permite una instancia. ¿Cerrar la sesión en ejecución para iniciar este juego?",
     "rpcs3_already_running_confirm": "Cerrar e iniciar"
@@ -643,6 +656,8 @@
     "loading": "Cargando…"
   },
   "downloads": {
+    "reconnecting": "Reconectando…",
+    "recovering": "Recuperando descarga… {{percentage}}",
     "resume": "Resumir",
     "pause": "Pausar",
     "eta": "Tiempo de finalizción {{eta}}",
@@ -734,6 +749,10 @@
     "app_basics": "Básicos de la aplicación",
     "startup_behavior": "Comportamiento al iniciar",
     "download_behavior": "Comportamiento de descarga",
+    "network_interface": "Adaptador de red para torrents",
+    "network_interface_default": "Predeterminado (todos los adaptadores)",
+    "network_interface_hint": "Fuerza los torrents a través de un adaptador específico, como una VPN. Si se desconecta, las descargas se detienen en lugar de filtrarse.",
+    "network_interface_unavailable": "no disponible",
     "library_notifications": "Notificaciones de la librería",
     "achievement_notifications": "Notificaciones de logros",
     "content_preferences": "Preferencias de contenido",
@@ -1362,6 +1381,9 @@
     "no_reviews": "Sin reseñas aún",
     "delete_review": "Eliminar reseña",
     "classics": "Clásicos",
+    "platform": "Plataformas",
+    "platform_all": "Todas",
+    "platform_pc": "PC",
     "platform_classics": "Clásicos"
   },
   "achievement": {
