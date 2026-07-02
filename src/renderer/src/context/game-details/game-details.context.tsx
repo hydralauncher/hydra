@@ -3,7 +3,6 @@ import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { setHeaderTitle } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
-import { getSteamLanguage } from "@renderer/helpers";
 import {
   useAppDispatch,
   useAppSelector,
@@ -118,7 +117,7 @@ export function GameDetailsContextProvider({
     abortControllerRef.current = abortController;
 
     const shopDetailsPromise = window.electron
-      .getGameShopDetails(objectId, shop, getSteamLanguage(i18n.language))
+      .getGameShopDetails(objectId, shop, i18n.language)
       .then((result) => {
         if (abortController.signal.aborted) return;
 
