@@ -746,6 +746,16 @@
     "settings_diagnostics_position_top_right": "Superior Derecha",
     "settings_diagnostics_position_bottom_left": "Inferior Izquierda",
     "settings_diagnostics_position_bottom_center": "Inferior Centro",
-    "settings_diagnostics_position_bottom_right": "Inferior Derecha"
+    "settings_diagnostics_position_bottom_right": "Inferior Derecha",
+    "file_explorer_path_placeholder": "Selecciona una ubicación",
+    "file_explorer_drives": "Unidades",
+    "file_explorer_empty_folder": "Esta carpeta está vacía",
+    "file_explorer_empty_directory": "No se encontraron carpetas",
+    "file_explorer_error_eacces": "No tienes permiso para abrir esta ubicación.",
+    "file_explorer_error_enoent": "Esta ubicación no existe.",
+    "file_explorer_error_enotdir": "Esta ruta no es una carpeta.",
+    "file_explorer_error_default": "No se puede abrir esta ubicación.",
+    "file_explorer_select_this_directory": "Seleccionar esta carpeta",
+    "file_explorer_select_download_directory": "Seleccionar directorio de descarga"
   }
 }

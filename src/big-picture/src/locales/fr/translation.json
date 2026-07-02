@@ -738,6 +738,16 @@
     "settings_diagnostics_position_top_right": "En Haut à Droite",
     "settings_diagnostics_position_bottom_left": "En Bas à Gauche",
     "settings_diagnostics_position_bottom_center": "En Bas au Centre",
-    "settings_diagnostics_position_bottom_right": "En Bas à Droite"
+    "settings_diagnostics_position_bottom_right": "En Bas à Droite",
+    "file_explorer_path_placeholder": "Sélectionner un emplacement",
+    "file_explorer_drives": "Lecteurs",
+    "file_explorer_empty_folder": "Ce dossier est vide",
+    "file_explorer_empty_directory": "Aucun dossier trouvé",
+    "file_explorer_error_eacces": "Vous n'avez pas l'autorisation d'ouvrir cet emplacement.",
+    "file_explorer_error_enoent": "Cet emplacement n'existe pas.",
+    "file_explorer_error_enotdir": "Ce chemin n'est pas un dossier.",
+    "file_explorer_error_default": "Impossible d'ouvrir cet emplacement.",
+    "file_explorer_select_this_directory": "Sélectionner ce dossier",
+    "file_explorer_select_download_directory": "Sélectionner le dossier de téléchargement"
   }
 }

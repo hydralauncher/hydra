@@ -765,6 +765,16 @@
     "settings_diagnostics_position_top_right": "Сверху справа",
     "settings_diagnostics_position_bottom_left": "Снизу слева",
     "settings_diagnostics_position_bottom_center": "Снизу по центру",
-    "settings_diagnostics_position_bottom_right": "Снизу справа"
+    "settings_diagnostics_position_bottom_right": "Снизу справа",
+    "file_explorer_path_placeholder": "Выберите расположение",
+    "file_explorer_drives": "Диски",
+    "file_explorer_empty_folder": "Эта папка пуста",
+    "file_explorer_empty_directory": "Папки не найдены",
+    "file_explorer_error_eacces": "У вас нет прав для открытия этого расположения.",
+    "file_explorer_error_enoent": "Это расположение не существует.",
+    "file_explorer_error_enotdir": "Этот путь не является папкой.",
+    "file_explorer_error_default": "Не удалось открыть это расположение.",
+    "file_explorer_select_this_directory": "Выбрать эту папку",
+    "file_explorer_select_download_directory": "Выбрать папку загрузки"
   }
 }
