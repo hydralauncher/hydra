@@ -142,31 +142,29 @@ export function GameDetailsContextProvider({
             Boolean(result?.retroAchievementsGameId) &&
             Boolean(userPreferences?.retroAchievementsWebApiKey);
 
-          const loadAchievements = async () => {
-            if (useRetroAchievements) {
-              const retroAchievements = await globalThis.window.electron
-                .getRetroAchievementsAchievements(
-                  objectId,
-                  shop,
-                  result!.retroAchievementsGameId!
-                )
-                .catch(() => null);
-
-              if (retroAchievements) return retroAchievements;
-            }
-
-            return globalThis.window.electron.getUnlockedAchievements(
-              objectId,
-              shop
-            );
-          };
-
-          loadAchievements()
-            .then((achievements) => {
-              if (abortController.signal.aborted) return;
-              if (achievements) setAchievements(achievements);
-            })
-            .catch(() => void 0);
+          if (useRetroAchievements) {
+            globalThis.window.electron
+              .getRetroAchievementsAchievements(
+                objectId,
+                shop,
+                result!.retroAchievementsGameId!
+              )
+              .then((achievements) => {
+                if (abortController.signal.aborted) return;
+                setAchievements(achievements ?? []);
+              })
+              .catch(() => {
+                if (!abortController.signal.aborted) setAchievements([]);
+              });
+          } else {
+            globalThis.window.electron
+              .getUnlockedAchievements(objectId, shop)
+              .then((achievements) => {
+                if (abortController.signal.aborted) return;
+                if (achievements) setAchievements(achievements);
+              })
+              .catch(() => void 0);
+          }
         }
       });
 
