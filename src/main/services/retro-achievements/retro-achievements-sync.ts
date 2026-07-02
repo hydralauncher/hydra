@@ -10,12 +10,11 @@ import { UserNotLoggedInError } from "@shared";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
+import { getGameAchievementData } from "../achievements/get-game-achievement-data";
 import {
   RetroAchievementsClient,
   type RetroAchievementsGameInfoAndUserProgress,
 } from "./retro-achievements-client";
-
-const RA_BADGE_URL = "https://media.retroachievements.org/Badge";
 
 const toMillis = (date?: string) => {
   if (!date) return null;
@@ -90,7 +89,9 @@ export const syncRetroAchievements = async ({
   objectId,
   shop,
   retroAchievementsGameId,
-}: SyncRetroAchievementsParams): Promise<UserAchievement[] | null> => {
+}: SyncRetroAchievementsParams): Promise<UserAchievement[]> => {
+  const gameKey = levelKeys.game(shop, objectId);
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     { valueEncoding: "json" }
@@ -121,6 +122,14 @@ export const syncRetroAchievements = async ({
     return buildAchievementsFromCache(objectId, shop);
   }
 
+  let catalogue: SteamAchievement[];
+  try {
+    catalogue = await getGameAchievementData(objectId, shop, false);
+  } catch (err) {
+    logger.error("Failed to fetch RetroAchievements catalogue", err);
+    return buildAchievementsFromCache(objectId, shop);
+  }
+
   let data: RetroAchievementsGameInfoAndUserProgress;
   try {
     data = await RetroAchievementsClient.getGameInfoAndUserProgress({
@@ -135,13 +144,9 @@ export const syncRetroAchievements = async ({
 
   const remoteAchievements = Object.values(data.Achievements ?? {});
 
-  const cachedAchievements = await gameAchievementsSublevel.get(
-    levelKeys.game(shop, objectId)
-  );
-  const cachedUnlocked = cachedAchievements?.unlockedAchievements ?? [];
-
+  const cachedAchievements = await gameAchievementsSublevel.get(gameKey);
   const unlockedByName = new Map<string, UnlockedAchievement>();
-  for (const unlocked of cachedUnlocked) {
+  for (const unlocked of cachedAchievements?.unlockedAchievements ?? []) {
     unlockedByName.set(unlocked.name.toUpperCase(), unlocked);
   }
 
@@ -165,22 +170,10 @@ export const syncRetroAchievements = async ({
     }
   }
 
-  const catalogue: SteamAchievement[] = remoteAchievements.map(
-    (achievement) => ({
-      name: String(achievement.ID),
-      displayName: achievement.Title,
-      description: achievement.Description,
-      icon: `${RA_BADGE_URL}/${achievement.BadgeName}.png`,
-      icongray: `${RA_BADGE_URL}/${achievement.BadgeName}_lock.png`,
-      hidden: false,
-      points: achievement.Points,
-    })
-  );
-
-  await gameAchievementsSublevel.put(levelKeys.game(shop, objectId), {
+  await gameAchievementsSublevel.put(gameKey, {
     achievements: catalogue,
     unlockedAchievements: Array.from(unlockedByName.values()),
-    updatedAt: Date.now(),
+    updatedAt: cachedAchievements?.updatedAt,
     language: cachedAchievements?.language,
   });
 
