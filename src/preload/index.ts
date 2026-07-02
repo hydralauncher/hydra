@@ -1070,6 +1070,8 @@ contextBridge.exposeInMainWorld("electron", {
       shop,
       raGameId
     ),
+  resetRetroAchievementsAchievements: () =>
+    ipcRenderer.invoke("resetRetroAchievementsAchievements"),
 
   /* Auth */
   getAuth: () => ipcRenderer.invoke("getAuth"),

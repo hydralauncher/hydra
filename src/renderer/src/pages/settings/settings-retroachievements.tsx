@@ -192,6 +192,12 @@ export function SettingsRetroAchievements() {
         `${INTEGRATION_ENDPOINT}?deleteAchievements=${deleteAchievements}`
       );
 
+      if (deleteAchievements) {
+        await globalThis.window.electron
+          .resetRetroAchievementsAchievements()
+          .catch(() => {});
+      }
+
       setIntegration({ connected: false });
       setForm({ username: "", password: "", webApiKey: "" });
       showSuccessToast(t("retroachievements_account_unlinked"));
