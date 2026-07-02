@@ -40,6 +40,7 @@ interface LaunchboxShopDetailsAssets {
 interface LaunchboxShopDetailsData {
   title: string | null;
   platform: string | null;
+  skus?: string[];
   description: string | null;
   releaseDate: string | null;
   developers: string[];
@@ -58,6 +59,20 @@ const normalizeShopDetailsLanguage = (language: string) => {
   return language;
 };
 
+const getSteamLanguage = (language: string) => {
+  if (language.startsWith("pt")) return "brazilian";
+  if (language.startsWith("es")) return "spanish";
+  if (language.startsWith("fr")) return "french";
+  if (language.startsWith("ru") || language.startsWith("be")) return "russian";
+  if (language.startsWith("it")) return "italian";
+  if (language.startsWith("hu")) return "hungarian";
+  if (language.startsWith("pl")) return "polish";
+  if (language.startsWith("zh")) return "schinese";
+  if (language.startsWith("da")) return "danish";
+
+  return "english";
+};
+
 const mapLaunchboxToShopDetails = (
   objectId: string,
   basic: LaunchboxBasic | null,
@@ -70,7 +85,7 @@ const mapLaunchboxToShopDetails = (
     objectId,
     name: data?.title ?? basic?.title ?? cachedData?.name ?? "",
     platform: data?.platform ?? cachedData?.platform ?? undefined,
-    skus: cachedData?.skus ?? undefined,
+    skus: data?.skus ?? cachedData?.skus ?? undefined,
     steam_appid: 0,
     detailed_description: description,
     about_the_game: description,
@@ -118,26 +133,48 @@ const getLaunchboxShopDetails = async (
     gamesShopAssetsSublevel.get(levelKeys.game(shop, objectId)),
   ]);
 
-  const [basic, data] = await Promise.all([
-    HydraApi.get<LaunchboxBasic | null>(`/games/${shop}/${objectId}`, null, {
-      needsAuth: false,
-    }).catch((err) => {
-      logger.error("Failed to fetch launchbox basic game info", err);
-      return null;
-    }),
-    HydraApi.get<LaunchboxShopDetailsData>(
-      `/games/${shop}/${objectId}/shop-details`,
-      { language },
-      { needsAuth: false }
-    ).catch((err) => {
-      logger.error("Failed to fetch launchbox shop details", err);
-      return null;
-    }),
-  ]);
+  const basicPromise = HydraApi.get<LaunchboxBasic | null>(
+    `/games/${shop}/${objectId}`,
+    null,
+    { needsAuth: false }
+  ).catch((err) => {
+    logger.error("Failed to fetch launchbox basic game info", err);
+    return null;
+  });
 
-  if (!data && !basic) {
-    return cachedData ? { ...cachedData, assets: cachedAssets ?? null } : null;
+  const dataPromise = HydraApi.get<LaunchboxShopDetailsData>(
+    `/games/${shop}/${objectId}/shop-details`,
+    { language },
+    { needsAuth: false }
+  ).catch((err) => {
+    logger.error("Failed to fetch launchbox shop details", err);
+    return null;
+  });
+
+  if (cachedData) {
+    Promise.all([basicPromise, dataPromise]).then(([basic, data]) => {
+      if (basic || data) {
+        const mapped = mapLaunchboxToShopDetails(
+          objectId,
+          basic,
+          data,
+          cachedData
+        );
+
+        gamesShopCacheSublevel
+          .put(levelKeys.gameShopCacheItem(shop, objectId, language), mapped)
+          .catch((err) => {
+            logger.error("Could not cache launchbox game details", err);
+          });
+      }
+    });
+
+    return { ...cachedData, assets: cachedAssets ?? null };
   }
+
+  const [basic, data] = await Promise.all([basicPromise, dataPromise]);
+
+  if (!data && !basic) return null;
 
   const mapped = mapLaunchboxToShopDetails(
     objectId,
@@ -200,22 +237,7 @@ const getLocalizedSteamAppDetails = async (
   objectId: string,
   language: string
 ): Promise<ShopDetails | null> => {
-  if (language.startsWith("pt"))
-    return getSteamAppDetails(objectId, "brazilian");
-  if (language.startsWith("es")) return getSteamAppDetails(objectId, "spanish");
-  if (language.startsWith("fr")) return getSteamAppDetails(objectId, "french");
-  if (language.startsWith("ru") || language.startsWith("be")) {
-    return getSteamAppDetails(objectId, "russian");
-  }
-  if (language.startsWith("it")) return getSteamAppDetails(objectId, "italian");
-  if (language.startsWith("hu"))
-    return getSteamAppDetails(objectId, "hungarian");
-  if (language.startsWith("pl")) return getSteamAppDetails(objectId, "polish");
-  if (language.startsWith("zh"))
-    return getSteamAppDetails(objectId, "schinese");
-  if (language.startsWith("da")) return getSteamAppDetails(objectId, "danish");
-
-  return getSteamAppDetails(objectId, "english");
+  return getSteamAppDetails(objectId, getSteamLanguage(language));
 };
 
 const getGameShopDetails = async (
