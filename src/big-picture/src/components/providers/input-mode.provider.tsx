@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useInputModeStore, useVirtualKeyboardStore } from "../../stores";
-import { MAX_OVERLAY_Z_INDEX } from "../../constants";
 import { GamepadService, NavigationService } from "../../services";
 
 export function InputModeProvider() {
@@ -10,8 +9,8 @@ export function InputModeProvider() {
       <InputModeGamepadDetector />
       <InputModeMouseDetector />
       <InputModeMouseFocusTracker />
+      <InputModeCursorSync />
       <InputModeFocusCleanup />
-      <InputModeOverlay />
     </>
   );
 }
@@ -49,8 +48,6 @@ function InputModeMouseDetector() {
   useEffect(() => {
     const handlePointerActivity = () => {
       if (useInputModeStore.getState().mode !== "gamepad") return;
-      const overlay = document.getElementById("bp-input-overlay");
-      if (overlay) overlay.style.pointerEvents = "none";
       setMouseMode();
     };
 
@@ -137,6 +134,34 @@ function InputModeMouseFocusTracker() {
   return null;
 }
 
+function InputModeCursorSync() {
+  const mode = useInputModeStore((state) => state.mode);
+
+  useEffect(() => {
+    const styleId = "bp-input-mode-cursor";
+    const existing = document.getElementById(styleId);
+
+    if (mode === "gamepad") {
+      if (existing) return;
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        #big-picture[data-bp-input-mode="gamepad"],
+        #big-picture[data-bp-input-mode="gamepad"] * {
+          cursor: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+    } else {
+      existing?.remove();
+    }
+
+    return () => document.getElementById(styleId)?.remove();
+  }, [mode]);
+
+  return null;
+}
+
 function InputModeFocusCleanup() {
   const mode = useInputModeStore((state) => state.mode);
   const prevModeRef = useRef(mode);
@@ -154,24 +179,4 @@ function InputModeFocusCleanup() {
   }, [mode]);
 
   return null;
-}
-
-function InputModeOverlay() {
-  const mode = useInputModeStore((state) => state.mode);
-
-  if (mode !== "gamepad") return null;
-
-  return (
-    <div
-      id="bp-input-overlay"
-      aria-hidden="true"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: MAX_OVERLAY_Z_INDEX,
-        cursor: "none",
-        pointerEvents: "auto",
-      }}
-    />
-  );
 }
