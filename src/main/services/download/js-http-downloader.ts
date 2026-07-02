@@ -28,6 +28,8 @@ export interface JsHttpDownloaderStatus {
   status: "active" | "paused" | "complete" | "error";
   bytesDownloaded: number;
   isReconnecting: boolean;
+  isRecovering: boolean;
+  recoveryProgress: number;
 }
 
 export interface JsHttpDownloaderOptions {
@@ -85,6 +87,11 @@ export class JsHttpDownloader {
   private isStallRetry = false;
   private isReconnecting = false;
   private isReconnectRetry = false;
+  private isRecovering = false;
+  private recoverBytesTotal = 0;
+  private recoverBytesDone = 0;
+  private recoverSpeedLastUpdate = Date.now();
+  private recoverBytesAtLastUpdate = 0;
   private maxDownloadSpeedBytesPerSecond: number | null = null;
   private throttleWindowStart = Date.now();
   private bytesTransferredInThrottleWindow = 0;
@@ -117,6 +124,7 @@ export class JsHttpDownloader {
     this.isStallRetry = false;
     this.isReconnecting = false;
     this.isReconnectRetry = false;
+    this.resetRecoveryState();
     this.fileSize = 0;
     this.resolvedFilename = null;
     this.pendingReadSince = null;
@@ -556,8 +564,9 @@ export class JsHttpDownloader {
         `[JsHttpDownloader] Restarting the file from byte 0 (restart ${this.restartCount}/${MAX_RESTARTS_FROM_ZERO}).`
       );
     } else if (action.rangeIgnored) {
+      this.beginRecovery(skipBytes);
       logger.log(
-        `[JsHttpDownloader] Server ignored the Range header (HTTP 200). Discarding ${skipBytes} body bytes to preserve the existing partial.`
+        `[JsHttpDownloader] Server ignored the Range header (HTTP 200). Re-downloading ${skipBytes} bytes to preserve the existing partial.`
       );
     } else if (skipBytes > 0) {
       logger.log(
@@ -618,6 +627,7 @@ export class JsHttpDownloader {
     this.budgetResets = 0;
     this.restartCount = 0;
     this.isReconnecting = false;
+    this.resetRecoveryState();
     this.downloadSpeed = 0;
     logger.log(
       `[JsHttpDownloader] Download complete (${this.bytesDownloaded} bytes)`
@@ -671,6 +681,47 @@ export class JsHttpDownloader {
     }
   }
 
+  private resetRecoveryState(): void {
+    this.isRecovering = false;
+    this.recoverBytesTotal = 0;
+    this.recoverBytesDone = 0;
+    this.recoverBytesAtLastUpdate = 0;
+  }
+
+  private beginRecovery(totalBytes: number): void {
+    this.isRecovering = true;
+    this.isReconnecting = false;
+    this.recoverBytesTotal = totalBytes;
+    this.recoverBytesDone = 0;
+    this.recoverBytesAtLastUpdate = 0;
+    this.recoverSpeedLastUpdate = Date.now();
+    this.downloadSpeed = 0;
+  }
+
+  private trackRecoveredBytes(skipped: number): void {
+    if (!this.isRecovering || skipped <= 0) return;
+
+    this.recoverBytesDone += skipped;
+    const now = Date.now();
+    const elapsed = (now - this.recoverSpeedLastUpdate) / 1000;
+    if (elapsed >= 1) {
+      this.downloadSpeed = Math.max(
+        0,
+        (this.recoverBytesDone - this.recoverBytesAtLastUpdate) / elapsed
+      );
+      this.recoverSpeedLastUpdate = now;
+      this.recoverBytesAtLastUpdate = this.recoverBytesDone;
+    }
+  }
+
+  private finishRecovery(): void {
+    if (!this.isRecovering) return;
+
+    this.isRecovering = false;
+    this.recoverBytesDone = this.recoverBytesTotal;
+    this.resetSpeedTracking();
+  }
+
   private createReadableStream(
     reader: ReadableStreamDefaultReader<Uint8Array>,
     skipBytes = 0
@@ -684,6 +735,12 @@ export class JsHttpDownloader {
     };
     const countReceived = (length: number) => {
       this.attemptBytesReceived += length;
+    };
+    const trackRecovered = (skipped: number) => {
+      this.trackRecoveredBytes(skipped);
+    };
+    const finishRecovery = () => {
+      this.finishRecovery();
     };
     const onChunk = (length: number) => {
       if (this.isReconnecting) {
@@ -720,6 +777,15 @@ export class JsHttpDownloader {
 
               const plan = applySkip(remainingToSkip, value.length);
               remainingToSkip = plan.newRemainingToSkip;
+              const skippedThisChunk = plan.shouldWrite
+                ? plan.writeOffset
+                : value.length;
+              if (skippedThisChunk > 0) {
+                trackRecovered(skippedThisChunk);
+              }
+              if (remainingToSkip === 0) {
+                finishRecovery();
+              }
               if (!plan.shouldWrite) {
                 continue;
               }
@@ -748,6 +814,7 @@ export class JsHttpDownloader {
 
   private handleDownloadError(err: Error): void {
     this.isReconnecting = false;
+    this.resetRecoveryState();
     if (
       err.name === "AbortError" ||
       (err as NodeJS.ErrnoException).code === "ERR_STREAM_PREMATURE_CLOSE"
@@ -775,6 +842,7 @@ export class JsHttpDownloader {
     this.isStallRetry = false;
     this.isReconnecting = false;
     this.isReconnectRetry = false;
+    this.resetRecoveryState();
     this.pendingReadSince = null;
     await this.startDownloadWithRetry();
   }
@@ -873,6 +941,11 @@ export class JsHttpDownloader {
       status: this.status,
       bytesDownloaded: this.bytesDownloaded,
       isReconnecting: this.isReconnecting,
+      isRecovering: this.isRecovering,
+      recoveryProgress:
+        this.recoverBytesTotal > 0
+          ? clampProgress(this.recoverBytesDone / this.recoverBytesTotal)
+          : 0,
     };
   }
 
@@ -930,6 +1003,7 @@ export class JsHttpDownloader {
     this.isStallRetry = false;
     this.isReconnecting = false;
     this.isReconnectRetry = false;
+    this.resetRecoveryState();
     this.resetThrottleWindow();
   }
 }

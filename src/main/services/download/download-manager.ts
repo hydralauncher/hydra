@@ -449,6 +449,8 @@ export class DownloadManager {
         isDownloadingMetadata: false,
         isCheckingFiles: false,
         isReconnecting: status.isReconnecting,
+        isRecovering: status.isRecovering,
+        recoveryProgress: status.recoveryProgress,
         progress,
         gameId: downloadId,
         download: updatedDownload,
