@@ -1,4 +1,5 @@
 export * from "./gamepad.store";
+export * from "./input-mode.store";
 export * from "./navigation.store";
 export * from "./navigation-history.store";
 export * from "./virtual-keyboard.store";

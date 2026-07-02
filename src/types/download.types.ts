@@ -19,6 +19,9 @@ export interface DownloadProgress {
   numSeeds: number;
   isDownloadingMetadata: boolean;
   isCheckingFiles: boolean;
+  isReconnecting?: boolean;
+  isRecovering?: boolean;
+  recoveryProgress?: number;
   progress: number;
   gameId: string;
   download: Download;
