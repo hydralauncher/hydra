@@ -643,6 +643,22 @@ export default function Game() {
           return;
         }
 
+        if (code === "PKG_INSTALLING") {
+          showSuccessToast("Installing PKG", {
+            message:
+              "Installing the package in RPCS3. Once it finishes, press Play again to launch the game.",
+          });
+          return;
+        }
+
+        if (code === "PKG_UNREADABLE") {
+          showErrorToast("Unsupported PKG", {
+            message:
+              "Hydra could not read this package. Install and launch it from RPCS3 directly.",
+          });
+          return;
+        }
+
         if (code === "EMULATOR_ALREADY_RUNNING") {
           setPendingClassicsLaunch({ discPath });
           return;
@@ -653,7 +669,7 @@ export default function Game() {
         });
       }
     },
-    [game, navigate, openGame, showErrorToast, updateGame]
+    [game, navigate, openGame, showErrorToast, showSuccessToast, updateGame]
   );
 
   const handlePlayGame = useCallback(async () => {
