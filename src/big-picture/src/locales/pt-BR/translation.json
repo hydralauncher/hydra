@@ -743,6 +743,16 @@
     "settings_diagnostics_position_top_right": "Superior Direito",
     "settings_diagnostics_position_bottom_left": "Inferior Esquerdo",
     "settings_diagnostics_position_bottom_center": "Inferior Centro",
-    "settings_diagnostics_position_bottom_right": "Inferior Direito"
+    "settings_diagnostics_position_bottom_right": "Inferior Direito",
+    "file_explorer_path_placeholder": "Selecione um local",
+    "file_explorer_drives": "Unidades",
+    "file_explorer_empty_folder": "Esta pasta está vazia",
+    "file_explorer_empty_directory": "Nenhuma pasta encontrada",
+    "file_explorer_error_eacces": "Você não tem permissão para abrir este local.",
+    "file_explorer_error_enoent": "Este local não existe.",
+    "file_explorer_error_enotdir": "Este caminho não é um diretório.",
+    "file_explorer_error_default": "Não foi possível abrir este local.",
+    "file_explorer_select_this_directory": "Selecionar esta pasta",
+    "file_explorer_select_download_directory": "Selecionar diretório de download"
   }
 }
