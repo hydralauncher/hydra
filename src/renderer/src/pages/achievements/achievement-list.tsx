@@ -39,6 +39,16 @@ export function AchievementList({
                 </span>
               )}
               {achievement.displayName}
+              {achievement.hardcoreUnlockTime != null && (
+                <span
+                  className="achievements__item-hardcore-badge"
+                  title={t("hardcore_unlocked_at", {
+                    date: formatDateTime(achievement.hardcoreUnlockTime),
+                  })}
+                >
+                  {t("hardcore")}
+                </span>
+              )}
             </h4>
             <p>{achievement.description}</p>
           </div>

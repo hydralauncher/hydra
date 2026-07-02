@@ -6,6 +6,7 @@ import {
   StarFillIcon,
   CommentDiscussionIcon,
 } from "@primer/octicons-react";
+import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@renderer/components";
@@ -29,6 +30,10 @@ const parseNotificationUrl = (notificationUrl: string): string => {
 
   if (url.pathname === "/badges" && badgeName) {
     return `/badges/${badgeName}`;
+  }
+
+  if (url.pathname === "/profile/integrations/retroachievements") {
+    return "/settings?tab=integrations";
   }
 
   if (url.pathname.startsWith("/game/")) {
@@ -174,6 +179,26 @@ export function NotificationItem({
           }),
           showActions: false,
         };
+      case "RETROACHIEVEMENTS_CREDENTIALS_RESTORED":
+        return {
+          title: t("retroachievements_credentials_restored_title"),
+          description: t("retroachievements_credentials_restored_description"),
+          showActions: false,
+        };
+      case "RETROACHIEVEMENTS_CREDENTIALS_INVALID":
+        return {
+          title: t("retroachievements_credentials_invalid_title"),
+          description: t("retroachievements_credentials_invalid_description"),
+          showActions: false,
+        };
+      case "RETROACHIEVEMENTS_SYNC_FAILED":
+        return {
+          title: t("retroachievements_sync_failed_title"),
+          description: t("retroachievements_sync_failed_description", {
+            gameTitle: notification.variables.gameTitle,
+          }),
+          showActions: false,
+        };
       default:
         return {
           title: t("notification"),
@@ -190,9 +215,17 @@ export function NotificationItem({
   const isReviewAnswerUpvote = notification.type === "REVIEW_ANSWER_UPVOTE";
   const isReview = isReviewUpvote || isReviewAnswer || isReviewAnswerUpvote;
 
+  const isRetroAchievements =
+    notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED" ||
+    notification.type === "RETROACHIEVEMENTS_CREDENTIALS_INVALID" ||
+    notification.type === "RETROACHIEVEMENTS_SYNC_FAILED";
+
   const getIcon = () => {
     if (notification.pictureUrl) {
       return <img src={notification.pictureUrl} alt="" />;
+    }
+    if (isRetroAchievements) {
+      return <img src={retroAchievementsLogo} alt="" />;
     }
     if (isReviewUpvote || isReviewAnswerUpvote) {
       return <StarFillIcon size={24} />;
@@ -217,6 +250,7 @@ export function NotificationItem({
         className={cn("notification-item__picture", {
           "notification-item__badge-picture": isBadge,
           "notification-item__review-picture": isReview,
+          "notification-item__ra-picture": isRetroAchievements,
         })}
       >
         {getIcon()}

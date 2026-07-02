@@ -9,7 +9,7 @@ export * from "./gamepad-repeat";
 export * from "./image";
 export * from "./library-game-state";
 export * from "./library-toast";
-export * from "./language";
 export * from "./navigation";
 export * from "./preferred-assets";
+export * from "./file-entry-icon";
 export * from "./strings";

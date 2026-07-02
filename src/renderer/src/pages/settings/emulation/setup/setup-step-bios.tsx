@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
   CheckCircleFillIcon,
+  FileDirectoryIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 
@@ -14,6 +15,7 @@ interface Props {
   systemLabel: string;
   config: EmulatorConfig;
   onBiosStatusChange: (installed: boolean) => void;
+  onConfigChange?: (config: EmulatorConfig) => void;
   onSkip: () => void;
 }
 
@@ -22,24 +24,50 @@ export function SetupStepBios({
   systemLabel,
   config,
   onBiosStatusChange,
+  onConfigChange,
   onSkip,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const [installed, setInstalled] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
+  const [biosPath, setBiosPath] = useState<string | null>(config.biosPath);
+  const [detectedPath, setDetectedPath] = useState<string | null>(null);
 
-  const probe = async () => {
+  const probe = async (overridePath: string | null = biosPath) => {
     setChecking(true);
     try {
-      const result = await window.electron.checkEmulatorBios(
+      const result = await globalThis.window.electron.checkEmulatorBios(
         system,
-        config.executablePath
+        config.executablePath,
+        overridePath
       );
       setInstalled(result.installed);
+      setDetectedPath(result.detectedPath);
       onBiosStatusChange(result.installed);
+      if (result.detectedPath && result.detectedPath !== biosPath) {
+        setBiosPath(result.detectedPath);
+        onConfigChange?.({ ...config, biosPath: result.detectedPath });
+      }
     } finally {
       setChecking(false);
     }
+  };
+
+  const handleSelectFolder = async () => {
+    const result = await globalThis.window.electron.showOpenDialog({
+      properties: ["openDirectory"],
+      defaultPath: biosPath ?? undefined,
+    });
+    if (result.canceled || result.filePaths.length === 0) return;
+
+    const folderPath = result.filePaths[0];
+    const next = await globalThis.window.electron.setEmulatorBiosPath(
+      system,
+      folderPath
+    );
+    setBiosPath(next.biosPath);
+    onConfigChange?.(next);
+    await probe(next.biosPath);
   };
 
   useEffect(() => {
@@ -76,6 +104,28 @@ export function SetupStepBios({
           <span className="setup-modal__numbered-text">{stepTwo}</span>
         </div>
       </div>
+
+      <div className="setup-modal__bios-picker">
+        <span
+          className={`setup-modal__bios-path${
+            (detectedPath ?? biosPath)
+              ? ""
+              : " setup-modal__bios-path--placeholder"
+          }`}
+          title={detectedPath ?? biosPath ?? undefined}
+        >
+          {detectedPath ?? biosPath ?? t("bios_folder_none")}
+        </span>
+        <Button
+          theme="outline"
+          onClick={handleSelectFolder}
+          disabled={checking}
+        >
+          <FileDirectoryIcon size={14} />
+          <span>{t("setup_bios_select_folder")}</span>
+        </Button>
+      </div>
+      <p className="setup-modal__bios-hint">{t("setup_bios_folder_hint")}</p>
 
       <div className="setup-modal__hint" style={{ justifyContent: "flex-end" }}>
         <button
@@ -116,7 +166,7 @@ export function SetupStepBios({
           </span>
         </div>
         {!installed && (
-          <Button theme="primary" onClick={probe} disabled={checking}>
+          <Button theme="primary" onClick={() => probe()} disabled={checking}>
             <SyncIcon size={14} />
             <span>{t("setup_bios_check_again")}</span>
           </Button>
