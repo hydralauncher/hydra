@@ -5,12 +5,29 @@ import {
   AchievementNotificationInfo,
 } from "@types";
 import {
+  getAchievementNotificationRenderSettings,
   getAchievementSoundUrl,
   getAchievementSoundVolume,
 } from "@renderer/helpers";
 import { AchievementNotificationItem } from "./achievement-notification";
 
 const NOTIFICATION_TIMEOUT = 4000;
+const fallbackPosition: AchievementCustomNotificationPosition = "top-left";
+
+type QueuedAchievementNotification = {
+  achievement: AchievementNotificationInfo;
+  position: AchievementCustomNotificationPosition;
+};
+
+const queueAchievements = (
+  position: AchievementCustomNotificationPosition | undefined,
+  achievements: AchievementNotificationInfo[]
+): QueuedAchievementNotification[] => {
+  return achievements.map((achievement) => ({
+    achievement,
+    position: position ?? fallbackPosition,
+  }));
+};
 
 const anchorByPosition: Record<
   AchievementCustomNotificationPosition,
@@ -30,21 +47,28 @@ export function AchievementNotificationOverlay() {
   const [position, setPosition] =
     useState<AchievementCustomNotificationPosition>("top-left");
   const [achievements, setAchievements] = useState<
-    AchievementNotificationInfo[]
+    QueuedAchievementNotification[]
   >([]);
   const [currentAchievement, setCurrentAchievement] =
     useState<AchievementNotificationInfo | null>(null);
+  const [currentAchievementStyle, setCurrentAchievementStyle] =
+    useState<CSSProperties>({});
 
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
+  const notificationTimeoutRef = useRef(NOTIFICATION_TIMEOUT);
 
-  const playAudio = useCallback(async () => {
-    const soundUrl = await getAchievementSoundUrl();
-    const volume = await getAchievementSoundVolume();
-    const audio = new Audio(soundUrl);
-    audio.volume = volume;
-    audio.play();
-  }, []);
+  const playAudio = useCallback(
+    async (achievement: AchievementNotificationInfo) => {
+      const soundUrl = await getAchievementSoundUrl(achievement);
+      if (!soundUrl) return;
+      const volume = await getAchievementSoundVolume(achievement);
+      const audio = new Audio(soundUrl);
+      audio.volume = volume;
+      audio.play();
+    },
+    []
+  );
 
   useEffect(() => {
     const onInAppAchievementUnlocked =
@@ -59,14 +83,16 @@ export function AchievementNotificationOverlay() {
       (nextPosition, nextAchievements) => {
         if (!nextAchievements?.length) return;
         if (nextPosition) setPosition(nextPosition);
-        setAchievements((current) => current.concat(nextAchievements));
-        playAudio();
+        setAchievements((current) =>
+          current.concat(queueAchievements(nextPosition, nextAchievements))
+        );
       }
     );
 
     return () => unsubscribe();
-  }, [playAudio]);
+  }, []);
 
+  const queuedAchievement = achievements[0];
   const hasAchievementsPending = achievements.length > 0;
 
   const startAnimateClosing = useCallback(() => {
@@ -89,7 +115,7 @@ export function AchievementNotificationOverlay() {
   }, []);
 
   useEffect(() => {
-    if (!hasAchievementsPending) return;
+    if (!hasAchievementsPending || !currentAchievement) return;
 
     setIsClosing(false);
     setIsVisible(true);
@@ -99,7 +125,7 @@ export function AchievementNotificationOverlay() {
     cancelAnimationFrame(achievementAnimation.current);
     achievementAnimation.current = requestAnimationFrame(
       function animateLock(time) {
-        if (time - zero > NOTIFICATION_TIMEOUT) {
+        if (time - zero > notificationTimeoutRef.current) {
           zero = performance.now();
           startAnimateClosing();
         }
@@ -109,10 +135,33 @@ export function AchievementNotificationOverlay() {
   }, [hasAchievementsPending, startAnimateClosing, currentAchievement]);
 
   useEffect(() => {
-    if (achievements.length) {
-      setCurrentAchievement(achievements[0]);
+    if (!queuedAchievement) {
+      setCurrentAchievement(null);
+      setCurrentAchievementStyle({});
+      return;
     }
-  }, [achievements]);
+
+    let cancelled = false;
+
+    getAchievementNotificationRenderSettings(
+      queuedAchievement.achievement
+    ).then((settings) => {
+      if (cancelled) return;
+
+      setPosition(settings?.position ?? queuedAchievement.position);
+      notificationTimeoutRef.current =
+        settings?.displayTime ?? NOTIFICATION_TIMEOUT;
+      setCurrentAchievementStyle(
+        (settings?.cssVariables ?? {}) as CSSProperties
+      );
+      setCurrentAchievement(queuedAchievement.achievement);
+      playAudio(queuedAchievement.achievement);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [queuedAchievement, playAudio]);
 
   if (!isVisible || !currentAchievement) return null;
 
@@ -131,6 +180,7 @@ export function AchievementNotificationOverlay() {
         achievement={currentAchievement}
         isClosing={isClosing}
         position={position}
+        customStyle={currentAchievementStyle}
       />
     </div>
   );

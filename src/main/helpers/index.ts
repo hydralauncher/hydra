@@ -4,6 +4,11 @@ import UserAgent from "user-agents";
 import path from "node:path";
 import fs from "node:fs";
 import { THEMES_PATH } from "@main/constants";
+import type { AchievementNotificationVariation } from "@types";
+import {
+  getVariationSoundAssetName,
+  isSupportedAchievementNotificationVariation,
+} from "./achievement-notification-sounds";
 
 export const getFileBuffer = async (url: string) =>
   fetch(url, { method: "GET" }).then((response) =>
@@ -59,8 +64,16 @@ export const getThemePath = (themeId: string, themeName?: string): string => {
 
 export const getThemeSoundPath = (
   themeId: string,
-  themeName?: string
+  themeName?: string,
+  variation?: AchievementNotificationVariation
 ): string | null => {
+  if (
+    variation !== undefined &&
+    !isSupportedAchievementNotificationVariation(variation)
+  ) {
+    return null;
+  }
+
   const themeDir = getThemePath(themeId, themeName);
   const legacyThemeDir = themeName ? path.join(THEMES_PATH, themeId) : null;
 
@@ -72,9 +85,18 @@ export const getThemeSoundPath = (
     const formats = ["wav", "mp3", "ogg", "m4a"];
 
     for (const format of formats) {
-      const soundPath = path.join(dir, `achievement.${format}`);
-      if (fs.existsSync(soundPath)) {
-        return soundPath;
+      const fileNames = variation
+        ? [
+            getVariationSoundAssetName(variation, `.${format}`),
+            `achievement.${format}`,
+          ]
+        : [`achievement.${format}`];
+
+      for (const fileName of fileNames) {
+        const soundPath = path.join(dir, fileName);
+        if (fs.existsSync(soundPath)) {
+          return soundPath;
+        }
       }
     }
 
@@ -94,6 +116,7 @@ export const getThemeSoundPath = (
 };
 
 export * from "./reg-parser";
+export * from "./achievement-notification-sounds";
 export * from "./launch-game";
 export * from "./launch-classics-game";
 export * from "./download-error-handler";

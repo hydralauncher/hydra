@@ -146,9 +146,6 @@ export const mergeAchievements = async (
       userPreferences.achievementCustomNotificationsEnabled !== false &&
       process.platform !== "darwin";
 
-    const position =
-      userPreferences.achievementCustomNotificationPosition ?? "top-left";
-
     const publishOsNotification = () =>
       publishNewAchievementNotification({
         achievements: achievementsInfo,
@@ -159,12 +156,26 @@ export const mergeAchievements = async (
       });
 
     if (process.platform === "linux") {
-      const shownInApp =
+      let shownInApp = false;
+
+      if (
         customEnabled &&
-        WindowManager.sendAchievementToFocusedWindow(
-          position,
-          achievementsInfo
+        achievementsInfo.length &&
+        WindowManager.hasFocusedAchievementNotificationTarget()
+      ) {
+        const achievementPositions = await Promise.all(
+          achievementsInfo.map((achievement) =>
+            WindowManager.getAchievementNotificationPosition(achievement)
+          )
         );
+
+        shownInApp = WindowManager.sendAchievementsToFocusedWindowBatch(
+          achievementsInfo.map((achievement, index) => ({
+            position: achievementPositions[index],
+            achievements: [achievement],
+          }))
+        );
+      }
 
       if (!shownInApp) {
         publishOsNotification();
@@ -173,12 +184,20 @@ export const mergeAchievements = async (
       const shouldUseCustomNotification =
         customEnabled && !!WindowManager.notificationWindow;
 
-      if (shouldUseCustomNotification) {
-        WindowManager.notificationWindow?.webContents.send(
-          "on-achievement-unlocked",
-          position,
-          achievementsInfo
+      if (shouldUseCustomNotification && achievementsInfo.length) {
+        const achievementPositions = await Promise.all(
+          achievementsInfo.map((achievement) =>
+            WindowManager.getAchievementNotificationPosition(achievement)
+          )
         );
+
+        achievementsInfo.forEach((achievement, index) => {
+          WindowManager.notificationWindow?.webContents.send(
+            "on-achievement-unlocked",
+            achievementPositions[index],
+            [achievement]
+          );
+        });
       } else {
         publishOsNotification();
       }

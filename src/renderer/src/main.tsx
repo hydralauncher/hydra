@@ -28,6 +28,7 @@ import Home from "./pages/home/home";
 import Downloads from "./pages/downloads/downloads";
 import GameDetails from "./pages/game-details/game-details";
 import Settings from "./pages/settings/settings";
+import { AchievementNotificationCustomizer } from "./pages/settings/achievement-notification-customizer";
 import Profile from "./pages/profile/profile";
 import Achievements from "./pages/achievements/achievements";
 import ThemeEditor from "./pages/theme-editor/theme-editor";
@@ -128,6 +129,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           </Route>
 
           <Route path="/theme-editor" element={<ThemeEditor />} />
+          <Route
+            path="/achievement-notification-customizer"
+            element={<AchievementNotificationCustomizer />}
+          />
           <Route
             path="/achievement-notification"
             element={<AchievementNotification />}

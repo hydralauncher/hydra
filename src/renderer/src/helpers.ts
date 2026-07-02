@@ -1,4 +1,24 @@
-import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
+import type {
+  AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
+  AchievementNotificationVariation,
+  EmulatorBinary,
+  EmulatorSystem,
+  GameShop,
+  Theme,
+} from "@types";
+import {
+  DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
+  getActiveAchievementNotificationTheme,
+  getEffectiveAchievementNotificationSoundVolume,
+  getAchievementNotificationSound,
+  getAchievementNotificationCssVariables,
+  getAchievementNotificationPosition as resolveAchievementNotificationPosition,
+  getAchievementNotificationStyle,
+  getAchievementNotificationVariation,
+  getThemeAchievementNotificationCustomizer,
+  isAchievementNotificationCustomizerEnabled,
+} from "@shared";
 
 import Color from "color";
 import i18next from "i18next";
@@ -136,21 +156,81 @@ export const generateUUID = (): string => {
   return uuidv4();
 };
 
-export const getAchievementSoundUrl = async (): Promise<string> => {
+const getActiveTheme = async (): Promise<Theme | null> => {
+  const allThemes = (await levelDBService.values("themes")) as Theme[];
+  return allThemes.find((theme) => theme.isActive) ?? null;
+};
+
+type AchievementNotificationVariationContext = Pick<
+  AchievementNotificationInfo,
+  "isRare" | "isPlatinum" | "isHidden"
+>;
+
+export const getActiveAchievementNotificationProfile =
+  async (): Promise<Theme | null> => {
+    const allThemes = (await levelDBService.values("themes")) as Theme[];
+    return getActiveAchievementNotificationTheme(allThemes);
+  };
+
+export const getAchievementSoundUrl = async (
+  achievement?: AchievementNotificationVariationContext
+): Promise<string | null> => {
   const defaultSound = (await import("@renderer/assets/audio/achievement.wav"))
     .default;
 
   try {
-    const allThemes = (await levelDBService.values("themes")) as {
-      id: string;
-      isActive?: boolean;
-      hasCustomSound?: boolean;
-    }[];
-    const activeTheme = allThemes.find((theme) => theme.isActive);
+    const prefs = (await levelDBService.get(
+      "userPreferences",
+      null,
+      "json"
+    )) as {
+      achievementNotificationsEnabled?: boolean;
+      achievementCustomNotificationsEnabled?: boolean;
+    } | null;
+    const activeTheme = await getActiveTheme();
+    const activeAchievementNotificationTheme =
+      await getActiveAchievementNotificationProfile();
+    const variation: AchievementNotificationVariation = achievement
+      ? getAchievementNotificationVariation(achievement)
+      : "main";
+
+    if (
+      achievement &&
+      prefs?.achievementNotificationsEnabled !== false &&
+      prefs?.achievementCustomNotificationsEnabled === false
+    ) {
+      return defaultSound;
+    }
+
+    if (
+      activeAchievementNotificationTheme &&
+      achievement &&
+      isAchievementNotificationCustomizerEnabled(prefs)
+    ) {
+      const customizer = getThemeAchievementNotificationCustomizer(
+        activeAchievementNotificationTheme
+      );
+      const sound = getAchievementNotificationSound(customizer, variation);
+      const soundDataUrl =
+        await globalThis.electron.getAchievementNotificationSoundDataUrl(
+          activeAchievementNotificationTheme.id,
+          variation,
+          sound
+        );
+
+      if (soundDataUrl === "") {
+        return null;
+      }
+
+      if (soundDataUrl) {
+        return soundDataUrl;
+      }
+    }
 
     if (activeTheme?.hasCustomSound) {
-      const soundDataUrl = await window.electron.getThemeSoundDataUrl(
-        activeTheme.id
+      const soundDataUrl = await globalThis.electron.getThemeSoundDataUrl(
+        activeTheme.id,
+        variation
       );
       if (soundDataUrl) {
         return soundDataUrl;
@@ -163,17 +243,113 @@ export const getAchievementSoundUrl = async (): Promise<string> => {
   return defaultSound;
 };
 
-export const getAchievementSoundVolume = async (): Promise<number> => {
+export const getAchievementSoundVolume = async (
+  achievement?: AchievementNotificationVariationContext
+): Promise<number> => {
   try {
     const prefs = (await levelDBService.get(
       "userPreferences",
       null,
       "json"
-    )) as { achievementSoundVolume?: number } | null;
-    return prefs?.achievementSoundVolume ?? 0.15;
+    )) as {
+      achievementNotificationsEnabled?: boolean;
+      achievementCustomNotificationsEnabled?: boolean;
+      achievementSoundVolume?: number;
+    } | null;
+    const masterVolume = prefs?.achievementSoundVolume ?? 0.15;
+
+    if (
+      achievement &&
+      prefs?.achievementNotificationsEnabled !== false &&
+      prefs?.achievementCustomNotificationsEnabled === false
+    ) {
+      const variation = getAchievementNotificationVariation(achievement);
+      const sound = getAchievementNotificationSound(
+        DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
+        variation
+      );
+
+      return getEffectiveAchievementNotificationSoundVolume(
+        masterVolume,
+        sound.volume
+      );
+    }
+
+    if (achievement && isAchievementNotificationCustomizerEnabled(prefs)) {
+      const activeAchievementNotificationTheme =
+        await getActiveAchievementNotificationProfile();
+      if (activeAchievementNotificationTheme) {
+        const variation = getAchievementNotificationVariation(achievement);
+        const customizer = getThemeAchievementNotificationCustomizer(
+          activeAchievementNotificationTheme
+        );
+        const sound = getAchievementNotificationSound(customizer, variation);
+
+        return getEffectiveAchievementNotificationSoundVolume(
+          masterVolume,
+          sound.volume
+        );
+      }
+    }
+
+    return masterVolume;
   } catch (error) {
     console.error("Failed to get sound volume", error);
     return 0.15;
+  }
+};
+
+export const getAchievementNotificationRenderSettings = async (
+  achievement: AchievementNotificationVariationContext
+): Promise<{
+  cssVariables: Record<string, string>;
+  displayTime: number;
+  position: AchievementCustomNotificationPosition;
+} | null> => {
+  try {
+    const prefs = (await levelDBService.get(
+      "userPreferences",
+      null,
+      "json"
+    )) as {
+      achievementNotificationsEnabled?: boolean;
+      achievementCustomNotificationsEnabled?: boolean;
+      achievementCustomNotificationPosition?: AchievementCustomNotificationPosition;
+    } | null;
+
+    if (prefs?.achievementNotificationsEnabled === false) {
+      return null;
+    }
+
+    const variation = getAchievementNotificationVariation(achievement);
+    const fallbackPosition =
+      prefs?.achievementCustomNotificationPosition ?? "top-left";
+    const activeAchievementNotificationProfile =
+      prefs?.achievementCustomNotificationsEnabled === false
+        ? null
+        : await getActiveAchievementNotificationProfile();
+    const customizer = getThemeAchievementNotificationCustomizer(
+      activeAchievementNotificationProfile
+    );
+    const style = getAchievementNotificationStyle(customizer, variation);
+
+    return {
+      cssVariables: getAchievementNotificationCssVariables(style),
+      displayTime: style.displayTime,
+      position: activeAchievementNotificationProfile
+        ? resolveAchievementNotificationPosition(
+            customizer,
+            variation,
+            fallbackPosition
+          )
+        : fallbackPosition,
+    };
+  } catch (error) {
+    console.error(
+      "Failed to get achievement notification render settings",
+      error
+    );
+    return null;
   }
 };
 

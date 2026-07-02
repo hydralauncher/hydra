@@ -61,7 +61,9 @@ $margin-bottom: 28px;
     width: 80px;
   }
   100% {
-    width: calc(360px - $margin-horizontal);
+    width: calc(
+      var(--achievement-notification-width, 360px) - $margin-horizontal
+    );
   }
 }
 
@@ -139,18 +141,76 @@ $margin-bottom: 28px;
   }
 }
 
+.achievement-notification-window {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  pointer-events: none;
+  overflow: visible;
+
+  &--top-left {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  &--top-center {
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  &--top-right {
+    align-items: flex-start;
+    justify-content: flex-end;
+  }
+
+  &--bottom-left {
+    align-items: flex-end;
+    justify-content: flex-start;
+  }
+
+  &--bottom-center {
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  &--bottom-right {
+    align-items: flex-end;
+    justify-content: flex-end;
+  }
+}
+
 .achievement-notification {
-  width: 360px;
-  height: 140px;
+  width: var(--achievement-notification-scaled-width, 360px);
+  height: var(--achievement-notification-scaled-height, 140px);
   display: flex;
   position: relative;
+  opacity: var(--achievement-notification-opacity, 1);
+  overflow: visible;
+
+  &__scale-frame {
+    width: var(--achievement-notification-width, 360px);
+    height: var(--achievement-notification-height, 140px);
+    display: flex;
+    position: relative;
+    transform: scale(var(--achievement-notification-scale, 1));
+    transform-origin: center;
+  }
 
   &--top-left {
     align-items: start;
   }
 
+  &--top-left &__scale-frame {
+    transform-origin: top left;
+  }
+
   &--top-center {
     align-items: start;
+    justify-content: center;
+  }
+
+  &--top-center &__scale-frame {
+    transform-origin: top center;
   }
 
   &--top-right {
@@ -158,12 +218,25 @@ $margin-bottom: 28px;
     align-items: start;
   }
 
+  &--top-right &__scale-frame {
+    transform-origin: top right;
+  }
+
   &--bottom-left {
     align-items: end;
   }
 
+  &--bottom-left &__scale-frame {
+    transform-origin: bottom left;
+  }
+
   &--bottom-center {
     align-items: end;
+    justify-content: center;
+  }
+
+  &--bottom-center &__scale-frame {
+    transform-origin: bottom center;
   }
 
   &--bottom-right {
@@ -171,17 +244,28 @@ $margin-bottom: 28px;
     align-items: end;
   }
 
+  &--bottom-right &__scale-frame {
+    transform-origin: bottom right;
+  }
+
   &__outer-container {
     position: relative;
     display: grid;
-    width: calc(360px - $margin-horizontal);
+    width: calc(
+      var(--achievement-notification-width, 360px) - $margin-horizontal
+    );
     overflow: clip;
-    border: 1px solid #ffffff1a;
+    border: var(--achievement-notification-outline-width, 1px) solid
+      var(--achievement-notification-outline-color, #ffffff1a);
+    border-radius: var(--achievement-notification-radius, 0);
     animation:
       content-in 450ms ease-in-out,
       content-wait 450ms ease-in-out 450ms,
       content-expand 450ms ease-in-out 900ms;
-    box-shadow: 0px 2px 16px 0px rgba(0, 0, 0, 0.25);
+    box-shadow: var(
+      --achievement-notification-shadow,
+      0px 2px 16px 0px rgba(0, 0, 0, 0.25)
+    );
   }
 
   &--top-left &__outer-container {
@@ -214,14 +298,17 @@ $margin-bottom: 28px;
   }
 
   &__container {
-    width: calc(360px - $margin-horizontal);
+    width: calc(
+      var(--achievement-notification-width, 360px) - $margin-horizontal
+    );
+    min-height: calc(var(--achievement-notification-height, 140px) - 60px);
     display: flex;
     padding: 8px 16px 8px 8px;
-    background: globals.$background-color;
-  }
-
-  &--platinum &__container {
-    background: linear-gradient(94deg, #1c1c1c -25%, #044838 100%);
+    background: var(
+      --achievement-notification-background,
+      globals.$background-color
+    );
+    font-family: var(--achievement-notification-font-family, inherit);
   }
 
   &--rare &__container {
@@ -253,19 +340,19 @@ $margin-bottom: 28px;
     box-sizing: border-box;
     min-width: 64px;
     min-height: 64px;
-    width: 64px;
-    height: 64px;
+    width: var(--achievement-notification-icon-size, 64px);
+    height: var(--achievement-notification-icon-size, 64px);
     border-radius: 2px;
     flex: 1;
   }
 
   &--rare &__icon {
-    outline: 1px solid #f4a510;
+    outline: 1px solid var(--achievement-notification-accent-color, #f4a510);
     box-shadow: 0px 0px 12px 0px rgba(244, 165, 16, 0.25);
   }
 
   &--platinum &__icon {
-    outline: 1px solid #0cf1ca;
+    outline: 1px solid var(--achievement-notification-accent-color, #0cf1ca);
     box-shadow: 0px 0px 12px 0px rgba(12, 241, 202, 0.25);
   }
 
@@ -369,7 +456,7 @@ $margin-bottom: 28px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: globals.$muted-color;
+    color: var(--achievement-notification-title-color, globals.$muted-color);
     animation: title-in 450ms ease-in-out 900ms;
   }
 
@@ -386,7 +473,10 @@ $margin-bottom: 28px;
     line-clamp: 2;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    color: globals.$body-color;
+    color: var(
+      --achievement-notification-description-color,
+      globals.$body-color
+    );
     animation: description-in 450ms ease-in-out 900ms;
   }
 
@@ -403,7 +493,10 @@ $margin-bottom: 28px;
     padding: 0 8px;
     border-radius: 300px;
     align-items: center;
-    background: globals.$muted-color;
+    background: var(
+      --achievement-notification-accent-color,
+      globals.$muted-color
+    );
     height: 24px;
     animation:
       chip-stand-by 900ms ease-in-out,

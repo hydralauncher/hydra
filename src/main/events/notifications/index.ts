@@ -1,6 +1,7 @@
 import "./publish-new-repacks-notification";
 import "./show-achievement-test-notification";
 import "./update-achievement-notification-window";
+import "./update-achievement-notification-window-position";
 import "./get-local-notifications";
 import "./get-local-notifications-count";
 import "./mark-local-notification-read";

@@ -1,18 +1,12 @@
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, CheckboxField, SelectField } from "@renderer/components";
+import { Button, CheckboxField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import type { AchievementCustomNotificationPosition } from "@types";
 import { UnmuteIcon } from "@primer/octicons-react";
+import { BellIcon, SlidersHorizontalIcon } from "lucide-react";
 
 import "./settings-general.scss";
 
@@ -91,30 +85,6 @@ export function SettingsContextNotifications() {
     [updateUserPreferences]
   );
 
-  const achievementCustomNotificationPositionOptions = useMemo(() => {
-    return [
-      "top-left",
-      "top-center",
-      "top-right",
-      "bottom-left",
-      "bottom-center",
-      "bottom-right",
-    ].map((position) => ({
-      key: position,
-      value: position,
-      label: t(position),
-    }));
-  }, [t]);
-
-  const handleChangeAchievementCustomNotificationPosition = async (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const value = event.target.value as AchievementCustomNotificationPosition;
-
-    await handleChange({ achievementCustomNotificationPosition: value });
-    window.electron.updateAchievementCustomNotificationWindow();
-  };
-
   return (
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
@@ -176,7 +146,7 @@ export function SettingsContextNotifications() {
                 !form.achievementNotificationsEnabled,
             });
 
-            window.electron.updateAchievementCustomNotificationWindow();
+            globalThis.electron.updateAchievementCustomNotificationWindow();
           }}
         />
 
@@ -190,31 +160,34 @@ export function SettingsContextNotifications() {
                 !form.achievementCustomNotificationsEnabled,
             });
 
-            window.electron.updateAchievementCustomNotificationWindow();
+            globalThis.electron.updateAchievementCustomNotificationWindow();
           }}
         />
 
-        {form.achievementNotificationsEnabled &&
-          form.achievementCustomNotificationsEnabled && (
-            <>
-              <SelectField
-                className="settings-general__achievement-custom-notification-position__select-variation"
-                label={t("achievement_custom_notification_position")}
-                value={form.achievementCustomNotificationPosition}
-                onChange={handleChangeAchievementCustomNotificationPosition}
-                options={achievementCustomNotificationPositionOptions}
-              />
+        <Button
+          theme="outline"
+          className="settings-general__test-achievement-notification-button"
+          disabled={!form.achievementNotificationsEnabled}
+          onClick={() => globalThis.electron.showAchievementTestNotification()}
+        >
+          <BellIcon size={16} />
+          {t("test_notification")}
+        </Button>
 
-              <Button
-                className="settings-general__test-achievement-notification-button"
-                onClick={() =>
-                  window.electron.showAchievementTestNotification()
-                }
-              >
-                {t("test_notification")}
-              </Button>
-            </>
-          )}
+        <Button
+          theme="outline"
+          className="settings-general__test-achievement-notification-button"
+          disabled={
+            !form.achievementNotificationsEnabled ||
+            !form.achievementCustomNotificationsEnabled
+          }
+          onClick={() =>
+            globalThis.electron.openAchievementNotificationCustomizerWindow()
+          }
+        >
+          <SlidersHorizontalIcon size={16} />
+          {t("achievement_notification_customizer")}
+        </Button>
 
         {form.achievementNotificationsEnabled && (
           <div className="settings-general__volume-control">
