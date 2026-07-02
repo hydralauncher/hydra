@@ -1,4 +1,5 @@
 import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
+import type { Location } from "react-router-dom";
 
 import Color from "color";
 import i18next from "i18next";
@@ -64,6 +65,17 @@ export const buildGameAchievementPath = (
 
   return `/achievements/?${searchParams.toString()}`;
 };
+
+export const buildSettingsPath = (params: Record<string, string> = {}) => {
+  const searchParams = new URLSearchParams(params);
+  const search = searchParams.toString();
+
+  return search ? `/settings?${search}` : "/settings";
+};
+
+export const buildSettingsLocationState = (location: Location) => ({
+  backgroundLocation: location,
+});
 
 export const darkenColor = (color: string, amount: number, alpha: number = 1) =>
   new Color(color).darken(amount).alpha(alpha).toString();

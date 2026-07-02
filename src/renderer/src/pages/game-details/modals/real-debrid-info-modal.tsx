@@ -1,7 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button, Link, Modal } from "@renderer/components";
 import { LinkExternalIcon } from "@primer/octicons-react";
+import {
+  buildSettingsLocationState,
+  buildSettingsPath,
+} from "@renderer/helpers";
 import "./real-debrid-info-modal.scss";
 
 const realDebridReferralId = import.meta.env
@@ -23,6 +27,7 @@ export function RealDebridInfoModal({
   const { t } = useTranslation("game_details");
   const { t: tSettings } = useTranslation("settings");
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <Modal
@@ -47,7 +52,9 @@ export function RealDebridInfoModal({
         <Button
           onClick={() => {
             onClose();
-            navigate("/settings?tab=4");
+            navigate(buildSettingsPath({ tab: "integrations" }), {
+              state: buildSettingsLocationState(location),
+            });
           }}
         >
           {t("go_to_settings")}

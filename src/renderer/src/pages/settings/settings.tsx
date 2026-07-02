@@ -5,7 +5,7 @@ import {
 } from "@renderer/context";
 import { SettingsAccount } from "./settings-account";
 import { useUserDetails } from "@renderer/hooks";
-import { Fragment, useMemo } from "react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 import "./settings.scss";
 import {
   BellIcon,
@@ -15,6 +15,7 @@ import {
   PlayIcon,
   VideoIcon,
   ShieldCheckIcon,
+  XIcon,
 } from "@primer/octicons-react";
 import { Gamepad2, Wrench } from "lucide-react";
 import { SettingsContextGeneral } from "./settings-context-general";
@@ -26,10 +27,38 @@ import { SettingsContextCompatibility } from "./settings-context-compatibility";
 import { SettingsContextBigPicture } from "./settings-context-big-picture";
 import { SettingsContextEmulation } from "./emulation/settings-context-emulation";
 
-export default function Settings() {
-  const { t } = useTranslation("settings");
+export interface SettingsProps {
+  onClose?: () => void;
+}
+
+export default function Settings({ onClose }: Readonly<SettingsProps>) {
+  const { t } = useTranslation(["settings", "modal"]);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const { userDetails } = useUserDetails();
+
+  useEffect(() => {
+    if (!onClose) return;
+
+    const isTopMostDialog = () => {
+      const openDialogs = document.querySelectorAll("[role=dialog]");
+
+      return (
+        openDialogs.length &&
+        openDialogs[openDialogs.length - 1] === containerRef.current
+      );
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isTopMostDialog()) onClose();
+    };
+
+    globalThis.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      globalThis.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose]);
 
   const categories = useMemo(
     () => [
@@ -133,9 +162,20 @@ export default function Settings() {
             return <SettingsAccount />;
           };
 
-          return (
-            <section className="settings__container">
+          const contentBody = (
+            <>
               <div className="settings__content">
+                {onClose && (
+                  <button
+                    type="button"
+                    className="settings__close-button"
+                    onClick={onClose}
+                    aria-label={t("modal:close")}
+                  >
+                    <XIcon size={24} />
+                  </button>
+                )}
+
                 <aside className="settings__sidebar">
                   {categories.map((category, index) => {
                     const prevGroup =
@@ -192,7 +232,27 @@ export default function Settings() {
                   {renderCategory()}
                 </div>
               </div>
-            </section>
+            </>
+          );
+
+          if (onClose) {
+            return (
+              <div className="settings__overlay">
+                <div
+                  ref={containerRef}
+                  className="settings__container"
+                  role="dialog"
+                  aria-modal
+                  data-hydra-dialog
+                >
+                  {contentBody}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <section className="settings__container">{contentBody}</section>
           );
         }}
       </SettingsContextConsumer>

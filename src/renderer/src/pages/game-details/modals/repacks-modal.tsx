@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   PlusCircleIcon,
   ChevronDownIcon,
@@ -24,7 +24,11 @@ import { orderBy } from "lodash-es";
 import { useDate, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { clearNewDownloadOptions } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import { getGameKey } from "@renderer/helpers";
+import {
+  buildSettingsLocationState,
+  buildSettingsPath,
+  getGameKey,
+} from "@renderer/helpers";
 import "./repacks-modal.scss";
 
 export interface RepacksModalProps {
@@ -71,6 +75,7 @@ export function RepacksModal({
 
   const { formatDate } = useDate();
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -323,7 +328,9 @@ export function RepacksModal({
                     theme="primary"
                     onClick={() => {
                       onClose();
-                      navigate("/settings?tab=2");
+                      navigate(buildSettingsPath({ tab: "downloads" }), {
+                        state: buildSettingsLocationState(location),
+                      });
                     }}
                   >
                     <PlusCircleIcon />

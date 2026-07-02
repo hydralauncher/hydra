@@ -8,7 +8,7 @@
   height: 100vh;
   background-color: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(2px);
-  z-index: globals.$backdrop-z-index;
+  z-index: calc(globals.$modal-z-index + 1);
   display: flex;
   justify-content: center;
   align-items: center;

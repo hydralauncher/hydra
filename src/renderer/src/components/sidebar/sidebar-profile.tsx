@@ -1,7 +1,8 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   BellIcon,
   ChevronDownIcon,
+  GearIcon,
   PeopleIcon,
   PersonIcon,
   SignOutIcon,
@@ -16,10 +17,12 @@ import { logger } from "@renderer/logger";
 import type { NotificationCountResponse, ProfileFriends } from "@types";
 import { useDispatch } from "react-redux";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
+import { buildSettingsLocationState } from "@renderer/helpers";
 import "./sidebar-profile.scss";
 
 export function SidebarProfile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
 
   const { t } = useTranslation(["sidebar", "user_profile"]);
@@ -212,6 +215,11 @@ export function SidebarProfile() {
     globalThis.window.electron.openFriendsWindow();
   };
 
+  const handleSettingsClick = () => {
+    closeDropdown();
+    navigate("/settings", { state: buildSettingsLocationState(location) });
+  };
+
   const handleSignOut = async () => {
     setIsSigningOut(true);
     closeDropdown();
@@ -317,6 +325,15 @@ export function SidebarProfile() {
                 {onlineFriendsCount}
               </small>
             )}
+          </button>
+
+          <button
+            type="button"
+            className="sidebar-profile__dropdown-item"
+            onClick={handleSettingsClick}
+          >
+            <GearIcon size={16} />
+            <span>{t("settings")}</span>
           </button>
 
           <div className="sidebar-profile__dropdown-separator" />

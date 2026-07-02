@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 
 import { DeviceCameraIcon } from "@primer/octicons-react";
 import {
@@ -18,6 +19,10 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 
 import { userProfileContext } from "@renderer/context";
+import {
+  buildSettingsLocationState,
+  buildSettingsPath,
+} from "@renderer/helpers";
 import { getProfileImageMetadata } from "../profile-image-metadata";
 import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
 import "./edit-profile-modal.scss";
@@ -31,6 +36,7 @@ export function EditProfileModal(
   props: Omit<ModalProps, "children" | "title">
 ) {
   const { t } = useTranslation("user_profile");
+  const location = useLocation();
 
   const schema = yup.object({
     displayName: yup
@@ -195,7 +201,13 @@ export function EditProfileModal(
 
         <small className="edit-profile-modal__hint">
           <Trans i18nKey="privacy_hint" ns="user_profile">
-            <Link to="/settings" />
+            <Link
+              to={buildSettingsPath({ tab: "account_privacy" })}
+              state={buildSettingsLocationState(location)}
+              onClick={() => {
+                props.onClose();
+              }}
+            />
           </Trans>
         </small>
 
