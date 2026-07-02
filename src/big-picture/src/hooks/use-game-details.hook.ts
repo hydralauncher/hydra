@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { IS_DESKTOP } from "../constants";
 import type {
   GameShop,
@@ -13,13 +14,14 @@ import {
   buildFavoriteToastOptions,
   buildGameToastVisualOptions,
   resolvePreferredGameAssets,
-  getSteamLanguage,
 } from "../helpers";
 import { useBigPictureToast } from "./use-big-picture-toast.hook";
 import { NavigationAudioService } from "../services";
 import { useBigPictureRunningGame } from "./use-big-picture-running-games.hook";
 
 export function useGameDetails(objectId: string, shop: GameShop) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const [shopDetails, setShopDetails] = useState<ShopDetailsWithAssets | null>(
     null
@@ -60,24 +62,20 @@ export function useGameDetails(objectId: string, shop: GameShop) {
       }
 
       try {
-        const [userPreferences, statsResult, assets] = await Promise.all([
-          globalThis.window.electron
-            .getUserPreferences()
-            .catch(() => ({ language: "en" })),
+        const shopDetailsPromise =
+          shop === "custom"
+            ? Promise.resolve(null)
+            : globalThis.window.electron
+                .getGameShopDetails(objectId, shop, language)
+                .catch(() => null);
+
+        const [statsResult, assets, shopDetailsResult] = await Promise.all([
           shop === "custom"
             ? Promise.resolve(null)
             : globalThis.window.electron.getGameStats(objectId, shop),
           globalThis.window.electron.getGameAssets(objectId, shop),
+          shopDetailsPromise,
         ]);
-
-        const shopDetailsResult =
-          shop === "custom"
-            ? null
-            : await globalThis.window.electron.getGameShopDetails(
-                objectId,
-                shop,
-                getSteamLanguage(userPreferences?.language ?? "en")
-              );
 
         if (shopDetailsResult) {
           shopDetailsResult.assets = assets ?? shopDetailsResult.assets;
@@ -90,7 +88,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
         setIsRefreshing(false);
       }
     },
-    [objectId, shop]
+    [language, objectId, shop]
   );
 
   const refreshGameDetails = useCallback(
