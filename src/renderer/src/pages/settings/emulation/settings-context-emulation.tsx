@@ -81,7 +81,9 @@ export function SettingsContextEmulation() {
     const system = searchParams.get("system");
     if (system && SYSTEMS.includes(system as EmulatorSystem)) {
       deepLinkAppliedRef.current = true;
-      setView({ kind: "detail", system: system as EmulatorSystem });
+      if (configs[system as EmulatorSystem].executablePath) {
+        setView({ kind: "detail", system: system as EmulatorSystem });
+      }
     }
   }, [configs, searchParams]);
 

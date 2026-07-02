@@ -453,6 +453,39 @@
     background: rgba(255, 255, 255, 0.06);
   }
 
+  &__bios-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__bios-path {
+    flex: 1;
+    min-width: 0;
+    padding: 9px 12px;
+    background: #121212;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: "JetBrains Mono", monospace;
+    color: #fafafa;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &--placeholder {
+      color: #71717a;
+      font-family: inherit;
+    }
+  }
+
+  &__bios-hint {
+    margin: 0;
+    font-size: 12px;
+    color: #a1a1aa;
+    line-height: 17px;
+  }
+
   &__alert {
     border-radius: 10px;
     padding: 14px;

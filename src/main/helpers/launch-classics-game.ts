@@ -5,6 +5,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { emulators, logger } from "@main/services";
 import type {
   EmulatorBinary,
+  EmulatorConfig,
   EmulatorSystem,
   Game,
   GameShop,
@@ -118,16 +119,23 @@ const buildEmulatorArgs = (
 
 const assertBiosInstalled = async (
   system: EmulatorSystem,
-  executablePath: string
+  config: EmulatorConfig
 ): Promise<void> => {
   if (system !== "ps1" && system !== "ps2") return;
 
-  const biosInstalled = await emulators.isEmulatorBiosInstalled(
+  const biosDir = await emulators.resolveInstalledBiosDir(
     system,
-    executablePath
+    config.executablePath,
+    config.biosPath
   );
-  if (!biosInstalled) {
+  if (!biosDir) {
     throw new BiosNotConfiguredError(system);
+  }
+  if (biosDir !== config.biosPath) {
+    await emulators.updateEmulatorConfig(system, (current) => ({
+      ...current,
+      biosPath: biosDir,
+    }));
   }
 };
 
@@ -162,7 +170,7 @@ export const launchClassicsGame = async (
   // DuckStation/PCSX2 silently crash on launch when no BIOS is present, and the
   // emulator is spawned detached with stdio "ignore" so its own error never
   // reaches us. Detect the missing BIOS up front and block the launch instead.
-  await assertBiosInstalled(system, config.executablePath);
+  await assertBiosInstalled(system, config);
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
