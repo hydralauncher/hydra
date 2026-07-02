@@ -1,26 +1,8 @@
 import { HydraApi } from "../hydra-api";
-import type { GameAchievement, GameShop, SteamAchievement } from "@types";
+import type { GameShop, SteamAchievement } from "@types";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
-import { AxiosError } from "axios";
-
-const getModifiedSinceHeader = (
-  cachedAchievements: GameAchievement | undefined,
-  userLanguage: string
-): Date | undefined => {
-  if (!cachedAchievements) {
-    return undefined;
-  }
-
-  if (userLanguage != cachedAchievements.language) {
-    return undefined;
-  }
-
-  return cachedAchievements.updatedAt
-    ? new Date(cachedAchievements.updatedAt)
-    : undefined;
-};
 
 export const getGameAchievementData = async (
   objectId: string,
@@ -35,44 +17,53 @@ export const getGameAchievementData = async (
 
   const cachedAchievements = await gameAchievementsSublevel.get(gameKey);
 
-  if (cachedAchievements?.achievements && useCachedData) {
-    return cachedAchievements.achievements;
-  }
-
   const language = await db
     .get<string, string>(levelKeys.language, {
       valueEncoding: "utf8",
     })
     .then((language) => language || "en");
 
-  return HydraApi.get<SteamAchievement[]>(
+  if (
+    useCachedData &&
+    cachedAchievements?.achievements &&
+    cachedAchievements.language === language
+  ) {
+    return cachedAchievements.achievements;
+  }
+
+  return HydraApi.getResponse<SteamAchievement[]>(
     `/games/${shop}/${objectId}/achievements`,
+    { language },
     {
-      language,
-    },
-    {
-      ifModifiedSince: getModifiedSinceHeader(cachedAchievements, language),
+      ifNoneMatch:
+        cachedAchievements?.language === language
+          ? cachedAchievements.catalogueValidator
+          : undefined,
+      validateStatus: (status) =>
+        (status >= 200 && status < 300) || status === 304,
     }
   )
-    .then(async (achievements) => {
+    .then(async (response) => {
+      if (response.status === 304) {
+        return cachedAchievements?.achievements ?? [];
+      }
+
       await gameAchievementsSublevel.put(gameKey, {
         unlockedAchievements: cachedAchievements?.unlockedAchievements ?? [],
-        achievements,
+        achievements: response.data,
         updatedAt: Date.now(),
         language,
+        catalogueValidator:
+          typeof response.headers.etag === "string"
+            ? response.headers.etag
+            : undefined,
       });
 
-      return achievements;
+      return response.data;
     })
     .catch((err) => {
       if (err instanceof UserNotLoggedInError) {
         throw err;
-      }
-
-      const isNotModified = (err as AxiosError)?.response?.status === 304;
-
-      if (isNotModified) {
-        return cachedAchievements?.achievements ?? [];
       }
 
       logger.error("Failed to get game achievements for", objectId, err);
