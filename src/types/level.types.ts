@@ -116,6 +116,7 @@ export interface GameAchievement {
   unlockedAchievements: UnlockedAchievement[];
   updatedAt: number | undefined;
   language: string | undefined;
+  catalogueValidator?: string;
 }
 
 export type AchievementCustomNotificationPosition =
