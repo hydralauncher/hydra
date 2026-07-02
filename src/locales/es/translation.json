@@ -146,6 +146,7 @@
   },
   "bottom_panel": {
     "reconnecting": "Reconectando {{title}}…",
+    "recovering": "Recuperando {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Sin descargas en progreso",
     "downloading_metadata": "Descargando metadatos de {{title}}…",
     "downloading": "Descargando {{title}}… ({{percentage}} completado) - Finalizando {{eta}} - {{speed}}",
@@ -642,6 +643,7 @@
   },
   "downloads": {
     "reconnecting": "Reconectando…",
+    "recovering": "Recuperando descarga… {{percentage}}",
     "resume": "Resumir",
     "pause": "Pausar",
     "eta": "Tiempo de finalizción {{eta}}",

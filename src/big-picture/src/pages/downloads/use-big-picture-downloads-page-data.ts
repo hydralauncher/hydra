@@ -346,6 +346,10 @@ export function useBigPictureDownloadsPageData() {
       pauseOrResumeAction = "resume";
     } else if (isExtracting) {
       statusLabel = "Extracting";
+    } else if (lastPacket?.isRecovering) {
+      statusLabel = `Recovering download… ${Math.round(
+        (lastPacket.recoveryProgress ?? 0) * 100
+      )}%`;
     } else if (lastPacket?.isReconnecting) {
       statusLabel = "Reconnecting…";
     } else if (lastPacket?.isCheckingFiles) {
