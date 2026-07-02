@@ -167,3 +167,8 @@ li {
   margin: 0;
   padding: 0;
 }
+
+[data-bp-input-mode="mouse"] [data-focused="true"] {
+  outline: none !important;
+  box-shadow: none !important;
+}
