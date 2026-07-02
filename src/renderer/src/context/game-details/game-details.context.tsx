@@ -3,7 +3,6 @@ import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { setHeaderTitle } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
-import { getSteamLanguage } from "@renderer/helpers";
 import {
   useAppDispatch,
   useAppSelector,
@@ -27,7 +26,7 @@ import {
   GameDetailsContext,
   GameOptionsCategoryId,
 } from "./game-details.context.types";
-import { SteamContentDescriptor } from "@shared";
+import { getGameExecutableFilters, SteamContentDescriptor } from "@shared";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
@@ -116,16 +115,18 @@ export function GameDetailsContextProvider({
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
+    const language = i18n.resolvedLanguage ?? i18n.language;
 
     const shopDetailsPromise = window.electron
-      .getGameShopDetails(objectId, shop, getSteamLanguage(i18n.language))
+      .getGameShopDetails(objectId, shop, language)
+      .catch(() => null)
       .then((result) => {
         if (abortController.signal.aborted) return;
 
         setShopDetails(result);
 
         if (
-          result?.content_descriptors.ids.includes(
+          result?.content_descriptors?.ids?.includes(
             SteamContentDescriptor.AdultOnlySexualContent
           ) &&
           !userPreferences?.disableNsfwAlert
@@ -176,6 +177,7 @@ export function GameDetailsContextProvider({
     }
   }, [
     i18n.language,
+    i18n.resolvedLanguage,
     objectId,
     shop,
     userDetails,
@@ -420,23 +422,13 @@ export function GameDetailsContextProvider({
   const selectGameExecutable = async () => {
     const downloadsPath = await getDownloadsPath();
 
-    const filters =
-      window.electron.platform === "linux"
-        ? [
-            {
-              name: t("game_executable"),
-              extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
-            },
-            { name: t("all_files"), extensions: ["*"] },
-          ]
-        : window.electron.platform === "darwin"
-          ? [{ name: t("game_executable"), extensions: ["app"] }]
-          : [
-              {
-                name: t("game_executable"),
-                extensions: ["exe", "lnk", "bat", "cmd"],
-              },
-            ];
+    const filters = getGameExecutableFilters(
+      globalThis.window.electron.platform,
+      {
+        executable: t("game_executable"),
+        allFiles: t("all_files"),
+      }
+    );
 
     return window.electron
       .showOpenDialog({

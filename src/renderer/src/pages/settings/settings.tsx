@@ -13,6 +13,7 @@ import {
   DownloadIcon,
   GearIcon,
   PlayIcon,
+  VideoIcon,
   ShieldCheckIcon,
 } from "@primer/octicons-react";
 import { Gamepad2, Wrench } from "lucide-react";
@@ -22,6 +23,7 @@ import { SettingsContextNotifications } from "./settings-context-notifications";
 import { SettingsContextContentGameplay } from "./settings-context-content-gameplay";
 import { SettingsContextIntegrations } from "./settings-context-integrations";
 import { SettingsContextCompatibility } from "./settings-context-compatibility";
+import { SettingsContextBigPicture } from "./settings-context-big-picture";
 import { SettingsContextEmulation } from "./emulation/settings-context-emulation";
 
 export default function Settings() {
@@ -71,6 +73,11 @@ export default function Settings() {
           ]
         : []),
       {
+        id: "big_picture" as const,
+        label: t("big_picture"),
+        icon: <VideoIcon size={16} />,
+      },
+      {
         id: "emulation" as const,
         label: t("emulation"),
         icon: <Gamepad2 size={16} />,
@@ -113,6 +120,10 @@ export default function Settings() {
 
             if (selectedCategoryId === "compatibility") {
               return <SettingsContextCompatibility />;
+            }
+
+            if (selectedCategoryId === "big_picture") {
+              return <SettingsContextBigPicture />;
             }
 
             if (selectedCategoryId === "emulation") {
