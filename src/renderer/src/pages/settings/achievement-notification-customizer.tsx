@@ -619,7 +619,7 @@ export function AchievementNotificationCustomizer({
     await globalThis.electron.updateAchievementNotificationProfile(
       activeTheme.id,
       {
-        name: activeTheme.name,
+        name: profileName.trim() || activeTheme.name,
         customizer,
         achievementNotificationCustomizerActive: true,
       }
