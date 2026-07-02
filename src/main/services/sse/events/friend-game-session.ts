@@ -1,4 +1,4 @@
-import type { FriendGameSession } from "@main/generated/envelope";
+import type { FriendGameSession } from "../types";
 import { db, levelKeys } from "@main/level";
 import { HydraApi } from "@main/services/hydra-api";
 import { WindowManager } from "@main/services/window-manager";

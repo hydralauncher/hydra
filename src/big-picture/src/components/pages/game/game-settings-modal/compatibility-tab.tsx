@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FolderOpen, Trash } from "@phosphor-icons/react";
+import { FolderOpenIcon, TrashIcon } from "@phosphor-icons/react";
 import type { LibraryGame, ProtonVersion } from "@types";
 import {
   Button,
   Checkbox,
+  FileExplorerModal,
   HorizontalFocusGroup,
   Input,
   Radio,
@@ -54,7 +55,6 @@ type ElectronCompatibilityBridge = Pick<
   | "isGamemodeAvailable"
   | "isMangohudAvailable"
   | "getDefaultWinePrefixSelectionPath"
-  | "showOpenDialog"
   | "selectGameWinePrefix"
   | "selectGameProtonPath"
   | "toggleGameGamemode"
@@ -84,6 +84,10 @@ export function GameCompatibilitySettingsTab({
   const [autoRunMangohud, setAutoRunMangohud] = useState(
     game.autoRunMangohud ?? false
   );
+  const [winePickerOpen, setWinePickerOpen] = useState(false);
+  const [winePickerInitialPath, setWinePickerInitialPath] = useState<
+    string | undefined
+  >();
 
   useEffect(() => {
     setSelectedProtonPath(game.protonPath ?? "");
@@ -152,21 +156,18 @@ export function GameCompatibilitySettingsTab({
 
   const handleSelectWinePrefix = useCallback(async () => {
     const defaultPath = await electron.getDefaultWinePrefixSelectionPath();
+    setWinePickerInitialPath(winePrefixPath ?? defaultPath ?? undefined);
+    setWinePickerOpen(true);
+  }, [electron, winePrefixPath]);
 
-    const { filePaths } = await electron.showOpenDialog({
-      properties: ["openDirectory"],
-      defaultPath: winePrefixPath ?? defaultPath ?? "",
-    });
-
-    if (filePaths?.length) {
-      await electron.selectGameWinePrefix(
-        game.shop,
-        game.objectId,
-        filePaths[0]
-      );
-      setWinePrefixPath(filePaths[0]);
-    }
-  }, [electron, game.shop, game.objectId, winePrefixPath]);
+  const handleWinePrefixPicked = useCallback(
+    async (path: string) => {
+      setWinePickerOpen(false);
+      await electron.selectGameWinePrefix(game.shop, game.objectId, path);
+      setWinePrefixPath(path);
+    },
+    [electron, game.shop, game.objectId]
+  );
 
   const handleClearWinePrefix = useCallback(async () => {
     await electron.selectGameWinePrefix(game.shop, game.objectId, null);
@@ -250,7 +251,7 @@ export function GameCompatibilitySettingsTab({
             <Button
               focusId={GAME_COMPATIBILITY_SETTINGS_WINE_SELECT_ID}
               variant="secondary"
-              icon={<FolderOpen size={16} />}
+              icon={<FolderOpenIcon size={16} />}
               onClick={() => {
                 handleSelectWinePrefix().catch(() => {});
               }}
@@ -268,7 +269,7 @@ export function GameCompatibilitySettingsTab({
               <Button
                 focusId={GAME_COMPATIBILITY_SETTINGS_WINE_CLEAR_ID}
                 variant="danger"
-                icon={<Trash size={16} />}
+                icon={<TrashIcon size={16} />}
                 onClick={() => {
                   handleClearWinePrefix().catch(() => {});
                 }}
@@ -345,6 +346,17 @@ export function GameCompatibilitySettingsTab({
           }}
         />
       </SettingsSection>
+
+      <FileExplorerModal
+        visible={winePickerOpen}
+        onClose={() => setWinePickerOpen(false)}
+        onSelect={(path) => {
+          handleWinePrefixPicked(path).catch(() => {});
+        }}
+        title={t("wine_prefix")}
+        initialPath={winePickerInitialPath}
+        selectDirectory
+      />
     </VerticalFocusGroup>
   );
 }
