@@ -54,7 +54,7 @@ const buildAchievementsFromCache = async (
         ...achievementData,
         unlocked: Boolean(unlocked),
         unlockTime: unlocked?.unlockTime ?? null,
-        hardcoreUnlockTime: null,
+        hardcoreUnlockTime: unlocked?.hardcoreUnlockTime ?? null,
         source: "retroachievements" as const,
       };
     })
@@ -85,11 +85,35 @@ interface SyncRetroAchievementsParams {
   retroAchievementsGameId?: number;
 }
 
+interface RetroAchievementsSyncResult {
+  achievements: UserAchievement[];
+  didChange: boolean;
+}
+
+const buildRetroAchievementsView = (
+  catalogue: SteamAchievement[],
+  unlockedByName: Map<string, UnlockedAchievement>
+) => {
+  return catalogue
+    .map((achievementData) => {
+      const unlocked = unlockedByName.get(achievementData.name.toUpperCase());
+
+      return {
+        ...achievementData,
+        unlocked: Boolean(unlocked),
+        unlockTime: unlocked?.unlockTime ?? null,
+        hardcoreUnlockTime: unlocked?.hardcoreUnlockTime ?? null,
+        source: "retroachievements" as const,
+      };
+    })
+    .sort(sortAchievements);
+};
+
 export const syncRetroAchievements = async ({
   objectId,
   shop,
   retroAchievementsGameId,
-}: SyncRetroAchievementsParams): Promise<UserAchievement[]> => {
+}: SyncRetroAchievementsParams): Promise<RetroAchievementsSyncResult> => {
   const gameKey = levelKeys.game(shop, objectId);
 
   const userPreferences = await db.get<string, UserPreferences | null>(
@@ -105,7 +129,10 @@ export const syncRetroAchievements = async ({
       hasWebApiKey: Boolean(webApiKey),
       hasUsername: Boolean(username),
     });
-    return buildAchievementsFromCache(objectId, shop);
+    return {
+      achievements: await buildAchievementsFromCache(objectId, shop),
+      didChange: false,
+    };
   }
 
   const gameId = await resolveRetroAchievementsGameId(
@@ -119,7 +146,10 @@ export const syncRetroAchievements = async ({
       objectId,
       shop,
     });
-    return buildAchievementsFromCache(objectId, shop);
+    return {
+      achievements: await buildAchievementsFromCache(objectId, shop),
+      didChange: false,
+    };
   }
 
   let catalogue: SteamAchievement[];
@@ -127,7 +157,10 @@ export const syncRetroAchievements = async ({
     catalogue = await getGameAchievementData(objectId, shop, false);
   } catch (err) {
     logger.error("Failed to fetch RetroAchievements catalogue", err);
-    return buildAchievementsFromCache(objectId, shop);
+    return {
+      achievements: await buildAchievementsFromCache(objectId, shop),
+      didChange: false,
+    };
   }
 
   let data: RetroAchievementsGameInfoAndUserProgress;
@@ -139,7 +172,10 @@ export const syncRetroAchievements = async ({
     });
   } catch (err) {
     logger.error("Failed to fetch RetroAchievements progress", err);
-    return buildAchievementsFromCache(objectId, shop);
+    return {
+      achievements: await buildAchievementsFromCache(objectId, shop),
+      didChange: false,
+    };
   }
 
   const remoteAchievements = Object.values(data.Achievements ?? {});
@@ -150,25 +186,48 @@ export const syncRetroAchievements = async ({
     unlockedByName.set(unlocked.name.toUpperCase(), unlocked);
   }
 
-  const hardcoreByName = new Map<string, number>();
   let newUnlockCount = 0;
+  let didChange = false;
 
   for (const achievement of remoteAchievements) {
     const name = String(achievement.ID);
+    const key = name.toUpperCase();
     const unlockTime = toMillis(
       achievement.DateEarned ?? achievement.DateEarnedHardcore
     );
     const hardcoreUnlockTime = toMillis(achievement.DateEarnedHardcore);
+    const existing = unlockedByName.get(key);
 
-    if (hardcoreUnlockTime != null) {
-      hardcoreByName.set(name.toUpperCase(), hardcoreUnlockTime);
+    if (unlockTime != null && !existing) {
+      unlockedByName.set(key, { name, unlockTime, hardcoreUnlockTime });
+      newUnlockCount += 1;
+      didChange = true;
+      continue;
     }
 
-    if (unlockTime != null && !unlockedByName.has(name.toUpperCase())) {
-      unlockedByName.set(name.toUpperCase(), { name, unlockTime });
-      newUnlockCount += 1;
+    if (!existing) continue;
+
+    if (existing.unlockTime !== unlockTime && unlockTime != null) {
+      unlockedByName.set(key, {
+        ...existing,
+        unlockTime,
+      });
+      didChange = true;
+    }
+
+    if (
+      hardcoreUnlockTime != null &&
+      unlockedByName.get(key)?.hardcoreUnlockTime !== hardcoreUnlockTime
+    ) {
+      unlockedByName.set(key, {
+        ...unlockedByName.get(key)!,
+        hardcoreUnlockTime,
+      });
+      didChange = true;
     }
   }
+
+  const achievements = buildRetroAchievementsView(catalogue, unlockedByName);
 
   await gameAchievementsSublevel.put(gameKey, {
     achievements: catalogue,
@@ -196,18 +255,8 @@ export const syncRetroAchievements = async ({
     });
   }
 
-  return catalogue
-    .map((achievementData) => {
-      const unlocked = unlockedByName.get(achievementData.name.toUpperCase());
-
-      return {
-        ...achievementData,
-        unlocked: Boolean(unlocked),
-        unlockTime: unlocked?.unlockTime ?? null,
-        hardcoreUnlockTime:
-          hardcoreByName.get(achievementData.name.toUpperCase()) ?? null,
-        source: "retroachievements" as const,
-      };
-    })
-    .sort(sortAchievements);
+  return {
+    achievements,
+    didChange,
+  };
 };
