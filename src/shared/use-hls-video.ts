@@ -4,6 +4,7 @@ import Hls from "hls.js";
 interface UseHlsVideoOptions {
   videoSrc: string | undefined;
   videoType: string | undefined;
+  load?: boolean;
   autoplay?: boolean;
   muted?: boolean;
   loop?: boolean;
@@ -21,14 +22,21 @@ const defaultLogger: HlsVideoLogger = {
 
 export function useHlsVideo(
   videoRef: React.RefObject<HTMLVideoElement>,
-  { videoSrc, videoType, autoplay, muted, loop }: UseHlsVideoOptions,
+  {
+    videoSrc,
+    videoType,
+    load = true,
+    autoplay,
+    muted,
+    loop,
+  }: UseHlsVideoOptions,
   log: HlsVideoLogger = defaultLogger
 ) {
   const hlsRef = useRef<Hls | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !videoSrc) return;
+    if (!video || !videoSrc || !load) return;
 
     const isHls = videoType === "application/x-mpegURL";
 
@@ -94,7 +102,7 @@ export function useHlsVideo(
 
     log.warn("HLS playback is not supported in this browser");
     return undefined;
-  }, [videoRef, videoSrc, videoType, autoplay, muted, loop, log]);
+  }, [videoRef, videoSrc, videoType, load, autoplay, muted, loop, log]);
 
   useEffect(() => {
     const video = videoRef.current;

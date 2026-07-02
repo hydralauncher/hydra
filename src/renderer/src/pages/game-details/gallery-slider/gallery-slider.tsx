@@ -201,6 +201,7 @@ export function GallerySlider() {
                   videoType={item.videoType}
                   poster={item.poster}
                   autoplay={autoplayEnabled && index === firstVideoIndex}
+                  loadOnDemand={!autoplayEnabled}
                   loop
                   muted
                   controls
