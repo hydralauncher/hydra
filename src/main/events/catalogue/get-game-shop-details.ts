@@ -38,8 +38,9 @@ interface LaunchboxShopDetailsAssets {
 }
 
 interface LaunchboxShopDetailsData {
-  title: string;
-  platform?: string | null;
+  title: string | null;
+  platform: string | null;
+  skus?: string[];
   description: string | null;
   releaseDate: string | null;
   developers: string[];
@@ -51,50 +52,68 @@ interface LaunchboxShopDetailsData {
   assets: LaunchboxShopDetailsAssets | null;
 }
 
-interface LaunchboxShopDetailsEntry {
-  objectId: string;
-  shop: GameShop;
-  platform?: string | null;
-  skus?: string[];
-  data: LaunchboxShopDetailsData;
-}
+const normalizeShopDetailsLanguage = (language: string) => {
+  if (language === "brazilian") return "pt-BR";
+  if (language === "spanish") return "es";
+  if (language === "english") return "en";
+  return language;
+};
+
+const getSteamLanguage = (language: string) => {
+  if (language.startsWith("pt")) return "brazilian";
+  if (language.startsWith("es")) return "spanish";
+  if (language.startsWith("fr")) return "french";
+  if (language.startsWith("ru") || language.startsWith("be")) return "russian";
+  if (language.startsWith("it")) return "italian";
+  if (language.startsWith("hu")) return "hungarian";
+  if (language.startsWith("pl")) return "polish";
+  if (language.startsWith("zh")) return "schinese";
+  if (language.startsWith("da")) return "danish";
+
+  return "english";
+};
 
 const mapLaunchboxToShopDetails = (
   objectId: string,
   basic: LaunchboxBasic | null,
-  entry: LaunchboxShopDetailsEntry | null
+  data: LaunchboxShopDetailsData | null,
+  cachedData: ShopDetails | null
 ): ShopDetails => {
-  const data = entry?.data ?? null;
-  const description = data?.description ?? "";
+  const description = data?.description ?? cachedData?.about_the_game ?? "";
 
   return {
     objectId,
-    name: data?.title ?? basic?.title ?? "",
-    platform: entry?.platform ?? data?.platform ?? undefined,
-    skus: entry?.skus ?? undefined,
+    name: data?.title ?? basic?.title ?? cachedData?.name ?? "",
+    platform: data?.platform ?? cachedData?.platform ?? undefined,
+    skus: data?.skus ?? cachedData?.skus ?? undefined,
     steam_appid: 0,
     detailed_description: description,
     about_the_game: description,
     short_description: "",
-    developers: data?.developers ?? [],
-    publishers: data?.publishers ?? [],
-    genres: (data?.genres ?? []).map((name, index) => ({
-      id: String(index),
-      name,
-    })),
+    developers: data?.developers ?? cachedData?.developers ?? [],
+    publishers: data?.publishers ?? cachedData?.publishers ?? [],
+    genres: data?.genres
+      ? data.genres.map((name, index) => ({ id: String(index), name }))
+      : (cachedData?.genres ?? []),
     movies: undefined,
     supported_languages: "",
-    screenshots: (data?.screenshots ?? []).map((url, index) => ({
-      id: index,
-      path_thumbnail: url,
-      path_full: url,
-    })),
+    screenshots: data?.screenshots
+      ? data.screenshots.map((url, index) => ({
+          id: index,
+          path_thumbnail: url,
+          path_full: url,
+        }))
+      : (cachedData?.screenshots ?? []),
     pc_requirements: { minimum: "", recommended: "" },
     mac_requirements: { minimum: "", recommended: "" },
     linux_requirements: { minimum: "", recommended: "" },
     release_date: {
       coming_soon: false,
-      date: data?.releaseDate ?? basic?.releaseDate ?? "",
+      date:
+        data?.releaseDate ??
+        basic?.releaseDate ??
+        cachedData?.release_date?.date ??
+        "",
     },
     content_descriptors: { ids: [] },
   };
@@ -105,6 +124,8 @@ const getLaunchboxShopDetails = async (
   shop: GameShop,
   language: string
 ): Promise<ShopDetailsWithAssets | null> => {
+  language = normalizeShopDetailsLanguage(language);
+
   const [cachedData, cachedAssets] = await Promise.all([
     gamesShopCacheSublevel.get(
       levelKeys.gameShopCacheItem(shop, objectId, language)
@@ -112,37 +133,55 @@ const getLaunchboxShopDetails = async (
     gamesShopAssetsSublevel.get(levelKeys.game(shop, objectId)),
   ]);
 
-  const cacheHasNewFields =
-    cachedData && (cachedData.platform || cachedData.skus);
-  if (cachedData && cacheHasNewFields) {
+  const basicPromise = HydraApi.get<LaunchboxBasic | null>(
+    `/games/${shop}/${objectId}`,
+    null,
+    { needsAuth: false }
+  ).catch((err) => {
+    logger.error("Failed to fetch launchbox basic game info", err);
+    return null;
+  });
+
+  const dataPromise = HydraApi.get<LaunchboxShopDetailsData>(
+    `/games/${shop}/${objectId}/shop-details`,
+    { language },
+    { needsAuth: false }
+  ).catch((err) => {
+    logger.error("Failed to fetch launchbox shop details", err);
+    return null;
+  });
+
+  if (cachedData) {
+    Promise.all([basicPromise, dataPromise]).then(([basic, data]) => {
+      if (basic || data) {
+        const mapped = mapLaunchboxToShopDetails(
+          objectId,
+          basic,
+          data,
+          cachedData
+        );
+
+        gamesShopCacheSublevel
+          .put(levelKeys.gameShopCacheItem(shop, objectId, language), mapped)
+          .catch((err) => {
+            logger.error("Could not cache launchbox game details", err);
+          });
+      }
+    });
+
     return { ...cachedData, assets: cachedAssets ?? null };
   }
 
-  const [basic, detailsResponse] = await Promise.all([
-    HydraApi.get<LaunchboxBasic | null>(`/games/${shop}/${objectId}`, null, {
-      needsAuth: false,
-    }).catch((err) => {
-      logger.error("Failed to fetch launchbox basic game info", err);
-      return null;
-    }),
-    HydraApi.post<LaunchboxShopDetailsEntry[]>(
-      `/games/shop-details`,
-      { shop, objectIds: [objectId] },
-      { needsAuth: false }
-    ).catch((err) => {
-      logger.error("Failed to fetch launchbox shop details", err);
-      return [] as LaunchboxShopDetailsEntry[];
-    }),
-  ]);
-
-  const detailsEntry = Array.isArray(detailsResponse)
-    ? (detailsResponse.find((entry) => entry.objectId === objectId) ?? null)
-    : null;
-  const data = detailsEntry?.data ?? null;
+  const [basic, data] = await Promise.all([basicPromise, dataPromise]);
 
   if (!data && !basic) return null;
 
-  const mapped = mapLaunchboxToShopDetails(objectId, basic, detailsEntry);
+  const mapped = mapLaunchboxToShopDetails(
+    objectId,
+    basic,
+    data,
+    cachedData ?? null
+  );
 
   gamesShopCacheSublevel
     .put(levelKeys.gameShopCacheItem(shop, objectId, language), mapped)
@@ -160,14 +199,23 @@ const getLaunchboxShopDetails = async (
           libraryHeroImageUrl:
             data?.assets?.libraryHeroImageUrl ??
             basic?.libraryHeroImageUrl ??
+            cachedAssets?.libraryHeroImageUrl ??
             null,
           libraryImageUrl:
-            data?.assets?.libraryImageUrl ?? basic?.libraryImageUrl ?? null,
+            data?.assets?.libraryImageUrl ??
+            basic?.libraryImageUrl ??
+            cachedAssets?.libraryImageUrl ??
+            null,
           logoImageUrl:
-            data?.assets?.logoImageUrl ?? basic?.logoImageUrl ?? null,
-          logoPosition: basic?.logoPosition ?? null,
-          coverImageUrl: basic?.coverImageUrl ?? null,
-          downloadSources: [],
+            data?.assets?.logoImageUrl ??
+            basic?.logoImageUrl ??
+            cachedAssets?.logoImageUrl ??
+            null,
+          logoPosition:
+            basic?.logoPosition ?? cachedAssets?.logoPosition ?? null,
+          coverImageUrl:
+            basic?.coverImageUrl ?? cachedAssets?.coverImageUrl ?? null,
+          downloadSources: cachedAssets?.downloadSources ?? [],
         }
       : (cachedAssets ?? null);
 
@@ -189,11 +237,7 @@ const getLocalizedSteamAppDetails = async (
   objectId: string,
   language: string
 ): Promise<ShopDetails | null> => {
-  if (language === "english") {
-    return getSteamAppDetails(objectId, language);
-  }
-
-  return getSteamAppDetails(objectId, language);
+  return getSteamAppDetails(objectId, getSteamLanguage(language));
 };
 
 const getGameShopDetails = async (
@@ -209,6 +253,8 @@ const getGameShopDetails = async (
   }
 
   if (shop === "steam") {
+    language = normalizeShopDetailsLanguage(language);
+
     const [cachedData, cachedAssets] = await Promise.all([
       gamesShopCacheSublevel.get(
         levelKeys.gameShopCacheItem(shop, objectId, language)
