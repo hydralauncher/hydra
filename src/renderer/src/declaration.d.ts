@@ -773,6 +773,7 @@ declare global {
       shop: GameShop,
       raGameId: number
     ) => Promise<UserAchievement[] | null>;
+    resetRetroAchievementsAchievements: () => Promise<void>;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;
