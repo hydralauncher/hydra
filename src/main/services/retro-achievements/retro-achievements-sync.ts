@@ -175,6 +175,7 @@ export const syncRetroAchievements = async ({
     unlockedAchievements: Array.from(unlockedByName.values()),
     updatedAt: cachedAchievements?.updatedAt,
     language: cachedAchievements?.language,
+    catalogueValidator: cachedAchievements?.catalogueValidator,
   });
 
   logger.info("RetroAchievements progress fetched", {
