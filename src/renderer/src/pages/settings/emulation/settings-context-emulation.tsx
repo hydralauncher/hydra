@@ -81,7 +81,9 @@ export function SettingsContextEmulation() {
     const system = searchParams.get("system");
     if (system && SYSTEMS.includes(system as EmulatorSystem)) {
       deepLinkAppliedRef.current = true;
-      setView({ kind: "detail", system: system as EmulatorSystem });
+      if (configs[system as EmulatorSystem].executablePath) {
+        setView({ kind: "detail", system: system as EmulatorSystem });
+      }
     }
   }, [configs, searchParams]);
 
@@ -138,12 +140,7 @@ export function SettingsContextEmulation() {
         onClose={() => setShowClassicsOnboarding(false)}
       />
       <header className="settings-emulation__header">
-        <div className="settings-emulation__title-row">
-          <h2 className="settings-emulation__title">{t("emulation")}</h2>
-          <span className="settings-emulation__new-badge">
-            {t("new_badge")}
-          </span>
-        </div>
+        <h2 className="settings-emulation__title">{t("emulation")}</h2>
         <p className="settings-emulation__description">
           {t("emulation_description")}
         </p>

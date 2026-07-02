@@ -15,6 +15,7 @@ import type {
   NotificationsResponse,
   MergedNotification,
   Badge,
+  NotificationsChangedDetail,
 } from "@types";
 import "./notifications.scss";
 
@@ -198,14 +199,20 @@ export default function Notifications() {
     return mergedNotifications;
   }, [mergedNotifications]);
 
-  const notifyCountChange = useCallback(() => {
-    window.dispatchEvent(new CustomEvent("notificationsChanged"));
-  }, []);
+  const notifyCountChange = useCallback(
+    (detail?: NotificationsChangedDetail) => {
+      window.dispatchEvent(new CustomEvent("notificationsChanged", { detail }));
+    },
+    []
+  );
 
   const handleMarkAsRead = useCallback(
     async (id: string, source: "api" | "local") => {
       try {
         if (source === "api") {
+          const wasUnread = apiNotifications.some(
+            (n) => n.id === id && !n.isRead
+          );
           await window.electron.hydraApi.patch(
             `/profile/notifications/${id}/read`,
             {
@@ -216,24 +223,25 @@ export default function Notifications() {
           setApiNotifications((prev) =>
             prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
           );
+          notifyCountChange(wasUnread ? { apiUnreadDelta: -1 } : undefined);
         } else {
           await window.electron.markLocalNotificationRead(id);
           setLocalNotifications((prev) =>
             prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
           );
+          notifyCountChange();
         }
-        notifyCountChange();
       } catch (error) {
         logger.error("Failed to mark notification as read", error);
       }
     },
-    [notifyCountChange]
+    [apiNotifications, notifyCountChange]
   );
 
   const handleMarkAllAsRead = useCallback(async () => {
     try {
       // Mark all API notifications as read
-      if (userDetails && apiNotifications.some((n) => !n.isRead)) {
+      if (userDetails) {
         await window.electron.hydraApi.patch(
           `/profile/notifications/all/read`,
           { needsAuth: true }
@@ -249,42 +257,39 @@ export default function Notifications() {
         prev.map((n) => ({ ...n, isRead: true }))
       );
 
-      notifyCountChange();
+      notifyCountChange({ resetApiUnread: true });
       showSuccessToast(t("marked_all_as_read"));
     } catch (error) {
       logger.error("Failed to mark all as read", error);
       showErrorToast(t("failed_to_mark_as_read"));
     }
-  }, [
-    apiNotifications,
-    userDetails,
-    showSuccessToast,
-    showErrorToast,
-    t,
-    notifyCountChange,
-  ]);
+  }, [userDetails, showSuccessToast, showErrorToast, t, notifyCountChange]);
 
   const handleDismiss = useCallback(
     async (id: string, source: "api" | "local") => {
       try {
         if (source === "api") {
+          const wasUnread = apiNotifications.some(
+            (n) => n.id === id && !n.isRead
+          );
           await window.electron.hydraApi.delete(
             `/profile/notifications/${id}`,
             { needsAuth: true }
           );
           setApiNotifications((prev) => prev.filter((n) => n.id !== id));
           setPagination((prev) => ({ ...prev, total: prev.total - 1 }));
+          notifyCountChange(wasUnread ? { apiUnreadDelta: -1 } : undefined);
         } else {
           await window.electron.deleteLocalNotification(id);
           setLocalNotifications((prev) => prev.filter((n) => n.id !== id));
+          notifyCountChange();
         }
-        notifyCountChange();
       } catch (error) {
         logger.error("Failed to dismiss notification", error);
         showErrorToast(t("failed_to_dismiss"));
       }
     },
-    [showErrorToast, t, notifyCountChange]
+    [apiNotifications, showErrorToast, t, notifyCountChange]
   );
 
   const removeNotificationFromState = useCallback(
@@ -354,7 +359,7 @@ export default function Notifications() {
       }
       await window.electron.clearAllLocalNotifications();
       setPagination({ total: 0, hasMore: false, skip: 0 });
-      notifyCountChange();
+      notifyCountChange({ resetApiUnread: true });
       showSuccessToast(t("cleared_all"));
     } catch (error) {
       logger.error("Failed to clear all notifications", error);

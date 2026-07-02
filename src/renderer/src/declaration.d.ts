@@ -37,6 +37,7 @@ import type {
   AchievementNotificationInfo,
   Game,
   DiskUsage,
+  NetworkInterface,
   DownloadSource,
   LocalNotification,
   ProtonVersion,
@@ -54,6 +55,7 @@ import type {
   DetectedRom,
   EmulationCloudSave,
   EmulationSavePlatform,
+  MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
   HydraAudioDevice,
@@ -428,6 +430,10 @@ declare global {
       system: EmulatorSystem,
       executablePath: string | null
     ) => Promise<EmulatorConfig>;
+    setEmulatorBiosPath: (
+      system: EmulatorSystem,
+      biosPath: string | null
+    ) => Promise<EmulatorConfig>;
     addRomFolder: (
       system: EmulatorSystem,
       folderPath: string,
@@ -453,8 +459,9 @@ declare global {
     ) => Promise<{ installed: boolean }>;
     checkEmulatorBios: (
       system: EmulatorSystem,
-      executablePath: string | null
-    ) => Promise<{ installed: boolean }>;
+      executablePath: string | null,
+      manualBiosPath?: string | null
+    ) => Promise<{ installed: boolean; detectedPath: string | null }>;
     getEmulatorInstallOptions: (
       binary: EmulatorBinary
     ) => Promise<ResolvedInstallOption[]>;
@@ -564,6 +571,10 @@ declare global {
     getMemcardRestoreTargets: (
       platform: EmulationSavePlatform
     ) => Promise<MemcardRestoreTarget[]>;
+    inspectMemcard: (
+      platform: EmulationSavePlatform,
+      cardFilePath: string
+    ) => Promise<MemcardFormatState>;
     restoreEmulationSave: (
       platform: EmulationSavePlatform,
       saveId: string,
@@ -627,6 +638,7 @@ declare global {
     checkFolderWritePermission: (path: string) => Promise<boolean>;
     getDisplays: () => Promise<HydraDisplay[]>;
     getAudioDevices: () => Promise<HydraAudioDevice[]>;
+    getNetworkInterfaces: () => Promise<NetworkInterface[]>;
 
     /* Cloud save */
     uploadSaveGame: (
@@ -793,6 +805,12 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<UserAchievement[]>;
+    getRetroAchievementsAchievements: (
+      objectId: string,
+      shop: GameShop,
+      raGameId: number
+    ) => Promise<UserAchievement[] | null>;
+    resetRetroAchievementsAchievements: () => Promise<void>;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;

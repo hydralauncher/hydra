@@ -17,6 +17,7 @@ export interface EmulatorConfig {
   executablePath: string | null;
   detectedVersion: string | null;
   detectedAt: number | null;
+  biosPath: string | null;
   romFolders: RomFolder[];
   lastScanAt: number | null;
   totalFiles: number;
@@ -146,10 +147,15 @@ export interface EmulationCloudSave {
   updatedAt: string;
 }
 
+export type MemcardFormatState = "formatted" | "unformatted" | "unreadable";
+
+export type MemcardRestoreErrorReason = "unformatted";
+
 /** Result of writing a downloaded cloud save back into a local card. */
 export interface MemcardRestoreResult {
   ok: boolean;
   error?: string;
+  reason?: MemcardRestoreErrorReason;
 }
 
 /** A local memory card a cloud save can be restored into. */

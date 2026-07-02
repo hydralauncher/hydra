@@ -21,6 +21,7 @@ import { calculateETA, getDirSize } from "./helpers";
 import { RealDebridClient } from "./real-debrid";
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { TorBoxClient } from "./torbox";
@@ -303,11 +304,59 @@ export class DownloadManager {
       });
   }
 
+  private static async getPersistedNetworkInterface() {
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+
+    return userPreferences?.torrentNetworkInterface ?? null;
+  }
+
+  private static resolveNetworkInterfaceBinding(name: string | null): string {
+    if (!name) return "";
+
+    const addresses = os.networkInterfaces()[name] ?? [];
+    const usable = addresses.filter(
+      (address) =>
+        !address.internal &&
+        !(
+          address.family === "IPv6" &&
+          address.address.toLowerCase().startsWith("fe80")
+        )
+    );
+
+    if (usable.length === 0) return name;
+
+    return usable.map((address) => address.address).join(",");
+  }
+
+  public static async applyNetworkInterface(
+    value?: string | null
+  ): Promise<void> {
+    const networkInterface =
+      value ?? (await this.getPersistedNetworkInterface());
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_network_interface",
+        interface: this.resolveNetworkInterfaceBinding(networkInterface),
+      })
+      .catch((error) => {
+        logger.error(
+          "[DownloadManager] Failed to update RPC network interface:",
+          error
+        );
+      });
+  }
+
   public static async startRPC(
     download?: Download,
     downloadsToSeed?: Download[]
   ) {
     await PythonRPC.spawn();
+
+    await this.applyNetworkInterface();
 
     if (downloadsToSeed?.length) {
       for (const seedDownload of downloadsToSeed) {

@@ -152,6 +152,39 @@ const openClassicsGame = async (
         { system }
       );
     }
+
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "PKG_INSTALLING"
+    ) {
+      logger.info("Installing classics PKG before launch", {
+        objectId,
+        system,
+      });
+      throw Object.assign(
+        new Error(`PKG_INSTALLING: Installing PKG for ${system}`),
+        { code: "PKG_INSTALLING", system }
+      );
+    }
+
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "PKG_UNREADABLE"
+    ) {
+      throw Object.assign(
+        codedLaunchError(
+          "PKG_UNREADABLE",
+          `PKG_UNREADABLE: Could not read PKG title id for ${system}`,
+          { objectId, system }
+        ),
+        { system }
+      );
+    }
+
     logger.error("Failed to launch classics game", error);
     throw error;
   }

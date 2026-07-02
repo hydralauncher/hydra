@@ -11,6 +11,7 @@ const removeEmulator = async (
     executablePath: null,
     detectedVersion: null,
     detectedAt: null,
+    biosPath: null,
     romFolders: [],
     lastScanAt: null,
     totalFiles: 0,
