@@ -369,7 +369,6 @@ export function NavigationInputProvider({
 
   useEffect(() => {
     const unsubDpadUp = onButtonPressed(GamepadButtonType.DPAD_UP, (event) => {
-      useInputModeStore.getState().setGamepadMode();
       if (!isInputActive || isSystemSwitcherActiveRef.current) return;
       if (!isActiveGamepadEvent(event)) return;
 
@@ -381,7 +380,6 @@ export function NavigationInputProvider({
     const unsubDpadLeft = onButtonPressed(
       GamepadButtonType.DPAD_LEFT,
       (event) => {
-        useInputModeStore.getState().setGamepadMode();
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -394,7 +392,6 @@ export function NavigationInputProvider({
     const unsubDpadDown = onButtonPressed(
       GamepadButtonType.DPAD_DOWN,
       (event) => {
-        useInputModeStore.getState().setGamepadMode();
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -407,7 +404,6 @@ export function NavigationInputProvider({
     const unsubDpadRight = onButtonPressed(
       GamepadButtonType.DPAD_RIGHT,
       (event) => {
-        useInputModeStore.getState().setGamepadMode();
         if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
@@ -655,6 +651,8 @@ export function NavigationInputProvider({
     hasScreenPressAction,
     hasScreenHoldAction,
     warnActionConflict,
+    resetHoldSessions,
+    triggerBackAction,
   ]);
 
   useEffect(() => {

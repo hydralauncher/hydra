@@ -9,7 +9,7 @@ interface InputModeState {
 }
 
 export const useInputModeStore = create<InputModeState>()((set, get) => ({
-  mode: "mouse",
+  mode: "gamepad",
 
   setGamepadMode: () => {
     if (get().mode === "gamepad") return;
