@@ -37,6 +37,7 @@ import type {
   AchievementNotificationInfo,
   Game,
   DiskUsage,
+  NetworkInterface,
   DownloadSource,
   LocalNotification,
   ProtonVersion,
@@ -620,6 +621,7 @@ declare global {
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
     checkFolderWritePermission: (path: string) => Promise<boolean>;
+    getNetworkInterfaces: () => Promise<NetworkInterface[]>;
 
     /* Cloud save */
     uploadSaveGame: (

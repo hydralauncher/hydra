@@ -247,6 +247,46 @@ def apply_download_limit(downloader):
     if callable(set_download_limit):
         set_download_limit(current_download_limit)
 
+
+def normalize_network_interface(value):
+    if not isinstance(value, str):
+        return None
+
+    trimmed = value.strip()
+    return trimmed or None
+
+
+def build_listen_interface(token):
+    if ":" in token:
+        return "[{addr}]:{port}".format(addr=token, port=torrent_port)
+
+    return "{addr}:{port}".format(addr=token, port=torrent_port)
+
+
+def apply_network_interface(interface):
+    if interface:
+        tokens = [token.strip() for token in interface.split(",") if token.strip()]
+        listen_interfaces = ",".join(build_listen_interface(token) for token in tokens)
+        outgoing_interfaces = ",".join(tokens)
+    else:
+        listen_interfaces = "0.0.0.0:{port}".format(port=torrent_port)
+        outgoing_interfaces = ""
+
+    try:
+        torrent_session.apply_settings(
+            {
+                "listen_interfaces": listen_interfaces,
+                "outgoing_interfaces": outgoing_interfaces,
+            }
+        )
+        logger.info(
+            "Bound torrent client to network interface: %s",
+            interface or "default (all adapters)",
+        )
+    except Exception:
+        logger.exception("Failed to bind torrent client to interface")
+
+
 def validate_rpc_password_value(password: Optional[str]):
     if rpc_password == "":
         return True
@@ -511,6 +551,10 @@ def action(data: Optional[dict] = None):
 
             for downloader in active_downloaders:
                 apply_download_limit(downloader)
+        elif action_name == "set_network_interface":
+            apply_network_interface(
+                normalize_network_interface(data.get("interface"))
+            )
         else:
             raise RpcError("invalid_action")
     except RpcError:
