@@ -169,19 +169,12 @@ export const mergeAchievements = async (
           )
         );
 
-        shownInApp = WindowManager.sendAchievementToFocusedWindow(
-          achievementPositions[0],
-          [achievementsInfo[0]]
+        shownInApp = WindowManager.sendAchievementsToFocusedWindowBatch(
+          achievementsInfo.map((achievement, index) => ({
+            position: achievementPositions[index],
+            achievements: [achievement],
+          }))
         );
-
-        if (shownInApp) {
-          achievementsInfo.slice(1).forEach((achievement, index) => {
-            WindowManager.sendAchievementToFocusedWindow(
-              achievementPositions[index + 1],
-              [achievement]
-            );
-          });
-        }
       }
 
       if (!shownInApp) {

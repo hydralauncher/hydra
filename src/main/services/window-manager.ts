@@ -755,32 +755,70 @@ export class WindowManager {
     );
   }
 
+  private static getFocusedAchievementNotificationTarget(): Electron.BrowserWindow | null {
+    const candidates = [this.bigPicture, this.mainWindow];
+
+    return (
+      candidates.find(
+        (window) => window && !window.isDestroyed() && window.isFocused()
+      ) ?? null
+    );
+  }
+
+  private static sendAchievementToWindow(
+    window: Electron.BrowserWindow,
+    position: AchievementCustomNotificationPosition,
+    achievements: AchievementNotificationInfo[]
+  ): boolean {
+    if (window.isDestroyed()) {
+      return false;
+    }
+
+    window.webContents.send(
+      "on-achievement-unlocked-in-app",
+      position,
+      achievements
+    );
+
+    return true;
+  }
+
   public static sendAchievementToFocusedWindow(
     position: AchievementCustomNotificationPosition,
     achievements: AchievementNotificationInfo[]
   ): boolean {
-    const candidates = [this.bigPicture, this.mainWindow];
+    const window = this.getFocusedAchievementNotificationTarget();
 
-    for (const window of candidates) {
-      if (window && !window.isDestroyed() && window.isFocused()) {
-        window.webContents.send(
-          "on-achievement-unlocked-in-app",
-          position,
-          achievements
-        );
-        return true;
-      }
+    if (!window) {
+      return false;
     }
 
-    return false;
+    return this.sendAchievementToWindow(window, position, achievements);
+  }
+
+  public static sendAchievementsToFocusedWindowBatch(
+    notifications: {
+      position: AchievementCustomNotificationPosition;
+      achievements: AchievementNotificationInfo[];
+    }[]
+  ): boolean {
+    const window = this.getFocusedAchievementNotificationTarget();
+
+    if (!window) {
+      return false;
+    }
+
+    return notifications.every((notification) =>
+      this.sendAchievementToWindow(
+        window,
+        notification.position,
+        notification.achievements
+      )
+    );
   }
 
   public static hasFocusedAchievementNotificationTarget(): boolean {
-    const candidates = [this.bigPicture, this.mainWindow];
-
-    return candidates.some(
-      (window) => window && !window.isDestroyed() && window.isFocused()
-    );
+    return Boolean(this.getFocusedAchievementNotificationTarget());
   }
 
   public static async createNotificationWindow({
