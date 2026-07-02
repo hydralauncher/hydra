@@ -7,6 +7,7 @@ import type {
 import {
   getStructuredAchievementSoundPath,
   getThemeSoundPath,
+  isSupportedAchievementNotificationVariation,
 } from "@main/helpers";
 import { themesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
@@ -41,6 +42,10 @@ const getAchievementNotificationSoundDataUrl = async (
   variation: AchievementNotificationVariation,
   sound?: AchievementNotificationVariationSound
 ): Promise<string | null> => {
+  if (!isSupportedAchievementNotificationVariation(variation)) {
+    throw new Error("Unsupported achievement notification variation");
+  }
+
   if (sound?.mode === "muted") return "";
 
   const structuredSoundPath = await getStructuredAchievementSoundPath(sound);

@@ -2,7 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import type { AchievementNotificationVariation } from "@types";
 import { THEMES_PATH } from "@main/constants";
-import { getThemePath, getVariationSoundAssetName } from "@main/helpers";
+import {
+  getThemePath,
+  getVariationSoundAssetName,
+  isSupportedAchievementNotificationVariation,
+} from "@main/helpers";
 import { themesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
 
@@ -11,6 +15,10 @@ const removeThemeAchievementVariationSound = async (
   themeId: string,
   variation: AchievementNotificationVariation
 ): Promise<void> => {
+  if (!isSupportedAchievementNotificationVariation(variation)) {
+    throw new Error("Unsupported achievement notification variation");
+  }
+
   const theme = await themesSublevel.get(themeId);
   if (!theme) {
     throw new Error("Theme not found");

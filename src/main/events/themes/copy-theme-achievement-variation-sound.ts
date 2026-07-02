@@ -4,6 +4,7 @@ import type { AchievementNotificationVariation } from "@types";
 import {
   getThemePath,
   getVariationSoundAssetName,
+  isSupportedAchievementNotificationVariation,
   isSupportedAchievementSoundFile,
 } from "@main/helpers";
 import { themesSublevel } from "@main/level";
@@ -15,6 +16,10 @@ const copyThemeAchievementVariationSound = async (
   variation: AchievementNotificationVariation,
   sourcePath: string
 ): Promise<void> => {
+  if (!isSupportedAchievementNotificationVariation(variation)) {
+    throw new Error("Unsupported achievement notification variation");
+  }
+
   if (!sourcePath || !fs.existsSync(sourcePath)) {
     throw new Error("Source file does not exist");
   }

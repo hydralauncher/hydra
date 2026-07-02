@@ -5,6 +5,10 @@ import path from "node:path";
 import fs from "node:fs";
 import { THEMES_PATH } from "@main/constants";
 import type { AchievementNotificationVariation } from "@types";
+import {
+  getVariationSoundAssetName,
+  isSupportedAchievementNotificationVariation,
+} from "./achievement-notification-sounds";
 
 export const getFileBuffer = async (url: string) =>
   fetch(url, { method: "GET" }).then((response) =>
@@ -63,6 +67,13 @@ export const getThemeSoundPath = (
   themeName?: string,
   variation?: AchievementNotificationVariation
 ): string | null => {
+  if (
+    variation !== undefined &&
+    !isSupportedAchievementNotificationVariation(variation)
+  ) {
+    return null;
+  }
+
   const themeDir = getThemePath(themeId, themeName);
   const legacyThemeDir = themeName ? path.join(THEMES_PATH, themeId) : null;
 
@@ -75,7 +86,10 @@ export const getThemeSoundPath = (
 
     for (const format of formats) {
       const fileNames = variation
-        ? [`achievement-${variation}.${format}`, `achievement.${format}`]
+        ? [
+            getVariationSoundAssetName(variation, `.${format}`),
+            `achievement.${format}`,
+          ]
         : [`achievement.${format}`];
 
       for (const fileName of fileNames) {
