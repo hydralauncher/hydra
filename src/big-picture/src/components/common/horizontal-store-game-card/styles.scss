@@ -101,7 +101,7 @@ button.horizontal-store-game-card {
 
   &:hover,
   &--force-hovered,
-  [data-focused="true"] > &,
+  [data-bp-input-mode="gamepad"] [data-focused="true"] > &,
   [data-focus-visible="true"] > & {
     background-color: var(--surface);
     border-color: var(--secondary-border);

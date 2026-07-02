@@ -16,6 +16,7 @@ import { IS_DESKTOP } from "./constants";
 import { useNavigation, useUserPreferences } from "./hooks";
 import {
   HorizontalFocusGroup,
+  InputModeProvider,
   NavigationHistoryBridge,
   NavigationLayer,
   NavigationAutoScrollBridge,
@@ -27,7 +28,10 @@ import {
   VirtualKeyboardProvider,
 } from "./components";
 import { getItemFocusTarget } from "./helpers";
-import { initializeBigPictureRunningGamesStore } from "./stores";
+import {
+  initializeBigPictureRunningGamesStore,
+  useInputModeStore,
+} from "./stores";
 import { NavigationAudioService, type FocusOverrides } from "./services";
 import { BigPictureI18nBridge, ensureBigPictureI18nResources } from "./i18n";
 
@@ -39,6 +43,7 @@ export default function App() {
   const { pathname } = useLocation();
   const { nodes, regions, setFocusRegion } = useNavigation();
   const userPreferences = useUserPreferences();
+  const inputMode = useInputModeStore((state) => state.mode);
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
     string | null
   >(pathname);
@@ -92,9 +97,10 @@ export default function App() {
 
   useEffect(() => {
     NavigationAudioService.getInstance().setEnabled(
-      userPreferences?.bigPictureSoundsEnabled ?? true
+      (userPreferences?.bigPictureSoundsEnabled ?? true) &&
+        inputMode === "gamepad"
     );
-  }, [userPreferences?.bigPictureSoundsEnabled]);
+  }, [userPreferences?.bigPictureSoundsEnabled, inputMode]);
 
   return (
     <Fragment>
@@ -139,6 +145,7 @@ export default function App() {
             </HorizontalFocusGroup>
           </NavigationLayer>
 
+          <InputModeProvider />
           <NavigationDiagnostics />
           <BigPictureToastHost />
         </div>
