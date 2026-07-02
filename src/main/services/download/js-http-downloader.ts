@@ -736,11 +736,13 @@ export class JsHttpDownloader {
     const countReceived = (length: number) => {
       this.attemptBytesReceived += length;
     };
-    const trackRecovered = (skipped: number) => {
-      this.trackRecoveredBytes(skipped);
-    };
-    const finishRecovery = () => {
-      this.finishRecovery();
+    const applyRecoveryTracking = (
+      plan: ReturnType<typeof applySkip>,
+      length: number
+    ) => {
+      const skipped = plan.shouldWrite ? plan.writeOffset : length;
+      if (skipped > 0) this.trackRecoveredBytes(skipped);
+      if (plan.newRemainingToSkip === 0) this.finishRecovery();
     };
     const onChunk = (length: number) => {
       if (this.isReconnecting) {
@@ -777,15 +779,7 @@ export class JsHttpDownloader {
 
               const plan = applySkip(remainingToSkip, value.length);
               remainingToSkip = plan.newRemainingToSkip;
-              const skippedThisChunk = plan.shouldWrite
-                ? plan.writeOffset
-                : value.length;
-              if (skippedThisChunk > 0) {
-                trackRecovered(skippedThisChunk);
-              }
-              if (remainingToSkip === 0) {
-                finishRecovery();
-              }
+              applyRecoveryTracking(plan, value.length);
               if (!plan.shouldWrite) {
                 continue;
               }
