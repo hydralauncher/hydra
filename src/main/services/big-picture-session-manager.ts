@@ -16,7 +16,8 @@ const RESTORE_PRIMARY_DISPLAY_POLL_INTERVAL_MS = 100;
 
 export class BigPictureSessionManager {
   private static snapshot: BigPictureRestoreSnapshot | null = null;
-  private static restorePromise: Promise<void> | null = null;
+  private static sessionOperationQueue: Promise<void> = Promise.resolve();
+  private static isRestoring = false;
 
   private static async waitForPrimaryDisplaySourceName(
     sourceName: string,
@@ -64,24 +65,22 @@ export class BigPictureSessionManager {
     return false;
   }
 
-  private static async waitForPendingRestore() {
-    if (this.restorePromise === null) {
-      return;
-    }
+  private static enqueueSessionOperation(operation: () => Promise<void>) {
+    const operationPromise = this.sessionOperationQueue
+      .catch((error) => {
+        logger.warn("Previous Big Picture session operation failed", error);
+      })
+      .then(operation);
 
-    try {
-      await this.restorePromise;
-    } catch (error) {
-      logger.warn(
-        "Failed to finish pending Big Picture restore before applying preferences",
-        error
-      );
-    }
+    this.sessionOperationQueue = operationPromise.then(
+      () => undefined,
+      () => undefined
+    );
+
+    return operationPromise;
   }
 
-  public static async apply() {
-    await this.waitForPendingRestore();
-
+  private static async applyInternal() {
     if (this.snapshot !== null) {
       return;
     }
@@ -108,8 +107,12 @@ export class BigPictureSessionManager {
     }
   }
 
+  public static apply() {
+    return this.enqueueSessionOperation(() => this.applyInternal());
+  }
+
   public static async applyAudioPreference(userPreferences: UserPreferences) {
-    if (this.snapshot === null || this.restorePromise !== null) {
+    if (this.snapshot === null || this.isRestoring) {
       return false;
     }
 
@@ -142,25 +145,27 @@ export class BigPictureSessionManager {
     }
   }
 
-  public static async restore() {
-    if (this.restorePromise !== null) {
-      return this.restorePromise;
-    }
-
+  private static async restoreInternal() {
     const snapshot = this.snapshot;
 
     if (snapshot === null) {
       return;
     }
 
-    this.restorePromise = this.restoreSnapshot(snapshot).finally(() => {
+    this.isRestoring = true;
+
+    try {
+      await this.restoreSnapshot(snapshot);
+    } finally {
       if (this.snapshot === snapshot) {
         this.snapshot = null;
       }
 
-      this.restorePromise = null;
-    });
+      this.isRestoring = false;
+    }
+  }
 
-    return this.restorePromise;
+  public static restore() {
+    return this.enqueueSessionOperation(() => this.restoreInternal());
   }
 }

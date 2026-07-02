@@ -36,6 +36,11 @@ const isLinuxWayland =
   (process.env.XDG_SESSION_TYPE === "wayland" ||
     Boolean(process.env.WAYLAND_DISPLAY));
 
+const BIG_PICTURE_FULLSCREEN_TOGGLE_DELAY_MS = 150;
+const LINUX_BIG_PICTURE_PLACEMENT_RETRY_DELAYS_MS = [
+  100, 500, 1_000, 2_000,
+] as const;
+
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
@@ -182,7 +187,7 @@ export class WindowManager {
   private static scheduleBigPictureWindowPlacement(display: Electron.Display) {
     if (process.platform !== "linux") return;
 
-    for (const delayMs of [100, 500, 1_000, 2_000]) {
+    for (const delayMs of LINUX_BIG_PICTURE_PLACEMENT_RETRY_DELAYS_MS) {
       setTimeout(() => {
         if (!this.bigPicture || this.bigPicture.isDestroyed()) {
           return;
@@ -502,7 +507,9 @@ export class WindowManager {
 
     if (wasFullScreen) {
       bigPicture.setFullScreen(false);
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise((resolve) =>
+        setTimeout(resolve, BIG_PICTURE_FULLSCREEN_TOGGLE_DELAY_MS)
+      );
 
       if (!this.isActiveBigPictureWindow(bigPicture)) {
         return;
@@ -513,7 +520,9 @@ export class WindowManager {
     this.scheduleBigPictureWindowPlacement(targetDisplay);
 
     if (wasFullScreen && this.useNativeBigPictureFullscreen()) {
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise((resolve) =>
+        setTimeout(resolve, BIG_PICTURE_FULLSCREEN_TOGGLE_DELAY_MS)
+      );
 
       if (!this.isActiveBigPictureWindow(bigPicture)) {
         return;

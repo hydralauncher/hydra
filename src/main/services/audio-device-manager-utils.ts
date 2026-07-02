@@ -127,13 +127,13 @@ export function parsePactlAudioSinks(
   return output
     .split("\n")
     .map((line) => {
-      const [, name, , sample, state] = line.split("\t");
+      const [, name, , sample] = line.split("\t");
       if (!name) return null;
 
       return {
         id: `${PACTL_AUDIO_DEVICE_PREFIX}${name}`,
         label: sample ? `${name} (${sample})` : name,
-        isDefault: name === defaultSinkName || state === "RUNNING",
+        isDefault: name === defaultSinkName,
       } satisfies HydraAudioDevice;
     })
     .filter((device): device is HydraAudioDevice => Boolean(device));

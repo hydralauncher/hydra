@@ -71,4 +71,24 @@ Sink #120
       ]
     );
   });
+
+  it("does not treat running PulseAudio sinks as the default sink", () => {
+    const output = [
+      "52\talsa_output.primary\tPipeWire\ts16le 2ch 44100Hz\tIDLE",
+      "120\thydra_test_output\tPipeWire\ts16le 2ch 44100Hz\tRUNNING",
+    ].join("\n");
+
+    assert.deepEqual(parsePactlAudioSinks(output, "alsa_output.primary"), [
+      {
+        id: "pactl:alsa_output.primary",
+        label: "alsa_output.primary (s16le 2ch 44100Hz)",
+        isDefault: true,
+      },
+      {
+        id: "pactl:hydra_test_output",
+        label: "hydra_test_output (s16le 2ch 44100Hz)",
+        isDefault: false,
+      },
+    ]);
+  });
 });

@@ -475,6 +475,9 @@ mod display_config {
     const SDC_USE_SUPPLIED_DISPLAY_CONFIG: u32 = 0x00000020;
     const SDC_APPLY: u32 = 0x00000080;
     const SDC_ALLOW_CHANGES: u32 = 0x00000400;
+    // Keep Big Picture display changes session-only instead of saving them to Windows.
+    const BIG_PICTURE_DISPLAY_APPLY_FLAGS: u32 =
+        SDC_APPLY | SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_ALLOW_CHANGES;
     const DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME: u32 = 1;
 
     #[repr(C)]
@@ -749,7 +752,7 @@ mod display_config {
                 paths.as_ptr(),
                 modes.len() as u32,
                 modes.as_ptr(),
-                SDC_APPLY | SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_ALLOW_CHANGES,
+                BIG_PICTURE_DISPLAY_APPLY_FLAGS,
             )
         };
 

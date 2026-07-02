@@ -341,6 +341,7 @@ const prepareBigPictureDisplayForLaunchSource = async (
     return;
   }
 
+  // Re-assert at launch time because display settings can change while Big Picture stays open.
   await DisplayManager.prepareBigPictureDisplayForLaunch();
 };
 
