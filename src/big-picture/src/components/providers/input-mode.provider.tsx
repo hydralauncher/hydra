@@ -181,29 +181,10 @@ function InputModeMouseFocusTracker() {
 }
 
 function InputModeCursorSync() {
-  const mode = useInputModeStore((state) => state.mode);
-
   useEffect(() => {
-    const styleId = "bp-input-mode-cursor";
-    const existing = document.getElementById(styleId);
-
-    if (mode === "gamepad") {
-      if (existing) return;
-      const style = document.createElement("style");
-      style.id = styleId;
-      style.textContent = `
-        #big-picture[data-bp-input-mode="gamepad"],
-        #big-picture[data-bp-input-mode="gamepad"] * {
-          cursor: none !important;
-        }
-      `;
-      document.head.appendChild(style);
-    } else {
-      existing?.remove();
-    }
-
-    return () => document.getElementById(styleId)?.remove();
-  }, [mode]);
+    return () =>
+      document.getElementById("bp-input-mode-gamepad-style")?.remove();
+  }, []);
 
   return null;
 }

@@ -154,6 +154,8 @@
     "scan_games_detection_warning": "A detecção depende de uma lista mantida pela comunidade de jogos conhecidos e pode estar desatualizada, então alguns jogos podem não ser encontrados."
   },
   "bottom_panel": {
+    "reconnecting": "Reconectando {{title}}…",
+    "recovering": "Recuperando {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Sem downloads em andamento",
     "downloading_metadata": "Baixando metadados de {{title}}…",
     "downloading": "Baixando {{title}}… ({{percentage}} concluído) - Conclusão {{eta}} - {{speed}}",
@@ -514,6 +516,15 @@
     "hide_original": "Ocultar original",
     "vote_failed": "Falha ao registrar seu voto. Por favor, tente novamente.",
     "rating_count": "Avaliação",
+    "details": "Detalhes",
+    "platform": "Plataforma",
+    "genres": "Gêneros",
+    "regions": "Regiões",
+    "region_us": "EUA",
+    "region_eu": "Europa",
+    "region_jp": "Japão",
+    "region_kr": "Coreia",
+    "region_asia": "Ásia",
     "review_from_blocked_user": "Avaliação de usuário bloqueado",
     "show": "Mostrar",
     "hide": "Ocultar",
@@ -642,6 +653,8 @@
     "loading": "Carregando…"
   },
   "downloads": {
+    "reconnecting": "Reconectando…",
+    "recovering": "Recuperando download… {{percentage}}",
     "resume": "Retomar",
     "pause": "Pausar",
     "eta": "Conclusão {{eta}}",
