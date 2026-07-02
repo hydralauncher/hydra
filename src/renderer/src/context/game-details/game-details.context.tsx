@@ -142,18 +142,26 @@ export function GameDetailsContextProvider({
             Boolean(result?.retroAchievementsGameId) &&
             Boolean(userPreferences?.retroAchievementsWebApiKey);
 
-          const achievementsRequest = useRetroAchievements
-            ? globalThis.window.electron.getRetroAchievementsAchievements(
-                objectId,
-                shop,
-                result!.retroAchievementsGameId!
-              )
-            : globalThis.window.electron.getUnlockedAchievements(
-                objectId,
-                shop
-              );
+          const loadAchievements = async () => {
+            if (useRetroAchievements) {
+              const retroAchievements = await globalThis.window.electron
+                .getRetroAchievementsAchievements(
+                  objectId,
+                  shop,
+                  result!.retroAchievementsGameId!
+                )
+                .catch(() => null);
 
-          achievementsRequest
+              if (retroAchievements) return retroAchievements;
+            }
+
+            return globalThis.window.electron.getUnlockedAchievements(
+              objectId,
+              shop
+            );
+          };
+
+          loadAchievements()
             .then((achievements) => {
               if (abortController.signal.aborted) return;
               if (achievements) setAchievements(achievements);
