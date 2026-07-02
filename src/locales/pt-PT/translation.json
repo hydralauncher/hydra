@@ -141,6 +141,8 @@
   },
   "game_details": {
     "bios_not_configured_toast": "BIOS necessária. Configure a BIOS da sua PS1/PS2 em Definições → Emulação antes de iniciar.",
+    "pkg_installing_toast": "A instalar o PKG no RPCS3. Quando terminar, clique em Jogar novamente para iniciar o jogo.",
+    "pkg_unreadable_toast": "Não foi possível ler este PKG. Instale e inicie o jogo diretamente pelo RPCS3.",
     "open_download_options": "Ver opções de transferência",
     "download_options_zero": "Sem opções de transferência",
     "download_options_one": "{{count}} opção de transferência",

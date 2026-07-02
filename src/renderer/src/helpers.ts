@@ -278,6 +278,8 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "PLATFORM_UNKNOWN",
   "NO_DISC",
   "EMULATOR_ALREADY_RUNNING",
+  "PKG_INSTALLING",
+  "PKG_UNREADABLE",
 ] as const;
 
 export const getClassicsLaunchErrorCode = (

@@ -340,6 +340,8 @@
     "platform_unknown_toast": "Could not determine the emulator system for this game.",
     "no_disc_toast": "No disc available for this game.",
     "launch_failed_toast": "Failed to launch game",
+    "pkg_installing_toast": "Installing the PKG in RPCS3. Once it finishes, press Play again to launch the game.",
+    "pkg_unreadable_toast": "Couldn't read this PKG. Install and launch it from RPCS3 directly.",
     "rpcs3_already_running_title": "RPCS3 is already running",
     "rpcs3_already_running_description": "RPCS3 only allows one instance. Close the running session to launch this game?",
     "rpcs3_already_running_confirm": "Close and launch",
