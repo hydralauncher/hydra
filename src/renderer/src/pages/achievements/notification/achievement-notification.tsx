@@ -70,7 +70,7 @@ export function AchievementNotification() {
   );
 
   useEffect(() => {
-    const unsubscribe = window.electron.onCombinedAchievementsUnlocked(
+    const unsubscribe = globalThis.electron.onCombinedAchievementsUnlocked(
       (gameCount, achievementCount, position) => {
         if (gameCount === 0 || achievementCount === 0) return;
 
@@ -97,7 +97,7 @@ export function AchievementNotification() {
   }, [t]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(
+    const unsubscribe = globalThis.electron.onAchievementUnlocked(
       (position, achievements) => {
         if (!achievements?.length) return;
         if (position) {
@@ -177,7 +177,7 @@ export function AchievementNotification() {
       const nextPosition = settings?.position ?? queuedAchievement.position;
 
       setPosition(nextPosition);
-      await window.electron
+      await globalThis.electron
         .updateAchievementNotificationWindowPosition(nextPosition)
         .catch(() => {});
 
@@ -213,7 +213,7 @@ export function AchievementNotification() {
   }, [loadAndApplyTheme]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
+    const unsubscribe = globalThis.electron.onCustomThemeUpdated(() => {
       loadAndApplyTheme();
     });
 

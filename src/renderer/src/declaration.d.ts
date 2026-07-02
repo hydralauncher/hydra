@@ -978,6 +978,9 @@ declare global {
     off: (channel: string, listener: (...args: any[]) => void) => void;
   }
 
+  // eslint-disable-next-line no-var
+  var electron: Electron;
+
   interface Window {
     electron: Electron;
   }

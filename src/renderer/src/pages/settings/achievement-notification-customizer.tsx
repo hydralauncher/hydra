@@ -48,6 +48,7 @@ const radiusRange = { min: 0, max: 40, step: 1 };
 const outlineRange = { min: 0, max: 8, step: 1 };
 const shadowRange = { min: 0, max: 100, step: 1 };
 const soundVolumeRange = { min: 0, max: 100, step: 1 };
+type SoundModeOption = "default" | "file" | "muted";
 const positionOptions: AchievementCustomNotificationPosition[] = [
   "top-left",
   "top-center",
@@ -71,6 +72,33 @@ const getPreviewAchievement = (
   isRare: variation === "rare",
   isPlatinum: variation === "platinum",
 });
+
+const getSelectedSoundMode = (
+  sound: AchievementNotificationVariationSound
+): SoundModeOption => {
+  if (sound.mode === "file") return "file";
+  if (sound.mode === "muted") return "muted";
+  return "default";
+};
+
+const getSoundForMode = (
+  mode: SoundModeOption,
+  sound: AchievementNotificationVariationSound
+): AchievementNotificationVariationSound => {
+  if (mode === "file") {
+    return {
+      ...sound,
+      mode: "file",
+      filePath: sound.filePath,
+    };
+  }
+
+  if (mode === "muted") {
+    return { ...sound, mode: "muted" };
+  }
+
+  return { ...sound, mode: "default" };
+};
 
 function mergeCustomizer(
   customizer: AchievementNotificationCustomizerData,
@@ -195,7 +223,7 @@ export function AchievementNotificationCustomizer({
   );
 
   useEffect(() => {
-    window.document.title = t("window_title");
+    globalThis.document.title = t("window_title");
     loadProfiles();
   }, [loadProfiles, t]);
 
@@ -272,11 +300,11 @@ export function AchievementNotificationCustomizer({
         profileName: string;
       }
     ) => {
-      await window.electron.updateAchievementNotificationProfile(theme.id, {
+      await globalThis.electron.updateAchievementNotificationProfile(theme.id, {
         name: snapshot.profileName,
         customizer: snapshot.customizer,
       });
-      await window.electron.updateAchievementCustomNotificationWindow();
+      await globalThis.electron.updateAchievementCustomNotificationWindow();
     },
     []
   );
@@ -312,7 +340,7 @@ export function AchievementNotificationCustomizer({
 
       setProfiles(nextProfiles);
       lastSavedSnapshotRef.current = currentSnapshotKey;
-      void persistExistingProfile(activeTheme, currentSnapshot);
+      await persistExistingProfile(activeTheme, currentSnapshot);
     }
 
     if (profileId === defaultProfileOption) {
@@ -369,7 +397,7 @@ export function AchievementNotificationCustomizer({
   };
 
   const handlePickSoundFile = async () => {
-    const { filePaths, canceled } = await window.electron.showOpenDialog({
+    const { filePaths, canceled } = await globalThis.electron.showOpenDialog({
       properties: ["openFile"],
       filters: [{ name: t("audio_files"), extensions: audioExtensions }],
     });
@@ -390,19 +418,23 @@ export function AchievementNotificationCustomizer({
       await import("@renderer/assets/audio/achievement.wav")
     ).default;
 
-    const soundUrl = activeTheme
-      ? await window.electron.getAchievementNotificationSoundDataUrl(
+    let soundUrl: string | null = null;
+
+    if (activeTheme) {
+      soundUrl =
+        await globalThis.electron.getAchievementNotificationSoundDataUrl(
           activeTheme.id,
           selectedVariation,
           selectedSound
-        )
-      : selectedSound.mode === "file"
-        ? await window.electron.getAchievementNotificationSoundDataUrl(
-            "",
-            selectedVariation,
-            selectedSound
-          )
-        : null;
+        );
+    } else if (selectedSound.mode === "file") {
+      soundUrl =
+        await globalThis.electron.getAchievementNotificationSoundDataUrl(
+          "",
+          selectedVariation,
+          selectedSound
+        );
+    }
 
     if (soundUrl === "") return;
 
@@ -458,13 +490,13 @@ export function AchievementNotificationCustomizer({
         updatedAt: now,
       };
 
-      await window.electron.addCustomTheme(theme);
-      await window.electron.updateAchievementNotificationProfile(theme.id, {
+      await globalThis.electron.addCustomTheme(theme);
+      await globalThis.electron.updateAchievementNotificationProfile(theme.id, {
         name: theme.name,
         customizer: snapshot.customizer,
         achievementNotificationCustomizerActive: activate,
       });
-      await window.electron.updateAchievementCustomNotificationWindow();
+      await globalThis.electron.updateAchievementCustomNotificationWindow();
       await loadProfiles(theme.id);
     },
     [loadProfiles]
@@ -495,9 +527,16 @@ export function AchievementNotificationCustomizer({
       setProfileName(snapshot.profileName);
       setCustomizer(snapshot.customizer);
 
-      void createProfile(snapshot, false).finally(() => {
-        isCreatingProfileRef.current = false;
-      });
+      createProfile(snapshot, false)
+        .catch((error) => {
+          console.error(
+            "Failed to create achievement notification profile",
+            error
+          );
+        })
+        .finally(() => {
+          isCreatingProfileRef.current = false;
+        });
     },
     [createProfile, customizer, isDefaultProfileSelected]
   );
@@ -535,19 +574,22 @@ export function AchievementNotificationCustomizer({
   const activateProfile = async () => {
     if (!activeTheme) return;
 
-    await window.electron.updateAchievementNotificationProfile(activeTheme.id, {
-      name: activeTheme.name,
-      customizer,
-      achievementNotificationCustomizerActive: true,
-    });
-    await window.electron.updateAchievementCustomNotificationWindow();
+    await globalThis.electron.updateAchievementNotificationProfile(
+      activeTheme.id,
+      {
+        name: activeTheme.name,
+        customizer,
+        achievementNotificationCustomizerActive: true,
+      }
+    );
+    await globalThis.electron.updateAchievementCustomNotificationWindow();
     await loadProfiles(activeTheme.id);
   };
 
   const handleDeleteProfile = async () => {
     if (!activeTheme || isDefaultProfileSelected) return;
 
-    const shouldDelete = window.confirm(
+    const shouldDelete = globalThis.confirm(
       t("delete_profile_confirm", { name: activeTheme.name })
     );
 
@@ -558,8 +600,8 @@ export function AchievementNotificationCustomizer({
       autosaveTimeoutRef.current = undefined;
     }
 
-    await window.electron.deleteCustomTheme(activeTheme.id);
-    await window.electron.updateAchievementCustomNotificationWindow();
+    await globalThis.electron.deleteCustomTheme(activeTheme.id);
+    await globalThis.electron.updateAchievementCustomNotificationWindow();
     await loadProfiles(defaultProfileOption);
   };
 
@@ -660,7 +702,7 @@ export function AchievementNotificationCustomizer({
 
   const handleTestLive = async () => {
     await flushCurrentProfile();
-    await window.electron.showAchievementTestNotification(
+    await globalThis.electron.showAchievementTestNotification(
       selectedVariation,
       selectedPosition
     );
@@ -673,7 +715,7 @@ export function AchievementNotificationCustomizer({
         <button
           type="button"
           onClick={() =>
-            window.electron.closeAchievementNotificationCustomizerWindow()
+            globalThis.electron.closeAchievementNotificationCustomizerWindow()
           }
           aria-label={t("close")}
           title={t("close")}
@@ -974,13 +1016,7 @@ export function AchievementNotificationCustomizer({
                 <div className="achievement-notification-customizer__sound">
                   <SelectField
                     label={t("sound_mode")}
-                    value={
-                      selectedSound.mode === "file"
-                        ? "file"
-                        : selectedSound.mode === "muted"
-                          ? "muted"
-                          : "default"
-                    }
+                    value={getSelectedSoundMode(selectedSound)}
                     options={[
                       {
                         key: "default",
@@ -996,15 +1032,10 @@ export function AchievementNotificationCustomizer({
                     ]}
                     onChange={(event) =>
                       updateSelectedSound(
-                        event.target.value === "file"
-                          ? {
-                              ...selectedSound,
-                              mode: "file",
-                              filePath: selectedSound.filePath,
-                            }
-                          : event.target.value === "muted"
-                            ? { ...selectedSound, mode: "muted" }
-                            : { ...selectedSound, mode: "default" }
+                        getSoundForMode(
+                          event.target.value as SoundModeOption,
+                          selectedSound
+                        )
                       )
                     }
                   />

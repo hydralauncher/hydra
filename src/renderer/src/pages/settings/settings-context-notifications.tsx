@@ -146,7 +146,7 @@ export function SettingsContextNotifications() {
                 !form.achievementNotificationsEnabled,
             });
 
-            window.electron.updateAchievementCustomNotificationWindow();
+            globalThis.electron.updateAchievementCustomNotificationWindow();
           }}
         />
 
@@ -160,7 +160,7 @@ export function SettingsContextNotifications() {
                 !form.achievementCustomNotificationsEnabled,
             });
 
-            window.electron.updateAchievementCustomNotificationWindow();
+            globalThis.electron.updateAchievementCustomNotificationWindow();
           }}
         />
 
@@ -168,7 +168,7 @@ export function SettingsContextNotifications() {
           theme="outline"
           className="settings-general__test-achievement-notification-button"
           disabled={!form.achievementNotificationsEnabled}
-          onClick={() => window.electron.showAchievementTestNotification()}
+          onClick={() => globalThis.electron.showAchievementTestNotification()}
         >
           <BellIcon size={16} />
           {t("test_notification")}
@@ -182,7 +182,7 @@ export function SettingsContextNotifications() {
             !form.achievementCustomNotificationsEnabled
           }
           onClick={() =>
-            window.electron.openAchievementNotificationCustomizerWindow()
+            globalThis.electron.openAchievementNotificationCustomizerWindow()
           }
         >
           <SlidersHorizontalIcon size={16} />

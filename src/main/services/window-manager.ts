@@ -728,10 +728,7 @@ export class WindowManager {
 
   private static async getNotificationWindowPosition(
     position: AchievementCustomNotificationPosition | undefined,
-    size = {
-      width: this.NOTIFICATION_WINDOW_WIDTH,
-      height: this.NOTIFICATION_WINDOW_HEIGHT,
-    }
+    size?: { width: number; height: number }
   ) {
     const display = screen.getPrimaryDisplay();
     const {
@@ -740,6 +737,10 @@ export class WindowManager {
       width: displayWidth,
       height: displayHeight,
     } = display.workArea;
+    const notificationSize = size ?? {
+      width: this.NOTIFICATION_WINDOW_WIDTH,
+      height: this.NOTIFICATION_WINDOW_HEIGHT,
+    };
 
     return getAchievementNotificationWindowPosition(
       position,
@@ -749,7 +750,7 @@ export class WindowManager {
         width: displayWidth,
         height: displayHeight,
       },
-      size
+      notificationSize
     );
   }
 

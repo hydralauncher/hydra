@@ -161,6 +161,11 @@ const getActiveTheme = async (): Promise<Theme | null> => {
   return allThemes.find((theme) => theme.isActive) ?? null;
 };
 
+type AchievementNotificationVariationContext = Pick<
+  AchievementNotificationInfo,
+  "isRare" | "isPlatinum" | "isHidden"
+>;
+
 export const getActiveAchievementNotificationProfile =
   async (): Promise<Theme | null> => {
     const allThemes = (await levelDBService.values("themes")) as Theme[];
@@ -168,10 +173,7 @@ export const getActiveAchievementNotificationProfile =
   };
 
 export const getAchievementSoundUrl = async (
-  achievement?: Pick<
-    AchievementNotificationInfo,
-    "isRare" | "isPlatinum" | "isHidden"
-  >
+  achievement?: AchievementNotificationVariationContext
 ): Promise<string | null> => {
   const defaultSound = (await import("@renderer/assets/audio/achievement.wav"))
     .default;
@@ -210,7 +212,7 @@ export const getAchievementSoundUrl = async (
       );
       const sound = getAchievementNotificationSound(customizer, variation);
       const soundDataUrl =
-        await window.electron.getAchievementNotificationSoundDataUrl(
+        await globalThis.electron.getAchievementNotificationSoundDataUrl(
           activeAchievementNotificationTheme.id,
           variation,
           sound
@@ -226,7 +228,7 @@ export const getAchievementSoundUrl = async (
     }
 
     if (activeTheme?.hasCustomSound) {
-      const soundDataUrl = await window.electron.getThemeSoundDataUrl(
+      const soundDataUrl = await globalThis.electron.getThemeSoundDataUrl(
         activeTheme.id,
         variation
       );
@@ -242,10 +244,7 @@ export const getAchievementSoundUrl = async (
 };
 
 export const getAchievementSoundVolume = async (
-  achievement?: Pick<
-    AchievementNotificationInfo,
-    "isRare" | "isPlatinum" | "isHidden"
-  >
+  achievement?: AchievementNotificationVariationContext
 ): Promise<number> => {
   try {
     const prefs = (await levelDBService.get(
@@ -301,10 +300,7 @@ export const getAchievementSoundVolume = async (
 };
 
 export const getAchievementNotificationRenderSettings = async (
-  achievement: Pick<
-    AchievementNotificationInfo,
-    "isRare" | "isPlatinum" | "isHidden"
-  >
+  achievement: AchievementNotificationVariationContext
 ): Promise<{
   cssVariables: Record<string, string>;
   displayTime: number;
