@@ -362,10 +362,12 @@ export function EmulatorDetail({
         </div>
       </section>
 
-      <p className="emulator-detail__bios-note">
-        <InfoIcon size={14} />
-        <span>{t("bios_note", { name: binaryName })}</span>
-      </p>
+      {!supportsFirmware && (
+        <p className="emulator-detail__bios-note">
+          <InfoIcon size={14} />
+          <span>{t("bios_note", { name: binaryName })}</span>
+        </p>
+      )}
 
       <div className="emulator-detail__tabs" role="tablist">
         {tabs.map((tab) => (
@@ -619,8 +621,6 @@ export function EmulatorDetail({
           <RomsDetectedSection
             system={config.system}
             systemLabel={systemLabel}
-            onRescan={handleRescan}
-            disabled={busy || scan.active}
             refreshKey={romsNonce}
           />
         </>
