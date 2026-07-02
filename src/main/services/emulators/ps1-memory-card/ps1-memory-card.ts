@@ -49,6 +49,32 @@ export const findDataOffset = (
   return null;
 };
 
+export const inspectPs1Card = async (
+  cardFilePath: string
+): Promise<"formatted" | "unformatted" | "unreadable"> => {
+  let fh: FileHandle | null = null;
+  try {
+    fh = await fs.open(cardFilePath, "r");
+    const stat = await fh.stat();
+    if (stat.size < PS1_BLOCK_BYTES) return "unformatted";
+
+    const probeLen = Math.min(
+      stat.size,
+      (HEADER_OFFSET_CANDIDATES.at(-1) ?? 0) + PS1_BLOCK_BYTES
+    );
+    const probe = Buffer.alloc(probeLen);
+    await fh.read(probe, 0, probeLen, 0);
+
+    return findDataOffset(probe, stat.size) === null
+      ? "unformatted"
+      : "formatted";
+  } catch {
+    return "unreadable";
+  } finally {
+    if (fh) await fh.close().catch(() => undefined);
+  }
+};
+
 const readFilename = (frame: Buffer): string => {
   const raw = frame.subarray(
     PS1_FILENAME_OFFSET,

@@ -135,6 +135,21 @@ export const readSuperblock = async (
   };
 };
 
+export const inspectPs2Card = async (
+  cardFilePath: string
+): Promise<"formatted" | "unformatted" | "unreadable"> => {
+  let fh: FileHandle | null = null;
+  try {
+    fh = await fs.open(cardFilePath, "r");
+    const sb = await readSuperblock(fh);
+    return sb ? "formatted" : "unformatted";
+  } catch {
+    return "unreadable";
+  } finally {
+    if (fh) await fh.close().catch(() => undefined);
+  }
+};
+
 export const detectEcc = (
   fileSize: number,
   sb: Superblock

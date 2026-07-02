@@ -1,6 +1,8 @@
 import type {
   EmulationCloudSave,
   EmulationSavePlatform,
+  MemcardFormatState,
+  MemcardRestoreErrorReason,
   MemcardRestoreTarget,
 } from "@types";
 import { useCallback, useEffect, useState } from "react";
@@ -38,7 +40,7 @@ interface EmulationCloudRestoreModalProps {
   onClose: () => void;
   onRestored: () => void;
   onRestoreSuccess: () => void;
-  onRestoreError: () => void;
+  onRestoreError: (reason?: MemcardRestoreErrorReason) => void;
   regionId: string;
   actionsRegionId: string;
   pickButtonId: string;
@@ -65,18 +67,53 @@ export function EmulationCloudRestoreModal({
   const { setFocus } = useNavigation();
   const [targets, setTargets] = useState<MemcardRestoreTarget[]>([]);
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] =
+    useState<MemcardFormatState | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+
+  const unformattedKey =
+    platform === "ps2"
+      ? "cloud_restore_unformatted_ps2"
+      : "cloud_restore_unformatted";
 
   useEffect(() => {
     if (!save) return;
 
+    let cancelled = false;
     void globalThis.window.electron
       .getMemcardRestoreTargets(platform)
       .then((foundTargets) => {
+        if (cancelled) return;
         setTargets(foundTargets);
         setSelectedTarget(foundTargets[0]?.cardFilePath ?? null);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [platform, save]);
+
+  useEffect(() => {
+    if (!selectedTarget) {
+      setSelectedFormat(null);
+      return;
+    }
+
+    let cancelled = false;
+    setSelectedFormat(null);
+    globalThis.window.electron
+      .inspectMemcard(platform, selectedTarget)
+      .then((state) => {
+        if (!cancelled) setSelectedFormat(state);
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedFormat("unreadable");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [platform, selectedTarget]);
 
   useEffect(() => {
     if (!save) return;
@@ -134,7 +171,7 @@ export function EmulationCloudRestoreModal({
         onRestored();
         onClose();
       } else {
-        onRestoreError();
+        onRestoreError(result.reason);
       }
     } finally {
       setIsBusy(false);
@@ -207,6 +244,10 @@ export function EmulationCloudRestoreModal({
           )}
         </div>
 
+        {selectedFormat === "unformatted" && (
+          <p className="emu-save-modal__hint">{t(unformattedKey)}</p>
+        )}
+
         <HorizontalFocusGroup
           regionId={actionsRegionId}
           className="emu-save-modal__actions"
@@ -228,7 +269,11 @@ export function EmulationCloudRestoreModal({
               selectedTarget
             )}
             loading={isBusy}
-            disabled={!selectedTarget}
+            disabled={
+              !selectedTarget ||
+              !selectedFormat ||
+              selectedFormat === "unformatted"
+            }
             onClick={handleRestore}
           >
             {t("cloud_restore_confirm")}

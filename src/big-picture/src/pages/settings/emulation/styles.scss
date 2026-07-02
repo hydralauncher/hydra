@@ -18,6 +18,13 @@
   outline-offset: 2px;
 }
 
+.emu-save-modal__hint {
+  margin: 0;
+  color: var(--warning, #e3b341);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .emulator-detail,
 .emulation-settings__scan-modal,
 .emu-save-modal__restore,

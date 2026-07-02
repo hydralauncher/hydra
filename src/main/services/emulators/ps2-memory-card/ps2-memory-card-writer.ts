@@ -7,6 +7,7 @@ import {
   FAT_ALLOCATED_BIT,
   FAT_VALUE_MASK,
   detectEcc,
+  inspectPs2Card,
   listSaves,
   parseDirEntry,
   readSaveContents,
@@ -501,6 +502,7 @@ class Ps2CardWriter {
 export interface Ps2ImportResult {
   ok: boolean;
   error?: string;
+  reason?: "unformatted";
   folderName?: string;
 }
 
@@ -532,6 +534,14 @@ export const importPsuIntoCard = async (
 ): Promise<Ps2ImportResult> => {
   const psu = parsePsuBuffer(psuBuffer);
   if (!psu) return { ok: false, error: "Invalid .psu data" };
+
+  if ((await inspectPs2Card(cardFilePath)) === "unformatted") {
+    return {
+      ok: false,
+      reason: "unformatted",
+      error: "The memory card is not formatted",
+    };
+  }
 
   const backupPath = `${cardFilePath}.hydra-bak`;
   try {
