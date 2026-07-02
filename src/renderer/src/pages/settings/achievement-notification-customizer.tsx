@@ -49,6 +49,11 @@ const outlineRange = { min: 0, max: 8, step: 1 };
 const shadowRange = { min: 0, max: 100, step: 1 };
 const soundVolumeRange = { min: 0, max: 100, step: 1 };
 type SoundModeOption = "default" | "file" | "muted";
+const colorPickerHexPattern = /^#[0-9a-fA-F]{6}/;
+const colorPickerHexLength = 7;
+const colorPickerDefaultFallback = "#000000";
+const colorPickerFallbacks =
+  DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER.variations.main;
 const positionOptions: AchievementCustomNotificationPosition[] = [
   "top-left",
   "top-center",
@@ -98,6 +103,18 @@ const getSoundForMode = (
   }
 
   return { ...sound, mode: "default" };
+};
+
+const getColorPickerValue = (color: string, fallback: string) => {
+  if (colorPickerHexPattern.test(color)) {
+    return color.slice(0, colorPickerHexLength);
+  }
+
+  if (colorPickerHexPattern.test(fallback)) {
+    return fallback.slice(0, colorPickerHexLength);
+  }
+
+  return colorPickerDefaultFallback;
 };
 
 function mergeCustomizer(
@@ -890,11 +907,10 @@ export function AchievementNotificationCustomizer({
                   <TextField
                     label={t("background_color")}
                     type="color"
-                    value={
-                      selectedStyle.background.startsWith("#")
-                        ? selectedStyle.background
-                        : "#1c1c1c"
-                    }
+                    value={getColorPickerValue(
+                      selectedStyle.background,
+                      colorPickerFallbacks.background
+                    )}
                     onChange={(event) =>
                       updateSelectedStyle({ background: event.target.value })
                     }
@@ -902,7 +918,10 @@ export function AchievementNotificationCustomizer({
                   <TextField
                     label={t("accent")}
                     type="color"
-                    value={selectedStyle.accentColor}
+                    value={getColorPickerValue(
+                      selectedStyle.accentColor,
+                      colorPickerFallbacks.accentColor
+                    )}
                     onChange={(event) =>
                       updateSelectedStyle({ accentColor: event.target.value })
                     }
@@ -910,7 +929,10 @@ export function AchievementNotificationCustomizer({
                   <TextField
                     label={t("title_color")}
                     type="color"
-                    value={selectedStyle.titleColor}
+                    value={getColorPickerValue(
+                      selectedStyle.titleColor,
+                      colorPickerFallbacks.titleColor
+                    )}
                     onChange={(event) =>
                       updateSelectedStyle({ titleColor: event.target.value })
                     }
@@ -918,7 +940,10 @@ export function AchievementNotificationCustomizer({
                   <TextField
                     label={t("description_color")}
                     type="color"
-                    value={selectedStyle.descriptionColor}
+                    value={getColorPickerValue(
+                      selectedStyle.descriptionColor,
+                      colorPickerFallbacks.descriptionColor
+                    )}
                     onChange={(event) =>
                       updateSelectedStyle({
                         descriptionColor: event.target.value,
@@ -991,7 +1016,10 @@ export function AchievementNotificationCustomizer({
                   <TextField
                     label={t("outline_color")}
                     type="color"
-                    value={selectedStyle.outlineColor}
+                    value={getColorPickerValue(
+                      selectedStyle.outlineColor,
+                      colorPickerFallbacks.outlineColor
+                    )}
                     onChange={(event) =>
                       updateSelectedStyle({ outlineColor: event.target.value })
                     }
@@ -999,7 +1027,10 @@ export function AchievementNotificationCustomizer({
                   <TextField
                     label={t("shadow_color")}
                     type="color"
-                    value={selectedStyle.shadowColor}
+                    value={getColorPickerValue(
+                      selectedStyle.shadowColor,
+                      colorPickerFallbacks.shadowColor
+                    )}
                     onChange={(event) =>
                       updateSelectedStyle({ shadowColor: event.target.value })
                     }
