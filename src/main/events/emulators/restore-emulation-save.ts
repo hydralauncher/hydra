@@ -37,7 +37,14 @@ const restoreEmulationSave = async (
       platform === "ps2"
         ? await emulators.importPsuIntoCard(targetCardFilePath, bytes)
         : await emulators.importMcsIntoCard(targetCardFilePath, bytes);
-    return { ok: result.ok, error: result.error };
+    if (!result.ok) {
+      logger.error(
+        "Failed to restore emulation save",
+        { platform, saveId, targetCardFilePath, reason: result.reason },
+        result.error
+      );
+    }
+    return { ok: result.ok, error: result.error, reason: result.reason };
   } catch (err) {
     logger.error("Failed to restore emulation save", err);
     return {
