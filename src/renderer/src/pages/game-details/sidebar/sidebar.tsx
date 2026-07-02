@@ -11,7 +11,12 @@ import { Link } from "@renderer/components/link/link";
 import { StarRating } from "@renderer/components/star-rating/star-rating";
 
 import { gameDetailsContext } from "@renderer/context";
-import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDate,
+  useFormat,
+  useUserDetails,
+} from "@renderer/hooks";
 import {
   CloudOfflineIcon,
   DownloadIcon,
@@ -120,11 +125,20 @@ export function Sidebar() {
 
   const { gameTitle, shopDetails, objectId, shop, stats, achievements } =
     useContext(gameDetailsContext);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const { showHydraCloudModal } = useSubscription();
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
+  const achievementsCount = achievements?.length ?? 0;
+  const shouldRenderAchievementsSection =
+    (!!userDetails && achievementsCount > 0) ||
+    (shop === "launchbox" &&
+      !!shopDetails?.retroAchievementsGameId &&
+      !userPreferences?.retroAchievementsWebApiKey);
 
   useEffect(() => {
     if (objectId) {
@@ -176,7 +190,7 @@ export function Sidebar() {
         </Suspense>
       )}
 
-      {userDetails === null && (
+      {userDetails === null && !shouldRenderAchievementsSection && (
         <SidebarSection title={t("achievements")}>
           <div className="achievements-placeholder">
             <LockIcon size={36} />
@@ -207,17 +221,22 @@ export function Sidebar() {
         </SidebarSection>
       )}
 
-      {userDetails && achievements && achievements.length > 0 && (
+      {shouldRenderAchievementsSection && (
         <SidebarSection
-          title={t("achievements_count", {
-            unlockedCount: achievements.filter((a) => a.unlocked).length,
-            achievementsCount: achievements.length,
-          })}
+          title={
+            achievementsCount > 0
+              ? t("achievements_count", {
+                  unlockedCount:
+                    achievements?.filter((a) => a.unlocked).length ?? 0,
+                  achievementsCount,
+                })
+              : t("achievements")
+          }
         >
           <ul className="list">
             <RetroAchievementsConnectBanner />
 
-            {!hasActiveSubscription && (
+            {!hasActiveSubscription && achievementsCount > 0 && (
               <button
                 className="subscription-required-button"
                 onClick={() => showHydraCloudModal("achievements")}
@@ -227,7 +246,7 @@ export function Sidebar() {
               </button>
             )}
 
-            {achievements.slice(0, 4).map((achievement) => (
+            {(achievements ?? []).slice(0, 4).map((achievement) => (
               <li key={achievement.displayName}>
                 <Link
                   to={buildGameAchievementPath({
@@ -256,15 +275,17 @@ export function Sidebar() {
               </li>
             ))}
 
-            <Link
-              to={buildGameAchievementPath({
-                shop: shop,
-                objectId: objectId!,
-                title: gameTitle,
-              })}
-            >
-              {t("see_all_achievements")}
-            </Link>
+            {achievementsCount > 0 && (
+              <Link
+                to={buildGameAchievementPath({
+                  shop: shop,
+                  objectId: objectId!,
+                  title: gameTitle,
+                })}
+              >
+                {t("see_all_achievements")}
+              </Link>
+            )}
           </ul>
         </SidebarSection>
       )}

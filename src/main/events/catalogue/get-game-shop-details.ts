@@ -119,7 +119,7 @@ const getLaunchboxShopDetails = async (
   const cacheHasNewFields =
     cachedData &&
     (cachedData.platform || cachedData.skus) &&
-    "retroAchievementsGameId" in cachedData;
+    typeof cachedData.retroAchievementsGameId === "number";
   if (cachedData && cacheHasNewFields) {
     return { ...cachedData, assets: cachedAssets ?? null };
   }
