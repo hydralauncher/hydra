@@ -26,6 +26,8 @@ import { t } from "i18next";
 import { orderBy, slice } from "lodash-es";
 import path from "node:path";
 import UserAgent from "user-agents";
+import { BigPictureSessionManager } from "./big-picture-session-manager";
+import { DisplayManager } from "./display-manager";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 
@@ -33,6 +35,11 @@ const isLinuxWayland =
   process.platform === "linux" &&
   (process.env.XDG_SESSION_TYPE === "wayland" ||
     Boolean(process.env.WAYLAND_DISPLAY));
+
+const BIG_PICTURE_FULLSCREEN_TOGGLE_DELAY_MS = 150;
+const LINUX_BIG_PICTURE_PLACEMENT_RETRY_DELAYS_MS = [
+  100, 500, 1_000, 2_000,
+] as const;
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -132,6 +139,65 @@ export class WindowManager {
     main.setIgnoreMouseEvents(false);
     main.setFocusable(true);
     main.setSkipTaskbar(false);
+  }
+
+  private static placeBigPictureWindowOnDisplay(
+    window: BrowserWindow,
+    display: Electron.Display
+  ) {
+    const targetBounds =
+      process.platform === "linux" ? display.workArea : display.bounds;
+
+    window.setBounds(
+      {
+        x: targetBounds.x,
+        y: targetBounds.y,
+        width: targetBounds.width,
+        height: targetBounds.height,
+      },
+      false
+    );
+    window.setPosition(targetBounds.x, targetBounds.y, false);
+    window.setSize(targetBounds.width, targetBounds.height, false);
+  }
+
+  private static useNativeBigPictureFullscreen() {
+    return process.platform !== "linux";
+  }
+
+  private static isActiveBigPictureWindow(window: BrowserWindow) {
+    return this.bigPicture === window && !window.isDestroyed();
+  }
+
+  private static presentBigPictureWindow(
+    window: BrowserWindow,
+    display: Electron.Display
+  ) {
+    this.placeBigPictureWindowOnDisplay(window, display);
+
+    if (this.useNativeBigPictureFullscreen()) {
+      window.setFullScreen(true);
+      return;
+    }
+
+    window.setVisibleOnAllWorkspaces(false);
+    this.placeBigPictureWindowOnDisplay(window, display);
+  }
+
+  private static scheduleBigPictureWindowPlacement(display: Electron.Display) {
+    if (process.platform !== "linux") return;
+
+    for (const delayMs of LINUX_BIG_PICTURE_PLACEMENT_RETRY_DELAYS_MS) {
+      setTimeout(() => {
+        if (!this.bigPicture || this.bigPicture.isDestroyed()) {
+          return;
+        }
+
+        this.placeBigPictureWindowOnDisplay(this.bigPicture, display);
+        this.bigPicture.moveTop();
+        this.bigPicture.focus();
+      }, delayMs);
+    }
   }
 
   public static sendToAppWindows(channel: string, ...args: unknown[]) {
@@ -340,6 +406,7 @@ export class WindowManager {
 
   public static async openBigPictureWindow() {
     if (this.bigPicture) {
+      await this.applyBigPictureDisplayPreference();
       this.bigPicture.focus();
       return;
     }
@@ -350,13 +417,12 @@ export class WindowManager {
       })
       .catch(() => null);
 
-    const targetDisplay = this.mainWindow?.isDestroyed()
-      ? null
-      : this.mainWindow
-        ? screen.getDisplayMatching(this.mainWindow.getBounds())
-        : screen.getPrimaryDisplay();
+    await BigPictureSessionManager.apply();
+    const targetDisplay = await DisplayManager.getBigPictureDisplay();
     const targetBounds =
-      targetDisplay?.bounds ?? screen.getPrimaryDisplay().bounds;
+      process.platform === "linux"
+        ? targetDisplay.workArea
+        : targetDisplay.bounds;
 
     this.bigPicture = new BrowserWindow({
       x: targetBounds.x,
@@ -391,8 +457,17 @@ export class WindowManager {
         main.setOpacity(1);
         this.disableMainWindowWhileBigPictureIsOpen();
       }
-      this.bigPicture?.show();
-      this.bigPicture?.setFullScreen(true);
+
+      if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+        this.placeBigPictureWindowOnDisplay(this.bigPicture, targetDisplay);
+      }
+
+      if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+        this.bigPicture.show();
+        this.placeBigPictureWindowOnDisplay(this.bigPicture, targetDisplay);
+        this.presentBigPictureWindow(this.bigPicture, targetDisplay);
+        this.scheduleBigPictureWindowPlacement(targetDisplay);
+      }
       this.bigPicture?.focus();
     });
 
@@ -408,7 +483,60 @@ export class WindowManager {
         main.show();
         main.focus();
       }
+
+      BigPictureSessionManager.restore().catch((error) => {
+        logger.warn("Failed to restore Big Picture session settings", error);
+      });
     });
+  }
+
+  public static async applyBigPictureDisplayPreference() {
+    const bigPicture = this.bigPicture;
+
+    if (!bigPicture || bigPicture.isDestroyed()) {
+      return;
+    }
+
+    const targetDisplay = await DisplayManager.getBigPictureDisplay();
+
+    if (!this.isActiveBigPictureWindow(bigPicture)) {
+      return;
+    }
+
+    const wasFullScreen = bigPicture.isFullScreen();
+
+    if (wasFullScreen) {
+      bigPicture.setFullScreen(false);
+      await new Promise((resolve) =>
+        setTimeout(resolve, BIG_PICTURE_FULLSCREEN_TOGGLE_DELAY_MS)
+      );
+
+      if (!this.isActiveBigPictureWindow(bigPicture)) {
+        return;
+      }
+    }
+
+    this.presentBigPictureWindow(bigPicture, targetDisplay);
+    this.scheduleBigPictureWindowPlacement(targetDisplay);
+
+    if (wasFullScreen && this.useNativeBigPictureFullscreen()) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, BIG_PICTURE_FULLSCREEN_TOGGLE_DELAY_MS)
+      );
+
+      if (!this.isActiveBigPictureWindow(bigPicture)) {
+        return;
+      }
+
+      this.placeBigPictureWindowOnDisplay(bigPicture, targetDisplay);
+    }
+
+    if (!this.isActiveBigPictureWindow(bigPicture)) {
+      return;
+    }
+
+    bigPicture.show();
+    bigPicture.focus();
   }
 
   public static openFriendsWindow() {
@@ -916,18 +1044,29 @@ export class WindowManager {
   private static readonly GAME_LAUNCHER_WINDOW_WIDTH = 550;
   private static readonly GAME_LAUNCHER_WINDOW_HEIGHT = 320;
 
-  public static async createGameLauncherWindow(shop: string, objectId: string) {
+  public static async createGameLauncherWindow(
+    shop: string,
+    objectId: string,
+    targetDisplay?: Electron.Display
+  ) {
     if (this.gameLauncherWindow) {
       this.gameLauncherWindow.close();
       this.gameLauncherWindow = null;
     }
 
-    const display = screen.getPrimaryDisplay();
-    const { width: displayWidth, height: displayHeight } = display.bounds;
+    const display = targetDisplay ?? screen.getPrimaryDisplay();
+    const {
+      x: displayX,
+      y: displayY,
+      width: displayWidth,
+      height: displayHeight,
+    } = display.bounds;
 
-    const x = Math.round((displayWidth - this.GAME_LAUNCHER_WINDOW_WIDTH) / 2);
+    const x = Math.round(
+      displayX + (displayWidth - this.GAME_LAUNCHER_WINDOW_WIDTH) / 2
+    );
     const y = Math.round(
-      (displayHeight - this.GAME_LAUNCHER_WINDOW_HEIGHT) / 2
+      displayY + (displayHeight - this.GAME_LAUNCHER_WINDOW_HEIGHT) / 2
     );
 
     this.gameLauncherWindow = new BrowserWindow({

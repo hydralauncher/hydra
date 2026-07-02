@@ -4,7 +4,7 @@ import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { launchClassicsGame, platformToSystem } from "@main/helpers";
 import { logger, NativeAddon } from "@main/services";
-import type { GameShop } from "@types";
+import type { GameShop, LaunchSource } from "@types";
 
 const codedLaunchError = (
   code: string,
@@ -52,7 +52,8 @@ const openClassicsGame = async (
   shop: GameShop,
   objectId: string,
   discPath?: string,
-  force?: boolean
+  force?: boolean,
+  launchSource: LaunchSource = "default"
 ) => {
   if (shop !== "launchbox") {
     throw new Error("openClassicsGame called for non-launchbox shop");
@@ -117,6 +118,7 @@ const openClassicsGame = async (
       objectId,
       discPath: resolvedDiscPath,
       system,
+      launchSource,
     });
   } catch (error) {
     if (

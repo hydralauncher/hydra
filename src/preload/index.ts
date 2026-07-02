@@ -36,6 +36,9 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  HydraAudioDevice,
+  HydraDisplay,
+  LaunchSource,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -661,21 +664,32 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     objectId: string,
     executablePath: string,
-    launchOptions?: string | null
+    launchOptions?: string | null,
+    launchSource?: LaunchSource
   ) =>
     ipcRenderer.invoke(
       "openGame",
       shop,
       objectId,
       executablePath,
-      launchOptions
+      launchOptions,
+      launchSource
     ),
   openClassicsGame: (
     shop: GameShop,
     objectId: string,
     discPath?: string,
-    force?: boolean
-  ) => ipcRenderer.invoke("openClassicsGame", shop, objectId, discPath, force),
+    force?: boolean,
+    launchSource?: LaunchSource
+  ) =>
+    ipcRenderer.invoke(
+      "openClassicsGame",
+      shop,
+      objectId,
+      discPath,
+      force,
+      launchSource
+    ),
   updateClassicsDisc: (
     shop: GameShop,
     objectId: string,
@@ -801,6 +815,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDiskFreeSpace", path),
   checkFolderWritePermission: (path: string) =>
     ipcRenderer.invoke("checkFolderWritePermission", path),
+  getDisplays: () =>
+    ipcRenderer.invoke("getDisplays") as Promise<HydraDisplay[]>,
+  getAudioDevices: () =>
+    ipcRenderer.invoke("getAudioDevices") as Promise<HydraAudioDevice[]>,
   getNetworkInterfaces: () => ipcRenderer.invoke("getNetworkInterfaces"),
 
   /* Cloud save */

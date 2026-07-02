@@ -6,7 +6,11 @@ import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager, Wine } from "@main/services";
+import {
+  BigPictureSessionManager,
+  DownloadManager,
+  Wine,
+} from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 
@@ -93,6 +97,20 @@ const updateUserPreferences = async (
     await DownloadManager.applyDownloadSpeedLimit(
       preferences.maxDownloadSpeedBytesPerSecond ?? null
     );
+  }
+
+  if (
+    Object.hasOwn(preferences, "bigPictureAudioDeviceId") ||
+    Object.hasOwn(preferences, "bigPictureSoundsEnabled")
+  ) {
+    await BigPictureSessionManager.applyAudioPreference(updatedPreferences);
+  }
+
+  if (
+    Object.hasOwn(preferences, "bigPictureDisplayId") ||
+    Object.hasOwn(preferences, "bigPictureDisplayBounds")
+  ) {
+    await WindowManager.applyBigPictureDisplayPreference();
   }
 
   if (Object.hasOwn(preferences, "torrentNetworkInterface")) {

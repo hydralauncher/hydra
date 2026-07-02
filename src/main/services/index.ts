@@ -27,4 +27,7 @@ export * from "./download-sources-checker";
 export * from "./notifications/local-notifications";
 export * from "./power-save-blocker";
 export * from "./native-addon";
+export * from "./display-manager";
+export * from "./audio-device-manager";
+export * from "./big-picture-session-manager";
 export * as emulators from "./emulators";

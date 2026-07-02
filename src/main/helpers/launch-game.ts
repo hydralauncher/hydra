@@ -2,7 +2,12 @@ import { shell } from "electron";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { GameShop, type Game, type UserPreferences } from "@types";
+import {
+  GameShop,
+  type Game,
+  type LaunchSource,
+  type UserPreferences,
+} from "@types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { updateGameExecutablePath } from "./update-executable-path";
 import {
@@ -12,6 +17,7 @@ import {
   PowerSaveBlockerManager,
   Wine,
   NativeAddon,
+  DisplayManager,
   launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
@@ -29,6 +35,7 @@ export interface LaunchGameOptions {
   objectId: string;
   executablePath: string;
   launchOptions?: string | null;
+  launchSource?: LaunchSource;
 }
 
 const isWindowsExecutable = (executablePath: string) =>
@@ -289,6 +296,103 @@ const launchWindowsBinaryOnLinux = async (
   return false;
 };
 
+type PlatformLaunchOptions = {
+  gameKey: string;
+  objectId: string;
+  parsedPath: string;
+  game: Game | undefined;
+  launchOptions: string | null | undefined;
+  useMangohud: boolean;
+  useGamemode: boolean;
+};
+
+const getLaunchDisplay = async (launchSource?: LaunchSource) => {
+  if (launchSource !== "big-picture") {
+    return undefined;
+  }
+
+  return DisplayManager.getBigPictureDisplay();
+};
+
+const runWindowsLaunchPreflight = async (shop: GameShop, objectId: string) => {
+  if (process.platform !== "win32") {
+    return;
+  }
+
+  try {
+    logger.log("Starting preflight check for game launch", {
+      shop,
+      objectId,
+    });
+    const preflightPassed = await CommonRedistManager.runPreflight();
+    logger.log("Preflight check result", { passed: preflightPassed });
+  } catch (error) {
+    logger.error(
+      "Preflight check failed with error, continuing with launch",
+      error
+    );
+  }
+};
+
+const prepareBigPictureDisplayForLaunchSource = async (
+  launchSource?: LaunchSource
+) => {
+  if (launchSource !== "big-picture") {
+    return;
+  }
+
+  // Re-assert at launch time because display settings can change while Big Picture stays open.
+  await DisplayManager.prepareBigPictureDisplayForLaunch();
+};
+
+const launchOnLinux = async ({
+  gameKey,
+  objectId,
+  parsedPath,
+  game,
+  launchOptions,
+  useMangohud,
+  useGamemode,
+}: PlatformLaunchOptions) => {
+  if (isWindowsExecutable(parsedPath)) {
+    const launched = await launchWindowsBinaryOnLinux(
+      gameKey,
+      objectId,
+      parsedPath,
+      game,
+      launchOptions,
+      useMangohud,
+      useGamemode
+    );
+
+    if (launched) return null;
+  }
+
+  const pid = launchNatively(
+    parsedPath,
+    launchOptions,
+    useMangohud,
+    useGamemode
+  );
+
+  if (pid !== null) launchedGamePids.set(gameKey, pid);
+
+  return pid;
+};
+
+const launchForCurrentPlatform = async (options: PlatformLaunchOptions) => {
+  if (process.platform === "linux") {
+    return launchOnLinux(options);
+  }
+
+  return launchNatively(
+    options.parsedPath,
+    options.launchOptions,
+    options.useMangohud,
+    options.useGamemode
+  );
+};
+
 /**
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
@@ -296,7 +400,8 @@ const launchWindowsBinaryOnLinux = async (
 export const launchGame = async (
   options: LaunchGameOptions
 ): Promise<number | null> => {
-  const { shop, objectId, executablePath, launchOptions } = options;
+  const { shop, objectId, executablePath, launchOptions, launchSource } =
+    options;
 
   const parsedPath = parseExecutablePath(executablePath);
 
@@ -326,54 +431,23 @@ export const launchGame = async (
     });
   }
 
-  await WindowManager.createGameLauncherWindow(shop, objectId);
+  const launchDisplay = await getLaunchDisplay(launchSource);
 
-  // Run preflight check for common redistributables (Windows only)
-  // Wrapped in try/catch to ensure game launch is never blocked
-  if (process.platform === "win32") {
-    try {
-      logger.log("Starting preflight check for game launch", {
-        shop,
-        objectId,
-      });
-      const preflightPassed = await CommonRedistManager.runPreflight();
-      logger.log("Preflight check result", { passed: preflightPassed });
-    } catch (error) {
-      logger.error(
-        "Preflight check failed with error, continuing with launch",
-        error
-      );
-    }
-  }
+  await WindowManager.createGameLauncherWindow(shop, objectId, launchDisplay);
+
+  await runWindowsLaunchPreflight(shop, objectId);
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  if (process.platform === "linux") {
-    if (isWindowsExecutable(parsedPath)) {
-      const launched = await launchWindowsBinaryOnLinux(
-        gameKey,
-        objectId,
-        parsedPath,
-        game,
-        launchOptions,
-        useMangohud,
-        useGamemode
-      );
+  await prepareBigPictureDisplayForLaunchSource(launchSource);
 
-      if (launched) return null;
-    }
-
-    const pid = launchNatively(
-      parsedPath,
-      launchOptions,
-      useMangohud,
-      useGamemode
-    );
-
-    if (pid !== null) launchedGamePids.set(gameKey, pid);
-
-    return pid;
-  }
-
-  return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+  return launchForCurrentPlatform({
+    gameKey,
+    objectId,
+    parsedPath,
+    game,
+    launchOptions,
+    useMangohud,
+    useGamemode,
+  });
 };
