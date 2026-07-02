@@ -1,5 +1,9 @@
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { getSkuRegion, getSkuRegionFlag, type SkuRegion } from "@renderer/helpers";
+import {
+  getSkuRegion,
+  getSkuRegionFlag,
+  type SkuRegion,
+} from "@renderer/helpers";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { DiscIcon } from "@phosphor-icons/react";
 import { FolderOpen, HardDrive, Monitor, Trash } from "lucide-react";

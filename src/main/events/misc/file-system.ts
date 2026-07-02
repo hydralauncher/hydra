@@ -1,3 +1,4 @@
+import { app } from "electron";
 import { access, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { platform } from "node:os";
@@ -18,13 +19,58 @@ export interface PathInfo {
   isFile: boolean;
 }
 
+function getReleaseRendererOrigin(): string | null {
+  const subdomain = import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN;
+  if (!subdomain) return null;
+
+  try {
+    return new URL(
+      `https://release-v${app.getVersion().replaceAll(".", "-")}.${subdomain}`
+    ).origin;
+  } catch {
+    return null;
+  }
+}
+
+function getDevRendererOrigin(): string | null {
+  const rendererUrl = process.env["ELECTRON_RENDERER_URL"];
+  if (!rendererUrl) return null;
+
+  try {
+    return new URL(rendererUrl).origin;
+  } catch {
+    return null;
+  }
+}
+
+function isTrustedRendererUrl(url: string): boolean {
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return false;
+  }
+
+  if (parsedUrl.protocol === "app:" || parsedUrl.protocol === "file:") {
+    return true;
+  }
+
+  const trustedOrigins = [
+    getDevRendererOrigin(),
+    getReleaseRendererOrigin(),
+  ].filter((origin): origin is string => Boolean(origin));
+
+  return trustedOrigins.includes(parsedUrl.origin);
+}
+
 function assertTrustedSender(event: Electron.IpcMainInvokeEvent): void {
   if (!event.senderFrame) {
     throw new Error("Unauthorized IPC sender");
   }
 
   const url = event.senderFrame.url;
-  if (!url.startsWith("app://") && !url.startsWith("file://")) {
+  if (!isTrustedRendererUrl(url)) {
     throw new Error("Unauthorized IPC sender");
   }
 }

@@ -7,7 +7,6 @@ import {
 } from "@phosphor-icons/react";
 import { Modal } from "../modal";
 import { VerticalFocusGroup } from "../vertical-focus-group";
-import { FocusItem } from "../focus-item";
 import { EmptyState } from "../empty-state";
 import { Skeleton } from "../skeleton";
 import { getEntryIcon } from "../../../helpers";
@@ -16,12 +15,41 @@ import {
   useFileExplorer,
   type FileExplorerModalProps,
 } from "./use-file-explorer";
+import { FocusItem } from "../focus-item";
 
 export { type FileExplorerModalProps } from "./use-file-explorer";
 export { type FileFilter } from "./utils";
 
+function getDriveFocusId(drive: string) {
+  return `file-explorer-drive-${drive}`;
+}
+
+function getEntryFocusId(path: string) {
+  return `file-explorer-entry-${path}`;
+}
+
+function getInitialFocusId(vm: ReturnType<typeof useFileExplorer>) {
+  const firstDrive = vm.drives[0];
+  const firstEntry = vm.filteredEntries[0];
+
+  if (vm.showSelectThisDir) {
+    return "file-explorer-select-dir";
+  }
+
+  if (vm.showDriveList && firstDrive) {
+    return getDriveFocusId(firstDrive);
+  }
+
+  if (firstEntry) {
+    return getEntryFocusId(firstEntry.path);
+  }
+
+  return undefined;
+}
+
 export function FileExplorerModal(props: Readonly<FileExplorerModalProps>) {
   const vm = useFileExplorer(props);
+  const initialFocusId = getInitialFocusId(vm);
 
   return (
     <Modal
@@ -32,6 +60,7 @@ export function FileExplorerModal(props: Readonly<FileExplorerModalProps>) {
       closeOnB={false}
       closeOnEscape={false}
       className="file-explorer-modal"
+      initialFocusId={initialFocusId}
     >
       <div className="file-explorer">
         {vm.isLoading && (
@@ -53,33 +82,30 @@ export function FileExplorerModal(props: Readonly<FileExplorerModalProps>) {
         )}
 
         {!vm.isLoading && !vm.error && (
+          <div className="file-explorer__path-input-wrapper">
+            <input
+              className="file-explorer__path-input"
+              type="text"
+              placeholder={vm.currentPath || vm.PATH_INPUT_PLACEHOLDER}
+              value={vm.currentPath}
+              readOnly
+              tabIndex={-1}
+              aria-readonly="true"
+            />
+
+            <FolderOpenIcon
+              size={24}
+              weight="fill"
+              className="file-explorer__path-input-icon"
+            />
+          </div>
+        )}
+
+        {!vm.isLoading && !vm.error && (
           <VerticalFocusGroup
             regionId={vm.fileListRegionId}
             className="file-explorer__list"
           >
-            <div className="file-explorer__path-input-wrapper">
-              <FocusItem
-                stealFocusOnAppear
-                actions={{ primary: () => vm.pathInputRef.current?.focus() }}
-              >
-                <input
-                  ref={vm.pathInputRef}
-                  className="file-explorer__path-input"
-                  type="text"
-                  placeholder={vm.currentPath || vm.PATH_INPUT_PLACEHOLDER}
-                  value={vm.pathInputValue}
-                  onChange={(e) => vm.setPathInputValue(e.target.value)}
-                  onKeyDown={vm.handlePathInputKeyDown}
-                />
-              </FocusItem>
-
-              <FolderOpenIcon
-                size={24}
-                weight="fill"
-                className="file-explorer__path-input-icon"
-              />
-            </div>
-
             {vm.showSelectThisDir && (
               <FocusItem
                 id="file-explorer-select-dir"
@@ -108,6 +134,7 @@ export function FileExplorerModal(props: Readonly<FileExplorerModalProps>) {
                 {vm.drives.map((drive) => (
                   <FocusItem
                     key={drive}
+                    id={getDriveFocusId(drive)}
                     actions={{ primary: () => vm.navigateToDrive(drive) }}
                     asChild
                   >
@@ -136,6 +163,7 @@ export function FileExplorerModal(props: Readonly<FileExplorerModalProps>) {
             {vm.filteredEntries.map((entry) => (
               <FocusItem
                 key={entry.path}
+                id={getEntryFocusId(entry.path)}
                 actions={{ primary: () => vm.handleEntrySelect(entry) }}
                 asChild
               >
