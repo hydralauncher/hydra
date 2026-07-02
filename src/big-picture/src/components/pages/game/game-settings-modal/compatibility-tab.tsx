@@ -252,7 +252,9 @@ export function GameCompatibilitySettingsTab({
               focusId={GAME_COMPATIBILITY_SETTINGS_WINE_SELECT_ID}
               variant="secondary"
               icon={<FolderOpenIcon size={16} />}
-              onClick={handleSelectWinePrefix}
+              onClick={() => {
+                handleSelectWinePrefix().catch(() => {});
+              }}
               focusNavigationOverrides={{
                 left: {
                   type: "item",
@@ -348,7 +350,9 @@ export function GameCompatibilitySettingsTab({
       <FileExplorerModal
         visible={winePickerOpen}
         onClose={() => setWinePickerOpen(false)}
-        onSelect={handleWinePrefixPicked}
+        onSelect={(path) => {
+          handleWinePrefixPicked(path).catch(() => {});
+        }}
         title={t("wine_prefix")}
         initialPath={winePickerInitialPath}
         selectDirectory

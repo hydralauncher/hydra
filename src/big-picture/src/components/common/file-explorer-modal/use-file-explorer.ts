@@ -71,6 +71,7 @@ export function useFileExplorer({
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
   const [drives, setDrives] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResolvingStartPath, setIsResolvingStartPath] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
   const generatedId = useId();
@@ -108,15 +109,26 @@ export function useFileExplorer({
       setEntries([]);
       setDrives([]);
       setIsLoading(false);
+      setIsResolvingStartPath(false);
       setError(null);
       setActiveFilterId(null);
       return;
     }
 
+    setIsLoading(true);
+    setIsResolvingStartPath(true);
+
     let cancelled = false;
 
     resolveStartPath(initialPath).then((path) => {
-      if (!cancelled) setCurrentPath(path);
+      if (cancelled) return;
+
+      setCurrentPath(path);
+      setIsResolvingStartPath(false);
+
+      if (!path) {
+        setIsLoading(false);
+      }
     });
 
     return () => {
@@ -129,6 +141,12 @@ export function useFileExplorer({
 
     if (!currentPath) {
       setEntries([]);
+      setError(null);
+
+      if (!isResolvingStartPath) {
+        setIsLoading(false);
+      }
+
       return;
     }
 
@@ -169,6 +187,7 @@ export function useFileExplorer({
   }, [
     visible,
     currentPath,
+    isResolvingStartPath,
     fileExplorerErrorFallback,
     fileExplorerErrorMessages,
   ]);
