@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useInputModeStore, useVirtualKeyboardStore } from "../../stores";
 import { MAX_OVERLAY_Z_INDEX } from "../../constants";
 import { GamepadService, NavigationService } from "../../services";
@@ -48,6 +48,14 @@ function InputModeMouseDetector() {
   useEffect(() => {
     const handlePointerActivity = () => {
       if (useInputModeStore.getState().mode !== "gamepad") return;
+      const overlay = document.getElementById("bp-input-overlay");
+      if (overlay) overlay.style.pointerEvents = "none";
+      setMouseMode();
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      if (useInputModeStore.getState().mode !== "gamepad") return;
+      e.preventDefault();
       setMouseMode();
     };
 
@@ -60,6 +68,9 @@ function InputModeMouseDetector() {
     globalThis.window.addEventListener("wheel", handlePointerActivity, {
       capture: true,
       passive: true,
+    });
+    globalThis.window.addEventListener("contextmenu", handleContextMenu, {
+      capture: true,
     });
 
     return () => {
@@ -78,6 +89,9 @@ function InputModeMouseDetector() {
         }
       );
       globalThis.window.removeEventListener("wheel", handlePointerActivity, {
+        capture: true,
+      });
+      globalThis.window.removeEventListener("contextmenu", handleContextMenu, {
         capture: true,
       });
     };
@@ -107,31 +121,19 @@ function InputModeFocusCleanup() {
 
 function InputModeOverlay() {
   const mode = useInputModeStore((state) => state.mode);
-  const setMouseMode = useInputModeStore((state) => state.setMouseMode);
-
-  const handlePointerActivity = useCallback(() => {
-    setMouseMode();
-  }, [setMouseMode]);
 
   if (mode !== "gamepad") return null;
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
+      id="bp-input-overlay"
+      aria-hidden="true"
       style={{
         position: "fixed",
         inset: 0,
         zIndex: MAX_OVERLAY_Z_INDEX,
         cursor: "none",
         pointerEvents: "auto",
-      }}
-      onMouseMove={handlePointerActivity}
-      onMouseDown={handlePointerActivity}
-      onPointerDown={handlePointerActivity}
-      onPointerMove={handlePointerActivity}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setMouseMode();
       }}
     />
   );
