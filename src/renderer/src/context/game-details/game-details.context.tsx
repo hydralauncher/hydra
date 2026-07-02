@@ -115,18 +115,16 @@ export function GameDetailsContextProvider({
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-    const language = i18n.resolvedLanguage ?? i18n.language;
 
     const shopDetailsPromise = window.electron
-      .getGameShopDetails(objectId, shop, language)
-      .catch(() => null)
+      .getGameShopDetails(objectId, shop, i18n.language)
       .then((result) => {
         if (abortController.signal.aborted) return;
 
         setShopDetails(result);
 
         if (
-          result?.content_descriptors?.ids?.includes(
+          result?.content_descriptors.ids.includes(
             SteamContentDescriptor.AdultOnlySexualContent
           ) &&
           !userPreferences?.disableNsfwAlert
@@ -136,6 +134,37 @@ export function GameDetailsContextProvider({
 
         if (result?.assets) {
           setIsLoading(false);
+        }
+
+        if (userDetails && shop !== "custom") {
+          const useRetroAchievements =
+            shop === "launchbox" &&
+            Boolean(result?.retroAchievementsGameId) &&
+            Boolean(userPreferences?.retroAchievementsWebApiKey);
+
+          if (useRetroAchievements) {
+            globalThis.window.electron
+              .getRetroAchievementsAchievements(
+                objectId,
+                shop,
+                result!.retroAchievementsGameId!
+              )
+              .then((achievements) => {
+                if (abortController.signal.aborted) return;
+                setAchievements(achievements ?? []);
+              })
+              .catch(() => {
+                if (!abortController.signal.aborted) setAchievements([]);
+              });
+          } else {
+            globalThis.window.electron
+              .getUnlockedAchievements(objectId, shop)
+              .then((achievements) => {
+                if (abortController.signal.aborted) return;
+                if (achievements) setAchievements(achievements);
+              })
+              .catch(() => void 0);
+          }
         }
       });
 
@@ -165,23 +194,13 @@ export function GameDetailsContextProvider({
         if (abortController.signal.aborted) return;
         setIsLoading(false);
       });
-
-    if (userDetails && shop !== "custom") {
-      window.electron
-        .getUnlockedAchievements(objectId, shop)
-        .then((achievements) => {
-          if (abortController.signal.aborted) return;
-          setAchievements(achievements);
-        })
-        .catch(() => void 0);
-    }
   }, [
     i18n.language,
-    i18n.resolvedLanguage,
     objectId,
     shop,
     userDetails,
     userPreferences?.disableNsfwAlert,
+    userPreferences?.retroAchievementsWebApiKey,
   ]);
 
   const refreshGameDetails = useCallback(async () => {
