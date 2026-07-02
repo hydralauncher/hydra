@@ -1,4 +1,6 @@
 import type { GameShop, LudusaviBackup, LudusaviConfig } from "@types";
+import { isDocPortalPath, isFlatpak } from "@main/helpers/sandbox";
+import { PathGrants } from "./path-grants";
 
 import { app } from "electron";
 import fs from "node:fs";
@@ -56,6 +58,15 @@ export class Ludusavi {
     winePrefix?: string | null,
     preview?: boolean
   ): Promise<LudusaviBackup> {
+    if (
+      backupPath &&
+      isFlatpak &&
+      isDocPortalPath(backupPath) &&
+      !(await PathGrants.verifyAccess(backupPath))
+    ) {
+      throw new Error(`Backup path is no longer accessible: ${backupPath}`);
+    }
+
     return new Promise((resolve, reject) => {
       const args = [
         "--config",
@@ -110,6 +121,8 @@ export class Ludusavi {
   }
 
   static async addCustomGame(title: string, savePath: string | null) {
+    if (savePath) await PathGrants.annotate(savePath);
+
     const config = await this.getConfig();
     const filteredGames = config.customGames.filter(
       (game) => game.name !== title

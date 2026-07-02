@@ -1,0 +1,120 @@
+# Hand-authored flatpak-builder manifest.
+#
+# electron-builder's flatpak target can't declare runtime extensions, and
+# Proton's pressure-vessel needs the 32-bit (i386) runtime + GL stack inside
+# the sandbox to bring up its container. This manifest packages the same
+# electron-builder `linux-unpacked` output but adds the Compat.i386 / GL32
+# extensions (and the Proton permission set), so Windows games launch even in
+# the tightened --nofilesystem=host configuration.
+#
+# Build with: npm run build:flatpak (see scripts/build-flatpak.cjs).
+app-id: gg.hydralauncher.hydra
+# Track the same freedesktop runtime the Steam Flatpak ships on. Older runtimes
+# (23.08) carry a flatpak/bwrap that can't pass file descriptors into Proton's
+# nested pressure-vessel container ("bwrap: Can't find source path
+# /proc/self/fd/NN"); 25.08 is new enough for the nested sandbox to come up.
+runtime: org.freedesktop.Platform
+runtime-version: "25.08"
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: "25.08"
+branch: stable
+command: electron-wrapper
+separate-locales: false
+
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  # Games launch through umu/Proton, whose pressure-vessel runtime runs 32-bit
+  # helpers and brings up its own nested bwrap container. multiarch allows the
+  # 32-bit exec, devel relaxes seccomp for the nested namespace, per-app-dev-shm
+  # works around flatpak#4214, and device=all covers GPU + controllers.
+  - --allow=multiarch
+  - --allow=devel
+  - --allow=per-app-dev-shm
+  - --device=all
+  # Default to full host access for native-path I/O performance. Users who want
+  # a tighter sandbox can drop host access and grant only what's needed; Proton
+  # still works (the i386 extensions + portal sub-sandbox below are what keep it
+  # working once host access is removed), e.g.:
+  #   flatpak override --user --nofilesystem=host \
+  #     --filesystem=xdg-download \
+  #     --filesystem=xdg-data/Steam:create \
+  #     --filesystem=xdg-data/umu:create \
+  #     gg.hydralauncher.hydra
+  # plus --filesystem=<library> if games live outside xdg-download. (Granting
+  # only xdg-download is enough to browse/download but NOT to launch Windows
+  # games: pressure-vessel must also reach the umu runtime and Proton build.)
+  - --filesystem=host
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.ScreenSaver
+  # Lets pressure-vessel ask the Flatpak portal to build its container as a
+  # sub-sandbox instead of a raw nested bwrap. Required direction for Proton in
+  # a sandbox; see flatpak/README.md for the bwrap fd limitation still open.
+  - --talk-name=org.freedesktop.Flatpak
+
+# The 32-bit runtime and GL stack pressure-vessel needs. Without these, in
+# tightened mode the launch dies with "Cannot determine ld.so for
+# i386-linux-gnu" because the sandbox has no 32-bit ELF loader. Declaring them
+# here is the whole reason this manifest exists instead of electron-builder's
+# flatpak target.
+add-extensions:
+  org.freedesktop.Platform.Compat.i386:
+    directory: lib/i386-linux-gnu
+    version: "25.08"
+    add-ld-path: lib
+    no-autodownload: false
+    autodelete: false
+
+  org.freedesktop.Platform.Compat.i386.Debug:
+    directory: lib/debug/lib/i386-linux-gnu
+    version: "25.08"
+    no-autodownload: true
+    autodelete: true
+
+  org.freedesktop.Platform.GL32:
+    directory: lib/i386-linux-gnu/GL
+    version: "1.4"
+    versions: "25.08;1.4"
+    subdirectories: true
+    no-autodownload: true
+    autodelete: false
+    add-ld-path: lib
+    merge-dirs: vulkan/icd.d;glvnd/egl_vendor.d;OpenCL/vendors;lib/dri;lib/d3d;vulkan/explicit_layer.d;vulkan/implicit_layer.d
+    download-if: active-gl-driver
+    enable-if: active-gl-driver
+
+modules:
+  - name: hydra
+    buildsystem: simple
+    build-commands:
+      # App payload — electron-builder's `linux-unpacked` output, copied
+      # verbatim (preserving symlinks + exec bits) under /app/lib.
+      - mkdir -p /app/lib/gg.hydralauncher.hydra
+      - cp -a linux-unpacked/. /app/lib/gg.hydralauncher.hydra/
+      - mkdir -p /app/bin
+      - ln -sf /app/lib/gg.hydralauncher.hydra/hydralauncher /app/bin/hydralauncher
+      - install -Dm755 electron-wrapper /app/bin/electron-wrapper
+      # Desktop integration.
+      - install -Dm644 gg.hydralauncher.hydra.desktop /app/share/applications/gg.hydralauncher.hydra.desktop
+      - install -Dm644 gg.hydralauncher.hydra.metainfo.xml /app/share/metainfo/gg.hydralauncher.hydra.metainfo.xml
+      - install -Dm644 icon-512.png /app/share/icons/hicolor/512x512/apps/gg.hydralauncher.hydra.png
+      # Mount points the add-extensions above are mounted onto at runtime.
+      - mkdir -p /app/lib/i386-linux-gnu/GL
+      - mkdir -p /app/lib/debug/lib/i386-linux-gnu
+    sources:
+      - type: dir
+        path: ../dist/linux-unpacked
+        dest: linux-unpacked
+      - type: file
+        path: electron-wrapper
+      - type: file
+        path: gg.hydralauncher.hydra.desktop
+      - type: file
+        path: gg.hydralauncher.hydra.metainfo.xml
+      - type: file
+        path: ../build/icons/512x512.png
+        dest-filename: icon-512.png

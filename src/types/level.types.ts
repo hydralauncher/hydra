@@ -111,6 +111,14 @@ export interface DownloadLayoutState {
   pausedOrder: string[];
 }
 
+export interface PathGrant {
+  /** The path the app can access (a document-portal FUSE path under Flatpak). */
+  accessPath: string;
+  /** The real host path, shown to the user. */
+  displayPath: string;
+  createdAt: number;
+}
+
 export interface GameAchievement {
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];

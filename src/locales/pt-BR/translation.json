@@ -1,7 +1,9 @@
 {
   "language_name": "Português (Brasil)",
   "app": {
-    "successfully_signed_in": "Autenticado com sucesso"
+    "successfully_signed_in": "Autenticado com sucesso",
+    "lost_folder_access": "Acesso à pasta perdido",
+    "lost_folder_access_description": "O Hydra não consegue mais acessar: {{paths}}. Selecione a pasta novamente nas configurações para restaurar o acesso."
   },
   "home": {
     "hot": "Populares",

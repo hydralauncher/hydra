@@ -31,6 +31,7 @@
     "build:win": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --win",
     "build:mac": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --mac",
     "build:linux": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --linux",
+    "build:flatpak": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --linux dir && node ./scripts/build-flatpak.cjs",
     "dev:big-picture": "vite dev src/big-picture",
     "prepare": "husky"
   },

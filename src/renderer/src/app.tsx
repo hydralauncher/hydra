@@ -55,6 +55,10 @@ export interface AppProps {
   children: React.ReactNode;
 }
 
+// Lost-folder-access toast stays up longer than usual so the user has time
+// to read the affected folder paths.
+const LOST_FOLDER_ACCESS_TOAST_DURATION = 12_000;
+
 type WorkWondersWithKnowledge = WorkWonders & {
   knowledge?: {
     initKnowledgeWidget?: () => void;
@@ -111,6 +115,24 @@ export function App() {
       dispatch(setUserPreferences(preferences as UserPreferences | null));
     });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
+
+  useEffect(() => {
+    const unsubscribe = globalThis.window.electron.onPathGrantsLost(
+      (displayPaths) => {
+        showErrorToast(
+          t("lost_folder_access"),
+          t("lost_folder_access_description", {
+            paths: displayPaths.join(", "),
+          }),
+          LOST_FOLDER_ACCESS_TOAST_DURATION
+        );
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [showErrorToast, t]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onUserPreferencesUpdated(

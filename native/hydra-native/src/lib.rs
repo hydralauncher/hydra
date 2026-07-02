@@ -143,6 +143,23 @@ fn process_friend_image_sync(
 }
 
 #[napi]
+pub fn get_xattr(file_path: String, name: String) -> Option<String> {
+    #[cfg(target_os = "linux")]
+    {
+        xattr::get(&file_path, &name)
+            .ok()
+            .flatten()
+            .map(|value| String::from_utf8_lossy(&value).to_string())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (file_path, name);
+        None
+    }
+}
+
+#[napi]
 pub fn list_processes() -> Vec<NativeProcessPayload> {
     let mut system = System::new_all();
     system.refresh_processes(ProcessesToUpdate::All, true);

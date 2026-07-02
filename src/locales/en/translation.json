@@ -1,7 +1,9 @@
 {
   "language_name": "English",
   "app": {
-    "successfully_signed_in": "Successfully signed in"
+    "successfully_signed_in": "Successfully signed in",
+    "lost_folder_access": "Folder access lost",
+    "lost_folder_access_description": "Hydra can no longer access: {{paths}}. Pick the folder again in its settings to restore access."
   },
   "home": {
     "surprise_me": "Surprise me",
