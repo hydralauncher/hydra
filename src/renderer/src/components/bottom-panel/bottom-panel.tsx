@@ -89,6 +89,17 @@ export function BottomPanel() {
       : undefined;
 
     if (game) {
+      if (lastPacket?.isRecovering)
+        return t("recovering", {
+          title: game.title,
+          percentage: `${Math.round((lastPacket.recoveryProgress ?? 0) * 100)}%`,
+        });
+
+      if (lastPacket?.isReconnecting)
+        return t("reconnecting", {
+          title: game.title,
+        });
+
       if (lastPacket?.isCheckingFiles)
         return t("checking_files", {
           title: game.title,

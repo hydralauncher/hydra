@@ -154,6 +154,8 @@
     "scan_games_detection_warning": "Detection relies on a community-maintained list of known games and may be outdated, so some games might not be found."
   },
   "bottom_panel": {
+    "reconnecting": "Reconnecting {{title}}…",
+    "recovering": "Recovering {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "No downloads in progress",
     "downloading_metadata": "Downloading {{title}} metadata…",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Completion {{eta}} - {{speed}}",
@@ -681,6 +683,8 @@
     "loading": "Loading…"
   },
   "downloads": {
+    "reconnecting": "Reconnecting…",
+    "recovering": "Recovering download… {{percentage}}",
     "resume": "Resume",
     "pause": "Pause",
     "eta": "Completion {{eta}}",

@@ -10,6 +10,7 @@ import {
   WindowManager,
   Lock,
   PowerSaveBlockerManager,
+  DownloadOrchestrator,
   SSEClient,
 } from "@main/services";
 import resources from "@locales";
@@ -288,6 +289,10 @@ app.whenReady().then(async () => {
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
   powerMonitor.on("resume", () => {
     SSEClient.reconnectNow();
+    DownloadOrchestrator.onNetworkStatusChanged({
+      online: true,
+      switched: true,
+    });
   });
 
   const language = await db

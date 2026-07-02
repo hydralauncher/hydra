@@ -125,6 +125,8 @@
     "scan_games_scan_again": "Escanear Novamente"
   },
   "bottom_panel": {
+    "reconnecting": "A reconectar {{title}}…",
+    "recovering": "A recuperar {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Sem transferências em andamento",
     "downloading_metadata": "A transferir metadados de {{title}}…",
     "downloading": "A transferir {{title}}… ({{percentage}} concluído) - Conclusão {{eta}} - {{speed}}",
@@ -507,6 +509,8 @@
     "loading": "A carregar…"
   },
   "downloads": {
+    "reconnecting": "A reconectar…",
+    "recovering": "A recuperar transferência… {{percentage}}",
     "resume": "Continuar",
     "pause": "Colocar em pausa",
     "eta": "Conclusão {{eta}}",
