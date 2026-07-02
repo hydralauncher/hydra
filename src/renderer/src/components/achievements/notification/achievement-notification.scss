@@ -141,6 +141,44 @@ $margin-bottom: 28px;
   }
 }
 
+.achievement-notification-window {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  pointer-events: none;
+  overflow: visible;
+
+  &--top-left {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  &--top-center {
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  &--top-right {
+    align-items: flex-start;
+    justify-content: flex-end;
+  }
+
+  &--bottom-left {
+    align-items: flex-end;
+    justify-content: flex-start;
+  }
+
+  &--bottom-center {
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  &--bottom-right {
+    align-items: flex-end;
+    justify-content: flex-end;
+  }
+}
+
 .achievement-notification {
   width: var(--achievement-notification-scaled-width, 360px);
   height: var(--achievement-notification-scaled-height, 140px);

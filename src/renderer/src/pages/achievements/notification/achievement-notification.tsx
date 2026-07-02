@@ -225,7 +225,10 @@ export function AchievementNotification() {
       <style type="text/css">
         {app} {styles}
       </style>
-      <section ref={setShadowRootRef}>
+      <section
+        ref={setShadowRootRef}
+        className={`achievement-notification-window achievement-notification-window--${position}`}
+      >
         {isVisible && currentAchievement && (
           <AchievementNotificationItem
             achievement={currentAchievement}

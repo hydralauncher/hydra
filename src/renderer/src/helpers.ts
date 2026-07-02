@@ -300,12 +300,10 @@ export const getAchievementSoundVolume = async (
         );
         const sound = getAchievementNotificationSound(customizer, variation);
 
-        if (sound.volume !== undefined) {
-          return getEffectiveAchievementNotificationSoundVolume(
-            masterVolume,
-            sound.volume
-          );
-        }
+        return getEffectiveAchievementNotificationSoundVolume(
+          masterVolume,
+          sound.volume
+        );
       }
     }
 
