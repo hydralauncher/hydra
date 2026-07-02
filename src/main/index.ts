@@ -11,6 +11,7 @@ import {
   Lock,
   PowerSaveBlockerManager,
   DownloadOrchestrator,
+  SSEClient,
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
@@ -151,6 +152,15 @@ app.whenReady().then(async () => {
 
   await loadState();
 
+  // Suspend can outlive the 60s stall watchdog; reconnect right away instead
+  powerMonitor.on("resume", () => {
+    SSEClient.reconnectNow();
+    DownloadOrchestrator.onNetworkStatusChanged({
+      online: true,
+      switched: true,
+    });
+  });
+
   const language = await db
     .get<string, string>(levelKeys.language, {
       valueEncoding: "utf8",
@@ -171,13 +181,6 @@ app.whenReady().then(async () => {
 
   WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
-
-  powerMonitor.on("resume", () => {
-    DownloadOrchestrator.onNetworkStatusChanged({
-      online: true,
-      switched: true,
-    });
-  });
 
   if (deepLinkArg) {
     handleDeepLinkPath(deepLinkArg);

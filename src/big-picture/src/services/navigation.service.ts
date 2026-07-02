@@ -647,6 +647,11 @@ export class NavigationService {
       }));
   }
 
+  public clearFocus(): void {
+    this.currentFocusId = null;
+    this.notify();
+  }
+
   public setFocus(id: string) {
     const node = this.nodes.get(id);
 
