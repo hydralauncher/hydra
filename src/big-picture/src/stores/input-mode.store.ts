@@ -9,6 +9,29 @@ export interface FocusSnapshot {
 
 export const MOUSE_FOCUS_RESTORE_WINDOW_MS = 1000;
 
+const GAMEPAD_STYLE_ID = "bp-input-mode-gamepad-style";
+
+function applyGamepadStyle() {
+  if (document.getElementById(GAMEPAD_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = GAMEPAD_STYLE_ID;
+  style.textContent = `
+    #big-picture[data-bp-input-mode="gamepad"],
+    #big-picture[data-bp-input-mode="gamepad"] * {
+      cursor: none !important;
+    }
+    #big-picture[data-bp-input-mode="gamepad"] * {
+      pointer-events: none !important;
+    }
+  `;
+  document.head.appendChild(style);
+  document.body.offsetHeight;
+}
+
+function removeGamepadStyle() {
+  document.getElementById(GAMEPAD_STYLE_ID)?.remove();
+}
+
 interface InputModeState {
   mode: InputMode;
   mouseFocusSnapshot: FocusSnapshot | null;
@@ -56,11 +79,14 @@ export const useInputModeStore = create<InputModeState>()((set, get) => ({
       mouseFocusSnapshot: null,
       pendingGamepadFocus: Boolean(restoredFocusId),
     });
+
+    applyGamepadStyle();
   },
 
   setMouseMode: () => {
     if (get().mode === "mouse") return;
     set({ mode: "mouse" });
+    removeGamepadStyle();
   },
 
   setMouseFocusSnapshot: (focusId, now = Date.now()) => {
