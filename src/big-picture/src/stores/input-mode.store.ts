@@ -1,34 +1,61 @@
 import { create } from "zustand";
-import { NavigationService } from "../services";
+import { NavigationService } from "../services/navigation.service";
 
 export type InputMode = "gamepad" | "mouse";
+export interface FocusSnapshot {
+  focusId: string;
+  capturedAt: number;
+}
+
+export const MOUSE_FOCUS_RESTORE_WINDOW_MS = 1000;
 
 interface InputModeState {
   mode: InputMode;
-  lastMouseFocusId: string | null;
+  mouseFocusSnapshot: FocusSnapshot | null;
+  gamepadFocusSnapshot: FocusSnapshot | null;
   pendingGamepadFocus: boolean;
-  setGamepadMode: () => void;
+  setGamepadMode: (now?: number) => void;
   setMouseMode: () => void;
-  setLastMouseFocusId: (id: string | null) => void;
+  setMouseFocusSnapshot: (focusId: string | null, now?: number) => void;
+  setGamepadFocusSnapshot: (focusId: string | null, now?: number) => void;
   clearPendingGamepadFocus: () => void;
 }
 
 export const useInputModeStore = create<InputModeState>()((set, get) => ({
   mode: "gamepad",
-  lastMouseFocusId: null,
+  mouseFocusSnapshot: null,
+  gamepadFocusSnapshot: null,
   pendingGamepadFocus: false,
 
-  setGamepadMode: () => {
+  setGamepadMode: (now = Date.now()) => {
     if (get().mode === "gamepad") return;
-    const lastMouseFocusId = get().lastMouseFocusId;
+
+    const navigation = NavigationService.getInstance();
+    const snapshot = get().mouseFocusSnapshot;
+    const gamepadSnapshot = get().gamepadFocusSnapshot;
+    let restoredFocusId: string | null = null;
+
+    if (
+      snapshot &&
+      now - snapshot.capturedAt <= MOUSE_FOCUS_RESTORE_WINDOW_MS &&
+      navigation.getNode(snapshot.focusId)
+    ) {
+      restoredFocusId = navigation.setFocus(snapshot.focusId);
+    }
+
+    if (
+      !restoredFocusId &&
+      gamepadSnapshot &&
+      navigation.getNode(gamepadSnapshot.focusId)
+    ) {
+      restoredFocusId = navigation.setFocus(gamepadSnapshot.focusId);
+    }
+
     set({
       mode: "gamepad",
-      lastMouseFocusId: null,
-      pendingGamepadFocus: !!lastMouseFocusId,
+      mouseFocusSnapshot: null,
+      pendingGamepadFocus: Boolean(restoredFocusId),
     });
-    if (lastMouseFocusId) {
-      NavigationService.getInstance().setFocus(lastMouseFocusId);
-    }
   },
 
   setMouseMode: () => {
@@ -36,8 +63,26 @@ export const useInputModeStore = create<InputModeState>()((set, get) => ({
     set({ mode: "mouse" });
   },
 
-  setLastMouseFocusId: (id) => {
-    set({ lastMouseFocusId: id });
+  setMouseFocusSnapshot: (focusId, now = Date.now()) => {
+    set({
+      mouseFocusSnapshot: focusId
+        ? {
+            focusId,
+            capturedAt: now,
+          }
+        : null,
+    });
+  },
+
+  setGamepadFocusSnapshot: (focusId, now = Date.now()) => {
+    set({
+      gamepadFocusSnapshot: focusId
+        ? {
+            focusId,
+            capturedAt: now,
+          }
+        : null,
+    });
   },
 
   clearPendingGamepadFocus: () => {

@@ -1,12 +1,20 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { useInputModeStore, useVirtualKeyboardStore } from "../../stores";
-import { GamepadService, NavigationService } from "../../services";
+import { useInputModeStore } from "../../stores/input-mode.store";
+import { useNavigationStore } from "../../stores/navigation.store";
+import { useVirtualKeyboardStore } from "../../stores/virtual-keyboard.store";
+import { GamepadService } from "../../services/gamepad.service";
+import { NavigationService } from "../../services/navigation.service";
+import {
+  getMouseFocusTargetId,
+  shouldEnterMouseMode,
+} from "./input-mode.provider.helpers";
 
 export function InputModeProvider() {
   return (
     <>
       <InputModeAttributeSync />
       <InputModeGamepadDetector />
+      <InputModeGamepadFocusTracker />
       <InputModeMouseDetector />
       <InputModeMouseFocusTracker />
       <InputModeCursorSync />
@@ -42,18 +50,56 @@ function InputModeGamepadDetector() {
   return null;
 }
 
-function InputModeMouseDetector() {
-  const setMouseMode = useInputModeStore((state) => state.setMouseMode);
+function InputModeGamepadFocusTracker() {
+  const mode = useInputModeStore((state) => state.mode);
+  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const setGamepadFocusSnapshot = useInputModeStore(
+    (state) => state.setGamepadFocusSnapshot
+  );
 
   useEffect(() => {
-    const handlePointerActivity = () => {
-      if (useInputModeStore.getState().mode !== "gamepad") return;
+    if (mode !== "gamepad") return;
+    if (!currentFocusId) return;
+    if (!NavigationService.getInstance().getNode(currentFocusId)) return;
+
+    setGamepadFocusSnapshot(currentFocusId);
+  }, [currentFocusId, mode, setGamepadFocusSnapshot]);
+
+  return null;
+}
+
+function InputModeMouseDetector() {
+  const setMouseMode = useInputModeStore((state) => state.setMouseMode);
+  const setMouseFocusSnapshot = useInputModeStore(
+    (state) => state.setMouseFocusSnapshot
+  );
+
+  useEffect(() => {
+    const handlePointerActivity = (event: MouseEvent | WheelEvent) => {
+      if (
+        !shouldEnterMouseMode(
+          useInputModeStore.getState().mode,
+          GamepadService.getInstance().wasGamepadRecentlyActive()
+        )
+      ) {
+        return;
+      }
+
+      setMouseFocusSnapshot(getMouseFocusTargetId(event.target));
       setMouseMode();
     };
 
     const handleContextMenu = (e: MouseEvent) => {
-      if (useInputModeStore.getState().mode !== "gamepad") return;
+      if (
+        !shouldEnterMouseMode(
+          useInputModeStore.getState().mode,
+          GamepadService.getInstance().wasGamepadRecentlyActive()
+        )
+      ) {
+        return;
+      }
       e.preventDefault();
+      setMouseFocusSnapshot(getMouseFocusTargetId(e.target));
       setMouseMode();
     };
 
@@ -93,31 +139,31 @@ function InputModeMouseDetector() {
         capture: true,
       });
     };
-  }, [setMouseMode]);
+  }, [setMouseFocusSnapshot, setMouseMode]);
 
   return null;
 }
 
 function InputModeMouseFocusTracker() {
-  const setLastMouseFocusId = useInputModeStore(
-    (state) => state.setLastMouseFocusId
+  const setMouseFocusSnapshot = useInputModeStore(
+    (state) => state.setMouseFocusSnapshot
   );
 
   useEffect(() => {
     const handleMouseOver = (e: MouseEvent) => {
       if (useInputModeStore.getState().mode !== "mouse") return;
 
-      const target = e.target as HTMLElement;
-      const focusItem = target.closest("[data-navigation-state]");
-      if (!focusItem?.id) return;
-      if (focusItem.id === useInputModeStore.getState().lastMouseFocusId)
+      const focusId = getMouseFocusTargetId(e.target);
+      const currentSnapshot = useInputModeStore.getState().mouseFocusSnapshot;
+
+      if (focusId === currentSnapshot?.focusId) return;
+
+      if (focusId && NavigationService.getInstance().getNode(focusId)) {
+        setMouseFocusSnapshot(focusId);
         return;
-
-      const node = NavigationService.getInstance().getNode(focusItem.id);
-
-      if (node) {
-        setLastMouseFocusId(focusItem.id);
       }
+
+      setMouseFocusSnapshot(null);
     };
 
     globalThis.window.addEventListener("mouseover", handleMouseOver, {
@@ -129,7 +175,7 @@ function InputModeMouseFocusTracker() {
         capture: true,
       });
     };
-  }, [setLastMouseFocusId]);
+  }, [setMouseFocusSnapshot]);
 
   return null;
 }
