@@ -48,7 +48,7 @@ const iconProps = {
   weight: "fill",
 } as const;
 
-export const imageExtensions = new Set([
+const imageExtensions = new Set([
   "jpg",
   "jpeg",
   "jpe",
@@ -84,7 +84,7 @@ export const imageExtensions = new Set([
   "srw",
 ]);
 
-export const audioExtensions = new Set([
+const audioExtensions = new Set([
   "mp3",
   "mp2",
   "mpa",
@@ -121,7 +121,7 @@ export const audioExtensions = new Set([
   "ra",
 ]);
 
-export const videoExtensions = new Set([
+const videoExtensions = new Set([
   "mp4",
   "m4v",
   "avi",
@@ -149,7 +149,7 @@ export const videoExtensions = new Set([
   "divx",
 ]);
 
-export const archiveExtensions = new Set([
+const archiveExtensions = new Set([
   "zip",
   "rar",
   "7z",
@@ -185,7 +185,7 @@ export const archiveExtensions = new Set([
   "gem",
 ]);
 
-export const discExtensions = new Set([
+const discExtensions = new Set([
   "iso",
   "bin",
   "cue",
@@ -290,7 +290,7 @@ export const discExtensions = new Set([
   "3dsx",
 ]);
 
-export const scriptExtensions = new Set([
+const scriptExtensions = new Set([
   "sh",
   "bash",
   "zsh",
@@ -311,7 +311,7 @@ export const scriptExtensions = new Set([
   "run",
 ]);
 
-export const saveExtensions = new Set([
+const saveExtensions = new Set([
   "mcr",
   "mcd",
   "mc",
@@ -348,7 +348,7 @@ export const saveExtensions = new Set([
   "fs",
 ]);
 
-export const patchExtensions = new Set([
+const patchExtensions = new Set([
   "ips",
   "bps",
   "ups",
@@ -359,7 +359,7 @@ export const patchExtensions = new Set([
   "aps",
 ]);
 
-export const codeExtensions = new Set([
+const codeExtensions = new Set([
   "go",
   "rs",
   "rb",

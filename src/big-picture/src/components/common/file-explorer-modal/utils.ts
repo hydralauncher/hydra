@@ -6,6 +6,11 @@ export interface FileFilter {
   extensions: string[];
 }
 
+interface NormalizedFilters {
+  specificExtensions: Set<string>;
+  hasWildcard: boolean;
+}
+
 const WINDOWS_DRIVE_RE = /^[A-Za-z]:$/;
 const WINDOWS_ROOT_RE = /^[A-Za-z]:[\\/]?$/;
 
@@ -47,25 +52,35 @@ export function getEntryMeta(entry: DirectoryEntry): string {
   return formatBytes(entry.size);
 }
 
-export function normalizeFilters(filters?: FileFilter[]): Set<string> | null {
+export function normalizeFilters(
+  filters?: FileFilter[]
+): NormalizedFilters | null {
   if (!filters || filters.length === 0) return null;
 
   const allExtensions = filters.flatMap((f) => f.extensions);
+  const hasWildcard = allExtensions.includes("*");
   const specificExtensions = allExtensions.filter((ext) => ext !== "*");
 
-  if (specificExtensions.length === 0) return null;
+  if (specificExtensions.length === 0 && !hasWildcard) return null;
 
-  return new Set(specificExtensions.map((ext) => ext.toLowerCase()));
+  return {
+    specificExtensions: new Set(
+      specificExtensions.map((ext) => ext.toLowerCase())
+    ),
+    hasWildcard,
+  };
 }
 
 export function matchesFilters(
   entry: DirectoryEntry,
-  allowedExtensions: Set<string> | null,
+  filters: NormalizedFilters | null,
   directoryOnly: boolean
 ): boolean {
   if (directoryOnly && !entry.isDirectory) return false;
   if (entry.isDirectory) return true;
-  if (!allowedExtensions) return true;
+  if (!filters) return true;
+  if (filters.specificExtensions.size === 0) return filters.hasWildcard;
+  if (filters.specificExtensions.has(entry.extension)) return true;
 
-  return allowedExtensions.has(entry.extension);
+  return filters.hasWildcard && entry.extension === "";
 }

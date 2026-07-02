@@ -159,10 +159,12 @@ export function useFileExplorer({
   ]);
 
   useEffect(() => {
-    if (!visible || currentPath) {
+    if (!visible) {
       setDrives([]);
       return;
     }
+
+    if (currentPath || drives.length > 0) return;
 
     let cancelled = false;
 
@@ -180,7 +182,7 @@ export function useFileExplorer({
     return () => {
       cancelled = true;
     };
-  }, [visible, currentPath]);
+  }, [visible, currentPath, drives.length]);
 
   const allowedExtensions = useMemo(() => normalizeFilters(filters), [filters]);
 
