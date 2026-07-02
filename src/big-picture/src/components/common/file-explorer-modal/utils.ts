@@ -54,9 +54,7 @@ export function getEntryMeta(entry: DirectoryEntry): string {
   return formatBytes(entry.size);
 }
 
-export function normalizeFilters(
-  filters?: FileFilter[]
-): FilterGroup[] {
+export function normalizeFilters(filters?: FileFilter[]): FilterGroup[] {
   if (!filters || filters.length === 0) return [];
 
   const normalizedFilters: FilterGroup[] = [];
