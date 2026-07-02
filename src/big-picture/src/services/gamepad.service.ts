@@ -86,6 +86,7 @@ export class GamepadService {
   private readonly gamepadSwitchDuplicateWindow = 250;
   private readonly buttonEchoSuppressionWindow = 220;
   private readonly stickEchoSuppressionWindow = 320;
+  private readonly recentGamepadActivityWindow = 350;
   private readonly axisButtonThreshold = 0.5;
   private readonly axisTriggerThreshold = 0.5;
 
@@ -93,6 +94,7 @@ export class GamepadService {
   private animationFrameId: number | null = null;
   private activeGamepadIndex: number | null = null;
   private lastActiveGamepadSwitchTime = 0;
+  private lastGamepadActivityTime = 0;
   private hasPendingActiveGamepadChange = false;
   private inputEnabled = true;
 
@@ -102,6 +104,7 @@ export class GamepadService {
   private readonly stickMoveCallbacks: StickMoveCallbacks = new Map();
   private readonly layoutCache = new Map<string, GamepadLayout>();
   private readonly stateChangeCallbacks = new Set<() => void>();
+  private readonly anyButtonPressCallbacks = new Set<() => void>();
   private readonly stickStatesByGamepad = new Map<
     number,
     GamepadStickStateSet
@@ -305,6 +308,7 @@ export class GamepadService {
       this.triggerButtonPressCallbacks(index, type, inputMeta);
 
       if (inputMeta.accepted) {
+        this.markGamepadActivity(now);
         this.claimRepeatOwnership(index, input);
         this.setupButtonRepeat(index, type);
       }
@@ -484,7 +488,7 @@ export class GamepadService {
       candidates?.delete(lane);
     }
 
-    if (candidates && candidates.size === 0) {
+    if (candidates?.size === 0) {
       this.repeatCandidatesByGamepad.delete(gamepadIndex);
     }
 
@@ -562,6 +566,7 @@ export class GamepadService {
       this.triggerButtonPressCallbacks(gamepadIndex, type, inputMeta);
 
       if (inputMeta.accepted) {
+        this.markGamepadActivity();
         this.repeatButtonCallback(gamepadIndex, type);
       } else {
         this.clearButtonRepeatTimer(gamepadIndex, type);
@@ -615,6 +620,7 @@ export class GamepadService {
         return;
       }
 
+      this.markGamepadActivity();
       scheduleRepeat(repeat);
     };
 
@@ -690,6 +696,14 @@ export class GamepadService {
     type: GamepadButtonType,
     meta: GamepadInputEventMeta
   ): void {
+    this.anyButtonPressCallbacks.forEach((callback) => {
+      try {
+        callback();
+      } catch (error) {
+        console.error("Error in any-button-press callback:", error);
+      }
+    });
+
     const callbacks = this.buttonPressCallbacks.get(type);
     if (!callbacks) return;
 
@@ -726,6 +740,14 @@ export class GamepadService {
       if (callbackSet.size === 0) {
         this.buttonPressCallbacks.delete(type);
       }
+    };
+  }
+
+  public onAnyButtonPress(callback: () => void): () => void {
+    this.anyButtonPressCallbacks.add(callback);
+
+    return () => {
+      this.anyButtonPressCallbacks.delete(callback);
     };
   }
 
@@ -972,6 +994,7 @@ export class GamepadService {
       this.triggerStickCallbacks(gamepadIndex, side, newDirection, inputMeta);
 
       if (inputMeta.accepted) {
+        this.markGamepadActivity(now);
         this.claimRepeatOwnership(gamepadIndex, input);
         this.setupStickRepeat(gamepadIndex, side, newDirection);
       }
@@ -1005,6 +1028,7 @@ export class GamepadService {
         this.triggerStickCallbacks(gamepadIndex, side, direction, inputMeta);
 
         if (inputMeta.accepted) {
+          this.markGamepadActivity();
           this.repeatStickCallback(gamepadIndex, side, direction);
         } else {
           stickState.repeatTimer = null;
@@ -1060,6 +1084,7 @@ export class GamepadService {
         return;
       }
 
+      this.markGamepadActivity();
       scheduleRepeat(repeat);
     };
 
@@ -1207,6 +1232,26 @@ export class GamepadService {
 
   public getLastActiveGamepad(): number | null {
     return this.getActiveGamepadIndex();
+  }
+
+  public markGamepadActivity(now = Date.now()): void {
+    this.lastGamepadActivityTime = now;
+  }
+
+  public wasGamepadRecentlyActive(
+    windowMs = this.recentGamepadActivityWindow,
+    now = Date.now()
+  ): boolean {
+    return now - this.lastGamepadActivityTime <= windowMs;
+  }
+
+  public isAnyGamepadButtonPressed(): boolean {
+    for (const [, state] of this.gamepadStates) {
+      for (const [, button] of state.buttons) {
+        if (button.pressed) return true;
+      }
+    }
+    return false;
   }
 
   public setActiveGamepadIndex(index: number | null): void {

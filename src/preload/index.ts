@@ -40,6 +40,12 @@ import type {
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 
+const fileExplorerApi = {
+  readDirectory: (path: string) => ipcRenderer.invoke("readDirectory", path),
+  getPathInfo: (path: string) => ipcRenderer.invoke("getPathInfo", path),
+  listDrives: () => ipcRenderer.invoke("listDrives"),
+};
+
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>
@@ -171,6 +177,8 @@ contextBridge.exposeInMainWorld("electron", {
     system: EmulatorSystem,
     executablePath: string | null
   ) => ipcRenderer.invoke("setEmulatorExecutablePath", system, executablePath),
+  setEmulatorBiosPath: (system: EmulatorSystem, biosPath: string | null) =>
+    ipcRenderer.invoke("setEmulatorBiosPath", system, biosPath),
   addRomFolder: (
     system: EmulatorSystem,
     folderPath: string,
@@ -203,8 +211,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("rescanEmulator", system, language),
   checkPs3Firmware: (executablePath: string | null) =>
     ipcRenderer.invoke("checkPs3Firmware", executablePath),
-  checkEmulatorBios: (system: EmulatorSystem, executablePath: string | null) =>
-    ipcRenderer.invoke("checkEmulatorBios", system, executablePath),
+  checkEmulatorBios: (
+    system: EmulatorSystem,
+    executablePath: string | null,
+    manualBiosPath?: string | null
+  ) =>
+    ipcRenderer.invoke(
+      "checkEmulatorBios",
+      system,
+      executablePath,
+      manualBiosPath ?? null
+    ),
   getEmulatorInstallOptions: (binary: EmulatorBinary) =>
     ipcRenderer.invoke("getEmulatorInstallOptions", binary),
   installEmulator: (binary: EmulatorBinary, optionId: string) =>
@@ -784,6 +801,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDiskFreeSpace", path),
   checkFolderWritePermission: (path: string) =>
     ipcRenderer.invoke("checkFolderWritePermission", path),
+  getNetworkInterfaces: () => ipcRenderer.invoke("getNetworkInterfaces"),
 
   /* Cloud save */
   uploadSaveGame: (
@@ -865,6 +883,7 @@ contextBridge.exposeInMainWorld("electron", {
   getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
+  ...fileExplorerApi,
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>
@@ -1065,6 +1084,19 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   getUnlockedAchievements: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getUnlockedAchievements", objectId, shop),
+  getRetroAchievementsAchievements: (
+    objectId: string,
+    shop: GameShop,
+    raGameId: number
+  ) =>
+    ipcRenderer.invoke(
+      "getRetroAchievementsAchievements",
+      objectId,
+      shop,
+      raGameId
+    ),
+  resetRetroAchievementsAchievements: () =>
+    ipcRenderer.invoke("resetRetroAchievementsAchievements"),
 
   /* Auth */
   getAuth: () => ipcRenderer.invoke("getAuth"),
@@ -1331,3 +1363,26 @@ contextBridge.exposeInMainWorld("electron", {
   transferGameFiles: (shop: GameShop, objectId: string, destParent: string) =>
     ipcRenderer.invoke("transferGameFiles", shop, objectId, destParent),
 });
+
+const reportNetworkStatus = (online: boolean, switched = false) => {
+  ipcRenderer.invoke("updateNetworkStatus", { online, switched }).catch(() => {
+    return undefined;
+  });
+};
+
+if (globalThis.window !== undefined) {
+  globalThis.addEventListener("online", () => reportNetworkStatus(true, true));
+  globalThis.addEventListener("offline", () => reportNetworkStatus(false));
+
+  const connection = (
+    navigator as Navigator & {
+      connection?: {
+        addEventListener?: (type: string, listener: () => void) => void;
+      };
+    }
+  ).connection;
+
+  connection?.addEventListener?.("change", () =>
+    reportNetworkStatus(navigator.onLine, true)
+  );
+}

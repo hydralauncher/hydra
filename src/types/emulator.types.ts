@@ -17,6 +17,7 @@ export interface EmulatorConfig {
   executablePath: string | null;
   detectedVersion: string | null;
   detectedAt: number | null;
+  biosPath: string | null;
   romFolders: RomFolder[];
   lastScanAt: number | null;
   totalFiles: number;

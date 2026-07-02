@@ -9,6 +9,15 @@ import type { EmulatorSystem } from "@types";
 const SECTION_RE = /^\s*\[(.+?)\]\s*$/;
 const RECURSIVE_RE = /^\s*RecursivePaths\s*=\s*(.+?)\s*$/i;
 
+const windowsDocumentsDirs = (home: string): string[] => {
+  const dirs = [path.join(home, "Documents")];
+  for (const key of ["OneDrive", "OneDriveConsumer", "OneDriveCommercial"]) {
+    const root = process.env[key];
+    if (root) dirs.push(path.join(root, "Documents"));
+  }
+  return Array.from(new Set(dirs));
+};
+
 export const duckstationConfigCandidates = (): string[] => {
   const home = homedir();
   if (process.platform === "win32") {
@@ -16,7 +25,9 @@ export const duckstationConfigCandidates = (): string[] => {
       process.env["LOCALAPPDATA"] ?? path.join(home, "AppData", "Local");
     return [
       path.join(local, "DuckStation", "settings.ini"),
-      path.join(home, "Documents", "DuckStation", "settings.ini"),
+      ...windowsDocumentsDirs(home).map((docs) =>
+        path.join(docs, "DuckStation", "settings.ini")
+      ),
     ];
   }
   return [
@@ -45,7 +56,9 @@ export const pcsx2ConfigCandidates = (
     const local =
       process.env["LOCALAPPDATA"] ?? path.join(home, "AppData", "Local");
     return [
-      path.join(home, "Documents", "PCSX2", "inis", "PCSX2.ini"),
+      ...windowsDocumentsDirs(home).map((docs) =>
+        path.join(docs, "PCSX2", "inis", "PCSX2.ini")
+      ),
       path.join(local, "PCSX2", "inis", "PCSX2.ini"),
       ...(beside ? [beside] : []),
     ];
@@ -246,6 +259,28 @@ export const rpcs3DefaultGamesDirs = (
   executablePath: string | null
 ): string[] =>
   rpcs3ConfigRoots(executablePath).map((r) => path.join(r, "games"));
+
+export const findInstalledPs3GameEboot = (
+  executablePath: string | null,
+  titleId: string
+): string | null => {
+  const normalizedTitleId = titleId.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  if (!normalizedTitleId) return null;
+
+  for (const root of rpcs3ConfigRoots(executablePath)) {
+    const eboot = path.join(
+      root,
+      "dev_hdd0",
+      "game",
+      normalizedTitleId,
+      "USRDIR",
+      "EBOOT.BIN"
+    );
+    if (existsSync(eboot)) return eboot;
+  }
+
+  return null;
+};
 
 export const rpcs3GamesYmlCandidates = (
   executablePath: string | null

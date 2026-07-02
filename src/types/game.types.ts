@@ -20,4 +20,6 @@ export interface SteamAchievement {
 export interface UserAchievement extends SteamAchievement {
   unlocked: boolean;
   unlockTime: number | null;
+  hardcoreUnlockTime?: number | null;
+  source?: "steam" | "retroachievements";
 }
