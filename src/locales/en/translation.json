@@ -154,6 +154,8 @@
     "scan_games_detection_warning": "Detection relies on a community-maintained list of known games and may be outdated, so some games might not be found."
   },
   "bottom_panel": {
+    "reconnecting": "Reconnecting {{title}}…",
+    "recovering": "Recovering {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "No downloads in progress",
     "downloading_metadata": "Downloading {{title}} metadata…",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Completion {{eta}} - {{speed}}",
@@ -338,6 +340,8 @@
     "platform_unknown_toast": "Could not determine the emulator system for this game.",
     "no_disc_toast": "No disc available for this game.",
     "launch_failed_toast": "Failed to launch game",
+    "pkg_installing_toast": "Installing the PKG in RPCS3. Once it finishes, press Play again to launch the game.",
+    "pkg_unreadable_toast": "Couldn't read this PKG. Install and launch it from RPCS3 directly.",
     "rpcs3_already_running_title": "RPCS3 is already running",
     "rpcs3_already_running_description": "RPCS3 only allows one instance. Close the running session to launch this game?",
     "rpcs3_already_running_confirm": "Close and launch",
@@ -681,6 +685,8 @@
     "loading": "Loading…"
   },
   "downloads": {
+    "reconnecting": "Reconnecting…",
+    "recovering": "Recovering download… {{percentage}}",
     "resume": "Resume",
     "pause": "Pause",
     "eta": "Completion {{eta}}",
@@ -778,6 +784,10 @@
     "app_basics": "App basics",
     "startup_behavior": "Startup behavior",
     "download_behavior": "Download behavior",
+    "network_interface": "Network adapter for torrents",
+    "network_interface_default": "Default (all adapters)",
+    "network_interface_hint": "Force torrents through a specific adapter, like a VPN. If it disconnects, downloads stop instead of leaking.",
+    "network_interface_unavailable": "unavailable",
     "library_notifications": "Library notifications",
     "achievement_notifications": "Achievement notifications",
     "content_gameplay": "Content & gameplay",

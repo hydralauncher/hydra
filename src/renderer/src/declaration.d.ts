@@ -37,6 +37,7 @@ import type {
   AchievementNotificationInfo,
   Game,
   DiskUsage,
+  NetworkInterface,
   DownloadSource,
   LocalNotification,
   ProtonVersion,
@@ -71,6 +72,21 @@ declare global {
     const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
     export default content;
   }
+
+  type FileExplorerEntry = {
+    name: string;
+    path: string;
+    isDirectory: boolean;
+    isFile: boolean;
+    extension: string;
+    size: number;
+  };
+
+  type FileExplorerPathInfo = {
+    exists: boolean;
+    isDirectory: boolean;
+    isFile: boolean;
+  };
 
   interface Electron {
     /* Torrenting */
@@ -610,6 +626,7 @@ declare global {
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
     checkFolderWritePermission: (path: string) => Promise<boolean>;
+    getNetworkInterfaces: () => Promise<NetworkInterface[]>;
 
     /* Cloud save */
     uploadSaveGame: (
@@ -668,6 +685,9 @@ declare global {
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
+    readDirectory: (path: string) => Promise<FileExplorerEntry[]>;
+    getPathInfo: (path: string) => Promise<FileExplorerPathInfo>;
+    listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
     getProcessedFriendImage: (
@@ -939,8 +959,8 @@ declare global {
     cancelGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
 
     /* Event listeners for transfer progress */
-    on: (channel: string, listener: (...args: any[]) => void) => void;
-    off: (channel: string, listener: (...args: any[]) => void) => void;
+    on: (channel: string, listener: (...args) => void) => void;
+    off: (channel: string, listener: (...args) => void) => void;
   }
 
   interface Window {

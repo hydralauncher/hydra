@@ -39,6 +39,12 @@ import type {
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 
+const fileExplorerApi = {
+  readDirectory: (path: string) => ipcRenderer.invoke("readDirectory", path),
+  getPathInfo: (path: string) => ipcRenderer.invoke("getPathInfo", path),
+  listDrives: () => ipcRenderer.invoke("listDrives"),
+};
+
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>
@@ -789,6 +795,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDiskFreeSpace", path),
   checkFolderWritePermission: (path: string) =>
     ipcRenderer.invoke("checkFolderWritePermission", path),
+  getNetworkInterfaces: () => ipcRenderer.invoke("getNetworkInterfaces"),
 
   /* Cloud save */
   uploadSaveGame: (
@@ -870,6 +877,7 @@ contextBridge.exposeInMainWorld("electron", {
   getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
+  ...fileExplorerApi,
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>
@@ -1336,3 +1344,26 @@ contextBridge.exposeInMainWorld("electron", {
   transferGameFiles: (shop: GameShop, objectId: string, destParent: string) =>
     ipcRenderer.invoke("transferGameFiles", shop, objectId, destParent),
 });
+
+const reportNetworkStatus = (online: boolean, switched = false) => {
+  ipcRenderer.invoke("updateNetworkStatus", { online, switched }).catch(() => {
+    return undefined;
+  });
+};
+
+if (globalThis.window !== undefined) {
+  globalThis.addEventListener("online", () => reportNetworkStatus(true, true));
+  globalThis.addEventListener("offline", () => reportNetworkStatus(false));
+
+  const connection = (
+    navigator as Navigator & {
+      connection?: {
+        addEventListener?: (type: string, listener: () => void) => void;
+      };
+    }
+  ).connection;
+
+  connection?.addEventListener?.("change", () =>
+    reportNetworkStatus(navigator.onLine, true)
+  );
+}

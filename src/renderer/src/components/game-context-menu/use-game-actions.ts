@@ -84,17 +84,21 @@ export function useGameActions(game: LibraryGame) {
           showErrorToast(t("platform_unknown_toast"));
         } else if (code === "NO_DISC") {
           showErrorToast(t("no_disc_toast"));
+        } else if (code === "PKG_INSTALLING") {
+          showSuccessToast(t("pkg_installing_toast"));
+        } else if (code === "PKG_UNREADABLE") {
+          showErrorToast(t("pkg_unreadable_toast"));
         } else if (code === "EMULATOR_ALREADY_RUNNING") {
           setRpcs3ConfirmPending({ discPath });
         } else {
           showErrorToast(t("launch_failed_toast"));
         }
-        if (code !== "EMULATOR_ALREADY_RUNNING") {
+        if (code !== "EMULATOR_ALREADY_RUNNING" && code !== "PKG_INSTALLING") {
           logger.error("Failed to start classics game", error);
         }
       }
     },
-    [game.shop, game.objectId, navigate, showErrorToast, t]
+    [game.shop, game.objectId, navigate, showErrorToast, showSuccessToast, t]
   );
 
   const handleConfirmRpcs3Launch = useCallback(async () => {
