@@ -1,7 +1,8 @@
 import {
   ptBR,
   enUS,
-  es,
+  esES,
+  esLAT,
   fr,
   pl,
   hu,
@@ -179,7 +180,8 @@ export const getDownloadersForUris = (uris: string[]) => {
 
 export const getDateLocale = (language: string) => {
   if (language.startsWith("pt")) return ptBR;
-  if (language.startsWith("es")) return es;
+  if (language.startsWith("esES")) return esES;
+  if (language.startsWith("esLAT")) return esLAT;
   if (language.startsWith("fr")) return fr;
   if (language.startsWith("hu")) return hu;
   if (language.startsWith("pl")) return pl;

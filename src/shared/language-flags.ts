@@ -1,9 +1,10 @@
 const LANGUAGE_FLAG_MAP = {
   "pt-BR": "BR",
   "pt-PT": "PT",
+  "es-ES": "ES",
+  "es-LAT": "MX",
   en: "US",
   de: "DE",
-  es: "ES",
   nl: "NL",
   fr: "FR",
   hu: "HU",
