@@ -2,9 +2,7 @@ import { getCatalogueFilterCheckboxFocusId } from "./navigation";
 import { FilterType } from "./use-catalogue-data";
 
 export type CatalogueFilterData =
-  | string[]
-  | Record<string, number>
-  | Record<string, string>;
+  string[] | Record<string, number> | Record<string, string>;
 
 export interface CatalogueFilterListItem {
   label: string;

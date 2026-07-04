@@ -144,10 +144,7 @@ type ProfileRecentAchievementGroup = {
 };
 
 type ProfileFriendAction =
-  | FriendRequestAction
-  | "BLOCK"
-  | "UNDO_FRIENDSHIP"
-  | "SEND";
+  FriendRequestAction | "BLOCK" | "UNDO_FRIENDSHIP" | "SEND";
 
 type ProfileHeroAction = {
   label: string;
@@ -422,7 +419,7 @@ function buildRecentAchievementGroups(
     .sort((a, b) => b.achievement.unlockTime - a.achievement.unlockTime);
   const groups: ProfileRecentAchievementGroup[] = [];
 
-  for (let index = 0; index < timeline.length; ) {
+  for (let index = 0; index < timeline.length;) {
     const currentGameKey = timeline[index].gameKey;
     const block: ProfileRecentAchievement[] = [];
 

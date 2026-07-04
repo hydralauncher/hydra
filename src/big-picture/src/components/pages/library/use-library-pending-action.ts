@@ -86,11 +86,9 @@ function getRestoreFocusTarget(
 async function showRemoveFromLibraryToast(
   action: PendingAction,
   buildToastOptions:
-    | UseLibraryPendingActionOptions["buildToastOptions"]
-    | undefined,
+    UseLibraryPendingActionOptions["buildToastOptions"] | undefined,
   showSuccessToast:
-    | UseLibraryPendingActionOptions["showSuccessToast"]
-    | undefined
+    UseLibraryPendingActionOptions["showSuccessToast"] | undefined
 ) {
   if (action.type !== "remove-from-library") {
     return;

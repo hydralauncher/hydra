@@ -16,12 +16,7 @@ import type { Game, GameShop, ShopAssets } from "@types";
 import "./game-launcher.scss";
 
 type PreflightStatus =
-  | "idle"
-  | "checking"
-  | "downloading"
-  | "installing"
-  | "complete"
-  | "error";
+  "idle" | "checking" | "downloading" | "installing" | "complete" | "error";
 
 export default function GameLauncher() {
   const { t } = useTranslation("game_launcher");

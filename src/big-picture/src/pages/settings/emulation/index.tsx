@@ -32,8 +32,7 @@ interface SettingsSectionProps {
 }
 
 type EmulationView =
-  | { kind: "grid" }
-  | { kind: "detail"; system: EmulatorSystem };
+  { kind: "grid" } | { kind: "detail"; system: EmulatorSystem };
 
 interface ConsoleCardProps {
   config: EmulatorConfig;

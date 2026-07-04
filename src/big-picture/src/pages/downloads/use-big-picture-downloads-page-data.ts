@@ -535,9 +535,9 @@ export function useBigPictureDownloadsPageData() {
 
   const hasDownloads = Boolean(
     activeDownload ||
-      queuedDownloads.length ||
-      pausedDownloads.length ||
-      completedDownloads.length
+    queuedDownloads.length ||
+    pausedDownloads.length ||
+    completedDownloads.length
   );
 
   const networkStats = useMemo((): BigPictureDownloadsNetworkStats => {

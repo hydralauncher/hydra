@@ -2,11 +2,10 @@ import { useId } from "react";
 import { CheckIcon } from "@primer/octicons-react";
 import "./checkbox-field.scss";
 
-export interface CheckboxFieldProps
-  extends React.DetailedHTMLProps<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    HTMLInputElement
-  > {
+export interface CheckboxFieldProps extends React.DetailedHTMLProps<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  HTMLInputElement
+> {
   label: string | React.ReactNode;
 }
 

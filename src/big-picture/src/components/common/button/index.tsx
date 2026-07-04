@@ -29,8 +29,10 @@ const sizes = {
   large: "button--large",
 };
 
-export interface ButtonProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
+export interface ButtonProps extends Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "children"
+> {
   loading?: boolean;
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;

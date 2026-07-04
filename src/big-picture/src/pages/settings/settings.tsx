@@ -258,12 +258,10 @@ export default function Settings() {
   ]);
 
   const tabItems = useMemo(() => {
-    return visibleTabs.map(
-      (tab): TabsItem<SettingsTabId> => ({
-        value: tab.id,
-        label: tab.label,
-      })
-    );
+    return visibleTabs.map((tab): TabsItem<SettingsTabId> => ({
+      value: tab.id,
+      label: tab.label,
+    }));
   }, [visibleTabs]);
 
   const initialFocusTarget = useMemo<FocusOverrideTarget | null>(() => {

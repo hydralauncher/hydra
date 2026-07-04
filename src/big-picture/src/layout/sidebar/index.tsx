@@ -86,10 +86,7 @@ import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import "./styles.scss";
 
 type SidebarLibraryFilter =
-  | "all"
-  | "ready_to_play"
-  | "recently_played"
-  | "favorites";
+  "all" | "ready_to_play" | "recently_played" | "favorites";
 
 const SIDEBAR_LIBRARY_FILTERS = [
   {

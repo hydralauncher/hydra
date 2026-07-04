@@ -191,9 +191,7 @@ const newProbs = (n: number): Uint16Array => {
 };
 
 type Seq =
-  | { kind: "continue" }
-  | { kind: "break" }
-  | { kind: "copy"; len: number };
+  { kind: "continue" } | { kind: "break" } | { kind: "copy"; len: number };
 
 const nextLiteralState = (state: number): number => {
   if (state < 4) return 0;

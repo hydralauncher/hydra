@@ -167,10 +167,7 @@ export interface MemcardRestoreTarget {
 /* ── Emulator install helper (Setup Wizard) ───────────────────────────────── */
 
 export type EmulatorInstallKind =
-  | "windows-installer"
-  | "linux-appimage"
-  | "windows-archive"
-  | "link";
+  "windows-installer" | "linux-appimage" | "windows-archive" | "link";
 
 export type EmulatorInstallChannel = "release" | "prerelease";
 
@@ -191,11 +188,7 @@ export interface ResolvedInstallOption {
 }
 
 export type EmulatorInstallPhase =
-  | "downloading"
-  | "extracting"
-  | "running"
-  | "done"
-  | "error";
+  "downloading" | "extracting" | "running" | "done" | "error";
 
 export interface EmulatorInstallProgress {
   binary: EmulatorBinary;

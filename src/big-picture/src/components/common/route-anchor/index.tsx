@@ -7,8 +7,10 @@ import { FocusItem } from "..";
 import type { FocusItemActions } from "../../../types";
 import type { FocusOverrides } from "../../../services";
 
-export interface RouteAnchorProps
-  extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
+export interface RouteAnchorProps extends Omit<
+  AnchorHTMLAttributes<HTMLAnchorElement>,
+  "href"
+> {
   label: string;
   icon: ReactNode | string;
   subtitle?: string | null;

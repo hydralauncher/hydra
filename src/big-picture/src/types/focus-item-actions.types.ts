@@ -36,12 +36,10 @@ export interface NavigationRegionTarget {
 }
 
 export type NavigationScreenActionTarget =
-  | NavigationItemTarget
-  | NavigationRegionTarget;
+  NavigationItemTarget | NavigationRegionTarget;
 
 export type ScreenActionDefinition =
-  | ScreenActionHandler
-  | NavigationScreenActionTarget;
+  ScreenActionHandler | NavigationScreenActionTarget;
 
 export type FocusItemPrimaryAction = "auto" | "off" | null | ActionHandler;
 export type FocusItemSecondaryAction = "off" | null | ActionHandler;

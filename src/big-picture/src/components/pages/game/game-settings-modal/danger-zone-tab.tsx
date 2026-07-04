@@ -50,9 +50,7 @@ interface GameDangerZoneSettingsTabProps {
 }
 
 type DangerAction =
-  | "remove-from-library"
-  | "reset-achievements"
-  | "remove-files";
+  "remove-from-library" | "reset-achievements" | "remove-files";
 
 export function GameDangerZoneSettingsTab({
   game,

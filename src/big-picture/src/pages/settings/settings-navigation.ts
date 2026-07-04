@@ -153,10 +153,7 @@ export const SETTINGS_SIDEBAR_RETURN_TARGET = getItemFocusTarget(
 );
 
 export type IntegrationProviderId =
-  | "real-debrid"
-  | "premiumize"
-  | "all-debrid"
-  | "torbox";
+  "real-debrid" | "premiumize" | "all-debrid" | "torbox";
 
 export function getIntegrationProviderRegionId(
   providerId: IntegrationProviderId

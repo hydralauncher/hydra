@@ -5,8 +5,10 @@ import cn from "classnames";
 import type { HTMLAttributes, ReactNode } from "react";
 import { Typography } from "..";
 
-export interface EmptyStateProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
+export interface EmptyStateProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "title"
+> {
   illustration?: ReactNode;
   icon?: ReactNode;
   title: ReactNode;

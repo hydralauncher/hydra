@@ -24,10 +24,7 @@ export type LibrarySortOption =
   | "added_desc"
   | "added_asc";
 export type LibrarySecondaryFilter =
-  | "all_games"
-  | "installed"
-  | "not_installed"
-  | "never_played";
+  "all_games" | "installed" | "not_installed" | "never_played";
 
 export const LIBRARY_VIEW_MODE_STORAGE_KEY =
   "hydra:big-picture:library-view-mode";

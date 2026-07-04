@@ -21,8 +21,7 @@ export function useSearchHistory() {
 
       try {
         const data = (await levelDBService.get(LEVELDB_KEY, null, "json")) as
-          | SearchHistoryEntry[]
-          | null;
+          SearchHistoryEntry[] | null;
 
         if (data) {
           setHistory(data);

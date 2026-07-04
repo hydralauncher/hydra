@@ -2,10 +2,7 @@ import { parseBytes } from "@shared";
 import type { GameRepack } from "@types";
 
 export type DownloadOptionsSortBy =
-  | "newest"
-  | "oldest"
-  | "largest"
-  | "smallest";
+  "newest" | "oldest" | "largest" | "smallest";
 
 function compareNullableNumbers(
   leftValue: number | null,

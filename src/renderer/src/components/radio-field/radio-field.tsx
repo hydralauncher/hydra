@@ -4,8 +4,10 @@ import cn from "classnames";
 
 import "./radio-field.scss";
 
-export interface RadioFieldProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+export interface RadioFieldProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "type"
+> {
   label: React.ReactNode;
   className?: string;
   labelClassName?: string;

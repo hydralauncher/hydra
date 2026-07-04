@@ -37,10 +37,7 @@ export enum GamepadAxisDirection {
 export type GamepadStickSide = "left" | "right";
 
 export type GamepadInputStatus =
-  | "accepted"
-  | "ignored-duplicate-window"
-  | "ignored-echo"
-  | "ignored-inactive";
+  "accepted" | "ignored-duplicate-window" | "ignored-echo" | "ignored-inactive";
 
 export interface GamepadInputEventMeta {
   status: GamepadInputStatus;

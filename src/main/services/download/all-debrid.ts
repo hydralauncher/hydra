@@ -47,9 +47,7 @@ interface AllDebridMagnet {
 }
 
 type AllDebridMagnetsPayload =
-  | AllDebridMagnet[]
-  | AllDebridMagnet
-  | Record<string, AllDebridMagnet>;
+  AllDebridMagnet[] | AllDebridMagnet | Record<string, AllDebridMagnet>;
 
 interface AllDebridMagnetUploadResponse {
   magnets: AllDebridMagnetsPayload;

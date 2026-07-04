@@ -35,8 +35,7 @@ import { UploadBackgroundImageButton } from "../upload-background-image-button/u
 import "./profile-hero.scss";
 
 type FriendAction =
-  | FriendRequestAction
-  | ("BLOCK" | "UNDO_FRIENDSHIP" | "SEND");
+  FriendRequestAction | ("BLOCK" | "UNDO_FRIENDSHIP" | "SEND");
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);

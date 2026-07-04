@@ -785,8 +785,7 @@ export function DownloadSettingsModal({
     setTorrentFilesError(null);
 
     let response:
-      | { ok: true; data: TorrentFilesResponse }
-      | { ok: false; error: string };
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string };
 
     try {
       response = await window.electron.getTorrentFiles(selectedMagnetUri);

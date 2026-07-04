@@ -4,11 +4,10 @@ import { PlacesType, Tooltip } from "react-tooltip";
 import "./button.scss";
 import { useId } from "react";
 
-export interface ButtonProps
-  extends React.DetailedHTMLProps<
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
-    HTMLButtonElement
-  > {
+export interface ButtonProps extends React.DetailedHTMLProps<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  HTMLButtonElement
+> {
   tooltip?: string;
   tooltipPlace?: PlacesType;
   theme?: "primary" | "outline" | "dark" | "danger";

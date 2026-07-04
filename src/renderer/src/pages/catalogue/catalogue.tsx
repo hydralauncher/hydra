@@ -697,8 +697,7 @@ export default function Catalogue() {
 
                         const currentValues =
                           (filters[filter.key] as
-                            | (string | number)[]
-                            | undefined) ?? [];
+                            (string | number)[] | undefined) ?? [];
 
                         dispatch(
                           setFilters({

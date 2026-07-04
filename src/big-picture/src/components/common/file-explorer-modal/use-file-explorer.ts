@@ -247,7 +247,7 @@ export function useFileExplorer({
 
   const hasParent = Boolean(
     (currentPath && getParentPath(currentPath)) ||
-      (currentPath && drives.length > 0)
+    (currentPath && drives.length > 0)
   );
 
   const goToParent = useCallback(() => {

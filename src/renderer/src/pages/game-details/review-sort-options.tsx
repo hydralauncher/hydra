@@ -7,11 +7,7 @@ import { useTranslation } from "react-i18next";
 import "./review-sort-options.scss";
 
 type ReviewSortOption =
-  | "newest"
-  | "oldest"
-  | "score_high"
-  | "score_low"
-  | "most_voted";
+  "newest" | "oldest" | "score_high" | "score_low" | "most_voted";
 
 interface ReviewSortOptionsProps {
   sortBy: ReviewSortOption;

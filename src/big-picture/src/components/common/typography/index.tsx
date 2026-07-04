@@ -3,10 +3,9 @@ import "./styles.scss";
 import cn from "classnames";
 import type { HTMLAttributes } from "react";
 
-export interface TypographyProps
-  extends HTMLAttributes<
-    HTMLHeadingElement | HTMLParagraphElement | HTMLLabelElement
-  > {
+export interface TypographyProps extends HTMLAttributes<
+  HTMLHeadingElement | HTMLParagraphElement | HTMLLabelElement
+> {
   variant?: "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "body" | "label";
 }
 

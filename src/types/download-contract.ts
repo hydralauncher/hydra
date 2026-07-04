@@ -1,17 +1,10 @@
 import type { Download, DownloadLayoutState } from "./level.types";
 
 export type DownloadPlacement =
-  | "hero"
-  | "queue"
-  | "paused"
-  | "completed"
-  | "hidden";
+  "hero" | "queue" | "paused" | "completed" | "hidden";
 
 export type RendererDownloadBucket =
-  | "inProgress"
-  | "queued"
-  | "completed"
-  | "hidden";
+  "inProgress" | "queued" | "completed" | "hidden";
 
 export interface BigPictureDownloadView {
   heroId: string | null;

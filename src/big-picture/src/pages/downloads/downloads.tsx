@@ -1539,15 +1539,15 @@ export default function Downloads() {
   const heroPanelState = displayedHeroSnapshot ?? null;
   const heroInteractionDisabled = Boolean(
     interactionsLocked ||
-      isHeroSnapshotTransitioning ||
-      displayedHeroSnapshot?.mode !== "normal"
+    isHeroSnapshotTransitioning ||
+    displayedHeroSnapshot?.mode !== "normal"
   );
   const isHeroOptimisticCommitPending = Boolean(
     optimisticCommitState &&
-      optimisticCommitState.targetPlacement.kind === "hero" &&
-      (displayedHeroSnapshot?.id !== optimisticCommitState.sourceGameId ||
-        displayedHeroSnapshot?.mode !== "normal" ||
-        isHeroSnapshotTransitioning)
+    optimisticCommitState.targetPlacement.kind === "hero" &&
+    (displayedHeroSnapshot?.id !== optimisticCommitState.sourceGameId ||
+      displayedHeroSnapshot?.mode !== "normal" ||
+      isHeroSnapshotTransitioning)
   );
   const mainNavigationOverridesByFocusId = useMemo(() => {
     const heroFocusIds = displayedHeroSnapshot ? [getHeroPrimaryFocusId()] : [];
