@@ -26,8 +26,7 @@ export const formatResources: Record<
   en: en.format,
   ru: ru.format,
   "pt-BR": ptBR.format,
-  "es-ES": esES.exact,
-  "es-LAT": esLAT.exact,
-  es: es.format,
+  "es-ES": esES.format,
+  "es-LAT": esLAT.format,
   fr: fr.format,
 };

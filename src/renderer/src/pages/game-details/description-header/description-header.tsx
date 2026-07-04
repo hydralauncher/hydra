@@ -16,16 +16,13 @@ export function DescriptionHeader() {
   const rawDate = shopDetails?.release_date.date ?? "";
   let displayDate = rawDate;
   if (ISO_DATE_REGEX.test(rawDate)) {
-    const parsed = new Date(`${rawDate}T00:00:00`);
-    if (!isNaN(parsed.getTime())) {
-      displayDate = format(parsed, "MMM d, yyyy", {
-        locale: getDateLocale(i18n.language),
-      });
-    displayDate = format(parsed, getDateFormat(i18n.language), {
-       locale: getDateLocale(i18n.language),
+  const parsed = new Date(`${rawDate}T00:00:00`);
+  if (!isNaN(parsed.getTime())) {
+    displayDate = format(parsed, "MMM d, yyyy", {
+      locale: getDateLocale(i18n.language),
     });
-    }
   }
+}
 
   return (
     <div className="description-header">
