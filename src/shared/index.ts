@@ -1,8 +1,7 @@
 import {
   ptBR,
   enUS,
-  esES,
-  esLAT,
+  es,
   fr,
   pl,
   hu,
@@ -180,8 +179,7 @@ export const getDownloadersForUris = (uris: string[]) => {
 
 export const getDateLocale = (language: string) => {
   if (language.startsWith("pt")) return ptBR;
-  if (language.startsWith("esES")) return esES;
-  if (language.startsWith("esLAT")) return esLAT;
+  if (language.startsWith("es")) return es;
   if (language.startsWith("fr")) return fr;
   if (language.startsWith("hu")) return hu;
   if (language.startsWith("pl")) return pl;
@@ -195,6 +193,13 @@ export const getDateLocale = (language: string) => {
   return enUS;
 };
 
+export const getDateFormat = (language: string): string => {
+  if (language === "es-ES") return "dd/MM/yyyy";
+  if (language === "es-LAT") return "MM/dd/yyyy";
+  if (language === "en") return "MM-dd-yyyy";
+  return "dd/MM/yyyy";
+};
+
 export const getReviewTranslationLanguage = (language: string) =>
   language.split("-")[0].toLowerCase();
 
@@ -203,7 +208,7 @@ export const formatDate = (
   language: string
 ): string => {
   if (isNaN(new Date(date).getDate())) return "N/A";
-  return format(date, language == "en" ? "MM-dd-yyyy" : "dd/MM/yyyy");
+  return format(date, getDateFormat(language));
 };
 
 export const generateAchievementCustomNotificationTest = (

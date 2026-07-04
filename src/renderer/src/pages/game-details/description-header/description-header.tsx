@@ -21,6 +21,9 @@ export function DescriptionHeader() {
       displayDate = format(parsed, "MMM d, yyyy", {
         locale: getDateLocale(i18n.language),
       });
+    displayDate = format(parsed, getDateFormat(i18n.language), {
+       locale: getDateLocale(i18n.language),
+    });
     }
   }
 
