@@ -1,4 +1,4 @@
-import { enUS, es, ptBR, ru } from "date-fns/locale";
+import { enUS, esES, esLAT, ptBR, ru } from "date-fns/locale";
 import { format, formatDistance, subMilliseconds } from "date-fns";
 import type { FormatDistanceOptions } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -8,7 +8,8 @@ export type DateLike = number | Date | string;
 function getDateLocale(language: string) {
   if (language.startsWith("ru")) return ru;
   if (language.startsWith("pt")) return ptBR;
-  if (language.startsWith("es")) return es;
+  if (language.startsWith("esES")) return esES;
+  if (language.startsWith("esLAT")) return esLAT;
   return enUS;
 }
 
