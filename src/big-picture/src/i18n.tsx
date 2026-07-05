@@ -42,11 +42,17 @@ export function ensureBigPictureI18nResources() {
 export function resolveBigPictureLanguage(
   language = i18next.resolvedLanguage ?? i18next.language ?? "en"
 ): BigPictureLanguage {
+  // Explicit regional variants first
   if (language.startsWith("ru")) return "ru";
   if (language.startsWith("pt")) return "pt-BR";
   if (language.startsWith("es-ES")) return "es-ES";
   if (language.startsWith("es-LAT")) return "es-LAT";
 
+  // Map plain "es" to Peninsular Spanish (es-ES) as the default
+  if (language === "es") return "es-ES";
+
+  // If any other code starts with "es-" that we don't explicitly handle,
+  // prefer the Peninsular Spanish variant (es-ES).
   if (language.startsWith("es")) return "es-ES";
 
   if (language.startsWith("fr")) return "fr";
@@ -160,7 +166,19 @@ export async function initializeBigPictureI18n() {
   const userPreferences = await electron?.getUserPreferences?.();
 
   if (userPreferences?.language) {
-    await i18next.changeLanguage(userPreferences.language);
+    // Migrate legacy plain "es" to explicit es-ES to preserve the original
+    // Latin-American -> Peninsular split behaviour where "es" became es-ES.
+    if (userPreferences.language === "es") {
+      const migrated = "es-ES";
+      await i18next.changeLanguage(migrated);
+      try {
+        await electron?.updateUserPreferences?.({ language: migrated });
+      } catch (err) {
+        console.error("Failed to persist migrated language preference", err);
+      }
+    } else {
+      await i18next.changeLanguage(userPreferences.language);
+    }
   } else if (electron?.updateUserPreferences) {
     await electron.updateUserPreferences({ language: i18next.language });
   }
