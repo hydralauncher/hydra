@@ -36,11 +36,55 @@ const LANGUAGE_FLAG_MAP = {
 const REGIONAL_INDICATOR_SYMBOL_LETTER_A = 0x1f1e6;
 const ASCII_UPPERCASE_A = 65;
 
+const LATIN_AMERICAN_SPANISH_CODES = [
+  "es-419",
+  "es-MX",
+  "es-AR",
+  "es-CO",
+  "es-CL",
+  "es-PE",
+  "es-VE",
+  "es-EC",
+  "es-BO",
+  "es-PY",
+  "es-UY",
+  "es-CR",
+  "es-SV",
+  "es-GT",
+  "es-HN",
+  "es-NI",
+  "es-PA",
+  "es-CU",
+  "es-DO",
+  "es-PR",
+];
+
+function resolveSpanishVariant(
+  language: string,
+  supportedLanguages: string[]
+): string | null {
+  
+  if (language === "es-ES" || language.startsWith("es-ES-")) {
+    const esESMatch = supportedLanguages.find((lang) => lang === "es-ES");
+    if (esESMatch) return esESMatch;
+  }
+
+  if (LATIN_AMERICAN_SPANISH_CODES.includes(language)) {
+    const esLATMatch = supportedLanguages.find((lang) => lang === "es-LAT");
+    if (esLATMatch) return esLATMatch;
+  }
+
+  // Fallback for any other "es-*" code we don't explicitly recognise.
+  const esLATDefault = supportedLanguages.find((lang) => lang === "es-LAT");
+  if (esLATDefault) return esLATDefault;
+
+  return null;
+}
+
 export function resolveLanguageKey(
   language: string | null | undefined,
   supportedLanguages: string[]
 ) {
-
   const exactMatch = supportedLanguages.find(
     (supportedLanguage) => supportedLanguage === language
   );
@@ -48,55 +92,12 @@ export function resolveLanguageKey(
 
   if (!language) return "en";
 
-
   const baseLang = language.split("-")[0];
+
   if (baseLang === "es") {
-    
-    if (language === "es-ES" || language.startsWith("es-ES-")) {
-      const esESMatch = supportedLanguages.find(
-        (lang) => lang === "es-ES"
-      );
-      if (esESMatch) return esESMatch;
-    }
-
-    
-    const latinAmericanCodes = [
-      "es-419",
-      "es-MX",
-      "es-AR",
-      "es-CO",
-      "es-CL",
-      "es-PE",
-      "es-VE",
-      "es-EC",
-      "es-BO",
-      "es-PY",
-      "es-UY",
-      "es-CR",
-      "es-SV",
-      "es-GT",
-      "es-HN",
-      "es-NI",
-      "es-PA",
-      "es-CU",
-      "es-DO",
-      "es-PR",
-    ];
-
-    if (latinAmericanCodes.includes(language)) {
-      const esLATMatch = supportedLanguages.find(
-        (lang) => lang === "es-LAT"
-      );
-      if (esLATMatch) return esLATMatch;
-    }
-
-
-    const esLATDefault = supportedLanguages.find(
-      (lang) => lang === "es-LAT"
-    );
-    if (esLATDefault) return esLATDefault;
+    const spanishMatch = resolveSpanishVariant(language, supportedLanguages);
+    if (spanishMatch) return spanishMatch;
   }
-
 
   const prefixMatch = supportedLanguages.find((supportedLanguage) =>
     supportedLanguage.startsWith(baseLang)
