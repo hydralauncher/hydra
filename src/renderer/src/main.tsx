@@ -90,7 +90,7 @@ const userPreferences = (await levelDBService.get(
 
 if (userPreferences?.language) {
   if (userPreferences.language === "es") {
-      const migratedLanguage = "es-LAT";
+    const migratedLanguage = "es-LAT";
     await i18n.changeLanguage(migratedLanguage);
     try {
       await globalThis.electron.updateUserPreferences({

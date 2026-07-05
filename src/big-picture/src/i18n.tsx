@@ -42,18 +42,14 @@ export function ensureBigPictureI18nResources() {
 export function resolveBigPictureLanguage(
   language = i18next.resolvedLanguage ?? i18next.language ?? "en"
 ): BigPictureLanguage {
-  
   const baseLang = language.split("-")[0];
 
-  
   if (baseLang === "ru") return "ru";
   if (baseLang === "pt") return "pt-BR";
   if (baseLang === "fr") return "fr";
 
-  
   if (language === "es-ES" || language.startsWith("es-ES")) return "es-ES";
 
-  
   const latinAmericanCodes = [
     "es-419",
     "es-MX",
@@ -69,7 +65,7 @@ export function resolveBigPictureLanguage(
     "es-CR",
     "es-SV",
     "es-GT",
-    "es-HN", 
+    "es-HN",
     "es-NI",
     "es-PA",
     "es-CU",
@@ -79,7 +75,6 @@ export function resolveBigPictureLanguage(
 
   if (latinAmericanCodes.includes(language)) return "es-LAT";
 
-  
   if (language === "es" || baseLang === "es") return "es-LAT";
 
   return "en";
@@ -192,9 +187,8 @@ export async function initializeBigPictureI18n() {
   const userPreferences = await electron?.getUserPreferences?.();
 
   if (userPreferences?.language) {
-    
     if (userPreferences.language === "es") {
-        const migrated = "es-LAT";
+      const migrated = "es-LAT";
       await i18next.changeLanguage(migrated);
       try {
         await electron?.updateUserPreferences?.({ language: migrated });

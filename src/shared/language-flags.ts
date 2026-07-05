@@ -63,7 +63,6 @@ function resolveSpanishVariant(
   language: string,
   supportedLanguages: string[]
 ): string | null {
-  
   if (language === "es-ES" || language.startsWith("es-ES-")) {
     const esESMatch = supportedLanguages.find((lang) => lang === "es-ES");
     if (esESMatch) return esESMatch;
