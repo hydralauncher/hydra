@@ -149,7 +149,8 @@ export const composeSteamShortcut = (
   title: string,
   executablePath: string,
   iconPath: string | null,
-  options?: CreateSteamShortcutOptions
+  options?: CreateSteamShortcutOptions,
+  launchOptions?: string | null
 ): SteamShortcut => {
   return {
     appid: generateSteamShortcutAppId(executablePath, title),
@@ -158,7 +159,7 @@ export const composeSteamShortcut = (
     StartDir: `"${path.dirname(executablePath)}"`,
     icon: iconPath ?? "",
     ShortcutPath: "",
-    LaunchOptions: "",
+    LaunchOptions: launchOptions?.trim() ? launchOptions.trim() : "",
     IsHidden: false,
     AllowDesktopConfig: true,
     AllowOverlay: true,
@@ -169,6 +170,23 @@ export const composeSteamShortcut = (
     LastPlayTime: 0,
     FlatpakAppID: "",
   };
+};
+
+export const updateSteamShortcutLaunchOptions = async (
+  steamShortcutAppId: number,
+  launchOptions: string | null
+) => {
+  const trimmed = launchOptions?.trim() ?? "";
+  const steamUserIds = await getSteamUsersIds();
+
+  for (const steamUserId of steamUserIds) {
+    const shortcuts = await getSteamShortcuts(steamUserId);
+    const target = shortcuts.find((s) => s.appid === steamShortcutAppId);
+    if (!target) continue;
+
+    target.LaunchOptions = trimmed;
+    await writeSteamShortcuts(steamUserId, shortcuts);
+  }
 };
 
 export const writeSteamShortcuts = async (

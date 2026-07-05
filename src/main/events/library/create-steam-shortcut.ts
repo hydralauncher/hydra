@@ -104,7 +104,8 @@ const createSteamShortcut = async (
       game.title,
       game.executablePath,
       iconImage,
-      options
+      options,
+      game.launchOptions
     );
 
     for (const steamUserId of steamUserIds) {

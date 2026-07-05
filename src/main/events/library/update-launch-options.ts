@@ -1,6 +1,7 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
+import { updateSteamShortcutLaunchOptions } from "@main/services";
 
 const updateLaunchOptions = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -17,6 +18,13 @@ const updateLaunchOptions = async (
       ...game,
       launchOptions: launchOptions?.trim() != "" ? launchOptions : null,
     });
+
+    if (game.steamShortcutAppId) {
+      await updateSteamShortcutLaunchOptions(
+        game.steamShortcutAppId,
+        launchOptions
+      ).catch(() => {});
+    }
   }
 };
 
