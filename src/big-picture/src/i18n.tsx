@@ -194,7 +194,7 @@ export async function initializeBigPictureI18n() {
   if (userPreferences?.language) {
     
     if (userPreferences.language === "es") {
-      const migrated = "es-ES";
+        const migrated = "es-LAT";
       await i18next.changeLanguage(migrated);
       try {
         await electron?.updateUserPreferences?.({ language: migrated });
