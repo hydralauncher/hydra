@@ -51,7 +51,7 @@ export function resolveLanguageKey(
 
   const baseLang = language.split("-")[0];
   if (baseLang === "es") {
-    // Peninsular Spanish: es-ES and variants
+    
     if (language === "es-ES" || language.startsWith("es-ES-")) {
       const esESMatch = supportedLanguages.find(
         (lang) => lang === "es-ES"

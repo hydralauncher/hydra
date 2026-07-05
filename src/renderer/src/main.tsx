@@ -89,7 +89,19 @@ const userPreferences = (await levelDBService.get(
 )) as { language?: string } | null;
 
 if (userPreferences?.language) {
-  await i18n.changeLanguage(userPreferences.language);
+  if (userPreferences.language === "es") {
+    const migratedLanguage = "es-ES";
+    await i18n.changeLanguage(migratedLanguage);
+    try {
+      await globalThis.electron.updateUserPreferences({
+        language: migratedLanguage,
+      });
+    } catch (error) {
+      console.error("Failed to persist migrated language preference", error);
+    }
+  } else {
+    await i18n.changeLanguage(userPreferences.language);
+  }
 } else {
   globalThis.electron.updateUserPreferences({ language: i18n.language });
 }

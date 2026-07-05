@@ -194,8 +194,6 @@ export const getDateLocale = (language: string) => {
 };
 
 export const getDateFormat = (language: string): string => {
-  if (language === "es-ES") return "dd/MM/yyyy";
-  if (language === "es-LAT") return "MM/dd/yyyy";
   if (language === "en") return "MM-dd-yyyy";
   return "dd/MM/yyyy";
 };
