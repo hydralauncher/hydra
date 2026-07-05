@@ -40,15 +40,70 @@ export function resolveLanguageKey(
   language: string | null | undefined,
   supportedLanguages: string[]
 ) {
-  return (
-    supportedLanguages.find(
-      (supportedLanguage) => supportedLanguage === language
-    ) ??
-    supportedLanguages.find((supportedLanguage) =>
-      supportedLanguage.startsWith(language?.split("-")[0] ?? "")
-    ) ??
-    "en"
+
+  const exactMatch = supportedLanguages.find(
+    (supportedLanguage) => supportedLanguage === language
   );
+  if (exactMatch) return exactMatch;
+
+  if (!language) return "en";
+
+
+  const baseLang = language.split("-")[0];
+  if (baseLang === "es") {
+    // Peninsular Spanish: es-ES and variants
+    if (language === "es-ES" || language.startsWith("es-ES-")) {
+      const esESMatch = supportedLanguages.find(
+        (lang) => lang === "es-ES"
+      );
+      if (esESMatch) return esESMatch;
+    }
+
+    
+    const latinAmericanCodes = [
+      "es-419",
+      "es-MX",
+      "es-AR",
+      "es-CO",
+      "es-CL",
+      "es-PE",
+      "es-VE",
+      "es-EC",
+      "es-BO",
+      "es-PY",
+      "es-UY",
+      "es-CR",
+      "es-SV",
+      "es-GT",
+      "es-HN",
+      "es-NI",
+      "es-PA",
+      "es-CU",
+      "es-DO",
+      "es-PR",
+    ];
+
+    if (latinAmericanCodes.includes(language)) {
+      const esLATMatch = supportedLanguages.find(
+        (lang) => lang === "es-LAT"
+      );
+      if (esLATMatch) return esLATMatch;
+    }
+
+
+    const esLATDefault = supportedLanguages.find(
+      (lang) => lang === "es-LAT"
+    );
+    if (esLATDefault) return esLATDefault;
+  }
+
+
+  const prefixMatch = supportedLanguages.find((supportedLanguage) =>
+    supportedLanguage.startsWith(baseLang)
+  );
+  if (prefixMatch) return prefixMatch;
+
+  return "en";
 }
 
 export function getLanguageFlagCountryCode(languageKey: string) {

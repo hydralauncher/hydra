@@ -42,20 +42,46 @@ export function ensureBigPictureI18nResources() {
 export function resolveBigPictureLanguage(
   language = i18next.resolvedLanguage ?? i18next.language ?? "en"
 ): BigPictureLanguage {
-  // Explicit regional variants first
-  if (language.startsWith("ru")) return "ru";
-  if (language.startsWith("pt")) return "pt-BR";
-  if (language.startsWith("es-ES")) return "es-ES";
-  if (language.startsWith("es-LAT")) return "es-LAT";
+  
+  const baseLang = language.split("-")[0];
 
-  // Map plain "es" to Peninsular Spanish (es-ES) as the default
-  if (language === "es") return "es-ES";
+  
+  if (baseLang === "ru") return "ru";
+  if (baseLang === "pt") return "pt-BR";
+  if (baseLang === "fr") return "fr";
 
-  // If any other code starts with "es-" that we don't explicitly handle,
-  // prefer the Peninsular Spanish variant (es-ES).
-  if (language.startsWith("es")) return "es-ES";
+  
+  if (language === "es-ES" || language.startsWith("es-ES")) return "es-ES";
 
-  if (language.startsWith("fr")) return "fr";
+  
+  const latinAmericanCodes = [
+    "es-419",
+    "es-MX",
+    "es-AR",
+    "es-CO",
+    "es-CL",
+    "es-PE",
+    "es-VE",
+    "es-EC",
+    "es-BO",
+    "es-PY",
+    "es-UY",
+    "es-CR",
+    "es-SV",
+    "es-GT",
+    "es-HN", 
+    "es-NI",
+    "es-PA",
+    "es-CU",
+    "es-DO",
+    "es-PR",
+  ];
+
+  if (latinAmericanCodes.includes(language)) return "es-LAT";
+
+  
+  if (language === "es" || baseLang === "es") return "es-LAT";
+
   return "en";
 }
 
@@ -166,10 +192,9 @@ export async function initializeBigPictureI18n() {
   const userPreferences = await electron?.getUserPreferences?.();
 
   if (userPreferences?.language) {
-    // Migrate legacy plain "es" to explicit es-ES to preserve the original
-    // Latin-American -> Peninsular split behaviour where "es" became es-ES.
+    
     if (userPreferences.language === "es") {
-      const migrated = "es-ES";
+      const migrated = "es-LAT";
       await i18next.changeLanguage(migrated);
       try {
         await electron?.updateUserPreferences?.({ language: migrated });
