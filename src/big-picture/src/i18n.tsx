@@ -42,11 +42,20 @@ export function ensureBigPictureI18nResources() {
 export function resolveBigPictureLanguage(
   language = i18next.resolvedLanguage ?? i18next.language ?? "en"
 ): BigPictureLanguage {
+  // Explicit regional variants first
   if (language.startsWith("ru")) return "ru";
   if (language.startsWith("pt")) return "pt-BR";
   if (language.startsWith("es-ES")) return "es-ES";
   if (language.startsWith("es-LAT")) return "es-LAT";
 
+  // Map plain "es" to Peninsular Spanish (es-ES) as the default
+  if (language === "es") return "es-ES";
+
+  // If a user has the legacy es-419 stored, map it to Latin American Spanish
+  if (language.startsWith("es-419")) return "es-LAT";
+
+  // If any other code starts with "es-" that we don't explicitly handle,
+  // prefer the Peninsular Spanish variant (es-ES) unless it matches es-LAT above.
   if (language.startsWith("es")) return "es-ES";
 
   if (language.startsWith("fr")) return "fr";
