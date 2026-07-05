@@ -36,7 +36,7 @@ const LANGUAGE_FLAG_MAP = {
 const REGIONAL_INDICATOR_SYMBOL_LETTER_A = 0x1f1e6;
 const ASCII_UPPERCASE_A = 65;
 
-const LATIN_AMERICAN_SPANISH_CODES = [
+const LATIN_AMERICAN_SPANISH_CODES = new Set([
   "es-419",
   "es-MX",
   "es-AR",
@@ -57,7 +57,7 @@ const LATIN_AMERICAN_SPANISH_CODES = [
   "es-CU",
   "es-DO",
   "es-PR",
-];
+]);
 
 function resolveSpanishVariant(
   language: string,
@@ -69,7 +69,7 @@ function resolveSpanishVariant(
     if (esESMatch) return esESMatch;
   }
 
-  if (LATIN_AMERICAN_SPANISH_CODES.includes(language)) {
+  if (LATIN_AMERICAN_SPANISH_CODES.has(language)) {
     const esLATMatch = supportedLanguages.find((lang) => lang === "es-LAT");
     if (esLATMatch) return esLATMatch;
   }
