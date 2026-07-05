@@ -5,7 +5,8 @@ import esES from "./es-ES/translation.json";
 import esLAT from "./es-LAT/translation.json";
 import fr from "./fr/translation.json";
 
-export type BigPictureLanguage = "en" | "ru" | "pt-BR" | "es-ES" | "es-LAT" | "fr";
+export type BigPictureLanguage =
+  "en" | "ru" | "pt-BR" | "es-ES" | "es-LAT" | "fr";
 
 export const exactTranslations: Record<
   BigPictureLanguage,

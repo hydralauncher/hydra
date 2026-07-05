@@ -1,10 +1,9 @@
-import { enUS, es, ptBR, ru } from "date-fns/locale";  // ✅ Cambiar esES, esLAT por es
+import { enUS, es, ptBR, ru } from "date-fns/locale"; // ✅ Cambiar esES, esLAT por es
 import { format, formatDistance, subMilliseconds } from "date-fns";
 import type { FormatDistanceOptions } from "date-fns";
 import { useTranslation } from "react-i18next";
 
 export type DateLike = number | Date | string;
-
 
 export const getDateFormat = (language: string) => {
   if (language === "es-ES") return "dd/MM/yyyy";
@@ -15,11 +14,9 @@ export const getDateFormat = (language: string) => {
 function getDateLocale(language: string) {
   if (language.startsWith("ru")) return ru;
   if (language.startsWith("pt")) return ptBR;
-  if (language.startsWith("es")) return es;  // ✅ Usar es para todas las variantes
+  if (language.startsWith("es")) return es; // ✅ Usar es para todas las variantes
   return enUS;
 }
-
-
 
 function getDateTimeFormat(language: string) {
   if (language === "es-ES" || language === "es-LAT") return "dd/MM/yyyy HH:mm";
