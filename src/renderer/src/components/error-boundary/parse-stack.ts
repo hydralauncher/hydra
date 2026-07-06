@@ -5,7 +5,7 @@ export interface StackOrigin {
   column: number;
 }
 
-const FRAME_RE = /at\s+(?:(.*?)\s+)?\(?([^\s()]+):(\d+):(\d+)\)?\s*$/;
+const LINE_COL_RE = /:(\d+):(\d+)\)?\s*$/;
 
 const IGNORED_FILE_HINTS = [
   "/node_modules/",
@@ -34,23 +34,36 @@ const cleanFile = (raw: string) => {
   return file.replace(/^.*\//, "");
 };
 
+const parseFrame = (line: string): StackOrigin | null => {
+  if (!line.startsWith("at ")) return null;
+
+  const match = LINE_COL_RE.exec(line);
+  if (!match) return null;
+
+  const head = line.slice(3, match.index).trim();
+  const parenIndex = head.indexOf("(");
+
+  const functionName =
+    parenIndex >= 0 ? head.slice(0, parenIndex).trim() || null : null;
+  const location = parenIndex >= 0 ? head.slice(parenIndex + 1).trim() : head;
+
+  if (!location) return null;
+  if (IGNORED_FILE_HINTS.some((hint) => location.includes(hint))) return null;
+
+  return {
+    functionName,
+    file: cleanFile(location),
+    line: Number(match[1]),
+    column: Number(match[2]),
+  };
+};
+
 export const getErrorOrigin = (stack?: string): StackOrigin | null => {
   if (!stack) return null;
 
   for (const line of stack.split("\n")) {
-    const match = FRAME_RE.exec(line.trim());
-    if (!match) continue;
-
-    const [, functionName, rawFile, lineNo, columnNo] = match;
-
-    if (IGNORED_FILE_HINTS.some((hint) => rawFile.includes(hint))) continue;
-
-    return {
-      functionName: functionName || null,
-      file: cleanFile(rawFile),
-      line: Number(lineNo),
-      column: Number(columnNo),
-    };
+    const origin = parseFrame(line.trim());
+    if (origin) return origin;
   }
 
   return null;

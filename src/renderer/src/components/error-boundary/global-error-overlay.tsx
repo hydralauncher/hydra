@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { AlertIcon, XIcon } from "@primer/octicons-react";
 
 import { errorBus } from "./error-bus";
+import { getErrorMessage, getErrorStack } from "./format-error";
 import { formatOrigin, getErrorOrigin } from "./parse-stack";
 import "./global-error-overlay.scss";
 
@@ -15,19 +16,14 @@ interface CapturedError {
 
 const MAX_VISIBLE = 3;
 
-const getMessage = (value: unknown) => {
-  if (value instanceof Error) return value.message;
-  if (typeof value === "string") return value;
+const appendError = (errors: CapturedError[], next: CapturedError) =>
+  [...errors, next].slice(-MAX_VISIBLE);
 
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-};
+const dropByMessage = (errors: CapturedError[], message: string) =>
+  errors.filter((error) => error.message !== message);
 
-const getStack = (value: unknown) =>
-  value instanceof Error && value.stack ? value.stack : "";
+const dropById = (errors: CapturedError[], id: number) =>
+  errors.filter((error) => error.id !== id);
 
 export function GlobalErrorOverlay() {
   const { t } = useTranslation("app");
@@ -37,24 +33,21 @@ export function GlobalErrorOverlay() {
 
   useEffect(() => {
     const pushError = (value: unknown) => {
-      const message = getMessage(value);
+      const message = getErrorMessage(value);
       if (!message || claimedRef.current.has(message)) return;
 
       idRef.current += 1;
 
-      const stack = getStack(value);
+      const stack = getErrorStack(value);
       const origin = getErrorOrigin(stack);
 
       setErrors((prev) =>
-        [
-          ...prev,
-          {
-            id: idRef.current,
-            message,
-            stack,
-            origin: origin ? formatOrigin(origin) : "",
-          },
-        ].slice(-MAX_VISIBLE)
+        appendError(prev, {
+          id: idRef.current,
+          message,
+          stack,
+          origin: origin ? formatOrigin(origin) : "",
+        })
       );
     };
 
@@ -63,24 +56,26 @@ export function GlobalErrorOverlay() {
     const onRejection = (event: PromiseRejectionEvent) =>
       pushError(event.reason);
 
-    const unsubscribe = errorBus.onBoundaryHandled((message) => {
+    const onBoundaryHandled = (message: string) => {
       claimedRef.current.add(message);
-      setErrors((prev) => prev.filter((error) => error.message !== message));
+      setErrors((prev) => dropByMessage(prev, message));
       setTimeout(() => claimedRef.current.delete(message), 1000);
-    });
+    };
 
-    window.addEventListener("error", onError);
-    window.addEventListener("unhandledrejection", onRejection);
+    const unsubscribe = errorBus.onBoundaryHandled(onBoundaryHandled);
+
+    globalThis.addEventListener("error", onError);
+    globalThis.addEventListener("unhandledrejection", onRejection);
 
     return () => {
       unsubscribe();
-      window.removeEventListener("error", onError);
-      window.removeEventListener("unhandledrejection", onRejection);
+      globalThis.removeEventListener("error", onError);
+      globalThis.removeEventListener("unhandledrejection", onRejection);
     };
   }, []);
 
   const dismiss = (id: number) => {
-    setErrors((prev) => prev.filter((error) => error.id !== id));
+    setErrors((prev) => dropById(prev, id));
   };
 
   if (errors.length === 0) return null;

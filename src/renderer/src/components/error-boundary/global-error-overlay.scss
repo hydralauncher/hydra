@@ -57,7 +57,7 @@
     color: globals.$body-color;
     font-family: monospace;
     font-size: globals.$small-font-size;
-    word-break: break-word;
+    overflow-wrap: break-word;
     user-select: text;
   }
 
@@ -65,7 +65,7 @@
     color: globals.$warning-color;
     font-family: monospace;
     font-size: globals.$small-font-size;
-    word-break: break-word;
+    overflow-wrap: break-word;
     user-select: text;
   }
 
@@ -88,7 +88,7 @@
     font-size: globals.$small-font-size;
     color: globals.$body-color;
     white-space: pre-wrap;
-    word-break: break-word;
+    overflow-wrap: break-word;
     user-select: text;
   }
 }
