@@ -7,6 +7,8 @@ on:
 
 jobs:
   update-aur:
+    # Upstream infrastructure (secrets not available on this fork)
+    if: github.repository == 'hydralauncher/hydra'
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest

@@ -71,7 +71,7 @@ appImage:
 npmRebuild: false
 publish:
   provider: github
-  owner: hydralauncher
+  owner: GameOneDev
   repo: hydra
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

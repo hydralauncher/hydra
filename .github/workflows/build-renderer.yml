@@ -11,6 +11,8 @@ on:
 
 jobs:
   build:
+    # Upstream infrastructure (secrets not available on this fork)
+    if: github.repository == 'hydralauncher/hydra'
     runs-on: ubuntu-latest
 
     permissions:
