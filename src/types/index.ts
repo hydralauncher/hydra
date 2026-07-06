@@ -7,10 +7,7 @@ export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
 
 export type HydraCloudFeature =
-  | "achievements"
-  | "backup"
-  | "achievements-points"
-  | "customization";
+  "achievements" | "backup" | "achievements-points" | "customization";
 
 export interface DiskUsage {
   free: number;
@@ -478,6 +475,8 @@ export interface ComparedAchievements {
   }[];
 }
 
+export type AchievementSort = "points" | "date" | "name" | "default";
+
 export interface CatalogueSearchPayload {
   title: string;
   sortBy:
@@ -493,11 +492,7 @@ export interface CatalogueSearchPayload {
   genres: string[];
   developers: string[];
   protondbSupportBadges: (
-    | "borked"
-    | "bronze"
-    | "silver"
-    | "gold"
-    | "platinum"
+    "borked" | "bronze" | "silver" | "gold" | "platinum"
   )[];
   deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
   releaseYear?: { gte?: number; lte?: number };

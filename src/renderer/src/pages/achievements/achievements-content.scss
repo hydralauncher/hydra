@@ -258,7 +258,7 @@ $logo-max-width: 200px;
   &__panel-container {
     display: flex;
     justify-content: space-between;
-    align-content: center;
+    align-items: center;
     padding: globals.$spacing-unit * 2 globals.$spacing-unit * 3;
     background-color: globals.$background-color;
     border-bottom: solid 1px globals.$border-color;

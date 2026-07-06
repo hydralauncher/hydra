@@ -17,7 +17,7 @@ import {
 } from "@renderer/helpers";
 import { useAppDispatch, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import type { ComparedAchievements } from "@types";
+import type { AchievementSort, ComparedAchievements } from "@types";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FilterDropdown } from "../profile/profile-content/filter-dropdown";
@@ -138,7 +138,9 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   );
 }
 
-type AchievementSort = "points" | "date" | "name" | "default";
+function PointsIcon() {
+  return <HydraIcon className="achievements__item-points-small" />;
+}
 
 export function AchievementsContent({
   otherUser,
@@ -202,7 +204,7 @@ export function AchievementsContent({
     {
       value: "points",
       label: t("sort_option_points"),
-      icon: () => <HydraIcon className="achievements__item-points-small" />,
+      icon: PointsIcon,
     },
     {
       value: "name",
@@ -300,7 +302,10 @@ export function AchievementsContent({
                 onChange={(val) => setSort(val as AchievementSort)}
               />
             </div>
-            <ComparedAchievementList achievements={comparedAchievements!} />
+            <ComparedAchievementList
+              achievements={comparedAchievements!}
+              sort={sort}
+            />
           </>
         ) : (
           <>
