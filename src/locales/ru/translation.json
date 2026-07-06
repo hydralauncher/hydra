@@ -1,7 +1,17 @@
 {
   "language_name": "Русский",
   "app": {
-    "successfully_signed_in": "Успешный вход"
+    "successfully_signed_in": "Успешный вход",
+    "error_boundary_title": "Что-то пошло не так",
+    "error_boundary_description": "В приложении произошла непредвиденная ошибка. Перезагрузите, чтобы продолжить пользоваться Hydra.",
+    "error_boundary_copy_error": "Скопировать ошибку",
+    "error_boundary_copied": "Скопировано",
+    "error_overlay_title": "Непредвиденная ошибка",
+    "error_overlay_dismiss": "Закрыть",
+    "error_overlay_details": "Подробнее",
+    "error_boundary_origin": "Источник",
+    "error_boundary_component_trace": "Трассировка компонентов",
+    "error_boundary_restart": "Перезапустить"
   },
   "home": {
     "surprise_me": "Удиви меня",
