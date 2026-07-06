@@ -9,6 +9,40 @@ export const externalResourcesInstance = axios.create({
   baseURL: import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL,
 });
 
+// Silently degrade optional metadata fetches (tags/genres/publishers/
+// developers) so a temporary CDN outage doesn't trigger the renderer
+// error boundary. Only genuine connectivity failures (network errors,
+// aborts, or "no response received") are swallowed - HTTP 4xx/5xx are
+// re-thrown so misconfiguration and permission problems stay
+// diagnosable. Every consumer reads `response.data` as an array, so
+// returning `{ data: [] }` in a full AxiosResponse shape keeps the
+// callsites happy and the app usable while the CDN is unreachable.
+externalResourcesInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const isNetworkOrTimeout =
+      axios.isAxiosError(error) &&
+      (error.code === "ERR_NETWORK" ||
+        error.code === "ECONNABORTED" ||
+        error.response == null);
+
+    if (!isNetworkOrTimeout) return Promise.reject(error);
+
+    console.warn(
+      "[external-resources] request failed silently:",
+      error?.message ?? error
+    );
+    return Promise.resolve({
+      data: [],
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config: error.config ?? ({} as any),
+      request: error.request,
+    });
+  }
+);
+
 export function useCatalogue() {
   const dispatch = useAppDispatch();
 
