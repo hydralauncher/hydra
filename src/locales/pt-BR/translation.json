@@ -1,7 +1,17 @@
 {
   "language_name": "Português (Brasil)",
   "app": {
-    "successfully_signed_in": "Autenticado com sucesso"
+    "successfully_signed_in": "Autenticado com sucesso",
+    "error_boundary_title": "Algo deu errado",
+    "error_boundary_description": "O aplicativo encontrou um erro inesperado. Você pode recarregar para continuar usando o Hydra.",
+    "error_boundary_copy_error": "Copiar erro",
+    "error_boundary_copied": "Copiado",
+    "error_overlay_title": "Erro inesperado",
+    "error_overlay_dismiss": "Dispensar",
+    "error_overlay_details": "Detalhes",
+    "error_boundary_origin": "Origem",
+    "error_boundary_component_trace": "Rastreamento de componentes",
+    "error_boundary_restart": "Reiniciar"
   },
   "home": {
     "hot": "Populares",
@@ -615,15 +625,6 @@
     "no_collection": "Sem coleção",
     "game_collection_updated": "Coleção atualizada",
     "failed_update_game_collection": "Falha ao atualizar coleção",
-    "details": "Detalhes",
-    "platform": "Plataforma",
-    "genres": "Gêneros",
-    "regions": "Regiões",
-    "region_us": "EUA",
-    "region_eu": "Europa",
-    "region_jp": "Japão",
-    "region_kr": "Coreia",
-    "region_asia": "Ásia",
     "download_error_invalid_magnet": "Link magnet inválido.",
     "download_error_torrent_metadata_timeout": "Tempo esgotado ao buscar metadados do torrent. Por favor, tente novamente.",
     "download_error_torrent_metadata_incomplete": "Os metadados do torrent estão incompletos e não podem ser processados agora.",
