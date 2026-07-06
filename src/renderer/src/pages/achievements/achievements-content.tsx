@@ -1,23 +1,31 @@
+import {
+  HistoryIcon,
+  LockIcon,
+  PersonIcon,
+  SortDescIcon,
+  TrophyIcon,
+} from "@primer/octicons-react";
+import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import { Link, ProgressBar } from "@renderer/components";
+import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
+import { gameDetailsContext } from "@renderer/context";
 import { setHeaderTitle } from "@renderer/features";
-import { useAppDispatch, useUserDetails } from "@renderer/hooks";
-import { useContext, useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
   buildGameDetailsPath,
   formatDownloadProgress,
   isGameCompleted,
 } from "@renderer/helpers";
-import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
-import { gameDetailsContext } from "@renderer/context";
+import { useAppDispatch, useUserDetails } from "@renderer/hooks";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 import type { ComparedAchievements } from "@types";
-import { Link, ProgressBar } from "@renderer/components";
-import { ComparedAchievementList } from "./compared-achievement-list";
+import { useContext, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { FilterDropdown } from "../profile/profile-content/filter-dropdown";
 import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
-import { ComparedAchievementPanel } from "./compared-achievement-panel";
-import { useSubscription } from "@renderer/hooks/use-subscription";
-import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import "./achievements-content.scss";
+import { ComparedAchievementList } from "./compared-achievement-list";
+import { ComparedAchievementPanel } from "./compared-achievement-panel";
 
 interface UserInfo {
   id: string;
@@ -130,6 +138,8 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   );
 }
 
+type AchievementSort = "points" | "date" | "name" | "default";
+
 export function AchievementsContent({
   otherUser,
   comparedAchievements,
@@ -137,9 +147,12 @@ export function AchievementsContent({
   const heroRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
+  const [sort, setSort] = useState<AchievementSort>("default");
 
   const { gameTitle, objectId, shop, shopDetails, achievements } =
     useContext(gameDetailsContext);
+
+  const { t } = useTranslation("achievement");
 
   const dispatch = useAppDispatch();
 
@@ -178,6 +191,25 @@ export function AchievementsContent({
       </div>
     );
   };
+
+  const sortOptions = [
+    {
+      value: "default",
+      label: t("sort_option_default"),
+      icon: SortDescIcon,
+    },
+    { value: "date", label: t("sort_option_date"), icon: HistoryIcon },
+    {
+      value: "points",
+      label: t("sort_option_points"),
+      icon: () => <HydraIcon className="achievements__item-points-small" />,
+    },
+    {
+      value: "name",
+      label: t("sort_option_name"),
+      icon: SortDescIcon,
+    },
+  ];
 
   if (!objectId || !shop || !gameTitle || !userDetails) return null;
 
@@ -255,13 +287,35 @@ export function AchievementsContent({
 
         {otherUser ? (
           <>
-            <ComparedAchievementPanel achievements={comparedAchievements!} />
+            <div className="achievements-content__panel-container">
+              <div>
+                <ComparedAchievementPanel
+                  achievements={comparedAchievements!}
+                />
+              </div>
+              <FilterDropdown
+                options={sortOptions}
+                placeholder={t("sort_by")}
+                value={sort}
+                onChange={(val) => setSort(val as AchievementSort)}
+              />
+            </div>
             <ComparedAchievementList achievements={comparedAchievements!} />
           </>
         ) : (
           <>
-            <AchievementPanel achievements={achievements!} />
-            <AchievementList achievements={achievements!} />
+            <div className="achievements-content__panel-container">
+              <div>
+                <AchievementPanel achievements={achievements!} />
+              </div>
+              <FilterDropdown
+                options={sortOptions}
+                placeholder={t("sort_by")}
+                value={sort}
+                onChange={(val) => setSort(val as AchievementSort)}
+              />
+            </div>
+            <AchievementList achievements={achievements!} sort={sort} />
           </>
         )}
       </section>

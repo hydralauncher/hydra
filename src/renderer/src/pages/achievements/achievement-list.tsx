@@ -6,20 +6,42 @@ import { EyeClosedIcon } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 
+type AchievementSort = "points" | "date" | "name" | "default";
+
 interface AchievementListProps {
   achievements: UserAchievement[];
+  sort?: AchievementSort;
 }
 
 export function AchievementList({
   achievements,
+  sort,
 }: Readonly<AchievementListProps>) {
   const { t } = useTranslation("achievement");
   const { showHydraCloudModal } = useSubscription();
   const { formatDateTime } = useDate();
 
+  function sorter(a: UserAchievement, b: UserAchievement) {
+    let diff = 0;
+
+    if (sort === "date") {
+      diff = Number(b.unlockTime) - Number(a.unlockTime);
+    } else if (sort === "points") {
+      diff = Number(a.points) - Number(b.points);
+    } else if (sort === "name") {
+      diff = a.displayName.localeCompare(b.displayName);
+    } else if (sort === "default") {
+      return 0;
+    }
+
+    if (diff !== 0) return diff;
+
+    return a.displayName.localeCompare(b.displayName);
+  }
+
   return (
     <ul className="achievements__list">
-      {achievements.map((achievement) => (
+      {achievements.toSorted(sorter).map((achievement) => (
         <li key={achievement.name} className="achievements__item">
           <img
             className={`achievements__item-image ${!achievement.unlocked ? "achievements__item-image--locked" : ""}`}

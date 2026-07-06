@@ -1356,7 +1356,12 @@
     "achievement_earn_points": "Gagnez {{points}} points avec ce succès",
     "earned_points": "Points gagnés :",
     "available_points": "Points disponibles :",
-    "how_to_earn_achievements_points": "Comment gagner des points de succès ?"
+    "how_to_earn_achievements_points": "Comment gagner des points de succès ?",
+    "sort_by": "Trier par",
+    "sort_option_default": "Défaut",
+    "sort_option_date": "Date d'obtention",
+    "sort_option_points": "Points",
+    "sort_option_name": "Nom"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Abonnement Hydra Cloud",
