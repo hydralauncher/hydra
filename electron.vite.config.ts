@@ -56,6 +56,9 @@ export default defineConfig(({ mode }) => {
       build: {
         sourcemap: true,
       },
+      esbuild: {
+        keepNames: true,
+      },
       css: {
         postcss: {
           plugins: [scopeBigPictureCss()],
