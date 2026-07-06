@@ -10,6 +10,8 @@ import {
   HistoryIcon,
   InfoIcon,
   PencilIcon,
+  PeopleIcon,
+  PersonIcon,
   PinIcon,
   PinSlashIcon,
   SyncIcon,
@@ -27,6 +29,7 @@ import { useTranslation } from "react-i18next";
 import { AxiosProgressEvent } from "axios";
 import { formatDownloadProgress } from "@renderer/helpers";
 import { CloudSyncRenameArtifactModal } from "../cloud-sync-rename-artifact-modal/cloud-sync-rename-artifact-modal";
+import { CloudSyncShareArtifactModal } from "../cloud-sync-share-artifact-modal/cloud-sync-share-artifact-modal";
 import { GameArtifact } from "@types";
 import { orderBy } from "lodash-es";
 import { MoreVertical } from "lucide-react";
@@ -48,6 +51,9 @@ export function CloudSyncPanel({
   const [artifactToRename, setArtifactToRename] = useState<GameArtifact | null>(
     null
   );
+  const [artifactToShare, setArtifactToShare] = useState<GameArtifact | null>(
+    null
+  );
 
   const { t } = useTranslation("game_details");
   const { t: tHydraCloud } = useTranslation("hydra_cloud");
@@ -57,6 +63,7 @@ export function CloudSyncPanel({
 
   const {
     artifacts,
+    sharedArtifacts,
     backupPreview,
     uploadingBackup,
     restoringBackup,
@@ -69,6 +76,7 @@ export function CloudSyncPanel({
     setShowCloudSyncFilesModal,
     getGameBackupPreview,
     getGameArtifacts,
+    getSharedArtifacts,
   } = useContext(cloudSyncContext);
 
   const { objectId, shop, lastDownloadedOption, game } =
@@ -78,6 +86,11 @@ export function CloudSyncPanel({
 
   const userDetails = useAppSelector((state) => state.userDetails.userDetails);
   const backupsPerGameLimit = userDetails?.quirks?.backupsPerGameLimit ?? 0;
+
+  // Save sharing is a self-hosted cloud server feature.
+  const canShareSaves = Boolean(
+    useAppSelector((state) => state.userPreferences.value?.selfHostedCloudUrl)
+  );
 
   const handleDeleteArtifactClick = async (gameArtifactId: string) => {
     setDeletingArtifact(true);
@@ -111,7 +124,17 @@ export function CloudSyncPanel({
 
     getGameBackupPreview();
     getGameArtifacts();
-  }, [getGameArtifacts, getGameBackupPreview, hasActiveSubscription]);
+
+    if (canShareSaves) {
+      getSharedArtifacts();
+    }
+  }, [
+    getGameArtifacts,
+    getGameBackupPreview,
+    getSharedArtifacts,
+    canShareSaves,
+    hasActiveSubscription,
+  ]);
 
   const handleBackupInstallClick = async (artifactId: string) => {
     setBackupDownloadProgress(null);
@@ -206,6 +229,12 @@ export function CloudSyncPanel({
         visible={!!artifactToRename}
         onClose={() => setArtifactToRename(null)}
         artifact={artifactToRename}
+      />
+
+      <CloudSyncShareArtifactModal
+        visible={!!artifactToShare}
+        onClose={() => setArtifactToShare(null)}
+        artifact={artifactToShare}
       />
 
       <div className="cloud-sync-panel__section-header">
@@ -345,6 +374,16 @@ export function CloudSyncPanel({
                           ),
                         disabled: disableActions,
                       },
+                      ...(canShareSaves
+                        ? [
+                            {
+                              label: t("share_backup"),
+                              icon: <PeopleIcon />,
+                              onClick: () => setArtifactToShare(artifact),
+                              disabled: disableActions,
+                            },
+                          ]
+                        : []),
                       {
                         label: t("delete_backup"),
                         icon: <TrashIcon />,
@@ -368,6 +407,75 @@ export function CloudSyncPanel({
         </ul>
       ) : (
         <p>{t("no_backups_created")}</p>
+      )}
+
+      {canShareSaves && sharedArtifacts.length > 0 && (
+        <>
+          <div className="cloud-sync-panel__backups-header">
+            <h3>{t("shared_with_you")}</h3>
+            <span className="cloud-sync-panel__backups-count">
+              {formatNumber(sharedArtifacts.length)}
+            </span>
+          </div>
+
+          <ul className="cloud-sync-panel__artifacts">
+            {sharedArtifacts.map((artifact) => {
+              const artifactName =
+                artifact.label ??
+                t("backup_from", {
+                  date: formatDate(artifact.createdAt),
+                });
+
+              return (
+                <li key={artifact.id} className="cloud-sync-panel__artifact">
+                  <div className="cloud-sync-panel__artifact-info">
+                    <div className="cloud-sync-panel__artifact-header">
+                      <span className="cloud-sync-panel__artifact-label-text">
+                        {artifactName}
+                      </span>
+                      <small>
+                        {formatBytes(artifact.artifactLengthInBytes)}
+                      </small>
+                    </div>
+
+                    <span className="cloud-sync-panel__artifact-meta">
+                      <PersonIcon size={14} />
+                      {t("shared_by", {
+                        displayName: artifact.sharedBy.displayName,
+                      })}
+                    </span>
+
+                    <span className="cloud-sync-panel__artifact-meta">
+                      <DeviceDesktopIcon size={14} />
+                      {artifact.hostname}
+                    </span>
+
+                    <span className="cloud-sync-panel__artifact-meta">
+                      <ClockIcon size={14} />
+                      {formatDateTime(artifact.createdAt)}
+                    </span>
+                  </div>
+
+                  <div className="cloud-sync-panel__artifact-actions">
+                    <Button
+                      type="button"
+                      onClick={() => handleBackupInstallClick(artifact.id)}
+                      disabled={disableActions}
+                      theme="outline"
+                    >
+                      {restoringBackup ? (
+                        <SyncIcon className="cloud-sync-panel__sync-icon" />
+                      ) : (
+                        <HistoryIcon />
+                      )}
+                      {t("install_backup")}
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
 
       <Tooltip id="cloud-sync-artifact-name-tooltip" />

@@ -1,0 +1,58 @@
+@use "../../../scss/globals.scss";
+
+.cloud-sync-share-artifact-modal {
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    min-width: 400px;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: globals.$spacing-unit;
+    border-radius: 4px;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  &__row-info {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+    min-width: 0;
+  }
+
+  &__row-name {
+    font-weight: 600;
+    color: globals.$muted-color;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__hint {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    margin: 0;
+  }
+}

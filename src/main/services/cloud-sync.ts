@@ -17,6 +17,13 @@ import i18next, { t } from "i18next";
 import { SystemPath } from "./system-path";
 import { Wine } from "./wine";
 
+/* Self-hosted servers often sit behind Cloudflare or another reverse proxy
+   that caps request bodies (100 MB on Cloudflare's free plan), so backups are
+   uploaded in chunks safely below that cap. Official-API uploads go to a
+   presigned CDN URL whose signature covers the exact request, so those are
+   never chunked. */
+const UPLOAD_CHUNK_SIZE = 64 * 1024 * 1024;
+
 export class CloudSync {
   public static getWindowsLikeUserProfilePath(winePrefixPath?: string | null) {
     if (process.platform === "linux") {
@@ -101,6 +108,66 @@ export class CloudSync {
     return tarLocation;
   }
 
+  private static async uploadBundle(
+    uploadUrl: string,
+    bundleLocation: string,
+    fileSize: number
+  ) {
+    const selfHostedCloudUrl = HydraApi.getSelfHostedCloudUrl();
+    const isSelfHostedUpload =
+      selfHostedCloudUrl !== null && uploadUrl.startsWith(selfHostedCloudUrl);
+
+    if (!isSelfHostedUpload || fileSize <= UPLOAD_CHUNK_SIZE) {
+      const fileBuffer = await fs.promises.readFile(bundleLocation);
+
+      await axios.put(uploadUrl, fileBuffer, {
+        headers: {
+          "Content-Type": "application/tar",
+        },
+        onUploadProgress: (progressEvent) => {
+          logger.log(progressEvent);
+        },
+      });
+
+      return;
+    }
+
+    const fileHandle = await fs.promises.open(bundleLocation, "r");
+
+    try {
+      let offset = 0;
+
+      while (offset < fileSize) {
+        const length = Math.min(UPLOAD_CHUNK_SIZE, fileSize - offset);
+        const buffer = Buffer.alloc(length);
+
+        await fileHandle.read(buffer, 0, length, offset);
+
+        const separator = uploadUrl.includes("?") ? "&" : "?";
+
+        await axios.put(
+          `${uploadUrl}${separator}offset=${offset}&total=${fileSize}`,
+          buffer,
+          {
+            headers: {
+              "Content-Type": "application/tar",
+            },
+          }
+        );
+
+        offset += length;
+
+        logger.log("Uploaded backup chunk", {
+          bundleLocation,
+          offset,
+          fileSize,
+        });
+      }
+    } finally {
+      await fileHandle.close();
+    }
+  }
+
   public static async uploadSaveGame(
     objectId: string,
     shop: GameShop,
@@ -154,16 +221,7 @@ export class CloudSync {
       label,
     });
 
-    const fileBuffer = await fs.promises.readFile(bundleLocation);
-
-    await axios.put(uploadUrl, fileBuffer, {
-      headers: {
-        "Content-Type": "application/tar",
-      },
-      onUploadProgress: (progressEvent) => {
-        logger.log(progressEvent);
-      },
-    });
+    await this.uploadBundle(uploadUrl, bundleLocation, stat.size);
 
     WindowManager.sendToAppWindows(
       `on-upload-complete-${objectId}-${shop}`,

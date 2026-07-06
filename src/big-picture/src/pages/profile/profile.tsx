@@ -54,6 +54,7 @@ import {
   formatRelativeDate,
   getGameIdentityKey,
   getGameLandscapeImageSource,
+  sortFriendsByOnlineStatus,
 } from "../../helpers";
 import { useHeroBackgroundLayers } from "../../components/pages/library/hero/use-hero-background-layers";
 import { useLibrary, useUserDetails } from "../../hooks";
@@ -745,7 +746,7 @@ export default function Profile() {
       .then((response) => {
         if (!isMounted) return;
 
-        setFriends(response.friends);
+        setFriends(sortFriendsByOnlineStatus(response.friends));
         setTotalFriends(response.totalFriends);
       })
       .catch(() => {

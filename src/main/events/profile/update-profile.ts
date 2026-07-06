@@ -67,17 +67,42 @@ const updateProfile = async (
   if (updateProfile.backgroundImageUrl !== undefined) {
     if (updateProfile.backgroundImageUrl === null) {
       payload["backgroundImageUrl"] = null;
+
+      /* Mirror the removal to the self-hosted server so its banner
+         fallback doesn't resurrect the deleted banner */
+      if (HydraApi.isSelfHostedCloudEnabled()) {
+        HydraApi.delete("/profile/banner").catch(() => {});
+      }
     } else {
-      const backgroundImageUrl = await uploadImage(
+      /* Unlike the avatar, a failed banner upload must not be swallowed:
+         the banner flow patches nothing else, so silently dropping the
+         field would report success while changing nothing. */
+      payload["backgroundImageUrl"] = await uploadImage(
         "background-image",
         updateProfile.backgroundImageUrl
-      ).catch(() => undefined);
-
-      payload["backgroundImageUrl"] = backgroundImageUrl;
+      );
     }
   }
 
-  const updatedProfile = await patchUserProfile(payload);
+  let updatedProfile: UserProfile;
+
+  try {
+    updatedProfile = await patchUserProfile(payload);
+  } catch (err) {
+    /* The official API refuses banner URLs it doesn't host (or the field
+       entirely for non-subscribers). The banner already lives on the
+       self-hosted server and is displayed through its fallback lookup, so
+       save the rest of the profile instead of failing the whole update. */
+    const canRetryWithoutBanner =
+      HydraApi.isSelfHostedCloudEnabled() &&
+      typeof payload["backgroundImageUrl"] === "string";
+
+    if (!canRetryWithoutBanner) throw err;
+
+    updatedProfile = await patchUserProfile(
+      omit(payload, ["backgroundImageUrl"])
+    );
+  }
 
   // Notify every window (e.g. the friends window, which has its own store) so
   // they can re-fetch the signed-in user's details after a profile change.

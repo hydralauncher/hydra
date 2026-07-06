@@ -75,6 +75,9 @@ export interface Game {
   installedSizeInBytes?: number | null;
   installerSizeInBytes?: number | null;
   steamShortcutAppId?: number;
+  launchThroughSteam?: boolean;
+  steamPlayTimeInMilliseconds?: number | null;
+  steamPlaytimeLastSyncedAt?: Date | null;
   platform?: string | null;
   discs?: ClassicsDisc[];
   selectedDiscPath?: string | null;
@@ -191,6 +194,11 @@ export interface UserPreferences {
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
+  /* Self-hosted Hydra Cloud storage server. When set, subscription-gated
+     features (cloud saves, achievement sync, download source sync) are routed
+     to this server while accounts, friends and everything else keep using the
+     official Hydra servers. */
+  selfHostedCloudUrl?: string | null;
 }
 
 export interface NetworkInterface {

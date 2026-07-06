@@ -12,12 +12,13 @@ import { gameDetailsContext } from "@renderer/context";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { AlertFillIcon } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import "./hero-panel-playtime.scss";
 
 export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
 
-  const { game, isGameRunning } = useContext(gameDetailsContext);
+  const { game, isGameRunning, updateGame } = useContext(gameDetailsContext);
   const { t } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
   const { progress, lastPacket } = useDownload();
@@ -36,20 +37,52 @@ export function HeroPanelPlaytime() {
     }
   }, [game?.lastTimePlayed, formatDistance]);
 
-  const formattedPlayTime = useMemo(() => {
-    const milliseconds = game?.playTimeInMilliseconds || 0;
-    const seconds = milliseconds / 1000;
-    const minutes = seconds / 60;
+  const isSteamManagedGame = Boolean(game?.launchThroughSteam);
 
-    if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
-      return t("amount_minutes", {
-        amount: minutes.toFixed(0),
-      });
-    }
+  useEffect(() => {
+    // Steam updates its local playtime files when a game session ends, so
+    // refresh the stat whenever the details of a Steam-managed game open.
+    if (!isSteamManagedGame) return;
 
-    const hours = minutes / 60;
-    return t("amount_hours", { amount: numberFormatter.format(hours) });
-  }, [game?.playTimeInMilliseconds, numberFormatter, t]);
+    window.electron
+      .syncSteamPlaytime()
+      .then((updatedCount) => {
+        if (updatedCount > 0) updateGame();
+      })
+      .catch(() => {});
+  }, [isSteamManagedGame, game?.objectId, updateGame]);
+
+  const formatPlaytimeAmount = useMemo(() => {
+    return (milliseconds: number) => {
+      const minutes = milliseconds / 1000 / 60;
+
+      if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
+        return t("amount_minutes", {
+          amount: minutes.toFixed(0),
+        });
+      }
+
+      const hours = minutes / 60;
+      return t("amount_hours", { amount: numberFormatter.format(hours) });
+    };
+  }, [numberFormatter, t]);
+
+  const formattedPlayTime = useMemo(
+    () => formatPlaytimeAmount(game?.playTimeInMilliseconds || 0),
+    [game?.playTimeInMilliseconds, formatPlaytimeAmount]
+  );
+
+  const steamPlaytime = game?.steamPlayTimeInMilliseconds ?? 0;
+
+  const steamPlaytimeInfo =
+    steamPlaytime > 0 ? (
+      <p className="hero-panel-playtime__steam-playtime">
+        <SteamLogo width={16} height={16} />
+        {t("steam_play_time", {
+          amount: formatPlaytimeAmount(steamPlaytime),
+        })}
+      </p>
+    ) : null;
 
   if (!game) return null;
 
@@ -90,6 +123,7 @@ export function HeroPanelPlaytime() {
     return (
       <>
         <p>{t("not_played_yet", { title: game?.title })}</p>
+        {steamPlaytimeInfo}
         {isExtracting && extractionInProgressInfo}
         {!isExtracting && hasDownload && downloadInProgressInfo}
       </>
@@ -100,6 +134,7 @@ export function HeroPanelPlaytime() {
     return (
       <>
         <p>{t("playing_now")}</p>
+        {steamPlaytimeInfo}
         {isExtracting && extractionInProgressInfo}
         {!isExtracting && hasDownload && downloadInProgressInfo}
       </>
@@ -132,6 +167,8 @@ export function HeroPanelPlaytime() {
           amount: formattedPlayTime,
         })}
       </p>
+
+      {steamPlaytimeInfo}
 
       {isExtracting && extractionInProgressInfo}
       {!isExtracting && hasDownload && downloadInProgressInfo}

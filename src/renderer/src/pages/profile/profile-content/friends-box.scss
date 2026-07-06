@@ -72,6 +72,23 @@
     }
   }
 
+  &__avatar-wrapper {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  &__status-orb {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: globals.$success-color;
+    border: 2px solid globals.$background-color;
+  }
+
   &__friend-name {
     color: globals.$muted-color;
     font-size: 0.8rem;

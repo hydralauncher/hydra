@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { PlusIcon } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar, Link } from "@renderer/components";
+import { isFriendOnline, sortFriendsByOnlineStatus } from "@renderer/helpers";
 import { AllFriendsModal } from "./all-friends-modal";
 import { AddFriendModal } from "./add-friend-modal";
 import "./friends-box.scss";
@@ -46,7 +47,8 @@ export function FriendsBox() {
     );
   }
 
-  const visibleFriends = userProfile.friends.slice(0, MAX_VISIBLE_FRIENDS);
+  const sortedFriends = sortFriendsByOnlineStatus(userProfile.friends);
+  const visibleFriends = sortedFriends.slice(0, MAX_VISIBLE_FRIENDS);
   const totalFriends = userProfile.friends.length;
   const showViewAllButton = totalFriends > MAX_VISIBLE_FRIENDS;
 
@@ -67,11 +69,16 @@ export function FriendsBox() {
                 to={`/profile/${friend.id}`}
                 className="friends-box__list-item"
               >
-                <Avatar
-                  size={32}
-                  src={friend.profileImageUrl}
-                  alt={friend.displayName}
-                />
+                <div className="friends-box__avatar-wrapper">
+                  <Avatar
+                    size={32}
+                    src={friend.profileImageUrl}
+                    alt={friend.displayName}
+                  />
+                  {isFriendOnline(friend) && (
+                    <span className="friends-box__status-orb" />
+                  )}
+                </div>
 
                 <div className="friends-box__friend-details">
                   <span className="friends-box__friend-name">

@@ -1,4 +1,9 @@
-import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
+import type {
+  EmulatorBinary,
+  EmulatorSystem,
+  GameShop,
+  UserFriend,
+} from "@types";
 
 import Color from "color";
 import i18next from "i18next";
@@ -64,6 +69,15 @@ export const buildGameAchievementPath = (
 
   return `/achievements/?${searchParams.toString()}`;
 };
+
+// Some endpoints omit isOnline, but an active game session implies online.
+export const isFriendOnline = (friend: UserFriend) =>
+  Boolean(friend.isOnline) || friend.currentGame !== null;
+
+export const sortFriendsByOnlineStatus = (friends: UserFriend[]) =>
+  [...friends].sort(
+    (a, b) => Number(isFriendOnline(b)) - Number(isFriendOnline(a))
+  );
 
 export const darkenColor = (color: string, amount: number, alpha: number = 1) =>
   new Color(color).darken(amount).alpha(alpha).toString();

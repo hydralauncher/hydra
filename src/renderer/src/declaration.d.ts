@@ -595,6 +595,12 @@ declare global {
       foundGames: { title: string; executablePath: string }[];
       total: number;
     }>;
+    importSteamGames: () => Promise<{
+      importedGames: { title: string; objectId: string }[];
+      totalInstalled: number;
+    }>;
+    openSteamGame: (shop: GameShop, objectId: string) => Promise<void>;
+    syncSteamPlaytime: () => Promise<number>;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;

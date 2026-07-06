@@ -292,6 +292,8 @@ export function Sidebar() {
           game.executablePath,
           game.launchOptions
         );
+      } else if (game.launchThroughSteam) {
+        window.electron.openSteamGame(game.shop, game.objectId).catch(() => {});
       } else {
         showWarningToast(t("game_has_no_executable"));
       }

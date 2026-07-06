@@ -1,6 +1,11 @@
 import { useToast } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
-import type { LudusaviBackup, GameArtifact, GameShop } from "@types";
+import type {
+  LudusaviBackup,
+  GameArtifact,
+  GameShop,
+  SharedGameArtifact,
+} from "@types";
 import React, {
   createContext,
   useCallback,
@@ -20,6 +25,7 @@ export enum CloudSyncState {
 export interface CloudSyncContext {
   backupPreview: LudusaviBackup | null;
   artifacts: GameArtifact[];
+  sharedArtifacts: SharedGameArtifact[];
   showCloudSyncFilesModal: boolean;
   backupState: CloudSyncState;
   downloadGameArtifact: (gameArtifactId: string) => Promise<void>;
@@ -28,6 +34,15 @@ export interface CloudSyncContext {
   setShowCloudSyncFilesModal: React.Dispatch<React.SetStateAction<boolean>>;
   getGameBackupPreview: () => Promise<void>;
   getGameArtifacts: () => Promise<void>;
+  getSharedArtifacts: () => Promise<void>;
+  shareGameArtifact: (
+    gameArtifactId: string,
+    recipientId: string
+  ) => Promise<void>;
+  unshareGameArtifact: (
+    gameArtifactId: string,
+    recipientId: string
+  ) => Promise<void>;
   toggleArtifactFreeze: (
     gameArtifactId: string,
     freeze: boolean
@@ -44,12 +59,16 @@ export const cloudSyncContext = createContext<CloudSyncContext>({
   downloadGameArtifact: async () => {},
   uploadSaveGame: async () => {},
   artifacts: [],
+  sharedArtifacts: [],
   deleteGameArtifact: async () => {},
   showCloudSyncFilesModal: false,
   setShowCloudSyncFilesModal: () => {},
   getGameBackupPreview: async () => {},
   toggleArtifactFreeze: async () => {},
   getGameArtifacts: async () => {},
+  getSharedArtifacts: async () => {},
+  shareGameArtifact: async () => {},
+  unshareGameArtifact: async () => {},
   restoringBackup: false,
   uploadingBackup: false,
   loadingPreview: false,
@@ -73,6 +92,9 @@ export function CloudSyncContextProvider({
   const { t } = useTranslation("game_details");
 
   const [artifacts, setArtifacts] = useState<GameArtifact[]>([]);
+  const [sharedArtifacts, setSharedArtifacts] = useState<SharedGameArtifact[]>(
+    []
+  );
   const [backupPreview, setBackupPreview] = useState<LudusaviBackup | null>(
     null
   );
@@ -112,6 +134,46 @@ export function CloudSyncContextProvider({
       });
     setArtifacts(results);
   }, [objectId, shop]);
+
+  const getSharedArtifacts = useCallback(async () => {
+    if (shop === "custom") {
+      setSharedArtifacts([]);
+      return;
+    }
+
+    const params = new URLSearchParams({
+      objectId,
+      shop,
+    });
+
+    // Save sharing only exists on self-hosted cloud servers; on the official
+    // API this endpoint 404s and the section stays empty.
+    const results = await window.electron.hydraApi
+      .get<
+        SharedGameArtifact[]
+      >(`/profile/games/artifacts/shared-with-me?${params.toString()}`, { needsSubscription: true })
+      .catch(() => []);
+    setSharedArtifacts(results);
+  }, [objectId, shop]);
+
+  const shareGameArtifact = useCallback(
+    async (gameArtifactId: string, recipientId: string) => {
+      await window.electron.hydraApi.post(
+        `/profile/games/artifacts/${gameArtifactId}/share`,
+        { data: { recipientId } }
+      );
+    },
+    []
+  );
+
+  const unshareGameArtifact = useCallback(
+    async (gameArtifactId: string, recipientId: string) => {
+      await window.electron.hydraApi.delete(
+        `/profile/games/artifacts/${gameArtifactId}/share/${recipientId}`
+      );
+    },
+    []
+  );
 
   const getGameBackupPreview = useCallback(async () => {
     setLoadingPreview(true);
@@ -212,6 +274,7 @@ export function CloudSyncContextProvider({
   useEffect(() => {
     setBackupPreview(null);
     setArtifacts([]);
+    setSharedArtifacts([]);
     setRestoringBackup(false);
     setUploadingBackup(false);
   }, [objectId, shop]);
@@ -231,6 +294,7 @@ export function CloudSyncContextProvider({
       value={{
         backupPreview,
         artifacts,
+        sharedArtifacts,
         backupState,
         restoringBackup,
         uploadingBackup,
@@ -243,6 +307,9 @@ export function CloudSyncContextProvider({
         setShowCloudSyncFilesModal,
         getGameBackupPreview,
         getGameArtifacts,
+        getSharedArtifacts,
+        shareGameArtifact,
+        unshareGameArtifact,
         toggleArtifactFreeze,
       }}
     >

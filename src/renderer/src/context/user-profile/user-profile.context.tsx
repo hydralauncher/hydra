@@ -67,6 +67,10 @@ export function UserProfileContextProvider({
   userId,
 }: Readonly<UserProfileContextProviderProps>) {
   const { userDetails } = useAppSelector((state) => state.userDetails);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const selfHostedCloudUrl = userPreferences?.selfHostedCloudUrl;
   const authUserId = userDetails?.id;
 
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -114,11 +118,36 @@ export function UserProfileContextProvider({
         .get<UserStats>(`/users/${userId}/stats?${params.toString()}`, {
           needsAuth: false,
         })
-        .then((stats) => {
-          setUserStats(stats);
+        .then(async (stats) => {
+          let merged = stats;
+
+          /* The official API only computes achievement totals for
+             subscribers; the self-hosted server knows them from achievement
+             sync, so fill the gap from there. */
+          if (
+            merged.unlockedAchievementSum === undefined &&
+            selfHostedCloudUrl
+          ) {
+            try {
+              const fallback = await window.electron.hydraApi.get<{
+                unlockedAchievementSum: number | null;
+              }>(`/profile/stats/${userId}`);
+
+              if (typeof fallback?.unlockedAchievementSum === "number") {
+                merged = {
+                  ...merged,
+                  unlockedAchievementSum: fallback.unlockedAchievementSum,
+                };
+              }
+            } catch {
+              /* No achievement data on the self-hosted server either */
+            }
+          }
+
+          setUserStats(merged);
         });
     },
-    [userId]
+    [userId, selfHostedCloudUrl]
   );
 
   const getUserLibraryGames = useCallback(
@@ -229,12 +258,34 @@ export function UserProfileContextProvider({
       .get<UserProfile>(`/users/${userId}?${profileParams.toString()}`, {
         needsAuth: false,
       })
-      .then((userProfile) => {
-        setUserProfile(userProfile);
+      .then(async (userProfile) => {
+        let profile = userProfile;
 
-        if (userProfile.profileImageUrl) {
-          getHeroBackgroundFromImageUrl(userProfile.profileImageUrl).then(
-            (color) => setHeroBackground(color)
+        /* The official API only stores banners for subscribers; users of a
+           self-hosted cloud server keep theirs there, so fall back to it
+           when the official profile has none. */
+        if (!profile.backgroundImageUrl && selfHostedCloudUrl) {
+          try {
+            const fallback = await window.electron.hydraApi.get<{
+              backgroundImageUrl: string | null;
+            }>(`/profile/banners/${userId}`);
+
+            if (fallback?.backgroundImageUrl) {
+              profile = {
+                ...profile,
+                backgroundImageUrl: fallback.backgroundImageUrl,
+              };
+            }
+          } catch {
+            /* No banner on the self-hosted server either */
+          }
+        }
+
+        setUserProfile(profile);
+
+        if (profile.profileImageUrl) {
+          getHeroBackgroundFromImageUrl(profile.profileImageUrl).then((color) =>
+            setHeroBackground(color)
           );
         }
       })
@@ -242,7 +293,15 @@ export function UserProfileContextProvider({
         showErrorToast(t("user_not_found"));
         navigate(-1);
       });
-  }, [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t]);
+  }, [
+    navigate,
+    getUserStats,
+    getUserLibraryGames,
+    showErrorToast,
+    userId,
+    selfHostedCloudUrl,
+    t,
+  ]);
 
   const getBadges = useCallback(async () => {
     const language = i18n.language.split("-")[0];

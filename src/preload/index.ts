@@ -714,6 +714,10 @@ contextBridge.exposeInMainWorld("electron", {
       additionalDirectories,
       includeDefaultDirectories
     ),
+  importSteamGames: () => ipcRenderer.invoke("importSteamGames"),
+  openSteamGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("openSteamGame", shop, objectId),
+  syncSteamPlaytime: () => ipcRenderer.invoke("syncSteamPlaytime"),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (

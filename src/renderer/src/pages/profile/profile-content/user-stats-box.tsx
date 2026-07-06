@@ -1,7 +1,7 @@
 import { useCallback, useContext } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
-import { useFormat, useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useFormat, useUserDetails } from "@renderer/hooks";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -15,6 +15,13 @@ export function UserStatsBox() {
   const { userDetails } = useUserDetails();
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
+
+  /* With a self-hosted cloud server the Hydra Cloud promo is meaningless:
+     achievement counts come from that server, and the points ranking is an
+     official-only computation — hide the upsell tiles instead. */
+  const usesSelfHostedCloud = !!useAppSelector(
+    (state) => state.userPreferences.value?.selfHostedCloudUrl
+  );
 
   const formatPlayTime = useCallback(
     (playTimeInSeconds: number) => {
@@ -41,7 +48,8 @@ export function UserStatsBox() {
   return (
     <div className="user-stats__box">
       <ul className="user-stats__list">
-        {(isMe || userStats.unlockedAchievementSum !== undefined) && (
+        {((isMe && !usesSelfHostedCloud) ||
+          userStats.unlockedAchievementSum !== undefined) && (
           <li className="user-stats__list-item">
             <h3 className="user-stats__list-title">
               {t("achievements_unlocked")}
@@ -67,7 +75,8 @@ export function UserStatsBox() {
           </li>
         )}
 
-        {(isMe || userStats.achievementsPointsEarnedSum !== undefined) && (
+        {((isMe && !usesSelfHostedCloud) ||
+          userStats.achievementsPointsEarnedSum !== undefined) && (
           <li className="user-stats__list-item">
             <h3 className="user-stats__list-title">{t("earned_points")}</h3>
             {userStats.achievementsPointsEarnedSum !== undefined ? (

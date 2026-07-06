@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Modal, Avatar, Button } from "@renderer/components";
 import { logger } from "@renderer/logger";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { UserFriend } from "@types";
+import { isFriendOnline, sortFriendsByOnlineStatus } from "@renderer/helpers";
 import "./all-friends-modal.scss";
 
 interface AllFriendsModalProps {
@@ -99,6 +100,11 @@ export function AllFriendsModal({
     }
   };
 
+  const sortedFriends = useMemo(
+    () => sortFriendsByOnlineStatus(friends),
+    [friends]
+  );
+
   const getGameImage = (game: { iconUrl: string | null; title: string }) => {
     if (game.iconUrl) {
       return <img alt={game.title} width={16} height={16} src={game.iconUrl} />;
@@ -128,7 +134,7 @@ export function AllFriendsModal({
             className="all-friends-modal__list"
             onScroll={handleScroll}
           >
-            {friends.map((friend) => (
+            {sortedFriends.map((friend) => (
               <div
                 key={friend.id}
                 className="all-friends-modal__item"
@@ -141,11 +147,16 @@ export function AllFriendsModal({
                 role="button"
                 tabIndex={0}
               >
-                <Avatar
-                  size={40}
-                  src={friend.profileImageUrl}
-                  alt={friend.displayName}
-                />
+                <div className="all-friends-modal__avatar-wrapper">
+                  <Avatar
+                    size={40}
+                    src={friend.profileImageUrl}
+                    alt={friend.displayName}
+                  />
+                  {isFriendOnline(friend) && (
+                    <span className="all-friends-modal__status-orb" />
+                  )}
+                </div>
                 <div className="all-friends-modal__info">
                   <span className="all-friends-modal__name">
                     {friend.displayName}

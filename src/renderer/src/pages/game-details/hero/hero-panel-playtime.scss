@@ -20,6 +20,17 @@
     width: fit-content;
   }
 
+  &__steam-playtime {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
   &__manual-warning {
     color: #f59e0b; // Warning amber color
     flex-shrink: 0;

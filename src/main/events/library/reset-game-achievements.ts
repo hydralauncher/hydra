@@ -48,6 +48,19 @@ const resetGameAchievements = async (
         )
     );
 
+    /* Mirror the reset to the self-hosted cloud server (when configured) so
+       the next full sync doesn't restore the deleted achievements */
+    if (HydraApi.isSelfHostedCloudEnabled()) {
+      await HydraApi.delete(`/profile/games/achievements/${game.remoteId}`, {
+        needsSubscription: true,
+      }).catch((err) =>
+        achievementsLogger.error(
+          "Failed to reset achievements on self-hosted cloud",
+          err
+        )
+      );
+    }
+
     const gameAchievements = await getUnlockedAchievements(
       game.objectId,
       game.shop,

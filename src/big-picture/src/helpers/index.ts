@@ -3,6 +3,7 @@ export * from "./date";
 export * from "./download-options";
 export * from "./downloaders";
 export * from "./focus-auto-scroll";
+export * from "./friends";
 export * from "./game";
 export * from "./gamepad-layout";
 export * from "./gamepad-repeat";
