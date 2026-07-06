@@ -65,11 +65,11 @@ Sentry.init({
   release: "hydra-launcher@" + (await globalThis.electron.getVersion()),
 });
 
-window.addEventListener("unhandledrejection", (event) => {
+globalThis.addEventListener("unhandledrejection", (event) => {
   logger.error("Unhandled promise rejection", event.reason);
 });
 
-window.addEventListener("error", (event) => {
+globalThis.addEventListener("error", (event) => {
   logger.error("Uncaught error", event.error ?? event.message);
 });
 

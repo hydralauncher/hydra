@@ -42,7 +42,7 @@
     color: globals.$error-color;
     font-family: monospace;
     font-size: globals.$body-font-size;
-    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   &__origin {
@@ -50,7 +50,7 @@
     font-family: monospace;
     font-size: globals.$small-font-size;
     color: globals.$muted-color;
-    word-break: break-word;
+    overflow-wrap: break-word;
     user-select: text;
   }
 
@@ -87,7 +87,7 @@
     font-size: globals.$small-font-size;
     color: globals.$body-color;
     white-space: pre-wrap;
-    word-break: break-word;
+    overflow-wrap: break-word;
     user-select: text;
   }
 

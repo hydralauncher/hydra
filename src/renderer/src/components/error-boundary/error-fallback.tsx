@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { AlertIcon, SyncIcon } from "@primer/octicons-react";
 
 import { Button } from "../button/button";
+import { getErrorMessage, getErrorStack } from "./format-error";
 import { formatOrigin, getErrorOrigin } from "./parse-stack";
 
 import "./error-fallback.scss";
@@ -11,20 +12,6 @@ export interface ErrorFallbackProps {
   error: unknown;
   componentStack?: string;
 }
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) return error.message;
-  if (typeof error === "string") return error;
-
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return String(error);
-  }
-};
-
-const getErrorStack = (error: unknown) =>
-  error instanceof Error ? (error.stack ?? "") : "";
 
 export function ErrorFallback({
   error,
@@ -38,8 +25,8 @@ export function ErrorFallback({
   const origin = getErrorOrigin(stack);
 
   const handleRestart = () => {
-    window.location.hash = "#/";
-    window.location.reload();
+    globalThis.location.hash = "#/";
+    globalThis.location.reload();
   };
 
   const handleCopy = () => {
@@ -52,10 +39,15 @@ export function ErrorFallback({
       .filter(Boolean)
       .join("\n\n");
 
-    navigator.clipboard.writeText(payload).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    navigator.clipboard
+      .writeText(payload)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {
+        /* clipboard unavailable, ignore */
+      });
   };
 
   return (
