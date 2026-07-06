@@ -21,7 +21,7 @@ export function sorter(
       : Number(achievement.targetStat.unlockTime);
 
   const getPoints = (achievement: UserAchievement | ComparedAchievement) =>
-    isUserAchievement(achievement) ? Number(achievement.points) : 0;
+    isUserAchievement(achievement) ? Number(achievement.points ?? 0) : 0;
 
   if (sort === "date") {
     diff = getUnlockTime(b) - getUnlockTime(a);

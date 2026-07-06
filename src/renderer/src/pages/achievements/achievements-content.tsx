@@ -213,6 +213,10 @@ export function AchievementsContent({
     },
   ];
 
+  const comparedSortOptions = sortOptions.filter(
+    (option) => option.value !== "points"
+  );
+
   if (!objectId || !shop || !gameTitle || !userDetails) return null;
 
   return (
@@ -296,7 +300,7 @@ export function AchievementsContent({
                 />
               </div>
               <FilterDropdown
-                options={sortOptions}
+                options={comparedSortOptions}
                 placeholder={t("sort_by")}
                 value={sort}
                 onChange={(val) => setSort(val as AchievementSort)}
