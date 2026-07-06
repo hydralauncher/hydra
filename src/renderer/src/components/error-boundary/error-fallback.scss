@@ -1,5 +1,7 @@
 @use "../../scss/globals.scss";
 
+$mono-font: "SFMono-Regular", "Menlo", "Consolas", "Liberation Mono", monospace;
+
 .error-fallback {
   width: 100%;
   height: 100%;
@@ -25,7 +27,8 @@
   }
 
   &__icon {
-    color: globals.$error-color;
+    color: globals.$muted-color;
+    opacity: 0.8;
   }
 
   &__title {
@@ -39,23 +42,25 @@
 
   &__message {
     width: 100%;
-    color: globals.$error-color;
-    font-family: monospace;
+    color: globals.$muted-color;
+    font-family: $mono-font;
     font-size: globals.$body-font-size;
     overflow-wrap: break-word;
+    user-select: text;
   }
 
   &__origin {
     width: 100%;
-    font-family: monospace;
+    font-family: $mono-font;
     font-size: globals.$small-font-size;
-    color: globals.$muted-color;
+    color: globals.$body-color;
     overflow-wrap: break-word;
     user-select: text;
   }
 
   &__origin-label {
-    color: globals.$warning-color;
+    color: globals.$muted-color;
+    opacity: 0.5;
     margin-right: globals.$spacing-unit;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -84,6 +89,7 @@
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
     border-radius: 8px;
+    font-family: $mono-font;
     font-size: globals.$small-font-size;
     color: globals.$body-color;
     white-space: pre-wrap;
