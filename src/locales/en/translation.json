@@ -1,7 +1,17 @@
 {
   "language_name": "English",
   "app": {
-    "successfully_signed_in": "Successfully signed in"
+    "successfully_signed_in": "Successfully signed in",
+    "error_boundary_title": "Something went wrong",
+    "error_boundary_description": "The app ran into an unexpected error. You can reload to keep using Hydra.",
+    "error_boundary_copy_error": "Copy error",
+    "error_boundary_copied": "Copied",
+    "error_overlay_title": "Unexpected error",
+    "error_overlay_dismiss": "Dismiss",
+    "error_overlay_details": "Details",
+    "error_boundary_origin": "Origin",
+    "error_boundary_component_trace": "Component trace",
+    "error_boundary_restart": "Restart"
   },
   "home": {
     "surprise_me": "Surprise me",
