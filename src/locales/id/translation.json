@@ -1,7 +1,17 @@
 {
   "language_name": "Bahasa Indonesia",
   "app": {
-    "successfully_signed_in": "Berhasil masuk!"
+    "successfully_signed_in": "Berhasil masuk!",
+    "error_boundary_title": "Terjadi error",
+    "error_boundary_description": "Aplikasinya mengalami error yang tidak terduga. Kamu bisa mencoba untuk memuat ulang Hydra agar dapat terus menggunakannya.",
+    "error_boundary_copy_error": "Salin error",
+    "error_boundary_copied": "Disalin",
+    "error_overlay_title": "Error tidak terduga",
+    "error_overlay_dismiss": "Abaikan",
+    "error_overlay_details": "Detail",
+    "error_boundary_origin": "Asal",
+    "error_boundary_component_trace": "Jejak komponen",
+    "error_boundary_restart": "Mulai ulang"
   },
   "home": {
     "surprise_me": "Kejutkan aku!",
