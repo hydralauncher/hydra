@@ -113,6 +113,7 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               achievementCount: game.achievementCount ?? 0,
               // Spread gameAssets last to ensure all image URLs are properly set
               ...gameAssets,
+              title: gameAssets?.title || game.title,
               // Preserve custom image URLs from game if they exist
               customIconUrl: game.customIconUrl,
               customLogoImageUrl: game.customLogoImageUrl,

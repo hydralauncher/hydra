@@ -27,10 +27,12 @@ export function useSearchSuggestions(
   const cacheRef = useRef<Map<string, SearchSuggestion[]>>(new Map());
   const librarySearchIndex = useMemo(
     () =>
-      library.map((game) => ({
-        titleLower: game.title.toLowerCase(),
-        game,
-      })),
+      library
+        .filter((game) => Boolean(game.title))
+        .map((game) => ({
+          titleLower: game.title.toLowerCase(),
+          game,
+        })),
     [library]
   );
 
