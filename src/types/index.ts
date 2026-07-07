@@ -495,7 +495,7 @@ export interface CatalogueSearchPayload {
   genres: string[];
   developers: string[];
   protondbSupportBadges: (
-	| "borked"
+    | "borked"
     | "bronze"
     | "silver"
     | "gold"
