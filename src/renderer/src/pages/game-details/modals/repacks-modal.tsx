@@ -147,9 +147,6 @@ export function RepacksModal({
   const getRepackAvailabilityStatus = (
     repack: GameRepack
   ): "online" | "partial" | "offline" => {
-    // GameRepack.uris is typed string[] but can arrive undefined for records
-    // with incomplete backend data (stale cache, missing shop, etc.). Guard
-    // so the whole page doesn't crash inside the error boundary.
     const uris = Array.isArray(repack.uris) ? repack.uris : [];
     const unavailableSet = new Set(repack.unavailableUris ?? []);
     const availableCount = uris.filter(
