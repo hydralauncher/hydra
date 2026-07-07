@@ -138,7 +138,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   );
 }
 
-function PointsIcon() {
+function RarityIcon() {
   return <HydraIcon className="achievements__item-points-small" />;
 }
 
@@ -204,7 +204,7 @@ export function AchievementsContent({
     {
       value: "rarity",
       label: t("sort_option_rarity"),
-      icon: PointsIcon,
+      icon: RarityIcon,
     },
     {
       value: "name",
@@ -214,7 +214,7 @@ export function AchievementsContent({
   ];
 
   const comparedSortOptions = sortOptions.filter(
-    (option) => option.value !== "points"
+    (option) => option.value !== "rarity"
   );
 
   if (!objectId || !shop || !gameTitle || !userDetails) return null;
