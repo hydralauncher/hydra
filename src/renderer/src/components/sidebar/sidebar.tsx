@@ -77,7 +77,7 @@ export function Sidebar() {
 
   const { lastPacket, progress } = useDownload();
 
-  const { showWarningToast, showSuccessToast, showErrorToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const [showPlayableOnly, setShowPlayableOnly] = useState(false);
   const [isGamesCollapsed, setIsGamesCollapsed] = useState(false);
@@ -274,29 +274,13 @@ export function Sidebar() {
     }
   };
 
-  const handleSidebarGameClick = (
-    event: React.MouseEvent,
-    game: LibraryGame
-  ) => {
+  const handleSidebarGameClick = (game: LibraryGame) => {
     const path = buildGameDetailsPath({
       ...game,
       objectId: game.objectId,
     });
     if (path !== location.pathname) {
       navigate(path);
-    }
-
-    if (event.detail === 2) {
-      if (game.executablePath) {
-        window.electron.openGame(
-          game.shop,
-          game.objectId,
-          game.executablePath,
-          game.launchOptions
-        );
-      } else {
-        showWarningToast(t("game_has_no_executable"));
-      }
     }
   };
 
