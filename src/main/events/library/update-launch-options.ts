@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
-import { updateSteamShortcutLaunchOptions } from "@main/services";
+import { logger, updateSteamShortcutLaunchOptions } from "@main/services";
 
 const updateLaunchOptions = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -14,16 +14,21 @@ const updateLaunchOptions = async (
   const game = await gamesSublevel.get(gameKey);
 
   if (game) {
+    const normalizedLaunchOptions =
+      launchOptions?.trim() != "" ? launchOptions.trim() : null;
+
     await gamesSublevel.put(gameKey, {
       ...game,
-      launchOptions: launchOptions?.trim() != "" ? launchOptions : null,
+      launchOptions: normalizedLaunchOptions,
     });
 
     if (game.steamShortcutAppId) {
       await updateSteamShortcutLaunchOptions(
         game.steamShortcutAppId,
-        launchOptions
-      ).catch(() => {});
+        normalizedLaunchOptions
+      ).catch((err) => {
+        logger.error("Failed to update Steam shortcut launch options", err);
+      });
     }
   }
 };

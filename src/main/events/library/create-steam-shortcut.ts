@@ -180,6 +180,7 @@ const createSteamShortcut = async (
       await gamesSublevel.put(gameKey, {
         ...game,
         winePrefixPath,
+        steamShortcutAppId: newShortcut.appid,
       });
     }
   }

@@ -159,7 +159,7 @@ export const composeSteamShortcut = (
     StartDir: `"${path.dirname(executablePath)}"`,
     icon: iconPath ?? "",
     ShortcutPath: "",
-    LaunchOptions: launchOptions?.trim() ? launchOptions.trim() : "",
+    LaunchOptions: launchOptions?.trim() ?? "",
     IsHidden: false,
     AllowDesktopConfig: true,
     AllowOverlay: true,
