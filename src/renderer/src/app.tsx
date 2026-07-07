@@ -74,6 +74,7 @@ export function App() {
   const { clearDownload, setLastPacket, lastPacket } = useDownload();
 
   const workwondersRef = useRef<WorkWonders | null>(null);
+  const workwondersInitializingRef = useRef(false);
 
   const {
     hasActiveSubscription,
@@ -175,29 +176,39 @@ export function App() {
 
   const setupWorkWonders = useCallback(
     async (token?: string, locale?: string) => {
-      if (workwondersRef.current) return;
+      if (workwondersRef.current || workwondersInitializingRef.current) return;
 
-      workwondersRef.current = new WorkWonders();
+      workwondersInitializingRef.current = true;
 
       const possibleLocales = ["en", "pt", "ru"];
 
       const parsedLocale =
         possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
 
-      await workwondersRef.current.init({
-        organization: "hydra",
-        token,
-        locale: parsedLocale,
-      });
+      try {
+        const workwonders = new WorkWonders();
 
-      workwondersRef.current.changelog.initChangelogWidget();
-      workwondersRef.current.changelog.initChangelogWidgetMini();
-      const workWondersWithKnowledge =
-        workwondersRef.current as WorkWondersWithKnowledge;
-      workWondersWithKnowledge.knowledge?.initKnowledgeWidget?.();
+        await workwonders.init({
+          organization: "hydra",
+          token,
+          locale: parsedLocale,
+        });
 
-      if (token) {
-        workwondersRef.current.feedback.initFeedbackWidget();
+        workwonders.changelog.initChangelogWidget();
+        workwonders.changelog.initChangelogWidgetMini();
+        const workWondersWithKnowledge =
+          workwonders as WorkWondersWithKnowledge;
+        workWondersWithKnowledge.knowledge?.initKnowledgeWidget?.();
+
+        if (token) {
+          workwonders.feedback.initFeedbackWidget();
+        }
+
+        workwondersRef.current = workwonders;
+      } catch (error) {
+        console.error("Failed to initialize Work Wonders SDK", error);
+      } finally {
+        workwondersInitializingRef.current = false;
       }
     },
     [workwondersRef]
