@@ -41,7 +41,9 @@ const SIDEBAR_GAME_ITEM_HEIGHT = 42;
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
-const isGamePlayable = (game: LibraryGame) => Boolean(game.executablePath);
+const isGamePlayable = (game: LibraryGame) =>
+  Boolean(game.executablePath) ||
+  (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
 
 export function Sidebar() {
   const filterRef = useRef<HTMLInputElement>(null);
