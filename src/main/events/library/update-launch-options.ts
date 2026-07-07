@@ -15,7 +15,7 @@ const updateLaunchOptions = async (
 
   if (game) {
     const normalizedLaunchOptions =
-      launchOptions?.trim() != "" ? launchOptions.trim() : null;
+      launchOptions?.trim() || null;
 
     await gamesSublevel.put(gameKey, {
       ...game,
