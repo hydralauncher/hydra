@@ -1111,11 +1111,11 @@
     "earned_points": "Pontos ganhos:",
     "available_points": "Pontos disponíveis:",
     "how_to_earn_achievements_points": "Como desbloquear pontos nas conquistas?",
-	"sort_by": "Ordenar por",
-	"sort_option_default": "Predefinição",
-	"sort_option_date": "Data de obtenção",
-	"sort_option_rarity": "Raridade",
-	"sort_option_name": "Nome"
+    "sort_by": "Ordenar por",
+    "sort_option_default": "Predefinição",
+    "sort_option_date": "Data de obtenção",
+    "sort_option_rarity": "Raridade",
+    "sort_option_name": "Nome"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Subscrição Hydra Cloud",
