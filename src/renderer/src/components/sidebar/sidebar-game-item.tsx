@@ -4,13 +4,14 @@ import { LibraryGame } from "@types";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
-import { GameContextMenu } from "..";
+import { useTranslation } from "react-i18next";
+import { ConfirmationModal, GameContextMenu, useGameActions } from "..";
 import { HeartFillIcon } from "@primer/octicons-react";
 import { useAppSelector } from "@renderer/hooks";
 
 interface SidebarGameItemProps {
   game: LibraryGame;
-  handleSidebarGameClick: (event: React.MouseEvent, game: LibraryGame) => void;
+  handleSidebarGameClick: (game: LibraryGame) => void;
   getGameTitle: (game: LibraryGame) => string;
 }
 
@@ -20,6 +21,13 @@ export function SidebarGameItem({
   getGameTitle,
 }: Readonly<SidebarGameItemProps>) {
   const location = useLocation();
+  const { t } = useTranslation("game_details");
+  const {
+    handlePlayGame,
+    rpcs3ConfirmPending,
+    handleConfirmRpcs3Launch,
+    handleCancelRpcs3Launch,
+  } = useGameActions(game);
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -68,7 +76,12 @@ export function SidebarGameItem({
         <button
           type="button"
           className="sidebar__menu-item-button"
-          onClick={(event) => handleSidebarGameClick(event, game)}
+          onClick={(event) => {
+            handleSidebarGameClick(game);
+            if (event.detail === 2) {
+              void handlePlayGame();
+            }
+          }}
           onContextMenu={handleContextMenu}
         >
           {sidebarIcon ? (
@@ -104,6 +117,16 @@ export function SidebarGameItem({
         visible={contextMenu.visible}
         position={contextMenu.position}
         onClose={handleCloseContextMenu}
+      />
+
+      <ConfirmationModal
+        visible={rpcs3ConfirmPending !== null}
+        title={t("rpcs3_already_running_title")}
+        descriptionText={t("rpcs3_already_running_description")}
+        confirmButtonLabel={t("rpcs3_already_running_confirm")}
+        cancelButtonLabel={t("cancel")}
+        onClose={handleCancelRpcs3Launch}
+        onConfirm={handleConfirmRpcs3Launch}
       />
     </>
   );
