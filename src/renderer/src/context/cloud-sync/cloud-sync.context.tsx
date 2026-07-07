@@ -216,6 +216,28 @@ export function CloudSyncContextProvider({
     setUploadingBackup(false);
   }, [objectId, shop]);
 
+  useEffect(() => {
+    window.electron
+      .getResolvedSaveRulesForGame(shop, objectId)
+      .then((result) => {
+        const resolvedRuleCount = result.rules.filter(
+          (rule) => rule.resolvedPaths.length > 0
+        ).length;
+
+        console.log(
+          `[cloud-save-v2][resolved-rules] ${shop}:${objectId} manifestKey=${result.manifestKey} rules=${result.rules.length} resolvedRules=${resolvedRuleCount}`
+        );
+        console.log("[cloud-save-v2][resolved-rules][data]", result);
+      })
+      .catch((error) => {
+        console.error("[cloud-save-v2][resolved-rules] failed", {
+          shop,
+          objectId,
+          error,
+        });
+      });
+  }, [objectId, shop]);
+
   const backupState = useMemo(() => {
     if (!backupPreview) return CloudSyncState.Unknown;
     if (backupPreview.overall.changedGames.new) return CloudSyncState.New;
