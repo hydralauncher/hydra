@@ -1,6 +1,8 @@
 import axios from "axios";
+import type { InternalAxiosRequestConfig } from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import { logger } from "@renderer/logger";
 import type { DownloadSource } from "@types";
 import { useAppDispatch } from "./redux";
 import { setGenres, setTags } from "@renderer/features";
@@ -9,14 +11,6 @@ export const externalResourcesInstance = axios.create({
   baseURL: import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL,
 });
 
-// Silently degrade optional metadata fetches (tags/genres/publishers/
-// developers) so a temporary CDN outage doesn't trigger the renderer
-// error boundary. Only genuine connectivity failures (network errors,
-// aborts, or "no response received") are swallowed - HTTP 4xx/5xx are
-// re-thrown so misconfiguration and permission problems stay
-// diagnosable. Every consumer reads `response.data` as an array, so
-// returning `{ data: [] }` in a full AxiosResponse shape keeps the
-// callsites happy and the app usable while the CDN is unreachable.
 externalResourcesInstance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -28,7 +22,7 @@ externalResourcesInstance.interceptors.response.use(
 
     if (!isNetworkOrTimeout) return Promise.reject(error);
 
-    console.warn(
+    logger.warn(
       "[external-resources] request failed silently:",
       error?.message ?? error
     );
@@ -37,7 +31,7 @@ externalResourcesInstance.interceptors.response.use(
       status: 200,
       statusText: "OK",
       headers: {},
-      config: error.config ?? ({} as any),
+      config: error.config ?? ({} as InternalAxiosRequestConfig),
       request: error.request,
     });
   }
