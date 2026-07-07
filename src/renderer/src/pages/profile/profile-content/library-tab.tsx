@@ -1,19 +1,22 @@
-import { useTranslation } from "react-i18next";
 import {
-  TelescopeIcon,
-  TrophyIcon,
   ClockIcon,
+  DeviceDesktopIcon,
   HistoryIcon,
   StackIcon,
-  DeviceDesktopIcon,
+  TelescopeIcon,
+  TrophyIcon,
 } from "@primer/octicons-react";
-import InfiniteScroll from "react-infinite-scroll-component";
+import {
+  FilterDropdown,
+  FilterDropdownOption,
+} from "@renderer/components/filter-dropdown/filter-dropdown";
 import { useFormat } from "@renderer/hooks";
-import type { UserGame } from "@types";
 import { ClassicsIcon } from "@renderer/pages/library/category-filter";
-import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
-import { UserLibraryGameCard } from "./user-library-game-card";
+import type { UserGame } from "@types";
+import { useTranslation } from "react-i18next";
+import InfiniteScroll from "react-infinite-scroll-component";
 import "./profile-content.scss";
+import { UserLibraryGameCard } from "./user-library-game-card";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
 export type ProfilePlatform = "all" | "pc" | "classics";

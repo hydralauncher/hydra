@@ -7,6 +7,7 @@ import {
 } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { Link, ProgressBar } from "@renderer/components";
+import { FilterDropdown } from "@renderer/components/filter-dropdown/filter-dropdown";
 import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import { gameDetailsContext } from "@renderer/context";
 import { setHeaderTitle } from "@renderer/features";
@@ -20,7 +21,6 @@ import { useSubscription } from "@renderer/hooks/use-subscription";
 import type { AchievementSort, ComparedAchievements } from "@types";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FilterDropdown } from "../profile/profile-content/filter-dropdown";
 import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
 import "./achievements-content.scss";
