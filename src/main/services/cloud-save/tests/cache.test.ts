@@ -140,10 +140,7 @@ describe("cloud save manifest cache", () => {
     );
 
     assert.equal(manifestIndex.version, 1);
-    assert.equal(
-      manifestIndex.games["1687950"]?.manifestKey,
-      "1687950"
-    );
+    assert.equal(manifestIndex.games["1687950"]?.manifestKey, "1687950");
     assert.deepEqual(persistedIndex, manifestIndex);
   });
 
