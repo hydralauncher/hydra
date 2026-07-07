@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmationModal, GameContextMenu, useGameActions } from "..";
 import { HeartFillIcon } from "@primer/octicons-react";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useToast } from "@renderer/hooks";
 
 interface SidebarGameItemProps {
   game: LibraryGame;
@@ -22,7 +22,9 @@ export function SidebarGameItem({
 }: Readonly<SidebarGameItemProps>) {
   const location = useLocation();
   const { t } = useTranslation("game_details");
+  const { showWarningToast } = useToast();
   const {
+    canPlay,
     handlePlayGame,
     rpcs3ConfirmPending,
     handleConfirmRpcs3Launch,
@@ -79,7 +81,13 @@ export function SidebarGameItem({
           onClick={(event) => {
             handleSidebarGameClick(game);
             if (event.detail === 2) {
-              void handlePlayGame();
+              if (canPlay) {
+                void handlePlayGame();
+              } else {
+                showWarningToast(
+                  t("game_has_no_executable", { ns: "translation" })
+                );
+              }
             }
           }}
           onContextMenu={handleContextMenu}
