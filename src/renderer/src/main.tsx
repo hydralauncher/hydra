@@ -23,7 +23,6 @@ import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
 import * as Sentry from "@sentry/react";
 import { ErrorBoundary } from "./components/error-boundary/error-boundary";
-import { GlobalErrorOverlay } from "./components/error-boundary/global-error-overlay";
 import { levelDBService } from "./services/leveldb.service";
 import Catalogue from "./pages/catalogue/catalogue";
 import Home from "./pages/home/home";
@@ -172,7 +171,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           </Routes>
         </HashRouter>
       </ErrorBoundary>
-      <GlobalErrorOverlay />
     </Provider>
   </React.StrictMode>
 );
