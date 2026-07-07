@@ -7,10 +7,10 @@ export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
 
 export type HydraCloudFeature =
-    | "achievements"
-    | "backup"
-    | "achievements-points"
-    | "customization";
+  | "achievements"
+  | "backup"
+  | "achievements-points"
+  | "customization";
 
 export interface DiskUsage {
   free: number;
