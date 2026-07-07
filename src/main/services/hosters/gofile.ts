@@ -474,13 +474,18 @@ export class GofileApi {
         return null;
       }
 
-      const contentType = response.headers.get("content-type") ?? "";
-      if (
-        contentType.includes("text/html") ||
-        contentType.includes("application/xhtml")
-      ) {
+      const contentType = (response.headers.get("content-type") ?? "")
+        .toLowerCase()
+        .trim();
+      const looksLikeErrorBody = [
+        "text/html",
+        "application/xhtml",
+        "text/plain",
+        "application/json",
+      ].some((type) => contentType.includes(type));
+      if (looksLikeErrorBody) {
         logger.log(
-          `[Gofile] Alternate CDN returned a web page for ${id}; falling back to official downloader`
+          `[Gofile] Alternate CDN returned a non-file response for ${id} (${contentType || "no content-type"}); falling back to official downloader`
         );
         return null;
       }
