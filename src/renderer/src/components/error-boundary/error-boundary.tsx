@@ -2,7 +2,6 @@ import { Component } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 
 import { logger } from "../../logger";
-import { errorBus } from "./error-bus";
 import { ErrorFallback } from "./error-fallback";
 
 export interface ErrorBoundaryProps {
@@ -29,7 +28,6 @@ export class ErrorBoundary extends Component<
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     logger.error("Unhandled render error", error, info.componentStack);
-    errorBus.notifyBoundaryHandled(error.message);
     this.setState({ componentStack: info.componentStack ?? undefined });
   }
 
