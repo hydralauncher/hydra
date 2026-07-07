@@ -421,12 +421,30 @@ export class GofileApi {
 
     try {
       const response = await this.fetchWithTimeout(downloadUrl, {
-        method: "OPTIONS",
+        method: "GET",
+        headers: {
+          "User-Agent": this.userAgent,
+          Accept: "*/*",
+          Range: "bytes=0-0",
+        },
       });
+
+      await response.body?.cancel().catch(() => undefined);
 
       if (!response.ok) {
         logger.log(
-          `[Gofile] Alternate CDN unavailable for ${id}: ${response.status}`
+          `[Gofile] Alternate CDN unavailable for ${id}: ${response.status}; falling back to official downloader`
+        );
+        return null;
+      }
+
+      const contentType = response.headers.get("content-type") ?? "";
+      if (
+        contentType.includes("text/html") ||
+        contentType.includes("application/xhtml")
+      ) {
+        logger.log(
+          `[Gofile] Alternate CDN returned a web page for ${id}; falling back to official downloader`
         );
         return null;
       }
