@@ -58,6 +58,7 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  ResolvedGameSaveRules,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -652,6 +653,10 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<LudusaviBackup | null>;
+    getResolvedSaveRulesForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<ResolvedGameSaveRules>;
     selectGameBackupPath: (
       shop: GameShop,
       objectId: string,

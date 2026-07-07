@@ -36,6 +36,7 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  ResolvedGameSaveRules,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -820,6 +821,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameArtifacts", objectId, shop),
   getGameBackupPreview: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameBackupPreview", objectId, shop),
+  getResolvedSaveRulesForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke(
+      "getResolvedSaveRulesForGame",
+      shop,
+      objectId
+    ) as Promise<ResolvedGameSaveRules>,
   selectGameBackupPath: (
     shop: GameShop,
     objectId: string,
