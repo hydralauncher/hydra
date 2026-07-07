@@ -202,8 +202,8 @@ export function AchievementsContent({
     },
     { value: "date", label: t("sort_option_date"), icon: HistoryIcon },
     {
-      value: "points",
-      label: t("sort_option_points"),
+      value: "rarity",
+      label: t("sort_option_rarity"),
       icon: PointsIcon,
     },
     {

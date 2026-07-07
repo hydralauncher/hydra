@@ -1540,7 +1540,7 @@
     "sort_by": "Sort by",
     "sort_option_default": "Default",
     "sort_option_date": "Last unlocked",
-    "sort_option_points": "Points",
+    "sort_option_rarity": "Rarity",
     "sort_option_name": "Name"
   },
   "hydra_cloud": {

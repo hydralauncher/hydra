@@ -1540,7 +1540,12 @@
     "earned_points": "Заработано очков:",
     "available_points": "Доступные очки:",
     "how_to_earn_achievements_points": "Как заработать очки достижений?",
-    "achievements_not_sync": "Ваши достижения не синхронизированы"
+    "achievements_not_sync": "Ваши достижения не синхронизированы",
+	"sort_by": "Сортировать по",
+	"sort_option_default": "По умолчанию",
+	"sort_option_date": "Дата получения",
+	"sort_option_rarity": "Редкость",
+	"sort_option_name": "Название"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Подписка Hydra Cloud",
