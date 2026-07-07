@@ -16,6 +16,13 @@ export type CloudSavePathToken =
   | "%APPDATA%"
   | "%LOCALAPPDATA%";
 
+export type WindowsLikePathKind =
+  | "documents"
+  | "appData"
+  | "localAppData"
+  | "public"
+  | "programData";
+
 export interface CloudSavePathResolutionContext {
   shop: GameShop;
   objectId: string;
