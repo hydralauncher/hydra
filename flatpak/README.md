@@ -26,6 +26,19 @@ at `/app/lib/i386-linux-gnu`. It also bundles the Proton permission set
 (`--allow=multiarch|devel|per-app-dev-shm`, `--device=all`,
 `--talk-name=org.freedesktop.Flatpak`).
 
+## Default sandbox posture
+
+The shipped `finish-args` (`--filesystem=host`, `--device=all`, `--allow=devel`,
+`--talk-name=org.freedesktop.Flatpak`) mean the **default install has
+effectively no filesystem isolation** — it can read and write the host home the
+same as a non-Flatpak build. This is deliberate: it matches what the Steam and
+Lutris Flatpaks ship, and it's the configuration where Proton launches without
+the extra setup below. Don't assume the default install is sandboxed.
+
+Users who want real isolation can tighten it at install time with
+`flatpak override` — see [Tightened-sandbox game launch](#tightened-sandbox-game-launch)
+for the minimum scope that still lets Windows games launch.
+
 ## Building
 
 ```sh
