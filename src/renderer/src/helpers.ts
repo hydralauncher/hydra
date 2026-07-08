@@ -18,7 +18,9 @@ export const ensureArray = <T>(value: unknown, source: string): T[] => {
   if (Array.isArray(value)) return value as T[];
 
   const preview =
-    typeof value === "string" ? value.slice(0, 200) : String(value);
+    typeof value === "string"
+      ? value.slice(0, 200)
+      : JSON.stringify(value)?.slice(0, 200);
   logger.warn(
     `Expected an array from ${source}, received (${typeof value}): ${preview}`
   );
