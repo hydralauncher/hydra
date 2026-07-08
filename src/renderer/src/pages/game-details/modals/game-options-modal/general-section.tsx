@@ -405,7 +405,6 @@ export function GeneralSettingsSection({
   };
 
   const executableDisplayPath = useDisplayPath(game.executablePath);
-  const customDisplayPath = useDisplayPath(customPath);
 
   const handleBrowse = async () => {
     const res = await window.electron.showOpenDialog({
@@ -656,7 +655,7 @@ export function GeneralSettingsSection({
             <div className="drive-selector__custom">
               <div className="drive-selector__path-row">
                 <TextField
-                  value={customDisplayPath}
+                  value={customPath}
                   onChange={(e) => {
                     setCustomPath(e.target.value);
                     setSelectedDrive(null);
