@@ -154,10 +154,7 @@ const createSteamShortcut = async (
       await writeSteamShortcuts(steamUserId, steamShortcuts);
     }
 
-    await gamesSublevel.put(gameKey, {
-      ...game,
-      steamShortcutAppId: newShortcut.appid,
-    });
+    let winePrefixPath: string | undefined;
 
     if (process.platform === "linux" && !game.winePrefixPath) {
       const steamWinePrefixes = path.join(
@@ -169,20 +166,20 @@ const createSteamShortcut = async (
         "compatdata"
       );
 
-      const winePrefixPath = path.join(
+      winePrefixPath = path.join(
         steamWinePrefixes,
         newShortcut.appid.toString(),
         "pfx"
       );
 
       await fs.promises.mkdir(winePrefixPath, { recursive: true });
-
-      await gamesSublevel.put(gameKey, {
-        ...game,
-        winePrefixPath,
-        steamShortcutAppId: newShortcut.appid,
-      });
     }
+
+    await gamesSublevel.put(gameKey, {
+      ...game,
+      steamShortcutAppId: newShortcut.appid,
+      ...(winePrefixPath ? { winePrefixPath } : {}),
+    });
   }
 };
 
