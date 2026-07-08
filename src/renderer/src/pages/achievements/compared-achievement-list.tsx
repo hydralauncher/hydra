@@ -1,13 +1,13 @@
-import type { AchievementSort, ComparedAchievements } from "@types";
-import "./achievements.scss";
 import {
   CheckCircleIcon,
   EyeClosedIcon,
   LockIcon,
 } from "@primer/octicons-react";
 import { useDate } from "@renderer/hooks";
+import type { AchievementSort, ComparedAchievements } from "@types";
 import { useTranslation } from "react-i18next";
 import { sorter } from "./achievements-sorter";
+import "./achievements.scss";
 
 export interface ComparedAchievementListProps {
   achievements: ComparedAchievements;
@@ -25,9 +25,9 @@ export function ComparedAchievementList({
     <ul className="achievements__list">
       {achievements.achievements
         .toSorted((a, b) => sorter(a, b, sort))
-        .map((achievement, index) => (
+        .map((achievement) => (
           <li
-            key={index}
+            key={`${achievement.icon}-${achievement.displayName}`}
             className={`achievements__item achievements__item-compared ${
               !achievement.ownerStat && "achievements__item-compared--no-owner"
             }`}
