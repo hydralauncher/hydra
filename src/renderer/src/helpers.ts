@@ -17,7 +17,11 @@ import flagAsia from "./assets/flags/asia.png";
 export const ensureArray = <T>(value: unknown, source: string): T[] => {
   if (Array.isArray(value)) return value as T[];
 
-  logger.warn(`Expected an array from ${source}, received:`, value);
+  const preview =
+    typeof value === "string" ? value.slice(0, 200) : String(value);
+  logger.warn(
+    `Expected an array from ${source}, received (${typeof value}): ${preview}`
+  );
   return [];
 };
 
