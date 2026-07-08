@@ -1,4 +1,9 @@
-import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
+import type {
+  EmulatorBinary,
+  EmulatorSystem,
+  GameShop,
+  LibraryGame,
+} from "@types";
 
 import Color from "color";
 import i18next from "i18next";
@@ -6,6 +11,8 @@ import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
 import { logger } from "./logger";
+import type { LibraryCategory } from "./pages/library/category-filter";
+import type { SortOption } from "./pages/library/filter-options";
 
 // Pixel-art flag icons from R74n PixelFlags (https://r74n.com/pixelflags).
 import flagUS from "./assets/flags/us.png";
@@ -328,4 +335,89 @@ export const getClassicsLaunchErrorSystem = (
   return (["ps1", "ps2", "ps3"] as const).find((system) =>
     message.includes(system)
   );
+};
+
+export const sortLibraryGames = (
+  games: LibraryGame[],
+  sortBy: SortOption
+): LibraryGame[] => {
+  return [...games].sort((a, b) => {
+    switch (sortBy) {
+      case "recently_played": {
+        const aHasPlayed = a.lastTimePlayed !== null;
+        const bHasPlayed = b.lastTimePlayed !== null;
+
+        if (aHasPlayed && bHasPlayed) {
+          const aLastPlayed = new Date(a.lastTimePlayed as Date).getTime();
+          const bLastPlayed = new Date(b.lastTimePlayed as Date).getTime();
+          const lastPlayedDifference = bLastPlayed - aLastPlayed;
+          if (lastPlayedDifference !== 0) return lastPlayedDifference;
+        } else if (aHasPlayed !== bHasPlayed) {
+          return aHasPlayed ? -1 : 1;
+        }
+
+        break;
+      }
+
+      case "most_played": {
+        const playTimeDifference =
+          b.playTimeInMilliseconds - a.playTimeInMilliseconds;
+        if (playTimeDifference !== 0) return playTimeDifference;
+        break;
+      }
+
+      case "installed_first": {
+        const aIsInstalled =
+          Boolean(a.executablePath) || a.installedSizeInBytes != null;
+        const bIsInstalled =
+          Boolean(b.executablePath) || b.installedSizeInBytes != null;
+
+        if (aIsInstalled !== bIsInstalled) {
+          return aIsInstalled ? -1 : 1;
+        }
+
+        break;
+      }
+
+      case "title_desc": {
+        return b.title.localeCompare(a.title, undefined, {
+          sensitivity: "base",
+        });
+      }
+
+      case "title_asc":
+      default:
+        break;
+    }
+
+    return a.title.localeCompare(b.title, undefined, {
+      sensitivity: "base",
+    });
+  });
+};
+
+export const getGameCollectionIds = (game: LibraryGame): string[] => {
+  if (Array.isArray(game.collectionIds)) {
+    return game.collectionIds;
+  }
+
+  const legacyCollectionId = (game as { collectionId?: string | null })
+    .collectionId;
+
+  return legacyCollectionId ? [legacyCollectionId] : [];
+};
+
+export const filterLibraryGamesByCategory = (
+  games: LibraryGame[],
+  category: LibraryCategory
+): LibraryGame[] => {
+  if (category === "pc") {
+    return games.filter((game) => game.shop !== "launchbox");
+  }
+
+  if (category === "classics") {
+    return games.filter((game) => game.shop === "launchbox");
+  }
+
+  return games;
 };

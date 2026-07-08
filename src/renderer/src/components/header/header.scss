@@ -70,6 +70,15 @@
       color: #dadbe1;
     }
 
+    &--outlined {
+      border: 1px solid globals.$border-color;
+      border-radius: 6px;
+
+      &:hover {
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+    }
+
     &--scanning svg {
       animation: spin 2s linear infinite;
     }
