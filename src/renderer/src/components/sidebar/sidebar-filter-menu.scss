@@ -1,0 +1,113 @@
+@use "../../scss/globals.scss";
+
+.sidebar-filter-menu {
+  &__trigger {
+    // Aligns the 16px sliders icon's center with the 12px profile chevron and
+    // favorite heart (both right-edge 24px / center 30px from the sidebar edge).
+    margin-right: 6px;
+  }
+
+  &__content {
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    z-index: calc(globals.$modal-z-index + 1);
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    max-height: var(--radix-dropdown-menu-content-available-height);
+    overflow: hidden;
+    animation: sidebar-filter-menu-slide-in 0.2s ease-out;
+  }
+
+  &__column {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    min-width: 180px;
+  }
+
+  &__divider {
+    align-self: stretch;
+    width: 1px;
+    background-color: globals.$border-color;
+    flex-shrink: 0;
+  }
+
+  &__group {
+    width: 100%;
+    padding: 4px;
+  }
+
+  &__label {
+    display: block;
+    width: 100%;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &__separator {
+    width: 100%;
+    height: 1px;
+    background-color: globals.$border-color;
+  }
+
+  &__item {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 4px;
+    padding: 6px 32px 6px 12px;
+    cursor: pointer;
+    transition: background-color 0.1s ease-in-out;
+    font-size: 14px;
+    color: globals.$muted-color;
+    outline: none;
+    white-space: nowrap;
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+      background-color: globals.$background-color;
+      outline: none;
+    }
+  }
+
+  &__item-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__item-indicator {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+}
+
+@keyframes sidebar-filter-menu-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
