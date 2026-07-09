@@ -57,6 +57,12 @@ export class GofileApi {
   private static readonly websiteTokenScriptUrl =
     "https://gofile.io/dist/js/wt.obf.js";
   private static readonly alternateCdnBaseUrl = "https://gofilecdn.eu.cc";
+  private static readonly alternateCdnProbeTimeoutMs = 5000;
+  private static readonly alternateCdnProbeTtlMs = 15000;
+  private static readonly alternateCdnProbeCache = new Map<
+    string,
+    { result: string | null; expiresAt: number }
+  >();
   private static readonly pageSize = 1000;
   private static readonly cacheVersion = 1;
   private static token?: string;
@@ -415,18 +421,71 @@ export class GofileApi {
   }
 
   public static async getAlternateCdnDownloadLinkIfAvailable(id: string) {
+    const cached = this.alternateCdnProbeCache.get(id);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.result;
+    }
+
+    const result = await this.probeAlternateCdn(id);
+
+    this.alternateCdnProbeCache.set(id, {
+      result,
+      expiresAt: Date.now() + this.alternateCdnProbeTtlMs,
+    });
+    this.pruneAlternateCdnProbeCache();
+
+    return result;
+  }
+
+  private static pruneAlternateCdnProbeCache() {
+    const now = Date.now();
+    for (const [key, value] of this.alternateCdnProbeCache) {
+      if (value.expiresAt <= now) {
+        this.alternateCdnProbeCache.delete(key);
+      }
+    }
+  }
+
+  private static async probeAlternateCdn(id: string) {
     const downloadUrl = `${this.alternateCdnBaseUrl}/${encodeURIComponent(id)}`;
 
     logger.log(`[Gofile] Checking alternate CDN downloader for ${id}`);
 
     try {
-      const response = await this.fetchWithTimeout(downloadUrl, {
-        method: "OPTIONS",
-      });
+      const response = await this.fetchWithTimeout(
+        downloadUrl,
+        {
+          method: "GET",
+          headers: {
+            "User-Agent": this.userAgent,
+            Accept: "*/*",
+            Range: "bytes=0-0",
+          },
+        },
+        this.alternateCdnProbeTimeoutMs
+      );
+
+      await response.body?.cancel().catch(() => undefined);
 
       if (!response.ok) {
         logger.log(
-          `[Gofile] Alternate CDN unavailable for ${id}: ${response.status}`
+          `[Gofile] Alternate CDN unavailable for ${id}: ${response.status}; falling back to official downloader`
+        );
+        return null;
+      }
+
+      const contentType = (response.headers.get("content-type") ?? "")
+        .toLowerCase()
+        .trim();
+      const looksLikeErrorBody = [
+        "text/html",
+        "application/xhtml",
+        "text/plain",
+        "application/json",
+      ].some((type) => contentType.includes(type));
+      if (looksLikeErrorBody) {
+        logger.log(
+          `[Gofile] Alternate CDN returned a non-file response for ${id} (${contentType || "no content-type"}); falling back to official downloader`
         );
         return null;
       }
