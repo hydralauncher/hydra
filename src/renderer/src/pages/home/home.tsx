@@ -13,7 +13,7 @@ import flameIconStatic from "@renderer/assets/icons/flame-static.png";
 import flameIconAnimated from "@renderer/assets/icons/flame-animated.gif";
 import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
 
-import { buildGameDetailsPath } from "@renderer/helpers";
+import { buildGameDetailsPath, ensureArray } from "@renderer/helpers";
 import { CatalogueCategory } from "@shared";
 import "./home.scss";
 
@@ -61,7 +61,13 @@ export default function Home() {
         }
       );
 
-      setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
+      setCatalogue((prev) => ({
+        ...prev,
+        [category]: ensureArray<ShopAssets>(
+          catalogue,
+          `/catalogue/${category}`
+        ),
+      }));
     } finally {
       setIsLoading(false);
     }
