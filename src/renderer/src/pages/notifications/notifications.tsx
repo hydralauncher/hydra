@@ -6,6 +6,7 @@ import { Button } from "@renderer/components";
 import { useAppDispatch, useToast, useUserDetails } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { logger } from "@renderer/logger";
+import { ensureArray } from "@renderer/helpers";
 
 import { NotificationItem } from "./notification-item";
 import { LocalNotificationItem } from "./local-notification-item";
@@ -67,7 +68,7 @@ export default function Notifications() {
         `/badges?${params.toString()}`,
         { needsAuth: false }
       );
-      setBadges(badgesResponse);
+      setBadges(ensureArray<Badge>(badgesResponse, "/badges"));
     } catch (error) {
       logger.error("Failed to fetch badges", error);
     }

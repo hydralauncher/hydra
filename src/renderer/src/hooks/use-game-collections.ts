@@ -8,6 +8,7 @@ import {
   setCollectionsLoading,
   setGameCollectionIds,
 } from "@renderer/features";
+import { ensureArray } from "@renderer/helpers";
 
 const getNormalizedCollectionIds = (
   game: Partial<LibraryGame> | undefined
@@ -45,8 +46,13 @@ export function useGameCollections() {
           { needsAuth: true }
         );
 
-        dispatch(setCollections(response));
-        return response;
+        const collections = ensureArray<GameCollection>(
+          response,
+          "/profile/games/collections"
+        );
+
+        dispatch(setCollections(collections));
+        return collections;
       } catch (error) {
         void error;
         return [];
