@@ -17,6 +17,7 @@ import type {
 export class SSEClient {
   private static readonly initialReconnectDelay = 1_000;
   private static readonly maxReconnectDelay = 30_000;
+  private static readonly droppedStreamReconnectSpread = 30_000;
   /* Server heartbeats every 20s; 60s without a single byte means the
      connection is dead even if the socket still looks open. */
   private static readonly stallTimeout = 60_000;
@@ -73,10 +74,12 @@ export class SSEClient {
       this.currentAttemptAbort = attemptAbort;
 
       let reconnectRequested = false;
+      let streamedThisAttempt = false;
 
       try {
         reconnectRequested = await this.streamOnce(attemptAbort, () => {
           attempt = 0;
+          streamedThisAttempt = true;
 
           if (hasConnectedBefore) {
             void resyncAfterReconnect();
@@ -120,7 +123,9 @@ export class SSEClient {
       }
 
       attempt++;
-      const delay = this.getReconnectDelay(attempt);
+      const delay = streamedThisAttempt
+        ? this.getDroppedStreamReconnectDelay()
+        : this.getReconnectDelay(attempt);
 
       logger.info(`SSE reconnecting in ${Math.round(delay / 1000)}s...`);
 
@@ -254,6 +259,13 @@ export class SSEClient {
     } catch (err) {
       logger.error(`Failed to parse SSE ${eventName} event:`, err);
     }
+  }
+
+  private static getDroppedStreamReconnectDelay() {
+    return (
+      this.initialReconnectDelay +
+      Math.random() * this.droppedStreamReconnectSpread
+    );
   }
 
   private static getReconnectDelay(attempt: number) {
