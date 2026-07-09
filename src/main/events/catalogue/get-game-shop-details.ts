@@ -1,4 +1,9 @@
-import { getSteamAppDetails, HydraApi, logger } from "@main/services";
+import {
+  getSteamAppDetails,
+  getSteamLanguage,
+  HydraApi,
+  logger,
+} from "@main/services";
 
 import type {
   ShopDetails,
@@ -196,17 +201,6 @@ const getLaunchboxShopDetails = async (
   return { ...mapped, assets };
 };
 
-const getLocalizedSteamAppDetails = async (
-  objectId: string,
-  language: string
-): Promise<ShopDetails | null> => {
-  if (language === "english") {
-    return getSteamAppDetails(objectId, language);
-  }
-
-  return getSteamAppDetails(objectId, language);
-};
-
 const getGameShopDetails = async (
   _event: Electron.IpcMainInvokeEvent,
   objectId: string,
@@ -220,33 +214,33 @@ const getGameShopDetails = async (
   }
 
   if (shop === "steam") {
+    const steamLanguage = getSteamLanguage(language);
+
     const [cachedData, cachedAssets] = await Promise.all([
       gamesShopCacheSublevel.get(
-        levelKeys.gameShopCacheItem(shop, objectId, language)
+        levelKeys.gameShopCacheItem(shop, objectId, steamLanguage)
       ),
       gamesShopAssetsSublevel.get(levelKeys.game(shop, objectId)),
     ]);
 
-    const appDetails = getLocalizedSteamAppDetails(objectId, language).then(
-      (result) => {
-        if (result) {
-          result.name = cachedAssets?.title ?? result.name;
+    const appDetails = getSteamAppDetails(objectId, language).then((result) => {
+      if (result) {
+        result.name = cachedAssets?.title ?? result.name;
 
-          gamesShopCacheSublevel
-            .put(levelKeys.gameShopCacheItem(shop, objectId, language), result)
-            .catch((err) => {
-              logger.error("Could not cache game details", err);
-            });
+        gamesShopCacheSublevel
+          .put(levelKeys.gameShopCacheItem(shop, objectId, steamLanguage), result)
+          .catch((err) => {
+            logger.error("Could not cache game details", err);
+          });
 
-          return {
-            ...result,
-            assets: cachedAssets ?? null,
-          };
-        }
-
-        return null;
+        return {
+          ...result,
+          assets: cachedAssets ?? null,
+        };
       }
-    );
+
+      return null;
+    });
 
     if (cachedData) {
       return {
