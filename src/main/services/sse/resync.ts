@@ -1,4 +1,5 @@
 import type { FriendRequest, NotificationCountResponse } from "@types";
+import { randomInt } from "node:crypto";
 import { HydraApi } from "@main/services/hydra-api";
 import { WindowManager } from "@main/services/window-manager";
 import { logger } from "@main/services/logger";
@@ -29,7 +30,7 @@ const sleep = (ms: number, signal: AbortSignal) =>
    where pushes may have been missed while the stream was down. Each step is
    independent: one failed fetch must not block the others. */
 export const resyncAfterReconnect = async (signal: AbortSignal) => {
-  await sleep(Math.random() * RESYNC_JITTER_MS, signal);
+  await sleep(randomInt(RESYNC_JITTER_MS + 1), signal);
 
   if (signal.aborted) return;
 

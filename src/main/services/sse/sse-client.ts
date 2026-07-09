@@ -1,4 +1,5 @@
 import { createParser } from "eventsource-parser";
+import { randomInt } from "node:crypto";
 import { UserNotLoggedInError } from "@shared";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
@@ -264,7 +265,7 @@ export class SSEClient {
   private static getDroppedStreamReconnectDelay() {
     return (
       this.initialReconnectDelay +
-      Math.random() * this.droppedStreamReconnectSpread
+      randomInt(this.droppedStreamReconnectSpread + 1)
     );
   }
 
