@@ -566,7 +566,7 @@ export default function Library() {
 
     const queryLower = deferredSearchQuery.toLowerCase();
     return filtered.filter((game) => {
-      const titleLower = game.title.toLowerCase();
+      const titleLower = (game.title ?? "").toLowerCase();
       let queryIndex = 0;
 
       for (
