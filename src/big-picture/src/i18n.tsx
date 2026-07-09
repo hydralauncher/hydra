@@ -197,7 +197,9 @@ async function applyStoredLanguagePreference(storedLanguage: string) {
     await i18next.changeLanguage(storedLanguage);
   } catch (err) {
     console.error("Failed to change Big Picture language", err);
-    await i18next.changeLanguage(SPANISH_LAT_KEY);
+    const baseLang = storedLanguage.split("-")[0];
+    const fallbackLanguage = baseLang === "es" ? SPANISH_LAT_KEY : "en";
+    await i18next.changeLanguage(fallbackLanguage);
   }
 }
 
