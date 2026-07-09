@@ -2,7 +2,7 @@ const LANGUAGE_FLAG_MAP = {
   "pt-BR": "BR",
   "pt-PT": "PT",
   "es-ES": "ES",
-  "es-LAT": "MX",
+  "es-419": "MX",
   en: "US",
   de: "DE",
   nl: "NL",
@@ -36,7 +36,10 @@ const LANGUAGE_FLAG_MAP = {
 const REGIONAL_INDICATOR_SYMBOL_LETTER_A = 0x1f1e6;
 const ASCII_UPPERCASE_A = 65;
 
-const LATIN_AMERICAN_SPANISH_CODES = new Set([
+export const SPANISH_ES_KEY = "es-ES";
+export const SPANISH_LAT_KEY = "es-419";
+
+export const LATIN_AMERICAN_SPANISH_CODES: ReadonlySet<string> = new Set([
   "es-419",
   "es-MX",
   "es-AR",
@@ -59,23 +62,32 @@ const LATIN_AMERICAN_SPANISH_CODES = new Set([
   "es-PR",
 ]);
 
-function resolveSpanishVariant(
+export function isLatinAmericanSpanishCode(language: string): boolean {
+  return LATIN_AMERICAN_SPANISH_CODES.has(language);
+}
+
+export function resolveSpanishVariant(
   language: string,
   supportedLanguages: string[]
 ): string | null {
-  if (language === "es-ES" || language.startsWith("es-ES-")) {
-    const esESMatch = supportedLanguages.find((lang) => lang === "es-ES");
+  if (language === SPANISH_ES_KEY || language.startsWith("es-ES-")) {
+    const esESMatch = supportedLanguages.find(
+      (lang) => lang === SPANISH_ES_KEY
+    );
     if (esESMatch) return esESMatch;
   }
 
-  if (LATIN_AMERICAN_SPANISH_CODES.has(language)) {
-    const esLATMatch = supportedLanguages.find((lang) => lang === "es-LAT");
-    if (esLATMatch) return esLATMatch;
+  if (isLatinAmericanSpanishCode(language)) {
+    const esLatMatch = supportedLanguages.find(
+      (lang) => lang === SPANISH_LAT_KEY
+    );
+    if (esLatMatch) return esLatMatch;
   }
 
-  // Fallback for any other "es-*" code we don't explicitly recognise.
-  const esLATDefault = supportedLanguages.find((lang) => lang === "es-LAT");
-  if (esLATDefault) return esLATDefault;
+  const esLatDefault = supportedLanguages.find(
+    (lang) => lang === SPANISH_LAT_KEY
+  );
+  if (esLatDefault) return esLatDefault;
 
   return null;
 }

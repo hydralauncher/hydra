@@ -7,7 +7,7 @@ export type DateLike = number | Date | string;
 
 export const getDateFormat = (language: string) => {
   if (language === "es-ES") return "dd/MM/yyyy";
-  if (language === "es-LAT") return "MM/dd/yyyy";
+  if (language === "es-419") return "MM/dd/yyyy";
   return language.startsWith("en") ? "MM-dd-yyyy" : "dd/MM/yyyy";
 };
 
@@ -19,7 +19,7 @@ function getDateLocale(language: string) {
 }
 
 function getDateTimeFormat(language: string) {
-  if (language === "es-ES" || language === "es-LAT") return "dd/MM/yyyy HH:mm";
+  if (language === "es-ES" || language === "es-419") return "dd/MM/yyyy HH:mm";
   return language.startsWith("en")
     ? "MM-dd-yyyy - hh:mm a"
     : "dd/MM/yyyy HH:mm";

@@ -11,6 +11,11 @@ import {
   formatResources,
   type BigPictureLanguage,
 } from "./locales";
+import {
+  isLatinAmericanSpanishCode,
+  SPANISH_ES_KEY,
+  SPANISH_LAT_KEY,
+} from "@shared";
 
 const TRANSLATED_ATTRIBUTES = [
   "aria-label",
@@ -39,6 +44,40 @@ export function ensureBigPictureI18nResources() {
   bigPictureResourcesLoaded = true;
 }
 
+const SUPPORTED_BIG_PICTURE_LANGUAGES: readonly BigPictureLanguage[] = [
+  "en",
+  "ru",
+  "pt-BR",
+  SPANISH_ES_KEY as BigPictureLanguage,
+  SPANISH_LAT_KEY as BigPictureLanguage,
+  "fr",
+];
+
+function hasUsableBigPictureResources(
+  language: BigPictureLanguage
+): boolean {
+  return (
+    Boolean(exactTranslations[language]) &&
+    Boolean(formatResources[language]) &&
+    Object.keys(formatResources[language]).length > 0
+  );
+}
+
+function resolveWithSpanishResourceFallback(
+  candidate: BigPictureLanguage
+): BigPictureLanguage {
+  if (hasUsableBigPictureResources(candidate)) return candidate;
+
+  if (
+    candidate !== SPANISH_LAT_KEY &&
+    hasUsableBigPictureResources(SPANISH_LAT_KEY as BigPictureLanguage)
+  ) {
+    return SPANISH_LAT_KEY as BigPictureLanguage;
+  }
+
+  return "en";
+}
+
 export function resolveBigPictureLanguage(
   language = i18next.resolvedLanguage ?? i18next.language ?? "en"
 ): BigPictureLanguage {
@@ -48,36 +87,36 @@ export function resolveBigPictureLanguage(
   if (baseLang === "pt") return "pt-BR";
   if (baseLang === "fr") return "fr";
 
-  if (language === "es-ES" || language.startsWith("es-ES")) return "es-ES";
+  if (language === SPANISH_ES_KEY || language.startsWith("es-ES")) {
+    return resolveWithSpanishResourceFallback(
+      SPANISH_ES_KEY as BigPictureLanguage
+    );
+  }
 
-  const latinAmericanCodes = [
-    "es-419",
-    "es-MX",
-    "es-AR",
-    "es-CO",
-    "es-CL",
-    "es-PE",
-    "es-VE",
-    "es-EC",
-    "es-BO",
-    "es-PY",
-    "es-UY",
-    "es-CR",
-    "es-SV",
-    "es-GT",
-    "es-HN",
-    "es-NI",
-    "es-PA",
-    "es-CU",
-    "es-DO",
-    "es-PR",
-  ];
+  if (isLatinAmericanSpanishCode(language)) {
+    return resolveWithSpanishResourceFallback(
+      SPANISH_LAT_KEY as BigPictureLanguage
+    );
+  }
 
-  if (latinAmericanCodes.includes(language)) return "es-LAT";
-
-  if (language === "es" || baseLang === "es") return "es-LAT";
+  if (baseLang === "es") {
+    return resolveWithSpanishResourceFallback(
+      SPANISH_LAT_KEY as BigPictureLanguage
+    );
+  }
 
   return "en";
+}
+
+function needsSpanishLanguageMigration(storedLanguage: string): boolean {
+  if (storedLanguage === "es") return true;
+
+  const baseLang = storedLanguage.split("-")[0];
+  if (baseLang !== "es") return false;
+
+  return !SUPPORTED_BIG_PICTURE_LANGUAGES.includes(
+    storedLanguage as BigPictureLanguage
+  );
 }
 
 function getSourceText(value: string) {
@@ -88,7 +127,7 @@ function translateExactText(value: string) {
   const language = resolveBigPictureLanguage();
   const sourceText = getSourceText(value);
 
-  return exactTranslations[language][sourceText] ?? sourceText;
+  return exactTranslations[language]?.[sourceText] ?? sourceText;
 }
 
 function translateTextNode(node: Text) {
@@ -187,19 +226,38 @@ export async function initializeBigPictureI18n() {
   const userPreferences = await electron?.getUserPreferences?.();
 
   if (userPreferences?.language) {
-    if (userPreferences.language === "es") {
-      const migrated = "es-LAT";
-      await i18next.changeLanguage(migrated);
+    if (needsSpanishLanguageMigration(userPreferences.language)) {
+      const migrated = SPANISH_LAT_KEY;
       try {
+        await i18next.changeLanguage(migrated);
         await electron?.updateUserPreferences?.({ language: migrated });
       } catch (err) {
         console.error("Failed to persist migrated language preference", err);
       }
     } else {
-      await i18next.changeLanguage(userPreferences.language);
+      try {
+        await i18next.changeLanguage(userPreferences.language);
+      } catch (err) {
+        console.error("Failed to change Big Picture language", err);
+        await i18next.changeLanguage(SPANISH_LAT_KEY);
+      }
     }
   } else if (electron?.updateUserPreferences) {
     await electron.updateUserPreferences({ language: i18next.language });
+  }
+
+  const activeLanguage = i18next.resolvedLanguage ?? i18next.language;
+
+  if (activeLanguage.split("-")[0] === "es") {
+    const safeSpanishLanguage = resolveBigPictureLanguage(activeLanguage);
+
+    if (safeSpanishLanguage !== activeLanguage) {
+      try {
+        await i18next.changeLanguage(safeSpanishLanguage);
+      } catch (err) {
+        console.error("Failed to apply Big Picture language fallback", err);
+      }
+    }
   }
 
   syncDocumentLanguage(i18next.language);

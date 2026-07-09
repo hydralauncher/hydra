@@ -19,6 +19,8 @@ import { store } from "./store";
 
 import resources from "@locales";
 
+import { SPANISH_LAT_KEY } from "@shared";
+
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
 import * as Sentry from "@sentry/react";
@@ -88,11 +90,22 @@ const userPreferences = (await levelDBService.get(
   "json"
 )) as { language?: string } | null;
 
+const supportedLanguages = Object.keys(resources);
+
+const needsSpanishLanguageMigration = (storedLanguage: string): boolean => {
+  if (storedLanguage === "es") return true;
+
+  const baseLang = storedLanguage.split("-")[0];
+  if (baseLang !== "es") return false;
+
+  return !supportedLanguages.includes(storedLanguage);
+};
+
 if (userPreferences?.language) {
-  if (userPreferences.language === "es") {
-    const migratedLanguage = "es-LAT";
-    await i18n.changeLanguage(migratedLanguage);
+  if (needsSpanishLanguageMigration(userPreferences.language)) {
+    const migratedLanguage = SPANISH_LAT_KEY;
     try {
+      await i18n.changeLanguage(migratedLanguage);
       await globalThis.electron.updateUserPreferences({
         language: migratedLanguage,
       });
@@ -100,7 +113,16 @@ if (userPreferences?.language) {
       console.error("Failed to persist migrated language preference", error);
     }
   } else {
-    await i18n.changeLanguage(userPreferences.language);
+    try {
+      await i18n.changeLanguage(userPreferences.language);
+    } catch (error) {
+      console.error("Failed to change language", error);
+      const fallbackLanguage =
+        userPreferences.language.split("-")[0] === "es"
+          ? SPANISH_LAT_KEY
+          : "en";
+      await i18n.changeLanguage(fallbackLanguage);
+    }
   }
 } else {
   globalThis.electron.updateUserPreferences({ language: i18n.language });
