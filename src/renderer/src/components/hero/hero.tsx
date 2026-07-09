@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { TrendingGame } from "@types";
 import { useTranslation } from "react-i18next";
 import Skeleton from "react-loading-skeleton";
+import { ensureArray } from "@renderer/helpers";
 import "./hero.scss";
 
 export function Hero() {
@@ -26,7 +27,9 @@ export function Hero() {
         needsAuth: false,
       })
       .then((result) => {
-        setFeaturedGameDetails(result.slice(0, 1));
+        setFeaturedGameDetails(
+          ensureArray<TrendingGame>(result, "/catalogue/featured").slice(0, 1)
+        );
       })
       .catch(() => {
         setFeaturedGameDetails([]);
