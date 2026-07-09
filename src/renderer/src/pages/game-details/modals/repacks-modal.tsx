@@ -147,12 +147,14 @@ export function RepacksModal({
   const getRepackAvailabilityStatus = (
     repack: GameRepack
   ): "online" | "partial" | "offline" => {
+    const uris = Array.isArray(repack.uris) ? repack.uris : [];
     const unavailableSet = new Set(repack.unavailableUris ?? []);
-    const availableCount = repack.uris.filter(
+    const availableCount = uris.filter(
       (uri) => !unavailableSet.has(uri)
     ).length;
-    const unavailableCount = repack.uris.length - availableCount;
+    const unavailableCount = uris.length - availableCount;
 
+    if (uris.length === 0) return "offline";
     if (unavailableCount === 0) return "online";
     if (availableCount === 0) return "offline";
     return "partial";
@@ -202,6 +204,7 @@ export function RepacksModal({
 
   const checkIfLastDownloadedOption = (repack: GameRepack) => {
     if (!game?.download) return false;
+    if (!Array.isArray(repack.uris)) return false;
     return repack.uris.some((uri) => uri.includes(game.download!.uri));
   };
 
