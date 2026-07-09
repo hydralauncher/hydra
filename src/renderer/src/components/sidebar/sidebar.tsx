@@ -41,7 +41,9 @@ const SIDEBAR_GAME_ITEM_HEIGHT = 42;
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
-const isGamePlayable = (game: LibraryGame) => Boolean(game.executablePath);
+const isGamePlayable = (game: LibraryGame) =>
+  Boolean(game.executablePath) ||
+  (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
 
 export function Sidebar() {
   const filterRef = useRef<HTMLInputElement>(null);
@@ -75,7 +77,7 @@ export function Sidebar() {
 
   const { lastPacket, progress } = useDownload();
 
-  const { showWarningToast, showSuccessToast, showErrorToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const [showPlayableOnly, setShowPlayableOnly] = useState(false);
   const [isGamesCollapsed, setIsGamesCollapsed] = useState(false);
@@ -272,29 +274,13 @@ export function Sidebar() {
     }
   };
 
-  const handleSidebarGameClick = (
-    event: React.MouseEvent,
-    game: LibraryGame
-  ) => {
+  const handleSidebarGameClick = (game: LibraryGame) => {
     const path = buildGameDetailsPath({
       ...game,
       objectId: game.objectId,
     });
     if (path !== location.pathname) {
       navigate(path);
-    }
-
-    if (event.detail === 2) {
-      if (game.executablePath) {
-        window.electron.openGame(
-          game.shop,
-          game.objectId,
-          game.executablePath,
-          game.launchOptions
-        );
-      } else {
-        showWarningToast(t("game_has_no_executable"));
-      }
     }
   };
 
