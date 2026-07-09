@@ -5,14 +5,33 @@ import { logger } from "@main/services/logger";
 
 const RESYNC_JITTER_MS = 15_000;
 
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+
+    const onAbort = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+
+    const timeout = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
 
 /* Renderers fetch their own state at mount, so this only runs on RE-connects,
    where pushes may have been missed while the stream was down. Each step is
    independent: one failed fetch must not block the others. */
-export const resyncAfterReconnect = async () => {
-  await sleep(Math.random() * RESYNC_JITTER_MS);
+export const resyncAfterReconnect = async (signal: AbortSignal) => {
+  await sleep(Math.random() * RESYNC_JITTER_MS, signal);
+
+  if (signal.aborted) return;
 
   try {
     WindowManager.sendToAppWindows("on-friends-updated");
