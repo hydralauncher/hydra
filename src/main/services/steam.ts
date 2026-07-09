@@ -81,6 +81,8 @@ const steamLanguageByLocale: Record<string, string> = {
   sv: "swedish",
   tr: "turkish",
   uk: "ukrainian",
+  "zh-CN": "schinese",
+  "zh-TW": "tchinese",
   zh: "schinese",
 };
 

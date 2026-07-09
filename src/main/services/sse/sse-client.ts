@@ -82,7 +82,7 @@ export class SSEClient {
           streamedThisAttempt = true;
 
           if (hasConnectedBefore) {
-            void resyncAfterReconnect();
+            void resyncAfterReconnect(attemptAbort.signal);
           }
 
           hasConnectedBefore = true;
