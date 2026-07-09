@@ -56,13 +56,51 @@ export const getSteamLocation = async () => {
   });
 };
 
+const steamLanguageByLocale: Record<string, string> = {
+  ar: "arabic",
+  bg: "bulgarian",
+  cs: "czech",
+  da: "danish",
+  de: "german",
+  en: "english",
+  es: "spanish",
+  fi: "finnish",
+  fr: "french",
+  hu: "hungarian",
+  id: "indonesian",
+  it: "italian",
+  ja: "japanese",
+  ko: "koreana",
+  nb: "norwegian",
+  nl: "dutch",
+  pl: "polish",
+  "pt-BR": "brazilian",
+  "pt-PT": "portuguese",
+  ro: "romanian",
+  ru: "russian",
+  sv: "swedish",
+  tr: "turkish",
+  uk: "ukrainian",
+  "zh-CN": "schinese",
+  "zh-TW": "tchinese",
+  zh: "schinese",
+};
+
+export const getSteamLanguage = (language: string) => {
+  return (
+    steamLanguageByLocale[language] ??
+    steamLanguageByLocale[language.split("-")[0]] ??
+    "english"
+  );
+};
+
 export const getSteamAppDetails = async (
   objectId: string,
   language: string
 ) => {
   const searchParams = new URLSearchParams({
     appids: objectId,
-    l: language,
+    l: getSteamLanguage(language),
     cc: "us",
   });
 
