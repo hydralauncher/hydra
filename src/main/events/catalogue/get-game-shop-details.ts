@@ -228,7 +228,10 @@ const getGameShopDetails = async (
         result.name = cachedAssets?.title ?? result.name;
 
         gamesShopCacheSublevel
-          .put(levelKeys.gameShopCacheItem(shop, objectId, steamLanguage), result)
+          .put(
+            levelKeys.gameShopCacheItem(shop, objectId, steamLanguage),
+            result
+          )
           .catch((err) => {
             logger.error("Could not cache game details", err);
           });
