@@ -79,19 +79,19 @@ export function GameSteamGridDbAssets({
   );
 
   useEffect(() => {
-    void loadSelection();
+    loadSelection().catch(() => {});
   }, [loadSelection]);
 
   useEffect(() => {
     const trimmed = term.trim();
 
     if (!trimmed) {
-      void loadVariants();
+      loadVariants().catch(() => {});
       return;
     }
 
     const handle = setTimeout(() => {
-      void loadVariants({ term: trimmed });
+      loadVariants({ term: trimmed }).catch(() => {});
     }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(handle);
@@ -141,6 +141,43 @@ export function GameSteamGridDbAssets({
       </div>
     );
   }
+
+  const renderVariants = () => {
+    if (isLoading) {
+      return (
+        <div className="game-steamgriddb__hint">{t("steamgriddb_loading")}</div>
+      );
+    }
+
+    if (!assets.length) {
+      return (
+        <div className="game-steamgriddb__hint">
+          {t("steamgriddb_no_results")}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className={`game-steamgriddb__grid game-steamgriddb__grid--${assetType}`}
+      >
+        {assets.map((asset) => (
+          <button
+            key={asset.id}
+            type="button"
+            className={`game-steamgriddb__item game-steamgriddb__item--${assetType} ${
+              currentAssetId === asset.id
+                ? "game-steamgriddb__item--active"
+                : ""
+            }`}
+            onClick={() => handlePick(asset)}
+          >
+            <img src={asset.thumb} alt="" loading="lazy" />
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="game-steamgriddb">
@@ -192,32 +229,7 @@ export function GameSteamGridDbAssets({
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="game-steamgriddb__hint">{t("steamgriddb_loading")}</div>
-      ) : assets.length ? (
-        <div
-          className={`game-steamgriddb__grid game-steamgriddb__grid--${assetType}`}
-        >
-          {assets.map((asset) => (
-            <button
-              key={asset.id}
-              type="button"
-              className={`game-steamgriddb__item game-steamgriddb__item--${assetType} ${
-                currentAssetId === asset.id
-                  ? "game-steamgriddb__item--active"
-                  : ""
-              }`}
-              onClick={() => handlePick(asset)}
-            >
-              <img src={asset.thumb} alt="" loading="lazy" />
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="game-steamgriddb__hint">
-          {t("steamgriddb_no_results")}
-        </div>
-      )}
+      {renderVariants()}
     </div>
   );
 }

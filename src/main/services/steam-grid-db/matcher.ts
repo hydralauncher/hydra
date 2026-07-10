@@ -3,6 +3,7 @@ import type {
   GameShop,
   SgdbAsset,
   SgdbAssetType,
+  SgdbSelectedAsset,
   SgdbSelectionRecord,
   SgdbSettings,
   SgdbShopAssetMatrix,
@@ -144,6 +145,93 @@ interface MatchGameOptions {
   silent?: boolean;
 }
 
+interface ResolvedMatchTypes {
+  types: SgdbAssetType[];
+  enabledTypes: Set<SgdbAssetType>;
+}
+
+const resolveMatchTypes = (
+  override: SgdbSelectionRecord["override"],
+  settings: SgdbSettings | undefined,
+  shop: GameShop
+): ResolvedMatchTypes | null => {
+  if (override === "on") {
+    // A per-game "on" override works even before global settings exist.
+    return { types: ALL_TYPES, enabledTypes: new Set(ALL_TYPES) };
+  }
+
+  if (!settings?.enabled) return null;
+
+  const matrix = getMatrix(settings, shop);
+  if (!matrix?.enabled) return null;
+
+  const enabledTypes = new Set(enabledTypesFor(matrix));
+  // Always resolve hero/grid so the "no native asset" fallback can use them,
+  // even when the user has that specific asset type toggled off.
+  const types = Array.from(new Set([...enabledTypes, ...FALLBACK_TYPES]));
+  return { types, enabledTypes };
+};
+
+const materializeAutoAsset = async (
+  best: SgdbAsset,
+  type: SgdbAssetType,
+  enabledTypes: Set<SgdbAssetType>,
+  cacheImages: boolean
+): Promise<SgdbSelectedAsset> => {
+  // Only download to disk for enabled types. Fallback-only types (toggle off,
+  // kept solely for the "no native asset" case) stay hotlinked to avoid caching
+  // images that will almost never be displayed.
+  if (cacheImages && enabledTypes.has(type)) {
+    const cached = await downloadImageToCache(best.url);
+    if (cached) {
+      return {
+        url: cached,
+        remoteUrl: best.url,
+        source: "auto",
+        assetId: best.id,
+      };
+    }
+  }
+
+  return { url: best.url, source: "auto", assetId: best.id };
+};
+
+const buildAutoSelection = async (
+  existing: SgdbSelectionRecord | undefined,
+  cache: SgdbVariantsCache,
+  types: SgdbAssetType[],
+  enabledTypes: Set<SgdbAssetType>,
+  cacheImages: boolean,
+  forceFresh: boolean
+): Promise<{ selected: SgdbSelectionRecord["selected"]; changed: boolean }> => {
+  const selected: SgdbSelectionRecord["selected"] = { ...existing?.selected };
+  let changed = false;
+
+  for (const type of types) {
+    const current = selected[type];
+    if (current?.source === "user") continue;
+
+    const best = bestOf(cache, type);
+    if (!best) continue;
+
+    // Unchanged auto pick: skip re-download and re-write to avoid leveldb churn
+    // on every library sync. forceFresh bypasses so re-caching can happen.
+    const unchanged =
+      !forceFresh && current?.source === "auto" && current.assetId === best.id;
+    if (unchanged) continue;
+
+    selected[type] = await materializeAutoAsset(
+      best,
+      type,
+      enabledTypes,
+      cacheImages
+    );
+    changed = true;
+  }
+
+  return { selected, changed };
+};
+
 export const matchGame = async (
   shop: GameShop,
   objectId: string,
@@ -164,23 +252,9 @@ export const matchGame = async (
 
   if (override === "off") return false;
 
-  let types: SgdbAssetType[];
-  let enabledTypes: Set<SgdbAssetType>;
-  if (override === "on") {
-    // A per-game "on" override works even before global settings exist.
-    types = ALL_TYPES;
-    enabledTypes = new Set(ALL_TYPES);
-  } else {
-    if (!settings?.enabled) return false;
-    const matrix = getMatrix(settings, shop);
-    if (!matrix || !matrix.enabled) return false;
-    enabledTypes = new Set(enabledTypesFor(matrix));
-    // Always resolve hero/grid so the "no native asset" fallback can use them,
-    // even when the user has that specific asset type toggled off.
-    types = Array.from(new Set([...enabledTypes, ...FALLBACK_TYPES]));
-  }
-
-  if (!types.length) return false;
+  const resolved = resolveMatchTypes(override, settings, shop);
+  if (!resolved?.types.length) return false;
+  const { types, enabledTypes } = resolved;
 
   const game = await getGame(gameKey);
   if (!game || game.isDeleted) return false;
@@ -195,46 +269,14 @@ export const matchGame = async (
   );
   if (!cache?.sgdbGameId) return false;
 
-  const selected: SgdbSelectionRecord["selected"] = {
-    ...(existing?.selected ?? {}),
-  };
-  let changed = false;
-
-  for (const type of types) {
-    const current = selected[type];
-    if (current && current.source === "user") continue;
-
-    const best = bestOf(cache, type);
-    if (!best) continue;
-
-    // Unchanged auto pick: skip re-download and re-write to avoid leveldb churn
-    // on every library sync. forceFresh bypasses so re-caching can happen.
-    if (
-      !forceFresh &&
-      current &&
-      current.source === "auto" &&
-      current.assetId === best.id
-    ) {
-      continue;
-    }
-
-    let url = best.url;
-    let remoteUrl: string | undefined;
-
-    // Only download to disk for enabled types. Fallback-only types (toggle off,
-    // kept solely for the "no native asset" case) stay hotlinked to avoid caching
-    // images that will almost never be displayed.
-    if (cacheImages && enabledTypes.has(type)) {
-      const cached = await downloadImageToCache(best.url);
-      if (cached) {
-        url = cached;
-        remoteUrl = best.url;
-      }
-    }
-
-    selected[type] = { url, remoteUrl, source: "auto", assetId: best.id };
-    changed = true;
-  }
+  const { selected, changed } = await buildAutoSelection(
+    existing,
+    cache,
+    types,
+    enabledTypes,
+    cacheImages,
+    forceFresh
+  );
 
   const sgdbGameIdChanged = existing?.sgdbGameId !== cache.sgdbGameId;
 
@@ -314,7 +356,7 @@ export const runAutoMatch = async (options: RunAutoMatchOptions = {}) => {
         // Include games force-enabled per-game even if their shop is globally off.
         if (overrideByKey.get(key) === "on") return true;
         const matrix = getMatrix(settings, game.shop);
-        return matrix != null && matrix.enabled;
+        return matrix?.enabled === true;
       });
 
     let processed = 0;

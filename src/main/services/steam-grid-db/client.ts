@@ -54,6 +54,24 @@ export class SteamGridDbClient {
     return this.instance != null;
   }
 
+  private static retryDelayFor(
+    error: unknown,
+    attempt: number,
+    path: string
+  ): number | null {
+    const status = (error as AxiosError).response?.status;
+    const canRetry = attempt < this.MAX_RETRIES;
+
+    if (status === 429 && canRetry) return 500 * 2 ** attempt;
+    if ((!status || status >= 500) && canRetry) return 300 * 2 ** attempt;
+
+    if (status !== 404) {
+      logger.warn("SteamGridDB request failed", { path, status });
+    }
+
+    return null;
+  }
+
   private static async request<T>(
     path: string,
     config?: { params?: Record<string, string> }
@@ -63,25 +81,11 @@ export class SteamGridDbClient {
     for (let attempt = 0; attempt <= this.MAX_RETRIES; attempt++) {
       try {
         const response = await this.instance.get<SgdbResponse<T>>(path, config);
-        if (response.data?.success) return response.data.data;
-        return null;
+        return response.data?.success ? response.data.data : null;
       } catch (error) {
-        const status = (error as AxiosError).response?.status;
-
-        if (status === 404) return null;
-
-        if (status === 429 && attempt < this.MAX_RETRIES) {
-          await sleep(500 * 2 ** attempt);
-          continue;
-        }
-
-        if ((!status || status >= 500) && attempt < this.MAX_RETRIES) {
-          await sleep(300 * 2 ** attempt);
-          continue;
-        }
-
-        logger.warn("SteamGridDB request failed", { path, status });
-        return null;
+        const delay = this.retryDelayFor(error, attempt, path);
+        if (delay == null) return null;
+        await sleep(delay);
       }
     }
 

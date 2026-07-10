@@ -48,7 +48,7 @@ export const downloadImageToCache = async (
   if (!url.startsWith("http://") && !url.startsWith("https://")) return url;
 
   const existing = inFlight.get(url);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
 
   const request = download(url)
     .catch((error) => {
