@@ -149,7 +149,7 @@ pub fn get_xattr(file_path: String, name: String) -> Option<String> {
         xattr::get(&file_path, &name)
             .ok()
             .flatten()
-            .map(|value| String::from_utf8_lossy(&value).to_string())
+            .and_then(|value| String::from_utf8(value).ok())
     }
 
     #[cfg(not(target_os = "linux"))]
