@@ -1,0 +1,33 @@
+@use "../../scss/globals.scss";
+
+.settings-steamgriddb {
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__description {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__shop {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__shop-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+}

@@ -14,7 +14,9 @@ export function SettingsContextIntegrations() {
 
       <hr className="settings-context-panel__divider" />
 
-      <SettingsSteamGridDb />
+      <div className="settings-context-panel__group">
+        <SettingsSteamGridDb />
+      </div>
 
       <hr className="settings-context-panel__divider" />
 

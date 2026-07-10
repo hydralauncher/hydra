@@ -23,6 +23,8 @@ const PLURAL: Record<SgdbAssetType, "grids" | "heroes" | "logos" | "icons"> = {
 
 const OVERRIDES: SgdbOverride[] = ["inherit", "on", "off"];
 
+const SEARCH_DEBOUNCE_MS = 500;
+
 interface GameSteamGridDbAssetsProps {
   game: LibraryGame;
   assetType: SgdbAssetType;
@@ -81,8 +83,19 @@ export function GameSteamGridDbAssets({
   }, [loadSelection]);
 
   useEffect(() => {
-    void loadVariants();
-  }, [loadVariants]);
+    const trimmed = term.trim();
+
+    if (!trimmed) {
+      void loadVariants();
+      return;
+    }
+
+    const handle = setTimeout(() => {
+      void loadVariants({ term: trimmed });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(handle);
+  }, [term, loadVariants]);
 
   const assets: SgdbAsset[] = variants?.[PLURAL[assetType]] ?? [];
   const currentAssetId = selection?.selected?.[assetType]?.assetId;
@@ -119,11 +132,6 @@ export function GameSteamGridDbAssets({
     await loadSelection();
     await onChanged();
     await loadVariants();
-  };
-
-  const handleSearch = async () => {
-    const trimmed = term.trim();
-    if (trimmed) await loadVariants({ term: trimmed });
   };
 
   if (!hasApiKey) {
@@ -169,14 +177,6 @@ export function GameSteamGridDbAssets({
         <Button
           type="button"
           theme="outline"
-          onClick={handleSearch}
-          disabled={isLoading}
-        >
-          {t("steamgriddb_search")}
-        </Button>
-        <Button
-          type="button"
-          theme="outline"
           onClick={() => loadVariants({ forceFresh: true })}
           disabled={isLoading}
         >
@@ -195,12 +195,14 @@ export function GameSteamGridDbAssets({
       {isLoading ? (
         <div className="game-steamgriddb__hint">{t("steamgriddb_loading")}</div>
       ) : assets.length ? (
-        <div className="game-steamgriddb__grid">
+        <div
+          className={`game-steamgriddb__grid game-steamgriddb__grid--${assetType}`}
+        >
           {assets.map((asset) => (
             <button
               key={asset.id}
               type="button"
-              className={`game-steamgriddb__item ${
+              className={`game-steamgriddb__item game-steamgriddb__item--${assetType} ${
                 currentAssetId === asset.id
                   ? "game-steamgriddb__item--active"
                   : ""
