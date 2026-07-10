@@ -92,9 +92,8 @@ export class SteamGridDbClient {
     if (!this.instance) return false;
 
     try {
-      const response = await this.instance.get<SgdbResponse<SgdbGame>>(
-        "/games/steam/570"
-      );
+      const response =
+        await this.instance.get<SgdbResponse<SgdbGame>>("/games/steam/570");
       return response.status === 200 && response.data?.success === true;
     } catch {
       return false;
