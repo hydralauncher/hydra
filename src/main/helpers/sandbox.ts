@@ -19,7 +19,5 @@ const docPortalPrefixes =
 export const isDocPortalPath = (filePath: string) =>
   docPortalPrefixes.some((prefix) => filePath.startsWith(prefix));
 
-export const docPortalMountRoot = docPortalPrefixes[0]?.slice(0, -1) ?? null;
-
 export const isDocPortalMountAvailable = () =>
-  docPortalMountRoot !== null && fs.existsSync(docPortalMountRoot);
+  docPortalPrefixes.some((prefix) => fs.existsSync(prefix.slice(0, -1)));
