@@ -13,7 +13,7 @@ const execFileAsync = promisify(execFile);
 
 async function commandExists(command: string) {
   try {
-    await execFileAsync("sh", ["-c", `command -v ${command}`]);
+    await execFileAsync("sh", ["-c", 'command -v "$1"', "sh", command]);
     return true;
   } catch {
     return false;

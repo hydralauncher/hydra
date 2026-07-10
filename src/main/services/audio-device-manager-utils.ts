@@ -125,7 +125,7 @@ export function parsePactlAudioSinks(
   }
 
   return output
-    .split("\n")
+    .split(/\r?\n/)
     .map((line) => {
       const [, name, , sample] = line.split("\t");
       if (!name) return null;

@@ -4,38 +4,13 @@ import { db, levelKeys } from "@main/level";
 import type { HydraDisplay, UserPreferences } from "@types";
 import { logger } from "./logger";
 import { NativeAddon } from "./native-addon";
-import {
-  DEFAULT_DISPLAY_ID,
-  resolveDisplayId,
-  toHydraDisplays,
-} from "./display-manager-utils";
+import { resolveDisplayId, toHydraDisplays } from "./display-manager-utils";
 
 const PRIMARY_DISPLAY_SETTLE_TIMEOUT_MS = 2_500;
 const PRIMARY_DISPLAY_POLL_INTERVAL_MS = 100;
 const PRIMARY_DISPLAY_POST_APPLY_DELAY_MS = 500;
 
 export class DisplayManager {
-  private static boundsEqual(
-    firstBounds: Electron.Rectangle | undefined | null,
-    secondBounds: Electron.Rectangle | undefined | null
-  ) {
-    return (
-      firstBounds?.x === secondBounds?.x &&
-      firstBounds?.y === secondBounds?.y &&
-      firstBounds?.width === secondBounds?.width &&
-      firstBounds?.height === secondBounds?.height
-    );
-  }
-
-  private static getDisplayBounds(display: Electron.Display) {
-    return {
-      x: display.bounds.x,
-      y: display.bounds.y,
-      width: display.bounds.width,
-      height: display.bounds.height,
-    };
-  }
-
   private static isPrimaryDisplay(display: Electron.Display) {
     const currentDisplay =
       screen
@@ -81,7 +56,6 @@ export class DisplayManager {
       .catch(() => null);
 
     return {
-      userPreferences,
       id: userPreferences?.bigPictureDisplayId,
       bounds: userPreferences?.bigPictureDisplayBounds,
     };
@@ -92,40 +66,12 @@ export class DisplayManager {
     const primaryDisplay = screen.getPrimaryDisplay();
     const selectedDisplay = await this.getBigPictureDisplayPreference();
 
-    const display = resolveDisplayId(
+    return resolveDisplayId(
       selectedDisplay.id,
       selectedDisplay.bounds,
       displays,
       primaryDisplay.id
     );
-
-    const hasExplicitDisplayPreference =
-      Boolean(
-        selectedDisplay.id && selectedDisplay.id !== DEFAULT_DISPLAY_ID
-      ) || Boolean(selectedDisplay.bounds);
-
-    const currentBounds = this.getDisplayBounds(display);
-
-    if (
-      hasExplicitDisplayPreference &&
-      selectedDisplay.userPreferences &&
-      (selectedDisplay.id !== String(display.id) ||
-        !this.boundsEqual(selectedDisplay.bounds, currentBounds))
-    ) {
-      await db.put<string, UserPreferences>(
-        levelKeys.userPreferences,
-        {
-          ...selectedDisplay.userPreferences,
-          bigPictureDisplayId: String(display.id),
-          bigPictureDisplayBounds: currentBounds,
-        },
-        {
-          valueEncoding: "json",
-        }
-      );
-    }
-
-    return display;
   }
 
   public static async prepareBigPictureDisplayForLaunch() {
@@ -143,8 +89,8 @@ export class DisplayManager {
       const applied = NativeAddon.setPrimaryDisplayByBounds({
         x: Math.round(display.bounds.x),
         y: Math.round(display.bounds.y),
-        width: Math.round(display.size.width),
-        height: Math.round(display.size.height),
+        width: Math.round(display.bounds.width),
+        height: Math.round(display.bounds.height),
       });
 
       if (!applied) {
