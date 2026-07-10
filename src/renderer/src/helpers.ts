@@ -5,6 +5,7 @@ import i18next from "i18next";
 import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
+import { logger } from "./logger";
 
 // Pixel-art flag icons from R74n PixelFlags (https://r74n.com/pixelflags).
 import flagUS from "./assets/flags/us.png";
@@ -12,6 +13,25 @@ import flagEU from "./assets/flags/eu.png";
 import flagJP from "./assets/flags/jp.png";
 import flagKR from "./assets/flags/kr.png";
 import flagAsia from "./assets/flags/asia.png";
+
+export const ensureArray = <T>(value: unknown, source: string): T[] => {
+  if (Array.isArray(value)) return value as T[];
+
+  let preview: string | undefined;
+  try {
+    preview =
+      typeof value === "string"
+        ? value.slice(0, 200)
+        : JSON.stringify(value)?.slice(0, 200);
+  } catch {
+    preview = `<unserializable ${typeof value}>`;
+  }
+
+  logger.warn(
+    `Expected an array from ${source}, received (${typeof value}): ${preview}`
+  );
+  return [];
+};
 
 export const platformToSystem = (
   platform?: string | null
