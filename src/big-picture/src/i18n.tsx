@@ -44,14 +44,15 @@ export function ensureBigPictureI18nResources() {
   bigPictureResourcesLoaded = true;
 }
 
-const SUPPORTED_BIG_PICTURE_LANGUAGES: readonly BigPictureLanguage[] = [
-  "en",
-  "ru",
-  "pt-BR",
-  SPANISH_ES_KEY as BigPictureLanguage,
-  SPANISH_LAT_KEY as BigPictureLanguage,
-  "fr",
-];
+const SUPPORTED_BIG_PICTURE_LANGUAGES: ReadonlySet<BigPictureLanguage> =
+  new Set([
+    "en",
+    "ru",
+    "pt-BR",
+    SPANISH_ES_KEY as BigPictureLanguage,
+    SPANISH_LAT_KEY as BigPictureLanguage,
+    "fr",
+  ]);
 
 function hasUsableBigPictureResources(
   language: BigPictureLanguage
@@ -114,7 +115,7 @@ function needsSpanishLanguageMigration(storedLanguage: string): boolean {
   const baseLang = storedLanguage.split("-")[0];
   if (baseLang !== "es") return false;
 
-  return !SUPPORTED_BIG_PICTURE_LANGUAGES.includes(
+  return !SUPPORTED_BIG_PICTURE_LANGUAGES.has(
     storedLanguage as BigPictureLanguage
   );
 }
