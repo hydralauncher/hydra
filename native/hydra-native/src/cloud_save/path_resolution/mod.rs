@@ -2,7 +2,7 @@ mod context;
 mod resolve_path;
 mod resolve_rules;
 mod tokens;
-mod types;
+pub(crate) mod types;
 
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
