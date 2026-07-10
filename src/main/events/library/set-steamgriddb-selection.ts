@@ -62,9 +62,7 @@ const setSteamGridDbSelection = async (
   const gameKey = levelKeys.game(shop, objectId);
 
   const existing = await gamesSgdbSelectionSublevel.get(gameKey);
-  const selected: SgdbSelectionRecord["selected"] = {
-    ...(existing?.selected ?? {}),
-  };
+  const selected: SgdbSelectionRecord["selected"] = { ...existing?.selected };
 
   if (clear || !url) {
     const cache = await gamesSgdbVariantsCacheSublevel.get(gameKey);

@@ -9,7 +9,7 @@ import type {
 
 type ComposableAssets = (ShopAssets & { updatedAt?: number }) | null;
 
-const FALLBACK_TYPES: SgdbAssetType[] = ["hero", "grid"];
+const FALLBACK_TYPES = new Set<SgdbAssetType>(["hero", "grid"]);
 
 const getShopMatrix = (
   shop: GameShop,
@@ -57,7 +57,7 @@ export const composeAssetsWithSgdb = (
       return selected.url;
     }
 
-    if (gameActive && FALLBACK_TYPES.includes(type) && nativeValue == null) {
+    if (gameActive && FALLBACK_TYPES.has(type) && nativeValue == null) {
       return selected.url;
     }
 
