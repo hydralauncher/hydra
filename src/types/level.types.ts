@@ -4,6 +4,7 @@ import type {
   SteamAchievement,
   UnlockedAchievement,
 } from "./game.types";
+import type { SgdbSettings } from "./steamgriddb.types";
 import type { DownloadStatus } from "./download.types";
 import type { ClassicsDisc } from "./emulator.types";
 
@@ -40,12 +41,14 @@ export interface Game {
   customIconUrl?: string | null;
   customLogoImageUrl?: string | null;
   customHeroImageUrl?: string | null;
+  customCoverImageUrl?: string | null;
   originalIconPath?: string | null;
   originalLogoPath?: string | null;
   originalHeroPath?: string | null;
   customOriginalIconPath?: string | null;
   customOriginalLogoPath?: string | null;
   customOriginalHeroPath?: string | null;
+  customOriginalCoverPath?: string | null;
   playTimeInMilliseconds: number;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
@@ -191,6 +194,8 @@ export interface UserPreferences {
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
+  steamGridDbApiKey?: string | null;
+  steamGridDb?: SgdbSettings;
 }
 
 export interface NetworkInterface {

@@ -6,9 +6,11 @@ import { useToast } from "@renderer/hooks";
 import { generateRandomGradient } from "@renderer/helpers";
 import type { Game, LibraryGame, ShopDetailsWithAssets } from "@types";
 
+import { GameSteamGridDbAssets } from "./game-steamgriddb-assets";
+
 import "./game-assets-settings.scss";
 
-type AssetType = "icon" | "logo" | "hero";
+type AssetType = "icon" | "logo" | "hero" | "grid";
 
 interface ElectronFile extends File {
   path?: string;
@@ -24,24 +26,28 @@ interface LibraryGameWithCustomOriginalAssets extends LibraryGame {
   customOriginalIconPath?: string;
   customOriginalLogoPath?: string;
   customOriginalHeroPath?: string;
+  customOriginalCoverPath?: string;
 }
 
 interface AssetPaths {
   icon: string;
   logo: string;
   hero: string;
+  grid: string;
 }
 
 interface AssetUrls {
   icon: string | null;
   logo: string | null;
   hero: string | null;
+  grid: string | null;
 }
 
 interface RemovedAssets {
   icon: boolean;
   logo: boolean;
   hero: boolean;
+  grid: boolean;
 }
 
 const VALID_IMAGE_TYPES = [
@@ -58,18 +64,21 @@ const INITIAL_ASSET_PATHS: AssetPaths = {
   icon: "",
   logo: "",
   hero: "",
+  grid: "",
 };
 
 const INITIAL_REMOVED_ASSETS: RemovedAssets = {
   icon: false,
   logo: false,
   hero: false,
+  grid: false,
 };
 
 const INITIAL_ASSET_URLS: AssetUrls = {
   icon: null,
   logo: null,
   hero: null,
+  grid: null,
 };
 
 export interface GameAssetsSettingsProps {
@@ -135,11 +144,13 @@ export function GameAssetsSettings({
         icon: extractLocalPath(currentGame.iconUrl),
         logo: extractLocalPath(currentGame.logoImageUrl),
         hero: extractLocalPath(currentGame.libraryHeroImageUrl),
+        grid: "",
       });
       setAssetDisplayPaths({
         icon: extractLocalPath(currentGame.iconUrl),
         logo: extractLocalPath(currentGame.logoImageUrl),
         hero: extractLocalPath(currentGame.libraryHeroImageUrl),
+        grid: "",
       });
       setOriginalAssetPaths({
         icon:
@@ -151,12 +162,14 @@ export function GameAssetsSettings({
         hero:
           gameWithAssets.originalHeroPath ||
           extractLocalPath(currentGame.libraryHeroImageUrl),
+        grid: "",
       });
 
       setRemovedAssets({
         icon: iconRemoved,
         logo: logoRemoved,
         hero: heroRemoved,
+        grid: false,
       });
     },
     [extractLocalPath]
@@ -174,16 +187,21 @@ export function GameAssetsSettings({
       const heroRemoved =
         !currentGame.customHeroImageUrl &&
         Boolean(gameWithAssets.customOriginalHeroPath);
+      const gridRemoved =
+        !currentGame.customCoverImageUrl &&
+        Boolean(gameWithAssets.customOriginalCoverPath);
 
       setAssetPaths({
         icon: extractLocalPath(currentGame.customIconUrl),
         logo: extractLocalPath(currentGame.customLogoImageUrl),
         hero: extractLocalPath(currentGame.customHeroImageUrl),
+        grid: extractLocalPath(currentGame.customCoverImageUrl),
       });
       setAssetDisplayPaths({
         icon: extractLocalPath(currentGame.customIconUrl),
         logo: extractLocalPath(currentGame.customLogoImageUrl),
         hero: extractLocalPath(currentGame.customHeroImageUrl),
+        grid: extractLocalPath(currentGame.customCoverImageUrl),
       });
       setOriginalAssetPaths({
         icon:
@@ -195,12 +213,16 @@ export function GameAssetsSettings({
         hero:
           gameWithAssets.customOriginalHeroPath ||
           extractLocalPath(currentGame.customHeroImageUrl),
+        grid:
+          gameWithAssets.customOriginalCoverPath ||
+          extractLocalPath(currentGame.customCoverImageUrl),
       });
 
       setRemovedAssets({
         icon: iconRemoved,
         logo: logoRemoved,
         hero: heroRemoved,
+        grid: gridRemoved,
       });
 
       setDefaultUrls({
@@ -210,6 +232,11 @@ export function GameAssetsSettings({
         hero:
           shopDetails?.assets?.libraryHeroImageUrl ||
           currentGame.libraryHeroImageUrl ||
+          null,
+        grid:
+          shopDetails?.assets?.coverImageUrl ||
+          currentGame.coverImageUrl ||
+          currentGame.libraryImageUrl ||
           null,
       });
     },
@@ -455,10 +482,16 @@ export function GameAssetsSettings({
         ? `local:${assetPaths.hero}`
         : null;
 
+    const customCoverImageUrl =
+      !removedAssets.grid && assetPaths.grid
+        ? `local:${assetPaths.grid}`
+        : null;
+
     return {
       customIconUrl,
       customLogoImageUrl,
       customHeroImageUrl,
+      customCoverImageUrl,
     };
   };
 
@@ -480,8 +513,12 @@ export function GameAssetsSettings({
   };
 
   const updateNonCustomGame = async (currentGame: LibraryGame) => {
-    const { customIconUrl, customLogoImageUrl, customHeroImageUrl } =
-      prepareNonCustomGameAssets();
+    const {
+      customIconUrl,
+      customLogoImageUrl,
+      customHeroImageUrl,
+      customCoverImageUrl,
+    } = prepareNonCustomGameAssets();
 
     return window.electron.updateGameCustomAssets({
       shop: currentGame.shop,
@@ -490,6 +527,7 @@ export function GameAssetsSettings({
       customIconUrl,
       customLogoImageUrl,
       customHeroImageUrl,
+      customCoverImageUrl,
       customOriginalIconPath: removedAssets.icon
         ? undefined
         : originalAssetPaths.icon || undefined,
@@ -499,6 +537,9 @@ export function GameAssetsSettings({
       customOriginalHeroPath: removedAssets.hero
         ? undefined
         : originalAssetPaths.hero || undefined,
+      customOriginalCoverPath: removedAssets.grid
+        ? undefined
+        : originalAssetPaths.grid || undefined,
     });
   };
 
@@ -682,10 +723,29 @@ export function GameAssetsSettings({
           >
             {t("edit_game_modal_hero")}
           </Button>
+
+          {!isCustomGame(game) && (
+            <Button
+              type="button"
+              theme={selectedAssetType === "grid" ? "primary" : "outline"}
+              onClick={() => handleAssetTypeChange("grid")}
+              disabled={isUpdating}
+            >
+              {t("edit_game_modal_grid")}
+            </Button>
+          )}
         </div>
       </div>
 
       {renderImageSection(selectedAssetType)}
+
+      {!isCustomGame(game) && (
+        <GameSteamGridDbAssets
+          game={game}
+          assetType={selectedAssetType}
+          onChanged={onGameUpdated}
+        />
+      )}
     </div>
   );
 }

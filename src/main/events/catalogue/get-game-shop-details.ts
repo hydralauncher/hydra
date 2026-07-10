@@ -2,6 +2,7 @@ import {
   getSteamAppDetails,
   getSteamLanguage,
   HydraApi,
+  getUserPreferencesRecord,
   logger,
 } from "@main/services";
 
@@ -14,10 +15,32 @@ import type {
 
 import { registerEvent } from "../register-event";
 import {
+  gamesSgdbSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
   levelKeys,
 } from "@main/level";
+import { composeAssetsWithSgdb } from "@shared";
+
+const applySgdbToAssets = async (
+  shop: GameShop,
+  objectId: string,
+  assets: ShopAssets | null
+): Promise<ShopAssets | null> => {
+  if (!assets) return assets;
+
+  const preferences = await getUserPreferencesRecord();
+  const sgdbSelection = await gamesSgdbSelectionSublevel.get(
+    levelKeys.game(shop, objectId)
+  );
+
+  return composeAssetsWithSgdb(
+    assets,
+    shop,
+    sgdbSelection,
+    preferences?.steamGridDb
+  ) as ShopAssets | null;
+};
 
 interface LaunchboxBasic {
   objectId: string;
@@ -210,7 +233,13 @@ const getGameShopDetails = async (
   if (shop === "custom") return null;
 
   if (shop === "launchbox") {
-    return getLaunchboxShopDetails(objectId, shop, language);
+    const details = await getLaunchboxShopDetails(objectId, shop, language);
+    if (!details) return details;
+
+    return {
+      ...details,
+      assets: await applySgdbToAssets(shop, objectId, details.assets),
+    };
   }
 
   if (shop === "steam") {
@@ -245,14 +274,16 @@ const getGameShopDetails = async (
       return null;
     });
 
-    if (cachedData) {
-      return {
-        ...cachedData,
-        assets: cachedAssets ?? null,
-      };
-    }
+    const details = cachedData
+      ? { ...cachedData, assets: cachedAssets ?? null }
+      : await appDetails;
 
-    return appDetails;
+    if (!details) return details;
+
+    return {
+      ...details,
+      assets: await applySgdbToAssets(shop, objectId, details.assets),
+    };
   }
 
   throw new Error("Not implemented");

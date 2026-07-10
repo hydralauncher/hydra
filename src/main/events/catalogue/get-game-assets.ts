@@ -1,7 +1,12 @@
 import type { GameShop, ShopAssets } from "@types";
 import { registerEvent } from "../register-event";
-import { HydraApi } from "@main/services";
-import { gamesShopAssetsSublevel, levelKeys } from "@main/level";
+import { HydraApi, getUserPreferencesRecord } from "@main/services";
+import {
+  gamesSgdbSelectionSublevel,
+  gamesShopAssetsSublevel,
+  levelKeys,
+} from "@main/level";
+import { composeAssetsWithSgdb } from "@shared";
 
 const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 60 * 8; // 8 hours
 
@@ -56,7 +61,20 @@ const getGameAssetsEvent = async (
   shop: GameShop,
   options?: { forceFresh?: boolean }
 ) => {
-  return getGameAssets(objectId, shop, options);
+  const assets = await getGameAssets(objectId, shop, options);
+  if (!assets) return assets;
+
+  const preferences = await getUserPreferencesRecord();
+  const sgdbSelection = await gamesSgdbSelectionSublevel.get(
+    levelKeys.game(shop, objectId)
+  );
+
+  return composeAssetsWithSgdb(
+    assets,
+    shop,
+    sgdbSelection,
+    preferences?.steamGridDb
+  );
 };
 
 registerEvent("getGameAssets", getGameAssetsEvent);

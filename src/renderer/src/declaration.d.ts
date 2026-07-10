@@ -58,6 +58,9 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  SgdbAssetType,
+  SgdbSelectionRecord,
+  SgdbVariantsCache,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -205,7 +208,7 @@ declare global {
     }) => Promise<Game>;
     copyCustomGameAsset: (
       sourcePath: string,
-      assetType: "icon" | "logo" | "hero"
+      assetType: "icon" | "logo" | "hero" | "grid"
     ) => Promise<string>;
     cleanupUnusedAssets: () => Promise<{
       deletedCount: number;
@@ -218,10 +221,44 @@ declare global {
       customIconUrl?: string | null;
       customLogoImageUrl?: string | null;
       customHeroImageUrl?: string | null;
+      customCoverImageUrl?: string | null;
       customOriginalIconPath?: string | null;
       customOriginalLogoPath?: string | null;
       customOriginalHeroPath?: string | null;
+      customOriginalCoverPath?: string | null;
     }) => Promise<Game>;
+    authenticateSteamGridDb: (apiKey: string) => Promise<{ success: boolean }>;
+    runSteamGridDbAutoMatch: (params?: {
+      shop?: GameShop;
+      objectId?: string;
+      forceFresh?: boolean;
+    }) => Promise<{ success: boolean }>;
+    getSteamGridDbVariants: (
+      shop: GameShop,
+      objectId: string,
+      options?: {
+        types?: SgdbAssetType[];
+        forceFresh?: boolean;
+        term?: string;
+      }
+    ) => Promise<SgdbVariantsCache | null>;
+    getSteamGridDbSelection: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<SgdbSelectionRecord | null>;
+    setSteamGridDbSelection: (params: {
+      shop: GameShop;
+      objectId: string;
+      type: SgdbAssetType;
+      url?: string;
+      assetId?: number;
+      clear?: boolean;
+    }) => Promise<SgdbSelectionRecord>;
+    setSteamGridDbOverride: (
+      shop: GameShop,
+      objectId: string,
+      override: "inherit" | "on" | "off"
+    ) => Promise<SgdbSelectionRecord>;
     createGameShortcut: (
       shop: GameShop,
       objectId: string,

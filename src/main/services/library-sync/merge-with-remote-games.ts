@@ -177,6 +177,9 @@ export const mergeWithRemoteGames = async () => {
           downloadSources: game.downloadSources,
         });
       }
+
+      const { runAutoMatch } = await import("../steam-grid-db");
+      runAutoMatch().catch(() => {});
     })
     .catch(() => {});
 };
