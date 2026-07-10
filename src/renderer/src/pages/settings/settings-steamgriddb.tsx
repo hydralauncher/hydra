@@ -1,15 +1,24 @@
 import { useContext, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { LinkExternalIcon } from "@primer/octicons-react";
+import {
+  CheckCircleFillIcon,
+  ChevronRightIcon,
+  LinkExternalIcon,
+} from "@primer/octicons-react";
 
 import { Button, CheckboxField, Link, TextField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import type { SgdbSettings } from "@types";
 
+import "./settings-debrid.scss";
+import "./settings-steamgriddb.scss";
+
 const STEAMGRIDDB_URL = "https://www.steamgriddb.com";
 const STEAMGRIDDB_API_KEY_URL =
   "https://www.steamgriddb.com/profile/preferences/api";
+
+const CHEVRON_ICON_SIZE = 16;
 
 type ShopKey = "steam" | "launchbox";
 type AssetKey = "grid" | "hero" | "logo" | "icon";
@@ -44,6 +53,9 @@ export function SettingsSteamGridDb() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [hasSavedKey, setHasSavedKey] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(
+    () => !userPreferences?.steamGridDbApiKey
+  );
   const [settings, setSettings] = useState<SgdbSettings>({
     enabled: false,
     cacheImages: false,
@@ -128,87 +140,128 @@ export function SettingsSteamGridDb() {
 
   const controlsDisabled = !hasSavedKey || !settings.enabled;
   const isKeyButtonDisabled = isLoading || (!apiKey && !hasSavedKey);
+  const isConfigured = hasSavedKey && settings.enabled;
 
   return (
-    <>
-      <div className="settings-context-panel__group">
-        <h3>{t("steamgriddb_title")}</h3>
-
-        <p>{t("steamgriddb_description")}</p>
-
-        <Link to={STEAMGRIDDB_URL}>
-          <LinkExternalIcon />
-          {t("steamgriddb_visit")}
-        </Link>
-
-        <form onSubmit={handleSaveKey}>
-          <TextField
-            label={t("steamgriddb_api_key")}
-            value={apiKey}
-            type="password"
-            onChange={(event) => setApiKey(event.target.value)}
-            placeholder={t("steamgriddb_api_key")}
-            rightContent={
-              <Button type="submit" disabled={isKeyButtonDisabled}>
-                {t("save_changes")}
-              </Button>
-            }
-            hint={
-              <Trans i18nKey="steamgriddb_api_key_hint" ns="settings">
-                <Link to={STEAMGRIDDB_API_KEY_URL} />
-              </Trans>
-            }
+    <div
+      className={`settings-debrid__section ${
+        isCollapsed ? "" : "settings-debrid__section--expanded"
+      }`}
+    >
+      <div className="settings-debrid__section-header">
+        <button
+          type="button"
+          className="settings-debrid__collapse-button"
+          onClick={() => setIsCollapsed((prev) => !prev)}
+          aria-label={
+            isCollapsed
+              ? t("expand_debrid_section", { provider: t("steamgriddb_title") })
+              : t("collapse_debrid_section", {
+                  provider: t("steamgriddb_title"),
+                })
+          }
+        >
+          <span
+            className={`settings-debrid__collapse-icon ${
+              isCollapsed ? "" : "settings-debrid__collapse-icon--expanded"
+            }`}
+          >
+            <ChevronRightIcon size={CHEVRON_ICON_SIZE} />
+          </span>
+        </button>
+        <h3 className="settings-debrid__section-title">
+          {t("steamgriddb_title")}
+        </h3>
+        {isConfigured && (
+          <CheckCircleFillIcon
+            size={CHEVRON_ICON_SIZE}
+            className="settings-debrid__check-icon"
           />
-        </form>
-
-        <CheckboxField
-          label={t("steamgriddb_enable")}
-          checked={settings.enabled}
-          disabled={!hasSavedKey}
-          onChange={toggleEnabled}
-        />
-
-        <CheckboxField
-          label={t("steamgriddb_cache_images")}
-          checked={settings.cacheImages}
-          disabled={controlsDisabled}
-          onChange={toggleCacheImages}
-        />
+        )}
       </div>
 
-      {SHOPS.map((shop) => (
-        <div key={shop.key} className="settings-context-panel__group">
-          <h3>{t(shop.labelKey)}</h3>
+      {!isCollapsed && (
+        <div className="settings-steamgriddb__body">
+          <p className="settings-steamgriddb__description">
+            {t("steamgriddb_description")}
+          </p>
+
+          <Link to={STEAMGRIDDB_URL} className="settings-steamgriddb__link">
+            <LinkExternalIcon />
+            {t("steamgriddb_visit")}
+          </Link>
+
+          <form onSubmit={handleSaveKey}>
+            <TextField
+              label={t("steamgriddb_api_key")}
+              value={apiKey}
+              type="password"
+              onChange={(event) => setApiKey(event.target.value)}
+              placeholder={t("steamgriddb_api_key")}
+              rightContent={
+                <Button type="submit" disabled={isKeyButtonDisabled}>
+                  {t("save_changes")}
+                </Button>
+              }
+              hint={
+                <Trans i18nKey="steamgriddb_api_key_hint" ns="settings">
+                  <Link to={STEAMGRIDDB_API_KEY_URL} />
+                </Trans>
+              }
+            />
+          </form>
 
           <CheckboxField
-            label={t("steamgriddb_shop_enable")}
-            checked={settings.matrix[shop.key].enabled}
-            disabled={controlsDisabled}
-            onChange={() => toggleMatrix(shop.key, "enabled")}
+            label={t("steamgriddb_enable")}
+            checked={settings.enabled}
+            disabled={!hasSavedKey}
+            onChange={toggleEnabled}
           />
 
-          {ASSET_TYPES.map((asset) => (
-            <CheckboxField
-              key={asset.key}
-              label={t(asset.labelKey)}
-              checked={settings.matrix[shop.key][asset.key]}
-              disabled={controlsDisabled || !settings.matrix[shop.key].enabled}
-              onChange={() => toggleMatrix(shop.key, asset.key)}
-            />
-          ))}
-        </div>
-      ))}
+          <CheckboxField
+            label={t("steamgriddb_cache_images")}
+            checked={settings.cacheImages}
+            disabled={controlsDisabled}
+            onChange={toggleCacheImages}
+          />
 
-      <div className="settings-context-panel__group">
-        <Button
-          type="button"
-          theme="outline"
-          disabled={controlsDisabled}
-          onClick={handleRefresh}
-        >
-          {t("steamgriddb_refresh")}
-        </Button>
-      </div>
-    </>
+          {SHOPS.map((shop) => (
+            <div key={shop.key} className="settings-steamgriddb__shop">
+              <h4 className="settings-steamgriddb__shop-title">
+                {t(shop.labelKey)}
+              </h4>
+
+              <CheckboxField
+                label={t("steamgriddb_shop_enable")}
+                checked={settings.matrix[shop.key].enabled}
+                disabled={controlsDisabled}
+                onChange={() => toggleMatrix(shop.key, "enabled")}
+              />
+
+              {ASSET_TYPES.map((asset) => (
+                <CheckboxField
+                  key={asset.key}
+                  label={t(asset.labelKey)}
+                  checked={settings.matrix[shop.key][asset.key]}
+                  disabled={
+                    controlsDisabled || !settings.matrix[shop.key].enabled
+                  }
+                  onChange={() => toggleMatrix(shop.key, asset.key)}
+                />
+              ))}
+            </div>
+          ))}
+
+          <Button
+            type="button"
+            theme="outline"
+            disabled={controlsDisabled}
+            onClick={handleRefresh}
+          >
+            {t("steamgriddb_refresh")}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
