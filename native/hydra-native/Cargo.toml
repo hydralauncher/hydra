@@ -27,3 +27,9 @@ tempfile = "3.27"
 
 [build-dependencies]
 napi-build = "2.3.1"
+
+[features]
+napi-test = [
+  "napi/noop",
+  "napi-derive/noop",
+]
