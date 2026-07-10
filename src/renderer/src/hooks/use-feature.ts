@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 
 import { logger } from "@renderer/logger";
+import { ensureArray } from "@renderer/helpers";
 
 enum Feature {
   CheckDownloadWritePermission = "CHECK_DOWNLOAD_WRITE_PERMISSION",
@@ -27,7 +28,7 @@ export function useFeature() {
     window.electron.hydraApi
       .get<string[]>("/features", { needsAuth: false })
       .then((response) => {
-        const safeFeatures = Array.isArray(response) ? response : [];
+        const safeFeatures = ensureArray<string>(response, "/features");
         localStorage.setItem("features", JSON.stringify(safeFeatures));
         setFeatures(safeFeatures);
       })

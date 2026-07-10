@@ -1,4 +1,4 @@
-import { darkenColor } from "@renderer/helpers";
+import { darkenColor, ensureArray } from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import type { Badge, UserProfile, UserStats, UserGame } from "@types";
 import { average } from "color.js";
@@ -252,7 +252,7 @@ export function UserProfileContextProvider({
       `/badges?${params.toString()}`,
       { needsAuth: false }
     );
-    setBadges(badges);
+    setBadges(ensureArray<Badge>(badges, "/badges"));
   }, [i18n]);
 
   useEffect(() => {
