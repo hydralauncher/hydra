@@ -1,5 +1,6 @@
 import {
   HistoryIcon,
+  ListUnorderedIcon,
   LockIcon,
   PersonIcon,
   SortDescIcon,
@@ -138,7 +139,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   );
 }
 
-function RarityIcon() {
+function PointsIcon() {
   return <HydraIcon className="achievements__item-points-small" />;
 }
 
@@ -162,6 +163,12 @@ export function AchievementsContent({
   useEffect(() => {
     dispatch(setHeaderTitle(gameTitle));
   }, [dispatch, gameTitle]);
+
+  useEffect(() => {
+    if (otherUser && sort === "points") {
+      setSort("default");
+    }
+  }, [otherUser, sort]);
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
     const heroHeight = heroRef.current?.clientHeight ?? 150;
@@ -202,19 +209,19 @@ export function AchievementsContent({
     },
     { value: "date", label: t("sort_option_date"), icon: HistoryIcon },
     {
-      value: "rarity",
-      label: t("sort_option_rarity"),
-      icon: RarityIcon,
+      value: "points",
+      label: t("sort_option_points"),
+      icon: PointsIcon,
     },
     {
       value: "name",
       label: t("sort_option_name"),
-      icon: SortDescIcon,
+      icon: ListUnorderedIcon,
     },
   ];
 
   const comparedSortOptions = sortOptions.filter(
-    (option) => option.value !== "rarity"
+    (option) => option.value !== "points"
   );
 
   if (!objectId || !shop || !gameTitle || !userDetails) return null;

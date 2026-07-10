@@ -25,7 +25,7 @@ export function sorter(
 
   if (sort === "date") {
     diff = getUnlockTime(b) - getUnlockTime(a);
-  } else if (sort === "rarity") {
+  } else if (sort === "points") {
     diff = getPoints(a) - getPoints(b);
   } else if (sort === "name") {
     diff = a.displayName.localeCompare(b.displayName);
