@@ -10,6 +10,7 @@ type PreferredGameSource = Partial<
     | "customIconUrl"
     | "customLogoImageUrl"
     | "customHeroImageUrl"
+    | "customCoverImageUrl"
     | "iconUrl"
     | "logoImageUrl"
     | "libraryHeroImageUrl"
@@ -90,7 +91,11 @@ export function getPreferredGameAssets(
       game?.libraryHeroImageUrl ??
       null,
     libraryImageUrl: assets?.libraryImageUrl ?? game?.libraryImageUrl ?? null,
-    coverImageUrl: assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
+    coverImageUrl:
+      game?.customCoverImageUrl ??
+      assets?.coverImageUrl ??
+      game?.coverImageUrl ??
+      null,
     logoPosition: assets?.logoPosition ?? game?.logoPosition ?? null,
     downloadSources: getPreferredDownloadSources(game, assets),
   };
@@ -114,6 +119,7 @@ export function resolvePreferredGameAssets(
     game?.iconUrl
   );
   const coverSrc = getFirstResolvedSource(
+    game?.customCoverImageUrl,
     game?.customHeroImageUrl,
     game?.customIconUrl,
     assets?.coverImageUrl,

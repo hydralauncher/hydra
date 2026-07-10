@@ -89,6 +89,15 @@ const updateUserPreferences = async (
     updatedPreferences
   );
 
+  // SteamGridDB changes (including turning it off) must refresh mounted library
+  // surfaces, since the resolver runs at read time and no re-match is triggered.
+  if (
+    Object.hasOwn(preferences, "steamGridDb") ||
+    Object.hasOwn(preferences, "steamGridDbApiKey")
+  ) {
+    WindowManager.sendToAppWindows("on-library-batch-complete");
+  }
+
   if (Object.hasOwn(preferences, "maxDownloadSpeedBytesPerSecond")) {
     await DownloadManager.applyDownloadSpeedLimit(
       preferences.maxDownloadSpeedBytesPerSecond ?? null

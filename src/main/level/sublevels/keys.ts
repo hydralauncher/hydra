@@ -7,6 +7,8 @@ export const levelKeys = {
   auth: "auth",
   themes: "themes",
   gameShopAssets: "gameShopAssets",
+  sgdbSelection: "sgdbSelection",
+  sgdbVariantsCache: "sgdbVariantsCache",
   gameStatsCache: "gameStatsAssets",
   gameShopCache: "gameShopCache",
   gameShopCacheItem: (shop: GameShop, objectId: string, language: string) =>

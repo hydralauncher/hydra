@@ -203,7 +203,9 @@ export function GameDetailsContent() {
       );
 
   const launchboxCover = isLaunchboxGame
-    ? game?.customIconUrl ||
+    ? game?.customCoverImageUrl ||
+      shopDetails?.assets?.coverImageUrl ||
+      game?.customIconUrl ||
       shopDetails?.assets?.libraryImageUrl ||
       game?.libraryImageUrl ||
       shopDetails?.assets?.iconUrl ||

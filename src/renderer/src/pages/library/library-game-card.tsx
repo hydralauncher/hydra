@@ -52,10 +52,11 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const isInstalled = Boolean(game.executablePath);
 
   const sources = [
-    game.customIconUrl, // Level 0
-    game.coverImageUrl, // Level 1
-    game.libraryImageUrl, // Level 2
-    game.iconUrl, // Level 3
+    game.customCoverImageUrl, // Level 0
+    game.customIconUrl, // Level 1
+    game.coverImageUrl, // Level 2
+    game.libraryImageUrl, // Level 3
+    game.iconUrl, // Level 4
   ].filter((url) => url && url.trim() !== "");
 
   const [fallbackIndex, setFallbackIndex] = useState(0);

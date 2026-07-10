@@ -8,7 +8,8 @@ const collectOldAssetPaths = (
   existingGame: Game,
   customIconUrl?: string | null,
   customLogoImageUrl?: string | null,
-  customHeroImageUrl?: string | null
+  customHeroImageUrl?: string | null,
+  customCoverImageUrl?: string | null
 ): string[] => {
   const oldAssetPaths: string[] = [];
 
@@ -16,6 +17,7 @@ const collectOldAssetPaths = (
     { existing: existingGame.customIconUrl, new: customIconUrl },
     { existing: existingGame.customLogoImageUrl, new: customLogoImageUrl },
     { existing: existingGame.customHeroImageUrl, new: customHeroImageUrl },
+    { existing: existingGame.customCoverImageUrl, new: customCoverImageUrl },
   ];
 
   for (const { existing, new: newUrl } of assetPairs) {
@@ -39,9 +41,11 @@ interface UpdateGameDataParams {
   customIconUrl?: string | null;
   customLogoImageUrl?: string | null;
   customHeroImageUrl?: string | null;
+  customCoverImageUrl?: string | null;
   customOriginalIconPath?: string | null;
   customOriginalLogoPath?: string | null;
   customOriginalHeroPath?: string | null;
+  customOriginalCoverPath?: string | null;
 }
 
 const updateGameData = async (params: UpdateGameDataParams): Promise<Game> => {
@@ -52,9 +56,11 @@ const updateGameData = async (params: UpdateGameDataParams): Promise<Game> => {
     customIconUrl,
     customLogoImageUrl,
     customHeroImageUrl,
+    customCoverImageUrl,
     customOriginalIconPath,
     customOriginalLogoPath,
     customOriginalHeroPath,
+    customOriginalCoverPath,
   } = params;
   const updatedGame = {
     ...existingGame,
@@ -62,9 +68,11 @@ const updateGameData = async (params: UpdateGameDataParams): Promise<Game> => {
     ...(customIconUrl !== undefined && { customIconUrl }),
     ...(customLogoImageUrl !== undefined && { customLogoImageUrl }),
     ...(customHeroImageUrl !== undefined && { customHeroImageUrl }),
+    ...(customCoverImageUrl !== undefined && { customCoverImageUrl }),
     ...(customOriginalIconPath !== undefined && { customOriginalIconPath }),
     ...(customOriginalLogoPath !== undefined && { customOriginalLogoPath }),
     ...(customOriginalHeroPath !== undefined && { customOriginalHeroPath }),
+    ...(customOriginalCoverPath !== undefined && { customOriginalCoverPath }),
   };
 
   await gamesSublevel.put(gameKey, updatedGame);
@@ -106,9 +114,11 @@ interface UpdateGameCustomAssetsParams {
   customIconUrl?: string | null;
   customLogoImageUrl?: string | null;
   customHeroImageUrl?: string | null;
+  customCoverImageUrl?: string | null;
   customOriginalIconPath?: string | null;
   customOriginalLogoPath?: string | null;
   customOriginalHeroPath?: string | null;
+  customOriginalCoverPath?: string | null;
 }
 
 const updateGameCustomAssets = async (
@@ -122,9 +132,11 @@ const updateGameCustomAssets = async (
     customIconUrl,
     customLogoImageUrl,
     customHeroImageUrl,
+    customCoverImageUrl,
     customOriginalIconPath,
     customOriginalLogoPath,
     customOriginalHeroPath,
+    customOriginalCoverPath,
   } = params;
   const gameKey = levelKeys.game(shop, objectId);
 
@@ -137,7 +149,8 @@ const updateGameCustomAssets = async (
     existingGame,
     customIconUrl,
     customLogoImageUrl,
-    customHeroImageUrl
+    customHeroImageUrl,
+    customCoverImageUrl
   );
 
   const updatedGame = await updateGameData({
@@ -147,9 +160,11 @@ const updateGameCustomAssets = async (
     customIconUrl,
     customLogoImageUrl,
     customHeroImageUrl,
+    customCoverImageUrl,
     customOriginalIconPath,
     customOriginalLogoPath,
     customOriginalHeroPath,
+    customOriginalCoverPath,
   });
 
   await updateShopAssets(gameKey, title);

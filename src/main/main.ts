@@ -24,6 +24,7 @@ import {
   SSEClient,
   Wine,
   WindowManager,
+  SteamGridDbClient,
   logger,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
@@ -80,6 +81,10 @@ export const loadState = async () => {
 
   if (userPreferences?.torBoxApiToken) {
     TorBoxClient.authorize(userPreferences.torBoxApiToken);
+  }
+
+  if (userPreferences?.steamGridDbApiKey) {
+    SteamGridDbClient.authorize(userPreferences.steamGridDbApiKey);
   }
 
   GofileApi.initialize();
