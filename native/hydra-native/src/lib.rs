@@ -1,3 +1,7 @@
+mod cloud_save;
+
+pub use cloud_save::manifest::get_save_rules_for_game;
+
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
