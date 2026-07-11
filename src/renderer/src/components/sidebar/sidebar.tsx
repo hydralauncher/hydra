@@ -213,7 +213,7 @@ export function Sidebar() {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
       const runningIds = gamesRunning
         .map((game) => game.id)
-        .sort()
+        .sort((a, b) => a.localeCompare(b))
         .join(",");
 
       if (runningIds !== runningGameIdsRef.current) {
