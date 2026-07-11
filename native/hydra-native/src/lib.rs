@@ -3,6 +3,7 @@ mod cloud_save;
 pub use cloud_save::manifest::get_save_rules_for_game;
 pub use cloud_save::path_resolution::resolve_save_rules;
 pub use cloud_save::save_scanner::scan_resolved_save_rules;
+pub use cloud_save::hashing::hash_local_save_file;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
