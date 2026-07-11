@@ -8,6 +8,7 @@ import type { LibraryGame } from "@types";
 
 import { ConfirmationModal, TextField } from "@renderer/components";
 import {
+  useAppSelector,
   useDownload,
   useLibrary,
   useToast,
@@ -23,6 +24,7 @@ import { useFormat } from "@renderer/hooks/use-format";
 import {
   ChevronRightIcon,
   CommentDiscussionIcon,
+  HistoryIcon,
   PlayIcon,
   PlusIcon,
   VideoIcon,
@@ -69,9 +71,23 @@ export function Sidebar() {
 
   const location = useLocation();
 
+  const [sortByRecentActivity, setSortByRecentActivity] = useState(
+    window.localStorage.getItem("sidebarSortByRecentActivity") === "true"
+  );
+
+  const { gameRunning } = useAppSelector((state) => state.gameRunning);
+  const runningGameId = gameRunning?.id;
+  
   const sortedLibrary = useMemo(() => {
-    return sortBy(library, (game) => game.title);
-  }, [library]);
+    const sortedByTitle = sortBy(library, (game) => game.title);
+
+    if (!sortByRecentActivity) return sortedByTitle;
+
+    return sortBy(sortedByTitle, (game) => {
+      if (game.id === runningGameId) return -Infinity;
+      return game.lastTimePlayed ? -new Date(game.lastTimePlayed).getTime() : 0;
+    });
+  }, [library, sortByRecentActivity, runningGameId]);
 
   const { hasActiveSubscription } = useUserDetails();
 
@@ -114,6 +130,15 @@ export function Sidebar() {
 
   const handlePlayButtonClick = () => {
     setShowPlayableOnly(!showPlayableOnly);
+  };
+
+  const handleSortButtonClick = () => {
+    const newValue = !sortByRecentActivity;
+    setSortByRecentActivity(newValue);
+    window.localStorage.setItem(
+      "sidebarSortByRecentActivity",
+      String(newValue)
+    );
   };
 
   const handleAddGameButtonClick = () => {
@@ -181,6 +206,26 @@ export function Sidebar() {
   useEffect(() => {
     updateLibrary();
   }, [lastPacket?.gameId, updateLibrary]);
+
+  const runningGameIdsRef = useRef("");
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
+      const runningIds = gamesRunning
+        .map((game) => game.id)
+        .sort()
+        .join(",");
+
+      if (runningIds !== runningGameIdsRef.current) {
+        runningGameIdsRef.current = runningIds;
+        updateLibrary();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [updateLibrary]);
 
   useEffect(() => {
     loadDeckyPluginInfo();
@@ -398,6 +443,18 @@ export function Sidebar() {
                 </button>
                 <button
                   type="button"
+                  className={cn("sidebar__sort-button", {
+                    "sidebar__sort-button--active": sortByRecentActivity,
+                  })}
+                  onClick={handleSortButtonClick}
+                  data-tooltip-id="sort-by-recent-activity-tooltip"
+                  data-tooltip-content={t("sort_by_recent_activity_tooltip")}
+                  data-tooltip-place="top"
+                >
+                  <HistoryIcon size={16} />
+                </button>
+                <button
+                  type="button"
                   className={cn("sidebar__play-button", {
                     "sidebar__play-button--active": showPlayableOnly,
                   })}
@@ -514,6 +571,7 @@ export function Sidebar() {
 
       <Tooltip id="add-custom-game-tooltip" />
       <Tooltip id="show-playable-only-tooltip" />
+      <Tooltip id="sort-by-recent-activity-tooltip" />
     </aside>
   );
 }

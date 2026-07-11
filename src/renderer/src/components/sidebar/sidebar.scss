@@ -128,6 +128,22 @@
       }
     }
 
+    &--not-playable {
+      .sidebar__menu-item-button-label {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      &:hover .sidebar__menu-item-button-label {
+        color: rgba(255, 255, 255, 0.6);
+      }
+    }
+
+    &--running {
+      .sidebar__menu-item-button-label {
+        color: #22c55e;
+      }
+    }
+    
     &--decky {
       background: linear-gradient(
         135deg,
@@ -354,6 +370,26 @@
     }
   }
 
+  &__sort-button {
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    padding: 0;
+
+    &:active {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    &--active {
+      color: globals.$brand-teal;
+    }
+
+    svg {
+      display: block;
+    }
+  }
+  
   &__add-button {
     background: none;
     border: none;
