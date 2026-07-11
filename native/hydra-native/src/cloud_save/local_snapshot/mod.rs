@@ -1,7 +1,7 @@
 mod build;
 mod build_file;
 mod build_files;
-mod types;
+pub(crate) mod types;
 
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
