@@ -49,7 +49,7 @@ function Header() {
   const catalogueSearchValue = searchParams.get("title") ?? "";
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const shouldShowHomeTitle = !(isSearchOpen || isHovered) && isOnHomePage;
+  const shouldShowHomeTitle = isOnHomePage && !isSearchOpen;
   const shouldShowBackButton = !isOnHomePage;
   const [searchValue, setSearchValue] = useState(() =>
     isOnCataloguePage ? catalogueSearchValue : ""
