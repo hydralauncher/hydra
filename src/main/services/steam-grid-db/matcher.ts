@@ -422,7 +422,6 @@ export const getVariants = async (
       }
     }
 
-    await gamesSgdbVariantsCacheSublevel.put(gameKey, base);
     return base;
   }
 

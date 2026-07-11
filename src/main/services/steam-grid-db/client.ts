@@ -36,6 +36,8 @@ export class SteamGridDbClient {
   private static instance: AxiosInstance | null = null;
   private static readonly baseURL = "https://www.steamgriddb.com/api/v2";
   private static readonly MAX_RETRIES = 3;
+  private static readonly RATE_LIMIT_RETRY_BASE_MS = 500;
+  private static readonly SERVER_ERROR_RETRY_BASE_MS = 300;
 
   static authorize(apiKey: string) {
     this.instance = axios.create({
@@ -62,8 +64,12 @@ export class SteamGridDbClient {
     const status = (error as AxiosError).response?.status;
     const canRetry = attempt < this.MAX_RETRIES;
 
-    if (status === 429 && canRetry) return 500 * 2 ** attempt;
-    if ((!status || status >= 500) && canRetry) return 300 * 2 ** attempt;
+    if (status === 429 && canRetry) {
+      return this.RATE_LIMIT_RETRY_BASE_MS * 2 ** attempt;
+    }
+    if ((!status || status >= 500) && canRetry) {
+      return this.SERVER_ERROR_RETRY_BASE_MS * 2 ** attempt;
+    }
 
     if (status !== 404) {
       logger.warn("SteamGridDB request failed", { path, status });
