@@ -7,6 +7,7 @@ pub use cloud_save::hashing::hash_local_save_file;
 pub use cloud_save::hashing::build_snapshot_aggregate_hash;
 pub use cloud_save::local_snapshot::build_local_game_snapshot;
 pub use cloud_save::local_snapshot::build_local_save_snapshot_files;
+pub use cloud_save::comparison::compare_game_snapshots;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
