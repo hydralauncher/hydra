@@ -134,6 +134,13 @@ export function GameSteamGridDbAssets({
     await loadVariants();
   };
 
+  const handleRefresh = () => {
+    const trimmed = term.trim();
+    loadVariants({ forceFresh: true, term: trimmed || undefined }).catch(
+      () => {}
+    );
+  };
+
   if (!hasApiKey) {
     return (
       <div className="game-steamgriddb__hint">
@@ -214,7 +221,7 @@ export function GameSteamGridDbAssets({
         <Button
           type="button"
           theme="outline"
-          onClick={() => loadVariants({ forceFresh: true })}
+          onClick={handleRefresh}
           disabled={isLoading}
         >
           {t("steamgriddb_refresh")}
