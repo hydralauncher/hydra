@@ -48,14 +48,9 @@ jobs:
 
       - name: Install Flatpak build tooling
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder elfutils
-          flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y flathub \
-            org.freedesktop.Platform//25.08 \
-            org.freedesktop.Sdk//25.08 \
-            org.electronjs.Electron2.BaseApp//25.08
+        uses: ./.github/actions/install-flatpak-tooling
+        with:
+          runtime-version: "25.08"
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
@@ -159,14 +154,9 @@ jobs:
 
       - name: Install Flatpak build tooling
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder elfutils
-          flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y flathub \
-            org.freedesktop.Platform//25.08 \
-            org.freedesktop.Sdk//25.08 \
-            org.electronjs.Electron2.BaseApp//25.08
+        uses: ./.github/actions/install-flatpak-tooling
+        with:
+          runtime-version: "25.08"
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
