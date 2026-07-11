@@ -46,6 +46,10 @@
   padding-inline: calc(var(--spacing-unit) * 16);
 }
 
+.header__home-title {
+  padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 6);
+}
+
 .header__action {
   display: flex;
   flex-direction: row;
