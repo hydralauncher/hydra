@@ -10,14 +10,13 @@ const authenticateSteamGridDb = async (
     return { success: true };
   }
 
-  SteamGridDbClient.authorize(apiKey);
-
-  const isValid = await SteamGridDbClient.validate();
+  const isValid = await SteamGridDbClient.validateKey(apiKey);
 
   if (!isValid) {
-    SteamGridDbClient.reset();
     throw new Error("Invalid SteamGridDB API key");
   }
+
+  SteamGridDbClient.authorize(apiKey);
 
   return { success: true };
 };

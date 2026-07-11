@@ -98,12 +98,17 @@ export class SteamGridDbClient {
     return null;
   }
 
-  static async validate(): Promise<boolean> {
-    if (!this.instance) return false;
+  static async validateKey(apiKey: string): Promise<boolean> {
+    const client = axios.create({
+      baseURL: this.baseURL,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
 
     try {
       const response =
-        await this.instance.get<SgdbResponse<SgdbGame>>("/games/steam/570");
+        await client.get<SgdbResponse<SgdbGame>>("/games/steam/570");
       return response.status === 200 && response.data?.success === true;
     } catch {
       return false;
