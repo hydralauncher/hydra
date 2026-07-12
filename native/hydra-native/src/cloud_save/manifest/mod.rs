@@ -1,8 +1,9 @@
 mod cache;
 mod indexer;
 mod lookup;
-mod rules;
 mod source;
+
+pub(crate) mod rules;
 pub(crate) mod types;
 
 use std::path::Path;

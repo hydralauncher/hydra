@@ -23,6 +23,40 @@ export interface BuildLocalGameSnapshotPipelineInput {
   steamUserIds: string[];
 }
 
+export interface CloudSavePathContext {
+  shop: GameShop;
+  objectId: string;
+  platform: "windows" | "linux";
+  homeDir: string;
+  documentsDir?: string;
+  appDataDir?: string;
+  executablePath?: string;
+  winePrefixPath?: string;
+  protonPath?: string;
+  steamPath?: string;
+  steamUserIds: string[];
+}
+
+export interface RestoreManifestFile {
+  rawPath: string;
+  relativePath: string;
+  hash: string;
+  sizeBytes: number;
+}
+
+export interface RestoreManifestResponse {
+  snapshot: CloudSaveGameId & { id: string };
+  files: RestoreManifestFile[];
+}
+
+export interface ResolveRestoreTargetsInput extends CloudSavePathContext {
+  files: RestoreManifestFile[];
+}
+
+export interface ResolvedRestoreTarget extends RestoreManifestFile {
+  targetPath: string;
+}
+
 export interface LocalGameSnapshotFile {
   rawPath: string;
   relativePath: string;

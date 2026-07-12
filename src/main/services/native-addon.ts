@@ -8,6 +8,8 @@ import type { ProcessPayload } from "./download/types";
 import type {
   BuildLocalGameSnapshotPipelineInput,
   LocalGameSnapshotPipelineResult,
+  ResolveRestoreTargetsInput,
+  ResolvedRestoreTarget,
 } from "@types";
 
 import { logger } from "./logger";
@@ -44,6 +46,9 @@ type HydraNativeModule = {
     absolutePath: string,
     uploadUrl: string
   ) => Promise<void>;
+  resolveRestoreTargets: (
+    input: ResolveRestoreTargetsInput
+  ) => ResolvedRestoreTarget[];
 };
 
 export type SystemProcessMap = {
@@ -328,5 +333,9 @@ export class NativeAddon {
 
   public static uploadLocalSaveBlob(absolutePath: string, uploadUrl: string) {
     return this.load().uploadLocalSaveBlob(absolutePath, uploadUrl);
+  }
+
+  public static resolveRestoreTargets(input: ResolveRestoreTargetsInput) {
+    return this.load().resolveRestoreTargets(input);
   }
 }

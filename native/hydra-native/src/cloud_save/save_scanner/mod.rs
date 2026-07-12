@@ -1,8 +1,9 @@
-mod glob;
 mod scan_path;
 mod scan_rules;
 mod types;
 mod walk;
+
+pub(crate) mod glob;
 
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
