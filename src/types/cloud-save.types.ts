@@ -42,3 +42,9 @@ export interface LocalGameSnapshot {
 export interface LocalGameSnapshotWithHash extends LocalGameSnapshot {
   aggregateHash: string;
 }
+
+export interface CloudSaveSyncAnchor {
+  baseSnapshotId: string;
+  baseAggregateHash: string;
+  updatedAt: string;
+}
