@@ -11,6 +11,7 @@ pub use cloud_save::comparison::compare_game_snapshots;
 pub use cloud_save::pipeline::build_local_game_snapshot_pipeline;
 pub use cloud_save::upload::upload_local_save_blob;
 pub use cloud_save::restore::resolve_restore_targets;
+pub use cloud_save::restore::download_restore_blob_to_temp;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};

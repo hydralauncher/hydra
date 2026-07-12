@@ -13,7 +13,7 @@ mime_guess = "2.0.5"
 napi = { version = "3.5.2", default-features = false, features = ["napi8", "tokio_rt"] }
 napi-derive = "3.3.2"
 sysinfo = "0.37.2"
-tokio = { version = "1.52", features = ["fs", "rt", "sync", "macros"] }
+tokio = { version = "1.52", features = ["fs", "io-util", "net", "rt", "sync", "macros"] }
 uuid = { version = "1.11.0", features = ["v4"] }
 reqwest = "0.13"
 indexmap = { version = "2.14", features = ["serde"] }

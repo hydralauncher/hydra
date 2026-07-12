@@ -49,6 +49,12 @@ type HydraNativeModule = {
   resolveRestoreTargets: (
     input: ResolveRestoreTargetsInput
   ) => ResolvedRestoreTarget[];
+  downloadRestoreBlobToTemp: (
+    snapshotId: string,
+    hash: string,
+    downloadUrl: string,
+    tempRoot: string
+  ) => Promise<string>;
 };
 
 export type SystemProcessMap = {
@@ -337,5 +343,19 @@ export class NativeAddon {
 
   public static resolveRestoreTargets(input: ResolveRestoreTargetsInput) {
     return this.load().resolveRestoreTargets(input);
+  }
+
+  public static downloadRestoreBlobToTemp(
+    snapshotId: string,
+    hash: string,
+    downloadUrl: string,
+    tempRoot: string
+  ) {
+    return this.load().downloadRestoreBlobToTemp(
+      snapshotId,
+      hash,
+      downloadUrl,
+      tempRoot
+    );
   }
 }
