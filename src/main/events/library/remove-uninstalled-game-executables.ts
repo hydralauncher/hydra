@@ -8,6 +8,15 @@ interface RemovedGame {
   title: string;
 }
 
+const pathExists = async (filePath: string) => {
+  try {
+    await fs.promises.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const removeUninstalledGameExecutables = async () => {
   const games = await gamesSublevel
     .iterator()
@@ -25,7 +34,7 @@ const removeUninstalledGameExecutables = async () => {
 
   for (const { key, game } of gamesToCheck) {
     const exePath = game.executablePath!;
-    if (!fs.existsSync(exePath)) {
+    if (!(await pathExists(exePath))) {
       await gamesSublevel.put(key, {
         ...updateGameExecutablePath(game, null),
         installedSizeInBytes: null,

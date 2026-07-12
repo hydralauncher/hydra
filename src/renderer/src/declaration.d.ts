@@ -635,7 +635,6 @@ declare global {
     }>;
     removeUninstalledGameExecutables: () => Promise<{
       removedGames: { title: string }[];
-      total: number;
     }>;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
