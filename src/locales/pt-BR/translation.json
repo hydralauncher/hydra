@@ -161,7 +161,10 @@
     "scan_games_add_folder": "Adicionar pasta",
     "scan_games_remove_folder": "Remover pasta",
     "scan_games_folders_hint_manual": "Adicione pelo menos uma pasta para escanear por jogos.",
-    "scan_games_detection_warning": "A detecção depende de uma lista mantida pela comunidade de jogos conhecidos e pode estar desatualizada, então alguns jogos podem não ser encontrados."
+    "scan_games_detection_warning": "A detecção depende de uma lista mantida pela comunidade de jogos conhecidos e pode estar desatualizada, então alguns jogos podem não ser encontrados.",
+    "remove_executables_in_progress": "Verificando executáveis de jogos desinstalados...",
+    "remove_executables_result": "Removidos {{removed}} caminhos de executáveis de jogos obsoletos",
+    "remove_executables_no_results": "Nenhum executável de jogo desinstalado encontrado."
   },
   "bottom_panel": {
     "reconnecting": "Reconectando {{title}}…",
