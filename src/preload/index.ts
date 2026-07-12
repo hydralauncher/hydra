@@ -36,6 +36,7 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  LocalGameSnapshotWithHash,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -47,6 +48,12 @@ const fileExplorerApi = {
 };
 
 contextBridge.exposeInMainWorld("electron", {
+  buildLocalGameSnapshot: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "buildLocalGameSnapshot",
+      objectId,
+      shop
+    ) as Promise<LocalGameSnapshotWithHash>,
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("startGameDownload", payload),
