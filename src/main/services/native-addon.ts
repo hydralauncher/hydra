@@ -5,6 +5,10 @@ import { Worker } from "node:worker_threads";
 
 import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
+import type {
+  BuildLocalGameSnapshotPipelineInput,
+  LocalGameSnapshotWithHash,
+} from "@types";
 
 import { logger } from "./logger";
 
@@ -33,6 +37,9 @@ type HydraNativeModule = {
     preserveAnimation: boolean
   ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
+  buildLocalGameSnapshotPipeline: (
+    input: BuildLocalGameSnapshotPipelineInput
+  ) => Promise<LocalGameSnapshotWithHash>;
 };
 
 export type SystemProcessMap = {
@@ -307,5 +314,11 @@ export class NativeAddon {
         resolve({ processMap: {}, winePrefixMap: {}, linuxProcesses: [] });
       }
     });
+  }
+
+  public static buildLocalGameSnapshotPipeline(
+    input: BuildLocalGameSnapshotPipelineInput
+  ) {
+    return this.load().buildLocalGameSnapshotPipeline(input);
   }
 }
