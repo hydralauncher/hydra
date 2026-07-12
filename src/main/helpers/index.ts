@@ -83,14 +83,10 @@ export const getThemeSoundPath = (
     }
 
     const extensions = [".wav", ".mp3", ".ogg", ".m4a"];
-    const fileNames = variation
-      ? [
-          ...extensions.map((extension) =>
-            getVariationSoundAssetName(variation, extension)
-          ),
-          ...extensions.map((extension) => `achievement${extension}`),
-        ]
-      : extensions.map((extension) => `achievement${extension}`);
+    const assetVariation = variation ?? "default";
+    const fileNames = extensions.map((extension) =>
+      getVariationSoundAssetName(assetVariation, extension)
+    );
 
     for (const fileName of fileNames) {
       const soundPath = path.join(dir, fileName);
