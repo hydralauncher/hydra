@@ -13,6 +13,7 @@ import { WindowManager } from "@main/services";
 import type {
   AchievementNotificationSoundMode,
   AchievementNotificationVariation,
+  Theme,
 } from "@types";
 
 import { registerEvent } from "../register-event";
@@ -43,13 +44,9 @@ const removeVariationAssets = async (
   );
 };
 
-const setThemeAchievementSound = async (
-  _event: Electron.IpcMainInvokeEvent,
-  themeId: string,
+const validateSoundMode = (
   variation: AchievementNotificationVariation,
-  mode: AchievementNotificationSoundMode,
-  sourcePath?: string,
-  volume?: number
+  mode: AchievementNotificationSoundMode
 ) => {
   if (!isSupportedAchievementNotificationVariation(variation)) {
     throw new Error("Unsupported achievement notification variation");
@@ -61,44 +58,54 @@ const setThemeAchievementSound = async (
   if (variation !== "default" && mode === "default") {
     throw new Error("Variation sounds must inherit the default sound");
   }
+};
 
-  const theme = await themesSublevel.get(themeId);
-  if (!theme) throw new Error("Theme not found");
+const validateSoundFile = async (
+  mode: AchievementNotificationSoundMode,
+  sourcePath?: string
+) => {
+  if (mode !== "file" || !sourcePath) return;
 
   if (
-    mode === "file" &&
-    sourcePath &&
-    (!fs.existsSync(sourcePath) || !isSupportedAchievementSoundFile(sourcePath))
+    !fs.existsSync(sourcePath) ||
+    !isSupportedAchievementSoundFile(sourcePath)
   ) {
     throw new Error("Unsupported achievement sound file");
   }
-  if (
-    mode === "file" &&
-    sourcePath &&
-    (await fs.promises.stat(sourcePath)).size > MAX_SOUND_FILE_SIZE
-  ) {
+  if ((await fs.promises.stat(sourcePath)).size > MAX_SOUND_FILE_SIZE) {
     throw new Error("Achievement sound file is too large");
   }
+};
 
-  const themeDir = getThemePath(themeId, theme.name);
-  const legacyThemeDir = path.join(THEMES_PATH, themeId);
-  const directories =
-    themeDir === legacyThemeDir ? [themeDir] : [themeDir, legacyThemeDir];
-  if (mode !== "file" || sourcePath) {
-    await removeVariationAssets(directories, variation);
-  }
+const updateVariationAssets = async (
+  themeDir: string,
+  directories: string[],
+  variation: AchievementNotificationVariation,
+  mode: AchievementNotificationSoundMode,
+  sourcePath?: string
+) => {
+  if (mode === "file" && !sourcePath) return;
 
-  if (mode === "file" && sourcePath) {
-    await fs.promises.mkdir(themeDir, { recursive: true });
-    await fs.promises.copyFile(
-      sourcePath,
-      path.join(
-        themeDir,
-        getVariationSoundAssetName(variation, path.extname(sourcePath))
-      )
-    );
-  }
+  await removeVariationAssets(directories, variation);
+  if (mode !== "file" || !sourcePath) return;
 
+  await fs.promises.mkdir(themeDir, { recursive: true });
+  await fs.promises.copyFile(
+    sourcePath,
+    path.join(
+      themeDir,
+      getVariationSoundAssetName(variation, path.extname(sourcePath))
+    )
+  );
+};
+
+const getThemeSoundUpdate = (
+  theme: Theme,
+  variation: AchievementNotificationVariation,
+  mode: AchievementNotificationSoundMode,
+  sourcePath?: string,
+  volume?: number
+): Partial<Theme> => {
   const normalizedVolume =
     typeof volume === "number" ? Math.min(Math.max(volume, 0), 1) : undefined;
   const previousSound = theme.achievementSounds?.[variation];
@@ -106,26 +113,57 @@ const setThemeAchievementSound = async (
     sourcePath ??
     previousSound?.originalPath ??
     (variation === "default" ? theme.originalSoundPath : undefined);
-  const achievementSounds = {
-    ...theme.achievementSounds,
-    [variation]: {
-      mode,
-      ...(mode === "file" && originalPath ? { originalPath } : {}),
-      ...(mode !== "inherit" && normalizedVolume !== undefined
-        ? { volume: normalizedVolume }
-        : {}),
-    },
-  };
 
-  await themesSublevel.put(themeId, {
-    ...theme,
-    achievementSounds,
+  return {
+    achievementSounds: {
+      ...theme.achievementSounds,
+      [variation]: {
+        mode,
+        ...(mode === "file" && originalPath ? { originalPath } : {}),
+        ...(mode !== "inherit" && normalizedVolume !== undefined
+          ? { volume: normalizedVolume }
+          : {}),
+      },
+    },
     ...(variation === "default"
       ? {
           hasCustomSound: mode === "file",
           originalSoundPath: mode === "file" ? originalPath : undefined,
         }
       : {}),
+  };
+};
+
+const setThemeAchievementSound = async (
+  _event: Electron.IpcMainInvokeEvent,
+  themeId: string,
+  variation: AchievementNotificationVariation,
+  mode: AchievementNotificationSoundMode,
+  sourcePath?: string,
+  volume?: number
+) => {
+  validateSoundMode(variation, mode);
+
+  const theme = await themesSublevel.get(themeId);
+  if (!theme) throw new Error("Theme not found");
+
+  await validateSoundFile(mode, sourcePath);
+
+  const themeDir = getThemePath(themeId, theme.name);
+  const legacyThemeDir = path.join(THEMES_PATH, themeId);
+  const directories =
+    themeDir === legacyThemeDir ? [themeDir] : [themeDir, legacyThemeDir];
+  await updateVariationAssets(
+    themeDir,
+    directories,
+    variation,
+    mode,
+    sourcePath
+  );
+
+  await themesSublevel.put(themeId, {
+    ...theme,
+    ...getThemeSoundUpdate(theme, variation, mode, sourcePath, volume),
     updatedAt: new Date(),
   });
 

@@ -38,6 +38,16 @@ const positions: AchievementCustomNotificationPosition[] = [
 
 const colorFallback = /^#[0-9a-f]{6}/i;
 
+const getSoundMode = (
+  theme: Theme,
+  variation: AchievementNotificationVariation
+): AchievementNotificationSoundMode => {
+  const mode = theme.achievementSounds?.[variation]?.mode;
+  if (mode) return mode;
+  if (variation !== "default") return "inherit";
+  return theme.hasCustomSound ? "file" : "default";
+};
+
 type Props = {
   theme: Theme;
   code: string;
@@ -149,13 +159,7 @@ export function AchievementNotificationCustomizer({
     Math.round((sound?.volume ?? 1) * 100)
   );
   const soundVolumeTimeoutRef = useRef<NodeJS.Timeout>();
-  const soundMode: AchievementNotificationSoundMode =
-    sound?.mode ??
-    (variation === "default"
-      ? theme.hasCustomSound
-        ? "file"
-        : "default"
-      : "inherit");
+  const soundMode = getSoundMode(theme, variation);
 
   useEffect(() => {
     setSoundVolume(Math.round((sound?.volume ?? 1) * 100));

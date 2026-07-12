@@ -103,7 +103,7 @@ const emptyManagedCss = (): AchievementNotificationManagedCss => ({
 });
 
 const escapeRegex = (value: string) =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
 export const parseAchievementNotificationManagedCss = (
   css: string
@@ -128,14 +128,14 @@ export const parseAchievementNotificationManagedCss = (
 
   for (const variation of ACHIEVEMENT_NOTIFICATION_VARIATIONS) {
     const rule = new RegExp(
-      `${escapeRegex(SELECTORS[variation])}\\s*\\{([^}]*)\\}`,
+      String.raw`${escapeRegex(SELECTORS[variation])}\s*\{([^}]*)\}`,
       "m"
     ).exec(block);
     if (!rule) continue;
 
     for (const property of CSS_PROPERTIES) {
       const declaration = new RegExp(
-        `${escapeRegex(CSS_VARIABLES[property])}\\s*:\\s*([^;]+);?`,
+        String.raw`${escapeRegex(CSS_VARIABLES[property])}\s*:\s*([^;]+);?`,
         "m"
       ).exec(rule[1]);
       if (declaration) variations[variation][property] = declaration[1].trim();
@@ -231,11 +231,13 @@ export const getAchievementNotificationWindowPosition = (
   display: { x: number; y: number; width: number; height: number },
   size: { width: number; height: number }
 ) => {
-  const horizontal = position?.endsWith("center")
-    ? display.x + (display.width - size.width) / 2
-    : position?.endsWith("right")
-      ? display.x + display.width - size.width
-      : display.x;
+  let horizontal = display.x;
+  if (position?.endsWith("center")) {
+    horizontal += (display.width - size.width) / 2;
+  } else if (position?.endsWith("right")) {
+    horizontal += display.width - size.width;
+  }
+
   const vertical = position?.startsWith("bottom")
     ? display.y + display.height - size.height
     : display.y;

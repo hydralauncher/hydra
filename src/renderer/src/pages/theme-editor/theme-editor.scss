@@ -48,6 +48,8 @@
   }
 
   &__editor-resize-handle {
+    margin: 0;
+    border: 0;
     position: absolute;
     z-index: 2;
     right: 0;

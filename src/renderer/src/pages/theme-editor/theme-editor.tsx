@@ -33,14 +33,14 @@ import styles from "../../components/achievements/notification/achievement-notif
 import root from "react-shadow";
 import { AchievementNotificationCustomizer } from "./achievement-notification-customizer";
 
-const notificationPositions: AchievementCustomNotificationPosition[] = [
+const notificationPositions = new Set<AchievementCustomNotificationPosition>([
   "top-left",
   "top-center",
   "top-right",
   "bottom-left",
   "bottom-center",
   "bottom-right",
-];
+]);
 
 export default function ThemeEditor() {
   const [searchParams] = useSearchParams();
@@ -74,7 +74,7 @@ export default function ThemeEditor() {
   }, [code, notificationVariation]);
 
   const achievementPreview = useMemo(() => {
-    const position = notificationPositions.includes(
+    const position = notificationPositions.has(
       notificationStyle.position as AchievementCustomNotificationPosition
     )
       ? (notificationStyle.position as AchievementCustomNotificationPosition)
@@ -226,10 +226,8 @@ export default function ThemeEditor() {
             }}
           />
         </div>
-        <div
+        <hr
           className="theme-editor__editor-resize-handle"
-          role="separator"
-          aria-orientation="horizontal"
           onPointerDown={handleEditorResizeStart}
           onPointerMove={handleEditorResizeMove}
           onPointerUp={handleEditorResizeEnd}
