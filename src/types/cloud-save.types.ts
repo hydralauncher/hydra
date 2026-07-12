@@ -85,6 +85,22 @@ export interface UploadLocalGameSnapshotResult {
   skippedFiles: number;
 }
 
+export interface CommitSnapshotResponse {
+  snapshotId: string;
+  status: "active";
+  fileCount: number;
+  totalSizeBytes: number;
+  aggregateHash: string;
+}
+
+export interface RemoteGameSnapshot {
+  id: string;
+  status: "active";
+  fileCount: number;
+  totalSizeBytes: number;
+  aggregateHash: string;
+}
+
 export interface CloudSaveSyncAnchor {
   baseSnapshotId: string;
   baseAggregateHash: string;
