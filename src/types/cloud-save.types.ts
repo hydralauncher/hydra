@@ -65,6 +65,15 @@ export interface DownloadedRestoreFile extends RestoreManifestFile {
   tempPath: string;
 }
 
+export interface VerifyDownloadedRestoreFileInput {
+  tempPath: string;
+  expectedHash: string;
+}
+
+export type VerifyDownloadedRestoreFileResult =
+  | { ok: true }
+  | { ok: false; reason: "hash_mismatch" };
+
 export interface LocalGameSnapshotFile {
   rawPath: string;
   relativePath: string;

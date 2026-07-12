@@ -4,3 +4,4 @@ export * from "./download-remote-snapshot-to-temp";
 export * from "./resolve-remote-snapshot-targets";
 export * from "./sync-anchor";
 export * from "./upload-local-game-snapshot";
+export * from "./verify-downloaded-restore-file";

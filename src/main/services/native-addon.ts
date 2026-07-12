@@ -10,6 +10,7 @@ import type {
   LocalGameSnapshotPipelineResult,
   ResolveRestoreTargetsInput,
   ResolvedRestoreTarget,
+  VerifyDownloadedRestoreFileResult,
 } from "@types";
 
 import { logger } from "./logger";
@@ -55,6 +56,10 @@ type HydraNativeModule = {
     downloadUrl: string,
     tempRoot: string
   ) => Promise<string>;
+  verifyDownloadedRestoreFile: (
+    tempPath: string,
+    expectedHash: string
+  ) => Promise<VerifyDownloadedRestoreFileResult>;
 };
 
 export type SystemProcessMap = {
@@ -357,5 +362,12 @@ export class NativeAddon {
       downloadUrl,
       tempRoot
     );
+  }
+
+  public static verifyDownloadedRestoreFile(
+    tempPath: string,
+    expectedHash: string
+  ) {
+    return this.load().verifyDownloadedRestoreFile(tempPath, expectedHash);
   }
 }
