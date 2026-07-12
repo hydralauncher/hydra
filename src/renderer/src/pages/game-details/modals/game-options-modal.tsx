@@ -810,8 +810,12 @@ export function GameOptionsModal({
       );
       await updateGame();
       showSuccessToast(t("reset_achievements_success"));
-    } catch {
-      showErrorToast(t("reset_achievements_error"));
+    } catch (error) {
+      showErrorToast(
+        error instanceof Error && error.message
+          ? error.message
+          : t("reset_achievements_error")
+      );
     } finally {
       setIsDeletingAchievements(false);
     }

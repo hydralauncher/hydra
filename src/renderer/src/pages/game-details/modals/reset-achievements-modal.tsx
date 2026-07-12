@@ -3,10 +3,15 @@ import { useTranslation } from "react-i18next";
 import { LinkExternalIcon } from "@primer/octicons-react";
 import { Button, CheckboxField, Link, Modal } from "@renderer/components";
 import type { Game } from "@types";
+import { logger } from "@renderer/logger";
 import "./reset-achievements-modal.scss";
 
 const RETRO_ACHIEVEMENTS_SETTINGS_URL =
   "https://retroachievements.org/settings#resettable-game-select";
+
+const isPs3Platform = (platform?: string | null): boolean => {
+  return /playstation\s*3|\bps3\b/i.test(platform ?? "");
+};
 
 type ResetAchievementsModalProps = Readonly<{
   visible: boolean;
@@ -27,6 +32,14 @@ export function ResetAchievementsModal({
     useState(false);
 
   const isLaunchbox = game.shop === "launchbox";
+  const isLocalRpcs3Game = isLaunchbox && isPs3Platform(game.platform);
+  logger.log("ResetAchievementsModal rendering", {
+    gameTitle: game.title,
+    isLaunchbox,
+    isPs3Platform: isPs3Platform(game.platform),
+    isLocalRpcs3Game,
+  });
+  const showRetroAchievementsResetNote = isLaunchbox && !isLocalRpcs3Game;
 
   const handleClose = () => {
     setHasResetOnRetroAchievements(false);
@@ -36,12 +49,19 @@ export function ResetAchievementsModal({
   const handleResetAchievements = async () => {
     try {
       await resetAchievements();
+    } catch (error) {
+      logger.error("Error resetting achievements", {
+        error,
+        gameTitle: game.title,
+      });
+      throw error;
     } finally {
       handleClose();
     }
   };
 
-  const isResetDisabled = isLaunchbox && !hasResetOnRetroAchievements;
+  const isResetDisabled =
+    showRetroAchievementsResetNote && !hasResetOnRetroAchievements;
 
   return (
     <Modal
@@ -52,7 +72,7 @@ export function ResetAchievementsModal({
         game: game.title,
       })}
     >
-      {isLaunchbox && (
+      {showRetroAchievementsResetNote && (
         <div className="reset-achievements-modal__retroachievements">
           <p className="reset-achievements-modal__retroachievements-note">
             {t("reset_achievements_retroachievements_note")}
