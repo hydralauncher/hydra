@@ -43,6 +43,48 @@ export interface LocalGameSnapshotWithHash extends LocalGameSnapshot {
   aggregateHash: string;
 }
 
+export interface LocalGameSnapshotSourceFile {
+  rawPath: string;
+  relativePath: string;
+  absolutePath: string;
+  hash: string;
+  sizeBytes: number;
+}
+
+export interface LocalGameSnapshotPipelineResult
+  extends LocalGameSnapshotWithHash {
+  sourceFiles: LocalGameSnapshotSourceFile[];
+}
+
+export type PrepareSnapshotFile =
+  | { rawPath: string; relativePath: string; status: "skip" }
+  | {
+      rawPath: string;
+      relativePath: string;
+      status: "upload";
+      uploadUrl: string;
+    };
+
+export interface PrepareSnapshotResponse {
+  snapshotId: string;
+  snapshotHash: string;
+  files: PrepareSnapshotFile[];
+}
+
+export interface CloudSaveUploadProgress {
+  completedFiles: number;
+  totalFiles: number;
+  completedBytes: number;
+  totalBytes: number;
+  currentFile: string | null;
+}
+
+export interface UploadLocalGameSnapshotResult {
+  snapshotId: string | null;
+  uploadedFiles: number;
+  skippedFiles: number;
+}
+
 export interface CloudSaveSyncAnchor {
   baseSnapshotId: string;
   baseAggregateHash: string;

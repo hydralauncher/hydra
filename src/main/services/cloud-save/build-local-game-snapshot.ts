@@ -6,10 +6,10 @@ import type { GameShop, LocalGameSnapshotWithHash } from "@types";
 
 import { NativeAddon } from "../native-addon";
 
-export const buildLocalGameSnapshot = async (
+export const buildLocalGameSnapshotContext = async (
   objectId: string,
   shop: GameShop
-): Promise<LocalGameSnapshotWithHash> => {
+) => {
   const game = await gamesSublevel
     .get(levelKeys.game(shop, objectId))
     .catch(() => undefined);
@@ -34,4 +34,16 @@ export const buildLocalGameSnapshot = async (
     steamPath,
     steamUserIds: steamUserIds.map(String),
   });
+};
+
+export const buildLocalGameSnapshot = async (
+  objectId: string,
+  shop: GameShop
+): Promise<LocalGameSnapshotWithHash> => {
+  const { sourceFiles: _, ...snapshot } = await buildLocalGameSnapshotContext(
+    objectId,
+    shop
+  );
+
+  return snapshot;
 };

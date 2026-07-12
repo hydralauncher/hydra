@@ -38,6 +38,16 @@ pub struct LocalGameSnapshotWithHash {
     pub total_size_bytes: f64,
     pub files: Vec<LocalGameSnapshotFile>,
     pub aggregate_hash: String,
+    pub source_files: Vec<LocalGameSnapshotSourceFile>,
+}
+
+#[napi(object)]
+pub struct LocalGameSnapshotSourceFile {
+    pub raw_path: String,
+    pub relative_path: String,
+    pub absolute_path: String,
+    pub hash: String,
+    pub size_bytes: f64,
 }
 
 #[napi]
@@ -88,6 +98,16 @@ pub async fn build_local_game_snapshot_pipeline(
     }
 
     let files = build_local_save_snapshot_files(discovered_files).await?;
+    let source_files = files
+        .iter()
+        .map(|file| LocalGameSnapshotSourceFile {
+            raw_path: file.raw_path.clone(),
+            relative_path: file.relative_path.clone(),
+            absolute_path: file.absolute_path.clone(),
+            hash: file.hash.clone(),
+            size_bytes: file.size_bytes,
+        })
+        .collect();
     let snapshot = build_local_game_snapshot(BuildLocalGameSnapshotInput {
         game_id: CloudSaveGameId { shop, object_id },
         manifest_key,
@@ -105,5 +125,6 @@ pub async fn build_local_game_snapshot_pipeline(
         total_size_bytes: snapshot.total_size_bytes,
         files: snapshot.files,
         aggregate_hash,
+        source_files,
     })
 }
