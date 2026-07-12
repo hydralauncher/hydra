@@ -7,7 +7,7 @@ import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
 import type {
   BuildLocalGameSnapshotPipelineInput,
-  LocalGameSnapshotWithHash,
+  LocalGameSnapshotPipelineResult,
 } from "@types";
 
 import { logger } from "./logger";
@@ -39,7 +39,11 @@ type HydraNativeModule = {
   listProcesses: () => ProcessPayload[];
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
-  ) => Promise<LocalGameSnapshotWithHash>;
+  ) => Promise<LocalGameSnapshotPipelineResult>;
+  uploadLocalSaveBlob: (
+    absolutePath: string,
+    uploadUrl: string
+  ) => Promise<void>;
 };
 
 export type SystemProcessMap = {
@@ -320,5 +324,9 @@ export class NativeAddon {
     input: BuildLocalGameSnapshotPipelineInput
   ) {
     return this.load().buildLocalGameSnapshotPipeline(input);
+  }
+
+  public static uploadLocalSaveBlob(absolutePath: string, uploadUrl: string) {
+    return this.load().uploadLocalSaveBlob(absolutePath, uploadUrl);
   }
 }
