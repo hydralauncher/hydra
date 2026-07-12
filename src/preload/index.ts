@@ -714,6 +714,8 @@ contextBridge.exposeInMainWorld("electron", {
       additionalDirectories,
       includeDefaultDirectories
     ),
+  removeUninstalledGameExecutables: () =>
+    ipcRenderer.invoke("removeUninstalledGameExecutables"),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (

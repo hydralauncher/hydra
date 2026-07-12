@@ -104,9 +104,13 @@ export function Header() {
   });
   const [showScanModal, setShowScanModal] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [isRemovingExecutables, setIsRemovingExecutables] = useState(false);
   const [scanResult, setScanResult] = useState<{
     foundGames: { title: string; executablePath: string }[];
     total: number;
+  } | null>(null);
+  const [removeExeResult, setRemoveExeResult] = useState<{
+    removedGames: { title: string }[];
   } | null>(null);
 
   const { t } = useTranslation("header");
@@ -319,12 +323,21 @@ export function Header() {
     additionalDirectories: string[] = [],
     includeDefaultDirectories = true
   ) => {
-    if (isScanning) return;
+    if (isScanning || isRemovingExecutables) return;
 
-    setIsScanning(true);
+    setIsScanning(false);
+    setIsRemovingExecutables(true);
     setScanResult(null);
+    setRemoveExeResult(null);
 
     try {
+      const exeResult =
+        await globalThis.electron.removeUninstalledGameExecutables();
+      setRemoveExeResult(exeResult);
+
+      setIsRemovingExecutables(false);
+      setIsScanning(true);
+
       const result = await window.electron.scanInstalledGames(
         additionalDirectories,
         includeDefaultDirectories
@@ -332,11 +345,13 @@ export function Header() {
       setScanResult(result);
     } finally {
       setIsScanning(false);
+      setIsRemovingExecutables(false);
     }
   };
 
   const handleClearScanResult = () => {
     setScanResult(null);
+    setRemoveExeResult(null);
   };
 
   useEffect(() => {
@@ -392,7 +407,8 @@ export function Header() {
             <button
               type="button"
               className={cn("header__action-button", {
-                "header__action-button--scanning": isScanning,
+                "header__action-button--scanning":
+                  isScanning || isRemovingExecutables,
               })}
               onClick={() => setShowScanModal(true)}
               data-tooltip-id={scanButtonTooltipId}
@@ -479,7 +495,9 @@ export function Header() {
         visible={showScanModal}
         onClose={() => setShowScanModal(false)}
         isScanning={isScanning}
+        isRemovingExecutables={isRemovingExecutables}
         scanResult={scanResult}
+        removeExecutableResult={removeExeResult}
         onStartScan={handleStartScan}
         onClearResult={handleClearScanResult}
       />
