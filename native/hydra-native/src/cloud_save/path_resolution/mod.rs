@@ -1,7 +1,8 @@
-mod context;
-mod resolve_path;
 mod resolve_rules;
-mod tokens;
+
+pub(crate) mod context;
+pub(crate) mod resolve_path;
+pub(crate) mod tokens;
 pub(crate) mod types;
 
 use napi::bindgen_prelude::Error;

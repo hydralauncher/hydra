@@ -3,7 +3,7 @@ use super::types::{
     ManifestGameEntry,
 };
 
-fn infer_rule_kind(raw_path: &str) -> &'static str {
+pub(crate) fn infer_rule_kind(raw_path: &str) -> &'static str {
     if raw_path
         .chars()
         .any(|character| matches!(character, '*' | '?' | '[' | '{' | ']'))
