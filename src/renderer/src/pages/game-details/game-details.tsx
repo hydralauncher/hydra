@@ -49,6 +49,19 @@ export default function GameDetails() {
     });
   }, [objectId]);
 
+  useEffect(() => {
+    if (!objectId || !shop) return;
+
+    window.electron
+      .buildLocalGameSnapshot(objectId, shop as GameShop)
+      .then((snapshot) => {
+        console.log("[Cloud Save] Local game snapshot", snapshot);
+      })
+      .catch((error) => {
+        console.error("[Cloud Save] Failed to build local snapshot", error);
+      });
+  }, [objectId, shop]);
+
   const handleRandomizerClick = () => {
     if (randomGame) {
       navigate(
