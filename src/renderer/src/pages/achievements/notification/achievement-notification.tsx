@@ -87,7 +87,9 @@ export function AchievementNotification() {
           iconUrl: hydraIcon,
         };
 
-        setAchievements(queueAchievements(position, [achievement]));
+        setAchievements((queuedAchievements) =>
+          queuedAchievements.concat(queueAchievements(position, [achievement]))
+        );
       }
     );
 
