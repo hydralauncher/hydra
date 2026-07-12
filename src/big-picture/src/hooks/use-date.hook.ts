@@ -5,6 +5,12 @@ import { useTranslation } from "react-i18next";
 
 export type DateLike = number | Date | string;
 
+export const getDateFormat = (language: string) => {
+  if (language === "es-ES") return "dd/MM/yyyy";
+  if (language === "es-419") return "MM/dd/yyyy";
+  return language.startsWith("en") ? "MM-dd-yyyy" : "dd/MM/yyyy";
+};
+
 function getDateLocale(language: string) {
   if (language.startsWith("ru")) return ru;
   if (language.startsWith("pt")) return ptBR;
@@ -12,11 +18,8 @@ function getDateLocale(language: string) {
   return enUS;
 }
 
-function getDateFormat(language: string) {
-  return language.startsWith("en") ? "MM-dd-yyyy" : "dd/MM/yyyy";
-}
-
 function getDateTimeFormat(language: string) {
+  if (language === "es-ES" || language === "es-419") return "dd/MM/yyyy HH:mm";
   return language.startsWith("en")
     ? "MM-dd-yyyy - hh:mm a"
     : "dd/MM/yyyy HH:mm";

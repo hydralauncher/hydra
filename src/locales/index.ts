@@ -1,7 +1,8 @@
 import en from "./en/translation.json";
 import ptPT from "./pt-PT/translation.json";
 import ptBR from "./pt-BR/translation.json";
-import es from "./es/translation.json";
+import esES from "./es-ES/translation.json";
+import es419 from "./es-419/translation.json";
 import nl from "./nl/translation.json";
 import fr from "./fr/translation.json";
 import hu from "./hu/translation.json";
@@ -33,9 +34,10 @@ import lv from "./lv/translation.json";
 export default {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
+  "es-ES": esES,
+  "es-419": es419,
   en,
   de,
-  es,
   nl,
   fr,
   hu,
@@ -62,4 +64,4 @@ export default {
   uz,
   sv,
   lv,
-};
+}
