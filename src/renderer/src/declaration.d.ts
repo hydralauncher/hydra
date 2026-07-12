@@ -58,6 +58,7 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  LocalGameSnapshotWithHash,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -90,6 +91,10 @@ declare global {
   };
 
   interface Electron {
+    buildLocalGameSnapshot: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<LocalGameSnapshotWithHash>;
     /* Torrenting */
     startGameDownload: (
       payload: StartGameDownloadPayload
