@@ -20,6 +20,8 @@ import type {
   CreateSteamShortcutOptions,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  AchievementNotificationSoundMode,
+  AchievementNotificationVariation,
   ProtonVersion,
   TorrentFilesResponse,
   DownloadLayoutState,
@@ -1162,6 +1164,21 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
   },
+  onAchievementTestUnlocked: (
+    cb: (
+      position?: AchievementCustomNotificationPosition,
+      achievements?: AchievementNotificationInfo[]
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      position?: AchievementCustomNotificationPosition,
+      achievements?: AchievementNotificationInfo[]
+    ) => cb(position, achievements);
+    ipcRenderer.on("on-achievement-test-unlocked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-achievement-test-unlocked", listener);
+  },
   onInAppAchievementUnlocked: (
     cb: (
       position: AchievementCustomNotificationPosition,
@@ -1196,8 +1213,22 @@ contextBridge.exposeInMainWorld("electron", {
   },
   updateAchievementCustomNotificationWindow: () =>
     ipcRenderer.invoke("updateAchievementCustomNotificationWindow"),
-  showAchievementTestNotification: () =>
-    ipcRenderer.invoke("showAchievementTestNotification"),
+  updateAchievementNotificationWindowPosition: (
+    position: AchievementCustomNotificationPosition,
+    width?: number,
+    height?: number
+  ) =>
+    ipcRenderer.invoke(
+      "updateAchievementNotificationWindowPosition",
+      position,
+      width,
+      height
+    ),
+  showAchievementTestNotification: (
+    variation?: AchievementNotificationVariation,
+    position?: AchievementCustomNotificationPosition
+  ) =>
+    ipcRenderer.invoke("showAchievementTestNotification", variation, position),
 
   /* Themes */
   addCustomTheme: (theme: Theme) => ipcRenderer.invoke("addCustomTheme", theme),
@@ -1212,14 +1243,27 @@ contextBridge.exposeInMainWorld("electron", {
   getActiveCustomTheme: () => ipcRenderer.invoke("getActiveCustomTheme"),
   toggleCustomTheme: (themeId: string, isActive: boolean) =>
     ipcRenderer.invoke("toggleCustomTheme", themeId, isActive),
-  copyThemeAchievementSound: (themeId: string, sourcePath: string) =>
-    ipcRenderer.invoke("copyThemeAchievementSound", themeId, sourcePath),
-  removeThemeAchievementSound: (themeId: string) =>
-    ipcRenderer.invoke("removeThemeAchievementSound", themeId),
+  setThemeAchievementSound: (
+    themeId: string,
+    variation: AchievementNotificationVariation,
+    mode: AchievementNotificationSoundMode,
+    sourcePath?: string,
+    volume?: number
+  ) =>
+    ipcRenderer.invoke(
+      "setThemeAchievementSound",
+      themeId,
+      variation,
+      mode,
+      sourcePath,
+      volume
+    ),
   getThemeSoundPath: (themeId: string) =>
     ipcRenderer.invoke("getThemeSoundPath", themeId),
-  getThemeSoundDataUrl: (themeId: string) =>
-    ipcRenderer.invoke("getThemeSoundDataUrl", themeId),
+  getThemeSoundDataUrl: (
+    themeId: string,
+    variation?: AchievementNotificationVariation
+  ) => ipcRenderer.invoke("getThemeSoundDataUrl", themeId, variation),
   importThemeSoundFromStore: (
     themeId: string,
     themeName: string,

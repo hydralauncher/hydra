@@ -480,6 +480,7 @@ export function App() {
 
   const playAudio = useCallback(async () => {
     const soundUrl = await getAchievementSoundUrl();
+    if (!soundUrl) return;
     const volume = await getAchievementSoundVolume();
     const audio = new Audio(soundUrl);
     audio.volume = volume;

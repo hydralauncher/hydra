@@ -12,11 +12,28 @@ import {
 } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import hydraIcon from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
 
 const NOTIFICATION_TIMEOUT = 4000;
+const fallbackPosition: AchievementCustomNotificationPosition = "top-left";
+
+type QueuedAchievementNotification = {
+  achievement: AchievementNotificationInfo;
+  position: AchievementCustomNotificationPosition;
+};
+
+const queueAchievements = (
+  position: AchievementCustomNotificationPosition | undefined,
+  achievements: AchievementNotificationInfo[]
+): QueuedAchievementNotification[] => {
+  return achievements.map((achievement) => ({
+    achievement,
+    position: position ?? fallbackPosition,
+  }));
+};
 
 export function AchievementNotification() {
   const { t } = useTranslation("achievement");
@@ -25,9 +42,10 @@ export function AchievementNotification() {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] =
     useState<AchievementCustomNotificationPosition>("top-left");
+  const [themeRevision, setThemeRevision] = useState(0);
 
   const [achievements, setAchievements] = useState<
-    AchievementNotificationInfo[]
+    QueuedAchievementNotification[]
   >([]);
   const [currentAchievement, setCurrentAchievement] =
     useState<AchievementNotificationInfo | null>(null);
@@ -35,65 +53,89 @@ export function AchievementNotification() {
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
   const visibleAnimation = useRef(-1);
+  const notificationTimeoutRef = useRef(NOTIFICATION_TIMEOUT);
 
   const [shadowRootRef, setShadowRootRef] = useState<HTMLElement | null>(null);
 
-  const playAudio = useCallback(async () => {
-    const soundUrl = await getAchievementSoundUrl();
-    const volume = await getAchievementSoundVolume();
-    const audio = new Audio(soundUrl);
-    audio.volume = volume;
-    audio.play();
-  }, []);
+  const playAudio = useCallback(
+    async (achievement: AchievementNotificationInfo) => {
+      const soundUrl = await getAchievementSoundUrl(achievement);
+      if (!soundUrl) return;
+      const volume = await getAchievementSoundVolume(achievement);
+      const audio = new Audio(soundUrl);
+      audio.volume = volume;
+      audio.play();
+    },
+    []
+  );
 
   useEffect(() => {
-    const unsubscribe = window.electron.onCombinedAchievementsUnlocked(
+    const unsubscribe = globalThis.electron.onCombinedAchievementsUnlocked(
       (gameCount, achievementCount, position) => {
         if (gameCount === 0 || achievementCount === 0) return;
 
         setPosition(position);
 
-        setAchievements([
-          {
-            title: t("new_achievements_unlocked", {
-              gameCount,
-              achievementCount,
-            }),
-            isHidden: false,
-            isRare: false,
-            isPlatinum: false,
-            iconUrl: "https://cdn.losbroxas.org/favicon.svg",
-          },
-        ]);
+        const achievement = {
+          title: t("new_achievements_unlocked", {
+            gameCount,
+            achievementCount,
+          }),
+          isHidden: false,
+          isRare: false,
+          isPlatinum: false,
+          iconUrl: hydraIcon,
+        };
 
-        playAudio();
+        setAchievements(queueAchievements(position, [achievement]));
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [t, playAudio]);
+  }, [t]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(
+    const unsubscribe = globalThis.electron.onAchievementUnlocked(
       (position, achievements) => {
         if (!achievements?.length) return;
         if (position) {
           setPosition(position);
         }
 
-        setAchievements((ach) => ach.concat(achievements));
-
-        playAudio();
+        setAchievements((ach) =>
+          ach.concat(queueAchievements(position, achievements))
+        );
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [playAudio]);
+  }, []);
 
+  useEffect(() => {
+    const unsubscribe = globalThis.electron.onAchievementTestUnlocked(
+      (nextPosition, nextAchievements) => {
+        if (!nextAchievements?.length) return;
+
+        cancelAnimationFrame(closingAnimation.current);
+        cancelAnimationFrame(visibleAnimation.current);
+        cancelAnimationFrame(achievementAnimation.current);
+        setIsClosing(false);
+        setIsVisible(false);
+        setCurrentAchievement(null);
+        setAchievements(queueAchievements(nextPosition, nextAchievements));
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const queuedAchievement = achievements[0];
   const hasAchievementsPending = achievements.length > 0;
 
   const startAnimateClosing = useCallback(() => {
@@ -117,31 +159,57 @@ export function AchievementNotification() {
   }, []);
 
   useEffect(() => {
-    if (hasAchievementsPending) {
-      setIsClosing(false);
-      setIsVisible(true);
-
-      let zero = performance.now();
-      cancelAnimationFrame(closingAnimation.current);
-      cancelAnimationFrame(visibleAnimation.current);
-      cancelAnimationFrame(achievementAnimation.current);
-      achievementAnimation.current = requestAnimationFrame(
-        function animateLock(time) {
-          if (time - zero > NOTIFICATION_TIMEOUT) {
-            zero = performance.now();
-            startAnimateClosing();
-          }
-          achievementAnimation.current = requestAnimationFrame(animateLock);
-        }
-      );
+    if (!hasAchievementsPending || !currentAchievement) {
+      return;
     }
+
+    setIsClosing(false);
+    setIsVisible(true);
+
+    let zero = performance.now();
+    cancelAnimationFrame(closingAnimation.current);
+    cancelAnimationFrame(visibleAnimation.current);
+    cancelAnimationFrame(achievementAnimation.current);
+    achievementAnimation.current = requestAnimationFrame(
+      function animateLock(time) {
+        if (time - zero > notificationTimeoutRef.current) {
+          zero = performance.now();
+          startAnimateClosing();
+        }
+        achievementAnimation.current = requestAnimationFrame(animateLock);
+      }
+    );
   }, [hasAchievementsPending, startAnimateClosing, currentAchievement]);
 
   useEffect(() => {
-    if (achievements.length) {
-      setCurrentAchievement(achievements[0]);
+    if (!queuedAchievement) {
+      setCurrentAchievement(null);
+      return;
     }
-  }, [achievements]);
+
+    setPosition(queuedAchievement.position);
+    notificationTimeoutRef.current = NOTIFICATION_TIMEOUT;
+    setCurrentAchievement(queuedAchievement.achievement);
+    playAudio(queuedAchievement.achievement);
+  }, [queuedAchievement, playAudio]);
+
+  const handleLayout = useCallback(
+    (layout: {
+      position: AchievementCustomNotificationPosition;
+      width: number;
+      height: number;
+    }) => {
+      setPosition(layout.position);
+      globalThis.electron
+        .updateAchievementNotificationWindowPosition(
+          layout.position,
+          layout.width,
+          layout.height
+        )
+        .catch(() => {});
+    },
+    []
+  );
 
   const loadAndApplyTheme = useCallback(async () => {
     if (!shadowRootRef) return;
@@ -155,6 +223,7 @@ export function AchievementNotification() {
     } else {
       removeCustomCss(shadowRootRef);
     }
+    setThemeRevision((revision) => revision + 1);
   }, [shadowRootRef]);
 
   useEffect(() => {
@@ -162,7 +231,7 @@ export function AchievementNotification() {
   }, [loadAndApplyTheme]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
+    const unsubscribe = globalThis.electron.onCustomThemeUpdated(() => {
       loadAndApplyTheme();
     });
 
@@ -174,12 +243,17 @@ export function AchievementNotification() {
       <style type="text/css">
         {app} {styles}
       </style>
-      <section ref={setShadowRootRef}>
+      <section
+        ref={setShadowRootRef}
+        className={`achievement-notification-window achievement-notification-window--${position}`}
+      >
         {isVisible && currentAchievement && (
           <AchievementNotificationItem
             achievement={currentAchievement}
             isClosing={isClosing}
             position={position}
+            onLayout={handleLayout}
+            layoutVersion={themeRevision}
           />
         )}
       </section>

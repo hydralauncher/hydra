@@ -16,12 +16,24 @@ export function CollapsedMenu({
   const [height, setHeight] = useState(0);
 
   useEffect(() => {
-    if (content.current && content.current.scrollHeight !== height) {
-      setHeight(isOpen ? content.current.scrollHeight : 0);
-    } else if (!isOpen) {
-      setHeight(0);
+    const contentElement = content.current;
+    if (!contentElement) return;
+
+    const updateHeight = () => {
+      setHeight(isOpen ? contentElement.scrollHeight : 0);
+    };
+
+    updateHeight();
+
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(contentElement);
+
+    for (const child of contentElement.children) {
+      resizeObserver.observe(child);
     }
-  }, [isOpen, children, height]);
+
+    return () => resizeObserver.disconnect();
+  }, [isOpen, children]);
 
   return (
     <div className="collapsed-menu">

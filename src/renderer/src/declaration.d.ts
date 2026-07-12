@@ -35,6 +35,8 @@ import type {
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  AchievementNotificationSoundMode,
+  AchievementNotificationVariation,
   Game,
   DiskUsage,
   NetworkInterface,
@@ -855,6 +857,12 @@ declare global {
         achievements?: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
+    onAchievementTestUnlocked: (
+      cb: (
+        position?: AchievementCustomNotificationPosition,
+        achievements?: AchievementNotificationInfo[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
     onInAppAchievementUnlocked?: (
       cb: (
         position: AchievementCustomNotificationPosition,
@@ -869,7 +877,15 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     updateAchievementCustomNotificationWindow: () => Promise<void>;
-    showAchievementTestNotification: () => Promise<void>;
+    updateAchievementNotificationWindowPosition: (
+      position: AchievementCustomNotificationPosition,
+      width?: number,
+      height?: number
+    ) => Promise<void>;
+    showAchievementTestNotification: (
+      variation?: AchievementNotificationVariation,
+      position?: AchievementCustomNotificationPosition
+    ) => Promise<void>;
 
     /* Themes */
     addCustomTheme: (theme: Theme) => Promise<void>;
@@ -880,13 +896,18 @@ declare global {
     getCustomThemeById: (themeId: string) => Promise<Theme | null>;
     getActiveCustomTheme: () => Promise<Theme | null>;
     toggleCustomTheme: (themeId: string, isActive: boolean) => Promise<void>;
-    copyThemeAchievementSound: (
+    setThemeAchievementSound: (
       themeId: string,
-      sourcePath: string
+      variation: AchievementNotificationVariation,
+      mode: AchievementNotificationSoundMode,
+      sourcePath?: string,
+      volume?: number
     ) => Promise<void>;
-    removeThemeAchievementSound: (themeId: string) => Promise<void>;
     getThemeSoundPath: (themeId: string) => Promise<string | null>;
-    getThemeSoundDataUrl: (themeId: string) => Promise<string | null>;
+    getThemeSoundDataUrl: (
+      themeId: string,
+      variation?: AchievementNotificationVariation
+    ) => Promise<string | null>;
     importThemeSoundFromStore: (
       themeId: string,
       themeName: string,
@@ -973,6 +994,9 @@ declare global {
     on: (channel: string, listener: (...args) => void) => void;
     off: (channel: string, listener: (...args) => void) => void;
   }
+
+  // eslint-disable-next-line no-var
+  var electron: Electron;
 
   interface Window {
     electron: Electron;

@@ -1,0 +1,337 @@
+@use "../../scss/globals.scss";
+
+.achievement-notification-customizer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  height: 100vh;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 48px 24px 24px;
+  background: globals.$background-color;
+  color: globals.$body-color;
+
+  &--embedded {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+    background: transparent;
+  }
+
+  &__marker-error {
+    padding: 10px 12px;
+    border: 1px solid globals.$danger-color;
+    color: globals.$danger-color;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  &__field-with-reset {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+
+    > :first-child {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__titlebar {
+    -webkit-app-region: drag;
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 10;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px 0 14px;
+    border-bottom: 1px solid globals.$border-color;
+    background: globals.$background-color;
+    color: globals.$muted-color;
+    font-size: 13px;
+
+    button {
+      -webkit-app-region: no-drag;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      background: transparent;
+      color: globals.$muted-color;
+      cursor: pointer;
+
+      &:hover {
+        color: globals.$body-color;
+        background: rgba(255, 255, 255, 0.08);
+      }
+    }
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: start;
+
+    h1 {
+      font-size: 24px;
+      line-height: 1.2;
+      margin: 0 0 6px;
+    }
+
+    p {
+      margin: 0;
+      color: globals.$muted-color;
+      font-size: 14px;
+    }
+  }
+
+  &__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__toggle-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 0;
+    border-top: 1px solid globals.$border-color;
+    border-bottom: 1px solid globals.$border-color;
+    color: globals.$muted-color;
+    font-size: 13px;
+  }
+
+  &__toggle-icon {
+    transition: transform ease 0.2s;
+
+    &--open {
+      transform: rotate(180deg);
+    }
+  }
+
+  &__hint {
+    color: globals.$muted-color;
+    font-size: 13px;
+    padding: 12px 0;
+    border-top: 1px solid globals.$border-color;
+  }
+
+  &__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border-top: 1px solid globals.$border-color;
+    padding-top: 16px;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid globals.$border-color;
+  }
+
+  &__section--toolbar {
+    display: grid;
+    grid-template-columns: 180px minmax(360px, 1fr) auto;
+    gap: 16px;
+    align-items: end;
+  }
+
+  &__section-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.25;
+      color: globals.$muted-color;
+    }
+
+    span {
+      font-size: 12px;
+      color: rgba(208, 209, 215, 0.68);
+      line-height: 1.35;
+    }
+  }
+
+  &__tabs,
+  &__actions,
+  &__profiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__test-button {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__actions .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    > label {
+      color: globals.$body-color;
+      font-size: globals.$small-font-size;
+    }
+
+    > .achievement-notification-customizer__profile-control {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 38px;
+      gap: 8px;
+      border: 0;
+      background: transparent;
+    }
+
+    .achievement-notification-customizer__profile-control > div {
+      display: block;
+      overflow: hidden;
+      border: 1px solid globals.$border-color;
+      background: globals.$dark-background-color;
+
+      .select-field__container {
+        min-width: 0;
+      }
+
+      .select-field {
+        border: 0;
+        background: transparent;
+      }
+
+      input {
+        min-width: 0;
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: globals.$body-color;
+        padding: 10px 12px;
+        font-size: 14px;
+
+        &:focus {
+          outline: 2px solid var(--color-primary);
+          outline-offset: -2px;
+        }
+      }
+    }
+  }
+
+  &__delete-profile {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border: 1px solid globals.$border-color;
+    background: globals.$dark-background-color;
+    color: globals.$muted-color;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      color: #ff6b6b;
+      border-color: rgba(255, 107, 107, 0.55);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+  }
+
+  &__content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  &__controls,
+  &__preview,
+  &__sound {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  &__sliders {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px solid globals.$border-color;
+    padding-top: 14px;
+  }
+
+  &__range {
+    display: grid;
+    grid-template-columns: 112px minmax(140px, 1fr) 56px 36px;
+    gap: 10px;
+    align-items: center;
+    color: globals.$muted-color;
+    font-size: 14px;
+  }
+
+  &__preview-stage {
+    min-height: 260px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+  }
+
+  &__file-path {
+    color: globals.$muted-color;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  &__preview {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+@media (max-width: 980px) {
+  .achievement-notification-customizer {
+    &__content {
+      grid-template-columns: 1fr;
+    }
+
+    &__section--toolbar {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+
+    &__preview {
+      position: static;
+    }
+  }
+}

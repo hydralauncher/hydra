@@ -1,12 +1,16 @@
 import { registerEvent } from "../register-event";
 import { WindowManager } from "@main/services";
+import type {
+  AchievementCustomNotificationPosition,
+  AchievementNotificationVariation,
+} from "@types";
 
 const showAchievementTestNotification = async (
-  _event: Electron.IpcMainInvokeEvent
+  _event: Electron.IpcMainInvokeEvent,
+  variation?: AchievementNotificationVariation,
+  position?: AchievementCustomNotificationPosition
 ) => {
-  setTimeout(() => {
-    WindowManager.showAchievementTestNotification();
-  }, 1000);
+  await WindowManager.showAchievementTestNotification(variation, position);
 };
 
 registerEvent(

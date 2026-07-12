@@ -3,10 +3,15 @@ import { isStaging } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
+import {
+  AuthPage,
+  generateAchievementCustomNotificationTest,
+  getAchievementNotificationWindowPosition,
+} from "@shared";
 import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  AchievementNotificationVariation,
   ScreenState,
   UserPreferences,
 } from "@types";
@@ -15,6 +20,7 @@ import {
   Menu,
   MenuItem,
   MenuItemConstructorOptions,
+  Notification,
   Tray,
   WebContentsView,
   app,
@@ -669,7 +675,8 @@ export class WindowManager {
   private static readonly NOTIFICATION_WINDOW_HEIGHT = 140;
 
   private static async getNotificationWindowPosition(
-    position: AchievementCustomNotificationPosition | undefined
+    position: AchievementCustomNotificationPosition | undefined,
+    size?: { width: number; height: number }
   ) {
     const display = screen.getPrimaryDisplay();
     const {
@@ -677,77 +684,58 @@ export class WindowManager {
       y: displayY,
       width: displayWidth,
       height: displayHeight,
-    } = display.bounds;
-
-    if (position === "bottom-left") {
-      return {
-        x: displayX,
-        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
-      };
-    }
-
-    if (position === "bottom-center") {
-      return {
-        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
-        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
-      };
-    }
-
-    if (position === "bottom-right") {
-      return {
-        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
-        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
-      };
-    }
-
-    if (position === "top-left") {
-      return {
-        x: displayX,
-        y: displayY,
-      };
-    }
-
-    if (position === "top-center") {
-      return {
-        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
-        y: displayY,
-      };
-    }
-
-    if (position === "top-right") {
-      return {
-        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
-        y: displayY,
-      };
-    }
-
-    return {
-      x: displayX,
-      y: displayY,
+    } = display.workArea;
+    const notificationSize = size ?? {
+      width: this.NOTIFICATION_WINDOW_WIDTH,
+      height: this.NOTIFICATION_WINDOW_HEIGHT,
     };
+
+    return getAchievementNotificationWindowPosition(
+      position,
+      {
+        x: displayX,
+        y: displayY,
+        width: displayWidth,
+        height: displayHeight,
+      },
+      notificationSize
+    );
+  }
+
+  private static getFocusedAchievementNotificationTarget(): Electron.BrowserWindow | null {
+    const candidates = [this.bigPicture, this.mainWindow];
+
+    return (
+      candidates.find(
+        (window) => window && !window.isDestroyed() && window.isFocused()
+      ) ?? null
+    );
   }
 
   public static sendAchievementToFocusedWindow(
     position: AchievementCustomNotificationPosition,
     achievements: AchievementNotificationInfo[]
   ): boolean {
-    const candidates = [this.bigPicture, this.mainWindow];
+    const window = this.getFocusedAchievementNotificationTarget();
 
-    for (const window of candidates) {
-      if (window && !window.isDestroyed() && window.isFocused()) {
-        window.webContents.send(
-          "on-achievement-unlocked-in-app",
-          position,
-          achievements
-        );
-        return true;
-      }
+    if (!window) {
+      return false;
     }
 
-    return false;
+    window.webContents.send(
+      "on-achievement-unlocked-in-app",
+      position,
+      achievements
+    );
+
+    return true;
   }
 
-  public static async createNotificationWindow() {
+  public static async createNotificationWindow({
+    forceCustomNotification = false,
+  }: {
+    forceCustomNotification?: boolean;
+  } = {}) {
     if (this.notificationWindow) return;
 
     if (process.platform === "darwin" || process.platform === "linux") {
@@ -763,14 +751,21 @@ export class WindowManager {
 
     if (
       userPreferences?.achievementNotificationsEnabled === false ||
-      userPreferences?.achievementCustomNotificationsEnabled === false
+      (!forceCustomNotification &&
+        userPreferences?.achievementCustomNotificationsEnabled === false)
     ) {
       return;
     }
 
-    const { x, y } = await this.getNotificationWindowPosition(
-      userPreferences?.achievementCustomNotificationPosition
-    );
+    const size = {
+      width: this.NOTIFICATION_WINDOW_WIDTH,
+      height: this.NOTIFICATION_WINDOW_HEIGHT,
+    };
+    const position =
+      userPreferences?.achievementCustomNotificationPosition ?? "top-left";
+    const { x, y } = await this.getNotificationWindowPosition(position, size);
+    const roundedX = Math.round(x);
+    const roundedY = Math.round(y);
 
     this.notificationWindow = new BrowserWindow({
       transparent: true,
@@ -781,10 +776,10 @@ export class WindowManager {
       focusable: false,
       skipTaskbar: true,
       frame: false,
-      width: this.NOTIFICATION_WINDOW_WIDTH,
-      height: this.NOTIFICATION_WINDOW_HEIGHT,
-      x,
-      y,
+      width: size.width,
+      height: size.height,
+      x: roundedX,
+      y: roundedY,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
@@ -800,7 +795,10 @@ export class WindowManager {
     }
   }
 
-  public static async showAchievementTestNotification() {
+  public static async showAchievementTestNotification(
+    variation: AchievementNotificationVariation = "default",
+    positionOverride?: AchievementCustomNotificationPosition
+  ) {
     const userPreferences = await db.get<string, UserPreferences>(
       levelKeys.userPreferences,
       {
@@ -809,29 +807,86 @@ export class WindowManager {
     );
 
     const language = userPreferences.language ?? "en";
-    const position =
-      userPreferences.achievementCustomNotificationPosition ?? "top-left";
     const testAchievements = [
-      generateAchievementCustomNotificationTest(t, language),
       generateAchievementCustomNotificationTest(t, language, {
-        isRare: true,
-        isHidden: true,
-      }),
-      generateAchievementCustomNotificationTest(t, language, {
-        isPlatinum: true,
+        isRare: variation === "rare",
+        isPlatinum: variation === "platinum",
+        isHidden: variation === "hidden",
       }),
     ];
 
-    if (process.platform === "linux") {
-      this.sendAchievementToFocusedWindow(position, testAchievements);
+    if (userPreferences.achievementNotificationsEnabled === false) {
       return;
     }
 
+    const shouldForceCustomNotification =
+      userPreferences.achievementCustomNotificationsEnabled === false;
+    const position =
+      positionOverride ??
+      userPreferences.achievementCustomNotificationPosition ??
+      "top-left";
+
+    if (process.platform === "linux") {
+      const shownInApp = this.sendAchievementToFocusedWindow(
+        position,
+        testAchievements
+      );
+
+      if (!shownInApp) {
+        new Notification({
+          title: testAchievements[0].title,
+          body: testAchievements[0].description,
+          icon,
+        }).show();
+      }
+      return;
+    }
+
+    if (!this.notificationWindow) {
+      await this.createNotificationWindow({
+        forceCustomNotification: shouldForceCustomNotification,
+      });
+    }
+
+    if (!this.notificationWindow) return;
+
+    if (this.notificationWindow.webContents.isLoading()) {
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(resolve, 1500);
+        this.notificationWindow?.webContents.once("did-finish-load", () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+      });
+    }
+
+    await this.updateNotificationWindowPosition(position);
     this.notificationWindow?.webContents.send(
-      "on-achievement-unlocked",
+      "on-achievement-test-unlocked",
       position,
       testAchievements
     );
+  }
+
+  public static async updateNotificationWindowPosition(
+    position: AchievementCustomNotificationPosition,
+    width = this.NOTIFICATION_WINDOW_WIDTH,
+    height = this.NOTIFICATION_WINDOW_HEIGHT
+  ) {
+    if (!this.notificationWindow) return;
+
+    const size = {
+      width: Math.min(Math.max(Math.round(width), 216), 720),
+      height: Math.min(Math.max(Math.round(height), 84), 280),
+    };
+    const { x, y } = await this.getNotificationWindowPosition(position, size);
+
+    this.notificationWindow.setBounds({
+      x: Math.round(x),
+      y: Math.round(y),
+      width: size.width,
+      height: size.height,
+    });
   }
 
   public static async closeNotificationWindow() {
