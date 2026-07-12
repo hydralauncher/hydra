@@ -10,6 +10,7 @@ import type {
   LocalGameSnapshotPipelineResult,
   ResolveRestoreTargetsInput,
   ResolvedRestoreTarget,
+  ShouldSkipRestoreFileInput,
   VerifyDownloadedRestoreFileResult,
 } from "@types";
 
@@ -60,6 +61,10 @@ type HydraNativeModule = {
     tempPath: string,
     expectedHash: string
   ) => Promise<VerifyDownloadedRestoreFileResult>;
+  shouldSkipRestoreFile: (
+    localPath: string,
+    expectedHash: string
+  ) => Promise<boolean>;
 };
 
 export type SystemProcessMap = {
@@ -369,5 +374,12 @@ export class NativeAddon {
     expectedHash: string
   ) {
     return this.load().verifyDownloadedRestoreFile(tempPath, expectedHash);
+  }
+
+  public static shouldSkipRestoreFile(input: ShouldSkipRestoreFileInput) {
+    return this.load().shouldSkipRestoreFile(
+      input.localPath,
+      input.expectedHash
+    );
   }
 }

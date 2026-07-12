@@ -74,6 +74,11 @@ export type VerifyDownloadedRestoreFileResult =
   | { ok: true }
   | { ok: false; reason: "hash_mismatch" };
 
+export interface ShouldSkipRestoreFileInput {
+  localPath: string;
+  expectedHash: string;
+}
+
 export interface LocalGameSnapshotFile {
   rawPath: string;
   relativePath: string;
