@@ -120,6 +120,10 @@ function needsSpanishLanguageMigration(storedLanguage: string): boolean {
   );
 }
 
+function resolveSpanishMigrationTarget(storedLanguage: string): string {
+  return resolveBigPictureLanguage(storedLanguage);
+}
+
 async function applyStoredLanguagePreference(storedLanguage: string) {
   try {
     await i18next.changeLanguage(storedLanguage);
@@ -239,7 +243,7 @@ export async function initializeBigPictureI18n() {
 
   if (userPreferences?.language) {
     if (needsSpanishLanguageMigration(userPreferences.language)) {
-      const migrated = SPANISH_LAT_KEY;
+      const migrated = resolveSpanishMigrationTarget(userPreferences.language);
       try {
         await i18next.changeLanguage(migrated);
         await electron?.updateUserPreferences?.({ language: migrated });

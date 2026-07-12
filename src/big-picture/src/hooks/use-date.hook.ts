@@ -19,10 +19,8 @@ function getDateLocale(language: string) {
 }
 
 function getDateTimeFormat(language: string) {
-  if (language === "es-ES" || language === "es-419") return "dd/MM/yyyy HH:mm";
-  return language.startsWith("en")
-    ? "MM-dd-yyyy - hh:mm a"
-    : "dd/MM/yyyy HH:mm";
+  if (language === "en") return "MM-dd-yyyy - hh:mm a";
+  return `${getDateFormat(language)} HH:mm`;
 }
 
 export const formatDate = (date: DateLike, language = "en"): string => {

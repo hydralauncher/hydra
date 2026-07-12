@@ -14,6 +14,7 @@ import {
   SSEClient,
 } from "@main/services";
 import resources from "@locales";
+import { resolveLanguageKey } from "@shared";
 import { PythonRPC } from "./services/python-rpc";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
@@ -161,11 +162,17 @@ app.whenReady().then(async () => {
     });
   });
 
-  const language = await db
+  const persistedLanguage = await db
     .get<string, string>(levelKeys.language, {
       valueEncoding: "utf8",
     })
     .catch(() => "en");
+
+
+  const language = resolveLanguageKey(
+    persistedLanguage,
+    Object.keys(resources)
+  );
 
   if (language) i18n.changeLanguage(language);
 

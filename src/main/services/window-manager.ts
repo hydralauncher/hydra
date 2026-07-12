@@ -3,7 +3,12 @@ import { isStaging } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
+import {
+  AuthPage,
+  generateAchievementCustomNotificationTest,
+  resolveLanguageKey,
+} from "@shared";
+import resources from "@locales";
 import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
@@ -808,7 +813,10 @@ export class WindowManager {
       }
     );
 
-    const language = userPreferences.language ?? "en";
+    const language = resolveLanguageKey(
+      userPreferences.language,
+      Object.keys(resources)
+    );
     const position =
       userPreferences.achievementCustomNotificationPosition ?? "top-left";
     const testAchievements = [

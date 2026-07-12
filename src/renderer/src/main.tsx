@@ -19,11 +19,12 @@ import { store } from "./store";
 
 import resources from "@locales";
 
-import { SPANISH_LAT_KEY } from "@shared";
+import { resolveLanguageKey, SPANISH_LAT_KEY } from "@shared";
 
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
 import * as Sentry from "@sentry/react";
+import { ErrorBoundary } from "./components/error-boundary/error-boundary";
 import { levelDBService } from "./services/leveldb.service";
 import Catalogue from "./pages/catalogue/catalogue";
 import Home from "./pages/home/home";
@@ -103,7 +104,13 @@ const needsSpanishLanguageMigration = (storedLanguage: string): boolean => {
 
 if (userPreferences?.language) {
   if (needsSpanishLanguageMigration(userPreferences.language)) {
-    const migratedLanguage = SPANISH_LAT_KEY;
+    // Use the same resolver as the rest of the app (main process, Big
+    // Picture) so e.g. "es-ES-tradnl" migrates to es-ES rather than always
+    // being forced to es-419 like a plain unknown "es-*" would.
+    const migratedLanguage = resolveLanguageKey(
+      userPreferences.language,
+      supportedLanguages
+    );
     try {
       await i18n.changeLanguage(migratedLanguage);
       await globalThis.electron.updateUserPreferences({
@@ -146,46 +153,57 @@ globalThis.electron.onUserPreferencesUpdated((preferences) => {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <HashRouter>
-        <AchievementNotificationOverlay />
-        <Routes>
-          <Route element={<App />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/catalogue" element={<Catalogue />} />
-            <Route path="/library" element={<Library />} />
-            <Route path="/downloads" element={<Downloads />} />
-            <Route path="/game/:shop/:objectId" element={<GameDetails />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/profile/:userId" element={<Profile />} />
-            <Route path="/achievements" element={<Achievements />} />
-            <Route path="/notifications" element={<Notifications />} />
-          </Route>
+      <ErrorBoundary>
+        <HashRouter>
+          <AchievementNotificationOverlay />
+          <Routes>
+            <Route element={<App />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/catalogue" element={<Catalogue />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/downloads" element={<Downloads />} />
+              <Route path="/game/:shop/:objectId" element={<GameDetails />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/profile/:userId" element={<Profile />} />
+              <Route path="/achievements" element={<Achievements />} />
+              <Route path="/notifications" element={<Notifications />} />
+            </Route>
 
-          <Route path="/theme-editor" element={<ThemeEditor />} />
-          <Route
-            path="/achievement-notification"
-            element={<AchievementNotification />}
-          />
-          <Route path="/game-launcher" element={<GameLauncher />} />
-          <Route path="/friends-window" element={<FriendsWindow />} />
-          <Route path="/auth-window" element={<AuthWindow />} />
-
-          <Route path="/big-picture" element={<BigPictureApp />}>
-            <Route index element={<BigPictureHome />} />
-            <Route path="catalogue" element={<BigPictureCatalogue />} />
-            <Route path="component-lab" element={<BigPictureComponentLab />} />
-            <Route path="downloads" element={<BigPictureDownloads />} />
-            <Route path="settings" element={<BigPictureSettings />} />
-            <Route path="library" element={<BigPictureLibrary />} />
-            <Route path="profile/:userId?" element={<BigPictureProfile />} />
-            <Route path="game/:shop/:objectId" element={<BigPictureGame />} />
+            <Route path="/theme-editor" element={<ThemeEditor />} />
             <Route
-              path="game/:shop/:objectId/achievements"
-              element={<BigPictureGameAchievements />}
+              path="/achievement-notification"
+              element={<AchievementNotification />}
             />
-          </Route>
-        </Routes>
-      </HashRouter>
+            <Route path="/game-launcher" element={<GameLauncher />} />
+            <Route path="/friends-window" element={<FriendsWindow />} />
+            <Route path="/auth-window" element={<AuthWindow />} />
+
+            <Route path="/big-picture" element={<BigPictureApp />}>
+              <Route index element={<BigPictureHome />} />
+              <Route path="catalogue" element={<BigPictureCatalogue />} />
+              <Route
+                path="component-lab"
+                element={<BigPictureComponentLab />}
+              />
+              <Route path="downloads" element={<BigPictureDownloads />} />
+              <Route path="settings" element={<BigPictureSettings />} />
+              <Route path="library" element={<BigPictureLibrary />} />
+              <Route
+                path="profile/:userId?"
+                element={<BigPictureProfile />}
+              />
+              <Route
+                path="game/:shop/:objectId"
+                element={<BigPictureGame />}
+              />
+              <Route
+                path="game/:shop/:objectId/achievements"
+                element={<BigPictureGameAchievements />}
+              />
+            </Route>
+          </Routes>
+        </HashRouter>
+      </ErrorBoundary>
     </Provider>
   </React.StrictMode>
 );
