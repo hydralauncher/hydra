@@ -34,10 +34,9 @@ import type {
   ShopAssets,
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
-  AchievementNotificationCustomizer,
   AchievementNotificationInfo,
+  AchievementNotificationSoundMode,
   AchievementNotificationVariation,
-  AchievementNotificationVariationSound,
   Game,
   DiskUsage,
   NetworkInterface,
@@ -858,6 +857,12 @@ declare global {
         achievements?: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
+    onAchievementTestUnlocked: (
+      cb: (
+        position?: AchievementCustomNotificationPosition,
+        achievements?: AchievementNotificationInfo[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
     onInAppAchievementUnlocked?: (
       cb: (
         position: AchievementCustomNotificationPosition,
@@ -873,7 +878,9 @@ declare global {
     ) => () => Electron.IpcRenderer;
     updateAchievementCustomNotificationWindow: () => Promise<void>;
     updateAchievementNotificationWindowPosition: (
-      position: AchievementCustomNotificationPosition
+      position: AchievementCustomNotificationPosition,
+      width?: number,
+      height?: number
     ) => Promise<void>;
     showAchievementTestNotification: (
       variation?: AchievementNotificationVariation,
@@ -886,44 +893,20 @@ declare global {
     deleteAllCustomThemes: () => Promise<void>;
     deleteCustomTheme: (themeId: string) => Promise<void>;
     updateCustomTheme: (themeId: string, code: string) => Promise<void>;
-    updateAchievementNotificationCustomizer: (
-      themeId: string,
-      customizer: AchievementNotificationCustomizer
-    ) => Promise<void>;
-    updateAchievementNotificationProfile: (
-      themeId: string,
-      payload: {
-        name: string;
-        customizer: AchievementNotificationCustomizer;
-        achievementNotificationCustomizerActive?: boolean;
-      }
-    ) => Promise<void>;
     getCustomThemeById: (themeId: string) => Promise<Theme | null>;
     getActiveCustomTheme: () => Promise<Theme | null>;
     toggleCustomTheme: (themeId: string, isActive: boolean) => Promise<void>;
-    copyThemeAchievementSound: (
-      themeId: string,
-      sourcePath: string
-    ) => Promise<void>;
-    copyThemeAchievementVariationSound: (
+    setThemeAchievementSound: (
       themeId: string,
       variation: AchievementNotificationVariation,
-      sourcePath: string
-    ) => Promise<void>;
-    removeThemeAchievementSound: (themeId: string) => Promise<void>;
-    removeThemeAchievementVariationSound: (
-      themeId: string,
-      variation: AchievementNotificationVariation
+      mode: AchievementNotificationSoundMode,
+      sourcePath?: string,
+      volume?: number
     ) => Promise<void>;
     getThemeSoundPath: (themeId: string) => Promise<string | null>;
     getThemeSoundDataUrl: (
       themeId: string,
       variation?: AchievementNotificationVariation
-    ) => Promise<string | null>;
-    getAchievementNotificationSoundDataUrl: (
-      themeId: string,
-      variation: AchievementNotificationVariation,
-      sound?: AchievementNotificationVariationSound
     ) => Promise<string | null>;
     importThemeSoundFromStore: (
       themeId: string,
@@ -933,10 +916,6 @@ declare global {
 
     /* Editor */
     openEditorWindow: (themeId: string) => Promise<void>;
-    openAchievementNotificationCustomizerWindow: () => Promise<void>;
-    closeAchievementNotificationCustomizerWindow: (
-      force?: boolean
-    ) => Promise<void>;
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
 

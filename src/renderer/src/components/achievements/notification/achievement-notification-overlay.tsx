@@ -5,7 +5,6 @@ import {
   AchievementNotificationInfo,
 } from "@types";
 import {
-  getAchievementNotificationRenderSettings,
   getAchievementSoundUrl,
   getAchievementSoundVolume,
 } from "@renderer/helpers";
@@ -51,8 +50,6 @@ export function AchievementNotificationOverlay() {
   >([]);
   const [currentAchievement, setCurrentAchievement] =
     useState<AchievementNotificationInfo | null>(null);
-  const [currentAchievementStyle, setCurrentAchievementStyle] =
-    useState<CSSProperties>({});
 
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
@@ -137,30 +134,13 @@ export function AchievementNotificationOverlay() {
   useEffect(() => {
     if (!queuedAchievement) {
       setCurrentAchievement(null);
-      setCurrentAchievementStyle({});
       return;
     }
 
-    let cancelled = false;
-
-    getAchievementNotificationRenderSettings(
-      queuedAchievement.achievement
-    ).then((settings) => {
-      if (cancelled) return;
-
-      setPosition(settings?.position ?? queuedAchievement.position);
-      notificationTimeoutRef.current =
-        settings?.displayTime ?? NOTIFICATION_TIMEOUT;
-      setCurrentAchievementStyle(
-        (settings?.cssVariables ?? {}) as CSSProperties
-      );
-      setCurrentAchievement(queuedAchievement.achievement);
-      playAudio(queuedAchievement.achievement);
-    });
-
-    return () => {
-      cancelled = true;
-    };
+    setPosition(queuedAchievement.position);
+    notificationTimeoutRef.current = NOTIFICATION_TIMEOUT;
+    setCurrentAchievement(queuedAchievement.achievement);
+    playAudio(queuedAchievement.achievement);
   }, [queuedAchievement, playAudio]);
 
   if (!isVisible || !currentAchievement) return null;
@@ -180,7 +160,7 @@ export function AchievementNotificationOverlay() {
         achievement={currentAchievement}
         isClosing={isClosing}
         position={position}
-        customStyle={currentAchievementStyle}
+        onLayout={(layout) => setPosition(layout.position)}
       />
     </div>
   );

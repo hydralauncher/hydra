@@ -1,5 +1,3 @@
-import type { AchievementCustomNotificationPosition } from "./level.types";
-
 export interface Theme {
   id: string;
   name: string;
@@ -9,48 +7,27 @@ export interface Theme {
   code: string;
   hasCustomSound?: boolean;
   originalSoundPath?: string;
-  achievementNotificationCustomizerActive?: boolean;
-  achievementNotificationCustomizer?: AchievementNotificationCustomizer;
+  achievementSounds?: Partial<
+    Record<AchievementNotificationVariation, AchievementNotificationSound>
+  >;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type AchievementNotificationVariation = "main" | "rare" | "platinum";
+export type AchievementNotificationVariation =
+  | "default"
+  | "rare"
+  | "hidden"
+  | "platinum";
 
-export type AchievementNotificationSoundMode = "default" | "file" | "muted";
+export type AchievementNotificationSoundMode =
+  | "default"
+  | "inherit"
+  | "file"
+  | "muted";
 
-export interface AchievementNotificationVariationSound {
+export interface AchievementNotificationSound {
   mode: AchievementNotificationSoundMode;
-  filePath?: string;
+  originalPath?: string;
   volume?: number;
-}
-
-export interface AchievementNotificationVariationStyle {
-  position?: AchievementCustomNotificationPosition;
-  scale: number;
-  displayTime: number;
-  opacity: number;
-  background: string;
-  titleColor: string;
-  descriptionColor: string;
-  accentColor: string;
-  radius: number;
-  outlineWidth: number;
-  outlineColor: string;
-  shadowColor: string;
-  shadowIntensity: number;
-}
-
-export interface AchievementNotificationCustomizer {
-  version: 1;
-  variations: Record<
-    AchievementNotificationVariation,
-    AchievementNotificationVariationStyle
-  >;
-  sounds?: Partial<
-    Record<
-      AchievementNotificationVariation,
-      AchievementNotificationVariationSound
-    >
-  >;
 }

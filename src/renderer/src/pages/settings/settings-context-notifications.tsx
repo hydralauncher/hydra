@@ -6,7 +6,7 @@ import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import type { AchievementCustomNotificationPosition } from "@types";
 import { UnmuteIcon } from "@primer/octicons-react";
-import { BellIcon, SlidersHorizontalIcon } from "lucide-react";
+import { BellIcon } from "lucide-react";
 
 import "./settings-general.scss";
 
@@ -172,21 +172,6 @@ export function SettingsContextNotifications() {
         >
           <BellIcon size={16} />
           {t("test_notification")}
-        </Button>
-
-        <Button
-          theme="outline"
-          className="settings-general__test-achievement-notification-button"
-          disabled={
-            !form.achievementNotificationsEnabled ||
-            !form.achievementCustomNotificationsEnabled
-          }
-          onClick={() =>
-            globalThis.electron.openAchievementNotificationCustomizerWindow()
-          }
-        >
-          <SlidersHorizontalIcon size={16} />
-          {t("achievement_notification_customizer")}
         </Button>
 
         {form.achievementNotificationsEnabled && (

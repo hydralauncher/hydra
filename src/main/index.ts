@@ -15,146 +15,12 @@ import {
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
-import {
-  db,
-  gameAchievementsSublevel,
-  gamesSublevel,
-  levelKeys,
-} from "./level";
-import type {
-  AchievementNotificationInfo,
-  GameShop,
-  SteamAchievement,
-  UserPreferences,
-} from "@types";
+import { db, gamesSublevel, levelKeys } from "./level";
+import { GameShop, UserPreferences } from "@types";
 import { launchGame } from "./helpers";
 import { loadState } from "./main";
 
 const { autoUpdater } = updater;
-
-const getAchievementNotificationInfo = (
-  achievement: SteamAchievement,
-  options: {
-    isRare?: boolean;
-    isPlatinum?: boolean;
-  } = {}
-): AchievementNotificationInfo => ({
-  title: achievement.displayName,
-  description: achievement.description,
-  points: achievement.points,
-  isHidden: achievement.hidden,
-  isRare: options.isRare ?? false,
-  isPlatinum: options.isPlatinum ?? false,
-  iconUrl: achievement.icon,
-});
-
-const waitForDevNotificationWindow = async () => {
-  await WindowManager.createNotificationWindow();
-
-  const notificationWindow = WindowManager.notificationWindow;
-  if (!notificationWindow) return false;
-
-  if (notificationWindow.webContents.isLoading()) {
-    await new Promise<void>((resolve) => {
-      const timeout = setTimeout(resolve, 4_000);
-      notificationWindow.webContents.once("did-finish-load", () => {
-        clearTimeout(timeout);
-        resolve();
-      });
-    });
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 6_000));
-
-  return !notificationWindow.isDestroyed();
-};
-
-const showDevAchievementNotificationsForGame = async (query: string) => {
-  if (app.isPackaged || !query.trim()) return;
-
-  const normalizedQuery = query.trim().toLowerCase();
-  const games = await gamesSublevel.values().all();
-  const game = games.find((libraryGame) =>
-    libraryGame.title.toLowerCase().includes(normalizedQuery)
-  );
-
-  if (!game) {
-    logger.warn("[DevAchievementNotification] Game not found", { query });
-    return;
-  }
-
-  const gameAchievements = await gameAchievementsSublevel
-    .get(levelKeys.game(game.shop, game.objectId))
-    .catch(() => null);
-
-  const achievements = gameAchievements?.achievements ?? [];
-  if (!achievements.length) {
-    logger.warn("[DevAchievementNotification] No achievements found", {
-      title: game.title,
-      objectId: game.objectId,
-    });
-    return;
-  }
-
-  const mainAchievement =
-    achievements.find((achievement) => !achievement.hidden) ?? achievements[0];
-  const rareAchievement =
-    achievements
-      .filter((achievement) => achievement.points !== undefined)
-      .toSorted((a, b) => (b.points ?? 0) - (a.points ?? 0))[0] ??
-    mainAchievement;
-  const platinumAchievement =
-    achievements.find((achievement) =>
-      /complete|platinum|100|percent|full/i.test(
-        `${achievement.displayName} ${achievement.description ?? ""}`
-      )
-    ) ??
-    achievements[achievements.length - 1] ??
-    mainAchievement;
-
-  const notifications: AchievementNotificationInfo[] = [
-    getAchievementNotificationInfo(mainAchievement),
-    getAchievementNotificationInfo(rareAchievement, { isRare: true }),
-    getAchievementNotificationInfo(platinumAchievement, { isPlatinum: true }),
-  ];
-
-  logger.info("[DevAchievementNotification] Showing test notifications", {
-    title: game.title,
-    objectId: game.objectId,
-    notifications: notifications.map((notification) => ({
-      title: notification.title,
-      isRare: notification.isRare,
-      isPlatinum: notification.isPlatinum,
-    })),
-  });
-
-  const isNotificationWindowReady = await waitForDevNotificationWindow();
-  if (!isNotificationWindowReady) {
-    logger.warn("[DevAchievementNotification] Notification window not ready");
-    return;
-  }
-
-  for (const notification of notifications) {
-    const position =
-      await WindowManager.getAchievementNotificationPosition(notification);
-    await WindowManager.updateNotificationWindowPosition(position);
-
-    logger.info("[DevAchievementNotification] Sending notification", {
-      title: notification.title,
-      isRare: notification.isRare,
-      isPlatinum: notification.isPlatinum,
-      position,
-    });
-
-    WindowManager.notificationWindow?.webContents.send(
-      "on-achievement-unlocked",
-      position,
-      [notification]
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 9_000));
-  }
-};
 
 autoUpdater.setFeedURL({
   provider: "github",
@@ -315,19 +181,6 @@ app.whenReady().then(async () => {
 
   WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
-
-  if (process.env.HYDRA_DEV_ACHIEVEMENT_NOTIFICATION_QUERY) {
-    setTimeout(() => {
-      showDevAchievementNotificationsForGame(
-        process.env.HYDRA_DEV_ACHIEVEMENT_NOTIFICATION_QUERY!
-      ).catch((error) => {
-        logger.error(
-          "[DevAchievementNotification] Failed to show notifications",
-          error
-        );
-      });
-    }, 2_000);
-  }
 
   if (deepLinkArg) {
     handleDeepLinkPath(deepLinkArg);

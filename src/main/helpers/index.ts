@@ -82,21 +82,20 @@ export const getThemeSoundPath = (
       return null;
     }
 
-    const formats = ["wav", "mp3", "ogg", "m4a"];
+    const extensions = [".wav", ".mp3", ".ogg", ".m4a"];
+    const fileNames = variation
+      ? [
+          ...extensions.map((extension) =>
+            getVariationSoundAssetName(variation, extension)
+          ),
+          ...extensions.map((extension) => `achievement${extension}`),
+        ]
+      : extensions.map((extension) => `achievement${extension}`);
 
-    for (const format of formats) {
-      const fileNames = variation
-        ? [
-            getVariationSoundAssetName(variation, `.${format}`),
-            `achievement.${format}`,
-          ]
-        : [`achievement.${format}`];
-
-      for (const fileName of fileNames) {
-        const soundPath = path.join(dir, fileName);
-        if (fs.existsSync(soundPath)) {
-          return soundPath;
-        }
+    for (const fileName of fileNames) {
+      const soundPath = path.join(dir, fileName);
+      if (fs.existsSync(soundPath)) {
+        return soundPath;
       }
     }
 

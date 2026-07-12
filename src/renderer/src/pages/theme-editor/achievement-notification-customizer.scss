@@ -12,6 +12,32 @@
   background: globals.$background-color;
   color: globals.$body-color;
 
+  &--embedded {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+    background: transparent;
+  }
+
+  &__marker-error {
+    padding: 10px 12px;
+    border: 1px solid globals.$danger-color;
+    color: globals.$danger-color;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  &__field-with-reset {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+
+    > :first-child {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
   &__titlebar {
     -webkit-app-region: drag;
     position: fixed;
@@ -65,10 +91,29 @@
   }
 
   &__toggle {
-    align-self: flex-start;
     display: inline-flex;
     align-items: center;
     gap: 8px;
+  }
+
+  &__toggle-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 0;
+    border-top: 1px solid globals.$border-color;
+    border-bottom: 1px solid globals.$border-color;
+    color: globals.$muted-color;
+    font-size: 13px;
+  }
+
+  &__toggle-icon {
+    transition: transform ease 0.2s;
+
+    &--open {
+      transform: rotate(180deg);
+    }
   }
 
   &__hint {
@@ -126,6 +171,13 @@
   &__profiles {
     display: flex;
     flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__test-button {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
     gap: 8px;
   }
 
@@ -208,7 +260,7 @@
 
   &__content {
     display: grid;
-    grid-template-columns: minmax(420px, 1fr) minmax(340px, 460px);
+    grid-template-columns: 1fr;
     gap: 16px;
     align-items: start;
   }
@@ -237,7 +289,7 @@
 
   &__range {
     display: grid;
-    grid-template-columns: 112px minmax(140px, 1fr) 56px;
+    grid-template-columns: 112px minmax(140px, 1fr) 56px 36px;
     gap: 10px;
     align-items: center;
     color: globals.$muted-color;

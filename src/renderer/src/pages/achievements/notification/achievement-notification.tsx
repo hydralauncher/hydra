@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AchievementCustomNotificationPosition,
@@ -8,7 +7,6 @@ import {
 import {
   injectCustomCss,
   removeCustomCss,
-  getAchievementNotificationRenderSettings,
   getAchievementSoundUrl,
   getAchievementSoundVolume,
 } from "@renderer/helpers";
@@ -44,14 +42,13 @@ export function AchievementNotification() {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] =
     useState<AchievementCustomNotificationPosition>("top-left");
+  const [themeRevision, setThemeRevision] = useState(0);
 
   const [achievements, setAchievements] = useState<
     QueuedAchievementNotification[]
   >([]);
   const [currentAchievement, setCurrentAchievement] =
     useState<AchievementNotificationInfo | null>(null);
-  const [currentAchievementStyle, setCurrentAchievementStyle] =
-    useState<CSSProperties>({});
 
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
@@ -118,6 +115,26 @@ export function AchievementNotification() {
     };
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = globalThis.electron.onAchievementTestUnlocked(
+      (nextPosition, nextAchievements) => {
+        if (!nextAchievements?.length) return;
+
+        cancelAnimationFrame(closingAnimation.current);
+        cancelAnimationFrame(visibleAnimation.current);
+        cancelAnimationFrame(achievementAnimation.current);
+        setIsClosing(false);
+        setIsVisible(false);
+        setCurrentAchievement(null);
+        setAchievements(queueAchievements(nextPosition, nextAchievements));
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const queuedAchievement = achievements[0];
   const hasAchievementsPending = achievements.length > 0;
 
@@ -167,39 +184,32 @@ export function AchievementNotification() {
   useEffect(() => {
     if (!queuedAchievement) {
       setCurrentAchievement(null);
-      setCurrentAchievementStyle({});
       return;
     }
 
-    let cancelled = false;
-
-    getAchievementNotificationRenderSettings(
-      queuedAchievement.achievement
-    ).then(async (settings) => {
-      if (cancelled) return;
-
-      const nextPosition = settings?.position ?? queuedAchievement.position;
-
-      setPosition(nextPosition);
-      await globalThis.electron
-        .updateAchievementNotificationWindowPosition(nextPosition)
-        .catch(() => {});
-
-      if (cancelled) return;
-
-      notificationTimeoutRef.current =
-        settings?.displayTime ?? NOTIFICATION_TIMEOUT;
-      setCurrentAchievementStyle(
-        (settings?.cssVariables ?? {}) as CSSProperties
-      );
-      setCurrentAchievement(queuedAchievement.achievement);
-      playAudio(queuedAchievement.achievement);
-    });
-
-    return () => {
-      cancelled = true;
-    };
+    setPosition(queuedAchievement.position);
+    notificationTimeoutRef.current = NOTIFICATION_TIMEOUT;
+    setCurrentAchievement(queuedAchievement.achievement);
+    playAudio(queuedAchievement.achievement);
   }, [queuedAchievement, playAudio]);
+
+  const handleLayout = useCallback(
+    (layout: {
+      position: AchievementCustomNotificationPosition;
+      width: number;
+      height: number;
+    }) => {
+      setPosition(layout.position);
+      globalThis.electron
+        .updateAchievementNotificationWindowPosition(
+          layout.position,
+          layout.width,
+          layout.height
+        )
+        .catch(() => {});
+    },
+    []
+  );
 
   const loadAndApplyTheme = useCallback(async () => {
     if (!shadowRootRef) return;
@@ -213,6 +223,7 @@ export function AchievementNotification() {
     } else {
       removeCustomCss(shadowRootRef);
     }
+    setThemeRevision((revision) => revision + 1);
   }, [shadowRootRef]);
 
   useEffect(() => {
@@ -241,7 +252,8 @@ export function AchievementNotification() {
             achievement={currentAchievement}
             isClosing={isClosing}
             position={position}
-            customStyle={currentAchievementStyle}
+            onLayout={handleLayout}
+            layoutVersion={themeRevision}
           />
         )}
       </section>

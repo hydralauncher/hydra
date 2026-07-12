@@ -3,13 +3,35 @@ import assert from "node:assert/strict";
 
 import type { AchievementNotificationVariation } from "@types";
 import {
+  getEffectiveThemeAchievementSound,
   getVariationSoundAssetName,
   isSupportedAchievementNotificationVariation,
 } from "./achievement-notification-sounds.ts";
 
+test("variation sounds inherit the default theme sound", () => {
+  const theme = {
+    hasCustomSound: true,
+    originalSoundPath: "C:/sounds/default.wav",
+    achievementSounds: {
+      default: { mode: "file" as const, volume: 0.6 },
+      rare: { mode: "inherit" as const },
+      hidden: { mode: "muted" as const },
+    },
+  };
+
+  assert.deepEqual(getEffectiveThemeAchievementSound(theme, "rare"), {
+    mode: "file",
+    volume: 0.6,
+  });
+  assert.deepEqual(getEffectiveThemeAchievementSound(theme, "hidden"), {
+    mode: "muted",
+  });
+});
+
 test("valid achievement notification variations are accepted", () => {
-  assert.equal(isSupportedAchievementNotificationVariation("main"), true);
+  assert.equal(isSupportedAchievementNotificationVariation("default"), true);
   assert.equal(isSupportedAchievementNotificationVariation("rare"), true);
+  assert.equal(isSupportedAchievementNotificationVariation("hidden"), true);
   assert.equal(isSupportedAchievementNotificationVariation("platinum"), true);
 });
 
@@ -18,18 +40,22 @@ test("invalid achievement notification variations are rejected at runtime", () =
     isSupportedAchievementNotificationVariation("../../etc/rc.local"),
     false
   );
-  assert.equal(isSupportedAchievementNotificationVariation("hidden"), false);
+  assert.equal(isSupportedAchievementNotificationVariation("main"), false);
   assert.equal(isSupportedAchievementNotificationVariation(null), false);
 });
 
 test("variation sound asset names cannot be built from invalid variations", () => {
   assert.equal(
-    getVariationSoundAssetName("main", ".mp3"),
-    "achievement-main.mp3"
+    getVariationSoundAssetName("default", ".mp3"),
+    "achievement.mp3"
   );
   assert.equal(
     getVariationSoundAssetName("rare", ".MP3"),
     "achievement-rare.mp3"
+  );
+  assert.equal(
+    getVariationSoundAssetName("hidden", ".ogg"),
+    "achievement-hidden.ogg"
   );
   assert.throws(
     () =>

@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import type { CSSProperties } from "react";
+import { useLayoutEffect, useRef } from "react";
 import {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
@@ -8,46 +7,45 @@ import cn from "classnames";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { EyeClosedIcon } from "@primer/octicons-react";
 import Ellipses from "@renderer/assets/icons/ellipses.png";
-import { getAchievementNotificationRenderSettings } from "@renderer/helpers";
+import { getComputedAchievementNotificationLayout } from "@renderer/helpers";
 import "./achievement-notification.scss";
 
 interface AchievementNotificationProps {
   position: AchievementCustomNotificationPosition;
   achievement: AchievementNotificationInfo;
   isClosing: boolean;
-  customStyle?: CSSProperties;
+  onLayout?: (layout: {
+    position: AchievementCustomNotificationPosition;
+    width: number;
+    height: number;
+  }) => void;
+  layoutVersion?: number;
 }
 
 export function AchievementNotificationItem({
   position,
   achievement,
   isClosing,
-  customStyle: customStyleOverride,
+  onLayout,
+  layoutVersion,
 }: Readonly<AchievementNotificationProps>) {
   const baseClassName = "achievement-notification";
-  const [customStyle, setCustomStyle] = useState<CSSProperties>({});
+  const notificationRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (customStyleOverride) {
-      setCustomStyle(customStyleOverride);
-      return;
+  useLayoutEffect(() => {
+    if (notificationRef.current && onLayout) {
+      onLayout(
+        getComputedAchievementNotificationLayout(
+          notificationRef.current,
+          position
+        )
+      );
     }
-
-    let cancelled = false;
-
-    getAchievementNotificationRenderSettings(achievement).then((settings) => {
-      if (cancelled) return;
-      setCustomStyle((settings?.cssVariables ?? {}) as CSSProperties);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [achievement, customStyleOverride]);
+  }, [achievement, layoutVersion, onLayout, position]);
 
   return (
     <div
-      style={customStyle}
+      ref={notificationRef}
       className={cn("achievement-notification", {
         [`${baseClassName}--${position}`]: true,
         [`${baseClassName}--closing`]: isClosing,

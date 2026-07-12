@@ -1,18 +1,12 @@
 import { is } from "@electron-toolkit/utils";
 import { isStaging } from "@main/constants";
-import { db, gamesSublevel, levelKeys, themesSublevel } from "@main/level";
+import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
 import {
   AuthPage,
-  DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
   generateAchievementCustomNotificationTest,
-  getActiveAchievementNotificationTheme,
-  getAchievementNotificationPosition,
-  getAchievementNotificationVariation,
   getAchievementNotificationWindowPosition,
-  getAchievementNotificationWindowSize,
-  getThemeAchievementNotificationCustomizer,
 } from "@shared";
 import type {
   AchievementCustomNotificationPosition,
@@ -53,9 +47,6 @@ export class WindowManager {
   private static bigPicture: Electron.BrowserWindow | null = null;
   private static friendsWindow: Electron.BrowserWindow | null = null;
   private static authWindow: Electron.BrowserWindow | null = null;
-  private static achievementNotificationCustomizerWindow: Electron.BrowserWindow | null =
-    null;
-  private static forceCloseAchievementNotificationCustomizerWindow = false;
   private static deferredMainMaximize = false;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
@@ -683,50 +674,6 @@ export class WindowManager {
   private static readonly NOTIFICATION_WINDOW_WIDTH = 360;
   private static readonly NOTIFICATION_WINDOW_HEIGHT = 140;
 
-  private static async getNotificationWindowSize(useDefaultProfile = false) {
-    if (useDefaultProfile) {
-      return getAchievementNotificationWindowSize({
-        achievementNotificationCustomizer:
-          DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
-      });
-    }
-
-    const allThemes = await themesSublevel.values().all();
-    const activeNotificationTheme =
-      getActiveAchievementNotificationTheme(allThemes);
-    return getAchievementNotificationWindowSize(activeNotificationTheme);
-  }
-
-  public static async getAchievementNotificationPosition(
-    achievement?: Pick<
-      AchievementNotificationInfo,
-      "isRare" | "isPlatinum" | "isHidden"
-    >,
-    fallbackVariation: AchievementNotificationVariation = "main"
-  ) {
-    const [allThemes, userPreferences] = await Promise.all([
-      themesSublevel.values().all(),
-      db.get<string, UserPreferences | undefined>(levelKeys.userPreferences, {
-        valueEncoding: "json",
-      }),
-    ]);
-    const activeNotificationTheme =
-      getActiveAchievementNotificationTheme(allThemes);
-    const fallback =
-      userPreferences?.achievementCustomNotificationPosition ?? "top-left";
-
-    if (!activeNotificationTheme) return fallback;
-
-    const variation = achievement
-      ? getAchievementNotificationVariation(achievement)
-      : fallbackVariation;
-    const customizer = getThemeAchievementNotificationCustomizer(
-      activeNotificationTheme
-    );
-
-    return getAchievementNotificationPosition(customizer, variation, fallback);
-  }
-
   private static async getNotificationWindowPosition(
     position: AchievementCustomNotificationPosition | undefined,
     size?: { width: number; height: number }
@@ -765,12 +712,13 @@ export class WindowManager {
     );
   }
 
-  private static sendAchievementToWindow(
-    window: Electron.BrowserWindow,
+  public static sendAchievementToFocusedWindow(
     position: AchievementCustomNotificationPosition,
     achievements: AchievementNotificationInfo[]
   ): boolean {
-    if (window.isDestroyed()) {
+    const window = this.getFocusedAchievementNotificationTarget();
+
+    if (!window) {
       return false;
     }
 
@@ -783,50 +731,10 @@ export class WindowManager {
     return true;
   }
 
-  public static sendAchievementToFocusedWindow(
-    position: AchievementCustomNotificationPosition,
-    achievements: AchievementNotificationInfo[]
-  ): boolean {
-    const window = this.getFocusedAchievementNotificationTarget();
-
-    if (!window) {
-      return false;
-    }
-
-    return this.sendAchievementToWindow(window, position, achievements);
-  }
-
-  public static sendAchievementsToFocusedWindowBatch(
-    notifications: {
-      position: AchievementCustomNotificationPosition;
-      achievements: AchievementNotificationInfo[];
-    }[]
-  ): boolean {
-    const window = this.getFocusedAchievementNotificationTarget();
-
-    if (!window) {
-      return false;
-    }
-
-    return notifications.every((notification) =>
-      this.sendAchievementToWindow(
-        window,
-        notification.position,
-        notification.achievements
-      )
-    );
-  }
-
-  public static hasFocusedAchievementNotificationTarget(): boolean {
-    return Boolean(this.getFocusedAchievementNotificationTarget());
-  }
-
   public static async createNotificationWindow({
     forceCustomNotification = false,
-    useDefaultProfile = false,
   }: {
     forceCustomNotification?: boolean;
-    useDefaultProfile?: boolean;
   } = {}) {
     if (this.notificationWindow) return;
 
@@ -849,8 +757,12 @@ export class WindowManager {
       return;
     }
 
-    const size = await this.getNotificationWindowSize(useDefaultProfile);
-    const position = await this.getAchievementNotificationPosition();
+    const size = {
+      width: this.NOTIFICATION_WINDOW_WIDTH,
+      height: this.NOTIFICATION_WINDOW_HEIGHT,
+    };
+    const position =
+      userPreferences?.achievementCustomNotificationPosition ?? "top-left";
     const { x, y } = await this.getNotificationWindowPosition(position, size);
     const roundedX = Math.round(x);
     const roundedY = Math.round(y);
@@ -884,7 +796,7 @@ export class WindowManager {
   }
 
   public static async showAchievementTestNotification(
-    variation: AchievementNotificationVariation = "main",
+    variation: AchievementNotificationVariation = "default",
     positionOverride?: AchievementCustomNotificationPosition
   ) {
     const userPreferences = await db.get<string, UserPreferences>(
@@ -899,7 +811,7 @@ export class WindowManager {
       generateAchievementCustomNotificationTest(t, language, {
         isRare: variation === "rare",
         isPlatinum: variation === "platinum",
-        isHidden: variation === "rare",
+        isHidden: variation === "hidden",
       }),
     ];
 
@@ -907,19 +819,12 @@ export class WindowManager {
       return;
     }
 
-    const shouldUseDefaultProfile =
+    const shouldForceCustomNotification =
       userPreferences.achievementCustomNotificationsEnabled === false;
     const position =
       positionOverride ??
-      (shouldUseDefaultProfile
-        ? getAchievementNotificationPosition(
-            DEFAULT_ACHIEVEMENT_NOTIFICATION_CUSTOMIZER,
-            variation
-          )
-        : await this.getAchievementNotificationPosition(
-            testAchievements[0],
-            variation
-          ));
+      userPreferences.achievementCustomNotificationPosition ??
+      "top-left";
 
     if (process.platform === "linux") {
       const shownInApp = this.sendAchievementToFocusedWindow(
@@ -939,8 +844,7 @@ export class WindowManager {
 
     if (!this.notificationWindow) {
       await this.createNotificationWindow({
-        forceCustomNotification: shouldUseDefaultProfile,
-        useDefaultProfile: shouldUseDefaultProfile,
+        forceCustomNotification: shouldForceCustomNotification,
       });
     }
 
@@ -956,12 +860,9 @@ export class WindowManager {
       });
     }
 
-    await this.updateNotificationWindowPosition(
-      position,
-      shouldUseDefaultProfile
-    );
+    await this.updateNotificationWindowPosition(position);
     this.notificationWindow?.webContents.send(
-      "on-achievement-unlocked",
+      "on-achievement-test-unlocked",
       position,
       testAchievements
     );
@@ -969,11 +870,15 @@ export class WindowManager {
 
   public static async updateNotificationWindowPosition(
     position: AchievementCustomNotificationPosition,
-    useDefaultProfile = false
+    width = this.NOTIFICATION_WINDOW_WIDTH,
+    height = this.NOTIFICATION_WINDOW_HEIGHT
   ) {
     if (!this.notificationWindow) return;
 
-    const size = await this.getNotificationWindowSize(useDefaultProfile);
+    const size = {
+      width: Math.min(Math.max(Math.round(width), 216), 720),
+      height: Math.min(Math.max(Math.round(height), 84), 280),
+    };
     const { x, y } = await this.getNotificationWindowPosition(position, size);
 
     this.notificationWindow.setBounds({
@@ -1061,77 +966,6 @@ export class WindowManager {
         editorWindow.close();
       });
     }
-  }
-
-  public static openAchievementNotificationCustomizerWindow() {
-    if (this.achievementNotificationCustomizerWindow) {
-      if (this.achievementNotificationCustomizerWindow.isMinimized()) {
-        this.achievementNotificationCustomizerWindow.restore();
-      }
-      this.achievementNotificationCustomizerWindow.focus();
-      return;
-    }
-
-    const customizerWindow = new BrowserWindow({
-      width: 1100,
-      height: 820,
-      minWidth: 920,
-      minHeight: 680,
-      backgroundColor: "#1c1c1c",
-      titleBarStyle: process.platform === "linux" ? "default" : "hidden",
-      icon,
-      trafficLightPosition: { x: 16, y: 16 },
-      titleBarOverlay: {
-        symbolColor: "#DADBE1",
-        color: "#151515",
-        height: 34,
-      },
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
-      show: false,
-    });
-
-    this.achievementNotificationCustomizerWindow = customizerWindow;
-    customizerWindow.removeMenu();
-    this.loadWindowURL(customizerWindow, "achievement-notification-customizer");
-
-    customizerWindow.once("ready-to-show", () => {
-      customizerWindow.show();
-      if (!app.isPackaged || isStaging) {
-        customizerWindow.webContents.openDevTools();
-      }
-    });
-
-    customizerWindow.webContents.on("before-input-event", (_event, input) => {
-      if (input.key === "F12") {
-        customizerWindow.webContents.toggleDevTools();
-      }
-    });
-
-    customizerWindow.on("close", (event) => {
-      if (!this.forceCloseAchievementNotificationCustomizerWindow) {
-        event.preventDefault();
-        customizerWindow.webContents.send(
-          "on-achievement-notification-customizer-close-requested"
-        );
-        return;
-      }
-
-      this.forceCloseAchievementNotificationCustomizerWindow = false;
-      this.achievementNotificationCustomizerWindow = null;
-    });
-  }
-
-  public static closeAchievementNotificationCustomizerWindow(force = false) {
-    if (!this.achievementNotificationCustomizerWindow) {
-      this.forceCloseAchievementNotificationCustomizerWindow = false;
-      return;
-    }
-
-    this.forceCloseAchievementNotificationCustomizerWindow = force;
-    this.achievementNotificationCustomizerWindow.close();
   }
 
   private static readonly GAME_LAUNCHER_WINDOW_WIDTH = 550;

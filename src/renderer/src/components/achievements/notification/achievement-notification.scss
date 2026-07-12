@@ -180,8 +180,14 @@ $margin-bottom: 28px;
 }
 
 .achievement-notification {
-  width: var(--achievement-notification-scaled-width, 360px);
-  height: var(--achievement-notification-scaled-height, 140px);
+  width: calc(
+    var(--achievement-notification-width, 360px) *
+      var(--achievement-notification-scale, 1)
+  );
+  height: calc(
+    var(--achievement-notification-height, 140px) *
+      var(--achievement-notification-scale, 1)
+  );
   display: flex;
   position: relative;
   opacity: var(--achievement-notification-opacity, 1);
@@ -255,17 +261,22 @@ $margin-bottom: 28px;
       var(--achievement-notification-width, 360px) - $margin-horizontal
     );
     overflow: clip;
-    border: var(--achievement-notification-outline-width, 1px) solid
+    border: calc(var(--achievement-notification-outline-width, 1) * 1px) solid
       var(--achievement-notification-outline-color, #ffffff1a);
-    border-radius: var(--achievement-notification-radius, 0);
+    border-radius: calc(var(--achievement-notification-radius, 0) * 1px);
     animation:
       content-in 450ms ease-in-out,
       content-wait 450ms ease-in-out 450ms,
       content-expand 450ms ease-in-out 900ms;
-    box-shadow: var(
-      --achievement-notification-shadow,
-      0px 2px 16px 0px rgba(0, 0, 0, 0.25)
-    );
+    box-shadow: 0 4px
+      calc(8px + var(--achievement-notification-shadow-intensity, 35) * 0.28px)
+      calc(var(--achievement-notification-shadow-intensity, 35) * 0.03px)
+      color-mix(
+        in srgb,
+        var(--achievement-notification-shadow-color, #000000)
+          calc(var(--achievement-notification-shadow-intensity, 35) * 0.45%),
+        rgba(0, 0, 0, 0.34)
+      );
   }
 
   &--top-left &__outer-container {
@@ -309,6 +320,13 @@ $margin-bottom: 28px;
       globals.$background-color
     );
     font-family: var(--achievement-notification-font-family, inherit);
+  }
+
+  &--platinum &__container {
+    background: var(
+      --achievement-notification-background,
+      linear-gradient(94deg, #1c1c1c -25%, #044838 100%)
+    );
   }
 
   &--rare &__container {

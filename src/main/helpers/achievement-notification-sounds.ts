@@ -1,14 +1,15 @@
-import fs from "node:fs";
 import path from "node:path";
 import type {
+  AchievementNotificationSound,
   AchievementNotificationVariation,
-  AchievementNotificationVariationSound,
+  Theme,
 } from "@types";
 
 const AUDIO_FORMATS = new Set([".wav", ".mp3", ".ogg", ".m4a"]);
 const ACHIEVEMENT_NOTIFICATION_VARIATIONS = new Set([
-  "main",
+  "default",
   "rare",
+  "hidden",
   "platinum",
 ] satisfies AchievementNotificationVariation[]);
 
@@ -23,28 +24,6 @@ export const isSupportedAchievementNotificationVariation = (
     variation as AchievementNotificationVariation
   );
 
-export const getStructuredAchievementSoundPath = async (
-  sound: AchievementNotificationVariationSound | undefined
-): Promise<string | null> => {
-  if (!sound || sound.mode === "default" || sound.mode === "muted") {
-    return null;
-  }
-
-  if (sound.mode === "file") {
-    if (
-      sound.filePath &&
-      fs.existsSync(sound.filePath) &&
-      isSupportedAchievementSoundFile(sound.filePath)
-    ) {
-      return sound.filePath;
-    }
-
-    return null;
-  }
-
-  return null;
-};
-
 export const getVariationSoundAssetName = (
   variation: AchievementNotificationVariation,
   extension: string
@@ -58,5 +37,26 @@ export const getVariationSoundAssetName = (
     throw new Error("Unsupported achievement sound file");
   }
 
-  return `achievement-${variation}${normalizedExtension}`;
+  return variation === "default"
+    ? `achievement${normalizedExtension}`
+    : `achievement-${variation}${normalizedExtension}`;
+};
+
+export const getEffectiveThemeAchievementSound = (
+  theme: Pick<
+    Theme,
+    "achievementSounds" | "hasCustomSound" | "originalSoundPath"
+  >,
+  variation: AchievementNotificationVariation
+): AchievementNotificationSound => {
+  const base = theme.achievementSounds?.default ?? {
+    mode: theme.hasCustomSound ? "file" : "default",
+    originalPath: theme.originalSoundPath,
+  };
+  if (variation === "default") return base;
+
+  const variationSound = theme.achievementSounds?.[variation];
+  return !variationSound || variationSound.mode === "inherit"
+    ? base
+    : variationSound;
 };
