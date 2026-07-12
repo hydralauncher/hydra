@@ -125,7 +125,7 @@ export const parseAchievementNotificationManagedCss = (
   if (end < start) return { status: "invalid", variations };
 
   const block = css.slice(start + ACHIEVEMENT_CUSTOMIZER_START.length, end);
-  const uncommentedBlock = block.replaceAll(/\/\*[\s\S]*?\*\//g, "");
+  const uncommentedBlock = block.replaceAll(/\/\*[\s\S]*?(?:\*\/|$)/g, "");
 
   for (const variation of ACHIEVEMENT_NOTIFICATION_VARIATIONS) {
     const rule = new RegExp(
