@@ -24,6 +24,7 @@ pub struct LocalSaveSnapshotFile {
 }
 
 #[napi(object)]
+#[derive(Clone)]
 pub struct LocalGameSnapshotFile {
     pub raw_path: String,
     pub relative_path: String,
