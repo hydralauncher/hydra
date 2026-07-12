@@ -4,6 +4,7 @@ import path from "node:path";
 import { THEMES_PATH } from "@main/constants";
 import {
   getThemePath,
+  getThemeSoundPath,
   getVariationSoundAssetName,
   isSupportedAchievementNotificationVariation,
   isSupportedAchievementSoundFile,
@@ -61,21 +62,16 @@ const validateSoundMode = (
 };
 
 const validateSoundFile = async (
-  directories: string[],
+  themeId: string,
+  themeName: string | undefined,
   variation: AchievementNotificationVariation,
   mode: AchievementNotificationSoundMode,
   sourcePath?: string
 ) => {
   if (mode !== "file") return;
   if (!sourcePath) {
-    const hasExistingAsset = directories.some((directory) =>
-      AUDIO_EXTENSIONS.some((extension) =>
-        fs.existsSync(
-          path.join(directory, getVariationSoundAssetName(variation, extension))
-        )
-      )
-    );
-    if (!hasExistingAsset) {
+    const resolvedSoundPath = getThemeSoundPath(themeId, themeName, variation);
+    if (!resolvedSoundPath) {
       throw new Error("Achievement sound file is required");
     }
     return;
@@ -166,7 +162,7 @@ const setThemeAchievementSound = async (
   const legacyThemeDir = path.join(THEMES_PATH, themeId);
   const directories =
     themeDir === legacyThemeDir ? [themeDir] : [themeDir, legacyThemeDir];
-  await validateSoundFile(directories, variation, mode, sourcePath);
+  await validateSoundFile(themeId, theme.name, variation, mode, sourcePath);
 
   await updateVariationAssets(
     themeDir,
