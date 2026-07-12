@@ -61,10 +61,21 @@ const validateSoundMode = (
 };
 
 const validateSoundFile = async (
+  theme: Theme,
+  variation: AchievementNotificationVariation,
   mode: AchievementNotificationSoundMode,
   sourcePath?: string
 ) => {
-  if (mode !== "file" || !sourcePath) return;
+  if (mode !== "file") return;
+  if (!sourcePath) {
+    const hasExistingFileSound =
+      theme.achievementSounds?.[variation]?.mode === "file" ||
+      (variation === "default" && theme.hasCustomSound);
+    if (!hasExistingFileSound) {
+      throw new Error("Achievement sound file is required");
+    }
+    return;
+  }
 
   if (
     !fs.existsSync(sourcePath) ||
@@ -147,7 +158,7 @@ const setThemeAchievementSound = async (
   const theme = await themesSublevel.get(themeId);
   if (!theme) throw new Error("Theme not found");
 
-  await validateSoundFile(mode, sourcePath);
+  await validateSoundFile(theme, variation, mode, sourcePath);
 
   const themeDir = getThemePath(themeId, theme.name);
   const legacyThemeDir = path.join(THEMES_PATH, themeId);

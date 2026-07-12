@@ -104,6 +104,21 @@ test("rejects duplicated or malformed markers", () => {
   );
 });
 
+test("ignores commented-out managed CSS declarations", () => {
+  const css = [
+    ACHIEVEMENT_CUSTOMIZER_START,
+    ".achievement-notification--rare {",
+    "  /* --achievement-notification-scale: 1.5; */",
+    "}",
+    ACHIEVEMENT_CUSTOMIZER_END,
+  ].join("\n");
+
+  assert.equal(
+    parseAchievementNotificationManagedCss(css).variations.rare.scale,
+    undefined
+  );
+});
+
 test("variation resolution follows CSS cascade priority", () => {
   assert.equal(
     getAchievementNotificationVariation({

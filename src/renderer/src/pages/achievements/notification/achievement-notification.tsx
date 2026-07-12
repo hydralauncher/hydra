@@ -126,7 +126,10 @@ export function AchievementNotification() {
         setIsClosing(false);
         setIsVisible(false);
         setCurrentAchievement(null);
-        setAchievements(queueAchievements(nextPosition, nextAchievements));
+        setAchievements((queuedAchievements) => [
+          ...queueAchievements(nextPosition, nextAchievements),
+          ...queuedAchievements,
+        ]);
       }
     );
 
