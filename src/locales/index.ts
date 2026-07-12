@@ -64,4 +64,4 @@ export default {
   uz,
   sv,
   lv,
-}
+};
