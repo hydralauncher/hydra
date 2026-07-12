@@ -57,6 +57,14 @@ export interface ResolvedRestoreTarget extends RestoreManifestFile {
   targetPath: string;
 }
 
+export interface RestoreDownloadUrlFile extends RestoreManifestFile {
+  downloadUrl: string;
+}
+
+export interface DownloadedRestoreFile extends RestoreManifestFile {
+  tempPath: string;
+}
+
 export interface LocalGameSnapshotFile {
   rawPath: string;
   relativePath: string;
