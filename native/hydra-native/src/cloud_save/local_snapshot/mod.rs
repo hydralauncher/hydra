@@ -7,7 +7,8 @@ use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
 pub use types::{
-    BuildLocalGameSnapshotInput, DiscoveredLocalSaveFile, LocalGameSnapshot, LocalSaveSnapshotFile,
+    BuildLocalGameSnapshotInput, DiscoveredLocalSaveFile, LocalGameSnapshot, LocalGameSnapshotFile,
+    LocalSaveSnapshotFile,
 };
 
 #[napi]
