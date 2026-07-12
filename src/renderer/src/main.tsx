@@ -143,8 +143,15 @@ i18n.on("languageChanged", syncDocumentLanguage);
 // for all routes) so detached windows — friends, game-launcher, etc. — react
 // too, not just the routes mounted under <App />.
 globalThis.electron.onUserPreferencesUpdated((preferences) => {
-  if (preferences?.language && preferences.language !== i18n.language) {
-    i18n.changeLanguage(preferences.language).catch((error) => {
+  if (!preferences?.language) return;
+
+  const normalizedLanguage = resolveLanguageKey(
+    preferences.language,
+    supportedLanguages
+  );
+
+  if (normalizedLanguage !== i18n.language) {
+    i18n.changeLanguage(normalizedLanguage).catch((error) => {
       console.error("Failed to change language", error);
     });
   }

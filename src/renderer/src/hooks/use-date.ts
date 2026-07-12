@@ -1,4 +1,4 @@
-import { formatDate, getDateLocale } from "@shared";
+import { formatDate, getDateFormat, getDateLocale } from "@shared";
 import { format, formatDistance, subMilliseconds } from "date-fns";
 import type { FormatDistanceOptions } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -42,7 +42,9 @@ export function useDate() {
     formatDateTime: (date: number | Date | string): string => {
       return format(
         date,
-        language == "en" ? "MM-dd-yyyy - hh:mm a" : "dd/MM/yyyy HH:mm",
+        language === "en"
+          ? "MM-dd-yyyy - hh:mm a"
+          : `${getDateFormat(language)} HH:mm`,
         { locale: getDateLocale(language) }
       );
     },

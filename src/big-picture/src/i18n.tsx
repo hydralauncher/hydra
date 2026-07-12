@@ -121,6 +121,8 @@ function needsSpanishLanguageMigration(storedLanguage: string): boolean {
 }
 
 function resolveSpanishMigrationTarget(storedLanguage: string): string {
+  // Reuse the same es-ES vs es-419 resolution used everywhere else in Big
+  // Picture, instead of always forcing unknown "es-*" codes to es-419.
   return resolveBigPictureLanguage(storedLanguage);
 }
 
@@ -275,8 +277,14 @@ export async function initializeBigPictureI18n() {
   i18next.on("languageChanged", syncDocumentLanguage);
 
   electron?.onUserPreferencesUpdated?.((preferences) => {
-    if (preferences?.language && preferences.language !== i18next.language) {
-      i18next.changeLanguage(preferences.language).catch((error) => {
+    if (!preferences?.language) return;
+
+    const normalizedLanguage = resolveBigPictureLanguage(
+      preferences.language
+    );
+
+    if (normalizedLanguage !== i18next.language) {
+      i18next.changeLanguage(normalizedLanguage).catch((error) => {
         console.error("Failed to change Big Picture language", error);
       });
     }
