@@ -478,7 +478,7 @@ export interface ComparedAchievements {
   }[];
 }
 
-export type AchievementSort = "points" | "date" | "name" | "default";
+export type AchievementSort = "easiest_first" | "date" | "name" | "default";
 
 export interface CatalogueSearchPayload {
   title: string;

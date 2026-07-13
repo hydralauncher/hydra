@@ -8,7 +8,10 @@ import {
 } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { Link, ProgressBar } from "@renderer/components";
-import { FilterDropdown } from "@renderer/components/filter-dropdown/filter-dropdown";
+import {
+  FilterDropdown,
+  FilterDropdownOption,
+} from "@renderer/components/filter-dropdown/filter-dropdown";
 import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import { gameDetailsContext } from "@renderer/context";
 import { setHeaderTitle } from "@renderer/features";
@@ -165,7 +168,7 @@ export function AchievementsContent({
   }, [dispatch, gameTitle]);
 
   useEffect(() => {
-    if (otherUser && sort === "points") {
+    if (otherUser && sort === "easiest_first") {
       setSort("default");
     }
   }, [otherUser, sort]);
@@ -201,7 +204,7 @@ export function AchievementsContent({
     );
   };
 
-  const sortOptions = [
+  const sortOptions: FilterDropdownOption<AchievementSort>[] = [
     {
       value: "default",
       label: t("sort_option_default"),
@@ -209,8 +212,8 @@ export function AchievementsContent({
     },
     { value: "date", label: t("sort_option_date"), icon: HistoryIcon },
     {
-      value: "points",
-      label: t("sort_option_points"),
+      value: "easiest_first",
+      label: t("sort_option_easiest_first"),
       icon: PointsIcon,
     },
     {
@@ -221,7 +224,7 @@ export function AchievementsContent({
   ];
 
   const comparedSortOptions = sortOptions.filter(
-    (option) => option.value !== "points"
+    (option) => option.value !== "easiest_first"
   );
 
   if (!objectId || !shop || !gameTitle || !userDetails) return null;

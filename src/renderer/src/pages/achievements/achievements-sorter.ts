@@ -18,14 +18,16 @@ export function sorter(
   const getUnlockTime = (achievement: UserAchievement | ComparedAchievement) =>
     isUserAchievement(achievement)
       ? Number(achievement.unlockTime)
-      : Number(achievement.targetStat.unlockTime);
+      : Number(
+          achievement.ownerStat?.unlockTime ?? achievement.targetStat.unlockTime
+        );
 
   const getPoints = (achievement: UserAchievement | ComparedAchievement) =>
     isUserAchievement(achievement) ? Number(achievement.points ?? 0) : 0;
 
   if (sort === "date") {
     diff = getUnlockTime(b) - getUnlockTime(a);
-  } else if (sort === "points") {
+  } else if (sort === "easiest_first") {
     diff = getPoints(a) - getPoints(b);
   } else if (sort === "name") {
     diff = a.displayName.localeCompare(b.displayName);

@@ -1469,7 +1469,7 @@
     "sort_by": "Ordenar por",
     "sort_option_default": "Padrão",
     "sort_option_date": "Data de obtenção",
-    "sort_option_points": "Pontos",
+    "sort_option_easiest_first": "Mais fácil primeiro",
     "sort_option_name": "Nome"
   },
   "hydra_cloud": {

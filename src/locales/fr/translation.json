@@ -1485,7 +1485,7 @@
     "sort_by": "Trier par",
     "sort_option_default": "Défaut",
     "sort_option_date": "Date d'obtention",
-    "sort_option_points": "Points",
+    "sort_option_easiest_first": "Plus facile d'abord",
     "sort_option_name": "Nom",
     "connect_retroachievements_prompt": "Connectez RetroAchievements pour suivre votre progression",
     "hardcore": "Hardcore",
