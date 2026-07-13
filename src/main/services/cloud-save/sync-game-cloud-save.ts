@@ -1,65 +1,77 @@
 import type {
+  CloudSaveSyncProgressPayload,
   CloudSaveSyncTrigger,
   GameShop,
-  LocalGameSnapshotPipelineResult,
-  RemoteSnapshotSummary,
   SyncGameCloudSaveResult,
 } from "@types";
 
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
-import { createRemoteSnapshotFromLocalState } from "./create-remote-snapshot-from-local-state";
-import { restoreRemoteSnapshot } from "./restore-remote-snapshot";
-import { saveCloudSaveSyncAnchor } from "./sync-anchor";
+import {
+  type ProgressCallback,
+  restoreRemoteState,
+  runFirstSync,
+  type SyncOutcome,
+  uploadLocalState,
+} from "./sync-game";
 
-const activeSyncs = new Map<string, Promise<SyncGameCloudSaveResult>>();
+interface ActiveSync {
+  promise: Promise<SyncGameCloudSaveResult>;
+  progress: ActiveSyncProgress;
+}
+
+interface ActiveSyncProgress {
+  listeners: Set<ProgressCallback>;
+  latestProgress?: CloudSaveSyncProgressPayload;
+}
+
+const activeSyncs = new Map<string, ActiveSync>();
 
 const gameKey = (objectId: string, shop: GameShop) =>
   JSON.stringify([shop, objectId]);
 
-const uploadLocalState = async (
-  objectId: string,
-  shop: GameShop,
-  localSnapshotContext: LocalGameSnapshotPipelineResult
-) => {
-  const snapshot = await createRemoteSnapshotFromLocalState(
-    objectId,
-    shop,
-    undefined,
-    localSnapshotContext
-  );
-  if (!snapshot) throw new Error("Local cloud save snapshot is empty");
-};
-
-const restoreRemoteState = async (
-  objectId: string,
-  shop: GameShop,
-  snapshot: RemoteSnapshotSummary
-) => {
-  const result = await restoreRemoteSnapshot(
-    snapshot.id,
-    { objectId, shop },
-    undefined,
-    snapshot
-  );
-  if (!result.ok || result.failedFiles > 0) {
-    throw new Error(
-      `Cloud save restore failed for ${result.failedFiles} file(s)`
-    );
-  }
-};
-
 const runGameCloudSaveSync = async (
   objectId: string,
   shop: GameShop,
-  trigger: CloudSaveSyncTrigger
+  trigger: CloudSaveSyncTrigger,
+  emitProgress: ProgressCallback
 ): Promise<SyncGameCloudSaveResult> => {
+  const finish = ({ result, processedFiles, totalFiles }: SyncOutcome) => {
+    emitProgress({
+      gameId: { objectId, shop },
+      stage: result.action === "conflict" ? "conflict" : "completed",
+      processedFiles,
+      totalFiles,
+    });
+    return result;
+  };
+
+  emitProgress({
+    gameId: { objectId, shop },
+    stage: "analyzing",
+    processedFiles: 0,
+    totalFiles: 0,
+  });
   const analysis = await analyzeCloudSaveState(objectId, shop);
   const initialState = analysis.state.state;
 
-  if (initialState === "local-ahead") {
-    await uploadLocalState(objectId, shop, analysis.localSnapshotContext);
+  if (initialState === "untracked") {
+    return finish(
+      await runFirstSync(objectId, shop, trigger, analysis, emitProgress)
+    );
+  }
 
-    return { trigger, action: "upload", initialState, finalState: "synced" };
+  if (initialState === "local-ahead") {
+    await uploadLocalState(
+      objectId,
+      shop,
+      analysis.localSnapshotContext,
+      emitProgress
+    );
+    return finish({
+      result: { trigger, action: "upload", initialState, finalState: "synced" },
+      processedFiles: analysis.localSnapshot.fileCount,
+      totalFiles: analysis.localSnapshot.fileCount,
+    });
   }
 
   if (initialState === "remote-ahead") {
@@ -67,75 +79,74 @@ const runGameCloudSaveSync = async (
     if (!snapshot) {
       throw new Error("Active remote cloud save snapshot not found");
     }
-    await restoreRemoteState(objectId, shop, snapshot);
-
-    return { trigger, action: "restore", initialState, finalState: "synced" };
+    await restoreRemoteState(objectId, shop, snapshot, emitProgress);
+    return finish({
+      result: {
+        trigger,
+        action: "restore",
+        initialState,
+        finalState: "synced",
+      },
+      processedFiles: snapshot.fileCount,
+      totalFiles: snapshot.fileCount,
+    });
   }
 
   if (initialState === "conflict") {
-    return {
-      trigger,
-      action: "conflict",
-      initialState,
-      finalState: "conflict",
-    };
+    return finish({
+      result: {
+        trigger,
+        action: "conflict",
+        initialState,
+        finalState: "conflict",
+      },
+      processedFiles: 0,
+      totalFiles: 0,
+    });
   }
 
-  if (initialState === "untracked") {
-    const hasLocalFiles = analysis.localSnapshot.files.length > 0;
-    const remoteSnapshot = analysis.state.activeRemoteSnapshot;
-
-    if (hasLocalFiles && remoteSnapshot) {
-      if (
-        analysis.localSnapshot.aggregateHash !== remoteSnapshot.aggregateHash
-      ) {
-        return {
-          trigger,
-          action: "conflict",
-          initialState,
-          finalState: "conflict",
-        };
-      }
-
-      await saveCloudSaveSyncAnchor(shop, objectId, {
-        baseSnapshotId: remoteSnapshot.id,
-        baseAggregateHash: remoteSnapshot.aggregateHash,
-        updatedAt: new Date().toISOString(),
-      });
-      return { trigger, action: "none", initialState, finalState: "synced" };
-    }
-
-    if (hasLocalFiles) {
-      await uploadLocalState(objectId, shop, analysis.localSnapshotContext);
-      return { trigger, action: "upload", initialState, finalState: "synced" };
-    }
-
-    if (remoteSnapshot) {
-      await restoreRemoteState(objectId, shop, remoteSnapshot);
-      return { trigger, action: "restore", initialState, finalState: "synced" };
-    }
-  }
-
-  return {
-    trigger,
-    action: "none",
-    initialState,
-    finalState: initialState,
-  };
+  return finish({
+    result: { trigger, action: "none", initialState, finalState: initialState },
+    processedFiles: 0,
+    totalFiles: 0,
+  });
 };
 
 export const syncGameCloudSave = (
   objectId: string,
   shop: GameShop,
-  trigger: CloudSaveSyncTrigger
+  trigger: CloudSaveSyncTrigger,
+  onProgress?: ProgressCallback
 ): Promise<SyncGameCloudSaveResult> => {
   const key = gameKey(objectId, shop);
   const activeSync = activeSyncs.get(key);
-  if (activeSync) return activeSync;
+  if (activeSync) {
+    if (onProgress) {
+      activeSync.progress.listeners.add(onProgress);
+      if (activeSync.progress.latestProgress) {
+        onProgress(activeSync.progress.latestProgress);
+      }
+    }
+    return activeSync.promise;
+  }
 
-  const sync = runGameCloudSaveSync(objectId, shop, trigger).finally(() => {
-    if (activeSyncs.get(key) === sync) activeSyncs.delete(key);
+  const listeners = new Set<ProgressCallback>();
+  if (onProgress) listeners.add(onProgress);
+  const progressState: ActiveSyncProgress = { listeners };
+  const emitProgress = (progress: CloudSaveSyncProgressPayload) => {
+    progressState.latestProgress = progress;
+    for (const listener of progressState.listeners) listener(progress);
+  };
+
+  const promise = runGameCloudSaveSync(
+    objectId,
+    shop,
+    trigger,
+    emitProgress
+  ).finally(() => {
+    if (activeSyncs.get(key)?.promise === promise) activeSyncs.delete(key);
   });
-  activeSyncs.set(key, sync);
-  return sync;
+  const active: ActiveSync = { promise, progress: progressState };
+  activeSyncs.set(key, active);
+  return promise;
 };
