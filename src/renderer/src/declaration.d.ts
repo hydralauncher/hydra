@@ -58,6 +58,7 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  CloudSaveAutomaticSyncEvent,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   SyncGameCloudSaveResult,
@@ -93,6 +94,9 @@ declare global {
   };
 
   interface Electron {
+    onCloudSaveAutomaticSync: (
+      callback: (event: CloudSaveAutomaticSyncEvent) => void
+    ) => () => void;
     getCloudSaveOverview: (
       objectId: string,
       shop: GameShop

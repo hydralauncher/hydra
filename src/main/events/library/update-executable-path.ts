@@ -8,6 +8,7 @@ import {
   updateGameTrackingExecutablePaths,
 } from "@main/helpers/update-executable-path";
 import { logger } from "@main/services";
+import { runAutomaticCloudSaveSync } from "@main/services/cloud-save/automatic-sync";
 import type { GameShop } from "@types";
 
 const updateExecutablePath = async (
@@ -24,6 +25,7 @@ const updateExecutablePath = async (
 
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
+  const executableAdded = !game.executablePath && parsedPath !== null;
 
   // Update immediately without size so UI responds fast
   await gamesSublevel.put(gameKey, {
@@ -32,6 +34,10 @@ const updateExecutablePath = async (
     automaticCloudSync:
       executablePath === null ? false : game.automaticCloudSync,
   });
+
+  if (executableAdded) {
+    void runAutomaticCloudSaveSync(objectId, shop, "executable-added");
+  }
 
   // Calculate size in background and update later
   if (parsedPath) {

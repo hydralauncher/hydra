@@ -20,6 +20,7 @@ import {
   type LinuxProcessInfo,
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
+import { runAutomaticCloudSaveSync } from "./cloud-save/automatic-sync";
 
 export const gamesPlaytime = new Map<
   string,
@@ -493,6 +494,8 @@ const onCloseGame = (game: Game) => {
   gamesSublevel.put(gameKey, updatedGame);
 
   if (game.shop === "custom") return;
+
+  void runAutomaticCloudSaveSync(game.objectId, game.shop, "post-exit");
 
   if (game.remoteId) {
     if (game.automaticCloudSync) {

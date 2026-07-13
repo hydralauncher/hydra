@@ -38,6 +38,7 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  CloudSaveAutomaticSyncEvent,
   CloudSaveOverview,
   CloudSaveSyncIpcProgressPayload,
   CloudSaveSyncProgressPayload,
@@ -53,6 +54,17 @@ const fileExplorerApi = {
 };
 
 contextBridge.exposeInMainWorld("electron", {
+  onCloudSaveAutomaticSync: (
+    callback: (event: CloudSaveAutomaticSyncEvent) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: CloudSaveAutomaticSyncEvent
+    ) => callback(payload);
+    ipcRenderer.on("on-cloud-save-automatic-sync", listener);
+    return () =>
+      ipcRenderer.removeListener("on-cloud-save-automatic-sync", listener);
+  },
   getCloudSaveOverview: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "getCloudSaveOverview",

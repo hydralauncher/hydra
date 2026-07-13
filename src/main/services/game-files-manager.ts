@@ -26,6 +26,7 @@ import { deleteArchiveFile } from "@main/events/library/delete-archive";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { SystemPath } from "./system-path";
 import { WindowManager } from "./window-manager";
+import { runAutomaticCloudSaveSync } from "./cloud-save/automatic-sync";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
@@ -369,6 +370,12 @@ export class GameFilesManager {
         await gamesSublevel.put(this.gameKey, {
           ...updateGameExecutablePath(game, foundExePath),
         });
+
+        void runAutomaticCloudSaveSync(
+          this.objectId,
+          this.shop,
+          "executable-added"
+        );
 
         WindowManager.sendToAppWindows("on-library-batch-complete");
 
