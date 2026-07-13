@@ -1,4 +1,4 @@
-export const MAX_CONCURRENT_RESTORE_OPERATIONS = 4;
+export const MAX_CONCURRENT_RESTORE_OPERATIONS = 8;
 
 export const mapWithConcurrency = async <Item, Result>(
   items: readonly Item[],
