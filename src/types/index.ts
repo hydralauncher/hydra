@@ -114,6 +114,7 @@ export interface GameRunning {
   id: string;
   title: string;
   iconUrl: string | null;
+  coverImageUrl?: string | null;
   objectId: string;
   shop: GameShop;
   sessionDurationInMillis: number;
