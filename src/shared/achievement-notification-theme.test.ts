@@ -195,7 +195,8 @@ test("window positioning accounts for work-area offsets", () => {
   );
 });
 
-test("variation sound volume cannot exceed the master volume", () => {
-  assert.equal(getEffectiveAchievementNotificationSoundVolume(0.5, 0.8), 0.5);
-  assert.equal(getEffectiveAchievementNotificationSoundVolume(0.8, 0.25), 0.25);
+test("variation sound volume scales the master volume", () => {
+  assert.equal(getEffectiveAchievementNotificationSoundVolume(0.5, 0.8), 0.4);
+  assert.equal(getEffectiveAchievementNotificationSoundVolume(0.8, 0.25), 0.2);
+  assert.equal(getEffectiveAchievementNotificationSoundVolume(0.8), 0.8);
 });

@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, CheckboxField } from "@renderer/components";
+import { Button, CheckboxField, SelectField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import type { AchievementCustomNotificationPosition } from "@types";
@@ -9,6 +9,15 @@ import { UnmuteIcon } from "@primer/octicons-react";
 import { BellIcon } from "lucide-react";
 
 import "./settings-general.scss";
+
+const notificationPositions: AchievementCustomNotificationPosition[] = [
+  "top-left",
+  "top-center",
+  "top-right",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
+];
 
 export function SettingsContextNotifications() {
   const { t } = useTranslation("settings");
@@ -163,6 +172,26 @@ export function SettingsContextNotifications() {
             globalThis.electron.updateAchievementCustomNotificationWindow();
           }}
         />
+
+        {form.achievementNotificationsEnabled &&
+          form.achievementCustomNotificationsEnabled && (
+            <SelectField
+              label={t("achievement_custom_notification_position")}
+              value={form.achievementCustomNotificationPosition}
+              options={notificationPositions.map((position) => ({
+                key: position,
+                value: position,
+                label: t(position),
+              }))}
+              onChange={async (event) => {
+                await handleChange({
+                  achievementCustomNotificationPosition: event.target
+                    .value as AchievementCustomNotificationPosition,
+                });
+                globalThis.electron.updateAchievementCustomNotificationWindow();
+              }}
+            />
+          )}
 
         <Button
           theme="outline"

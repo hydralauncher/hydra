@@ -305,11 +305,19 @@ export const getComputedAchievementNotificationLayout = (
   const normalizedScale = Number.isFinite(scale)
     ? Math.min(Math.max(scale, 0.6), 2)
     : 1;
+  const width = Number.parseFloat(
+    style.getPropertyValue("--achievement-notification-width") || "360"
+  );
+  const height = Number.parseFloat(
+    style.getPropertyValue("--achievement-notification-height") || "140"
+  );
+  const normalizedWidth = Number.isFinite(width) && width > 0 ? width : 360;
+  const normalizedHeight = Number.isFinite(height) && height > 0 ? height : 140;
 
   return {
     position,
-    width: Math.ceil(360 * normalizedScale),
-    height: Math.ceil(140 * normalizedScale),
+    width: Math.ceil(normalizedWidth * normalizedScale),
+    height: Math.ceil(normalizedHeight * normalizedScale),
   };
 };
 

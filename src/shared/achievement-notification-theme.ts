@@ -250,7 +250,5 @@ export const getEffectiveAchievementNotificationSoundVolume = (
   masterVolume: number,
   variationVolume?: number
 ) =>
-  Math.min(
-    Math.max(masterVolume, 0),
-    Math.min(Math.max(variationVolume ?? masterVolume, 0), 1)
-  );
+  Math.min(Math.max(masterVolume, 0), 1) *
+  Math.min(Math.max(variationVolume ?? 1, 0), 1);

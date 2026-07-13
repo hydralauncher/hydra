@@ -9,11 +9,13 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { Button, SelectField, TextField } from "@renderer/components";
+import { getAchievementSoundVolume } from "@renderer/helpers";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import {
   ACHIEVEMENT_NOTIFICATION_VARIATIONS,
   DEFAULT_ACHIEVEMENT_NOTIFICATION_CSS,
   getEffectiveAchievementNotificationCss,
+  getAchievementNotificationPreviewFlags,
   parseAchievementNotificationManagedCss,
   updateAchievementNotificationManagedCss,
   type AchievementNotificationCssProperty,
@@ -220,7 +222,9 @@ export function AchievementNotificationCustomizer({
       customSound ??
       (await import("@renderer/assets/audio/achievement.wav")).default;
     const audio = new Audio(soundUrl);
-    audio.volume = sound?.volume ?? soundVolume / 100;
+    audio.volume = await getAchievementSoundVolume(
+      getAchievementNotificationPreviewFlags(variation)
+    );
     await audio.play();
   };
 
