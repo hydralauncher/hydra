@@ -2,10 +2,12 @@ import { HydraApi } from "@main/services/hydra-api";
 import { logger } from "@main/services/logger";
 import { SystemPath } from "@main/services/system-path";
 import type {
+  CloudSaveGameId,
   RemoteSnapshotSummary,
   ReplaceRestoreTarget,
   ResolvedRestoreTarget,
   RestoreRemoteSnapshotResult,
+  RestoreProgressPayload,
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
@@ -60,9 +62,26 @@ const getSnapshotSummary = async (
 };
 
 export const restoreRemoteSnapshot = async (
-  snapshotId: string
+  snapshotId: string,
+  gameId: CloudSaveGameId,
+  onProgress?: (progress: RestoreProgressPayload) => void
 ): Promise<RestoreRemoteSnapshotResult> => {
+  const emitProgress = (
+    stage: RestoreProgressPayload["stage"],
+    processedFiles: number,
+    totalFiles: number
+  ) => onProgress?.({ gameId, stage, processedFiles, totalFiles });
+
+  emitProgress("starting", 0, 0);
   const manifest = await getRemoteSnapshotRestoreManifest(snapshotId);
+  if (
+    manifest.snapshot.shop !== gameId.shop ||
+    manifest.snapshot.objectId !== gameId.objectId
+  ) {
+    throw new Error("Restore snapshot does not belong to the requested game");
+  }
+
+  emitProgress("resolving", 0, manifest.files.length);
   const [targets, snapshot] = await Promise.all([
     resolveRestoreManifestTargets(manifest),
     getSnapshotSummary(
@@ -71,10 +90,12 @@ export const restoreRemoteSnapshot = async (
       manifest.snapshot.objectId
     ),
   ]);
+  emitProgress("resolving", targets.length, targets.length);
   const skipKeys = new Set<string>();
   const restoreTargets: ResolvedRestoreTarget[] = [];
 
-  for (const target of targets) {
+  emitProgress("checking", 0, targets.length);
+  for (const [index, target] of targets.entries()) {
     if (
       await shouldSkipRestoreFile({
         localPath: target.targetPath,
@@ -85,13 +106,17 @@ export const restoreRemoteSnapshot = async (
     } else {
       restoreTargets.push(target);
     }
+    emitProgress("checking", index + 1, targets.length);
   }
 
   const shouldCleanup = restoreTargets.length > 0;
   try {
+    emitProgress("downloading", 0, restoreTargets.length);
     const downloadedFiles = await downloadRemoteSnapshotToTemp(
       snapshotId,
-      restoreTargets
+      restoreTargets,
+      (processedFiles, totalFiles) =>
+        emitProgress("downloading", processedFiles, totalFiles)
     );
     const downloadedByPath = new Map(
       downloadedFiles.map((file) => [
@@ -100,7 +125,8 @@ export const restoreRemoteSnapshot = async (
       ])
     );
 
-    for (const file of downloadedFiles) {
+    emitProgress("verifying", 0, downloadedFiles.length);
+    for (const [index, file] of downloadedFiles.entries()) {
       const integrity = await verifyDownloadedRestoreFile({
         tempPath: file.tempPath,
         expectedHash: file.hash,
@@ -110,6 +136,7 @@ export const restoreRemoteSnapshot = async (
           `Restore file integrity check failed for ${file.rawPath}/${file.relativePath}`
         );
       }
+      emitProgress("verifying", index + 1, downloadedFiles.length);
     }
 
     const replacements: ReplaceRestoreTarget[] = targets.map((target) => {
@@ -133,14 +160,18 @@ export const restoreRemoteSnapshot = async (
         expectedHash: file.hash,
       };
     });
+    emitProgress("applying_restore", 0, replacements.length);
     const result = await replaceRestoreTargets(replacements);
+    emitProgress("applying_restore", replacements.length, replacements.length);
     if (result.failedFiles.length > 0) {
-      return {
+      const restoreResult = {
         ok: false,
         restoredFiles: result.restoredFiles.length,
         skippedFiles: result.skippedFiles.length,
         failedFiles: result.failedFiles.length,
       };
+      emitProgress("completed", replacements.length, replacements.length);
+      return restoreResult;
     }
 
     await saveCloudSaveSyncAnchor(
@@ -152,12 +183,14 @@ export const restoreRemoteSnapshot = async (
         updatedAt: new Date().toISOString(),
       }
     );
-    return {
+    const restoreResult = {
       ok: true,
       restoredFiles: result.restoredFiles.length,
       skippedFiles: result.skippedFiles.length,
       failedFiles: 0,
     };
+    emitProgress("completed", targets.length, targets.length);
+    return restoreResult;
   } finally {
     if (shouldCleanup) {
       await NativeAddon.cleanupRestoreTempSnapshot(

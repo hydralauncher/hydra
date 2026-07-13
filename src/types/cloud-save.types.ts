@@ -125,6 +125,29 @@ export interface RestoreRemoteSnapshotResult {
   failedFiles: number;
 }
 
+export type RestoreProgressStage =
+  | "starting"
+  | "resolving"
+  | "checking"
+  | "downloading"
+  | "verifying"
+  | "applying_restore"
+  | "completed";
+
+export interface RestoreProgressPayload {
+  gameId: CloudSaveGameId;
+  stage: RestoreProgressStage;
+  processedFiles: number;
+  totalFiles: number;
+}
+
+export interface RestoreFinishedPayload {
+  gameId: CloudSaveGameId;
+  restoredFiles: number;
+  skippedFiles: number;
+  failedFiles: number;
+}
+
 export interface LocalGameSnapshotFile {
   rawPath: string;
   relativePath: string;

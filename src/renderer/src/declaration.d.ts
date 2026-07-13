@@ -59,6 +59,10 @@ import type {
   MemcardRestoreResult,
   MemcardRestoreTarget,
   LocalGameSnapshotWithHash,
+  CloudSaveGameId,
+  RestoreFinishedPayload,
+  RestoreProgressPayload,
+  RestoreRemoteSnapshotResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -95,6 +99,18 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<LocalGameSnapshotWithHash>;
+    restoreRemoteSnapshot: (
+      snapshotId: string,
+      gameId: CloudSaveGameId
+    ) => Promise<RestoreRemoteSnapshotResult>;
+    onRestoreProgress: (
+      gameId: CloudSaveGameId,
+      cb: (progress: RestoreProgressPayload) => void
+    ) => () => void;
+    onRestoreFinished: (
+      gameId: CloudSaveGameId,
+      cb: (result: RestoreFinishedPayload) => void
+    ) => () => void;
     /* Torrenting */
     startGameDownload: (
       payload: StartGameDownloadPayload
