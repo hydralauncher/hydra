@@ -73,7 +73,9 @@ export default function GameDetails() {
   };
 
   const selectRepackUri = (repack: GameRepack, downloader: Downloader) =>
-    repack.uris.find((uri) => getDownloadersForUri(uri).includes(downloader))!;
+    (Array.isArray(repack.uris) ? repack.uris : []).find((uri) =>
+      getDownloadersForUri(uri).includes(downloader)
+    )!;
 
   return (
     <GameDetailsContextProvider
