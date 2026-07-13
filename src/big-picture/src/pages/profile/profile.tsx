@@ -36,6 +36,7 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   AnimatedHeroImage,
   Button,
@@ -50,13 +51,12 @@ import { IS_DESKTOP } from "../../constants";
 import {
   getBigPictureGameDetailsPath,
   getBigPictureGameAchievementsPath,
-  formatPlayedTime,
   formatRelativeDate,
   getGameIdentityKey,
   getGameLandscapeImageSource,
 } from "../../helpers";
 import { useHeroBackgroundLayers } from "../../components/pages/library/hero/use-hero-background-layers";
-import { useLibrary, useUserDetails } from "../../hooks";
+import { useFormat, useLibrary, useUserDetails } from "../../hooks";
 import { BIG_PICTURE_SIDEBAR_PROFILE_ID } from "../../layout";
 import type { FocusOverrides } from "../../services";
 import {
@@ -303,10 +303,17 @@ function getActivityPlaytimeInMilliseconds(game: ProfileActivityGame) {
   return 0;
 }
 
-function getActivityLastPlayedLabel(game: ProfileActivityGame) {
-  return `Last played ${formatRelativeDate(game.lastTimePlayed, {
-    fallback: "recently",
-  })}`;
+function getActivityLastPlayedLabel(
+  game: ProfileActivityGame,
+  language: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const relativeDate = formatRelativeDate(game.lastTimePlayed, {
+    locale: language,
+    fallback: t("recently_played_fallback", { ns: "big_picture" }),
+  });
+
+  return t("last_time_played", { period: relativeDate });
 }
 
 function getProfileActivityFocusId(game: ProfileActivityGame) {
@@ -508,6 +515,9 @@ function getProfileLibraryGameItemId(game: ShopAssets) {
 export default function Profile() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation(["game_details", "big_picture"]);
+  const { formatPlayTime } = useFormat();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const {
     userDetails,
     hasActiveSubscription,
@@ -1421,7 +1431,11 @@ export default function Profile() {
                       <h2>{favoriteGame?.title ?? "--"}</h2>
                       <p>
                         {favoriteGame
-                          ? `${formatHours(favoriteGamePlaytimeInSeconds)} played`
+                          ? t("play_time", {
+                              amount: formatHours(
+                                favoriteGamePlaytimeInSeconds
+                              ),
+                            })
                           : "--"}
                       </p>
                     </div>
@@ -1539,13 +1553,17 @@ export default function Profile() {
 
                           <div className="profile-page__activity-copy">
                             <h3>{game.title}</h3>
-                            <p>{getActivityLastPlayedLabel(game)}</p>
+                            <p>
+                              {getActivityLastPlayedLabel(game, language, t)}
+                            </p>
                           </div>
 
                           <span className="profile-page__activity-playtime">
-                            {formatPlayedTime(
-                              getActivityPlaytimeInMilliseconds(game)
-                            )}
+                            {t("play_time", {
+                              amount: formatPlayTime(
+                                getActivityPlaytimeInMilliseconds(game) / 1000
+                              ),
+                            })}
                           </span>
                         </button>
                       </FocusItem>
@@ -1676,7 +1694,11 @@ export default function Profile() {
                                             {formatRelativeDate(
                                               achievement.unlockTime,
                                               {
-                                                fallback: "recently",
+                                                locale: language,
+                                                fallback: t(
+                                                  "recently_played_fallback",
+                                                  { ns: "big_picture" }
+                                                ),
                                               }
                                             )}
                                           </span>
