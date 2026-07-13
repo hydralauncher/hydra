@@ -7,6 +7,7 @@ export * from "./replace-restore-targets";
 export * from "./resolve-remote-snapshot-targets";
 export * from "./restore-remote-snapshot";
 export * from "./should-skip-restore-file";
+export * from "./sync-game-cloud-save";
 export * from "./sync-anchor";
 export * from "./upload-local-game-snapshot";
 export * from "./verify-downloaded-restore-file";
