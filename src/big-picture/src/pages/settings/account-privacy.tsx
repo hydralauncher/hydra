@@ -7,6 +7,7 @@ import type {
   UserFriend,
 } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Button,
@@ -50,7 +51,8 @@ function getProfileVisibilityLabel(value: ProfileVisibility) {
 function getHydraCloudSectionContent(
   hasActiveSubscription: boolean,
   subscription: Subscription | null,
-  formatDate: (date: string | Date | number) => string
+  formatDate: (date: string | Date | number) => string,
+  t: (key: string, options?: Record<string, unknown>) => string
 ) {
   const hasSubscribedBefore = Boolean(subscription?.expiresAt);
   const isRenewalActive = subscription?.status === "active";
@@ -70,7 +72,9 @@ function getHydraCloudSectionContent(
           ]
         : [
             "Automatic renewal is disabled",
-            `Your Hydra Cloud is active until ${formatDate(subscription!.expiresAt!)}`,
+            t("subscription_active_until", {
+              date: formatDate(subscription!.expiresAt!),
+            }),
           ],
       callToAction: "Manage Subscription",
     };
@@ -88,6 +92,7 @@ export function AccountPrivacySettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
   const { formatDate } = useDate();
+  const { t } = useTranslation("settings");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const { setFocus } = useNavigation();
   const { userDetails, hasActiveSubscription, patchUser, unblockUser } =
@@ -140,9 +145,10 @@ export function AccountPrivacySettingsSection({
     return getHydraCloudSectionContent(
       hasActiveSubscription,
       userDetails?.subscription ?? null,
-      formatDate
+      formatDate,
+      t
     );
-  }, [formatDate, hasActiveSubscription, userDetails?.subscription]);
+  }, [formatDate, hasActiveSubscription, t, userDetails?.subscription]);
 
   const blockedUserFocusIds = useMemo(
     () =>
