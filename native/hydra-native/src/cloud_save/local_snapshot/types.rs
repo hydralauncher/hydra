@@ -22,6 +22,7 @@ pub struct LocalFileHashCacheEntry {
 }
 
 #[napi(object)]
+#[derive(Clone)]
 pub struct LocalSaveSnapshotFile {
     pub raw_path: String,
     pub absolute_path: String,

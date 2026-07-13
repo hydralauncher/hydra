@@ -1,12 +1,11 @@
-use std::fs;
+use crate::cloud_save::hashing::hash_file;
+
+use super::guardrails::PreparedLocalSaveFile;
+use super::types::{LocalFileHashCacheEntry, LocalSaveSnapshotFile};
 
 use time::OffsetDateTime;
 
-use crate::cloud_save::hashing::hash_file;
-
-use super::types::{DiscoveredLocalSaveFile, LocalFileHashCacheEntry, LocalSaveSnapshotFile};
-
-fn format_modified_at(modified: std::time::SystemTime) -> String {
+pub(crate) fn format_modified_at(modified: std::time::SystemTime) -> String {
     let datetime = OffsetDateTime::from(modified);
     format!(
         "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:09}Z",
@@ -28,13 +27,12 @@ fn is_valid_hash(hash: &str) -> bool {
 }
 
 pub fn build_file(
-    file: DiscoveredLocalSaveFile,
+    prepared: PreparedLocalSaveFile,
     cached: Option<&LocalFileHashCacheEntry>,
 ) -> Result<LocalSaveSnapshotFile, String> {
-    let metadata = fs::metadata(&file.absolute_path).map_err(|error| error.to_string())?;
-    let modified = metadata.modified().map_err(|error| error.to_string())?;
-    let size_bytes = metadata.len() as f64;
-    let last_modified_at = format_modified_at(modified);
+    let file = prepared.file;
+    let size_bytes = prepared.size_bytes as f64;
+    let last_modified_at = prepared.last_modified_at;
     let hash = cached
         .filter(|entry| {
             entry.absolute_path == file.absolute_path

@@ -1,6 +1,7 @@
 mod build;
 mod build_file;
 mod build_files;
+mod guardrails;
 pub(crate) mod types;
 
 use napi::bindgen_prelude::Error;

@@ -40,6 +40,7 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showErrorToast, showWarningToast } = useToast();
   const {
+    game,
     isGameRunning,
     setShowGameOptionsModal,
     setGameOptionsInitialCategory,
@@ -51,6 +52,7 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
       shop,
       enabled: canUseCloudSaves,
       isGameRunning,
+      canAutomaticallySync: Boolean(game?.executablePath),
     });
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
