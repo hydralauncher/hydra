@@ -59,7 +59,8 @@ const validateDownloadUrls = (value: unknown): RestoreDownloadUrlFile[] => {
 
 export const downloadRemoteSnapshotToTemp = async (
   snapshotId: string,
-  requestedFiles?: RestoreManifestFile[]
+  requestedFiles?: RestoreManifestFile[],
+  onProgress?: (processedFiles: number, totalFiles: number) => void
 ): Promise<DownloadedRestoreFile[]> => {
   if (requestedFiles?.length === 0) return [];
   const files = validateDownloadUrls(
@@ -129,6 +130,7 @@ export const downloadRemoteSnapshotToTemp = async (
       sizeBytes: file.sizeBytes,
       tempPath,
     });
+    onProgress?.(downloadedFiles.length, selectedFiles.length);
   }
 
   return downloadedFiles;

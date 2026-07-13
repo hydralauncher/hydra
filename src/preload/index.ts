@@ -37,6 +37,10 @@ import type {
   MemcardRestoreResult,
   MemcardRestoreTarget,
   LocalGameSnapshotWithHash,
+  CloudSaveGameId,
+  RestoreFinishedPayload,
+  RestoreProgressPayload,
+  RestoreRemoteSnapshotResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -54,6 +58,50 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<LocalGameSnapshotWithHash>,
+  restoreRemoteSnapshot: (snapshotId: string, gameId: CloudSaveGameId) =>
+    ipcRenderer.invoke(
+      "restoreRemoteSnapshot",
+      snapshotId,
+      gameId
+    ) as Promise<RestoreRemoteSnapshotResult>,
+  onRestoreProgress: (
+    gameId: CloudSaveGameId,
+    cb: (progress: RestoreProgressPayload) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: RestoreProgressPayload
+    ) => {
+      if (
+        progress.gameId.shop === gameId.shop &&
+        progress.gameId.objectId === gameId.objectId
+      ) {
+        cb(progress);
+      }
+    };
+    ipcRenderer.on("on-cloud-save-restore-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-cloud-save-restore-progress", listener);
+  },
+  onRestoreFinished: (
+    gameId: CloudSaveGameId,
+    cb: (result: RestoreFinishedPayload) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      result: RestoreFinishedPayload
+    ) => {
+      if (
+        result.gameId.shop === gameId.shop &&
+        result.gameId.objectId === gameId.objectId
+      ) {
+        cb(result);
+      }
+    };
+    ipcRenderer.on("on-cloud-save-restore-finished", listener);
+    return () =>
+      ipcRenderer.removeListener("on-cloud-save-restore-finished", listener);
+  },
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("startGameDownload", payload),
