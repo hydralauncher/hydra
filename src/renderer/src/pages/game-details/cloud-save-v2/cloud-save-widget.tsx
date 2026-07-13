@@ -9,7 +9,7 @@ import type {
 } from "@types";
 import { AuthPage } from "@shared";
 import { gameDetailsContext } from "@renderer/context";
-import { useUserDetails } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
 
 import { CloudSaveModal } from "./cloud-save-modal";
 import { useCloudSaveOverview } from "./use-cloud-save-overview";
@@ -38,18 +38,15 @@ const statusTone = (overview: CloudSaveOverview | null, hasError: boolean) => {
 export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
   const { t } = useTranslation("game_details");
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const {
-    isGameRunning,
-    setShowGameOptionsModal,
-    setGameOptionsInitialCategory,
-  } = useContext(gameDetailsContext);
+  const { showErrorToast, showWarningToast } = useToast();
+  const { setShowGameOptionsModal, setGameOptionsInitialCategory } =
+    useContext(gameDetailsContext);
   const canUseCloudSaves = Boolean(userDetails && hasActiveSubscription);
   const { overview, isRefreshing, hasRefreshError, refresh } =
     useCloudSaveOverview({
       objectId,
       shop,
       enabled: canUseCloudSaves,
-      isGameRunning,
     });
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -67,6 +64,32 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
     setHasSyncError(false);
     setIsModalVisible(false);
   }, [gameKey]);
+
+  useEffect(() => {
+    return window.electron.onCloudSaveAutomaticSync((event) => {
+      if (event.gameId.objectId !== objectId || event.gameId.shop !== shop) {
+        return;
+      }
+
+      if (event.status === "failed") {
+        setHasSyncError(true);
+        showErrorToast(
+          t("cloud_save_v2_auto_sync_failed_title"),
+          t("cloud_save_v2_auto_sync_failed_description")
+        );
+      } else {
+        setHasSyncError(false);
+        if (event.status === "conflict") {
+          showWarningToast(
+            t("cloud_save_v2_auto_sync_conflict_title"),
+            t("cloud_save_v2_auto_sync_conflict_description")
+          );
+        }
+      }
+
+      void refresh();
+    });
+  }, [objectId, refresh, shop, showErrorToast, showWarningToast, t]);
 
   const handleOpen = () => {
     if (!userDetails) {

@@ -6,14 +6,12 @@ interface UseCloudSaveOverviewOptions {
   objectId: string;
   shop: GameShop;
   enabled: boolean;
-  isGameRunning: boolean;
 }
 
 export const useCloudSaveOverview = ({
   objectId,
   shop,
   enabled,
-  isGameRunning,
 }: UseCloudSaveOverviewOptions) => {
   const [overview, setOverview] = useState<CloudSaveOverview | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -23,7 +21,6 @@ export const useCloudSaveOverview = ({
   const activeRequest = useRef<Promise<void> | null>(null);
   const hasQueuedRefresh = useRef(false);
   const scheduledRefresh = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const previousRunningState = useRef({ gameKey, isGameRunning });
 
   const refresh = useCallback((): Promise<void> => {
     if (!enabled) return Promise.resolve();
@@ -114,19 +111,6 @@ export const useCloudSaveOverview = ({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [enabled, scheduleRefresh]);
-
-  useEffect(() => {
-    const previous = previousRunningState.current;
-    if (
-      enabled &&
-      previous.gameKey === gameKey &&
-      previous.isGameRunning &&
-      !isGameRunning
-    ) {
-      void refresh();
-    }
-    previousRunningState.current = { gameKey, isGameRunning };
-  }, [enabled, gameKey, isGameRunning, refresh]);
 
   return { overview, isRefreshing, hasRefreshError, refresh };
 };

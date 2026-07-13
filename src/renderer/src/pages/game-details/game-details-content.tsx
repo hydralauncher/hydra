@@ -382,7 +382,7 @@ export function GameDetailsContent() {
                   </button>
                 )}
 
-                {game && objectId && game.shop !== "custom" && (
+                {game && objectId && game.shop === "steam" && (
                   <CloudSaveWidget objectId={objectId} shop={shop} />
                 )}
 

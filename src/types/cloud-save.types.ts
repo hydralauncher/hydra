@@ -96,6 +96,18 @@ export interface SyncGameCloudSaveResult {
   finalState: CloudSaveState;
 }
 
+export type CloudSaveAutomaticSyncTrigger = Exclude<
+  CloudSaveSyncTrigger,
+  "manual"
+>;
+
+export interface CloudSaveAutomaticSyncEvent {
+  gameId: CloudSaveGameId;
+  trigger: CloudSaveAutomaticSyncTrigger;
+  status: "completed" | "conflict" | "failed";
+  result?: SyncGameCloudSaveResult;
+}
+
 export type CloudSaveSyncProgressStage =
   | "analyzing"
   | "uploading"
