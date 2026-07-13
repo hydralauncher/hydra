@@ -21,6 +21,10 @@ import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
 import { shouldSkipRestoreFile } from "./should-skip-restore-file";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
+import {
+  mapWithConcurrency,
+  MAX_CONCURRENT_RESTORE_OPERATIONS,
+} from "./map-with-concurrency";
 
 const fileKey = (rawPath: string, relativePath: string) =>
   JSON.stringify([rawPath, relativePath]);
@@ -72,18 +76,26 @@ export const restoreRemoteSnapshot = async (
   const restoreTargets: ResolvedRestoreTarget[] = [];
 
   emitProgress("checking", 0, targets.length);
-  for (const [index, target] of targets.entries()) {
-    if (
-      await shouldSkipRestoreFile({
+  let checkedFiles = 0;
+  const skipResults = await mapWithConcurrency(
+    targets,
+    MAX_CONCURRENT_RESTORE_OPERATIONS,
+    (target) =>
+      shouldSkipRestoreFile({
         localPath: target.targetPath,
         expectedHash: target.hash,
-      })
-    ) {
+      }),
+    () => {
+      checkedFiles += 1;
+      emitProgress("checking", checkedFiles, targets.length);
+    }
+  );
+  for (const [index, target] of targets.entries()) {
+    if (skipResults[index]) {
       skipKeys.add(fileKey(target.rawPath, target.relativePath));
     } else {
       restoreTargets.push(target);
     }
-    emitProgress("checking", index + 1, targets.length);
   }
 
   const shouldCleanup = restoreTargets.length > 0;
@@ -102,19 +114,40 @@ export const restoreRemoteSnapshot = async (
       ])
     );
 
-    emitProgress("verifying", 0, downloadedFiles.length);
-    for (const [index, file] of downloadedFiles.entries()) {
-      const integrity = await verifyDownloadedRestoreFile({
-        tempPath: file.tempPath,
-        expectedHash: file.hash,
-      });
-      if (!integrity.ok) {
-        throw new Error(
-          `Restore file integrity check failed for ${file.rawPath}/${file.relativePath}`
-        );
+    const downloadedFilesByHash = new Map<string, typeof downloadedFiles>();
+    for (const file of downloadedFiles) {
+      const existing = downloadedFilesByHash.get(file.hash) ?? [];
+      if (
+        existing.some(
+          (item) =>
+            item.sizeBytes !== file.sizeBytes || item.tempPath !== file.tempPath
+        )
+      ) {
+        throw new Error("Downloaded restore blob is inconsistent");
       }
-      emitProgress("verifying", index + 1, downloadedFiles.length);
+      downloadedFilesByHash.set(file.hash, [...existing, file]);
     }
+    const verificationGroups = Array.from(downloadedFilesByHash.values());
+    let verifiedFiles = 0;
+    emitProgress("verifying", 0, downloadedFiles.length);
+    await mapWithConcurrency(
+      verificationGroups,
+      MAX_CONCURRENT_RESTORE_OPERATIONS,
+      async (group) => {
+        const [file] = group;
+        const integrity = await verifyDownloadedRestoreFile({
+          tempPath: file.tempPath,
+          expectedHash: file.hash,
+        });
+        if (!integrity.ok) {
+          throw new Error("Restore file integrity check failed");
+        }
+      },
+      (_result, group) => {
+        verifiedFiles += group.length;
+        emitProgress("verifying", verifiedFiles, downloadedFiles.length);
+      }
+    );
 
     const replacements: ReplaceRestoreTarget[] = targets.map((target) => {
       const key = fileKey(target.rawPath, target.relativePath);
