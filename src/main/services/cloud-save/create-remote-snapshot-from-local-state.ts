@@ -3,6 +3,7 @@ import type {
   CloudSaveUploadProgress,
   CommitSnapshotResponse,
   GameShop,
+  LocalGameSnapshotPipelineResult,
   RemoteGameSnapshot,
 } from "@types";
 
@@ -39,9 +40,15 @@ const validateCommitResponse = (value: unknown): CommitSnapshotResponse => {
 export const createRemoteSnapshotFromLocalState = async (
   objectId: string,
   shop: GameShop,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  localSnapshotContext?: LocalGameSnapshotPipelineResult
 ): Promise<RemoteGameSnapshot | null> => {
-  const upload = await uploadLocalGameSnapshot(objectId, shop, onProgress);
+  const upload = await uploadLocalGameSnapshot(
+    objectId,
+    shop,
+    onProgress,
+    localSnapshotContext
+  );
   if (!upload.snapshotId) return null;
 
   const committed = validateCommitResponse(
