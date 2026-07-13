@@ -88,7 +88,7 @@ export function useLibraryGameCardPresentation(
   game: LibraryGameCardPresentationSource,
   variant: LibraryGameCardVariant
 ) {
-  const { t } = useTranslation("game_details");
+  const { t } = useTranslation(["game_details", "big_picture"]);
   const { formatPlayTime } = useFormat();
   const imageSources = getPresentationImageSources(game, variant);
   const [imageSourceIndex, setImageSourceIndex] = useState(0);
@@ -138,7 +138,7 @@ export function useLibraryGameCardPresentation(
       ? t("play_time", {
           amount: formatPlayTime(game.playTimeInMilliseconds / 1000),
         })
-      : "Never played",
+      : t("never_played", { ns: "big_picture" }),
   };
 }
 
