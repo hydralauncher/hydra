@@ -77,6 +77,10 @@ export interface CloudSaveStateResult {
   activeRemoteSnapshot: RemoteSnapshotSummary | null;
 }
 
+export interface CloudSaveOverview extends CloudSaveStateResult {
+  snapshots: RemoteSnapshotSummary[];
+}
+
 export type CloudSaveSyncTrigger =
   | "manual"
   | "executable-added"

@@ -1,0 +1,92 @@
+@use "../../../scss/globals.scss";
+
+@keyframes cloud-save-v2-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cloud-save-v2 {
+  &__trigger {
+    &--synced {
+      color: globals.$success-color;
+      border-color: globals.$success-color;
+    }
+
+    &--outdated {
+      color: globals.$warning-color;
+      border-color: globals.$warning-color;
+    }
+
+    &--conflict {
+      color: globals.$error-color;
+      border-color: globals.$error-color;
+    }
+  }
+
+  &__modal {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__summary,
+  &__progress,
+  &__snapshot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+  }
+
+  &__summary {
+    padding: calc(globals.$spacing-unit * 1.5);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &__progress {
+    justify-content: flex-start;
+    color: globals.$muted-color;
+  }
+
+  &__spinner {
+    animation: cloud-save-v2-spin 1s linear infinite;
+  }
+
+  &__error {
+    color: globals.$error-color;
+  }
+
+  &__snapshots {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+
+    h3 {
+      font-size: globals.$body-font-size;
+    }
+  }
+
+  &__snapshot {
+    padding: calc(globals.$spacing-unit * 1.5);
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: calc(globals.$spacing-unit / 2);
+    }
+
+    small,
+    span {
+      color: globals.$muted-color;
+      font-size: globals.$small-font-size;
+    }
+  }
+
+  &__empty {
+    color: globals.$muted-color;
+  }
+}
