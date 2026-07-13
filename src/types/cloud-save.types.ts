@@ -79,6 +79,36 @@ export interface ShouldSkipRestoreFileInput {
   expectedHash: string;
 }
 
+interface RestoreTargetIdentity {
+  rawPath: string;
+  relativePath: string;
+  targetPath: string;
+}
+
+export type ReplaceRestoreTarget =
+  | (RestoreTargetIdentity & {
+      action: "restore";
+      tempPath: string;
+      expectedHash: string;
+    })
+  | (RestoreTargetIdentity & { action: "skip" });
+
+export interface RestoreResultFile extends RestoreTargetIdentity {}
+
+export interface RestoreSkippedFile extends RestoreTargetIdentity {
+  reason: "already_matches_expected_state";
+}
+
+export interface RestoreFailedFile extends RestoreTargetIdentity {
+  reason: "failed_to_replace_target" | "restore_rolled_back";
+}
+
+export interface ReplaceRestoreTargetsResult {
+  restoredFiles: RestoreResultFile[];
+  skippedFiles: RestoreSkippedFile[];
+  failedFiles: RestoreFailedFile[];
+}
+
 export interface LocalGameSnapshotFile {
   rawPath: string;
   relativePath: string;

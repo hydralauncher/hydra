@@ -8,6 +8,8 @@ import type { ProcessPayload } from "./download/types";
 import type {
   BuildLocalGameSnapshotPipelineInput,
   LocalGameSnapshotPipelineResult,
+  ReplaceRestoreTarget,
+  ReplaceRestoreTargetsResult,
   ResolveRestoreTargetsInput,
   ResolvedRestoreTarget,
   ShouldSkipRestoreFileInput,
@@ -65,6 +67,9 @@ type HydraNativeModule = {
     localPath: string,
     expectedHash: string
   ) => Promise<boolean>;
+  replaceRestoreTargets: (
+    files: ReplaceRestoreTarget[]
+  ) => Promise<ReplaceRestoreTargetsResult>;
 };
 
 export type SystemProcessMap = {
@@ -381,5 +386,9 @@ export class NativeAddon {
       input.localPath,
       input.expectedHash
     );
+  }
+
+  public static replaceRestoreTargets(files: ReplaceRestoreTarget[]) {
+    return this.load().replaceRestoreTargets(files);
   }
 }
