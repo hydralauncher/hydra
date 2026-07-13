@@ -8,6 +8,9 @@
 
 .cloud-save-v2 {
   &__trigger {
+    position: relative;
+    overflow: hidden;
+
     &--synced {
       color: globals.$success-color;
       border-color: globals.$success-color;
@@ -53,6 +56,29 @@
   &__state-description {
     margin: 0;
     color: globals.$muted-color;
+  }
+
+  &__conflict-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: globals.$spacing-unit;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  &__sync-button {
+    width: 100%;
+  }
+
+  &__sync-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: globals.$muted-color;
+    transition: width 200ms ease;
   }
 
   &__spinner {

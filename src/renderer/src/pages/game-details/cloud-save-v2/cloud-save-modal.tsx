@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { SyncIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
 import type {
   CloudSaveOverview,
+  CloudSaveConflictResolution,
   CloudSaveState,
   CloudSaveSyncProgressPayload,
 } from "@types";
@@ -19,6 +20,7 @@ interface CloudSaveModalProps {
   hasError: boolean;
   progress: CloudSaveSyncProgressPayload | null;
   onSync: () => void;
+  onResolveConflict: (resolution: CloudSaveConflictResolution) => void;
   onClose: () => void;
 }
 
@@ -44,8 +46,9 @@ export function CloudSaveModal({
   hasError,
   progress,
   onSync,
+  onResolveConflict,
   onClose,
-}: CloudSaveModalProps) {
+}: Readonly<CloudSaveModalProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const snapshots = useMemo(
@@ -62,6 +65,40 @@ export function CloudSaveModal({
   const stateDescription = overview
     ? stateDescriptionKey[overview.state]
     : undefined;
+
+  let syncAction: ReactNode;
+  if (isSyncing) {
+    syncAction = (
+      <Button className="cloud-save-v2__sync-button" disabled>
+        {t("cloud_save_v2_syncing")}
+      </Button>
+    );
+  } else if (overview?.state === "conflict") {
+    syncAction = (
+      <div className="cloud-save-v2__conflict-actions">
+        <Button
+          theme="outline"
+          onClick={() => onResolveConflict("keep-local")}
+          disabled={isLoading}
+        >
+          {t("cloud_save_v2_keep_local")}
+        </Button>
+        <Button
+          theme="outline"
+          onClick={() => onResolveConflict("keep-remote")}
+          disabled={isLoading}
+        >
+          {t("cloud_save_v2_keep_remote")}
+        </Button>
+      </div>
+    );
+  } else {
+    syncAction = (
+      <Button onClick={onSync} disabled={isLoading}>
+        {t("cloud_save_v2_sync_now")}
+      </Button>
+    );
+  }
 
   return (
     <Modal
@@ -102,9 +139,7 @@ export function CloudSaveModal({
           <p className="cloud-save-v2__error">{t("cloud_save_v2_error")}</p>
         )}
 
-        <Button onClick={onSync} disabled={isSyncing || isLoading}>
-          {isSyncing ? t("cloud_save_v2_syncing") : t("cloud_save_v2_sync_now")}
-        </Button>
+        {syncAction}
 
         <section className="cloud-save-v2__snapshots">
           <h3>{t("cloud_save_v2_snapshots")}</h3>

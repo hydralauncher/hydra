@@ -39,6 +39,7 @@ import type {
   MemcardRestoreResult,
   MemcardRestoreTarget,
   CloudSaveAutomaticSyncEvent,
+  CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncIpcProgressPayload,
   CloudSaveSyncProgressPayload,
@@ -51,6 +52,30 @@ const fileExplorerApi = {
   readDirectory: (path: string) => ipcRenderer.invoke("readDirectory", path),
   getPathInfo: (path: string) => ipcRenderer.invoke("getPathInfo", path),
   listDrives: () => ipcRenderer.invoke("listDrives"),
+};
+
+const invokeCloudSaveOperation = async (
+  channel: "syncGameCloudSave" | "resolveCloudSaveConflict",
+  args: unknown[],
+  onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+) => {
+  const operationId = randomUUID();
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    progress: CloudSaveSyncIpcProgressPayload
+  ) => {
+    if (progress.operationId === operationId) onProgress?.(progress);
+  };
+  ipcRenderer.on("on-cloud-save-sync-progress", listener);
+  try {
+    return (await ipcRenderer.invoke(
+      channel,
+      operationId,
+      ...args
+    )) as SyncGameCloudSaveResult;
+  } finally {
+    ipcRenderer.removeListener("on-cloud-save-sync-progress", listener);
+  }
 };
 
 contextBridge.exposeInMainWorld("electron", {
@@ -82,25 +107,23 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     onProgress?: (progress: CloudSaveSyncProgressPayload) => void
   ) => {
-    const operationId = randomUUID();
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      progress: CloudSaveSyncIpcProgressPayload
-    ) => {
-      if (progress.operationId === operationId) onProgress?.(progress);
-    };
-    ipcRenderer.on("on-cloud-save-sync-progress", listener);
-    try {
-      return (await ipcRenderer.invoke(
-        "syncGameCloudSave",
-        operationId,
-        objectId,
-        shop
-      )) as SyncGameCloudSaveResult;
-    } finally {
-      ipcRenderer.removeListener("on-cloud-save-sync-progress", listener);
-    }
+    return invokeCloudSaveOperation(
+      "syncGameCloudSave",
+      [objectId, shop],
+      onProgress
+    );
   },
+  resolveCloudSaveConflict: (
+    objectId: string,
+    shop: GameShop,
+    resolution: CloudSaveConflictResolution,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation(
+      "resolveCloudSaveConflict",
+      [objectId, shop, resolution],
+      onProgress
+    ),
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("startGameDownload", payload),

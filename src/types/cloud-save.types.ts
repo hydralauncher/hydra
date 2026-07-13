@@ -98,6 +98,8 @@ export type CloudSaveSyncTrigger =
 
 export type CloudSaveSyncAction = "none" | "upload" | "restore" | "conflict";
 
+export type CloudSaveConflictResolution = "keep-local" | "keep-remote";
+
 export interface SyncGameCloudSaveResult {
   trigger: CloudSaveSyncTrigger;
   action: CloudSaveSyncAction;
@@ -110,12 +112,19 @@ export type CloudSaveAutomaticSyncTrigger = Exclude<
   "manual"
 >;
 
-export interface CloudSaveAutomaticSyncEvent {
-  gameId: CloudSaveGameId;
-  trigger: CloudSaveAutomaticSyncTrigger;
-  status: "completed" | "conflict" | "failed";
-  result?: SyncGameCloudSaveResult;
-}
+export type CloudSaveAutomaticSyncEvent =
+  | {
+      gameId: CloudSaveGameId;
+      trigger: CloudSaveAutomaticSyncTrigger;
+      status: "progress";
+      progress: CloudSaveSyncProgressPayload;
+    }
+  | {
+      gameId: CloudSaveGameId;
+      trigger: CloudSaveAutomaticSyncTrigger;
+      status: "completed" | "conflict" | "failed";
+      result?: SyncGameCloudSaveResult;
+    };
 
 export type CloudSaveSyncProgressStage =
   | "analyzing"

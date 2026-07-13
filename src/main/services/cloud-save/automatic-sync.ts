@@ -19,7 +19,7 @@ const activeAutomaticSyncs = new Map<
 const gameKey = (objectId: string, shop: GameShop) =>
   JSON.stringify([shop, objectId]);
 
-const emitTerminalEvent = (event: CloudSaveAutomaticSyncEvent) => {
+const emitAutomaticSyncEvent = (event: CloudSaveAutomaticSyncEvent) => {
   WindowManager.sendToAppWindows("on-cloud-save-automatic-sync", event);
 };
 
@@ -43,7 +43,14 @@ export const runAutomaticCloudSaveSync = async (
   const activeSync = activeAutomaticSyncs.get(key);
   if (activeSync) return activeSync;
 
-  const promise = syncGameCloudSave(objectId, shop, trigger)
+  const promise = syncGameCloudSave(objectId, shop, trigger, (progress) => {
+    emitAutomaticSyncEvent({
+      gameId: { objectId, shop },
+      trigger,
+      status: "progress",
+      progress,
+    });
+  })
     .then((result) => {
       const status = result.action === "conflict" ? "conflict" : "completed";
       logger.info("[Cloud Save] Automatic sync finished", {
@@ -54,7 +61,7 @@ export const runAutomaticCloudSaveSync = async (
         initialState: result.initialState,
         finalState: result.finalState,
       });
-      emitTerminalEvent({
+      emitAutomaticSyncEvent({
         gameId: { objectId, shop },
         trigger,
         status,
@@ -69,7 +76,7 @@ export const runAutomaticCloudSaveSync = async (
         trigger,
         errorName: error instanceof Error ? error.name : "UnknownError",
       });
-      emitTerminalEvent({
+      emitAutomaticSyncEvent({
         gameId: { objectId, shop },
         trigger,
         status: "failed",
