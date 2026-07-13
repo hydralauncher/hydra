@@ -39,14 +39,18 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
   const { t } = useTranslation("game_details");
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showErrorToast, showWarningToast } = useToast();
-  const { setShowGameOptionsModal, setGameOptionsInitialCategory } =
-    useContext(gameDetailsContext);
+  const {
+    isGameRunning,
+    setShowGameOptionsModal,
+    setGameOptionsInitialCategory,
+  } = useContext(gameDetailsContext);
   const canUseCloudSaves = Boolean(userDetails && hasActiveSubscription);
   const { overview, isRefreshing, hasRefreshError, refresh } =
     useCloudSaveOverview({
       objectId,
       shop,
       enabled: canUseCloudSaves,
+      isGameRunning,
     });
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -87,7 +91,7 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
         }
       }
 
-      void refresh();
+      void refresh({ allowAutomaticSync: false });
     });
   }, [objectId, refresh, shop, showErrorToast, showWarningToast, t]);
 
@@ -119,7 +123,9 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
           }
         }
       );
-      if (activeGameKey.current === requestedGame) await refresh();
+      if (activeGameKey.current === requestedGame) {
+        await refresh({ allowAutomaticSync: false });
+      }
     } catch {
       if (activeGameKey.current === requestedGame) setHasSyncError(true);
     } finally {
