@@ -77,6 +77,21 @@ export interface CloudSaveStateResult {
   activeRemoteSnapshot: RemoteSnapshotSummary | null;
 }
 
+export type CloudSaveSyncTrigger =
+  | "manual"
+  | "executable-added"
+  | "pre-launch"
+  | "post-exit";
+
+export type CloudSaveSyncAction = "none" | "upload" | "restore" | "conflict";
+
+export interface SyncGameCloudSaveResult {
+  trigger: CloudSaveSyncTrigger;
+  action: CloudSaveSyncAction;
+  initialState: CloudSaveState;
+  finalState: CloudSaveState;
+}
+
 export interface ResolveRestoreTargetsInput extends CloudSavePathContext {
   files: RestoreManifestFile[];
 }
