@@ -14,6 +14,7 @@ pub struct CloudSaveRemoteSnapshot {
 #[napi(object)]
 pub struct CompareGameSnapshotsInput {
     pub local_snapshot_hash: String,
+    pub local_snapshot_file_count: u32,
     pub base_snapshot_hash: Option<String>,
     pub remote_snapshots: Vec<CloudSaveRemoteSnapshot>,
 }
