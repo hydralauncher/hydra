@@ -302,6 +302,7 @@ export function DownloadSettingsModal({
 
   const selectedUri = useMemo(() => {
     if (!repack || selectedDownloader === null) return null;
+    if (!Array.isArray(repack.uris)) return null;
 
     return (
       repack.uris.find((uri) =>
@@ -349,7 +350,7 @@ export function DownloadSettingsModal({
       { hasAvailable: boolean; hasUnavailable: boolean }
     >();
 
-    if (repack) {
+    if (repack && Array.isArray(repack.uris)) {
       for (const uri of repack.uris) {
         const uriDownloaders = getDownloadersForUri(uri);
         const isAvailable = !unavailableUrisSet.has(uri);
