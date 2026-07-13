@@ -59,6 +59,7 @@ import type {
   MemcardRestoreResult,
   MemcardRestoreTarget,
   CloudSaveAutomaticSyncEvent,
+  CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   SyncGameCloudSaveResult,
@@ -108,6 +109,12 @@ declare global {
     syncGameCloudSave: (
       objectId: string,
       shop: GameShop,
+      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    ) => Promise<SyncGameCloudSaveResult>;
+    resolveCloudSaveConflict: (
+      objectId: string,
+      shop: GameShop,
+      resolution: CloudSaveConflictResolution,
       onProgress?: (progress: CloudSaveSyncProgressPayload) => void
     ) => Promise<SyncGameCloudSaveResult>;
     /* Torrenting */

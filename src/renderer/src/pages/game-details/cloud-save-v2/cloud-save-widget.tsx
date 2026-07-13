@@ -3,6 +3,7 @@ import { CloudIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
 import type {
+  CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   GameShop,
@@ -10,6 +11,7 @@ import type {
 import { AuthPage } from "@shared";
 import { gameDetailsContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
+import { ConfirmationModal } from "@renderer/components";
 
 import { CloudSaveModal } from "./cloud-save-modal";
 import { useCloudSaveOverview } from "./use-cloud-save-overview";
@@ -28,14 +30,32 @@ const statusKey = (overview: CloudSaveOverview | null) => {
   return "cloud_save_v2_outdated";
 };
 
-const statusTone = (overview: CloudSaveOverview | null, hasError: boolean) => {
-  if (hasError || !overview) return "neutral";
+const statusTone = (
+  overview: CloudSaveOverview | null,
+  hasError: boolean,
+  isSyncing: boolean
+) => {
+  if (isSyncing || hasError || !overview) return "neutral";
   if (overview.state === "synced") return "synced";
   if (overview.state === "conflict") return "conflict";
   return "outdated";
 };
 
-export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
+const getProgressPercentage = (
+  progress: CloudSaveSyncProgressPayload | null
+) => {
+  if (!progress) return 0;
+  if (progress.stage === "completed") return 100;
+  if (progress.totalFiles <= 0) return 0;
+
+  const percentage = (progress.processedFiles / progress.totalFiles) * 100;
+  return Math.min(100, Math.max(0, percentage));
+};
+
+export function CloudSaveWidget({
+  objectId,
+  shop,
+}: Readonly<CloudSaveWidgetProps>) {
   const { t } = useTranslation("game_details");
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showErrorToast, showWarningToast } = useToast();
@@ -60,6 +80,8 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
     null
   );
   const [hasSyncError, setHasSyncError] = useState(false);
+  const [pendingResolution, setPendingResolution] =
+    useState<CloudSaveConflictResolution | null>(null);
   const gameKey = `${shop}:${objectId}`;
   const activeGameKey = useRef(gameKey);
 
@@ -68,12 +90,21 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
   useEffect(() => {
     setProgress(null);
     setHasSyncError(false);
+    setIsSyncing(false);
     setIsModalVisible(false);
+    setPendingResolution(null);
   }, [gameKey]);
 
   useEffect(() => {
     return window.electron.onCloudSaveAutomaticSync((event) => {
       if (event.gameId.objectId !== objectId || event.gameId.shop !== shop) {
+        return;
+      }
+
+      if (event.status === "progress") {
+        setIsSyncing(true);
+        setHasSyncError(false);
+        setProgress(event.progress);
         return;
       }
 
@@ -93,7 +124,12 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
         }
       }
 
-      void refresh({ allowAutomaticSync: false });
+      const requestedGame = `${event.gameId.shop}:${event.gameId.objectId}`;
+      void refresh({ allowAutomaticSync: false }).finally(() => {
+        if (activeGameKey.current === requestedGame) {
+          setIsSyncing(false);
+        }
+      });
     });
   }, [objectId, refresh, shop, showErrorToast, showWarningToast, t]);
 
@@ -110,38 +146,58 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
     setIsModalVisible(true);
   };
 
-  const handleSync = async () => {
+  const runCloudSaveOperation = async (
+    resolution?: CloudSaveConflictResolution
+  ) => {
     const requestedGame = gameKey;
     setIsSyncing(true);
     setHasSyncError(false);
     setProgress(null);
     try {
-      await window.electron.syncGameCloudSave(
-        objectId,
-        shop,
-        (nextProgress) => {
-          if (activeGameKey.current === requestedGame) {
-            setProgress(nextProgress);
-          }
+      const onProgress = (nextProgress: CloudSaveSyncProgressPayload) => {
+        if (activeGameKey.current === requestedGame) {
+          setProgress(nextProgress);
         }
-      );
-      if (activeGameKey.current === requestedGame) {
-        await refresh({ allowAutomaticSync: false });
+      };
+      if (resolution) {
+        await window.electron.resolveCloudSaveConflict(
+          objectId,
+          shop,
+          resolution,
+          onProgress
+        );
+      } else {
+        await window.electron.syncGameCloudSave(objectId, shop, onProgress);
       }
     } catch {
       if (activeGameKey.current === requestedGame) setHasSyncError(true);
     } finally {
-      if (activeGameKey.current === requestedGame) setIsSyncing(false);
+      if (activeGameKey.current === requestedGame) {
+        await refresh({ allowAutomaticSync: false });
+      }
+      if (activeGameKey.current === requestedGame) {
+        setIsSyncing(false);
+      }
     }
   };
 
+  const handleConfirmResolution = () => {
+    const resolution = pendingResolution;
+    setPendingResolution(null);
+    if (resolution) void runCloudSaveOperation(resolution);
+  };
+
   const hasError = hasRefreshError || hasSyncError;
-  const label = !canUseCloudSaves
-    ? t("cloud_save_v2")
-    : hasError
-      ? t("cloud_save_v2_unavailable")
-      : t(statusKey(overview));
-  const tone = statusTone(overview, hasError);
+  let label = t(statusKey(overview));
+  if (!canUseCloudSaves) {
+    label = t("cloud_save_v2");
+  } else if (isSyncing) {
+    label = t("cloud_save_v2_syncing");
+  } else if (hasError) {
+    label = t("cloud_save_v2_unavailable");
+  }
+  const tone = statusTone(overview, hasError, isSyncing);
+  const progressPercentage = getProgressPercentage(progress);
 
   return (
     <>
@@ -153,6 +209,13 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
       >
         <CloudIcon size={16} />
         {isRefreshing && !overview ? t("cloud_save_v2_checking") : label}
+        {isSyncing && (
+          <span
+            aria-hidden="true"
+            className="cloud-save-v2__sync-progress-bar"
+            style={{ width: `${progressPercentage}%` }}
+          />
+        )}
       </button>
 
       <CloudSaveModal
@@ -162,8 +225,31 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
         isSyncing={isSyncing}
         hasError={hasError}
         progress={progress}
-        onSync={handleSync}
+        onSync={() => void runCloudSaveOperation()}
+        onResolveConflict={setPendingResolution}
         onClose={() => setIsModalVisible(false)}
+      />
+
+      <ConfirmationModal
+        visible={pendingResolution !== null}
+        title={
+          pendingResolution === "keep-local"
+            ? t("cloud_save_v2_confirm_local_title")
+            : t("cloud_save_v2_confirm_remote_title")
+        }
+        descriptionText={
+          pendingResolution === "keep-local"
+            ? t("cloud_save_v2_confirm_local_description")
+            : t("cloud_save_v2_confirm_remote_description")
+        }
+        confirmButtonLabel={
+          pendingResolution === "keep-local"
+            ? t("cloud_save_v2_keep_local")
+            : t("cloud_save_v2_keep_remote")
+        }
+        cancelButtonLabel={t("cloud_save_v2_cancel")}
+        onConfirm={handleConfirmResolution}
+        onClose={() => setPendingResolution(null)}
       />
     </>
   );
