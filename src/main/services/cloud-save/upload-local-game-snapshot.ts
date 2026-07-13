@@ -17,6 +17,8 @@ import {
 
 type ProgressCallback = (progress: CloudSaveUploadProgress) => void;
 
+const MAX_CONCURRENT_UPLOADS = 8;
+
 const fileKey = (rawPath: string, relativePath: string) =>
   JSON.stringify([rawPath, relativePath]);
 
@@ -88,18 +90,53 @@ export const uploadLocalGameSnapshot = async (
   emitProgress(null);
 
   const uploadsByHash = groupUploadsByHash(responseWithSources);
+  const uploadJobs = Array.from(uploadsByHash.values());
+  const activeFiles = new Map<number, string>();
+  let nextUploadIndex = 0;
+  let hasFailed = false;
+  const emitCurrentProgress = () =>
+    emitProgress(activeFiles.values().next().value ?? null);
 
-  for (const uploads of uploadsByHash.values()) {
-    const [{ file, source }] = uploads;
-    emitProgress(source.relativePath);
-    await NativeAddon.uploadLocalSaveBlob(source.absolutePath, file.uploadUrl);
-    completedFiles += uploads.length;
-    completedBytes += uploads.reduce(
-      (total, upload) => total + upload.source.sizeBytes,
-      0
-    );
-    emitProgress(null);
-  }
+  const runWorker = async () => {
+    while (!hasFailed) {
+      const uploadIndex = nextUploadIndex;
+      if (uploadIndex >= uploadJobs.length) return;
+      nextUploadIndex += 1;
+
+      const uploads = uploadJobs[uploadIndex];
+      const [{ file, source }] = uploads;
+      activeFiles.set(uploadIndex, source.relativePath);
+      emitCurrentProgress();
+
+      try {
+        await NativeAddon.uploadLocalSaveBlob(
+          source.absolutePath,
+          file.uploadUrl
+        );
+      } catch (error) {
+        hasFailed = true;
+        activeFiles.delete(uploadIndex);
+        throw error;
+      }
+
+      activeFiles.delete(uploadIndex);
+      if (hasFailed) return;
+
+      completedFiles += uploads.length;
+      completedBytes += uploads.reduce(
+        (total, upload) => total + upload.source.sizeBytes,
+        0
+      );
+      emitCurrentProgress();
+    }
+  };
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(MAX_CONCURRENT_UPLOADS, uploadJobs.length) },
+      runWorker
+    )
+  );
 
   return {
     snapshotId: response.snapshotId,
