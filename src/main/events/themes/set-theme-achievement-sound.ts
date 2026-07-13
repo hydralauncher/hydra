@@ -97,17 +97,27 @@ const updateVariationAssets = async (
 ) => {
   if (mode === "file" && !sourcePath) return;
 
-  await removeVariationAssets(directories, variation);
-  if (mode !== "file" || !sourcePath) return;
+  if (mode !== "file" || !sourcePath) {
+    await removeVariationAssets(directories, variation);
+    return;
+  }
 
   await fs.promises.mkdir(themeDir, { recursive: true });
-  await fs.promises.copyFile(
-    sourcePath,
-    path.join(
-      themeDir,
-      getVariationSoundAssetName(variation, path.extname(sourcePath))
-    )
+  const assetPath = path.join(
+    themeDir,
+    getVariationSoundAssetName(variation, path.extname(sourcePath))
   );
+  const temporaryAssetPath = `${assetPath}.${crypto.randomUUID()}.tmp`;
+
+  try {
+    await fs.promises.copyFile(sourcePath, temporaryAssetPath);
+    await removeVariationAssets(directories, variation);
+    await fs.promises.rename(temporaryAssetPath, assetPath);
+  } finally {
+    if (fs.existsSync(temporaryAssetPath)) {
+      await fs.promises.unlink(temporaryAssetPath);
+    }
+  }
 };
 
 const getThemeSoundUpdate = (
