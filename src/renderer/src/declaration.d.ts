@@ -101,6 +101,10 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveOverview>;
+    syncCloudSaveOnStateChange: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<SyncGameCloudSaveResult | null>;
     syncGameCloudSave: (
       objectId: string,
       shop: GameShop,

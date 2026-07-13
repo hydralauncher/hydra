@@ -85,7 +85,8 @@ export type CloudSaveSyncTrigger =
   | "manual"
   | "executable-added"
   | "pre-launch"
-  | "post-exit";
+  | "post-exit"
+  | "state-changed";
 
 export type CloudSaveSyncAction = "none" | "upload" | "restore" | "conflict";
 
