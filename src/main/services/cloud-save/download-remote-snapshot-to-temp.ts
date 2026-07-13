@@ -7,6 +7,10 @@ import type {
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
+import {
+  mapWithConcurrency,
+  MAX_CONCURRENT_RESTORE_OPERATIONS,
+} from "./map-with-concurrency";
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
@@ -90,48 +94,56 @@ export const downloadRemoteSnapshotToTemp = async (
         fileKey(file.rawPath, file.relativePath)
       );
       if (
-        !requested ||
-        requested.hash !== file.hash ||
-        requested.sizeBytes !== file.sizeBytes
+        requested?.hash !== file.hash ||
+        requested?.sizeBytes !== file.sizeBytes
       ) {
         throw new Error("Restore download URL file does not match manifest");
       }
     }
   }
   const tempRoot = SystemPath.getPath("temp");
-  const downloadedByHash = new Map<
-    string,
-    { sizeBytes: number; tempPath: string }
-  >();
-  const downloadedFiles: DownloadedRestoreFile[] = [];
-
+  const filesByHash = new Map<string, RestoreDownloadUrlFile[]>();
   for (const file of selectedFiles) {
-    const existing = downloadedByHash.get(file.hash);
-    if (existing && existing.sizeBytes !== file.sizeBytes) {
+    const existing = filesByHash.get(file.hash);
+    if (existing?.some((item) => item.sizeBytes !== file.sizeBytes)) {
       throw new Error("Restore blob hash has inconsistent sizes");
     }
+    filesByHash.set(file.hash, [...(existing ?? []), file]);
+  }
 
-    const tempPath =
-      existing?.tempPath ??
-      (await NativeAddon.downloadRestoreBlobToTemp(
+  const groups = Array.from(filesByHash.values());
+  let processedFiles = 0;
+  const downloadedGroups = await mapWithConcurrency(
+    groups,
+    MAX_CONCURRENT_RESTORE_OPERATIONS,
+    async (group) => {
+      const [file] = group;
+      const tempPath = await NativeAddon.downloadRestoreBlobToTemp(
         snapshotId,
         file.hash,
         file.downloadUrl,
         tempRoot
-      ));
-    downloadedByHash.set(file.hash, {
-      sizeBytes: file.sizeBytes,
-      tempPath,
-    });
-    downloadedFiles.push({
+      );
+      return { hash: file.hash, tempPath };
+    },
+    (_result, group) => {
+      processedFiles += group.length;
+      onProgress?.(processedFiles, selectedFiles.length);
+    }
+  );
+  const tempPathByHash = new Map(
+    downloadedGroups.map(({ hash, tempPath }) => [hash, tempPath])
+  );
+
+  return selectedFiles.map((file) => {
+    const tempPath = tempPathByHash.get(file.hash);
+    if (!tempPath) throw new Error("Missing downloaded restore blob");
+    return {
       rawPath: file.rawPath,
       relativePath: file.relativePath,
       hash: file.hash,
       sizeBytes: file.sizeBytes,
       tempPath,
-    });
-    onProgress?.(downloadedFiles.length, selectedFiles.length);
-  }
-
-  return downloadedFiles;
+    };
+  });
 };
