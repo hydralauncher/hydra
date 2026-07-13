@@ -57,7 +57,7 @@ function getPositionLabel(
   position: AchievementCustomNotificationPosition,
   t: (key: string) => string
 ) {
-  return t(`settings_diagnostics_position_${position.replace(/-/g, "_")}`);
+  return t(`settings_diagnostics_position_${position.replaceAll("-", "_")}`);
 }
 
 export function NotificationsAchievementsSection({
