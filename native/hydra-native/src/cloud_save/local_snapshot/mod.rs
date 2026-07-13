@@ -7,18 +7,27 @@ use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
 pub use types::{
-    BuildLocalGameSnapshotInput, DiscoveredLocalSaveFile, LocalGameSnapshot, LocalGameSnapshotFile,
-    LocalSaveSnapshotFile,
+    BuildLocalGameSnapshotInput, DiscoveredLocalSaveFile, LocalFileHashCacheEntry,
+    LocalGameSnapshot, LocalGameSnapshotFile, LocalSaveSnapshotFile,
 };
+
+pub(crate) async fn build_local_save_snapshot_files_with_cache(
+    files: Vec<DiscoveredLocalSaveFile>,
+    hash_cache: Vec<LocalFileHashCacheEntry>,
+) -> napi::Result<build_files::LocalSnapshotFilesWithCache> {
+    tokio::task::spawn_blocking(move || build_files::build_files(files, hash_cache))
+        .await
+        .map_err(|error| Error::from_reason(error.to_string()))?
+        .map_err(Error::from_reason)
+}
 
 #[napi]
 pub async fn build_local_save_snapshot_files(
     files: Vec<DiscoveredLocalSaveFile>,
 ) -> napi::Result<Vec<LocalSaveSnapshotFile>> {
-    tokio::task::spawn_blocking(move || build_files::build_files(files))
-        .await
-        .map_err(|error| Error::from_reason(error.to_string()))?
-        .map_err(Error::from_reason)
+    Ok(build_local_save_snapshot_files_with_cache(files, vec![])
+        .await?
+        .files)
 }
 
 #[napi]

@@ -21,6 +21,14 @@ export interface BuildLocalGameSnapshotPipelineInput {
   protonPath?: string;
   steamPath?: string;
   steamUserIds: string[];
+  hashCache: LocalFileHashCacheEntry[];
+}
+
+export interface LocalFileHashCacheEntry {
+  absolutePath: string;
+  sizeBytes: number;
+  lastModifiedAt: string;
+  hash: string;
 }
 
 export interface CloudSavePathContext {
@@ -242,6 +250,11 @@ export interface LocalGameSnapshotSourceFile {
 export interface LocalGameSnapshotPipelineResult
   extends LocalGameSnapshotWithHash {
   sourceFiles: LocalGameSnapshotSourceFile[];
+}
+
+export interface NativeLocalGameSnapshotPipelineResult
+  extends LocalGameSnapshotPipelineResult {
+  hashCache: LocalFileHashCacheEntry[];
 }
 
 export type PrepareSnapshotFile =

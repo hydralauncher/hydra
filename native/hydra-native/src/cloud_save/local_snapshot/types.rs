@@ -3,12 +3,22 @@ use napi_derive::napi;
 use crate::cloud_save::manifest::types::CloudSaveGameId;
 
 #[napi(object)]
+#[derive(Clone)]
 pub struct DiscoveredLocalSaveFile {
     pub raw_path: String,
     pub absolute_path: String,
     pub root_path: String,
     pub relative_path: String,
     pub source: String,
+}
+
+#[napi(object)]
+#[derive(Clone)]
+pub struct LocalFileHashCacheEntry {
+    pub absolute_path: String,
+    pub size_bytes: f64,
+    pub last_modified_at: String,
+    pub hash: String,
 }
 
 #[napi(object)]

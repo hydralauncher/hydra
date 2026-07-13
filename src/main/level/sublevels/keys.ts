@@ -31,4 +31,5 @@ export const levelKeys = {
   ps1MemoryCardSave: (cardFilePath: string, identifier: string) =>
     `${cardFilePath}::${identifier}`,
   cloudSaveSyncAnchors: "cloud-save-sync-anchors",
+  cloudSaveLocalHashCache: "cloud-save-local-hash-cache",
 };

@@ -21,6 +21,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 serde_yaml_ng = "0.10"
 blake3 = "1.8.5"
+rayon = "1.11"
 time = "0.3.44"
 unicode-normalization = "0.1.25"
 
