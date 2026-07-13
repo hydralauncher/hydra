@@ -79,7 +79,7 @@ fn apply_runtime_resolution(
     raw_path: &str,
     context: &PathResolutionContext,
 ) -> String {
-    if context.platform == "linux" && uses_windows_like_token(raw_path) {
+    if context.wine_prefix_path.is_some() && uses_windows_like_token(raw_path) {
         if let Some(prefix) = &context.wine_prefix_path {
             return normalize_path(&format!(
                 "{}/{}",
