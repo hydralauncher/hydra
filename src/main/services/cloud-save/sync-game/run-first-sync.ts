@@ -1,4 +1,5 @@
 import type {
+  CloudSaveState,
   CloudSaveSyncTrigger,
   GameShop,
   SyncGameCloudSaveResult,
@@ -20,6 +21,22 @@ export interface SyncOutcome {
   totalFiles: number;
 }
 
+export const getFirstSyncState = (
+  analysis: CloudSaveAnalysis
+): CloudSaveState => {
+  const hasLocalFiles = analysis.localSnapshot.files.length > 0;
+  const remoteSnapshot = analysis.state.activeRemoteSnapshot;
+
+  if (hasLocalFiles && remoteSnapshot) {
+    return analysis.localSnapshot.aggregateHash === remoteSnapshot.aggregateHash
+      ? "synced"
+      : "conflict";
+  }
+  if (hasLocalFiles) return "local-ahead";
+  if (remoteSnapshot) return "remote-ahead";
+  return "untracked";
+};
+
 export const runFirstSync = async (
   objectId: string,
   shop: GameShop,
@@ -28,23 +45,23 @@ export const runFirstSync = async (
   emitProgress: ProgressCallback
 ): Promise<SyncOutcome> => {
   const initialState = "untracked";
-  const hasLocalFiles = analysis.localSnapshot.files.length > 0;
+  const firstSyncState = getFirstSyncState(analysis);
   const remoteSnapshot = analysis.state.activeRemoteSnapshot;
 
-  if (hasLocalFiles && remoteSnapshot) {
-    if (analysis.localSnapshot.aggregateHash !== remoteSnapshot.aggregateHash) {
-      return {
-        result: {
-          trigger,
-          action: "conflict",
-          initialState,
-          finalState: "conflict",
-        },
-        processedFiles: 0,
-        totalFiles: 0,
-      };
-    }
+  if (firstSyncState === "conflict") {
+    return {
+      result: {
+        trigger,
+        action: "conflict",
+        initialState,
+        finalState: "conflict",
+      },
+      processedFiles: 0,
+      totalFiles: 0,
+    };
+  }
 
+  if (firstSyncState === "synced" && remoteSnapshot) {
     await saveCloudSaveSyncAnchor(shop, objectId, {
       baseSnapshotId: remoteSnapshot.id,
       baseAggregateHash: remoteSnapshot.aggregateHash,
@@ -57,7 +74,7 @@ export const runFirstSync = async (
     };
   }
 
-  if (hasLocalFiles) {
+  if (firstSyncState === "local-ahead") {
     await uploadLocalState(
       objectId,
       shop,
@@ -71,7 +88,7 @@ export const runFirstSync = async (
     };
   }
 
-  if (remoteSnapshot) {
+  if (firstSyncState === "remote-ahead" && remoteSnapshot) {
     await restoreRemoteState(objectId, shop, remoteSnapshot, emitProgress);
     return {
       result: {

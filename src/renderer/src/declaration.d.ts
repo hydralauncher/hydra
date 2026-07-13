@@ -58,8 +58,7 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
-  LocalGameSnapshotWithHash,
-  CloudSaveStateResult,
+  CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   SyncGameCloudSaveResult,
 } from "@types";
@@ -94,14 +93,10 @@ declare global {
   };
 
   interface Electron {
-    buildLocalGameSnapshot: (
+    getCloudSaveOverview: (
       objectId: string,
       shop: GameShop
-    ) => Promise<LocalGameSnapshotWithHash>;
-    getCloudSaveState: (
-      objectId: string,
-      shop: GameShop
-    ) => Promise<CloudSaveStateResult>;
+    ) => Promise<CloudSaveOverview>;
     syncGameCloudSave: (
       objectId: string,
       shop: GameShop,

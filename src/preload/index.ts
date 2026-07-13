@@ -38,8 +38,7 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
-  LocalGameSnapshotWithHash,
-  CloudSaveStateResult,
+  CloudSaveOverview,
   CloudSaveSyncIpcProgressPayload,
   CloudSaveSyncProgressPayload,
   SyncGameCloudSaveResult,
@@ -54,18 +53,12 @@ const fileExplorerApi = {
 };
 
 contextBridge.exposeInMainWorld("electron", {
-  buildLocalGameSnapshot: (objectId: string, shop: GameShop) =>
+  getCloudSaveOverview: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
-      "buildLocalGameSnapshot",
+      "getCloudSaveOverview",
       objectId,
       shop
-    ) as Promise<LocalGameSnapshotWithHash>,
-  getCloudSaveState: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke(
-      "getCloudSaveState",
-      objectId,
-      shop
-    ) as Promise<CloudSaveStateResult>,
+    ) as Promise<CloudSaveOverview>,
   syncGameCloudSave: async (
     objectId: string,
     shop: GameShop,
