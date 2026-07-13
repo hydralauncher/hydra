@@ -59,8 +59,8 @@ function getHydraCloudSectionContent(
 
   if (!hasSubscribedBefore) {
     return {
-      description: ["Enjoy Hydra in the best possible way"],
-      callToAction: "Become Hydra Cloud",
+      description: [t("no_subscription")],
+      callToAction: t("become_subscriber"),
     };
   }
 
@@ -68,23 +68,28 @@ function getHydraCloudSectionContent(
     return {
       description: isRenewalActive
         ? [
-            `Your subscription renews on ${formatDate(subscription!.expiresAt!)} and your next bill will be sent on this day.`,
+            t("subscription_renews_on", {
+              date: formatDate(subscription!.expiresAt!),
+            }),
+            t("bill_sent_until"),
           ]
         : [
-            "Automatic renewal is disabled",
+            t("subscription_renew_cancelled"),
             t("subscription_active_until", {
               date: formatDate(subscription!.expiresAt!),
             }),
           ],
-      callToAction: "Manage Subscription",
+      callToAction: t("manage_subscription"),
     };
   }
 
   return {
     description: [
-      `Your subscription expired at ${formatDate(subscription!.expiresAt!)}`,
+      t("subscription_expired_at", {
+        date: formatDate(subscription!.expiresAt!),
+      }),
     ],
-    callToAction: "Renew Hydra Cloud",
+    callToAction: t("renew_subscription"),
   };
 }
 

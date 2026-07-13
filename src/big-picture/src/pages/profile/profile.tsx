@@ -238,23 +238,32 @@ function formatCompactNumber(value: number | null | undefined) {
   }).format(value);
 }
 
-function formatHours(valueInSeconds: number | null | undefined) {
+function formatHours(
+  valueInSeconds: number | null | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   if (typeof valueInSeconds !== "number") return "--";
 
   const hours = Math.floor(valueInSeconds / 3600);
 
   if (valueInSeconds > 0 && hours === 0) {
     const minutes = Math.max(1, Math.floor(valueInSeconds / 60));
-    return `${minutes}min`;
+    return t("compact_minutes", { count: minutes, ns: "big_picture" });
   }
 
-  return `${hours}hs`;
+  return t("compact_hours", { count: hours, ns: "big_picture" });
 }
 
-function formatAveragePlaytime(stats: UserStats | null) {
+function formatAveragePlaytime(
+  stats: UserStats | null,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   if (!stats || stats.libraryCount <= 0) return "--";
 
-  return formatHours(stats.totalPlayTimeInSeconds.value / stats.libraryCount);
+  return formatHours(
+    stats.totalPlayTimeInSeconds.value / stats.libraryCount,
+    t
+  );
 }
 
 function getFavoriteGameImage(game: ProfileFavoriteGame | null) {
@@ -1354,7 +1363,10 @@ export default function Profile() {
                     <div className="profile-page__stat-value">
                       <ClockIcon size={36} />
                       <span>
-                        {formatHours(userStats?.totalPlayTimeInSeconds.value)}
+                        {formatHours(
+                          userStats?.totalPlayTimeInSeconds.value,
+                          t
+                        )}
                       </span>
                     </div>
 
@@ -1402,7 +1414,7 @@ export default function Profile() {
                     <div className="profile-page__stat-main">
                       <div className="profile-page__stat-value">
                         <ClockIcon size={36} />
-                        <span>{formatAveragePlaytime(userStats)}</span>
+                        <span>{formatAveragePlaytime(userStats, t)}</span>
                       </div>
                     </div>
                     <div className="profile-page__stat-label">
@@ -1433,7 +1445,8 @@ export default function Profile() {
                         {favoriteGame
                           ? t("play_time", {
                               amount: formatHours(
-                                favoriteGamePlaytimeInSeconds
+                                favoriteGamePlaytimeInSeconds,
+                                t
                               ),
                             })
                           : "--"}

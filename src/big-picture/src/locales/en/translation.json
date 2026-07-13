@@ -717,6 +717,8 @@
     "playtime_hours_other": "{{count}} hours",
     "playtime_minutes_one": "{{count}} minute",
     "playtime_minutes_other": "{{count}} minutes",
+    "playtime_seconds_one": "{{count}} second",
+    "playtime_seconds_other": "{{count}} seconds",
     "download_options_unavailable_one": "{{count}} download option is no longer available.",
     "download_options_unavailable_other": "{{count}} download options are no longer available.",
     "download_options_count_one": "{{formattedCount}} download option",
@@ -782,6 +784,9 @@
     "select_executable_path": "Select Path",
     "clear_executable_path": "Clear Path",
     "clear_launch_args": "Clear Args",
-    "additional_options_description": "Configure per-game overrides for GameMode and MangoHud"
+    "additional_options_description": "Configure per-game overrides for GameMode and MangoHud",
+    "never_played": "Never played",
+    "compact_hours": "{{count}}h",
+    "compact_minutes": "{{count}}min"
   }
 }

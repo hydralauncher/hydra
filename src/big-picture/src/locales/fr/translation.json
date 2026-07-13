@@ -717,6 +717,8 @@
     "playtime_hours_other": "{{count}} heures",
     "playtime_minutes_one": "{{count}} minute",
     "playtime_minutes_other": "{{count}} minutes",
+    "playtime_seconds_one": "{{count}} seconde",
+    "playtime_seconds_other": "{{count}} secondes",
     "download_options_unavailable_one": "{{count}} option de téléchargement n'est plus disponible.",
     "download_options_unavailable_other": "{{count}} options de téléchargement ne sont plus disponibles.",
     "download_options_count_one": "{{formattedCount}} option de téléchargement",
@@ -782,6 +784,9 @@
     "select_executable_path": "Sélectionner le chemin",
     "clear_executable_path": "Effacer le chemin",
     "clear_launch_args": "Effacer les arguments",
-    "additional_options_description": "Configurez les préférences spécifiques à ce jeu pour GameMode et MangoHud"
+    "additional_options_description": "Configurez les préférences spécifiques à ce jeu pour GameMode et MangoHud",
+    "never_played": "Jamais joué",
+    "compact_hours": "{{count}}h",
+    "compact_minutes": "{{count}}min"
   }
 }

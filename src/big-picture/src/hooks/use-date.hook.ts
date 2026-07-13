@@ -23,6 +23,10 @@ function getDateTimeFormat(language: string) {
     : "dd/MM/yyyy HH:mm";
 }
 
+function getTimeFormat(language: string) {
+  return language.startsWith("en") ? "h:mm a" : "HH:mm";
+}
+
 export const formatDate = (date: DateLike, language = "en"): string => {
   if (Number.isNaN(new Date(date).getDate())) return "N/A";
   return format(date, getDateFormat(language), {
@@ -80,5 +84,16 @@ export function useDate() {
     },
 
     formatDate: (date: DateLike) => formatDate(date, language),
+
+    formatTime: (date: DateLike): string => {
+      try {
+        return format(date, getTimeFormat(language), {
+          locale,
+        });
+      } catch (err) {
+        console.error(err);
+        return "";
+      }
+    },
   };
 }
