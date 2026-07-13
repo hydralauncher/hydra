@@ -1,5 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
+import { randomUUID } from "node:crypto";
+
 import { contextBridge, ipcRenderer } from "electron";
 
 import type {
@@ -37,11 +39,10 @@ import type {
   MemcardRestoreResult,
   MemcardRestoreTarget,
   LocalGameSnapshotWithHash,
-  CloudSaveGameId,
-  RestoreFinishedPayload,
-  RestoreProgressPayload,
-  RestoreRemoteSnapshotResult,
   CloudSaveStateResult,
+  CloudSaveSyncIpcProgressPayload,
+  CloudSaveSyncProgressPayload,
+  SyncGameCloudSaveResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -65,49 +66,29 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveStateResult>,
-  restoreRemoteSnapshot: (snapshotId: string, gameId: CloudSaveGameId) =>
-    ipcRenderer.invoke(
-      "restoreRemoteSnapshot",
-      snapshotId,
-      gameId
-    ) as Promise<RestoreRemoteSnapshotResult>,
-  onRestoreProgress: (
-    gameId: CloudSaveGameId,
-    cb: (progress: RestoreProgressPayload) => void
+  syncGameCloudSave: async (
+    objectId: string,
+    shop: GameShop,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
   ) => {
+    const operationId = randomUUID();
     const listener = (
       _event: Electron.IpcRendererEvent,
-      progress: RestoreProgressPayload
+      progress: CloudSaveSyncIpcProgressPayload
     ) => {
-      if (
-        progress.gameId.shop === gameId.shop &&
-        progress.gameId.objectId === gameId.objectId
-      ) {
-        cb(progress);
-      }
+      if (progress.operationId === operationId) onProgress?.(progress);
     };
-    ipcRenderer.on("on-cloud-save-restore-progress", listener);
-    return () =>
-      ipcRenderer.removeListener("on-cloud-save-restore-progress", listener);
-  },
-  onRestoreFinished: (
-    gameId: CloudSaveGameId,
-    cb: (result: RestoreFinishedPayload) => void
-  ) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      result: RestoreFinishedPayload
-    ) => {
-      if (
-        result.gameId.shop === gameId.shop &&
-        result.gameId.objectId === gameId.objectId
-      ) {
-        cb(result);
-      }
-    };
-    ipcRenderer.on("on-cloud-save-restore-finished", listener);
-    return () =>
-      ipcRenderer.removeListener("on-cloud-save-restore-finished", listener);
+    ipcRenderer.on("on-cloud-save-sync-progress", listener);
+    try {
+      return (await ipcRenderer.invoke(
+        "syncGameCloudSave",
+        operationId,
+        objectId,
+        shop
+      )) as SyncGameCloudSaveResult;
+    } finally {
+      ipcRenderer.removeListener("on-cloud-save-sync-progress", listener);
+    }
   },
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>

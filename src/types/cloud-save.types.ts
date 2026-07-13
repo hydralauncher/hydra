@@ -92,6 +92,25 @@ export interface SyncGameCloudSaveResult {
   finalState: CloudSaveState;
 }
 
+export type CloudSaveSyncProgressStage =
+  | "analyzing"
+  | "uploading"
+  | "restoring"
+  | "completed"
+  | "conflict";
+
+export interface CloudSaveSyncProgressPayload {
+  gameId: CloudSaveGameId;
+  stage: CloudSaveSyncProgressStage;
+  processedFiles: number;
+  totalFiles: number;
+}
+
+export interface CloudSaveSyncIpcProgressPayload
+  extends CloudSaveSyncProgressPayload {
+  operationId: string;
+}
+
 export interface ResolveRestoreTargetsInput extends CloudSavePathContext {
   files: RestoreManifestFile[];
 }
@@ -173,13 +192,6 @@ export interface RestoreProgressPayload {
   stage: RestoreProgressStage;
   processedFiles: number;
   totalFiles: number;
-}
-
-export interface RestoreFinishedPayload {
-  gameId: CloudSaveGameId;
-  restoredFiles: number;
-  skippedFiles: number;
-  failedFiles: number;
 }
 
 export interface LocalGameSnapshotFile {
