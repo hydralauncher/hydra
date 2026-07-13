@@ -77,7 +77,7 @@ export function Sidebar() {
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
   const runningGameId = gameRunning?.id;
-  
+
   const sortedLibrary = useMemo(() => {
     const sortedByTitle = sortBy(library, (game) => game.title);
 
