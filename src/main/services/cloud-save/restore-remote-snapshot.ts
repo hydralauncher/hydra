@@ -4,6 +4,7 @@ import type {
   CloudSaveGameId,
   GameShop,
   ReplaceRestoreTarget,
+  RemoteSnapshotSummary,
   ResolvedRestoreTarget,
   RestoreRemoteSnapshotResult,
   RestoreProgressPayload,
@@ -38,7 +39,8 @@ const getSnapshotSummary = async (
 export const restoreRemoteSnapshot = async (
   snapshotId: string,
   gameId: CloudSaveGameId,
-  onProgress?: (progress: RestoreProgressPayload) => void
+  onProgress?: (progress: RestoreProgressPayload) => void,
+  knownSnapshot?: RemoteSnapshotSummary
 ): Promise<RestoreRemoteSnapshotResult> => {
   const emitProgress = (
     stage: RestoreProgressPayload["stage"],
@@ -58,11 +60,12 @@ export const restoreRemoteSnapshot = async (
   emitProgress("resolving", 0, manifest.files.length);
   const [targets, snapshot] = await Promise.all([
     resolveRestoreManifestTargets(manifest),
-    getSnapshotSummary(
-      snapshotId,
-      manifest.snapshot.shop,
-      manifest.snapshot.objectId
-    ),
+    knownSnapshot ??
+      getSnapshotSummary(
+        snapshotId,
+        manifest.snapshot.shop,
+        manifest.snapshot.objectId
+      ),
   ]);
   emitProgress("resolving", targets.length, targets.length);
   const skipKeys = new Set<string>();

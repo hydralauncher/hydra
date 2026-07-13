@@ -4,6 +4,7 @@ import { HydraApi } from "@main/services/hydra-api";
 import type {
   CloudSaveUploadProgress,
   GameShop,
+  LocalGameSnapshotPipelineResult,
   UploadLocalGameSnapshotResult,
 } from "@types";
 
@@ -22,9 +23,12 @@ const fileKey = (rawPath: string, relativePath: string) =>
 export const uploadLocalGameSnapshot = async (
   objectId: string,
   shop: GameShop,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  localSnapshotContext?: LocalGameSnapshotPipelineResult
 ): Promise<UploadLocalGameSnapshotResult> => {
-  const context = await buildLocalGameSnapshotContext(objectId, shop);
+  const context =
+    localSnapshotContext ??
+    (await buildLocalGameSnapshotContext(objectId, shop));
   if (context.files.length === 0) {
     return { snapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
   }
