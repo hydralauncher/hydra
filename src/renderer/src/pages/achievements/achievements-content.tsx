@@ -313,7 +313,7 @@ export function AchievementsContent({
                 options={comparedSortOptions}
                 placeholder={t("sort_by")}
                 value={sort}
-                onChange={(val) => setSort(val as AchievementSort)}
+                onChange={setSort}
               />
             </div>
             <ComparedAchievementList
@@ -331,7 +331,7 @@ export function AchievementsContent({
                 options={sortOptions}
                 placeholder={t("sort_by")}
                 value={sort}
-                onChange={(val) => setSort(val as AchievementSort)}
+                onChange={setSort}
               />
             </div>
             <AchievementList achievements={achievements!} sort={sort} />
