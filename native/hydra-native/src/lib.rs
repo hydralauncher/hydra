@@ -14,6 +14,7 @@ pub use cloud_save::restore::resolve_restore_targets;
 pub use cloud_save::restore::download_restore_blob_to_temp;
 pub use cloud_save::restore::verify_downloaded_restore_file;
 pub use cloud_save::restore::should_skip_restore_file;
+pub use cloud_save::restore::replace_restore_targets;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
