@@ -17,7 +17,8 @@ pub const PATH_RESOLUTION_TOKENS: [&str; 10] = [
     "%LOCALAPPDATA%",
 ];
 
-pub const WINDOWS_LIKE_TOKENS: [&str; 7] = [
+pub const WINDOWS_LIKE_TOKENS: [&str; 8] = [
+    "<home>",
     "<winAppData>",
     "<winLocalAppData>",
     "<winDocuments>",
