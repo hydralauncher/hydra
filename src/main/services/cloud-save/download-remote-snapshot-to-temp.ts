@@ -1,6 +1,10 @@
 import { HydraApi } from "@main/services/hydra-api";
 import { SystemPath } from "@main/services/system-path";
-import type { DownloadedRestoreFile, RestoreDownloadUrlFile } from "@types";
+import type {
+  DownloadedRestoreFile,
+  RestoreDownloadUrlFile,
+  RestoreManifestFile,
+} from "@types";
 
 import { NativeAddon } from "../native-addon";
 
@@ -22,7 +26,7 @@ const fileKey = (rawPath: string, relativePath: string) =>
 
 const validateDownloadUrls = (value: unknown): RestoreDownloadUrlFile[] => {
   if (!Array.isArray(value)) {
-    throw new Error("Invalid restore download URLs response");
+    throw new TypeError("Invalid restore download URLs response");
   }
 
   const seenPaths = new Set<string>();
@@ -54,13 +58,45 @@ const validateDownloadUrls = (value: unknown): RestoreDownloadUrlFile[] => {
 };
 
 export const downloadRemoteSnapshotToTemp = async (
-  snapshotId: string
+  snapshotId: string,
+  requestedFiles?: RestoreManifestFile[]
 ): Promise<DownloadedRestoreFile[]> => {
+  if (requestedFiles?.length === 0) return [];
   const files = validateDownloadUrls(
     await HydraApi.get<unknown>("/profile/cloud-saves/snapshot-download-urls", {
       snapshotId,
     })
   );
+  const requestedByPath = requestedFiles
+    ? new Map(
+        requestedFiles.map((file) => [
+          fileKey(file.rawPath, file.relativePath),
+          file,
+        ])
+      )
+    : null;
+  const selectedFiles = requestedByPath
+    ? files.filter((file) =>
+        requestedByPath.has(fileKey(file.rawPath, file.relativePath))
+      )
+    : files;
+  if (requestedByPath) {
+    if (selectedFiles.length !== requestedByPath.size) {
+      throw new Error("Missing restore download URL file");
+    }
+    for (const file of selectedFiles) {
+      const requested = requestedByPath.get(
+        fileKey(file.rawPath, file.relativePath)
+      );
+      if (
+        !requested ||
+        requested.hash !== file.hash ||
+        requested.sizeBytes !== file.sizeBytes
+      ) {
+        throw new Error("Restore download URL file does not match manifest");
+      }
+    }
+  }
   const tempRoot = SystemPath.getPath("temp");
   const downloadedByHash = new Map<
     string,
@@ -68,7 +104,7 @@ export const downloadRemoteSnapshotToTemp = async (
   >();
   const downloadedFiles: DownloadedRestoreFile[] = [];
 
-  for (const file of files) {
+  for (const file of selectedFiles) {
     const existing = downloadedByHash.get(file.hash);
     if (existing && existing.sizeBytes !== file.sizeBytes) {
       throw new Error("Restore blob hash has inconsistent sizes");

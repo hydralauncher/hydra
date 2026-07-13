@@ -4,7 +4,7 @@ mod resolve_targets;
 mod should_skip_file;
 mod verify_file;
 
-pub use download_blob::download_restore_blob_to_temp;
+pub use download_blob::{cleanup_restore_temp_snapshot, download_restore_blob_to_temp};
 pub use replace_targets::replace_restore_targets;
 pub use resolve_targets::resolve_restore_targets;
 pub use should_skip_file::should_skip_restore_file;

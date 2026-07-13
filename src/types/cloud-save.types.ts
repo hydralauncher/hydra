@@ -49,6 +49,15 @@ export interface RestoreManifestResponse {
   files: RestoreManifestFile[];
 }
 
+export interface RemoteSnapshotSummary {
+  id: string;
+  status: "active" | "historical";
+  createdAt: string;
+  fileCount: number;
+  totalSizeBytes: number;
+  aggregateHash: string;
+}
+
 export interface ResolveRestoreTargetsInput extends CloudSavePathContext {
   files: RestoreManifestFile[];
 }
@@ -107,6 +116,13 @@ export interface ReplaceRestoreTargetsResult {
   restoredFiles: RestoreResultFile[];
   skippedFiles: RestoreSkippedFile[];
   failedFiles: RestoreFailedFile[];
+}
+
+export interface RestoreRemoteSnapshotResult {
+  ok: boolean;
+  restoredFiles: number;
+  skippedFiles: number;
+  failedFiles: number;
 }
 
 export interface LocalGameSnapshotFile {

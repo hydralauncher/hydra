@@ -104,6 +104,27 @@ pub async fn download_restore_blob_to_temp(
     Ok(final_path.to_string_lossy().to_string())
 }
 
+#[napi]
+pub async fn cleanup_restore_temp_snapshot(
+    snapshot_id: String,
+    temp_root: String,
+) -> napi::Result<()> {
+    validate_path_component("snapshot ID", &snapshot_id).map_err(Error::from_reason)?;
+    if temp_root.is_empty() {
+        return Err(Error::from_reason("Invalid restore temporary root"));
+    }
+    let directory = Path::new(&temp_root)
+        .join("hydra-cloud-saves")
+        .join(snapshot_id);
+    match tokio::fs::remove_dir_all(directory).await {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(Error::from_reason(format!(
+            "Failed to clean restore temporary directory: {error}"
+        ))),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -183,5 +204,26 @@ mod tests {
         )
         .await
         .is_err());
+    }
+
+    #[tokio::test]
+    async fn cleans_snapshot_temporary_directory() {
+        let directory = tempdir().unwrap();
+        let snapshot_directory = directory.path().join("hydra-cloud-saves").join("abcd1234");
+        tokio::fs::create_dir_all(&snapshot_directory)
+            .await
+            .unwrap();
+        tokio::fs::write(snapshot_directory.join("abc123.blob"), b"save")
+            .await
+            .unwrap();
+
+        cleanup_restore_temp_snapshot(
+            "abcd1234".to_string(),
+            directory.path().display().to_string(),
+        )
+        .await
+        .unwrap();
+
+        assert!(!snapshot_directory.exists());
     }
 }

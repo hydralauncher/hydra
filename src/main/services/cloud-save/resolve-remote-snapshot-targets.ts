@@ -51,15 +51,24 @@ const validateManifest = (value: unknown): RestoreManifestResponse => {
   return value as RestoreManifestResponse;
 };
 
-export const resolveRemoteSnapshotTargets = async (
+export const getRemoteSnapshotRestoreManifest = async (
   snapshotId: string
-): Promise<ResolvedRestoreTarget[]> => {
+): Promise<RestoreManifestResponse> => {
   const manifest = validateManifest(
     await HydraApi.get<unknown>(
       "/profile/cloud-saves/snapshot-restore-manifest",
       { snapshotId }
     )
   );
+  if (manifest.snapshot.id !== snapshotId) {
+    throw new Error("Restore manifest snapshot ID does not match request");
+  }
+  return manifest;
+};
+
+export const resolveRestoreManifestTargets = async (
+  manifest: RestoreManifestResponse
+): Promise<ResolvedRestoreTarget[]> => {
   const { pathContext } = await getCloudSaveGameContext(
     manifest.snapshot.objectId,
     manifest.snapshot.shop
@@ -70,3 +79,10 @@ export const resolveRemoteSnapshotTargets = async (
     files: manifest.files,
   });
 };
+
+export const resolveRemoteSnapshotTargets = async (
+  snapshotId: string
+): Promise<ResolvedRestoreTarget[]> =>
+  resolveRestoreManifestTargets(
+    await getRemoteSnapshotRestoreManifest(snapshotId)
+  );

@@ -70,6 +70,10 @@ type HydraNativeModule = {
   replaceRestoreTargets: (
     files: ReplaceRestoreTarget[]
   ) => Promise<ReplaceRestoreTargetsResult>;
+  cleanupRestoreTempSnapshot: (
+    snapshotId: string,
+    tempRoot: string
+  ) => Promise<void>;
 };
 
 export type SystemProcessMap = {
@@ -390,5 +394,12 @@ export class NativeAddon {
 
   public static replaceRestoreTargets(files: ReplaceRestoreTarget[]) {
     return this.load().replaceRestoreTargets(files);
+  }
+
+  public static cleanupRestoreTempSnapshot(
+    snapshotId: string,
+    tempRoot: string
+  ) {
+    return this.load().cleanupRestoreTempSnapshot(snapshotId, tempRoot);
   }
 }
