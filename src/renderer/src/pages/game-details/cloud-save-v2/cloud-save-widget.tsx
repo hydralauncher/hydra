@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { CloudIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
@@ -12,6 +12,7 @@ import { gameDetailsContext } from "@renderer/context";
 import { useUserDetails } from "@renderer/hooks";
 
 import { CloudSaveModal } from "./cloud-save-modal";
+import { useCloudSaveOverview } from "./use-cloud-save-overview";
 import "./cloud-save-v2.scss";
 
 interface CloudSaveWidgetProps {
@@ -37,43 +38,35 @@ const statusTone = (overview: CloudSaveOverview | null, hasError: boolean) => {
 export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
   const { t } = useTranslation("game_details");
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { setShowGameOptionsModal, setGameOptionsInitialCategory } =
-    useContext(gameDetailsContext);
-  const [overview, setOverview] = useState<CloudSaveOverview | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    isGameRunning,
+    setShowGameOptionsModal,
+    setGameOptionsInitialCategory,
+  } = useContext(gameDetailsContext);
+  const canUseCloudSaves = Boolean(userDetails && hasActiveSubscription);
+  const { overview, isRefreshing, hasRefreshError, refresh } =
+    useCloudSaveOverview({
+      objectId,
+      shop,
+      enabled: canUseCloudSaves,
+      isGameRunning,
+    });
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [progress, setProgress] = useState<CloudSaveSyncProgressPayload | null>(
     null
   );
-  const [hasError, setHasError] = useState(false);
+  const [hasSyncError, setHasSyncError] = useState(false);
   const gameKey = `${shop}:${objectId}`;
   const activeGameKey = useRef(gameKey);
 
   activeGameKey.current = gameKey;
 
-  const loadOverview = useCallback(async () => {
-    const requestedGame = gameKey;
-    setIsLoading(true);
-    setHasError(false);
-    try {
-      const result = await window.electron.getCloudSaveOverview(objectId, shop);
-      if (activeGameKey.current === requestedGame) setOverview(result);
-    } catch {
-      if (activeGameKey.current === requestedGame) setHasError(true);
-    } finally {
-      if (activeGameKey.current === requestedGame) setIsLoading(false);
-    }
-  }, [gameKey, objectId, shop]);
-
   useEffect(() => {
-    setOverview(null);
     setProgress(null);
-    setHasError(false);
+    setHasSyncError(false);
     setIsModalVisible(false);
-
-    if (userDetails && hasActiveSubscription) void loadOverview();
-  }, [gameKey, hasActiveSubscription, loadOverview, userDetails]);
+  }, [gameKey]);
 
   const handleOpen = () => {
     if (!userDetails) {
@@ -91,7 +84,7 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
   const handleSync = async () => {
     const requestedGame = gameKey;
     setIsSyncing(true);
-    setHasError(false);
+    setHasSyncError(false);
     setProgress(null);
     try {
       await window.electron.syncGameCloudSave(
@@ -103,15 +96,15 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
           }
         }
       );
-      if (activeGameKey.current === requestedGame) await loadOverview();
+      if (activeGameKey.current === requestedGame) await refresh();
     } catch {
-      if (activeGameKey.current === requestedGame) setHasError(true);
+      if (activeGameKey.current === requestedGame) setHasSyncError(true);
     } finally {
       if (activeGameKey.current === requestedGame) setIsSyncing(false);
     }
   };
 
-  const canUseCloudSaves = Boolean(userDetails && hasActiveSubscription);
+  const hasError = hasRefreshError || hasSyncError;
   const label = !canUseCloudSaves
     ? t("cloud_save_v2")
     : hasError
@@ -128,13 +121,13 @@ export function CloudSaveWidget({ objectId, shop }: CloudSaveWidgetProps) {
         title={t("cloud_save_v2")}
       >
         <CloudIcon size={16} />
-        {isLoading ? t("cloud_save_v2_checking") : label}
+        {isRefreshing && !overview ? t("cloud_save_v2_checking") : label}
       </button>
 
       <CloudSaveModal
         visible={isModalVisible}
         overview={overview}
-        isLoading={isLoading}
+        isLoading={isRefreshing}
         isSyncing={isSyncing}
         hasError={hasError}
         progress={progress}

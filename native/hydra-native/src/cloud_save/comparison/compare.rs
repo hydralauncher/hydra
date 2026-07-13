@@ -5,16 +5,20 @@ pub fn compare_hashes(
     base_snapshot_hash: Option<&str>,
     remote_snapshot_hash: Option<&str>,
 ) -> SnapshotComparisonState {
+    let Some(remote_snapshot_hash) = remote_snapshot_hash else {
+        return SnapshotComparisonState::Untracked;
+    };
+
     let Some(base_snapshot_hash) = base_snapshot_hash else {
         return SnapshotComparisonState::Untracked;
     };
 
-    if remote_snapshot_hash == Some(local_snapshot_hash) {
+    if remote_snapshot_hash == local_snapshot_hash {
         return SnapshotComparisonState::Synced;
     }
 
     let local_changed = local_snapshot_hash != base_snapshot_hash;
-    let remote_changed = remote_snapshot_hash != Some(base_snapshot_hash);
+    let remote_changed = remote_snapshot_hash != base_snapshot_hash;
 
     match (local_changed, remote_changed) {
         (false, false) => SnapshotComparisonState::Synced,
@@ -31,12 +35,7 @@ mod tests {
     #[test]
     fn compares_snapshot_hashes() {
         let cases = [
-            (
-                "local",
-                None,
-                None,
-                SnapshotComparisonState::Untracked,
-            ),
+            ("local", None, None, SnapshotComparisonState::Untracked),
             (
                 "same",
                 Some("base"),
@@ -71,13 +70,13 @@ mod tests {
                 "base",
                 Some("base"),
                 None,
-                SnapshotComparisonState::RemoteAhead,
+                SnapshotComparisonState::Untracked,
             ),
             (
                 "local",
                 Some("base"),
                 None,
-                SnapshotComparisonState::Conflict,
+                SnapshotComparisonState::Untracked,
             ),
         ];
 

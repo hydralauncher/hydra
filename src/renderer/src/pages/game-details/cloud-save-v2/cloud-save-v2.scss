@@ -50,6 +50,11 @@
     color: globals.$muted-color;
   }
 
+  &__state-description {
+    margin: 0;
+    color: globals.$muted-color;
+  }
+
   &__spinner {
     animation: cloud-save-v2-spin 1s linear infinite;
   }

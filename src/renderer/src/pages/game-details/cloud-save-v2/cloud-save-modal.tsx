@@ -24,10 +24,16 @@ interface CloudSaveModalProps {
 
 const stateKey: Record<CloudSaveState, string> = {
   synced: "cloud_save_v2_synced",
-  "local-ahead": "cloud_save_v2_local_ahead",
-  "remote-ahead": "cloud_save_v2_remote_ahead",
+  "local-ahead": "cloud_save_v2_outdated",
+  "remote-ahead": "cloud_save_v2_outdated",
   conflict: "cloud_save_v2_conflict",
   untracked: "cloud_save_v2_not_synced",
+};
+
+const stateDescriptionKey: Partial<Record<CloudSaveState, string>> = {
+  "local-ahead": "cloud_save_v2_local_ahead_description",
+  "remote-ahead": "cloud_save_v2_remote_ahead_description",
+  conflict: "cloud_save_v2_conflict_description",
 };
 
 export function CloudSaveModal({
@@ -53,6 +59,9 @@ export function CloudSaveModal({
   const progressLabel = progress
     ? t(`cloud_save_v2_progress_${progress.stage}`)
     : null;
+  const stateDescription = overview
+    ? stateDescriptionKey[overview.state]
+    : undefined;
 
   return (
     <Modal
@@ -70,6 +79,12 @@ export function CloudSaveModal({
               : t("cloud_save_v2_checking")}
           </strong>
         </div>
+
+        {stateDescription && (
+          <p className="cloud-save-v2__state-description">
+            {t(stateDescription)}
+          </p>
+        )}
 
         {progress && progressLabel && (
           <div className="cloud-save-v2__progress">
