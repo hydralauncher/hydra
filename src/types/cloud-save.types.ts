@@ -75,6 +75,7 @@ export type CloudSaveState =
 
 export interface CompareGameSnapshotsInput {
   localSnapshotHash: string;
+  localSnapshotFileCount: number;
   baseSnapshotHash?: string;
   remoteSnapshots: RemoteSnapshotSummary[];
 }
