@@ -4,6 +4,7 @@ import type {
   GameShop,
   SyncGameCloudSaveResult,
 } from "@types";
+import { gamesSublevel, levelKeys } from "@main/level";
 
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
@@ -22,7 +23,7 @@ const emitTerminalEvent = (event: CloudSaveAutomaticSyncEvent) => {
   WindowManager.sendToAppWindows("on-cloud-save-automatic-sync", event);
 };
 
-export const runAutomaticCloudSaveSync = (
+export const runAutomaticCloudSaveSync = async (
   objectId: string,
   shop: GameShop,
   trigger: CloudSaveAutomaticSyncTrigger
@@ -32,8 +33,11 @@ export const runAutomaticCloudSaveSync = (
     !HydraApi.isLoggedIn() ||
     !HydraApi.hasActiveSubscription()
   ) {
-    return Promise.resolve(null);
+    return null;
   }
+
+  const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
+  if (!game?.executablePath) return null;
 
   const key = gameKey(objectId, shop);
   const activeSync = activeAutomaticSyncs.get(key);

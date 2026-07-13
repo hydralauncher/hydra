@@ -7,6 +7,7 @@ interface UseCloudSaveOverviewOptions {
   shop: GameShop;
   enabled: boolean;
   isGameRunning: boolean;
+  canAutomaticallySync: boolean;
 }
 
 interface RefreshOptions {
@@ -26,6 +27,7 @@ export const useCloudSaveOverview = ({
   shop,
   enabled,
   isGameRunning,
+  canAutomaticallySync,
 }: UseCloudSaveOverviewOptions) => {
   const [overview, setOverview] = useState<CloudSaveOverview | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -37,9 +39,11 @@ export const useCloudSaveOverview = ({
   const queuedRefreshAllowsAutomaticSync = useRef(false);
   const scheduledRefresh = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isGameRunningRef = useRef(isGameRunning);
+  const canAutomaticallySyncRef = useRef(canAutomaticallySync);
   const lastTriggeredFingerprint = useRef<string | null>(null);
 
   isGameRunningRef.current = isGameRunning;
+  canAutomaticallySyncRef.current = canAutomaticallySync;
 
   const refresh = useCallback(
     (options?: RefreshOptions): Promise<void> => {
@@ -78,6 +82,7 @@ export const useCloudSaveOverview = ({
                 lastTriggeredFingerprint.current = null;
               } else if (
                 currentRefreshAllowsAutomaticSync &&
+                canAutomaticallySyncRef.current &&
                 !isGameRunningRef.current &&
                 lastTriggeredFingerprint.current !== fingerprint
               ) {

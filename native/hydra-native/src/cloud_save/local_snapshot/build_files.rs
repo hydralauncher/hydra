@@ -5,6 +5,7 @@ use std::sync::OnceLock;
 use rayon::prelude::*;
 
 use super::build_file::build_file;
+use super::guardrails::{prepare_files, validate_built_files};
 use super::types::{DiscoveredLocalSaveFile, LocalFileHashCacheEntry, LocalSaveSnapshotFile};
 
 const MAX_CONCURRENT_HASHES: usize = 8;
@@ -29,21 +30,23 @@ pub fn build_files(
     files: Vec<DiscoveredLocalSaveFile>,
     hash_cache: Vec<LocalFileHashCacheEntry>,
 ) -> Result<LocalSnapshotFilesWithCache, String> {
+    let prepared_files = prepare_files(files).map_err(|error| error.to_string())?;
     let cache_by_path = hash_cache
         .into_iter()
         .map(|entry| (entry.absolute_path.clone(), entry))
         .collect::<HashMap<_, _>>();
 
     let results = hashing_pool().install(|| {
-        files
+        prepared_files
             .into_par_iter()
-            .map(|file| {
-                let cached = cache_by_path.get(&file.absolute_path);
-                build_file(file, cached)
+            .map(|prepared| {
+                let cached = cache_by_path.get(&prepared.file.absolute_path);
+                build_file(prepared, cached)
             })
             .collect::<Vec<_>>()
     });
     let mut snapshot_files = results.into_iter().collect::<Result<Vec<_>, _>>()?;
+    validate_built_files(&snapshot_files).map_err(|error| error.to_string())?;
 
     snapshot_files.sort_by(|left, right| {
         let root_order = left.root_path.cmp(&right.root_path);
