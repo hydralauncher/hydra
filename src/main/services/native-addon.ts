@@ -7,6 +7,8 @@ import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
 import type {
   BuildLocalGameSnapshotPipelineInput,
+  CloudSaveStateResult,
+  CompareGameSnapshotsInput,
   LocalGameSnapshotPipelineResult,
   ReplaceRestoreTarget,
   ReplaceRestoreTargetsResult,
@@ -74,6 +76,9 @@ type HydraNativeModule = {
     snapshotId: string,
     tempRoot: string
   ) => Promise<void>;
+  compareGameSnapshots: (
+    input: CompareGameSnapshotsInput
+  ) => CloudSaveStateResult;
 };
 
 export type SystemProcessMap = {
@@ -354,6 +359,10 @@ export class NativeAddon {
     input: BuildLocalGameSnapshotPipelineInput
   ) {
     return this.load().buildLocalGameSnapshotPipeline(input);
+  }
+
+  public static compareGameSnapshots(input: CompareGameSnapshotsInput) {
+    return this.load().compareGameSnapshots(input);
   }
 
   public static uploadLocalSaveBlob(absolutePath: string, uploadUrl: string) {

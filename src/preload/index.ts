@@ -41,6 +41,7 @@ import type {
   RestoreFinishedPayload,
   RestoreProgressPayload,
   RestoreRemoteSnapshotResult,
+  CloudSaveStateResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -58,6 +59,12 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<LocalGameSnapshotWithHash>,
+  getCloudSaveState: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getCloudSaveState",
+      objectId,
+      shop
+    ) as Promise<CloudSaveStateResult>,
   restoreRemoteSnapshot: (snapshotId: string, gameId: CloudSaveGameId) =>
     ipcRenderer.invoke(
       "restoreRemoteSnapshot",

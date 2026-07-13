@@ -1,9 +1,8 @@
-import { HydraApi } from "@main/services/hydra-api";
 import { logger } from "@main/services/logger";
 import { SystemPath } from "@main/services/system-path";
 import type {
   CloudSaveGameId,
-  RemoteSnapshotSummary,
+  GameShop,
   ReplaceRestoreTarget,
   ResolvedRestoreTarget,
   RestoreRemoteSnapshotResult,
@@ -20,42 +19,17 @@ import {
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
 import { shouldSkipRestoreFile } from "./should-skip-restore-file";
+import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 
 const fileKey = (rawPath: string, relativePath: string) =>
   JSON.stringify([rawPath, relativePath]);
 
-const validateSnapshotList = (value: unknown): RemoteSnapshotSummary[] => {
-  if (!Array.isArray(value)) throw new Error("Invalid snapshots response");
-  return value.map((snapshot) => {
-    if (!snapshot || typeof snapshot !== "object") {
-      throw new Error("Invalid snapshot response item");
-    }
-    const item = snapshot as Record<string, unknown>;
-    if (
-      typeof item.id !== "string" ||
-      (item.status !== "active" && item.status !== "historical") ||
-      typeof item.createdAt !== "string" ||
-      typeof item.fileCount !== "number" ||
-      typeof item.totalSizeBytes !== "number" ||
-      typeof item.aggregateHash !== "string"
-    ) {
-      throw new Error("Invalid snapshot response item");
-    }
-    return item as unknown as RemoteSnapshotSummary;
-  });
-};
-
 const getSnapshotSummary = async (
   snapshotId: string,
-  shop: string,
+  shop: GameShop,
   objectId: string
 ) => {
-  const snapshots = validateSnapshotList(
-    await HydraApi.get<unknown>("/profile/cloud-saves/snapshots", {
-      shop,
-      objectId,
-    })
-  );
+  const snapshots = await listRemoteGameSnapshots(objectId, shop);
   const snapshot = snapshots.find((item) => item.id === snapshotId);
   if (!snapshot) throw new Error("Restore snapshot metadata not found");
   return snapshot;

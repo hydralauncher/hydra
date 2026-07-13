@@ -58,6 +58,25 @@ export interface RemoteSnapshotSummary {
   aggregateHash: string;
 }
 
+export type CloudSaveState =
+  | "synced"
+  | "local-ahead"
+  | "remote-ahead"
+  | "conflict"
+  | "untracked";
+
+export interface CompareGameSnapshotsInput {
+  localSnapshotHash: string;
+  baseSnapshotHash?: string;
+  remoteSnapshots: RemoteSnapshotSummary[];
+}
+
+export interface CloudSaveStateResult {
+  state: CloudSaveState;
+  hasChanged: boolean;
+  activeRemoteSnapshot: RemoteSnapshotSummary | null;
+}
+
 export interface ResolveRestoreTargetsInput extends CloudSavePathContext {
   files: RestoreManifestFile[];
 }
