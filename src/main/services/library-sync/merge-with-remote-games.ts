@@ -1,6 +1,11 @@
 import { ShopAssets } from "@types";
 import { HydraApi } from "../hydra-api";
-import { gamesShopAssetsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import {
+  gameAchievementsSublevel,
+  gamesShopAssetsSublevel,
+  gamesSublevel,
+  levelKeys,
+} from "@main/level";
 
 type ProfileGame = {
   id: string;
@@ -82,8 +87,28 @@ export const mergeWithRemoteGames = async () => {
       for (const game of response) {
         const gameKey = levelKeys.game(game.shop, game.objectId);
         const localGame = await gamesSublevel.get(gameKey);
+        const localAchievements = await gameAchievementsSublevel
+          .get(gameKey)
+          .catch(() => null);
 
         const localCollectionIds = getLocalCollectionIds(localGame);
+
+        const cachedAchievementCount =
+          localAchievements?.achievements?.length ?? 0;
+        const cachedUnlockedAchievementCount =
+          localAchievements?.unlockedAchievements?.length ?? 0;
+
+        const achievementCount = Math.max(
+          game.achievementCount ?? 0,
+          localGame?.achievementCount ?? 0,
+          cachedAchievementCount
+        );
+
+        const unlockedAchievementCount = Math.max(
+          game.unlockedAchievementCount ?? 0,
+          localGame?.unlockedAchievementCount ?? 0,
+          cachedUnlockedAchievementCount
+        );
 
         const hasRemoteCollectionField =
           Array.isArray(game.collectionIds) ||
@@ -126,8 +151,8 @@ export const mergeWithRemoteGames = async () => {
             favorite: game.isFavorite ?? localGame.favorite,
             isPinned: game.isPinned ?? localGame.isPinned,
             collectionIds: mergedCollectionIds,
-            achievementCount: game.achievementCount,
-            unlockedAchievementCount: game.unlockedAchievementCount,
+            achievementCount,
+            unlockedAchievementCount,
             platform: game.platform ?? localGame.platform,
           });
         } else {
@@ -147,8 +172,8 @@ export const mergeWithRemoteGames = async () => {
             favorite: game.isFavorite ?? false,
             isPinned: game.isPinned ?? false,
             collectionIds: mergedCollectionIds,
-            achievementCount: game.achievementCount,
-            unlockedAchievementCount: game.unlockedAchievementCount,
+            achievementCount,
+            unlockedAchievementCount,
             platform: game.platform ?? null,
           });
         }

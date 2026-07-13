@@ -5,6 +5,7 @@ import {
   db,
   gameAchievementsSublevel,
   gamesShopCacheSublevel,
+  gamesSublevel,
   levelKeys,
 } from "@main/level";
 import type {
@@ -450,6 +451,15 @@ export const saveRpcs3TrophyState = async (
     language: "rpcs3",
     catalogueValidator: state.trophyPaths.trophyDir,
   } satisfies GameAchievement);
+
+  const game = await gamesSublevel.get(gameKey).catch(() => null);
+  if (!game || game.isDeleted) return;
+
+  await gamesSublevel.put(gameKey, {
+    ...game,
+    achievementCount: state.achievements.length,
+    unlockedAchievementCount: state.unlockedAchievements.length,
+  });
 };
 
 export const clearRpcs3TrophyProgress = async (
