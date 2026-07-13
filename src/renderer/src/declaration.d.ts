@@ -63,6 +63,7 @@ import type {
   RestoreFinishedPayload,
   RestoreProgressPayload,
   RestoreRemoteSnapshotResult,
+  CloudSaveStateResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -99,6 +100,10 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<LocalGameSnapshotWithHash>;
+    getCloudSaveState: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveStateResult>;
     restoreRemoteSnapshot: (
       snapshotId: string,
       gameId: CloudSaveGameId
