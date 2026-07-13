@@ -57,10 +57,6 @@ export const createRemoteSnapshotFromLocalState = async (
     })
   );
 
-  if (committed.snapshotId !== upload.snapshotId) {
-    throw new Error("Committed snapshot ID does not match pending snapshot");
-  }
-
   await saveCloudSaveSyncAnchor(shop, objectId, {
     baseSnapshotId: committed.snapshotId,
     baseAggregateHash: committed.aggregateHash,

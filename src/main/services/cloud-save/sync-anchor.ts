@@ -1,19 +1,35 @@
-import { cloudSaveSyncAnchorsSublevel, levelKeys } from "@main/level";
-import type { CloudSaveSyncAnchor, GameShop } from "@types";
+import { cloudSaveSyncAnchorsSublevel, db, levelKeys } from "@main/level";
+import type { CloudSaveSyncAnchor, GameShop, User } from "@types";
 
-const getAnchorKey = (shop: GameShop, objectId: string) =>
-  levelKeys.game(shop, objectId);
+const getCurrentUserId = async () => {
+  const user = await db.get<string, User>(levelKeys.user, {
+    valueEncoding: "json",
+  });
 
-export const getCloudSaveSyncAnchor = (shop: GameShop, objectId: string) =>
-  cloudSaveSyncAnchorsSublevel
-    .get(getAnchorKey(shop, objectId))
-    .catch(() => null);
+  if (!user?.id) throw new Error("Cloud save sync requires a signed-in user");
 
-export const saveCloudSaveSyncAnchor = (
+  return user.id;
+};
+
+const getAnchorKey = async (shop: GameShop, objectId: string) =>
+  JSON.stringify([await getCurrentUserId(), shop, objectId]);
+
+export const getCloudSaveSyncAnchor = async (
+  shop: GameShop,
+  objectId: string
+) =>
+  (await cloudSaveSyncAnchorsSublevel.get(
+    await getAnchorKey(shop, objectId)
+  )) ?? null;
+
+export const saveCloudSaveSyncAnchor = async (
   shop: GameShop,
   objectId: string,
   anchor: CloudSaveSyncAnchor
-) => cloudSaveSyncAnchorsSublevel.put(getAnchorKey(shop, objectId), anchor);
+) =>
+  cloudSaveSyncAnchorsSublevel.put(await getAnchorKey(shop, objectId), anchor);
 
-export const deleteCloudSaveSyncAnchor = (shop: GameShop, objectId: string) =>
-  cloudSaveSyncAnchorsSublevel.del(getAnchorKey(shop, objectId));
+export const deleteCloudSaveSyncAnchor = async (
+  shop: GameShop,
+  objectId: string
+) => cloudSaveSyncAnchorsSublevel.del(await getAnchorKey(shop, objectId));
