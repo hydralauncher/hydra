@@ -55,23 +55,27 @@ mod tests {
         fs::write(&save_path, b"balatro save").unwrap();
         fs::write(&settings_path, b"balatro settings").unwrap();
 
-        let files = build_files(vec![
-            DiscoveredLocalSaveFile {
-                raw_path: "<winAppData>/Balatro/settings.jkr".into(),
-                absolute_path: settings_path.display().to_string(),
-                root_path: root_path.clone(),
-                relative_path: "settings.jkr".into(),
-                source: "ludusavi".into(),
-            },
-            DiscoveredLocalSaveFile {
-                raw_path: "<winAppData>/Balatro".into(),
-                absolute_path: save_path.display().to_string(),
-                root_path,
-                relative_path: "1.jkr".into(),
-                source: "ludusavi".into(),
-            },
-        ])
-        .unwrap();
+        let files = build_files(
+            vec![
+                DiscoveredLocalSaveFile {
+                    raw_path: "<winAppData>/Balatro/settings.jkr".into(),
+                    absolute_path: settings_path.display().to_string(),
+                    root_path: root_path.clone(),
+                    relative_path: "settings.jkr".into(),
+                    source: "ludusavi".into(),
+                },
+                DiscoveredLocalSaveFile {
+                    raw_path: "<winAppData>/Balatro".into(),
+                    absolute_path: save_path.display().to_string(),
+                    root_path,
+                    relative_path: "1.jkr".into(),
+                    source: "ludusavi".into(),
+                },
+            ],
+            vec![],
+        )
+        .unwrap()
+        .files;
 
         let snapshot = build_snapshot(BuildLocalGameSnapshotInput {
             game_id: CloudSaveGameId {
@@ -101,10 +105,7 @@ mod tests {
             }).collect::<Vec<_>>(),
         });
 
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&output).unwrap(),
-        );
+        println!("{}", serde_json::to_string_pretty(&output).unwrap(),);
 
         assert_eq!(snapshot.game_id.shop, "steam");
         assert_eq!(snapshot.game_id.object_id, "2379780");
@@ -112,10 +113,7 @@ mod tests {
         assert_eq!(snapshot.file_count, 2);
         assert_eq!(snapshot.total_size_bytes, 28.0);
 
-        assert_eq!(
-            snapshot.files[0].raw_path,
-            "<winAppData>/Balatro",
-        );
+        assert_eq!(snapshot.files[0].raw_path, "<winAppData>/Balatro",);
 
         assert_eq!(
             snapshot.files[1].raw_path,
@@ -123,9 +121,6 @@ mod tests {
         );
 
         assert_eq!(snapshot.files[0].relative_path, "1.jkr");
-        assert_eq!(
-            snapshot.files[1].relative_path,
-            "settings.jkr",
-        );
+        assert_eq!(snapshot.files[1].relative_path, "settings.jkr",);
     }
 }

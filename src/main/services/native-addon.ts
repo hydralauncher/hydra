@@ -9,7 +9,7 @@ import type {
   BuildLocalGameSnapshotPipelineInput,
   CloudSaveStateResult,
   CompareGameSnapshotsInput,
-  LocalGameSnapshotPipelineResult,
+  NativeLocalGameSnapshotPipelineResult,
   ReplaceRestoreTarget,
   ReplaceRestoreTargetsResult,
   ResolveRestoreTargetsInput,
@@ -47,7 +47,7 @@ type HydraNativeModule = {
   listProcesses: () => ProcessPayload[];
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
-  ) => Promise<LocalGameSnapshotPipelineResult>;
+  ) => Promise<NativeLocalGameSnapshotPipelineResult>;
   uploadLocalSaveBlob: (
     absolutePath: string,
     uploadUrl: string

@@ -3,8 +3,9 @@ use napi_derive::napi;
 
 use super::hashing::{build_snapshot_aggregate_hash, BuildSnapshotAggregateHashInput};
 use super::local_snapshot::{
-    build_local_game_snapshot, build_local_save_snapshot_files, BuildLocalGameSnapshotInput,
-    DiscoveredLocalSaveFile, LocalGameSnapshotFile,
+    build_local_game_snapshot, build_local_save_snapshot_files_with_cache,
+    BuildLocalGameSnapshotInput, DiscoveredLocalSaveFile, LocalFileHashCacheEntry,
+    LocalGameSnapshotFile,
 };
 use super::manifest::types::CloudSaveGameId;
 use super::manifest::{get_save_rules_for_game, GetSaveRulesForGameInput};
@@ -28,6 +29,7 @@ pub struct BuildLocalGameSnapshotPipelineInput {
     pub proton_path: Option<String>,
     pub steam_path: Option<String>,
     pub steam_user_ids: Vec<String>,
+    pub hash_cache: Vec<LocalFileHashCacheEntry>,
 }
 
 #[napi(object)]
@@ -39,6 +41,7 @@ pub struct LocalGameSnapshotWithHash {
     pub files: Vec<LocalGameSnapshotFile>,
     pub aggregate_hash: String,
     pub source_files: Vec<LocalGameSnapshotSourceFile>,
+    pub hash_cache: Vec<LocalFileHashCacheEntry>,
 }
 
 #[napi(object)]
@@ -97,7 +100,9 @@ pub async fn build_local_game_snapshot_pipeline(
         }
     }
 
-    let files = build_local_save_snapshot_files(discovered_files).await?;
+    let built_files =
+        build_local_save_snapshot_files_with_cache(discovered_files, input.hash_cache).await?;
+    let files = built_files.files;
     let source_files = files
         .iter()
         .map(|file| LocalGameSnapshotSourceFile {
@@ -126,5 +131,6 @@ pub async fn build_local_game_snapshot_pipeline(
         files: snapshot.files,
         aggregate_hash,
         source_files,
+        hash_cache: built_files.hash_cache,
     })
 }
