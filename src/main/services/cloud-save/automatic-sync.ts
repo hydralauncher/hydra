@@ -53,7 +53,7 @@ export const runAutomaticCloudSaveSync = async (
   })
     .then((result) => {
       const status = result.action === "conflict" ? "conflict" : "completed";
-      logger.info("[Cloud Save] Automatic sync finished", {
+      logger.info("[Cloud V2 DEBUG] automatic sync finished", {
         shop,
         objectId,
         trigger,
@@ -70,11 +70,13 @@ export const runAutomaticCloudSaveSync = async (
       return result;
     })
     .catch((error: unknown) => {
-      logger.error("[Cloud Save] Automatic sync failed", {
+      logger.error("[Cloud V2 DEBUG] automatic sync failed", {
         shop,
         objectId,
         trigger,
         errorName: error instanceof Error ? error.name : "UnknownError",
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
       });
       emitAutomaticSyncEvent({
         gameId: { objectId, shop },
