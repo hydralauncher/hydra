@@ -42,9 +42,9 @@ async fn download_blob(
         .get(download_url)
         .send()
         .await
-        .map_err(|error| format!("Failed to download restore blob: {error}"))?
+        .map_err(|error| format!("Failed to download restore blob: {}", error.without_url()))?
         .error_for_status()
-        .map_err(|error| format!("Failed to download restore blob: {error}"))?;
+        .map_err(|error| format!("Failed to download restore blob: {}", error.without_url()))?;
     let parent = final_path
         .parent()
         .ok_or_else(|| "Invalid restore temporary path".to_string())?;
