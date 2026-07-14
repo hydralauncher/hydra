@@ -189,7 +189,7 @@ export function ProfileHero() {
     ]
   );
 
-    const blockButton = useMemo(() => {
+  const blockButton = useMemo(() => {
     if (isCheckingBlockStatus) return null;
 
     if (blockStatusUnknown) {
@@ -268,7 +268,7 @@ export function ProfileHero() {
       );
     }
 
-     if (isBlocked || blockStatusUnknown) {
+    if (isBlocked || blockStatusUnknown) {
       return blockButton;
     }
 
