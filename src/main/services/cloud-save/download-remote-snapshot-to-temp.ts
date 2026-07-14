@@ -45,7 +45,7 @@ const validateDownloadUrls = (value: unknown): RestoreDownloadUrlFile[] => {
       !isNonEmptyString(item.hash) ||
       typeof item.sizeBytes !== "number" ||
       !Number.isFinite(item.sizeBytes) ||
-      item.sizeBytes <= 0 ||
+      item.sizeBytes < 0 ||
       !isDownloadUrl(item.downloadUrl)
     ) {
       throw new Error("Invalid restore download URL file");
