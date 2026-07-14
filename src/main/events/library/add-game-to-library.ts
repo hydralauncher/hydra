@@ -9,7 +9,6 @@ import {
   levelKeys,
 } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
-import { matchGame } from "@main/services";
 
 const lookupCachedPlatform = async (
   shop: GameShop,
@@ -83,8 +82,6 @@ const addGameToLibrary = async (
       game.shop,
       game.objectId
     );
-
-    matchGame(game.shop, game.objectId, {}).catch(() => {});
   }
 };
 

@@ -1,4 +1,4 @@
-.game-steamgriddb {
+.game-artwork {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -19,11 +19,6 @@
     font-weight: 600;
   }
 
-  &__override {
-    display: flex;
-    gap: 4px;
-  }
-
   &__actions {
     display: flex;
     gap: 8px;
@@ -31,14 +26,21 @@
     flex-wrap: wrap;
   }
 
+  &__scroll {
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  &__sentinel {
+    height: 1px;
+  }
+
   &__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
     gap: 8px;
     align-items: start;
-    max-height: 320px;
-    overflow-y: auto;
-    padding-right: 4px;
 
     &--hero {
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

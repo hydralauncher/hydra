@@ -7,10 +7,6 @@ const getCustomGamesAssetsPath = () => {
   return path.join(ASSETS_PATH, "custom-games");
 };
 
-const getSgdbAssetsPath = () => {
-  return path.join(ASSETS_PATH, "steamgriddb");
-};
-
 const readAssetDir = async (assetsPath: string): Promise<string[]> => {
   if (!fs.existsSync(assetsPath)) {
     return [];
@@ -54,33 +50,6 @@ const getUsedCustomGamePaths = async (): Promise<Set<string>> => {
   return usedPaths;
 };
 
-const getUsedSgdbPaths = async (): Promise<Set<string>> => {
-  const { gamesSgdbSelectionSublevel, gamesSublevel } = await import(
-    "@main/level"
-  );
-  const [records, games] = await Promise.all([
-    gamesSgdbSelectionSublevel.iterator().all(),
-    gamesSublevel.iterator().all(),
-  ]);
-
-  const liveGameKeys = new Set(
-    games.filter(([_key, game]) => !game.isDeleted).map(([key]) => key)
-  );
-
-  const usedPaths = new Set<string>();
-
-  records.forEach(([key, record]) => {
-    if (!liveGameKeys.has(key)) return;
-
-    Object.values(record.selected ?? {}).forEach((asset) => {
-      const localPath = toLocalPath(asset?.url);
-      if (localPath) usedPaths.add(localPath);
-    });
-  });
-
-  return usedPaths;
-};
-
 const sweepDir = async (
   assets: string[],
   usedPaths: Set<string>
@@ -107,21 +76,12 @@ export const cleanupUnusedAssets = async (): Promise<{
   errors: string[];
 }> => {
   try {
-    const [customAssets, sgdbAssets, usedCustomPaths, usedSgdbPaths] =
-      await Promise.all([
-        readAssetDir(getCustomGamesAssetsPath()),
-        readAssetDir(getSgdbAssetsPath()),
-        getUsedCustomGamePaths(),
-        getUsedSgdbPaths(),
-      ]);
+    const [customAssets, usedCustomPaths] = await Promise.all([
+      readAssetDir(getCustomGamesAssetsPath()),
+      getUsedCustomGamePaths(),
+    ]);
 
-    const customSweep = await sweepDir(customAssets, usedCustomPaths);
-    const sgdbSweep = await sweepDir(sgdbAssets, usedSgdbPaths);
-
-    return {
-      deletedCount: customSweep.deletedCount + sgdbSweep.deletedCount,
-      errors: [...customSweep.errors, ...sgdbSweep.errors],
-    };
+    return sweepDir(customAssets, usedCustomPaths);
   } catch (error) {
     throw new Error(`Failed to cleanup unused assets: ${error}`);
   }

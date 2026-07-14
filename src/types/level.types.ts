@@ -4,7 +4,6 @@ import type {
   SteamAchievement,
   UnlockedAchievement,
 } from "./game.types";
-import type { SgdbSettings } from "./steamgriddb.types";
 import type { DownloadStatus } from "./download.types";
 import type { ClassicsDisc } from "./emulator.types";
 
@@ -194,8 +193,6 @@ export interface UserPreferences {
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
-  steamGridDbApiKey?: string | null;
-  steamGridDb?: SgdbSettings;
 }
 
 export interface NetworkInterface {

@@ -1,14 +1,25 @@
 import type { GameShop, ShopAssets } from "@types";
 import { registerEvent } from "../register-event";
-import { HydraApi, getUserPreferencesRecord } from "@main/services";
+import { HydraApi } from "@main/services";
 import {
-  gamesSgdbSelectionSublevel,
+  gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   levelKeys,
 } from "@main/level";
-import { composeAssetsWithSgdb } from "@shared";
+import { composeAssetsWithArtwork } from "@shared";
 
 const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 60 * 8; // 8 hours
+
+const applyArtworkSelection = async <T extends ShopAssets | null>(
+  gameKey: string,
+  assets: T
+): Promise<T> => {
+  if (!assets) return assets;
+
+  const selection = await gamesArtworkSelectionSublevel.get(gameKey);
+
+  return composeAssetsWithArtwork(assets, selection);
+};
 
 export const getGameAssets = async (
   objectId: string,
@@ -19,16 +30,15 @@ export const getGameAssets = async (
     return null;
   }
 
-  const cachedAssets = await gamesShopAssetsSublevel.get(
-    levelKeys.game(shop, objectId)
-  );
+  const gameKey = levelKeys.game(shop, objectId);
+  const cachedAssets = await gamesShopAssetsSublevel.get(gameKey);
 
   if (
     !options?.forceFresh &&
     cachedAssets &&
     cachedAssets.updatedAt + LOCAL_CACHE_EXPIRATION > Date.now()
   ) {
-    return cachedAssets;
+    return applyArtworkSelection(gameKey, cachedAssets);
   }
 
   return HydraApi.get<ShopAssets | null>(
@@ -45,13 +55,13 @@ export const getGameAssets = async (
       cachedAssets?.title &&
       cachedAssets.title !== assets.title;
 
-    await gamesShopAssetsSublevel.put(levelKeys.game(shop, objectId), {
+    await gamesShopAssetsSublevel.put(gameKey, {
       ...assets,
       title: shouldPreserveTitle ? cachedAssets.title : assets.title,
       updatedAt: Date.now(),
     });
 
-    return assets;
+    return applyArtworkSelection(gameKey, assets);
   });
 };
 
@@ -60,21 +70,6 @@ const getGameAssetsEvent = async (
   objectId: string,
   shop: GameShop,
   options?: { forceFresh?: boolean }
-) => {
-  const assets = await getGameAssets(objectId, shop, options);
-  if (!assets) return assets;
-
-  const preferences = await getUserPreferencesRecord();
-  const sgdbSelection = await gamesSgdbSelectionSublevel.get(
-    levelKeys.game(shop, objectId)
-  );
-
-  return composeAssetsWithSgdb(
-    assets,
-    shop,
-    sgdbSelection,
-    preferences?.steamGridDb
-  );
-};
+) => getGameAssets(objectId, shop, options);
 
 registerEvent("getGameAssets", getGameAssetsEvent);
