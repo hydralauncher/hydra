@@ -42,7 +42,7 @@ const validateManifest = (value: unknown): RestoreManifestResponse => {
       !isNonEmptyString(item.hash) ||
       typeof item.sizeBytes !== "number" ||
       !Number.isFinite(item.sizeBytes) ||
-      item.sizeBytes <= 0
+      item.sizeBytes < 0
     ) {
       throw new Error("Invalid restore manifest file");
     }
