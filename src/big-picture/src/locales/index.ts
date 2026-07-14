@@ -6,7 +6,12 @@ import es419 from "./es-419/translation.json";
 import fr from "./fr/translation.json";
 
 export type BigPictureLanguage =
-  "en" | "ru" | "pt-BR" | "es-ES" | "es-419" | "fr";
+  | "en"
+  | "ru"
+  | "pt-BR"
+  | "es-ES"
+  | "es-419"
+  | "fr";
 
 export const exactTranslations: Record<
   BigPictureLanguage,
