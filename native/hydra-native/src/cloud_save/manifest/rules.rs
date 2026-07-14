@@ -98,5 +98,18 @@ mod tests {
         assert!(result.rules.iter().any(|rule| rule.kind == "file"));
 
         assert!(result.rules.iter().any(|rule| rule.kind == "dir"));
+
+        let cyberpunk = find_manifest_entry(&index, "1091500", None, Some("Cyberpunk 2077"))
+            .expect("Cyberpunk 2077 should exist in the real manifest");
+        assert!(cyberpunk
+            .files
+            .iter()
+            .any(|file| { file.raw_path == "<home>/Saved Games/CD Projekt Red/Cyberpunk 2077" }));
+
+        let tlou = find_manifest_entry(&index, "1888930", None, Some("The Last of Us Part I"))
+            .expect("The Last of Us Part I should exist in the real manifest");
+        assert!(tlou.files.iter().any(|file| {
+            file.raw_path == "<home>/Saved Games/The Last of Us Part I/users/<storeUserId>/savedata"
+        }));
     }
 }

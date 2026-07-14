@@ -17,6 +17,7 @@ pub struct ScannedCloudSavePath {
 }
 
 #[napi(object)]
+#[derive(Debug)]
 pub struct ScannedCloudSaveRule {
     pub kind: String,
     pub raw_path: String,

@@ -1,7 +1,6 @@
 mod scan_path;
 mod scan_rules;
 mod types;
-mod walk;
 
 pub(crate) mod glob;
 

@@ -12,7 +12,7 @@ export interface BuildLocalGameSnapshotPipelineInput {
   remoteId?: string;
   userDataPath: string;
   sourceUrl?: string;
-  platform: "windows" | "linux";
+  platform: "windows" | "linux" | "mac";
   homeDir: string;
   documentsDir?: string;
   appDataDir?: string;
@@ -20,7 +20,6 @@ export interface BuildLocalGameSnapshotPipelineInput {
   winePrefixPath?: string;
   protonPath?: string;
   steamPath?: string;
-  steamUserIds: string[];
   hashCache: LocalFileHashCacheEntry[];
 }
 
@@ -34,7 +33,7 @@ export interface LocalFileHashCacheEntry {
 export interface CloudSavePathContext {
   shop: GameShop;
   objectId: string;
-  platform: "windows" | "linux";
+  platform: "windows" | "linux" | "mac";
   homeDir: string;
   documentsDir?: string;
   appDataDir?: string;
@@ -42,7 +41,6 @@ export interface CloudSavePathContext {
   winePrefixPath?: string;
   protonPath?: string;
   steamPath?: string;
-  steamUserIds: string[];
 }
 
 export interface RestoreManifestFile {
@@ -75,6 +73,7 @@ export type CloudSaveState =
 
 export interface CompareGameSnapshotsInput {
   localSnapshotHash: string;
+  localSnapshotFileCount: number;
   baseSnapshotHash?: string;
   remoteSnapshots: RemoteSnapshotSummary[];
 }
