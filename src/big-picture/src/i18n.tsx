@@ -274,10 +274,28 @@ export async function initializeBigPictureI18n() {
 
   electron?.onUserPreferencesUpdated?.((preferences) => {
     if (!preferences?.language) return;
-    if (preferences.language !== i18next.language) {
-      i18next.changeLanguage(preferences.language).catch((error) => {
+    const nextLanguage = needsSpanishLanguageMigration(preferences.language)
+      ? resolveSpanishMigrationTarget(preferences.language)
+      : preferences.language;
+
+    if (nextLanguage !== i18next.language) {
+      i18next.changeLanguage(nextLanguage).catch((error) => {
         console.error("Failed to change Big Picture language", error);
       });
+    }
+
+    if (
+      nextLanguage !== preferences.language &&
+      electron?.updateUserPreferences
+    ) {
+      electron
+        .updateUserPreferences({ language: nextLanguage })
+        .catch((error) => {
+          console.error(
+            "Failed to persist migrated language preference",
+            error
+          );
+        });
     }
   });
 }
