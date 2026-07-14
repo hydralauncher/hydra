@@ -130,7 +130,9 @@ export function App() {
           );
 
           if (normalizedLanguage !== i18n.language) {
-            void i18n.changeLanguage(normalizedLanguage);
+            i18n.changeLanguage(normalizedLanguage).catch((error) => {
+              console.error("Failed to change language", error);
+            });
           }
         }
 
