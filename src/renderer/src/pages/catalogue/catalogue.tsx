@@ -293,7 +293,7 @@ export default function Catalogue() {
     if (!steamUserTags[activeLanguage]) return [];
     const sanitizedMap = new Map<string, number>();
     for (const [key, value] of Object.entries(steamUserTags[activeLanguage])) {
-      if (isAllowedFeature(value)) {
+      if (isAllowedFeature(value) || filters.tags.includes(value)) {
         const cleanedLabel = sanitizeFilterName(key);
         if (cleanedLabel) {
           if (!sanitizedMap.has(cleanedLabel)) {
