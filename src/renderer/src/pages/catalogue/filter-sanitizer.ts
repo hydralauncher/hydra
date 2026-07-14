@@ -10,9 +10,15 @@ export function sanitizeFilterName(
   let cleaned = name.trim();
 
   // Remove common corrupt prefix/suffix noise characters (like leading/trailing #, brackets, etc.)
-  cleaned = cleaned.replace(/^[^a-zA-Z0-9]+/, "");
-  cleaned = cleaned.replace(/[^a-zA-Z0-9]+$/, "");
-  cleaned = cleaned.trim();
+  let start = 0;
+  while (start < cleaned.length && !/[a-zA-Z0-9]/.test(cleaned[start])) {
+    start++;
+  }
+  let end = cleaned.length - 1;
+  while (end >= start && !/[a-zA-Z0-9]/.test(cleaned[end])) {
+    end--;
+  }
+  cleaned = start <= end ? cleaned.substring(start, end + 1) : "";
 
   if (cleaned.length <= 1) {
     return null;
