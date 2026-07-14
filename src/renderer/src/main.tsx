@@ -137,7 +137,12 @@ if (userPreferences?.language) {
     }
   }
 } else {
-  globalThis.electron.updateUserPreferences({ language: i18n.language });
+  const detectedLanguage = resolveLanguageKey(
+    i18n.language,
+    supportedLanguages
+  );
+  await i18n.changeLanguage(detectedLanguage);
+  globalThis.electron.updateUserPreferences({ language: detectedLanguage });
 }
 
 syncDocumentLanguage(i18n.language);

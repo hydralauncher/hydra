@@ -13,6 +13,7 @@ import {
 } from "./locales";
 import {
   isLatinAmericanSpanishCode,
+  resolveLanguageKey,
   SPANISH_ES_KEY,
   SPANISH_LAT_KEY,
 } from "@shared";
@@ -252,7 +253,12 @@ export async function initializeBigPictureI18n() {
       await applyStoredLanguagePreference(userPreferences.language);
     }
   } else if (electron?.updateUserPreferences) {
-    await electron.updateUserPreferences({ language: i18next.language });
+    const detectedLanguage = resolveLanguageKey(
+      i18next.language,
+      Object.keys(localeResources)
+    );
+    await i18next.changeLanguage(detectedLanguage);
+    await electron.updateUserPreferences({ language: detectedLanguage });
   }
 
   const activeLanguage = i18next.resolvedLanguage ?? i18next.language;

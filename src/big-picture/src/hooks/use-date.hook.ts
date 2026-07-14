@@ -17,7 +17,7 @@ function getDateLocale(language: string) {
 }
 
 function getDateTimeFormat(language: string) {
-  if (language === "en") return "MM-dd-yyyy - hh:mm a";
+  if (language.startsWith("en")) return "MM-dd-yyyy - hh:mm a";
   return `${getDateFormat(language)} HH:mm`;
 }
 

@@ -173,7 +173,7 @@ app.whenReady().then(async () => {
     Object.keys(resources)
   );
 
-  if (language) i18n.changeLanguage(language);
+  i18n.changeLanguage(language);
 
   // Check if starting from a "run" deep link - don't show main window in that case
   const deepLinkArg = process.argv.find((arg) =>

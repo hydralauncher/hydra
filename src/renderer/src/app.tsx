@@ -35,6 +35,8 @@ import {
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { resolveLanguageKey } from "@shared";
+import resources from "@locales";
 import { useSubscription } from "./hooks/use-subscription";
 import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
@@ -121,8 +123,15 @@ export function App() {
           return;
         }
 
-        if (preferences.language && preferences.language !== i18n.language) {
-          void i18n.changeLanguage(preferences.language);
+        if (preferences.language) {
+          const normalizedLanguage = resolveLanguageKey(
+            preferences.language,
+            Object.keys(resources)
+          );
+
+          if (normalizedLanguage !== i18n.language) {
+            void i18n.changeLanguage(normalizedLanguage);
+          }
         }
 
         dispatch(setUserPreferences(preferences));
