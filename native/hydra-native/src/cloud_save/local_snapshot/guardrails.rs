@@ -12,7 +12,6 @@ pub const MAX_SNAPSHOT_TOTAL_SIZE_BYTES: u64 = 2_147_483_647;
 pub enum LocalSnapshotGuardError {
     TooManyFiles,
     SnapshotTooLarge,
-    EmptyFile,
     DuplicateFile,
     HashSizeMismatch,
     FileChangedDuringSnapshot,
@@ -24,7 +23,6 @@ impl fmt::Display for LocalSnapshotGuardError {
         let code = match self {
             Self::TooManyFiles => "cloud_save_too_many_files",
             Self::SnapshotTooLarge => "cloud_save_snapshot_too_large",
-            Self::EmptyFile => "cloud_save_empty_file",
             Self::DuplicateFile => "cloud_save_duplicate_file",
             Self::HashSizeMismatch => "cloud_save_hash_size_mismatch",
             Self::FileChangedDuringSnapshot => "cloud_save_file_changed_during_snapshot",
@@ -74,9 +72,6 @@ pub fn prepare_files(
         let metadata = fs::metadata(&file.absolute_path)
             .map_err(|_| LocalSnapshotGuardError::FileMetadataUnavailable)?;
         let size_bytes = metadata.len();
-        if size_bytes == 0 {
-            return Err(LocalSnapshotGuardError::EmptyFile);
-        }
 
         total_size = total_size
             .checked_add(size_bytes)
@@ -145,19 +140,17 @@ mod tests {
     }
 
     #[test]
-    fn accepts_empty_snapshot_and_rejects_empty_file() {
+    fn accepts_empty_snapshot_and_empty_file() {
         assert!(prepare_files(vec![]).unwrap().is_empty());
 
         let temp = tempdir().unwrap();
         let path = temp.path().join("empty.sav");
         fs::write(&path, []).unwrap();
 
-        assert_eq!(
-            prepare_files(vec![discovered_file(&path, "empty.sav")])
-                .err()
-                .unwrap(),
-            LocalSnapshotGuardError::EmptyFile
-        );
+        let files = prepare_files(vec![discovered_file(&path, "empty.sav")]).unwrap();
+
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].size_bytes, 0);
     }
 
     #[test]
