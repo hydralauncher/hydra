@@ -108,6 +108,10 @@ const achievementsPlaceholder: UserAchievement[] = [
   },
 ];
 
+const POPULAR_CATEGORY_IDS = new Set<number>([
+  1, 2, 9, 18, 24, 28, 36, 37, 38, 39, 47, 48, 49,
+]);
+
 export function Sidebar() {
   const shouldShowProtonFeatures = window.electron.platform === "linux";
   const [howLongToBeat, setHowLongToBeat] = useState<{
@@ -333,6 +337,58 @@ export function Sidebar() {
           genres={shopDetails?.genres?.map((g) => g.name)}
           skus={shopDetails?.skus}
         />
+      )}
+
+      {shop !== "launchbox" && shopDetails && (
+        <SidebarSection
+          title={t("genres_and_features", {
+            defaultValue: "Genres & Spécificités",
+          })}
+        >
+          <div className="game-details-sidebar__chips-container">
+            {shopDetails.genres && shopDetails.genres.length > 0 && (
+              <div className="game-details-sidebar__chips-group">
+                <span className="game-details-sidebar__chips-label">
+                  {t("genres", { defaultValue: "Genres" })}
+                </span>
+                <div className="game-details-sidebar__chips-list">
+                  {shopDetails.genres.slice(0, 3).map((genre) => (
+                    <span
+                      key={genre.id}
+                      className="game-details-sidebar__chip game-details-sidebar__chip--genre"
+                    >
+                      {genre.name ||
+                        (genre as unknown as { description?: string })
+                          .description ||
+                        ""}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {shopDetails.categories && shopDetails.categories.length > 0 && (
+              <div className="game-details-sidebar__chips-group">
+                <span className="game-details-sidebar__chips-label">
+                  {t("features", { defaultValue: "Spécificités" })}
+                </span>
+                <div className="game-details-sidebar__chips-list">
+                  {shopDetails.categories
+                    .filter((cat) => POPULAR_CATEGORY_IDS.has(cat.id))
+                    .slice(0, 5)
+                    .map((cat) => (
+                      <span
+                        key={cat.id}
+                        className="game-details-sidebar__chip game-details-sidebar__chip--feature"
+                      >
+                        {cat.description}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </SidebarSection>
       )}
 
       <HowLongToBeatSection
