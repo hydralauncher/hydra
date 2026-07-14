@@ -32,6 +32,11 @@ type NativeProcessFriendImageResponse = NativeProcessProfileImageResponse & {
   is_animated?: boolean;
 };
 
+type CloudSaveDebugLog = {
+  event: string;
+  details: string;
+};
+
 type HydraNativeModule = {
   processProfileImage: (
     imagePath: string,
@@ -48,6 +53,7 @@ type HydraNativeModule = {
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
+  takeCloudSaveDebugLogs: (shop: string, objectId: string) => string | null;
   uploadLocalSaveBlob: (
     absolutePath: string,
     uploadUrl: string
@@ -355,10 +361,62 @@ export class NativeAddon {
     });
   }
 
-  public static buildLocalGameSnapshotPipeline(
+  public static async buildLocalGameSnapshotPipeline(
     input: BuildLocalGameSnapshotPipelineInput
   ) {
-    return this.load().buildLocalGameSnapshotPipeline(input);
+    const nativeModule = this.load();
+    let result: NativeLocalGameSnapshotPipelineResult | undefined;
+    let pipelineError: unknown;
+
+    try {
+      result = await nativeModule.buildLocalGameSnapshotPipeline(input);
+    } catch (error) {
+      pipelineError = error;
+    }
+
+    const debugLogsJson = nativeModule.takeCloudSaveDebugLogs(
+      input.shop,
+      input.objectId
+    );
+    if (debugLogsJson) {
+      try {
+        this.logCloudSaveDebugEntries(
+          JSON.parse(debugLogsJson) as CloudSaveDebugLog[]
+        );
+      } catch {
+        logger.info("[Cloud V2 DEBUG] invalid native diagnostics", {
+          debugLogsJson,
+        });
+      }
+    }
+
+    if (pipelineError) {
+      logger.error("[Cloud V2 DEBUG] pipeline error", {
+        name:
+          pipelineError instanceof Error ? pipelineError.name : "UnknownError",
+        message:
+          pipelineError instanceof Error
+            ? pipelineError.message
+            : String(pipelineError),
+        stack: pipelineError instanceof Error ? pipelineError.stack : undefined,
+      });
+      throw pipelineError;
+    }
+
+    return result!;
+  }
+
+  private static logCloudSaveDebugEntries(entries: CloudSaveDebugLog[]) {
+    for (const entry of entries) {
+      try {
+        logger.info(
+          `[Cloud V2 DEBUG] ${entry.event}`,
+          JSON.parse(entry.details)
+        );
+      } catch {
+        logger.info(`[Cloud V2 DEBUG] ${entry.event}`, entry.details);
+      }
+    }
   }
 
   public static compareGameSnapshots(input: CompareGameSnapshotsInput) {
