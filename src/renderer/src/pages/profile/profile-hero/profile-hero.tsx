@@ -1,4 +1,11 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
@@ -46,6 +53,8 @@ export function ProfileHero() {
   const [isCopied, setIsCopied] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isCheckingBlockStatus, setIsCheckingBlockStatus] = useState(false);
+  const [blockStatusUnknown, setBlockStatusUnknown] = useState(false);
+  const blockCheckRequestIdRef = useRef(0);
 
   const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
     useContext(userProfileContext);
@@ -68,12 +77,19 @@ export function ProfileHero() {
 
   const navigate = useNavigate();
 
-  const [blockStatusUnknown, setBlockStatusUnknown] = useState(false);
-
   const checkIsBlocked = useCallback(async () => {
-    if (!userProfile?.id || isMe || !userDetails) {
-      setIsBlocked(false);
-      setBlockStatusUnknown(false);
+    const requestId = ++blockCheckRequestIdRef.current;
+    const targetUserId = userProfile?.id;
+
+    const isStale = () =>
+      requestId !== blockCheckRequestIdRef.current ||
+      targetUserId !== userProfile?.id;
+
+    if (!targetUserId || isMe || !userDetails) {
+      if (!isStale()) {
+        setIsBlocked(false);
+        setBlockStatusUnknown(false);
+      }
       return;
     }
 
@@ -92,10 +108,12 @@ export function ProfileHero() {
           blocks: { id: string }[];
         }>("/profile/blocks", { params: { take, skip } });
 
+        if (isStale()) return;
+
         const blocks = response?.blocks ?? [];
         total = response?.totalBlocks ?? blocks.length;
 
-        if (blocks.some((user) => user.id === userProfile.id)) {
+        if (blocks.some((user) => user.id === targetUserId)) {
           found = true;
           break;
         }
@@ -104,15 +122,23 @@ export function ProfileHero() {
         skip += take;
       }
 
+      if (isStale()) return;
+
       setIsBlocked(found);
     } catch {
+      if (isStale()) return;
+
       setBlockStatusUnknown(true);
     } finally {
-      setIsCheckingBlockStatus(false);
+      if (!isStale()) {
+        setIsCheckingBlockStatus(false);
+      }
     }
   }, [userProfile?.id, isMe, userDetails]);
 
   useEffect(() => {
+    setIsBlocked(false);
+    setBlockStatusUnknown(false);
     checkIsBlocked();
   }, [checkIsBlocked]);
 
