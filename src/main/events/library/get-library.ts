@@ -6,13 +6,12 @@ import { registerEvent } from "../register-event";
 import {
   downloadsSublevel,
   gameAchievementsSublevel,
-  gamesSgdbSelectionSublevel,
+  gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
   gamesSublevel,
 } from "@main/level";
-import { composeAssetsWithSgdb } from "@shared";
-import { getUserPreferencesRecord } from "@main/services";
+import { composeAssetsWithArtwork } from "@shared";
 
 const lookupCachedPlatform = async (
   gameKey: string
@@ -36,9 +35,6 @@ const lookupCachedPlatform = async (
 };
 
 const getLibrary = async (): Promise<LibraryGame[]> => {
-  const preferences = await getUserPreferencesRecord();
-  const sgdbSettings = preferences?.steamGridDb;
-
   return gamesSublevel
     .iterator()
     .all()
@@ -49,12 +45,11 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
           .map(async ([key, game]) => {
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
-            const sgdbSelection = await gamesSgdbSelectionSublevel.get(key);
-            const composedAssets = composeAssetsWithSgdb(
+            const artworkSelection =
+              await gamesArtworkSelectionSublevel.get(key);
+            const composedAssets = composeAssetsWithArtwork(
               gameAssets ?? null,
-              game.shop,
-              sgdbSelection,
-              sgdbSettings
+              artworkSelection
             );
             const achievements = await gameAchievementsSublevel
               .get(key)

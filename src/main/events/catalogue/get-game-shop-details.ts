@@ -2,7 +2,6 @@ import {
   getSteamAppDetails,
   getSteamLanguage,
   HydraApi,
-  getUserPreferencesRecord,
   logger,
 } from "@main/services";
 
@@ -15,31 +14,25 @@ import type {
 
 import { registerEvent } from "../register-event";
 import {
-  gamesSgdbSelectionSublevel,
+  gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
   levelKeys,
 } from "@main/level";
-import { composeAssetsWithSgdb } from "@shared";
+import { composeAssetsWithArtwork } from "@shared";
 
-const applySgdbToAssets = async (
+const applyArtworkToAssets = async (
   shop: GameShop,
   objectId: string,
   assets: ShopAssets | null
 ): Promise<ShopAssets | null> => {
   if (!assets) return assets;
 
-  const preferences = await getUserPreferencesRecord();
-  const sgdbSelection = await gamesSgdbSelectionSublevel.get(
+  const selection = await gamesArtworkSelectionSublevel.get(
     levelKeys.game(shop, objectId)
   );
 
-  return composeAssetsWithSgdb(
-    assets,
-    shop,
-    sgdbSelection,
-    preferences?.steamGridDb
-  ) as ShopAssets | null;
+  return composeAssetsWithArtwork(assets, selection);
 };
 
 interface LaunchboxBasic {
@@ -238,7 +231,7 @@ const getGameShopDetails = async (
 
     return {
       ...details,
-      assets: await applySgdbToAssets(shop, objectId, details.assets),
+      assets: await applyArtworkToAssets(shop, objectId, details.assets),
     };
   }
 
@@ -282,7 +275,7 @@ const getGameShopDetails = async (
 
     return {
       ...details,
-      assets: await applySgdbToAssets(shop, objectId, details.assets),
+      assets: await applyArtworkToAssets(shop, objectId, details.assets),
     };
   }
 

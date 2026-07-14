@@ -36,9 +36,10 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
-  SgdbAssetType,
-  SgdbSelectionRecord,
-  SgdbVariantsCache,
+  ArtworkAssetType,
+  ArtworkKind,
+  ArtworkPage,
+  GameArtworkSelection,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -567,43 +568,27 @@ contextBridge.exposeInMainWorld("electron", {
     customOriginalHeroPath?: string | null;
     customOriginalCoverPath?: string | null;
   }) => ipcRenderer.invoke("updateGameCustomAssets", params),
-  authenticateSteamGridDb: (apiKey: string) =>
-    ipcRenderer.invoke("authenticateSteamGridDb", apiKey),
-  runSteamGridDbAutoMatch: (params?: {
-    shop?: GameShop;
-    objectId?: string;
-    forceFresh?: boolean;
-  }) => ipcRenderer.invoke("runSteamGridDbAutoMatch", params),
-  getSteamGridDbVariants: (
+  getGameArtwork: (
     shop: GameShop,
     objectId: string,
-    options?: {
-      types?: SgdbAssetType[];
-      forceFresh?: boolean;
-      term?: string;
-    }
-  ): Promise<SgdbVariantsCache | null> =>
-    ipcRenderer.invoke("getSteamGridDbVariants", shop, objectId, options),
-  getSteamGridDbSelection: (
+    kind: ArtworkKind,
+    page?: number
+  ): Promise<ArtworkPage | null> =>
+    ipcRenderer.invoke("getGameArtwork", shop, objectId, kind, page),
+  getGameArtworkSelection: (
     shop: GameShop,
     objectId: string
-  ): Promise<SgdbSelectionRecord | null> =>
-    ipcRenderer.invoke("getSteamGridDbSelection", shop, objectId),
-  setSteamGridDbSelection: (params: {
+  ): Promise<GameArtworkSelection | null> =>
+    ipcRenderer.invoke("getGameArtworkSelection", shop, objectId),
+  setGameArtworkSelection: (params: {
     shop: GameShop;
     objectId: string;
-    type: SgdbAssetType;
+    type: ArtworkAssetType;
     url?: string;
-    assetId?: number;
+    artworkId?: number;
     clear?: boolean;
-  }): Promise<SgdbSelectionRecord> =>
-    ipcRenderer.invoke("setSteamGridDbSelection", params),
-  setSteamGridDbOverride: (
-    shop: GameShop,
-    objectId: string,
-    override: "inherit" | "on" | "off"
-  ): Promise<SgdbSelectionRecord> =>
-    ipcRenderer.invoke("setSteamGridDbOverride", shop, objectId, override),
+  }): Promise<GameArtworkSelection | null> =>
+    ipcRenderer.invoke("setGameArtworkSelection", params),
   createGameShortcut: (
     shop: GameShop,
     objectId: string,

@@ -58,9 +58,10 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
-  SgdbAssetType,
-  SgdbSelectionRecord,
-  SgdbVariantsCache,
+  ArtworkAssetType,
+  ArtworkKind,
+  ArtworkPage,
+  GameArtworkSelection,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -227,38 +228,24 @@ declare global {
       customOriginalHeroPath?: string | null;
       customOriginalCoverPath?: string | null;
     }) => Promise<Game>;
-    authenticateSteamGridDb: (apiKey: string) => Promise<{ success: boolean }>;
-    runSteamGridDbAutoMatch: (params?: {
-      shop?: GameShop;
-      objectId?: string;
-      forceFresh?: boolean;
-    }) => Promise<{ success: boolean }>;
-    getSteamGridDbVariants: (
+    getGameArtwork: (
       shop: GameShop,
       objectId: string,
-      options?: {
-        types?: SgdbAssetType[];
-        forceFresh?: boolean;
-        term?: string;
-      }
-    ) => Promise<SgdbVariantsCache | null>;
-    getSteamGridDbSelection: (
+      kind: ArtworkKind,
+      page?: number
+    ) => Promise<ArtworkPage | null>;
+    getGameArtworkSelection: (
       shop: GameShop,
       objectId: string
-    ) => Promise<SgdbSelectionRecord | null>;
-    setSteamGridDbSelection: (params: {
+    ) => Promise<GameArtworkSelection | null>;
+    setGameArtworkSelection: (params: {
       shop: GameShop;
       objectId: string;
-      type: SgdbAssetType;
+      type: ArtworkAssetType;
       url?: string;
-      assetId?: number;
+      artworkId?: number;
       clear?: boolean;
-    }) => Promise<SgdbSelectionRecord>;
-    setSteamGridDbOverride: (
-      shop: GameShop,
-      objectId: string,
-      override: "inherit" | "on" | "off"
-    ) => Promise<SgdbSelectionRecord>;
+    }) => Promise<GameArtworkSelection | null>;
     createGameShortcut: (
       shop: GameShop,
       objectId: string,

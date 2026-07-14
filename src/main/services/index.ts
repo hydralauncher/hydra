@@ -27,5 +27,5 @@ export * from "./download-sources-checker";
 export * from "./notifications/local-notifications";
 export * from "./power-save-blocker";
 export * from "./native-addon";
-export * from "./steam-grid-db";
+export * from "./game-artwork";
 export * as emulators from "./emulators";

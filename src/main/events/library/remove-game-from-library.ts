@@ -3,8 +3,7 @@ import { HydraApi, logger } from "@main/services";
 import {
   gamesSublevel,
   gamesShopAssetsSublevel,
-  gamesSgdbSelectionSublevel,
-  gamesSgdbVariantsCacheSublevel,
+  gamesArtworkSelectionSublevel,
   levelKeys,
 } from "@main/level";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
@@ -62,24 +61,6 @@ const resetShopAssets = async (gameKey: string): Promise<void> => {
   }
 };
 
-const cleanupSteamGridDb = async (gameKey: string): Promise<string[]> => {
-  const selection = await gamesSgdbSelectionSublevel.get(gameKey);
-
-  const cachedPaths: string[] = [];
-  if (selection) {
-    for (const asset of Object.values(selection.selected ?? {})) {
-      if (asset?.url?.startsWith("local:")) {
-        cachedPaths.push(asset.url.replace("local:", ""));
-      }
-    }
-  }
-
-  await gamesSgdbSelectionSublevel.del(gameKey).catch(() => {});
-  await gamesSgdbVariantsCacheSublevel.del(gameKey).catch(() => {});
-
-  return cachedPaths;
-};
-
 const deleteAssetFiles = async (
   assetPathsToDelete: string[]
 ): Promise<void> => {
@@ -114,13 +95,13 @@ const removeGameFromLibrary = async (
     await resetShopAssets(gameKey);
   }
 
-  const sgdbCachePaths = await cleanupSteamGridDb(gameKey);
+  await gamesArtworkSelectionSublevel.del(gameKey).catch(() => {});
 
   if (game.remoteId) {
     HydraApi.delete(`/profile/games/${game.remoteId}`).catch(() => {});
   }
 
-  await deleteAssetFiles([...assetPathsToDelete, ...sgdbCachePaths]);
+  await deleteAssetFiles(assetPathsToDelete);
 };
 
 registerEvent("removeGameFromLibrary", removeGameFromLibrary);

@@ -6,7 +6,7 @@ import { useToast } from "@renderer/hooks";
 import { generateRandomGradient } from "@renderer/helpers";
 import type { Game, LibraryGame, ShopDetailsWithAssets } from "@types";
 
-import { GameSteamGridDbAssets } from "./game-steamgriddb-assets";
+import { GameArtworkPicker } from "./game-artwork-picker";
 
 import "./game-assets-settings.scss";
 
@@ -740,7 +740,7 @@ export function GameAssetsSettings({
       {renderImageSection(selectedAssetType)}
 
       {!isCustomGame(game) && (
-        <GameSteamGridDbAssets
+        <GameArtworkPicker
           game={game}
           assetType={selectedAssetType}
           onChanged={onGameUpdated}
