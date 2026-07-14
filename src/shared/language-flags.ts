@@ -77,17 +77,12 @@ export function resolveSpanishVariant(
     if (esESMatch) return esESMatch;
   }
 
-  if (isLatinAmericanSpanishCode(language)) {
+  if (language.startsWith("es")) {
     const esLatMatch = supportedLanguages.find(
       (lang) => lang === SPANISH_LAT_KEY
     );
     if (esLatMatch) return esLatMatch;
   }
-
-  const esLatDefault = supportedLanguages.find(
-    (lang) => lang === SPANISH_LAT_KEY
-  );
-  if (esLatDefault) return esLatDefault;
 
   return null;
 }

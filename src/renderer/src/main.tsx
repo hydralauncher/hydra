@@ -69,6 +69,14 @@ Sentry.init({
 const isStaging = await globalThis.electron.isStaging();
 addCookieInterceptor(isStaging);
 
+window.addEventListener("unhandledrejection", (event) => {
+  logger.error("Unhandled rejection", event.reason);
+});
+
+window.addEventListener("error", (event) => {
+  logger.error("Uncaught error", event.error ?? event.message);
+});
+
 const syncDocumentLanguage = (language: string) => {
   document.documentElement.lang = language;
   document.documentElement.dir = i18n.dir(language);
@@ -104,9 +112,6 @@ const needsSpanishLanguageMigration = (storedLanguage: string): boolean => {
 
 if (userPreferences?.language) {
   if (needsSpanishLanguageMigration(userPreferences.language)) {
-    // Use the same resolver as the rest of the app (main process, Big
-    // Picture) so e.g. "es-ES-tradnl" migrates to es-ES rather than always
-    // being forced to es-419 like a plain unknown "es-*" would.
     const migratedLanguage = resolveLanguageKey(
       userPreferences.language,
       supportedLanguages
@@ -195,14 +200,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="downloads" element={<BigPictureDownloads />} />
               <Route path="settings" element={<BigPictureSettings />} />
               <Route path="library" element={<BigPictureLibrary />} />
-              <Route
-                path="profile/:userId?"
-                element={<BigPictureProfile />}
-              />
-              <Route
-                path="game/:shop/:objectId"
-                element={<BigPictureGame />}
-              />
+              <Route path="profile/:userId?" element={<BigPictureProfile />} />
+              <Route path="game/:shop/:objectId" element={<BigPictureGame />} />
               <Route
                 path="game/:shop/:objectId/achievements"
                 element={<BigPictureGameAchievements />}

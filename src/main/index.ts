@@ -168,7 +168,6 @@ app.whenReady().then(async () => {
     })
     .catch(() => "en");
 
-
   const language = resolveLanguageKey(
     persistedLanguage,
     Object.keys(resources)

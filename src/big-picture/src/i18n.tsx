@@ -54,9 +54,7 @@ const SUPPORTED_BIG_PICTURE_LANGUAGES: ReadonlySet<BigPictureLanguage> =
     "fr",
   ]);
 
-function hasUsableBigPictureResources(
-  language: BigPictureLanguage
-): boolean {
+function hasUsableBigPictureResources(language: BigPictureLanguage): boolean {
   return (
     Boolean(exactTranslations[language]) &&
     Boolean(formatResources[language]) &&
@@ -121,8 +119,6 @@ function needsSpanishLanguageMigration(storedLanguage: string): boolean {
 }
 
 function resolveSpanishMigrationTarget(storedLanguage: string): string {
-  // Reuse the same es-ES vs es-419 resolution used everywhere else in Big
-  // Picture, instead of always forcing unknown "es-*" codes to es-419.
   return resolveBigPictureLanguage(storedLanguage);
 }
 
@@ -278,13 +274,8 @@ export async function initializeBigPictureI18n() {
 
   electron?.onUserPreferencesUpdated?.((preferences) => {
     if (!preferences?.language) return;
-
-    const normalizedLanguage = resolveBigPictureLanguage(
-      preferences.language
-    );
-
-    if (normalizedLanguage !== i18next.language) {
-      i18next.changeLanguage(normalizedLanguage).catch((error) => {
+    if (preferences.language !== i18next.language) {
+      i18next.changeLanguage(preferences.language).catch((error) => {
         console.error("Failed to change Big Picture language", error);
       });
     }

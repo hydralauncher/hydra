@@ -6,8 +6,6 @@ import { useTranslation } from "react-i18next";
 export type DateLike = number | Date | string;
 
 export const getDateFormat = (language: string) => {
-  if (language === "es-ES") return "dd/MM/yyyy";
-  if (language === "es-419") return "MM/dd/yyyy";
   return language.startsWith("en") ? "MM-dd-yyyy" : "dd/MM/yyyy";
 };
 

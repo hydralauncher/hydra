@@ -17,7 +17,6 @@ import { charMap } from "./char-map";
 import { Downloader } from "./constants";
 import { format } from "date-fns";
 import { AchievementNotificationInfo } from "@types";
-import { SPANISH_ES_KEY, SPANISH_LAT_KEY } from "./language-flags";
 
 export * from "./constants";
 export * from "./controller-support";
@@ -196,8 +195,6 @@ export const getDateLocale = (language: string) => {
 
 export const getDateFormat = (language: string): string => {
   if (language === "en") return "MM-dd-yyyy";
-  if (language === SPANISH_LAT_KEY) return "MM/dd/yyyy";
-  if (language === SPANISH_ES_KEY) return "dd/MM/yyyy";
   return "dd/MM/yyyy";
 };
 
