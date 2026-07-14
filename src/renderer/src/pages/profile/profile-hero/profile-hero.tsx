@@ -216,7 +216,9 @@ export function ProfileHero() {
   );
 
   const blockButton = useMemo(() => {
-    if (isCheckingBlockStatus) return null;
+    if (isCheckingBlockStatus) {
+      return <Skeleton width={140} height={40} />;
+    }
 
     if (blockStatusUnknown) {
       return (
@@ -294,7 +296,7 @@ export function ProfileHero() {
       );
     }
 
-    if (isBlocked || blockStatusUnknown) {
+    if (isBlocked || blockStatusUnknown || isCheckingBlockStatus) {
       return blockButton;
     }
 
