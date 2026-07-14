@@ -68,24 +68,45 @@ export function ProfileHero() {
 
   const navigate = useNavigate();
 
+  const [blockStatusUnknown, setBlockStatusUnknown] = useState(false);
+
   const checkIsBlocked = useCallback(async () => {
     if (!userProfile?.id || isMe || !userDetails) {
       setIsBlocked(false);
+      setBlockStatusUnknown(false);
       return;
     }
 
     setIsCheckingBlockStatus(true);
+    setBlockStatusUnknown(false);
 
     try {
-      const response = await globalThis.window.electron.hydraApi.get<{
-        blocks: { id: string }[];
-      }>("/profile/blocks", { params: { take: 100, skip: 0 } });
+      const take = 100;
+      let skip = 0;
+      let total = Infinity;
+      let found = false;
 
-      setIsBlocked(
-        (response?.blocks ?? []).some((user) => user.id === userProfile.id)
-      );
+      while (skip < total) {
+        const response = await globalThis.window.electron.hydraApi.get<{
+          totalBlocks: number;
+          blocks: { id: string }[];
+        }>("/profile/blocks", { params: { take, skip } });
+
+        const blocks = response?.blocks ?? [];
+        total = response?.totalBlocks ?? blocks.length;
+
+        if (blocks.some((user) => user.id === userProfile.id)) {
+          found = true;
+          break;
+        }
+
+        if (blocks.length < take) break;
+        skip += take;
+      }
+
+      setIsBlocked(found);
     } catch {
-      setIsBlocked(false);
+      setBlockStatusUnknown(true);
     } finally {
       setIsCheckingBlockStatus(false);
     }
@@ -171,6 +192,19 @@ export function ProfileHero() {
   const blockButton = useMemo(() => {
     if (isCheckingBlockStatus) return null;
 
+    if (blockStatusUnknown) {
+      return (
+        <Button
+          theme="outline"
+          onClick={() => checkIsBlocked()}
+          className="profile-hero__button--outline"
+        >
+          <BlockedIcon />
+          {t("retry_block_status")}
+        </Button>
+      );
+    }
+
     if (isBlocked) {
       return (
         <Button
@@ -197,6 +231,8 @@ export function ProfileHero() {
     );
   }, [
     isBlocked,
+    blockStatusUnknown,
+    checkIsBlocked,
     isCheckingBlockStatus,
     isPerformingAction,
     handleFriendAction,

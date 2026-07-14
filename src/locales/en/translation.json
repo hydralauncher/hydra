@@ -1353,6 +1353,7 @@
     "try_again": "Please try again",
     "sign_out_modal_title": "Are you sure?",
     "cancel": "Cancel",
+    "retry_block_status": "Retry",
     "successfully_signed_out": "Successfully signed out",
     "sign_out": "Sign out",
     "playing_for": "Playing for {{amount}}",
