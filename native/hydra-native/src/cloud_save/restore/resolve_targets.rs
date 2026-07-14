@@ -3,8 +3,7 @@ use napi_derive::napi;
 
 use crate::cloud_save::manifest::rules::infer_rule_kind;
 use crate::cloud_save::path_resolution::context::build_context;
-use crate::cloud_save::path_resolution::resolve_path::resolve_path;
-use crate::cloud_save::path_resolution::tokens::build_token_map;
+use crate::cloud_save::path_resolution::resolve_path::resolve_restore_root;
 use crate::cloud_save::path_resolution::types::ResolveSaveRulesInput;
 use crate::cloud_save::save_scanner::glob::{glob_base_path, has_glob_pattern};
 
@@ -28,7 +27,6 @@ pub struct ResolveRestoreTargetsInput {
     pub wine_prefix_path: Option<String>,
     pub proton_path: Option<String>,
     pub steam_path: Option<String>,
-    pub steam_user_ids: Vec<String>,
     pub files: Vec<RestoreManifestFile>,
 }
 
@@ -76,39 +74,24 @@ pub fn resolve_restore_targets(
         wine_prefix_path: input.wine_prefix_path,
         proton_path: input.proton_path,
         steam_path: input.steam_path,
-        steam_user_ids: input.steam_user_ids,
         rules: Vec::new(),
     };
     let context = build_context(&context_input).map_err(Error::from_reason)?;
-    let token_map = build_token_map(&context, &context_input.steam_user_ids);
-
     input
         .files
         .into_iter()
         .map(|file| {
             validate_relative_path(&file.relative_path).map_err(Error::from_reason)?;
-            let resolved = resolve_path(&file.raw_path, &context, &token_map);
-            if !resolved.unresolved_tokens.is_empty() {
-                return Err(Error::from_reason(format!(
-                    "Unresolved restore path tokens for {}: {}",
-                    file.raw_path,
-                    resolved.unresolved_tokens.join(", ")
-                )));
-            }
-            if resolved.resolved_paths.len() != 1 {
-                return Err(Error::from_reason(format!(
-                    "Restore path must resolve to exactly one target for {} (resolved {})",
-                    file.raw_path,
-                    resolved.resolved_paths.len()
-                )));
-            }
-
-            let resolved_path = &resolved.resolved_paths[0];
             let kind = infer_rule_kind(&file.raw_path);
-            let target_path = if kind == "dir" {
-                join_path(resolved_path, &file.relative_path)
-            } else if has_glob_pattern(resolved_path) {
-                join_path(&glob_base_path(resolved_path), &file.relative_path)
+            let root_raw_path = if has_glob_pattern(&file.raw_path) {
+                glob_base_path(&file.raw_path)
+            } else {
+                file.raw_path.clone()
+            };
+            let resolved_path =
+                resolve_restore_root(&root_raw_path, &context).map_err(Error::from_reason)?;
+            let target_path = if kind == "dir" || has_glob_pattern(&file.raw_path) {
+                join_path(&resolved_path, &file.relative_path)
             } else {
                 resolved_path.replace('\\', "/")
             };
@@ -150,7 +133,6 @@ mod tests {
             wine_prefix_path: None,
             proton_path: None,
             steam_path: None,
-            steam_user_ids: vec!["123".to_string()],
             files: vec![RestoreManifestFile {
                 raw_path: raw_path.to_string(),
                 relative_path: relative_path.to_string(),
@@ -191,12 +173,17 @@ mod tests {
     #[test]
     fn resolves_windows_path_inside_wine_prefix() {
         let mut value = input("linux", "<winAppData>/Balatro", "1.jkr");
-        value.wine_prefix_path = Some("/home/spectre/.wine".to_string());
+        let prefix = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(prefix.path().join("drive_c/users/steamuser")).unwrap();
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
 
         let targets = resolve_restore_targets(value).unwrap();
         assert_eq!(
             targets[0].target_path,
-            "/home/spectre/.wine/drive_c/users/spectre/AppData/Roaming/Balatro/1.jkr"
+            format!(
+                "{}/drive_c/users/steamuser/AppData/Roaming/Balatro/1.jkr",
+                prefix.path().display()
+            )
         );
     }
 
@@ -219,8 +206,7 @@ mod tests {
         let unresolved = input("linux", "<winAppData>/Balatro", "1.jkr");
         assert!(resolve_restore_targets(unresolved).is_err());
 
-        let mut ambiguous = input("linux", "<home>/<storeUserId>", "save.dat");
-        ambiguous.steam_user_ids = vec!["123".to_string(), "456".to_string()];
+        let ambiguous = input("linux", "<home>/<storeUserId>", "save.dat");
         assert!(resolve_restore_targets(ambiguous).is_err());
 
         let traversal = input("linux", "<home>/Balatro", "../secret");

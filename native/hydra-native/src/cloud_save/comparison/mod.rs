@@ -11,6 +11,7 @@ pub fn compare_game_snapshots(input: CompareGameSnapshotsInput) -> CompareGameSn
     let active_remote_snapshot = select_remote::select_active_snapshot(input.remote_snapshots);
     let state = compare::compare_hashes(
         &input.local_snapshot_hash,
+        input.local_snapshot_file_count,
         input.base_snapshot_hash.as_deref(),
         active_remote_snapshot
             .as_ref()

@@ -2,7 +2,6 @@ mod resolve_rules;
 
 pub(crate) mod context;
 pub(crate) mod resolve_path;
-pub(crate) mod tokens;
 pub(crate) mod types;
 
 use napi::bindgen_prelude::Error;
@@ -15,9 +14,5 @@ pub fn resolve_save_rules(
     input: ResolveSaveRulesInput,
 ) -> napi::Result<Vec<ResolvedCloudSaveRule>> {
     let context = context::build_context(&input).map_err(Error::from_reason)?;
-    Ok(resolve_rules::resolve_rules(
-        input.rules,
-        &context,
-        &input.steam_user_ids,
-    ))
+    Ok(resolve_rules::resolve_rules(input.rules, &context))
 }

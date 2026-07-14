@@ -1,204 +1,190 @@
-use std::fs;
-use std::io;
+use std::collections::{BTreeMap, HashSet};
+use std::path::Path;
 
-use crate::cloud_save::path_resolution::types::ResolvedCloudSaveRule;
+use globetter::MatchOptions;
+use walkdir::WalkDir;
 
-use super::glob::{glob_base_path, has_glob_pattern, matches_glob_pattern};
 use super::types::{ScannedCloudSaveFile, ScannedCloudSavePath};
-use super::walk::walk_directory_files;
 
 pub fn normalize_scanned_path(value: &str) -> String {
-    let value = value.replace('\\', "/");
-    let absolute = value.starts_with('/');
-    let trailing_slash = value.ends_with('/');
-    let mut segments: Vec<&str> = Vec::new();
+    value.replace('\\', "/")
+}
 
-    for segment in value.split('/') {
-        match segment {
-            "" | "." => {}
-            ".." => {
-                if segments.last().is_some_and(|last| *last != "..") {
-                    segments.pop();
-                } else if !absolute {
-                    segments.push(segment);
-                }
-            }
-            _ => segments.push(segment),
+fn relative_path(root: &Path, path: &Path) -> Option<String> {
+    path.strip_prefix(root)
+        .ok()
+        .map(|relative| normalize_scanned_path(&relative.to_string_lossy()))
+        .filter(|relative| !relative.is_empty())
+}
+
+fn canonical_root(path: &Path) -> String {
+    std::fs::canonicalize(path)
+        .unwrap_or_else(|_| path.to_path_buf())
+        .to_string_lossy()
+        .replace('\\', "/")
+}
+
+fn glob_matches(pattern: &str, options: MatchOptions) -> Vec<std::path::PathBuf> {
+    let direct_path = Path::new(pattern);
+    if !pattern.contains(['*', '?', '[', '{']) && direct_path.exists() {
+        return vec![direct_path.to_path_buf()];
+    }
+    globetter::glob_with(pattern, options)
+        .ok()
+        .into_iter()
+        .flatten()
+        .filter_map(Result::ok)
+        .collect()
+}
+
+fn path_starts_with(path: &Path, root: &Path, case_sensitive: bool) -> bool {
+    if case_sensitive {
+        path.starts_with(root)
+    } else {
+        let path = normalize_scanned_path(&path.to_string_lossy()).to_lowercase();
+        let root = normalize_scanned_path(&root.to_string_lossy()).to_lowercase();
+        path == root || path.starts_with(&format!("{}/", root.trim_end_matches('/')))
+    }
+}
+
+fn scan_directory(root: &Path) -> ScannedCloudSavePath {
+    let mut files = Vec::new();
+    let mut seen = HashSet::new();
+
+    for entry in WalkDir::new(root)
+        .max_depth(100)
+        .follow_links(true)
+        .into_iter()
+        .filter_map(Result::ok)
+    {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let Some(relative_path) = relative_path(root, entry.path()) else {
+            continue;
+        };
+        let absolute_path = normalize_scanned_path(&entry.path().to_string_lossy());
+        if seen.insert(absolute_path.clone()) {
+            files.push(ScannedCloudSaveFile {
+                absolute_path,
+                relative_path,
+            });
         }
     }
 
-    let mut normalized = if absolute {
-        format!("/{}", segments.join("/"))
-    } else if segments.is_empty() {
-        ".".to_string()
-    } else {
-        segments.join("/")
-    };
-
-    if trailing_slash && normalized != "/" && normalized != "." {
-        normalized.push('/');
-    }
-    normalized
-}
-
-fn relative_path(root: &str, absolute_path: &str) -> String {
-    absolute_path
-        .strip_prefix(root.trim_end_matches('/'))
-        .unwrap_or(absolute_path)
-        .trim_start_matches('/')
-        .to_string()
-}
-
-fn scanned_file(absolute_path: String, relative_path: String) -> ScannedCloudSaveFile {
-    ScannedCloudSaveFile {
-        absolute_path: normalize_scanned_path(&absolute_path),
-        relative_path: normalize_scanned_path(&relative_path),
-    }
-}
-
-fn sort_files(files: &mut [ScannedCloudSaveFile]) {
     files.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
-}
-
-fn scan_directory(resolved_path: &str) -> Result<ScannedCloudSavePath, String> {
-    let root = normalize_scanned_path(resolved_path);
-    let mut files = walk_directory_files(resolved_path)?
-        .into_iter()
-        .map(|absolute_path| {
-            let relative = relative_path(&root, &absolute_path);
-            scanned_file(absolute_path, relative)
-        })
-        .collect::<Vec<_>>();
-    sort_files(&mut files);
-
-    Ok(ScannedCloudSavePath {
-        resolved_path: root,
+    ScannedCloudSavePath {
+        resolved_path: canonical_root(root),
         files,
-    })
-}
-
-fn scan_file(resolved_path: &str) -> Result<ScannedCloudSavePath, String> {
-    let normalized = normalize_scanned_path(resolved_path);
-    let metadata = match fs::metadata(resolved_path) {
-        Ok(metadata) => Some(metadata),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => None,
-        Err(error) => return Err(error.to_string()),
-    };
-    let files = if metadata.is_some_and(|metadata| metadata.is_file()) {
-        let basename = normalized
-            .rsplit('/')
-            .next()
-            .unwrap_or(&normalized)
-            .to_string();
-        vec![scanned_file(resolved_path.to_string(), basename)]
-    } else {
-        Vec::new()
-    };
-
-    Ok(ScannedCloudSavePath {
-        resolved_path: normalized,
-        files,
-    })
-}
-
-fn scan_glob(resolved_path: &str) -> Result<ScannedCloudSavePath, String> {
-    let pattern = normalize_scanned_path(resolved_path);
-    let base = glob_base_path(&pattern);
-    let mut files = walk_directory_files(&base)?
-        .into_iter()
-        .filter_map(|absolute_path| {
-            let relative = relative_path(&base, &absolute_path);
-            matches_glob_pattern(&pattern, &relative).then(|| scanned_file(absolute_path, relative))
-        })
-        .collect::<Vec<_>>();
-    sort_files(&mut files);
-
-    Ok(ScannedCloudSavePath {
-        resolved_path: pattern,
-        files,
-    })
+    }
 }
 
 pub fn scan_resolved_path(
-    rule: &ResolvedCloudSaveRule,
     resolved_path: &str,
-) -> Result<ScannedCloudSavePath, String> {
-    if rule.kind == "dir" {
-        scan_directory(resolved_path)
-    } else if has_glob_pattern(resolved_path) {
-        scan_glob(resolved_path)
-    } else {
-        scan_file(resolved_path)
+    case_sensitive: bool,
+    scan_root_pattern: Option<&str>,
+) -> Vec<ScannedCloudSavePath> {
+    let options = MatchOptions {
+        case_sensitive,
+        require_literal_separator: true,
+        require_literal_leading_dot: false,
+        follow_links: true,
+    };
+    let matches = glob_matches(resolved_path, options);
+    let scan_roots = scan_root_pattern
+        .map(|pattern| glob_matches(pattern, options))
+        .unwrap_or_default();
+    let mut scanned_by_root = BTreeMap::<String, ScannedCloudSavePath>::new();
+
+    for matched in matches {
+        if matched.is_dir() {
+            let scanned = scan_directory(&matched);
+            scanned_by_root
+                .entry(scanned.resolved_path.clone())
+                .or_insert(scanned);
+        } else if matched.is_file() {
+            let root = scan_roots
+                .iter()
+                .filter(|root| root.is_dir() && path_starts_with(&matched, root, case_sensitive))
+                .max_by_key(|root| root.components().count())
+                .map(|root| root.as_path())
+                .or_else(|| matched.parent());
+            let Some(root) = root else {
+                continue;
+            };
+            let canonical_root = canonical_root(root);
+            let Some(relative_path) = relative_path(root, &matched) else {
+                continue;
+            };
+            let file = ScannedCloudSaveFile {
+                absolute_path: normalize_scanned_path(&matched.to_string_lossy()),
+                relative_path,
+            };
+            let scanned = scanned_by_root
+                .entry(canonical_root.clone())
+                .or_insert_with(|| ScannedCloudSavePath {
+                    resolved_path: canonical_root,
+                    files: Vec::new(),
+                });
+            if !scanned
+                .files
+                .iter()
+                .any(|existing| existing.absolute_path == file.absolute_path)
+            {
+                scanned.files.push(file);
+            }
+        }
     }
+
+    for scanned in scanned_by_root.values_mut() {
+        scanned
+            .files
+            .sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
+    }
+    scanned_by_root.into_values().collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::cloud_save::manifest::{
-        get_save_rules_for_game, GetSaveRulesForGameInput,
-    };
-    use crate::cloud_save::path_resolution::{
-        resolve_save_rules, types::ResolveSaveRulesInput,
-    };
-
     use std::fs;
     use tempfile::tempdir;
 
-    #[tokio::test]
-    async fn scans_balatro_from_real_manifest() {
+    #[test]
+    fn supports_recursive_and_case_insensitive_globs() {
         let temp = tempdir().unwrap();
-        let home = temp.path().join("users/test-user");
-        let prefix = temp.path().join("wine");
+        let nested = temp.path().join("Profiles/One");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(nested.join("SAVE.DAT"), b"save").unwrap();
+        let pattern = format!("{}/profiles/**/*.dat", temp.path().display());
 
-        let game = get_save_rules_for_game(GetSaveRulesForGameInput {
-            shop: "steam".into(),
-            object_id: "2379780".into(),
-            remote_id: None,
-            title: Some("Balatro".into()),
-            source_url: None,
-            user_data_path: temp.path().display().to_string(),
-        })
-        .await
-        .unwrap();
+        let scan_root = temp.path().display().to_string();
+        let insensitive = scan_resolved_path(&pattern, false, Some(&scan_root));
+        let sensitive = scan_resolved_path(&pattern, true, Some(&scan_root));
 
-        let rule = game
-            .rules
-            .into_iter()
-            .find(|rule| rule.raw_path == "<winAppData>/Balatro")
-            .unwrap();
-
-        let resolved = resolve_save_rules(ResolveSaveRulesInput {
-            shop: "steam".into(),
-            object_id: "2379780".into(),
-            platform: "linux".into(),
-            home_dir: home.display().to_string(),
-            executable_path: None,
-            documents_dir: None,
-            app_data_dir: None,
-            wine_prefix_path: Some(prefix.display().to_string()),
-            proton_path: None,
-            steam_path: None,
-            steam_user_ids: vec![],
-            rules: vec![rule],
-        })
-        .unwrap()
-        .remove(0);
-
-        let directory = &resolved.resolved_paths[0];
-
-        fs::create_dir_all(directory).unwrap();
-        fs::write(format!("{directory}/1.jkr"), b"save").unwrap();
-
-        let scanned = scan_resolved_path(&resolved, directory).unwrap();
-
-        println!(
-            "Balatro | {} -> {:?}",
-            resolved.raw_path, scanned.files
+        assert_eq!(insensitive.iter().flat_map(|path| &path.files).count(), 1);
+        assert_eq!(
+            insensitive[0].files[0].relative_path.to_lowercase(),
+            "profiles/one/save.dat"
         );
+        assert!(sensitive.is_empty());
+    }
 
-        assert_eq!(scanned.files.len(), 1);
-        assert_eq!(scanned.files[0].relative_path, "1.jkr");
+    #[cfg(unix)]
+    #[test]
+    fn follows_directory_symlinks_like_ludusavi() {
+        use std::os::unix::fs::symlink;
+
+        let temp = tempdir().unwrap();
+        let real = temp.path().join("real");
+        fs::create_dir_all(&real).unwrap();
+        fs::write(real.join("save.dat"), b"save").unwrap();
+        let linked = temp.path().join("linked");
+        symlink(&real, &linked).unwrap();
+
+        let scanned = scan_resolved_path(&linked.display().to_string(), true, None);
+
+        assert_eq!(scanned[0].files.len(), 1);
+        assert_eq!(scanned[0].files[0].relative_path, "save.dat");
     }
 }

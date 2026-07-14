@@ -1,5 +1,6 @@
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
+use std::collections::BTreeMap;
 
 use super::hashing::{build_snapshot_aggregate_hash, BuildSnapshotAggregateHashInput};
 use super::local_snapshot::{
@@ -28,7 +29,6 @@ pub struct BuildLocalGameSnapshotPipelineInput {
     pub wine_prefix_path: Option<String>,
     pub proton_path: Option<String>,
     pub steam_path: Option<String>,
-    pub steam_user_ids: Vec<String>,
     pub hash_cache: Vec<LocalFileHashCacheEntry>,
 }
 
@@ -80,28 +80,38 @@ pub async fn build_local_game_snapshot_pipeline(
         wine_prefix_path: input.wine_prefix_path,
         proton_path: input.proton_path,
         steam_path: input.steam_path,
-        steam_user_ids: input.steam_user_ids,
         rules: save_rules.rules,
     })?;
     let scanned_rules = scan_resolved_save_rules(resolved_rules).await?;
-    let mut discovered_files = Vec::new();
+    let mut discovered_files = BTreeMap::new();
 
     for rule in scanned_rules {
         for scanned_path in rule.scanned_paths {
             for file in scanned_path.files {
-                discovered_files.push(DiscoveredLocalSaveFile {
+                let discovered = DiscoveredLocalSaveFile {
                     raw_path: rule.raw_path.clone(),
-                    absolute_path: file.absolute_path,
+                    absolute_path: file.absolute_path.clone(),
                     root_path: scanned_path.resolved_path.clone(),
                     relative_path: file.relative_path,
                     source: rule.source.clone(),
-                });
+                };
+                discovered_files
+                    .entry(file.absolute_path)
+                    .and_modify(|existing: &mut DiscoveredLocalSaveFile| {
+                        if discovered.raw_path < existing.raw_path {
+                            *existing = discovered.clone();
+                        }
+                    })
+                    .or_insert(discovered);
             }
         }
     }
 
-    let built_files =
-        build_local_save_snapshot_files_with_cache(discovered_files, input.hash_cache).await?;
+    let built_files = build_local_save_snapshot_files_with_cache(
+        discovered_files.into_values().collect(),
+        input.hash_cache,
+    )
+    .await?;
     let files = built_files.files;
     let source_files = files
         .iter()

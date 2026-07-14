@@ -17,6 +17,7 @@ export const analyzeCloudSaveState = async (
   const { sourceFiles: _, ...localSnapshot } = localSnapshotContext;
   const state = NativeAddon.compareGameSnapshots({
     localSnapshotHash: localSnapshot.aggregateHash,
+    localSnapshotFileCount: localSnapshot.fileCount,
     baseSnapshotHash: anchor?.baseAggregateHash,
     remoteSnapshots,
   });

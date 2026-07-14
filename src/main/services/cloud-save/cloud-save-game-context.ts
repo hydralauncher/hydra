@@ -1,8 +1,14 @@
 import { gamesSublevel, levelKeys } from "@main/level";
-import { getSteamLocation, getSteamUsersIds } from "@main/services/steam";
+import { getSteamLocation } from "@main/services/steam";
 import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
 import type { CloudSavePathContext, GameShop } from "@types";
+
+const getCloudSavePlatform = (): CloudSavePathContext["platform"] => {
+  if (process.platform === "win32") return "windows";
+  if (process.platform === "darwin") return "mac";
+  return "linux";
+};
 
 export const getCloudSaveGameContext = async (
   objectId: string,
@@ -11,14 +17,11 @@ export const getCloudSaveGameContext = async (
   const game = await gamesSublevel
     .get(levelKeys.game(shop, objectId))
     .catch(() => undefined);
-  const [steamPath, steamUserIds] = await Promise.all([
-    getSteamLocation().catch(() => undefined),
-    getSteamUsersIds(),
-  ]);
+  const steamPath = await getSteamLocation().catch(() => undefined);
   const pathContext: CloudSavePathContext = {
     shop,
     objectId,
-    platform: process.platform === "win32" ? "windows" : "linux",
+    platform: getCloudSavePlatform(),
     homeDir: SystemPath.getPath("home"),
     documentsDir: SystemPath.getPath("documents") || undefined,
     appDataDir: SystemPath.getPath("appData") || undefined,
@@ -27,7 +30,6 @@ export const getCloudSaveGameContext = async (
       Wine.getEffectivePrefixPath(game?.winePrefixPath, objectId) ?? undefined,
     protonPath: game?.protonPath ?? undefined,
     steamPath,
-    steamUserIds: steamUserIds.map(String),
   };
 
   return { game, pathContext };

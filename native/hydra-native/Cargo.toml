@@ -24,6 +24,12 @@ blake3 = "1.8.5"
 rayon = "1.11"
 time = "0.3.44"
 unicode-normalization = "0.1.25"
+globetter = "=0.2.0"
+globset = "=0.4.15"
+walkdir = "=2.5.0"
+
+[target.'cfg(windows)'.dependencies]
+known-folders = "=1.2.0"
 
 [dev-dependencies]
 tempfile = "3.27"
