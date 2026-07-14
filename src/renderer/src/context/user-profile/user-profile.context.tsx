@@ -230,6 +230,10 @@ export function UserProfileContextProvider({
         needsAuth: false,
       })
       .then((userProfile) => {
+        if (!userProfile?.id) {
+          throw new Error("User not found");
+        }
+
         setUserProfile(userProfile);
 
         if (userProfile.profileImageUrl) {
@@ -239,6 +243,7 @@ export function UserProfileContextProvider({
         }
       })
       .catch(() => {
+        setUserProfile(null);
         showErrorToast(t("user_not_found"));
         navigate(-1);
       });

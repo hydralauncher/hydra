@@ -65,14 +65,23 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
       return;
     }
 
+    if (friendCode === userDetails.id) {
+      showErrorToast(t("cannot_add_yourself"));
+      return;
+    }
+
     setIsAddingFriend(true);
     sendFriendRequest(friendCode)
       .then(() => {
         setFriendCode("");
         showSuccessToast(t("request_sent"));
       })
-      .catch(() => {
-        showErrorToast(t("error_adding_friend"));
+      .catch((error: any) => {
+        const status = error?.status ?? error?.response?.status;
+        if (status === 404) showErrorToast(t("friend_code_not_found"));
+        else if (status === 409)
+          showErrorToast(t("friend_request_already_sent"));
+        else showErrorToast(t("error_adding_friend"));
       })
       .finally(() => {
         setIsAddingFriend(false);
@@ -138,7 +147,7 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
             onChange={handleChangeFriendCode}
           />
           <Button
-            disabled={isAddingFriend}
+            disabled={isAddingFriend || friendCode === userDetails?.id}
             type="button"
             className="add-friend-modal__button"
             onClick={() => validateFriendCode(handleClickAddFriend)}

@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
@@ -36,7 +36,7 @@ import "./profile-hero.scss";
 
 type FriendAction =
   | FriendRequestAction
-  | ("BLOCK" | "UNDO_FRIENDSHIP" | "SEND");
+  | ("BLOCK" | "UNBLOCK" | "UNDO_FRIENDSHIP" | "SEND");
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -44,6 +44,8 @@ export function ProfileHero() {
   const [isPerformingAction, setIsPerformingAction] = useState(false);
   const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isCheckingBlockStatus, setIsCheckingBlockStatus] = useState(false);
 
   const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
     useContext(userProfileContext);
@@ -53,6 +55,7 @@ export function ProfileHero() {
     sendFriendRequest,
     undoFriendship,
     blockUser,
+    unblockUser,
     userDetails,
   } = useUserDetails();
 
@@ -64,6 +67,33 @@ export function ProfileHero() {
   const { showSuccessToast, showErrorToast } = useToast();
 
   const navigate = useNavigate();
+
+  const checkIsBlocked = useCallback(async () => {
+    if (!userProfile?.id || isMe || !userDetails) {
+      setIsBlocked(false);
+      return;
+    }
+
+    setIsCheckingBlockStatus(true);
+
+    try {
+      const response = await globalThis.window.electron.hydraApi.get<{
+        blocks: { id: string }[];
+      }>("/profile/blocks", { params: { take: 100, skip: 0 } });
+
+      setIsBlocked(
+        (response?.blocks ?? []).some((user) => user.id === userProfile.id)
+      );
+    } catch {
+      setIsBlocked(false);
+    } finally {
+      setIsCheckingBlockStatus(false);
+    }
+  }, [userProfile?.id, isMe, userDetails]);
+
+  useEffect(() => {
+    checkIsBlocked();
+  }, [checkIsBlocked]);
 
   const handleSignOut = useCallback(async () => {
     setIsPerformingAction(true);
@@ -96,11 +126,18 @@ export function ProfileHero() {
         }
 
         if (action === "BLOCK") {
-          await blockUser(userId).then(() => {
-            showSuccessToast(t("user_blocked_successfully"));
-            navigate(-1);
-          });
+          await blockUser(userId);
+          setIsBlocked(true);
+          showSuccessToast(t("user_blocked_successfully"));
+          await getUserProfile();
+          return;
+        }
 
+        if (action === "UNBLOCK") {
+          await unblockUser(userId);
+          setIsBlocked(false);
+          showSuccessToast(t("user_unblocked"));
+          await getUserProfile();
           return;
         }
 
@@ -119,17 +156,53 @@ export function ProfileHero() {
     [
       undoFriendship,
       blockUser,
+      unblockUser,
       sendFriendRequest,
       updateFriendRequestState,
       t,
       showErrorToast,
       getUserProfile,
-      navigate,
       showSuccessToast,
       userProfile,
       userDetails,
     ]
   );
+
+  const blockButton = useMemo(() => {
+    if (isCheckingBlockStatus) return null;
+
+    if (isBlocked) {
+      return (
+        <Button
+          theme="outline"
+          onClick={() => handleFriendAction(userProfile!.id, "UNBLOCK")}
+          disabled={isPerformingAction}
+          className="profile-hero__button--outline"
+        >
+          <BlockedIcon />
+          {t("unblock_user")}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        theme="danger"
+        onClick={() => handleFriendAction(userProfile!.id, "BLOCK")}
+        disabled={isPerformingAction}
+      >
+        <BlockedIcon />
+        {t("block_user")}
+      </Button>
+    );
+  }, [
+    isBlocked,
+    isCheckingBlockStatus,
+    isPerformingAction,
+    handleFriendAction,
+    userProfile,
+    t,
+  ]);
 
   const profileActions = useMemo(() => {
     if (!userProfile) return null;
@@ -159,6 +232,10 @@ export function ProfileHero() {
       );
     }
 
+    if (isBlocked) {
+      return blockButton;
+    }
+
     if (userProfile.relation == null) {
       return (
         <>
@@ -172,14 +249,7 @@ export function ProfileHero() {
             {t("add_friend")}
           </Button>
 
-          <Button
-            theme="danger"
-            onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
-            disabled={isPerformingAction}
-          >
-            <BlockedIcon />
-            {t("block_user")}
-          </Button>
+          {blockButton}
         </>
       );
     }
@@ -187,14 +257,7 @@ export function ProfileHero() {
     if (userProfile.relation.status === "ACCEPTED") {
       return (
         <>
-          <Button
-            theme="danger"
-            onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
-            disabled={isPerformingAction}
-          >
-            <BlockedIcon />
-            {t("block_user")}
-          </Button>
+          {blockButton}
           <Button
             theme="outline"
             onClick={() =>
@@ -212,16 +275,19 @@ export function ProfileHero() {
 
     if (userProfile.relation.BId === userProfile.id) {
       return (
-        <Button
-          theme="outline"
-          onClick={() =>
-            handleFriendAction(userProfile.relation!.BId, "CANCEL")
-          }
-          disabled={isPerformingAction}
-          className="profile-hero__button--outline"
-        >
-          <XCircleFillIcon /> {t("cancel_request")}
-        </Button>
+        <>
+          <Button
+            theme="outline"
+            onClick={() =>
+              handleFriendAction(userProfile.relation!.BId, "CANCEL")
+            }
+            disabled={isPerformingAction}
+            className="profile-hero__button--outline"
+          >
+            <XCircleFillIcon /> {t("cancel_request")}
+          </Button>
+          {blockButton}
+        </>
       );
     }
 
@@ -246,12 +312,15 @@ export function ProfileHero() {
         >
           <XCircleFillIcon /> {t("ignore_request")}
         </Button>
+        {blockButton}
       </>
     );
   }, [
     handleFriendAction,
     handleSignOut,
     isMe,
+    isBlocked,
+    blockButton,
     t,
     isPerformingAction,
     userProfile,
