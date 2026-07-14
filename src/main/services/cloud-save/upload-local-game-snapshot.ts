@@ -34,9 +34,6 @@ export const uploadLocalGameSnapshot = async (
   if (context.files.length === 0) {
     return { snapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
   }
-  if (context.files.some((file) => file.sizeBytes <= 0)) {
-    throw new Error("Cloud save snapshot contains an empty file");
-  }
 
   const response = validatePrepareResponse(
     await HydraApi.post<unknown>("/profile/cloud-saves/prepare-snapshot", {
