@@ -53,7 +53,7 @@ type HydraNativeModule = {
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
-  takeCloudSaveDebugLogs: (shop: string, objectId: string) => string | null;
+  takeCloudSaveDebugLogs?: (shop: string, objectId: string) => string | null;
   uploadLocalSaveBlob: (
     absolutePath: string,
     uploadUrl: string
@@ -374,7 +374,7 @@ export class NativeAddon {
       pipelineError = error;
     }
 
-    const debugLogsJson = nativeModule.takeCloudSaveDebugLogs(
+    const debugLogsJson = nativeModule.takeCloudSaveDebugLogs?.(
       input.shop,
       input.objectId
     );
