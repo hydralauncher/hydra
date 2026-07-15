@@ -526,8 +526,6 @@
     "settings_category_general": "Основные",
     "settings_category_locations": "Расположение",
     "settings_category_general_description": "Путь к исполняемому файлу, параметры запуска и ярлыки",
-    "settings_category_assets": "Ресурсы",
-    "settings_category_assets_description": "Настройте название игры, иконку, логотип и обложку",
     "settings_category_customization": "Настройка",
     "settings_category_launch": "Запуск",
     "settings_category_hydra_cloud": "Hydra Cloud",

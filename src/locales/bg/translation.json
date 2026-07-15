@@ -495,8 +495,6 @@
     "settings_category_general": "Общи",
     "settings_category_locations": "Местоположения",
     "settings_category_general_description": "Път към изпълнимия файл, опции за стартиране и преки пътища",
-    "settings_category_assets": "Активи",
-    "settings_category_assets_description": "Персонализиране на заглавие, икона, лого и hero изображение",
     "settings_category_customization": "Персонализация",
     "settings_category_launch": "Стартиране",
     "settings_category_hydra_cloud": "Hydra Cloud",
