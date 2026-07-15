@@ -110,7 +110,6 @@ export function resolvePreferredGameAssets(
   const logoSrc = resolveImageSource(preferredAssets.logoImageUrl);
   const heroSrc = getFirstResolvedSource(
     game?.customHeroImageUrl,
-    game?.customIconUrl,
     assets?.libraryHeroImageUrl,
     game?.libraryHeroImageUrl,
     assets?.libraryImageUrl,
@@ -121,7 +120,6 @@ export function resolvePreferredGameAssets(
   const coverSrc = getFirstResolvedSource(
     game?.customCoverImageUrl,
     game?.customHeroImageUrl,
-    game?.customIconUrl,
     assets?.coverImageUrl,
     game?.coverImageUrl,
     assets?.libraryImageUrl,
@@ -131,7 +129,6 @@ export function resolvePreferredGameAssets(
   );
   const landscapeSrc = getFirstResolvedSource(
     game?.customHeroImageUrl,
-    game?.customIconUrl,
     assets?.libraryImageUrl,
     game?.libraryImageUrl,
     assets?.coverImageUrl,

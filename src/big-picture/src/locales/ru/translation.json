@@ -709,7 +709,13 @@
     "loading_save_preview": "Поиск сохранений…",
     "no_backup_preview": "Сохранения для этой игры не найдены",
     "max_number_of_artifacts_reached": "Достигнуто максимальное количество резервных копий для этой игры",
-    "cloud_delete_backup_description": "Удалить из ваших облачных резервных копий?"
+    "cloud_delete_backup_description": "Удалить из ваших облачных резервных копий?",
+    "edit_game_modal_grid": "Обложка",
+    "steamgriddb_section_title": "SteamGridDB",
+    "steamgriddb_use_default": "По умолчанию",
+    "steamgriddb_no_results": "Ресурсы SteamGridDB для этой игры не найдены.",
+    "steamgriddb_sign_in_required": "Войдите в Hydra, чтобы просматривать обложки SteamGridDB.",
+    "steamgriddb_fetch_failed": "Не удалось загрузить ресурсы SteamGridDB"
   },
   "format": {
     "playtime_hours_one": "{{count}} час",

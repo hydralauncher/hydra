@@ -709,7 +709,13 @@
     "loading_save_preview": "Searching for save games…",
     "no_backup_preview": "No save games were found for this title",
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
-    "cloud_delete_backup_description": "Delete from your cloud backups?"
+    "cloud_delete_backup_description": "Delete from your cloud backups?",
+    "edit_game_modal_grid": "Cover",
+    "steamgriddb_section_title": "SteamGridDB",
+    "steamgriddb_use_default": "Use default",
+    "steamgriddb_no_results": "No SteamGridDB assets found for this game.",
+    "steamgriddb_sign_in_required": "Sign in to Hydra to browse SteamGridDB artwork.",
+    "steamgriddb_fetch_failed": "Failed to load SteamGridDB assets"
   },
   "format": {
     "playtime_hours_one": "{{count}} hour",

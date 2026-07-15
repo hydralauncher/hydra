@@ -215,10 +215,7 @@ export class WindowManager {
 
     this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
-        if (
-          details.webContentsId !== this.mainWindow?.webContents.id ||
-          details.url.includes("chatwoot")
-        ) {
+        if (details.url.includes("chatwoot")) {
           return callback(details);
         }
 
@@ -246,7 +243,6 @@ export class WindowManager {
     this.mainWindow.webContents.session.webRequest.onHeadersReceived(
       (details, callback) => {
         if (
-          details.webContentsId !== this.mainWindow?.webContents.id ||
           details.url.includes("featurebase") ||
           details.url.includes("chatwoot") ||
           details.url.includes("workwonders")

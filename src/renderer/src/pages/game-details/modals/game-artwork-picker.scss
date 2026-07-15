@@ -123,8 +123,34 @@
     }
   }
 
+  &__item-spinner {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+
+    &::after {
+      content: "";
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      border-top-color: #fff;
+      animation: game-artwork-item-spin 0.7s linear infinite;
+    }
+  }
+
   &__hint {
     font-size: 13px;
     opacity: 0.7;
+  }
+}
+
+@keyframes game-artwork-item-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

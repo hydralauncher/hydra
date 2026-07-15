@@ -1,8 +1,8 @@
 import type { ChangeEvent } from "react";
-import type { LibraryGame } from "@types";
+import type { LibraryGame, ShopAssets } from "@types";
 import { PencilIcon } from "@primer/octicons-react";
-import { Trash } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Loader2, Trash } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FileExplorerModal,
@@ -13,8 +13,12 @@ import {
   type FileFilter,
   VerticalFocusGroup,
 } from "../../../common";
-import { resolvePreferredGameAssets } from "../../../../helpers";
+import {
+  resolveImageSource,
+  resolvePreferredGameAssets,
+} from "../../../../helpers";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
+import { GameArtworkPicker } from "./artwork-picker";
 
 import "./customization-tab.scss";
 
@@ -23,7 +27,7 @@ export const GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID =
 const GAME_CUSTOMIZATION_SETTINGS_ASSET_PREVIEW_ID =
   "game-customization-settings-asset-preview";
 
-type AssetTab = "icon" | "logo" | "hero";
+type AssetTab = "icon" | "logo" | "hero" | "grid";
 type AssetPreviewState = Record<
   AssetTab,
   {
@@ -36,6 +40,7 @@ const ASSET_FRAME_SIZES: Record<AssetTab, { width: number; height: number }> = {
   icon: { width: 192, height: 192 },
   logo: { width: 341.33, height: 192 },
   hero: { width: 594.58, height: 192 },
+  grid: { width: 128, height: 192 },
 };
 
 export interface GameCustomizationSettingsProps {
@@ -50,10 +55,14 @@ export interface GameCustomizationSettingsProps {
     assetType: AssetTab
   ) => Promise<void>;
   onClearAsset: (assetType: AssetTab) => Promise<void>;
+  onArtworkChanged: () => Promise<void> | void;
 }
 
-function getAssetPreviewState(game: LibraryGame): AssetPreviewState {
-  const preferredAssets = resolvePreferredGameAssets(game, null);
+function getAssetPreviewState(
+  game: LibraryGame,
+  assets: ShopAssets | null
+): AssetPreviewState {
+  const preferredAssets = resolvePreferredGameAssets(game, assets);
   const isCustom = game.shop === "custom";
 
   return {
@@ -68,17 +77,22 @@ function getAssetPreviewState(game: LibraryGame): AssetPreviewState {
         : Boolean(game.customLogoImageUrl),
     },
     hero: {
-      src: preferredAssets.heroSrc,
+      src: resolveImageSource(preferredAssets.libraryHeroImageUrl),
       hasCustom: isCustom
         ? Boolean(game.libraryHeroImageUrl)
         : Boolean(game.customHeroImageUrl),
+    },
+    grid: {
+      src: resolveImageSource(preferredAssets.coverImageUrl),
+      hasCustom: Boolean(game.customCoverImageUrl),
     },
   };
 }
 
 function getFallbackPreviewState(
   game: LibraryGame,
-  assetType: AssetTab
+  assetType: AssetTab,
+  assets: ShopAssets | null
 ): AssetPreviewState[AssetTab] {
   const isCustom = game.shop === "custom";
 
@@ -89,7 +103,7 @@ function getFallbackPreviewState(
     };
 
     return {
-      src: resolvePreferredGameAssets(nextGame, null).iconSrc,
+      src: resolvePreferredGameAssets(nextGame, assets).iconSrc,
       hasCustom: false,
     };
   }
@@ -101,7 +115,18 @@ function getFallbackPreviewState(
     };
 
     return {
-      src: resolvePreferredGameAssets(nextGame, null).logoSrc,
+      src: resolvePreferredGameAssets(nextGame, assets).logoSrc,
+      hasCustom: false,
+    };
+  }
+
+  if (assetType === "grid") {
+    const nextGame = { ...game, customCoverImageUrl: null };
+
+    return {
+      src: resolveImageSource(
+        resolvePreferredGameAssets(nextGame, assets).coverImageUrl
+      ),
       hasCustom: false,
     };
   }
@@ -112,7 +137,9 @@ function getFallbackPreviewState(
   };
 
   return {
-    src: resolvePreferredGameAssets(nextGame, null).heroSrc,
+    src: resolveImageSource(
+      resolvePreferredGameAssets(nextGame, assets).libraryHeroImageUrl
+    ),
     hasCustom: false,
   };
 }
@@ -126,33 +153,53 @@ export function GameCustomizationSettingsTab({
   onBlurGameTitle,
   onProcessAssetPath,
   onClearAsset,
+  onArtworkChanged,
 }: Readonly<GameCustomizationSettingsProps>) {
   const { t } = useTranslation("big_picture");
   const [selectedAssetTab, setSelectedAssetTab] = useState<AssetTab>("icon");
   const [hasAssetTabsInteracted, setHasAssetTabsInteracted] = useState(false);
+  const [composedAssets, setComposedAssets] = useState<ShopAssets | null>(null);
   const [assetPreviewState, setAssetPreviewState] = useState<AssetPreviewState>(
-    () => getAssetPreviewState(game)
+    () => getAssetPreviewState(game, null)
   );
   const [pendingAssetTab, setPendingAssetTab] = useState<AssetTab | null>(null);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
-  const assetTabItems = useMemo(
-    () =>
-      [
-        {
-          value: "icon",
-          label: t("edit_game_modal_icon"),
-        },
-        {
-          value: "logo",
-          label: t("edit_game_modal_logo"),
-        },
-        {
-          value: "hero",
-          label: t("edit_game_modal_hero"),
-        },
-      ] satisfies Array<TabsItem<AssetTab>>,
-    [t]
-  );
+  const isCustomGame = game.shop === "custom";
+
+  const refreshComposedAssets = useCallback(async () => {
+    if (game.shop === "custom") return;
+
+    const assets = await globalThis.window.electron.getGameAssets(
+      game.objectId,
+      game.shop
+    );
+    setComposedAssets(assets);
+  }, [game.objectId, game.shop]);
+  const assetTabItems = useMemo(() => {
+    const items: Array<TabsItem<AssetTab>> = [
+      {
+        value: "icon",
+        label: t("edit_game_modal_icon"),
+      },
+      {
+        value: "logo",
+        label: t("edit_game_modal_logo"),
+      },
+      {
+        value: "hero",
+        label: t("edit_game_modal_hero"),
+      },
+    ];
+
+    if (!isCustomGame) {
+      items.push({
+        value: "grid",
+        label: t("edit_game_modal_grid"),
+      });
+    }
+
+    return items;
+  }, [t, isCustomGame]);
 
   const handleAssetTabChange = useCallback((value: AssetTab) => {
     setSelectedAssetTab(value);
@@ -161,6 +208,13 @@ export function GameCustomizationSettingsTab({
   const assetFrameSize = ASSET_FRAME_SIZES[selectedAssetTab];
   const hasCustomAsset = assetPreviewState[selectedAssetTab].hasCustom;
   const assetImageSource = assetPreviewState[selectedAssetTab].src;
+  const [isPreviewImageLoaded, setIsPreviewImageLoaded] = useState(false);
+  const previewImageRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const image = previewImageRef.current;
+    setIsPreviewImageLoaded(Boolean(image?.complete && image.naturalWidth > 0));
+  }, [assetImageSource]);
 
   const handleAssetPicked = useCallback(
     (path: string) => {
@@ -186,7 +240,11 @@ export function GameCustomizationSettingsTab({
       setPendingAssetTab(selectedAssetTab);
       setAssetPreviewState((currentState) => ({
         ...currentState,
-        [selectedAssetTab]: getFallbackPreviewState(game, selectedAssetTab),
+        [selectedAssetTab]: getFallbackPreviewState(
+          game,
+          selectedAssetTab,
+          composedAssets
+        ),
       }));
 
       void onClearAsset(selectedAssetTab).finally(() => {
@@ -198,10 +256,40 @@ export function GameCustomizationSettingsTab({
     }
 
     setAssetPickerOpen(true);
-  }, [game, hasCustomAsset, onClearAsset, pendingAssetTab, selectedAssetTab]);
+  }, [
+    composedAssets,
+    game,
+    hasCustomAsset,
+    onClearAsset,
+    pendingAssetTab,
+    selectedAssetTab,
+  ]);
 
   useEffect(() => {
-    setAssetPreviewState(getAssetPreviewState(game));
+    if (game.shop === "custom") {
+      setComposedAssets(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    globalThis.window.electron
+      .getGameAssets(game.objectId, game.shop)
+      .then((assets) => {
+        if (!cancelled) setComposedAssets(assets);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [game.objectId, game.shop]);
+
+  useEffect(() => {
+    setAssetPreviewState(getAssetPreviewState(game, composedAssets));
+  }, [game, composedAssets]);
+
+  useEffect(() => {
     setPendingAssetTab(null);
   }, [game]);
 
@@ -232,7 +320,13 @@ export function GameCustomizationSettingsTab({
           title={t("edit_game_modal_assets")}
           description={t("edit_game_modal_section_assets_description")}
         >
-          <div className="game-customization-settings-tab__section-content game-customization-settings-tab__section-content--assets">
+          <div
+            className={`game-customization-settings-tab__section-content game-customization-settings-tab__section-content--assets${
+              isCustomGame
+                ? ""
+                : " game-customization-settings-tab__section-content--with-picker"
+            }`}
+          >
             <Tabs
               items={assetTabItems}
               value={selectedAssetTab}
@@ -269,11 +363,27 @@ export function GameCustomizationSettingsTab({
                 >
                   {assetImageSource ? (
                     <img
-                      className="game-customization-settings-tab__asset-preview-image"
+                      ref={previewImageRef}
+                      className={`game-customization-settings-tab__asset-preview-image${
+                        isPreviewImageLoaded
+                          ? " game-customization-settings-tab__asset-preview-image--loaded"
+                          : ""
+                      }`}
                       src={assetImageSource}
                       alt={gameTitle}
                       draggable={false}
+                      onLoad={() => setIsPreviewImageLoaded(true)}
+                      onError={() => setIsPreviewImageLoaded(true)}
                     />
+                  ) : null}
+
+                  {assetImageSource && !isPreviewImageLoaded ? (
+                    <span
+                      className="game-customization-settings-tab__asset-preview-spinner"
+                      aria-hidden="true"
+                    >
+                      <Loader2 size={28} />
+                    </span>
                   ) : null}
 
                   <span
@@ -301,6 +411,17 @@ export function GameCustomizationSettingsTab({
                 </button>
               </FocusItem>
             </div>
+
+            {!isCustomGame ? (
+              <GameArtworkPicker
+                game={game}
+                assetType={selectedAssetTab}
+                onChanged={async () => {
+                  await refreshComposedAssets();
+                  await Promise.resolve(onArtworkChanged()).catch(() => {});
+                }}
+              />
+            ) : null}
           </div>
         </SettingsSection>
       </VerticalFocusGroup>

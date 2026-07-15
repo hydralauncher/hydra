@@ -37,6 +37,14 @@ const INITIAL_SKELETON_COUNT: Record<ArtworkAssetType, number> = {
 };
 const MORE_SKELETON_COUNT = 4;
 
+const preloadImage = (url: string) =>
+  new Promise<void>((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve();
+    image.onerror = () => resolve();
+    image.src = url;
+  });
+
 interface GameArtworkPickerProps {
   game: LibraryGame;
   assetType: ArtworkAssetType;
@@ -57,6 +65,7 @@ export function GameArtworkPicker({
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isStale, setIsStale] = useState(false);
+  const [pendingId, setPendingId] = useState<number | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -167,6 +176,7 @@ export function GameArtworkPicker({
   }, [hasMore, loadPage, items.length]);
 
   const handlePick = async (item: ArtworkItem) => {
+    setPendingId(item.id);
     try {
       await window.electron.setGameArtworkSelection({
         shop: game.shop,
@@ -177,8 +187,11 @@ export function GameArtworkPicker({
       });
       await loadSelection();
       await onChanged();
+      await preloadImage(item.url);
     } catch {
       showErrorToast(t("steamgriddb_fetch_failed"));
+    } finally {
+      setPendingId(null);
     }
   };
 
@@ -261,6 +274,12 @@ export function GameArtworkPicker({
                 onClick={() => handlePick(item)}
               >
                 <img src={item.thumb} alt="" loading="lazy" />
+                {pendingId === item.id && (
+                  <span
+                    className="game-artwork__item-spinner"
+                    aria-hidden="true"
+                  />
+                )}
               </button>
             ))}
 

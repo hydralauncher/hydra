@@ -704,7 +704,13 @@
     "game_options": "Opciones del juego",
     "delete_backup": "Eliminar copia",
     "cloud_backup_options": "Opciones de la copia",
-    "cloud_delete_backup_description": "¿Eliminar de tus copias en la nube?"
+    "cloud_delete_backup_description": "¿Eliminar de tus copias en la nube?",
+    "edit_game_modal_grid": "Portada",
+    "steamgriddb_section_title": "SteamGridDB",
+    "steamgriddb_use_default": "Usar predeterminado",
+    "steamgriddb_no_results": "No se encontraron recursos de SteamGridDB para este juego.",
+    "steamgriddb_sign_in_required": "Inicia sesión en Hydra para explorar las ilustraciones de SteamGridDB.",
+    "steamgriddb_fetch_failed": "No se pudieron cargar los recursos de SteamGridDB"
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",
