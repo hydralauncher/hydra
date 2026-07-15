@@ -409,10 +409,8 @@ export class NativeAddon {
   private static logCloudSaveDebugEntries(entries: CloudSaveDebugLog[]) {
     for (const entry of entries) {
       try {
-        logger.info(
-          `[Cloud V2 DEBUG] ${entry.event}`,
-          JSON.parse(entry.details)
-        );
+        const details = JSON.stringify(JSON.parse(entry.details), null, 2);
+        logger.info(`[Cloud V2 DEBUG] ${entry.event}\n${details}`);
       } catch {
         logger.info(`[Cloud V2 DEBUG] ${entry.event}`, entry.details);
       }
