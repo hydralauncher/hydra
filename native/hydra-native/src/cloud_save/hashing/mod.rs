@@ -6,7 +6,10 @@ pub(crate) mod types;
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
-pub use types::BuildSnapshotAggregateHashInput;
+pub(crate) use aggregate::build_hash as build_aggregate_hash;
+pub use types::{
+    BuildSnapshotAggregateHashInput, LocalFileHashCacheEntry, SnapshotAggregateHashFile,
+};
 
 #[napi]
 pub async fn hash_local_save_file(file_path: String) -> napi::Result<String> {

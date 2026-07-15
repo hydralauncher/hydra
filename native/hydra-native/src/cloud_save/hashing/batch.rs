@@ -22,7 +22,7 @@ fn hashing_pool() -> &'static rayon::ThreadPool {
     })
 }
 
-fn format_modified_at(modified: std::time::SystemTime) -> String {
+pub(crate) fn format_modified_at(modified: std::time::SystemTime) -> String {
     let datetime = OffsetDateTime::from(modified);
     format!(
         "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:09}Z",
