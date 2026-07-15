@@ -16,6 +16,7 @@ import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 import { GameReviews } from "./game-reviews";
 import { GameLogo } from "./game-logo";
+import { CloudSaveWidget } from "./cloud-save-v2";
 
 import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
@@ -379,6 +380,10 @@ export function GameDetailsContent() {
                   >
                     <PencilIcon size={16} />
                   </button>
+                )}
+
+                {game && objectId && game.shop === "steam" && (
+                  <CloudSaveWidget objectId={objectId} shop={shop} />
                 )}
 
                 {game && game.shop !== "custom" && (
