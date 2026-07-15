@@ -320,7 +320,7 @@
     "cloud_save_v2_auto_sync_failed_description": "O jogo não foi bloqueado. Tente sincronizar novamente pelo botão manual.",
     "cloud_save_v2_auto_sync_conflict_title": "Conflito nos saves",
     "cloud_save_v2_auto_sync_conflict_description": "O sync automático parou sem alterar seus saves.",
-    "cloud_save_v2_checking": "Verificando…",
+    "cloud_save_v2_checking": "Verificando",
     "cloud_save_v2_unavailable": "Indisponível",
     "cloud_save_v2_modal_title": "Salvamento na nuvem V2",
     "cloud_save_v2_modal_description": "Veja o estado dos saves e sincronize este jogo.",

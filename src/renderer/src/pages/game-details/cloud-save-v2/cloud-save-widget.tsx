@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { CloudIcon } from "@primer/octicons-react";
+import { SpinnerGapIcon } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -207,7 +208,11 @@ export function CloudSaveWidget({
         onClick={handleOpen}
         title={t("cloud_save_v2")}
       >
-        <CloudIcon size={16} />
+        {isRefreshing && !overview ? (
+          <SpinnerGapIcon className="cloud-save-v2__spinner" size={16} />
+        ) : (
+          <CloudIcon size={16} />
+        )}
         {isRefreshing && !overview ? t("cloud_save_v2_checking") : label}
         {isSyncing && (
           <span
