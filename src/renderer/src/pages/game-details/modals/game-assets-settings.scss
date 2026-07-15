@@ -3,26 +3,44 @@
   flex-direction: column;
   gap: 16px;
 
-  &__asset-selector {
-    margin-bottom: 8px;
-  }
-
   &__asset-tabs {
     display: flex;
     gap: 8px;
-    margin-bottom: 4px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+  }
 
-    button {
-      flex: 1;
-      min-width: 0;
+  &__asset-tab-wrapper {
+    position: relative;
+  }
+
+  &__asset-tab {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color ease 0.2s;
+
+    &:disabled {
+      cursor: default;
+    }
+
+    &--active {
+      color: #fff;
     }
   }
 
-  &__asset-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--color-text);
-    margin-bottom: 4px;
+  &__asset-tab-underline {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #fff;
   }
 
   &__image-section {
