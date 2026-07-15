@@ -20,6 +20,9 @@ const ARTWORK_KIND_BY_TYPE: Record<ArtworkAssetType, ArtworkKind> = {
   icon: "icons",
 };
 
+export const isVideoArtworkThumb = (thumb: string | null | undefined) =>
+  !!thumb && /\.(webm|mp4)(\?.*)?$/i.test(thumb);
+
 const preloadImage = (url: string) =>
   new Promise<void>((resolve) => {
     const image = new Image();

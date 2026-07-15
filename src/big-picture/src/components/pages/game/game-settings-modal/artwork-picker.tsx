@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArtworkAssetType, ArtworkItem, LibraryGame } from "@types";
-import { useGameArtworkGrid } from "@renderer/hooks/use-game-artwork-grid";
+import {
+  isVideoArtworkThumb,
+  useGameArtworkGrid,
+} from "@renderer/hooks/use-game-artwork-grid";
 
 import { FocusItem, GridFocusGroup } from "../../../common";
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
@@ -164,7 +167,18 @@ export function GameArtworkPicker({
               }`}
               onClick={() => handlePickItem(item)}
             >
-              <img src={item.thumb} alt="" loading="lazy" />
+              {isVideoArtworkThumb(item.thumb) ? (
+                <video
+                  src={item.thumb}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  disablePictureInPicture
+                />
+              ) : (
+                <img src={item.thumb} alt="" loading="lazy" />
+              )}
               {pendingId === item.id ? (
                 <span
                   className="game-artwork-picker__item-spinner"
