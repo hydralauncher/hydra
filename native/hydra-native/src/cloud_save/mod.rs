@@ -4,4 +4,6 @@ pub mod local_snapshot;
 pub mod manifest;
 pub mod path_resolution;
 pub mod pipeline;
+pub mod restore;
 pub mod save_scanner;
+pub mod upload;

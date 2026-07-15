@@ -36,7 +36,7 @@ fn is_glob_segment(segment: &str) -> bool {
     segment.contains(['*', '?', '[', '{'])
 }
 
-fn raw_glob_base(raw_path: &str) -> Option<String> {
+pub(crate) fn glob_base_path(raw_path: &str) -> Option<String> {
     let normalized = normalize_candidate(raw_path);
     let segments = normalized.split('/').collect::<Vec<_>>();
     let first_glob = segments
@@ -112,7 +112,7 @@ pub fn resolve_path(raw_path: &str, context: &PathResolutionContext) -> Resolved
         );
     }
 
-    if let Some(raw_scan_root) = raw_glob_base(&raw_path) {
+    if let Some(raw_scan_root) = glob_base_path(&raw_path) {
         let roots = resolve_path(&raw_scan_root, context).paths;
         assign_scan_roots(&mut paths, &roots);
     }

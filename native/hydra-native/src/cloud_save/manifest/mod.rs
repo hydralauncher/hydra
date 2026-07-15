@@ -10,6 +10,7 @@ use std::path::Path;
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
+pub(crate) use rules::infer_rule_kind;
 pub use types::{GameSaveRules, GetSaveRulesForGameInput};
 
 #[napi]

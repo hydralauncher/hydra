@@ -7,6 +7,7 @@ use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
 pub(crate) use aggregate::build_hash as build_aggregate_hash;
+pub(crate) use file::hash_file;
 pub use types::{
     BuildSnapshotAggregateHashInput, LocalFileHashCacheEntry, SnapshotAggregateHashFile,
 };
