@@ -28,6 +28,7 @@
 
   &__scroll {
     max-height: 320px;
+    overflow-x: hidden;
     overflow-y: auto;
     padding-right: 4px;
   }
@@ -67,7 +68,6 @@
     border-radius: 8px;
     cursor: pointer;
     overflow: hidden;
-    transition: transform 0.15s ease;
 
     img {
       position: absolute;
@@ -79,12 +79,8 @@
       transition: filter 0.15s ease;
     }
 
-    &:hover {
-      transform: scale(1.04);
-
-      img {
-        filter: brightness(0.85);
-      }
+    &:hover img {
+      filter: brightness(0.85);
     }
 
     &--hero {
