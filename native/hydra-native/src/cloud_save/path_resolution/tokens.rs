@@ -75,7 +75,7 @@ pub fn tokens_in_path(path: &str) -> Vec<String> {
         if !tokens.iter().any(|existing| existing == token) {
             tokens.push(token.to_string());
         }
-        
+
         rest = &after[end + 1..];
     }
 
