@@ -65,7 +65,8 @@
     cursor: pointer;
     overflow: hidden;
 
-    img {
+    img,
+    video {
       position: absolute;
       inset: 0;
       width: 100%;
@@ -75,7 +76,8 @@
       transition: filter 0.15s ease;
     }
 
-    &:hover img {
+    &:hover img,
+    &:hover video {
       filter: brightness(0.85);
     }
 
@@ -91,7 +93,8 @@
       padding-bottom: 56.25%;
       background: rgba(255, 255, 255, 0.04);
 
-      img {
+      img,
+      video {
         object-fit: contain;
         padding: 6px;
       }

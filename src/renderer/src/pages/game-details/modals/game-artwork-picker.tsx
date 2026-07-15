@@ -4,7 +4,12 @@ import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { Button } from "@renderer/components";
-import { useGameArtworkGrid, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  isVideoArtworkThumb,
+  useGameArtworkGrid,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import type { ArtworkAssetType, LibraryGame } from "@types";
 
 import "./game-artwork-picker.scss";
@@ -231,7 +236,18 @@ export function GameArtworkPicker({
                           }`}
                           onClick={() => pick(item)}
                         >
-                          <img src={item.thumb} alt="" loading="lazy" />
+                          {isVideoArtworkThumb(item.thumb) ? (
+                            <video
+                              src={item.thumb}
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                              disablePictureInPicture
+                            />
+                          ) : (
+                            <img src={item.thumb} alt="" loading="lazy" />
+                          )}
                           {pendingId === item.id && (
                             <span
                               className="game-artwork__item-spinner"
