@@ -709,7 +709,13 @@
     "loading_save_preview": "Recherche de sauvegardes…",
     "no_backup_preview": "Aucune sauvegarde trouvée pour ce jeu",
     "max_number_of_artifacts_reached": "Nombre maximum de sauvegardes atteint pour ce jeu",
-    "cloud_delete_backup_description": "Supprimer de vos sauvegardes cloud ?"
+    "cloud_delete_backup_description": "Supprimer de vos sauvegardes cloud ?",
+    "edit_game_modal_grid": "Jaquette",
+    "steamgriddb_section_title": "SteamGridDB",
+    "steamgriddb_use_default": "Utiliser par défaut",
+    "steamgriddb_no_results": "Aucune ressource SteamGridDB trouvée pour ce jeu.",
+    "steamgriddb_sign_in_required": "Connectez-vous à Hydra pour parcourir les illustrations SteamGridDB.",
+    "steamgriddb_fetch_failed": "Échec du chargement des ressources SteamGridDB"
   },
   "format": {
     "playtime_hours_one": "{{count}} heure",

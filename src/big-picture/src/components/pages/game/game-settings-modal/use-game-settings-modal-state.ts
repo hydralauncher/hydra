@@ -31,7 +31,7 @@ interface UseGameSettingsModalStateResult {
   cloudSettings: GameCloudSettingsProps | null;
 }
 
-type CustomAssetType = "icon" | "logo" | "hero";
+type CustomAssetType = "icon" | "logo" | "hero" | "grid";
 const IMAGE_FILE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"] as const;
 
 export function useGameSettingsModalState({
@@ -245,9 +245,14 @@ export function useGameSettingsModalState({
           assetType === "hero"
             ? assetValue
             : game.customHeroImageUrl || undefined,
+        customCoverImageUrl:
+          assetType === "grid"
+            ? assetValue
+            : game.customCoverImageUrl || undefined,
         customOriginalIconPath: assetType === "icon" ? null : undefined,
         customOriginalLogoPath: assetType === "logo" ? null : undefined,
         customOriginalHeroPath: assetType === "hero" ? null : undefined,
+        customOriginalCoverPath: assetType === "grid" ? null : undefined,
       };
     },
     [game, getEffectiveGameTitle]
@@ -743,6 +748,7 @@ export function useGameSettingsModalState({
       onBlurGameTitle: handleBlurGameTitle,
       onProcessAssetPath: handleProcessAssetPath,
       onClearAsset: handleClearCustomizationAsset,
+      onArtworkChanged: refreshGameDetails,
     } satisfies GameCustomizationSettingsProps;
   }, [
     game,
@@ -752,6 +758,7 @@ export function useGameSettingsModalState({
     handleChangeGameTitle,
     handleClearCustomizationAsset,
     handleProcessAssetPath,
+    refreshGameDetails,
     updatingGameTitle,
   ]);
 
