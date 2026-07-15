@@ -8,22 +8,21 @@
     gap: 8px;
     margin-bottom: 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: relative;
-  }
-
-  &__asset-tab-wrapper {
-    position: relative;
   }
 
   &__asset-tab {
     background: none;
     border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
     color: rgba(255, 255, 255, 0.6);
     padding: 8px 16px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    transition: color ease 0.2s;
+    transition:
+      color ease 0.2s,
+      border-color ease 0.2s;
 
     &:disabled {
       cursor: default;
@@ -31,16 +30,8 @@
 
     &--active {
       color: #fff;
+      border-bottom-color: #fff;
     }
-  }
-
-  &__asset-tab-underline {
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #fff;
   }
 
   &__image-section {
