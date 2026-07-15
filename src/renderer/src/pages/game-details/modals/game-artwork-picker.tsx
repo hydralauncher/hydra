@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { Button } from "@renderer/components";
 import { useGameArtworkGrid, useToast, useUserDetails } from "@renderer/hooks";
@@ -8,7 +9,17 @@ import type { ArtworkAssetType, LibraryGame } from "@types";
 
 import "./game-artwork-picker.scss";
 
-const SENTINEL_ROOT_MARGIN = "200px";
+const GAP = 8;
+
+const GRID_CONFIG: Record<
+  ArtworkAssetType,
+  { minColumnWidth: number; aspectRatio: number }
+> = {
+  icon: { minColumnWidth: 72, aspectRatio: 1 },
+  grid: { minColumnWidth: 96, aspectRatio: 1.5 },
+  hero: { minColumnWidth: 220, aspectRatio: 0.3229 },
+  logo: { minColumnWidth: 140, aspectRatio: 0.5625 },
+};
 
 const INITIAL_SKELETON_COUNT: Record<ArtworkAssetType, number> = {
   icon: 28,
@@ -59,24 +70,65 @@ export function GameArtworkPicker({
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    const root = scrollRef.current;
-    if (!sentinel || !root || !hasMore) return;
+    const element = scrollRef.current;
+    if (!element) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) loadNextPage();
-      },
-      { root, rootMargin: SENTINEL_ROOT_MARGIN }
-    );
-
-    observer.observe(sentinel);
+    const observer = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width);
+    });
+    observer.observe(element);
 
     return () => observer.disconnect();
-  }, [hasMore, loadNextPage, items.length]);
+  }, []);
+
+  const { minColumnWidth, aspectRatio } = GRID_CONFIG[assetType];
+
+  const columnsCount = useMemo(
+    () =>
+      Math.max(1, Math.floor((containerWidth + GAP) / (minColumnWidth + GAP))),
+    [containerWidth, minColumnWidth]
+  );
+
+  const skeletonCount = isLoading
+    ? items.length
+      ? MORE_SKELETON_COUNT
+      : INITIAL_SKELETON_COUNT[assetType]
+    : 0;
+  const totalCells = items.length + skeletonCount;
+  const rowCount = Math.ceil(totalCells / columnsCount);
+  const itemRowCount = Math.ceil(items.length / columnsCount);
+
+  const rowHeight = useMemo(() => {
+    const columnWidth =
+      containerWidth > 0
+        ? (containerWidth - GAP * (columnsCount - 1)) / columnsCount
+        : minColumnWidth;
+    return columnWidth * aspectRatio + GAP;
+  }, [containerWidth, columnsCount, aspectRatio, minColumnWidth]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => rowHeight,
+    overscan: 3,
+  });
+
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const lastVirtualRowIndex = virtualRows[virtualRows.length - 1]?.index;
+
+  useEffect(() => {
+    if (lastVirtualRowIndex == null) return;
+    if (lastVirtualRowIndex >= itemRowCount - 1 && hasMore && !isLoading) {
+      loadNextPage();
+    }
+  }, [lastVirtualRowIndex, itemRowCount, hasMore, isLoading, loadNextPage]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [assetType]);
 
   if (!userDetails) {
     return (
@@ -87,13 +139,6 @@ export function GameArtworkPicker({
   }
 
   const showReload = isStale || hasFailed;
-  const skeletonCount = items.length
-    ? MORE_SKELETON_COUNT
-    : INITIAL_SKELETON_COUNT[assetType];
-  const skeletonKeys = Array.from(
-    { length: skeletonCount },
-    (_, index) => `skeleton-${index}`
-  );
 
   return (
     <div className="game-artwork">
@@ -128,46 +173,79 @@ export function GameArtworkPicker({
 
       <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
         <div className="game-artwork__scroll" ref={scrollRef}>
-          <div
-            className={`game-artwork__grid game-artwork__grid--${assetType}`}
-          >
-            {items.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`game-artwork__item game-artwork__item--${assetType} ${
-                  currentArtworkId === item.id
-                    ? "game-artwork__item--active"
-                    : ""
-                }`}
-                onClick={() => pick(item)}
-              >
-                <img src={item.thumb} alt="" loading="lazy" />
-                {pendingId === item.id && (
-                  <span
-                    className="game-artwork__item-spinner"
-                    aria-hidden="true"
-                  />
-                )}
-              </button>
-            ))}
+          {rowCount > 0 && (
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                position: "relative",
+              }}
+            >
+              {virtualRows.map((virtualRow) => {
+                const startCell = virtualRow.index * columnsCount;
+                const cellCount = Math.min(
+                  columnsCount,
+                  totalCells - startCell
+                );
 
-            {isLoading &&
-              skeletonKeys.map((key) => (
-                <div
-                  key={key}
-                  className={`game-artwork__item game-artwork__item--${assetType}`}
-                >
-                  <Skeleton
-                    containerClassName="game-artwork__skeleton"
-                    height="100%"
-                    width="100%"
-                  />
-                </div>
-              ))}
-          </div>
+                return (
+                  <div
+                    key={virtualRow.key}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      transform: `translateY(${virtualRow.start}px)`,
+                      display: "grid",
+                      gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
+                      gap: `${GAP}px`,
+                    }}
+                  >
+                    {Array.from({ length: cellCount }).map((_, cell) => {
+                      const cellIndex = startCell + cell;
+                      const item = items[cellIndex];
 
-          <div ref={sentinelRef} className="game-artwork__sentinel" />
+                      if (!item) {
+                        return (
+                          <div
+                            key={`skeleton-${cellIndex}`}
+                            className={`game-artwork__item game-artwork__item--${assetType}`}
+                          >
+                            <Skeleton
+                              containerClassName="game-artwork__skeleton"
+                              height="100%"
+                              width="100%"
+                            />
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={`game-artwork__item game-artwork__item--${assetType} ${
+                            currentArtworkId === item.id
+                              ? "game-artwork__item--active"
+                              : ""
+                          }`}
+                          onClick={() => pick(item)}
+                        >
+                          <img src={item.thumb} alt="" loading="lazy" />
+                          {pendingId === item.id && (
+                            <span
+                              className="game-artwork__item-spinner"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {!isLoading && !items.length && (
             <span className="game-artwork__hint">
