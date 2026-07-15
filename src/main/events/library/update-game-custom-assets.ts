@@ -1,8 +1,29 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
-import { WindowManager, logger } from "@main/services";
-import type { GameShop, Game } from "@types";
+import {
+  WindowManager,
+  logger,
+  uploadCustomArtwork,
+  deleteCustomArtwork,
+} from "@main/services";
+import type { ArtworkAssetType, GameShop, Game } from "@types";
 import fs from "node:fs";
+
+type CustomAssetField =
+  | "customIconUrl"
+  | "customLogoImageUrl"
+  | "customHeroImageUrl"
+  | "customCoverImageUrl";
+
+const ASSET_CLOUD_SYNC_FIELDS = [
+  { field: "customIconUrl", type: "icon" },
+  { field: "customLogoImageUrl", type: "logo" },
+  { field: "customHeroImageUrl", type: "hero" },
+  { field: "customCoverImageUrl", type: "grid" },
+] as const satisfies ReadonlyArray<{
+  field: CustomAssetField;
+  type: ArtworkAssetType;
+}>;
 
 const collectOldAssetPaths = (
   existingGame: Game,
@@ -121,6 +142,26 @@ interface UpdateGameCustomAssetsParams {
   customOriginalCoverPath?: string | null;
 }
 
+const syncCustomAssetsToCloud = (
+  shop: GameShop,
+  objectId: string,
+  existingGame: Game,
+  params: UpdateGameCustomAssetsParams
+): void => {
+  for (const { field, type } of ASSET_CLOUD_SYNC_FIELDS) {
+    const newValue = params[field];
+    if (newValue === undefined || newValue === existingGame[field]) continue;
+
+    if (newValue === null) {
+      if (existingGame[field]) {
+        deleteCustomArtwork(shop, objectId, type).catch(() => {});
+      }
+    } else if (newValue.startsWith("local:")) {
+      uploadCustomArtwork(shop, objectId, type, newValue).catch(() => {});
+    }
+  }
+};
+
 const updateGameCustomAssets = async (
   _event: Electron.IpcMainInvokeEvent,
   params: UpdateGameCustomAssetsParams
@@ -172,6 +213,8 @@ const updateGameCustomAssets = async (
   await deleteOldAssetFiles(oldAssetPaths);
 
   WindowManager.sendToAppWindows("on-library-batch-complete");
+
+  syncCustomAssetsToCloud(shop, objectId, existingGame, params);
 
   return updatedGame;
 };
