@@ -21,11 +21,12 @@ pub struct CompareGameSnapshotsInput {
 
 #[napi(object)]
 pub struct CompareGameSnapshotsResult {
-    pub state: String,
+    pub state: SnapshotComparisonState,
     pub active_remote_snapshot: Option<CloudSaveRemoteSnapshot>,
-    pub has_changed: bool,
+    pub is_out_of_sync: bool,
 }
 
+#[napi(string_enum = "kebab-case")]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SnapshotComparisonState {
     Synced,
@@ -33,16 +34,4 @@ pub enum SnapshotComparisonState {
     RemoteAhead,
     Conflict,
     Untracked,
-}
-
-impl SnapshotComparisonState {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Synced => "synced",
-            Self::LocalAhead => "local-ahead",
-            Self::RemoteAhead => "remote-ahead",
-            Self::Conflict => "conflict",
-            Self::Untracked => "untracked",
-        }
-    }
 }
