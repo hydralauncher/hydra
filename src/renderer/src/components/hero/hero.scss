@@ -164,7 +164,9 @@ $carousel-nav-size: 36px;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.2s ease, background 0.2s ease;
+    transition:
+      opacity 0.2s ease,
+      background 0.2s ease;
 
     &:hover {
       background: rgba(0, 0, 0, 0.75);
@@ -204,7 +206,9 @@ $carousel-nav-size: 36px;
     background: rgba(255, 255, 255, 0.35);
     border: none;
     cursor: pointer;
-    transition: background 0.2s ease, transform 0.2s ease;
+    transition:
+      background 0.2s ease,
+      transform 0.2s ease;
     padding: 0;
 
     &:hover {
@@ -217,4 +221,3 @@ $carousel-nav-size: 36px;
     }
   }
 }
-

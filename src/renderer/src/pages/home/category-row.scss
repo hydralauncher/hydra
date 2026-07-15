@@ -77,7 +77,10 @@ $arrow-size: 40px;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    transition:
+      opacity 0.2s ease,
+      background 0.2s ease,
+      transform 0.2s ease;
     padding: 0;
 
     &:hover {
