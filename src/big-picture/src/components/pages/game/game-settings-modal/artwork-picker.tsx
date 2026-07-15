@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import type { ArtworkAssetType, LibraryGame } from "@types";
+import type { ArtworkAssetType, ArtworkItem, LibraryGame } from "@types";
 import { useGameArtworkGrid } from "@renderer/hooks/use-game-artwork-grid";
 
 import { FocusItem, GridFocusGroup } from "../../../common";
@@ -69,6 +69,17 @@ export function GameArtworkPicker({
     onError,
   });
 
+  const handleUseDefault = useCallback(() => {
+    clear().catch(() => {});
+  }, [clear]);
+
+  const handlePickItem = useCallback(
+    (item: ArtworkItem) => {
+      pick(item).catch(() => {});
+    },
+    [pick]
+  );
+
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -104,6 +115,10 @@ export function GameArtworkPicker({
   const skeletonCount = items.length
     ? MORE_SKELETON_COUNT
     : INITIAL_SKELETON_COUNT[assetType];
+  const skeletonKeys = Array.from(
+    { length: skeletonCount },
+    (_, index) => `game-artwork-skeleton-${index}`
+  );
 
   return (
     <div className="game-artwork-picker">
@@ -114,14 +129,14 @@ export function GameArtworkPicker({
 
         <FocusItem
           id={ARTWORK_USE_DEFAULT_FOCUS_ID}
-          actions={{ primary: () => void clear() }}
+          actions={{ primary: handleUseDefault }}
           navigationOverrides={USE_DEFAULT_OVERRIDES}
           asChild
         >
           <button
             type="button"
             className="game-artwork-picker__default-button"
-            onClick={() => void clear()}
+            onClick={handleUseDefault}
           >
             {t("steamgriddb_use_default")}
           </button>
@@ -136,7 +151,7 @@ export function GameArtworkPicker({
           <FocusItem
             key={item.id}
             id={getTileFocusId(item.id)}
-            actions={{ primary: () => void pick(item) }}
+            actions={{ primary: () => handlePickItem(item) }}
             navigationOverrides={overridesByItemId[getTileFocusId(item.id)]}
             asChild
           >
@@ -147,7 +162,7 @@ export function GameArtworkPicker({
                   ? "game-artwork-picker__item--active"
                   : ""
               }`}
-              onClick={() => void pick(item)}
+              onClick={() => handlePickItem(item)}
             >
               <img src={item.thumb} alt="" loading="lazy" />
               {pendingId === item.id ? (
@@ -161,9 +176,9 @@ export function GameArtworkPicker({
         ))}
 
         {isLoading
-          ? Array.from({ length: skeletonCount }).map((_, index) => (
+          ? skeletonKeys.map((key) => (
               <div
-                key={`game-artwork-skeleton-${index}`}
+                key={key}
                 className={`game-artwork-picker__item game-artwork-picker__item--${assetType} game-artwork-picker__item--skeleton`}
                 aria-hidden
               />
