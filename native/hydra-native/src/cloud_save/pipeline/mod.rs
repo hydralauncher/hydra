@@ -1,5 +1,8 @@
 mod types;
 
+use std::collections::{btree_map::Entry, BTreeMap};
+use std::path::Path;
+
 use napi_derive::napi;
 
 use super::local_snapshot::types::DiscoveredLocalSaveFile;
@@ -16,21 +19,46 @@ pub use types::BuildLocalGameSnapshotPipelineInput;
 fn collect_discovered_files(
     scanned_rules: Vec<ScannedCloudSaveRule>,
 ) -> Vec<DiscoveredLocalSaveFile> {
-    let mut discovered_files = Vec::new();
+    let mut discovered_by_path = BTreeMap::new();
 
     for rule in scanned_rules {
+        let priority = if rule
+            .resolved_paths
+            .iter()
+            .any(|path| !path.dynamic && Path::new(&path.path).is_file())
+        {
+            2
+        } else if rule.resolved_paths.iter().any(|path| !path.dynamic) {
+            1
+        } else {
+            0
+        };
+
         for scanned_path in rule.scanned_paths {
             for file in scanned_path.files {
-                discovered_files.push(DiscoveredLocalSaveFile {
+                let discovered = DiscoveredLocalSaveFile {
                     raw_path: rule.raw_path.clone(),
-                    absolute_path: file.absolute_path,
+                    absolute_path: file.absolute_path.clone(),
                     relative_path: file.relative_path,
-                });
+                };
+
+                match discovered_by_path.entry(file.absolute_path) {
+                    Entry::Vacant(entry) => {
+                        entry.insert((priority, discovered));
+                    }
+                    Entry::Occupied(mut entry) if priority > entry.get().0 => {
+                        entry.insert((priority, discovered));
+                    }
+                    Entry::Occupied(_) => {}
+                }
             }
         }
     }
 
-    discovered_files
+    discovered_by_path
+        .into_values()
+        .map(|(_, file)| file)
+        .collect()
 }
 
 #[napi]
