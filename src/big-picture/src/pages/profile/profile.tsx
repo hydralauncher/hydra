@@ -476,9 +476,16 @@ function getLibraryCarouselPlaytimeInMilliseconds(
 }
 
 function toProfileLibraryCarouselGame(
-  game: LibraryGame | UserGame
+  game: LibraryGame | UserGame,
+  preferCustomArtwork = false
 ): ProfileLibraryCarouselGame {
   const classicsAssetFields = game as ProfileClassicsAssetFields;
+
+  const customCover = preferCustomArtwork
+    ? (classicsAssetFields.customLibraryImageUrl ??
+      classicsAssetFields.customCoverImageUrl ??
+      null)
+    : null;
 
   return {
     objectId: game.objectId,
@@ -489,11 +496,7 @@ function toProfileLibraryCarouselGame(
     libraryImageUrl: game.libraryImageUrl ?? null,
     logoImageUrl: game.logoImageUrl ?? null,
     logoPosition: game.logoPosition ?? null,
-    coverImageUrl:
-      classicsAssetFields.customLibraryImageUrl ??
-      classicsAssetFields.customCoverImageUrl ??
-      game.coverImageUrl ??
-      null,
+    coverImageUrl: customCover ?? game.coverImageUrl ?? null,
     downloadSources: game.downloadSources ?? [],
     platform: classicsAssetFields.platform ?? null,
     customIconUrl: classicsAssetFields.customIconUrl ?? null,
@@ -1012,8 +1015,15 @@ export default function Profile() {
       ? library
       : remoteLibraryGames;
 
-    return sourceGames.map(toProfileLibraryCarouselGame);
-  }, [library, profileUser?.isOwnProfile, remoteLibraryGames]);
+    return sourceGames.map((game) =>
+      toProfileLibraryCarouselGame(game, targetHasActiveSubscription)
+    );
+  }, [
+    library,
+    profileUser?.isOwnProfile,
+    remoteLibraryGames,
+    targetHasActiveSubscription,
+  ]);
   const totalLibraryGames = profileUser?.isOwnProfile
     ? library.length
     : (userStats?.libraryCount ?? remoteLibraryTotalCount);
