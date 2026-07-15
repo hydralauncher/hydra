@@ -27,5 +27,11 @@ export const analyzeCloudSaveState = async (
     activeRemoteSnapshot: comparison.activeRemoteSnapshot,
   };
 
-  return { localSnapshot, localSnapshotContext, remoteSnapshots, state };
+  return {
+    localSnapshot,
+    localSnapshotContext,
+    anchor,
+    remoteSnapshots,
+    state,
+  };
 };

@@ -10,6 +10,7 @@ import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import {
   type ProgressCallback,
   getFirstSyncState,
+  getSyncAction,
   restoreRemoteState,
   runFirstSync,
   type SyncOutcome,
@@ -101,13 +102,21 @@ const runGameCloudSaveSync = async (
     });
   }
 
-  if (initialState === "untracked") {
+  const activeRemoteSnapshot = analysis.state.activeRemoteSnapshot;
+  const remoteChangedSinceAnchor = Boolean(
+    trigger === "post-exit" &&
+      analysis.anchor &&
+      activeRemoteSnapshot?.aggregateHash !== analysis.anchor.baseAggregateHash
+  );
+  const action = getSyncAction(trigger, initialState, remoteChangedSinceAnchor);
+
+  if (initialState === "untracked" && action !== "conflict") {
     return finish(
       await runFirstSync(objectId, shop, trigger, analysis, emitProgress)
     );
   }
 
-  if (initialState === "local-ahead") {
+  if (action === "upload") {
     await uploadLocalState(
       objectId,
       shop,
@@ -121,8 +130,8 @@ const runGameCloudSaveSync = async (
     });
   }
 
-  if (initialState === "remote-ahead") {
-    const snapshot = analysis.state.activeRemoteSnapshot;
+  if (action === "restore") {
+    const snapshot = activeRemoteSnapshot;
     if (!snapshot) {
       throw new Error("Active remote cloud save snapshot not found");
     }
@@ -139,7 +148,7 @@ const runGameCloudSaveSync = async (
     });
   }
 
-  if (initialState === "conflict") {
+  if (action === "conflict") {
     return finish({
       result: {
         trigger,
