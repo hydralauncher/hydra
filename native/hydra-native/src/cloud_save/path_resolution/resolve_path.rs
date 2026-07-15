@@ -128,7 +128,6 @@ mod tests {
             documents_dir: None,
             app_data_dir: None,
             wine_prefix_path: Some("/home/spectre/.wine".to_string()),
-            proton_path: None,
             steam_path: None,
             steam_user_ids: Vec::new(),
             rules: Vec::new(),

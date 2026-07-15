@@ -12,7 +12,6 @@ pub struct ResolveSaveRulesInput {
     pub app_data_dir: Option<String>,
     pub executable_path: Option<String>,
     pub wine_prefix_path: Option<String>,
-    pub proton_path: Option<String>,
     pub steam_path: Option<String>,
     pub steam_user_ids: Vec<String>,
     pub rules: Vec<CloudSaveRule>,
