@@ -48,7 +48,37 @@ pub fn apply(path: &str, values: &TokenValues) -> String {
 }
 
 pub fn has_unresolved_placeholder(path: &str) -> bool {
-    path.contains('<')
+    path.contains('<') || !percent_tokens(path).is_empty()
+}
+
+fn percent_tokens(path: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let bytes = path.as_bytes();
+    let mut start = 0;
+
+    while start < bytes.len() {
+        if bytes[start] != b'%' {
+            start += 1;
+            continue;
+        }
+
+        let mut end = start + 1;
+        while end < bytes.len() && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_') {
+            end += 1;
+        }
+
+        if end > start + 1 && end < bytes.len() && bytes[end] == b'%' {
+            let token = path[start..=end].to_string();
+            if !tokens.contains(&token) {
+                tokens.push(token);
+            }
+            start = end + 1;
+        } else {
+            start += 1;
+        }
+    }
+
+    tokens
 }
 
 pub fn tokens_in_path(path: &str) -> Vec<String> {
@@ -69,11 +99,32 @@ pub fn tokens_in_path(path: &str) -> Vec<String> {
         rest = &after[end + 1..];
     }
 
-    for token in ["%APPDATA%", "%LOCALAPPDATA%"] {
-        if path.contains(token) && !tokens.iter().any(|existing| existing == token) {
-            tokens.push(token.to_string());
+    for token in percent_tokens(path) {
+        if !tokens.contains(&token) {
+            tokens.push(token);
         }
     }
 
     tokens
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_and_reports_unknown_percent_tokens() {
+        let path = "%UNKNOWN_HOME%/save/%UNKNOWN_HOME%";
+
+        assert!(has_unresolved_placeholder(path));
+        assert_eq!(tokens_in_path(path), vec!["%UNKNOWN_HOME%"]);
+    }
+
+    #[test]
+    fn ignores_regular_percent_characters() {
+        let path = "100%/save/%UNKNOWN%";
+
+        assert!(has_unresolved_placeholder(path));
+        assert_eq!(tokens_in_path(path), vec!["%UNKNOWN%"]);
+    }
 }
