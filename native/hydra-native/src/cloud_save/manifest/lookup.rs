@@ -52,25 +52,14 @@ mod tests {
         let source_url = resolve_source_url(None);
         let cache_directory = tempdir().unwrap();
 
-        let index = get_manifest_index(
-            cache_directory.path(),
-            &source_url,
-        )
-        .await
-        .unwrap();
+        let index = get_manifest_index(cache_directory.path(), &source_url)
+            .await
+            .unwrap();
 
-        let result = find_manifest_entry(
-            &index,
-            "2379780",
-            None,
-            Some("Balatro"),
-        )
-        .expect("Balatro should be found in the real manifest");
+        let result = find_manifest_entry(&index, "2379780", None, Some("Balatro"))
+            .expect("Balatro should be found in the real manifest");
 
-        println!(
-            "{}",
-            serde_json::to_string_pretty(result).unwrap()
-        );
+        println!("{}", serde_json::to_string_pretty(result).unwrap());
 
         assert_eq!(result.manifest_key, "2379780");
         assert!(!result.files.is_empty());

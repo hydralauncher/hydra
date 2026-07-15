@@ -53,14 +53,14 @@ pub struct CloudSaveGameId {
 }
 
 #[napi(object)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CloudSaveRuleCondition {
     pub os: Option<String>,
     pub store: Option<String>,
 }
 
 #[napi(object)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CloudSaveRule {
     pub kind: String,
     pub raw_path: String,
