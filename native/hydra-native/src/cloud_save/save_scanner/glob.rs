@@ -16,12 +16,43 @@ fn is_escaped(value: &str, index: usize) -> bool {
         == 1
 }
 
+fn is_in_character_class(value: &str, index: usize) -> bool {
+    let mut in_class = false;
+    let mut class_has_member = false;
+
+    for (character_index, character) in value.char_indices() {
+        if character_index >= index {
+            break;
+        }
+        if is_escaped(value, character_index) {
+            continue;
+        }
+
+        if in_class {
+            if character == ']' && class_has_member {
+                in_class = false;
+            } else {
+                class_has_member = true;
+            }
+        } else if character == '[' {
+            in_class = true;
+            class_has_member = false;
+        }
+    }
+
+    in_class
+}
+
+fn is_brace_syntax(value: &str, index: usize) -> bool {
+    !is_escaped(value, index) && !is_in_character_class(value, index)
+}
+
 fn matching_brace(pattern: &str, opening: usize) -> Result<usize, String> {
     let mut depth = 0;
 
     for (offset, character) in pattern[opening..].char_indices() {
         let index = opening + offset;
-        if is_escaped(pattern, index) {
+        if !is_brace_syntax(pattern, index) {
             continue;
         }
 
@@ -46,7 +77,7 @@ fn brace_alternatives(value: &str) -> Vec<&str> {
     let mut depth = 0;
 
     for (index, character) in value.char_indices() {
-        if is_escaped(value, index) {
+        if !is_brace_syntax(value, index) {
             continue;
         }
 
@@ -68,13 +99,13 @@ fn brace_alternatives(value: &str) -> Vec<&str> {
 pub fn expand_braces(pattern: &str) -> Result<Vec<String>, String> {
     let opening = pattern
         .char_indices()
-        .find(|(index, character)| *character == '{' && !is_escaped(pattern, *index))
+        .find(|(index, character)| *character == '{' && is_brace_syntax(pattern, *index))
         .map(|(index, _)| index);
 
     let Some(opening) = opening else {
         if pattern
             .char_indices()
-            .any(|(index, character)| character == '}' && !is_escaped(pattern, index))
+            .any(|(index, character)| character == '}' && is_brace_syntax(pattern, index))
         {
             return Err("cloud_save_invalid_glob: unmatched closing brace".to_string());
         }
@@ -118,5 +149,12 @@ mod tests {
                 "save/three/*.dat",
             ]
         );
+    }
+
+    #[test]
+    fn preserves_literal_braces_in_character_classes() {
+        let pattern = "/Games/[{]Deluxe[}]/save.dat";
+
+        assert_eq!(expand_braces(pattern).unwrap(), vec![pattern]);
     }
 }
