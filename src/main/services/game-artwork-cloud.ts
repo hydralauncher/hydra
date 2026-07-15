@@ -70,9 +70,12 @@ export const uploadCustomArtwork = async (
 
   try {
     const localPath = resolveLocalPath(localUrl);
-    if (!localPath || !fs.existsSync(localPath)) return;
+    if (!localPath) return;
 
-    const imageLength = fs.statSync(localPath).size;
+    const stats = await fs.promises.stat(localPath).catch(() => null);
+    if (!stats) return;
+
+    const imageLength = stats.size;
     if (imageLength <= 0 || imageLength > MAX_ARTWORK_SIZE_IN_BYTES) {
       logger.warn(
         `Skipping custom artwork upload for ${shop}/${objectId}: invalid size ${imageLength}`
@@ -88,6 +91,8 @@ export const uploadCustomArtwork = async (
       return;
     }
 
+    const fileBuffer = await fs.promises.readFile(localPath);
+
     const kind = ARTWORK_KIND_BY_ASSET_TYPE[assetType];
 
     const { presignedUrl, imageUrl } = await HydraApi.post<{
@@ -99,7 +104,7 @@ export const uploadCustomArtwork = async (
       SUBSCRIPTION_OPTIONS
     );
 
-    await axios.put(presignedUrl, fs.readFileSync(localPath), {
+    await axios.put(presignedUrl, fileBuffer, {
       headers: { "Content-Type": MIME_BY_EXTENSION[imageExt] },
     });
 
