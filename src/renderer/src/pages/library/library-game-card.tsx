@@ -161,7 +161,9 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       <img
         src={activeImageSource}
         alt={game.title}
-        className="library-game-card__game-image"
+        className={`library-game-card__game-image ${
+          isChosenCoverActive ? "library-game-card__game-image--contain" : ""
+        }`}
         loading="lazy"
         onError={handleImageError}
       />

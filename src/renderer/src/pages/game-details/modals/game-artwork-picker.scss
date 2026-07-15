@@ -67,6 +67,7 @@
     border-radius: 8px;
     cursor: pointer;
     overflow: hidden;
+    transition: transform 0.15s ease;
 
     img {
       position: absolute;
@@ -75,6 +76,15 @@
       height: 100%;
       object-fit: cover;
       display: block;
+      transition: filter 0.15s ease;
+    }
+
+    &:hover {
+      transform: scale(1.04);
+
+      img {
+        filter: brightness(0.85);
+      }
     }
 
     &--hero {
@@ -97,6 +107,19 @@
 
     &--active {
       border-color: var(--color-primary, #1a1a1a);
+    }
+  }
+
+  &__skeleton {
+    position: absolute;
+    inset: 0;
+    display: block;
+    line-height: 1;
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: 0;
     }
   }
 

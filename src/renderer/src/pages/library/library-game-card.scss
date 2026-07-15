@@ -318,6 +318,11 @@
     z-index: 0;
   }
 
+  &__game-image--contain {
+    object-fit: contain;
+    background: #0a0a0a;
+  }
+
   &__classics-cover {
     position: absolute;
     inset: 0;

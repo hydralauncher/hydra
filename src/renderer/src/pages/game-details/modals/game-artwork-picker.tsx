@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import { Button } from "@renderer/components";
 import { useToast, useUserDetails } from "@renderer/hooks";
@@ -21,6 +28,14 @@ const ARTWORK_KIND_BY_TYPE: Record<ArtworkAssetType, ArtworkKind> = {
 };
 
 const SENTINEL_ROOT_MARGIN = "200px";
+
+const INITIAL_SKELETON_COUNT: Record<ArtworkAssetType, number> = {
+  icon: 28,
+  grid: 12,
+  hero: 8,
+  logo: 12,
+};
+const MORE_SKELETON_COUNT = 4;
 
 interface GameArtworkPickerProps {
   game: LibraryGame;
@@ -115,18 +130,22 @@ export function GameArtworkPicker({
     setHasMore(true);
     setIsStale(false);
     setHasFailed(false);
+    setIsLoading(true);
   }, []);
 
   useEffect(() => {
     loadSelection().catch(() => {});
   }, [loadSelection]);
 
+  useLayoutEffect(() => {
+    reset();
+  }, [game.shop, game.objectId, assetType, reset]);
+
   useEffect(() => {
     if (!userDetails) return;
 
-    reset();
     loadPage(0).catch(() => {});
-  }, [userDetails, reset, loadPage]);
+  }, [userDetails, loadPage]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -225,34 +244,54 @@ export function GameArtworkPicker({
         </span>
       )}
 
-      <div className="game-artwork__scroll" ref={scrollRef}>
-        <div className={`game-artwork__grid game-artwork__grid--${assetType}`}>
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`game-artwork__item game-artwork__item--${assetType} ${
-                currentArtworkId === item.id ? "game-artwork__item--active" : ""
-              }`}
-              onClick={() => handlePick(item)}
-            >
-              <img src={item.thumb} alt="" loading="lazy" />
-            </button>
-          ))}
+      <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
+        <div className="game-artwork__scroll" ref={scrollRef}>
+          <div
+            className={`game-artwork__grid game-artwork__grid--${assetType}`}
+          >
+            {items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`game-artwork__item game-artwork__item--${assetType} ${
+                  currentArtworkId === item.id
+                    ? "game-artwork__item--active"
+                    : ""
+                }`}
+                onClick={() => handlePick(item)}
+              >
+                <img src={item.thumb} alt="" loading="lazy" />
+              </button>
+            ))}
+
+            {isLoading &&
+              Array.from({
+                length: items.length
+                  ? MORE_SKELETON_COUNT
+                  : INITIAL_SKELETON_COUNT[assetType],
+              }).map((_, index) => (
+                <div
+                  key={`skeleton-${index}`}
+                  className={`game-artwork__item game-artwork__item--${assetType}`}
+                >
+                  <Skeleton
+                    containerClassName="game-artwork__skeleton"
+                    height="100%"
+                    width="100%"
+                  />
+                </div>
+              ))}
+          </div>
+
+          <div ref={sentinelRef} className="game-artwork__sentinel" />
+
+          {!isLoading && !items.length && (
+            <span className="game-artwork__hint">
+              {t("steamgriddb_no_results")}
+            </span>
+          )}
         </div>
-
-        <div ref={sentinelRef} className="game-artwork__sentinel" />
-
-        {isLoading && (
-          <span className="game-artwork__hint">{t("steamgriddb_loading")}</span>
-        )}
-
-        {!isLoading && !items.length && (
-          <span className="game-artwork__hint">
-            {t("steamgriddb_no_results")}
-          </span>
-        )}
-      </div>
+      </SkeletonTheme>
     </div>
   );
 }
