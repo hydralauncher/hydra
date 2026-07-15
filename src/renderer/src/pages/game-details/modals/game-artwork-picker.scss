@@ -33,10 +33,6 @@
     padding-right: 4px;
   }
 
-  &__sentinel {
-    height: 1px;
-  }
-
   &__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
