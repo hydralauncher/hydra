@@ -83,6 +83,7 @@ export function VerticalLibraryGameCard({
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const {
     activeImageSource,
+    isChosenCoverActive,
     achievementProgress,
     classicsEmulatorIcon,
     classicsPlatformLabel,
@@ -93,7 +94,7 @@ export function VerticalLibraryGameCard({
   const focusId = getLibraryFocusGridItemId(game.id);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
   const coverMedia =
-    game.shop === "launchbox" && activeImageSource ? (
+    game.shop === "launchbox" && activeImageSource && !isChosenCoverActive ? (
       <ClassicsVerticalCoverMedia
         imageUrl={activeImageSource}
         gameTitle={game.title}
