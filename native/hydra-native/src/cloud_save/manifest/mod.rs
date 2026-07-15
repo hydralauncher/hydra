@@ -3,7 +3,7 @@ mod indexer;
 mod lookup;
 mod rules;
 mod source;
-mod types;
+pub(crate) mod types;
 
 use std::path::Path;
 
