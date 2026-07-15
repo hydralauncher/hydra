@@ -18,8 +18,14 @@
     "no_results": "No results found",
     "start_typing": "Start typing to search...",
     "hot": "Hot now",
-    "weekly": "📅 Top games of the week",
-    "achievements": "🏆 Games to beat"
+    "weekly": "Top games of the week",
+    "achievements": "Games to beat",
+    "classics": "Classics",
+    "previous_slide": "Previous slide",
+    "next_slide": "Next slide",
+    "go_to_slide": "Go to slide {{index}}",
+    "scroll_left": "Scroll left",
+    "scroll_right": "Scroll right"
   },
   "sidebar": {
     "catalogue": "Catalogue",

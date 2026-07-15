@@ -1,0 +1,100 @@
+@use "../../scss/globals.scss";
+
+$arrow-size: 40px;
+
+.category-row {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 1.5);
+  padding: 0 calc(globals.$spacing-unit * 3);
+  position: relative;
+
+  &__title {
+    display: flex;
+    gap: globals.$spacing-unit;
+    font-size: 18px;
+    font-weight: 600;
+    color: globals.$muted-color;
+    margin: 0;
+  }
+
+  &__wrapper {
+    position: relative;
+    overflow: hidden;
+  }
+
+  &__track {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 2);
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    padding-bottom: globals.$spacing-unit;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__card {
+    flex: 0 0 300px;
+    min-width: 0;
+
+    @media (max-width: 768px) {
+      flex: 0 0 200px;
+    }
+  }
+
+  &__skeleton {
+    flex: 0 0 300px;
+    height: 140px;
+    box-shadow: 0px 0px 15px 0px #000000;
+    overflow: hidden;
+    border-radius: 4px;
+    transition: all ease 0.2s;
+    z-index: 1;
+
+    @media (max-width: 768px) {
+      flex: 0 0 200px;
+    }
+  }
+
+  /* ── Scroll arrows ── */
+  &__arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: $arrow-size;
+    height: $arrow-size;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    padding: 0;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.8);
+      transform: translateY(-50%) scale(1.08);
+    }
+
+    &--left {
+      left: calc(globals.$spacing-unit * 0.5);
+    }
+
+    &--right {
+      right: calc(globals.$spacing-unit * 0.5);
+    }
+
+    &--visible {
+      opacity: 1;
+    }
+  }
+}

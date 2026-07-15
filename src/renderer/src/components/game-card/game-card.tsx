@@ -50,7 +50,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
           src={game.libraryImageUrl ?? undefined}
           alt={game.title}
           className="game-card__cover"
-          loading="lazy"
+          loading="eager"
         />
 
         <div className="game-card__content">
