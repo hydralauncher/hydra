@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 import { ImageIcon, XIcon } from "@primer/octicons-react";
 import { Button, TextField } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
@@ -718,52 +719,44 @@ export function GameAssetsSettings({
     );
   };
 
+  const assetTabs = (
+    [
+      { type: "icon", labelKey: "edit_game_modal_icon" },
+      { type: "logo", labelKey: "edit_game_modal_logo" },
+      { type: "hero", labelKey: "edit_game_modal_hero" },
+      { type: "grid", labelKey: "edit_game_modal_grid" },
+    ] as const
+  ).filter((tab) => tab.type !== "grid" || !isCustomGame(game));
+
   return (
     <div className="game-assets-settings">
-      <div className="game-assets-settings__asset-selector">
-        <div className="game-assets-settings__asset-label">
-          {t("edit_game_modal_assets")}
-        </div>
-
-        <div className="game-assets-settings__asset-tabs">
-          <Button
-            type="button"
-            theme={selectedAssetType === "icon" ? "primary" : "outline"}
-            onClick={() => handleAssetTypeChange("icon")}
-            disabled={isUpdating}
+      <div className="game-assets-settings__asset-tabs">
+        {assetTabs.map((tab) => (
+          <div
+            key={tab.type}
+            className="game-assets-settings__asset-tab-wrapper"
           >
-            {t("edit_game_modal_icon")}
-          </Button>
-
-          <Button
-            type="button"
-            theme={selectedAssetType === "logo" ? "primary" : "outline"}
-            onClick={() => handleAssetTypeChange("logo")}
-            disabled={isUpdating}
-          >
-            {t("edit_game_modal_logo")}
-          </Button>
-
-          <Button
-            type="button"
-            theme={selectedAssetType === "hero" ? "primary" : "outline"}
-            onClick={() => handleAssetTypeChange("hero")}
-            disabled={isUpdating}
-          >
-            {t("edit_game_modal_hero")}
-          </Button>
-
-          {!isCustomGame(game) && (
-            <Button
+            <button
               type="button"
-              theme={selectedAssetType === "grid" ? "primary" : "outline"}
-              onClick={() => handleAssetTypeChange("grid")}
+              className={`game-assets-settings__asset-tab ${
+                selectedAssetType === tab.type
+                  ? "game-assets-settings__asset-tab--active"
+                  : ""
+              }`}
+              onClick={() => handleAssetTypeChange(tab.type)}
               disabled={isUpdating}
             >
-              {t("edit_game_modal_grid")}
-            </Button>
-          )}
-        </div>
+              {t(tab.labelKey)}
+            </button>
+            {selectedAssetType === tab.type && (
+              <motion.div
+                className="game-assets-settings__asset-tab-underline"
+                layoutId="asset-tab-underline"
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              />
+            )}
+          </div>
+        ))}
       </div>
 
       {renderImageSection(selectedAssetType)}
