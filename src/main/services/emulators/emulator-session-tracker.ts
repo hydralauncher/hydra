@@ -80,13 +80,13 @@ const syncRpcs3TrophyState = async (
     unlockedAchievements: trophyState.unlockedAchievements.length,
   });
 
-  const unlockedIds = getRpcs3UnlockedTrophyIds(
+  const unlockedTrophies = getRpcs3UnlockedTrophyIds(
     trophyState.trophyPaths.datFilePath
   );
   logger.log("syncRpcs3TrophyState loaded unlocked trophy IDs", {
     title: game.title,
     datFilePath: trophyState.trophyPaths.datFilePath,
-    unlockedCount: unlockedIds.size,
+    unlockedCount: unlockedTrophies.size,
   });
 
   const previousUnlocks = session.rpcs3ProcessedUnlocks ?? new Set<number>();
@@ -94,12 +94,12 @@ const syncRpcs3TrophyState = async (
     const trophyId = Number.parseInt(achievement.name, 10);
     return (
       Number.isFinite(trophyId) &&
-      unlockedIds.has(trophyId) &&
+      unlockedTrophies.has(trophyId) &&
       !previousUnlocks.has(trophyId)
     );
   });
 
-  session.rpcs3ProcessedUnlocks = unlockedIds;
+  session.rpcs3ProcessedUnlocks = new Set(unlockedTrophies.keys());
   session.rpcs3TrophyDatPath = trophyState.trophyPaths.datFilePath;
 
   logger.log("syncRpcs3TrophyState saving RPCS3 trophy state", {
@@ -114,7 +114,7 @@ const syncRpcs3TrophyState = async (
     logger.log("syncRpcs3TrophyState sending RPCS3 unlock notification", {
       title: game.title,
       newlyUnlockedCount: newlyUnlocked.length,
-      unlockedCount: unlockedIds.size,
+      unlockedCount: unlockedTrophies.size,
     });
 
     await publishAchievementUnlockNotification({
@@ -126,7 +126,7 @@ const syncRpcs3TrophyState = async (
         isRare: false,
         isPlatinum: /platinum/i.test(achievement.displayName),
       })),
-      unlockedAchievementCount: unlockedIds.size,
+      unlockedAchievementCount: unlockedTrophies.size,
       totalAchievementCount: trophyState.achievements.length,
       gameTitle: game.title,
       gameIcon: game.iconUrl,
@@ -136,7 +136,7 @@ const syncRpcs3TrophyState = async (
   logger.log("syncRpcs3TrophyState completed", {
     title: game.title,
     newlyUnlockedCount: newlyUnlocked.length,
-    unlockedCount: unlockedIds.size,
+    unlockedCount: unlockedTrophies.size,
   });
 
   return true;

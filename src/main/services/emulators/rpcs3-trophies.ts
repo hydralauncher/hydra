@@ -112,6 +112,28 @@ const titlesMatch = (left: string, right: string): boolean => {
   return strippedLeft === strippedRight;
 };
 
+const getTitleMatchScore = (titleName: string, gameTitle: string): number => {
+  const normalizedTitleName = normalizeRpcs3Title(titleName);
+  const normalizedGameTitle = normalizeRpcs3Title(gameTitle);
+
+  if (normalizedTitleName === normalizedGameTitle) {
+    return 2;
+  }
+
+  const strippedTitleName = normalizeRpcs3Title(
+    stripCommonEditionSuffixes(titleName)
+  );
+  const strippedGameTitle = normalizeRpcs3Title(
+    stripCommonEditionSuffixes(gameTitle)
+  );
+
+  if (strippedTitleName === strippedGameTitle) {
+    return 1;
+  }
+
+  return 0;
+};
+
 const getTrophyRootDirs = (executablePath: string | null): string[] => {
   const roots = rpcs3ConfigRoots(executablePath).map((root) =>
     path.join(root, "dev_hdd0", "home", "00000001", "trophy")
@@ -173,27 +195,27 @@ const parseTrophyMetadata = (
   }
 };
 
-const parseUnlockedTrophyIds = (datFilePath: string): Set<number> => {
+const parseUnlockedTrophyIds = (datFilePath: string): Map<number, number> => {
   try {
     if (!fs.existsSync(datFilePath)) {
-      return new Set();
+      return new Map();
     }
 
     const buffer = fs.readFileSync(datFilePath);
 
     if (buffer.length < 0x50 || buffer.readUInt32BE(0) !== 0x818f54ad) {
-      return new Set();
+      return new Map();
     }
 
     const tableCount = buffer.readUInt32BE(0x08);
     const layout = getRpcs3TrophyLayout(buffer, tableCount);
     if (!layout) {
-      return new Set();
+      return new Map();
     }
 
     const { trophyCount, table6Offset } = layout;
     const blockSize = 0x70;
-    const unlocked = new Set<number>();
+    const unlocked = new Map<number, number>();
 
     for (let index = 0; index < trophyCount; index++) {
       const currentOffset = table6Offset + index * blockSize;
@@ -203,16 +225,17 @@ const parseUnlockedTrophyIds = (datFilePath: string): Set<number> => {
 
       const trophyId = buffer.readUInt32BE(currentOffset + 8);
       const isUnlocked = buffer.readUInt32BE(currentOffset + 20);
+      const unlockTime = Number(buffer.readBigUInt64BE(currentOffset + 40));
 
       if (isUnlocked === 1) {
-        unlocked.add(trophyId);
+        unlocked.set(trophyId, Number.isFinite(unlockTime) ? unlockTime : 0);
       }
     }
 
     return unlocked;
   } catch (error) {
     logger.error("Error reading RPCS3 trophy progress", error);
-    return new Set();
+    return new Map();
   }
 };
 
@@ -292,6 +315,8 @@ export const findRpcs3TrophyPaths = async (
   const trophyRootDirs = getTrophyRootDirs(executablePath);
   logger.log("Scanning RPCS3 trophy roots", trophyRootDirs, gameTitle);
 
+  const candidates: Array<Rpcs3TrophyPaths & { score: number }> = [];
+
   for (const trophyRootDir of trophyRootDirs) {
     if (!fs.existsSync(trophyRootDir)) {
       logger.log("RPCS3 trophy root not found", trophyRootDir);
@@ -323,23 +348,47 @@ export const findRpcs3TrophyPaths = async (
       const titleName = parseTitleName(fs.readFileSync(sfmFilePath, "utf-8"));
       if (!titleName || !titlesMatch(titleName, normalizedTitle)) continue;
 
+      const score = getTitleMatchScore(titleName, normalizedTitle);
+      if (score === 0) continue;
+
       logger.log("Matched RPCS3 trophy folder", {
         trophyRootDir,
         trophyDir,
         titleName,
         gameTitle,
+        score,
       });
 
-      return {
+      candidates.push({
         trophyRootDir,
         trophyDir,
         sfmFilePath,
         datFilePath,
-      };
+        score,
+      });
     }
   }
 
-  return null;
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  candidates.sort((left, right) => right.score - left.score);
+  const topScore = candidates[0].score;
+  const topCandidates = candidates.filter(
+    (candidate) => candidate.score === topScore
+  );
+
+  if (topCandidates.length > 1) {
+    logger.warn("Ambiguous RPCS3 trophy folder match", {
+      gameTitle,
+      candidates: topCandidates.map(({ ...candidate }) => candidate),
+    });
+    return null;
+  }
+
+  const { score: _score, ...resolvedCandidate } = topCandidates[0];
+  return resolvedCandidate;
 };
 
 export const readRpcs3TrophyState = async (
@@ -367,8 +416,7 @@ export const readRpcs3TrophyState = async (
     trophyPaths.sfmFilePath,
     trophyPaths.trophyDir
   );
-  const unlockedIds = parseUnlockedTrophyIds(trophyPaths.datFilePath);
-  const unlockedAt = Date.now();
+  const unlockedTimes = parseUnlockedTrophyIds(trophyPaths.datFilePath);
 
   logger.log(metadata.length, "RPCS3 trophies found for", gameTitle);
 
@@ -377,10 +425,10 @@ export const readRpcs3TrophyState = async (
       toSteamAchievement(trophy, trophyPaths.trophyDir)
     ),
     unlockedAchievements: metadata
-      .filter((trophy) => unlockedIds.has(trophy.id))
+      .filter((trophy) => unlockedTimes.has(trophy.id))
       .map((trophy) => ({
         name: String(trophy.id),
-        unlockTime: unlockedAt,
+        unlockTime: unlockedTimes.get(trophy.id) ?? 0,
       })),
     trophyPaths,
   };
@@ -505,6 +553,8 @@ export const clearRpcs3TrophyProgress = async (
   }
 };
 
-export const getRpcs3UnlockedTrophyIds = (datFilePath: string): Set<number> => {
+export const getRpcs3UnlockedTrophyIds = (
+  datFilePath: string
+): Map<number, number> => {
   return parseUnlockedTrophyIds(datFilePath);
 };

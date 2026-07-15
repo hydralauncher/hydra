@@ -29,9 +29,18 @@ const getStaticImage = async (path: string) => {
     .catch(() => path);
 };
 
+const isTrustedLocalNotificationImage = (url: string): boolean => {
+  return (
+    /^local:[/\\]/i.test(url) &&
+    /[\\/]dev_hdd0[\\/]home[\\/]00000001[\\/]trophy[\\/][^\\/]+[\\/]TROP\d{3}\.PNG$/i.test(
+      url.slice(6)
+    )
+  );
+};
+
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
-  if (url.startsWith("local:")) {
+  if (isTrustedLocalNotificationImage(url)) {
     const localPath = url.slice("local:".length);
     return getStaticImage(localPath);
   }
