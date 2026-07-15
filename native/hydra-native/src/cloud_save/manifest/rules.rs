@@ -7,7 +7,7 @@ const FILE_RULE_KIND: &str = "file";
 const DIRECTORY_RULE_KIND: &str = "dir";
 const LUDUSAVI_RULE_SOURCE: &str = "ludusavi";
 
-fn infer_rule_kind(raw_path: &str) -> &'static str {
+pub(crate) fn infer_rule_kind(raw_path: &str) -> &'static str {
     if raw_path
         .chars()
         .any(|character| matches!(character, '*' | '?' | '[' | '{' | ']'))
