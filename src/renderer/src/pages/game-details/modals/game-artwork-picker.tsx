@@ -20,6 +20,8 @@ const ARTWORK_KIND_BY_TYPE: Record<ArtworkAssetType, ArtworkKind> = {
   icon: "icons",
 };
 
+const SENTINEL_ROOT_MARGIN = "200px";
+
 interface GameArtworkPickerProps {
   game: LibraryGame;
   assetType: ArtworkAssetType;
@@ -137,7 +139,7 @@ export function GameArtworkPicker({
           loadPage(pageRef.current).catch(() => {});
         }
       },
-      { root, rootMargin: "200px" }
+      { root, rootMargin: SENTINEL_ROOT_MARGIN }
     );
 
     observer.observe(sentinel);
@@ -146,26 +148,34 @@ export function GameArtworkPicker({
   }, [hasMore, loadPage, items.length]);
 
   const handlePick = async (item: ArtworkItem) => {
-    await window.electron.setGameArtworkSelection({
-      shop: game.shop,
-      objectId: game.objectId,
-      type: assetType,
-      url: item.url,
-      artworkId: item.id,
-    });
-    await loadSelection();
-    await onChanged();
+    try {
+      await window.electron.setGameArtworkSelection({
+        shop: game.shop,
+        objectId: game.objectId,
+        type: assetType,
+        url: item.url,
+        artworkId: item.id,
+      });
+      await loadSelection();
+      await onChanged();
+    } catch {
+      showErrorToast(t("steamgriddb_fetch_failed"));
+    }
   };
 
   const handleClear = async () => {
-    await window.electron.setGameArtworkSelection({
-      shop: game.shop,
-      objectId: game.objectId,
-      type: assetType,
-      clear: true,
-    });
-    await loadSelection();
-    await onChanged();
+    try {
+      await window.electron.setGameArtworkSelection({
+        shop: game.shop,
+        objectId: game.objectId,
+        type: assetType,
+        clear: true,
+      });
+      await loadSelection();
+      await onChanged();
+    } catch {
+      showErrorToast(t("steamgriddb_fetch_failed"));
+    }
   };
 
   const handleReload = () => {
