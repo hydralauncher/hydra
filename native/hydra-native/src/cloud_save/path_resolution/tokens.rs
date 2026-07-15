@@ -18,7 +18,17 @@ pub struct TokenValues {
 }
 
 pub fn literal(value: &str) -> String {
-    globset::escape(&normalize_separators(value))
+    globset::escape(&normalize_separators(value)).chars().fold(
+        String::new(),
+        |mut escaped, character| {
+            match character {
+                '{' => escaped.push_str("[{]"),
+                '}' => escaped.push_str("[}]"),
+                _ => escaped.push(character),
+            }
+            escaped
+        },
+    )
 }
 
 pub fn optional_literal(value: Option<&str>) -> String {
@@ -126,5 +136,10 @@ mod tests {
 
         assert!(has_unresolved_placeholder(path));
         assert_eq!(tokens_in_path(path), vec!["%UNKNOWN%"]);
+    }
+
+    #[test]
+    fn escapes_braces_in_literal_paths() {
+        assert_eq!(literal("/Games/{Deluxe}"), "/Games/[{]Deluxe[}]");
     }
 }

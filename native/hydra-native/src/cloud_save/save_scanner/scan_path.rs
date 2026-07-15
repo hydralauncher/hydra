@@ -228,6 +228,21 @@ mod tests {
     }
 
     #[test]
+    fn scans_paths_with_literal_braces() {
+        let temp = tempdir().unwrap();
+        let directory = temp.path().join("{Deluxe}");
+        fs::create_dir(&directory).unwrap();
+        fs::write(directory.join("save.dat"), b"save").unwrap();
+        let pattern = format!("{}/[{{]Deluxe[}}]/*.dat", temp.path().display());
+
+        let scanned =
+            scan_resolved_path(&pattern, true, Some(&temp.path().display().to_string())).unwrap();
+
+        assert_eq!(scanned[0].files.len(), 1);
+        assert_eq!(scanned[0].files[0].relative_path, "{Deluxe}/save.dat");
+    }
+
+    #[test]
     fn limits_recursive_scans_to_one_hundred_levels() {
         let temp = tempdir().unwrap();
         let mut current = temp.path().to_path_buf();
