@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 use tokio::fs;
@@ -9,8 +9,10 @@ use tokio::sync::Mutex;
 
 use super::indexer::build_manifest_index;
 use super::types::ManifestIndex;
+use crate::constants::MANIFEST_INDEX_VERSION;
 
 const MANIFEST_CACHE_TTL_MS: i64 = 24 * 60 * 60 * 1000;
+const MANIFEST_HTTP_TIMEOUT_SECS: u64 = 30;
 const RAW_MANIFEST_FILE_NAME: &str = "cloud-save-manifest.yaml";
 const INDEX_FILE_NAME: &str = "cloud-save-manifest-index.json";
 
@@ -18,6 +20,16 @@ type ManifestCache = Arc<Mutex<Option<ManifestIndex>>>;
 type ManifestCaches = Mutex<HashMap<PathBuf, ManifestCache>>;
 
 static CACHE_LOCKS: OnceLock<ManifestCaches> = OnceLock::new();
+static HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+fn http_client() -> &'static reqwest::Client {
+    HTTP_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .timeout(Duration::from_secs(MANIFEST_HTTP_TIMEOUT_SECS))
+            .build()
+            .expect("Failed to build cloud save manifest HTTP client")
+    })
+}
 
 fn now_ms() -> i64 {
     SystemTime::now()
@@ -50,7 +62,7 @@ fn index_path(user_data_path: &Path) -> PathBuf {
 async fn read_index(path: &Path) -> Option<ManifestIndex> {
     let content = fs::read_to_string(path).await.ok()?;
     let index: ManifestIndex = serde_json::from_str(&content).ok()?;
-    (index.version == 1).then_some(index)
+    (index.version == MANIFEST_INDEX_VERSION).then_some(index)
 }
 
 async fn raw_manifest_fetched_at(path: &Path) -> Option<i64> {
@@ -108,7 +120,9 @@ async fn write_index(path: &Path, index: &ManifestIndex) -> Result<()> {
 }
 
 async fn download_manifest(source_url: &str) -> Result<String> {
-    let response = reqwest::get(source_url)
+    let response = http_client()
+        .get(source_url)
+        .send()
         .await
         .with_context(|| format!("Failed to download cloud save manifest from {source_url}"))?
         .error_for_status()
