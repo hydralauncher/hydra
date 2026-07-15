@@ -263,7 +263,7 @@ export function GameAssetsSettings({
   }, [game, isCustomGame, setCustomGameAssets, setNonCustomGameAssets]);
 
   useEffect(() => {
-    if (isCustomGame(game)) return;
+    if (game.shop === "custom") return;
 
     let cancelled = false;
 
@@ -284,7 +284,7 @@ export function GameAssetsSettings({
     return () => {
       cancelled = true;
     };
-  }, [game, isCustomGame]);
+  }, [game.objectId, game.shop]);
 
   const handleAssetTypeChange = (assetType: AssetType) => {
     setSelectedAssetType(assetType);
