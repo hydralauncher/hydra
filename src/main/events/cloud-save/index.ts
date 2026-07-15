@@ -2,3 +2,7 @@ import "./download-game-artifact";
 import "./get-game-backup-preview";
 import "./select-game-backup-path";
 import "./upload-save-game";
+import "./get-cloud-save-overview";
+import "./sync-game-cloud-save";
+import "./sync-cloud-save-on-state-change";
+import "./resolve-cloud-save-conflict";

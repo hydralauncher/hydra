@@ -5,6 +5,7 @@ import path from "node:path";
 import { GameShop, type Game, type UserPreferences } from "@types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { updateGameExecutablePath } from "./update-executable-path";
+import { runAutomaticCloudSaveSync } from "@main/services/cloud-save/automatic-sync";
 import {
   WindowManager,
   logger,
@@ -327,6 +328,8 @@ export const launchGame = async (
   }
 
   await WindowManager.createGameLauncherWindow(shop, objectId);
+
+  await runAutomaticCloudSaveSync(objectId, shop, "pre-launch");
 
   // Run preflight check for common redistributables (Windows only)
   // Wrapped in try/catch to ensure game launch is never blocked

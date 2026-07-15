@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { t } from "i18next";
 import { registerEvent } from "../register-event";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
+import { runAutomaticCloudSaveSync } from "@main/services/cloud-save/automatic-sync";
 import { gamesSublevel } from "@main/level";
 import {
   GameExecutables,
@@ -105,6 +106,12 @@ const scanInstalledGames = async (
 
     if (foundPath) {
       await gamesSublevel.put(key, updateGameExecutablePath(game, foundPath));
+
+      void runAutomaticCloudSaveSync(
+        game.objectId,
+        game.shop,
+        "executable-added"
+      );
 
       logger.info(
         `[ScanInstalledGames] Found executable for ${game.objectId}: ${foundPath}`
