@@ -102,6 +102,11 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveOverview>;
+    setCloudSaveAutomaticSyncEnabled: (
+      objectId: string,
+      shop: GameShop,
+      enabled: boolean
+    ) => Promise<boolean>;
     syncCloudSaveOnStateChange: (
       objectId: string,
       shop: GameShop

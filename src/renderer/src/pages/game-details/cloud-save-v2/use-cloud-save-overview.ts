@@ -15,6 +15,8 @@ interface RefreshOptions {
 }
 
 const getActionableStateFingerprint = (overview: CloudSaveOverview) => {
+  if (!overview.isAutomaticSyncEnabled) return null;
+
   if (overview.state !== "local-ahead" && overview.state !== "remote-ahead") {
     return null;
   }

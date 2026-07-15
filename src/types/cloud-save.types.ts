@@ -90,6 +90,7 @@ export interface CloudSaveStateResult {
 
 export interface CloudSaveOverview extends CloudSaveStateResult {
   snapshots: RemoteSnapshotSummary[];
+  isAutomaticSyncEnabled: boolean;
 }
 
 export type CloudSaveSyncTrigger =

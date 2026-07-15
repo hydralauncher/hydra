@@ -9,6 +9,7 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
+import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
 import { syncGameCloudSave } from "./sync-game-cloud-save";
 
 const activeAutomaticSyncs = new Map<
@@ -35,6 +36,8 @@ export const runAutomaticCloudSaveSync = async (
   ) {
     return null;
   }
+
+  if (!(await getCloudSaveAutomaticSyncEnabled(objectId, shop))) return null;
 
   const game = await gamesSublevel
     .get(levelKeys.game(shop, objectId))
