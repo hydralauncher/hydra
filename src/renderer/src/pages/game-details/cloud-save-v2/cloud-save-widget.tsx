@@ -1,6 +1,13 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { CloudIcon } from "@primer/octicons-react";
-import { SpinnerGapIcon } from "@phosphor-icons/react";
+import {
+  CircleNotchIcon,
+  CloudArrowDownIcon,
+  CloudArrowUpIcon,
+  CloudCheckIcon,
+  CloudIcon,
+  CloudSlashIcon,
+  CloudWarningIcon,
+} from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -51,6 +58,38 @@ const getProgressPercentage = (
 
   const percentage = (progress.processedFiles / progress.totalFiles) * 100;
   return Math.min(100, Math.max(0, percentage));
+};
+
+const getStatusIcon = (
+  overview: CloudSaveOverview | null,
+  isChecking: boolean,
+  isSyncing: boolean,
+  hasError: boolean,
+  progress: CloudSaveSyncProgressPayload | null
+) => {
+  if (hasError) {
+    return <CloudSlashIcon size={22} weight="fill" />;
+  }
+  if (progress?.stage === "uploading") {
+    return <CloudArrowUpIcon size={22} weight="fill" />;
+  }
+  if (progress?.stage === "restoring") {
+    return <CloudArrowDownIcon size={22} weight="fill" />;
+  }
+  if (isChecking || isSyncing) {
+    return <CircleNotchIcon className="cloud-save-v2__spinner" size={22} />;
+  }
+  if (overview?.state === "synced") {
+    return <CloudCheckIcon size={22} weight="fill" />;
+  }
+  if (
+    overview?.state === "conflict" ||
+    overview?.state === "local-ahead" ||
+    overview?.state === "remote-ahead"
+  ) {
+    return <CloudWarningIcon size={22} weight="fill" />;
+  }
+  return <CloudIcon size={22} weight="fill" />;
 };
 
 export function CloudSaveWidget({
@@ -199,6 +238,7 @@ export function CloudSaveWidget({
   }
   const tone = statusTone(overview, hasError, isSyncing);
   const progressPercentage = getProgressPercentage(progress);
+  const isChecking = isRefreshing && !overview;
 
   return (
     <>
@@ -208,12 +248,8 @@ export function CloudSaveWidget({
         onClick={handleOpen}
         title={t("cloud_save_v2")}
       >
-        {isRefreshing && !overview ? (
-          <SpinnerGapIcon className="cloud-save-v2__spinner" size={16} />
-        ) : (
-          <CloudIcon size={16} />
-        )}
-        {isRefreshing && !overview ? t("cloud_save_v2_checking") : label}
+        {getStatusIcon(overview, isChecking, isSyncing, hasError, progress)}
+        {isChecking ? t("cloud_save_v2_checking") : label}
         {isSyncing && (
           <span
             aria-hidden="true"
