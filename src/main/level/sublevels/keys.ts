@@ -32,4 +32,5 @@ export const levelKeys = {
     `${cardFilePath}::${identifier}`,
   cloudSaveLocalHashCache: "cloud-save-local-hash-cache",
   cloudSaveSyncAnchors: "cloud-save-sync-anchors",
+  cloudSaveAutomaticSyncSettings: "cloud-save-automatic-sync-settings",
 };

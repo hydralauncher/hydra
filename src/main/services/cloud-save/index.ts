@@ -1,4 +1,5 @@
 export * from "./automatic-sync";
+export * from "./automatic-sync-settings";
 export * from "./build-local-game-snapshot";
 export * from "./create-remote-snapshot-from-local-state";
 export * from "./download-remote-snapshot-to-temp";
