@@ -22,14 +22,15 @@ pub fn compare_hashes(
         return SnapshotComparisonState::Synced;
     }
 
-    match (
-        local_snapshot_hash != base_snapshot_hash,
-        remote_snapshot_hash != base_snapshot_hash,
-    ) {
-        (false, false) => SnapshotComparisonState::Synced,
-        (true, false) => SnapshotComparisonState::LocalAhead,
-        (false, true) => SnapshotComparisonState::RemoteAhead,
-        (true, true) => SnapshotComparisonState::Conflict,
+    let local_changed = local_snapshot_hash != base_snapshot_hash;
+    let remote_changed = remote_snapshot_hash != base_snapshot_hash;
+
+    if !local_changed {
+        SnapshotComparisonState::RemoteAhead
+    } else if !remote_changed {
+        SnapshotComparisonState::LocalAhead
+    } else {
+        SnapshotComparisonState::Conflict
     }
 }
 
