@@ -7,10 +7,14 @@ export const ARTWORK_PAGE_SIZE = 50;
 const PORTRAIT_GRID_DIMENSIONS = "600x900,342x482,660x930";
 
 const KIND_PARAMS: Record<ArtworkKind, Record<string, string>> = {
-  grids: { nsfw: "false", dimensions: PORTRAIT_GRID_DIMENSIONS },
-  heroes: { nsfw: "false" },
-  logos: { nsfw: "false" },
-  icons: { nsfw: "false" },
+  grids: {
+    nsfw: "false",
+    dimensions: PORTRAIT_GRID_DIMENSIONS,
+    mimes: "image/png,image/jpeg,image/webp",
+  },
+  heroes: { nsfw: "false", mimes: "image/png,image/jpeg,image/webp" },
+  logos: { nsfw: "false", mimes: "image/png,image/webp" },
+  icons: { nsfw: "false", mimes: "image/png,image/vnd.microsoft.icon" },
 };
 
 interface ArtworkResponse {
