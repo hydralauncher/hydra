@@ -13,7 +13,6 @@ pub struct ResolveSaveRulesInput {
     pub executable_path: Option<String>,
     pub wine_prefix_path: Option<String>,
     pub steam_path: Option<String>,
-    pub steam_user_ids: Vec<String>,
     pub rules: Vec<CloudSaveRule>,
 }
 
@@ -38,12 +37,21 @@ pub struct PathResolutionContext {
 }
 
 #[napi(object)]
+#[derive(Clone, Debug)]
+pub struct ResolvedCloudSavePath {
+    pub path: String,
+    pub case_sensitive: bool,
+    pub dynamic: bool,
+    pub scan_root: Option<String>,
+}
+
+#[napi(object)]
 pub struct ResolvedCloudSaveRule {
     pub kind: String,
     pub raw_path: String,
     pub source: String,
     pub tags: Vec<String>,
     pub when: Vec<CloudSaveRuleCondition>,
-    pub resolved_paths: Vec<String>,
+    pub resolved_paths: Vec<ResolvedCloudSavePath>,
     pub unresolved_tokens: Vec<String>,
 }
