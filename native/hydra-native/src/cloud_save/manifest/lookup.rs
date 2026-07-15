@@ -28,16 +28,16 @@ pub fn find_manifest_entry<'a>(
         }
     }
 
-    let normalized = candidates
-        .iter()
-        .map(|candidate| normalize_manifest_key(candidate))
-        .collect::<Vec<_>>();
+    for candidate in candidates {
+        let normalized_candidate = normalize_manifest_key(candidate);
+        if let Some(entry) = index.games.iter().find_map(|(key, entry)| {
+            (normalize_manifest_key(key) == normalized_candidate).then_some(entry)
+        }) {
+            return Some(entry);
+        }
+    }
 
-    index.games.iter().find_map(|(key, entry)| {
-        normalized
-            .contains(&normalize_manifest_key(key))
-            .then_some(entry)
-    })
+    None
 }
 
 #[cfg(test)]
