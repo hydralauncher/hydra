@@ -1,6 +1,7 @@
 mod cloud_save;
 mod constants;
 
+pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};
 pub use cloud_save::manifest::get_save_rules_for_game;
 pub use cloud_save::path_resolution::resolve_save_rules;
 pub use cloud_save::save_scanner::scan_resolved_save_rules;

@@ -24,6 +24,9 @@ unicode-normalization = "0.1.25"
 globset = "=0.4.15"
 globetter = "=0.2.0"
 walkdir = "=2.5.0"
+blake3 = "=1.8.5"
+rayon = "=1.11.0"
+time = "=0.3.44"
 
 [target.'cfg(windows)'.dependencies]
 known-folders = "=1.2.0"
