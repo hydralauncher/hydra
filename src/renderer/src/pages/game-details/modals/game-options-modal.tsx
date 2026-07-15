@@ -745,7 +745,7 @@ export function GameOptionsModal({
           ]),
       {
         id: "assets" as const,
-        label: t("settings_category_assets"),
+        label: t("settings_category_customization"),
         icon: <ImageIcon size={16} />,
       },
       {
