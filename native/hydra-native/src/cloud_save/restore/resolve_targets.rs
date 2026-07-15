@@ -88,9 +88,10 @@ pub fn resolve_restore_targets(
             } else {
                 file.raw_path.clone()
             };
-            let resolved_path =
-                resolve_restore_root(&root_raw_path, &context).map_err(Error::from_reason)?;
-            let target_path = if kind == "dir" || has_glob_pattern(&file.raw_path) {
+            let directory_root = kind == "dir" || has_glob_pattern(&file.raw_path);
+            let resolved_path = resolve_restore_root(&root_raw_path, &context, directory_root)
+                .map_err(Error::from_reason)?;
+            let target_path = if directory_root {
                 join_path(&resolved_path, &file.relative_path)
             } else {
                 resolved_path.replace('\\', "/")
