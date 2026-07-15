@@ -118,6 +118,7 @@ type ProfileLibraryCarouselGame = ShopAssets & {
   customIconUrl?: string | null;
   customHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
+  customCoverImageUrl?: string | null;
   playTimeInMilliseconds?: number | null;
   achievementCount?: number | null;
   unlockedAchievementCount?: number | null;
@@ -521,6 +522,7 @@ function toProfileLibraryCarouselGame(
     logoImageUrl: game.logoImageUrl ?? null,
     logoPosition: game.logoPosition ?? null,
     coverImageUrl: customCover ?? game.coverImageUrl ?? null,
+    customCoverImageUrl: customCover,
     downloadSources: game.downloadSources ?? [],
     platform: classicsAssetFields.platform ?? null,
     customIconUrl: classicsAssetFields.customIconUrl ?? null,

@@ -255,7 +255,7 @@ export function UserLibraryGameCard({
             <div className="user-library-game__cover-placeholder">
               <ImageIcon size={48} />
             </div>
-          ) : game.shop === "launchbox" ? (
+          ) : game.shop === "launchbox" && !game.customLibraryImageUrl ? (
             <div className="user-library-game__classics-cover">
               <img
                 src={coverImageUrl}
