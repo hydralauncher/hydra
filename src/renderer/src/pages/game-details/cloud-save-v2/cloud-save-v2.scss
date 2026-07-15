@@ -156,6 +156,31 @@
     margin-top: calc(globals.$spacing-unit * 2);
   }
 
+  &__missing-executable {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__missing-executable-copy {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+
+    strong {
+      display: flex;
+      align-items: center;
+      gap: globals.$spacing-unit;
+      font-weight: 500;
+    }
+
+    span {
+      color: globals.$muted-color;
+      font-size: globals.$small-font-size;
+      line-height: 1.4;
+    }
+  }
+
   &__sync-progress-bar {
     position: absolute;
     bottom: 0;

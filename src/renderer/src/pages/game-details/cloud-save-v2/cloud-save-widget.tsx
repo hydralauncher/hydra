@@ -146,6 +146,12 @@ export function CloudSaveWidget({
     setIsModalVisible(true);
   };
 
+  const handleSelectExecutable = () => {
+    setIsModalVisible(false);
+    setGameOptionsInitialCategory("locations");
+    setShowGameOptionsModal(true);
+  };
+
   const runCloudSaveOperation = async (
     resolution?: CloudSaveConflictResolution
   ) => {
@@ -213,6 +219,7 @@ export function CloudSaveWidget({
           isChecking={isChecking}
           isSyncing={isSyncing}
           hasError={hasError}
+          hasExecutablePath={Boolean(game?.executablePath)}
           progress={progress}
         />
         {isChecking ? t("cloud_save_v2_checking") : label}
@@ -230,10 +237,12 @@ export function CloudSaveWidget({
         overview={overview}
         isLoading={isRefreshing}
         isSyncing={isSyncing}
+        hasExecutablePath={Boolean(game?.executablePath)}
         isAutomaticSyncEnabled={overview?.isAutomaticSyncEnabled ?? true}
         hasError={hasError}
         progress={progress}
         onSync={() => void runCloudSaveOperation()}
+        onSelectExecutable={handleSelectExecutable}
         onAutomaticSyncChange={async (enabled) => {
           await window.electron.setCloudSaveAutomaticSyncEnabled(
             objectId,

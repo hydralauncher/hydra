@@ -6,6 +6,8 @@ import {
   CloudArrowDownIcon,
   CloudArrowUpIcon,
   CloudIcon,
+  FolderOpenIcon,
+  WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 
@@ -24,10 +26,12 @@ interface CloudSaveModalProps {
   overview: CloudSaveOverview | null;
   isLoading: boolean;
   isSyncing: boolean;
+  hasExecutablePath: boolean;
   isAutomaticSyncEnabled: boolean;
   hasError: boolean;
   progress: CloudSaveSyncProgressPayload | null;
   onSync: () => void;
+  onSelectExecutable: () => void;
   onAutomaticSyncChange: (enabled: boolean) => Promise<void>;
   onResolveConflict: (resolution: CloudSaveConflictResolution) => void;
   onClose: () => void;
@@ -59,10 +63,12 @@ export function CloudSaveModal({
   overview,
   isLoading,
   isSyncing,
+  hasExecutablePath,
   isAutomaticSyncEnabled,
   hasError,
   progress,
   onSync,
+  onSelectExecutable,
   onAutomaticSyncChange,
   onResolveConflict,
   onClose,
@@ -218,6 +224,25 @@ export function CloudSaveModal({
     );
   }
 
+  const missingExecutableCard = (
+    <section className="cloud-save-v2__snapshot cloud-save-v2__missing-executable">
+      <div className="cloud-save-v2__missing-executable-copy">
+        <strong>
+          <WarningCircleIcon size={18} />
+          {t("cloud_save_v2_executable_required_title")}
+        </strong>
+        <span>{t("cloud_save_v2_executable_required_description")}</span>
+      </div>
+      <Button
+        className="cloud-save-v2__sync-button"
+        onClick={onSelectExecutable}
+      >
+        <FolderOpenIcon size={20} />
+        <span>{t("cloud_save_v2_select_executable")}</span>
+      </Button>
+    </section>
+  );
+
   return (
     <Modal
       visible={visible}
@@ -244,88 +269,96 @@ export function CloudSaveModal({
           </button>
         </div>
 
-        <section className="cloud-save-v2__active-snapshot">
-          <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
-            {activeSnapshot ? (
-              <>
-                <div className="cloud-save-v2__snapshot-header">
-                  <strong>{t("cloud_save_v2_active_snapshot")}</strong>
-                  <span
-                    className={`cloud-save-v2__status-pill cloud-save-v2__status-pill--${currentStatusTone}`}
-                  >
-                    {overview
-                      ? t(stateKey[overview.state])
-                      : t("cloud_save_v2_checking")}
-                  </span>
-                </div>
-                {snapshotMetadata(
-                  activeSnapshot.createdAt,
-                  activeSnapshot.fileCount,
-                  activeSnapshot.totalSizeBytes
-                )}
-              </>
-            ) : (
-              !isLoading && (
-                <div className="cloud-save-v2__empty cloud-save-v2__empty--inline">
-                  {t("cloud_save_v2_no_snapshots")}
-                </div>
-              )
-            )}
-
-            <div className="cloud-save-v2__action-area">
-              {hasError && (
-                <p className="cloud-save-v2__error">
-                  {t("cloud_save_v2_error")}
-                </p>
-              )}
-
-              {syncAction}
-            </div>
-          </article>
-        </section>
-
-        {historicalSnapshotCount > 0 && (
-          <section className="cloud-save-v2__history">
-            <button
-              type="button"
-              className="cloud-save-v2__history-toggle"
-              aria-controls={historyId}
-              aria-expanded={isHistoryExpanded}
-              onClick={() => setIsHistoryExpanded((expanded) => !expanded)}
-            >
-              <span className="cloud-save-v2__history-title">
-                <ClockIcon size={18} />
-                {t("cloud_save_v2_history")}
-              </span>
-              <span className="cloud-save-v2__history-summary">
-                <CaretDownIcon
-                  size={16}
-                  className={`cloud-save-v2__history-caret ${isHistoryExpanded ? "cloud-save-v2__history-caret--expanded" : ""}`}
-                />
-              </span>
-            </button>
-
-            <div
-              id={historyId}
-              className={`cloud-save-v2__history-content ${isHistoryExpanded ? "cloud-save-v2__history-content--expanded" : ""}`}
-            >
-              <div className="cloud-save-v2__history-list">
-                {historicalSnapshots.map((snapshot) => (
-                  <article
-                    className="cloud-save-v2__snapshot cloud-save-v2__snapshot--historical"
-                    key={snapshot.id}
-                  >
-                    <strong>{t("cloud_save_v2_historical_snapshot")}</strong>
+        {!hasExecutablePath ? (
+          missingExecutableCard
+        ) : (
+          <>
+            <section className="cloud-save-v2__active-snapshot">
+              <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
+                {activeSnapshot ? (
+                  <>
+                    <div className="cloud-save-v2__snapshot-header">
+                      <strong>{t("cloud_save_v2_active_snapshot")}</strong>
+                      <span
+                        className={`cloud-save-v2__status-pill cloud-save-v2__status-pill--${currentStatusTone}`}
+                      >
+                        {overview
+                          ? t(stateKey[overview.state])
+                          : t("cloud_save_v2_checking")}
+                      </span>
+                    </div>
                     {snapshotMetadata(
-                      snapshot.createdAt,
-                      snapshot.fileCount,
-                      snapshot.totalSizeBytes
+                      activeSnapshot.createdAt,
+                      activeSnapshot.fileCount,
+                      activeSnapshot.totalSizeBytes
                     )}
-                  </article>
-                ))}
-              </div>
-            </div>
-          </section>
+                  </>
+                ) : (
+                  !isLoading && (
+                    <div className="cloud-save-v2__empty cloud-save-v2__empty--inline">
+                      {t("cloud_save_v2_no_snapshots")}
+                    </div>
+                  )
+                )}
+
+                <div className="cloud-save-v2__action-area">
+                  {hasError && (
+                    <p className="cloud-save-v2__error">
+                      {t("cloud_save_v2_error")}
+                    </p>
+                  )}
+
+                  {syncAction}
+                </div>
+              </article>
+            </section>
+
+            {historicalSnapshotCount > 0 && (
+              <section className="cloud-save-v2__history">
+                <button
+                  type="button"
+                  className="cloud-save-v2__history-toggle"
+                  aria-controls={historyId}
+                  aria-expanded={isHistoryExpanded}
+                  onClick={() => setIsHistoryExpanded((expanded) => !expanded)}
+                >
+                  <span className="cloud-save-v2__history-title">
+                    <ClockIcon size={18} />
+                    {t("cloud_save_v2_history")}
+                  </span>
+                  <span className="cloud-save-v2__history-summary">
+                    <CaretDownIcon
+                      size={16}
+                      className={`cloud-save-v2__history-caret ${isHistoryExpanded ? "cloud-save-v2__history-caret--expanded" : ""}`}
+                    />
+                  </span>
+                </button>
+
+                <div
+                  id={historyId}
+                  className={`cloud-save-v2__history-content ${isHistoryExpanded ? "cloud-save-v2__history-content--expanded" : ""}`}
+                >
+                  <div className="cloud-save-v2__history-list">
+                    {historicalSnapshots.map((snapshot) => (
+                      <article
+                        className="cloud-save-v2__snapshot cloud-save-v2__snapshot--historical"
+                        key={snapshot.id}
+                      >
+                        <strong>
+                          {t("cloud_save_v2_historical_snapshot")}
+                        </strong>
+                        {snapshotMetadata(
+                          snapshot.createdAt,
+                          snapshot.fileCount,
+                          snapshot.totalSizeBytes
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
     </Modal>
