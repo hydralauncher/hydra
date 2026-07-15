@@ -1,13 +1,4 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import {
-  CircleNotchIcon,
-  CloudArrowDownIcon,
-  CloudArrowUpIcon,
-  CloudCheckIcon,
-  CloudIcon,
-  CloudSlashIcon,
-  CloudWarningIcon,
-} from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -22,6 +13,7 @@ import { useToast, useUserDetails } from "@renderer/hooks";
 import { ConfirmationModal } from "@renderer/components";
 
 import { CloudSaveModal } from "./cloud-save-modal";
+import { CloudSaveStatusIcon } from "./cloud-save-status-icon";
 import { useCloudSaveOverview } from "./use-cloud-save-overview";
 import "./cloud-save-v2.scss";
 
@@ -58,38 +50,6 @@ const getProgressPercentage = (
 
   const percentage = (progress.processedFiles / progress.totalFiles) * 100;
   return Math.min(100, Math.max(0, percentage));
-};
-
-const getStatusIcon = (
-  overview: CloudSaveOverview | null,
-  isChecking: boolean,
-  isSyncing: boolean,
-  hasError: boolean,
-  progress: CloudSaveSyncProgressPayload | null
-) => {
-  if (hasError) {
-    return <CloudSlashIcon size={22} weight="fill" />;
-  }
-  if (progress?.stage === "uploading") {
-    return <CloudArrowUpIcon size={22} weight="fill" />;
-  }
-  if (progress?.stage === "restoring") {
-    return <CloudArrowDownIcon size={22} weight="fill" />;
-  }
-  if (isChecking || isSyncing) {
-    return <CircleNotchIcon className="cloud-save-v2__spinner" size={22} />;
-  }
-  if (overview?.state === "synced") {
-    return <CloudCheckIcon size={22} weight="fill" />;
-  }
-  if (
-    overview?.state === "conflict" ||
-    overview?.state === "local-ahead" ||
-    overview?.state === "remote-ahead"
-  ) {
-    return <CloudWarningIcon size={22} weight="fill" />;
-  }
-  return <CloudIcon size={22} weight="fill" />;
 };
 
 export function CloudSaveWidget({
@@ -248,7 +208,13 @@ export function CloudSaveWidget({
         onClick={handleOpen}
         title={t("cloud_save_v2")}
       >
-        {getStatusIcon(overview, isChecking, isSyncing, hasError, progress)}
+        <CloudSaveStatusIcon
+          overview={overview}
+          isChecking={isChecking}
+          isSyncing={isSyncing}
+          hasError={hasError}
+          progress={progress}
+        />
         {isChecking ? t("cloud_save_v2_checking") : label}
         {isSyncing && (
           <span
@@ -264,9 +230,18 @@ export function CloudSaveWidget({
         overview={overview}
         isLoading={isRefreshing}
         isSyncing={isSyncing}
+        isAutomaticSyncEnabled={overview?.isAutomaticSyncEnabled ?? true}
         hasError={hasError}
         progress={progress}
         onSync={() => void runCloudSaveOperation()}
+        onAutomaticSyncChange={async (enabled) => {
+          await window.electron.setCloudSaveAutomaticSyncEnabled(
+            objectId,
+            shop,
+            enabled
+          );
+          await refresh({ allowAutomaticSync: false });
+        }}
         onResolveConflict={setPendingResolution}
         onClose={() => setIsModalVisible(false)}
       />
