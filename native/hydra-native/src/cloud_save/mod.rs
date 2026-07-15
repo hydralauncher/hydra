@@ -1,3 +1,4 @@
+pub mod comparison;
 pub mod hashing;
 pub mod local_snapshot;
 pub mod manifest;
