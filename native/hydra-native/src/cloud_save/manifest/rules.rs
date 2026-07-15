@@ -3,21 +3,25 @@ use super::types::{
     ManifestGameEntry,
 };
 
+const FILE_RULE_KIND: &str = "file";
+const DIRECTORY_RULE_KIND: &str = "dir";
+const LUDUSAVI_RULE_SOURCE: &str = "ludusavi";
+
 fn infer_rule_kind(raw_path: &str) -> &'static str {
     if raw_path
         .chars()
         .any(|character| matches!(character, '*' | '?' | '[' | '{' | ']'))
     {
-        return "file";
+        return FILE_RULE_KIND;
     }
     if raw_path.ends_with('/') {
-        return "dir";
+        return DIRECTORY_RULE_KIND;
     }
     let base_name = raw_path.rsplit('/').next().unwrap_or(raw_path);
     if base_name.contains('.') {
-        "file"
+        FILE_RULE_KIND
     } else {
-        "dir"
+        DIRECTORY_RULE_KIND
     }
 }
 
@@ -25,7 +29,7 @@ fn build_rule(file: &ManifestFileRule) -> CloudSaveRule {
     CloudSaveRule {
         kind: infer_rule_kind(&file.raw_path).to_string(),
         raw_path: file.raw_path.clone(),
-        source: "ludusavi".to_string(),
+        source: LUDUSAVI_RULE_SOURCE.to_string(),
         tags: file.tags.clone(),
         when: file
             .when

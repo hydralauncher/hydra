@@ -3,6 +3,7 @@ use indexmap::IndexMap;
 use serde_yaml_ng::{Mapping, Value};
 
 use super::types::{ManifestFileRule, ManifestGameEntry, ManifestIndex, ManifestRuleCondition};
+use crate::constants::MANIFEST_INDEX_VERSION;
 
 fn string_value(value: &Value) -> Option<String> {
     value.as_str().map(ToString::to_string)
@@ -84,7 +85,7 @@ pub fn build_manifest_index(
     }
 
     Ok(ManifestIndex {
-        version: 1,
+        version: MANIFEST_INDEX_VERSION,
         fetched_at,
         source_url: source_url.to_string(),
         games,
