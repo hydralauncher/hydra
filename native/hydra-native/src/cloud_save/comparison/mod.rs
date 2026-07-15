@@ -24,6 +24,11 @@ pub fn compare_game_snapshots(
     Ok(CompareGameSnapshotsResult {
         state,
         active_remote_snapshot,
-        is_out_of_sync: state != types::SnapshotComparisonState::Synced,
+        is_out_of_sync: matches!(
+            state,
+            types::SnapshotComparisonState::LocalAhead
+                | types::SnapshotComparisonState::RemoteAhead
+                | types::SnapshotComparisonState::Conflict
+        ),
     })
 }
