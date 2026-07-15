@@ -87,6 +87,13 @@ export function GameArtworkPicker({
   }
 
   const showReload = isStale || hasFailed;
+  const skeletonCount = items.length
+    ? MORE_SKELETON_COUNT
+    : INITIAL_SKELETON_COUNT[assetType];
+  const skeletonKeys = Array.from(
+    { length: skeletonCount },
+    (_, index) => `skeleton-${index}`
+  );
 
   return (
     <div className="game-artwork">
@@ -146,13 +153,9 @@ export function GameArtworkPicker({
             ))}
 
             {isLoading &&
-              Array.from({
-                length: items.length
-                  ? MORE_SKELETON_COUNT
-                  : INITIAL_SKELETON_COUNT[assetType],
-              }).map((_, index) => (
+              skeletonKeys.map((key) => (
                 <div
-                  key={`skeleton-${index}`}
+                  key={key}
                   className={`game-artwork__item game-artwork__item--${assetType}`}
                 >
                   <Skeleton
