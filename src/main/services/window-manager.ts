@@ -208,7 +208,7 @@ export class WindowManager {
     this.mainWindow.on("unmaximize", emitMaximizeState);
 
     const shouldLaunchInBigPicture =
-      options?.forceBigPicture ?? Boolean(userPreferences?.launchInBigPicture);
+      options?.forceBigPicture || Boolean(userPreferences?.launchInBigPicture);
 
     if (shouldLaunchInBigPicture) {
       this.mainWindow.setOpacity(0);
