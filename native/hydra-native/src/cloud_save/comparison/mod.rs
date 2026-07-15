@@ -7,8 +7,11 @@ use napi_derive::napi;
 pub use types::{CompareGameSnapshotsInput, CompareGameSnapshotsResult};
 
 #[napi]
-pub fn compare_game_snapshots(input: CompareGameSnapshotsInput) -> CompareGameSnapshotsResult {
-    let active_remote_snapshot = select_remote::select_active_snapshot(input.remote_snapshots);
+pub fn compare_game_snapshots(
+    input: CompareGameSnapshotsInput,
+) -> napi::Result<CompareGameSnapshotsResult> {
+    let active_remote_snapshot = select_remote::select_active_snapshot(input.remote_snapshots)
+        .map_err(napi::Error::from_reason)?;
     let state = compare::compare_hashes(
         &input.local_snapshot_hash,
         input.local_snapshot_file_count,
@@ -18,9 +21,9 @@ pub fn compare_game_snapshots(input: CompareGameSnapshotsInput) -> CompareGameSn
             .map(|snapshot| snapshot.aggregate_hash.as_str()),
     );
 
-    CompareGameSnapshotsResult {
-        state: state.as_str().to_string(),
+    Ok(CompareGameSnapshotsResult {
+        state,
         active_remote_snapshot,
-        has_changed: state != types::SnapshotComparisonState::Synced,
-    }
+        is_out_of_sync: state != types::SnapshotComparisonState::Synced,
+    })
 }

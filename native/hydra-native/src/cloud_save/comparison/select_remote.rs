@@ -2,10 +2,17 @@ use super::types::CloudSaveRemoteSnapshot;
 
 pub fn select_active_snapshot(
     snapshots: Vec<CloudSaveRemoteSnapshot>,
-) -> Option<CloudSaveRemoteSnapshot> {
-    snapshots
+) -> Result<Option<CloudSaveRemoteSnapshot>, &'static str> {
+    let mut active_snapshots = snapshots
         .into_iter()
-        .find(|snapshot| snapshot.status == "active")
+        .filter(|snapshot| snapshot.status == "active");
+    let active_snapshot = active_snapshots.next();
+
+    if active_snapshots.next().is_some() {
+        return Err("cloud_save_multiple_active_snapshots");
+    }
+
+    Ok(active_snapshot)
 }
 
 #[cfg(test)]
@@ -29,9 +36,21 @@ mod tests {
             snapshot("historical", "historical"),
             snapshot("active", "active"),
         ])
+        .unwrap()
         .unwrap();
 
         assert_eq!(selected.id, "active");
-        assert!(select_active_snapshot(vec![snapshot("old", "historical")]).is_none());
+        assert!(select_active_snapshot(vec![snapshot("old", "historical")])
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn rejects_multiple_active_snapshots() {
+        let error =
+            select_active_snapshot(vec![snapshot("one", "active"), snapshot("two", "active")])
+                .unwrap_err();
+
+        assert_eq!(error, "cloud_save_multiple_active_snapshots");
     }
 }
