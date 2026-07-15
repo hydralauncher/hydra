@@ -53,7 +53,7 @@ import {
   formatPlayedTime,
   formatRelativeDate,
   getGameIdentityKey,
-  getGameLandscapeImageSource,
+  resolveImageSource,
 } from "../../helpers";
 import { useHeroBackgroundLayers } from "../../components/pages/library/hero/use-hero-background-layers";
 import { useLibrary, useUserDetails } from "../../hooks";
@@ -105,6 +105,9 @@ type ProfileActivityGame = {
   iconUrl?: string | null;
   coverImageUrl?: string | null;
   libraryImageUrl?: string | null;
+  libraryHeroImageUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  customLibraryHeroImageUrl?: string | null;
   lastTimePlayed?: Date | string | null;
   playTimeInSeconds?: number;
   playTimeInMilliseconds?: number;
@@ -313,6 +316,27 @@ function getActivityLastPlayedLabel(game: ProfileActivityGame) {
 
 function getProfileActivityFocusId(game: ProfileActivityGame) {
   return getProfileActivityItemId(getProfileGameFocusKey(game));
+}
+
+function getActivityHeroImageSource(
+  game: ProfileActivityGame,
+  preferCustomArtwork: boolean
+): string {
+  const sources = [
+    preferCustomArtwork ? game.customLibraryHeroImageUrl : null,
+    preferCustomArtwork ? game.customHeroImageUrl : null,
+    game.libraryHeroImageUrl,
+    game.libraryImageUrl,
+    game.coverImageUrl,
+    game.iconUrl,
+  ];
+
+  for (const source of sources) {
+    const resolved = resolveImageSource(source);
+    if (resolved) return resolved;
+  }
+
+  return "";
 }
 
 function getComparedAchievement(
@@ -1499,7 +1523,10 @@ export default function Profile() {
                   style={{ gap: "calc(var(--spacing-unit) * 4)" }}
                 >
                   {recentActivityGames.map((game) => {
-                    const imageUrl = getGameLandscapeImageSource(game);
+                    const imageUrl = getActivityHeroImageSource(
+                      game,
+                      targetHasActiveSubscription
+                    );
                     const focusId = getProfileActivityFocusId(game);
 
                     return (
