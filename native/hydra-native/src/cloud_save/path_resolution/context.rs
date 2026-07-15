@@ -23,14 +23,14 @@ fn basename(value: &str) -> Option<String> {
 fn install_directory(executable_path: Option<&str>) -> Option<String> {
     let executable_path = normalize_separators(executable_path?);
     let marker = "/steamapps/common/";
-    
+
     if let Some(index) = executable_path.to_ascii_lowercase().find(marker) {
         let game_start = index + marker.len();
         let game_end = executable_path[game_start..]
             .find('/')
             .map(|offset| game_start + offset)
             .unwrap_or(executable_path.len());
-        
+
         return Some(executable_path[..game_end].to_string());
     }
     parent_path(&executable_path)
@@ -44,11 +44,57 @@ fn join_path(parent: &str, child: &str) -> String {
     )
 }
 
+type WindowsDirectories = (
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+);
+
+fn fallback_windows_directories(home_dir: &str, app_data_dir: Option<&str>) -> WindowsDirectories {
+    let local_app_data = app_data_dir
+        .and_then(parent_path)
+        .map(|parent| join_path(&parent, "Local"));
+    let public = parent_path(home_dir).map(|users| join_path(&users, "Public"));
+    let system_drive = home_dir
+        .split_once('/')
+        .map(|(root, _)| root)
+        .filter(|root| root.ends_with(':'));
+
+    (
+        local_app_data,
+        public,
+        system_drive.map(|root| join_path(root, "ProgramData")),
+        system_drive.map(|root| join_path(root, "Windows")),
+    )
+}
+
+#[cfg(windows)]
+fn windows_directories(home_dir: &str, app_data_dir: Option<&str>) -> WindowsDirectories {
+    let fallback = fallback_windows_directories(home_dir, app_data_dir);
+    let known = |folder| {
+        known_folders::get_known_folder_path(folder)
+            .map(|path| normalize_separators(&path.to_string_lossy()))
+    };
+
+    (
+        known(known_folders::KnownFolder::LocalAppData).or(fallback.0),
+        known(known_folders::KnownFolder::Public).or(fallback.1),
+        known(known_folders::KnownFolder::ProgramData).or(fallback.2),
+        known(known_folders::KnownFolder::Windows).or(fallback.3),
+    )
+}
+
+#[cfg(not(windows))]
+fn windows_directories(home_dir: &str, app_data_dir: Option<&str>) -> WindowsDirectories {
+    fallback_windows_directories(home_dir, app_data_dir)
+}
+
 fn derived_steam_root(executable_path: Option<&str>) -> Option<String> {
     let executable_path = normalize_separators(executable_path?);
     let marker = "/steamapps/common/";
     let index = executable_path.to_ascii_lowercase().find(marker)?;
-    
+
     Some(executable_path[..index].to_string())
 }
 
@@ -81,15 +127,7 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
 
     let (local_app_data_dir, public_dir, program_data_dir, windows_dir) =
         if input.platform == "windows" {
-            let app_data_parent = app_data_dir.as_deref().and_then(parent_path);
-            (
-                app_data_parent
-                    .as_deref()
-                    .map(|parent| join_path(parent, "Local")),
-                Some("C:/Users/Public".to_string()),
-                Some("C:/ProgramData".to_string()),
-                Some("C:/Windows".to_string()),
-            )
+            windows_directories(&home_dir, app_data_dir.as_deref())
         } else {
             (None, None, None, None)
         };
@@ -114,7 +152,7 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
     if let Some(root) = derived_steam_root(input.executable_path.as_deref()) {
         steam_roots.push(root);
     }
-    
+
     if let Some(root) = input.steam_path.as_deref().map(normalize_separators) {
         if !steam_roots.contains(&root) {
             steam_roots.push(root);

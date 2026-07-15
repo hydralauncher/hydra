@@ -13,18 +13,13 @@ mod tests {
 
     #[test]
     fn uses_configured_url() {
-        let configured_url = Some(
-            "https://example.com/manifest.yaml".to_string(),
-        );
+        let configured_url = Some("https://example.com/manifest.yaml".to_string());
 
         let result = resolve_source_url(configured_url);
 
         println!("resolved url: {result}");
 
-        assert_eq!(
-            result,
-            "https://example.com/manifest.yaml"
-        );
+        assert_eq!(result, "https://example.com/manifest.yaml");
     }
 
     #[test]
@@ -33,9 +28,6 @@ mod tests {
 
         println!("resolved default url: {result}");
 
-        assert_eq!(
-            result,
-            DEFAULT_CLOUD_SAVE_MANIFEST_URL
-        );
+        assert_eq!(result, DEFAULT_CLOUD_SAVE_MANIFEST_URL);
     }
 }
