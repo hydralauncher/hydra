@@ -12,6 +12,11 @@ import "./game-assets-settings.scss";
 
 type AssetType = "icon" | "logo" | "hero" | "grid";
 
+const PREVIEW_MODIFIER_CLASS: Partial<Record<AssetType, string>> = {
+  icon: "game-assets-settings__icon-preview",
+  grid: "game-assets-settings__cover-preview",
+};
+
 interface ElectronFile extends File {
   path?: string;
 }
@@ -256,6 +261,30 @@ export function GameAssetsSettings({
       setNonCustomGameAssets(game);
     }
   }, [game, isCustomGame, setCustomGameAssets, setNonCustomGameAssets]);
+
+  useEffect(() => {
+    if (isCustomGame(game)) return;
+
+    let cancelled = false;
+
+    window.electron
+      .getGameAssets(game.objectId, game.shop)
+      .then((assets) => {
+        if (cancelled || !assets) return;
+
+        setDefaultUrls((previous) => ({
+          icon: assets.iconUrl || previous.icon,
+          logo: assets.logoImageUrl || previous.logo,
+          hero: assets.libraryHeroImageUrl || previous.hero,
+          grid: assets.coverImageUrl || assets.libraryImageUrl || previous.grid,
+        }));
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [game, isCustomGame]);
 
   const handleAssetTypeChange = (assetType: AssetType) => {
     setSelectedAssetType(assetType);
@@ -645,7 +674,7 @@ export function GameAssetsSettings({
             type="button"
             aria-label={t(getTranslationKey("_drop_zone"))}
             className={`game-assets-settings__image-preview ${
-              assetType === "icon" ? "game-assets-settings__icon-preview" : ""
+              PREVIEW_MODIFIER_CLASS[assetType] ?? ""
             } ${isDragOver ? "game-assets-settings__drop-zone--active" : ""}`}
             onDragOver={handleDragOver}
             onDragEnter={(event) => handleDragEnter(event, assetType)}
@@ -669,7 +698,7 @@ export function GameAssetsSettings({
             type="button"
             aria-label={t(getTranslationKey("_drop_zone_empty"))}
             className={`game-assets-settings__image-preview ${
-              assetType === "icon" ? "game-assets-settings__icon-preview" : ""
+              PREVIEW_MODIFIER_CLASS[assetType] ?? ""
             } game-assets-settings__drop-zone ${
               isDragOver ? "game-assets-settings__drop-zone--active" : ""
             }`}

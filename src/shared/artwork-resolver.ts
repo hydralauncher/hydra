@@ -1,4 +1,8 @@
-import type { GameArtworkSelection, ShopAssets } from "@types";
+import type {
+  ArtworkAssetType,
+  GameArtworkSelection,
+  ShopAssets,
+} from "@types";
 
 type ComposableAssets = (ShopAssets & { updatedAt?: number }) | null;
 
@@ -16,5 +20,6 @@ export const composeAssetsWithArtwork = <T extends ComposableAssets>(
     logoImageUrl: selected.logo?.url ?? assets.logoImageUrl,
     libraryHeroImageUrl: selected.hero?.url ?? assets.libraryHeroImageUrl,
     coverImageUrl: selected.grid?.url ?? assets.coverImageUrl,
+    selectedArtworkTypes: Object.keys(selected) as ArtworkAssetType[],
   };
 };

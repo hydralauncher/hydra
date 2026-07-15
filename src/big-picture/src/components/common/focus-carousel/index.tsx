@@ -507,7 +507,9 @@ function FocusCarouselCard({
   if (cardMode === "library") {
     const isClassicsGame = game.shop === "launchbox";
     const coverMedia =
-      isClassicsGame && libraryPresentation.activeImageSource ? (
+      isClassicsGame &&
+      libraryPresentation.activeImageSource &&
+      !libraryPresentation.isChosenCoverActive ? (
         <ClassicsVerticalCoverMedia
           imageUrl={libraryPresentation.activeImageSource}
           gameTitle={game.title}

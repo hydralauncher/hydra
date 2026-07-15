@@ -1,6 +1,6 @@
 import "./card-presentation.scss";
 
-import type { GameShop } from "@types";
+import type { ArtworkAssetType, GameShop } from "@types";
 import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
 import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import { useEffect, useState } from "react";
@@ -20,8 +20,10 @@ export interface LibraryGameCardPresentationSource {
   title: string;
   platform?: string | null;
   customIconUrl?: string | null;
+  customCoverImageUrl?: string | null;
   customHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
+  selectedArtworkTypes?: ArtworkAssetType[];
   iconUrl?: string | null;
   coverImageUrl?: string | null;
   libraryHeroImageUrl?: string | null;
@@ -77,11 +79,26 @@ function getPresentationImageSources(
   }
 
   return getResolvedImageSources([
+    game.customCoverImageUrl,
     game.customIconUrl,
     game.coverImageUrl,
     game.libraryImageUrl,
     game.iconUrl,
   ]);
+}
+
+function isChosenCoverSource(
+  game: LibraryGameCardPresentationSource,
+  source: string
+) {
+  const chosenCovers = [
+    game.customCoverImageUrl,
+    game.selectedArtworkTypes?.includes("grid") ? game.coverImageUrl : null,
+  ];
+
+  return chosenCovers.some(
+    (candidate) => !!candidate && resolveImageSource(candidate) === source
+  );
 }
 
 export function useLibraryGameCardPresentation(
@@ -101,6 +118,9 @@ export function useLibraryGameCardPresentation(
   const activeImageSource = imageExhausted
     ? null
     : (imageSources[imageSourceIndex] ?? null);
+  const isChosenCoverActive = Boolean(
+    activeImageSource && isChosenCoverSource(game, activeImageSource)
+  );
   const dominantColor = useDominantColor(activeImageSource);
   const achievementProgress = getGameAchievementProgress(game);
   const classicsSystem =
@@ -126,6 +146,7 @@ export function useLibraryGameCardPresentation(
 
   return {
     activeImageSource,
+    isChosenCoverActive,
     achievementProgress,
     classicsEmulatorIcon,
     classicsPlatformLabel,

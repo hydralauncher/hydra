@@ -51,13 +51,17 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const isInstalled = Boolean(game.executablePath);
 
-  const sources = [
-    game.customCoverImageUrl, // Level 0
-    game.customIconUrl, // Level 1
-    game.coverImageUrl, // Level 2
-    game.libraryImageUrl, // Level 3
-    game.iconUrl, // Level 4
-  ].filter((url) => url && url.trim() !== "");
+  const hasPickedCover = Boolean(game.selectedArtworkTypes?.includes("grid"));
+
+  const candidates = [
+    { url: game.customCoverImageUrl, isChosenCover: true }, // Level 0
+    { url: game.customIconUrl, isChosenCover: false }, // Level 1
+    { url: game.coverImageUrl, isChosenCover: hasPickedCover }, // Level 2
+    { url: game.libraryImageUrl, isChosenCover: false }, // Level 3
+    { url: game.iconUrl, isChosenCover: false }, // Level 4
+  ].filter(({ url }) => url && url.trim() !== "");
+
+  const sources = candidates.map(({ url }) => url);
 
   const [fallbackIndex, setFallbackIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
@@ -93,6 +97,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   };
 
   const activeImageSource = resolveImageSource(sources[fallbackIndex]);
+  const isChosenCoverActive = Boolean(candidates[fallbackIndex]?.isChosenCover);
 
   const classicsSystem =
     game.shop === "launchbox" ? platformToSystem(game.platform) : null;
@@ -229,7 +234,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         <div className="library-game-card__cover-placeholder">
           <ImageIcon size={48} />
         </div>
-      ) : game.shop === "launchbox" ? (
+      ) : game.shop === "launchbox" && !isChosenCoverActive ? (
         <div className="library-game-card__classics-cover">
           <img
             src={activeImageSource}
