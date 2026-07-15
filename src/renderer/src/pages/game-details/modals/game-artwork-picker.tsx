@@ -1,31 +1,12 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import { Button } from "@renderer/components";
-import { useToast, useUserDetails } from "@renderer/hooks";
-import type {
-  ArtworkAssetType,
-  ArtworkItem,
-  ArtworkKind,
-  GameArtworkSelection,
-  LibraryGame,
-} from "@types";
+import { useGameArtworkGrid, useToast, useUserDetails } from "@renderer/hooks";
+import type { ArtworkAssetType, LibraryGame } from "@types";
 
 import "./game-artwork-picker.scss";
-
-const ARTWORK_KIND_BY_TYPE: Record<ArtworkAssetType, ArtworkKind> = {
-  grid: "grids",
-  hero: "heroes",
-  logo: "logos",
-  icon: "icons",
-};
 
 const SENTINEL_ROOT_MARGIN = "200px";
 
@@ -36,14 +17,6 @@ const INITIAL_SKELETON_COUNT: Record<ArtworkAssetType, number> = {
   logo: 12,
 };
 const MORE_SKELETON_COUNT = 4;
-
-const preloadImage = (url: string) =>
-  new Promise<void>((resolve) => {
-    const image = new Image();
-    image.onload = () => resolve();
-    image.onerror = () => resolve();
-    image.src = url;
-  });
 
 interface GameArtworkPickerProps {
   game: LibraryGame;
@@ -60,101 +33,33 @@ export function GameArtworkPicker({
   const { showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
 
-  const [items, setItems] = useState<ArtworkItem[]>([]);
-  const [selection, setSelection] = useState<GameArtworkSelection | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [isStale, setIsStale] = useState(false);
-  const [pendingId, setPendingId] = useState<number | null>(null);
-  const [hasFailed, setHasFailed] = useState(false);
+  const onError = useCallback(() => {
+    showErrorToast(t("steamgriddb_fetch_failed"));
+  }, [showErrorToast, t]);
+
+  const {
+    items,
+    currentArtworkId,
+    isLoading,
+    hasMore,
+    isStale,
+    hasFailed,
+    pendingId,
+    loadNextPage,
+    reload,
+    pick,
+    clear,
+  } = useGameArtworkGrid({
+    shop: game.shop,
+    objectId: game.objectId,
+    assetType,
+    enabled: Boolean(userDetails),
+    onChanged,
+    onError,
+  });
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const pageRef = useRef(0);
-  const loadingRef = useRef(false);
-  const requestIdRef = useRef(0);
-
-  const loadSelection = useCallback(async () => {
-    const record = await window.electron.getGameArtworkSelection(
-      game.shop,
-      game.objectId
-    );
-    setSelection(record);
-  }, [game.shop, game.objectId]);
-
-  const loadPage = useCallback(
-    async (page: number) => {
-      if (loadingRef.current) return;
-
-      const requestId = requestIdRef.current;
-      loadingRef.current = true;
-      setIsLoading(true);
-
-      try {
-        const result = await window.electron.getGameArtwork(
-          game.shop,
-          game.objectId,
-          ARTWORK_KIND_BY_TYPE[assetType],
-          page
-        );
-
-        if (requestId !== requestIdRef.current) return;
-
-        if (!result) {
-          setHasMore(false);
-          return;
-        }
-
-        setItems((previous) => {
-          const merged = new Map(previous.map((item) => [item.id, item]));
-          result.items.forEach((item) => merged.set(item.id, item));
-          return Array.from(merged.values());
-        });
-
-        setIsStale(result.cache === "stale");
-        setHasMore(result.hasMore);
-        setHasFailed(false);
-        pageRef.current = page + 1;
-      } catch {
-        if (requestId !== requestIdRef.current) return;
-
-        setHasFailed(true);
-        setHasMore(false);
-        showErrorToast(t("steamgriddb_fetch_failed"));
-      } finally {
-        if (requestId === requestIdRef.current) {
-          loadingRef.current = false;
-          setIsLoading(false);
-        }
-      }
-    },
-    [game.shop, game.objectId, assetType, showErrorToast, t]
-  );
-
-  const reset = useCallback(() => {
-    requestIdRef.current += 1;
-    loadingRef.current = false;
-    pageRef.current = 0;
-    setItems([]);
-    setHasMore(true);
-    setIsStale(false);
-    setHasFailed(false);
-    setIsLoading(true);
-  }, []);
-
-  useEffect(() => {
-    loadSelection().catch(() => {});
-  }, [loadSelection]);
-
-  useLayoutEffect(() => {
-    reset();
-  }, [game.shop, game.objectId, assetType, reset]);
-
-  useEffect(() => {
-    if (!userDetails) return;
-
-    loadPage(0).catch(() => {});
-  }, [userDetails, loadPage]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -163,9 +68,7 @@ export function GameArtworkPicker({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting && !loadingRef.current) {
-          loadPage(pageRef.current).catch(() => {});
-        }
+        if (entries[0]?.isIntersecting) loadNextPage();
       },
       { root, rootMargin: SENTINEL_ROOT_MARGIN }
     );
@@ -173,47 +76,7 @@ export function GameArtworkPicker({
     observer.observe(sentinel);
 
     return () => observer.disconnect();
-  }, [hasMore, loadPage, items.length]);
-
-  const handlePick = async (item: ArtworkItem) => {
-    setPendingId(item.id);
-    try {
-      await window.electron.setGameArtworkSelection({
-        shop: game.shop,
-        objectId: game.objectId,
-        type: assetType,
-        url: item.url,
-        artworkId: item.id,
-      });
-      await loadSelection();
-      await onChanged();
-      await preloadImage(item.url);
-    } catch {
-      showErrorToast(t("steamgriddb_fetch_failed"));
-    } finally {
-      setPendingId(null);
-    }
-  };
-
-  const handleClear = async () => {
-    try {
-      await window.electron.setGameArtworkSelection({
-        shop: game.shop,
-        objectId: game.objectId,
-        type: assetType,
-        clear: true,
-      });
-      await loadSelection();
-      await onChanged();
-    } catch {
-      showErrorToast(t("steamgriddb_fetch_failed"));
-    }
-  };
-
-  const handleReload = () => {
-    reset();
-    loadPage(0).catch(() => {});
-  };
+  }, [hasMore, loadNextPage, items.length]);
 
   if (!userDetails) {
     return (
@@ -223,7 +86,6 @@ export function GameArtworkPicker({
     );
   }
 
-  const currentArtworkId = selection?.selected?.[assetType]?.artworkId;
   const showReload = isStale || hasFailed;
 
   return (
@@ -235,7 +97,7 @@ export function GameArtworkPicker({
 
         <div className="game-artwork__actions">
           {showReload && (
-            <Button type="button" theme="outline" onClick={handleReload}>
+            <Button type="button" theme="outline" onClick={reload}>
               {t("steamgriddb_refresh")}
             </Button>
           )}
@@ -243,7 +105,7 @@ export function GameArtworkPicker({
           <Button
             type="button"
             theme="outline"
-            onClick={handleClear}
+            onClick={clear}
             disabled={isLoading}
           >
             {t("steamgriddb_use_default")}
@@ -271,7 +133,7 @@ export function GameArtworkPicker({
                     ? "game-artwork__item--active"
                     : ""
                 }`}
-                onClick={() => handlePick(item)}
+                onClick={() => pick(item)}
               >
                 <img src={item.thumb} alt="" loading="lazy" />
                 {pendingId === item.id && (
