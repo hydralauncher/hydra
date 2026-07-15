@@ -190,7 +190,6 @@ export function CloudSaveModal({
     syncAction = (
       <div className="cloud-save-v2__conflict-actions">
         <Button
-          theme="outline"
           onClick={() => onResolveConflict("keep-local")}
           disabled={isLoading}
         >
@@ -198,7 +197,6 @@ export function CloudSaveModal({
           {t("cloud_save_v2_keep_local")}
         </Button>
         <Button
-          theme="outline"
           onClick={() => onResolveConflict("keep-remote")}
           disabled={isLoading}
         >
