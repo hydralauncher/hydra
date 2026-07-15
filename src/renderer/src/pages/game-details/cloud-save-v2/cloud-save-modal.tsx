@@ -42,7 +42,7 @@ const stateKey: Record<CloudSaveState, string> = {
   "local-ahead": "cloud_save_v2_outdated",
   "remote-ahead": "cloud_save_v2_outdated",
   conflict: "cloud_save_v2_conflict",
-  untracked: "cloud_save_v2_not_synced",
+  untracked: "cloud_save",
 };
 
 const statusTone: Record<

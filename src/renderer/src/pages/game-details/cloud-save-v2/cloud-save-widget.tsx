@@ -26,7 +26,7 @@ const statusKey = (overview: CloudSaveOverview | null) => {
   if (!overview) return "cloud_save_v2_checking";
   if (overview.state === "synced") return "cloud_save_v2_synced";
   if (overview.state === "conflict") return "cloud_save_v2_conflict";
-  if (overview.state === "untracked") return "cloud_save_v2_not_synced";
+  if (overview.state === "untracked") return "cloud_save";
   return "cloud_save_v2_outdated";
 };
 
@@ -196,7 +196,7 @@ export function CloudSaveWidget({
   const hasError = hasRefreshError || hasSyncError;
   let label = t(statusKey(overview));
   if (!canUseCloudSaves) {
-    label = t("cloud_save_v2");
+    label = t("cloud_save");
   } else if (isSyncing) {
     label = t("cloud_save_v2_syncing");
   } else if (hasError) {
@@ -212,13 +212,14 @@ export function CloudSaveWidget({
         type="button"
         className={`game-details__cloud-sync-button cloud-save-v2__trigger cloud-save-v2__trigger--${tone}`}
         onClick={handleOpen}
-        title={t("cloud_save_v2")}
+        title={t("cloud_save")}
       >
         <CloudSaveStatusIcon
           overview={overview}
           isChecking={isChecking}
           isSyncing={isSyncing}
           hasError={hasError}
+          isAvailable={canUseCloudSaves}
           hasExecutablePath={Boolean(game?.executablePath)}
           progress={progress}
         />

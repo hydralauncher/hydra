@@ -15,6 +15,7 @@ interface CloudSaveStatusIconProps {
   isChecking?: boolean;
   isSyncing?: boolean;
   hasError?: boolean;
+  isAvailable?: boolean;
   hasExecutablePath?: boolean;
   progress?: CloudSaveSyncProgressPayload | null;
   size?: number;
@@ -25,6 +26,7 @@ export function CloudSaveStatusIcon({
   isChecking = false,
   isSyncing = false,
   hasError = false,
+  isAvailable = true,
   hasExecutablePath = true,
   progress = null,
   size = 22,
@@ -39,7 +41,7 @@ export function CloudSaveStatusIcon({
   if (isChecking || isSyncing) {
     return <CircleNotchIcon className="cloud-save-v2__spinner" size={size} />;
   }
-  if (!hasExecutablePath) {
+  if (!isAvailable || !hasExecutablePath) {
     return <CloudSlashIcon size={size} weight="fill" />;
   }
   if (overview?.state === "synced") {
