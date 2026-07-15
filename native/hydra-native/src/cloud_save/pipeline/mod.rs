@@ -3,6 +3,7 @@ mod types;
 use std::collections::{btree_map::Entry, BTreeMap};
 use std::path::Path;
 
+use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
 use super::local_snapshot::types::DiscoveredLocalSaveFile;
@@ -16,6 +17,10 @@ use super::save_scanner::{scan_resolved_save_rules, ScannedCloudSaveRule};
 
 pub use types::BuildLocalGameSnapshotPipelineInput;
 
+const DYNAMIC_PATH_PRIORITY: u8 = 0;
+const STATIC_PATH_PRIORITY: u8 = 1;
+const STATIC_FILE_PRIORITY: u8 = 2;
+
 fn collect_discovered_files(
     scanned_rules: Vec<ScannedCloudSaveRule>,
 ) -> Vec<DiscoveredLocalSaveFile> {
@@ -27,11 +32,11 @@ fn collect_discovered_files(
             .iter()
             .any(|path| !path.dynamic && Path::new(&path.path).is_file())
         {
-            2
+            STATIC_FILE_PRIORITY
         } else if rule.resolved_paths.iter().any(|path| !path.dynamic) {
-            1
+            STATIC_PATH_PRIORITY
         } else {
-            0
+            DYNAMIC_PATH_PRIORITY
         };
 
         for scanned_path in rule.scanned_paths {
@@ -90,11 +95,15 @@ pub async fn build_local_game_snapshot_pipeline(
         rules: save_rules.rules,
     })?;
     let scanned_rules = scan_resolved_save_rules(resolved_rules).await?;
+    let discovered_files =
+        tokio::task::spawn_blocking(move || collect_discovered_files(scanned_rules))
+            .await
+            .map_err(|error| Error::from_reason(error.to_string()))?;
 
     build_local_game_snapshot(BuildLocalGameSnapshotInput {
         game_id: CloudSaveGameId { shop, object_id },
         manifest_key,
-        files: collect_discovered_files(scanned_rules),
+        files: discovered_files,
         hash_cache: input.hash_cache,
     })
     .await
