@@ -39,7 +39,7 @@ impl fmt::Display for LocalSnapshotGuardError {
     }
 }
 
-pub fn validate_discovered_files(
+pub fn prepare_snapshot_files(
     files: &[DiscoveredLocalSaveFile],
 ) -> Result<HashMap<String, InitialFileMetadata>, LocalSnapshotGuardError> {
     if files.len() > MAX_SNAPSHOT_FILE_COUNT {
@@ -159,16 +159,16 @@ mod tests {
             .map(|index| discovered("<home>/game", &index.to_string()))
             .collect::<Vec<_>>();
         assert_eq!(
-            validate_discovered_files(&too_many),
+            prepare_snapshot_files(&too_many),
             Err(LocalSnapshotGuardError::TooManyFiles)
         );
 
         let file = discovered("<home>/game", "save.dat");
         assert_eq!(
-            validate_discovered_files(&[file.clone(), file]),
+            prepare_snapshot_files(&[file.clone(), file]),
             Err(LocalSnapshotGuardError::DuplicateFile)
         );
-        assert!(validate_discovered_files(&[]).is_ok());
+        assert!(prepare_snapshot_files(&[]).is_ok());
     }
 
     #[test]
@@ -186,7 +186,7 @@ mod tests {
         };
 
         assert_eq!(
-            validate_discovered_files(&[file]),
+            prepare_snapshot_files(&[file]),
             Err(LocalSnapshotGuardError::SnapshotTooLarge)
         );
     }
