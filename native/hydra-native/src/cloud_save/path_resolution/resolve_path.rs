@@ -1,87 +1,129 @@
 use std::collections::HashSet;
 
 use super::candidates::{native_paths, normalize_candidate, steam_proton_paths, wine_paths};
-use super::tokens::{expand_store_user_ids, has_unresolved_placeholder, tokens_in_path};
-use super::types::PathResolutionContext;
+use super::tokens::{has_unresolved_placeholder, tokens_in_path};
+use super::types::{PathResolutionContext, ResolvedCloudSavePath};
 
 pub struct ResolvedPath {
-    pub resolved_paths: Vec<String>,
+    pub paths: Vec<ResolvedCloudSavePath>,
     pub unresolved_tokens: Vec<String>,
 }
 
 fn collect_paths(
-    resolved_paths: &mut Vec<String>,
-    seen: &mut HashSet<String>,
+    paths: &mut Vec<ResolvedCloudSavePath>,
+    seen: &mut HashSet<(String, bool)>,
     candidates: Vec<String>,
-    steam_user_ids: &[String],
+    case_sensitive: bool,
+    dynamic: bool,
 ) {
-    for candidate in candidates {
-        for expanded in expand_store_user_ids(candidate, steam_user_ids) {
-            if has_unresolved_placeholder(&expanded) {
-                continue;
-            }
-            let normalized = normalize_candidate(&expanded);
-            if seen.insert(normalized.clone()) {
-                resolved_paths.push(normalized);
-            }
+    for path in candidates {
+        if has_unresolved_placeholder(&path) {
+            continue;
+        }
+
+        if seen.insert((path.clone(), case_sensitive)) {
+            paths.push(ResolvedCloudSavePath {
+                path,
+                case_sensitive,
+                dynamic,
+                scan_root: None,
+            });
         }
     }
 }
 
-pub fn resolve_path(
-    raw_path: &str,
-    context: &PathResolutionContext,
-    steam_user_ids: &[String],
-) -> ResolvedPath {
+fn is_glob_segment(segment: &str) -> bool {
+    segment.contains(['*', '?', '[', '{'])
+}
+
+fn raw_glob_base(raw_path: &str) -> Option<String> {
+    let normalized = normalize_candidate(raw_path);
+    let segments = normalized.split('/').collect::<Vec<_>>();
+    let first_glob = segments
+        .iter()
+        .position(|segment| is_glob_segment(segment))?;
+
+    Some(match first_glob {
+        0 => ".".to_string(),
+        index => segments[..index].join("/"),
+    })
+}
+
+fn assign_scan_roots(paths: &mut [ResolvedCloudSavePath], roots: &[ResolvedCloudSavePath]) {
+    for candidate in paths {
+        candidate.scan_root = roots
+            .iter()
+            .filter(|root| {
+                candidate.path == root.path
+                    || candidate
+                        .path
+                        .starts_with(&format!("{}/", root.path.trim_end_matches('/')))
+            })
+            .max_by_key(|root| root.path.len())
+            .map(|root| root.path.clone());
+    }
+}
+
+pub fn resolve_path(raw_path: &str, context: &PathResolutionContext) -> ResolvedPath {
     let raw_path = normalize_candidate(raw_path)
         .replace("*<storeUserId>", "<storeUserId>")
         .replace("<storeUserId>*", "<storeUserId>");
-    let mut resolved_paths = Vec::new();
+    let store_user_dynamic = raw_path.contains("<storeUserId>");
+    let mut paths = Vec::new();
     let mut seen = HashSet::new();
 
     collect_paths(
-        &mut resolved_paths,
+        &mut paths,
         &mut seen,
         native_paths(&raw_path, context, None),
-        steam_user_ids,
+        context.platform == "linux",
+        store_user_dynamic,
     );
 
     for root in &context.steam_roots {
         collect_paths(
-            &mut resolved_paths,
+            &mut paths,
             &mut seen,
             native_paths(&raw_path, context, Some(root)),
-            steam_user_ids,
+            context.platform == "linux",
+            store_user_dynamic,
         );
     }
 
     if context.platform == "linux" && context.shop == "steam" {
         for root in &context.steam_roots {
             collect_paths(
-                &mut resolved_paths,
+                &mut paths,
                 &mut seen,
                 steam_proton_paths(&raw_path, context, root),
-                steam_user_ids,
+                false,
+                store_user_dynamic,
             );
         }
     }
 
     if let Some(prefix) = &context.wine_prefix_path {
         collect_paths(
-            &mut resolved_paths,
+            &mut paths,
             &mut seen,
             wine_paths(&raw_path, context, prefix),
-            steam_user_ids,
+            false,
+            true,
         );
     }
 
-    let unresolved_tokens = resolved_paths
+    if let Some(raw_scan_root) = raw_glob_base(&raw_path) {
+        let roots = resolve_path(&raw_scan_root, context).paths;
+        assign_scan_roots(&mut paths, &roots);
+    }
+
+    let unresolved_tokens = paths
         .is_empty()
         .then(|| tokens_in_path(&raw_path))
         .unwrap_or_default();
 
     ResolvedPath {
-        resolved_paths,
+        paths,
         unresolved_tokens,
     }
 }
@@ -129,12 +171,11 @@ mod tests {
             app_data_dir: None,
             wine_prefix_path: Some("/home/spectre/.wine".to_string()),
             steam_path: None,
-            steam_user_ids: Vec::new(),
             rules: Vec::new(),
         };
 
         let context = build_context(&input).unwrap();
-        let result = resolve_path(&rule.raw_path, &context, &input.steam_user_ids);
+        let result = resolve_path(&rule.raw_path, &context);
 
         let expected_path = concat!(
             "/home/spectre/.wine/",
@@ -145,10 +186,35 @@ mod tests {
         assert_eq!(rule.kind, "dir");
         assert_eq!(rule.source, "ludusavi");
         assert!(rule.tags.iter().any(|tag| tag == "save"));
-        assert!(result
-            .resolved_paths
-            .iter()
-            .any(|path| path == expected_path));
+        assert!(result.paths.iter().any(|path| path.path == expected_path));
         assert!(result.unresolved_tokens.is_empty());
+    }
+
+    #[test]
+    fn resolves_store_user_as_dynamic_wildcard() {
+        let input = ResolveSaveRulesInput {
+            shop: "steam".to_string(),
+            object_id: "1888930".to_string(),
+            platform: "linux".to_string(),
+            home_dir: "/home/victor".to_string(),
+            executable_path: Some("/games/TLOU/tlou-i.exe".to_string()),
+            documents_dir: None,
+            app_data_dir: None,
+            wine_prefix_path: Some("/prefix".to_string()),
+            steam_path: None,
+            rules: Vec::new(),
+        };
+        let context = build_context(&input).unwrap();
+
+        let result = resolve_path(
+            "<home>/Saved Games/The Last of Us Part I/users/<storeUserId>/savedata",
+            &context,
+        );
+
+        assert!(result.paths.iter().any(|candidate| {
+            candidate.dynamic
+                && candidate.path
+                    == "/prefix/drive_*/users/*/Saved Games/The Last of Us Part I/users/*/savedata"
+        }));
     }
 }

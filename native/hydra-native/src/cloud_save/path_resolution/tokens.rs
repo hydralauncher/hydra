@@ -33,6 +33,7 @@ pub fn apply(path: &str, values: &TokenValues) -> String {
     path.replace("<root>", &values.root)
         .replace("<base>", &values.base)
         .replace("<home>", &values.home)
+        .replace("<storeUserId>", "*")
         .replace("<osUserName>", &values.os_username)
         .replace("<winAppData>", &values.app_data)
         .replace("%APPDATA%", &values.app_data)
@@ -44,17 +45,6 @@ pub fn apply(path: &str, values: &TokenValues) -> String {
         .replace("<winDir>", &values.windows_dir)
         .replace("<xdgData>", &values.xdg_data)
         .replace("<xdgConfig>", &values.xdg_config)
-}
-
-pub fn expand_store_user_ids(path: String, steam_user_ids: &[String]) -> Vec<String> {
-    if !path.contains("<storeUserId>") {
-        return vec![path];
-    }
-
-    steam_user_ids
-        .iter()
-        .map(|user_id| path.replace("<storeUserId>", &globset::escape(user_id)))
-        .collect()
 }
 
 pub fn has_unresolved_placeholder(path: &str) -> bool {
