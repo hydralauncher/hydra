@@ -241,7 +241,10 @@ export function GameAssetsSettings({
         grid:
           shopDetails?.assets?.coverImageUrl ||
           currentGame.coverImageUrl ||
+          shopDetails?.assets?.libraryImageUrl ||
           currentGame.libraryImageUrl ||
+          shopDetails?.assets?.iconUrl ||
+          currentGame.iconUrl ||
           null,
       });
     },
