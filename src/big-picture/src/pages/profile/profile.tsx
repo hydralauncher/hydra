@@ -125,6 +125,8 @@ type ProfileClassicsAssetFields = {
   customIconUrl?: string | null;
   customHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
+  customCoverImageUrl?: string | null;
+  customLibraryImageUrl?: string | null;
 };
 
 type ProfileComparedAchievement = ComparedAchievements["achievements"][number];
@@ -487,7 +489,11 @@ function toProfileLibraryCarouselGame(
     libraryImageUrl: game.libraryImageUrl ?? null,
     logoImageUrl: game.logoImageUrl ?? null,
     logoPosition: game.logoPosition ?? null,
-    coverImageUrl: game.coverImageUrl ?? null,
+    coverImageUrl:
+      classicsAssetFields.customLibraryImageUrl ??
+      classicsAssetFields.customCoverImageUrl ??
+      game.coverImageUrl ??
+      null,
     downloadSources: game.downloadSources ?? [],
     platform: classicsAssetFields.platform ?? null,
     customIconUrl: classicsAssetFields.customIconUrl ?? null,

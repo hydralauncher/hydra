@@ -45,9 +45,11 @@ export function UserLibraryGameCard({
   const [isPinning, setIsPinning] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
+
   useEffect(() => {
     setImageError(false);
-  }, [game.coverImageUrl]);
+  }, [coverImageUrl]);
 
   const isCompleted = isGameCompleted(
     game.achievementCount,
@@ -249,14 +251,14 @@ export function UserLibraryGameCard({
               )}
           </div>
 
-          {imageError || !game.coverImageUrl ? (
+          {imageError || !coverImageUrl ? (
             <div className="user-library-game__cover-placeholder">
               <ImageIcon size={48} />
             </div>
           ) : game.shop === "launchbox" ? (
             <div className="user-library-game__classics-cover">
               <img
-                src={game.coverImageUrl}
+                src={coverImageUrl}
                 alt=""
                 aria-hidden="true"
                 className="user-library-game__classics-backdrop"
@@ -265,7 +267,7 @@ export function UserLibraryGameCard({
                 onError={() => setImageError(true)}
               />
               <img
-                src={game.coverImageUrl}
+                src={coverImageUrl}
                 alt={game.title}
                 className="user-library-game__classics-image"
                 loading="lazy"
@@ -275,7 +277,7 @@ export function UserLibraryGameCard({
             </div>
           ) : (
             <img
-              src={game.coverImageUrl}
+              src={coverImageUrl}
               alt={game.title}
               className="user-library-game__game-image"
               loading="lazy"
