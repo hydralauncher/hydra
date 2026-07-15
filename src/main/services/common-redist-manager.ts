@@ -274,6 +274,7 @@ export class CommonRedistManager {
     }
 
     if (manifestChanged) {
+      await this.resetPreflightStatus();
       await db.put(levelKeys.commonRedistVersion, this.redistManifestVersion, {
         valueEncoding: "json",
       });
