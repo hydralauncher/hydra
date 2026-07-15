@@ -1,3 +1,4 @@
+mod candidates;
 mod context;
 mod resolve_path;
 mod resolve_rules;
