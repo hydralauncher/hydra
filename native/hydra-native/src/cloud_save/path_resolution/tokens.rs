@@ -53,27 +53,29 @@ pub fn has_unresolved_placeholder(path: &str) -> bool {
 
 fn percent_tokens(path: &str) -> Vec<String> {
     let mut tokens = Vec::new();
-    let mut rest = path;
+    let bytes = path.as_bytes();
+    let mut start = 0;
 
-    while let Some(start) = rest.find('%') {
-        let after_start = &rest[start + 1..];
-        let Some(end) = after_start.find('%') else {
-            break;
-        };
+    while start < bytes.len() {
+        if bytes[start] != b'%' {
+            start += 1;
+            continue;
+        }
 
-        let name = &after_start[..end];
-        if !name.is_empty()
-            && name
-                .chars()
-                .all(|character| character.is_ascii_alphanumeric() || character == '_')
-        {
-            let token = format!("%{name}%");
+        let mut end = start + 1;
+        while end < bytes.len() && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_') {
+            end += 1;
+        }
+
+        if end > start + 1 && end < bytes.len() && bytes[end] == b'%' {
+            let token = path[start..=end].to_string();
             if !tokens.contains(&token) {
                 tokens.push(token);
             }
+            start = end + 1;
+        } else {
+            start += 1;
         }
-
-        rest = &after_start[end + 1..];
     }
 
     tokens
@@ -120,9 +122,9 @@ mod tests {
 
     #[test]
     fn ignores_regular_percent_characters() {
-        let path = "100%/save";
+        let path = "100%/save/%UNKNOWN%";
 
-        assert!(!has_unresolved_placeholder(path));
-        assert!(tokens_in_path(path).is_empty());
+        assert!(has_unresolved_placeholder(path));
+        assert_eq!(tokens_in_path(path), vec!["%UNKNOWN%"]);
     }
 }
