@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
 import { ImageIcon, XIcon } from "@primer/octicons-react";
 import { Button, TextField } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
@@ -732,30 +731,19 @@ export function GameAssetsSettings({
     <div className="game-assets-settings">
       <div className="game-assets-settings__asset-tabs">
         {assetTabs.map((tab) => (
-          <div
+          <button
             key={tab.type}
-            className="game-assets-settings__asset-tab-wrapper"
+            type="button"
+            className={`game-assets-settings__asset-tab ${
+              selectedAssetType === tab.type
+                ? "game-assets-settings__asset-tab--active"
+                : ""
+            }`}
+            onClick={() => handleAssetTypeChange(tab.type)}
+            disabled={isUpdating}
           >
-            <button
-              type="button"
-              className={`game-assets-settings__asset-tab ${
-                selectedAssetType === tab.type
-                  ? "game-assets-settings__asset-tab--active"
-                  : ""
-              }`}
-              onClick={() => handleAssetTypeChange(tab.type)}
-              disabled={isUpdating}
-            >
-              {t(tab.labelKey)}
-            </button>
-            {selectedAssetType === tab.type && (
-              <motion.div
-                className="game-assets-settings__asset-tab-underline"
-                layoutId="asset-tab-underline"
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              />
-            )}
-          </div>
+            {t(tab.labelKey)}
+          </button>
         ))}
       </div>
 
