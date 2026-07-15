@@ -98,6 +98,10 @@ export type UserGame = {
   isFavorite: boolean;
   isPinned: boolean;
   pinnedDate?: Date | null;
+  customLibraryImageUrl?: string | null;
+  customLibraryHeroImageUrl?: string | null;
+  customLogoImageUrl?: string | null;
+  customIconUrl?: string | null;
 } & ShopAssets;
 
 export interface UserLibraryResponse {
