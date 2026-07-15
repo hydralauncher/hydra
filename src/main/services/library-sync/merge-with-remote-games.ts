@@ -15,7 +15,22 @@ type ProfileGame = {
   achievementCount: number;
   unlockedAchievementCount: number;
   platform?: string | null;
+  customLibraryImageUrl?: string | null;
+  customLibraryHeroImageUrl?: string | null;
+  customLogoImageUrl?: string | null;
+  customIconUrl?: string | null;
 } & ShopAssets;
+
+const reconcileCustomAsset = (
+  localValue: string | null | undefined,
+  remoteValue: string | null | undefined
+): string | null | undefined => {
+  if (remoteValue === undefined) return localValue;
+  if (typeof localValue === "string" && localValue.startsWith("local:")) {
+    return localValue;
+  }
+  return remoteValue;
+};
 
 const getLocalCollectionIds = (
   localGame:
@@ -129,6 +144,22 @@ export const mergeWithRemoteGames = async () => {
             achievementCount: game.achievementCount,
             unlockedAchievementCount: game.unlockedAchievementCount,
             platform: game.platform ?? localGame.platform,
+            customIconUrl: reconcileCustomAsset(
+              localGame.customIconUrl,
+              game.customIconUrl
+            ),
+            customLogoImageUrl: reconcileCustomAsset(
+              localGame.customLogoImageUrl,
+              game.customLogoImageUrl
+            ),
+            customHeroImageUrl: reconcileCustomAsset(
+              localGame.customHeroImageUrl,
+              game.customLibraryHeroImageUrl
+            ),
+            customCoverImageUrl: reconcileCustomAsset(
+              localGame.customCoverImageUrl,
+              game.customLibraryImageUrl
+            ),
           });
         } else {
           await gamesSublevel.put(gameKey, {
@@ -150,6 +181,10 @@ export const mergeWithRemoteGames = async () => {
             achievementCount: game.achievementCount,
             unlockedAchievementCount: game.unlockedAchievementCount,
             platform: game.platform ?? null,
+            customIconUrl: game.customIconUrl ?? null,
+            customLogoImageUrl: game.customLogoImageUrl ?? null,
+            customHeroImageUrl: game.customLibraryHeroImageUrl ?? null,
+            customCoverImageUrl: game.customLibraryImageUrl ?? null,
           });
         }
 
