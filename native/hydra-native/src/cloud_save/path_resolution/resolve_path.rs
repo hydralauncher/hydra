@@ -454,7 +454,7 @@ fn materialize_dynamic_candidate(pattern: &str, case_sensitive: bool) -> Vec<Str
         .collect()
 }
 
-fn complete_matches(candidate: &ResolvedPathCandidate) -> Vec<String> {
+fn complete_matches(candidate: &ResolvedPathCandidate, directories_only: bool) -> Vec<String> {
     let options = globetter::MatchOptions {
         case_sensitive: candidate.case_sensitive,
         require_literal_separator: true,
@@ -466,6 +466,7 @@ fn complete_matches(candidate: &ResolvedPathCandidate) -> Vec<String> {
         .into_iter()
         .flatten()
         .filter_map(Result::ok)
+        .filter(|path| !directories_only || path.is_dir())
         .map(|path| normalize_separators(&path.to_string_lossy()))
         .collect()
 }
@@ -473,6 +474,7 @@ fn complete_matches(candidate: &ResolvedPathCandidate) -> Vec<String> {
 pub fn resolve_restore_root(
     raw_path: &str,
     context: &PathResolutionContext,
+    directories_only: bool,
 ) -> Result<String, String> {
     let resolved = resolve_path(raw_path, context);
     if resolved.candidates.is_empty() {
@@ -498,7 +500,7 @@ pub fn resolve_restore_root(
 
     let complete = candidates
         .iter()
-        .flat_map(|candidate| complete_matches(candidate))
+        .flat_map(|candidate| complete_matches(candidate, directories_only))
         .collect::<HashSet<_>>();
     if complete.len() == 1 {
         return Ok(complete.into_iter().next().unwrap());
@@ -547,6 +549,38 @@ mod tests {
         .unwrap()
     }
 
+    fn windows_context(home: &Path) -> PathResolutionContext {
+        build_context(&ResolveSaveRulesInput {
+            shop: "steam".into(),
+            object_id: "1245620".into(),
+            platform: "windows".into(),
+            home_dir: home.display().to_string(),
+            documents_dir: Some(home.join("Documents").display().to_string()),
+            app_data_dir: Some(home.join("AppData/Roaming").display().to_string()),
+            executable_path: Some("C:/Games/ELDEN RING/Game/eldenring.exe".into()),
+            wine_prefix_path: None,
+            proton_path: None,
+            steam_path: None,
+            rules: vec![],
+        })
+        .unwrap()
+    }
+
+    #[test]
+    fn ignores_files_when_resolving_dynamic_directory_root() {
+        let temp = tempdir().unwrap();
+        let elden_ring = temp.path().join("AppData/Roaming/EldenRing");
+        let save_root = elden_ring.join("76561198000000000");
+        fs::create_dir_all(&save_root).unwrap();
+        fs::write(elden_ring.join("GraphicsConfig.xml"), b"config").unwrap();
+        let context = windows_context(temp.path());
+
+        let resolved =
+            resolve_restore_root("<winAppData>/EldenRing/<storeUserId>", &context, true).unwrap();
+
+        assert_eq!(resolved, normalize_separators(&save_root.to_string_lossy()));
+    }
+
     #[test]
     fn resolves_cyberpunk_saved_games_in_wine() {
         let temp = tempdir().unwrap();
@@ -556,9 +590,12 @@ mod tests {
         fs::create_dir_all(&save_root).unwrap();
         let context = wine_context(temp.path());
 
-        let resolved =
-            resolve_restore_root("<home>/Saved Games/CD Projekt Red/Cyberpunk 2077", &context)
-                .unwrap();
+        let resolved = resolve_restore_root(
+            "<home>/Saved Games/CD Projekt Red/Cyberpunk 2077",
+            &context,
+            true,
+        )
+        .unwrap();
 
         assert_eq!(resolved, normalize_separators(&save_root.to_string_lossy()));
     }
@@ -569,9 +606,12 @@ mod tests {
         fs::create_dir_all(temp.path().join("drive_c/users/steamuser")).unwrap();
         let context = wine_context(temp.path());
 
-        let resolved =
-            resolve_restore_root("<home>/Saved Games/CD Projekt Red/Cyberpunk 2077", &context)
-                .unwrap();
+        let resolved = resolve_restore_root(
+            "<home>/Saved Games/CD Projekt Red/Cyberpunk 2077",
+            &context,
+            true,
+        )
+        .unwrap();
 
         assert_eq!(
             resolved,
@@ -596,6 +636,7 @@ mod tests {
         let resolved = resolve_restore_root(
             "<home>/Saved Games/The Last of Us Part I/users/<storeUserId>/savedata",
             &context,
+            true,
         )
         .unwrap();
 
@@ -616,6 +657,7 @@ mod tests {
         let error = resolve_restore_root(
             "<home>/Saved Games/The Last of Us Part I/users/<storeUserId>/savedata",
             &context,
+            true,
         )
         .unwrap_err();
 

@@ -80,6 +80,16 @@ fn pipeline_error(logs: &mut Vec<CloudSaveDebugLog>, stage: &str, error: &impl T
     Error::from_reason(message)
 }
 
+fn should_replace_discovered_file(
+    existing_priority: u8,
+    existing: &DiscoveredLocalSaveFile,
+    candidate_priority: u8,
+    candidate: &DiscoveredLocalSaveFile,
+) -> bool {
+    candidate_priority > existing_priority
+        || candidate_priority == existing_priority && candidate.raw_path < existing.raw_path
+}
+
 #[napi(object)]
 pub struct BuildLocalGameSnapshotPipelineInput {
     pub shop: String,
@@ -276,6 +286,7 @@ pub async fn build_local_game_snapshot_pipeline(
     let mut discovered_files = BTreeMap::new();
 
     for rule in scanned_rules {
+        let priority = u8::from(rule.kind == "file");
         for scanned_path in rule.scanned_paths {
             for file in scanned_path.files {
                 let discovered = DiscoveredLocalSaveFile {
@@ -287,18 +298,29 @@ pub async fn build_local_game_snapshot_pipeline(
                 };
                 discovered_files
                     .entry(file.absolute_path)
-                    .and_modify(|existing: &mut DiscoveredLocalSaveFile| {
-                        if discovered.raw_path < existing.raw_path {
-                            *existing = discovered.clone();
-                        }
-                    })
-                    .or_insert(discovered);
+                    .and_modify(
+                        |(existing_priority, existing): &mut (u8, DiscoveredLocalSaveFile)| {
+                            if should_replace_discovered_file(
+                                *existing_priority,
+                                existing,
+                                priority,
+                                &discovered,
+                            ) {
+                                *existing_priority = priority;
+                                *existing = discovered.clone();
+                            }
+                        },
+                    )
+                    .or_insert((priority, discovered));
             }
         }
     }
 
     let built_files = build_local_save_snapshot_files_with_cache(
-        discovered_files.into_values().collect(),
+        discovered_files
+            .into_values()
+            .map(|(_, file)| file)
+            .collect(),
         input.hash_cache,
     )
     .await
@@ -352,4 +374,28 @@ pub async fn build_local_game_snapshot_pipeline(
         source_files,
         hash_cache: built_files.hash_cache,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn discovered(raw_path: &str) -> DiscoveredLocalSaveFile {
+        DiscoveredLocalSaveFile {
+            raw_path: raw_path.into(),
+            absolute_path: "C:/Users/rodrigo/AppData/Roaming/EldenRing/GraphicsConfig.xml".into(),
+            root_path: "C:/Users/rodrigo/AppData/Roaming/EldenRing".into(),
+            relative_path: "GraphicsConfig.xml".into(),
+            source: "ludusavi".into(),
+        }
+    }
+
+    #[test]
+    fn prefers_exact_file_rule_over_dynamic_directory_rule() {
+        let dynamic = discovered("<winAppData>/EldenRing/<storeUserId>");
+        let exact = discovered("<winAppData>/EldenRing/GraphicsConfig.xml");
+
+        assert!(should_replace_discovered_file(0, &dynamic, 1, &exact));
+        assert!(!should_replace_discovered_file(1, &exact, 0, &dynamic));
+    }
 }

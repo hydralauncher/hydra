@@ -1,7 +1,5 @@
 use crate::cloud_save::path_resolution::types::ResolvedCloudSaveRule;
 
-use std::collections::HashSet;
-
 use super::scan_path::scan_resolved_path;
 use super::types::ScannedCloudSaveRule;
 
@@ -10,7 +8,6 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
         .into_iter()
         .map(|rule| {
             let mut scanned_paths = Vec::new();
-            let mut dynamic_roots = HashSet::new();
             if rule.unresolved_tokens.is_empty() {
                 for (index, path) in rule.resolved_paths.iter().enumerate() {
                     let case_sensitive = rule
@@ -18,27 +15,15 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                         .get(index)
                         .copied()
                         .unwrap_or(true);
-                    let dynamic = rule
-                        .resolved_path_dynamic
-                        .get(index)
-                        .copied()
-                        .unwrap_or(false);
                     let scan_root = rule
                         .resolved_path_scan_roots
                         .get(index)
                         .filter(|root| !root.is_empty())
                         .map(String::as_str);
                     for scanned in scan_resolved_path(path, case_sensitive, scan_root) {
-                        if dynamic && !scanned.files.is_empty() {
-                            dynamic_roots.insert(scanned.resolved_path.clone());
-                        }
                         scanned_paths.push(scanned);
                     }
                 }
-            }
-
-            if dynamic_roots.len() > 1 {
-                return Err("cloud_save_ambiguous_dynamic_roots".to_string());
             }
 
             Ok(ScannedCloudSaveRule {
@@ -109,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_multiple_dynamic_save_roots() {
+    fn scans_multiple_dynamic_save_roots() {
         let temp = tempdir().unwrap();
         for user in ["Goldberg", "Rune"] {
             let root = temp.path().join(format!(
@@ -119,12 +104,57 @@ mod tests {
             fs::write(root.join("slot.dat"), user.as_bytes()).unwrap();
         }
 
-        let error = scan_rules(resolve(
+        let scanned = scan_rules(resolve(
             temp.path(),
             "<home>/Saved Games/The Last of Us Part I/users/<storeUserId>/savedata",
         ))
-        .unwrap_err();
+        .unwrap();
 
-        assert_eq!(error, "cloud_save_ambiguous_dynamic_roots");
+        assert_eq!(scanned[0].scanned_paths.len(), 2);
+        assert_eq!(
+            scanned[0]
+                .scanned_paths
+                .iter()
+                .flat_map(|path| &path.files)
+                .count(),
+            2
+        );
+    }
+
+    #[test]
+    fn scans_file_and_directory_matched_by_store_user_wildcard() {
+        let temp = tempdir().unwrap();
+        let elden_ring = temp.path().join("EldenRing");
+        let save_root = elden_ring.join("76561198000000000");
+        fs::create_dir_all(&save_root).unwrap();
+        fs::write(elden_ring.join("GraphicsConfig.xml"), b"config").unwrap();
+        fs::write(save_root.join("ER0000.sl2"), b"save").unwrap();
+
+        let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            kind: "dir".into(),
+            raw_path: "<winAppData>/EldenRing/<storeUserId>".into(),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![format!("{}/*", elden_ring.display())],
+            resolved_path_case_sensitive: vec![false],
+            resolved_path_dynamic: vec![true],
+            resolved_path_scan_roots: vec![String::new()],
+            unresolved_tokens: vec![],
+        }])
+        .unwrap();
+
+        let files = scanned[0]
+            .scanned_paths
+            .iter()
+            .flat_map(|path| &path.files)
+            .map(|file| file.absolute_path.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(files.len(), 2);
+        assert!(files
+            .iter()
+            .any(|path| path.ends_with("GraphicsConfig.xml")));
+        assert!(files.iter().any(|path| path.ends_with("ER0000.sl2")));
     }
 }
