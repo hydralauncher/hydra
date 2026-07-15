@@ -18,6 +18,18 @@ struct CanonicalSnapshot<'a> {
     files: Vec<CanonicalSnapshotFile<'a>>,
 }
 
+fn canonical_size_bytes(size_bytes: f64) -> Result<u64, String> {
+    if !size_bytes.is_finite()
+        || size_bytes < 0.0
+        || size_bytes.fract() != 0.0
+        || size_bytes >= u64::MAX as f64
+    {
+        return Err("cloud_save_invalid_size_bytes".to_string());
+    }
+
+    Ok(size_bytes as u64)
+}
+
 pub fn build_hash(mut input: BuildSnapshotAggregateHashInput) -> Result<String, String> {
     input.files.sort_by(|left, right| {
         left.raw_path
@@ -31,13 +43,15 @@ pub fn build_hash(mut input: BuildSnapshotAggregateHashInput) -> Result<String, 
         files: input
             .files
             .iter()
-            .map(|file| CanonicalSnapshotFile {
-                raw_path: &file.raw_path,
-                relative_path: &file.relative_path,
-                hash: &file.hash,
-                size_bytes: file.size_bytes as u64,
+            .map(|file| {
+                Ok(CanonicalSnapshotFile {
+                    raw_path: &file.raw_path,
+                    relative_path: &file.relative_path,
+                    hash: &file.hash,
+                    size_bytes: canonical_size_bytes(file.size_bytes)?,
+                })
             })
-            .collect(),
+            .collect::<Result<Vec<_>, String>>()?,
     };
     let serialized = serde_json::to_vec(&snapshot).map_err(|error| error.to_string())?;
 
@@ -98,5 +112,17 @@ mod tests {
             baseline,
             hash(vec![file("<home>/game", "save.dat", "a", 11.0)])
         );
+    }
+
+    #[test]
+    fn rejects_invalid_sizes() {
+        for size_bytes in [f64::NAN, f64::INFINITY, -1.0, 1.5, u64::MAX as f64] {
+            let error = build_hash(BuildSnapshotAggregateHashInput {
+                files: vec![file("<home>/game", "save.dat", "a", size_bytes)],
+            })
+            .unwrap_err();
+
+            assert_eq!(error, "cloud_save_invalid_size_bytes");
+        }
     }
 }

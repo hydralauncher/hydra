@@ -9,6 +9,7 @@ use super::file::hash_file;
 use super::types::{HashFilesResult, HashedLocalFile, LocalFileHashCacheEntry};
 
 pub const MAX_CONCURRENT_HASHES: usize = 8;
+const BLAKE3_HEX_HASH_LENGTH: usize = 64;
 static HASHING_POOL: OnceLock<rayon::ThreadPool> = OnceLock::new();
 
 fn hashing_pool() -> &'static rayon::ThreadPool {
@@ -36,7 +37,7 @@ fn format_modified_at(modified: std::time::SystemTime) -> String {
 }
 
 fn is_valid_hash(hash: &str) -> bool {
-    hash.len() == 64
+    hash.len() == BLAKE3_HEX_HASH_LENGTH
         && hash
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
