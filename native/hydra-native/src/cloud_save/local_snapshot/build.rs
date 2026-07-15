@@ -6,7 +6,7 @@ use crate::cloud_save::hashing::{
     SnapshotAggregateHashFile,
 };
 
-use super::guardrails::{validate_built_files, validate_discovered_files, validate_hashed_files};
+use super::guardrails::{prepare_snapshot_files, validate_built_files, validate_hashed_files};
 use super::types::{
     BuildLocalGameSnapshotInput, BuiltLocalSaveFile, LocalGameSnapshotFile,
     LocalGameSnapshotSourceFile, LocalGameSnapshotWithHash,
@@ -16,7 +16,7 @@ pub fn build_snapshot(
     input: BuildLocalGameSnapshotInput,
 ) -> Result<LocalGameSnapshotWithHash, String> {
     let initial_metadata =
-        validate_discovered_files(&input.files).map_err(|error| error.to_string())?;
+        prepare_snapshot_files(&input.files).map_err(|error| error.to_string())?;
 
     let hashed = hash_files(
         input
