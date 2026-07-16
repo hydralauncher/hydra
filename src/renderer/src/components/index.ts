@@ -30,3 +30,4 @@ export * from "./classics-scan-indicator/classics-scan-indicator";
 export * from "./classics-spinner/classics-spinner";
 export * from "./error-boundary/error-fallback";
 export * from "./error-boundary/error-boundary";
+export * from "./download-details-modal/download-details-modal";

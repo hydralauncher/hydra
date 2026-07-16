@@ -12,6 +12,28 @@ export type DownloadStatus =
   // Legacy/raw compatibility only. Official extraction state is the flag on Download.
   | "extracting";
 
+export interface TrackerInfo {
+  url: string;
+  status: "working" | "updating" | "failed" | "not_contacted";
+  tier: number;
+  fails: number;
+  updating: boolean;
+}
+
+export interface TorrentStats {
+  uploadSpeed: number;
+  downloadSpeed: number;
+  numPeers: number;
+  numSeeds: number;
+  progress: number;
+  totalUploaded: number;
+  totalDownloaded: number;
+  ratio: number;
+  bytesRemaining: number;
+  timeSince: number;
+  startTime?: number;
+}
+
 export interface DownloadProgress {
   downloadSpeed: number;
   timeRemaining: number;
@@ -27,6 +49,12 @@ export interface DownloadProgress {
   download: Download;
   batchFilesTotal?: number;
   batchFilesDownloaded?: number;
+  trackers?: TrackerInfo[];
+  trackerStats?: {
+    workingTrackers: number;
+    totalTrackers: number;
+  };
+  stats?: TorrentStats;
 }
 
 /* TorBox */

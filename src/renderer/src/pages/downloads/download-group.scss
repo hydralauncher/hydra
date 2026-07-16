@@ -483,6 +483,50 @@
     letter-spacing: 0.5px;
   }
 
+  &__simple-tracker-badge-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s ease;
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+  &__details-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+    flex-shrink: 0;
+
+    &:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    &:focus,
+    &:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.5);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+  }
+
   &__simple-progress {
     display: flex;
     flex-direction: column;

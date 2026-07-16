@@ -536,6 +536,8 @@ export class DownloadManager {
         fileSize,
         folderName,
         status,
+        trackerStats,
+        trackers,
       } = response.data;
 
       const isDownloadingMetadata =
@@ -562,14 +564,36 @@ export class DownloadManager {
         });
       }
 
+      const rpcAny = response.data as any;
+
+      const uploadSpeed = rpcAny.uploadSpeed ?? rpcAny.upload_speed ?? 0;
+      const totalUploaded = rpcAny.totalUploaded ?? rpcAny.total_upload ?? 0;
+      const totalDownloaded = bytesDownloaded ?? 0;
+      const effectiveFileSize =
+        fileSize > 0
+          ? fileSize
+          : (download?.selectedFilesSize ?? download?.fileSize ?? 0);
+      const bytesRemaining = Math.max(
+        0,
+        (effectiveFileSize ?? 0) - (totalDownloaded ?? 0)
+      );
+      const ratio = totalDownloaded > 0 ? totalUploaded / totalDownloaded : 0;
+
+      const stats = {
+        downloadSpeed: downloadSpeed ?? 0,
+        uploadSpeed,
+        totalDownloaded,
+        totalUploaded,
+        ratio,
+        bytesRemaining,
+      };
+
       return {
         numPeers,
         numSeeds,
         downloadSpeed,
         timeRemaining: calculateETA(
-          fileSize > 0
-            ? fileSize
-            : (download?.selectedFilesSize ?? download?.fileSize ?? 0),
+          effectiveFileSize,
           bytesDownloaded,
           downloadSpeed
         ),
@@ -578,6 +602,9 @@ export class DownloadManager {
         progress,
         gameId: downloadId,
         download,
+        trackerStats,
+        trackers,
+        stats,
       } as DownloadProgress;
     } catch {
       return null;
