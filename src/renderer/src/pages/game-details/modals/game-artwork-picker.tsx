@@ -178,6 +178,7 @@ export function GameArtworkPicker({
   const scrollRef = useRef<HTMLDivElement>(null);
   const selectionVersionRef = useRef(selectionVersion);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [pendingStaticArtworkId, setPendingStaticArtworkId] = useState<
     number | null
   >(null);
@@ -312,6 +313,7 @@ export function GameArtworkPicker({
 
   useEffect(() => {
     setSettledArtworkIds(new Set());
+    setIsScrolled(false);
     scrollRef.current?.scrollTo({ top: 0 });
   }, [assetType, game.objectId, game.shop]);
 
@@ -352,7 +354,15 @@ export function GameArtworkPicker({
       )}
 
       <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
-        <div className="game-artwork__scroll" ref={scrollRef}>
+        <div
+          className="game-artwork__scroll"
+          ref={scrollRef}
+          onScroll={(event) => setIsScrolled(event.currentTarget.scrollTop > 0)}
+        >
+          <div
+            className={`game-artwork__scroll-shadow${isScrolled ? " game-artwork__scroll-shadow--visible" : ""}`}
+            aria-hidden="true"
+          />
           {rowCount > 0 && (
             <div
               style={{
