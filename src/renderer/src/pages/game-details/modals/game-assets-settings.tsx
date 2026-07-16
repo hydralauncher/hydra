@@ -75,12 +75,6 @@ interface PendingAssetCrop {
   sourcePath: string;
   displayPath: string;
   cleanupSource: boolean;
-  artworkId?: number;
-}
-
-interface PendingArtworkSelection {
-  assetType: AssetType;
-  artworkId: number | null;
 }
 
 const VALID_IMAGE_TYPES = [
@@ -170,13 +164,10 @@ export function GameAssetsSettings({
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
   const [pendingAssetCrop, setPendingAssetCrop] =
     useState<PendingAssetCrop | null>(null);
-  const [pendingArtworkSelection, setPendingArtworkSelection] =
-    useState<PendingArtworkSelection | null>(null);
   const [pendingPreloadUrl, setPendingPreloadUrl] = useState<string | null>(
     null
   );
   const [isPreparingAsset, setIsPreparingAsset] = useState(false);
-  const [artworkPickerVersion, setArtworkPickerVersion] = useState(0);
 
   const mountedRef = useRef(true);
   const assetFlowBusyRef = useRef(false);
@@ -433,15 +424,13 @@ export function GameAssetsSettings({
     assetType: AssetType,
     sourcePath: string,
     displayPath = sourcePath,
-    cleanupSource = false,
-    artworkId?: number
+    cleanupSource = false
   ) => {
     const pendingCrop = {
       assetType,
       sourcePath,
       displayPath,
       cleanupSource,
-      artworkId,
     };
 
     pendingAssetCropRef.current = pendingCrop;
@@ -479,36 +468,12 @@ export function GameAssetsSettings({
     }
   };
 
-  const handleSelectSteamGridDbArtwork = async (
-    assetType: AssetType,
-    artworkUrl: string,
-    artworkId: number
-  ) => {
-    if (!beginAssetFlow()) return;
-
-    try {
-      const tempPath = await window.electron.downloadGameArtwork(artworkUrl);
-
-      if (!mountedRef.current) {
-        await cleanupTempFile(tempPath);
-        releaseAssetFlow();
-        return;
-      }
-
-      openAssetCrop(assetType, tempPath, artworkUrl, true, artworkId);
-    } catch (error) {
-      releaseAssetFlow();
-      throw error;
-    }
-  };
-
   const handleRestoreDefault = (assetType: AssetType) => {
     if (!beginAssetFlow()) return;
 
     setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
     setAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
     setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: "" }));
-    setPendingArtworkSelection({ assetType, artworkId: null });
     setPendingPreloadUrl(defaultUrls[assetType]);
     setPendingUpdateMessage(t("steamgriddb_artwork_reset"));
   };
@@ -644,10 +609,6 @@ export function GameAssetsSettings({
         copiedAssetUrl.replace("local:", ""),
         pendingCrop.displayPath
       );
-      setPendingArtworkSelection({
-        assetType: pendingCrop.assetType,
-        artworkId: pendingCrop.artworkId ?? null,
-      });
       setPendingPreloadUrl(copiedAssetUrl);
       setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
       pendingAssetCropRef.current = null;
@@ -768,25 +729,9 @@ export function GameAssetsSettings({
         customOriginalCoverPath: removedAssets.grid
           ? undefined
           : originalAssetPaths.grid || undefined,
-        customArtworkIds: pendingArtworkSelection
-          ? {
-              [pendingArtworkSelection.assetType]:
-                pendingArtworkSelection.artworkId,
-            }
-          : undefined,
-        clearArtworkTypes:
-          pendingArtworkSelection?.artworkId === null
-            ? [pendingArtworkSelection.assetType]
-            : undefined,
       });
     },
-    [
-      game.title,
-      originalAssetPaths,
-      pendingArtworkSelection,
-      prepareNonCustomGameAssets,
-      removedAssets,
-    ]
+    [game.title, originalAssetPaths, prepareNonCustomGameAssets, removedAssets]
   );
 
   useEffect(() => {
@@ -795,14 +740,11 @@ export function GameAssetsSettings({
     setIsUpdating(true);
 
     const updateGameAssets = async () => {
-      let assetsUpdated = false;
-
       try {
         await (isCustomGame(game)
           ? updateCustomGame(game)
           : updateNonCustomGame(game as LibraryGame));
 
-        assetsUpdated = true;
         await onGameUpdated();
 
         if (pendingPreloadUrl) {
@@ -816,11 +758,6 @@ export function GameAssetsSettings({
           error instanceof Error ? error.message : t("edit_game_modal_failed")
         );
       } finally {
-        if (assetsUpdated) {
-          setArtworkPickerVersion((version) => version + 1);
-        }
-
-        setPendingArtworkSelection(null);
         setPendingPreloadUrl(null);
         setPendingUpdateMessage(null);
         setIsUpdating(false);
@@ -1055,15 +992,6 @@ export function GameAssetsSettings({
             assetType={selectedAssetType}
             onChanged={onGameUpdated}
             disabled={isAssetFlowBusy}
-            selectionVersion={artworkPickerVersion}
-            onClearArtwork={() => handleRestoreDefault(selectedAssetType)}
-            onSelectArtwork={({ artworkUrl, artworkId }) =>
-              handleSelectSteamGridDbArtwork(
-                selectedAssetType,
-                artworkUrl,
-                artworkId
-              )
-            }
           />
         )}
       </div>
