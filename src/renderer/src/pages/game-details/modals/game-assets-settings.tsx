@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { AlertIcon, ImageIcon, XIcon } from "@primer/octicons-react";
+import {
+  AlertIcon,
+  CloudOfflineIcon,
+  ImageIcon,
+  XIcon,
+} from "@primer/octicons-react";
 import { Button, ImageCropModal, TextField } from "@renderer/components";
-import { useToast, useAppSelector } from "@renderer/hooks";
+import { useToast, useAppSelector, useUserDetails } from "@renderer/hooks";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 import { generateRandomGradient } from "@renderer/helpers";
 import type { Game, LibraryGame, ShopDetailsWithAssets } from "@types";
 
@@ -139,6 +145,8 @@ export function GameAssetsSettings({
   const { t } = useTranslation("sidebar");
   const { t: tProfile } = useTranslation("user_profile");
   const { showSuccessToast, showErrorToast } = useToast();
+  const { hasActiveSubscription } = useUserDetails();
+  const { showHydraCloudModal } = useSubscription();
   const navigate = useNavigate();
   const classicsUseHeroLayout =
     useAppSelector(
@@ -988,6 +996,17 @@ export function GameAssetsSettings({
       )}
 
       <div className="game-assets-settings">
+        {!hasActiveSubscription && !isCustomGame(game) && (
+          <button
+            type="button"
+            className="subscription-required-button"
+            onClick={() => showHydraCloudModal("customization")}
+          >
+            <CloudOfflineIcon size={16} />
+            <span>{t("custom_assets_not_sync")}</span>
+          </button>
+        )}
+
         <div className="game-assets-settings__asset-tabs">
           {assetTabs.map((tab) => (
             <button
