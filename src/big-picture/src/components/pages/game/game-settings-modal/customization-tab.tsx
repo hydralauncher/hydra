@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, MutableRefObject } from "react";
 import type { GameArtworkSelection, LibraryGame, ShopAssets } from "@types";
 import { PencilIcon } from "@primer/octicons-react";
 import { Loader2, Trash } from "lucide-react";
@@ -39,6 +39,67 @@ type AssetPreviewState = Record<
 >;
 
 const PREVIEW_MEDIA_TIMEOUT_MS = 10_000;
+
+interface AssetPreviewMediaProps {
+  source: string;
+  mediaKey: string;
+  title: string;
+  isLoaded: boolean;
+  mediaRef: MutableRefObject<HTMLImageElement | HTMLVideoElement | null>;
+  onSettled: () => void;
+}
+
+function AssetPreviewMedia({
+  source,
+  mediaKey,
+  title,
+  isLoaded,
+  mediaRef,
+  onSettled,
+}: Readonly<AssetPreviewMediaProps>) {
+  if (!source) return null;
+
+  const className = `game-customization-settings-tab__asset-preview-image${
+    isLoaded
+      ? " game-customization-settings-tab__asset-preview-image--loaded"
+      : ""
+  }`;
+  const setMediaRef = (media: HTMLImageElement | HTMLVideoElement | null) => {
+    mediaRef.current = media;
+  };
+
+  if (isVideoArtworkUrl(source)) {
+    return (
+      <video
+        key={mediaKey}
+        ref={setMediaRef}
+        className={className}
+        src={source}
+        autoPlay
+        loop
+        muted
+        playsInline
+        disablePictureInPicture
+        preload="auto"
+        onLoadedData={onSettled}
+        onError={onSettled}
+      />
+    );
+  }
+
+  return (
+    <img
+      key={mediaKey}
+      ref={setMediaRef}
+      className={className}
+      src={source}
+      alt={title}
+      draggable={false}
+      onLoad={onSettled}
+      onError={onSettled}
+    />
+  );
+}
 
 const ASSET_FRAME_SIZES: Record<AssetTab, { width: number; height: number }> = {
   icon: { width: 192, height: 192 },
@@ -240,7 +301,6 @@ export function GameCustomizationSettingsTab({
   const hasArtworkSelection =
     assetPreviewState[selectedAssetTab].hasArtworkSelection;
   const assetImageSource = assetPreviewState[selectedAssetTab].src;
-  const isVideoAsset = isVideoArtworkUrl(assetImageSource);
   const previewMediaKey = `${selectedAssetTab}:${assetImageSource}`;
   const [settledPreviewMediaKey, setSettledPreviewMediaKey] = useState<
     string | null
@@ -455,47 +515,14 @@ export function GameCustomizationSettingsTab({
                       : t("edit_game_modal_assets")
                   }
                 >
-                  {assetImageSource && isVideoAsset ? (
-                    <video
-                      key={previewMediaKey}
-                      ref={(media) => {
-                        previewMediaRef.current = media;
-                      }}
-                      className={`game-customization-settings-tab__asset-preview-image${
-                        isPreviewMediaLoaded
-                          ? " game-customization-settings-tab__asset-preview-image--loaded"
-                          : ""
-                      }`}
-                      src={assetImageSource}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      disablePictureInPicture
-                      preload="auto"
-                      onLoadedData={() =>
-                        setSettledPreviewMediaKey(previewMediaKey)
-                      }
-                      onError={() => setSettledPreviewMediaKey(previewMediaKey)}
-                    />
-                  ) : assetImageSource ? (
-                    <img
-                      key={previewMediaKey}
-                      ref={(media) => {
-                        previewMediaRef.current = media;
-                      }}
-                      className={`game-customization-settings-tab__asset-preview-image${
-                        isPreviewMediaLoaded
-                          ? " game-customization-settings-tab__asset-preview-image--loaded"
-                          : ""
-                      }`}
-                      src={assetImageSource}
-                      alt={gameTitle}
-                      draggable={false}
-                      onLoad={() => setSettledPreviewMediaKey(previewMediaKey)}
-                      onError={() => setSettledPreviewMediaKey(previewMediaKey)}
-                    />
-                  ) : null}
+                  <AssetPreviewMedia
+                    source={assetImageSource}
+                    mediaKey={previewMediaKey}
+                    title={gameTitle}
+                    isLoaded={isPreviewMediaLoaded}
+                    mediaRef={previewMediaRef}
+                    onSettled={() => setSettledPreviewMediaKey(previewMediaKey)}
+                  />
 
                   {assetImageSource && !isPreviewMediaLoaded ? (
                     <span

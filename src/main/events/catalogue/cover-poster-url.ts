@@ -18,6 +18,8 @@ export const parseCoverPosterRemoteUrl = (
   try {
     const parsed = baseUrl ? new URL(url, baseUrl) : new URL(url);
     if (parsed.protocol !== "https:") return null;
+    if (parsed.username || parsed.password) return null;
+    if (parsed.port && parsed.port !== "443") return null;
     if (!isAllowedRemoteHost(parsed.hostname)) return null;
     return parsed;
   } catch {
