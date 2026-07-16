@@ -56,7 +56,9 @@ import {
   resolveImageSource,
 } from "../../helpers";
 import { useHeroBackgroundLayers } from "../../components/pages/library/hero/use-hero-background-layers";
+import { useFocusAnimatedCover } from "../../components/pages/library/card-presentation";
 import { useLibrary, useUserDetails } from "../../hooks";
+import { useNavigationIsFocused } from "../../stores";
 import { BIG_PICTURE_SIDEBAR_PROFILE_ID } from "../../layout";
 import type { FocusOverrides } from "../../services";
 import {
@@ -338,6 +340,55 @@ function getActivityHeroImageSource(
   }
 
   return "";
+}
+
+interface ProfileRecentActivityItemProps {
+  game: ProfileActivityGame;
+  imageUrl: string;
+  focusId: string;
+  navigationOverrides: FocusOverrides;
+  onNavigate: () => void;
+}
+
+function ProfileRecentActivityItem({
+  game,
+  imageUrl,
+  focusId,
+  navigationOverrides,
+  onNavigate,
+}: Readonly<ProfileRecentActivityItemProps>) {
+  const isFocused = useNavigationIsFocused(focusId);
+  const displayHero = useFocusAnimatedCover(imageUrl, isFocused);
+
+  return (
+    <FocusItem
+      id={focusId}
+      actions={{ primary: onNavigate }}
+      navigationOverrides={navigationOverrides}
+      asChild
+    >
+      <button
+        type="button"
+        className="profile-page__activity-item"
+        onClick={onNavigate}
+      >
+        <div className="profile-page__activity-media">
+          {displayHero ? (
+            <img src={displayHero} alt={game.title} draggable={false} />
+          ) : null}
+        </div>
+
+        <div className="profile-page__activity-copy">
+          <h3>{game.title}</h3>
+          <p>{getActivityLastPlayedLabel(game)}</p>
+        </div>
+
+        <span className="profile-page__activity-playtime">
+          {formatPlayedTime(getActivityPlaytimeInMilliseconds(game))}
+        </span>
+      </button>
+    </FocusItem>
+  );
 }
 
 function getComparedAchievement(
@@ -1530,70 +1581,32 @@ export default function Profile() {
                       targetHasActiveSubscription
                     );
                     const focusId = getProfileActivityFocusId(game);
+                    const navigationOverrides: FocusOverrides = {
+                      up:
+                        focusId === firstActivityFocusId
+                          ? heroActionsFocusId
+                            ? { type: "item", itemId: heroActionsFocusId }
+                            : { type: "block" }
+                          : undefined,
+                      down:
+                        focusId === lastActivityFocusId
+                          ? activityDownFocusId
+                            ? { type: "item", itemId: activityDownFocusId }
+                            : { type: "block" }
+                          : undefined,
+                    };
 
                     return (
-                      <FocusItem
+                      <ProfileRecentActivityItem
                         key={`${game.title}-${game.lastTimePlayed ?? "recent"}`}
-                        id={focusId}
-                        actions={{
-                          primary: () =>
-                            navigate(getBigPictureGameDetailsPath(game)),
-                        }}
-                        navigationOverrides={{
-                          up:
-                            focusId === firstActivityFocusId
-                              ? heroActionsFocusId
-                                ? {
-                                    type: "item",
-                                    itemId: heroActionsFocusId,
-                                  }
-                                : {
-                                    type: "block",
-                                  }
-                              : undefined,
-                          down:
-                            focusId === lastActivityFocusId
-                              ? activityDownFocusId
-                                ? {
-                                    type: "item",
-                                    itemId: activityDownFocusId,
-                                  }
-                                : {
-                                    type: "block",
-                                  }
-                              : undefined,
-                        }}
-                        asChild
-                      >
-                        <button
-                          type="button"
-                          className="profile-page__activity-item"
-                          onClick={() =>
-                            navigate(getBigPictureGameDetailsPath(game))
-                          }
-                        >
-                          <div className="profile-page__activity-media">
-                            {imageUrl ? (
-                              <img
-                                src={imageUrl}
-                                alt={game.title}
-                                draggable={false}
-                              />
-                            ) : null}
-                          </div>
-
-                          <div className="profile-page__activity-copy">
-                            <h3>{game.title}</h3>
-                            <p>{getActivityLastPlayedLabel(game)}</p>
-                          </div>
-
-                          <span className="profile-page__activity-playtime">
-                            {formatPlayedTime(
-                              getActivityPlaytimeInMilliseconds(game)
-                            )}
-                          </span>
-                        </button>
-                      </FocusItem>
+                        game={game}
+                        imageUrl={imageUrl}
+                        focusId={focusId}
+                        navigationOverrides={navigationOverrides}
+                        onNavigate={() =>
+                          navigate(getBigPictureGameDetailsPath(game))
+                        }
+                      />
                     );
                   })}
                 </VerticalFocusGroup>

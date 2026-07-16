@@ -3,6 +3,10 @@ import "./card-presentation.scss";
 import type { ArtworkAssetType, GameShop } from "@types";
 import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
 import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import {
+  isAnimatedCoverCandidate,
+  useCoverPoster,
+} from "@renderer/hooks/use-cover-poster";
 import { useEffect, useState } from "react";
 import {
   formatPlayedTime,
@@ -10,6 +14,20 @@ import {
   resolveImageSource,
 } from "../../../helpers";
 import { useDominantColor } from "../../../hooks";
+
+export function useFocusAnimatedCover(
+  coverUrl: string | null | undefined,
+  isFocused: boolean
+): string {
+  const isAnimated = isAnimatedCoverCandidate(coverUrl);
+  const poster = useCoverPoster(coverUrl, isAnimated);
+
+  if (isAnimated && poster && !isFocused) {
+    return resolveImageSource(poster);
+  }
+
+  return coverUrl ?? "";
+}
 
 type LibraryGameCardVariant = "vertical" | "horizontal";
 

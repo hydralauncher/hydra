@@ -25,6 +25,7 @@ import {
 import {
   ClassicsCoverBadges,
   ClassicsVerticalCoverMedia,
+  useFocusAnimatedCover,
   useLibraryGameCardPresentation,
 } from "../../pages/library/card-presentation";
 
@@ -489,29 +490,38 @@ function FocusCarouselCard({
   game,
   cardMode,
   cardVariant,
+  isFocused = false,
   onClick,
   onContextMenu,
 }: Readonly<{
   game: FocusCarouselGame;
   cardMode: FocusCarouselCardMode;
   cardVariant: "vertical" | "horizontal";
+  isFocused?: boolean;
   onClick?: () => void;
   onContextMenu?: MouseEventHandler<HTMLElement>;
 }>) {
   const libraryPresentation = useLibraryGameCardPresentation(game, "vertical");
   const coverImageUrl = getGameCoverImageSource(game);
+  const isClassicsGame = game.shop === "launchbox";
+  const libraryCoverSource = isClassicsGame
+    ? libraryPresentation.activeImageSource
+    : coverImageUrl;
+  const displayLibraryCover = useFocusAnimatedCover(
+    libraryCoverSource,
+    isFocused
+  );
   const defaultLibraryDominantColor = useDominantColor(
     cardMode === "library" ? (coverImageUrl ?? null) : null
   );
 
   if (cardMode === "library") {
-    const isClassicsGame = game.shop === "launchbox";
     const coverMedia =
       isClassicsGame &&
       libraryPresentation.activeImageSource &&
       !libraryPresentation.isChosenCoverActive ? (
         <ClassicsVerticalCoverMedia
-          imageUrl={libraryPresentation.activeImageSource}
+          imageUrl={displayLibraryCover}
           gameTitle={game.title}
           onImageError={libraryPresentation.handleCoverImageError}
         />
@@ -531,9 +541,7 @@ function FocusCarouselCard({
             ? "library-focus-grid__card--classics"
             : undefined
         }
-        coverImageUrl={
-          isClassicsGame ? libraryPresentation.activeImageSource : coverImageUrl
-        }
+        coverImageUrl={displayLibraryCover}
         coverMedia={coverMedia}
         coverOverlay={coverOverlay}
         gameTitle={game.title}
@@ -662,6 +670,7 @@ function FocusCarouselSlide({
           cardMode={cardMode}
           cardVariant={cardVariant}
           game={game}
+          isFocused={isFocused}
           onClick={onCardClick ? () => onCardClick(game) : undefined}
           onContextMenu={handleCardContextMenu}
         />
