@@ -11,7 +11,7 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
-import type { ArtworkAssetType, LibraryGame } from "@types";
+import type { ArtworkAssetType, ArtworkItem, LibraryGame } from "@types";
 
 import "./game-artwork-picker.scss";
 
@@ -34,6 +34,60 @@ const INITIAL_SKELETON_COUNT: Record<ArtworkAssetType, number> = {
   logo: 12,
 };
 const MORE_SKELETON_COUNT = 4;
+
+interface ArtworkTileProps {
+  item: ArtworkItem;
+  assetType: ArtworkAssetType;
+  isActive: boolean;
+  isBusy: boolean;
+  isPending: boolean;
+  onPick: (item: ArtworkItem) => Promise<void>;
+}
+
+function ArtworkTile({
+  item,
+  assetType,
+  isActive,
+  isBusy,
+  isPending,
+  onPick,
+}: Readonly<ArtworkTileProps>) {
+  const display = getArtworkDisplaySource(item);
+
+  return (
+    <button
+      type="button"
+      className={`game-artwork__item game-artwork__item--${assetType} ${
+        isActive ? "game-artwork__item--active" : ""
+      }`}
+      onClick={() => {
+        onPick(item).catch(() => {});
+      }}
+      disabled={isBusy}
+    >
+      {display.isVideo ? (
+        <video
+          src={display.src}
+          autoPlay
+          loop
+          muted
+          playsInline
+          disablePictureInPicture
+        />
+      ) : (
+        <img src={display.src} alt="" loading="lazy" />
+      )}
+      {isActive && (
+        <span className="game-artwork__item-check" aria-hidden="true">
+          <CheckIcon size={14} />
+        </span>
+      )}
+      {isPending && (
+        <span className="game-artwork__item-spinner" aria-hidden="true" />
+      )}
+    </button>
+  );
+}
 
 interface GameArtworkPickerProps {
   game: LibraryGame;
@@ -254,48 +308,16 @@ export function GameArtworkPicker({
                         );
                       }
 
-                      const isActive = currentArtworkId === item.id;
-                      const display = getArtworkDisplaySource(item);
-
                       return (
-                        <button
+                        <ArtworkTile
                           key={item.id}
-                          type="button"
-                          className={`game-artwork__item game-artwork__item--${assetType} ${
-                            isActive ? "game-artwork__item--active" : ""
-                          }`}
-                          onClick={() => {
-                            pick(item).catch(() => {});
-                          }}
-                          disabled={isBusy}
-                        >
-                          {display.isVideo ? (
-                            <video
-                              src={display.src}
-                              autoPlay
-                              loop
-                              muted
-                              playsInline
-                              disablePictureInPicture
-                            />
-                          ) : (
-                            <img src={display.src} alt="" loading="lazy" />
-                          )}
-                          {isActive && (
-                            <span
-                              className="game-artwork__item-check"
-                              aria-hidden="true"
-                            >
-                              <CheckIcon size={14} />
-                            </span>
-                          )}
-                          {pendingId === item.id && (
-                            <span
-                              className="game-artwork__item-spinner"
-                              aria-hidden="true"
-                            />
-                          )}
-                        </button>
+                          item={item}
+                          assetType={assetType}
+                          isActive={currentArtworkId === item.id}
+                          isBusy={isBusy}
+                          isPending={pendingId === item.id}
+                          onPick={pick}
+                        />
                       );
                     })}
                   </div>

@@ -44,10 +44,24 @@ const detectAnimatedFromHeader = (head: Buffer): boolean | null => {
 
 const ALLOWED_REMOTE_PROTOCOLS = new Set(["http:", "https:"]);
 
+const ALLOWED_REMOTE_HOSTS = [
+  "steamgriddb.com",
+  "losbroxas.org",
+  "steamstatic.com",
+  "akamaihd.net",
+  "launchbox-app.com",
+];
+
+const isAllowedRemoteHost = (hostname: string) =>
+  ALLOWED_REMOTE_HOSTS.some(
+    (host) => hostname === host || hostname.endsWith(`.${host}`)
+  );
+
 const parseRemoteUrl = (url: string): URL | null => {
   try {
     const parsed = new URL(url);
     if (!ALLOWED_REMOTE_PROTOCOLS.has(parsed.protocol)) return null;
+    if (!isAllowedRemoteHost(parsed.hostname)) return null;
     return parsed;
   } catch {
     return null;
@@ -88,6 +102,7 @@ const loadAnimatedSource = async (
 ): Promise<AnimatedSource | null> => {
   if (url.startsWith("local:")) {
     const localPath = path.resolve(url.slice("local:".length));
+    if (!localPath.startsWith(ASSETS_PATH + path.sep)) return null;
     const stats = await fs.promises.stat(localPath).catch(() => null);
     if (!stats?.isFile()) return null;
     const buffer = await fs.promises.readFile(localPath);
