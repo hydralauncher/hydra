@@ -1,5 +1,5 @@
 import { GameRepack } from "@types";
-import { formatDate } from "../../../hooks";
+import { useDate } from "../../../hooks";
 import { useMemo } from "react";
 import { CalendarDotsIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 import type { FocusOverrides } from "../../../services";
@@ -28,9 +28,11 @@ export function DownloadSourceOption({
   focusNavigationOverrides,
   onSelect,
 }: Readonly<DownloadSourceOptionProps>) {
+  const { formatDate } = useDate();
+
   const formatedDate = useMemo(() => {
     return option.uploadDate ? formatDate(new Date(option.uploadDate)) : "";
-  }, [option.uploadDate]);
+  }, [formatDate, option.uploadDate]);
 
   return (
     <FocusItem
