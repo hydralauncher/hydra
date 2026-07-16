@@ -34,6 +34,7 @@ export function ProfileImageCropModal({
       imagePath={imagePath}
       outputWidth={outputSize.width}
       outputHeight={outputSize.height}
+      maxFrameWidth={variant === "avatar" ? 420 : 720}
       title={
         variant === "avatar"
           ? t("crop_profile_picture")

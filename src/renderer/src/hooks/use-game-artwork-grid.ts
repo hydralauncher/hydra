@@ -233,6 +233,7 @@ export function useGameArtworkGrid({
     hasFailed,
     pendingId,
     loadNextPage,
+    reloadSelection: loadSelection,
     reload,
     pick,
     clear,

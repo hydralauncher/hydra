@@ -30,6 +30,7 @@ export interface ImageCropModalProps {
   imagePath: string | null;
   outputWidth: number;
   outputHeight: number;
+  maxFrameWidth?: number;
   title: React.ReactNode;
   description?: string;
   stageLabel: string;
@@ -52,6 +53,7 @@ export function ImageCropModal({
   imagePath,
   outputWidth,
   outputHeight,
+  maxFrameWidth,
   title,
   description,
   stageLabel,
@@ -413,6 +415,12 @@ export function ImageCropModal({
     }
   };
 
+  const handleClose = () => {
+    if (!isApplying) {
+      onClose();
+    }
+  };
+
   // The <img> keeps its natural orientation/size; rotation is applied via
   // transform around the top-left origin, with a translate that lands the
   // rotated bounding box's top-left at `position` (the value clampPosition
@@ -431,19 +439,23 @@ export function ImageCropModal({
   }
   const imageTransform = `translate(${translateX}px, ${translateY}px) rotate(${rotation}deg)`;
   const aspectRatio = outputWidth / outputHeight;
+  const effectiveMaxFrameWidth =
+    maxFrameWidth ?? (aspectRatio < 1 ? 420 : aspectRatio > 2 ? 720 : 560);
   const frameWidth =
-    aspectRatio < 1
-      ? `min(420px, 72vw, calc(65vh * ${aspectRatio}))`
-      : aspectRatio > 2
-        ? "min(720px, 80vw)"
-        : `min(560px, 76vw, calc(65vh * ${aspectRatio}))`;
+    maxFrameWidth !== undefined
+      ? `min(${maxFrameWidth}px, ${aspectRatio > 2 ? 80 : 72}vw)`
+      : aspectRatio < 1
+        ? `min(${effectiveMaxFrameWidth}px, 72vw, calc(65vh * ${aspectRatio}))`
+        : aspectRatio > 2
+          ? `min(${effectiveMaxFrameWidth}px, 80vw)`
+          : `min(${effectiveMaxFrameWidth}px, 76vw, calc(65vh * ${aspectRatio}))`;
 
   return (
     <Modal
       visible={visible}
       title={title}
       description={description}
-      onClose={onClose}
+      onClose={handleClose}
       clickOutsideToClose={false}
       large
     >

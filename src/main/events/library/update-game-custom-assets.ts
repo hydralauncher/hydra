@@ -13,6 +13,7 @@ import {
 } from "@main/services";
 import type { ArtworkAssetType, GameShop, Game } from "@types";
 import fs from "node:fs";
+import { reconcileArtworkSelection } from "./reconcile-artwork-selection";
 
 type CustomAssetField =
   | "customIconUrl"
@@ -133,35 +134,29 @@ const deleteOldAssetFiles = async (oldAssetPaths: string[]): Promise<void> => {
   }
 };
 
-const clearReplacedArtworkSelections = async (
+const updateArtworkSelections = async (
   gameKey: string,
   existingGame: Game,
   params: UpdateGameCustomAssetsParams
 ) => {
   const selection = await gamesArtworkSelectionSublevel.get(gameKey);
-  if (!selection) return;
-
-  const selected = { ...selection.selected };
-  let changed = false;
-
-  for (const { field, type } of ASSET_CLOUD_SYNC_FIELDS) {
-    const newValue = params[field];
-
-    if (
-      newValue?.startsWith("local:") &&
-      newValue !== existingGame[field] &&
-      selected[type]
-    ) {
-      delete selected[type];
-      changed = true;
-    }
-  }
+  const { selected, changed } = reconcileArtworkSelection(
+    selection?.selected ?? {},
+    ASSET_CLOUD_SYNC_FIELDS.map(({ field, type }) => ({
+      type,
+      previousUrl: existingGame[field],
+      nextUrl: params[field],
+      artworkId: params.customArtworkIds?.[type],
+      clear: params.clearArtworkTypes?.includes(type),
+    }))
+  );
 
   if (!changed) return;
 
   if (Object.keys(selected).length) {
     await gamesArtworkSelectionSublevel.put(gameKey, {
-      ...selection,
+      objectId: params.objectId,
+      shop: params.shop,
       selected,
       updatedAt: Date.now(),
     });
@@ -182,6 +177,8 @@ interface UpdateGameCustomAssetsParams {
   customOriginalLogoPath?: string | null;
   customOriginalHeroPath?: string | null;
   customOriginalCoverPath?: string | null;
+  customArtworkIds?: Partial<Record<ArtworkAssetType, number | null>>;
+  clearArtworkTypes?: ArtworkAssetType[];
 }
 
 const syncCustomAssetsToCloud = (
@@ -252,7 +249,7 @@ const updateGameCustomAssets = async (
 
   await updateShopAssets(gameKey, title);
 
-  await clearReplacedArtworkSelections(gameKey, existingGame, params);
+  await updateArtworkSelections(gameKey, existingGame, params);
 
   await deleteOldAssetFiles(oldAssetPaths);
 
