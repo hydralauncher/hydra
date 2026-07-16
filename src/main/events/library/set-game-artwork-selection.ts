@@ -11,12 +11,7 @@ import {
   saveSteamGridDbArtwork,
   deleteCustomArtwork,
 } from "@main/services";
-import type {
-  ArtworkAssetType,
-  Game,
-  GameArtworkSelection,
-  GameShop,
-} from "@types";
+import type { ArtworkAssetType, GameArtworkSelection, GameShop } from "@types";
 
 interface SetArtworkSelectionParams {
   shop: GameShop;
@@ -54,42 +49,20 @@ const clearManualCustomAsset = async (
   type: ArtworkAssetType
 ) => {
   const game = await gamesSublevel.get(gameKey);
-  if (!game) return null;
+  if (!game) return;
 
   const { url, original } = MANUAL_ASSET_FIELDS[type];
   const existing = game[url];
 
-  if (existing == null && game[original] == null) return null;
+  if (existing == null && game[original] == null) return;
 
   const patch = { ...game };
   patch[url] = null;
   patch[original] = null;
   await gamesSublevel.put(gameKey, patch);
 
-  return {
-    previousGame: game,
-    oldAssetPath:
-      typeof existing === "string" && existing.startsWith("local:")
-        ? existing.slice("local:".length)
-        : null,
-  };
-};
-
-const rollbackArtworkSelection = async (
-  gameKey: string,
-  previousGame: Game | null,
-  previousSelection: GameArtworkSelection | null
-) => {
-  if (previousGame) {
-    await gamesSublevel.put(gameKey, previousGame).catch(() => {});
-  }
-
-  if (previousSelection) {
-    await gamesArtworkSelectionSublevel
-      .put(gameKey, previousSelection)
-      .catch(() => {});
-  } else {
-    await gamesArtworkSelectionSublevel.del(gameKey).catch(() => {});
+  if (typeof existing === "string" && existing.startsWith("local:")) {
+    fs.promises.unlink(existing.slice("local:".length)).catch(() => {});
   }
 };
 
@@ -110,7 +83,7 @@ const setGameArtworkSelection = async (
     selected[type] = { url, artworkId };
   }
 
-  const clearedManualAsset = await clearManualCustomAsset(gameKey, type);
+  await clearManualCustomAsset(gameKey, type);
 
   const syncToCloud = () => {
     if (isClearing) {
@@ -120,34 +93,21 @@ const setGameArtworkSelection = async (
     }
   };
 
-  const record: GameArtworkSelection | null = Object.keys(selected).length
-    ? {
-        objectId,
-        shop,
-        selected,
-        updatedAt: Date.now(),
-      }
-    : null;
-
-  try {
-    if (record) {
-      await gamesArtworkSelectionSublevel.put(gameKey, record);
-    } else {
-      await gamesArtworkSelectionSublevel.del(gameKey);
-    }
-  } catch (error) {
-    await rollbackArtworkSelection(
-      gameKey,
-      clearedManualAsset?.previousGame ?? null,
-      existing ?? null
-    );
-    throw error;
+  if (!Object.keys(selected).length) {
+    await gamesArtworkSelectionSublevel.del(gameKey);
+    WindowManager.sendToAppWindows("on-library-batch-complete");
+    syncToCloud();
+    return null;
   }
 
-  if (clearedManualAsset?.oldAssetPath) {
-    fs.promises.unlink(clearedManualAsset.oldAssetPath).catch(() => {});
-  }
+  const record: GameArtworkSelection = {
+    objectId,
+    shop,
+    selected,
+    updatedAt: Date.now(),
+  };
 
+  await gamesArtworkSelectionSublevel.put(gameKey, record);
   WindowManager.sendToAppWindows("on-library-batch-complete");
   syncToCloud();
 

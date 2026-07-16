@@ -277,7 +277,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "png",
  "sysinfo",
  "tokio",
  "uuid",

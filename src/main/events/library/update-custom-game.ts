@@ -63,33 +63,21 @@ const updateCustomGame = async (
     originalHeroPath: originalHeroPath || existingGame.originalHeroPath || null,
   };
 
+  await gamesSublevel.put(gameKey, updatedGame);
+
   const existingAssets = await gamesShopAssetsSublevel.get(gameKey);
-  try {
-    await gamesSublevel.put(gameKey, updatedGame);
+  if (existingAssets) {
+    const updatedAssets = {
+      ...existingAssets,
+      title,
+      iconUrl: iconUrl || null,
+      libraryHeroImageUrl: libraryHeroImageUrl || "",
+      libraryImageUrl: iconUrl || "",
+      logoImageUrl: logoImageUrl || "",
+      coverImageUrl: iconUrl || "",
+    };
 
-    if (existingAssets) {
-      const updatedAssets = {
-        ...existingAssets,
-        title,
-        iconUrl: iconUrl || null,
-        libraryHeroImageUrl: libraryHeroImageUrl || "",
-        libraryImageUrl: iconUrl || "",
-        logoImageUrl: logoImageUrl || "",
-        coverImageUrl: iconUrl || "",
-      };
-
-      await gamesShopAssetsSublevel.put(gameKey, updatedAssets);
-    }
-  } catch (error) {
-    await gamesSublevel.put(gameKey, existingGame).catch(() => {});
-
-    if (existingAssets) {
-      await gamesShopAssetsSublevel
-        .put(gameKey, existingAssets)
-        .catch(() => {});
-    }
-
-    throw error;
+    await gamesShopAssetsSublevel.put(gameKey, updatedAssets);
   }
 
   if (oldAssetPaths.length > 0) {

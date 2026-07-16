@@ -55,10 +55,7 @@ export function ProfileImageCropModal({
         zoomOut: t("zoom_out"),
       }}
       onClose={onClose}
-      onCrop={({ wasEdited: _wasEdited, ...params }) =>
-        window.electron.cropProfileImage(imagePath!, params)
-      }
-      onApply={({ imagePath: croppedImagePath }) => onApply(croppedImagePath)}
+      onApply={onApply}
     />
   );
 }

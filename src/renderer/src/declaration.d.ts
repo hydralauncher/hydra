@@ -211,23 +211,6 @@ declare global {
       sourcePath: string,
       assetType: "icon" | "logo" | "hero" | "grid"
     ) => Promise<string>;
-    cropGameAsset: (
-      path: string,
-      params: {
-        left: number;
-        top: number;
-        width: number;
-        height: number;
-        outputWidth: number;
-        outputHeight: number;
-        rotation?: number;
-        skipProcessingIfUnchanged?: boolean;
-      }
-    ) => Promise<{
-      imagePath: string;
-      byteLength: number;
-      wasProcessed: boolean;
-    }>;
     cleanupUnusedAssets: () => Promise<{
       deletedCount: number;
       errors: string[];
