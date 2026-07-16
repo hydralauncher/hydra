@@ -765,6 +765,8 @@
     "file_explorer_error_enotdir": "Ce chemin n'est pas un dossier.",
     "file_explorer_error_default": "Impossible d'ouvrir cet emplacement.",
     "file_explorer_select_this_directory": "Sélectionner ce dossier",
-    "file_explorer_select_download_directory": "Sélectionner le dossier de téléchargement"
+    "file_explorer_select_download_directory": "Sélectionner le dossier de téléchargement",
+    "steamgriddb_artwork_updated": "Illustration mise à jour",
+    "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut"
   }
 }

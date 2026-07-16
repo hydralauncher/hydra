@@ -136,7 +136,9 @@
     "steamgriddb_no_results": "No se encontraron recursos de SteamGridDB para este juego.",
     "steamgriddb_fetch_failed": "No se pudieron cargar los recursos de SteamGridDB",
     "steamgriddb_sign_in_required": "Inicia sesión en Hydra para explorar las ilustraciones de SteamGridDB.",
-    "steamgriddb_stale_cache": "Mostrando ilustraciones en caché. Las más recientes pueden tardar un momento en aparecer."
+    "steamgriddb_stale_cache": "Mostrando ilustraciones en caché. Las más recientes pueden tardar un momento en aparecer.",
+    "steamgriddb_artwork_updated": "Arte actualizado",
+    "steamgriddb_artwork_reset": "Arte restablecido al valor predeterminado"
   },
   "header": {
     "minimize": "Minimizar",

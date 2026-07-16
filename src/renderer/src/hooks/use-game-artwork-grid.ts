@@ -57,6 +57,8 @@ interface UseGameArtworkGridOptions {
   enabled: boolean;
   onChanged: () => Promise<void> | void;
   onError: () => void;
+  onPicked?: () => void;
+  onCleared?: () => void;
 }
 
 export function useGameArtworkGrid({
@@ -66,6 +68,8 @@ export function useGameArtworkGrid({
   enabled,
   onChanged,
   onError,
+  onPicked,
+  onCleared,
 }: UseGameArtworkGridOptions) {
   const [items, setItems] = useState<ArtworkItem[]>([]);
   const [selection, setSelection] = useState<GameArtworkSelection | null>(null);
@@ -185,13 +189,14 @@ export function useGameArtworkGrid({
         await loadSelection();
         await onChanged();
         await preloadImage(renderableUrl);
+        onPicked?.();
       } catch {
         onError();
       } finally {
         setPendingId(null);
       }
     },
-    [shop, objectId, assetType, loadSelection, onChanged, onError]
+    [shop, objectId, assetType, loadSelection, onChanged, onError, onPicked]
   );
 
   const clear = useCallback(async () => {
@@ -204,10 +209,11 @@ export function useGameArtworkGrid({
       });
       await loadSelection();
       await onChanged();
+      onCleared?.();
     } catch {
       onError();
     }
-  }, [shop, objectId, assetType, loadSelection, onChanged, onError]);
+  }, [shop, objectId, assetType, loadSelection, onChanged, onError, onCleared]);
 
   const currentArtworkId = selection?.selected?.[assetType]?.artworkId;
 

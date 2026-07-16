@@ -48,12 +48,20 @@ export function GameArtworkPicker({
   onChanged,
 }: Readonly<GameArtworkPickerProps>) {
   const { t } = useTranslation("big_picture");
-  const { showErrorToast } = useBigPictureToast();
+  const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const { userDetails } = useUserDetails();
 
   const onError = useCallback(() => {
     showErrorToast(t("steamgriddb_fetch_failed"));
   }, [showErrorToast, t]);
+
+  const onPicked = useCallback(() => {
+    showSuccessToast(t("steamgriddb_artwork_updated"));
+  }, [showSuccessToast, t]);
+
+  const onCleared = useCallback(() => {
+    showSuccessToast(t("steamgriddb_artwork_reset"));
+  }, [showSuccessToast, t]);
 
   const {
     items,
@@ -71,6 +79,8 @@ export function GameArtworkPicker({
     enabled: Boolean(userDetails),
     onChanged,
     onError,
+    onPicked,
+    onCleared,
   });
 
   const handleUseDefault = useCallback(() => {

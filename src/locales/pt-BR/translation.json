@@ -136,7 +136,9 @@
     "expand_games": "Expandir jogos",
     "collapse_games": "Recolher jogos",
     "steamgriddb_sign_in_required": "Entre na sua conta Hydra para explorar as artes do SteamGridDB.",
-    "steamgriddb_stale_cache": "Exibindo artes em cache. As mais recentes podem levar um momento para aparecer."
+    "steamgriddb_stale_cache": "Exibindo artes em cache. As mais recentes podem levar um momento para aparecer.",
+    "steamgriddb_artwork_updated": "Arte atualizada",
+    "steamgriddb_artwork_reset": "Arte redefinida para o padrão"
   },
   "header": {
     "minimize": "Minimizar",

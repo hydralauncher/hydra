@@ -136,7 +136,9 @@
     "confirm": "Подтвердить",
     "cancel": "Отмена",
     "steamgriddb_sign_in_required": "Войдите в Hydra, чтобы просматривать обложки SteamGridDB.",
-    "steamgriddb_stale_cache": "Показаны кэшированные обложки. Новые могут появиться чуть позже."
+    "steamgriddb_stale_cache": "Показаны кэшированные обложки. Новые могут появиться чуть позже.",
+    "steamgriddb_artwork_updated": "Оформление обновлено",
+    "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию"
   },
   "header": {
     "minimize": "Свернуть",
