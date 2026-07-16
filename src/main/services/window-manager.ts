@@ -38,6 +38,10 @@ const isLinuxWayland =
   (process.env.XDG_SESSION_TYPE === "wayland" ||
     Boolean(process.env.WAYLAND_DISPLAY));
 
+interface CreateMainWindowOptions {
+  forceBigPicture?: boolean;
+}
+
 export class WindowManager {
   private static mainWindowInstance: Electron.BrowserWindow | null = null;
   private static notificationWindowInstance: Electron.BrowserWindow | null =
@@ -205,7 +209,7 @@ export class WindowManager {
     };
   }
 
-  public static async createMainWindow() {
+  public static async createMainWindow(options?: CreateMainWindowOptions) {
     if (this.mainWindow) return;
 
     const userPreferences = await db
@@ -237,7 +241,10 @@ export class WindowManager {
     mainWindow.on("maximize", emitMaximizeState);
     mainWindow.on("unmaximize", emitMaximizeState);
 
-    if (userPreferences?.launchInBigPicture) {
+    const shouldLaunchInBigPicture =
+      options?.forceBigPicture || Boolean(userPreferences?.launchInBigPicture);
+
+    if (shouldLaunchInBigPicture) {
       mainWindow.setOpacity(0);
       mainWindow.setSkipTaskbar(true);
       if (isMaximized) {
@@ -332,7 +339,7 @@ export class WindowManager {
     mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged || isStaging)
         WindowManager.mainWindow?.webContents.openDevTools();
-      if (userPreferences?.launchInBigPicture) {
+      if (shouldLaunchInBigPicture) {
         void WindowManager.openBigPictureWindow();
       } else {
         WindowManager.mainWindow?.show();
