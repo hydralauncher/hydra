@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
@@ -87,6 +94,11 @@ interface PendingAssetCrop {
 interface PendingArtworkSelection {
   assetType: AssetType;
   artworkId: number | null;
+}
+
+interface TabIndicatorPosition {
+  x: number;
+  width: number;
 }
 
 const VALID_IMAGE_TYPES = [
@@ -229,10 +241,16 @@ export function GameAssetsSettings({
   );
   const [isPreparingAsset, setIsPreparingAsset] = useState(false);
   const [artworkPickerVersion, setArtworkPickerVersion] = useState(0);
+  const [tabIndicatorPosition, setTabIndicatorPosition] =
+    useState<TabIndicatorPosition>({ x: 0, width: 0 });
 
   const mountedRef = useRef(true);
   const assetFlowBusyRef = useRef(false);
   const pendingAssetCropRef = useRef<PendingAssetCrop | null>(null);
+  const assetTabsRef = useRef<HTMLDivElement>(null);
+  const assetTabRefs = useRef<
+    Partial<Record<AssetType, HTMLButtonElement | null>>
+  >({});
 
   const cleanupTempFile = useCallback(async (filePath: string) => {
     try {
@@ -1050,6 +1068,30 @@ export function GameAssetsSettings({
     ] as const
   ).filter((tab) => tab.type !== "grid" || !isCustomGame(game));
 
+  const updateTabIndicatorPosition = useCallback(() => {
+    const activeTab = assetTabRefs.current[selectedAssetType];
+    if (!activeTab) return;
+
+    setTabIndicatorPosition({
+      x: activeTab.offsetLeft,
+      width: activeTab.offsetWidth,
+    });
+  }, [selectedAssetType]);
+
+  useLayoutEffect(() => {
+    const tabs = assetTabsRef.current;
+    const activeTab = assetTabRefs.current[selectedAssetType];
+    if (!tabs || !activeTab) return;
+
+    updateTabIndicatorPosition();
+
+    const resizeObserver = new ResizeObserver(updateTabIndicatorPosition);
+    resizeObserver.observe(tabs);
+    resizeObserver.observe(activeTab);
+
+    return () => resizeObserver.disconnect();
+  }, [selectedAssetType, updateTabIndicatorPosition]);
+
   return (
     <>
       {pendingAssetCrop && (
@@ -1091,22 +1133,42 @@ export function GameAssetsSettings({
           </button>
         )}
 
-        <div className="game-assets-settings__asset-tabs">
-          {assetTabs.map((tab) => (
-            <button
-              key={tab.type}
-              type="button"
-              className={`game-assets-settings__asset-tab ${
-                selectedAssetType === tab.type
-                  ? "game-assets-settings__asset-tab--active"
-                  : ""
-              }`}
-              onClick={() => handleAssetTypeChange(tab.type)}
-              disabled={isAssetFlowBusy}
-            >
-              {t(tab.labelKey)}
-            </button>
-          ))}
+        <div ref={assetTabsRef} className="game-assets-settings__asset-tabs">
+          {assetTabs.map((tab) => {
+            const isActive = selectedAssetType === tab.type;
+
+            return (
+              <button
+                key={tab.type}
+                ref={(element) => {
+                  assetTabRefs.current[tab.type] = element;
+                }}
+                type="button"
+                className={`game-assets-settings__asset-tab ${
+                  isActive ? "game-assets-settings__asset-tab--active" : ""
+                }`}
+                onClick={() => handleAssetTypeChange(tab.type)}
+                disabled={isAssetFlowBusy}
+              >
+                {t(tab.labelKey)}
+              </button>
+            );
+          })}
+          {tabIndicatorPosition.width > 0 && (
+            <motion.div
+              className="game-assets-settings__asset-tab-underline"
+              initial={false}
+              animate={{
+                x: tabIndicatorPosition.x,
+                width: tabIndicatorPosition.width,
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+              }}
+            />
+          )}
         </div>
 
         {game.shop === "launchbox" &&
