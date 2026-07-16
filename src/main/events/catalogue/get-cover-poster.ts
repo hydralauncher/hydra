@@ -7,11 +7,13 @@ import sharp from "sharp";
 import { registerEvent } from "../register-event";
 import { ASSETS_PATH } from "@main/constants";
 import { logger } from "@main/services";
+import { parseCoverPosterRemoteUrl } from "./cover-poster-url";
 
 const POSTER_DIR = path.join(ASSETS_PATH, "cover-posters");
 const POSTER_WIDTH = 400;
 const POSTER_HEIGHT = 600;
 const MAX_SOURCE_BYTES = 1024 * 1024 * 30;
+const MAX_REDIRECTS = 3;
 
 const inflightPosters = new Map<string, Promise<string | null>>();
 
@@ -42,40 +44,34 @@ const detectAnimatedFromHeader = (head: Buffer): boolean | null => {
   return null;
 };
 
-const ALLOWED_REMOTE_PROTOCOLS = new Set(["http:", "https:"]);
-
-const ALLOWED_REMOTE_HOSTS = [
-  "steamgriddb.com",
-  "losbroxas.org",
-  "steamstatic.com",
-  "akamaihd.net",
-  "launchbox-app.com",
-];
-
-const isAllowedRemoteHost = (hostname: string) =>
-  ALLOWED_REMOTE_HOSTS.some(
-    (host) => hostname === host || hostname.endsWith(`.${host}`)
-  );
-
-const parseRemoteUrl = (url: string): URL | null => {
-  try {
-    const parsed = new URL(url);
-    if (!ALLOWED_REMOTE_PROTOCOLS.has(parsed.protocol)) return null;
-    if (!isAllowedRemoteHost(parsed.hostname)) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-};
-
-const downloadRange = async (url: URL, endByte: number) => {
+const downloadRange = async (
+  url: URL,
+  endByte: number,
+  redirectCount = 0
+): Promise<{ buffer: Buffer; isPartial: boolean }> => {
   const response = await axios.get<ArrayBuffer>(url.toString(), {
     responseType: "arraybuffer",
     headers: { Range: `bytes=0-${endByte}` },
     maxContentLength: MAX_SOURCE_BYTES,
     maxBodyLength: MAX_SOURCE_BYTES,
-    validateStatus: (status) => status === 200 || status === 206,
+    maxRedirects: 0,
+    validateStatus: (status) =>
+      status === 200 || status === 206 || (status >= 300 && status < 400),
   });
+
+  if (response.status >= 300) {
+    if (redirectCount >= MAX_REDIRECTS || !response.headers.location) {
+      throw new Error("Invalid cover poster redirect");
+    }
+
+    const redirectUrl = parseCoverPosterRemoteUrl(
+      response.headers.location,
+      url
+    );
+    if (!redirectUrl) throw new Error("Untrusted cover poster redirect");
+
+    return downloadRange(redirectUrl, endByte, redirectCount + 1);
+  }
 
   return {
     buffer: Buffer.from(response.data),
@@ -83,12 +79,29 @@ const downloadRange = async (url: URL, endByte: number) => {
   };
 };
 
-const downloadFull = async (url: URL) => {
+const downloadFull = async (url: URL, redirectCount = 0): Promise<Buffer> => {
   const response = await axios.get<ArrayBuffer>(url.toString(), {
     responseType: "arraybuffer",
     maxContentLength: MAX_SOURCE_BYTES,
     maxBodyLength: MAX_SOURCE_BYTES,
+    maxRedirects: 0,
+    validateStatus: (status) => status >= 200 && status < 400,
   });
+
+  if (response.status >= 300) {
+    if (redirectCount >= MAX_REDIRECTS || !response.headers.location) {
+      throw new Error("Invalid cover poster redirect");
+    }
+
+    const redirectUrl = parseCoverPosterRemoteUrl(
+      response.headers.location,
+      url
+    );
+    if (!redirectUrl) throw new Error("Untrusted cover poster redirect");
+
+    return downloadFull(redirectUrl, redirectCount + 1);
+  }
+
   return Buffer.from(response.data);
 };
 
@@ -104,12 +117,14 @@ const loadAnimatedSource = async (
     const localPath = path.resolve(url.slice("local:".length));
     if (!localPath.startsWith(ASSETS_PATH + path.sep)) return null;
     const stats = await fs.promises.stat(localPath).catch(() => null);
-    if (!stats?.isFile()) return null;
+    if (!stats?.isFile() || stats.size <= 0 || stats.size > MAX_SOURCE_BYTES) {
+      return null;
+    }
     const buffer = await fs.promises.readFile(localPath);
     return { buffer, headerAnimated: detectAnimatedFromHeader(buffer) };
   }
 
-  const remoteUrl = parseRemoteUrl(url);
+  const remoteUrl = parseCoverPosterRemoteUrl(url);
   if (!remoteUrl) {
     return null;
   }

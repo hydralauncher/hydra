@@ -16,8 +16,16 @@ import axios from "axios";
 import path from "node:path";
 import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "../catalogue/get-game-assets";
+import {
+  convertSteamShortcutAsset,
+  SteamShortcutAssetFormat,
+} from "./steam-shortcut-assets";
 
-const downloadAsset = async (downloadPath: string, url?: string | null) => {
+const downloadAsset = async (
+  downloadPath: string,
+  format: SteamShortcutAssetFormat,
+  url?: string | null
+) => {
   try {
     if (!url) {
       return null;
@@ -25,17 +33,23 @@ const downloadAsset = async (downloadPath: string, url?: string | null) => {
 
     fs.mkdirSync(path.dirname(downloadPath), { recursive: true });
 
+    let source: Buffer;
+
     if (url.startsWith("local:")) {
       const localPath = url.slice("local:".length);
       if (!fs.existsSync(localPath)) {
         return null;
       }
-      await fs.promises.copyFile(localPath, downloadPath);
-      return downloadPath;
+      source = await fs.promises.readFile(localPath);
+    } else {
+      const response = await axios.get<ArrayBuffer>(url, {
+        responseType: "arraybuffer",
+      });
+      source = Buffer.from(response.data);
     }
 
-    const response = await axios.get(url, { responseType: "arraybuffer" });
-    fs.writeFileSync(downloadPath, response.data);
+    const converted = await convertSteamShortcutAsset(source, format);
+    await fs.promises.writeFile(downloadPath, converted);
 
     return downloadPath;
   } catch (error) {
@@ -63,11 +77,15 @@ const downloadAssetsFromSteam = async (
   const urls = resolveShortcutAssetUrls(game, assets);
 
   return await Promise.all([
-    downloadAsset(path.join(gameAssetsPath, "icon.ico"), urls.icon),
-    downloadAsset(path.join(gameAssetsPath, "hero.jpg"), urls.hero),
-    downloadAsset(path.join(gameAssetsPath, "logo.png"), urls.logo),
-    downloadAsset(path.join(gameAssetsPath, "cover.jpg"), urls.cover),
-    downloadAsset(path.join(gameAssetsPath, "library.jpg"), urls.library),
+    downloadAsset(path.join(gameAssetsPath, "icon.ico"), "ico", urls.icon),
+    downloadAsset(path.join(gameAssetsPath, "hero.jpg"), "jpeg", urls.hero),
+    downloadAsset(path.join(gameAssetsPath, "logo.png"), "png", urls.logo),
+    downloadAsset(path.join(gameAssetsPath, "cover.jpg"), "jpeg", urls.cover),
+    downloadAsset(
+      path.join(gameAssetsPath, "library.jpg"),
+      "jpeg",
+      urls.library
+    ),
   ]);
 };
 
