@@ -118,7 +118,9 @@
     "steamgriddb_sign_in_required": "Inicie sessão no Hydra para explorar as artes do SteamGridDB.",
     "steamgriddb_stale_cache": "A mostrar artes em cache. As mais recentes podem demorar um momento a aparecer.",
     "steamgriddb_artwork_updated": "Arte atualizada",
-    "steamgriddb_artwork_reset": "Arte reposta para a predefinição"
+    "steamgriddb_artwork_reset": "Arte reposta para a predefinição",
+    "classics_hero_layout_warning": "Para mostrar o logo e o hero, ative o esquema logo + hero na página de jogos clássicos.",
+    "classics_hero_layout_open_settings": "Abrir definições"
   },
   "header": {
     "minimize": "Minimizar",
