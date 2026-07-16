@@ -8,12 +8,12 @@ import {
   useCoverPoster,
 } from "@renderer/hooks/use-cover-poster";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  formatPlayedTime,
   getGameAchievementProgress,
   resolveImageSource,
 } from "../../../helpers";
-import { useDominantColor } from "../../../hooks";
+import { useDominantColor, useFormat } from "../../../hooks";
 
 export function useFocusAnimatedCover(
   coverUrl: string | null | undefined,
@@ -122,6 +122,8 @@ export function useLibraryGameCardPresentation(
   game: LibraryGameCardPresentationSource,
   variant: LibraryGameCardVariant
 ) {
+  const { t } = useTranslation(["game_details", "big_picture"]);
+  const { formatPlayTime } = useFormat();
   const imageSources = getPresentationImageSources(game, variant);
   const [imageSourceIndex, setImageSourceIndex] = useState(0);
   const [imageExhausted, setImageExhausted] = useState(false);
@@ -170,9 +172,11 @@ export function useLibraryGameCardPresentation(
     dominantColor,
     handleCoverImageError,
     logoImageUrl,
-    playtimeLabel: formatPlayedTime(game.playTimeInMilliseconds, {
-      zeroFallback: "Never played",
-    }),
+    playtimeLabel: game.playTimeInMilliseconds
+      ? t("play_time", {
+          amount: formatPlayTime(game.playTimeInMilliseconds / 1000),
+        })
+      : t("never_played", { ns: "big_picture" }),
   };
 }
 

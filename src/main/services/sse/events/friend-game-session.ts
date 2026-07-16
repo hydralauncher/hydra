@@ -17,7 +17,9 @@ export const friendGameSessionEvent = async (payload: FriendGameSession) => {
 
   if (userPreferences?.friendStartGameNotificationsEnabled === false) return;
 
-  const friend = await HydraApi.get<UserProfile>(`/users/${payload.friendId}`);
+  const friend = await HydraApi.get<UserProfile>(`/users/${payload.friendId}`, {
+    shop: payload.shop,
+  });
 
   if (friend) {
     publishFriendStartedPlayingGameNotification(friend);

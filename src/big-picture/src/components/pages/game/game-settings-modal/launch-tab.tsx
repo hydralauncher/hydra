@@ -245,7 +245,7 @@ function ExecutableSection({
   onClearExecutablePath,
   onOpenSaveFolder,
 }: Readonly<ExecutableSectionProps>) {
-  const { t } = useTranslation("game_details");
+  const { t } = useTranslation(["game_details", "big_picture"]);
 
   return (
     <SettingsSection
@@ -290,7 +290,7 @@ function ExecutableSection({
                   },
                 }}
               >
-                Clear Path
+                {t("clear_executable_path", { ns: "big_picture" })}
               </Button>
             ) : (
               <Button
@@ -305,7 +305,7 @@ function ExecutableSection({
                   },
                 }}
               >
-                Select Path
+                {t("select_executable_path", { ns: "big_picture" })}
               </Button>
             )}
 
@@ -461,7 +461,7 @@ function LaunchOptionsSection({
   onBlurLaunchOptions,
   onClearLaunchOptions,
 }: Readonly<LaunchOptionsSectionProps>) {
-  const { t } = useTranslation("game_details");
+  const { t } = useTranslation(["game_details", "big_picture"]);
   const isLinux = globalThis.window.electron.platform === "linux";
   const description = isLinux ? (
     <Trans
@@ -512,7 +512,7 @@ function LaunchOptionsSection({
                 },
               }}
             >
-              Clear Args
+              {t("clear_launch_args", { ns: "big_picture" })}
             </Button>
           </div>
         </HorizontalFocusGroup>
