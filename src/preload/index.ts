@@ -569,6 +569,8 @@ contextBridge.exposeInMainWorld("electron", {
     customOriginalLogoPath?: string | null;
     customOriginalHeroPath?: string | null;
     customOriginalCoverPath?: string | null;
+    customArtworkIds?: Partial<Record<ArtworkAssetType, number | null>>;
+    clearArtworkTypes?: ArtworkAssetType[];
   }) => ipcRenderer.invoke("updateGameCustomAssets", params),
   getGameArtwork: (
     shop: GameShop,
