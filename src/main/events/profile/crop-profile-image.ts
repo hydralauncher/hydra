@@ -1,13 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { app } from "electron";
-import { registerEvent } from "../register-event";
+
 import { logger } from "@main/services";
+import { registerEvent } from "../register-event";
 import {
-  canSkipImageCrop,
-  cropProfileImageWithInfo,
-  getCropProfileImageMetadata,
-  isAnimatedPngFile,
+  cropProfileImageToBuffer,
   type CropProfileImageParams,
 } from "./crop-profile-image-processor";
 
@@ -19,50 +18,18 @@ const cropProfileImage = async (
   params: CropProfileImageParams
 ): Promise<{ imagePath: string }> => {
   try {
-    return await cropProfileImageInternal(sourcePath, params);
+    const buffer = await cropProfileImageToBuffer(sourcePath, params);
+    const imagePath = path.join(
+      app.getPath("temp"),
+      `hydra-temp-${randomUUID()}-profile-crop.webp`
+    );
+
+    await fs.promises.writeFile(imagePath, buffer);
+    return { imagePath };
   } catch (error) {
     logger.error("Failed to crop profile image", sourcePath, params, error);
     throw error;
   }
-};
-
-const cropProfileImageInternal = async (
-  sourcePath: string,
-  params: CropProfileImageParams
-): Promise<{ imagePath: string }> => {
-  const sourceMetadata = await getCropProfileImageMetadata(sourcePath);
-  const sourceWidth = sourceMetadata.width ?? 0;
-  const sourceHeight = sourceMetadata.pageHeight ?? sourceMetadata.height ?? 0;
-  const shouldFlattenAnimatedPng =
-    sourceMetadata.format === "png" &&
-    !params.preserveAnimatedPng &&
-    (await isAnimatedPngFile(sourcePath));
-  const skipProcessing =
-    !shouldFlattenAnimatedPng &&
-    sourceWidth > 0 &&
-    sourceHeight > 0 &&
-    canSkipImageCrop(sourceWidth, sourceHeight, params);
-  const extension = skipProcessing
-    ? path.extname(sourcePath).toLowerCase() || `.${sourceMetadata.format}`
-    : ".webp";
-
-  const tempFilePath = path.join(
-    app.getPath("temp"),
-    `hydra-temp-${Date.now()}-profile-crop${extension}`
-  );
-
-  if (skipProcessing) {
-    await fs.promises.copyFile(sourcePath, tempFilePath);
-  } else {
-    const { data } = await cropProfileImageWithInfo(
-      sourcePath,
-      params,
-      sourceMetadata
-    );
-    await fs.promises.writeFile(tempFilePath, data);
-  }
-
-  return { imagePath: tempFilePath };
 };
 
 registerEvent("cropProfileImage", cropProfileImage);

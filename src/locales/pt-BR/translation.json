@@ -141,7 +141,8 @@
     "steamgriddb_artwork_reset": "Arte redefinida para o padrão",
     "classics_hero_layout_warning": "Para exibir o logo e o hero, ative o layout logo + hero na página de jogos clássicos.",
     "classics_hero_layout_open_settings": "Abrir configurações",
-    "custom_assets_not_sync": "Veja como sincronizar suas artes personalizadas"
+    "custom_assets_not_sync": "Veja como sincronizar suas artes personalizadas",
+    "custom_asset_sync_skipped_size": "Arte salva localmente, mas a sincronização na nuvem foi ignorada porque excede 20 MiB"
   },
   "header": {
     "minimize": "Minimizar",
