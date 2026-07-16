@@ -3,27 +3,24 @@
   flex-direction: column;
   gap: 12px;
   margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
 
   &__header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 12px;
   }
 
   &__title {
-    font-size: 14px;
+    flex-shrink: 0;
+    font-size: 13px;
     font-weight: 600;
   }
 
-  &__actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
+  &__divider {
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(1px);
   }
 
   &__scroll {

@@ -124,10 +124,6 @@ export function GameArtworkPicker({
     showSuccessToast(t("steamgriddb_artwork_updated"));
   }, [showSuccessToast, t]);
 
-  const onCleared = useCallback(() => {
-    showSuccessToast(t("steamgriddb_artwork_reset"));
-  }, [showSuccessToast, t]);
-
   const {
     items,
     currentArtworkId,
@@ -140,7 +136,6 @@ export function GameArtworkPicker({
     reloadSelection,
     reload,
     pick,
-    clear,
   } = useGameArtworkGrid({
     shop: game.shop,
     objectId: game.objectId,
@@ -149,7 +144,6 @@ export function GameArtworkPicker({
     onChanged,
     onError,
     onPicked,
-    onCleared,
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -274,30 +268,18 @@ export function GameArtworkPicker({
         <span className="game-artwork__title">
           {t("steamgriddb_section_title")}
         </span>
+        <span className="game-artwork__divider" aria-hidden="true" />
 
-        <div className="game-artwork__actions">
-          {showReload && (
-            <Button
-              type="button"
-              theme="outline"
-              onClick={reload}
-              disabled={isBusy}
-            >
-              {t("steamgriddb_refresh")}
-            </Button>
-          )}
-
+        {showReload && (
           <Button
             type="button"
             theme="outline"
-            onClick={() => {
-              clear().catch(() => {});
-            }}
-            disabled={isBusy || isLoading}
+            onClick={reload}
+            disabled={isBusy}
           >
-            {t("steamgriddb_use_default")}
+            {t("steamgriddb_refresh")}
           </Button>
-        </div>
+        )}
       </div>
 
       {isStale && (
