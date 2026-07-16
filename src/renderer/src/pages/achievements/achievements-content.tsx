@@ -304,17 +304,19 @@ export function AchievementsContent({
         {otherUser ? (
           <>
             <div className="achievements-content__panel-container">
-              <div>
+              <div className="achievements-content__panel-container__panel">
                 <ComparedAchievementPanel
                   achievements={comparedAchievements!}
                 />
               </div>
-              <FilterDropdown
-                options={comparedSortOptions}
-                placeholder={t("sort_by")}
-                value={sort}
-                onChange={setSort}
-              />
+              <div className="achievements-content__panel-container__sort">
+                <FilterDropdown
+                  options={comparedSortOptions}
+                  placeholder={t("sort_by")}
+                  value={sort}
+                  onChange={setSort}
+                />
+              </div>
             </div>
             <ComparedAchievementList
               achievements={comparedAchievements!}
@@ -324,15 +326,17 @@ export function AchievementsContent({
         ) : (
           <>
             <div className="achievements-content__panel-container">
-              <div>
+              <div className="achievements-content__panel-container__panel">
                 <AchievementPanel achievements={achievements!} />
               </div>
-              <FilterDropdown
-                options={sortOptions}
-                placeholder={t("sort_by")}
-                value={sort}
-                onChange={setSort}
-              />
+              <div className="achievements-content__panel-container__sort">
+                <FilterDropdown
+                  options={sortOptions}
+                  placeholder={t("sort_by")}
+                  value={sort}
+                  onChange={setSort}
+                />
+              </div>
             </div>
             <AchievementList achievements={achievements!} sort={sort} />
           </>
