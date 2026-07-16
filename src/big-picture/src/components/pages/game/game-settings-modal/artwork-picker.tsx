@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { CheckIcon } from "@primer/octicons-react";
 import type { ArtworkAssetType, ArtworkItem, LibraryGame } from "@types";
 import {
-  isVideoArtworkThumb,
+  getArtworkDisplaySource,
   useGameArtworkGrid,
 } from "@renderer/hooks/use-game-artwork-grid";
 
@@ -178,18 +178,21 @@ export function GameArtworkPicker({
               }`}
               onClick={() => handlePickItem(item)}
             >
-              {isVideoArtworkThumb(item.thumb) ? (
-                <video
-                  src={item.thumb}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  disablePictureInPicture
-                />
-              ) : (
-                <img src={item.thumb} alt="" loading="lazy" />
-              )}
+              {(() => {
+                const display = getArtworkDisplaySource(item);
+                return display.isVideo ? (
+                  <video
+                    src={display.src}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    disablePictureInPicture
+                  />
+                ) : (
+                  <img src={display.src} alt="" loading="lazy" />
+                );
+              })()}
               {currentArtworkId === item.id ? (
                 <span
                   className="game-artwork-picker__item-check"
