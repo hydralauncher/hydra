@@ -2,6 +2,7 @@ import "./styles.scss";
 
 import cn from "classnames";
 import type { MouseEventHandler } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface VerticalStoreGameCardProps {
   coverImageUrl?: string | null;
@@ -14,13 +15,6 @@ export interface VerticalStoreGameCardProps {
   onCoverImageError?: () => void;
 }
 
-function getDownloadSourcesLabel(downloadSourceCount: number) {
-  const normalizedCount = Math.max(0, downloadSourceCount);
-  const suffix = normalizedCount === 1 ? "source" : "sources";
-
-  return `${normalizedCount} download ${suffix}`;
-}
-
 export function VerticalStoreGameCard({
   coverImageUrl,
   gameTitle,
@@ -31,6 +25,7 @@ export function VerticalStoreGameCard({
   onContextMenu,
   onCoverImageError,
 }: Readonly<VerticalStoreGameCardProps>) {
+  const { t } = useTranslation("big_picture");
   const rootClassName = cn("vertical-store-game-card", className, {
     "vertical-store-game-card--force-hovered": forceHovered,
   });
@@ -59,7 +54,9 @@ export function VerticalStoreGameCard({
           {gameTitle}
         </TitleTag>
         <p className="vertical-store-game-card__subtitle">
-          {getDownloadSourcesLabel(downloadSourceCount)}
+          {t("download_sources_count", {
+            count: Math.max(0, downloadSourceCount),
+          })}
         </p>
       </div>
     </>

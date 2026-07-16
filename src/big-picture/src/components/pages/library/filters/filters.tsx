@@ -2,6 +2,7 @@ import "./filters.scss";
 
 import type { GameCollection, LibraryGame } from "@types";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Button,
@@ -103,6 +104,7 @@ export function LibraryFilters({
   collections,
   firstContentItemId = null,
 }: Readonly<LibraryFiltersProps>) {
+  const { t } = useTranslation("big_picture");
   const tabDownOverride = useMemo(
     () =>
       firstContentItemId
@@ -129,27 +131,27 @@ export function LibraryFilters({
       {
         id: getLibraryFiltersTabFocusId("all"),
         value: "all",
-        label: `All (${counts.all})`,
+        label: t("library_tab_all", { count: counts.all }),
       },
       {
         id: getLibraryFiltersTabFocusId("moderns"),
         value: "moderns",
-        label: `Moderns (${counts.moderns})`,
+        label: t("library_tab_moderns", { count: counts.moderns }),
       },
       {
         id: getLibraryFiltersTabFocusId("classics"),
         value: "classics",
-        label: `Classics (${counts.classics})`,
+        label: t("library_tab_classics", { count: counts.classics }),
       },
       {
         id: getLibraryFiltersTabFocusId("favorites"),
         value: "favorites",
-        label: `Favorites (${counts.favorites})`,
+        label: t("library_tab_favorites", { count: counts.favorites }),
       },
       {
         id: getLibraryFiltersTabFocusId("completed"),
         value: "completed",
-        label: `Completed (${counts.completed})`,
+        label: t("library_tab_completed", { count: counts.completed }),
       },
     ];
 
@@ -186,7 +188,7 @@ export function LibraryFilters({
     })) satisfies Array<TabsItem<LibraryFilterTab>>;
 
     return tabItemsLocal;
-  }, [collections, counts, library, tabDownOverride]);
+  }, [collections, counts, library, t, tabDownOverride]);
 
   const toolbarNavigationOverrides: FocusOverrides = useMemo(() => {
     return {
