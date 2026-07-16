@@ -238,7 +238,6 @@ declare global {
       page?: number
     ) => Promise<ArtworkPage | null>;
     getCoverPoster: (url: string) => Promise<string | null>;
-    isAnimatedImage: (filePath: string) => Promise<boolean>;
     getGameArtworkSelection: (
       shop: GameShop,
       objectId: string

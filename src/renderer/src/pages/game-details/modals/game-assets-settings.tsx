@@ -441,41 +441,6 @@ export function GameAssetsSettings({
     setIsPreparingAsset(false);
   };
 
-  const applyAssetWithoutCrop = async (
-    assetType: AssetType,
-    sourcePath: string,
-    displayPath: string,
-    cleanupSource: boolean,
-    artworkId?: number
-  ) => {
-    let copiedSuccessfully = false;
-
-    try {
-      const copiedAssetUrl = await window.electron.copyCustomGameAsset(
-        sourcePath,
-        assetType
-      );
-
-      updateAssetPaths(
-        assetType,
-        copiedAssetUrl.replace("local:", ""),
-        displayPath
-      );
-      setPendingArtworkSelection({
-        assetType,
-        artworkId: artworkId ?? null,
-      });
-      setPendingPreloadUrl(copiedAssetUrl);
-      setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
-      setIsPreparingAsset(true);
-      copiedSuccessfully = true;
-    } finally {
-      if (copiedSuccessfully && cleanupSource) {
-        await cleanupTempFile(sourcePath);
-      }
-    }
-  };
-
   const handleSelectAsset = async (assetType: AssetType) => {
     if (!beginAssetFlow()) return;
 
@@ -492,21 +457,7 @@ export function GameAssetsSettings({
 
       if (filePaths && filePaths.length > 0) {
         if (mountedRef.current) {
-          const sourcePath = filePaths[0];
-          const isAnimated = await window.electron
-            .isAnimatedImage(sourcePath)
-            .catch(() => false);
-
-          if (isAnimated) {
-            await applyAssetWithoutCrop(
-              assetType,
-              sourcePath,
-              sourcePath,
-              false
-            );
-          } else {
-            openAssetCrop(assetType, sourcePath);
-          }
+          openAssetCrop(assetType, filePaths[0]);
         } else {
           releaseAssetFlow();
         }
@@ -533,21 +484,6 @@ export function GameAssetsSettings({
       if (!mountedRef.current) {
         await cleanupTempFile(tempPath);
         releaseAssetFlow();
-        return;
-      }
-
-      const isAnimated = await window.electron
-        .isAnimatedImage(tempPath)
-        .catch(() => false);
-
-      if (isAnimated) {
-        await applyAssetWithoutCrop(
-          assetType,
-          tempPath,
-          artworkUrl,
-          true,
-          artworkId
-        );
         return;
       }
 
@@ -642,20 +578,6 @@ export function GameAssetsSettings({
           await cleanupTempFile(filePath);
         }
         releaseAssetFlow();
-        return;
-      }
-
-      const isAnimated = await window.electron
-        .isAnimatedImage(filePath)
-        .catch(() => false);
-
-      if (isAnimated) {
-        await applyAssetWithoutCrop(
-          assetType,
-          filePath,
-          filePath,
-          cleanupSource
-        );
         return;
       }
 
