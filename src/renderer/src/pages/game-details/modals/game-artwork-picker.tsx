@@ -7,11 +7,12 @@ import { CheckIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import {
   getArtworkDisplaySource,
+  getRenderableArtworkUrl,
   useGameArtworkGrid,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
-import type { ArtworkAssetType, LibraryGame } from "@types";
+import type { ArtworkAssetType, ArtworkItem, LibraryGame } from "@types";
 
 import "./game-artwork-picker.scss";
 
@@ -39,28 +40,32 @@ interface GameArtworkPickerProps {
   game: LibraryGame;
   assetType: ArtworkAssetType;
   onChanged: () => Promise<void> | void;
+  onSelectArtwork: (artwork: {
+    artworkUrl: string;
+    artworkId: number;
+  }) => Promise<void>;
+  onClearArtwork: () => Promise<void> | void;
+  selectionVersion?: number;
+  disabled?: boolean;
 }
 
 export function GameArtworkPicker({
   game,
   assetType,
   onChanged,
+  onSelectArtwork,
+  onClearArtwork,
+  selectionVersion = 0,
+  disabled = false,
 }: Readonly<GameArtworkPickerProps>) {
   const { t } = useTranslation("sidebar");
-  const { showErrorToast, showSuccessToast } = useToast();
+  const { t: tProfile } = useTranslation("user_profile");
+  const { showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
 
   const onError = useCallback(() => {
     showErrorToast(t("steamgriddb_fetch_failed"));
   }, [showErrorToast, t]);
-
-  const onPicked = useCallback(() => {
-    showSuccessToast(t("steamgriddb_artwork_updated"));
-  }, [showSuccessToast, t]);
-
-  const onCleared = useCallback(() => {
-    showSuccessToast(t("steamgriddb_artwork_reset"));
-  }, [showSuccessToast, t]);
 
   const {
     items,
@@ -69,11 +74,9 @@ export function GameArtworkPicker({
     hasMore,
     isStale,
     hasFailed,
-    pendingId,
     loadNextPage,
+    reloadSelection,
     reload,
-    pick,
-    clear,
   } = useGameArtworkGrid({
     shop: game.shop,
     objectId: game.objectId,
@@ -81,12 +84,51 @@ export function GameArtworkPicker({
     enabled: Boolean(userDetails),
     onChanged,
     onError,
-    onPicked,
-    onCleared,
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const selectionVersionRef = useRef(selectionVersion);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [pendingArtworkId, setPendingArtworkId] = useState<number | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleSelectArtwork = async (item: ArtworkItem) => {
+    if (disabled || isClearing) return;
+
+    setPendingArtworkId(item.id);
+
+    try {
+      await onSelectArtwork({
+        artworkUrl: getRenderableArtworkUrl(item, assetType),
+        artworkId: item.id,
+      });
+    } catch {
+      showErrorToast(tProfile("image_process_failure"));
+    } finally {
+      setPendingArtworkId(null);
+    }
+  };
+
+  const handleClearArtwork = async () => {
+    if (disabled || pendingArtworkId !== null || isClearing) return;
+
+    setIsClearing(true);
+
+    try {
+      await onClearArtwork();
+    } catch {
+      showErrorToast(tProfile("image_process_failure"));
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectionVersionRef.current === selectionVersion) return;
+
+    selectionVersionRef.current = selectionVersion;
+    reloadSelection().catch(() => {});
+  }, [reloadSelection, selectionVersion]);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -167,7 +209,12 @@ export function GameArtworkPicker({
 
         <div className="game-artwork__actions">
           {showReload && (
-            <Button type="button" theme="outline" onClick={reload}>
+            <Button
+              type="button"
+              theme="outline"
+              onClick={reload}
+              disabled={disabled || pendingArtworkId !== null || isClearing}
+            >
               {t("steamgriddb_refresh")}
             </Button>
           )}
@@ -175,8 +222,10 @@ export function GameArtworkPicker({
           <Button
             type="button"
             theme="outline"
-            onClick={clear}
-            disabled={isLoading}
+            onClick={() => void handleClearArtwork()}
+            disabled={
+              disabled || isLoading || pendingArtworkId !== null || isClearing
+            }
           >
             {t("steamgriddb_use_default")}
           </Button>
@@ -248,7 +297,10 @@ export function GameArtworkPicker({
                           className={`game-artwork__item game-artwork__item--${assetType} ${
                             isActive ? "game-artwork__item--active" : ""
                           }`}
-                          onClick={() => pick(item)}
+                          onClick={() => void handleSelectArtwork(item)}
+                          disabled={
+                            disabled || pendingArtworkId !== null || isClearing
+                          }
                         >
                           {display.isVideo ? (
                             <video
@@ -270,7 +322,7 @@ export function GameArtworkPicker({
                               <CheckIcon size={14} />
                             </span>
                           )}
-                          {pendingId === item.id && (
+                          {pendingArtworkId === item.id && (
                             <span
                               className="game-artwork__item-spinner"
                               aria-hidden="true"

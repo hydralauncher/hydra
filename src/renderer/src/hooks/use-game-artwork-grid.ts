@@ -33,7 +33,7 @@ export const getArtworkDisplaySource = (
 const isIcoUrl = (url: string | null | undefined) =>
   !!url && /\.ico(\?.*)?$/i.test(url);
 
-const getRenderableArtworkUrl = (
+export const getRenderableArtworkUrl = (
   item: ArtworkItem,
   assetType: ArtworkAssetType
 ) => {
@@ -233,6 +233,7 @@ export function useGameArtworkGrid({
     hasFailed,
     pendingId,
     loadNextPage,
+    reloadSelection: loadSelection,
     reload,
     pick,
     clear,
