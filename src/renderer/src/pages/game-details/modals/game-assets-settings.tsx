@@ -117,6 +117,14 @@ const INITIAL_ASSET_URLS: AssetUrls = {
   grid: null,
 };
 
+const preloadImage = (url: string) =>
+  new Promise<void>((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve();
+    image.onerror = () => resolve();
+    image.src = url;
+  });
+
 export interface GameAssetsSettingsProps {
   game: LibraryGame;
   shopDetails: ShopDetailsWithAssets | null;
@@ -156,6 +164,9 @@ export function GameAssetsSettings({
     useState<PendingAssetCrop | null>(null);
   const [pendingArtworkSelection, setPendingArtworkSelection] =
     useState<PendingArtworkSelection | null>(null);
+  const [pendingPreloadUrl, setPendingPreloadUrl] = useState<string | null>(
+    null
+  );
   const [isPreparingAsset, setIsPreparingAsset] = useState(false);
   const [artworkPickerVersion, setArtworkPickerVersion] = useState(0);
 
@@ -454,6 +465,7 @@ export function GameAssetsSettings({
         assetType,
         artworkId: artworkId ?? null,
       });
+      setPendingPreloadUrl(copiedAssetUrl);
       setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
       setIsPreparingAsset(true);
       copiedSuccessfully = true;
@@ -553,6 +565,7 @@ export function GameAssetsSettings({
     setAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
     setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: "" }));
     setPendingArtworkSelection({ assetType, artworkId: null });
+    setPendingPreloadUrl(defaultUrls[assetType]);
     setPendingUpdateMessage(t("steamgriddb_artwork_reset"));
   };
 
@@ -705,6 +718,7 @@ export function GameAssetsSettings({
         assetType: pendingCrop.assetType,
         artworkId: pendingCrop.artworkId ?? null,
       });
+      setPendingPreloadUrl(copiedAssetUrl);
       setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
       pendingAssetCropRef.current = null;
       setPendingAssetCrop(null);
@@ -860,6 +874,11 @@ export function GameAssetsSettings({
 
         assetsUpdated = true;
         await onGameUpdated();
+
+        if (pendingPreloadUrl) {
+          await preloadImage(pendingPreloadUrl);
+        }
+
         showSuccessToast(pendingUpdateMessage || t("edit_game_modal_success"));
       } catch (error) {
         console.error("Failed to update game:", error);
@@ -872,6 +891,7 @@ export function GameAssetsSettings({
         }
 
         setPendingArtworkSelection(null);
+        setPendingPreloadUrl(null);
         setPendingUpdateMessage(null);
         setIsUpdating(false);
         releaseAssetFlow();
@@ -884,6 +904,7 @@ export function GameAssetsSettings({
     isCustomGame,
     isUpdating,
     onGameUpdated,
+    pendingPreloadUrl,
     pendingUpdateMessage,
     releaseAssetFlow,
     showErrorToast,
