@@ -150,9 +150,30 @@ export const getCoverPoster = async (url: string): Promise<string | null> => {
   return request;
 };
 
+export const isAnimatedImageFile = async (
+  filePath: string
+): Promise<boolean> => {
+  try {
+    const buffer = await fs.promises.readFile(filePath);
+    const headerAnimated = detectAnimatedFromHeader(buffer);
+    if (headerAnimated !== null) return headerAnimated;
+
+    const metadata = await sharp(buffer).metadata();
+    return Boolean(metadata.pages && metadata.pages > 1);
+  } catch {
+    return false;
+  }
+};
+
 const getCoverPosterEvent = async (
   _event: Electron.IpcMainInvokeEvent,
   url: string
 ) => getCoverPoster(url);
 
+const isAnimatedImageEvent = async (
+  _event: Electron.IpcMainInvokeEvent,
+  filePath: string
+) => isAnimatedImageFile(filePath);
+
 registerEvent("getCoverPoster", getCoverPosterEvent);
+registerEvent("isAnimatedImage", isAnimatedImageEvent);
