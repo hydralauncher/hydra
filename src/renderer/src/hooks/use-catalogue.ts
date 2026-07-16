@@ -22,12 +22,25 @@ externalResourcesInstance.interceptors.response.use(
 
     if (!isNetworkOrTimeout) return Promise.reject(error);
 
+    const url = error?.config?.url ?? "";
+    let data: unknown;
+    if (url.includes("/steam-genres") || url.includes("/steam-user-tags")) {
+      data = {};
+    } else if (
+      url.includes("/steam-developers") ||
+      url.includes("/steam-publishers")
+    ) {
+      data = [];
+    } else {
+      return Promise.reject(error);
+    }
+
     logger.warn(
       "[external-resources] request failed silently:",
       error?.message ?? error
     );
     return Promise.resolve({
-      data: [],
+      data,
       status: 200,
       statusText: "OK",
       headers: {},
