@@ -282,12 +282,11 @@ app.on("second-instance", (_event, commandLine) => {
         WindowManager.mainWindow.restore();
 
       WindowManager.mainWindow.focus();
+      if (forceBigPicture) {
+        void WindowManager.openBigPictureWindow();
+      }
     } else {
       WindowManager.createMainWindow({ forceBigPicture });
-    }
-
-    if (forceBigPicture) {
-      void WindowManager.openBigPictureWindow();
     }
   }
 
