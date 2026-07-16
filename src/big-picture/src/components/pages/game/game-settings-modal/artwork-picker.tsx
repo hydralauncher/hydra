@@ -9,22 +9,13 @@ import {
 
 import { FocusItem, GridFocusGroup } from "../../../common";
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
-import type { FocusOverrides } from "../../../../services";
 import { useArtworkGridNavigation } from "./use-artwork-grid-navigation";
 
 import "./artwork-picker.scss";
 
 const ARTWORK_GRID_REGION_ID = "game-artwork-grid";
-const ARTWORK_USE_DEFAULT_FOCUS_ID = "game-artwork-use-default";
+const ARTWORK_PREVIEW_FOCUS_ID = "game-customization-settings-asset-preview";
 const SENTINEL_ROOT_MARGIN = "320px 0px";
-
-const USE_DEFAULT_OVERRIDES: FocusOverrides = {
-  down: {
-    type: "region",
-    regionId: ARTWORK_GRID_REGION_ID,
-    entryDirection: "down",
-  },
-};
 
 const INITIAL_SKELETON_COUNT: Record<ArtworkAssetType, number> = {
   icon: 18,
@@ -59,10 +50,6 @@ export function GameArtworkPicker({
     showSuccessToast(t("steamgriddb_artwork_updated"));
   }, [showSuccessToast, t]);
 
-  const onCleared = useCallback(() => {
-    showSuccessToast(t("steamgriddb_artwork_reset"));
-  }, [showSuccessToast, t]);
-
   const {
     items,
     currentArtworkId,
@@ -71,7 +58,6 @@ export function GameArtworkPicker({
     pendingId,
     loadNextPage,
     pick,
-    clear,
   } = useGameArtworkGrid({
     shop: game.shop,
     objectId: game.objectId,
@@ -80,12 +66,7 @@ export function GameArtworkPicker({
     onChanged,
     onError,
     onPicked,
-    onCleared,
   });
-
-  const handleUseDefault = useCallback(() => {
-    clear().catch(() => {});
-  }, [clear]);
 
   const handlePickItem = useCallback(
     (item: ArtworkItem) => {
@@ -115,7 +96,7 @@ export function GameArtworkPicker({
   const tileFocusIds = items.map((item) => getTileFocusId(item.id));
   const overridesByItemId = useArtworkGridNavigation(
     tileFocusIds,
-    ARTWORK_USE_DEFAULT_FOCUS_ID
+    ARTWORK_PREVIEW_FOCUS_ID
   );
 
   if (!userDetails) {
@@ -140,21 +121,6 @@ export function GameArtworkPicker({
         <span className="game-artwork-picker__title">
           {t("steamgriddb_section_title")}
         </span>
-
-        <FocusItem
-          id={ARTWORK_USE_DEFAULT_FOCUS_ID}
-          actions={{ primary: handleUseDefault }}
-          navigationOverrides={USE_DEFAULT_OVERRIDES}
-          asChild
-        >
-          <button
-            type="button"
-            className="game-artwork-picker__default-button"
-            onClick={handleUseDefault}
-          >
-            {t("steamgriddb_use_default")}
-          </button>
-        </FocusItem>
       </div>
 
       <GridFocusGroup
