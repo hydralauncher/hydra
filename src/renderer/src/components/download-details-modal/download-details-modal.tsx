@@ -125,7 +125,7 @@ export function DownloadDetailsModal({
                       />
                       <span className="tracker-url">{tracker.url}</span>
                       <span className="tracker-status">
-                        {t(`tracker_status_${t(tracker.status)}`)}
+                        {t(`tracker_status_${tracker.status}`)}
                       </span>
                     </div>
                     <div className="tracker-stats">
