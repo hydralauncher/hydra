@@ -7,6 +7,7 @@ import type {
   UserFriend,
 } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Button,
@@ -50,15 +51,16 @@ function getProfileVisibilityLabel(value: ProfileVisibility) {
 function getHydraCloudSectionContent(
   hasActiveSubscription: boolean,
   subscription: Subscription | null,
-  formatDate: (date: string | Date | number) => string
+  formatDate: (date: string | Date | number) => string,
+  t: (key: string, options?: Record<string, unknown>) => string
 ) {
   const hasSubscribedBefore = Boolean(subscription?.expiresAt);
   const isRenewalActive = subscription?.status === "active";
 
   if (!hasSubscribedBefore) {
     return {
-      description: ["Enjoy Hydra in the best possible way"],
-      callToAction: "Become Hydra Cloud",
+      description: [t("no_subscription")],
+      callToAction: t("become_subscriber"),
     };
   }
 
@@ -66,21 +68,28 @@ function getHydraCloudSectionContent(
     return {
       description: isRenewalActive
         ? [
-            `Your subscription renews on ${formatDate(subscription!.expiresAt!)} and your next bill will be sent on this day.`,
+            t("subscription_renews_on", {
+              date: formatDate(subscription!.expiresAt!),
+            }),
+            t("bill_sent_until"),
           ]
         : [
-            "Automatic renewal is disabled",
-            `Your Hydra Cloud is active until ${formatDate(subscription!.expiresAt!)}`,
+            t("subscription_renew_cancelled"),
+            t("subscription_active_until", {
+              date: formatDate(subscription!.expiresAt!),
+            }),
           ],
-      callToAction: "Manage Subscription",
+      callToAction: t("manage_subscription"),
     };
   }
 
   return {
     description: [
-      `Your subscription expired at ${formatDate(subscription!.expiresAt!)}`,
+      t("subscription_expired_at", {
+        date: formatDate(subscription!.expiresAt!),
+      }),
     ],
-    callToAction: "Renew Hydra Cloud",
+    callToAction: t("renew_subscription"),
   };
 }
 
@@ -88,6 +97,7 @@ export function AccountPrivacySettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
   const { formatDate } = useDate();
+  const { t } = useTranslation("settings");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const { setFocus } = useNavigation();
   const { userDetails, hasActiveSubscription, patchUser, unblockUser } =
@@ -140,9 +150,10 @@ export function AccountPrivacySettingsSection({
     return getHydraCloudSectionContent(
       hasActiveSubscription,
       userDetails?.subscription ?? null,
-      formatDate
+      formatDate,
+      t
     );
-  }, [formatDate, hasActiveSubscription, userDetails?.subscription]);
+  }, [formatDate, hasActiveSubscription, t, userDetails?.subscription]);
 
   const blockedUserFocusIds = useMemo(
     () =>
