@@ -55,10 +55,9 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const candidates = [
     { url: game.customCoverImageUrl, isChosenCover: true }, // Level 0
-    { url: game.customIconUrl, isChosenCover: false }, // Level 1
-    { url: game.coverImageUrl, isChosenCover: hasPickedCover }, // Level 2
-    { url: game.libraryImageUrl, isChosenCover: false }, // Level 3
-    { url: game.iconUrl, isChosenCover: false }, // Level 4
+    { url: game.coverImageUrl, isChosenCover: hasPickedCover }, // Level 1
+    { url: game.libraryImageUrl, isChosenCover: false }, // Level 2
+    { url: game.iconUrl, isChosenCover: false }, // Level 3
   ].filter(({ url }) => url && url.trim() !== "");
 
   const sources = candidates.map(({ url }) => url);
