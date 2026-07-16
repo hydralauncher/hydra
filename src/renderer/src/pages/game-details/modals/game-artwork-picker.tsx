@@ -7,6 +7,8 @@ import { CheckIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import {
   getArtworkDisplaySource,
+  getRenderableArtworkUrl,
+  isAnimatedArtworkItem,
   useGameArtworkGrid,
   useToast,
   useUserDetails,
@@ -93,6 +95,11 @@ interface GameArtworkPickerProps {
   game: LibraryGame;
   assetType: ArtworkAssetType;
   onChanged: () => Promise<void> | void;
+  onSelectArtwork: (artwork: {
+    artworkUrl: string;
+    artworkId: number;
+  }) => Promise<boolean>;
+  selectionVersion?: number;
   disabled?: boolean;
 }
 
@@ -100,9 +107,12 @@ export function GameArtworkPicker({
   game,
   assetType,
   onChanged,
+  onSelectArtwork,
+  selectionVersion = 0,
   disabled = false,
 }: Readonly<GameArtworkPickerProps>) {
   const { t } = useTranslation("sidebar");
+  const { t: tProfile } = useTranslation("user_profile");
   const { showErrorToast, showSuccessToast } = useToast();
   const { userDetails } = useUserDetails();
 
@@ -127,6 +137,7 @@ export function GameArtworkPicker({
     hasFailed,
     pendingId,
     loadNextPage,
+    reloadSelection,
     reload,
     pick,
     clear,
@@ -142,9 +153,45 @@ export function GameArtworkPicker({
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const selectionVersionRef = useRef(selectionVersion);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [pendingStaticArtworkId, setPendingStaticArtworkId] = useState<
+    number | null
+  >(null);
 
-  const isBusy = disabled || pendingId !== null;
+  const isBusy =
+    disabled || pendingId !== null || pendingStaticArtworkId !== null;
+
+  const handlePick = async (item: ArtworkItem) => {
+    if (isAnimatedArtworkItem(item)) {
+      await pick(item);
+      return;
+    }
+
+    setPendingStaticArtworkId(item.id);
+
+    try {
+      const shouldApplyDirectly = await onSelectArtwork({
+        artworkUrl: getRenderableArtworkUrl(item, assetType),
+        artworkId: item.id,
+      });
+
+      if (shouldApplyDirectly) {
+        await pick(item);
+      }
+    } catch {
+      showErrorToast(tProfile("image_process_failure"));
+    } finally {
+      setPendingStaticArtworkId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (selectionVersionRef.current === selectionVersion) return;
+
+    selectionVersionRef.current = selectionVersion;
+    reloadSelection().catch(() => {});
+  }, [reloadSelection, selectionVersion]);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -315,8 +362,11 @@ export function GameArtworkPicker({
                           assetType={assetType}
                           isActive={currentArtworkId === item.id}
                           isBusy={isBusy}
-                          isPending={pendingId === item.id}
-                          onPick={pick}
+                          isPending={
+                            pendingId === item.id ||
+                            pendingStaticArtworkId === item.id
+                          }
+                          onPick={handlePick}
                         />
                       );
                     })}

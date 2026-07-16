@@ -12,6 +12,7 @@ import type {
   GameArtworkSelection,
   GameShop,
 } from "@types";
+import { isVideoArtworkUrl } from "./game-artwork-utils";
 
 const ARTWORK_KIND_BY_TYPE: Record<ArtworkAssetType, ArtworkKind> = {
   grid: "grids",
@@ -20,14 +21,11 @@ const ARTWORK_KIND_BY_TYPE: Record<ArtworkAssetType, ArtworkKind> = {
   icon: "icons",
 };
 
-export const isVideoArtworkThumb = (thumb: string | null | undefined) =>
-  !!thumb && /\.(webm|mp4)(\?.*)?$/i.test(thumb);
-
 export const getArtworkDisplaySource = (
   item: Pick<ArtworkItem, "url" | "thumb">
 ) => {
-  const src = isVideoArtworkThumb(item.thumb) ? item.url : item.thumb;
-  return { src, isVideo: isVideoArtworkThumb(src) };
+  const src = isVideoArtworkUrl(item.thumb) ? item.url : item.thumb;
+  return { src, isVideo: isVideoArtworkUrl(src) };
 };
 
 const isIcoUrl = (url: string | null | undefined) =>
@@ -41,7 +39,7 @@ export const getRenderableArtworkUrl = (
     assetType === "icon" &&
     isIcoUrl(item.url) &&
     item.thumb &&
-    !isVideoArtworkThumb(item.thumb)
+    !isVideoArtworkUrl(item.thumb)
   ) {
     return item.thumb;
   }
