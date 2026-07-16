@@ -392,14 +392,16 @@ class TorrentDownloader:
                 fails = tracker_status.get('fails', 0)
                 updating = tracker_status.get('updating', False)
                 
-                status_str = "not_contacted"
-                
+                message = tracker_status.get('message', '') or tracker_status.get('last_error', '') or ''
+
                 if updating:
                     status_str = "updating"
                 elif fails > 0:
                     status_str = "failed"
-                else:
+                elif message:
                     status_str = "working"
+                else:
+                    status_str = "not_contacted"
                 
                 trackers.append({
                     "url": url,
@@ -423,7 +425,7 @@ class TorrentDownloader:
             "downloadSpeed": status.download_rate,
             "totalUploaded": status.all_time_upload,
             "totalDownloaded": status.all_time_download,
-            "ratio": status.upload_rate / status.download_rate if status.download_rate > 0 else 0,
+            "ratio": (getattr(status, 'all_time_upload', 0) / getattr(status, 'all_time_download', 0)) if getattr(status, 'all_time_download', 0) > 0 else 0,
             "bytesRemaining": status.total_wanted - status.total_wanted_done,
             "timeSince": int(time.time()),
         }

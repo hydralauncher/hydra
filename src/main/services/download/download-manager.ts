@@ -566,21 +566,53 @@ export class DownloadManager {
 
       const rpcAny = response.data as any;
 
-      const uploadSpeed = rpcAny.uploadSpeed ?? rpcAny.upload_speed ?? 0;
-      const totalUploaded = rpcAny.totalUploaded ?? rpcAny.total_upload ?? 0;
-      const totalDownloaded = bytesDownloaded ?? 0;
+      const pythonStats = rpcAny.stats ?? rpcAny._stats ?? null;
+
+      const uploadSpeed =
+        pythonStats?.uploadSpeed ??
+        pythonStats?.upload_speed ??
+        rpcAny.uploadSpeed ??
+        rpcAny.upload_speed ??
+        0;
+
+      const totalUploaded =
+        pythonStats?.totalUploaded ??
+        pythonStats?.total_uploaded ??
+        rpcAny.totalUploaded ??
+        rpcAny.total_upload ??
+        0;
+
+      const totalDownloaded =
+        pythonStats?.totalDownloaded ??
+        pythonStats?.total_downloaded ??
+        bytesDownloaded ??
+        rpcAny.totalDownloaded ??
+        rpcAny.total_download ??
+        0;
+
       const effectiveFileSize =
         fileSize > 0
           ? fileSize
           : (download?.selectedFilesSize ?? download?.fileSize ?? 0);
-      const bytesRemaining = Math.max(
-        0,
-        (effectiveFileSize ?? 0) - (totalDownloaded ?? 0)
-      );
-      const ratio = totalDownloaded > 0 ? totalUploaded / totalDownloaded : 0;
+
+      const bytesRemaining =
+        pythonStats?.bytesRemaining ??
+        pythonStats?.bytes_remaining ??
+        Math.max(0, (effectiveFileSize ?? 0) - (totalDownloaded ?? 0));
+
+      const ratio =
+        typeof pythonStats?.ratio === "number"
+          ? pythonStats.ratio
+          : totalDownloaded > 0
+            ? totalUploaded / totalDownloaded
+            : 0;
 
       const stats = {
-        downloadSpeed: downloadSpeed ?? 0,
+        downloadSpeed:
+          pythonStats?.downloadSpeed ??
+          pythonStats?.download_speed ??
+          downloadSpeed ??
+          0,
         uploadSpeed,
         totalDownloaded,
         totalUploaded,

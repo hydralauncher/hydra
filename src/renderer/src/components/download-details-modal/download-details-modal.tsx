@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { Modal, Button } from "@renderer/components";
 import type { DownloadProgress, TrackerInfo } from "@types";
 import "./download-details-modal.scss";
-import { logger } from "@renderer/logger";
 
 interface DownloadDetailsModalProps {
   visible: boolean;
@@ -18,8 +17,6 @@ export function DownloadDetailsModal({
 }: DownloadDetailsModalProps) {
   const { t } = useTranslation("downloads");
   const [activeTab, setActiveTab] = useState<"trackers" | "stats">("trackers");
-
-  logger.debug("DownloadDetailsModal progress:", progress);
 
   const trackerStats = useMemo(() => {
     if (!progress?.trackerStats) return null;
