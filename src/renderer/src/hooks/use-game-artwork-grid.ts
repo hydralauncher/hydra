@@ -31,6 +31,8 @@ export const getArtworkDisplaySource = (
 const isIcoUrl = (url: string | null | undefined) =>
   !!url && /\.ico(\?.*)?$/i.test(url);
 
+const MEDIA_PRELOAD_TIMEOUT_MS = 10_000;
+
 export const getRenderableArtworkUrl = (
   item: ArtworkItem,
   assetType: ArtworkAssetType
@@ -47,11 +49,47 @@ export const getRenderableArtworkUrl = (
   return item.url;
 };
 
-const preloadImage = (url: string) =>
+const preloadArtworkMedia = (url: string) =>
   new Promise<void>((resolve) => {
+    let cleanup = () => {};
+    let settled = false;
+
+    const settle = () => {
+      if (settled) return;
+
+      settled = true;
+      globalThis.clearTimeout(timeoutId);
+      cleanup();
+      resolve();
+    };
+
+    const timeoutId = globalThis.setTimeout(settle, MEDIA_PRELOAD_TIMEOUT_MS);
+
+    if (isVideoArtworkUrl(url)) {
+      const video = globalThis.document.createElement("video");
+      video.preload = "auto";
+      video.muted = true;
+      video.onloadeddata = settle;
+      video.onerror = settle;
+      cleanup = () => {
+        video.onloadeddata = null;
+        video.onerror = null;
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      };
+      video.src = url;
+      video.load();
+      return;
+    }
+
     const image = new Image();
-    image.onload = () => resolve();
-    image.onerror = () => resolve();
+    image.onload = settle;
+    image.onerror = settle;
+    cleanup = () => {
+      image.onload = null;
+      image.onerror = null;
+    };
     image.src = url;
   });
 
@@ -193,12 +231,12 @@ export function useGameArtworkGrid({
         });
         await loadSelection();
         await onChanged();
-        await preloadImage(renderableUrl);
+        await preloadArtworkMedia(renderableUrl);
         onPicked?.();
       } catch {
         onError();
       } finally {
-        setPendingId(null);
+        setPendingId((currentId) => (currentId === item.id ? null : currentId));
       }
     },
     [shop, objectId, assetType, loadSelection, onChanged, onError, onPicked]
