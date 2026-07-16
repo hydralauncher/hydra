@@ -199,8 +199,15 @@ class TorrentDownloader:
         save_path: str,
         file_indices: Optional[List[int]] = None,
         wait_timeout_seconds: float = 30.0,
+        trackers: Optional[List[str]] = None,
     ):
         selective_download = file_indices is not None
+
+        # Merge custom trackers with default trackers
+        merged_trackers = list(self.trackers)
+        if trackers and isinstance(trackers, list):
+            # Add custom trackers at the beginning for priority
+            merged_trackers = list(dict.fromkeys(trackers + merged_trackers))
 
         with self.session_lock:
             if self.torrent_handle and self.torrent_handle.is_valid():
@@ -224,7 +231,7 @@ class TorrentDownloader:
             params = {
                 "url": magnet,
                 "save_path": save_path,
-                "trackers": self.trackers,
+                "trackers": merged_trackers,
                 "flags": initial_flags,
             }
 

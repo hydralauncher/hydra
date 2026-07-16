@@ -829,6 +829,8 @@
     "network_interface_default": "Default (all adapters)",
     "network_interface_hint": "Force torrents through a specific adapter, like a VPN. If it disconnects, downloads stop instead of leaking.",
     "network_interface_unavailable": "unavailable",
+    "torrent_tracker_list_url": "Tracker list URL",
+    "torrent_tracker_list_url_hint": "Provide a URL to a .txt file containing a list of trackers (one per line). Trackers will be automatically added to torrent downloads to improve speeds.",
     "library_notifications": "Library notifications",
     "achievement_notifications": "Achievement notifications",
     "content_gameplay": "Content & gameplay",

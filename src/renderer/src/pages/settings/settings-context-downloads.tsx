@@ -52,6 +52,7 @@ export function SettingsContextDownloads() {
     maxDownloadSpeedMegabytes: "",
     deleteArchiveFilesAfterExtractionByDefault: false,
     torrentNetworkInterface: "",
+    torrentTrackerListUrl: "",
   });
 
   const [networkInterfaces, setNetworkInterfaces] = useState<
@@ -86,6 +87,7 @@ export function SettingsContextDownloads() {
       deleteArchiveFilesAfterExtractionByDefault:
         userPreferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
       torrentNetworkInterface: userPreferences.torrentNetworkInterface ?? "",
+      torrentTrackerListUrl: userPreferences.torrentTrackerListUrl ?? "",
     });
   }, [userPreferences]);
 
@@ -216,6 +218,16 @@ export function SettingsContextDownloads() {
             {t("network_interface_hint")}
           </small>
         </div>
+
+        <TextField
+          label={t("torrent_tracker_list_url")}
+          hint={t("torrent_tracker_list_url_hint")}
+          placeholder="https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt"
+          value={form.torrentTrackerListUrl}
+          onChange={(event) =>
+            handleChange({ torrentTrackerListUrl: event.target.value })
+          }
+        />
 
         <CheckboxField
           label={t("seed_after_download_complete")}

@@ -43,6 +43,7 @@ import {
   setDownloadLayoutQueues,
 } from "../download-layout-state";
 import { shouldFinalizeDownload } from "./download-completion";
+import { TrackerListManager } from "../tracker-list-manager";
 
 interface AllDebridBatchEntry {
   url: string;
@@ -1499,7 +1500,18 @@ export class DownloadManager {
           Array.isArray(download.fileIndices) &&
           download.fileIndices.length > 0;
 
-        return {
+        const userPreferences = await db.get<string, UserPreferences | null>(
+          levelKeys.userPreferences,
+          { valueEncoding: "json" }
+        );
+
+        const trackers = userPreferences?.torrentTrackerListUrl
+          ? await TrackerListManager.fetchTrackerList(
+              userPreferences.torrentTrackerListUrl
+            )
+          : [];
+
+        const payload: any = {
           action: "start",
           game_id: downloadId,
           url: download.uri,
@@ -1509,6 +1521,12 @@ export class DownloadManager {
             : undefined,
           metadata_timeout_ms: hasSelectedFileIndices ? 60_000 : undefined,
         };
+
+        if (trackers.length > 0) {
+          payload.trackers = trackers;
+        }
+
+        return payload;
       }
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);

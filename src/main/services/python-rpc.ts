@@ -16,6 +16,7 @@ interface GamePayload {
   total_size?: number;
   file_indices?: number[];
   metadata_timeout_ms?: number;
+  trackers?: string[];
 }
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
