@@ -151,9 +151,14 @@
   &__cover-preview {
     max-width: 180px;
     margin: 0 auto;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
 
     .game-assets-settings__preview-image {
-      max-height: 240px;
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      object-fit: cover;
     }
   }
 
