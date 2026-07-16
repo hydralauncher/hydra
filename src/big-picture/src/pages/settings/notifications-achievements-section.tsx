@@ -2,6 +2,7 @@ import "./notifications-achievements-section.scss";
 
 import type { AchievementCustomNotificationPosition } from "@types";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Button,
@@ -52,17 +53,18 @@ const SETTINGS_TOAST_OPTIONS = {
   fallbackVisual: "settings" as const,
 };
 
-function getPositionLabel(position: AchievementCustomNotificationPosition) {
-  return position
-    .split("-")
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(" ");
+function getPositionLabel(
+  position: AchievementCustomNotificationPosition,
+  t: (key: string) => string
+) {
+  return t(`settings_diagnostics_position_${position.replaceAll("-", "_")}`);
 }
 
 export function NotificationsAchievementsSection({
   className,
   firstItemUpTarget,
 }: Readonly<NotificationsAchievementsSectionProps>) {
+  const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const [form, setForm] = useState<NotificationsAchievementsForm>(DEFAULT_FORM);
@@ -149,9 +151,9 @@ export function NotificationsAchievementsSection({
       ] as AchievementCustomNotificationPosition[]
     ).map((position) => ({
       value: position,
-      label: getPositionLabel(position),
+      label: getPositionLabel(position, t),
     }));
-  }, []);
+  }, [t]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
