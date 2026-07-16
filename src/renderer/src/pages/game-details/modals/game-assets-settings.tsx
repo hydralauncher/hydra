@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon, XIcon } from "@primer/octicons-react";
-import { Button, TextField } from "@renderer/components";
+import { Button, ImageCropModal, TextField } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
 import { generateRandomGradient } from "@renderer/helpers";
 import type { Game, LibraryGame, ShopDetailsWithAssets } from "@types";
@@ -11,6 +11,14 @@ import { GameArtworkPicker } from "./game-artwork-picker";
 import "./game-assets-settings.scss";
 
 type AssetType = "icon" | "logo" | "hero" | "grid";
+
+const ASSET_OUTPUT_SIZE: Record<AssetType, { width: number; height: number }> =
+  {
+    icon: { width: 256, height: 256 },
+    logo: { width: 640, height: 360 },
+    hero: { width: 1920, height: 620 },
+    grid: { width: 600, height: 900 },
+  };
 
 const PREVIEW_MODIFIER_CLASS: Partial<Record<AssetType, string>> = {
   icon: "game-assets-settings__icon-preview",
@@ -55,15 +63,31 @@ interface RemovedAssets {
   grid: boolean;
 }
 
+interface PendingAssetCrop {
+  assetType: AssetType;
+  sourcePath: string;
+  displayPath: string;
+  cleanupSource: boolean;
+}
+
 const VALID_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
   "image/png",
+  "image/apng",
   "image/gif",
   "image/webp",
 ] as const;
 
-const IMAGE_EXTENSIONS = ["jpg", "jpeg", "jfif", "png", "gif", "webp"] as const;
+const IMAGE_EXTENSIONS = [
+  "jpg",
+  "jpeg",
+  "jfif",
+  "png",
+  "apng",
+  "gif",
+  "webp",
+] as const;
 
 const INITIAL_ASSET_PATHS: AssetPaths = {
   icon: "",
@@ -98,6 +122,7 @@ export function GameAssetsSettings({
   onGameUpdated,
 }: Readonly<GameAssetsSettingsProps>) {
   const { t } = useTranslation("sidebar");
+  const { t: tProfile } = useTranslation("user_profile");
   const { showSuccessToast, showErrorToast } = useToast();
 
   const [assetPaths, setAssetPaths] = useState<AssetPaths>(INITIAL_ASSET_PATHS);
@@ -115,6 +140,8 @@ export function GameAssetsSettings({
   >(null);
   const [selectedAssetType, setSelectedAssetType] = useState<AssetType>("icon");
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
+  const [pendingAssetCrop, setPendingAssetCrop] =
+    useState<PendingAssetCrop | null>(null);
 
   const isCustomGame = useCallback(
     (currentGame: LibraryGame | Game): boolean => {
@@ -323,6 +350,20 @@ export function GameAssetsSettings({
     }
   };
 
+  const openAssetCrop = (
+    assetType: AssetType,
+    sourcePath: string,
+    displayPath = sourcePath,
+    cleanupSource = false
+  ) => {
+    setPendingAssetCrop({
+      assetType,
+      sourcePath,
+      displayPath,
+      cleanupSource,
+    });
+  };
+
   const handleSelectAsset = async (assetType: AssetType) => {
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openFile"],
@@ -335,24 +376,17 @@ export function GameAssetsSettings({
     });
 
     if (filePaths && filePaths.length > 0) {
-      const originalPath = filePaths[0];
-      try {
-        const copiedAssetUrl = await window.electron.copyCustomGameAsset(
-          originalPath,
-          assetType
-        );
-        updateAssetPaths(
-          assetType,
-          copiedAssetUrl.replace("local:", ""),
-          originalPath
-        );
-        setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
-      } catch (error) {
-        console.error(`Failed to copy ${assetType} asset:`, error);
-        updateAssetPaths(assetType, originalPath, originalPath);
-        setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
-      }
+      openAssetCrop(assetType, filePaths[0]);
     }
+  };
+
+  const handleSelectSteamGridDbArtwork = async (
+    assetType: AssetType,
+    artworkUrl: string
+  ) => {
+    const tempPath = await window.electron.downloadGameArtwork(artworkUrl);
+
+    openAssetCrop(assetType, tempPath, artworkUrl, true);
   };
 
   const handleRestoreDefault = (assetType: AssetType) => {
@@ -382,8 +416,14 @@ export function GameAssetsSettings({
   };
 
   const validateImageFile = (file: File): boolean => {
-    return VALID_IMAGE_TYPES.includes(
-      file.type as (typeof VALID_IMAGE_TYPES)[number]
+    const hasValidMimeType = VALID_IMAGE_TYPES.includes(
+      file.type.toLowerCase() as (typeof VALID_IMAGE_TYPES)[number]
+    );
+    const extension = file.name.split(".").pop()?.toLowerCase();
+
+    return (
+      hasValidMimeType ||
+      IMAGE_EXTENSIONS.includes(extension as (typeof IMAGE_EXTENSIONS)[number])
     );
   };
 
@@ -391,12 +431,13 @@ export function GameAssetsSettings({
     setDragOverTarget(null);
 
     if (!validateImageFile(file)) {
-      showErrorToast("Invalid file type. Please select an image file.");
+      showErrorToast(t("edit_game_modal_invalid_image"));
       return;
     }
 
     try {
       let filePath: string;
+      let cleanupSource = false;
 
       if ("path" in file && typeof (file as ElectronFile).path === "string") {
         filePath = (file as ElectronFile).path!;
@@ -417,32 +458,13 @@ export function GameAssetsSettings({
         }
 
         filePath = tempPath;
+        cleanupSource = true;
       }
 
-      const copiedAssetUrl = await window.electron.copyCustomGameAsset(
-        filePath,
-        assetType
-      );
-
-      updateAssetPaths(
-        assetType,
-        copiedAssetUrl.replace("local:", ""),
-        filePath
-      );
-      setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
-
-      if (!("path" in file) && filePath) {
-        try {
-          await window.electron.deleteTempFile?.(filePath);
-        } catch (cleanupError) {
-          console.warn("Failed to clean up temporary file:", cleanupError);
-        }
-      }
+      openAssetCrop(assetType, filePath, filePath, cleanupSource);
     } catch (error) {
       console.error(`Failed to process dropped ${assetType}:`, error);
-      showErrorToast(
-        `Failed to process dropped ${assetType}. Please try again.`
-      );
+      showErrorToast(t("edit_game_modal_image_process_failure"));
     }
   };
 
@@ -459,6 +481,52 @@ export function GameAssetsSettings({
     const files = Array.from(event.dataTransfer.files);
     if (files.length > 0) {
       await processDroppedFile(files[0], assetType);
+    }
+  };
+
+  const cleanupTempFile = async (filePath: string) => {
+    try {
+      await window.electron.deleteTempFile(filePath);
+    } catch (error) {
+      console.warn(`Failed to clean up temporary file ${filePath}:`, error);
+    }
+  };
+
+  const handleCloseCrop = () => {
+    const pendingCrop = pendingAssetCrop;
+    setPendingAssetCrop(null);
+
+    if (pendingCrop?.cleanupSource) {
+      void cleanupTempFile(pendingCrop.sourcePath);
+    }
+  };
+
+  const handleApplyCrop = async (croppedImagePath: string) => {
+    const pendingCrop = pendingAssetCrop;
+    if (!pendingCrop) return;
+
+    let copiedSuccessfully = false;
+
+    try {
+      const copiedAssetUrl = await window.electron.copyCustomGameAsset(
+        croppedImagePath,
+        pendingCrop.assetType
+      );
+
+      updateAssetPaths(
+        pendingCrop.assetType,
+        copiedAssetUrl.replace("local:", ""),
+        pendingCrop.displayPath
+      );
+      setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
+      setPendingAssetCrop(null);
+      copiedSuccessfully = true;
+    } finally {
+      await cleanupTempFile(croppedImagePath);
+
+      if (copiedSuccessfully && pendingCrop.cleanupSource) {
+        await cleanupTempFile(pendingCrop.sourcePath);
+      }
     }
   };
 
@@ -719,35 +787,70 @@ export function GameAssetsSettings({
   ).filter((tab) => tab.type !== "grid" || !isCustomGame(game));
 
   return (
-    <div className="game-assets-settings">
-      <div className="game-assets-settings__asset-tabs">
-        {assetTabs.map((tab) => (
-          <button
-            key={tab.type}
-            type="button"
-            className={`game-assets-settings__asset-tab ${
-              selectedAssetType === tab.type
-                ? "game-assets-settings__asset-tab--active"
-                : ""
-            }`}
-            onClick={() => handleAssetTypeChange(tab.type)}
-            disabled={isUpdating}
-          >
-            {t(tab.labelKey)}
-          </button>
-        ))}
-      </div>
-
-      {renderImageSection(selectedAssetType)}
-
-      {!isCustomGame(game) && (
-        <GameArtworkPicker
-          key={`${game.shop}:${game.objectId}:${selectedAssetType}`}
-          game={game}
-          assetType={selectedAssetType}
-          onChanged={onGameUpdated}
+    <>
+      {pendingAssetCrop && (
+        <ImageCropModal
+          visible
+          imagePath={pendingAssetCrop.sourcePath}
+          outputWidth={ASSET_OUTPUT_SIZE[pendingAssetCrop.assetType].width}
+          outputHeight={ASSET_OUTPUT_SIZE[pendingAssetCrop.assetType].height}
+          title={t("edit_game_modal_crop_asset", {
+            asset: t(`edit_game_modal_${pendingAssetCrop.assetType}`),
+          })}
+          description={tProfile("crop_profile_image_description")}
+          stageLabel={t("edit_game_modal_crop_stage")}
+          errorMessage={t("edit_game_modal_image_process_failure")}
+          labels={{
+            apply: tProfile("apply_crop"),
+            applying: tProfile("applying_crop"),
+            cancel: tProfile("cancel"),
+            reset: tProfile("reset"),
+            rotate: tProfile("rotate"),
+            toggleGrid: tProfile("toggle_grid"),
+            zoom: tProfile("zoom"),
+            zoomIn: tProfile("zoom_in"),
+            zoomOut: tProfile("zoom_out"),
+          }}
+          onClose={handleCloseCrop}
+          onApply={handleApplyCrop}
         />
       )}
-    </div>
+
+      <div className="game-assets-settings">
+        <div className="game-assets-settings__asset-tabs">
+          {assetTabs.map((tab) => (
+            <button
+              key={tab.type}
+              type="button"
+              className={`game-assets-settings__asset-tab ${
+                selectedAssetType === tab.type
+                  ? "game-assets-settings__asset-tab--active"
+                  : ""
+              }`}
+              onClick={() => handleAssetTypeChange(tab.type)}
+              disabled={isUpdating}
+            >
+              {t(tab.labelKey)}
+            </button>
+          ))}
+        </div>
+
+        {renderImageSection(selectedAssetType)}
+
+        {!isCustomGame(game) && (
+          <GameArtworkPicker
+            key={`${game.shop}:${game.objectId}:${selectedAssetType}:${
+              game.selectedArtworkTypes?.join(",") ?? ""
+            }:${assetPaths[selectedAssetType]}`}
+            game={game}
+            assetType={selectedAssetType}
+            onChanged={onGameUpdated}
+            onSelectArtwork={(artworkUrl) =>
+              handleSelectSteamGridDbArtwork(selectedAssetType, artworkUrl)
+            }
+          />
+        )}
+      </div>
+    </>
   );
 }

@@ -7,11 +7,12 @@ import { CheckIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import {
   getArtworkDisplaySource,
+  getRenderableArtworkUrl,
   useGameArtworkGrid,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
-import type { ArtworkAssetType, LibraryGame } from "@types";
+import type { ArtworkAssetType, ArtworkItem, LibraryGame } from "@types";
 
 import "./game-artwork-picker.scss";
 
@@ -39,12 +40,14 @@ interface GameArtworkPickerProps {
   game: LibraryGame;
   assetType: ArtworkAssetType;
   onChanged: () => Promise<void> | void;
+  onSelectArtwork: (artworkUrl: string) => Promise<void>;
 }
 
 export function GameArtworkPicker({
   game,
   assetType,
   onChanged,
+  onSelectArtwork,
 }: Readonly<GameArtworkPickerProps>) {
   const { t } = useTranslation("sidebar");
   const { showErrorToast, showSuccessToast } = useToast();
@@ -53,10 +56,6 @@ export function GameArtworkPicker({
   const onError = useCallback(() => {
     showErrorToast(t("steamgriddb_fetch_failed"));
   }, [showErrorToast, t]);
-
-  const onPicked = useCallback(() => {
-    showSuccessToast(t("steamgriddb_artwork_updated"));
-  }, [showSuccessToast, t]);
 
   const onCleared = useCallback(() => {
     showSuccessToast(t("steamgriddb_artwork_reset"));
@@ -69,10 +68,8 @@ export function GameArtworkPicker({
     hasMore,
     isStale,
     hasFailed,
-    pendingId,
     loadNextPage,
     reload,
-    pick,
     clear,
   } = useGameArtworkGrid({
     shop: game.shop,
@@ -81,12 +78,24 @@ export function GameArtworkPicker({
     enabled: Boolean(userDetails),
     onChanged,
     onError,
-    onPicked,
     onCleared,
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [pendingArtworkId, setPendingArtworkId] = useState<number | null>(null);
+
+  const handleSelectArtwork = async (item: ArtworkItem) => {
+    setPendingArtworkId(item.id);
+
+    try {
+      await onSelectArtwork(getRenderableArtworkUrl(item, assetType));
+    } catch {
+      onError();
+    } finally {
+      setPendingArtworkId(null);
+    }
+  };
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -248,7 +257,8 @@ export function GameArtworkPicker({
                           className={`game-artwork__item game-artwork__item--${assetType} ${
                             isActive ? "game-artwork__item--active" : ""
                           }`}
-                          onClick={() => pick(item)}
+                          onClick={() => void handleSelectArtwork(item)}
+                          disabled={pendingArtworkId !== null}
                         >
                           {display.isVideo ? (
                             <video
@@ -270,7 +280,7 @@ export function GameArtworkPicker({
                               <CheckIcon size={14} />
                             </span>
                           )}
-                          {pendingId === item.id && (
+                          {pendingArtworkId === item.id && (
                             <span
                               className="game-artwork__item-spinner"
                               aria-hidden="true"

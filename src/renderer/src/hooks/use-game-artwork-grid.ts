@@ -33,7 +33,7 @@ export const getArtworkDisplaySource = (
 const isIcoUrl = (url: string | null | undefined) =>
   !!url && /\.ico(\?.*)?$/i.test(url);
 
-const getRenderableArtworkUrl = (
+export const getRenderableArtworkUrl = (
   item: ArtworkItem,
   assetType: ArtworkAssetType
 ) => {
