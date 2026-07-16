@@ -1,5 +1,9 @@
 import { LibraryGame } from "@types";
-import { useGameCard } from "@renderer/hooks";
+import {
+  useGameCard,
+  useUserDetails,
+  useArtworkFallback,
+} from "@renderer/hooks";
 import { isGameCompleted } from "@renderer/helpers";
 import { ProgressBar } from "@renderer/components";
 import { memo, useEffect, useMemo, useState } from "react";
@@ -53,11 +57,26 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const hasPickedCover = Boolean(game.selectedArtworkTypes?.includes("grid"));
 
+  const { userDetails } = useUserDetails();
+  const needsCoverFallback =
+    game.shop !== "custom" &&
+    game.shop !== "launchbox" &&
+    Boolean(userDetails) &&
+    !game.customCoverImageUrl &&
+    !game.coverImageUrl;
+  const coverFallbackUrl = useArtworkFallback(
+    game.shop,
+    game.objectId,
+    "grids",
+    needsCoverFallback
+  );
+
   const candidates = [
     { url: game.customCoverImageUrl, isChosenCover: true }, // Level 0
     { url: game.coverImageUrl, isChosenCover: hasPickedCover }, // Level 1
-    { url: game.libraryImageUrl, isChosenCover: false }, // Level 2
-    { url: game.iconUrl, isChosenCover: false }, // Level 3
+    { url: coverFallbackUrl, isChosenCover: false }, // Level 2 (SteamGridDB)
+    { url: game.libraryImageUrl, isChosenCover: false }, // Level 3
+    { url: game.iconUrl, isChosenCover: false }, // Level 4
   ].filter(({ url }) => url && url.trim() !== "");
 
   const sources = candidates.map(({ url }) => url);
