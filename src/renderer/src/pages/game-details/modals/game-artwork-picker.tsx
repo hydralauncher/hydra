@@ -176,6 +176,10 @@ export function GameArtworkPicker({
     overscan: 3,
   });
 
+  useEffect(() => {
+    rowVirtualizer.measure();
+  }, [rowVirtualizer, rowHeight]);
+
   const virtualRows = rowVirtualizer.getVirtualItems();
   const lastVirtualRowIndex = virtualRows[virtualRows.length - 1]?.index;
 
