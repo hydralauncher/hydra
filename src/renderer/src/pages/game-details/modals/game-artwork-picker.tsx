@@ -93,6 +93,7 @@ interface GameArtworkPickerProps {
   game: LibraryGame;
   assetType: ArtworkAssetType;
   onChanged: () => Promise<void> | void;
+  currentArtworkUrl?: string | null;
   disabled?: boolean;
 }
 
@@ -100,6 +101,7 @@ export function GameArtworkPicker({
   game,
   assetType,
   onChanged,
+  currentArtworkUrl,
   disabled = false,
 }: Readonly<GameArtworkPickerProps>) {
   const { t } = useTranslation("sidebar");
@@ -126,6 +128,7 @@ export function GameArtworkPicker({
     isStale,
     hasFailed,
     pendingId,
+    isMutating,
     loadNextPage,
     reload,
     pick,
@@ -135,6 +138,7 @@ export function GameArtworkPicker({
     objectId: game.objectId,
     assetType,
     enabled: Boolean(userDetails),
+    currentArtworkUrl,
     onChanged,
     onError,
     onPicked,
@@ -144,7 +148,7 @@ export function GameArtworkPicker({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
-  const isBusy = disabled || pendingId !== null;
+  const isBusy = disabled || isMutating;
 
   useEffect(() => {
     const element = scrollRef.current;

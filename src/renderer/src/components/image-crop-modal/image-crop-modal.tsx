@@ -25,12 +25,28 @@ export interface ImageCropModalLabels {
   zoomOut: string;
 }
 
+export interface ImageCropParams {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  outputWidth: number;
+  outputHeight: number;
+  rotation: number;
+  wasEdited: boolean;
+}
+
+export interface ImageCropResult {
+  imagePath: string;
+  byteLength?: number;
+  wasProcessed?: boolean;
+}
+
 export interface ImageCropModalProps {
   visible: boolean;
   imagePath: string | null;
   outputWidth: number;
   outputHeight: number;
-  preserveAnimatedPng?: boolean;
   maxFrameWidth?: number;
   title: React.ReactNode;
   description?: string;
@@ -38,7 +54,8 @@ export interface ImageCropModalProps {
   errorMessage: string;
   labels: ImageCropModalLabels;
   onClose: () => void;
-  onApply: (croppedImagePath: string) => Promise<void> | void;
+  onCrop: (params: ImageCropParams) => Promise<ImageCropResult>;
+  onApply: (result: ImageCropResult) => Promise<void> | void;
 }
 
 const MAX_ZOOM = 4;
@@ -77,7 +94,6 @@ export function ImageCropModal({
   imagePath,
   outputWidth,
   outputHeight,
-  preserveAnimatedPng = false,
   maxFrameWidth,
   title,
   description,
@@ -85,6 +101,7 @@ export function ImageCropModal({
   errorMessage,
   labels,
   onClose,
+  onCrop,
   onApply,
 }: Readonly<ImageCropModalProps>) {
   const { showErrorToast } = useToast();
@@ -435,20 +452,18 @@ export function ImageCropModal({
       const sourceWidth = frameSize.width / scale;
       const sourceHeight = frameSize.height / scale;
 
-      const { imagePath: croppedImagePath } =
-        await window.electron.cropProfileImage(imagePath, {
-          left: sourceX,
-          top: sourceY,
-          width: sourceWidth,
-          height: sourceHeight,
-          outputWidth,
-          outputHeight,
-          rotation,
-          skipProcessingIfUnchanged: !hasCropChanges,
-          preserveAnimatedPng,
-        });
+      const result = await onCrop({
+        left: sourceX,
+        top: sourceY,
+        width: sourceWidth,
+        height: sourceHeight,
+        outputWidth,
+        outputHeight,
+        rotation,
+        wasEdited: hasCropChanges,
+      });
 
-      await onApply(croppedImagePath);
+      await onApply(result);
     } catch (error) {
       logger.error("Failed to crop image", error);
       showErrorToast(errorMessage);

@@ -7,7 +7,12 @@ import {
   ImageIcon,
   XIcon,
 } from "@primer/octicons-react";
-import { Button, ImageCropModal, TextField } from "@renderer/components";
+import {
+  Button,
+  ImageCropModal,
+  TextField,
+  type ImageCropResult,
+} from "@renderer/components";
 import { useToast, useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { generateRandomGradient } from "@renderer/helpers";
@@ -138,7 +143,7 @@ export function GameAssetsSettings({
 }: Readonly<GameAssetsSettingsProps>) {
   const { t } = useTranslation("sidebar");
   const { t: tProfile } = useTranslation("user_profile");
-  const { showSuccessToast, showErrorToast } = useToast();
+  const { showSuccessToast, showErrorToast, showWarningToast } = useToast();
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
   const navigate = useNavigate();
@@ -157,16 +162,10 @@ export function GameAssetsSettings({
   );
   const [defaultUrls, setDefaultUrls] = useState<AssetUrls>(INITIAL_ASSET_URLS);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [pendingUpdateMessage, setPendingUpdateMessage] = useState<
-    string | null
-  >(null);
   const [selectedAssetType, setSelectedAssetType] = useState<AssetType>("icon");
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
   const [pendingAssetCrop, setPendingAssetCrop] =
     useState<PendingAssetCrop | null>(null);
-  const [pendingPreloadUrl, setPendingPreloadUrl] = useState<string | null>(
-    null
-  );
   const [isPreparingAsset, setIsPreparingAsset] = useState(false);
 
   const mountedRef = useRef(true);
@@ -219,12 +218,15 @@ export function GameAssetsSettings({
     []
   );
 
-  const extractLocalPath = useCallback(
-    (url: string | null | undefined): string => {
-      return url?.startsWith("local:") ? url.replace("local:", "") : "";
-    },
+  const getAssetValue = useCallback(
+    (url: string | null | undefined) => url ?? "",
     []
   );
+
+  const getDisplayPath = useCallback((url: string | null | undefined) => {
+    if (!url) return "";
+    return url.startsWith("local:") ? url.slice("local:".length) : url;
+  }, []);
 
   const setCustomGameAssets = useCallback(
     (currentGame: LibraryGame | Game) => {
@@ -238,27 +240,27 @@ export function GameAssetsSettings({
         Boolean(gameWithAssets.originalHeroPath);
 
       setAssetPaths({
-        icon: extractLocalPath(currentGame.iconUrl),
-        logo: extractLocalPath(currentGame.logoImageUrl),
-        hero: extractLocalPath(currentGame.libraryHeroImageUrl),
+        icon: getAssetValue(currentGame.iconUrl),
+        logo: getAssetValue(currentGame.logoImageUrl),
+        hero: getAssetValue(currentGame.libraryHeroImageUrl),
         grid: "",
       });
       setAssetDisplayPaths({
-        icon: extractLocalPath(currentGame.iconUrl),
-        logo: extractLocalPath(currentGame.logoImageUrl),
-        hero: extractLocalPath(currentGame.libraryHeroImageUrl),
+        icon: getDisplayPath(currentGame.iconUrl),
+        logo: getDisplayPath(currentGame.logoImageUrl),
+        hero: getDisplayPath(currentGame.libraryHeroImageUrl),
         grid: "",
       });
       setOriginalAssetPaths({
         icon:
           gameWithAssets.originalIconPath ||
-          extractLocalPath(currentGame.iconUrl),
+          getDisplayPath(currentGame.iconUrl),
         logo:
           gameWithAssets.originalLogoPath ||
-          extractLocalPath(currentGame.logoImageUrl),
+          getDisplayPath(currentGame.logoImageUrl),
         hero:
           gameWithAssets.originalHeroPath ||
-          extractLocalPath(currentGame.libraryHeroImageUrl),
+          getDisplayPath(currentGame.libraryHeroImageUrl),
         grid: "",
       });
 
@@ -269,7 +271,7 @@ export function GameAssetsSettings({
         grid: false,
       });
     },
-    [extractLocalPath]
+    [getAssetValue, getDisplayPath]
   );
 
   const setNonCustomGameAssets = useCallback(
@@ -289,30 +291,30 @@ export function GameAssetsSettings({
         Boolean(gameWithAssets.customOriginalCoverPath);
 
       setAssetPaths({
-        icon: extractLocalPath(currentGame.customIconUrl),
-        logo: extractLocalPath(currentGame.customLogoImageUrl),
-        hero: extractLocalPath(currentGame.customHeroImageUrl),
-        grid: extractLocalPath(currentGame.customCoverImageUrl),
+        icon: getAssetValue(currentGame.customIconUrl),
+        logo: getAssetValue(currentGame.customLogoImageUrl),
+        hero: getAssetValue(currentGame.customHeroImageUrl),
+        grid: getAssetValue(currentGame.customCoverImageUrl),
       });
       setAssetDisplayPaths({
-        icon: extractLocalPath(currentGame.customIconUrl),
-        logo: extractLocalPath(currentGame.customLogoImageUrl),
-        hero: extractLocalPath(currentGame.customHeroImageUrl),
-        grid: extractLocalPath(currentGame.customCoverImageUrl),
+        icon: getDisplayPath(currentGame.customIconUrl),
+        logo: getDisplayPath(currentGame.customLogoImageUrl),
+        hero: getDisplayPath(currentGame.customHeroImageUrl),
+        grid: getDisplayPath(currentGame.customCoverImageUrl),
       });
       setOriginalAssetPaths({
         icon:
           gameWithAssets.customOriginalIconPath ||
-          extractLocalPath(currentGame.customIconUrl),
+          getDisplayPath(currentGame.customIconUrl),
         logo:
           gameWithAssets.customOriginalLogoPath ||
-          extractLocalPath(currentGame.customLogoImageUrl),
+          getDisplayPath(currentGame.customLogoImageUrl),
         hero:
           gameWithAssets.customOriginalHeroPath ||
-          extractLocalPath(currentGame.customHeroImageUrl),
+          getDisplayPath(currentGame.customHeroImageUrl),
         grid:
           gameWithAssets.customOriginalCoverPath ||
-          extractLocalPath(currentGame.customCoverImageUrl),
+          getDisplayPath(currentGame.customCoverImageUrl),
       });
 
       setRemovedAssets({
@@ -340,7 +342,7 @@ export function GameAssetsSettings({
           null,
       });
     },
-    [extractLocalPath, shopDetails]
+    [getAssetValue, getDisplayPath, shopDetails]
   );
 
   useEffect(() => {
@@ -396,10 +398,10 @@ export function GameAssetsSettings({
 
   const updateAssetPaths = (
     assetType: AssetType,
-    path: string,
+    assetUrl: string,
     displayPath: string
   ): void => {
-    setAssetPaths((prev) => ({ ...prev, [assetType]: path }));
+    setAssetPaths((prev) => ({ ...prev, [assetType]: assetUrl }));
     setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: displayPath }));
     setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: displayPath }));
     setRemovedAssets((prev) => ({ ...prev, [assetType]: false }));
@@ -466,16 +468,6 @@ export function GameAssetsSettings({
       console.error(`Failed to select ${assetType}:`, error);
       showErrorToast(tProfile("image_process_failure"));
     }
-  };
-
-  const handleRestoreDefault = (assetType: AssetType) => {
-    if (!beginAssetFlow()) return;
-
-    setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
-    setAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
-    setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: "" }));
-    setPendingPreloadUrl(defaultUrls[assetType]);
-    setPendingUpdateMessage(t("steamgriddb_artwork_reset"));
   };
 
   const handleDragOver = (event: React.DragEvent) => {
@@ -592,214 +584,189 @@ export function GameAssetsSettings({
     releaseAssetFlow();
   };
 
-  const handleApplyCrop = async (croppedImagePath: string) => {
-    const pendingCrop = pendingAssetCrop;
-    if (!pendingCrop) return;
+  const persistCustomGameAsset = async (
+    assetType: AssetType,
+    assetUrl: string | null,
+    displayPath: string
+  ) => {
+    const nextAssets = { ...assetPaths, [assetType]: assetUrl ?? "" };
+    const heroUrl =
+      assetType === "hero" && assetUrl === null
+        ? game.libraryHeroImageUrl?.startsWith("data:image/svg+xml")
+          ? game.libraryHeroImageUrl
+          : generateRandomGradient()
+        : nextAssets.hero || game.libraryHeroImageUrl;
 
-    let copiedSuccessfully = false;
+    await window.electron.updateCustomGame({
+      shop: game.shop,
+      objectId: game.objectId,
+      title: game.title,
+      iconUrl: nextAssets.icon || undefined,
+      logoImageUrl: nextAssets.logo || undefined,
+      libraryHeroImageUrl: heroUrl || undefined,
+      originalIconPath:
+        assetType === "icon" && assetUrl
+          ? displayPath
+          : originalAssetPaths.icon || undefined,
+      originalLogoPath:
+        assetType === "logo" && assetUrl
+          ? displayPath
+          : originalAssetPaths.logo || undefined,
+      originalHeroPath:
+        assetType === "hero" && assetUrl
+          ? displayPath
+          : originalAssetPaths.hero || undefined,
+    });
+  };
+
+  const persistNonCustomGameAsset = async (
+    assetType: AssetType,
+    assetUrl: string | null,
+    displayPath: string
+  ) => {
+    const assetFields = {
+      icon: ["customIconUrl", "customOriginalIconPath"],
+      logo: ["customLogoImageUrl", "customOriginalLogoPath"],
+      hero: ["customHeroImageUrl", "customOriginalHeroPath"],
+      grid: ["customCoverImageUrl", "customOriginalCoverPath"],
+    } as const;
+    const [urlField, originalField] = assetFields[assetType];
+
+    await window.electron.updateGameCustomAssets({
+      shop: game.shop,
+      objectId: game.objectId,
+      title: game.title,
+      [urlField]: assetUrl,
+      [originalField]: assetUrl ? displayPath : null,
+    });
+  };
+
+  const persistAssetChange = async (
+    assetType: AssetType,
+    assetUrl: string | null,
+    displayPath: string,
+    successMessage: string
+  ) => {
+    setIsUpdating(true);
 
     try {
-      const copiedAssetUrl = await window.electron.copyCustomGameAsset(
-        croppedImagePath,
-        pendingCrop.assetType
-      );
-
-      updateAssetPaths(
-        pendingCrop.assetType,
-        copiedAssetUrl.replace("local:", ""),
-        pendingCrop.displayPath
-      );
-      setPendingPreloadUrl(copiedAssetUrl);
-      setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
-      pendingAssetCropRef.current = null;
-      setPendingAssetCrop(null);
-      setIsPreparingAsset(true);
-      copiedSuccessfully = true;
-    } finally {
-      await cleanupTempFile(croppedImagePath);
-
-      if (copiedSuccessfully && pendingCrop.cleanupSource) {
-        await cleanupTempFile(pendingCrop.sourcePath);
+      if (isCustomGame(game)) {
+        await persistCustomGameAsset(assetType, assetUrl, displayPath);
+      } else {
+        await persistNonCustomGameAsset(assetType, assetUrl, displayPath);
       }
+
+      if (assetUrl) {
+        updateAssetPaths(assetType, assetUrl, displayPath);
+      } else {
+        setRemovedAssets((previous) => ({
+          ...previous,
+          [assetType]: true,
+        }));
+        setAssetPaths((previous) => ({ ...previous, [assetType]: "" }));
+        setAssetDisplayPaths((previous) => ({
+          ...previous,
+          [assetType]: "",
+        }));
+      }
+
+      try {
+        await onGameUpdated();
+        const previewUrl = assetUrl || defaultUrls[assetType];
+        if (previewUrl) await preloadImage(previewUrl);
+      } catch (error) {
+        console.warn("Failed to refresh persisted game asset:", error);
+      }
+
+      showSuccessToast(successMessage);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const prepareCustomGameAssets = useCallback(
-    (currentGame: LibraryGame | Game) => {
-      const iconUrl = removedAssets.icon
-        ? null
-        : assetPaths.icon
-          ? `local:${assetPaths.icon}`
-          : currentGame.iconUrl;
+  const handleRestoreDefault = async (assetType: AssetType) => {
+    if (!beginAssetFlow()) return;
 
-      const logoImageUrl = removedAssets.logo
-        ? null
-        : assetPaths.logo
-          ? `local:${assetPaths.logo}`
-          : currentGame.logoImageUrl;
+    try {
+      await persistAssetChange(
+        assetType,
+        null,
+        "",
+        t("steamgriddb_artwork_reset")
+      );
+    } catch (error) {
+      console.error("Failed to restore game asset:", error);
+      showErrorToast(
+        error instanceof Error ? error.message : t("edit_game_modal_failed")
+      );
+    } finally {
+      releaseAssetFlow();
+    }
+  };
 
-      const libraryHeroImageUrl = removedAssets.hero
-        ? currentGame.libraryHeroImageUrl?.startsWith("data:image/svg+xml")
-          ? currentGame.libraryHeroImageUrl
-          : generateRandomGradient()
-        : assetPaths.hero
-          ? `local:${assetPaths.hero}`
-          : currentGame.libraryHeroImageUrl;
+  const handleApplyCrop = async (result: ImageCropResult) => {
+    const pendingCrop = pendingAssetCrop;
+    if (!pendingCrop) return;
 
-      return { iconUrl, logoImageUrl, libraryHeroImageUrl };
-    },
-    [assetPaths, removedAssets]
-  );
+    let copiedAssetUrl: string | null = null;
+    let persisted = false;
 
-  const prepareNonCustomGameAssets = useCallback(() => {
-    const customIconUrl =
-      !removedAssets.icon && assetPaths.icon
-        ? `local:${assetPaths.icon}`
-        : null;
+    try {
+      copiedAssetUrl = await window.electron.copyCustomGameAsset(
+        result.imagePath,
+        pendingCrop.assetType
+      );
+      await persistAssetChange(
+        pendingCrop.assetType,
+        copiedAssetUrl,
+        pendingCrop.displayPath,
+        t("steamgriddb_artwork_updated")
+      );
+      persisted = true;
+      pendingAssetCropRef.current = null;
+      setPendingAssetCrop(null);
 
-    const customLogoImageUrl =
-      !removedAssets.logo && assetPaths.logo
-        ? `local:${assetPaths.logo}`
-        : null;
-
-    const customHeroImageUrl =
-      !removedAssets.hero && assetPaths.hero
-        ? `local:${assetPaths.hero}`
-        : null;
-
-    const customCoverImageUrl =
-      !removedAssets.grid && assetPaths.grid
-        ? `local:${assetPaths.grid}`
-        : null;
-
-    return {
-      customIconUrl,
-      customLogoImageUrl,
-      customHeroImageUrl,
-      customCoverImageUrl,
-    };
-  }, [assetPaths, removedAssets]);
-
-  const updateCustomGame = useCallback(
-    async (currentGame: LibraryGame | Game) => {
-      const { iconUrl, logoImageUrl, libraryHeroImageUrl } =
-        prepareCustomGameAssets(currentGame);
-
-      return window.electron.updateCustomGame({
-        shop: currentGame.shop,
-        objectId: currentGame.objectId,
-        title: game.title,
-        iconUrl: iconUrl || undefined,
-        logoImageUrl: logoImageUrl || undefined,
-        libraryHeroImageUrl: libraryHeroImageUrl || undefined,
-        originalIconPath: originalAssetPaths.icon || undefined,
-        originalLogoPath: originalAssetPaths.logo || undefined,
-        originalHeroPath: originalAssetPaths.hero || undefined,
-      });
-    },
-    [game.title, originalAssetPaths, prepareCustomGameAssets]
-  );
-
-  const updateNonCustomGame = useCallback(
-    async (currentGame: LibraryGame) => {
-      const {
-        customIconUrl,
-        customLogoImageUrl,
-        customHeroImageUrl,
-        customCoverImageUrl,
-      } = prepareNonCustomGameAssets();
-
-      return window.electron.updateGameCustomAssets({
-        shop: currentGame.shop,
-        objectId: currentGame.objectId,
-        title: game.title,
-        customIconUrl,
-        customLogoImageUrl,
-        customHeroImageUrl,
-        customCoverImageUrl,
-        customOriginalIconPath: removedAssets.icon
-          ? undefined
-          : originalAssetPaths.icon || undefined,
-        customOriginalLogoPath: removedAssets.logo
-          ? undefined
-          : originalAssetPaths.logo || undefined,
-        customOriginalHeroPath: removedAssets.hero
-          ? undefined
-          : originalAssetPaths.hero || undefined,
-        customOriginalCoverPath: removedAssets.grid
-          ? undefined
-          : originalAssetPaths.grid || undefined,
-      });
-    },
-    [game.title, originalAssetPaths, prepareNonCustomGameAssets, removedAssets]
-  );
-
-  useEffect(() => {
-    if (!pendingUpdateMessage || isUpdating) return;
-
-    setIsUpdating(true);
-
-    const updateGameAssets = async () => {
-      try {
-        await (isCustomGame(game)
-          ? updateCustomGame(game)
-          : updateNonCustomGame(game as LibraryGame));
-
-        await onGameUpdated();
-
-        if (pendingPreloadUrl) {
-          await preloadImage(pendingPreloadUrl);
-        }
-
-        showSuccessToast(pendingUpdateMessage || t("edit_game_modal_success"));
-      } catch (error) {
-        console.error("Failed to update game:", error);
-        showErrorToast(
-          error instanceof Error ? error.message : t("edit_game_modal_failed")
-        );
-      } finally {
-        setPendingPreloadUrl(null);
-        setPendingUpdateMessage(null);
-        setIsUpdating(false);
-        releaseAssetFlow();
+      if (
+        result.byteLength !== undefined &&
+        result.byteLength > 20 * 1024 * 1024
+      ) {
+        showWarningToast(t("custom_asset_sync_skipped_size"));
       }
-    };
+    } catch (error) {
+      if (!persisted && copiedAssetUrl?.startsWith("local:")) {
+        await cleanupTempFile(copiedAssetUrl.slice("local:".length));
+      }
+      throw error;
+    } finally {
+      await cleanupTempFile(result.imagePath);
 
-    updateGameAssets().catch(() => {});
-  }, [
-    game,
-    isCustomGame,
-    isUpdating,
-    onGameUpdated,
-    pendingPreloadUrl,
-    pendingUpdateMessage,
-    releaseAssetFlow,
-    showErrorToast,
-    showSuccessToast,
-    t,
-    updateCustomGame,
-    updateNonCustomGame,
-  ]);
+      if (persisted && pendingCrop.cleanupSource) {
+        await cleanupTempFile(pendingCrop.sourcePath);
+      }
+
+      if (persisted) releaseAssetFlow();
+    }
+  };
 
   const isAssetFlowBusy =
     isUpdating || isPreparingAsset || pendingAssetCrop !== null;
 
   const getPreviewUrl = (assetType: AssetType): string | undefined => {
-    const assetPath = assetPaths[assetType];
+    const assetUrl = assetPaths[assetType];
     const defaultUrl = defaultUrls[assetType];
 
     if (!isCustomGame(game)) {
-      return assetPath ? `local:${assetPath}` : defaultUrl || undefined;
+      return assetUrl || defaultUrl || undefined;
     }
 
-    return assetPath ? `local:${assetPath}` : undefined;
+    return assetUrl || undefined;
   };
 
   const renderImageSection = (assetType: AssetType) => {
     const assetPath = assetPaths[assetType];
     const assetDisplayPath = getAssetDisplayPath(assetType);
     const defaultUrl = defaultUrls[assetType];
-    const hasImage = assetPath || (!isCustomGame(game) && defaultUrl);
+    const hasImage = Boolean(assetPath || (!isCustomGame(game) && defaultUrl));
     const isDragOver = dragOverTarget === assetType;
 
     const getTranslationKey = (suffix: string) =>
@@ -911,7 +878,6 @@ export function GameAssetsSettings({
           imagePath={pendingAssetCrop.sourcePath}
           outputWidth={ASSET_OUTPUT_SIZE[pendingAssetCrop.assetType].width}
           outputHeight={ASSET_OUTPUT_SIZE[pendingAssetCrop.assetType].height}
-          preserveAnimatedPng
           title={t(`edit_game_modal_${pendingAssetCrop.assetType}`)}
           description={tProfile("crop_profile_image_description")}
           stageLabel={t(`edit_game_modal_${pendingAssetCrop.assetType}`)}
@@ -928,6 +894,12 @@ export function GameAssetsSettings({
             zoomOut: tProfile("zoom_out"),
           }}
           onClose={handleCloseCrop}
+          onCrop={({ wasEdited, ...params }) =>
+            window.electron.cropGameAsset(pendingAssetCrop.sourcePath, {
+              ...params,
+              skipProcessingIfUnchanged: !wasEdited,
+            })
+          }
           onApply={handleApplyCrop}
         />
       )}
@@ -991,6 +963,11 @@ export function GameAssetsSettings({
             game={game}
             assetType={selectedAssetType}
             onChanged={onGameUpdated}
+            currentArtworkUrl={
+              assetPaths[selectedAssetType].startsWith("https:")
+                ? assetPaths[selectedAssetType]
+                : null
+            }
             disabled={isAssetFlowBusy}
           />
         )}
