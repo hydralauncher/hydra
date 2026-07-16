@@ -31,12 +31,14 @@ interface GameArtworkPickerProps {
   game: LibraryGame;
   assetType: ArtworkAssetType;
   onChanged: () => Promise<void> | void;
+  selectionVersion?: number;
 }
 
 export function GameArtworkPicker({
   game,
   assetType,
   onChanged,
+  selectionVersion = 0,
 }: Readonly<GameArtworkPickerProps>) {
   const { t } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
@@ -57,6 +59,7 @@ export function GameArtworkPicker({
     hasMore,
     pendingId,
     loadNextPage,
+    reloadSelection,
     pick,
   } = useGameArtworkGrid({
     shop: game.shop,
@@ -76,6 +79,14 @@ export function GameArtworkPicker({
   );
 
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const selectionVersionRef = useRef(selectionVersion);
+
+  useEffect(() => {
+    if (selectionVersionRef.current === selectionVersion) return;
+
+    selectionVersionRef.current = selectionVersion;
+    reloadSelection().catch(() => {});
+  }, [reloadSelection, selectionVersion]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;

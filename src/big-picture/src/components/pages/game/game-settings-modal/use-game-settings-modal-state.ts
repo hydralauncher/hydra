@@ -375,8 +375,11 @@ export function useGameSettingsModalState({
   }, [game, gameTitle, saveGameTitle, showErrorToast, t, updatingGameTitle]);
 
   const handleProcessAssetPath = useCallback(
-    async (sourcePath: string, assetType: CustomAssetType) => {
-      if (!game) return;
+    async (
+      sourcePath: string,
+      assetType: CustomAssetType
+    ): Promise<string | null> => {
+      if (!game) return null;
 
       try {
         const copiedAssetUrl =
@@ -385,12 +388,14 @@ export function useGameSettingsModalState({
             assetType
           );
         await updateCustomizationAsset(assetType, copiedAssetUrl);
-        await refreshGameDetails();
+        void refreshGameDetails().catch(() => {});
         showSuccessToast(t("steamgriddb_artwork_updated"));
+        return copiedAssetUrl;
       } catch (error) {
         showErrorToast(
           error instanceof Error ? error.message : t("edit_game_modal_failed")
         );
+        return null;
       }
     },
     [
@@ -404,20 +409,35 @@ export function useGameSettingsModalState({
   );
 
   const handleClearCustomizationAsset = useCallback(
-    async (assetType: CustomAssetType) => {
-      if (!game) return;
+    async (
+      assetType: CustomAssetType,
+      clearArtworkSelection: boolean
+    ): Promise<boolean> => {
+      if (!game) return false;
 
       try {
-        await updateCustomizationAsset(
-          assetType,
-          game.shop === "custom" ? undefined : null
-        );
-        await refreshGameDetails();
+        if (clearArtworkSelection) {
+          await globalThis.window.electron.setGameArtworkSelection({
+            shop: game.shop,
+            objectId: game.objectId,
+            type: assetType,
+            clear: true,
+          });
+        } else {
+          await updateCustomizationAsset(
+            assetType,
+            game.shop === "custom" ? undefined : null
+          );
+        }
+
+        void refreshGameDetails().catch(() => {});
         showSuccessToast(t("steamgriddb_artwork_reset"));
+        return true;
       } catch (error) {
         showErrorToast(
           error instanceof Error ? error.message : t("edit_game_modal_failed")
         );
+        return false;
       }
     },
     [
