@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { CheckIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
 import {
@@ -18,10 +19,10 @@ const GAP = 8;
 
 const GRID_CONFIG: Record<
   ArtworkAssetType,
-  { minColumnWidth: number; aspectRatio: number }
+  { minColumnWidth: number; aspectRatio: number; maxColumns?: number }
 > = {
   icon: { minColumnWidth: 72, aspectRatio: 1 },
-  grid: { minColumnWidth: 96, aspectRatio: 1.5 },
+  grid: { minColumnWidth: 110, aspectRatio: 1.5, maxColumns: 4 },
   hero: { minColumnWidth: 220, aspectRatio: 0.3229 },
   logo: { minColumnWidth: 140, aspectRatio: 0.5625 },
 };
@@ -89,13 +90,15 @@ export function GameArtworkPicker({
     return () => observer.disconnect();
   }, []);
 
-  const { minColumnWidth, aspectRatio } = GRID_CONFIG[assetType];
+  const { minColumnWidth, aspectRatio, maxColumns } = GRID_CONFIG[assetType];
 
-  const columnsCount = useMemo(
-    () =>
-      Math.max(1, Math.floor((containerWidth + GAP) / (minColumnWidth + GAP))),
-    [containerWidth, minColumnWidth]
-  );
+  const columnsCount = useMemo(() => {
+    const fitColumns = Math.max(
+      1,
+      Math.floor((containerWidth + GAP) / (minColumnWidth + GAP))
+    );
+    return maxColumns ? Math.min(maxColumns, fitColumns) : fitColumns;
+  }, [containerWidth, minColumnWidth, maxColumns]);
 
   const skeletonCount = isLoading
     ? items.length
@@ -225,14 +228,14 @@ export function GameArtworkPicker({
                         );
                       }
 
+                      const isActive = currentArtworkId === item.id;
+
                       return (
                         <button
                           key={item.id}
                           type="button"
                           className={`game-artwork__item game-artwork__item--${assetType} ${
-                            currentArtworkId === item.id
-                              ? "game-artwork__item--active"
-                              : ""
+                            isActive ? "game-artwork__item--active" : ""
                           }`}
                           onClick={() => pick(item)}
                         >
@@ -247,6 +250,14 @@ export function GameArtworkPicker({
                             />
                           ) : (
                             <img src={item.thumb} alt="" loading="lazy" />
+                          )}
+                          {isActive && (
+                            <span
+                              className="game-artwork__item-check"
+                              aria-hidden="true"
+                            >
+                              <CheckIcon size={14} />
+                            </span>
                           )}
                           {pendingId === item.id && (
                             <span
