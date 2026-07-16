@@ -114,11 +114,12 @@ export function GameArtworkPicker({
     return maxColumns ? Math.min(maxColumns, fitColumns) : fitColumns;
   }, [containerWidth, minColumnWidth, maxColumns]);
 
-  const skeletonCount = isLoading
-    ? items.length
+  let skeletonCount = 0;
+  if (isLoading) {
+    skeletonCount = items.length
       ? MORE_SKELETON_COUNT
-      : INITIAL_SKELETON_COUNT[assetType]
-    : 0;
+      : INITIAL_SKELETON_COUNT[assetType];
+  }
   const totalCells = items.length + skeletonCount;
   const rowCount = Math.ceil(totalCells / columnsCount);
   const itemRowCount = Math.ceil(items.length / columnsCount);
@@ -188,7 +189,9 @@ export function GameArtworkPicker({
           <Button
             type="button"
             theme="outline"
-            onClick={() => void clear()}
+            onClick={() => {
+              clear().catch(() => {});
+            }}
             disabled={isBusy || isLoading}
           >
             {t("steamgriddb_use_default")}
@@ -261,7 +264,9 @@ export function GameArtworkPicker({
                           className={`game-artwork__item game-artwork__item--${assetType} ${
                             isActive ? "game-artwork__item--active" : ""
                           }`}
-                          onClick={() => void pick(item)}
+                          onClick={() => {
+                            pick(item).catch(() => {});
+                          }}
                           disabled={isBusy}
                         >
                           {display.isVideo ? (

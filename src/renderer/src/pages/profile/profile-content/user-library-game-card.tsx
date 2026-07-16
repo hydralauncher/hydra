@@ -146,6 +146,51 @@ export function UserLibraryGameCard({
     }
   };
 
+  const renderCoverMedia = () => {
+    if (imageError || !coverImageUrl) {
+      return (
+        <div className="user-library-game__cover-placeholder">
+          <ImageIcon size={48} />
+        </div>
+      );
+    }
+
+    if (game.shop === "launchbox" && !game.customLibraryImageUrl) {
+      return (
+        <div className="user-library-game__classics-cover">
+          <img
+            src={displayCoverUrl}
+            alt=""
+            aria-hidden="true"
+            className="user-library-game__classics-backdrop"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageError(true)}
+          />
+          <img
+            src={displayCoverUrl}
+            alt={game.title}
+            className="user-library-game__classics-image"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageError(true)}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={displayCoverUrl}
+        alt={game.title}
+        className="user-library-game__game-image"
+        loading="lazy"
+        decoding="async"
+        onError={() => setImageError(true)}
+      />
+    );
+  };
+
   return (
     <>
       <li
@@ -266,40 +311,7 @@ export function UserLibraryGameCard({
               )}
           </div>
 
-          {imageError || !coverImageUrl ? (
-            <div className="user-library-game__cover-placeholder">
-              <ImageIcon size={48} />
-            </div>
-          ) : game.shop === "launchbox" && !game.customLibraryImageUrl ? (
-            <div className="user-library-game__classics-cover">
-              <img
-                src={displayCoverUrl}
-                alt=""
-                aria-hidden="true"
-                className="user-library-game__classics-backdrop"
-                loading="lazy"
-                decoding="async"
-                onError={() => setImageError(true)}
-              />
-              <img
-                src={displayCoverUrl}
-                alt={game.title}
-                className="user-library-game__classics-image"
-                loading="lazy"
-                decoding="async"
-                onError={() => setImageError(true)}
-              />
-            </div>
-          ) : (
-            <img
-              src={displayCoverUrl}
-              alt={game.title}
-              className="user-library-game__game-image"
-              loading="lazy"
-              decoding="async"
-              onError={() => setImageError(true)}
-            />
-          )}
+          {renderCoverMedia()}
         </button>
       </li>
       <Tooltip

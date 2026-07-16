@@ -49,6 +49,29 @@ const KEYBOARD_PAN_STEP = 10;
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
+const getFrameWidth = (
+  outputWidth: number,
+  outputHeight: number,
+  maxFrameWidth?: number
+): string => {
+  const aspectRatio = outputWidth / outputHeight;
+
+  if (maxFrameWidth !== undefined) {
+    const viewportLimit = aspectRatio > 2 ? 80 : 72;
+    return `min(${maxFrameWidth}px, ${viewportLimit}vw)`;
+  }
+
+  if (aspectRatio < 1) {
+    return `min(420px, 72vw, calc(65vh * ${aspectRatio}))`;
+  }
+
+  if (aspectRatio > 2) {
+    return "min(720px, 80vw)";
+  }
+
+  return `min(560px, 76vw, calc(65vh * ${aspectRatio}))`;
+};
+
 export function ImageCropModal({
   visible,
   imagePath,
@@ -63,7 +86,7 @@ export function ImageCropModal({
   labels,
   onClose,
   onApply,
-}: ImageCropModalProps) {
+}: Readonly<ImageCropModalProps>) {
   const { showErrorToast } = useToast();
 
   const frameRef = useRef<HTMLButtonElement | null>(null);
@@ -457,17 +480,7 @@ export function ImageCropModal({
     translateY += renderedWidth;
   }
   const imageTransform = `translate(${translateX}px, ${translateY}px) rotate(${rotation}deg)`;
-  const aspectRatio = outputWidth / outputHeight;
-  const effectiveMaxFrameWidth =
-    maxFrameWidth ?? (aspectRatio < 1 ? 420 : aspectRatio > 2 ? 720 : 560);
-  const frameWidth =
-    maxFrameWidth !== undefined
-      ? `min(${maxFrameWidth}px, ${aspectRatio > 2 ? 80 : 72}vw)`
-      : aspectRatio < 1
-        ? `min(${effectiveMaxFrameWidth}px, 72vw, calc(65vh * ${aspectRatio}))`
-        : aspectRatio > 2
-          ? `min(${effectiveMaxFrameWidth}px, 80vw)`
-          : `min(${effectiveMaxFrameWidth}px, 76vw, calc(65vh * ${aspectRatio}))`;
+  const frameWidth = getFrameWidth(outputWidth, outputHeight, maxFrameWidth);
 
   return (
     <Modal
