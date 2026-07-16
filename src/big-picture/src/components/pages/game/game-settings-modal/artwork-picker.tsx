@@ -36,6 +36,22 @@ const MORE_SKELETON_COUNT = 4;
 
 const getTileFocusId = (id: number) => `game-artwork-tile-${id}`;
 
+const getCurrentArtworkUrl = (
+  game: LibraryGame,
+  assetType: ArtworkAssetType
+) => {
+  switch (assetType) {
+    case "icon":
+      return game.customIconUrl;
+    case "logo":
+      return game.customLogoImageUrl;
+    case "hero":
+      return game.customHeroImageUrl;
+    case "grid":
+      return game.customCoverImageUrl;
+  }
+};
+
 interface GameArtworkPickerProps {
   game: LibraryGame;
   assetType: ArtworkAssetType;
@@ -69,6 +85,7 @@ export function GameArtworkPicker({
     isLoading,
     hasMore,
     pendingId,
+    isMutating,
     loadNextPage,
     pick,
     clear,
@@ -77,6 +94,7 @@ export function GameArtworkPicker({
     objectId: game.objectId,
     assetType,
     enabled: Boolean(userDetails),
+    currentArtworkUrl: getCurrentArtworkUrl(game, assetType),
     onChanged,
     onError,
     onPicked,
@@ -151,6 +169,7 @@ export function GameArtworkPicker({
             type="button"
             className="game-artwork-picker__default-button"
             onClick={handleUseDefault}
+            disabled={isMutating}
           >
             {t("steamgriddb_use_default")}
           </button>
@@ -177,6 +196,7 @@ export function GameArtworkPicker({
                   : ""
               }`}
               onClick={() => handlePickItem(item)}
+              disabled={isMutating}
             >
               {(() => {
                 const display = getArtworkDisplaySource(item);
