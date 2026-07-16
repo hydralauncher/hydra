@@ -22,6 +22,11 @@ export function useFormat() {
 
   const formatPlayTime = useCallback(
     (playTimeInSeconds: number) => {
+      if (playTimeInSeconds > 0 && playTimeInSeconds < 60) {
+        const roundedSeconds = Math.max(1, Math.round(playTimeInSeconds));
+        return t("playtime_seconds", { count: roundedSeconds });
+      }
+
       const minutes = playTimeInSeconds / 60;
 
       if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {

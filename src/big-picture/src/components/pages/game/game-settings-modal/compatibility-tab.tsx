@@ -64,7 +64,7 @@ type ElectronCompatibilityBridge = Pick<
 export function GameCompatibilitySettingsTab({
   game,
 }: Readonly<GameCompatibilitySettingsProps>) {
-  const { t } = useTranslation("game_details");
+  const { t } = useTranslation(["game_details", "big_picture"]);
   const userPreferences = useUserPreferences();
   const electron = globalThis.window
     .electron as unknown as ElectronCompatibilityBridge;
@@ -320,7 +320,7 @@ export function GameCompatibilitySettingsTab({
       <SettingsSection
         className="game-compatibility-settings-tab__section"
         title={t("additional_options")}
-        description="Configure per-game overrides for GameMode and MangoHud"
+        description={t("additional_options_description", { ns: "big_picture" })}
       >
         <Checkbox
           id={GAME_COMPATIBILITY_SETTINGS_GAMEMODE_ID}
