@@ -207,7 +207,7 @@ export function GameAssetsSettings({
       pendingAssetCropRef.current = null;
 
       if (pendingCrop?.cleanupSource) {
-        void cleanupTempFile(pendingCrop.sourcePath);
+        cleanupTempFile(pendingCrop.sourcePath).catch(() => {});
       }
     };
   }, [cleanupTempFile]);
@@ -586,7 +586,7 @@ export function GameAssetsSettings({
     setPendingAssetCrop(null);
 
     if (pendingCrop?.cleanupSource) {
-      void cleanupTempFile(pendingCrop.sourcePath);
+      cleanupTempFile(pendingCrop.sourcePath).catch(() => {});
     }
 
     releaseAssetFlow();
@@ -765,7 +765,7 @@ export function GameAssetsSettings({
       }
     };
 
-    void updateGameAssets();
+    updateGameAssets().catch(() => {});
   }, [
     game,
     isCustomGame,
@@ -829,7 +829,7 @@ export function GameAssetsSettings({
                 <Button
                   type="button"
                   theme="outline"
-                  onClick={() => void handleRestoreDefault(assetType)}
+                  onClick={() => handleRestoreDefault(assetType)}
                   disabled={isAssetFlowBusy}
                 >
                   <XIcon />

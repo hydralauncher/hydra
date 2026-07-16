@@ -16,7 +16,7 @@ const requestFallback = (
   const key = cacheKey(shop, objectId, kind);
 
   const existing = inflightRequests.get(key);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
 
   const request = globalThis.window.electron
     .getGameArtwork(shop, objectId, kind, 0)

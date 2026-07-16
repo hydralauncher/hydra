@@ -10,7 +10,7 @@ export const isAnimatedCoverCandidate = (url: string | null | undefined) =>
 
 const requestPoster = (url: string): Promise<string | null> => {
   const existing = inflightRequests.get(url);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
 
   if (typeof globalThis.window.electron?.getCoverPoster !== "function") {
     return Promise.resolve(null);

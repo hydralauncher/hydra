@@ -42,8 +42,20 @@ const detectAnimatedFromHeader = (head: Buffer): boolean | null => {
   return null;
 };
 
-const downloadRange = async (url: string, endByte: number) => {
-  const response = await axios.get<ArrayBuffer>(url, {
+const ALLOWED_REMOTE_PROTOCOLS = new Set(["http:", "https:"]);
+
+const parseRemoteUrl = (url: string): URL | null => {
+  try {
+    const parsed = new URL(url);
+    if (!ALLOWED_REMOTE_PROTOCOLS.has(parsed.protocol)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const downloadRange = async (url: URL, endByte: number) => {
+  const response = await axios.get<ArrayBuffer>(url.toString(), {
     responseType: "arraybuffer",
     headers: { Range: `bytes=0-${endByte}` },
     maxContentLength: MAX_SOURCE_BYTES,
@@ -57,8 +69,8 @@ const downloadRange = async (url: string, endByte: number) => {
   };
 };
 
-const downloadFull = async (url: string) => {
-  const response = await axios.get<ArrayBuffer>(url, {
+const downloadFull = async (url: URL) => {
+  const response = await axios.get<ArrayBuffer>(url.toString(), {
     responseType: "arraybuffer",
     maxContentLength: MAX_SOURCE_BYTES,
     maxBodyLength: MAX_SOURCE_BYTES,
@@ -75,24 +87,26 @@ const loadAnimatedSource = async (
   url: string
 ): Promise<AnimatedSource | null> => {
   if (url.startsWith("local:")) {
-    const localPath = url.slice("local:".length);
-    if (!fs.existsSync(localPath)) return null;
+    const localPath = path.resolve(url.slice("local:".length));
+    const stats = await fs.promises.stat(localPath).catch(() => null);
+    if (!stats?.isFile()) return null;
     const buffer = await fs.promises.readFile(localPath);
     return { buffer, headerAnimated: detectAnimatedFromHeader(buffer) };
   }
 
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+  const remoteUrl = parseRemoteUrl(url);
+  if (!remoteUrl) {
     return null;
   }
 
-  const { buffer: head, isPartial } = await downloadRange(url, 4095);
+  const { buffer: head, isPartial } = await downloadRange(remoteUrl, 4095);
   const headerAnimated = detectAnimatedFromHeader(head);
 
   if (headerAnimated === false) {
     return null;
   }
 
-  const buffer = isPartial ? await downloadFull(url) : head;
+  const buffer = isPartial ? await downloadFull(remoteUrl) : head;
   return { buffer, headerAnimated };
 };
 
@@ -135,7 +149,7 @@ export const getCoverPoster = async (url: string): Promise<string | null> => {
   if (!url) return null;
 
   const existing = inflightPosters.get(url);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
 
   const request = buildCoverPoster(url)
     .catch((error) => {
