@@ -6,8 +6,10 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@renderer/components";
 import {
   getArtworkDisplaySource,
+  getLastArtworkRowIds,
   getRenderableArtworkUrl,
   isAnimatedArtworkItem,
+  isArtworkRowSettled,
   useGameArtworkGrid,
   useToast,
   useUserDetails,
@@ -42,7 +44,9 @@ interface ArtworkTileProps {
   isActive: boolean;
   isBusy: boolean;
   isPending: boolean;
+  isMediaSettled: boolean;
   onPick: (item: ArtworkItem) => Promise<void>;
+  onMediaSettled: (artworkId: number) => void;
 }
 
 function ArtworkTile({
@@ -51,9 +55,21 @@ function ArtworkTile({
   isActive,
   isBusy,
   isPending,
+  isMediaSettled,
   onPick,
+  onMediaSettled,
 }: Readonly<ArtworkTileProps>) {
   const display = getArtworkDisplaySource(item);
+  const [hasMediaFailed, setHasMediaFailed] = useState(false);
+
+  const handleMediaLoaded = () => {
+    onMediaSettled(item.id);
+  };
+
+  const handleMediaError = () => {
+    setHasMediaFailed(true);
+    onMediaSettled(item.id);
+  };
 
   return (
     <button
@@ -64,19 +80,38 @@ function ArtworkTile({
       onClick={() => {
         onPick(item).catch(() => {});
       }}
-      disabled={isBusy}
+      disabled={isBusy || !isMediaSettled || hasMediaFailed}
     >
-      {display.isVideo ? (
+      {!hasMediaFailed && display.isVideo ? (
         <video
+          className={isMediaSettled ? "game-artwork__media--loaded" : ""}
           src={display.src}
           autoPlay
           loop
           muted
           playsInline
           disablePictureInPicture
+          preload="auto"
+          onLoadedData={handleMediaLoaded}
+          onError={handleMediaError}
         />
-      ) : (
-        <img src={display.src} alt="" loading="lazy" />
+      ) : !hasMediaFailed ? (
+        <img
+          className={isMediaSettled ? "game-artwork__media--loaded" : ""}
+          src={display.src}
+          alt=""
+          loading="eager"
+          decoding="async"
+          onLoad={handleMediaLoaded}
+          onError={handleMediaError}
+        />
+      ) : null}
+      {!isMediaSettled && (
+        <Skeleton
+          containerClassName="game-artwork__skeleton"
+          height="100%"
+          width="100%"
+        />
       )}
       {isPending && (
         <span className="game-artwork__item-spinner" aria-hidden="true" />
@@ -146,9 +181,22 @@ export function GameArtworkPicker({
   const [pendingStaticArtworkId, setPendingStaticArtworkId] = useState<
     number | null
   >(null);
+  const [settledArtworkIds, setSettledArtworkIds] = useState<Set<number>>(
+    () => new Set()
+  );
 
   const isBusy =
     disabled || pendingId !== null || pendingStaticArtworkId !== null;
+
+  const handleMediaSettled = useCallback((artworkId: number) => {
+    setSettledArtworkIds((currentIds) => {
+      if (currentIds.has(artworkId)) return currentIds;
+
+      const nextIds = new Set(currentIds);
+      nextIds.add(artworkId);
+      return nextIds;
+    });
+  }, []);
 
   const handlePick = async (item: ArtworkItem) => {
     if (isAnimatedArtworkItem(item)) {
@@ -212,6 +260,14 @@ export function GameArtworkPicker({
   const totalCells = items.length + skeletonCount;
   const rowCount = Math.ceil(totalCells / columnsCount);
   const itemRowCount = Math.ceil(items.length / columnsCount);
+  const lastArtworkRowIds = useMemo(
+    () => getLastArtworkRowIds(items, columnsCount),
+    [items, columnsCount]
+  );
+  const isLastArtworkRowSettled = isArtworkRowSettled(
+    lastArtworkRowIds,
+    settledArtworkIds
+  );
 
   const rowHeight = useMemo(() => {
     const columnWidth =
@@ -237,14 +293,27 @@ export function GameArtworkPicker({
 
   useEffect(() => {
     if (lastVirtualRowIndex == null) return;
-    if (lastVirtualRowIndex >= itemRowCount - 1 && hasMore && !isLoading) {
+    if (
+      lastVirtualRowIndex >= itemRowCount - 1 &&
+      hasMore &&
+      !isLoading &&
+      isLastArtworkRowSettled
+    ) {
       loadNextPage();
     }
-  }, [lastVirtualRowIndex, itemRowCount, hasMore, isLoading, loadNextPage]);
+  }, [
+    lastVirtualRowIndex,
+    itemRowCount,
+    hasMore,
+    isLoading,
+    isLastArtworkRowSettled,
+    loadNextPage,
+  ]);
 
   useEffect(() => {
+    setSettledArtworkIds(new Set());
     scrollRef.current?.scrollTo({ top: 0 });
-  }, [assetType]);
+  }, [assetType, game.objectId, game.shop]);
 
   if (!userDetails) {
     return (
@@ -342,7 +411,9 @@ export function GameArtworkPicker({
                             pendingId === item.id ||
                             pendingStaticArtworkId === item.id
                           }
+                          isMediaSettled={settledArtworkIds.has(item.id)}
                           onPick={handlePick}
+                          onMediaSettled={handleMediaSettled}
                         />
                       );
                     })}
