@@ -28,6 +28,10 @@ import path from "node:path";
 import UserAgent from "user-agents";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
+import {
+  addSteamGridDbCacheControl,
+  isSteamGridDbArtworkRequest,
+} from "./steam-grid-db-cache";
 
 const isLinuxWayland =
   process.platform === "linux" &&
@@ -258,12 +262,15 @@ export class WindowManager {
             "Content-Type, Authorization, X-Requested-With, If-None-Match",
           ],
         };
+        const responseHeaders = isSteamGridDbArtworkRequest(details)
+          ? addSteamGridDbCacheControl(details.responseHeaders)
+          : details.responseHeaders;
 
         if (details.method === "OPTIONS") {
           return callback({
             cancel: false,
             responseHeaders: {
-              ...details.responseHeaders,
+              ...responseHeaders,
               ...headers,
             },
             statusLine: "HTTP/1.1 200 OK",
@@ -272,7 +279,7 @@ export class WindowManager {
 
         return callback({
           responseHeaders: {
-            ...details.responseHeaders,
+            ...responseHeaders,
             ...headers,
           },
         });
