@@ -120,7 +120,8 @@
     "steamgriddb_artwork_updated": "Arte atualizada",
     "steamgriddb_artwork_reset": "Arte reposta para a predefinição",
     "classics_hero_layout_warning": "Para mostrar o logo e o hero, ative o esquema logo + hero na página de jogos clássicos.",
-    "classics_hero_layout_open_settings": "Abrir definições"
+    "classics_hero_layout_open_settings": "Abrir definições",
+    "custom_assets_not_sync": "Vê como sincronizar as tuas artes personalizadas"
   },
   "header": {
     "minimize": "Minimizar",

@@ -140,7 +140,8 @@
     "steamgriddb_artwork_updated": "Оформление обновлено",
     "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию",
     "classics_hero_layout_warning": "Чтобы показать логотип и hero, включите макет «логотип + hero» на странице классической игры.",
-    "classics_hero_layout_open_settings": "Открыть настройки"
+    "classics_hero_layout_open_settings": "Открыть настройки",
+    "custom_assets_not_sync": "Узнайте, как синхронизировать ваше пользовательское оформление"
   },
   "header": {
     "minimize": "Свернуть",

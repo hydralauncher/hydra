@@ -140,7 +140,8 @@
     "steamgriddb_artwork_updated": "Illustration mise à jour",
     "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut",
     "classics_hero_layout_warning": "Pour afficher le logo et le hero, activez la disposition logo + hero sur la page des jeux classiques.",
-    "classics_hero_layout_open_settings": "Ouvrir les réglages"
+    "classics_hero_layout_open_settings": "Ouvrir les réglages",
+    "custom_assets_not_sync": "Voir comment synchroniser vos illustrations personnalisées"
   },
   "header": {
     "search": "Rechercher",

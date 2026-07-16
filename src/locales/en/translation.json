@@ -140,7 +140,8 @@
     "steamgriddb_artwork_updated": "Artwork updated",
     "steamgriddb_artwork_reset": "Artwork reset to default",
     "classics_hero_layout_warning": "To display the logo and hero, enable the logo + hero layout on the classic game page.",
-    "classics_hero_layout_open_settings": "Open settings"
+    "classics_hero_layout_open_settings": "Open settings",
+    "custom_assets_not_sync": "See how to synchronize your custom assets"
   },
   "header": {
     "minimize": "Minimize",
