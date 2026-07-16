@@ -75,6 +75,12 @@ interface PendingAssetCrop {
   sourcePath: string;
   displayPath: string;
   cleanupSource: boolean;
+  artworkId?: number;
+}
+
+interface PendingArtworkSelection {
+  assetType: AssetType;
+  artworkId: number | null;
 }
 
 const VALID_IMAGE_TYPES = [
@@ -164,10 +170,13 @@ export function GameAssetsSettings({
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
   const [pendingAssetCrop, setPendingAssetCrop] =
     useState<PendingAssetCrop | null>(null);
+  const [pendingArtworkSelection, setPendingArtworkSelection] =
+    useState<PendingArtworkSelection | null>(null);
   const [pendingPreloadUrl, setPendingPreloadUrl] = useState<string | null>(
     null
   );
   const [isPreparingAsset, setIsPreparingAsset] = useState(false);
+  const [artworkPickerVersion, setArtworkPickerVersion] = useState(0);
 
   const mountedRef = useRef(true);
   const assetFlowBusyRef = useRef(false);
@@ -424,18 +433,84 @@ export function GameAssetsSettings({
     assetType: AssetType,
     sourcePath: string,
     displayPath = sourcePath,
-    cleanupSource = false
+    cleanupSource = false,
+    artworkId?: number
   ) => {
     const pendingCrop = {
       assetType,
       sourcePath,
       displayPath,
       cleanupSource,
+      artworkId,
     };
 
     pendingAssetCropRef.current = pendingCrop;
     setPendingAssetCrop(pendingCrop);
     setIsPreparingAsset(false);
+  };
+
+  const applyUncroppedAsset = async (
+    assetType: AssetType,
+    sourcePath: string,
+    displayPath = sourcePath,
+    cleanupSource = false
+  ) => {
+    try {
+      const copiedAssetUrl = await window.electron.copyCustomGameAsset(
+        sourcePath,
+        assetType
+      );
+
+      updateAssetPaths(
+        assetType,
+        copiedAssetUrl.replace("local:", ""),
+        displayPath
+      );
+      setPendingArtworkSelection({ assetType, artworkId: null });
+      setPendingPreloadUrl(copiedAssetUrl);
+      setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
+    } finally {
+      if (cleanupSource) {
+        await cleanupTempFile(sourcePath);
+      }
+    }
+  };
+
+  const prepareLocalAsset = async (
+    assetType: AssetType,
+    sourcePath: string,
+    displayPath = sourcePath,
+    cleanupSource = false
+  ) => {
+    let isAnimated = true;
+
+    try {
+      const metadata =
+        await window.electron.getProfileImageMetadata(sourcePath);
+      isAnimated = metadata.isAnimated;
+    } catch {
+      isAnimated = true;
+    }
+
+    if (!mountedRef.current) {
+      if (cleanupSource) {
+        await cleanupTempFile(sourcePath);
+      }
+      releaseAssetFlow();
+      return;
+    }
+
+    if (isAnimated) {
+      await applyUncroppedAsset(
+        assetType,
+        sourcePath,
+        displayPath,
+        cleanupSource
+      );
+      return;
+    }
+
+    openAssetCrop(assetType, sourcePath, displayPath, cleanupSource);
   };
 
   const handleSelectAsset = async (assetType: AssetType) => {
@@ -454,7 +529,7 @@ export function GameAssetsSettings({
 
       if (filePaths && filePaths.length > 0) {
         if (mountedRef.current) {
-          openAssetCrop(assetType, filePaths[0]);
+          await prepareLocalAsset(assetType, filePaths[0]);
         } else {
           releaseAssetFlow();
         }
@@ -468,12 +543,42 @@ export function GameAssetsSettings({
     }
   };
 
+  const handleSelectSteamGridDbArtwork = async (
+    assetType: AssetType,
+    artworkUrl: string,
+    artworkId: number
+  ): Promise<boolean> => {
+    if (!beginAssetFlow()) return false;
+
+    try {
+      const tempPath = await window.electron.downloadGameArtwork(artworkUrl);
+
+      if (!tempPath) {
+        releaseAssetFlow();
+        return true;
+      }
+
+      if (!mountedRef.current) {
+        await cleanupTempFile(tempPath);
+        releaseAssetFlow();
+        return false;
+      }
+
+      openAssetCrop(assetType, tempPath, artworkUrl, true, artworkId);
+      return false;
+    } catch (error) {
+      releaseAssetFlow();
+      throw error;
+    }
+  };
+
   const handleRestoreDefault = (assetType: AssetType) => {
     if (!beginAssetFlow()) return;
 
     setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
     setAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
     setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: "" }));
+    setPendingArtworkSelection({ assetType, artworkId: null });
     setPendingPreloadUrl(defaultUrls[assetType]);
     setPendingUpdateMessage(t("steamgriddb_artwork_reset"));
   };
@@ -554,7 +659,7 @@ export function GameAssetsSettings({
         return;
       }
 
-      openAssetCrop(assetType, filePath, filePath, cleanupSource);
+      await prepareLocalAsset(assetType, filePath, filePath, cleanupSource);
     } catch (error) {
       releaseAssetFlow();
       console.error(`Failed to process dropped ${assetType}:`, error);
@@ -609,6 +714,10 @@ export function GameAssetsSettings({
         copiedAssetUrl.replace("local:", ""),
         pendingCrop.displayPath
       );
+      setPendingArtworkSelection({
+        assetType: pendingCrop.assetType,
+        artworkId: pendingCrop.artworkId ?? null,
+      });
       setPendingPreloadUrl(copiedAssetUrl);
       setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
       pendingAssetCropRef.current = null;
@@ -729,9 +838,25 @@ export function GameAssetsSettings({
         customOriginalCoverPath: removedAssets.grid
           ? undefined
           : originalAssetPaths.grid || undefined,
+        customArtworkIds: pendingArtworkSelection
+          ? {
+              [pendingArtworkSelection.assetType]:
+                pendingArtworkSelection.artworkId,
+            }
+          : undefined,
+        clearArtworkTypes:
+          pendingArtworkSelection?.artworkId === null
+            ? [pendingArtworkSelection.assetType]
+            : undefined,
       });
     },
-    [game.title, originalAssetPaths, prepareNonCustomGameAssets, removedAssets]
+    [
+      game.title,
+      originalAssetPaths,
+      pendingArtworkSelection,
+      prepareNonCustomGameAssets,
+      removedAssets,
+    ]
   );
 
   useEffect(() => {
@@ -740,11 +865,14 @@ export function GameAssetsSettings({
     setIsUpdating(true);
 
     const updateGameAssets = async () => {
+      let assetsUpdated = false;
+
       try {
         await (isCustomGame(game)
           ? updateCustomGame(game)
           : updateNonCustomGame(game as LibraryGame));
 
+        assetsUpdated = true;
         await onGameUpdated();
 
         if (pendingPreloadUrl) {
@@ -758,6 +886,11 @@ export function GameAssetsSettings({
           error instanceof Error ? error.message : t("edit_game_modal_failed")
         );
       } finally {
+        if (assetsUpdated) {
+          setArtworkPickerVersion((version) => version + 1);
+        }
+
+        setPendingArtworkSelection(null);
         setPendingPreloadUrl(null);
         setPendingUpdateMessage(null);
         setIsUpdating(false);
@@ -991,6 +1124,14 @@ export function GameAssetsSettings({
             assetType={selectedAssetType}
             onChanged={onGameUpdated}
             disabled={isAssetFlowBusy}
+            selectionVersion={artworkPickerVersion}
+            onSelectArtwork={({ artworkUrl, artworkId }) =>
+              handleSelectSteamGridDbArtwork(
+                selectedAssetType,
+                artworkUrl,
+                artworkId
+              )
+            }
           />
         )}
       </div>

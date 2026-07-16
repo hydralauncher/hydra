@@ -9,6 +9,7 @@ import "./close-game";
 import "./copy-custom-game-asset";
 import "./create-game-shortcut";
 import "./create-steam-shortcut";
+import "./download-game-artwork";
 import "./delete-archive";
 import "./delete-game-folder";
 import "./extract-game-download";

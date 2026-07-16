@@ -14,5 +14,6 @@ export * from "./use-search-suggestions";
 export * from "./use-game-collections";
 export * from "./use-classics-scan";
 export * from "./use-game-artwork-grid";
+export * from "./game-artwork-utils";
 export * from "./use-artwork-fallback";
 export * from "./use-cover-poster";
