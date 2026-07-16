@@ -23,6 +23,13 @@ const ARTWORK_KIND_BY_TYPE: Record<ArtworkAssetType, ArtworkKind> = {
 export const isVideoArtworkThumb = (thumb: string | null | undefined) =>
   !!thumb && /\.(webm|mp4)(\?.*)?$/i.test(thumb);
 
+export const getArtworkDisplaySource = (
+  item: Pick<ArtworkItem, "url" | "thumb">
+) => {
+  const src = isVideoArtworkThumb(item.thumb) ? item.url : item.thumb;
+  return { src, isVideo: isVideoArtworkThumb(src) };
+};
+
 const isIcoUrl = (url: string | null | undefined) =>
   !!url && /\.ico(\?.*)?$/i.test(url);
 

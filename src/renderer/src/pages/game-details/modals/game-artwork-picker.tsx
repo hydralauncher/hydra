@@ -6,7 +6,7 @@ import { CheckIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
 import {
-  isVideoArtworkThumb,
+  getArtworkDisplaySource,
   useGameArtworkGrid,
   useToast,
   useUserDetails,
@@ -239,6 +239,7 @@ export function GameArtworkPicker({
                       }
 
                       const isActive = currentArtworkId === item.id;
+                      const display = getArtworkDisplaySource(item);
 
                       return (
                         <button
@@ -249,9 +250,9 @@ export function GameArtworkPicker({
                           }`}
                           onClick={() => pick(item)}
                         >
-                          {isVideoArtworkThumb(item.thumb) ? (
+                          {display.isVideo ? (
                             <video
-                              src={item.thumb}
+                              src={display.src}
                               autoPlay
                               loop
                               muted
@@ -259,7 +260,7 @@ export function GameArtworkPicker({
                               disablePictureInPicture
                             />
                           ) : (
-                            <img src={item.thumb} alt="" loading="lazy" />
+                            <img src={display.src} alt="" loading="lazy" />
                           )}
                           {isActive && (
                             <span
