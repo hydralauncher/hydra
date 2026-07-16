@@ -44,19 +44,28 @@ const detectAnimatedFromHeader = (head: Buffer): boolean | null => {
   return null;
 };
 
-const downloadRange = async (
+interface RemoteDownload {
+  buffer: Buffer;
+  status: number;
+}
+
+const downloadRemote = async (
   url: URL,
-  endByte: number,
+  endByte?: number,
   redirectCount = 0
-): Promise<{ buffer: Buffer; isPartial: boolean }> => {
-  const response = await axios.get<ArrayBuffer>(url.toString(), {
+): Promise<RemoteDownload> => {
+  const validatedUrl = parseCoverPosterRemoteUrl(url.toString());
+  if (!validatedUrl) throw new Error("Untrusted cover poster URL");
+
+  const response = await axios.get<ArrayBuffer>(validatedUrl.toString(), {
     responseType: "arraybuffer",
-    headers: { Range: `bytes=0-${endByte}` },
+    headers:
+      endByte === undefined ? undefined : { Range: `bytes=0-${endByte}` },
     maxContentLength: MAX_SOURCE_BYTES,
     maxBodyLength: MAX_SOURCE_BYTES,
     maxRedirects: 0,
     validateStatus: (status) =>
-      status === 200 || status === 206 || (status >= 300 && status < 400),
+      (status >= 200 && status < 300) || (status >= 300 && status < 400),
   });
 
   if (response.status >= 300) {
@@ -66,44 +75,25 @@ const downloadRange = async (
 
     const redirectUrl = parseCoverPosterRemoteUrl(
       response.headers.location,
-      url
+      validatedUrl
     );
     if (!redirectUrl) throw new Error("Untrusted cover poster redirect");
 
-    return downloadRange(redirectUrl, endByte, redirectCount + 1);
+    return downloadRemote(redirectUrl, endByte, redirectCount + 1);
   }
 
   return {
     buffer: Buffer.from(response.data),
-    isPartial: response.status === 206,
+    status: response.status,
   };
 };
 
-const downloadFull = async (url: URL, redirectCount = 0): Promise<Buffer> => {
-  const response = await axios.get<ArrayBuffer>(url.toString(), {
-    responseType: "arraybuffer",
-    maxContentLength: MAX_SOURCE_BYTES,
-    maxBodyLength: MAX_SOURCE_BYTES,
-    maxRedirects: 0,
-    validateStatus: (status) => status >= 200 && status < 400,
-  });
-
-  if (response.status >= 300) {
-    if (redirectCount >= MAX_REDIRECTS || !response.headers.location) {
-      throw new Error("Invalid cover poster redirect");
-    }
-
-    const redirectUrl = parseCoverPosterRemoteUrl(
-      response.headers.location,
-      url
-    );
-    if (!redirectUrl) throw new Error("Untrusted cover poster redirect");
-
-    return downloadFull(redirectUrl, redirectCount + 1);
-  }
-
-  return Buffer.from(response.data);
+const downloadRange = async (url: URL, endByte: number) => {
+  const result = await downloadRemote(url, endByte);
+  return { buffer: result.buffer, isPartial: result.status === 206 };
 };
+
+const downloadFull = async (url: URL) => (await downloadRemote(url)).buffer;
 
 interface AnimatedSource {
   buffer: Buffer;

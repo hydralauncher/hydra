@@ -26,6 +26,18 @@ describe("cover poster remote URL", () => {
       ),
       null
     );
+    assert.equal(
+      parseCoverPosterRemoteUrl(
+        "https://user:password@cdn2.steamgriddb.com/hero/example.webp"
+      ),
+      null
+    );
+    assert.equal(
+      parseCoverPosterRemoteUrl(
+        "https://cdn2.steamgriddb.com:8443/hero/example.webp"
+      ),
+      null
+    );
   });
 
   it("resolves only trusted redirect locations", () => {
