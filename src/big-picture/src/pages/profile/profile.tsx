@@ -149,11 +149,11 @@ const hydraIconUrl = new URL("../../assets/hydra-icon.svg", import.meta.url)
   .href;
 const WEEKLY_BAR_PLACEHOLDER = [
   { day: "monday", label: "M", height: 0.62 },
-  { day: "tuesday", label: "S", height: 0.14 },
-  { day: "wednesday", label: "T", height: 0.36 },
-  { day: "thursday", label: "W", height: 0.26 },
-  { day: "friday", label: "T", height: 0.34 },
-  { day: "saturday", label: "F", height: 0.42 },
+  { day: "tuesday", label: "T", height: 0.14 },
+  { day: "wednesday", label: "W", height: 0.36 },
+  { day: "thursday", label: "T", height: 0.26 },
+  { day: "friday", label: "F", height: 0.34 },
+  { day: "saturday", label: "S", height: 0.42 },
   { day: "sunday", label: "S", height: 0.72 },
 ];
 const LOCKED_ACHIEVEMENT_PREVIEW = {
@@ -499,6 +499,7 @@ interface ProfileHeroProps {
   visibleBadges: Badge[];
   externalActions: ProfileHeroAction[];
   isPerformingAction: boolean;
+  isLoading: boolean;
   firstContentFocusId: string | null;
   onSignOut: () => void;
 }
@@ -521,6 +522,7 @@ function ProfileHero({
   visibleBadges,
   externalActions,
   isPerformingAction,
+  isLoading,
   firstContentFocusId,
   onSignOut,
 }: Readonly<ProfileHeroProps>) {
@@ -602,7 +604,8 @@ function ProfileHero({
 
           <div className="profile-page__copy">
             <h1 className="profile-page__name">
-              {profileUser?.displayName ?? "Profile"}
+              {profileUser?.displayName ??
+                (isLoading ? "Loading profile..." : "Profile")}
             </h1>
             {usernameLabel ? (
               <p className="profile-page__username">{usernameLabel}</p>
@@ -640,7 +643,7 @@ function ProfileHero({
           onSignOut={onSignOut}
         />
 
-        {!profileUser ? (
+        {!profileUser && !isLoading ? (
           <div className="profile-page__empty">
             <UserCircleIcon size={32} />
             <span>Profile not found</span>
@@ -1889,8 +1892,6 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     );
   }, [externalProfile, handleFriendAction, profileUser]);
 
-  if (isLoading) return null;
-
   return (
     <VerticalFocusGroup regionId={PROFILE_PAGE_REGION_ID} asChild>
       <section className="profile-page">
@@ -1899,6 +1900,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
           visibleBadges={visibleBadges}
           externalActions={externalProfileActions}
           isPerformingAction={isPerformingProfileAction}
+          isLoading={isLoading}
           firstContentFocusId={firstContentFocusId}
           onSignOut={() => {
             handleSignOut().catch(() => {});
