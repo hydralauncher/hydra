@@ -646,6 +646,10 @@ export default function Library() {
   });
 
   useEffect(() => {
+    rowVirtualizer.measure();
+  }, [rowVirtualizer, estimatedRowHeight]);
+
+  useEffect(() => {
     gamesScrollRef.current?.scrollTo({ top: 0 });
   }, [effectiveCategory, selectedPlatform]);
 
