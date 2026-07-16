@@ -19,7 +19,12 @@ import { Button, ImageCropModal } from "@renderer/components";
 import { useToast, useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { generateRandomGradient } from "@renderer/helpers";
-import type { Game, LibraryGame, ShopDetailsWithAssets } from "@types";
+import type {
+  Game,
+  GameArtworkSelection,
+  LibraryGame,
+  ShopDetailsWithAssets,
+} from "@types";
 
 import { GameArtworkPicker } from "./game-artwork-picker";
 
@@ -241,11 +246,14 @@ export function GameAssetsSettings({
   );
   const [isPreparingAsset, setIsPreparingAsset] = useState(false);
   const [artworkPickerVersion, setArtworkPickerVersion] = useState(0);
+  const [artworkSelection, setArtworkSelection] =
+    useState<GameArtworkSelection | null>(null);
   const [tabIndicatorPosition, setTabIndicatorPosition] =
     useState<TabIndicatorPosition>({ x: 0, width: 0 });
 
   const mountedRef = useRef(true);
   const assetFlowBusyRef = useRef(false);
+  const artworkSelectionRequestIdRef = useRef(0);
   const pendingAssetCropRef = useRef<PendingAssetCrop | null>(null);
   const assetTabsRef = useRef<HTMLDivElement>(null);
   const assetTabRefs = useRef<
@@ -297,6 +305,29 @@ export function GameAssetsSettings({
     },
     []
   );
+
+  const refreshArtworkSelection = useCallback(async () => {
+    const requestId = ++artworkSelectionRequestIdRef.current;
+
+    if (game.shop === "custom") {
+      setArtworkSelection(null);
+      return;
+    }
+
+    const selection = await window.electron.getGameArtworkSelection(
+      game.shop,
+      game.objectId
+    );
+
+    if (requestId === artworkSelectionRequestIdRef.current) {
+      setArtworkSelection(selection);
+    }
+  }, [game.objectId, game.shop]);
+
+  const handleArtworkChanged = useCallback(async () => {
+    await onGameUpdated();
+    await refreshArtworkSelection();
+  }, [onGameUpdated, refreshArtworkSelection]);
 
   const extractLocalPath = useCallback(
     (url: string | null | undefined): string => {
@@ -422,6 +453,10 @@ export function GameAssetsSettings({
       setNonCustomGameAssets(game);
     }
   }, [game, isCustomGame, setCustomGameAssets, setNonCustomGameAssets]);
+
+  useEffect(() => {
+    refreshArtworkSelection().catch(() => {});
+  }, [refreshArtworkSelection]);
 
   useEffect(() => {
     if (game.shop === "custom") return;
@@ -906,6 +941,7 @@ export function GameAssetsSettings({
 
         assetsUpdated = true;
         await onGameUpdated();
+        await refreshArtworkSelection();
 
         if (pendingPreloadUrl) {
           await preloadImage(pendingPreloadUrl);
@@ -939,6 +975,7 @@ export function GameAssetsSettings({
     pendingPreloadUrl,
     pendingUpdateMessage,
     releaseAssetFlow,
+    refreshArtworkSelection,
     showErrorToast,
     showSuccessToast,
     t,
@@ -968,8 +1005,10 @@ export function GameAssetsSettings({
   const renderImageSection = (assetType: AssetType) => {
     const assetPath = assetPaths[assetType];
     const customAssetUrl = getGameCustomAssetUrl(game, assetType);
+    const hasArtworkSelection = Boolean(artworkSelection?.selected[assetType]);
     const hasCustomAsset =
-      !removedAssets[assetType] && Boolean(assetPath || customAssetUrl);
+      !removedAssets[assetType] &&
+      Boolean(assetPath || customAssetUrl || hasArtworkSelection);
     const previewUrl = getPreviewUrl(assetType);
     const hasImage = Boolean(previewUrl);
     const isDragOver = dragOverTarget === assetType;
@@ -1199,7 +1238,7 @@ export function GameAssetsSettings({
             key={`${game.shop}:${game.objectId}:${selectedAssetType}`}
             game={game}
             assetType={selectedAssetType}
-            onChanged={onGameUpdated}
+            onChanged={handleArtworkChanged}
             disabled={isAssetFlowBusy}
             selectionVersion={artworkPickerVersion}
             onSelectArtwork={({ artworkUrl, artworkId }) =>

@@ -71,6 +71,35 @@ function ArtworkTile({
     onMediaSettled(item.id);
   };
 
+  let media: React.ReactNode = null;
+
+  if (!hasMediaFailed) {
+    media = display.isVideo ? (
+      <video
+        className={isMediaSettled ? "game-artwork__media--loaded" : ""}
+        src={display.src}
+        autoPlay
+        loop
+        muted
+        playsInline
+        disablePictureInPicture
+        preload="auto"
+        onLoadedData={handleMediaLoaded}
+        onError={handleMediaError}
+      />
+    ) : (
+      <img
+        className={isMediaSettled ? "game-artwork__media--loaded" : ""}
+        src={display.src}
+        alt=""
+        loading="eager"
+        decoding="async"
+        onLoad={handleMediaLoaded}
+        onError={handleMediaError}
+      />
+    );
+  }
+
   return (
     <button
       type="button"
@@ -82,30 +111,7 @@ function ArtworkTile({
       }}
       disabled={isBusy || !isMediaSettled || hasMediaFailed}
     >
-      {!hasMediaFailed && display.isVideo ? (
-        <video
-          className={isMediaSettled ? "game-artwork__media--loaded" : ""}
-          src={display.src}
-          autoPlay
-          loop
-          muted
-          playsInline
-          disablePictureInPicture
-          preload="auto"
-          onLoadedData={handleMediaLoaded}
-          onError={handleMediaError}
-        />
-      ) : !hasMediaFailed ? (
-        <img
-          className={isMediaSettled ? "game-artwork__media--loaded" : ""}
-          src={display.src}
-          alt=""
-          loading="eager"
-          decoding="async"
-          onLoad={handleMediaLoaded}
-          onError={handleMediaError}
-        />
-      ) : null}
+      {media}
       {!isMediaSettled && (
         <Skeleton
           containerClassName="game-artwork__skeleton"
@@ -290,7 +296,7 @@ export function GameArtworkPicker({
   }, [rowVirtualizer, rowHeight]);
 
   const virtualRows = rowVirtualizer.getVirtualItems();
-  const lastVirtualRowIndex = virtualRows[virtualRows.length - 1]?.index;
+  const lastVirtualRowIndex = virtualRows.at(-1)?.index;
 
   useEffect(() => {
     if (lastVirtualRowIndex == null) return;
