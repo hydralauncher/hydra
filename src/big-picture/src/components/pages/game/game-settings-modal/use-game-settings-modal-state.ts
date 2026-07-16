@@ -386,13 +386,21 @@ export function useGameSettingsModalState({
           );
         await updateCustomizationAsset(assetType, copiedAssetUrl);
         await refreshGameDetails();
+        showSuccessToast(t("steamgriddb_artwork_updated"));
       } catch (error) {
         showErrorToast(
           error instanceof Error ? error.message : t("edit_game_modal_failed")
         );
       }
     },
-    [game, refreshGameDetails, showErrorToast, t, updateCustomizationAsset]
+    [
+      game,
+      refreshGameDetails,
+      showErrorToast,
+      showSuccessToast,
+      t,
+      updateCustomizationAsset,
+    ]
   );
 
   const handleClearCustomizationAsset = useCallback(
@@ -405,13 +413,21 @@ export function useGameSettingsModalState({
           game.shop === "custom" ? undefined : null
         );
         await refreshGameDetails();
+        showSuccessToast(t("steamgriddb_artwork_reset"));
       } catch (error) {
         showErrorToast(
           error instanceof Error ? error.message : t("edit_game_modal_failed")
         );
       }
     },
-    [game, refreshGameDetails, showErrorToast, t, updateCustomizationAsset]
+    [
+      game,
+      refreshGameDetails,
+      showErrorToast,
+      showSuccessToast,
+      t,
+      updateCustomizationAsset,
+    ]
   );
 
   useEffect(() => {

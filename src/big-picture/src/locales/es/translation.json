@@ -754,6 +754,8 @@
     "file_explorer_error_enotdir": "Esta ruta no es una carpeta.",
     "file_explorer_error_default": "No se puede abrir esta ubicación.",
     "file_explorer_select_this_directory": "Seleccionar esta carpeta",
-    "file_explorer_select_download_directory": "Seleccionar directorio de descarga"
+    "file_explorer_select_download_directory": "Seleccionar directorio de descarga",
+    "steamgriddb_artwork_updated": "Arte actualizado",
+    "steamgriddb_artwork_reset": "Arte restablecido al valor predeterminado"
   }
 }

@@ -130,10 +130,6 @@ export function GameAssetsSettings({
     []
   );
 
-  const capitalizeAssetType = (assetType: AssetType): string => {
-    return assetType.charAt(0).toUpperCase() + assetType.slice(1);
-  };
-
   const setCustomGameAssets = useCallback(
     (currentGame: LibraryGame | Game) => {
       const gameWithAssets = currentGame as GameWithOriginalAssets;
@@ -350,15 +346,11 @@ export function GameAssetsSettings({
           copiedAssetUrl.replace("local:", ""),
           originalPath
         );
-        setPendingUpdateMessage(
-          `${capitalizeAssetType(assetType)} updated successfully!`
-        );
+        setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
       } catch (error) {
         console.error(`Failed to copy ${assetType} asset:`, error);
         updateAssetPaths(assetType, originalPath, originalPath);
-        setPendingUpdateMessage(
-          `${capitalizeAssetType(assetType)} updated successfully!`
-        );
+        setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
       }
     }
   };
@@ -367,9 +359,7 @@ export function GameAssetsSettings({
     setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
     setAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
     setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: "" }));
-    setPendingUpdateMessage(
-      `${capitalizeAssetType(assetType)} updated successfully!`
-    );
+    setPendingUpdateMessage(t("steamgriddb_artwork_reset"));
   };
 
   const handleDragOver = (event: React.DragEvent) => {
@@ -439,9 +429,7 @@ export function GameAssetsSettings({
         copiedAssetUrl.replace("local:", ""),
         filePath
       );
-      setPendingUpdateMessage(
-        `${capitalizeAssetType(assetType)} updated successfully!`
-      );
+      setPendingUpdateMessage(t("steamgriddb_artwork_updated"));
 
       if (!("path" in file) && filePath) {
         try {

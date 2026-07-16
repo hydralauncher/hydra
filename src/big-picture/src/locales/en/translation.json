@@ -765,6 +765,8 @@
     "file_explorer_error_enotdir": "This is not a directory.",
     "file_explorer_error_default": "This location can't be opened.",
     "file_explorer_select_this_directory": "Select this directory",
-    "file_explorer_select_download_directory": "Select Download Directory"
+    "file_explorer_select_download_directory": "Select Download Directory",
+    "steamgriddb_artwork_updated": "Artwork updated",
+    "steamgriddb_artwork_reset": "Artwork reset to default"
   }
 }

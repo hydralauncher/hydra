@@ -136,7 +136,9 @@
     "edit_game_modal_grid_drop_zone": "Zone de dépôt de la jaquette",
     "edit_game_modal_grid_drop_zone_empty": "Zone de dépôt de la jaquette vide",
     "edit_game_modal_drop_to_replace_grid": "Déposez pour remplacer la jaquette",
-    "edit_game_modal_drop_grid_image_here": "Déposez l'image de la jaquette ici"
+    "edit_game_modal_drop_grid_image_here": "Déposez l'image de la jaquette ici",
+    "steamgriddb_artwork_updated": "Illustration mise à jour",
+    "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut"
   },
   "header": {
     "search": "Rechercher",
