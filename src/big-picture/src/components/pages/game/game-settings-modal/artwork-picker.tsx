@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { CheckIcon } from "@primer/octicons-react";
 import type { ArtworkAssetType, ArtworkItem, LibraryGame } from "@types";
 import {
   isVideoArtworkThumb,
@@ -179,6 +180,14 @@ export function GameArtworkPicker({
               ) : (
                 <img src={item.thumb} alt="" loading="lazy" />
               )}
+              {currentArtworkId === item.id ? (
+                <span
+                  className="game-artwork-picker__item-check"
+                  aria-hidden="true"
+                >
+                  <CheckIcon size={14} />
+                </span>
+              ) : null}
               {pendingId === item.id ? (
                 <span
                   className="game-artwork-picker__item-spinner"
