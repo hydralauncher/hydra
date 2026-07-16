@@ -7,6 +7,7 @@ import {
   canSkipImageCrop,
   cropProfileImageWithInfo,
   getCropProfileImageMetadata,
+  isAnimatedPngFile,
   type CropProfileImageParams,
 } from "./crop-profile-image-processor";
 
@@ -32,7 +33,12 @@ const cropProfileImageInternal = async (
   const sourceMetadata = await getCropProfileImageMetadata(sourcePath);
   const sourceWidth = sourceMetadata.width ?? 0;
   const sourceHeight = sourceMetadata.pageHeight ?? sourceMetadata.height ?? 0;
+  const shouldFlattenAnimatedPng =
+    sourceMetadata.format === "png" &&
+    !params.preserveAnimatedPng &&
+    (await isAnimatedPngFile(sourcePath));
   const skipProcessing =
+    !shouldFlattenAnimatedPng &&
     sourceWidth > 0 &&
     sourceHeight > 0 &&
     canSkipImageCrop(sourceWidth, sourceHeight, params);

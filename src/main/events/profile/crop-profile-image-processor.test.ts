@@ -5,11 +5,13 @@ import path from "node:path";
 import { afterEach, describe, it } from "node:test";
 
 import sharp from "sharp";
+import UPNG from "upng-js";
 
 import {
   CROP_IMAGE_LIMIT_INPUT_PIXELS,
   canSkipImageCrop,
   cropProfileImageToBuffer,
+  isAnimatedPngFile,
   isIdentityImageCrop,
 } from "./crop-profile-image-processor.ts";
 
@@ -42,6 +44,29 @@ const createAnimatedWebp = async (filePath: string) => {
   await sharp(frames, { join: { animated: true } })
     .webp({ delay: [40, 50, 60], loop: 2 })
     .toFile(filePath);
+};
+
+const createAnimatedPng = async (filePath: string) => {
+  const width = 32;
+  const height = 20;
+  const frames = [
+    [255, 0, 0, 255],
+    [0, 255, 0, 255],
+    [0, 0, 255, 255],
+  ].map((color) => {
+    const frame = new Uint8Array(width * height * 4);
+
+    for (let offset = 0; offset < frame.length; offset += 4) {
+      frame.set(color, offset);
+    }
+
+    return frame.buffer;
+  });
+
+  await fs.promises.writeFile(
+    filePath,
+    Buffer.from(UPNG.encode(frames, width, height, 0, [40, 50, 60]))
+  );
 };
 
 afterEach(async () => {
@@ -198,6 +223,71 @@ describe("cropProfileImageToBuffer", () => {
     assert.equal(metadata.pages, 3);
     assert.deepEqual(metadata.delay, [40, 50, 60]);
     assert.equal(metadata.loop, 2);
+  });
+
+  it("preserves APNG animation only when requested", async () => {
+    const directory = await createTempDirectory();
+    const sourcePath = path.join(directory, "animated.png");
+    await createAnimatedPng(sourcePath);
+
+    assert.equal(await isAnimatedPngFile(sourcePath), true);
+
+    const animatedResult = await cropProfileImageToBuffer(sourcePath, {
+      left: 0,
+      top: 0,
+      width: 32,
+      height: 20,
+      outputWidth: 64,
+      outputHeight: 40,
+      preserveAnimatedPng: true,
+    });
+    const animatedMetadata = await sharp(animatedResult, {
+      animated: true,
+    }).metadata();
+
+    assert.equal(animatedMetadata.format, "webp");
+    assert.equal(animatedMetadata.width, 64);
+    assert.equal(animatedMetadata.pageHeight, 40);
+    assert.equal(animatedMetadata.pages, 3);
+    assert.deepEqual(animatedMetadata.delay, [40, 50, 60]);
+
+    const profileResult = await cropProfileImageToBuffer(sourcePath, {
+      left: 0,
+      top: 0,
+      width: 32,
+      height: 20,
+      outputWidth: 64,
+      outputHeight: 40,
+    });
+    const profileMetadata = await sharp(profileResult, {
+      animated: true,
+    }).metadata();
+
+    assert.equal(profileMetadata.format, "webp");
+    assert.equal(profileMetadata.pages, undefined);
+  });
+
+  it("preserves APNG animation when rotating game artwork", async () => {
+    const directory = await createTempDirectory();
+    const sourcePath = path.join(directory, "animated.png");
+    await createAnimatedPng(sourcePath);
+
+    const result = await cropProfileImageToBuffer(sourcePath, {
+      left: 0,
+      top: 0,
+      width: 20,
+      height: 32,
+      outputWidth: 40,
+      outputHeight: 64,
+      rotation: 90,
+      preserveAnimatedPng: true,
+    });
+    const metadata = await sharp(result, { animated: true }).metadata();
+
+    assert.equal(metadata.width, 40);
+    assert.equal(metadata.pageHeight, 64);
+    assert.equal(metadata.pages, 3);
+    assert.deepEqual(metadata.delay, [40, 50, 60]);
   });
 
   it("rejects images above the crop pixel limit", async () => {
