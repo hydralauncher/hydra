@@ -1,6 +1,11 @@
 import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import { useFormat, useToast } from "@renderer/hooks";
+import {
+  useFormat,
+  useToast,
+  useCoverPoster,
+  isAnimatedCoverCandidate,
+} from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useContext, useEffect, useState } from "react";
 import {
@@ -46,6 +51,14 @@ export function UserLibraryGameCard({
   const [imageError, setImageError] = useState(false);
 
   const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
+
+  const isAnimatedCover = isAnimatedCoverCandidate(coverImageUrl);
+  const coverPoster = useCoverPoster(coverImageUrl, isAnimatedCover);
+  const [isCoverHovered, setIsCoverHovered] = useState(false);
+  const displayCoverUrl =
+    (isAnimatedCover && !isCoverHovered && coverPoster
+      ? coverPoster
+      : coverImageUrl) ?? undefined;
 
   useEffect(() => {
     setImageError(false);
@@ -143,6 +156,8 @@ export function UserLibraryGameCard({
           type="button"
           className="user-library-game__cover"
           onClick={() => navigate(buildUserGameDetailsPath(game))}
+          onMouseEnter={() => setIsCoverHovered(true)}
+          onMouseLeave={() => setIsCoverHovered(false)}
         >
           <div
             className={`user-library-game__overlay${game.shop === "launchbox" ? " user-library-game__overlay--classics" : ""}`}
@@ -258,7 +273,7 @@ export function UserLibraryGameCard({
           ) : game.shop === "launchbox" && !game.customLibraryImageUrl ? (
             <div className="user-library-game__classics-cover">
               <img
-                src={coverImageUrl}
+                src={displayCoverUrl}
                 alt=""
                 aria-hidden="true"
                 className="user-library-game__classics-backdrop"
@@ -267,7 +282,7 @@ export function UserLibraryGameCard({
                 onError={() => setImageError(true)}
               />
               <img
-                src={coverImageUrl}
+                src={displayCoverUrl}
                 alt={game.title}
                 className="user-library-game__classics-image"
                 loading="lazy"
@@ -277,7 +292,7 @@ export function UserLibraryGameCard({
             </div>
           ) : (
             <img
-              src={coverImageUrl}
+              src={displayCoverUrl}
               alt={game.title}
               className="user-library-game__game-image"
               loading="lazy"

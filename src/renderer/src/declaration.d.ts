@@ -234,6 +234,7 @@ declare global {
       kind: ArtworkKind,
       page?: number
     ) => Promise<ArtworkPage | null>;
+    getCoverPoster: (url: string) => Promise<string | null>;
     getGameArtworkSelection: (
       shop: GameShop,
       objectId: string

@@ -3,6 +3,8 @@ import {
   useGameCard,
   useUserDetails,
   useArtworkFallback,
+  useCoverPoster,
+  isAnimatedCoverCandidate,
 } from "@renderer/hooks";
 import { isGameCompleted } from "@renderer/helpers";
 import { ProgressBar } from "@renderer/components";
@@ -117,6 +119,15 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const activeImageSource = resolveImageSource(sources[fallbackIndex]);
   const isChosenCoverActive = Boolean(candidates[fallbackIndex]?.isChosenCover);
 
+  const rawActiveSource = sources[fallbackIndex];
+  const isAnimatedCover = isAnimatedCoverCandidate(rawActiveSource);
+  const coverPoster = useCoverPoster(rawActiveSource, isAnimatedCover);
+  const [isCoverHovered, setIsCoverHovered] = useState(false);
+  const displayImageSource =
+    isAnimatedCover && coverPoster && !isCoverHovered
+      ? resolveImageSource(coverPoster)
+      : activeImageSource;
+
   const classicsSystem =
     game.shop === "launchbox" ? platformToSystem(game.platform) : null;
   const classicsPlatformLabel = classicsSystem
@@ -157,7 +168,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       return (
         <div className="library-game-card__classics-cover">
           <img
-            src={activeImageSource}
+            src={displayImageSource}
             alt=""
             aria-hidden="true"
             className="library-game-card__classics-backdrop"
@@ -165,7 +176,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
             onError={handleImageError}
           />
           <img
-            src={activeImageSource}
+            src={displayImageSource}
             alt={game.title}
             className="library-game-card__classics-image"
             loading="lazy"
@@ -177,7 +188,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
     return (
       <img
-        src={activeImageSource}
+        src={displayImageSource}
         alt={game.title}
         className={`library-game-card__game-image ${
           isChosenCoverActive ? "library-game-card__game-image--contain" : ""
@@ -191,8 +202,14 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   return (
     <button
       type="button"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={() => {
+        setIsCoverHovered(true);
+        onMouseEnter();
+      }}
+      onMouseLeave={() => {
+        setIsCoverHovered(false);
+        onMouseLeave();
+      }}
       className="library-game-card__wrapper"
       title={game.title}
       onClick={handleCardClick}
