@@ -715,7 +715,9 @@
     "steamgriddb_use_default": "По умолчанию",
     "steamgriddb_no_results": "Ресурсы SteamGridDB для этой игры не найдены.",
     "steamgriddb_sign_in_required": "Войдите в Hydra, чтобы просматривать обложки SteamGridDB.",
-    "steamgriddb_fetch_failed": "Не удалось загрузить ресурсы SteamGridDB"
+    "steamgriddb_fetch_failed": "Не удалось загрузить ресурсы SteamGridDB",
+    "steamgriddb_artwork_updated": "Оформление обновлено",
+    "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию"
   },
   "format": {
     "playtime_hours_one": "{{count}} час",
