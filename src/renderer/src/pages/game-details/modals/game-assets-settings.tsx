@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ImageIcon, XIcon } from "@primer/octicons-react";
+import { useNavigate } from "react-router-dom";
+import { AlertIcon, ImageIcon, XIcon } from "@primer/octicons-react";
 import { Button, TextField } from "@renderer/components";
-import { useToast } from "@renderer/hooks";
+import { useToast, useAppSelector } from "@renderer/hooks";
 import { generateRandomGradient } from "@renderer/helpers";
 import type { Game, LibraryGame, ShopDetailsWithAssets } from "@types";
 
@@ -99,6 +100,11 @@ export function GameAssetsSettings({
 }: Readonly<GameAssetsSettingsProps>) {
   const { t } = useTranslation("sidebar");
   const { showSuccessToast, showErrorToast } = useToast();
+  const navigate = useNavigate();
+  const classicsUseHeroLayout =
+    useAppSelector(
+      (state) => state.userPreferences.value?.classicsUseHeroLayout
+    ) ?? false;
 
   const [assetPaths, setAssetPaths] = useState<AssetPaths>(INITIAL_ASSET_PATHS);
   const [assetDisplayPaths, setAssetDisplayPaths] =
@@ -737,6 +743,27 @@ export function GameAssetsSettings({
           </button>
         ))}
       </div>
+
+      {game.shop === "launchbox" &&
+        !classicsUseHeroLayout &&
+        (selectedAssetType === "hero" || selectedAssetType === "logo") && (
+          <div className="game-assets-settings__warning">
+            <AlertIcon
+              size={16}
+              className="game-assets-settings__warning-icon"
+            />
+            <span className="game-assets-settings__warning-text">
+              {t("classics_hero_layout_warning")}
+            </span>
+            <Button
+              type="button"
+              theme="outline"
+              onClick={() => navigate("/settings?tab=content_gameplay")}
+            >
+              {t("classics_hero_layout_open_settings")}
+            </Button>
+          </div>
+        )}
 
       {renderImageSection(selectedAssetType)}
 

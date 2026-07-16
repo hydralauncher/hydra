@@ -138,7 +138,9 @@
     "edit_game_modal_drop_to_replace_grid": "Déposez pour remplacer la jaquette",
     "edit_game_modal_drop_grid_image_here": "Déposez l'image de la jaquette ici",
     "steamgriddb_artwork_updated": "Illustration mise à jour",
-    "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut"
+    "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut",
+    "classics_hero_layout_warning": "Pour afficher le logo et le hero, activez la disposition logo + hero sur la page des jeux classiques.",
+    "classics_hero_layout_open_settings": "Ouvrir les réglages"
   },
   "header": {
     "search": "Rechercher",

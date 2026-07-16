@@ -138,7 +138,9 @@
     "steamgriddb_sign_in_required": "Sign in to Hydra to browse SteamGridDB artwork.",
     "steamgriddb_stale_cache": "Showing cached artwork. The latest may take a moment to appear.",
     "steamgriddb_artwork_updated": "Artwork updated",
-    "steamgriddb_artwork_reset": "Artwork reset to default"
+    "steamgriddb_artwork_reset": "Artwork reset to default",
+    "classics_hero_layout_warning": "To display the logo and hero, enable the logo + hero layout on the classic game page.",
+    "classics_hero_layout_open_settings": "Open settings"
   },
   "header": {
     "minimize": "Minimize",

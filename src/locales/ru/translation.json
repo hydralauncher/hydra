@@ -138,7 +138,9 @@
     "steamgriddb_sign_in_required": "Войдите в Hydra, чтобы просматривать обложки SteamGridDB.",
     "steamgriddb_stale_cache": "Показаны кэшированные обложки. Новые могут появиться чуть позже.",
     "steamgriddb_artwork_updated": "Оформление обновлено",
-    "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию"
+    "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию",
+    "classics_hero_layout_warning": "Чтобы показать логотип и hero, включите макет «логотип + hero» на странице классической игры.",
+    "classics_hero_layout_open_settings": "Открыть настройки"
   },
   "header": {
     "minimize": "Свернуть",
