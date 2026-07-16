@@ -32,7 +32,14 @@ interface UseGameSettingsModalStateResult {
 }
 
 type CustomAssetType = "icon" | "logo" | "hero" | "grid";
-const IMAGE_FILE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"] as const;
+const IMAGE_FILE_EXTENSIONS = [
+  "jpg",
+  "jpeg",
+  "jfif",
+  "png",
+  "gif",
+  "webp",
+] as const;
 
 export function useGameSettingsModalState({
   game,
