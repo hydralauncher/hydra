@@ -15,14 +15,14 @@ import { getGameIdentityKey } from "../../helpers";
 const PROFILE_RECENT_ACHIEVEMENT_GROUP_LIMIT = 2;
 const PROFILE_RECENT_ACHIEVEMENTS_PER_GAME = 2;
 const PROFILE_RECENT_ACHIEVEMENT_LIBRARY_TAKE = 12;
-export const PROFILE_FRIENDS_LIMIT = 5;
+const PROFILE_FRIENDS_LIMIT = 5;
 const PROFILE_REMOTE_LIBRARY_PAGE_SIZE = 12;
 const PROFILE_FAVORITE_GAME_LIMIT = 1;
 const PROFILE_RECENT_ACTIVITY_GAMES_LIMIT = 3;
 
 type ProfileComparedAchievement = ComparedAchievements["achievements"][number];
 
-export type ProfileRecentAchievement = {
+type ProfileRecentAchievement = {
   key: string;
   icon: string;
   displayName: string;
@@ -41,11 +41,15 @@ type AchievementGame = {
   achievements: ProfileRecentAchievement[];
 };
 
-export function ensureArray<T>(value: T[] | null | undefined): T[] {
+type CancellationSignal = {
+  cancelled: boolean;
+};
+
+function ensureArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
 
-export function normalizeUserProfile(profile: UserProfile): UserProfile {
+function normalizeUserProfile(profile: UserProfile): UserProfile {
   return {
     ...profile,
     badges: ensureArray(profile.badges),
@@ -171,6 +175,7 @@ async function getUserLibrary(
 
 async function fetchRemoteLibraryGames(
   targetUserId: string,
+  signal: CancellationSignal,
   knownLibraryCount?: number
 ) {
   if (typeof knownLibraryCount === "number" && knownLibraryCount <= 0) {
@@ -194,7 +199,7 @@ async function fetchRemoteLibraryGames(
   let totalCount = 0;
   let hasMore = true;
 
-  while (hasMore) {
+  while (hasMore && !signal.cancelled) {
     const response = await getUserLibrary(
       targetUserId,
       `take=${PROFILE_REMOTE_LIBRARY_PAGE_SIZE}&skip=${games.length}`
@@ -396,22 +401,22 @@ function useRemoteLibrary(
       return;
     }
 
-    let isMounted = true;
+    const signal: CancellationSignal = { cancelled: false };
     setGames([]);
     setTotalCount(knownLibraryCount ?? 0);
 
-    fetchRemoteLibraryGames(targetUserId, knownLibraryCount)
+    fetchRemoteLibraryGames(targetUserId, signal, knownLibraryCount)
       .then((result) => {
-        if (!isMounted) return;
+        if (signal.cancelled) return;
         setGames(result.games);
         setTotalCount(result.totalCount);
       })
       .catch(() => {
-        if (isMounted) setGames([]);
+        if (!signal.cancelled) setGames([]);
       });
 
     return () => {
-      isMounted = false;
+      signal.cancelled = true;
     };
   }, [areStatsResolved, isOwnProfile, knownLibraryCount, targetUserId]);
 
