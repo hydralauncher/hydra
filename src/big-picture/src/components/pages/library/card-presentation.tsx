@@ -80,7 +80,6 @@ function getPresentationImageSources(
 
   return getResolvedImageSources([
     game.customCoverImageUrl,
-    game.customIconUrl,
     game.coverImageUrl,
     game.libraryImageUrl,
     game.iconUrl,
