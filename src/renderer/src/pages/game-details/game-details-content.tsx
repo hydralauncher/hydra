@@ -22,7 +22,12 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
-import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
+import {
+  useUserDetails,
+  useLibrary,
+  useAppSelector,
+  useArtworkFallback,
+} from "@renderer/hooks";
 import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
 import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./game-details.scss";
@@ -212,6 +217,18 @@ export function GameDetailsContent() {
       ""
     : "";
 
+  const heroFallback = useArtworkFallback(
+    shop,
+    objectId ?? "",
+    "heroes",
+    Boolean(userDetails) &&
+      Boolean(objectId) &&
+      !isCustomGame &&
+      !isLaunchboxGame &&
+      !resolvedHeroImage
+  );
+  const heroImage = resolvedHeroImage || heroFallback || "";
+
   const launchboxPlatform = isLaunchboxGame
     ? (game?.platform ?? shopDetails?.platform ?? null)
     : null;
@@ -276,7 +293,7 @@ export function GameDetailsContent() {
               src={
                 isLaunchboxGame
                   ? resolvedHeroImage || launchboxCover
-                  : resolvedHeroImage
+                  : heroImage
               }
               className="game-details__hero-image"
               alt={game?.title}
