@@ -54,10 +54,12 @@
     display: block;
     width: 100%;
     min-width: 0;
-    height: 0;
-    padding: 0 0 150% 0;
-    background: transparent;
-    border: 2px solid transparent;
+    height: auto;
+    aspect-ratio: 2 / 3;
+    box-sizing: border-box;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.02);
+    border: 2px solid rgba(255, 255, 255, 0.02);
     border-radius: 8px;
     cursor: pointer;
     overflow: hidden;
@@ -79,16 +81,15 @@
     }
 
     &--hero {
-      padding-bottom: 32.29%;
+      aspect-ratio: 1920 / 620;
     }
 
     &--icon {
-      padding-bottom: 100%;
+      aspect-ratio: 1;
     }
 
     &--logo {
-      padding-bottom: 56.25%;
-      background: rgba(255, 255, 255, 0.04);
+      aspect-ratio: 16 / 9;
 
       img,
       video {
@@ -101,22 +102,6 @@
       border-color: #8f8f8f;
       box-shadow: 0 0 0 1px #8f8f8f;
     }
-  }
-
-  &__item-check {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    z-index: 4;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    color: #fff;
-    background: #606060;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
   }
 
   &__skeleton {

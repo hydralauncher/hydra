@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { CheckIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
 import {
@@ -78,11 +77,6 @@ function ArtworkTile({
         />
       ) : (
         <img src={display.src} alt="" loading="lazy" />
-      )}
-      {isActive && (
-        <span className="game-artwork__item-check" aria-hidden="true">
-          <CheckIcon size={14} />
-        </span>
       )}
       {isPending && (
         <span className="game-artwork__item-spinner" aria-hidden="true" />
