@@ -131,6 +131,33 @@ const preloadImage = (url: string) =>
     image.src = url;
   });
 
+const getCustomAssetUrl = (
+  removed: boolean,
+  assetPath: string,
+  currentUrl: string | null | undefined
+) => {
+  if (removed) return null;
+  if (assetPath) return `local:${assetPath}`;
+
+  return currentUrl;
+};
+
+const getCustomHeroImageUrl = (
+  removed: boolean,
+  assetPath: string,
+  currentUrl: string | null | undefined
+) => {
+  if (!removed) {
+    return getCustomAssetUrl(false, assetPath, currentUrl);
+  }
+
+  if (currentUrl?.startsWith("data:image/svg+xml")) {
+    return currentUrl;
+  }
+
+  return generateRandomGradient();
+};
+
 export interface GameAssetsSettingsProps {
   game: LibraryGame;
   shopDetails: ShopDetailsWithAssets | null;
@@ -735,25 +762,21 @@ export function GameAssetsSettings({
 
   const prepareCustomGameAssets = useCallback(
     (currentGame: LibraryGame | Game) => {
-      const iconUrl = removedAssets.icon
-        ? null
-        : assetPaths.icon
-          ? `local:${assetPaths.icon}`
-          : currentGame.iconUrl;
-
-      const logoImageUrl = removedAssets.logo
-        ? null
-        : assetPaths.logo
-          ? `local:${assetPaths.logo}`
-          : currentGame.logoImageUrl;
-
-      const libraryHeroImageUrl = removedAssets.hero
-        ? currentGame.libraryHeroImageUrl?.startsWith("data:image/svg+xml")
-          ? currentGame.libraryHeroImageUrl
-          : generateRandomGradient()
-        : assetPaths.hero
-          ? `local:${assetPaths.hero}`
-          : currentGame.libraryHeroImageUrl;
+      const iconUrl = getCustomAssetUrl(
+        removedAssets.icon,
+        assetPaths.icon,
+        currentGame.iconUrl
+      );
+      const logoImageUrl = getCustomAssetUrl(
+        removedAssets.logo,
+        assetPaths.logo,
+        currentGame.logoImageUrl
+      );
+      const libraryHeroImageUrl = getCustomHeroImageUrl(
+        removedAssets.hero,
+        assetPaths.hero,
+        currentGame.libraryHeroImageUrl
+      );
 
       return { iconUrl, logoImageUrl, libraryHeroImageUrl };
     },
@@ -1044,6 +1067,7 @@ export function GameAssetsSettings({
           imagePath={pendingAssetCrop.sourcePath}
           outputWidth={ASSET_OUTPUT_SIZE[pendingAssetCrop.assetType].width}
           outputHeight={ASSET_OUTPUT_SIZE[pendingAssetCrop.assetType].height}
+          preserveSourceAspectRatio={pendingAssetCrop.assetType === "logo"}
           title={t(`edit_game_modal_${pendingAssetCrop.assetType}`)}
           description={tProfile("crop_profile_image_description")}
           stageLabel={t(`edit_game_modal_${pendingAssetCrop.assetType}`)}

@@ -10,6 +10,7 @@ import { Button } from "../button/button";
 import { Modal } from "../modal/modal";
 import { useToast } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
+import { fitImageWithinBounds } from "./image-crop-utils";
 
 import "./image-crop-modal.scss";
 
@@ -30,6 +31,7 @@ export interface ImageCropModalProps {
   imagePath: string | null;
   outputWidth: number;
   outputHeight: number;
+  preserveSourceAspectRatio?: boolean;
   maxFrameWidth?: number;
   title: React.ReactNode;
   description?: string;
@@ -76,6 +78,7 @@ export function ImageCropModal({
   imagePath,
   outputWidth,
   outputHeight,
+  preserveSourceAspectRatio = false,
   maxFrameWidth,
   title,
   description,
@@ -122,6 +125,20 @@ export function ImageCropModal({
     }),
     [imageSize, isQuarterTurn]
   );
+
+  const outputSize = useMemo(
+    () =>
+      preserveSourceAspectRatio
+        ? fitImageWithinBounds(effImageSize, {
+            width: outputWidth,
+            height: outputHeight,
+          })
+        : { width: outputWidth, height: outputHeight },
+    [effImageSize, outputHeight, outputWidth, preserveSourceAspectRatio]
+  );
+
+  const frameAspectSize =
+    preserveSourceAspectRatio && effImageSize.width ? effImageSize : outputSize;
 
   const minScale = useMemo(() => {
     if (!frameSize.width || !frameSize.height || !effImageSize.width) return 1;
@@ -423,8 +440,8 @@ export function ImageCropModal({
           top: sourceY,
           width: sourceWidth,
           height: sourceHeight,
-          outputWidth,
-          outputHeight,
+          outputWidth: outputSize.width,
+          outputHeight: outputSize.height,
           rotation,
         });
 
@@ -460,7 +477,11 @@ export function ImageCropModal({
     translateY += renderedWidth;
   }
   const imageTransform = `translate(${translateX}px, ${translateY}px) rotate(${rotation}deg)`;
-  const frameWidth = getFrameWidth(outputWidth, outputHeight, maxFrameWidth);
+  const frameWidth = getFrameWidth(
+    frameAspectSize.width,
+    frameAspectSize.height,
+    maxFrameWidth
+  );
 
   return (
     <Modal
@@ -478,7 +499,7 @@ export function ImageCropModal({
             ref={frameRef}
             className="image-crop-modal__frame"
             style={{
-              aspectRatio: `${outputWidth} / ${outputHeight}`,
+              aspectRatio: `${frameAspectSize.width} / ${frameAspectSize.height}`,
               width: frameWidth,
             }}
             onPointerDown={handlePointerDown}
