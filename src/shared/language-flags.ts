@@ -30,6 +30,7 @@ const LANGUAGE_FLAG_MAP = {
   uz: "UZ",
   sv: "SE",
   lv: "LV",
+  el: "GR",
 } as const;
 
 const REGIONAL_INDICATOR_SYMBOL_LETTER_A = 0x1f1e6;
