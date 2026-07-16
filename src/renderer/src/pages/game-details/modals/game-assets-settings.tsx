@@ -940,6 +940,7 @@ export function GameAssetsSettings({
           imagePath={pendingAssetCrop.sourcePath}
           outputWidth={ASSET_OUTPUT_SIZE[pendingAssetCrop.assetType].width}
           outputHeight={ASSET_OUTPUT_SIZE[pendingAssetCrop.assetType].height}
+          preserveAnimatedPng
           title={t(`edit_game_modal_${pendingAssetCrop.assetType}`)}
           description={tProfile("crop_profile_image_description")}
           stageLabel={t(`edit_game_modal_${pendingAssetCrop.assetType}`)}
