@@ -1,5 +1,10 @@
 import { registerEvent } from "../register-event";
-import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
+import {
+  gamesArtworkSelectionSublevel,
+  gamesSublevel,
+  gamesShopAssetsSublevel,
+  levelKeys,
+} from "@main/level";
 import {
   WindowManager,
   logger,
@@ -128,6 +133,43 @@ const deleteOldAssetFiles = async (oldAssetPaths: string[]): Promise<void> => {
   }
 };
 
+const clearReplacedArtworkSelections = async (
+  gameKey: string,
+  existingGame: Game,
+  params: UpdateGameCustomAssetsParams
+) => {
+  const selection = await gamesArtworkSelectionSublevel.get(gameKey);
+  if (!selection) return;
+
+  const selected = { ...selection.selected };
+  let changed = false;
+
+  for (const { field, type } of ASSET_CLOUD_SYNC_FIELDS) {
+    const newValue = params[field];
+
+    if (
+      newValue?.startsWith("local:") &&
+      newValue !== existingGame[field] &&
+      selected[type]
+    ) {
+      delete selected[type];
+      changed = true;
+    }
+  }
+
+  if (!changed) return;
+
+  if (Object.keys(selected).length) {
+    await gamesArtworkSelectionSublevel.put(gameKey, {
+      ...selection,
+      selected,
+      updatedAt: Date.now(),
+    });
+  } else {
+    await gamesArtworkSelectionSublevel.del(gameKey);
+  }
+};
+
 interface UpdateGameCustomAssetsParams {
   shop: GameShop;
   objectId: string;
@@ -209,6 +251,8 @@ const updateGameCustomAssets = async (
   });
 
   await updateShopAssets(gameKey, title);
+
+  await clearReplacedArtworkSelections(gameKey, existingGame, params);
 
   await deleteOldAssetFiles(oldAssetPaths);
 

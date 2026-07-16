@@ -211,6 +211,7 @@ declare global {
       sourcePath: string,
       assetType: "icon" | "logo" | "hero" | "grid"
     ) => Promise<string>;
+    downloadGameArtwork: (artworkUrl: string) => Promise<string>;
     cleanupUnusedAssets: () => Promise<{
       deletedCount: number;
       errors: string[];

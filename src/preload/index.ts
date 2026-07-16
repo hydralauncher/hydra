@@ -539,6 +539,8 @@ contextBridge.exposeInMainWorld("electron", {
     sourcePath: string,
     assetType: "icon" | "logo" | "hero" | "grid"
   ) => ipcRenderer.invoke("copyCustomGameAsset", sourcePath, assetType),
+  downloadGameArtwork: (artworkUrl: string): Promise<string> =>
+    ipcRenderer.invoke("downloadGameArtwork", artworkUrl),
   saveTempFile: (fileName: string, fileData: Uint8Array) =>
     ipcRenderer.invoke("saveTempFile", fileName, fileData),
   deleteTempFile: (filePath: string) =>
