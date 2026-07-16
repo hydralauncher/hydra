@@ -72,12 +72,23 @@
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: filter 0.15s ease;
+      opacity: 0;
+      transition:
+        filter 0.15s ease,
+        opacity 0.2s ease;
     }
 
-    &:hover img,
-    &:hover video {
+    .game-artwork__media--loaded {
+      opacity: 1;
+    }
+
+    &:not(:disabled):hover img,
+    &:not(:disabled):hover video {
       filter: brightness(0.85);
+    }
+
+    &:disabled {
+      cursor: default;
     }
 
     &--hero {
