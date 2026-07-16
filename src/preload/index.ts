@@ -1080,6 +1080,7 @@ contextBridge.exposeInMainWorld("electron", {
       outputWidth: number;
       outputHeight: number;
       rotation?: number;
+      skipProcessingIfUnchanged?: boolean;
     }
   ) => ipcRenderer.invoke("cropProfileImage", imagePath, params),
   onSyncFriendRequests: (cb: (friendRequests: FriendRequestSync) => void) => {
