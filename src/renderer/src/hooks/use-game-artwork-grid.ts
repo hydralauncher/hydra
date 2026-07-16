@@ -62,7 +62,6 @@ interface UseGameArtworkGridOptions {
   objectId: string;
   assetType: ArtworkAssetType;
   enabled: boolean;
-  currentArtworkUrl?: string | null;
   onChanged: () => Promise<void> | void;
   onError: () => void;
   onPicked?: () => void;
@@ -74,7 +73,6 @@ export function useGameArtworkGrid({
   objectId,
   assetType,
   enabled,
-  currentArtworkUrl,
   onChanged,
   onError,
   onPicked,
@@ -87,12 +85,10 @@ export function useGameArtworkGrid({
   const [isStale, setIsStale] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
   const [pendingId, setPendingId] = useState<number | null>(null);
-  const [isMutating, setIsMutating] = useState(false);
 
   const pageRef = useRef(0);
   const loadingRef = useRef(false);
   const requestIdRef = useRef(0);
-  const mutatingRef = useRef(false);
 
   const loadSelection = useCallback(async () => {
     const record = await globalThis.window.electron.getGameArtworkSelection(
@@ -187,10 +183,6 @@ export function useGameArtworkGrid({
 
   const pick = useCallback(
     async (item: ArtworkItem) => {
-      if (mutatingRef.current) return;
-
-      mutatingRef.current = true;
-      setIsMutating(true);
       setPendingId(item.id);
       const renderableUrl = getRenderableArtworkUrl(item, assetType);
       try {
@@ -209,18 +201,12 @@ export function useGameArtworkGrid({
         onError();
       } finally {
         setPendingId(null);
-        setIsMutating(false);
-        mutatingRef.current = false;
       }
     },
     [shop, objectId, assetType, loadSelection, onChanged, onError, onPicked]
   );
 
   const clear = useCallback(async () => {
-    if (mutatingRef.current) return;
-
-    mutatingRef.current = true;
-    setIsMutating(true);
     try {
       await globalThis.window.electron.setGameArtworkSelection({
         shop,
@@ -233,32 +219,10 @@ export function useGameArtworkGrid({
       onCleared?.();
     } catch {
       onError();
-    } finally {
-      setIsMutating(false);
-      mutatingRef.current = false;
     }
   }, [shop, objectId, assetType, loadSelection, onChanged, onError, onCleared]);
 
-  const normalizeUrl = (value: string | null | undefined) => {
-    if (!value) return null;
-
-    try {
-      const url = new URL(value);
-      return `${url.origin}${url.pathname}`;
-    } catch {
-      return value;
-    }
-  };
-
-  const selectedArtworkId = selection?.selected?.[assetType]?.artworkId;
-  const normalizedCurrentArtworkUrl = normalizeUrl(currentArtworkUrl);
-  const currentArtworkId =
-    selectedArtworkId ??
-    items.find(
-      (item) =>
-        normalizeUrl(getRenderableArtworkUrl(item, assetType)) ===
-        normalizedCurrentArtworkUrl
-    )?.id;
+  const currentArtworkId = selection?.selected?.[assetType]?.artworkId;
 
   return {
     items,
@@ -268,7 +232,6 @@ export function useGameArtworkGrid({
     isStale,
     hasFailed,
     pendingId,
-    isMutating,
     loadNextPage,
     reloadSelection: loadSelection,
     reload,

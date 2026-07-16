@@ -539,19 +539,6 @@ contextBridge.exposeInMainWorld("electron", {
     sourcePath: string,
     assetType: "icon" | "logo" | "hero" | "grid"
   ) => ipcRenderer.invoke("copyCustomGameAsset", sourcePath, assetType),
-  cropGameAsset: (
-    imagePath: string,
-    params: {
-      left: number;
-      top: number;
-      width: number;
-      height: number;
-      outputWidth: number;
-      outputHeight: number;
-      rotation?: number;
-      skipProcessingIfUnchanged?: boolean;
-    }
-  ) => ipcRenderer.invoke("cropGameAsset", imagePath, params),
   saveTempFile: (fileName: string, fileData: Uint8Array) =>
     ipcRenderer.invoke("saveTempFile", fileName, fileData),
   deleteTempFile: (filePath: string) =>

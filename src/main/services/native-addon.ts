@@ -20,14 +20,6 @@ type NativeProcessFriendImageResponse = NativeProcessProfileImageResponse & {
   is_animated?: boolean;
 };
 
-type NativePreparedAnimatedPngCropResponse = {
-  framePaths?: string[];
-  frame_paths?: string[];
-  delays: number[];
-  loopCount?: number;
-  loop_count?: number;
-};
-
 type HydraNativeModule = {
   processProfileImage: (
     imagePath: string,
@@ -40,16 +32,6 @@ type HydraNativeModule = {
     height: number,
     preserveAnimation: boolean
   ) => Promise<NativeProcessFriendImageResponse>;
-  prepareAnimatedPngCrop: (
-    imagePath: string,
-    left: number,
-    top: number,
-    width: number,
-    height: number,
-    outputWidth: number,
-    outputHeight: number,
-    rotation: number
-  ) => Promise<NativePreparedAnimatedPngCropResponse>;
   listProcesses: () => ProcessPayload[];
 };
 
@@ -286,47 +268,6 @@ export class NativeAddon {
       };
     } catch (error) {
       logger.error("Failed to process friend image via native addon", error);
-      throw error;
-    }
-  }
-
-  public static async prepareAnimatedPngCrop(
-    imagePath: string,
-    params: {
-      left: number;
-      top: number;
-      width: number;
-      height: number;
-      outputWidth: number;
-      outputHeight: number;
-      rotation: number;
-    }
-  ) {
-    try {
-      const response = await this.load().prepareAnimatedPngCrop(
-        imagePath,
-        params.left,
-        params.top,
-        params.width,
-        params.height,
-        params.outputWidth,
-        params.outputHeight,
-        params.rotation
-      );
-      const framePaths = response.framePaths ?? response.frame_paths;
-      const loopCount = response.loopCount ?? response.loop_count;
-
-      if (!framePaths?.length || loopCount == null) {
-        throw new Error("Hydra native addon returned an invalid APNG payload");
-      }
-
-      return {
-        framePaths,
-        delays: response.delays,
-        loopCount,
-      };
-    } catch (error) {
-      logger.error("Failed to prepare animated PNG crop", error);
       throw error;
     }
   }

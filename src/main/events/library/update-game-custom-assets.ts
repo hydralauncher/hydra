@@ -1,10 +1,5 @@
 import { registerEvent } from "../register-event";
-import {
-  gamesArtworkSelectionSublevel,
-  gamesSublevel,
-  gamesShopAssetsSublevel,
-  levelKeys,
-} from "@main/level";
+import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
 import {
   WindowManager,
   logger,
@@ -29,15 +24,6 @@ const ASSET_CLOUD_SYNC_FIELDS = [
   field: CustomAssetField;
   type: ArtworkAssetType;
 }>;
-
-const getChangedAssetTypes = (
-  existingGame: Game,
-  params: UpdateGameCustomAssetsParams
-) =>
-  ASSET_CLOUD_SYNC_FIELDS.filter(
-    ({ field }) =>
-      params[field] !== undefined && params[field] !== existingGame[field]
-  ).map(({ type }) => type);
 
 const collectOldAssetPaths = (
   existingGame: Game,
@@ -156,34 +142,6 @@ interface UpdateGameCustomAssetsParams {
   customOriginalCoverPath?: string | null;
 }
 
-const clearArtworkSelections = async (
-  gameKey: string,
-  existingGame: Game,
-  params: UpdateGameCustomAssetsParams
-) => {
-  const changedAssetTypes = getChangedAssetTypes(existingGame, params);
-  if (!changedAssetTypes.length) return;
-
-  const existing = await gamesArtworkSelectionSublevel.get(gameKey);
-  if (!existing) return;
-
-  const selected = { ...existing.selected };
-  for (const assetType of changedAssetTypes) {
-    delete selected[assetType];
-  }
-
-  if (!Object.keys(selected).length) {
-    await gamesArtworkSelectionSublevel.del(gameKey);
-    return;
-  }
-
-  await gamesArtworkSelectionSublevel.put(gameKey, {
-    ...existing,
-    selected,
-    updatedAt: Date.now(),
-  });
-};
-
 const syncCustomAssetsToCloud = (
   shop: GameShop,
   objectId: string,
@@ -235,46 +193,22 @@ const updateGameCustomAssets = async (
     customHeroImageUrl,
     customCoverImageUrl
   );
-  const existingShopAssets = await gamesShopAssetsSublevel.get(gameKey);
-  const existingArtworkSelection =
-    await gamesArtworkSelectionSublevel.get(gameKey);
 
-  let updatedGame: Game;
+  const updatedGame = await updateGameData({
+    gameKey,
+    existingGame,
+    title,
+    customIconUrl,
+    customLogoImageUrl,
+    customHeroImageUrl,
+    customCoverImageUrl,
+    customOriginalIconPath,
+    customOriginalLogoPath,
+    customOriginalHeroPath,
+    customOriginalCoverPath,
+  });
 
-  try {
-    updatedGame = await updateGameData({
-      gameKey,
-      existingGame,
-      title,
-      customIconUrl,
-      customLogoImageUrl,
-      customHeroImageUrl,
-      customCoverImageUrl,
-      customOriginalIconPath,
-      customOriginalLogoPath,
-      customOriginalHeroPath,
-      customOriginalCoverPath,
-    });
-
-    await updateShopAssets(gameKey, title);
-    await clearArtworkSelections(gameKey, existingGame, params);
-  } catch (error) {
-    await gamesSublevel.put(gameKey, existingGame).catch(() => {});
-
-    if (existingShopAssets) {
-      await gamesShopAssetsSublevel
-        .put(gameKey, existingShopAssets)
-        .catch(() => {});
-    }
-
-    if (existingArtworkSelection) {
-      await gamesArtworkSelectionSublevel
-        .put(gameKey, existingArtworkSelection)
-        .catch(() => {});
-    }
-
-    throw error;
-  }
+  await updateShopAssets(gameKey, title);
 
   await deleteOldAssetFiles(oldAssetPaths);
 

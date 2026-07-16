@@ -25,23 +25,6 @@ export interface ImageCropModalLabels {
   zoomOut: string;
 }
 
-export interface ImageCropParams {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  outputWidth: number;
-  outputHeight: number;
-  rotation: number;
-  wasEdited: boolean;
-}
-
-export interface ImageCropResult {
-  imagePath: string;
-  byteLength?: number;
-  wasProcessed?: boolean;
-}
-
 export interface ImageCropModalProps {
   visible: boolean;
   imagePath: string | null;
@@ -54,8 +37,7 @@ export interface ImageCropModalProps {
   errorMessage: string;
   labels: ImageCropModalLabels;
   onClose: () => void;
-  onCrop: (params: ImageCropParams) => Promise<ImageCropResult>;
-  onApply: (result: ImageCropResult) => Promise<void> | void;
+  onApply: (croppedImagePath: string) => Promise<void> | void;
 }
 
 const MAX_ZOOM = 4;
@@ -101,7 +83,6 @@ export function ImageCropModal({
   errorMessage,
   labels,
   onClose,
-  onCrop,
   onApply,
 }: Readonly<ImageCropModalProps>) {
   const { showErrorToast } = useToast();
@@ -128,7 +109,6 @@ export function ImageCropModal({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
   const [gridPinned, setGridPinned] = useState(false);
-  const [hasCropChanges, setHasCropChanges] = useState(false);
 
   const showGrid = gridPinned || isInteracting;
 
@@ -224,7 +204,6 @@ export function ImageCropModal({
     setIsApplying(false);
     setIsInteracting(false);
     setGridPinned(false);
-    setHasCropChanges(false);
   }, [imagePath, visible]);
 
   useEffect(
@@ -347,13 +326,6 @@ export function ImageCropModal({
     const dragState = dragStateRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) return;
 
-    if (
-      event.clientX !== dragState.startX ||
-      event.clientY !== dragState.startY
-    ) {
-      setHasCropChanges(true);
-    }
-
     setPosition(
       clampPosition(
         {
@@ -380,7 +352,6 @@ export function ImageCropModal({
     if (!frameRef.current) return;
 
     event.preventDefault();
-    setHasCropChanges(true);
 
     const rect = frameRef.current.getBoundingClientRect();
     const nextZoom = zoom - event.deltaY * 0.002;
@@ -409,7 +380,6 @@ export function ImageCropModal({
     if (!movement) return;
 
     event.preventDefault();
-    setHasCropChanges(true);
 
     setPosition((currentPosition) =>
       clampPosition(
@@ -424,20 +394,15 @@ export function ImageCropModal({
   };
 
   const handleZoomChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setHasCropChanges(true);
     updateZoom(Number(event.target.value));
   };
 
   // Rotate 90° counter-clockwise; the re-fit effect recenters afterwards.
-  const rotateImage = () => {
-    setHasCropChanges(true);
-    setRotation((current) => (current + 270) % 360);
-  };
+  const rotateImage = () => setRotation((current) => (current + 270) % 360);
 
   const handleReset = () => {
     setRotation(0);
     centerImage();
-    setHasCropChanges(false);
   };
 
   const handleApply = async () => {
@@ -452,18 +417,18 @@ export function ImageCropModal({
       const sourceWidth = frameSize.width / scale;
       const sourceHeight = frameSize.height / scale;
 
-      const result = await onCrop({
-        left: sourceX,
-        top: sourceY,
-        width: sourceWidth,
-        height: sourceHeight,
-        outputWidth,
-        outputHeight,
-        rotation,
-        wasEdited: hasCropChanges,
-      });
+      const { imagePath: croppedImagePath } =
+        await window.electron.cropProfileImage(imagePath, {
+          left: sourceX,
+          top: sourceY,
+          width: sourceWidth,
+          height: sourceHeight,
+          outputWidth,
+          outputHeight,
+          rotation,
+        });
 
-      await onApply(result);
+      await onApply(croppedImagePath);
     } catch (error) {
       logger.error("Failed to crop image", error);
       showErrorToast(errorMessage);
@@ -576,10 +541,7 @@ export function ImageCropModal({
             <button
               type="button"
               className="image-crop-modal__icon-button"
-              onClick={() => {
-                setHasCropChanges(true);
-                updateZoom(zoom - ZOOM_STEP);
-              }}
+              onClick={() => updateZoom(zoom - ZOOM_STEP)}
               disabled={isApplying || zoom <= MIN_ZOOM}
               title={labels.zoomOut}
               aria-label={labels.zoomOut}
@@ -609,10 +571,7 @@ export function ImageCropModal({
             <button
               type="button"
               className="image-crop-modal__icon-button"
-              onClick={() => {
-                setHasCropChanges(true);
-                updateZoom(zoom + ZOOM_STEP);
-              }}
+              onClick={() => updateZoom(zoom + ZOOM_STEP)}
               disabled={isApplying || zoom >= MAX_ZOOM}
               title={labels.zoomIn}
               aria-label={labels.zoomIn}
