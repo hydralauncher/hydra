@@ -4,12 +4,12 @@ import type { GameShop } from "@types";
 import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
 import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  formatPlayedTime,
   getGameAchievementProgress,
   resolveImageSource,
 } from "../../../helpers";
-import { useDominantColor } from "../../../hooks";
+import { useDominantColor, useFormat } from "../../../hooks";
 
 type LibraryGameCardVariant = "vertical" | "horizontal";
 
@@ -88,6 +88,8 @@ export function useLibraryGameCardPresentation(
   game: LibraryGameCardPresentationSource,
   variant: LibraryGameCardVariant
 ) {
+  const { t } = useTranslation(["game_details", "big_picture"]);
+  const { formatPlayTime } = useFormat();
   const imageSources = getPresentationImageSources(game, variant);
   const [imageSourceIndex, setImageSourceIndex] = useState(0);
   const [imageExhausted, setImageExhausted] = useState(false);
@@ -132,9 +134,11 @@ export function useLibraryGameCardPresentation(
     dominantColor,
     handleCoverImageError,
     logoImageUrl,
-    playtimeLabel: formatPlayedTime(game.playTimeInMilliseconds, {
-      zeroFallback: "Never played",
-    }),
+    playtimeLabel: game.playTimeInMilliseconds
+      ? t("play_time", {
+          amount: formatPlayTime(game.playTimeInMilliseconds / 1000),
+        })
+      : t("never_played", { ns: "big_picture" }),
   };
 }
 
