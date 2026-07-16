@@ -855,6 +855,7 @@ declare global {
         outputWidth: number;
         outputHeight: number;
         rotation?: number;
+        skipProcessingIfUnchanged?: boolean;
       }
     ) => Promise<{ imagePath: string }>;
     onSyncFriendRequests: (

@@ -1,14 +1,19 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import type { Readable } from "node:stream";
 
 import axios from "axios";
 import { app } from "electron";
-import { fileTypeFromBuffer } from "file-type";
+import { fileTypeFromFile } from "file-type";
 
 import { registerEvent } from "../register-event";
+import {
+  MAX_ARTWORK_SIZE_IN_BYTES,
+  validateArtworkContentLength,
+  writeArtworkStream,
+} from "./download-game-artwork-stream";
 
-const MAX_ARTWORK_SIZE_IN_BYTES = 1024 * 1024 * 20;
 const MAX_REDIRECTS = 3;
 
 const EXTENSION_BY_MIME: Record<string, string> = {
@@ -33,20 +38,20 @@ const isSteamGridDbUrl = (value: string) => {
   }
 };
 
-const downloadArtworkBuffer = async (
+const downloadArtworkStream = async (
   artworkUrl: string,
   redirectCount = 0
-): Promise<Buffer> => {
-  const response = await axios.get<ArrayBuffer>(artworkUrl, {
-    responseType: "arraybuffer",
-    maxContentLength: MAX_ARTWORK_SIZE_IN_BYTES,
-    maxBodyLength: MAX_ARTWORK_SIZE_IN_BYTES,
+): Promise<Readable> => {
+  const response = await axios.get<Readable>(artworkUrl, {
+    responseType: "stream",
     maxRedirects: 0,
     timeout: 30_000,
     validateStatus: (status) => status >= 200 && status < 400,
   });
 
   if (response.status >= 300) {
+    response.data.destroy();
+
     if (redirectCount >= MAX_REDIRECTS || !response.headers.location) {
       throw new Error("Invalid SteamGridDB artwork redirect");
     }
@@ -60,10 +65,17 @@ const downloadArtworkBuffer = async (
       throw new Error("Untrusted SteamGridDB artwork redirect");
     }
 
-    return downloadArtworkBuffer(redirectUrl, redirectCount + 1);
+    return downloadArtworkStream(redirectUrl, redirectCount + 1);
   }
 
-  return Buffer.from(response.data);
+  try {
+    validateArtworkContentLength(response.headers["content-length"]);
+  } catch (error) {
+    response.data.destroy();
+    throw error;
+  }
+
+  return response.data;
 };
 
 const downloadGameArtwork = async (
@@ -74,29 +86,41 @@ const downloadGameArtwork = async (
     throw new Error("Invalid SteamGridDB artwork URL");
   }
 
-  const buffer = await downloadArtworkBuffer(artworkUrl);
+  const tempDirectory = app.getPath("temp");
+  const tempFileBase = `hydra-temp-${randomUUID()}-steamgriddb`;
+  const partialFilePath = path.join(tempDirectory, `${tempFileBase}.download`);
+  let finalFilePath: string | null = null;
 
-  if (!buffer.length || buffer.length > MAX_ARTWORK_SIZE_IN_BYTES) {
-    throw new Error("Invalid SteamGridDB artwork size");
+  try {
+    const artworkStream = await downloadArtworkStream(artworkUrl);
+    await writeArtworkStream(
+      artworkStream,
+      partialFilePath,
+      MAX_ARTWORK_SIZE_IN_BYTES
+    );
+
+    const fileType = await fileTypeFromFile(partialFilePath);
+    const extension = fileType?.mime
+      ? EXTENSION_BY_MIME[fileType.mime]
+      : undefined;
+
+    if (!extension) {
+      throw new Error("Unsupported SteamGridDB artwork type");
+    }
+
+    finalFilePath = path.join(tempDirectory, `${tempFileBase}.${extension}`);
+    await fs.promises.rename(partialFilePath, finalFilePath);
+
+    return finalFilePath;
+  } catch (error) {
+    await Promise.all([
+      fs.promises.unlink(partialFilePath).catch(() => {}),
+      finalFilePath
+        ? fs.promises.unlink(finalFilePath).catch(() => {})
+        : Promise.resolve(),
+    ]);
+    throw error;
   }
-
-  const fileType = await fileTypeFromBuffer(buffer);
-  const extension = fileType?.mime
-    ? EXTENSION_BY_MIME[fileType.mime]
-    : undefined;
-
-  if (!extension) {
-    throw new Error("Unsupported SteamGridDB artwork type");
-  }
-
-  const tempFilePath = path.join(
-    app.getPath("temp"),
-    `hydra-temp-${randomUUID()}-steamgriddb.${extension}`
-  );
-
-  await fs.promises.writeFile(tempFilePath, buffer);
-
-  return tempFilePath;
 };
 
 registerEvent("downloadGameArtwork", downloadGameArtwork);
