@@ -101,8 +101,8 @@
     }
 
     &--active {
-      border-color: var(--color-primary, #1a9fff);
-      box-shadow: 0 0 0 1px var(--color-primary, #1a9fff);
+      border-color: #8f8f8f;
+      box-shadow: 0 0 0 1px #8f8f8f;
     }
   }
 
@@ -118,7 +118,7 @@
     height: 22px;
     border-radius: 50%;
     color: #fff;
-    background: var(--color-primary, #1a9fff);
+    background: #8f8f8f;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
   }
 
