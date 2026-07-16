@@ -1,6 +1,12 @@
+import fs from "node:fs";
 import sharp from "sharp";
+import UPNG from "upng-js";
 
 export const CROP_IMAGE_LIMIT_INPUT_PIXELS = 1_000_000_000;
+
+const PNG_SIGNATURE = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+]);
 
 export interface CropProfileImageParams {
   /** Crop rectangle in source-image (per-frame) pixels, in the rotated
@@ -17,6 +23,9 @@ export interface CropProfileImageParams {
   /** Allows bypassing processing when the user did not edit an image that
    * already matches the requested output dimensions. */
   skipProcessingIfUnchanged?: boolean;
+  /** Preserve APNG animation when processing game artwork. Profile images
+   * intentionally keep the existing static-PNG behavior. */
+  preserveAnimatedPng?: boolean;
 }
 
 export interface CropProfileImageResult {
@@ -36,6 +45,143 @@ const getInputOptions = (
 
 export const getCropProfileImageMetadata = (sourcePath: string) =>
   sharp(sourcePath, getInputOptions({ animated: true })).metadata();
+
+export const isAnimatedPngFile = async (sourcePath: string) => {
+  const handle = await fs.promises.open(sourcePath, "r");
+
+  try {
+    const signature = Buffer.alloc(PNG_SIGNATURE.length);
+    const signatureRead = await handle.read(signature, 0, signature.length, 0);
+
+    if (
+      signatureRead.bytesRead !== signature.length ||
+      !signature.equals(PNG_SIGNATURE)
+    ) {
+      return false;
+    }
+
+    const { size } = await handle.stat();
+    const chunkHeader = Buffer.alloc(8);
+    let offset = PNG_SIGNATURE.length;
+
+    while (offset + chunkHeader.length <= size) {
+      const { bytesRead } = await handle.read(
+        chunkHeader,
+        0,
+        chunkHeader.length,
+        offset
+      );
+
+      if (bytesRead !== chunkHeader.length) return false;
+
+      const chunkSize = chunkHeader.readUInt32BE(0);
+      const chunkType = chunkHeader.toString("ascii", 4, 8);
+
+      if (chunkType === "acTL") return true;
+      if (chunkType === "IDAT" || chunkType === "IEND") return false;
+
+      offset += 12 + chunkSize;
+    }
+
+    return false;
+  } finally {
+    await handle.close();
+  }
+};
+
+const toArrayBuffer = (buffer: Buffer) =>
+  buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength
+  ) as ArrayBuffer;
+
+const processFrame = async (
+  frame: ArrayBuffer,
+  sourceWidth: number,
+  sourceHeight: number,
+  rotation: number,
+  extractRegion: sharp.Region,
+  outputWidth: number,
+  outputHeight: number
+) => {
+  const rawOptions = getInputOptions({
+    raw: {
+      width: sourceWidth,
+      height: sourceHeight,
+      channels: 4,
+    },
+  });
+  const input = Buffer.from(frame);
+
+  if (rotation === 0) {
+    return sharp(input, rawOptions)
+      .extract(extractRegion)
+      .resize(outputWidth, outputHeight, { fit: "fill" })
+      .png()
+      .toBuffer();
+  }
+
+  const rotated = await sharp(input, rawOptions)
+    .rotate(rotation)
+    .png()
+    .toBuffer();
+
+  return sharp(rotated, getInputOptions())
+    .extract(extractRegion)
+    .resize(outputWidth, outputHeight, { fit: "fill" })
+    .png()
+    .toBuffer();
+};
+
+const cropAnimatedPng = async (
+  sourcePath: string,
+  params: CropProfileImageParams,
+  rotation: number,
+  extractRegion: sharp.Region
+): Promise<CropProfileImageResult | null> => {
+  if (!params.preserveAnimatedPng) return null;
+
+  const source = await fs.promises.readFile(sourcePath);
+  const decoded = UPNG.decode(toArrayBuffer(source));
+  const frameCount = decoded.tabs.acTL?.num_frames ?? decoded.frames.length;
+
+  if (frameCount <= 1) return null;
+
+  if (
+    decoded.width * decoded.height * frameCount >
+    CROP_IMAGE_LIMIT_INPUT_PIXELS
+  ) {
+    throw new Error("Input image exceeds pixel limit");
+  }
+
+  const decodedFrames = UPNG.toRGBA8(decoded);
+  const processedFrames: Buffer[] = [];
+
+  for (let index = 0; index < decodedFrames.length; index++) {
+    processedFrames.push(
+      await processFrame(
+        decodedFrames[index],
+        decoded.width,
+        decoded.height,
+        rotation,
+        extractRegion,
+        params.outputWidth,
+        params.outputHeight
+      )
+    );
+
+    decodedFrames[index] = new ArrayBuffer(0);
+  }
+
+  return sharp(processedFrames, getInputOptions({ join: { animated: true } }))
+    .webp({
+      quality: 90,
+      effort: 1,
+      loop: decoded.tabs.acTL?.num_plays ?? 0,
+      delay: decoded.frames.map((frame) => frame.delay),
+    })
+    .toBuffer({ resolveWithObject: true });
+};
 
 export const isIdentityImageCrop = (
   sourceWidth: number,
@@ -115,6 +261,17 @@ export const cropProfileImageWithInfo = async (
 
   const pages =
     baseMetadata.pages && baseMetadata.pages > 1 ? baseMetadata.pages : 1;
+
+  if (baseMetadata.format === "png") {
+    const animatedPngResult = await cropAnimatedPng(
+      sourcePath,
+      params,
+      rotation,
+      extractRegion
+    );
+
+    if (animatedPngResult) return animatedPngResult;
+  }
 
   if (rotation === 0) {
     // Single pass handles both static and animated inputs.

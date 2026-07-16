@@ -856,6 +856,7 @@ declare global {
         outputHeight: number;
         rotation?: number;
         skipProcessingIfUnchanged?: boolean;
+        preserveAnimatedPng?: boolean;
       }
     ) => Promise<{ imagePath: string }>;
     onSyncFriendRequests: (

@@ -30,6 +30,7 @@ export interface ImageCropModalProps {
   imagePath: string | null;
   outputWidth: number;
   outputHeight: number;
+  preserveAnimatedPng?: boolean;
   maxFrameWidth?: number;
   title: React.ReactNode;
   description?: string;
@@ -53,6 +54,7 @@ export function ImageCropModal({
   imagePath,
   outputWidth,
   outputHeight,
+  preserveAnimatedPng = false,
   maxFrameWidth,
   title,
   description,
@@ -420,6 +422,7 @@ export function ImageCropModal({
           outputHeight,
           rotation,
           skipProcessingIfUnchanged: !hasCropChanges,
+          preserveAnimatedPng,
         });
 
       await onApply(croppedImagePath);
