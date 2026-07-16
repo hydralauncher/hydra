@@ -10,7 +10,12 @@ import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
-import type { Game, UserPreferences, UserProfile } from "@types";
+import type {
+  AchievementNotificationInfo,
+  Game,
+  UserPreferences,
+  UserProfile,
+} from "@types";
 import { db, levelKeys, themesSublevel } from "@main/level";
 import { restartAndInstallUpdate } from "@main/events/autoupdater/restart-and-install-update";
 import { SystemPath } from "../system-path";
@@ -24,8 +29,21 @@ const getStaticImage = async (path: string) => {
     .catch(() => path);
 };
 
+const isTrustedLocalNotificationImage = (url: string): boolean => {
+  return (
+    /^local:[/\\]/i.test(url) &&
+    /[\\/]dev_hdd0[\\/]home[\\/]00000001[\\/]trophy[\\/][^\\/]+[\\/]TROP\d{3}\.PNG$/i.test(
+      url.slice(6)
+    )
+  );
+};
+
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
+  if (isTrustedLocalNotificationImage(url)) {
+    const localPath = url.slice("local:".length);
+    return getStaticImage(localPath);
+  }
   if (!url.startsWith("http")) return undefined;
 
   const fileName = url.split("/").pop()!;
@@ -276,4 +294,60 @@ export const publishNewAchievementNotification = async (info: {
     const soundPath = await getAchievementSoundPath();
     sound.play(soundPath);
   }
+};
+
+export const publishAchievementUnlockNotification = async (info: {
+  achievements: AchievementNotificationInfo[];
+  unlockedAchievementCount: number;
+  totalAchievementCount: number;
+  gameTitle: string;
+  gameIcon: string | null;
+}) => {
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
+
+  if (userPreferences?.achievementNotificationsEnabled === false) return;
+
+  const customEnabled =
+    userPreferences?.achievementCustomNotificationsEnabled !== false &&
+    process.platform !== "darwin";
+  const position =
+    userPreferences?.achievementCustomNotificationPosition ?? "top-left";
+
+  const publishOsNotification = () =>
+    publishNewAchievementNotification({
+      achievements: info.achievements,
+      unlockedAchievementCount: info.unlockedAchievementCount,
+      totalAchievementCount: info.totalAchievementCount,
+      gameTitle: info.gameTitle,
+      gameIcon: info.gameIcon,
+    });
+
+  if (process.platform === "linux") {
+    const shownInApp =
+      customEnabled &&
+      WindowManager.sendAchievementToFocusedWindow(position, info.achievements);
+
+    if (!shownInApp) {
+      await publishOsNotification();
+    }
+
+    return;
+  }
+
+  if (customEnabled && WindowManager.notificationWindow) {
+    WindowManager.presentAchievementNotificationWindow();
+    WindowManager.notificationWindow.webContents.send(
+      "on-achievement-unlocked",
+      position,
+      info.achievements
+    );
+    return;
+  }
+
+  await publishOsNotification();
 };

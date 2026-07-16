@@ -5,6 +5,7 @@ import path from "node:path";
 import YAML from "yaml";
 
 import type { EmulatorSystem } from "@types";
+import { logger } from "../logger";
 
 const SECTION_RE = /^\s*\[(.+?)\]\s*$/;
 const RECURSIVE_RE = /^\s*RecursivePaths\s*=\s*(.+?)\s*$/i;
@@ -251,9 +252,18 @@ export const addRecursivePath = async (
 const TITLE_ID_RE = /^[A-Z]{4}\d{5}$/i;
 
 export const rpcs3ConfigRoots = (executablePath: string | null): string[] =>
-  rpcs3GuiConfigsCandidates(executablePath).map((p) =>
-    path.dirname(path.dirname(p))
-  );
+  (() => {
+    const guiConfigCandidates = rpcs3GuiConfigsCandidates(executablePath);
+    const roots = guiConfigCandidates.map((p) => path.dirname(path.dirname(p)));
+
+    logger.log("RPCS3 config root candidates", {
+      executablePath,
+      guiConfigCandidates,
+      roots,
+    });
+
+    return roots;
+  })();
 
 export const rpcs3DefaultGamesDirs = (
   executablePath: string | null

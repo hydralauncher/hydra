@@ -747,6 +747,15 @@ export class WindowManager {
     return false;
   }
 
+  public static presentAchievementNotificationWindow(): boolean {
+    const window = this.notificationWindow;
+    if (!window || window.isDestroyed()) return false;
+
+    window.setAlwaysOnTop(true, "screen-saver", 1);
+    window.showInactive();
+    return true;
+  }
+
   public static async createNotificationWindow() {
     if (this.notificationWindow) return;
 
