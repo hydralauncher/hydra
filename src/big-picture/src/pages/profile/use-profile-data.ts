@@ -17,6 +17,8 @@ const PROFILE_RECENT_ACHIEVEMENTS_PER_GAME = 2;
 const PROFILE_RECENT_ACHIEVEMENT_LIBRARY_TAKE = 12;
 export const PROFILE_FRIENDS_LIMIT = 5;
 const PROFILE_REMOTE_LIBRARY_PAGE_SIZE = 12;
+const PROFILE_FAVORITE_GAME_LIMIT = 1;
+const PROFILE_RECENT_ACTIVITY_GAMES_LIMIT = 3;
 
 type ProfileComparedAchievement = ComparedAchievements["achievements"][number];
 
@@ -434,7 +436,10 @@ function useRemoteHighlights(
     setFavoriteGame(null);
     setRecentGames([]);
 
-    getUserLibrary(targetUserId, "take=1&skip=0&sortBy=playtime")
+    getUserLibrary(
+      targetUserId,
+      `take=${PROFILE_FAVORITE_GAME_LIMIT}&skip=0&sortBy=playtime`
+    )
       .then((response) => {
         if (isMounted) {
           setFavoriteGame(ensureArray(response.library)[0] ?? null);
@@ -444,7 +449,10 @@ function useRemoteHighlights(
         if (isMounted) setFavoriteGame(null);
       });
 
-    getUserLibrary(targetUserId, "take=3&skip=0&sortBy=playedRecently")
+    getUserLibrary(
+      targetUserId,
+      `take=${PROFILE_RECENT_ACTIVITY_GAMES_LIMIT}&skip=0&sortBy=playedRecently`
+    )
       .then((response) => {
         if (isMounted) setRecentGames(ensureArray(response.library));
       })
