@@ -63,7 +63,7 @@ const VALID_IMAGE_TYPES = [
   "image/webp",
 ] as const;
 
-const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"] as const;
+const IMAGE_EXTENSIONS = ["jpg", "jpeg", "jfif", "png", "gif", "webp"] as const;
 
 const INITIAL_ASSET_PATHS: AssetPaths = {
   icon: "",

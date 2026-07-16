@@ -23,6 +23,25 @@ const ARTWORK_KIND_BY_TYPE: Record<ArtworkAssetType, ArtworkKind> = {
 export const isVideoArtworkThumb = (thumb: string | null | undefined) =>
   !!thumb && /\.(webm|mp4)(\?.*)?$/i.test(thumb);
 
+const isIcoUrl = (url: string | null | undefined) =>
+  !!url && /\.ico(\?.*)?$/i.test(url);
+
+const getRenderableArtworkUrl = (
+  item: ArtworkItem,
+  assetType: ArtworkAssetType
+) => {
+  if (
+    assetType === "icon" &&
+    isIcoUrl(item.url) &&
+    item.thumb &&
+    !isVideoArtworkThumb(item.thumb)
+  ) {
+    return item.thumb;
+  }
+
+  return item.url;
+};
+
 const preloadImage = (url: string) =>
   new Promise<void>((resolve) => {
     const image = new Image();
@@ -154,17 +173,18 @@ export function useGameArtworkGrid({
   const pick = useCallback(
     async (item: ArtworkItem) => {
       setPendingId(item.id);
+      const renderableUrl = getRenderableArtworkUrl(item, assetType);
       try {
         await globalThis.window.electron.setGameArtworkSelection({
           shop,
           objectId,
           type: assetType,
-          url: item.url,
+          url: renderableUrl,
           artworkId: item.id,
         });
         await loadSelection();
         await onChanged();
-        await preloadImage(item.url);
+        await preloadImage(renderableUrl);
       } catch {
         onError();
       } finally {
