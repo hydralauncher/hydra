@@ -28,9 +28,14 @@ const ASSET_OUTPUT_SIZE: Record<AssetType, { width: number; height: number }> =
     grid: { width: 600, height: 900 },
   };
 
-const PREVIEW_MODIFIER_CLASS: Partial<Record<AssetType, string>> = {
-  icon: "game-assets-settings__icon-preview",
-  grid: "game-assets-settings__cover-preview",
+const ASSET_PREVIEW_FRAME_SIZE: Record<
+  AssetType,
+  { width: number; height: number }
+> = {
+  icon: { width: 170, height: 170 },
+  logo: { width: 302.22, height: 170 },
+  hero: { width: 526.45, height: 170 },
+  grid: { width: 113.33, height: 170 },
 };
 
 interface ElectronFile extends File {
@@ -950,27 +955,36 @@ export function GameAssetsSettings({
     const previewUrl = getPreviewUrl(assetType);
     const hasImage = Boolean(previewUrl);
     const isDragOver = dragOverTarget === assetType;
+    const previewFrameSize = ASSET_PREVIEW_FRAME_SIZE[assetType];
 
     const getTranslationKey = (suffix: string) =>
       `edit_game_modal_${assetType}${suffix}`;
+    const selectAssetLabel = hasImage
+      ? t(`edit_game_modal_select_${assetType}`)
+      : t(getTranslationKey("_drop_zone_empty"));
+    const previewActionLabel = hasCustomAsset
+      ? t("steamgriddb_use_default")
+      : selectAssetLabel;
 
     return (
       <div className="game-assets-settings__image-section">
-        {hasImage ? (
+        <div
+          className={`game-assets-settings__image-preview ${
+            isDragOver ? "game-assets-settings__drop-zone--active" : ""
+          }`}
+          onDragOver={handleDragOver}
+          onDragEnter={(event) => handleDragEnter(event, assetType)}
+          onDragLeave={handleDragLeave}
+          onDrop={(event) => handleAssetDrop(event, assetType)}
+        >
           <button
             type="button"
-            aria-label={
-              hasCustomAsset
-                ? t("steamgriddb_use_default")
-                : t(`edit_game_modal_select_${assetType}`)
-            }
-            className={`game-assets-settings__image-preview ${
-              PREVIEW_MODIFIER_CLASS[assetType] ?? ""
-            } ${isDragOver ? "game-assets-settings__drop-zone--active" : ""}`}
-            onDragOver={handleDragOver}
-            onDragEnter={(event) => handleDragEnter(event, assetType)}
-            onDragLeave={handleDragLeave}
-            onDrop={(event) => handleAssetDrop(event, assetType)}
+            aria-label={previewActionLabel}
+            className="game-assets-settings__preview-frame"
+            style={{
+              width: previewFrameSize.width,
+              height: previewFrameSize.height,
+            }}
             onClick={() =>
               hasCustomAsset
                 ? handleRestoreDefault(assetType)
@@ -978,57 +992,51 @@ export function GameAssetsSettings({
             }
             disabled={isAssetFlowBusy}
           >
-            <img
-              src={previewUrl}
-              alt={t(getTranslationKey("_preview"))}
-              className="game-assets-settings__preview-image"
-            />
-            <span
-              className="game-assets-settings__preview-action-overlay"
-              aria-hidden="true"
-            >
-              <span
-                className={`game-assets-settings__preview-action-icon ${
-                  hasCustomAsset
-                    ? "game-assets-settings__preview-action-icon--danger"
-                    : ""
-                }`}
-              >
-                {hasCustomAsset ? (
-                  <TrashIcon size={20} />
-                ) : (
-                  <PencilIcon size={20} />
-                )}
-              </span>
-            </span>
-            {isDragOver && (
-              <div className="game-assets-settings__drop-overlay">
-                <span>{t(`edit_game_modal_drop_to_replace_${assetType}`)}</span>
+            {hasImage ? (
+              <>
+                <img
+                  src={previewUrl}
+                  alt={t(getTranslationKey("_preview"))}
+                  className="game-assets-settings__preview-image"
+                />
+                <span
+                  className="game-assets-settings__preview-action-overlay"
+                  aria-hidden="true"
+                >
+                  <span
+                    className={`game-assets-settings__preview-action-icon ${
+                      hasCustomAsset
+                        ? "game-assets-settings__preview-action-icon--danger"
+                        : ""
+                    }`}
+                  >
+                    {hasCustomAsset ? (
+                      <TrashIcon size={20} />
+                    ) : (
+                      <PencilIcon size={20} />
+                    )}
+                  </span>
+                </span>
+              </>
+            ) : (
+              <div className="game-assets-settings__drop-zone-content">
+                <ImageIcon />
+                <span>{t(`edit_game_modal_drop_${assetType}_image_here`)}</span>
               </div>
             )}
           </button>
-        ) : (
-          <button
-            type="button"
-            aria-label={t(getTranslationKey("_drop_zone_empty"))}
-            className={`game-assets-settings__image-preview ${
-              PREVIEW_MODIFIER_CLASS[assetType] ?? ""
-            } game-assets-settings__drop-zone ${
-              isDragOver ? "game-assets-settings__drop-zone--active" : ""
-            }`}
-            onDragOver={handleDragOver}
-            onDragEnter={(event) => handleDragEnter(event, assetType)}
-            onDragLeave={handleDragLeave}
-            onDrop={(event) => handleAssetDrop(event, assetType)}
-            onClick={() => handleSelectAsset(assetType)}
-            disabled={isAssetFlowBusy}
-          >
-            <div className="game-assets-settings__drop-zone-content">
-              <ImageIcon />
-              <span>{t(`edit_game_modal_drop_${assetType}_image_here`)}</span>
+          {isDragOver && (
+            <div className="game-assets-settings__drop-overlay">
+              <span>
+                {t(
+                  hasImage
+                    ? `edit_game_modal_drop_to_replace_${assetType}`
+                    : `edit_game_modal_drop_${assetType}_image_here`
+                )}
+              </span>
             </div>
-          </button>
-        )}
+          )}
+        </div>
       </div>
     );
   };

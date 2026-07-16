@@ -66,9 +66,12 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 8px;
+    width: 100%;
+    height: 220px;
+    box-sizing: border-box;
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 12px;
+    overflow: hidden;
     background-color: var(--color-background-secondary);
     background-image:
       linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
@@ -86,24 +89,35 @@
       background-color 0.2s ease,
       transform 0.2s ease;
     position: relative;
+  }
 
-    &[type="button"] {
-      font: inherit;
-      color: inherit;
-      text-align: inherit;
-      text-decoration: none;
-      outline: none;
-      cursor: pointer;
-
-      &:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
-      }
-    }
+  &__preview-frame {
+    appearance: none;
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    max-width: calc(100% - 20px);
+    box-sizing: content-box;
+    padding: 8px;
+    overflow: hidden;
+    border: 2px dashed var(--color-border);
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: inherit;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
 
     &:not(:disabled):hover,
     &:not(:disabled):focus-visible {
       border-color: var(--color-primary);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.18);
 
       .game-assets-settings__preview-image {
         filter: blur(0.5px) brightness(0.65);
@@ -113,16 +127,9 @@
         opacity: 1;
       }
     }
-  }
 
-  &__drop-zone {
-    min-height: 120px;
-    cursor: pointer;
-    border-style: dashed !important;
-
-    &:hover {
-      border-color: var(--color-primary);
-      background-color: rgba(var(--color-primary-rgb), 0.05);
+    &:disabled {
+      cursor: default;
     }
   }
 
@@ -167,28 +174,10 @@
     }
   }
 
-  &__icon-preview {
-    max-width: 200px;
-    margin: 0 auto;
-  }
-
-  &__cover-preview {
-    max-width: 180px;
-    margin: 0 auto;
-    aspect-ratio: 2 / 3;
-    overflow: hidden;
-
-    .game-assets-settings__preview-image {
-      width: 100%;
-      height: 100%;
-      max-height: none;
-      object-fit: cover;
-    }
-  }
-
   &__preview-image {
-    max-width: 100%;
-    max-height: 120px;
+    display: block;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     border-radius: 4px;
     transition: filter 0.2s ease-in-out;
