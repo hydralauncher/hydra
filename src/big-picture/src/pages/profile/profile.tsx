@@ -1884,7 +1884,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     return getExternalProfileActions(
       externalProfile,
       (actionUserId, action) => {
-        void handleFriendAction(actionUserId, action);
+        handleFriendAction(actionUserId, action).catch(() => {});
       }
     );
   }, [externalProfile, handleFriendAction, profileUser]);
@@ -1901,7 +1901,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
           isPerformingAction={isPerformingProfileAction}
           firstContentFocusId={firstContentFocusId}
           onSignOut={() => {
-            void handleSignOut();
+            handleSignOut().catch(() => {});
           }}
         />
 
