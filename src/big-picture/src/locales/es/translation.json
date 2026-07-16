@@ -710,7 +710,9 @@
     "steamgriddb_use_default": "Usar predeterminado",
     "steamgriddb_no_results": "No se encontraron recursos de SteamGridDB para este juego.",
     "steamgriddb_sign_in_required": "Inicia sesión en Hydra para explorar las ilustraciones de SteamGridDB.",
-    "steamgriddb_fetch_failed": "No se pudieron cargar los recursos de SteamGridDB"
+    "steamgriddb_fetch_failed": "No se pudieron cargar los recursos de SteamGridDB",
+    "steamgriddb_artwork_updated": "Arte actualizado",
+    "steamgriddb_artwork_reset": "Arte restablecido al valor predeterminado"
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",

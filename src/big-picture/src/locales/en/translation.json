@@ -715,7 +715,9 @@
     "steamgriddb_use_default": "Use default",
     "steamgriddb_no_results": "No SteamGridDB assets found for this game.",
     "steamgriddb_sign_in_required": "Sign in to Hydra to browse SteamGridDB artwork.",
-    "steamgriddb_fetch_failed": "Failed to load SteamGridDB assets"
+    "steamgriddb_fetch_failed": "Failed to load SteamGridDB assets",
+    "steamgriddb_artwork_updated": "Artwork updated",
+    "steamgriddb_artwork_reset": "Artwork reset to default"
   },
   "format": {
     "playtime_hours_one": "{{count}} hour",
