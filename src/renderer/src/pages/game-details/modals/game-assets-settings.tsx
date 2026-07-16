@@ -5,9 +5,10 @@ import {
   AlertIcon,
   CloudOfflineIcon,
   ImageIcon,
-  XIcon,
+  PencilIcon,
+  TrashIcon,
 } from "@primer/octicons-react";
-import { Button, ImageCropModal, TextField } from "@renderer/components";
+import { Button, ImageCropModal } from "@renderer/components";
 import { useToast, useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { generateRandomGradient } from "@renderer/helpers";
@@ -158,6 +159,27 @@ const getCustomHeroImageUrl = (
   return generateRandomGradient();
 };
 
+const getGameCustomAssetUrl = (
+  game: LibraryGame,
+  assetType: AssetType
+): string | null | undefined => {
+  const isCustomGame = game.shop === "custom";
+
+  if (assetType === "icon") {
+    return isCustomGame ? game.iconUrl : game.customIconUrl;
+  }
+
+  if (assetType === "logo") {
+    return isCustomGame ? game.logoImageUrl : game.customLogoImageUrl;
+  }
+
+  if (assetType === "hero") {
+    return isCustomGame ? game.libraryHeroImageUrl : game.customHeroImageUrl;
+  }
+
+  return game.customCoverImageUrl;
+};
+
 export interface GameAssetsSettingsProps {
   game: LibraryGame;
   shopDetails: ShopDetailsWithAssets | null;
@@ -181,8 +203,6 @@ export function GameAssetsSettings({
     ) ?? false;
 
   const [assetPaths, setAssetPaths] = useState<AssetPaths>(INITIAL_ASSET_PATHS);
-  const [assetDisplayPaths, setAssetDisplayPaths] =
-    useState<AssetPaths>(INITIAL_ASSET_PATHS);
   const [originalAssetPaths, setOriginalAssetPaths] =
     useState<AssetPaths>(INITIAL_ASSET_PATHS);
   const [removedAssets, setRemovedAssets] = useState<RemovedAssets>(
@@ -279,12 +299,6 @@ export function GameAssetsSettings({
         hero: extractLocalPath(currentGame.libraryHeroImageUrl),
         grid: "",
       });
-      setAssetDisplayPaths({
-        icon: extractLocalPath(currentGame.iconUrl),
-        logo: extractLocalPath(currentGame.logoImageUrl),
-        hero: extractLocalPath(currentGame.libraryHeroImageUrl),
-        grid: "",
-      });
       setOriginalAssetPaths({
         icon:
           gameWithAssets.originalIconPath ||
@@ -325,12 +339,6 @@ export function GameAssetsSettings({
         Boolean(gameWithAssets.customOriginalCoverPath);
 
       setAssetPaths({
-        icon: extractLocalPath(currentGame.customIconUrl),
-        logo: extractLocalPath(currentGame.customLogoImageUrl),
-        hero: extractLocalPath(currentGame.customHeroImageUrl),
-        grid: extractLocalPath(currentGame.customCoverImageUrl),
-      });
-      setAssetDisplayPaths({
         icon: extractLocalPath(currentGame.customIconUrl),
         logo: extractLocalPath(currentGame.customLogoImageUrl),
         hero: extractLocalPath(currentGame.customHeroImageUrl),
@@ -382,7 +390,6 @@ export function GameAssetsSettings({
   useEffect(() => {
     setRemovedAssets(INITIAL_REMOVED_ASSETS);
     setAssetPaths(INITIAL_ASSET_PATHS);
-    setAssetDisplayPaths(INITIAL_ASSET_PATHS);
     setOriginalAssetPaths(INITIAL_ASSET_PATHS);
 
     if (isCustomGame(game)) {
@@ -422,38 +429,24 @@ export function GameAssetsSettings({
     setSelectedAssetType(assetType);
   };
 
-  const getAssetDisplayPath = (assetType: AssetType): string => {
-    if (removedAssets[assetType]) {
-      return "";
-    }
-
-    return assetDisplayPaths[assetType] || originalAssetPaths[assetType];
-  };
-
   const updateAssetPaths = (
     assetType: AssetType,
     path: string,
     displayPath: string
   ): void => {
     setAssetPaths((prev) => ({ ...prev, [assetType]: path }));
-    setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: displayPath }));
     setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: displayPath }));
     setRemovedAssets((prev) => ({ ...prev, [assetType]: false }));
   };
 
-  const getOriginalAssetUrl = (assetType: AssetType): string | null => {
-    if (!isCustomGame(game)) return null;
+  const handleRestoreDefault = (assetType: AssetType) => {
+    if (!beginAssetFlow()) return;
 
-    switch (assetType) {
-      case "icon":
-        return game.iconUrl;
-      case "logo":
-        return game.logoImageUrl;
-      case "hero":
-        return game.libraryHeroImageUrl;
-      default:
-        return null;
-    }
+    setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
+    setAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
+    setPendingArtworkSelection({ assetType, artworkId: null });
+    setPendingPreloadUrl(defaultUrls[assetType]);
+    setPendingUpdateMessage(t("steamgriddb_artwork_reset"));
   };
 
   const openAssetCrop = (
@@ -597,17 +590,6 @@ export function GameAssetsSettings({
       releaseAssetFlow();
       throw error;
     }
-  };
-
-  const handleRestoreDefault = (assetType: AssetType) => {
-    if (!beginAssetFlow()) return;
-
-    setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
-    setAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
-    setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: "" }));
-    setPendingArtworkSelection({ assetType, artworkId: null });
-    setPendingPreloadUrl(defaultUrls[assetType]);
-    setPendingUpdateMessage(t("steamgriddb_artwork_reset"));
   };
 
   const handleDragOver = (event: React.DragEvent) => {
@@ -783,34 +765,38 @@ export function GameAssetsSettings({
     [assetPaths, removedAssets]
   );
 
-  const prepareNonCustomGameAssets = useCallback(() => {
-    const customIconUrl =
-      !removedAssets.icon && assetPaths.icon
-        ? `local:${assetPaths.icon}`
-        : null;
+  const prepareNonCustomGameAssets = useCallback(
+    (currentGame: LibraryGame) => {
+      const customIconUrl = getCustomAssetUrl(
+        removedAssets.icon,
+        assetPaths.icon,
+        currentGame.customIconUrl
+      );
+      const customLogoImageUrl = getCustomAssetUrl(
+        removedAssets.logo,
+        assetPaths.logo,
+        currentGame.customLogoImageUrl
+      );
+      const customHeroImageUrl = getCustomAssetUrl(
+        removedAssets.hero,
+        assetPaths.hero,
+        currentGame.customHeroImageUrl
+      );
+      const customCoverImageUrl = getCustomAssetUrl(
+        removedAssets.grid,
+        assetPaths.grid,
+        currentGame.customCoverImageUrl
+      );
 
-    const customLogoImageUrl =
-      !removedAssets.logo && assetPaths.logo
-        ? `local:${assetPaths.logo}`
-        : null;
-
-    const customHeroImageUrl =
-      !removedAssets.hero && assetPaths.hero
-        ? `local:${assetPaths.hero}`
-        : null;
-
-    const customCoverImageUrl =
-      !removedAssets.grid && assetPaths.grid
-        ? `local:${assetPaths.grid}`
-        : null;
-
-    return {
-      customIconUrl,
-      customLogoImageUrl,
-      customHeroImageUrl,
-      customCoverImageUrl,
-    };
-  }, [assetPaths, removedAssets]);
+      return {
+        customIconUrl,
+        customLogoImageUrl,
+        customHeroImageUrl,
+        customCoverImageUrl,
+      };
+    },
+    [assetPaths, removedAssets]
+  );
 
   const updateCustomGame = useCallback(
     async (currentGame: LibraryGame | Game) => {
@@ -839,7 +825,7 @@ export function GameAssetsSettings({
         customLogoImageUrl,
         customHeroImageUrl,
         customCoverImageUrl,
-      } = prepareNonCustomGameAssets();
+      } = prepareNonCustomGameAssets(currentGame);
 
       return window.electron.updateGameCustomAssets({
         shop: currentGame.shop,
@@ -943,66 +929,41 @@ export function GameAssetsSettings({
   const getPreviewUrl = (assetType: AssetType): string | undefined => {
     const assetPath = assetPaths[assetType];
     const defaultUrl = defaultUrls[assetType];
+    const customAssetUrl = getGameCustomAssetUrl(game, assetType);
 
-    if (!isCustomGame(game)) {
-      return assetPath ? `local:${assetPath}` : defaultUrl || undefined;
+    if (assetPath) {
+      return `local:${assetPath}`;
     }
 
-    return assetPath ? `local:${assetPath}` : undefined;
+    if (!removedAssets[assetType] && customAssetUrl) {
+      return customAssetUrl;
+    }
+
+    return isCustomGame(game) ? undefined : defaultUrl || undefined;
   };
 
   const renderImageSection = (assetType: AssetType) => {
     const assetPath = assetPaths[assetType];
-    const assetDisplayPath = getAssetDisplayPath(assetType);
-    const defaultUrl = defaultUrls[assetType];
-    const hasImage = assetPath || (!isCustomGame(game) && defaultUrl);
+    const customAssetUrl = getGameCustomAssetUrl(game, assetType);
+    const hasCustomAsset =
+      !removedAssets[assetType] && Boolean(assetPath || customAssetUrl);
+    const previewUrl = getPreviewUrl(assetType);
+    const hasImage = Boolean(previewUrl);
     const isDragOver = dragOverTarget === assetType;
 
     const getTranslationKey = (suffix: string) =>
       `edit_game_modal_${assetType}${suffix}`;
-    const getResolutionKey = () => `edit_game_modal_${assetType}_resolution`;
 
     return (
       <div className="game-assets-settings__image-section">
-        <TextField
-          placeholder={t(`edit_game_modal_select_${assetType}`)}
-          value={assetDisplayPath}
-          readOnly
-          theme="dark"
-          rightContent={
-            <div className="game-assets-settings__input-actions">
-              <Button
-                type="button"
-                theme="outline"
-                onClick={() => handleSelectAsset(assetType)}
-                disabled={isAssetFlowBusy}
-              >
-                <ImageIcon />
-                {t("edit_game_modal_browse")}
-              </Button>
-              {(assetPath ||
-                (isCustomGame(game) && getOriginalAssetUrl(assetType))) && (
-                <Button
-                  type="button"
-                  theme="outline"
-                  onClick={() => handleRestoreDefault(assetType)}
-                  disabled={isAssetFlowBusy}
-                >
-                  <XIcon />
-                </Button>
-              )}
-            </div>
-          }
-        />
-
-        <div className="game-assets-settings__resolution-info">
-          {t(getResolutionKey())}
-        </div>
-
         {hasImage ? (
           <button
             type="button"
-            aria-label={t(getTranslationKey("_drop_zone"))}
+            aria-label={
+              hasCustomAsset
+                ? t("steamgriddb_use_default")
+                : t(`edit_game_modal_select_${assetType}`)
+            }
             className={`game-assets-settings__image-preview ${
               PREVIEW_MODIFIER_CLASS[assetType] ?? ""
             } ${isDragOver ? "game-assets-settings__drop-zone--active" : ""}`}
@@ -1010,14 +971,36 @@ export function GameAssetsSettings({
             onDragEnter={(event) => handleDragEnter(event, assetType)}
             onDragLeave={handleDragLeave}
             onDrop={(event) => handleAssetDrop(event, assetType)}
-            onClick={() => handleSelectAsset(assetType)}
+            onClick={() =>
+              hasCustomAsset
+                ? handleRestoreDefault(assetType)
+                : handleSelectAsset(assetType)
+            }
             disabled={isAssetFlowBusy}
           >
             <img
-              src={getPreviewUrl(assetType)}
+              src={previewUrl}
               alt={t(getTranslationKey("_preview"))}
               className="game-assets-settings__preview-image"
             />
+            <span
+              className="game-assets-settings__preview-action-overlay"
+              aria-hidden="true"
+            >
+              <span
+                className={`game-assets-settings__preview-action-icon ${
+                  hasCustomAsset
+                    ? "game-assets-settings__preview-action-icon--danger"
+                    : ""
+                }`}
+              >
+                {hasCustomAsset ? (
+                  <TrashIcon size={20} />
+                ) : (
+                  <PencilIcon size={20} />
+                )}
+              </span>
+            </span>
             {isDragOver && (
               <div className="game-assets-settings__drop-overlay">
                 <span>{t(`edit_game_modal_drop_to_replace_${assetType}`)}</span>

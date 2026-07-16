@@ -62,18 +62,6 @@
     gap: 8px;
   }
 
-  &__input-actions {
-    display: flex;
-    gap: 8px;
-  }
-
-  &__resolution-info {
-    font-size: 12px;
-    color: var(--color-text-secondary);
-    margin-top: -4px;
-    margin-bottom: 4px;
-  }
-
   &__image-preview {
     display: flex;
     justify-content: center;
@@ -107,14 +95,23 @@
       outline: none;
       cursor: pointer;
 
-      &:focus {
+      &:focus-visible {
         outline: 2px solid var(--color-primary);
         outline-offset: 2px;
       }
     }
 
-    &:hover {
+    &:not(:disabled):hover,
+    &:not(:disabled):focus-visible {
       border-color: var(--color-primary);
+
+      .game-assets-settings__preview-image {
+        filter: blur(0.5px) brightness(0.65);
+      }
+
+      .game-assets-settings__preview-action-overlay {
+        opacity: 1;
+      }
     }
   }
 
@@ -134,6 +131,10 @@
     background-color: rgba(var(--color-primary-rgb), 0.1) !important;
     transform: scale(1.02);
     box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+
+    .game-assets-settings__preview-action-overlay {
+      opacity: 0;
+    }
   }
 
   &__drop-overlay {
@@ -148,6 +149,7 @@
     font-weight: 600;
     font-size: 14px;
     backdrop-filter: blur(2px);
+    z-index: 2;
   }
 
   &__drop-zone-content {
@@ -189,5 +191,38 @@
     max-height: 120px;
     object-fit: contain;
     border-radius: 4px;
+    transition: filter 0.2s ease-in-out;
+  }
+
+  &__preview-action-overlay {
+    position: absolute;
+    inset: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.22);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    z-index: 1;
+  }
+
+  &__preview-action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    backdrop-filter: blur(10px);
+
+    &--danger {
+      border-color: rgba(225, 29, 72, 0.6);
+      background: rgba(225, 29, 72, 0.6);
+    }
   }
 }
