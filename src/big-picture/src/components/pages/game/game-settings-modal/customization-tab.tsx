@@ -332,7 +332,7 @@ export function GameCustomizationSettingsTab({
               value={selectedAssetTab}
               defaultValue="icon"
               onValueChange={handleAssetTabChange}
-              itemsFocusable={false}
+              itemsFocusable
               animateSegmentedIndicator={hasAssetTabsInteracted}
               variant="segmented"
               ariaLabel={t("edit_game_modal_assets")}
@@ -414,6 +414,7 @@ export function GameCustomizationSettingsTab({
 
             {!isCustomGame ? (
               <GameArtworkPicker
+                key={`${game.shop}:${game.objectId}:${selectedAssetTab}`}
                 game={game}
                 assetType={selectedAssetTab}
                 onChanged={async () => {

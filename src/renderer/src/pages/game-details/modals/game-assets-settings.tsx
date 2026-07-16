@@ -742,6 +742,7 @@ export function GameAssetsSettings({
 
       {!isCustomGame(game) && (
         <GameArtworkPicker
+          key={`${game.shop}:${game.objectId}:${selectedAssetType}`}
           game={game}
           assetType={selectedAssetType}
           onChanged={onGameUpdated}
