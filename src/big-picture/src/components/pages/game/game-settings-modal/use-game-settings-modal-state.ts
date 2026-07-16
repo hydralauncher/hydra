@@ -238,28 +238,20 @@ export function useGameSettingsModalState({
     (assetType: CustomAssetType, assetValue: string | null) => {
       if (!game) return null;
 
+      const assetFields = {
+        icon: ["customIconUrl", "customOriginalIconPath"],
+        logo: ["customLogoImageUrl", "customOriginalLogoPath"],
+        hero: ["customHeroImageUrl", "customOriginalHeroPath"],
+        grid: ["customCoverImageUrl", "customOriginalCoverPath"],
+      } as const;
+      const [urlField, originalField] = assetFields[assetType];
+
       return {
         shop: game.shop,
         objectId: game.objectId,
         title: getEffectiveGameTitle(),
-        customIconUrl:
-          assetType === "icon" ? assetValue : game.customIconUrl || undefined,
-        customLogoImageUrl:
-          assetType === "logo"
-            ? assetValue
-            : game.customLogoImageUrl || undefined,
-        customHeroImageUrl:
-          assetType === "hero"
-            ? assetValue
-            : game.customHeroImageUrl || undefined,
-        customCoverImageUrl:
-          assetType === "grid"
-            ? assetValue
-            : game.customCoverImageUrl || undefined,
-        customOriginalIconPath: assetType === "icon" ? null : undefined,
-        customOriginalLogoPath: assetType === "logo" ? null : undefined,
-        customOriginalHeroPath: assetType === "hero" ? null : undefined,
-        customOriginalCoverPath: assetType === "grid" ? null : undefined,
+        [urlField]: assetValue,
+        [originalField]: null,
       };
     },
     [game, getEffectiveGameTitle]
