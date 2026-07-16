@@ -167,6 +167,11 @@
     gap: calc(globals.$spacing-unit * 2);
     grid-template-columns: repeat(2, 1fr);
 
+    > li {
+      content-visibility: auto;
+      contain-intrinsic-size: auto 320px;
+    }
+
     @container #{globals.$app-container} (min-width: 900px) {
       grid-template-columns: repeat(4, 1fr);
     }
