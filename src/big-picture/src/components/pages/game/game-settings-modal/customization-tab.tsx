@@ -39,13 +39,14 @@ type AssetPreviewState = Record<
 >;
 
 const PREVIEW_MEDIA_TIMEOUT_MS = 10_000;
+type AssetPreviewMediaElement = HTMLImageElement | HTMLVideoElement;
 
 interface AssetPreviewMediaProps {
   source: string;
   mediaKey: string;
   title: string;
   isLoaded: boolean;
-  mediaRef: MutableRefObject<HTMLImageElement | HTMLVideoElement | null>;
+  mediaRef: MutableRefObject<AssetPreviewMediaElement | null>;
   onSettled: () => void;
 }
 
@@ -64,7 +65,7 @@ function AssetPreviewMedia({
       ? " game-customization-settings-tab__asset-preview-image--loaded"
       : ""
   }`;
-  const setMediaRef = (media: HTMLImageElement | HTMLVideoElement | null) => {
+  const setMediaRef = (media: AssetPreviewMediaElement | null) => {
     mediaRef.current = media;
   };
 
