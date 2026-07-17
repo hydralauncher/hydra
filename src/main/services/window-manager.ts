@@ -41,6 +41,10 @@ const LINUX_BIG_PICTURE_PLACEMENT_RETRY_DELAYS_MS = [
   100, 500, 1_000, 2_000,
 ] as const;
 
+interface CreateMainWindowOptions {
+  forceBigPicture?: boolean;
+}
+
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
@@ -238,7 +242,7 @@ export class WindowManager {
     };
   }
 
-  public static async createMainWindow() {
+  public static async createMainWindow(options?: CreateMainWindowOptions) {
     if (this.mainWindow) return;
 
     const userPreferences = await db
@@ -269,7 +273,10 @@ export class WindowManager {
     this.mainWindow.on("maximize", emitMaximizeState);
     this.mainWindow.on("unmaximize", emitMaximizeState);
 
-    if (userPreferences?.launchInBigPicture) {
+    const shouldLaunchInBigPicture =
+      options?.forceBigPicture || Boolean(userPreferences?.launchInBigPicture);
+
+    if (shouldLaunchInBigPicture) {
       this.mainWindow.setOpacity(0);
       this.mainWindow.setSkipTaskbar(true);
       if (isMaximized) {
@@ -357,7 +364,7 @@ export class WindowManager {
     this.mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged || isStaging)
         WindowManager.mainWindow?.webContents.openDevTools();
-      if (userPreferences?.launchInBigPicture) {
+      if (shouldLaunchInBigPicture) {
         void WindowManager.openBigPictureWindow();
       } else {
         WindowManager.mainWindow?.show();
