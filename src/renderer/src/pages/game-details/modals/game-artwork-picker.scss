@@ -29,6 +29,7 @@
     max-height: 320px;
     overflow-x: hidden;
     overflow-y: auto;
+    scrollbar-gutter: stable;
     padding-right: 4px;
 
     &::-webkit-scrollbar {
@@ -47,6 +48,11 @@
 
     &::-webkit-scrollbar-thumb:hover {
       background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    &--empty {
+      overflow-y: hidden;
+      scrollbar-gutter: auto;
     }
   }
 

@@ -332,6 +332,7 @@ export function GameArtworkPicker({
   }
 
   const showReload = isStale || hasFailed;
+  const isEmpty = !isLoading && items.length === 0;
 
   return (
     <div className="game-artwork">
@@ -361,7 +362,7 @@ export function GameArtworkPicker({
 
       <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
         <div
-          className="game-artwork__scroll"
+          className={`game-artwork__scroll${isEmpty ? " game-artwork__scroll--empty" : ""}`}
           ref={scrollRef}
           onScroll={(event) => setIsScrolled(event.currentTarget.scrollTop > 0)}
         >
@@ -439,7 +440,7 @@ export function GameArtworkPicker({
             </div>
           )}
 
-          {!isLoading && !items.length && (
+          {isEmpty && (
             <span className="game-artwork__hint">
               {t("steamgriddb_no_results")}
             </span>
