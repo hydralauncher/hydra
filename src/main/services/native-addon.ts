@@ -137,7 +137,7 @@ type PendingResolver =
 export class NativeAddon {
   private static nativeModule: HydraNativeModule | null = null;
   private static worker: Worker | null = null;
-  private static pendingResolvers: PendingResolver[] = [];
+  private static readonly pendingResolvers: PendingResolver[] = [];
 
   private static resolveAddonPath() {
     if (app.isPackaged) {
