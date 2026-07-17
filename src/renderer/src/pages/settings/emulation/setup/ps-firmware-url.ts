@@ -2,7 +2,7 @@ const PS_FIRMWARE_LOCALES: Record<string, string> = {
   "pt-BR": "pt-br",
   "pt-PT": "pt-pt",
   "es-ES": "es-es",
-  "es-419": "es-lat",
+  "es-419": "es-mx",
   ru: "ru-ru",
 };
 
