@@ -1,5 +1,4 @@
 import type { Game, ShopDetailsWithAssets } from "@types";
-import { useArtworkFallback, useUserDetails } from "@renderer/hooks";
 
 interface GameLogoProps {
   game: Game | null;
@@ -16,7 +15,6 @@ const getImageWithCustomPriority = (
 
 export function GameLogo({ game, shopDetails }: Readonly<GameLogoProps>) {
   const isCustomGame = game?.shop === "custom";
-  const { userDetails } = useUserDetails();
 
   const logoImage = isCustomGame
     ? game?.logoImageUrl || ""
@@ -24,17 +22,6 @@ export function GameLogo({ game, shopDetails }: Readonly<GameLogoProps>) {
         game?.customLogoImageUrl,
         shopDetails?.assets?.logoImageUrl
       );
-
-  const logoFallback = useArtworkFallback(
-    game?.shop ?? "steam",
-    game?.objectId ?? "",
-    "logos",
-    Boolean(userDetails) &&
-      Boolean(game?.objectId) &&
-      !isCustomGame &&
-      !logoImage
-  );
-  const resolvedLogo = logoImage || logoFallback || "";
 
   if (isCustomGame) {
     // For custom games, show logo image if available, otherwise show game title as text
@@ -51,9 +38,9 @@ export function GameLogo({ game, shopDetails }: Readonly<GameLogoProps>) {
     }
   } else {
     // For non-custom games, show logo image if available
-    return resolvedLogo ? (
+    return logoImage ? (
       <img
-        src={resolvedLogo}
+        src={logoImage}
         className="game-details__game-logo"
         alt={game?.title}
       />

@@ -1,8 +1,6 @@
 import { LibraryGame } from "@types";
 import {
   useGameCard,
-  useUserDetails,
-  useArtworkFallback,
   useCoverPoster,
   isAnimatedCoverCandidate,
 } from "@renderer/hooks";
@@ -59,26 +57,11 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const hasPickedCover = Boolean(game.selectedArtworkTypes?.includes("grid"));
 
-  const { userDetails } = useUserDetails();
-  const needsCoverFallback =
-    game.shop !== "custom" &&
-    game.shop !== "launchbox" &&
-    Boolean(userDetails) &&
-    !game.customCoverImageUrl &&
-    !game.coverImageUrl;
-  const coverFallbackUrl = useArtworkFallback(
-    game.shop,
-    game.objectId,
-    "grids",
-    needsCoverFallback
-  );
-
   const candidates = [
     { url: game.customCoverImageUrl, isChosenCover: true }, // Level 0
     { url: game.coverImageUrl, isChosenCover: hasPickedCover }, // Level 1
-    { url: coverFallbackUrl, isChosenCover: false }, // Level 2 (SteamGridDB)
-    { url: game.libraryImageUrl, isChosenCover: false }, // Level 3
-    { url: game.iconUrl, isChosenCover: false }, // Level 4
+    { url: game.libraryImageUrl, isChosenCover: false }, // Level 2
+    { url: game.iconUrl, isChosenCover: false }, // Level 3
   ].filter(({ url }) => url && url.trim() !== "");
 
   const sources = candidates.map(({ url }) => url);
