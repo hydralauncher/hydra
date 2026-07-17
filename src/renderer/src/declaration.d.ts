@@ -358,6 +358,17 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<LibraryGame | null>;
+    updateGameMetadata: (params: {
+      shop: GameShop;
+      objectId: string;
+      userDescription?: string | null;
+      userReleaseDate?: Date | null;
+      userDeveloper?: string | null;
+      userPublisher?: string | null;
+      userRating?: number | null;
+      userScreenshots?: string[] | null;
+      hasManuallyUpdatedMetadata?: boolean;
+    }) => Promise<LibraryGame | null>;
     getGamesRunning: () => Promise<
       Pick<GameRunning, "id" | "sessionDurationInMillis">[]
     >;

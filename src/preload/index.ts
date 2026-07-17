@@ -732,6 +732,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteGameFolder", shop, objectId),
   getGameByObjectId: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getGameByObjectId", shop, objectId),
+  updateGameMetadata: (params: {
+    shop: GameShop;
+    objectId: string;
+    userDescription?: string | null;
+    userReleaseDate?: Date | null;
+    userDeveloper?: string | null;
+    userPublisher?: string | null;
+    userRating?: number | null;
+    userScreenshots?: string[] | null;
+    hasManuallyUpdatedMetadata?: boolean;
+  }) => ipcRenderer.invoke("updateGameMetadata", params),
   resetGameAchievements: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
   changeGamePlayTime: (shop: GameShop, objectId: string, playtime: number) =>

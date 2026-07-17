@@ -60,6 +60,26 @@ export const librarySlice = createSlice({
         game.collectionIds = action.payload.collectionIds;
       }
     },
+    updateGameMetadata: (
+      state,
+      action: PayloadAction<{
+        gameId: string;
+        metadata: Partial<{
+          userDescription: string | null;
+          userReleaseDate: Date | null;
+          userDeveloper: string | null;
+          userPublisher: string | null;
+          userRating: number | null;
+          userScreenshots: string[] | null;
+          hasManuallyUpdatedMetadata: boolean;
+        }>;
+      }>
+    ) => {
+      const game = state.value.find((g) => g.id === action.payload.gameId);
+      if (game) {
+        Object.assign(game, action.payload.metadata);
+      }
+    },
   },
 });
 
@@ -69,4 +89,5 @@ export const {
   clearNewDownloadOptions,
   setLibrarySearchQuery,
   setGameCollectionIds,
+  updateGameMetadata,
 } = librarySlice.actions;

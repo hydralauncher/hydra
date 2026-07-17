@@ -7,7 +7,9 @@ export type SortOption =
   | "recently_played"
   | "most_played"
   | "installed_first"
-  | "title_desc";
+  | "title_desc"
+  | "release_date_asc"
+  | "release_date_desc";
 
 interface FilterOptionsProps {
   sortBy: SortOption;
@@ -52,6 +54,11 @@ export function FilterOptions({
             key: "title-desc",
             value: "title_desc",
             label: t("sort_title_desc"),
+          },
+          {
+            key: "release-date",
+            value: "release_date",
+            label: t("sort_release_date"),
           },
         ]}
       />
