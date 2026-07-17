@@ -91,7 +91,12 @@ export function RomsDetectedSection({
             <>
               <div className="emulator-detail__roms">
                 {pageSlice.map((rom) => {
-                  const cover = rom.libraryImageUrl ?? rom.iconUrl;
+                  const cover =
+                    rom.customCoverImageUrl ??
+                    rom.customIconUrl ??
+                    rom.coverImageUrl ??
+                    rom.libraryImageUrl ??
+                    rom.iconUrl;
                   const regions = getRegionsFromSkus(rom.skus);
                   return (
                     <div className="emulator-detail__rom" key={rom.objectId}>

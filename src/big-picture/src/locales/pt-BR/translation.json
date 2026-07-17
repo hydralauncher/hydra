@@ -704,7 +704,15 @@
     "restoring_backup": "Restaurando backup ({{progress}} concluído)…",
     "loading_save_preview": "Procurando arquivos de salvamento…",
     "no_backup_preview": "Nenhum arquivo de salvamento encontrado para este jogo",
-    "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo"
+    "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
+    "edit_game_modal_grid": "Capa",
+    "steamgriddb_section_title": "SteamGridDB",
+    "steamgriddb_use_default": "Usar padrão",
+    "steamgriddb_no_results": "Nenhum recurso do SteamGridDB encontrado para este jogo.",
+    "steamgriddb_sign_in_required": "Entre na sua conta Hydra para explorar as artes do SteamGridDB.",
+    "steamgriddb_fetch_failed": "Falha ao carregar recursos do SteamGridDB",
+    "steamgriddb_artwork_updated": "Arte atualizada",
+    "steamgriddb_artwork_reset": "Arte redefinida para o padrão"
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",
@@ -755,6 +763,8 @@
     "file_explorer_error_enotdir": "Este caminho não é um diretório.",
     "file_explorer_error_default": "Não foi possível abrir este local.",
     "file_explorer_select_this_directory": "Selecionar esta pasta",
-    "file_explorer_select_download_directory": "Selecionar diretório de download"
+    "file_explorer_select_download_directory": "Selecionar diretório de download",
+    "steamgriddb_artwork_updated": "Arte atualizada",
+    "steamgriddb_artwork_reset": "Arte redefinida para o padrão"
   }
 }
