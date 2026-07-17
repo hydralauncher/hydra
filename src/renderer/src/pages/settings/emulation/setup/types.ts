@@ -1,7 +1,12 @@
 import type { EmulatorSystem } from "@types";
 
 export type StepKind =
-  "find_emulator" | "firmware" | "bios" | "rom_folder" | "scanning" | "done";
+  | "find_emulator"
+  | "firmware"
+  | "bios"
+  | "rom_folder"
+  | "scanning"
+  | "done";
 
 export interface PendingFolder {
   path: string;
