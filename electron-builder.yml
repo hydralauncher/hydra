@@ -54,8 +54,7 @@ mac:
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
-  desktop:
-    - StartupWMClass: hydralauncher
+  executableName: hydralauncher
   extraResources:
     - from: binaries/7zzs
     - from: binaries/umu/umu-run
