@@ -28,6 +28,7 @@ import "./game-artwork-picker.scss";
 const GAP = 8;
 const SCROLL_END_PADDING = 20;
 const SCROLLBAR_MIN_THUMB_SIZE = 24;
+const SCROLL_STEP = 40;
 
 const GRID_CONFIG: Record<
   ArtworkAssetType,
@@ -289,8 +290,7 @@ function ArtworkScrollbar({
     const dragState = dragStateRef.current;
     if (
       !element ||
-      !dragState ||
-      dragState.pointerId !== event.pointerId ||
+      dragState?.pointerId !== event.pointerId ||
       metrics.thumbTravel <= 0
     ) {
       return;
@@ -317,7 +317,15 @@ function ArtworkScrollbar({
 
     event.preventDefault();
     event.stopPropagation();
-    element.scrollTop += event.deltaY;
+    let scrollDelta = event.deltaY;
+
+    if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+      scrollDelta *= SCROLL_STEP;
+    } else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+      scrollDelta *= element.clientHeight;
+    }
+
+    element.scrollTop += scrollDelta;
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -328,10 +336,10 @@ function ArtworkScrollbar({
 
     switch (event.key) {
       case "ArrowUp":
-        nextScrollTop = element.scrollTop - 40;
+        nextScrollTop = element.scrollTop - SCROLL_STEP;
         break;
       case "ArrowDown":
-        nextScrollTop = element.scrollTop + 40;
+        nextScrollTop = element.scrollTop + SCROLL_STEP;
         break;
       case "PageUp":
         nextScrollTop = element.scrollTop - element.clientHeight;
