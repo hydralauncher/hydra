@@ -23,13 +23,17 @@ import {
   shell,
 } from "electron";
 import { t } from "i18next";
-import { orderBy, slice } from "lodash-es";
+import { orderBy } from "lodash-es";
 import path from "node:path";
 import UserAgent from "user-agents";
 import { BigPictureSessionManager } from "./big-picture-session-manager";
 import { DisplayManager } from "./display-manager";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
+import {
+  addSteamGridDbCacheControl,
+  isSteamGridDbArtworkRequest,
+} from "./steam-grid-db-cache";
 
 const isLinuxWayland =
   process.platform === "linux" &&
@@ -46,15 +50,44 @@ interface CreateMainWindowOptions {
 }
 
 export class WindowManager {
-  public static mainWindow: Electron.BrowserWindow | null = null;
-  public static notificationWindow: Electron.BrowserWindow | null = null;
-  public static gameLauncherWindow: Electron.BrowserWindow | null = null;
+  private static mainWindowInstance: Electron.BrowserWindow | null = null;
+  private static notificationWindowInstance: Electron.BrowserWindow | null =
+    null;
+  private static gameLauncherWindowInstance: Electron.BrowserWindow | null =
+    null;
   private static bigPicture: Electron.BrowserWindow | null = null;
   private static friendsWindow: Electron.BrowserWindow | null = null;
   private static authWindow: Electron.BrowserWindow | null = null;
   private static deferredMainMaximize = false;
 
+  private static isArtworkRendererRequest(
+    webContentsId: number | undefined
+  ): boolean {
+    return [this.mainWindow, this.bigPicture].some(
+      (window) =>
+        window != null &&
+        !window.isDestroyed() &&
+        window.webContents.id === webContentsId
+    );
+  }
+
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
+
+  public static get mainWindow(): Electron.BrowserWindow | null {
+    return this.mainWindowInstance;
+  }
+
+  public static get notificationWindow(): Electron.BrowserWindow | null {
+    return this.notificationWindowInstance;
+  }
+
+  public static get gameLauncherWindow(): Electron.BrowserWindow | null {
+    return this.gameLauncherWindowInstance;
+  }
+
+  public static clearMainWindow(): void {
+    this.mainWindowInstance = null;
+  }
 
   private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
     {
@@ -256,40 +289,41 @@ export class WindowManager {
 
     this.updateInitialConfig(configWithoutMaximized);
 
-    this.mainWindow = new BrowserWindow(
+    const mainWindow = new BrowserWindow(
       this.initialConfigInitializationMainWindow
     );
+    this.mainWindowInstance = mainWindow;
 
     this.deferredMainMaximize = false;
 
     const emitMaximizeState = () => {
-      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-        this.mainWindow.webContents.send(
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(
           "on-window-maximize-change",
-          this.mainWindow.isMaximized()
+          mainWindow.isMaximized()
         );
       }
     };
-    this.mainWindow.on("maximize", emitMaximizeState);
-    this.mainWindow.on("unmaximize", emitMaximizeState);
+    mainWindow.on("maximize", emitMaximizeState);
+    mainWindow.on("unmaximize", emitMaximizeState);
 
     const shouldLaunchInBigPicture =
       options?.forceBigPicture || Boolean(userPreferences?.launchInBigPicture);
 
     if (shouldLaunchInBigPicture) {
-      this.mainWindow.setOpacity(0);
-      this.mainWindow.setSkipTaskbar(true);
+      mainWindow.setOpacity(0);
+      mainWindow.setSkipTaskbar(true);
       if (isMaximized) {
         this.deferredMainMaximize = true;
       }
     } else if (isMaximized) {
-      this.mainWindow.maximize();
+      mainWindow.maximize();
     }
 
-    this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
+    mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
         if (
-          details.webContentsId !== this.mainWindow?.webContents.id ||
+          !this.isArtworkRendererRequest(details.webContentsId) ||
           details.url.includes("chatwoot")
         ) {
           return callback(details);
@@ -316,15 +350,23 @@ export class WindowManager {
       }
     );
 
-    this.mainWindow.webContents.session.webRequest.onHeadersReceived(
+    mainWindow.webContents.session.webRequest.onHeadersReceived(
       (details, callback) => {
+        const isArtworkRendererRequest = this.isArtworkRendererRequest(
+          details.webContentsId
+        );
+        const responseHeaders =
+          isArtworkRendererRequest && isSteamGridDbArtworkRequest(details)
+            ? addSteamGridDbCacheControl(details.responseHeaders)
+            : details.responseHeaders;
+
         if (
-          details.webContentsId !== this.mainWindow?.webContents.id ||
+          !isArtworkRendererRequest ||
           details.url.includes("featurebase") ||
           details.url.includes("chatwoot") ||
           details.url.includes("workwonders")
         ) {
-          return callback(details);
+          return callback({ ...details, responseHeaders });
         }
 
         const headers = {
@@ -335,12 +377,11 @@ export class WindowManager {
             "Content-Type, Authorization, X-Requested-With, If-None-Match",
           ],
         };
-
         if (details.method === "OPTIONS") {
           return callback({
             cancel: false,
             responseHeaders: {
-              ...details.responseHeaders,
+              ...responseHeaders,
               ...headers,
             },
             statusLine: "HTTP/1.1 200 OK",
@@ -349,7 +390,7 @@ export class WindowManager {
 
         return callback({
           responseHeaders: {
-            ...details.responseHeaders,
+            ...responseHeaders,
             ...headers,
           },
         });
@@ -359,9 +400,9 @@ export class WindowManager {
     const initialHash = userPreferences?.launchToLibraryPage ? "library" : "";
 
     this.loadMainWindowURL(initialHash);
-    this.mainWindow.removeMenu();
+    mainWindow.removeMenu();
 
-    this.mainWindow.on("ready-to-show", () => {
+    mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged || isStaging)
         WindowManager.mainWindow?.webContents.openDevTools();
       if (shouldLaunchInBigPicture) {
@@ -371,9 +412,8 @@ export class WindowManager {
       }
     });
 
-    this.mainWindow.on("close", async () => {
-      const mainWindow = this.mainWindow;
-      this.mainWindow = null;
+    mainWindow.on("close", async () => {
+      this.mainWindowInstance = null;
 
       const userPreferences = await db.get<string, UserPreferences>(
         levelKeys.userPreferences,
@@ -382,30 +422,28 @@ export class WindowManager {
         }
       );
 
-      if (mainWindow) {
-        mainWindow.setProgressBar(-1);
+      mainWindow.setProgressBar(-1);
 
-        const lastBounds = mainWindow.getBounds();
-        const isMaximized = mainWindow.isMaximized() ?? false;
-        const screenConfig = isMaximized
-          ? {
-              x: undefined,
-              y: undefined,
-              height: this.initialConfigInitializationMainWindow.height ?? 860,
-              width: this.initialConfigInitializationMainWindow.width ?? 1200,
-              isMaximized: true,
-            }
-          : { ...lastBounds, isMaximized };
+      const lastBounds = mainWindow.getBounds();
+      const isMaximized = mainWindow.isMaximized() ?? false;
+      const screenConfig = isMaximized
+        ? {
+            x: undefined,
+            y: undefined,
+            height: this.initialConfigInitializationMainWindow.height ?? 860,
+            width: this.initialConfigInitializationMainWindow.width ?? 1200,
+            isMaximized: true,
+          }
+        : { ...lastBounds, isMaximized };
 
-        await this.saveScreenConfig(screenConfig);
-      }
+      await this.saveScreenConfig(screenConfig);
 
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
       }
     });
 
-    this.mainWindow.webContents.setWindowOpenHandler((handler) => {
+    mainWindow.webContents.setWindowOpenHandler((handler) => {
       shell.openExternal(handler.url);
       return { action: "deny" };
     });
@@ -907,7 +945,7 @@ export class WindowManager {
       userPreferences?.achievementCustomNotificationPosition
     );
 
-    this.notificationWindow = new BrowserWindow({
+    const notificationWindow = new BrowserWindow({
       transparent: true,
       maximizable: false,
       autoHideMenuBar: true,
@@ -925,13 +963,14 @@ export class WindowManager {
         sandbox: false,
       },
     });
-    this.notificationWindow.setIgnoreMouseEvents(true);
+    this.notificationWindowInstance = notificationWindow;
+    notificationWindow.setIgnoreMouseEvents(true);
 
-    this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
-    this.loadWindowURL(this.notificationWindow, "achievement-notification");
+    notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    this.loadWindowURL(notificationWindow, "achievement-notification");
 
     if (!app.isPackaged || isStaging) {
-      this.notificationWindow.webContents.openDevTools();
+      notificationWindow.webContents.openDevTools();
     }
   }
 
@@ -972,7 +1011,7 @@ export class WindowManager {
   public static async closeNotificationWindow() {
     if (this.notificationWindow) {
       this.notificationWindow.close();
-      this.notificationWindow = null;
+      this.notificationWindowInstance = null;
     }
   }
 
@@ -1058,7 +1097,7 @@ export class WindowManager {
   ) {
     if (this.gameLauncherWindow) {
       this.gameLauncherWindow.close();
-      this.gameLauncherWindow = null;
+      this.gameLauncherWindowInstance = null;
     }
 
     const display = targetDisplay ?? screen.getPrimaryDisplay();
@@ -1076,7 +1115,7 @@ export class WindowManager {
       displayY + (displayHeight - this.GAME_LAUNCHER_WINDOW_HEIGHT) / 2
     );
 
-    this.gameLauncherWindow = new BrowserWindow({
+    const gameLauncherWindow = new BrowserWindow({
       width: this.GAME_LAUNCHER_WINDOW_WIDTH,
       height: this.GAME_LAUNCHER_WINDOW_HEIGHT,
       x,
@@ -1095,20 +1134,21 @@ export class WindowManager {
       },
       show: false,
     });
+    this.gameLauncherWindowInstance = gameLauncherWindow;
 
-    this.gameLauncherWindow.removeMenu();
+    gameLauncherWindow.removeMenu();
 
     this.loadWindowURL(
-      this.gameLauncherWindow,
+      gameLauncherWindow,
       `game-launcher?shop=${shop}&objectId=${objectId}`
     );
 
-    this.gameLauncherWindow.on("closed", () => {
-      this.gameLauncherWindow = null;
+    gameLauncherWindow.on("closed", () => {
+      this.gameLauncherWindowInstance = null;
     });
 
     if (!app.isPackaged || isStaging) {
-      this.gameLauncherWindow.webContents.openDevTools();
+      gameLauncherWindow.webContents.openDevTools();
     }
   }
 
@@ -1121,7 +1161,7 @@ export class WindowManager {
   public static closeGameLauncherWindow() {
     if (this.gameLauncherWindow) {
       this.gameLauncherWindow.close();
-      this.gameLauncherWindow = null;
+      this.gameLauncherWindowInstance = null;
     }
   }
 
@@ -1178,7 +1218,7 @@ export class WindowManager {
 
           const sortedGames = orderBy(filteredGames, "lastTimePlayed", "desc");
 
-          return slice(sortedGames, 0, 6);
+          return sortedGames.slice(0, 6);
         });
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =

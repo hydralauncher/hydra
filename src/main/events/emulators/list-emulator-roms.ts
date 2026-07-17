@@ -1,9 +1,14 @@
 import type { DetectedRom, EmulatorSystem } from "@types";
 
 import { registerEvent } from "../register-event";
-import { gamesSublevel, gamesShopAssetsSublevel } from "@main/level";
+import {
+  gamesSublevel,
+  gamesShopAssetsSublevel,
+  gamesArtworkSelectionSublevel,
+} from "@main/level";
 import { platformToSystem } from "@main/helpers";
 import { emulators } from "@main/services";
+import { composeAssetsWithArtwork } from "@shared";
 
 import { isWithin } from "./rom-path-utils";
 
@@ -30,6 +35,13 @@ const listEmulatorRoms = async (
     if (!inRomFolder) continue;
 
     const assets = await gamesShopAssetsSublevel.get(key).catch(() => null);
+    const artworkSelection = await gamesArtworkSelectionSublevel
+      .get(key)
+      .catch(() => null);
+    const composedAssets = composeAssetsWithArtwork(
+      assets ?? null,
+      artworkSelection
+    );
     const skus = discs
       .map((disc) => disc.sku ?? "")
       .filter((sku) => sku.length > 0);
@@ -37,8 +49,11 @@ const listEmulatorRoms = async (
     roms.push({
       objectId: game.objectId,
       title: game.title,
-      libraryImageUrl: assets?.libraryImageUrl ?? null,
-      iconUrl: assets?.iconUrl ?? game.iconUrl ?? null,
+      coverImageUrl: composedAssets?.coverImageUrl ?? null,
+      libraryImageUrl: composedAssets?.libraryImageUrl ?? null,
+      iconUrl: composedAssets?.iconUrl ?? game.iconUrl ?? null,
+      customCoverImageUrl: game.customCoverImageUrl ?? null,
+      customIconUrl: game.customIconUrl ?? null,
       sizeBytes: game.romSizeBytes ?? null,
       skus,
     });

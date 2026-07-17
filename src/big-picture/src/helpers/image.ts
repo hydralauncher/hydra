@@ -41,12 +41,7 @@ export function resolveImageSource(
 }
 
 export function getGameImageSources(game: LibraryGame) {
-  return [
-    game.customIconUrl,
-    game.coverImageUrl,
-    game.libraryImageUrl,
-    game.iconUrl,
-  ]
+  return [game.coverImageUrl, game.libraryImageUrl, game.iconUrl]
     .map((source) => resolveImageSource(source))
     .filter((source, index, array) => {
       return source !== "" && array.indexOf(source) === index;

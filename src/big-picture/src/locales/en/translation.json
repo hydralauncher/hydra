@@ -710,7 +710,15 @@
     "loading_save_preview": "Searching for save games…",
     "no_backup_preview": "No save games were found for this title",
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
-    "cloud_delete_backup_description": "Delete from your cloud backups?"
+    "cloud_delete_backup_description": "Delete from your cloud backups?",
+    "edit_game_modal_grid": "Cover",
+    "steamgriddb_section_title": "SteamGridDB",
+    "steamgriddb_use_default": "Use default",
+    "steamgriddb_no_results": "No SteamGridDB assets found for this game.",
+    "steamgriddb_sign_in_required": "Sign in to Hydra to browse SteamGridDB artwork.",
+    "steamgriddb_fetch_failed": "Failed to load SteamGridDB assets",
+    "steamgriddb_artwork_updated": "Artwork updated",
+    "steamgriddb_artwork_reset": "Artwork reset to default"
   },
   "format": {
     "playtime_hours_one": "{{count}} hour",
@@ -783,6 +791,8 @@
     "file_explorer_error_default": "This location can't be opened.",
     "file_explorer_select_this_directory": "Select this directory",
     "file_explorer_select_download_directory": "Select Download Directory",
+    "steamgriddb_artwork_updated": "Artwork updated",
+    "steamgriddb_artwork_reset": "Artwork reset to default",
     "library_tab_all": "All ({{count}})",
     "library_tab_moderns": "Moderns ({{count}})",
     "library_tab_classics": "Classics ({{count}})",

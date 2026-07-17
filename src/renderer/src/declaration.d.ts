@@ -61,6 +61,10 @@ import type {
   HydraAudioDevice,
   HydraDisplay,
   LaunchSource,
+  ArtworkAssetType,
+  ArtworkKind,
+  ArtworkPage,
+  GameArtworkSelection,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -208,8 +212,9 @@ declare global {
     }) => Promise<Game>;
     copyCustomGameAsset: (
       sourcePath: string,
-      assetType: "icon" | "logo" | "hero"
+      assetType: "icon" | "logo" | "hero" | "grid"
     ) => Promise<string>;
+    downloadGameArtwork: (artworkUrl: string) => Promise<string | null>;
     cleanupUnusedAssets: () => Promise<{
       deletedCount: number;
       errors: string[];
@@ -221,10 +226,33 @@ declare global {
       customIconUrl?: string | null;
       customLogoImageUrl?: string | null;
       customHeroImageUrl?: string | null;
+      customCoverImageUrl?: string | null;
       customOriginalIconPath?: string | null;
       customOriginalLogoPath?: string | null;
       customOriginalHeroPath?: string | null;
+      customOriginalCoverPath?: string | null;
+      customArtworkIds?: Partial<Record<ArtworkAssetType, number | null>>;
+      clearArtworkTypes?: ArtworkAssetType[];
     }) => Promise<Game>;
+    getGameArtwork: (
+      shop: GameShop,
+      objectId: string,
+      kind: ArtworkKind,
+      page?: number
+    ) => Promise<ArtworkPage | null>;
+    getCoverPoster: (url: string) => Promise<string | null>;
+    getGameArtworkSelection: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<GameArtworkSelection | null>;
+    setGameArtworkSelection: (params: {
+      shop: GameShop;
+      objectId: string;
+      type: ArtworkAssetType;
+      url?: string;
+      artworkId?: number;
+      clear?: boolean;
+    }) => Promise<GameArtworkSelection | null>;
     createGameShortcut: (
       shop: GameShop,
       objectId: string,
