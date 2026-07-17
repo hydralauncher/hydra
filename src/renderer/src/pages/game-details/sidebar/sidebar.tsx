@@ -238,6 +238,7 @@ export function Sidebar() {
 
             {!hasActiveSubscription && achievementsCount > 0 && (
               <button
+                type="button"
                 className="subscription-required-button"
                 onClick={() => showHydraCloudModal("achievements")}
               >
