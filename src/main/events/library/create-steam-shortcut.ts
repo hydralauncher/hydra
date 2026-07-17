@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import type { GameShop, ShopAssets } from "@types";
+import type { Game, GameShop, ShopAssets } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
 import {
   composeSteamShortcut,
@@ -16,21 +16,40 @@ import axios from "axios";
 import path from "node:path";
 import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "../catalogue/get-game-assets";
+import {
+  convertSteamShortcutAsset,
+  SteamShortcutAssetFormat,
+} from "./steam-shortcut-assets";
 
-const downloadAsset = async (downloadPath: string, url?: string | null) => {
+const downloadAsset = async (
+  downloadPath: string,
+  format: SteamShortcutAssetFormat,
+  url?: string | null
+) => {
   try {
-    if (fs.existsSync(downloadPath)) {
-      return downloadPath;
-    }
-
     if (!url) {
       return null;
     }
 
     fs.mkdirSync(path.dirname(downloadPath), { recursive: true });
 
-    const response = await axios.get(url, { responseType: "arraybuffer" });
-    fs.writeFileSync(downloadPath, response.data);
+    let source: Buffer;
+
+    if (url.startsWith("local:")) {
+      const localPath = url.slice("local:".length);
+      if (!fs.existsSync(localPath)) {
+        return null;
+      }
+      source = await fs.promises.readFile(localPath);
+    } else {
+      const response = await axios.get<ArrayBuffer>(url, {
+        responseType: "arraybuffer",
+      });
+      source = Buffer.from(response.data);
+    }
+
+    const converted = await convertSteamShortcutAsset(source, format);
+    await fs.promises.writeFile(downloadPath, converted);
 
     return downloadPath;
   } catch (error) {
@@ -39,27 +58,33 @@ const downloadAsset = async (downloadPath: string, url?: string | null) => {
   }
 };
 
+const resolveShortcutAssetUrls = (game: Game, assets: ShopAssets | null) => ({
+  icon: game.customIconUrl ?? assets?.iconUrl ?? null,
+  hero: game.customHeroImageUrl ?? assets?.libraryHeroImageUrl ?? null,
+  logo: game.customLogoImageUrl ?? assets?.logoImageUrl ?? null,
+  cover: game.customCoverImageUrl ?? assets?.coverImageUrl ?? null,
+  library: assets?.libraryImageUrl ?? null,
+});
+
 const downloadAssetsFromSteam = async (
-  shop: GameShop,
-  objectId: string,
+  game: Game,
   assets: ShopAssets | null
 ) => {
-  const gameAssetsPath = path.join(ASSETS_PATH, `${shop}-${objectId}`);
+  const gameAssetsPath = path.join(
+    ASSETS_PATH,
+    `${game.shop}-${game.objectId}`
+  );
+  const urls = resolveShortcutAssetUrls(game, assets);
 
   return await Promise.all([
-    downloadAsset(path.join(gameAssetsPath, "icon.ico"), assets?.iconUrl),
-    downloadAsset(
-      path.join(gameAssetsPath, "hero.jpg"),
-      assets?.libraryHeroImageUrl
-    ),
-    downloadAsset(path.join(gameAssetsPath, "logo.png"), assets?.logoImageUrl),
-    downloadAsset(
-      path.join(gameAssetsPath, "cover.jpg"),
-      assets?.coverImageUrl
-    ),
+    downloadAsset(path.join(gameAssetsPath, "icon.ico"), "ico", urls.icon),
+    downloadAsset(path.join(gameAssetsPath, "hero.jpg"), "jpeg", urls.hero),
+    downloadAsset(path.join(gameAssetsPath, "logo.png"), "png", urls.logo),
+    downloadAsset(path.join(gameAssetsPath, "cover.jpg"), "jpeg", urls.cover),
     downloadAsset(
       path.join(gameAssetsPath, "library.jpg"),
-      assets?.libraryImageUrl
+      "jpeg",
+      urls.library
     ),
   ]);
 };
@@ -98,7 +123,7 @@ const createSteamShortcut = async (
     }
 
     const [iconImage, heroImage, logoImage, coverImage, libraryImage] =
-      await downloadAssetsFromSteam(game.shop, game.objectId, assets);
+      await downloadAssetsFromSteam(game, assets);
 
     const newShortcut = composeSteamShortcut(
       game.title,

@@ -59,6 +59,10 @@
     gap: calc(globals.$spacing-unit * 2.5);
     min-width: 0;
     padding: calc(globals.$spacing-unit * 2.5);
+
+    &--assets {
+      padding-bottom: 0;
+    }
   }
 
   &__panel-header {
