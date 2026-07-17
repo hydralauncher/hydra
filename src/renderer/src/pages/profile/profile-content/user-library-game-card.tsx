@@ -1,6 +1,11 @@
 import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import { useFormat, useToast } from "@renderer/hooks";
+import {
+  useFormat,
+  useToast,
+  useCoverPoster,
+  isAnimatedCoverCandidate,
+} from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useContext, useEffect, useState } from "react";
 import {
@@ -45,9 +50,19 @@ export function UserLibraryGameCard({
   const [isPinning, setIsPinning] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
+
+  const isAnimatedCover = isAnimatedCoverCandidate(coverImageUrl);
+  const coverPoster = useCoverPoster(coverImageUrl, isAnimatedCover);
+  const [isCoverHovered, setIsCoverHovered] = useState(false);
+  const displayCoverUrl =
+    (isAnimatedCover && !isCoverHovered && coverPoster
+      ? coverPoster
+      : coverImageUrl) ?? undefined;
+
   useEffect(() => {
     setImageError(false);
-  }, [game.coverImageUrl]);
+  }, [coverImageUrl]);
 
   const isCompleted = isGameCompleted(
     game.achievementCount,
@@ -131,6 +146,51 @@ export function UserLibraryGameCard({
     }
   };
 
+  const renderCoverMedia = () => {
+    if (imageError || !coverImageUrl) {
+      return (
+        <div className="user-library-game__cover-placeholder">
+          <ImageIcon size={48} />
+        </div>
+      );
+    }
+
+    if (game.shop === "launchbox" && !game.customLibraryImageUrl) {
+      return (
+        <div className="user-library-game__classics-cover">
+          <img
+            src={displayCoverUrl}
+            alt=""
+            aria-hidden="true"
+            className="user-library-game__classics-backdrop"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageError(true)}
+          />
+          <img
+            src={displayCoverUrl}
+            alt={game.title}
+            className="user-library-game__classics-image"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageError(true)}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={displayCoverUrl}
+        alt={game.title}
+        className="user-library-game__game-image"
+        loading="lazy"
+        decoding="async"
+        onError={() => setImageError(true)}
+      />
+    );
+  };
+
   return (
     <>
       <li
@@ -141,6 +201,8 @@ export function UserLibraryGameCard({
           type="button"
           className="user-library-game__cover"
           onClick={() => navigate(buildUserGameDetailsPath(game))}
+          onMouseEnter={() => setIsCoverHovered(true)}
+          onMouseLeave={() => setIsCoverHovered(false)}
         >
           <div
             className={`user-library-game__overlay${game.shop === "launchbox" ? " user-library-game__overlay--classics" : ""}`}
@@ -249,40 +311,7 @@ export function UserLibraryGameCard({
               )}
           </div>
 
-          {imageError || !game.coverImageUrl ? (
-            <div className="user-library-game__cover-placeholder">
-              <ImageIcon size={48} />
-            </div>
-          ) : game.shop === "launchbox" ? (
-            <div className="user-library-game__classics-cover">
-              <img
-                src={game.coverImageUrl}
-                alt=""
-                aria-hidden="true"
-                className="user-library-game__classics-backdrop"
-                loading="lazy"
-                decoding="async"
-                onError={() => setImageError(true)}
-              />
-              <img
-                src={game.coverImageUrl}
-                alt={game.title}
-                className="user-library-game__classics-image"
-                loading="lazy"
-                decoding="async"
-                onError={() => setImageError(true)}
-              />
-            </div>
-          ) : (
-            <img
-              src={game.coverImageUrl}
-              alt={game.title}
-              className="user-library-game__game-image"
-              loading="lazy"
-              decoding="async"
-              onError={() => setImageError(true)}
-            />
-          )}
+          {renderCoverMedia()}
         </button>
       </li>
       <Tooltip
