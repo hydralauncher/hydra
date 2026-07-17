@@ -10,7 +10,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
   AlertIcon,
-  CloudOfflineIcon,
   ImageIcon,
   PencilIcon,
   TrashIcon,
@@ -1229,7 +1228,7 @@ export function GameAssetsSettings({
             className="subscription-required-button"
             onClick={() => showHydraCloudModal("customization")}
           >
-            <CloudOfflineIcon size={16} />
+            <AlertIcon size={14} />
             <span>{t("custom_assets_not_sync")}</span>
           </button>
         )}

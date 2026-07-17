@@ -18,7 +18,7 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import {
-  CloudOfflineIcon,
+  AlertIcon,
   DownloadIcon,
   LockIcon,
   PeopleIcon,
@@ -241,7 +241,7 @@ export function Sidebar() {
                 className="subscription-required-button"
                 onClick={() => showHydraCloudModal("achievements")}
               >
-                <CloudOfflineIcon size={16} />
+                <AlertIcon size={14} />
                 <span>{t("achievements_not_sync")}</span>
               </button>
             )}
