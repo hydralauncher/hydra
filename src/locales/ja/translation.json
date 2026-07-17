@@ -411,8 +411,6 @@
     "proton_source_compatibility_tools": "Steam compatibilitytools.dでインストール済み",
     "settings_category_general": "一般",
     "settings_category_general_description": "実行ファイルパス、起動オプション、ショートカット",
-    "settings_category_assets": "アセット",
-    "settings_category_assets_description": "ゲームタイトル、アイコン、ロゴ、ヒーローアートをカスタマイズ",
     "settings_category_customization": "Customization",
     "settings_category_launch": "Launch",
     "settings_category_hydra_cloud": "Hydra Cloud",

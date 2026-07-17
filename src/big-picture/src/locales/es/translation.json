@@ -699,7 +699,15 @@
     "game_options": "Opciones del juego",
     "delete_backup": "Eliminar copia",
     "cloud_backup_options": "Opciones de la copia",
-    "cloud_delete_backup_description": "¿Eliminar de tus copias en la nube?"
+    "cloud_delete_backup_description": "¿Eliminar de tus copias en la nube?",
+    "edit_game_modal_grid": "Portada",
+    "steamgriddb_section_title": "SteamGridDB",
+    "steamgriddb_use_default": "Usar predeterminado",
+    "steamgriddb_no_results": "No se encontraron recursos de SteamGridDB para este juego.",
+    "steamgriddb_sign_in_required": "Inicia sesión en Hydra para explorar las ilustraciones de SteamGridDB.",
+    "steamgriddb_fetch_failed": "No se pudieron cargar los recursos de SteamGridDB",
+    "steamgriddb_artwork_updated": "Arte actualizado",
+    "steamgriddb_artwork_reset": "Arte restablecido al valor predeterminado"
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",
@@ -750,6 +758,8 @@
     "file_explorer_error_enotdir": "Esta ruta no es una carpeta.",
     "file_explorer_error_default": "No se puede abrir esta ubicación.",
     "file_explorer_select_this_directory": "Seleccionar esta carpeta",
-    "file_explorer_select_download_directory": "Seleccionar directorio de descarga"
+    "file_explorer_select_download_directory": "Seleccionar directorio de descarga",
+    "steamgriddb_artwork_updated": "Arte actualizado",
+    "steamgriddb_artwork_reset": "Arte restablecido al valor predeterminado"
   }
 }

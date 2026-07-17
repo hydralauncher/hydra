@@ -138,7 +138,7 @@ export function AchievementsContent({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
 
-  const { gameTitle, objectId, shop, shopDetails, achievements } =
+  const { gameTitle, objectId, shop, game, shopDetails, achievements } =
     useContext(gameDetailsContext);
 
   const dispatch = useAppDispatch();
@@ -147,6 +147,9 @@ export function AchievementsContent({
   useEffect(() => {
     dispatch(setHeaderTitle(gameTitle));
   }, [dispatch, gameTitle]);
+
+  const heroImage =
+    game?.customHeroImageUrl || shopDetails?.assets?.libraryHeroImageUrl || "";
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
     const heroHeight = heroRef.current?.clientHeight ?? 150;
@@ -183,51 +186,61 @@ export function AchievementsContent({
 
   return (
     <div className="achievements-content__achievements-list">
-      <img
-        src={shopDetails?.assets?.libraryHeroImageUrl ?? ""}
-        className="achievements-content__achievements-list__image"
-        alt={gameTitle}
-      />
-
       <section
         ref={containerRef}
         onScroll={onScroll}
         className="achievements-content__achievements-list__section"
       >
         <div className="achievements-content__achievements-list__section__container">
-          <div
-            ref={heroRef}
-            className="achievements-content__achievements-list__section__container__hero"
-          >
-            <div className="achievements-content__achievements-list__section__container__hero__content">
-              <Link
-                to={buildGameDetailsPath({ shop, objectId, title: gameTitle })}
-              >
-                <img
-                  src={shopDetails?.assets?.logoImageUrl ?? ""}
-                  className="achievements-content__achievements-list__section__container__hero__content__game-logo"
-                  alt={gameTitle}
-                />
-              </Link>
+          <div className="achievements-content__achievements-list__section__container__banner">
+            {heroImage && (
+              <img
+                src={heroImage}
+                className="achievements-content__achievements-list__section__container__banner-background"
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+              />
+            )}
+            <div
+              ref={heroRef}
+              className="achievements-content__achievements-list__section__container__hero"
+            >
+              <div className="achievements-content__achievements-list__section__container__hero__content">
+                <Link
+                  to={buildGameDetailsPath({
+                    shop,
+                    objectId,
+                    title: gameTitle,
+                  })}
+                >
+                  <img
+                    src={shopDetails?.assets?.logoImageUrl ?? ""}
+                    className="achievements-content__achievements-list__section__container__hero__content__game-logo"
+                    alt={gameTitle}
+                  />
+                </Link>
+              </div>
             </div>
-          </div>
 
-          <div className="achievements-content__achievements-list__section__container__achievements-summary-wrapper">
-            <AchievementSummary
-              user={{
-                ...userDetails,
-                totalAchievementCount: comparedAchievements
-                  ? comparedAchievements.owner.totalAchievementCount
-                  : achievements!.length,
-                unlockedAchievementCount: comparedAchievements
-                  ? comparedAchievements.owner.unlockedAchievementCount
-                  : achievements!.filter((achievement) => achievement.unlocked)
-                      .length,
-              }}
-              isComparison={otherUser !== null}
-            />
+            <div className="achievements-content__achievements-list__section__container__achievements-summary-wrapper">
+              <AchievementSummary
+                user={{
+                  ...userDetails,
+                  totalAchievementCount: comparedAchievements
+                    ? comparedAchievements.owner.totalAchievementCount
+                    : achievements!.length,
+                  unlockedAchievementCount: comparedAchievements
+                    ? comparedAchievements.owner.unlockedAchievementCount
+                    : achievements!.filter(
+                        (achievement) => achievement.unlocked
+                      ).length,
+                }}
+                isComparison={otherUser !== null}
+              />
 
-            {otherUser && <AchievementSummary user={otherUser} />}
+              {otherUser && <AchievementSummary user={otherUser} />}
+            </div>
           </div>
         </div>
 
