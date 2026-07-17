@@ -1,0 +1,183 @@
+.game-artwork-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 16px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text, #fff);
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+    width: 100%;
+    padding: 4px;
+
+    &--hero {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+
+    &--logo {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+
+    &--icon {
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    }
+  }
+
+  &__item {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 0;
+    padding: 0 0 150% 0;
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    overflow: hidden;
+
+    img,
+    video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: filter 0.15s ease;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      border: 3px solid transparent;
+      border-radius: 6px;
+      pointer-events: none;
+      transition: border-color 0.15s ease;
+    }
+
+    &:hover img,
+    &:hover video,
+    &[data-focus-visible="true"] img,
+    &[data-focus-visible="true"] video {
+      filter: brightness(0.85);
+    }
+
+    &[data-focus-visible="true"]::after {
+      border-color: var(--primary);
+    }
+
+    &--hero {
+      padding-bottom: 32.29%;
+    }
+
+    &--icon {
+      padding-bottom: 100%;
+    }
+
+    &--logo {
+      padding-bottom: 56.25%;
+      background: rgba(255, 255, 255, 0.04);
+
+      img,
+      video {
+        object-fit: contain;
+        padding: 8px;
+      }
+    }
+
+    &--active {
+      border-color: #8f8f8f;
+    }
+
+    &--skeleton {
+      cursor: default;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 25%,
+        rgba(255, 255, 255, 0.12) 37%,
+        rgba(255, 255, 255, 0.05) 63%
+      );
+      background-size: 400% 100%;
+      animation: game-artwork-skeleton-shimmer 1.4s ease infinite;
+    }
+  }
+
+  &__item-check {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: #fff;
+    background: #606060;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  }
+
+  &__item-spinner {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+
+    &::after {
+      content: "";
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      border-top-color: #fff;
+      animation: game-artwork-picker-item-spin 0.7s linear infinite;
+    }
+  }
+
+  &__sentinel {
+    grid-column: 1 / -1;
+    height: 1px;
+  }
+
+  &__hint {
+    font-size: 14px;
+    color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+    margin: 0;
+  }
+}
+
+@keyframes game-artwork-skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@keyframes game-artwork-picker-item-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

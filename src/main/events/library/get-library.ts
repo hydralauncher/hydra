@@ -6,10 +6,12 @@ import { registerEvent } from "../register-event";
 import {
   downloadsSublevel,
   gameAchievementsSublevel,
+  gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
   gamesSublevel,
 } from "@main/level";
+import { composeAssetsWithArtwork } from "@shared";
 
 const lookupCachedPlatform = async (
   gameKey: string
@@ -43,6 +45,12 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
           .map(async ([key, game]) => {
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
+            const artworkSelection =
+              await gamesArtworkSelectionSublevel.get(key);
+            const composedAssets = composeAssetsWithArtwork(
+              gameAssets ?? null,
+              artworkSelection
+            );
             const achievements = await gameAchievementsSublevel
               .get(key)
               .catch(() => null);
@@ -111,13 +119,14 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               download: download ?? null,
               unlockedAchievementCount,
               achievementCount: game.achievementCount ?? 0,
-              // Spread gameAssets last to ensure all image URLs are properly set
-              ...gameAssets,
-              title: gameAssets?.title || game.title,
+              // Spread composed assets last to ensure all image URLs are properly set
+              ...composedAssets,
+              title: composedAssets?.title || game.title,
               // Preserve custom image URLs from game if they exist
               customIconUrl: game.customIconUrl,
               customLogoImageUrl: game.customLogoImageUrl,
               customHeroImageUrl: game.customHeroImageUrl,
+              customCoverImageUrl: game.customCoverImageUrl,
             };
           })
       );

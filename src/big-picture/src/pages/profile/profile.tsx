@@ -50,12 +50,14 @@ import {
   getBigPictureGameAchievementsPath,
   formatRelativeDate,
   getGameIdentityKey,
-  getGameLandscapeImageSource,
+  resolveImageSource,
 } from "../../helpers";
 import { useHeroBackgroundLayers } from "../../components/pages/library/hero/use-hero-background-layers";
+import { useFocusAnimatedCover } from "../../components/pages/library/card-presentation";
 import { useFormat, useLibrary, useUserDetails } from "../../hooks";
 import { BIG_PICTURE_SIDEBAR_PROFILE_ID } from "../../layout";
 import type { FocusOverrides } from "../../services";
+import { useNavigationIsFocused } from "../../stores";
 import {
   PROFILE_HERO_ACTIONS_REGION_ID,
   PROFILE_HERO_EXTERNAL_PRIMARY_ACTION_ID,
@@ -110,6 +112,9 @@ type ProfileActivityGame = {
   iconUrl?: string | null;
   coverImageUrl?: string | null;
   libraryImageUrl?: string | null;
+  libraryHeroImageUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  customLibraryHeroImageUrl?: string | null;
   lastTimePlayed?: Date | string | null;
   playTimeInSeconds?: number;
   playTimeInMilliseconds?: number;
@@ -120,6 +125,7 @@ type ProfileLibraryCarouselGame = ShopAssets & {
   customIconUrl?: string | null;
   customHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
+  customCoverImageUrl?: string | null;
   playTimeInMilliseconds?: number | null;
   achievementCount?: number | null;
   unlockedAchievementCount?: number | null;
@@ -130,6 +136,8 @@ type ProfileClassicsAssetFields = {
   customIconUrl?: string | null;
   customHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
+  customCoverImageUrl?: string | null;
+  customLibraryImageUrl?: string | null;
 };
 
 type ProfileFriendAction =
@@ -322,6 +330,27 @@ function getProfileActivityFocusId(game: ProfileActivityGame) {
   return getProfileActivityItemId(getProfileGameFocusKey(game));
 }
 
+function getActivityHeroImageSource(
+  game: ProfileActivityGame,
+  preferCustomArtwork: boolean
+): string {
+  const sources = [
+    preferCustomArtwork ? game.customLibraryHeroImageUrl : null,
+    preferCustomArtwork ? game.customHeroImageUrl : null,
+    game.libraryHeroImageUrl,
+    game.libraryImageUrl,
+    game.coverImageUrl,
+    game.iconUrl,
+  ];
+
+  for (const source of sources) {
+    const resolved = resolveImageSource(source);
+    if (resolved) return resolved;
+  }
+
+  return "";
+}
+
 function getRecentAchievementGameIcon(game: UserGame) {
   const classicsAssetFields = game as ProfileClassicsAssetFields;
 
@@ -392,9 +421,15 @@ function getLibraryCarouselPlaytimeInMilliseconds(
 }
 
 function toProfileLibraryCarouselGame(
-  game: LibraryGame | UserGame
+  game: LibraryGame | UserGame,
+  preferCustomArtwork = false
 ): ProfileLibraryCarouselGame {
   const classicsAssetFields = game as ProfileClassicsAssetFields;
+  const customCover = preferCustomArtwork
+    ? (classicsAssetFields.customLibraryImageUrl ??
+      classicsAssetFields.customCoverImageUrl ??
+      null)
+    : null;
 
   return {
     objectId: game.objectId,
@@ -405,7 +440,8 @@ function toProfileLibraryCarouselGame(
     libraryImageUrl: game.libraryImageUrl ?? null,
     logoImageUrl: game.logoImageUrl ?? null,
     logoPosition: game.logoPosition ?? null,
-    coverImageUrl: game.coverImageUrl ?? null,
+    coverImageUrl: customCover ?? game.coverImageUrl ?? null,
+    customCoverImageUrl: customCover,
     downloadSources: game.downloadSources ?? [],
     platform: classicsAssetFields.platform ?? null,
     customIconUrl: classicsAssetFields.customIconUrl ?? null,
@@ -886,6 +922,7 @@ function ProfileStatPair({
 
 interface ProfileActivityProps {
   games: ProfileActivityGame[];
+  preferCustomArtwork: boolean;
   firstFocusId: string | null;
   lastFocusId: string | null;
   heroActionsFocusId: string | null;
@@ -895,6 +932,7 @@ interface ProfileActivityProps {
 
 function ProfileActivity({
   games,
+  preferCustomArtwork,
   firstFocusId,
   lastFocusId,
   heroActionsFocusId,
@@ -917,6 +955,7 @@ function ProfileActivity({
             <ProfileActivityItem
               key={`${game.title}-${game.lastTimePlayed ?? "recent"}`}
               game={game}
+              preferCustomArtwork={preferCustomArtwork}
               firstFocusId={firstFocusId}
               lastFocusId={lastFocusId}
               heroActionsFocusId={heroActionsFocusId}
@@ -938,6 +977,7 @@ interface ProfileActivityItemProps extends Omit<ProfileActivityProps, "games"> {
 
 function ProfileActivityItem({
   game,
+  preferCustomArtwork,
   firstFocusId,
   lastFocusId,
   heroActionsFocusId,
@@ -947,8 +987,10 @@ function ProfileActivityItem({
   const { t, i18n } = useTranslation(["game_details", "big_picture"]);
   const { formatPlayTime } = useFormat();
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
-  const imageUrl = getGameLandscapeImageSource(game);
   const focusId = getProfileActivityFocusId(game);
+  const imageUrl = getActivityHeroImageSource(game, preferCustomArtwork);
+  const isFocused = useNavigationIsFocused(focusId);
+  const displayHero = useFocusAnimatedCover(imageUrl, isFocused);
   const navigationOverrides: FocusOverrides = {};
 
   if (focusId === firstFocusId) {
@@ -976,8 +1018,8 @@ function ProfileActivityItem({
         onClick={() => onActivate(game)}
       >
         <div className="profile-page__activity-media">
-          {imageUrl ? (
-            <img src={imageUrl} alt={game.title} draggable={false} />
+          {displayHero ? (
+            <img src={displayHero} alt={game.title} draggable={false} />
           ) : null}
         </div>
 
@@ -1557,6 +1599,7 @@ interface ProfileGames {
 function useProfileGames(
   profileUser: ProfileHeroUser | null,
   isOwnProfile: boolean,
+  preferCustomArtwork: boolean,
   library: LibraryGame[],
   remoteLibraryGames: UserGame[],
   remoteFavoriteGame: UserGame | null,
@@ -1588,8 +1631,15 @@ function useProfileGames(
     const sourceGames = profileUser?.isOwnProfile
       ? library
       : remoteLibraryGames;
-    return sourceGames.map(toProfileLibraryCarouselGame);
-  }, [library, profileUser?.isOwnProfile, remoteLibraryGames]);
+    return sourceGames.map((game) =>
+      toProfileLibraryCarouselGame(game, preferCustomArtwork)
+    );
+  }, [
+    library,
+    preferCustomArtwork,
+    profileUser?.isOwnProfile,
+    remoteLibraryGames,
+  ]);
 
   return {
     favoriteGame: profileUser?.isOwnProfile
@@ -1848,6 +1898,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     useProfileGames(
       profileUser,
       isOwnProfileTarget,
+      targetHasActiveSubscription,
       library,
       remoteLibraryGames,
       remoteFavoriteGame,
@@ -1913,6 +1964,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
 
             <ProfileActivity
               games={recentActivityGames}
+              preferCustomArtwork={targetHasActiveSubscription}
               firstFocusId={firstActivityFocusId}
               lastFocusId={lastActivityFocusId}
               heroActionsFocusId={heroActionsFocusId}

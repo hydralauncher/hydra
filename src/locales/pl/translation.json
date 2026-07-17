@@ -386,8 +386,6 @@
     "proton_source_compatibility_tools": "Zainstalowany w Steam compatibilitytools.d",
     "settings_category_general": "Ogólne",
     "settings_category_general_description": "Ścieżka pliku wykonywalnego, opcje uruchamiania i skróty",
-    "settings_category_assets": "Zasoby",
-    "settings_category_assets_description": "Dostosuj tytuł gry, ikonę, logo i grafikę",
     "settings_category_customization": "Customization",
     "settings_category_launch": "Launch",
     "settings_category_hydra_cloud": "Hydra Cloud",
