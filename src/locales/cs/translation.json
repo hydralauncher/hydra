@@ -108,6 +108,7 @@
     "decky_plugin_installed": "Decky plugin v{{version}} installed successfully",
     "decky_plugin_installation_failed": "Failed to install Decky plugin: {{error}}",
     "decky_plugin_installation_error": "Error installing Decky plugin: {{error}}",
+    "custom_assets_not_sync": "Vaše vlastní obrázky nebudou synchronizovány s vaším účtem.",
     "confirm": "Confirm",
     "cancel": "Cancel"
   },
@@ -291,7 +292,7 @@
     "no_download_option_info": "Žádné informace nejsou dostupny",
     "backup_deletion_failed": "Nepovedlo se odstranit zálohu",
     "max_number_of_artifacts_reached": "Dosáhli jste maximálního počtu záloh pro tuto hru",
-    "achievements_not_sync": "Vaše achievementy nejsou synchronizovány",
+    "achievements_not_sync": "Vaše úspěchy nebudou synchronizovány s vaším účtem.",
     "manage_files_description": "Spravovat, které soubory budou zálohovány a obnoveny",
     "select_folder": "Vybrat složku",
     "backup_from": "Zálohy z {{date}}",

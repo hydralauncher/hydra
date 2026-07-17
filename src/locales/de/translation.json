@@ -108,6 +108,7 @@
     "decky_plugin_installed": "Decky plugin v{{version}} installed successfully",
     "decky_plugin_installation_failed": "Failed to install Decky plugin: {{error}}",
     "decky_plugin_installation_error": "Error installing Decky plugin: {{error}}",
+    "custom_assets_not_sync": "Deine benutzerdefinierten Grafiken werden nicht mit deinem Konto synchronisiert.",
     "confirm": "Confirm",
     "cancel": "Cancel"
   },
@@ -293,7 +294,7 @@
     "no_download_option_info": "Keine Informationen verfügbar",
     "backup_deletion_failed": "Sicherung konnte nicht gelöscht werden",
     "max_number_of_artifacts_reached": "Maximale Anzahl von Sicherungen für dieses Spiel erreicht",
-    "achievements_not_sync": "Sieh, wie du deine Erfolge synchronisieren kannst",
+    "achievements_not_sync": "Deine Erfolge werden nicht mit deinem Konto synchronisiert.",
     "manage_files_description": "Verwalte, welche Dateien gesichert und wiederhergestellt werden",
     "select_folder": "Ordner auswählen",
     "backup_from": "Sicherung vom {{date}}",
