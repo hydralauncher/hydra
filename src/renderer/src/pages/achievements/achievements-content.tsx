@@ -1,9 +1,5 @@
 import { setHeaderTitle } from "@renderer/features";
-import {
-  useAppDispatch,
-  useUserDetails,
-  useArtworkFallback,
-} from "@renderer/hooks";
+import { useAppDispatch, useUserDetails } from "@renderer/hooks";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -152,15 +148,8 @@ export function AchievementsContent({
     dispatch(setHeaderTitle(gameTitle));
   }, [dispatch, gameTitle]);
 
-  const resolvedHeroImage =
+  const heroImage =
     game?.customHeroImageUrl || shopDetails?.assets?.libraryHeroImageUrl || "";
-  const heroFallback = useArtworkFallback(
-    shop ?? "steam",
-    objectId ?? "",
-    "heroes",
-    Boolean(userDetails) && Boolean(objectId) && !resolvedHeroImage
-  );
-  const heroImage = resolvedHeroImage || heroFallback || "";
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
     const heroHeight = heroRef.current?.clientHeight ?? 150;
