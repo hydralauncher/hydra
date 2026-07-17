@@ -1052,6 +1052,7 @@ export function GameAssetsSettings({
             {hasImage ? (
               <>
                 <img
+                  key={`${assetType}:${previewUrl}`}
                   src={previewUrl}
                   alt={t(getTranslationKey("_preview"))}
                   className="game-assets-settings__preview-image"
@@ -1161,17 +1162,6 @@ export function GameAssetsSettings({
       )}
 
       <div className="game-assets-settings">
-        {!hasActiveSubscription && !isCustomGame(game) && (
-          <button
-            type="button"
-            className="subscription-required-button"
-            onClick={() => showHydraCloudModal("customization")}
-          >
-            <CloudOfflineIcon size={16} />
-            <span>{t("custom_assets_not_sync")}</span>
-          </button>
-        )}
-
         <div ref={assetTabsRef} className="game-assets-settings__asset-tabs">
           {assetTabs.map((tab) => {
             const isActive = selectedAssetType === tab.type;
@@ -1232,6 +1222,17 @@ export function GameAssetsSettings({
           )}
 
         {renderImageSection(selectedAssetType)}
+
+        {!hasActiveSubscription && !isCustomGame(game) && (
+          <button
+            type="button"
+            className="subscription-required-button"
+            onClick={() => showHydraCloudModal("customization")}
+          >
+            <CloudOfflineIcon size={16} />
+            <span>{t("custom_assets_not_sync")}</span>
+          </button>
+        )}
 
         {!isCustomGame(game) && (
           <GameArtworkPicker
