@@ -31,6 +31,7 @@ const addGameToQueue = async (
     fileSize,
     fileIndices,
     selectedFilesSize,
+    version,
   } = payload;
 
   const parsedFileSize = parseBytes(fileSize ?? null);
@@ -72,7 +73,7 @@ const addGameToQueue = async (
     return handleDownloadError(err, downloader);
   }
 
-  await prepareGameEntry({ gameKey, title, objectId, shop });
+  await prepareGameEntry({ gameKey, title, objectId, shop, version });
 
   try {
     await downloadsSublevel.put(gameKey, download);

@@ -10,6 +10,7 @@ interface PrepareGameEntryParams {
   title: string;
   objectId: string;
   shop: GameShop;
+  version?: string | null;
 }
 
 export const prepareGameEntry = async ({
@@ -17,6 +18,7 @@ export const prepareGameEntry = async ({
   title,
   objectId,
   shop,
+  version,
 }: PrepareGameEntryParams): Promise<void> => {
   const game = await gamesSublevel.get(gameKey);
   const gameAssets = await gamesShopAssetsSublevel.get(gameKey);
@@ -27,6 +29,7 @@ export const prepareGameEntry = async ({
     await gamesSublevel.put(gameKey, {
       ...game,
       isDeleted: false,
+      version: version ?? game.version ?? null,
     });
   } else {
     await gamesSublevel.put(gameKey, {
@@ -41,6 +44,7 @@ export const prepareGameEntry = async ({
       lastTimePlayed: null,
       addedToLibraryAt: new Date(),
       isDeleted: false,
+      version: version ?? null,
     });
   }
 };

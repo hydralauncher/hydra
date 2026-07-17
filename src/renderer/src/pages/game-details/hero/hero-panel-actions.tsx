@@ -16,10 +16,11 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { gameDetailsContext } from "@renderer/context";
+import { compareGameVersions, extractVersionFromTitle } from "@shared";
 import {
   getClassicsLaunchErrorCode,
   getClassicsLaunchErrorSystem,
@@ -313,6 +314,27 @@ export function HeroPanelActions() {
 
   const deleting = game ? isGameDeleting(game?.id) : false;
 
+  const availableUpdateVersion = useMemo(() => {
+    const installedVersion = game?.version;
+    if (!installedVersion) return null;
+
+    return repacks.reduce<string | null>((newest, repack) => {
+      const repackVersion = extractVersionFromTitle(repack.title);
+      if (!repackVersion) return newest;
+
+      const diffFromInstalled = compareGameVersions(
+        repackVersion,
+        installedVersion
+      );
+      if (diffFromInstalled === null || diffFromInstalled <= 0) return newest;
+
+      if (!newest) return repackVersion;
+      return (compareGameVersions(repackVersion, newest) ?? 0) > 0
+        ? repackVersion
+        : newest;
+    }, null);
+  }, [game?.version, repacks]);
+
   const addGameToLibraryButton = (
     <Button
       theme="outline"
@@ -428,6 +450,18 @@ export function HeroPanelActions() {
             className="hero-panel-actions__action"
           >
             {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
+          </Button>
+        )}
+
+        {availableUpdateVersion && (
+          <Button
+            onClick={() => setShowRepacksModal(true)}
+            theme="outline"
+            disabled={deleting || isGameDownloading}
+            className="hero-panel-actions__action"
+          >
+            <DownloadIcon />
+            {t("update_available", { version: availableUpdateVersion })}
           </Button>
         )}
 

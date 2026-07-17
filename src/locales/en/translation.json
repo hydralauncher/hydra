@@ -246,6 +246,7 @@
     "download_options_one": "{{count}} download option",
     "download_options_other": "{{count}} download options",
     "updated_at": "Updated {{updated_at}}",
+    "update_available": "Update available ({{version}})",
     "install": "Install",
     "resume": "Resume",
     "pause": "Pause",

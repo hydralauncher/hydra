@@ -21,7 +21,11 @@ import {
 } from "@renderer/context";
 import { useDownload } from "@renderer/hooks";
 import { GameOptionsModal, RepacksModal } from "./modals";
-import { Downloader, getDownloadersForUri } from "@shared";
+import {
+  Downloader,
+  extractVersionFromTitle,
+  getDownloadersForUri,
+} from "@shared";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
 import "./game-details.scss";
 import "./hero.scss";
@@ -108,6 +112,8 @@ export default function GameDetails() {
             automaticallyDeleteArchiveFiles = false,
             signal?: AbortSignal
           ) => {
+            const version = extractVersionFromTitle(repack.title);
+
             const response = addToQueueOnly
               ? await addGameToQueue(
                   {
@@ -122,6 +128,7 @@ export default function GameDetails() {
                     fileSize: repack.fileSize,
                     fileIndices,
                     selectedFilesSize,
+                    version,
                   },
                   signal
                 )
@@ -138,6 +145,7 @@ export default function GameDetails() {
                     fileSize: repack.fileSize,
                     fileIndices,
                     selectedFilesSize,
+                    version,
                   },
                   signal
                 );

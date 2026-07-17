@@ -153,6 +153,7 @@ export interface StartGameDownloadPayload {
   fileSize?: string | null;
   fileIndices?: number[];
   selectedFilesSize?: number | null;
+  version?: string | null;
 }
 
 export interface UserFriend {

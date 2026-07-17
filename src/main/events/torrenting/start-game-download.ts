@@ -29,6 +29,7 @@ const startGameDownload = async (
     automaticallyDeleteArchiveFiles,
     fileIndices,
     selectedFilesSize,
+    version,
   } = payload;
 
   const gameKey = levelKeys.game(shop, objectId);
@@ -61,7 +62,7 @@ const startGameDownload = async (
 
   try {
     await DownloadManager.validateDownloadUrl(download);
-    await prepareGameEntry({ gameKey, title, objectId, shop });
+    await prepareGameEntry({ gameKey, title, objectId, shop, version });
     await DownloadManager.cancelDownload(gameKey);
     await downloadsSublevel.put(gameKey, download);
     await DownloadOrchestrator.startPreparedDownload(download);

@@ -82,6 +82,7 @@ export interface Game {
   selectedDiscPath?: string | null;
   dontAskDiscSelection?: boolean;
   romSizeBytes?: number | null;
+  version?: string | null;
 }
 
 export interface Download {

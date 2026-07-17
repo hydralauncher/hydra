@@ -109,6 +109,40 @@ export const replaceNbspWithSpace = (name: string) =>
 export const replaceUnderscoreWithSpace = (name: string) =>
   name.replace(/_/g, " ");
 
+export const extractVersionFromTitle = (title: string): string | null => {
+  const versionMatch = /\bv(?:er(?:sion)?)?\.?\s*(\d+(?:\.\d+){0,3})\b/i.exec(
+    title
+  );
+  if (versionMatch) return versionMatch[1];
+
+  const buildMatch = /\bbuild\s*#?(\d+)\b/i.exec(title);
+  if (buildMatch) return `Build ${buildMatch[1]}`;
+
+  return null;
+};
+
+/**
+ * Compares two version strings extracted by `extractVersionFromTitle` by
+ * their numeric segments (e.g. "1.10.1" > "1.9"). Returns a negative number
+ * when `a` is older than `b`, positive when newer, 0 when equal, and null
+ * when either side has no numeric segments to compare.
+ */
+export const compareGameVersions = (a: string, b: string): number | null => {
+  const parse = (version: string) => version.match(/\d+/g)?.map(Number) ?? null;
+
+  const segmentsA = parse(a);
+  const segmentsB = parse(b);
+  if (!segmentsA || !segmentsB) return null;
+
+  const length = Math.max(segmentsA.length, segmentsB.length);
+  for (let i = 0; i < length; i++) {
+    const diff = (segmentsA[i] ?? 0) - (segmentsB[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+
+  return 0;
+};
+
 export const formatName = pipe<string>(
   (str) =>
     str.replace(
