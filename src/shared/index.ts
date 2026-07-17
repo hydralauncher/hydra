@@ -128,6 +128,9 @@ export const extractVersionFromTitle = (title: string): string | null => {
  * when either side has no numeric segments to compare.
  */
 export const compareGameVersions = (a: string, b: string): number | null => {
+  const isBuild = (version: string) => version.toLowerCase().startsWith("build");
+  if (isBuild(a) !== isBuild(b)) return null;
+
   const parse = (version: string) => version.match(/\d+/g)?.map(Number) ?? null;
 
   const segmentsA = parse(a);

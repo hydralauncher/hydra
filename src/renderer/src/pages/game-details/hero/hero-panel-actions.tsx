@@ -329,7 +329,9 @@ export function HeroPanelActions() {
       if (diffFromInstalled === null || diffFromInstalled <= 0) return newest;
 
       if (!newest) return repackVersion;
-      return (compareGameVersions(repackVersion, newest) ?? 0) > 0
+      const VERSIONS_EQUAL = 0;
+      return (compareGameVersions(repackVersion, newest) ?? VERSIONS_EQUAL) >
+        VERSIONS_EQUAL
         ? repackVersion
         : newest;
     }, null);

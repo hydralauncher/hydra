@@ -29,7 +29,7 @@ export const prepareGameEntry = async ({
     await gamesSublevel.put(gameKey, {
       ...game,
       isDeleted: false,
-      version: version ?? game.version ?? null,
+      version: version ?? null,
     });
   } else {
     await gamesSublevel.put(gameKey, {
