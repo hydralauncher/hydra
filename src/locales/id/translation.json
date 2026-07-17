@@ -119,6 +119,7 @@
     "decky_plugin_installed": "Decky plugin v{{version}} berhasil terinstal",
     "decky_plugin_installation_failed": "Gagal menginstal Decky plugin: {{error}}",
     "decky_plugin_installation_error": "Terjadi error saat menginstal Decky plugin: {{error}}",
+    "custom_assets_not_sync": "Artwork kustom kamu tidak akan disinkronkan dengan akunmu.",
     "confirm": "Konfirmasi",
     "cancel": "Batal"
   },
@@ -527,7 +528,7 @@
     "no_download_option_info": "Tidak ada informasi yang tersedia",
     "backup_deletion_failed": "Gagal menghapus cadangan",
     "max_number_of_artifacts_reached": "Jumlah maksimum cadangan tercapai untuk game ini",
-    "achievements_not_sync": "Lihat cara menyinkronkan pencapaian kamu",
+    "achievements_not_sync": "Pencapaianmu tidak akan disinkronkan dengan akunmu.",
     "manage_files_description": "Kelola file mana yang akan dicadangkan dan dipulihkan",
     "select_folder": "Pilih folder",
     "backup_from": "Cadangan dari {{date}}",

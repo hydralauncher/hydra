@@ -109,6 +109,7 @@
     "decky_plugin_installed": "Decky плъгин v{{version}} инсталиран успешно",
     "decky_plugin_installation_failed": "Неуспешна инсталация на Decky плъгина: {{error}}",
     "decky_plugin_installation_error": "Грешка при инсталиране на Decky плъгина: {{error}}",
+    "custom_assets_not_sync": "Персонализираните ви изображения няма да бъдат синхронизирани с акаунта ви.",
     "confirm": "Потвърди",
     "cancel": "Отказ"
   },
@@ -513,7 +514,7 @@
     "no_download_option_info": "Няма налична информация",
     "backup_deletion_failed": "Неуспешно изтриване на архив",
     "max_number_of_artifacts_reached": "Достигнат е максималният брой архиви за тази игра",
-    "achievements_not_sync": "Вижте как да синхронизирате постиженията си",
+    "achievements_not_sync": "Постиженията ви няма да бъдат синхронизирани с акаунта ви.",
     "manage_files_description": "Управлявайте кои файлове ще се архивират и възстановяват",
     "select_folder": "Избери папка",
     "backup_from": "Архив от {{date}}",

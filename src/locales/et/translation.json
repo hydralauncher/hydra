@@ -108,6 +108,7 @@
     "decky_plugin_installed": "Decky plugin v{{version}} installed successfully",
     "decky_plugin_installation_failed": "Failed to install Decky plugin: {{error}}",
     "decky_plugin_installation_error": "Error installing Decky plugin: {{error}}",
+    "custom_assets_not_sync": "Sinu kohandatud kujundusi ei sünkroonita sinu kontoga.",
     "confirm": "Confirm",
     "cancel": "Cancel"
   },
@@ -287,7 +288,7 @@
     "no_download_option_info": "Info pole saadaval",
     "backup_deletion_failed": "Varunduse kustutamine ebaõnnestus",
     "max_number_of_artifacts_reached": "Selle mängu varunduste maksimaalne arv on saavutatud",
-    "achievements_not_sync": "Sinu saavutused pole sünkroniseeritud",
+    "achievements_not_sync": "Sinu saavutusi ei sünkroonita sinu kontoga.",
     "manage_files_description": "Hallake, millised failid varundatakse ja taastatakse",
     "select_folder": "Vali kaust",
     "backup_from": "Varundamine kuupäevast {{date}}",

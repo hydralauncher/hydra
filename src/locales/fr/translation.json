@@ -141,7 +141,7 @@
     "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut",
     "classics_hero_layout_warning": "Pour afficher le logo et le hero, activez la disposition logo + hero sur la page des jeux classiques.",
     "classics_hero_layout_open_settings": "Ouvrir les réglages",
-    "custom_assets_not_sync": "Voir comment synchroniser vos illustrations personnalisées"
+    "custom_assets_not_sync": "Vos illustrations personnalisées ne seront pas synchronisées avec votre compte."
   },
   "header": {
     "search": "Rechercher",
@@ -363,7 +363,7 @@
     "no_download_option_info": "Pas d'information disponible",
     "backup_deletion_failed": "Échec de la suppression de la sauvegarde",
     "max_number_of_artifacts_reached": "Nombre maximal de sauvegardes atteint pour ce jeu",
-    "achievements_not_sync": "Voir comment synchroniser vos succès",
+    "achievements_not_sync": "Vos succès ne seront pas synchronisés avec votre compte.",
     "manage_files_description": "Gérer les fichiers qui seront sauvegardés et restaurés",
     "select_folder": "Sélectionner un dossier",
     "backup_from": "Sauvegarde du {{date}}",

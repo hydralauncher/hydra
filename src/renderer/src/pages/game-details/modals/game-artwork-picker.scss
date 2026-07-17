@@ -1,10 +1,8 @@
-@use "../../../scss/globals.scss";
-
 .game-artwork {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 8px;
 
   &__header {
     display: flex;
@@ -25,27 +23,58 @@
     transform: translateY(1px);
   }
 
+  &__scroll-shell {
+    position: relative;
+    max-height: 320px;
+  }
+
   &__scroll {
     max-height: 320px;
     overflow-x: hidden;
     overflow-y: auto;
-    padding-right: 4px;
+    scrollbar-width: none;
 
     &::-webkit-scrollbar {
-      width: 9px;
-      background-color: globals.$dark-background-color;
+      display: none;
     }
 
-    &::-webkit-scrollbar-track {
-      background-color: rgba(0, 0, 0, 0.2);
+    &--empty {
+      overflow-y: hidden;
+
+      .game-artwork__scroll-content {
+        padding-right: 0;
+      }
+    }
+  }
+
+  &__scroll-content {
+    box-sizing: border-box;
+    padding-right: 10px;
+  }
+
+  &__scrollbar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6px;
+    user-select: none;
+  }
+
+  &__scrollbar-thumb {
+    position: absolute;
+    inset: 0 0 auto;
+    width: 100%;
+    border-radius: 24px;
+    background-color: rgba(255, 255, 255, 0.15);
+    cursor: grab;
+    touch-action: none;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.25);
     }
 
-    &::-webkit-scrollbar-thumb {
-      background-color: rgba(255, 255, 255, 0.15);
-      border-radius: 24px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
+    &:active {
+      cursor: grabbing;
       background-color: rgba(255, 255, 255, 0.25);
     }
   }

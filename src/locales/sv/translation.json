@@ -108,6 +108,7 @@
     "decky_plugin_installed": "Decky plugin v{{version}} installed successfully",
     "decky_plugin_installation_failed": "Failed to install Decky plugin: {{error}}",
     "decky_plugin_installation_error": "Error installing Decky plugin: {{error}}",
+    "custom_assets_not_sync": "Dina anpassade bilder kommer inte att synkroniseras med ditt konto.",
     "confirm": "Confirm",
     "cancel": "Cancel"
   },
@@ -293,7 +294,7 @@
     "no_download_option_info": "Ingen information tillgänglig",
     "backup_deletion_failed": "Misslyckades med att ta bort säkerhetskopian",
     "max_number_of_artifacts_reached": "Maximalt antal säkerhetskopior nått för detta spel",
-    "achievements_not_sync": "Se hur du synkroniserar dina prestationer",
+    "achievements_not_sync": "Dina prestationer kommer inte att synkroniseras med ditt konto.",
     "manage_files_description": "Hantera vilka filer som ska säkerhetskopieras och återställas",
     "select_folder": "Välj mapp",
     "backup_from": "Säkerhetskopia från {{date}}",

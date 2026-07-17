@@ -141,7 +141,7 @@
     "steamgriddb_artwork_reset": "Artwork reset to default",
     "classics_hero_layout_warning": "To display the logo and hero, enable the logo + hero layout on the classic game page.",
     "classics_hero_layout_open_settings": "Open settings",
-    "custom_assets_not_sync": "See how to synchronize your custom assets"
+    "custom_assets_not_sync": "Your custom artwork will not be synced with your account."
   },
   "header": {
     "minimize": "Minimize",
@@ -548,7 +548,7 @@
     "no_download_option_info": "No information available",
     "backup_deletion_failed": "Failed to delete backup",
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
-    "achievements_not_sync": "See how to synchronize your achievements",
+    "achievements_not_sync": "Your achievements will not be synced with your account.",
     "manage_files_description": "Manage which files will be backed up and restored",
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
