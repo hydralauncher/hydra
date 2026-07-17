@@ -14,6 +14,8 @@ const POSTER_WIDTH = 400;
 const POSTER_HEIGHT = 600;
 const MAX_SOURCE_BYTES = 1024 * 1024 * 30;
 const MAX_REDIRECTS = 3;
+const TRUSTED_REMOTE_URL_PATTERN =
+  /^https:\/\/(?:[a-z0-9-]+\.)*(?:steamgriddb\.com|losbroxas\.org|steamstatic\.com|akamaihd\.net|launchbox-app\.com)(?::443)?\/[^\s]*$/i;
 
 const inflightPosters = new Map<string, Promise<string | null>>();
 
@@ -54,10 +56,15 @@ const downloadRemote = async (
   endByte?: number,
   redirectCount = 0
 ): Promise<RemoteDownload> => {
-  const validatedUrl = parseCoverPosterRemoteUrl(url.toString());
+  const requestUrl = url.toString();
+  if (!TRUSTED_REMOTE_URL_PATTERN.test(requestUrl)) {
+    throw new Error("Untrusted cover poster URL");
+  }
+
+  const validatedUrl = parseCoverPosterRemoteUrl(requestUrl);
   if (!validatedUrl) throw new Error("Untrusted cover poster URL");
 
-  const response = await axios.get<ArrayBuffer>(validatedUrl.toString(), {
+  const response = await axios.get<ArrayBuffer>(requestUrl, {
     responseType: "arraybuffer",
     headers:
       endByte === undefined ? undefined : { Range: `bytes=0-${endByte}` },
