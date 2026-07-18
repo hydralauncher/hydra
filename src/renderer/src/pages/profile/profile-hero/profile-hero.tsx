@@ -143,6 +143,10 @@ export function ProfileHero() {
     setIsBlocked(false);
     setBlockStatusUnknown(false);
     checkIsBlocked();
+
+    return () => {
+      blockCheckRequestIdRef.current++;
+    };
   }, [checkIsBlocked]);
 
   const handleSignOut = useCallback(async () => {
