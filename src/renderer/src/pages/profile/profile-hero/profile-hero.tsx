@@ -84,8 +84,7 @@ export function ProfileHero() {
     const targetUserId = userProfile?.id;
 
     const isStale = () =>
-      requestId !== blockCheckRequestIdRef.current ||
-      targetUserId !== userProfile?.id;
+      requestId !== blockCheckRequestIdRef.current;
 
     if (!targetUserId || isMe || !userDetails) {
       if (!isStale()) {
