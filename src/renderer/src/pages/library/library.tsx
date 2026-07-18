@@ -69,6 +69,16 @@ const SORT_OPTIONS: SortOption[] = [
   "new_updates",
 ];
 
+const getGameCollectionIds = (game: LibraryGame): string[] => {
+  if (Array.isArray(game.collectionIds)) {
+    return game.collectionIds;
+  }
+
+  const legacyCollectionId = (game as { collectionId?: string | null })
+    .collectionId;
+
+  return legacyCollectionId ? [legacyCollectionId] : [];
+};
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
@@ -214,21 +224,21 @@ export default function Library() {
     localStorage.setItem("library-view-mode", mode);
   }, []);
 
-  const handleSortChange = useCallback(
-    (nextSortBy: SortOption) => {
-      setSortBy(nextSortBy);
-      localStorage.setItem("library-sort-by", nextSortBy);
-      if (nextSortBy === "release_date") {
-        window.electron.refreshLibraryReleaseDates(i18n.language).catch(() => {});
-      } else if (nextSortBy === "new_updates") {
-        if (window.electron.refreshLibraryUpdateDates) {
-          window.electron.refreshLibraryUpdateDates().catch(() => {});
-        }
-        window.electron.checkForNewUpdates().catch(() => {});
-      }
-    },
-    [i18n.language]
-  );
+  const handleSortChange = useCallback((nextSortBy: SortOption) => {
+    setSortBy(nextSortBy);
+    localStorage.setItem("library-sort-by", nextSortBy);
+  }, []);
+
+  useEffect(() => {
+    if (sortBy === "release_date") {
+      window.electron
+        .refreshLibraryReleaseDates?.(i18n.language)
+        .catch(() => {});
+    } else if (sortBy === "new_updates") {
+      window.electron.refreshLibraryUpdateDates?.().catch(() => {});
+      window.electron.checkForNewUpdates?.().catch(() => {});
+    }
+  }, [sortBy, i18n.language]);
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
@@ -241,12 +251,6 @@ export default function Library() {
     const unsubscribeClassicsImport = window.electron.onClassicsImportStatus(
       (importing) => setIsImportingClassics(importing)
     );
-
-    if (sortBy === "new_updates") {
-      window.electron.refreshLibraryUpdateDates?.().catch(() => {});
-    } else if (sortBy === "release_date") {
-      window.electron.refreshLibraryReleaseDates?.(i18n.language).catch(() => {});
-    }
 
     void window.electron
       .getClassicsImportStatus()

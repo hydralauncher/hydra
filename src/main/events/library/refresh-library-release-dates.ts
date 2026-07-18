@@ -6,16 +6,22 @@ import axios from "axios";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+let isFetching = false;
+const RATE_LIMIT_DELAY_MS = 500;
+
 const refreshLibraryReleaseDates = async (_event: any, language: string) => {
+  if (isFetching) return;
+  isFetching = true;
+
   try {
     const steamLanguage = getSteamLanguage(language);
-    const libraryGames = await gamesSublevel.iterator().all();
-    const shopCache = await gamesShopCacheSublevel.iterator().all();
+    const libraryGames = await gamesSublevel.values().all();
+    const shopCacheKeys = await gamesShopCacheSublevel.keys().all();
     
     // Quick cache lookup map
     const cacheMap = new Set<string>();
-    for (const [key] of shopCache) {
-      if (typeof key === "string" && key.includes(`:${steamLanguage}`)) {
+    for (const key of shopCacheKeys) {
+      if (key.includes(`:${steamLanguage}`)) {
         const parts = key.split(":");
         if (parts.length >= 2) {
           cacheMap.add(`${parts[0]}:${parts[1]}`);
@@ -24,60 +30,80 @@ const refreshLibraryReleaseDates = async (_event: any, language: string) => {
     }
 
     const missingSteamGames = libraryGames
-      .filter(([_key, game]) => !game.isDeleted && game.shop === "steam")
-      .filter(([key]) => !cacheMap.has(key));
+      .filter((game) => !game.isDeleted && game.shop === "steam")
+      .filter((game) => !cacheMap.has(`steam:${game.objectId}`));
 
-    if (missingSteamGames.length === 0) return;
+    if (missingSteamGames.length === 0) {
+      isFetching = false;
+      return;
+    }
 
-    logger.info(`Fetching release dates for ${missingSteamGames.length} missing games...`);
+    logger.info(
+      `Fetching release dates for ${missingSteamGames.length} missing games...`
+    );
 
     // Fetch in background in chunks of 50
     (async () => {
-      let updatedCount = 0;
-      const chunkSize = 50;
-      
-      const missingArray = Array.from(missingSteamGames);
-      for (let i = 0; i < missingArray.length; i += chunkSize) {
-        const chunk = missingArray.slice(i, i + chunkSize);
-        const appids = chunk.map(([_, game]) => game.objectId).join(",");
-        
-        try {
-          const searchParams = new URLSearchParams({
-            appids,
-            l: steamLanguage,
-            cc: "us",
-          });
-          
-          const response = await axios.get(
-            `http://store.steampowered.com/api/appdetails?${searchParams.toString()}`
-          );
-          
-          for (const [_key, game] of chunk) {
-            const result = response.data[game.objectId];
-            if (result && result.success && result.data) {
-              const details = result.data;
-              details.name = game.title;
-              details.objectId = game.objectId;
-              await gamesShopCacheSublevel.put(
-                levelKeys.gameShopCacheItem("steam", game.objectId, steamLanguage),
-                details
-              );
-              updatedCount++;
+      try {
+        let updatedCount = 0;
+        const chunkSize = 50;
+
+        const missingArray = Array.from(missingSteamGames);
+        for (let i = 0; i < missingArray.length; i += chunkSize) {
+          const chunk = missingArray.slice(i, i + chunkSize);
+          const appids = chunk.map((game) => game.objectId).join(",");
+
+          try {
+            const searchParams = new URLSearchParams({
+              appids,
+              l: steamLanguage,
+              cc: "us",
+            });
+
+            const response = await axios.get(
+              `https://store.steampowered.com/api/appdetails?${searchParams.toString()}`
+            );
+
+            for (const game of chunk) {
+              const result = response.data[game.objectId];
+              if (result && result.success && result.data) {
+                const details = result.data;
+                details.name = game.title;
+                details.objectId = game.objectId;
+                await gamesShopCacheSublevel.put(
+                  levelKeys.gameShopCacheItem(
+                    "steam",
+                    game.objectId,
+                    steamLanguage
+                  ),
+                  details
+                );
+                updatedCount++;
+              }
             }
+
+            WindowManager.mainWindow?.webContents.send(
+              "on-library-batch-complete"
+            );
+          } catch (err) {
+            logger.error(
+              `Failed to fetch release dates chunk for ${appids}`,
+              err
+            );
           }
-          
-          WindowManager.mainWindow?.webContents.send("on-library-batch-complete");
-        } catch (err) {
-          logger.error(`Failed to fetch release dates chunk for ${appids}`, err);
+
+          await delay(RATE_LIMIT_DELAY_MS); // Prevent rate limiting between chunks
         }
-        
-        await delay(500); // Prevent rate limiting between chunks
+
+        logger.info(
+          `Finished fetching release dates. Updated ${updatedCount} games.`
+        );
+      } finally {
+        isFetching = false;
       }
-      
-      logger.info(`Finished fetching release dates. Updated ${updatedCount} games.`);
     })();
-    
   } catch (err) {
+    isFetching = false;
     logger.error("Error in refreshLibraryReleaseDates", err);
   }
 };

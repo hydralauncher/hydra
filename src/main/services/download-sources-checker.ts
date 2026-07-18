@@ -99,7 +99,9 @@ export class DownloadSourcesChecker {
     );
   }
 
-  static async checkForChanges(isManualRefresh: boolean = false): Promise<void> {
+  static async checkForChanges(
+    isManualRefresh: boolean = false
+  ): Promise<void> {
     logger.info("DownloadSourcesChecker.checkForChanges() called");
 
     try {
@@ -153,7 +155,9 @@ export class DownloadSourcesChecker {
 
       logger.info(`Using since: ${since} (from last app start)`);
 
-      const clearedPayload = isManualRefresh ? [] : await this.clearStaleBadges(nonCustomGames);
+      const clearedPayload = isManualRefresh
+        ? []
+        : await this.clearStaleBadges(nonCustomGames);
 
       const games = nonCustomGames.map((game: Game) => ({
         shop: game.shop,
