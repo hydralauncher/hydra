@@ -89,7 +89,7 @@
     "edit_game_modal_logo": "Логотип",
     "edit_game_modal_select_logo": "Выберите логотип",
     "edit_game_modal_logo_preview": "Предпросмотр логотипа",
-    "edit_game_modal_hero": "Изображение обложку игры",
+    "edit_game_modal_hero": "Баннер",
     "edit_game_modal_select_hero": "Выберите обложку игры",
     "edit_game_modal_hero_preview": "Предпросмотр обложки игры",
     "edit_game_modal_cancel": "Отмена",
@@ -141,7 +141,7 @@
     "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию",
     "classics_hero_layout_warning": "Чтобы показать логотип и hero, включите макет «логотип + hero» на странице классической игры.",
     "classics_hero_layout_open_settings": "Открыть настройки",
-    "custom_assets_not_sync": "Узнайте, как синхронизировать ваше пользовательское оформление"
+    "custom_assets_not_sync": "Ваши пользовательские изображения не будут синхронизированы с вашей учётной записью."
   },
   "header": {
     "minimize": "Свернуть",
@@ -549,7 +549,7 @@
     "no_download_option_info": "Информация недоступна",
     "backup_deletion_failed": "Не удалось удалить резервную копию",
     "max_number_of_artifacts_reached": "Достигнуто максимальное количество резервных копий для этой игры",
-    "achievements_not_sync": "Ваши достижения не синхронизированы",
+    "achievements_not_sync": "Ваши достижения не будут синхронизированы с вашей учётной записью.",
     "manage_files_description": "Управляйте файлами, которые будут сохраняться и восстанавливаться",
     "select_folder": "Выбрать папку",
     "backup_from": "Резервная копия от {{date}}",
@@ -1559,7 +1559,7 @@
     "earned_points": "Заработано очков:",
     "available_points": "Доступные очки:",
     "how_to_earn_achievements_points": "Как заработать очки достижений?",
-    "achievements_not_sync": "Ваши достижения не синхронизированы"
+    "achievements_not_sync": "Ваши достижения не будут синхронизированы с вашей учётной записью."
   },
   "hydra_cloud": {
     "subscription_tour_title": "Подписка Hydra Cloud",
