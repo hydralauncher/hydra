@@ -3,6 +3,7 @@ import { gamesSublevel, gamesShopCacheSublevel, levelKeys } from "@main/level";
 import { getSteamLanguage, logger } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import axios from "axios";
+import { chunk } from "lodash-es";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -17,7 +18,7 @@ const refreshLibraryReleaseDates = async (_event: any, language: string) => {
     const steamLanguage = getSteamLanguage(language);
     const libraryGames = await gamesSublevel.values().all();
     const shopCacheKeys = await gamesShopCacheSublevel.keys().all();
-    
+
     // Quick cache lookup map
     const cacheMap = new Set<string>();
     for (const key of shopCacheKeys) {
@@ -48,10 +49,10 @@ const refreshLibraryReleaseDates = async (_event: any, language: string) => {
         let updatedCount = 0;
         const chunkSize = 50;
 
-        const missingArray = Array.from(missingSteamGames);
-        for (let i = 0; i < missingArray.length; i += chunkSize) {
-          const chunk = missingArray.slice(i, i + chunkSize);
-          const appids = chunk.map((game) => game.objectId).join(",");
+        const chunks = chunk(Array.from(missingSteamGames), chunkSize);
+
+        for (const currentChunk of chunks) {
+          const appids = currentChunk.map((game) => game.objectId).join(",");
 
           try {
             const searchParams = new URLSearchParams({
@@ -64,7 +65,7 @@ const refreshLibraryReleaseDates = async (_event: any, language: string) => {
               `https://store.steampowered.com/api/appdetails?${searchParams.toString()}`
             );
 
-            for (const game of chunk) {
+            for (const game of currentChunk) {
               const result = response.data[game.objectId];
               if (result && result.success && result.data) {
                 const details = result.data;
