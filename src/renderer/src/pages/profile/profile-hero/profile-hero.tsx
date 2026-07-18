@@ -41,6 +41,8 @@ import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
 import "./profile-hero.scss";
 
+const BLOCK_LIST_PAGE_SIZE = 100;
+
 type FriendAction =
   | FriendRequestAction
   | ("BLOCK" | "UNBLOCK" | "UNDO_FRIENDSHIP" | "SEND");
@@ -97,7 +99,7 @@ export function ProfileHero() {
     setBlockStatusUnknown(false);
 
     try {
-      const take = 100;
+      const take = BLOCK_LIST_PAGE_SIZE;
       let skip = 0;
       let total = Infinity;
       let found = false;
@@ -297,10 +299,6 @@ export function ProfileHero() {
       );
     }
 
-    if (isBlocked || blockStatusUnknown || isCheckingBlockStatus) {
-      return blockButton;
-    }
-
     if (userProfile.relation == null) {
       return (
         <>
@@ -385,7 +383,6 @@ export function ProfileHero() {
     handleFriendAction,
     handleSignOut,
     isMe,
-    isBlocked,
     blockButton,
     t,
     isPerformingAction,

@@ -76,8 +76,16 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
         setFriendCode("");
         showSuccessToast(t("request_sent"));
       })
-      .catch(() => {
-        showErrorToast(t("error_adding_friend"));
+      .catch((err) => {
+        const status = err?.status ?? err?.response?.status;
+
+        if (status === 404) {
+          showErrorToast(t("friend_code_not_found"));
+        } else if (status === 409) {
+          showErrorToast(t("friend_request_already_sent"));
+        } else {
+          showErrorToast(t("error_adding_friend"));
+        }
       })
       .finally(() => {
         setIsAddingFriend(false);
