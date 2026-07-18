@@ -65,6 +65,11 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
       return;
     }
 
+if (friendCode === userDetails.id){
+showErrorToast(t("cannot_add_yourself"));
+return;
+}
+
     setIsAddingFriend(true);
     sendFriendRequest(friendCode)
       .then(() => {
@@ -138,7 +143,7 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
             onChange={handleChangeFriendCode}
           />
           <Button
-            disabled={isAddingFriend}
+            disabled={isAddingFriend || friendCode === userDetails?.id}
             type="button"
             className="add-friend-modal__button"
             onClick={() => validateFriendCode(handleClickAddFriend)}

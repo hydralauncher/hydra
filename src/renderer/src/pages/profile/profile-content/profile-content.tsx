@@ -362,7 +362,7 @@ export function ProfileContent() {
     const hasAnyGames = hasGames || hasPinnedGames;
 
     const shouldShowRightContent =
-      hasAnyGames || userProfile.friends.length > 0 || isMe;
+      hasAnyGames || (userProfile.friends?.length ?? 0) > 0 || isMe;
 
     return (
       <section className="profile-content__section">
@@ -423,15 +423,17 @@ export function ProfileContent() {
                 <BadgesBox />
               </ProfileSection>
             )}
-            {userProfile?.recentGames.length > 0 && (
+            {(userProfile?.recentGames?.length ?? 0) > 0 && (
               <ProfileSection title={t("activity")} defaultOpen={true}>
                 <RecentGamesBox />
               </ProfileSection>
             )}
-            {(userProfile?.friends.length > 0 || isMe) && (
+            {((userProfile?.friends?.length ?? 0) > 0 || isMe) && (
               <ProfileSection
                 title={t("friends")}
-                count={userStats?.friendsCount || userProfile.friends.length}
+                count={
+                  userStats?.friendsCount || (userProfile.friends?.length ?? 0)
+                }
                 action={<FriendsBoxAddButton />}
                 defaultOpen={true}
               >

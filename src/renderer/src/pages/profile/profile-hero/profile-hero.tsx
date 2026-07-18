@@ -1,4 +1,11 @@
-import { useCallback, useContext, useMemo, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
@@ -36,7 +43,7 @@ import "./profile-hero.scss";
 
 type FriendAction =
   | FriendRequestAction
-  | ("BLOCK" | "UNDO_FRIENDSHIP" | "SEND");
+  | ("BLOCK" | "UNBLOCK" | "UNDO_FRIENDSHIP" | "SEND");
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -44,6 +51,10 @@ export function ProfileHero() {
   const [isPerformingAction, setIsPerformingAction] = useState(false);
   const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isCheckingBlockStatus, setIsCheckingBlockStatus] = useState(false);
+  const [blockStatusUnknown, setBlockStatusUnknown] = useState(false);
+  const blockCheckRequestIdRef = useRef(0);
 
   const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
     useContext(userProfileContext);
@@ -53,6 +64,7 @@ export function ProfileHero() {
     sendFriendRequest,
     undoFriendship,
     blockUser,
+    unblockUser,
     userDetails,
   } = useUserDetails();
 
@@ -64,6 +76,72 @@ export function ProfileHero() {
   const { showSuccessToast, showErrorToast } = useToast();
 
   const navigate = useNavigate();
+
+    const checkIsBlocked = useCallback(async () => {  
+    const requestId = ++blockCheckRequestIdRef.current;
+    const targetUserId = userProfile?.id;
+
+    const isStale = () =>
+      requestId !== blockCheckRequestIdRef.current ||
+      targetUserId !== userProfile?.id;
+
+    if (!targetUserId || isMe || !userDetails) {
+      if (!isStale()) {
+        setIsBlocked(false);
+        setBlockStatusUnknown(false);
+      }
+      return;
+    }
+
+    setIsCheckingBlockStatus(true);
+    setBlockStatusUnknown(false);
+
+    try {
+      const take = 100;
+      let skip = 0;
+      let total = Infinity;
+      let found = false;
+
+      while (skip < total) {
+        const response = await globalThis.window.electron.hydraApi.get<{
+          totalBlocks: number;
+          blocks: { id: string }[];
+        }>("/profile/blocks", { params: { take, skip } });
+
+        if (isStale()) return;
+
+        const blocks = response?.blocks ?? [];
+        total = response?.totalBlocks ?? blocks.length;
+
+        if (blocks.some((user) => user.id === targetUserId)) {
+          found = true;
+          break;
+        }
+
+        if (blocks.length < take) break;
+        skip += take;
+      }
+
+      if (isStale()) return;
+
+      setIsBlocked(found);
+    } catch {
+      if (isStale()) return;
+
+      setBlockStatusUnknown(true);
+    } finally {
+      if (!isStale()) {
+        setIsCheckingBlockStatus(false);
+      }
+    }
+  }, [userProfile?.id, isMe, userDetails]);
+
+  useEffect(() => {
+    setIsBlocked(false);
+    setBlockStatusUnknown(false);
+    checkIsBlocked();
+  }, [checkIsBlocked]);
+
 
   const handleSignOut = useCallback(async () => {
     setIsPerformingAction(true);
@@ -96,10 +174,18 @@ export function ProfileHero() {
         }
 
         if (action === "BLOCK") {
-          await blockUser(userId).then(() => {
-            showSuccessToast(t("user_blocked_successfully"));
-            navigate(-1);
-          });
+          await blockUser(userId);
+          setIsBlocked(true);
+          showSuccessToast(t("user_blocked_successfully"));
+          await getUserProfile();
+          return;
+        }
+
+        if (action === "UNBLOCK") {
+          await unblockUser(userId);
+          setIsBlocked(false);
+          showSuccessToast(t("user_unblocked"));
+          await getUserProfile();
 
           return;
         }
@@ -119,17 +205,70 @@ export function ProfileHero() {
     [
       undoFriendship,
       blockUser,
+      unblockUser,
       sendFriendRequest,
       updateFriendRequestState,
       t,
       showErrorToast,
       getUserProfile,
-      navigate,
       showSuccessToast,
       userProfile,
       userDetails,
     ]
   );
+
+const blockButton = useMemo(() => {
+    if (isCheckingBlockStatus) {
+      return <Skeleton width={140} height={40} />;
+    }
+
+    if (blockStatusUnknown) {
+      return (
+        <Button
+          theme="outline"
+          onClick={() => checkIsBlocked()}
+          className="profile-hero__button--outline"
+        >
+          <BlockedIcon />
+          {t("retry_block_status")}
+        </Button>
+      );
+    }
+
+    if (isBlocked) {
+      return (
+        <Button
+          theme="outline"
+          onClick={() => handleFriendAction(userProfile!.id, "UNBLOCK")}
+          disabled={isPerformingAction}
+          className="profile-hero__button--outline"
+        >
+          <BlockedIcon />
+          {t("unblock_user")}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        theme="danger"
+        onClick={() => handleFriendAction(userProfile!.id, "BLOCK")}
+        disabled={isPerformingAction}
+      >
+        <BlockedIcon />
+        {t("block_user")}
+      </Button>
+    );
+  }, [
+    isBlocked,
+    blockStatusUnknown,
+    checkIsBlocked,
+    isCheckingBlockStatus,
+    isPerformingAction,
+    handleFriendAction,
+    userProfile,
+    t,
+  ]);
 
   const profileActions = useMemo(() => {
     if (!userProfile) return null;
@@ -159,6 +298,10 @@ export function ProfileHero() {
       );
     }
 
+if (isBlocked || blockStatusUnknown || isCheckingBlockStatus) {
+      return blockButton;
+    }
+
     if (userProfile.relation == null) {
       return (
         <>
@@ -172,14 +315,8 @@ export function ProfileHero() {
             {t("add_friend")}
           </Button>
 
-          <Button
-            theme="danger"
-            onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
-            disabled={isPerformingAction}
-          >
-            <BlockedIcon />
-            {t("block_user")}
-          </Button>
+{blockButton}
+
         </>
       );
     }
@@ -187,14 +324,9 @@ export function ProfileHero() {
     if (userProfile.relation.status === "ACCEPTED") {
       return (
         <>
-          <Button
-            theme="danger"
-            onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
-            disabled={isPerformingAction}
-          >
-            <BlockedIcon />
-            {t("block_user")}
-          </Button>
+
+ {blockButton}
+
           <Button
             theme="outline"
             onClick={() =>
@@ -212,16 +344,19 @@ export function ProfileHero() {
 
     if (userProfile.relation.BId === userProfile.id) {
       return (
-        <Button
-          theme="outline"
-          onClick={() =>
-            handleFriendAction(userProfile.relation!.BId, "CANCEL")
-          }
-          disabled={isPerformingAction}
-          className="profile-hero__button--outline"
-        >
-          <XCircleFillIcon /> {t("cancel_request")}
-        </Button>
+<>
+          <Button
+            theme="outline"
+            onClick={() =>
+              handleFriendAction(userProfile.relation!.BId, "CANCEL")
+            }
+            disabled={isPerformingAction}
+            className="profile-hero__button--outline"
+          >
+            <XCircleFillIcon /> {t("cancel_request")}
+          </Button>
+          {blockButton}
+        </>
       );
     }
 
@@ -246,12 +381,15 @@ export function ProfileHero() {
         >
           <XCircleFillIcon /> {t("ignore_request")}
         </Button>
+        {blockButton}
       </>
     );
   }, [
     handleFriendAction,
     handleSignOut,
     isMe,
+    isBlocked,
+    blockButton,
     t,
     isPerformingAction,
     userProfile,

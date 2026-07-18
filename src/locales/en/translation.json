@@ -1472,7 +1472,12 @@
     "user_reviews": "Reviews",
     "delete_review": "Delete Review",
     "loading_reviews": "Loading reviews...",
-    "wrapped_2025": "Wrapped 2025"
+    "wrapped_2025": "Wrapped 2025",
+    "cannot_add_yourself": "You can't add yourself as a friend",
+    "friend_code_not_found": "No user found with that friend code",
+    "friend_request_already_sent": "You already sent a request to this user",
+    "unblock_user": "Unblock user",
+    "retry_block_status": "Retry"
   },
   "library": {
     "library": "Library",
