@@ -81,11 +81,11 @@ const parseSortableDate = (dateStr: string | null | undefined): number => {
   if (!dateStr) return 0;
 
   const nativeParse = Date.parse(dateStr);
-  if (!isNaN(nativeParse)) return nativeParse;
+  if (!Number.isNaN(nativeParse)) return nativeParse;
 
-  const yearMatch = dateStr.match(/\d{4}/);
+  const yearMatch = /\d{4}/.exec(dateStr);
   if (!yearMatch) return 0;
-  const year = parseInt(yearMatch[0], 10);
+  const year = Number.parseInt(yearMatch[0], 10);
 
   const lowerStr = dateStr.toLowerCase();
   const months = {
