@@ -63,5 +63,6 @@ const hydraApiCall = async (
       status,
     });
   }
+};
 
 registerEvent("hydraApiCall", hydraApiCall);
