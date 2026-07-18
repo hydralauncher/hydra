@@ -66,9 +66,6 @@ export function CollectionsFilter({
           collisionPadding={16}
           className="collections-filter__content"
           onInteractOutside={(event) => {
-            // Keep the dropdown open while the user interacts with a
-            // collection's context menu or the rename/delete modals, so several
-            // collections can be managed without reopening it each time.
             const target = event.detail.originalEvent
               .target as HTMLElement | null;
             if (target?.closest(".context-menu, [data-hydra-dialog]")) {
@@ -115,7 +112,6 @@ export function CollectionsFilter({
           <DropdownMenuPrimitive.Item
             className="collections-filter__item"
             onSelect={(event) => {
-              // Keep the dropdown open behind the create-collection modal.
               event.preventDefault();
               onCreate();
             }}

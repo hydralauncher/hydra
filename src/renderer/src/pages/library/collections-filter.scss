@@ -49,8 +49,6 @@
     border: 1px solid globals.$border-color;
     border-radius: 6px;
     padding: 4px;
-    // Below the modal/backdrop so rename/delete dialogs render on top while the
-    // dropdown stays open behind them.
     z-index: globals.$backdrop-z-index;
     animation: collections-filter-fade-in 0.15s ease-out;
   }
