@@ -50,7 +50,6 @@ export interface RealtimeSocket {
 }
 
 interface RealtimeClientOptions {
-  fallbackUrl?: string;
   mintToken: (signal: AbortSignal) => Promise<RealtimeToken>;
   onEvent: (
     envelope: RealtimeEnvelope,
@@ -382,15 +381,14 @@ export class RealtimeWebSocketClient {
     );
     if (signal.aborted || epoch !== this.epoch) return null;
 
-    const realtimeUrl = url || this.options.fallbackUrl;
-    if (!realtimeUrl) throw new Error("Realtime token response omitted URL");
+    if (!url) throw new Error("Realtime token response omitted URL");
     const expiresAt =
       this.readJwtExpiration(token) ??
       (typeof expiresIn === "number" && expiresIn > 0
         ? this.now() + expiresIn * 1_000
         : this.now());
 
-    this.cachedToken = { value: token, url: realtimeUrl, expiresAt };
+    this.cachedToken = { value: token, url, expiresAt };
     return this.cachedToken;
   }
 

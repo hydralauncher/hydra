@@ -140,7 +140,7 @@ export class HydraApi {
           logger.log(" ---- REQUEST -----");
           const data = Array.isArray(request.data)
             ? request.data
-            : omit(request.data, ["refreshToken"]);
+            : omit(request.data, ["token", "accessToken", "refreshToken"]);
           logger.log(request.method, request.url, request.params, data);
           return request;
         },
@@ -154,7 +154,12 @@ export class HydraApi {
           logger.log(" ---- RESPONSE -----");
           const data = Array.isArray(response.data)
             ? response.data
-            : omit(response.data, ["username", "accessToken", "refreshToken"]);
+            : omit(response.data, [
+                "username",
+                "token",
+                "accessToken",
+                "refreshToken",
+              ]);
           logger.log(
             response.status,
             response.config.method,

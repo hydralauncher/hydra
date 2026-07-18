@@ -39,7 +39,6 @@ const dispatchEvent = async (
 };
 
 const client = new RealtimeWebSocketClient({
-  fallbackUrl: import.meta.env.MAIN_VITE_REALTIME_URL,
   mintToken: (signal) =>
     HydraApi.post<RealtimeToken>("/auth/realtime", undefined, { signal }),
   onEvent: dispatchEvent,
