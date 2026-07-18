@@ -1477,6 +1477,7 @@
     "friend_code_not_found": "No user found with that friend code",
     "friend_request_already_sent": "You already sent a request to this user",
     "unblock_user": "Unblock user",
+    "user_unblocked": "User has been unblocked",
     "retry_block_status": "Retry"
   },
   "library": {
