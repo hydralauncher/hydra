@@ -19,9 +19,29 @@ const hydraApiCall = async (
 ) => {
   const { method, url, data, params, options } = payload;
 
+  const getErrorMessage = (error: unknown): string | null => {
+    if (typeof error === "object" && error !== null) {
+      const response = (
+        error as { response?: { data?: { message?: unknown } } }
+      ).response;
+      const responseMessage = response?.data?.message;
+
+      if (typeof responseMessage === "string") {
+        return responseMessage;
+      }
+    }
+
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    return null;
+  };
+
   const getErrorStatus = (error: unknown): number | undefined => {
     if (typeof error === "object" && error !== null) {
-      const response = (error as { response?: { status?: unknown } }).response;
+      const response = (error as { response?: { status?: unknown } })
+        .response;
 
       if (typeof response?.status === "number") {
         return response.status;

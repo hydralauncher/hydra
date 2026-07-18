@@ -204,7 +204,7 @@ export function ProfileHero() {
         await updateFriendRequestState(userId, action).then(() =>
           getUserProfile({ silent: true })
         );
-      } catch (err) {
+      } catch {
         showErrorToast(t("try_again"));
       } finally {
         setIsPerformingAction(false);
