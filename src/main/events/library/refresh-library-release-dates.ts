@@ -67,7 +67,7 @@ const refreshLibraryReleaseDates = async (_event: any, language: string) => {
 
             for (const game of currentChunk) {
               const result = response.data[game.objectId];
-              if (result && result.success && result.data) {
+              if (result?.success && result.data) {
                 const details = result.data;
                 details.name = game.title;
                 details.objectId = game.objectId;

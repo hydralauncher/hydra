@@ -69,6 +69,7 @@ const SORT_OPTIONS: SortOption[] = [
   "new_updates",
 ];
 
+
 const getGameCollectionIds = (game: LibraryGame): string[] => {
   if (Array.isArray(game.collectionIds)) {
     return game.collectionIds;
