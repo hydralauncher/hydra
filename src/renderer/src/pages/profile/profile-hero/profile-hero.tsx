@@ -170,7 +170,9 @@ export function ProfileHero() {
 
       try {
         if (action === "UNDO_FRIENDSHIP") {
-          await undoFriendship(userId).then(getUserProfile);
+          await undoFriendship(userId).then(() =>
+            getUserProfile({ silent: true })
+          );
           return;
         }
 
@@ -178,7 +180,7 @@ export function ProfileHero() {
           await blockUser(userId);
           setIsBlocked(true);
           showSuccessToast(t("user_blocked_successfully"));
-          await getUserProfile();
+          await getUserProfile({ silent: true });
           return;
         }
 
@@ -186,17 +188,21 @@ export function ProfileHero() {
           await unblockUser(userId);
           setIsBlocked(false);
           showSuccessToast(t("user_unblocked"));
-          await getUserProfile();
+          await getUserProfile({ silent: true });
 
           return;
         }
 
         if (action === "SEND") {
-          await sendFriendRequest(userProfile.id).then(getUserProfile);
+          await sendFriendRequest(userProfile.id).then(() =>
+            getUserProfile({ silent: true })
+          );
           return;
         }
 
-        await updateFriendRequestState(userId, action).then(getUserProfile);
+        await updateFriendRequestState(userId, action).then(() =>
+          getUserProfile({ silent: true })
+        );
       } catch (err) {
         showErrorToast(t("try_again"));
       } finally {
