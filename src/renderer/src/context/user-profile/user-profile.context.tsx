@@ -219,8 +219,10 @@ export function UserProfileContextProvider({
 
   const getUserProfile = useCallback(
     async (options?: { silent?: boolean }) => {
-      getUserStats();
-      getUserLibraryGames();
+      if (!options?.silent) {
+        getUserStats();
+        getUserLibraryGames();
+      }
 
       const profileParams = new URLSearchParams();
       profileParams.append("shop", "steam");
