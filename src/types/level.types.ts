@@ -74,6 +74,7 @@ export interface Game {
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
+  latestUpdateDate?: string | null;
   installedSizeInBytes?: number | null;
   installerSizeInBytes?: number | null;
   steamShortcutAppId?: number;
