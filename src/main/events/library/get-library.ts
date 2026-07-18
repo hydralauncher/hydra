@@ -59,7 +59,7 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
           .map(async ([key, game]) => {
             const cachedShopDetails = cachedMap.get(key) ?? null;
             const releaseDate = cachedShopDetails?.release_date?.date ?? null;
-            
+
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
             const artworkSelection =

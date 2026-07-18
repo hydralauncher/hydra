@@ -79,7 +79,7 @@ const SORT_OPTIONS: SortOption[] = [
 
 const parseSortableDate = (dateStr: string | null | undefined): number => {
   if (!dateStr) return 0;
-  
+
   const nativeParse = Date.parse(dateStr);
   if (!isNaN(nativeParse)) return nativeParse;
 
@@ -89,11 +89,27 @@ const parseSortableDate = (dateStr: string | null | undefined): number => {
 
   const lowerStr = dateStr.toLowerCase();
   const months = {
-    jan: 0, feb: 1, fev: 1, mar: 2, apr: 3, abr: 3, may: 4, mai: 4,
-    jun: 5, jul: 6, aug: 7, ago: 7, sep: 8, set: 8, oct: 9, out: 9,
-    nov: 10, dec: 11, dez: 11
+    jan: 0,
+    feb: 1,
+    fev: 1,
+    mar: 2,
+    apr: 3,
+    abr: 3,
+    may: 4,
+    mai: 4,
+    jun: 5,
+    jul: 6,
+    aug: 7,
+    ago: 7,
+    sep: 8,
+    set: 8,
+    oct: 9,
+    out: 9,
+    nov: 10,
+    dec: 11,
+    dez: 11,
   };
-  
+
   let month = 0;
   for (const [key, val] of Object.entries(months)) {
     if (lowerStr.includes(key)) {
@@ -238,21 +254,21 @@ export default function Library() {
     localStorage.setItem("library-view-mode", mode);
   }, []);
 
-  const handleSortChange = useCallback(
-    (nextSortBy: SortOption) => {
-      setSortBy(nextSortBy);
-      localStorage.setItem("library-sort-by", nextSortBy);
-      if (nextSortBy === "release_date") {
-        window.electron.refreshLibraryReleaseDates(i18n.language).catch(() => {});
-      } else if (nextSortBy === "new_updates") {
-        if (window.electron.refreshLibraryUpdateDates) {
-          window.electron.refreshLibraryUpdateDates().catch(() => {});
-        }
-        window.electron.checkForNewUpdates().catch(() => {});
-      }
-    },
-    [i18n.language]
-  );
+  const handleSortChange = useCallback((nextSortBy: SortOption) => {
+    setSortBy(nextSortBy);
+    localStorage.setItem("library-sort-by", nextSortBy);
+  }, []);
+
+  useEffect(() => {
+    if (sortBy === "release_date") {
+      window.electron
+        .refreshLibraryReleaseDates?.(i18n.language)
+        .catch(() => {});
+    } else if (sortBy === "new_updates") {
+      window.electron.refreshLibraryUpdateDates?.().catch(() => {});
+      window.electron.checkForNewUpdates?.().catch(() => {});
+    }
+  }, [sortBy, i18n.language]);
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
@@ -265,12 +281,6 @@ export default function Library() {
     const unsubscribeClassicsImport = window.electron.onClassicsImportStatus(
       (importing) => setIsImportingClassics(importing)
     );
-
-    if (sortBy === "new_updates") {
-      window.electron.refreshLibraryUpdateDates?.().catch(() => {});
-    } else if (sortBy === "release_date") {
-      window.electron.refreshLibraryReleaseDates?.(i18n.language).catch(() => {});
-    }
 
     void window.electron
       .getClassicsImportStatus()
@@ -570,8 +580,12 @@ export default function Library() {
         }
 
         case "new_updates": {
-          const aDate = a.latestUpdateDate ? new Date(a.latestUpdateDate).getTime() : 0;
-          const bDate = b.latestUpdateDate ? new Date(b.latestUpdateDate).getTime() : 0;
+          const aDate = a.latestUpdateDate
+            ? new Date(a.latestUpdateDate).getTime()
+            : 0;
+          const bDate = b.latestUpdateDate
+            ? new Date(b.latestUpdateDate).getTime()
+            : 0;
           if (aDate !== bDate) return bDate - aDate;
 
           const aUpdates = a.newDownloadOptionsCount ?? 0;
