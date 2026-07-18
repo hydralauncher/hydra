@@ -1512,7 +1512,8 @@
     "installed_tooltip": "Ejecutable configurado, listo para jugar",
     "importing_classics_title": "Importando tus clásicos",
     "importing_classics_description": "Estamos escaneando tus carpetas de ROMs para traer de vuelta tus clásicos. Esto puede tardar un momento.",
-    "all_consoles": "Todas las consolas"
+    "all_consoles": "Todas las consolas",
+    "all_games": "Todos los juegos"
   },
   "notifications_page": {
     "title": "Notificaciones",

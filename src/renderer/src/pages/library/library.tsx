@@ -21,12 +21,10 @@ import {
   TelescopeIcon,
   FileDirectoryIcon,
   PencilIcon,
-  PlusIcon,
   TrashIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { Tooltip } from "react-tooltip";
 import { AuthPage } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import {
@@ -45,6 +43,7 @@ import { ViewOptions, ViewMode } from "./view-options";
 import { FilterOptions, SortOption } from "./filter-options";
 import { CategoryFilter, LibraryCategory } from "./category-filter";
 import { PlatformFilter } from "./platform-filter";
+import { CollectionsFilter } from "./collections-filter";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -263,10 +262,7 @@ export default function Library() {
   }, []);
 
   const handleOpenCollectionContextMenu = useCallback(
-    (
-      event: React.MouseEvent<HTMLButtonElement>,
-      collection: GameCollection
-    ) => {
+    (event: React.MouseEvent<HTMLElement>, collection: GameCollection) => {
       event.preventDefault();
 
       setCollectionContextMenu({
@@ -504,10 +500,15 @@ export default function Library() {
         }
 
         case "installed_first": {
-          const aIsInstalled =
-            Boolean(a.executablePath) || a.installedSizeInBytes != null;
-          const bIsInstalled =
-            Boolean(b.executablePath) || b.installedSizeInBytes != null;
+          // Classic (launchbox) games never populate executablePath /
+          // installedSizeInBytes; they count as installed once they have discs.
+          const isInstalled = (game: LibraryGame) =>
+            Boolean(game.executablePath) ||
+            game.installedSizeInBytes != null ||
+            (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
+
+          const aIsInstalled = isInstalled(a);
+          const bIsInstalled = isInstalled(b);
 
           if (aIsInstalled !== bIsInstalled) {
             return aIsInstalled ? -1 : 1;
@@ -680,6 +681,14 @@ export default function Library() {
                 category={effectiveCategory}
                 onCategoryChange={handleCategoryChange}
               />
+              <CollectionsFilter
+                collections={libraryCollections}
+                selectedCollectionId={selectedCollectionId}
+                favoritesCollectionId={FAVORITES_COLLECTION_ID}
+                onSelect={handleCollectionSelect}
+                onCreate={handleCreateCollectionButtonClick}
+                onCollectionContextMenu={handleOpenCollectionContextMenu}
+              />
             </div>
 
             <div className="library__controls-right">
@@ -695,69 +704,6 @@ export default function Library() {
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
               />
-            </div>
-          </div>
-
-          <div className="library__collections-section">
-            <div className="library__collections-header">
-              <small className="library__collections-title">
-                {t("collections")}
-              </small>
-              <button
-                type="button"
-                className="library__add-collection-button"
-                onClick={handleCreateCollectionButtonClick}
-                aria-label={t("create_collection", { ns: "sidebar" })}
-                data-tooltip-id="library-create-collection-tooltip"
-                data-tooltip-content={t("create_collection_tooltip", {
-                  ns: "sidebar",
-                })}
-                data-tooltip-place="top"
-              >
-                <PlusIcon size={16} />
-              </button>
-            </div>
-
-            <div
-              className="library__collections"
-              role="group"
-              aria-label={t("collections")}
-            >
-              {libraryCollections.map((collection) => {
-                const isFavoritesCollection =
-                  collection.id === FAVORITES_COLLECTION_ID;
-
-                return (
-                  <button
-                    key={collection.id}
-                    type="button"
-                    className={`library__collection-item ${selectedCollectionId === collection.id ? "library__collection-item--active" : ""}`}
-                    onClick={() =>
-                      handleCollectionSelect(
-                        selectedCollectionId === collection.id
-                          ? null
-                          : collection.id
-                      )
-                    }
-                    onContextMenu={
-                      isFavoritesCollection
-                        ? undefined
-                        : (event) =>
-                            handleOpenCollectionContextMenu(event, collection)
-                    }
-                  >
-                    {isFavoritesCollection ? (
-                      <HeartIcon size={16} />
-                    ) : (
-                      <FileDirectoryIcon size={16} />
-                    )}
-                    <span>{collection.name}</span>
-                    <span className="library__collection-count">
-                      {collection.gamesCount}
-                    </span>
-                  </button>
-                );
-              })}
             </div>
           </div>
         </div>
@@ -941,8 +887,6 @@ export default function Library() {
         visible={showClassicsOnboarding}
         onClose={() => setShowClassicsOnboarding(false)}
       />
-
-      <Tooltip id="library-create-collection-tooltip" />
     </section>
   );
 }

@@ -199,7 +199,13 @@ export function BottomPanel() {
         )}
       </div>
 
-      <div className="bottom-panel__center">
+      <div
+        className={`bottom-panel__center${
+          !userDetails || !hasActiveSubscription
+            ? " bottom-panel__center--start"
+            : ""
+        }`}
+      >
         <button
           type="button"
           className="bottom-panel__downloads-button"
