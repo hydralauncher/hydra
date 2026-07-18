@@ -414,7 +414,7 @@ export function ProfileContent() {
                 <UserStatsBox />
               </ProfileSection>
             )}
-            {userProfile?.badges.length > 0 && (
+            {(userProfile?.badges?.length ?? 0) > 0 && (
               <ProfileSection
                 title={t("badges")}
                 count={userProfile.badges.length}
