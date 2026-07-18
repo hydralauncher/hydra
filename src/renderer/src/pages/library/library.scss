@@ -26,15 +26,15 @@
     position: sticky;
     top: -4px;
     height: 0;
-    z-index: 10;
+    z-index: 1;
     pointer-events: none;
 
     &::after {
       content: "";
       position: absolute;
       top: 0;
-      left: 0;
-      right: 0;
+      left: -4px;
+      right: -4px;
       height: 24px;
       background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent);
       opacity: 0;
