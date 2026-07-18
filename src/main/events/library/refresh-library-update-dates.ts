@@ -5,8 +5,14 @@ import { logger, WindowManager } from "@main/services";
 import { levelKeys } from "@main/level/sublevels";
 import type { GameRepack } from "@types";
 
+import { chunk } from "lodash-es";
+
+let isFetching = false;
+
 const refreshLibraryUpdateDates = async (_event: any) => {
-  logger.info("Starting refreshLibraryUpdateDates...");
+  if (isFetching) return;
+  isFetching = true;
+
   try {
     const installedGames = await gamesSublevel.values().all();
     const nonCustomGames = installedGames.filter(
@@ -14,6 +20,7 @@ const refreshLibraryUpdateDates = async (_event: any) => {
     );
 
     if (nonCustomGames.length === 0) {
+      isFetching = false;
       return;
     }
 
@@ -21,71 +28,85 @@ const refreshLibraryUpdateDates = async (_event: any) => {
     const downloadSourceIds = downloadSources.map((source) => source.id);
 
     if (downloadSourceIds.length === 0) {
+      isFetching = false;
       return;
     }
 
-    const BATCH_SIZE = 5;
-    const MAX_DOWNLOADS_PER_GAME = 100;
-    const DOWNLOADS_SKIP_OFFSET = 0;
-    let updatedCount = 0;
+    logger.info("Starting refreshLibraryUpdateDates...");
 
-    for (let i = 0; i < nonCustomGames.length; i += BATCH_SIZE) {
-      const batch = nonCustomGames.slice(i, i + BATCH_SIZE);
+    // Fetch in background
+    (async () => {
+      try {
+        const BATCH_SIZE = 5;
+        const MAX_DOWNLOADS_PER_GAME = 100;
+        const DOWNLOADS_SKIP_OFFSET = 0;
+        let updatedCount = 0;
 
-      const promises = batch.map(async (game) => {
-        try {
-          const downloads = await HydraApi.get<GameRepack[]>(
-            `/games/${game.shop}/${game.objectId}/download-sources`,
-            {
-              take: MAX_DOWNLOADS_PER_GAME,
-              skip: DOWNLOADS_SKIP_OFFSET,
-              downloadSourceIds,
-            },
-            {
-              needsAuth: false,
-            }
-          );
+        const chunks = chunk(nonCustomGames, BATCH_SIZE);
 
-          if (downloads && downloads.length > 0) {
-            // Sort to find the latest uploadDate
-            const validDates = downloads
-              .map((d) => (d.uploadDate ? new Date(d.uploadDate).getTime() : 0))
-              .filter((time) => time > 0);
+        for (const currentChunk of chunks) {
+          const promises = currentChunk.map(async (game) => {
+            try {
+              const downloads = await HydraApi.get<GameRepack[]>(
+                `/games/${game.shop}/${game.objectId}/download-sources`,
+                {
+                  take: MAX_DOWNLOADS_PER_GAME,
+                  skip: DOWNLOADS_SKIP_OFFSET,
+                  downloadSourceIds,
+                },
+                {
+                  needsAuth: false,
+                }
+              );
 
-            if (validDates.length > 0) {
-              const latestTime = Math.max(...validDates);
-              const latestDateIso = new Date(latestTime).toISOString();
+              if (downloads && downloads.length > 0) {
+                const validDates = downloads
+                  .map((d) =>
+                    d.uploadDate ? new Date(d.uploadDate).getTime() : 0
+                  )
+                  .filter((time) => time > 0);
 
-              if (game.latestUpdateDate !== latestDateIso) {
-                await gamesSublevel.put(
-                  levelKeys.game(game.shop, game.objectId),
-                  {
-                    ...game,
-                    latestUpdateDate: latestDateIso,
+                if (validDates.length > 0) {
+                  const latestTime = Math.max(...validDates);
+                  const latestDateIso = new Date(latestTime).toISOString();
+
+                  if (game.latestUpdateDate !== latestDateIso) {
+                    await gamesSublevel.put(
+                      levelKeys.game(game.shop, game.objectId),
+                      {
+                        ...game,
+                        latestUpdateDate: latestDateIso,
+                      }
+                    );
+                    return true;
                   }
-                );
-                return true;
+                }
               }
+            } catch (err) {
+              logger.error(`Failed to fetch updates for ${game.title}`, err);
             }
-          }
-        } catch (err) {
-          logger.error(`Failed to fetch updates for ${game.title}`, err);
+            return false;
+          });
+
+          const results = await Promise.all(promises);
+          updatedCount += results.filter(Boolean).length;
         }
-        return false;
-      });
 
-      const results = await Promise.all(promises);
-      updatedCount += results.filter(Boolean).length;
-    }
+        logger.info(
+          `Finished refreshLibraryUpdateDates. Updated ${updatedCount} games.`
+        );
 
-    logger.info(
-      `Finished refreshLibraryUpdateDates. Updated ${updatedCount} games.`
-    );
-
-    if (updatedCount > 0) {
-      WindowManager.mainWindow?.webContents.send("on-library-batch-complete");
-    }
+        if (updatedCount > 0) {
+          WindowManager.mainWindow?.webContents.send(
+            "on-library-batch-complete"
+          );
+        }
+      } finally {
+        isFetching = false;
+      }
+    })();
   } catch (error) {
+    isFetching = false;
     logger.error("Error in refreshLibraryUpdateDates", error);
   }
 };
