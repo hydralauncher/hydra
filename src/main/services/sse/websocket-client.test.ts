@@ -59,7 +59,6 @@ const makeHarness = () => {
   let resyncs = 0;
 
   const client = new RealtimeWebSocketClient({
-    fallbackUrl: "wss://fallback.example.test",
     mintToken: async () => {
       mints++;
       return {
