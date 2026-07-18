@@ -367,10 +367,16 @@ export const sortLibraryGames = (
       }
 
       case "installed_first": {
-        const aIsInstalled =
-          Boolean(a.executablePath) || a.installedSizeInBytes != null;
-        const bIsInstalled =
-          Boolean(b.executablePath) || b.installedSizeInBytes != null;
+        // Classic (launchbox) games never populate executablePath /
+        // installedSizeInBytes; they are considered installed once they have
+        // discs — mirroring main's classics "playable" detection.
+        const isInstalled = (game: LibraryGame) =>
+          Boolean(game.executablePath) ||
+          game.installedSizeInBytes != null ||
+          (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
+
+        const aIsInstalled = isInstalled(a);
+        const bIsInstalled = isInstalled(b);
 
         if (aIsInstalled !== bIsInstalled) {
           return aIsInstalled ? -1 : 1;

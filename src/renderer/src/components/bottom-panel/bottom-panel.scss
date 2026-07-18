@@ -25,6 +25,11 @@
     flex: 1;
     min-width: 0;
     padding: 0 calc(globals.$spacing-unit * 2);
+
+    &--start {
+      justify-content: flex-start;
+      padding-left: 0;
+    }
   }
 
   &__right {
