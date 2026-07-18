@@ -19,23 +19,16 @@ const hydraApiCall = async (
 ) => {
   const { method, url, data, params, options } = payload;
 
-  const getErrorMessage = (error: unknown): string | null => {
+  const getErrorStatus = (error: unknown): number | undefined => {
     if (typeof error === "object" && error !== null) {
-      const response = (
-        error as { response?: { data?: { message?: unknown } } }
-      ).response;
-      const responseMessage = response?.data?.message;
+      const response = (error as { response?: { status?: unknown } }).response;
 
-      if (typeof responseMessage === "string") {
-        return responseMessage;
+      if (typeof response?.status === "number") {
+        return response.status;
       }
     }
 
-    if (error instanceof Error && error.message) {
-      return error.message;
-    }
-
-    return null;
+    return undefined;
   };
 
   try {
@@ -64,8 +57,11 @@ const hydraApiCall = async (
     return await request;
   } catch (error) {
     const errorMessage = getErrorMessage(error);
-    throw new Error(errorMessage ?? "hydra-api-call-failed");
+    const status = getErrorStatus(error);
+
+    throw Object.assign(new Error(errorMessage ?? "hydra-api-call-failed"), {
+      status,
+    });
   }
-};
 
 registerEvent("hydraApiCall", hydraApiCall);
