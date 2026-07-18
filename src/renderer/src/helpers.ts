@@ -433,6 +433,34 @@ const compareLibraryGamesByTitle = (
         sensitivity: "base",
       });
 
+export const parseSortableDate = (dateStr: string | null | undefined): number => {
+  if (!dateStr) return 0;
+
+  const nativeParse = Date.parse(dateStr);
+  if (!isNaN(nativeParse)) return nativeParse;
+
+  const yearMatch = dateStr.match(/\d{4}/);
+  if (!yearMatch) return 0;
+  const year = parseInt(yearMatch[0], 10);
+
+  const lowerStr = dateStr.toLowerCase();
+  const months: Record<string, number> = {
+    jan: 0, feb: 1, fev: 1, mar: 2, apr: 3, abr: 3, may: 4, mai: 4,
+    jun: 5, jul: 6, aug: 7, ago: 7, sep: 8, set: 8, oct: 9, out: 9,
+    nov: 10, dec: 11, dez: 11
+  };
+
+  let month = 0;
+  for (const [key, val] of Object.entries(months)) {
+    if (lowerStr.includes(key)) {
+      month = val;
+      break;
+    }
+  }
+
+  return new Date(year, month, 1).getTime();
+};
+
 export const sortLibraryGames = (
   games: LibraryGame[],
   sortBy: SortOption
@@ -465,6 +493,24 @@ export const sortLibraryGames = (
 
       case "title_desc": {
         return compareLibraryGamesByTitle(a, b, false);
+      }
+
+      case "new_updates": {
+        const aDate = a.latestUpdateDate ? new Date(a.latestUpdateDate).getTime() : 0;
+        const bDate = b.latestUpdateDate ? new Date(b.latestUpdateDate).getTime() : 0;
+        if (aDate !== bDate) return bDate - aDate;
+
+        const aUpdates = a.newDownloadOptionsCount ?? 0;
+        const bUpdates = b.newDownloadOptionsCount ?? 0;
+        if (aUpdates !== bUpdates) return bUpdates - aUpdates;
+        break;
+      }
+
+      case "release_date": {
+        const aDate = parseSortableDate(a.releaseDate);
+        const bDate = parseSortableDate(b.releaseDate);
+        if (aDate !== bDate) return bDate - aDate;
+        break;
       }
 
       case "title_asc":

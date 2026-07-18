@@ -59,3 +59,6 @@ import "./check-steam-shortcut";
 
 import "./transfer-game-files";
 import "./get-available-drives";
+import "./refresh-library-release-dates";
+import "./refresh-library-update-dates";
+import "./check-for-new-updates";

@@ -570,6 +570,7 @@ export type LibraryGame = Game &
     download: Download | null;
     unlockedAchievementCount?: number;
     achievementCount?: number;
+    releaseDate?: string | null;
   };
 
 export type UserGameDetails = ShopAssets & {

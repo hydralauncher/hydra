@@ -65,7 +65,10 @@ const SORT_OPTIONS: SortOption[] = [
   "achievements",
   "installed_first",
   "title_desc",
+  "release_date",
+  "new_updates",
 ];
+
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
@@ -187,7 +190,7 @@ export default function Library() {
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const dispatch = useAppDispatch();
-  const { t } = useTranslation(["library", "sidebar"]);
+  const { t, i18n } = useTranslation(["library", "sidebar"]);
 
   const selectedCollectionId = searchParams.get("collection");
 
@@ -211,10 +214,21 @@ export default function Library() {
     localStorage.setItem("library-view-mode", mode);
   }, []);
 
-  const handleSortChange = useCallback((nextSortBy: SortOption) => {
-    setSortBy(nextSortBy);
-    localStorage.setItem("library-sort-by", nextSortBy);
-  }, []);
+  const handleSortChange = useCallback(
+    (nextSortBy: SortOption) => {
+      setSortBy(nextSortBy);
+      localStorage.setItem("library-sort-by", nextSortBy);
+      if (nextSortBy === "release_date") {
+        window.electron.refreshLibraryReleaseDates(i18n.language).catch(() => {});
+      } else if (nextSortBy === "new_updates") {
+        if (window.electron.refreshLibraryUpdateDates) {
+          window.electron.refreshLibraryUpdateDates().catch(() => {});
+        }
+        window.electron.checkForNewUpdates().catch(() => {});
+      }
+    },
+    [i18n.language]
+  );
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
@@ -227,6 +241,12 @@ export default function Library() {
     const unsubscribeClassicsImport = window.electron.onClassicsImportStatus(
       (importing) => setIsImportingClassics(importing)
     );
+
+    if (sortBy === "new_updates") {
+      window.electron.refreshLibraryUpdateDates?.().catch(() => {});
+    } else if (sortBy === "release_date") {
+      window.electron.refreshLibraryReleaseDates?.(i18n.language).catch(() => {});
+    }
 
     void window.electron
       .getClassicsImportStatus()
