@@ -108,6 +108,7 @@
     "decky_plugin_installed": "Decky plugin v{{version}} installed successfully",
     "decky_plugin_installation_failed": "Failed to install Decky plugin: {{error}}",
     "decky_plugin_installation_error": "Error installing Decky plugin: {{error}}",
+    "custom_assets_not_sync": "Maxsus rasmlaringiz hisobingiz bilan sinxronlanmaydi.",
     "confirm": "Confirm",
     "cancel": "Cancel"
   },
@@ -262,7 +263,7 @@
     "no_download_option_info": "Ma'lumot mavjud emas",
     "backup_deletion_failed": "Zaxira nusxani o'chirib bo'lmadi",
     "max_number_of_artifacts_reached": "Bu o'yin uchun maksimal zaxira nusxalar soniga yetildi",
-    "achievements_not_sync": "Yutuqlaringiz sinxronlanmagan",
+    "achievements_not_sync": "Yutuqlaringiz hisobingiz bilan sinxronlanmaydi.",
     "manage_files_description": "Saqlanishi va tiklanishi kerak bo'lgan fayllarni boshqaring",
     "select_folder": "Jildni tanlash",
     "backup_from": "{{date}} dan zaxira nusxa",

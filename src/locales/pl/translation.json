@@ -108,6 +108,7 @@
     "decky_plugin_installed": "Wtyczka Decky v{{version}} zainstalowana pomyślnie",
     "decky_plugin_installation_failed": "Nie udało się zainstalować wtyczki Decky: {{error}}",
     "decky_plugin_installation_error": "Błąd podczas instalacji wtyczki Decky: {{error}}",
+    "custom_assets_not_sync": "Twoje niestandardowe grafiki nie zostaną zsynchronizowane z kontem.",
     "confirm": "Potwierdź",
     "cancel": "Anuluj",
     "big_picture": "Tryb Big Picture"
@@ -404,7 +405,7 @@
     "no_download_option_info": "Brak dostępnych informacji",
     "backup_deletion_failed": "Nie udało się usunąć kopii zapasowej",
     "max_number_of_artifacts_reached": "Osiągnięto maksymalną liczbę kopii zapasowych dla tej gry",
-    "achievements_not_sync": "Zobacz jak zsynchronizować swoje osiągnięcia",
+    "achievements_not_sync": "Twoje osiągnięcia nie zostaną zsynchronizowane z kontem.",
     "manage_files_description": "Zarządzaj plikami, które będą archiwizowane i przywracane",
     "select_folder": "Wybierz folder",
     "backup_from": "Kopia zapasowa z {{date}}",
