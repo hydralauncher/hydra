@@ -19,6 +19,7 @@ export interface HydraApiOptions {
   ifModifiedSince?: Date;
   ifNoneMatch?: string;
   validateStatus?: (status: number) => boolean;
+  signal?: AbortSignal;
 }
 
 interface HydraApiUserAuth {
@@ -357,6 +358,7 @@ export class HydraApi {
         ...this.getAxiosConfig(),
         headers,
         validateStatus: options?.validateStatus,
+        signal: options?.signal,
       })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
@@ -381,6 +383,7 @@ export class HydraApi {
         ...this.getAxiosConfig(),
         headers,
         validateStatus: options?.validateStatus,
+        signal: options?.signal,
       })
       .then((response) => ({
         status: response.status,
@@ -398,7 +401,10 @@ export class HydraApi {
     await this.validateOptions(options);
 
     return this.instance
-      .post<T>(url, data, this.getAxiosConfig())
+      .post<T>(url, data, {
+        ...this.getAxiosConfig(),
+        signal: options?.signal,
+      })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
@@ -411,7 +417,10 @@ export class HydraApi {
     await this.validateOptions(options);
 
     return this.instance
-      .put<T>(url, data, this.getAxiosConfig())
+      .put<T>(url, data, {
+        ...this.getAxiosConfig(),
+        signal: options?.signal,
+      })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
@@ -424,7 +433,10 @@ export class HydraApi {
     await this.validateOptions(options);
 
     return this.instance
-      .patch<T>(url, data, this.getAxiosConfig())
+      .patch<T>(url, data, {
+        ...this.getAxiosConfig(),
+        signal: options?.signal,
+      })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
@@ -433,7 +445,10 @@ export class HydraApi {
     await this.validateOptions(options);
 
     return this.instance
-      .delete<T>(url, this.getAxiosConfig())
+      .delete<T>(url, {
+        ...this.getAxiosConfig(),
+        signal: options?.signal,
+      })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
