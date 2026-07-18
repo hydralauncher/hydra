@@ -65,10 +65,10 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
       return;
     }
 
-if (friendCode === userDetails.id){
-showErrorToast(t("cannot_add_yourself"));
-return;
-}
+    if (friendCode === userDetails.id) {
+      showErrorToast(t("cannot_add_yourself"));
+      return;
+    }
 
     setIsAddingFriend(true);
     sendFriendRequest(friendCode)

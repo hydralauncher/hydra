@@ -77,7 +77,7 @@ export function ProfileHero() {
 
   const navigate = useNavigate();
 
-    const checkIsBlocked = useCallback(async () => {  
+  const checkIsBlocked = useCallback(async () => {
     const requestId = ++blockCheckRequestIdRef.current;
     const targetUserId = userProfile?.id;
 
@@ -141,7 +141,6 @@ export function ProfileHero() {
     setBlockStatusUnknown(false);
     checkIsBlocked();
   }, [checkIsBlocked]);
-
 
   const handleSignOut = useCallback(async () => {
     setIsPerformingAction(true);
@@ -217,7 +216,7 @@ export function ProfileHero() {
     ]
   );
 
-const blockButton = useMemo(() => {
+  const blockButton = useMemo(() => {
     if (isCheckingBlockStatus) {
       return <Skeleton width={140} height={40} />;
     }
@@ -298,7 +297,7 @@ const blockButton = useMemo(() => {
       );
     }
 
-if (isBlocked || blockStatusUnknown || isCheckingBlockStatus) {
+    if (isBlocked || blockStatusUnknown || isCheckingBlockStatus) {
       return blockButton;
     }
 
@@ -315,8 +314,7 @@ if (isBlocked || blockStatusUnknown || isCheckingBlockStatus) {
             {t("add_friend")}
           </Button>
 
-{blockButton}
-
+          {blockButton}
         </>
       );
     }
@@ -324,8 +322,7 @@ if (isBlocked || blockStatusUnknown || isCheckingBlockStatus) {
     if (userProfile.relation.status === "ACCEPTED") {
       return (
         <>
-
- {blockButton}
+          {blockButton}
 
           <Button
             theme="outline"
@@ -344,7 +341,7 @@ if (isBlocked || blockStatusUnknown || isCheckingBlockStatus) {
 
     if (userProfile.relation.BId === userProfile.id) {
       return (
-<>
+        <>
           <Button
             theme="outline"
             onClick={() =>
