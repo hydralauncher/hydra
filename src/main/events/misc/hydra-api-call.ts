@@ -40,8 +40,7 @@ const hydraApiCall = async (
 
   const getErrorStatus = (error: unknown): number | undefined => {
     if (typeof error === "object" && error !== null) {
-      const response = (error as { response?: { status?: unknown } })
-        .response;
+      const response = (error as { response?: { status?: unknown } }).response;
 
       if (typeof response?.status === "number") {
         return response.status;
