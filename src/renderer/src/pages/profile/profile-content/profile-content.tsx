@@ -417,7 +417,7 @@ export function ProfileContent() {
             {(userProfile?.badges?.length ?? 0) > 0 && (
               <ProfileSection
                 title={t("badges")}
-                count={userProfile.badges.length}
+                count={userProfile?.badges?.length ?? 0}
                 defaultOpen={true}
               >
                 <BadgesBox />
