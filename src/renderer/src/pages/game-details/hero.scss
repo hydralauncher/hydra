@@ -81,8 +81,6 @@ $hero-height: 350px;
     align-items: center;
     gap: 40px;
     z-index: 2;
-    // Purely decorative (title + cover); must not intercept clicks meant for
-    // the edit/cloud buttons that sit in the backdrop layer below it.
     pointer-events: none;
   }
 

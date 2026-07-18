@@ -500,8 +500,6 @@ export default function Library() {
         }
 
         case "installed_first": {
-          // Classic (launchbox) games never populate executablePath /
-          // installedSizeInBytes; they count as installed once they have discs.
           const isInstalled = (game: LibraryGame) =>
             Boolean(game.executablePath) ||
             game.installedSizeInBytes != null ||
