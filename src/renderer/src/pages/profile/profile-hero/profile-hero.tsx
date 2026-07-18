@@ -91,6 +91,7 @@ export function ProfileHero() {
       if (!isStale()) {
         setIsBlocked(false);
         setBlockStatusUnknown(false);
+        setIsCheckingBlockStatus(false);
       }
       return;
     }
