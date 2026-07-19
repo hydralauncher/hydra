@@ -199,7 +199,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       onContextMenu={handleContextMenuClick}
     >
       <div
-        className={`library-game-card__overlay${game.shop === "launchbox" ? " library-game-card__overlay--classics" : ""}`}
+        className={`library-game-card__overlay${game.shop === "launchbox" && !isChosenCoverActive ? " library-game-card__overlay--classics" : ""}${(game.achievementCount ?? 0) > 0 ? "" : " library-game-card__overlay--no-fade"}`}
       >
         <div className="library-game-card__top-section">
           <div className="library-game-card__playtime">

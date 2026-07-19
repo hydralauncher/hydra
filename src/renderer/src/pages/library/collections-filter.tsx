@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
   ChevronDownIcon,
@@ -33,6 +34,8 @@ export function CollectionsFilter({
 }: Readonly<CollectionsFilterProps>) {
   const { t } = useTranslation(["library", "sidebar"]);
 
+  const [open, setOpen] = useState(false);
+
   const selectedCollection = collections.find(
     (collection) => collection.id === selectedCollectionId
   );
@@ -43,8 +46,28 @@ export function CollectionsFilter({
       : FileDirectoryFillIcon
     : FileDirectoryIcon;
 
+  useEffect(() => {
+    if (!open) return;
+
+    const scrollElement = document.querySelector(".library__games-scroll");
+    if (!scrollElement) return;
+
+    const close = () => setOpen(false);
+    scrollElement.addEventListener("wheel", close, { passive: true });
+    scrollElement.addEventListener("scroll", close, { passive: true });
+
+    return () => {
+      scrollElement.removeEventListener("wheel", close);
+      scrollElement.removeEventListener("scroll", close);
+    };
+  }, [open]);
+
   return (
-    <DropdownMenuPrimitive.Root modal={false}>
+    <DropdownMenuPrimitive.Root
+      modal={false}
+      open={open}
+      onOpenChange={setOpen}
+    >
       <DropdownMenuPrimitive.Trigger asChild>
         <button
           type="button"
@@ -73,39 +96,41 @@ export function CollectionsFilter({
             }
           }}
         >
-          {collections.map((collection) => {
-            const isFavorites = collection.id === favoritesCollectionId;
-            const isActive = collection.id === selectedCollectionId;
+          <div className="collections-filter__list">
+            {collections.map((collection) => {
+              const isFavorites = collection.id === favoritesCollectionId;
+              const isActive = collection.id === selectedCollectionId;
 
-            const CollectionIcon = isFavorites
-              ? isActive
-                ? HeartFillIcon
-                : HeartIcon
-              : isActive
-                ? FileDirectoryFillIcon
-                : FileDirectoryIcon;
+              const CollectionIcon = isFavorites
+                ? isActive
+                  ? HeartFillIcon
+                  : HeartIcon
+                : isActive
+                  ? FileDirectoryFillIcon
+                  : FileDirectoryIcon;
 
-            return (
-              <DropdownMenuPrimitive.Item
-                key={collection.id}
-                className={`collections-filter__item${isActive ? " collections-filter__item--active" : ""}`}
-                onSelect={() => onSelect(isActive ? null : collection.id)}
-                onContextMenu={
-                  isFavorites
-                    ? undefined
-                    : (event) => onCollectionContextMenu(event, collection)
-                }
-              >
-                <CollectionIcon size={16} />
-                <span className="collections-filter__item-label">
-                  {collection.name}
-                </span>
-                <span className="collections-filter__item-count">
-                  {collection.gamesCount}
-                </span>
-              </DropdownMenuPrimitive.Item>
-            );
-          })}
+              return (
+                <DropdownMenuPrimitive.Item
+                  key={collection.id}
+                  className={`collections-filter__item${isActive ? " collections-filter__item--active" : ""}`}
+                  onSelect={() => onSelect(isActive ? null : collection.id)}
+                  onContextMenu={
+                    isFavorites
+                      ? undefined
+                      : (event) => onCollectionContextMenu(event, collection)
+                  }
+                >
+                  <CollectionIcon size={16} />
+                  <span className="collections-filter__item-label">
+                    {collection.name}
+                  </span>
+                  <span className="collections-filter__item-count">
+                    {collection.gamesCount}
+                  </span>
+                </DropdownMenuPrimitive.Item>
+              );
+            })}
+          </div>
 
           <DropdownMenuPrimitive.Separator className="collections-filter__separator" />
 

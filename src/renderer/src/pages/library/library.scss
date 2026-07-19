@@ -11,6 +11,11 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 3);
     align-items: flex-start;
+    transition: padding-top 0.25s ease;
+
+    &--header-hidden {
+      padding-top: globals.$spacing-unit;
+    }
   }
 
   &__games-scroll {
@@ -54,11 +59,21 @@
   }
 
   &__page-header {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 3);
+    display: grid;
+    grid-template-rows: 1fr;
     width: 100%;
     padding-right: calc(globals.$spacing-unit * 2);
+    transition:
+      grid-template-rows 0.25s ease,
+      opacity 0.2s ease,
+      margin-bottom 0.25s ease;
+
+    &--hidden {
+      grid-template-rows: 0fr;
+      opacity: 0;
+      margin-bottom: calc(globals.$spacing-unit * -3);
+      pointer-events: none;
+    }
   }
 
   &__page-title {
@@ -76,6 +91,8 @@
     gap: calc(globals.$spacing-unit);
     width: 100%;
     position: relative;
+    min-height: 0;
+    overflow: hidden;
   }
 
   &__controls-left {

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { SelectField } from "@renderer/components";
+import { LibrarySelect } from "./library-select";
 import "./platform-filter.scss";
 
 interface PlatformFilterProps {
@@ -18,21 +18,17 @@ export function PlatformFilter({
   const { t } = useTranslation("library");
 
   const options = [
-    { key: "all", value: "", label: t("all_consoles") },
-    ...platforms.map((p) => ({ key: p, value: p, label: p })),
+    { value: "", label: t("all_consoles") },
+    ...platforms.map((p) => ({ value: p, label: p })),
   ];
 
   return (
     <div className="library-platform-filter__container">
-      <SelectField
-        className="library-platform-filter__select"
+      <LibrarySelect
         value={platform ?? ""}
         disabled={disabled}
-        onChange={(event) =>
-          onPlatformChange(
-            event.target.value === "" ? null : event.target.value
-          )
-        }
+        ariaLabel={t("all_consoles")}
+        onChange={(value) => onPlatformChange(value === "" ? null : value)}
         options={options}
       />
     </div>

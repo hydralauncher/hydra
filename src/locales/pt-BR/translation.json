@@ -1532,6 +1532,7 @@
     "empty_favorites_description": "Marque jogos como favoritos para mantê-los à mão aqui.",
     "collections": "Coleções",
     "sort_by": "Ordenar por",
+    "sort_title": "Título",
     "sort_title_asc": "Título (A-Z)",
     "sort_title_desc": "Título (Z-A)",
     "sort_most_played": "Mais jogados",

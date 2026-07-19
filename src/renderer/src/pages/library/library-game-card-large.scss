@@ -86,7 +86,12 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 20%, transparent 100%);
+    background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.42) 0%,
+      rgba(0, 0, 0, 0.28) 10%,
+      transparent 20%
+    );
     z-index: 1;
   }
 

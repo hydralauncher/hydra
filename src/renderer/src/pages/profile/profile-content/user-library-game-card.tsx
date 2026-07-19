@@ -205,7 +205,7 @@ export function UserLibraryGameCard({
           onMouseLeave={() => setIsCoverHovered(false)}
         >
           <div
-            className={`user-library-game__overlay${game.shop === "launchbox" ? " user-library-game__overlay--classics" : ""}`}
+            className={`user-library-game__overlay${game.shop === "launchbox" && !game.customLibraryImageUrl ? " user-library-game__overlay--classics" : ""}${(game.achievementCount ?? 0) > 0 ? "" : " user-library-game__overlay--no-fade"}`}
           >
             {isMe && (
               <div className="user-library-game__actions-container">

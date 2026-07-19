@@ -1,6 +1,6 @@
 @use "../../scss/globals.scss";
 
-.collections-filter {
+.library-select {
   &__trigger {
     display: inline-flex;
     align-items: center;
@@ -13,7 +13,6 @@
     color: #dadbe1;
     cursor: pointer;
     font-size: globals.$body-font-size;
-    max-width: 220px;
 
     &:hover {
       border-color: rgba(255, 255, 255, 0.5);
@@ -23,8 +22,13 @@
       border-color: #dadbe1;
     }
 
-    &[data-state="open"] .collections-filter__chevron {
+    &[data-state="open"] .library-select__chevron {
       transform: rotate(180deg);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
   }
 
@@ -41,7 +45,7 @@
   }
 
   &__content {
-    min-width: 220px;
+    min-width: var(--radix-dropdown-menu-trigger-width);
     max-height: var(--radix-dropdown-menu-content-available-height);
     overflow-y: auto;
     background-color: globals.$dark-background-color;
@@ -49,21 +53,14 @@
     border-radius: 6px;
     padding: 4px;
     z-index: globals.$backdrop-z-index;
-    animation: collections-filter-fade-in 0.15s ease-out;
-  }
-
-  &__list {
-    max-height: calc(34px * 8);
-    overflow-y: auto;
+    animation: library-select-fade-in 0.15s ease-out;
   }
 
   &__item {
-    position: relative;
     width: 100%;
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
     height: 34px;
     border-radius: 4px;
     padding: 6px 12px;
@@ -76,15 +73,14 @@
     outline: none;
     white-space: nowrap;
 
-    &:hover,
-    &[data-highlighted] {
-      background-color: globals.$background-color;
-      outline: none;
+    &[data-state="checked"] {
+      background-color: rgba(255, 255, 255, 0.1);
     }
 
-    &--active {
-      color: #fff;
-      background-color: rgba(255, 255, 255, 0.06);
+    &:hover,
+    &[data-highlighted] {
+      background-color: rgba(255, 255, 255, 0.15);
+      outline: none;
     }
   }
 
@@ -95,31 +91,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-
-  &__item-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    min-width: 22px;
-    height: 18px;
-    padding: 0 4px;
-    background-color: rgba(255, 255, 255, 0.15);
-    border-radius: 9px;
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-    line-height: 1;
-  }
-
-  &__separator {
-    height: 1px;
-    background-color: globals.$border-color;
-    margin: 4px 0;
-  }
 }
 
-@keyframes collections-filter-fade-in {
+@keyframes library-select-fade-in {
   0% {
     opacity: 0;
     transform: translateY(-4px);

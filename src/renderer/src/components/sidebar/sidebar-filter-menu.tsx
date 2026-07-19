@@ -1,9 +1,12 @@
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
   CheckIcon,
+  ClockIcon,
   DeviceDesktopIcon,
-  HeartFillIcon,
+  HeartIcon,
+  HourglassIcon,
   SlidersIcon,
+  SortDescIcon,
   StackIcon,
 } from "@primer/octicons-react";
 import { useId } from "react";
@@ -65,21 +68,26 @@ export function SidebarFilterMenu({
     },
   ];
 
-  const sortOptions: { value: SortOption; label: string }[] = [
-    { value: "title_asc", label: t("sort_title_asc", { ns: "library" }) },
+  const sortOptions: {
+    value: SortOption;
+    label: string;
+    icon: JSX.Element;
+  }[] = [
+    {
+      value: "title_asc",
+      label: t("sort_title", { ns: "library" }),
+      icon: <SortDescIcon size={14} />,
+    },
     {
       value: "recently_played",
       label: t("recently_played", { ns: "library" }),
+      icon: <ClockIcon size={14} />,
     },
     {
       value: "most_played",
       label: t("sort_most_played", { ns: "library" }),
+      icon: <HourglassIcon size={14} />,
     },
-    {
-      value: "installed_first",
-      label: t("sort_installed_first", { ns: "library" }),
-    },
-    { value: "title_desc", label: t("sort_title_desc", { ns: "library" }) },
   ];
 
   return (
@@ -149,7 +157,7 @@ export function SidebarFilterMenu({
                 onSelect={(event) => event.preventDefault()}
                 className="sidebar-filter-menu__item"
               >
-                <HeartFillIcon size={14} />
+                <HeartIcon size={14} />
                 <span>{t("show_favorites_first")}</span>
                 <DropdownMenuPrimitive.ItemIndicator className="sidebar-filter-menu__item-indicator">
                   <CheckIcon size={14} />
@@ -167,6 +175,7 @@ export function SidebarFilterMenu({
                     onSelect={(event) => event.preventDefault()}
                     className="sidebar-filter-menu__item"
                   >
+                    {option.icon}
                     <span>{option.label}</span>
                     <DropdownMenuPrimitive.ItemIndicator className="sidebar-filter-menu__item-indicator">
                       <CheckIcon size={14} />
