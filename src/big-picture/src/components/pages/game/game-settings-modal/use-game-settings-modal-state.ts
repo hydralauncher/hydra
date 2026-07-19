@@ -51,8 +51,6 @@ export function useGameSettingsModalState({
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const [gameTitle, setGameTitle] = useState("");
   const [launchOptions, setLaunchOptions] = useState("");
-  const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
-  const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
   const [steamShortcutExists, setSteamShortcutExists] = useState(false);
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [updatingGameTitle, setUpdatingGameTitle] = useState(false);
@@ -141,27 +139,6 @@ export function useGameSettingsModalState({
     if (!visible) return;
     setGameTitle(game?.title ?? "");
   }, [game?.id, game?.title, visible]);
-
-  useEffect(() => {
-    if (
-      !visible ||
-      !game ||
-      game.shop === "custom" ||
-      globalThis.window.electron.platform !== "win32"
-    ) {
-      setLoadingSaveFolder(false);
-      setSaveFolderPath(null);
-      return;
-    }
-
-    setLoadingSaveFolder(true);
-    setSaveFolderPath(null);
-    globalThis.window.electron
-      .getGameSaveFolder(game.shop, game.objectId)
-      .then(setSaveFolderPath)
-      .catch(() => setSaveFolderPath(null))
-      .finally(() => setLoadingSaveFolder(false));
-  }, [game, visible]);
 
   useEffect(() => {
     if (!visible || !game || game.shop === "custom") {
@@ -533,16 +510,6 @@ export function useGameSettingsModalState({
     await updateGame();
   }, [game, updateGame]);
 
-  const handleOpenSaveFolder = useCallback(async () => {
-    if (!game || !saveFolderPath) return;
-
-    await globalThis.window.electron.openGameSaveFolder(
-      game.shop,
-      game.objectId,
-      saveFolderPath
-    );
-  }, [game, saveFolderPath]);
-
   const handleCreateShortcut = useCallback(
     async (location: "desktop" | "start_menu") => {
       if (!game) return;
@@ -730,8 +697,6 @@ export function useGameSettingsModalState({
     return {
       game,
       launchOptions,
-      loadingSaveFolder,
-      saveFolderPath,
       creatingSteamShortcut,
       steamShortcutExists,
       shouldShowCreateStartMenuShortcut:
@@ -741,7 +706,6 @@ export function useGameSettingsModalState({
       discPickerFilters,
       onProcessExecPath: handleProcessExecPath,
       onClearExecutablePath: handleClearExecutablePath,
-      onOpenSaveFolder: handleOpenSaveFolder,
       onChangeLaunchOptions: setLaunchOptions,
       onBlurLaunchOptions: handleBlurLaunchOptions,
       onClearLaunchOptions: handleClearLaunchOptions,
@@ -767,15 +731,12 @@ export function useGameSettingsModalState({
     handleCreateShortcut,
     handleCreateSteamShortcut,
     handleDeleteSteamShortcut,
-    handleOpenSaveFolder,
     handleProcessDiscPath,
     handleRemoveAllDiscs,
     handleRemoveSelectedDisc,
     handleSelectDisc,
     handleToggleDontAskDiscSelection,
     launchOptions,
-    loadingSaveFolder,
-    saveFolderPath,
     steamShortcutExists,
   ]);
 
