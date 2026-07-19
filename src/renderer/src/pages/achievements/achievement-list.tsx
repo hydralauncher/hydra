@@ -11,6 +11,14 @@ const FALLBACK_ICON = "/assets/unknown-achievement.png";
 
 const ALLOWED_HOSTNAMES = new Set(["cdn.akamaihd.net", "steamcommunity.com"]);
 
+// Icon loading phases for error fallback logic
+const ICON_PHASE = {
+  LOCKED_FIRST_ATTEMPT: 0, // locked: try icongray
+  LOCKED_SECOND_ATTEMPT: 1, // locked: try icon (color)
+  UNLOCKED_FIRST_ATTEMPT: 0, // unlocked: try icon
+  FALLBACK: 2, // both locked/unlocked: use local fallback
+} as const;
+
 function isValidSteamUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -58,14 +66,14 @@ export function AchievementList({
 
       if (!achievement.unlocked) {
         // Locked: phase 0 = icongray, phase 1 = icon, phase 2+ = fallback
-        if (phase === 0) {
+        if (phase === ICON_PHASE.LOCKED_FIRST_ATTEMPT) {
           iconUrl = achievement.icongray || achievement.icon;
-        } else if (phase === 1) {
+        } else if (phase === ICON_PHASE.LOCKED_SECOND_ATTEMPT) {
           iconUrl = achievement.icon;
         } else {
           return FALLBACK_ICON;
         }
-      } else if (phase === 0) {
+      } else if (phase === ICON_PHASE.UNLOCKED_FIRST_ATTEMPT) {
         // Unlocked: phase 0 = icon
         iconUrl = achievement.icon;
       } else {
