@@ -49,7 +49,7 @@ export interface CollectionContextMenuProviderProps {
 
 export function CollectionContextMenuProvider({
   children,
-}: CollectionContextMenuProviderProps) {
+}: Readonly<CollectionContextMenuProviderProps>) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation("library");
   const { showSuccessToast, showErrorToast } = useToast();

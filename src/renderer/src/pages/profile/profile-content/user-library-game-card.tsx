@@ -14,7 +14,10 @@ import {
   formatDownloadProgress,
   isGameCompleted,
 } from "@renderer/helpers";
-import { userProfileContext } from "@renderer/context";
+import {
+  userProfileContext,
+  useCollectionContextMenu,
+} from "@renderer/context";
 import {
   ClockIcon,
   TrophyIcon,
@@ -24,7 +27,6 @@ import {
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
-import { useCollectionContextMenu } from "@renderer/context";
 import { ProgressBar, GameContextMenu } from "@renderer/components";
 import "./user-library-game-card.scss";
 
