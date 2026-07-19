@@ -178,9 +178,9 @@ export function GameDetailsContextProvider({
                   setAchievementsLoading(false);
               });
           }
-        } else {
+        } else if (!abortController.signal.aborted) {
           // Custom shop or no userDetails: no achievements to fetch, clear loading
-          if (!abortController.signal.aborted) setAchievementsLoading(false);
+          setAchievementsLoading(false);
         }
       })
       .catch(() => {

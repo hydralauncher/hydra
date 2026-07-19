@@ -65,13 +65,12 @@ export function AchievementList({
         } else {
           return FALLBACK_ICON;
         }
+      } else if (phase === 0) {
+        // Unlocked: phase 0 = icon
+        iconUrl = achievement.icon;
       } else {
-        // Unlocked: phase 0 = icon, phase 1+ = fallback (no icongray available)
-        if (phase === 0) {
-          iconUrl = achievement.icon;
-        } else {
-          return FALLBACK_ICON;
-        }
+        // Unlocked: phase 1+ = fallback (no icongray available)
+        return FALLBACK_ICON;
       }
 
       if (!isValidSteamUrl(iconUrl)) {
