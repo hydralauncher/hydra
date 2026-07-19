@@ -163,6 +163,7 @@ export function SidebarModal<TabId extends string = string>({
     [modalId]
   );
   const activeTabFocusId = activeTab ? getTabFocusId(activeTab.id) : undefined;
+  const isActiveTabFocused = useNavigationIsFocused(activeTabFocusId ?? "");
   const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
 
   const isTopMostModal = () => {
@@ -392,6 +393,7 @@ export function SidebarModal<TabId extends string = string>({
                     {activeTabMetrics && (
                       <motion.div
                         className="sidebar-modal__tab-active-indicator"
+                        data-highlighted={isActiveTabFocused || undefined}
                         style={{ height: activeTabMetrics.height }}
                         animate={{ y: activeTabMetrics.top }}
                         initial={false}
