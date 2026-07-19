@@ -7,11 +7,11 @@ import {
   DownloadIcon,
   HeartIcon,
   HeartFillIcon,
-  CheckCircleFillIcon,
   PlusIcon,
   GearIcon,
   PencilIcon,
   FileDirectoryIcon,
+  FileDirectoryFillIcon,
   LinkIcon,
   TrashIcon,
   XIcon,
@@ -76,10 +76,6 @@ export function GameContextMenu({
     null
   );
   const [isFavoritePending, setIsFavoritePending] = useState(false);
-  const [favoriteSuccessVisible, setFavoriteSuccessVisible] = useState(false);
-  const [collectionSuccessId, setCollectionSuccessId] = useState<string | null>(
-    null
-  );
   const {
     collections,
     isLoading: isCollectionsLoading,
@@ -124,8 +120,6 @@ export function GameContextMenu({
     setIsFavoriteSelected(Boolean(game.favorite));
     setPendingCollectionId(null);
     setIsFavoritePending(false);
-    setFavoriteSuccessVisible(false);
-    setCollectionSuccessId(null);
   }, [visible, game]);
 
   const handleAssignGameCollection = async (collectionId: string) => {
@@ -142,14 +136,6 @@ export function GameContextMenu({
       await assignGameToCollection(game, nextCollectionIds);
 
       setLocalCollectionIds(nextCollectionIds);
-      if (!isCurrentlyAssigned) {
-        setCollectionSuccessId(collectionId);
-        window.setTimeout(() => {
-          setCollectionSuccessId((currentId) =>
-            currentId === collectionId ? null : currentId
-          );
-        }, 320);
-      }
 
       showSuccessToast(t("game_collection_updated"));
 
@@ -176,14 +162,6 @@ export function GameContextMenu({
 
       setIsFavoriteSelected((currentValue) => !currentValue);
 
-      if (isAddingToFavorites) {
-        setFavoriteSuccessVisible(true);
-
-        window.setTimeout(() => {
-          setFavoriteSuccessVisible(false);
-        }, 320);
-      }
-
       if (
         !isAddingToFavorites &&
         selectedCollectionId === FAVORITES_COLLECTION_ID
@@ -206,15 +184,6 @@ export function GameContextMenu({
       ) : (
         <HeartIcon size={16} />
       ),
-      trailingIcon:
-        favoriteSuccessVisible || isFavoriteSelected ? (
-          <CheckCircleFillIcon
-            size={16}
-            className={
-              favoriteSuccessVisible ? "context-menu__success-check" : undefined
-            }
-          />
-        ) : undefined,
       onClick: () => {
         void handleToggleFavoriteStatus();
       },
@@ -226,17 +195,11 @@ export function GameContextMenu({
       : collections.map((collection) => ({
           id: `collection-${collection.id}`,
           label: collection.name,
-          icon: <FileDirectoryIcon size={16} />,
-          trailingIcon: localCollectionIds.includes(collection.id) ? (
-            <CheckCircleFillIcon
-              size={16}
-              className={
-                collectionSuccessId === collection.id
-                  ? "context-menu__success-check"
-                  : undefined
-              }
-            />
-          ) : undefined,
+          icon: localCollectionIds.includes(collection.id) ? (
+            <FileDirectoryFillIcon size={16} />
+          ) : (
+            <FileDirectoryIcon size={16} />
+          ),
           onClick: () => {
             void handleAssignGameCollection(collection.id);
           },
@@ -446,12 +409,6 @@ export function GameContextMenu({
             try {
               await assignGameToCollection(game, nextCollectionIds);
               setLocalCollectionIds(nextCollectionIds);
-              setCollectionSuccessId(collection.id);
-              window.setTimeout(() => {
-                setCollectionSuccessId((currentId) =>
-                  currentId === collection.id ? null : currentId
-                );
-              }, 320);
               showSuccessToast(t("game_collection_updated"));
             } catch (error) {
               void error;
