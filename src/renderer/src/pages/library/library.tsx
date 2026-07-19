@@ -150,6 +150,39 @@ export default function Library() {
   const gamesScrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [isGamesScrolled, setIsGamesScrolled] = useState(false);
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const isHeaderHiddenRef = useRef(false);
+
+  const setHeaderHidden = useCallback((next: boolean) => {
+    isHeaderHiddenRef.current = next;
+    setIsHeaderHidden(next);
+  }, []);
+
+  const handleGamesScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      setIsGamesScrolled(event.currentTarget.scrollTop > 0);
+    },
+    []
+  );
+
+  useEffect(() => {
+    const el = gamesScrollRef.current;
+    if (!el) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      if (event.deltaY > 0) {
+        if (!isHeaderHiddenRef.current) {
+          if (el.scrollTop <= 0) event.preventDefault();
+          setHeaderHidden(true);
+        }
+      } else if (event.deltaY < 0 && isHeaderHiddenRef.current) {
+        setHeaderHidden(false);
+      }
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [setHeaderHidden]);
 
   useEffect(() => {
     const el = gamesScrollRef.current;
@@ -650,7 +683,14 @@ export default function Library() {
 
   useEffect(() => {
     gamesScrollRef.current?.scrollTo({ top: 0 });
-  }, [effectiveCategory, selectedPlatform]);
+    setHeaderHidden(false);
+  }, [
+    effectiveCategory,
+    selectedPlatform,
+    sortBy,
+    selectedCollectionId,
+    setHeaderHidden,
+  ]);
 
   const hasGames = library.length > 0;
   const hasNoFilteredGames = filteredLibrary.length === 0;
@@ -670,9 +710,13 @@ export default function Library() {
     hasNoFilteredGames;
 
   return (
-    <section className="library__content">
+    <section
+      className={`library__content${hasGames && isHeaderHidden ? " library__content--header-hidden" : ""}`}
+    >
       {hasGames && (
-        <div className="library__page-header">
+        <div
+          className={`library__page-header${isHeaderHidden ? " library__page-header--hidden" : ""}`}
+        >
           <div className="library__controls-row">
             <div className="library__controls-left">
               <CategoryFilter
@@ -750,12 +794,10 @@ export default function Library() {
       <div
         className="library__games-scroll"
         ref={gamesScrollRef}
-        onScroll={(e) =>
-          setIsGamesScrolled((e.currentTarget as HTMLElement).scrollTop > 0)
-        }
+        onScroll={handleGamesScroll}
       >
         <div
-          className={`library__scroll-shadow${isGamesScrolled ? " library__scroll-shadow--visible" : ""}`}
+          className={`library__scroll-shadow${isGamesScrolled && isHeaderHidden ? " library__scroll-shadow--visible" : ""}`}
         />
         {hasGames &&
           !shouldShowFavoritesEmptyState &&

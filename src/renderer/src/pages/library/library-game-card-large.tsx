@@ -94,6 +94,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       [
         game.customHeroImageUrl,
         game.libraryHeroImageUrl,
+        game.customCoverImageUrl,
         game.libraryImageUrl,
         game.iconUrl,
       ].filter((url) => !!url && url.trim() !== ""),
@@ -167,11 +168,17 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   );
 
   const isClassics = game.shop === "launchbox";
+  const hasChosenAsset =
+    Boolean(game.customHeroImageUrl) ||
+    Boolean(game.customCoverImageUrl) ||
+    Boolean(game.selectedArtworkTypes?.includes("hero")) ||
+    Boolean(game.selectedArtworkTypes?.includes("grid"));
+  const renderClassicsBlurred = isClassics && !hasChosenAsset;
   const classicsForegroundUrl = useMemo(() => {
-    if (!isClassics) return null;
+    if (!renderClassicsBlurred) return null;
     const url = heroSources[heroIndex];
     return url ? normalizePathForCss(url) : null;
-  }, [isClassics, heroIndex, heroSources]);
+  }, [renderClassicsBlurred, heroIndex, heroSources]);
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
@@ -186,7 +193,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   return (
     <button
       type="button"
-      className={`library-game-card-large ${isClassics ? "library-game-card-large--classics" : ""}`}
+      className={`library-game-card-large ${renderClassicsBlurred ? "library-game-card-large--classics" : ""}`}
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >
@@ -202,7 +209,9 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           loading="lazy"
         />
       )}
-      <div className="library-game-card-large__gradient" />
+      {(game.achievementCount ?? 0) > 0 && (
+        <div className="library-game-card-large__gradient" />
+      )}
 
       <div className="library-game-card-large__overlay">
         <div className="library-game-card-large__top-section">

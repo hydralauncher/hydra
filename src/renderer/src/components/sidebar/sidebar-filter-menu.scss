@@ -71,8 +71,7 @@
     white-space: nowrap;
 
     &:hover,
-    &:focus,
-    &:focus-visible {
+    &[data-highlighted] {
       background-color: globals.$background-color;
       outline: none;
     }

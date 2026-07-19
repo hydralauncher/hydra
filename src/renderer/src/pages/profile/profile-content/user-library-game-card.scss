@@ -82,11 +82,17 @@
     justify-content: space-between;
     height: 100%;
     width: 100%;
-    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 20%, transparent 100%);
+    background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.42) 0%,
+      rgba(0, 0, 0, 0.28) 10%,
+      transparent 20%
+    );
     padding: 8px;
     z-index: 2;
 
-    &--classics {
+    &--classics,
+    &--no-fade {
       background: none;
     }
   }

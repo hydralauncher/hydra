@@ -19,7 +19,8 @@ import {
 import type { LibraryCategory } from "@renderer/pages/library/category-filter";
 import type { SortOption } from "@renderer/pages/library/filter-options";
 
-import { VideoIcon } from "@primer/octicons-react";
+import { PlayIcon, VideoIcon } from "@primer/octicons-react";
+import { Tooltip } from "react-tooltip";
 import deckyIcon from "@renderer/assets/icons/decky.png";
 import cn from "classnames";
 import { SidebarFilterMenu } from "./sidebar-filter-menu";
@@ -36,9 +37,11 @@ const SIDEBAR_SORT_OPTIONS: SortOption[] = [
   "title_asc",
   "recently_played",
   "most_played",
-  "installed_first",
-  "title_desc",
 ];
+
+const isGamePlayable = (game: LibraryGame) =>
+  Boolean(game.executablePath) ||
+  (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
@@ -86,6 +89,7 @@ export function Sidebar() {
   });
 
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [showPlayableOnly, setShowPlayableOnly] = useState(false);
 
   const uniquePlatforms = useMemo(() => {
     const set = new Set<string>();
@@ -143,8 +147,16 @@ export function Sidebar() {
     }
   }, [sortedLibrary]);
 
+  const visibleGames = useMemo(
+    () =>
+      filteredLibrary.filter(
+        (game) => !showPlayableOnly || isGamePlayable(game)
+      ),
+    [filteredLibrary, showPlayableOnly]
+  );
+
   const virtualizer = useVirtualizer({
-    count: filteredLibrary.length,
+    count: visibleGames.length,
     getScrollElement: () => gameListRef.current,
     estimateSize: () => SIDEBAR_GAME_ITEM_HEIGHT,
     overscan: 5,
@@ -414,6 +426,21 @@ export function Sidebar() {
                 theme="dark"
               />
 
+              <button
+                type="button"
+                className={cn("sidebar__play-button", {
+                  "sidebar__play-button--active": showPlayableOnly,
+                })}
+                onClick={() => setShowPlayableOnly((prev) => !prev)}
+                data-tooltip-id="sidebar-show-playable-only-tooltip"
+                data-tooltip-content={t("show_playable_only_tooltip")}
+                data-tooltip-place="top"
+              >
+                <PlayIcon size={16} />
+              </button>
+
+              <Tooltip id="sidebar-show-playable-only-tooltip" place="top" />
+
               <SidebarFilterMenu
                 category={sidebarCategory}
                 onCategoryChange={handleSidebarCategoryChange}
@@ -446,7 +473,7 @@ export function Sidebar() {
                   }}
                 >
                   {virtualizer.getVirtualItems().map((virtualItem) => {
-                    const game = filteredLibrary[virtualItem.index];
+                    const game = visibleGames[virtualItem.index];
                     return (
                       <div
                         key={game.id}
