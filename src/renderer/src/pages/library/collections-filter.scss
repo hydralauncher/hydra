@@ -1,27 +1,10 @@
 @use "../../scss/globals.scss";
+@use "./library-dropdown" as dropdown;
 
 .collections-filter {
   &__trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    height: 40px;
-    padding: 0 12px;
-    border-radius: 8px;
-    border: 1px solid globals.$border-color;
-    background-color: globals.$background-color;
-    color: #dadbe1;
-    cursor: pointer;
-    font-size: globals.$body-font-size;
+    @include dropdown.trigger;
     max-width: 220px;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-
-    &[data-state="open"] {
-      border-color: #dadbe1;
-    }
 
     &[data-state="open"] .collections-filter__chevron {
       transform: rotate(180deg);
@@ -29,27 +12,16 @@
   }
 
   &__trigger-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    @include dropdown.ellipsis;
   }
 
   &__chevron {
-    color: globals.$muted-color;
-    flex-shrink: 0;
-    transition: transform ease 0.15s;
+    @include dropdown.chevron;
   }
 
   &__content {
+    @include dropdown.content;
     min-width: 220px;
-    max-height: var(--radix-dropdown-menu-content-available-height);
-    overflow-y: auto;
-    background-color: globals.$dark-background-color;
-    border: 1px solid globals.$border-color;
-    border-radius: 6px;
-    padding: 4px;
-    z-index: globals.$backdrop-z-index;
-    animation: collections-filter-fade-in 0.15s ease-out;
   }
 
   &__list {
@@ -58,23 +30,7 @@
   }
 
   &__item {
-    position: relative;
-    width: 100%;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 34px;
-    border-radius: 4px;
-    padding: 6px 12px;
-    cursor: pointer;
-    transition:
-      background-color 0.1s ease-in-out,
-      color 0.1s ease-in-out;
-    font-size: 14px;
-    color: globals.$muted-color;
-    outline: none;
-    white-space: nowrap;
+    @include dropdown.item;
 
     &:hover,
     &[data-highlighted] {
@@ -89,11 +45,7 @@
   }
 
   &__item-label {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    @include dropdown.item-label;
   }
 
   &__item-count {
@@ -116,17 +68,5 @@
     height: 1px;
     background-color: globals.$border-color;
     margin: 4px 0;
-  }
-}
-
-@keyframes collections-filter-fade-in {
-  0% {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
   }
 }

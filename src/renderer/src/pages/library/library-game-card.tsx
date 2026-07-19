@@ -4,27 +4,18 @@ import {
   useCoverPoster,
   isAnimatedCoverCandidate,
 } from "@renderer/hooks";
-import { isGameCompleted } from "@renderer/helpers";
-import { ProgressBar } from "@renderer/components";
-import { memo, useEffect, useMemo, useState } from "react";
+import { AchievementProgress } from "@renderer/components";
+import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
   AlertFillIcon,
-  TrophyIcon,
   ImageIcon,
   CheckCircleFillIcon,
 } from "@primer/octicons-react";
-import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
-import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import { getClassicsPlatformDetails } from "@renderer/helpers";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
-
-const PLATFORM_LABELS: Record<string, string> = {
-  ps1: "PS",
-  ps2: "PS2",
-  ps3: "PS3",
-};
 
 interface LibraryGameCardProps {
   game: LibraryGame;
@@ -47,11 +38,6 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
-
-  const isCompleted = useMemo(
-    () => isGameCompleted(game.achievementCount, game.unlockedAchievementCount),
-    [game.achievementCount, game.unlockedAchievementCount]
-  );
 
   const isInstalled = Boolean(game.executablePath);
 
@@ -111,14 +97,8 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       ? resolveImageSource(coverPoster)
       : activeImageSource;
 
-  const classicsSystem =
-    game.shop === "launchbox" ? platformToSystem(game.platform) : null;
-  const classicsPlatformLabel = classicsSystem
-    ? PLATFORM_LABELS[classicsSystem]
-    : null;
-  const classicsEmulatorIcon = classicsSystem
-    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
-    : undefined;
+  const { label: classicsPlatformLabel, emulatorIcon: classicsEmulatorIcon } =
+    getClassicsPlatformDetails(game.platform);
 
   const handleImageError = () => {
     logger.warn(`Image failed to load for ${game.title}`, {
@@ -249,46 +229,12 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         </div>
 
         {(game.achievementCount ?? 0) > 0 && (
-          <div className="library-game-card__achievements">
-            <div className="library-game-card__achievement-header">
-              <div className="library-game-card__achievements-gap">
-                {!isCompleted && (
-                  <TrophyIcon
-                    size={13}
-                    className="library-game-card__achievement-trophy"
-                  />
-                )}
-                <span className="library-game-card__achievement-count">
-                  {game.unlockedAchievementCount ?? 0} /{" "}
-                  {game.achievementCount ?? 0}
-                </span>
-              </div>
-              <span
-                className={`library-game-card__achievement-percentage${isCompleted ? " library-game-card__achievement-percentage--completed" : ""}`}
-              >
-                {isCompleted ? (
-                  <TrophyIcon size={13} />
-                ) : (
-                  <>
-                    {Math.round(
-                      ((game.unlockedAchievementCount ?? 0) /
-                        (game.achievementCount ?? 1)) *
-                        100
-                    )}
-                    %
-                  </>
-                )}
-              </span>
-            </div>
-            <ProgressBar
-              now={game.unlockedAchievementCount ?? 0}
-              max={game.achievementCount ?? 1}
-              label={`${game.title} achievements`}
-              completed={isCompleted}
-              trackClassName="library-game-card__achievement-progress"
-              barClassName="library-game-card__achievement-bar"
-            />
-          </div>
+          <AchievementProgress
+            achievementCount={game.achievementCount ?? 0}
+            unlockedAchievementCount={game.unlockedAchievementCount ?? 0}
+            classNamePrefix="library-game-card"
+            label={`${game.title} achievements`}
+          />
         )}
       </div>
 
