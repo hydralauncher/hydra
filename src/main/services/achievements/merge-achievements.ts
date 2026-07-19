@@ -78,7 +78,7 @@ export const mergeAchievements = async (
   const currentLanguage = normalizeLanguage(userPreferences?.language ?? "en");
 
   const cachedLanguage = normalizeLanguage(
-    localGameAchievement?.language ?? "en"
+    localGameAchievement?.language ?? ""
   );
 
   const needsFetch =
