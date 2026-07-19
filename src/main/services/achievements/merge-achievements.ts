@@ -77,24 +77,14 @@ export const mergeAchievements = async (
 
   const currentLanguage = normalizeLanguage(userPreferences?.language ?? "en");
 
-  if (!localGameAchievement) {
-    await getGameAchievementData(game.objectId, game.shop, false);
-    localGameAchievement = await gameAchievementsSublevel.get(gameKey);
-  }
-
   const cachedLanguage = normalizeLanguage(
     localGameAchievement?.language ?? "en"
   );
 
-  if (cachedLanguage !== currentLanguage) {
-    achievementsLogger.warn(
-      `[mergeAchievements] Language mismatch detected: cached="${cachedLanguage}", current="${currentLanguage}" (game: ${game.objectId}). Forcing achievement refetch.`
-    );
-  }
+  const needsFetch =
+    !localGameAchievement || cachedLanguage !== currentLanguage;
 
-  const languageChanged = cachedLanguage !== currentLanguage;
-
-  if (languageChanged) {
+  if (needsFetch) {
     await getGameAchievementData(game.objectId, game.shop, false);
     localGameAchievement = await gameAchievementsSublevel.get(gameKey);
   }
