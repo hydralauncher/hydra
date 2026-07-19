@@ -312,11 +312,17 @@
 .subscription-required-button {
   text-decoration: none;
   display: flex;
+  align-items: center;
   justify-content: center;
   width: 100%;
-  gap: calc(globals.$spacing-unit / 2);
+  gap: globals.$spacing-unit;
   color: globals.$warning-color;
   cursor: pointer;
+
+  > svg {
+    flex-shrink: 0;
+    transform: translateY(1px);
+  }
 
   &:hover {
     text-decoration: underline;

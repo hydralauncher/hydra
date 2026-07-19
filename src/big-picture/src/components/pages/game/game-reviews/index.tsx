@@ -7,6 +7,7 @@ import {
 import { sanitizeHtml } from "@shared";
 import type { GameReview, GameShop } from "@types";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { IS_DESKTOP } from "../../../../constants";
 import { getItemFocusTarget } from "../../../../helpers";
 import { useDate, useFormat } from "../../../../hooks";
@@ -49,6 +50,7 @@ export function GameReviews({
 
   const { formatDistance } = useDate();
   const { formatPlayTime } = useFormat();
+  const { t } = useTranslation("big_picture");
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const loadReviews = useCallback(
@@ -398,8 +400,12 @@ export function GameReviews({
                               <span className="game-page__comment-review-rating-copy">
                                 {review.playTimeInSeconds &&
                                 review.playTimeInSeconds > 0
-                                  ? `after playing for ${formatPlayTime(review.playTimeInSeconds)}`
-                                  : "rating"}
+                                  ? t("game_review_played_for", {
+                                      time: formatPlayTime(
+                                        review.playTimeInSeconds
+                                      ),
+                                    })
+                                  : t("game_review_rating_only")}
                               </span>
                             </div>
                           </div>

@@ -83,6 +83,7 @@ export function GameOptionsModal({
 
   const {
     updateGame,
+    refreshGameDetails,
     setShowRepacksModal,
     repacks,
     selectGameExecutable,
@@ -302,7 +303,11 @@ export function GameOptionsModal({
   const handleRemoveGameFromLibrary = async () => {
     if (isGameDownloading) await cancelDownload(game.shop, game.objectId);
     await removeGameFromLibrary(game.shop, game.objectId);
-    await Promise.all([updateGame(), updateLibrary(), loadCollections()]);
+    await Promise.all([
+      refreshGameDetails(),
+      updateLibrary(),
+      loadCollections(),
+    ]);
     onClose();
     if (game.shop === "custom" && onNavigateHome) onNavigateHome();
   };
@@ -745,7 +750,7 @@ export function GameOptionsModal({
           ]),
       {
         id: "assets" as const,
-        label: t("settings_category_assets"),
+        label: t("settings_category_customization"),
         icon: <ImageIcon size={16} />,
       },
       {
@@ -963,7 +968,13 @@ export function GameOptionsModal({
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
           />
-          <div className="game-options-modal__panel">
+          <div
+            className={`game-options-modal__panel${
+              selectedCategory === "assets"
+                ? " game-options-modal__panel--assets"
+                : ""
+            }`}
+          >
             {selectedCategory === "general" && (
               <GeneralSettingsSection
                 {...baseGeneralSettingsProps}

@@ -67,12 +67,13 @@ export function formatRelativeDate(
 
   const diffMs = Math.max(0, now.getTime() - date.getTime());
   const diffSec = Math.floor(diffMs / 1000);
+  const locale = options?.locale ?? "en";
 
-  if (diffSec < 60) return "just now";
+  const rtfAuto = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
 
-  const rtf = new Intl.RelativeTimeFormat(options?.locale ?? "en", {
-    numeric: "always",
-  });
+  if (diffSec < 60) return rtfAuto.format(0, "second");
+
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "always" });
 
   const minutes = Math.floor(diffSec / 60);
   if (minutes < 60) return rtf.format(-minutes, "minute");
@@ -80,7 +81,7 @@ export function formatRelativeDate(
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return rtf.format(-hours, "hour");
 
-  if (isYesterday(date)) return "yesterday";
+  if (isYesterday(date)) return rtfAuto.format(-1, "day");
 
   const days = Math.floor(hours / 24);
   if (days < 30) return rtf.format(-days, "day");
@@ -89,7 +90,7 @@ export function formatRelativeDate(
   if (months < 12) return rtf.format(-Math.max(months, 1), "month");
 
   const years = Math.floor(days / 365);
-  if (years === 1) return "last year";
+  if (years === 1) return rtfAuto.format(-1, "year");
 
   return rtf.format(-years, "year");
 }

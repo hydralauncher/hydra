@@ -74,8 +74,16 @@
   }
 
   &__tabs {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 3);
     flex-shrink: 0;
     padding: calc(var(--spacing-unit) * 6) 0 calc(var(--spacing-unit) * 4) 0;
+
+    .library-filters-tabs {
+      flex: 1;
+      min-width: 0;
+    }
 
     .library-filters-tabs .tabs__divider {
       background-color: color-mix(

@@ -231,9 +231,10 @@ export function DownloadsSourcesSection({
         (downloadSource) => downloadSource.id === downloadSourceId
       );
       const removedDownloadOptionsLabel = removedSource
-        ? `${formatNumber(removedSource.downloadCount)} download option${
-            removedSource.downloadCount === 1 ? "" : "s"
-          } ${removedSource.downloadCount === 1 ? "is" : "are"} no longer available.`
+        ? t("download_options_unavailable", {
+            count: removedSource.downloadCount,
+            formattedCount: formatNumber(removedSource.downloadCount),
+          })
         : undefined;
       const currentIndex = downloadSources.findIndex(
         (downloadSource) => downloadSource.id === downloadSourceId
@@ -301,6 +302,7 @@ export function DownloadsSourcesSection({
       setFocusRegion,
       showErrorToast,
       showSuccessToast,
+      t,
     ]
   );
 
@@ -399,11 +401,10 @@ export function DownloadsSourcesSection({
           {hasSources ? (
             <div className="downloads-sources-section__list">
               {downloadSources.map((downloadSource) => {
-                const downloadCountLabel = `${formatNumber(
-                  downloadSource.downloadCount
-                )} download option${
-                  downloadSource.downloadCount === 1 ? "" : "s"
-                }`;
+                const downloadCountLabel = t("download_options_count", {
+                  count: downloadSource.downloadCount,
+                  formattedCount: formatNumber(downloadSource.downloadCount),
+                });
 
                 return (
                   <DownloadSourceCard
