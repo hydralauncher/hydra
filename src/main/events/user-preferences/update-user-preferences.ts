@@ -37,7 +37,7 @@ const updateUserPreferences = async (
     for await (const key of gameAchievementsSublevel.keys()) {
       achievementsKeys.push(key);
     }
-    
+
     await Promise.all(
       achievementsKeys.map((key) => gameAchievementsSublevel.del(key))
     );

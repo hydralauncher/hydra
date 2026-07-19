@@ -138,8 +138,15 @@ export function AchievementsContent({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
 
-  const { gameTitle, objectId, shop, game, shopDetails, achievements } =
-    useContext(gameDetailsContext);
+  const {
+    gameTitle,
+    objectId,
+    shop,
+    game,
+    shopDetails,
+    achievements,
+    isLoading,
+  } = useContext(gameDetailsContext);
 
   const dispatch = useAppDispatch();
 
@@ -274,7 +281,10 @@ export function AchievementsContent({
         ) : (
           <>
             <AchievementPanel achievements={achievements!} />
-            <AchievementList achievements={achievements!} />
+            <AchievementList
+              achievements={achievements!}
+              isRefreshing={isLoading}
+            />
           </>
         )}
       </section>

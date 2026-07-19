@@ -5,7 +5,7 @@ import "./achievements.scss";
 import { EyeClosedIcon } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import { useState, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 const FALLBACK_ICON = "/assets/unknown-achievement.png";
 
@@ -37,12 +37,17 @@ export function AchievementList({
   const { formatDateTime } = useDate();
   const [iconErrors, setIconErrors] = useState<Set<string>>(new Set());
 
+  // Clear icon errors when achievements list changes (e.g., language switch)
+  useEffect(() => {
+    setIconErrors(new Set());
+  }, [achievements]);
+
   const handleIconError = (achievementName: string) => {
     setIconErrors((prev) => new Set(prev).add(achievementName));
   };
 
-  const getValidatedIcon = useMemo(
-    () => (achievement: UserAchievement) => {
+  const getValidatedIcon = useCallback(
+    (achievement: UserAchievement) => {
       const hasError = iconErrors.has(achievement.name);
       let iconUrl: string;
 

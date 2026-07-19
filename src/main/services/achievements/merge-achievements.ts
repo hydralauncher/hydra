@@ -82,8 +82,6 @@ export const mergeAchievements = async (
     localGameAchievement = await gameAchievementsSublevel.get(gameKey);
   }
 
-  const achievementsData = localGameAchievement?.achievements ?? [];
-  const unlockedAchievements = localGameAchievement?.unlockedAchievements ?? [];
   const cachedLanguage = normalizeLanguage(
     localGameAchievement?.language ?? "en"
   );
@@ -95,6 +93,15 @@ export const mergeAchievements = async (
   }
 
   const languageChanged = cachedLanguage !== currentLanguage;
+
+  if (languageChanged) {
+    await getGameAchievementData(game.objectId, game.shop, false);
+    localGameAchievement = await gameAchievementsSublevel.get(gameKey);
+  }
+
+  // Refresh achievementsData after potential language-change refetch
+  const achievementsData = localGameAchievement?.achievements ?? [];
+  const unlockedAchievements = localGameAchievement?.unlockedAchievements ?? [];
 
   const newAchievementsMap = new Map(
     achievements.toReversed().map((achievement) => {
@@ -118,11 +125,6 @@ export const mergeAchievements = async (
     });
 
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
-
-  if (languageChanged) {
-    await getGameAchievementData(game.objectId, game.shop, false);
-    localGameAchievement = await gameAchievementsSublevel.get(gameKey);
-  }
 
   if (
     newAchievements.length &&
