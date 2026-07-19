@@ -77,7 +77,7 @@ export const getGameAchievementData = async (
     { language: steamLanguage },
     {
       ifNoneMatch:
-        cachedAchievements?.language === steamLanguage
+        cachedAchievements?.language === language
           ? cachedAchievements.catalogueValidator
           : undefined,
       validateStatus: (status) =>

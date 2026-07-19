@@ -30,7 +30,6 @@ function isValidSteamUrl(url: string): boolean {
   }
 }
 
-
 const ICON_PHASE = {
   FIRST_ATTEMPT: 0,
   LOCKED_SECOND_ATTEMPT: 1,
@@ -53,7 +52,6 @@ export function AchievementList({
     {}
   );
 
-
   useEffect(() => {
     setIconErrorPhase({});
   }, [achievements]);
@@ -71,7 +69,6 @@ export function AchievementList({
       let iconUrl: string;
 
       if (!achievement.unlocked) {
-
         if (phase === ICON_PHASE.FIRST_ATTEMPT) {
           iconUrl = achievement.icongray || achievement.icon;
         } else if (phase === ICON_PHASE.LOCKED_SECOND_ATTEMPT) {
@@ -80,10 +77,8 @@ export function AchievementList({
           return FALLBACK_ICON;
         }
       } else if (phase === ICON_PHASE.FIRST_ATTEMPT) {
-
         iconUrl = achievement.icon;
       } else {
-
         return FALLBACK_ICON;
       }
 
