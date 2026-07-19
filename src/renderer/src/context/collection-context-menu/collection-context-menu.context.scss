@@ -1,0 +1,13 @@
+@use "../../scss/globals.scss";
+
+.collection-context-menu__modal {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+}
+
+.collection-context-menu__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: calc(globals.$spacing-unit);
+}

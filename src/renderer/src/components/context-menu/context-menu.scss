@@ -11,6 +11,27 @@
   min-width: 180px;
   animation: contextMenuFadeIn 0.15s ease-out;
 
+  &--modal-open,
+  &--modal-open &__submenu {
+    border-color: rgba(0, 0, 0, 0.7);
+    box-shadow: none;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(2px);
+      border-radius: 6px;
+      transform: translateZ(0);
+      pointer-events: none;
+    }
+  }
+
+  &--modal-open &__submenu {
+    overflow: hidden;
+  }
+
   &__list {
     list-style: none;
     margin: 0;

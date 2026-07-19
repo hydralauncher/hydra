@@ -294,7 +294,14 @@
     color: globals.$muted-color;
     cursor: pointer;
     padding: 0;
-    outline: none;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: auto;
+    }
 
     &:hover {
       color: rgba(255, 255, 255, 0.6);

@@ -28,12 +28,18 @@ import {
   useGameActions,
 } from "..";
 import { useGameCollections, useToast, useUserDetails } from "@renderer/hooks";
+import { useCollectionContextMenu } from "@renderer/context";
+import type { GameCollection } from "@types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
   game: GameContextMenuGame;
   onPinToggle?: () => void;
   isPinned?: boolean;
+  onCollectionContextMenu?: (
+    event: React.MouseEvent<HTMLElement>,
+    collection: GameCollection
+  ) => void;
 }
 
 const getGameCollectionIds = (currentGame: GameContextMenuGame): string[] => {
@@ -53,6 +59,7 @@ export function GameContextMenu({
   game,
   onPinToggle,
   isPinned,
+  onCollectionContextMenu,
   visible,
   position,
   onClose,
@@ -106,6 +113,7 @@ export function GameContextMenu({
     handleConfirmRpcs3Launch,
     handleCancelRpcs3Launch,
   } = useGameActions(game);
+  const { isCollectionContextMenuOrModalOpen } = useCollectionContextMenu();
   const selectedCollectionId = searchParams.get("collection");
 
   useEffect(() => {
@@ -203,6 +211,13 @@ export function GameContextMenu({
           onClick: () => {
             void handleAssignGameCollection(collection.id);
           },
+          onContextMenu: onCollectionContextMenu
+            ? (event: React.MouseEvent<HTMLElement>) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onCollectionContextMenu(event, collection);
+              }
+            : undefined,
           closeOnClick: false,
           disabled: isDeleting,
         }))),
@@ -222,6 +237,7 @@ export function GameContextMenu({
 
               setShowCreateCollectionModal(true);
             },
+            closeOnClick: false,
             disabled: isDeleting || Boolean(pendingCollectionId),
           },
         ]),
@@ -390,6 +406,11 @@ export function GameContextMenu({
         visible={visible}
         position={position}
         onClose={onClose}
+        forceOpenSubmenuId={
+          isCollectionContextMenuOrModalOpen || showCreateCollectionModal
+            ? "collection"
+            : undefined
+        }
         className={
           !game.executablePath ? "context-menu--game-not-installed" : undefined
         }

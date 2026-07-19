@@ -24,6 +24,7 @@ import {
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
+import { useCollectionContextMenu } from "@renderer/context";
 import { ProgressBar, GameContextMenu } from "@renderer/components";
 import "./user-library-game-card.scss";
 
@@ -46,6 +47,7 @@ export function UserLibraryGameCard({
   const navigate = useNavigate();
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const { openCollectionContextMenu } = useCollectionContextMenu();
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     position: { x: number; y: number };
@@ -328,6 +330,7 @@ export function UserLibraryGameCard({
         onClose={handleCloseContextMenu}
         onPinToggle={toggleGamePinned}
         isPinned={game.isPinned}
+        onCollectionContextMenu={openCollectionContextMenu}
       />
       <Tooltip
         id={game.objectId}
