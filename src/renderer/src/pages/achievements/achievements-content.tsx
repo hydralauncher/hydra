@@ -145,7 +145,7 @@ export function AchievementsContent({
     game,
     shopDetails,
     achievements,
-    isLoading,
+    achievementsLoading,
   } = useContext(gameDetailsContext);
 
   const dispatch = useAppDispatch();
@@ -283,7 +283,7 @@ export function AchievementsContent({
             <AchievementPanel achievements={achievements!} />
             <AchievementList
               achievements={achievements!}
-              isRefreshing={isLoading}
+              isRefreshing={achievementsLoading}
             />
           </>
         )}

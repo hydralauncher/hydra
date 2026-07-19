@@ -47,6 +47,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   lastDownloadedOption: null,
   isTransferring: false,
   transferProgress: 0,
+  achievementsLoading: false,
   selectGameExecutable: async () => null,
   updateGame: async () => {},
   refreshGameDetails: async () => {},
@@ -88,6 +89,7 @@ export function GameDetailsContextProvider({
   const [stats, setStats] = useState<GameStats | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [achievementsLoading, setAchievementsLoading] = useState(false);
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
@@ -117,6 +119,8 @@ export function GameDetailsContextProvider({
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
+
+    setAchievementsLoading(true);
 
     const shopDetailsPromise = window.electron
       .getGameShopDetails(objectId, shop, i18n.language)
@@ -156,6 +160,10 @@ export function GameDetailsContextProvider({
               })
               .catch(() => {
                 if (!abortController.signal.aborted) setAchievements([]);
+              })
+              .finally(() => {
+                if (!abortController.signal.aborted)
+                  setAchievementsLoading(false);
               });
           } else {
             globalThis.window.electron
@@ -164,7 +172,11 @@ export function GameDetailsContextProvider({
                 if (abortController.signal.aborted) return;
                 if (achievements) setAchievements(achievements);
               })
-              .catch(() => void 0);
+              .catch(() => void 0)
+              .finally(() => {
+                if (!abortController.signal.aborted)
+                  setAchievementsLoading(false);
+              });
           }
         }
       });
@@ -497,6 +509,7 @@ export function GameDetailsContextProvider({
         lastDownloadedOption: null,
         isTransferring,
         transferProgress,
+        achievementsLoading,
         setHasNSFWContentBlocked,
         selectGameExecutable,
         updateGame,
