@@ -1,6 +1,6 @@
 @use "../../scss/globals.scss";
 
-@mixin trigger {
+@mixin trigger($selector) {
   display: inline-flex;
   align-items: center;
   gap: globals.$spacing-unit;
@@ -13,11 +13,11 @@
   cursor: pointer;
   font-size: globals.$body-font-size;
 
-  &:hover {
+  #{$selector}:hover {
     border-color: rgba(255, 255, 255, 0.5);
   }
 
-  &[data-state="open"] {
+  #{$selector}[data-state="open"] {
     border-color: #dadbe1;
   }
 }
