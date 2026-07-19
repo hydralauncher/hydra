@@ -35,7 +35,9 @@ export function AchievementList({
   const { t } = useTranslation("achievement");
   const { showHydraCloudModal } = useSubscription();
   const { formatDateTime } = useDate();
-  const [iconErrorPhase, setIconErrorPhase] = useState<Record<string, number>>({});
+  const [iconErrorPhase, setIconErrorPhase] = useState<Record<string, number>>(
+    {}
+  );
 
   // Clear icon errors when achievements list changes (e.g., language switch)
   useEffect(() => {
