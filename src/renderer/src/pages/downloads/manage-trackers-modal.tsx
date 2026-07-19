@@ -83,7 +83,10 @@ export function ManageTrackersModal({
       noContentPadding
     >
       <div className="manage-trackers-modal__container">
-        <form className="manage-trackers-modal__form" onSubmit={handleSubmit(onSubmit)}>
+        <form
+          className="manage-trackers-modal__form"
+          onSubmit={handleSubmit(onSubmit)}
+        >
           <textarea
             {...register("trackers")}
             className="manage-trackers-modal__textarea"
