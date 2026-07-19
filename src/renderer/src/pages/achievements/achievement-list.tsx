@@ -5,17 +5,80 @@ import "./achievements.scss";
 import { EyeClosedIcon } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { useState, useMemo } from "react";
+
+const FALLBACK_ICON = "/assets/unknown-achievement.png";
+
+const ALLOWED_HOSTNAMES = new Set(["cdn.akamaihd.net", "steamcommunity.com"]);
+
+function isValidSteamUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") {
+      return false;
+    }
+    return ALLOWED_HOSTNAMES.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
 
 interface AchievementListProps {
   achievements: UserAchievement[];
+  isRefreshing?: boolean;
 }
 
 export function AchievementList({
   achievements,
+  isRefreshing = false,
 }: Readonly<AchievementListProps>) {
   const { t } = useTranslation("achievement");
   const { showHydraCloudModal } = useSubscription();
   const { formatDateTime } = useDate();
+  const [iconErrors, setIconErrors] = useState<Set<string>>(new Set());
+
+  const handleIconError = (achievementName: string) => {
+    setIconErrors((prev) => new Set(prev).add(achievementName));
+  };
+
+  const getValidatedIcon = useMemo(
+    () => (achievement: UserAchievement) => {
+      const hasError = iconErrors.has(achievement.name);
+      let iconUrl: string;
+
+      if (!achievement.unlocked && !hasError) {
+        iconUrl = achievement.icongray || achievement.icon;
+      } else {
+        iconUrl = achievement.icon;
+      }
+
+      if (!isValidSteamUrl(iconUrl)) {
+        return FALLBACK_ICON;
+      }
+
+      return iconUrl;
+    },
+    [iconErrors]
+  );
+
+  if (isRefreshing) {
+    return (
+      <ul className="achievements__list achievements__list--loading">
+        {achievements.map((achievement) => (
+          <li
+            key={achievement.name}
+            className="achievements__item achievements__item--skeleton"
+          >
+            <div className="achievements__item-image-skeleton" />
+            <div className="achievements__item-content-skeleton">
+              <div className="achievements__item-title-skeleton" />
+              <div className="achievements__item-description-skeleton" />
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <ul className="achievements__list">
@@ -23,9 +86,10 @@ export function AchievementList({
         <li key={achievement.name} className="achievements__item">
           <img
             className={`achievements__item-image ${!achievement.unlocked ? "achievements__item-image--locked" : ""}`}
-            src={achievement.icon}
+            src={getValidatedIcon(achievement)}
             alt={achievement.displayName}
             loading="lazy"
+            onError={() => handleIconError(achievement.name)}
           />
 
           <div className="achievements__item-content">

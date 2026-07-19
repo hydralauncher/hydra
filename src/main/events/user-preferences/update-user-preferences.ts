@@ -9,6 +9,7 @@ import { patchUserProfile } from "../profile/update-profile";
 import { DownloadManager, Wine } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
+import { gameAchievementsSublevel } from "@main/level/sublevels/game-achievements";
 
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -19,6 +20,8 @@ const updateUserPreferences = async (
     { valueEncoding: "json" }
   );
 
+  let languageChanged = false;
+
   if (preferences.language) {
     await db.put<string, string>(levelKeys.language, preferences.language, {
       valueEncoding: "utf8",
@@ -26,6 +29,18 @@ const updateUserPreferences = async (
 
     i18next.changeLanguage(preferences.language);
     patchUserProfile({ language: preferences.language }).catch(() => {});
+    languageChanged = true;
+  }
+
+  if (languageChanged) {
+    const achievementsKeys: string[] = [];
+    for await (const key of gameAchievementsSublevel.keys()) {
+      achievementsKeys.push(key);
+    }
+    
+    await Promise.all(
+      achievementsKeys.map((key) => gameAchievementsSublevel.del(key))
+    );
   }
 
   const shouldPinExistingWinePrefixes =

@@ -22,6 +22,10 @@ const isRareAchievement = (points: number) => {
   return rawPercentage < 10;
 };
 
+function normalizeLanguage(lang: string): string {
+  return lang.toLowerCase().trim();
+}
+
 const saveAchievementsOnLocal = async (
   objectId: string,
   shop: GameShop,
@@ -33,8 +37,10 @@ const saveAchievementsOnLocal = async (
   return gameAchievementsSublevel
     .get(levelKey)
     .then(async (gameAchievement) => {
+      const existingAchievements = gameAchievement?.achievements ?? [];
+
       await gameAchievementsSublevel.put(levelKey, {
-        achievements: gameAchievement?.achievements ?? [],
+        achievements: existingAchievements,
         unlockedAchievements: unlockedAchievements,
         updatedAt: gameAchievement?.updatedAt,
         language: gameAchievement?.language,
@@ -69,6 +75,8 @@ export const mergeAchievements = async (
     }
   );
 
+  const currentLanguage = normalizeLanguage(userPreferences?.language ?? "en");
+
   if (!localGameAchievement) {
     await getGameAchievementData(game.objectId, game.shop, false);
     localGameAchievement = await gameAchievementsSublevel.get(gameKey);
@@ -76,6 +84,17 @@ export const mergeAchievements = async (
 
   const achievementsData = localGameAchievement?.achievements ?? [];
   const unlockedAchievements = localGameAchievement?.unlockedAchievements ?? [];
+  const cachedLanguage = normalizeLanguage(
+    localGameAchievement?.language ?? "en"
+  );
+
+  if (cachedLanguage !== currentLanguage) {
+    achievementsLogger.warn(
+      `[mergeAchievements] Language mismatch detected: cached="${cachedLanguage}", current="${currentLanguage}" (game: ${game.objectId}). Forcing achievement refetch.`
+    );
+  }
+
+  const languageChanged = cachedLanguage !== currentLanguage;
 
   const newAchievementsMap = new Map(
     achievements.toReversed().map((achievement) => {
@@ -99,6 +118,11 @@ export const mergeAchievements = async (
     });
 
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
+
+  if (languageChanged) {
+    await getGameAchievementData(game.objectId, game.shop, false);
+    localGameAchievement = await gameAchievementsSublevel.get(gameKey);
+  }
 
   if (
     newAchievements.length &&

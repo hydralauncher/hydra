@@ -3,6 +3,35 @@ import type { GameShop, SteamAchievement } from "@types";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
+import { getSteamLanguage } from "../steam";
+
+const pendingFetches = new Map<string, Promise<SteamAchievement[]>>();
+
+function ensureValidIcons(
+  achievements: SteamAchievement[],
+  englishAchievements: SteamAchievement[] | null
+): SteamAchievement[] {
+  return achievements.map((achievement) => {
+    let icon = achievement.icon;
+    let icongray = achievement.icongray;
+
+    if (!icon || !icongray) {
+      const englishMatch = englishAchievements?.find(
+        (ea) => ea.name.toUpperCase() === achievement.name.toUpperCase()
+      );
+      if (englishMatch) {
+        if (!icon) icon = englishMatch.icon;
+        if (!icongray) icongray = englishMatch.icongray;
+      }
+    }
+
+    return {
+      ...achievement,
+      icon: icon || "",
+      icongray: icongray || "",
+    };
+  });
+}
 
 export const getGameAchievementData = async (
   objectId: string,
@@ -23,6 +52,8 @@ export const getGameAchievementData = async (
     })
     .then((language) => language || "en");
 
+  const steamLanguage = getSteamLanguage(language);
+
   if (
     useCachedData &&
     cachedAchievements?.achievements &&
@@ -31,9 +62,19 @@ export const getGameAchievementData = async (
     return cachedAchievements.achievements;
   }
 
-  return HydraApi.getResponse<SteamAchievement[]>(
+  const cacheKey = `${shop}:${objectId}:${steamLanguage}`;
+
+  if (pendingFetches.has(cacheKey)) {
+    try {
+      return await pendingFetches.get(cacheKey)!;
+    } catch {
+      pendingFetches.delete(cacheKey);
+    }
+  }
+
+  const fetchPromise = HydraApi.getResponse<SteamAchievement[]>(
     `/games/${shop}/${objectId}/achievements`,
-    { language },
+    { language: steamLanguage },
     {
       ifNoneMatch:
         cachedAchievements?.language === language
@@ -48,9 +89,24 @@ export const getGameAchievementData = async (
         return cachedAchievements?.achievements ?? [];
       }
 
+      let achievementsData = response.data;
+
+      if (steamLanguage !== "english") {
+        const englishResponse = await HydraApi.getResponse<SteamAchievement[]>(
+          `/games/${shop}/${objectId}/achievements`,
+          { language: "english" },
+          { validateStatus: (s) => s >= 200 && s < 300 }
+        ).catch(() => ({ data: null }) as any);
+
+        achievementsData = ensureValidIcons(
+          achievementsData,
+          englishResponse.data
+        );
+      }
+
       await gameAchievementsSublevel.put(gameKey, {
         unlockedAchievements: cachedAchievements?.unlockedAchievements ?? [],
-        achievements: response.data,
+        achievements: achievementsData,
         updatedAt: Date.now(),
         language,
         catalogueValidator:
@@ -59,7 +115,7 @@ export const getGameAchievementData = async (
             : undefined,
       });
 
-      return response.data;
+      return achievementsData;
     })
     .catch((err) => {
       if (err instanceof UserNotLoggedInError) {
@@ -69,5 +125,12 @@ export const getGameAchievementData = async (
       logger.error("Failed to get game achievements for", objectId, err);
 
       return cachedAchievements?.achievements ?? [];
+    })
+    .finally(() => {
+      pendingFetches.delete(cacheKey);
     });
+
+  pendingFetches.set(cacheKey, fetchPromise);
+
+  return fetchPromise;
 };
