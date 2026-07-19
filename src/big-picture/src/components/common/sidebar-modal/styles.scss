@@ -1,3 +1,9 @@
+$tab-highlight-bg: rgba(255, 255, 255, 0.05);
+$tab-focus-ring-width: 2px;
+$tab-selected-bg: rgba(255, 255, 255, 0.08);
+$tab-selected-highlight-bg: rgba(255, 255, 255, 0.14);
+$tab-selected-accent-width: 3px;
+
 .sidebar-modal {
   display: grid;
   grid-template-columns: minmax(180px, 16rem) minmax(0, 1fr);
@@ -117,11 +123,11 @@
 
   &:not([data-active="true"]):hover:not(:disabled),
   &:not([data-active="true"])[data-focus-visible="true"] {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: $tab-highlight-bg;
   }
 
   &[data-focus-visible="true"] {
-    box-shadow: inset 0 0 0 2px var(--primary);
+    box-shadow: inset 0 0 0 $tab-focus-ring-width var(--primary);
   }
 
   &:disabled {
@@ -136,12 +142,12 @@
   right: 0;
   left: 0;
   z-index: 0;
-  background: rgba(255, 255, 255, 0.08);
-  border-left: 3px solid var(--primary);
+  background: $tab-selected-bg;
+  border-left: $tab-selected-accent-width solid var(--primary);
   pointer-events: none;
 
   &[data-highlighted="true"] {
-    background: rgba(255, 255, 255, 0.14);
+    background: $tab-selected-highlight-bg;
   }
 }
 
