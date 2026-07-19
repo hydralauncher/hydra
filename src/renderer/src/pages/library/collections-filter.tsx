@@ -24,6 +24,22 @@ interface CollectionsFilterProps {
   ) => void;
 }
 
+const getTriggerIcon = (
+  selectedCollection: GameCollection | undefined,
+  favoritesCollectionId: string
+) => {
+  if (!selectedCollection) return FileDirectoryIcon;
+  if (selectedCollection.id === favoritesCollectionId) return HeartFillIcon;
+  return FileDirectoryFillIcon;
+};
+
+const getCollectionIcon = (isFavorites: boolean, isActive: boolean) => {
+  if (isFavorites) {
+    return isActive ? HeartFillIcon : HeartIcon;
+  }
+  return isActive ? FileDirectoryFillIcon : FileDirectoryIcon;
+};
+
 export function CollectionsFilter({
   collections,
   selectedCollectionId,
@@ -40,11 +56,7 @@ export function CollectionsFilter({
     (collection) => collection.id === selectedCollectionId
   );
 
-  const TriggerIcon = selectedCollection
-    ? selectedCollection.id === favoritesCollectionId
-      ? HeartFillIcon
-      : FileDirectoryFillIcon
-    : FileDirectoryIcon;
+  const TriggerIcon = getTriggerIcon(selectedCollection, favoritesCollectionId);
 
   return (
     <DropdownMenuPrimitive.Root
@@ -85,13 +97,7 @@ export function CollectionsFilter({
               const isFavorites = collection.id === favoritesCollectionId;
               const isActive = collection.id === selectedCollectionId;
 
-              const CollectionIcon = isFavorites
-                ? isActive
-                  ? HeartFillIcon
-                  : HeartIcon
-                : isActive
-                  ? FileDirectoryFillIcon
-                  : FileDirectoryIcon;
+              const CollectionIcon = getCollectionIcon(isFavorites, isActive);
 
               return (
                 <DropdownMenuPrimitive.Item

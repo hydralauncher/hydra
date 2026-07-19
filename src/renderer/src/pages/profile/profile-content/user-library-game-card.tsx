@@ -157,8 +157,8 @@ export function UserLibraryGameCard({
             detail: { shop: game.shop, objectId: game.objectId },
           })
         );
-      } catch (e) {
-        void e;
+      } catch {
+        /* empty */
       }
 
       if (game.isPinned) {

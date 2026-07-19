@@ -3,7 +3,7 @@
 
 .library-select {
   &__trigger {
-    @include dropdown.trigger;
+    @include dropdown.trigger(&);
 
     &[data-state="open"] .library-select__chevron {
       transform: rotate(180deg);

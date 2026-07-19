@@ -32,12 +32,12 @@ const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
 const SIDEBAR_GAME_ITEM_HEIGHT = 42;
 
-const SIDEBAR_CATEGORIES: LibraryCategory[] = ["all", "pc", "classics"];
-const SIDEBAR_SORT_OPTIONS: SortOption[] = [
+const SIDEBAR_CATEGORIES = new Set<LibraryCategory>(["all", "pc", "classics"]);
+const SIDEBAR_SORT_OPTIONS = new Set<SortOption>([
   "title_asc",
   "recently_played",
   "most_played",
-];
+]);
 
 const isGamePlayable = (game: LibraryGame) =>
   Boolean(game.executablePath) ||
@@ -69,7 +69,7 @@ export function Sidebar() {
   const [sidebarCategory, setSidebarCategory] = useState<LibraryCategory>(
     () => {
       const saved = localStorage.getItem("sidebar-category");
-      if (SIDEBAR_CATEGORIES.includes(saved as LibraryCategory)) {
+      if (SIDEBAR_CATEGORIES.has(saved as LibraryCategory)) {
         return saved as LibraryCategory;
       }
       return "all";
@@ -78,7 +78,7 @@ export function Sidebar() {
 
   const [sidebarSortBy, setSidebarSortBy] = useState<SortOption>(() => {
     const saved = localStorage.getItem("sidebar-sort-by");
-    if (SIDEBAR_SORT_OPTIONS.includes(saved as SortOption)) {
+    if (SIDEBAR_SORT_OPTIONS.has(saved as SortOption)) {
       return saved as SortOption;
     }
     return "title_asc";

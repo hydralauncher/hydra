@@ -186,8 +186,8 @@ export function useGameActions(game: GameContextMenuGame) {
             detail: { shop: game.shop, objectId: game.objectId },
           })
         );
-      } catch (e) {
-        void e;
+      } catch {
+        /* empty */
       }
     } catch (error) {
       showErrorToast(t("failed_update_favorites"));
@@ -308,8 +308,8 @@ export function useGameActions(game: GameContextMenuGame) {
             detail: { shop: game.shop, objectId: game.objectId },
           })
         );
-      } catch (e) {
-        void e;
+      } catch {
+        /* empty */
       }
     } catch (error) {
       showErrorToast(t("failed_update_pinned"));
@@ -342,8 +342,8 @@ export function useGameActions(game: GameContextMenuGame) {
             detail: { shop: game.shop, objectId: game.objectId },
           })
         );
-      } catch (e) {
-        void e;
+      } catch {
+        /* empty */
       }
     } catch (error) {
       showErrorToast(t("failed_remove_from_library"));
@@ -362,8 +362,8 @@ export function useGameActions(game: GameContextMenuGame) {
             detail: { shop: game.shop, objectId: game.objectId },
           })
         );
-      } catch (e) {
-        void e;
+      } catch {
+        /* empty */
       }
     } catch (error) {
       showErrorToast(t("failed_remove_files"));

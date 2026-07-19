@@ -3,7 +3,7 @@
 
 .collections-filter {
   &__trigger {
-    @include dropdown.trigger;
+    @include dropdown.trigger(&);
     max-width: 220px;
 
     &[data-state="open"] .collections-filter__chevron {
@@ -40,7 +40,7 @@
 
     &--active {
       color: #fff;
-      background-color: rgba(255, 255, 255, 0.06);
+      background-color: globals.$background-color;
     }
   }
 
@@ -56,11 +56,11 @@
     min-width: 22px;
     height: 18px;
     padding: 0 4px;
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: globals.$muted-color;
     border-radius: 9px;
     font-size: 11px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
+    color: globals.$dark-background-color;
     line-height: 1;
   }
 

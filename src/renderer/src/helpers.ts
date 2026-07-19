@@ -359,6 +359,54 @@ export const getClassicsLaunchErrorSystem = (
   );
 };
 
+const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {
+  const aHasPlayed = a.lastTimePlayed !== null;
+  const bHasPlayed = b.lastTimePlayed !== null;
+
+  if (aHasPlayed && bHasPlayed) {
+    const aLastPlayed = new Date(a.lastTimePlayed as Date).getTime();
+    const bLastPlayed = new Date(b.lastTimePlayed as Date).getTime();
+    return bLastPlayed - aLastPlayed;
+  }
+
+  if (aHasPlayed !== bHasPlayed) {
+    return aHasPlayed ? -1 : 1;
+  }
+
+  return 0;
+};
+
+const getMostPlayedDifference = (a: LibraryGame, b: LibraryGame): number =>
+  b.playTimeInMilliseconds - a.playTimeInMilliseconds;
+
+const isGameInstalled = (game: LibraryGame): boolean =>
+  Boolean(game.executablePath) ||
+  game.installedSizeInBytes != null ||
+  (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
+
+const getInstalledFirstDifference = (
+  a: LibraryGame,
+  b: LibraryGame
+): number => {
+  const aIsInstalled = isGameInstalled(a);
+  const bIsInstalled = isGameInstalled(b);
+
+  if (aIsInstalled !== bIsInstalled) {
+    return aIsInstalled ? -1 : 1;
+  }
+
+  return 0;
+};
+
+const compareLibraryGamesByTitle = (
+  a: LibraryGame,
+  b: LibraryGame,
+  ascending = true
+): number =>
+  ascending
+    ? a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
+    : b.title.localeCompare(a.title, undefined, { sensitivity: "base" });
+
 export const sortLibraryGames = (
   games: LibraryGame[],
   sortBy: SortOption
@@ -366,48 +414,25 @@ export const sortLibraryGames = (
   return [...games].sort((a, b) => {
     switch (sortBy) {
       case "recently_played": {
-        const aHasPlayed = a.lastTimePlayed !== null;
-        const bHasPlayed = b.lastTimePlayed !== null;
-
-        if (aHasPlayed && bHasPlayed) {
-          const aLastPlayed = new Date(a.lastTimePlayed as Date).getTime();
-          const bLastPlayed = new Date(b.lastTimePlayed as Date).getTime();
-          const lastPlayedDifference = bLastPlayed - aLastPlayed;
-          if (lastPlayedDifference !== 0) return lastPlayedDifference;
-        } else if (aHasPlayed !== bHasPlayed) {
-          return aHasPlayed ? -1 : 1;
-        }
-
+        const difference = getPlayTimeDifference(a, b);
+        if (difference !== 0) return difference;
         break;
       }
 
       case "most_played": {
-        const playTimeDifference =
-          b.playTimeInMilliseconds - a.playTimeInMilliseconds;
-        if (playTimeDifference !== 0) return playTimeDifference;
+        const difference = getMostPlayedDifference(a, b);
+        if (difference !== 0) return difference;
         break;
       }
 
       case "installed_first": {
-        const isInstalled = (game: LibraryGame) =>
-          Boolean(game.executablePath) ||
-          game.installedSizeInBytes != null ||
-          (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
-
-        const aIsInstalled = isInstalled(a);
-        const bIsInstalled = isInstalled(b);
-
-        if (aIsInstalled !== bIsInstalled) {
-          return aIsInstalled ? -1 : 1;
-        }
-
+        const difference = getInstalledFirstDifference(a, b);
+        if (difference !== 0) return difference;
         break;
       }
 
       case "title_desc": {
-        return b.title.localeCompare(a.title, undefined, {
-          sensitivity: "base",
-        });
+        return compareLibraryGamesByTitle(a, b, false);
       }
 
       case "title_asc":
@@ -415,9 +440,7 @@ export const sortLibraryGames = (
         break;
     }
 
-    return a.title.localeCompare(b.title, undefined, {
-      sensitivity: "base",
-    });
+    return compareLibraryGamesByTitle(a, b);
   });
 };
 

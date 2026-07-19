@@ -24,6 +24,12 @@ export function AchievementProgress({
   const safeMax = achievementCount || 1;
   const percentage = Math.round((unlockedAchievementCount / safeMax) * 100);
 
+  const percentageClassName = `${classNamePrefix}__achievement-percentage`;
+  const completedClassName = `${percentageClassName}--completed`;
+  const className = isCompleted
+    ? `${percentageClassName} ${completedClassName}`
+    : percentageClassName;
+
   return (
     <div className={`${classNamePrefix}__achievements`}>
       <div className={`${classNamePrefix}__achievement-header`}>
@@ -38,9 +44,7 @@ export function AchievementProgress({
             {unlockedAchievementCount} / {achievementCount}
           </span>
         </div>
-        <span
-          className={`${classNamePrefix}__achievement-percentage${isCompleted ? ` ${classNamePrefix}__achievement-percentage--completed` : ""}`}
-        >
+        <span className={className}>
           {isCompleted ? (
             <TrophyIcon size={trophyIconSize} />
           ) : (
