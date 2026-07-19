@@ -179,12 +179,10 @@ export function GameDetailsContextProvider({
               });
           }
         } else if (!abortController.signal.aborted) {
-          // Custom shop or no userDetails: no achievements to fetch, clear loading
           setAchievementsLoading(false);
         }
       })
       .catch(() => {
-        // Shop details fetch failed: clear achievements loading to avoid infinite skeleton
         if (!abortController.signal.aborted) setAchievementsLoading(false);
       });
 

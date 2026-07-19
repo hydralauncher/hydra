@@ -30,12 +30,11 @@ function isValidSteamUrl(url: string): boolean {
   }
 }
 
-// Icon loading phases for error fallback logic
+
 const ICON_PHASE = {
-  LOCKED_FIRST_ATTEMPT: 0, // locked: try icongray
-  LOCKED_SECOND_ATTEMPT: 1, // locked: try icon (color)
-  UNLOCKED_FIRST_ATTEMPT: 0, // unlocked: try icon
-  FALLBACK: 2, // both locked/unlocked: use local fallback
+  FIRST_ATTEMPT: 0,
+  LOCKED_SECOND_ATTEMPT: 1,
+  FALLBACK: 2,
 } as const;
 
 interface AchievementListProps {
@@ -54,7 +53,7 @@ export function AchievementList({
     {}
   );
 
-  // Clear icon errors when achievements list changes (e.g., language switch)
+
   useEffect(() => {
     setIconErrorPhase({});
   }, [achievements]);
@@ -72,19 +71,19 @@ export function AchievementList({
       let iconUrl: string;
 
       if (!achievement.unlocked) {
-        // Locked: phase 0 = icongray, phase 1 = icon, phase 2+ = fallback
-        if (phase === ICON_PHASE.LOCKED_FIRST_ATTEMPT) {
+
+        if (phase === ICON_PHASE.FIRST_ATTEMPT) {
           iconUrl = achievement.icongray || achievement.icon;
         } else if (phase === ICON_PHASE.LOCKED_SECOND_ATTEMPT) {
           iconUrl = achievement.icon;
         } else {
           return FALLBACK_ICON;
         }
-      } else if (phase === ICON_PHASE.UNLOCKED_FIRST_ATTEMPT) {
-        // Unlocked: phase 0 = icon
+      } else if (phase === ICON_PHASE.FIRST_ATTEMPT) {
+
         iconUrl = achievement.icon;
       } else {
-        // Unlocked: phase 1+ = fallback (no icongray available)
+
         return FALLBACK_ICON;
       }
 

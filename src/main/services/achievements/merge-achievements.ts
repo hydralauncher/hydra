@@ -89,7 +89,6 @@ export const mergeAchievements = async (
     localGameAchievement = await gameAchievementsSublevel.get(gameKey);
   }
 
-  // Refresh achievementsData after potential language-change refetch
   const achievementsData = localGameAchievement?.achievements ?? [];
   const unlockedAchievements = localGameAchievement?.unlockedAchievements ?? [];
 

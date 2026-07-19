@@ -77,7 +77,7 @@ export const getGameAchievementData = async (
     { language: steamLanguage },
     {
       ifNoneMatch:
-        cachedAchievements?.language === language
+        cachedAchievements?.language === steamLanguage
           ? cachedAchievements.catalogueValidator
           : undefined,
       validateStatus: (status) =>
@@ -91,8 +91,6 @@ export const getGameAchievementData = async (
 
       let achievementsData = response.data;
 
-      // Only fetch English as fallback if localized response is missing icons
-      // This avoids unconditional extra API calls when backend already returns complete data
       const needsEnglishFallback =
         steamLanguage !== "english" &&
         achievementsData.some((a) => !a.icon || !a.icongray);
