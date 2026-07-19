@@ -11,7 +11,6 @@ import { db, levelKeys } from "@main/level";
 interface RedistCheck {
   name: string;
   check: () => boolean;
-  optional?: boolean;
 }
 
 export class CommonRedistManager {
@@ -88,7 +87,6 @@ export class CommonRedistManager {
     },
     {
       name: "XNA Framework 4.0",
-      optional: true,
       check: () => {
         // XNA Framework installs to GAC - check for the assembly folder
         const windowsDir = process.env.SystemRoot || "C:\\Windows";
@@ -204,17 +202,15 @@ export class CommonRedistManager {
     for (const redistCheck of this.systemChecks) {
       try {
         const isInstalled = redistCheck.check();
-        if (!isInstalled && !redistCheck.optional) {
+        if (!isInstalled) {
           missing.push(redistCheck.name);
         }
         logger.log(
-          `System check: ${redistCheck.name} - ${isInstalled ? "installed" : "MISSING"}${redistCheck.optional ? " (optional)" : ""}`
+          `System check: ${redistCheck.name} - ${isInstalled ? "installed" : "MISSING"}`
         );
       } catch (error) {
         logger.error(`Error checking ${redistCheck.name}:`, error);
-        if (!redistCheck.optional) {
-          missing.push(redistCheck.name);
-        }
+        missing.push(redistCheck.name);
       }
     }
 
