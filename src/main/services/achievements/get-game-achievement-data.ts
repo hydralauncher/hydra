@@ -91,6 +91,9 @@ export const getGameAchievementData = async (
 
       let achievementsData = response.data;
 
+      // Forward-compat: fetch English icons as fallback if backend later supports localized icons.
+      // Currently backend may ignore the language param and return English; this extra call
+      // will be a no-op (same data) until the backend honors the `language` parameter.
       if (steamLanguage !== "english") {
         const englishResponse = await HydraApi.getResponse<SteamAchievement[]>(
           `/games/${shop}/${objectId}/achievements`,
