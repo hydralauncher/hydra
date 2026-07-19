@@ -141,7 +141,7 @@
     "steamgriddb_artwork_reset": "Arte redefinida para o padrão",
     "classics_hero_layout_warning": "Para exibir o logo e o hero, ative o layout logo + hero na página de jogos clássicos.",
     "classics_hero_layout_open_settings": "Abrir configurações",
-    "custom_assets_not_sync": "Veja como sincronizar suas artes personalizadas"
+    "custom_assets_not_sync": "Suas artes personalizadas não serão sincronizadas com sua conta."
   },
   "header": {
     "minimize": "Minimizar",
@@ -359,7 +359,7 @@
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar backup",
     "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
-    "achievements_not_sync": "Veja como exibir suas conquistas no perfil",
+    "achievements_not_sync": "Suas conquistas não serão sincronizadas com sua conta.",
     "backup_from": "Backup de {{date}}",
     "automatic_backup_from": "Backup automático de {{date}}",
     "enable_automatic_cloud_sync": "Habilitar sincronização automática na nuvem",

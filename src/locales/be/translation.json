@@ -105,6 +105,7 @@
     "decky_plugin_installed": "Decky plugin v{{version}} installed successfully",
     "decky_plugin_installation_failed": "Failed to install Decky plugin: {{error}}",
     "decky_plugin_installation_error": "Error installing Decky plugin: {{error}}",
+    "custom_assets_not_sync": "Вашы карыстальніцкія выявы не будуць сінхранізаваны з вашым уліковым запісам.",
     "confirm": "Confirm",
     "cancel": "Cancel"
   },
@@ -414,7 +415,7 @@
     "no_download_option_info": "No information available",
     "backup_deletion_failed": "Failed to delete backup",
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
-    "achievements_not_sync": "See how to synchronize your achievements",
+    "achievements_not_sync": "Вашы дасягненні не будуць сінхранізаваны з вашым уліковым запісам.",
     "manage_files_description": "Manage which files will be backed up and restored",
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
