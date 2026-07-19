@@ -17,7 +17,11 @@ import { useFocusLayerId, useFocusRegionId } from "../../context";
 import { FocusItem } from "../focus-item";
 import { HorizontalFocusGroup } from "../horizontal-focus-group";
 import { useGamepad } from "../../../hooks";
-import { NavigationAudioService, type FocusOverrides } from "../../../services";
+import {
+  NavigationAudioService,
+  NavigationService,
+  type FocusOverrides,
+} from "../../../services";
 import { useNavigationIsFocused, useNavigationStore } from "../../../stores";
 import { GamepadButtonType } from "../../../types";
 
@@ -445,6 +449,11 @@ export function Tabs<TValue extends string = string>({
         if (!nextItem || nextItem.value === selectedValue) return;
 
         handleSelect(nextItem.value);
+
+        if (itemsFocusable && isCurrentFocusInsideTabList()) {
+          NavigationService.getInstance().setFocus(nextItem.resolvedId);
+        }
+
         NavigationAudioService.getInstance().play("scroll");
       }
     );
@@ -471,6 +480,11 @@ export function Tabs<TValue extends string = string>({
         if (!nextItem || nextItem.value === selectedValue) return;
 
         handleSelect(nextItem.value);
+
+        if (itemsFocusable && isCurrentFocusInsideTabList()) {
+          NavigationService.getInstance().setFocus(nextItem.resolvedId);
+        }
+
         NavigationAudioService.getInstance().play("scroll");
       }
     );
@@ -484,6 +498,8 @@ export function Tabs<TValue extends string = string>({
     findNextEnabledIndex,
     handleSelect,
     isActiveGamepadEvent,
+    isCurrentFocusInsideTabList,
+    itemsFocusable,
     onButtonPressed,
     resolvedItems,
     selectedValue,
@@ -613,8 +629,6 @@ export function Tabs<TValue extends string = string>({
   }, [scrollSelectedTabIntoView, updateIndicator]);
 
   useEffect(() => {
-    if (variant === "segmented") return;
-
     const viewport = tabsViewportRef.current;
     const tabList = tabListRef.current;
 
