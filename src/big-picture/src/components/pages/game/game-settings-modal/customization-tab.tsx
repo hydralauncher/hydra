@@ -491,7 +491,8 @@ export function GameCustomizationSettingsTab({
                 value={selectedAssetTab}
                 defaultValue="icon"
                 onValueChange={handleAssetTabChange}
-                itemsFocusable
+                itemsFocusable={false}
+                manageFocusRegion={false}
                 animateSegmentedIndicator={hasAssetTabsInteracted}
                 variant="segmented"
                 ariaLabel={t("edit_game_modal_assets")}
