@@ -182,6 +182,10 @@ export function GameDetailsContextProvider({
           // Custom shop or no userDetails: no achievements to fetch, clear loading
           if (!abortController.signal.aborted) setAchievementsLoading(false);
         }
+      })
+      .catch(() => {
+        // Shop details fetch failed: clear achievements loading to avoid infinite skeleton
+        if (!abortController.signal.aborted) setAchievementsLoading(false);
       });
 
     if (shop !== "custom") {

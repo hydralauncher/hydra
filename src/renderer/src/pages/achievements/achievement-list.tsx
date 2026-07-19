@@ -43,7 +43,10 @@ export function AchievementList({
   }, [achievements]);
 
   const handleIconError = (achievementName: string) => {
-    setIconErrors((prev) => new Set(prev).add(achievementName));
+    setIconErrors((prev) => {
+      if (prev.has(achievementName)) return prev;
+      return new Set(prev).add(achievementName);
+    });
   };
 
   const getValidatedIcon = useCallback(
