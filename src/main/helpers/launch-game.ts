@@ -329,14 +329,16 @@ export const launchGame = async (
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
   if (process.platform === "win32") {
-    logger.log("Starting preflight check for game launch", { shop, objectId });
-    CommonRedistManager.runPreflight()
-      .then((preflightPassed) => {
-        logger.log("Preflight check result", { passed: preflightPassed });
-      })
-      .catch((error) => {
-        logger.error("Preflight check failed with error", error);
+    try {
+      logger.log("Starting preflight check for game launch", {
+        shop,
+        objectId,
       });
+      const preflightPassed = await CommonRedistManager.runPreflight();
+      logger.log("Preflight check result", { passed: preflightPassed });
+    } catch (error) {
+      logger.error("Preflight check failed with error", error);
+    }
   }
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
