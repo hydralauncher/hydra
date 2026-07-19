@@ -968,7 +968,13 @@ export function GameOptionsModal({
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
           />
-          <div className="game-options-modal__panel">
+          <div
+            className={`game-options-modal__panel${
+              selectedCategory === "assets"
+                ? " game-options-modal__panel--assets"
+                : ""
+            }`}
+          >
             {selectedCategory === "general" && (
               <GeneralSettingsSection
                 {...baseGeneralSettingsProps}

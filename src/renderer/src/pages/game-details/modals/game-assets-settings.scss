@@ -3,6 +3,10 @@
   flex-direction: column;
   gap: 16px;
 
+  .subscription-required-button {
+    margin-top: 8px;
+  }
+
   &__warning {
     display: flex;
     align-items: center;
