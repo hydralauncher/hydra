@@ -40,8 +40,14 @@
       top: 0;
       left: -4px;
       right: -4px;
-      height: 24px;
-      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent);
+      height: 40px;
+      background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.4) 0%,
+        rgba(0, 0, 0, 0.22) 35%,
+        rgba(0, 0, 0, 0.08) 65%,
+        transparent 100%
+      );
       opacity: 0;
       transition: opacity 0.2s ease;
     }
