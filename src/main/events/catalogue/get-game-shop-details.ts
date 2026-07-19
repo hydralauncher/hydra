@@ -14,10 +14,26 @@ import type {
 
 import { registerEvent } from "../register-event";
 import {
+  gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
   levelKeys,
 } from "@main/level";
+import { composeAssetsWithArtwork } from "@shared";
+
+const applyArtworkToAssets = async (
+  shop: GameShop,
+  objectId: string,
+  assets: ShopAssets | null
+): Promise<ShopAssets | null> => {
+  if (!assets) return assets;
+
+  const selection = await gamesArtworkSelectionSublevel.get(
+    levelKeys.game(shop, objectId)
+  );
+
+  return composeAssetsWithArtwork(assets, selection);
+};
 
 interface LaunchboxBasic {
   objectId: string;
@@ -210,7 +226,13 @@ const getGameShopDetails = async (
   if (shop === "custom") return null;
 
   if (shop === "launchbox") {
-    return getLaunchboxShopDetails(objectId, shop, language);
+    const details = await getLaunchboxShopDetails(objectId, shop, language);
+    if (!details) return details;
+
+    return {
+      ...details,
+      assets: await applyArtworkToAssets(shop, objectId, details.assets),
+    };
   }
 
   if (shop === "steam") {
@@ -245,14 +267,16 @@ const getGameShopDetails = async (
       return null;
     });
 
-    if (cachedData) {
-      return {
-        ...cachedData,
-        assets: cachedAssets ?? null,
-      };
-    }
+    const details = cachedData
+      ? { ...cachedData, assets: cachedAssets ?? null }
+      : await appDetails;
 
-    return appDetails;
+    if (!details) return details;
+
+    return {
+      ...details,
+      assets: await applyArtworkToAssets(shop, objectId, details.assets),
+    };
   }
 
   throw new Error("Not implemented");

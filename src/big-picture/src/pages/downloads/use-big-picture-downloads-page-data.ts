@@ -1,8 +1,9 @@
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
 import type { LibraryGame, UserPreferences } from "../../../../types";
 import { getBigPictureDownloadView } from "../../../../types";
-import { addMilliseconds, format } from "date-fns";
+import { addMilliseconds } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DOWNLOADER_NAME, IS_DESKTOP } from "../../constants";
 import {
   getBigPictureGameDetailsPath,
@@ -182,13 +183,19 @@ function getEtaLabel(
   );
 }
 
-function getFinishedAtLabel(timestamp: number | null | undefined) {
+function getFinishedAtLabel(
+  timestamp: number | null | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  formatTime: (date: number | Date | string) => string
+) {
   if (timestamp == null || !Number.isFinite(timestamp)) {
     return "Finished";
   }
 
   try {
-    return `Finished at ${format(new Date(timestamp), "h:mm a")}`;
+    return t("downloads_finished_at", {
+      time: formatTime(new Date(timestamp)),
+    });
   } catch {
     return "Finished";
   }
@@ -197,7 +204,8 @@ function getFinishedAtLabel(timestamp: number | null | undefined) {
 export function useBigPictureDownloadsPageData() {
   const { library, updateLibrary } = useLibrary();
   const { layoutState } = useDownloadLayout();
-  const { formatDistance } = useDate();
+  const { formatDistance, formatTime } = useDate();
+  const { t } = useTranslation("big_picture");
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
   const [renderTick, setRenderTick] = useState(0);
@@ -475,7 +483,11 @@ export function useBigPictureDownloadsPageData() {
       let statusLabel = "Completed";
       let statusTone: DownloadTone = "success";
       let trailingLabel = getDownloadSize(download);
-      let rightStatusLabel = getFinishedAtLabel(download?.timestamp);
+      let rightStatusLabel = getFinishedAtLabel(
+        download?.timestamp,
+        t,
+        formatTime
+      );
       let seedAction: BigPictureDownloadListItem["seedAction"] = null;
 
       if (
@@ -531,7 +543,14 @@ export function useBigPictureDownloadsPageData() {
         game,
       };
     });
-  }, [completedGames, renderTick, seedingStatuses, userPreferences]);
+  }, [
+    completedGames,
+    formatTime,
+    renderTick,
+    seedingStatuses,
+    t,
+    userPreferences,
+  ]);
 
   const hasDownloads = Boolean(
     activeDownload ||

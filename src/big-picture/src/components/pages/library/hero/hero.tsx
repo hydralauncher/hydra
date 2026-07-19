@@ -45,12 +45,17 @@ interface LibraryHeroProps {
 
 const FEATURED_GAME_INTERVAL = 60000;
 
-function getLastPlayedLabel(lastTimePlayed: Date | string | null | undefined) {
+function getLastPlayedLabel(
+  lastTimePlayed: Date | string | null | undefined,
+  language: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   const relativeDate = formatRelativeDate(lastTimePlayed, {
-    fallback: "recently",
+    locale: language,
+    fallback: t("recently_played_fallback", { ns: "big_picture" }),
   });
 
-  return `Last played ${relativeDate}`;
+  return t("last_time_played", { period: relativeDate });
 }
 
 export function LibraryHero({
@@ -60,7 +65,7 @@ export function LibraryHero({
   onToggleFavorite,
   favoriteLoadingGameId = null,
 }: Readonly<LibraryHeroProps>) {
-  const { t } = useTranslation("game_details");
+  const { t, i18n } = useTranslation(["game_details", "big_picture"]);
   const [featuredGameIndex, setFeaturedGameIndex] = useState(0);
   const heroRef = useRef<HTMLElement | null>(null);
   const featuredGame = lastPlayedGames[featuredGameIndex] ?? null;
@@ -96,7 +101,11 @@ export function LibraryHero({
     featuredGame?.achievementCount ??
     0;
   const playtime = getHeroPlaytimeLabel(featuredGame?.playTimeInMilliseconds);
-  const lastPlayedLabel = getLastPlayedLabel(featuredGame?.lastTimePlayed);
+  const lastPlayedLabel = getLastPlayedLabel(
+    featuredGame?.lastTimePlayed,
+    i18n.resolvedLanguage ?? i18n.language ?? "en",
+    t
+  );
   const isFavoriteLoading =
     Boolean(featuredGame) && favoriteLoadingGameId === featuredGame?.id;
   const isPlayable = featuredGame ? isLibraryGamePlayable(featuredGame) : false;
