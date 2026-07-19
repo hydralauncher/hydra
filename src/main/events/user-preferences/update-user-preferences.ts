@@ -38,8 +38,22 @@ const updateUserPreferences = async (
       achievementsKeys.push(key);
     }
 
+    // Preserve unlockedAchievements when clearing cache to avoid re-notifying
     await Promise.all(
-      achievementsKeys.map((key) => gameAchievementsSublevel.del(key))
+      achievementsKeys.map(async (key) => {
+        const cached = await gameAchievementsSublevel.get(key);
+        if (cached?.unlockedAchievements?.length) {
+          await gameAchievementsSublevel.put(key, {
+            ...cached,
+            achievements: [],
+            language: undefined,
+            catalogueValidator: undefined,
+            updatedAt: Date.now(),
+          });
+        } else {
+          await gameAchievementsSublevel.del(key);
+        }
+      })
     );
   }
 
