@@ -46,7 +46,6 @@
     "platforms_label": "Plataformas",
     "consoles_label": "Consolas",
     "show_favorites_first": "Favoritos",
-    "clear_search": "Borrar búsqueda",
     "show_playable_only_tooltip": "Mostrar Solo Jugable",
     "custom_game_modal": "Añadir juego personalizado",
     "custom_game_modal_description": "Añadí un juego personalizado a tu librería seleccionando el ejecutable",
@@ -118,7 +117,6 @@
     "create": "Crear",
     "create_collection": "Crear colección",
     "create_collection_description": "Crea una nueva colección para organizar tus juegos",
-    "create_collection_tooltip": "Crear colección",
     "creating_collection": "Creando...",
     "expand_collections": "Expandir colecciones",
     "expand_games": "Expandir juegos",
@@ -1479,7 +1477,6 @@
     "amount_hours_short": "{{amount}}h",
     "amount_minutes_short": "{{amount}}m",
     "manual_playtime_tooltip": "Este tiempo de juego ha sido modificado manualmente",
-    "all_games": "Todos los Juegos",
     "recently_played": "Jugados Recientemente",
     "favorites": "Favoritos",
     "disk_usage": "Uso de disco",
@@ -1513,8 +1510,7 @@
     "installed_tooltip": "Ejecutable configurado, listo para jugar",
     "importing_classics_title": "Importando tus clásicos",
     "importing_classics_description": "Estamos escaneando tus carpetas de ROMs para traer de vuelta tus clásicos. Esto puede tardar un momento.",
-    "all_consoles": "Todas las consolas",
-    "all_games": "Todos los juegos"
+    "all_consoles": "Todas las consolas"
   },
   "notifications_page": {
     "title": "Notificaciones",
