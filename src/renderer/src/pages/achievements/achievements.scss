@@ -5,6 +5,15 @@ $hero-height: 150px;
 $logo-height: 100px;
 $logo-max-width: 200px;
 
+@keyframes achievements-skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 .achievements {
   display: flex;
   flex-direction: column;
@@ -87,6 +96,10 @@ $logo-max-width: 200px;
     padding: globals.$spacing-unit * 2;
     width: 100%;
     background-color: globals.$background-color;
+
+    &--loading {
+      pointer-events: none;
+    }
   }
 
   &__item {
@@ -106,6 +119,10 @@ $logo-max-width: 200px;
       text-decoration: none;
     }
 
+    &--skeleton {
+      pointer-events: none;
+    }
+
     &-image {
       width: 54px;
       height: 54px;
@@ -115,6 +132,55 @@ $logo-max-width: 200px;
       &--locked {
         filter: grayscale(100%);
       }
+    }
+
+    &-image-skeleton {
+      width: 54px;
+      height: 54px;
+      border-radius: 4px;
+      background: linear-gradient(
+        90deg,
+        globals.$border-color 25%,
+        globals.$dark-background-color 50%,
+        globals.$border-color 75%
+      );
+      background-size: 200% 100%;
+      animation: achievements-skeleton-shimmer 1.5s infinite;
+    }
+
+    &-content-skeleton {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: globals.$spacing-unit;
+    }
+
+    &-title-skeleton {
+      height: 16px;
+      width: 60%;
+      border-radius: 4px;
+      background: linear-gradient(
+        90deg,
+        globals.$border-color 25%,
+        globals.$dark-background-color 50%,
+        globals.$border-color 75%
+      );
+      background-size: 200% 100%;
+      animation: achievements-skeleton-shimmer 1.5s infinite;
+    }
+
+    &-description-skeleton {
+      height: 12px;
+      width: 80%;
+      border-radius: 4px;
+      background: linear-gradient(
+        90deg,
+        globals.$border-color 25%,
+        globals.$dark-background-color 50%,
+        globals.$border-color 75%
+      );
+      background-size: 200% 100%;
+      animation: achievements-skeleton-shimmer 1.5s infinite;
     }
 
     &-content {

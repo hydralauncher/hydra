@@ -9,7 +9,26 @@ import { useState, useCallback, useEffect } from "react";
 
 const FALLBACK_ICON = "/assets/unknown-achievement.png";
 
-const ALLOWED_HOSTNAMES = new Set(["cdn.akamaihd.net", "steamcommunity.com"]);
+const ALLOWED_HOSTNAMES = new Set(["steamcommunity.com"]);
+
+function isAkamaiCdnHostname(hostname: string): boolean {
+  return hostname.endsWith(".akamaihd.net");
+}
+
+function isValidSteamUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") {
+      return false;
+    }
+    return (
+      ALLOWED_HOSTNAMES.has(parsed.hostname) ||
+      isAkamaiCdnHostname(parsed.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
 
 // Icon loading phases for error fallback logic
 const ICON_PHASE = {
@@ -18,18 +37,6 @@ const ICON_PHASE = {
   UNLOCKED_FIRST_ATTEMPT: 0, // unlocked: try icon
   FALLBACK: 2, // both locked/unlocked: use local fallback
 } as const;
-
-function isValidSteamUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "https:") {
-      return false;
-    }
-    return ALLOWED_HOSTNAMES.has(parsed.hostname);
-  } catch {
-    return false;
-  }
-}
 
 interface AchievementListProps {
   achievements: UserAchievement[];
