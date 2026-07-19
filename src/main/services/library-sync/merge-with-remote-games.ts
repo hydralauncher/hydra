@@ -145,7 +145,8 @@ const mergeExistingGame = (
   localGame: Game,
   remoteGame: ProfileGame,
   collectionIds: string[],
-  remoteAddedToLibraryAt: Date | null
+  remoteAddedToLibraryAt: Date | null,
+  canReconcileCustomArtwork: boolean
 ): Game => ({
   ...localGame,
   remoteId: remoteGame.id,
@@ -161,22 +162,26 @@ const mergeExistingGame = (
   achievementCount: remoteGame.achievementCount,
   unlockedAchievementCount: remoteGame.unlockedAchievementCount,
   platform: remoteGame.platform ?? localGame.platform,
-  customIconUrl: reconcileCustomAsset(
-    localGame.customIconUrl,
-    remoteGame.customIconUrl
-  ),
-  customLogoImageUrl: reconcileCustomAsset(
-    localGame.customLogoImageUrl,
-    remoteGame.customLogoImageUrl
-  ),
-  customHeroImageUrl: reconcileCustomAsset(
-    localGame.customHeroImageUrl,
-    remoteGame.customLibraryHeroImageUrl
-  ),
-  customCoverImageUrl: reconcileCustomAsset(
-    localGame.customCoverImageUrl,
-    remoteGame.customLibraryImageUrl
-  ),
+  ...(canReconcileCustomArtwork
+    ? {
+        customIconUrl: reconcileCustomAsset(
+          localGame.customIconUrl,
+          remoteGame.customIconUrl
+        ),
+        customLogoImageUrl: reconcileCustomAsset(
+          localGame.customLogoImageUrl,
+          remoteGame.customLogoImageUrl
+        ),
+        customHeroImageUrl: reconcileCustomAsset(
+          localGame.customHeroImageUrl,
+          remoteGame.customLibraryHeroImageUrl
+        ),
+        customCoverImageUrl: reconcileCustomAsset(
+          localGame.customCoverImageUrl,
+          remoteGame.customLibraryImageUrl
+        ),
+      }
+    : {}),
 });
 
 const createLocalGame = (
@@ -208,7 +213,10 @@ const createLocalGame = (
   customCoverImageUrl: remoteGame.customLibraryImageUrl ?? null,
 });
 
-const mergeRemoteGame = async (remoteGame: ProfileGame) => {
+const mergeRemoteGame = async (
+  remoteGame: ProfileGame,
+  canReconcileCustomArtwork: boolean
+) => {
   const gameKey = levelKeys.game(remoteGame.shop, remoteGame.objectId);
   const localGame = await gamesSublevel.get(gameKey);
   const hasRemoteCollectionField =
@@ -225,12 +233,16 @@ const mergeRemoteGame = async (remoteGame: ProfileGame) => {
         localGame,
         remoteGame,
         collectionIds,
-        remoteAddedToLibraryAt
+        remoteAddedToLibraryAt,
+        canReconcileCustomArtwork
       )
     : createLocalGame(remoteGame, collectionIds, remoteAddedToLibraryAt);
 
   await gamesSublevel.put(gameKey, mergedGame);
-  await syncArtworkSelectionWithRemote(gameKey, localGame, remoteGame);
+
+  if (canReconcileCustomArtwork) {
+    await syncArtworkSelectionWithRemote(gameKey, localGame, remoteGame);
+  }
 
   const localGameShopAsset = await gamesShopAssetsSublevel.get(gameKey);
   await gamesShopAssetsSublevel.put(gameKey, {
@@ -251,9 +263,11 @@ const mergeRemoteGame = async (remoteGame: ProfileGame) => {
 
 export const mergeWithRemoteGames = async () => {
   try {
+    const canReconcileCustomArtwork =
+      HydraApi.isLoggedIn() && HydraApi.hasActiveSubscription();
     const remoteGames = await fetchRemoteGames();
     for (const game of remoteGames) {
-      await mergeRemoteGame(game);
+      await mergeRemoteGame(game, canReconcileCustomArtwork);
     }
   } catch {
     // Keep local library available when remote sync fails.
