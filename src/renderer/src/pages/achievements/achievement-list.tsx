@@ -35,29 +35,41 @@ export function AchievementList({
   const { t } = useTranslation("achievement");
   const { showHydraCloudModal } = useSubscription();
   const { formatDateTime } = useDate();
-  const [iconErrors, setIconErrors] = useState<Set<string>>(new Set());
+  const [iconErrorPhase, setIconErrorPhase] = useState<Record<string, number>>({});
 
   // Clear icon errors when achievements list changes (e.g., language switch)
   useEffect(() => {
-    setIconErrors(new Set());
+    setIconErrorPhase({});
   }, [achievements]);
 
-  const handleIconError = (achievementName: string) => {
-    setIconErrors((prev) => {
-      if (prev.has(achievementName)) return prev;
-      return new Set(prev).add(achievementName);
-    });
-  };
+  const handleIconError = useCallback((achievementName: string) => {
+    setIconErrorPhase((prev) => ({
+      ...prev,
+      [achievementName]: (prev[achievementName] || 0) + 1,
+    }));
+  }, []);
 
   const getValidatedIcon = useCallback(
     (achievement: UserAchievement) => {
-      const hasError = iconErrors.has(achievement.name);
+      const phase = iconErrorPhase[achievement.name] || 0;
       let iconUrl: string;
 
-      if (!achievement.unlocked && !hasError) {
-        iconUrl = achievement.icongray || achievement.icon;
+      if (!achievement.unlocked) {
+        // Locked: phase 0 = icongray, phase 1 = icon, phase 2+ = fallback
+        if (phase === 0) {
+          iconUrl = achievement.icongray || achievement.icon;
+        } else if (phase === 1) {
+          iconUrl = achievement.icon;
+        } else {
+          return FALLBACK_ICON;
+        }
       } else {
-        iconUrl = achievement.icon;
+        // Unlocked: phase 0 = icon, phase 1+ = fallback (no icongray available)
+        if (phase === 0) {
+          iconUrl = achievement.icon;
+        } else {
+          return FALLBACK_ICON;
+        }
       }
 
       if (!isValidSteamUrl(iconUrl)) {
@@ -66,7 +78,7 @@ export function AchievementList({
 
       return iconUrl;
     },
-    [iconErrors]
+    [iconErrorPhase]
   );
 
   if (isRefreshing) {
@@ -97,7 +109,7 @@ export function AchievementList({
             src={getValidatedIcon(achievement)}
             alt={achievement.displayName}
             loading="lazy"
-            onError={() => handleIconError(achievement.name)}
+            onError={(e) => handleIconError(achievement.name, e)}
           />
 
           <div className="achievements__item-content">
