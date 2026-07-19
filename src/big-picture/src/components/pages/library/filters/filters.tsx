@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  BumperBadge,
   Button,
   Divider,
   DropdownSelect,
@@ -366,6 +367,8 @@ export function LibraryFilters({
       </HorizontalFocusGroup>
 
       <div className="library-filters__tabs">
+        <BumperBadge label="LB" />
+
         <Tabs
           className="library-filters-tabs"
           items={tabItems}
@@ -375,6 +378,8 @@ export function LibraryFilters({
           itemsFocusable={false}
           ariaLabel="Library filters"
         />
+
+        <BumperBadge label="RB" />
       </div>
     </div>
   );
