@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
   ChevronDownIcon,
@@ -10,6 +9,7 @@ import {
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import type { GameCollection } from "@types";
+import { useCloseOnLibraryScroll } from "./use-close-on-library-scroll";
 import "./collections-filter.scss";
 
 interface CollectionsFilterProps {
@@ -34,7 +34,7 @@ export function CollectionsFilter({
 }: Readonly<CollectionsFilterProps>) {
   const { t } = useTranslation(["library", "sidebar"]);
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useCloseOnLibraryScroll();
 
   const selectedCollection = collections.find(
     (collection) => collection.id === selectedCollectionId
@@ -45,22 +45,6 @@ export function CollectionsFilter({
       ? HeartFillIcon
       : FileDirectoryFillIcon
     : FileDirectoryIcon;
-
-  useEffect(() => {
-    if (!open) return;
-
-    const scrollElement = document.querySelector(".library__games-scroll");
-    if (!scrollElement) return;
-
-    const close = () => setOpen(false);
-    scrollElement.addEventListener("wheel", close, { passive: true });
-    scrollElement.addEventListener("scroll", close, { passive: true });
-
-    return () => {
-      scrollElement.removeEventListener("wheel", close);
-      scrollElement.removeEventListener("scroll", close);
-    };
-  }, [open]);
 
   return (
     <DropdownMenuPrimitive.Root

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { ChevronDownIcon } from "@primer/octicons-react";
+import { useCloseOnLibraryScroll } from "./use-close-on-library-scroll";
 import "./library-select.scss";
 
 interface LibrarySelectOption {
@@ -23,25 +23,9 @@ export function LibrarySelect({
   disabled = false,
   ariaLabel,
 }: Readonly<LibrarySelectProps>) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useCloseOnLibraryScroll();
 
   const selected = options.find((option) => option.value === value);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const scrollElement = document.querySelector(".library__games-scroll");
-    if (!scrollElement) return;
-
-    const close = () => setOpen(false);
-    scrollElement.addEventListener("wheel", close, { passive: true });
-    scrollElement.addEventListener("scroll", close, { passive: true });
-
-    return () => {
-      scrollElement.removeEventListener("wheel", close);
-      scrollElement.removeEventListener("scroll", close);
-    };
-  }, [open]);
 
   return (
     <DropdownMenuPrimitive.Root

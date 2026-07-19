@@ -5,6 +5,7 @@ import type {
   LibraryGame,
 } from "@types";
 
+import { EMULATOR_ICONS } from "./pages/settings/emulation/emulator-icons";
 import Color from "color";
 import i18next from "i18next";
 import { v4 as uuidv4 } from "uuid";
@@ -55,6 +56,27 @@ export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
   ps1: "duckstation",
   ps2: "pcsx2",
   ps3: "rpcs3",
+};
+
+export const CLASSICS_PLATFORM_LABELS: Record<EmulatorSystem, string> = {
+  ps1: "PS",
+  ps2: "PS2",
+  ps3: "PS3",
+};
+
+export const getClassicsPlatformDetails = (
+  platform?: string | null
+): {
+  system: EmulatorSystem | null;
+  label: string | null;
+  emulatorIcon: string | undefined;
+} => {
+  const system = platformToSystem(platform);
+  return {
+    system,
+    label: system ? CLASSICS_PLATFORM_LABELS[system] : null,
+    emulatorIcon: system ? EMULATOR_ICONS[SYSTEM_TO_BINARY[system]] : undefined,
+  };
 };
 
 export const formatDownloadProgress = (
