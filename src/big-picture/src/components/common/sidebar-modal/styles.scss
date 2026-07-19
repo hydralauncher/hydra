@@ -96,7 +96,10 @@
   font-size: 0.875rem;
   font-weight: 400;
   line-height: 1.2;
-  transition: color 0.16s ease;
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
 
   &:focus,
   &:focus-visible {
@@ -112,6 +115,15 @@
     color: var(--text);
   }
 
+  &:not([data-active="true"]):hover:not(:disabled),
+  &:not([data-active="true"])[data-focus-visible="true"] {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &[data-focus-visible="true"] {
+    box-shadow: inset 0 0 0 2px var(--primary);
+  }
+
   &:disabled {
     cursor: default;
     opacity: 0.45;
@@ -124,11 +136,12 @@
   right: 0;
   left: 0;
   z-index: 0;
-  background: var(--secondary);
+  background: rgba(255, 255, 255, 0.08);
+  border-left: 3px solid var(--primary);
   pointer-events: none;
 
   &[data-highlighted="true"] {
-    background: color-mix(in srgb, var(--secondary) 85%, white 15%);
+    background: rgba(255, 255, 255, 0.14);
   }
 }
 
