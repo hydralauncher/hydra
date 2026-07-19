@@ -8,11 +8,11 @@ interface EditGameMetadataModalProps {
   visible: boolean;
   onClose: () => void;
   game: LibraryGame | null;
-  onSave: (gameId: string, metadata: GameMetadata) => void;
+  onSave: (gameId: string, metadata: GameMetadata) => Promise<void>;
 }
 
 interface GameMetadata {
-  title: string;
+  userTitle: string;
   userDescription: string | null;
   userReleaseDate: Date | null;
   userDeveloper: string | null;
@@ -31,25 +31,25 @@ export function EditGameMetadataModal({
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
-  const [title, setTitle] = useState("");
+  const [userTitle, setUserTitle] = useState("");
   const [userDescription, setUserDescription] = useState("");
   const [userReleaseDate, setUserReleaseDate] = useState("");
   const [userDeveloper, setUserDeveloper] = useState("");
   const [userPublisher, setUserPublisher] = useState("");
   const [userRating, setUserRating] = useState("");
-  const [userScreenshots, setUserScreenshots] = useState<string[]>([]);
+  const [userScreenshots, setUserScreenshots] = useState<{ id: string; url: string }[]>([]);
 
   useEffect(() => {
     if (visible && game) {
-      setTitle(game.title || "");
+      setUserTitle(game.userTitle || game.title || "");
       setUserDescription(game.userDescription || "");
       setUserReleaseDate(game.userReleaseDate ? new Date(game.userReleaseDate).toISOString().split("T")[0] : "");
       setUserDeveloper(game.userDeveloper || "");
       setUserPublisher(game.userPublisher || "");
       setUserRating(game.userRating ? game.userRating.toString() : "");
-      setUserScreenshots(game.userScreenshots || []);
+      setUserScreenshots((game.userScreenshots || []).map((url, index) => ({ id: `existing-${index}`, url })));
     } else if (!visible) {
-      setTitle("");
+      setUserTitle("");
       setUserDescription("");
       setUserReleaseDate("");
       setUserDeveloper("");
@@ -66,7 +66,7 @@ export function EditGameMetadataModal({
   const handleSave = useCallback(async () => {
     if (!game) return;
 
-    if (!title.trim()) {
+    if (!userTitle.trim()) {
       showErrorToast(t("edit_game_modal_fill_required"));
       return;
     }
@@ -75,25 +75,26 @@ export function EditGameMetadataModal({
 
     try {
       const metadata: GameMetadata = {
-        title: title.trim(),
+        userTitle: userTitle.trim(),
         userDescription: userDescription.trim() || null,
         userReleaseDate: userReleaseDate ? new Date(userReleaseDate) : null,
         userDeveloper: userDeveloper.trim() || null,
         userPublisher: userPublisher.trim() || null,
-        userRating: userRating ? parseFloat(userRating) : null,
-        userScreenshots: userScreenshots.length > 0 ? userScreenshots : null,
+        userRating: userRating ? Number.parseFloat(userRating) : null,
+        userScreenshots: userScreenshots.length > 0 ? userScreenshots.map((s) => s.url) : null,
         hasManuallyUpdatedMetadata: true,
       };
 
-      onSave(game.id, metadata);
+      await onSave(game.id, metadata);
       showSuccessToast(t("edit_game_modal_success"));
       handleClose();
     } catch (error) {
+      console.error("Failed to save game metadata:", error);
       showErrorToast(t("edit_game_modal_failed"));
     } finally {
       setIsSaving(false);
     }
-  }, [game, title, userDescription, userReleaseDate, userDeveloper, userPublisher, userRating, userScreenshots, onSave, showSuccessToast, showErrorToast, t, handleClose]);
+  }, [game, userTitle, userDescription, userReleaseDate, userDeveloper, userPublisher, userRating, userScreenshots, onSave, showSuccessToast, showErrorToast, t, handleClose]);
 
   const handleAddScreenshot = useCallback(() => {
     const input = document.createElement("input");
@@ -103,15 +104,18 @@ export function EditGameMetadataModal({
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files) {
-        const newScreenshots = Array.from(files).map((file) => URL.createObjectURL(file));
+        const newScreenshots = Array.from(files).map((file, index) => ({
+          id: `new-${Date.now()}-${index}`,
+          url: URL.createObjectURL(file),
+        }));
         setUserScreenshots((prev) => [...prev, ...newScreenshots]);
       }
     };
     input.click();
   }, []);
 
-  const handleRemoveScreenshot = useCallback((index: number) => {
-    setUserScreenshots((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveScreenshot = useCallback((id: string) => {
+    setUserScreenshots((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
   if (!visible) return null;
@@ -128,8 +132,8 @@ export function EditGameMetadataModal({
           <TextField
             label={t("edit_game_modal_title")}
             placeholder={t("edit_game_modal_enter_title")}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            value={userTitle}
+            onChange={(e) => setUserTitle(e.target.value)}
             theme="dark"
             maxLength={200}
           />
@@ -196,13 +200,13 @@ export function EditGameMetadataModal({
         <div className="edit-game-metadata-modal__field">
           <label className="edit-game-metadata-modal__label">{t("edit_game_modal_screenshots")}</label>
           <div className="edit-game-metadata-modal__screenshots">
-            {userScreenshots.map((screenshot, index) => (
-              <div key={index} className="edit-game-metadata-modal__screenshot-item">
-                <img src={screenshot} alt={`${t("edit_game_modal_screenshot")} ${index + 1}`} />
+            {userScreenshots.map((screenshot) => (
+              <div key={screenshot.id} className="edit-game-metadata-modal__screenshot-item">
+                <img src={screenshot.url} alt={t("edit_game_modal_screenshot")} />
                 <button
                   type="button"
                   className="edit-game-metadata-modal__remove-screenshot"
-                  onClick={() => handleRemoveScreenshot(index)}
+                  onClick={() => handleRemoveScreenshot(screenshot.id)}
                   aria-label={t("edit_game_modal_remove_screenshot")}
                 >
                   ×
@@ -233,7 +237,7 @@ export function EditGameMetadataModal({
             type="button"
             theme="primary"
             onClick={handleSave}
-            disabled={isSaving || !title.trim()}
+            disabled={isSaving || !userTitle.trim()}
           >
             {isSaving ? t("edit_game_modal_saving") : t("edit_game_modal_save")}
           </Button>

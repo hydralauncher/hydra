@@ -96,6 +96,7 @@ export interface Game {
   userPublisher?: string | null;
   userRating?: number | null;
   userScreenshots?: string[] | null;
+  userTitle?: string | null;
   hasManuallyUpdatedMetadata?: boolean;
 }
 

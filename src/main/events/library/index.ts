@@ -52,6 +52,7 @@ import "./set-game-artwork-selection";
 import "./update-launch-options";
 import "./verify-executable-path";
 import "./update-game-metadata";
+import "./save-user-screenshots";
 import "./delete-steam-shortcut";
 import "./check-steam-shortcut";
 

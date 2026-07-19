@@ -56,9 +56,14 @@ export function FilterOptions({
             label: t("sort_title_desc"),
           },
           {
-            key: "release-date",
-            value: "release_date",
-            label: t("sort_release_date"),
+            key: "release-date-asc",
+            value: "release_date_asc",
+            label: t("sort_release_date_asc"),
+          },
+          {
+            key: "release-date-desc",
+            value: "release_date_desc",
+            label: t("sort_release_date_desc"),
           },
         ]}
       />

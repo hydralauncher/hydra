@@ -525,15 +525,25 @@ export default function Library() {
         }
 
         case "release_date_asc": {
-          const aDate = a.userReleaseDate ? new Date(a.userReleaseDate).getTime() : (a.releaseDate ? new Date(a.releaseDate).getTime() : 0);
-          const bDate = b.userReleaseDate ? new Date(b.userReleaseDate).getTime() : (b.releaseDate ? new Date(b.releaseDate).getTime() : 0);
+          const getReleaseDate = (game: LibraryGame): number => {
+            if (game.userReleaseDate) return new Date(game.userReleaseDate).getTime();
+            if (game.releaseDate) return new Date(game.releaseDate).getTime();
+            return 0;
+          };
+          const aDate = getReleaseDate(a);
+          const bDate = getReleaseDate(b);
           if (aDate !== bDate) return aDate - bDate;
           break;
         }
 
         case "release_date_desc": {
-          const aDate = a.userReleaseDate ? new Date(a.userReleaseDate).getTime() : (a.releaseDate ? new Date(a.releaseDate).getTime() : 0);
-          const bDate = b.userReleaseDate ? new Date(b.userReleaseDate).getTime() : (b.releaseDate ? new Date(b.releaseDate).getTime() : 0);
+          const getReleaseDate = (game: LibraryGame): number => {
+            if (game.userReleaseDate) return new Date(game.userReleaseDate).getTime();
+            if (game.releaseDate) return new Date(game.releaseDate).getTime();
+            return 0;
+          };
+          const aDate = getReleaseDate(a);
+          const bDate = getReleaseDate(b);
           if (aDate !== bDate) return bDate - aDate;
           break;
         }

@@ -367,6 +367,7 @@ declare global {
       userPublisher?: string | null;
       userRating?: number | null;
       userScreenshots?: string[] | null;
+      userTitle?: string | null;
       hasManuallyUpdatedMetadata?: boolean;
     }) => Promise<LibraryGame | null>;
     getGamesRunning: () => Promise<

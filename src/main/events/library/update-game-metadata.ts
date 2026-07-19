@@ -12,6 +12,7 @@ interface UpdateGameMetadataParams {
   userPublisher?: string | null;
   userRating?: number | null;
   userScreenshots?: string[] | null;
+  userTitle?: string | null;
   hasManuallyUpdatedMetadata?: boolean;
 }
 
@@ -28,6 +29,7 @@ const updateGameMetadata = async (
     userPublisher,
     userRating,
     userScreenshots,
+    userTitle,
     hasManuallyUpdatedMetadata,
   } = params;
 
@@ -46,6 +48,7 @@ const updateGameMetadata = async (
     ...(userPublisher !== undefined && { userPublisher }),
     ...(userRating !== undefined && { userRating }),
     ...(userScreenshots !== undefined && { userScreenshots }),
+    ...(userTitle !== undefined && { userTitle }),
     ...(hasManuallyUpdatedMetadata !== undefined && { hasManuallyUpdatedMetadata: true }),
   };
 

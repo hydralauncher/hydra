@@ -65,6 +65,7 @@ export const librarySlice = createSlice({
       action: PayloadAction<{
         gameId: string;
         metadata: Partial<{
+          userTitle: string | null;
           userDescription: string | null;
           userReleaseDate: Date | null;
           userDeveloper: string | null;

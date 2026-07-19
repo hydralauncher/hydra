@@ -741,6 +741,7 @@ contextBridge.exposeInMainWorld("electron", {
     userPublisher?: string | null;
     userRating?: number | null;
     userScreenshots?: string[] | null;
+    userTitle?: string | null;
     hasManuallyUpdatedMetadata?: boolean;
   }) => ipcRenderer.invoke("updateGameMetadata", params),
   resetGameAchievements: (shop: GameShop, objectId: string) =>

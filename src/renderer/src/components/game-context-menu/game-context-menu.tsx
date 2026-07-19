@@ -28,9 +28,14 @@ import {
 } from "..";
 import { useGameCollections, useToast, useUserDetails } from "@renderer/hooks";
 import { EditGameMetadataModal } from "./edit-game-metadata-modal";
+import { useAppDispatch } from "@renderer/hooks";
+import { updateGameMetadata } from "@renderer/features/library-slice";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
-  game: LibraryGame;
+  readonly game: LibraryGame;
+  readonly visible: boolean;
+  readonly position: { x: number; y: number };
+  readonly onClose: () => void;
 }
 
 const getGameCollectionIds = (currentGame: LibraryGame): string[] => {
@@ -55,6 +60,7 @@ export function GameContextMenu({
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
+  const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const [showConfirmRemoveLibrary, setShowConfirmRemoveLibrary] =
     useState(false);
@@ -196,7 +202,7 @@ const [showCreateCollectionModal, setShowCreateCollectionModal] =
   const handleSaveMetadata = async (
     _gameId: string,
     metadata: {
-      title: string;
+      userTitle: string;
       userDescription: string | null;
       userReleaseDate: Date | null;
       userDeveloper: string | null;
@@ -210,6 +216,7 @@ const [showCreateCollectionModal, setShowCreateCollectionModal] =
       await window.electron.updateGameMetadata({
         shop: game.shop,
         objectId: game.objectId,
+        userTitle: metadata.userTitle,
         userDescription: metadata.userDescription,
         userReleaseDate: metadata.userReleaseDate,
         userDeveloper: metadata.userDeveloper,
@@ -218,8 +225,25 @@ const [showCreateCollectionModal, setShowCreateCollectionModal] =
         userScreenshots: metadata.userScreenshots,
         hasManuallyUpdatedMetadata: metadata.hasManuallyUpdatedMetadata,
       });
+
+      // Dispatch Redux action to update local state immediately
+      dispatch(
+        updateGameMetadata({
+          gameId: game.id,
+          metadata: {
+            userTitle: metadata.userTitle,
+            userDescription: metadata.userDescription,
+            userReleaseDate: metadata.userReleaseDate,
+            userDeveloper: metadata.userDeveloper,
+            userPublisher: metadata.userPublisher,
+            userRating: metadata.userRating,
+            userScreenshots: metadata.userScreenshots,
+            hasManuallyUpdatedMetadata: metadata.hasManuallyUpdatedMetadata,
+          },
+        })
+      );
     } catch (error) {
-      void error;
+      console.error("Failed to update game metadata:", error);
       throw error;
     }
   };
