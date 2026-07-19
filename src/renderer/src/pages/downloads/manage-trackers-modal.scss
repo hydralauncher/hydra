@@ -1,0 +1,47 @@
+@use "../../scss/globals.scss";
+
+.manage-trackers-modal {
+  &__container {
+    display: flex;
+    flex-direction: column;
+    min-height: 520px;
+    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 16px;
+  }
+
+  &__textarea {
+    flex: 1;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    background: globals.$dark-background-color;
+    color: #dadbe1;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    resize: none;
+
+    &:focus {
+      outline: none;
+      border-color: #dadbe1;
+    }
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
+    flex-shrink: 0;
+  }
+}
