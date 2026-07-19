@@ -111,7 +111,7 @@ export function AchievementList({
             src={getValidatedIcon(achievement)}
             alt={achievement.displayName}
             loading="lazy"
-            onError={(e) => handleIconError(achievement.name, e)}
+            onError={() => handleIconError(achievement.name)}
           />
 
           <div className="achievements__item-content">
