@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { isVideoArtworkUrl } from "@renderer/hooks";
 import {
+  BumperBadge,
   FileExplorerModal,
   FocusItem,
   Input,
@@ -482,17 +483,24 @@ export function GameCustomizationSettingsTab({
                 : " game-customization-settings-tab__section-content--with-picker"
             }`}
           >
-            <Tabs
-              items={assetTabItems}
-              value={selectedAssetTab}
-              defaultValue="icon"
-              onValueChange={handleAssetTabChange}
-              itemsFocusable
-              animateSegmentedIndicator={hasAssetTabsInteracted}
-              variant="segmented"
-              ariaLabel={t("edit_game_modal_assets")}
-              className="game-customization-settings-tab__asset-tabs"
-            />
+            <div className="game-customization-settings-tab__asset-tabs-row">
+              <BumperBadge label="LB" />
+
+              <Tabs
+                items={assetTabItems}
+                value={selectedAssetTab}
+                defaultValue="icon"
+                onValueChange={handleAssetTabChange}
+                itemsFocusable={false}
+                manageFocusRegion={false}
+                animateSegmentedIndicator={hasAssetTabsInteracted}
+                variant="segmented"
+                ariaLabel={t("edit_game_modal_assets")}
+                className="game-customization-settings-tab__asset-tabs"
+              />
+
+              <BumperBadge label="RB" />
+            </div>
 
             <div className="game-customization-settings-tab__asset-preview">
               <FocusItem

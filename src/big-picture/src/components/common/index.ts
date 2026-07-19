@@ -1,6 +1,7 @@
 export * from "./accordion";
 export * from "./animated-hero-image";
 export * from "./backdrop";
+export * from "./bumper-badge";
 export * from "./button";
 export * from "./checkbox";
 export * from "./challenge-game-card";

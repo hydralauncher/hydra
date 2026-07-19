@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useLayoutEffect, useMemo, useState } from "react";
 import { LIBRARY_FOCUS_GRID_REGION_ID } from "../navigation";
 
 const GRID_NARROW_CARD_MIN_WIDTH = 260;
@@ -63,13 +63,18 @@ function calcNarrowGap(viewportWidth: number) {
   return viewportWidth <= 720 ? 16 : GRID_NARROW_COLUMN_GAP;
 }
 
-export function useLibraryGridLayout(itemCount: number) {
-  const [layout, setLayout] = useState<LibraryGridLayout>({
-    columnCount: 1,
-    columnGap: GRID_NARROW_COLUMN_GAP,
-  });
+function getInitialLayout(): LibraryGridLayout {
+  if (typeof globalThis.innerWidth !== "number") {
+    return { columnCount: 1, columnGap: GRID_NARROW_COLUMN_GAP };
+  }
 
-  useEffect(() => {
+  return getLayoutForViewport(globalThis.innerWidth, 0);
+}
+
+export function useLibraryGridLayout(itemCount: number) {
+  const [layout, setLayout] = useState<LibraryGridLayout>(getInitialLayout);
+
+  useLayoutEffect(() => {
     if (itemCount === 0) return;
 
     const gridElement = globalThis.document.querySelector(
