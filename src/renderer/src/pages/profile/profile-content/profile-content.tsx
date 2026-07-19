@@ -90,6 +90,11 @@ export function ProfileContent() {
   const [statsIndex, setStatsIndex] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
   const [platform, setPlatform] = useState<ProfilePlatform>("all");
+  const effectiveSortBy = userProfile?.hasActiveSubscription
+    ? sortBy
+    : sortBy === "achievementCount"
+      ? "playedRecently"
+      : sortBy;
 
   const shops = useMemo<string[]>(() => {
     if (platform === "pc") return ["steam"];
@@ -135,9 +140,9 @@ export function ProfileContent() {
 
   useEffect(() => {
     if (userProfile) {
-      getUserLibraryGames(sortBy, true, shops);
+      getUserLibraryGames(effectiveSortBy, true, shops);
     }
-  }, [sortBy, shops, getUserLibraryGames, userProfile]);
+  }, [effectiveSortBy, shops, getUserLibraryGames, userProfile]);
 
   useEffect(() => {
     if (userProfile) {
@@ -151,14 +156,14 @@ export function ProfileContent() {
       hasMoreLibraryGames &&
       !isLoadingLibraryGames
     ) {
-      loadMoreLibraryGames(sortBy, shops);
+      loadMoreLibraryGames(effectiveSortBy, shops);
     }
   }, [
     activeTab,
     hasMoreLibraryGames,
     isLoadingLibraryGames,
     loadMoreLibraryGames,
-    sortBy,
+    effectiveSortBy,
     shops,
   ]);
 
@@ -377,7 +382,7 @@ export function ProfileContent() {
             <AnimatePresence mode="wait">
               {activeTab === "library" && (
                 <LibraryTab
-                  sortBy={sortBy}
+                  sortBy={effectiveSortBy}
                   onSortChange={setSortBy}
                   platform={platform}
                   onPlatformChange={setPlatform}
@@ -388,6 +393,9 @@ export function ProfileContent() {
                   userStats={userStats}
                   onLoadMore={handleLoadMore}
                   isMe={isMe}
+                  hasActiveSubscription={Boolean(
+                    userProfile.hasActiveSubscription
+                  )}
                 />
               )}
 
