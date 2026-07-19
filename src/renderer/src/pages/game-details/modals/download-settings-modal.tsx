@@ -5,6 +5,7 @@ import {
   DownloadIcon,
   FileDirectoryIcon,
   FileIcon,
+  GraphIcon,
   PlusIcon,
   SyncIcon,
 } from "@primer/octicons-react";
@@ -44,6 +45,7 @@ import {
 import { Trans, useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
 import "./download-settings-modal.scss";
+import { ManageTrackersModal } from "@renderer/pages/downloads/manage-trackers-modal";
 import { RealDebridInfoModal } from "./real-debrid-info-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { platformToSystem } from "@renderer/helpers";
@@ -60,7 +62,8 @@ export interface DownloadSettingsModalProps {
     fileIndices?: number[],
     selectedFilesSize?: number | null,
     automaticallyDeleteArchiveFiles?: boolean,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    trackers?: string[]
   ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
@@ -287,6 +290,8 @@ export function DownloadSettingsModal({
     new Set()
   );
   const [showTorrentStepModal, setShowTorrentStepModal] = useState(false);
+  const [showTrackerModal, setShowTrackerModal] = useState(false);
+  const [customTrackers, setCustomTrackers] = useState<string[]>([]);
   const [torrentSort, setTorrentSort] = useState<{
     column: TorrentSortColumn;
     direction: TorrentSortDirection;
@@ -990,7 +995,8 @@ export function DownloadSettingsModal({
           selectedFileIndices,
           totalSelectedSize,
           deleteArchiveFilesAfterExtraction,
-          abortController.signal
+          abortController.signal,
+          customTrackers
         );
 
         if (
@@ -1384,17 +1390,33 @@ export function DownloadSettingsModal({
           </div>
 
           {canOpenTorrentStep && (
-            <button
-              type="button"
-              className="download-settings-modal__select-files-link"
-              onClick={() => setShowTorrentStepModal(true)}
-              disabled={downloadStarting}
-            >
-              <FileIcon size={12} />
-              <span className="download-settings-modal__select-files-link-text">
-                {t("select_files_to_download")}
-              </span>
-            </button>
+            <div className="download-settings-modal__torrent-links">
+              <button
+                type="button"
+                className="download-settings-modal__torrent-link"
+                onClick={() => setShowTorrentStepModal(true)}
+                disabled={downloadStarting}
+              >
+                <FileIcon size={12} />
+                <span className="download-settings-modal__torrent-link-text">
+                  {t("select_files_to_download")}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="download-settings-modal__torrent-link"
+                onClick={() => setShowTrackerModal(true)}
+                disabled={downloadStarting}
+              >
+                <GraphIcon size={12} />
+                <span className="download-settings-modal__torrent-link-text">
+                  {customTrackers.length > 0
+                    ? `Trackers (${customTrackers.length})`
+                    : "Manage Trackers"}
+                </span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -1473,6 +1495,13 @@ export function DownloadSettingsModal({
       <RealDebridInfoModal
         visible={showRealDebridModal}
         onClose={() => setShowRealDebridModal(false)}
+      />
+
+      <ManageTrackersModal
+        visible={showTrackerModal}
+        onClose={() => setShowTrackerModal(false)}
+        initialTrackers={customTrackers}
+        onSave={(trackers) => setCustomTrackers(trackers)}
       />
 
       <Modal

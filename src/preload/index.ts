@@ -69,6 +69,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("pauseGameSeed", shop, objectId),
   resumeGameSeed: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resumeGameSeed", shop, objectId),
+  setDownloadTrackers: (shop: GameShop, objectId: string, trackers: string[]) =>
+    ipcRenderer.invoke("setDownloadTrackers", shop, objectId, trackers),
   updateDownloadQueuePosition: (
     shop: GameShop,
     objectId: string,

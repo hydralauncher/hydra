@@ -29,6 +29,7 @@ const startGameDownload = async (
     automaticallyDeleteArchiveFiles,
     fileIndices,
     selectedFilesSize,
+    trackers,
   } = payload;
 
   const gameKey = levelKeys.game(shop, objectId);
@@ -57,6 +58,7 @@ const startGameDownload = async (
     fileIndices,
     selectedFilesSize,
     fileSize: selectedFilesSize ?? null,
+    ...(trackers?.length ? { customTrackers: trackers } : {}),
   };
 
   try {

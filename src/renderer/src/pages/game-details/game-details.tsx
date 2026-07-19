@@ -106,41 +106,27 @@ export default function GameDetails() {
             fileIndices?: number[],
             selectedFilesSize?: number | null,
             automaticallyDeleteArchiveFiles = false,
-            signal?: AbortSignal
+            signal?: AbortSignal,
+            trackers?: string[]
           ) => {
+            const payload = {
+              objectId: objectId!,
+              title: gameTitle,
+              downloader,
+              shop,
+              downloadPath,
+              uri: selectRepackUri(repack, downloader),
+              automaticallyExtract,
+              automaticallyDeleteArchiveFiles,
+              fileSize: repack.fileSize,
+              fileIndices,
+              selectedFilesSize,
+              ...(trackers?.length ? { trackers } : {}),
+            };
+
             const response = addToQueueOnly
-              ? await addGameToQueue(
-                  {
-                    objectId: objectId!,
-                    title: gameTitle,
-                    downloader,
-                    shop,
-                    downloadPath,
-                    uri: selectRepackUri(repack, downloader),
-                    automaticallyExtract,
-                    automaticallyDeleteArchiveFiles,
-                    fileSize: repack.fileSize,
-                    fileIndices,
-                    selectedFilesSize,
-                  },
-                  signal
-                )
-              : await startDownload(
-                  {
-                    objectId: objectId!,
-                    title: gameTitle,
-                    downloader,
-                    shop,
-                    downloadPath,
-                    uri: selectRepackUri(repack, downloader),
-                    automaticallyExtract,
-                    automaticallyDeleteArchiveFiles,
-                    fileSize: repack.fileSize,
-                    fileIndices,
-                    selectedFilesSize,
-                  },
-                  signal
-                );
+              ? await addGameToQueue(payload, signal)
+              : await startDownload(payload, signal);
 
             if (response.ok) {
               await updateGame();

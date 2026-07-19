@@ -91,6 +91,7 @@ torrent_session = lt.session(
     {"listen_interfaces": "0.0.0.0:{port}".format(port=torrent_port)}
 )
 
+
 MAGNET_HASH_HEX_RE = re.compile(r"^[a-fA-F0-9]{40}$")
 MAGNET_HASH_BASE32_RE = re.compile(r"^[a-zA-Z2-7]{32}$")
 
@@ -302,12 +303,14 @@ def start_torrent_download(
     url,
     save_path,
     file_indices=None,
+    trackers=None,
     flags=None,
     metadata_timeout_ms=None,
 ):
     normalized_metadata_timeout_ms = normalize_metadata_timeout_ms(metadata_timeout_ms)
     start_kwargs = {
         "file_indices": file_indices,
+        "trackers": trackers,
     }
     if normalized_metadata_timeout_ms is not None:
         start_kwargs["wait_timeout_seconds"] = normalized_metadata_timeout_ms / 1000
@@ -477,7 +480,7 @@ def action(data: Optional[dict] = None):
     if not action_name:
         raise RpcError("invalid_action")
 
-    requires_game_id = {"start", "pause", "cancel", "resume_seeding", "pause_seeding"}
+    requires_game_id = {"start", "pause", "cancel", "resume_seeding", "pause_seeding", "set_trackers"}
     if action_name in requires_game_id and not game_id:
         raise RpcError("invalid_game_id")
 
@@ -498,6 +501,7 @@ def action(data: Optional[dict] = None):
                     url,
                     save_path,
                     file_indices=file_indices,
+                    trackers=data.get("trackers"),
                     metadata_timeout_ms=data.get("metadata_timeout_ms"),
                 )
             else:
@@ -551,6 +555,12 @@ def action(data: Optional[dict] = None):
 
             for downloader in active_downloaders:
                 apply_download_limit(downloader)
+        elif action_name == "set_trackers":
+            with downloads_lock:
+                downloader = downloads.get(game_id)
+
+            if downloader:
+                downloader.set_trackers(data.get("trackers"))
         elif action_name == "set_network_interface":
             apply_network_interface(
                 normalize_network_interface(data.get("interface"))

@@ -105,6 +105,7 @@ export interface Download {
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];
   selectedFilesSize?: number | null;
+  customTrackers?: string[];
 }
 
 export interface DownloadLayoutState {

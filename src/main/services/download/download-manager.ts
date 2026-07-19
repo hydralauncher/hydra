@@ -1508,6 +1508,7 @@ export class DownloadManager {
             ? download.fileIndices
             : undefined,
           metadata_timeout_ms: hasSelectedFileIndices ? 60_000 : undefined,
+          trackers: download.customTrackers,
         };
       }
       case Downloader.RealDebrid: {

@@ -31,6 +31,7 @@ const addGameToQueue = async (
     fileSize,
     fileIndices,
     selectedFilesSize,
+    trackers,
   } = payload;
 
   const parsedFileSize = parseBytes(fileSize ?? null);
@@ -56,6 +57,7 @@ const addGameToQueue = async (
     automaticallyDeleteArchiveFiles,
     fileIndices,
     selectedFilesSize,
+    ...(trackers?.length ? { customTrackers: trackers } : {}),
   };
 
   try {

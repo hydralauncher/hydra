@@ -19,9 +19,13 @@
     color: globals.$body-color;
   }
 
-  &__select-files-link {
-    align-self: flex-start;
-    margin-top: 6px;
+  &__torrent-links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  &__torrent-link {
     border: none;
     background: transparent;
     padding: 0;
@@ -40,9 +44,13 @@
       opacity: 0.55;
       cursor: not-allowed;
     }
+
+    &:last-child {
+      margin-left: auto;
+    }
   }
 
-  &__select-files-link-text {
+  &__torrent-link-text {
     text-decoration: underline;
     text-underline-offset: 2px;
   }
