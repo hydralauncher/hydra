@@ -259,6 +259,17 @@ export function Sidebar() {
   }, [lastPacket?.gameId, updateLibrary]);
 
   useEffect(() => {
+    const handlePinToggled = () => {
+      void updateLibrary();
+    };
+
+    window.addEventListener("hydra:game-pin-toggled", handlePinToggled);
+    return () => {
+      window.removeEventListener("hydra:game-pin-toggled", handlePinToggled);
+    };
+  }, [updateLibrary]);
+
+  useEffect(() => {
     loadDeckyPluginInfo();
   }, []);
 

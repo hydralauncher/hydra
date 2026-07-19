@@ -15,9 +15,10 @@ import {
   LinkIcon,
   TrashIcon,
   XIcon,
+  PinIcon,
+  PinSlashIcon,
 } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { LibraryGame } from "@types";
 import {
   ContextMenu,
   ContextMenuItemData,
@@ -27,12 +28,15 @@ import {
   useGameActions,
 } from "..";
 import { useGameCollections, useToast, useUserDetails } from "@renderer/hooks";
+import type { GameContextMenuGame } from "./game-context-menu.types";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
-  game: LibraryGame;
+  game: GameContextMenuGame;
+  onPinToggle?: () => void;
+  isPinned?: boolean;
 }
 
-const getGameCollectionIds = (currentGame: LibraryGame): string[] => {
+const getGameCollectionIds = (currentGame: GameContextMenuGame): string[] => {
   if (Array.isArray(currentGame.collectionIds)) {
     return currentGame.collectionIds;
   }
@@ -47,6 +51,8 @@ const FAVORITES_COLLECTION_ID = "__favorites__";
 
 export function GameContextMenu({
   game,
+  onPinToggle,
+  isPinned,
   visible,
   position,
   onClose,
@@ -96,6 +102,7 @@ export function GameContextMenu({
     handleOpenFolder,
     handleOpenDownloadOptions,
     handleOpenDownloadLocation,
+    handleTogglePin,
     handleRemoveFromLibrary,
     handleRemoveFiles,
     handleOpenGameOptions,
@@ -332,6 +339,21 @@ export function GameContextMenu({
       icon: <GearIcon size={16} />,
       disabled: isDeleting,
       submenu: [
+        {
+          id: "pin-game",
+          label:
+            (isPinned ?? game.isPinned ?? false)
+              ? t("unpin_game")
+              : t("pin_game"),
+          icon:
+            (isPinned ?? game.isPinned ?? false) ? (
+              <PinSlashIcon size={16} />
+            ) : (
+              <PinIcon size={16} />
+            ),
+          onClick: onPinToggle ?? handleTogglePin,
+          disabled: isDeleting,
+        },
         ...(game.executablePath
           ? [
               {

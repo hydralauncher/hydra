@@ -294,6 +294,17 @@ export default function Library() {
     setGameContextMenu((prev) => ({ ...prev, visible: false }));
   }, []);
 
+  useEffect(() => {
+    const handlePinToggled = () => {
+      void updateLibrary();
+    };
+
+    window.addEventListener("hydra:game-pin-toggled", handlePinToggled);
+    return () => {
+      window.removeEventListener("hydra:game-pin-toggled", handlePinToggled);
+    };
+  }, [updateLibrary]);
+
   const handleOpenCollectionContextMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>, collection: GameCollection) => {
       event.preventDefault();

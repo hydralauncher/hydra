@@ -19,14 +19,12 @@ import {
   ClockIcon,
   TrophyIcon,
   AlertFillIcon,
-  PinIcon,
-  PinSlashIcon,
   ImageIcon,
 } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
-import { ProgressBar } from "@renderer/components";
+import { ProgressBar, GameContextMenu } from "@renderer/components";
 import "./user-library-game-card.scss";
 
 interface UserLibraryGameCardProps {
@@ -47,8 +45,11 @@ export function UserLibraryGameCard({
   const { showSuccessToast } = useToast();
   const navigate = useNavigate();
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
-  const [isPinning, setIsPinning] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    position: { x: number; y: number };
+  }>({ visible: false, position: { x: 0, y: 0 } });
 
   const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
 
@@ -124,9 +125,23 @@ export function UserLibraryGameCard({
     [numberFormatter, t]
   );
 
-  const toggleGamePinned = async () => {
-    setIsPinning(true);
+  const handleContextMenu = (event: React.MouseEvent) => {
+    if (!isMe) return;
 
+    event.preventDefault();
+    event.stopPropagation();
+
+    setContextMenu({
+      visible: true,
+      position: { x: event.clientX, y: event.clientY },
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu({ visible: false, position: { x: 0, y: 0 } });
+  };
+
+  const toggleGamePinned = async () => {
     try {
       await window.electron.toggleGamePin(
         game.shop,
@@ -136,13 +151,23 @@ export function UserLibraryGameCard({
 
       await getUserLibraryGames(sortBy);
 
+      try {
+        window.dispatchEvent(
+          new CustomEvent("hydra:game-pin-toggled", {
+            detail: { shop: game.shop, objectId: game.objectId },
+          })
+        );
+      } catch (e) {
+        void e;
+      }
+
       if (game.isPinned) {
         showSuccessToast(t("game_removed_from_pinned"));
       } else {
         showSuccessToast(t("game_added_to_pinned"));
       }
     } finally {
-      setIsPinning(false);
+      setContextMenu({ visible: false, position: { x: 0, y: 0 } });
     }
   };
 
@@ -201,31 +226,13 @@ export function UserLibraryGameCard({
           type="button"
           className="user-library-game__cover"
           onClick={() => navigate(buildUserGameDetailsPath(game))}
+          onContextMenu={handleContextMenu}
           onMouseEnter={() => setIsCoverHovered(true)}
           onMouseLeave={() => setIsCoverHovered(false)}
         >
           <div
             className={`user-library-game__overlay${game.shop === "launchbox" && !game.customLibraryImageUrl ? " user-library-game__overlay--classics" : ""}${(game.achievementCount ?? 0) > 0 ? "" : " user-library-game__overlay--no-fade"}`}
           >
-            {isMe && (
-              <div className="user-library-game__actions-container">
-                <button
-                  type="button"
-                  className="user-library-game__pin-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleGamePinned();
-                  }}
-                  disabled={isPinning}
-                >
-                  {game.isPinned ? (
-                    <PinSlashIcon size={12} />
-                  ) : (
-                    <PinIcon size={12} />
-                  )}
-                </button>
-              </div>
-            )}
             <div
               className="user-library-game__playtime"
               data-tooltip-place="top"
@@ -314,6 +321,14 @@ export function UserLibraryGameCard({
           {renderCoverMedia()}
         </button>
       </li>
+      <GameContextMenu
+        game={game}
+        visible={contextMenu.visible}
+        position={contextMenu.position}
+        onClose={handleCloseContextMenu}
+        onPinToggle={toggleGamePinned}
+        isPinned={game.isPinned}
+      />
       <Tooltip
         id={game.objectId}
         style={{
