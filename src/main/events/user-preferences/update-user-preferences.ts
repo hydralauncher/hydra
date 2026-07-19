@@ -22,7 +22,10 @@ const updateUserPreferences = async (
 
   let languageChanged = false;
 
-  if (preferences.language) {
+  if (
+    preferences.language &&
+    preferences.language !== userPreferences?.language
+  ) {
     await db.put<string, string>(levelKeys.language, preferences.language, {
       valueEncoding: "utf8",
     });
