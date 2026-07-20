@@ -19,6 +19,7 @@ export interface BuildLocalGameSnapshotPipelineInput {
   executablePath?: string;
   winePrefixPath?: string;
   steamPath?: string;
+  storeUserId?: string;
   hashCache: LocalFileHashCacheEntry[];
 }
 
@@ -39,6 +40,7 @@ export interface CloudSavePathContext {
   executablePath?: string;
   winePrefixPath?: string;
   steamPath?: string;
+  storeUserId?: string;
 }
 
 export interface RestoreManifestFile {
