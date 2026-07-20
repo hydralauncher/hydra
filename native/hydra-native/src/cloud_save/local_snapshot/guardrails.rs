@@ -9,6 +9,7 @@ use super::types::{BuiltLocalSaveFile, DiscoveredLocalSaveFile};
 
 pub const MAX_SNAPSHOT_FILE_COUNT: usize = 500;
 pub const MAX_SNAPSHOT_TOTAL_SIZE_BYTES: u64 = 2_147_483_647;
+pub const MAX_LOCAL_COPIES_PER_LOGICAL_FILE: usize = 32;
 
 #[derive(Debug, PartialEq)]
 pub struct InitialFileMetadata {
@@ -19,6 +20,7 @@ pub struct InitialFileMetadata {
 #[derive(Debug, PartialEq)]
 pub enum LocalSnapshotGuardError {
     TooManyFiles,
+    TooManyFileCopies,
     SnapshotTooLarge,
     DuplicateFile,
     HashSizeMismatch,
@@ -30,6 +32,7 @@ impl fmt::Display for LocalSnapshotGuardError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
             Self::TooManyFiles => "cloud_save_too_many_files",
+            Self::TooManyFileCopies => "cloud_save_too_many_file_copies",
             Self::SnapshotTooLarge => "cloud_save_snapshot_too_large",
             Self::DuplicateFile => "cloud_save_duplicate_file",
             Self::HashSizeMismatch => "cloud_save_hash_size_mismatch",
@@ -42,18 +45,20 @@ impl fmt::Display for LocalSnapshotGuardError {
 pub fn prepare_snapshot_files(
     files: &[DiscoveredLocalSaveFile],
 ) -> Result<HashMap<String, InitialFileMetadata>, LocalSnapshotGuardError> {
-    if files.len() > MAX_SNAPSHOT_FILE_COUNT {
+    let mut copies_by_logical_path = HashMap::new();
+    for file in files {
+        let copies = copies_by_logical_path
+            .entry((&file.raw_path, &file.relative_path))
+            .or_insert(0_usize);
+        *copies += 1;
+        if *copies > MAX_LOCAL_COPIES_PER_LOGICAL_FILE {
+            return Err(LocalSnapshotGuardError::TooManyFileCopies);
+        }
+    }
+    if copies_by_logical_path.len() > MAX_SNAPSHOT_FILE_COUNT {
         return Err(LocalSnapshotGuardError::TooManyFiles);
     }
 
-    let mut logical_paths = HashSet::with_capacity(files.len());
-    for file in files {
-        if !logical_paths.insert((&file.raw_path, &file.relative_path)) {
-            return Err(LocalSnapshotGuardError::DuplicateFile);
-        }
-    }
-
-    let mut total_size_bytes = 0_u64;
     let mut metadata_by_path = HashMap::with_capacity(files.len());
     for file in files {
         let metadata = fs::metadata(&file.absolute_path)
@@ -62,10 +67,7 @@ pub fn prepare_snapshot_files(
             return Err(LocalSnapshotGuardError::FileMetadataUnavailable);
         }
 
-        total_size_bytes = total_size_bytes
-            .checked_add(metadata.len())
-            .ok_or(LocalSnapshotGuardError::SnapshotTooLarge)?;
-        if total_size_bytes > MAX_SNAPSHOT_TOTAL_SIZE_BYTES {
+        if metadata.len() > MAX_SNAPSHOT_TOTAL_SIZE_BYTES {
             return Err(LocalSnapshotGuardError::SnapshotTooLarge);
         }
 
@@ -106,8 +108,12 @@ pub fn validate_hashed_files(
 pub fn validate_built_files(files: &[BuiltLocalSaveFile]) -> Result<u64, LocalSnapshotGuardError> {
     let mut total_size_bytes = 0_u64;
     let mut size_by_hash = HashMap::new();
+    let mut logical_paths = HashSet::with_capacity(files.len());
 
     for file in files {
+        if !logical_paths.insert((&file.raw_path, &file.relative_path)) {
+            return Err(LocalSnapshotGuardError::DuplicateFile);
+        }
         let size_bytes = file.size_bytes as u64;
         total_size_bytes = total_size_bytes
             .checked_add(size_bytes)
@@ -154,7 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn validates_count_and_logical_identity() {
+    fn validates_logical_count_and_copy_count() {
         let too_many = (0..=MAX_SNAPSHOT_FILE_COUNT)
             .map(|index| discovered("<home>/game", &index.to_string()))
             .collect::<Vec<_>>();
@@ -163,10 +169,16 @@ mod tests {
             Err(LocalSnapshotGuardError::TooManyFiles)
         );
 
-        let file = discovered("<home>/game", "save.dat");
+        let copies = (0..=MAX_LOCAL_COPIES_PER_LOGICAL_FILE)
+            .map(|index| DiscoveredLocalSaveFile {
+                raw_path: "<home>/game".into(),
+                absolute_path: format!("copy-{index}"),
+                relative_path: "save.dat".into(),
+            })
+            .collect::<Vec<_>>();
         assert_eq!(
-            prepare_snapshot_files(&[file.clone(), file]),
-            Err(LocalSnapshotGuardError::DuplicateFile)
+            prepare_snapshot_files(&copies),
+            Err(LocalSnapshotGuardError::TooManyFileCopies)
         );
         assert!(prepare_snapshot_files(&[]).is_ok());
     }

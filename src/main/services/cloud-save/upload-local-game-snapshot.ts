@@ -28,9 +28,14 @@ export const uploadLocalGameSnapshot = async (
   onProgress?: ProgressCallback,
   localSnapshotContext?: LocalGameSnapshotPipelineResult
 ): Promise<UploadLocalGameSnapshotResult> => {
-  const context =
-    localSnapshotContext ??
-    (await buildLocalGameSnapshotContext(objectId, shop));
+  let context = localSnapshotContext;
+  if (!context) {
+    const localBuild = await buildLocalGameSnapshotContext(objectId, shop);
+    if (localBuild.status === "local-conflict") {
+      throw new Error("cloud_save_conflicting_local_copies");
+    }
+    context = localBuild.snapshot;
+  }
   if (context.files.length === 0) {
     return { snapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
   }

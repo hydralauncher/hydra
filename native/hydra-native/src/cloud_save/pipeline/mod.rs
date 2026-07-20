@@ -8,14 +8,17 @@ use napi_derive::napi;
 
 use super::local_snapshot::types::DiscoveredLocalSaveFile;
 use super::local_snapshot::{
-    build_local_game_snapshot, BuildLocalGameSnapshotInput, LocalGameSnapshotWithHash,
+    build_snapshot_outcome, BuildLocalGameSnapshotInput, LocalGameSnapshotBuildOutcome,
 };
 use super::manifest::types::CloudSaveGameId;
 use super::manifest::{get_save_rules_for_game, GetSaveRulesForGameInput};
 use super::path_resolution::{resolve_save_rules, ResolveSaveRulesInput};
 use super::save_scanner::{scan_resolved_save_rules, ScannedCloudSaveRule};
 
-pub use types::BuildLocalGameSnapshotPipelineInput;
+pub use types::{
+    BuildLocalGameSnapshotPipelineInput, LocalGameSnapshotPipelineResult,
+    LocalGameSnapshotPipelineStatus,
+};
 
 const DYNAMIC_PATH_PRIORITY: u8 = 0;
 const STATIC_PATH_PRIORITY: u8 = 1;
@@ -60,20 +63,23 @@ fn collect_discovered_files(
         }
     }
 
-    let mut discovered_by_logical_path = BTreeMap::new();
+    let mut discovered_by_logical_path =
+        BTreeMap::<(String, String), (u8, Vec<DiscoveredLocalSaveFile>)>::new();
 
     for (priority, discovered) in discovered_by_path.into_values() {
         let logical_path = (
             discovered.raw_path.clone(),
             discovered.relative_path.clone(),
         );
-
         match discovered_by_logical_path.entry(logical_path) {
             Entry::Vacant(entry) => {
-                entry.insert((priority, discovered));
+                entry.insert((priority, vec![discovered]));
             }
             Entry::Occupied(mut entry) if priority > entry.get().0 => {
-                entry.insert((priority, discovered));
+                entry.insert((priority, vec![discovered]));
+            }
+            Entry::Occupied(mut entry) if priority == entry.get().0 => {
+                entry.get_mut().1.push(discovered);
             }
             Entry::Occupied(_) => {}
         }
@@ -81,14 +87,14 @@ fn collect_discovered_files(
 
     discovered_by_logical_path
         .into_values()
-        .map(|(_, discovered)| discovered)
+        .flat_map(|(_, discovered)| discovered)
         .collect()
 }
 
 #[napi]
 pub async fn build_local_game_snapshot_pipeline(
     input: BuildLocalGameSnapshotPipelineInput,
-) -> napi::Result<LocalGameSnapshotWithHash> {
+) -> napi::Result<LocalGameSnapshotPipelineResult> {
     let shop = input.shop;
     let object_id = input.object_id;
     let save_rules = get_save_rules_for_game(GetSaveRulesForGameInput {
@@ -119,14 +125,45 @@ pub async fn build_local_game_snapshot_pipeline(
         tokio::task::spawn_blocking(move || collect_discovered_files(scanned_rules))
             .await
             .map_err(|error| Error::from_reason(error.to_string()))?;
+    let physical_file_count = discovered_files.len() as u32;
 
-    build_local_game_snapshot(BuildLocalGameSnapshotInput {
-        game_id: CloudSaveGameId { shop, object_id },
-        manifest_key,
-        files: discovered_files,
-        hash_cache: input.hash_cache,
+    let outcome = tokio::task::spawn_blocking(move || {
+        build_snapshot_outcome(BuildLocalGameSnapshotInput {
+            game_id: CloudSaveGameId { shop, object_id },
+            manifest_key,
+            files: discovered_files,
+            hash_cache: input.hash_cache,
+        })
     })
     .await
+    .map_err(|error| Error::from_reason(error.to_string()))?
+    .map_err(Error::from_reason)?;
+
+    Ok(match outcome {
+        LocalGameSnapshotBuildOutcome::Ready(mut snapshot) => {
+            let consolidated_copy_count = physical_file_count.saturating_sub(snapshot.file_count);
+            let hash_cache = std::mem::take(&mut snapshot.hash_cache);
+            LocalGameSnapshotPipelineResult {
+                status: LocalGameSnapshotPipelineStatus::Ready,
+                snapshot: Some(snapshot),
+                conflicts: vec![],
+                hash_cache,
+                physical_file_count,
+                consolidated_copy_count,
+            }
+        }
+        LocalGameSnapshotBuildOutcome::LocalConflict {
+            conflicts,
+            hash_cache,
+        } => LocalGameSnapshotPipelineResult {
+            status: LocalGameSnapshotPipelineStatus::LocalConflict,
+            snapshot: None,
+            conflicts,
+            hash_cache,
+            physical_file_count,
+            consolidated_copy_count: 0,
+        },
+    })
 }
 
 #[cfg(test)]
@@ -205,6 +242,16 @@ mod tests {
         let files = collect_discovered_files(vec![
             scanned_rule("rule", "/a", "/a/slot.dat", "slot.dat", true),
             scanned_rule("rule", "/b", "/b/profile.dat", "profile.dat", true),
+        ]);
+
+        assert_eq!(files.len(), 2);
+    }
+
+    #[test]
+    fn keeps_same_priority_logical_copies_for_content_comparison() {
+        let files = collect_discovered_files(vec![
+            scanned_rule("rule", "/a", "/a/save.dat", "save.dat", true),
+            scanned_rule("rule", "/b", "/b/save.dat", "save.dat", true),
         ]);
 
         assert_eq!(files.len(), 2);

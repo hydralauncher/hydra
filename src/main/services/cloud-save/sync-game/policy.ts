@@ -17,7 +17,7 @@ export const getSyncAction = (
   state: CloudSaveState,
   remoteChangedSinceAnchor = false
 ): CloudSaveSyncAction => {
-  if (state === "conflict") return "conflict";
+  if (state === "conflict" || state === "local-conflict") return "conflict";
 
   const direction = getSyncDirection(trigger);
 

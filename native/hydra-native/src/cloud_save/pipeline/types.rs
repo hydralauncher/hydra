@@ -1,6 +1,7 @@
 use napi_derive::napi;
 
 use crate::cloud_save::hashing::LocalFileHashCacheEntry;
+use crate::cloud_save::local_snapshot::{LocalGameSnapshotConflict, LocalGameSnapshotWithHash};
 
 #[napi(object)]
 pub struct BuildLocalGameSnapshotPipelineInput {
@@ -19,4 +20,20 @@ pub struct BuildLocalGameSnapshotPipelineInput {
     pub wine_prefix_is_explicit: Option<bool>,
     pub steam_path: Option<String>,
     pub hash_cache: Vec<LocalFileHashCacheEntry>,
+}
+
+#[napi(string_enum = "kebab-case")]
+pub enum LocalGameSnapshotPipelineStatus {
+    Ready,
+    LocalConflict,
+}
+
+#[napi(object)]
+pub struct LocalGameSnapshotPipelineResult {
+    pub status: LocalGameSnapshotPipelineStatus,
+    pub snapshot: Option<LocalGameSnapshotWithHash>,
+    pub conflicts: Vec<LocalGameSnapshotConflict>,
+    pub hash_cache: Vec<LocalFileHashCacheEntry>,
+    pub physical_file_count: u32,
+    pub consolidated_copy_count: u32,
 }

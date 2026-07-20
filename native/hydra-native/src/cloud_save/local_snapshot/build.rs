@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::cloud_save::hashing::types::HashedLocalFile;
 use crate::cloud_save::hashing::{
@@ -8,13 +8,14 @@ use crate::cloud_save::hashing::{
 
 use super::guardrails::{prepare_snapshot_files, validate_built_files, validate_hashed_files};
 use super::types::{
-    BuildLocalGameSnapshotInput, BuiltLocalSaveFile, LocalGameSnapshotFile,
+    BuildLocalGameSnapshotInput, BuiltLocalSaveFile, LocalGameSnapshotBuildOutcome,
+    LocalGameSnapshotConflict, LocalGameSnapshotConflictCopy, LocalGameSnapshotFile,
     LocalGameSnapshotSourceFile, LocalGameSnapshotWithHash,
 };
 
-pub fn build_snapshot(
+pub fn build_snapshot_outcome(
     input: BuildLocalGameSnapshotInput,
-) -> Result<LocalGameSnapshotWithHash, String> {
+) -> Result<LocalGameSnapshotBuildOutcome, String> {
     let initial_metadata =
         prepare_snapshot_files(&input.files).map_err(|error| error.to_string())?;
 
@@ -32,7 +33,7 @@ pub fn build_snapshot(
         .into_iter()
         .map(|file| (file.absolute_path.clone(), file))
         .collect::<HashMap<String, HashedLocalFile>>();
-    let mut built_files = input
+    let built_files = input
         .files
         .into_iter()
         .map(|file| {
@@ -50,14 +51,52 @@ pub fn build_snapshot(
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
-    let total_size_bytes = validate_built_files(&built_files).map_err(|error| error.to_string())?;
+    let mut files_by_logical_path = BTreeMap::<(String, String), Vec<BuiltLocalSaveFile>>::new();
+    for file in built_files {
+        files_by_logical_path
+            .entry((file.raw_path.clone(), file.relative_path.clone()))
+            .or_default()
+            .push(file);
+    }
 
-    built_files.sort_by(|left, right| {
-        left.raw_path
-            .cmp(&right.raw_path)
-            .then(left.relative_path.cmp(&right.relative_path))
-            .then(left.absolute_path.cmp(&right.absolute_path))
-    });
+    let mut conflicts = Vec::new();
+    let mut built_files = Vec::with_capacity(files_by_logical_path.len());
+    for ((raw_path, relative_path), mut copies) in files_by_logical_path {
+        copies.sort_by(|left, right| left.absolute_path.cmp(&right.absolute_path));
+        let first = copies
+            .first()
+            .ok_or_else(|| "cloud_save_empty_logical_file_group".to_string())?;
+        let differs = copies
+            .iter()
+            .any(|copy| copy.hash != first.hash || copy.size_bytes != first.size_bytes);
+
+        if differs {
+            conflicts.push(LocalGameSnapshotConflict {
+                raw_path,
+                relative_path,
+                copies: copies
+                    .into_iter()
+                    .map(|copy| LocalGameSnapshotConflictCopy {
+                        absolute_path: copy.absolute_path,
+                        hash: copy.hash,
+                        size_bytes: copy.size_bytes,
+                        last_modified_at: copy.last_modified_at,
+                    })
+                    .collect(),
+            });
+        } else {
+            built_files.push(copies.remove(0));
+        }
+    }
+
+    if !conflicts.is_empty() {
+        return Ok(LocalGameSnapshotBuildOutcome::LocalConflict {
+            conflicts,
+            hash_cache: hashed.hash_cache,
+        });
+    }
+
+    let total_size_bytes = validate_built_files(&built_files).map_err(|error| error.to_string())?;
 
     let files = built_files
         .iter()
@@ -91,16 +130,29 @@ pub fn build_snapshot(
             .collect(),
     })?;
 
-    Ok(LocalGameSnapshotWithHash {
-        game_id: input.game_id,
-        manifest_key: input.manifest_key,
-        file_count: files.len() as u32,
-        total_size_bytes: total_size_bytes as f64,
-        files,
-        aggregate_hash,
-        source_files,
-        hash_cache: hashed.hash_cache,
-    })
+    Ok(LocalGameSnapshotBuildOutcome::Ready(
+        LocalGameSnapshotWithHash {
+            game_id: input.game_id,
+            manifest_key: input.manifest_key,
+            file_count: files.len() as u32,
+            total_size_bytes: total_size_bytes as f64,
+            files,
+            aggregate_hash,
+            source_files,
+            hash_cache: hashed.hash_cache,
+        },
+    ))
+}
+
+pub fn build_snapshot(
+    input: BuildLocalGameSnapshotInput,
+) -> Result<LocalGameSnapshotWithHash, String> {
+    match build_snapshot_outcome(input)? {
+        LocalGameSnapshotBuildOutcome::Ready(snapshot) => Ok(snapshot),
+        LocalGameSnapshotBuildOutcome::LocalConflict { .. } => {
+            Err("cloud_save_conflicting_local_copies".to_string())
+        }
+    }
 }
 
 #[cfg(test)]
@@ -155,5 +207,75 @@ mod tests {
         assert_eq!(first.source_files.len(), 2);
         assert_eq!(first.aggregate_hash, second.aggregate_hash);
         assert_eq!(first.files[0].size_bytes, 0.0);
+    }
+
+    #[test]
+    fn consolidates_identical_logical_copies_after_hashing() {
+        let temp = tempdir().unwrap();
+        let first_path = temp.path().join("steamuser/save.dat");
+        let second_path = temp.path().join("victor/save.dat");
+        fs::create_dir_all(first_path.parent().unwrap()).unwrap();
+        fs::create_dir_all(second_path.parent().unwrap()).unwrap();
+        fs::write(&first_path, b"same-save").unwrap();
+        fs::write(&second_path, b"same-save").unwrap();
+        let discovered = |path: &std::path::Path| DiscoveredLocalSaveFile {
+            raw_path: "<winAppData>/Game".into(),
+            absolute_path: path.display().to_string(),
+            relative_path: "save.dat".into(),
+        };
+
+        let mirrored = build_snapshot(input(vec![
+            discovered(&first_path),
+            discovered(&second_path),
+        ]))
+        .unwrap();
+        let single = build_snapshot(input(vec![discovered(&first_path)])).unwrap();
+
+        assert_eq!(mirrored.file_count, 1);
+        assert_eq!(mirrored.source_files.len(), 1);
+        assert_eq!(mirrored.total_size_bytes, 9.0);
+        assert_eq!(mirrored.aggregate_hash, single.aggregate_hash);
+    }
+
+    #[test]
+    fn reports_conflicting_logical_copies_and_preserves_hash_cache() {
+        let temp = tempdir().unwrap();
+        let first_path = temp.path().join("steamuser/save.dat");
+        let second_path = temp.path().join("victor/save.dat");
+        fs::create_dir_all(first_path.parent().unwrap()).unwrap();
+        fs::create_dir_all(second_path.parent().unwrap()).unwrap();
+        fs::write(&first_path, b"new-save").unwrap();
+        fs::write(&second_path, b"old-save").unwrap();
+        let discovered = |path: &std::path::Path| DiscoveredLocalSaveFile {
+            raw_path: "<winAppData>/Game".into(),
+            absolute_path: path.display().to_string(),
+            relative_path: "save.dat".into(),
+        };
+
+        let outcome = build_snapshot_outcome(input(vec![
+            discovered(&first_path),
+            discovered(&second_path),
+        ]))
+        .unwrap();
+
+        let LocalGameSnapshotBuildOutcome::LocalConflict {
+            conflicts,
+            hash_cache,
+        } = outcome
+        else {
+            panic!("expected local conflict");
+        };
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0].copies.len(), 2);
+        assert_eq!(hash_cache.len(), 2);
+        assert_eq!(
+            build_snapshot(input(vec![
+                discovered(&first_path),
+                discovered(&second_path),
+            ]))
+            .err()
+            .as_deref(),
+            Some("cloud_save_conflicting_local_copies")
+        );
     }
 }

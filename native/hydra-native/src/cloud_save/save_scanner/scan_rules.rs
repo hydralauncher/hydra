@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 use crate::cloud_save::path_resolution::ResolvedCloudSaveRule;
 
@@ -9,38 +9,40 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
     rules
         .into_iter()
         .map(|rule| {
-            let mut selected_paths = Vec::<ScannedCloudSavePath>::new();
+            let mut scanned_by_root = BTreeMap::<String, ScannedCloudSavePath>::new();
+            let mut seen_files = HashSet::new();
 
             if rule.unresolved_tokens.is_empty() {
                 for candidate in &rule.resolved_paths {
-                    let mut scanned_paths = scan_resolved_path(
+                    let scanned_paths = scan_resolved_path(
                         &candidate.path,
                         candidate.case_sensitive,
                         candidate.scan_root.as_deref(),
                     )?;
-                    let mut seen_absolute_paths = HashSet::new();
-                    let mut seen_relative_paths = HashSet::new();
 
-                    for scanned in &mut scanned_paths {
-                        scanned.files.retain(|file| {
-                            if seen_absolute_paths.contains(&file.absolute_path)
-                                || seen_relative_paths.contains(&file.relative_path)
-                            {
-                                return false;
-                            }
-
-                            seen_absolute_paths.insert(file.absolute_path.clone());
-                            seen_relative_paths.insert(file.relative_path.clone());
-                            true
-                        });
-                    }
-
-                    scanned_paths.retain(|scanned| !scanned.files.is_empty());
-                    if !scanned_paths.is_empty() {
-                        selected_paths = scanned_paths;
-                        break;
+                    for scanned in scanned_paths {
+                        let target = scanned_by_root
+                            .entry(scanned.resolved_path.clone())
+                            .or_insert_with(|| ScannedCloudSavePath {
+                                resolved_path: scanned.resolved_path,
+                                files: Vec::new(),
+                            });
+                        target.files.extend(
+                            scanned
+                                .files
+                                .into_iter()
+                                .filter(|file| seen_files.insert(file.absolute_path.clone())),
+                        );
                     }
                 }
+            }
+
+            for scanned in scanned_by_root.values_mut() {
+                scanned.files.sort_by(|left, right| {
+                    left.relative_path
+                        .cmp(&right.relative_path)
+                        .then(left.absolute_path.cmp(&right.absolute_path))
+                });
             }
 
             Ok(ScannedCloudSaveRule {
@@ -51,7 +53,7 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                 when: rule.when,
                 resolved_paths: rule.resolved_paths,
                 unresolved_tokens: rule.unresolved_tokens,
-                scanned_paths: selected_paths,
+                scanned_paths: scanned_by_root.into_values().collect(),
             })
         })
         .collect()
@@ -93,7 +95,7 @@ mod tests {
     }
 
     #[test]
-    fn deduplicates_same_logical_file_across_store_users() {
+    fn keeps_same_logical_file_across_store_users_for_hashing() {
         let temp = tempdir().unwrap();
         for user in ["Goldberg", "Rune"] {
             let root = temp.path().join(format!(
@@ -109,14 +111,14 @@ mod tests {
         ))
         .unwrap();
 
-        assert_eq!(scanned[0].scanned_paths.len(), 1);
+        assert_eq!(scanned[0].scanned_paths.len(), 2);
         assert_eq!(
             scanned[0]
                 .scanned_paths
                 .iter()
                 .flat_map(|path| &path.files)
                 .count(),
-            1
+            2
         );
     }
 
@@ -148,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    fn prefers_modern_windows_aliases() {
+    fn keeps_distinct_modern_and_legacy_copies_for_hashing() {
         let temp = tempdir().unwrap();
         let cases = [
             ("<winDocuments>/Docs", "Documents/Docs", "My Documents/Docs"),
@@ -178,13 +180,14 @@ mod tests {
                 .flat_map(|path| &path.files)
                 .collect::<Vec<_>>();
 
-            assert_eq!(files.len(), 1);
-            assert!(files[0].absolute_path.contains(modern));
+            assert_eq!(files.len(), 2);
+            assert!(files.iter().any(|file| file.absolute_path.contains(modern)));
+            assert!(files.iter().any(|file| file.absolute_path.contains(legacy)));
         }
     }
 
     #[test]
-    fn active_root_wins_without_mixing_fallback_files() {
+    fn scans_active_and_fallback_roots_without_discarding_unique_files() {
         let temp = tempdir().unwrap();
         let active = temp.path().join("active");
         let fallback = temp.path().join("fallback");
@@ -217,14 +220,14 @@ mod tests {
             unresolved_tokens: vec![],
         }])
         .unwrap();
-        let files = &scanned[0].scanned_paths[0].files;
-        let active = fs::canonicalize(active)
-            .unwrap()
-            .to_string_lossy()
-            .replace('\\', "/");
+        let files = scanned[0]
+            .scanned_paths
+            .iter()
+            .flat_map(|path| &path.files)
+            .collect::<Vec<_>>();
 
-        assert_eq!(files.len(), 1);
-        assert!(files[0].absolute_path.starts_with(&active));
+        assert_eq!(files.len(), 3);
+        assert!(files.iter().any(|file| file.relative_path == "extra.dat"));
     }
 
     #[test]

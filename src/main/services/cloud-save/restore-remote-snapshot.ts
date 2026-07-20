@@ -29,6 +29,8 @@ import {
 const fileKey = (rawPath: string, relativePath: string) =>
   JSON.stringify([rawPath, relativePath]);
 
+const targetKey = (targetPath: string) => targetPath.replaceAll("\\", "/");
+
 const getSnapshotSummary = async (
   snapshotId: string,
   shop: GameShop,
@@ -72,7 +74,7 @@ export const restoreRemoteSnapshot = async (
       ),
   ]);
   emitProgress("resolving", targets.length, targets.length);
-  const skipKeys = new Set<string>();
+  const skipTargets = new Set<string>();
   const restoreTargets: ResolvedRestoreTarget[] = [];
 
   emitProgress("checking", 0, targets.length);
@@ -92,7 +94,7 @@ export const restoreRemoteSnapshot = async (
   );
   for (const [index, target] of targets.entries()) {
     if (skipResults[index]) {
-      skipKeys.add(fileKey(target.rawPath, target.relativePath));
+      skipTargets.add(targetKey(target.targetPath));
     } else {
       restoreTargets.push(target);
     }
@@ -100,10 +102,23 @@ export const restoreRemoteSnapshot = async (
 
   const shouldCleanup = restoreTargets.length > 0;
   try {
-    emitProgress("downloading", 0, restoreTargets.length);
+    const requestedLogicalFiles = Array.from(
+      new Map(
+        restoreTargets.map((target) => [
+          fileKey(target.rawPath, target.relativePath),
+          {
+            rawPath: target.rawPath,
+            relativePath: target.relativePath,
+            hash: target.hash,
+            sizeBytes: target.sizeBytes,
+          },
+        ])
+      ).values()
+    );
+    emitProgress("downloading", 0, requestedLogicalFiles.length);
     const downloadedFiles = await downloadRemoteSnapshotToTemp(
       snapshotId,
-      restoreTargets,
+      requestedLogicalFiles,
       (processedFiles, totalFiles) =>
         emitProgress("downloading", processedFiles, totalFiles)
     );
@@ -151,7 +166,7 @@ export const restoreRemoteSnapshot = async (
 
     const replacements: ReplaceRestoreTarget[] = targets.map((target) => {
       const key = fileKey(target.rawPath, target.relativePath);
-      if (skipKeys.has(key)) {
+      if (skipTargets.has(targetKey(target.targetPath))) {
         return {
           rawPath: target.rawPath,
           relativePath: target.relativePath,
