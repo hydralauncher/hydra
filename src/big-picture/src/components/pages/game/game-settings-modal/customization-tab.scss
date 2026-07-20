@@ -48,6 +48,20 @@
   flex: 0 0 auto;
 }
 
+.game-customization-settings-tab__asset-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 3);
+  width: 100%;
+  min-width: 0;
+}
+
+.game-customization-settings-tab__asset-tabs-row
+  .game-customization-settings-tab__asset-tabs {
+  flex: 1;
+  min-width: 0;
+}
+
 .game-customization-settings-tab__asset-preview {
   display: flex;
   flex: 1;
