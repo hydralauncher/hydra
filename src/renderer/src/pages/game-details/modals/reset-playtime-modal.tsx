@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { Button, Modal } from "@renderer/components";
-import { useToast } from "@renderer/hooks";
 import type { Game } from "@types";
 import "./reset-achievements-modal.scss";
 
@@ -19,13 +18,9 @@ export function ResetPlaytimeModal({
 }: ResetPlaytimeModalProps) {
   const { t } = useTranslation("game_details");
 
-  const { showErrorToast } = useToast();
-
   const handleResetPlaytime = async () => {
     try {
       await resetPlaytime();
-    } catch (error) {
-      showErrorToast(t("reset_playtime_error"));
     } finally {
       onClose();
     }
