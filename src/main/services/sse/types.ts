@@ -1,12 +1,8 @@
-/* Wire payloads for the `/realtime/events` SSE stream. Field names are part of
+/* Payloads carried by realtime WebSocket envelopes. Field names are part of
    the server contract and must stay camelCase, byte-for-byte. */
 
-export interface Connected {
-  heartbeatIntervalSeconds: number;
-}
-
 export interface FriendRequest {
-  friendRequestCount: number;
+  invalidate: "friendRequests";
   senderId?: string;
 }
 
@@ -19,8 +15,9 @@ export interface FriendGameSession {
 export interface FriendPresence {
   friendId: string;
   isOnline: boolean;
+  version: number;
 }
 
 export interface Notification {
-  notificationCount: number;
+  invalidate: "notifications";
 }
