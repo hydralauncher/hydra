@@ -87,6 +87,8 @@ const TOKEN_EXPIRY_SKEW_MS = 30_000;
 const MAX_SEEN_EVENT_IDS = 1_000;
 const SERVICE_RESTART_CLOSE = 1_012;
 const TRY_AGAIN_LATER_CLOSE = 1_013;
+const HANDSHAKE_TIMEOUT_MS = 15_000;
+const DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000;
 
 export const fullJitterDelay = (
   attempt: number,
@@ -240,7 +242,8 @@ export class RealtimeWebSocketClient {
     this.createSocket =
       options.createSocket ??
       ((url, socketOptions) => new WebSocket(url, socketOptions));
-    this.heartbeatIntervalMs = options.heartbeatIntervalMs ?? 30_000;
+    this.heartbeatIntervalMs =
+      options.heartbeatIntervalMs ?? DEFAULT_HEARTBEAT_INTERVAL_MS;
     this.log = options.log ?? console;
   }
 
@@ -437,7 +440,7 @@ export class RealtimeWebSocketClient {
       let alive = true;
       const socket = this.createSocket(credentials.url, {
         headers: { Authorization: `Bearer ${credentials.value}` },
-        handshakeTimeout: 15_000,
+        handshakeTimeout: HANDSHAKE_TIMEOUT_MS,
       });
       this.socket = socket;
       const isActive = () =>
