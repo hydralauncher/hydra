@@ -15,7 +15,10 @@ import {
 import { createPortal } from "react-dom";
 import { IS_BROWSER } from "../../../constants";
 import { useNavigationScreenActions } from "../../../hooks";
-import { useVirtualKeyboardStore } from "../../../stores";
+import {
+  useNavigationIsFocused,
+  useVirtualKeyboardStore,
+} from "../../../stores";
 import { FocusRegionContext } from "../../context";
 import { Backdrop } from "../backdrop";
 import { FocusItem } from "../focus-item";
@@ -62,6 +65,57 @@ interface ActiveTabMetrics {
   height: number;
 }
 
+function SidebarModalTabButton<TabId extends string = string>({
+  tab,
+  focusId,
+  isActive,
+  onActivate,
+  registerElement,
+}: Readonly<{
+  tab: SidebarModalTab<TabId>;
+  focusId: string;
+  isActive: boolean;
+  onActivate: (tabId: TabId) => void;
+  registerElement: (tabId: TabId, element: HTMLButtonElement | null) => void;
+}>) {
+  const isFocused = useNavigationIsFocused(focusId);
+  const wasFocusedRef = useRef(false);
+  const setElement = useCallback(
+    (element: HTMLButtonElement | null) => registerElement(tab.id, element),
+    [registerElement, tab.id]
+  );
+
+  useEffect(() => {
+    const gainedFocus = isFocused && !wasFocusedRef.current;
+
+    if (gainedFocus && !tab.disabled && !isActive) {
+      onActivate(tab.id);
+    }
+
+    wasFocusedRef.current = isFocused;
+  }, [isActive, isFocused, onActivate, tab.disabled, tab.id]);
+
+  return (
+    <FocusItem
+      id={focusId}
+      navigationState={tab.disabled ? "disabled" : "active"}
+      actions={{ primary: () => onActivate(tab.id) }}
+      asChild
+    >
+      <button
+        type="button"
+        ref={setElement}
+        className="sidebar-modal__tab"
+        data-active={isActive || undefined}
+        disabled={tab.disabled}
+        onClick={() => onActivate(tab.id)}
+      >
+        <span className="sidebar-modal__tab-label">{tab.label}</span>
+      </button>
+    </FocusItem>
+  );
+}
+
 export function SidebarModal<TabId extends string = string>({
   visible,
   onClose,
@@ -93,7 +147,6 @@ export function SidebarModal<TabId extends string = string>({
   );
   const [activeTabMetrics, setActiveTabMetrics] =
     useState<ActiveTabMetrics | null>(null);
-  const [highlightedTabId, setHighlightedTabId] = useState<string | null>(null);
   const virtualKeyboardTarget = useVirtualKeyboardStore(
     (state) => state.target
   );
@@ -110,6 +163,7 @@ export function SidebarModal<TabId extends string = string>({
     [modalId]
   );
   const activeTabFocusId = activeTab ? getTabFocusId(activeTab.id) : undefined;
+  const isActiveTabFocused = useNavigationIsFocused(activeTabFocusId ?? "");
   const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
 
   const isTopMostModal = () => {
@@ -135,11 +189,12 @@ export function SidebarModal<TabId extends string = string>({
     [activeTabId, onActiveTabChange]
   );
 
-  const clearHighlightedTab = useCallback((tabId: string) => {
-    setHighlightedTabId((currentTabId) =>
-      currentTabId === tabId ? null : currentTabId
-    );
-  }, []);
+  const registerTabElement = useCallback(
+    (tabId: TabId, element: HTMLButtonElement | null) => {
+      tabElementsRef.current[tabId] = element;
+    },
+    []
+  );
 
   const updateActiveTabMetrics = useCallback(() => {
     if (!visible || !activeTab) {
@@ -338,9 +393,7 @@ export function SidebarModal<TabId extends string = string>({
                     {activeTabMetrics && (
                       <motion.div
                         className="sidebar-modal__tab-active-indicator"
-                        data-highlighted={
-                          highlightedTabId === activeTab?.id || undefined
-                        }
+                        data-highlighted={isActiveTabFocused || undefined}
                         style={{ height: activeTabMetrics.height }}
                         animate={{ y: activeTabMetrics.top }}
                         initial={false}
@@ -351,46 +404,16 @@ export function SidebarModal<TabId extends string = string>({
                       />
                     )}
 
-                    {tabs.map((tab) => {
-                      const isActive = tab.id === activeTab?.id;
-
-                      return (
-                        <FocusItem
-                          key={tab.id}
-                          id={getTabFocusId(tab.id)}
-                          navigationState={tab.disabled ? "disabled" : "active"}
-                          actions={{ primary: () => setActiveTab(tab.id) }}
-                          asChild
-                        >
-                          <button
-                            type="button"
-                            ref={(element) => {
-                              tabElementsRef.current[tab.id] = element;
-                            }}
-                            className="sidebar-modal__tab"
-                            data-active={isActive || undefined}
-                            disabled={tab.disabled}
-                            onClick={() => setActiveTab(tab.id)}
-                            onFocus={() => {
-                              if (!tab.disabled) {
-                                setHighlightedTabId(tab.id);
-                              }
-                            }}
-                            onBlur={() => clearHighlightedTab(tab.id)}
-                            onMouseEnter={() => {
-                              if (tab.id === activeTab?.id) {
-                                setHighlightedTabId(tab.id);
-                              }
-                            }}
-                            onMouseLeave={() => clearHighlightedTab(tab.id)}
-                          >
-                            <span className="sidebar-modal__tab-label">
-                              {tab.label}
-                            </span>
-                          </button>
-                        </FocusItem>
-                      );
-                    })}
+                    {tabs.map((tab) => (
+                      <SidebarModalTabButton
+                        key={tab.id}
+                        tab={tab}
+                        focusId={getTabFocusId(tab.id)}
+                        isActive={tab.id === activeTab?.id}
+                        onActivate={setActiveTab}
+                        registerElement={registerTabElement}
+                      />
+                    ))}
                   </VerticalFocusGroup>
                 </aside>
 

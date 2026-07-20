@@ -142,7 +142,6 @@ export default function Catalogue() {
   }, [filters, deferredTitleFilter]);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
 
   const [results, setResults] = useState<CatalogueSearchResult[]>([]);
   const [resultsMode, setResultsMode] = useState(mode);
@@ -199,26 +198,20 @@ export default function Catalogue() {
               }
             : baseRequest;
 
-        try {
-          const response = await window.electron.hydraApi.post<{
-            edges: CatalogueSearchResult[];
-            count: number;
-          }>("/catalogue/search", {
-            data: requestData,
-            needsAuth: false,
-          });
+        const response = await window.electron.hydraApi.post<{
+          edges: CatalogueSearchResult[];
+          count: number;
+        }>("/catalogue/search", {
+          data: requestData,
+          needsAuth: false,
+        });
 
-          if (requestId !== requestSequenceRef.current) return;
+        if (requestId !== requestSequenceRef.current) return;
 
-          setResults(response.edges);
-          setResultsMode(mode);
-          setItemsCount(response.count);
-          setIsLoading(false);
-        } finally {
-          if (requestId === requestSequenceRef.current) {
-            setIsFetching(false);
-          }
-        }
+        setResults(response.edges);
+        setResultsMode(mode);
+        setItemsCount(response.count);
+        setIsLoading(false);
       },
       500
     )
@@ -236,7 +229,6 @@ export default function Catalogue() {
 
   useEffect(() => {
     const requestId = ++requestSequenceRef.current;
-    setIsFetching(true);
 
     if (!hasResultsRef.current) {
       setIsLoading(true);
@@ -754,10 +746,6 @@ export default function Catalogue() {
             ))
           ) : (
             results.map((game) => <GameItem key={game.id} game={game} />)
-          )}
-
-          {isFetching && !showSkeleton && (
-            <span className="catalogue__result-count">{t("loading")}</span>
           )}
 
           <div className="catalogue__pagination-container">

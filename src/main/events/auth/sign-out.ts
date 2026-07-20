@@ -16,6 +16,8 @@ import {
 } from "@main/level";
 
 const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
+  SSEClient.close();
+
   const databaseOperations = db
     .batch([
       {
@@ -51,8 +53,6 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
     databaseOperations,
     HydraApi.post("/auth/logout").catch(() => {}),
   ]);
-
-  SSEClient.close();
 };
 
 registerEvent("signOut", signOut);
