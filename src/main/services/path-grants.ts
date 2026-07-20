@@ -80,9 +80,15 @@ export class PathGrants {
    *
    * Broken grants are pruned as they are found: a doc-portal id only lapses
    * once, so surfacing it a single time (and dropping it) avoids the same
-   * stale grant re-toasting on every subsequent launch.
+   * stale grant re-toasting on every subsequent launch. Grants in
+   * `skipAccessPaths` are still reported as broken but are left in place —
+   * the caller is already handling them (e.g. a paused download) and they
+   * get re-annotated whenever preferences are saved, so pruning them here
+   * would just strand the next launch's `getDisplayPath` lookup.
    */
-  public static async listBroken(): Promise<PathGrant[]> {
+  public static async listBroken(
+    skipAccessPaths: Set<string> = new Set()
+  ): Promise<PathGrant[]> {
     if (!isFlatpak) return [];
 
     // If the document mount itself is gone (e.g. portal restarted after
@@ -95,7 +101,9 @@ export class PathGrants {
     for await (const grant of pathGrantsSublevel.values()) {
       if (!(await this.verifyAccess(grant.accessPath))) {
         broken.push(grant);
-        await this.removeGrant(grant.accessPath);
+        if (!skipAccessPaths.has(grant.accessPath)) {
+          await this.removeGrant(grant.accessPath);
+        }
       }
     }
 

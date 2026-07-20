@@ -66,7 +66,9 @@ const notifyLostPathGrants = async (pausedDownloadPaths: string[]) => {
   );
 
   const handledAccessPaths = new Set(pausedDownloadPaths);
-  const otherBrokenDisplayPaths = (await PathGrants.listBroken())
+  const otherBrokenDisplayPaths = (
+    await PathGrants.listBroken(handledAccessPaths)
+  )
     .filter((grant) => !handledAccessPaths.has(grant.accessPath))
     .map((grant) => grant.displayPath);
 
