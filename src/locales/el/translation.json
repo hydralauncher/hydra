@@ -982,7 +982,7 @@
     "max_download_speed_unit_megabits": "Mbps",
     "max_download_speed_unlimited": "Απεριόριστο",
     "extract_files_by_default": "Αποσυμπίεση αρχείων από προεπιλογή μετά τη λήψη",
-    "delete_archive_files_after_extraction": "Να διαγράφονται πάντα αυτόματα τα αρχεία αρχειοθέτησης μετά την αποσυμπίεση",
+    "delete_archive_files_after_extraction": "Να διαγράφονται πάντα αυτόματα τα συμπιεσμένα αρχεία μετά την αποσυμπίεση",
     "replace_download_directory": "Αλλαγή του φακέλου λήψης",
     "replace_download_directory_description": "Ο κατάλογος «Big Picture» στον φάκελο λήψεών σας είναι γεμάτος. Επιλέξτε ποιον αποθηκευμένο κατάλογο θέλετε να αντικαταστήσετε με τη νέα προεπιλεγμένη διαδρομή.",
     "new_default_path": "Νέα προεπιλεγμένη διαδρομή",
