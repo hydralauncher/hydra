@@ -189,6 +189,11 @@ export interface UserPreferences {
   bigPictureDiagnosticsPosition?: BigPictureDiagnosticsPosition;
   maxDownloadSpeedBytesPerSecond?: number | null;
   torrentNetworkInterface?: string | null;
+  globalTrackers?: string[];
+  appendGlobalTrackers?: boolean;
+  globalTrackersUrl?: string;
+  appendGlobalTrackersUrl?: boolean;
+  globalTrackersUrlCache?: string[];
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;

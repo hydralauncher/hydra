@@ -106,8 +106,7 @@ export default function GameDetails() {
             fileIndices?: number[],
             selectedFilesSize?: number | null,
             automaticallyDeleteArchiveFiles = false,
-            signal?: AbortSignal,
-            trackers?: string[]
+            signal?: AbortSignal
           ) => {
             const payload = {
               objectId: objectId!,
@@ -121,7 +120,6 @@ export default function GameDetails() {
               fileSize: repack.fileSize,
               fileIndices,
               selectedFilesSize,
-              ...(trackers?.length ? { trackers } : {}),
             };
 
             const response = addToQueueOnly

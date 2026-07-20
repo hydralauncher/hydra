@@ -115,6 +115,12 @@ declare global {
       objectId: string,
       trackers: string[]
     ) => Promise<void>;
+    saveGlobalTrackers: (
+      manual: string[],
+      url: string | null,
+      appendManual: boolean,
+      appendUrl: boolean
+    ) => Promise<{ error?: string }>;
     updateDownloadQueuePosition: (
       shop: GameShop,
       objectId: string,

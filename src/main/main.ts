@@ -84,6 +84,42 @@ export const loadState = async () => {
 
   GofileApi.initialize();
 
+  if (
+    userPreferences?.appendGlobalTrackersUrl &&
+    userPreferences?.globalTrackersUrl
+  ) {
+    fetch(userPreferences.globalTrackersUrl, {
+      signal: AbortSignal.timeout(15000),
+    })
+      .then((res) => res.text())
+      .then((text) => {
+        const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+        const validTrackers = [
+          ...new Set(
+            lines.filter((l) => {
+              try {
+                const p = new URL(l).protocol;
+                return ["http:", "https:", "udp:"].includes(p);
+              } catch {
+                return false;
+              }
+            })
+          ),
+        ];
+        if (validTrackers.length > 0) {
+          db.put(
+            levelKeys.userPreferences,
+            {
+              ...userPreferences,
+              globalTrackersUrlCache: validTrackers,
+            },
+            { valueEncoding: "json" }
+          ).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }
+
   Ludusavi.copyConfigFileToUserData();
   Ludusavi.copyBinaryToUserData();
 

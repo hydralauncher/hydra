@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal } from "@renderer/components";
 import type { GameShop } from "@types";
 import { useForm } from "react-hook-form";
+import { useAppSelector } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 
 import "./manage-trackers-modal.scss";
@@ -35,6 +36,25 @@ export function ManageTrackersModal({
 
   const { t } = useTranslation("downloads");
 
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
+  const globalTrackers = useMemo(() => {
+    return [
+      ...(userPreferences?.appendGlobalTrackers
+        ? userPreferences?.globalTrackers ?? []
+        : []),
+      ...(userPreferences?.appendGlobalTrackersUrl
+        ? userPreferences?.globalTrackersUrlCache ?? []
+        : []),
+    ];
+  }, [userPreferences]);
+
+  const allTier0Trackers = useMemo(() => {
+    return [...new Set([...globalTrackers, ...(initialTrackers ?? [])])];
+  }, [globalTrackers, initialTrackers]);
+
   const { register, handleSubmit, setValue } = useForm<FormValues>();
 
   const onSubmit = async (values: FormValues) => {
@@ -63,10 +83,10 @@ export function ManageTrackersModal({
 
   useEffect(() => {
     if (visible) {
-      setValue("trackers", (initialTrackers ?? []).join("\n"));
+      setValue("trackers", allTier0Trackers.join("\n"));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, setValue]);
+  }, [visible]);
 
   const handleClose = () => {
     if (isLoading) return;
