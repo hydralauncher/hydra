@@ -90,9 +90,8 @@ export function ProfileContent() {
   const [statsIndex, setStatsIndex] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
   const [platform, setPlatform] = useState<ProfilePlatform>("all");
-  const effectiveSortBy = userProfile?.hasActiveSubscription
-    ? sortBy
-    : sortBy === "achievementCount"
+  const effectiveSortBy =
+    !userProfile?.hasActiveSubscription && sortBy === "achievementCount"
       ? "playedRecently"
       : sortBy;
 

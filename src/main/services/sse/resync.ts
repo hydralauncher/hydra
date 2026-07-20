@@ -29,65 +29,76 @@ const sleep = (ms: number, signal: AbortSignal) =>
     signal.addEventListener("abort", onAbort, { once: true });
   });
 
+const broadcastFriendsUpdate = async () => {
+  WindowManager.sendToAppWindows("on-friends-updated");
+};
+
+const syncFriendRequestCount = async (signal: AbortSignal) => {
+  const friendRequests = await HydraApi.get<FriendRequest[]>(
+    "/profile/friend-requests",
+    undefined,
+    { signal }
+  );
+  if (signal.aborted) return;
+  WindowManager.sendToAppWindows("on-sync-friend-requests", {
+    friendRequestCount: friendRequests.filter(
+      (friendRequest) => friendRequest.type === "RECEIVED"
+    ).length,
+  });
+};
+
+const syncNotificationCount = async (signal: AbortSignal) => {
+  const { count } = await HydraApi.get<NotificationCountResponse>(
+    "/profile/notifications/count",
+    undefined,
+    { signal }
+  );
+  if (signal.aborted) return;
+  WindowManager.sendToAppWindows("on-sync-notification-count", {
+    notificationCount: count,
+  });
+};
+
+const SCOPE_TASKS: Record<
+  ResyncScope,
+  {
+    errorMessage: string;
+    task: (signal: AbortSignal) => Promise<void>;
+  }
+> = {
+  friends: {
+    errorMessage: "Failed to broadcast friends update after reconnect:",
+    task: broadcastFriendsUpdate,
+  },
+  friendRequests: {
+    errorMessage: "Failed to resync friend requests:",
+    task: syncFriendRequestCount,
+  },
+  notifications: {
+    errorMessage: "Failed to resync notification count:",
+    task: syncNotificationCount,
+  },
+};
+
 const runResync = async (
   scopes: ReadonlySet<ResyncScope>,
   signal: AbortSignal,
   jitter: boolean
 ) => {
-  let firstError: unknown;
   if (jitter) await sleep(randomInt(RESYNC_JITTER_MS + 1), signal);
-  if (signal.aborted) return;
 
-  if (scopes.has("friends")) {
-    try {
-      if (signal.aborted) return;
-      WindowManager.sendToAppWindows("on-friends-updated");
-    } catch (error) {
-      firstError ??= error;
-      logger.error(
-        "Failed to broadcast friends update after reconnect:",
-        error
-      );
-    }
-  }
+  let firstError: unknown;
+  for (const scope of ALL_SCOPES) {
+    if (signal.aborted) return;
+    if (!scopes.has(scope)) continue;
 
-  if (signal.aborted) return;
-  if (scopes.has("friendRequests")) {
+    const { errorMessage, task } = SCOPE_TASKS[scope];
     try {
-      const friendRequests = await HydraApi.get<FriendRequest[]>(
-        "/profile/friend-requests",
-        undefined,
-        { signal }
-      );
-      if (signal.aborted) return;
-      WindowManager.sendToAppWindows("on-sync-friend-requests", {
-        friendRequestCount: friendRequests.filter(
-          (friendRequest) => friendRequest.type === "RECEIVED"
-        ).length,
-      });
+      await task(signal);
     } catch (error) {
       if (signal.aborted) return;
       firstError ??= error;
-      logger.error("Failed to resync friend requests:", error);
-    }
-  }
-
-  if (signal.aborted) return;
-  if (scopes.has("notifications")) {
-    try {
-      const { count } = await HydraApi.get<NotificationCountResponse>(
-        "/profile/notifications/count",
-        undefined,
-        { signal }
-      );
-      if (signal.aborted) return;
-      WindowManager.sendToAppWindows("on-sync-notification-count", {
-        notificationCount: count,
-      });
-    } catch (error) {
-      if (signal.aborted) return;
-      firstError ??= error;
-      logger.error("Failed to resync notification count:", error);
+      logger.error(errorMessage, error);
     }
   }
 
