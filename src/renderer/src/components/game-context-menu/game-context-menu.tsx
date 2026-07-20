@@ -401,6 +401,13 @@ export function GameContextMenu({
     },
   ];
 
+  let forceOpenSubmenuId: string | undefined;
+  if (showConfirmRemoveLibrary || showConfirmRemoveFiles) {
+    forceOpenSubmenuId = "manage";
+  } else if (isCollectionContextMenuOrModalOpen || showCreateCollectionModal) {
+    forceOpenSubmenuId = "collection";
+  }
+
   return (
     <>
       <ContextMenu
@@ -408,13 +415,7 @@ export function GameContextMenu({
         visible={visible}
         position={position}
         onClose={onClose}
-        forceOpenSubmenuId={
-          showConfirmRemoveLibrary || showConfirmRemoveFiles
-            ? "manage"
-            : isCollectionContextMenuOrModalOpen || showCreateCollectionModal
-              ? "collection"
-              : undefined
-        }
+        forceOpenSubmenuId={forceOpenSubmenuId}
         className={
           !game.executablePath ? "context-menu--game-not-installed" : undefined
         }
