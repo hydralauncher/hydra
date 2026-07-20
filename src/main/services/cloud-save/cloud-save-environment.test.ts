@@ -87,6 +87,29 @@ describe("cloud save environment identity", () => {
     assert.equal(first.prefixIdentityMode, "marker");
   });
 
+  it("changes when the active store user changes", async () => {
+    const root = await createRoot();
+    const prefix = path.join(root, "prefix");
+    await fs.promises.mkdir(prefix, { recursive: true });
+
+    const first = await resolveCloudSaveEnvironment(
+      {
+        ...createContext(root, prefix),
+        storeUserId: "76561198000000001",
+      },
+      { winePrefixIsValid: false }
+    );
+    const second = await resolveCloudSaveEnvironment(
+      {
+        ...createContext(root, prefix),
+        storeUserId: "76561198051718575",
+      },
+      { winePrefixIsValid: false }
+    );
+
+    assert.notEqual(first.environmentId, second.environmentId);
+  });
+
   it(
     "changes when an executable symlink points to a different install",
     { skip: process.platform === "win32" },

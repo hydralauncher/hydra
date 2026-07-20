@@ -59,7 +59,7 @@ fn canonical_target_key(path: &str, case_sensitive: bool) -> String {
 pub fn resolve_restore_targets(
     input: ResolveRestoreTargetsInput,
 ) -> napi::Result<Vec<ResolvedRestoreTarget>> {
-    let context = build_context(&ResolveSaveRulesInput {
+    let mut context = build_context(&ResolveSaveRulesInput {
         shop: input.shop,
         object_id: input.object_id,
         platform: input.platform,
@@ -72,6 +72,7 @@ pub fn resolve_restore_targets(
         rules: Vec::<CloudSaveRule>::new(),
     })
     .map_err(Error::from_reason)?;
+    context.store_user_id = input.store_user_id.clone();
     let case_sensitive_targets = context.platform != "windows";
     let files = input.files;
     let mut root_keys = Vec::with_capacity(files.len());
@@ -166,6 +167,7 @@ mod tests {
             executable_path: Some("D:/Games/Game/game.exe".to_string()),
             wine_prefix_path: None,
             steam_path: None,
+            store_user_id: None,
             files: vec![file],
         }
     }
@@ -264,6 +266,7 @@ mod tests {
             ),
         );
         value.wine_prefix_path = Some(prefix.path().display().to_string());
+        value.store_user_id = Some("76561198051718575".to_string());
         let target = resolve_restore_targets(value).unwrap().remove(0);
         assert!(target.target_path.contains("/Goldberg/savedata/slot.dat"));
 
@@ -290,6 +293,56 @@ mod tests {
         );
         missing.wine_prefix_path = Some(empty_prefix.path().display().to_string());
         assert!(resolve_restore_targets(missing).is_err());
+    }
+
+    #[test]
+    fn materializes_carrion_store_user_in_an_empty_prefix() {
+        let prefix = tempdir().unwrap();
+        fs::create_dir_all(prefix.path().join("drive_c/users/steamuser")).unwrap();
+        let save_path = "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/saves";
+        let settings_path =
+            "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/settings.json";
+        let mut value = input("linux", file(save_path, "backup_0.crn"));
+        for relative_path in [
+            "backup_0.crn.backup",
+            "checkpoint_0.crn",
+            "checkpoint_0.crn.backup",
+            "xmas_special/backup_0.crn",
+            "xmas_special/checkpoint_0.crn",
+            "xmas_special/checkpoint_0.crn.backup",
+        ] {
+            value.files.push(file(save_path, relative_path));
+        }
+        value.files.push(file(settings_path, "settings.json"));
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+        value.store_user_id = Some("76561198051718575".to_string());
+
+        let targets = resolve_restore_targets(value).unwrap();
+
+        assert_eq!(targets.len(), 8);
+        assert!(targets.iter().all(|target| target
+            .target_path
+            .contains("/Carrion/_steam_76561198051718575/")));
+    }
+
+    #[test]
+    fn reports_an_unresolved_store_user_in_an_empty_prefix() {
+        let prefix = tempdir().unwrap();
+        fs::create_dir_all(prefix.path().join("drive_c/users/steamuser")).unwrap();
+        let mut value = input(
+            "linux",
+            file("<home>/Saved Games/Game/<storeUserId>", "save.dat"),
+        );
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+
+        let error = match resolve_restore_targets(value) {
+            Ok(_) => panic!("expected unresolved store user error"),
+            Err(error) => error,
+        };
+
+        assert!(error
+            .to_string()
+            .contains("cloud_save_store_user_id_unresolved"));
     }
 
     #[test]

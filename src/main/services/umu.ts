@@ -8,6 +8,8 @@ import { logsPath } from "@main/constants";
 import { logger } from "./logger";
 import type { ProtonVersion } from "@types";
 import { resolveLaunchCommand } from "@main/helpers/resolve-launch-command";
+import { Wine } from "./wine";
+import { evaluateUmuPrefixPreparation } from "./umu-prefix-preparation";
 
 const isValidProtonDirectory = (directoryPath: string) => {
   const protonFilePath = path.join(directoryPath, "proton");
@@ -267,19 +269,51 @@ export class Umu {
       });
 
       child.once("error", (error) => {
-        finish(() => reject(error));
-      });
-      child.once("exit", (code, signal) => {
         finish(() => {
-          if (code === 0) {
+          logger.error("Failed to start umu-run prefix preparation", {
+            errorName: error.name,
+            errorMessage: error.message,
+            umuLogPath,
+          });
+          reject(error);
+        });
+      });
+      child.once("close", (code, signal) => {
+        finish(() => {
+          let prefixValid = false;
+          try {
+            prefixValid = Wine.validatePrefix(options.winePrefixPath);
+          } catch {
+            prefixValid = false;
+          }
+          const evaluation = evaluateUmuPrefixPreparation(
+            code,
+            signal,
+            prefixValid
+          );
+          if (evaluation.success) {
+            if (evaluation.acceptedNonZeroExit) {
+              logger.warn(
+                "umu-run returned a non-zero exit after preparing a valid prefix",
+                {
+                  code,
+                  signal,
+                  prefixValid,
+                  umuLogPath,
+                }
+              );
+            }
             resolve();
             return;
           }
-          reject(
-            new Error(
-              `umu-run prefix preparation failed with code=${code ?? "null"} signal=${signal ?? "null"}`
-            )
-          );
+          logger.error("umu-run failed to prepare a valid Wine prefix", {
+            code,
+            signal,
+            prefixValid,
+            umuLogPath,
+            errorMessage: evaluation.errorMessage,
+          });
+          reject(new Error(evaluation.errorMessage));
         });
       });
     });

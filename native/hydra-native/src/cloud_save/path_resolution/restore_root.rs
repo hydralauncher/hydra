@@ -163,6 +163,17 @@ fn first_sorted(mut paths: Vec<String>) -> Option<String> {
     paths.into_iter().next()
 }
 
+fn valid_store_user_id(value: &str) -> bool {
+    (5..=20).contains(&value.len()) && value.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+fn concrete_store_user_path(raw_path: &str, store_user_id: &str) -> String {
+    raw_path
+        .replace("*<storeUserId>", store_user_id)
+        .replace("<storeUserId>*", store_user_id)
+        .replace("<storeUserId>", store_user_id)
+}
+
 pub fn resolve_restore_root(
     raw_path: &str,
     context: &PathResolutionContext,
@@ -218,6 +229,22 @@ pub fn resolve_restore_root(
         if let Some(existing) = first_sorted(complete) {
             return Ok(existing);
         }
+    }
+
+    if raw_path.contains("<storeUserId>") {
+        let store_user_id = context
+            .store_user_id
+            .as_deref()
+            .filter(|value| valid_store_user_id(value))
+            .ok_or_else(|| "cloud_save_store_user_id_unresolved".to_string())?;
+        let concrete = concrete_store_user_path(raw_path, store_user_id);
+        let resolved = resolve_path(&concrete, context);
+        for candidate in &resolved.paths {
+            if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
+                return Ok(materialized);
+            }
+        }
+        return Err("cloud_save_restore_root_not_found".to_string());
     }
 
     for candidate in &resolved.paths {
