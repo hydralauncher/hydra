@@ -933,6 +933,14 @@ export function VirtualKeyboardProvider() {
     enter();
   }, [enter, pulseKey]);
 
+  const hotkeyBack = useCallback(() => {
+    const keepFocusOnTarget =
+      target instanceof HTMLElement &&
+      target.dataset.sidebarLibrarySearch === "true";
+
+    closeKeyboard(keepFocusOnTarget);
+  }, [closeKeyboard, target]);
+
   const handleKey = useCallback(
     (key: VirtualKeyboardKey) => {
       const keyId = getKeyId(key);
@@ -999,7 +1007,7 @@ export function VirtualKeyboardProvider() {
     isOpen
       ? {
           press: {
-            b: () => closeKeyboard(false),
+            b: hotkeyBack,
             y: hotkeySpace,
           },
         }

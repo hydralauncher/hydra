@@ -24,7 +24,8 @@ const getStaticImage = async (path: string) => {
     .catch(() => path);
 };
 
-async function downloadImage(url: string | null) {
+async function downloadImage(url: string | null, signal?: AbortSignal) {
+  if (signal?.aborted) return undefined;
   if (!url) return undefined;
   if (!url.startsWith("http")) return undefined;
 
@@ -34,19 +35,32 @@ async function downloadImage(url: string | null) {
 
   const response = await axios.get(url, {
     responseType: "stream",
+    signal,
   });
 
-  response.data.pipe(writer);
-
   return new Promise<string | undefined>((resolve) => {
+    let settled = false;
+    const finish = (value: string | undefined) => {
+      if (settled) return;
+      settled = true;
+      signal?.removeEventListener("abort", onAbort);
+      resolve(value);
+    };
+    const onAbort = () => {
+      writer.destroy();
+      finish(undefined);
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
     writer.on("finish", async () => {
       const staticImagePath = await getStaticImage(outputPath);
-      resolve(staticImagePath);
+      finish(signal?.aborted ? undefined : staticImagePath);
     });
     writer.on("error", () => {
-      logger.error("Failed to download image", { url });
-      resolve(undefined);
+      if (!signal?.aborted) logger.error("Failed to download image", { url });
+      finish(undefined);
     });
+    response.data.pipe(writer);
   });
 }
 
@@ -135,8 +149,10 @@ export const publishNotificationUpdateReadyToInstall = async (
 };
 
 export const publishNewFriendRequestNotification = async (
-  user: UserProfile
+  user: UserProfile,
+  signal?: AbortSignal
 ) => {
+  if (signal?.aborted) return;
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
@@ -144,7 +160,13 @@ export const publishNewFriendRequestNotification = async (
     }
   );
 
+  if (signal?.aborted) return;
   if (!userPreferences?.friendRequestNotificationsEnabled) return;
+
+  const notificationIcon = user?.profileImageUrl
+    ? await downloadImage(user.profileImageUrl, signal)
+    : trayIcon;
+  if (signal?.aborted) return;
 
   new Notification({
     title: t("new_friend_request_title", {
@@ -154,24 +176,27 @@ export const publishNewFriendRequestNotification = async (
       ns: "notifications",
       displayName: user.displayName,
     }),
-    icon: user?.profileImageUrl
-      ? await downloadImage(user.profileImageUrl)
-      : trayIcon,
+    icon: notificationIcon,
   }).show();
 };
 
 export const publishFriendStartedPlayingGameNotification = async (
-  friend: UserProfile
+  friend: UserProfile,
+  signal?: AbortSignal
 ) => {
+  if (signal?.aborted) return;
+  const notificationIcon = friend?.profileImageUrl
+    ? await downloadImage(friend.profileImageUrl, signal)
+    : trayIcon;
+  if (signal?.aborted) return;
+
   new Notification({
     title: t("friend_started_playing_game", {
       ns: "notifications",
       displayName: friend.displayName,
     }),
     body: friend?.currentGame?.title,
-    icon: friend?.profileImageUrl
-      ? await downloadImage(friend.profileImageUrl)
-      : trayIcon,
+    icon: notificationIcon,
   }).show();
 };
 
