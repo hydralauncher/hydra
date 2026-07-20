@@ -110,7 +110,7 @@ export class PathGrants {
     return broken;
   }
 
-  public static async removeGrant(accessPath: string) {
+  private static async removeGrant(accessPath: string) {
     await pathGrantsSublevel.del(accessPath).catch(() => {});
   }
 
