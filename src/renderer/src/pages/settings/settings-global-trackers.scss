@@ -1,0 +1,79 @@
+@use "../../scss/globals.scss";
+
+.settings-global-trackers {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__description {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__section-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &--disabled {
+      opacity: 0.5;
+    }
+  }
+
+  &__textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    background: globals.$dark-background-color;
+    color: #dadbe1;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    resize: none;
+
+    &:focus {
+      outline: none;
+      border-color: #dadbe1;
+    }
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  &__url-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    background: globals.$dark-background-color;
+    color: #dadbe1;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 12px;
+
+    &:focus {
+      outline: none;
+      border-color: #dadbe1;
+    }
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  &__error {
+    font-size: 11px;
+    color: var(--danger-color);
+    margin: 0;
+  }
+}

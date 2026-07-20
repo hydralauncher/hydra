@@ -54,6 +54,19 @@ contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("startGameDownload", payload),
+  saveGlobalTrackers: (
+    manual: string[],
+    url: string | null,
+    appendManual: boolean,
+    appendUrl: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "saveGlobalTrackers",
+      manual,
+      url,
+      appendManual,
+      appendUrl
+    ) as Promise<{ error?: string }>,
   addGameToQueue: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("addGameToQueue", payload),
   cancelGameDownload: (shop: GameShop, objectId: string) =>

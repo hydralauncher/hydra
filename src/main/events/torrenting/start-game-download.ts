@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import type { Download, StartGameDownloadPayload } from "@types";
+import type { Download, StartGameDownloadPayload, UserPreferences } from "@types";
 import {
   DownloadManager,
   DownloadOrchestrator,
@@ -7,7 +7,7 @@ import {
   logger,
 } from "@main/services";
 import { createGame } from "@main/services/library-sync";
-import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
   handleDownloadError,
   isKnownDownloadError,
@@ -31,6 +31,25 @@ const startGameDownload = async (
     selectedFilesSize,
     trackers,
   } = payload;
+
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    { valueEncoding: "json" }
+  );
+
+  const globalTrackers = [
+    ...(userPreferences?.appendGlobalTrackers
+      ? userPreferences?.globalTrackers ?? []
+      : []),
+    ...(userPreferences?.appendGlobalTrackersUrl
+      ? userPreferences?.globalTrackersUrlCache ?? []
+      : []),
+  ];
+
+  const mergedTrackers =
+    globalTrackers.length > 0 || trackers?.length
+      ? [...new Set([...globalTrackers, ...(trackers ?? [])])]
+      : undefined;
 
   const gameKey = levelKeys.game(shop, objectId);
 
@@ -58,7 +77,7 @@ const startGameDownload = async (
     fileIndices,
     selectedFilesSize,
     fileSize: selectedFilesSize ?? null,
-    ...(trackers?.length ? { customTrackers: trackers } : {}),
+    ...(mergedTrackers?.length ? { customTrackers: mergedTrackers } : {}),
   };
 
   try {
