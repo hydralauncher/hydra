@@ -128,6 +128,7 @@ export default function Library() {
   const [isGamesScrolled, setIsGamesScrolled] = useState(false);
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const isHeaderHiddenRef = useRef(false);
+  const scrollLockUntilRef = useRef(0);
 
   const setHeaderHidden = useCallback((next: boolean) => {
     isHeaderHiddenRef.current = next;
@@ -150,9 +151,16 @@ export default function Library() {
         if (!isHeaderHiddenRef.current) {
           if (el.scrollTop <= 0) event.preventDefault();
           setHeaderHidden(true);
+          scrollLockUntilRef.current = performance.now() + 30;
+        } else if (
+          performance.now() < scrollLockUntilRef.current &&
+          el.scrollTop <= 0
+        ) {
+          event.preventDefault();
         }
       } else if (event.deltaY < 0 && isHeaderHiddenRef.current) {
         setHeaderHidden(false);
+        scrollLockUntilRef.current = 0;
       }
     };
 
