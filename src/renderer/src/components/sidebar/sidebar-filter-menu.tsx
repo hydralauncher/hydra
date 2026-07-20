@@ -9,7 +9,7 @@ import {
   SortDescIcon,
   StackIcon,
 } from "@primer/octicons-react";
-import { useId } from "react";
+import { useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
 import {
@@ -45,6 +45,7 @@ export function SidebarFilterMenu({
   const { t } = useTranslation(["sidebar", "library"]);
 
   const tooltipId = useId();
+  const pointerInteractionRef = useRef(false);
 
   const categoryOptions: {
     value: LibraryCategory;
@@ -100,6 +101,9 @@ export function SidebarFilterMenu({
           data-tooltip-id={tooltipId}
           data-tooltip-content={t("filter_sort_tooltip")}
           data-tooltip-place="top"
+          onPointerDown={() => {
+            pointerInteractionRef.current = true;
+          }}
         >
           <SlidersIcon size={16} />
         </button>
@@ -114,6 +118,12 @@ export function SidebarFilterMenu({
           sideOffset={8}
           collisionPadding={16}
           className="sidebar-filter-menu__content"
+          onCloseAutoFocus={(event) => {
+            if (pointerInteractionRef.current) {
+              event.preventDefault();
+            }
+            pointerInteractionRef.current = false;
+          }}
         >
           <div className="sidebar-filter-menu__column">
             <DropdownMenuPrimitive.Group className="sidebar-filter-menu__group">

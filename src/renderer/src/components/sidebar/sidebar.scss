@@ -295,14 +295,6 @@
     cursor: pointer;
     padding: 0;
 
-    &:focus {
-      outline: none;
-    }
-
-    &:focus-visible {
-      outline: auto;
-    }
-
     &:hover {
       color: rgba(255, 255, 255, 0.6);
     }

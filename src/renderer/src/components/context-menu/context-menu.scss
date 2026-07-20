@@ -13,19 +13,8 @@
 
   &--modal-open,
   &--modal-open &__submenu {
-    border-color: rgba(0, 0, 0, 0.7);
+    z-index: calc(globals.$backdrop-z-index - 1);
     box-shadow: none;
-
-    &::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-color: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(2px);
-      border-radius: 6px;
-      transform: translateZ(0);
-      pointer-events: none;
-    }
   }
 
   &--modal-open &__submenu {
