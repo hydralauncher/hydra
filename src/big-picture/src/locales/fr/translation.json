@@ -710,7 +710,15 @@
     "loading_save_preview": "Recherche de sauvegardes…",
     "no_backup_preview": "Aucune sauvegarde trouvée pour ce jeu",
     "max_number_of_artifacts_reached": "Nombre maximum de sauvegardes atteint pour ce jeu",
-    "cloud_delete_backup_description": "Supprimer de vos sauvegardes cloud ?"
+    "cloud_delete_backup_description": "Supprimer de vos sauvegardes cloud ?",
+    "edit_game_modal_grid": "Jaquette",
+    "steamgriddb_section_title": "SteamGridDB",
+    "steamgriddb_use_default": "Utiliser par défaut",
+    "steamgriddb_no_results": "Aucune ressource SteamGridDB trouvée pour ce jeu.",
+    "steamgriddb_sign_in_required": "Connectez-vous à Hydra pour parcourir les illustrations SteamGridDB.",
+    "steamgriddb_fetch_failed": "Échec du chargement des ressources SteamGridDB",
+    "steamgriddb_artwork_updated": "Illustration mise à jour",
+    "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut"
   },
   "format": {
     "playtime_hours_one": "{{count}} heure",
@@ -775,6 +783,8 @@
     "file_explorer_error_default": "Impossible d'ouvrir cet emplacement.",
     "file_explorer_select_this_directory": "Sélectionner ce dossier",
     "file_explorer_select_download_directory": "Sélectionner le dossier de téléchargement",
+    "steamgriddb_artwork_updated": "Illustration mise à jour",
+    "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut",
     "library_tab_all": "Tous ({{count}})",
     "library_tab_moderns": "Modernes ({{count}})",
     "library_tab_classics": "Classiques ({{count}})",

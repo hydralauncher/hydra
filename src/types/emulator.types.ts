@@ -29,8 +29,11 @@ export type EmulatorConfigMap = Record<EmulatorSystem, EmulatorConfig>;
 export interface DetectedRom {
   objectId: string;
   title: string;
+  coverImageUrl: string | null;
   libraryImageUrl: string | null;
   iconUrl: string | null;
+  customCoverImageUrl: string | null;
+  customIconUrl: string | null;
   sizeBytes: number | null;
   skus: string[];
 }

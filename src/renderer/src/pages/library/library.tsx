@@ -635,7 +635,7 @@ export default function Library() {
       containerWidth > 0
         ? (containerWidth - GAP * (columnsCount - 1)) / columnsCount
         : FALLBACK_ITEM_WIDTH;
-    return Math.round((itemWidth * 4) / 3) + GAP;
+    return Math.round((itemWidth * 3) / 2) + GAP;
   }, [viewMode, containerWidth, columnsCount]);
 
   const rowVirtualizer = useVirtualizer({
@@ -644,6 +644,10 @@ export default function Library() {
     estimateSize: () => estimatedRowHeight,
     overscan: 3,
   });
+
+  useEffect(() => {
+    rowVirtualizer.measure();
+  }, [rowVirtualizer, estimatedRowHeight]);
 
   useEffect(() => {
     gamesScrollRef.current?.scrollTo({ top: 0 });
