@@ -429,6 +429,7 @@ declare global {
       objectId: string,
       playtimeInSeconds: number
     ) => Promise<void>;
+    resetGamePlayTime: (shop: GameShop, objectId: string) => Promise<void>;
     /* User preferences */
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
     authenticatePremiumize: (apiToken: string) => Promise<PremiumizeUser>;

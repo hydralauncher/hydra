@@ -328,8 +328,6 @@ export const launchGame = async (
 
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
-  // Run preflight check for common redistributables (Windows only)
-  // Wrapped in try/catch to ensure game launch is never blocked
   if (process.platform === "win32") {
     try {
       logger.log("Starting preflight check for game launch", {
@@ -339,10 +337,7 @@ export const launchGame = async (
       const preflightPassed = await CommonRedistManager.runPreflight();
       logger.log("Preflight check result", { passed: preflightPassed });
     } catch (error) {
-      logger.error(
-        "Preflight check failed with error, continuing with launch",
-        error
-      );
+      logger.error("Preflight check failed with error", error);
     }
   }
 
