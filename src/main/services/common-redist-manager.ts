@@ -22,8 +22,6 @@ export class CommonRedistManager {
     "xnafx40_redist.msi",
     "VisualCppRedist_AIO_x86_x64.exe",
   ];
-  private static readonly refetchOnVersionBump = ["install.bat"];
-  private static readonly redistManifestVersion = 1;
   private static readonly installationTimeout = 1000 * 60 * 5; // 5 minutes
   private static readonly installationLog = path.join(
     SystemPath.getPath("temp"),
@@ -225,16 +223,6 @@ export class CommonRedistManager {
     return { allInstalled, missing };
   }
 
-  private static async getStoredManifestVersion(): Promise<number> {
-    try {
-      return await db.get<string, number>(levelKeys.commonRedistVersion, {
-        valueEncoding: "json",
-      });
-    } catch {
-      return 0;
-    }
-  }
-
   public static async downloadCommonRedist() {
     logger.log("Starting download of redistributables to:", commonRedistPath);
 
@@ -243,15 +231,10 @@ export class CommonRedistManager {
       logger.log("Created CommonRedist directory");
     }
 
-    const storedVersion = await this.getStoredManifestVersion();
-    const manifestChanged = storedVersion !== this.redistManifestVersion;
-
     for (const redist of this.redistributables) {
       const filePath = path.join(commonRedistPath, redist);
-      const shouldRefetch =
-        manifestChanged && this.refetchOnVersionBump.includes(redist);
 
-      if (fs.existsSync(filePath) && !shouldRefetch) {
+      if (fs.existsSync(filePath) && redist !== "install.bat") {
         logger.log(`Skipping ${redist} - already exists`);
         continue;
       }
@@ -267,13 +250,6 @@ export class CommonRedistManager {
 
       await fs.promises.writeFile(filePath, response.data);
       logger.log(`Downloaded ${redist} successfully`);
-    }
-
-    if (manifestChanged) {
-      await this.resetPreflightStatus();
-      await db.put(levelKeys.commonRedistVersion, this.redistManifestVersion, {
-        valueEncoding: "json",
-      });
     }
 
     logger.log("All redistributables downloaded");
