@@ -42,6 +42,7 @@ pub fn resolve_restore_targets(
         app_data_dir: input.app_data_dir,
         executable_path: input.executable_path,
         wine_prefix_path: input.wine_prefix_path,
+        wine_prefix_is_explicit: input.wine_prefix_is_explicit,
         steam_path: input.steam_path,
         rules: Vec::<CloudSaveRule>::new(),
     })
@@ -110,6 +111,7 @@ mod tests {
                 .then(|| "C:/Users/rodrigo/AppData/Roaming".to_string()),
             executable_path: Some("D:/Games/Game/game.exe".to_string()),
             wine_prefix_path: None,
+            wine_prefix_is_explicit: None,
             steam_path: None,
             files: vec![file],
         }
@@ -185,7 +187,18 @@ mod tests {
     }
 
     #[test]
-    fn requires_exactly_one_store_user() {
+    fn rejects_missing_wine_profile() {
+        let prefix = tempdir().unwrap();
+        let missing_prefix = prefix.path().join("missing");
+        let mut value = input("linux", file("<winAppData>/Game", "save.dat"));
+        value.wine_prefix_path = Some(missing_prefix.display().to_string());
+        value.wine_prefix_is_explicit = Some(true);
+
+        assert!(resolve_restore_targets(value).is_err());
+    }
+
+    #[test]
+    fn selects_store_users_deterministically() {
         let prefix = tempdir().unwrap();
         let users = prefix
             .path()
@@ -211,7 +224,8 @@ mod tests {
             ),
         );
         ambiguous.wine_prefix_path = Some(prefix.path().display().to_string());
-        assert!(resolve_restore_targets(ambiguous).is_err());
+        let target = resolve_restore_targets(ambiguous).unwrap().remove(0);
+        assert!(target.target_path.contains("/Goldberg/savedata/slot.dat"));
 
         let empty_prefix = tempdir().unwrap();
         fs::create_dir_all(empty_prefix.path().join("drive_c/users/steamuser")).unwrap();
@@ -224,6 +238,58 @@ mod tests {
         );
         missing.wine_prefix_path = Some(empty_prefix.path().display().to_string());
         assert!(resolve_restore_targets(missing).is_err());
+    }
+
+    #[test]
+    fn prefers_modern_steamuser_wine_root() {
+        let prefix = tempdir().unwrap();
+        let modern = prefix
+            .path()
+            .join("drive_c/users/steamuser/AppData/Roaming/Game");
+        let legacy = prefix
+            .path()
+            .join("drive_c/users/steamuser/Application Data/Game");
+        let os_user = prefix
+            .path()
+            .join("drive_c/users/rodrigo/AppData/Roaming/Game");
+        fs::create_dir_all(&modern).unwrap();
+        fs::create_dir_all(&legacy).unwrap();
+        fs::create_dir_all(&os_user).unwrap();
+
+        let mut value = input("linux", file("<winAppData>/Game", "save.dat"));
+        value.home_dir = "/home/rodrigo".into();
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+        value.wine_prefix_is_explicit = Some(true);
+
+        let target = resolve_restore_targets(value).unwrap().remove(0);
+
+        assert_eq!(target.target_path, format!("{}/save.dat", modern.display()));
+    }
+
+    #[test]
+    fn prefers_derived_proton_root_over_default_wine_prefix() {
+        let temp = tempdir().unwrap();
+        let steam_root = temp.path().join("SteamLibrary");
+        let proton = steam_root
+            .join("steamapps/compatdata/2379780/pfx/drive_c/users/steamuser/AppData/Roaming/Game");
+        let wine_prefix = temp.path().join("hydra-prefix");
+        let wine = wine_prefix.join("drive_c/users/steamuser/AppData/Roaming/Game");
+        fs::create_dir_all(&proton).unwrap();
+        fs::create_dir_all(&wine).unwrap();
+
+        let mut value = input("linux", file("<winAppData>/Game", "save.dat"));
+        value.executable_path = Some(
+            steam_root
+                .join("steamapps/common/Game/game.exe")
+                .display()
+                .to_string(),
+        );
+        value.wine_prefix_path = Some(wine_prefix.display().to_string());
+        value.wine_prefix_is_explicit = Some(false);
+
+        let target = resolve_restore_targets(value).unwrap().remove(0);
+
+        assert_eq!(target.target_path, format!("{}/save.dat", proton.display()));
     }
 
     #[test]

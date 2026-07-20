@@ -28,6 +28,7 @@ export const getCloudSaveGameContext = async (
     executablePath: game?.executablePath ?? undefined,
     winePrefixPath:
       Wine.getEffectivePrefixPath(game?.winePrefixPath, objectId) ?? undefined,
+    winePrefixIsExplicit: Boolean(game?.winePrefixPath),
     steamPath,
   };
 

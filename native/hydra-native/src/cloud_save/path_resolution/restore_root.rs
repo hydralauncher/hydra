@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use globetter::MatchOptions;
@@ -37,6 +36,19 @@ fn has_expected_type(path: &Path, directory: bool) -> bool {
     }
 }
 
+fn exact_windows_profile(path: &str) -> Option<PathBuf> {
+    let lower = path.to_ascii_lowercase();
+    let marker = "/drive_c/users/";
+    let profile_start = lower.find(marker)? + marker.len();
+    let profile_end = path[profile_start..]
+        .find('/')
+        .map(|offset| profile_start + offset)
+        .unwrap_or(path.len());
+    let profile = &path[profile_start..profile_end];
+
+    (!profile.is_empty() && !is_glob_segment(profile)).then(|| PathBuf::from(&path[..profile_end]))
+}
+
 fn materialize_candidate(candidate: &ResolvedCloudSavePath, directory: bool) -> Vec<String> {
     let normalized = normalize_separators(&candidate.path);
     let absolute = normalized.starts_with('/');
@@ -49,7 +61,9 @@ fn materialize_candidate(candidate: &ResolvedCloudSavePath, directory: bool) -> 
         .rposition(|segment| is_glob_segment(segment))
     else {
         let path = Path::new(&normalized);
-        return (!path.exists() || has_expected_type(path, directory))
+        let can_create = !path.exists()
+            && exact_windows_profile(&normalized).is_none_or(|profile| profile.is_dir());
+        return (can_create || has_expected_type(path, directory))
             .then_some(normalized)
             .into_iter()
             .collect();
@@ -142,6 +156,12 @@ fn complete_matches(
         .collect()
 }
 
+fn first_sorted(mut paths: Vec<String>) -> Option<String> {
+    paths.sort();
+    paths.dedup();
+    paths.into_iter().next()
+}
+
 pub fn resolve_restore_root(
     raw_path: &str,
     context: &PathResolutionContext,
@@ -154,39 +174,15 @@ pub fn resolve_restore_root(
             resolved.unresolved_tokens.join(", ")
         ));
     }
-    let candidates = if context.wine_prefix_path.is_some()
-        && resolved.paths.iter().any(|candidate| candidate.dynamic)
-    {
-        resolved
-            .paths
-            .iter()
-            .filter(|candidate| candidate.dynamic)
-            .collect::<Vec<_>>()
-    } else {
-        resolved.paths.iter().collect::<Vec<_>>()
-    };
-    let complete = candidates
-        .iter()
-        .map(|candidate| complete_matches(candidate, directory))
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .flatten()
-        .collect::<HashSet<_>>();
-
-    match complete.len() {
-        1 => return Ok(complete.into_iter().next().unwrap()),
-        2.. => return Err("cloud_save_ambiguous_restore_roots".to_string()),
-        _ => {}
+    for candidate in &resolved.paths {
+        if let Some(complete) = first_sorted(complete_matches(candidate, directory)?) {
+            return Ok(complete);
+        }
     }
 
-    for candidate in candidates {
-        let materialized = materialize_candidate(candidate, directory)
-            .into_iter()
-            .collect::<HashSet<_>>();
-        match materialized.len() {
-            1 => return Ok(materialized.into_iter().next().unwrap()),
-            2.. => return Err("cloud_save_ambiguous_restore_roots".to_string()),
-            _ => {}
+    for candidate in &resolved.paths {
+        if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
+            return Ok(materialized);
         }
     }
 

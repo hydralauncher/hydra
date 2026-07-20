@@ -32,6 +32,60 @@ fn collect_paths(
     }
 }
 
+fn collect_native_paths(
+    paths: &mut Vec<ResolvedCloudSavePath>,
+    seen: &mut HashSet<(String, bool)>,
+    raw_path: &str,
+    context: &PathResolutionContext,
+    root: Option<&str>,
+    dynamic: bool,
+) {
+    collect_paths(
+        paths,
+        seen,
+        native_paths(raw_path, context, root),
+        context.platform == "linux",
+        dynamic,
+    );
+}
+
+fn collect_wine_paths(
+    paths: &mut Vec<ResolvedCloudSavePath>,
+    seen: &mut HashSet<(String, bool)>,
+    raw_path: &str,
+    context: &PathResolutionContext,
+    prefix: &str,
+) {
+    collect_paths(
+        paths,
+        seen,
+        wine_paths(raw_path, context, prefix),
+        false,
+        true,
+    );
+}
+
+fn collect_steam_root_paths(
+    paths: &mut Vec<ResolvedCloudSavePath>,
+    seen: &mut HashSet<(String, bool)>,
+    raw_path: &str,
+    context: &PathResolutionContext,
+    root: &str,
+    dynamic: bool,
+) {
+    if context.platform == "linux" && context.shop == "steam" {
+        collect_paths(
+            paths,
+            seen,
+            steam_proton_paths(raw_path, context, root),
+            false,
+            dynamic,
+        );
+    }
+
+    collect_native_paths(paths, seen, raw_path, context, Some(root), dynamic);
+}
+
 fn is_glob_segment(segment: &str) -> bool {
     segment.contains(['*', '?', '[', '{'])
 }
@@ -72,43 +126,59 @@ pub fn resolve_path(raw_path: &str, context: &PathResolutionContext) -> Resolved
     let mut paths = Vec::new();
     let mut seen = HashSet::new();
 
-    collect_paths(
-        &mut paths,
-        &mut seen,
-        native_paths(&raw_path, context, None),
-        context.platform == "linux",
-        store_user_dynamic,
-    );
+    if context.wine_prefix_is_explicit {
+        if let Some(prefix) = &context.wine_prefix_path {
+            collect_wine_paths(&mut paths, &mut seen, &raw_path, context, prefix);
+        }
+    }
 
-    for root in &context.steam_roots {
-        collect_paths(
+    if !context.windows_compatibility {
+        collect_native_paths(
             &mut paths,
             &mut seen,
-            native_paths(&raw_path, context, Some(root)),
-            context.platform == "linux",
+            &raw_path,
+            context,
+            None,
             store_user_dynamic,
         );
     }
 
-    if context.platform == "linux" && context.shop == "steam" {
-        for root in &context.steam_roots {
-            collect_paths(
-                &mut paths,
-                &mut seen,
-                steam_proton_paths(&raw_path, context, root),
-                false,
-                store_user_dynamic,
-            );
+    if let Some(root) = &context.derived_steam_root {
+        collect_steam_root_paths(
+            &mut paths,
+            &mut seen,
+            &raw_path,
+            context,
+            root,
+            store_user_dynamic,
+        );
+    }
+
+    if !context.wine_prefix_is_explicit {
+        if let Some(prefix) = &context.wine_prefix_path {
+            collect_wine_paths(&mut paths, &mut seen, &raw_path, context, prefix);
         }
     }
 
-    if let Some(prefix) = &context.wine_prefix_path {
-        collect_paths(
+    if let Some(root) = &context.configured_steam_root {
+        collect_steam_root_paths(
             &mut paths,
             &mut seen,
-            wine_paths(&raw_path, context, prefix),
-            false,
-            true,
+            &raw_path,
+            context,
+            root,
+            store_user_dynamic,
+        );
+    }
+
+    if context.windows_compatibility {
+        collect_native_paths(
+            &mut paths,
+            &mut seen,
+            &raw_path,
+            context,
+            None,
+            store_user_dynamic,
         );
     }
 
@@ -170,6 +240,7 @@ mod tests {
             documents_dir: None,
             app_data_dir: None,
             wine_prefix_path: Some("/home/spectre/.wine".to_string()),
+            wine_prefix_is_explicit: Some(true),
             steam_path: None,
             rules: Vec::new(),
         };
@@ -201,6 +272,7 @@ mod tests {
             documents_dir: None,
             app_data_dir: None,
             wine_prefix_path: Some("/prefix".to_string()),
+            wine_prefix_is_explicit: Some(true),
             steam_path: None,
             rules: Vec::new(),
         };
@@ -216,5 +288,96 @@ mod tests {
                 && candidate.path
                     == "/prefix/drive_*/users/*/Saved Games/The Last of Us Part I/users/*/savedata"
         }));
+    }
+
+    #[test]
+    fn orders_default_roots_and_windows_aliases() {
+        let input = ResolveSaveRulesInput {
+            shop: "steam".into(),
+            object_id: "123".into(),
+            platform: "linux".into(),
+            home_dir: "/home/victor".into(),
+            executable_path: Some("/mnt/games/SteamLibrary/steamapps/common/Game/game.exe".into()),
+            documents_dir: None,
+            app_data_dir: None,
+            wine_prefix_path: Some("/hydra/prefix".into()),
+            wine_prefix_is_explicit: Some(false),
+            steam_path: Some("/home/victor/.steam/steam".into()),
+            rules: Vec::new(),
+        };
+        let context = build_context(&input).unwrap();
+
+        let result = resolve_path("<winAppData>/Game", &context);
+        let paths = result
+            .paths
+            .iter()
+            .map(|candidate| candidate.path.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            paths[0],
+            "/mnt/games/SteamLibrary/steamapps/compatdata/123/pfx/drive_c/users/steamuser/AppData/Roaming/Game"
+        );
+        assert_eq!(
+            paths[1],
+            "/mnt/games/SteamLibrary/steamapps/compatdata/123/pfx/drive_c/users/steamuser/Application Data/Game"
+        );
+        assert_eq!(
+            paths[2],
+            "/hydra/prefix/drive_c/users/steamuser/AppData/Roaming/Game"
+        );
+        assert_eq!(
+            paths[3],
+            "/hydra/prefix/drive_c/users/victor/AppData/Roaming/Game"
+        );
+        assert_eq!(
+            paths[4],
+            "/hydra/prefix/drive_*/users/*/AppData/Roaming/Game"
+        );
+        assert_eq!(
+            paths[5],
+            "/hydra/prefix/drive_c/users/steamuser/Application Data/Game"
+        );
+        assert_eq!(
+            paths[8],
+            "/home/victor/.steam/steam/steamapps/compatdata/123/pfx/drive_c/users/steamuser/AppData/Roaming/Game"
+        );
+    }
+
+    #[test]
+    fn puts_explicit_wine_prefix_before_derived_proton() {
+        let input = ResolveSaveRulesInput {
+            shop: "steam".into(),
+            object_id: "123".into(),
+            platform: "linux".into(),
+            home_dir: "/home/victor".into(),
+            executable_path: Some("/mnt/games/SteamLibrary/steamapps/common/Game/game.exe".into()),
+            documents_dir: None,
+            app_data_dir: None,
+            wine_prefix_path: Some("/selected/prefix".into()),
+            wine_prefix_is_explicit: Some(true),
+            steam_path: None,
+            rules: Vec::new(),
+        };
+        let context = build_context(&input).unwrap();
+
+        let result = resolve_path("<winDocuments>/Game", &context);
+
+        assert_eq!(
+            result.paths[0].path,
+            "/selected/prefix/drive_c/users/steamuser/Documents/Game"
+        );
+        assert_eq!(
+            result.paths[1].path,
+            "/selected/prefix/drive_c/users/victor/Documents/Game"
+        );
+        assert_eq!(
+            result.paths[3].path,
+            "/selected/prefix/drive_c/users/steamuser/My Documents/Game"
+        );
+        assert_eq!(
+            result.paths[6].path,
+            "/mnt/games/SteamLibrary/steamapps/compatdata/123/pfx/drive_c/users/steamuser/Documents/Game"
+        );
     }
 }

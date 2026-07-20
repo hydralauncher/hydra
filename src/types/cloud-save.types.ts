@@ -18,6 +18,7 @@ export interface BuildLocalGameSnapshotPipelineInput {
   appDataDir?: string;
   executablePath?: string;
   winePrefixPath?: string;
+  winePrefixIsExplicit?: boolean;
   steamPath?: string;
   hashCache: LocalFileHashCacheEntry[];
 }
@@ -38,6 +39,7 @@ export interface CloudSavePathContext {
   appDataDir?: string;
   executablePath?: string;
   winePrefixPath?: string;
+  winePrefixIsExplicit?: boolean;
   steamPath?: string;
 }
 
