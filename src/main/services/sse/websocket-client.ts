@@ -116,6 +116,43 @@ export const parseRetryAfter = (
   return Number.isNaN(date) ? null : Math.max(0, date - now);
 };
 
+const isValidPublishedAt = (publishedAt: unknown) =>
+  (typeof publishedAt === "number" && Number.isFinite(publishedAt)) ||
+  (typeof publishedAt === "string" &&
+    publishedAt.length > 0 &&
+    !Number.isNaN(Date.parse(publishedAt)));
+
+const isValidEnvelopePayload = (
+  event: unknown,
+  payload: Record<string, unknown>
+) => {
+  switch (event) {
+    case "friendRequest":
+      return (
+        payload.invalidate === "friendRequests" &&
+        (payload.senderId === undefined || typeof payload.senderId === "string")
+      );
+    case "friendGameSession":
+      return (
+        typeof payload.objectId === "string" &&
+        typeof payload.shop === "string" &&
+        typeof payload.friendId === "string"
+      );
+    case "friendPresence":
+      return (
+        typeof payload.friendId === "string" &&
+        typeof payload.isOnline === "boolean" &&
+        typeof payload.version === "number" &&
+        Number.isInteger(payload.version) &&
+        payload.version > 0
+      );
+    case "notification":
+      return payload.invalidate === "notifications";
+    default:
+      return false;
+  }
+};
+
 export const parseRealtimeEnvelope = (
   data: RawData | string
 ): RealtimeEnvelope | null => {
@@ -128,13 +165,6 @@ export const parseRealtimeEnvelope = (
       return null;
 
     const envelope = value as Record<string, unknown>;
-    const validPublishedAt =
-      (typeof envelope.publishedAt === "number" &&
-        Number.isFinite(envelope.publishedAt)) ||
-      (typeof envelope.publishedAt === "string" &&
-        envelope.publishedAt.length > 0 &&
-        !Number.isNaN(Date.parse(envelope.publishedAt)));
-
     if (
       envelope.v !== 1 ||
       typeof envelope.eventId !== "string" ||
@@ -142,48 +172,13 @@ export const parseRealtimeEnvelope = (
       !envelope.payload ||
       typeof envelope.payload !== "object" ||
       Array.isArray(envelope.payload) ||
-      !validPublishedAt
+      !isValidPublishedAt(envelope.publishedAt)
     ) {
       return null;
     }
 
     const payload = envelope.payload as Record<string, unknown>;
-    switch (envelope.event) {
-      case "friendRequest":
-        if (
-          payload.invalidate !== "friendRequests" ||
-          (payload.senderId !== undefined &&
-            typeof payload.senderId !== "string")
-        ) {
-          return null;
-        }
-        break;
-      case "friendGameSession":
-        if (
-          typeof payload.objectId !== "string" ||
-          typeof payload.shop !== "string" ||
-          typeof payload.friendId !== "string"
-        ) {
-          return null;
-        }
-        break;
-      case "friendPresence":
-        if (
-          typeof payload.friendId !== "string" ||
-          typeof payload.isOnline !== "boolean" ||
-          typeof payload.version !== "number" ||
-          !Number.isInteger(payload.version) ||
-          payload.version <= 0
-        ) {
-          return null;
-        }
-        break;
-      case "notification":
-        if (payload.invalidate !== "notifications") return null;
-        break;
-      default:
-        return null;
-    }
+    if (!isValidEnvelopePayload(envelope.event, payload)) return null;
 
     return envelope as unknown as RealtimeEnvelope;
   } catch {
@@ -345,29 +340,40 @@ export class RealtimeWebSocketClient {
       this.forceReconnectRequested = false;
       attempt++;
 
-      let delay: number;
-      if (resumeRequested) {
-        delay =
-          MIN_RANDOMIZED_DELAY_MS +
-          Math.floor(this.random() * RESUME_RECONNECT_SPREAD_MS);
-      } else if (result.retryAfterMs !== null) {
-        delay =
-          result.retryAfterMs +
-          MIN_RANDOMIZED_DELAY_MS +
-          Math.floor(this.random() * INITIAL_RECONNECT_DELAY_MS);
-      } else if (result.connected || result.serverDrain) {
-        delay =
-          INITIAL_RECONNECT_DELAY_MS +
-          Math.floor(this.random() * DROPPED_CONNECTION_SPREAD_MS);
-      } else {
-        delay = fullJitterDelay(attempt, this.random);
-      }
+      const delay = this.nextReconnectDelay(attempt, resumeRequested, result);
 
       this.log.info(
         `Realtime WebSocket reconnecting in ${Math.round(delay / 1_000)}s`
       );
       await this.wait(delay, signal);
     }
+  }
+
+  private nextReconnectDelay(
+    attempt: number,
+    resumeRequested: boolean,
+    result: AttemptResult
+  ) {
+    if (resumeRequested) {
+      return (
+        MIN_RANDOMIZED_DELAY_MS +
+        Math.floor(this.random() * RESUME_RECONNECT_SPREAD_MS)
+      );
+    }
+    if (result.retryAfterMs !== null) {
+      return (
+        result.retryAfterMs +
+        MIN_RANDOMIZED_DELAY_MS +
+        Math.floor(this.random() * INITIAL_RECONNECT_DELAY_MS)
+      );
+    }
+    if (result.connected || result.serverDrain) {
+      return (
+        INITIAL_RECONNECT_DELAY_MS +
+        Math.floor(this.random() * DROPPED_CONNECTION_SPREAD_MS)
+      );
+    }
+    return fullJitterDelay(attempt, this.random);
   }
 
   private async getToken(epoch: number, signal: AbortSignal) {
