@@ -4,10 +4,11 @@ import {
   useFormat,
   useToast,
   useCoverPoster,
+  useLibrary,
   isAnimatedCoverCandidate,
 } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,
@@ -28,6 +29,7 @@ import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
 import { ProgressBar, GameContextMenu } from "@renderer/components";
+import type { GameContextMenuGame } from "@renderer/components/game-context-menu/game-context-menu.types";
 import "./user-library-game-card.scss";
 
 interface UserLibraryGameCardProps {
@@ -50,10 +52,34 @@ export function UserLibraryGameCard({
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
   const { openCollectionContextMenu } = useCollectionContextMenu();
+  const { library } = useLibrary();
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     position: { x: number; y: number };
   }>({ visible: false, position: { x: 0, y: 0 } });
+
+  const contextMenuGame = useMemo<GameContextMenuGame>(() => {
+    const localGame = isMe
+      ? library.find(
+          (libraryGame) =>
+            libraryGame.shop === game.shop &&
+            libraryGame.objectId === game.objectId
+        )
+      : undefined;
+
+    return {
+      ...game,
+      id: localGame?.id,
+      executablePath: localGame?.executablePath ?? null,
+      download: localGame?.download ?? null,
+      collectionIds: localGame?.collectionIds,
+      launchOptions: localGame?.launchOptions,
+      discs: localGame?.discs,
+      selectedDiscPath: localGame?.selectedDiscPath,
+      dontAskDiscSelection: localGame?.dontAskDiscSelection,
+      favorite: localGame?.favorite ?? game.isFavorite,
+    };
+  }, [isMe, library, game]);
 
   const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
 
@@ -326,7 +352,7 @@ export function UserLibraryGameCard({
         </button>
       </li>
       <GameContextMenu
-        game={game}
+        game={contextMenuGame}
         visible={contextMenu.visible}
         position={contextMenu.position}
         onClose={handleCloseContextMenu}
