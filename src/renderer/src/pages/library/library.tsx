@@ -148,10 +148,13 @@ export default function Library() {
     const handleWheel = (event: WheelEvent) => {
       if (event.deltaY > 0) {
         if (!isHeaderHiddenRef.current) {
-          if (el.scrollTop <= 0) event.preventDefault();
+          event.preventDefault();
+          el.scrollTo({ top: el.scrollTop, behavior: "auto" });
           setHeaderHidden(true);
         }
       } else if (event.deltaY < 0 && isHeaderHiddenRef.current) {
+        event.preventDefault();
+        el.scrollTo({ top: el.scrollTop, behavior: "auto" });
         setHeaderHidden(false);
       }
     };
