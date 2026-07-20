@@ -68,10 +68,6 @@ linux:
     - x-scheme-handler/hydralauncher
 appImage:
   artifactName: ${name}-${version}.${ext}
-# The Flatpak is built from the hand-authored flatpak-builder manifest in
-# flatpak/ (via `npm run build:flatpak`), not electron-builder's flatpak target,
-# because electron-builder can't declare the i386 runtime extensions Proton's
-# pressure-vessel needs in the sandbox. See flatpak/README.md.
 npmRebuild: false
 publish:
   provider: github
