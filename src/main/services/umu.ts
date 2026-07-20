@@ -202,6 +202,89 @@ export class Umu {
     );
   }
 
+  public static async preparePrefix(options: {
+    winePrefixPath: string;
+    protonPath?: string | null;
+    gameId?: string | null;
+  }): Promise<void> {
+    const umuLogPath = getUmuLogPath();
+    const umuBinaryPath = getUmuBinaryPath();
+    const pythonPath = getCompatiblePythonPath();
+    const command = pythonPath ?? umuBinaryPath;
+    const args = pythonPath
+      ? [umuBinaryPath, "createprefix"]
+      : ["createprefix"];
+    const launchEnv = {
+      PROTON_LOG: "1",
+      WINEPREFIX: options.winePrefixPath,
+      ...(options.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
+      ...(options.protonPath ? { PROTONPATH: options.protonPath } : {}),
+    };
+
+    fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
+    fs.mkdirSync(path.dirname(options.winePrefixPath), { recursive: true });
+    ensureExecutablePermission(umuBinaryPath);
+    fs.appendFileSync(
+      umuLogPath,
+      `\n[${new Date().toISOString()}] Preparing Wine prefix with umu-run\n`
+    );
+
+    logger.info("Preparing Wine prefix with umu-run", {
+      command,
+      args,
+      env: launchEnv,
+      umuLogPath,
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      const shouldPipeToTerminal = is.dev;
+      const logFileDescriptor = shouldPipeToTerminal
+        ? null
+        : fs.openSync(umuLogPath, "a");
+      let settled = false;
+      const closeLogFileDescriptor = () => {
+        if (!settled && logFileDescriptor !== null) {
+          fs.closeSync(logFileDescriptor);
+        }
+      };
+      const finish = (callback: () => void) => {
+        if (settled) return;
+        closeLogFileDescriptor();
+        settled = true;
+        callback();
+      };
+      const child = spawn(command, args, {
+        detached: false,
+        stdio: shouldPipeToTerminal
+          ? "inherit"
+          : ["ignore", logFileDescriptor, logFileDescriptor],
+        shell: false,
+        cwd: SystemPath.getPath("home"),
+        env: {
+          ...process.env,
+          ...launchEnv,
+        },
+      });
+
+      child.once("error", (error) => {
+        finish(() => reject(error));
+      });
+      child.once("exit", (code, signal) => {
+        finish(() => {
+          if (code === 0) {
+            resolve();
+            return;
+          }
+          reject(
+            new Error(
+              `umu-run prefix preparation failed with code=${code ?? "null"} signal=${signal ?? "null"}`
+            )
+          );
+        });
+      });
+    });
+  }
+
   public static async launchExecutable(
     executablePath: string,
     launchParameters: string[] = [],

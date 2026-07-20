@@ -179,7 +179,6 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
         xdg_config_dir,
         install_dir,
         wine_prefix_path,
-        wine_prefix_is_explicit: input.wine_prefix_is_explicit.unwrap_or(false),
         windows_compatibility,
         derived_steam_root,
         configured_steam_root,

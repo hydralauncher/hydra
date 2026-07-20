@@ -12,7 +12,6 @@ pub struct ResolveSaveRulesInput {
     pub app_data_dir: Option<String>,
     pub executable_path: Option<String>,
     pub wine_prefix_path: Option<String>,
-    pub wine_prefix_is_explicit: Option<bool>,
     pub steam_path: Option<String>,
     pub rules: Vec<CloudSaveRule>,
 }
@@ -34,7 +33,6 @@ pub struct PathResolutionContext {
     pub xdg_config_dir: Option<String>,
     pub install_dir: Option<String>,
     pub wine_prefix_path: Option<String>,
-    pub wine_prefix_is_explicit: bool,
     pub windows_compatibility: bool,
     pub derived_steam_root: Option<String>,
     pub configured_steam_root: Option<String>,

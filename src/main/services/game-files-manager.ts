@@ -374,7 +374,7 @@ export class GameFilesManager {
         void runAutomaticCloudSaveSync(
           this.objectId,
           this.shop,
-          "executable-added"
+          "environment-changed"
         );
 
         WindowManager.sendToAppWindows("on-library-batch-complete");

@@ -124,40 +124,6 @@
     }
   }
 
-  &__local-conflict {
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-    color: globals.$muted-color;
-    font-size: globals.$small-font-size;
-    line-height: 1.4;
-
-    strong {
-      display: flex;
-      align-items: center;
-      gap: globals.$spacing-unit;
-      color: globals.$error-color;
-      font-weight: 500;
-    }
-
-    p,
-    ul {
-      margin: 0;
-    }
-
-    ul {
-      display: flex;
-      flex-direction: column;
-      gap: calc(globals.$spacing-unit / 2);
-      padding-left: calc(globals.$spacing-unit * 2);
-    }
-
-    code {
-      overflow-wrap: anywhere;
-      color: inherit;
-    }
-  }
-
   &__sync-button {
     width: 100%;
 

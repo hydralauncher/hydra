@@ -3,12 +3,13 @@ import type {
   CloudSaveUploadProgress,
   CommitSnapshotResponse,
   GameShop,
-  LocalGameSnapshotPipelineResult,
+  LocalGameSnapshotContext,
   RemoteGameSnapshot,
 } from "@types";
 
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { uploadLocalGameSnapshot } from "./upload-local-game-snapshot";
+import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 
 type ProgressCallback = (progress: CloudSaveUploadProgress) => void;
 
@@ -41,13 +42,16 @@ export const createRemoteSnapshotFromLocalState = async (
   objectId: string,
   shop: GameShop,
   onProgress?: ProgressCallback,
-  localSnapshotContext?: LocalGameSnapshotPipelineResult
+  localSnapshotContext?: LocalGameSnapshotContext
 ): Promise<RemoteGameSnapshot | null> => {
+  const context =
+    localSnapshotContext ??
+    (await buildLocalGameSnapshotContext(objectId, shop));
   const upload = await uploadLocalGameSnapshot(
     objectId,
     shop,
     onProgress,
-    localSnapshotContext
+    context
   );
   if (!upload.snapshotId) return null;
 
@@ -57,7 +61,7 @@ export const createRemoteSnapshotFromLocalState = async (
     })
   );
 
-  await saveCloudSaveSyncAnchor(shop, objectId, {
+  await saveCloudSaveSyncAnchor(shop, objectId, context.environmentId, {
     baseSnapshotId: committed.snapshotId,
     baseAggregateHash: committed.aggregateHash,
     updatedAt: new Date().toISOString(),

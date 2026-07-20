@@ -8,6 +8,7 @@ use napi_derive::napi;
 
 use crate::cloud_save::path_resolution::ResolvedCloudSaveRule;
 
+pub(crate) use scan_path::scan_resolved_path;
 pub use types::ScannedCloudSaveRule;
 #[cfg(test)]
 pub(crate) use types::{ScannedCloudSaveFile, ScannedCloudSavePath};

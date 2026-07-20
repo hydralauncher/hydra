@@ -41,7 +41,6 @@ const stateKey: Record<CloudSaveState, string> = {
   synced: "cloud_save_v2_synced",
   "local-ahead": "cloud_save_v2_outdated",
   "remote-ahead": "cloud_save_v2_outdated",
-  "local-conflict": "cloud_save_v2_local_conflict_title",
   conflict: "cloud_save_v2_conflict",
   untracked: "cloud_save",
 };
@@ -53,14 +52,11 @@ const statusTone: Record<
   synced: "synced",
   "local-ahead": "outdated",
   "remote-ahead": "outdated",
-  "local-conflict": "conflict",
   conflict: "conflict",
   untracked: "neutral",
 };
 
 const MAX_VISIBLE_HISTORICAL_SNAPSHOTS = 3;
-const MAX_VISIBLE_LOCAL_CONFLICTS = 5;
-const MAX_VISIBLE_LOCAL_CONFLICT_COPIES = 4;
 
 export function CloudSaveModal({
   visible,
@@ -195,52 +191,6 @@ export function CloudSaveModal({
           </span>
         )}
       </Button>
-    );
-  } else if (overview?.state === "local-conflict") {
-    syncAction = (
-      <div className="cloud-save-v2__local-conflict">
-        <strong>
-          <WarningCircleIcon size={18} />
-          {t("cloud_save_v2_local_conflict_title")}
-        </strong>
-        <p>{t("cloud_save_v2_local_conflict_description")}</p>
-        <ul>
-          {overview.localConflicts
-            .slice(0, MAX_VISIBLE_LOCAL_CONFLICTS)
-            .map((conflict) => (
-              <li key={`${conflict.rawPath}:${conflict.relativePath}`}>
-                <code>{conflict.relativePath}</code>
-                <ul>
-                  {conflict.copies
-                    .slice(0, MAX_VISIBLE_LOCAL_CONFLICT_COPIES)
-                    .map((copy) => (
-                      <li key={copy.absolutePath}>
-                        <code>{copy.absolutePath}</code>
-                      </li>
-                    ))}
-                  {conflict.copies.length >
-                    MAX_VISIBLE_LOCAL_CONFLICT_COPIES && (
-                    <li>
-                      {t("cloud_save_v2_local_conflict_more", {
-                        count:
-                          conflict.copies.length -
-                          MAX_VISIBLE_LOCAL_CONFLICT_COPIES,
-                      })}
-                    </li>
-                  )}
-                </ul>
-              </li>
-            ))}
-          {overview.localConflicts.length > MAX_VISIBLE_LOCAL_CONFLICTS && (
-            <li>
-              {t("cloud_save_v2_local_conflict_more", {
-                count:
-                  overview.localConflicts.length - MAX_VISIBLE_LOCAL_CONFLICTS,
-              })}
-            </li>
-          )}
-        </ul>
-      </div>
     );
   } else if (overview?.state === "conflict") {
     syncAction = (

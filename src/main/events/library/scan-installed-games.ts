@@ -110,7 +110,7 @@ const scanInstalledGames = async (
       void runAutomaticCloudSaveSync(
         game.objectId,
         game.shop,
-        "executable-added"
+        "environment-changed"
       );
 
       logger.info(

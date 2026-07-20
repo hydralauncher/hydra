@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use globetter::MatchOptions;
@@ -6,6 +5,7 @@ use globetter::MatchOptions;
 use super::context::normalize_separators;
 use super::resolve_path::resolve_path;
 use super::types::{PathResolutionContext, ResolvedCloudSavePath};
+use crate::cloud_save::save_scanner::scan_resolved_path;
 
 fn is_glob_segment(segment: &str) -> bool {
     segment.contains(['*', '?', '[', '{'])
@@ -50,25 +50,6 @@ fn exact_windows_profile(path: &str) -> Option<PathBuf> {
     (!profile.is_empty() && !is_glob_segment(profile)).then(|| PathBuf::from(&path[..profile_end]))
 }
 
-fn legacy_environment_base(path: &str) -> Option<PathBuf> {
-    let lower = path.to_ascii_lowercase();
-    [
-        "/local settings/application data",
-        "/application data",
-        "/my documents",
-    ]
-    .into_iter()
-    .find_map(|marker| {
-        let end = lower.find(marker)? + marker.len();
-        Some(PathBuf::from(&path[..end]))
-    })
-}
-
-fn can_materialize(path: &str) -> bool {
-    exact_windows_profile(path).is_none_or(|profile| profile.is_dir())
-        && legacy_environment_base(path).is_none_or(|base| base.is_dir())
-}
-
 fn materialize_candidate(candidate: &ResolvedCloudSavePath, directory: bool) -> Vec<String> {
     let normalized = normalize_separators(&candidate.path);
     let absolute = normalized.starts_with('/');
@@ -81,7 +62,8 @@ fn materialize_candidate(candidate: &ResolvedCloudSavePath, directory: bool) -> 
         .rposition(|segment| is_glob_segment(segment))
     else {
         let path = Path::new(&normalized);
-        let can_create = !path.exists() && can_materialize(&normalized);
+        let can_create = !path.exists()
+            && exact_windows_profile(&normalized).is_none_or(|profile| profile.is_dir());
         return (can_create || has_expected_type(path, directory))
             .then_some(normalized)
             .into_iter()
@@ -143,7 +125,6 @@ fn materialize_candidate(candidate: &ResolvedCloudSavePath, directory: bool) -> 
     paths
         .into_iter()
         .map(|path| normalize_separators(&path.to_string_lossy()))
-        .filter(|path| can_materialize(path))
         .collect()
 }
 
@@ -176,28 +157,18 @@ fn complete_matches(
         .collect()
 }
 
-fn sorted_unique(mut paths: Vec<String>) -> Vec<String> {
+fn first_sorted(mut paths: Vec<String>) -> Option<String> {
     paths.sort();
     paths.dedup();
-    paths
+    paths.into_iter().next()
 }
 
-fn canonical_key(path: &str, case_sensitive: bool) -> String {
-    let path = std::fs::canonicalize(path)
-        .map(|path| normalize_separators(&path.to_string_lossy()))
-        .unwrap_or_else(|_| normalize_separators(path));
-    if case_sensitive {
-        path
-    } else {
-        path.to_ascii_lowercase()
-    }
-}
-
-pub fn resolve_restore_roots(
+pub fn resolve_restore_root(
     raw_path: &str,
     context: &PathResolutionContext,
     directory: bool,
-) -> Result<Vec<String>, String> {
+    relative_paths: &[String],
+) -> Result<String, String> {
     let resolved = resolve_path(raw_path, context);
     if resolved.paths.is_empty() {
         return Err(format!(
@@ -205,30 +176,55 @@ pub fn resolve_restore_roots(
             resolved.unresolved_tokens.join(", ")
         ));
     }
-    let mut roots = Vec::new();
-    let mut seen = HashSet::new();
-
+    let mut complete_by_candidate = Vec::with_capacity(resolved.paths.len());
     for candidate in &resolved.paths {
-        for complete in sorted_unique(complete_matches(candidate, directory)?) {
-            let key = canonical_key(&complete, candidate.case_sensitive);
-            if seen.insert(key) {
-                roots.push(complete);
+        let mut complete = complete_matches(candidate, directory)?;
+        complete.sort();
+        complete.dedup();
+        if directory {
+            let requested_target = complete.iter().find(|root| {
+                relative_paths.iter().any(|relative_path| {
+                    Path::new(root)
+                        .join(relative_path.replace('\\', "/"))
+                        .is_file()
+                })
+            });
+            if let Some(root) = requested_target {
+                return Ok(root.clone());
+            }
+        } else if let Some(file) = first_sorted(complete.clone()) {
+            return Ok(file);
+        }
+        complete_by_candidate.push(complete);
+    }
+
+    if directory {
+        for candidate in &resolved.paths {
+            let scanned_paths = scan_resolved_path(
+                &candidate.path,
+                candidate.case_sensitive,
+                candidate.scan_root.as_deref(),
+            )?;
+            if let Some(scanned) = scanned_paths
+                .into_iter()
+                .find(|scanned| !scanned.files.is_empty())
+            {
+                return Ok(scanned.resolved_path);
             }
         }
     }
 
-    for candidate in &resolved.paths {
-        for materialized in sorted_unique(materialize_candidate(candidate, directory)) {
-            let key = canonical_key(&materialized, candidate.case_sensitive);
-            if seen.insert(key) {
-                roots.push(materialized);
-            }
+    for complete in complete_by_candidate {
+        if let Some(existing) = first_sorted(complete) {
+            return Ok(existing);
         }
     }
 
-    if roots.is_empty() {
-        Err("cloud_save_restore_root_not_found".to_string())
-    } else {
-        Ok(roots)
+    for candidate in &resolved.paths {
+        if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
+            return Ok(materialized);
+        }
     }
+
+    Err("cloud_save_restore_root_not_found".to_string())
 }

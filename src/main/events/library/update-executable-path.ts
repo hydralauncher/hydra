@@ -25,7 +25,8 @@ const updateExecutablePath = async (
 
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
-  const executableAdded = !game.executablePath && parsedPath !== null;
+  const environmentChanged =
+    parsedPath !== null && game.executablePath !== parsedPath;
 
   // Update immediately without size so UI responds fast
   await gamesSublevel.put(gameKey, {
@@ -35,8 +36,8 @@ const updateExecutablePath = async (
       executablePath === null ? false : game.automaticCloudSync,
   });
 
-  if (executableAdded) {
-    void runAutomaticCloudSaveSync(objectId, shop, "executable-added");
+  if (environmentChanged) {
+    void runAutomaticCloudSaveSync(objectId, shop, "environment-changed");
   }
 
   // Calculate size in background and update later
