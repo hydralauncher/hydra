@@ -5,7 +5,11 @@ pub(crate) mod types;
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
-pub use types::{BuildLocalGameSnapshotInput, LocalGameSnapshotWithHash};
+pub(crate) use build::build_snapshot_outcome;
+pub use types::{
+    BuildLocalGameSnapshotInput, LocalGameSnapshotBuildOutcome, LocalGameSnapshotConflict,
+    LocalGameSnapshotWithHash,
+};
 
 #[napi]
 pub async fn build_local_game_snapshot(

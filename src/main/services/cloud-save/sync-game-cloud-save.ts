@@ -58,6 +58,20 @@ const runGameCloudSaveSync = async (
   });
   const analysis = await analyzeCloudSaveState(objectId, shop);
   const initialState = analysis.state.state;
+
+  if (analysis.status === "local-conflict") {
+    return finish({
+      result: {
+        trigger,
+        action: "conflict",
+        initialState: "local-conflict",
+        finalState: "local-conflict",
+      },
+      processedFiles: 0,
+      totalFiles: 0,
+    });
+  }
+
   const effectiveState =
     initialState === "untracked" ? getFirstSyncState(analysis) : initialState;
 

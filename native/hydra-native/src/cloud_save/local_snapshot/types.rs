@@ -51,6 +51,31 @@ pub struct LocalGameSnapshotWithHash {
     pub hash_cache: Vec<LocalFileHashCacheEntry>,
 }
 
+#[napi(object)]
+#[derive(Clone, Debug)]
+pub struct LocalGameSnapshotConflictCopy {
+    pub absolute_path: String,
+    pub hash: String,
+    pub size_bytes: f64,
+    pub last_modified_at: String,
+}
+
+#[napi(object)]
+#[derive(Clone, Debug)]
+pub struct LocalGameSnapshotConflict {
+    pub raw_path: String,
+    pub relative_path: String,
+    pub copies: Vec<LocalGameSnapshotConflictCopy>,
+}
+
+pub enum LocalGameSnapshotBuildOutcome {
+    Ready(LocalGameSnapshotWithHash),
+    LocalConflict {
+        conflicts: Vec<LocalGameSnapshotConflict>,
+        hash_cache: Vec<LocalFileHashCacheEntry>,
+    },
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct BuiltLocalSaveFile {
     pub raw_path: String,

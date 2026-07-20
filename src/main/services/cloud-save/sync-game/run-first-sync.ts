@@ -25,6 +25,7 @@ export interface SyncOutcome {
 export const getFirstSyncState = (
   analysis: CloudSaveAnalysis
 ): CloudSaveState => {
+  if (analysis.status === "local-conflict") return "local-conflict";
   const hasLocalFiles = analysis.localSnapshot.files.length > 0;
   const remoteSnapshot = analysis.state.activeRemoteSnapshot;
 
@@ -42,7 +43,7 @@ export const runFirstSync = async (
   objectId: string,
   shop: GameShop,
   trigger: CloudSaveSyncTrigger,
-  analysis: CloudSaveAnalysis,
+  analysis: Extract<CloudSaveAnalysis, { status: "ready" }>,
   emitProgress: ProgressCallback
 ): Promise<SyncOutcome> => {
   const initialState = "untracked";

@@ -68,8 +68,11 @@ export type CloudSaveState =
   | "synced"
   | "local-ahead"
   | "remote-ahead"
+  | "local-conflict"
   | "conflict"
   | "untracked";
+
+export type NativeCloudSaveState = Exclude<CloudSaveState, "local-conflict">;
 
 export interface CompareGameSnapshotsInput {
   localSnapshotHash: string;
@@ -79,7 +82,7 @@ export interface CompareGameSnapshotsInput {
 }
 
 export interface NativeCloudSaveStateResult {
-  state: CloudSaveState;
+  state: NativeCloudSaveState;
   isOutOfSync: boolean;
   activeRemoteSnapshot: RemoteSnapshotSummary | null;
 }
@@ -93,6 +96,7 @@ export interface CloudSaveStateResult {
 export interface CloudSaveOverview extends CloudSaveStateResult {
   snapshots: RemoteSnapshotSummary[];
   isAutomaticSyncEnabled: boolean;
+  localConflicts: LocalGameSnapshotConflict[];
 }
 
 export type CloudSaveSyncTrigger =
@@ -267,10 +271,43 @@ export interface LocalGameSnapshotPipelineResult
   sourceFiles: LocalGameSnapshotSourceFile[];
 }
 
-export interface NativeLocalGameSnapshotPipelineResult
-  extends LocalGameSnapshotPipelineResult {
+export interface NativeLocalGameSnapshotPipelineResult {
+  status: "ready" | "local-conflict";
+  snapshot:
+    | (LocalGameSnapshotPipelineResult & {
+        hashCache: LocalFileHashCacheEntry[];
+      })
+    | null;
+  conflicts: LocalGameSnapshotConflict[];
   hashCache: LocalFileHashCacheEntry[];
+  physicalFileCount: number;
+  consolidatedCopyCount: number;
 }
+
+export interface LocalGameSnapshotConflictCopy {
+  absolutePath: string;
+  hash: string;
+  sizeBytes: number;
+  lastModifiedAt: string;
+}
+
+export interface LocalGameSnapshotConflict {
+  rawPath: string;
+  relativePath: string;
+  copies: LocalGameSnapshotConflictCopy[];
+}
+
+export type LocalGameSnapshotBuildResult =
+  | {
+      status: "ready";
+      snapshot: LocalGameSnapshotPipelineResult;
+      conflicts: [];
+    }
+  | {
+      status: "local-conflict";
+      snapshot: null;
+      conflicts: LocalGameSnapshotConflict[];
+    };
 
 export type PrepareSnapshotFile =
   | { rawPath: string; relativePath: string; status: "skip" }

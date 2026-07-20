@@ -9,11 +9,30 @@ export const analyzeCloudSaveState = async (
   objectId: string,
   shop: GameShop
 ) => {
-  const [localSnapshotContext, anchor, remoteSnapshots] = await Promise.all([
+  const [localBuild, anchor, remoteSnapshots] = await Promise.all([
     buildLocalGameSnapshotContext(objectId, shop),
     getCloudSaveSyncAnchor(shop, objectId),
     listRemoteGameSnapshots(objectId, shop),
   ]);
+  if (localBuild.status === "local-conflict") {
+    return {
+      status: "local-conflict" as const,
+      localSnapshot: null,
+      localSnapshotContext: null,
+      localConflicts: localBuild.conflicts,
+      anchor,
+      remoteSnapshots,
+      state: {
+        state: "local-conflict" as const,
+        hasChanged: true,
+        activeRemoteSnapshot:
+          remoteSnapshots.find((snapshot) => snapshot.status === "active") ??
+          null,
+      },
+    };
+  }
+
+  const localSnapshotContext = localBuild.snapshot;
   const { sourceFiles: _, ...localSnapshot } = localSnapshotContext;
   const comparison = NativeAddon.compareGameSnapshots({
     localSnapshotHash: localSnapshot.aggregateHash,
@@ -28,8 +47,10 @@ export const analyzeCloudSaveState = async (
   };
 
   return {
+    status: "ready" as const,
     localSnapshot,
     localSnapshotContext,
+    localConflicts: [],
     anchor,
     remoteSnapshots,
     state,

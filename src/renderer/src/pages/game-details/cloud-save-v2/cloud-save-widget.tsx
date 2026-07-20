@@ -25,6 +25,8 @@ interface CloudSaveWidgetProps {
 const statusKey = (overview: CloudSaveOverview | null) => {
   if (!overview) return "cloud_save_v2_checking";
   if (overview.state === "synced") return "cloud_save_v2_synced";
+  if (overview.state === "local-conflict")
+    return "cloud_save_v2_local_conflict_title";
   if (overview.state === "conflict") return "cloud_save_v2_conflict";
   if (overview.state === "untracked") return "cloud_save";
   return "cloud_save_v2_outdated";
@@ -37,7 +39,8 @@ const statusTone = (
 ) => {
   if (isSyncing || hasError || !overview) return "neutral";
   if (overview.state === "synced") return "synced";
-  if (overview.state === "conflict") return "conflict";
+  if (overview.state === "conflict" || overview.state === "local-conflict")
+    return "conflict";
   return "outdated";
 };
 
@@ -117,9 +120,18 @@ export function CloudSaveWidget({
       } else {
         setHasSyncError(false);
         if (event.status === "conflict") {
+          const localConflict = event.result?.finalState === "local-conflict";
           showWarningToast(
-            t("cloud_save_v2_auto_sync_conflict_title"),
-            t("cloud_save_v2_auto_sync_conflict_description")
+            t(
+              localConflict
+                ? "cloud_save_v2_local_conflict_title"
+                : "cloud_save_v2_auto_sync_conflict_title"
+            ),
+            t(
+              localConflict
+                ? "cloud_save_v2_local_conflict_description"
+                : "cloud_save_v2_auto_sync_conflict_description"
+            )
           );
         }
       }
