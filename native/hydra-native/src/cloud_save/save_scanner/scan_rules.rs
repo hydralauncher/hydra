@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 
 use crate::cloud_save::path_resolution::ResolvedCloudSaveRule;
 
@@ -9,41 +9,38 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
     rules
         .into_iter()
         .map(|rule| {
-            let mut scanned_by_root = BTreeMap::<String, ScannedCloudSavePath>::new();
-            let mut seen_files = HashSet::new();
+            let mut selected_paths = Vec::<ScannedCloudSavePath>::new();
 
             if rule.unresolved_tokens.is_empty() {
                 for candidate in &rule.resolved_paths {
-                    let scanned_paths = scan_resolved_path(
+                    let mut scanned_paths = scan_resolved_path(
                         &candidate.path,
                         candidate.case_sensitive,
                         candidate.scan_root.as_deref(),
                     )?;
+                    let mut seen_absolute_paths = HashSet::new();
+                    let mut seen_relative_paths = HashSet::new();
 
-                    for scanned in scanned_paths {
-                        let target = scanned_by_root
-                            .entry(scanned.resolved_path.clone())
-                            .or_insert_with(|| ScannedCloudSavePath {
-                                resolved_path: scanned.resolved_path,
-                                files: Vec::new(),
-                            });
+                    for scanned in &mut scanned_paths {
+                        scanned.files.retain(|file| {
+                            if seen_absolute_paths.contains(&file.absolute_path)
+                                || seen_relative_paths.contains(&file.relative_path)
+                            {
+                                return false;
+                            }
 
-                        target.files.extend(
-                            scanned
-                                .files
-                                .into_iter()
-                                .filter(|file| seen_files.insert(file.absolute_path.clone())),
-                        );
+                            seen_absolute_paths.insert(file.absolute_path.clone());
+                            seen_relative_paths.insert(file.relative_path.clone());
+                            true
+                        });
+                    }
+
+                    scanned_paths.retain(|scanned| !scanned.files.is_empty());
+                    if !scanned_paths.is_empty() {
+                        selected_paths = scanned_paths;
+                        break;
                     }
                 }
-            }
-
-            for scanned in scanned_by_root.values_mut() {
-                scanned.files.sort_by(|left, right| {
-                    left.relative_path
-                        .cmp(&right.relative_path)
-                        .then(left.absolute_path.cmp(&right.absolute_path))
-                });
             }
 
             Ok(ScannedCloudSaveRule {
@@ -54,7 +51,7 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                 when: rule.when,
                 resolved_paths: rule.resolved_paths,
                 unresolved_tokens: rule.unresolved_tokens,
-                scanned_paths: scanned_by_root.into_values().collect(),
+                scanned_paths: selected_paths,
             })
         })
         .collect()
@@ -82,6 +79,7 @@ mod tests {
             app_data_dir: None,
             executable_path: Some("/games/TLOU/tlou-i.exe".into()),
             wine_prefix_path: Some(prefix.display().to_string()),
+            wine_prefix_is_explicit: Some(true),
             steam_path: None,
             rules: vec![CloudSaveRule {
                 kind: "dir".into(),
@@ -95,7 +93,7 @@ mod tests {
     }
 
     #[test]
-    fn scans_multiple_store_users() {
+    fn deduplicates_same_logical_file_across_store_users() {
         let temp = tempdir().unwrap();
         for user in ["Goldberg", "Rune"] {
             let root = temp.path().join(format!(
@@ -111,7 +109,34 @@ mod tests {
         ))
         .unwrap();
 
-        assert_eq!(scanned[0].scanned_paths.len(), 2);
+        assert_eq!(scanned[0].scanned_paths.len(), 1);
+        assert_eq!(
+            scanned[0]
+                .scanned_paths
+                .iter()
+                .flat_map(|path| &path.files)
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn keeps_different_logical_files_across_store_users() {
+        let temp = tempdir().unwrap();
+        for (user, file) in [("Goldberg", "slot.dat"), ("Rune", "profile.dat")] {
+            let root = temp.path().join(format!(
+                "drive_c/users/steamuser/Saved Games/The Last of Us Part I/users/{user}/savedata"
+            ));
+            fs::create_dir_all(&root).unwrap();
+            fs::write(root.join(file), user.as_bytes()).unwrap();
+        }
+
+        let scanned = scan_rules(resolve(
+            temp.path(),
+            "<home>/Saved Games/The Last of Us Part I/users/<storeUserId>/savedata",
+        ))
+        .unwrap();
+
         assert_eq!(
             scanned[0]
                 .scanned_paths
@@ -120,6 +145,86 @@ mod tests {
                 .count(),
             2
         );
+    }
+
+    #[test]
+    fn prefers_modern_windows_aliases() {
+        let temp = tempdir().unwrap();
+        let cases = [
+            ("<winDocuments>/Docs", "Documents/Docs", "My Documents/Docs"),
+            (
+                "<winAppData>/Roaming",
+                "AppData/Roaming/Roaming",
+                "Application Data/Roaming",
+            ),
+            (
+                "<winLocalAppData>/Local",
+                "AppData/Local/Local",
+                "Local Settings/Application Data/Local",
+            ),
+        ];
+
+        for (raw_path, modern, legacy) in cases {
+            let user = temp.path().join("drive_c/users/steamuser");
+            fs::create_dir_all(user.join(modern)).unwrap();
+            fs::create_dir_all(user.join(legacy)).unwrap();
+            fs::write(user.join(modern).join("save.dat"), b"modern").unwrap();
+            fs::write(user.join(legacy).join("save.dat"), b"legacy").unwrap();
+
+            let scanned = scan_rules(resolve(temp.path(), raw_path)).unwrap();
+            let files = scanned[0]
+                .scanned_paths
+                .iter()
+                .flat_map(|path| &path.files)
+                .collect::<Vec<_>>();
+
+            assert_eq!(files.len(), 1);
+            assert!(files[0].absolute_path.contains(modern));
+        }
+    }
+
+    #[test]
+    fn active_root_wins_without_mixing_fallback_files() {
+        let temp = tempdir().unwrap();
+        let active = temp.path().join("active");
+        let fallback = temp.path().join("fallback");
+        fs::create_dir_all(&active).unwrap();
+        fs::create_dir_all(&fallback).unwrap();
+        fs::write(active.join("save.dat"), b"active").unwrap();
+        fs::write(fallback.join("save.dat"), b"fallback").unwrap();
+        fs::write(fallback.join("extra.dat"), b"fallback-only").unwrap();
+
+        let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            kind: "dir".into(),
+            raw_path: "<winAppData>/Game".into(),
+            source: "test".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![
+                ResolvedCloudSavePath {
+                    path: active.display().to_string(),
+                    case_sensitive: true,
+                    dynamic: false,
+                    scan_root: None,
+                },
+                ResolvedCloudSavePath {
+                    path: fallback.display().to_string(),
+                    case_sensitive: true,
+                    dynamic: false,
+                    scan_root: None,
+                },
+            ],
+            unresolved_tokens: vec![],
+        }])
+        .unwrap();
+        let files = &scanned[0].scanned_paths[0].files;
+        let active = fs::canonicalize(active)
+            .unwrap()
+            .to_string_lossy()
+            .replace('\\', "/");
+
+        assert_eq!(files.len(), 1);
+        assert!(files[0].absolute_path.starts_with(&active));
     }
 
     #[test]

@@ -2,6 +2,7 @@ use super::context::normalize_separators;
 use super::tokens::{apply, literal, missing, optional_literal, TokenValues};
 use super::types::PathResolutionContext;
 
+#[derive(Clone, Copy)]
 enum WindowsLayout {
     Modern,
     Legacy,
@@ -89,6 +90,17 @@ fn windows_environment_paths(
         .collect()
 }
 
+fn windows_environment_path(
+    path: &str,
+    context: &PathResolutionContext,
+    root: &str,
+    drive: &str,
+    home: &str,
+    layout: WindowsLayout,
+) -> String {
+    apply(path, &windows_values(context, root, drive, home, layout))
+}
+
 pub fn native_paths(
     path: &str,
     context: &PathResolutionContext,
@@ -109,9 +121,29 @@ pub fn native_paths(
 
 pub fn wine_paths(path: &str, context: &PathResolutionContext, prefix: &str) -> Vec<String> {
     let root = literal(prefix);
-    let drive = format!("{root}/drive_*");
-    let home = format!("{drive}/users/*");
-    windows_environment_paths(path, context, root, drive, home)
+    let preferred_users = [
+        "steamuser".to_string(),
+        globset::escape(&context.os_username),
+    ];
+    let mut paths = Vec::new();
+
+    for layout in [WindowsLayout::Modern, WindowsLayout::Legacy] {
+        for user in &preferred_users {
+            let drive = format!("{root}/drive_c");
+            let home = format!("{drive}/users/{user}");
+            paths.push(windows_environment_path(
+                path, context, &root, &drive, &home, layout,
+            ));
+        }
+
+        let drive = format!("{root}/drive_*");
+        let home = format!("{drive}/users/*");
+        paths.push(windows_environment_path(
+            path, context, &root, &drive, &home, layout,
+        ));
+    }
+
+    paths
 }
 
 pub fn steam_proton_paths(

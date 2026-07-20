@@ -282,4 +282,21 @@ mod tests {
         assert_eq!(scanned[0].files.len(), 1);
         assert_eq!(scanned[0].files[0].relative_path, "save.dat");
     }
+
+    #[cfg(unix)]
+    #[test]
+    fn deduplicates_a_file_reached_through_a_symlink() {
+        use std::os::unix::fs::symlink;
+
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("root");
+        let real = root.join("real");
+        fs::create_dir_all(&real).unwrap();
+        fs::write(real.join("save.dat"), b"save").unwrap();
+        symlink(&real, root.join("linked")).unwrap();
+
+        let scanned = scan_resolved_path(&root.display().to_string(), true, None).unwrap();
+
+        assert_eq!(scanned[0].files.len(), 1);
+    }
 }

@@ -60,9 +60,28 @@ fn collect_discovered_files(
         }
     }
 
-    discovered_by_path
+    let mut discovered_by_logical_path = BTreeMap::new();
+
+    for (priority, discovered) in discovered_by_path.into_values() {
+        let logical_path = (
+            discovered.raw_path.clone(),
+            discovered.relative_path.clone(),
+        );
+
+        match discovered_by_logical_path.entry(logical_path) {
+            Entry::Vacant(entry) => {
+                entry.insert((priority, discovered));
+            }
+            Entry::Occupied(mut entry) if priority > entry.get().0 => {
+                entry.insert((priority, discovered));
+            }
+            Entry::Occupied(_) => {}
+        }
+    }
+
+    discovered_by_logical_path
         .into_values()
-        .map(|(_, file)| file)
+        .map(|(_, discovered)| discovered)
         .collect()
 }
 
@@ -91,6 +110,7 @@ pub async fn build_local_game_snapshot_pipeline(
         app_data_dir: input.app_data_dir,
         executable_path: input.executable_path,
         wine_prefix_path: input.wine_prefix_path,
+        wine_prefix_is_explicit: input.wine_prefix_is_explicit,
         steam_path: input.steam_path,
         rules: save_rules.rules,
     })?;
@@ -107,4 +127,86 @@ pub async fn build_local_game_snapshot_pipeline(
         hash_cache: input.hash_cache,
     })
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use tempfile::tempdir;
+
+    use super::*;
+    use crate::cloud_save::path_resolution::ResolvedCloudSavePath;
+    use crate::cloud_save::save_scanner::{ScannedCloudSaveFile, ScannedCloudSavePath};
+
+    fn scanned_rule(
+        raw_path: &str,
+        resolved_path: &str,
+        absolute_path: &str,
+        relative_path: &str,
+        dynamic: bool,
+    ) -> ScannedCloudSaveRule {
+        ScannedCloudSaveRule {
+            kind: "file".into(),
+            raw_path: raw_path.into(),
+            source: "test".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![ResolvedCloudSavePath {
+                path: resolved_path.into(),
+                case_sensitive: true,
+                dynamic,
+                scan_root: None,
+            }],
+            unresolved_tokens: vec![],
+            scanned_paths: vec![ScannedCloudSavePath {
+                resolved_path: resolved_path.into(),
+                files: vec![ScannedCloudSaveFile {
+                    absolute_path: absolute_path.into(),
+                    relative_path: relative_path.into(),
+                }],
+            }],
+        }
+    }
+
+    #[test]
+    fn deduplicates_logical_files_and_keeps_existing_priority() {
+        let temp = tempdir().unwrap();
+        let dynamic_file = temp.path().join("dynamic/save.dat");
+        let static_file = temp.path().join("static/save.dat");
+        fs::create_dir_all(dynamic_file.parent().unwrap()).unwrap();
+        fs::create_dir_all(static_file.parent().unwrap()).unwrap();
+        fs::write(&dynamic_file, b"dynamic").unwrap();
+        fs::write(&static_file, b"static").unwrap();
+
+        let files = collect_discovered_files(vec![
+            scanned_rule(
+                "<winAppData>/Game",
+                &dynamic_file.display().to_string(),
+                &dynamic_file.display().to_string(),
+                "save.dat",
+                true,
+            ),
+            scanned_rule(
+                "<winAppData>/Game",
+                &static_file.display().to_string(),
+                &static_file.display().to_string(),
+                "save.dat",
+                false,
+            ),
+        ]);
+
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].absolute_path, static_file.display().to_string());
+    }
+
+    #[test]
+    fn keeps_distinct_logical_files() {
+        let files = collect_discovered_files(vec![
+            scanned_rule("rule", "/a", "/a/slot.dat", "slot.dat", true),
+            scanned_rule("rule", "/b", "/b/profile.dat", "profile.dat", true),
+        ]);
+
+        assert_eq!(files.len(), 2);
+    }
 }
