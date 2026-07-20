@@ -76,6 +76,11 @@ export class HydraApi {
       subscription: null,
     };
 
+    const { AchievementWatcherManager } = await import(
+      "./achievements/achievement-watcher-manager"
+    );
+    AchievementWatcherManager.resetSessionState();
+
     logger.log(
       "Sign in received. Token expiration timestamp:",
       tokenExpirationTimestamp
@@ -122,6 +127,11 @@ export class HydraApi {
       expirationTimestamp: 0,
       subscription: null,
     };
+
+    void import("./achievements/achievement-watcher-manager").then(
+      ({ AchievementWatcherManager }) =>
+        AchievementWatcherManager.resetSessionState()
+    );
 
     this.sendSignOutEvent();
     this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
@@ -305,6 +315,11 @@ export class HydraApi {
         refreshToken: "",
         subscription: null,
       };
+
+      void import("./achievements/achievement-watcher-manager").then(
+        ({ AchievementWatcherManager }) =>
+          AchievementWatcherManager.resetSessionState()
+      );
 
       db.batch([
         {
