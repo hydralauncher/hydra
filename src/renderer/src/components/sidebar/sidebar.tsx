@@ -175,7 +175,7 @@ export function Sidebar() {
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     setFilteredLibrary(
       sortedLibrary.filter((game) =>
-        game.title
+        (game.title ?? "")
           .toLowerCase()
           .includes(event.target.value.toLocaleLowerCase())
       )

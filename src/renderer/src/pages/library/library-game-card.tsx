@@ -116,7 +116,13 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   useEffect(() => {
     setFallbackIndex(0);
     setImageError(false);
-  }, [game.id]);
+  }, [
+    game.id,
+    game.customCoverImageUrl,
+    game.coverImageUrl,
+    game.libraryImageUrl,
+    game.iconUrl,
+  ]);
 
   const renderCoverMedia = () => {
     if (imageError || !activeImageSource) {

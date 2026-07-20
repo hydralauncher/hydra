@@ -156,7 +156,9 @@ export function CollectionContextMenuProvider({
 
       await loadCollections();
       showSuccessToast(t("collection_renamed"));
-      handleCloseRenameCollectionModal();
+      setShowRenameCollectionModal(false);
+      setCollectionName("");
+      setActiveCollection(null);
     } catch (error) {
       showErrorToast(
         resolveCollectionErrorMessage(error, "failed_rename_collection")
@@ -222,7 +224,8 @@ export function CollectionContextMenuProvider({
 
       await Promise.all([loadCollections(), updateLibrary()]);
       showSuccessToast(t("collection_deleted"));
-      handleCloseDeleteCollectionModal();
+      setShowDeleteCollectionModal(false);
+      setActiveCollection(null);
     } catch (error) {
       showErrorToast(
         resolveCollectionErrorMessage(error, "failed_delete_collection")
@@ -238,7 +241,6 @@ export function CollectionContextMenuProvider({
     updateLibrary,
     showSuccessToast,
     t,
-    handleCloseDeleteCollectionModal,
     showErrorToast,
     resolveCollectionErrorMessage,
   ]);

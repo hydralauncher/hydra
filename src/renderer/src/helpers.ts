@@ -404,8 +404,12 @@ const compareLibraryGamesByTitle = (
   ascending = true
 ): number =>
   ascending
-    ? a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
-    : b.title.localeCompare(a.title, undefined, { sensitivity: "base" });
+    ? (a.title ?? "").localeCompare(b.title ?? "", undefined, {
+        sensitivity: "base",
+      })
+    : (b.title ?? "").localeCompare(a.title ?? "", undefined, {
+        sensitivity: "base",
+      });
 
 export const sortLibraryGames = (
   games: LibraryGame[],
