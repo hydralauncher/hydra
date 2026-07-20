@@ -43,10 +43,10 @@ export function ManageTrackersModal({
   const globalTrackers = useMemo(() => {
     return [
       ...(userPreferences?.appendGlobalTrackers
-        ? userPreferences?.globalTrackers ?? []
+        ? (userPreferences?.globalTrackers ?? [])
         : []),
       ...(userPreferences?.appendGlobalTrackersUrl
-        ? userPreferences?.globalTrackersUrlCache ?? []
+        ? (userPreferences?.globalTrackersUrlCache ?? [])
         : []),
     ];
   }, [userPreferences]);

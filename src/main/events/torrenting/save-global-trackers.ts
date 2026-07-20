@@ -22,7 +22,10 @@ const fetchAndValidateTrackersFromUrl = async (
     responseType: "text",
   });
 
-  const lines = data.split("\n").map((line) => line.trim()).filter(Boolean);
+  const lines = data
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
   return [...new Set(lines.filter(isValidTrackerUrl))];
 };
 

@@ -1,5 +1,9 @@
 import { registerEvent } from "../register-event";
-import type { Download, StartGameDownloadPayload, UserPreferences } from "@types";
+import type {
+  Download,
+  StartGameDownloadPayload,
+  UserPreferences,
+} from "@types";
 import {
   DownloadManager,
   DownloadOrchestrator,
@@ -39,10 +43,10 @@ const startGameDownload = async (
 
   const globalTrackers = [
     ...(userPreferences?.appendGlobalTrackers
-      ? userPreferences?.globalTrackers ?? []
+      ? (userPreferences?.globalTrackers ?? [])
       : []),
     ...(userPreferences?.appendGlobalTrackersUrl
-      ? userPreferences?.globalTrackersUrlCache ?? []
+      ? (userPreferences?.globalTrackersUrlCache ?? [])
       : []),
   ];
 
