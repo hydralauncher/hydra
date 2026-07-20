@@ -3,14 +3,6 @@
 .sidebar-filter-menu {
   &__trigger {
     margin-right: 6px;
-
-    &:focus {
-      outline: none;
-    }
-
-    &:focus-visible {
-      outline: auto;
-    }
   }
 
   &__content {

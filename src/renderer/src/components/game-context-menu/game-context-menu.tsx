@@ -374,6 +374,7 @@ export function GameContextMenu({
           onClick: () => setShowConfirmRemoveLibrary(true),
           disabled: isDeleting,
           danger: true,
+          closeOnClick: false,
         },
         ...(game.download?.downloadPath
           ? [
@@ -384,6 +385,7 @@ export function GameContextMenu({
                 onClick: () => setShowConfirmRemoveFiles(true),
                 disabled: isDeleting || isGameDownloading,
                 danger: true,
+                closeOnClick: false,
               },
             ]
           : []),
@@ -407,9 +409,11 @@ export function GameContextMenu({
         position={position}
         onClose={onClose}
         forceOpenSubmenuId={
-          isCollectionContextMenuOrModalOpen || showCreateCollectionModal
-            ? "collection"
-            : undefined
+          showConfirmRemoveLibrary || showConfirmRemoveFiles
+            ? "manage"
+            : isCollectionContextMenuOrModalOpen || showCreateCollectionModal
+              ? "collection"
+              : undefined
         }
         className={
           !game.executablePath ? "context-menu--game-not-installed" : undefined
@@ -449,7 +453,6 @@ export function GameContextMenu({
         })}
         onClose={() => {
           setShowConfirmRemoveLibrary(false);
-          onClose();
         }}
         onConfirm={async () => {
           setShowConfirmRemoveLibrary(false);
@@ -466,7 +469,6 @@ export function GameContextMenu({
         descriptionText={t("delete_modal_description", { ns: "downloads" })}
         onClose={() => {
           setShowConfirmRemoveFiles(false);
-          onClose();
         }}
         onConfirm={async () => {
           setShowConfirmRemoveFiles(false);
