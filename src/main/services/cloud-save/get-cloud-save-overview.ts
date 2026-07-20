@@ -23,6 +23,5 @@ export const getCloudSaveOverview = async (
     hasChanged: state !== "synced",
     snapshots: analysis.remoteSnapshots,
     isAutomaticSyncEnabled,
-    localConflicts: analysis.localConflicts,
   };
 };

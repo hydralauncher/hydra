@@ -4,7 +4,7 @@ import { HydraApi } from "@main/services/hydra-api";
 import type {
   CloudSaveUploadProgress,
   GameShop,
-  LocalGameSnapshotPipelineResult,
+  LocalGameSnapshotContext,
   UploadLocalGameSnapshotResult,
 } from "@types";
 
@@ -26,16 +26,11 @@ export const uploadLocalGameSnapshot = async (
   objectId: string,
   shop: GameShop,
   onProgress?: ProgressCallback,
-  localSnapshotContext?: LocalGameSnapshotPipelineResult
+  localSnapshotContext?: LocalGameSnapshotContext
 ): Promise<UploadLocalGameSnapshotResult> => {
-  let context = localSnapshotContext;
-  if (!context) {
-    const localBuild = await buildLocalGameSnapshotContext(objectId, shop);
-    if (localBuild.status === "local-conflict") {
-      throw new Error("cloud_save_conflicting_local_copies");
-    }
-    context = localBuild.snapshot;
-  }
+  const context =
+    localSnapshotContext ??
+    (await buildLocalGameSnapshotContext(objectId, shop));
   if (context.files.length === 0) {
     return { snapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
   }

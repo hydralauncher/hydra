@@ -4,36 +4,30 @@ import { NativeAddon } from "../native-addon";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { getCloudSaveSyncAnchor } from "./sync-anchor";
+import type { getCloudSaveGameContext } from "./cloud-save-game-context";
 
 export const analyzeCloudSaveState = async (
   objectId: string,
-  shop: GameShop
+  shop: GameShop,
+  suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>
 ) => {
-  const [localBuild, anchor, remoteSnapshots] = await Promise.all([
-    buildLocalGameSnapshotContext(objectId, shop),
-    getCloudSaveSyncAnchor(shop, objectId),
+  const [localSnapshotContext, remoteSnapshots] = await Promise.all([
+    buildLocalGameSnapshotContext(objectId, shop, suppliedContext),
     listRemoteGameSnapshots(objectId, shop),
   ]);
-  if (localBuild.status === "local-conflict") {
-    return {
-      status: "local-conflict" as const,
-      localSnapshot: null,
-      localSnapshotContext: null,
-      localConflicts: localBuild.conflicts,
-      anchor,
-      remoteSnapshots,
-      state: {
-        state: "local-conflict" as const,
-        hasChanged: true,
-        activeRemoteSnapshot:
-          remoteSnapshots.find((snapshot) => snapshot.status === "active") ??
-          null,
-      },
-    };
-  }
-
-  const localSnapshotContext = localBuild.snapshot;
-  const { sourceFiles: _, ...localSnapshot } = localSnapshotContext;
+  const {
+    sourceFiles: _,
+    environmentId,
+    pathContext: __,
+    ...localSnapshot
+  } = localSnapshotContext;
+  const anchor = await getCloudSaveSyncAnchor(
+    shop,
+    objectId,
+    environmentId,
+    localSnapshot.aggregateHash,
+    localSnapshot.fileCount
+  );
   const comparison = NativeAddon.compareGameSnapshots({
     localSnapshotHash: localSnapshot.aggregateHash,
     localSnapshotFileCount: localSnapshot.fileCount,
@@ -47,10 +41,9 @@ export const analyzeCloudSaveState = async (
   };
 
   return {
-    status: "ready" as const,
     localSnapshot,
     localSnapshotContext,
-    localConflicts: [],
+    environmentId,
     anchor,
     remoteSnapshots,
     state,

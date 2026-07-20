@@ -18,7 +18,6 @@ export interface BuildLocalGameSnapshotPipelineInput {
   appDataDir?: string;
   executablePath?: string;
   winePrefixPath?: string;
-  winePrefixIsExplicit?: boolean;
   steamPath?: string;
   hashCache: LocalFileHashCacheEntry[];
 }
@@ -39,7 +38,6 @@ export interface CloudSavePathContext {
   appDataDir?: string;
   executablePath?: string;
   winePrefixPath?: string;
-  winePrefixIsExplicit?: boolean;
   steamPath?: string;
 }
 
@@ -68,11 +66,8 @@ export type CloudSaveState =
   | "synced"
   | "local-ahead"
   | "remote-ahead"
-  | "local-conflict"
   | "conflict"
   | "untracked";
-
-export type NativeCloudSaveState = Exclude<CloudSaveState, "local-conflict">;
 
 export interface CompareGameSnapshotsInput {
   localSnapshotHash: string;
@@ -82,7 +77,7 @@ export interface CompareGameSnapshotsInput {
 }
 
 export interface NativeCloudSaveStateResult {
-  state: NativeCloudSaveState;
+  state: CloudSaveState;
   isOutOfSync: boolean;
   activeRemoteSnapshot: RemoteSnapshotSummary | null;
 }
@@ -96,15 +91,13 @@ export interface CloudSaveStateResult {
 export interface CloudSaveOverview extends CloudSaveStateResult {
   snapshots: RemoteSnapshotSummary[];
   isAutomaticSyncEnabled: boolean;
-  localConflicts: LocalGameSnapshotConflict[];
 }
 
 export type CloudSaveSyncTrigger =
   | "manual"
-  | "executable-added"
+  | "environment-changed"
   | "pre-launch"
-  | "post-exit"
-  | "state-changed";
+  | "post-exit";
 
 export type CloudSaveSyncAction = "none" | "upload" | "restore" | "conflict";
 
@@ -115,6 +108,8 @@ export interface SyncGameCloudSaveResult {
   action: CloudSaveSyncAction;
   initialState: CloudSaveState;
   finalState: CloudSaveState;
+  remoteHash?: string | null;
+  environmentId?: string;
 }
 
 export type CloudSaveAutomaticSyncTrigger = Exclude<
@@ -271,43 +266,16 @@ export interface LocalGameSnapshotPipelineResult
   sourceFiles: LocalGameSnapshotSourceFile[];
 }
 
-export interface NativeLocalGameSnapshotPipelineResult {
-  status: "ready" | "local-conflict";
-  snapshot:
-    | (LocalGameSnapshotPipelineResult & {
-        hashCache: LocalFileHashCacheEntry[];
-      })
-    | null;
-  conflicts: LocalGameSnapshotConflict[];
+export interface LocalGameSnapshotContext
+  extends LocalGameSnapshotPipelineResult {
+  environmentId: string;
+  pathContext: CloudSavePathContext;
+}
+
+export interface NativeLocalGameSnapshotPipelineResult
+  extends LocalGameSnapshotPipelineResult {
   hashCache: LocalFileHashCacheEntry[];
-  physicalFileCount: number;
-  consolidatedCopyCount: number;
 }
-
-export interface LocalGameSnapshotConflictCopy {
-  absolutePath: string;
-  hash: string;
-  sizeBytes: number;
-  lastModifiedAt: string;
-}
-
-export interface LocalGameSnapshotConflict {
-  rawPath: string;
-  relativePath: string;
-  copies: LocalGameSnapshotConflictCopy[];
-}
-
-export type LocalGameSnapshotBuildResult =
-  | {
-      status: "ready";
-      snapshot: LocalGameSnapshotPipelineResult;
-      conflicts: [];
-    }
-  | {
-      status: "local-conflict";
-      snapshot: null;
-      conflicts: LocalGameSnapshotConflict[];
-    };
 
 export type PrepareSnapshotFile =
   | { rawPath: string; relativePath: string; status: "skip" }
@@ -358,4 +326,6 @@ export interface CloudSaveSyncAnchor {
   baseSnapshotId: string;
   baseAggregateHash: string;
   updatedAt: string;
+  schemaVersion?: 2;
+  environmentId?: string;
 }

@@ -1,5 +1,6 @@
 import { HydraApi } from "@main/services/hydra-api";
 import type {
+  CloudSavePathContext,
   GameShop,
   ResolvedRestoreTarget,
   RestoreManifestResponse,
@@ -67,12 +68,17 @@ export const getRemoteSnapshotRestoreManifest = async (
 };
 
 export const resolveRestoreManifestTargets = async (
-  manifest: RestoreManifestResponse
+  manifest: RestoreManifestResponse,
+  suppliedPathContext?: CloudSavePathContext
 ): Promise<ResolvedRestoreTarget[]> => {
-  const { pathContext } = await getCloudSaveGameContext(
-    manifest.snapshot.objectId,
-    manifest.snapshot.shop
-  );
+  const pathContext =
+    suppliedPathContext ??
+    (
+      await getCloudSaveGameContext(
+        manifest.snapshot.objectId,
+        manifest.snapshot.shop
+      )
+    ).pathContext;
 
   return NativeAddon.resolveRestoreTargets({
     ...pathContext,

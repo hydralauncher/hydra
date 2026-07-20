@@ -6,8 +6,15 @@ import type {
 
 type SyncDirection = "bidirectional" | "restore-only" | "upload-only";
 
+export const hasRemoteChangedSinceBase = (
+  currentRemoteHash: string | null,
+  baseRemoteHash: string | null | undefined
+) => baseRemoteHash !== undefined && currentRemoteHash !== baseRemoteHash;
+
 const getSyncDirection = (trigger: CloudSaveSyncTrigger): SyncDirection => {
-  if (trigger === "pre-launch") return "restore-only";
+  if (trigger === "pre-launch" || trigger === "environment-changed") {
+    return "restore-only";
+  }
   if (trigger === "post-exit") return "upload-only";
   return "bidirectional";
 };
@@ -17,7 +24,7 @@ export const getSyncAction = (
   state: CloudSaveState,
   remoteChangedSinceAnchor = false
 ): CloudSaveSyncAction => {
-  if (state === "conflict" || state === "local-conflict") return "conflict";
+  if (state === "conflict") return "conflict";
 
   const direction = getSyncDirection(trigger);
 

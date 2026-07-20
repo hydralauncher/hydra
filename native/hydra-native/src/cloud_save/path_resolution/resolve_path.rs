@@ -126,52 +126,67 @@ pub fn resolve_path(raw_path: &str, context: &PathResolutionContext) -> Resolved
     let mut paths = Vec::new();
     let mut seen = HashSet::new();
 
-    if context.wine_prefix_is_explicit {
-        if let Some(prefix) = &context.wine_prefix_path {
-            collect_wine_paths(&mut paths, &mut seen, &raw_path, context, prefix);
-        }
-    }
-
-    if !context.windows_compatibility {
-        collect_native_paths(
-            &mut paths,
-            &mut seen,
-            &raw_path,
-            context,
-            None,
-            store_user_dynamic,
-        );
-    }
-
-    if let Some(root) = &context.derived_steam_root {
-        collect_steam_root_paths(
-            &mut paths,
-            &mut seen,
-            &raw_path,
-            context,
-            root,
-            store_user_dynamic,
-        );
-    }
-
-    if !context.wine_prefix_is_explicit {
-        if let Some(prefix) = &context.wine_prefix_path {
-            collect_wine_paths(&mut paths, &mut seen, &raw_path, context, prefix);
-        }
-    }
-
-    if let Some(root) = &context.configured_steam_root {
-        collect_steam_root_paths(
-            &mut paths,
-            &mut seen,
-            &raw_path,
-            context,
-            root,
-            store_user_dynamic,
-        );
-    }
-
     if context.windows_compatibility {
+        if let Some(prefix) = &context.wine_prefix_path {
+            // This is the prefix Hydra passes to the launcher. Other Proton
+            // prefixes are independent environments, not mirrors of it.
+            collect_wine_paths(&mut paths, &mut seen, &raw_path, context, prefix);
+
+            // Keep store-root expansion for rules that use <root>, but do not
+            // inspect compatdata from a different execution environment.
+            if let Some(root) = &context.derived_steam_root {
+                collect_native_paths(
+                    &mut paths,
+                    &mut seen,
+                    &raw_path,
+                    context,
+                    Some(root),
+                    store_user_dynamic,
+                );
+            }
+            if let Some(root) = &context.configured_steam_root {
+                collect_native_paths(
+                    &mut paths,
+                    &mut seen,
+                    &raw_path,
+                    context,
+                    Some(root),
+                    store_user_dynamic,
+                );
+            }
+        } else {
+            // Compatibility callers without a known launcher prefix may still
+            // derive Proton's active prefix from the executable's Steam root.
+            if let Some(root) = &context.derived_steam_root {
+                collect_steam_root_paths(
+                    &mut paths,
+                    &mut seen,
+                    &raw_path,
+                    context,
+                    root,
+                    store_user_dynamic,
+                );
+            }
+            if let Some(root) = &context.configured_steam_root {
+                collect_steam_root_paths(
+                    &mut paths,
+                    &mut seen,
+                    &raw_path,
+                    context,
+                    root,
+                    store_user_dynamic,
+                );
+            }
+            collect_native_paths(
+                &mut paths,
+                &mut seen,
+                &raw_path,
+                context,
+                None,
+                store_user_dynamic,
+            );
+        }
+    } else {
         collect_native_paths(
             &mut paths,
             &mut seen,
@@ -180,6 +195,26 @@ pub fn resolve_path(raw_path: &str, context: &PathResolutionContext) -> Resolved
             None,
             store_user_dynamic,
         );
+        if let Some(root) = &context.derived_steam_root {
+            collect_native_paths(
+                &mut paths,
+                &mut seen,
+                &raw_path,
+                context,
+                Some(root),
+                store_user_dynamic,
+            );
+        }
+        if let Some(root) = &context.configured_steam_root {
+            collect_native_paths(
+                &mut paths,
+                &mut seen,
+                &raw_path,
+                context,
+                Some(root),
+                store_user_dynamic,
+            );
+        }
     }
 
     if let Some(raw_scan_root) = glob_base_path(&raw_path) {
@@ -240,7 +275,6 @@ mod tests {
             documents_dir: None,
             app_data_dir: None,
             wine_prefix_path: Some("/home/spectre/.wine".to_string()),
-            wine_prefix_is_explicit: Some(true),
             steam_path: None,
             rules: Vec::new(),
         };
@@ -272,7 +306,6 @@ mod tests {
             documents_dir: None,
             app_data_dir: None,
             wine_prefix_path: Some("/prefix".to_string()),
-            wine_prefix_is_explicit: Some(true),
             steam_path: None,
             rules: Vec::new(),
         };
@@ -291,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn orders_default_roots_and_windows_aliases() {
+    fn uses_active_launcher_prefix_without_scanning_other_compatdata() {
         let input = ResolveSaveRulesInput {
             shop: "steam".into(),
             object_id: "123".into(),
@@ -301,7 +334,6 @@ mod tests {
             documents_dir: None,
             app_data_dir: None,
             wine_prefix_path: Some("/hydra/prefix".into()),
-            wine_prefix_is_explicit: Some(false),
             steam_path: Some("/home/victor/.steam/steam".into()),
             rules: Vec::new(),
         };
@@ -316,36 +348,25 @@ mod tests {
 
         assert_eq!(
             paths[0],
-            "/mnt/games/SteamLibrary/steamapps/compatdata/123/pfx/drive_c/users/steamuser/AppData/Roaming/Game"
-        );
-        assert_eq!(
-            paths[1],
-            "/mnt/games/SteamLibrary/steamapps/compatdata/123/pfx/drive_c/users/steamuser/Application Data/Game"
-        );
-        assert_eq!(
-            paths[2],
             "/hydra/prefix/drive_c/users/steamuser/AppData/Roaming/Game"
         );
         assert_eq!(
-            paths[3],
+            paths[1],
             "/hydra/prefix/drive_c/users/victor/AppData/Roaming/Game"
         );
         assert_eq!(
-            paths[4],
+            paths[2],
             "/hydra/prefix/drive_*/users/*/AppData/Roaming/Game"
         );
         assert_eq!(
-            paths[5],
+            paths[3],
             "/hydra/prefix/drive_c/users/steamuser/Application Data/Game"
         );
-        assert_eq!(
-            paths[8],
-            "/home/victor/.steam/steam/steamapps/compatdata/123/pfx/drive_c/users/steamuser/AppData/Roaming/Game"
-        );
+        assert!(paths.iter().all(|path| !path.contains("/compatdata/")));
     }
 
     #[test]
-    fn puts_explicit_wine_prefix_before_derived_proton() {
+    fn falls_back_to_derived_proton_without_active_prefix() {
         let input = ResolveSaveRulesInput {
             shop: "steam".into(),
             object_id: "123".into(),
@@ -354,8 +375,7 @@ mod tests {
             executable_path: Some("/mnt/games/SteamLibrary/steamapps/common/Game/game.exe".into()),
             documents_dir: None,
             app_data_dir: None,
-            wine_prefix_path: Some("/selected/prefix".into()),
-            wine_prefix_is_explicit: Some(true),
+            wine_prefix_path: None,
             steam_path: None,
             rules: Vec::new(),
         };
@@ -365,19 +385,32 @@ mod tests {
 
         assert_eq!(
             result.paths[0].path,
-            "/selected/prefix/drive_c/users/steamuser/Documents/Game"
-        );
-        assert_eq!(
-            result.paths[1].path,
-            "/selected/prefix/drive_c/users/victor/Documents/Game"
-        );
-        assert_eq!(
-            result.paths[3].path,
-            "/selected/prefix/drive_c/users/steamuser/My Documents/Game"
-        );
-        assert_eq!(
-            result.paths[6].path,
             "/mnt/games/SteamLibrary/steamapps/compatdata/123/pfx/drive_c/users/steamuser/Documents/Game"
         );
+    }
+
+    #[test]
+    fn ignores_wine_prefix_for_native_linux_executable() {
+        let input = ResolveSaveRulesInput {
+            shop: "steam".into(),
+            object_id: "123".into(),
+            platform: "linux".into(),
+            home_dir: "/home/victor".into(),
+            executable_path: Some("/games/Game/game.x86_64".into()),
+            documents_dir: None,
+            app_data_dir: None,
+            wine_prefix_path: Some("/hydra/prefix".into()),
+            steam_path: None,
+            rules: Vec::new(),
+        };
+        let context = build_context(&input).unwrap();
+
+        let result = resolve_path("<home>/.config/Game", &context);
+
+        assert_eq!(result.paths[0].path, "/home/victor/.config/Game");
+        assert!(result
+            .paths
+            .iter()
+            .all(|path| !path.path.starts_with("/hydra/prefix")));
     }
 }

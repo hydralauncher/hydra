@@ -107,10 +107,6 @@ declare global {
       shop: GameShop,
       enabled: boolean
     ) => Promise<boolean>;
-    syncCloudSaveOnStateChange: (
-      objectId: string,
-      shop: GameShop
-    ) => Promise<SyncGameCloudSaveResult | null>;
     syncGameCloudSave: (
       objectId: string,
       shop: GameShop,

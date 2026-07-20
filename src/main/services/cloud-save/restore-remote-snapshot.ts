@@ -2,6 +2,7 @@ import { logger } from "@main/services/logger";
 import { SystemPath } from "@main/services/system-path";
 import type {
   CloudSaveGameId,
+  CloudSavePathContext,
   GameShop,
   ReplaceRestoreTarget,
   RemoteSnapshotSummary,
@@ -25,11 +26,15 @@ import {
   mapWithConcurrency,
   MAX_CONCURRENT_RESTORE_OPERATIONS,
 } from "./map-with-concurrency";
+import { getCloudSaveGameContext } from "./cloud-save-game-context";
+
+interface RestoreCloudSaveContext {
+  environmentId: string;
+  pathContext: CloudSavePathContext;
+}
 
 const fileKey = (rawPath: string, relativePath: string) =>
   JSON.stringify([rawPath, relativePath]);
-
-const targetKey = (targetPath: string) => targetPath.replaceAll("\\", "/");
 
 const getSnapshotSummary = async (
   snapshotId: string,
@@ -46,7 +51,8 @@ export const restoreRemoteSnapshot = async (
   snapshotId: string,
   gameId: CloudSaveGameId,
   onProgress?: (progress: RestoreProgressPayload) => void,
-  knownSnapshot?: RemoteSnapshotSummary
+  knownSnapshot?: RemoteSnapshotSummary,
+  suppliedContext?: RestoreCloudSaveContext
 ): Promise<RestoreRemoteSnapshotResult> => {
   const emitProgress = (
     stage: RestoreProgressPayload["stage"],
@@ -64,8 +70,11 @@ export const restoreRemoteSnapshot = async (
   }
 
   emitProgress("resolving", 0, manifest.files.length);
+  const cloudSaveContext =
+    suppliedContext ??
+    (await getCloudSaveGameContext(gameId.objectId, gameId.shop));
   const [targets, snapshot] = await Promise.all([
-    resolveRestoreManifestTargets(manifest),
+    resolveRestoreManifestTargets(manifest, cloudSaveContext.pathContext),
     knownSnapshot ??
       getSnapshotSummary(
         snapshotId,
@@ -74,7 +83,7 @@ export const restoreRemoteSnapshot = async (
       ),
   ]);
   emitProgress("resolving", targets.length, targets.length);
-  const skipTargets = new Set<string>();
+  const skipKeys = new Set<string>();
   const restoreTargets: ResolvedRestoreTarget[] = [];
 
   emitProgress("checking", 0, targets.length);
@@ -94,7 +103,7 @@ export const restoreRemoteSnapshot = async (
   );
   for (const [index, target] of targets.entries()) {
     if (skipResults[index]) {
-      skipTargets.add(targetKey(target.targetPath));
+      skipKeys.add(fileKey(target.rawPath, target.relativePath));
     } else {
       restoreTargets.push(target);
     }
@@ -102,23 +111,10 @@ export const restoreRemoteSnapshot = async (
 
   const shouldCleanup = restoreTargets.length > 0;
   try {
-    const requestedLogicalFiles = Array.from(
-      new Map(
-        restoreTargets.map((target) => [
-          fileKey(target.rawPath, target.relativePath),
-          {
-            rawPath: target.rawPath,
-            relativePath: target.relativePath,
-            hash: target.hash,
-            sizeBytes: target.sizeBytes,
-          },
-        ])
-      ).values()
-    );
-    emitProgress("downloading", 0, requestedLogicalFiles.length);
+    emitProgress("downloading", 0, restoreTargets.length);
     const downloadedFiles = await downloadRemoteSnapshotToTemp(
       snapshotId,
-      requestedLogicalFiles,
+      restoreTargets,
       (processedFiles, totalFiles) =>
         emitProgress("downloading", processedFiles, totalFiles)
     );
@@ -166,7 +162,7 @@ export const restoreRemoteSnapshot = async (
 
     const replacements: ReplaceRestoreTarget[] = targets.map((target) => {
       const key = fileKey(target.rawPath, target.relativePath);
-      if (skipTargets.has(targetKey(target.targetPath))) {
+      if (skipKeys.has(key)) {
         return {
           rawPath: target.rawPath,
           relativePath: target.relativePath,
@@ -202,6 +198,7 @@ export const restoreRemoteSnapshot = async (
     await saveCloudSaveSyncAnchor(
       manifest.snapshot.shop,
       manifest.snapshot.objectId,
+      cloudSaveContext.environmentId,
       {
         baseSnapshotId: snapshot.id,
         baseAggregateHash: snapshot.aggregateHash,

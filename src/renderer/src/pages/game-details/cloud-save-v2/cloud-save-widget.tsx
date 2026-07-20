@@ -25,8 +25,6 @@ interface CloudSaveWidgetProps {
 const statusKey = (overview: CloudSaveOverview | null) => {
   if (!overview) return "cloud_save_v2_checking";
   if (overview.state === "synced") return "cloud_save_v2_synced";
-  if (overview.state === "local-conflict")
-    return "cloud_save_v2_local_conflict_title";
   if (overview.state === "conflict") return "cloud_save_v2_conflict";
   if (overview.state === "untracked") return "cloud_save";
   return "cloud_save_v2_outdated";
@@ -39,8 +37,7 @@ const statusTone = (
 ) => {
   if (isSyncing || hasError || !overview) return "neutral";
   if (overview.state === "synced") return "synced";
-  if (overview.state === "conflict" || overview.state === "local-conflict")
-    return "conflict";
+  if (overview.state === "conflict") return "conflict";
   return "outdated";
 };
 
@@ -62,20 +59,14 @@ export function CloudSaveWidget({
   const { t } = useTranslation("game_details");
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showErrorToast, showWarningToast } = useToast();
-  const {
-    game,
-    isGameRunning,
-    setShowGameOptionsModal,
-    setGameOptionsInitialCategory,
-  } = useContext(gameDetailsContext);
+  const { game, setShowGameOptionsModal, setGameOptionsInitialCategory } =
+    useContext(gameDetailsContext);
   const canUseCloudSaves = Boolean(userDetails && hasActiveSubscription);
   const { overview, isRefreshing, hasRefreshError, refresh } =
     useCloudSaveOverview({
       objectId,
       shop,
       enabled: canUseCloudSaves,
-      isGameRunning,
-      canAutomaticallySync: Boolean(game?.executablePath),
     });
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -120,24 +111,15 @@ export function CloudSaveWidget({
       } else {
         setHasSyncError(false);
         if (event.status === "conflict") {
-          const localConflict = event.result?.finalState === "local-conflict";
           showWarningToast(
-            t(
-              localConflict
-                ? "cloud_save_v2_local_conflict_title"
-                : "cloud_save_v2_auto_sync_conflict_title"
-            ),
-            t(
-              localConflict
-                ? "cloud_save_v2_local_conflict_description"
-                : "cloud_save_v2_auto_sync_conflict_description"
-            )
+            t("cloud_save_v2_auto_sync_conflict_title"),
+            t("cloud_save_v2_auto_sync_conflict_description")
           );
         }
       }
 
       const requestedGame = `${event.gameId.shop}:${event.gameId.objectId}`;
-      void refresh({ allowAutomaticSync: false }).finally(() => {
+      void refresh().finally(() => {
         if (activeGameKey.current === requestedGame) {
           setIsSyncing(false);
         }
@@ -191,7 +173,7 @@ export function CloudSaveWidget({
       if (activeGameKey.current === requestedGame) setHasSyncError(true);
     } finally {
       if (activeGameKey.current === requestedGame) {
-        await refresh({ allowAutomaticSync: false });
+        await refresh();
       }
       if (activeGameKey.current === requestedGame) {
         setIsSyncing(false);
@@ -262,7 +244,7 @@ export function CloudSaveWidget({
             shop,
             enabled
           );
-          await refresh({ allowAutomaticSync: false });
+          await refresh();
         }}
         onResolveConflict={setPendingResolution}
         onClose={() => setIsModalVisible(false)}

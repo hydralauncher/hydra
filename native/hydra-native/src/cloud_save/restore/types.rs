@@ -18,7 +18,6 @@ pub struct ResolveRestoreTargetsInput {
     pub app_data_dir: Option<String>,
     pub executable_path: Option<String>,
     pub wine_prefix_path: Option<String>,
-    pub wine_prefix_is_explicit: Option<bool>,
     pub steam_path: Option<String>,
     pub files: Vec<RestoreManifestFile>,
 }

@@ -2,6 +2,7 @@ import { registerEvent } from "../register-event";
 import fs from "node:fs";
 import { levelKeys, gamesSublevel } from "@main/level";
 import { Wine } from "@main/services";
+import { runAutomaticCloudSaveSync } from "@main/services/cloud-save";
 import type { GameShop } from "@types";
 
 const selectGameWinePrefix = async (
@@ -17,10 +18,15 @@ const selectGameWinePrefix = async (
   if (!game) return;
 
   if (!winePrefixPath) {
+    const environmentChanged = Boolean(game.winePrefixPath);
     await gamesSublevel.put(gameKey, {
       ...game,
       winePrefixPath: null,
     });
+
+    if (environmentChanged) {
+      void runAutomaticCloudSaveSync(objectId, shop, "environment-changed");
+    }
 
     return;
   }
@@ -35,6 +41,10 @@ const selectGameWinePrefix = async (
     ...game,
     winePrefixPath: realWinePrefixPath,
   });
+
+  if (game.winePrefixPath !== realWinePrefixPath) {
+    void runAutomaticCloudSaveSync(objectId, shop, "environment-changed");
+  }
 };
 
 registerEvent("selectGameWinePrefix", selectGameWinePrefix);
