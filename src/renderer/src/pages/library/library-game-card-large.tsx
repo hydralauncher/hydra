@@ -100,7 +100,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   useEffect(() => {
     setHeroIndex(0);
-  }, [game.objectId]);
+  }, [
+    game.objectId,
+    game.customHeroImageUrl,
+    game.libraryHeroImageUrl,
+    game.customCoverImageUrl,
+    game.libraryImageUrl,
+    game.iconUrl,
+  ]);
 
   useEffect(() => {
     if (game.unlockedAchievementCount != null) {
