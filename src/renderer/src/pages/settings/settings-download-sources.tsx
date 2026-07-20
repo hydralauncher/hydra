@@ -31,7 +31,9 @@ interface SettingsDownloadSourcesProps {
   collapsed?: boolean;
 }
 
-export function SettingsDownloadSources({ collapsed = false }: SettingsDownloadSourcesProps) {
+export function SettingsDownloadSources({
+  collapsed = false,
+}: SettingsDownloadSourcesProps) {
   const [
     showConfirmationDeleteAllSourcesModal,
     setShowConfirmationDeleteAllSourcesModal,

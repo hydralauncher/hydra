@@ -93,7 +93,10 @@ export const loadState = async () => {
     })
       .then((res) => res.text())
       .then((text) => {
-        const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+        const lines = text
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
         const validTrackers = [
           ...new Set(
             lines.filter((l) => {

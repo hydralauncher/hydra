@@ -53,7 +53,12 @@ export function SettingsGlobalTrackers() {
   }, [dispatch]);
 
   const save = useCallback(
-    async (manual: string[], url: string, appendManualFlag: boolean, appendUrlFlag: boolean) => {
+    async (
+      manual: string[],
+      url: string,
+      appendManualFlag: boolean,
+      appendUrlFlag: boolean
+    ) => {
       setFetchError("");
 
       const { error } = await window.electron.saveGlobalTrackers(
@@ -73,21 +78,18 @@ export function SettingsGlobalTrackers() {
   );
 
   const debouncedSave = useRef(
-    debounce(
-      (
-        manual: string[],
-        url: string
-      ) => {
-        void save(manual, url, appendManualRef.current, appendUrlRef.current);
-      },
-      1000
-    )
+    debounce((manual: string[], url: string) => {
+      void save(manual, url, appendManualRef.current, appendUrlRef.current);
+    }, 1000)
   ).current;
 
   useEffect(() => {
     if (!userPreferences || isInitialized) return;
 
-    setValue("manualTrackers", (userPreferences.globalTrackers ?? []).join("\n"));
+    setValue(
+      "manualTrackers",
+      (userPreferences.globalTrackers ?? []).join("\n")
+    );
     setTrackerUrl(userPreferences.globalTrackersUrl ?? "");
     const am = userPreferences.appendGlobalTrackers ?? false;
     const au = userPreferences.appendGlobalTrackersUrl ?? false;
@@ -128,7 +130,10 @@ export function SettingsGlobalTrackers() {
   };
 
   return (
-    <form className="settings-global-trackers" onSubmit={(e) => e.preventDefault()}>
+    <form
+      className="settings-global-trackers"
+      onSubmit={(e) => e.preventDefault()}
+    >
       <p className="settings-global-trackers__description">
         {t("global_trackers_description")}
       </p>
@@ -141,7 +146,9 @@ export function SettingsGlobalTrackers() {
         />
         <div
           className={`settings-global-trackers__section-content ${
-            appendManual ? "" : "settings-global-trackers__section-content--disabled"
+            appendManual
+              ? ""
+              : "settings-global-trackers__section-content--disabled"
           }`}
         >
           <textarea
@@ -162,7 +169,9 @@ export function SettingsGlobalTrackers() {
         />
         <div
           className={`settings-global-trackers__section-content ${
-            appendUrl ? "" : "settings-global-trackers__section-content--disabled"
+            appendUrl
+              ? ""
+              : "settings-global-trackers__section-content--disabled"
           }`}
         >
           <input
