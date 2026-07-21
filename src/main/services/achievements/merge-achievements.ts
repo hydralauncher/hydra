@@ -15,6 +15,7 @@ import { db, levelKeys } from "@main/level";
 import { getGameAchievementData } from "./get-game-achievement-data";
 import { AchievementWatcherManager } from "./achievement-watcher-manager";
 import { AchievementMemoryStore } from "./achievement-memory-store";
+import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 
 const isRareAchievement = (points: number) => {
   const rawPercentage = (50 - Math.sqrt(points)) * 2;
@@ -167,19 +168,14 @@ export const mergeAchievements = async (
       if (!shownInApp) {
         publishOsNotification();
       }
+    } else if (customEnabled) {
+      achievementNotificationPresenter.enqueueAchievements(
+        position,
+        achievementsInfo,
+        publishOsNotification
+      );
     } else {
-      const shouldUseCustomNotification =
-        customEnabled && !!WindowManager.notificationWindow;
-
-      if (shouldUseCustomNotification) {
-        WindowManager.notificationWindow?.webContents.send(
-          "on-achievement-unlocked",
-          position,
-          achievementsInfo
-        );
-      } else {
-        publishOsNotification();
-      }
+      publishOsNotification();
     }
   }
 

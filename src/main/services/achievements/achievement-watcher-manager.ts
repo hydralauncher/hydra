@@ -19,10 +19,10 @@ import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 import { publishCombinedNewAchievementNotification } from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
-import { WindowManager } from "../window-manager";
 import { setTimeout } from "node:timers/promises";
 import { Wine } from "../wine";
 import { AchievementMemoryStore } from "./achievement-memory-store";
+import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -384,16 +384,20 @@ export class AchievementWatcherManager {
     );
 
     const shouldUseCustomNotification =
+      userPreferences.achievementNotificationsEnabled !== false &&
       userPreferences.achievementCustomNotificationsEnabled !== false &&
-      process.platform !== "darwin" &&
-      !!WindowManager.notificationWindow;
+      process.platform === "win32";
 
     if (shouldUseCustomNotification) {
-      WindowManager.notificationWindow?.webContents.send(
-        "on-combined-achievements-unlocked",
+      achievementNotificationPresenter.enqueueCombined(
+        userPreferences.achievementCustomNotificationPosition ?? "top-left",
         totalNewGamesWithAchievements,
         totalNewAchievements,
-        userPreferences.achievementCustomNotificationPosition ?? "top-left"
+        () =>
+          publishCombinedNewAchievementNotification(
+            totalNewAchievements,
+            totalNewGamesWithAchievements
+          )
       );
     } else {
       publishCombinedNewAchievementNotification(
