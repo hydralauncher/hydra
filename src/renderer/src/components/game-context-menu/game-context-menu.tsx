@@ -27,9 +27,15 @@ import {
   useGameActions,
 } from "..";
 import { useGameCollections, useToast, useUserDetails } from "@renderer/hooks";
+import { EditGameMetadataModal } from "./edit-game-metadata-modal";
+import { useAppDispatch } from "@renderer/hooks";
+import { updateGameMetadata } from "@renderer/features/library-slice";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
-  game: LibraryGame;
+  readonly game: LibraryGame;
+  readonly visible: boolean;
+  readonly position: { x: number; y: number };
+  readonly onClose: () => void;
 }
 
 const getGameCollectionIds = (currentGame: LibraryGame): string[] => {
@@ -54,12 +60,14 @@ export function GameContextMenu({
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
+  const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const [showConfirmRemoveLibrary, setShowConfirmRemoveLibrary] =
     useState(false);
   const [showConfirmRemoveFiles, setShowConfirmRemoveFiles] = useState(false);
-  const [showCreateCollectionModal, setShowCreateCollectionModal] =
+const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
+  const [showEditMetadataModal, setShowEditMetadataModal] = useState(false);
   const [localCollectionIds, setLocalCollectionIds] = useState<string[]>(() =>
     getGameCollectionIds(game)
   );
@@ -119,6 +127,7 @@ export function GameContextMenu({
     setIsFavoritePending(false);
     setFavoriteSuccessVisible(false);
     setCollectionSuccessId(null);
+    setShowEditMetadataModal(false);
   }, [visible, game]);
 
   const handleAssignGameCollection = async (collectionId: string) => {
@@ -187,6 +196,55 @@ export function GameContextMenu({
       void error;
     } finally {
       setIsFavoritePending(false);
+    }
+  };
+
+  const handleSaveMetadata = async (
+    _gameId: string,
+    metadata: {
+      userTitle: string;
+      userDescription: string | null;
+      userReleaseDate: Date | null;
+      userDeveloper: string | null;
+      userPublisher: string | null;
+      userRating: number | null;
+      userScreenshots: string[] | null;
+      hasManuallyUpdatedMetadata: boolean;
+    }
+  ) => {
+    try {
+      await window.electron.updateGameMetadata({
+        shop: game.shop,
+        objectId: game.objectId,
+        userTitle: metadata.userTitle,
+        userDescription: metadata.userDescription,
+        userReleaseDate: metadata.userReleaseDate,
+        userDeveloper: metadata.userDeveloper,
+        userPublisher: metadata.userPublisher,
+        userRating: metadata.userRating,
+        userScreenshots: metadata.userScreenshots,
+        hasManuallyUpdatedMetadata: metadata.hasManuallyUpdatedMetadata,
+      });
+
+      // Dispatch Redux action to update local state immediately
+      dispatch(
+        updateGameMetadata({
+          gameId: game.id,
+          metadata: {
+            userTitle: metadata.userTitle,
+            userDescription: metadata.userDescription,
+            userReleaseDate: metadata.userReleaseDate,
+            userDeveloper: metadata.userDeveloper,
+            userPublisher: metadata.userPublisher,
+            userRating: metadata.userRating,
+            userScreenshots: metadata.userScreenshots,
+            hasManuallyUpdatedMetadata: metadata.hasManuallyUpdatedMetadata,
+          },
+        })
+      );
+    } catch (error) {
+      console.error("Failed to update game metadata:", error);
+      throw error;
     }
   };
 
@@ -389,10 +447,18 @@ export function GameContextMenu({
       ],
     },
     {
+      id: "edit-metadata",
+      label: t("edit_game_info"),
+      separator: true,
+      icon: <PencilIcon size={16} />,
+      onClick: () => setShowEditMetadataModal(true),
+      disabled: isDeleting,
+    },
+    {
       id: "properties",
       label: t("properties"),
       separator: true,
-      icon: <PencilIcon size={16} />,
+      icon: <GearIcon size={16} />,
       onClick: () => handleOpenGameOptions(),
       disabled: isDeleting,
     },
@@ -485,6 +551,13 @@ export function GameContextMenu({
         cancelButtonLabel={t("cancel")}
         onClose={handleCancelRpcs3Launch}
         onConfirm={handleConfirmRpcs3Launch}
+      />
+
+      <EditGameMetadataModal
+        visible={showEditMetadataModal}
+        onClose={() => setShowEditMetadataModal(false)}
+        game={game}
+        onSave={handleSaveMetadata}
       />
     </>
   );

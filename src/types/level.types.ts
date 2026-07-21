@@ -82,6 +82,22 @@ export interface Game {
   selectedDiscPath?: string | null;
   dontAskDiscSelection?: boolean;
   romSizeBytes?: number | null;
+  // Scraper fields (can be overwritten by scraper)
+  description?: string | null;
+  releaseDate?: Date | null;
+  developer?: string | null;
+  publisher?: string | null;
+  rating?: number | null;
+  screenshots?: string[] | null;
+  // User fields (protected from scraper overwrites)
+  userDescription?: string | null;
+  userReleaseDate?: Date | null;
+  userDeveloper?: string | null;
+  userPublisher?: string | null;
+  userRating?: number | null;
+  userScreenshots?: string[] | null;
+  userTitle?: string | null;
+  hasManuallyUpdatedMetadata?: boolean;
 }
 
 export interface Download {
