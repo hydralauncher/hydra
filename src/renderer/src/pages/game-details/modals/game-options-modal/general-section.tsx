@@ -1,6 +1,7 @@
 import { Trans, useTranslation } from "react-i18next";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Button, CheckboxField, TextField } from "@renderer/components";
+import { useDisplayPath } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
 import { DotIcon, FileIcon } from "@primer/octicons-react";
@@ -403,6 +404,8 @@ export function GeneralSettingsSection({
     }
   };
 
+  const executableDisplayPath = useDisplayPath(game.executablePath);
+
   const handleBrowse = async () => {
     const res = await window.electron.showOpenDialog({
       properties: ["openDirectory"],
@@ -467,7 +470,7 @@ export function GeneralSettingsSection({
 
           <div className="game-options-modal__executable-field">
             <TextField
-              value={game.executablePath || ""}
+              value={executableDisplayPath}
               readOnly
               theme="dark"
               disabled

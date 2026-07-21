@@ -1,6 +1,7 @@
 import hmac
 import json
 import logging
+import os
 import re
 import sys
 import tempfile
@@ -87,7 +88,27 @@ metadata_semaphore = threading.BoundedSemaphore(value=2)
 downloading_game_id = -1
 current_download_limit = None
 
-torrent_session = lt.session(
+def create_torrent_session(settings):
+    # Under Flatpak, downloads may target document-portal FUSE paths where
+    # libtorrent 2.x's default mmap disk I/O is unsafe. Prefer the posix
+    # backend there; fall back to the default if this binding predates the
+    # posix_disk_io_constructor (older libtorrent).
+    if os.environ.get("FLATPAK_ID") and hasattr(lt, "posix_disk_io_constructor"):
+        try:
+            params = lt.session_params(settings)
+            params.disk_io_constructor = lt.posix_disk_io_constructor
+            session = lt.session(params)
+            logger.info("Torrent session using posix disk I/O (Flatpak)")
+            return session
+        except Exception as exc:
+            logger.warning(
+                "Failed to select posix disk I/O, using default: %s", exc
+            )
+
+    return lt.session(settings)
+
+
+torrent_session = create_torrent_session(
     {"listen_interfaces": "0.0.0.0:{port}".format(port=torrent_port)}
 )
 

@@ -7,7 +7,7 @@ import {
   updateGameExecutablePath,
   updateGameTrackingExecutablePaths,
 } from "@main/helpers/update-executable-path";
-import { logger } from "@main/services";
+import { logger, PathGrants } from "@main/services";
 import type { GameShop } from "@types";
 
 const updateExecutablePath = async (
@@ -19,6 +19,8 @@ const updateExecutablePath = async (
   const parsedPath = executablePath
     ? parseExecutablePath(executablePath)
     : null;
+
+  if (parsedPath) await PathGrants.annotate(parsedPath);
 
   const gameKey = levelKeys.game(shop, objectId);
 

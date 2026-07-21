@@ -6,7 +6,7 @@ import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager, Wine } from "@main/services";
+import { DownloadManager, PathGrants, Wine } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 
@@ -81,6 +81,25 @@ const updateUserPreferences = async (
       valueEncoding: "json",
     }
   );
+
+  // Downloads is long-term-tracked like wine prefix / proton / executable /
+  // backup, so annotate its portal grant at pick time. Without this, a lost
+  // downloads grant has no persisted (accessPath -> displayPath) mapping to
+  // fall back on, and the "folder access lost" toast surfaces the raw
+  // document-portal path (annotate is a no-op outside Flatpak).
+  if (
+    Object.hasOwn(preferences, "downloadsPath") ||
+    Object.hasOwn(preferences, "downloadDirectories")
+  ) {
+    const downloadTargets = [
+      updatedPreferences.downloadsPath,
+      ...(updatedPreferences.downloadDirectories ?? []).map((dir) => dir.path),
+    ].filter((targetPath): targetPath is string => Boolean(targetPath));
+
+    await Promise.all(
+      downloadTargets.map((targetPath) => PathGrants.annotate(targetPath))
+    );
+  }
 
   Wine.syncUserPreferences(updatedPreferences);
 

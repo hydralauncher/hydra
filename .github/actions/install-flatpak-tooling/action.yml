@@ -1,0 +1,27 @@
+name: Install Flatpak build tooling
+description: Installs flatpak, flatpak-builder, and the Flathub runtime + SDK + Electron BaseApp needed to build the Flatpak bundle, with caching of the user install dir to avoid re-downloading several GB on every run.
+
+inputs:
+  runtime-version:
+    description: freedesktop runtime / SDK version (and Electron BaseApp version) to install
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Cache Flatpak runtime and SDK
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/share/flatpak
+        key: flatpak-tooling-${{ inputs.runtime-version }}-${{ runner.os }}
+
+    - name: Install Flatpak build tooling
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y flatpak flatpak-builder elfutils
+        flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+        flatpak install --user -y flathub \
+          org.freedesktop.Platform//${{ inputs.runtime-version }} \
+          org.freedesktop.Sdk//${{ inputs.runtime-version }} \
+          org.electronjs.Electron2.BaseApp//${{ inputs.runtime-version }}

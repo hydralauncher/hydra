@@ -11,7 +11,9 @@
     "error_overlay_details": "Details",
     "error_boundary_origin": "Origin",
     "error_boundary_component_trace": "Component trace",
-    "error_boundary_restart": "Restart"
+    "error_boundary_restart": "Restart",
+    "lost_folder_access": "Folder access lost",
+    "lost_folder_access_description": "Hydra can no longer access: {{paths}}. Pick the folder again in its settings to restore access."
   },
   "home": {
     "surprise_me": "Surprise me",

@@ -11,7 +11,9 @@
     "error_overlay_details": "Detalhes",
     "error_boundary_origin": "Origem",
     "error_boundary_component_trace": "Rastreio de componentes",
-    "error_boundary_restart": "Reiniciar"
+    "error_boundary_restart": "Reiniciar",
+    "lost_folder_access": "Acesso à pasta perdido",
+    "lost_folder_access_description": "O Hydra já não consegue aceder a: {{paths}}. Selecione novamente a pasta nas definições para restaurar o acesso."
   },
   "home": {
     "hot": "Populares",

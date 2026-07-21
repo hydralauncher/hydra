@@ -19,6 +19,7 @@ import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
+import { getLaunchWorkingDirectory } from "./get-launch-working-directory";
 import {
   buildWindowsBatchCommand,
   isWindowsBatchFile,
@@ -56,7 +57,9 @@ const launchNatively = (
   useMangohud = false,
   useGamemode = false
 ): number | null => {
-  const workingDirectory = path.dirname(executablePath);
+  const workingDirectory = getLaunchWorkingDirectory(
+    path.dirname(executablePath)
+  );
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executablePath,
     launchOptions,
@@ -137,7 +140,9 @@ const launchWithWine = async (
   useMangohud = false,
   useGamemode = false
 ): Promise<boolean> => {
-  const workingDirectory = path.dirname(executablePath);
+  const workingDirectory = getLaunchWorkingDirectory(
+    path.dirname(executablePath)
+  );
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: "wine",
     baseArgs: [executablePath],
