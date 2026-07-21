@@ -133,65 +133,84 @@ export class AchievementNotificationPresenter {
     if (!host || host.isDestroyed() || host.webContentsId !== senderId) return;
 
     if (event.type === "host-ready") {
-      if (this.stage !== "loading") return;
-      this.clearWatchdog();
-      this.stage = "ready";
-      this.processNext();
+      this.handleHostReadyEvent();
       return;
     }
 
     if (event.type === "failed") {
-      if (event.requestId && event.requestId !== this.activeItem?.request.id) {
-        return;
-      }
-
-      this.failHost(event.reason ?? "notification renderer failed");
+      this.handleFailedEvent(event);
       return;
     }
 
-    const activeRequest = this.activeItem?.request;
-    if (!activeRequest || activeRequest.id !== event.requestId) return;
+    if (this.activeItem?.request.id !== event.requestId) return;
+    const activeRequest = this.activeItem.request;
 
     if (event.type === "content-ready") {
-      if (this.stage !== "preparing") return;
-
-      this.clearWatchdog();
-
-      try {
-        host.showInactive();
-        this.stage = "visible";
-        host.send("start-achievement-notification", activeRequest.id);
-        this.startWatchdog(
-          ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
-          "notification animation timed out"
-        );
-      } catch (error) {
-        this.failHost("failed to show notification window", error);
-      }
+      this.handleContentReadyEvent(host, activeRequest.id);
       return;
     }
 
-    if (event.type === "finished") {
-      if (this.stage !== "visible") return;
+    this.handleFinishedEvent(host);
+  }
 
-      this.clearWatchdog();
-      try {
-        host.hide();
-      } catch (error) {
-        this.dependencies.logError(
-          "Failed to hide achievement notification window",
-          error
-        );
-      }
+  private handleHostReadyEvent(): void {
+    if (this.stage !== "loading") return;
+    this.clearWatchdog();
+    this.stage = "ready";
+    this.processNext();
+  }
 
-      this.activeItem = null;
+  private handleFailedEvent(
+    event: Extract<AchievementNotificationRendererEvent, { type: "failed" }>
+  ): void {
+    if (event.requestId && event.requestId !== this.activeItem?.request.id) {
+      return;
+    }
 
-      if (this.queue.length) {
-        this.stage = "ready";
-        this.processNext();
-      } else {
-        this.destroyHost();
-      }
+    this.failHost(event.reason ?? "notification renderer failed");
+  }
+
+  private handleContentReadyEvent(
+    host: AchievementNotificationHost,
+    requestId: string
+  ): void {
+    if (this.stage !== "preparing") return;
+
+    this.clearWatchdog();
+
+    try {
+      host.showInactive();
+      this.stage = "visible";
+      host.send("start-achievement-notification", requestId);
+      this.startWatchdog(
+        ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
+        "notification animation timed out"
+      );
+    } catch (error) {
+      this.failHost("failed to show notification window", error);
+    }
+  }
+
+  private handleFinishedEvent(host: AchievementNotificationHost): void {
+    if (this.stage !== "visible") return;
+
+    this.clearWatchdog();
+    try {
+      host.hide();
+    } catch (error) {
+      this.dependencies.logError(
+        "Failed to hide achievement notification window",
+        error
+      );
+    }
+
+    this.activeItem = null;
+
+    if (this.queue.length) {
+      this.stage = "ready";
+      this.processNext();
+    } else {
+      this.destroyHost();
     }
   }
 

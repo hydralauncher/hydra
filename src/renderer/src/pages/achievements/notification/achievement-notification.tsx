@@ -29,8 +29,16 @@ const IMAGE_PREPARATION_TIMEOUT = 2_000;
 
 type NotificationPhase = "idle" | "prepared" | "playing" | "closing";
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error);
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "unknown error";
+  }
+};
 
 const resolveImageUrl = (source: string): Promise<string> => {
   return new Promise((resolve) => {
@@ -200,6 +208,17 @@ export function AchievementNotification() {
     return () => unsubscribe();
   }, [clearAnimationTimers, t]);
 
+  const reportContentReady = useCallback((requestId: string) => {
+    void window.electron
+      .achievementNotificationContentReady(requestId)
+      .catch((error) => {
+        void window.electron.achievementNotificationFailed(
+          requestId,
+          `Failed to report prepared notification: ${getErrorMessage(error)}`
+        );
+      });
+  }, []);
+
   useLayoutEffect(() => {
     if (!request || !achievement || phase !== "prepared") return;
 
@@ -207,14 +226,7 @@ export function AchievementNotification() {
     let secondFrame = -1;
     firstFrame = requestAnimationFrame(() => {
       secondFrame = requestAnimationFrame(() => {
-        void window.electron
-          .achievementNotificationContentReady(request.id)
-          .catch((error) => {
-            void window.electron.achievementNotificationFailed(
-              request.id,
-              `Failed to report prepared notification: ${getErrorMessage(error)}`
-            );
-          });
+        reportContentReady(request.id);
       });
     });
 
@@ -222,7 +234,27 @@ export function AchievementNotification() {
       cancelAnimationFrame(firstFrame);
       cancelAnimationFrame(secondFrame);
     };
-  }, [achievement, phase, request]);
+  }, [achievement, phase, request, reportContentReady]);
+
+  const finishNotification = useCallback((requestId: string) => {
+    if (requestRef.current?.id !== requestId) return;
+
+    preparationSequence.current += 1;
+    requestRef.current = null;
+    setRequest(null);
+    setAchievement(null);
+    setPhase("idle");
+    void window.electron.achievementNotificationFinished(requestId);
+  }, []);
+
+  const scheduleClosing = useCallback(
+    (requestId: string) => {
+      closingTimer.current = window.setTimeout(() => {
+        finishNotification(requestId);
+      }, CLOSING_TIMEOUT);
+    },
+    [finishNotification]
+  );
 
   useEffect(() => {
     const unsubscribe = window.electron.onStartAchievementNotification(
@@ -236,23 +268,13 @@ export function AchievementNotification() {
         displayTimer.current = window.setTimeout(() => {
           if (requestRef.current?.id !== requestId) return;
           setPhase("closing");
-
-          closingTimer.current = window.setTimeout(() => {
-            if (requestRef.current?.id !== requestId) return;
-
-            preparationSequence.current += 1;
-            requestRef.current = null;
-            setRequest(null);
-            setAchievement(null);
-            setPhase("idle");
-            void window.electron.achievementNotificationFinished(requestId);
-          }, CLOSING_TIMEOUT);
+          scheduleClosing(requestId);
         }, NOTIFICATION_TIMEOUT);
       }
     );
 
     return () => unsubscribe();
-  }, [clearAnimationTimers, playAudio]);
+  }, [clearAnimationTimers, playAudio, scheduleClosing]);
 
   useEffect(() => {
     return () => {
