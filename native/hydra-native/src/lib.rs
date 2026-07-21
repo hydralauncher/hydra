@@ -402,7 +402,12 @@ mod core_audio {
                 .map_err(|error| error.to_string())?;
         let collection = unsafe { enumerator.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE) }
             .map_err(|error| error.to_string())?;
-        let default_id = get_default_render_device_id()?.unwrap_or_default();
+        // The default endpoint can briefly be unavailable while audio hardware changes.
+        // Keep listing active devices even when that best-effort lookup fails.
+        let default_id = get_default_render_device_id()
+            .ok()
+            .flatten()
+            .unwrap_or_default();
         let count = unsafe { collection.GetCount() }.map_err(|error| error.to_string())?;
         let mut devices = Vec::new();
 
