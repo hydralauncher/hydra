@@ -14,11 +14,13 @@ const getNotificationWindowPosition = (
 ) => {
   const { x, y, width, height } = screen.getPrimaryDisplay().bounds;
 
-  const horizontal = position.endsWith("center")
-    ? x + (width - NOTIFICATION_WINDOW_WIDTH) / 2
-    : position.endsWith("right")
-      ? x + width - NOTIFICATION_WINDOW_WIDTH
-      : x;
+  let horizontal = x;
+  if (position.endsWith("center")) {
+    horizontal = x + (width - NOTIFICATION_WINDOW_WIDTH) / 2;
+  } else if (position.endsWith("right")) {
+    horizontal = x + width - NOTIFICATION_WINDOW_WIDTH;
+  }
+
   const vertical = position.startsWith("bottom")
     ? y + height - NOTIFICATION_WINDOW_HEIGHT
     : y;
