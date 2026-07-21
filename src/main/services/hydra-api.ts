@@ -121,7 +121,7 @@ export class HydraApi {
     }
   }
 
-  static handleSignOut() {
+  static async handleSignOut() {
     this.userAuth = {
       authToken: "",
       refreshToken: "",
@@ -129,10 +129,10 @@ export class HydraApi {
       subscription: null,
     };
 
-    void import("./achievements/achievement-watcher-manager").then(
-      ({ AchievementWatcherManager }) =>
-        AchievementWatcherManager.resetSessionState()
+    const { AchievementWatcherManager } = await import(
+      "./achievements/achievement-watcher-manager"
     );
+    AchievementWatcherManager.resetSessionState();
 
     this.sendSignOutEvent();
     this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
@@ -294,7 +294,7 @@ export class HydraApi {
       try {
         await this.refreshToken();
       } catch (err) {
-        this.handleUnauthorizedError(err);
+        await this.handleUnauthorizedError(err);
       }
     }
   }
@@ -307,7 +307,7 @@ export class HydraApi {
     };
   }
 
-  private static readonly handleUnauthorizedError = (err) => {
+  private static readonly handleUnauthorizedError = async (err) => {
     if (err instanceof AxiosError && err.response?.status === 401) {
       logger.error(
         "401 - Current credentials:",
@@ -322,10 +322,10 @@ export class HydraApi {
         subscription: null,
       };
 
-      void import("./achievements/achievement-watcher-manager").then(
-        ({ AchievementWatcherManager }) =>
-          AchievementWatcherManager.resetSessionState()
+      const { AchievementWatcherManager } = await import(
+        "./achievements/achievement-watcher-manager"
       );
+      AchievementWatcherManager.resetSessionState();
 
       db.batch([
         {

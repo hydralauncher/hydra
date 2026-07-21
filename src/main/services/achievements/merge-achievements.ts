@@ -179,7 +179,8 @@ export const mergeAchievements = async (
     }
   }
 
-  const shouldSyncWithRemote = Boolean(game.remoteId);
+  const shouldSyncWithRemote =
+    Boolean(game.remoteId) && AchievementWatcherManager.hasFinishedPreSearch;
 
   if (shouldSyncWithRemote) {
     await HydraApi.put<UpdatedUnlockedAchievements | undefined>(
