@@ -177,7 +177,6 @@ const initializeApp = async () => {
     WindowManager.createMainWindow({ forceBigPicture });
   }
 
-  WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
 
   if (deepLinkArg) {
