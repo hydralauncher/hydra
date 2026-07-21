@@ -39,6 +39,29 @@
   min-height: 0;
 }
 
+.game-customization-settings-tab__section-content--with-picker {
+  overflow-y: auto;
+}
+
+.game-customization-settings-tab__section-content--with-picker
+  .game-customization-settings-tab__asset-preview {
+  flex: 0 0 auto;
+}
+
+.game-customization-settings-tab__asset-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 3);
+  width: 100%;
+  min-width: 0;
+}
+
+.game-customization-settings-tab__asset-tabs-row
+  .game-customization-settings-tab__asset-tabs {
+  flex: 1;
+  min-width: 0;
+}
+
 .game-customization-settings-tab__asset-preview {
   display: flex;
   flex: 1;
@@ -106,9 +129,35 @@
   object-fit: contain;
   pointer-events: none;
   user-select: none;
+  opacity: 0;
   transition:
     filter 0.2s ease-in-out,
-    transform 0.2s ease-in-out;
+    transform 0.2s ease-in-out,
+    opacity 0.2s ease-in-out;
+}
+
+.game-customization-settings-tab__asset-preview-image--loaded {
+  opacity: 1;
+}
+
+.game-customization-settings-tab__asset-preview-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  pointer-events: none;
+}
+
+.game-customization-settings-tab__asset-preview-spinner svg {
+  animation: game-customization-preview-spin 0.9s linear infinite;
+}
+
+@keyframes game-customization-preview-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .game-customization-settings-tab__asset-preview-overlay {

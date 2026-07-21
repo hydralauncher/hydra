@@ -143,10 +143,6 @@ $logo-max-width: 200px;
     height: 100%;
     transition: all ease 0.3s;
 
-    &__image {
-      display: none;
-    }
-
     &__section {
       width: 100%;
       height: 100%;
@@ -164,6 +160,41 @@ $logo-max-width: 200px;
           globals.$background-color 100%
         );
 
+        &__banner {
+          position: relative;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+
+          &-background {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+          }
+
+          &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background:
+              linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0.15) 0%,
+                rgba(0, 0, 0, 0.5) 45%,
+                globals.$background-color 100%
+              ),
+              linear-gradient(
+                90deg,
+                rgba(0, 0, 0, 0.55) 0%,
+                rgba(0, 0, 0, 0) 55%
+              );
+          }
+        }
+
         &__hero {
           width: 100%;
           height: $hero-height;
@@ -171,6 +202,7 @@ $logo-max-width: 200px;
           display: flex;
           flex-direction: column;
           position: relative;
+          z-index: 2;
           transition: all ease 0.2s;
 
           &__content {
@@ -194,6 +226,8 @@ $logo-max-width: 200px;
         }
 
         &__achievements-summary-wrapper {
+          position: relative;
+          z-index: 2;
           display: flex;
           flex-direction: column;
           width: 100%;
