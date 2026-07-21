@@ -35,6 +35,7 @@ import type {
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  AchievementNotificationRequest,
   Game,
   DiskUsage,
   NetworkInterface,
@@ -429,6 +430,7 @@ declare global {
       objectId: string,
       playtimeInSeconds: number
     ) => Promise<void>;
+    resetGamePlayTime: (shop: GameShop, objectId: string) => Promise<void>;
     /* User preferences */
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
     authenticatePremiumize: (apiToken: string) => Promise<PremiumizeUser>;
@@ -889,13 +891,19 @@ declare global {
         achievements: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
-    onCombinedAchievementsUnlocked: (
-      cb: (
-        gameCount: number,
-        achievementCount: number,
-        position: AchievementCustomNotificationPosition
-      ) => void
+    onPrepareAchievementNotification: (
+      cb: (request: AchievementNotificationRequest) => void
     ) => () => Electron.IpcRenderer;
+    onStartAchievementNotification: (
+      cb: (requestId: string) => void
+    ) => () => Electron.IpcRenderer;
+    achievementNotificationHostReady: () => Promise<void>;
+    achievementNotificationContentReady: (requestId: string) => Promise<void>;
+    achievementNotificationFinished: (requestId: string) => Promise<void>;
+    achievementNotificationFailed: (
+      requestId?: string,
+      reason?: string
+    ) => Promise<void>;
     updateAchievementCustomNotificationWindow: () => Promise<void>;
     showAchievementTestNotification: () => Promise<void>;
 

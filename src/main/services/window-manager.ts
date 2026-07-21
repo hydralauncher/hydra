@@ -3,7 +3,7 @@ import { isStaging } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
+import { AuthPage } from "@shared";
 import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
@@ -44,8 +44,6 @@ interface CreateMainWindowOptions {
 
 export class WindowManager {
   private static mainWindowInstance: Electron.BrowserWindow | null = null;
-  private static notificationWindowInstance: Electron.BrowserWindow | null =
-    null;
   private static gameLauncherWindowInstance: Electron.BrowserWindow | null =
     null;
   private static bigPicture: Electron.BrowserWindow | null = null;
@@ -68,10 +66,6 @@ export class WindowManager {
 
   public static get mainWindow(): Electron.BrowserWindow | null {
     return this.mainWindowInstance;
-  }
-
-  public static get notificationWindow(): Electron.BrowserWindow | null {
-    return this.notificationWindowInstance;
   }
 
   public static get gameLauncherWindow(): Electron.BrowserWindow | null {
@@ -117,7 +111,7 @@ export class WindowManager {
     return version.replaceAll(".", "-");
   }
 
-  private static async loadWindowURL(window: BrowserWindow, hash: string = "") {
+  public static async loadWindowURL(window: BrowserWindow, hash: string = "") {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
@@ -709,68 +703,6 @@ export class WindowManager {
     }
   }
 
-  private static readonly NOTIFICATION_WINDOW_WIDTH = 360;
-  private static readonly NOTIFICATION_WINDOW_HEIGHT = 140;
-
-  private static async getNotificationWindowPosition(
-    position: AchievementCustomNotificationPosition | undefined
-  ) {
-    const display = screen.getPrimaryDisplay();
-    const {
-      x: displayX,
-      y: displayY,
-      width: displayWidth,
-      height: displayHeight,
-    } = display.bounds;
-
-    if (position === "bottom-left") {
-      return {
-        x: displayX,
-        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
-      };
-    }
-
-    if (position === "bottom-center") {
-      return {
-        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
-        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
-      };
-    }
-
-    if (position === "bottom-right") {
-      return {
-        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
-        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
-      };
-    }
-
-    if (position === "top-left") {
-      return {
-        x: displayX,
-        y: displayY,
-      };
-    }
-
-    if (position === "top-center") {
-      return {
-        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
-        y: displayY,
-      };
-    }
-
-    if (position === "top-right") {
-      return {
-        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
-        y: displayY,
-      };
-    }
-
-    return {
-      x: displayX,
-      y: displayY,
-    };
-  }
-
   public static sendAchievementToFocusedWindow(
     position: AchievementCustomNotificationPosition,
     achievements: AchievementNotificationInfo[]
@@ -789,101 +721,6 @@ export class WindowManager {
     }
 
     return false;
-  }
-
-  public static async createNotificationWindow() {
-    if (this.notificationWindow) return;
-
-    if (process.platform === "darwin" || process.platform === "linux") {
-      return;
-    }
-
-    const userPreferences = await db.get<string, UserPreferences | undefined>(
-      levelKeys.userPreferences,
-      {
-        valueEncoding: "json",
-      }
-    );
-
-    if (
-      userPreferences?.achievementNotificationsEnabled === false ||
-      userPreferences?.achievementCustomNotificationsEnabled === false
-    ) {
-      return;
-    }
-
-    const { x, y } = await this.getNotificationWindowPosition(
-      userPreferences?.achievementCustomNotificationPosition
-    );
-
-    const notificationWindow = new BrowserWindow({
-      transparent: true,
-      maximizable: false,
-      autoHideMenuBar: true,
-      minimizable: false,
-      backgroundColor: "#00000000",
-      focusable: false,
-      skipTaskbar: true,
-      frame: false,
-      width: this.NOTIFICATION_WINDOW_WIDTH,
-      height: this.NOTIFICATION_WINDOW_HEIGHT,
-      x,
-      y,
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
-    });
-    this.notificationWindowInstance = notificationWindow;
-    notificationWindow.setIgnoreMouseEvents(true);
-
-    notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
-    this.loadWindowURL(notificationWindow, "achievement-notification");
-
-    if (!app.isPackaged || isStaging) {
-      notificationWindow.webContents.openDevTools();
-    }
-  }
-
-  public static async showAchievementTestNotification() {
-    const userPreferences = await db.get<string, UserPreferences>(
-      levelKeys.userPreferences,
-      {
-        valueEncoding: "json",
-      }
-    );
-
-    const language = userPreferences.language ?? "en";
-    const position =
-      userPreferences.achievementCustomNotificationPosition ?? "top-left";
-    const testAchievements = [
-      generateAchievementCustomNotificationTest(t, language),
-      generateAchievementCustomNotificationTest(t, language, {
-        isRare: true,
-        isHidden: true,
-      }),
-      generateAchievementCustomNotificationTest(t, language, {
-        isPlatinum: true,
-      }),
-    ];
-
-    if (process.platform === "linux") {
-      this.sendAchievementToFocusedWindow(position, testAchievements);
-      return;
-    }
-
-    this.notificationWindow?.webContents.send(
-      "on-achievement-unlocked",
-      position,
-      testAchievements
-    );
-  }
-
-  public static async closeNotificationWindow() {
-    if (this.notificationWindow) {
-      this.notificationWindow.close();
-      this.notificationWindowInstance = null;
-    }
   }
 
   public static openEditorWindow(themeId: string) {

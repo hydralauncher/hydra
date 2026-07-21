@@ -20,6 +20,7 @@ import type {
   CreateSteamShortcutOptions,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  AchievementNotificationRequest,
   ProtonVersion,
   TorrentFilesResponse,
   DownloadLayoutState,
@@ -736,6 +737,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
   changeGamePlayTime: (shop: GameShop, objectId: string, playtime: number) =>
     ipcRenderer.invoke("changeGamePlayTime", shop, objectId, playtime),
+  resetGamePlayTime: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("resetGamePlayTime", shop, objectId),
   extractGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
   scanInstalledGames: (
@@ -1210,23 +1213,32 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked-in-app", listener);
   },
-  onCombinedAchievementsUnlocked: (
-    cb: (
-      gameCount: number,
-      achievementsCount: number,
-      position: AchievementCustomNotificationPosition
-    ) => void
+  onPrepareAchievementNotification: (
+    cb: (request: AchievementNotificationRequest) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      gameCount: number,
-      achievementCount: number,
-      position: AchievementCustomNotificationPosition
-    ) => cb(gameCount, achievementCount, position);
-    ipcRenderer.on("on-combined-achievements-unlocked", listener);
+      request: AchievementNotificationRequest
+    ) => cb(request);
+    ipcRenderer.on("prepare-achievement-notification", listener);
     return () =>
-      ipcRenderer.removeListener("on-combined-achievements-unlocked", listener);
+      ipcRenderer.removeListener("prepare-achievement-notification", listener);
   },
+  onStartAchievementNotification: (cb: (requestId: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, requestId: string) =>
+      cb(requestId);
+    ipcRenderer.on("start-achievement-notification", listener);
+    return () =>
+      ipcRenderer.removeListener("start-achievement-notification", listener);
+  },
+  achievementNotificationHostReady: () =>
+    ipcRenderer.invoke("achievementNotificationHostReady"),
+  achievementNotificationContentReady: (requestId: string) =>
+    ipcRenderer.invoke("achievementNotificationContentReady", requestId),
+  achievementNotificationFinished: (requestId: string) =>
+    ipcRenderer.invoke("achievementNotificationFinished", requestId),
+  achievementNotificationFailed: (requestId?: string, reason?: string) =>
+    ipcRenderer.invoke("achievementNotificationFailed", requestId, reason),
   updateAchievementCustomNotificationWindow: () =>
     ipcRenderer.invoke("updateAchievementCustomNotificationWindow"),
   showAchievementTestNotification: () =>

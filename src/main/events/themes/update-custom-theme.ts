@@ -1,6 +1,9 @@
 import { themesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
-import { WindowManager } from "@main/services";
+import {
+  achievementNotificationPresenter,
+  WindowManager,
+} from "@main/services";
 
 const updateCustomTheme = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -21,9 +24,7 @@ const updateCustomTheme = async (
 
   if (theme.isActive) {
     WindowManager.mainWindow?.webContents.send("on-custom-theme-updated");
-    WindowManager.notificationWindow?.webContents.send(
-      "on-custom-theme-updated"
-    );
+    achievementNotificationPresenter.notifyThemeUpdated();
   }
 };
 
