@@ -11,5 +11,4 @@ import "./set-paused-download-position";
 import "./set-download-queue-position";
 import "./update-download-queue-position";
 import "./get-download-layout-state";
-import "./set-download-trackers";
 import "./save-global-trackers";

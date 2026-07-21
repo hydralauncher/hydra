@@ -33,7 +33,6 @@ const startGameDownload = async (
     automaticallyDeleteArchiveFiles,
     fileIndices,
     selectedFilesSize,
-    trackers,
   } = payload;
 
   const userPreferences = await db.get<string, UserPreferences | null>(
@@ -51,9 +50,7 @@ const startGameDownload = async (
   ];
 
   const mergedTrackers =
-    globalTrackers.length > 0 || trackers?.length
-      ? [...new Set([...globalTrackers, ...(trackers ?? [])])]
-      : undefined;
+    globalTrackers.length > 0 ? [...new Set(globalTrackers)] : undefined;
 
   const gameKey = levelKeys.game(shop, objectId);
 
