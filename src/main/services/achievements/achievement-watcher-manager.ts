@@ -368,6 +368,7 @@ export class AchievementWatcherManager {
     );
 
     const shouldUseCustomNotification =
+      userPreferences.achievementNotificationsEnabled !== false &&
       userPreferences.achievementCustomNotificationsEnabled !== false &&
       process.platform === "win32";
 
