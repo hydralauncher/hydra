@@ -35,6 +35,7 @@ import type {
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  AchievementNotificationRequest,
   Game,
   DiskUsage,
   NetworkInterface,
@@ -58,6 +59,10 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  ArtworkAssetType,
+  ArtworkKind,
+  ArtworkPage,
+  GameArtworkSelection,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -205,8 +210,9 @@ declare global {
     }) => Promise<Game>;
     copyCustomGameAsset: (
       sourcePath: string,
-      assetType: "icon" | "logo" | "hero"
+      assetType: "icon" | "logo" | "hero" | "grid"
     ) => Promise<string>;
+    downloadGameArtwork: (artworkUrl: string) => Promise<string | null>;
     cleanupUnusedAssets: () => Promise<{
       deletedCount: number;
       errors: string[];
@@ -218,10 +224,33 @@ declare global {
       customIconUrl?: string | null;
       customLogoImageUrl?: string | null;
       customHeroImageUrl?: string | null;
+      customCoverImageUrl?: string | null;
       customOriginalIconPath?: string | null;
       customOriginalLogoPath?: string | null;
       customOriginalHeroPath?: string | null;
+      customOriginalCoverPath?: string | null;
+      customArtworkIds?: Partial<Record<ArtworkAssetType, number | null>>;
+      clearArtworkTypes?: ArtworkAssetType[];
     }) => Promise<Game>;
+    getGameArtwork: (
+      shop: GameShop,
+      objectId: string,
+      kind: ArtworkKind,
+      page?: number
+    ) => Promise<ArtworkPage | null>;
+    getCoverPoster: (url: string) => Promise<string | null>;
+    getGameArtworkSelection: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<GameArtworkSelection | null>;
+    setGameArtworkSelection: (params: {
+      shop: GameShop;
+      objectId: string;
+      type: ArtworkAssetType;
+      url?: string;
+      artworkId?: number;
+      clear?: boolean;
+    }) => Promise<GameArtworkSelection | null>;
     createGameShortcut: (
       shop: GameShop,
       objectId: string,
@@ -401,6 +430,7 @@ declare global {
       objectId: string,
       playtimeInSeconds: number
     ) => Promise<void>;
+    resetGamePlayTime: (shop: GameShop, objectId: string) => Promise<void>;
     /* User preferences */
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
     authenticatePremiumize: (apiToken: string) => Promise<PremiumizeUser>;
@@ -861,13 +891,19 @@ declare global {
         achievements: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
-    onCombinedAchievementsUnlocked: (
-      cb: (
-        gameCount: number,
-        achievementCount: number,
-        position: AchievementCustomNotificationPosition
-      ) => void
+    onPrepareAchievementNotification: (
+      cb: (request: AchievementNotificationRequest) => void
     ) => () => Electron.IpcRenderer;
+    onStartAchievementNotification: (
+      cb: (requestId: string) => void
+    ) => () => Electron.IpcRenderer;
+    achievementNotificationHostReady: () => Promise<void>;
+    achievementNotificationContentReady: (requestId: string) => Promise<void>;
+    achievementNotificationFinished: (requestId: string) => Promise<void>;
+    achievementNotificationFailed: (
+      requestId?: string,
+      reason?: string
+    ) => Promise<void>;
     updateAchievementCustomNotificationWindow: () => Promise<void>;
     showAchievementTestNotification: () => Promise<void>;
 

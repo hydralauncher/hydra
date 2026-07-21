@@ -20,6 +20,7 @@ import type {
   CreateSteamShortcutOptions,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  AchievementNotificationRequest,
   ProtonVersion,
   TorrentFilesResponse,
   DownloadLayoutState,
@@ -36,6 +37,10 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  ArtworkAssetType,
+  ArtworkKind,
+  ArtworkPage,
+  GameArtworkSelection,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -533,8 +538,10 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   copyCustomGameAsset: (
     sourcePath: string,
-    assetType: "icon" | "logo" | "hero"
+    assetType: "icon" | "logo" | "hero" | "grid"
   ) => ipcRenderer.invoke("copyCustomGameAsset", sourcePath, assetType),
+  downloadGameArtwork: (artworkUrl: string): Promise<string | null> =>
+    ipcRenderer.invoke("downloadGameArtwork", artworkUrl),
   saveTempFile: (fileName: string, fileData: Uint8Array) =>
     ipcRenderer.invoke("saveTempFile", fileName, fileData),
   deleteTempFile: (filePath: string) =>
@@ -558,10 +565,37 @@ contextBridge.exposeInMainWorld("electron", {
     customIconUrl?: string | null;
     customLogoImageUrl?: string | null;
     customHeroImageUrl?: string | null;
+    customCoverImageUrl?: string | null;
     customOriginalIconPath?: string | null;
     customOriginalLogoPath?: string | null;
     customOriginalHeroPath?: string | null;
+    customOriginalCoverPath?: string | null;
+    customArtworkIds?: Partial<Record<ArtworkAssetType, number | null>>;
+    clearArtworkTypes?: ArtworkAssetType[];
   }) => ipcRenderer.invoke("updateGameCustomAssets", params),
+  getGameArtwork: (
+    shop: GameShop,
+    objectId: string,
+    kind: ArtworkKind,
+    page?: number
+  ): Promise<ArtworkPage | null> =>
+    ipcRenderer.invoke("getGameArtwork", shop, objectId, kind, page),
+  getCoverPoster: (url: string): Promise<string | null> =>
+    ipcRenderer.invoke("getCoverPoster", url),
+  getGameArtworkSelection: (
+    shop: GameShop,
+    objectId: string
+  ): Promise<GameArtworkSelection | null> =>
+    ipcRenderer.invoke("getGameArtworkSelection", shop, objectId),
+  setGameArtworkSelection: (params: {
+    shop: GameShop;
+    objectId: string;
+    type: ArtworkAssetType;
+    url?: string;
+    artworkId?: number;
+    clear?: boolean;
+  }): Promise<GameArtworkSelection | null> =>
+    ipcRenderer.invoke("setGameArtworkSelection", params),
   createGameShortcut: (
     shop: GameShop,
     objectId: string,
@@ -703,6 +737,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
   changeGamePlayTime: (shop: GameShop, objectId: string, playtime: number) =>
     ipcRenderer.invoke("changeGamePlayTime", shop, objectId, playtime),
+  resetGamePlayTime: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("resetGamePlayTime", shop, objectId),
   extractGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
   scanInstalledGames: (
@@ -1177,23 +1213,32 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked-in-app", listener);
   },
-  onCombinedAchievementsUnlocked: (
-    cb: (
-      gameCount: number,
-      achievementsCount: number,
-      position: AchievementCustomNotificationPosition
-    ) => void
+  onPrepareAchievementNotification: (
+    cb: (request: AchievementNotificationRequest) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      gameCount: number,
-      achievementCount: number,
-      position: AchievementCustomNotificationPosition
-    ) => cb(gameCount, achievementCount, position);
-    ipcRenderer.on("on-combined-achievements-unlocked", listener);
+      request: AchievementNotificationRequest
+    ) => cb(request);
+    ipcRenderer.on("prepare-achievement-notification", listener);
     return () =>
-      ipcRenderer.removeListener("on-combined-achievements-unlocked", listener);
+      ipcRenderer.removeListener("prepare-achievement-notification", listener);
   },
+  onStartAchievementNotification: (cb: (requestId: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, requestId: string) =>
+      cb(requestId);
+    ipcRenderer.on("start-achievement-notification", listener);
+    return () =>
+      ipcRenderer.removeListener("start-achievement-notification", listener);
+  },
+  achievementNotificationHostReady: () =>
+    ipcRenderer.invoke("achievementNotificationHostReady"),
+  achievementNotificationContentReady: (requestId: string) =>
+    ipcRenderer.invoke("achievementNotificationContentReady", requestId),
+  achievementNotificationFinished: (requestId: string) =>
+    ipcRenderer.invoke("achievementNotificationFinished", requestId),
+  achievementNotificationFailed: (requestId?: string, reason?: string) =>
+    ipcRenderer.invoke("achievementNotificationFailed", requestId, reason),
   updateAchievementCustomNotificationWindow: () =>
     ipcRenderer.invoke("updateAchievementCustomNotificationWindow"),
   showAchievementTestNotification: () =>

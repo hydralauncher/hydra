@@ -36,6 +36,7 @@ import { useSubscription } from "@renderer/hooks/use-subscription";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
+import { ResetPlaytimeModal } from "./reset-playtime-modal";
 import {
   AlertIcon,
   CloudIcon,
@@ -83,6 +84,7 @@ export function GameOptionsModal({
 
   const {
     updateGame,
+    refreshGameDetails,
     setShowRepacksModal,
     repacks,
     selectGameExecutable,
@@ -105,6 +107,7 @@ export function GameOptionsModal({
   const [showResetAchievementsModal, setShowResetAchievementsModal] =
     useState(false);
   const [showChangePlaytimeModal, setShowChangePlaytimeModal] = useState(false);
+  const [showResetPlaytimeModal, setShowResetPlaytimeModal] = useState(false);
   const [isDeletingAchievements, setIsDeletingAchievements] = useState(false);
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     game.automaticCloudSync ?? false
@@ -302,7 +305,11 @@ export function GameOptionsModal({
   const handleRemoveGameFromLibrary = async () => {
     if (isGameDownloading) await cancelDownload(game.shop, game.objectId);
     await removeGameFromLibrary(game.shop, game.objectId);
-    await Promise.all([updateGame(), updateLibrary(), loadCollections()]);
+    await Promise.all([
+      refreshGameDetails(),
+      updateLibrary(),
+      loadCollections(),
+    ]);
     onClose();
     if (game.shop === "custom" && onNavigateHome) onNavigateHome();
   };
@@ -745,7 +752,7 @@ export function GameOptionsModal({
           ]),
       {
         id: "assets" as const,
-        label: t("settings_category_assets"),
+        label: t("settings_category_customization"),
         icon: <ImageIcon size={16} />,
       },
       {
@@ -828,6 +835,19 @@ export function GameOptionsModal({
       showSuccessToast(t("update_playtime_success"));
     } catch {
       showErrorToast(t("update_playtime_error"));
+    }
+  };
+
+  const handleResetPlaytime = async () => {
+    try {
+      await globalThis.window.electron.resetGamePlayTime(
+        game.shop,
+        game.objectId
+      );
+      await updateGame();
+      showSuccessToast(t("reset_playtime_success"));
+    } catch {
+      showErrorToast(t("reset_playtime_error"));
     }
   };
 
@@ -943,6 +963,12 @@ export function GameOptionsModal({
         changePlaytime={handleChangePlaytime}
         game={game}
       />
+      <ResetPlaytimeModal
+        visible={showResetPlaytimeModal}
+        onClose={() => setShowResetPlaytimeModal(false)}
+        resetPlaytime={handleResetPlaytime}
+        game={game}
+      />
       <CreateSteamShortcutModal
         visible={showSteamShortcutModal}
         creating={creatingSteamShortcut}
@@ -963,7 +989,13 @@ export function GameOptionsModal({
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
           />
-          <div className="game-options-modal__panel">
+          <div
+            className={`game-options-modal__panel${
+              selectedCategory === "assets"
+                ? " game-options-modal__panel--assets"
+                : ""
+            }`}
+          >
             {selectedCategory === "general" && (
               <GeneralSettingsSection
                 {...baseGeneralSettingsProps}
@@ -1043,6 +1075,7 @@ export function GameOptionsModal({
                   setShowResetAchievementsModal(true)
                 }
                 onOpenChangePlaytime={() => setShowChangePlaytimeModal(true)}
+                onOpenResetPlaytime={() => setShowResetPlaytimeModal(true)}
                 onOpenRemoveFiles={() => setShowDeleteModal(true)}
               />
             )}

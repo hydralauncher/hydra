@@ -1,6 +1,6 @@
-@use "../../../scss/globals.scss";
+@use "../../scss/globals.scss";
 
-@keyframes profile-crop-toolbar-in {
+@keyframes image-crop-toolbar-in {
   0% {
     opacity: 0;
     transform: translate(-50%, 12px);
@@ -11,7 +11,7 @@
   }
 }
 
-.profile-image-crop-modal {
+.image-crop-modal {
   display: flex;
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 3);
@@ -67,16 +67,6 @@
 
     &:active {
       cursor: grabbing;
-    }
-
-    &--avatar {
-      width: min(420px, 72vw);
-      aspect-ratio: 1;
-    }
-
-    &--banner {
-      width: min(720px, 80vw);
-      aspect-ratio: 4;
     }
   }
 
@@ -153,7 +143,7 @@
     border: solid 1px globals.$border-color;
     border-radius: 999px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    animation: profile-crop-toolbar-in 0.25s cubic-bezier(0.33, 1, 0.68, 1);
+    animation: image-crop-toolbar-in 0.25s cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   &__toolbar-divider {
