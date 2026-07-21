@@ -23,6 +23,19 @@ const getCloudSavePlatform = (): CloudSavePathContext["platform"] => {
   return "linux";
 };
 
+const getRequestedWinePrefixPath = (
+  usesWindowsCompatibility: boolean,
+  gameWinePrefixPath: string | null | undefined,
+  objectId: string,
+  overrides?: CloudSaveGameContextOverrides
+) => {
+  if (!usesWindowsCompatibility) return null;
+  if (overrides && "winePrefixPath" in overrides) {
+    return overrides.winePrefixPath ?? null;
+  }
+  return Wine.getEffectivePrefixPath(gameWinePrefixPath, objectId);
+};
+
 export const getCloudSaveGameContext = async (
   objectId: string,
   shop: GameShop,
@@ -40,7 +53,15 @@ export const getCloudSaveGameContext = async (
   const executablePath =
     overrides?.executablePath ?? game?.executablePath ?? undefined;
   const usesWindowsCompatibility =
-    platform === "linux" && executablePath?.toLowerCase().endsWith(".exe");
+    platform === "linux" &&
+    executablePath?.toLowerCase().endsWith(".exe") === true;
+  const requestedWinePrefixPath = getRequestedWinePrefixPath(
+    usesWindowsCompatibility,
+    game?.winePrefixPath,
+    objectId,
+    overrides
+  );
+  const winePrefixPath = await Wine.resolvePrefixPath(requestedWinePrefixPath);
   const pathContext: CloudSavePathContext = {
     shop,
     objectId,
@@ -49,12 +70,7 @@ export const getCloudSaveGameContext = async (
     documentsDir: SystemPath.getPath("documents") || undefined,
     appDataDir: SystemPath.getPath("appData") || undefined,
     executablePath,
-    winePrefixPath: usesWindowsCompatibility
-      ? overrides && "winePrefixPath" in overrides
-        ? (overrides.winePrefixPath ?? undefined)
-        : (Wine.getEffectivePrefixPath(game?.winePrefixPath, objectId) ??
-          undefined)
-      : undefined,
+    winePrefixPath: winePrefixPath ?? undefined,
     steamPath,
     storeUserId,
   };

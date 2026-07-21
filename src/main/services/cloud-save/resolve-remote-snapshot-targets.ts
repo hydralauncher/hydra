@@ -1,4 +1,6 @@
 import { HydraApi } from "@main/services/hydra-api";
+import { logger } from "@main/services/logger";
+import { Wine } from "@main/services/wine";
 import type {
   CloudSavePathContext,
   GameShop,
@@ -14,6 +16,15 @@ const isNonEmptyString = (value: unknown): value is string =>
 
 const isGameShop = (value: unknown): value is GameShop =>
   value === "steam" || value === "custom" || value === "launchbox";
+
+const isWinePrefixValid = (winePrefixPath?: string) => {
+  if (!winePrefixPath) return false;
+  try {
+    return Wine.validatePrefix(winePrefixPath);
+  } catch {
+    return false;
+  }
+};
 
 const validateManifest = (value: unknown): RestoreManifestResponse => {
   if (!value || typeof value !== "object") {
@@ -79,6 +90,33 @@ export const resolveRestoreManifestTargets = async (
         manifest.snapshot.shop
       )
     ).pathContext;
+
+  const wineProfiles = pathContext.winePrefixPath
+    ? Wine.getPrefixUserProfiles(pathContext.winePrefixPath)
+    : [];
+  const usesWindowsCompatibility =
+    pathContext.platform === "linux" &&
+    pathContext.executablePath?.toLowerCase().endsWith(".exe") === true;
+  const winePrefixIsValid = isWinePrefixValid(pathContext.winePrefixPath);
+  logger.info("[Cloud Save] Resolving remote snapshot targets", {
+    shop: manifest.snapshot.shop,
+    objectId: manifest.snapshot.objectId,
+    fileCount: manifest.files.length,
+    winePrefixPath: pathContext.winePrefixPath ?? null,
+    winePrefixIsValid,
+    wineProfiles,
+    storeUserId: pathContext.storeUserId ?? null,
+  });
+
+  if (usesWindowsCompatibility && !pathContext.winePrefixPath) {
+    throw new Error("cloud_save_restore_prefix_unresolved");
+  }
+  if (usesWindowsCompatibility && !winePrefixIsValid) {
+    throw new Error("cloud_save_restore_prefix_invalid");
+  }
+  if (usesWindowsCompatibility && wineProfiles.length === 0) {
+    throw new Error("cloud_save_restore_profile_unresolved");
+  }
 
   return NativeAddon.resolveRestoreTargets({
     ...pathContext,

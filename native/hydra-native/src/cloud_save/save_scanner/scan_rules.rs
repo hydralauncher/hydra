@@ -288,6 +288,45 @@ mod tests {
     }
 
     #[test]
+    fn active_empty_prefix_does_not_fall_back_to_host_home() {
+        let temp = tempdir().unwrap();
+        let active_prefix = temp.path().join("hydralauncher/wine-prefixes/953490");
+        let active_profile = active_prefix.join("drive_c/users/steamuser");
+        let old_home = temp.path().join("old-prefix/drive_c/users/steamuser");
+        let old_save = old_home.join("AppData/LocalLow/Phobia/Carrion");
+        fs::create_dir_all(&active_profile).unwrap();
+        fs::create_dir_all(&old_save).unwrap();
+        fs::write(old_save.join("settings.json"), b"old").unwrap();
+
+        let rules = resolve_save_rules(ResolveSaveRulesInput {
+            shop: "steam".into(),
+            object_id: "953490".into(),
+            platform: "linux".into(),
+            home_dir: old_home.display().to_string(),
+            documents_dir: None,
+            app_data_dir: None,
+            executable_path: Some("/games/Carrion/Carrion.exe".into()),
+            wine_prefix_path: Some(active_prefix.display().to_string()),
+            steam_path: None,
+            rules: vec![CloudSaveRule {
+                kind: "dir".into(),
+                raw_path: "<home>/AppData/LocalLow/Phobia/Carrion".into(),
+                source: "ludusavi".into(),
+                tags: vec!["save".into()],
+                when: vec![],
+            }],
+        })
+        .unwrap();
+
+        let scanned = scan_rules(rules).unwrap();
+
+        assert!(scanned[0].scanned_paths.is_empty());
+        assert!(scanned[0].resolved_paths.iter().all(|candidate| candidate
+            .path
+            .starts_with(&active_prefix.display().to_string())));
+    }
+
+    #[test]
     fn scans_elden_ring_file_and_user_directory() {
         let temp = tempdir().unwrap();
         let root = temp.path().join("EldenRing");
