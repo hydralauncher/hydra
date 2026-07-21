@@ -2,6 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import type { UserPreferences } from "@types";
 import { SystemPath } from "./system-path";
+import {
+  getWinePrefixUserProfiles,
+  resolveWinePrefixPath,
+} from "./wine-prefix";
 
 export class Wine {
   private static configuredDefaultPrefixPath: string | null = null;
@@ -62,6 +66,34 @@ export class Wine {
     }
 
     return this.getDefaultPrefixPathForGame(objectId);
+  }
+
+  public static async resolvePrefixPath(
+    winePrefixPath: string | null,
+    homeDir = SystemPath.getPath("home")
+  ): Promise<string | null> {
+    return resolveWinePrefixPath(winePrefixPath, homeDir);
+  }
+
+  public static getPrefixUserProfiles(
+    winePrefixPath: string,
+    homeDir = SystemPath.getPath("home")
+  ): string[] {
+    return getWinePrefixUserProfiles(winePrefixPath, homeDir);
+  }
+
+  public static isPrefixReadyForRestore(
+    winePrefixPath: string,
+    homeDir = SystemPath.getPath("home")
+  ) {
+    try {
+      return (
+        this.validatePrefix(winePrefixPath) &&
+        this.getPrefixUserProfiles(winePrefixPath, homeDir).length > 0
+      );
+    } catch {
+      return false;
+    }
   }
 
   public static validatePrefix(winePrefixPath: string) {

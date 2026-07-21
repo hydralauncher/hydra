@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use super::candidates::{native_paths, normalize_candidate, steam_proton_paths, wine_paths};
-use super::tokens::{has_unresolved_placeholder, tokens_in_path};
+use super::tokens::{has_unresolved_placeholder, tokens_in_path, uses_windows_profile};
 use super::types::{PathResolutionContext, ResolvedCloudSavePath};
 
 pub struct ResolvedPath {
@@ -132,27 +132,29 @@ pub fn resolve_path(raw_path: &str, context: &PathResolutionContext) -> Resolved
             // prefixes are independent environments, not mirrors of it.
             collect_wine_paths(&mut paths, &mut seen, &raw_path, context, prefix);
 
-            // Keep store-root expansion for rules that use <root>, but do not
-            // inspect compatdata from a different execution environment.
-            if let Some(root) = &context.derived_steam_root {
-                collect_native_paths(
-                    &mut paths,
-                    &mut seen,
-                    &raw_path,
-                    context,
-                    Some(root),
-                    store_user_dynamic,
-                );
-            }
-            if let Some(root) = &context.configured_steam_root {
-                collect_native_paths(
-                    &mut paths,
-                    &mut seen,
-                    &raw_path,
-                    context,
-                    Some(root),
-                    store_user_dynamic,
-                );
+            // Keep store-root expansion for rules that use <root>, but bind
+            // Windows profile paths to the exact launcher prefix.
+            if !uses_windows_profile(&raw_path) {
+                if let Some(root) = &context.derived_steam_root {
+                    collect_native_paths(
+                        &mut paths,
+                        &mut seen,
+                        &raw_path,
+                        context,
+                        Some(root),
+                        store_user_dynamic,
+                    );
+                }
+                if let Some(root) = &context.configured_steam_root {
+                    collect_native_paths(
+                        &mut paths,
+                        &mut seen,
+                        &raw_path,
+                        context,
+                        Some(root),
+                        store_user_dynamic,
+                    );
+                }
             }
         } else {
             // Compatibility callers without a known launcher prefix may still
@@ -362,6 +364,7 @@ mod tests {
             paths[3],
             "/hydra/prefix/drive_c/users/steamuser/Application Data/Game"
         );
+        assert!(paths.iter().all(|path| path.starts_with("/hydra/prefix/")));
         assert!(paths.iter().all(|path| !path.contains("/compatdata/")));
     }
 

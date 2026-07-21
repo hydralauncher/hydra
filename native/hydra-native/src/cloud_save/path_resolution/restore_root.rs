@@ -4,6 +4,7 @@ use globetter::MatchOptions;
 
 use super::context::normalize_separators;
 use super::resolve_path::resolve_path;
+use super::tokens::{literal, uses_windows_profile};
 use super::types::{PathResolutionContext, ResolvedCloudSavePath};
 use crate::cloud_save::save_scanner::scan_resolved_path;
 
@@ -174,6 +175,97 @@ fn concrete_store_user_path(raw_path: &str, store_user_id: &str) -> String {
         .replace("<storeUserId>", store_user_id)
 }
 
+fn authoritative_candidates(
+    raw_path: &str,
+    context: &PathResolutionContext,
+    candidates: Vec<ResolvedCloudSavePath>,
+) -> Result<Vec<ResolvedCloudSavePath>, String> {
+    if !context.windows_compatibility || !uses_windows_profile(raw_path) {
+        return Ok(candidates);
+    }
+    let Some(prefix) = context.wine_prefix_path.as_deref() else {
+        return Ok(candidates);
+    };
+    let prefix = literal(prefix);
+    let prefix_with_separator = format!("{}/", prefix.trim_end_matches('/'));
+    let filtered = candidates
+        .into_iter()
+        .filter(|candidate| {
+            candidate.path == prefix || candidate.path.starts_with(&prefix_with_separator)
+        })
+        .collect::<Vec<_>>();
+
+    if filtered.is_empty() {
+        return Err(format!(
+            "cloud_save_restore_prefix_mismatch: raw_path={raw_path}; wine_prefix_path={prefix}"
+        ));
+    }
+    Ok(filtered)
+}
+
+fn existing_wine_profiles(context: &PathResolutionContext) -> Vec<String> {
+    let Some(prefix) = context.wine_prefix_path.as_deref() else {
+        return Vec::new();
+    };
+    let users = Path::new(prefix).join("drive_c/users");
+    let Ok(entries) = std::fs::read_dir(&users) else {
+        return Vec::new();
+    };
+    let mut profiles = entries
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let name = entry.file_name().to_string_lossy().to_string();
+            (!is_system_wine_profile(&users, &name)
+                && entry
+                    .path()
+                    .metadata()
+                    .is_ok_and(|metadata| metadata.is_dir()))
+            .then_some(name)
+        })
+        .collect::<Vec<_>>();
+    profiles.sort_by(|left, right| {
+        let priority = |value: &str| {
+            if value.eq_ignore_ascii_case("steamuser") {
+                0
+            } else if value.eq_ignore_ascii_case(&context.os_username) {
+                1
+            } else {
+                2
+            }
+        };
+        priority(left)
+            .cmp(&priority(right))
+            .then_with(|| left.cmp(right))
+    });
+    profiles
+}
+
+fn profile_unresolved(raw_path: &str, context: &PathResolutionContext) -> String {
+    format!(
+        "cloud_save_restore_profile_unresolved: raw_path={raw_path}; store_user_id_present={}; wine_prefix_path={}",
+        context.store_user_id.is_some(),
+        context.wine_prefix_path.as_deref().unwrap_or("none")
+    )
+}
+
+fn restore_root_not_found(
+    raw_path: &str,
+    context: &PathResolutionContext,
+    candidates: &[ResolvedCloudSavePath],
+) -> String {
+    let candidate_paths = candidates
+        .iter()
+        .take(6)
+        .map(|candidate| candidate.path.as_str())
+        .collect::<Vec<_>>()
+        .join(" | ");
+    format!(
+        "cloud_save_restore_root_not_found: raw_path={raw_path}; store_user_id_present={}; wine_prefix_path={}; candidates={candidate_paths}",
+        context.store_user_id.is_some(),
+        context.wine_prefix_path.as_deref().unwrap_or("none")
+    )
+}
+
 pub fn resolve_restore_root(
     raw_path: &str,
     context: &PathResolutionContext,
@@ -187,8 +279,9 @@ pub fn resolve_restore_root(
             resolved.unresolved_tokens.join(", ")
         ));
     }
-    let mut complete_by_candidate = Vec::with_capacity(resolved.paths.len());
-    for candidate in &resolved.paths {
+    let candidates = authoritative_candidates(raw_path, context, resolved.paths)?;
+    let mut complete_by_candidate = Vec::with_capacity(candidates.len());
+    for candidate in &candidates {
         let mut complete = complete_matches(candidate, directory)?;
         complete.sort();
         complete.dedup();
@@ -210,7 +303,7 @@ pub fn resolve_restore_root(
     }
 
     if directory {
-        for candidate in &resolved.paths {
+        for candidate in &candidates {
             let scanned_paths = scan_resolved_path(
                 &candidate.path,
                 candidate.case_sensitive,
@@ -232,6 +325,12 @@ pub fn resolve_restore_root(
     }
 
     if raw_path.contains("<storeUserId>") {
+        for candidate in &candidates {
+            if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
+                return Ok(materialized);
+            }
+        }
+
         let store_user_id = context
             .store_user_id
             .as_deref()
@@ -239,19 +338,30 @@ pub fn resolve_restore_root(
             .ok_or_else(|| "cloud_save_store_user_id_unresolved".to_string())?;
         let concrete = concrete_store_user_path(raw_path, store_user_id);
         let resolved = resolve_path(&concrete, context);
-        for candidate in &resolved.paths {
+        let candidates = authoritative_candidates(raw_path, context, resolved.paths)?;
+        for candidate in &candidates {
             if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
                 return Ok(materialized);
             }
         }
-        return Err("cloud_save_restore_root_not_found".to_string());
+        if context.windows_compatibility && existing_wine_profiles(context).is_empty() {
+            return Err(profile_unresolved(raw_path, context));
+        }
+        return Err(restore_root_not_found(raw_path, context, &candidates));
     }
 
-    for candidate in &resolved.paths {
+    for candidate in &candidates {
         if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
             return Ok(materialized);
         }
     }
 
-    Err("cloud_save_restore_root_not_found".to_string())
+    if context.windows_compatibility
+        && uses_windows_profile(raw_path)
+        && existing_wine_profiles(context).is_empty()
+    {
+        return Err(profile_unresolved(raw_path, context));
+    }
+
+    Err(restore_root_not_found(raw_path, context, &candidates))
 }

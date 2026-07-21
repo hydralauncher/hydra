@@ -315,14 +315,70 @@ mod tests {
         }
         value.files.push(file(settings_path, "settings.json"));
         value.wine_prefix_path = Some(prefix.path().display().to_string());
-        value.store_user_id = Some("76561198051718575".to_string());
+        value.store_user_id = Some("76561198587224175".to_string());
 
         let targets = resolve_restore_targets(value).unwrap();
 
         assert_eq!(targets.len(), 8);
         assert!(targets.iter().all(|target| target
             .target_path
-            .contains("/Carrion/_steam_76561198051718575/")));
+            .contains("/Carrion/_steam_76561198587224175/")));
+    }
+
+    #[test]
+    fn existing_carrion_store_root_wins_over_login_user() {
+        let prefix = tempdir().unwrap();
+        let existing = prefix.path().join(
+            "drive_c/users/steamuser/AppData/LocalLow/Phobia/Carrion/\
+             _steam_76561198587224175/saves",
+        );
+        fs::create_dir_all(&existing).unwrap();
+        fs::write(existing.join("backup_0.crn"), b"current").unwrap();
+        let save_path = "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/saves";
+        let settings_path =
+            "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/settings.json";
+        let mut value = input("linux", file(save_path, "backup_0.crn"));
+        value.files.push(file(settings_path, "settings.json"));
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+        value.store_user_id = Some("76561198051718575".to_string());
+
+        let targets = resolve_restore_targets(value).unwrap();
+
+        assert_eq!(targets.len(), 2);
+        assert!(targets.iter().all(|target| target
+            .target_path
+            .contains("/Carrion/_steam_76561198587224175/")));
+    }
+
+    #[test]
+    fn windows_profile_restore_never_uses_host_or_old_prefix_path() {
+        let root = tempdir().unwrap();
+        let active_prefix = root.path().join("hydralauncher/wine-prefixes/953490");
+        fs::create_dir_all(active_prefix.join("drive_c/users/steamuser")).unwrap();
+        let old_home = root.path().join("old-home");
+        let old_save =
+            old_home.join("AppData/LocalLow/Phobia/Carrion/_steam_76561198051718575/saves");
+        fs::create_dir_all(&old_save).unwrap();
+        fs::write(old_save.join("backup_0.crn"), b"old").unwrap();
+        let mut value = input(
+            "linux",
+            file(
+                "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/saves",
+                "backup_0.crn",
+            ),
+        );
+        value.home_dir = old_home.display().to_string();
+        value.wine_prefix_path = Some(active_prefix.display().to_string());
+        value.store_user_id = Some("76561198587224175".to_string());
+
+        let target = resolve_restore_targets(value).unwrap().remove(0);
+
+        assert!(target
+            .target_path
+            .starts_with(&active_prefix.display().to_string()));
+        assert!(target
+            .target_path
+            .contains("/_steam_76561198587224175/saves/backup_0.crn"));
     }
 
     #[test]
@@ -343,6 +399,30 @@ mod tests {
         assert!(error
             .to_string()
             .contains("cloud_save_store_user_id_unresolved"));
+    }
+
+    #[test]
+    fn reports_restore_context_when_prefix_has_no_user_profile() {
+        let prefix = tempdir().unwrap();
+        fs::create_dir_all(prefix.path().join("drive_c/users")).unwrap();
+        let mut value = input(
+            "linux",
+            file(
+                "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/saves",
+                "backup_0.crn",
+            ),
+        );
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+        value.store_user_id = Some("76561198051718575".to_string());
+
+        let error = match resolve_restore_targets(value) {
+            Ok(_) => panic!("expected missing Wine profile error"),
+            Err(error) => error.to_string(),
+        };
+
+        assert!(error.contains("cloud_save_restore_profile_unresolved"));
+        assert!(error.contains("store_user_id_present=true"));
+        assert!(error.contains("raw_path=<home>/AppData/LocalLow/Phobia/Carrion"));
     }
 
     #[test]

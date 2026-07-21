@@ -61,6 +61,22 @@ pub fn has_unresolved_placeholder(path: &str) -> bool {
     path.contains('<') || !percent_tokens(path).is_empty()
 }
 
+pub fn uses_windows_profile(path: &str) -> bool {
+    [
+        "<home>",
+        "<winAppData>",
+        "%APPDATA%",
+        "<winLocalAppData>",
+        "%LOCALAPPDATA%",
+        "<winDocuments>",
+        "<winPublic>",
+        "<winProgramData>",
+        "<winDir>",
+    ]
+    .iter()
+    .any(|token| path.contains(token))
+}
+
 fn percent_tokens(path: &str) -> Vec<String> {
     let mut tokens = Vec::new();
     let bytes = path.as_bytes();
@@ -141,5 +157,12 @@ mod tests {
     #[test]
     fn escapes_braces_in_literal_paths() {
         assert_eq!(literal("/Games/{Deluxe}"), "/Games/[{]Deluxe[}]");
+    }
+
+    #[test]
+    fn detects_windows_profile_tokens() {
+        assert!(uses_windows_profile("<home>/AppData/LocalLow/Game"));
+        assert!(uses_windows_profile("%LOCALAPPDATA%/Game"));
+        assert!(!uses_windows_profile("<root>/steamapps/common/Game"));
     }
 }
