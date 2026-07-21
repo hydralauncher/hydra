@@ -1,7 +1,6 @@
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
 import { Badge, Button, ConfirmationModal } from "@renderer/components";
-import { ManageTrackersModal } from "./manage-trackers-modal";
 import {
   formatDownloadProgress,
   buildGameDetailsPath,
@@ -627,10 +626,6 @@ export function DownloadGroup({
   const [gameActionTypes, setGameActionTypes] = useState<
     Record<string, "install" | "open-folder">
   >({});
-  const [manageTrackersModalVisible, setManageTrackersModalVisible] =
-    useState(false);
-  const [manageTrackersGame, setManageTrackersGame] =
-    useState<LibraryGame | null>(null);
 
   const extractDominantColor = useCallback(
     async (imageUrl: string, gameId: string) => {
@@ -848,15 +843,6 @@ export function DownloadGroup({
             openDeleteGameModal(game.shop, game.objectId);
           },
         },
-        {
-          label: "Manage Trackers",
-          icon: <GraphIcon />,
-          show: game.download?.downloader === Downloader.Torrent,
-          onClick: () => {
-            setManageTrackersGame(game);
-            setManageTrackersModalVisible(true);
-          },
-        },
       ];
       return actions.filter((action) => action.show !== false);
     }
@@ -876,15 +862,6 @@ export function DownloadGroup({
             handleCancelClick(game.shop, game.objectId);
           },
           icon: <XCircleIcon />,
-        },
-        {
-          label: "Manage Trackers",
-          icon: <GraphIcon />,
-          show: game.download?.downloader === Downloader.Torrent,
-          onClick: () => {
-            setManageTrackersGame(game);
-            setManageTrackersModalVisible(true);
-          },
         },
       ];
     }
@@ -935,15 +912,6 @@ export function DownloadGroup({
           handleCancelClick(game.shop, game.objectId);
         },
         icon: <XCircleIcon />,
-      },
-      {
-        label: "Manage Trackers",
-        icon: <GraphIcon />,
-        show: game.download?.downloader === Downloader.Torrent,
-        onClick: () => {
-          setManageTrackersGame(game);
-          setManageTrackersModalVisible(true);
-        },
       },
     ];
 
@@ -1205,17 +1173,6 @@ export function DownloadGroup({
           })}
         </ul>
       </div>
-
-      {manageTrackersGame && (
-        <ManageTrackersModal
-          visible={manageTrackersModalVisible}
-          onClose={() => setManageTrackersModalVisible(false)}
-          shop={manageTrackersGame.shop}
-          objectId={manageTrackersGame.objectId}
-          initialTrackers={manageTrackersGame.download?.customTrackers ?? []}
-          onTrackersSaved={updateLibrary}
-        />
-      )}
     </>
   );
 }

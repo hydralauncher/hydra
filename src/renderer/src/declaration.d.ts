@@ -110,11 +110,6 @@ declare global {
     ) => Promise<void>;
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
-    setDownloadTrackers: (
-      shop: GameShop,
-      objectId: string,
-      trackers: string[]
-    ) => Promise<void>;
     saveGlobalTrackers: (
       manual: string[],
       url: string | null,
