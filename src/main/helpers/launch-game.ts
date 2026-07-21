@@ -327,10 +327,7 @@ const runWindowsLaunchPreflight = async (shop: GameShop, objectId: string) => {
     const preflightPassed = await CommonRedistManager.runPreflight();
     logger.log("Preflight check result", { passed: preflightPassed });
   } catch (error) {
-    logger.error(
-      "Preflight check failed with error, continuing with launch",
-      error
-    );
+    logger.error("Preflight check failed with error", error);
   }
 };
 
