@@ -183,7 +183,9 @@ export const loadState = async () => {
 
   startMainLoop();
 
-  CommonRedistManager.downloadCommonRedist();
+  if (process.platform === "win32") {
+    CommonRedistManager.downloadCommonRedist();
+  }
 
   SystemPath.checkIfPathsAreAvailable();
 };
