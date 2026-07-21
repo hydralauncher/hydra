@@ -25,7 +25,7 @@ export function GalleryLightbox({
   onClose,
   onNavigate,
 }: Readonly<GalleryLightboxProps>) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDialogElement | null>(null);
   const { t } = useTranslation("game_details");
 
   const hasPrevious = index > 0;
@@ -77,7 +77,12 @@ export function GalleryLightbox({
 
   return createPortal(
     <div className="gallery-lightbox__overlay">
-      <dialog className="gallery-lightbox" open aria-label={item.alt}>
+      <dialog
+        ref={containerRef}
+        className="gallery-lightbox"
+        open
+        aria-label={item.alt}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -111,7 +116,7 @@ export function GalleryLightbox({
           <ChevronRightIcon size={28} />
         </button>
 
-        <div ref={containerRef} className="gallery-lightbox__media-container">
+        <div className="gallery-lightbox__media-container">
           {item.type === "video" ? (
             <VideoPlayer
               key={item.id}
