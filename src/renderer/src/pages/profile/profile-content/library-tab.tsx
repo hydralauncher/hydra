@@ -33,6 +33,7 @@ interface LibraryTabProps {
   userStats: { libraryCount: number } | null;
   onLoadMore: () => void;
   isMe: boolean;
+  hasActiveSubscription: boolean;
   titleKey?: string;
   panelKey?: string;
   count?: number | null;
@@ -50,6 +51,7 @@ export function LibraryTab({
   userStats,
   onLoadMore,
   isMe,
+  hasActiveSubscription,
   titleKey = "library",
   panelKey = "library",
   count,
@@ -64,11 +66,15 @@ export function LibraryTab({
   ];
 
   const sortOptions: FilterDropdownOption<SortOption>[] = [
-    {
-      value: "achievementCount",
-      label: t("achievements_earned"),
-      icon: TrophyIcon,
-    },
+    ...(hasActiveSubscription
+      ? [
+          {
+            value: "achievementCount" as const,
+            label: t("achievements_earned"),
+            icon: TrophyIcon,
+          },
+        ]
+      : []),
     { value: "playedRecently", label: t("played_recently"), icon: HistoryIcon },
     { value: "playtime", label: t("playtime"), icon: ClockIcon },
   ];
