@@ -65,7 +65,7 @@ class ElectronAchievementNotificationHost {
   }
 
   public onFailure(listener: (reason: string) => void): void {
-    this.window.on("focus", () =>
+    this.window.once("focus", () =>
       listener("window unexpectedly received focus")
     );
     this.window.once("closed", () => listener("window closed unexpectedly"));
