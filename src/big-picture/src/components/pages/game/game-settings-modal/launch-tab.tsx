@@ -285,6 +285,7 @@ function ExecutableSection({
 }
 
 interface ShortcutSectionProps {
+  canCreateShortcuts: boolean;
   isCustomGame: boolean;
   shouldShowCreateStartMenuShortcut: boolean;
   creatingSteamShortcut: boolean;
@@ -295,6 +296,7 @@ interface ShortcutSectionProps {
 }
 
 function ShortcutSection({
+  canCreateShortcuts,
   isCustomGame,
   shouldShowCreateStartMenuShortcut,
   creatingSteamShortcut,
@@ -317,16 +319,20 @@ function ShortcutSection({
         onClick={() => {
           onDeleteSteamShortcut().catch(() => {});
         }}
-        focusNavigationOverrides={{
-          left: {
-            type: "item",
-            itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
-          },
-        }}
+        focusNavigationOverrides={
+          canCreateShortcuts
+            ? {
+                left: {
+                  type: "item",
+                  itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
+                },
+              }
+            : undefined
+        }
       >
         {t("delete_steam_shortcut")}
       </Button>
-    ) : (
+    ) : canCreateShortcuts ? (
       <Button
         focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID}
         variant="secondary"
@@ -344,7 +350,7 @@ function ShortcutSection({
       >
         {t("create_steam_shortcut")}
       </Button>
-    );
+    ) : null;
   }
 
   return (
@@ -355,20 +361,22 @@ function ShortcutSection({
     >
       <div className="game-launch-settings-tab__section-content">
         <HorizontalFocusGroup className="game-launch-settings-tab__shortcuts-row">
-          <Button
-            focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID}
-            variant="secondary"
-            icon={<Monitor size={16} />}
-            onClick={() => {
-              void onCreateShortcut("desktop");
-            }}
-          >
-            {t("create_shortcut")}
-          </Button>
+          {canCreateShortcuts ? (
+            <Button
+              focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID}
+              variant="secondary"
+              icon={<Monitor size={16} />}
+              onClick={() => {
+                void onCreateShortcut("desktop");
+              }}
+            >
+              {t("create_shortcut")}
+            </Button>
+          ) : null}
 
           {steamShortcutButton}
 
-          {shouldShowCreateStartMenuShortcut ? (
+          {canCreateShortcuts && shouldShowCreateStartMenuShortcut ? (
             <Button
               focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_START_MENU_ID}
               variant="secondary"
@@ -552,8 +560,11 @@ export function GameLaunchSettingsTab({
           />
         )}
 
-        {(game.shop !== "launchbox" || discs.length > 0) && (
+        {(game.shop !== "launchbox" ||
+          discs.length > 0 ||
+          steamShortcutExists) && (
           <ShortcutSection
+            canCreateShortcuts={game.shop !== "launchbox" || discs.length > 0}
             isCustomGame={isCustomGame}
             shouldShowCreateStartMenuShortcut={
               shouldShowCreateStartMenuShortcut
