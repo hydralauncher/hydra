@@ -7,6 +7,7 @@ import type {
 
 import type { analyzeCloudSaveState } from "../analyze-cloud-save-state";
 import { saveCloudSaveSyncAnchor } from "../sync-anchor";
+import { getSyncAction } from "./policy";
 import {
   type ProgressCallback,
   restoreRemoteState,
@@ -47,8 +48,9 @@ export const runFirstSync = async (
   const initialState = "untracked";
   const firstSyncState = getFirstSyncState(analysis);
   const remoteSnapshot = analysis.state.activeRemoteSnapshot;
+  const action = getSyncAction(trigger, firstSyncState);
 
-  if (firstSyncState === "conflict") {
+  if (action === "conflict") {
     return {
       result: {
         trigger,
@@ -62,7 +64,7 @@ export const runFirstSync = async (
   }
 
   if (firstSyncState === "synced" && remoteSnapshot) {
-    await saveCloudSaveSyncAnchor(shop, objectId, {
+    await saveCloudSaveSyncAnchor(shop, objectId, analysis.environmentId, {
       baseSnapshotId: remoteSnapshot.id,
       baseAggregateHash: remoteSnapshot.aggregateHash,
       updatedAt: new Date().toISOString(),
@@ -74,7 +76,7 @@ export const runFirstSync = async (
     };
   }
 
-  if (firstSyncState === "local-ahead") {
+  if (action === "upload") {
     await uploadLocalState(
       objectId,
       shop,
@@ -88,8 +90,14 @@ export const runFirstSync = async (
     };
   }
 
-  if (firstSyncState === "remote-ahead" && remoteSnapshot) {
-    await restoreRemoteState(objectId, shop, remoteSnapshot, emitProgress);
+  if (action === "restore" && remoteSnapshot) {
+    await restoreRemoteState(
+      objectId,
+      shop,
+      remoteSnapshot,
+      analysis.localSnapshotContext,
+      emitProgress
+    );
     return {
       result: {
         trigger,

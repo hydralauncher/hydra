@@ -61,6 +61,7 @@ import type {
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
+  CloudSaveV2FileDetails,
   CloudSaveSyncProgressPayload,
   SyncGameCloudSaveResult,
 } from "@types";
@@ -102,10 +103,15 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveOverview>;
-    syncCloudSaveOnStateChange: (
+    getCloudSaveV2FileDetails: (
       objectId: string,
       shop: GameShop
-    ) => Promise<SyncGameCloudSaveResult | null>;
+    ) => Promise<CloudSaveV2FileDetails>;
+    setCloudSaveAutomaticSyncEnabled: (
+      objectId: string,
+      shop: GameShop,
+      enabled: boolean
+    ) => Promise<boolean>;
     syncGameCloudSave: (
       objectId: string,
       shop: GameShop,
@@ -188,11 +194,6 @@ declare global {
     ) => () => Electron.IpcRenderer;
 
     /* Library */
-    toggleAutomaticCloudSync: (
-      shop: GameShop,
-      objectId: string,
-      automaticCloudSync: boolean
-    ) => Promise<void>;
     toggleGameMangohud: (
       shop: GameShop,
       objectId: string,

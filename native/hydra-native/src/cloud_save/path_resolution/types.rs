@@ -33,7 +33,10 @@ pub struct PathResolutionContext {
     pub xdg_config_dir: Option<String>,
     pub install_dir: Option<String>,
     pub wine_prefix_path: Option<String>,
-    pub steam_roots: Vec<String>,
+    pub windows_compatibility: bool,
+    pub derived_steam_root: Option<String>,
+    pub configured_steam_root: Option<String>,
+    pub store_user_id: Option<String>,
 }
 
 #[napi(object)]

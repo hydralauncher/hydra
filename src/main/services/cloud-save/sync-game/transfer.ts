@@ -1,7 +1,7 @@
 import type {
   CloudSaveSyncProgressPayload,
   GameShop,
-  LocalGameSnapshotPipelineResult,
+  LocalGameSnapshotContext,
   RemoteSnapshotSummary,
 } from "@types";
 
@@ -13,7 +13,7 @@ export type ProgressCallback = (progress: CloudSaveSyncProgressPayload) => void;
 export const uploadLocalState = async (
   objectId: string,
   shop: GameShop,
-  localSnapshotContext: LocalGameSnapshotPipelineResult,
+  localSnapshotContext: LocalGameSnapshotContext,
   emitProgress: ProgressCallback
 ) => {
   emitProgress({
@@ -41,6 +41,7 @@ export const restoreRemoteState = async (
   objectId: string,
   shop: GameShop,
   snapshot: RemoteSnapshotSummary,
+  localSnapshotContext: LocalGameSnapshotContext,
   emitProgress: ProgressCallback
 ) => {
   emitProgress({
@@ -59,7 +60,11 @@ export const restoreRemoteState = async (
         processedFiles: progress.processedFiles,
         totalFiles: progress.totalFiles,
       }),
-    snapshot
+    snapshot,
+    {
+      environmentId: localSnapshotContext.environmentId,
+      pathContext: localSnapshotContext.pathContext,
+    }
   );
   if (!result.ok || result.failedFiles > 0) {
     throw new Error(

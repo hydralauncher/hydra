@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashMap};
+use std::path::PathBuf;
 
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
@@ -29,11 +30,36 @@ fn validate_file(file: &RestoreManifestFile) -> Result<(), String> {
     validate_size(file.size_bytes)
 }
 
+fn canonical_target_key(path: &str, case_sensitive: bool) -> String {
+    let mut existing = PathBuf::from(path);
+    let mut missing = Vec::new();
+    while !existing.exists() {
+        let Some(name) = existing.file_name().map(|name| name.to_os_string()) else {
+            break;
+        };
+        missing.push(name);
+        if !existing.pop() {
+            break;
+        }
+    }
+
+    let mut canonical = std::fs::canonicalize(&existing).unwrap_or(existing);
+    for segment in missing.into_iter().rev() {
+        canonical.push(segment);
+    }
+    let normalized = canonical.to_string_lossy().replace('\\', "/");
+    if case_sensitive {
+        normalized
+    } else {
+        normalized.to_ascii_lowercase()
+    }
+}
+
 #[napi]
 pub fn resolve_restore_targets(
     input: ResolveRestoreTargetsInput,
 ) -> napi::Result<Vec<ResolvedRestoreTarget>> {
-    let context = build_context(&ResolveSaveRulesInput {
+    let mut context = build_context(&ResolveSaveRulesInput {
         shop: input.shop,
         object_id: input.object_id,
         platform: input.platform,
@@ -46,25 +72,55 @@ pub fn resolve_restore_targets(
         rules: Vec::<CloudSaveRule>::new(),
     })
     .map_err(Error::from_reason)?;
-    let mut targets = Vec::with_capacity(input.files.len());
-    let mut seen_targets = HashSet::with_capacity(input.files.len());
+    context.store_user_id = input.store_user_id.clone();
+    let case_sensitive_targets = context.platform != "windows";
+    let files = input.files;
+    let mut root_keys = Vec::with_capacity(files.len());
+    let mut relative_paths_by_root = BTreeMap::<(String, bool), Vec<String>>::new();
 
-    for file in input.files {
-        validate_file(&file).map_err(Error::from_reason)?;
+    for file in &files {
+        validate_file(file).map_err(Error::from_reason)?;
         let glob_base = glob_base_path(&file.raw_path);
         let directory = infer_rule_kind(&file.raw_path) == "dir" || glob_base.is_some();
-        let root_raw_path = glob_base.as_deref().unwrap_or(&file.raw_path);
+        let root_raw_path = glob_base.as_deref().unwrap_or(&file.raw_path).to_string();
+        let key = (root_raw_path, directory);
+        relative_paths_by_root
+            .entry(key.clone())
+            .or_default()
+            .push(file.relative_path.clone());
+        root_keys.push(key);
+    }
+
+    let mut resolved_roots = HashMap::with_capacity(relative_paths_by_root.len());
+    for ((root_raw_path, directory), relative_paths) in relative_paths_by_root {
         let resolved_root =
-            resolve_restore_root(root_raw_path, &context, directory).map_err(Error::from_reason)?;
+            resolve_restore_root(&root_raw_path, &context, directory, &relative_paths)
+                .map_err(Error::from_reason)?;
+        resolved_roots.insert((root_raw_path, directory), resolved_root);
+    }
+
+    let mut targets = Vec::with_capacity(files.len());
+    let mut hash_by_target = HashMap::with_capacity(files.len());
+
+    for (file, key) in files.into_iter().zip(root_keys) {
+        let directory = key.1;
+        let resolved_root = resolved_roots
+            .get(&key)
+            .ok_or_else(|| Error::from_reason("cloud_save_restore_root_not_found"))?;
         let target_path = if directory {
-            join_path(&resolved_root, &file.relative_path)
+            join_path(resolved_root, &file.relative_path)
         } else {
             resolved_root.replace('\\', "/")
         };
 
-        if !seen_targets.insert(target_path.clone()) {
-            return Err(Error::from_reason("cloud_save_duplicate_restore_target"));
+        let target_key = canonical_target_key(&target_path, case_sensitive_targets);
+        if let Some(existing_hash) = hash_by_target.get(&target_key) {
+            if existing_hash != &file.hash {
+                return Err(Error::from_reason("cloud_save_duplicate_restore_target"));
+            }
+            continue;
         }
+        hash_by_target.insert(target_key, file.hash.clone());
         targets.push(ResolvedRestoreTarget {
             raw_path: file.raw_path,
             relative_path: file.relative_path,
@@ -111,6 +167,7 @@ mod tests {
             executable_path: Some("D:/Games/Game/game.exe".to_string()),
             wine_prefix_path: None,
             steam_path: None,
+            store_user_id: None,
             files: vec![file],
         }
     }
@@ -185,7 +242,17 @@ mod tests {
     }
 
     #[test]
-    fn requires_exactly_one_store_user() {
+    fn rejects_missing_wine_profile() {
+        let prefix = tempdir().unwrap();
+        let missing_prefix = prefix.path().join("missing");
+        let mut value = input("linux", file("<winAppData>/Game", "save.dat"));
+        value.wine_prefix_path = Some(missing_prefix.display().to_string());
+
+        assert!(resolve_restore_targets(value).is_err());
+    }
+
+    #[test]
+    fn selects_store_users_deterministically() {
         let prefix = tempdir().unwrap();
         let users = prefix
             .path()
@@ -199,6 +266,7 @@ mod tests {
             ),
         );
         value.wine_prefix_path = Some(prefix.path().display().to_string());
+        value.store_user_id = Some("76561198051718575".to_string());
         let target = resolve_restore_targets(value).unwrap().remove(0);
         assert!(target.target_path.contains("/Goldberg/savedata/slot.dat"));
 
@@ -211,7 +279,8 @@ mod tests {
             ),
         );
         ambiguous.wine_prefix_path = Some(prefix.path().display().to_string());
-        assert!(resolve_restore_targets(ambiguous).is_err());
+        let target = resolve_restore_targets(ambiguous).unwrap().remove(0);
+        assert!(target.target_path.contains("/Goldberg/savedata/slot.dat"));
 
         let empty_prefix = tempdir().unwrap();
         fs::create_dir_all(empty_prefix.path().join("drive_c/users/steamuser")).unwrap();
@@ -227,6 +296,230 @@ mod tests {
     }
 
     #[test]
+    fn materializes_carrion_store_user_in_an_empty_prefix() {
+        let prefix = tempdir().unwrap();
+        fs::create_dir_all(prefix.path().join("drive_c/users/steamuser")).unwrap();
+        let save_path = "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/saves";
+        let settings_path =
+            "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/settings.json";
+        let mut value = input("linux", file(save_path, "backup_0.crn"));
+        for relative_path in [
+            "backup_0.crn.backup",
+            "checkpoint_0.crn",
+            "checkpoint_0.crn.backup",
+            "xmas_special/backup_0.crn",
+            "xmas_special/checkpoint_0.crn",
+            "xmas_special/checkpoint_0.crn.backup",
+        ] {
+            value.files.push(file(save_path, relative_path));
+        }
+        value.files.push(file(settings_path, "settings.json"));
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+        value.store_user_id = Some("76561198587224175".to_string());
+
+        let targets = resolve_restore_targets(value).unwrap();
+
+        assert_eq!(targets.len(), 8);
+        assert!(targets.iter().all(|target| target
+            .target_path
+            .contains("/Carrion/_steam_76561198587224175/")));
+    }
+
+    #[test]
+    fn existing_carrion_store_root_wins_over_login_user() {
+        let prefix = tempdir().unwrap();
+        let existing = prefix.path().join(
+            "drive_c/users/steamuser/AppData/LocalLow/Phobia/Carrion/\
+             _steam_76561198587224175/saves",
+        );
+        fs::create_dir_all(&existing).unwrap();
+        fs::write(existing.join("backup_0.crn"), b"current").unwrap();
+        let save_path = "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/saves";
+        let settings_path =
+            "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/settings.json";
+        let mut value = input("linux", file(save_path, "backup_0.crn"));
+        value.files.push(file(settings_path, "settings.json"));
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+        value.store_user_id = Some("76561198051718575".to_string());
+
+        let targets = resolve_restore_targets(value).unwrap();
+
+        assert_eq!(targets.len(), 2);
+        assert!(targets.iter().all(|target| target
+            .target_path
+            .contains("/Carrion/_steam_76561198587224175/")));
+    }
+
+    #[test]
+    fn windows_profile_restore_never_uses_host_or_old_prefix_path() {
+        let root = tempdir().unwrap();
+        let active_prefix = root.path().join("hydralauncher/wine-prefixes/953490");
+        fs::create_dir_all(active_prefix.join("drive_c/users/steamuser")).unwrap();
+        let old_home = root.path().join("old-home");
+        let old_save =
+            old_home.join("AppData/LocalLow/Phobia/Carrion/_steam_76561198051718575/saves");
+        fs::create_dir_all(&old_save).unwrap();
+        fs::write(old_save.join("backup_0.crn"), b"old").unwrap();
+        let mut value = input(
+            "linux",
+            file(
+                "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/saves",
+                "backup_0.crn",
+            ),
+        );
+        value.home_dir = old_home.display().to_string();
+        value.wine_prefix_path = Some(active_prefix.display().to_string());
+        value.store_user_id = Some("76561198587224175".to_string());
+
+        let target = resolve_restore_targets(value).unwrap().remove(0);
+
+        assert!(target
+            .target_path
+            .starts_with(&active_prefix.display().to_string()));
+        assert!(target
+            .target_path
+            .contains("/_steam_76561198587224175/saves/backup_0.crn"));
+    }
+
+    #[test]
+    fn reports_an_unresolved_store_user_in_an_empty_prefix() {
+        let prefix = tempdir().unwrap();
+        fs::create_dir_all(prefix.path().join("drive_c/users/steamuser")).unwrap();
+        let mut value = input(
+            "linux",
+            file("<home>/Saved Games/Game/<storeUserId>", "save.dat"),
+        );
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+
+        let error = match resolve_restore_targets(value) {
+            Ok(_) => panic!("expected unresolved store user error"),
+            Err(error) => error,
+        };
+
+        assert!(error
+            .to_string()
+            .contains("cloud_save_store_user_id_unresolved"));
+    }
+
+    #[test]
+    fn reports_restore_context_when_prefix_has_no_user_profile() {
+        let prefix = tempdir().unwrap();
+        fs::create_dir_all(prefix.path().join("drive_c/users")).unwrap();
+        let mut value = input(
+            "linux",
+            file(
+                "<home>/AppData/LocalLow/Phobia/Carrion/_steam_<storeUserId>/saves",
+                "backup_0.crn",
+            ),
+        );
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+        value.store_user_id = Some("76561198051718575".to_string());
+
+        let error = match resolve_restore_targets(value) {
+            Ok(_) => panic!("expected missing Wine profile error"),
+            Err(error) => error.to_string(),
+        };
+
+        assert!(error.contains("cloud_save_restore_profile_unresolved"));
+        assert!(error.contains("store_user_id_present=true"));
+        assert!(error.contains("raw_path=<home>/AppData/LocalLow/Phobia/Carrion"));
+    }
+
+    #[test]
+    fn prefers_modern_steamuser_wine_root() {
+        let prefix = tempdir().unwrap();
+        let modern = prefix
+            .path()
+            .join("drive_c/users/steamuser/AppData/Roaming/Game");
+        let legacy = prefix
+            .path()
+            .join("drive_c/users/steamuser/Application Data/Game");
+        let os_user = prefix
+            .path()
+            .join("drive_c/users/rodrigo/AppData/Roaming/Game");
+        fs::create_dir_all(&modern).unwrap();
+        fs::create_dir_all(&legacy).unwrap();
+        fs::create_dir_all(&os_user).unwrap();
+
+        let mut value = input("linux", file("<winAppData>/Game", "save.dat"));
+        value.home_dir = "/home/rodrigo".into();
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+
+        let target = resolve_restore_targets(value).unwrap().remove(0);
+
+        assert_eq!(target.target_path, format!("{}/save.dat", modern.display()));
+    }
+
+    #[test]
+    fn restores_to_active_launcher_prefix_instead_of_other_compatdata() {
+        let temp = tempdir().unwrap();
+        let steam_root = temp.path().join("SteamLibrary");
+        let proton = steam_root
+            .join("steamapps/compatdata/2379780/pfx/drive_c/users/steamuser/AppData/Roaming/Game");
+        let wine_prefix = temp.path().join("hydra-prefix");
+        let wine = wine_prefix.join("drive_c/users/steamuser/AppData/Roaming/Game");
+        fs::create_dir_all(&proton).unwrap();
+        fs::create_dir_all(&wine).unwrap();
+
+        let mut value = input("linux", file("<winAppData>/Game", "save.dat"));
+        value.executable_path = Some(
+            steam_root
+                .join("steamapps/common/Game/game.exe")
+                .display()
+                .to_string(),
+        );
+        value.wine_prefix_path = Some(wine_prefix.display().to_string());
+
+        let target = resolve_restore_targets(value).unwrap().remove(0);
+
+        assert_eq!(target.target_path, format!("{}/save.dat", wine.display()));
+    }
+
+    #[test]
+    fn prefers_existing_legacy_save_over_empty_modern_root() {
+        let prefix = tempdir().unwrap();
+        let profile = prefix.path().join("drive_c/users/steamuser");
+        let modern = profile.join("AppData/Roaming/Game");
+        let legacy = profile.join("Application Data/Game");
+        fs::create_dir_all(&modern).unwrap();
+        fs::create_dir_all(&legacy).unwrap();
+        fs::write(legacy.join("save.dat"), b"legacy").unwrap();
+
+        let mut value = input("linux", file("<winAppData>/Game", "save.dat"));
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+
+        let target = resolve_restore_targets(value).unwrap().remove(0);
+
+        assert_eq!(target.target_path, format!("{}/save.dat", legacy.display()));
+    }
+
+    #[test]
+    fn keeps_all_rule_files_in_populated_os_user_root() {
+        let prefix = tempdir().unwrap();
+        let steamuser = prefix
+            .path()
+            .join("drive_c/users/steamuser/AppData/Roaming/Game");
+        let os_user = prefix
+            .path()
+            .join("drive_c/users/rodrigo/AppData/Roaming/Game");
+        fs::create_dir_all(&steamuser).unwrap();
+        fs::create_dir_all(&os_user).unwrap();
+        fs::write(os_user.join("one.dat"), b"active").unwrap();
+
+        let mut value = input("linux", file("<winAppData>/Game", "one.dat"));
+        value.home_dir = "/home/rodrigo".into();
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+        value.files.push(file("<winAppData>/Game", "two.dat"));
+
+        let targets = resolve_restore_targets(value).unwrap();
+
+        assert_eq!(targets.len(), 2);
+        assert!(targets.iter().all(|target| target
+            .target_path
+            .starts_with(&os_user.display().to_string())));
+    }
+
+    #[test]
     fn rejects_unsafe_invalid_and_duplicate_targets() {
         let mut unsafe_path = input("windows", file("<winAppData>/Balatro", "../secret.dat"));
         assert!(resolve_restore_targets(unsafe_path).is_err());
@@ -239,6 +532,43 @@ mod tests {
         duplicate
             .files
             .push(file("<winAppData>/Balatro", "save.dat"));
-        assert!(resolve_restore_targets(duplicate).is_err());
+        assert_eq!(resolve_restore_targets(duplicate).unwrap().len(), 1);
+
+        let mut conflicting = input("windows", file("<winAppData>/Balatro", "save.dat"));
+        let mut second = file("<winAppData>/Balatro", "save.dat");
+        second.hash = "b".repeat(64);
+        conflicting.files.push(second);
+        assert!(resolve_restore_targets(conflicting).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn deduplicates_modern_and_legacy_aliases_to_same_physical_target() {
+        use std::os::unix::fs::symlink;
+
+        let prefix = tempdir().unwrap();
+        let profile = prefix.path().join("drive_c/users/steamuser");
+        let documents = profile.join("Documents");
+        fs::create_dir_all(documents.join("Game")).unwrap();
+        symlink(&documents, profile.join("My Documents")).unwrap();
+
+        let mut value = input("linux", file("<winDocuments>/Game", "save.dat"));
+        value
+            .files
+            .push(file("<home>/My Documents/Game", "save.dat"));
+        value.wine_prefix_path = Some(prefix.path().display().to_string());
+
+        let targets = resolve_restore_targets(value).unwrap();
+
+        assert_eq!(targets.len(), 1);
+        assert!(targets[0].target_path.contains("/Documents/Game/save.dat"));
+
+        let mut conflicting = input("linux", file("<winDocuments>/Game", "save.dat"));
+        let mut legacy = file("<home>/My Documents/Game", "save.dat");
+        legacy.hash = "b".repeat(64);
+        conflicting.files.push(legacy);
+        conflicting.wine_prefix_path = Some(prefix.path().display().to_string());
+
+        assert!(resolve_restore_targets(conflicting).is_err());
     }
 }

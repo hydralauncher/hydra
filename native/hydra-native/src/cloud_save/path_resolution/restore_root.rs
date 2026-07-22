@@ -1,11 +1,12 @@
-use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use globetter::MatchOptions;
 
 use super::context::normalize_separators;
 use super::resolve_path::resolve_path;
+use super::tokens::{literal, uses_windows_profile};
 use super::types::{PathResolutionContext, ResolvedCloudSavePath};
+use crate::cloud_save::save_scanner::scan_resolved_path;
 
 fn is_glob_segment(segment: &str) -> bool {
     segment.contains(['*', '?', '[', '{'])
@@ -37,6 +38,19 @@ fn has_expected_type(path: &Path, directory: bool) -> bool {
     }
 }
 
+fn exact_windows_profile(path: &str) -> Option<PathBuf> {
+    let lower = path.to_ascii_lowercase();
+    let marker = "/drive_c/users/";
+    let profile_start = lower.find(marker)? + marker.len();
+    let profile_end = path[profile_start..]
+        .find('/')
+        .map(|offset| profile_start + offset)
+        .unwrap_or(path.len());
+    let profile = &path[profile_start..profile_end];
+
+    (!profile.is_empty() && !is_glob_segment(profile)).then(|| PathBuf::from(&path[..profile_end]))
+}
+
 fn materialize_candidate(candidate: &ResolvedCloudSavePath, directory: bool) -> Vec<String> {
     let normalized = normalize_separators(&candidate.path);
     let absolute = normalized.starts_with('/');
@@ -49,7 +63,9 @@ fn materialize_candidate(candidate: &ResolvedCloudSavePath, directory: bool) -> 
         .rposition(|segment| is_glob_segment(segment))
     else {
         let path = Path::new(&normalized);
-        return (!path.exists() || has_expected_type(path, directory))
+        let can_create = !path.exists()
+            && exact_windows_profile(&normalized).is_none_or(|profile| profile.is_dir());
+        return (can_create || has_expected_type(path, directory))
             .then_some(normalized)
             .into_iter()
             .collect();
@@ -142,10 +158,119 @@ fn complete_matches(
         .collect()
 }
 
+fn first_sorted(mut paths: Vec<String>) -> Option<String> {
+    paths.sort();
+    paths.dedup();
+    paths.into_iter().next()
+}
+
+fn valid_store_user_id(value: &str) -> bool {
+    (5..=20).contains(&value.len()) && value.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+fn concrete_store_user_path(raw_path: &str, store_user_id: &str) -> String {
+    raw_path
+        .replace("*<storeUserId>", store_user_id)
+        .replace("<storeUserId>*", store_user_id)
+        .replace("<storeUserId>", store_user_id)
+}
+
+fn authoritative_candidates(
+    raw_path: &str,
+    context: &PathResolutionContext,
+    candidates: Vec<ResolvedCloudSavePath>,
+) -> Result<Vec<ResolvedCloudSavePath>, String> {
+    if !context.windows_compatibility || !uses_windows_profile(raw_path) {
+        return Ok(candidates);
+    }
+    let Some(prefix) = context.wine_prefix_path.as_deref() else {
+        return Ok(candidates);
+    };
+    let prefix = literal(prefix);
+    let prefix_with_separator = format!("{}/", prefix.trim_end_matches('/'));
+    let filtered = candidates
+        .into_iter()
+        .filter(|candidate| {
+            candidate.path == prefix || candidate.path.starts_with(&prefix_with_separator)
+        })
+        .collect::<Vec<_>>();
+
+    if filtered.is_empty() {
+        return Err(format!(
+            "cloud_save_restore_prefix_mismatch: raw_path={raw_path}; wine_prefix_path={prefix}"
+        ));
+    }
+    Ok(filtered)
+}
+
+fn existing_wine_profiles(context: &PathResolutionContext) -> Vec<String> {
+    let Some(prefix) = context.wine_prefix_path.as_deref() else {
+        return Vec::new();
+    };
+    let users = Path::new(prefix).join("drive_c/users");
+    let Ok(entries) = std::fs::read_dir(&users) else {
+        return Vec::new();
+    };
+    let mut profiles = entries
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let name = entry.file_name().to_string_lossy().to_string();
+            (!is_system_wine_profile(&users, &name)
+                && entry
+                    .path()
+                    .metadata()
+                    .is_ok_and(|metadata| metadata.is_dir()))
+            .then_some(name)
+        })
+        .collect::<Vec<_>>();
+    profiles.sort_by(|left, right| {
+        let priority = |value: &str| {
+            if value.eq_ignore_ascii_case("steamuser") {
+                0
+            } else if value.eq_ignore_ascii_case(&context.os_username) {
+                1
+            } else {
+                2
+            }
+        };
+        priority(left)
+            .cmp(&priority(right))
+            .then_with(|| left.cmp(right))
+    });
+    profiles
+}
+
+fn profile_unresolved(raw_path: &str, context: &PathResolutionContext) -> String {
+    format!(
+        "cloud_save_restore_profile_unresolved: raw_path={raw_path}; store_user_id_present={}; wine_prefix_path={}",
+        context.store_user_id.is_some(),
+        context.wine_prefix_path.as_deref().unwrap_or("none")
+    )
+}
+
+fn restore_root_not_found(
+    raw_path: &str,
+    context: &PathResolutionContext,
+    candidates: &[ResolvedCloudSavePath],
+) -> String {
+    let candidate_paths = candidates
+        .iter()
+        .take(6)
+        .map(|candidate| candidate.path.as_str())
+        .collect::<Vec<_>>()
+        .join(" | ");
+    format!(
+        "cloud_save_restore_root_not_found: raw_path={raw_path}; store_user_id_present={}; wine_prefix_path={}; candidates={candidate_paths}",
+        context.store_user_id.is_some(),
+        context.wine_prefix_path.as_deref().unwrap_or("none")
+    )
+}
+
 pub fn resolve_restore_root(
     raw_path: &str,
     context: &PathResolutionContext,
     directory: bool,
+    relative_paths: &[String],
 ) -> Result<String, String> {
     let resolved = resolve_path(raw_path, context);
     if resolved.paths.is_empty() {
@@ -154,41 +279,89 @@ pub fn resolve_restore_root(
             resolved.unresolved_tokens.join(", ")
         ));
     }
-    let candidates = if context.wine_prefix_path.is_some()
-        && resolved.paths.iter().any(|candidate| candidate.dynamic)
-    {
-        resolved
-            .paths
-            .iter()
-            .filter(|candidate| candidate.dynamic)
-            .collect::<Vec<_>>()
-    } else {
-        resolved.paths.iter().collect::<Vec<_>>()
-    };
-    let complete = candidates
-        .iter()
-        .map(|candidate| complete_matches(candidate, directory))
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .flatten()
-        .collect::<HashSet<_>>();
-
-    match complete.len() {
-        1 => return Ok(complete.into_iter().next().unwrap()),
-        2.. => return Err("cloud_save_ambiguous_restore_roots".to_string()),
-        _ => {}
+    let candidates = authoritative_candidates(raw_path, context, resolved.paths)?;
+    let mut complete_by_candidate = Vec::with_capacity(candidates.len());
+    for candidate in &candidates {
+        let mut complete = complete_matches(candidate, directory)?;
+        complete.sort();
+        complete.dedup();
+        if directory {
+            let requested_target = complete.iter().find(|root| {
+                relative_paths.iter().any(|relative_path| {
+                    Path::new(root)
+                        .join(relative_path.replace('\\', "/"))
+                        .is_file()
+                })
+            });
+            if let Some(root) = requested_target {
+                return Ok(root.clone());
+            }
+        } else if let Some(file) = first_sorted(complete.clone()) {
+            return Ok(file);
+        }
+        complete_by_candidate.push(complete);
     }
 
-    for candidate in candidates {
-        let materialized = materialize_candidate(candidate, directory)
-            .into_iter()
-            .collect::<HashSet<_>>();
-        match materialized.len() {
-            1 => return Ok(materialized.into_iter().next().unwrap()),
-            2.. => return Err("cloud_save_ambiguous_restore_roots".to_string()),
-            _ => {}
+    if directory {
+        for candidate in &candidates {
+            let scanned_paths = scan_resolved_path(
+                &candidate.path,
+                candidate.case_sensitive,
+                candidate.scan_root.as_deref(),
+            )?;
+            if let Some(scanned) = scanned_paths
+                .into_iter()
+                .find(|scanned| !scanned.files.is_empty())
+            {
+                return Ok(scanned.resolved_path);
+            }
         }
     }
 
-    Err("cloud_save_restore_root_not_found".to_string())
+    for complete in complete_by_candidate {
+        if let Some(existing) = first_sorted(complete) {
+            return Ok(existing);
+        }
+    }
+
+    if raw_path.contains("<storeUserId>") {
+        for candidate in &candidates {
+            if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
+                return Ok(materialized);
+            }
+        }
+
+        let store_user_id = context
+            .store_user_id
+            .as_deref()
+            .filter(|value| valid_store_user_id(value))
+            .ok_or_else(|| "cloud_save_store_user_id_unresolved".to_string())?;
+        let concrete = concrete_store_user_path(raw_path, store_user_id);
+        let resolved = resolve_path(&concrete, context);
+        let candidates = authoritative_candidates(raw_path, context, resolved.paths)?;
+        for candidate in &candidates {
+            if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
+                return Ok(materialized);
+            }
+        }
+        if context.windows_compatibility && existing_wine_profiles(context).is_empty() {
+            return Err(profile_unresolved(raw_path, context));
+        }
+        return Err(restore_root_not_found(raw_path, context, &candidates));
+    }
+
+    for candidate in &candidates {
+        if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
+            return Ok(materialized);
+        }
+    }
+
+    if context.windows_compatibility
+        && uses_windows_profile(raw_path)
+        && existing_wine_profiles(context).is_empty()
+    {
+        return Err(profile_unresolved(raw_path, context));
+    }
+
+    Err(restore_root_not_found(raw_path, context, &candidates))
 }

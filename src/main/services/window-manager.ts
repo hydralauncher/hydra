@@ -1008,6 +1008,17 @@ export class WindowManager {
     this.mainWindow?.focus();
   }
 
+  public static redirectToMainWindow(hash: string) {
+    this.redirect(hash);
+
+    if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      this.bigPicture.close();
+      return;
+    }
+
+    this.openMainWindow();
+  }
+
   public static async createSystemTray(language: string) {
     let tray: Tray;
 

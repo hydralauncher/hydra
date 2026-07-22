@@ -4,7 +4,7 @@ import { HydraApi } from "@main/services/hydra-api";
 import type {
   CloudSaveUploadProgress,
   GameShop,
-  LocalGameSnapshotPipelineResult,
+  LocalGameSnapshotContext,
   UploadLocalGameSnapshotResult,
 } from "@types";
 
@@ -26,7 +26,7 @@ export const uploadLocalGameSnapshot = async (
   objectId: string,
   shop: GameShop,
   onProgress?: ProgressCallback,
-  localSnapshotContext?: LocalGameSnapshotPipelineResult
+  localSnapshotContext?: LocalGameSnapshotContext
 ): Promise<UploadLocalGameSnapshotResult> => {
   const context =
     localSnapshotContext ??

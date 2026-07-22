@@ -148,16 +148,17 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
         ),
     };
 
-    let mut steam_roots = Vec::new();
-    if let Some(root) = derived_steam_root(input.executable_path.as_deref()) {
-        steam_roots.push(root);
-    }
-
-    if let Some(root) = input.steam_path.as_deref().map(normalize_separators) {
-        if !steam_roots.contains(&root) {
-            steam_roots.push(root);
-        }
-    }
+    let derived_steam_root = derived_steam_root(input.executable_path.as_deref());
+    let configured_steam_root = input
+        .steam_path
+        .as_deref()
+        .map(normalize_separators)
+        .filter(|root| derived_steam_root.as_ref() != Some(root));
+    let windows_compatibility = input.platform == "linux"
+        && input
+            .executable_path
+            .as_deref()
+            .is_some_and(|path| path.to_ascii_lowercase().ends_with(".exe"));
 
     Ok(PathResolutionContext {
         shop: input.shop.clone(),
@@ -178,6 +179,9 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
         xdg_config_dir,
         install_dir,
         wine_prefix_path,
-        steam_roots,
+        windows_compatibility,
+        derived_steam_root,
+        configured_steam_root,
+        store_user_id: None,
     })
 }

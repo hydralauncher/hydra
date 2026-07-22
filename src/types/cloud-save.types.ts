@@ -19,6 +19,7 @@ export interface BuildLocalGameSnapshotPipelineInput {
   executablePath?: string;
   winePrefixPath?: string;
   steamPath?: string;
+  storeUserId?: string;
   hashCache: LocalFileHashCacheEntry[];
 }
 
@@ -39,6 +40,7 @@ export interface CloudSavePathContext {
   executablePath?: string;
   winePrefixPath?: string;
   steamPath?: string;
+  storeUserId?: string;
 }
 
 export interface RestoreManifestFile {
@@ -46,6 +48,7 @@ export interface RestoreManifestFile {
   relativePath: string;
   hash: string;
   sizeBytes: number;
+  lastModifiedAt?: string | null;
 }
 
 export interface RestoreManifestResponse {
@@ -90,14 +93,76 @@ export interface CloudSaveStateResult {
 
 export interface CloudSaveOverview extends CloudSaveStateResult {
   snapshots: RemoteSnapshotSummary[];
+  isAutomaticSyncEnabled: boolean;
+}
+
+export type CloudSaveV2FileComparisonStatus =
+  | "unchanged"
+  | "modified"
+  | "local-only"
+  | "remote-only";
+
+interface CloudSaveV2FileBase {
+  rawPath: string;
+  relativePath: string;
+  sizeBytes: number;
+  lastModifiedAt: string | null;
+}
+
+export interface CloudSaveV2LocalFile extends CloudSaveV2FileBase {
+  source: "local";
+  absolutePath: string;
+}
+
+export interface CloudSaveV2RemoteFile extends CloudSaveV2FileBase {
+  source: "remote";
+}
+
+export type CloudSaveV2File = CloudSaveV2LocalFile | CloudSaveV2RemoteFile;
+
+interface CloudSaveV2FileSourceBase {
+  fileCount: number;
+  totalSizeBytes: number;
+  files: CloudSaveV2File[];
+}
+
+export interface CloudSaveV2LocalFileSource extends CloudSaveV2FileSourceBase {
+  kind: "local";
+  files: CloudSaveV2LocalFile[];
+}
+
+export interface CloudSaveV2ActiveSnapshotFileSource
+  extends CloudSaveV2FileSourceBase {
+  kind: "active-snapshot";
+  snapshotId: string;
+  createdAt: string;
+  files: CloudSaveV2RemoteFile[];
+}
+
+export type CloudSaveV2FileSource =
+  | CloudSaveV2LocalFileSource
+  | CloudSaveV2ActiveSnapshotFileSource;
+
+export interface CloudSaveV2FileComparison {
+  rawPath: string;
+  relativePath: string;
+  status: CloudSaveV2FileComparisonStatus;
+  local: CloudSaveV2LocalFile | null;
+  remote: CloudSaveV2RemoteFile | null;
+}
+
+export interface CloudSaveV2FileDetails {
+  state: CloudSaveState;
+  local: CloudSaveV2LocalFileSource;
+  activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
+  comparisons: CloudSaveV2FileComparison[];
 }
 
 export type CloudSaveSyncTrigger =
   | "manual"
-  | "executable-added"
+  | "environment-changed"
   | "pre-launch"
-  | "post-exit"
-  | "state-changed";
+  | "post-exit";
 
 export type CloudSaveSyncAction = "none" | "upload" | "restore" | "conflict";
 
@@ -108,6 +173,8 @@ export interface SyncGameCloudSaveResult {
   action: CloudSaveSyncAction;
   initialState: CloudSaveState;
   finalState: CloudSaveState;
+  remoteHash?: string | null;
+  environmentId?: string;
 }
 
 export type CloudSaveAutomaticSyncTrigger = Exclude<
@@ -264,6 +331,12 @@ export interface LocalGameSnapshotPipelineResult
   sourceFiles: LocalGameSnapshotSourceFile[];
 }
 
+export interface LocalGameSnapshotContext
+  extends LocalGameSnapshotPipelineResult {
+  environmentId: string;
+  pathContext: CloudSavePathContext;
+}
+
 export interface NativeLocalGameSnapshotPipelineResult
   extends LocalGameSnapshotPipelineResult {
   hashCache: LocalFileHashCacheEntry[];
@@ -318,4 +391,6 @@ export interface CloudSaveSyncAnchor {
   baseSnapshotId: string;
   baseAggregateHash: string;
   updatedAt: string;
+  schemaVersion?: 2;
+  environmentId?: string;
 }

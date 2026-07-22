@@ -9,15 +9,39 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
+import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
 import { syncGameCloudSave } from "./sync-game-cloud-save";
+import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import {
+  canUploadCloudSaveAfterLaunch,
+  consumeCloudSaveLaunchGuard,
+} from "./launch-guard";
+import { CloudSaveOperationCoordinator } from "./operation-coordinator";
 
-const activeAutomaticSyncs = new Map<
-  string,
-  Promise<SyncGameCloudSaveResult | null>
->();
+const automaticSyncCoordinator =
+  new CloudSaveOperationCoordinator<SyncGameCloudSaveResult | null>();
 
 const gameKey = (objectId: string, shop: GameShop) =>
   JSON.stringify([shop, objectId]);
+
+const getErrorLogDetails = (error: unknown) => {
+  const rawErrorCode =
+    error && typeof error === "object" && "code" in error
+      ? error.code
+      : undefined;
+  const errorMessage = error instanceof Error ? error.message : "Unknown error";
+  const nativeErrorCode = errorMessage.match(/\bcloud_save_[a-z0-9_]+\b/)?.[0];
+  const errorCode =
+    typeof rawErrorCode === "string" || typeof rawErrorCode === "number"
+      ? rawErrorCode
+      : nativeErrorCode;
+
+  return {
+    errorName: error instanceof Error ? error.name : "UnknownError",
+    errorMessage,
+    errorCode,
+  };
+};
 
 const emitAutomaticSyncEvent = (event: CloudSaveAutomaticSyncEvent) => {
   WindowManager.sendToAppWindows("on-cloud-save-automatic-sync", event);
@@ -26,7 +50,9 @@ const emitAutomaticSyncEvent = (event: CloudSaveAutomaticSyncEvent) => {
 export const runAutomaticCloudSaveSync = async (
   objectId: string,
   shop: GameShop,
-  trigger: CloudSaveAutomaticSyncTrigger
+  trigger: CloudSaveAutomaticSyncTrigger,
+  suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>,
+  expectedRemoteHash?: string | null
 ): Promise<SyncGameCloudSaveResult | null> => {
   if (
     shop !== "steam" ||
@@ -35,6 +61,8 @@ export const runAutomaticCloudSaveSync = async (
   ) {
     return null;
   }
+
+  if (!(await getCloudSaveAutomaticSyncEnabled(objectId, shop))) return null;
 
   const game = await gamesSublevel
     .get(levelKeys.game(shop, objectId))
@@ -49,38 +77,10 @@ export const runAutomaticCloudSaveSync = async (
     });
   if (!game?.executablePath) return null;
 
-  const key = gameKey(objectId, shop);
-  const activeSync = activeAutomaticSyncs.get(key);
-  if (activeSync) return activeSync;
-
-  const promise = syncGameCloudSave(objectId, shop, trigger, (progress) => {
-    emitAutomaticSyncEvent({
-      gameId: { objectId, shop },
-      trigger,
-      status: "progress",
-      progress,
-    });
-  })
-    .then((result) => {
-      const status = result.action === "conflict" ? "conflict" : "completed";
-      logger.info("[Cloud Save] Automatic sync finished", {
-        shop,
-        objectId,
-        trigger,
-        action: result.action,
-        initialState: result.initialState,
-        finalState: result.finalState,
-      });
-      emitAutomaticSyncEvent({
-        gameId: { objectId, shop },
-        trigger,
-        status,
-        result,
-      });
-      return result;
-    })
-    .catch((error: unknown) => {
-      logger.error("[Cloud Save] Automatic sync failed", {
+  const context =
+    suppliedContext ??
+    (await getCloudSaveGameContext(objectId, shop).catch((error: unknown) => {
+      logger.error("[Cloud Save] Failed to resolve automatic sync context", {
         shop,
         objectId,
         trigger,
@@ -92,13 +92,111 @@ export const runAutomaticCloudSaveSync = async (
         status: "failed",
       });
       return null;
-    })
-    .finally(() => {
-      if (activeAutomaticSyncs.get(key) === promise) {
-        activeAutomaticSyncs.delete(key);
-      }
-    });
+    }));
+  if (!context) return null;
+  const key = gameKey(objectId, shop);
+  const operationKey = JSON.stringify([
+    trigger,
+    context.environmentId,
+    expectedRemoteHash === undefined
+      ? ["anchor"]
+      : ["expected", expectedRemoteHash],
+  ]);
 
-  activeAutomaticSyncs.set(key, promise);
-  return promise;
+  return automaticSyncCoordinator.run(key, operationKey, () =>
+    syncGameCloudSave(
+      objectId,
+      shop,
+      trigger,
+      (progress) => {
+        emitAutomaticSyncEvent({
+          gameId: { objectId, shop },
+          trigger,
+          status: "progress",
+          progress,
+        });
+      },
+      context,
+      expectedRemoteHash
+    )
+      .then((result) => {
+        const status = result.action === "conflict" ? "conflict" : "completed";
+        logger.info("[Cloud Save] Automatic sync finished", {
+          shop,
+          objectId,
+          trigger,
+          action: result.action,
+          initialState: result.initialState,
+          finalState: result.finalState,
+        });
+        emitAutomaticSyncEvent({
+          gameId: { objectId, shop },
+          trigger,
+          status,
+          result,
+        });
+        return result;
+      })
+      .catch((error: unknown) => {
+        logger.error("[Cloud Save] Automatic sync failed", {
+          shop,
+          objectId,
+          trigger,
+          ...getErrorLogDetails(error),
+        });
+        emitAutomaticSyncEvent({
+          gameId: { objectId, shop },
+          trigger,
+          status: "failed",
+        });
+        return null;
+      })
+  );
+};
+
+export const runAutomaticCloudSavePostExit = async (
+  objectId: string,
+  shop: GameShop
+): Promise<SyncGameCloudSaveResult | null> => {
+  const guard = consumeCloudSaveLaunchGuard(objectId, shop);
+  if (!guard?.uploadAllowed) {
+    logger.warn("[Cloud Save] Post-exit upload blocked by launch guard", {
+      shop,
+      objectId,
+      reason: guard ? "pre_launch_not_safe" : "missing_launch_guard",
+    });
+    return null;
+  }
+
+  const context = await getCloudSaveGameContext(objectId, shop).catch(
+    (error: unknown) => {
+      logger.error("[Cloud Save] Failed to verify post-exit environment", {
+        shop,
+        objectId,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      });
+      return null;
+    }
+  );
+  if (
+    !context ||
+    !canUploadCloudSaveAfterLaunch(guard, context.environmentId)
+  ) {
+    logger.warn(
+      "[Cloud Save] Post-exit upload blocked after environment change",
+      {
+        shop,
+        objectId,
+      }
+    );
+    return null;
+  }
+
+  return runAutomaticCloudSaveSync(
+    objectId,
+    shop,
+    "post-exit",
+    context,
+    guard.baseRemoteHash
+  );
 };

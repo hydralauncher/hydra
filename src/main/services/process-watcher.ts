@@ -4,7 +4,6 @@ import { createGame, trackGamePlaytime } from "./library-sync";
 import type { Game, GameRunning, UserPreferences } from "@types";
 import axios from "axios";
 import { db, gamesSublevel, levelKeys } from "@main/level";
-import { CloudSync } from "./cloud-sync";
 import { logger, networkLogger } from "./logger";
 import { PowerSaveBlockerManager } from "./power-save-blocker";
 import path from "node:path";
@@ -20,12 +19,15 @@ import {
   type LinuxProcessInfo,
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
-import { runAutomaticCloudSaveSync } from "./cloud-save/automatic-sync";
+import { runAutomaticCloudSavePostExit } from "./cloud-save/automatic-sync";
 
 export const gamesPlaytime = new Map<
   string,
   { lastTick: number; firstTick: number; lastSyncTick: number }
 >();
+
+export const isGameRunning = (objectId: string, shop: Game["shop"]) =>
+  gamesPlaytime.has(levelKeys.game(shop, objectId));
 
 export const getGamesRunning = () => {
   const now = performance.now();
@@ -363,15 +365,6 @@ function onOpenGame(game: Game) {
           error: error instanceof Error ? error.message : String(error),
         });
       });
-
-    if (game.automaticCloudSync) {
-      CloudSync.uploadSaveGame(
-        game.objectId,
-        game.shop,
-        null,
-        CloudSync.getBackupLabel(true)
-      );
-    }
   } else {
     const payload = { ...game, lastTimePlayed: new Date() };
 
@@ -495,18 +488,9 @@ const onCloseGame = (game: Game) => {
 
   if (game.shop === "custom") return;
 
-  void runAutomaticCloudSaveSync(game.objectId, game.shop, "post-exit");
+  void runAutomaticCloudSavePostExit(game.objectId, game.shop);
 
   if (game.remoteId) {
-    if (game.automaticCloudSync) {
-      CloudSync.uploadSaveGame(
-        game.objectId,
-        game.shop,
-        null,
-        CloudSync.getBackupLabel(true)
-      );
-    }
-
     const deltaToSync =
       now -
       gamePlaytime.lastSyncTick +

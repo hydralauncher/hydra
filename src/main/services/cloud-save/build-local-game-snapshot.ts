@@ -1,15 +1,18 @@
 import { SystemPath } from "@main/services/system-path";
 import { cloudSaveLocalHashCacheSublevel, levelKeys } from "@main/level";
-import type { GameShop, LocalGameSnapshotPipelineResult } from "@types";
+import type { GameShop, LocalGameSnapshotContext } from "@types";
 
 import { NativeAddon } from "../native-addon";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 
 export const buildLocalGameSnapshotContext = async (
   objectId: string,
-  shop: GameShop
-): Promise<LocalGameSnapshotPipelineResult> => {
-  const { game, pathContext } = await getCloudSaveGameContext(objectId, shop);
+  shop: GameShop,
+  suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>
+): Promise<LocalGameSnapshotContext> => {
+  const context =
+    suppliedContext ?? (await getCloudSaveGameContext(objectId, shop));
+  const { game, pathContext, environmentId } = context;
   const cacheKey = levelKeys.game(shop, objectId);
   const hashCache = (await cloudSaveLocalHashCacheSublevel.get(cacheKey)) ?? [];
   const { hashCache: updatedHashCache, ...snapshot } =
@@ -27,5 +30,5 @@ export const buildLocalGameSnapshotContext = async (
     await cloudSaveLocalHashCacheSublevel.put(cacheKey, updatedHashCache);
   }
 
-  return snapshot;
+  return { ...snapshot, environmentId, pathContext };
 };

@@ -302,14 +302,14 @@ $hero-height: 350px;
   }
 
   &__edit-custom-game-button {
-    padding: calc(globals.$spacing-unit * 1.5);
+    height: 40px;
+    width: 40px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
     background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(20px);
     border-radius: 8px;
     transition: all ease 0.2s;
     cursor: pointer;
-    min-height: 40px;
-    min-width: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -434,13 +434,13 @@ $hero-height: 350px;
   }
 
   &__cloud-sync-button {
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    height: 40px;
+    padding: 0 calc(globals.$spacing-unit * 2);
     background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(20px);
     border-radius: 8px;
     transition: all ease 0.2s;
     cursor: pointer;
-    min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -41,6 +41,7 @@ import type {
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
+  CloudSaveV2FileDetails,
   CloudSaveSyncIpcProgressPayload,
   CloudSaveSyncProgressPayload,
   SyncGameCloudSaveResult,
@@ -96,12 +97,23 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveOverview>,
-  syncCloudSaveOnStateChange: (objectId: string, shop: GameShop) =>
+  getCloudSaveV2FileDetails: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
-      "syncCloudSaveOnStateChange",
+      "getCloudSaveV2FileDetails",
       objectId,
       shop
-    ) as Promise<SyncGameCloudSaveResult | null>,
+    ) as Promise<CloudSaveV2FileDetails>,
+  setCloudSaveAutomaticSyncEnabled: (
+    objectId: string,
+    shop: GameShop,
+    enabled: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "setCloudSaveAutomaticSyncEnabled",
+      objectId,
+      shop,
+      enabled
+    ) as Promise<boolean>,
   syncGameCloudSave: (
     objectId: string,
     shop: GameShop,
@@ -556,17 +568,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDownloadSourcesSinceValue"),
 
   /* Library */
-  toggleAutomaticCloudSync: (
-    shop: GameShop,
-    objectId: string,
-    automaticCloudSync: boolean
-  ) =>
-    ipcRenderer.invoke(
-      "toggleAutomaticCloudSync",
-      shop,
-      objectId,
-      automaticCloudSync
-    ),
   toggleGameMangohud: (
     shop: GameShop,
     objectId: string,

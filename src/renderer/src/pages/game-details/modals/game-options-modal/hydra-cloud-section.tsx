@@ -5,19 +5,13 @@ import { platformToSystem } from "@renderer/helpers";
 import { CloudSyncPanel } from "../../cloud-sync/cloud-sync-panel";
 import { GameEmulationSaves } from "../../cloud-sync/game-emulation-saves";
 
-interface HydraCloudSettingsSectionProps {
+interface HydraCloudLegacySettingsSectionProps {
   game: LibraryGame;
-  automaticCloudSync: boolean;
-  onToggleAutomaticCloudSync: (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => Promise<void>;
 }
 
-export function HydraCloudSettingsSection({
+export function HydraCloudLegacySettingsSection({
   game,
-  automaticCloudSync,
-  onToggleAutomaticCloudSync,
-}: Readonly<HydraCloudSettingsSectionProps>) {
+}: Readonly<HydraCloudLegacySettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
   if (game.shop === "custom") {
@@ -40,10 +34,7 @@ export function HydraCloudSettingsSection({
 
   return (
     <div className="game-options-modal__cloud-panel">
-      <CloudSyncPanel
-        automaticCloudSync={automaticCloudSync}
-        onToggleAutomaticCloudSync={onToggleAutomaticCloudSync}
-      />
+      <CloudSyncPanel />
     </div>
   );
 }

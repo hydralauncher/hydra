@@ -1,6 +1,5 @@
-import { Button, CheckboxField } from "@renderer/components";
+import { Button } from "@renderer/components";
 import { useContext, useEffect, useMemo, useState } from "react";
-import type { ChangeEvent } from "react";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import "./cloud-sync-panel.scss";
 import { formatBytes } from "@shared";
@@ -33,15 +32,7 @@ import { MoreVertical } from "lucide-react";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { Tooltip } from "react-tooltip";
 
-interface CloudSyncPanelProps {
-  automaticCloudSync: boolean;
-  onToggleAutomaticCloudSync: (event: ChangeEvent<HTMLInputElement>) => void;
-}
-
-export function CloudSyncPanel({
-  automaticCloudSync,
-  onToggleAutomaticCloudSync,
-}: Readonly<CloudSyncPanelProps>) {
+export function CloudSyncPanel() {
   const [deletingArtifact, setDeletingArtifact] = useState(false);
   const [backupDownloadProgress, setBackupDownloadProgress] =
     useState<AxiosProgressEvent | null>(null);
@@ -71,7 +62,7 @@ export function CloudSyncPanel({
     getGameArtifacts,
   } = useContext(cloudSyncContext);
 
-  const { objectId, shop, lastDownloadedOption, game } =
+  const { objectId, shop, lastDownloadedOption } =
     useContext(gameDetailsContext);
 
   const { showSuccessToast, showErrorToast } = useToast();
@@ -209,24 +200,8 @@ export function CloudSyncPanel({
       />
 
       <div className="cloud-sync-panel__section-header">
-        <h2>{t("cloud_save")}</h2>
-        <p>{t("cloud_save_description")}</p>
-      </div>
-
-      <div className="cloud-sync-panel__automatic-sync">
-        <CheckboxField
-          label={
-            <div className="cloud-sync-panel__automatic-sync-label">
-              {t("enable_automatic_cloud_sync")}
-              <span className="cloud-sync-panel__automatic-sync-badge">
-                Hydra Cloud
-              </span>
-            </div>
-          }
-          checked={automaticCloudSync}
-          disabled={!hasActiveSubscription || !game?.executablePath}
-          onChange={onToggleAutomaticCloudSync}
-        />
+        <h2>{t("cloud_save_legacy_title")}</h2>
+        <p>{t("cloud_save_legacy_description")}</p>
       </div>
 
       <div className="cloud-sync-panel__header">
