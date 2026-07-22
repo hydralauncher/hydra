@@ -105,6 +105,26 @@ const getLocalRootPath = (file: CloudSaveV2LocalFile) => {
   return rootPath;
 };
 
+const getLocalPathIdentity = (path: string) => {
+  const normalizedSeparators = formatCloudSaveV2LocalPath(path).replaceAll(
+    "\\",
+    "/"
+  );
+  const isWindowsPath =
+    /^[a-zA-Z]:\//.test(normalizedSeparators) ||
+    normalizedSeparators.startsWith("//");
+  const collapsedSeparators = normalizedSeparators.replace(/\/+/g, "/");
+  const withoutTrailingSeparators =
+    collapsedSeparators.length > 1
+      ? collapsedSeparators.replace(/\/+$/, "")
+      : collapsedSeparators;
+  const comparablePath = isWindowsPath
+    ? withoutTrailingSeparators.toLowerCase()
+    : withoutTrailingSeparators;
+
+  return `${isWindowsPath ? "windows" : "unix"}:${comparablePath}`;
+};
+
 const joinPath = (rootPath: string, segments: string[]) => {
   if (segments.length === 0) return rootPath;
   const separator =
@@ -182,8 +202,9 @@ export const buildCloudSaveV2LocalFileTree = (
 
   for (const file of files) {
     const rootPath = getLocalRootPath(file);
-    const rootId = JSON.stringify(["local-root", file.rawPath, rootPath]);
-    let root = roots.get(rootId);
+    const rootPathIdentity = getLocalPathIdentity(rootPath);
+    const rootId = JSON.stringify(["local-root", rootPathIdentity]);
+    let root = roots.get(rootPathIdentity);
     if (!root) {
       root = {
         type: "root",
@@ -196,7 +217,7 @@ export const buildCloudSaveV2LocalFileTree = (
         branches: new Map(),
         files: [],
       };
-      roots.set(rootId, root);
+      roots.set(rootPathIdentity, root);
     }
 
     const pathSegments = splitPath(file.relativePath);
@@ -206,11 +227,10 @@ export const buildCloudSaveV2LocalFileTree = (
 
     for (const segment of pathSegments) {
       directorySegments.push(segment);
+      const localDirectoryPath = joinPath(rootPath, directorySegments);
       const directoryId = JSON.stringify([
         "local-directory",
-        file.rawPath,
-        rootPath,
-        ...directorySegments,
+        getLocalPathIdentity(localDirectoryPath),
       ]);
       let directory = parent.branches.get(directoryId);
       if (!directory) {
@@ -218,7 +238,7 @@ export const buildCloudSaveV2LocalFileTree = (
           type: "directory",
           id: directoryId,
           name: segment,
-          localDirectoryPath: joinPath(rootPath, directorySegments),
+          localDirectoryPath,
           hasLocalFiles: true,
           hasRemoteFiles: false,
           branches: new Map(),
