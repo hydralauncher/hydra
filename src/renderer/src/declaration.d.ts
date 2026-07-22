@@ -204,7 +204,7 @@ declare global {
       iconUrl?: string;
       logoImageUrl?: string;
       libraryHeroImageUrl?: string;
-      customCoverImageUrl?: string;
+      customCoverImageUrl?: string | null;
       originalIconPath?: string;
       originalLogoPath?: string;
       originalHeroPath?: string;
