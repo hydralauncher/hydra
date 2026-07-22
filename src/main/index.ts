@@ -49,6 +49,18 @@ i18n.init({
 });
 
 const PROTOCOL = "hydralauncher";
+let resolveLaunchReady!: () => void;
+const launchReadyPromise = new Promise<void>((resolve) => {
+  resolveLaunchReady = resolve;
+});
+let resolveUiReady!: () => void;
+const uiReadyPromise = new Promise<void>((resolve) => {
+  resolveUiReady = resolve;
+});
+const startupDeepLink = process.argv.find((arg) =>
+  arg.startsWith("hydralauncher://")
+);
+const startupRunDeepLink = startupDeepLink?.startsWith("hydralauncher://run");
 
 // Register the custom schemes as privileged so the renderer can fetch them
 // (supportFetchAPI) and use the results on a canvas without tainting it
@@ -75,6 +87,7 @@ if (process.defaultApp) {
 }
 
 const initializeApp = async () => {
+  const startupStartedAt = performance.now();
   electronApp.setAppUserModelId("gg.hydralauncher.hydra");
 
   protocol.handle("local", (request) => {
@@ -147,7 +160,18 @@ const initializeApp = async () => {
     });
   });
 
-  await loadState();
+  if (startupRunDeepLink) {
+    handleDeepLinkPath(startupDeepLink);
+  }
+
+  await loadState({
+    onLaunchReady: () => {
+      logger.info("Shortcut launch prerequisites ready", {
+        elapsedMs: Math.round(performance.now() - startupStartedAt),
+      });
+      resolveLaunchReady();
+    },
+  });
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
   powerMonitor.on("resume", () => {
@@ -165,11 +189,10 @@ const initializeApp = async () => {
     .catch(() => "en");
 
   if (language) i18n.changeLanguage(language);
+  resolveUiReady();
 
   // Check if starting from a "run" deep link - don't show main window in that case
-  const deepLinkArg = process.argv.find((arg) =>
-    arg.startsWith("hydralauncher://")
-  );
+  const deepLinkArg = startupDeepLink;
   const forceBigPicture = process.argv.includes("--big-picture");
   const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
 
@@ -179,7 +202,7 @@ const initializeApp = async () => {
 
   WindowManager.createSystemTray(language || "en");
 
-  if (deepLinkArg) {
+  if (deepLinkArg && !startupRunDeepLink) {
     handleDeepLinkPath(deepLinkArg);
   }
 };
@@ -189,6 +212,14 @@ app.on("browser-window-created", (_, window) => {
 });
 
 const handleRunGame = async (shop: GameShop, objectId: string) => {
+  const requestedAt = performance.now();
+  await launchReadyPromise;
+  logger.info("Processing shortcut game launch", {
+    shop,
+    objectId,
+    queuedMs: Math.round(performance.now() - requestedAt),
+  });
+
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
 
@@ -204,7 +235,7 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
 
   // Only open main window if setting is disabled
   if (!userPreferences?.hideToTrayOnGameStart) {
-    WindowManager.createMainWindow();
+    void uiReadyPromise.then(() => WindowManager.createMainWindow());
   }
 
   if (shop === "launchbox") {
@@ -298,6 +329,9 @@ app.on("second-instance", (_event, commandLine) => {
     }
   }
 
+  if (deepLink) {
+    logger.info("Received shortcut from second instance", { deepLink });
+  }
   handleDeepLinkPath(deepLink);
 });
 

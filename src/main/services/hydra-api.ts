@@ -138,7 +138,7 @@ export class HydraApi {
     this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
   }
 
-  static async setupApi() {
+  static async setupApi(options?: { refreshUserData?: boolean }) {
     this.instance = axios.create({
       baseURL: import.meta.env.MAIN_VITE_API_URL,
       headers: { "User-Agent": `Hydra Launcher v${appVersion}` },
@@ -239,6 +239,12 @@ export class HydraApi {
         : null,
     };
 
+    if (options?.refreshUserData === false) return;
+
+    await this.refreshUserData();
+  }
+
+  static async refreshUserData() {
     const updatedUserData = await getUserData();
 
     this.userAuth.subscription = updatedUserData?.subscription
