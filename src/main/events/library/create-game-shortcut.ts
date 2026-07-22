@@ -2,7 +2,6 @@ import { registerEvent } from "../register-event";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import path from "node:path";
 import fs from "node:fs";
-import { app } from "electron";
 import axios from "axios";
 import sharp from "sharp";
 import pngToIco from "png-to-ico";
@@ -17,6 +16,7 @@ import {
   buildRunDeepLink,
   getHydraExecutablePath,
   getShortcutArguments,
+  getWindowsVbsPath,
 } from "@main/helpers/shortcut-launch";
 
 const isValidUrl = (url: string | null | undefined): url is string => {
@@ -166,9 +166,7 @@ const createWindowsShortcut = (
   iconPath?: string | null,
   executablePath = getHydraExecutablePath()
 ) => {
-  const windowVbsPath = app.isPackaged
-    ? path.join(process.resourcesPath, "windows.vbs")
-    : undefined;
+  const windowVbsPath = getWindowsVbsPath();
 
   const linkPath = path.join(outputPath, `${shortcutName}.lnk`);
   const urlPath = path.join(outputPath, `${shortcutName}.url`);
@@ -262,9 +260,7 @@ const createGameShortcut = async (
     return true;
   }
 
-  const windowVbsPath = app.isPackaged
-    ? path.join(process.resourcesPath, "windows.vbs")
-    : undefined;
+  const windowVbsPath = getWindowsVbsPath();
 
   const options = {
     filePath: hydraExecutablePath,
