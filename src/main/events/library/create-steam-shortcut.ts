@@ -22,6 +22,7 @@ import {
 } from "./steam-shortcut-assets";
 import {
   buildRunDeepLink,
+  getHydraExecutablePath,
   getShortcutArguments,
 } from "@main/helpers/shortcut-launch";
 
@@ -197,6 +198,16 @@ const createSteamShortcut = async (
   if (!game.executablePath && game.shop !== "launchbox") {
     throw new Error("No executable path found for game");
   }
+  const classicsDiscPath =
+    game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
+  if (
+    game.shop === "launchbox" &&
+    (!classicsDiscPath || !fs.existsSync(classicsDiscPath))
+  ) {
+    throw new Error(
+      "Classic games need an available disc before creating a shortcut"
+    );
+  }
 
   const assets = await getGameAssets(objectId, shop);
 
@@ -212,7 +223,7 @@ const createSteamShortcut = async (
 
   const isClassicsGame = game.shop === "launchbox";
   const executablePath = isClassicsGame
-    ? process.execPath
+    ? getHydraExecutablePath()
     : game.executablePath!;
   const deepLink = isClassicsGame
     ? buildRunDeepLink(game.shop, game.objectId)
