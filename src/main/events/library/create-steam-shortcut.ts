@@ -22,8 +22,7 @@ import {
 } from "./steam-shortcut-assets";
 import {
   buildRunDeepLink,
-  getHydraExecutablePath,
-  getShortcutArguments,
+  getHydraShortcutTarget,
 } from "@main/helpers/shortcut-launch";
 
 const downloadAsset = async (
@@ -222,13 +221,12 @@ const createSteamShortcut = async (
     await downloadAssetsFromSteam(game, assets);
 
   const isClassicsGame = game.shop === "launchbox";
-  const executablePath = isClassicsGame
-    ? getHydraExecutablePath()
-    : game.executablePath!;
   const deepLink = isClassicsGame
     ? buildRunDeepLink(game.shop, game.objectId)
     : null;
-  const launchOptions = deepLink ? getShortcutArguments(deepLink) : "";
+  const shortcutTarget = deepLink ? getHydraShortcutTarget(deepLink) : null;
+  const executablePath = shortcutTarget?.executablePath ?? game.executablePath!;
+  const launchOptions = shortcutTarget?.arguments ?? "";
 
   const newShortcut = composeSteamShortcut(
     game.title,

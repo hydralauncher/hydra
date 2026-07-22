@@ -4,6 +4,7 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { getSteamShortcuts, getSteamUsersIds, logger } from "@main/services";
 import {
   buildRunDeepLink,
+  getHydraShortcutTarget,
   getShortcutArguments,
 } from "@main/helpers/shortcut-launch";
 
@@ -23,7 +24,11 @@ const findSteamShortcut = async (
 const matchesGameFallback = (game: Game, shortcut: SteamShortcut) => {
   if (game.shop === "launchbox") {
     const deepLink = buildRunDeepLink(game.shop, game.objectId);
-    return shortcut.LaunchOptions === getShortcutArguments(deepLink);
+    const shortcutArguments = getHydraShortcutTarget(deepLink).arguments;
+    return (
+      shortcut.LaunchOptions === shortcutArguments ||
+      shortcut.LaunchOptions === getShortcutArguments(deepLink)
+    );
   }
 
   return (

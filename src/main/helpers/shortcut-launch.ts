@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { app } from "electron";
 
 import type { GameShop } from "@types";
+import { getHydraExecutablePath } from "./hydra-executable-path";
 
 export { getHydraExecutablePath } from "./hydra-executable-path";
 
@@ -35,6 +36,56 @@ export const getShortcutArguments = (deepLink: string) => {
   }
 
   return deepLinkArgument;
+};
+
+const escapeVbsString = (value: string) => value.replaceAll('"', '""');
+
+export const refreshPortableShortcutLauncher = () => {
+  const portableExecutable = process.env.PORTABLE_EXECUTABLE_FILE;
+  if (process.platform !== "win32" || !portableExecutable) return null;
+
+  const launcherDirectory = path.join(
+    app.getPath("userData"),
+    "shortcut-assets"
+  );
+  const launcherPath = path.join(launcherDirectory, "launch-portable.vbs");
+  const script = [
+    'Set shell = CreateObject("WScript.Shell")',
+    'Set fso = CreateObject("Scripting.FileSystemObject")',
+    `innerExecutable = "${escapeVbsString(process.execPath)}"`,
+    `portableExecutable = "${escapeVbsString(portableExecutable)}"`,
+    "If fso.FileExists(innerExecutable) Then",
+    "  executable = innerExecutable",
+    "Else",
+    "  executable = portableExecutable",
+    "End If",
+    'arguments = ""',
+    "For Each argument In WScript.Arguments",
+    '  arguments = arguments & " """ & argument & """"',
+    "Next",
+    'shell.Run """" & executable & """" & arguments, 0, False',
+  ].join("\r\n");
+
+  fs.mkdirSync(launcherDirectory, { recursive: true });
+  fs.writeFileSync(launcherPath, script, "utf8");
+
+  return launcherPath;
+};
+
+export const getHydraShortcutTarget = (deepLink: string) => {
+  const portableLauncherPath = refreshPortableShortcutLauncher();
+  if (!portableLauncherPath) {
+    return {
+      executablePath: getHydraExecutablePath(),
+      arguments: getShortcutArguments(deepLink),
+    };
+  }
+
+  const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
+  return {
+    executablePath: path.join(systemRoot, "System32", "wscript.exe"),
+    arguments: `"${portableLauncherPath}" "${deepLink}"`,
+  };
 };
 
 export const getWindowsVbsPath = () => {
