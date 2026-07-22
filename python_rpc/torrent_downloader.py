@@ -146,15 +146,21 @@ class TorrentDownloader:
         trackers = list(params.trackers)
         known_trackers = set(trackers)
 
+        tiers = list(params.tracker_tiers)[: len(trackers)]
+        tiers.extend([0] * (len(trackers) - len(tiers)))
+
+        fallback_tier = max(tiers) + 1 if tiers else 0
+
         for tracker in self.trackers:
             if tracker in known_trackers:
                 continue
 
             trackers.append(tracker)
             known_trackers.add(tracker)
+            tiers.append(fallback_tier)
 
         params.trackers = trackers
-        params.tracker_tiers = [0] * len(trackers)
+        params.tracker_tiers = tiers
 
         return params
 
