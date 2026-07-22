@@ -154,6 +154,11 @@ const getWindowsOutputPath = (location: ShortcutLocation) => {
       );
 };
 
+const getShortcutOutputPath = (location: ShortcutLocation) =>
+  process.platform === "win32"
+    ? getWindowsOutputPath(location)
+    : SystemPath.getPath("desktop");
+
 const createWindowsShortcut = (
   shortcutName: string,
   outputPath: string,
@@ -222,10 +227,7 @@ const createGameShortcut = async (
   const hydraExecutablePath = getHydraExecutablePath();
   const deepLink = buildRunDeepLink(shop, objectId);
   const shortcutArguments = getShortcutArguments(deepLink);
-  const outputPath =
-    process.platform === "win32"
-      ? getWindowsOutputPath(location)
-      : SystemPath.getPath("desktop");
+  const outputPath = getShortcutOutputPath(location);
 
   if (!outputPath) {
     throw new Error("Could not resolve the shortcut output folder.");
