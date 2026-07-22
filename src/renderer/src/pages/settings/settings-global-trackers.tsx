@@ -24,7 +24,9 @@ export function SettingsGlobalTrackers() {
   const [trackerUrl, setTrackerUrl] = useState("");
   const [appendManual, setAppendManual] = useState(false);
   const [appendUrl, setAppendUrl] = useState(false);
-  const [fetchError, setFetchError] = useState("");
+  const [urlStatus, setUrlStatus] = useState<"fetched" | "invalid" | null>(
+    null
+  );
   const [isInitialized, setIsInitialized] = useState(false);
 
   const appendManualRef = useRef(appendManual);
@@ -59,8 +61,6 @@ export function SettingsGlobalTrackers() {
       appendManualFlag: boolean,
       appendUrlFlag: boolean
     ) => {
-      setFetchError("");
-
       const { error } = await window.electron.saveGlobalTrackers(
         manual,
         url || null,
@@ -70,8 +70,12 @@ export function SettingsGlobalTrackers() {
 
       await refreshUserPreferences();
 
-      if (error) {
-        setFetchError(t("global_trackers_fetch_error"));
+      if (!appendUrlFlag || !url) {
+        setUrlStatus(null);
+      } else if (error) {
+        setUrlStatus("invalid");
+      } else {
+        setUrlStatus("fetched");
       }
     },
     [t, refreshUserPreferences]
@@ -178,14 +182,23 @@ export function SettingsGlobalTrackers() {
             className="settings-global-trackers__url-input"
             type="text"
             value={trackerUrl}
-            onChange={(e) => setTrackerUrl(e.target.value)}
+            onChange={(e) => {
+              setTrackerUrl(e.target.value);
+              setUrlStatus(null);
+            }}
             onBlur={handleUrlBlur}
             placeholder={t("global_trackers_url_placeholder")}
             disabled={!appendUrl}
           />
-          {fetchError && (
-            <p className="settings-global-trackers__error">{fetchError}</p>
-          )}
+          <span
+            className={`settings-global-trackers__url-status ${
+              urlStatus
+                ? `settings-global-trackers__url-status--${urlStatus}`
+                : "settings-global-trackers__url-status--hidden"
+            }`}
+          >
+            {urlStatus === "invalid" ? t("global_trackers_fetch_error") : ""}
+          </span>
         </div>
       </div>
     </form>
