@@ -257,14 +257,6 @@ export function CloudSaveV2FileTreeView({
               >
                 {node.type === "root" ? displayLocalName : node.name}
               </strong>
-              {node.type !== "root" && displayLocalDirectoryPath && (
-                <span
-                  className="cloud-save-v2__browser-path"
-                  title={displayLocalDirectoryPath}
-                >
-                  {displayLocalDirectoryPath}
-                </span>
-              )}
             </div>
             {folderAction(node.localDirectoryPath, node.name)}
           </div>
@@ -313,14 +305,6 @@ export function CloudSaveV2FileTreeView({
                   >
                     {node.type === "root" ? displayLocalName : node.name}
                   </strong>
-                  {node.type !== "root" && displayLocalDirectoryPath && (
-                    <span
-                      className="cloud-save-v2__browser-path"
-                      title={displayLocalDirectoryPath}
-                    >
-                      {displayLocalDirectoryPath}
-                    </span>
-                  )}
                 </div>
                 {folderAction(node.localDirectoryPath, node.name)}
               </div>
