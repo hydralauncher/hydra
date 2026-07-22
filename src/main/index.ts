@@ -17,7 +17,7 @@ import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
-import { launchClassicsGame, launchGame, platformToSystem } from "./helpers";
+import { launchGame, openClassicsGame } from "./helpers";
 import { loadState } from "./main";
 
 const { autoUpdater } = updater;
@@ -208,19 +208,7 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
   }
 
   if (shop === "launchbox") {
-    const system = platformToSystem(game.platform);
-    const discPath = game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
-
-    if (!system || !discPath) {
-      logger.error("Classic game has no launchable disc", {
-        shop,
-        objectId,
-        platform: game.platform,
-      });
-      return;
-    }
-
-    await launchClassicsGame({ shop, objectId, discPath, system });
+    await openClassicsGame(shop, objectId);
     return;
   }
 
