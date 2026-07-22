@@ -350,7 +350,7 @@ export function GameAssetsSettings({
         icon: extractLocalPath(currentGame.iconUrl),
         logo: extractLocalPath(currentGame.logoImageUrl),
         hero: extractLocalPath(currentGame.libraryHeroImageUrl),
-        grid: "",
+        grid: extractLocalPath(currentGame.customCoverImageUrl),
       });
       setOriginalAssetPaths({
         icon:
@@ -362,14 +362,18 @@ export function GameAssetsSettings({
         hero:
           gameWithAssets.originalHeroPath ||
           extractLocalPath(currentGame.libraryHeroImageUrl),
-        grid: "",
+        grid:
+          currentGame.customOriginalCoverPath ||
+          extractLocalPath(currentGame.customCoverImageUrl),
       });
 
       setRemovedAssets({
         icon: iconRemoved,
         logo: logoRemoved,
         hero: heroRemoved,
-        grid: false,
+        grid:
+          !currentGame.customCoverImageUrl &&
+          Boolean(currentGame.customOriginalCoverPath),
       });
     },
     [extractLocalPath]
@@ -816,8 +820,18 @@ export function GameAssetsSettings({
         assetPaths.hero,
         currentGame.libraryHeroImageUrl
       );
+      const customCoverImageUrl = getCustomAssetUrl(
+        removedAssets.grid,
+        assetPaths.grid,
+        currentGame.customCoverImageUrl
+      );
 
-      return { iconUrl, logoImageUrl, libraryHeroImageUrl };
+      return {
+        iconUrl,
+        logoImageUrl,
+        libraryHeroImageUrl,
+        customCoverImageUrl,
+      };
     },
     [assetPaths, removedAssets]
   );
@@ -857,8 +871,12 @@ export function GameAssetsSettings({
 
   const updateCustomGame = useCallback(
     async (currentGame: LibraryGame | Game) => {
-      const { iconUrl, logoImageUrl, libraryHeroImageUrl } =
-        prepareCustomGameAssets(currentGame);
+      const {
+        iconUrl,
+        logoImageUrl,
+        libraryHeroImageUrl,
+        customCoverImageUrl,
+      } = prepareCustomGameAssets(currentGame);
 
       return window.electron.updateCustomGame({
         shop: currentGame.shop,
@@ -867,12 +885,21 @@ export function GameAssetsSettings({
         iconUrl: iconUrl || undefined,
         logoImageUrl: logoImageUrl || undefined,
         libraryHeroImageUrl: libraryHeroImageUrl || undefined,
+        customCoverImageUrl,
         originalIconPath: originalAssetPaths.icon || undefined,
         originalLogoPath: originalAssetPaths.logo || undefined,
         originalHeroPath: originalAssetPaths.hero || undefined,
+        customOriginalCoverPath: removedAssets.grid
+          ? undefined
+          : originalAssetPaths.grid || undefined,
       });
     },
-    [game.title, originalAssetPaths, prepareCustomGameAssets]
+    [
+      game.title,
+      originalAssetPaths,
+      prepareCustomGameAssets,
+      removedAssets.grid,
+    ]
   );
 
   const updateNonCustomGame = useCallback(
@@ -1098,14 +1125,12 @@ export function GameAssetsSettings({
     );
   };
 
-  const assetTabs = (
-    [
-      { type: "icon", labelKey: "edit_game_modal_icon" },
-      { type: "logo", labelKey: "edit_game_modal_logo" },
-      { type: "hero", labelKey: "edit_game_modal_hero" },
-      { type: "grid", labelKey: "edit_game_modal_grid" },
-    ] as const
-  ).filter((tab) => tab.type !== "grid" || !isCustomGame(game));
+  const assetTabs = [
+    { type: "icon", labelKey: "edit_game_modal_icon" },
+    { type: "logo", labelKey: "edit_game_modal_logo" },
+    { type: "hero", labelKey: "edit_game_modal_hero" },
+    { type: "grid", labelKey: "edit_game_modal_grid" },
+  ] as const;
 
   const updateTabIndicatorPosition = useCallback(() => {
     const activeTab = assetTabRefs.current[selectedAssetType];

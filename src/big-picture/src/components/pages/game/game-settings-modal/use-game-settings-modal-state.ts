@@ -192,20 +192,29 @@ export function useGameSettingsModalState({
   }, [game?.title, gameTitle]);
 
   const buildCustomGameAssetPayload = useCallback(
-    (assetType: CustomAssetType, assetValue: string | undefined) => {
+    (assetType: CustomAssetType, assetValue: string | null | undefined) => {
       if (!game) return null;
 
       return {
         shop: game.shop,
         objectId: game.objectId,
         title: getEffectiveGameTitle(),
-        iconUrl: assetType === "icon" ? assetValue : game.iconUrl || undefined,
+        iconUrl:
+          assetType === "icon"
+            ? assetValue || undefined
+            : game.iconUrl || undefined,
         logoImageUrl:
-          assetType === "logo" ? assetValue : game.logoImageUrl || undefined,
+          assetType === "logo"
+            ? assetValue || undefined
+            : game.logoImageUrl || undefined,
         libraryHeroImageUrl:
           assetType === "hero"
-            ? assetValue
+            ? assetValue || undefined
             : game.libraryHeroImageUrl || undefined,
+        customCoverImageUrl:
+          assetType === "grid"
+            ? assetValue
+            : game.customCoverImageUrl || undefined,
       };
     },
     [game, getEffectiveGameTitle]
@@ -250,10 +259,7 @@ export function useGameSettingsModalState({
       if (!game) return;
 
       if (game.shop === "custom") {
-        const payload = buildCustomGameAssetPayload(
-          assetType,
-          assetValue ?? undefined
-        );
+        const payload = buildCustomGameAssetPayload(assetType, assetValue);
 
         if (!payload) return;
 
@@ -403,7 +409,7 @@ export function useGameSettingsModalState({
         } else {
           await updateCustomizationAsset(
             assetType,
-            game.shop === "custom" ? undefined : null
+            game.shop === "custom" && assetType !== "grid" ? undefined : null
           );
         }
 

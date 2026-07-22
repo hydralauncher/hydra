@@ -8,7 +8,10 @@ import {
 
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
 import { addMilliseconds } from "date-fns";
-import { DOWNLOADER_NAME } from "@renderer/constants";
+import {
+  DOWNLOADER_NAME,
+  MAX_DOWNLOAD_SPEED_HISTORY,
+} from "@renderer/constants";
 import {
   useAppSelector,
   useDownload,
@@ -147,20 +150,31 @@ function SpeedChart({
 
     const draw = () => {
       const clientWidth = canvas.clientWidth;
+      const clientHeight = canvas.clientHeight;
+      if (clientWidth <= 0 || clientHeight <= 0) {
+        animationFrameId = requestAnimationFrame(draw);
+        return;
+      }
+
       const dpr = window.devicePixelRatio || 1;
 
       canvas.width = clientWidth * dpr;
-      canvas.height = 100 * dpr;
+      canvas.height = clientHeight * dpr;
       ctx.scale(dpr, dpr);
 
       const width = clientWidth;
-      const height = 100;
+      const height = clientHeight;
       const barWidth = 4;
-      const barGap = 10;
-      const barSpacing = barWidth + barGap;
-
-      // Calculate how many bars can fit in the available width
-      const totalBars = Math.max(1, Math.floor((width + barGap) / barSpacing));
+      const minBarGap = 10;
+      const totalBars = Math.max(
+        1,
+        Math.min(
+          MAX_DOWNLOAD_SPEED_HISTORY,
+          Math.floor((width + minBarGap) / (barWidth + minBarGap))
+        )
+      );
+      const barSpacing =
+        totalBars > 1 ? (width - barWidth) / (totalBars - 1) : 0;
       const maxHeight = peakSpeed || Math.max(...speeds, 1);
 
       ctx.clearRect(0, 0, width, height);
@@ -170,7 +184,6 @@ function SpeedChart({
         b = 255;
       if (color.startsWith("#")) {
         let hex = color.replace("#", "");
-        // Handle shorthand hex colors (e.g., "#fff" -> "#ffffff")
         if (hex.length === 3) {
           hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
         }
@@ -186,6 +199,7 @@ function SpeedChart({
         }
       }
       const displaySpeeds = speeds.slice(-totalBars);
+      const firstFilledBar = totalBars - displaySpeeds.length;
 
       for (let i = 0; i < totalBars; i++) {
         const x = i * barSpacing;
@@ -194,8 +208,8 @@ function SpeedChart({
         ctx.roundRect(x, 0, barWidth, height, 3);
         ctx.fill();
 
-        if (i < displaySpeeds.length) {
-          const speed = displaySpeeds[i] || 0;
+        if (i >= firstFilledBar) {
+          const speed = displaySpeeds[i - firstFilledBar] || 0;
           const filledHeight = (speed / maxHeight) * height;
 
           if (filledHeight > 0) {
@@ -220,14 +234,10 @@ function SpeedChart({
     };
 
     animationFrameId = requestAnimationFrame(draw);
-
-    // Handle resize - trigger redraw when canvas size changes
     resizeObserver = new ResizeObserver(() => {
-      // Cancel any pending animation frame to force immediate redraw
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
-      // Trigger a redraw that will recalculate bars based on new width
       draw();
     });
     resizeObserver.observe(canvas);
