@@ -7,12 +7,7 @@ import type {
 } from "@types";
 import { UserNotLoggedInError } from "@shared";
 
-import {
-  db,
-  gameAchievementsSublevel,
-  gamesShopCacheSublevel,
-  levelKeys,
-} from "@main/level";
+import { db, gamesShopCacheSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { getGameAchievementData } from "../achievements/get-game-achievement-data";
@@ -20,6 +15,7 @@ import {
   RetroAchievementsClient,
   type RetroAchievementsGameInfoAndUserProgress,
 } from "./retro-achievements-client";
+import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
 
 const toMillis = (date?: string) => {
   if (!date) return null;
@@ -40,9 +36,7 @@ const buildAchievementsFromCache = async (
   objectId: string,
   shop: GameShop
 ): Promise<UserAchievement[]> => {
-  const cached = await gameAchievementsSublevel.get(
-    levelKeys.game(shop, objectId)
-  );
+  const cached = AchievementMemoryStore.get(shop, objectId);
 
   if (!cached) return [];
 
@@ -152,8 +146,6 @@ export const syncRetroAchievements = async ({
   shop,
   retroAchievementsGameId,
 }: SyncRetroAchievementsParams): Promise<RetroAchievementsSyncResult> => {
-  const gameKey = levelKeys.game(shop, objectId);
-
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     { valueEncoding: "json" }
@@ -198,7 +190,7 @@ export const syncRetroAchievements = async ({
   }
 
   if (catalogue.length === 0) {
-    const cachedAchievements = await gameAchievementsSublevel.get(gameKey);
+    const cachedAchievements = AchievementMemoryStore.get(shop, objectId);
     if ((cachedAchievements?.achievements?.length ?? 0) === 0) {
       catalogueStatus = "catalogue_unavailable";
     }
@@ -222,7 +214,7 @@ export const syncRetroAchievements = async ({
 
   const remoteAchievements = Object.values(data.Achievements ?? {});
 
-  const cachedAchievements = await gameAchievementsSublevel.get(gameKey);
+  const cachedAchievements = AchievementMemoryStore.get(shop, objectId);
   const unlockedByName = new Map<string, UnlockedAchievement>();
   for (const unlocked of cachedAchievements?.unlockedAchievements ?? []) {
     unlockedByName.set(unlocked.name.toUpperCase(), unlocked);
@@ -271,10 +263,9 @@ export const syncRetroAchievements = async ({
 
   const achievements = buildRetroAchievementsView(catalogue, unlockedByName);
 
-  await gameAchievementsSublevel.put(gameKey, {
+  AchievementMemoryStore.set(shop, objectId, {
     achievements: catalogue,
     unlockedAchievements: Array.from(unlockedByName.values()),
-    updatedAt: cachedAchievements?.updatedAt,
     language: cachedAchievements?.language,
     catalogueValidator: cachedAchievements?.catalogueValidator,
   });

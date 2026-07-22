@@ -11,7 +11,7 @@ import type {
   GameRunning,
   UpdateProfileRequest,
   SeedingStatus,
-  GameAchievement,
+  UserAchievement,
   Theme,
   FriendRequestSync,
   FriendPresenceSync,
@@ -20,6 +20,7 @@ import type {
   CreateSteamShortcutOptions,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  AchievementNotificationRequest,
   ProtonVersion,
   TorrentFilesResponse,
   DownloadLayoutState,
@@ -154,11 +155,11 @@ contextBridge.exposeInMainWorld("electron", {
   onUpdateAchievements: (
     objectId: string,
     shop: GameShop,
-    cb: (achievements: GameAchievement[]) => void
+    cb: (achievements: UserAchievement[]) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      achievements: GameAchievement[]
+      achievements: UserAchievement[]
     ) => cb(achievements);
     ipcRenderer.on(`on-update-achievements-${objectId}-${shop}`, listener);
     return () =>
@@ -1212,23 +1213,32 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked-in-app", listener);
   },
-  onCombinedAchievementsUnlocked: (
-    cb: (
-      gameCount: number,
-      achievementsCount: number,
-      position: AchievementCustomNotificationPosition
-    ) => void
+  onPrepareAchievementNotification: (
+    cb: (request: AchievementNotificationRequest) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      gameCount: number,
-      achievementCount: number,
-      position: AchievementCustomNotificationPosition
-    ) => cb(gameCount, achievementCount, position);
-    ipcRenderer.on("on-combined-achievements-unlocked", listener);
+      request: AchievementNotificationRequest
+    ) => cb(request);
+    ipcRenderer.on("prepare-achievement-notification", listener);
     return () =>
-      ipcRenderer.removeListener("on-combined-achievements-unlocked", listener);
+      ipcRenderer.removeListener("prepare-achievement-notification", listener);
   },
+  onStartAchievementNotification: (cb: (requestId: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, requestId: string) =>
+      cb(requestId);
+    ipcRenderer.on("start-achievement-notification", listener);
+    return () =>
+      ipcRenderer.removeListener("start-achievement-notification", listener);
+  },
+  achievementNotificationHostReady: () =>
+    ipcRenderer.invoke("achievementNotificationHostReady"),
+  achievementNotificationContentReady: (requestId: string) =>
+    ipcRenderer.invoke("achievementNotificationContentReady", requestId),
+  achievementNotificationFinished: (requestId: string) =>
+    ipcRenderer.invoke("achievementNotificationFinished", requestId),
+  achievementNotificationFailed: (requestId?: string, reason?: string) =>
+    ipcRenderer.invoke("achievementNotificationFailed", requestId, reason),
   updateAchievementCustomNotificationWindow: () =>
     ipcRenderer.invoke("updateAchievementCustomNotificationWindow"),
   showAchievementTestNotification: () =>

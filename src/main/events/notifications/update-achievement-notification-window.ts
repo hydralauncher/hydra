@@ -1,26 +1,10 @@
-import { db, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
-import { WindowManager } from "@main/services";
-import { UserPreferences } from "@types";
+import { achievementNotificationPresenter } from "@main/services";
 
 const updateAchievementCustomNotificationWindow = async (
   _event: Electron.IpcMainInvokeEvent
 ) => {
-  const userPreferences = await db.get<string, UserPreferences>(
-    levelKeys.userPreferences,
-    {
-      valueEncoding: "json",
-    }
-  );
-
-  WindowManager.closeNotificationWindow();
-
-  if (
-    userPreferences.achievementNotificationsEnabled !== false &&
-    userPreferences.achievementCustomNotificationsEnabled !== false
-  ) {
-    WindowManager.createNotificationWindow();
-  }
+  achievementNotificationPresenter.dispose();
 };
 
 registerEvent(

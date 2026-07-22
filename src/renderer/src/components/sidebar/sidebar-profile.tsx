@@ -22,6 +22,94 @@ import { useDispatch } from "react-redux";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import "./sidebar-profile.scss";
 
+const CLASSIC_DISC_OVERLAY = (
+  <svg
+    className="sidebar-profile__classic-disc-overlay"
+    viewBox="0 0 36 36"
+    aria-hidden="true"
+  >
+    <circle
+      cx="18"
+      cy="18"
+      r="17.4"
+      fill="none"
+      stroke="rgba(255, 255, 255, 0.58)"
+      strokeWidth="0.8"
+    />
+    <circle
+      cx="18"
+      cy="18"
+      r="12.8"
+      fill="none"
+      stroke="rgba(255, 255, 255, 0.14)"
+      strokeWidth="0.55"
+    />
+    <circle
+      cx="18"
+      cy="18"
+      r="9.8"
+      fill="none"
+      stroke="rgba(255, 255, 255, 0.1)"
+      strokeWidth="0.45"
+    />
+    <path
+      d="M18 1a17 17 0 0 1 12.5 5.5l-8 7.4A6 6 0 0 0 18 12Z"
+      fill="rgba(255, 255, 255, 0.15)"
+    />
+    <path
+      d="M18 35a17 17 0 0 1-12.5-5.5l8-7.4A6 6 0 0 0 18 24Z"
+      fill="rgba(255, 255, 255, 0.08)"
+    />
+    <circle
+      cx="18"
+      cy="18"
+      r="3.2"
+      fill="rgba(8, 9, 12, 0.58)"
+      stroke="rgba(255, 255, 255, 0.48)"
+      strokeWidth="0.65"
+    />
+    <circle
+      cx="18"
+      cy="18"
+      r="1.35"
+      fill="rgba(8, 9, 12, 0.92)"
+      stroke="rgba(255, 255, 255, 0.34)"
+      strokeWidth="0.4"
+    />
+  </svg>
+);
+
+interface ClassicGameDiscProps {
+  coverImageUrl?: string | null;
+  iconUrl: string | null;
+}
+
+function ClassicGameDisc({
+  coverImageUrl,
+  iconUrl,
+}: Readonly<ClassicGameDiscProps>) {
+  const artworkSources = [coverImageUrl, iconUrl].filter(
+    (source, index, sources): source is string =>
+      Boolean(source) && sources.indexOf(source) === index
+  );
+  const [artworkIndex, setArtworkIndex] = useState(0);
+  const artworkUrl = artworkSources[artworkIndex];
+
+  return (
+    <span className="sidebar-profile__classic-disc" aria-hidden="true">
+      {artworkUrl ? (
+        <img
+          className="sidebar-profile__classic-disc-artwork"
+          src={artworkUrl}
+          alt=""
+          onError={() => setArtworkIndex((index) => index + 1)}
+        />
+      ) : null}
+      {CLASSIC_DISC_OVERLAY}
+    </span>
+  );
+}
+
 export function SidebarProfile() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -241,6 +329,16 @@ export function SidebarProfile() {
 
   const gameRunningDetails = () => {
     if (!userDetails || !gameRunning) return null;
+
+    if (gameRunning.shop === "launchbox") {
+      return (
+        <ClassicGameDisc
+          key={`${gameRunning.shop}:${gameRunning.objectId}`}
+          coverImageUrl={gameRunning.coverImageUrl}
+          iconUrl={gameRunning.iconUrl}
+        />
+      );
+    }
 
     if (gameRunning.iconUrl) {
       return (
