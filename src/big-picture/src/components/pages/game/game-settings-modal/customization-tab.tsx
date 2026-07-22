@@ -250,7 +250,6 @@ export function GameCustomizationSettingsTab({
   const [pendingAssetTab, setPendingAssetTab] = useState<AssetTab | null>(null);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
   const isCustomGame = game.shop === "custom";
-
   const refreshArtworkState = useCallback(async () => {
     if (game.shop === "custom") {
       setComposedAssets(null);
@@ -284,15 +283,13 @@ export function GameCustomizationSettingsTab({
       },
     ];
 
-    if (!isCustomGame) {
-      items.push({
-        value: "grid",
-        label: t("edit_game_modal_grid"),
-      });
-    }
+    items.push({
+      value: "grid",
+      label: t("edit_game_modal_grid"),
+    });
 
     return items;
-  }, [t, isCustomGame]);
+  }, [t]);
 
   const handleAssetTabChange = useCallback((value: AssetTab) => {
     setSelectedAssetTab(value);

@@ -2,6 +2,8 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { DownloadProgress, GameShop } from "@types";
 
+import { MAX_DOWNLOAD_SPEED_HISTORY } from "@renderer/constants";
+
 export interface ExtractionInfo {
   visibleId: string;
   progress: number;
@@ -31,14 +33,10 @@ export const downloadSlice = createSlice({
   reducers: {
     setLastPacket: (state, action: PayloadAction<DownloadProgress | null>) => {
       state.lastPacket = action.payload;
-
-      // Ensure payload exists and has a valid gameId before accessing
       const payload = action.payload;
       if (!state.gameId && payload?.gameId) {
         state.gameId = payload.gameId;
       }
-
-      // Track peak speed and speed history atomically when packet arrives
       if (
         payload?.gameId &&
         payload.downloadSpeed != null &&
@@ -46,21 +44,19 @@ export const downloadSlice = createSlice({
         !payload.isDownloadingMetadata
       ) {
         const { gameId, downloadSpeed } = payload;
-
-        // Update peak speed if this is higher
         const currentPeak = state.peakSpeeds[gameId] || 0;
         if (downloadSpeed > currentPeak) {
           state.peakSpeeds[gameId] = downloadSpeed;
         }
-
-        // Update speed history for chart
         if (!state.speedHistory[gameId]) {
           state.speedHistory[gameId] = [];
         }
         state.speedHistory[gameId].push(downloadSpeed);
-        // Keep only last 120 entries
-        if (state.speedHistory[gameId].length > 120) {
-          state.speedHistory[gameId].shift();
+
+        const excess =
+          state.speedHistory[gameId].length - MAX_DOWNLOAD_SPEED_HISTORY;
+        if (excess > 0) {
+          state.speedHistory[gameId].splice(0, excess);
         }
       }
     },
