@@ -552,15 +552,19 @@ export function GameLaunchSettingsTab({
           />
         )}
 
-        <ShortcutSection
-          isCustomGame={isCustomGame}
-          shouldShowCreateStartMenuShortcut={shouldShowCreateStartMenuShortcut}
-          creatingSteamShortcut={creatingSteamShortcut}
-          steamShortcutExists={steamShortcutExists}
-          onCreateShortcut={onCreateShortcut}
-          onCreateSteamShortcut={onCreateSteamShortcut}
-          onDeleteSteamShortcut={onDeleteSteamShortcut}
-        />
+        {(game.shop !== "launchbox" || discs.length > 0) && (
+          <ShortcutSection
+            isCustomGame={isCustomGame}
+            shouldShowCreateStartMenuShortcut={
+              shouldShowCreateStartMenuShortcut
+            }
+            creatingSteamShortcut={creatingSteamShortcut}
+            steamShortcutExists={steamShortcutExists}
+            onCreateShortcut={onCreateShortcut}
+            onCreateSteamShortcut={onCreateSteamShortcut}
+            onDeleteSteamShortcut={onDeleteSteamShortcut}
+          />
+        )}
 
         <LaunchOptionsSection
           launchOptions={launchOptions}

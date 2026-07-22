@@ -2,6 +2,8 @@ import path from "node:path";
 
 import type { GameShop } from "@types";
 
+export { getHydraExecutablePath } from "./hydra-executable-path";
+
 export const buildRunDeepLink = (shop: GameShop, objectId: string) => {
   const query = new URLSearchParams({
     shop,

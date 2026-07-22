@@ -15,6 +15,7 @@ import { getGameAssets } from "../catalogue/get-game-assets";
 import { logger } from "@main/services";
 import {
   buildRunDeepLink,
+  getHydraExecutablePath,
   getShortcutArguments,
 } from "@main/helpers/shortcut-launch";
 
@@ -157,7 +158,8 @@ const createWindowsShortcut = (
   shortcutName: string,
   outputPath: string,
   deepLink: string,
-  iconPath?: string | null
+  iconPath?: string | null,
+  executablePath = getHydraExecutablePath()
 ) => {
   const windowVbsPath = app.isPackaged
     ? path.join(process.resourcesPath, "windows.vbs")
@@ -171,11 +173,11 @@ const createWindowsShortcut = (
 
   const nativeShortcutCreated = createDesktopShortcut({
     windows: {
-      filePath: process.execPath,
+      filePath: executablePath,
       arguments: deepLink,
       name: shortcutName,
       outputPath,
-      icon: iconPath ?? process.execPath,
+      icon: iconPath ?? executablePath,
       VBScriptPath: windowVbsPath,
     },
   });
@@ -184,7 +186,7 @@ const createWindowsShortcut = (
     return true;
   }
 
-  return createUrlShortcut(urlPath, deepLink, iconPath ?? process.execPath);
+  return createUrlShortcut(urlPath, deepLink, iconPath ?? executablePath);
 };
 
 const createGameShortcut = async (
@@ -200,12 +202,24 @@ const createGameShortcut = async (
     throw new Error("Could not find this game in your library.");
   }
 
+  const classicsDiscPath =
+    game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
+  if (
+    game.shop === "launchbox" &&
+    (!classicsDiscPath || !fs.existsSync(classicsDiscPath))
+  ) {
+    throw new Error(
+      "Classic games need an available disc before creating a shortcut."
+    );
+  }
+
   if (location === "start_menu" && process.platform !== "win32") {
     throw new Error("Start Menu shortcuts are only available on Windows.");
   }
 
   const shortcutName =
     removeSymbolsFromName(game.title).trim() || game.objectId;
+  const hydraExecutablePath = getHydraExecutablePath();
   const deepLink = buildRunDeepLink(shop, objectId);
   const shortcutArguments = getShortcutArguments(deepLink);
   const outputPath =
@@ -232,7 +246,8 @@ const createGameShortcut = async (
       shortcutName,
       outputPath,
       deepLink,
-      iconPath
+      iconPath,
+      hydraExecutablePath
     );
 
     if (!success) {
@@ -250,7 +265,7 @@ const createGameShortcut = async (
     : undefined;
 
   const options = {
-    filePath: process.execPath,
+    filePath: hydraExecutablePath,
     arguments: shortcutArguments,
     name: shortcutName,
     outputPath,
