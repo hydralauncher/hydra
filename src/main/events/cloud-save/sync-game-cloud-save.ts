@@ -1,4 +1,5 @@
 import { syncGameCloudSave } from "@main/services/cloud-save";
+import { isGameRunning } from "@main/services/process-watcher";
 import type { CloudSaveSyncIpcProgressPayload, GameShop } from "@types";
 
 import { registerEvent } from "../register-event";
@@ -13,6 +14,11 @@ registerEvent(
   ) => {
     if (!operationId)
       throw new Error("Cloud save sync operation ID is required");
+    if (isGameRunning(objectId, shop)) {
+      throw new Error(
+        "Cloud saves cannot be synchronized while game is running"
+      );
+    }
 
     return syncGameCloudSave(objectId, shop, "manual", (progress) => {
       if (!event.sender.isDestroyed()) {

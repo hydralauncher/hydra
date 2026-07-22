@@ -49,9 +49,6 @@ export function useGameSettingsModalState({
   const [steamShortcutExists, setSteamShortcutExists] = useState(false);
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [updatingGameTitle, setUpdatingGameTitle] = useState(false);
-  const [automaticCloudSync, setAutomaticCloudSync] = useState(
-    () => game?.automaticCloudSync ?? false
-  );
   const [execPickerInitialPath, setExecPickerInitialPath] = useState("");
   const [discPickerFilters, setDiscPickerFilters] = useState<FileFilter[]>([]);
   const launchOptionsDebounceRef = useRef<number | null>(null);
@@ -65,10 +62,6 @@ export function useGameSettingsModalState({
       null
     );
   }, [game?.discs, game?.selectedDiscPath]);
-
-  useEffect(() => {
-    setAutomaticCloudSync(game?.automaticCloudSync ?? false);
-  }, [game?.automaticCloudSync]);
 
   const getDownloadsPath = useCallback(async () => {
     const userPreferences = await globalThis.window.electron
@@ -649,24 +642,6 @@ export function useGameSettingsModalState({
     await updateGame();
   }, [game, updateClassicsDisc, updateGame]);
 
-  const handleToggleAutomaticCloudSync = useCallback(
-    async (checked: boolean) => {
-      if (!game) return;
-      setAutomaticCloudSync(checked);
-      try {
-        await globalThis.window.electron.toggleAutomaticCloudSync(
-          game.shop,
-          game.objectId,
-          checked
-        );
-        void updateGame();
-      } catch {
-        setAutomaticCloudSync(!checked);
-      }
-    },
-    [game, updateGame]
-  );
-
   useEffect(
     () => () => {
       if (launchOptionsDebounceRef.current !== null) {
@@ -760,10 +735,8 @@ export function useGameSettingsModalState({
 
     return {
       game,
-      automaticCloudSync,
-      onToggleAutomaticCloudSync: handleToggleAutomaticCloudSync,
     } satisfies GameCloudSettingsProps;
-  }, [automaticCloudSync, game, handleToggleAutomaticCloudSync]);
+  }, [game]);
 
   return {
     launchSettings,

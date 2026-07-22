@@ -71,12 +71,20 @@
     }
   }
 
-  &__launch-conflict-warning {
+  &__launch-conflict-warning,
+  &__game-running-warning {
     margin: 0;
-    color: globals.$error-color;
     font-size: globals.$small-font-size;
     line-height: 1.4;
     text-align: center;
+  }
+
+  &__launch-conflict-warning {
+    color: globals.$error-color;
+  }
+
+  &__game-running-warning {
+    color: globals.$warning-color;
   }
 
   &__switch {

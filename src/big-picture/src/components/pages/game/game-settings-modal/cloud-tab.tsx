@@ -16,7 +16,6 @@ import { useTranslation } from "react-i18next";
 import { platformToSystem } from "@renderer/helpers";
 import {
   Button,
-  Checkbox,
   HorizontalFocusGroup,
   VerticalFocusGroup,
 } from "../../../common";
@@ -30,12 +29,8 @@ import "./cloud-tab.scss";
 
 export const GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID =
   "game-cloud-settings-primary-control";
-const GAME_CLOUD_SETTINGS_AUTO_SYNC_ID = "game-cloud-settings-auto-sync";
-
 export interface GameCloudSettingsProps {
   game: LibraryGame;
-  automaticCloudSync: boolean;
-  onToggleAutomaticCloudSync: (checked: boolean) => void;
 }
 
 function formatDownloadProgress(progress: number): string {
@@ -103,10 +98,9 @@ function EmulationRestoreModal({
 
 export function GameCloudSettingsTab({
   game,
-  automaticCloudSync,
-  onToggleAutomaticCloudSync,
 }: Readonly<GameCloudSettingsProps>) {
   const { t } = useTranslation("big_picture");
+  const { t: tGameDetails } = useTranslation("game_details");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const { userDetails } = useUserDetails();
 
@@ -527,8 +521,8 @@ export function GameCloudSettingsTab({
       ) : (
         <SettingsSection
           className="game-cloud-settings-tab__section"
-          title={t("cloud_saves_section_title")}
-          description={t("cloud_saves_section_description")}
+          title={tGameDetails("cloud_save_legacy_title")}
+          description={tGameDetails("cloud_save_legacy_description")}
         >
           <div className="game-cloud-settings-tab__section-content">
             <Button
@@ -554,14 +548,6 @@ export function GameCloudSettingsTab({
                 {backupStateLabel}
               </p>
             )}
-
-            <Checkbox
-              block
-              focusId={GAME_CLOUD_SETTINGS_AUTO_SYNC_ID}
-              label={t("enable_automatic_cloud_sync")}
-              checked={automaticCloudSync}
-              onChange={onToggleAutomaticCloudSync}
-            />
           </div>
         </SettingsSection>
       )}

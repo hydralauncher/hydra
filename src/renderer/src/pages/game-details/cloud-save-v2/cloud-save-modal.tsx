@@ -21,12 +21,13 @@ import { formatBytes } from "@shared";
 import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 
-interface CloudSaveModalProps {
-  visible: boolean;
+export interface CloudSavePanelProps {
+  active?: boolean;
   showLaunchConflictWarning: boolean;
   overview: CloudSaveOverview | null;
   isLoading: boolean;
   isSyncing: boolean;
+  isGameRunning: boolean;
   hasExecutablePath: boolean;
   isAutomaticSyncEnabled: boolean;
   hasError: boolean;
@@ -36,6 +37,10 @@ interface CloudSaveModalProps {
   onSelectExecutable: () => void;
   onAutomaticSyncChange: (enabled: boolean) => Promise<void>;
   onResolveConflict: (resolution: CloudSaveConflictResolution) => void;
+}
+
+interface CloudSaveModalProps extends Omit<CloudSavePanelProps, "active"> {
+  visible: boolean;
   onClose: () => void;
 }
 
@@ -60,12 +65,13 @@ const statusTone: Record<
 
 const MAX_VISIBLE_HISTORICAL_SNAPSHOTS = 3;
 
-export function CloudSaveModal({
-  visible,
+export function CloudSavePanel({
+  active = true,
   showLaunchConflictWarning,
   overview,
   isLoading,
   isSyncing,
+  isGameRunning,
   hasExecutablePath,
   isAutomaticSyncEnabled,
   hasError,
@@ -75,8 +81,7 @@ export function CloudSaveModal({
   onSelectExecutable,
   onAutomaticSyncChange,
   onResolveConflict,
-  onClose,
-}: Readonly<CloudSaveModalProps>) {
+}: Readonly<CloudSavePanelProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const historyId = useId();
@@ -115,8 +120,8 @@ export function CloudSaveModal({
     }, [overview?.snapshots]);
 
   useEffect(() => {
-    if (!visible) setIsHistoryExpanded(false);
-  }, [visible]);
+    if (!active) setIsHistoryExpanded(false);
+  }, [active]);
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled);
@@ -226,14 +231,14 @@ export function CloudSaveModal({
       <div className="cloud-save-v2__conflict-actions">
         <Button
           onClick={() => onResolveConflict("keep-local")}
-          disabled={isLoading}
+          disabled={isLoading || isGameRunning}
         >
           <CloudArrowUpIcon size={20} />
           {t("cloud_save_v2_keep_local")}
         </Button>
         <Button
           onClick={() => onResolveConflict("keep-remote")}
-          disabled={isLoading}
+          disabled={isLoading || isGameRunning}
         >
           <CloudArrowDownIcon size={20} />
           {t("cloud_save_v2_keep_remote")}
@@ -245,7 +250,7 @@ export function CloudSaveModal({
       <Button
         className="cloud-save-v2__sync-button"
         onClick={onSync}
-        disabled={isLoading}
+        disabled={isLoading || isGameRunning}
       >
         {syncButtonIcon}
         <span>{syncButtonLabel}</span>
@@ -273,138 +278,154 @@ export function CloudSaveModal({
   );
 
   return (
+    <div className="cloud-save-v2__modal">
+      <div className="cloud-save-v2__toggle-row">
+        <div className="cloud-save-v2__toggle-copy">
+          <strong>{cloudSaveToggleTitle}</strong>
+          <span>{t("cloud_save_v2_toggle_description")}</span>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isCloudSaveEnabled}
+          aria-label={cloudSaveToggleTitle}
+          disabled={isUpdatingAutomaticSync}
+          className={`cloud-save-v2__switch ${isCloudSaveEnabled ? "cloud-save-v2__switch--enabled" : ""}`}
+          onClick={() => void handleAutomaticSyncChange()}
+        >
+          <span className="cloud-save-v2__switch-thumb" />
+        </button>
+      </div>
+
+      {showLaunchConflictWarning && overview?.state === "conflict" && (
+        <p className="cloud-save-v2__launch-conflict-warning">
+          {t("cloud_save_v2_resolve_before_launch")}
+        </p>
+      )}
+
+      {isGameRunning && (
+        <p className="cloud-save-v2__game-running-warning">
+          {t("cloud_save_v2_close_game_before_manual_sync")}
+        </p>
+      )}
+
+      {!hasExecutablePath ? (
+        missingExecutableCard
+      ) : (
+        <>
+          <section className="cloud-save-v2__active-snapshot">
+            <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
+              {activeSnapshot ? (
+                <>
+                  <div className="cloud-save-v2__snapshot-header">
+                    <strong>{t("cloud_save_v2_active_snapshot")}</strong>
+                    <span
+                      className={`cloud-save-v2__status-pill cloud-save-v2__status-pill--${currentStatusTone}`}
+                    >
+                      {overview
+                        ? t(stateKey[overview.state])
+                        : t("cloud_save_v2_checking")}
+                    </span>
+                  </div>
+                  {snapshotMetadata(
+                    activeSnapshot.createdAt,
+                    activeSnapshot.fileCount,
+                    activeSnapshot.totalSizeBytes,
+                    true
+                  )}
+                </>
+              ) : (
+                !isLoading && (
+                  <div className="cloud-save-v2__empty cloud-save-v2__empty--inline">
+                    <button
+                      type="button"
+                      className="cloud-save-v2__empty-files-link"
+                      onClick={onOpenFileBrowser}
+                      disabled={isSyncing}
+                      aria-label={t("cloud_save_v2_view_files")}
+                    >
+                      {t("cloud_save_v2_no_snapshots")}
+                    </button>
+                  </div>
+                )
+              )}
+
+              <div className="cloud-save-v2__action-area">
+                {hasError && (
+                  <p className="cloud-save-v2__error">
+                    {t("cloud_save_v2_error")}
+                  </p>
+                )}
+
+                {syncAction}
+              </div>
+            </article>
+          </section>
+
+          {historicalSnapshotCount > 0 && (
+            <section className="cloud-save-v2__history">
+              <button
+                type="button"
+                className="cloud-save-v2__history-toggle"
+                aria-controls={historyId}
+                aria-expanded={isHistoryExpanded}
+                onClick={() => setIsHistoryExpanded((expanded) => !expanded)}
+              >
+                <span className="cloud-save-v2__history-title">
+                  <ClockIcon size={18} />
+                  {t("cloud_save_v2_history")}
+                </span>
+                <span className="cloud-save-v2__history-summary">
+                  <CaretDownIcon
+                    size={16}
+                    className={`cloud-save-v2__history-caret ${isHistoryExpanded ? "cloud-save-v2__history-caret--expanded" : ""}`}
+                  />
+                </span>
+              </button>
+
+              <div
+                id={historyId}
+                className={`cloud-save-v2__history-content ${isHistoryExpanded ? "cloud-save-v2__history-content--expanded" : ""}`}
+              >
+                <div className="cloud-save-v2__history-list">
+                  {historicalSnapshots.map((snapshot) => (
+                    <article
+                      className="cloud-save-v2__snapshot cloud-save-v2__snapshot--historical"
+                      key={snapshot.id}
+                    >
+                      <strong>{t("cloud_save_v2_historical_snapshot")}</strong>
+                      {snapshotMetadata(
+                        snapshot.createdAt,
+                        snapshot.fileCount,
+                        snapshot.totalSizeBytes
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+export function CloudSaveModal({
+  visible,
+  onClose,
+  ...panelProps
+}: Readonly<CloudSaveModalProps>) {
+  const { t } = useTranslation("game_details");
+
+  return (
     <Modal
       visible={visible}
       title={t("cloud_save_v2_modal_title")}
       description={t("cloud_save_v2_modal_description")}
       onClose={onClose}
     >
-      <div className="cloud-save-v2__modal">
-        <div className="cloud-save-v2__toggle-row">
-          <div className="cloud-save-v2__toggle-copy">
-            <strong>{cloudSaveToggleTitle}</strong>
-            <span>{t("cloud_save_v2_toggle_description")}</span>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isCloudSaveEnabled}
-            aria-label={cloudSaveToggleTitle}
-            disabled={isUpdatingAutomaticSync}
-            className={`cloud-save-v2__switch ${isCloudSaveEnabled ? "cloud-save-v2__switch--enabled" : ""}`}
-            onClick={() => void handleAutomaticSyncChange()}
-          >
-            <span className="cloud-save-v2__switch-thumb" />
-          </button>
-        </div>
-
-        {showLaunchConflictWarning && overview?.state === "conflict" && (
-          <p className="cloud-save-v2__launch-conflict-warning">
-            {t("cloud_save_v2_resolve_before_launch")}
-          </p>
-        )}
-
-        {!hasExecutablePath ? (
-          missingExecutableCard
-        ) : (
-          <>
-            <section className="cloud-save-v2__active-snapshot">
-              <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
-                {activeSnapshot ? (
-                  <>
-                    <div className="cloud-save-v2__snapshot-header">
-                      <strong>{t("cloud_save_v2_active_snapshot")}</strong>
-                      <span
-                        className={`cloud-save-v2__status-pill cloud-save-v2__status-pill--${currentStatusTone}`}
-                      >
-                        {overview
-                          ? t(stateKey[overview.state])
-                          : t("cloud_save_v2_checking")}
-                      </span>
-                    </div>
-                    {snapshotMetadata(
-                      activeSnapshot.createdAt,
-                      activeSnapshot.fileCount,
-                      activeSnapshot.totalSizeBytes,
-                      true
-                    )}
-                  </>
-                ) : (
-                  !isLoading && (
-                    <div className="cloud-save-v2__empty cloud-save-v2__empty--inline">
-                      <button
-                        type="button"
-                        className="cloud-save-v2__empty-files-link"
-                        onClick={onOpenFileBrowser}
-                        disabled={isSyncing}
-                        aria-label={t("cloud_save_v2_view_files")}
-                      >
-                        {t("cloud_save_v2_no_snapshots")}
-                      </button>
-                    </div>
-                  )
-                )}
-
-                <div className="cloud-save-v2__action-area">
-                  {hasError && (
-                    <p className="cloud-save-v2__error">
-                      {t("cloud_save_v2_error")}
-                    </p>
-                  )}
-
-                  {syncAction}
-                </div>
-              </article>
-            </section>
-
-            {historicalSnapshotCount > 0 && (
-              <section className="cloud-save-v2__history">
-                <button
-                  type="button"
-                  className="cloud-save-v2__history-toggle"
-                  aria-controls={historyId}
-                  aria-expanded={isHistoryExpanded}
-                  onClick={() => setIsHistoryExpanded((expanded) => !expanded)}
-                >
-                  <span className="cloud-save-v2__history-title">
-                    <ClockIcon size={18} />
-                    {t("cloud_save_v2_history")}
-                  </span>
-                  <span className="cloud-save-v2__history-summary">
-                    <CaretDownIcon
-                      size={16}
-                      className={`cloud-save-v2__history-caret ${isHistoryExpanded ? "cloud-save-v2__history-caret--expanded" : ""}`}
-                    />
-                  </span>
-                </button>
-
-                <div
-                  id={historyId}
-                  className={`cloud-save-v2__history-content ${isHistoryExpanded ? "cloud-save-v2__history-content--expanded" : ""}`}
-                >
-                  <div className="cloud-save-v2__history-list">
-                    {historicalSnapshots.map((snapshot) => (
-                      <article
-                        className="cloud-save-v2__snapshot cloud-save-v2__snapshot--historical"
-                        key={snapshot.id}
-                      >
-                        <strong>
-                          {t("cloud_save_v2_historical_snapshot")}
-                        </strong>
-                        {snapshotMetadata(
-                          snapshot.createdAt,
-                          snapshot.fileCount,
-                          snapshot.totalSizeBytes
-                        )}
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            )}
-          </>
-        )}
-      </div>
+      <CloudSavePanel {...panelProps} active={visible} />
     </Modal>
   );
 }

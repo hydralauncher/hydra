@@ -87,6 +87,10 @@
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
+
+    &--v2 {
+      gap: calc(globals.$spacing-unit * 2);
+    }
   }
 
   &__row {

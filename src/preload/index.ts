@@ -568,17 +568,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDownloadSourcesSinceValue"),
 
   /* Library */
-  toggleAutomaticCloudSync: (
-    shop: GameShop,
-    objectId: string,
-    automaticCloudSync: boolean
-  ) =>
-    ipcRenderer.invoke(
-      "toggleAutomaticCloudSync",
-      shop,
-      objectId,
-      automaticCloudSync
-    ),
   toggleGameMangohud: (
     shop: GameShop,
     objectId: string,

@@ -194,11 +194,6 @@ declare global {
     ) => () => Electron.IpcRenderer;
 
     /* Library */
-    toggleAutomaticCloudSync: (
-      shop: GameShop,
-      objectId: string,
-      automaticCloudSync: boolean
-    ) => Promise<void>;
     toggleGameMangohud: (
       shop: GameShop,
       objectId: string,

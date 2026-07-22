@@ -42,6 +42,7 @@ import {
   DownloadIcon,
   FileDirectoryIcon,
   GearIcon,
+  HistoryIcon,
   ImageIcon,
 } from "@primer/octicons-react";
 import { Wrench } from "lucide-react";
@@ -56,7 +57,8 @@ import { GeneralSettingsSection } from "./game-options-modal/general-section";
 import { CompatibilitySettingsSection } from "./game-options-modal/compatibility-section";
 import { DownloadsSettingsSection } from "./game-options-modal/downloads-section";
 import { DangerZoneSection } from "./game-options-modal/danger-zone-section";
-import { HydraCloudSettingsSection } from "./game-options-modal/hydra-cloud-section";
+import { HydraCloudLegacySettingsSection } from "./game-options-modal/hydra-cloud-section";
+import { HydraCloudV2SettingsSection } from "./game-options-modal/hydra-cloud-v2-section";
 import type { GameSettingsCategoryId } from "./game-options-modal/types";
 import { CreateSteamShortcutModal } from "./create-steam-shortcut-modal";
 
@@ -106,9 +108,6 @@ export function GameOptionsModal({
     useState(false);
   const [showChangePlaytimeModal, setShowChangePlaytimeModal] = useState(false);
   const [isDeletingAchievements, setIsDeletingAchievements] = useState(false);
-  const [automaticCloudSync, setAutomaticCloudSync] = useState(
-    game.automaticCloudSync ?? false
-  );
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
   const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
@@ -748,10 +747,19 @@ export function GameOptionsModal({
         label: t("settings_category_assets"),
         icon: <ImageIcon size={16} />,
       },
+      ...(game.shop === "steam"
+        ? [
+            {
+              id: "hydra_cloud" as const,
+              label: t("settings_category_hydra_cloud"),
+              icon: <CloudIcon size={16} />,
+            },
+          ]
+        : []),
       {
-        id: "hydra_cloud" as const,
-        label: t("settings_category_hydra_cloud"),
-        icon: <CloudIcon size={16} />,
+        id: "hydra_cloud_legacy" as const,
+        label: t("settings_category_hydra_cloud_legacy"),
+        icon: <HistoryIcon size={16} />,
       },
       ...(shouldShowWinePrefixConfiguration
         ? [
@@ -773,14 +781,17 @@ export function GameOptionsModal({
         icon: <AlertIcon size={16} />,
       },
     ],
-    [isLaunchbox, shouldShowWinePrefixConfiguration, t]
+    [game.shop, isLaunchbox, shouldShowWinePrefixConfiguration, t]
   );
 
   useEffect(() => {
     if (!visible) return;
 
     const category = initialCategory ?? "general";
-    if (category === "hydra_cloud" && !hasActiveSubscription) {
+    if (
+      (category === "hydra_cloud" || category === "hydra_cloud_legacy") &&
+      !hasActiveSubscription
+    ) {
       setSelectedCategory("general");
       showHydraCloudModal("backup");
       return;
@@ -792,7 +803,10 @@ export function GameOptionsModal({
   // Non-subscribers don't open the cloud-save panel; clicking the menu item
   // presents the Hydra Cloud promo (highlighting cloud saving) instead.
   const handleSelectCategory = (category: typeof selectedCategory) => {
-    if (category === "hydra_cloud" && !hasActiveSubscription) {
+    if (
+      (category === "hydra_cloud" || category === "hydra_cloud_legacy") &&
+      !hasActiveSubscription
+    ) {
       showHydraCloudModal("backup");
       return;
     }
@@ -829,24 +843,6 @@ export function GameOptionsModal({
     } catch {
       showErrorToast(t("update_playtime_error"));
     }
-  };
-
-  const handleToggleAutomaticCloudSync = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setAutomaticCloudSync(event.target.checked);
-    const gameKey = getGameKey(game.shop, game.objectId);
-    const gameData = (await levelDBService.get(
-      gameKey,
-      "games"
-    )) as Game | null;
-    if (gameData)
-      await levelDBService.put(
-        gameKey,
-        { ...gameData, automaticCloudSync: event.target.checked },
-        "games"
-      );
-    updateGame();
   };
 
   const baseGeneralSettingsProps = useMemo(
@@ -990,11 +986,12 @@ export function GameOptionsModal({
               />
             )}
             {selectedCategory === "hydra_cloud" && (
-              <HydraCloudSettingsSection
-                game={game}
-                automaticCloudSync={automaticCloudSync}
-                onToggleAutomaticCloudSync={handleToggleAutomaticCloudSync}
+              <HydraCloudV2SettingsSection
+                onSelectExecutable={() => setSelectedCategory("locations")}
               />
+            )}
+            {selectedCategory === "hydra_cloud_legacy" && (
+              <HydraCloudLegacySettingsSection game={game} />
             )}
             {selectedCategory === "compatibility" &&
               shouldShowWinePrefixConfiguration && (
