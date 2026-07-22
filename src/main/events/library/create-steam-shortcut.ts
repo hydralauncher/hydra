@@ -20,11 +20,6 @@ import {
   convertSteamShortcutAsset,
   SteamShortcutAssetFormat,
 } from "./steam-shortcut-assets";
-import {
-  buildRunDeepLink,
-  getHydraExecutablePath,
-  getShortcutArguments,
-} from "@main/helpers/shortcut-launch";
 
 const downloadAsset = async (
   downloadPath: string,
@@ -195,18 +190,11 @@ const createSteamShortcut = async (
   const game = await gamesSublevel.get(gameKey);
 
   if (!game) return;
-  if (!game.executablePath && game.shop !== "launchbox") {
-    throw new Error("No executable path found for game");
+  if (game.shop === "launchbox") {
+    throw new Error("Steam shortcuts are not available for Classic games");
   }
-  const classicsDiscPath =
-    game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
-  if (
-    game.shop === "launchbox" &&
-    (!classicsDiscPath || !fs.existsSync(classicsDiscPath))
-  ) {
-    throw new Error(
-      "Classic games need an available disc before creating a shortcut"
-    );
+  if (!game.executablePath) {
+    throw new Error("No executable path found for game");
   }
 
   const assets = await getGameAssets(objectId, shop);
@@ -221,24 +209,11 @@ const createSteamShortcut = async (
   const [iconImage, heroImage, logoImage, coverImage, libraryImage] =
     await downloadAssetsFromSteam(game, assets);
 
-  const isClassicsGame = game.shop === "launchbox";
-  const executablePath = isClassicsGame
-    ? getHydraExecutablePath()
-    : game.executablePath!;
-  const deepLink = isClassicsGame
-    ? buildRunDeepLink(game.shop, game.objectId)
-    : null;
-  const launchOptions = deepLink ? getShortcutArguments(deepLink) : "";
-
   const newShortcut = composeSteamShortcut(
     game.title,
-    executablePath,
+    game.executablePath,
     iconImage,
-    options,
-    {
-      appIdSeed: deepLink ?? undefined,
-      launchOptions,
-    }
+    options
   );
 
   for (const steamUserId of steamUserIds) {

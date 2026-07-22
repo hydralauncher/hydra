@@ -286,7 +286,7 @@ function ExecutableSection({
 
 interface ShortcutSectionProps {
   canCreateShortcuts: boolean;
-  isCustomGame: boolean;
+  canCreateSteamShortcut: boolean;
   shouldShowCreateStartMenuShortcut: boolean;
   creatingSteamShortcut: boolean;
   steamShortcutExists: boolean;
@@ -297,7 +297,7 @@ interface ShortcutSectionProps {
 
 function ShortcutSection({
   canCreateShortcuts,
-  isCustomGame,
+  canCreateSteamShortcut,
   shouldShowCreateStartMenuShortcut,
   creatingSteamShortcut,
   steamShortcutExists,
@@ -309,52 +309,50 @@ function ShortcutSection({
 
   let steamShortcutButton: ReactNode = null;
 
-  if (!isCustomGame) {
-    if (steamShortcutExists) {
-      steamShortcutButton = (
-        <Button
-          focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID}
-          variant="danger"
-          loading={creatingSteamShortcut}
-          icon={<SteamLogo />}
-          onClick={() => {
-            onDeleteSteamShortcut().catch(() => {});
-          }}
-          focusNavigationOverrides={
-            canCreateShortcuts
-              ? {
-                  left: {
-                    type: "item",
-                    itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
-                  },
-                }
-              : undefined
-          }
-        >
-          {t("delete_steam_shortcut")}
-        </Button>
-      );
-    } else if (canCreateShortcuts) {
-      steamShortcutButton = (
-        <Button
-          focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID}
-          variant="secondary"
-          loading={creatingSteamShortcut}
-          icon={<SteamLogo />}
-          onClick={() => {
-            onCreateSteamShortcut().catch(() => {});
-          }}
-          focusNavigationOverrides={{
-            left: {
-              type: "item",
-              itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
-            },
-          }}
-        >
-          {t("create_steam_shortcut")}
-        </Button>
-      );
-    }
+  if (steamShortcutExists) {
+    steamShortcutButton = (
+      <Button
+        focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID}
+        variant="danger"
+        loading={creatingSteamShortcut}
+        icon={<SteamLogo />}
+        onClick={() => {
+          onDeleteSteamShortcut().catch(() => {});
+        }}
+        focusNavigationOverrides={
+          canCreateShortcuts
+            ? {
+                left: {
+                  type: "item",
+                  itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
+                },
+              }
+            : undefined
+        }
+      >
+        {t("delete_steam_shortcut")}
+      </Button>
+    );
+  } else if (canCreateShortcuts && canCreateSteamShortcut) {
+    steamShortcutButton = (
+      <Button
+        focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID}
+        variant="secondary"
+        loading={creatingSteamShortcut}
+        icon={<SteamLogo />}
+        onClick={() => {
+          onCreateSteamShortcut().catch(() => {});
+        }}
+        focusNavigationOverrides={{
+          left: {
+            type: "item",
+            itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
+          },
+        }}
+      >
+        {t("create_steam_shortcut")}
+      </Button>
+    );
   }
 
   return (
@@ -390,9 +388,9 @@ function ShortcutSection({
               focusNavigationOverrides={{
                 left: {
                   type: "item",
-                  itemId: isCustomGame
-                    ? GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID
-                    : GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID,
+                  itemId: steamShortcutButton
+                    ? GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID
+                    : GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
                 },
               }}
             >
@@ -569,7 +567,7 @@ export function GameLaunchSettingsTab({
           steamShortcutExists) && (
           <ShortcutSection
             canCreateShortcuts={game.shop !== "launchbox" || discs.length > 0}
-            isCustomGame={isCustomGame}
+            canCreateSteamShortcut={!isCustomGame && game.shop !== "launchbox"}
             shouldShowCreateStartMenuShortcut={
               shouldShowCreateStartMenuShortcut
             }

@@ -183,29 +183,20 @@ export interface CreateSteamShortcutOptions {
   openVr?: boolean;
 }
 
-interface SteamShortcutLaunchConfig {
-  appIdSeed?: string;
-  launchOptions?: string;
-}
-
 export const composeSteamShortcut = (
   title: string,
   executablePath: string,
   iconPath: string | null,
-  options?: CreateSteamShortcutOptions,
-  launchConfig: SteamShortcutLaunchConfig = {}
+  options?: CreateSteamShortcutOptions
 ): SteamShortcut => {
   return {
-    appid: generateSteamShortcutAppId(
-      executablePath,
-      launchConfig.appIdSeed ?? title
-    ),
+    appid: generateSteamShortcutAppId(executablePath, title),
     appname: title,
     Exe: `"${executablePath}"`,
     StartDir: `"${path.dirname(executablePath)}"`,
     icon: iconPath ?? "",
     ShortcutPath: "",
-    LaunchOptions: launchConfig.launchOptions ?? "",
+    LaunchOptions: "",
     IsHidden: false,
     AllowDesktopConfig: true,
     AllowOverlay: true,
