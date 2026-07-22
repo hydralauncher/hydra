@@ -306,6 +306,9 @@ declare global {
       objectId: string
     ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
+    refreshLibraryReleaseDates: (language: string) => Promise<void>;
+    refreshLibraryUpdateDates: () => Promise<void>;
+    checkForNewUpdates: () => Promise<void>;
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;

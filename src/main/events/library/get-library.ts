@@ -35,6 +35,20 @@ const lookupCachedPlatform = async (
 };
 
 const getLibrary = async (): Promise<LibraryGame[]> => {
+  const cachedShopDetailsList = await gamesShopCacheSublevel.iterator().all();
+  const cachedMap = new Map<string, any>();
+  for (const [key, value] of cachedShopDetailsList) {
+    if (typeof key === "string") {
+      const parts = key.split(":");
+      if (parts.length >= 2) {
+        const gameKey = `${parts[0]}:${parts[1]}`;
+        if (!cachedMap.has(gameKey)) {
+          cachedMap.set(gameKey, value);
+        }
+      }
+    }
+  }
+
   return gamesSublevel
     .iterator()
     .all()
@@ -43,6 +57,9 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
         results
           .filter(([_key, game]) => game.isDeleted === false)
           .map(async ([key, game]) => {
+            const cachedShopDetails = cachedMap.get(key) ?? null;
+            const releaseDate = cachedShopDetails?.release_date?.date ?? null;
+
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
             const artworkSelection =
@@ -117,6 +134,7 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               ...game,
               installerSizeInBytes,
               installedSizeInBytes,
+              releaseDate,
               download: download ?? null,
               unlockedAchievementCount,
               achievementCount: game.achievementCount ?? 0,
