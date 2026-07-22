@@ -13,6 +13,10 @@ import { SystemPath } from "@main/services/system-path";
 import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { logger } from "@main/services";
+import {
+  buildRunDeepLink,
+  getShortcutArguments,
+} from "@main/helpers/shortcut-launch";
 
 const isValidUrl = (url: string | null | undefined): url is string => {
   return (
@@ -135,34 +139,6 @@ const deleteIfExists = (filePath: string) => {
   } catch (error) {
     logger.warn(`Failed to delete existing shortcut: ${filePath}`, error);
   }
-};
-
-const buildRunDeepLink = (shop: GameShop, objectId: string) => {
-  const query = new URLSearchParams({
-    shop,
-    objectId,
-  });
-
-  return `hydralauncher://run?${query.toString()}`;
-};
-
-const quoteLinuxExecArg = (value: string) => {
-  return `"${value.replaceAll('"', '\\"')}"`;
-};
-
-const getShortcutArguments = (deepLink: string) => {
-  const deepLinkArgument =
-    process.platform === "linux" ? quoteLinuxExecArg(deepLink) : deepLink;
-
-  if (process.defaultApp && process.argv.length >= 2) {
-    const appEntry = path.resolve(process.argv[1]);
-    const appEntryArgument =
-      process.platform === "linux" ? quoteLinuxExecArg(appEntry) : appEntry;
-
-    return `${appEntryArgument} ${deepLinkArgument}`;
-  }
-
-  return deepLinkArgument;
 };
 
 const getWindowsOutputPath = (location: ShortcutLocation) => {

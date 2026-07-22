@@ -187,7 +187,8 @@ export const composeSteamShortcut = (
   title: string,
   executablePath: string,
   iconPath: string | null,
-  options?: CreateSteamShortcutOptions
+  options?: CreateSteamShortcutOptions,
+  launchOptions = ""
 ): SteamShortcut => {
   return {
     appid: generateSteamShortcutAppId(executablePath, title),
@@ -196,7 +197,7 @@ export const composeSteamShortcut = (
     StartDir: `"${path.dirname(executablePath)}"`,
     icon: iconPath ?? "",
     ShortcutPath: "",
-    LaunchOptions: "",
+    LaunchOptions: launchOptions,
     IsHidden: false,
     AllowDesktopConfig: true,
     AllowOverlay: true,

@@ -20,6 +20,10 @@ import {
   convertSteamShortcutAsset,
   SteamShortcutAssetFormat,
 } from "./steam-shortcut-assets";
+import {
+  buildRunDeepLink,
+  getShortcutArguments,
+} from "@main/helpers/shortcut-launch";
 
 const downloadAsset = async (
   downloadPath: string,
@@ -109,7 +113,7 @@ const createSteamShortcut = async (
   const game = await gamesSublevel.get(gameKey);
 
   if (game) {
-    if (!game.executablePath) {
+    if (!game.executablePath && game.shop !== "launchbox") {
       throw new Error("No executable path found for game");
     }
 
@@ -125,11 +129,20 @@ const createSteamShortcut = async (
     const [iconImage, heroImage, logoImage, coverImage, libraryImage] =
       await downloadAssetsFromSteam(game, assets);
 
+    const isClassicsGame = game.shop === "launchbox";
+    const executablePath = isClassicsGame
+      ? process.execPath
+      : game.executablePath!;
+    const launchOptions = isClassicsGame
+      ? getShortcutArguments(buildRunDeepLink(game.shop, game.objectId))
+      : "";
+
     const newShortcut = composeSteamShortcut(
       game.title,
-      game.executablePath,
+      executablePath,
       iconImage,
-      options
+      options,
+      launchOptions
     );
 
     for (const steamUserId of steamUserIds) {
