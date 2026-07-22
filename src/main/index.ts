@@ -17,7 +17,7 @@ import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
-import { launchGame } from "./helpers";
+import { launchClassicsGame, launchGame, platformToSystem } from "./helpers";
 import { loadState } from "./main";
 
 const { autoUpdater } = updater;
@@ -192,8 +192,8 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
 
-  if (!game?.executablePath) {
-    logger.error("Game not found or no executable path", { shop, objectId });
+  if (!game) {
+    logger.error("Game not found", { shop, objectId });
     return;
   }
 
@@ -205,6 +205,28 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
   // Only open main window if setting is disabled
   if (!userPreferences?.hideToTrayOnGameStart) {
     WindowManager.createMainWindow();
+  }
+
+  if (shop === "launchbox") {
+    const system = platformToSystem(game.platform);
+    const discPath = game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
+
+    if (!system || !discPath) {
+      logger.error("Classic game has no launchable disc", {
+        shop,
+        objectId,
+        platform: game.platform,
+      });
+      return;
+    }
+
+    await launchClassicsGame({ shop, objectId, discPath, system });
+    return;
+  }
+
+  if (!game.executablePath) {
+    logger.error("Game has no executable path", { shop, objectId });
+    return;
   }
 
   await launchGame({
@@ -226,7 +248,9 @@ const handleDeepLinkPath = (uri?: string) => {
       const objectId = url.searchParams.get("objectId");
 
       if (shop && objectId) {
-        handleRunGame(shop, objectId);
+        void handleRunGame(shop, objectId).catch((error) => {
+          logger.error("Failed to launch game from deep link", error);
+        });
       }
 
       return;

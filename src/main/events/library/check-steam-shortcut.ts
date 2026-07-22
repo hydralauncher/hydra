@@ -11,7 +11,9 @@ const checkSteamShortcut = async (
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
 
-  if (!game?.executablePath) return false;
+  if (!game || (!game.executablePath && game.shop !== "launchbox")) {
+    return false;
+  }
 
   const steamUserIds = await getSteamUsersIds();
   if (!steamUserIds.length) return false;
@@ -26,11 +28,13 @@ const checkSteamShortcut = async (
     }
   }
 
-  // Fallback: check by executablePath or title
+  // Fallback: check by executable path or title
   for (const userId of steamUserIds) {
     const shortcuts = await getSteamShortcuts(userId);
     const match = shortcuts.find(
-      (s) => s.Exe === game.executablePath || s.appname === game.title
+      (s) =>
+        (game.executablePath && s.Exe === game.executablePath) ||
+        s.appname === game.title
     );
 
     if (match) {
