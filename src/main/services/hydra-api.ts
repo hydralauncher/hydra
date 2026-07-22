@@ -19,6 +19,7 @@ export interface HydraApiOptions {
   ifModifiedSince?: Date;
   ifNoneMatch?: string;
   validateStatus?: (status: number) => boolean;
+  signal?: AbortSignal;
 }
 
 interface HydraApiUserAuth {
@@ -76,6 +77,11 @@ export class HydraApi {
       subscription: null,
     };
 
+    const { AchievementWatcherManager } = await import(
+      "./achievements/achievement-watcher-manager"
+    );
+    AchievementWatcherManager.resetSessionState();
+
     logger.log(
       "Sign in received. Token expiration timestamp:",
       tokenExpirationTimestamp
@@ -115,13 +121,18 @@ export class HydraApi {
     }
   }
 
-  static handleSignOut() {
+  static async handleSignOut() {
     this.userAuth = {
       authToken: "",
       refreshToken: "",
       expirationTimestamp: 0,
       subscription: null,
     };
+
+    const { AchievementWatcherManager } = await import(
+      "./achievements/achievement-watcher-manager"
+    );
+    AchievementWatcherManager.resetSessionState();
 
     this.sendSignOutEvent();
     this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
@@ -139,7 +150,7 @@ export class HydraApi {
           logger.log(" ---- REQUEST -----");
           const data = Array.isArray(request.data)
             ? request.data
-            : omit(request.data, ["refreshToken"]);
+            : omit(request.data, ["token", "accessToken", "refreshToken"]);
           logger.log(request.method, request.url, request.params, data);
           return request;
         },
@@ -153,7 +164,12 @@ export class HydraApi {
           logger.log(" ---- RESPONSE -----");
           const data = Array.isArray(response.data)
             ? response.data
-            : omit(response.data, ["username", "accessToken", "refreshToken"]);
+            : omit(response.data, [
+                "username",
+                "token",
+                "accessToken",
+                "refreshToken",
+              ]);
           logger.log(
             response.status,
             response.config.method,
@@ -278,7 +294,7 @@ export class HydraApi {
       try {
         await this.refreshToken();
       } catch (err) {
-        this.handleUnauthorizedError(err);
+        await this.handleUnauthorizedError(err);
       }
     }
   }
@@ -291,7 +307,7 @@ export class HydraApi {
     };
   }
 
-  private static readonly handleUnauthorizedError = (err) => {
+  private static readonly handleUnauthorizedError = async (err) => {
     if (err instanceof AxiosError && err.response?.status === 401) {
       logger.error(
         "401 - Current credentials:",
@@ -305,6 +321,11 @@ export class HydraApi {
         refreshToken: "",
         subscription: null,
       };
+
+      const { AchievementWatcherManager } = await import(
+        "./achievements/achievement-watcher-manager"
+      );
+      AchievementWatcherManager.resetSessionState();
 
       db.batch([
         {
@@ -357,6 +378,7 @@ export class HydraApi {
         ...this.getAxiosConfig(),
         headers,
         validateStatus: options?.validateStatus,
+        signal: options?.signal,
       })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
@@ -381,6 +403,7 @@ export class HydraApi {
         ...this.getAxiosConfig(),
         headers,
         validateStatus: options?.validateStatus,
+        signal: options?.signal,
       })
       .then((response) => ({
         status: response.status,
@@ -398,7 +421,10 @@ export class HydraApi {
     await this.validateOptions(options);
 
     return this.instance
-      .post<T>(url, data, this.getAxiosConfig())
+      .post<T>(url, data, {
+        ...this.getAxiosConfig(),
+        signal: options?.signal,
+      })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
@@ -411,7 +437,10 @@ export class HydraApi {
     await this.validateOptions(options);
 
     return this.instance
-      .put<T>(url, data, this.getAxiosConfig())
+      .put<T>(url, data, {
+        ...this.getAxiosConfig(),
+        signal: options?.signal,
+      })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
@@ -424,7 +453,10 @@ export class HydraApi {
     await this.validateOptions(options);
 
     return this.instance
-      .patch<T>(url, data, this.getAxiosConfig())
+      .patch<T>(url, data, {
+        ...this.getAxiosConfig(),
+        signal: options?.signal,
+      })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
@@ -433,7 +465,10 @@ export class HydraApi {
     await this.validateOptions(options);
 
     return this.instance
-      .delete<T>(url, this.getAxiosConfig())
+      .delete<T>(url, {
+        ...this.getAxiosConfig(),
+        signal: options?.signal,
+      })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
