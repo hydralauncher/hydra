@@ -1,8 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
-  AchievementCustomNotificationPosition,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { useTranslation } from "react-i18next";
+import type {
   AchievementNotificationInfo,
+  AchievementNotificationRequest,
 } from "@types";
 import {
   injectCustomCss,
@@ -12,136 +18,93 @@ import {
 } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
 
-const NOTIFICATION_TIMEOUT = 4000;
+const NOTIFICATION_TIMEOUT = 4_000;
+const CLOSING_TIMEOUT = 450;
+const IMAGE_PREPARATION_TIMEOUT = 2_000;
+
+type NotificationPhase = "idle" | "prepared" | "playing" | "closing";
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "unknown error";
+  }
+};
+
+const resolveImageUrl = (source: string): Promise<string> => {
+  return new Promise((resolve) => {
+    const image = new Image();
+    let settled = false;
+
+    const finish = (url: string) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      image.onload = null;
+      image.onerror = null;
+      resolve(url);
+    };
+
+    const timeout = window.setTimeout(
+      () => finish(HydraIconUrl),
+      IMAGE_PREPARATION_TIMEOUT
+    );
+
+    image.onload = () => finish(source);
+    image.onerror = () => finish(HydraIconUrl);
+    image.src = source;
+  });
+};
 
 export function AchievementNotification() {
   const { t } = useTranslation("achievement");
-
-  const [isClosing, setIsClosing] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [position, setPosition] =
-    useState<AchievementCustomNotificationPosition>("top-left");
-
-  const [achievements, setAchievements] = useState<
-    AchievementNotificationInfo[]
-  >([]);
-  const [currentAchievement, setCurrentAchievement] =
+  const [request, setRequest] = useState<AchievementNotificationRequest | null>(
+    null
+  );
+  const [achievement, setAchievement] =
     useState<AchievementNotificationInfo | null>(null);
-
-  const achievementAnimation = useRef(-1);
-  const closingAnimation = useRef(-1);
-  const visibleAnimation = useRef(-1);
-
+  const [phase, setPhase] = useState<NotificationPhase>("idle");
   const [shadowRootRef, setShadowRootRef] = useState<HTMLElement | null>(null);
 
+  const requestRef = useRef<AchievementNotificationRequest | null>(null);
+  const preparationSequence = useRef(0);
+  const hostReadyReported = useRef(false);
+  const displayTimer = useRef<number | null>(null);
+  const closingTimer = useRef<number | null>(null);
+
+  const clearAnimationTimers = useCallback(() => {
+    if (displayTimer.current !== null) {
+      window.clearTimeout(displayTimer.current);
+      displayTimer.current = null;
+    }
+    if (closingTimer.current !== null) {
+      window.clearTimeout(closingTimer.current);
+      closingTimer.current = null;
+    }
+  }, []);
+
   const playAudio = useCallback(async () => {
-    const soundUrl = await getAchievementSoundUrl();
-    const volume = await getAchievementSoundVolume();
-    const audio = new Audio(soundUrl);
-    audio.volume = volume;
-    audio.play();
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onCombinedAchievementsUnlocked(
-      (gameCount, achievementCount, position) => {
-        if (gameCount === 0 || achievementCount === 0) return;
-
-        setPosition(position);
-
-        setAchievements([
-          {
-            title: t("new_achievements_unlocked", {
-              gameCount,
-              achievementCount,
-            }),
-            isHidden: false,
-            isRare: false,
-            isPlatinum: false,
-            iconUrl: "https://cdn.losbroxas.org/favicon.svg",
-          },
-        ]);
-
-        playAudio();
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [t, playAudio]);
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(
-      (position, achievements) => {
-        if (!achievements?.length) return;
-        if (position) {
-          setPosition(position);
-        }
-
-        setAchievements((ach) => ach.concat(achievements));
-
-        playAudio();
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [playAudio]);
-
-  const hasAchievementsPending = achievements.length > 0;
-
-  const startAnimateClosing = useCallback(() => {
-    cancelAnimationFrame(closingAnimation.current);
-    cancelAnimationFrame(visibleAnimation.current);
-    cancelAnimationFrame(achievementAnimation.current);
-
-    setIsClosing(true);
-
-    const zero = performance.now();
-    closingAnimation.current = requestAnimationFrame(
-      function animateClosing(time) {
-        if (time - zero <= 450) {
-          closingAnimation.current = requestAnimationFrame(animateClosing);
-        } else {
-          setIsVisible(false);
-          setAchievements((ach) => ach.slice(1));
-        }
-      }
-    );
-  }, []);
-
-  useEffect(() => {
-    if (hasAchievementsPending) {
-      setIsClosing(false);
-      setIsVisible(true);
-
-      let zero = performance.now();
-      cancelAnimationFrame(closingAnimation.current);
-      cancelAnimationFrame(visibleAnimation.current);
-      cancelAnimationFrame(achievementAnimation.current);
-      achievementAnimation.current = requestAnimationFrame(
-        function animateLock(time) {
-          if (time - zero > NOTIFICATION_TIMEOUT) {
-            zero = performance.now();
-            startAnimateClosing();
-          }
-          achievementAnimation.current = requestAnimationFrame(animateLock);
-        }
-      );
+    try {
+      const [soundUrl, volume] = await Promise.all([
+        getAchievementSoundUrl(),
+        getAchievementSoundVolume(),
+      ]);
+      const audio = new Audio(soundUrl);
+      audio.volume = volume;
+      await audio.play();
+    } catch (error) {
+      console.error("Failed to play achievement notification sound", error);
     }
-  }, [hasAchievementsPending, startAnimateClosing, currentAchievement]);
-
-  useEffect(() => {
-    if (achievements.length) {
-      setCurrentAchievement(achievements[0]);
-    }
-  }, [achievements]);
+  }, []);
 
   const loadAndApplyTheme = useCallback(async () => {
     if (!shadowRootRef) return;
@@ -158,16 +121,167 @@ export function AchievementNotification() {
   }, [shadowRootRef]);
 
   useEffect(() => {
-    loadAndApplyTheme();
-  }, [loadAndApplyTheme]);
+    if (!shadowRootRef || hostReadyReported.current) return;
+
+    let cancelled = false;
+    void loadAndApplyTheme()
+      .then(async () => {
+        if (cancelled || hostReadyReported.current) return;
+        hostReadyReported.current = true;
+        await window.electron.achievementNotificationHostReady();
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        void window.electron.achievementNotificationFailed(
+          undefined,
+          `Failed to initialise notification renderer: ${getErrorMessage(error)}`
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadAndApplyTheme, shadowRootRef]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onCustomThemeUpdated(() => {
-      loadAndApplyTheme();
+      void loadAndApplyTheme().catch((error) => {
+        void window.electron.achievementNotificationFailed(
+          requestRef.current?.id,
+          `Failed to update notification theme: ${getErrorMessage(error)}`
+        );
+      });
     });
 
     return () => unsubscribe();
   }, [loadAndApplyTheme]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onPrepareAchievementNotification(
+      (nextRequest) => {
+        const sequence = preparationSequence.current + 1;
+        preparationSequence.current = sequence;
+        clearAnimationTimers();
+        requestRef.current = null;
+        setRequest(null);
+        setAchievement(null);
+        setPhase("idle");
+
+        const sourceIcon =
+          nextRequest.type === "achievement"
+            ? nextRequest.achievement.iconUrl
+            : HydraIconUrl;
+
+        void resolveImageUrl(sourceIcon)
+          .then((resolvedIcon) => {
+            if (preparationSequence.current !== sequence) return;
+
+            const nextAchievement: AchievementNotificationInfo =
+              nextRequest.type === "achievement"
+                ? { ...nextRequest.achievement, iconUrl: resolvedIcon }
+                : {
+                    title: t("new_achievements_unlocked", {
+                      gameCount: nextRequest.gameCount,
+                      achievementCount: nextRequest.achievementCount,
+                    }),
+                    isHidden: false,
+                    isRare: false,
+                    isPlatinum: false,
+                    iconUrl: resolvedIcon,
+                  };
+
+            requestRef.current = nextRequest;
+            setRequest(nextRequest);
+            setAchievement(nextAchievement);
+            setPhase("prepared");
+          })
+          .catch((error) => {
+            if (preparationSequence.current !== sequence) return;
+            void window.electron.achievementNotificationFailed(
+              nextRequest.id,
+              `Failed to prepare notification content: ${getErrorMessage(error)}`
+            );
+          });
+      }
+    );
+
+    return () => unsubscribe();
+  }, [clearAnimationTimers, t]);
+
+  const reportContentReady = useCallback((requestId: string) => {
+    void window.electron
+      .achievementNotificationContentReady(requestId)
+      .catch((error) => {
+        void window.electron.achievementNotificationFailed(
+          requestId,
+          `Failed to report prepared notification: ${getErrorMessage(error)}`
+        );
+      });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!request || !achievement || phase !== "prepared") return;
+
+    let firstFrame = -1;
+    let secondFrame = -1;
+    firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        reportContentReady(request.id);
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+    };
+  }, [achievement, phase, request, reportContentReady]);
+
+  const finishNotification = useCallback((requestId: string) => {
+    if (requestRef.current?.id !== requestId) return;
+
+    preparationSequence.current += 1;
+    requestRef.current = null;
+    setRequest(null);
+    setAchievement(null);
+    setPhase("idle");
+    void window.electron.achievementNotificationFinished(requestId);
+  }, []);
+
+  const scheduleClosing = useCallback(
+    (requestId: string) => {
+      closingTimer.current = window.setTimeout(() => {
+        finishNotification(requestId);
+      }, CLOSING_TIMEOUT);
+    },
+    [finishNotification]
+  );
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onStartAchievementNotification(
+      (requestId) => {
+        if (requestRef.current?.id !== requestId) return;
+
+        setPhase("playing");
+        void playAudio();
+        clearAnimationTimers();
+
+        displayTimer.current = window.setTimeout(() => {
+          if (requestRef.current?.id !== requestId) return;
+          setPhase("closing");
+          scheduleClosing(requestId);
+        }, NOTIFICATION_TIMEOUT);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [clearAnimationTimers, playAudio, scheduleClosing]);
+
+  useEffect(() => {
+    return () => {
+      preparationSequence.current += 1;
+      clearAnimationTimers();
+    };
+  }, [clearAnimationTimers]);
 
   return (
     <root.div>
@@ -175,11 +289,12 @@ export function AchievementNotification() {
         {app} {styles}
       </style>
       <section ref={setShadowRootRef}>
-        {isVisible && currentAchievement && (
+        {request && achievement && phase !== "idle" && (
           <AchievementNotificationItem
-            achievement={currentAchievement}
-            isClosing={isClosing}
-            position={position}
+            achievement={achievement}
+            isClosing={phase === "closing"}
+            isPaused={phase === "prepared"}
+            position={request.position}
           />
         )}
       </section>
