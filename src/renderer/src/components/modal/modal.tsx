@@ -13,6 +13,7 @@ export interface ModalProps {
   title: React.ReactNode;
   description?: string;
   onClose: () => void;
+  className?: string;
   large?: boolean;
   noContentPadding?: boolean;
   children: React.ReactNode;
@@ -24,6 +25,7 @@ export function Modal({
   title,
   description,
   onClose,
+  className,
   large,
   noContentPadding,
   children,
@@ -121,10 +123,14 @@ export function Modal({
   return createPortal(
     <Backdrop isClosing={isClosing}>
       <div
-        className={cn("modal", {
-          "modal--closing": isClosing,
-          "modal--large": large,
-        })}
+        className={cn(
+          "modal",
+          {
+            "modal--closing": isClosing,
+            "modal--large": large,
+          },
+          className
+        )}
         role="dialog"
         aria-describedby={description}
         ref={modalContentRef}

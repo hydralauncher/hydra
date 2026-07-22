@@ -31,6 +31,7 @@ interface CloudSaveModalProps {
   hasError: boolean;
   progress: CloudSaveSyncProgressPayload | null;
   onSync: () => void;
+  onOpenFileBrowser: () => void;
   onSelectExecutable: () => void;
   onAutomaticSyncChange: (enabled: boolean) => Promise<void>;
   onResolveConflict: (resolution: CloudSaveConflictResolution) => void;
@@ -68,6 +69,7 @@ export function CloudSaveModal({
   hasError,
   progress,
   onSync,
+  onOpenFileBrowser,
   onSelectExecutable,
   onAutomaticSyncChange,
   onResolveConflict,
@@ -140,11 +142,11 @@ export function CloudSaveModal({
   const snapshotMetadata = (
     createdAt: string,
     fileCount: number,
-    totalSizeBytes: number
-  ) => (
-    <div className="cloud-save-v2__snapshot-metadata">
-      <span>{formatDateTime(createdAt)}</span>
-      <div className="cloud-save-v2__snapshot-stats">
+    totalSizeBytes: number,
+    interactive = false
+  ) => {
+    const stats = (
+      <>
         <span>
           {t("cloud_save_v2_file_count", {
             count: fileCount,
@@ -152,9 +154,34 @@ export function CloudSaveModal({
         </span>
         <span aria-hidden="true">·</span>
         <span>{formatBytes(totalSizeBytes)}</span>
+      </>
+    );
+
+    return (
+      <div className="cloud-save-v2__snapshot-metadata">
+        <span>{formatDateTime(createdAt)}</span>
+        {interactive ? (
+          <button
+            type="button"
+            className="cloud-save-v2__snapshot-stats cloud-save-v2__snapshot-stats--interactive"
+            onClick={onOpenFileBrowser}
+            disabled={isLoading || isSyncing}
+            aria-label={t(
+              overview?.state === "conflict"
+                ? "cloud_save_v2_view_conflicts"
+                : "cloud_save_v2_view_files"
+            )}
+          >
+            {overview?.state === "conflict"
+              ? t("cloud_save_v2_view_conflicts")
+              : stats}
+          </button>
+        ) : (
+          <div className="cloud-save-v2__snapshot-stats">{stats}</div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   let syncButtonIcon: ReactNode = <CloudIcon size={20} />;
   let syncButtonLabel = t("cloud_save_v2_sync_now");
@@ -290,13 +317,22 @@ export function CloudSaveModal({
                     {snapshotMetadata(
                       activeSnapshot.createdAt,
                       activeSnapshot.fileCount,
-                      activeSnapshot.totalSizeBytes
+                      activeSnapshot.totalSizeBytes,
+                      true
                     )}
                   </>
                 ) : (
                   !isLoading && (
                     <div className="cloud-save-v2__empty cloud-save-v2__empty--inline">
-                      {t("cloud_save_v2_no_snapshots")}
+                      <button
+                        type="button"
+                        className="cloud-save-v2__empty-files-link"
+                        onClick={onOpenFileBrowser}
+                        disabled={isSyncing}
+                        aria-label={t("cloud_save_v2_view_files")}
+                      >
+                        {t("cloud_save_v2_no_snapshots")}
+                      </button>
                     </div>
                   )
                 )}

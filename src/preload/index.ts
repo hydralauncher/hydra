@@ -41,6 +41,7 @@ import type {
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
+  CloudSaveV2FileDetails,
   CloudSaveSyncIpcProgressPayload,
   CloudSaveSyncProgressPayload,
   SyncGameCloudSaveResult,
@@ -96,6 +97,12 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveOverview>,
+  getCloudSaveV2FileDetails: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getCloudSaveV2FileDetails",
+      objectId,
+      shop
+    ) as Promise<CloudSaveV2FileDetails>,
   setCloudSaveAutomaticSyncEnabled: (
     objectId: string,
     shop: GameShop,

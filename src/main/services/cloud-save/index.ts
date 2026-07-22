@@ -6,6 +6,7 @@ export * from "./cloud-save-game-context";
 export * from "./create-remote-snapshot-from-local-state";
 export * from "./download-remote-snapshot-to-temp";
 export * from "./get-cloud-save-overview";
+export * from "./get-cloud-save-v2-file-details";
 export * from "./list-remote-game-snapshots";
 export * from "./launch-guard";
 export * from "./replace-restore-targets";

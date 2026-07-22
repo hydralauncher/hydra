@@ -48,6 +48,7 @@ export interface RestoreManifestFile {
   relativePath: string;
   hash: string;
   sizeBytes: number;
+  lastModifiedAt?: string | null;
 }
 
 export interface RestoreManifestResponse {
@@ -93,6 +94,68 @@ export interface CloudSaveStateResult {
 export interface CloudSaveOverview extends CloudSaveStateResult {
   snapshots: RemoteSnapshotSummary[];
   isAutomaticSyncEnabled: boolean;
+}
+
+export type CloudSaveV2FileComparisonStatus =
+  | "unchanged"
+  | "modified"
+  | "local-only"
+  | "remote-only";
+
+interface CloudSaveV2FileBase {
+  rawPath: string;
+  relativePath: string;
+  sizeBytes: number;
+  lastModifiedAt: string | null;
+}
+
+export interface CloudSaveV2LocalFile extends CloudSaveV2FileBase {
+  source: "local";
+  absolutePath: string;
+}
+
+export interface CloudSaveV2RemoteFile extends CloudSaveV2FileBase {
+  source: "remote";
+}
+
+export type CloudSaveV2File = CloudSaveV2LocalFile | CloudSaveV2RemoteFile;
+
+interface CloudSaveV2FileSourceBase {
+  fileCount: number;
+  totalSizeBytes: number;
+  files: CloudSaveV2File[];
+}
+
+export interface CloudSaveV2LocalFileSource extends CloudSaveV2FileSourceBase {
+  kind: "local";
+  files: CloudSaveV2LocalFile[];
+}
+
+export interface CloudSaveV2ActiveSnapshotFileSource
+  extends CloudSaveV2FileSourceBase {
+  kind: "active-snapshot";
+  snapshotId: string;
+  createdAt: string;
+  files: CloudSaveV2RemoteFile[];
+}
+
+export type CloudSaveV2FileSource =
+  | CloudSaveV2LocalFileSource
+  | CloudSaveV2ActiveSnapshotFileSource;
+
+export interface CloudSaveV2FileComparison {
+  rawPath: string;
+  relativePath: string;
+  status: CloudSaveV2FileComparisonStatus;
+  local: CloudSaveV2LocalFile | null;
+  remote: CloudSaveV2RemoteFile | null;
+}
+
+export interface CloudSaveV2FileDetails {
+  state: CloudSaveState;
+  local: CloudSaveV2LocalFileSource;
+  activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
+  comparisons: CloudSaveV2FileComparison[];
 }
 
 export type CloudSaveSyncTrigger =
