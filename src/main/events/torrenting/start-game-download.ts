@@ -1,9 +1,5 @@
 import { registerEvent } from "../register-event";
-import type {
-  Download,
-  StartGameDownloadPayload,
-  UserPreferences,
-} from "@types";
+import type { Download, StartGameDownloadPayload } from "@types";
 import {
   DownloadManager,
   DownloadOrchestrator,
@@ -11,8 +7,9 @@ import {
   logger,
 } from "@main/services";
 import { createGame } from "@main/services/library-sync";
-import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
+  getGlobalTrackers,
   handleDownloadError,
   isKnownDownloadError,
   prepareGameEntry,
@@ -35,19 +32,7 @@ const startGameDownload = async (
     selectedFilesSize,
   } = payload;
 
-  const userPreferences = await db.get<string, UserPreferences | null>(
-    levelKeys.userPreferences,
-    { valueEncoding: "json" }
-  );
-
-  const globalTrackers = [
-    ...(userPreferences?.appendGlobalTrackers
-      ? (userPreferences?.globalTrackers ?? [])
-      : []),
-    ...(userPreferences?.appendGlobalTrackersUrl
-      ? (userPreferences?.globalTrackersUrlCache ?? [])
-      : []),
-  ];
+  const globalTrackers = await getGlobalTrackers();
 
   const mergedTrackers =
     globalTrackers.length > 0 ? [...new Set(globalTrackers)] : undefined;

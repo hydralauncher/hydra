@@ -134,7 +134,13 @@ class TorrentDownloader:
             except Exception:
                 pass
 
-    def _build_add_torrent_params(self, magnet: str, save_path: str, flags):
+    def _build_add_torrent_params(
+        self,
+        magnet: str,
+        save_path: str,
+        flags,
+        trackers: Optional[List[str]] = None,
+    ):
         try:
             params = lt.parse_magnet_uri(magnet)
         except Exception as error:
@@ -143,13 +149,20 @@ class TorrentDownloader:
         params.save_path = save_path
         params.flags = flags
 
+        extra_trackers = trackers or []
         trackers = list(params.trackers)
         known_trackers = set(trackers)
 
         tiers = list(params.tracker_tiers)[: len(trackers)]
         tiers.extend([0] * (len(trackers) - len(tiers)))
 
-        fallback_tier = max(tiers) + 1 if tiers else 0
+        for tracker in extra_trackers:
+            if tracker in known_trackers:
+                continue
+
+            trackers.append(tracker)
+            known_trackers.add(tracker)
+            tiers.append(0)
 
         for tracker in self.trackers:
             if tracker in known_trackers:
@@ -157,7 +170,7 @@ class TorrentDownloader:
 
             trackers.append(tracker)
             known_trackers.add(tracker)
-            tiers.append(fallback_tier)
+            tiers.append(1)
 
         params.trackers = trackers
         params.tracker_tiers = tiers
@@ -253,6 +266,7 @@ class TorrentDownloader:
         save_path: str,
         file_indices: Optional[List[int]] = None,
         wait_timeout_seconds: float = 30.0,
+        trackers: Optional[List[str]] = None,
     ):
         selective_download = file_indices is not None
 
@@ -275,7 +289,9 @@ class TorrentDownloader:
             else:
                 initial_flags |= lt.torrent_flags.auto_managed
 
-            params = self._build_add_torrent_params(magnet, save_path, initial_flags)
+            params = self._build_add_torrent_params(
+                magnet, save_path, initial_flags, trackers
+            )
 
             if self.torrent_handle is None or not self.torrent_handle.is_valid():
                 self.torrent_handle = self.session.add_torrent(params)
