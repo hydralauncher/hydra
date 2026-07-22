@@ -44,7 +44,7 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
   /* Cancels any ongoing downloads */
   DownloadManager.cancelDownload();
 
-  HydraApi.handleSignOut();
+  await HydraApi.handleSignOut();
 
   /* The friends window is only meaningful while signed in */
   WindowManager.closeFriendsWindow();

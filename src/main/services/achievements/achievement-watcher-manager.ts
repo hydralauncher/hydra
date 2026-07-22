@@ -21,6 +21,7 @@ import { publishCombinedNewAchievementNotification } from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { setTimeout } from "node:timers/promises";
 import { Wine } from "../wine";
+import { AchievementMemoryStore } from "./achievement-memory-store";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 
 const fileStats: Map<string, number> = new Map();
@@ -190,6 +191,11 @@ export class AchievementWatcherManager {
 
   public static readonly alreadySyncedGames: Map<string, boolean> = new Map();
 
+  public static resetSessionState() {
+    this.alreadySyncedGames.clear();
+    AchievementMemoryStore.clear();
+  }
+
   public static async firstSyncWithRemoteIfNeeded(
     shop: GameShop,
     objectId: string
@@ -230,11 +236,21 @@ export class AchievementWatcherManager {
       }
     }
 
-    const newAchievements = await mergeAchievements(
-      game,
-      unlockedAchievements,
-      false
-    );
+    let newAchievements: number;
+    try {
+      newAchievements = await mergeAchievements(
+        game,
+        unlockedAchievements,
+        false
+      );
+    } catch (error) {
+      this.alreadySyncedGames.delete(gameKey);
+      throw error;
+    }
+
+    if (!game.remoteId) {
+      this.alreadySyncedGames.delete(gameKey);
+    }
 
     if (newAchievements > 0) {
       this.notifyCombinedAchievementsUnlocked(1, newAchievements);
