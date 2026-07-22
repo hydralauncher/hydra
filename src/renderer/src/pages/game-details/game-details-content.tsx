@@ -365,7 +365,7 @@ export function GameDetailsContent() {
                 )}
 
                 {game && objectId && game.shop === "steam" && (
-                  <CloudSaveWidget objectId={objectId} shop={shop} />
+                  <CloudSaveWidget />
                 )}
               </div>
             </div>

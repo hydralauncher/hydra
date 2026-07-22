@@ -1,4 +1,5 @@
 import { resolveCloudSaveConflict } from "@main/services/cloud-save";
+import { isGameRunning } from "@main/services/process-watcher";
 import type {
   CloudSaveConflictResolution,
   CloudSaveSyncIpcProgressPayload,
@@ -21,6 +22,11 @@ registerEvent(
     }
     if (resolution !== "keep-local" && resolution !== "keep-remote") {
       throw new Error("Invalid cloud save conflict resolution");
+    }
+    if (isGameRunning(objectId, shop)) {
+      throw new Error(
+        "Cloud save conflicts cannot be resolved while game is running"
+      );
     }
 
     return resolveCloudSaveConflict(objectId, shop, resolution, (progress) => {

@@ -31,6 +31,9 @@ export function CloudSaveStatusIcon({
   progress = null,
   size = 22,
 }: Readonly<CloudSaveStatusIconProps>) {
+  if (!isAvailable || !hasExecutablePath) {
+    return <CloudSlashIcon size={size} weight="fill" />;
+  }
   if (hasError) return <CloudSlashIcon size={size} weight="fill" />;
   if (progress?.stage === "uploading") {
     return <CloudArrowUpIcon size={size} weight="fill" />;
@@ -40,9 +43,6 @@ export function CloudSaveStatusIcon({
   }
   if (isChecking || isSyncing) {
     return <CircleNotchIcon className="cloud-save-v2__spinner" size={size} />;
-  }
-  if (!isAvailable || !hasExecutablePath) {
-    return <CloudSlashIcon size={size} weight="fill" />;
   }
   if (overview?.state === "synced") {
     return <CloudCheckIcon size={size} weight="fill" />;
