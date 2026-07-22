@@ -263,6 +263,7 @@
     "cloud_save": "Uložení v cloudu",
     "cloud_save_description": "Uložte si svůj postup v cloud a pokračujte v hraní na jakémkoliv zářízení",
     "cloud_save_v2_view_conflicts": "Zobrazit konflikty",
+    "cloud_save_v2_resolve_before_launch": "Před spuštěním hry vyřešte konflikt.",
     "backups": "Zálohy",
     "install_backup": "Nainstalovat",
     "delete_backup": "Smazat",

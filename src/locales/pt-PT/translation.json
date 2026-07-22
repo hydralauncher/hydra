@@ -329,6 +329,7 @@
     "cloud_save": "Gravação na nuvem",
     "cloud_save_description": "Mantém o teu progresso guardado na nuvem e continua de onde paraste em qualquer dispositivo",
     "cloud_save_v2_view_conflicts": "Ver conflitos",
+    "cloud_save_v2_resolve_before_launch": "Resolve o conflito antes de iniciar o jogo.",
     "backups": "Backups",
     "install_backup": "Restaurar",
     "delete_backup": "Apagar",

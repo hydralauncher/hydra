@@ -458,6 +458,7 @@
     "cloud_save": "Cloud save",
     "cloud_save_description": "Simpan progres kamu di cloud dan lanjutkan bermain di perangkat mana saja",
     "cloud_save_v2_view_conflicts": "Lihat konflik",
+    "cloud_save_v2_resolve_before_launch": "Selesaikan konflik sebelum menjalankan game.",
     "backups": "Cadangan",
     "install_backup": "Instal",
     "delete_backup": "Hapus",

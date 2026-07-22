@@ -234,6 +234,7 @@
     "cloud_save": "Bulutli saqlash",
     "cloud_save_description": "O'yin jarayoningizni bulutda saqlang va istalgan qurilmada o'ynashni davom ettiring",
     "cloud_save_v2_view_conflicts": "Ziddiyatlarni ko‘rish",
+    "cloud_save_v2_resolve_before_launch": "O‘yinni ishga tushirishdan oldin ziddiyatni hal qiling.",
     "backups": "Zaxira nusxalar",
     "install_backup": "O'rnatish",
     "delete_backup": "O'chirish",

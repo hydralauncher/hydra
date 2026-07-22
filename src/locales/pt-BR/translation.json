@@ -345,6 +345,7 @@
     "cloud_save_v2_file_count_other": "{{count}} arquivos",
     "cloud_save_v2_view_files": "Visualizar arquivos",
     "cloud_save_v2_view_conflicts": "Visualizar conflitos",
+    "cloud_save_v2_resolve_before_launch": "Resolva o conflito antes de iniciar o jogo.",
     "cloud_save_v2_files_modal_title": "Arquivos locais reconhecidos",
     "cloud_save_v2_files_modal_description": "Confira os caminhos reais dos arquivos de save reconhecidos neste dispositivo.",
     "cloud_save_v2_conflicts_modal_title": "Comparar arquivos em conflito",

@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 
 import type {
   CloudSaveConflictResolution,
@@ -59,6 +60,7 @@ export function CloudSaveWidget({
   shop,
 }: Readonly<CloudSaveWidgetProps>) {
   const { t } = useTranslation("game_details");
+  const [searchParams, setSearchParams] = useSearchParams();
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showErrorToast, showWarningToast } = useToast();
   const { game, setShowGameOptionsModal, setGameOptionsInitialCategory } =
@@ -71,6 +73,8 @@ export function CloudSaveWidget({
       enabled: canUseCloudSaves,
     });
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
+    useState(false);
   const [isFileBrowserVisible, setIsFileBrowserVisible] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [progress, setProgress] = useState<CloudSaveSyncProgressPayload | null>(
@@ -100,9 +104,22 @@ export function CloudSaveWidget({
     setHasSyncError(false);
     setIsSyncing(false);
     setIsModalVisible(false);
+    setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
     setPendingResolution(null);
   }, [gameKey]);
+
+  useEffect(() => {
+    if (searchParams.get("openCloudSaveConflict") !== "1") return;
+
+    setIsFileBrowserVisible(false);
+    setWasOpenedFromLaunchConflict(true);
+    setIsModalVisible(true);
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("openCloudSaveConflict");
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     return window.electron.onCloudSaveAutomaticSync((event) => {
@@ -125,7 +142,7 @@ export function CloudSaveWidget({
         );
       } else {
         setHasSyncError(false);
-        if (event.status === "conflict") {
+        if (event.status === "conflict" && event.trigger !== "pre-launch") {
           showWarningToast(
             t("cloud_save_v2_auto_sync_conflict_title"),
             t("cloud_save_v2_auto_sync_conflict_description")
@@ -162,11 +179,13 @@ export function CloudSaveWidget({
       setShowGameOptionsModal(true);
       return;
     }
+    setWasOpenedFromLaunchConflict(false);
     setIsModalVisible(true);
   };
 
   const handleSelectExecutable = () => {
     setIsModalVisible(false);
+    setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
     setGameOptionsInitialCategory("locations");
     setShowGameOptionsModal(true);
@@ -256,6 +275,7 @@ export function CloudSaveWidget({
 
       <CloudSaveModal
         visible={isModalVisible}
+        showLaunchConflictWarning={wasOpenedFromLaunchConflict}
         overview={overview}
         isLoading={isRefreshing}
         isSyncing={isSyncing}
@@ -278,6 +298,7 @@ export function CloudSaveWidget({
         onClose={() => {
           setIsFileBrowserVisible(false);
           setIsModalVisible(false);
+          setWasOpenedFromLaunchConflict(false);
         }}
       />
 

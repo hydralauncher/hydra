@@ -266,6 +266,7 @@
     "cloud_save": "Хмарне Збереження",
     "cloud_save_description": "Збережіть свій ігровий процесс у хмарі та продовжіть грати з любого пристрою",
     "cloud_save_v2_view_conflicts": "Переглянути конфлікти",
+    "cloud_save_v2_resolve_before_launch": "Вирішіть конфлікт перед запуском гри.",
     "backups": "Резервні копії",
     "install_backup": "Встановити",
     "delete_backup": "Видалити",

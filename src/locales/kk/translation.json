@@ -349,6 +349,7 @@
     "cloud_save": "Cloud save",
     "cloud_save_description": "Save your progress in the cloud and continue playing on any device",
     "cloud_save_v2_view_conflicts": "Қайшылықтарды көру",
+    "cloud_save_v2_resolve_before_launch": "Ойынды іске қоспас бұрын қайшылықты шешіңіз.",
     "backups": "Backups",
     "install_backup": "Install",
     "delete_backup": "Delete",

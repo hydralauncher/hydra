@@ -23,6 +23,7 @@ import { useDate } from "@renderer/hooks";
 
 interface CloudSaveModalProps {
   visible: boolean;
+  showLaunchConflictWarning: boolean;
   overview: CloudSaveOverview | null;
   isLoading: boolean;
   isSyncing: boolean;
@@ -61,6 +62,7 @@ const MAX_VISIBLE_HISTORICAL_SNAPSHOTS = 3;
 
 export function CloudSaveModal({
   visible,
+  showLaunchConflictWarning,
   overview,
   isLoading,
   isSyncing,
@@ -295,6 +297,12 @@ export function CloudSaveModal({
             <span className="cloud-save-v2__switch-thumb" />
           </button>
         </div>
+
+        {showLaunchConflictWarning && overview?.state === "conflict" && (
+          <p className="cloud-save-v2__launch-conflict-warning">
+            {t("cloud_save_v2_resolve_before_launch")}
+          </p>
+        )}
 
         {!hasExecutablePath ? (
           missingExecutableCard

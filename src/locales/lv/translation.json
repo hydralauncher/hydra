@@ -319,6 +319,7 @@
     "cloud_save": "Mākoņglabāšana",
     "cloud_save_description": "Glabājiet savu progresu mākonī un turpiniet spēlēt jebkurā ierīcē",
     "cloud_save_v2_view_conflicts": "Skatīt konfliktus",
+    "cloud_save_v2_resolve_before_launch": "Pirms spēles palaišanas atrisiniet konfliktu.",
     "backups": "Rezerves kopijas",
     "install_backup": "Instalēt",
     "delete_backup": "Dzēst",

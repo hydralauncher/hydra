@@ -265,6 +265,7 @@
     "cloud_save": "Molnspara",
     "cloud_save_description": "Spara dina framsteg i molnet och fortsätt spela på vilken enhet som helst",
     "cloud_save_v2_view_conflicts": "Visa konflikter",
+    "cloud_save_v2_resolve_before_launch": "Lös konflikten innan du startar spelet.",
     "backups": "Säkerhetskopior",
     "install_backup": "Installera",
     "delete_backup": "Ta bort",

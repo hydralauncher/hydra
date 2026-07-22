@@ -346,6 +346,7 @@
     "cloud_save": "Cloud save",
     "cloud_save_description": "Save your progress in the cloud and continue playing on any device",
     "cloud_save_v2_view_conflicts": "Vezi conflictele",
+    "cloud_save_v2_resolve_before_launch": "Rezolvă conflictul înainte de a porni jocul.",
     "backups": "Backups",
     "install_backup": "Install",
     "delete_backup": "Delete",
