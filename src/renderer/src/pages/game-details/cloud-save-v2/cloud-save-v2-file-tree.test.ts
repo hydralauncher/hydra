@@ -105,6 +105,66 @@ describe("cloud save V2 local file tree", () => {
     assert.notEqual(roots[0].children[0].id, roots[1].children[0].id);
   });
 
+  it("groups different rules that resolve to the same local directory", () => {
+    const roots = buildCloudSaveV2LocalFileTree([
+      localFile(
+        "rule-slots",
+        "0.celeste",
+        "D:\\Games\\Celeste\\Saves\\0.celeste"
+      ),
+      localFile(
+        "rule-settings",
+        "settings.celeste",
+        "d:/games/celeste/saves/settings.celeste"
+      ),
+    ]);
+
+    assert.equal(roots.length, 1);
+    assert.deepEqual(
+      roots[0].children.map((node) => node.name),
+      ["0.celeste", "settings.celeste"]
+    );
+    assert.notEqual(roots[0].children[0].id, roots[0].children[1].id);
+    assert.equal(roots[0].children[0].type, "file");
+    assert.equal(roots[0].children[1].type, "file");
+    if (
+      roots[0].children[0].type !== "file" ||
+      roots[0].children[1].type !== "file"
+    ) {
+      return;
+    }
+    assert.equal(roots[0].children[0].local?.rawPath, "rule-slots");
+    assert.equal(roots[0].children[1].local?.rawPath, "rule-settings");
+  });
+
+  it("merges shared nested directories across different rules", () => {
+    const [root] = buildCloudSaveV2LocalFileTree([
+      localFile(
+        "rule-slots",
+        "profiles/one/slot.dat",
+        "C:\\Saves\\profiles\\one\\slot.dat"
+      ),
+      localFile(
+        "rule-settings",
+        "profiles/one/settings.dat",
+        "C:\\Saves\\profiles\\one\\settings.dat"
+      ),
+    ]);
+
+    assert.equal(root.children.length, 1);
+    const profiles = root.children[0];
+    assert.equal(profiles.type, "directory");
+    if (profiles.type !== "directory") return;
+    assert.equal(profiles.children.length, 1);
+    const one = profiles.children[0];
+    assert.equal(one.type, "directory");
+    if (one.type !== "directory") return;
+    assert.deepEqual(
+      one.children.map((node) => node.name),
+      ["settings.dat", "slot.dat"]
+    );
+  });
+
   it("sorts directories before files and preserves metadata", () => {
     const [root] = buildCloudSaveV2LocalFileTree([
       localFile("rule", "z.dat", "/saves/z.dat", 8),
