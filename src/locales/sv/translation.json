@@ -264,6 +264,7 @@
     "achievements_count": "Prestationer {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "Molnspara",
     "cloud_save_description": "Spara dina framsteg i molnet och fortsätt spela på vilken enhet som helst",
+    "cloud_save_v2_view_conflicts": "Visa konflikter",
     "backups": "Säkerhetskopior",
     "install_backup": "Installera",
     "delete_backup": "Ta bort",

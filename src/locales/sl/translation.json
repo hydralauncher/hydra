@@ -317,6 +317,7 @@
     "maybe_later": "Mogoče kasneje",
     "cloud_save": "Shranjevanje v oblaku",
     "cloud_save_description": "Shranjujte napredek v oblak in nadaljujte igranje na katerikoli napravi",
+    "cloud_save_v2_view_conflicts": "Prikaži spore",
     "backups": "Varnostne kopije",
     "install_backup": "Namesti",
     "delete_backup": "Izbriši",

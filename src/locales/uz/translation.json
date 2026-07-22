@@ -233,6 +233,7 @@
     "achievements_count": "Yutuqlar {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "Bulutli saqlash",
     "cloud_save_description": "O'yin jarayoningizni bulutda saqlang va istalgan qurilmada o'ynashni davom ettiring",
+    "cloud_save_v2_view_conflicts": "Ziddiyatlarni ko‘rish",
     "backups": "Zaxira nusxalar",
     "install_backup": "O'rnatish",
     "delete_backup": "O'chirish",

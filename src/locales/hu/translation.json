@@ -362,6 +362,7 @@
     "maybe_later": "Talán később",
     "cloud_save": "Mentés felhőben",
     "cloud_save_description": "Mentsd el az előrehaladásod a felhőben, majd folytasd egy másik eszközön",
+    "cloud_save_v2_view_conflicts": "Ütközések megtekintése",
     "backups": "Biztonsági másolatok",
     "install_backup": "Telepít",
     "delete_backup": "Töröl",

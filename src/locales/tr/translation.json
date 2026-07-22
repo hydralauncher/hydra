@@ -264,6 +264,7 @@
     "achievements_count": "Başarımlar {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "Bulut Kaydı",
     "cloud_save_description": "İlerlemenizi buluta kaydedin ve herhangi bir cihazdan devam edin",
+    "cloud_save_v2_view_conflicts": "Çakışmaları görüntüle",
     "backups": "Yedekler",
     "install_backup": "Yükle",
     "delete_backup": "Sil",

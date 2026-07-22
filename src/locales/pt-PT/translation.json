@@ -328,6 +328,7 @@
     "maybe_later": "Talvez mais tarde",
     "cloud_save": "Gravação na nuvem",
     "cloud_save_description": "Mantém o teu progresso guardado na nuvem e continua de onde paraste em qualquer dispositivo",
+    "cloud_save_v2_view_conflicts": "Ver conflitos",
     "backups": "Backups",
     "install_backup": "Restaurar",
     "delete_backup": "Apagar",

@@ -261,6 +261,7 @@
     "achievements_count": "成就 {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "云存档",
     "cloud_save_description": "将您的进度保存在云端，便可在任何设备上继续游戏。",
+    "cloud_save_v2_view_conflicts": "查看冲突",
     "backups": "备份",
     "install_backup": "安装",
     "delete_backup": "删除",
