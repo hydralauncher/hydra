@@ -44,7 +44,7 @@ export function CloudSaveV2FileBrowserModal({
 }: Readonly<CloudSaveV2FileBrowserModalProps>) {
   const { t } = useTranslation("game_details");
   const { showErrorToast } = useToast();
-  const [showOnlyChanged, setShowOnlyChanged] = useState(false);
+  const [showOnlyChanged, setShowOnlyChanged] = useState(true);
   const [isFileListScrolled, setIsFileListScrolled] = useState(false);
   const isConflict = details?.state === "conflict";
   const titleIsConflict = isConflict || overviewState === "conflict";
@@ -79,7 +79,7 @@ export function CloudSaveV2FileBrowserModal({
   }, [details?.comparisons]);
 
   useEffect(() => {
-    if (!visible) setShowOnlyChanged(false);
+    if (!visible) setShowOnlyChanged(true);
   }, [visible]);
 
   const showPathError = () => {
@@ -195,16 +195,6 @@ export function CloudSaveV2FileBrowserModal({
                     }
                   />
                 </div>
-              )}
-
-              {isLoading && (
-                <span className="cloud-save-v2__browser-refreshing">
-                  <CircleNotchIcon
-                    className="cloud-save-v2__spinner"
-                    size={14}
-                  />
-                  {t("cloud_save_v2_files_refreshing")}
-                </span>
               )}
             </div>
 

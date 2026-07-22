@@ -34,6 +34,9 @@ const statusTranslationKey: Record<CloudSaveV2FileComparisonStatus, string> = {
   "remote-only": "cloud_save_v2_file_remote_only",
 };
 
+const TREE_LEVEL_INDENT_PX = 24;
+const TREE_ROW_PADDING_PX = 8;
+
 const getRootIdsFromFingerprint = (fingerprint: string) =>
   fingerprint ? fingerprint.split("\u0000") : [];
 
@@ -81,12 +84,12 @@ export function CloudSaveV2FileTreeView({
   const fileMetadata = (file: CloudSaveV2LocalFile | CloudSaveV2RemoteFile) => (
     <span className="cloud-save-v2__browser-file-metadata">
       <span>{formatBytes(file.sizeBytes)}</span>
-      <span aria-hidden="true">·</span>
-      <span>
-        {file.lastModifiedAt
-          ? formatDateTime(file.lastModifiedAt)
-          : t("cloud_save_v2_file_date_unavailable")}
-      </span>
+      {file.lastModifiedAt && (
+        <>
+          <span aria-hidden="true">·</span>
+          <span>{formatDateTime(file.lastModifiedAt)}</span>
+        </>
+      )}
     </span>
   );
 
@@ -161,6 +164,9 @@ export function CloudSaveV2FileTreeView({
   };
 
   const renderNode = (node: CloudSaveV2FileTreeNode, depth: number) => {
+    const hierarchyOffset = depth * TREE_LEVEL_INDENT_PX;
+    const contentPaddingLeft = `${TREE_ROW_PADDING_PX + hierarchyOffset}px`;
+
     if (node.type === "file") {
       if (mode === "local") {
         return (
@@ -169,7 +175,7 @@ export function CloudSaveV2FileTreeView({
             role="treeitem"
             aria-selected="false"
             className="cloud-save-v2__browser-local-row"
-            style={{ paddingLeft: `${8 + depth * 16}px` }}
+            style={{ paddingLeft: contentPaddingLeft }}
           >
             <span className="cloud-save-v2__browser-tree-spacer" />
             {localFileCell(node.local, node.name)}
@@ -188,7 +194,7 @@ export function CloudSaveV2FileTreeView({
           <span className="cloud-save-v2__browser-tree-spacer" />
           <div
             className="cloud-save-v2__browser-diff-cell"
-            style={{ paddingLeft: `${8 + depth * 16}px` }}
+            style={{ paddingLeft: contentPaddingLeft }}
           >
             {localFileCell(node.local, node.name)}
           </div>
@@ -201,7 +207,7 @@ export function CloudSaveV2FileTreeView({
           </div>
           <div
             className="cloud-save-v2__browser-diff-cell"
-            style={{ paddingLeft: `${8 + depth * 16}px` }}
+            style={{ paddingLeft: contentPaddingLeft }}
           >
             {remoteFileCell(node.remote, node.name)}
           </div>
@@ -216,7 +222,7 @@ export function CloudSaveV2FileTreeView({
       ? formatCloudSaveV2LocalPath(node.localDirectoryPath)
       : null;
     const remoteName = node.type === "root" ? node.rawPath : node.name;
-    const childDepth = node.type === "root" ? depth : depth + 1;
+    const childDepth = depth + 1;
     const children = isExpanded ? (
       <ul className="cloud-save-v2__browser-tree-list" role="group">
         {node.children.map((child) => renderNode(child, childDepth))}
@@ -233,7 +239,7 @@ export function CloudSaveV2FileTreeView({
         >
           <div
             className="cloud-save-v2__browser-local-row cloud-save-v2__browser-folder-row"
-            style={{ paddingLeft: `${8 + depth * 16}px` }}
+            style={{ paddingLeft: contentPaddingLeft }}
           >
             <button
               type="button"
@@ -289,6 +295,7 @@ export function CloudSaveV2FileTreeView({
             className="cloud-save-v2__browser-tree-toggle"
             aria-expanded={isExpanded}
             onClick={() => toggleNode(node.id)}
+            style={{ transform: `translateX(${hierarchyOffset}px)` }}
           >
             <ChevronRightIcon
               size={15}
@@ -297,7 +304,7 @@ export function CloudSaveV2FileTreeView({
           </button>
           <div
             className="cloud-save-v2__browser-diff-cell"
-            style={{ paddingLeft: `${8 + depth * 16}px` }}
+            style={{ paddingLeft: contentPaddingLeft }}
           >
             {node.hasLocalFiles ? (
               <div className="cloud-save-v2__browser-folder-cell">
@@ -333,7 +340,7 @@ export function CloudSaveV2FileTreeView({
           <div className="cloud-save-v2__browser-status-cell" />
           <div
             className="cloud-save-v2__browser-diff-cell"
-            style={{ paddingLeft: `${8 + depth * 16}px` }}
+            style={{ paddingLeft: contentPaddingLeft }}
           >
             {node.hasRemoteFiles ? (
               <div className="cloud-save-v2__browser-folder-cell">
