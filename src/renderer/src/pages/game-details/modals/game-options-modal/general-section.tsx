@@ -387,7 +387,7 @@ export function GeneralSettingsSection({
           {t("delete_steam_shortcut")}
         </Button>
       );
-    } else if (game.shop !== "launchbox" && hasShortcutLaunchTarget) {
+    } else if (hasShortcutLaunchTarget) {
       steamShortcutButton = (
         <Button
           onClick={onCreateSteamShortcut}
