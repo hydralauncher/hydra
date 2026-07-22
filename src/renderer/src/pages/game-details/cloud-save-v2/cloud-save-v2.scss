@@ -378,17 +378,11 @@
     }
   }
 
-  &__browser-refreshing,
   &__browser-inline-error,
   &__browser-state {
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
-  }
-
-  &__browser-refreshing {
-    color: globals.$muted-color;
-    font-size: globals.$small-font-size;
   }
 
   &__browser-inline-error {
@@ -416,8 +410,15 @@
     color: globals.$muted-color;
 
     &--error {
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: auto auto;
+      align-content: center;
       color: globals.$error-color;
+
+      button {
+        grid-column: 1 / -1;
+        justify-self: center;
+      }
     }
   }
 
@@ -626,6 +627,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1;
     width: 28px;
     height: 28px;
     align-self: center;
