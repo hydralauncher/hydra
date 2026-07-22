@@ -45,8 +45,12 @@ function Header() {
   const pageTitle = useCurrentPageTitle();
   const isOnCataloguePage =
     normalizeBigPicturePathname(pathname) === "/catalogue";
+  const isOnHomePage = normalizeBigPicturePathname(pathname) === "/";
   const catalogueSearchValue = searchParams.get("title") ?? "";
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const shouldShowHomeTitle = isOnHomePage && !isSearchOpen;
+  const shouldShowBackButton = !isOnHomePage;
   const [searchValue, setSearchValue] = useState(() =>
     isOnCataloguePage ? catalogueSearchValue : ""
   );
@@ -65,7 +69,6 @@ function Header() {
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLFormElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
   const searchNavigationOverrides: FocusOverrides = {
     left: {
       type: "item",
@@ -284,14 +287,24 @@ function Header() {
     <div className="header">
       <HorizontalFocusGroup regionId={BIG_PICTURE_HEADER_REGION_ID} asChild>
         <header className="header__container">
-          <FocusItem id={HEADER_BACK_BUTTON_ID} asChild>
-            <button className="header__action" onClick={() => navigate(-1)}>
-              <ArrowLeftIcon size={24} weight="bold" />
-              <Typography variant="label" className="header__title">
+          {shouldShowHomeTitle && (
+            <div className="header__home-title">
+              <Typography variant="h4" className="header__title">
                 {pageTitle}
               </Typography>
-            </button>
-          </FocusItem>
+            </div>
+          )}
+
+          {shouldShowBackButton && (
+            <FocusItem id={HEADER_BACK_BUTTON_ID} asChild>
+              <button className="header__action" onClick={() => navigate(-1)}>
+                <ArrowLeftIcon size={24} weight="bold" />
+                <Typography variant="label" className="header__title">
+                  {pageTitle}
+                </Typography>
+              </button>
+            </FocusItem>
+          )}
 
           <form
             ref={searchRef}
