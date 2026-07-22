@@ -53,11 +53,7 @@ const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   return currentSize < expectedSize;
 };
 
-interface LoadStateOptions {
-  onLaunchReady?: () => void;
-}
-
-export const loadState = async (options: LoadStateOptions = {}) => {
+export const loadState = async () => {
   await Lock.acquireLock();
   await clearLegacyAchievementPersistence();
 
@@ -71,9 +67,6 @@ export const loadState = async (options: LoadStateOptions = {}) => {
   Wine.syncUserPreferences(userPreferences);
 
   await import("./events");
-
-  await HydraApi.setupApi({ refreshUserData: false });
-  options.onLaunchReady?.();
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
@@ -100,7 +93,7 @@ export const loadState = async (options: LoadStateOptions = {}) => {
     DeckyPlugin.checkAndUpdateIfOutdated();
   }
 
-  await HydraApi.refreshUserData().then(async () => {
+  await HydraApi.setupApi().then(async () => {
     uploadGamesBatch();
     void migrateDownloadSources();
 
