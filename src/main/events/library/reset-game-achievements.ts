@@ -3,12 +3,9 @@ import { findAchievementFiles } from "@main/services/achievements/find-achieveme
 import fs from "fs";
 import { achievementsLogger, HydraApi, WindowManager } from "@main/services";
 import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
-import {
-  gameAchievementsSublevel,
-  gamesSublevel,
-  levelKeys,
-} from "@main/level";
+import { gamesSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
+import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 
 const resetGameAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -30,16 +27,13 @@ const resetGameAchievements = async (
       }
     }
 
-    await gameAchievementsSublevel
-      .get(levelKey)
-      .then(async (gameAchievements) => {
-        if (gameAchievements) {
-          await gameAchievementsSublevel.put(levelKey, {
-            ...gameAchievements,
-            unlockedAchievements: [],
-          });
-        }
+    const gameAchievements = AchievementMemoryStore.get(shop, objectId);
+    if (gameAchievements) {
+      AchievementMemoryStore.set(shop, objectId, {
+        ...gameAchievements,
+        unlockedAchievements: [],
       });
+    }
 
     await HydraApi.delete(`/profile/games/achievements/${game.remoteId}`).then(
       () =>
@@ -48,7 +42,7 @@ const resetGameAchievements = async (
         )
     );
 
-    const gameAchievements = await getUnlockedAchievements(
+    const updatedAchievements = await getUnlockedAchievements(
       game.objectId,
       game.shop,
       true
@@ -56,7 +50,7 @@ const resetGameAchievements = async (
 
     WindowManager.mainWindow?.webContents.send(
       `on-update-achievements-${game.objectId}-${game.shop}`,
-      gameAchievements
+      updatedAchievements
     );
   } catch (error) {
     achievementsLogger.error(error);
