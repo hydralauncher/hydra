@@ -262,6 +262,7 @@
     "cloud_save": "Pilvesalvestus",
     "cloud_save_description": "Salvesta oma progress pilve ja jätka mängimist mistahes seadmes",
     "cloud_save_v2_view_conflicts": "Kuva konfliktid",
+    "cloud_save_v2_resolve_before_launch": "Lahenda konflikt enne mängu käivitamist.",
     "backups": "Varundused",
     "install_backup": "Installi",
     "delete_backup": "Kustuta",

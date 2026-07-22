@@ -12,6 +12,7 @@ import {
   rotateCloudSavePrefixGeneration,
   runAutomaticCloudSaveSync,
   setCloudSaveLaunchGuard,
+  shouldBlockGameLaunchForCloudSave,
 } from "@main/services/cloud-save";
 import {
   WindowManager,
@@ -506,6 +507,24 @@ export const launchGame = async (
       "[Cloud Save] Pre-launch restore skipped because Wine prefix is invalid",
       { shop, objectId }
     );
+  }
+
+  if (shouldBlockGameLaunchForCloudSave(preLaunchResult)) {
+    const searchParams = new URLSearchParams({
+      title: game?.title ?? objectId,
+      openCloudSaveConflict: "1",
+    });
+
+    logger.warn("[Cloud Save] Game launch blocked by unresolved conflict", {
+      shop,
+      objectId,
+    });
+    clearCloudSaveLaunchGuard(objectId, shop);
+    WindowManager.closeGameLauncherWindow();
+    WindowManager.redirectToMainWindow(
+      `game/${shop}/${objectId}?${searchParams.toString()}`
+    );
+    return null;
   }
 
   if (cloudSaveContext) {

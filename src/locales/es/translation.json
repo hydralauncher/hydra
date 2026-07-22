@@ -335,6 +335,7 @@
     "cloud_save": "Guardado en la nube",
     "cloud_save_description": "Guardá tu progreso en la nube y jugá en cualquier dispositivo",
     "cloud_save_v2_view_conflicts": "Ver conflictos",
+    "cloud_save_v2_resolve_before_launch": "Resuelve el conflicto antes de iniciar el juego.",
     "backups": "Copia de seguridad",
     "install_backup": "Instalar",
     "delete_backup": "Eliminar",

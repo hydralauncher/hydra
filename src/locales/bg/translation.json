@@ -444,6 +444,7 @@
     "cloud_save": "Облачно запазване",
     "cloud_save_description": "Запазете прогреса си в облака и продължете да играете на всяко устройство",
     "cloud_save_v2_view_conflicts": "Преглед на конфликтите",
+    "cloud_save_v2_resolve_before_launch": "Разрешете конфликта, преди да стартирате играта.",
     "backups": "Архиви",
     "install_backup": "Инсталирай",
     "delete_backup": "Изтрий",

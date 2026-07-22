@@ -6,6 +6,7 @@ import {
   canUploadCloudSaveAfterLaunch,
   consumeCloudSaveLaunchGuard,
   setCloudSaveLaunchGuard,
+  shouldBlockGameLaunchForCloudSave,
 } from "./launch-guard.ts";
 
 describe("cloud save launch guard", () => {
@@ -79,5 +80,33 @@ describe("cloud save launch guard", () => {
       canCreateCloudSaveUploadGuard(false, "environment-a", result),
       false
     );
+  });
+
+  it("blocks launch only for a pre-launch cloud save conflict", () => {
+    const conflict = {
+      trigger: "pre-launch" as const,
+      action: "conflict" as const,
+      initialState: "conflict" as const,
+      finalState: "conflict" as const,
+    };
+
+    assert.equal(shouldBlockGameLaunchForCloudSave(conflict), true);
+    assert.equal(
+      shouldBlockGameLaunchForCloudSave({
+        ...conflict,
+        trigger: "environment-changed",
+      }),
+      false
+    );
+    assert.equal(
+      shouldBlockGameLaunchForCloudSave({
+        ...conflict,
+        action: "none",
+        initialState: "synced",
+        finalState: "synced",
+      }),
+      false
+    );
+    assert.equal(shouldBlockGameLaunchForCloudSave(null), false);
   });
 });

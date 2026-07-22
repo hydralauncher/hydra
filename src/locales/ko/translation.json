@@ -346,6 +346,7 @@
     "cloud_save": "Cloud save",
     "cloud_save_description": "Save your progress in the cloud and continue playing on any device",
     "cloud_save_v2_view_conflicts": "충돌 보기",
+    "cloud_save_v2_resolve_before_launch": "게임을 실행하기 전에 충돌을 해결하세요.",
     "backups": "Backups",
     "install_backup": "Install",
     "delete_backup": "Delete",
