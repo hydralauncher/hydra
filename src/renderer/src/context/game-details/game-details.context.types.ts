@@ -36,6 +36,7 @@ export interface GameDetailsContext {
   transferProgress: number;
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;
+  refreshGameDetails: () => Promise<void>;
   setShowRepacksModal: React.Dispatch<React.SetStateAction<boolean>>;
   setShowGameOptionsModal: React.Dispatch<React.SetStateAction<boolean>>;
   setGameOptionsInitialCategory: React.Dispatch<

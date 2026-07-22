@@ -5,11 +5,13 @@ import type { LibraryGame } from "@types";
 import { registerEvent } from "../register-event";
 import {
   downloadsSublevel,
-  gameAchievementsSublevel,
+  gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
   gamesSublevel,
 } from "@main/level";
+import { composeAssetsWithArtwork } from "@shared";
+import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 
 const lookupCachedPlatform = async (
   gameKey: string
@@ -43,9 +45,16 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
           .map(async ([key, game]) => {
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
-            const achievements = await gameAchievementsSublevel
-              .get(key)
-              .catch(() => null);
+            const artworkSelection =
+              await gamesArtworkSelectionSublevel.get(key);
+            const composedAssets = composeAssetsWithArtwork(
+              gameAssets ?? null,
+              artworkSelection
+            );
+            const achievements = AchievementMemoryStore.get(
+              game.shop,
+              game.objectId
+            );
 
             const validAchievementNames = new Set(
               achievements?.achievements?.map((a) =>
@@ -111,13 +120,14 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               download: download ?? null,
               unlockedAchievementCount,
               achievementCount: game.achievementCount ?? 0,
-              // Spread gameAssets last to ensure all image URLs are properly set
-              ...gameAssets,
-              title: gameAssets?.title || game.title,
+              // Spread composed assets last to ensure all image URLs are properly set
+              ...composedAssets,
+              title: composedAssets?.title || game.title,
               // Preserve custom image URLs from game if they exist
               customIconUrl: game.customIconUrl,
               customLogoImageUrl: game.customLogoImageUrl,
               customHeroImageUrl: game.customHeroImageUrl,
+              customCoverImageUrl: game.customCoverImageUrl,
             };
           })
       );

@@ -17,8 +17,10 @@ import {
 import {
   ClassicsCoverBadges,
   ClassicsVerticalCoverMedia,
+  useFocusAnimatedCover,
   useLibraryGameCardPresentation,
 } from "./card-presentation";
+import { useNavigationIsFocused } from "../../../stores";
 
 export interface VerticalLibraryGameCardProps {
   game: LibraryGame;
@@ -83,6 +85,7 @@ export function VerticalLibraryGameCard({
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const {
     activeImageSource,
+    isChosenCoverActive,
     achievementProgress,
     classicsEmulatorIcon,
     classicsPlatformLabel,
@@ -91,11 +94,13 @@ export function VerticalLibraryGameCard({
     playtimeLabel,
   } = useLibraryGameCardPresentation(game, "vertical");
   const focusId = getLibraryFocusGridItemId(game.id);
+  const isFocused = useNavigationIsFocused(focusId);
+  const displayCover = useFocusAnimatedCover(activeImageSource, isFocused);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
   const coverMedia =
-    game.shop === "launchbox" && activeImageSource ? (
+    game.shop === "launchbox" && activeImageSource && !isChosenCoverActive ? (
       <ClassicsVerticalCoverMedia
-        imageUrl={activeImageSource}
+        imageUrl={displayCover}
         gameTitle={game.title}
         onImageError={handleCoverImageError}
       />
@@ -148,7 +153,7 @@ export function VerticalLibraryGameCard({
             ? "library-focus-grid__card library-focus-grid__card--classics"
             : "library-focus-grid__card"
         }
-        coverImageUrl={activeImageSource}
+        coverImageUrl={displayCover}
         coverMedia={coverMedia}
         coverOverlay={coverOverlay}
         gameTitle={game.title}

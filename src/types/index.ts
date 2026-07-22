@@ -1,7 +1,13 @@
 import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
-import type { Download, Game, Subscription } from "./level.types";
+import type {
+  AchievementCustomNotificationPosition,
+  Download,
+  Game,
+  Subscription,
+} from "./level.types";
 import type { GameShop, UnlockedAchievement } from "./game.types";
+import type { ArtworkAssetType } from "./artwork.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
@@ -57,6 +63,7 @@ export interface ShopAssets {
   logoPosition: string | null;
   coverImageUrl: string | null;
   downloadSources: string[];
+  selectedArtworkTypes?: ArtworkAssetType[];
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -96,6 +103,10 @@ export type UserGame = {
   isFavorite: boolean;
   isPinned: boolean;
   pinnedDate?: Date | null;
+  customLibraryImageUrl?: string | null;
+  customLibraryHeroImageUrl?: string | null;
+  customLogoImageUrl?: string | null;
+  customIconUrl?: string | null;
 } & ShopAssets;
 
 export interface UserLibraryResponse {
@@ -114,6 +125,7 @@ export interface GameRunning {
   id: string;
   title: string;
   iconUrl: string | null;
+  coverImageUrl?: string | null;
   objectId: string;
   shop: GameShop;
   sessionDurationInMillis: number;
@@ -373,6 +385,21 @@ export interface AchievementNotificationInfo {
   points?: number;
 }
 
+export type AchievementNotificationRequest = {
+  id: string;
+  position: AchievementCustomNotificationPosition;
+} & (
+  | {
+      type: "achievement";
+      achievement: AchievementNotificationInfo;
+    }
+  | {
+      type: "combined";
+      gameCount: number;
+      achievementCount: number;
+    }
+);
+
 export interface GameArtifact {
   id: string;
   artifactLengthInBytes: number;
@@ -568,3 +595,4 @@ export * from "./how-long-to-beat.types";
 export * from "./level.types";
 export * from "./theme.types";
 export * from "./emulator.types";
+export * from "./artwork.types";
