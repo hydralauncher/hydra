@@ -141,7 +141,7 @@ class TorrentDownloader:
             raise ValueError("invalid_magnet") from error
 
         params.save_path = save_path
-        params.flags = flags
+        params.flags = params.flags | flags
 
         trackers = list(params.trackers)
         known_trackers = set(trackers)
