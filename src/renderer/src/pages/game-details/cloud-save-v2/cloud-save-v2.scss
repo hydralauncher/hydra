@@ -706,18 +706,6 @@
     }
   }
 
-  &__browser-path {
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    color: globals.$muted-color;
-    font-family: monospace;
-    font-size: 11px;
-    line-height: 1.35;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
   &__browser-file-metadata {
     display: flex;
     align-items: center;
