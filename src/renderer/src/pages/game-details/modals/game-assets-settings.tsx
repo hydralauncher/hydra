@@ -885,7 +885,7 @@ export function GameAssetsSettings({
         iconUrl: iconUrl || undefined,
         logoImageUrl: logoImageUrl || undefined,
         libraryHeroImageUrl: libraryHeroImageUrl || undefined,
-        customCoverImageUrl: customCoverImageUrl || undefined,
+        customCoverImageUrl,
         originalIconPath: originalAssetPaths.icon || undefined,
         originalLogoPath: originalAssetPaths.logo || undefined,
         originalHeroPath: originalAssetPaths.hero || undefined,
