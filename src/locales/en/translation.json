@@ -46,6 +46,7 @@
     "add_custom_game_tooltip": "Add Custom Game",
     "show_playable_only_tooltip": "Show Playable Only",
     "custom_game_modal": "Add Custom Game",
+    "sort_by_recent_activity_tooltip": "Sort by Recent Activity",
     "custom_game_modal_description": "Add a custom game to your library by selecting an executable file",
     "custom_game_modal_executable_path": "Executable Path",
     "custom_game_modal_select_executable": "Select executable file",
