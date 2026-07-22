@@ -102,8 +102,6 @@ export function CloudSaveV2FileTreeView({
       );
     }
 
-    const displayPath = formatCloudSaveV2LocalPath(file.absolutePath);
-
     return (
       <div className="cloud-save-v2__browser-file-cell">
         <FileIcon size={18} className="cloud-save-v2__browser-tree-icon" />
@@ -112,9 +110,6 @@ export function CloudSaveV2FileTreeView({
             <strong title={name}>{name}</strong>
             {fileMetadata(file)}
           </div>
-          <span className="cloud-save-v2__browser-path" title={displayPath}>
-            {displayPath}
-          </span>
         </div>
       </div>
     );
@@ -129,7 +124,6 @@ export function CloudSaveV2FileTreeView({
       );
     }
 
-    const logicalPath = `${file.rawPath}/${file.relativePath}`;
     return (
       <div className="cloud-save-v2__browser-file-cell">
         <FileIcon size={18} className="cloud-save-v2__browser-tree-icon" />
@@ -138,9 +132,6 @@ export function CloudSaveV2FileTreeView({
             <strong title={name}>{name}</strong>
             {fileMetadata(file)}
           </div>
-          <span className="cloud-save-v2__browser-path" title={logicalPath}>
-            {logicalPath}
-          </span>
         </div>
       </div>
     );
