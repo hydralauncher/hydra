@@ -1,11 +1,12 @@
+$tab-selected-bg: rgba(255, 255, 255, 0.08);
+$tab-selected-focused-bg: rgba(255, 255, 255, 0.16);
+
 .sidebar-modal {
   display: grid;
   grid-template-columns: minmax(180px, 16rem) minmax(0, 1fr);
   overflow: hidden;
 
-  width: fit-content;
-  min-width: min(92vw, 64rem);
-  max-width: min(92vw, 76rem);
+  width: min(92vw, 64rem);
   min-height: min(42rem, calc(100vh - 4rem));
   max-height: min(100%, calc(100vh - 4rem));
   border-radius: calc(var(--spacing-unit) * 3);
@@ -107,8 +108,7 @@
     color: var(--text);
   }
 
-  &:hover:not(:disabled),
-  &[data-focus-visible="true"] {
+  &:hover:not(:disabled) {
     color: var(--text);
   }
 
@@ -124,11 +124,12 @@
   right: 0;
   left: 0;
   z-index: 0;
-  background: var(--secondary);
+  background: $tab-selected-bg;
   pointer-events: none;
+  transition: background-color 0.16s ease;
 
   &[data-highlighted="true"] {
-    background: color-mix(in srgb, var(--secondary) 85%, white 15%);
+    background: $tab-selected-focused-bg;
   }
 }
 

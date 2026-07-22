@@ -2,7 +2,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 
-import { Tabs, type TabsItem, VerticalFocusGroup } from "../../components";
+import {
+  BumperBadge,
+  Tabs,
+  type TabsItem,
+  VerticalFocusGroup,
+} from "../../components";
 import { useGamepad, useNavigation } from "../../hooks";
 import {
   NavigationAudioService,
@@ -79,10 +84,6 @@ function getSettingsSectionFromSearch(
   const section = new URLSearchParams(search).get("section");
 
   return section === "sources" ? "sources" : null;
-}
-
-function SettingsBumper({ label }: Readonly<{ label: "LB" | "RB" }>) {
-  return <div className="settings-page__bumper">{label}</div>;
 }
 
 const SETTINGS_TAB_CONTENT: Record<
@@ -351,8 +352,8 @@ export default function Settings() {
               onValueChange={setSelectedTab}
               variant="settings"
               ariaLabel="Settings categories"
-              beforeTabs={<SettingsBumper label="LB" />}
-              afterTabs={<SettingsBumper label="RB" />}
+              beforeTabs={<BumperBadge label="LB" />}
+              afterTabs={<BumperBadge label="RB" />}
             />
           </div>
 

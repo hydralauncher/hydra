@@ -5,13 +5,13 @@ import type { LibraryGame } from "@types";
 import { registerEvent } from "../register-event";
 import {
   downloadsSublevel,
-  gameAchievementsSublevel,
   gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
   gamesSublevel,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
+import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 
 const lookupCachedPlatform = async (
   gameKey: string
@@ -51,9 +51,10 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               gameAssets ?? null,
               artworkSelection
             );
-            const achievements = await gameAchievementsSublevel
-              .get(key)
-              .catch(() => null);
+            const achievements = AchievementMemoryStore.get(
+              game.shop,
+              game.objectId
+            );
 
             const validAchievementNames = new Set(
               achievements?.achievements?.map((a) =>

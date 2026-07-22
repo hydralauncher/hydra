@@ -1,19 +1,25 @@
 import type { FriendRequest } from "../types";
 import { HydraApi } from "@main/services/hydra-api";
 import { publishNewFriendRequestNotification } from "@main/services/notifications";
-import { WindowManager } from "@main/services/window-manager";
+import { resyncFriendRequests } from "../resync";
+import type { UserProfile } from "@types";
 
-export const friendRequestEvent = async (payload: FriendRequest) => {
-  // Broadcast to every window (the friends window has its own renderer/store).
-  WindowManager.sendToAppWindows("on-sync-friend-requests", {
-    friendRequestCount: payload.friendRequestCount,
-  });
+export const friendRequestEvent = async (
+  payload: FriendRequest,
+  signal: AbortSignal
+) => {
+  await resyncFriendRequests(signal);
+  if (signal.aborted) return;
 
   if (payload.senderId) {
-    const user = await HydraApi.get(`/users/${payload.senderId}`);
+    const user = await HydraApi.get<UserProfile>(
+      `/users/${payload.senderId}`,
+      undefined,
+      { signal }
+    );
 
-    if (user) {
-      publishNewFriendRequestNotification(user);
+    if (user && !signal.aborted) {
+      await publishNewFriendRequestNotification(user, signal);
     }
   }
 };

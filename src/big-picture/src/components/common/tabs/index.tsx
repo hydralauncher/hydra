@@ -17,7 +17,11 @@ import { useFocusLayerId, useFocusRegionId } from "../../context";
 import { FocusItem } from "../focus-item";
 import { HorizontalFocusGroup } from "../horizontal-focus-group";
 import { useGamepad } from "../../../hooks";
-import { NavigationAudioService, type FocusOverrides } from "../../../services";
+import {
+  NavigationAudioService,
+  NavigationService,
+  type FocusOverrides,
+} from "../../../services";
 import { useNavigationIsFocused, useNavigationStore } from "../../../stores";
 import { GamepadButtonType } from "../../../types";
 
@@ -57,6 +61,7 @@ interface TabsButtonProps<TValue extends string = string> {
   variant: "default" | "segmented" | "settings";
   selectOnFocus: boolean;
   ignoreInitialFocusSelection: boolean;
+  navigationOverrides?: FocusOverrides;
   onSelect: (value: TValue) => void;
 }
 
@@ -68,6 +73,7 @@ function FocusableTabsButton<TValue extends string = string>({
   variant,
   selectOnFocus,
   ignoreInitialFocusSelection,
+  navigationOverrides,
   onSelect,
 }: Readonly<TabsButtonProps<TValue>>) {
   const isFocused = useNavigationIsFocused(resolvedId);
@@ -112,7 +118,7 @@ function FocusableTabsButton<TValue extends string = string>({
       asChild
       navigationState={item.disabled ? "disabled" : "active"}
       navigationOrder={navigationOrder}
-      navigationOverrides={item.navigationOverrides}
+      navigationOverrides={navigationOverrides}
     >
       <button
         id={resolvedId}
@@ -288,6 +294,38 @@ export function Tabs<TValue extends string = string>({
     [generatedId, items]
   );
 
+  const itemNavigationOverridesById = useMemo(() => {
+    const overridesById = new Map<string, FocusOverrides>();
+    const focusableItems = resolvedItems.filter((item) => !item.disabled);
+
+    focusableItems.forEach((item, position) => {
+      const previousItem = focusableItems[position - 1];
+      const nextItem = focusableItems[position + 1];
+      const computedOverrides: FocusOverrides = {};
+
+      if (previousItem) {
+        computedOverrides.left = {
+          type: "item",
+          itemId: previousItem.resolvedId,
+        };
+      }
+
+      if (nextItem) {
+        computedOverrides.right = {
+          type: "item",
+          itemId: nextItem.resolvedId,
+        };
+      }
+
+      overridesById.set(item.resolvedId, {
+        ...computedOverrides,
+        ...item.navigationOverrides,
+      });
+    });
+
+    return overridesById;
+  }, [resolvedItems]);
+
   const selectedItem = useMemo(
     () => resolvedItems.find((item) => item.value === selectedValue),
     [resolvedItems, selectedValue]
@@ -411,6 +449,11 @@ export function Tabs<TValue extends string = string>({
         if (!nextItem || nextItem.value === selectedValue) return;
 
         handleSelect(nextItem.value);
+
+        if (itemsFocusable && isCurrentFocusInsideTabList()) {
+          NavigationService.getInstance().setFocus(nextItem.resolvedId);
+        }
+
         NavigationAudioService.getInstance().play("scroll");
       }
     );
@@ -437,6 +480,11 @@ export function Tabs<TValue extends string = string>({
         if (!nextItem || nextItem.value === selectedValue) return;
 
         handleSelect(nextItem.value);
+
+        if (itemsFocusable && isCurrentFocusInsideTabList()) {
+          NavigationService.getInstance().setFocus(nextItem.resolvedId);
+        }
+
         NavigationAudioService.getInstance().play("scroll");
       }
     );
@@ -450,6 +498,8 @@ export function Tabs<TValue extends string = string>({
     findNextEnabledIndex,
     handleSelect,
     isActiveGamepadEvent,
+    isCurrentFocusInsideTabList,
+    itemsFocusable,
     onButtonPressed,
     resolvedItems,
     selectedValue,
@@ -579,8 +629,6 @@ export function Tabs<TValue extends string = string>({
   }, [scrollSelectedTabIntoView, updateIndicator]);
 
   useEffect(() => {
-    if (variant === "segmented") return;
-
     const viewport = tabsViewportRef.current;
     const tabList = tabListRef.current;
 
@@ -756,6 +804,9 @@ export function Tabs<TValue extends string = string>({
                       variant={variant}
                       selectOnFocus={selectOnFocus}
                       ignoreInitialFocusSelection={ignoreInitialFocusSelection}
+                      navigationOverrides={itemNavigationOverridesById.get(
+                        item.resolvedId
+                      )}
                       onSelect={handleSelect}
                     />
                   );
