@@ -1,5 +1,12 @@
 import { Trans, useTranslation } from "react-i18next";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button, CheckboxField, TextField } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
@@ -366,6 +373,33 @@ export function GeneralSettingsSection({
       Boolean(game.discs?.some((disc) => disc.path)));
   const transferGameLabel =
     gameSize > 0 ? `${game.title} (${fmt(gameSize)})` : game.title;
+  let steamShortcutButton: ReactNode = null;
+
+  if (game.shop !== "custom") {
+    if (steamShortcutExists) {
+      steamShortcutButton = (
+        <Button
+          onClick={onDeleteSteamShortcut}
+          theme="danger"
+          disabled={creatingSteamShortcut}
+        >
+          <SteamLogo />
+          {t("delete_steam_shortcut")}
+        </Button>
+      );
+    } else if (hasShortcutLaunchTarget) {
+      steamShortcutButton = (
+        <Button
+          onClick={onCreateSteamShortcut}
+          theme="outline"
+          disabled={creatingSteamShortcut}
+        >
+          <SteamLogo />
+          {t("create_steam_shortcut")}
+        </Button>
+      );
+    }
+  }
 
   useEffect(() => {
     if (!isTransferring) return;
@@ -784,26 +818,7 @@ export function GeneralSettingsSection({
                   {t("create_shortcut")}
                 </Button>
               )}
-              {game.shop !== "custom" &&
-                (steamShortcutExists ? (
-                  <Button
-                    onClick={onDeleteSteamShortcut}
-                    theme="danger"
-                    disabled={creatingSteamShortcut}
-                  >
-                    <SteamLogo />
-                    {t("delete_steam_shortcut")}
-                  </Button>
-                ) : hasShortcutLaunchTarget ? (
-                  <Button
-                    onClick={onCreateSteamShortcut}
-                    theme="outline"
-                    disabled={creatingSteamShortcut}
-                  >
-                    <SteamLogo />
-                    {t("create_steam_shortcut")}
-                  </Button>
-                ) : null)}
+              {steamShortcutButton}
               {hasShortcutLaunchTarget && shouldShowCreateStartMenuShortcut && (
                 <Button
                   onClick={() => onCreateShortcut("start_menu")}

@@ -1,10 +1,10 @@
 const getSnapExecutablePath = () => {
   const snapInstanceName = process.env.SNAP_INSTANCE_NAME;
-  const snapAppName = process.env.SNAP_APP_NAME;
 
-  if (!snapInstanceName || !snapAppName) return null;
+  if (!snapInstanceName) return null;
 
-  const snapName = snapInstanceName.split("_")[0];
+  const snapName = process.env.SNAP_NAME ?? snapInstanceName.split("_")[0];
+  const snapAppName = process.env.SNAP_APP_NAME ?? snapName;
   const commandName =
     snapAppName === snapName
       ? snapInstanceName

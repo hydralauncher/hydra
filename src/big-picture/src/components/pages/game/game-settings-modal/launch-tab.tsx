@@ -310,47 +310,51 @@ function ShortcutSection({
   let steamShortcutButton: ReactNode = null;
 
   if (!isCustomGame) {
-    steamShortcutButton = steamShortcutExists ? (
-      <Button
-        focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID}
-        variant="danger"
-        loading={creatingSteamShortcut}
-        icon={<SteamLogo />}
-        onClick={() => {
-          onDeleteSteamShortcut().catch(() => {});
-        }}
-        focusNavigationOverrides={
-          canCreateShortcuts
-            ? {
-                left: {
-                  type: "item",
-                  itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
-                },
-              }
-            : undefined
-        }
-      >
-        {t("delete_steam_shortcut")}
-      </Button>
-    ) : canCreateShortcuts ? (
-      <Button
-        focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID}
-        variant="secondary"
-        loading={creatingSteamShortcut}
-        icon={<SteamLogo />}
-        onClick={() => {
-          onCreateSteamShortcut().catch(() => {});
-        }}
-        focusNavigationOverrides={{
-          left: {
-            type: "item",
-            itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
-          },
-        }}
-      >
-        {t("create_steam_shortcut")}
-      </Button>
-    ) : null;
+    if (steamShortcutExists) {
+      steamShortcutButton = (
+        <Button
+          focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID}
+          variant="danger"
+          loading={creatingSteamShortcut}
+          icon={<SteamLogo />}
+          onClick={() => {
+            onDeleteSteamShortcut().catch(() => {});
+          }}
+          focusNavigationOverrides={
+            canCreateShortcuts
+              ? {
+                  left: {
+                    type: "item",
+                    itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
+                  },
+                }
+              : undefined
+          }
+        >
+          {t("delete_steam_shortcut")}
+        </Button>
+      );
+    } else if (canCreateShortcuts) {
+      steamShortcutButton = (
+        <Button
+          focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID}
+          variant="secondary"
+          loading={creatingSteamShortcut}
+          icon={<SteamLogo />}
+          onClick={() => {
+            onCreateSteamShortcut().catch(() => {});
+          }}
+          focusNavigationOverrides={{
+            left: {
+              type: "item",
+              itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
+            },
+          }}
+        >
+          {t("create_steam_shortcut")}
+        </Button>
+      );
+    }
   }
 
   return (
