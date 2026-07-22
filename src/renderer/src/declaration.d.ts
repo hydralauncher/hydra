@@ -627,6 +627,9 @@ declare global {
       foundGames: { title: string; executablePath: string }[];
       total: number;
     }>;
+    removeUninstalledGameExecutables: () => Promise<{
+      removedGames: { title: string }[];
+    }>;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;

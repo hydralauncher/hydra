@@ -153,7 +153,10 @@
     "scan_games_no_results": "Não conseguimos encontrar nenhum jogo instalado.",
     "scan_games_in_progress": "A escanear os teus discos por jogos instalados...",
     "scan_games_close": "Fechar",
-    "scan_games_scan_again": "Escanear Novamente"
+    "scan_games_scan_again": "Escanear Novamente",
+    "remove_executables_in_progress": "A verificar executáveis de jogos desinstalados...",
+    "remove_executables_result": "Removidos {{removed}} caminhos de executáveis de jogos obsoletos",
+    "remove_executables_no_results": "Nenhum executável de jogo desinstalado encontrado."
   },
   "bottom_panel": {
     "reconnecting": "A reconectar {{title}}…",
