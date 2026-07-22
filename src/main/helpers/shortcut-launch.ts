@@ -1,4 +1,6 @@
 import path from "node:path";
+import fs from "node:fs";
+import { app } from "electron";
 
 import type { GameShop } from "@types";
 
@@ -33,4 +35,22 @@ export const getShortcutArguments = (deepLink: string) => {
   }
 
   return deepLinkArgument;
+};
+
+export const getWindowsVbsPath = () => {
+  if (!app.isPackaged || process.platform !== "win32") return undefined;
+
+  const bundledPath = path.join(process.resourcesPath, "windows.vbs");
+  const stableDirectory = path.join(app.getPath("userData"), "shortcut-assets");
+  const stablePath = path.join(
+    stableDirectory,
+    `windows-${app.getVersion()}.vbs`
+  );
+
+  fs.mkdirSync(stableDirectory, { recursive: true });
+  if (!fs.existsSync(stablePath)) {
+    fs.copyFileSync(bundledPath, stablePath);
+  }
+
+  return stablePath;
 };
