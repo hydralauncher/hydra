@@ -1,5 +1,9 @@
 import { LibraryGame } from "@types";
-import { useGameCard } from "@renderer/hooks";
+import {
+  useGameCard,
+  useCoverPoster,
+  isAnimatedCoverCandidate,
+} from "@renderer/hooks";
 import { isGameCompleted } from "@renderer/helpers";
 import { ProgressBar } from "@renderer/components";
 import { memo, useEffect, useMemo, useState } from "react";
@@ -51,12 +55,16 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const isInstalled = Boolean(game.executablePath);
 
-  const sources = [
-    game.customIconUrl, // Level 0
-    game.coverImageUrl, // Level 1
-    game.libraryImageUrl, // Level 2
-    game.iconUrl, // Level 3
-  ].filter((url) => url && url.trim() !== "");
+  const hasPickedCover = Boolean(game.selectedArtworkTypes?.includes("grid"));
+
+  const candidates = [
+    { url: game.customCoverImageUrl, isChosenCover: true }, // Level 0
+    { url: game.coverImageUrl, isChosenCover: hasPickedCover }, // Level 1
+    { url: game.libraryImageUrl, isChosenCover: false }, // Level 2
+    { url: game.iconUrl, isChosenCover: false }, // Level 3
+  ].filter(({ url }) => url && url.trim() !== "");
+
+  const sources = candidates.map(({ url }) => url);
 
   const [fallbackIndex, setFallbackIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
@@ -92,6 +100,16 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   };
 
   const activeImageSource = resolveImageSource(sources[fallbackIndex]);
+  const isChosenCoverActive = Boolean(candidates[fallbackIndex]?.isChosenCover);
+
+  const rawActiveSource = sources[fallbackIndex];
+  const isAnimatedCover = isAnimatedCoverCandidate(rawActiveSource);
+  const coverPoster = useCoverPoster(rawActiveSource, isAnimatedCover);
+  const [isCoverHovered, setIsCoverHovered] = useState(false);
+  const displayImageSource =
+    isAnimatedCover && coverPoster && !isCoverHovered
+      ? resolveImageSource(coverPoster)
+      : activeImageSource;
 
   const classicsSystem =
     game.shop === "launchbox" ? platformToSystem(game.platform) : null;
@@ -120,11 +138,61 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     setImageError(false);
   }, [game.id]);
 
+  const renderCoverMedia = () => {
+    if (imageError || !activeImageSource) {
+      return (
+        <div className="library-game-card__cover-placeholder">
+          <ImageIcon size={48} />
+        </div>
+      );
+    }
+
+    if (game.shop === "launchbox" && !isChosenCoverActive) {
+      return (
+        <div className="library-game-card__classics-cover">
+          <img
+            src={displayImageSource}
+            alt=""
+            aria-hidden="true"
+            className="library-game-card__classics-backdrop"
+            loading="lazy"
+            onError={handleImageError}
+          />
+          <img
+            src={displayImageSource}
+            alt={game.title}
+            className="library-game-card__classics-image"
+            loading="lazy"
+            onError={handleImageError}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={displayImageSource}
+        alt={game.title}
+        className={`library-game-card__game-image ${
+          isChosenCoverActive ? "library-game-card__game-image--contain" : ""
+        }`}
+        loading="lazy"
+        onError={handleImageError}
+      />
+    );
+  };
+
   return (
     <button
       type="button"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={() => {
+        setIsCoverHovered(true);
+        onMouseEnter();
+      }}
+      onMouseLeave={() => {
+        setIsCoverHovered(false);
+        onMouseLeave();
+      }}
       className="library-game-card__wrapper"
       title={game.title}
       onClick={handleCardClick}
@@ -224,37 +292,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         )}
       </div>
 
-      {imageError || !activeImageSource ? (
-        <div className="library-game-card__cover-placeholder">
-          <ImageIcon size={48} />
-        </div>
-      ) : game.shop === "launchbox" ? (
-        <div className="library-game-card__classics-cover">
-          <img
-            src={activeImageSource}
-            alt=""
-            aria-hidden="true"
-            className="library-game-card__classics-backdrop"
-            loading="lazy"
-            onError={handleImageError}
-          />
-          <img
-            src={activeImageSource}
-            alt={game.title}
-            className="library-game-card__classics-image"
-            loading="lazy"
-            onError={handleImageError}
-          />
-        </div>
-      ) : (
-        <img
-          src={activeImageSource}
-          alt={game.title}
-          className="library-game-card__game-image"
-          loading="lazy"
-          onError={handleImageError}
-        />
-      )}
+      {renderCoverMedia()}
     </button>
   );
 });

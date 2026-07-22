@@ -1,17 +1,16 @@
 import type { GameShop, UserAchievement, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
-import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
+import { db, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
+import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 
 export const getUnlockedAchievements = async (
   objectId: string,
   shop: GameShop,
   useCachedData: boolean
 ): Promise<UserAchievement[]> => {
-  const cachedAchievements = await gameAchievementsSublevel.get(
-    levelKeys.game(shop, objectId)
-  );
+  const cachedAchievements = AchievementMemoryStore.get(shop, objectId);
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,

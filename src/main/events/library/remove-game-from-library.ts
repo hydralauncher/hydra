@@ -1,6 +1,11 @@
 import { registerEvent } from "../register-event";
 import { HydraApi, logger } from "@main/services";
-import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
+import {
+  gamesSublevel,
+  gamesShopAssetsSublevel,
+  gamesArtworkSelectionSublevel,
+  levelKeys,
+} from "@main/level";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import type { GameShop, Game } from "@types";
 import fs from "node:fs";
@@ -10,8 +15,18 @@ const collectAssetPathsToDelete = (game: Game): string[] => {
 
   const assetUrls =
     game.shop === "custom"
-      ? [game.iconUrl, game.logoImageUrl, game.libraryHeroImageUrl]
-      : [game.customIconUrl, game.customLogoImageUrl, game.customHeroImageUrl];
+      ? [
+          game.iconUrl,
+          game.logoImageUrl,
+          game.libraryHeroImageUrl,
+          game.customCoverImageUrl,
+        ]
+      : [
+          game.customIconUrl,
+          game.customLogoImageUrl,
+          game.customHeroImageUrl,
+          game.customCoverImageUrl,
+        ];
 
   for (const url of assetUrls) {
     if (url?.startsWith("local:")) {
@@ -33,6 +48,7 @@ const updateGameAsDeleted = async (
       customIconUrl: null,
       customLogoImageUrl: null,
       customHeroImageUrl: null,
+      customCoverImageUrl: null,
     }),
   };
 
@@ -83,6 +99,8 @@ const removeGameFromLibrary = async (
   if (game.shop !== "custom") {
     await resetShopAssets(gameKey);
   }
+
+  await gamesArtworkSelectionSublevel.del(gameKey).catch(() => {});
 
   if (game.remoteId) {
     HydraApi.delete(`/profile/games/${game.remoteId}`).catch(() => {});

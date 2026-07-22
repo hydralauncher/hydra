@@ -74,10 +74,7 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.whenReady().then(async () => {
+const initializeApp = async () => {
   electronApp.setAppUserModelId("gg.hydralauncher.hydra");
 
   protocol.handle("local", (request) => {
@@ -173,19 +170,19 @@ app.whenReady().then(async () => {
   const deepLinkArg = process.argv.find((arg) =>
     arg.startsWith("hydralauncher://")
   );
+  const forceBigPicture = process.argv.includes("--big-picture");
   const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
 
   if (!process.argv.includes("--hidden") && !isRunDeepLink) {
-    WindowManager.createMainWindow();
+    WindowManager.createMainWindow({ forceBigPicture });
   }
 
-  WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
 
   if (deepLinkArg) {
     handleDeepLinkPath(deepLinkArg);
   }
-});
+};
 
 app.on("browser-window-created", (_, window) => {
   optimizer.watchWindowShortcuts(window);
@@ -270,6 +267,7 @@ app.on("second-instance", (_event, commandLine) => {
   const deepLink = commandLine.find((arg) =>
     arg.startsWith("hydralauncher://")
   );
+  const forceBigPicture = commandLine.includes("--big-picture");
 
   // Check if this is a "run" deep link - don't show main window in that case
   const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");
@@ -280,8 +278,11 @@ app.on("second-instance", (_event, commandLine) => {
         WindowManager.mainWindow.restore();
 
       WindowManager.mainWindow.focus();
+      if (forceBigPicture) {
+        void WindowManager.openBigPictureWindow();
+      }
     } else {
-      WindowManager.createMainWindow();
+      WindowManager.createMainWindow({ forceBigPicture });
     }
   }
 
@@ -296,7 +297,7 @@ app.on("open-url", (_event, url) => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
-  WindowManager.mainWindow = null;
+  WindowManager.clearMainWindow();
 });
 
 let canAppBeClosed = false;
@@ -322,6 +323,10 @@ app.on("activate", () => {
     WindowManager.createMainWindow();
   }
 });
+
+// Some Electron APIs can only be used after initialization finishes.
+// Top-level await blocks Electron startup when running through electron-vite.
+app.once("ready", initializeApp);
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
