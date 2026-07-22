@@ -71,9 +71,21 @@
     }
   }
 
-  &__error {
+  &__url-status {
+    display: block;
+    min-height: 14px;
+    padding: 0 12px;
     font-size: 11px;
-    color: var(--danger-color);
-    margin: 0;
+    text-align: left;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+
+    &--invalid {
+      color: globals.$danger-color;
+    }
+
+    &--hidden {
+      opacity: 0;
+    }
   }
 }
