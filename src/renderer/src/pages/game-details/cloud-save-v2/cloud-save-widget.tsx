@@ -13,8 +13,10 @@ import { useToast, useUserDetails } from "@renderer/hooks";
 import { ConfirmationModal } from "@renderer/components";
 
 import { CloudSaveModal } from "./cloud-save-modal";
+import { CloudSaveV2FileBrowserModal } from "./cloud-save-v2-file-browser-modal";
 import { CloudSaveStatusIcon } from "./cloud-save-status-icon";
 import { useCloudSaveOverview } from "./use-cloud-save-overview";
+import { useCloudSaveV2FileDetails } from "./use-cloud-save-v2-file-details";
 import "./cloud-save-v2.scss";
 
 interface CloudSaveWidgetProps {
@@ -69,6 +71,7 @@ export function CloudSaveWidget({
       enabled: canUseCloudSaves,
     });
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isFileBrowserVisible, setIsFileBrowserVisible] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [progress, setProgress] = useState<CloudSaveSyncProgressPayload | null>(
     null
@@ -76,6 +79,17 @@ export function CloudSaveWidget({
   const [hasSyncError, setHasSyncError] = useState(false);
   const [pendingResolution, setPendingResolution] =
     useState<CloudSaveConflictResolution | null>(null);
+  const {
+    details: fileDetails,
+    isLoading: isFileDetailsLoading,
+    hasError: hasFileDetailsError,
+    refresh: refreshFileDetails,
+  } = useCloudSaveV2FileDetails({
+    objectId,
+    shop,
+    enabled:
+      canUseCloudSaves && isFileBrowserVisible && Boolean(game?.executablePath),
+  });
   const gameKey = `${shop}:${objectId}`;
   const activeGameKey = useRef(gameKey);
 
@@ -86,6 +100,7 @@ export function CloudSaveWidget({
     setHasSyncError(false);
     setIsSyncing(false);
     setIsModalVisible(false);
+    setIsFileBrowserVisible(false);
     setPendingResolution(null);
   }, [gameKey]);
 
@@ -119,13 +134,23 @@ export function CloudSaveWidget({
       }
 
       const requestedGame = `${event.gameId.shop}:${event.gameId.objectId}`;
-      void refresh().finally(() => {
-        if (activeGameKey.current === requestedGame) {
-          setIsSyncing(false);
-        }
-      });
+      void refresh()
+        .then(() => refreshFileDetails())
+        .finally(() => {
+          if (activeGameKey.current === requestedGame) {
+            setIsSyncing(false);
+          }
+        });
     });
-  }, [objectId, refresh, shop, showErrorToast, showWarningToast, t]);
+  }, [
+    objectId,
+    refresh,
+    refreshFileDetails,
+    shop,
+    showErrorToast,
+    showWarningToast,
+    t,
+  ]);
 
   const handleOpen = () => {
     if (!userDetails) {
@@ -142,6 +167,7 @@ export function CloudSaveWidget({
 
   const handleSelectExecutable = () => {
     setIsModalVisible(false);
+    setIsFileBrowserVisible(false);
     setGameOptionsInitialCategory("locations");
     setShowGameOptionsModal(true);
   };
@@ -174,6 +200,7 @@ export function CloudSaveWidget({
     } finally {
       if (activeGameKey.current === requestedGame) {
         await refresh();
+        await refreshFileDetails();
       }
       if (activeGameKey.current === requestedGame) {
         setIsSyncing(false);
@@ -237,6 +264,7 @@ export function CloudSaveWidget({
         hasError={hasError}
         progress={progress}
         onSync={() => void runCloudSaveOperation()}
+        onOpenFileBrowser={() => setIsFileBrowserVisible(true)}
         onSelectExecutable={handleSelectExecutable}
         onAutomaticSyncChange={async (enabled) => {
           await window.electron.setCloudSaveAutomaticSyncEnabled(
@@ -247,7 +275,22 @@ export function CloudSaveWidget({
           await refresh();
         }}
         onResolveConflict={setPendingResolution}
-        onClose={() => setIsModalVisible(false)}
+        onClose={() => {
+          setIsFileBrowserVisible(false);
+          setIsModalVisible(false);
+        }}
+      />
+
+      <CloudSaveV2FileBrowserModal
+        visible={isFileBrowserVisible}
+        objectId={objectId}
+        shop={shop}
+        overviewState={overview?.state ?? null}
+        details={fileDetails}
+        isLoading={isFileDetailsLoading}
+        hasError={hasFileDetailsError}
+        onRetry={() => void refreshFileDetails()}
+        onClose={() => setIsFileBrowserVisible(false)}
       />
 
       <ConfirmationModal

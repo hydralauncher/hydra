@@ -61,6 +61,7 @@ import type {
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
+  CloudSaveV2FileDetails,
   CloudSaveSyncProgressPayload,
   SyncGameCloudSaveResult,
 } from "@types";
@@ -102,6 +103,10 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveOverview>;
+    getCloudSaveV2FileDetails: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveV2FileDetails>;
     setCloudSaveAutomaticSyncEnabled: (
       objectId: string,
       shop: GameShop,
