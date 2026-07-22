@@ -440,12 +440,31 @@
 
   &__browser-table-scroll,
   &__browser-local-tree {
-    scrollbar-width: none;
-
     &::-webkit-scrollbar {
+      width: 9px;
+      height: 9px;
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-track,
+    &::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-button {
       display: none;
       width: 0;
       height: 0;
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 24px;
+      background-color: rgba(255, 255, 255, 0.15);
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.25);
+      }
     }
   }
 
