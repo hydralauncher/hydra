@@ -261,6 +261,7 @@
     "achievements_count": "Saavutused {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "Pilvesalvestus",
     "cloud_save_description": "Salvesta oma progress pilve ja jätka mängimist mistahes seadmes",
+    "cloud_save_v2_view_conflicts": "Kuva konfliktid",
     "backups": "Varundused",
     "install_backup": "Installi",
     "delete_backup": "Kustuta",

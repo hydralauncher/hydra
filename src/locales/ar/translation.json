@@ -262,6 +262,7 @@
     "achievements_count": "الإنجازات {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "حفظ سحابي",
     "cloud_save_description": "احفظ تقدمك في السحابة واستمر في اللعب من أي جهاز",
+    "cloud_save_v2_view_conflicts": "عرض التعارضات",
     "backups": "النسخ الاحتياطية",
     "install_backup": "تثبيت",
     "delete_backup": "حذف",

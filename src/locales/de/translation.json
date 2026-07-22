@@ -264,6 +264,7 @@
     "achievements_count": "Erfolge {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "Cloud-Speicherstand",
     "cloud_save_description": "Speichere deinen Fortschritt in der Cloud und spiele auf jedem Gerät weiter",
+    "cloud_save_v2_view_conflicts": "Konflikte anzeigen",
     "backups": "Sicherungen",
     "install_backup": "Installieren",
     "delete_backup": "Löschen",

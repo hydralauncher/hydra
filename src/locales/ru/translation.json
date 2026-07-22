@@ -458,6 +458,7 @@
     "maybe_later": "Возможно позже",
     "cloud_save": "Облачное сохранение",
     "cloud_save_description": "Сохраняйте ваш прогресс в облаке и продолжайте играть на любом устройстве",
+    "cloud_save_v2_view_conflicts": "Просмотреть конфликты",
     "backups": "Резервные копии",
     "install_backup": "Установить",
     "delete_backup": "Удалить",
