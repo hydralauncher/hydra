@@ -18,6 +18,7 @@ import { PythonRPC } from "./services/python-rpc";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
+import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { loadState } from "./main";
 
 const { autoUpdater } = updater;
@@ -75,6 +76,7 @@ if (process.defaultApp) {
 }
 
 const initializeApp = async () => {
+  refreshPortableShortcutLauncher();
   electronApp.setAppUserModelId("gg.hydralauncher.hydra");
 
   protocol.handle("local", (request) => {

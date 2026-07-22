@@ -14,8 +14,7 @@ import { getGameAssets } from "../catalogue/get-game-assets";
 import { logger } from "@main/services";
 import {
   buildRunDeepLink,
-  getHydraExecutablePath,
-  getShortcutArguments,
+  getHydraShortcutTarget,
   getWindowsVbsPath,
 } from "@main/helpers/shortcut-launch";
 
@@ -163,8 +162,9 @@ const createWindowsShortcut = (
   shortcutName: string,
   outputPath: string,
   deepLink: string,
-  iconPath?: string | null,
-  executablePath = getHydraExecutablePath()
+  iconPath: string | null | undefined,
+  executablePath: string,
+  shortcutArguments: string
 ) => {
   const windowVbsPath = getWindowsVbsPath();
 
@@ -177,7 +177,7 @@ const createWindowsShortcut = (
   const nativeShortcutCreated = createDesktopShortcut({
     windows: {
       filePath: executablePath,
-      arguments: deepLink,
+      arguments: shortcutArguments,
       name: shortcutName,
       outputPath,
       icon: iconPath ?? executablePath,
@@ -222,9 +222,8 @@ const createGameShortcut = async (
 
   const shortcutName =
     removeSymbolsFromName(game.title).trim() || game.objectId;
-  const hydraExecutablePath = getHydraExecutablePath();
   const deepLink = buildRunDeepLink(shop, objectId);
-  const shortcutArguments = getShortcutArguments(deepLink);
+  const shortcutTarget = getHydraShortcutTarget(deepLink);
   const outputPath = getShortcutOutputPath(location);
 
   if (!outputPath) {
@@ -247,7 +246,8 @@ const createGameShortcut = async (
       outputPath,
       deepLink,
       iconPath,
-      hydraExecutablePath
+      shortcutTarget.executablePath,
+      shortcutTarget.arguments
     );
 
     if (!success) {
@@ -263,8 +263,8 @@ const createGameShortcut = async (
   const windowVbsPath = getWindowsVbsPath();
 
   const options = {
-    filePath: hydraExecutablePath,
-    arguments: shortcutArguments,
+    filePath: shortcutTarget.executablePath,
+    arguments: shortcutTarget.arguments,
     name: shortcutName,
     outputPath,
     icon: iconPath ?? undefined,
