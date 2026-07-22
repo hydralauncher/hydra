@@ -12,7 +12,7 @@ export const buildRunDeepLink = (shop: GameShop, objectId: string) => {
 };
 
 const quoteLinuxExecArg = (value: string) => {
-  return `"${value.replaceAll('"', '\\"')}"`;
+  return `"${value.replaceAll('"', String.raw`\"`)}"`;
 };
 
 export const getShortcutArguments = (deepLink: string) => {
