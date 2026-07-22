@@ -554,9 +554,11 @@ contextBridge.exposeInMainWorld("electron", {
     iconUrl?: string;
     logoImageUrl?: string;
     libraryHeroImageUrl?: string;
+    customCoverImageUrl?: string | null;
     originalIconPath?: string;
     originalLogoPath?: string;
     originalHeroPath?: string;
+    customOriginalCoverPath?: string;
   }) => ipcRenderer.invoke("updateCustomGame", params),
   updateGameCustomAssets: (params: {
     shop: GameShop;

@@ -15,7 +15,12 @@ const collectAssetPathsToDelete = (game: Game): string[] => {
 
   const assetUrls =
     game.shop === "custom"
-      ? [game.iconUrl, game.logoImageUrl, game.libraryHeroImageUrl]
+      ? [
+          game.iconUrl,
+          game.logoImageUrl,
+          game.libraryHeroImageUrl,
+          game.customCoverImageUrl,
+        ]
       : [
           game.customIconUrl,
           game.customLogoImageUrl,
