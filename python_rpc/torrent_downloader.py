@@ -226,6 +226,7 @@ class TorrentDownloader:
                 "save_path": save_path,
                 "trackers": self.trackers,
                 "flags": initial_flags,
+                "storage_mode": lt.storage_mode_t.storage_mode_allocate,
             }
 
             if self.torrent_handle is None or not self.torrent_handle.is_valid():
