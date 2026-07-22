@@ -480,7 +480,7 @@ def action(data: Optional[dict] = None):
     if not action_name:
         raise RpcError("invalid_action")
 
-    requires_game_id = {"start", "pause", "cancel", "resume_seeding", "pause_seeding", "set_trackers"}
+    requires_game_id = {"start", "pause", "cancel", "resume_seeding", "pause_seeding"}
     if action_name in requires_game_id and not game_id:
         raise RpcError("invalid_game_id")
 
@@ -555,12 +555,6 @@ def action(data: Optional[dict] = None):
 
             for downloader in active_downloaders:
                 apply_download_limit(downloader)
-        elif action_name == "set_trackers":
-            with downloads_lock:
-                downloader = downloads.get(game_id)
-
-            if downloader:
-                downloader.set_trackers(data.get("trackers"))
         elif action_name == "set_network_interface":
             apply_network_interface(
                 normalize_network_interface(data.get("interface"))

@@ -29,6 +29,7 @@ import {
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
 import { GofileApi } from "./services/hosters";
+import { clearLegacyAchievementPersistence } from "./level/clear-legacy-achievements";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -54,6 +55,7 @@ const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
 
 export const loadState = async () => {
   await Lock.acquireLock();
+  await clearLegacyAchievementPersistence();
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -222,7 +224,9 @@ export const loadState = async () => {
 
   startMainLoop();
 
-  CommonRedistManager.downloadCommonRedist();
+  if (process.platform === "win32") {
+    CommonRedistManager.downloadCommonRedist();
+  }
 
   SystemPath.checkIfPathsAreAvailable();
 };
