@@ -81,7 +81,7 @@ export const getHydraShortcutTarget = (deepLink: string) => {
     };
   }
 
-  const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
+  const systemRoot = process.env.SystemRoot ?? String.raw`C:\Windows`;
   return {
     executablePath: path.join(systemRoot, "System32", "wscript.exe"),
     arguments: `"${portableLauncherPath}" "${deepLink}"`,
