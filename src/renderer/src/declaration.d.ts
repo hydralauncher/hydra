@@ -204,9 +204,11 @@ declare global {
       iconUrl?: string;
       logoImageUrl?: string;
       libraryHeroImageUrl?: string;
+      customCoverImageUrl?: string;
       originalIconPath?: string;
       originalLogoPath?: string;
       originalHeroPath?: string;
+      customOriginalCoverPath?: string;
     }) => Promise<Game>;
     copyCustomGameAsset: (
       sourcePath: string,
