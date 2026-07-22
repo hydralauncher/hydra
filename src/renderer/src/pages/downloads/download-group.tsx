@@ -1,6 +1,11 @@
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
-import { Badge, Button, ConfirmationModal } from "@renderer/components";
+import {
+  Badge,
+  Button,
+  ConfirmationModal,
+  DownloadDetailsModal,
+} from "@renderer/components";
 import {
   formatDownloadProgress,
   buildGameDetailsPath,
@@ -282,8 +287,17 @@ function HeroDownloadView({
   onCancelClick,
   t,
 }: Readonly<HeroDownloadViewProps>) {
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const navigate = useNavigate();
   const { t: tGameDetails } = useTranslation("game_details");
+
+  const handleOpenDetailsModal = useCallback(() => {
+    setShowDetailsModal(true);
+  }, []);
+
+  const handleCloseDetailsModal = useCallback(() => {
+    setShowDetailsModal(false);
+  }, []);
 
   const handleLogoClick = useCallback(() => {
     navigate(buildGameDetailsPath(game));
@@ -309,220 +323,246 @@ function HeroDownloadView({
     !isGameExtracting && !isRecovering && !!lastPacket?.isReconnecting;
 
   return (
-    <div className="download-group download-group--hero">
-      <div className="download-group__hero-background">
-        <img
-          src={game.libraryHeroImageUrl || game.libraryImageUrl || ""}
-          alt={game.title}
-        />
-        <div className="download-group__hero-overlay" />
-      </div>
-
-      <div className="download-group__hero-content">
-        <div className="download-group__hero-action-row">
-          <div className="download-group__hero-logo">
-            {game.logoImageUrl ? (
-              <button
-                type="button"
-                onClick={handleLogoClick}
-                className="download-group__hero-logo-button"
-              >
-                <img src={game.logoImageUrl} alt={game.title} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleLogoClick}
-                className="download-group__hero-logo-button"
-              >
-                <h1>{game.title}</h1>
-              </button>
-            )}
-          </div>
+    <>
+      <div className="download-group download-group--hero">
+        <div className="download-group__hero-background">
+          <img
+            src={game.libraryHeroImageUrl || game.libraryImageUrl || ""}
+            alt={game.title}
+          />
+          <div className="download-group__hero-overlay" />
         </div>
 
-        <div className="download-group__hero-progress">
-          <div className="download-group__progress-row download-group__progress-row--bar">
-            <div className="download-group__progress-wrapper">
-              <div className="download-group__progress-info-row">
-                {isGameExtracting && (
-                  <span className="download-group__progress-status">
-                    {t("extracting")}
-                  </span>
-                )}
-                {!isGameExtracting && lastPacket?.isCheckingFiles && (
-                  <span className="download-group__progress-status">
-                    {t("checking_files")}
-                  </span>
-                )}
-                {isRecovering && !lastPacket?.isCheckingFiles && (
-                  <span className="download-group__progress-status">
-                    {t("recovering", { percentage: `${recoveryPercent}%` })}
-                  </span>
-                )}
-                {isReconnecting && !lastPacket?.isCheckingFiles && (
-                  <span className="download-group__progress-status">
-                    {t("reconnecting")}
-                  </span>
-                )}
-                {!isGameExtracting &&
-                  !lastPacket?.isCheckingFiles &&
-                  !isReconnecting &&
-                  !isRecovering && (
-                    <span className="download-group__progress-size">
-                      <DownloadIcon size={14} />
-                      {isGameDownloading && lastPacket
-                        ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
-                        : `${formatBytes(game.download?.bytesDownloaded ?? 0)} / ${finalDownloadSize}`}
-                    </span>
-                  )}
-                <span></span>
-              </div>
-              <div className="download-group__progress-info-row">
-                {!lastPacket?.isCheckingFiles && !isGameExtracting && (
-                  <span className="download-group__progress-time">
-                    {shouldShowEta && (
-                      <>
-                        <ClockIcon size={14} />
-                        {hasEta ? etaText : tGameDetails("calculating_eta")}
-                      </>
-                    )}
-                  </span>
-                )}
-                <span className="download-group__progress-percentage">
-                  <AnimatedPercentage value={currentProgress} />
-                </span>
-              </div>
-              <div className="download-group__progress-bar">
-                <div
-                  className={`download-group__progress-fill ${isGameExtracting ? "download-group__progress-fill--extraction" : ""}`}
-                  style={{
-                    width: `${currentProgress * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
-            {!isGameExtracting && (
-              <div className="download-group__hero-buttons">
-                {isGameDownloading ? (
-                  <button
-                    type="button"
-                    onClick={() => pauseDownload(game.shop, game.objectId)}
-                    className="download-group__glass-btn"
-                  >
-                    <ColumnsIcon size={14} />
-                    {t("pause")}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => resumeDownload(game.shop, game.objectId)}
-                    className="download-group__glass-btn"
-                  >
-                    <PlayIcon size={14} />
-                    {t("resume")}
-                  </button>
-                )}
+        <div className="download-group__hero-content">
+          <div className="download-group__hero-action-row">
+            <div className="download-group__hero-logo">
+              {game.logoImageUrl ? (
                 <button
                   type="button"
-                  onClick={() => onCancelClick(game.shop, game.objectId)}
-                  className="download-group__glass-btn"
+                  onClick={handleLogoClick}
+                  className="download-group__hero-logo-button"
                 >
-                  <XCircleIcon size={14} />
-                  {t("cancel")}
+                  <img src={game.logoImageUrl} alt={game.title} />
                 </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="download-group__hero-stats">
-          <div className="download-group__stats-column">
-            <div className="download-group__stat-item">
-              <span style={{ color: dominantColor, display: "flex" }}>
-                <DownloadIcon size={16} />
-              </span>
-              <div className="download-group__stat-content">
-                <span className="download-group__stat-label">
-                  {t("network")}:
-                </span>
-                <span className="download-group__stat-value">
-                  {isGameDownloading ? formatSpeed(downloadSpeed) : "0 B/s"}
-                </span>
-              </div>
-            </div>
-
-            <div className="download-group__stat-item">
-              <span style={{ color: dominantColor, display: "flex" }}>
-                <GraphIcon size={16} />
-              </span>
-              <div className="download-group__stat-content">
-                <span className="download-group__stat-label">{t("peak")}:</span>
-                <span className="download-group__stat-value">
-                  {peakSpeed > 0 ? formatSpeed(peakSpeed) : "0 B/s"}
-                </span>
-              </div>
-            </div>
-
-            {game.download?.downloader === Downloader.Torrent &&
-              isGameDownloading &&
-              lastPacket &&
-              (lastPacket.numSeeds > 0 || lastPacket.numPeers > 0) && (
-                <div className="download-group__stat-item">
-                  <div className="download-group__stat-content">
-                    <span className="download-group__stat-label">
-                      Seeds:{" "}
-                      <span className="download-group__stat-value">
-                        {lastPacket.numSeeds}
-                      </span>
-                      , Peers:{" "}
-                      <span className="download-group__stat-value">
-                        {lastPacket.numPeers}
-                      </span>
-                    </span>
-                  </div>
-                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleLogoClick}
+                  className="download-group__hero-logo-button"
+                >
+                  <h1>{game.title}</h1>
+                </button>
               )}
+            </div>
+          </div>
 
-            {lastPacket?.batchFilesTotal != null &&
-              lastPacket.batchFilesTotal > 1 && (
-                <div className="download-group__stat-item">
-                  <span style={{ color: dominantColor, display: "flex" }}>
-                    <FileIcon size={16} />
+          <div className="download-group__hero-progress">
+            <div className="download-group__progress-row download-group__progress-row--bar">
+              <div className="download-group__progress-wrapper">
+                <div className="download-group__progress-info-row">
+                  {isGameExtracting && (
+                    <span className="download-group__progress-status">
+                      {t("extracting")}
+                    </span>
+                  )}
+                  {!isGameExtracting && lastPacket?.isCheckingFiles && (
+                    <span className="download-group__progress-status">
+                      {t("checking_files")}
+                    </span>
+                  )}
+                  {isRecovering && !lastPacket?.isCheckingFiles && (
+                    <span className="download-group__progress-status">
+                      {t("recovering", { percentage: `${recoveryPercent}%` })}
+                    </span>
+                  )}
+                  {isReconnecting && !lastPacket?.isCheckingFiles && (
+                    <span className="download-group__progress-status">
+                      {t("reconnecting")}
+                    </span>
+                  )}
+                  {!isGameExtracting &&
+                    !lastPacket?.isCheckingFiles &&
+                    !isReconnecting &&
+                    !isRecovering && (
+                      <span className="download-group__progress-size">
+                        <DownloadIcon size={14} />
+                        {isGameDownloading && lastPacket
+                          ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
+                          : `${formatBytes(game.download?.bytesDownloaded ?? 0)} / ${finalDownloadSize}`}
+                      </span>
+                    )}
+                  <span></span>
+                </div>
+                <div className="download-group__progress-info-row">
+                  {!lastPacket?.isCheckingFiles && !isGameExtracting && (
+                    <span className="download-group__progress-time">
+                      {shouldShowEta && (
+                        <>
+                          <ClockIcon size={14} />
+                          {hasEta ? etaText : tGameDetails("calculating_eta")}
+                        </>
+                      )}
+                    </span>
+                  )}
+                  <span className="download-group__progress-percentage">
+                    <AnimatedPercentage value={currentProgress} />
                   </span>
+                </div>
+                <div className="download-group__progress-bar">
+                  <div
+                    className={`download-group__progress-fill ${isGameExtracting ? "download-group__progress-fill--extraction" : ""}`}
+                    style={{
+                      width: `${currentProgress * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              {!isGameExtracting && (
+                <div className="download-group__hero-buttons">
+                  <button
+                    type="button"
+                    onClick={handleOpenDetailsModal}
+                    className="download-group__glass-btn"
+                    title={t("download_details")}
+                    aria-label={t("download_details")}
+                  >
+                    {t("details")}
+                  </button>
+                  {isGameDownloading ? (
+                    <button
+                      type="button"
+                      onClick={() => pauseDownload(game.shop, game.objectId)}
+                      className="download-group__glass-btn"
+                    >
+                      <ColumnsIcon size={14} />
+                      {t("pause")}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => resumeDownload(game.shop, game.objectId)}
+                      className="download-group__glass-btn"
+                    >
+                      <PlayIcon size={14} />
+                      {t("resume")}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onCancelClick(game.shop, game.objectId)}
+                    className="download-group__glass-btn"
+                  >
+                    <XCircleIcon size={14} />
+                    {t("cancel")}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="download-group__hero-stats">
+            <div className="download-group__stats-column">
+              <div className="download-group__stat-item">
+                <span style={{ color: dominantColor, display: "flex" }}>
+                  <DownloadIcon size={16} />
+                </span>
+                <div className="download-group__stat-content">
+                  <span className="download-group__stat-label">
+                    {t("network")}:
+                  </span>
+                  <span className="download-group__stat-value">
+                    {isGameDownloading ? formatSpeed(downloadSpeed) : "0 B/s"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="download-group__stat-item">
+                <span style={{ color: dominantColor, display: "flex" }}>
+                  <GraphIcon size={16} />
+                </span>
+                <div className="download-group__stat-content">
+                  <span className="download-group__stat-label">
+                    {t("peak")}:
+                  </span>
+                  <span className="download-group__stat-value">
+                    {peakSpeed > 0 ? formatSpeed(peakSpeed) : "0 B/s"}
+                  </span>
+                </div>
+              </div>
+
+              {game.download?.downloader === Downloader.Torrent &&
+                isGameDownloading &&
+                lastPacket && (
+                  <div className="download-group__stat-item">
+                    <div className="download-group__stat-content">
+                      <span className="download-group__stat-label">
+                        Seeds:{" "}
+                        <span className="download-group__stat-value">
+                          {lastPacket.numSeeds}
+                        </span>
+                        , Peers:{" "}
+                        <span className="download-group__stat-value">
+                          {lastPacket.numPeers}
+                        </span>
+                        {lastPacket.trackerStats && (
+                          <>
+                            , Trackers:{" "}
+                            <span className="download-group__stat-value">
+                              {lastPacket.trackerStats.workingTrackers}
+                            </span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+              {lastPacket?.batchFilesTotal != null &&
+                lastPacket.batchFilesTotal > 1 && (
+                  <div className="download-group__stat-item">
+                    <span style={{ color: dominantColor, display: "flex" }}>
+                      <FileIcon size={16} />
+                    </span>
+                    <div className="download-group__stat-content">
+                      <span className="download-group__stat-label">
+                        {t("files")}:
+                      </span>
+                      <span className="download-group__stat-value">
+                        {lastPacket.batchFilesDownloaded ?? 0}/
+                        {lastPacket.batchFilesTotal}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+              {game.download?.downloader !== undefined && (
+                <div className="download-group__stat-item">
                   <div className="download-group__stat-content">
-                    <span className="download-group__stat-label">
-                      {t("files")}:
-                    </span>
-                    <span className="download-group__stat-value">
-                      {lastPacket.batchFilesDownloaded ?? 0}/
-                      {lastPacket.batchFilesTotal}
-                    </span>
+                    <Badge>
+                      {DOWNLOADER_NAME[Number(game.download.downloader)]}
+                    </Badge>
                   </div>
                 </div>
               )}
+            </div>
 
-            {game.download?.downloader !== undefined && (
-              <div className="download-group__stat-item">
-                <div className="download-group__stat-content">
-                  <Badge>
-                    {DOWNLOADER_NAME[Number(game.download.downloader)]}
-                  </Badge>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="download-group__speed-chart">
-            <SpeedChart
-              speeds={speedHistory}
-              peakSpeed={peakSpeed}
-              color={dominantColor}
-            />
+            <div className="download-group__speed-chart">
+              <SpeedChart
+                speeds={speedHistory}
+                peakSpeed={peakSpeed}
+                color={dominantColor}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <DownloadDetailsModal
+        visible={showDetailsModal}
+        onClose={handleCloseDetailsModal}
+        progress={lastPacket}
+      />
+    </>
   );
 }
 
@@ -932,6 +972,8 @@ export function DownloadGroup({
       lastPacket?.download.fileSize,
       isGameDownloadingMap,
       seedingStatus,
+      getFinalDownloadSize,
+      isGameSeeding,
     ]
   );
 

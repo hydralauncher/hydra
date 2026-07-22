@@ -199,8 +199,15 @@ class TorrentDownloader:
         save_path: str,
         file_indices: Optional[List[int]] = None,
         wait_timeout_seconds: float = 30.0,
+        trackers: Optional[List[str]] = None,
     ):
         selective_download = file_indices is not None
+
+        # Merge custom trackers with default trackers
+        merged_trackers = list(self.trackers)
+        if trackers and isinstance(trackers, list):
+            # Add custom trackers at the beginning for priority
+            merged_trackers = list(dict.fromkeys(trackers + merged_trackers))
 
         with self.session_lock:
             if self.torrent_handle and self.torrent_handle.is_valid():
@@ -224,7 +231,7 @@ class TorrentDownloader:
             params = {
                 "url": magnet,
                 "save_path": save_path,
-                "trackers": self.trackers,
+                "trackers": merged_trackers,
                 "flags": initial_flags,
             }
 
@@ -366,6 +373,63 @@ class TorrentDownloader:
 
         return min(max(bytes_downloaded / file_size, 0), 1)
 
+    def _get_tracker_info(self, status=None):
+        """Extract tracker information from libtorrent handle"""
+        trackers = []
+        
+        try:
+            self.logger.debug("Getting tracker info...")
+            if self.torrent_handle is None or not self.torrent_handle.is_valid():
+                self.logger.debug("Torrent handle is None or invalid")
+                return trackers
+            
+            tracker_status_list = list(self.torrent_handle.trackers())
+            self.logger.debug(f"Found {len(tracker_status_list)} tracker entries")
+            
+            for tracker_status in tracker_status_list:
+                url = tracker_status.get('url', '')
+                tier = tracker_status.get('tier', 0)
+                fails = tracker_status.get('fails', 0)
+                updating = tracker_status.get('updating', False)
+                
+                message = tracker_status.get('message', '') or tracker_status.get('last_error', '') or ''
+
+                if updating:
+                    status_str = "updating"
+                elif fails > 0:
+                    status_str = "failed"
+                elif message:
+                    status_str = "working"
+                else:
+                    status_str = "not_contacted"
+                
+                trackers.append({
+                    "url": url,
+                    "tier": tier,
+                    "status": status_str,
+                    "fails": fails,
+                    "updating": updating,
+                })
+            
+            self.logger.debug(f"Successfully extracted {len(trackers)} tracker entries")
+            self.logger.debug(f"Tracker statuses: {[t['status'] for t in trackers]}")
+        except Exception as e:
+            self.logger.error(f"Failed to get tracker info: {e}", exc_info=True)
+        
+        return trackers
+
+    def _get_torrent_stats(self, status):
+        """Extract torrent statistics"""
+        return {
+            "uploadSpeed": status.upload_rate,
+            "downloadSpeed": status.download_rate,
+            "totalUploaded": status.all_time_upload,
+            "totalDownloaded": status.all_time_download,
+            "ratio": (getattr(status, 'all_time_upload', 0) / getattr(status, 'all_time_download', 0)) if getattr(status, 'all_time_download', 0) > 0 else 0,
+            "bytesRemaining": status.total_wanted - status.total_wanted_done,
+            "timeSince": int(time.time()),
+        }
+
     def get_download_status(self):
         status = self._get_handle_status()
         if status is None:
@@ -375,6 +439,33 @@ class TorrentDownloader:
         file_size = self._get_file_size(status, info)
         bytes_downloaded = self._get_bytes_downloaded(status, file_size)
         progress = self._get_progress(status, file_size, bytes_downloaded)
+
+        tracker_info = []
+        tracker_stats = {'workingTrackers': 0, 'totalTrackers': 0}
+        try:
+            self.logger.debug("Extracting tracker info for status response...")
+            tracker_info = self._get_tracker_info()
+            self.logger.debug(f"Tracker info extracted: {len(tracker_info)} trackers")
+            
+            working_count = len([
+                t for t in tracker_info 
+                if t['status'] in ['working', 'updating'] or (t['fails'] == 0 and t['status'] != 'failed')
+            ])
+            
+            tracker_stats = {
+                'workingTrackers': working_count,
+                'totalTrackers': len(tracker_info),
+            }
+            
+            status_breakdown = {}
+            for t in tracker_info:
+                status_str = t['status']
+                status_breakdown[status_str] = status_breakdown.get(status_str, 0) + 1
+            self.logger.debug(f"Tracker stats: {tracker_stats}")
+            self.logger.debug(f"Tracker status breakdown: {status_breakdown}")
+        except Exception as e:
+            self.logger.error(f"Failed to extract tracker stats: {e}", exc_info=True)
+            self.logger.debug(f"Using default tracker stats: {tracker_stats}")
 
         response = {
             'folderName': info.name() if info else "",
@@ -386,6 +477,11 @@ class TorrentDownloader:
             'numSeeds': status.num_seeds,
             'status': status.state,
             'bytesDownloaded': bytes_downloaded,
+            'trackers': tracker_info,
+            'trackerStats': tracker_stats,
+            'stats': self._get_torrent_stats(status),
         }
+        
+        self.logger.debug(f"Returning tracker stats in response: {tracker_stats}")
 
         return response

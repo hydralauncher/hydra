@@ -25,6 +25,17 @@ export interface LibtorrentPayload {
   folderName: string;
   status: LibtorrentStatus;
   gameId: string;
+  trackerStats?: {
+    workingTrackers: number;
+    totalTrackers: number;
+  };
+  trackers?: Array<{
+    url: string;
+    tier: number;
+    status: "working" | "updating" | "failed" | "not_contacted";
+    fails: number;
+    updating: boolean;
+  }>;
 }
 
 export interface ProcessPayload {

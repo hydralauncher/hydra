@@ -43,6 +43,7 @@ import {
   setDownloadLayoutQueues,
 } from "../download-layout-state";
 import { shouldFinalizeDownload } from "./download-completion";
+import { TrackerListManager } from "../tracker-list-manager";
 
 interface AllDebridBatchEntry {
   url: string;
@@ -535,6 +536,8 @@ export class DownloadManager {
         fileSize,
         folderName,
         status,
+        trackerStats,
+        trackers,
       } = response.data;
 
       const isDownloadingMetadata =
@@ -561,14 +564,68 @@ export class DownloadManager {
         });
       }
 
+      const rpcAny = response.data as any;
+
+      const pythonStats = rpcAny.stats ?? rpcAny._stats ?? null;
+
+      const uploadSpeed =
+        pythonStats?.uploadSpeed ??
+        pythonStats?.upload_speed ??
+        rpcAny.uploadSpeed ??
+        rpcAny.upload_speed ??
+        0;
+
+      const totalUploaded =
+        pythonStats?.totalUploaded ??
+        pythonStats?.total_uploaded ??
+        rpcAny.totalUploaded ??
+        rpcAny.total_upload ??
+        0;
+
+      const totalDownloaded =
+        pythonStats?.totalDownloaded ??
+        pythonStats?.total_downloaded ??
+        bytesDownloaded ??
+        rpcAny.totalDownloaded ??
+        rpcAny.total_download ??
+        0;
+
+      const effectiveFileSize =
+        fileSize > 0
+          ? fileSize
+          : (download?.selectedFilesSize ?? download?.fileSize ?? 0);
+
+      const bytesRemaining =
+        pythonStats?.bytesRemaining ??
+        pythonStats?.bytes_remaining ??
+        Math.max(0, (effectiveFileSize ?? 0) - (totalDownloaded ?? 0));
+
+      const ratio =
+        typeof pythonStats?.ratio === "number"
+          ? pythonStats.ratio
+          : totalDownloaded > 0
+            ? totalUploaded / totalDownloaded
+            : 0;
+
+      const stats = {
+        downloadSpeed:
+          pythonStats?.downloadSpeed ??
+          pythonStats?.download_speed ??
+          downloadSpeed ??
+          0,
+        uploadSpeed,
+        totalDownloaded,
+        totalUploaded,
+        ratio,
+        bytesRemaining,
+      };
+
       return {
         numPeers,
         numSeeds,
         downloadSpeed,
         timeRemaining: calculateETA(
-          fileSize > 0
-            ? fileSize
-            : (download?.selectedFilesSize ?? download?.fileSize ?? 0),
+          effectiveFileSize,
           bytesDownloaded,
           downloadSpeed
         ),
@@ -577,6 +634,9 @@ export class DownloadManager {
         progress,
         gameId: downloadId,
         download,
+        trackerStats,
+        trackers,
+        stats,
       } as DownloadProgress;
     } catch {
       return null;
@@ -1499,7 +1559,18 @@ export class DownloadManager {
           Array.isArray(download.fileIndices) &&
           download.fileIndices.length > 0;
 
-        return {
+        const userPreferences = await db.get<string, UserPreferences | null>(
+          levelKeys.userPreferences,
+          { valueEncoding: "json" }
+        );
+
+        const trackers = userPreferences?.torrentTrackerListUrl
+          ? await TrackerListManager.fetchTrackerList(
+              userPreferences.torrentTrackerListUrl
+            )
+          : [];
+
+        const payload: any = {
           action: "start",
           game_id: downloadId,
           url: download.uri,
@@ -1509,6 +1580,12 @@ export class DownloadManager {
             : undefined,
           metadata_timeout_ms: hasSelectedFileIndices ? 60_000 : undefined,
         };
+
+        if (trackers.length > 0) {
+          payload.trackers = trackers;
+        }
+
+        return payload;
       }
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);

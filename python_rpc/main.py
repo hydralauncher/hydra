@@ -304,6 +304,7 @@ def start_torrent_download(
     file_indices=None,
     flags=None,
     metadata_timeout_ms=None,
+    trackers=None,
 ):
     normalized_metadata_timeout_ms = normalize_metadata_timeout_ms(metadata_timeout_ms)
     start_kwargs = {
@@ -311,6 +312,8 @@ def start_torrent_download(
     }
     if normalized_metadata_timeout_ms is not None:
         start_kwargs["wait_timeout_seconds"] = normalized_metadata_timeout_ms / 1000
+    if trackers is not None:
+        start_kwargs["trackers"] = trackers
 
     with downloads_lock:
         existing_downloader = downloads.get(game_id)
@@ -493,12 +496,16 @@ def action(data: Optional[dict] = None):
 
             if url.startswith("magnet"):
                 file_indices = parse_file_indices(data.get("file_indices"))
+                trackers = data.get("trackers")
+                if trackers is not None and not isinstance(trackers, list):
+                    raise RpcError("invalid_trackers")
                 start_torrent_download(
                     game_id,
                     url,
                     save_path,
                     file_indices=file_indices,
                     metadata_timeout_ms=data.get("metadata_timeout_ms"),
+                    trackers=trackers,
                 )
             else:
                 raise RpcError("invalid_url")
