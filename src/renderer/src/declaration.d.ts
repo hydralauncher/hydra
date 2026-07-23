@@ -115,9 +115,11 @@ declare global {
       manual: string[],
       url: string | null,
       appendManual: boolean,
-      appendUrl: boolean,
-      fetchUrl?: boolean
+      appendUrl: boolean
     ) => Promise<{ error?: string }>;
+    validateGlobalTrackersUrl: (
+      url: string
+    ) => Promise<{ error?: string; count?: number }>;
     updateDownloadQueuePosition: (
       shop: GameShop,
       objectId: string,

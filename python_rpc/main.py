@@ -131,6 +131,9 @@ def parse_file_indices(file_indices):
     return parsed
 
 
+VALID_TRACKER_PROTOCOLS = {"http", "https", "udp", "ws", "wss"}
+
+
 def validate_trackers(trackers):
     if trackers is None:
         return None
@@ -140,6 +143,10 @@ def validate_trackers(trackers):
 
     for tracker in trackers:
         if not isinstance(tracker, str):
+            raise RpcError("invalid_trackers")
+
+        parsed = urllib.parse.urlparse(tracker)
+        if parsed.scheme not in VALID_TRACKER_PROTOCOLS:
             raise RpcError("invalid_trackers")
 
     return trackers

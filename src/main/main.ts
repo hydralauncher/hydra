@@ -91,7 +91,9 @@ export const loadState = async () => {
     userPreferences?.appendGlobalTrackersUrl &&
     userPreferences?.globalTrackersUrl
   ) {
-    refreshGlobalTrackersUrlCache().catch(() => {});
+    refreshGlobalTrackersUrlCache().catch((err) =>
+      logger.warn("Failed to refresh global tracker URL cache on startup", err)
+    );
   }
 
   Ludusavi.copyConfigFileToUserData();

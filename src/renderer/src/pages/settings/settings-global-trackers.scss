@@ -84,6 +84,10 @@
       color: globals.$danger-color;
     }
 
+    &--empty {
+      color: var(--text-muted);
+    }
+
     &--hidden {
       opacity: 0;
     }
