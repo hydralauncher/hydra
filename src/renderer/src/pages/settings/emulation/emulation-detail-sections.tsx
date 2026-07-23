@@ -164,6 +164,13 @@ export function LibraryStatsGrid({
 }: Readonly<LibraryStatsGridProps>) {
   const { t } = useTranslation("settings");
 
+  let storageCaptionKey = "stat_storage_caption_other";
+  if (totalFiles === 0) {
+    storageCaptionKey = "stat_storage_caption_zero";
+  } else if (totalFiles === 1) {
+    storageCaptionKey = "stat_storage_caption_one";
+  }
+
   return (
     <div className="emulator-detail__stats">
       <div className="emulator-detail__stat">
@@ -185,22 +192,13 @@ export function LibraryStatsGrid({
         </div>
         <span className="emulator-detail__stat-value">{storageLabel}</span>
         <span className="emulator-detail__stat-caption">
-          {t(
-            totalFiles === 1
-              ? "stat_storage_caption_one"
-              : totalFiles === 0
-                ? "stat_storage_caption_zero"
-                : "stat_storage_caption_other",
-            {
-              count: totalFiles,
-              folders: t(
-                romFoldersCount === 1
-                  ? "folder_count_one"
-                  : "folder_count_other",
-                { count: romFoldersCount }
-              ),
-            }
-          )}
+          {t(storageCaptionKey, {
+            count: totalFiles,
+            folders: t(
+              romFoldersCount === 1 ? "folder_count_one" : "folder_count_other",
+              { count: romFoldersCount }
+            ),
+          })}
         </span>
       </div>
       <div className="emulator-detail__stat">
@@ -353,18 +351,17 @@ export function ExecutableRow({
   const { t } = useTranslation("settings");
   const isConfigured = executablePath !== null;
 
+  let statusLabel = t("not_detected");
+  if (isConfigured) {
+    statusLabel = executableExists ? t("synced") : t("executable_missing");
+  }
+
   return (
     <EmulatorResourceRow
       title={t("executable_path_title")}
       description={t("executable_path_description")}
       detected={isConfigured && executableExists}
-      statusLabel={
-        isConfigured
-          ? executableExists
-            ? t("synced")
-            : t("executable_missing")
-          : t("not_detected")
-      }
+      statusLabel={statusLabel}
       path={{
         text: executablePath,
         placeholder: t("select_executable_placeholder"),

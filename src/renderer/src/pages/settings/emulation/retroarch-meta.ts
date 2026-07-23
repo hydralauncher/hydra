@@ -30,15 +30,15 @@ export const retroArchCoreStatusText = (
   progress: Partial<Record<RetroArchCoreName, RetroArchCoreInstallProgress>>
 ): string => {
   const current = progress[core];
-  if (current && current.phase === "downloading") {
+  if (current?.phase === "downloading") {
     return t("setup_install_downloading", {
       percent: installPercent(current.loaded, current.total),
     });
   }
-  if (current && current.phase === "extracting") {
+  if (current?.phase === "extracting") {
     return t("setup_install_extracting");
   }
-  if (current && current.phase === "error") {
+  if (current?.phase === "error") {
     return t("setup_install_failed");
   }
   const installed = config.cores[core];

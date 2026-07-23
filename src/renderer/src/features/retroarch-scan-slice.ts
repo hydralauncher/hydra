@@ -1,6 +1,7 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 
 type ScanPhase = "scanning" | "matching" | "done";
+type ScanRowStatus = "matched" | "unmatched" | null;
 
 export interface RetroArchScanResult {
   fileCount: number;
@@ -18,7 +19,7 @@ export interface RetroArchScanState {
   total: number;
   percent: number;
   currentFile: string | null;
-  status: "matched" | "unmatched" | null;
+  status: ScanRowStatus;
   discovered: number;
   matched: number;
   sizeBytes: number;
@@ -55,7 +56,7 @@ interface ProgressPayload {
   total: number;
   percent: number;
   currentFile: string | null;
-  status: "matched" | "unmatched" | null;
+  status: ScanRowStatus;
   discovered: number;
   matched: number;
   sizeBytes: number;
@@ -68,7 +69,7 @@ interface SnapshotPayload {
   total: number;
   percent: number;
   currentFile: string | null;
-  status: "matched" | "unmatched" | null;
+  status: ScanRowStatus;
   discovered: number;
   matched: number;
   sizeBytes: number;

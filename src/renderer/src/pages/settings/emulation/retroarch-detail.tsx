@@ -46,7 +46,7 @@ interface RetroArchDetailProps {
   config: RetroArchConfig;
   onBack: () => void;
   onChange: (config: RetroArchConfig) => void;
-  refresh: () => Promise<RetroArchConfig | unknown>;
+  refresh: () => Promise<unknown>;
 }
 
 type RetroArchTab = "emulator" | "rom-folders" | "library";

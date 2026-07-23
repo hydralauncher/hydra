@@ -409,6 +409,31 @@ export interface CollectedRomFile {
   sizeBytes: number;
 }
 
+const collectFileEntry = async (
+  entry: Dirent,
+  dir: string,
+  extensions: string[],
+  scanSubfolders: boolean,
+  out: CollectedRomFile[],
+  queue: string[]
+): Promise<void> => {
+  const full = path.join(dir, entry.name);
+
+  if (entry.isDirectory()) {
+    if (scanSubfolders) queue.push(full);
+    return;
+  }
+
+  if (!entry.isFile()) return;
+  if (!matchesExtension(entry.name, extensions)) return;
+
+  out.push({
+    fullPath: full,
+    name: entry.name,
+    sizeBytes: await safeFileSize(full),
+  });
+};
+
 export const collectFilesByExtension = async (
   rootPath: string,
   extensions: string[],
@@ -427,18 +452,14 @@ export const collectFilesByExtension = async (
     if (!entries || entries.length > MAX_ENTRIES_PER_DIR) continue;
 
     for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (scanSubfolders) queue.push(full);
-        continue;
-      }
-      if (!entry.isFile()) continue;
-      if (!matchesExtension(entry.name, extensions)) continue;
-      out.push({
-        fullPath: full,
-        name: entry.name,
-        sizeBytes: await safeFileSize(full),
-      });
+      await collectFileEntry(
+        entry,
+        dir,
+        extensions,
+        scanSubfolders,
+        out,
+        queue
+      );
     }
   }
 

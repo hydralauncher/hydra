@@ -16,8 +16,8 @@ const CRC_TABLE = (() => {
 
 const crcUpdate = (crc: number, buffer: Buffer): number => {
   let next = crc;
-  for (let i = 0; i < buffer.length; i++) {
-    next = CRC_TABLE[(next ^ buffer[i]) & 0xff] ^ (next >>> 8);
+  for (const byte of buffer) {
+    next = CRC_TABLE[(next ^ byte) & 0xff] ^ (next >>> 8);
   }
   return next;
 };

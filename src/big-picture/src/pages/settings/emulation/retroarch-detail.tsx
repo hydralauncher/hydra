@@ -92,14 +92,12 @@ export function RetroArchEmulationDetail({
     RETROARCH_CORE_LIST[0].name
   );
   const lastCoreFocusId = getEmulationCoreInstallFocusId(
-    RETROARCH_CORE_LIST[RETROARCH_CORE_LIST.length - 1].name
+    RETROARCH_CORE_LIST.at(-1)!.name
   );
-  const lastRomFolderFocusId =
-    config.romFolders.length > 0
-      ? getEmulationRomFolderRemoveFocusId(
-          config.romFolders[config.romFolders.length - 1]!.id
-        )
-      : EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID;
+  const lastRomFolder = config.romFolders.at(-1);
+  const lastRomFolderFocusId = lastRomFolder
+    ? getEmulationRomFolderRemoveFocusId(lastRomFolder.id)
+    : EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID;
 
   const handleBrowseExecutable = useCallback(async () => {
     const result = await showExecutableOpenDialog(config.executablePath);

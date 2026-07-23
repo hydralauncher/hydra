@@ -1,12 +1,7 @@
 import "./card-presentation.scss";
 
-import type { ArtworkAssetType, GameShop } from "@types";
-import {
-  platformToRetroArchPlatform,
-  platformToSystem,
-  RETROARCH_PLATFORM_LABELS,
-  SYSTEM_TO_BINARY,
-} from "@renderer/helpers";
+import type { ArtworkAssetType, EmulatorSystem, GameShop } from "@types";
+import { resolveClassicsBadge } from "@renderer/helpers";
 import {
   EMULATOR_ICONS,
   RETROARCH_EMULATOR_ICON,
@@ -60,9 +55,7 @@ export interface LibraryGameCardPresentationSource {
   unlockedAchievementCount?: number | null;
 }
 
-const PLATFORM_LABELS: Partial<
-  Record<NonNullable<ReturnType<typeof platformToSystem>>, string>
-> = {
+const PLATFORM_LABELS: Partial<Record<EmulatorSystem, string>> = {
   ps1: "PS",
   ps2: "PS2",
   ps3: "PS3",
@@ -150,22 +143,11 @@ export function useLibraryGameCardPresentation(
   );
   const dominantColor = useDominantColor(activeImageSource);
   const achievementProgress = getGameAchievementProgress(game);
-  const classicsSystem =
-    game.shop === "launchbox" ? platformToSystem(game.platform) : null;
-  const retroArchPlatform =
-    game.shop === "launchbox" && !classicsSystem
-      ? platformToRetroArchPlatform(game.platform)
-      : null;
-  const classicsPlatformLabel = classicsSystem
-    ? (PLATFORM_LABELS[classicsSystem] ?? null)
-    : retroArchPlatform
-      ? RETROARCH_PLATFORM_LABELS[retroArchPlatform]
-      : null;
-  const classicsEmulatorIcon = classicsSystem
-    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
-    : retroArchPlatform
-      ? RETROARCH_EMULATOR_ICON
-      : undefined;
+  const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
+    resolveClassicsBadge(game.shop, game.platform, PLATFORM_LABELS, {
+      emulatorIcons: EMULATOR_ICONS,
+      retroarchIcon: RETROARCH_EMULATOR_ICON,
+    });
   const logoImageUrl = resolveImageSource(
     game.customLogoImageUrl ?? game.logoImageUrl
   );
