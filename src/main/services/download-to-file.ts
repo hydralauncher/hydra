@@ -5,6 +5,10 @@ import axios from "axios";
 
 const PROGRESS_EMIT_BYTES = 512 * 1024;
 
+export const removeFileQuietly = async (filePath: string): Promise<void> => {
+  await fs.promises.unlink(filePath).catch(() => {});
+};
+
 export const downloadToFile = async (
   url: string,
   dest: string,

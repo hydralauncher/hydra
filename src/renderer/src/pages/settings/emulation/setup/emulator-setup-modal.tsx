@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal } from "@renderer/components";
+import { showExecutableOpenDialog } from "@renderer/helpers";
 import { useClassicsScan, useToast } from "@renderer/hooks";
 import type { EmulatorConfig, EmulatorSystem } from "@types";
 
@@ -203,16 +204,7 @@ export function EmulatorSetupModal({
 
   const handleBrowseExecutable = useCallback(async () => {
     if (!system) return;
-    const isMac = window.electron.platform === "darwin";
-    const result = await window.electron.showOpenDialog({
-      properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
-      filters:
-        window.electron.platform === "win32"
-          ? [{ name: "Executable", extensions: ["exe"] }]
-          : isMac
-            ? [{ name: "Application", extensions: ["app"] }]
-            : undefined,
-    });
+    const result = await showExecutableOpenDialog();
     if (result.canceled || result.filePaths.length === 0) return;
     const preview = await window.electron.previewEmulatorExecutable(
       system,

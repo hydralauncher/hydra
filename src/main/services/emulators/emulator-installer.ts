@@ -15,7 +15,7 @@ import { logger } from "../logger";
 import { SevenZip } from "../7zip";
 import { SystemPath } from "../system-path";
 import { WindowManager } from "../window-manager";
-import { downloadToFile } from "../download-to-file";
+import { downloadToFile, removeFileQuietly } from "../download-to-file";
 import { resolveInstallOptions } from "./emulator-install-sources";
 import { getEmulatorVersion } from "./get-emulator-version";
 import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
@@ -131,7 +131,7 @@ export const downloadAndInstallEmulator = async (
     : path.join(SystemPath.getPath("temp"), fileName);
 
   const removeTempDownload = async () => {
-    if (!isAppImage) await fs.promises.unlink(dest).catch(() => {});
+    if (!isAppImage) await removeFileQuietly(dest);
   };
 
   try {

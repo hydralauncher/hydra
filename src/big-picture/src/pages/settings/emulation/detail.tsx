@@ -1,28 +1,30 @@
-import { ChevronLeftIcon, InfoIcon, TrashIcon } from "@primer/octicons-react";
+import { InfoIcon } from "@primer/octicons-react";
 import type { EmulatorConfig, RomFolder } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, FocusItem, VerticalFocusGroup } from "../../../components";
-import { ConfirmationModal } from "../../../components/modals";
+import { showExecutableOpenDialog } from "@renderer/helpers";
+
+import { VerticalFocusGroup } from "../../../components";
 import { useBigPictureToast, useNavigationScreenActions } from "../../../hooks";
 import {
   EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
-  EMULATION_DETAIL_BACK_BUTTON_ID,
   EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID,
   EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID,
   EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
-  EMULATION_DETAIL_REDETECT_BUTTON_ID,
   EMULATION_DETAIL_REGION_ID,
-  EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID,
   EMULATION_DETAIL_RESCAN_BUTTON_ID,
   SETTINGS_HEADER_RETURN_TARGET,
   getEmulationRomFolderRemoveFocusId,
 } from "../settings-navigation";
 import { CloudSavesSection } from "./cloud-saves-section";
 import {
+  DetailBackButton,
+  DetailHeroBP,
+  DetailModalsBP,
   ExecSection,
   LibraryStatsSectionBP,
+  notifyRedetectOutcomeBP,
   RomFoldersSectionBP,
 } from "./detail-sections";
 import { MemoryCardsSection } from "./memory-cards-section";
@@ -102,17 +104,7 @@ export function EmulationDetail({
     : EMULATION_DETAIL_RESCAN_BUTTON_ID;
 
   const handleBrowseExecutable = useCallback(async () => {
-    const isMac = globalThis.window.electron.platform === "darwin";
-    const result = await globalThis.window.electron.showOpenDialog({
-      properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
-      defaultPath: config.executablePath ?? undefined,
-      filters:
-        globalThis.window.electron.platform === "win32"
-          ? [{ name: "Executable", extensions: ["exe"] }]
-          : isMac
-            ? [{ name: "Application", extensions: ["app"] }]
-            : undefined,
-    });
+    const result = await showExecutableOpenDialog(config.executablePath);
 
     if (result.canceled || result.filePaths.length === 0) return;
 
@@ -155,28 +147,19 @@ export function EmulationDetail({
     setIsBusy(true);
 
     try {
-      const previousPath = config.executablePath;
-      const previousVersion = config.detectedVersion;
+      const previous = {
+        executablePath: config.executablePath,
+        detectedVersion: config.detectedVersion,
+      };
       const next = await globalThis.window.electron.detectEmulator(
         config.system
       );
       onChange(next);
-
-      if (next.executablePath === null) {
-        showErrorToast("Emulator was not found", SETTINGS_TOAST_OPTIONS);
-      } else if (next.executablePath !== previousPath) {
-        showSuccessToast("Executable path updated", SETTINGS_TOAST_OPTIONS);
-      } else if (
-        next.detectedVersion &&
-        next.detectedVersion !== previousVersion
-      ) {
-        showSuccessToast("Version updated", {
-          ...SETTINGS_TOAST_OPTIONS,
-          message: `v${next.detectedVersion}`,
-        });
-      } else {
-        showSuccessToast("Detection refreshed", SETTINGS_TOAST_OPTIONS);
-      }
+      notifyRedetectOutcomeBP(next, previous, {
+        showErrorToast,
+        showSuccessToast,
+        toastOptions: SETTINGS_TOAST_OPTIONS,
+      });
     } catch {
       showErrorToast("Failed to detect emulator", SETTINGS_TOAST_OPTIONS);
     } finally {
@@ -333,79 +316,17 @@ export function EmulationDetail({
       navigationOverrides={{ up: SETTINGS_HEADER_RETURN_TARGET }}
       className="emulator-detail"
     >
-      <FocusItem
-        id={EMULATION_DETAIL_BACK_BUTTON_ID}
-        navigationOverrides={{
-          left: { type: "block" },
-          right: {
-            type: "item",
-            itemId: EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID,
-          },
-          down: {
-            type: "item",
-            itemId: EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
-          },
-        }}
-        asChild
-      >
-        <button
-          type="button"
-          className="emulator-detail__breadcrumb"
-          onClick={onBack}
-        >
-          <ChevronLeftIcon size={12} />
-          <span>{t("back_to_emulation")}</span>
-        </button>
-      </FocusItem>
+      <DetailBackButton onBack={onBack} />
 
-      <section className="emulator-detail__hero">
-        <div className="emulator-detail__hero-text">
-          <h2 className="emulator-detail__hero-title">{systemLabel}</h2>
-          <div className="emulator-detail__hero-meta">
-            {binaryIcon ? (
-              <img
-                src={binaryIcon}
-                alt=""
-                className="emulator-detail__hero-icon"
-                aria-hidden="true"
-              />
-            ) : null}
-            <span className="emulator-detail__hero-detected">
-              {isConfigured
-                ? t("detected", { name: binaryName })
-                : t("not_detected")}
-            </span>
-            <span className="emulator-detail__dot" />
-            <span className="emulator-detail__hero-count">
-              <span className="emulator-detail__hero-count-dot" />
-              {t("games_found_other", { count: config.totalFiles })}
-            </span>
-          </div>
-        </div>
-
-        <div className="emulator-detail__hero-actions">
-          <Button
-            focusId={EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID}
-            focusNavigationOverrides={{
-              left: {
-                type: "item",
-                itemId: EMULATION_DETAIL_BACK_BUTTON_ID,
-              },
-              right: { type: "block" },
-              down: {
-                type: "item",
-                itemId: EMULATION_DETAIL_REDETECT_BUTTON_ID,
-              },
-            }}
-            variant="danger"
-            disabled={isBusy || !isConfigured}
-            icon={<TrashIcon size={14} />}
-            onClick={() => setRemoveEmulatorOpen(true)}
-          >
-            {t("remove_emulator")}
-          </Button>
-        </div>
-      </section>
+      <DetailHeroBP
+        title={systemLabel}
+        icon={binaryIcon}
+        detectedName={binaryName}
+        isConfigured={isConfigured}
+        totalFiles={config.totalFiles}
+        removeDisabled={isBusy || !isConfigured}
+        onRemove={() => setRemoveEmulatorOpen(true)}
+      />
 
       <p className="emulator-detail__bios-note">
         <InfoIcon size={14} />
@@ -476,26 +397,14 @@ export function EmulationDetail({
         />
       ) : null}
 
-      <ConfirmationModal
-        visible={folderToRemove !== null}
-        title={t("remove_rom_folder_title")}
-        description={t("remove_rom_folder_description", {
-          path: folderToRemove?.path ?? "",
-        })}
-        confirmLabel={t("remove")}
-        danger
-        onClose={() => setFolderToRemove(null)}
-        onConfirm={handleConfirmRemoveFolder}
-      />
-
-      <ConfirmationModal
-        visible={removeEmulatorOpen}
-        title={t("remove_emulator_title", { name: binaryName })}
-        description={t("remove_emulator_description", { name: binaryName })}
-        confirmLabel={t("remove")}
-        danger
-        onClose={() => setRemoveEmulatorOpen(false)}
-        onConfirm={handleConfirmRemoveEmulator}
+      <DetailModalsBP
+        emulatorName={binaryName}
+        folderToRemove={folderToRemove}
+        removeEmulatorOpen={removeEmulatorOpen}
+        onConfirmRemoveFolder={handleConfirmRemoveFolder}
+        onCloseRemoveFolder={() => setFolderToRemove(null)}
+        onConfirmRemoveEmulator={handleConfirmRemoveEmulator}
+        onCloseRemoveEmulator={() => setRemoveEmulatorOpen(false)}
       />
     </VerticalFocusGroup>
   );

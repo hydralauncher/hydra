@@ -1,4 +1,7 @@
+import type { ReactNode } from "react";
 import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
+import { LinkExternalIcon, SyncIcon } from "@primer/octicons-react";
 
 export interface InstallProgressLike {
   phase: string;
@@ -48,5 +51,59 @@ export function InstallProgressBar({
         style={indeterminate ? undefined : { width: `${percent}%` }}
       />
     </div>
+  );
+}
+
+export function InstallLoadingCard() {
+  const { t } = useTranslation("settings");
+
+  return (
+    <div className="setup-modal__download-card setup-modal__download-card--loading">
+      <div className="setup-modal__download-card-badge">
+        <SyncIcon size={20} className="setup-modal__spin" />
+      </div>
+      <div className="setup-modal__download-card-main">
+        <span className="setup-modal__download-card-title">
+          {t("setup_install_loading")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+interface ExternalLinkCardProps {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  url: string | null;
+  onOpen: (url: string) => void;
+}
+
+export function ExternalLinkCard({
+  icon,
+  title,
+  description,
+  url,
+  onOpen,
+}: Readonly<ExternalLinkCardProps>) {
+  return (
+    <button
+      type="button"
+      className="setup-modal__download-card"
+      onClick={() => url && onOpen(url)}
+    >
+      <div className="setup-modal__download-card-badge">{icon}</div>
+      <div className="setup-modal__download-card-main">
+        <span className="setup-modal__download-card-title">{title}</span>
+        <span className="setup-modal__download-card-desc">{description}</span>
+      </div>
+      <span className="setup-modal__download-card-footer">
+        <span className="setup-modal__download-card-url">{url}</span>
+        <LinkExternalIcon
+          size={14}
+          className="setup-modal__download-card-ext"
+        />
+      </span>
+    </button>
   );
 }

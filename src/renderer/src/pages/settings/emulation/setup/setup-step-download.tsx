@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  BookIcon,
-  GlobeIcon,
-  LinkExternalIcon,
-  SyncIcon,
-} from "@primer/octicons-react";
+import { BookIcon, GlobeIcon, LinkExternalIcon } from "@primer/octicons-react";
 
 import type {
   EmulatorBinary,
@@ -17,7 +12,12 @@ import { EMULATOR_ICONS } from "../emulator-icons";
 import { KNOWN_BINARY_LABELS } from "../known-binary-labels";
 import { ArchIcon, FlatpakIcon, GitHubIcon } from "./brand-icons";
 import { firmwarePageUrl } from "./ps-firmware-url";
-import { InstallProgressBar, installStatusText } from "./install-progress";
+import {
+  ExternalLinkCard,
+  InstallLoadingCard,
+  InstallProgressBar,
+  installStatusText,
+} from "./install-progress";
 
 interface Props {
   binary: EmulatorBinary;
@@ -161,18 +161,7 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
       </button>
 
       <div className="setup-modal__download-grid">
-        {options === null && (
-          <div className="setup-modal__download-card setup-modal__download-card--loading">
-            <div className="setup-modal__download-card-badge">
-              <SyncIcon size={20} className="setup-modal__spin" />
-            </div>
-            <div className="setup-modal__download-card-main">
-              <span className="setup-modal__download-card-title">
-                {t("setup_install_loading")}
-              </span>
-            </div>
-          </div>
-        )}
+        {options === null && <InstallLoadingCard />}
 
         {installable.map((option) => {
           const label = channelLabel(option);
@@ -228,33 +217,14 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
         })}
 
         {externalLinks.map((option) => (
-          <button
+          <ExternalLinkCard
             key={option.id}
-            type="button"
-            className="setup-modal__download-card"
-            onClick={() => option.linkUrl && openUrl(option.linkUrl)}
-          >
-            <div className="setup-modal__download-card-badge">
-              {externalLinkIcon(option)}
-            </div>
-            <div className="setup-modal__download-card-main">
-              <span className="setup-modal__download-card-title">
-                {externalLinkLabel(option)}
-              </span>
-              <span className="setup-modal__download-card-desc">
-                {externalLinkDesc(option)}
-              </span>
-            </div>
-            <span className="setup-modal__download-card-footer">
-              <span className="setup-modal__download-card-url">
-                {option.linkUrl}
-              </span>
-              <LinkExternalIcon
-                size={14}
-                className="setup-modal__download-card-ext"
-              />
-            </span>
-          </button>
+            icon={externalLinkIcon(option)}
+            title={externalLinkLabel(option)}
+            description={externalLinkDesc(option)}
+            url={option.linkUrl}
+            onOpen={openUrl}
+          />
         ))}
 
         <hr className="setup-modal__download-divider" />

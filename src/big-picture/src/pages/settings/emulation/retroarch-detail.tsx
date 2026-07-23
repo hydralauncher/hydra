@@ -1,14 +1,12 @@
-import {
-  CheckCircleFillIcon,
-  ChevronLeftIcon,
-  DownloadIcon,
-  TrashIcon,
-} from "@primer/octicons-react";
+import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
 import type { RetroArchConfig, RetroArchCoreName, RomFolder } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { RETROARCH_PLATFORM_LABELS } from "@renderer/helpers";
+import {
+  RETROARCH_PLATFORM_LABELS,
+  showExecutableOpenDialog,
+} from "@renderer/helpers";
 import { RETROARCH_EMULATOR_ICON } from "@renderer/pages/settings/emulation/emulator-icons";
 import {
   RETROARCH_CORE_LIST,
@@ -16,25 +14,25 @@ import {
 } from "@renderer/pages/settings/emulation/retroarch-meta";
 
 import { Button, FocusItem, VerticalFocusGroup } from "../../../components";
-import { ConfirmationModal } from "../../../components/modals";
 import { useBigPictureToast, useNavigationScreenActions } from "../../../hooks";
 import {
   EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
-  EMULATION_DETAIL_BACK_BUTTON_ID,
   EMULATION_DETAIL_CORES_REGION_ID,
   EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
   EMULATION_DETAIL_INSTALL_ALL_CORES_BUTTON_ID,
   EMULATION_DETAIL_REGION_ID,
-  EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID,
-  EMULATION_DETAIL_REDETECT_BUTTON_ID,
   EMULATION_DETAIL_RESCAN_BUTTON_ID,
   SETTINGS_HEADER_RETURN_TARGET,
   getEmulationCoreInstallFocusId,
   getEmulationRomFolderRemoveFocusId,
 } from "../settings-navigation";
 import {
+  DetailBackButton,
+  DetailHeroBP,
+  DetailModalsBP,
   ExecSection,
   LibraryStatsSectionBP,
+  notifyRedetectOutcomeBP,
   RomFoldersSectionBP,
 } from "./detail-sections";
 import { SETTINGS_TOAST_OPTIONS, formatBytes, formatRelative } from "./shared";
@@ -104,17 +102,7 @@ export function RetroArchEmulationDetail({
       : EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID;
 
   const handleBrowseExecutable = useCallback(async () => {
-    const isMac = globalThis.window.electron.platform === "darwin";
-    const result = await globalThis.window.electron.showOpenDialog({
-      properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
-      defaultPath: config.executablePath ?? undefined,
-      filters:
-        globalThis.window.electron.platform === "win32"
-          ? [{ name: "Executable", extensions: ["exe"] }]
-          : isMac
-            ? [{ name: "Application", extensions: ["app"] }]
-            : undefined,
-    });
+    const result = await showExecutableOpenDialog(config.executablePath);
 
     if (result.canceled || result.filePaths.length === 0) return;
 
@@ -145,26 +133,17 @@ export function RetroArchEmulationDetail({
     setIsBusy(true);
 
     try {
-      const previousPath = config.executablePath;
-      const previousVersion = config.detectedVersion;
+      const previous = {
+        executablePath: config.executablePath,
+        detectedVersion: config.detectedVersion,
+      };
       const next = await globalThis.window.electron.detectRetroArch();
       onChange(next);
-
-      if (next.executablePath === null) {
-        showErrorToast("Emulator was not found", SETTINGS_TOAST_OPTIONS);
-      } else if (next.executablePath !== previousPath) {
-        showSuccessToast("Executable path updated", SETTINGS_TOAST_OPTIONS);
-      } else if (
-        next.detectedVersion &&
-        next.detectedVersion !== previousVersion
-      ) {
-        showSuccessToast("Version updated", {
-          ...SETTINGS_TOAST_OPTIONS,
-          message: `v${next.detectedVersion}`,
-        });
-      } else {
-        showSuccessToast("Detection refreshed", SETTINGS_TOAST_OPTIONS);
-      }
+      notifyRedetectOutcomeBP(next, previous, {
+        showErrorToast,
+        showSuccessToast,
+        toastOptions: SETTINGS_TOAST_OPTIONS,
+      });
     } catch {
       showErrorToast("Failed to detect emulator", SETTINGS_TOAST_OPTIONS);
     } finally {
@@ -343,79 +322,17 @@ export function RetroArchEmulationDetail({
       navigationOverrides={{ up: SETTINGS_HEADER_RETURN_TARGET }}
       className="emulator-detail"
     >
-      <FocusItem
-        id={EMULATION_DETAIL_BACK_BUTTON_ID}
-        navigationOverrides={{
-          left: { type: "block" },
-          right: {
-            type: "item",
-            itemId: EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID,
-          },
-          down: {
-            type: "item",
-            itemId: EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
-          },
-        }}
-        asChild
-      >
-        <button
-          type="button"
-          className="emulator-detail__breadcrumb"
-          onClick={onBack}
-        >
-          <ChevronLeftIcon size={12} />
-          <span>{t("back_to_emulation")}</span>
-        </button>
-      </FocusItem>
+      <DetailBackButton onBack={onBack} />
 
-      <section className="emulator-detail__hero">
-        <div className="emulator-detail__hero-text">
-          <h2 className="emulator-detail__hero-title">
-            {t("retroarch_card_title")}
-          </h2>
-          <div className="emulator-detail__hero-meta">
-            <img
-              src={RETROARCH_EMULATOR_ICON}
-              alt=""
-              className="emulator-detail__hero-icon"
-              aria-hidden="true"
-            />
-            <span className="emulator-detail__hero-detected">
-              {isConfigured
-                ? t("detected", { name: RETROARCH_LABEL })
-                : t("not_detected")}
-            </span>
-            <span className="emulator-detail__dot" />
-            <span className="emulator-detail__hero-count">
-              <span className="emulator-detail__hero-count-dot" />
-              {t("games_found_other", { count: config.totalFiles })}
-            </span>
-          </div>
-        </div>
-
-        <div className="emulator-detail__hero-actions">
-          <Button
-            focusId={EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID}
-            focusNavigationOverrides={{
-              left: {
-                type: "item",
-                itemId: EMULATION_DETAIL_BACK_BUTTON_ID,
-              },
-              right: { type: "block" },
-              down: {
-                type: "item",
-                itemId: EMULATION_DETAIL_REDETECT_BUTTON_ID,
-              },
-            }}
-            variant="danger"
-            disabled={isBusy || !isConfigured}
-            icon={<TrashIcon size={14} />}
-            onClick={() => setRemoveEmulatorOpen(true)}
-          >
-            {t("remove_emulator")}
-          </Button>
-        </div>
-      </section>
+      <DetailHeroBP
+        title={t("retroarch_card_title")}
+        icon={RETROARCH_EMULATOR_ICON}
+        detectedName={RETROARCH_LABEL}
+        isConfigured={isConfigured}
+        totalFiles={config.totalFiles}
+        removeDisabled={isBusy || !isConfigured}
+        onRemove={() => setRemoveEmulatorOpen(true)}
+      />
 
       <ExecSection
         icon={RETROARCH_EMULATOR_ICON}
@@ -601,28 +518,14 @@ export function RetroArchEmulationDetail({
         </div>
       </LibraryStatsSectionBP>
 
-      <ConfirmationModal
-        visible={folderToRemove !== null}
-        title={t("remove_rom_folder_title")}
-        description={t("remove_rom_folder_description", {
-          path: folderToRemove?.path ?? "",
-        })}
-        confirmLabel={t("remove")}
-        danger
-        onClose={() => setFolderToRemove(null)}
-        onConfirm={handleConfirmRemoveFolder}
-      />
-
-      <ConfirmationModal
-        visible={removeEmulatorOpen}
-        title={t("remove_emulator_title", { name: RETROARCH_LABEL })}
-        description={t("remove_emulator_description", {
-          name: RETROARCH_LABEL,
-        })}
-        confirmLabel={t("remove")}
-        danger
-        onClose={() => setRemoveEmulatorOpen(false)}
-        onConfirm={handleConfirmRemoveEmulator}
+      <DetailModalsBP
+        emulatorName={RETROARCH_LABEL}
+        folderToRemove={folderToRemove}
+        removeEmulatorOpen={removeEmulatorOpen}
+        onConfirmRemoveFolder={handleConfirmRemoveFolder}
+        onCloseRemoveFolder={() => setFolderToRemove(null)}
+        onConfirmRemoveEmulator={handleConfirmRemoveEmulator}
+        onCloseRemoveEmulator={() => setRemoveEmulatorOpen(false)}
       />
     </VerticalFocusGroup>
   );

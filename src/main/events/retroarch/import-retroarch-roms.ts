@@ -8,6 +8,10 @@ import {
 } from "./retroarch-import-state";
 import { isWithin } from "../emulators/rom-path-utils";
 import {
+  bandPercent,
+  baseNameWithoutExt,
+} from "../emulators/import-progress-utils";
+import {
   persistEntryLocally,
   syncProfileBatch,
 } from "../emulators/import-launchbox-roms";
@@ -57,21 +61,6 @@ type ProgressFn = (payload: RetroArchImportProgress) => void;
 
 const SCAN_BAND = 10;
 const HASH_BAND = 60;
-
-const bandPercent = (
-  start: number,
-  span: number,
-  processed: number,
-  total: number
-): number => {
-  const frac = total > 0 ? Math.min(1, processed / total) : 0;
-  return Math.min(100, Math.round((start + frac * span) * 10) / 10);
-};
-
-const baseNameWithoutExt = (fileName: string): string => {
-  const dot = fileName.lastIndexOf(".");
-  return dot > 0 ? fileName.slice(0, dot) : fileName;
-};
 
 const buildRomDiscList = (
   files: { primaryPath: string; name: string }[]

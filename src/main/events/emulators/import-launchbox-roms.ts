@@ -9,6 +9,7 @@ import {
   updateActiveClassicsImport,
 } from "./classics-import-state";
 import { isWithin } from "./rom-path-utils";
+import { bandPercent, baseNameWithoutExt } from "./import-progress-utils";
 import { HydraApi, WindowManager, emulators, logger } from "@main/services";
 import { platformToSystem } from "@main/helpers";
 import {
@@ -119,11 +120,6 @@ const stripDiscMarker = (fileName: string): string => {
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
-};
-
-const baseNameWithoutExt = (fileName: string): string => {
-  const dot = fileName.lastIndexOf(".");
-  return dot > 0 ? fileName.slice(0, dot) : fileName;
 };
 
 const buildDiscList = (
@@ -313,16 +309,6 @@ export type LaunchboxImportProgress = {
 
 const SCAN_BAND = 15;
 const EXTRACT_BAND = 70;
-
-const bandPercent = (
-  start: number,
-  span: number,
-  processed: number,
-  total: number
-): number => {
-  const frac = total > 0 ? Math.min(1, processed / total) : 0;
-  return Math.min(100, Math.round((start + frac * span) * 10) / 10);
-};
 
 const SYSTEM_CATALOGUE_PLATFORM: Record<EmulatorSystem, string> = {
   ps1: "Sony Playstation",
