@@ -2,11 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import type { EmulatorConfigMap, EmulatorSystem } from "@types";
+import type {
+  EmulatorConfigMap,
+  EmulatorSystem,
+  RetroArchConfig,
+} from "@types";
 
 import { ConsoleCard } from "./console-card";
 import { EmulatorDetail } from "./emulator-detail";
 import { EmulatorSetupModal } from "./setup/emulator-setup-modal";
+import { RetroArchCard } from "./retroarch-card";
+import { RetroArchDetail } from "./retroarch-detail";
+import { RetroArchSetupModal } from "./setup/retroarch/retroarch-setup-modal";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -28,10 +35,15 @@ export function SettingsContextEmulation() {
   const [searchParams] = useSearchParams();
 
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
+  const [retroArchConfig, setRetroArchConfig] =
+    useState<RetroArchConfig | null>(null);
   const [view, setView] = useState<
-    { kind: "grid" } | { kind: "detail"; system: EmulatorSystem }
+    | { kind: "grid" }
+    | { kind: "detail"; system: EmulatorSystem }
+    | { kind: "retroarch-detail" }
   >({ kind: "grid" });
   const [setupSystem, setSetupSystem] = useState<EmulatorSystem | null>(null);
+  const [retroArchSetupOpen, setRetroArchSetupOpen] = useState(false);
   const deepLinkAppliedRef = useRef(false);
 
   const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
@@ -50,6 +62,12 @@ export function SettingsContextEmulation() {
   const refresh = useCallback(async () => {
     const next = await window.electron.getEmulatorConfigs();
     setConfigs(next);
+    return next;
+  }, []);
+
+  const refreshRetroArch = useCallback(async () => {
+    const next = await window.electron.getRetroArchConfig();
+    setRetroArchConfig(next);
     return next;
   }, []);
 
@@ -77,15 +95,44 @@ export function SettingsContextEmulation() {
   }, []);
 
   useEffect(() => {
-    if (deepLinkAppliedRef.current || !configs) return;
+    let cancelled = false;
+
+    (async () => {
+      const initial = await window.electron.getRetroArchConfig();
+      if (cancelled) return;
+
+      if (initial.detectedAt === null) {
+        const detected = await window.electron.detectRetroArch();
+        if (cancelled) return;
+        setRetroArchConfig(detected);
+        return;
+      }
+
+      setRetroArchConfig(initial);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (deepLinkAppliedRef.current || !configs || !retroArchConfig) return;
     const system = searchParams.get("system");
+    if (system === "retroarch") {
+      deepLinkAppliedRef.current = true;
+      if (retroArchConfig.executablePath) {
+        setView({ kind: "retroarch-detail" });
+      }
+      return;
+    }
     if (system && SYSTEMS.includes(system as EmulatorSystem)) {
       deepLinkAppliedRef.current = true;
       if (configs[system as EmulatorSystem].executablePath) {
         setView({ kind: "detail", system: system as EmulatorSystem });
       }
     }
-  }, [configs, searchParams]);
+  }, [configs, retroArchConfig, searchParams]);
 
   const handleConfigure = useCallback((system: EmulatorSystem) => {
     setView({ kind: "detail", system });
@@ -106,6 +153,17 @@ export function SettingsContextEmulation() {
     await refresh();
   }, [refresh]);
 
+  const handleRetroArchSetupComplete = useCallback(() => {
+    setRetroArchSetupOpen(false);
+    localStorage.setItem("library-category", "classics");
+    navigate("/library");
+  }, [navigate]);
+
+  const handleRetroArchSetupClose = useCallback(async () => {
+    setRetroArchSetupOpen(false);
+    await refreshRetroArch();
+  }, [refreshRetroArch]);
+
   const handleBack = useCallback(() => {
     setView({ kind: "grid" });
   }, []);
@@ -115,7 +173,7 @@ export function SettingsContextEmulation() {
     return configs[view.system];
   }, [configs, view]);
 
-  if (!configs) {
+  if (!configs || !retroArchConfig) {
     return <div className="settings-emulation__loading">…</div>;
   }
 
@@ -129,6 +187,17 @@ export function SettingsContextEmulation() {
           setConfigs((prev) => (prev ? { ...prev, [next.system]: next } : prev))
         }
         refresh={refresh}
+      />
+    );
+  }
+
+  if (view.kind === "retroarch-detail") {
+    return (
+      <RetroArchDetail
+        config={retroArchConfig}
+        onBack={handleBack}
+        onChange={setRetroArchConfig}
+        refresh={refreshRetroArch}
       />
     );
   }
@@ -159,6 +228,11 @@ export function SettingsContextEmulation() {
             onStartSetup={() => handleStartSetup(system)}
           />
         ))}
+        <RetroArchCard
+          config={retroArchConfig}
+          onConfigure={() => setView({ kind: "retroarch-detail" })}
+          onStartSetup={() => setRetroArchSetupOpen(true)}
+        />
       </div>
 
       <EmulatorSetupModal
@@ -168,6 +242,13 @@ export function SettingsContextEmulation() {
         initialConfig={setupSystem ? configs[setupSystem] : null}
         onClose={handleSetupClose}
         onComplete={handleSetupComplete}
+      />
+
+      <RetroArchSetupModal
+        visible={retroArchSetupOpen}
+        initialConfig={retroArchConfig}
+        onClose={handleRetroArchSetupClose}
+        onComplete={handleRetroArchSetupComplete}
       />
     </div>
   );

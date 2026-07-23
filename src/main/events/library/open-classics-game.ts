@@ -2,9 +2,14 @@ import { existsSync } from "node:fs";
 
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
-import { launchClassicsGame, platformToSystem } from "@main/helpers";
+import {
+  launchClassicsGame,
+  launchRetroArchGame,
+  platformToRetroArchPlatform,
+  platformToSystem,
+} from "@main/helpers";
 import { logger, NativeAddon } from "@main/services";
-import type { GameShop } from "@types";
+import type { GameShop, RetroArchPlatform } from "@types";
 
 const codedLaunchError = (
   code: string,
@@ -47,6 +52,52 @@ const waitForRpcs3Exit = async (pids: number[]): Promise<boolean> => {
   return false;
 };
 
+const launchRetroArchWithErrors = async (
+  shop: GameShop,
+  objectId: string,
+  romPath: string,
+  platform: RetroArchPlatform
+): Promise<void> => {
+  try {
+    await launchRetroArchGame({ shop, objectId, romPath, platform });
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "RETROARCH_NOT_CONFIGURED"
+    ) {
+      throw Object.assign(
+        codedLaunchError(
+          "RETROARCH_NOT_CONFIGURED",
+          `RETROARCH_NOT_CONFIGURED: RetroArch not configured for ${platform}`,
+          { objectId, platform }
+        ),
+        { system: "retroarch" }
+      );
+    }
+
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "CORE_NOT_INSTALLED"
+    ) {
+      throw Object.assign(
+        codedLaunchError(
+          "CORE_NOT_INSTALLED",
+          `CORE_NOT_INSTALLED: Core not installed for ${platform}`,
+          { objectId, platform }
+        ),
+        { system: "retroarch" }
+      );
+    }
+
+    logger.error("Failed to launch RetroArch game", error);
+    throw error;
+  }
+};
+
 const openClassicsGame = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
@@ -63,6 +114,28 @@ const openClassicsGame = async (
 
   if (!game) {
     throw new Error(`Game not found: ${gameKey}`);
+  }
+
+  const retroArchPlatform = platformToRetroArchPlatform(game.platform);
+  if (retroArchPlatform) {
+    const resolvedRomPath =
+      discPath ?? game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
+
+    if (!resolvedRomPath || !existsSync(resolvedRomPath)) {
+      throw codedLaunchError(
+        "NO_DISC",
+        `NO_DISC: No ROM available for game ${objectId}`,
+        { objectId, platform: retroArchPlatform, resolvedRomPath }
+      );
+    }
+
+    await launchRetroArchWithErrors(
+      shop,
+      objectId,
+      resolvedRomPath,
+      retroArchPlatform
+    );
+    return;
   }
 
   const system = platformToSystem(game.platform);

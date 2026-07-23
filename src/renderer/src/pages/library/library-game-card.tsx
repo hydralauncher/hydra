@@ -15,8 +15,16 @@ import {
   ImageIcon,
   CheckCircleFillIcon,
 } from "@primer/octicons-react";
-import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
-import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import {
+  platformToRetroArchPlatform,
+  platformToSystem,
+  RETROARCH_PLATFORM_LABELS,
+  SYSTEM_TO_BINARY,
+} from "@renderer/helpers";
+import {
+  EMULATOR_ICONS,
+  RETROARCH_EMULATOR_ICON,
+} from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
 
@@ -113,12 +121,20 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const classicsSystem =
     game.shop === "launchbox" ? platformToSystem(game.platform) : null;
+  const retroArchPlatform =
+    game.shop === "launchbox" && !classicsSystem
+      ? platformToRetroArchPlatform(game.platform)
+      : null;
   const classicsPlatformLabel = classicsSystem
     ? PLATFORM_LABELS[classicsSystem]
-    : null;
+    : retroArchPlatform
+      ? RETROARCH_PLATFORM_LABELS[retroArchPlatform]
+      : null;
   const classicsEmulatorIcon = classicsSystem
     ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
-    : undefined;
+    : retroArchPlatform
+      ? RETROARCH_EMULATOR_ICON
+      : undefined;
 
   const handleImageError = () => {
     logger.warn(`Image failed to load for ${game.title}`, {

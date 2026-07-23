@@ -23,8 +23,11 @@ import {
   clearExtraction,
   closeToast,
   failClassicsScan,
+  failRetroArchScan,
   finishClassicsScan,
+  finishRetroArchScan,
   hydrateClassicsScan,
+  hydrateRetroArchScan,
   setExtractionProgress,
   setGameRunning,
   setProfileBackground,
@@ -32,6 +35,7 @@ import {
   setUserPreferences,
   toggleDraggingDisabled,
   updateClassicsScanProgress,
+  updateRetroArchScanProgress,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -368,6 +372,40 @@ export function App() {
         finishClassicsScan({
           cancelled: payload.type === "cancelled",
           system: payload.system,
+          result: {
+            fileCount: payload.fileCount,
+            sizeBytes: payload.sizeBytes,
+            matched: payload.matched,
+            unmatched: payload.unmatched,
+            unmatchedFiles: payload.unmatchedFiles,
+          },
+        })
+      );
+      updateLibrary();
+    });
+
+    return () => unsubscribe();
+  }, [dispatch, updateLibrary]);
+
+  useEffect(() => {
+    window.electron.getActiveRetroArchImport().then((snapshot) => {
+      if (snapshot) dispatch(hydrateRetroArchScan(snapshot));
+    });
+
+    const unsubscribe = window.electron.onRetroArchImportProgress((payload) => {
+      if (payload.type === "error") {
+        dispatch(failRetroArchScan(payload.message));
+        return;
+      }
+
+      if (payload.type === "progress") {
+        dispatch(updateRetroArchScanProgress(payload));
+        return;
+      }
+
+      dispatch(
+        finishRetroArchScan({
+          cancelled: payload.type === "cancelled",
           result: {
             fileCount: payload.fileCount,
             sizeBytes: payload.sizeBytes,

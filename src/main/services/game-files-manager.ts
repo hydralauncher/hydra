@@ -18,10 +18,11 @@ import pngToIco from "png-to-ico";
 import sharp from "sharp";
 import { ExtractionProgress, SevenZip } from "./7zip";
 import * as emulators from "./emulators";
+import * as retroarch from "./retroarch";
 import { getPathType } from "./extraction-path";
 import { GameExecutables } from "./game-executables";
 import { logger } from "./logger";
-import { platformToSystem } from "@main/helpers";
+import { platformToRetroArchPlatform, platformToSystem } from "@main/helpers";
 import { deleteArchiveFile } from "@main/events/library/delete-archive";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { SystemPath } from "./system-path";
@@ -268,8 +269,9 @@ export class GameFilesManager {
       if (!download || game?.shop !== "launchbox") return;
       if (!download.folderName) return;
 
+      const retroArchPlatform = platformToRetroArchPlatform(game.platform);
       const system = platformToSystem(game.platform);
-      if (!system) return;
+      if (!retroArchPlatform && !system) return;
 
       const gameFolderPath = path.join(
         download.downloadPath,
@@ -277,6 +279,48 @@ export class GameFilesManager {
       );
 
       if (!fs.existsSync(gameFolderPath)) return;
+
+      if (retroArchPlatform) {
+        const files = await emulators.collectFilesByExtension(
+          gameFolderPath,
+          retroarch.PLATFORM_ROM_EXTENSIONS[retroArchPlatform],
+          true
+        );
+
+        if (files.length === 0) return;
+
+        const roms = [...(game.discs ?? [])];
+        let linked = 0;
+
+        for (const entry of files) {
+          if (roms.some((disc) => disc.path === entry.fullPath)) continue;
+
+          roms.push({
+            path: entry.fullPath,
+            label: `Disc ${roms.length + 1}`,
+            fileName: path.basename(entry.fullPath),
+            sku: null,
+          });
+          linked += 1;
+        }
+
+        if (linked === 0) return;
+
+        await gamesSublevel.put(this.gameKey, {
+          ...game,
+          discs: roms,
+          selectedDiscPath: game.selectedDiscPath ?? roms[0]?.path ?? null,
+        });
+
+        WindowManager.sendToAppWindows("on-library-batch-complete");
+
+        logger.info(
+          `[GameFilesManager] Auto-linked ${linked} ROM(s) for ${this.objectId}`
+        );
+        return;
+      }
+
+      if (!system) return;
 
       const { games: scanned } = await emulators.scanRomFolder(
         gameFolderPath,

@@ -27,6 +27,9 @@ import type {
   EmulatorSystem,
   EmulatorBinary,
   EmulatorInstallProgress,
+  RetroArchCoreName,
+  RetroArchCoreInstallProgress,
+  RetroArchInstallProgress,
   Ps2MemcardScanInput,
   Ps2MemcardScanProgress,
   Ps2MemoryCardSaveRecord,
@@ -239,6 +242,111 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-emulator-install-progress", listener);
     return () =>
       ipcRenderer.removeListener("on-emulator-install-progress", listener);
+  },
+  /* RetroArch */
+  getRetroArchConfig: () => ipcRenderer.invoke("getRetroArchConfig"),
+  detectRetroArch: () => ipcRenderer.invoke("detectRetroArch"),
+  previewRetroArchExecutable: (executablePath?: string | null) =>
+    ipcRenderer.invoke("previewRetroArchExecutable", executablePath ?? null),
+  setRetroArchExecutablePath: (executablePath: string | null) =>
+    ipcRenderer.invoke("setRetroArchExecutablePath", executablePath),
+  getRetroArchInstallOptions: () =>
+    ipcRenderer.invoke("getRetroArchInstallOptions"),
+  installRetroArch: (optionId: string) =>
+    ipcRenderer.invoke("installRetroArch", optionId),
+  installRetroArchCore: (core: RetroArchCoreName) =>
+    ipcRenderer.invoke("installRetroArchCore", core),
+  installAllRetroArchCores: () =>
+    ipcRenderer.invoke("installAllRetroArchCores"),
+  onRetroArchCoreInstallProgress: (
+    cb: (payload: RetroArchCoreInstallProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RetroArchCoreInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-retroarch-core-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-retroarch-core-install-progress",
+        listener
+      );
+  },
+  onRetroArchInstallProgress: (
+    cb: (payload: RetroArchInstallProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RetroArchInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-retroarch-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-retroarch-install-progress", listener);
+  },
+  importRetroArchRoms: (
+    folders: { path: string; scanSubfolders: boolean }[],
+    language: string
+  ) => ipcRenderer.invoke("importRetroArchRoms", folders, language),
+  cancelRetroArchImport: (requestId: string) =>
+    ipcRenderer.invoke("cancelRetroArchImport", requestId),
+  rescanRetroArch: (language?: string) =>
+    ipcRenderer.invoke("rescanRetroArch", language),
+  listRetroArchRoms: () => ipcRenderer.invoke("listRetroArchRoms"),
+  getActiveRetroArchImport: () =>
+    ipcRenderer.invoke("getActiveRetroArchImport"),
+  previewRetroArchRomFolder: (folderPath: string, scanSubfolders: boolean) =>
+    ipcRenderer.invoke("previewRetroArchRomFolder", folderPath, scanSubfolders),
+  checkRetroArchExecutable: () =>
+    ipcRenderer.invoke("checkRetroArchExecutable"),
+  removeRetroArch: () => ipcRenderer.invoke("removeRetroArch"),
+  addRetroArchRomFolder: (folderPath: string, scanSubfolders: boolean) =>
+    ipcRenderer.invoke("addRetroArchRomFolder", folderPath, scanSubfolders),
+  changeRetroArchRomFolder: (folderId: string, newPath: string) =>
+    ipcRenderer.invoke("changeRetroArchRomFolder", folderId, newPath),
+  removeRetroArchRomFolder: (folderId: string) =>
+    ipcRenderer.invoke("removeRetroArchRomFolder", folderId),
+  toggleRetroArchSubfolders: (folderId: string, scanSubfolders: boolean) =>
+    ipcRenderer.invoke("toggleRetroArchSubfolders", folderId, scanSubfolders),
+  onRetroArchImportProgress: (
+    cb: (
+      payload:
+        | {
+            type: "progress";
+            requestId: string;
+            phase: "scanning" | "matching";
+            processed: number;
+            total: number;
+            percent: number;
+            currentFile: string | null;
+            status: "matched" | "unmatched" | null;
+            discovered: number;
+            matched: number;
+            sizeBytes: number;
+          }
+        | {
+            type: "done" | "cancelled";
+            requestId: string;
+            fileCount: number;
+            sizeBytes: number;
+            matched: number;
+            unmatched: number;
+            unmatchedFiles: { name: string; reason: "unmatched" }[];
+          }
+        | {
+            type: "error";
+            requestId: string;
+            message: string;
+          }
+    ) => void
+  ) => {
+    const channel = "on-retroarch-import-progress";
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Parameters<typeof cb>[0]);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
+  onRetroArchImportStatus: (cb: (importing: boolean) => void) => {
+    const channel = "on-retroarch-import-status";
+    const listener = (_event: Electron.IpcRendererEvent, importing: boolean) =>
+      cb(importing);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
   },
   startRomScan: (
     system: EmulatorSystem,

@@ -139,7 +139,7 @@ const assertBiosInstalled = async (
   }
 };
 
-const resolveEmulatorWrappers = (
+export const resolveEmulatorWrappers = (
   preferences: UserPreferences | null,
   game: Game | undefined
 ): string[] => {

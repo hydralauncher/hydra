@@ -160,11 +160,11 @@ const SYSTEM_DEFAULT_PLATFORM: Record<EmulatorSystem, string> = {
   ps3: "PlayStation 3",
 };
 
-const persistEntryLocally = async (
+export const persistEntryLocally = async (
   entry: LaunchboxShopDetailsEntry,
   language: string,
   discs: ClassicsDisc[],
-  system: EmulatorSystem,
+  defaultPlatform: string | null,
   romSizeBytes: number | null
 ) => {
   const shop = "launchbox" as const;
@@ -199,10 +199,7 @@ const persistEntryLocally = async (
     });
 
   const platform =
-    entry.platform ??
-    entry.data?.platform ??
-    SYSTEM_DEFAULT_PLATFORM[system] ??
-    null;
+    entry.platform ?? entry.data?.platform ?? defaultPlatform ?? null;
 
   const existing = await gamesSublevel.get(gameKey);
   if (existing) {
@@ -244,7 +241,7 @@ const persistEntryLocally = async (
   AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
 };
 
-const syncProfileBatch = async (objectIds: string[]) => {
+export const syncProfileBatch = async (objectIds: string[]) => {
   if (objectIds.length === 0) return;
 
   const chunks = chunk(objectIds, PROFILE_BATCH_CHUNK_SIZE);
@@ -706,7 +703,7 @@ const persistMatchedEntries = async (
       entry,
       language,
       discs,
-      system,
+      SYSTEM_DEFAULT_PLATFORM[system],
       romSizeBytes
     ).catch((err) => {
       logger.error("Failed to persist launchbox entry locally", err);
