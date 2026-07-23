@@ -3,7 +3,7 @@ import { db, levelKeys } from "@main/level";
 import type { UserPreferences } from "@types";
 
 const VALID_PROTOCOLS = ["http:", "https:", "udp:"];
-const MAX_TRACKER_LIST_SIZE = 1_000; // ~1 KB
+const MAX_TRACKER_LIST_SIZE = 50_000; // ~1,000 tracker URLs
 
 export const isValidTrackerUrl = (url: string): boolean => {
   try {
