@@ -28,6 +28,7 @@ import {
   useFocusAnimatedCover,
   useLibraryGameCardPresentation,
 } from "../../pages/library/card-presentation";
+import { getDirectionBiasedFocusIndexes } from "./focus-targets";
 
 import "./styles.scss";
 
@@ -62,6 +63,12 @@ interface FocusCarouselProps {
   cardVariant?: "vertical" | "horizontal";
   getItemId?: (game: FocusCarouselGame) => string;
   onItemActivate?: (game: FocusCarouselGame) => void;
+  controlsNavigation?: {
+    regionId: string;
+    previousId: string;
+    nextId: string;
+    navigationOverrides?: FocusOverrides;
+  };
   getItemNavigationOverrides?: (
     game: FocusCarouselGame,
     index: number,
@@ -279,7 +286,7 @@ function getFadeSide(
 function useThresholdFocusScroll(emblaApi: EmblaApi) {
   const lastFocusedIndexRef = useRef<number | null>(null);
 
-  return useCallback(
+  const handleFocused = useCallback(
     (nextFocusedIndex: number) => {
       const previousFocusedIndex = lastFocusedIndexRef.current;
       lastFocusedIndexRef.current = nextFocusedIndex;
@@ -294,6 +301,12 @@ function useThresholdFocusScroll(emblaApi: EmblaApi) {
     },
     [emblaApi]
   );
+
+  const reset = useCallback(() => {
+    lastFocusedIndexRef.current = null;
+  }, []);
+
+  return { handleFocused, reset };
 }
 
 function useLeftExitLock(firstItemId: string | undefined) {
@@ -456,10 +469,30 @@ function useCarouselFade(showRightFade: boolean, emblaApi: EmblaApi) {
 function useCarouselControls(emblaApi: EmblaApi) {
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
+  const [visibleIndexes, setVisibleIndexes] = useState<number[]>([]);
 
   const syncControls = useCallback(() => {
     setCanScrollPrev(emblaApi?.canScrollPrev() ?? false);
     setCanScrollNext(emblaApi?.canScrollNext() ?? false);
+
+    const viewportMetrics = emblaApi ? getViewportSlideMetrics(emblaApi) : null;
+    if (!emblaApi || !viewportMetrics) {
+      setVisibleIndexes([]);
+      return;
+    }
+
+    const slideCount = emblaApi.slideNodes().length;
+    const targetFirstIndex = Math.min(
+      emblaApi.selectedScrollSnap(),
+      Math.max(0, slideCount - viewportMetrics.visibleCount)
+    );
+
+    setVisibleIndexes(
+      Array.from(
+        { length: viewportMetrics.visibleCount },
+        (_, position) => targetFirstIndex + position
+      ).filter((index) => index < slideCount)
+    );
   }, [emblaApi]);
 
   useEffect(() => {
@@ -471,18 +504,21 @@ function useCarouselControls(emblaApi: EmblaApi) {
     emblaApi.on("reInit", syncControls);
     emblaApi.on("select", syncControls);
     emblaApi.on("scroll", syncControls);
+    emblaApi.on("settle", syncControls);
 
     return () => {
       emblaApi.off("init", syncControls);
       emblaApi.off("reInit", syncControls);
       emblaApi.off("select", syncControls);
       emblaApi.off("scroll", syncControls);
+      emblaApi.off("settle", syncControls);
     };
   }, [emblaApi, syncControls]);
 
   return {
     canScrollPrev,
     canScrollNext,
+    visibleIndexes,
   };
 }
 
@@ -502,7 +538,19 @@ function FocusCarouselCard({
   onContextMenu?: MouseEventHandler<HTMLElement>;
 }>) {
   const libraryPresentation = useLibraryGameCardPresentation(game, "vertical");
-  const coverImageUrl = getGameCoverImageSource(game);
+  const primaryCoverImageUrl = getGameCoverImageSource(game);
+  const fallbackCoverImageUrl = game.libraryImageUrl ?? game.iconUrl ?? null;
+  const canFallbackCover =
+    Boolean(fallbackCoverImageUrl) &&
+    fallbackCoverImageUrl !== primaryCoverImageUrl;
+  const [useFallbackCover, setUseFallbackCover] = useState(false);
+  const coverImageUrl = useFallbackCover
+    ? fallbackCoverImageUrl
+    : primaryCoverImageUrl;
+
+  useEffect(() => {
+    setUseFallbackCover(false);
+  }, [game.objectId, game.shop, primaryCoverImageUrl]);
   const isClassicsGame = game.shop === "launchbox";
   const libraryCoverSource = isClassicsGame
     ? libraryPresentation.activeImageSource
@@ -581,6 +629,9 @@ function FocusCarouselCard({
       downloadSourceCount={game.downloadSources.length}
       onClick={onClick}
       onContextMenu={onContextMenu}
+      onCoverImageError={
+        canFallbackCover ? () => setUseFallbackCover(true) : undefined
+      }
     />
   );
 }
@@ -687,6 +738,7 @@ export function FocusCarousel({
   getItemId,
   getItemNavigationOverrides,
   onItemActivate,
+  controlsNavigation,
   onCarouselItemOpenContextMenu,
   showRightFade = false,
   cardMode = "store",
@@ -706,14 +758,48 @@ export function FocusCarousel({
   const lastAlignedFocusIdRef = useRef<string | null>(null);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const suppressPointerClickRef = useRef(false);
-  const handleSlideFocused = useThresholdFocusScroll(emblaApi);
+  const { handleFocused: handleSlideFocused, reset: resetFocusScroll } =
+    useThresholdFocusScroll(emblaApi);
   const firstItemId = games[0] ? getItemId?.(games[0]) : undefined;
   const shouldBlockLeftExit = useLeftExitLock(firstItemId);
   const { renderedFadeSide, isFadeVisible } = useCarouselFade(
     showRightFade,
     emblaApi
   );
-  const { canScrollPrev, canScrollNext } = useCarouselControls(emblaApi);
+  const { canScrollPrev, canScrollNext, visibleIndexes } =
+    useCarouselControls(emblaApi);
+  const focusIndexes = getDirectionBiasedFocusIndexes(visibleIndexes);
+  const previousFocusGame =
+    focusIndexes.previous == null ? undefined : games[focusIndexes.previous];
+  const nextFocusGame =
+    focusIndexes.next == null ? undefined : games[focusIndexes.next];
+  const previousFocusItemId = previousFocusGame
+    ? getItemId?.(previousFocusGame)
+    : undefined;
+  const nextFocusItemId = nextFocusGame
+    ? getItemId?.(nextFocusGame)
+    : undefined;
+  const previousControlNavigationOverrides = mergeNavigationOverrides(
+    controlsNavigation?.navigationOverrides ?? {},
+    previousFocusItemId
+      ? { down: getOptionalItemFocusTarget(previousFocusItemId) }
+      : undefined
+  );
+  const nextControlNavigationOverrides = mergeNavigationOverrides(
+    controlsNavigation?.navigationOverrides ?? {},
+    nextFocusItemId
+      ? { down: getOptionalItemFocusTarget(nextFocusItemId) }
+      : undefined
+  );
+
+  useEffect(() => {
+    if (
+      currentFocusId === controlsNavigation?.previousId ||
+      currentFocusId === controlsNavigation?.nextId
+    ) {
+      resetFocusScroll();
+    }
+  }, [controlsNavigation, currentFocusId, resetFocusScroll]);
 
   useEffect(() => {
     const getFocusedIndex = (focusId: string | null) => {
@@ -723,10 +809,18 @@ export function FocusCarousel({
     };
 
     const currentFocusedIndex = getFocusedIndex(currentFocusId);
+    const isCarouselControlFocused =
+      currentFocusId === controlsNavigation?.previousId ||
+      currentFocusId === controlsNavigation?.nextId;
     const targetFocusId = currentFocusedIndex === -1 ? rememberedFocusId : null;
     const focusedIndex = getFocusedIndex(targetFocusId);
 
     if (currentFocusedIndex !== -1) {
+      lastAlignedFocusIdRef.current = null;
+      return;
+    }
+
+    if (isCarouselControlFocused) {
       lastAlignedFocusIdRef.current = null;
       return;
     }
@@ -759,7 +853,14 @@ export function FocusCarousel({
     return () => {
       globalThis.cancelAnimationFrame(animationFrameId);
     };
-  }, [currentFocusId, emblaApi, games, getItemId, rememberedFocusId]);
+  }, [
+    controlsNavigation,
+    currentFocusId,
+    emblaApi,
+    games,
+    getItemId,
+    rememberedFocusId,
+  ]);
 
   useEffect(() => {
     lastAlignedFocusIdRef.current = null;
@@ -823,6 +924,64 @@ export function FocusCarousel({
           <h2 className="focus-carousel__title">{title}</h2>
           {headerMeta != null ? (
             <div className="focus-carousel__header-meta">{headerMeta}</div>
+          ) : controlsNavigation ? (
+            <HorizontalFocusGroup
+              regionId={controlsNavigation.regionId}
+              asChild
+            >
+              <div className="focus-carousel__header-actions">
+                <FocusItem
+                  id={controlsNavigation.previousId}
+                  navigationOverrides={mergeNavigationOverrides(
+                    previousControlNavigationOverrides ?? {},
+                    {
+                      left: { type: "block" },
+                      right: getOptionalItemFocusTarget(
+                        controlsNavigation.nextId
+                      ),
+                    }
+                  )}
+                  asChild
+                >
+                  <button
+                    type="button"
+                    className="focus-carousel__header-button"
+                    aria-label="Previous"
+                    aria-disabled={!canScrollPrev}
+                    onClick={() => {
+                      if (canScrollPrev) emblaApi?.scrollPrev();
+                    }}
+                  >
+                    <CaretLeftIcon size={20} />
+                  </button>
+                </FocusItem>
+                <FocusItem
+                  id={controlsNavigation.nextId}
+                  navigationOverrides={mergeNavigationOverrides(
+                    nextControlNavigationOverrides ?? {},
+                    {
+                      left: getOptionalItemFocusTarget(
+                        controlsNavigation.previousId
+                      ),
+                      right: { type: "block" },
+                    }
+                  )}
+                  asChild
+                >
+                  <button
+                    type="button"
+                    className="focus-carousel__header-button"
+                    aria-label="Next"
+                    aria-disabled={!canScrollNext}
+                    onClick={() => {
+                      if (canScrollNext) emblaApi?.scrollNext();
+                    }}
+                  >
+                    <CaretRightIcon size={20} />
+                  </button>
+                </FocusItem>
+              </div>
+            </HorizontalFocusGroup>
           ) : (
             <div className="focus-carousel__header-actions">
               <button

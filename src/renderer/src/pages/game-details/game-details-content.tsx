@@ -16,6 +16,7 @@ import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 import { GameReviews } from "./game-reviews";
 import { GameLogo } from "./game-logo";
+import { SimilarGames } from "./similar-games/similar-games";
 
 import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
@@ -430,6 +431,15 @@ export function GameDetailsContent() {
               >
                 {isDescriptionExpanded ? t("show_less") : t("show_more")}
               </button>
+            )}
+
+            {shop && objectId && (
+              <SimilarGames
+                objectId={objectId}
+                shop={shop}
+                genres={shopDetails?.genres}
+                platform={game?.platform ?? shopDetails?.platform}
+              />
             )}
 
             {shop !== "custom" && shop && objectId && (

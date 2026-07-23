@@ -725,6 +725,7 @@
     "download_options_unavailable_other": "{{formattedCount}} opções de download não estão mais disponíveis.",
     "download_sources_removed_one": "{{count}} fonte de download foi removida",
     "download_sources_removed_other": "{{count}} fontes de download foram removidas",
+    "similar_games": "Ver similares",
     "edit_game_modal_section_title": "Título do Jogo",
     "edit_game_modal_section_title_description": "Edite o título exibido para este jogo na sua biblioteca.",
     "edit_game_modal_section_assets_description": "Escolha qual arte você quer personalizar para este jogo.",

@@ -6,16 +6,27 @@ import {
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
-import type { GameShop } from "@types";
+import type { GameShop, ShopAssets } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { buildLibraryToastOptions, getItemFocusTarget } from "../../helpers";
+import {
+  buildLibraryToastOptions,
+  getBigPictureGameDetailsPath,
+  getItemFocusTarget,
+} from "../../helpers";
+import { useSimilarGames } from "@renderer/hooks/use-similar-games";
+import {
+  extractSimilarGameGenres,
+  getSimilarGameCoverImageUrl,
+} from "@renderer/hooks/similar-games";
 import type { LibraryToastSource } from "../../helpers/library-toast";
 import {
   Typography,
   VerticalFocusGroup,
   Divider,
   FocusItem,
+  FocusCarousel,
 } from "../../components";
 import {
   ConfirmationModal,
@@ -54,6 +65,10 @@ import {
   GAME_HERO_ACTIONS_REGION_ID,
   GAME_MEDIA_CAROUSEL_REGION_ID,
   GAME_PAGE_REGION_ID,
+  GAME_SIMILAR_GAMES_CONTROLS_REGION_ID,
+  GAME_SIMILAR_GAMES_NEXT_ID,
+  GAME_SIMILAR_GAMES_PREVIOUS_ID,
+  GAME_SIMILAR_GAMES_REGION_ID,
   GAME_SIDEBAR_ACHIEVEMENTS_ID,
   GAME_SIDEBAR_CONTROLLER_SUPPORT_ID,
   GAME_SIDEBAR_HLTB_ID,
@@ -63,6 +78,7 @@ import {
   GAME_SIDEBAR_REGION_ID,
   GAME_SIDEBAR_REQUIREMENTS_ID,
   GAME_SIDEBAR_STATS_ID,
+  getGameSimilarGameItemId,
 } from "../../components/pages/game/navigation";
 import { NavigationService, type FocusOverrideTarget } from "../../services";
 import { useNavigationStore } from "../../stores";
@@ -293,6 +309,7 @@ function buildDescriptionSections(document: Document | null) {
 }
 
 export default function Game() {
+  const { t, i18n } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const navigate = useNavigate();
@@ -425,19 +442,35 @@ export default function Game() {
   const developer = shopDetails?.developers?.[0] ?? "";
   const publisher = shopDetails?.publishers?.[0] ?? "";
   const releaseDate = shopDetails?.release_date?.date ?? "";
-  const launchboxGenres = useMemo(() => {
-    return ((shopDetails?.genres ?? []) as unknown[])
-      .map((genre) => {
-        if (typeof genre === "string") return genre;
-        if (genre && typeof genre === "object" && "name" in genre) {
-          const { name } = genre as { name?: unknown };
-          return typeof name === "string" ? name : "";
-        }
-
-        return "";
-      })
-      .filter((genre) => genre.trim().length > 0);
+  const shopGenres = useMemo(() => {
+    return extractSimilarGameGenres(shopDetails?.genres ?? []);
   }, [shopDetails?.genres]);
+  const { games: similarGames, isLoading: areSimilarGamesLoading } =
+    useSimilarGames({
+      objectId: objectId ?? "",
+      shop: shop ?? "custom",
+      genres: shopGenres,
+      platform: game?.platform ?? shopDetails?.platform,
+      language: i18n.resolvedLanguage ?? i18n.language ?? "en",
+    });
+  const similarCarouselGames = useMemo<ShopAssets[]>(
+    () =>
+      similarGames.map((similarGame) => ({
+        objectId: similarGame.objectId,
+        shop: similarGame.shop,
+        title: similarGame.title,
+        iconUrl: null,
+        libraryHeroImageUrl: null,
+        libraryImageUrl: similarGame.libraryImageUrl,
+        logoImageUrl: null,
+        logoPosition: null,
+        coverImageUrl: getSimilarGameCoverImageUrl(similarGame),
+        downloadSources: similarGame.downloadSources,
+      })),
+    [similarGames]
+  );
+  const hasSimilarGames =
+    !areSimilarGamesLoading && similarCarouselGames.length > 0;
   const launchboxRegions = useMemo(
     () =>
       shopDetails?.skus && shopDetails.skus.length > 0
@@ -469,6 +502,16 @@ export default function Game() {
       preferRememberedFocus: true,
     };
   }, [hasNavigableComments]);
+  const similarGamesEntryTarget = useMemo(() => {
+    if (!hasSimilarGames) return undefined;
+
+    return {
+      type: "region" as const,
+      regionId: GAME_SIMILAR_GAMES_REGION_ID,
+      entryDirection: "down" as const,
+      preferRememberedFocus: true,
+    };
+  }, [hasSimilarGames]);
   const bodyUpNavigationTarget = useMemo<FocusOverrideTarget>(() => {
     if (activeMediaItemId) {
       return getItemFocusTarget(activeMediaItemId);
@@ -512,12 +555,15 @@ export default function Game() {
       };
     }
 
-    return descriptionEntryTarget ?? commentsEntryTarget;
+    return (
+      descriptionEntryTarget ?? similarGamesEntryTarget ?? commentsEntryTarget
+    );
   }, [
     activeMediaItemId,
     commentsEntryTarget,
     descriptionEntryTarget,
     hasMedia,
+    similarGamesEntryTarget,
   ]);
   const sidebarEntryTarget = useMemo(
     () => sidebarStatsEntryTarget,
@@ -533,6 +579,13 @@ export default function Game() {
     []
   );
   const commentsTopNavigationTarget = useMemo(() => {
+    if (similarGamesEntryTarget) {
+      return {
+        ...similarGamesEntryTarget,
+        entryDirection: "up" as const,
+      };
+    }
+
     if (descriptionBottomEntryTarget) {
       return descriptionBottomEntryTarget;
     }
@@ -547,7 +600,64 @@ export default function Game() {
     descriptionBottomEntryTarget,
     hasMedia,
     heroActionsLeftNavigationTarget,
+    similarGamesEntryTarget,
   ]);
+
+  const similarGamesTopNavigationTarget = useMemo<FocusOverrideTarget>(() => {
+    if (descriptionBottomEntryTarget) return descriptionBottomEntryTarget;
+    if (activeMediaItemId) return getItemFocusTarget(activeMediaItemId);
+
+    if (hasMedia) {
+      return {
+        type: "region",
+        regionId: GAME_MEDIA_CAROUSEL_REGION_ID,
+        entryDirection: "up",
+        preferRememberedFocus: true,
+      };
+    }
+
+    return heroActionsLeftNavigationTarget;
+  }, [
+    activeMediaItemId,
+    descriptionBottomEntryTarget,
+    hasMedia,
+    heroActionsLeftNavigationTarget,
+  ]);
+
+  const similarGamesControlsEntryTarget = useMemo<FocusOverrideTarget>(
+    () => ({
+      type: "region",
+      regionId: GAME_SIMILAR_GAMES_CONTROLS_REGION_ID,
+      entryDirection: "up",
+      preferRememberedFocus: true,
+    }),
+    []
+  );
+  const similarGamesControlsNavigationOverrides = useMemo(
+    () => ({
+      up: similarGamesTopNavigationTarget,
+      down:
+        similarGamesEntryTarget ??
+        ({
+          type: "block" as const,
+        } as const),
+    }),
+    [similarGamesEntryTarget, similarGamesTopNavigationTarget]
+  );
+
+  const getSimilarGameNavigationOverrides = useCallback(
+    (_similarGame: ShopAssets, index: number, games: ShopAssets[]) => ({
+      up: similarGamesControlsEntryTarget,
+      down: commentsEntryTarget ?? ({ type: "block" } as const),
+      ...(index === 0
+        ? { left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home) }
+        : {}),
+      ...(index === games.length - 1
+        ? { right: { type: "block" as const } }
+        : {}),
+    }),
+    [commentsEntryTarget, similarGamesControlsEntryTarget]
+  );
   useHeaderTitle(resolvedGameTitle);
 
   const handleOpenDownloadModal = useCallback(() => {
@@ -950,7 +1060,9 @@ export default function Game() {
                 return;
               }
 
-              focusNavigationTarget(commentsEntryTarget);
+              focusNavigationTarget(
+                similarGamesEntryTarget ?? commentsEntryTarget
+              );
             },
             left: () => {
               navigation.setFocus(BIG_PICTURE_SIDEBAR_ITEM_IDS.home);
@@ -1025,6 +1137,10 @@ export default function Game() {
       previousRegionId,
       GAME_COMMENTS_ACTION_ROWS_REGION_ID
     );
+    const enteredFromSimilarGames = isRegionWithinTree(
+      previousRegionId,
+      GAME_SIMILAR_GAMES_REGION_ID
+    );
     const enteredFromSidebar = isRegionWithinTree(
       previousRegionId,
       GAME_SIDEBAR_REGION_ID
@@ -1038,11 +1154,12 @@ export default function Game() {
       return;
     }
 
-    const targetScrollTop = enteredFromComments
-      ? bounds.descriptionBottom -
-        bounds.pageClientHeight +
-        DESCRIPTION_FOCUS_ENTRY_MARGIN
-      : bounds.descriptionTop - DESCRIPTION_FOCUS_ENTRY_MARGIN;
+    const targetScrollTop =
+      enteredFromComments || enteredFromSimilarGames
+        ? bounds.descriptionBottom -
+          bounds.pageClientHeight +
+          DESCRIPTION_FOCUS_ENTRY_MARGIN
+        : bounds.descriptionTop - DESCRIPTION_FOCUS_ENTRY_MARGIN;
     const nextScrollTop = Math.min(
       Math.max(0, targetScrollTop),
       bounds.maxScrollTop
@@ -1205,7 +1322,9 @@ export default function Game() {
                 screenshots={shopDetails.screenshots ?? []}
                 onActiveItemChange={setActiveMediaItemId}
                 nextContentEntryTarget={
-                  descriptionEntryTarget ?? commentsEntryTarget
+                  descriptionEntryTarget ??
+                  similarGamesEntryTarget ??
+                  commentsEntryTarget
                 }
                 sidebarEntryTarget={sidebarStatsEntryTarget}
               />
@@ -1268,6 +1387,42 @@ export default function Game() {
                   </FocusItem>
                 </VerticalFocusGroup>
               )}
+
+              {hasSimilarGames ? (
+                <>
+                  <Divider />
+                  <div className="game-page__similar-games">
+                    <FocusCarousel
+                      title={t("similar_games")}
+                      cardVariant="vertical"
+                      games={similarCarouselGames}
+                      regionId={GAME_SIMILAR_GAMES_REGION_ID}
+                      controlsNavigation={{
+                        regionId: GAME_SIMILAR_GAMES_CONTROLS_REGION_ID,
+                        previousId: GAME_SIMILAR_GAMES_PREVIOUS_ID,
+                        nextId: GAME_SIMILAR_GAMES_NEXT_ID,
+                        navigationOverrides:
+                          similarGamesControlsNavigationOverrides,
+                      }}
+                      getItemId={(similarGame) =>
+                        getGameSimilarGameItemId(
+                          shop!,
+                          objectId!,
+                          similarGame.shop,
+                          similarGame.objectId
+                        )
+                      }
+                      getItemNavigationOverrides={
+                        getSimilarGameNavigationOverrides
+                      }
+                      onItemActivate={(similarGame) =>
+                        navigate(getBigPictureGameDetailsPath(similarGame))
+                      }
+                      showRightFade
+                    />
+                  </div>
+                </>
+              ) : null}
 
               <Divider />
 
@@ -1394,13 +1549,13 @@ export default function Game() {
                       </div>
                     ) : null}
 
-                    {isLaunchboxGame && launchboxGenres.length > 0 ? (
+                    {isLaunchboxGame && shopGenres.length > 0 ? (
                       <div className="game-page__metadata-row">
                         <Typography className="game-page__metadata-label">
                           Genres
                         </Typography>
                         <Typography className="game-page__metadata-value">
-                          {launchboxGenres.join(", ")}
+                          {shopGenres.join(", ")}
                         </Typography>
                       </div>
                     ) : null}
