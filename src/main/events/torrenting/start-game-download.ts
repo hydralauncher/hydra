@@ -70,9 +70,9 @@ const startGameDownload = async (
     };
     await DownloadManager.validateDownloadUrl(download);
     await prepareGameEntry({ gameKey, title, objectId, shop });
+    await DownloadManager.cancelDownload(gameKey);
     await downloadsSublevel.put(gameKey, download);
     didWriteDownload = true;
-    await DownloadManager.cancelDownload(gameKey);
     await DownloadOrchestrator.startPreparedDownload(download);
 
     const updatedGame = await gamesSublevel.get(gameKey);
@@ -87,6 +87,7 @@ const startGameDownload = async (
     return { ok: true };
   } catch (err: unknown) {
     if (didWriteDownload) {
+      await DownloadManager.cancelDownload(gameKey).catch(() => null);
       await downloadsSublevel.del(gameKey).catch(() => null);
       await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
     }

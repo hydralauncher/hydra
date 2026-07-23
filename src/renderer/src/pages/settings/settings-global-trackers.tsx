@@ -30,6 +30,7 @@ export function SettingsGlobalTrackers() {
   const [appendManual, setAppendManual] = useState(false);
   const [appendUrl, setAppendUrl] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const appendManualRef = useRef(appendManual);
   const appendUrlRef = useRef(appendUrl);
@@ -66,6 +67,8 @@ export function SettingsGlobalTrackers() {
       appendManualFlag: boolean,
       appendUrlFlag: boolean
     ) => {
+      setSaveError(null);
+
       try {
         await window.electron.saveGlobalTrackers(
           manual,
@@ -77,9 +80,10 @@ export function SettingsGlobalTrackers() {
         await refreshUserPreferences();
       } catch (err) {
         console.error("Failed to save global trackers", err);
+        setSaveError(t("global_trackers_save_error"));
       }
     },
-    [refreshUserPreferences]
+    [refreshUserPreferences, t]
   );
 
   const debouncedSave = useMemo(
@@ -167,6 +171,10 @@ export function SettingsGlobalTrackers() {
       <p className="settings-global-trackers__description">
         {t("global_trackers_description")}
       </p>
+
+      {saveError && (
+        <p className="settings-global-trackers__error">{saveError}</p>
+      )}
 
       <div className="settings-global-trackers__section">
         <CheckboxField

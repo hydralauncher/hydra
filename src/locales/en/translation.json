@@ -1018,6 +1018,7 @@
     "global_trackers_append_url": "Automatically append trackers from URL to new downloads",
     "global_trackers_manual_placeholder": "udp://tracker.example.com:6969/announce\nhttps://tracker.example.org:443/announce",
     "global_trackers_url_placeholder": "https://example.com/trackers.txt",
+    "global_trackers_save_error": "Failed to save trackers. Please try again.",
     "replace_download_directory": "Replace Download Directory",
     "replace_download_directory_description": "Your Big Picture download directory list is full. Choose which saved directory to replace with the new default path.",
     "new_default_path": "New default path",

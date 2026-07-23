@@ -99,6 +99,7 @@ const addGameToQueue = async (
     return { ok: true };
   } catch (err: unknown) {
     if (didWriteDownload) {
+      await DownloadManager.cancelDownload(gameKey).catch(() => null);
       await downloadsSublevel.del(gameKey).catch(() => null);
       await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
     }
