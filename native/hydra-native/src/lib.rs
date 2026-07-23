@@ -51,7 +51,7 @@ use windows_sys::Win32::UI::Input::{
     RIDEV_INPUTSINK, RID_INPUT, RIM_TYPEKEYBOARD,
 };
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::UI::Shell::ShellExecuteW;
+use windows_sys::Win32::UI::Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW};
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DispatchMessageW, GetForegroundWindow, GetMessageW,
@@ -368,15 +368,21 @@ pub fn launch_elevated(executable: String, parameters: String, working_directory
             .encode_utf16()
             .chain(std::iter::once(0))
             .collect();
-        let result = ShellExecuteW(
-            null_mut(),
-            verb.as_ptr(),
-            executable.as_ptr(),
-            parameters.as_ptr(),
-            working_directory.as_ptr(),
-            SW_SHOWNORMAL,
-        );
-        result as isize > 32
+        let mut execute_info: SHELLEXECUTEINFOW = zeroed();
+        execute_info.cbSize = size_of::<SHELLEXECUTEINFOW>() as u32;
+        execute_info.fMask = SEE_MASK_NOCLOSEPROCESS;
+        execute_info.lpVerb = verb.as_ptr();
+        execute_info.lpFile = executable.as_ptr();
+        execute_info.lpParameters = parameters.as_ptr();
+        execute_info.lpDirectory = working_directory.as_ptr();
+        execute_info.nShow = SW_SHOWNORMAL;
+        if ShellExecuteExW(&mut execute_info) == 0 {
+            return false;
+        }
+        if !execute_info.hProcess.is_null() {
+            CloseHandle(execute_info.hProcess);
+        }
+        true
     }
 
     #[cfg(not(target_os = "windows"))]

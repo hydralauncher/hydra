@@ -3,11 +3,14 @@ import { BrowserWindow } from "electron";
 import path from "node:path";
 
 import { logger } from "./logger";
+import { HydraOverlayInput } from "./hydra-overlay-input";
+import { HydraOverlaySurface } from "./hydra-overlay-surface";
 import { NativeAddon } from "./native-addon";
 import { findOverlayGameProcesses } from "./overlay-game-process";
 import { WindowManager } from "./window-manager";
 
-type GpuLuid = unknown;
+type GpuLuid = { low: number; high: number };
+type SharedHandle = { handle?: number };
 type NativeOverlay = {
   event: {
     on: (name: string, listener: (...args: never[]) => void) => void;
@@ -22,6 +25,8 @@ type NativeOverlay = {
     keyboard: boolean
   ) => Promise<void>;
   blockInput: (id: number, block: boolean) => Promise<void>;
+  setBlockingCursor: (id: number, cursor?: number) => Promise<void>;
+  updateHandle: (id: number, update: SharedHandle) => Promise<void>;
   destroy: () => void;
 };
 type CoreModule = {
@@ -32,30 +37,23 @@ type CoreModule = {
       timeout: number
     ) => Promise<NativeOverlay>;
   };
+  OverlaySurface: {
+    create: (luid: GpuLuid) => {
+      updateBitmap: (width: number, data: Buffer) => SharedHandle | null;
+      updateShtex: (
+        width: number,
+        height: number,
+        handle: Buffer,
+        rect: {
+          dstX: number;
+          dstY: number;
+          src: Electron.Rectangle;
+        }
+      ) => SharedHandle | null;
+    };
+  };
   defaultDllDir: () => string;
   percent: (value: number) => unknown;
-};
-type SurfaceConnection = {
-  disconnect: () => Promise<void>;
-  events: { on: (name: string, listener: (error: unknown) => void) => void };
-};
-type InputConnection = { disconnect: () => Promise<void> };
-type SurfaceModule = {
-  ElectronOverlaySurface: {
-    connect: (
-      window: { id: number; overlay: NativeOverlay },
-      luid: GpuLuid,
-      contents: Electron.WebContents
-    ) => SurfaceConnection;
-  };
-};
-type InputModule = {
-  ElectronOverlayInput: {
-    connect: (
-      window: { id: number; overlay: NativeOverlay },
-      contents: Electron.WebContents
-    ) => InputConnection;
-  };
 };
 
 export type InjectedOverlayStatus = {
@@ -73,8 +71,6 @@ export type InjectedOverlayStatus = {
 };
 
 const CORE_PACKAGE = "@asdf-overlay/core";
-const SURFACE_PACKAGE = "@asdf-overlay/electron/surface";
-const INPUT_PACKAGE = "@asdf-overlay/electron/input";
 const PROCESS_RETRY_MS = 1_000;
 const ATTACH_RETRY_MS = 3_000;
 const LONG_RETRY_MS = 15_000;
@@ -91,12 +87,11 @@ const stringifyError = (error: unknown) =>
 export class InjectedOverlayManager {
   private overlay: NativeOverlay | null = null;
   private window: BrowserWindow | null = null;
-  private surface: SurfaceConnection | null = null;
-  private input: InputConnection | null = null;
+  private surface: HydraOverlaySurface | null = null;
+  private input: HydraOverlayInput | null = null;
   private windowId = 0;
   private luid: GpuLuid | null = null;
-  private surfaceModule: SurfaceModule | null = null;
-  private inputModule: InputModule | null = null;
+  private coreModule: CoreModule | null = null;
   private attaching: Promise<boolean> | null = null;
   private game: Game | null = null;
   private visible = false;
@@ -143,8 +138,7 @@ export class InjectedOverlayManager {
         !this.window.isDestroyed() &&
         this.windowId &&
         this.luid &&
-        this.surfaceModule &&
-        this.inputModule
+        this.coreModule
     );
   }
 
@@ -163,8 +157,8 @@ export class InjectedOverlayManager {
     this.visible = true;
     this.window?.webContents.send("on-overlay-mode", "full");
     await this.connectSurface();
-    if (!this.input && this.window && this.overlay && this.inputModule) {
-      this.input = this.inputModule.ElectronOverlayInput.connect(
+    if (!this.input && this.window && this.overlay) {
+      this.input = HydraOverlayInput.connect(
         { id: this.windowId, overlay: this.overlay },
         this.window.webContents
       );
@@ -333,10 +327,6 @@ export class InjectedOverlayManager {
 
   private async createRuntime(pid: number, game: Game, generation: number) {
     const core = (await import(CORE_PACKAGE)) as unknown as CoreModule;
-    const [surfaceModule, inputModule] = await Promise.all([
-      import(SURFACE_PACKAGE) as unknown as Promise<SurfaceModule>,
-      import(INPUT_PACKAGE) as unknown as Promise<InputModule>,
-    ]);
     const dllDirectory = core
       .defaultDllDir()
       .replace("app.asar", "app.asar.unpacked");
@@ -381,8 +371,7 @@ export class InjectedOverlayManager {
     this.window = window;
     this.windowId = id;
     this.luid = luid;
-    this.surfaceModule = surfaceModule;
-    this.inputModule = inputModule;
+    this.coreModule = core;
 
     await Promise.all([
       overlay.setPosition(id, core.percent(0), core.percent(0)),
@@ -442,14 +431,15 @@ export class InjectedOverlayManager {
       this.surface ||
       !this.window ||
       !this.overlay ||
-      !this.surfaceModule ||
+      !this.coreModule ||
       !this.luid
     )
       return;
-    this.surface = this.surfaceModule.ElectronOverlaySurface.connect(
+    this.surface = HydraOverlaySurface.connect(
       { id: this.windowId, overlay: this.overlay },
       this.luid,
-      this.window.webContents
+      this.window.webContents,
+      this.coreModule
     );
     this.surface.events.on("error", (error) =>
       logger.warn("Windows overlay surface update failed", error)
@@ -495,8 +485,7 @@ export class InjectedOverlayManager {
     this.overlay = null;
     this.windowId = 0;
     this.luid = null;
-    this.surfaceModule = null;
-    this.inputModule = null;
+    this.coreModule = null;
     window?.destroy();
     overlay?.destroy();
   }

@@ -18,7 +18,7 @@ files:
   - "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
   - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
   - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,tsconfig.test.json}"
-  - "!scripts/register-ts-node.mjs"
+  - "!scripts/*"
 asarUnpack:
   - resources/**
   - node_modules/@asdf-overlay/core/**
@@ -26,6 +26,7 @@ asarUnpack:
   - node_modules/@img/sharp-libvips-*/**
 win:
   executableName: Hydra
+  requestedExecutionLevel: requireAdministrator
   extraResources:
     - from: presentmon
       to: presentmon

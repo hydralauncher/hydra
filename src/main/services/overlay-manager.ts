@@ -12,7 +12,7 @@ import {
   DEFAULT_HYDRA_OVERLAY_PREFERENCES,
   resolveHydraOverlayPreferences,
 } from "@shared";
-import { BrowserWindow, app, dialog, globalShortcut, screen } from "electron";
+import { BrowserWindow, app, globalShortcut, screen } from "electron";
 import path from "node:path";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
@@ -74,8 +74,6 @@ export class OverlayManager {
   private static performance = emptyPerformance();
   private static preferences = DEFAULT_HYDRA_OVERLAY_PREFERENCES;
   private static lastToggleAt = 0;
-  private static elevationPromptedFor: string | null = null;
-  private static elevationPromptInFlight = false;
 
   public static initialize() {
     overlayFpsMonitor.setUpdateHandler((metrics) =>
@@ -84,14 +82,10 @@ export class OverlayManager {
     injectedOverlayManager.setStatusHandler((status) => {
       logger.info("Hydra overlay backend status", status);
       if (status.state === "access-denied") {
-        if (NativeAddon.isCurrentProcessElevated()) {
-          logger.error(
-            "The game process blocks injection even though Hydra is elevated",
-            status
-          );
-        } else {
-          void this.promptForElevation();
-        }
+        logger.error("The game process blocks Hydra overlay injection", {
+          ...status,
+          hydraElevated: NativeAddon.isCurrentProcessElevated(),
+        });
       }
     });
     app.once("will-quit", () => this.dispose());
@@ -109,7 +103,6 @@ export class OverlayManager {
     this.activeGame = game;
     this.sessionStartedAt = Date.now();
     this.performancePinned = false;
-    this.elevationPromptedFor = null;
     void this.configureActiveGame(game);
   }
 
@@ -289,11 +282,7 @@ export class OverlayManager {
         await injectedOverlayManager.hide();
       } else {
         await injectedOverlayManager.show();
-        if (injectedOverlayManager.getStatus().state === "access-denied") {
-          if (!NativeAddon.isCurrentProcessElevated()) {
-            await this.promptForElevation();
-          }
-        } else {
+        if (injectedOverlayManager.getStatus().state !== "access-denied") {
           injectedOverlayManager.retry();
         }
       }
@@ -606,64 +595,6 @@ export class OverlayManager {
       this.wasControllerChordPressed = isPressed;
     }, 32);
     return rawInputActive;
-  }
-
-  private static async promptForElevation() {
-    const game = this.activeGame;
-    if (!game || this.elevationPromptInFlight) return;
-    const gameKey = `${game.shop}:${game.objectId}`;
-    if (this.elevationPromptedFor === gameKey) return;
-    this.elevationPromptedFor = gameKey;
-    this.elevationPromptInFlight = true;
-
-    try {
-      const options: Electron.MessageBoxOptions = {
-        type: "warning",
-        title: "Hydra overlay needs permission",
-        message: `${game.title} is running with administrator privileges`,
-        detail: app.isPackaged
-          ? "Windows blocks Hydra from loading the in-game overlay into a higher-privilege process. Restart Hydra as administrator to attach the overlay to this running game."
-          : "Windows blocks Hydra from loading the in-game overlay into a higher-privilege process. Stop the development server, open the terminal as administrator, and run yarn dev again.",
-        buttons: app.isPackaged
-          ? ["Restart Hydra as administrator", "Not now"]
-          : ["OK"],
-        defaultId: 0,
-        cancelId: app.isPackaged ? 1 : 0,
-        noLink: true,
-      };
-      const owner = WindowManager.mainWindow;
-      const result = owner
-        ? await dialog.showMessageBox(owner, options)
-        : await dialog.showMessageBox(options);
-      if (result.response !== 0 || !app.isPackaged) return;
-
-      const relaunchArguments = process.argv
-        .slice(1)
-        .filter((argument) => argument !== "--hidden");
-      if (!relaunchArguments.includes("--hidden")) {
-        relaunchArguments.push("--hidden");
-      }
-      app.releaseSingleInstanceLock();
-      const launched = NativeAddon.launchElevated(
-        process.execPath,
-        relaunchArguments.map(this.quoteWindowsArgument).join(" "),
-        process.cwd()
-      );
-      if (launched) {
-        app.quit();
-      } else {
-        app.requestSingleInstanceLock();
-        this.elevationPromptedFor = null;
-        logger.warn("Hydra elevation request was cancelled or failed");
-      }
-    } finally {
-      this.elevationPromptInFlight = false;
-    }
-  }
-
-  private static quoteWindowsArgument(value: string) {
-    if (!/[\s"]/u.test(value)) return value;
-    return `"${value.replace(/(\\*)"/gu, '$1$1\\"').replace(/(\\+)$/u, "$1$1")}"`;
   }
 
   private static stopControllerPolling() {

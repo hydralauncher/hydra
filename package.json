@@ -16,14 +16,14 @@
   "scripts": {
     "format": "prettier --write .",
     "format-check": "prettier --check .",
-    "test": "node --import ./scripts/register-ts-node.mjs --test \"src/**/*.test.ts\"",
+    "test": "node --import ./scripts/register-ts-node.mjs --test \"src/**/*.test.ts\" \"scripts/**/*.test.cjs\"",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "build:native": "node ./scripts/build-native-addon.cjs",
     "start": "electron-vite preview",
-    "dev": "electron-vite dev",
+    "dev": "node ./scripts/start-dev.cjs",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "npm run build:native && electron-builder install-app-deps && node ./scripts/postinstall.cjs",
     "build:python-rpc": "python3 python_rpc/setup.py build || python python_rpc/setup.py build",
@@ -157,7 +157,6 @@
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "optionalDependencies": {
-    "@asdf-overlay/core": "1.2.5",
-    "@asdf-overlay/electron": "1.2.5"
+    "@asdf-overlay/core": "1.2.5"
   }
 }

@@ -23,11 +23,6 @@
   resolved "https://registry.yarnpkg.com/@asdf-overlay/core/-/core-1.2.5.tgz#9d764c146e9b245c8dc349f3256df0b80d21a134"
   integrity sha512-s3KDXZJnvetcqlDMedLhWnG9KrMHmZtcJ7Ga2RVzM4vuQgphrFkTACyXVsCoigl2ueje43x6Cmde5vDWI2Q8cw==
 
-"@asdf-overlay/electron@1.2.5":
-  version "1.2.5"
-  resolved "https://registry.yarnpkg.com/@asdf-overlay/electron/-/electron-1.2.5.tgz#30b7cac94ff50a3190a5992aa8a491a628a064c8"
-  integrity sha512-eIxjaTRqghTwqk4Wgr9rwuoHnnRNSdJuWz+afwPDHsENErSCN5h9rG2y/PG+bufKyM26oU+2pwEH7VmoDQSmww==
-
 "@atlaskit/pragmatic-drag-and-drop@^1.8.1":
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/@atlaskit/pragmatic-drag-and-drop/-/pragmatic-drag-and-drop-1.8.1.tgz#fa28f91c8e0f837830eb70565055c7caeb33114f"
