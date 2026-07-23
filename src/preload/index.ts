@@ -11,7 +11,7 @@ import type {
   GameRunning,
   UpdateProfileRequest,
   SeedingStatus,
-  GameAchievement,
+  UserAchievement,
   Theme,
   FriendRequestSync,
   FriendPresenceSync,
@@ -155,11 +155,11 @@ contextBridge.exposeInMainWorld("electron", {
   onUpdateAchievements: (
     objectId: string,
     shop: GameShop,
-    cb: (achievements: GameAchievement[]) => void
+    cb: (achievements: UserAchievement[]) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      achievements: GameAchievement[]
+      achievements: UserAchievement[]
     ) => cb(achievements);
     ipcRenderer.on(`on-update-achievements-${objectId}-${shop}`, listener);
     return () =>
@@ -554,9 +554,11 @@ contextBridge.exposeInMainWorld("electron", {
     iconUrl?: string;
     logoImageUrl?: string;
     libraryHeroImageUrl?: string;
+    customCoverImageUrl?: string | null;
     originalIconPath?: string;
     originalLogoPath?: string;
     originalHeroPath?: string;
+    customOriginalCoverPath?: string;
   }) => ipcRenderer.invoke("updateCustomGame", params),
   updateGameCustomAssets: (params: {
     shop: GameShop;

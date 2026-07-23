@@ -333,6 +333,7 @@ export function App() {
           dispatch(
             setGameRunning({
               ...libraryGame,
+              coverImageUrl: libraryGame.coverImageUrl ?? null,
               sessionDurationInMillis: lastGame.sessionDurationInMillis,
             })
           );
