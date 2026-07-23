@@ -14,28 +14,62 @@ import {
   loadCloudSaveV2FileDetails,
 } from "./cloud-save-v2-file-details.ts";
 
+const locator = (rawPath: string) => ({
+  version: 1 as const,
+  ruleId: `rule:${rawPath}`,
+  rawRule: rawPath,
+  ruleSource: "test",
+  rootKind: "home",
+  targetSemantics: "directory-tree" as const,
+  bindings: {
+    store: "steam",
+    storeGameId: "game",
+    storeUser: {
+      kind: "opaque-folder" as const,
+      store: "steam",
+      concreteFolderId: "profile",
+    },
+  },
+});
+
+const logicalId = (rawPath: string, relativePath: string) =>
+  JSON.stringify([rawPath, relativePath]);
+
 const localFile = (
   rawPath: string,
   relativePath: string,
   hash: string,
   sizeBytes = 4
 ): LocalGameSnapshotFile => ({
-  rawPath,
+  logicalFileId: logicalId(rawPath, relativePath),
+  variantId: `variant:${rawPath}`,
+  ruleId: `rule:${rawPath}`,
   relativePath,
-  hash,
+  locator: locator(rawPath),
+  contentHash: hash,
   sizeBytes,
-  lastModifiedAt: "2026-07-21T10:00:00.000Z",
 });
 
 const sourceFile = (
   file: LocalGameSnapshotFile,
   absolutePath = `C:\\Saves\\${file.relativePath.replaceAll("/", "\\")}`
 ): LocalGameSnapshotSourceFile => ({
-  rawPath: file.rawPath,
+  logicalFileId: file.logicalFileId,
+  variantId: file.variantId,
+  ruleId: file.ruleId,
   relativePath: file.relativePath,
   absolutePath,
-  hash: file.hash,
+  contentHash: file.contentHash,
   sizeBytes: file.sizeBytes,
+  lastModifiedAt: "2026-07-21T10:00:00.000Z",
+  localBindings: {
+    environmentId: "environment",
+    rootId: "root",
+    concreteUserSegment: "profile",
+    concretePath: absolutePath,
+  },
+  confidence: "inferred",
+  provenance: [file.ruleId],
 });
 
 const remoteFile = (
@@ -45,9 +79,12 @@ const remoteFile = (
   sizeBytes = 4,
   lastModifiedAt?: string
 ): RestoreManifestFile => ({
-  rawPath,
+  logicalFileId: logicalId(rawPath, relativePath),
+  variantId: `variant:${rawPath}`,
+  ruleId: `rule:${rawPath}`,
   relativePath,
-  hash,
+  locator: locator(rawPath),
+  contentHash: hash,
   sizeBytes,
   lastModifiedAt,
 });
@@ -62,13 +99,16 @@ const snapshot = (
   fileCount,
   totalSizeBytes,
   aggregateHash: "snapshot-hash",
+  revision: 1,
+  schemaVersion: 2,
 });
 
 const buildDetails = (
   state: CloudSaveState,
   localFiles: LocalGameSnapshotFile[],
   activeSnapshot: RemoteSnapshotSummary | null,
-  remoteFiles: RestoreManifestFile[]
+  remoteFiles: RestoreManifestFile[],
+  conflictLogicalFileIds: string[] = []
 ) =>
   buildCloudSaveV2FileDetails({
     state,
@@ -80,10 +120,11 @@ const buildDetails = (
     ),
     activeSnapshot,
     remoteFiles,
+    conflictLogicalFileIds,
   });
 
 describe("cloud save V2 file details", () => {
-  it("pairs files using rawPath and relativePath without exposing hashes", () => {
+  it("pairs files using logicalFileId without exposing hashes", () => {
     const localFiles = [
       localFile("<home>/game-a", "slot.dat", "same"),
       localFile("<home>/game-b", "slot.dat", "local-version"),
@@ -99,7 +140,8 @@ describe("cloud save V2 file details", () => {
       "conflict",
       localFiles,
       snapshot(3, 12),
-      remoteFiles
+      remoteFiles,
+      [logicalId("<home>/game-b", "slot.dat")]
     );
 
     assert.deepEqual(
@@ -121,6 +163,25 @@ describe("cloud save V2 file details", () => {
     );
     assert.equal("hash" in details.comparisons[0].local!, false);
     assert.equal("hash" in details.comparisons[1].remote!, false);
+    assert.deepEqual(
+      details.variants.map(({ variantId, fileCount, conflictCount }) => ({
+        variantId,
+        fileCount,
+        conflictCount,
+      })),
+      [
+        {
+          variantId: "variant:<home>/game-a",
+          fileCount: 3,
+          conflictCount: 0,
+        },
+        {
+          variantId: "variant:<home>/game-b",
+          fileCount: 1,
+          conflictCount: 1,
+        },
+      ]
+    );
   });
 
   it("returns only the local source outside conflicts", () => {
@@ -203,7 +264,14 @@ describe("loadCloudSaveV2FileDetails", () => {
       async (snapshotId) => {
         requestedSnapshots.push(snapshotId);
         return {
-          snapshot: { id: snapshotId, objectId: "game", shop: "steam" },
+          snapshot: {
+            id: snapshotId,
+            objectId: "game",
+            shop: "steam",
+            revision: 1,
+            aggregateHash: "snapshot-hash",
+            schemaVersion: 2,
+          },
           files: [remoteFile("<home>/game", "slot.dat", "remote")],
         };
       }

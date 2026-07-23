@@ -16,6 +16,10 @@ export const getCloudSaveOverview = async (
     analysis.state.state === "untracked"
       ? getFirstSyncState(analysis)
       : analysis.state.state;
+  const unresolvedEntryIds = new Set([
+    ...(analysis.anchor?.unresolvedRemoteEntryIds ?? []),
+    ...analysis.merge.unresolvedRemoteEntryIds,
+  ]);
 
   return {
     ...analysis.state,
@@ -23,5 +27,16 @@ export const getCloudSaveOverview = async (
     hasChanged: state !== "synced",
     snapshots: analysis.remoteSnapshots,
     isAutomaticSyncEnabled,
+    discoveredVariantCount: new Set(
+      analysis.localSnapshot.files.map((file) => file.variantId)
+    ).size,
+    unresolvedRemoteVariantCount: new Set(
+      analysis.remoteHead.files
+        .filter((file) => unresolvedEntryIds.has(file.logicalFileId))
+        .map((file) => file.variantId)
+    ).size,
+    warnings: analysis.localSnapshot.coverage.filter(
+      (item) => item.warningCodes.length > 0
+    ),
   };
 };

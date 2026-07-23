@@ -5,6 +5,109 @@ export interface CloudSaveGameId {
   objectId: string;
 }
 
+export interface CloudSaveRuleCondition {
+  os?: string;
+  store?: string;
+}
+
+export interface CloudSaveRule {
+  ruleId: string;
+  kind: string;
+  rawPath: string;
+  source: string;
+  tags: string[];
+  when: CloudSaveRuleCondition[];
+}
+
+export interface GetSaveRulesForGameInput extends CloudSaveGameId {
+  title?: string;
+  remoteId?: string;
+  userDataPath: string;
+  sourceUrl?: string;
+}
+
+export interface GameSaveRules {
+  gameId: CloudSaveGameId;
+  manifestKey?: string | null;
+  ruleSourceRevision: string;
+  rules: CloudSaveRule[];
+}
+
+export interface KnownStoreAccount {
+  store: string;
+  steamId64?: string;
+  accountId32?: string;
+  source: "active-login" | "known-login" | "userdata-folder";
+}
+
+export interface StoreUserContext {
+  active?: KnownStoreAccount;
+  known: KnownStoreAccount[];
+}
+
+export interface StoreUserIdentity {
+  kind: "validated-account" | "opaque-folder";
+  store: string;
+  steamId64?: string;
+  accountId32?: string;
+  concreteFolderId: string;
+  source: "active-login" | "known-login" | "folder-match" | "unbound-rule";
+  authority: "active" | "known" | "inferred";
+}
+
+export interface PortableStoreUserIdentity {
+  kind: "validated-account" | "opaque-folder";
+  store: string;
+  steamId64?: string;
+  accountId32?: string;
+  concreteFolderId: string;
+}
+
+export interface PortableBindings {
+  store: string;
+  storeGameId: string;
+  storeUser: PortableStoreUserIdentity;
+}
+
+export interface LocalResolutionBindings {
+  environmentId: string;
+  rootId: string;
+  prefixGenerationId?: string;
+  concreteUserSegment: string;
+  concretePath: string;
+}
+
+export type CloudSaveTargetSemantics =
+  | "single-file"
+  | "directory-tree"
+  | "glob-set";
+
+export interface PortableLocator {
+  version: 1;
+  ruleId: string;
+  rawRule: string;
+  ruleSource: string;
+  rootKind: string;
+  bindings: PortableBindings;
+  targetSemantics: CloudSaveTargetSemantics;
+}
+
+export interface UserLocationCoverage {
+  candidateId: string;
+  ruleId: string;
+  variantId?: string;
+  logicalFileId?: string;
+  authority: "authoritative" | "exact" | "inferred";
+  outcome:
+    | "scanned"
+    | "confirmed-missing"
+    | "partial"
+    | "failed"
+    | "unresolved";
+  enumeratedCompletely: boolean;
+  warningCodes: string[];
+}
+
 export interface BuildLocalGameSnapshotPipelineInput {
   shop: GameShop;
   objectId: string;
@@ -19,7 +122,8 @@ export interface BuildLocalGameSnapshotPipelineInput {
   executablePath?: string;
   winePrefixPath?: string;
   steamPath?: string;
-  storeUserId?: string;
+  environmentId: string;
+  storeUserContext: StoreUserContext;
   hashCache: LocalFileHashCacheEntry[];
 }
 
@@ -40,19 +144,36 @@ export interface CloudSavePathContext {
   executablePath?: string;
   winePrefixPath?: string;
   steamPath?: string;
-  storeUserId?: string;
+  storeUserContext: StoreUserContext;
 }
 
-export interface RestoreManifestFile {
-  rawPath: string;
+export interface UserVariantSnapshotFile {
+  logicalFileId: string;
+  variantId: string;
+  ruleId: string;
   relativePath: string;
-  hash: string;
+  locator: PortableLocator;
+  contentHash: string;
   sizeBytes: number;
+}
+
+export interface BuildSnapshotAggregateHashInput {
+  schemaVersion: number;
+  saveNamespaceKey: string;
+  files: UserVariantSnapshotFile[];
+}
+
+export interface RestoreManifestFile extends UserVariantSnapshotFile {
   lastModifiedAt?: string | null;
 }
 
 export interface RestoreManifestResponse {
-  snapshot: CloudSaveGameId & { id: string };
+  snapshot: CloudSaveGameId & {
+    id: string;
+    revision: number;
+    aggregateHash: string;
+    schemaVersion: number;
+  };
   files: RestoreManifestFile[];
 }
 
@@ -63,10 +184,21 @@ export interface RemoteSnapshotSummary {
   fileCount: number;
   totalSizeBytes: number;
   aggregateHash: string;
+  revision: number;
+  schemaVersion: number;
+}
+
+export interface CloudSaveHeadResponse {
+  revision: number;
+  snapshotId: string | null;
+  snapshotHash: string | null;
+  schemaVersion: number | null;
+  files: UserVariantSnapshotFile[];
 }
 
 export type CloudSaveState =
   | "synced"
+  | "partial"
   | "local-ahead"
   | "remote-ahead"
   | "conflict"
@@ -94,6 +226,9 @@ export interface CloudSaveStateResult {
 export interface CloudSaveOverview extends CloudSaveStateResult {
   snapshots: RemoteSnapshotSummary[];
   isAutomaticSyncEnabled: boolean;
+  discoveredVariantCount: number;
+  unresolvedRemoteVariantCount: number;
+  warnings: UserLocationCoverage[];
 }
 
 export type CloudSaveV2FileComparisonStatus =
@@ -103,10 +238,14 @@ export type CloudSaveV2FileComparisonStatus =
   | "remote-only";
 
 interface CloudSaveV2FileBase {
+  logicalFileId: string;
+  variantId: string;
+  ruleId: string;
   rawPath: string;
   relativePath: string;
   sizeBytes: number;
   lastModifiedAt: string | null;
+  userLabel: string;
 }
 
 export interface CloudSaveV2LocalFile extends CloudSaveV2FileBase {
@@ -144,6 +283,8 @@ export type CloudSaveV2FileSource =
   | CloudSaveV2ActiveSnapshotFileSource;
 
 export interface CloudSaveV2FileComparison {
+  logicalFileId: string;
+  variantId: string;
   rawPath: string;
   relativePath: string;
   status: CloudSaveV2FileComparisonStatus;
@@ -156,6 +297,15 @@ export interface CloudSaveV2FileDetails {
   local: CloudSaveV2LocalFileSource;
   activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
   comparisons: CloudSaveV2FileComparison[];
+  variants: Array<{
+    variantId: string;
+    userLabel: string;
+    fileCount: number;
+    conflictCount: number;
+    active: boolean;
+    warningCodes: string[];
+  }>;
+  unresolvedRemoteVariantCount: number;
 }
 
 export type CloudSaveSyncTrigger =
@@ -164,7 +314,12 @@ export type CloudSaveSyncTrigger =
   | "pre-launch"
   | "post-exit";
 
-export type CloudSaveSyncAction = "none" | "upload" | "restore" | "conflict";
+export type CloudSaveSyncAction =
+  | "none"
+  | "upload"
+  | "restore"
+  | "merge"
+  | "conflict";
 
 export type CloudSaveConflictResolution = "keep-local" | "keep-remote";
 
@@ -216,11 +371,30 @@ export interface CloudSaveSyncIpcProgressPayload
 }
 
 export interface ResolveRestoreTargetsInput extends CloudSavePathContext {
+  approvedRules: Array<Pick<CloudSaveRule, "ruleId" | "rawPath" | "source">>;
   files: RestoreManifestFile[];
 }
 
+export type RestorePlanActionKind = "skip-identical" | "create" | "replace";
+
 export interface ResolvedRestoreTarget extends RestoreManifestFile {
   targetPath: string;
+  action: RestorePlanActionKind;
+}
+
+export type BlockedRestoreReason =
+  | "blocked-user-not-found"
+  | "blocked-user-ambiguous"
+  | "blocked-rule-unavailable"
+  | "blocked-target-outside-root";
+
+export interface BlockedRestoreFile extends RestoreManifestFile {
+  reason: BlockedRestoreReason;
+}
+
+export interface ResolveRestoreTargetsResult {
+  actions: ResolvedRestoreTarget[];
+  blocked: BlockedRestoreFile[];
 }
 
 export interface RestoreDownloadUrlFile extends RestoreManifestFile {
@@ -246,7 +420,9 @@ export interface ShouldSkipRestoreFileInput {
 }
 
 interface RestoreTargetIdentity {
-  rawPath: string;
+  logicalFileId: string;
+  variantId: string;
+  ruleId: string;
   relativePath: string;
   targetPath: string;
 }
@@ -277,9 +453,12 @@ export interface ReplaceRestoreTargetsResult {
 
 export interface RestoreRemoteSnapshotResult {
   ok: boolean;
+  partial: boolean;
   restoredFiles: number;
   skippedFiles: number;
   failedFiles: number;
+  blockedFiles: number;
+  unresolvedRemoteEntryIds: string[];
 }
 
 export type RestoreProgressStage =
@@ -298,17 +477,16 @@ export interface RestoreProgressPayload {
   totalFiles: number;
 }
 
-export interface LocalGameSnapshotFile {
-  rawPath: string;
-  relativePath: string;
-  hash: string;
-  sizeBytes: number;
-  lastModifiedAt: string;
-}
+export interface LocalGameSnapshotFile extends UserVariantSnapshotFile {}
 
 export interface LocalGameSnapshot {
   gameId: CloudSaveGameId;
   manifestKey?: string | null;
+  schemaVersion: number;
+  saveNamespaceKey: string;
+  ruleSourceRevision: string;
+  discoveryEngineVersion: number;
+  coverage: UserLocationCoverage[];
   fileCount: number;
   totalSizeBytes: number;
   files: LocalGameSnapshotFile[];
@@ -319,11 +497,17 @@ export interface LocalGameSnapshotWithHash extends LocalGameSnapshot {
 }
 
 export interface LocalGameSnapshotSourceFile {
-  rawPath: string;
+  logicalFileId: string;
+  variantId: string;
+  ruleId: string;
   relativePath: string;
   absolutePath: string;
-  hash: string;
+  contentHash: string;
   sizeBytes: number;
+  lastModifiedAt: string;
+  localBindings: LocalResolutionBindings;
+  confidence: "authoritative" | "exact" | "inferred";
+  provenance: string[];
 }
 
 export interface LocalGameSnapshotPipelineResult
@@ -343,17 +527,13 @@ export interface NativeLocalGameSnapshotPipelineResult
 }
 
 export type PrepareSnapshotFile =
-  | { rawPath: string; relativePath: string; status: "skip" }
-  | {
-      rawPath: string;
-      relativePath: string;
-      status: "upload";
-      uploadUrl: string;
-    };
+  | { logicalFileId: string; status: "skip" }
+  | { logicalFileId: string; status: "upload"; uploadUrl: string };
 
 export interface PrepareSnapshotResponse {
-  snapshotId: string;
+  pendingSnapshotId: string;
   snapshotHash: string;
+  expectedHeadRevision: number;
   files: PrepareSnapshotFile[];
 }
 
@@ -366,7 +546,7 @@ export interface CloudSaveUploadProgress {
 }
 
 export interface UploadLocalGameSnapshotResult {
-  snapshotId: string | null;
+  pendingSnapshotId: string | null;
   uploadedFiles: number;
   skippedFiles: number;
 }
@@ -374,23 +554,51 @@ export interface UploadLocalGameSnapshotResult {
 export interface CommitSnapshotResponse {
   snapshotId: string;
   status: "active";
+  revision: number;
+  schemaVersion: number;
   fileCount: number;
   totalSizeBytes: number;
   aggregateHash: string;
+  files: UserVariantSnapshotFile[];
 }
 
 export interface RemoteGameSnapshot {
   id: string;
   status: "active";
+  revision: number;
+  schemaVersion: number;
   fileCount: number;
   totalSizeBytes: number;
   aggregateHash: string;
 }
 
+export interface CloudSaveSyncAnchorEntry {
+  logicalFileId: string;
+  contentHash: string;
+  sizeBytes: number;
+}
+
 export interface CloudSaveSyncAnchor {
+  schemaVersion: 3;
+  environmentId: string;
   baseSnapshotId: string;
+  baseHeadRevision: number;
   baseAggregateHash: string;
+  entries: CloudSaveSyncAnchorEntry[];
+  unresolvedRemoteEntryIds: string[];
   updatedAt: string;
-  schemaVersion?: 2;
-  environmentId?: string;
+}
+
+export type CloudSaveMergeConflict = {
+  logicalFileId: string;
+  local: LocalGameSnapshotFile;
+  remote: UserVariantSnapshotFile;
+};
+
+export interface CloudSaveMergeResult {
+  files: UserVariantSnapshotFile[];
+  conflicts: CloudSaveMergeConflict[];
+  restoreEntryIds: string[];
+  unresolvedRemoteEntryIds: string[];
+  partial: boolean;
 }

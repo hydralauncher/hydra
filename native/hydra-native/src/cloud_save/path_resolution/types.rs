@@ -50,6 +50,7 @@ pub struct ResolvedCloudSavePath {
 
 #[napi(object)]
 pub struct ResolvedCloudSaveRule {
+    pub rule_id: String,
     pub kind: String,
     pub raw_path: String,
     pub source: String,

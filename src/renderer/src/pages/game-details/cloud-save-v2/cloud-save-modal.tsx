@@ -46,6 +46,7 @@ interface CloudSaveModalProps extends Omit<CloudSavePanelProps, "active"> {
 
 const stateKey: Record<CloudSaveState, string> = {
   synced: "cloud_save_v2_synced",
+  partial: "cloud_save_v2_outdated",
   "local-ahead": "cloud_save_v2_outdated",
   "remote-ahead": "cloud_save_v2_outdated",
   conflict: "cloud_save_v2_conflict",
@@ -57,6 +58,7 @@ const statusTone: Record<
   "synced" | "outdated" | "conflict" | "neutral"
 > = {
   synced: "synced",
+  partial: "outdated",
   "local-ahead": "outdated",
   "remote-ahead": "outdated",
   conflict: "conflict",

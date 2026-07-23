@@ -24,7 +24,9 @@ struct PreparedTarget {
 
 fn identity(input: &ReplaceRestoreTarget) -> RestoreResultFile {
     RestoreResultFile {
-        raw_path: input.raw_path.clone(),
+        logical_file_id: input.logical_file_id.clone(),
+        variant_id: input.variant_id.clone(),
+        rule_id: input.rule_id.clone(),
         relative_path: input.relative_path.clone(),
         target_path: input.target_path.clone(),
     }
@@ -32,7 +34,9 @@ fn identity(input: &ReplaceRestoreTarget) -> RestoreResultFile {
 
 fn failure(input: &ReplaceRestoreTarget, reason: &str) -> RestoreFailedFile {
     RestoreFailedFile {
-        raw_path: input.raw_path.clone(),
+        logical_file_id: input.logical_file_id.clone(),
+        variant_id: input.variant_id.clone(),
+        rule_id: input.rule_id.clone(),
         relative_path: input.relative_path.clone(),
         target_path: input.target_path.clone(),
         reason: reason.to_string(),
@@ -252,7 +256,9 @@ pub async fn replace_restore_targets(
         match file.action {
             RestoreTargetAction::Restore => restore_inputs.push(file),
             RestoreTargetAction::Skip => skipped_files.push(RestoreSkippedFile {
-                raw_path: file.raw_path,
+                logical_file_id: file.logical_file_id,
+                variant_id: file.variant_id,
+                rule_id: file.rule_id,
                 relative_path: file.relative_path,
                 target_path: file.target_path,
                 reason: "already_matches_expected_state".to_string(),
@@ -298,7 +304,9 @@ mod tests {
 
     fn restore(temp: &Path, target: &Path, content: &[u8]) -> ReplaceRestoreTarget {
         ReplaceRestoreTarget {
-            raw_path: "<home>/game".to_string(),
+            logical_file_id: target.file_name().unwrap().to_string_lossy().to_string(),
+            variant_id: "variant".to_string(),
+            rule_id: "rule".to_string(),
             relative_path: target.file_name().unwrap().to_string_lossy().to_string(),
             target_path: target.display().to_string(),
             action: RestoreTargetAction::Restore,
@@ -326,7 +334,9 @@ mod tests {
             .unwrap();
         tokio::fs::write(&skipped_target, b"same").await.unwrap();
         let skip = ReplaceRestoreTarget {
-            raw_path: "<home>/game".to_string(),
+            logical_file_id: "skip".to_string(),
+            variant_id: "variant".to_string(),
+            rule_id: "rule".to_string(),
             relative_path: "skip.sav".to_string(),
             target_path: skipped_target.display().to_string(),
             action: RestoreTargetAction::Skip,

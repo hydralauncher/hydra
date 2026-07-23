@@ -1,14 +1,16 @@
 import { HydraApi } from "@main/services/hydra-api";
 import { logger } from "@main/services/logger";
+import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
 import type {
   CloudSavePathContext,
   GameShop,
-  ResolvedRestoreTarget,
   RestoreManifestResponse,
+  ResolveRestoreTargetsResult,
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
+import { validateUniqueLogicalFiles } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 
 const isNonEmptyString = (value: unknown): value is string =>
@@ -38,33 +40,48 @@ const validateManifest = (value: unknown): RestoreManifestResponse => {
     !isNonEmptyString(snapshot.id) ||
     !isGameShop(snapshot.shop) ||
     !isNonEmptyString(snapshot.objectId) ||
+    typeof snapshot.revision !== "number" ||
+    !Number.isInteger(snapshot.revision) ||
+    snapshot.revision < 0 ||
+    !isNonEmptyString(snapshot.aggregateHash) ||
+    typeof snapshot.schemaVersion !== "number" ||
+    !Number.isInteger(snapshot.schemaVersion) ||
+    snapshot.schemaVersion < 1 ||
     !Array.isArray(response.files)
   ) {
     throw new Error("Invalid restore manifest response");
   }
 
-  for (const file of response.files) {
-    if (!file || typeof file !== "object") {
-      throw new Error("Invalid restore manifest file");
-    }
-    const item = file as Record<string, unknown>;
+  const files = validateUniqueLogicalFiles(response.files);
+  for (const file of files) {
+    const item = file as unknown as Record<string, unknown>;
     if (
-      !isNonEmptyString(item.rawPath) ||
-      !isNonEmptyString(item.relativePath) ||
-      !isNonEmptyString(item.hash) ||
-      typeof item.sizeBytes !== "number" ||
-      !Number.isFinite(item.sizeBytes) ||
-      item.sizeBytes < 0 ||
-      (item.lastModifiedAt !== undefined &&
-        item.lastModifiedAt !== null &&
-        (!isNonEmptyString(item.lastModifiedAt) ||
-          !Number.isFinite(Date.parse(item.lastModifiedAt))))
+      item.lastModifiedAt !== undefined &&
+      item.lastModifiedAt !== null &&
+      (!isNonEmptyString(item.lastModifiedAt) ||
+        !Number.isFinite(Date.parse(item.lastModifiedAt)))
     ) {
       throw new Error("Invalid restore manifest file");
     }
+    if (
+      file.locator.bindings.store !== snapshot.shop ||
+      file.locator.bindings.storeGameId !== snapshot.objectId
+    ) {
+      throw new Error("Invalid restore manifest locator");
+    }
   }
 
-  return value as RestoreManifestResponse;
+  if (
+    NativeAddon.buildSnapshotAggregateHash({
+      schemaVersion: snapshot.schemaVersion as number,
+      saveNamespaceKey: `${snapshot.shop}:${snapshot.objectId}`,
+      files,
+    }) !== snapshot.aggregateHash
+  ) {
+    throw new Error("Restore manifest aggregate hash is inconsistent");
+  }
+
+  return { ...(value as RestoreManifestResponse), files };
 };
 
 export const getRemoteSnapshotRestoreManifest = async (
@@ -85,15 +102,19 @@ export const getRemoteSnapshotRestoreManifest = async (
 export const resolveRestoreManifestTargets = async (
   manifest: RestoreManifestResponse,
   suppliedPathContext?: CloudSavePathContext
-): Promise<ResolvedRestoreTarget[]> => {
-  const pathContext =
-    suppliedPathContext ??
-    (
-      await getCloudSaveGameContext(
-        manifest.snapshot.objectId,
-        manifest.snapshot.shop
-      )
-    ).pathContext;
+): Promise<ResolveRestoreTargetsResult> => {
+  const gameContext = await getCloudSaveGameContext(
+    manifest.snapshot.objectId,
+    manifest.snapshot.shop
+  );
+  const pathContext = suppliedPathContext ?? gameContext.pathContext;
+  const approved = await NativeAddon.getSaveRulesForGame({
+    shop: manifest.snapshot.shop,
+    objectId: manifest.snapshot.objectId,
+    title: gameContext.game?.title,
+    remoteId: gameContext.game?.remoteId ?? undefined,
+    userDataPath: SystemPath.getPath("userData"),
+  });
 
   const wineProfiles = pathContext.winePrefixPath
     ? Wine.getPrefixUserProfiles(pathContext.winePrefixPath)
@@ -108,8 +129,9 @@ export const resolveRestoreManifestTargets = async (
     fileCount: manifest.files.length,
     winePrefixPath: pathContext.winePrefixPath ?? null,
     winePrefixIsValid,
-    wineProfiles,
-    storeUserId: pathContext.storeUserId ?? null,
+    wineProfileCount: wineProfiles.length,
+    hasActiveStoreUser: Boolean(pathContext.storeUserContext.active),
+    knownStoreUsers: pathContext.storeUserContext.known.length,
   });
 
   if (usesWindowsCompatibility && !pathContext.winePrefixPath) {
@@ -124,6 +146,11 @@ export const resolveRestoreManifestTargets = async (
 
   return NativeAddon.resolveRestoreTargets({
     ...pathContext,
+    approvedRules: approved.rules.map(({ ruleId, rawPath, source }) => ({
+      ruleId,
+      rawPath,
+      source,
+    })),
     files: manifest.files,
   });
 };

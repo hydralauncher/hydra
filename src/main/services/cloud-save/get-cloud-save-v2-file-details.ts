@@ -24,6 +24,13 @@ export const getCloudSaveV2FileDetails = async (
       localSourceFiles: analysis.localSnapshotContext.sourceFiles,
       localTotalSizeBytes: analysis.localSnapshot.totalSizeBytes,
       activeSnapshot: analysis.state.activeRemoteSnapshot,
+      coverage: analysis.localSnapshot.coverage,
+      unresolvedRemoteEntryIds:
+        analysis.anchor?.unresolvedRemoteEntryIds ??
+        analysis.merge.unresolvedRemoteEntryIds,
+      conflictLogicalFileIds: analysis.merge.conflicts.map(
+        (conflict) => conflict.logicalFileId
+      ),
     },
     getRemoteSnapshotRestoreManifest
   );

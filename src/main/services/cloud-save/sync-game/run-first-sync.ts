@@ -6,7 +6,6 @@ import type {
 } from "@types";
 
 import type { analyzeCloudSaveState } from "../analyze-cloud-save-state";
-import { saveCloudSaveSyncAnchor } from "../sync-anchor";
 import { getSyncAction } from "./policy";
 import {
   type ProgressCallback,
@@ -63,35 +62,34 @@ export const runFirstSync = async (
     };
   }
 
-  if (firstSyncState === "synced" && remoteSnapshot) {
-    await saveCloudSaveSyncAnchor(shop, objectId, analysis.environmentId, {
-      baseSnapshotId: remoteSnapshot.id,
-      baseAggregateHash: remoteSnapshot.aggregateHash,
-      updatedAt: new Date().toISOString(),
-    });
-    return {
-      result: { trigger, action: "none", initialState, finalState: "synced" },
-      processedFiles: 0,
-      totalFiles: 0,
-    };
-  }
-
   if (action === "upload") {
     await uploadLocalState(
       objectId,
       shop,
       analysis.localSnapshotContext,
-      emitProgress
+      emitProgress,
+      {
+        expectedHeadRevision: analysis.remoteHead.revision,
+        expectedHeadHash: analysis.remoteHead.snapshotHash,
+        files: analysis.merge.files,
+        aggregateHash: analysis.mergedAggregateHash,
+        unresolvedRemoteEntryIds: analysis.merge.unresolvedRemoteEntryIds,
+      }
     );
     return {
-      result: { trigger, action: "upload", initialState, finalState: "synced" },
+      result: {
+        trigger,
+        action: "upload",
+        initialState,
+        finalState: analysis.merge.partial ? "partial" : "synced",
+      },
       processedFiles: analysis.localSnapshot.fileCount,
       totalFiles: analysis.localSnapshot.fileCount,
     };
   }
 
   if (action === "restore" && remoteSnapshot) {
-    await restoreRemoteState(
+    const restored = await restoreRemoteState(
       objectId,
       shop,
       remoteSnapshot,
@@ -103,7 +101,7 @@ export const runFirstSync = async (
         trigger,
         action: "restore",
         initialState,
-        finalState: "synced",
+        finalState: restored.partial ? "partial" : "synced",
       },
       processedFiles: remoteSnapshot.fileCount,
       totalFiles: remoteSnapshot.fileCount,

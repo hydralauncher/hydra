@@ -1,11 +1,10 @@
-import os from "node:os";
-
 import { HydraApi } from "@main/services/hydra-api";
 import type {
   CloudSaveUploadProgress,
   GameShop,
   LocalGameSnapshotContext,
   UploadLocalGameSnapshotResult,
+  UserVariantSnapshotFile,
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
@@ -19,63 +18,82 @@ type ProgressCallback = (progress: CloudSaveUploadProgress) => void;
 
 const MAX_CONCURRENT_UPLOADS = 8;
 
-const fileKey = (rawPath: string, relativePath: string) =>
-  JSON.stringify([rawPath, relativePath]);
+const fileKey = (logicalFileId: string) => logicalFileId;
+
+export interface PrepareLocalSnapshotOptions {
+  expectedHeadRevision: number;
+  expectedHeadHash: string | null;
+  files?: UserVariantSnapshotFile[];
+  aggregateHash?: string;
+}
 
 export const uploadLocalGameSnapshot = async (
   objectId: string,
   shop: GameShop,
   onProgress?: ProgressCallback,
-  localSnapshotContext?: LocalGameSnapshotContext
+  localSnapshotContext?: LocalGameSnapshotContext,
+  options: PrepareLocalSnapshotOptions = {
+    expectedHeadRevision: 0,
+    expectedHeadHash: null,
+  }
 ): Promise<UploadLocalGameSnapshotResult> => {
   const context =
     localSnapshotContext ??
     (await buildLocalGameSnapshotContext(objectId, shop));
-  if (context.files.length === 0) {
-    return { snapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
-  }
+  const proposalFiles = options.files ?? context.files;
+  const aggregateHash = options.aggregateHash ?? context.aggregateHash;
   const response = validatePrepareResponse(
     await HydraApi.post<unknown>("/profile/cloud-saves/prepare-snapshot", {
       shop,
       objectId,
-      platform: process.platform,
-      hostname: os.hostname(),
-      snapshotHash: context.aggregateHash,
-      files: context.files,
+      saveNamespaceKey: context.saveNamespaceKey,
+      schemaVersion: context.schemaVersion,
+      ruleSourceRevision: context.ruleSourceRevision,
+      discoveryEngineVersion: context.discoveryEngineVersion,
+      expectedHeadRevision: options.expectedHeadRevision,
+      expectedHeadHash: options.expectedHeadHash,
+      snapshotHash: aggregateHash,
+      files: proposalFiles,
     })
   );
-  if (response.snapshotHash !== context.aggregateHash) {
+  if (
+    response.snapshotHash !== aggregateHash ||
+    response.expectedHeadRevision !== options.expectedHeadRevision
+  ) {
     throw new Error("Prepare snapshot hash does not match local snapshot");
   }
 
-  const sourceByPath = new Map(
-    context.sourceFiles.map((file) => [
-      fileKey(file.rawPath, file.relativePath),
-      file,
-    ])
+  const sourceById = new Map(
+    context.sourceFiles.map((file) => [fileKey(file.logicalFileId), file])
   );
-  if (response.files.length !== sourceByPath.size) {
-    throw new Error("Prepare snapshot response does not cover local files");
+  const proposalById = new Map(
+    proposalFiles.map((file) => [file.logicalFileId, file])
+  );
+  if (
+    proposalById.size !== proposalFiles.length ||
+    response.files.length !== proposalById.size
+  ) {
+    throw new Error("Prepare snapshot response does not cover proposal files");
   }
-  const responseWithSources = response.files.map((file) => {
-    const source = sourceByPath.get(fileKey(file.rawPath, file.relativePath));
-    if (!source) {
-      throw new Error(
-        `Missing local source for ${file.rawPath}/${file.relativePath}`
-      );
+  const responseItems = response.files.map((file) => {
+    const proposal = proposalById.get(file.logicalFileId);
+    if (!proposal) {
+      throw new Error(`Unknown prepare response file ${file.logicalFileId}`);
     }
-    return { file, source };
+    const source = sourceById.get(fileKey(file.logicalFileId));
+    if (file.status === "upload" && !source) {
+      throw new Error(`Missing local source for ${file.logicalFileId}`);
+    }
+    return { file, proposal, source };
   });
-  const totalBytes = responseWithSources.reduce(
-    (total, item) => total + item.source.sizeBytes,
+  const totalBytes = responseItems.reduce(
+    (total, item) => total + item.proposal.sizeBytes,
     0
   );
-  const skipped = responseWithSources.filter(
-    (item) => item.file.status === "skip"
-  );
+  const skipped = responseItems.filter((item) => item.file.status === "skip");
   let completedFiles = skipped.length;
   let completedBytes = skipped.reduce(
-    (total, item) => total + item.source.sizeBytes,
+    (total, item) => total + item.proposal.sizeBytes,
     0
   );
   const emitProgress = (currentFile: string | null) =>
@@ -88,7 +106,13 @@ export const uploadLocalGameSnapshot = async (
     });
   emitProgress(null);
 
-  const uploadsByHash = groupUploadsByHash(responseWithSources);
+  const uploadItems = responseItems
+    .map(({ file, source }) => {
+      if (!source) return null;
+      return { file, source };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+  const uploadsByHash = groupUploadsByHash(uploadItems);
   const uploadJobs = Array.from(uploadsByHash.values());
   const activeFiles = new Map<number, string>();
   let nextUploadIndex = 0;
@@ -138,8 +162,8 @@ export const uploadLocalGameSnapshot = async (
   );
 
   return {
-    snapshotId: response.snapshotId,
-    uploadedFiles: responseWithSources.length - skipped.length,
+    pendingSnapshotId: response.pendingSnapshotId,
+    uploadedFiles: responseItems.length - skipped.length,
     skippedFiles: skipped.length,
   };
 };

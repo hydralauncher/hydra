@@ -13,9 +13,12 @@ import type {
   ReplaceRestoreTarget,
   ReplaceRestoreTargetsResult,
   ResolveRestoreTargetsInput,
-  ResolvedRestoreTarget,
   ShouldSkipRestoreFileInput,
   VerifyDownloadedRestoreFileResult,
+  GameSaveRules,
+  GetSaveRulesForGameInput,
+  ResolveRestoreTargetsResult,
+  BuildSnapshotAggregateHashInput,
 } from "@types";
 
 import { logger } from "./logger";
@@ -48,16 +51,22 @@ type HydraNativeModule = {
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
+  getSaveRulesForGame: (
+    input: GetSaveRulesForGameInput
+  ) => Promise<GameSaveRules>;
   compareGameSnapshots: (
     input: CompareGameSnapshotsInput
   ) => NativeCloudSaveStateResult;
+  buildSnapshotAggregateHash: (
+    input: BuildSnapshotAggregateHashInput
+  ) => string;
   uploadLocalSaveBlob: (
     absolutePath: string,
     uploadUrl: string
   ) => Promise<void>;
   resolveRestoreTargets: (
     input: ResolveRestoreTargetsInput
-  ) => ResolvedRestoreTarget[];
+  ) => ResolveRestoreTargetsResult;
   downloadRestoreBlobToTemp: (
     snapshotId: string,
     hash: string,
@@ -361,8 +370,18 @@ export class NativeAddon {
     return this.load().buildLocalGameSnapshotPipeline(input);
   }
 
+  public static getSaveRulesForGame(input: GetSaveRulesForGameInput) {
+    return this.load().getSaveRulesForGame(input);
+  }
+
   public static compareGameSnapshots(input: CompareGameSnapshotsInput) {
     return this.load().compareGameSnapshots(input);
+  }
+
+  public static buildSnapshotAggregateHash(
+    input: BuildSnapshotAggregateHashInput
+  ) {
+    return this.load().buildSnapshotAggregateHash(input);
   }
 
   public static uploadLocalSaveBlob(absolutePath: string, uploadUrl: string) {

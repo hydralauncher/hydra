@@ -3,7 +3,7 @@ import { getSteamLocation } from "@main/services/steam";
 import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
 import { logger } from "@main/services/logger";
-import { getActiveSteamUserId } from "@main/services/steam-login-users";
+import { getSteamStoreUserContext } from "@main/services/steam-login-users";
 import type { CloudSavePathContext, GameShop } from "@types";
 
 import {
@@ -45,10 +45,10 @@ export const getCloudSaveGameContext = async (
     .get(levelKeys.game(shop, objectId))
     .catch(() => undefined);
   const steamPath = await getSteamLocation().catch(() => undefined);
-  const storeUserId =
+  const storeUserContext =
     shop === "steam" && steamPath
-      ? await getActiveSteamUserId(steamPath)
-      : undefined;
+      ? await getSteamStoreUserContext(steamPath)
+      : { known: [] };
   const platform = getCloudSavePlatform();
   const executablePath =
     overrides?.executablePath ?? game?.executablePath ?? undefined;
@@ -72,7 +72,7 @@ export const getCloudSaveGameContext = async (
     executablePath,
     winePrefixPath: winePrefixPath ?? undefined,
     steamPath,
-    storeUserId,
+    storeUserContext,
   };
 
   let winePrefixIsValid = false;
