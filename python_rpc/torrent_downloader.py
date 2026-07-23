@@ -177,6 +177,25 @@ class TorrentDownloader:
 
         return params
 
+    def _apply_trackers(self, trackers: Optional[List[str]] = None):
+        if not self.torrent_handle or not self.torrent_handle.is_valid() or not trackers:
+            return
+
+        try:
+            existing_urls = {t.url for t in self.torrent_handle.trackers()}
+        except Exception:
+            existing_urls = set()
+
+        for tracker in trackers:
+            if tracker in existing_urls:
+                continue
+            try:
+                self.torrent_handle.add_tracker(lt.announce_entry(tracker))
+            except Exception:
+                self.logger.warning(
+                    "Failed to add tracker %s", tracker, exc_info=True
+                )
+
     def _get_torrent_info(self):
         if not self.torrent_handle or not self.torrent_handle.is_valid():
             return None
@@ -275,6 +294,7 @@ class TorrentDownloader:
                 if not selective_download:
                     self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
                     self.torrent_handle.resume()
+                    self._apply_trackers(trackers)
                     return
 
                 self.torrent_handle.pause()

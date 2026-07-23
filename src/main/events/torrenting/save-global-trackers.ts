@@ -19,19 +19,21 @@ const saveGlobalTrackers = async (
   const trimmedUrl = url?.trim() ?? "";
   const validManual = [...new Set(manual.filter(isValidTrackerUrl))];
 
-  await db.put(
-    levelKeys.userPreferences,
-    {
-      ...(userPreferences ?? {}),
-      globalTrackers: validManual,
-      appendGlobalTrackers: appendManual,
-      globalTrackersUrl: trimmedUrl,
-      appendGlobalTrackersUrl: appendUrl,
-    },
-    { valueEncoding: "json" }
-  );
-
-  clearGlobalTrackersMemoryCache();
+  try {
+    await db.put(
+      levelKeys.userPreferences,
+      {
+        ...(userPreferences ?? {}),
+        globalTrackers: validManual,
+        appendGlobalTrackers: appendManual,
+        globalTrackersUrl: trimmedUrl,
+        appendGlobalTrackersUrl: appendUrl,
+      },
+      { valueEncoding: "json" }
+    );
+  } finally {
+    clearGlobalTrackersMemoryCache();
+  }
 };
 
 registerEvent("saveGlobalTrackers", saveGlobalTrackers);
