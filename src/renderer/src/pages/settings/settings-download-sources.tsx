@@ -248,71 +248,71 @@ export function SettingsDownloadSources() {
       </div>
 
       <ul className="settings-download-sources__list">
-          {downloadSources.map((downloadSource) => {
-            const isPendingOrMatching =
-              downloadSource.status === DownloadSourceStatus.PendingMatching ||
-              downloadSource.status === DownloadSourceStatus.Matching;
+        {downloadSources.map((downloadSource) => {
+          const isPendingOrMatching =
+            downloadSource.status === DownloadSourceStatus.PendingMatching ||
+            downloadSource.status === DownloadSourceStatus.Matching;
 
-            return (
-              <li
-                key={downloadSource.id}
-                className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""} ${isPendingOrMatching ? "settings-download-sources__item--pending" : ""}`}
-              >
-                <div className="settings-download-sources__item-header">
-                  <h2>{downloadSource.name}</h2>
+          return (
+            <li
+              key={downloadSource.id}
+              className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""} ${isPendingOrMatching ? "settings-download-sources__item--pending" : ""}`}
+            >
+              <div className="settings-download-sources__item-header">
+                <h2>{downloadSource.name}</h2>
 
-                  <div style={{ display: "flex" }}>
-                    <Badge>
-                      {isPendingOrMatching && (
-                        <SyncIcon className="settings-download-sources__spinner" />
-                      )}
-                      {statusTitle[downloadSource.status]}
-                    </Badge>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="settings-download-sources__navigate-button"
-                    disabled={!downloadSource.fingerprint}
-                    onClick={() =>
-                      navigateToCatalogue(downloadSource.fingerprint)
-                    }
-                  >
-                    <small>
-                      {isPendingOrMatching
-                        ? t("download_source_no_information")
-                        : t("download_count", {
-                            count: downloadSource.downloadCount,
-                            countFormatted: numberFormatter.format(
-                              downloadSource.downloadCount
-                            ),
-                          })}
-                    </small>
-                  </button>
+                <div style={{ display: "flex" }}>
+                  <Badge>
+                    {isPendingOrMatching && (
+                      <SyncIcon className="settings-download-sources__spinner" />
+                    )}
+                    {statusTitle[downloadSource.status]}
+                  </Badge>
                 </div>
 
-                <TextField
-                  label={t("download_source_url")}
-                  value={downloadSource.url}
-                  readOnly
-                  theme="dark"
-                  disabled
-                  rightContent={
-                    <Button
-                      type="button"
-                      theme="outline"
-                      onClick={() => handleRemoveSource(downloadSource)}
-                      disabled={isRemovingDownloadSource}
-                    >
-                      <NoEntryIcon />
-                      {t("remove_download_source")}
-                    </Button>
+                <button
+                  type="button"
+                  className="settings-download-sources__navigate-button"
+                  disabled={!downloadSource.fingerprint}
+                  onClick={() =>
+                    navigateToCatalogue(downloadSource.fingerprint)
                   }
-                />
-              </li>
-            );
-          })}
-        </ul>
+                >
+                  <small>
+                    {isPendingOrMatching
+                      ? t("download_source_no_information")
+                      : t("download_count", {
+                          count: downloadSource.downloadCount,
+                          countFormatted: numberFormatter.format(
+                            downloadSource.downloadCount
+                          ),
+                        })}
+                  </small>
+                </button>
+              </div>
+
+              <TextField
+                label={t("download_source_url")}
+                value={downloadSource.url}
+                readOnly
+                theme="dark"
+                disabled
+                rightContent={
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={() => handleRemoveSource(downloadSource)}
+                    disabled={isRemovingDownloadSource}
+                  >
+                    <NoEntryIcon />
+                    {t("remove_download_source")}
+                  </Button>
+                }
+              />
+            </li>
+          );
+        })}
+      </ul>
     </>
   );
 }
