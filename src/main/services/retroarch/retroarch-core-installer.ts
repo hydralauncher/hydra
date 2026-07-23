@@ -14,7 +14,7 @@ import { logger } from "../logger";
 import { SevenZip } from "../7zip";
 import { SystemPath } from "../system-path";
 import { WindowManager } from "../window-manager";
-import { downloadToFile } from "../download-to-file";
+import { downloadToFile, removeFileQuietly } from "../download-to-file";
 import { getRetroArchVersion } from "./detect-retroarch";
 import { RETROARCH_CORE_NAMES, isRetroArchCoreName } from "./retroarch-cores";
 import {
@@ -66,7 +66,7 @@ export const downloadAndInstallCore = async (
   const libraryPath = path.join(coresDir, libraryFileName);
 
   const removeArchive = async () => {
-    await fs.promises.unlink(archivePath).catch(() => {});
+    await removeFileQuietly(archivePath);
   };
 
   try {
@@ -172,7 +172,7 @@ export const downloadAndInstallRetroArch = async (
   const extractDir = path.join(managedRetroArchDir(), "emulator");
 
   const removeArchive = async () => {
-    await fs.promises.unlink(archivePath).catch(() => {});
+    await removeFileQuietly(archivePath);
   };
 
   try {

@@ -14,8 +14,10 @@ import type {
   RetroArchCoreName,
 } from "@types";
 
-import { RETROARCH_CORE_LIST } from "../../retroarch-meta";
-import { installPercent } from "../install-progress";
+import {
+  RETROARCH_CORE_LIST,
+  retroArchCoreStatusText,
+} from "../../retroarch-meta";
 
 interface Props {
   config: RetroArchConfig;
@@ -79,29 +81,8 @@ export function SetupStepCores({ config, onConfigChange }: Readonly<Props>) {
     [config.cores]
   );
 
-  const coreStatusText = (core: RetroArchCoreName): string => {
-    const current = progress[core];
-    if (current && current.phase === "downloading") {
-      return t("setup_install_downloading", {
-        percent: installPercent(current.loaded, current.total),
-      });
-    }
-    if (current && current.phase === "extracting") {
-      return t("setup_install_extracting");
-    }
-    if (current && current.phase === "error") {
-      return t("setup_install_failed");
-    }
-    const installed = config.cores[core];
-    if (installed?.installed) {
-      return installed.installedAt
-        ? t("retroarch_core_installed_at", {
-            date: new Date(installed.installedAt).toLocaleDateString(),
-          })
-        : t("retroarch_core_installed");
-    }
-    return t("retroarch_core_not_installed");
-  };
+  const coreStatusText = (core: RetroArchCoreName): string =>
+    retroArchCoreStatusText(t, core, config, progress);
 
   const coreIcon = (core: RetroArchCoreName) => {
     const current = progress[core];

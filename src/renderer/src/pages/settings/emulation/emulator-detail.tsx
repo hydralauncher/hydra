@@ -1,19 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import cn from "classnames";
-import {
-  ChevronLeftIcon,
-  FileDirectoryIcon,
-  InfoIcon,
-  SyncIcon,
-  TrashIcon,
-} from "@primer/octicons-react";
+import { InfoIcon, SyncIcon, TrashIcon } from "@primer/octicons-react";
 
-import {
-  Button,
-  ClassicsScanIndicator,
-  ConfirmationModal,
-} from "@renderer/components";
+import { Button, ClassicsScanIndicator } from "@renderer/components";
+import { showExecutableOpenDialog } from "@renderer/helpers";
 import { useClassicsScan, useToast } from "@renderer/hooks";
 import { formatBytes } from "@shared";
 import type { EmulatorConfig, RomFolder } from "@types";
@@ -22,9 +12,13 @@ import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
 import { BiosSection } from "./bios-section";
 import { FirmwareSection } from "./firmware-section";
-import { EmulatorResourceRow } from "./emulator-resource-row";
 import {
+  DetailHeader,
+  DetailRemoveModals,
+  DetailTabBar,
+  ExecutableRow,
   LibraryStatsGrid,
+  notifyRedetectOutcome,
   RomFoldersSection,
 } from "./emulation-detail-sections";
 import { MemoryCardsSection } from "./memory-cards-section";
@@ -109,25 +103,20 @@ export function EmulatorDetail({
   const handleRedetect = useCallback(async () => {
     setBusy(true);
     try {
-      const previousPath = config.executablePath;
-      const previousVersion = config.detectedVersion;
+      const previous = {
+        executablePath: config.executablePath,
+        detectedVersion: config.detectedVersion,
+      };
       const next = await window.electron.detectEmulator(config.system);
       onChange(next);
-
-      if (next.executablePath === null) {
-        showErrorToast(t("redetect_not_found", { name: binaryName }));
-      } else if (next.executablePath !== previousPath) {
-        showSuccessToast(t("redetect_path_updated"));
-      } else if (
-        next.detectedVersion &&
-        next.detectedVersion !== previousVersion
-      ) {
-        showSuccessToast(
-          t("redetect_version_updated", { version: next.detectedVersion })
-        );
-      } else {
-        showSuccessToast(t("redetect_unchanged"));
-      }
+      notifyRedetectOutcome(
+        next,
+        previous,
+        binaryName,
+        t,
+        showErrorToast,
+        showSuccessToast
+      );
     } finally {
       setBusy(false);
     }
@@ -143,17 +132,7 @@ export function EmulatorDetail({
   ]);
 
   const handleBrowseExecutable = useCallback(async () => {
-    const isMac = window.electron.platform === "darwin";
-    const result = await window.electron.showOpenDialog({
-      properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
-      defaultPath: config.executablePath ?? undefined,
-      filters:
-        window.electron.platform === "win32"
-          ? [{ name: "Executable", extensions: ["exe"] }]
-          : isMac
-            ? [{ name: "Application", extensions: ["app"] }]
-            : undefined,
-    });
+    const result = await showExecutableOpenDialog(config.executablePath);
     if (result.canceled || result.filePaths.length === 0) return;
 
     setBusy(true);
@@ -282,62 +261,18 @@ export function EmulatorDetail({
 
   return (
     <div className="emulator-detail">
-      <button
-        type="button"
-        className="emulator-detail__breadcrumb"
-        onClick={onBack}
-      >
-        <ChevronLeftIcon size={12} />
-        <span>{t("back_to_emulation")}</span>
-      </button>
-
-      <section className="emulator-detail__hero">
-        <div className="emulator-detail__hero-text">
-          <h2 className="emulator-detail__hero-title">{systemLabel}</h2>
-          <div className="emulator-detail__hero-meta">
-            {binaryIcon && (
-              <img
-                src={binaryIcon}
-                alt=""
-                className="emulator-detail__hero-icon"
-                aria-hidden="true"
-              />
-            )}
-            <span className="emulator-detail__hero-detected">
-              {isConfigured
-                ? t("detected", { name: binaryName })
-                : t("not_detected")}
-            </span>
-            {config.detectedVersion && (
-              <span className="emulator-detail__hero-version">
-                v{config.detectedVersion}
-              </span>
-            )}
-            <span className="emulator-detail__dot" />
-            <span className="emulator-detail__hero-count">
-              <span className="emulator-detail__hero-count-dot" />
-              {t("games_found_other", { count: config.totalFiles })}
-            </span>
-          </div>
-        </div>
-        <div className="emulator-detail__hero-actions">
-          <Button
-            theme="primary"
-            onClick={handleRescan}
-            disabled={busy || scan.active}
-          >
-            <SyncIcon
-              size={16}
-              className={
-                scan.active
-                  ? "emulator-detail__redetect-icon--spinning"
-                  : undefined
-              }
-            />
-            <span>{t("rescan_library")}</span>
-          </Button>
-        </div>
-      </section>
+      <DetailHeader
+        title={systemLabel}
+        icon={binaryIcon}
+        detectedName={binaryName}
+        isConfigured={isConfigured}
+        detectedVersion={config.detectedVersion}
+        totalFiles={config.totalFiles}
+        rescanDisabled={busy || scan.active}
+        rescanSpinning={scan.active}
+        onBack={onBack}
+        onRescan={handleRescan}
+      />
 
       {!supportsFirmware && (
         <p className="emulator-detail__bios-note">
@@ -346,70 +281,16 @@ export function EmulatorDetail({
         </p>
       )}
 
-      <div className="emulator-detail__tabs" role="tablist">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            className={cn("emulator-detail__tab", {
-              "emulator-detail__tab--active": activeTab === tab.id,
-            })}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <DetailTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
       {activeTab === "emulator" && (
         <>
-          <EmulatorResourceRow
-            title={t("executable_path_title")}
-            description={t("executable_path_description")}
-            detected={isConfigured && executableExists}
-            statusLabel={
-              isConfigured
-                ? executableExists
-                  ? t("synced")
-                  : t("executable_missing")
-                : t("not_detected")
-            }
-            path={{
-              text: config.executablePath,
-              placeholder: t("select_executable_placeholder"),
-              onClick: handleBrowseExecutable,
-              disabled: busy,
-              title: t("change_executable_path"),
-            }}
-            actions={
-              <>
-                <Button
-                  theme="outline"
-                  onClick={handleRedetect}
-                  disabled={busy}
-                >
-                  <SyncIcon
-                    size={13}
-                    className={
-                      busy
-                        ? "emulator-detail__redetect-icon--spinning"
-                        : undefined
-                    }
-                  />
-                  <span>{t("re_detect")}</span>
-                </Button>
-                <Button
-                  theme="primary"
-                  onClick={handleBrowseExecutable}
-                  disabled={busy}
-                >
-                  <FileDirectoryIcon size={16} />
-                  <span>{t("browse")}</span>
-                </Button>
-              </>
-            }
+          <ExecutableRow
+            executablePath={config.executablePath}
+            executableExists={executableExists}
+            busy={busy}
+            onRedetect={handleRedetect}
+            onBrowse={handleBrowseExecutable}
           />
 
           {supportsBios && (
@@ -494,28 +375,15 @@ export function EmulatorDetail({
         </>
       )}
 
-      <ConfirmationModal
-        visible={folderToRemove !== null}
-        title={t("remove_rom_folder_title")}
-        descriptionText={t("remove_rom_folder_description", {
-          path: folderToRemove?.path ?? "",
-        })}
-        confirmButtonLabel={t("remove")}
-        cancelButtonLabel={t("cancel_remove")}
-        onConfirm={handleConfirmRemove}
-        onClose={() => setFolderToRemove(null)}
-        buttonsIsDisabled={busy}
-      />
-
-      <ConfirmationModal
-        visible={removeOpen}
-        title={t("remove_emulator_title", { name: binaryName })}
-        descriptionText={t("remove_emulator_description", { name: binaryName })}
-        confirmButtonLabel={t("remove")}
-        cancelButtonLabel={t("cancel_remove")}
-        onConfirm={handleConfirmRemoveEmulator}
-        onClose={() => setRemoveOpen(false)}
-        buttonsIsDisabled={busy}
+      <DetailRemoveModals
+        emulatorName={binaryName}
+        folderToRemove={folderToRemove}
+        removeEmulatorOpen={removeOpen}
+        busy={busy}
+        onConfirmRemoveFolder={handleConfirmRemove}
+        onCloseRemoveFolder={() => setFolderToRemove(null)}
+        onConfirmRemoveEmulator={handleConfirmRemoveEmulator}
+        onCloseRemoveEmulator={() => setRemoveOpen(false)}
       />
     </div>
   );

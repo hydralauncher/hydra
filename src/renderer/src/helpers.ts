@@ -65,6 +65,68 @@ export const retroarchLaunchErrorToastKey = (
     ? "core_not_installed_toast"
     : "retroarch_not_configured_toast";
 
+export const showExecutableOpenDialog = (defaultPath?: string | null) => {
+  const isMac = window.electron.platform === "darwin";
+  return window.electron.showOpenDialog({
+    properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
+    defaultPath: defaultPath ?? undefined,
+    filters:
+      window.electron.platform === "win32"
+        ? [{ name: "Executable", extensions: ["exe"] }]
+        : isMac
+          ? [{ name: "Application", extensions: ["app"] }]
+          : undefined,
+  });
+};
+
+interface ClassicsLaunchErrorContext {
+  t: (key: string) => string;
+  showErrorToast: (message: string) => void;
+  showSuccessToast: (message: string) => void;
+  navigate: (path: string) => void;
+  onEmulatorAlreadyRunning: () => void;
+}
+
+export const handleClassicsLaunchError = (
+  error: unknown,
+  context: ClassicsLaunchErrorContext
+): boolean => {
+  const { t, showErrorToast, showSuccessToast, navigate } = context;
+  const code = getClassicsLaunchErrorCode(error);
+  const system = getClassicsLaunchErrorSystem(error);
+  const emulationPath = system
+    ? `/settings?tab=emulation&system=${system}`
+    : "/settings?tab=emulation";
+
+  if (code === "EMULATOR_NOT_CONFIGURED") {
+    showErrorToast(t("emulator_not_configured_toast"));
+    navigate(emulationPath);
+  } else if (code === "BIOS_NOT_CONFIGURED") {
+    showErrorToast(t("bios_not_configured_toast"));
+    navigate(emulationPath);
+  } else if (
+    code === "RETROARCH_NOT_CONFIGURED" ||
+    code === "CORE_NOT_INSTALLED"
+  ) {
+    showErrorToast(t(retroarchLaunchErrorToastKey(code)));
+    navigate(RETROARCH_EMULATION_SETTINGS_PATH);
+  } else if (code === "PLATFORM_UNKNOWN") {
+    showErrorToast(t("platform_unknown_toast"));
+  } else if (code === "NO_DISC") {
+    showErrorToast(t("no_disc_toast"));
+  } else if (code === "PKG_INSTALLING") {
+    showSuccessToast(t("pkg_installing_toast"));
+  } else if (code === "PKG_UNREADABLE") {
+    showErrorToast(t("pkg_unreadable_toast"));
+  } else if (code === "EMULATOR_ALREADY_RUNNING") {
+    context.onEmulatorAlreadyRunning();
+  } else {
+    showErrorToast(t("launch_failed_toast"));
+  }
+
+  return code !== "EMULATOR_ALREADY_RUNNING" && code !== "PKG_INSTALLING";
+};
+
 export const formatDownloadProgress = (
   progress?: number,
   fractionDigits?: number

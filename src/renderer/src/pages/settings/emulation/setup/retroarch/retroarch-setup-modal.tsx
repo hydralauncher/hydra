@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal } from "@renderer/components";
+import { showExecutableOpenDialog } from "@renderer/helpers";
 import { useRetroArchScan, useToast } from "@renderer/hooks";
 import type { RetroArchConfig } from "@types";
 
@@ -183,16 +184,7 @@ export function RetroArchSetupModal({
   }, [refreshConfig]);
 
   const handleBrowseExecutable = useCallback(async () => {
-    const isMac = window.electron.platform === "darwin";
-    const result = await window.electron.showOpenDialog({
-      properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
-      filters:
-        window.electron.platform === "win32"
-          ? [{ name: "Executable", extensions: ["exe"] }]
-          : isMac
-            ? [{ name: "Application", extensions: ["app"] }]
-            : undefined,
-    });
+    const result = await showExecutableOpenDialog();
     if (result.canceled || result.filePaths.length === 0) return;
     const preview = await window.electron.previewRetroArchExecutable(
       result.filePaths[0]

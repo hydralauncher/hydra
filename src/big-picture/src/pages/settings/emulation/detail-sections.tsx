@@ -1,13 +1,13 @@
 import {
   AlertIcon,
   CheckCircleFillIcon,
-  ClockIcon,
-  DatabaseIcon,
+  ChevronLeftIcon,
   FileDirectoryIcon,
   PackageIcon,
   PencilIcon,
   PlusIcon,
   SyncIcon,
+  TrashIcon,
   XIcon,
 } from "@primer/octicons-react";
 import type { RomFolder } from "@types";
@@ -15,11 +15,17 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  LibraryStatsGrid,
+  RomFolderInfo,
+} from "@renderer/pages/settings/emulation/emulation-detail-sections";
+
+import {
   Button,
   FocusItem,
   HorizontalFocusGroup,
   VerticalFocusGroup,
 } from "../../../components";
+import { ConfirmationModal } from "../../../components/modals";
 import {
   EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
   EMULATION_DETAIL_BACK_BUTTON_ID,
@@ -35,25 +41,192 @@ import {
 } from "../settings-navigation";
 import { formatRelative } from "./shared";
 
-export function GamepadIcon({ size = 16 }: Readonly<{ size?: number }>) {
+interface DetailBackButtonProps {
+  onBack: () => void;
+}
+
+export function DetailBackButton({ onBack }: Readonly<DetailBackButtonProps>) {
+  const { t } = useTranslation("settings");
+
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
+    <FocusItem
+      id={EMULATION_DETAIL_BACK_BUTTON_ID}
+      navigationOverrides={{
+        left: { type: "block" },
+        right: {
+          type: "item",
+          itemId: EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID,
+        },
+        down: {
+          type: "item",
+          itemId: EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
+        },
+      }}
+      asChild
     >
-      <line x1="6" x2="10" y1="11" y2="11" />
-      <line x1="8" x2="8" y1="9" y2="13" />
-      <line x1="15" x2="15.01" y1="12" y2="12" />
-      <line x1="18" x2="18.01" y1="10" y2="10" />
-      <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" />
-    </svg>
+      <button
+        type="button"
+        className="emulator-detail__breadcrumb"
+        onClick={onBack}
+      >
+        <ChevronLeftIcon size={12} />
+        <span>{t("back_to_emulation")}</span>
+      </button>
+    </FocusItem>
+  );
+}
+
+interface DetailHeroBPProps {
+  title: string;
+  icon: string | undefined;
+  detectedName: string;
+  isConfigured: boolean;
+  totalFiles: number;
+  removeDisabled: boolean;
+  onRemove: () => void;
+}
+
+export function DetailHeroBP({
+  title,
+  icon,
+  detectedName,
+  isConfigured,
+  totalFiles,
+  removeDisabled,
+  onRemove,
+}: Readonly<DetailHeroBPProps>) {
+  const { t } = useTranslation("settings");
+
+  return (
+    <section className="emulator-detail__hero">
+      <div className="emulator-detail__hero-text">
+        <h2 className="emulator-detail__hero-title">{title}</h2>
+        <div className="emulator-detail__hero-meta">
+          {icon ? (
+            <img
+              src={icon}
+              alt=""
+              className="emulator-detail__hero-icon"
+              aria-hidden="true"
+            />
+          ) : null}
+          <span className="emulator-detail__hero-detected">
+            {isConfigured
+              ? t("detected", { name: detectedName })
+              : t("not_detected")}
+          </span>
+          <span className="emulator-detail__dot" />
+          <span className="emulator-detail__hero-count">
+            <span className="emulator-detail__hero-count-dot" />
+            {t("games_found_other", { count: totalFiles })}
+          </span>
+        </div>
+      </div>
+
+      <div className="emulator-detail__hero-actions">
+        <Button
+          focusId={EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID}
+          focusNavigationOverrides={{
+            left: {
+              type: "item",
+              itemId: EMULATION_DETAIL_BACK_BUTTON_ID,
+            },
+            right: { type: "block" },
+            down: {
+              type: "item",
+              itemId: EMULATION_DETAIL_REDETECT_BUTTON_ID,
+            },
+          }}
+          variant="danger"
+          disabled={removeDisabled}
+          icon={<TrashIcon size={14} />}
+          onClick={onRemove}
+        >
+          {t("remove_emulator")}
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+interface RedetectOutcome {
+  executablePath: string | null;
+  detectedVersion: string | null;
+}
+
+interface RedetectToasts {
+  showErrorToast: (title: string, options?: object) => void;
+  showSuccessToast: (title: string, options?: object) => void;
+  toastOptions: object;
+}
+
+export const notifyRedetectOutcomeBP = (
+  next: RedetectOutcome,
+  previous: RedetectOutcome,
+  { showErrorToast, showSuccessToast, toastOptions }: RedetectToasts
+): void => {
+  if (next.executablePath === null) {
+    showErrorToast("Emulator was not found", toastOptions);
+  } else if (next.executablePath !== previous.executablePath) {
+    showSuccessToast("Executable path updated", toastOptions);
+  } else if (
+    next.detectedVersion &&
+    next.detectedVersion !== previous.detectedVersion
+  ) {
+    showSuccessToast("Version updated", {
+      ...toastOptions,
+      message: `v${next.detectedVersion}`,
+    });
+  } else {
+    showSuccessToast("Detection refreshed", toastOptions);
+  }
+};
+
+interface DetailModalsBPProps {
+  emulatorName: string;
+  folderToRemove: RomFolder | null;
+  removeEmulatorOpen: boolean;
+  onConfirmRemoveFolder: () => void;
+  onCloseRemoveFolder: () => void;
+  onConfirmRemoveEmulator: () => void;
+  onCloseRemoveEmulator: () => void;
+}
+
+export function DetailModalsBP({
+  emulatorName,
+  folderToRemove,
+  removeEmulatorOpen,
+  onConfirmRemoveFolder,
+  onCloseRemoveFolder,
+  onConfirmRemoveEmulator,
+  onCloseRemoveEmulator,
+}: Readonly<DetailModalsBPProps>) {
+  const { t } = useTranslation("settings");
+
+  return (
+    <>
+      <ConfirmationModal
+        visible={folderToRemove !== null}
+        title={t("remove_rom_folder_title")}
+        description={t("remove_rom_folder_description", {
+          path: folderToRemove?.path ?? "",
+        })}
+        confirmLabel={t("remove")}
+        danger
+        onClose={onCloseRemoveFolder}
+        onConfirm={onConfirmRemoveFolder}
+      />
+
+      <ConfirmationModal
+        visible={removeEmulatorOpen}
+        title={t("remove_emulator_title", { name: emulatorName })}
+        description={t("remove_emulator_description", { name: emulatorName })}
+        confirmLabel={t("remove")}
+        danger
+        onClose={onCloseRemoveEmulator}
+        onConfirm={onConfirmRemoveEmulator}
+      />
+    </>
   );
 }
 
@@ -291,29 +464,7 @@ export function RomFoldersSectionBP({
             <div className="emulator-detail__row" key={folder.id}>
               <FileDirectoryIcon size={24} />
 
-              <div className="emulator-detail__folder-info">
-                <span className="emulator-detail__folder-path">
-                  {folder.path}
-                </span>
-                <div className="emulator-detail__folder-meta">
-                  <span>
-                    {t(
-                      folder.fileCount === 1
-                        ? "file_count_one"
-                        : "file_count_other",
-                      { count: folder.fileCount }
-                    )}
-                  </span>
-                  <span className="emulator-detail__dot" />
-                  <span>
-                    {folder.lastScanAt
-                      ? t("last_scan_relative", {
-                          value: formatRelative(folder.lastScanAt),
-                        })
-                      : t("last_scan_never")}
-                  </span>
-                </div>
-              </div>
+              <RomFolderInfo folder={folder} formatLastScan={formatRelative} />
 
               <FocusItem
                 id={getEmulationRomFolderToggleFocusId(folder.id)}
@@ -472,61 +623,13 @@ export function LibraryStatsSectionBP({
           </div>
         </header>
 
-        <div className="emulator-detail__stats">
-          <div className="emulator-detail__stat">
-            <div className="emulator-detail__stat-head">
-              <GamepadIcon size={16} />
-              <span className="emulator-detail__stat-label">
-                {t("stat_games")}
-              </span>
-            </div>
-            <span className="emulator-detail__stat-value">{totalFiles}</span>
-            <span className="emulator-detail__stat-caption">
-              {t("stat_games_caption", { system: systemLabel })}
-            </span>
-          </div>
-
-          <div className="emulator-detail__stat">
-            <div className="emulator-detail__stat-head">
-              <DatabaseIcon size={16} />
-              <span className="emulator-detail__stat-label">
-                {t("stat_storage")}
-              </span>
-            </div>
-            <span className="emulator-detail__stat-value">{storageLabel}</span>
-            <span className="emulator-detail__stat-caption">
-              {t(
-                totalFiles === 1
-                  ? "stat_storage_caption_one"
-                  : totalFiles === 0
-                    ? "stat_storage_caption_zero"
-                    : "stat_storage_caption_other",
-                {
-                  count: totalFiles,
-                  folders: t(
-                    romFoldersCount === 1
-                      ? "folder_count_one"
-                      : "folder_count_other",
-                    { count: romFoldersCount }
-                  ),
-                }
-              )}
-            </span>
-          </div>
-
-          <div className="emulator-detail__stat">
-            <div className="emulator-detail__stat-head">
-              <ClockIcon size={16} />
-              <span className="emulator-detail__stat-label">
-                {t("stat_last_scan")}
-              </span>
-            </div>
-            <span className="emulator-detail__stat-value">{lastScanLabel}</span>
-            <span className="emulator-detail__stat-caption">
-              {t("stat_last_scan_caption")}
-            </span>
-          </div>
-        </div>
+        <LibraryStatsGrid
+          systemLabel={systemLabel}
+          totalFiles={totalFiles}
+          storageLabel={storageLabel}
+          lastScanLabel={lastScanLabel}
+          romFoldersCount={romFoldersCount}
+        />
 
         {children}
       </section>

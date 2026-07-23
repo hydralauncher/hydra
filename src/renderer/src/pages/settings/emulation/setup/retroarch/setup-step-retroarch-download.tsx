@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import {
   GlobeIcon,
   LinkExternalIcon,
-  SyncIcon,
   DownloadIcon,
 } from "@primer/octicons-react";
 
@@ -12,7 +11,12 @@ import type { RetroArchInstallOption, RetroArchInstallProgress } from "@types";
 import { RETROARCH_EMULATOR_ICON } from "../../emulator-icons";
 import { RETROARCH_LABEL } from "../../retroarch-meta";
 import { ArchIcon, FlatpakIcon } from "../brand-icons";
-import { InstallProgressBar, installStatusText } from "../install-progress";
+import {
+  ExternalLinkCard,
+  InstallLoadingCard,
+  InstallProgressBar,
+  installStatusText,
+} from "../install-progress";
 
 const OFFICIAL_WEBSITE = "https://www.retroarch.com/";
 
@@ -113,18 +117,7 @@ export function SetupStepRetroArchDownload() {
       </button>
 
       <div className="setup-modal__download-grid">
-        {options === null && (
-          <div className="setup-modal__download-card setup-modal__download-card--loading">
-            <div className="setup-modal__download-card-badge">
-              <SyncIcon size={20} className="setup-modal__spin" />
-            </div>
-            <div className="setup-modal__download-card-main">
-              <span className="setup-modal__download-card-title">
-                {t("setup_install_loading")}
-              </span>
-            </div>
-          </div>
-        )}
+        {options === null && <InstallLoadingCard />}
 
         {installable.map((option) => {
           const isInstalling = installingId === option.id;
@@ -161,35 +154,18 @@ export function SetupStepRetroArchDownload() {
         })}
 
         {externalLinks.map((option) => (
-          <button
+          <ExternalLinkCard
             key={option.id}
-            type="button"
-            className="setup-modal__download-card"
-            onClick={() => option.linkUrl && openUrl(option.linkUrl)}
-          >
-            <div className="setup-modal__download-card-badge">
-              {externalLinkIcon(option)}
-            </div>
-            <div className="setup-modal__download-card-main">
-              <span className="setup-modal__download-card-title">
-                {externalLinkLabel(option)}
-              </span>
-              <span className="setup-modal__download-card-desc">
-                {option.linkKind === "aur"
-                  ? t("setup_install_aur_desc", { name })
-                  : t("setup_download_desc", { name })}
-              </span>
-            </div>
-            <span className="setup-modal__download-card-footer">
-              <span className="setup-modal__download-card-url">
-                {option.linkUrl}
-              </span>
-              <LinkExternalIcon
-                size={14}
-                className="setup-modal__download-card-ext"
-              />
-            </span>
-          </button>
+            icon={externalLinkIcon(option)}
+            title={externalLinkLabel(option)}
+            description={
+              option.linkKind === "aur"
+                ? t("setup_install_aur_desc", { name })
+                : t("setup_download_desc", { name })
+            }
+            url={option.linkUrl}
+            onOpen={openUrl}
+          />
         ))}
       </div>
     </>

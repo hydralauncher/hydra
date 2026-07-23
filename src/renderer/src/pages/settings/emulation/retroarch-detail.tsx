@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import cn from "classnames";
 import {
   CheckCircleFillIcon,
-  ChevronLeftIcon,
   DownloadIcon,
-  FileDirectoryIcon,
   SyncIcon,
   TrashIcon,
 } from "@primer/octicons-react";
 
-import { Button, ConfirmationModal } from "@renderer/components";
+import { Button } from "@renderer/components";
 import { useRetroArchScan, useToast } from "@renderer/hooks";
 import { formatBytes } from "@shared";
 import type {
@@ -20,17 +17,27 @@ import type {
   RomFolder,
 } from "@types";
 
-import { RETROARCH_PLATFORM_LABELS } from "@renderer/helpers";
+import {
+  RETROARCH_PLATFORM_LABELS,
+  showExecutableOpenDialog,
+} from "@renderer/helpers";
 
 import { RETROARCH_EMULATOR_ICON } from "./emulator-icons";
-import { EmulatorResourceRow } from "./emulator-resource-row";
 import {
+  DetailHeader,
+  DetailRemoveModals,
+  DetailTabBar,
+  ExecutableRow,
   LibraryStatsGrid,
+  notifyRedetectOutcome,
   RomFoldersSection,
 } from "./emulation-detail-sections";
-import { installPercent } from "./setup/install-progress";
 import { RetroArchRomsSection } from "./retroarch-roms-section";
-import { RETROARCH_CORE_LIST, RETROARCH_LABEL } from "./retroarch-meta";
+import {
+  RETROARCH_CORE_LIST,
+  RETROARCH_LABEL,
+  retroArchCoreStatusText,
+} from "./retroarch-meta";
 import { formatRelativeShort } from "./relative-time";
 
 import "./emulator-detail.scss";
@@ -112,25 +119,20 @@ export function RetroArchDetail({
   const handleRedetect = useCallback(async () => {
     setBusy(true);
     try {
-      const previousPath = config.executablePath;
-      const previousVersion = config.detectedVersion;
+      const previous = {
+        executablePath: config.executablePath,
+        detectedVersion: config.detectedVersion,
+      };
       const next = await window.electron.detectRetroArch();
       onChange(next);
-
-      if (next.executablePath === null) {
-        showErrorToast(t("redetect_not_found", { name: RETROARCH_LABEL }));
-      } else if (next.executablePath !== previousPath) {
-        showSuccessToast(t("redetect_path_updated"));
-      } else if (
-        next.detectedVersion &&
-        next.detectedVersion !== previousVersion
-      ) {
-        showSuccessToast(
-          t("redetect_version_updated", { version: next.detectedVersion })
-        );
-      } else {
-        showSuccessToast(t("redetect_unchanged"));
-      }
+      notifyRedetectOutcome(
+        next,
+        previous,
+        RETROARCH_LABEL,
+        t,
+        showErrorToast,
+        showSuccessToast
+      );
     } finally {
       setBusy(false);
     }
@@ -144,17 +146,7 @@ export function RetroArchDetail({
   ]);
 
   const handleBrowseExecutable = useCallback(async () => {
-    const isMac = window.electron.platform === "darwin";
-    const result = await window.electron.showOpenDialog({
-      properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
-      defaultPath: config.executablePath ?? undefined,
-      filters:
-        window.electron.platform === "win32"
-          ? [{ name: "Executable", extensions: ["exe"] }]
-          : isMac
-            ? [{ name: "Application", extensions: ["app"] }]
-            : undefined,
-    });
+    const result = await showExecutableOpenDialog(config.executablePath);
     if (result.canceled || result.filePaths.length === 0) return;
 
     setBusy(true);
@@ -345,29 +337,8 @@ export function RetroArchDetail({
     [config.cores]
   );
 
-  const coreStatusText = (core: RetroArchCoreName): string => {
-    const current = coreProgress[core];
-    if (current && current.phase === "downloading") {
-      return t("setup_install_downloading", {
-        percent: installPercent(current.loaded, current.total),
-      });
-    }
-    if (current && current.phase === "extracting") {
-      return t("setup_install_extracting");
-    }
-    if (current && current.phase === "error") {
-      return t("setup_install_failed");
-    }
-    const installed = config.cores[core];
-    if (installed?.installed) {
-      return installed.installedAt
-        ? t("retroarch_core_installed_at", {
-            date: new Date(installed.installedAt).toLocaleDateString(),
-          })
-        : t("retroarch_core_installed");
-    }
-    return t("retroarch_core_not_installed");
-  };
+  const coreStatusText = (core: RetroArchCoreName): string =>
+    retroArchCoreStatusText(t, core, config, coreProgress);
 
   const tabs: { id: RetroArchTab; label: string }[] = [
     { id: "emulator", label: t("tab_emulator") },
@@ -377,125 +348,29 @@ export function RetroArchDetail({
 
   return (
     <div className="emulator-detail">
-      <button
-        type="button"
-        className="emulator-detail__breadcrumb"
-        onClick={onBack}
-      >
-        <ChevronLeftIcon size={12} />
-        <span>{t("back_to_emulation")}</span>
-      </button>
+      <DetailHeader
+        title={RETROARCH_LABEL}
+        icon={RETROARCH_EMULATOR_ICON}
+        detectedName={RETROARCH_LABEL}
+        isConfigured={isConfigured}
+        detectedVersion={config.detectedVersion}
+        totalFiles={config.totalFiles}
+        rescanDisabled={busy || scan.active}
+        rescanSpinning={scan.active}
+        onBack={onBack}
+        onRescan={handleRescan}
+      />
 
-      <section className="emulator-detail__hero">
-        <div className="emulator-detail__hero-text">
-          <h2 className="emulator-detail__hero-title">{RETROARCH_LABEL}</h2>
-          <div className="emulator-detail__hero-meta">
-            <img
-              src={RETROARCH_EMULATOR_ICON}
-              alt=""
-              className="emulator-detail__hero-icon"
-              aria-hidden="true"
-            />
-            <span className="emulator-detail__hero-detected">
-              {isConfigured
-                ? t("detected", { name: RETROARCH_LABEL })
-                : t("not_detected")}
-            </span>
-            {config.detectedVersion && (
-              <span className="emulator-detail__hero-version">
-                v{config.detectedVersion}
-              </span>
-            )}
-            <span className="emulator-detail__dot" />
-            <span className="emulator-detail__hero-count">
-              <span className="emulator-detail__hero-count-dot" />
-              {t("games_found_other", { count: config.totalFiles })}
-            </span>
-          </div>
-        </div>
-        <div className="emulator-detail__hero-actions">
-          <Button
-            theme="primary"
-            onClick={handleRescan}
-            disabled={busy || scan.active}
-          >
-            <SyncIcon
-              size={16}
-              className={
-                scan.active
-                  ? "emulator-detail__redetect-icon--spinning"
-                  : undefined
-              }
-            />
-            <span>{t("rescan_library")}</span>
-          </Button>
-        </div>
-      </section>
-
-      <div className="emulator-detail__tabs" role="tablist">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            className={cn("emulator-detail__tab", {
-              "emulator-detail__tab--active": activeTab === tab.id,
-            })}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <DetailTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
       {activeTab === "emulator" && (
         <>
-          <EmulatorResourceRow
-            title={t("executable_path_title")}
-            description={t("executable_path_description")}
-            detected={isConfigured && executableExists}
-            statusLabel={
-              isConfigured
-                ? executableExists
-                  ? t("synced")
-                  : t("executable_missing")
-                : t("not_detected")
-            }
-            path={{
-              text: config.executablePath,
-              placeholder: t("select_executable_placeholder"),
-              onClick: handleBrowseExecutable,
-              disabled: busy,
-              title: t("change_executable_path"),
-            }}
-            actions={
-              <>
-                <Button
-                  theme="outline"
-                  onClick={handleRedetect}
-                  disabled={busy}
-                >
-                  <SyncIcon
-                    size={13}
-                    className={
-                      busy
-                        ? "emulator-detail__redetect-icon--spinning"
-                        : undefined
-                    }
-                  />
-                  <span>{t("re_detect")}</span>
-                </Button>
-                <Button
-                  theme="primary"
-                  onClick={handleBrowseExecutable}
-                  disabled={busy}
-                >
-                  <FileDirectoryIcon size={16} />
-                  <span>{t("browse")}</span>
-                </Button>
-              </>
-            }
+          <ExecutableRow
+            executablePath={config.executablePath}
+            executableExists={executableExists}
+            busy={busy}
+            onRedetect={handleRedetect}
+            onBrowse={handleBrowseExecutable}
           />
 
           <section className="emulator-detail__section">
@@ -647,30 +522,15 @@ export function RetroArchDetail({
         </>
       )}
 
-      <ConfirmationModal
-        visible={folderToRemove !== null}
-        title={t("remove_rom_folder_title")}
-        descriptionText={t("remove_rom_folder_description", {
-          path: folderToRemove?.path ?? "",
-        })}
-        confirmButtonLabel={t("remove")}
-        cancelButtonLabel={t("cancel_remove")}
-        onConfirm={handleConfirmRemove}
-        onClose={() => setFolderToRemove(null)}
-        buttonsIsDisabled={busy}
-      />
-
-      <ConfirmationModal
-        visible={removeOpen}
-        title={t("remove_emulator_title", { name: RETROARCH_LABEL })}
-        descriptionText={t("remove_emulator_description", {
-          name: RETROARCH_LABEL,
-        })}
-        confirmButtonLabel={t("remove")}
-        cancelButtonLabel={t("cancel_remove")}
-        onConfirm={handleConfirmRemoveEmulator}
-        onClose={() => setRemoveOpen(false)}
-        buttonsIsDisabled={busy}
+      <DetailRemoveModals
+        emulatorName={RETROARCH_LABEL}
+        folderToRemove={folderToRemove}
+        removeEmulatorOpen={removeOpen}
+        busy={busy}
+        onConfirmRemoveFolder={handleConfirmRemove}
+        onCloseRemoveFolder={() => setFolderToRemove(null)}
+        onConfirmRemoveEmulator={handleConfirmRemoveEmulator}
+        onCloseRemoveEmulator={() => setRemoveOpen(false)}
       />
     </div>
   );
