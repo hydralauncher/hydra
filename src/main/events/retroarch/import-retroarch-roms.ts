@@ -237,6 +237,146 @@ const reconcileDeletedGames = async (folders: FolderInput[]) => {
   }
 };
 
+interface TitleInfo {
+  folderPath: string;
+  sizeBytes: number;
+  platform: RetroArchPlatform;
+}
+
+interface AggregatedMatches {
+  matchedEntries: Map<string, LaunchboxShopDetailsEntry>;
+  discsByTitle: Map<string, { primaryPath: string; name: string }[]>;
+  titleInfo: Map<string, TitleInfo>;
+  unmatchedFiles: RetroArchUnmatchedFile[];
+}
+
+const recordMatchedRom = (
+  aggregated: AggregatedMatches,
+  rom: HashedRom,
+  entry: LaunchboxShopDetailsEntry
+): void => {
+  aggregated.matchedEntries.set(entry.objectId, entry);
+
+  const info = aggregated.titleInfo.get(entry.objectId);
+  if (info) {
+    info.sizeBytes += rom.sizeBytes;
+  } else {
+    aggregated.titleInfo.set(entry.objectId, {
+      folderPath: rom.folderPath,
+      sizeBytes: rom.sizeBytes,
+      platform: rom.platform,
+    });
+  }
+
+  const discs = aggregated.discsByTitle.get(entry.objectId) ?? [];
+  if (!discs.some((d) => d.primaryPath === rom.primaryPath)) {
+    discs.push({ primaryPath: rom.primaryPath, name: rom.name });
+  }
+  aggregated.discsByTitle.set(entry.objectId, discs);
+};
+
+const aggregateMatches = (
+  hashed: HashedRom[],
+  lookup: Map<string, LaunchboxShopDetailsEntry>,
+  signal: CancelSignal,
+  onMatch?: (
+    processed: number,
+    currentFile: string,
+    status: "matched" | "unmatched",
+    matched: number,
+    sizeBytes: number
+  ) => void
+): AggregatedMatches => {
+  const aggregated: AggregatedMatches = {
+    matchedEntries: new Map(),
+    discsByTitle: new Map(),
+    titleInfo: new Map(),
+    unmatchedFiles: [],
+  };
+  let matchedSizeBytes = 0;
+
+  for (let i = 0; i < hashed.length; i++) {
+    if (signal.cancelled) break;
+    const rom = hashed[i];
+    const entry = rom.crc32 ? (lookup.get(rom.crc32) ?? null) : null;
+
+    if (entry?.objectId && entry.data) {
+      recordMatchedRom(aggregated, rom, entry);
+      matchedSizeBytes += rom.sizeBytes;
+    } else {
+      aggregated.unmatchedFiles.push({ name: rom.name, reason: "unmatched" });
+    }
+
+    onMatch?.(
+      i + 1,
+      rom.name,
+      entry ? "matched" : "unmatched",
+      aggregated.matchedEntries.size,
+      matchedSizeBytes
+    );
+  }
+
+  return aggregated;
+};
+
+const computeFolderRollups = (
+  folders: FolderInput[],
+  titleInfo: Map<string, TitleInfo>
+): {
+  folderRollup: Map<string, { fileCount: number; sizeBytes: number }>;
+  totalFileCount: number;
+  totalSizeBytes: number;
+} => {
+  const folderRollup = new Map<
+    string,
+    { fileCount: number; sizeBytes: number }
+  >();
+  for (const folder of folders) {
+    folderRollup.set(folder.path, { fileCount: 0, sizeBytes: 0 });
+  }
+  for (const info of titleInfo.values()) {
+    const bucket = folderRollup.get(info.folderPath);
+    if (bucket) {
+      bucket.fileCount += 1;
+      bucket.sizeBytes += info.sizeBytes;
+    }
+  }
+
+  let totalFileCount = 0;
+  let totalSizeBytes = 0;
+  for (const bucket of folderRollup.values()) {
+    totalFileCount += bucket.fileCount;
+    totalSizeBytes += bucket.sizeBytes;
+  }
+
+  return { folderRollup, totalFileCount, totalSizeBytes };
+};
+
+const persistMatchedTitles = async (
+  aggregated: AggregatedMatches,
+  language: string,
+  signal: CancelSignal
+): Promise<void> => {
+  for (const entry of aggregated.matchedEntries.values()) {
+    if (signal.cancelled) break;
+    const titleDiscs = aggregated.discsByTitle.get(entry.objectId) ?? [];
+    const discs = buildRomDiscList(titleDiscs);
+    const info = aggregated.titleInfo.get(entry.objectId);
+    const defaultPlatform = info
+      ? retroarch.PLATFORM_TO_LAUNCHBOX_NAME[info.platform]
+      : null;
+    await persistEntryLocally(
+      entry,
+      language,
+      discs,
+      defaultPlatform,
+      info?.sizeBytes ?? null
+    ).catch((err) => {
+      logger.error("Failed to persist RetroArch entry locally", err);
+    });
+  }
+};
+
 export async function runRetroArchImport(
   folders: FolderInput[],
   language: string,
@@ -285,138 +425,60 @@ export async function runRetroArchImport(
   const lookup = await matchRoms(hashed, signal);
   if (signal.cancelled) return cancelledResult();
 
-  const matchedEntries = new Map<string, LaunchboxShopDetailsEntry>();
-  const discsByTitle = new Map<
-    string,
-    { primaryPath: string; name: string }[]
-  >();
-  const titleInfo = new Map<
-    string,
-    { folderPath: string; sizeBytes: number; platform: RetroArchPlatform }
-  >();
-  const unmatchedFiles: RetroArchUnmatchedFile[] = [];
-  let matchedSizeBytes = 0;
+  const aggregated = aggregateMatches(
+    hashed,
+    lookup,
+    signal,
+    (processed, currentFile, status, matched, sizeBytes) =>
+      onProgress?.({
+        type: "progress",
+        phase: "matching",
+        processed,
+        total: hashed.length,
+        percent: bandPercent(
+          SCAN_BAND + HASH_BAND,
+          100 - (SCAN_BAND + HASH_BAND),
+          processed,
+          hashed.length
+        ),
+        currentFile,
+        status,
+        discovered: totalGames,
+        matched,
+        sizeBytes,
+      })
+  );
 
-  for (let i = 0; i < hashed.length; i++) {
-    if (signal.cancelled) break;
-    const rom = hashed[i];
-    const entry = rom.crc32 ? (lookup.get(rom.crc32) ?? null) : null;
+  const { folderRollup, totalFileCount, totalSizeBytes } = computeFolderRollups(
+    folders,
+    aggregated.titleInfo
+  );
 
-    if (entry?.objectId && entry.data) {
-      matchedEntries.set(entry.objectId, entry);
-
-      const info = titleInfo.get(entry.objectId);
-      if (info) {
-        info.sizeBytes += rom.sizeBytes;
-      } else {
-        titleInfo.set(entry.objectId, {
-          folderPath: rom.folderPath,
-          sizeBytes: rom.sizeBytes,
-          platform: rom.platform,
-        });
-      }
-      matchedSizeBytes += rom.sizeBytes;
-
-      const discs = discsByTitle.get(entry.objectId) ?? [];
-      if (!discs.some((d) => d.primaryPath === rom.primaryPath)) {
-        discs.push({ primaryPath: rom.primaryPath, name: rom.name });
-      }
-      discsByTitle.set(entry.objectId, discs);
-    } else {
-      unmatchedFiles.push({ name: rom.name, reason: "unmatched" });
-    }
-
-    onProgress?.({
-      type: "progress",
-      phase: "matching",
-      processed: i + 1,
-      total: hashed.length,
-      percent: bandPercent(
-        SCAN_BAND + HASH_BAND,
-        100 - (SCAN_BAND + HASH_BAND),
-        i + 1,
-        hashed.length
-      ),
-      currentFile: rom.name,
-      status: entry ? "matched" : "unmatched",
-      discovered: totalGames,
-      matched: matchedEntries.size,
-      sizeBytes: matchedSizeBytes,
-    });
-  }
-
-  const folderRollup = new Map<
-    string,
-    { fileCount: number; sizeBytes: number }
-  >();
-  for (const folder of folders) {
-    folderRollup.set(folder.path, { fileCount: 0, sizeBytes: 0 });
-  }
-  for (const info of titleInfo.values()) {
-    const bucket = folderRollup.get(info.folderPath);
-    if (bucket) {
-      bucket.fileCount += 1;
-      bucket.sizeBytes += info.sizeBytes;
-    }
-  }
-
-  let totalFileCount = 0;
-  let totalSizeBytes = 0;
-  for (const bucket of folderRollup.values()) {
-    totalFileCount += bucket.fileCount;
-    totalSizeBytes += bucket.sizeBytes;
-  }
-
-  if (signal.cancelled) {
-    return cancelledResult(
+  const asCancelled = () =>
+    cancelledResult(
       totalFileCount,
       totalSizeBytes,
-      matchedEntries.size,
-      unmatchedFiles.length,
-      unmatchedFiles
+      aggregated.matchedEntries.size,
+      aggregated.unmatchedFiles.length,
+      aggregated.unmatchedFiles
     );
-  }
 
-  for (const entry of matchedEntries.values()) {
-    if (signal.cancelled) break;
-    const titleDiscs = discsByTitle.get(entry.objectId) ?? [];
-    const discs = buildRomDiscList(titleDiscs);
-    const info = titleInfo.get(entry.objectId);
-    const defaultPlatform = info
-      ? retroarch.PLATFORM_TO_LAUNCHBOX_NAME[info.platform]
-      : null;
-    await persistEntryLocally(
-      entry,
-      language,
-      discs,
-      defaultPlatform,
-      info?.sizeBytes ?? null
-    ).catch((err) => {
-      logger.error("Failed to persist RetroArch entry locally", err);
-    });
-  }
+  if (signal.cancelled) return asCancelled();
 
-  if (signal.cancelled) {
-    return cancelledResult(
-      totalFileCount,
-      totalSizeBytes,
-      matchedEntries.size,
-      unmatchedFiles.length,
-      unmatchedFiles
-    );
-  }
+  await persistMatchedTitles(aggregated, language, signal);
+  if (signal.cancelled) return asCancelled();
 
   await persistFolderRollups(folders, folderRollup);
   await reconcileDeletedGames(folders);
   await recomputeRetroArchPlatformCounts();
-  await syncProfileBatch(Array.from(matchedEntries.keys()));
+  await syncProfileBatch(Array.from(aggregated.matchedEntries.keys()));
 
   return {
     fileCount: totalFileCount,
     sizeBytes: totalSizeBytes,
-    matched: matchedEntries.size,
-    unmatched: unmatchedFiles.length,
-    unmatchedFiles,
+    matched: aggregated.matchedEntries.size,
+    unmatched: aggregated.unmatchedFiles.length,
+    unmatchedFiles: aggregated.unmatchedFiles,
     cancelled: signal.cancelled,
   };
 }

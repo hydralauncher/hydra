@@ -1,5 +1,10 @@
 import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
 
+import {
+  platformToRetroArchPlatform,
+  RETROARCH_PLATFORM_LABELS,
+} from "@shared";
+
 import Color from "color";
 import i18next from "i18next";
 import { v4 as uuidv4 } from "uuid";
@@ -67,16 +72,54 @@ export const retroarchLaunchErrorToastKey = (
 
 export const showExecutableOpenDialog = (defaultPath?: string | null) => {
   const isMac = window.electron.platform === "darwin";
+
+  let filters: { name: string; extensions: string[] }[] | undefined;
+  if (window.electron.platform === "win32") {
+    filters = [{ name: "Executable", extensions: ["exe"] }];
+  } else if (isMac) {
+    filters = [{ name: "Application", extensions: ["app"] }];
+  }
+
   return window.electron.showOpenDialog({
     properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
     defaultPath: defaultPath ?? undefined,
-    filters:
-      window.electron.platform === "win32"
-        ? [{ name: "Executable", extensions: ["exe"] }]
-        : isMac
-          ? [{ name: "Application", extensions: ["app"] }]
-          : undefined,
+    filters,
   });
+};
+
+export interface ClassicsBadgeInfo {
+  label: string | null;
+  icon: string | undefined;
+}
+
+export const resolveClassicsBadge = (
+  shop: GameShop,
+  platform: string | null | undefined,
+  psLabels: Partial<Record<EmulatorSystem, string>>,
+  icons: {
+    emulatorIcons: Partial<Record<EmulatorBinary, string>>;
+    retroarchIcon: string;
+  }
+): ClassicsBadgeInfo => {
+  if (shop !== "launchbox") return { label: null, icon: undefined };
+
+  const system = platformToSystem(platform);
+  if (system) {
+    return {
+      label: psLabels[system] ?? null,
+      icon: icons.emulatorIcons[SYSTEM_TO_BINARY[system]],
+    };
+  }
+
+  const retroArchPlatform = platformToRetroArchPlatform(platform);
+  if (retroArchPlatform) {
+    return {
+      label: RETROARCH_PLATFORM_LABELS[retroArchPlatform],
+      icon: icons.retroarchIcon,
+    };
+  }
+
+  return { label: null, icon: undefined };
 };
 
 interface ClassicsLaunchErrorContext {

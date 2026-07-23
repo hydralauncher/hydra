@@ -69,7 +69,7 @@ const fetchLatestStableVersion = async (): Promise<string | null> => {
       return 0;
     });
 
-    return versions[versions.length - 1];
+    return versions.at(-1) ?? null;
   } catch (error) {
     logger.error("Failed to fetch latest RetroArch stable version", error);
     return null;

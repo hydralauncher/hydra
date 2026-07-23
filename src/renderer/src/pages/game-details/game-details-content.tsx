@@ -23,11 +23,7 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
 import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
-import {
-  platformToRetroArchPlatform,
-  platformToSystem,
-  SYSTEM_TO_BINARY,
-} from "@renderer/helpers";
+import { resolveClassicsBadge } from "@renderer/helpers";
 import {
   EMULATOR_ICONS,
   RETROARCH_EMULATOR_ICON,
@@ -223,24 +219,21 @@ export function GameDetailsContent() {
     ? (game?.platform ?? shopDetails?.platform ?? null)
     : null;
 
-  const launchboxSystem = isLaunchboxGame
-    ? platformToSystem(launchboxPlatform)
-    : null;
-
-  const launchboxRetroArchPlatform =
-    isLaunchboxGame && !launchboxSystem
-      ? platformToRetroArchPlatform(launchboxPlatform)
-      : null;
-
   const launchboxTitle = isLaunchboxGame
     ? (game?.title ?? shopDetails?.name ?? "")
     : "";
 
-  const launchboxEmulatorIcon = launchboxSystem
-    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[launchboxSystem]]
-    : launchboxRetroArchPlatform
-      ? RETROARCH_EMULATOR_ICON
-      : undefined;
+  const launchboxEmulatorIcon = isLaunchboxGame
+    ? resolveClassicsBadge(
+        "launchbox",
+        launchboxPlatform,
+        {},
+        {
+          emulatorIcons: EMULATOR_ICONS,
+          retroarchIcon: RETROARCH_EMULATOR_ICON,
+        }
+      ).icon
+    : undefined;
 
   return (
     <div

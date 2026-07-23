@@ -256,25 +256,28 @@ export function ExecSection({
   const { t } = useTranslation("settings");
   const isConfigured = executablePath !== null;
 
+  let statusBadge: ReactNode = null;
+  if (isConfigured) {
+    statusBadge = executableExists ? (
+      <span className="emulator-detail__synced">
+        <CheckCircleFillIcon size={14} />
+        <span>{t("synced")}</span>
+      </span>
+    ) : (
+      <span className="emulator-detail__path-missing">
+        <AlertIcon size={14} />
+        <span>{t("executable_missing")}</span>
+      </span>
+    );
+  }
+
   return (
     <section className="emulator-detail__section">
       <header className="emulator-detail__section-header">
         <div className="emulator-detail__section-text">
           <div className="emulator-detail__section-title-row">
             <h3>{t("emulator_section_title")}</h3>
-            {isConfigured ? (
-              executableExists ? (
-                <span className="emulator-detail__synced">
-                  <CheckCircleFillIcon size={14} />
-                  <span>{t("synced")}</span>
-                </span>
-              ) : (
-                <span className="emulator-detail__path-missing">
-                  <AlertIcon size={14} />
-                  <span>{t("executable_missing")}</span>
-                </span>
-              )
-            ) : null}
+            {statusBadge}
           </div>
           <p>{t("emulator_section_description")}</p>
         </div>
