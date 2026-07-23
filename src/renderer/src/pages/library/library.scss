@@ -2,8 +2,7 @@
 
 .library {
   &__content {
-    padding: calc(globals.$spacing-unit * 2) 0 calc(globals.$spacing-unit * 2)
-      calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2) 0 0 calc(globals.$spacing-unit * 2);
     height: 100%;
     width: 100%;
     overflow: hidden;
@@ -69,16 +68,20 @@
     grid-template-rows: 1fr;
     width: 100%;
     padding-right: calc(globals.$spacing-unit * 2);
+    visibility: visible;
     transition:
       grid-template-rows 0.25s ease,
       opacity 0.2s ease,
-      margin-bottom 0.25s ease;
+      margin-bottom 0.25s ease,
+      visibility 0s;
 
     &--hidden {
       grid-template-rows: 0fr;
       opacity: 0;
       margin-bottom: calc(globals.$spacing-unit * -3);
       pointer-events: none;
+      visibility: hidden;
+      transition-delay: 0s, 0s, 0s, 0.25s;
     }
   }
 

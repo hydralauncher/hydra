@@ -80,17 +80,37 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     }));
   }, [game.installerSizeInBytes, game.installedSizeInBytes]);
 
-  const heroSources = useMemo(
-    () =>
+  const isClassics = game.shop === "launchbox";
+
+  const heroCandidates = useMemo(() => {
+    const isSelectedHero = Boolean(game.selectedArtworkTypes?.includes("hero"));
+    const isSelectedGrid = Boolean(game.selectedArtworkTypes?.includes("grid"));
+
+    const candidates: { url: string | null | undefined; isChosen: boolean }[] =
       [
-        game.customHeroImageUrl,
-        game.libraryHeroImageUrl,
-        game.customCoverImageUrl,
-        game.libraryImageUrl,
-        game.iconUrl,
-      ].filter((url) => !!url && url.trim() !== ""),
-    [game]
-  );
+        { url: game.customHeroImageUrl, isChosen: true },
+        { url: game.libraryHeroImageUrl, isChosen: isSelectedHero },
+      ];
+
+    if (!isClassics) {
+      candidates.push(
+        { url: game.customCoverImageUrl, isChosen: true },
+        { url: game.coverImageUrl, isChosen: isSelectedGrid }
+      );
+    }
+
+    candidates.push(
+      { url: game.libraryImageUrl, isChosen: false },
+      { url: game.iconUrl, isChosen: false }
+    );
+
+    return candidates.filter(
+      (candidate): candidate is { url: string; isChosen: boolean } =>
+        Boolean(candidate.url && candidate.url.trim() !== "")
+    );
+  }, [game, isClassics]);
+
+  const heroSources = heroCandidates.map((candidate) => candidate.url);
 
   const [heroIndex, setHeroIndex] = useState(0);
 
@@ -105,6 +125,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     game.customHeroImageUrl,
     game.libraryHeroImageUrl,
     game.customCoverImageUrl,
+    game.coverImageUrl,
     game.libraryImageUrl,
     game.iconUrl,
   ]);
@@ -153,6 +174,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         setHeroIndex((prev) => prev + 1);
       }
     };
+
+    return () => {
+      img.onerror = null;
+    };
   }, [heroIndex, heroSources]);
 
   const backgroundStyle = useMemo(() => {
@@ -160,18 +185,15 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     return url ? { backgroundImage: `url("${normalizePathForCss(url)}")` } : {};
   }, [heroIndex, heroSources]);
 
-  const isClassics = game.shop === "launchbox";
-  const hasChosenAsset =
-    Boolean(game.customHeroImageUrl) ||
-    Boolean(game.customCoverImageUrl) ||
-    Boolean(game.selectedArtworkTypes?.includes("hero")) ||
-    Boolean(game.selectedArtworkTypes?.includes("grid"));
-  const renderClassicsBlurred = isClassics && !hasChosenAsset;
+  const activeHeroCandidate = heroCandidates[heroIndex];
+  const isActiveHeroChosen = activeHeroCandidate?.isChosen ?? false;
+  const renderClassicsBlurred = isClassics && !isActiveHeroChosen;
+
   const classicsForegroundUrl = useMemo(() => {
-    if (!renderClassicsBlurred) return null;
-    const url = heroSources[heroIndex];
-    return url ? normalizePathForCss(url) : null;
-  }, [renderClassicsBlurred, heroIndex, heroSources]);
+    if (!renderClassicsBlurred || !activeHeroCandidate) return null;
+
+    return normalizePathForCss(activeHeroCandidate.url);
+  }, [renderClassicsBlurred, activeHeroCandidate]);
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 

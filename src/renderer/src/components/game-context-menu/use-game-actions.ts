@@ -314,7 +314,6 @@ export function useGameActions(game: GameContextMenuGame) {
     } catch (error) {
       showErrorToast(t("failed_update_pinned"));
       logger.error("Failed to toggle pin", error);
-      throw error;
     }
   };
 
