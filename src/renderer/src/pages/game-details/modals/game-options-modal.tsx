@@ -11,6 +11,7 @@ import { Modal } from "@renderer/components";
 import {
   formatBytes,
   GAMEMODE_SITE_URL,
+  getCloudSaveAccessAction,
   getGameExecutableFilters,
   MANGOHUD_SITE_URL,
 } from "@shared";
@@ -140,6 +141,10 @@ export function GameOptionsModal({
   } = useDownload();
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
+  const cloudSaveAccessAction = getCloudSaveAccessAction(
+    Boolean(userDetails),
+    hasActiveSubscription
+  );
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -747,7 +752,7 @@ export function GameOptionsModal({
         label: t("settings_category_assets"),
         icon: <ImageIcon size={16} />,
       },
-      ...(game.shop === "steam"
+      ...(game.shop === "steam" && cloudSaveAccessAction !== "sign-in"
         ? [
             {
               id: "hydra_cloud" as const,
@@ -756,11 +761,15 @@ export function GameOptionsModal({
             },
           ]
         : []),
-      {
-        id: "hydra_cloud_legacy" as const,
-        label: t("settings_category_hydra_cloud_legacy"),
-        icon: <HistoryIcon size={16} />,
-      },
+      ...(cloudSaveAccessAction !== "sign-in"
+        ? [
+            {
+              id: "hydra_cloud_legacy" as const,
+              label: t("settings_category_hydra_cloud_legacy"),
+              icon: <HistoryIcon size={16} />,
+            },
+          ]
+        : []),
       ...(shouldShowWinePrefixConfiguration
         ? [
             {
@@ -781,7 +790,13 @@ export function GameOptionsModal({
         icon: <AlertIcon size={16} />,
       },
     ],
-    [game.shop, isLaunchbox, shouldShowWinePrefixConfiguration, t]
+    [
+      cloudSaveAccessAction,
+      game.shop,
+      isLaunchbox,
+      shouldShowWinePrefixConfiguration,
+      t,
+    ]
   );
 
   useEffect(() => {
@@ -790,24 +805,28 @@ export function GameOptionsModal({
     const category = initialCategory ?? "general";
     if (
       (category === "hydra_cloud" || category === "hydra_cloud_legacy") &&
-      !hasActiveSubscription
+      cloudSaveAccessAction !== "open"
     ) {
       setSelectedCategory("general");
-      showHydraCloudModal("backup");
+      if (cloudSaveAccessAction === "paywall") {
+        showHydraCloudModal("backup");
+      }
       return;
     }
 
     setSelectedCategory(category);
-  }, [hasActiveSubscription, initialCategory, showHydraCloudModal, visible]);
+  }, [cloudSaveAccessAction, initialCategory, showHydraCloudModal, visible]);
 
-  // Non-subscribers don't open the cloud-save panel; clicking the menu item
-  // presents the Hydra Cloud promo (highlighting cloud saving) instead.
+  // Signed-out users do not see cloud-save categories. Signed-in
+  // non-subscribers see the categories, but clicking opens the paywall.
   const handleSelectCategory = (category: typeof selectedCategory) => {
     if (
       (category === "hydra_cloud" || category === "hydra_cloud_legacy") &&
-      !hasActiveSubscription
+      cloudSaveAccessAction !== "open"
     ) {
-      showHydraCloudModal("backup");
+      if (cloudSaveAccessAction === "paywall") {
+        showHydraCloudModal("backup");
+      }
       return;
     }
     setSelectedCategory(category);

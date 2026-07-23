@@ -2,10 +2,11 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
-import { AuthPage } from "@shared";
+import { AuthPage, getCloudSaveAccessAction } from "@shared";
 import { ConfirmationModal } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
@@ -61,6 +62,7 @@ export function CloudSaveV2Provider({
   const { t } = useTranslation("game_details");
   const [searchParams, setSearchParams] = useSearchParams();
   const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { showHydraCloudModal } = useSubscription();
   const { showErrorToast, showWarningToast } = useToast();
   const {
     game,
@@ -68,7 +70,11 @@ export function CloudSaveV2Provider({
     setShowGameOptionsModal,
     setGameOptionsInitialCategory,
   } = useContext(gameDetailsContext);
-  const canUseCloudSaves = Boolean(userDetails);
+  const cloudSaveAccessAction = getCloudSaveAccessAction(
+    Boolean(userDetails),
+    hasActiveSubscription
+  );
+  const canUseCloudSaves = cloudSaveAccessAction === "open";
   const hasExecutablePath = Boolean(game?.executablePath);
   const canCheckCloudSaves =
     shop === "steam" && canUseCloudSaves && hasExecutablePath;
@@ -132,14 +138,29 @@ export function CloudSaveV2Provider({
       return;
     }
 
-    setIsFileBrowserVisible(false);
-    setWasOpenedFromLaunchConflict(true);
-    setIsModalVisible(true);
-
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.delete("openCloudSaveConflict");
     setSearchParams(nextSearchParams, { replace: true });
-  }, [searchParams, setSearchParams, shop]);
+
+    if (cloudSaveAccessAction === "sign-in") {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+    if (cloudSaveAccessAction === "paywall") {
+      showHydraCloudModal("backup");
+      return;
+    }
+
+    setIsFileBrowserVisible(false);
+    setWasOpenedFromLaunchConflict(true);
+    setIsModalVisible(true);
+  }, [
+    cloudSaveAccessAction,
+    searchParams,
+    setSearchParams,
+    shop,
+    showHydraCloudModal,
+  ]);
 
   useEffect(() => {
     return window.electron.onCloudSaveAutomaticSync((event) => {
@@ -197,8 +218,12 @@ export function CloudSaveV2Provider({
   ]);
 
   const openManager = () => {
-    if (!userDetails) {
+    if (cloudSaveAccessAction === "sign-in") {
       window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+    if (cloudSaveAccessAction === "paywall") {
+      showHydraCloudModal("backup");
       return;
     }
     setWasOpenedFromLaunchConflict(false);
@@ -217,13 +242,12 @@ export function CloudSaveV2Provider({
     resolution?: CloudSaveConflictResolution
   ) => {
     if (isGameRunning || !hasExecutablePath || shop !== "steam") return;
-    const requiresWrite =
-      resolution === "keep-local" ||
-      (!resolution &&
-        (overview?.state === "local-ahead" || overview?.state === "untracked"));
-    if (requiresWrite && !hasActiveSubscription) {
-      setGameOptionsInitialCategory("hydra_cloud");
-      setShowGameOptionsModal(true);
+    if (cloudSaveAccessAction !== "open") {
+      if (cloudSaveAccessAction === "sign-in") {
+        window.electron.openAuthWindow(AuthPage.SignIn);
+      } else {
+        showHydraCloudModal("backup");
+      }
       return;
     }
 
@@ -270,10 +294,13 @@ export function CloudSaveV2Provider({
   };
 
   const setAutomaticSyncEnabled = async (enabled: boolean) => {
-    if (enabled && !hasActiveSubscription) {
-      setGameOptionsInitialCategory("hydra_cloud");
-      setShowGameOptionsModal(true);
-      throw new Error("Cloud Save writes require an active subscription");
+    if (cloudSaveAccessAction !== "open") {
+      if (cloudSaveAccessAction === "sign-in") {
+        window.electron.openAuthWindow(AuthPage.SignIn);
+      } else {
+        showHydraCloudModal("backup");
+      }
+      throw new Error("Cloud Saves require an active subscription");
     }
     await window.electron.setCloudSaveAutomaticSyncEnabled(
       objectId,
@@ -300,7 +327,15 @@ export function CloudSaveV2Provider({
     hasExecutablePath,
     canUseCloudSaves,
     openManager,
-    openFileBrowser: () => setIsFileBrowserVisible(true),
+    openFileBrowser: () => {
+      if (cloudSaveAccessAction === "open") {
+        setIsFileBrowserVisible(true);
+      } else if (cloudSaveAccessAction === "sign-in") {
+        window.electron.openAuthWindow(AuthPage.SignIn);
+      } else {
+        showHydraCloudModal("backup");
+      }
+    },
     runCloudSaveOperation,
     setAutomaticSyncEnabled,
     requestConflictResolution: setPendingResolution,

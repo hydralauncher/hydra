@@ -64,9 +64,11 @@ export const downloadRemoteSnapshotToTemp = async (
 ): Promise<DownloadedRestoreFile[]> => {
   if (requestedFiles?.length === 0) return [];
   const files = validateDownloadUrls(
-    await HydraApi.get<unknown>("/profile/cloud-saves/snapshot-download-urls", {
-      snapshotId,
-    })
+    await HydraApi.get<unknown>(
+      "/profile/cloud-saves/snapshot-download-urls",
+      { snapshotId },
+      { needsAuth: true, needsSubscription: true }
+    )
   );
   const requestedById = requestedFiles
     ? new Map(

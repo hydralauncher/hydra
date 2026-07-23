@@ -1,6 +1,8 @@
 import { cloudSaveAutomaticSyncSettingsSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 
+import { assertCloudSaveSubscription } from "./cloud-save-access";
+
 const getAutomaticSyncKey = (shop: GameShop, objectId: string) =>
   levelKeys.game(shop, objectId);
 
@@ -17,6 +19,10 @@ export const setCloudSaveAutomaticSyncEnabled = async (
   shop: GameShop,
   enabled: boolean
 ) => {
+  if (enabled) {
+    assertCloudSaveSubscription();
+  }
+
   const key = getAutomaticSyncKey(shop, objectId);
 
   if (enabled) {

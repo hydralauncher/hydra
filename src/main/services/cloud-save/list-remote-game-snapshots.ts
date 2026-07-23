@@ -16,8 +16,15 @@ export const listRemoteGameSnapshots = async (
   shop: GameShop
 ) =>
   validateRemoteSnapshots(
-    await HydraApi.get<unknown>("/profile/cloud-saves/snapshots", {
-      shop,
-      objectId,
-    })
+    await HydraApi.get<unknown>(
+      "/profile/cloud-saves/snapshots",
+      {
+        shop,
+        objectId,
+      },
+      {
+        needsAuth: true,
+        needsSubscription: true,
+      }
+    )
   );

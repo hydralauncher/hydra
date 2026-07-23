@@ -29,7 +29,8 @@ export const getRemoteSnapshotRestoreManifest = async (
   const manifest = validateRestoreManifest(
     await HydraApi.get<unknown>(
       "/profile/cloud-saves/snapshot-restore-manifest",
-      { snapshotId: snapshot.id }
+      { snapshotId: snapshot.id },
+      { needsAuth: true, needsSubscription: true }
     )
   );
   const totalSizeBytes = manifest.files.reduce(
