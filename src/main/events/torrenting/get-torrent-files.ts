@@ -64,7 +64,14 @@ const getTorrentFiles = async (
       data: response.data,
     };
   } catch (error) {
-    logger.error("Failed to get global trackers for torrent files", error);
+    const isRpcError =
+      typeof error === "object" &&
+      error !== null &&
+      "response" in error;
+
+    if (!isRpcError) {
+      logger.error("Failed to get global trackers for torrent files", error);
+    }
 
     return {
       ok: false,

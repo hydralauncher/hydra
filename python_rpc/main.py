@@ -137,11 +137,11 @@ def validate_trackers(trackers):
         return None
 
     if not isinstance(trackers, list):
-        raise ValueError("invalid_trackers")
+        raise RpcError("invalid_trackers")
 
     for tracker in trackers:
         if not isinstance(tracker, str):
-            raise ValueError("invalid_trackers")
+            raise RpcError("invalid_trackers")
 
     return trackers
 

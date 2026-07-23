@@ -102,7 +102,12 @@ export const loadState = async () => {
           { valueEncoding: "json" }
         ).catch(() => {});
       })
-      .catch(() => {});
+      .catch((err) => {
+        logger.error(
+          "Failed to refresh global tracker URL cache on startup",
+          err
+        );
+      });
   }
 
   Ludusavi.copyConfigFileToUserData();
