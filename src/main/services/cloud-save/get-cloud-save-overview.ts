@@ -2,6 +2,7 @@ import type { CloudSaveOverview, GameShop } from "@types";
 
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
+import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getFirstSyncState } from "./sync-game";
 
@@ -9,6 +10,8 @@ export const getCloudSaveOverview = async (
   objectId: string,
   shop: GameShop
 ): Promise<CloudSaveOverview> => {
+  assertCloudSaveSubscription();
+
   const [analysis, isAutomaticSyncEnabled] = await Promise.all([
     analyzeCloudSaveState(objectId, shop),
     getCloudSaveAutomaticSyncEnabled(objectId, shop),

@@ -10,6 +10,7 @@ import type {
 
 import { NativeAddon } from "../native-addon";
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
+import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
@@ -328,6 +329,8 @@ export const syncGameCloudSave = async (
   suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>,
   expectedRemoteHash?: string | null
 ) => {
+  assertCloudSaveSubscription();
+
   const context =
     suppliedContext ?? (await getCloudSaveGameContext(objectId, shop));
   const operationKey = JSON.stringify([
@@ -359,6 +362,8 @@ export const resolveCloudSaveConflict = async (
   resolution: CloudSaveConflictResolution,
   onProgress?: ProgressCallback
 ) => {
+  assertCloudSaveSubscription();
+
   const context = await getCloudSaveGameContext(objectId, shop);
   return runCloudSaveOperation(
     objectId,

@@ -1,6 +1,7 @@
 export * from "./automatic-sync";
 export * from "./automatic-sync-settings";
 export * from "./build-local-game-snapshot";
+export * from "./cloud-save-access";
 export * from "./cloud-save-environment";
 export * from "./cloud-save-game-context";
 export * from "./create-remote-snapshot-from-local-state";
