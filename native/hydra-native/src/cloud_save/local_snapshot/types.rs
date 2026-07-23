@@ -1,18 +1,17 @@
 use napi_derive::napi;
 
 use crate::cloud_save::hashing::LocalFileHashCacheEntry;
-use crate::cloud_save::identity::{LocalResolutionBindings, PortableLocator, UserLocationCoverage};
+use crate::cloud_save::identity::{LocalResolutionBindings, SnapshotVariant, UserLocationCoverage};
 use crate::cloud_save::manifest::types::CloudSaveGameId;
 
 #[napi(object)]
 #[derive(Clone, Debug)]
 pub struct DiscoveredLocalSaveFile {
-    pub logical_file_id: String,
     pub variant_id: String,
     pub rule_id: String,
+    pub raw_path: String,
     pub absolute_path: String,
     pub relative_path: String,
-    pub locator: PortableLocator,
     pub local_bindings: LocalResolutionBindings,
     pub confidence: String,
     pub provenance: Vec<String>,
@@ -22,11 +21,10 @@ pub struct DiscoveredLocalSaveFile {
 pub struct BuildLocalGameSnapshotInput {
     pub game_id: CloudSaveGameId,
     pub manifest_key: Option<String>,
-    pub schema_version: u32,
-    pub save_namespace_key: String,
     pub rule_source_revision: String,
     pub discovery_engine_version: u32,
     pub coverage: Vec<UserLocationCoverage>,
+    pub variants: Vec<SnapshotVariant>,
     pub files: Vec<DiscoveredLocalSaveFile>,
     pub hash_cache: Vec<LocalFileHashCacheEntry>,
 }
@@ -34,24 +32,23 @@ pub struct BuildLocalGameSnapshotInput {
 #[napi(object)]
 #[derive(Clone, Debug)]
 pub struct LocalGameSnapshotFile {
-    pub logical_file_id: String,
     pub variant_id: String,
-    pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
-    pub locator: PortableLocator,
-    pub content_hash: String,
+    pub hash: String,
     pub size_bytes: f64,
+    pub last_modified_at: String,
 }
 
 #[napi(object)]
 #[derive(Clone, Debug)]
 pub struct LocalGameSnapshotSourceFile {
-    pub logical_file_id: String,
     pub variant_id: String,
     pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
     pub absolute_path: String,
-    pub content_hash: String,
+    pub hash: String,
     pub size_bytes: f64,
     pub last_modified_at: String,
     pub local_bindings: LocalResolutionBindings,
@@ -63,11 +60,10 @@ pub struct LocalGameSnapshotSourceFile {
 pub struct LocalGameSnapshotWithHash {
     pub game_id: CloudSaveGameId,
     pub manifest_key: Option<String>,
-    pub schema_version: u32,
-    pub save_namespace_key: String,
     pub rule_source_revision: String,
     pub discovery_engine_version: u32,
     pub coverage: Vec<UserLocationCoverage>,
+    pub variants: Vec<SnapshotVariant>,
     pub file_count: u32,
     pub total_size_bytes: f64,
     pub files: Vec<LocalGameSnapshotFile>,
@@ -78,13 +74,12 @@ pub struct LocalGameSnapshotWithHash {
 
 #[derive(Clone, Debug)]
 pub(crate) struct BuiltLocalSaveFile {
-    pub logical_file_id: String,
     pub variant_id: String,
     pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
     pub absolute_path: String,
-    pub locator: PortableLocator,
-    pub content_hash: String,
+    pub hash: String,
     pub size_bytes: f64,
     pub last_modified_at: String,
     pub local_bindings: LocalResolutionBindings,

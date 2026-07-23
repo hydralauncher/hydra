@@ -69,10 +69,11 @@ export const runFirstSync = async (
       analysis.localSnapshotContext,
       emitProgress,
       {
-        expectedHeadRevision: analysis.remoteHead.revision,
-        expectedHeadHash: analysis.remoteHead.snapshotHash,
+        baseVersion: analysis.activeRemoteSnapshot?.version ?? 0,
+        expectedSnapshotId: analysis.activeRemoteSnapshot?.id ?? null,
+        variants: analysis.merge.variants,
         files: analysis.merge.files,
-        aggregateHash: analysis.mergedAggregateHash,
+        aggregateHash: analysis.mergedAggregateHash ?? undefined,
         unresolvedRemoteEntryIds: analysis.merge.unresolvedRemoteEntryIds,
       }
     );

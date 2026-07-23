@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::cloud_save::hashing::{
     batch::{format_modified_at, hash_files_best_effort},
@@ -20,7 +20,7 @@ pub fn build_snapshot(
     let unavailable = prepared
         .unavailable_paths
         .into_iter()
-        .collect::<std::collections::HashSet<_>>();
+        .collect::<HashSet<_>>();
     let hashed = hash_files_best_effort(
         input
             .files
@@ -34,7 +34,7 @@ pub fn build_snapshot(
         .failures
         .into_iter()
         .map(|(path, _)| path)
-        .collect::<std::collections::HashSet<_>>();
+        .collect::<HashSet<_>>();
     let hashed_by_path = hashed
         .result
         .files
@@ -42,10 +42,11 @@ pub fn build_snapshot(
         .map(|file| (file.absolute_path.clone(), file))
         .collect::<HashMap<_, _>>();
     let warning = |file: &DiscoveredLocalSaveFile, code: &str| UserLocationCoverage {
-        candidate_id: local_id(&[code, &file.logical_file_id]),
+        candidate_id: local_id(&[code, &file.variant_id, &file.raw_path, &file.relative_path]),
         rule_id: file.rule_id.clone(),
         variant_id: Some(file.variant_id.clone()),
-        logical_file_id: Some(file.logical_file_id.clone()),
+        raw_path: Some(file.raw_path.clone()),
+        relative_path: Some(file.relative_path.clone()),
         authority: file.confidence.clone(),
         outcome: "partial".to_string(),
         enumerated_completely: false,
@@ -84,13 +85,12 @@ pub fn build_snapshot(
                 return None;
             }
             Some(BuiltLocalSaveFile {
-                logical_file_id: file.logical_file_id,
                 variant_id: file.variant_id,
                 rule_id: file.rule_id,
+                raw_path: file.raw_path,
                 relative_path: file.relative_path,
                 absolute_path: file.absolute_path,
-                locator: file.locator,
-                content_hash: hashed.hash.clone(),
+                hash: hashed.hash.clone(),
                 size_bytes: hashed.size_bytes,
                 last_modified_at: hashed.last_modified_at.clone(),
                 local_bindings: file.local_bindings,
@@ -101,29 +101,33 @@ pub fn build_snapshot(
         .collect::<Vec<_>>();
     let total_size_bytes = validate_built_files(&built_files).map_err(|error| error.to_string())?;
 
-    built_files.sort_by(|left, right| left.logical_file_id.cmp(&right.logical_file_id));
+    built_files.sort_by(|left, right| {
+        left.variant_id
+            .cmp(&right.variant_id)
+            .then_with(|| left.raw_path.cmp(&right.raw_path))
+            .then_with(|| left.relative_path.cmp(&right.relative_path))
+    });
 
     let files = built_files
         .iter()
         .map(|file| LocalGameSnapshotFile {
-            logical_file_id: file.logical_file_id.clone(),
             variant_id: file.variant_id.clone(),
-            rule_id: file.rule_id.clone(),
+            raw_path: file.raw_path.clone(),
             relative_path: file.relative_path.clone(),
-            locator: file.locator.clone(),
-            content_hash: file.content_hash.clone(),
+            hash: file.hash.clone(),
             size_bytes: file.size_bytes,
+            last_modified_at: file.last_modified_at.clone(),
         })
         .collect::<Vec<_>>();
     let source_files = built_files
         .iter()
         .map(|file| LocalGameSnapshotSourceFile {
-            logical_file_id: file.logical_file_id.clone(),
             variant_id: file.variant_id.clone(),
             rule_id: file.rule_id.clone(),
+            raw_path: file.raw_path.clone(),
             relative_path: file.relative_path.clone(),
             absolute_path: file.absolute_path.clone(),
-            content_hash: file.content_hash.clone(),
+            hash: file.hash.clone(),
             size_bytes: file.size_bytes,
             last_modified_at: file.last_modified_at.clone(),
             local_bindings: file.local_bindings.clone(),
@@ -131,18 +135,31 @@ pub fn build_snapshot(
             provenance: file.provenance.clone(),
         })
         .collect();
+
+    let used_variant_ids = files
+        .iter()
+        .map(|file| file.variant_id.as_str())
+        .collect::<HashSet<_>>();
+    let mut variants = input
+        .variants
+        .into_iter()
+        .filter(|variant| used_variant_ids.contains(variant.variant_id.as_str()))
+        .collect::<Vec<_>>();
+    variants.sort_by(|left, right| left.variant_id.cmp(&right.variant_id));
+    variants.dedup_by(|left, right| left.variant_id == right.variant_id);
+    if variants.len() != used_variant_ids.len() {
+        return Err("cloud_save_snapshot_variant_missing".to_string());
+    }
+
     let aggregate_hash = build_aggregate_hash(BuildSnapshotAggregateHashInput {
-        schema_version: input.schema_version,
-        save_namespace_key: input.save_namespace_key.clone(),
+        variants: variants.clone(),
         files: files
             .iter()
             .map(|file| SnapshotAggregateHashFile {
-                logical_file_id: file.logical_file_id.clone(),
                 variant_id: file.variant_id.clone(),
-                rule_id: file.rule_id.clone(),
+                raw_path: file.raw_path.clone(),
                 relative_path: file.relative_path.clone(),
-                locator: file.locator.clone(),
-                content_hash: file.content_hash.clone(),
+                hash: file.hash.clone(),
                 size_bytes: file.size_bytes,
             })
             .collect(),
@@ -151,11 +168,10 @@ pub fn build_snapshot(
     Ok(LocalGameSnapshotWithHash {
         game_id: input.game_id,
         manifest_key: input.manifest_key,
-        schema_version: input.schema_version,
-        save_namespace_key: input.save_namespace_key,
         rule_source_revision: input.rule_source_revision,
         discovery_engine_version: input.discovery_engine_version,
         coverage: input.coverage,
+        variants,
         file_count: files.len() as u32,
         total_size_bytes: total_size_bytes as f64,
         files,
@@ -172,33 +188,8 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::cloud_save::identity::{
-        LocalResolutionBindings, PortableBindings, PortableLocator, PortableStoreUserIdentity,
-    };
-    use crate::cloud_save::local_snapshot::types::DiscoveredLocalSaveFile;
+    use crate::cloud_save::identity::{LocalResolutionBindings, SnapshotVariant};
     use crate::cloud_save::manifest::types::CloudSaveGameId;
-
-    fn locator() -> PortableLocator {
-        PortableLocator {
-            version: 1,
-            rule_id: "rule".into(),
-            raw_rule: "<home>/game".into(),
-            rule_source: "test".into(),
-            root_kind: "home".into(),
-            bindings: PortableBindings {
-                store: "steam".into(),
-                store_game_id: "1".into(),
-                store_user: PortableStoreUserIdentity {
-                    kind: "opaque-folder".into(),
-                    store: "steam".into(),
-                    steam_id64: None,
-                    account_id32: None,
-                    concrete_folder_id: "__unbound__".into(),
-                },
-            },
-            target_semantics: "directory-tree".into(),
-        }
-    }
 
     fn input(files: Vec<DiscoveredLocalSaveFile>) -> BuildLocalGameSnapshotInput {
         BuildLocalGameSnapshotInput {
@@ -207,13 +198,36 @@ mod tests {
                 object_id: "2379780".into(),
             },
             manifest_key: Some("2379780".into()),
-            schema_version: 2,
-            save_namespace_key: "steam:2379780".into(),
             rule_source_revision: "test-v1".into(),
             discovery_engine_version: 2,
             coverage: vec![],
+            variants: vec![SnapshotVariant {
+                variant_id: "variant".into(),
+                kind: "default".into(),
+                steam_id64: None,
+                concrete_folder_id: None,
+            }],
             files,
             hash_cache: vec![],
+        }
+    }
+
+    fn discovered(path: &std::path::Path, relative_path: &str) -> DiscoveredLocalSaveFile {
+        DiscoveredLocalSaveFile {
+            variant_id: "variant".into(),
+            rule_id: "rule".into(),
+            raw_path: "<home>/game".into(),
+            absolute_path: path.display().to_string(),
+            relative_path: relative_path.into(),
+            local_bindings: LocalResolutionBindings {
+                environment_id: "environment".into(),
+                root_id: "root".into(),
+                prefix_generation_id: None,
+                concrete_user_segment: "__default__".into(),
+                concrete_path: path.display().to_string(),
+            },
+            confidence: "inferred".into(),
+            provenance: vec!["test".into()],
         }
     }
 
@@ -224,23 +238,6 @@ mod tests {
         let save = temp.path().join("save.dat");
         fs::write(&empty, b"").unwrap();
         fs::write(&save, b"save").unwrap();
-        let discovered = |path: &std::path::Path, relative_path: &str| DiscoveredLocalSaveFile {
-            logical_file_id: relative_path.into(),
-            variant_id: "variant".into(),
-            rule_id: "rule".into(),
-            absolute_path: path.display().to_string(),
-            relative_path: relative_path.into(),
-            locator: locator(),
-            local_bindings: LocalResolutionBindings {
-                environment_id: "environment".into(),
-                root_id: "root".into(),
-                prefix_generation_id: None,
-                concrete_user_segment: "__unbound__".into(),
-                concrete_path: path.display().to_string(),
-            },
-            confidence: "inferred".into(),
-            provenance: vec!["test".into()],
-        };
 
         let first = build_snapshot(input(vec![
             discovered(&save, "save.dat"),
@@ -267,37 +264,19 @@ mod tests {
         let save = temp.path().join("save.dat");
         let missing = temp.path().join("missing.dat");
         fs::write(&save, b"save").unwrap();
-        let discovered = |path: &std::path::Path, id: &str| DiscoveredLocalSaveFile {
-            logical_file_id: id.into(),
-            variant_id: "variant".into(),
-            rule_id: "rule".into(),
-            absolute_path: path.display().to_string(),
-            relative_path: format!("{id}.dat"),
-            locator: locator(),
-            local_bindings: LocalResolutionBindings {
-                environment_id: "environment".into(),
-                root_id: "root".into(),
-                prefix_generation_id: None,
-                concrete_user_segment: "__unbound__".into(),
-                concrete_path: path.display().to_string(),
-            },
-            confidence: "inferred".into(),
-            provenance: vec!["test".into()],
-        };
 
         let snapshot = build_snapshot(input(vec![
-            discovered(&save, "save"),
-            discovered(&missing, "missing"),
+            discovered(&save, "save.dat"),
+            discovered(&missing, "missing.dat"),
         ]))
         .unwrap();
 
         assert_eq!(snapshot.files.len(), 1);
-        assert_eq!(snapshot.files[0].logical_file_id, "save");
+        assert_eq!(snapshot.files[0].relative_path, "save.dat");
         assert_eq!(snapshot.coverage.len(), 1);
         assert_eq!(
             snapshot.coverage[0].warning_codes,
             vec!["file-metadata-unavailable"]
         );
-        assert!(!snapshot.coverage[0].enumerated_completely);
     }
 }

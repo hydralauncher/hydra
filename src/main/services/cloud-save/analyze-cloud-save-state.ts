@@ -2,24 +2,33 @@ import type { CloudSaveState, GameShop } from "@types";
 
 import { NativeAddon } from "../native-addon";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
-import { getCloudSaveHead } from "./get-cloud-save-head";
+import type { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
+import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
 import { getCloudSaveSyncAnchor } from "./sync-anchor";
-import type { getCloudSaveGameContext } from "./cloud-save-game-context";
 
 export const analyzeCloudSaveState = async (
   objectId: string,
   shop: GameShop,
   suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>
 ) => {
-  const [localSnapshotContext, remoteHead, remoteSnapshots] = await Promise.all(
-    [
-      buildLocalGameSnapshotContext(objectId, shop, suppliedContext),
-      getCloudSaveHead(objectId, shop),
-      listRemoteGameSnapshots(objectId, shop),
-    ]
-  );
+  const [localSnapshotContext, remoteSnapshots] = await Promise.all([
+    buildLocalGameSnapshotContext(objectId, shop, suppliedContext),
+    listRemoteGameSnapshots(objectId, shop),
+  ]);
+  const activeRemoteSnapshot = remoteSnapshots[0] ?? null;
+  const remoteManifest = activeRemoteSnapshot
+    ? await getRemoteSnapshotRestoreManifest(activeRemoteSnapshot)
+    : null;
+  if (
+    remoteManifest &&
+    (remoteManifest.snapshot.shop !== shop ||
+      remoteManifest.snapshot.objectId !== objectId)
+  ) {
+    throw new Error("Active Cloud Save snapshot belongs to another game");
+  }
+
   const {
     sourceFiles: _,
     environmentId,
@@ -35,30 +44,24 @@ export const analyzeCloudSaveState = async (
   );
   const merge = mergeUserVariantSnapshots({
     local: localSnapshotContext,
-    remoteFiles: remoteHead.files,
+    remoteVariants: remoteManifest?.variants ?? [],
+    remoteFiles: remoteManifest?.files ?? [],
     base: anchor,
   });
-  const mergedAggregateHash = NativeAddon.buildSnapshotAggregateHash({
-    schemaVersion: localSnapshot.schemaVersion,
-    saveNamespaceKey: localSnapshot.saveNamespaceKey,
-    files: merge.files,
-  });
-  const activeRemoteSnapshot = remoteHead.snapshotId
-    ? (remoteSnapshots.find(
-        (snapshot) =>
-          snapshot.id === remoteHead.snapshotId && snapshot.status === "active"
-      ) ?? null)
-    : null;
-  if (remoteHead.snapshotId && !activeRemoteSnapshot) {
-    throw new Error("Cloud Save head snapshot is missing from snapshot list");
-  }
+  const mergedAggregateHash =
+    merge.files.length > 0
+      ? NativeAddon.buildSnapshotAggregateHash({
+          variants: merge.variants,
+          files: merge.files,
+        })
+      : null;
 
   let currentState: CloudSaveState;
-  if (!remoteHead.snapshotId) {
+  if (!activeRemoteSnapshot) {
     currentState = "untracked";
   } else if (merge.conflicts.length > 0) {
     currentState = "conflict";
-  } else if (mergedAggregateHash !== remoteHead.snapshotHash) {
+  } else if (mergedAggregateHash !== activeRemoteSnapshot.aggregateHash) {
     currentState = "local-ahead";
   } else if (merge.restoreEntryIds.length > 0) {
     currentState = "remote-ahead";
@@ -67,21 +70,20 @@ export const analyzeCloudSaveState = async (
   } else {
     currentState = "synced";
   }
-  const state = {
-    state: currentState,
-    hasChanged: currentState !== "synced",
-    activeRemoteSnapshot,
-  };
 
   return {
     localSnapshot,
     localSnapshotContext,
     environmentId,
     anchor,
-    remoteHead,
-    remoteSnapshots,
+    activeRemoteSnapshot,
+    remoteManifest,
     merge,
     mergedAggregateHash,
-    state,
+    state: {
+      state: currentState,
+      hasChanged: currentState !== "synced",
+      activeRemoteSnapshot,
+    },
   };
 };

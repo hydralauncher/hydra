@@ -45,7 +45,11 @@ describe("Wine prefix resolution", () => {
     const alias = path.join(home, "hydralauncher");
     await fs.promises.mkdir(home, { recursive: true });
     await fs.promises.mkdir(storage, { recursive: true });
-    await fs.promises.symlink(storage, alias);
+    await fs.promises.symlink(
+      storage,
+      alias,
+      process.platform === "win32" ? "junction" : "dir"
+    );
 
     const resolved = await resolveWinePrefixPath(
       "~/hydralauncher/wine-prefixes/953490",

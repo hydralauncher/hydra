@@ -7,17 +7,14 @@ import type {
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
-import { validateUserVariantSnapshotFile } from "./cloud-save-contract";
+import { cloudSaveFileKey, validateSnapshotFile } from "./cloud-save-contract";
 import {
   mapWithConcurrency,
   MAX_CONCURRENT_RESTORE_OPERATIONS,
 } from "./map-with-concurrency";
 
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === "string" && value.length > 0;
-
 const isDownloadUrl = (value: unknown): value is string => {
-  if (!isNonEmptyString(value)) return false;
+  if (typeof value !== "string" || !value) return false;
   try {
     const url = new URL(value);
     return url.protocol === "http:" || url.protocol === "https:";
@@ -26,36 +23,42 @@ const isDownloadUrl = (value: unknown): value is string => {
   }
 };
 
-const fileKey = (logicalFileId: string) => logicalFileId;
-
 const validateDownloadUrls = (value: unknown): RestoreDownloadUrlFile[] => {
   if (!Array.isArray(value)) {
     throw new TypeError("Invalid restore download URLs response");
   }
-
   const seenIds = new Set<string>();
-  return value.map((file) => {
-    if (!file || typeof file !== "object") {
+  return value.map((item) => {
+    if (!item || typeof item !== "object") {
       throw new Error("Invalid restore download URL file");
     }
-    const item = file as Record<string, unknown>;
-    const snapshotFile = validateUserVariantSnapshotFile(item);
-    if (!isDownloadUrl(item.downloadUrl)) {
+    const record = item as Record<string, unknown>;
+    if (
+      Object.keys(record).length !== 7 ||
+      !isDownloadUrl(record.downloadUrl)
+    ) {
       throw new Error("Invalid restore download URL file");
     }
-
-    const key = fileKey(snapshotFile.logicalFileId);
+    const snapshotFile = validateSnapshotFile({
+      variantId: record.variantId,
+      rawPath: record.rawPath,
+      relativePath: record.relativePath,
+      hash: record.hash,
+      sizeBytes: record.sizeBytes,
+      lastModifiedAt: record.lastModifiedAt,
+    });
+    const key = cloudSaveFileKey(snapshotFile);
     if (seenIds.has(key)) {
       throw new Error("Duplicate restore download URL file");
     }
     seenIds.add(key);
-
-    return item as unknown as RestoreDownloadUrlFile;
+    return { ...snapshotFile, downloadUrl: record.downloadUrl };
   });
 };
 
 export const downloadRemoteSnapshotToTemp = async (
   snapshotId: string,
+  snapshotVersion: number,
   requestedFiles?: RestoreManifestFile[],
   onProgress?: (processedFiles: number, totalFiles: number) => void
 ): Promise<DownloadedRestoreFile[]> => {
@@ -66,36 +69,38 @@ export const downloadRemoteSnapshotToTemp = async (
     })
   );
   const requestedById = requestedFiles
-    ? new Map(requestedFiles.map((file) => [fileKey(file.logicalFileId), file]))
+    ? new Map(
+        requestedFiles.map((file) => [cloudSaveFileKey(file), file] as const)
+      )
     : null;
   const selectedFiles = requestedById
-    ? files.filter((file) => requestedById.has(fileKey(file.logicalFileId)))
+    ? files.filter((file) => requestedById.has(cloudSaveFileKey(file)))
     : files;
   if (requestedById) {
     if (selectedFiles.length !== requestedById.size) {
       throw new Error("Missing restore download URL file");
     }
     for (const file of selectedFiles) {
-      const requested = requestedById.get(fileKey(file.logicalFileId));
+      const requested = requestedById.get(cloudSaveFileKey(file));
       if (
-        requested?.contentHash !== file.contentHash ||
-        requested?.sizeBytes !== file.sizeBytes
+        requested?.hash !== file.hash ||
+        requested?.sizeBytes !== file.sizeBytes ||
+        requested.lastModifiedAt !== file.lastModifiedAt
       ) {
         throw new Error("Restore download URL file does not match manifest");
       }
     }
   }
+
   const tempRoot = SystemPath.getPath("temp");
-  const filesByHash = new Map<string, RestoreDownloadUrlFile[]>();
+  const tempSnapshotId = `${snapshotId}-${snapshotVersion}`;
+  const filesByBlob = new Map<string, RestoreDownloadUrlFile[]>();
   for (const file of selectedFiles) {
-    const existing = filesByHash.get(file.contentHash);
-    if (existing?.some((item) => item.sizeBytes !== file.sizeBytes)) {
-      throw new Error("Restore blob hash has inconsistent sizes");
-    }
-    filesByHash.set(file.contentHash, [...(existing ?? []), file]);
+    const key = JSON.stringify([file.hash, file.sizeBytes]);
+    filesByBlob.set(key, [...(filesByBlob.get(key) ?? []), file]);
   }
 
-  const groups = Array.from(filesByHash.values());
+  const groups = [...filesByBlob.values()];
   let processedFiles = 0;
   const downloadedGroups = await mapWithConcurrency(
     groups,
@@ -103,28 +108,27 @@ export const downloadRemoteSnapshotToTemp = async (
     async (group) => {
       const [file] = group;
       const tempPath = await NativeAddon.downloadRestoreBlobToTemp(
-        snapshotId,
-        file.contentHash,
+        tempSnapshotId,
+        file.hash,
         file.downloadUrl,
         tempRoot
       );
-      return { hash: file.contentHash, tempPath };
+      return { key: JSON.stringify([file.hash, file.sizeBytes]), tempPath };
     },
     (_result, group) => {
       processedFiles += group.length;
       onProgress?.(processedFiles, selectedFiles.length);
     }
   );
-  const tempPathByHash = new Map(
-    downloadedGroups.map(({ hash, tempPath }) => [hash, tempPath])
+  const tempPathByBlob = new Map(
+    downloadedGroups.map(({ key, tempPath }) => [key, tempPath])
   );
 
   return selectedFiles.map((file) => {
-    const tempPath = tempPathByHash.get(file.contentHash);
+    const tempPath = tempPathByBlob.get(
+      JSON.stringify([file.hash, file.sizeBytes])
+    );
     if (!tempPath) throw new Error("Missing downloaded restore blob");
-    return {
-      ...file,
-      tempPath,
-    };
+    return { ...file, tempPath };
   });
 };

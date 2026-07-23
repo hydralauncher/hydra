@@ -7,15 +7,15 @@ use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
 use super::identity::{
-    build_locator, build_logical_file_id, build_variant_id, local_id, normalize_text,
-    portable_bindings, store_user_identity, LocalResolutionBindings, StoreUserContext,
-    UserLocationCoverage, DISCOVERY_ENGINE_VERSION, SNAPSHOT_SCHEMA_VERSION,
+    build_snapshot_variant, local_id, normalize_text, portable_bindings, store_user_identity,
+    LocalResolutionBindings, SnapshotVariant, StoreUserContext, UserLocationCoverage,
+    DISCOVERY_ENGINE_VERSION,
 };
 use super::local_snapshot::types::DiscoveredLocalSaveFile;
 use super::local_snapshot::{
     build_local_game_snapshot, BuildLocalGameSnapshotInput, LocalGameSnapshotWithHash,
 };
-use super::manifest::types::{CloudSaveGameId, CloudSaveRule};
+use super::manifest::types::CloudSaveGameId;
 use super::manifest::{get_save_rules_for_game, GetSaveRulesForGameInput};
 use super::path_resolution::{resolve_save_rules, ResolveSaveRulesInput};
 use super::save_scanner::{scan_resolved_save_rules, ScannedCloudSaveRule};
@@ -42,10 +42,18 @@ fn collect_discovered_files(
     environment_id: &str,
     store_user_context: &StoreUserContext,
     scanned_rules: Vec<ScannedCloudSaveRule>,
-) -> Result<(Vec<DiscoveredLocalSaveFile>, Vec<UserLocationCoverage>), String> {
+) -> Result<
+    (
+        Vec<SnapshotVariant>,
+        Vec<DiscoveredLocalSaveFile>,
+        Vec<UserLocationCoverage>,
+    ),
+    String,
+> {
     let mut discovered_by_path = BTreeMap::new();
     let mut coverage = Vec::new();
     let mut identity_by_candidate = BTreeMap::<String, (String, String)>::new();
+    let mut variants_by_id = BTreeMap::<String, SnapshotVariant>::new();
 
     for rule in scanned_rules {
         let priority = if rule
@@ -59,15 +67,6 @@ fn collect_discovered_files(
         } else {
             DYNAMIC_PATH_PRIORITY
         };
-        let cloud_rule = CloudSaveRule {
-            rule_id: rule.rule_id.clone(),
-            kind: rule.kind.clone(),
-            raw_path: rule.raw_path.clone(),
-            source: rule.source.clone(),
-            tags: rule.tags.clone(),
-            when: rule.when.clone(),
-        };
-
         for scanned_path in rule.scanned_paths {
             let store_user = store_user_identity(
                 shop,
@@ -78,31 +77,30 @@ fn collect_discovered_files(
             let coverage_authority = coverage_authority(&authority);
             let concrete_user_segment = store_user.concrete_folder_id.clone();
             let bindings = portable_bindings(shop, object_id, store_user);
-            let variant_id =
-                build_variant_id(save_namespace_key, &bindings, scanned_path.case_sensitive);
+            let variant =
+                build_snapshot_variant(save_namespace_key, &bindings, scanned_path.case_sensitive);
+            let variant_id = variant.variant_id.clone();
+            if let Some(existing) = variants_by_id.insert(variant_id.clone(), variant.clone()) {
+                if existing.kind != variant.kind
+                    || existing.steam_id64 != variant.steam_id64
+                    || existing.concrete_folder_id != variant.concrete_folder_id
+                {
+                    return Err("cloud_save_variant_metadata_mismatch".to_string());
+                }
+            }
             identity_by_candidate.insert(
                 scanned_path.candidate_id.clone(),
                 (variant_id.clone(), coverage_authority.clone()),
             );
-            let locator = build_locator(&cloud_rule, bindings);
-
             for file in scanned_path.files {
                 let relative_path = normalize_text(&file.relative_path.replace('\\', "/"));
-                let logical_file_id = build_logical_file_id(
-                    save_namespace_key,
-                    &variant_id,
-                    &rule.rule_id,
-                    &relative_path,
-                    scanned_path.case_sensitive,
-                )?;
                 let provenance = vec![format!("{}:{}", rule.source, rule.rule_id)];
                 let discovered = DiscoveredLocalSaveFile {
-                    logical_file_id,
                     variant_id: variant_id.clone(),
                     rule_id: rule.rule_id.clone(),
+                    raw_path: rule.raw_path.clone(),
                     absolute_path: file.absolute_path.clone(),
                     relative_path,
-                    locator: locator.clone(),
                     local_bindings: LocalResolutionBindings {
                         environment_id: environment_id.to_string(),
                         root_id: local_id(&[environment_id, &scanned_path.resolved_path]),
@@ -122,7 +120,15 @@ fn collect_discovered_files(
                         let (existing_priority, existing) = entry.get_mut();
                         let replace = priority > *existing_priority
                             || (priority == *existing_priority
-                                && discovered.logical_file_id < existing.logical_file_id);
+                                && (
+                                    &discovered.variant_id,
+                                    &discovered.raw_path,
+                                    &discovered.relative_path,
+                                ) < (
+                                    &existing.variant_id,
+                                    &existing.raw_path,
+                                    &existing.relative_path,
+                                ));
                         if replace {
                             let mut replacement = discovered;
                             replacement
@@ -150,20 +156,31 @@ fn collect_discovered_files(
         }
     }
 
-    let mut discovered_by_logical_id = BTreeMap::new();
+    let mut discovered_by_identity = BTreeMap::new();
     let mut ambiguous = HashSet::new();
     for (_, discovered) in discovered_by_path.into_values() {
-        match discovered_by_logical_id.entry(discovered.logical_file_id.clone()) {
+        let identity = (
+            discovered.variant_id.clone(),
+            discovered.raw_path.clone(),
+            discovered.relative_path.clone(),
+        );
+        match discovered_by_identity.entry(identity.clone()) {
             Entry::Vacant(entry) => {
                 entry.insert(discovered);
             }
             Entry::Occupied(entry) if entry.get().absolute_path != discovered.absolute_path => {
-                ambiguous.insert(discovered.logical_file_id.clone());
+                ambiguous.insert(identity);
                 coverage.push(UserLocationCoverage {
-                    candidate_id: local_id(&["ambiguous", &discovered.logical_file_id]),
+                    candidate_id: local_id(&[
+                        "ambiguous",
+                        &discovered.variant_id,
+                        &discovered.raw_path,
+                        &discovered.relative_path,
+                    ]),
                     rule_id: discovered.rule_id.clone(),
                     variant_id: Some(discovered.variant_id.clone()),
-                    logical_file_id: Some(discovered.logical_file_id.clone()),
+                    raw_path: Some(discovered.raw_path.clone()),
+                    relative_path: Some(discovered.relative_path.clone()),
                     authority: discovered.confidence.clone(),
                     outcome: "partial".to_string(),
                     enumerated_completely: false,
@@ -173,8 +190,8 @@ fn collect_discovered_files(
             Entry::Occupied(_) => {}
         }
     }
-    for logical_file_id in ambiguous {
-        discovered_by_logical_id.remove(&logical_file_id);
+    for identity in ambiguous {
+        discovered_by_identity.remove(&identity);
     }
     coverage.sort_by(|left, right| {
         left.rule_id
@@ -183,7 +200,11 @@ fn collect_discovered_files(
             .then_with(|| left.candidate_id.cmp(&right.candidate_id))
     });
 
-    Ok((discovered_by_logical_id.into_values().collect(), coverage))
+    Ok((
+        variants_by_id.into_values().collect(),
+        discovered_by_identity.into_values().collect(),
+        coverage,
+    ))
 }
 
 #[napi]
@@ -222,7 +243,7 @@ pub async fn build_local_game_snapshot_pipeline(
     let namespace_for_collect = save_namespace_key.clone();
     let shop_for_collect = shop.clone();
     let object_for_collect = object_id.clone();
-    let (discovered_files, coverage) = tokio::task::spawn_blocking(move || {
+    let (variants, discovered_files, coverage) = tokio::task::spawn_blocking(move || {
         collect_discovered_files(
             &shop_for_collect,
             &object_for_collect,
@@ -239,11 +260,10 @@ pub async fn build_local_game_snapshot_pipeline(
     build_local_game_snapshot(BuildLocalGameSnapshotInput {
         game_id: CloudSaveGameId { shop, object_id },
         manifest_key,
-        schema_version: SNAPSHOT_SCHEMA_VERSION,
-        save_namespace_key,
         rule_source_revision,
         discovery_engine_version: DISCOVERY_ENGINE_VERSION,
         coverage,
+        variants,
         files: discovered_files,
         hash_cache: input.hash_cache,
     })
@@ -308,7 +328,7 @@ mod tests {
         fs::write(&first, b"same").unwrap();
         fs::write(&second, b"same").unwrap();
 
-        let (files, _) = collect_discovered_files(
+        let (variants, files, _) = collect_discovered_files(
             "steam",
             "814380",
             "steam:814380",
@@ -332,7 +352,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(files.len(), 2);
+        assert_eq!(variants.len(), 2);
         assert_ne!(files[0].variant_id, files[1].variant_id);
-        assert_ne!(files[0].logical_file_id, files[1].logical_file_id);
     }
 }

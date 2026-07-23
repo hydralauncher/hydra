@@ -1,22 +1,19 @@
-use crate::cloud_save::identity::PortableLocator;
+use crate::cloud_save::identity::SnapshotVariant;
 use napi_derive::napi;
 
 #[napi(object)]
 #[derive(Clone, Debug)]
 pub struct SnapshotAggregateHashFile {
-    pub logical_file_id: String,
     pub variant_id: String,
-    pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
-    pub locator: PortableLocator,
-    pub content_hash: String,
+    pub hash: String,
     pub size_bytes: f64,
 }
 
 #[napi(object)]
 pub struct BuildSnapshotAggregateHashInput {
-    pub schema_version: u32,
-    pub save_namespace_key: String,
+    pub variants: Vec<SnapshotVariant>,
     pub files: Vec<SnapshotAggregateHashFile>,
 }
 
@@ -27,6 +24,7 @@ pub struct LocalFileHashCacheEntry {
     pub size_bytes: f64,
     pub last_modified_at: String,
     pub hash: String,
+    pub algorithm: Option<String>,
 }
 
 #[derive(Clone, Debug)]

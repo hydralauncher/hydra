@@ -4,20 +4,15 @@ import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
 import type {
   CloudSavePathContext,
-  GameShop,
+  RemoteGameSnapshot,
+  RemoteSnapshotSummary,
   RestoreManifestResponse,
   ResolveRestoreTargetsResult,
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
-import { validateUniqueLogicalFiles } from "./cloud-save-contract";
+import { validateRestoreManifest } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
-
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === "string" && value.length > 0;
-
-const isGameShop = (value: unknown): value is GameShop =>
-  value === "steam" || value === "custom" || value === "launchbox";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
   if (!winePrefixPath) return false;
@@ -28,73 +23,30 @@ const isWinePrefixValid = (winePrefixPath?: string) => {
   }
 };
 
-const validateManifest = (value: unknown): RestoreManifestResponse => {
-  if (!value || typeof value !== "object") {
-    throw new Error("Invalid restore manifest response");
-  }
-
-  const response = value as Record<string, unknown>;
-  const snapshot = response.snapshot as Record<string, unknown> | undefined;
-  if (
-    !snapshot ||
-    !isNonEmptyString(snapshot.id) ||
-    !isGameShop(snapshot.shop) ||
-    !isNonEmptyString(snapshot.objectId) ||
-    typeof snapshot.revision !== "number" ||
-    !Number.isInteger(snapshot.revision) ||
-    snapshot.revision < 0 ||
-    !isNonEmptyString(snapshot.aggregateHash) ||
-    typeof snapshot.schemaVersion !== "number" ||
-    !Number.isInteger(snapshot.schemaVersion) ||
-    snapshot.schemaVersion < 1 ||
-    !Array.isArray(response.files)
-  ) {
-    throw new Error("Invalid restore manifest response");
-  }
-
-  const files = validateUniqueLogicalFiles(response.files);
-  for (const file of files) {
-    const item = file as unknown as Record<string, unknown>;
-    if (
-      item.lastModifiedAt !== undefined &&
-      item.lastModifiedAt !== null &&
-      (!isNonEmptyString(item.lastModifiedAt) ||
-        !Number.isFinite(Date.parse(item.lastModifiedAt)))
-    ) {
-      throw new Error("Invalid restore manifest file");
-    }
-    if (
-      file.locator.bindings.store !== snapshot.shop ||
-      file.locator.bindings.storeGameId !== snapshot.objectId
-    ) {
-      throw new Error("Invalid restore manifest locator");
-    }
-  }
-
-  if (
-    NativeAddon.buildSnapshotAggregateHash({
-      schemaVersion: snapshot.schemaVersion as number,
-      saveNamespaceKey: `${snapshot.shop}:${snapshot.objectId}`,
-      files,
-    }) !== snapshot.aggregateHash
-  ) {
-    throw new Error("Restore manifest aggregate hash is inconsistent");
-  }
-
-  return { ...(value as RestoreManifestResponse), files };
-};
-
 export const getRemoteSnapshotRestoreManifest = async (
-  snapshotId: string
+  snapshot: RemoteSnapshotSummary | RemoteGameSnapshot
 ): Promise<RestoreManifestResponse> => {
-  const manifest = validateManifest(
+  const manifest = validateRestoreManifest(
     await HydraApi.get<unknown>(
       "/profile/cloud-saves/snapshot-restore-manifest",
-      { snapshotId }
+      { snapshotId: snapshot.id }
     )
   );
-  if (manifest.snapshot.id !== snapshotId) {
-    throw new Error("Restore manifest snapshot ID does not match request");
+  const totalSizeBytes = manifest.files.reduce(
+    (total, file) => total + file.sizeBytes,
+    0
+  );
+  if (
+    manifest.snapshot.id !== snapshot.id ||
+    manifest.snapshot.version !== snapshot.version ||
+    manifest.files.length !== snapshot.fileCount ||
+    totalSizeBytes !== snapshot.totalSizeBytes ||
+    NativeAddon.buildSnapshotAggregateHash({
+      variants: manifest.variants,
+      files: manifest.files,
+    }) !== snapshot.aggregateHash
+  ) {
+    throw new Error("Restore manifest does not match its snapshot summary");
   }
   return manifest;
 };
@@ -146,11 +98,12 @@ export const resolveRestoreManifestTargets = async (
 
   return NativeAddon.resolveRestoreTargets({
     ...pathContext,
-    approvedRules: approved.rules.map(({ ruleId, rawPath, source }) => ({
-      ruleId,
+    approvedRules: approved.rules.map(({ kind, rawPath, source }) => ({
+      kind,
       rawPath,
       source,
     })),
+    variants: manifest.variants,
     files: manifest.files,
   });
 };

@@ -1,5 +1,3 @@
-import { isAxiosError } from "axios";
-
 import type {
   CloudSaveConflictResolution,
   CloudSaveMergeResult,
@@ -15,6 +13,7 @@ import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
+import { shouldRetryCloudSaveConflict } from "./snapshot-retry-policy";
 import {
   type ProgressCallback,
   runFirstSync,
@@ -47,14 +46,12 @@ const resolvedMerge = (
     throw new Error("cloud_save_conflict_no_longer_exists");
   }
   const resolutions = new Map(
-    analysis.merge.conflicts.map((conflict) => [
-      conflict.logicalFileId,
-      resolution,
-    ])
+    analysis.merge.conflicts.map((conflict) => [conflict.entryId, resolution])
   );
   return mergeUserVariantSnapshots({
     local: analysis.localSnapshotContext,
-    remoteFiles: analysis.remoteHead.files,
+    remoteVariants: analysis.remoteManifest?.variants ?? [],
+    remoteFiles: analysis.remoteManifest?.files ?? [],
     base: analysis.anchor,
     resolutions,
   });
@@ -66,17 +63,18 @@ const saveCurrentHeadAnchor = async (
   analysis: CloudSaveAnalysis,
   unresolvedRemoteEntryIds: string[]
 ) => {
-  if (!analysis.remoteHead.snapshotId || !analysis.remoteHead.snapshotHash)
-    return;
+  if (!analysis.activeRemoteSnapshot || !analysis.remoteManifest) return;
   await saveCloudSaveSyncAnchor(shop, objectId, analysis.environmentId, {
-    schemaVersion: 3,
+    schemaVersion: 4,
     environmentId: analysis.environmentId,
-    baseSnapshotId: analysis.remoteHead.snapshotId,
-    baseHeadRevision: analysis.remoteHead.revision,
-    baseAggregateHash: analysis.remoteHead.snapshotHash,
-    entries: analysis.remoteHead.files.map((file) => ({
-      logicalFileId: file.logicalFileId,
-      contentHash: file.contentHash,
+    baseSnapshotId: analysis.activeRemoteSnapshot.id,
+    baseVersion: analysis.activeRemoteSnapshot.version,
+    baseAggregateHash: analysis.activeRemoteSnapshot.aggregateHash,
+    entries: analysis.remoteManifest.files.map((file) => ({
+      variantId: file.variantId,
+      rawPath: file.rawPath,
+      relativePath: file.relativePath,
+      hash: file.hash,
       sizeBytes: file.sizeBytes,
     })),
     unresolvedRemoteEntryIds,
@@ -101,17 +99,19 @@ const executeGameCloudSaveSync = async (
   const analysis = await analyzeCloudSaveState(objectId, shop, suppliedContext);
   const initialState = analysis.state.state;
   const merge = resolvedMerge(analysis, resolution);
-  const mergedAggregateHash = NativeAddon.buildSnapshotAggregateHash({
-    schemaVersion: analysis.localSnapshot.schemaVersion,
-    saveNamespaceKey: analysis.localSnapshot.saveNamespaceKey,
-    files: merge.files,
-  });
+  const mergedAggregateHash =
+    merge.files.length > 0
+      ? NativeAddon.buildSnapshotAggregateHash({
+          variants: merge.variants,
+          files: merge.files,
+        })
+      : null;
   const finish = (
     action: SyncGameCloudSaveResult["action"],
     finalState: CloudSaveState,
     processedFiles = 0,
     totalFiles = 0,
-    remoteHash = analysis.remoteHead.snapshotHash
+    remoteHash = analysis.activeRemoteSnapshot?.aggregateHash ?? null
   ) => {
     emitProgress({
       gameId: { objectId, shop },
@@ -149,7 +149,7 @@ const executeGameCloudSaveSync = async (
   }
 
   const proposalChanged =
-    mergedAggregateHash !== analysis.remoteHead.snapshotHash;
+    mergedAggregateHash !== analysis.activeRemoteSnapshot?.aggregateHash;
   const restoreIds = merge.restoreEntryIds;
   const restoreOnly =
     trigger === "pre-launch" || trigger === "environment-changed";
@@ -193,10 +193,11 @@ const executeGameCloudSaveSync = async (
       analysis.localSnapshotContext,
       emitProgress,
       {
-        expectedHeadRevision: analysis.remoteHead.revision,
-        expectedHeadHash: analysis.remoteHead.snapshotHash,
+        baseVersion: analysis.activeRemoteSnapshot?.version ?? 0,
+        expectedSnapshotId: analysis.activeRemoteSnapshot?.id ?? null,
+        variants: merge.variants,
         files: merge.files,
-        aggregateHash: mergedAggregateHash,
+        aggregateHash: mergedAggregateHash ?? undefined,
         unresolvedRemoteEntryIds: unresolved,
       }
     );
@@ -221,7 +222,9 @@ const executeGameCloudSaveSync = async (
       restored.partial ? "partial" : "synced",
       merge.files.length,
       merge.files.length,
-      committedSnapshot?.aggregateHash ?? analysis.remoteHead.snapshotHash
+      committedSnapshot?.aggregateHash ??
+        analysis.activeRemoteSnapshot?.aggregateHash ??
+        null
     );
   }
 
@@ -239,7 +242,9 @@ const executeGameCloudSaveSync = async (
     partial ? "partial" : "synced",
     proposalChanged ? merge.files.length : 0,
     proposalChanged ? merge.files.length : 0,
-    committedSnapshot?.aggregateHash ?? analysis.remoteHead.snapshotHash
+    committedSnapshot?.aggregateHash ??
+      analysis.activeRemoteSnapshot?.aggregateHash ??
+      null
   );
 };
 
@@ -262,11 +267,7 @@ const runGameCloudSaveSync = async (
       suppliedContext
     );
   } catch (error) {
-    if (
-      attempt === 0 &&
-      isAxiosError(error) &&
-      error.response?.status === 409
-    ) {
+    if (shouldRetryCloudSaveConflict(error, attempt)) {
       return runGameCloudSaveSync(
         objectId,
         shop,

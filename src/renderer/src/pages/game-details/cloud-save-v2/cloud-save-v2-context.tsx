@@ -68,7 +68,7 @@ export function CloudSaveV2Provider({
     setShowGameOptionsModal,
     setGameOptionsInitialCategory,
   } = useContext(gameDetailsContext);
-  const canUseCloudSaves = Boolean(userDetails && hasActiveSubscription);
+  const canUseCloudSaves = Boolean(userDetails);
   const hasExecutablePath = Boolean(game?.executablePath);
   const canCheckCloudSaves =
     shop === "steam" && canUseCloudSaves && hasExecutablePath;
@@ -156,10 +156,17 @@ export function CloudSaveV2Provider({
 
       if (event.status === "failed") {
         setHasSyncError(true);
-        showErrorToast(
-          t("cloud_save_v2_auto_sync_failed_title"),
-          t("cloud_save_v2_auto_sync_failed_description")
-        );
+        if (event.errorCode === "cloud_save_restore_metadata_failed") {
+          showErrorToast(
+            t("cloud_save_v2_restore_metadata_failed_title"),
+            t("cloud_save_v2_restore_metadata_failed_description")
+          );
+        } else {
+          showErrorToast(
+            t("cloud_save_v2_auto_sync_failed_title"),
+            t("cloud_save_v2_auto_sync_failed_description")
+          );
+        }
       } else {
         setHasSyncError(false);
         if (event.status === "conflict" && event.trigger !== "pre-launch") {
@@ -194,11 +201,6 @@ export function CloudSaveV2Provider({
       window.electron.openAuthWindow(AuthPage.SignIn);
       return;
     }
-    if (!hasActiveSubscription) {
-      setGameOptionsInitialCategory("hydra_cloud");
-      setShowGameOptionsModal(true);
-      return;
-    }
     setWasOpenedFromLaunchConflict(false);
     setIsModalVisible(true);
   };
@@ -215,6 +217,15 @@ export function CloudSaveV2Provider({
     resolution?: CloudSaveConflictResolution
   ) => {
     if (isGameRunning || !hasExecutablePath || shop !== "steam") return;
+    const requiresWrite =
+      resolution === "keep-local" ||
+      (!resolution &&
+        (overview?.state === "local-ahead" || overview?.state === "untracked"));
+    if (requiresWrite && !hasActiveSubscription) {
+      setGameOptionsInitialCategory("hydra_cloud");
+      setShowGameOptionsModal(true);
+      return;
+    }
 
     const requestedGame = gameKey;
     setIsSyncing(true);
@@ -236,8 +247,17 @@ export function CloudSaveV2Provider({
       } else {
         await window.electron.syncGameCloudSave(objectId, shop, onProgress);
       }
-    } catch {
+    } catch (error) {
       if (activeGameKey.current === requestedGame) setHasSyncError(true);
+      if (
+        error instanceof Error &&
+        error.message.includes("cloud_save_restore_metadata_failed")
+      ) {
+        showErrorToast(
+          t("cloud_save_v2_restore_metadata_failed_title"),
+          t("cloud_save_v2_restore_metadata_failed_description")
+        );
+      }
     } finally {
       if (activeGameKey.current === requestedGame) {
         await refresh();
@@ -250,6 +270,11 @@ export function CloudSaveV2Provider({
   };
 
   const setAutomaticSyncEnabled = async (enabled: boolean) => {
+    if (enabled && !hasActiveSubscription) {
+      setGameOptionsInitialCategory("hydra_cloud");
+      setShowGameOptionsModal(true);
+      throw new Error("Cloud Save writes require an active subscription");
+    }
     await window.electron.setCloudSaveAutomaticSyncEnabled(
       objectId,
       shop,

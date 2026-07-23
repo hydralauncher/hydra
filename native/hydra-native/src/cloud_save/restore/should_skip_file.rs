@@ -35,6 +35,7 @@ pub async fn should_skip_restore_file(
 
 #[cfg(test)]
 mod tests {
+    use sha2::{Digest, Sha256};
     use tempfile::tempdir;
 
     use super::*;
@@ -49,31 +50,31 @@ mod tests {
 
         assert!(should_skip_restore_file(
             regular.display().to_string(),
-            blake3::hash(b"save").to_hex().to_string(),
+            format!("{:x}", Sha256::digest(b"save")),
         )
         .await
         .unwrap());
         assert!(should_skip_restore_file(
             empty.display().to_string(),
-            blake3::hash(b"").to_hex().to_string(),
+            format!("{:x}", Sha256::digest(b"")),
         )
         .await
         .unwrap());
         assert!(!should_skip_restore_file(
             regular.display().to_string(),
-            blake3::hash(b"other").to_hex().to_string(),
+            format!("{:x}", Sha256::digest(b"other")),
         )
         .await
         .unwrap());
         assert!(!should_skip_restore_file(
             directory.path().join("missing").display().to_string(),
-            blake3::hash(b"").to_hex().to_string(),
+            format!("{:x}", Sha256::digest(b"")),
         )
         .await
         .unwrap());
         assert!(should_skip_restore_file(
             directory.path().display().to_string(),
-            blake3::hash(b"").to_hex().to_string(),
+            format!("{:x}", Sha256::digest(b"")),
         )
         .await
         .is_err());
