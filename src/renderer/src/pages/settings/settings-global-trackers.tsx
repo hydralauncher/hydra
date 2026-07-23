@@ -171,12 +171,23 @@ export function SettingsGlobalTrackers() {
     initialTrackerUrl.current = userPreferences.globalTrackersUrl ?? "";
   }, [userPreferences, isInitialized]);
 
+  const debouncedValidate = useMemo(
+    () =>
+      debounce((url: string) => {
+        if (appendUrlRef.current && url.trim()) {
+          void validateUrl(url);
+        }
+      }, 500),
+    [validateUrl]
+  );
+
   useEffect(() => {
     return () => {
       isMounted.current = false;
       debouncedSave.flush();
+      debouncedValidate.cancel();
     };
-  }, [debouncedSave]);
+  }, [debouncedSave, debouncedValidate]);
 
   const handleToggleManual = () => {
     const next = !appendManual;
@@ -189,6 +200,7 @@ export function SettingsGlobalTrackers() {
     const next = !appendUrl;
     setAppendUrl(next);
     debouncedSave.cancel();
+    debouncedValidate.cancel();
     void save(getCurrentManualTrackers(), trackerUrl, appendManual, next);
 
     if (next && trackerUrl.trim()) {
@@ -201,6 +213,7 @@ export function SettingsGlobalTrackers() {
 
   const handleUrlBlur = () => {
     debouncedSave.cancel();
+    debouncedValidate.cancel();
     void save(getCurrentManualTrackers(), trackerUrl, appendManual, appendUrl);
 
     if (appendUrl && trackerUrl.trim()) {
@@ -212,6 +225,8 @@ export function SettingsGlobalTrackers() {
     setTrackerUrl(value);
     setIsUrlInvalid(false);
     setIsUrlEmpty(false);
+    debouncedValidate.cancel();
+    debouncedValidate(value);
   };
 
   const urlStatusClass = isUrlInvalid
