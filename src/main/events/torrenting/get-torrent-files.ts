@@ -24,6 +24,8 @@ const mapTorrentFilesError = (error: unknown) => {
         return DownloadError.TorrentTooManyFiles;
       case "metadata_busy":
         return DownloadError.TorrentMetadataTimeout;
+      case "invalid_trackers":
+        return DownloadError.TorrentInvalidTrackers;
       default:
         return DownloadError.TorrentFilesUnavailable;
     }
