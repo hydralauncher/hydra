@@ -31,6 +31,7 @@ export function SettingsGlobalTrackers() {
   const appendUrlRef = useRef(appendUrl);
   const initialManualTrackers = useRef<string[]>([]);
   const initialTrackerUrl = useRef("");
+  const isMounted = useRef(true);
 
   useEffect(() => {
     appendManualRef.current = appendManual;
@@ -40,14 +41,21 @@ export function SettingsGlobalTrackers() {
     appendUrlRef.current = appendUrl;
   }, [appendUrl]);
 
-  const manualText = watch("manualTrackers");
-
-  const manualTrackers = useMemo(() => {
-    return (manualText ?? "")
+  const parseManualTrackers = (text: string) =>
+    text
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
+
+  const manualText = watch("manualTrackers");
+
+  const manualTrackers = useMemo(() => {
+    return parseManualTrackers(manualText ?? "");
   }, [manualText]);
+
+  const getCurrentManualTrackers = useCallback(() => {
+    return parseManualTrackers(watch("manualTrackers") ?? "");
+  }, [watch]);
 
   const refreshUserPreferences = useCallback(async () => {
     const updatedPreferences = await window.electron.getUserPreferences();
@@ -71,6 +79,8 @@ export function SettingsGlobalTrackers() {
       );
 
       await refreshUserPreferences();
+
+      if (!isMounted.current) return;
 
       if (!appendUrlFlag || !url) {
         setIsUrlInvalid(false);
@@ -132,7 +142,8 @@ export function SettingsGlobalTrackers() {
 
   useEffect(() => {
     return () => {
-      debouncedSave.cancel();
+      isMounted.current = false;
+      debouncedSave.flush();
     };
   }, [debouncedSave]);
 
@@ -140,19 +151,19 @@ export function SettingsGlobalTrackers() {
     const next = !appendManual;
     setAppendManual(next);
     debouncedSave.cancel();
-    void save(manualTrackers, trackerUrl, next, appendUrl, false);
+    void save(getCurrentManualTrackers(), trackerUrl, next, appendUrl, false);
   };
 
   const handleToggleUrl = () => {
     const next = !appendUrl;
     setAppendUrl(next);
     debouncedSave.cancel();
-    void save(manualTrackers, trackerUrl, appendManual, next, next);
+    void save(getCurrentManualTrackers(), trackerUrl, appendManual, next, next);
   };
 
   const handleUrlBlur = () => {
     debouncedSave.cancel();
-    void save(manualTrackers, trackerUrl, appendManual, appendUrl, true);
+    void save(getCurrentManualTrackers(), trackerUrl, appendManual, appendUrl, true);
   };
 
   return (

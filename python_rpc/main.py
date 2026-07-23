@@ -91,7 +91,6 @@ torrent_session = lt.session(
     {"listen_interfaces": "0.0.0.0:{port}".format(port=torrent_port)}
 )
 
-
 MAGNET_HASH_HEX_RE = re.compile(r"^[a-fA-F0-9]{40}$")
 MAGNET_HASH_BASE32_RE = re.compile(r"^[a-zA-Z2-7]{32}$")
 
@@ -137,11 +136,11 @@ def validate_trackers(trackers):
         return None
 
     if not isinstance(trackers, list):
-        raise ValueError("invalid_trackers")
+        raise RpcError("invalid_trackers")
 
     for tracker in trackers:
         if not isinstance(tracker, str):
-            raise ValueError("invalid_trackers")
+            raise RpcError("invalid_trackers")
 
     return trackers
 
@@ -223,6 +222,7 @@ def map_downloader_error_code(error: Exception):
         "empty_selection",
         "invalid_url",
         "invalid_save_path",
+        "invalid_trackers",
     }:
         return code
 
@@ -443,7 +443,7 @@ def torrent_files(data: Optional[dict] = None):
         return cached_payload
 
     timeout_ms = data.get("timeout_ms", 30000)
-    trackers = data.get("trackers")
+    trackers = validate_trackers(data.get("trackers"))
 
     try:
         timeout_ms = int(timeout_ms)
