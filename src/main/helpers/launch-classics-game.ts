@@ -14,6 +14,7 @@ import type {
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
+import { spawnDetachedEmulator } from "./spawn-detached-emulator";
 
 export class EmulatorNotConfiguredError extends Error {
   code = "EMULATOR_NOT_CONFIGURED" as const;
@@ -223,33 +224,11 @@ export const launchClassicsGame = async (
   const workingDirectory = path.dirname(executableTarget);
 
   try {
-    const processRef = spawn(
-      resolvedLaunchCommand.command,
-      resolvedLaunchCommand.args,
-      {
-        shell: false,
-        detached: true,
-        stdio: "ignore",
-        cwd: workingDirectory,
-        env: {
-          ...process.env,
-          ...resolvedLaunchCommand.env,
-        },
-      }
+    const processRef = await spawnDetachedEmulator(
+      resolvedLaunchCommand,
+      workingDirectory,
+      () => new EmulatorNotConfiguredError(system)
     );
-
-    await new Promise<void>((resolve, reject) => {
-      const onSpawn = () => {
-        processRef.off("error", onError);
-        resolve();
-      };
-      const onError = () => {
-        processRef.off("spawn", onSpawn);
-        reject(new EmulatorNotConfiguredError(system));
-      };
-      processRef.once("spawn", onSpawn);
-      processRef.once("error", onError);
-    });
 
     if (game) {
       await emulators.startEmulatorSession({

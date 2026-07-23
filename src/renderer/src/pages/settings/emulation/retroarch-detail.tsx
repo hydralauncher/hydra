@@ -4,18 +4,13 @@ import cn from "classnames";
 import {
   CheckCircleFillIcon,
   ChevronLeftIcon,
-  ClockIcon,
-  DatabaseIcon,
   DownloadIcon,
   FileDirectoryIcon,
-  PencilIcon,
-  PlusIcon,
   SyncIcon,
   TrashIcon,
-  XIcon,
 } from "@primer/octicons-react";
 
-import { Button, CheckboxField, ConfirmationModal } from "@renderer/components";
+import { Button, ConfirmationModal } from "@renderer/components";
 import { useRetroArchScan, useToast } from "@renderer/hooks";
 import { formatBytes } from "@shared";
 import type {
@@ -29,6 +24,11 @@ import { RETROARCH_PLATFORM_LABELS } from "@renderer/helpers";
 
 import { RETROARCH_EMULATOR_ICON } from "./emulator-icons";
 import { EmulatorResourceRow } from "./emulator-resource-row";
+import {
+  LibraryStatsGrid,
+  RomFoldersSection,
+} from "./emulation-detail-sections";
+import { installPercent } from "./setup/install-progress";
 import { RetroArchRomsSection } from "./retroarch-roms-section";
 import { RETROARCH_CORE_LIST, RETROARCH_LABEL } from "./retroarch-meta";
 import { formatRelativeShort } from "./relative-time";
@@ -348,11 +348,9 @@ export function RetroArchDetail({
   const coreStatusText = (core: RetroArchCoreName): string => {
     const current = coreProgress[core];
     if (current && current.phase === "downloading") {
-      const percent =
-        current.total && current.total > 0
-          ? Math.floor(((current.loaded ?? 0) / current.total) * 100)
-          : 0;
-      return t("setup_install_downloading", { percent });
+      return t("setup_install_downloading", {
+        percent: installPercent(current.loaded, current.total),
+      });
     }
     if (current && current.phase === "extracting") {
       return t("setup_install_extracting");
@@ -575,81 +573,15 @@ export function RetroArchDetail({
       )}
 
       {activeTab === "rom-folders" && (
-        <section className="emulator-detail__section">
-          <header className="emulator-detail__section-header">
-            <div className="emulator-detail__section-text">
-              <h3>{t("rom_folders_section_title")}</h3>
-              <p>{t("rom_folders_section_description")}</p>
-            </div>
-            <Button
-              theme="outline"
-              onClick={handleAddFolder}
-              disabled={busy || scan.active}
-            >
-              <PlusIcon size={14} />
-              <span>{t("add_folder")}</span>
-            </Button>
-          </header>
-
-          <div className="emulator-detail__folders">
-            {config.romFolders.length === 0 && (
-              <p className="emulator-detail__empty">{t("no_rom_folder")}</p>
-            )}
-            {config.romFolders.map((folder) => (
-              <div className="emulator-detail__row" key={folder.id}>
-                <FileDirectoryIcon size={24} />
-                <div className="emulator-detail__folder-info">
-                  <span className="emulator-detail__folder-path">
-                    {folder.path}
-                  </span>
-                  <div className="emulator-detail__folder-meta">
-                    <span>
-                      {t(
-                        folder.fileCount === 1
-                          ? "file_count_one"
-                          : "file_count_other",
-                        { count: folder.fileCount }
-                      )}
-                    </span>
-                    <span className="emulator-detail__dot" />
-                    <span>
-                      {folder.lastScanAt
-                        ? t("last_scan_relative", {
-                            value: formatLastScan(folder.lastScanAt),
-                          })
-                        : t("last_scan_never")}
-                    </span>
-                  </div>
-                </div>
-                <CheckboxField
-                  label={t("scan_subfolders")}
-                  checked={folder.scanSubfolders}
-                  disabled={busy || scan.active}
-                  onChange={() => handleToggleSubfolders(folder)}
-                />
-                <button
-                  type="button"
-                  className="emulator-detail__remove"
-                  onClick={() => handleChangeFolder(folder)}
-                  aria-label={t("setup_rom_change")}
-                  title={t("setup_rom_change")}
-                  disabled={busy || scan.active}
-                >
-                  <PencilIcon size={16} />
-                </button>
-                <button
-                  type="button"
-                  className="emulator-detail__remove"
-                  onClick={() => setFolderToRemove(folder)}
-                  aria-label={t("remove")}
-                  disabled={busy || scan.active}
-                >
-                  <XIcon size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
+        <RomFoldersSection
+          folders={config.romFolders}
+          disabled={busy || scan.active}
+          formatLastScan={formatLastScan}
+          onAddFolder={handleAddFolder}
+          onToggleSubfolders={handleToggleSubfolders}
+          onRemoveFolder={setFolderToRemove}
+          onChangeFolder={handleChangeFolder}
+        />
       )}
 
       {activeTab === "library" && (
@@ -688,65 +620,13 @@ export function RetroArchDetail({
               </div>
             )}
 
-            <div className="emulator-detail__stats">
-              <div className="emulator-detail__stat">
-                <div className="emulator-detail__stat-head">
-                  <DatabaseIcon size={16} />
-                  <span className="emulator-detail__stat-label">
-                    {t("stat_games")}
-                  </span>
-                </div>
-                <span className="emulator-detail__stat-value">
-                  {config.totalFiles}
-                </span>
-                <span className="emulator-detail__stat-caption">
-                  {t("stat_games_caption", { system: RETROARCH_LABEL })}
-                </span>
-              </div>
-              <div className="emulator-detail__stat">
-                <div className="emulator-detail__stat-head">
-                  <DatabaseIcon size={16} />
-                  <span className="emulator-detail__stat-label">
-                    {t("stat_storage")}
-                  </span>
-                </div>
-                <span className="emulator-detail__stat-value">
-                  {storageLabel}
-                </span>
-                <span className="emulator-detail__stat-caption">
-                  {t(
-                    config.totalFiles === 1
-                      ? "stat_storage_caption_one"
-                      : config.totalFiles === 0
-                        ? "stat_storage_caption_zero"
-                        : "stat_storage_caption_other",
-                    {
-                      count: config.totalFiles,
-                      folders: t(
-                        config.romFolders.length === 1
-                          ? "folder_count_one"
-                          : "folder_count_other",
-                        { count: config.romFolders.length }
-                      ),
-                    }
-                  )}
-                </span>
-              </div>
-              <div className="emulator-detail__stat">
-                <div className="emulator-detail__stat-head">
-                  <ClockIcon size={16} />
-                  <span className="emulator-detail__stat-label">
-                    {t("stat_last_scan")}
-                  </span>
-                </div>
-                <span className="emulator-detail__stat-value">
-                  {lastScanLabel}
-                </span>
-                <span className="emulator-detail__stat-caption">
-                  {t("stat_last_scan_caption")}
-                </span>
-              </div>
-            </div>
+            <LibraryStatsGrid
+              systemLabel={RETROARCH_LABEL}
+              totalFiles={config.totalFiles}
+              storageLabel={storageLabel}
+              lastScanLabel={lastScanLabel}
+              romFoldersCount={config.romFolders.length}
+            />
 
             <div className="emulator-detail__folder-meta">
               {Object.entries(RETROARCH_PLATFORM_LABELS).map(

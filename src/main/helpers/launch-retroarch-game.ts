@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { db, gamesSublevel, levelKeys } from "@main/level";
@@ -11,6 +10,7 @@ import type {
 } from "@types";
 import { resolveEmulatorWrappers } from "./launch-classics-game";
 import { resolveLaunchCommand } from "./resolve-launch-command";
+import { spawnDetachedEmulator } from "./spawn-detached-emulator";
 
 export class RetroArchNotConfiguredError extends Error {
   code = "RETROARCH_NOT_CONFIGURED" as const;
@@ -94,33 +94,11 @@ export const launchRetroArchGame = async (
   const workingDirectory = path.dirname(executableTarget);
 
   try {
-    const processRef = spawn(
-      resolvedLaunchCommand.command,
-      resolvedLaunchCommand.args,
-      {
-        shell: false,
-        detached: true,
-        stdio: "ignore",
-        cwd: workingDirectory,
-        env: {
-          ...process.env,
-          ...resolvedLaunchCommand.env,
-        },
-      }
+    const processRef = await spawnDetachedEmulator(
+      resolvedLaunchCommand,
+      workingDirectory,
+      () => new RetroArchNotConfiguredError(platform)
     );
-
-    await new Promise<void>((resolve, reject) => {
-      const onSpawn = () => {
-        processRef.off("error", onError);
-        resolve();
-      };
-      const onError = () => {
-        processRef.off("spawn", onSpawn);
-        reject(new RetroArchNotConfiguredError(platform));
-      };
-      processRef.once("spawn", onSpawn);
-      processRef.once("error", onError);
-    });
 
     if (game) {
       await emulators.startEmulatorSession({

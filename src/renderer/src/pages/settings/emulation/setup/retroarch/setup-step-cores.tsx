@@ -15,6 +15,7 @@ import type {
 } from "@types";
 
 import { RETROARCH_CORE_LIST } from "../../retroarch-meta";
+import { installPercent } from "../install-progress";
 
 interface Props {
   config: RetroArchConfig;
@@ -81,11 +82,9 @@ export function SetupStepCores({ config, onConfigChange }: Readonly<Props>) {
   const coreStatusText = (core: RetroArchCoreName): string => {
     const current = progress[core];
     if (current && current.phase === "downloading") {
-      const percent =
-        current.total && current.total > 0
-          ? Math.floor(((current.loaded ?? 0) / current.total) * 100)
-          : 0;
-      return t("setup_install_downloading", { percent });
+      return t("setup_install_downloading", {
+        percent: installPercent(current.loaded, current.total),
+      });
     }
     if (current && current.phase === "extracting") {
       return t("setup_install_extracting");
