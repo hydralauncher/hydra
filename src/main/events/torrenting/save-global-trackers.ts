@@ -1,9 +1,6 @@
 import { db, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
-import {
-  fetchGlobalTrackersFromUrl,
-  isValidTrackerUrl,
-} from "@main/helpers";
+import { fetchGlobalTrackersFromUrl, isValidTrackerUrl } from "@main/helpers";
 import type { UserPreferences } from "@types";
 
 const saveGlobalTrackers = async (
