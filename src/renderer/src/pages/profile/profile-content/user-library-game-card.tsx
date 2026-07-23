@@ -2,23 +2,18 @@ import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import {
   useFormat,
-  useToast,
   useCoverPoster,
-  useLibrary,
   isAnimatedCoverCandidate,
 } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,
   formatDownloadProgress,
   isGameCompleted,
 } from "@renderer/helpers";
-import {
-  userProfileContext,
-  useCollectionContextMenu,
-} from "@renderer/context";
+import { userProfileContext } from "@renderer/context";
 import {
   ClockIcon,
   TrophyIcon,
@@ -28,58 +23,26 @@ import {
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
-import { ProgressBar, GameContextMenu } from "@renderer/components";
-import type { GameContextMenuGame } from "@renderer/components/game-context-menu/game-context-menu.types";
+import { ProgressBar } from "@renderer/components";
 import "./user-library-game-card.scss";
 
 interface UserLibraryGameCardProps {
   game: UserGame;
   statIndex: number;
-  sortBy?: string;
+  onContextMenu: (game: UserGame, position: { x: number; y: number }) => void;
 }
 
 export function UserLibraryGameCard({
   game,
   statIndex,
-  sortBy,
+  onContextMenu,
 }: UserLibraryGameCardProps) {
-  const { userProfile, isMe, getUserLibraryGames } =
-    useContext(userProfileContext);
+  const { userProfile, isMe } = useContext(userProfileContext);
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
-  const { showSuccessToast } = useToast();
   const navigate = useNavigate();
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { openCollectionContextMenu } = useCollectionContextMenu();
-  const { library } = useLibrary();
-  const [contextMenu, setContextMenu] = useState<{
-    visible: boolean;
-    position: { x: number; y: number };
-  }>({ visible: false, position: { x: 0, y: 0 } });
-
-  const contextMenuGame = useMemo<GameContextMenuGame>(() => {
-    const localGame = isMe
-      ? library.find(
-          (libraryGame) =>
-            libraryGame.shop === game.shop &&
-            libraryGame.objectId === game.objectId
-        )
-      : undefined;
-
-    return {
-      ...game,
-      id: localGame?.id,
-      executablePath: localGame?.executablePath ?? null,
-      download: localGame?.download ?? null,
-      collectionIds: localGame?.collectionIds,
-      launchOptions: localGame?.launchOptions,
-      discs: localGame?.discs,
-      selectedDiscPath: localGame?.selectedDiscPath,
-      dontAskDiscSelection: localGame?.dontAskDiscSelection,
-      favorite: localGame?.favorite ?? game.isFavorite,
-    };
-  }, [isMe, library, game]);
 
   const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
 
@@ -161,44 +124,7 @@ export function UserLibraryGameCard({
     event.preventDefault();
     event.stopPropagation();
 
-    setContextMenu({
-      visible: true,
-      position: { x: event.clientX, y: event.clientY },
-    });
-  };
-
-  const handleCloseContextMenu = () => {
-    setContextMenu({ visible: false, position: { x: 0, y: 0 } });
-  };
-
-  const toggleGamePinned = async () => {
-    try {
-      await window.electron.toggleGamePin(
-        game.shop,
-        game.objectId,
-        !game.isPinned
-      );
-
-      await getUserLibraryGames(sortBy);
-
-      try {
-        window.dispatchEvent(
-          new CustomEvent("hydra:game-pin-toggled", {
-            detail: { shop: game.shop, objectId: game.objectId },
-          })
-        );
-      } catch {
-        /* empty */
-      }
-
-      if (game.isPinned) {
-        showSuccessToast(t("game_removed_from_pinned"));
-      } else {
-        showSuccessToast(t("game_added_to_pinned"));
-      }
-    } finally {
-      setContextMenu({ visible: false, position: { x: 0, y: 0 } });
-    }
+    onContextMenu(game, { x: event.clientX, y: event.clientY });
   };
 
   const renderCoverMedia = () => {
@@ -351,15 +277,6 @@ export function UserLibraryGameCard({
           {renderCoverMedia()}
         </button>
       </li>
-      <GameContextMenu
-        game={contextMenuGame}
-        visible={contextMenu.visible}
-        position={contextMenu.position}
-        onClose={handleCloseContextMenu}
-        onPinToggle={toggleGamePinned}
-        isPinned={game.isPinned}
-        onCollectionContextMenu={openCollectionContextMenu}
-      />
       <Tooltip
         id={game.objectId}
         style={{

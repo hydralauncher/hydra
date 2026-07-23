@@ -47,6 +47,8 @@ export function ContextMenu({
   const [hasModalOpen, setHasModalOpen] = useState(false);
 
   useEffect(() => {
+    if (!visible) return;
+
     const updateModalState = () => {
       const modalOpen = document.querySelector("[data-hydra-dialog]") !== null;
       setHasModalOpen((prev) => (prev === modalOpen ? prev : modalOpen));
@@ -58,7 +60,7 @@ export function ContextMenu({
     updateModalState();
 
     return () => observer.disconnect();
-  }, []);
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
