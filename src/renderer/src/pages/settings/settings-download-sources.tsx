@@ -27,13 +27,7 @@ import { orderBy } from "lodash-es";
 import "./settings-download-sources.scss";
 import { logger } from "@renderer/logger";
 
-interface SettingsDownloadSourcesProps {
-  collapsed?: boolean;
-}
-
-export function SettingsDownloadSources({
-  collapsed = false,
-}: SettingsDownloadSourcesProps) {
+export function SettingsDownloadSources() {
   const [
     showConfirmationDeleteAllSourcesModal,
     setShowConfirmationDeleteAllSourcesModal,
@@ -253,8 +247,7 @@ export function SettingsDownloadSources({
         </div>
       </div>
 
-      {!collapsed && (
-        <ul className="settings-download-sources__list">
+      <ul className="settings-download-sources__list">
           {downloadSources.map((downloadSource) => {
             const isPendingOrMatching =
               downloadSource.status === DownloadSourceStatus.PendingMatching ||
@@ -320,7 +313,6 @@ export function SettingsDownloadSources({
             );
           })}
         </ul>
-      )}
     </>
   );
 }

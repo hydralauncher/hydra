@@ -867,8 +867,6 @@
     "download_source_matching": "Updating",
     "download_source_failed": "Error",
     "download_source_no_information": "No information available",
-    "collapse_sources": "Collapse sources list",
-    "expand_sources": "Expand sources list",
     "sync_download_sources": "Sync sources",
     "removed_download_source": "Download source removed",
     "removed_download_sources": "Download sources removed",

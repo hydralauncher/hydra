@@ -29,6 +29,8 @@ export function SettingsGlobalTrackers() {
 
   const appendManualRef = useRef(appendManual);
   const appendUrlRef = useRef(appendUrl);
+  const initialManualTrackers = useRef<string[]>([]);
+  const initialTrackerUrl = useRef("");
 
   useEffect(() => {
     appendManualRef.current = appendManual;
@@ -57,13 +59,15 @@ export function SettingsGlobalTrackers() {
       manual: string[],
       url: string,
       appendManualFlag: boolean,
-      appendUrlFlag: boolean
+      appendUrlFlag: boolean,
+      fetchUrl: boolean
     ) => {
       const { error } = await window.electron.saveGlobalTrackers(
         manual,
         url || null,
         appendManualFlag,
-        appendUrlFlag
+        appendUrlFlag,
+        fetchUrl
       );
 
       await refreshUserPreferences();
@@ -79,20 +83,31 @@ export function SettingsGlobalTrackers() {
     [refreshUserPreferences]
   );
 
-  const debouncedSave = useRef(
-    debounce((manual: string[], url: string) => {
-      void save(manual, url, appendManualRef.current, appendUrlRef.current);
-    }, 1000)
-  ).current;
+  const debouncedSave = useMemo(
+    () =>
+      debounce((manual: string[], url: string) => {
+        void save(
+          manual,
+          url,
+          appendManualRef.current,
+          appendUrlRef.current,
+          false
+        );
+      }, 1000),
+    [save]
+  );
 
   useEffect(() => {
     if (!userPreferences || isInitialized) return;
 
-    setValue(
-      "manualTrackers",
-      (userPreferences.globalTrackers ?? []).join("\n")
-    );
-    setTrackerUrl(userPreferences.globalTrackersUrl ?? "");
+    const initialManual = userPreferences.globalTrackers ?? [];
+    setValue("manualTrackers", initialManual.join("\n"));
+    initialManualTrackers.current = initialManual;
+
+    const initialUrl = userPreferences.globalTrackersUrl ?? "";
+    setTrackerUrl(initialUrl);
+    initialTrackerUrl.current = initialUrl;
+
     const am = userPreferences.appendGlobalTrackers ?? false;
     const au = userPreferences.appendGlobalTrackersUrl ?? false;
     setAppendManual(am);
@@ -104,6 +119,14 @@ export function SettingsGlobalTrackers() {
 
   useEffect(() => {
     if (!isInitialized) return;
+
+    const manualChanged =
+      JSON.stringify(manualTrackers) !==
+      JSON.stringify(initialManualTrackers.current);
+    const urlChanged = trackerUrl !== initialTrackerUrl.current;
+
+    if (!manualChanged && !urlChanged) return;
+
     debouncedSave(manualTrackers, trackerUrl);
   }, [manualTrackers, trackerUrl, isInitialized, debouncedSave]);
 
@@ -117,18 +140,19 @@ export function SettingsGlobalTrackers() {
     const next = !appendManual;
     setAppendManual(next);
     debouncedSave.cancel();
-    void save(manualTrackers, trackerUrl, next, appendUrl);
+    void save(manualTrackers, trackerUrl, next, appendUrl, false);
   };
 
   const handleToggleUrl = () => {
     const next = !appendUrl;
     setAppendUrl(next);
     debouncedSave.cancel();
-    void save(manualTrackers, trackerUrl, appendManual, next);
+    void save(manualTrackers, trackerUrl, appendManual, next, next);
   };
 
   const handleUrlBlur = () => {
-    debouncedSave.flush();
+    debouncedSave.cancel();
+    void save(manualTrackers, trackerUrl, appendManual, appendUrl, true);
   };
 
   return (

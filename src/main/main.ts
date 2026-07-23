@@ -2,6 +2,7 @@ import { downloadsSublevel } from "./level/sublevels/downloads";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
+import { fetchGlobalTrackersFromUrl } from "@main/helpers";
 import { type Download, type UserPreferences } from "../types";
 import path from "node:path";
 import fs from "node:fs";
@@ -90,37 +91,16 @@ export const loadState = async () => {
     userPreferences?.appendGlobalTrackersUrl &&
     userPreferences?.globalTrackersUrl
   ) {
-    fetch(userPreferences.globalTrackersUrl, {
-      signal: AbortSignal.timeout(15000),
-    })
-      .then((res) => res.text())
-      .then((text) => {
-        const lines = text
-          .split("\n")
-          .map((l) => l.trim())
-          .filter(Boolean);
-        const validTrackers = [
-          ...new Set(
-            lines.filter((l) => {
-              try {
-                const p = new URL(l).protocol;
-                return ["http:", "https:", "udp:"].includes(p);
-              } catch {
-                return false;
-              }
-            })
-          ),
-        ];
-        if (validTrackers.length > 0) {
-          db.put(
-            levelKeys.userPreferences,
-            {
-              ...userPreferences,
-              globalTrackersUrlCache: validTrackers,
-            },
-            { valueEncoding: "json" }
-          ).catch(() => {});
-        }
+    fetchGlobalTrackersFromUrl(userPreferences.globalTrackersUrl)
+      .then((trackers) => {
+        db.put(
+          levelKeys.userPreferences,
+          {
+            ...userPreferences,
+            globalTrackersUrlCache: trackers,
+          },
+          { valueEncoding: "json" }
+        ).catch(() => {});
       })
       .catch(() => {});
   }

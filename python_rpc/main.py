@@ -132,6 +132,20 @@ def parse_file_indices(file_indices):
     return parsed
 
 
+def validate_trackers(trackers):
+    if trackers is None:
+        return None
+
+    if not isinstance(trackers, list):
+        raise ValueError("invalid_trackers")
+
+    for tracker in trackers:
+        if not isinstance(tracker, str):
+            raise ValueError("invalid_trackers")
+
+    return trackers
+
+
 def validate_magnet_uri(magnet: str):
     if not isinstance(magnet, str):
         raise ValueError("invalid_magnet")
@@ -503,7 +517,7 @@ def action(data: Optional[dict] = None):
                     url,
                     save_path,
                     file_indices=file_indices,
-                    trackers=data.get("trackers"),
+                    trackers=validate_trackers(data.get("trackers")),
                     metadata_timeout_ms=data.get("metadata_timeout_ms"),
                 )
             else:
@@ -537,7 +551,7 @@ def action(data: Optional[dict] = None):
                 data["url"],
                 data["save_path"],
                 flags=lt.torrent_flags.upload_mode,
-                trackers=data.get("trackers"),
+                trackers=validate_trackers(data.get("trackers")),
             )
         elif action_name == "pause_seeding":
             with downloads_lock:
