@@ -354,6 +354,65 @@
     border-bottom: 1px solid globals.$border-color;
   }
 
+  &__variant-diagnostics {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.025);
+    font-size: globals.$small-font-size;
+  }
+
+  &__variant-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: globals.$spacing-unit;
+  }
+
+  &__variant-item {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+    min-width: 0;
+    color: globals.$muted-color;
+
+    > span:first-child {
+      display: flex;
+      align-items: center;
+      gap: globals.$spacing-unit;
+      color: globals.$body-color;
+      font-weight: 500;
+    }
+
+    em {
+      color: globals.$success-color;
+      font-size: 0.75rem;
+      font-style: normal;
+    }
+
+    small {
+      display: flex;
+      align-items: center;
+      gap: calc(globals.$spacing-unit / 2);
+      overflow-wrap: anywhere;
+      color: globals.$warning-color;
+    }
+
+    .cloud-save-v2__variant-conflicts {
+      color: globals.$error-color;
+    }
+  }
+
+  &__variant-unresolved {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    margin: 0;
+    color: globals.$warning-color;
+  }
+
   &__browser-source-summary {
     display: flex;
     align-items: center;

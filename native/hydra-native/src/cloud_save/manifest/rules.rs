@@ -2,6 +2,7 @@ use super::types::{
     CloudSaveGameId, CloudSaveRule, CloudSaveRuleCondition, GameSaveRules, ManifestFileRule,
     ManifestGameEntry,
 };
+use crate::cloud_save::identity::build_rule_id;
 
 const FILE_RULE_KIND: &str = "file";
 const DIRECTORY_RULE_KIND: &str = "dir";
@@ -26,7 +27,8 @@ pub(crate) fn infer_rule_kind(raw_path: &str) -> &'static str {
 }
 
 fn build_rule(file: &ManifestFileRule) -> CloudSaveRule {
-    CloudSaveRule {
+    let mut rule = CloudSaveRule {
+        rule_id: String::new(),
         kind: infer_rule_kind(&file.raw_path).to_string(),
         raw_path: file.raw_path.clone(),
         source: LUDUSAVI_RULE_SOURCE.to_string(),
@@ -39,7 +41,9 @@ fn build_rule(file: &ManifestFileRule) -> CloudSaveRule {
                 store: condition.store.clone(),
             })
             .collect(),
-    }
+    };
+    rule.rule_id = build_rule_id(&rule);
+    rule
 }
 
 pub fn build_game_save_rules(
@@ -53,9 +57,19 @@ pub fn build_game_save_rules(
         entry.files.iter().map(build_rule).collect()
     });
 
+    let mut revision_ids = rules
+        .iter()
+        .map(|rule| rule.rule_id.as_str())
+        .collect::<Vec<_>>();
+    revision_ids.sort();
+    let rule_source_revision = blake3::hash(revision_ids.join("\n").as_bytes())
+        .to_hex()
+        .to_string();
+
     GameSaveRules {
         game_id: CloudSaveGameId { shop, object_id },
         manifest_key,
+        rule_source_revision,
         rules,
     }
 }

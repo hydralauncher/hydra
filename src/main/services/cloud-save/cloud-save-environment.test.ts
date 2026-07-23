@@ -42,6 +42,7 @@ const createContext = (root: string, winePrefixPath: string) => ({
   executablePath: path.join(root, "game", "Cyberpunk2077.exe"),
   winePrefixPath,
   steamPath: path.join(root, "steam"),
+  storeUserContext: { known: [] },
 });
 
 const createRoot = async () => {
@@ -59,35 +60,39 @@ after(async () => {
 });
 
 describe("cloud save environment identity", () => {
-  it("stays stable for the same prefix and its symlink", async () => {
-    const root = await createRoot();
-    const prefix = path.join(root, "prefix");
-    const alias = path.join(root, "prefix-alias");
-    await fs.promises.mkdir(prefix, { recursive: true });
-    await fs.promises.symlink(prefix, alias);
-    const { dependencies } = createGenerationDependencies();
+  it(
+    "stays stable for the same prefix and its symlink",
+    { skip: process.platform === "win32" },
+    async () => {
+      const root = await createRoot();
+      const prefix = path.join(root, "prefix");
+      const alias = path.join(root, "prefix-alias");
+      await fs.promises.mkdir(prefix, { recursive: true });
+      await fs.promises.symlink(prefix, alias);
+      const { dependencies } = createGenerationDependencies();
 
-    const [first, second, throughAlias] = await Promise.all([
-      resolveCloudSaveEnvironment(createContext(root, prefix), {
-        winePrefixIsValid: true,
-        prefixGenerationDependencies: dependencies,
-      }),
-      resolveCloudSaveEnvironment(createContext(root, prefix), {
-        winePrefixIsValid: true,
-        prefixGenerationDependencies: dependencies,
-      }),
-      resolveCloudSaveEnvironment(createContext(root, alias), {
-        winePrefixIsValid: true,
-        prefixGenerationDependencies: dependencies,
-      }),
-    ]);
+      const [first, second, throughAlias] = await Promise.all([
+        resolveCloudSaveEnvironment(createContext(root, prefix), {
+          winePrefixIsValid: true,
+          prefixGenerationDependencies: dependencies,
+        }),
+        resolveCloudSaveEnvironment(createContext(root, prefix), {
+          winePrefixIsValid: true,
+          prefixGenerationDependencies: dependencies,
+        }),
+        resolveCloudSaveEnvironment(createContext(root, alias), {
+          winePrefixIsValid: true,
+          prefixGenerationDependencies: dependencies,
+        }),
+      ]);
 
-    assert.equal(first.environmentId, second.environmentId);
-    assert.equal(first.environmentId, throughAlias.environmentId);
-    assert.equal(first.prefixIdentityMode, "marker");
-  });
+      assert.equal(first.environmentId, second.environmentId);
+      assert.equal(first.environmentId, throughAlias.environmentId);
+      assert.equal(first.prefixIdentityMode, "marker");
+    }
+  );
 
-  it("changes when the active store user changes", async () => {
+  it("keeps one environment while the active store user changes", async () => {
     const root = await createRoot();
     const prefix = path.join(root, "prefix");
     await fs.promises.mkdir(prefix, { recursive: true });
@@ -95,19 +100,35 @@ describe("cloud save environment identity", () => {
     const first = await resolveCloudSaveEnvironment(
       {
         ...createContext(root, prefix),
-        storeUserId: "76561198000000001",
+        storeUserContext: {
+          active: {
+            store: "steam",
+            steamId64: "76561198000000001",
+            accountId32: "39734273",
+            source: "active-login",
+          },
+          known: [],
+        },
       },
       { winePrefixIsValid: false }
     );
     const second = await resolveCloudSaveEnvironment(
       {
         ...createContext(root, prefix),
-        storeUserId: "76561198051718575",
+        storeUserContext: {
+          active: {
+            store: "steam",
+            steamId64: "76561198051718575",
+            accountId32: "91452847",
+            source: "active-login",
+          },
+          known: [],
+        },
       },
       { winePrefixIsValid: false }
     );
 
-    assert.notEqual(first.environmentId, second.environmentId);
+    assert.equal(first.environmentId, second.environmentId);
   });
 
   it(

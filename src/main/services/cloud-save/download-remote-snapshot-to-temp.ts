@@ -7,6 +7,7 @@ import type {
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
+import { validateUserVariantSnapshotFile } from "./cloud-save-contract";
 import {
   mapWithConcurrency,
   MAX_CONCURRENT_RESTORE_OPERATIONS,
@@ -25,37 +26,29 @@ const isDownloadUrl = (value: unknown): value is string => {
   }
 };
 
-const fileKey = (rawPath: string, relativePath: string) =>
-  JSON.stringify([rawPath, relativePath]);
+const fileKey = (logicalFileId: string) => logicalFileId;
 
 const validateDownloadUrls = (value: unknown): RestoreDownloadUrlFile[] => {
   if (!Array.isArray(value)) {
     throw new TypeError("Invalid restore download URLs response");
   }
 
-  const seenPaths = new Set<string>();
+  const seenIds = new Set<string>();
   return value.map((file) => {
     if (!file || typeof file !== "object") {
       throw new Error("Invalid restore download URL file");
     }
     const item = file as Record<string, unknown>;
-    if (
-      !isNonEmptyString(item.rawPath) ||
-      !isNonEmptyString(item.relativePath) ||
-      !isNonEmptyString(item.hash) ||
-      typeof item.sizeBytes !== "number" ||
-      !Number.isFinite(item.sizeBytes) ||
-      item.sizeBytes < 0 ||
-      !isDownloadUrl(item.downloadUrl)
-    ) {
+    const snapshotFile = validateUserVariantSnapshotFile(item);
+    if (!isDownloadUrl(item.downloadUrl)) {
       throw new Error("Invalid restore download URL file");
     }
 
-    const key = fileKey(item.rawPath, item.relativePath);
-    if (seenPaths.has(key)) {
+    const key = fileKey(snapshotFile.logicalFileId);
+    if (seenIds.has(key)) {
       throw new Error("Duplicate restore download URL file");
     }
-    seenPaths.add(key);
+    seenIds.add(key);
 
     return item as unknown as RestoreDownloadUrlFile;
   });
@@ -72,29 +65,20 @@ export const downloadRemoteSnapshotToTemp = async (
       snapshotId,
     })
   );
-  const requestedByPath = requestedFiles
-    ? new Map(
-        requestedFiles.map((file) => [
-          fileKey(file.rawPath, file.relativePath),
-          file,
-        ])
-      )
+  const requestedById = requestedFiles
+    ? new Map(requestedFiles.map((file) => [fileKey(file.logicalFileId), file]))
     : null;
-  const selectedFiles = requestedByPath
-    ? files.filter((file) =>
-        requestedByPath.has(fileKey(file.rawPath, file.relativePath))
-      )
+  const selectedFiles = requestedById
+    ? files.filter((file) => requestedById.has(fileKey(file.logicalFileId)))
     : files;
-  if (requestedByPath) {
-    if (selectedFiles.length !== requestedByPath.size) {
+  if (requestedById) {
+    if (selectedFiles.length !== requestedById.size) {
       throw new Error("Missing restore download URL file");
     }
     for (const file of selectedFiles) {
-      const requested = requestedByPath.get(
-        fileKey(file.rawPath, file.relativePath)
-      );
+      const requested = requestedById.get(fileKey(file.logicalFileId));
       if (
-        requested?.hash !== file.hash ||
+        requested?.contentHash !== file.contentHash ||
         requested?.sizeBytes !== file.sizeBytes
       ) {
         throw new Error("Restore download URL file does not match manifest");
@@ -104,11 +88,11 @@ export const downloadRemoteSnapshotToTemp = async (
   const tempRoot = SystemPath.getPath("temp");
   const filesByHash = new Map<string, RestoreDownloadUrlFile[]>();
   for (const file of selectedFiles) {
-    const existing = filesByHash.get(file.hash);
+    const existing = filesByHash.get(file.contentHash);
     if (existing?.some((item) => item.sizeBytes !== file.sizeBytes)) {
       throw new Error("Restore blob hash has inconsistent sizes");
     }
-    filesByHash.set(file.hash, [...(existing ?? []), file]);
+    filesByHash.set(file.contentHash, [...(existing ?? []), file]);
   }
 
   const groups = Array.from(filesByHash.values());
@@ -120,11 +104,11 @@ export const downloadRemoteSnapshotToTemp = async (
       const [file] = group;
       const tempPath = await NativeAddon.downloadRestoreBlobToTemp(
         snapshotId,
-        file.hash,
+        file.contentHash,
         file.downloadUrl,
         tempRoot
       );
-      return { hash: file.hash, tempPath };
+      return { hash: file.contentHash, tempPath };
     },
     (_result, group) => {
       processedFiles += group.length;
@@ -136,13 +120,10 @@ export const downloadRemoteSnapshotToTemp = async (
   );
 
   return selectedFiles.map((file) => {
-    const tempPath = tempPathByHash.get(file.hash);
+    const tempPath = tempPathByHash.get(file.contentHash);
     if (!tempPath) throw new Error("Missing downloaded restore blob");
     return {
-      rawPath: file.rawPath,
-      relativePath: file.relativePath,
-      hash: file.hash,
-      sizeBytes: file.sizeBytes,
+      ...file,
       tempPath,
     };
   });

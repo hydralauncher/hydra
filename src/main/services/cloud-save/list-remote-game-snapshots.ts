@@ -24,7 +24,13 @@ const validateRemoteSnapshots = (value: unknown): RemoteSnapshotSummary[] => {
       typeof item.totalSizeBytes !== "number" ||
       !Number.isFinite(item.totalSizeBytes) ||
       item.totalSizeBytes < 0 ||
-      !isNonEmptyString(item.aggregateHash)
+      !isNonEmptyString(item.aggregateHash) ||
+      typeof item.revision !== "number" ||
+      !Number.isSafeInteger(item.revision) ||
+      item.revision < 1 ||
+      typeof item.schemaVersion !== "number" ||
+      !Number.isSafeInteger(item.schemaVersion) ||
+      item.schemaVersion < 1
     ) {
       throw new Error("Invalid snapshot response item");
     }

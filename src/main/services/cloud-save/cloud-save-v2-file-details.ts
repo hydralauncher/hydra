@@ -12,6 +12,7 @@ import type {
   RemoteSnapshotSummary,
   RestoreManifestFile,
   RestoreManifestResponse,
+  UserLocationCoverage,
 } from "@types";
 
 interface BuildCloudSaveV2FileDetailsInput {
@@ -21,45 +22,39 @@ interface BuildCloudSaveV2FileDetailsInput {
   localTotalSizeBytes: number;
   activeSnapshot: RemoteSnapshotSummary | null;
   remoteFiles: RestoreManifestFile[];
+  coverage?: UserLocationCoverage[];
+  unresolvedRemoteEntryIds?: string[];
+  conflictLogicalFileIds?: string[];
 }
 
-interface LoadCloudSaveV2FileDetailsInput {
+interface LoadCloudSaveV2FileDetailsInput
+  extends Omit<
+    BuildCloudSaveV2FileDetailsInput,
+    "remoteFiles" | "activeSnapshot"
+  > {
   objectId: string;
   shop: GameShop;
-  state: CloudSaveState;
-  localFiles: LocalGameSnapshotFile[];
-  localSourceFiles: LocalGameSnapshotSourceFile[];
-  localTotalSizeBytes: number;
   activeSnapshot: RemoteSnapshotSummary | null;
 }
 
-type FileIdentity = Pick<LocalGameSnapshotFile, "rawPath" | "relativePath">;
-
-const fileKey = (file: FileIdentity) =>
-  JSON.stringify([file.rawPath, file.relativePath]);
-
-const compareIdentities = (left: FileIdentity, right: FileIdentity) =>
-  left.rawPath.localeCompare(right.rawPath, undefined, {
-    numeric: true,
-    sensitivity: "base",
-  }) ||
-  left.relativePath.localeCompare(right.relativePath, undefined, {
-    numeric: true,
-    sensitivity: "base",
-  });
-
+type FileIdentity = { logicalFileId: string };
 const indexFiles = <T extends FileIdentity>(files: T[]) => {
   const indexed = new Map<string, T>();
-
   for (const file of files) {
-    const key = fileKey(file);
-    if (indexed.has(key)) {
-      throw new Error("Duplicate cloud save file identity");
+    if (indexed.has(file.logicalFileId)) {
+      throw new Error("Duplicate cloud save logical file identity");
     }
-    indexed.set(key, file);
+    indexed.set(file.logicalFileId, file);
   }
-
   return indexed;
+};
+
+const userLabel = (file: LocalGameSnapshotFile | RestoreManifestFile) => {
+  const storeUser = file.locator.bindings.storeUser;
+  if (storeUser.concreteFolderId === "__unbound__") return "Default";
+  const display = storeUser.steamId64 ?? storeUser.concreteFolderId;
+  const suffix = display.slice(-4);
+  return `${storeUser.kind === "validated-account" ? "Steam" : "Profile"} ••••${suffix}`;
 };
 
 const toLocalFiles = (
@@ -67,30 +62,29 @@ const toLocalFiles = (
   sourceFiles: LocalGameSnapshotSourceFile[]
 ): CloudSaveV2LocalFile[] => {
   const sourceByKey = indexFiles(sourceFiles);
-
   if (sourceFiles.length !== files.length) {
     throw new Error("Local cloud save file sources do not match the snapshot");
   }
-
   return files.map((file) => {
-    const source = sourceByKey.get(fileKey(file));
+    const source = sourceByKey.get(file.logicalFileId);
     if (
       !source ||
-      source.hash !== file.hash ||
+      source.contentHash !== file.contentHash ||
       source.sizeBytes !== file.sizeBytes
     ) {
-      throw new Error(
-        "Local cloud save file source does not match the snapshot"
-      );
+      throw new Error("Local cloud save file source does not match snapshot");
     }
-
     return {
       source: "local",
-      rawPath: file.rawPath,
+      logicalFileId: file.logicalFileId,
+      variantId: file.variantId,
+      ruleId: file.ruleId,
+      rawPath: file.locator.rawRule,
       relativePath: file.relativePath,
       absolutePath: source.absolutePath,
       sizeBytes: file.sizeBytes,
-      lastModifiedAt: file.lastModifiedAt,
+      lastModifiedAt: source.lastModifiedAt,
+      userLabel: userLabel(file),
     };
   });
 };
@@ -98,10 +92,14 @@ const toLocalFiles = (
 const toRemoteFiles = (files: RestoreManifestFile[]): CloudSaveV2RemoteFile[] =>
   files.map((file) => ({
     source: "remote",
-    rawPath: file.rawPath,
+    logicalFileId: file.logicalFileId,
+    variantId: file.variantId,
+    ruleId: file.ruleId,
+    rawPath: file.locator.rawRule,
     relativePath: file.relativePath,
     sizeBytes: file.sizeBytes,
     lastModifiedAt: file.lastModifiedAt ?? null,
+    userLabel: userLabel(file),
   }));
 
 const buildComparisons = (
@@ -114,42 +112,166 @@ const buildComparisons = (
   const localSnapshotByKey = indexFiles(localSnapshotFiles);
   const remoteByKey = indexFiles(remoteFiles);
   const remoteManifestByKey = indexFiles(remoteManifestFiles);
-  const identities = new Map<string, FileIdentity>();
+  const ids = new Set([...localByKey.keys(), ...remoteByKey.keys()]);
+  return [...ids].sort().map((logicalFileId) => {
+    const local = localByKey.get(logicalFileId) ?? null;
+    const remote = remoteByKey.get(logicalFileId) ?? null;
+    const identity = local ?? remote!;
+    let status: CloudSaveV2FileComparison["status"];
+    if (!remote) status = "local-only";
+    else if (!local) status = "remote-only";
+    else {
+      const localSnapshot = localSnapshotByKey.get(logicalFileId)!;
+      const remoteManifest = remoteManifestByKey.get(logicalFileId)!;
+      status =
+        localSnapshot.contentHash === remoteManifest.contentHash
+          ? "unchanged"
+          : "modified";
+    }
+    return {
+      logicalFileId,
+      variantId: identity.variantId,
+      rawPath: identity.rawPath,
+      relativePath: identity.relativePath,
+      status,
+      local,
+      remote,
+    };
+  });
+};
 
+const buildVariants = (
+  localFiles: CloudSaveV2LocalFile[],
+  remoteFiles: CloudSaveV2RemoteFile[],
+  coverage: UserLocationCoverage[]
+): CloudSaveV2FileDetails["variants"] => {
+  const variants = new Map<
+    string,
+    CloudSaveV2FileDetails["variants"][number]
+  >();
+  const logicalIdsByVariant = new Map<string, Set<string>>();
   for (const file of [...localFiles, ...remoteFiles]) {
-    identities.set(fileKey(file), file);
+    const current = variants.get(file.variantId);
+    if (!current) {
+      variants.set(file.variantId, {
+        variantId: file.variantId,
+        userLabel: file.userLabel,
+        fileCount: 1,
+        conflictCount: 0,
+        active: false,
+        warningCodes: [],
+      });
+    }
+    const ids = logicalIdsByVariant.get(file.variantId) ?? new Set<string>();
+    ids.add(file.logicalFileId);
+    logicalIdsByVariant.set(file.variantId, ids);
   }
+  for (const [variantId, ids] of logicalIdsByVariant) {
+    variants.get(variantId)!.fileCount = ids.size;
+  }
+  for (const item of coverage) {
+    if (!item.variantId) continue;
+    const variant = variants.get(item.variantId);
+    if (!variant) continue;
+    variant.active ||= item.authority === "authoritative";
+    variant.warningCodes.push(...item.warningCodes);
+    variant.warningCodes = [...new Set(variant.warningCodes)].sort();
+  }
+  return [...variants.values()].sort((left, right) =>
+    left.variantId.localeCompare(right.variantId)
+  );
+};
 
-  return Array.from(identities.values())
-    .sort(compareIdentities)
-    .map((identity) => {
-      const key = fileKey(identity);
-      const local = localByKey.get(key) ?? null;
-      const remote = remoteByKey.get(key) ?? null;
-      let status: CloudSaveV2FileComparison["status"];
+export const buildCloudSaveV2FileDetails = ({
+  state,
+  localFiles,
+  localSourceFiles,
+  localTotalSizeBytes,
+  activeSnapshot,
+  remoteFiles,
+  coverage = [],
+  unresolvedRemoteEntryIds = [],
+  conflictLogicalFileIds = [],
+}: BuildCloudSaveV2FileDetailsInput): CloudSaveV2FileDetails => {
+  indexFiles(localFiles);
+  indexFiles(remoteFiles);
+  if (
+    localFiles.reduce((total, file) => total + file.sizeBytes, 0) !==
+    localTotalSizeBytes
+  ) {
+    throw new Error("Local cloud save snapshot size is inconsistent");
+  }
+  const localFileDetails = toLocalFiles(localFiles, localSourceFiles);
+  const local: CloudSaveV2LocalFileSource = {
+    kind: "local",
+    fileCount: localFileDetails.length,
+    totalSizeBytes: localTotalSizeBytes,
+    files: localFileDetails,
+  };
+  const remoteFileDetails = toRemoteFiles(remoteFiles);
+  const variants = buildVariants(localFileDetails, remoteFileDetails, coverage);
+  const variantById = new Map(
+    variants.map((variant) => [variant.variantId, variant])
+  );
+  const filesById = new Map(
+    [...remoteFiles, ...localFiles].map((file) => [file.logicalFileId, file])
+  );
+  for (const logicalFileId of new Set(conflictLogicalFileIds)) {
+    const file = filesById.get(logicalFileId);
+    if (!file) throw new Error("Unknown Cloud Save conflict logical file");
+    const variant = variantById.get(file.variantId);
+    if (variant) variant.conflictCount += 1;
+  }
+  const unresolvedRemoteVariantCount = new Set(
+    remoteFiles
+      .filter((file) => unresolvedRemoteEntryIds.includes(file.logicalFileId))
+      .map((file) => file.variantId)
+  ).size;
 
-      if (!remote) status = "local-only";
-      else if (!local) status = "remote-only";
-      else {
-        const localSnapshotFile = localSnapshotByKey.get(key);
-        const remoteManifestFile = remoteManifestByKey.get(key);
-        if (!localSnapshotFile || !remoteManifestFile) {
-          throw new Error("Cloud save comparison source is missing");
-        }
-        status =
-          localSnapshotFile.hash === remoteManifestFile.hash
-            ? "unchanged"
-            : "modified";
-      }
-
-      return {
-        rawPath: identity.rawPath,
-        relativePath: identity.relativePath,
-        status,
-        local,
-        remote,
-      };
-    });
+  if (state !== "conflict") {
+    return {
+      state,
+      local,
+      activeSnapshot: null,
+      comparisons: [],
+      variants,
+      unresolvedRemoteVariantCount,
+    };
+  }
+  if (!activeSnapshot) {
+    throw new Error("A cloud save conflict requires an active snapshot");
+  }
+  const remoteTotalSizeBytes = remoteFiles.reduce(
+    (total, file) => total + file.sizeBytes,
+    0
+  );
+  if (
+    remoteFiles.length !== activeSnapshot.fileCount ||
+    remoteTotalSizeBytes !== activeSnapshot.totalSizeBytes
+  ) {
+    throw new Error("Active snapshot manifest does not match its summary");
+  }
+  const remote: CloudSaveV2ActiveSnapshotFileSource = {
+    kind: "active-snapshot",
+    snapshotId: activeSnapshot.id,
+    createdAt: activeSnapshot.createdAt,
+    fileCount: remoteFileDetails.length,
+    totalSizeBytes: remoteTotalSizeBytes,
+    files: remoteFileDetails,
+  };
+  return {
+    state,
+    local,
+    activeSnapshot: remote,
+    comparisons: buildComparisons(
+      localFileDetails,
+      localFiles,
+      remoteFileDetails,
+      remoteFiles
+    ),
+    variants,
+    unresolvedRemoteVariantCount,
+  };
 };
 
 const validateManifestOwnership = (
@@ -167,122 +289,29 @@ const validateManifestOwnership = (
   }
 };
 
-export const buildCloudSaveV2FileDetails = ({
-  state,
-  localFiles,
-  localSourceFiles,
-  localTotalSizeBytes,
-  activeSnapshot,
-  remoteFiles,
-}: BuildCloudSaveV2FileDetailsInput): CloudSaveV2FileDetails => {
-  indexFiles(localFiles);
-  indexFiles(remoteFiles);
-
-  const calculatedLocalSize = localFiles.reduce(
-    (total, file) => total + file.sizeBytes,
-    0
-  );
-  if (calculatedLocalSize !== localTotalSizeBytes) {
-    throw new Error("Local cloud save snapshot size is inconsistent");
-  }
-
-  const localFileDetails = toLocalFiles(localFiles, localSourceFiles);
-  const local: CloudSaveV2LocalFileSource = {
-    kind: "local",
-    fileCount: localFileDetails.length,
-    totalSizeBytes: localTotalSizeBytes,
-    files: localFileDetails,
-  };
-
-  if (state !== "conflict") {
-    if (activeSnapshot || remoteFiles.length > 0) {
-      throw new Error(
-        "Remote file details are only available during conflicts"
-      );
-    }
-
-    return {
-      state,
-      local,
-      activeSnapshot: null,
-      comparisons: [],
-    };
-  }
-
-  if (!activeSnapshot) {
-    throw new Error("A cloud save conflict requires an active snapshot");
-  }
-
-  const remoteTotalSizeBytes = remoteFiles.reduce(
-    (total, file) => total + file.sizeBytes,
-    0
-  );
-  if (
-    remoteFiles.length !== activeSnapshot.fileCount ||
-    remoteTotalSizeBytes !== activeSnapshot.totalSizeBytes
-  ) {
-    throw new Error("Active snapshot manifest does not match its summary");
-  }
-
-  const remoteFileDetails = toRemoteFiles(remoteFiles);
-  const remote: CloudSaveV2ActiveSnapshotFileSource = {
-    kind: "active-snapshot",
-    snapshotId: activeSnapshot.id,
-    createdAt: activeSnapshot.createdAt,
-    fileCount: remoteFileDetails.length,
-    totalSizeBytes: remoteTotalSizeBytes,
-    files: remoteFileDetails,
-  };
-
-  return {
-    state,
-    local,
-    activeSnapshot: remote,
-    comparisons: buildComparisons(
-      localFileDetails,
-      localFiles,
-      remoteFileDetails,
-      remoteFiles
-    ),
-  };
-};
-
 export const loadCloudSaveV2FileDetails = async (
-  {
-    objectId,
-    shop,
-    state,
-    localFiles,
-    localSourceFiles,
-    localTotalSizeBytes,
-    activeSnapshot,
-  }: LoadCloudSaveV2FileDetailsInput,
+  input: LoadCloudSaveV2FileDetailsInput,
   getActiveManifest: (snapshotId: string) => Promise<RestoreManifestResponse>
 ): Promise<CloudSaveV2FileDetails> => {
-  if (state !== "conflict") {
+  if (input.state !== "conflict") {
     return buildCloudSaveV2FileDetails({
-      state,
-      localFiles,
-      localSourceFiles,
-      localTotalSizeBytes,
+      ...input,
       activeSnapshot: null,
       remoteFiles: [],
     });
   }
-
-  if (!activeSnapshot) {
+  if (!input.activeSnapshot) {
     throw new Error("A cloud save conflict requires an active snapshot");
   }
-
-  const manifest = await getActiveManifest(activeSnapshot.id);
-  validateManifestOwnership(manifest, activeSnapshot, objectId, shop);
-
+  const manifest = await getActiveManifest(input.activeSnapshot.id);
+  validateManifestOwnership(
+    manifest,
+    input.activeSnapshot,
+    input.objectId,
+    input.shop
+  );
   return buildCloudSaveV2FileDetails({
-    state,
-    localFiles,
-    localSourceFiles,
-    localTotalSizeBytes,
-    activeSnapshot,
+    ...input,
     remoteFiles: manifest.files,
   });
 };

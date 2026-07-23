@@ -18,6 +18,7 @@ export const buildLocalGameSnapshotContext = async (
   const { hashCache: updatedHashCache, ...snapshot } =
     await NativeAddon.buildLocalGameSnapshotPipeline({
       ...pathContext,
+      environmentId,
       title: game?.title,
       remoteId: game?.remoteId ?? undefined,
       userDataPath: SystemPath.getPath("userData"),

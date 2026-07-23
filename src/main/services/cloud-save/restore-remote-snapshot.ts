@@ -3,10 +3,9 @@ import { SystemPath } from "@main/services/system-path";
 import type {
   CloudSaveGameId,
   CloudSavePathContext,
-  GameShop,
   ReplaceRestoreTarget,
+  RemoteGameSnapshot,
   RemoteSnapshotSummary,
-  ResolvedRestoreTarget,
   RestoreRemoteSnapshotResult,
   RestoreProgressPayload,
 } from "@types";
@@ -20,8 +19,6 @@ import {
 } from "./resolve-remote-snapshot-targets";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
-import { shouldSkipRestoreFile } from "./should-skip-restore-file";
-import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import {
   mapWithConcurrency,
   MAX_CONCURRENT_RESTORE_OPERATIONS,
@@ -33,26 +30,15 @@ interface RestoreCloudSaveContext {
   pathContext: CloudSavePathContext;
 }
 
-const fileKey = (rawPath: string, relativePath: string) =>
-  JSON.stringify([rawPath, relativePath]);
-
-const getSnapshotSummary = async (
-  snapshotId: string,
-  shop: GameShop,
-  objectId: string
-) => {
-  const snapshots = await listRemoteGameSnapshots(objectId, shop);
-  const snapshot = snapshots.find((item) => item.id === snapshotId);
-  if (!snapshot) throw new Error("Restore snapshot metadata not found");
-  return snapshot;
-};
-
 export const restoreRemoteSnapshot = async (
   snapshotId: string,
   gameId: CloudSaveGameId,
   onProgress?: (progress: RestoreProgressPayload) => void,
-  knownSnapshot?: RemoteSnapshotSummary,
-  suppliedContext?: RestoreCloudSaveContext
+  _knownSnapshot?: RemoteSnapshotSummary | RemoteGameSnapshot,
+  suppliedContext?: RestoreCloudSaveContext,
+  requestedLogicalFileIds?: string[],
+  updateAnchor = true,
+  carriedUnresolvedEntryIds: string[] = []
 ): Promise<RestoreRemoteSnapshotResult> => {
   const emitProgress = (
     stage: RestoreProgressPayload["stage"],
@@ -69,47 +55,35 @@ export const restoreRemoteSnapshot = async (
     throw new Error("Restore snapshot does not belong to the requested game");
   }
 
-  emitProgress("resolving", 0, manifest.files.length);
+  const requestedIds = requestedLogicalFileIds
+    ? new Set(requestedLogicalFileIds)
+    : null;
+  const selectedFiles = requestedIds
+    ? manifest.files.filter((file) => requestedIds.has(file.logicalFileId))
+    : manifest.files;
+  const selectedIds = new Set(selectedFiles.map((file) => file.logicalFileId));
+  if (requestedIds && selectedFiles.length !== requestedIds.size) {
+    throw new Error("Requested restore logical file is missing from manifest");
+  }
+  const selectedManifest = { ...manifest, files: selectedFiles };
+  emitProgress("resolving", 0, selectedFiles.length);
   const cloudSaveContext =
     suppliedContext ??
     (await getCloudSaveGameContext(gameId.objectId, gameId.shop));
-  const [targets, snapshot] = await Promise.all([
-    resolveRestoreManifestTargets(manifest, cloudSaveContext.pathContext),
-    knownSnapshot ??
-      getSnapshotSummary(
-        snapshotId,
-        manifest.snapshot.shop,
-        manifest.snapshot.objectId
-      ),
-  ]);
-  emitProgress("resolving", targets.length, targets.length);
-  const skipKeys = new Set<string>();
-  const restoreTargets: ResolvedRestoreTarget[] = [];
-
-  emitProgress("checking", 0, targets.length);
-  let checkedFiles = 0;
-  const skipResults = await mapWithConcurrency(
-    targets,
-    MAX_CONCURRENT_RESTORE_OPERATIONS,
-    (target) =>
-      shouldSkipRestoreFile({
-        localPath: target.targetPath,
-        expectedHash: target.hash,
-      }),
-    () => {
-      checkedFiles += 1;
-      emitProgress("checking", checkedFiles, targets.length);
-    }
+  const plan = await resolveRestoreManifestTargets(
+    selectedManifest,
+    cloudSaveContext.pathContext
   );
-  for (const [index, target] of targets.entries()) {
-    if (skipResults[index]) {
-      skipKeys.add(fileKey(target.rawPath, target.relativePath));
-    } else {
-      restoreTargets.push(target);
-    }
-  }
+  emitProgress("resolving", plan.actions.length, selectedFiles.length);
 
+  const skippedTargets = plan.actions.filter(
+    (target) => target.action === "skip-identical"
+  );
+  const restoreTargets = plan.actions.filter(
+    (target) => target.action !== "skip-identical"
+  );
   const shouldCleanup = restoreTargets.length > 0;
+
   try {
     emitProgress("downloading", 0, restoreTargets.length);
     const downloadedFiles = await downloadRemoteSnapshotToTemp(
@@ -118,37 +92,29 @@ export const restoreRemoteSnapshot = async (
       (processedFiles, totalFiles) =>
         emitProgress("downloading", processedFiles, totalFiles)
     );
-    const downloadedByPath = new Map(
-      downloadedFiles.map((file) => [
-        fileKey(file.rawPath, file.relativePath),
-        file,
-      ])
+    const downloadedById = new Map(
+      downloadedFiles.map((file) => [file.logicalFileId, file])
     );
-
-    const downloadedFilesByHash = new Map<string, typeof downloadedFiles>();
+    const downloadedFilesByContent = new Map<string, typeof downloadedFiles>();
     for (const file of downloadedFiles) {
-      const existing = downloadedFilesByHash.get(file.hash) ?? [];
-      if (
-        existing.some(
-          (item) =>
-            item.sizeBytes !== file.sizeBytes || item.tempPath !== file.tempPath
-        )
-      ) {
+      const key = JSON.stringify([file.contentHash, file.sizeBytes]);
+      const existing = downloadedFilesByContent.get(key) ?? [];
+      if (existing.some((item) => item.tempPath !== file.tempPath)) {
         throw new Error("Downloaded restore blob is inconsistent");
       }
-      downloadedFilesByHash.set(file.hash, [...existing, file]);
+      downloadedFilesByContent.set(key, [...existing, file]);
     }
-    const verificationGroups = Array.from(downloadedFilesByHash.values());
+
     let verifiedFiles = 0;
     emitProgress("verifying", 0, downloadedFiles.length);
     await mapWithConcurrency(
-      verificationGroups,
+      Array.from(downloadedFilesByContent.values()),
       MAX_CONCURRENT_RESTORE_OPERATIONS,
       async (group) => {
         const [file] = group;
         const integrity = await verifyDownloadedRestoreFile({
           tempPath: file.tempPath,
-          expectedHash: file.hash,
+          expectedHash: file.contentHash,
         });
         if (!integrity.ok) {
           throw new Error("Restore file integrity check failed");
@@ -160,58 +126,81 @@ export const restoreRemoteSnapshot = async (
       }
     );
 
-    const replacements: ReplaceRestoreTarget[] = targets.map((target) => {
-      const key = fileKey(target.rawPath, target.relativePath);
-      if (skipKeys.has(key)) {
-        return {
-          rawPath: target.rawPath,
-          relativePath: target.relativePath,
-          targetPath: target.targetPath,
-          action: "skip",
-        };
-      }
-      const file = downloadedByPath.get(key);
-      if (!file) throw new Error("Missing downloaded restore file");
-      return {
-        rawPath: target.rawPath,
-        relativePath: target.relativePath,
-        targetPath: target.targetPath,
-        action: "restore",
-        tempPath: file.tempPath,
-        expectedHash: file.hash,
-      };
+    const identity = ({
+      logicalFileId,
+      variantId,
+      ruleId,
+      relativePath,
+      targetPath,
+    }: (typeof plan.actions)[number]) => ({
+      logicalFileId,
+      variantId,
+      ruleId,
+      relativePath,
+      targetPath,
     });
+    const replacements: ReplaceRestoreTarget[] = [
+      ...skippedTargets.map((target) => ({
+        ...identity(target),
+        action: "skip" as const,
+      })),
+      ...restoreTargets.map((target) => {
+        const file = downloadedById.get(target.logicalFileId);
+        if (!file) throw new Error("Missing downloaded restore file");
+        return {
+          ...identity(target),
+          action: "restore" as const,
+          tempPath: file.tempPath,
+          expectedHash: file.contentHash,
+        };
+      }),
+    ];
     emitProgress("applying_restore", 0, replacements.length);
     const result = await replaceRestoreTargets(replacements);
     emitProgress("applying_restore", replacements.length, replacements.length);
-    if (result.failedFiles.length > 0) {
-      const restoreResult = {
-        ok: false,
-        restoredFiles: result.restoredFiles.length,
-        skippedFiles: result.skippedFiles.length,
-        failedFiles: result.failedFiles.length,
-      };
-      emitProgress("completed", replacements.length, replacements.length);
-      return restoreResult;
+    const blockedIds = plan.blocked.map((file) => file.logicalFileId);
+    const unresolvedRemoteEntryIds = [
+      ...new Set([
+        ...carriedUnresolvedEntryIds.filter(
+          (logicalFileId) => !selectedIds.has(logicalFileId)
+        ),
+        ...blockedIds,
+      ]),
+    ].sort();
+
+    if (result.failedFiles.length === 0 && updateAnchor) {
+      await saveCloudSaveSyncAnchor(
+        manifest.snapshot.shop,
+        manifest.snapshot.objectId,
+        cloudSaveContext.environmentId,
+        {
+          schemaVersion: 3,
+          environmentId: cloudSaveContext.environmentId,
+          baseSnapshotId: manifest.snapshot.id,
+          baseHeadRevision: manifest.snapshot.revision,
+          baseAggregateHash: manifest.snapshot.aggregateHash,
+          entries: manifest.files.map((file) => ({
+            logicalFileId: file.logicalFileId,
+            contentHash: file.contentHash,
+            sizeBytes: file.sizeBytes,
+          })),
+          unresolvedRemoteEntryIds,
+          updatedAt: new Date().toISOString(),
+        }
+      );
     }
 
-    await saveCloudSaveSyncAnchor(
-      manifest.snapshot.shop,
-      manifest.snapshot.objectId,
-      cloudSaveContext.environmentId,
-      {
-        baseSnapshotId: snapshot.id,
-        baseAggregateHash: snapshot.aggregateHash,
-        updatedAt: new Date().toISOString(),
-      }
-    );
-    const restoreResult = {
-      ok: true,
+    const partial = unresolvedRemoteEntryIds.length > 0;
+    const restoreResult: RestoreRemoteSnapshotResult = {
+      ok: result.failedFiles.length === 0,
+      partial,
       restoredFiles: result.restoredFiles.length,
       skippedFiles: result.skippedFiles.length,
-      failedFiles: 0,
+      failedFiles: result.failedFiles.length,
+      blockedFiles: plan.blocked.length,
+      unresolvedRemoteEntryIds,
     };
-    emitProgress("completed", targets.length, targets.length);
+    emitProgress("completed", plan.actions.length, selectedFiles.length);
     return restoreResult;
   } finally {
     if (shouldCleanup) {

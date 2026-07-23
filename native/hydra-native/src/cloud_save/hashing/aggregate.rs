@@ -1,20 +1,26 @@
 use serde::Serialize;
 
+use crate::cloud_save::identity::PortableLocator;
+
 use super::types::BuildSnapshotAggregateHashInput;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct CanonicalSnapshotFile<'a> {
-    #[serde(rename = "rawPath")]
-    raw_path: &'a str,
-    #[serde(rename = "relativePath")]
+    logical_file_id: &'a str,
+    variant_id: &'a str,
+    rule_id: &'a str,
+    locator: &'a PortableLocator,
     relative_path: &'a str,
-    hash: &'a str,
-    #[serde(rename = "sizeBytes")]
+    content_hash: &'a str,
     size_bytes: u64,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct CanonicalSnapshot<'a> {
+    schema_version: u32,
+    save_namespace_key: &'a str,
     files: Vec<CanonicalSnapshotFile<'a>>,
 }
 
@@ -31,23 +37,31 @@ fn canonical_size_bytes(size_bytes: f64) -> Result<u64, String> {
 }
 
 pub fn build_hash(mut input: BuildSnapshotAggregateHashInput) -> Result<String, String> {
-    input.files.sort_by(|left, right| {
-        left.raw_path
-            .cmp(&right.raw_path)
-            .then_with(|| left.relative_path.cmp(&right.relative_path))
-            .then_with(|| left.hash.cmp(&right.hash))
-            .then_with(|| left.size_bytes.total_cmp(&right.size_bytes))
-    });
+    input
+        .files
+        .sort_by(|left, right| left.logical_file_id.cmp(&right.logical_file_id));
+    if input
+        .files
+        .windows(2)
+        .any(|files| files[0].logical_file_id == files[1].logical_file_id)
+    {
+        return Err("cloud_save_duplicate_logical_file_id".to_string());
+    }
 
     let snapshot = CanonicalSnapshot {
+        schema_version: input.schema_version,
+        save_namespace_key: &input.save_namespace_key,
         files: input
             .files
             .iter()
             .map(|file| {
                 Ok(CanonicalSnapshotFile {
-                    raw_path: &file.raw_path,
+                    logical_file_id: &file.logical_file_id,
+                    variant_id: &file.variant_id,
+                    rule_id: &file.rule_id,
+                    locator: &file.locator,
                     relative_path: &file.relative_path,
-                    hash: &file.hash,
+                    content_hash: &file.content_hash,
                     size_bytes: canonical_size_bytes(file.size_bytes)?,
                 })
             })
@@ -62,30 +76,51 @@ pub fn build_hash(mut input: BuildSnapshotAggregateHashInput) -> Result<String, 
 mod tests {
     use super::*;
     use crate::cloud_save::hashing::types::SnapshotAggregateHashFile;
+    use crate::cloud_save::identity::{PortableBindings, PortableStoreUserIdentity};
 
-    fn file(
-        raw_path: &str,
-        relative_path: &str,
-        hash: &str,
-        size_bytes: f64,
-    ) -> SnapshotAggregateHashFile {
+    fn file(id: &str, content_hash: &str, size_bytes: f64) -> SnapshotAggregateHashFile {
         SnapshotAggregateHashFile {
-            raw_path: raw_path.into(),
-            relative_path: relative_path.into(),
-            hash: hash.into(),
+            logical_file_id: id.into(),
+            variant_id: "variant".into(),
+            rule_id: "rule".into(),
+            relative_path: format!("{id}.sav"),
+            locator: PortableLocator {
+                version: 1,
+                rule_id: "rule".into(),
+                raw_rule: "<home>/game".into(),
+                rule_source: "test".into(),
+                root_kind: "home".into(),
+                bindings: PortableBindings {
+                    store: "steam".into(),
+                    store_game_id: "1".into(),
+                    store_user: PortableStoreUserIdentity {
+                        kind: "opaque-folder".into(),
+                        store: "steam".into(),
+                        steam_id64: None,
+                        account_id32: None,
+                        concrete_folder_id: "__unbound__".into(),
+                    },
+                },
+                target_semantics: "directory-tree".into(),
+            },
+            content_hash: content_hash.into(),
             size_bytes,
         }
     }
 
     fn hash(files: Vec<SnapshotAggregateHashFile>) -> String {
-        build_hash(BuildSnapshotAggregateHashInput { files }).unwrap()
+        build_hash(BuildSnapshotAggregateHashInput {
+            schema_version: 2,
+            save_namespace_key: "steam:1".into(),
+            files,
+        })
+        .unwrap()
     }
 
     #[test]
     fn aggregate_hash_is_independent_of_input_order() {
-        let first = file("<home>/game", "one.sav", "a", 10.0);
-        let second = file("<home>/game", "two.sav", "b", 20.0);
-
+        let first = file("one", "a", 10.0);
+        let second = file("two", "b", 20.0);
         assert_eq!(
             hash(vec![first.clone(), second.clone()]),
             hash(vec![second, first])
@@ -93,36 +128,34 @@ mod tests {
     }
 
     #[test]
-    fn identity_changes_with_path_hash_or_size() {
-        let baseline = hash(vec![file("<home>/game", "save.dat", "a", 10.0)]);
-
-        assert_ne!(
-            baseline,
-            hash(vec![file("<home>/other", "save.dat", "a", 10.0)])
-        );
-        assert_ne!(
-            baseline,
-            hash(vec![file("<home>/game", "other.dat", "a", 10.0)])
-        );
-        assert_ne!(
-            baseline,
-            hash(vec![file("<home>/game", "save.dat", "b", 10.0)])
-        );
-        assert_ne!(
-            baseline,
-            hash(vec![file("<home>/game", "save.dat", "a", 11.0)])
-        );
+    fn identity_and_content_change_hash() {
+        let baseline = hash(vec![file("one", "a", 10.0)]);
+        assert_ne!(baseline, hash(vec![file("two", "a", 10.0)]));
+        assert_ne!(baseline, hash(vec![file("one", "b", 10.0)]));
+        assert_ne!(baseline, hash(vec![file("one", "a", 11.0)]));
     }
 
     #[test]
-    fn rejects_invalid_sizes() {
+    fn rejects_invalid_sizes_and_duplicate_ids() {
         for size_bytes in [f64::NAN, f64::INFINITY, -1.0, 1.5, u64::MAX as f64] {
-            let error = build_hash(BuildSnapshotAggregateHashInput {
-                files: vec![file("<home>/game", "save.dat", "a", size_bytes)],
-            })
-            .unwrap_err();
-
-            assert_eq!(error, "cloud_save_invalid_size_bytes");
+            assert_eq!(
+                build_hash(BuildSnapshotAggregateHashInput {
+                    schema_version: 2,
+                    save_namespace_key: "steam:1".into(),
+                    files: vec![file("one", "a", size_bytes)],
+                })
+                .unwrap_err(),
+                "cloud_save_invalid_size_bytes"
+            );
         }
+        assert_eq!(
+            build_hash(BuildSnapshotAggregateHashInput {
+                schema_version: 2,
+                save_namespace_key: "steam:1".into(),
+                files: vec![file("one", "a", 1.0), file("one", "a", 1.0)],
+            })
+            .unwrap_err(),
+            "cloud_save_duplicate_logical_file_id"
+        );
     }
 }

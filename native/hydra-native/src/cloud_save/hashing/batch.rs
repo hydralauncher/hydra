@@ -8,6 +8,11 @@ use time::OffsetDateTime;
 use super::file::hash_file;
 use super::types::{HashFilesResult, HashedLocalFile, LocalFileHashCacheEntry};
 
+pub struct HashFilesBestEffortResult {
+    pub result: HashFilesResult,
+    pub failures: Vec<(String, String)>,
+}
+
 pub const MAX_CONCURRENT_HASHES: usize = 8;
 const BLAKE3_HEX_HASH_LENGTH: usize = 64;
 static HASHING_POOL: OnceLock<rayon::ThreadPool> = OnceLock::new();
@@ -79,6 +84,17 @@ pub fn hash_files(
     absolute_paths: Vec<String>,
     hash_cache: Vec<LocalFileHashCacheEntry>,
 ) -> Result<HashFilesResult, String> {
+    let result = hash_files_best_effort(absolute_paths, hash_cache);
+    if let Some((_, error)) = result.failures.into_iter().next() {
+        return Err(error);
+    }
+    Ok(result.result)
+}
+
+pub fn hash_files_best_effort(
+    absolute_paths: Vec<String>,
+    hash_cache: Vec<LocalFileHashCacheEntry>,
+) -> HashFilesBestEffortResult {
     let paths = absolute_paths
         .into_iter()
         .collect::<BTreeSet<_>>()
@@ -89,15 +105,24 @@ pub fn hash_files(
         .map(|entry| (entry.absolute_path.clone(), entry))
         .collect::<HashMap<_, _>>();
 
-    let files = hashing_pool().install(|| {
+    let results = hashing_pool().install(|| {
         paths
             .into_par_iter()
             .map(|absolute_path| {
                 let cached = cache_by_path.get(&absolute_path);
-                hash_file_with_cache(absolute_path, cached)
+                let path = absolute_path.clone();
+                hash_file_with_cache(absolute_path, cached).map_err(|error| (path, error))
             })
-            .collect::<Result<Vec<_>, _>>()
-    })?;
+            .collect::<Vec<_>>()
+    });
+    let mut files = Vec::new();
+    let mut failures = Vec::new();
+    for result in results {
+        match result {
+            Ok(file) => files.push(file),
+            Err(failure) => failures.push(failure),
+        }
+    }
     let hash_cache = files
         .iter()
         .map(|file| LocalFileHashCacheEntry {
@@ -108,7 +133,10 @@ pub fn hash_files(
         })
         .collect();
 
-    Ok(HashFilesResult { files, hash_cache })
+    HashFilesBestEffortResult {
+        result: HashFilesResult { files, hash_cache },
+        failures,
+    }
 }
 
 #[cfg(test)]

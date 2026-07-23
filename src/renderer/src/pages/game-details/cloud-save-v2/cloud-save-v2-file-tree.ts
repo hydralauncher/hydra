@@ -275,7 +275,12 @@ export const buildCloudSaveV2ComparisonTree = (
   const roots = new Map<string, MutableBranch>();
 
   for (const comparison of comparisons) {
-    const rootId = JSON.stringify(["comparison-root", comparison.rawPath]);
+    const rootId = JSON.stringify([
+      "comparison-root",
+      comparison.variantId,
+      comparison.rawPath,
+    ]);
+    const identity = comparison.local ?? comparison.remote;
     const localRootPath = comparison.local
       ? getLocalRootPath(comparison.local)
       : null;
@@ -284,7 +289,9 @@ export const buildCloudSaveV2ComparisonTree = (
       root = {
         type: "root",
         id: rootId,
-        name: comparison.rawPath,
+        name: identity
+          ? `${identity.userLabel} · ${comparison.rawPath}`
+          : comparison.rawPath,
         rawPath: comparison.rawPath,
         localDirectoryPath: localRootPath,
         hasLocalFiles: Boolean(comparison.local),
@@ -311,6 +318,7 @@ export const buildCloudSaveV2ComparisonTree = (
       directorySegments.push(segment);
       const directoryId = JSON.stringify([
         "comparison-directory",
+        comparison.variantId,
         comparison.rawPath,
         ...directorySegments,
       ]);
@@ -343,11 +351,7 @@ export const buildCloudSaveV2ComparisonTree = (
 
     parent.files.push({
       type: "file",
-      id: JSON.stringify([
-        "comparison-file",
-        comparison.rawPath,
-        comparison.relativePath,
-      ]),
+      id: JSON.stringify(["comparison-file", comparison.logicalFileId]),
       name: fileName,
       local: comparison.local,
       remote: comparison.remote,

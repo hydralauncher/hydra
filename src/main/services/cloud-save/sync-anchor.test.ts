@@ -10,8 +10,8 @@ const anchor = {
 };
 
 describe("legacy cloud save anchor migration", () => {
-  it("migrates only a non-empty local snapshot matching the old base", () => {
-    assert.equal(canMigrateLegacyCloudSaveAnchor(anchor, "base", 1), true);
+  it("never guesses an aggregate-only anchor into V3 entry truth", () => {
+    assert.equal(canMigrateLegacyCloudSaveAnchor(anchor, "base", 1), false);
     assert.equal(canMigrateLegacyCloudSaveAnchor(anchor, "other", 1), false);
     assert.equal(canMigrateLegacyCloudSaveAnchor(anchor, "base", 0), false);
     assert.equal(canMigrateLegacyCloudSaveAnchor(null, "base", 1), false);

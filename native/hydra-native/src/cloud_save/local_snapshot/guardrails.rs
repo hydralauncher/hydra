@@ -2,18 +2,21 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs;
 
-use crate::cloud_save::hashing::batch::format_modified_at;
-use crate::cloud_save::hashing::types::HashedLocalFile;
-
 use super::types::{BuiltLocalSaveFile, DiscoveredLocalSaveFile};
+use crate::cloud_save::hashing::batch::format_modified_at;
 
 pub const MAX_SNAPSHOT_FILE_COUNT: usize = 500;
 pub const MAX_SNAPSHOT_TOTAL_SIZE_BYTES: u64 = 2_147_483_647;
 
 #[derive(Debug, PartialEq)]
 pub struct InitialFileMetadata {
-    size_bytes: f64,
-    last_modified_at: String,
+    pub size_bytes: f64,
+    pub last_modified_at: String,
+}
+
+pub struct PreparedSnapshotFiles {
+    pub metadata_by_path: HashMap<String, InitialFileMetadata>,
+    pub unavailable_paths: Vec<String>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -22,7 +25,7 @@ pub enum LocalSnapshotGuardError {
     SnapshotTooLarge,
     DuplicateFile,
     HashSizeMismatch,
-    FileChangedDuringSnapshot,
+    #[cfg(test)]
     FileMetadataUnavailable,
 }
 
@@ -33,12 +36,13 @@ impl fmt::Display for LocalSnapshotGuardError {
             Self::SnapshotTooLarge => "cloud_save_snapshot_too_large",
             Self::DuplicateFile => "cloud_save_duplicate_file",
             Self::HashSizeMismatch => "cloud_save_hash_size_mismatch",
-            Self::FileChangedDuringSnapshot => "cloud_save_file_changed_during_snapshot",
+            #[cfg(test)]
             Self::FileMetadataUnavailable => "cloud_save_file_metadata_unavailable",
         })
     }
 }
 
+#[cfg(test)]
 pub fn prepare_snapshot_files(
     files: &[DiscoveredLocalSaveFile],
 ) -> Result<HashMap<String, InitialFileMetadata>, LocalSnapshotGuardError> {
@@ -48,7 +52,7 @@ pub fn prepare_snapshot_files(
 
     let mut logical_paths = HashSet::with_capacity(files.len());
     for file in files {
-        if !logical_paths.insert((&file.raw_path, &file.relative_path)) {
+        if !logical_paths.insert(&file.logical_file_id) {
             return Err(LocalSnapshotGuardError::DuplicateFile);
         }
     }
@@ -84,23 +88,53 @@ pub fn prepare_snapshot_files(
     Ok(metadata_by_path)
 }
 
-pub fn validate_hashed_files(
-    files: &[HashedLocalFile],
-    initial_metadata: &HashMap<String, InitialFileMetadata>,
-) -> Result<(), LocalSnapshotGuardError> {
+pub fn prepare_snapshot_files_best_effort(
+    files: &[DiscoveredLocalSaveFile],
+) -> Result<PreparedSnapshotFiles, LocalSnapshotGuardError> {
+    if files.len() > MAX_SNAPSHOT_FILE_COUNT {
+        return Err(LocalSnapshotGuardError::TooManyFiles);
+    }
+    let mut logical_paths = HashSet::with_capacity(files.len());
     for file in files {
-        let initial = initial_metadata
-            .get(&file.absolute_path)
-            .ok_or(LocalSnapshotGuardError::FileChangedDuringSnapshot)?;
-
-        if initial.size_bytes != file.size_bytes
-            || initial.last_modified_at != file.last_modified_at
-        {
-            return Err(LocalSnapshotGuardError::FileChangedDuringSnapshot);
+        if !logical_paths.insert(&file.logical_file_id) {
+            return Err(LocalSnapshotGuardError::DuplicateFile);
         }
     }
 
-    Ok(())
+    let mut total_size_bytes = 0_u64;
+    let mut metadata_by_path = HashMap::with_capacity(files.len());
+    let mut unavailable_paths = Vec::new();
+    for file in files {
+        let Ok(metadata) = fs::metadata(&file.absolute_path) else {
+            unavailable_paths.push(file.absolute_path.clone());
+            continue;
+        };
+        if !metadata.is_file() {
+            unavailable_paths.push(file.absolute_path.clone());
+            continue;
+        }
+        let Ok(modified) = metadata.modified() else {
+            unavailable_paths.push(file.absolute_path.clone());
+            continue;
+        };
+        total_size_bytes = total_size_bytes
+            .checked_add(metadata.len())
+            .ok_or(LocalSnapshotGuardError::SnapshotTooLarge)?;
+        if total_size_bytes > MAX_SNAPSHOT_TOTAL_SIZE_BYTES {
+            return Err(LocalSnapshotGuardError::SnapshotTooLarge);
+        }
+        metadata_by_path.insert(
+            file.absolute_path.clone(),
+            InitialFileMetadata {
+                size_bytes: metadata.len() as f64,
+                last_modified_at: format_modified_at(modified),
+            },
+        );
+    }
+    Ok(PreparedSnapshotFiles {
+        metadata_by_path,
+        unavailable_paths,
+    })
 }
 
 pub fn validate_built_files(files: &[BuiltLocalSaveFile]) -> Result<u64, LocalSnapshotGuardError> {
@@ -116,25 +150,10 @@ pub fn validate_built_files(files: &[BuiltLocalSaveFile]) -> Result<u64, LocalSn
             return Err(LocalSnapshotGuardError::SnapshotTooLarge);
         }
 
-        if let Some(previous_size) = size_by_hash.insert(&file.hash, size_bytes) {
+        if let Some(previous_size) = size_by_hash.insert(&file.content_hash, size_bytes) {
             if previous_size != size_bytes {
                 return Err(LocalSnapshotGuardError::HashSizeMismatch);
             }
-        }
-    }
-
-    for file in files {
-        let metadata = fs::metadata(&file.absolute_path)
-            .map_err(|_| LocalSnapshotGuardError::FileChangedDuringSnapshot)?;
-        let modified = metadata
-            .modified()
-            .map_err(|_| LocalSnapshotGuardError::FileChangedDuringSnapshot)?;
-
-        if !metadata.is_file()
-            || metadata.len() as f64 != file.size_bytes
-            || format_modified_at(modified) != file.last_modified_at
-        {
-            return Err(LocalSnapshotGuardError::FileChangedDuringSnapshot);
         }
     }
 
@@ -145,11 +164,44 @@ pub fn validate_built_files(files: &[BuiltLocalSaveFile]) -> Result<u64, LocalSn
 mod tests {
     use super::*;
 
-    fn discovered(raw_path: &str, relative_path: &str) -> DiscoveredLocalSaveFile {
+    fn discovered(logical_file_id: &str, relative_path: &str) -> DiscoveredLocalSaveFile {
+        use crate::cloud_save::identity::{
+            LocalResolutionBindings, PortableBindings, PortableLocator, PortableStoreUserIdentity,
+        };
         DiscoveredLocalSaveFile {
-            raw_path: raw_path.into(),
+            logical_file_id: logical_file_id.into(),
+            variant_id: "variant".into(),
+            rule_id: "rule".into(),
             absolute_path: relative_path.into(),
             relative_path: relative_path.into(),
+            locator: PortableLocator {
+                version: 1,
+                rule_id: "rule".into(),
+                raw_rule: "<home>/game".into(),
+                rule_source: "test".into(),
+                root_kind: "home".into(),
+                bindings: PortableBindings {
+                    store: "steam".into(),
+                    store_game_id: "1".into(),
+                    store_user: PortableStoreUserIdentity {
+                        kind: "opaque-folder".into(),
+                        store: "steam".into(),
+                        steam_id64: None,
+                        account_id32: None,
+                        concrete_folder_id: "__unbound__".into(),
+                    },
+                },
+                target_semantics: "directory-tree".into(),
+            },
+            local_bindings: LocalResolutionBindings {
+                environment_id: "environment".into(),
+                root_id: "root".into(),
+                prefix_generation_id: None,
+                concrete_user_segment: "__unbound__".into(),
+                concrete_path: relative_path.into(),
+            },
+            confidence: "inferred".into(),
+            provenance: vec!["test".into()],
         }
     }
 
@@ -180,9 +232,11 @@ mod tests {
             .set_len(MAX_SNAPSHOT_TOTAL_SIZE_BYTES + 1)
             .unwrap();
         let file = DiscoveredLocalSaveFile {
-            raw_path: "<home>/game".into(),
+            ..discovered("large", "large.sav")
+        };
+        let file = DiscoveredLocalSaveFile {
             absolute_path: path.display().to_string(),
-            relative_path: "large.sav".into(),
+            ..file
         };
 
         assert_eq!(

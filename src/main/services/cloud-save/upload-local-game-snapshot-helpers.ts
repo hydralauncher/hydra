@@ -18,8 +18,7 @@ const isHttpUrl = (value: unknown): value is string => {
   }
 };
 
-const fileKey = (rawPath: string, relativePath: string) =>
-  JSON.stringify([rawPath, relativePath]);
+const fileKey = (logicalFileId: string) => logicalFileId;
 
 export const validatePrepareResponse = (
   value: unknown
@@ -30,8 +29,11 @@ export const validatePrepareResponse = (
 
   const response = value as Record<string, unknown>;
   if (
-    !isNonEmptyString(response.snapshotId) ||
+    !isNonEmptyString(response.pendingSnapshotId) ||
     !isNonEmptyString(response.snapshotHash) ||
+    typeof response.expectedHeadRevision !== "number" ||
+    !Number.isInteger(response.expectedHeadRevision) ||
+    response.expectedHeadRevision < 0 ||
     !Array.isArray(response.files)
   ) {
     throw new TypeError("Invalid prepare snapshot response");
@@ -43,17 +45,16 @@ export const validatePrepareResponse = (
       throw new Error("Invalid prepare snapshot file response");
     }
     const file = item as Record<string, unknown>;
-    const { rawPath, relativePath, status, uploadUrl } = file;
+    const { logicalFileId, status, uploadUrl } = file;
     if (
-      !isNonEmptyString(rawPath) ||
-      !isNonEmptyString(relativePath) ||
+      !isNonEmptyString(logicalFileId) ||
       (status !== "skip" && status !== "upload") ||
       (status === "upload" && !isHttpUrl(uploadUrl))
     ) {
       throw new Error("Invalid prepare snapshot file response");
     }
 
-    const key = fileKey(rawPath, relativePath);
+    const key = fileKey(logicalFileId);
     if (seenFiles.has(key)) {
       throw new Error("Duplicate prepare snapshot file response");
     }
@@ -79,9 +80,13 @@ export const groupUploadsByHash = (items: PreparedSnapshotSource[]) => {
 
   for (const item of items) {
     if (item.file.status !== "upload") continue;
-    const uploads = groups.get(item.source.hash) ?? [];
+    const contentKey = JSON.stringify([
+      item.source.contentHash,
+      item.source.sizeBytes,
+    ]);
+    const uploads = groups.get(contentKey) ?? [];
     uploads.push({ file: item.file, source: item.source });
-    groups.set(item.source.hash, uploads);
+    groups.set(contentKey, uploads);
   }
 
   return groups;
