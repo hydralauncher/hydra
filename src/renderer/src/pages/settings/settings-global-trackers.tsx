@@ -4,18 +4,13 @@ import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { useForm } from "react-hook-form";
 import { CheckboxField } from "@renderer/components";
 import { setUserPreferences } from "@renderer/features";
+import { parseTrackerList } from "@shared";
 import { debounce } from "lodash-es";
 import "./settings-global-trackers.scss";
 
 interface FormValues {
   manualTrackers: string;
 }
-
-const parseManualTrackers = (text: string) =>
-  text
-    .split(/[\r\n,]+/)
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith("#"));
 
 export function SettingsGlobalTrackers() {
   const { t } = useTranslation("settings");
@@ -40,7 +35,6 @@ export function SettingsGlobalTrackers() {
   const appendUrlRef = useRef(appendUrl);
   const initialManualTrackers = useRef<string[]>([]);
   const initialTrackerUrl = useRef("");
-  const isMounted = useRef(true);
 
   useEffect(() => {
     appendManualRef.current = appendManual;
@@ -53,11 +47,11 @@ export function SettingsGlobalTrackers() {
   const manualText = watch("manualTrackers");
 
   const manualTrackers = useMemo(() => {
-    return parseManualTrackers(manualText ?? "");
+    return parseTrackerList(manualText ?? "");
   }, [manualText]);
 
   const getCurrentManualTrackers = useCallback(() => {
-    return parseManualTrackers(getValues("manualTrackers") ?? "");
+    return parseTrackerList(getValues("manualTrackers") ?? "");
   }, [getValues]);
 
   const refreshUserPreferences = useCallback(async () => {
@@ -138,7 +132,6 @@ export function SettingsGlobalTrackers() {
 
   useEffect(() => {
     return () => {
-      isMounted.current = false;
       debouncedSave.flush();
     };
   }, [debouncedSave]);

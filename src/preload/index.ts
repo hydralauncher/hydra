@@ -67,7 +67,7 @@ contextBridge.exposeInMainWorld("electron", {
       url,
       appendManual,
       appendUrl
-    ) as Promise<{ error?: string }>,
+    ) as Promise<void>,
   addGameToQueue: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("addGameToQueue", payload),
   cancelGameDownload: (shop: GameShop, objectId: string) =>

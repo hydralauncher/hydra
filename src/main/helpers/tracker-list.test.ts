@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { isValidTrackerUrl, parseTrackerList } from "./tracker-list.ts";
+import {
+  isValidTrackerListUrl,
+  isValidTrackerUrl,
+  parseTrackerList,
+} from "../../shared/tracker-list.ts";
 
 describe("isValidTrackerUrl", () => {
   it("accepts http, https, udp, ws and wss trackers", () => {
@@ -26,6 +30,32 @@ describe("isValidTrackerUrl", () => {
     assert.strictEqual(isValidTrackerUrl("ftp://tracker.example.com"), false);
     assert.strictEqual(isValidTrackerUrl("not-a-url"), false);
     assert.strictEqual(isValidTrackerUrl(""), false);
+  });
+});
+
+describe("isValidTrackerListUrl", () => {
+  it("accepts http and https list URLs", () => {
+    assert.strictEqual(
+      isValidTrackerListUrl("https://example.com/trackers.txt"),
+      true
+    );
+    assert.strictEqual(
+      isValidTrackerListUrl("http://example.com/trackers.txt"),
+      true
+    );
+  });
+
+  it("rejects non-http list URLs", () => {
+    assert.strictEqual(
+      isValidTrackerListUrl("udp://tracker.example.com:6969/announce"),
+      false
+    );
+    assert.strictEqual(
+      isValidTrackerListUrl("ftp://example.com/trackers.txt"),
+      false
+    );
+    assert.strictEqual(isValidTrackerListUrl("not-a-url"), false);
+    assert.strictEqual(isValidTrackerListUrl(""), false);
   });
 });
 

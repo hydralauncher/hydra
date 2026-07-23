@@ -116,7 +116,7 @@ declare global {
       url: string | null,
       appendManual: boolean,
       appendUrl: boolean
-    ) => Promise<{ error?: string }>;
+    ) => Promise<void>;
     updateDownloadQueuePosition: (
       shop: GameShop,
       objectId: string,
