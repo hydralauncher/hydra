@@ -589,6 +589,7 @@
     "download_error_torrent_invalid_file_selection": "The selected torrent files are invalid. Please reload and try again.",
     "download_error_torrent_too_many_files": "This torrent has too many files to display safely.",
     "download_error_torrent_files_unavailable": "Could not fetch torrent files. Please try again.",
+    "download_error_torrent_invalid_trackers": "The tracker list contains invalid trackers. Please check the list and try again.",
     "update_playtime_title": "Update playtime",
     "update_playtime_description": "Manually update the playtime for {{game}}",
     "update_playtime": "Update playtime",

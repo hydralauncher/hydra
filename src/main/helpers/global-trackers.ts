@@ -5,6 +5,22 @@ import type { UserPreferences } from "@types";
 
 const VALID_PROTOCOLS = ["http:", "https:", "udp:"];
 const MAX_TRACKER_LIST_SIZE = 50_000; // ~1,000 tracker URLs
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+interface GlobalTrackersUrlCache {
+  url: string;
+  trackers: string[];
+  updatedAt: number;
+}
+
+let cachedGlobalTrackers: {
+  manual: string[];
+  url: string;
+  urlCache: string[];
+  appendManual: boolean;
+  appendUrl: boolean;
+  result: string[];
+} | null = null;
 
 export const isValidTrackerUrl = (url: string): boolean => {
   try {
@@ -31,22 +47,66 @@ export const fetchGlobalTrackersFromUrl = async (
   return [...new Set(lines.filter(isValidTrackerUrl))];
 };
 
+export const getGlobalTrackersUrlCache = async (): Promise<GlobalTrackersUrlCache | null> => {
+  return db.get<string, GlobalTrackersUrlCache | null>(
+    levelKeys.globalTrackersUrlCache,
+    { valueEncoding: "json" }
+  );
+};
+
+export const setGlobalTrackersUrlCache = async (value: GlobalTrackersUrlCache) => {
+  await db.put(levelKeys.globalTrackersUrlCache, value, {
+    valueEncoding: "json",
+  });
+};
+
 export const getGlobalTrackers = async (): Promise<string[]> => {
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     { valueEncoding: "json" }
   );
 
-  return [
+  const manual = userPreferences?.globalTrackers ?? [];
+  const url = userPreferences?.globalTrackersUrl ?? "";
+  const appendManual = userPreferences?.appendGlobalTrackers ?? false;
+  const appendUrl = userPreferences?.appendGlobalTrackersUrl ?? false;
+
+  let urlCache: string[] = [];
+  if (appendUrl && url) {
+    const cache = await getGlobalTrackersUrlCache();
+    if (cache?.url === url) {
+      urlCache = cache.trackers;
+    }
+  }
+
+  if (
+    cachedGlobalTrackers &&
+    JSON.stringify(cachedGlobalTrackers.manual) === JSON.stringify(manual) &&
+    cachedGlobalTrackers.url === url &&
+    JSON.stringify(cachedGlobalTrackers.urlCache) === JSON.stringify(urlCache) &&
+    cachedGlobalTrackers.appendManual === appendManual &&
+    cachedGlobalTrackers.appendUrl === appendUrl
+  ) {
+    return cachedGlobalTrackers.result;
+  }
+
+  const result = [
     ...new Set([
-      ...(userPreferences?.appendGlobalTrackers
-        ? (userPreferences?.globalTrackers ?? [])
-        : []),
-      ...(userPreferences?.appendGlobalTrackersUrl
-        ? (userPreferences?.globalTrackersUrlCache ?? [])
-        : []),
+      ...(appendManual ? manual : []),
+      ...(appendUrl ? urlCache : []),
     ]),
   ];
+
+  cachedGlobalTrackers = {
+    manual,
+    url,
+    urlCache,
+    appendManual,
+    appendUrl,
+    result,
+  };
+
+  return result;
 };
 
 export const refreshGlobalTrackersUrlCache = async (): Promise<void> => {
@@ -63,23 +123,27 @@ export const refreshGlobalTrackersUrlCache = async (): Promise<void> => {
   }
 
   const startupUrl = userPreferences.globalTrackersUrl;
+  const currentCache = await getGlobalTrackersUrlCache();
+
+  if (
+    currentCache?.url === startupUrl &&
+    Date.now() - currentCache.updatedAt < CACHE_TTL_MS
+  ) {
+    return;
+  }
 
   try {
     const trackers = await fetchGlobalTrackersFromUrl(startupUrl);
-
-    const current = await db.get<string, UserPreferences | null>(
-      levelKeys.userPreferences,
-      { valueEncoding: "json" }
-    );
-
-    if (current?.globalTrackersUrl !== startupUrl) return;
-
-    await db.put(
-      levelKeys.userPreferences,
-      { ...current, globalTrackersUrlCache: trackers },
-      { valueEncoding: "json" }
-    );
+    await setGlobalTrackersUrlCache({
+      url: startupUrl,
+      trackers,
+      updatedAt: Date.now(),
+    });
   } catch (err) {
     logger.error("Failed to refresh global tracker URL cache on startup", err);
   }
+};
+
+export const clearGlobalTrackersMemoryCache = () => {
+  cachedGlobalTrackers = null;
 };

@@ -181,7 +181,6 @@ export interface UserPreferences {
   appendGlobalTrackers?: boolean;
   globalTrackersUrl?: string;
   appendGlobalTrackersUrl?: boolean;
-  globalTrackersUrlCache?: string[];
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;

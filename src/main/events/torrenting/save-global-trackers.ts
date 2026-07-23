@@ -1,6 +1,12 @@
 import { db, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
-import { fetchGlobalTrackersFromUrl, isValidTrackerUrl } from "@main/helpers";
+import {
+  clearGlobalTrackersMemoryCache,
+  fetchGlobalTrackersFromUrl,
+  getGlobalTrackersUrlCache,
+  isValidTrackerUrl,
+  setGlobalTrackersUrlCache,
+} from "@main/helpers";
 import type { UserPreferences } from "@types";
 
 const saveGlobalTrackers = async (
@@ -16,25 +22,32 @@ const saveGlobalTrackers = async (
     { valueEncoding: "json" }
   );
 
-  let urlCache: string[] = [];
   let error: string | undefined;
 
   const trimmedUrl = url?.trim() ?? "";
   const storedUrl = userPreferences?.globalTrackersUrl ?? "";
-  const storedCache = userPreferences?.globalTrackersUrlCache ?? [];
 
+  let urlCache: string[] = [];
   if (appendUrl && trimmedUrl) {
-    if (fetchUrl && trimmedUrl === storedUrl && storedCache.length > 0) {
-      urlCache = storedCache;
+    const storedCache = await getGlobalTrackersUrlCache();
+
+    if (fetchUrl && trimmedUrl === storedUrl && storedCache?.url === storedUrl) {
+      urlCache = storedCache.trackers;
     } else if (fetchUrl) {
       try {
         urlCache = await fetchGlobalTrackersFromUrl(trimmedUrl);
+        await setGlobalTrackersUrlCache({
+          url: trimmedUrl,
+          trackers: urlCache,
+          updatedAt: Date.now(),
+        });
       } catch {
         error = "global_trackers_fetch_error";
-        urlCache = trimmedUrl === storedUrl ? storedCache : [];
+        urlCache =
+          storedCache?.url === trimmedUrl ? storedCache.trackers : [];
       }
-    } else {
-      urlCache = trimmedUrl === storedUrl ? storedCache : [];
+    } else if (storedCache?.url === trimmedUrl) {
+      urlCache = storedCache.trackers;
     }
   }
 
@@ -48,10 +61,11 @@ const saveGlobalTrackers = async (
       appendGlobalTrackers: appendManual,
       globalTrackersUrl: trimmedUrl,
       appendGlobalTrackersUrl: appendUrl,
-      globalTrackersUrlCache: urlCache,
     },
     { valueEncoding: "json" }
   );
+
+  clearGlobalTrackersMemoryCache();
 
   return { error };
 };

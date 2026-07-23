@@ -11,6 +11,12 @@ interface FormValues {
   manualTrackers: string;
 }
 
+const parseManualTrackers = (text: string) =>
+  text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
 export function SettingsGlobalTrackers() {
   const { t } = useTranslation("settings");
   const dispatch = useAppDispatch();
@@ -40,12 +46,6 @@ export function SettingsGlobalTrackers() {
   useEffect(() => {
     appendUrlRef.current = appendUrl;
   }, [appendUrl]);
-
-  const parseManualTrackers = (text: string) =>
-    text
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
 
   const manualText = watch("manualTrackers");
 
@@ -141,6 +141,13 @@ export function SettingsGlobalTrackers() {
   }, [manualTrackers, trackerUrl, isInitialized, debouncedSave]);
 
   useEffect(() => {
+    if (!userPreferences || !isInitialized) return;
+
+    initialManualTrackers.current = userPreferences.globalTrackers ?? [];
+    initialTrackerUrl.current = userPreferences.globalTrackersUrl ?? "";
+  }, [userPreferences, isInitialized]);
+
+  useEffect(() => {
     return () => {
       isMounted.current = false;
       debouncedSave.flush();
@@ -163,7 +170,13 @@ export function SettingsGlobalTrackers() {
 
   const handleUrlBlur = () => {
     debouncedSave.cancel();
-    void save(getCurrentManualTrackers(), trackerUrl, appendManual, appendUrl, true);
+    void save(
+      getCurrentManualTrackers(),
+      trackerUrl,
+      appendManual,
+      appendUrl,
+      true
+    );
   };
 
   return (
