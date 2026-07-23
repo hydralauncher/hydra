@@ -1,10 +1,10 @@
 import axios from "axios";
 import { db, levelKeys } from "@main/level";
 import { logger } from "@main/services";
+import { isValidTrackerUrl, parseTrackerList } from "./tracker-list";
 import type { UserPreferences } from "@types";
 
-const VALID_PROTOCOLS = ["http:", "https:", "udp:"];
-const MAX_TRACKER_LIST_SIZE = 50_000; // ~1,000 tracker URLs
+const MAX_TRACKER_LIST_SIZE = 200_000; // ~4,000 tracker URLs
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 interface GlobalTrackersUrlCache {
@@ -22,14 +22,6 @@ let cachedGlobalTrackers: {
   result: string[];
 } | null = null;
 
-export const isValidTrackerUrl = (url: string): boolean => {
-  try {
-    return VALID_PROTOCOLS.includes(new URL(url).protocol);
-  } catch {
-    return false;
-  }
-};
-
 export const fetchGlobalTrackersFromUrl = async (
   url: string
 ): Promise<string[]> => {
@@ -39,12 +31,7 @@ export const fetchGlobalTrackersFromUrl = async (
     maxContentLength: MAX_TRACKER_LIST_SIZE,
   });
 
-  const lines = data
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  return [...new Set(lines.filter(isValidTrackerUrl))];
+  return parseTrackerList(data).filter(isValidTrackerUrl);
 };
 
 export const getGlobalTrackersUrlCache =
@@ -63,6 +50,26 @@ export const setGlobalTrackersUrlCache = async (
   });
 };
 
+export const isGlobalTrackersUrlCacheStale = (
+  cache: GlobalTrackersUrlCache | null | undefined,
+  url: string
+): boolean => {
+  if (!cache || cache.url !== url) return true;
+  return Date.now() - cache.updatedAt >= CACHE_TTL_MS;
+};
+
+export const fetchAndCacheGlobalTrackersUrl = async (
+  url: string
+): Promise<string[]> => {
+  const trackers = await fetchGlobalTrackersFromUrl(url);
+  await setGlobalTrackersUrlCache({
+    url,
+    trackers,
+    updatedAt: Date.now(),
+  });
+  return trackers;
+};
+
 export const getGlobalTrackers = async (): Promise<string[]> => {
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -79,6 +86,15 @@ export const getGlobalTrackers = async (): Promise<string[]> => {
     const cache = await getGlobalTrackersUrlCache();
     if (cache?.url === url) {
       urlCache = cache.trackers;
+    }
+
+    if (isGlobalTrackersUrlCacheStale(cache, url)) {
+      void fetchAndCacheGlobalTrackersUrl(url).catch((err) =>
+        logger.error(
+          "Background refresh of global tracker URL cache failed",
+          err
+        )
+      );
     }
   }
 
@@ -131,18 +147,14 @@ export const refreshGlobalTrackersUrlCache = async (): Promise<void> => {
 
   if (
     currentCache?.url === startupUrl &&
-    Date.now() - currentCache.updatedAt < CACHE_TTL_MS
+    !isGlobalTrackersUrlCacheStale(currentCache, startupUrl)
   ) {
     return;
   }
 
   try {
-    const trackers = await fetchGlobalTrackersFromUrl(startupUrl);
-    await setGlobalTrackersUrlCache({
-      url: startupUrl,
-      trackers,
-      updatedAt: Date.now(),
-    });
+    await fetchAndCacheGlobalTrackersUrl(startupUrl);
+    clearGlobalTrackersMemoryCache();
   } catch (err) {
     logger.error("Failed to refresh global tracker URL cache on startup", err);
   }

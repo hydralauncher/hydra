@@ -59,17 +59,20 @@ contextBridge.exposeInMainWorld("electron", {
     manual: string[],
     url: string | null,
     appendManual: boolean,
-    appendUrl: boolean,
-    fetchUrl?: boolean
+    appendUrl: boolean
   ) =>
     ipcRenderer.invoke(
       "saveGlobalTrackers",
       manual,
       url,
       appendManual,
-      appendUrl,
-      fetchUrl
+      appendUrl
     ) as Promise<{ error?: string }>,
+  validateGlobalTrackersUrl: (url: string) =>
+    ipcRenderer.invoke("validateGlobalTrackersUrl", url) as Promise<{
+      error?: string;
+      count?: number;
+    }>,
   addGameToQueue: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("addGameToQueue", payload),
   cancelGameDownload: (shop: GameShop, objectId: string) =>
