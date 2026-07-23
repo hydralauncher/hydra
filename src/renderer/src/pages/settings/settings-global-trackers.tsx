@@ -115,6 +115,13 @@ export function SettingsGlobalTrackers() {
   }, [userPreferences, isInitialized, setValue]);
 
   useEffect(() => {
+    if (!userPreferences || !isInitialized) return;
+
+    initialManualTrackers.current = userPreferences.globalTrackers ?? [];
+    initialTrackerUrl.current = userPreferences.globalTrackersUrl ?? "";
+  }, [userPreferences, isInitialized]);
+
+  useEffect(() => {
     if (!isInitialized) return;
 
     const manualChanged =
@@ -126,13 +133,6 @@ export function SettingsGlobalTrackers() {
 
     debouncedSave(manualTrackers, trackerUrl);
   }, [manualTrackers, trackerUrl, isInitialized, debouncedSave]);
-
-  useEffect(() => {
-    if (!userPreferences || !isInitialized) return;
-
-    initialManualTrackers.current = userPreferences.globalTrackers ?? [];
-    initialTrackerUrl.current = userPreferences.globalTrackersUrl ?? "";
-  }, [userPreferences, isInitialized]);
 
   useEffect(() => {
     return () => {
