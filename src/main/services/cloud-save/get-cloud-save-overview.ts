@@ -4,7 +4,7 @@ import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
-import { getFirstSyncState } from "./sync-game";
+import { getFirstSyncState, getSuggestedCloudSaveAction } from "./sync-game";
 
 export const getCloudSaveOverview = async (
   objectId: string,
@@ -30,6 +30,10 @@ export const getCloudSaveOverview = async (
     state,
     hasChanged: state !== "synced",
     isAutomaticSyncEnabled,
+    suggestedAction: getSuggestedCloudSaveAction(
+      state,
+      analysis.merge.restoreEntryIds.length
+    ),
     discoveredVariantCount: analysis.localSnapshot.variants.length,
     unresolvedRemoteVariantCount: new Set(
       (analysis.remoteManifest?.files ?? [])

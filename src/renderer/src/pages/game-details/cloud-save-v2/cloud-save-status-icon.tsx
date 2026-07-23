@@ -6,54 +6,37 @@ import {
   CloudIcon,
   CloudSlashIcon,
   CloudWarningIcon,
+  CloudXIcon,
 } from "@phosphor-icons/react";
 
-import type { CloudSaveOverview, CloudSaveSyncProgressPayload } from "@types";
+import type { CloudSavePresentationIcon } from "./cloud-save-presentation";
 
 interface CloudSaveStatusIconProps {
-  overview: CloudSaveOverview | null;
-  isChecking?: boolean;
-  isSyncing?: boolean;
-  hasError?: boolean;
-  isAvailable?: boolean;
-  hasExecutablePath?: boolean;
-  progress?: CloudSaveSyncProgressPayload | null;
+  icon: CloudSavePresentationIcon;
   size?: number;
 }
 
 export function CloudSaveStatusIcon({
-  overview,
-  isChecking = false,
-  isSyncing = false,
-  hasError = false,
-  isAvailable = true,
-  hasExecutablePath = true,
-  progress = null,
+  icon,
   size = 22,
 }: Readonly<CloudSaveStatusIconProps>) {
-  if (!isAvailable || !hasExecutablePath) {
-    return <CloudSlashIcon size={size} weight="fill" />;
+  switch (icon) {
+    case "cloud-slash":
+      return <CloudSlashIcon size={size} weight="fill" />;
+    case "cloud-x":
+      return <CloudXIcon size={size} weight="fill" />;
+    case "spinner":
+      return <CircleNotchIcon className="cloud-save-v2__spinner" size={size} />;
+    case "upload":
+      return <CloudArrowUpIcon size={size} weight="fill" />;
+    case "restore":
+      return <CloudArrowDownIcon size={size} weight="fill" />;
+    case "synced":
+      return <CloudCheckIcon size={size} weight="fill" />;
+    case "warning":
+      return <CloudWarningIcon size={size} weight="fill" />;
+    case "cloud":
+    default:
+      return <CloudIcon size={size} weight="fill" />;
   }
-  if (hasError) return <CloudSlashIcon size={size} weight="fill" />;
-  if (progress?.stage === "uploading") {
-    return <CloudArrowUpIcon size={size} weight="fill" />;
-  }
-  if (progress?.stage === "restoring") {
-    return <CloudArrowDownIcon size={size} weight="fill" />;
-  }
-  if (isChecking || isSyncing) {
-    return <CircleNotchIcon className="cloud-save-v2__spinner" size={size} />;
-  }
-  if (overview?.state === "synced") {
-    return <CloudCheckIcon size={size} weight="fill" />;
-  }
-  if (
-    overview?.state === "conflict" ||
-    overview?.state === "local-ahead" ||
-    overview?.state === "remote-ahead"
-  ) {
-    return <CloudWarningIcon size={size} weight="fill" />;
-  }
-
-  return <CloudIcon size={size} weight="fill" />;
 }

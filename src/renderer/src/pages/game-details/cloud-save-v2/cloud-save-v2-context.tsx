@@ -353,7 +353,7 @@ export function CloudSaveV2Provider({
         isSyncing={isSyncing}
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
-        isAutomaticSyncEnabled={overview?.isAutomaticSyncEnabled ?? true}
+        isAutomaticSyncEnabled={overview?.isAutomaticSyncEnabled ?? null}
         hasError={hasError}
         progress={progress}
         onSync={() => void runCloudSaveOperation()}
