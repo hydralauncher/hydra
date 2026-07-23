@@ -68,6 +68,7 @@ const addGameToQueue = async (
     };
 
     await DownloadManager.validateDownloadUrl(download);
+    await prepareGameEntry({ gameKey, title, objectId, shop });
   } catch (err: unknown) {
     if (isKnownDownloadError(err)) {
       logger.warn(
@@ -79,8 +80,6 @@ const addGameToQueue = async (
     }
     return handleDownloadError(err, downloader);
   }
-
-  await prepareGameEntry({ gameKey, title, objectId, shop });
 
   try {
     await downloadsSublevel.put(gameKey, download);

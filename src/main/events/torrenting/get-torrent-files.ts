@@ -1,5 +1,6 @@
 import { registerEvent } from "../register-event";
 import { PythonRPC } from "@main/services/python-rpc";
+import { logger } from "@main/services";
 import type { TorrentFilesResponse } from "@types";
 import { DownloadError } from "@shared";
 import { getGlobalTrackers } from "@main/helpers";
@@ -63,6 +64,8 @@ const getTorrentFiles = async (
       data: response.data,
     };
   } catch (error) {
+    logger.error("Failed to get global trackers for torrent files", error);
+
     return {
       ok: false,
       error: mapTorrentFilesError(error),
