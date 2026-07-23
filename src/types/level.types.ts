@@ -177,6 +177,16 @@ export interface UserPreferences {
   maxDownloadSpeedBytesPerSecond?: number | null;
   torrentNetworkInterface?: string | null;
   torrentTrackerListUrl?: string | null;
+  torrentGlobalMaxConnections?: number | null;
+  torrentPerTorrentMaxConnections?: number | null;
+  torrentMaxHalfOpenConnections?: number | null;
+  torrentAllowTcp?: boolean;
+  torrentAllowUtp?: boolean;
+  torrentEnableTracker?: boolean;
+  torrentEnableDht?: boolean;
+  torrentEnablePex?: boolean;
+  torrentListenPort?: number | null;
+  torrentUseUpnp?: boolean;
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;

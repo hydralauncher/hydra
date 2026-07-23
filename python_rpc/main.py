@@ -562,6 +562,83 @@ def action(data: Optional[dict] = None):
             apply_network_interface(
                 normalize_network_interface(data.get("interface"))
             )
+        elif action_name == "set_global_max_connections":
+            connections = data.get("connections")
+            if connections is not None:
+                try:
+                    connections = int(connections)
+                except (TypeError, ValueError):
+                    connections = None
+            if connections and connections > 0:
+                torrent_session.apply_settings({"connections_limit": connections})
+        elif action_name == "set_per_torrent_max_connections":
+            connections = data.get("connections")
+            if connections is not None:
+                try:
+                    connections = int(connections)
+                except (TypeError, ValueError):
+                    connections = None
+            
+            with downloads_lock:
+                active_downloaders = list(downloads.values())
+            
+            for downloader in active_downloaders:
+                set_per_torrent_connections = getattr(downloader, "set_per_torrent_connections", None)
+                if callable(set_per_torrent_connections):
+                    set_per_torrent_connections(connections)
+        elif action_name == "set_max_half_open_connections":
+            connections = data.get("connections")
+            if connections is not None:
+                try:
+                    connections = int(connections)
+                except (TypeError, ValueError):
+                    connections = None
+            if connections and connections > 0:
+                torrent_session.apply_settings({"half_open_limit": connections})
+        elif action_name == "set_allow_tcp":
+            enabled = data.get("enabled", True)
+            settings = torrent_session.get_settings()
+            current_flags = settings.get("enable_incoming_tcp", True)
+            if current_flags != enabled:
+                torrent_session.apply_settings({"enable_incoming_tcp": enabled, "enable_outgoing_tcp": enabled})
+        elif action_name == "set_allow_utp":
+            enabled = data.get("enabled", True)
+            settings = torrent_session.get_settings()
+            current_flags = settings.get("enable_incoming_utp", True)
+            if current_flags != enabled:
+                torrent_session.apply_settings({"enable_incoming_utp": enabled, "enable_outgoing_utp": enabled})
+        elif action_name == "set_enable_tracker":
+            enabled = data.get("enabled", True)
+            torrent_session.apply_settings({"announce_to_all_trackers": enabled, "announce_to_all_tiers": enabled})
+        elif action_name == "set_enable_dht":
+            enabled = data.get("enabled", True)
+            torrent_session.apply_settings({"enable_dht": enabled})
+        elif action_name == "set_enable_pex":
+            enabled = data.get("enabled", True)
+            with downloads_lock:
+                active_downloaders = list(downloads.values())
+            
+            for downloader in active_downloaders:
+                set_pex_enabled = getattr(downloader, "set_pex_enabled", None)
+                if callable(set_pex_enabled):
+                    set_pex_enabled(enabled)
+        elif action_name == "set_listen_port":
+            port = data.get("port")
+            if port is not None:
+                try:
+                    port = int(port)
+                except (TypeError, ValueError):
+                    port = 6881
+            
+            interface = torrent_session.get_settings().get("listen_interfaces", "0.0.0.0:6881")
+            if ":" in str(interface):
+                base = str(interface).rsplit(":", 1)[0]
+            else:
+                base = "0.0.0.0"
+            torrent_session.apply_settings({"listen_interfaces": "{base}:{port}".format(base=base, port=port or 6881)})
+        elif action_name == "set_use_upnp":
+            enabled = data.get("enabled", False)
+            torrent_session.apply_settings({"enable_upnp": enabled, "enable_natpmp": enabled})
         else:
             raise RpcError("invalid_action")
     except RpcError:

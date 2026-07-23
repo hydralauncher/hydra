@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { CheckboxField, SelectField, TextField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
-import type { NetworkInterface } from "@types";
+import type { NetworkInterface, UserPreferences } from "@types";
 import { SettingsDownloadSources } from "./settings-download-sources";
 
 import "./settings-general.scss";
@@ -53,6 +53,16 @@ export function SettingsContextDownloads() {
     deleteArchiveFilesAfterExtractionByDefault: false,
     torrentNetworkInterface: "",
     torrentTrackerListUrl: "",
+    torrentGlobalMaxConnections: "",
+    torrentPerTorrentMaxConnections: "",
+    torrentMaxHalfOpenConnections: "",
+    torrentAllowTcp: true,
+    torrentAllowUtp: true,
+    torrentEnableTracker: true,
+    torrentEnableDht: true,
+    torrentEnablePex: true,
+    torrentListenPort: "",
+    torrentUseUpnp: false,
   });
 
   const [networkInterfaces, setNetworkInterfaces] = useState<
@@ -88,6 +98,19 @@ export function SettingsContextDownloads() {
         userPreferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
       torrentNetworkInterface: userPreferences.torrentNetworkInterface ?? "",
       torrentTrackerListUrl: userPreferences.torrentTrackerListUrl ?? "",
+      torrentGlobalMaxConnections:
+        userPreferences.torrentGlobalMaxConnections?.toString() ?? "",
+      torrentPerTorrentMaxConnections:
+        userPreferences.torrentPerTorrentMaxConnections?.toString() ?? "",
+      torrentMaxHalfOpenConnections:
+        userPreferences.torrentMaxHalfOpenConnections?.toString() ?? "",
+      torrentAllowTcp: userPreferences.torrentAllowTcp ?? true,
+      torrentAllowUtp: userPreferences.torrentAllowUtp ?? true,
+      torrentEnableTracker: userPreferences.torrentEnableTracker ?? true,
+      torrentEnableDht: userPreferences.torrentEnableDht ?? true,
+      torrentEnablePex: userPreferences.torrentEnablePex ?? true,
+      torrentListenPort: userPreferences.torrentListenPort?.toString() ?? "",
+      torrentUseUpnp: userPreferences.torrentUseUpnp ?? false,
     });
   }, [userPreferences]);
 
@@ -121,8 +144,40 @@ export function SettingsContextDownloads() {
     return options;
   }, [networkInterfaces, form.torrentNetworkInterface, t]);
 
-  const handleChange = (values: Partial<typeof form>) => {
-    setForm((prev) => ({ ...prev, ...values }));
+  const parseNumberInput = (value: string): number | null | undefined => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number.parseInt(trimmed, 10);
+    if (Number.isNaN(parsed)) return undefined;
+    if (parsed <= 0) return null;
+    return parsed;
+  };
+
+  const buildNumberBlurHandler =
+    (fieldName: keyof typeof form, preferenceKey: string) => () => {
+      const currentValue = form[fieldName] as string;
+      const parsed = parseNumberInput(currentValue);
+
+      if (parsed === undefined) {
+        setForm((prev) => ({ ...prev, [fieldName]: "" }));
+        updateUserPreferences({ [preferenceKey]: null });
+        return;
+      }
+
+      if (parsed === null) {
+        setForm((prev) => ({ ...prev, [fieldName]: "" }));
+        updateUserPreferences({ [preferenceKey]: null });
+        return;
+      }
+
+      updateUserPreferences({ [preferenceKey]: parsed });
+    };
+
+  const handleChange = (values: Partial<UserPreferences>) => {
+    setForm((prev) => ({
+      ...prev,
+      ...(values as Record<string, string | boolean>),
+    }));
     updateUserPreferences(values);
   };
 
@@ -277,6 +332,149 @@ export function SettingsContextDownloads() {
             }
           />
         )}
+      </div>
+
+      <div className="settings-context-panel__group">
+        <h3>{t("connection_limits")}</h3>
+
+        <TextField
+          type="number"
+          min="0"
+          label={t("global_max_connections")}
+          hint={t("global_max_connections_hint")}
+          value={form.torrentGlobalMaxConnections}
+          onChange={(event) =>
+            setForm((prev) => ({
+              ...prev,
+              torrentGlobalMaxConnections: event.target.value,
+            }))
+          }
+          onBlur={buildNumberBlurHandler(
+            "torrentGlobalMaxConnections",
+            "torrentGlobalMaxConnections"
+          )}
+          placeholder={t("max_download_speed_unlimited")}
+        />
+
+        <TextField
+          type="number"
+          min="0"
+          label={t("per_torrent_max_connections")}
+          hint={t("per_torrent_max_connections_hint")}
+          value={form.torrentPerTorrentMaxConnections}
+          onChange={(event) =>
+            setForm((prev) => ({
+              ...prev,
+              torrentPerTorrentMaxConnections: event.target.value,
+            }))
+          }
+          onBlur={buildNumberBlurHandler(
+            "torrentPerTorrentMaxConnections",
+            "torrentPerTorrentMaxConnections"
+          )}
+          placeholder={t("max_download_speed_unlimited")}
+        />
+
+        <TextField
+          type="number"
+          min="0"
+          label={t("max_half_open_connections")}
+          hint={t("max_half_open_connections_hint")}
+          value={form.torrentMaxHalfOpenConnections}
+          onChange={(event) =>
+            setForm((prev) => ({
+              ...prev,
+              torrentMaxHalfOpenConnections: event.target.value,
+            }))
+          }
+          onBlur={buildNumberBlurHandler(
+            "torrentMaxHalfOpenConnections",
+            "torrentMaxHalfOpenConnections"
+          )}
+          placeholder={t("max_download_speed_unlimited")}
+        />
+      </div>
+
+      <div className="settings-context-panel__group">
+        <h3>{t("transport_protocols")}</h3>
+
+        <CheckboxField
+          label={t("allow_tcp_connections")}
+          checked={form.torrentAllowTcp}
+          onChange={() =>
+            handleChange({ torrentAllowTcp: !form.torrentAllowTcp })
+          }
+        />
+
+        <CheckboxField
+          label={t("allow_utp_connections")}
+          checked={form.torrentAllowUtp}
+          onChange={() =>
+            handleChange({ torrentAllowUtp: !form.torrentAllowUtp })
+          }
+        />
+      </div>
+
+      <div className="settings-context-panel__group">
+        <h3>{t("peer_discovery")}</h3>
+
+        <CheckboxField
+          label={t("enable_tracker_communications")}
+          checked={form.torrentEnableTracker}
+          onChange={() =>
+            handleChange({
+              torrentEnableTracker: !form.torrentEnableTracker,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("enable_dht")}
+          checked={form.torrentEnableDht}
+          onChange={() =>
+            handleChange({ torrentEnableDht: !form.torrentEnableDht })
+          }
+        />
+
+        <CheckboxField
+          label={t("enable_pex")}
+          checked={form.torrentEnablePex}
+          onChange={() =>
+            handleChange({ torrentEnablePex: !form.torrentEnablePex })
+          }
+        />
+      </div>
+
+      <div className="settings-context-panel__group">
+        <h3>{t("port_and_firewall")}</h3>
+
+        <TextField
+          type="number"
+          min="1"
+          max="65535"
+          label={t("listen_port")}
+          hint={t("listen_port_hint")}
+          value={form.torrentListenPort}
+          onChange={(event) =>
+            setForm((prev) => ({
+              ...prev,
+              torrentListenPort: event.target.value,
+            }))
+          }
+          onBlur={buildNumberBlurHandler(
+            "torrentListenPort",
+            "torrentListenPort"
+          )}
+          placeholder="6881"
+        />
+
+        <CheckboxField
+          label={t("use_upnp")}
+          checked={form.torrentUseUpnp}
+          onChange={() =>
+            handleChange({ torrentUseUpnp: !form.torrentUseUpnp })
+          }
+        />
       </div>
 
       <div className="settings-context-panel__group">

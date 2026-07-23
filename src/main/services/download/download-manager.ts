@@ -351,6 +351,154 @@ export class DownloadManager {
       });
   }
 
+  public static async applyGlobalMaxConnections(
+    value?: number | null
+  ): Promise<void> {
+    const connections = value ?? null;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_global_max_connections",
+        connections,
+      })
+      .catch((error) => {
+        logger.error(
+          "[DownloadManager] Failed to update global max connections:",
+          error
+        );
+      });
+  }
+
+  public static async applyPerTorrentMaxConnections(
+    value?: number | null
+  ): Promise<void> {
+    const connections = value ?? null;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_per_torrent_max_connections",
+        connections,
+      })
+      .catch((error) => {
+        logger.error(
+          "[DownloadManager] Failed to update per-torrent max connections:",
+          error
+        );
+      });
+  }
+
+  public static async applyMaxHalfOpenConnections(
+    value?: number | null
+  ): Promise<void> {
+    const connections = value ?? null;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_max_half_open_connections",
+        connections,
+      })
+      .catch((error) => {
+        logger.error(
+          "[DownloadManager] Failed to update max half-open connections:",
+          error
+        );
+      });
+  }
+
+  public static async applyAllowTcp(value?: boolean): Promise<void> {
+    const enabled = value ?? true;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_allow_tcp",
+        enabled,
+      })
+      .catch((error) => {
+        logger.error("[DownloadManager] Failed to update TCP setting:", error);
+      });
+  }
+
+  public static async applyAllowUtp(value?: boolean): Promise<void> {
+    const enabled = value ?? true;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_allow_utp",
+        enabled,
+      })
+      .catch((error) => {
+        logger.error("[DownloadManager] Failed to update uTP setting:", error);
+      });
+  }
+
+  public static async applyEnableTracker(value?: boolean): Promise<void> {
+    const enabled = value ?? true;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_enable_tracker",
+        enabled,
+      })
+      .catch((error) => {
+        logger.error(
+          "[DownloadManager] Failed to update tracker setting:",
+          error
+        );
+      });
+  }
+
+  public static async applyEnableDht(value?: boolean): Promise<void> {
+    const enabled = value ?? true;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_enable_dht",
+        enabled,
+      })
+      .catch((error) => {
+        logger.error("[DownloadManager] Failed to update DHT setting:", error);
+      });
+  }
+
+  public static async applyEnablePex(value?: boolean): Promise<void> {
+    const enabled = value ?? true;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_enable_pex",
+        enabled,
+      })
+      .catch((error) => {
+        logger.error("[DownloadManager] Failed to update PEX setting:", error);
+      });
+  }
+
+  public static async applyListenPort(value?: number | null): Promise<void> {
+    const port = value ?? null;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_listen_port",
+        port,
+      })
+      .catch((error) => {
+        logger.error("[DownloadManager] Failed to update listen port:", error);
+      });
+  }
+
+  public static async applyUseUpnp(value?: boolean): Promise<void> {
+    const enabled = value ?? false;
+
+    await PythonRPC.rpc
+      .call("action", {
+        action: "set_use_upnp",
+        enabled,
+      })
+      .catch((error) => {
+        logger.error("[DownloadManager] Failed to update UPnP setting:", error);
+      });
+  }
+
   public static async startRPC(
     download?: Download,
     downloadsToSeed?: Download[]
@@ -358,6 +506,7 @@ export class DownloadManager {
     await PythonRPC.spawn();
 
     await this.applyNetworkInterface();
+    await this.applyAllSessionSettings();
 
     if (downloadsToSeed?.length) {
       for (const seedDownload of downloadsToSeed) {
@@ -374,6 +523,32 @@ export class DownloadManager {
     }
 
     await this.applyDownloadSpeedLimit();
+  }
+
+  private static async applyAllSessionSettings(): Promise<void> {
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+
+    await this.applyGlobalMaxConnections(
+      userPreferences?.torrentGlobalMaxConnections ?? null
+    );
+    await this.applyPerTorrentMaxConnections(
+      userPreferences?.torrentPerTorrentMaxConnections ?? null
+    );
+    await this.applyMaxHalfOpenConnections(
+      userPreferences?.torrentMaxHalfOpenConnections ?? null
+    );
+    await this.applyAllowTcp(userPreferences?.torrentAllowTcp ?? true);
+    await this.applyAllowUtp(userPreferences?.torrentAllowUtp ?? true);
+    await this.applyEnableTracker(
+      userPreferences?.torrentEnableTracker ?? true
+    );
+    await this.applyEnableDht(userPreferences?.torrentEnableDht ?? true);
+    await this.applyEnablePex(userPreferences?.torrentEnablePex ?? true);
+    await this.applyListenPort(userPreferences?.torrentListenPort ?? null);
+    await this.applyUseUpnp(userPreferences?.torrentUseUpnp ?? false);
   }
 
   private static async getDownloadStatusFromJs(): Promise<DownloadProgress | null> {

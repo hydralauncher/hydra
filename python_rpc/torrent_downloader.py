@@ -126,6 +126,26 @@ class TorrentDownloader:
         except Exception:
             pass
 
+    def set_per_torrent_connections(self, max_connections: int = None):
+        if self.torrent_handle and self.torrent_handle.is_valid():
+            try:
+                if max_connections and max_connections > 0:
+                    self.torrent_handle.set_max_connections(max_connections)
+                else:
+                    self.torrent_handle.set_max_connections(0x7FFFFFFF)
+            except Exception:
+                pass
+
+    def set_pex_enabled(self, enabled: bool = True):
+        if self.torrent_handle and self.torrent_handle.is_valid():
+            try:
+                if enabled:
+                    self.torrent_handle.set_flags(lt.torrent_flags.pex)
+                else:
+                    self.torrent_handle.unset_flags(lt.torrent_flags.pex)
+            except Exception:
+                pass
+
     def _wait_for_metadata(self, timeout_seconds: float = 30.0, poll_interval: float = 0.25):
         if not self.torrent_handle or not self.torrent_handle.is_valid():
             return False

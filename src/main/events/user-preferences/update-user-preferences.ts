@@ -100,6 +100,56 @@ const updateUserPreferences = async (
       preferences.torrentNetworkInterface ?? null
     );
   }
+
+  if (Object.hasOwn(preferences, "torrentGlobalMaxConnections")) {
+    await DownloadManager.applyGlobalMaxConnections(
+      preferences.torrentGlobalMaxConnections ?? null
+    );
+  }
+
+  if (Object.hasOwn(preferences, "torrentPerTorrentMaxConnections")) {
+    await DownloadManager.applyPerTorrentMaxConnections(
+      preferences.torrentPerTorrentMaxConnections ?? null
+    );
+  }
+
+  if (Object.hasOwn(preferences, "torrentMaxHalfOpenConnections")) {
+    await DownloadManager.applyMaxHalfOpenConnections(
+      preferences.torrentMaxHalfOpenConnections ?? null
+    );
+  }
+
+  if (Object.hasOwn(preferences, "torrentAllowTcp")) {
+    await DownloadManager.applyAllowTcp(preferences.torrentAllowTcp ?? true);
+  }
+
+  if (Object.hasOwn(preferences, "torrentAllowUtp")) {
+    await DownloadManager.applyAllowUtp(preferences.torrentAllowUtp ?? true);
+  }
+
+  if (Object.hasOwn(preferences, "torrentEnableTracker")) {
+    await DownloadManager.applyEnableTracker(
+      preferences.torrentEnableTracker ?? true
+    );
+  }
+
+  if (Object.hasOwn(preferences, "torrentEnableDht")) {
+    await DownloadManager.applyEnableDht(preferences.torrentEnableDht ?? true);
+  }
+
+  if (Object.hasOwn(preferences, "torrentEnablePex")) {
+    await DownloadManager.applyEnablePex(preferences.torrentEnablePex ?? true);
+  }
+
+  if (Object.hasOwn(preferences, "torrentListenPort")) {
+    await DownloadManager.applyListenPort(
+      preferences.torrentListenPort ?? null
+    );
+  }
+
+  if (Object.hasOwn(preferences, "torrentUseUpnp")) {
+    await DownloadManager.applyUseUpnp(preferences.torrentUseUpnp ?? false);
+  }
 };
 
 registerEvent("updateUserPreferences", updateUserPreferences);
