@@ -2,6 +2,7 @@ import { registerEvent } from "../register-event";
 import { PythonRPC } from "@main/services/python-rpc";
 import type { TorrentFilesResponse } from "@types";
 import { DownloadError } from "@shared";
+import { getGlobalTrackers } from "@main/helpers";
 
 const mapTorrentFilesError = (error: unknown) => {
   const rpcError =
@@ -43,11 +44,14 @@ const getTorrentFiles = async (
   }
 
   try {
+    const trackers = await getGlobalTrackers();
+
     const response = await PythonRPC.rpc.call<TorrentFilesResponse>(
       "torrent_files",
       {
         magnet,
         timeout_ms: 45_000,
+        trackers: trackers.length ? trackers : undefined,
       },
       {
         timeout: 45000,

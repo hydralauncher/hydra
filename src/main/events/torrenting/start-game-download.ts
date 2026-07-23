@@ -32,41 +32,40 @@ const startGameDownload = async (
     selectedFilesSize,
   } = payload;
 
-  const globalTrackers = await getGlobalTrackers();
-
-  const mergedTrackers =
-    globalTrackers.length > 0 ? [...new Set(globalTrackers)] : undefined;
-
   const gameKey = levelKeys.game(shop, objectId);
 
   logger.log(
     `[Downloads] Start requested for ${gameKey} (downloader=${downloader})`
   );
 
-  const download: Download = {
-    shop,
-    objectId,
-    status: "paused",
-    progress: 0,
-    bytesDownloaded: 0,
-    downloadPath,
-    downloader,
-    uri,
-    folderName: null,
-    shouldSeed: false,
-    timestamp: Date.now(),
-    queued: true,
-    pinnedToHero: false,
-    extracting: false,
-    automaticallyExtract,
-    automaticallyDeleteArchiveFiles,
-    fileIndices,
-    selectedFilesSize,
-    fileSize: selectedFilesSize ?? null,
-    ...(mergedTrackers?.length ? { customTrackers: mergedTrackers } : {}),
-  };
-
   try {
+    const globalTrackers = await getGlobalTrackers();
+
+    const mergedTrackers =
+      globalTrackers.length > 0 ? [...new Set(globalTrackers)] : undefined;
+
+    const download: Download = {
+      shop,
+      objectId,
+      status: "paused",
+      progress: 0,
+      bytesDownloaded: 0,
+      downloadPath,
+      downloader,
+      uri,
+      folderName: null,
+      shouldSeed: false,
+      timestamp: Date.now(),
+      queued: true,
+      pinnedToHero: false,
+      extracting: false,
+      automaticallyExtract,
+      automaticallyDeleteArchiveFiles,
+      fileIndices,
+      selectedFilesSize,
+      fileSize: selectedFilesSize ?? null,
+      ...(mergedTrackers?.length ? { customTrackers: mergedTrackers } : {}),
+    };
     await DownloadManager.validateDownloadUrl(download);
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey);
