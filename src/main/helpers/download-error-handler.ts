@@ -145,17 +145,16 @@ const mapTorrentErrorCode = (code: string): DownloadErrorResult | null => {
     return { ok: false, error: DownloadError.TorrentInvalidFileSelection };
   }
 
-    if (code === "too_many_files") {
-      return { ok: false, error: DownloadError.TorrentTooManyFiles };
-    }
+  if (code === "too_many_files") {
+    return { ok: false, error: DownloadError.TorrentTooManyFiles };
+  }
 
-    if (code === "invalid_trackers") {
-      return { ok: false, error: DownloadError.TorrentInvalidTrackers };
-    }
+  if (code === "invalid_trackers") {
+    return { ok: false, error: DownloadError.TorrentInvalidTrackers };
+  }
 
-    return null;
-  };
-
+  return null;
+};
 
 export const handleDownloadError = (
   err: unknown,

@@ -47,14 +47,17 @@ export const fetchGlobalTrackersFromUrl = async (
   return [...new Set(lines.filter(isValidTrackerUrl))];
 };
 
-export const getGlobalTrackersUrlCache = async (): Promise<GlobalTrackersUrlCache | null> => {
-  return db.get<string, GlobalTrackersUrlCache | null>(
-    levelKeys.globalTrackersUrlCache,
-    { valueEncoding: "json" }
-  );
-};
+export const getGlobalTrackersUrlCache =
+  async (): Promise<GlobalTrackersUrlCache | null> => {
+    return db.get<string, GlobalTrackersUrlCache | null>(
+      levelKeys.globalTrackersUrlCache,
+      { valueEncoding: "json" }
+    );
+  };
 
-export const setGlobalTrackersUrlCache = async (value: GlobalTrackersUrlCache) => {
+export const setGlobalTrackersUrlCache = async (
+  value: GlobalTrackersUrlCache
+) => {
   await db.put(levelKeys.globalTrackersUrlCache, value, {
     valueEncoding: "json",
   });
@@ -83,7 +86,8 @@ export const getGlobalTrackers = async (): Promise<string[]> => {
     cachedGlobalTrackers &&
     JSON.stringify(cachedGlobalTrackers.manual) === JSON.stringify(manual) &&
     cachedGlobalTrackers.url === url &&
-    JSON.stringify(cachedGlobalTrackers.urlCache) === JSON.stringify(urlCache) &&
+    JSON.stringify(cachedGlobalTrackers.urlCache) ===
+      JSON.stringify(urlCache) &&
     cachedGlobalTrackers.appendManual === appendManual &&
     cachedGlobalTrackers.appendUrl === appendUrl
   ) {

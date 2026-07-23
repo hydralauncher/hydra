@@ -31,7 +31,11 @@ const saveGlobalTrackers = async (
   if (appendUrl && trimmedUrl) {
     const storedCache = await getGlobalTrackersUrlCache();
 
-    if (fetchUrl && trimmedUrl === storedUrl && storedCache?.url === storedUrl) {
+    if (
+      fetchUrl &&
+      trimmedUrl === storedUrl &&
+      storedCache?.url === storedUrl
+    ) {
       urlCache = storedCache.trackers;
     } else if (fetchUrl) {
       try {
@@ -43,8 +47,7 @@ const saveGlobalTrackers = async (
         });
       } catch {
         error = "global_trackers_fetch_error";
-        urlCache =
-          storedCache?.url === trimmedUrl ? storedCache.trackers : [];
+        urlCache = storedCache?.url === trimmedUrl ? storedCache.trackers : [];
       }
     } else if (storedCache?.url === trimmedUrl) {
       urlCache = storedCache.trackers;
