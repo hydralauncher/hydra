@@ -595,4 +595,5 @@ export * from "./how-long-to-beat.types";
 export * from "./level.types";
 export * from "./theme.types";
 export * from "./emulator.types";
+export * from "./retroarch.types";
 export * from "./artwork.types";

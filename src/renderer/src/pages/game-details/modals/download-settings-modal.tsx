@@ -46,7 +46,10 @@ import { Tooltip } from "react-tooltip";
 import "./download-settings-modal.scss";
 import { RealDebridInfoModal } from "./real-debrid-info-modal";
 import { gameDetailsContext } from "@renderer/context";
-import { platformToSystem } from "@renderer/helpers";
+import {
+  platformToRetroArchPlatform,
+  platformToSystem,
+} from "@renderer/helpers";
 
 export interface DownloadSettingsModalProps {
   visible: boolean;
@@ -246,6 +249,13 @@ export function DownloadSettingsModal({
     if (shop !== "launchbox") return null;
     return platformToSystem(game?.platform ?? shopDetails?.platform ?? null);
   }, [shop, game?.platform, shopDetails?.platform]);
+
+  const retroArchPlatform = useMemo(() => {
+    if (shop !== "launchbox" || emulatorSystem) return null;
+    return platformToRetroArchPlatform(
+      game?.platform ?? shopDetails?.platform ?? null
+    );
+  }, [shop, emulatorSystem, game?.platform, shopDetails?.platform]);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -474,15 +484,21 @@ export function DownloadSettingsModal({
     let cancelled = false;
 
     const resolveDefaultPath = async () => {
-      const romPath = emulatorSystem
-        ? await globalThis.electron
-            .getEmulatorConfigs()
-            .then(
-              (configs) =>
-                configs[emulatorSystem]?.romFolders?.[0]?.path ?? null
-            )
-            .catch(() => null)
-        : null;
+      let romPath: string | null = null;
+
+      if (emulatorSystem) {
+        romPath = await globalThis.electron
+          .getEmulatorConfigs()
+          .then(
+            (configs) => configs[emulatorSystem]?.romFolders?.[0]?.path ?? null
+          )
+          .catch(() => null);
+      } else if (retroArchPlatform) {
+        romPath = await globalThis.electron
+          .getRetroArchConfig()
+          .then((config) => config.romFolders?.[0]?.path ?? null)
+          .catch(() => null);
+      }
 
       if (cancelled) return;
 
@@ -513,6 +529,7 @@ export function DownloadSettingsModal({
     userPreferences?.downloadsPath,
     downloadOptions,
     emulatorSystem,
+    retroArchPlatform,
   ]);
 
   useEffect(() => {

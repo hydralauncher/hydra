@@ -402,3 +402,45 @@ export const countRomGroups = async (
   const raw = await collectCandidates(rootPath, binary, scanSubfolders);
   return dedupGames(binary, raw).length;
 };
+
+export interface CollectedRomFile {
+  fullPath: string;
+  name: string;
+  sizeBytes: number;
+}
+
+export const collectFilesByExtension = async (
+  rootPath: string,
+  extensions: string[],
+  scanSubfolders: boolean
+): Promise<CollectedRomFile[]> => {
+  const out: CollectedRomFile[] = [];
+  const queue: string[] = [rootPath];
+  const seen = new Set<string>();
+
+  for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
+    const real = await safeRealpath(dir);
+    if (real === null || seen.has(real)) continue;
+    seen.add(real);
+
+    const entries = await safeReaddirTypes(dir);
+    if (!entries || entries.length > MAX_ENTRIES_PER_DIR) continue;
+
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (scanSubfolders) queue.push(full);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      if (!matchesExtension(entry.name, extensions)) continue;
+      out.push({
+        fullPath: full,
+        name: entry.name,
+        sizeBytes: await safeFileSize(full),
+      });
+    }
+  }
+
+  return out;
+};

@@ -1,4 +1,9 @@
-import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
+import type {
+  EmulatorBinary,
+  EmulatorSystem,
+  GameShop,
+  RetroArchPlatform,
+} from "@types";
 
 import Color from "color";
 import i18next from "i18next";
@@ -48,6 +53,30 @@ export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
   ps1: "duckstation",
   ps2: "pcsx2",
   ps3: "rpcs3",
+};
+
+export const platformToRetroArchPlatform = (
+  platform?: string | null
+): RetroArchPlatform | null => {
+  if (!platform) return null;
+  const p = platform.toLowerCase();
+  if (/game\s*boy\s*advance|\bgba\b/.test(p)) return "gba";
+  if (/game\s*boy\s*color|\bgbc\b/.test(p)) return "gbc";
+  if (/game\s*boy|\bgb\b/.test(p)) return "gb";
+  if (/nintendo\s*64|\bn64\b/.test(p)) return "n64";
+  if (/super\s*nintendo|\bsnes\b/.test(p)) return "snes";
+  if (/nintendo\s*entertainment\s*system|\bnes\b|\bfamicom\b/.test(p))
+    return "nes";
+  return null;
+};
+
+export const RETROARCH_PLATFORM_LABELS: Record<RetroArchPlatform, string> = {
+  nes: "NES",
+  snes: "SNES",
+  n64: "N64",
+  gb: "GB",
+  gbc: "GBC",
+  gba: "GBA",
 };
 
 export const formatDownloadProgress = (
@@ -300,6 +329,8 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "EMULATOR_ALREADY_RUNNING",
   "PKG_INSTALLING",
   "PKG_UNREADABLE",
+  "RETROARCH_NOT_CONFIGURED",
+  "CORE_NOT_INSTALLED",
 ] as const;
 
 export const getClassicsLaunchErrorCode = (

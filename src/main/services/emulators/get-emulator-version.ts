@@ -1,12 +1,11 @@
 import { spawnSync } from "node:child_process";
-import type { KnownBinary } from "./known-binaries";
 import { resolveEmulatorExecutableTarget } from "./macos-app-bundle";
 
 const VERSION_REGEX = /\d+\.\d+(?:\.\d+)?(?:[a-zA-Z0-9.-]*)/;
 
 export const getEmulatorVersion = (
   executablePath: string,
-  binary: KnownBinary
+  binary: { versionFlags: string[] }
 ): string | null => {
   const executableTarget = resolveEmulatorExecutableTarget(executablePath);
   if (!executableTarget) return null;

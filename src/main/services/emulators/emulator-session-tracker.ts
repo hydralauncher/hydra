@@ -1,7 +1,7 @@
 import type { ChildProcess } from "node:child_process";
 
 import { gamesSublevel, levelKeys } from "@main/level";
-import type { EmulatorSystem, Game, GameShop } from "@types";
+import type { EmulatorSystem, Game, GameShop, RetroArchPlatform } from "@types";
 
 import { trackGamePlaytime } from "../library-sync";
 import { logger } from "../logger";
@@ -9,10 +9,17 @@ import { syncRetroAchievements } from "../retro-achievements/retro-achievements-
 import { WindowManager } from "../window-manager";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
 
+export type EmulatorSessionSystem = EmulatorSystem | RetroArchPlatform;
+
+const isEmulatorSystem = (
+  system: EmulatorSessionSystem
+): system is EmulatorSystem =>
+  system === "ps1" || system === "ps2" || system === "ps3";
+
 export interface EmulatorSession {
   shop: GameShop;
   objectId: string;
-  system: EmulatorSystem;
+  system: EmulatorSessionSystem;
   executablePath: string;
   sku: string | null;
   beforeTotalSeconds: number | null;
@@ -36,7 +43,7 @@ const sendPresencePing = async (gameKey: string): Promise<void> => {
 
 interface StartEmulatorSessionOptions {
   game: Game;
-  system: EmulatorSystem;
+  system: EmulatorSessionSystem;
   executablePath: string;
   sku: string | null;
   child: ChildProcess;
@@ -51,9 +58,10 @@ export const startEmulatorSession = async ({
 }: StartEmulatorSessionOptions): Promise<void> => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
-  const before = sku
-    ? await readEmulatorPlaytimeSeconds(system, executablePath, sku)
-    : null;
+  const before =
+    sku && isEmulatorSystem(system)
+      ? await readEmulatorPlaytimeSeconds(system, executablePath, sku)
+      : null;
 
   const session: EmulatorSession = {
     shop: game.shop,
@@ -124,7 +132,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   if (!game) return;
 
   let deltaSeconds = 0;
-  if (session.sku) {
+  if (session.sku && isEmulatorSystem(session.system)) {
     const after = await readEmulatorPlaytimeSeconds(
       session.system,
       session.executablePath,

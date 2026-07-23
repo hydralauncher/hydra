@@ -13,8 +13,16 @@ import {
 } from "@primer/octicons-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
-import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import {
+  platformToRetroArchPlatform,
+  platformToSystem,
+  RETROARCH_PLATFORM_LABELS,
+  SYSTEM_TO_BINARY,
+} from "@renderer/helpers";
+import {
+  EMULATOR_ICONS,
+  RETROARCH_EMULATOR_ICON,
+} from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card-large.scss";
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -176,12 +184,20 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
   const classicsSystem = isClassics ? platformToSystem(game.platform) : null;
+  const retroArchPlatform =
+    isClassics && !classicsSystem
+      ? platformToRetroArchPlatform(game.platform)
+      : null;
   const classicsPlatformLabel = classicsSystem
     ? PLATFORM_LABELS[classicsSystem]
-    : null;
+    : retroArchPlatform
+      ? RETROARCH_PLATFORM_LABELS[retroArchPlatform]
+      : null;
   const classicsEmulatorIcon = classicsSystem
     ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
-    : undefined;
+    : retroArchPlatform
+      ? RETROARCH_EMULATOR_ICON
+      : undefined;
 
   return (
     <button
