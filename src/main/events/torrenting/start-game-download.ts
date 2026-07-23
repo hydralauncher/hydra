@@ -38,6 +38,8 @@ const startGameDownload = async (
     `[Downloads] Start requested for ${gameKey} (downloader=${downloader})`
   );
 
+  let didWriteDownload = false;
+
   try {
     const globalTrackers = await getGlobalTrackers();
 
@@ -70,6 +72,7 @@ const startGameDownload = async (
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey);
     await downloadsSublevel.put(gameKey, download);
+    didWriteDownload = true;
     await DownloadOrchestrator.startPreparedDownload(download);
 
     const updatedGame = await gamesSublevel.get(gameKey);
@@ -83,8 +86,10 @@ const startGameDownload = async (
 
     return { ok: true };
   } catch (err: unknown) {
-    await downloadsSublevel.del(gameKey).catch(() => null);
-    await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
+    if (didWriteDownload) {
+      await downloadsSublevel.del(gameKey).catch(() => null);
+      await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
+    }
 
     if (isKnownDownloadError(err)) {
       logger.warn("Failed to start download with expected download error", err);
