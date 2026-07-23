@@ -2,7 +2,7 @@ import { downloadsSublevel } from "./level/sublevels/downloads";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
-import { fetchGlobalTrackersFromUrl } from "@main/helpers";
+import { refreshGlobalTrackersUrlCache } from "@main/helpers";
 import { type Download, type UserPreferences } from "../types";
 import path from "node:path";
 import fs from "node:fs";
@@ -91,23 +91,7 @@ export const loadState = async () => {
     userPreferences?.appendGlobalTrackersUrl &&
     userPreferences?.globalTrackersUrl
   ) {
-    fetchGlobalTrackersFromUrl(userPreferences.globalTrackersUrl)
-      .then((trackers) => {
-        db.put(
-          levelKeys.userPreferences,
-          {
-            ...userPreferences,
-            globalTrackersUrlCache: trackers,
-          },
-          { valueEncoding: "json" }
-        ).catch(() => {});
-      })
-      .catch((err) => {
-        logger.error(
-          "Failed to refresh global tracker URL cache on startup",
-          err
-        );
-      });
+    refreshGlobalTrackersUrlCache().catch(() => {});
   }
 
   Ludusavi.copyConfigFileToUserData();

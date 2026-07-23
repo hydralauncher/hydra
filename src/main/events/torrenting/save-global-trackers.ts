@@ -34,7 +34,7 @@ const saveGlobalTrackers = async (
         urlCache = trimmedUrl === storedUrl ? storedCache : [];
       }
     } else {
-      urlCache = storedCache;
+      urlCache = trimmedUrl === storedUrl ? storedCache : [];
     }
   }
 
@@ -46,7 +46,7 @@ const saveGlobalTrackers = async (
       ...(userPreferences ?? {}),
       globalTrackers: validManual,
       appendGlobalTrackers: appendManual,
-      globalTrackersUrl: url ?? "",
+      globalTrackersUrl: trimmedUrl,
       appendGlobalTrackersUrl: appendUrl,
       globalTrackersUrlCache: urlCache,
     },
