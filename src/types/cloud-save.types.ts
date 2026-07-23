@@ -194,6 +194,7 @@ export interface CloudSaveStateResult {
 
 export interface CloudSaveOverview extends CloudSaveStateResult {
   isAutomaticSyncEnabled: boolean;
+  suggestedAction: CloudSaveSyncAction;
   discoveredVariantCount: number;
   unresolvedRemoteVariantCount: number;
   warnings: UserLocationCoverage[];

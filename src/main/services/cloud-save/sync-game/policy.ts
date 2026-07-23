@@ -48,3 +48,15 @@ export const getSyncAction = (
 
   return "none";
 };
+
+export const getSuggestedCloudSaveAction = (
+  state: CloudSaveState,
+  restoreEntryCount: number
+): CloudSaveSyncAction => {
+  if (state === "conflict") return "conflict";
+  if (state === "local-ahead") {
+    return restoreEntryCount > 0 ? "merge" : "upload";
+  }
+  if (state === "remote-ahead") return "restore";
+  return "none";
+};
