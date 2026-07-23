@@ -24,9 +24,7 @@ export function SettingsGlobalTrackers() {
   const [trackerUrl, setTrackerUrl] = useState("");
   const [appendManual, setAppendManual] = useState(false);
   const [appendUrl, setAppendUrl] = useState(false);
-  const [urlStatus, setUrlStatus] = useState<"fetched" | "invalid" | null>(
-    null
-  );
+  const [isUrlInvalid, setIsUrlInvalid] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const appendManualRef = useRef(appendManual);
@@ -71,14 +69,14 @@ export function SettingsGlobalTrackers() {
       await refreshUserPreferences();
 
       if (!appendUrlFlag || !url) {
-        setUrlStatus(null);
+        setIsUrlInvalid(false);
       } else if (error) {
-        setUrlStatus("invalid");
+        setIsUrlInvalid(true);
       } else {
-        setUrlStatus("fetched");
+        setIsUrlInvalid(false);
       }
     },
-    [t, refreshUserPreferences]
+    [refreshUserPreferences]
   );
 
   const debouncedSave = useRef(
@@ -184,7 +182,7 @@ export function SettingsGlobalTrackers() {
             value={trackerUrl}
             onChange={(e) => {
               setTrackerUrl(e.target.value);
-              setUrlStatus(null);
+              setIsUrlInvalid(false);
             }}
             onBlur={handleUrlBlur}
             placeholder={t("global_trackers_url_placeholder")}
@@ -192,12 +190,12 @@ export function SettingsGlobalTrackers() {
           />
           <span
             className={`settings-global-trackers__url-status ${
-              urlStatus
-                ? `settings-global-trackers__url-status--${urlStatus}`
+              isUrlInvalid
+                ? "settings-global-trackers__url-status--invalid"
                 : "settings-global-trackers__url-status--hidden"
             }`}
           >
-            {urlStatus === "invalid" ? t("global_trackers_fetch_error") : ""}
+            {isUrlInvalid ? t("global_trackers_fetch_error") : ""}
           </span>
         </div>
       </div>

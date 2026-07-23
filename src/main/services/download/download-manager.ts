@@ -1033,6 +1033,7 @@ export class DownloadManager {
       game_id: levelKeys.game(download.shop, download.objectId),
       url: download.uri,
       save_path: download.downloadPath,
+      trackers: download.customTrackers,
     });
   }
 

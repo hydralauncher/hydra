@@ -44,12 +44,20 @@ const saveGlobalTrackers = async (
   let urlCache: string[] = [];
   let error: string | undefined;
 
-  if (appendUrl && url?.trim()) {
-    try {
-      urlCache = await fetchAndValidateTrackersFromUrl(url.trim());
-    } catch {
-      error = "Failed to fetch trackers from URL. Check the URL and try again.";
-      urlCache = userPreferences?.globalTrackersUrlCache ?? [];
+  const trimmedUrl = url?.trim() ?? "";
+  const storedUrl = userPreferences?.globalTrackersUrl ?? "";
+  const storedCache = userPreferences?.globalTrackersUrlCache ?? [];
+
+  if (appendUrl && trimmedUrl) {
+    if (trimmedUrl === storedUrl && storedCache.length > 0) {
+      urlCache = storedCache;
+    } else {
+      try {
+        urlCache = await fetchAndValidateTrackersFromUrl(trimmedUrl);
+      } catch {
+        error = "global_trackers_fetch_error";
+        urlCache = trimmedUrl === storedUrl ? storedCache : [];
+      }
     }
   }
 

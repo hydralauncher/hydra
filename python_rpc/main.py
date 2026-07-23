@@ -429,6 +429,8 @@ def torrent_files(data: Optional[dict] = None):
         return cached_payload
 
     timeout_ms = data.get("timeout_ms", 30000)
+    trackers = data.get("trackers")
+
     try:
         timeout_ms = int(timeout_ms)
     except (TypeError, ValueError):
@@ -449,7 +451,7 @@ def torrent_files(data: Optional[dict] = None):
     started_at = time.time()
 
     try:
-        temp_downloader.start_download(magnet, tempfile.gettempdir())
+        temp_downloader.start_download(magnet, tempfile.gettempdir(), trackers=trackers)
         files_payload = temp_downloader.get_torrent_files(timeout_seconds=timeout_seconds)
         response = {
             "infoHash": info_hash,
@@ -535,6 +537,7 @@ def action(data: Optional[dict] = None):
                 data["url"],
                 data["save_path"],
                 flags=lt.torrent_flags.upload_mode,
+                trackers=data.get("trackers"),
             )
         elif action_name == "pause_seeding":
             with downloads_lock:
