@@ -36,6 +36,19 @@ type HydraNativeModule = {
   startOverlayKeyboardWatcher: () => boolean;
   getOverlayKeyboardEventCount: () => number;
   getOverlayGamepadButtons: () => number;
+  getForegroundProcessId: () => number;
+  isCurrentProcessElevated: () => boolean;
+  getProcessAccessStatus: (pid: number) => {
+    canInject?: boolean;
+    can_inject?: boolean;
+    errorCode?: number;
+    error_code?: number;
+  };
+  launchElevated: (
+    executable: string,
+    parameters: string,
+    workingDirectory: string
+  ) => boolean;
 };
 
 export type SystemProcessMap = {
@@ -333,6 +346,51 @@ export class NativeAddon {
       return this.load().getOverlayGamepadButtons();
     } catch {
       return 0;
+    }
+  }
+
+  public static getForegroundProcessId(): number {
+    try {
+      return this.load().getForegroundProcessId();
+    } catch {
+      return 0;
+    }
+  }
+
+  public static isCurrentProcessElevated(): boolean {
+    try {
+      return this.load().isCurrentProcessElevated();
+    } catch {
+      return false;
+    }
+  }
+
+  public static getProcessAccessStatus(pid: number) {
+    try {
+      const status = this.load().getProcessAccessStatus(pid);
+      return {
+        canInject: status.canInject ?? status.can_inject ?? false,
+        errorCode: status.errorCode ?? status.error_code ?? 0,
+      };
+    } catch {
+      return { canInject: false, errorCode: 0 };
+    }
+  }
+
+  public static launchElevated(
+    executable: string,
+    parameters: string,
+    workingDirectory: string
+  ) {
+    try {
+      return this.load().launchElevated(
+        executable,
+        parameters,
+        workingDirectory
+      );
+    } catch (error) {
+      logger.error("Failed to request elevated Hydra process", error);
+      return false;
     }
   }
 }

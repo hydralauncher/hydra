@@ -12,7 +12,11 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering as AtomicOrdering};
 #[cfg(target_os = "windows")]
 use std::sync::mpsc;
 #[cfg(target_os = "windows")]
+use std::sync::{Mutex, OnceLock};
+#[cfg(target_os = "windows")]
 use std::thread;
+#[cfg(target_os = "windows")]
+use std::time::{Duration, Instant};
 
 use image::codecs::gif::{GifDecoder, GifEncoder, Repeat};
 use image::codecs::png::PngDecoder;
@@ -25,18 +29,34 @@ use sysinfo::{ProcessesToUpdate, System};
 use uuid::Uuid;
 
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HWND, LPARAM, LRESULT, WPARAM};
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::Security::{
+    GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY,
+};
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::System::Threading::{
+    GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_CREATE_THREAD,
+    PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_VM_OPERATION, PROCESS_VM_READ, PROCESS_VM_WRITE,
+};
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+    GetAsyncKeyState, RegisterHotKey, MOD_NOREPEAT, MOD_SHIFT,
+};
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::UI::Input::{
     GetRawInputData, RegisterRawInputDevices, HRAWINPUT, RAWINPUT, RAWINPUTDEVICE, RAWINPUTHEADER,
     RIDEV_INPUTSINK, RID_INPUT, RIM_TYPEKEYBOARD,
 };
 #[cfg(target_os = "windows")]
+use windows_sys::Win32::UI::Shell::ShellExecuteW;
+#[cfg(target_os = "windows")]
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, RegisterClassW,
-    TranslateMessage, HWND_MESSAGE, MSG, WM_INPUT, WNDCLASSW,
+    CreateWindowExW, DefWindowProcW, DispatchMessageW, GetForegroundWindow, GetMessageW,
+    GetWindowThreadProcessId, RegisterClassW, TranslateMessage, HWND_MESSAGE, MSG, SW_SHOWNORMAL,
+    WM_HOTKEY, WM_INPUT, WNDCLASSW,
 };
 
 #[cfg(target_os = "windows")]
@@ -48,7 +68,11 @@ static F3_DOWN: AtomicBool = AtomicBool::new(false);
 #[cfg(target_os = "windows")]
 static COMBO_LATCHED: AtomicBool = AtomicBool::new(false);
 #[cfg(target_os = "windows")]
+static POLLED_COMBO_LATCHED: AtomicBool = AtomicBool::new(false);
+#[cfg(target_os = "windows")]
 static OVERLAY_KEYBOARD_EVENTS: AtomicU32 = AtomicU32::new(0);
+#[cfg(target_os = "windows")]
+static LAST_SHORTCUT_EVENT: OnceLock<Mutex<Option<Instant>>> = OnceLock::new();
 
 #[cfg(target_os = "windows")]
 #[repr(C)]
@@ -93,7 +117,7 @@ pub fn start_overlay_keyboard_watcher() -> bool {
         if !started {
             RAW_INPUT_STARTED.store(false, AtomicOrdering::Release);
         }
-        return started;
+        started
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -103,10 +127,42 @@ pub fn start_overlay_keyboard_watcher() -> bool {
 #[napi]
 pub fn get_overlay_keyboard_event_count() -> u32 {
     #[cfg(target_os = "windows")]
-    return OVERLAY_KEYBOARD_EVENTS.load(AtomicOrdering::Acquire);
+    {
+        poll_overlay_combo();
+        OVERLAY_KEYBOARD_EVENTS.load(AtomicOrdering::Acquire)
+    }
 
     #[cfg(not(target_os = "windows"))]
     0
+}
+
+#[cfg(target_os = "windows")]
+fn record_overlay_shortcut() {
+    let now = Instant::now();
+    let last_event = LAST_SHORTCUT_EVENT.get_or_init(|| Mutex::new(None));
+    if let Ok(mut last_event) = last_event.lock() {
+        if last_event
+            .as_ref()
+            .is_some_and(|last| now.duration_since(*last) < Duration::from_millis(250))
+        {
+            return;
+        }
+        *last_event = Some(now);
+    }
+    OVERLAY_KEYBOARD_EVENTS.fetch_add(1, AtomicOrdering::AcqRel);
+}
+
+#[cfg(target_os = "windows")]
+fn poll_overlay_combo() {
+    let shift_down = unsafe { GetAsyncKeyState(0x10) } as u16 & 0x8000 != 0;
+    let f3_down = unsafe { GetAsyncKeyState(0x72) } as u16 & 0x8000 != 0;
+    let active = shift_down && f3_down;
+
+    if active && !POLLED_COMBO_LATCHED.swap(true, AtomicOrdering::AcqRel) {
+        record_overlay_shortcut();
+    } else if !active {
+        POLLED_COMBO_LATCHED.store(false, AtomicOrdering::Release);
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -119,7 +175,7 @@ fn update_overlay_combo(virtual_key: u16, pressed: bool) {
 
     let active = SHIFT_DOWN.load(AtomicOrdering::Acquire) && F3_DOWN.load(AtomicOrdering::Acquire);
     if active && !COMBO_LATCHED.swap(true, AtomicOrdering::AcqRel) {
-        OVERLAY_KEYBOARD_EVENTS.fetch_add(1, AtomicOrdering::AcqRel);
+        record_overlay_shortcut();
     } else if !active {
         COMBO_LATCHED.store(false, AtomicOrdering::Release);
     }
@@ -132,6 +188,11 @@ unsafe extern "system" fn raw_input_window_proc(
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
+    if message == WM_HOTKEY {
+        record_overlay_shortcut();
+        return 0;
+    }
+
     if message == WM_INPUT {
         let mut input: RAWINPUT = unsafe { zeroed() };
         let mut size = size_of::<RAWINPUT>() as u32;
@@ -200,6 +261,8 @@ fn run_raw_input_thread(sender: mpsc::SyncSender<bool>) {
             return;
         }
 
+        RegisterHotKey(window, 1, MOD_SHIFT | MOD_NOREPEAT, 0x72);
+
         let _ = sender.send(true);
         let mut message: MSG = zeroed();
         while GetMessageW(&mut message, null_mut(), 0, 0) > 0 {
@@ -207,6 +270,117 @@ fn run_raw_input_thread(sender: mpsc::SyncSender<bool>) {
             DispatchMessageW(&message);
         }
     }
+}
+
+#[napi(object)]
+pub struct ProcessAccessStatus {
+    pub can_inject: bool,
+    pub error_code: u32,
+}
+
+#[napi]
+pub fn get_process_access_status(pid: u32) -> ProcessAccessStatus {
+    #[cfg(target_os = "windows")]
+    unsafe {
+        let rights = PROCESS_CREATE_THREAD
+            | PROCESS_QUERY_LIMITED_INFORMATION
+            | PROCESS_VM_OPERATION
+            | PROCESS_VM_WRITE
+            | PROCESS_VM_READ;
+        let handle = OpenProcess(rights, 0, pid);
+        if handle.is_null() {
+            return ProcessAccessStatus {
+                can_inject: false,
+                error_code: GetLastError(),
+            };
+        }
+        CloseHandle(handle);
+        ProcessAccessStatus {
+            can_inject: true,
+            error_code: 0,
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    ProcessAccessStatus {
+        can_inject: false,
+        error_code: 0,
+    }
+}
+
+#[napi]
+pub fn get_foreground_process_id() -> u32 {
+    #[cfg(target_os = "windows")]
+    unsafe {
+        let window = GetForegroundWindow();
+        if window.is_null() {
+            return 0;
+        }
+        let mut pid = 0;
+        GetWindowThreadProcessId(window, &mut pid);
+        pid
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    0
+}
+
+#[napi]
+pub fn is_current_process_elevated() -> bool {
+    #[cfg(target_os = "windows")]
+    unsafe {
+        let mut token = null_mut();
+        if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) == 0 {
+            return false;
+        }
+
+        let mut elevation: TOKEN_ELEVATION = zeroed();
+        let mut returned_size = 0;
+        let result = GetTokenInformation(
+            token,
+            TokenElevation,
+            &mut elevation as *mut TOKEN_ELEVATION as *mut _,
+            size_of::<TOKEN_ELEVATION>() as u32,
+            &mut returned_size,
+        );
+        CloseHandle(token);
+        result != 0 && elevation.TokenIsElevated != 0
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    false
+}
+
+#[napi]
+pub fn launch_elevated(executable: String, parameters: String, working_directory: String) -> bool {
+    #[cfg(target_os = "windows")]
+    unsafe {
+        let verb: Vec<u16> = "runas\0".encode_utf16().collect();
+        let executable: Vec<u16> = executable
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let parameters: Vec<u16> = parameters
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let working_directory: Vec<u16> = working_directory
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let result = ShellExecuteW(
+            null_mut(),
+            verb.as_ptr(),
+            executable.as_ptr(),
+            parameters.as_ptr(),
+            working_directory.as_ptr(),
+            SW_SHOWNORMAL,
+        );
+        result as isize > 32
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    false
 }
 
 #[napi]
@@ -265,6 +439,8 @@ pub struct NativeProcessPayload {
     pub name: String,
     pub environ: Option<HashMap<String, String>>,
     pub cwd: Option<String>,
+    pub parent_pid: Option<u32>,
+    pub start_time: u32,
 }
 
 #[napi]
@@ -422,6 +598,8 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
                 } else {
                     None
                 },
+                parent_pid: process.parent().map(|value| value.as_u32()),
+                start_time: process.start_time().min(u64::from(u32::MAX)) as u32,
             }
         })
         .collect();
@@ -529,7 +707,8 @@ fn encode_animation_frames_to_gif<I>(
 where
     I: IntoIterator<Item = ImageResult<Frame>>,
 {
-    let output_file = File::create(output_path).map_err(|err| Error::from_reason(err.to_string()))?;
+    let output_file =
+        File::create(output_path).map_err(|err| Error::from_reason(err.to_string()))?;
     let mut encoder = GifEncoder::new(BufWriter::new(output_file));
     encoder
         .set_repeat(Repeat::Infinite)
@@ -537,7 +716,7 @@ where
 
     for frame in frames {
         let frame = frame.map_err(|err| Error::from_reason(err.to_string()))?;
-        let delay = frame.delay().clone();
+        let delay = frame.delay();
         let resized = resize_cover_rgba(&frame.into_buffer(), width, height)?;
 
         encoder
@@ -582,12 +761,7 @@ fn resize_cover_rgba(image: &RgbaImage, width: u32, height: u32) -> napi::Result
 
     let resized_width = ((source_width as f32 * scale).ceil() as u32).max(width);
     let resized_height = ((source_height as f32 * scale).ceil() as u32).max(height);
-    let resized = resize(
-        image,
-        resized_width,
-        resized_height,
-        FilterType::Lanczos3,
-    );
+    let resized = resize(image, resized_width, resized_height, FilterType::Lanczos3);
 
     let left = (resized_width.saturating_sub(width)) / 2;
     let top = (resized_height.saturating_sub(height)) / 2;

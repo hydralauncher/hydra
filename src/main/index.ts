@@ -38,6 +38,7 @@ if (process.platform !== "linux") {
   app.commandLine.appendSwitch("--no-sandbox");
 } else {
   app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+  app.commandLine.appendSwitch("enable-features", "GlobalShortcutsPortal");
 }
 
 i18n.init({

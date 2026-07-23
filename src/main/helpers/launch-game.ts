@@ -15,10 +15,12 @@ import {
   launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
+import { prepareLinuxOverlayLaunch } from "@main/services/linux-overlay-launch";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
+import { normalizeGamescopeMangoHud } from "./linux-gamescope-launch";
 import {
   buildWindowsBatchCommand,
   isWindowsBatchFile,
@@ -54,17 +56,21 @@ const launchNatively = (
   executablePath: string,
   launchOptions?: string | null,
   useMangohud = false,
-  useGamemode = false
+  useGamemode = false,
+  environment: Record<string, string> = {}
 ): number | null => {
   const workingDirectory = path.dirname(executablePath);
-  const resolvedLaunchCommand = resolveLaunchCommand({
-    baseCommand: executablePath,
-    launchOptions,
-    wrapperCommands: [
-      ...(useGamemode ? ["gamemoderun"] : []),
-      ...(useMangohud ? ["mangohud"] : []),
-    ],
-  });
+  const resolvedLaunchCommand = normalizeGamescopeMangoHud(
+    resolveLaunchCommand({
+      baseCommand: executablePath,
+      launchOptions,
+      wrapperCommands: [
+        ...(useGamemode ? ["gamemoderun"] : []),
+        ...(useMangohud ? ["mangohud"] : []),
+      ],
+    }),
+    useMangohud
+  );
 
   if (process.platform === "linux") {
     ensureExecutablePermission(executablePath);
@@ -93,6 +99,7 @@ const launchNatively = (
         cwd: workingDirectory,
         env: {
           ...process.env,
+          ...environment,
           ...resolvedLaunchCommand.env,
         },
       }
@@ -117,6 +124,7 @@ const launchNatively = (
       cwd: workingDirectory,
       env: {
         ...process.env,
+        ...environment,
         ...resolvedLaunchCommand.env,
       },
     }
@@ -135,18 +143,22 @@ const launchWithWine = async (
   executablePath: string,
   launchOptions?: string | null,
   useMangohud = false,
-  useGamemode = false
+  useGamemode = false,
+  environment: Record<string, string> = {}
 ): Promise<boolean> => {
   const workingDirectory = path.dirname(executablePath);
-  const resolvedLaunchCommand = resolveLaunchCommand({
-    baseCommand: "wine",
-    baseArgs: [executablePath],
-    launchOptions,
-    wrapperCommands: [
-      ...(useGamemode ? ["gamemoderun"] : []),
-      ...(useMangohud ? ["mangohud"] : []),
-    ],
-  });
+  const resolvedLaunchCommand = normalizeGamescopeMangoHud(
+    resolveLaunchCommand({
+      baseCommand: "wine",
+      baseArgs: [executablePath],
+      launchOptions,
+      wrapperCommands: [
+        ...(useGamemode ? ["gamemoderun"] : []),
+        ...(useMangohud ? ["mangohud"] : []),
+      ],
+    }),
+    useMangohud
+  );
 
   return await new Promise<boolean>((resolve) => {
     const processRef = spawn(
@@ -159,6 +171,7 @@ const launchWithWine = async (
         cwd: workingDirectory,
         env: {
           ...process.env,
+          ...environment,
           ...resolvedLaunchCommand.env,
         },
       }
@@ -249,7 +262,8 @@ const launchWindowsBinaryOnLinux = async (
   game: Game | undefined,
   launchOptions: string | null | undefined,
   useMangohud: boolean,
-  useGamemode: boolean
+  useGamemode: boolean,
+  environment: Record<string, string>
 ): Promise<boolean> => {
   const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
   const winePrefixPath = Wine.getEffectivePrefixPath(
@@ -267,6 +281,7 @@ const launchWindowsBinaryOnLinux = async (
       launchOptions,
       useGamemode,
       useMangohud,
+      environment,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
@@ -278,7 +293,8 @@ const launchWindowsBinaryOnLinux = async (
     parsedPath,
     launchOptions,
     useMangohud,
-    useGamemode
+    useGamemode,
+    environment
   );
 
   if (launchedWithWine) {
@@ -309,10 +325,15 @@ export const launchGame = async (
     })
     .catch(() => null);
 
-  const useMangohud =
-    (userPreferences?.autoRunMangohud === true ||
-      game?.autoRunMangohud === true) &&
-    isMangohudAvailable();
+  const mangohudRequestedByUser =
+    userPreferences?.autoRunMangohud === true || game?.autoRunMangohud === true;
+  const linuxOverlayLaunch = prepareLinuxOverlayLaunch(
+    game,
+    userPreferences,
+    isMangohudAvailable(),
+    mangohudRequestedByUser
+  );
+  const useMangohud = linuxOverlayLaunch.useMangohud;
 
   const useGamemode =
     (userPreferences?.autoRunGamemode === true ||
@@ -352,7 +373,8 @@ export const launchGame = async (
         game,
         launchOptions,
         useMangohud,
-        useGamemode
+        useGamemode,
+        linuxOverlayLaunch.environment
       );
 
       if (launched) return null;
@@ -362,7 +384,8 @@ export const launchGame = async (
       parsedPath,
       launchOptions,
       useMangohud,
-      useGamemode
+      useGamemode,
+      linuxOverlayLaunch.environment
     );
 
     if (pid !== null) launchedGamePids.set(gameKey, pid);

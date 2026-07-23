@@ -14,6 +14,7 @@ import type {
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
+import { prepareLinuxOverlayLaunch } from "@main/services/linux-overlay-launch";
 
 export class EmulatorNotConfiguredError extends Error {
   code = "EMULATOR_NOT_CONFIGURED" as const;
@@ -142,19 +143,27 @@ const assertBiosInstalled = async (
 const resolveEmulatorWrappers = (
   preferences: UserPreferences | null,
   game: Game | undefined
-): string[] => {
-  const useMangohud =
-    (preferences?.autoRunMangohud === true || game?.autoRunMangohud === true) &&
-    isMangohudAvailable();
+): { wrappers: string[]; environment: Record<string, string> } => {
+  const mangohudRequestedByUser =
+    preferences?.autoRunMangohud === true || game?.autoRunMangohud === true;
+  const linuxOverlayLaunch = prepareLinuxOverlayLaunch(
+    game,
+    preferences,
+    isMangohudAvailable(),
+    mangohudRequestedByUser
+  );
 
   const useGamemode =
     (preferences?.autoRunGamemode === true || game?.autoRunGamemode === true) &&
     isGamemodeAvailable();
 
-  return [
-    ...(useGamemode ? ["gamemoderun"] : []),
-    ...(useMangohud ? ["mangohud"] : []),
-  ];
+  return {
+    wrappers: [
+      ...(useGamemode ? ["gamemoderun"] : []),
+      ...(linuxOverlayLaunch.useMangohud ? ["mangohud"] : []),
+    ],
+    environment: linuxOverlayLaunch.environment,
+  };
 };
 
 export const launchClassicsGame = async (
@@ -181,7 +190,7 @@ export const launchClassicsGame = async (
     })
     .catch(() => null);
 
-  const wrapperCommands = resolveEmulatorWrappers(userPreferences, game);
+  const overlayLaunch = resolveEmulatorWrappers(userPreferences, game);
 
   const selectedDisc = game?.discs?.find((d) => d.path === discPath) ?? null;
 
@@ -217,7 +226,7 @@ export const launchClassicsGame = async (
     baseCommand: executableTarget,
     baseArgs,
     launchOptions: null,
-    wrapperCommands,
+    wrapperCommands: overlayLaunch.wrappers,
   });
 
   const workingDirectory = path.dirname(executableTarget);
@@ -233,6 +242,7 @@ export const launchClassicsGame = async (
         cwd: workingDirectory,
         env: {
           ...process.env,
+          ...overlayLaunch.environment,
           ...resolvedLaunchCommand.env,
         },
       }

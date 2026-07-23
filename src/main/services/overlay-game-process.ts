@@ -1,28 +1,24 @@
 import type { Game } from "@types";
-import path from "node:path";
 
 import { NativeAddon } from "./native-addon";
+import { rankOverlayGameProcesses } from "./overlay-game-process-ranking";
 
-export const findOverlayGameProcess = async (game: Game) => {
-  const targets = [game.executablePath, ...(game.trackingExecutablePaths ?? [])]
-    .filter((value): value is string => Boolean(value))
-    .map((value) => path.normalize(value).toLowerCase());
-
-  if (!targets.length) return null;
-
-  const processes = await NativeAddon.listProcesses();
-  return (
-    processes.find((candidate) => {
-      const executable = candidate.exe
-        ? path.normalize(candidate.exe).toLowerCase()
-        : null;
-      const processName = candidate.name.toLowerCase();
-      return targets.some(
-        (target) =>
-          executable === target ||
-          (executable && path.basename(executable) === path.basename(target)) ||
-          processName === path.basename(target)
-      );
-    }) ?? null
+const getOverlayProcessTargets = (game: Game) =>
+  [game.executablePath, ...(game.trackingExecutablePaths ?? [])].filter(
+    (value): value is string => Boolean(value)
   );
+
+export const findOverlayGameProcesses = async (game: Game) => {
+  const targets = getOverlayProcessTargets(game);
+  if (!targets.length) return [];
+
+  const [processes, foregroundPid] = await Promise.all([
+    NativeAddon.listProcesses(),
+    Promise.resolve(NativeAddon.getForegroundProcessId()),
+  ]);
+
+  return rankOverlayGameProcesses(processes, targets, foregroundPid);
 };
+
+export const findOverlayGameProcess = async (game: Game) =>
+  (await findOverlayGameProcesses(game))[0] ?? null;
