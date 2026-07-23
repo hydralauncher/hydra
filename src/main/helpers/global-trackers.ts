@@ -1,7 +1,11 @@
 import axios from "axios";
 import { db, levelKeys } from "@main/level";
 import { logger } from "@main/services";
-import { isValidTrackerUrl, parseTrackerList } from "./tracker-list";
+import {
+  isValidTrackerListUrl,
+  isValidTrackerUrl,
+  parseTrackerList,
+} from "@shared";
 import type { UserPreferences } from "@types";
 
 const MAX_TRACKER_LIST_SIZE = 200_000; // ~4,000 tracker URLs
@@ -25,7 +29,7 @@ let cachedGlobalTrackers: {
 export const fetchGlobalTrackersFromUrl = async (
   url: string
 ): Promise<string[]> => {
-  if (!isValidTrackerUrl(url)) {
+  if (!isValidTrackerListUrl(url)) {
     throw new Error("Invalid tracker URL");
   }
 
@@ -86,19 +90,27 @@ export const getGlobalTrackers = async (): Promise<string[]> => {
   const appendUrl = userPreferences?.appendGlobalTrackersUrl ?? false;
 
   let urlCache: string[] = [];
-  if (appendUrl && url && isValidTrackerUrl(url)) {
+  if (appendUrl && url && isValidTrackerListUrl(url)) {
     const cache = await getGlobalTrackersUrlCache();
     if (cache?.url === url) {
       urlCache = cache.trackers;
     }
 
     if (isGlobalTrackersUrlCacheStale(cache, url)) {
-      void fetchAndCacheGlobalTrackersUrl(url).catch((err) =>
-        logger.error(
-          "Background refresh of global tracker URL cache failed",
-          err
-        )
-      );
+      if (!cache || cache.url !== url) {
+        try {
+          urlCache = await fetchAndCacheGlobalTrackersUrl(url);
+        } catch (err) {
+          logger.error("Global tracker URL cache fetch failed", err);
+        }
+      } else {
+        void fetchAndCacheGlobalTrackersUrl(url).catch((err) =>
+          logger.error(
+            "Background refresh of global tracker URL cache failed",
+            err
+          )
+        );
+      }
     }
   }
 
@@ -147,7 +159,7 @@ export const refreshGlobalTrackersUrlCache = async (): Promise<void> => {
   }
 
   const startupUrl = userPreferences.globalTrackersUrl;
-  if (!isValidTrackerUrl(startupUrl)) {
+  if (!isValidTrackerListUrl(startupUrl)) {
     return;
   }
 

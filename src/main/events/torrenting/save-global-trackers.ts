@@ -1,9 +1,7 @@
 import { db, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
-import {
-  clearGlobalTrackersMemoryCache,
-  isValidTrackerUrl,
-} from "@main/helpers";
+import { clearGlobalTrackersMemoryCache } from "@main/helpers";
+import { isValidTrackerUrl } from "@shared";
 import type { UserPreferences } from "@types";
 
 const saveGlobalTrackers = async (
@@ -12,7 +10,7 @@ const saveGlobalTrackers = async (
   url: string | null,
   appendManual: boolean,
   appendUrl: boolean
-): Promise<{ error?: string }> => {
+): Promise<void> => {
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     { valueEncoding: "json" }
@@ -34,8 +32,6 @@ const saveGlobalTrackers = async (
   );
 
   clearGlobalTrackersMemoryCache();
-
-  return {};
 };
 
 registerEvent("saveGlobalTrackers", saveGlobalTrackers);
