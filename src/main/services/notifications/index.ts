@@ -15,13 +15,22 @@ import { db, levelKeys, themesSublevel } from "@main/level";
 import { restartAndInstallUpdate } from "@main/events/autoupdater/restart-and-install-update";
 import { SystemPath } from "../system-path";
 import { getThemeSoundPath } from "@main/helpers";
-import { processProfileImage } from "@main/events/profile/process-profile-image";
 import { LocalNotificationManager } from "./local-notifications";
+import {
+  buildDownloadFileName,
+  transcodeNotificationIcon,
+} from "./notification-icon";
 
-const getStaticImage = async (path: string) => {
-  return processProfileImage(path, "jpg")
-    .then((response) => response.imagePath)
-    .catch(() => path);
+const getStaticImage = async (imagePath: string) => {
+  try {
+    return await transcodeNotificationIcon(
+      imagePath,
+      SystemPath.getPath("temp")
+    );
+  } catch (error) {
+    logger.error("Failed to transcode notification icon", imagePath, error);
+    return undefined;
+  }
 };
 
 async function downloadImage(url: string | null, signal?: AbortSignal) {
@@ -29,7 +38,7 @@ async function downloadImage(url: string | null, signal?: AbortSignal) {
   if (!url) return undefined;
   if (!url.startsWith("http")) return undefined;
 
-  const fileName = url.split("/").pop()!;
+  const fileName = buildDownloadFileName(url);
   const outputPath = path.join(SystemPath.getPath("temp"), fileName);
   const writer = fs.createWriteStream(outputPath);
 
@@ -163,9 +172,10 @@ export const publishNewFriendRequestNotification = async (
   if (signal?.aborted) return;
   if (!userPreferences?.friendRequestNotificationsEnabled) return;
 
-  const notificationIcon = user?.profileImageUrl
-    ? await downloadImage(user.profileImageUrl, signal)
-    : trayIcon;
+  const notificationIcon =
+    (user?.profileImageUrl
+      ? await downloadImage(user.profileImageUrl, signal)
+      : undefined) ?? trayIcon;
   if (signal?.aborted) return;
 
   new Notification({
@@ -185,9 +195,10 @@ export const publishFriendStartedPlayingGameNotification = async (
   signal?: AbortSignal
 ) => {
   if (signal?.aborted) return;
-  const notificationIcon = friend?.profileImageUrl
-    ? await downloadImage(friend.profileImageUrl, signal)
-    : trayIcon;
+  const notificationIcon =
+    (friend?.profileImageUrl
+      ? await downloadImage(friend.profileImageUrl, signal)
+      : undefined) ?? trayIcon;
   if (signal?.aborted) return;
 
   new Notification({
