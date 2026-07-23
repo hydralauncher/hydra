@@ -1384,19 +1384,17 @@ export function DownloadSettingsModal({
           </div>
 
           {canOpenTorrentStep && (
-            <div className="download-settings-modal__torrent-links">
-              <button
-                type="button"
-                className="download-settings-modal__torrent-link"
-                onClick={() => setShowTorrentStepModal(true)}
-                disabled={downloadStarting}
-              >
-                <FileIcon size={12} />
-                <span className="download-settings-modal__torrent-link-text">
-                  {t("select_files_to_download")}
-                </span>
-              </button>
-            </div>
+            <button
+              type="button"
+              className="download-settings-modal__select-files-link"
+              onClick={() => setShowTorrentStepModal(true)}
+              disabled={downloadStarting}
+            >
+              <FileIcon size={12} />
+              <span className="download-settings-modal__select-files-link-text">
+                {t("select_files_to_download")}
+              </span>
+            </button>
           )}
         </div>
 

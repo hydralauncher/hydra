@@ -19,13 +19,9 @@
     color: globals.$body-color;
   }
 
-  &__torrent-links {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  &__torrent-link {
+  &__select-files-link {
+    align-self: flex-start;
+    margin-top: 6px;
     border: none;
     background: transparent;
     padding: 0;
@@ -46,7 +42,7 @@
     }
   }
 
-  &__torrent-link-text {
+  &__select-files-link-text {
     text-decoration: underline;
     text-underline-offset: 2px;
   }
