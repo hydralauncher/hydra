@@ -1,23 +1,22 @@
 use napi_derive::napi;
 
-use crate::cloud_save::identity::{PortableLocator, StoreUserContext};
+use crate::cloud_save::identity::{SnapshotVariant, StoreUserContext};
 
 #[napi(object)]
 #[derive(Clone)]
 pub struct RestoreManifestFile {
-    pub logical_file_id: String,
     pub variant_id: String,
-    pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
-    pub locator: PortableLocator,
-    pub content_hash: String,
+    pub hash: String,
     pub size_bytes: f64,
+    pub last_modified_at: String,
 }
 
 #[napi(object)]
 #[derive(Clone)]
 pub struct ApprovedRestoreRule {
-    pub rule_id: String,
+    pub kind: String,
     pub raw_rule: String,
     pub source: String,
 }
@@ -35,30 +34,31 @@ pub struct ResolveRestoreTargetsInput {
     pub steam_path: Option<String>,
     pub store_user_context: StoreUserContext,
     pub approved_rules: Vec<ApprovedRestoreRule>,
+    pub variants: Vec<SnapshotVariant>,
     pub files: Vec<RestoreManifestFile>,
 }
 
 #[napi(object)]
 pub struct ResolvedRestoreTarget {
-    pub logical_file_id: String,
     pub variant_id: String,
-    pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
     pub target_path: String,
-    pub content_hash: String,
+    pub restore_root_path: String,
+    pub hash: String,
     pub size_bytes: f64,
+    pub last_modified_at: String,
     pub action: String,
 }
 
 #[napi(object)]
 pub struct BlockedRestoreFile {
-    pub logical_file_id: String,
     pub variant_id: String,
-    pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
-    pub locator: PortableLocator,
-    pub content_hash: String,
+    pub hash: String,
     pub size_bytes: f64,
+    pub last_modified_at: String,
     pub reason: String,
 }
 
@@ -84,11 +84,12 @@ pub enum RestoreTargetAction {
 #[napi(object)]
 #[derive(Clone)]
 pub struct ReplaceRestoreTarget {
-    pub logical_file_id: String,
     pub variant_id: String,
-    pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
     pub target_path: String,
+    pub restore_root_path: String,
+    pub last_modified_at: String,
     pub action: RestoreTargetAction,
     pub temp_path: Option<String>,
     pub expected_hash: Option<String>,
@@ -96,30 +97,40 @@ pub struct ReplaceRestoreTarget {
 
 #[napi(object)]
 pub struct RestoreResultFile {
-    pub logical_file_id: String,
     pub variant_id: String,
-    pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
     pub target_path: String,
+    pub restore_root_path: String,
+    pub last_modified_at: String,
 }
 
 #[napi(object)]
 pub struct RestoreSkippedFile {
-    pub logical_file_id: String,
     pub variant_id: String,
-    pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
     pub target_path: String,
+    pub restore_root_path: String,
+    pub last_modified_at: String,
     pub reason: String,
 }
 
 #[napi(object)]
 pub struct RestoreFailedFile {
-    pub logical_file_id: String,
     pub variant_id: String,
-    pub rule_id: String,
+    pub raw_path: String,
     pub relative_path: String,
     pub target_path: String,
+    pub restore_root_path: String,
+    pub last_modified_at: String,
+    pub reason: String,
+}
+
+#[napi(object)]
+pub struct RestoreMetadataFailure {
+    pub path: String,
+    pub kind: String,
     pub reason: String,
 }
 
@@ -128,4 +139,6 @@ pub struct ReplaceRestoreTargetsResult {
     pub restored_files: Vec<RestoreResultFile>,
     pub skipped_files: Vec<RestoreSkippedFile>,
     pub failed_files: Vec<RestoreFailedFile>,
+    pub metadata_failures: Vec<RestoreMetadataFailure>,
+    pub updated_directory_count: u32,
 }

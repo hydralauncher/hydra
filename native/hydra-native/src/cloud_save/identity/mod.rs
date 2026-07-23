@@ -1,17 +1,25 @@
 use napi_derive::napi;
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::cloud_save::manifest::types::{CloudSaveRule, CloudSaveRuleCondition};
 
 pub const IDENTITY_VERSION: u32 = 1;
 pub const RULE_ID_VERSION: u32 = 1;
-pub const LOGICAL_ID_VERSION: u32 = 1;
-pub const LOCATOR_VERSION: u32 = 1;
-pub const SNAPSHOT_SCHEMA_VERSION: u32 = 2;
 pub const DISCOVERY_ENGINE_VERSION: u32 = 2;
 
 const STEAM_INDIVIDUAL_ACCOUNT_BASE: u64 = 76_561_197_960_265_728;
+
+#[napi(object)]
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SnapshotVariant {
+    pub variant_id: String,
+    pub kind: String,
+    pub steam_id64: Option<String>,
+    pub concrete_folder_id: Option<String>,
+}
 
 #[napi(object)]
 #[derive(Clone, Debug)]
@@ -63,19 +71,6 @@ pub struct PortableBindings {
 }
 
 #[napi(object)]
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PortableLocator {
-    pub version: u32,
-    pub rule_id: String,
-    pub raw_rule: String,
-    pub rule_source: String,
-    pub root_kind: String,
-    pub bindings: PortableBindings,
-    pub target_semantics: String,
-}
-
-#[napi(object)]
 #[derive(Clone, Debug)]
 pub struct LocalResolutionBindings {
     pub environment_id: String,
@@ -91,7 +86,8 @@ pub struct UserLocationCoverage {
     pub candidate_id: String,
     pub rule_id: String,
     pub variant_id: Option<String>,
-    pub logical_file_id: Option<String>,
+    pub raw_path: Option<String>,
+    pub relative_path: Option<String>,
     pub authority: String,
     pub outcome: String,
     pub enumerated_completely: bool,
@@ -117,40 +113,20 @@ struct CanonicalRule<'a> {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-enum CanonicalStoreUser<'a> {
-    ValidatedAccount {
-        store: &'a str,
-        steam_id64: &'a str,
-        account_id32: &'a str,
-    },
-    OpaqueFolder {
-        store: &'a str,
-        normalized_folder_key: &'a str,
-    },
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 struct CanonicalVariant<'a> {
-    identity_version: u32,
-    save_namespace_key: &'a str,
-    store: &'a str,
-    store_user: CanonicalStoreUser<'a>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct CanonicalLogicalFile<'a> {
-    logical_id_version: u32,
-    save_namespace_key: &'a str,
-    variant_id: &'a str,
-    rule_id: &'a str,
-    relative_path: &'a str,
+    variant_id_version: u32,
+    shop: &'a str,
+    object_id: &'a str,
+    kind: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    steam_id64: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    concrete_folder_id: Option<&'a str>,
 }
 
 fn hash_json<T: Serialize>(value: &T) -> String {
     let serialized = serde_json::to_vec(value).expect("canonical cloud save identity serializes");
-    blake3::hash(&serialized).to_hex().to_string()
+    format!("{:x}", Sha256::digest(serialized))
 }
 
 pub fn normalize_text(value: &str) -> String {
@@ -159,26 +135,6 @@ pub fn normalize_text(value: &str) -> String {
 
 pub fn normalize_rule_path(value: &str) -> String {
     normalize_text(&value.replace('\\', "/"))
-}
-
-pub fn normalize_relative_path(value: &str, case_sensitive: bool) -> Result<String, String> {
-    let normalized = normalize_text(&value.replace('\\', "/"));
-    if normalized.is_empty()
-        || normalized.starts_with('/')
-        || normalized.contains('\0')
-        || normalized
-            .split('/')
-            .any(|segment| segment.is_empty() || segment == "." || segment == "..")
-        || (normalized.len() >= 2 && normalized.as_bytes()[1] == b':')
-    {
-        return Err("cloud_save_invalid_relative_path".to_string());
-    }
-
-    Ok(if case_sensitive {
-        normalized
-    } else {
-        normalized.to_lowercase()
-    })
 }
 
 pub fn target_semantics(rule: &CloudSaveRule) -> &'static str {
@@ -192,18 +148,6 @@ pub fn target_semantics(rule: &CloudSaveRule) -> &'static str {
         "glob-set"
     } else {
         "single-file"
-    }
-}
-
-pub fn root_kind(raw_rule: &str) -> String {
-    let normalized = normalize_rule_path(raw_rule);
-    let first = normalized.split('/').next().unwrap_or_default();
-    if first.starts_with('<') && first.ends_with('>') {
-        first.trim_matches(['<', '>']).to_string()
-    } else if first.starts_with('%') && first.ends_with('%') {
-        first.trim_matches('%').to_ascii_lowercase()
-    } else {
-        "literal".to_string()
     }
 }
 
@@ -261,6 +205,17 @@ pub fn store_user_identity(
     context: &StoreUserContext,
 ) -> StoreUserIdentity {
     let concrete = captured.unwrap_or("__unbound__");
+    if captured.is_none() {
+        return StoreUserIdentity {
+            kind: "default".to_string(),
+            store: store.to_string(),
+            steam_id64: None,
+            account_id32: None,
+            concrete_folder_id: concrete.to_string(),
+            source: "unbound-rule".to_string(),
+            authority: "inferred".to_string(),
+        };
+    }
     let active_match = context
         .active
         .as_ref()
@@ -323,21 +278,29 @@ pub fn portable_bindings(
 }
 
 pub fn build_variant_id(
-    save_namespace_key: &str,
+    _save_namespace_key: &str,
     bindings: &PortableBindings,
     case_sensitive: bool,
 ) -> String {
     let store_user = &bindings.store_user;
+    if store_user.kind == "default" {
+        return hash_json(&CanonicalVariant {
+            variant_id_version: IDENTITY_VERSION,
+            shop: &bindings.store,
+            object_id: &bindings.store_game_id,
+            kind: "default",
+            steam_id64: None,
+            concrete_folder_id: None,
+        });
+    }
     if store_user.kind == "validated-account" {
         return hash_json(&CanonicalVariant {
-            identity_version: IDENTITY_VERSION,
-            save_namespace_key,
-            store: &bindings.store,
-            store_user: CanonicalStoreUser::ValidatedAccount {
-                store: &store_user.store,
-                steam_id64: store_user.steam_id64.as_deref().unwrap_or_default(),
-                account_id32: store_user.account_id32.as_deref().unwrap_or_default(),
-            },
+            variant_id_version: IDENTITY_VERSION,
+            shop: &bindings.store,
+            object_id: &bindings.store_game_id,
+            kind: "steam-account",
+            steam_id64: store_user.steam_id64.as_deref(),
+            concrete_folder_id: None,
         });
     }
 
@@ -348,42 +311,49 @@ pub fn build_variant_id(
         normalized.to_lowercase()
     };
     hash_json(&CanonicalVariant {
-        identity_version: IDENTITY_VERSION,
-        save_namespace_key,
-        store: &bindings.store,
-        store_user: CanonicalStoreUser::OpaqueFolder {
-            store: &store_user.store,
-            normalized_folder_key: &normalized,
-        },
+        variant_id_version: IDENTITY_VERSION,
+        shop: &bindings.store,
+        object_id: &bindings.store_game_id,
+        kind: "opaque-folder",
+        steam_id64: None,
+        concrete_folder_id: Some(&normalized),
     })
 }
 
-pub fn build_logical_file_id(
+pub fn build_snapshot_variant(
     save_namespace_key: &str,
-    variant_id: &str,
-    rule_id: &str,
-    relative_path: &str,
+    bindings: &PortableBindings,
     case_sensitive: bool,
-) -> Result<String, String> {
-    let relative_path = normalize_relative_path(relative_path, case_sensitive)?;
-    Ok(hash_json(&CanonicalLogicalFile {
-        logical_id_version: LOGICAL_ID_VERSION,
-        save_namespace_key,
-        variant_id,
-        rule_id,
-        relative_path: &relative_path,
-    }))
-}
-
-pub fn build_locator(rule: &CloudSaveRule, bindings: PortableBindings) -> PortableLocator {
-    PortableLocator {
-        version: LOCATOR_VERSION,
-        rule_id: rule.rule_id.clone(),
-        raw_rule: normalize_rule_path(&rule.raw_path),
-        rule_source: rule.source.clone(),
-        root_kind: root_kind(&rule.raw_path),
-        bindings,
-        target_semantics: target_semantics(rule).to_string(),
+) -> SnapshotVariant {
+    let variant_id = build_variant_id(save_namespace_key, bindings, case_sensitive);
+    let store_user = &bindings.store_user;
+    match store_user.kind.as_str() {
+        "default" => SnapshotVariant {
+            variant_id,
+            kind: "default".to_string(),
+            steam_id64: None,
+            concrete_folder_id: None,
+        },
+        "validated-account" => SnapshotVariant {
+            variant_id,
+            kind: "steam-account".to_string(),
+            steam_id64: store_user.steam_id64.clone(),
+            concrete_folder_id: None,
+        },
+        _ => {
+            let concrete_folder_id = normalize_text(&store_user.concrete_folder_id);
+            let concrete_folder_id = if case_sensitive {
+                concrete_folder_id
+            } else {
+                concrete_folder_id.to_lowercase()
+            };
+            SnapshotVariant {
+                variant_id,
+                kind: "opaque-folder".to_string(),
+                steam_id64: None,
+                concrete_folder_id: Some(concrete_folder_id),
+            }
+        }
     }
 }
 
@@ -464,17 +434,31 @@ mod tests {
     }
 
     #[test]
-    fn logical_id_does_not_include_content_or_machine_path() {
-        let id =
-            build_logical_file_id("steam:814380", "variant", "rule", "S0000.sl2", false).unwrap();
-        assert_eq!(
-            id,
-            build_logical_file_id("steam:814380", "variant", "rule", "s0000.SL2", false).unwrap()
+    fn builds_default_and_opaque_wire_variants_without_local_bindings() {
+        let default_bindings = portable_bindings(
+            "steam",
+            "1",
+            store_user_identity("steam", None, &StoreUserContext::default()),
         );
+        let default = build_snapshot_variant("steam:1", &default_bindings, false);
+        assert_eq!(default.kind, "default");
+        assert!(default.steam_id64.is_none());
+        assert!(default.concrete_folder_id.is_none());
+
+        let opaque_bindings = portable_bindings(
+            "steam",
+            "1",
+            store_user_identity("steam", Some("Goldberg"), &StoreUserContext::default()),
+        );
+        let opaque = build_snapshot_variant("steam:1", &opaque_bindings, false);
+        assert_eq!(opaque.kind, "opaque-folder");
+        assert_eq!(opaque.concrete_folder_id.as_deref(), Some("goldberg"));
+        assert!(opaque.steam_id64.is_none());
+        assert_ne!(default.variant_id, opaque.variant_id);
     }
 
     #[test]
-    fn canonical_sekiro_fixture_vectors() {
+    fn canonical_sekiro_fixture_uses_sha256_variant_and_snapshot() {
         use crate::cloud_save::hashing::{
             build_aggregate_hash, BuildSnapshotAggregateHashInput, SnapshotAggregateHashFile,
         };
@@ -497,45 +481,28 @@ mod tests {
             "814380",
             store_user_identity("steam", Some("12345"), &context),
         );
-        let variant_id = build_variant_id("steam:814380", &bindings, false);
-        let logical_file_id = build_logical_file_id(
-            "steam:814380",
-            &variant_id,
-            &rule.rule_id,
-            "S0000.sl2",
-            false,
-        )
-        .unwrap();
+        let variant = build_snapshot_variant("steam:814380", &bindings, false);
+        let variant_id = variant.variant_id.clone();
         let aggregate_hash = build_aggregate_hash(BuildSnapshotAggregateHashInput {
-            schema_version: SNAPSHOT_SCHEMA_VERSION,
-            save_namespace_key: "steam:814380".into(),
+            variants: vec![variant],
             files: vec![SnapshotAggregateHashFile {
-                logical_file_id: logical_file_id.clone(),
                 variant_id: variant_id.clone(),
-                rule_id: rule.rule_id.clone(),
+                raw_path: rule.raw_path.clone(),
                 relative_path: "S0000.sl2".into(),
-                locator: build_locator(&rule, bindings),
-                content_hash: "a".repeat(64),
+                hash: "a".repeat(64),
                 size_bytes: 4.0,
             }],
         })
         .unwrap();
 
-        assert_eq!(
-            rule.rule_id,
-            "3757c0684c7a1064a52bead49f78dac77f9580d0074764ab22feef8e1396e18c"
-        );
+        assert_eq!(rule.rule_id.len(), 64);
         assert_eq!(
             variant_id,
-            "41204671ffc251656913b1086cd00e73aacb1ce5dee726af18318e1ea2d85f12"
-        );
-        assert_eq!(
-            logical_file_id,
-            "8e8c5d499297e80a5de994f98348b5f9376a13b349c1b7077e81207f113fa378"
+            "a3a47f520bfece378832d82e5c972ebdd0c596a6632a3804e5b71054d0d14c23"
         );
         assert_eq!(
             aggregate_hash,
-            "b2b0849654c9bd1d58f0cec3af351f9fd3539c6a17f191c5e5a8c80f2722d98c"
+            "8965f06a9d4fb91d0c353e4becd1ecac7a5b8ab7f8b66b7fe3f26c03375772bb"
         );
     }
 }

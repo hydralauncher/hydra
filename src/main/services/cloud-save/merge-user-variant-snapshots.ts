@@ -3,29 +3,66 @@ import type {
   CloudSaveMergeResult,
   CloudSaveSyncAnchor,
   LocalGameSnapshotContext,
-  UserVariantSnapshotFile,
+  SnapshotFile,
+  SnapshotVariant,
 } from "@types";
+
+import { cloudSaveFileKey } from "./cloud-save-contract.js";
 
 interface MergeUserVariantSnapshotsInput {
   local: LocalGameSnapshotContext;
-  remoteFiles: UserVariantSnapshotFile[];
+  remoteVariants: SnapshotVariant[];
+  remoteFiles: SnapshotFile[];
   base: CloudSaveSyncAnchor | null;
   resolutions?: ReadonlyMap<string, CloudSaveConflictResolution>;
 }
 
-const indexUnique = <T extends { logicalFileId: string }>(files: T[]) => {
+const indexUnique = <T extends SnapshotFile>(files: T[]) => {
   const result = new Map<string, T>();
   for (const file of files) {
-    if (result.has(file.logicalFileId)) {
-      throw new Error("Duplicate logical file ID in Cloud Save merge input");
+    const key = cloudSaveFileKey(file);
+    if (result.has(key)) {
+      throw new Error("Duplicate composite Cloud Save file identity");
     }
-    result.set(file.logicalFileId, file);
+    result.set(key, file);
   }
   return result;
 };
 
+const sameBytes = (
+  left: Pick<SnapshotFile, "hash" | "sizeBytes"> | undefined,
+  right: Pick<SnapshotFile, "hash" | "sizeBytes"> | undefined
+) =>
+  Boolean(
+    left &&
+      right &&
+      left.hash === right.hash &&
+      left.sizeBytes === right.sizeBytes
+  );
+
+const mergeVariantMetadata = (
+  local: SnapshotVariant[],
+  remote: SnapshotVariant[],
+  usedVariantIds: Set<string>
+) => {
+  const variants = new Map<string, SnapshotVariant>();
+  for (const variant of [...local, ...remote]) {
+    const current = variants.get(variant.variantId);
+    if (current && JSON.stringify(current) !== JSON.stringify(variant)) {
+      throw new Error("Divergent Cloud Save metadata for the same variant");
+    }
+    variants.set(variant.variantId, variant);
+  }
+  return [...usedVariantIds].sort().map((variantId) => {
+    const variant = variants.get(variantId);
+    if (!variant) throw new Error("Cloud Save file has no variant metadata");
+    return variant;
+  });
+};
+
 export const mergeUserVariantSnapshots = ({
   local,
+  remoteVariants,
   remoteFiles,
   base,
   resolutions,
@@ -33,28 +70,30 @@ export const mergeUserVariantSnapshots = ({
   const localById = indexUnique(local.files);
   const remoteById = indexUnique(remoteFiles);
   const baseById = new Map(
-    (base?.entries ?? []).map((entry) => [entry.logicalFileId, entry])
+    (base?.entries ?? []).map((entry) => [cloudSaveFileKey(entry), entry])
   );
   const ids = new Set([...localById.keys(), ...remoteById.keys()]);
-  const files: UserVariantSnapshotFile[] = [];
+  const files: SnapshotFile[] = [];
   const conflicts: CloudSaveMergeResult["conflicts"] = [];
   const restoreEntryIds = new Set<string>();
   const unresolvedRemoteEntryIds = new Set<string>();
-  const unavailableLocalEntryIds = new Set(
-    local.coverage.flatMap((item) =>
-      item.logicalFileId &&
-      (!item.enumeratedCompletely ||
-        item.outcome === "failed" ||
-        item.outcome === "partial")
-        ? [item.logicalFileId]
-        : []
-    )
-  );
 
-  for (const logicalFileId of [...ids].sort()) {
-    const localFile = localById.get(logicalFileId);
-    const remoteFile = remoteById.get(logicalFileId);
-    const baseEntry = baseById.get(logicalFileId);
+  const coverageIncompleteFor = (file: SnapshotFile) =>
+    local.coverage.some(
+      (item) =>
+        (!item.variantId || item.variantId === file.variantId) &&
+        (!item.rawPath || item.rawPath === file.rawPath) &&
+        (!item.relativePath || item.relativePath === file.relativePath) &&
+        (!item.enumeratedCompletely ||
+          item.outcome === "failed" ||
+          item.outcome === "partial" ||
+          item.outcome === "unresolved")
+    );
+
+  for (const entryId of [...ids].sort()) {
+    const localFile = localById.get(entryId);
+    const remoteFile = remoteById.get(entryId);
+    const baseEntry = baseById.get(entryId);
 
     if (localFile && !remoteFile) {
       files.push(localFile);
@@ -62,52 +101,39 @@ export const mergeUserVariantSnapshots = ({
     }
     if (!localFile && remoteFile) {
       files.push(remoteFile);
-      if (!unavailableLocalEntryIds.has(logicalFileId)) {
-        restoreEntryIds.add(logicalFileId);
+      unresolvedRemoteEntryIds.add(entryId);
+      if (!coverageIncompleteFor(remoteFile)) {
+        restoreEntryIds.add(entryId);
       }
-      unresolvedRemoteEntryIds.add(logicalFileId);
       continue;
     }
     if (!localFile || !remoteFile) continue;
-    if (
-      localFile.variantId !== remoteFile.variantId ||
-      localFile.ruleId !== remoteFile.ruleId
-    ) {
-      throw new Error("Cloud Save logical identity metadata is inconsistent");
-    }
-    if (
-      localFile.contentHash === remoteFile.contentHash &&
-      localFile.sizeBytes === remoteFile.sizeBytes
-    ) {
+    if (sameBytes(localFile, remoteFile)) {
       files.push(remoteFile);
       continue;
     }
 
-    const localEqualsBase =
-      baseEntry?.contentHash === localFile.contentHash &&
-      baseEntry.sizeBytes === localFile.sizeBytes;
-    const remoteEqualsBase =
-      baseEntry?.contentHash === remoteFile.contentHash &&
-      baseEntry.sizeBytes === remoteFile.sizeBytes;
+    const localEqualsBase = sameBytes(localFile, baseEntry);
+    const remoteEqualsBase = sameBytes(remoteFile, baseEntry);
     if (baseEntry && remoteEqualsBase && !localEqualsBase) {
       files.push(localFile);
       continue;
     }
     if (baseEntry && localEqualsBase && !remoteEqualsBase) {
       files.push(remoteFile);
-      restoreEntryIds.add(logicalFileId);
+      restoreEntryIds.add(entryId);
       continue;
     }
 
-    const resolution = resolutions?.get(logicalFileId);
+    const resolution = resolutions?.get(entryId);
     if (resolution === "keep-local") {
       files.push(localFile);
     } else {
       files.push(remoteFile);
       if (resolution === "keep-remote") {
-        restoreEntryIds.add(logicalFileId);
+        restoreEntryIds.add(entryId);
       } else {
-        conflicts.push({ logicalFileId, local: localFile, remote: remoteFile });
+        conflicts.push({ entryId, local: localFile, remote: remoteFile });
       }
     }
   }
@@ -119,7 +145,13 @@ export const mergeUserVariantSnapshots = ({
       item.outcome === "partial" ||
       item.outcome === "unresolved"
   );
+  const usedVariantIds = new Set(files.map((file) => file.variantId));
   return {
+    variants: mergeVariantMetadata(
+      local.variants,
+      remoteVariants,
+      usedVariantIds
+    ),
     files,
     conflicts,
     restoreEntryIds: [...restoreEntryIds].sort(),

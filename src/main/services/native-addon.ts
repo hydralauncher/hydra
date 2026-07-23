@@ -7,8 +7,6 @@ import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
 import type {
   BuildLocalGameSnapshotPipelineInput,
-  CompareGameSnapshotsInput,
-  NativeCloudSaveStateResult,
   NativeLocalGameSnapshotPipelineResult,
   ReplaceRestoreTarget,
   ReplaceRestoreTargetsResult,
@@ -54,15 +52,14 @@ type HydraNativeModule = {
   getSaveRulesForGame: (
     input: GetSaveRulesForGameInput
   ) => Promise<GameSaveRules>;
-  compareGameSnapshots: (
-    input: CompareGameSnapshotsInput
-  ) => NativeCloudSaveStateResult;
   buildSnapshotAggregateHash: (
     input: BuildSnapshotAggregateHashInput
   ) => string;
   uploadLocalSaveBlob: (
     absolutePath: string,
-    uploadUrl: string
+    uploadUrl: string,
+    contentLength: string,
+    checksumSha256: string
   ) => Promise<void>;
   resolveRestoreTargets: (
     input: ResolveRestoreTargetsInput
@@ -374,18 +371,24 @@ export class NativeAddon {
     return this.load().getSaveRulesForGame(input);
   }
 
-  public static compareGameSnapshots(input: CompareGameSnapshotsInput) {
-    return this.load().compareGameSnapshots(input);
-  }
-
   public static buildSnapshotAggregateHash(
     input: BuildSnapshotAggregateHashInput
   ) {
     return this.load().buildSnapshotAggregateHash(input);
   }
 
-  public static uploadLocalSaveBlob(absolutePath: string, uploadUrl: string) {
-    return this.load().uploadLocalSaveBlob(absolutePath, uploadUrl);
+  public static uploadLocalSaveBlob(
+    absolutePath: string,
+    uploadUrl: string,
+    contentLength: string,
+    checksumSha256: string
+  ) {
+    return this.load().uploadLocalSaveBlob(
+      absolutePath,
+      uploadUrl,
+      contentLength,
+      checksumSha256
+    );
   }
 
   public static resolveRestoreTargets(input: ResolveRestoreTargetsInput) {

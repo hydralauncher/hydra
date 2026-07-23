@@ -1,26 +1,36 @@
 import { HydraApi } from "@main/services/hydra-api";
 import type {
   CloudSaveUploadProgress,
+  CommitSnapshotRequest,
   CommitSnapshotResponse,
   GameShop,
   LocalGameSnapshotContext,
   RemoteGameSnapshot,
-  UserVariantSnapshotFile,
+  SnapshotFile,
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
-import { validateUniqueLogicalFiles } from "./cloud-save-contract";
+import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
+import {
+  CLOUD_SAVE_HASH_PATTERN,
+  cloudSaveFileKey,
+  isNonEmptyString,
+} from "./cloud-save-contract";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
+import {
+  isCloudSaveCommitTransportFailure,
+  shouldReprepareCloudSaveSnapshot,
+} from "./snapshot-retry-policy";
 import {
   uploadLocalGameSnapshot,
   type PrepareLocalSnapshotOptions,
 } from "./upload-local-game-snapshot";
-import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 
 type ProgressCallback = (progress: CloudSaveUploadProgress) => void;
 
 export interface CreateRemoteSnapshotOptions
   extends PrepareLocalSnapshotOptions {
+  expectedSnapshotId?: string | null;
   unresolvedRemoteEntryIds?: string[];
 }
 
@@ -28,39 +38,53 @@ const validateCommitResponse = (value: unknown): CommitSnapshotResponse => {
   if (!value || typeof value !== "object") {
     throw new Error("Invalid commit snapshot response");
   }
-
   const response = value as Record<string, unknown>;
   if (
-    typeof response.snapshotId !== "string" ||
-    response.snapshotId.length === 0 ||
-    response.status !== "active" ||
-    typeof response.revision !== "number" ||
-    !Number.isSafeInteger(response.revision) ||
-    response.revision < 1 ||
-    typeof response.schemaVersion !== "number" ||
-    !Number.isSafeInteger(response.schemaVersion) ||
-    response.schemaVersion < 1 ||
+    Object.keys(response).some(
+      (key) =>
+        ![
+          "snapshotId",
+          "version",
+          "fileCount",
+          "totalSizeBytes",
+          "aggregateHash",
+        ].includes(key)
+    ) ||
+    !isNonEmptyString(response.snapshotId) ||
+    typeof response.version !== "number" ||
+    !Number.isSafeInteger(response.version) ||
+    response.version < 1 ||
     typeof response.fileCount !== "number" ||
-    !Number.isInteger(response.fileCount) ||
-    response.fileCount < 0 ||
+    !Number.isSafeInteger(response.fileCount) ||
+    response.fileCount < 1 ||
     typeof response.totalSizeBytes !== "number" ||
-    !Number.isFinite(response.totalSizeBytes) ||
+    !Number.isSafeInteger(response.totalSizeBytes) ||
     response.totalSizeBytes < 0 ||
-    typeof response.aggregateHash !== "string" ||
-    response.aggregateHash.length === 0
+    !isNonEmptyString(response.aggregateHash) ||
+    !CLOUD_SAVE_HASH_PATTERN.test(response.aggregateHash)
   ) {
     throw new Error("Invalid commit snapshot response");
   }
-  const files = validateUniqueLogicalFiles(response.files);
-  if (
-    files.length !== response.fileCount ||
-    files.reduce((total, file) => total + file.sizeBytes, 0) !==
-      response.totalSizeBytes
-  ) {
-    throw new Error("Commit snapshot manifest is inconsistent");
-  }
+  return value as CommitSnapshotResponse;
+};
 
-  return { ...(response as unknown as CommitSnapshotResponse), files };
+const commitPendingSnapshot = async (pendingSnapshotId: string) => {
+  let response: unknown;
+  const request: CommitSnapshotRequest = { pendingSnapshotId };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      response = await HydraApi.post<unknown>(
+        "/profile/cloud-saves/commit-snapshot",
+        request,
+        { needsAuth: true, needsSubscription: true }
+      );
+      break;
+    } catch (error) {
+      if (attempt === 0 && isCloudSaveCommitTransportFailure(error)) continue;
+      throw error;
+    }
+  }
+  return validateCommitResponse(response);
 };
 
 export const createRemoteSnapshotFromLocalState = async (
@@ -68,64 +92,76 @@ export const createRemoteSnapshotFromLocalState = async (
   shop: GameShop,
   onProgress?: ProgressCallback,
   localSnapshotContext?: LocalGameSnapshotContext,
-  options: CreateRemoteSnapshotOptions = {
-    expectedHeadRevision: 0,
-    expectedHeadHash: null,
-  }
+  options: CreateRemoteSnapshotOptions = { baseVersion: 0 }
 ): Promise<RemoteGameSnapshot | null> => {
   const context =
     localSnapshotContext ??
     (await buildLocalGameSnapshotContext(objectId, shop));
-  const files: UserVariantSnapshotFile[] = options.files ?? context.files;
-  const upload = await uploadLocalGameSnapshot(
-    objectId,
-    shop,
-    onProgress,
-    context,
-    { ...options, files }
-  );
-  if (!upload.pendingSnapshotId) return null;
+  const variants = options.variants ?? context.variants;
+  const files: SnapshotFile[] = options.files ?? context.files;
+  if (files.length === 0) return null;
+  const expectedAggregateHash =
+    options.aggregateHash ??
+    NativeAddon.buildSnapshotAggregateHash({ variants, files });
 
-  const committed = validateCommitResponse(
-    await HydraApi.post<unknown>("/profile/cloud-saves/commit-snapshot", {
-      pendingSnapshotId: upload.pendingSnapshotId,
-    })
+  let committed: CommitSnapshotResponse | null = null;
+  for (let prepareAttempt = 0; prepareAttempt < 2; prepareAttempt += 1) {
+    try {
+      const upload = await uploadLocalGameSnapshot(
+        objectId,
+        shop,
+        onProgress,
+        context,
+        { ...options, variants, files, aggregateHash: expectedAggregateHash }
+      );
+      if (!upload.pendingSnapshotId) return null;
+      committed = await commitPendingSnapshot(upload.pendingSnapshotId);
+      break;
+    } catch (error) {
+      if (prepareAttempt === 0 && shouldReprepareCloudSaveSnapshot(error))
+        continue;
+      throw error;
+    }
+  }
+  if (!committed) throw new Error("Cloud Save commit did not complete");
+
+  const expectedTotalSize = files.reduce(
+    (total, file) => total + file.sizeBytes,
+    0
   );
-  const expectedAggregateHash = options.aggregateHash ?? context.aggregateHash;
-  const committedAggregateHash = NativeAddon.buildSnapshotAggregateHash({
-    schemaVersion: committed.schemaVersion,
-    saveNamespaceKey: context.saveNamespaceKey,
-    files: committed.files,
-  });
   if (
-    committed.schemaVersion !== context.schemaVersion ||
-    committed.revision !== options.expectedHeadRevision + 1 ||
-    committed.aggregateHash !== expectedAggregateHash ||
-    committedAggregateHash !== committed.aggregateHash
+    committed.version !== options.baseVersion + 1 ||
+    (options.expectedSnapshotId &&
+      committed.snapshotId !== options.expectedSnapshotId) ||
+    committed.fileCount !== files.length ||
+    committed.totalSizeBytes !== expectedTotalSize ||
+    committed.aggregateHash !== expectedAggregateHash
   ) {
     throw new Error("Committed Cloud Save snapshot is inconsistent");
   }
 
   await saveCloudSaveSyncAnchor(shop, objectId, context.environmentId, {
-    schemaVersion: 3,
+    schemaVersion: 4,
     environmentId: context.environmentId,
     baseSnapshotId: committed.snapshotId,
-    baseHeadRevision: committed.revision,
+    baseVersion: committed.version,
     baseAggregateHash: committed.aggregateHash,
-    entries: committed.files.map((file) => ({
-      logicalFileId: file.logicalFileId,
-      contentHash: file.contentHash,
+    entries: files.map((file) => ({
+      variantId: file.variantId,
+      rawPath: file.rawPath,
+      relativePath: file.relativePath,
+      hash: file.hash,
       sizeBytes: file.sizeBytes,
     })),
-    unresolvedRemoteEntryIds: options.unresolvedRemoteEntryIds ?? [],
+    unresolvedRemoteEntryIds: (options.unresolvedRemoteEntryIds ?? []).filter(
+      (entryId) => files.some((file) => cloudSaveFileKey(file) === entryId)
+    ),
     updatedAt: new Date().toISOString(),
   });
 
   return {
     id: committed.snapshotId,
-    status: committed.status,
-    revision: committed.revision,
-    schemaVersion: committed.schemaVersion,
+    version: committed.version,
     fileCount: committed.fileCount,
     totalSizeBytes: committed.totalSizeBytes,
     aggregateHash: committed.aggregateHash,

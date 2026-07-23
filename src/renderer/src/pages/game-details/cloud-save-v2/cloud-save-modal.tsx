@@ -1,8 +1,6 @@
-import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
-  CaretDownIcon,
   CircleNotchIcon,
-  ClockIcon,
   CloudArrowDownIcon,
   CloudArrowUpIcon,
   CloudIcon,
@@ -65,10 +63,7 @@ const statusTone: Record<
   untracked: "neutral",
 };
 
-const MAX_VISIBLE_HISTORICAL_SNAPSHOTS = 3;
-
 export function CloudSavePanel({
-  active = true,
   showLaunchConflictWarning,
   overview,
   isLoading,
@@ -86,12 +81,10 @@ export function CloudSavePanel({
 }: Readonly<CloudSavePanelProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
-  const historyId = useId();
   const [isCloudSaveEnabled, setIsCloudSaveEnabled] = useState(
     isAutomaticSyncEnabled
   );
   const [isUpdatingAutomaticSync, setIsUpdatingAutomaticSync] = useState(false);
-  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const cloudSaveToggleTitle = t("cloud_save_v2_toggle_title", {
     status: t(
       isCloudSaveEnabled
@@ -99,31 +92,7 @@ export function CloudSavePanel({
         : "cloud_save_v2_toggle_disabled"
     ),
   });
-  const { activeSnapshot, historicalSnapshots, historicalSnapshotCount } =
-    useMemo(() => {
-      const snapshots = overview?.snapshots ?? [];
-      const historical = snapshots
-        .filter((snapshot) => snapshot.status === "historical")
-        .sort(
-          (left, right) =>
-            Date.parse(right.createdAt) - Date.parse(left.createdAt)
-        );
-
-      return {
-        activeSnapshot: snapshots.find(
-          (snapshot) => snapshot.status === "active"
-        ),
-        historicalSnapshots: historical.slice(
-          0,
-          MAX_VISIBLE_HISTORICAL_SNAPSHOTS
-        ),
-        historicalSnapshotCount: historical.length,
-      };
-    }, [overview?.snapshots]);
-
-  useEffect(() => {
-    if (!active) setIsHistoryExpanded(false);
-  }, [active]);
+  const activeSnapshot = overview?.activeRemoteSnapshot ?? null;
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled);
@@ -149,13 +118,16 @@ export function CloudSavePanel({
     : null;
   const currentStatusTone = overview ? statusTone[overview.state] : "neutral";
   const snapshotMetadata = (
-    createdAt: string,
+    updatedAt: string,
+    version: number,
     fileCount: number,
     totalSizeBytes: number,
     interactive = false
   ) => {
     const stats = (
       <>
+        <span>v{version}</span>
+        <span aria-hidden="true">·</span>
         <span>
           {t("cloud_save_v2_file_count", {
             count: fileCount,
@@ -168,7 +140,7 @@ export function CloudSavePanel({
 
     return (
       <div className="cloud-save-v2__snapshot-metadata">
-        <span>{formatDateTime(createdAt)}</span>
+        <span>{formatDateTime(updatedAt)}</span>
         {interactive ? (
           <button
             type="button"
@@ -330,7 +302,8 @@ export function CloudSavePanel({
                     </span>
                   </div>
                   {snapshotMetadata(
-                    activeSnapshot.createdAt,
+                    activeSnapshot.updatedAt,
+                    activeSnapshot.version,
                     activeSnapshot.fileCount,
                     activeSnapshot.totalSizeBytes,
                     true
@@ -363,50 +336,6 @@ export function CloudSavePanel({
               </div>
             </article>
           </section>
-
-          {historicalSnapshotCount > 0 && (
-            <section className="cloud-save-v2__history">
-              <button
-                type="button"
-                className="cloud-save-v2__history-toggle"
-                aria-controls={historyId}
-                aria-expanded={isHistoryExpanded}
-                onClick={() => setIsHistoryExpanded((expanded) => !expanded)}
-              >
-                <span className="cloud-save-v2__history-title">
-                  <ClockIcon size={18} />
-                  {t("cloud_save_v2_history")}
-                </span>
-                <span className="cloud-save-v2__history-summary">
-                  <CaretDownIcon
-                    size={16}
-                    className={`cloud-save-v2__history-caret ${isHistoryExpanded ? "cloud-save-v2__history-caret--expanded" : ""}`}
-                  />
-                </span>
-              </button>
-
-              <div
-                id={historyId}
-                className={`cloud-save-v2__history-content ${isHistoryExpanded ? "cloud-save-v2__history-content--expanded" : ""}`}
-              >
-                <div className="cloud-save-v2__history-list">
-                  {historicalSnapshots.map((snapshot) => (
-                    <article
-                      className="cloud-save-v2__snapshot cloud-save-v2__snapshot--historical"
-                      key={snapshot.id}
-                    >
-                      <strong>{t("cloud_save_v2_historical_snapshot")}</strong>
-                      {snapshotMetadata(
-                        snapshot.createdAt,
-                        snapshot.fileCount,
-                        snapshot.totalSizeBytes
-                      )}
-                    </article>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
         </>
       )}
     </div>

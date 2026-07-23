@@ -1,13 +1,21 @@
 use std::fs::File;
+use std::io::Read;
+
+use sha2::{Digest, Sha256};
 
 pub fn hash_file(file_path: &str) -> Result<String, String> {
-    let file = File::open(file_path).map_err(|error| error.to_string())?;
-    let mut hasher = blake3::Hasher::new();
-    hasher
-        .update_reader(file)
-        .map_err(|error| error.to_string())?;
+    let mut file = File::open(file_path).map_err(|error| error.to_string())?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file.read(&mut buffer).map_err(|error| error.to_string())?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
 
-    Ok(hasher.finalize().to_hex().to_string())
+    Ok(format!("{:x}", hasher.finalize()))
 }
 
 #[cfg(test)]
@@ -28,11 +36,11 @@ mod tests {
 
         assert_eq!(
             hash_file(&regular.display().to_string()).unwrap(),
-            blake3::hash(b"hydra cloud save").to_hex().to_string()
+            "e3cf52377baee611e9767b7bbe309f96fa9de20d50083050ef175256975b8bff"
         );
         assert_eq!(
             hash_file(&empty.display().to_string()).unwrap(),
-            blake3::hash(b"").to_hex().to_string()
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         );
     }
 

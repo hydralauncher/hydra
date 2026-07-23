@@ -1,4 +1,5 @@
 mod download_blob;
+mod metadata;
 mod replace_targets;
 mod resolve_targets;
 mod should_skip_file;

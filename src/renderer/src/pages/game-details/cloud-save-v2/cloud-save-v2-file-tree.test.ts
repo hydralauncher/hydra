@@ -24,9 +24,7 @@ const localFile = (
   sizeBytes = 4
 ): CloudSaveV2LocalFile => ({
   source: "local",
-  logicalFileId: JSON.stringify([rawPath, relativePath]),
   variantId: `variant:${rawPath}`,
-  ruleId: `rule:${rawPath}`,
   rawPath,
   relativePath,
   absolutePath,
@@ -41,9 +39,7 @@ const remoteFile = (
   sizeBytes = 4
 ): CloudSaveV2RemoteFile => ({
   source: "remote",
-  logicalFileId: JSON.stringify([rawPath, relativePath]),
   variantId: `variant:${rawPath}`,
-  ruleId: `rule:${rawPath}`,
   rawPath,
   relativePath,
   sizeBytes,
@@ -221,7 +217,6 @@ describe("cloud save V2 comparison tree", () => {
     const remote = remoteFile(rawPath, "profiles/slot.dat");
     const comparisons: CloudSaveV2FileComparison[] = [
       {
-        logicalFileId: local.logicalFileId,
         variantId: local.variantId,
         rawPath,
         relativePath: "profiles/slot.dat",
@@ -230,7 +225,6 @@ describe("cloud save V2 comparison tree", () => {
         remote,
       },
       {
-        logicalFileId: JSON.stringify([rawPath, "remote.dat"]),
         variantId: `variant:${rawPath}`,
         rawPath,
         relativePath: "remote.dat",
@@ -263,7 +257,6 @@ describe("cloud save V2 comparison tree", () => {
   it("keeps homonymous paths separated by rawPath", () => {
     const comparisons: CloudSaveV2FileComparison[] = ["rule-b", "rule-a"].map(
       (rawPath) => ({
-        logicalFileId: JSON.stringify([rawPath, "slot.dat"]),
         variantId: `variant:${rawPath}`,
         rawPath,
         relativePath: "slot.dat",
@@ -289,16 +282,13 @@ describe("cloud save V2 comparison tree", () => {
       "S0000.sl2",
       "C:\\Sekiro\\222\\S0000.sl2"
     );
-    first.logicalFileId = "logical-111";
     first.variantId = "variant-111";
     first.userLabel = "Steam ••••0111";
-    second.logicalFileId = "logical-222";
     second.variantId = "variant-222";
     second.userLabel = "Steam ••••0222";
 
     const roots = buildCloudSaveV2ComparisonTree([
       {
-        logicalFileId: first.logicalFileId,
         variantId: first.variantId,
         rawPath,
         relativePath: first.relativePath,
@@ -307,7 +297,6 @@ describe("cloud save V2 comparison tree", () => {
         remote: null,
       },
       {
-        logicalFileId: second.logicalFileId,
         variantId: second.variantId,
         rawPath,
         relativePath: second.relativePath,

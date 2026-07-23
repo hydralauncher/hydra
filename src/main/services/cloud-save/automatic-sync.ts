@@ -12,6 +12,7 @@ import { WindowManager } from "../window-manager";
 import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
 import { syncGameCloudSave } from "./sync-game-cloud-save";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getCloudSaveErrorDetails } from "./cloud-save-error-details";
 import {
   canUploadCloudSaveAfterLaunch,
   consumeCloudSaveLaunchGuard,
@@ -23,25 +24,6 @@ const automaticSyncCoordinator =
 
 const gameKey = (objectId: string, shop: GameShop) =>
   JSON.stringify([shop, objectId]);
-
-const getErrorLogDetails = (error: unknown) => {
-  const rawErrorCode =
-    error && typeof error === "object" && "code" in error
-      ? error.code
-      : undefined;
-  const errorMessage = error instanceof Error ? error.message : "Unknown error";
-  const nativeErrorCode = errorMessage.match(/\bcloud_save_[a-z0-9_]+\b/)?.[0];
-  const errorCode =
-    typeof rawErrorCode === "string" || typeof rawErrorCode === "number"
-      ? rawErrorCode
-      : nativeErrorCode;
-
-  return {
-    errorName: error instanceof Error ? error.name : "UnknownError",
-    errorMessage,
-    errorCode,
-  };
-};
 
 const emitAutomaticSyncEvent = (event: CloudSaveAutomaticSyncEvent) => {
   WindowManager.sendToAppWindows("on-cloud-save-automatic-sync", event);
@@ -57,7 +39,7 @@ export const runAutomaticCloudSaveSync = async (
   if (
     shop !== "steam" ||
     !HydraApi.isLoggedIn() ||
-    !HydraApi.hasActiveSubscription()
+    (!HydraApi.hasActiveSubscription() && trigger === "post-exit")
   ) {
     return null;
   }
@@ -138,16 +120,21 @@ export const runAutomaticCloudSaveSync = async (
         return result;
       })
       .catch((error: unknown) => {
+        const errorDetails = getCloudSaveErrorDetails(error);
         logger.error("[Cloud Save] Automatic sync failed", {
           shop,
           objectId,
           trigger,
-          ...getErrorLogDetails(error),
+          ...errorDetails,
         });
         emitAutomaticSyncEvent({
           gameId: { objectId, shop },
           trigger,
           status: "failed",
+          errorCode:
+            typeof errorDetails.errorCode === "string"
+              ? errorDetails.errorCode
+              : undefined,
         });
         return null;
       })

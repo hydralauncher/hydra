@@ -20,6 +20,7 @@ export const getCloudSaveV2FileDetails = async (
       objectId,
       shop,
       state,
+      localVariants: analysis.localSnapshot.variants,
       localFiles: analysis.localSnapshot.files,
       localSourceFiles: analysis.localSnapshotContext.sourceFiles,
       localTotalSizeBytes: analysis.localSnapshot.totalSizeBytes,
@@ -28,8 +29,8 @@ export const getCloudSaveV2FileDetails = async (
       unresolvedRemoteEntryIds:
         analysis.anchor?.unresolvedRemoteEntryIds ??
         analysis.merge.unresolvedRemoteEntryIds,
-      conflictLogicalFileIds: analysis.merge.conflicts.map(
-        (conflict) => conflict.logicalFileId
+      conflictEntryIds: analysis.merge.conflicts.map(
+        (conflict) => conflict.entryId
       ),
     },
     getRemoteSnapshotRestoreManifest

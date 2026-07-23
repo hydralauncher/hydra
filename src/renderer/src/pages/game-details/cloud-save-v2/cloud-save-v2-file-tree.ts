@@ -351,7 +351,12 @@ export const buildCloudSaveV2ComparisonTree = (
 
     parent.files.push({
       type: "file",
-      id: JSON.stringify(["comparison-file", comparison.logicalFileId]),
+      id: JSON.stringify([
+        "comparison-file",
+        comparison.variantId,
+        comparison.rawPath,
+        comparison.relativePath,
+      ]),
       name: fileName,
       local: comparison.local,
       remote: comparison.remote,

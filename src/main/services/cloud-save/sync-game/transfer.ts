@@ -51,7 +51,7 @@ export const restoreRemoteState = async (
   snapshot: RemoteSnapshotSummary | RemoteGameSnapshot,
   localSnapshotContext: LocalGameSnapshotContext,
   emitProgress: ProgressCallback,
-  logicalFileIds?: string[],
+  entryIds?: string[],
   updateAnchor = true,
   carriedUnresolvedEntryIds: string[] = []
 ): Promise<RestoreRemoteSnapshotResult> => {
@@ -76,10 +76,13 @@ export const restoreRemoteState = async (
       environmentId: localSnapshotContext.environmentId,
       pathContext: localSnapshotContext.pathContext,
     },
-    logicalFileIds,
+    entryIds,
     updateAnchor,
     carriedUnresolvedEntryIds
   );
+  if (result.metadataFailedPaths > 0) {
+    throw new Error("cloud_save_restore_metadata_failed");
+  }
   if (!result.ok || result.failedFiles > 0) {
     throw new Error(
       `Cloud save restore failed for ${result.failedFiles} file(s)`

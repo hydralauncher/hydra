@@ -2,6 +2,7 @@ import type { CloudSaveOverview, GameShop } from "@types";
 
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
+import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getFirstSyncState } from "./sync-game";
 
 export const getCloudSaveOverview = async (
@@ -25,14 +26,11 @@ export const getCloudSaveOverview = async (
     ...analysis.state,
     state,
     hasChanged: state !== "synced",
-    snapshots: analysis.remoteSnapshots,
     isAutomaticSyncEnabled,
-    discoveredVariantCount: new Set(
-      analysis.localSnapshot.files.map((file) => file.variantId)
-    ).size,
+    discoveredVariantCount: analysis.localSnapshot.variants.length,
     unresolvedRemoteVariantCount: new Set(
-      analysis.remoteHead.files
-        .filter((file) => unresolvedEntryIds.has(file.logicalFileId))
+      (analysis.remoteManifest?.files ?? [])
+        .filter((file) => unresolvedEntryIds.has(cloudSaveFileKey(file)))
         .map((file) => file.variantId)
     ).size,
     warnings: analysis.localSnapshot.coverage.filter(
