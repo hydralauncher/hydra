@@ -8,6 +8,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
 import { DownloadManager, Wine } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
+import { OverlayManager } from "@main/services/overlay-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 
 const updateUserPreferences = async (
@@ -88,6 +89,7 @@ const updateUserPreferences = async (
     "on-user-preferences-updated",
     updatedPreferences
   );
+  OverlayManager.applyUserPreferences(updatedPreferences);
 
   if (Object.hasOwn(preferences, "maxDownloadSpeedBytesPerSecond")) {
     await DownloadManager.applyDownloadSpeedLimit(

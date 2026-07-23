@@ -20,6 +20,7 @@ import {
   type LinuxProcessInfo,
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
+import { OverlayManager } from "./overlay-manager";
 
 export const gamesPlaytime = new Map<
   string,
@@ -313,6 +314,8 @@ function onOpenGame(game: Game) {
     performanceNow: now,
   });
 
+  OverlayManager.setActiveGame(game);
+
   // On Linux, keep the launcher visible briefly and let it auto-close itself.
   if (process.platform !== "linux") {
     WindowManager.closeGameLauncherWindow();
@@ -473,6 +476,7 @@ const onCloseGame = (game: Game) => {
   gamesPlaytime.delete(gameKey);
   launchedGamePids.delete(gameKey);
   PowerSaveBlockerManager.markGameClosed(gameKey);
+  OverlayManager.clearActiveGame(game);
 
   const delta = now - gamePlaytime.lastTick;
 

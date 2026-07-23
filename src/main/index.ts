@@ -12,6 +12,7 @@ import {
   PowerSaveBlockerManager,
   DownloadOrchestrator,
   SSEClient,
+  OverlayManager,
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
@@ -148,6 +149,7 @@ const initializeApp = async () => {
   });
 
   await loadState();
+  OverlayManager.initialize();
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
   powerMonitor.on("resume", () => {

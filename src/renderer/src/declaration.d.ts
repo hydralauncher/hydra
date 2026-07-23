@@ -63,6 +63,9 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  HydraOverlayContext,
+  HydraOverlayGamepadAction,
+  HydraOverlayPerformance,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -948,6 +951,23 @@ declare global {
     closeMainWindow: () => Promise<void>;
     isMainWindowMaximized: () => Promise<boolean>;
     onWindowMaximizeChange: (cb: (isMaximized: boolean) => void) => () => void;
+
+    getOverlayContext: () => Promise<HydraOverlayContext | null>;
+    closeHydraOverlay: () => Promise<void>;
+    setOverlayPerformancePinned: (pinned: boolean) => Promise<void>;
+    getOverlayNote: () => Promise<string>;
+    saveOverlayNote: (note: string) => Promise<void>;
+    onOverlayPerformance: (
+      cb: (metrics: HydraOverlayPerformance) => void
+    ) => () => void;
+    onOverlayShown: (cb: () => void) => () => void;
+    onOverlayPerformancePin: (cb: (pinned: boolean) => void) => () => void;
+    onOverlayMode: (
+      cb: (mode: "full" | "pinned" | "hidden" | "toast") => void
+    ) => () => void;
+    onOverlayGamepadAction: (
+      cb: (action: HydraOverlayGamepadAction) => void
+    ) => () => void;
 
     /* Big Picture Window */
     openBigPictureWindow: () => Promise<void>;

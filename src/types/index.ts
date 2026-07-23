@@ -596,3 +596,4 @@ export * from "./level.types";
 export * from "./theme.types";
 export * from "./emulator.types";
 export * from "./artwork.types";
+export * from "./overlay.types";

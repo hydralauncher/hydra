@@ -33,6 +33,9 @@ type HydraNativeModule = {
     preserveAnimation: boolean
   ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
+  startOverlayKeyboardWatcher: () => boolean;
+  getOverlayKeyboardEventCount: () => number;
+  getOverlayGamepadButtons: () => number;
 };
 
 export type SystemProcessMap = {
@@ -307,5 +310,29 @@ export class NativeAddon {
         resolve({ processMap: {}, winePrefixMap: {}, linuxProcesses: [] });
       }
     });
+  }
+
+  public static startOverlayKeyboardWatcher(): boolean {
+    try {
+      return this.load().startOverlayKeyboardWatcher();
+    } catch {
+      return false;
+    }
+  }
+
+  public static getOverlayKeyboardEventCount(): number {
+    try {
+      return this.load().getOverlayKeyboardEventCount();
+    } catch {
+      return 0;
+    }
+  }
+
+  public static getOverlayGamepadButtons(): number {
+    try {
+      return this.load().getOverlayGamepadButtons();
+    } catch {
+      return 0;
+    }
   }
 }

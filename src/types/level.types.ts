@@ -174,6 +174,12 @@ export interface UserPreferences {
   bigPictureVirtualKeyboardEnabled?: boolean;
   bigPictureDiagnosticsEnabled?: boolean;
   bigPictureDiagnosticsPosition?: BigPictureDiagnosticsPosition;
+  overlayEnabled?: boolean;
+  overlayPerformanceEnabled?: boolean;
+  overlayPerformanceShowFps?: boolean;
+  overlayPerformanceShowAverageFps?: boolean;
+  overlayPerformanceShowFrameTime?: boolean;
+  overlayPerformanceShowOnePercentLow?: boolean;
   maxDownloadSpeedBytesPerSecond?: number | null;
   torrentNetworkInterface?: string | null;
   defaultProtonPath?: string | null;

@@ -3,6 +3,17 @@ use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::{cmp::Ordering, collections::HashMap};
 
+#[cfg(target_os = "windows")]
+use std::mem::{size_of, zeroed};
+#[cfg(target_os = "windows")]
+use std::ptr::{null, null_mut};
+#[cfg(target_os = "windows")]
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering as AtomicOrdering};
+#[cfg(target_os = "windows")]
+use std::sync::mpsc;
+#[cfg(target_os = "windows")]
+use std::thread;
+
 use image::codecs::gif::{GifDecoder, GifEncoder, Repeat};
 use image::codecs::png::PngDecoder;
 use image::codecs::webp::WebPDecoder;
@@ -12,6 +23,227 @@ use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 use sysinfo::{ProcessesToUpdate, System};
 use uuid::Uuid;
+
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::UI::Input::{
+    GetRawInputData, RegisterRawInputDevices, HRAWINPUT, RAWINPUT, RAWINPUTDEVICE, RAWINPUTHEADER,
+    RIDEV_INPUTSINK, RID_INPUT, RIM_TYPEKEYBOARD,
+};
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::UI::WindowsAndMessaging::{
+    CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, RegisterClassW,
+    TranslateMessage, HWND_MESSAGE, MSG, WM_INPUT, WNDCLASSW,
+};
+
+#[cfg(target_os = "windows")]
+static RAW_INPUT_STARTED: AtomicBool = AtomicBool::new(false);
+#[cfg(target_os = "windows")]
+static SHIFT_DOWN: AtomicBool = AtomicBool::new(false);
+#[cfg(target_os = "windows")]
+static F3_DOWN: AtomicBool = AtomicBool::new(false);
+#[cfg(target_os = "windows")]
+static COMBO_LATCHED: AtomicBool = AtomicBool::new(false);
+#[cfg(target_os = "windows")]
+static OVERLAY_KEYBOARD_EVENTS: AtomicU32 = AtomicU32::new(0);
+
+#[cfg(target_os = "windows")]
+#[repr(C)]
+#[derive(Default)]
+struct XInputGamepad {
+    buttons: u16,
+    left_trigger: u8,
+    right_trigger: u8,
+    thumb_lx: i16,
+    thumb_ly: i16,
+    thumb_rx: i16,
+    thumb_ry: i16,
+}
+
+#[cfg(target_os = "windows")]
+#[repr(C)]
+#[derive(Default)]
+struct XInputState {
+    packet_number: u32,
+    gamepad: XInputGamepad,
+}
+
+#[cfg(target_os = "windows")]
+#[link(name = "Xinput9_1_0")]
+extern "system" {
+    fn XInputGetState(user_index: u32, state: *mut XInputState) -> u32;
+}
+
+#[napi]
+pub fn start_overlay_keyboard_watcher() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        if RAW_INPUT_STARTED.swap(true, AtomicOrdering::AcqRel) {
+            return true;
+        }
+
+        let (sender, receiver) = mpsc::sync_channel(1);
+        thread::spawn(move || run_raw_input_thread(sender));
+        let started = receiver
+            .recv_timeout(std::time::Duration::from_secs(2))
+            .unwrap_or(false);
+        if !started {
+            RAW_INPUT_STARTED.store(false, AtomicOrdering::Release);
+        }
+        return started;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    false
+}
+
+#[napi]
+pub fn get_overlay_keyboard_event_count() -> u32 {
+    #[cfg(target_os = "windows")]
+    return OVERLAY_KEYBOARD_EVENTS.load(AtomicOrdering::Acquire);
+
+    #[cfg(not(target_os = "windows"))]
+    0
+}
+
+#[cfg(target_os = "windows")]
+fn update_overlay_combo(virtual_key: u16, pressed: bool) {
+    match virtual_key {
+        0x10 | 0xA0 | 0xA1 => SHIFT_DOWN.store(pressed, AtomicOrdering::Release),
+        0x72 => F3_DOWN.store(pressed, AtomicOrdering::Release),
+        _ => return,
+    }
+
+    let active = SHIFT_DOWN.load(AtomicOrdering::Acquire) && F3_DOWN.load(AtomicOrdering::Acquire);
+    if active && !COMBO_LATCHED.swap(true, AtomicOrdering::AcqRel) {
+        OVERLAY_KEYBOARD_EVENTS.fetch_add(1, AtomicOrdering::AcqRel);
+    } else if !active {
+        COMBO_LATCHED.store(false, AtomicOrdering::Release);
+    }
+}
+
+#[cfg(target_os = "windows")]
+unsafe extern "system" fn raw_input_window_proc(
+    window: HWND,
+    message: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
+    if message == WM_INPUT {
+        let mut input: RAWINPUT = unsafe { zeroed() };
+        let mut size = size_of::<RAWINPUT>() as u32;
+        let result = unsafe {
+            GetRawInputData(
+                lparam as HRAWINPUT,
+                RID_INPUT,
+                &mut input as *mut RAWINPUT as *mut _,
+                &mut size,
+                size_of::<RAWINPUTHEADER>() as u32,
+            )
+        };
+        if result != u32::MAX && result > 0 && input.header.dwType == RIM_TYPEKEYBOARD {
+            let keyboard = unsafe { input.data.keyboard };
+            update_overlay_combo(keyboard.VKey, keyboard.Flags & 1 == 0);
+        }
+    }
+
+    unsafe { DefWindowProcW(window, message, wparam, lparam) }
+}
+
+#[cfg(target_os = "windows")]
+fn run_raw_input_thread(sender: mpsc::SyncSender<bool>) {
+    unsafe {
+        let instance = GetModuleHandleW(null());
+        let class_name: Vec<u16> = "HydraOverlayRawInput\0".encode_utf16().collect();
+        let window_class = WNDCLASSW {
+            lpfnWndProc: Some(raw_input_window_proc),
+            hInstance: instance,
+            lpszClassName: class_name.as_ptr(),
+            ..zeroed()
+        };
+
+        if RegisterClassW(&window_class) == 0 {
+            let _ = sender.send(false);
+            return;
+        }
+
+        let window = CreateWindowExW(
+            0,
+            class_name.as_ptr(),
+            class_name.as_ptr(),
+            0,
+            0,
+            0,
+            0,
+            0,
+            HWND_MESSAGE,
+            null_mut(),
+            instance,
+            null(),
+        );
+        if window.is_null() {
+            let _ = sender.send(false);
+            return;
+        }
+
+        let keyboard = RAWINPUTDEVICE {
+            usUsagePage: 0x01,
+            usUsage: 0x06,
+            dwFlags: RIDEV_INPUTSINK,
+            hwndTarget: window,
+        };
+        if RegisterRawInputDevices(&keyboard, 1, size_of::<RAWINPUTDEVICE>() as u32) == 0 {
+            let _ = sender.send(false);
+            return;
+        }
+
+        let _ = sender.send(true);
+        let mut message: MSG = zeroed();
+        while GetMessageW(&mut message, null_mut(), 0, 0) > 0 {
+            TranslateMessage(&message);
+            DispatchMessageW(&message);
+        }
+    }
+}
+
+#[napi]
+pub fn get_overlay_gamepad_buttons() -> u32 {
+    #[cfg(target_os = "windows")]
+    {
+        const ERROR_SUCCESS: u32 = 0;
+        const DPAD_UP: u16 = 0x0001;
+        const DPAD_DOWN: u16 = 0x0002;
+        const DPAD_LEFT: u16 = 0x0004;
+        const DPAD_RIGHT: u16 = 0x0008;
+        const STICK_THRESHOLD: i16 = 12_000;
+
+        for user_index in 0..4 {
+            let mut state = XInputState::default();
+            let result = unsafe { XInputGetState(user_index, &mut state) };
+            if result != ERROR_SUCCESS {
+                continue;
+            }
+
+            let mut buttons = state.gamepad.buttons;
+            if state.gamepad.thumb_ly > STICK_THRESHOLD {
+                buttons |= DPAD_UP;
+            } else if state.gamepad.thumb_ly < -STICK_THRESHOLD {
+                buttons |= DPAD_DOWN;
+            }
+            if state.gamepad.thumb_lx < -STICK_THRESHOLD {
+                buttons |= DPAD_LEFT;
+            } else if state.gamepad.thumb_lx > STICK_THRESHOLD {
+                buttons |= DPAD_RIGHT;
+            }
+            return u32::from(buttons);
+        }
+    }
+
+    0
+}
 
 #[napi(object)]
 pub struct ProcessedImageData {
