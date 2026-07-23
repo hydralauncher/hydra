@@ -3,6 +3,7 @@ import type {
   CatalogueSearchResult,
   GameShop,
 } from "@types";
+import { platformToSystem } from "../../../shared/platform-to-system.js";
 
 export const SIMILAR_GAMES_LIMIT = 9;
 const SIMILAR_GAMES_SEARCH_SIZE = 24;
@@ -115,6 +116,11 @@ const matchesPlatform = (
   if (shop !== "launchbox" || !platform) return true;
   if (!game.platform) return false;
 
+  const platformSystem = platformToSystem(platform);
+  if (platformSystem) {
+    return platformToSystem(game.platform) === platformSystem;
+  }
+
   return normalizeValue(game.platform) === normalizeValue(platform);
 };
 
@@ -172,27 +178,31 @@ export const rankSimilarGames = (
 const buildSearchPayload = (
   query: SimilarGamesQuery,
   genres: string[]
-): Parameters<SimilarGamesSearch>[0] => ({
-  title: "",
-  sortBy: "popularity",
-  sortOrder: "desc",
-  downloadSourceFingerprints: [],
-  tags: [],
-  publishers: [],
-  genres,
-  developers: [],
-  protondbSupportBadges: [],
-  deckCompatibility: [],
-  ...(query.shop === "launchbox"
-    ? {
-        shops: ["launchbox"],
-        ...(query.platform ? { platforms: [query.platform] } : {}),
-      }
-    : {}),
-  take: SIMILAR_GAMES_SEARCH_SIZE,
-  skip: 0,
-  downloadSourceIds: [],
-});
+): Parameters<SimilarGamesSearch>[0] => {
+  const platformKey = platformToSystem(query.platform);
+
+  return {
+    title: "",
+    sortBy: "popularity",
+    sortOrder: "desc",
+    downloadSourceFingerprints: [],
+    tags: [],
+    publishers: [],
+    genres,
+    developers: [],
+    protondbSupportBadges: [],
+    deckCompatibility: [],
+    ...(query.shop === "launchbox"
+      ? {
+          shops: ["launchbox"],
+          ...(platformKey ? { platforms: [platformKey] } : {}),
+        }
+      : {}),
+    take: SIMILAR_GAMES_SEARCH_SIZE,
+    skip: 0,
+    downloadSourceIds: [],
+  };
+};
 
 const getResponseEdges = (response: SimilarGamesSearchResponse) => {
   if (!Array.isArray(response?.edges)) {

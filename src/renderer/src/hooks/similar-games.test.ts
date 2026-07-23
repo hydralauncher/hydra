@@ -175,6 +175,32 @@ describe("rankSimilarGames", () => {
     );
   });
 
+  it("matches LaunchBox platform keys and display names canonically", () => {
+    const launchboxQuery = {
+      objectId: "current",
+      shop: "launchbox" as const,
+      genres: ["Racing"],
+      platform: "PS2",
+    };
+
+    assert.deepEqual(
+      rankSimilarGames(
+        [
+          game("same-platform", ["Racing"], {
+            shop: "launchbox",
+            platform: "Sony Playstation 2",
+          }),
+          game("different-platform", ["Racing"], {
+            shop: "launchbox",
+            platform: "Sony Playstation 3",
+          }),
+        ],
+        launchboxQuery
+      ).map(({ objectId }) => objectId),
+      ["same-platform"]
+    );
+  });
+
   it("does not let an invalid duplicate suppress a later valid candidate", () => {
     const launchboxQuery = {
       objectId: "current",
@@ -244,7 +270,38 @@ describe("fetchSimilarGames", () => {
     assert.deepEqual(payloads[0].downloadSourceIds, []);
   });
 
-  it("scopes LaunchBox searches to the shop and platform when available", async () => {
+  it("uses catalogue keys for supported LaunchBox platforms", async () => {
+    const platformCases = [
+      ["Sony Playstation", "ps1"],
+      ["Sony Playstation 2", "ps2"],
+      ["Sony Playstation 3", "ps3"],
+      ["PS2", "ps2"],
+    ] as const;
+
+    for (const [platform, expectedKey] of platformCases) {
+      const payloads: Parameters<SimilarGamesSearch>[0][] = [];
+      const search: SimilarGamesSearch = async (payload) => {
+        payloads.push(payload);
+        return { count: 0, edges: [] };
+      };
+
+      await fetchSimilarGames(
+        {
+          objectId: "current",
+          shop: "launchbox",
+          genres: ["Racing"],
+          platform,
+          language: "en",
+        },
+        search
+      );
+
+      assert.deepEqual(payloads[0].shops, ["launchbox"]);
+      assert.deepEqual(payloads[0].platforms, [expectedKey]);
+    }
+  });
+
+  it("omits unknown LaunchBox platforms from the catalogue request", async () => {
     const payloads: Parameters<SimilarGamesSearch>[0][] = [];
     const search: SimilarGamesSearch = async (payload) => {
       payloads.push(payload);
@@ -256,14 +313,14 @@ describe("fetchSimilarGames", () => {
         objectId: "current",
         shop: "launchbox",
         genres: ["Racing"],
-        platform: "PlayStation 2",
+        platform: "Unknown Console",
         language: "en",
       },
       search
     );
 
     assert.deepEqual(payloads[0].shops, ["launchbox"]);
-    assert.deepEqual(payloads[0].platforms, ["PlayStation 2"]);
+    assert.equal(payloads[0].platforms, undefined);
   });
 
   it("performs one first-genre fallback and merges the candidates", async () => {

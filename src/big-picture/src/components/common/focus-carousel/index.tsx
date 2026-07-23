@@ -911,6 +911,11 @@ export function FocusCarousel({
     [onItemActivate]
   );
 
+  const handleControlMouseDown: MouseEventHandler<HTMLButtonElement> =
+    useCallback((event) => {
+      event.preventDefault();
+    }, []);
+
   if (games.length === 0) return null;
 
   return (
@@ -948,6 +953,7 @@ export function FocusCarousel({
                     className="focus-carousel__header-button"
                     aria-label="Previous"
                     aria-disabled={!canScrollPrev}
+                    onMouseDown={handleControlMouseDown}
                     onClick={() => {
                       if (canScrollPrev) emblaApi?.scrollPrev();
                     }}
@@ -973,6 +979,7 @@ export function FocusCarousel({
                     className="focus-carousel__header-button"
                     aria-label="Next"
                     aria-disabled={!canScrollNext}
+                    onMouseDown={handleControlMouseDown}
                     onClick={() => {
                       if (canScrollNext) emblaApi?.scrollNext();
                     }}

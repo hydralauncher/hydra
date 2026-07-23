@@ -146,16 +146,6 @@ export function SimilarGames({
       <h2 className="similar-games__title">{t("similar_games")}</h2>
 
       <div className="similar-games__carousel">
-        <button
-          type="button"
-          className="similar-games__control similar-games__control--previous"
-          aria-label="Previous"
-          disabled={!canScrollPrev}
-          onClick={() => emblaApi?.scrollPrev()}
-        >
-          <ChevronLeftIcon size={36} />
-        </button>
-
         <div className="similar-games__viewport" ref={emblaRef}>
           <div className="similar-games__container">
             {isLoading
@@ -178,17 +168,27 @@ export function SimilarGames({
                   </SimilarGamesSlide>
                 ))}
           </div>
-        </div>
 
-        <button
-          type="button"
-          className="similar-games__control similar-games__control--next"
-          aria-label="Next"
-          disabled={!canScrollNext}
-          onClick={() => emblaApi?.scrollNext()}
-        >
-          <ChevronRightIcon size={36} />
-        </button>
+          <button
+            type="button"
+            className="similar-games__control similar-games__control--previous"
+            aria-label="Previous"
+            disabled={!canScrollPrev}
+            onClick={() => emblaApi?.scrollPrev()}
+          >
+            <ChevronLeftIcon size={36} />
+          </button>
+
+          <button
+            type="button"
+            className="similar-games__control similar-games__control--next"
+            aria-label="Next"
+            disabled={!canScrollNext}
+            onClick={() => emblaApi?.scrollNext()}
+          >
+            <ChevronRightIcon size={36} />
+          </button>
+        </div>
       </div>
     </section>
   );

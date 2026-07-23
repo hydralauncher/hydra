@@ -27,7 +27,9 @@
   }
 
   &__viewport {
+    position: relative;
     overflow: hidden;
+    border-radius: 6px;
   }
 
   &__container {
@@ -164,7 +166,7 @@
       opacity: 0;
       transform: translateY(-50%) translateX(-16px);
 
-      .similar-games__carousel:hover &:not(:disabled) {
+      .similar-games__viewport:hover &:not(:disabled) {
         opacity: 1;
         transform: translateY(-50%) translateX(0);
       }
@@ -175,7 +177,7 @@
       opacity: 0;
       transform: translateY(-50%) translateX(16px);
 
-      .similar-games__carousel:hover &:not(:disabled) {
+      .similar-games__viewport:hover &:not(:disabled) {
         opacity: 1;
         transform: translateY(-50%) translateX(0);
       }
