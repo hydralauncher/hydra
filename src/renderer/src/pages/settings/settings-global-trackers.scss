@@ -70,26 +70,4 @@
       color: rgba(255, 255, 255, 0.4);
     }
   }
-
-  &__url-status {
-    display: block;
-    min-height: 14px;
-    padding: 0 12px;
-    font-size: 11px;
-    text-align: left;
-    opacity: 1;
-    transition: opacity 0.2s ease;
-
-    &--invalid {
-      color: globals.$danger-color;
-    }
-
-    &--empty {
-      color: var(--text-muted);
-    }
-
-    &--hidden {
-      opacity: 0;
-    }
-  }
 }

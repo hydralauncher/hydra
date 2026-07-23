@@ -12,4 +12,3 @@ import "./set-download-queue-position";
 import "./update-download-queue-position";
 import "./get-download-layout-state";
 import "./save-global-trackers";
-import "./validate-global-trackers-url";

@@ -25,6 +25,10 @@ let cachedGlobalTrackers: {
 export const fetchGlobalTrackersFromUrl = async (
   url: string
 ): Promise<string[]> => {
+  if (!isValidTrackerUrl(url)) {
+    throw new Error("Invalid tracker URL");
+  }
+
   const { data } = await axios.get<string>(url, {
     timeout: 15000,
     responseType: "text",
@@ -82,7 +86,7 @@ export const getGlobalTrackers = async (): Promise<string[]> => {
   const appendUrl = userPreferences?.appendGlobalTrackersUrl ?? false;
 
   let urlCache: string[] = [];
-  if (appendUrl && url) {
+  if (appendUrl && url && isValidTrackerUrl(url)) {
     const cache = await getGlobalTrackersUrlCache();
     if (cache?.url === url) {
       urlCache = cache.trackers;
@@ -143,6 +147,10 @@ export const refreshGlobalTrackersUrlCache = async (): Promise<void> => {
   }
 
   const startupUrl = userPreferences.globalTrackersUrl;
+  if (!isValidTrackerUrl(startupUrl)) {
+    return;
+  }
+
   const currentCache = await getGlobalTrackersUrlCache();
 
   if (
