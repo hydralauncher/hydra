@@ -34,8 +34,6 @@ export function SettingsGlobalTrackers() {
   const [trackerUrl, setTrackerUrl] = useState("");
   const [appendManual, setAppendManual] = useState(false);
   const [appendUrl, setAppendUrl] = useState(false);
-  const [isUrlInvalid, setIsUrlInvalid] = useState(false);
-  const [isUrlEmpty, setIsUrlEmpty] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const appendManualRef = useRef(appendManual);
@@ -86,42 +84,9 @@ export function SettingsGlobalTrackers() {
       } catch (err) {
         console.error("Failed to save global trackers", err);
       }
-
-      if (!isMounted.current) return;
-
-      if (!appendUrlFlag || !url) {
-        setIsUrlInvalid(false);
-        setIsUrlEmpty(false);
-      }
     },
     [refreshUserPreferences]
   );
-
-  const validateUrl = useCallback(async (url: string) => {
-    try {
-      const { error, count } =
-        await window.electron.validateGlobalTrackersUrl(url);
-
-      if (!isMounted.current) return;
-
-      if (error) {
-        setIsUrlInvalid(true);
-        setIsUrlEmpty(false);
-      } else if (count === 0) {
-        setIsUrlInvalid(false);
-        setIsUrlEmpty(true);
-      } else {
-        setIsUrlInvalid(false);
-        setIsUrlEmpty(false);
-      }
-    } catch (err) {
-      console.error("Failed to validate global tracker URL", err);
-      if (isMounted.current) {
-        setIsUrlInvalid(true);
-        setIsUrlEmpty(false);
-      }
-    }
-  }, []);
 
   const debouncedSave = useMemo(
     () =>
@@ -190,35 +155,16 @@ export function SettingsGlobalTrackers() {
     setAppendUrl(next);
     debouncedSave.cancel();
     void save(getCurrentManualTrackers(), trackerUrl, appendManual, next);
-
-    if (next && trackerUrl.trim()) {
-      void validateUrl(trackerUrl);
-    } else {
-      setIsUrlInvalid(false);
-      setIsUrlEmpty(false);
-    }
   };
 
   const handleUrlBlur = () => {
     debouncedSave.cancel();
     void save(getCurrentManualTrackers(), trackerUrl, appendManual, appendUrl);
-
-    if (appendUrl && trackerUrl.trim()) {
-      void validateUrl(trackerUrl);
-    }
   };
 
   const handleUrlChange = (value: string) => {
     setTrackerUrl(value);
-    setIsUrlInvalid(false);
-    setIsUrlEmpty(false);
   };
-
-  const urlStatusClass = isUrlInvalid
-    ? "settings-global-trackers__url-status--invalid"
-    : isUrlEmpty
-      ? "settings-global-trackers__url-status--empty"
-      : "settings-global-trackers__url-status--hidden";
 
   return (
     <form
@@ -274,15 +220,6 @@ export function SettingsGlobalTrackers() {
             placeholder={t("global_trackers_url_placeholder")}
             disabled={!appendUrl}
           />
-          <span
-            className={`settings-global-trackers__url-status ${urlStatusClass}`}
-          >
-            {isUrlInvalid
-              ? t("global_trackers_fetch_error")
-              : isUrlEmpty
-                ? t("global_trackers_url_empty")
-                : ""}
-          </span>
         </div>
       </div>
     </form>
