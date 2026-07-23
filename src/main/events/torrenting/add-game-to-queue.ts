@@ -37,6 +37,7 @@ const addGameToQueue = async (
   const parsedFileSize = parseBytes(fileSize ?? null);
   const gameKey = levelKeys.game(shop, objectId);
   let download: Download;
+  let didWriteDownload = false;
 
   try {
     const globalTrackers = await getGlobalTrackers();
@@ -83,6 +84,7 @@ const addGameToQueue = async (
 
   try {
     await downloadsSublevel.put(gameKey, download);
+    didWriteDownload = true;
     await DownloadOrchestrator.enqueuePreparedDownload(download);
 
     const updatedGame = await gamesSublevel.get(gameKey);
@@ -96,6 +98,11 @@ const addGameToQueue = async (
 
     return { ok: true };
   } catch (err: unknown) {
+    if (didWriteDownload) {
+      await downloadsSublevel.del(gameKey).catch(() => null);
+      await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
+    }
+
     logger.error("Failed to add game to queue", err);
 
     if (err instanceof Error) {
