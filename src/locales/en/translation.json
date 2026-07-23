@@ -425,6 +425,7 @@
     "region_kr": "Korea",
     "region_asia": "Asia",
     "download_error": "This download option is not available",
+    "invalid_repack": "No download link is available for the selected downloader.",
     "download": "Download",
     "executable_path_in_use": "Executable already in use by \"{{game}}\"",
     "warning": "Warning:",
