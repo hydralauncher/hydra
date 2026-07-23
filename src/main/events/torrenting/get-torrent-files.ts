@@ -65,9 +65,7 @@ const getTorrentFiles = async (
     };
   } catch (error) {
     const isRpcError =
-      typeof error === "object" &&
-      error !== null &&
-      "response" in error;
+      typeof error === "object" && error !== null && "response" in error;
 
     if (!isRpcError) {
       logger.error("Failed to get global trackers for torrent files", error);
