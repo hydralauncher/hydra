@@ -23,6 +23,8 @@ import { gameDetailsContext } from "@renderer/context";
 import {
   getClassicsLaunchErrorCode,
   getClassicsLaunchErrorSystem,
+  retroarchLaunchErrorToastKey,
+  RETROARCH_EMULATION_SETTINGS_PATH,
 } from "@renderer/helpers";
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
 
@@ -227,12 +229,12 @@ export function HeroPanelActions() {
       } else if (code === "BIOS_NOT_CONFIGURED") {
         showErrorToast(t("bios_not_configured_toast"));
         navigate(emulationPath);
-      } else if (code === "RETROARCH_NOT_CONFIGURED") {
-        showErrorToast(t("retroarch_not_configured_toast"));
-        navigate("/settings?tab=emulation&system=retroarch");
-      } else if (code === "CORE_NOT_INSTALLED") {
-        showErrorToast(t("core_not_installed_toast"));
-        navigate("/settings?tab=emulation&system=retroarch");
+      } else if (
+        code === "RETROARCH_NOT_CONFIGURED" ||
+        code === "CORE_NOT_INSTALLED"
+      ) {
+        showErrorToast(t(retroarchLaunchErrorToastKey(code)));
+        navigate(RETROARCH_EMULATION_SETTINGS_PATH);
       } else if (code === "PLATFORM_UNKNOWN") {
         showErrorToast(t("platform_unknown_toast"));
       } else if (code === "NO_DISC") {

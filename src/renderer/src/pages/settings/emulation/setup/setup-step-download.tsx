@@ -17,6 +17,7 @@ import { EMULATOR_ICONS } from "../emulator-icons";
 import { KNOWN_BINARY_LABELS } from "../known-binary-labels";
 import { ArchIcon, FlatpakIcon, GitHubIcon } from "./brand-icons";
 import { firmwarePageUrl } from "./ps-firmware-url";
+import { InstallProgressBar, installStatusText } from "./install-progress";
 
 interface Props {
   binary: EmulatorBinary;
@@ -104,23 +105,6 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
     return null;
   };
 
-  const installStatusText = (optionId: string): string => {
-    const current = progress[optionId];
-    if (!current) return t("setup_install_with_hydra_desc", { name });
-    if (current.phase === "downloading") {
-      const percent =
-        current.total && current.total > 0
-          ? Math.floor(((current.loaded ?? 0) / current.total) * 100)
-          : 0;
-      return t("setup_install_downloading", { percent });
-    }
-    if (current.phase === "extracting") return t("setup_install_extracting");
-    if (current.phase === "running") return t("setup_install_running");
-    if (current.phase === "done") return t("setup_install_done");
-    if (current.phase === "error") return t("setup_install_failed");
-    return t("setup_install_with_hydra_desc", { name });
-  };
-
   const externalLinkLabel = (option: ResolvedInstallOption): string => {
     if (option.linkKind === "aur") return t("setup_install_aur_note");
     if (option.linkKind === "flatpak") return "Flatpak";
@@ -136,32 +120,6 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
   const externalLinkDesc = (option: ResolvedInstallOption): string => {
     if (option.linkKind === "aur") return t("setup_install_aur_desc", { name });
     return t("setup_download_desc", { name });
-  };
-
-  const renderProgressBar = (optionId: string) => {
-    const current = progress[optionId];
-    if (!current) return null;
-    if (current.phase === "done" || current.phase === "error") return null;
-
-    const hasTotal = Boolean(current.total && current.total > 0);
-    const indeterminate = current.phase !== "downloading" || !hasTotal;
-    const percent = hasTotal
-      ? Math.min(
-          100,
-          Math.floor(((current.loaded ?? 0) / current.total!) * 100)
-        )
-      : 0;
-
-    return (
-      <div className="setup-modal__progress-bar" style={{ marginTop: 10 }}>
-        <div
-          className={`setup-modal__progress-fill ${
-            indeterminate ? "setup-modal__progress-fill--indeterminate" : ""
-          }`}
-          style={indeterminate ? undefined : { width: `${percent}%` }}
-        />
-      </div>
-    );
   };
 
   const visitLabel = (option: ResolvedInstallOption): string => {
@@ -244,9 +202,9 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
                     )}
                   </span>
                   <span className="setup-modal__download-card-desc">
-                    {installStatusText(option.id)}
+                    {installStatusText(t, name, progress[option.id])}
                   </span>
-                  {renderProgressBar(option.id)}
+                  <InstallProgressBar progress={progress[option.id]} />
                 </div>
               </button>
               {option.htmlUrl && (

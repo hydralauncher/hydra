@@ -9,10 +9,10 @@ import { SetupFooter } from "../setup-footer";
 import { SetupStepDone } from "../setup-step-done";
 import { SetupStepRomFolder } from "../setup-step-rom-folder";
 import { SetupStepScanning } from "../setup-step-scanning";
-import { type PendingFolder } from "../types";
+import { usePendingRomFolders } from "../use-pending-rom-folders";
 import { SetupStepCores } from "./setup-step-cores";
+import { SetupStepFindEmulator } from "../setup-step-find-emulator";
 import { SetupStepRetroArchDownload } from "./setup-step-retroarch-download";
-import { SetupStepRetroArchFind } from "./setup-step-retroarch-find";
 import { RETROARCH_LABEL } from "../../retroarch-meta";
 
 import "../setup-shell.scss";
@@ -51,7 +51,6 @@ export function RetroArchSetupModal({
 
   const [config, setConfig] = useState<RetroArchConfig | null>(initialConfig);
   const [stepIndex, setStepIndex] = useState(0);
-  const [folders, setFolders] = useState<PendingFolder[]>([]);
   const [gamesAdded, setGamesAdded] = useState(0);
   const [scanComplete, setScanComplete] = useState(false);
   const [detecting, setDetecting] = useState(false);
@@ -59,6 +58,26 @@ export function RetroArchSetupModal({
 
   const autoDetectRef = useRef(false);
   const scanStartedRef = useRef(false);
+
+  const previewFolder = useCallback(
+    async (folderPath: string, scanSubfolders: boolean) => {
+      const { fileCount } = await window.electron.previewRetroArchRomFolder(
+        folderPath,
+        scanSubfolders
+      );
+      return fileCount;
+    },
+    []
+  );
+
+  const {
+    folders,
+    setFolders,
+    handleAddFolder,
+    handleChangeFolder,
+    handleRemoveFolder,
+    handleToggleSubfolders,
+  } = usePendingRomFolders({ previewFolder });
 
   useEffect(() => {
     if (visible) {
@@ -193,17 +212,6 @@ export function RetroArchSetupModal({
     );
   }, [showErrorToast, t]);
 
-  const previewFolder = useCallback(
-    async (folderPath: string, scanSubfolders: boolean) => {
-      const { fileCount } = await window.electron.previewRetroArchRomFolder(
-        folderPath,
-        scanSubfolders
-      );
-      return fileCount;
-    },
-    []
-  );
-
   useEffect(() => {
     if (!visible) return;
     if (currentStep !== "scanning") return;
@@ -237,72 +245,6 @@ export function RetroArchSetupModal({
     setStepIndex(STEPS.indexOf("rom_folder"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, currentStep, scan.error]);
-
-  const handleAddFolder = useCallback(async () => {
-    const result = await window.electron.showOpenDialog({
-      properties: ["openDirectory"],
-    });
-    if (result.canceled || result.filePaths.length === 0) return;
-    const folderPath = result.filePaths[0];
-
-    if (folders.some((f) => f.path === folderPath)) return;
-
-    setFolders((prev) => [
-      ...prev,
-      { path: folderPath, scanSubfolders: true, previewCount: null },
-    ]);
-
-    const count = await previewFolder(folderPath, true);
-    setFolders((prev) =>
-      prev.map((f) =>
-        f.path === folderPath ? { ...f, previewCount: count } : f
-      )
-    );
-  }, [folders, previewFolder]);
-
-  const handleChangeFolder = useCallback(
-    async (index: number) => {
-      const result = await window.electron.showOpenDialog({
-        properties: ["openDirectory"],
-      });
-      if (result.canceled || result.filePaths.length === 0) return;
-      const newPath = result.filePaths[0];
-
-      const folder = folders[index];
-      setFolders((prev) =>
-        prev.map((f, i) =>
-          i === index ? { ...f, path: newPath, previewCount: null } : f
-        )
-      );
-
-      const count = await previewFolder(newPath, folder.scanSubfolders);
-      setFolders((prev) =>
-        prev.map((f, i) => (i === index ? { ...f, previewCount: count } : f))
-      );
-    },
-    [folders, previewFolder]
-  );
-
-  const handleRemoveFolder = useCallback((index: number) => {
-    setFolders((prev) => prev.filter((_, i) => i !== index));
-  }, []);
-
-  const handleToggleSubfolders = useCallback(
-    async (index: number) => {
-      const folder = folders[index];
-      const next = !folder.scanSubfolders;
-      setFolders((prev) =>
-        prev.map((f, i) =>
-          i === index ? { ...f, scanSubfolders: next, previewCount: null } : f
-        )
-      );
-      const count = await previewFolder(folder.path, next);
-      setFolders((prev) =>
-        prev.map((f, i) => (i === index ? { ...f, previewCount: count } : f))
-      );
-    },
-    [folders, previewFolder]
-  );
 
   const allCoresInstalled = useMemo(() => {
     if (!config) return false;
@@ -355,8 +297,10 @@ export function RetroArchSetupModal({
       <div className="setup-modal">
         <div className="setup-modal__body">
           {currentStep === "find_emulator" && config && !showDownloadHelp && (
-            <SetupStepRetroArchFind
-              config={config}
+            <SetupStepFindEmulator
+              name={RETROARCH_LABEL}
+              executablePath={config.executablePath}
+              detectedVersion={config.detectedVersion}
               detecting={detecting}
               onBrowse={handleBrowseExecutable}
               onShowDownloadHelp={() => setShowDownloadHelp(true)}

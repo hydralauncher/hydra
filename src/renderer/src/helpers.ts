@@ -1,9 +1,4 @@
-import type {
-  EmulatorBinary,
-  EmulatorSystem,
-  GameShop,
-  RetroArchPlatform,
-} from "@types";
+import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
 
 import Color from "color";
 import i18next from "i18next";
@@ -55,29 +50,20 @@ export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
   ps3: "rpcs3",
 };
 
-export const platformToRetroArchPlatform = (
-  platform?: string | null
-): RetroArchPlatform | null => {
-  if (!platform) return null;
-  const p = platform.toLowerCase();
-  if (/game\s*boy\s*advance|\bgba\b/.test(p)) return "gba";
-  if (/game\s*boy\s*color|\bgbc\b/.test(p)) return "gbc";
-  if (/game\s*boy|\bgb\b/.test(p)) return "gb";
-  if (/nintendo\s*64|\bn64\b/.test(p)) return "n64";
-  if (/super\s*nintendo|\bsnes\b/.test(p)) return "snes";
-  if (/nintendo\s*entertainment\s*system|\bnes\b|\bfamicom\b/.test(p))
-    return "nes";
-  return null;
-};
+export {
+  platformToRetroArchPlatform,
+  RETROARCH_PLATFORM_LABELS,
+} from "@shared";
 
-export const RETROARCH_PLATFORM_LABELS: Record<RetroArchPlatform, string> = {
-  nes: "NES",
-  snes: "SNES",
-  n64: "N64",
-  gb: "GB",
-  gbc: "GBC",
-  gba: "GBA",
-};
+export const RETROARCH_EMULATION_SETTINGS_PATH =
+  "/settings?tab=emulation&system=retroarch";
+
+export const retroarchLaunchErrorToastKey = (
+  code: "RETROARCH_NOT_CONFIGURED" | "CORE_NOT_INSTALLED"
+): string =>
+  code === "CORE_NOT_INSTALLED"
+    ? "core_not_installed_toast"
+    : "retroarch_not_configured_toast";
 
 export const formatDownloadProgress = (
   progress?: number,

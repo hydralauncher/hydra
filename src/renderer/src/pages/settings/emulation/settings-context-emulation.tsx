@@ -11,9 +11,14 @@ import type {
 import { ConsoleCard } from "./console-card";
 import { EmulatorDetail } from "./emulator-detail";
 import { EmulatorSetupModal } from "./setup/emulator-setup-modal";
-import { RetroArchCard } from "./retroarch-card";
+import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
+import { RETROARCH_EMULATOR_ICON } from "./emulator-icons";
+import { RETROARCH_LABEL } from "./retroarch-meta";
 import { RetroArchDetail } from "./retroarch-detail";
 import { RetroArchSetupModal } from "./setup/retroarch/retroarch-setup-modal";
+import ps1Art from "@renderer/assets/emulation/ps1.png";
+import ps2Art from "@renderer/assets/emulation/ps2.png";
+import ps3Art from "@renderer/assets/emulation/ps3.png";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -27,6 +32,12 @@ const SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps1: "PlayStation 1",
   ps2: "PlayStation 2",
   ps3: "PlayStation 3",
+};
+
+const SYSTEM_ART: Record<EmulatorSystem, string> = {
+  ps1: ps1Art,
+  ps2: ps2Art,
+  ps3: ps3Art,
 };
 
 export function SettingsContextEmulation() {
@@ -222,14 +233,31 @@ export function SettingsContextEmulation() {
         {SYSTEMS.map((system) => (
           <ConsoleCard
             key={system}
-            config={configs[system]}
-            systemLabel={SYSTEM_LABELS[system]}
+            art={SYSTEM_ART[system]}
+            title={SYSTEM_LABELS[system]}
+            emulatorName={KNOWN_BINARY_LABELS[configs[system].binary]}
+            detectedVersion={configs[system].detectedVersion}
+            executablePath={configs[system].executablePath}
+            romFoldersCount={configs[system].romFolders.length}
+            totalFiles={configs[system].totalFiles}
+            lastScanAt={configs[system].lastScanAt}
+            checkExecutable={() =>
+              window.electron.checkEmulatorExecutable(system)
+            }
             onConfigure={() => handleConfigure(system)}
             onStartSetup={() => handleStartSetup(system)}
           />
         ))}
-        <RetroArchCard
-          config={retroArchConfig}
+        <ConsoleCard
+          art={RETROARCH_EMULATOR_ICON}
+          title={t("retroarch_card_title")}
+          emulatorName={RETROARCH_LABEL}
+          detectedVersion={retroArchConfig.detectedVersion}
+          executablePath={retroArchConfig.executablePath}
+          romFoldersCount={retroArchConfig.romFolders.length}
+          totalFiles={retroArchConfig.totalFiles}
+          lastScanAt={retroArchConfig.lastScanAt}
+          checkExecutable={() => window.electron.checkRetroArchExecutable()}
           onConfigure={() => setView({ kind: "retroarch-detail" })}
           onStartSetup={() => setRetroArchSetupOpen(true)}
         />
