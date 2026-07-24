@@ -1,3 +1,4 @@
+mod delete_targets;
 mod download_blob;
 mod metadata;
 mod replace_targets;
@@ -7,6 +8,7 @@ mod types;
 mod validation;
 mod verify_file;
 
+pub use delete_targets::delete_local_save_targets;
 pub use download_blob::{cleanup_restore_temp_snapshot, download_restore_blob_to_temp};
 pub use replace_targets::replace_restore_targets;
 pub use resolve_targets::resolve_restore_targets;

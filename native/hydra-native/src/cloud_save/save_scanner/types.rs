@@ -5,14 +5,14 @@ use crate::cloud_save::manifest::types::CloudSaveRuleCondition;
 use crate::cloud_save::path_resolution::ResolvedCloudSavePath;
 
 #[napi(object)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ScannedCloudSaveFile {
     pub absolute_path: String,
     pub relative_path: String,
 }
 
 #[napi(object)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ScannedCloudSavePath {
     pub candidate_id: String,
     pub resolved_path: String,

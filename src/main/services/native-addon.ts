@@ -7,6 +7,8 @@ import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
 import type {
   BuildLocalGameSnapshotPipelineInput,
+  DeleteLocalSaveTarget,
+  DeleteLocalSaveTargetsResult,
   NativeLocalGameSnapshotPipelineResult,
   ReplaceRestoreTarget,
   ReplaceRestoreTargetsResult,
@@ -81,6 +83,9 @@ type HydraNativeModule = {
   replaceRestoreTargets: (
     files: ReplaceRestoreTarget[]
   ) => Promise<ReplaceRestoreTargetsResult>;
+  deleteLocalSaveTargets: (
+    files: DeleteLocalSaveTarget[]
+  ) => Promise<DeleteLocalSaveTargetsResult>;
   cleanupRestoreTempSnapshot: (
     snapshotId: string,
     tempRoot: string
@@ -425,6 +430,10 @@ export class NativeAddon {
 
   public static replaceRestoreTargets(files: ReplaceRestoreTarget[]) {
     return this.load().replaceRestoreTargets(files);
+  }
+
+  public static deleteLocalSaveTargets(files: DeleteLocalSaveTarget[]) {
+    return this.load().deleteLocalSaveTargets(files);
   }
 
   public static cleanupRestoreTempSnapshot(

@@ -7,11 +7,13 @@ import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
 import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
 import { getCloudSaveSyncAnchor } from "./sync-anchor";
+import type { SyncDirection } from "./sync-game/policy";
 
 export const analyzeCloudSaveState = async (
   objectId: string,
   shop: GameShop,
-  suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>
+  suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>,
+  syncDirection: SyncDirection = "bidirectional"
 ) => {
   const [localSnapshotContext, remoteSnapshots] = await Promise.all([
     buildLocalGameSnapshotContext(objectId, shop, suppliedContext),
@@ -47,6 +49,7 @@ export const analyzeCloudSaveState = async (
     remoteVariants: remoteManifest?.variants ?? [],
     remoteFiles: remoteManifest?.files ?? [],
     base: anchor,
+    direction: syncDirection,
   });
   const mergedAggregateHash =
     merge.files.length > 0
@@ -63,7 +66,10 @@ export const analyzeCloudSaveState = async (
     currentState = "conflict";
   } else if (mergedAggregateHash !== activeRemoteSnapshot.aggregateHash) {
     currentState = "local-ahead";
-  } else if (merge.restoreEntryIds.length > 0) {
+  } else if (
+    merge.restoreEntryIds.length > 0 ||
+    merge.deleteLocalEntryIds.length > 0
+  ) {
     currentState = "remote-ahead";
   } else if (merge.partial) {
     currentState = "partial";
@@ -75,6 +81,7 @@ export const analyzeCloudSaveState = async (
     localSnapshot,
     localSnapshotContext,
     environmentId,
+    syncDirection,
     anchor,
     activeRemoteSnapshot,
     remoteManifest,

@@ -88,6 +88,7 @@ pub struct UserLocationCoverage {
     pub variant_id: Option<String>,
     pub raw_path: Option<String>,
     pub relative_path: Option<String>,
+    pub selected_root: bool,
     pub authority: String,
     pub outcome: String,
     pub enumerated_completely: bool,

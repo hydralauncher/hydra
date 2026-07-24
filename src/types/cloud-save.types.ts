@@ -83,6 +83,7 @@ export interface UserLocationCoverage {
   variantId?: string;
   rawPath?: string;
   relativePath?: string;
+  selectedRoot: boolean;
   authority: "authoritative" | "exact" | "inferred";
   outcome:
     | "scanned"
@@ -308,7 +309,7 @@ export type CloudSaveAutomaticSyncEvent =
   | {
       gameId: CloudSaveGameId;
       trigger: CloudSaveAutomaticSyncTrigger;
-      status: "completed" | "conflict";
+      status: "completed" | "conflict" | "cancelled";
       result?: SyncGameCloudSaveResult;
     }
   | {
@@ -433,6 +434,17 @@ export interface ReplaceRestoreTargetsResult {
   failedFiles: RestoreFailedFile[];
   metadataFailures: RestoreMetadataFailure[];
   updatedDirectoryCount: number;
+}
+
+export interface DeleteLocalSaveTarget extends CloudSaveFileIdentity {
+  targetPath: string;
+  restoreRootPath: string;
+  expectedHash: string;
+  expectedSizeBytes: number;
+}
+
+export interface DeleteLocalSaveTargetsResult {
+  deletedFiles: CloudSaveFileIdentity[];
 }
 
 export interface RestoreRemoteSnapshotResult {
@@ -589,8 +601,8 @@ export interface CloudSaveSyncAnchor {
 
 export type CloudSaveMergeConflict = {
   entryId: string;
-  local: LocalGameSnapshotFile;
-  remote: SnapshotFile;
+  local: LocalGameSnapshotFile | null;
+  remote: SnapshotFile | null;
 };
 
 export interface CloudSaveMergeResult {
@@ -598,6 +610,8 @@ export interface CloudSaveMergeResult {
   files: SnapshotFile[];
   conflicts: CloudSaveMergeConflict[];
   restoreEntryIds: string[];
+  deleteRemoteEntryIds: string[];
+  deleteLocalEntryIds: string[];
   unresolvedRemoteEntryIds: string[];
   partial: boolean;
 }
