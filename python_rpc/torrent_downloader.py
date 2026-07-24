@@ -166,6 +166,11 @@ class TorrentDownloader:
 
         fallback_tier = max(tiers) + 1 if tiers else 0
 
+        tiers = list(params.tracker_tiers)[: len(trackers)]
+        tiers.extend([0] * (len(trackers) - len(tiers)))
+
+        fallback_tier = max(tiers) + 1 if tiers else 0
+
         for tracker in self.trackers:
             if tracker in known_trackers:
                 continue
