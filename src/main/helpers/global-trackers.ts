@@ -109,20 +109,9 @@ export const getGlobalTrackers = async (): Promise<string[]> => {
     }
 
     if (isGlobalTrackersUrlCacheStale(cache, url)) {
-      if (!cache || cache.url !== url) {
-        try {
-          urlCache = await dedupedFetchAndCache(url);
-        } catch (err) {
-          logger.error("Global tracker URL cache fetch failed", err);
-        }
-      } else {
-        void dedupedFetchAndCache(url).catch((err) =>
-          logger.error(
-            "Background refresh of global tracker URL cache failed",
-            err
-          )
-        );
-      }
+      void dedupedFetchAndCache(url).catch((err) =>
+        logger.error("Global tracker URL cache fetch/refresh failed", err)
+      );
     }
   }
 

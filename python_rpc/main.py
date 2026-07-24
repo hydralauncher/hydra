@@ -136,7 +136,7 @@ VALID_TRACKER_PROTOCOLS = {"http", "https", "udp", "ws", "wss"}
 
 def validate_trackers(trackers):
     if trackers is None:
-        return None
+        return []
 
     if not isinstance(trackers, list):
         raise RpcError("invalid_trackers")
