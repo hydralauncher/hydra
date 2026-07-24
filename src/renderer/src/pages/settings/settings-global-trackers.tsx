@@ -9,6 +9,8 @@ import { debounce } from "lodash-es";
 import { logger } from "@renderer/logger";
 import "./settings-global-trackers.scss";
 
+const SAVE_DEBOUNCE_MS = 1000;
+
 interface FormValues {
   manualTrackers: string;
 }
@@ -98,7 +100,7 @@ export function SettingsGlobalTrackers() {
     () =>
       debounce((manual: string[], url: string) => {
         void save(manual, url, appendManualRef.current, appendUrlRef.current);
-      }, 1000),
+      }, SAVE_DEBOUNCE_MS),
     [save]
   );
 
