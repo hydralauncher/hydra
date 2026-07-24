@@ -147,32 +147,34 @@ class TorrentDownloader:
             raise ValueError("invalid_magnet") from error
 
         params.save_path = save_path
-        params.flags = flags
+        params.flags = params.flags | flags
 
         extra_trackers = trackers or []
-        trackers = list(params.trackers)
-        known_trackers = set(trackers)
+        magnet_trackers = list(params.trackers)
+        known_trackers = set(magnet_trackers)
 
-        tiers = list(params.tracker_tiers)[: len(trackers)]
-        tiers.extend([0] * (len(trackers) - len(tiers)))
+        tiers = list(params.tracker_tiers)[: len(magnet_trackers)]
+        tiers.extend([0] * (len(magnet_trackers) - len(tiers)))
 
         for tracker in extra_trackers:
             if tracker in known_trackers:
                 continue
 
-            trackers.append(tracker)
+            magnet_trackers.append(tracker)
             known_trackers.add(tracker)
             tiers.append(0)
+
+        fallback_tier = max(tiers) + 1 if tiers else 0
 
         for tracker in self.trackers:
             if tracker in known_trackers:
                 continue
 
-            trackers.append(tracker)
+            magnet_trackers.append(tracker)
             known_trackers.add(tracker)
-            tiers.append(1)
+            tiers.append(fallback_tier)
 
-        params.trackers = trackers
+        params.trackers = magnet_trackers
         params.tracker_tiers = tiers
 
         return params
