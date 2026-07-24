@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { isDownloadInFlight } from "./download-contract.ts";
-import type { Download } from "./level.types.ts";
+import { Downloader } from "../shared/constants.js";
+import { isDownloadInFlight } from "./download-contract.js";
+import type { Download } from "./level.types.js";
 
 const buildDownload = (overrides: Partial<Download> = {}): Download => ({
   shop: "steam",
@@ -11,7 +12,7 @@ const buildDownload = (overrides: Partial<Download> = {}): Download => ({
   folderName: null,
   downloadPath: "/downloads",
   progress: 0,
-  downloader: 0 as Download["downloader"],
+  downloader: Downloader.Torrent,
   bytesDownloaded: 0,
   fileSize: null,
   shouldSeed: false,
