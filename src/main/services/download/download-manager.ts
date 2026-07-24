@@ -71,6 +71,10 @@ export class DownloadManager {
   private static allDebridBatch: AllDebridBatchState | null = null;
   private static maxDownloadSpeedBytesPerSecond: number | null = null;
   private static startGeneration = 0;
+  private static orphanedDownloadCandidate: {
+    downloadKey: string;
+    generation: number;
+  } | null = null;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -590,7 +594,41 @@ export class DownloadManager {
     return this.getDownloadStatusFromRpc();
   }
 
+  private static async cancelOrphanedDownload(downloadKey: string) {
+    if (
+      this.orphanedDownloadCandidate?.downloadKey !== downloadKey ||
+      this.orphanedDownloadCandidate.generation !== this.startGeneration
+    ) {
+      this.orphanedDownloadCandidate = {
+        downloadKey,
+        generation: this.startGeneration,
+      };
+      return;
+    }
+
+    this.orphanedDownloadCandidate = null;
+
+    logger.warn(
+      `[DownloadManager] Download entry for ${downloadKey} no longer exists, cancelling orphaned download`
+    );
+
+    await this.cancelDownload(downloadKey);
+  }
+
   public static async watchDownloads() {
+    const activeDownloadKey = this.downloadingGameId;
+
+    if (activeDownloadKey) {
+      const activeDownload = await downloadsSublevel.get(activeDownloadKey);
+
+      if (!activeDownload) {
+        await this.cancelOrphanedDownload(activeDownloadKey);
+        return;
+      }
+    }
+
+    this.orphanedDownloadCandidate = null;
+
     const status = await this.getDownloadStatus();
     if (!status) return;
 
@@ -1722,13 +1760,14 @@ export class DownloadManager {
     const isHttp = this.isHttpDownloader(download.downloader);
     const downloadId = levelKeys.game(download.shop, download.objectId);
 
+    // The generation token lets a concurrent cancel/restart for the same id
+    // invalidate this in-flight preparation before it spawns a downloader.
+    const myGeneration = ++this.startGeneration;
+
     if (isHttp) {
       logger.log("[DownloadManager] Using JS HTTP downloader");
 
       // Set preparing state immediately so UI knows download is starting.
-      // The generation token lets a concurrent cancel/restart for the same id
-      // invalidate this in-flight preparation before it spawns a downloader.
-      const myGeneration = ++this.startGeneration;
       this.downloadingGameId = downloadId;
       this.isPreparingDownload = true;
       this.usingJsDownloader = true;
@@ -1739,9 +1778,6 @@ export class DownloadManager {
             download.uri
           );
           if (!entries?.length) {
-            this.isPreparingDownload = false;
-            this.usingJsDownloader = false;
-            this.downloadingGameId = null;
             throw new Error(DownloadError.NotCachedOnAllDebrid);
           }
 
@@ -1784,9 +1820,6 @@ export class DownloadManager {
           const options = await this.getJsDownloadOptions(download);
 
           if (!options) {
-            this.isPreparingDownload = false;
-            this.usingJsDownloader = false;
-            this.downloadingGameId = null;
             throw new Error("Failed to get download options for JS downloader");
           }
 
@@ -1819,10 +1852,13 @@ export class DownloadManager {
           });
         }
       } catch (err) {
-        this.isPreparingDownload = false;
-        this.usingJsDownloader = false;
-        this.downloadingGameId = null;
-        this.allDebridBatch = null;
+        if (this.startGeneration === myGeneration) {
+          this.isPreparingDownload = false;
+          this.usingJsDownloader = false;
+          this.downloadingGameId = null;
+          this.allDebridBatch = null;
+        }
+
         throw err;
       }
     } else {
@@ -1853,23 +1889,32 @@ export class DownloadManager {
         });
 
         const downloadWasCancelledOrReplaced =
-          this.downloadingGameId !== downloadId;
+          this.downloadingGameId !== downloadId ||
+          this.startGeneration !== myGeneration;
 
         if (downloadWasCancelledOrReplaced) {
-          await PythonRPC.rpc
-            .call("action", { action: "cancel", game_id: downloadId })
-            .catch((error) => {
-              logger.error(
-                "[DownloadManager] Failed to cancel stale torrent download",
-                error
-              );
-            });
+          const wasReplacedBySameGame = this.downloadingGameId === downloadId;
+
+          if (!wasReplacedBySameGame) {
+            await PythonRPC.rpc
+              .call("action", { action: "cancel", game_id: downloadId })
+              .catch((error) => {
+                logger.error(
+                  "[DownloadManager] Failed to cancel stale torrent download",
+                  error
+                );
+              });
+          }
+
           return;
         }
 
         this.isPreparingDownload = false;
       } catch (error) {
-        if (this.downloadingGameId === downloadId) {
+        if (
+          this.downloadingGameId === downloadId &&
+          this.startGeneration === myGeneration
+        ) {
           this.downloadingGameId = previousDownloadingGameId;
           this.isPreparingDownload = previousIsPreparingDownload;
           this.usingJsDownloader = previousUsingJsDownloader;
