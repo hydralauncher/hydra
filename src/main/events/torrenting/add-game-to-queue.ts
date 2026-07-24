@@ -42,8 +42,7 @@ const addGameToQueue = async (
   try {
     const globalTrackers = await getGlobalTrackers();
 
-    const mergedTrackers =
-      globalTrackers.length > 0 ? globalTrackers : undefined;
+    const mergedTrackers = globalTrackers;
 
     download = {
       shop,
