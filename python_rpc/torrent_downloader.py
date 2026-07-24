@@ -166,11 +166,6 @@ class TorrentDownloader:
 
         fallback_tier = max(tiers) + 1 if tiers else 0
 
-        tiers = list(params.tracker_tiers)[: len(trackers)]
-        tiers.extend([0] * (len(trackers) - len(tiers)))
-
-        fallback_tier = max(tiers) + 1 if tiers else 0
-
         for tracker in self.trackers:
             if tracker in known_trackers:
                 continue
@@ -322,6 +317,9 @@ class TorrentDownloader:
 
             if self.torrent_handle is None or not self.torrent_handle.is_valid():
                 self.torrent_handle = self.session.add_torrent(params)
+
+            if trackers:
+                self._apply_trackers(trackers)
 
         self.selected_file_indices = None
         self.selected_size_bytes = None
