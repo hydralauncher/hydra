@@ -1760,13 +1760,14 @@ export class DownloadManager {
     const isHttp = this.isHttpDownloader(download.downloader);
     const downloadId = levelKeys.game(download.shop, download.objectId);
 
+    // The generation token lets a concurrent cancel/restart for the same id
+    // invalidate this in-flight preparation before it spawns a downloader.
+    const myGeneration = ++this.startGeneration;
+
     if (isHttp) {
       logger.log("[DownloadManager] Using JS HTTP downloader");
 
       // Set preparing state immediately so UI knows download is starting.
-      // The generation token lets a concurrent cancel/restart for the same id
-      // invalidate this in-flight preparation before it spawns a downloader.
-      const myGeneration = ++this.startGeneration;
       this.downloadingGameId = downloadId;
       this.isPreparingDownload = true;
       this.usingJsDownloader = true;
@@ -1891,7 +1892,8 @@ export class DownloadManager {
         });
 
         const downloadWasCancelledOrReplaced =
-          this.downloadingGameId !== downloadId;
+          this.downloadingGameId !== downloadId ||
+          this.startGeneration !== myGeneration;
 
         if (downloadWasCancelledOrReplaced) {
           await PythonRPC.rpc
