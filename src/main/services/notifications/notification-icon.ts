@@ -3,12 +3,13 @@ import path from "node:path";
 import sharp from "sharp";
 
 /**
- * Electron's `nativeImage` only decodes PNG and JPEG (plus `.ico` on Windows),
- * and `createFromPath` silently returns an empty image for anything else. Hydra
- * avatars are cropped to WebP (see `crop-profile-image.ts`), so every downloaded
- * icon has to be transcoded before it can be handed to a `Notification`.
+ * Longest bound for the icon handed to a `Notification`. Windows toasts and
+ * libnotify both scale the image down anyway, so anything larger is wasted.
  */
-const NOTIFICATION_ICON_SIZE = 256;
+export const NOTIFICATION_ICON_SIZE = 256;
+
+/** Longest source extension kept when naming the temp download. */
+const MAX_EXTENSION_LENGTH = 10;
 
 /**
  * Builds a filesystem-safe name for the temp copy of a remote image. The remote
@@ -28,28 +29,38 @@ export const buildDownloadFileName = (url: string) => {
   const extension = path
     .extname(baseName)
     .replace(/[^\w.]/g, "")
-    .slice(0, 10);
-  const hash = crypto.createHash("sha1").update(url).digest("hex");
+    .slice(0, MAX_EXTENSION_LENGTH);
+  const hash = crypto.createHash("sha256").update(url).digest("hex");
 
-  return `hydra-notification-source-${hash}${extension}`;
+  return `source-${hash}${extension}`;
 };
 
 /**
- * Transcodes an image to a PNG that `nativeImage` can decode. Animation is
- * dropped on purpose: neither Windows toasts nor `nativeImage` animate.
+ * Transcodes an image to a PNG that `nativeImage` can decode. Electron's
+ * `nativeImage` only handles PNG and JPEG (plus `.ico` on Windows) and
+ * `createFromPath` silently returns an empty image for anything else, so every
+ * downloaded icon has to go through here before it reaches a `Notification`.
+ *
+ * `fit: "inside"` preserves the source aspect ratio: profile pictures are
+ * already square (see `crop-profile-image.ts`), but game and achievement icons
+ * are not, and cropping them to a square would cut off their sides. Upscaling
+ * is skipped so a small source icon is not blown up into a blurry one.
+ *
+ * Animation is dropped on purpose: neither Windows toasts nor `nativeImage`
+ * animate.
  */
 export const transcodeNotificationIcon = async (
   imagePath: string,
   outputDirectory: string
 ) => {
-  const hash = crypto.createHash("sha1").update(imagePath).digest("hex");
-  const outputPath = path.join(
-    outputDirectory,
-    `hydra-notification-icon-${hash}.png`
-  );
+  const hash = crypto.createHash("sha256").update(imagePath).digest("hex");
+  const outputPath = path.join(outputDirectory, `icon-${hash}.png`);
 
   await sharp(imagePath)
-    .resize(NOTIFICATION_ICON_SIZE, NOTIFICATION_ICON_SIZE, { fit: "cover" })
+    .resize(NOTIFICATION_ICON_SIZE, NOTIFICATION_ICON_SIZE, {
+      fit: "inside",
+      withoutEnlargement: true,
+    })
     .png()
     .toFile(outputPath);
 
