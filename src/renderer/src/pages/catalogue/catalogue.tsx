@@ -422,15 +422,18 @@ export default function Catalogue() {
         value: genre,
       })),
 
-      ...filters.tags.map((tag) => ({
-        label: Object.keys(steamUserTags[language]).find(
-          (key) => steamUserTags[language][key] === tag
-        ),
-        filterType: t("tags"),
-        orbColor: filterCategoryColors.tags,
-        key: "tags",
-        value: tag,
-      })),
+      ...filters.tags.map((tag) => {
+        const tagsForLanguage = steamUserTags[language] ?? {};
+        return {
+          label: Object.keys(tagsForLanguage).find(
+            (key) => tagsForLanguage[key] === tag
+          ),
+          filterType: t("tags"),
+          orbColor: filterCategoryColors.tags,
+          key: "tags",
+          value: tag,
+        };
+      }),
 
       ...filters.downloadSourceFingerprints.map((fingerprint) => ({
         label: downloadSources.find(
