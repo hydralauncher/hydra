@@ -8,6 +8,7 @@ const LANGUAGE_FLAG_MAP = {
   fr: "FR",
   hu: "HU",
   it: "IT",
+  ja: "JP",
   pl: "PL",
   ru: "RU",
   tr: "TR",
