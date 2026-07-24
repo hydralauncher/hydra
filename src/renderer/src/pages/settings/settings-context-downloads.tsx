@@ -5,7 +5,7 @@ import { CheckboxField, SelectField, TextField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import type { NetworkInterface } from "@types";
-import { SettingsDownloadSources } from "./settings-download-sources";
+import { SettingsGlobalTrackers } from "./settings-global-trackers";
 
 import "./settings-general.scss";
 
@@ -268,8 +268,8 @@ export function SettingsContextDownloads() {
       </div>
 
       <div className="settings-context-panel__group">
-        <h3>{t("download_sources")}</h3>
-        <SettingsDownloadSources />
+        <h3>{t("global_trackers")}</h3>
+        <SettingsGlobalTrackers />
       </div>
     </div>
   );
