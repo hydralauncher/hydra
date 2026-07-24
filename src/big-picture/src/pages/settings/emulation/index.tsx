@@ -1,10 +1,19 @@
 import "./styles.scss";
 
 import { AlertIcon, ChevronRightIcon, GearIcon } from "@primer/octicons-react";
-import type { EmulatorConfig, EmulatorConfigMap, EmulatorSystem } from "@types";
+import type {
+  EmulatorConfigMap,
+  EmulatorSystem,
+  RetroArchConfig,
+} from "@types";
 import cn from "classnames";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { RETROARCH_EMULATOR_ICON } from "@renderer/pages/settings/emulation/emulator-icons";
+import {
+  RETROARCH_LABEL,
+  RETROARCH_CORES_TAGLINE,
+} from "@renderer/pages/settings/emulation/retroarch-meta";
 import { getItemFocusTarget } from "../../../helpers";
 import type { FocusOverrides } from "../../../services";
 
@@ -25,6 +34,7 @@ import {
   formatRelative,
 } from "./shared";
 import { EmulationDetail } from "./detail";
+import { RetroArchEmulationDetail } from "./retroarch-detail";
 import { SettingsSection } from "../settings-section";
 
 interface SettingsSectionProps {
@@ -33,19 +43,36 @@ interface SettingsSectionProps {
 
 type EmulationView =
   | { kind: "grid" }
-  | { kind: "detail"; system: EmulatorSystem };
+  | { kind: "detail"; system: EmulatorSystem }
+  | { kind: "retroarch" };
+
+type EmulationCardKey = EmulatorSystem | "retroarch";
 
 interface ConsoleCardProps {
-  config: EmulatorConfig;
-  systemLabel: string;
+  art: string;
+  title: string;
+  emulatorName: string;
+  detectedVersion: string | null;
+  executablePath: string | null;
+  romFoldersCount: number;
+  totalFiles: number;
+  lastScanAt: number | null;
+  checkExecutable: () => Promise<{ exists: boolean }>;
   focusId: string;
   navigationOverrides?: FocusOverrides;
   onOpen: () => void;
 }
 
 function ConsoleCard({
-  config,
-  systemLabel,
+  art,
+  title,
+  emulatorName,
+  detectedVersion,
+  executablePath,
+  romFoldersCount,
+  totalFiles,
+  lastScanAt,
+  checkExecutable,
   focusId,
   navigationOverrides,
   onOpen,
@@ -56,13 +83,12 @@ function ConsoleCard({
   useEffect(() => {
     let cancelled = false;
 
-    if (!config.executablePath) {
+    if (!executablePath) {
       setExecutableExists(false);
       return undefined;
     }
 
-    void globalThis.window.electron
-      .checkEmulatorExecutable(config.system)
+    void checkExecutable()
       .then(({ exists }) => {
         if (!cancelled) setExecutableExists(exists);
       })
@@ -73,15 +99,15 @@ function ConsoleCard({
     return () => {
       cancelled = true;
     };
-  }, [config.executablePath, config.system]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [executablePath]);
 
-  const binaryName = KNOWN_BINARY_LABELS[config.binary];
-  const isConfigured = config.executablePath !== null;
+  const isConfigured = executablePath !== null;
   const pathMissing = isConfigured && !executableExists;
-  const hasRomFolders = config.romFolders.length > 0;
-  const hasRoms = hasRomFolders && config.totalFiles > 0;
+  const hasRomFolders = romFoldersCount > 0;
+  const hasRoms = hasRomFolders && totalFiles > 0;
   const isReady = isConfigured && executableExists && hasRomFolders;
-  const relative = formatRelative(config.lastScanAt);
+  const relative = formatRelative(lastScanAt);
 
   return (
     <FocusItem id={focusId} navigationOverrides={navigationOverrides} asChild>
@@ -93,24 +119,24 @@ function ConsoleCard({
         onClick={onOpen}
       >
         <img
-          src={EMULATION_SYSTEM_ART[config.system]}
+          src={art}
           alt=""
           className="console-card__art"
           aria-hidden="true"
         />
 
         <div className="console-card__heading">
-          <h3 className="console-card__title">{systemLabel}</h3>
+          <h3 className="console-card__title">{title}</h3>
           <div className="console-card__subline">
-            <span className="console-card__emulator">{binaryName}</span>
-            {config.detectedVersion ? (
+            <span className="console-card__emulator">{emulatorName}</span>
+            {detectedVersion ? (
               <>
                 <span className="console-card__dot" />
                 <span
                   className="console-card__version"
-                  title={`v${config.detectedVersion}`}
+                  title={`v${detectedVersion}`}
                 >
-                  v{config.detectedVersion}
+                  v{detectedVersion}
                 </span>
               </>
             ) : null}
@@ -122,12 +148,10 @@ function ConsoleCard({
             <div className="console-card__stats">
               <div className="console-card__stat-row">
                 <span className="console-card__stat-dot" />
-                <span className="console-card__stat-number">
-                  {config.totalFiles}
-                </span>
+                <span className="console-card__stat-number">{totalFiles}</span>
                 <span className="console-card__stat-label">
-                  {t("games_found_other", { count: config.totalFiles })
-                    .replace(`${config.totalFiles}`, "")
+                  {t("games_found_other", { count: totalFiles })
+                    .replace(`${totalFiles}`, "")
                     .trim()}
                 </span>
               </div>
@@ -144,7 +168,7 @@ function ConsoleCard({
                 <span>{t("not_detected")}</span>
               </div>
               <p className="console-card__hint-text">
-                {t("no_rom_folder_hint", { system: systemLabel })}
+                {t("no_rom_folder_hint", { system: title })}
               </p>
             </div>
           ) : null}
@@ -156,7 +180,7 @@ function ConsoleCard({
                 <span>{t("executable_missing")}</span>
               </div>
               <p className="console-card__hint-text">
-                {t("executable_missing_hint", { name: binaryName })}
+                {t("executable_missing_hint", { name: emulatorName })}
               </p>
             </div>
           ) : null}
@@ -168,7 +192,7 @@ function ConsoleCard({
                 <span>{t("setup_required")}</span>
               </div>
               <p className="console-card__hint-text">
-                {t("setup_required_hint", { system: systemLabel })}
+                {t("setup_required_hint", { system: title })}
               </p>
             </div>
           ) : null}
@@ -206,8 +230,10 @@ export function EmulationSettingsSection({
   const { t } = useTranslation("settings");
   const { setFocus } = useNavigation();
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
+  const [retroArchConfig, setRetroArchConfig] =
+    useState<RetroArchConfig | null>(null);
   const [view, setView] = useState<EmulationView>({ kind: "grid" });
-  const [returnSystem, setReturnSystem] = useState<EmulatorSystem>("ps1");
+  const [returnSystem, setReturnSystem] = useState<EmulationCardKey>("ps1");
 
   useEffect(() => {
     let cancelled = false;
@@ -253,8 +279,30 @@ export function EmulationSettingsSection({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const initial = await globalThis.window.electron.getRetroArchConfig();
+      if (cancelled) return;
+
+      if (initial.detectedAt === null) {
+        const detected = await globalThis.window.electron.detectRetroArch();
+        if (cancelled) return;
+        setRetroArchConfig(detected);
+        return;
+      }
+
+      setRetroArchConfig(initial);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const frameId = globalThis.window.requestAnimationFrame(() => {
-      if (view.kind === "detail") {
+      if (view.kind === "detail" || view.kind === "retroarch") {
         setFocus(EMULATION_DETAIL_BACK_BUTTON_ID);
         return;
       }
@@ -273,7 +321,7 @@ export function EmulationSettingsSection({
   }, [configs, view]);
 
   const cardNavigationOverridesBySystem = useMemo<
-    Record<EmulatorSystem, FocusOverrides>
+    Record<EmulationCardKey, FocusOverrides>
   >(
     () => ({
       ps1: {
@@ -286,13 +334,17 @@ export function EmulationSettingsSection({
       },
       ps3: {
         left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps2),
+        right: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.retroarch),
+      },
+      retroarch: {
+        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps3),
         right: { type: "block" },
       },
     }),
     []
   );
 
-  if (!configs) {
+  if (!configs || !retroArchConfig) {
     return (
       <div className={cn("settings-emulation", className)}>
         <div className="settings-emulation__loading">…</div>
@@ -323,6 +375,19 @@ export function EmulationSettingsSection({
     );
   }
 
+  if (view.kind === "retroarch") {
+    return (
+      <RetroArchEmulationDetail
+        config={retroArchConfig}
+        onBack={() => {
+          setReturnSystem("retroarch");
+          setView({ kind: "grid" });
+        }}
+        onChange={setRetroArchConfig}
+      />
+    );
+  }
+
   return (
     <div className={cn("settings-emulation", className)}>
       <SettingsSection
@@ -338,12 +403,37 @@ export function EmulationSettingsSection({
             <ConsoleCard
               key={system}
               focusId={EMULATION_OVERVIEW_CARD_FOCUS_IDS[system]}
-              config={configs[system]}
-              systemLabel={EMULATION_SYSTEM_LABELS[system]}
+              art={EMULATION_SYSTEM_ART[system]}
+              title={EMULATION_SYSTEM_LABELS[system]}
+              emulatorName={KNOWN_BINARY_LABELS[configs[system].binary]}
+              detectedVersion={configs[system].detectedVersion}
+              executablePath={configs[system].executablePath}
+              romFoldersCount={configs[system].romFolders.length}
+              totalFiles={configs[system].totalFiles}
+              lastScanAt={configs[system].lastScanAt}
+              checkExecutable={() =>
+                globalThis.window.electron.checkEmulatorExecutable(system)
+              }
               navigationOverrides={cardNavigationOverridesBySystem[system]}
               onOpen={() => setView({ kind: "detail", system })}
             />
           ))}
+          <ConsoleCard
+            focusId={EMULATION_OVERVIEW_CARD_FOCUS_IDS.retroarch}
+            art={RETROARCH_EMULATOR_ICON}
+            title={RETROARCH_LABEL}
+            emulatorName={RETROARCH_CORES_TAGLINE}
+            detectedVersion={retroArchConfig.detectedVersion}
+            executablePath={retroArchConfig.executablePath}
+            romFoldersCount={retroArchConfig.romFolders.length}
+            totalFiles={retroArchConfig.totalFiles}
+            lastScanAt={retroArchConfig.lastScanAt}
+            checkExecutable={() =>
+              globalThis.window.electron.checkRetroArchExecutable()
+            }
+            navigationOverrides={cardNavigationOverridesBySystem.retroarch}
+            onOpen={() => setView({ kind: "retroarch" })}
+          />
         </GridFocusGroup>
       </SettingsSection>
     </div>

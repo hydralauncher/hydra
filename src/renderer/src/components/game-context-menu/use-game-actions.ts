@@ -10,8 +10,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   buildGameDetailsPath,
-  getClassicsLaunchErrorCode,
-  getClassicsLaunchErrorSystem,
+  handleClassicsLaunchError,
 } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
 
@@ -69,31 +68,14 @@ export function useGameActions(game: LibraryGame) {
           force
         );
       } catch (error) {
-        const code = getClassicsLaunchErrorCode(error);
-        const system = getClassicsLaunchErrorSystem(error);
-        const emulationPath = system
-          ? `/settings?tab=emulation&system=${system}`
-          : "/settings?tab=emulation";
-        if (code === "EMULATOR_NOT_CONFIGURED") {
-          showErrorToast(t("emulator_not_configured_toast"));
-          navigate(emulationPath);
-        } else if (code === "BIOS_NOT_CONFIGURED") {
-          showErrorToast(t("bios_not_configured_toast"));
-          navigate(emulationPath);
-        } else if (code === "PLATFORM_UNKNOWN") {
-          showErrorToast(t("platform_unknown_toast"));
-        } else if (code === "NO_DISC") {
-          showErrorToast(t("no_disc_toast"));
-        } else if (code === "PKG_INSTALLING") {
-          showSuccessToast(t("pkg_installing_toast"));
-        } else if (code === "PKG_UNREADABLE") {
-          showErrorToast(t("pkg_unreadable_toast"));
-        } else if (code === "EMULATOR_ALREADY_RUNNING") {
-          setRpcs3ConfirmPending({ discPath });
-        } else {
-          showErrorToast(t("launch_failed_toast"));
-        }
-        if (code !== "EMULATOR_ALREADY_RUNNING" && code !== "PKG_INSTALLING") {
+        const shouldLog = handleClassicsLaunchError(error, {
+          t,
+          showErrorToast,
+          showSuccessToast,
+          navigate,
+          onEmulatorAlreadyRunning: () => setRpcs3ConfirmPending({ discPath }),
+        });
+        if (shouldLog) {
           logger.error("Failed to start classics game", error);
         }
       }

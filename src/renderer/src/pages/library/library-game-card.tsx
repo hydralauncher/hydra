@@ -4,7 +4,7 @@ import {
   useCoverPoster,
   isAnimatedCoverCandidate,
 } from "@renderer/hooks";
-import { isGameCompleted } from "@renderer/helpers";
+import { isGameCompleted, resolveClassicsBadge } from "@renderer/helpers";
 import { ProgressBar } from "@renderer/components";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,8 +15,10 @@ import {
   ImageIcon,
   CheckCircleFillIcon,
 } from "@primer/octicons-react";
-import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
-import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import {
+  EMULATOR_ICONS,
+  RETROARCH_EMULATOR_ICON,
+} from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
 
@@ -111,14 +113,11 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       ? resolveImageSource(coverPoster)
       : activeImageSource;
 
-  const classicsSystem =
-    game.shop === "launchbox" ? platformToSystem(game.platform) : null;
-  const classicsPlatformLabel = classicsSystem
-    ? PLATFORM_LABELS[classicsSystem]
-    : null;
-  const classicsEmulatorIcon = classicsSystem
-    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
-    : undefined;
+  const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
+    resolveClassicsBadge(game.shop, game.platform, PLATFORM_LABELS, {
+      emulatorIcons: EMULATOR_ICONS,
+      retroarchIcon: RETROARCH_EMULATOR_ICON,
+    });
 
   const handleImageError = () => {
     logger.warn(`Image failed to load for ${game.title}`, {

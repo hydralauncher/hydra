@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  BookIcon,
-  GlobeIcon,
-  LinkExternalIcon,
-  SyncIcon,
-} from "@primer/octicons-react";
+import { BookIcon, GlobeIcon, LinkExternalIcon } from "@primer/octicons-react";
 
 import type {
   EmulatorBinary,
@@ -17,6 +12,12 @@ import { EMULATOR_ICONS } from "../emulator-icons";
 import { KNOWN_BINARY_LABELS } from "../known-binary-labels";
 import { ArchIcon, FlatpakIcon, GitHubIcon } from "./brand-icons";
 import { firmwarePageUrl } from "./ps-firmware-url";
+import {
+  ExternalLinkCard,
+  InstallLoadingCard,
+  InstallProgressBar,
+  installStatusText,
+} from "./install-progress";
 
 interface Props {
   binary: EmulatorBinary;
@@ -104,23 +105,6 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
     return null;
   };
 
-  const installStatusText = (optionId: string): string => {
-    const current = progress[optionId];
-    if (!current) return t("setup_install_with_hydra_desc", { name });
-    if (current.phase === "downloading") {
-      const percent =
-        current.total && current.total > 0
-          ? Math.floor(((current.loaded ?? 0) / current.total) * 100)
-          : 0;
-      return t("setup_install_downloading", { percent });
-    }
-    if (current.phase === "extracting") return t("setup_install_extracting");
-    if (current.phase === "running") return t("setup_install_running");
-    if (current.phase === "done") return t("setup_install_done");
-    if (current.phase === "error") return t("setup_install_failed");
-    return t("setup_install_with_hydra_desc", { name });
-  };
-
   const externalLinkLabel = (option: ResolvedInstallOption): string => {
     if (option.linkKind === "aur") return t("setup_install_aur_note");
     if (option.linkKind === "flatpak") return "Flatpak";
@@ -136,32 +120,6 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
   const externalLinkDesc = (option: ResolvedInstallOption): string => {
     if (option.linkKind === "aur") return t("setup_install_aur_desc", { name });
     return t("setup_download_desc", { name });
-  };
-
-  const renderProgressBar = (optionId: string) => {
-    const current = progress[optionId];
-    if (!current) return null;
-    if (current.phase === "done" || current.phase === "error") return null;
-
-    const hasTotal = Boolean(current.total && current.total > 0);
-    const indeterminate = current.phase !== "downloading" || !hasTotal;
-    const percent = hasTotal
-      ? Math.min(
-          100,
-          Math.floor(((current.loaded ?? 0) / current.total!) * 100)
-        )
-      : 0;
-
-    return (
-      <div className="setup-modal__progress-bar" style={{ marginTop: 10 }}>
-        <div
-          className={`setup-modal__progress-fill ${
-            indeterminate ? "setup-modal__progress-fill--indeterminate" : ""
-          }`}
-          style={indeterminate ? undefined : { width: `${percent}%` }}
-        />
-      </div>
-    );
   };
 
   const visitLabel = (option: ResolvedInstallOption): string => {
@@ -203,18 +161,7 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
       </button>
 
       <div className="setup-modal__download-grid">
-        {options === null && (
-          <div className="setup-modal__download-card setup-modal__download-card--loading">
-            <div className="setup-modal__download-card-badge">
-              <SyncIcon size={20} className="setup-modal__spin" />
-            </div>
-            <div className="setup-modal__download-card-main">
-              <span className="setup-modal__download-card-title">
-                {t("setup_install_loading")}
-              </span>
-            </div>
-          </div>
-        )}
+        {options === null && <InstallLoadingCard />}
 
         {installable.map((option) => {
           const label = channelLabel(option);
@@ -244,9 +191,9 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
                     )}
                   </span>
                   <span className="setup-modal__download-card-desc">
-                    {installStatusText(option.id)}
+                    {installStatusText(t, name, progress[option.id])}
                   </span>
-                  {renderProgressBar(option.id)}
+                  <InstallProgressBar progress={progress[option.id]} />
                 </div>
               </button>
               {option.htmlUrl && (
@@ -270,33 +217,14 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
         })}
 
         {externalLinks.map((option) => (
-          <button
+          <ExternalLinkCard
             key={option.id}
-            type="button"
-            className="setup-modal__download-card"
-            onClick={() => option.linkUrl && openUrl(option.linkUrl)}
-          >
-            <div className="setup-modal__download-card-badge">
-              {externalLinkIcon(option)}
-            </div>
-            <div className="setup-modal__download-card-main">
-              <span className="setup-modal__download-card-title">
-                {externalLinkLabel(option)}
-              </span>
-              <span className="setup-modal__download-card-desc">
-                {externalLinkDesc(option)}
-              </span>
-            </div>
-            <span className="setup-modal__download-card-footer">
-              <span className="setup-modal__download-card-url">
-                {option.linkUrl}
-              </span>
-              <LinkExternalIcon
-                size={14}
-                className="setup-modal__download-card-ext"
-              />
-            </span>
-          </button>
+            icon={externalLinkIcon(option)}
+            title={externalLinkLabel(option)}
+            description={externalLinkDesc(option)}
+            url={option.linkUrl}
+            onOpen={openUrl}
+          />
         ))}
 
         <hr className="setup-modal__download-divider" />

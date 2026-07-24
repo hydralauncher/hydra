@@ -1,6 +1,6 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { isGameCompleted } from "@renderer/helpers";
+import { isGameCompleted, resolveClassicsBadge } from "@renderer/helpers";
 import { ProgressBar } from "@renderer/components";
 import { formatBytes } from "@shared";
 import {
@@ -13,8 +13,10 @@ import {
 } from "@primer/octicons-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
-import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import {
+  EMULATOR_ICONS,
+  RETROARCH_EMULATOR_ICON,
+} from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card-large.scss";
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -175,13 +177,11 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
-  const classicsSystem = isClassics ? platformToSystem(game.platform) : null;
-  const classicsPlatformLabel = classicsSystem
-    ? PLATFORM_LABELS[classicsSystem]
-    : null;
-  const classicsEmulatorIcon = classicsSystem
-    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
-    : undefined;
+  const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
+    resolveClassicsBadge(game.shop, game.platform, PLATFORM_LABELS, {
+      emulatorIcons: EMULATOR_ICONS,
+      retroarchIcon: RETROARCH_EMULATOR_ICON,
+    });
 
   return (
     <button

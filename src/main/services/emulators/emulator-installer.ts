@@ -3,8 +3,6 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-import axios from "axios";
-
 import type {
   EmulatorBinary,
   EmulatorInstallProgress,
@@ -17,13 +15,12 @@ import { logger } from "../logger";
 import { SevenZip } from "../7zip";
 import { SystemPath } from "../system-path";
 import { WindowManager } from "../window-manager";
+import { downloadToFile, removeFileQuietly } from "../download-to-file";
 import { resolveInstallOptions } from "./emulator-install-sources";
 import { getEmulatorVersion } from "./get-emulator-version";
 import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
 import { updateEmulatorConfig } from "./emulators-repository";
 import { isValidEmulatorExecutable } from "./validate-emulator-executable";
-
-const PROGRESS_EMIT_BYTES = 512 * 1024;
 
 const managedEmulatorsDir = (): string =>
   path.join(SystemPath.getPath("userData"), "emulators");
@@ -39,41 +36,6 @@ const sendProgress = (progress: EmulatorInstallProgress): void => {
     "on-emulator-install-progress",
     progress
   );
-};
-
-const downloadToFile = async (
-  url: string,
-  dest: string,
-  onProgress: (loaded: number, total: number | null) => void
-): Promise<void> => {
-  await fs.promises.mkdir(path.dirname(dest), { recursive: true });
-
-  const response = await axios.get(url, {
-    responseType: "stream",
-    headers: { "User-Agent": "HydraLauncher" },
-  });
-
-  const lengthHeader = Number(response.headers["content-length"]);
-  const total = Number.isFinite(lengthHeader) ? lengthHeader : null;
-  let received = 0;
-  let lastEmit = 0;
-
-  const writer = fs.createWriteStream(dest);
-
-  await new Promise<void>((resolve, reject) => {
-    response.data.on("data", (chunk: Buffer) => {
-      received += chunk.length;
-      const done = total !== null && received >= total;
-      if (received - lastEmit >= PROGRESS_EMIT_BYTES || done) {
-        lastEmit = received;
-        onProgress(received, total);
-      }
-    });
-    response.data.on("error", reject);
-    writer.on("error", reject);
-    writer.on("close", resolve);
-    response.data.pipe(writer);
-  });
 };
 
 const runWindowsInstaller = async (filePath: string): Promise<boolean> => {
@@ -169,7 +131,7 @@ export const downloadAndInstallEmulator = async (
     : path.join(SystemPath.getPath("temp"), fileName);
 
   const removeTempDownload = async () => {
-    if (!isAppImage) await fs.promises.unlink(dest).catch(() => {});
+    if (!isAppImage) await removeFileQuietly(dest);
   };
 
   try {

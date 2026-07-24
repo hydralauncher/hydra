@@ -69,7 +69,11 @@ export const EMULATION_OVERVIEW_CARD_FOCUS_IDS = {
   ps1: "emulation-overview-ps1-card",
   ps2: "emulation-overview-ps2-card",
   ps3: "emulation-overview-ps3-card",
+  retroarch: "emulation-overview-retroarch-card",
 } as const;
+export const EMULATION_DETAIL_CORES_REGION_ID = "emulation-detail-cores-region";
+export const EMULATION_DETAIL_INSTALL_ALL_CORES_BUTTON_ID =
+  "emulation-detail-install-all-cores";
 export const EMULATION_DETAIL_BACK_BUTTON_ID = "emulation-detail-back-button";
 export const EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID =
   "emulation-detail-remove-emulator";
@@ -206,6 +210,10 @@ export function getEmulationRomFolderToggleFocusId(folderId: string) {
 
 export function getEmulationRomFolderRemoveFocusId(folderId: string) {
   return `emulation-rom-folder-remove-${folderId}`;
+}
+
+export function getEmulationCoreInstallFocusId(core: string) {
+  return `emulation-core-install-${core}`;
 }
 
 function sanitizeEmulationFocusToken(value: string) {

@@ -1,5 +1,10 @@
 import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
 
+import {
+  platformToRetroArchPlatform,
+  RETROARCH_PLATFORM_LABELS,
+} from "@shared";
+
 import Color from "color";
 import i18next from "i18next";
 import { v4 as uuidv4 } from "uuid";
@@ -48,6 +53,121 @@ export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
   ps1: "duckstation",
   ps2: "pcsx2",
   ps3: "rpcs3",
+};
+
+export {
+  platformToRetroArchPlatform,
+  RETROARCH_PLATFORM_LABELS,
+} from "@shared";
+
+export const RETROARCH_EMULATION_SETTINGS_PATH =
+  "/settings?tab=emulation&system=retroarch";
+
+export const retroarchLaunchErrorToastKey = (
+  code: "RETROARCH_NOT_CONFIGURED" | "CORE_NOT_INSTALLED"
+): string =>
+  code === "CORE_NOT_INSTALLED"
+    ? "core_not_installed_toast"
+    : "retroarch_not_configured_toast";
+
+export const showExecutableOpenDialog = (defaultPath?: string | null) => {
+  const isMac = window.electron.platform === "darwin";
+
+  let filters: { name: string; extensions: string[] }[] | undefined;
+  if (window.electron.platform === "win32") {
+    filters = [{ name: "Executable", extensions: ["exe"] }];
+  } else if (isMac) {
+    filters = [{ name: "Application", extensions: ["app"] }];
+  }
+
+  return window.electron.showOpenDialog({
+    properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
+    defaultPath: defaultPath ?? undefined,
+    filters,
+  });
+};
+
+export interface ClassicsBadgeInfo {
+  label: string | null;
+  icon: string | undefined;
+}
+
+export const resolveClassicsBadge = (
+  shop: GameShop,
+  platform: string | null | undefined,
+  psLabels: Partial<Record<EmulatorSystem, string>>,
+  icons: {
+    emulatorIcons: Partial<Record<EmulatorBinary, string>>;
+    retroarchIcon: string;
+  }
+): ClassicsBadgeInfo => {
+  if (shop !== "launchbox") return { label: null, icon: undefined };
+
+  const system = platformToSystem(platform);
+  if (system) {
+    return {
+      label: psLabels[system] ?? null,
+      icon: icons.emulatorIcons[SYSTEM_TO_BINARY[system]],
+    };
+  }
+
+  const retroArchPlatform = platformToRetroArchPlatform(platform);
+  if (retroArchPlatform) {
+    return {
+      label: RETROARCH_PLATFORM_LABELS[retroArchPlatform],
+      icon: icons.retroarchIcon,
+    };
+  }
+
+  return { label: null, icon: undefined };
+};
+
+interface ClassicsLaunchErrorContext {
+  t: (key: string) => string;
+  showErrorToast: (message: string) => void;
+  showSuccessToast: (message: string) => void;
+  navigate: (path: string) => void;
+  onEmulatorAlreadyRunning: () => void;
+}
+
+export const handleClassicsLaunchError = (
+  error: unknown,
+  context: ClassicsLaunchErrorContext
+): boolean => {
+  const { t, showErrorToast, showSuccessToast, navigate } = context;
+  const code = getClassicsLaunchErrorCode(error);
+  const system = getClassicsLaunchErrorSystem(error);
+  const emulationPath = system
+    ? `/settings?tab=emulation&system=${system}`
+    : "/settings?tab=emulation";
+
+  if (code === "EMULATOR_NOT_CONFIGURED") {
+    showErrorToast(t("emulator_not_configured_toast"));
+    navigate(emulationPath);
+  } else if (code === "BIOS_NOT_CONFIGURED") {
+    showErrorToast(t("bios_not_configured_toast"));
+    navigate(emulationPath);
+  } else if (
+    code === "RETROARCH_NOT_CONFIGURED" ||
+    code === "CORE_NOT_INSTALLED"
+  ) {
+    showErrorToast(t(retroarchLaunchErrorToastKey(code)));
+    navigate(RETROARCH_EMULATION_SETTINGS_PATH);
+  } else if (code === "PLATFORM_UNKNOWN") {
+    showErrorToast(t("platform_unknown_toast"));
+  } else if (code === "NO_DISC") {
+    showErrorToast(t("no_disc_toast"));
+  } else if (code === "PKG_INSTALLING") {
+    showSuccessToast(t("pkg_installing_toast"));
+  } else if (code === "PKG_UNREADABLE") {
+    showErrorToast(t("pkg_unreadable_toast"));
+  } else if (code === "EMULATOR_ALREADY_RUNNING") {
+    context.onEmulatorAlreadyRunning();
+  } else {
+    showErrorToast(t("launch_failed_toast"));
+  }
+
+  return code !== "EMULATOR_ALREADY_RUNNING" && code !== "PKG_INSTALLING";
 };
 
 export const formatDownloadProgress = (
@@ -300,6 +420,8 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "EMULATOR_ALREADY_RUNNING",
   "PKG_INSTALLING",
   "PKG_UNREADABLE",
+  "RETROARCH_NOT_CONFIGURED",
+  "CORE_NOT_INSTALLED",
 ] as const;
 
 export const getClassicsLaunchErrorCode = (

@@ -54,6 +54,15 @@ import type {
   EmulatorInstallResult,
   ResolvedInstallOption,
   DetectedRom,
+  RetroArchConfig,
+  RetroArchCoreName,
+  RetroArchPlatform,
+  RetroArchCoreInstallProgress,
+  RetroArchCoreInstallResult,
+  RetroArchExecutablePreview,
+  RetroArchInstallOption,
+  RetroArchInstallProgress,
+  RetroArchInstallResult,
   EmulationCloudSave,
   EmulationSavePlatform,
   MemcardFormatState,
@@ -499,6 +508,100 @@ declare global {
     onEmulatorInstallProgress: (
       cb: (payload: EmulatorInstallProgress) => void
     ) => () => void;
+    /* RetroArch */
+    getRetroArchConfig: () => Promise<RetroArchConfig>;
+    detectRetroArch: () => Promise<RetroArchConfig>;
+    previewRetroArchExecutable: (
+      executablePath?: string | null
+    ) => Promise<RetroArchExecutablePreview | null>;
+    setRetroArchExecutablePath: (
+      executablePath: string | null
+    ) => Promise<RetroArchConfig | null>;
+    getRetroArchInstallOptions: () => Promise<RetroArchInstallOption[]>;
+    installRetroArch: (optionId: string) => Promise<RetroArchInstallResult>;
+    installRetroArchCore: (
+      core: RetroArchCoreName
+    ) => Promise<RetroArchCoreInstallResult>;
+    installAllRetroArchCores: () => Promise<RetroArchCoreInstallResult[]>;
+    onRetroArchCoreInstallProgress: (
+      cb: (payload: RetroArchCoreInstallProgress) => void
+    ) => () => void;
+    onRetroArchInstallProgress: (
+      cb: (payload: RetroArchInstallProgress) => void
+    ) => () => void;
+    importRetroArchRoms: (
+      folders: { path: string; scanSubfolders: boolean }[],
+      language: string
+    ) => Promise<{ requestId: string }>;
+    cancelRetroArchImport: (requestId: string) => Promise<void>;
+    rescanRetroArch: (language?: string) => Promise<RetroArchConfig>;
+    listRetroArchRoms: () => Promise<
+      (DetectedRom & { platform: RetroArchPlatform })[]
+    >;
+    getActiveRetroArchImport: () => Promise<{
+      requestId: string;
+      phase: "scanning" | "matching" | "done";
+      processed: number;
+      total: number;
+      percent: number;
+      currentFile: string | null;
+      status: "matched" | "unmatched" | null;
+      discovered: number;
+      matched: number;
+      sizeBytes: number;
+    } | null>;
+    onRetroArchImportProgress: (
+      cb: (
+        payload:
+          | {
+              type: "progress";
+              requestId: string;
+              phase: "scanning" | "matching";
+              processed: number;
+              total: number;
+              percent: number;
+              currentFile: string | null;
+              status: "matched" | "unmatched" | null;
+              discovered: number;
+              matched: number;
+              sizeBytes: number;
+            }
+          | {
+              type: "done" | "cancelled";
+              requestId: string;
+              fileCount: number;
+              sizeBytes: number;
+              matched: number;
+              unmatched: number;
+              unmatchedFiles: { name: string; reason: "unmatched" }[];
+            }
+          | {
+              type: "error";
+              requestId: string;
+              message: string;
+            }
+      ) => void
+    ) => () => void;
+    onRetroArchImportStatus: (cb: (importing: boolean) => void) => () => void;
+    previewRetroArchRomFolder: (
+      folderPath: string,
+      scanSubfolders: boolean
+    ) => Promise<{ fileCount: number }>;
+    checkRetroArchExecutable: () => Promise<{ exists: boolean }>;
+    removeRetroArch: () => Promise<RetroArchConfig>;
+    addRetroArchRomFolder: (
+      folderPath: string,
+      scanSubfolders: boolean
+    ) => Promise<RetroArchConfig>;
+    changeRetroArchRomFolder: (
+      folderId: string,
+      newPath: string
+    ) => Promise<RetroArchConfig>;
+    removeRetroArchRomFolder: (folderId: string) => Promise<RetroArchConfig>;
+    toggleRetroArchSubfolders: (
+      folderId: string,
+      scanSubfolders: boolean
+    ) => Promise<RetroArchConfig>;
     startRomScan: (
       system: EmulatorSystem,
       folderPath: string,

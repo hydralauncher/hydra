@@ -23,8 +23,11 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
 import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
-import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
-import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import { resolveClassicsBadge } from "@renderer/helpers";
+import {
+  EMULATOR_ICONS,
+  RETROARCH_EMULATOR_ICON,
+} from "@renderer/pages/settings/emulation/emulator-icons";
 import "./game-details.scss";
 import "./hero.scss";
 
@@ -216,16 +219,20 @@ export function GameDetailsContent() {
     ? (game?.platform ?? shopDetails?.platform ?? null)
     : null;
 
-  const launchboxSystem = isLaunchboxGame
-    ? platformToSystem(launchboxPlatform)
-    : null;
-
   const launchboxTitle = isLaunchboxGame
     ? (game?.title ?? shopDetails?.name ?? "")
     : "";
 
-  const launchboxEmulatorIcon = launchboxSystem
-    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[launchboxSystem]]
+  const launchboxEmulatorIcon = isLaunchboxGame
+    ? resolveClassicsBadge(
+        "launchbox",
+        launchboxPlatform,
+        {},
+        {
+          emulatorIcons: EMULATOR_ICONS,
+          retroarchIcon: RETROARCH_EMULATOR_ICON,
+        }
+      ).icon
     : undefined;
 
   return (
