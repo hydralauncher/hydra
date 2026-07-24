@@ -4,17 +4,17 @@ import type {
   CloudSaveSyncTrigger,
 } from "@types";
 
-type SyncDirection = "bidirectional" | "restore-only" | "upload-only";
+export type SyncDirection = "bidirectional" | "restore-only" | "upload-only";
 
 export const hasRemoteChangedSinceBase = (
   currentRemoteHash: string | null,
   baseRemoteHash: string | null | undefined
 ) => baseRemoteHash !== undefined && currentRemoteHash !== baseRemoteHash;
 
-const getSyncDirection = (trigger: CloudSaveSyncTrigger): SyncDirection => {
-  if (trigger === "pre-launch" || trigger === "environment-changed") {
-    return "restore-only";
-  }
+export const getSyncDirection = (
+  trigger: CloudSaveSyncTrigger
+): SyncDirection => {
+  if (trigger === "pre-launch") return "restore-only";
   if (trigger === "post-exit") return "upload-only";
   return "bidirectional";
 };
