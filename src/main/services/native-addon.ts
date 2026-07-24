@@ -33,11 +33,31 @@ type HydraNativeModule = {
     preserveAnimation: boolean
   ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
+  startOverlayKeyboardWatcher: () => boolean;
+  startOverlayInputBroker: () => boolean;
+  stopOverlayInputBroker: () => boolean;
+  getOverlayKeyboardEventCount: () => number;
+  getOverlayGamepadButtons: () => number;
+  getForegroundProcessId: () => number;
+  getProcessWindowBounds: (
+    pid: number
+  ) => { x: number; y: number; width: number; height: number } | undefined;
+  placeOverlayWindow: (windowHandle: bigint | number, pid: number) => boolean;
+  focusProcessWindow: (pid: number) => boolean;
+  markGamescopeOverlay: (
+    windowHandle: bigint | number,
+    noFocus: boolean
+  ) => boolean;
 };
 
 export type SystemProcessMap = {
   processMap: Record<string, string[]>;
   winePrefixMap: Record<string, string>;
+  windowsProcesses: Array<{
+    name: string;
+    exe: string | null;
+    pid: number;
+  }>;
   linuxProcesses: Array<{
     name: string;
     cwd: string;
@@ -65,6 +85,7 @@ const platform = process.platform;
 function buildMaps(processes) {
   const processMap = Object.create(null);
   const winePrefixMap = Object.create(null);
+  const windowsProcesses = [];
   const linuxProcesses = [];
 
   for (const proc of processes) {
@@ -73,7 +94,13 @@ function buildMaps(processes) {
       ? proc.exe
       : path.join(proc.cwd || '', proc.name || '');
 
-    if (!key || !value) continue;
+    if (!key) continue;
+
+    if (platform === 'win32') {
+      windowsProcesses.push({ name: key, exe: proc.exe || null, pid: proc.pid });
+    }
+
+    if (!value) continue;
 
     const steamCompatDataPath = proc.environ && proc.environ.STEAM_COMPAT_DATA_PATH;
     if (steamCompatDataPath) winePrefixMap[value] = steamCompatDataPath;
@@ -94,7 +121,7 @@ function buildMaps(processes) {
     processMap[key].push(value);
   }
 
-  return { processMap, winePrefixMap, linuxProcesses };
+  return { processMap, winePrefixMap, windowsProcesses, linuxProcesses };
 }
 
 parentPort.on('message', (type) => {
@@ -107,7 +134,7 @@ parentPort.on('message', (type) => {
     }
   } catch (_) {
     if (type === 'map') {
-      parentPort.postMessage({ type: 'map', result: { processMap: {}, winePrefixMap: {}, linuxProcesses: [] } });
+      parentPort.postMessage({ type: 'map', result: { processMap: {}, winePrefixMap: {}, windowsProcesses: [], linuxProcesses: [] } });
     } else {
       parentPort.postMessage({ type: 'list', result: [] });
     }
@@ -280,6 +307,7 @@ export class NativeAddon {
         pending.resolve({
           processMap: {},
           winePrefixMap: {},
+          windowsProcesses: [],
           linuxProcesses: [],
         });
     }
@@ -304,8 +332,103 @@ export class NativeAddon {
         this.pendingResolvers.push({ type: "map", resolve });
         worker.postMessage("map");
       } catch {
-        resolve({ processMap: {}, winePrefixMap: {}, linuxProcesses: [] });
+        resolve({
+          processMap: {},
+          winePrefixMap: {},
+          windowsProcesses: [],
+          linuxProcesses: [],
+        });
       }
     });
+  }
+
+  public static startOverlayKeyboardWatcher(): boolean {
+    try {
+      return this.load().startOverlayKeyboardWatcher();
+    } catch {
+      return false;
+    }
+  }
+
+  public static getOverlayKeyboardEventCount(): number {
+    try {
+      return this.load().getOverlayKeyboardEventCount();
+    } catch {
+      return 0;
+    }
+  }
+
+  public static startOverlayInputBroker(): boolean {
+    try {
+      return this.load().startOverlayInputBroker();
+    } catch {
+      return false;
+    }
+  }
+
+  public static stopOverlayInputBroker(): boolean {
+    try {
+      return this.load().stopOverlayInputBroker();
+    } catch {
+      return false;
+    }
+  }
+
+  public static getOverlayGamepadButtons(): number {
+    try {
+      return this.load().getOverlayGamepadButtons();
+    } catch {
+      return 0;
+    }
+  }
+
+  public static getForegroundProcessId(): number {
+    try {
+      return this.load().getForegroundProcessId();
+    } catch {
+      return 0;
+    }
+  }
+
+  public static getProcessWindowBounds(pid: number) {
+    try {
+      return this.load().getProcessWindowBounds(pid) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  public static placeOverlayWindow(windowHandle: Buffer, pid: number) {
+    try {
+      const handle =
+        windowHandle.length >= 8
+          ? windowHandle.readBigUInt64LE(0)
+          : windowHandle.readUInt32LE(0);
+      return this.load().placeOverlayWindow(handle, pid);
+    } catch {
+      return false;
+    }
+  }
+
+  public static focusProcessWindow(pid: number) {
+    try {
+      return this.load().focusProcessWindow(pid);
+    } catch {
+      return false;
+    }
+  }
+
+  public static markGamescopeOverlay(windowHandle: Buffer, noFocus: boolean) {
+    try {
+      const handle =
+        process.platform === "linux"
+          ? windowHandle.readUInt32LE(0)
+          : windowHandle.length >= 8
+            ? windowHandle.readBigUInt64LE(0)
+            : windowHandle.readUInt32LE(0);
+      return this.load().markGamescopeOverlay(handle, noFocus);
+    } catch {
+      return false;
+    }
   }
 }

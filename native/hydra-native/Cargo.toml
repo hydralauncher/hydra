@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 image = { version = "0.25.8", default-features = false, features = ["gif", "jpeg", "png", "webp"] }
@@ -14,6 +14,13 @@ napi-derive = "3.3.2"
 sysinfo = "0.37.2"
 tokio = { version = "1.50.0", features = ["rt"] }
 uuid = { version = "1.11.0", features = ["v4"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_IO", "Win32_System_LibraryLoader", "Win32_System_Pipes", "Win32_System_Threading", "Win32_UI_Input", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
+windows-capture = "2.0.0"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = "0.13.2"
 
 [build-dependencies]
 napi-build = "2.3.1"

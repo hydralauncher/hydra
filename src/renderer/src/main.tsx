@@ -49,6 +49,9 @@ import BigPictureLibrary from "../../big-picture/src/pages/library/page";
 import BigPictureGame from "../../big-picture/src/pages/game/game";
 import BigPictureGameAchievements from "../../big-picture/src/pages/game-achievements/game-achievements";
 import BigPictureProfile from "../../big-picture/src/pages/profile/profile";
+import Overlay from "./pages/overlay/overlay";
+import OverlayToast from "./pages/overlay/overlay-toast";
+import OverlayFps from "./pages/overlay/overlay-fps";
 
 console.log = logger.log;
 
@@ -145,6 +148,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/game-launcher" element={<GameLauncher />} />
             <Route path="/friends-window" element={<FriendsWindow />} />
             <Route path="/auth-window" element={<AuthWindow />} />
+            <Route path="/overlay" element={<Overlay />} />
+            <Route path="/overlay-toast" element={<OverlayToast />} />
+            <Route path="/overlay-fps" element={<OverlayFps />} />
 
             <Route path="/big-picture" element={<BigPictureApp />}>
               <Route index element={<BigPictureHome />} />

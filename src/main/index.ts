@@ -12,6 +12,7 @@ import {
   PowerSaveBlockerManager,
   DownloadOrchestrator,
   SSEClient,
+  OverlayManager,
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
@@ -38,6 +39,7 @@ if (process.platform !== "linux") {
   app.commandLine.appendSwitch("--no-sandbox");
 } else {
   app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+  app.commandLine.appendSwitch("enable-features", "GlobalShortcutsPortal");
 }
 
 i18n.init({
@@ -150,6 +152,7 @@ const initializeApp = async () => {
   });
 
   await loadState();
+  OverlayManager.initialize();
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
   powerMonitor.on("resume", () => {

@@ -1,20 +1,89 @@
-import { registerEvent } from "../register-event";
-import { emulators, launchedGamePids, logger, Wine } from "@main/services";
-import sudo from "sudo-prompt";
 import { app } from "electron";
-import { gamesSublevel, levelKeys } from "@main/level";
-import { GameShop } from "@types";
 import path from "node:path";
-import { NativeAddon } from "@main/services/native-addon";
-import { processReferencesExecutable } from "@main/services/linux-process-match";
-import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
+import sudo from "sudo-prompt";
 
-const getKillCommand = (pid: number) => {
-  if (process.platform == "win32") {
-    return `taskkill /PID ${pid}`;
+import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
+import { gamesSublevel, levelKeys } from "@main/level";
+import { processReferencesExecutable } from "@main/services/linux-process-match";
+import { NativeAddon } from "@main/services/native-addon";
+import { requestElevatedProcessTermination } from "@main/services/overlay-input-broker";
+import { OverlayManager } from "@main/services/overlay-manager";
+import {
+  expandProcessTree,
+  matchesWindowsExecutable,
+} from "@main/services/game-process-termination";
+import { emulators, launchedGamePids, logger, Wine } from "@main/services";
+import type { GameShop } from "@types";
+
+import { registerEvent } from "../register-event";
+
+const wait = (milliseconds: number) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const isProcessRunning = (pid: number) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const terminateWithSudo = (pid: number) =>
+  new Promise<boolean>((resolve) => {
+    sudo.exec(
+      `kill -9 ${pid}`,
+      { name: app.getName() },
+      (error, _stdout, _stderr) => {
+        if (error) logger.error(error);
+        resolve(!error);
+      }
+    );
+  });
+
+const terminateProcesses = async (pids: number[]) => {
+  const failed: number[] = [];
+  let terminatedDirectly = 0;
+
+  for (const pid of pids) {
+    try {
+      process.kill(pid, "SIGTERM");
+      terminatedDirectly++;
+    } catch {
+      failed.push(pid);
+    }
   }
 
-  return `kill -9 ${pid}`;
+  if (process.platform === "win32") {
+    const terminatedElevated = failed.length
+      ? await requestElevatedProcessTermination(failed)
+      : false;
+    return terminatedDirectly > 0 || terminatedElevated;
+  }
+
+  await wait(750);
+  for (const pid of pids) {
+    if (!isProcessRunning(pid)) continue;
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      if (!failed.includes(pid)) failed.push(pid);
+    }
+  }
+
+  const sudoResults = await Promise.all(failed.map(terminateWithSudo));
+  return terminatedDirectly > 0 || sudoResults.some(Boolean);
+};
+
+const waitForProcessesToExit = async (pids: number[]) => {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    await wait(250);
+    const runningPids = new Set(
+      (await NativeAddon.listProcesses()).map(({ pid }) => pid)
+    );
+    if (pids.every((pid) => !runningPids.has(pid))) return true;
+  }
+  return false;
 };
 
 const closeGame = async (
@@ -22,14 +91,14 @@ const closeGame = async (
   shop: GameShop,
   objectId: string
 ) => {
-  if (emulators.closeEmulatorSession(levelKeys.game(shop, objectId))) return;
-
-  const processes = await NativeAddon.listProcesses();
+  if (emulators.closeEmulatorSession(levelKeys.game(shop, objectId))) {
+    return true;
+  }
 
   const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
+  if (!game) return false;
 
-  if (!game) return;
-
+  const processes = await NativeAddon.listProcesses();
   const launchedPid = launchedGamePids.get(levelKeys.game(shop, objectId));
   const trackingPaths = game.trackingExecutablePaths?.filter(Boolean) ?? [];
   const targetPaths =
@@ -38,25 +107,23 @@ const closeGame = async (
       : trackingPaths;
 
   const gameProcesses = processes.filter((runningProcess) => {
-    const matchesTargetPath = targetPaths.some((targetPath) => {
-      if (process.platform === "linux") {
-        return processReferencesExecutable(
-          {
-            cwd: runningProcess.cwd,
-            exe: runningProcess.exe,
-            appImagePath: runningProcess.environ?.APPIMAGE,
-          },
-          targetPath
-        );
-      }
+    if (process.platform === "win32") {
+      return matchesWindowsExecutable(runningProcess.exe, targetPaths);
+    }
 
-      return runningProcess.exe === targetPath;
-    });
-
+    const matchesTargetPath = targetPaths.some((targetPath) =>
+      processReferencesExecutable(
+        {
+          cwd: runningProcess.cwd,
+          exe: runningProcess.exe,
+          appImagePath: runningProcess.environ?.APPIMAGE,
+        },
+        targetPath
+      )
+    );
     if (matchesTargetPath) return true;
 
     return (
-      process.platform === "linux" &&
       runningProcess.pid === launchedPid &&
       processReferencesExecutable(
         {
@@ -78,10 +145,7 @@ const closeGame = async (
           const gameDirectory = path
             .dirname(game.executablePath!)
             .toLowerCase();
-
-          if (!processCwd || processCwd !== gameDirectory) {
-            return false;
-          }
+          if (!processCwd || processCwd !== gameDirectory) return false;
 
           const expectedPrefix = Wine.getEffectivePrefixPath(
             game.winePrefixPath,
@@ -89,7 +153,6 @@ const closeGame = async (
           )?.toLowerCase();
           const processPrefix =
             runningProcess.environ?.STEAM_COMPAT_DATA_PATH?.toLowerCase();
-
           if (
             expectedPrefix &&
             processPrefix &&
@@ -102,24 +165,28 @@ const closeGame = async (
         })
       : null;
 
-  const fallbackProcesses = linuxFallbackProcess ? [linuxFallbackProcess] : [];
-  const processesToClose = gameProcesses.length
-    ? gameProcesses
-    : fallbackProcesses;
-
-  for (const processToClose of processesToClose) {
-    try {
-      process.kill(processToClose.pid);
-    } catch {
-      sudo.exec(
-        getKillCommand(processToClose.pid),
-        { name: app.getName() },
-        (error, _stdout, _stderr) => {
-          logger.error(error);
-        }
-      );
-    }
+  const rootPids = new Set(gameProcesses.map(({ pid }) => pid));
+  if (linuxFallbackProcess) rootPids.add(linuxFallbackProcess.pid);
+  if (launchedPid && processes.some(({ pid }) => pid === launchedPid)) {
+    rootPids.add(launchedPid);
   }
+  const activeGame = OverlayManager.getActiveGame();
+  if (activeGame?.shop === shop && activeGame.objectId === objectId) {
+    const targetPid = OverlayManager.getTargetProcessId();
+    if (targetPid) rootPids.add(targetPid);
+  }
+
+  const pids = expandProcessTree(processes, rootPids);
+  if (!pids.length) {
+    logger.warn("Could not find a running process to close", {
+      shop,
+      objectId,
+    });
+    return false;
+  }
+
+  if (!(await terminateProcesses(pids))) return false;
+  return waitForProcessesToExit(pids);
 };
 
 registerEvent("closeGame", closeGame);

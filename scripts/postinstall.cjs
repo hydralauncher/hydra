@@ -7,6 +7,7 @@ const path = require("node:path");
 const exec = util.promisify(require("node:child_process").exec);
 
 const ludusaviVersion = "0.29.0";
+const presentMonVersion = "2.5.1";
 
 const fileName = {
   win32: `ludusavi-v${ludusaviVersion}-win64.zip`,
@@ -67,4 +68,28 @@ const downloadLudusavi = async () => {
   });
 };
 
-downloadLudusavi();
+const downloadPresentMon = async () => {
+  if (process.platform !== "win32") return;
+
+  const targetDirectory = path.join(process.cwd(), "presentmon");
+  const targetPath = path.join(targetDirectory, "PresentMon.exe");
+  if (fs.existsSync(targetPath)) {
+    console.log("PresentMon already exists, skipping download...");
+    return;
+  }
+
+  const file = `PresentMon-${presentMonVersion}-x64.exe`;
+  const downloadUrl = `https://github.com/GameTechDev/PresentMon/releases/download/v${presentMonVersion}/${file}`;
+  console.log(`Downloading ${file}...`);
+  const response = await axios.get(downloadUrl, {
+    responseType: "arraybuffer",
+  });
+  await fs.promises.mkdir(targetDirectory, { recursive: true });
+  await fs.promises.writeFile(targetPath, response.data);
+  console.log(`PresentMon ready at ${targetPath}`);
+};
+
+Promise.all([downloadLudusavi(), downloadPresentMon()]).catch((error) => {
+  console.error("Failed to download a development dependency", error);
+  process.exitCode = 1;
+});
