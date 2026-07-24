@@ -6,6 +6,7 @@ import { CheckboxField } from "@renderer/components";
 import { setUserPreferences } from "@renderer/features";
 import { parseTrackerList } from "@shared";
 import { debounce } from "lodash-es";
+import { logger } from "@renderer/logger";
 import "./settings-global-trackers.scss";
 
 interface FormValues {
@@ -86,7 +87,7 @@ export function SettingsGlobalTrackers() {
         initialAppendManual.current = appendManualFlag;
         initialAppendUrl.current = appendUrlFlag;
       } catch (err) {
-        console.error("Failed to save global trackers", err);
+        logger.error("Failed to save global trackers", err);
         setSaveError(t("global_trackers_save_error"));
       }
     },
@@ -133,9 +134,10 @@ export function SettingsGlobalTrackers() {
     const appendManualChanged = appendManual !== initialAppendManual.current;
     const appendUrlChanged = appendUrl !== initialAppendUrl.current;
 
-    const isDirty = manualChanged || urlChanged || appendManualChanged || appendUrlChanged;
+    const hasUnsavedChanges =
+      manualChanged || urlChanged || appendManualChanged || appendUrlChanged;
 
-    if (isDirty) return;
+    if (hasUnsavedChanges) return;
 
     const newManual = userPreferences.globalTrackers ?? [];
     const newUrl = userPreferences.globalTrackersUrl ?? "";
@@ -151,7 +153,15 @@ export function SettingsGlobalTrackers() {
     initialTrackerUrl.current = newUrl;
     initialAppendManual.current = newAppendManual;
     initialAppendUrl.current = newAppendUrl;
-  }, [userPreferences, isInitialized, manualTrackers, trackerUrl, appendManual, appendUrl, setValue]);
+  }, [
+    userPreferences,
+    isInitialized,
+    manualTrackers,
+    trackerUrl,
+    appendManual,
+    appendUrl,
+    setValue,
+  ]);
 
   useEffect(() => {
     if (!isInitialized) return;

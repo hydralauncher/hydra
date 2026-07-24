@@ -146,7 +146,7 @@ def validate_trackers(trackers):
             raise RpcError("invalid_trackers")
 
         parsed = urllib.parse.urlparse(tracker)
-        if parsed.scheme not in VALID_TRACKER_PROTOCOLS:
+        if parsed.scheme not in VALID_TRACKER_PROTOCOLS or not parsed.netloc:
             raise RpcError("invalid_trackers")
 
     return trackers

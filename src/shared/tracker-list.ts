@@ -19,7 +19,7 @@ export const isValidTrackerListUrl = (url: string): boolean => {
 
 export const parseTrackerList = (data: string): string[] => {
   const lines = data
-    .split(/[\r\n,]+/)
+    .split(/[\r\n]+/)
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith("#"));
 
