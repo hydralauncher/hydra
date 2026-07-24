@@ -71,6 +71,10 @@ export class DownloadManager {
   private static allDebridBatch: AllDebridBatchState | null = null;
   private static maxDownloadSpeedBytesPerSecond: number | null = null;
   private static startGeneration = 0;
+  private static orphanedDownloadCandidate: {
+    downloadKey: string;
+    generation: number;
+  } | null = null;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -590,7 +594,41 @@ export class DownloadManager {
     return this.getDownloadStatusFromRpc();
   }
 
+  private static async cancelOrphanedDownload(downloadKey: string) {
+    if (
+      this.orphanedDownloadCandidate?.downloadKey !== downloadKey ||
+      this.orphanedDownloadCandidate.generation !== this.startGeneration
+    ) {
+      this.orphanedDownloadCandidate = {
+        downloadKey,
+        generation: this.startGeneration,
+      };
+      return;
+    }
+
+    this.orphanedDownloadCandidate = null;
+
+    logger.warn(
+      `[DownloadManager] Download entry for ${downloadKey} no longer exists, cancelling orphaned download`
+    );
+
+    await this.cancelDownload(downloadKey);
+  }
+
   public static async watchDownloads() {
+    const activeDownloadKey = this.downloadingGameId;
+
+    if (activeDownloadKey) {
+      const activeDownload = await downloadsSublevel.get(activeDownloadKey);
+
+      if (!activeDownload) {
+        await this.cancelOrphanedDownload(activeDownloadKey);
+        return;
+      }
+    }
+
+    this.orphanedDownloadCandidate = null;
+
     const status = await this.getDownloadStatus();
     if (!status) return;
 
