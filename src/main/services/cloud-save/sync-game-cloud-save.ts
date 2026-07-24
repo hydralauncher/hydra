@@ -17,6 +17,7 @@ import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { shouldRetryCloudSaveConflict } from "./snapshot-retry-policy";
 import {
   type ProgressCallback,
+  getSyncDirection,
   runFirstSync,
   restoreRemoteState,
   uploadLocalState,
@@ -152,9 +153,9 @@ const executeGameCloudSaveSync = async (
   const proposalChanged =
     mergedAggregateHash !== analysis.activeRemoteSnapshot?.aggregateHash;
   const restoreIds = merge.restoreEntryIds;
-  const restoreOnly =
-    trigger === "pre-launch" || trigger === "environment-changed";
-  const uploadOnly = trigger === "post-exit";
+  const syncDirection = getSyncDirection(trigger);
+  const restoreOnly = syncDirection === "restore-only";
+  const uploadOnly = syncDirection === "upload-only";
   const activeSnapshot = analysis.state.activeRemoteSnapshot;
 
   if (restoreOnly) {
