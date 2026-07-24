@@ -54,7 +54,7 @@ const getTorrentFiles = async (
       {
         magnet,
         timeout_ms: 45_000,
-        trackers: trackers.length ? trackers : undefined,
+        trackers,
       },
       {
         timeout: 45000,
