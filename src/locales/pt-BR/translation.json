@@ -1005,7 +1005,6 @@
     "autoplay_trailers_on_game_page": "Reproduzir trailers automaticamente na página do jogo",
     "hide_to_tray_on_game_start": "Ocultar o Hydra na bandeja ao iniciar um jogo",
     "downloads": "Downloads",
-    "global_trackers": "Rastreadores",
     "global_trackers_description": "Os trackers ajudam os clientes torrent a encontrar peers compartilhando os mesmos arquivos. Os trackers listados aqui são adicionados automaticamente a cada novo download torrent.",
     "global_trackers_append_manual": "Adicionar automaticamente esses trackers aos novos downloads",
     "global_trackers_append_url": "Adicionar automaticamente trackers de URL aos novos downloads",
