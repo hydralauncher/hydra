@@ -13,7 +13,7 @@ export interface UserProfileContext {
   /* Indicates if the current user is viewing their own profile */
   isMe: boolean;
   userStats: UserStats | null;
-  getUserProfile: () => Promise<void>;
+  getUserProfile: (options?: { silent?: boolean }) => Promise<void>;
   getUserStats: (shops?: string[]) => Promise<void>;
   getUserLibraryGames: (
     sortBy?: string,
@@ -37,7 +37,7 @@ export const userProfileContext = createContext<UserProfileContext>({
   heroBackground: DEFAULT_USER_PROFILE_BACKGROUND,
   isMe: false,
   userStats: null,
-  getUserProfile: async () => {},
+  getUserProfile: async (_options?: { silent?: boolean }) => {},
   getUserStats: async (_shops?: string[]) => {},
   getUserLibraryGames: async (
     _sortBy?: string,
@@ -217,32 +217,44 @@ export function UserProfileContextProvider({
     [userId, libraryPage, hasMoreLibraryGames, isLoadingLibraryGames]
   );
 
-  const getUserProfile = useCallback(async () => {
-    getUserStats();
-    getUserLibraryGames();
+  const getUserProfile = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!options?.silent) {
+        getUserStats();
+        getUserLibraryGames();
+      }
 
-    const profileParams = new URLSearchParams();
-    profileParams.append("shop", "steam");
-    profileParams.append("shop", "launchbox");
+      const profileParams = new URLSearchParams();
+      profileParams.append("shop", "steam");
+      profileParams.append("shop", "launchbox");
 
-    return window.electron.hydraApi
-      .get<UserProfile>(`/users/${userId}?${profileParams.toString()}`, {
-        needsAuth: false,
-      })
-      .then((userProfile) => {
-        setUserProfile(userProfile);
+      return window.electron.hydraApi
+        .get<UserProfile>(`/users/${userId}?${profileParams.toString()}`, {
+          needsAuth: false,
+        })
+        .then((userProfile) => {
+          if (!userProfile?.id) {
+            throw new Error("User not found");
+          }
 
-        if (userProfile.profileImageUrl) {
-          getHeroBackgroundFromImageUrl(userProfile.profileImageUrl).then(
-            (color) => setHeroBackground(color)
-          );
-        }
-      })
-      .catch(() => {
-        showErrorToast(t("user_not_found"));
-        navigate(-1);
-      });
-  }, [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t]);
+          setUserProfile(userProfile);
+
+          if (userProfile.profileImageUrl) {
+            getHeroBackgroundFromImageUrl(userProfile.profileImageUrl).then(
+              (color) => setHeroBackground(color)
+            );
+          }
+        })
+        .catch(() => {
+          if (options?.silent) return;
+
+          setUserProfile(null);
+          showErrorToast(t("user_not_found"));
+          navigate(-1);
+        });
+    },
+    [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t]
+  );
 
   const getBadges = useCallback(async () => {
     const language = i18n.language.split("-")[0];
