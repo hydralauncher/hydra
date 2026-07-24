@@ -57,15 +57,16 @@ button {
   box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 12px;
-  background: rgba(11, 13, 16, 0.97);
+  background: rgba(18, 18, 18, 0.98);
   box-shadow: 0 20px 56px rgba(0, 0, 0, 0.38);
 }
 
 .overlay-hub {
   display: flex;
   height: 100%;
+  overflow: hidden;
   flex-direction: column;
-  padding: 10px;
+  padding: 10px 0 0;
 }
 
 .overlay-tabs {
@@ -73,10 +74,11 @@ button {
   flex: 0 0 auto;
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
+  margin: 0 10px;
   padding: 4px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 9px;
-  background: #080a0d;
+  background: #0d0d0d;
 }
 
 .overlay-tabs button {
@@ -102,7 +104,7 @@ button {
 }
 
 .overlay-tabs button:hover {
-  background: #202328;
+  background: #252525;
   color: #ffffff;
 }
 
@@ -133,14 +135,14 @@ button {
   flex: 1;
   margin-top: 10px;
   overflow: hidden;
-  border-radius: 9px;
-  background: #090b0e;
+  border-radius: 0 0 11px 11px;
+  background: #121212;
 }
 
 .overlay-overview-redesign {
   height: 100%;
   overflow-y: auto;
-  background: #090b0e;
+  background: #121212;
 }
 
 .overlay-game-hero {
@@ -148,7 +150,7 @@ button {
   height: 42%;
   min-height: 220px;
   overflow: visible;
-  background: #111318;
+  background: #1c1c1c;
 }
 
 .overlay-game-hero > img:first-child {
@@ -169,10 +171,10 @@ button {
   height: 104px;
   background: linear-gradient(
     to bottom,
-    rgba(9, 11, 14, 0) 0%,
-    rgba(9, 11, 14, 0.16) 28%,
-    rgba(9, 11, 14, 0.58) 62%,
-    #090b0e 100%
+    rgba(18, 18, 18, 0) 0%,
+    rgba(18, 18, 18, 0.16) 28%,
+    rgba(18, 18, 18, 0.58) 62%,
+    #121212 100%
   );
   content: "";
   pointer-events: none;
@@ -210,9 +212,9 @@ button {
   z-index: 2;
   margin: 0 12px;
   padding: 18px 20px;
-  border: 1px solid #292d33;
+  border: 1px solid #333333;
   border-radius: 8px;
-  background: #15181c;
+  background: #1c1c1c;
 }
 
 .overlay-playing-now > span {
@@ -254,9 +256,9 @@ button {
   place-items: center;
   align-content: center;
   gap: 5px;
-  border: 1px solid #292d33;
+  border: 1px solid #333333;
   border-radius: 8px;
-  background: #111419;
+  background: #1c1c1c;
 }
 
 .overlay-overview-counters svg {
@@ -278,7 +280,7 @@ button {
 .overlay-achievements-redesign {
   box-sizing: border-box;
   height: 100%;
-  background: #0b0d10;
+  background: #121212;
 }
 
 .overlay-list-view {
@@ -387,7 +389,7 @@ button {
   position: relative;
   flex: 0 0 220px;
   overflow: visible;
-  background: #15171b;
+  background: #1c1c1c;
 }
 
 .overlay-achievements-hero > img:first-child {
@@ -429,8 +431,11 @@ button {
 }
 
 .overlay-achievements-progress > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   color: #c2c6cc;
-  font-size: 11px;
+  font-size: 18px;
   font-weight: 650;
 }
 
@@ -519,7 +524,12 @@ button {
 .overlay-notes-tab {
   display: flex;
   flex-direction: column;
-  padding: 24px;
+  padding: 28px;
+}
+
+.overlay-notes-tab > header {
+  padding: 0 2px 18px;
+  border-bottom: 0;
 }
 
 .overlay-notes-tab > header > div,
@@ -529,7 +539,15 @@ button {
 }
 
 .overlay-notes-tab > header > div {
-  gap: 10px;
+  gap: 12px;
+}
+
+.overlay-notes-tab > header > div > svg {
+  box-sizing: content-box;
+  padding: 9px;
+  border: 1px solid #303030;
+  border-radius: 8px;
+  background: #1c1c1c;
 }
 
 .overlay-notes-tab > header > div span {
@@ -539,7 +557,7 @@ button {
 }
 
 .overlay-notes-tab header strong {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .overlay-notes-tab header small,
@@ -552,6 +570,9 @@ button {
   display: flex;
   align-items: center;
   gap: 5px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #1c1c1c;
 }
 
 .overlay-notes-tab > header > span.is-saved {
@@ -561,13 +582,13 @@ button {
 .overlay-notes-tab textarea {
   min-height: 0;
   flex: 1;
-  margin-top: 16px;
-  padding: 18px;
+  margin-top: 8px;
+  padding: 20px;
   resize: none;
-  border: 1px solid #30343a;
+  border: 1px solid #333333;
   border-radius: 8px;
   outline: none;
-  background: #111419;
+  background: #1c1c1c;
   color: #eceef1;
   font-size: 12px;
   line-height: 1.65;
@@ -702,8 +723,8 @@ button {
 
 .hydra-overlay__game-brand {
   display: grid;
-  width: 240px;
-  height: 72px;
+  width: 320px;
+  height: 88px;
   place-items: center;
 }
 
@@ -711,7 +732,7 @@ button {
   width: auto;
   max-width: 100%;
   height: auto;
-  max-height: 68px;
+  max-height: 84px;
   object-fit: contain;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.68));
 }

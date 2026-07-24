@@ -297,6 +297,9 @@ export default function Overlay() {
 
     const clock = window.setInterval(() => setNow(Date.now()), 1_000);
     const unsubscribeShown = globalThis.electron.onOverlayShown(() => {
+      setConfirmExit(false);
+      setIsEndingGame(false);
+      setEndGameFailed(false);
       refresh();
       window.requestAnimationFrame(() =>
         focusForController(
@@ -579,11 +582,10 @@ export default function Overlay() {
                   )}
                   <div className="overlay-achievements-progress">
                     <span>
+                      <Trophy size={18} />
                       {progress.unlocked.length} / {context.achievements.length}
                     </span>
-                    <strong>
-                      <Trophy size={20} /> {progress.percentage}%
-                    </strong>
+                    <strong>{progress.percentage}%</strong>
                   </div>
                   <i>
                     <span style={{ width: `${progress.percentage}%` }} />
