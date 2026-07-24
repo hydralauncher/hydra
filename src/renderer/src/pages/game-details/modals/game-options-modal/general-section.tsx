@@ -1,5 +1,12 @@
 import { Trans, useTranslation } from "react-i18next";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button, CheckboxField, TextField } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
@@ -360,8 +367,39 @@ export function GeneralSettingsSection({
   const gameSize = game.installedSizeInBytes ?? 0;
   const progressPercent = Math.round(transferProgress * 100);
   const transferredBytes = gameSize * transferProgress;
+  const hasShortcutLaunchTarget =
+    Boolean(game.executablePath) ||
+    (game.shop === "launchbox" &&
+      Boolean(game.discs?.some((disc) => disc.path)));
   const transferGameLabel =
     gameSize > 0 ? `${game.title} (${fmt(gameSize)})` : game.title;
+  let steamShortcutButton: ReactNode = null;
+
+  if (game.shop !== "custom") {
+    if (steamShortcutExists) {
+      steamShortcutButton = (
+        <Button
+          onClick={onDeleteSteamShortcut}
+          theme="danger"
+          disabled={creatingSteamShortcut}
+        >
+          <SteamLogo />
+          {t("delete_steam_shortcut")}
+        </Button>
+      );
+    } else if (hasShortcutLaunchTarget) {
+      steamShortcutButton = (
+        <Button
+          onClick={onCreateSteamShortcut}
+          theme="outline"
+          disabled={creatingSteamShortcut}
+        >
+          <SteamLogo />
+          {t("create_steam_shortcut")}
+        </Button>
+      );
+    }
+  }
 
   useEffect(() => {
     if (!isTransferring) return;
@@ -762,49 +800,36 @@ export function GeneralSettingsSection({
       )}
 
       {/* Shortcuts */}
-      {showShortcutsSection && game.executablePath && (
-        <div className="game-options-modal__section">
-          <div className="game-options-modal__header">
-            <h2>{t("shortcuts_section_title")}</h2>
-            <h4 className="game-options-modal__header-description">
-              {t("shortcuts_section_description")}
-            </h4>
-          </div>
-          <div className="game-options-modal__row">
-            <Button onClick={() => onCreateShortcut("desktop")} theme="outline">
-              {t("create_shortcut")}
-            </Button>
-            {game.shop !== "custom" &&
-              (steamShortcutExists ? (
+      {showShortcutsSection &&
+        (hasShortcutLaunchTarget || steamShortcutExists) && (
+          <div className="game-options-modal__section">
+            <div className="game-options-modal__header">
+              <h2>{t("shortcuts_section_title")}</h2>
+              <h4 className="game-options-modal__header-description">
+                {t("shortcuts_section_description")}
+              </h4>
+            </div>
+            <div className="game-options-modal__row">
+              {hasShortcutLaunchTarget && (
                 <Button
-                  onClick={onDeleteSteamShortcut}
-                  theme="danger"
-                  disabled={creatingSteamShortcut}
-                >
-                  <SteamLogo />
-                  {t("delete_steam_shortcut")}
-                </Button>
-              ) : (
-                <Button
-                  onClick={onCreateSteamShortcut}
+                  onClick={() => onCreateShortcut("desktop")}
                   theme="outline"
-                  disabled={creatingSteamShortcut}
                 >
-                  <SteamLogo />
-                  {t("create_steam_shortcut")}
+                  {t("create_shortcut")}
                 </Button>
-              ))}
-            {shouldShowCreateStartMenuShortcut && (
-              <Button
-                onClick={() => onCreateShortcut("start_menu")}
-                theme="outline"
-              >
-                {t("create_start_menu_shortcut")}
-              </Button>
-            )}
+              )}
+              {steamShortcutButton}
+              {hasShortcutLaunchTarget && shouldShowCreateStartMenuShortcut && (
+                <Button
+                  onClick={() => onCreateShortcut("start_menu")}
+                  theme="outline"
+                >
+                  {t("create_start_menu_shortcut")}
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Launch options */}
       {showLaunchOptionsSection && (
