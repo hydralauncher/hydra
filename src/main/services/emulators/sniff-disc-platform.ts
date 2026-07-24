@@ -77,8 +77,26 @@ export const parseCueReferencedFiles = async (
   }
 };
 
-const replaceExt = (filePath: string, fromExt: string, toExt: string): string =>
-  filePath.replace(new RegExp(`\\${fromExt}$`, "i"), toExt);
+export const resolveSidecarWithExt = async (
+  filePath: string,
+  targetExt: string
+): Promise<string | null> => {
+  const dir = path.dirname(filePath);
+  const base = path.basename(filePath, path.extname(filePath));
+  const expected = `${base}${targetExt}`;
+  const direct = path.join(dir, expected);
+
+  try {
+    await fs.access(direct);
+    return direct;
+  } catch {
+    const entries = await fs.readdir(dir).catch(() => null);
+    if (!entries) return null;
+    const wanted = expected.toLowerCase();
+    const match = entries.find((entry) => entry.toLowerCase() === wanted);
+    return match ? path.join(dir, match) : null;
+  }
+};
 
 export const resolveSniffTarget = async (
   filePath: string
@@ -88,8 +106,8 @@ export const resolveSniffTarget = async (
     const refs = await parseCueReferencedFiles(filePath);
     return refs[0] ?? null;
   }
-  if (lower.endsWith(".mds")) return replaceExt(filePath, ".mds", ".mdf");
-  if (lower.endsWith(".ccd")) return replaceExt(filePath, ".ccd", ".img");
+  if (lower.endsWith(".mds")) return resolveSidecarWithExt(filePath, ".mdf");
+  if (lower.endsWith(".ccd")) return resolveSidecarWithExt(filePath, ".img");
   if (
     lower.endsWith(".iso") ||
     lower.endsWith(".img") ||
