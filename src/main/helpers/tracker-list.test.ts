@@ -68,14 +68,6 @@ describe("parseTrackerList", () => {
     ]);
   });
 
-  it("parses newline separated trackers", () => {
-    const list = "udp://a.com/announce\nhttps://b.com/announce";
-    assert.deepStrictEqual(parseTrackerList(list), [
-      "udp://a.com/announce",
-      "https://b.com/announce",
-    ]);
-  });
-
   it("ignores empty lines and comments", () => {
     const list =
       "\n  udp://a.com/announce  \n# comment\n\nhttps://b.com/announce\n";

@@ -8,7 +8,6 @@ import {
 } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { parseBytes } from "@shared";
 import {
   getGlobalTrackers,
   handleDownloadError,
@@ -29,12 +28,10 @@ const addGameToQueue = async (
     uri,
     automaticallyExtract,
     automaticallyDeleteArchiveFiles,
-    fileSize,
     fileIndices,
     selectedFilesSize,
   } = payload;
 
-  const parsedFileSize = parseBytes(fileSize ?? null);
   const gameKey = levelKeys.game(shop, objectId);
   let download: Download;
   let didWriteDownload = false;
@@ -52,7 +49,7 @@ const addGameToQueue = async (
       downloader,
       uri,
       folderName: null,
-      fileSize: selectedFilesSize ?? parsedFileSize,
+      fileSize: selectedFilesSize ?? null,
       shouldSeed: false,
       timestamp: Date.now(),
       queued: true,
