@@ -98,3 +98,24 @@ test("overlay buttons declare non-submit behavior", () => {
     for (const button of buttons) assert.match(button, /type="button"/u);
   }
 });
+
+test("fullscreen overlay presentation does not activate over the game", () => {
+  const manager = read("src/main/services/overlay-manager.ts");
+  const native = read("native/hydra-native/src/lib.rs");
+
+  assert.match(manager, /shouldPreserveGameFocus/u);
+  assert.match(manager, /overlayWindow\.showInactive\(\)/u);
+  assert.match(native, /SWP_NOACTIVATE \| SWP_SHOWWINDOW/u);
+});
+
+test("elevated broker acknowledges game process termination", () => {
+  const broker = read("native/hydra-native/src/bin/hydra-overlay-input.rs");
+  const client = read("src/main/services/overlay-input-broker.ts");
+
+  assert.match(broker, /TerminateProcess/u);
+  assert.match(broker, /HydraOverlayInputBroker/u);
+  assert.match(broker, /GetNamedPipeClientProcessId/u);
+  assert.doesNotMatch(broker, /terminate\.request|terminate\.result/u);
+  assert.match(client, /requestElevatedProcessTermination/u);
+  assert.match(client, /HydraOverlayInputBroker/u);
+});

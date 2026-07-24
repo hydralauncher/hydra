@@ -21,6 +21,7 @@ import { NativeAddon } from "./native-addon";
 import { findOverlayGameProcesses } from "./overlay-game-process";
 import { overlayFpsMonitor } from "./overlay-fps-monitor";
 import { ensureOverlayInputBroker } from "./overlay-input-broker";
+import { boundsFillDisplay } from "./overlay-window-behavior";
 import { WindowManager } from "./window-manager";
 
 const PREFERRED_SHORTCUT = "Shift+Tab";
@@ -182,6 +183,10 @@ export class OverlayManager {
     return this.activeGame;
   }
 
+  public static getTargetProcessId() {
+    return this.targetPid;
+  }
+
   public static clearActiveGame(game: Game) {
     if (
       this.activeGame?.objectId !== game.objectId ||
@@ -280,15 +285,17 @@ export class OverlayManager {
 
     const show = () => {
       if (overlayWindow.isDestroyed() || !this.activeGame) return;
+      const preserveGameFocus = this.shouldPreserveGameFocus();
       this.fpsWindow?.hide();
       overlayWindow.setBounds(this.getTargetBounds());
       overlayWindow.setAlwaysOnTop(false);
       overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
       overlayWindow.setOpacity(0);
-      overlayWindow.show();
+      if (preserveGameFocus) overlayWindow.showInactive();
+      else overlayWindow.show();
       this.placeWindowOverGame(overlayWindow);
       overlayWindow.moveTop();
-      overlayWindow.focus();
+      if (!preserveGameFocus) overlayWindow.focus();
       this.fadeOverlayWindow(1);
       overlayWindow.webContents.send("on-overlay-shown");
       setTimeout(() => {
@@ -296,7 +303,7 @@ export class OverlayManager {
           overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
           this.placeWindowOverGame(overlayWindow);
           overlayWindow.moveTop();
-          overlayWindow.focus();
+          if (!preserveGameFocus) overlayWindow.focus();
         }
       }, 75);
     };
@@ -447,6 +454,14 @@ export class OverlayManager {
       if (bounds && bounds.width > 0 && bounds.height > 0) return bounds;
     }
     return screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).bounds;
+  }
+
+  private static shouldPreserveGameFocus() {
+    if (process.platform !== "win32" || !this.targetPid) return false;
+    if (NativeAddon.getForegroundProcessId() !== this.targetPid) return false;
+    const targetBounds = this.getTargetBounds();
+    const displayBounds = screen.getDisplayMatching(targetBounds).bounds;
+    return boundsFillDisplay(targetBounds, displayBounds);
   }
 
   private static placeWindowOverGame(window: BrowserWindow) {

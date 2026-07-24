@@ -1,13 +1,16 @@
 import { app } from "electron";
 import { execFile, spawn } from "node:child_process";
 import fs from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import { promisify } from "node:util";
 
 import { logger } from "./logger";
+import { NativeAddon } from "./native-addon";
 
 const execFileAsync = promisify(execFile);
 const taskName = "Hydra Overlay Input";
+const brokerPipe = String.raw`\\.\pipe\HydraOverlayInputBroker`;
 const systemRoot = process.env.SystemRoot ?? String.raw`C:\Windows`;
 const taskScheduler = path.join(systemRoot, "System32", "schtasks.exe");
 const powershell = path.join(
@@ -128,4 +131,48 @@ export const ensureOverlayInputBroker = () => {
       });
   }
   return installation;
+};
+
+export const requestElevatedProcessTermination = async (pids: number[]) => {
+  if (process.platform !== "win32" || !pids.length) return false;
+  if (!(await ensureOverlayInputBroker())) return false;
+  if (!NativeAddon.startOverlayInputBroker()) return false;
+
+  const validPids = Array.from(
+    new Set(pids.filter((pid) => pid > 0 && pid !== process.pid))
+  );
+  if (!validPids.length) return false;
+
+  return new Promise<boolean>((resolve) => {
+    let socket: net.Socket | null = null;
+    let settled = false;
+    const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      socket?.destroy();
+      resolve(result);
+    };
+    const timeout = setTimeout(() => finish(false), 5_000);
+    const connect = () => {
+      if (settled) return;
+      let response = "";
+      socket = net.createConnection(brokerPipe);
+      socket.setEncoding("utf8");
+      socket.once("connect", () => socket?.write(validPids.join(" ")));
+      socket.on("data", (chunk) => {
+        response += chunk;
+      });
+      socket.once("end", () => finish(Number(response.trim()) > 0));
+      socket.once("error", () => {
+        if (Number(response.trim()) > 0) {
+          finish(true);
+          return;
+        }
+        socket?.destroy();
+        if (!settled) setTimeout(connect, 100);
+      });
+    };
+    connect();
+  });
 };

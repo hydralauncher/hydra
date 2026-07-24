@@ -228,6 +228,8 @@ export default function Overlay() {
   const [note, setNote] = useState("");
   const [noteSaved, setNoteSaved] = useState(true);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [isEndingGame, setIsEndingGame] = useState(false);
+  const [endGameFailed, setEndGameFailed] = useState(false);
   const [overlayMode, setOverlayMode] = useState<OverlayMode>("full");
   const noteLoaded = useRef(false);
   const activeTabRef = useRef(activeTab);
@@ -411,9 +413,21 @@ export default function Overlay() {
   const { game, user } = context;
   const sessionDuration = now - game.sessionStartedAt;
   const endGame = async () => {
-    await globalThis.electron.closeGame(game.shop, game.objectId);
-    await globalThis.electron.closeHydraOverlay();
+    setIsEndingGame(true);
+    setEndGameFailed(false);
+    const terminated = await globalThis.electron
+      .closeGame(game.shop, game.objectId)
+      .catch(() => false);
+    setIsEndingGame(false);
+    if (terminated) {
+      await globalThis.electron.closeHydraOverlay();
+    } else {
+      setEndGameFailed(true);
+    }
   };
+  let endGameLabel = "End game";
+  if (isEndingGame) endGameLabel = "Ending...";
+  else if (endGameFailed) endGameLabel = "Try again";
 
   return (
     <main
@@ -687,13 +701,21 @@ export default function Overlay() {
             </button>
           ) : (
             <div className="hydra-overlay__exit-confirm">
-              <button type="button" data-overlay-focusable onClick={endGame}>
-                End game
+              <button
+                type="button"
+                data-overlay-focusable
+                disabled={isEndingGame}
+                onClick={endGame}
+              >
+                {endGameLabel}
               </button>
               <button
                 type="button"
                 data-overlay-focusable
-                onClick={() => setConfirmExit(false)}
+                onClick={() => {
+                  setConfirmExit(false);
+                  setEndGameFailed(false);
+                }}
               >
                 Cancel
               </button>

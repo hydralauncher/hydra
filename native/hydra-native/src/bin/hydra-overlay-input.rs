@@ -4,7 +4,7 @@
 mod windows_broker {
     use std::fs::{self, OpenOptions};
     use std::io::{BufWriter, Write};
-    use std::mem::zeroed;
+    use std::mem::{size_of, zeroed};
     use std::os::windows::fs::OpenOptionsExt;
     use std::os::windows::process::CommandExt;
     use std::path::PathBuf;
@@ -24,21 +24,39 @@ mod windows_broker {
     };
     use windows_capture::window::Window;
 
-    use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+    use windows_sys::Win32::Foundation::{
+        CloseHandle, GetLastError, LocalFree, ERROR_PIPE_CONNECTED, HWND, INVALID_HANDLE_VALUE,
+        LPARAM, LRESULT, WPARAM,
+    };
+    use windows_sys::Win32::Security::Authorization::{
+        ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
+    };
+    use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
+    use windows_sys::Win32::Storage::FileSystem::{
+        FlushFileBuffers, ReadFile, WriteFile, PIPE_ACCESS_DUPLEX,
+    };
     use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+    use windows_sys::Win32::System::Pipes::{
+        ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, GetNamedPipeClientProcessId,
+        PIPE_READMODE_MESSAGE, PIPE_REJECT_REMOTE_CLIENTS, PIPE_TYPE_MESSAGE, PIPE_WAIT,
+    };
+    use windows_sys::Win32::System::Threading::{
+        GetCurrentProcessId, OpenProcess, TerminateProcess, PROCESS_TERMINATE,
+    };
     use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
         RegisterHotKey, UnregisterHotKey, MOD_NOREPEAT, MOD_SHIFT,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, FindWindowExW,
-        GetMessageW, KillTimer, PostMessageW, PostQuitMessage, RegisterClassW, SetTimer,
-        TranslateMessage, HWND_MESSAGE, MSG, WM_APP, WM_CLOSE, WM_DESTROY, WM_HOTKEY, WM_TIMER,
-        WNDCLASSW,
+        GetMessageW, GetWindowThreadProcessId, KillTimer, PostMessageW, PostQuitMessage,
+        RegisterClassW, SetTimer, TranslateMessage, HWND_MESSAGE, MSG, WM_APP, WM_CLOSE,
+        WM_DESTROY, WM_HOTKEY, WM_TIMER, WNDCLASSW,
     };
 
     const HOTKEY_ID: i32 = 1;
     const BROKER_EVENT_MESSAGE: u32 = WM_APP + 42;
     const CREATE_NO_WINDOW: u32 = 0x08000000;
+    const TERMINATION_PIPE: &str = r"\\.\pipe\HydraOverlayInputBroker";
 
     struct CaptureState {
         pid: u32,
@@ -275,6 +293,120 @@ mod windows_broker {
         }
     }
 
+    fn terminate_process(pid: u32) -> bool {
+        if pid == 0 || pid == unsafe { GetCurrentProcessId() } {
+            return false;
+        }
+        let process = unsafe { OpenProcess(PROCESS_TERMINATE, 0, pid) };
+        if process.is_null() {
+            return false;
+        }
+        let terminated = unsafe { TerminateProcess(process, 1) } != 0;
+        unsafe { CloseHandle(process) };
+        terminated
+    }
+
+    fn hydra_process_id() -> Option<u32> {
+        let window = unsafe { hydra_window() };
+        if window.is_null() {
+            return None;
+        }
+        let mut pid = 0;
+        unsafe { GetWindowThreadProcessId(window, &mut pid) };
+        (pid > 0).then_some(pid)
+    }
+
+    fn handle_termination_client(pipe: windows_sys::Win32::Foundation::HANDLE) {
+        let mut client_pid = 0;
+        if unsafe { GetNamedPipeClientProcessId(pipe, &mut client_pid) } == 0
+            || hydra_process_id() != Some(client_pid)
+        {
+            return;
+        }
+        let mut request = [0u8; 4_096];
+        let mut bytes_read = 0;
+        if unsafe {
+            ReadFile(
+                pipe,
+                request.as_mut_ptr(),
+                request.len() as u32,
+                &mut bytes_read,
+                null_mut(),
+            )
+        } == 0
+        {
+            return;
+        }
+        let terminated = String::from_utf8_lossy(&request[..bytes_read as usize])
+            .split_whitespace()
+            .filter_map(|value| value.parse::<u32>().ok())
+            .take(128)
+            .filter(|pid| terminate_process(*pid))
+            .count();
+        let response = terminated.to_string();
+        let mut bytes_written = 0;
+        unsafe {
+            WriteFile(
+                pipe,
+                response.as_ptr(),
+                response.len() as u32,
+                &mut bytes_written,
+                null_mut(),
+            );
+            FlushFileBuffers(pipe);
+        }
+    }
+
+    fn run_termination_server() {
+        let pipe_name = wide(TERMINATION_PIPE);
+        let descriptor_string = wide("D:(A;;GA;;;IU)S:(ML;;NW;;;ME)");
+        loop {
+            let mut descriptor = null_mut();
+            if unsafe {
+                ConvertStringSecurityDescriptorToSecurityDescriptorW(
+                    descriptor_string.as_ptr(),
+                    SDDL_REVISION_1,
+                    &mut descriptor,
+                    null_mut(),
+                )
+            } == 0
+            {
+                return;
+            }
+            let security = SECURITY_ATTRIBUTES {
+                nLength: size_of::<SECURITY_ATTRIBUTES>() as u32,
+                lpSecurityDescriptor: descriptor,
+                bInheritHandle: 0,
+            };
+            let pipe = unsafe {
+                CreateNamedPipeW(
+                    pipe_name.as_ptr(),
+                    PIPE_ACCESS_DUPLEX,
+                    PIPE_TYPE_MESSAGE
+                        | PIPE_READMODE_MESSAGE
+                        | PIPE_WAIT
+                        | PIPE_REJECT_REMOTE_CLIENTS,
+                    1,
+                    4_096,
+                    4_096,
+                    0,
+                    &security,
+                )
+            };
+            unsafe { LocalFree(descriptor) };
+            if pipe == INVALID_HANDLE_VALUE {
+                return;
+            }
+            let connected = unsafe { ConnectNamedPipe(pipe, null_mut()) } != 0
+                || unsafe { GetLastError() } == ERROR_PIPE_CONNECTED;
+            if connected {
+                handle_termination_client(pipe);
+                unsafe { DisconnectNamedPipe(pipe) };
+            }
+            unsafe { CloseHandle(pipe) };
+        }
+    }
+
     unsafe extern "system" fn window_proc(
         window: HWND,
         message: u32,
@@ -344,6 +476,7 @@ mod windows_broker {
                 DestroyWindow(window);
                 return 3;
             }
+            thread::spawn(run_termination_server);
             SetTimer(window, 1, 500, None);
             if std::env::args().any(|argument| argument == "--self-test") {
                 let notified = notify_hydra();
