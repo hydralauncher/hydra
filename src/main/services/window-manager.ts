@@ -42,6 +42,13 @@ interface CreateMainWindowOptions {
   forceBigPicture?: boolean;
 }
 
+const HYDRA_DEVTOOLS_ENABLED_VALUE = "1";
+
+const shouldOpenDevTools = () =>
+  !app.isPackaged ||
+  isStaging ||
+  process.env.HYDRA_DEVTOOLS === HYDRA_DEVTOOLS_ENABLED_VALUE;
+
 export class WindowManager {
   private static mainWindowInstance: Electron.BrowserWindow | null = null;
   private static gameLauncherWindowInstance: Electron.BrowserWindow | null =
@@ -331,7 +338,7 @@ export class WindowManager {
     mainWindow.removeMenu();
 
     mainWindow.on("ready-to-show", () => {
-      if (!app.isPackaged || isStaging)
+      if (shouldOpenDevTools())
         WindowManager.mainWindow?.webContents.openDevTools();
       if (shouldLaunchInBigPicture) {
         void WindowManager.openBigPictureWindow();
@@ -413,7 +420,7 @@ export class WindowManager {
 
     this.bigPicture.removeMenu();
 
-    if (!app.isPackaged || isStaging) {
+    if (shouldOpenDevTools()) {
       this.bigPicture.webContents.openDevTools();
     }
 
@@ -483,7 +490,7 @@ export class WindowManager {
 
     this.friendsWindow.once("ready-to-show", () => {
       this.friendsWindow?.show();
-      if (!app.isPackaged || isStaging) {
+      if (shouldOpenDevTools()) {
         this.friendsWindow?.webContents.openDevTools();
       }
     });
@@ -764,7 +771,7 @@ export class WindowManager {
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
         this.mainWindow?.webContents.openDevTools();
-        if (!app.isPackaged || isStaging) {
+        if (shouldOpenDevTools()) {
           editorWindow.webContents.openDevTools();
         }
       });
@@ -844,7 +851,7 @@ export class WindowManager {
       this.gameLauncherWindowInstance = null;
     });
 
-    if (!app.isPackaged || isStaging) {
+    if (shouldOpenDevTools()) {
       gameLauncherWindow.webContents.openDevTools();
     }
   }
