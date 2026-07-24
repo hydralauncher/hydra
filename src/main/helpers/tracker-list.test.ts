@@ -68,8 +68,8 @@ describe("parseTrackerList", () => {
     ]);
   });
 
-  it("parses comma separated trackers", () => {
-    const list = "udp://a.com/announce,https://b.com/announce";
+  it("parses newline separated trackers", () => {
+    const list = "udp://a.com/announce\nhttps://b.com/announce";
     assert.deepStrictEqual(parseTrackerList(list), [
       "udp://a.com/announce",
       "https://b.com/announce",

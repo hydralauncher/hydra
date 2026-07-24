@@ -42,8 +42,6 @@ const addGameToQueue = async (
   try {
     const globalTrackers = await getGlobalTrackers();
 
-    const mergedTrackers = globalTrackers;
-
     download = {
       shop,
       objectId,
@@ -64,7 +62,7 @@ const addGameToQueue = async (
       automaticallyDeleteArchiveFiles,
       fileIndices,
       selectedFilesSize,
-      ...(mergedTrackers?.length ? { customTrackers: mergedTrackers } : {}),
+      ...(globalTrackers.length ? { customTrackers: globalTrackers } : {}),
     };
 
     await DownloadManager.validateDownloadUrl(download);
