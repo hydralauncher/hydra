@@ -1071,6 +1071,7 @@ export class DownloadManager {
       game_id: levelKeys.game(download.shop, download.objectId),
       url: download.uri,
       save_path: download.downloadPath,
+      trackers: download.customTrackers,
     });
   }
 
@@ -1546,6 +1547,7 @@ export class DownloadManager {
             ? download.fileIndices
             : undefined,
           metadata_timeout_ms: hasSelectedFileIndices ? 60_000 : undefined,
+          trackers: download.customTrackers,
         };
       }
       case Downloader.RealDebrid: {

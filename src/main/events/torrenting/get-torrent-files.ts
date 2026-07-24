@@ -1,7 +1,9 @@
 import { registerEvent } from "../register-event";
 import { PythonRPC } from "@main/services/python-rpc";
+import { logger } from "@main/services";
 import type { TorrentFilesResponse } from "@types";
 import { DownloadError } from "@shared";
+import { getGlobalTrackers } from "@main/helpers";
 
 const mapTorrentFilesError = (error: unknown) => {
   const rpcError =
@@ -22,6 +24,8 @@ const mapTorrentFilesError = (error: unknown) => {
         return DownloadError.TorrentTooManyFiles;
       case "metadata_busy":
         return DownloadError.TorrentMetadataTimeout;
+      case "invalid_trackers":
+        return DownloadError.TorrentInvalidTrackers;
       default:
         return DownloadError.TorrentFilesUnavailable;
     }
@@ -43,11 +47,14 @@ const getTorrentFiles = async (
   }
 
   try {
+    const trackers = await getGlobalTrackers();
+
     const response = await PythonRPC.rpc.call<TorrentFilesResponse>(
       "torrent_files",
       {
         magnet,
         timeout_ms: 45_000,
+        trackers,
       },
       {
         timeout: 45000,
@@ -59,6 +66,13 @@ const getTorrentFiles = async (
       data: response.data,
     };
   } catch (error) {
+    const isRpcError =
+      typeof error === "object" && error !== null && "response" in error;
+
+    if (!isRpcError) {
+      logger.error("Failed to get torrent files", error);
+    }
+
     return {
       ok: false,
       error: mapTorrentFilesError(error),

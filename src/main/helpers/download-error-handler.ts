@@ -36,6 +36,10 @@ const handleAxiosError = (
       return { ok: false, error: DownloadError.TorrentTooManyFiles };
     }
 
+    if (rpcErrorCode === "invalid_trackers") {
+      return { ok: false, error: DownloadError.TorrentInvalidTrackers };
+    }
+
     if (rpcErrorCode) {
       return { ok: false, error: DownloadError.TorrentFilesUnavailable };
     }
@@ -143,6 +147,10 @@ const mapTorrentErrorCode = (code: string): DownloadErrorResult | null => {
 
   if (code === "too_many_files") {
     return { ok: false, error: DownloadError.TorrentTooManyFiles };
+  }
+
+  if (code === "invalid_trackers") {
+    return { ok: false, error: DownloadError.TorrentInvalidTrackers };
   }
 
   return null;

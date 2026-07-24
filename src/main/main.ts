@@ -2,6 +2,7 @@ import { downloadsSublevel } from "./level/sublevels/downloads";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
+import { refreshGlobalTrackersUrlCache } from "@main/helpers";
 import { type Download, type UserPreferences } from "../types";
 import path from "node:path";
 import fs from "node:fs";
@@ -85,6 +86,15 @@ export const loadState = async () => {
   }
 
   GofileApi.initialize();
+
+  if (
+    userPreferences?.appendGlobalTrackersUrl &&
+    userPreferences?.globalTrackersUrl
+  ) {
+    refreshGlobalTrackersUrlCache().catch((err) =>
+      logger.warn("Failed to refresh global tracker URL cache on startup", err)
+    );
+  }
 
   Ludusavi.copyConfigFileToUserData();
   Ludusavi.copyBinaryToUserData();
