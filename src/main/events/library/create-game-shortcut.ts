@@ -2,7 +2,6 @@ import { registerEvent } from "../register-event";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import path from "node:path";
 import fs from "node:fs";
-import { app } from "electron";
 import axios from "axios";
 import sharp from "sharp";
 import pngToIco from "png-to-ico";
@@ -13,6 +12,11 @@ import { SystemPath } from "@main/services/system-path";
 import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { logger } from "@main/services";
+import {
+  buildRunDeepLink,
+  getHydraShortcutTarget,
+  getWindowsVbsPath,
+} from "@main/helpers/shortcut-launch";
 
 const isValidUrl = (url: string | null | undefined): url is string => {
   return (
@@ -137,34 +141,6 @@ const deleteIfExists = (filePath: string) => {
   }
 };
 
-const buildRunDeepLink = (shop: GameShop, objectId: string) => {
-  const query = new URLSearchParams({
-    shop,
-    objectId,
-  });
-
-  return `hydralauncher://run?${query.toString()}`;
-};
-
-const quoteLinuxExecArg = (value: string) => {
-  return `"${value.replaceAll('"', '\\"')}"`;
-};
-
-const getShortcutArguments = (deepLink: string) => {
-  const deepLinkArgument =
-    process.platform === "linux" ? quoteLinuxExecArg(deepLink) : deepLink;
-
-  if (process.defaultApp && process.argv.length >= 2) {
-    const appEntry = path.resolve(process.argv[1]);
-    const appEntryArgument =
-      process.platform === "linux" ? quoteLinuxExecArg(appEntry) : appEntry;
-
-    return `${appEntryArgument} ${deepLinkArgument}`;
-  }
-
-  return deepLinkArgument;
-};
-
 const getWindowsOutputPath = (location: ShortcutLocation) => {
   return location === "desktop"
     ? SystemPath.getPath("desktop")
@@ -177,15 +153,20 @@ const getWindowsOutputPath = (location: ShortcutLocation) => {
       );
 };
 
+const getShortcutOutputPath = (location: ShortcutLocation) =>
+  process.platform === "win32"
+    ? getWindowsOutputPath(location)
+    : SystemPath.getPath("desktop");
+
 const createWindowsShortcut = (
   shortcutName: string,
   outputPath: string,
   deepLink: string,
-  iconPath?: string | null
+  iconPath: string | null | undefined,
+  executablePath: string,
+  shortcutArguments: string
 ) => {
-  const windowVbsPath = app.isPackaged
-    ? path.join(process.resourcesPath, "windows.vbs")
-    : undefined;
+  const windowVbsPath = getWindowsVbsPath();
 
   const linkPath = path.join(outputPath, `${shortcutName}.lnk`);
   const urlPath = path.join(outputPath, `${shortcutName}.url`);
@@ -195,11 +176,11 @@ const createWindowsShortcut = (
 
   const nativeShortcutCreated = createDesktopShortcut({
     windows: {
-      filePath: process.execPath,
-      arguments: deepLink,
+      filePath: executablePath,
+      arguments: shortcutArguments,
       name: shortcutName,
       outputPath,
-      icon: iconPath ?? process.execPath,
+      icon: iconPath ?? executablePath,
       VBScriptPath: windowVbsPath,
     },
   });
@@ -208,7 +189,7 @@ const createWindowsShortcut = (
     return true;
   }
 
-  return createUrlShortcut(urlPath, deepLink, iconPath ?? process.execPath);
+  return createUrlShortcut(urlPath, deepLink, iconPath ?? executablePath);
 };
 
 const createGameShortcut = async (
@@ -224,6 +205,17 @@ const createGameShortcut = async (
     throw new Error("Could not find this game in your library.");
   }
 
+  const classicsDiscPath =
+    game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
+  if (
+    game.shop === "launchbox" &&
+    (!classicsDiscPath || !fs.existsSync(classicsDiscPath))
+  ) {
+    throw new Error(
+      "Classic games need an available disc before creating a shortcut."
+    );
+  }
+
   if (location === "start_menu" && process.platform !== "win32") {
     throw new Error("Start Menu shortcuts are only available on Windows.");
   }
@@ -231,11 +223,8 @@ const createGameShortcut = async (
   const shortcutName =
     removeSymbolsFromName(game.title).trim() || game.objectId;
   const deepLink = buildRunDeepLink(shop, objectId);
-  const shortcutArguments = getShortcutArguments(deepLink);
-  const outputPath =
-    process.platform === "win32"
-      ? getWindowsOutputPath(location)
-      : SystemPath.getPath("desktop");
+  const shortcutTarget = getHydraShortcutTarget(deepLink);
+  const outputPath = getShortcutOutputPath(location);
 
   if (!outputPath) {
     throw new Error("Could not resolve the shortcut output folder.");
@@ -256,7 +245,9 @@ const createGameShortcut = async (
       shortcutName,
       outputPath,
       deepLink,
-      iconPath
+      iconPath,
+      shortcutTarget.executablePath,
+      shortcutTarget.arguments
     );
 
     if (!success) {
@@ -269,13 +260,11 @@ const createGameShortcut = async (
     return true;
   }
 
-  const windowVbsPath = app.isPackaged
-    ? path.join(process.resourcesPath, "windows.vbs")
-    : undefined;
+  const windowVbsPath = getWindowsVbsPath();
 
   const options = {
-    filePath: process.execPath,
-    arguments: shortcutArguments,
+    filePath: shortcutTarget.executablePath,
+    arguments: shortcutTarget.arguments,
     name: shortcutName,
     outputPath,
     icon: iconPath ?? undefined,
