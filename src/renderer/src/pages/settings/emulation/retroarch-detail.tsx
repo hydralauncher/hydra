@@ -35,6 +35,7 @@ import {
 import { RetroArchRomsSection } from "./retroarch-roms-section";
 import {
   RETROARCH_CORE_LIST,
+  RETROARCH_CORES_LINE,
   RETROARCH_LABEL,
   retroArchCoreStatusText,
 } from "./retroarch-meta";
@@ -163,20 +164,6 @@ export function RetroArchDetail({
       setBusy(false);
     }
   }, [config.executablePath, onChange, showErrorToast, t]);
-
-  const handleInstallCore = useCallback(
-    async (core: RetroArchCoreName) => {
-      if (installingCores) return;
-      setInstallingCores(true);
-      try {
-        await window.electron.installRetroArchCore(core);
-        await refresh();
-      } finally {
-        setInstallingCores(false);
-      }
-    },
-    [installingCores, refresh]
-  );
 
   const handleInstallAllCores = useCallback(async () => {
     if (installingCores) return;
@@ -337,8 +324,39 @@ export function RetroArchDetail({
     [config.cores]
   );
 
-  const coreStatusText = (core: RetroArchCoreName): string =>
-    retroArchCoreStatusText(t, core, config, coreProgress);
+  const allCoresInstalled = installedCoreCount === RETROARCH_CORE_LIST.length;
+
+  const busyCore = RETROARCH_CORE_LIST.find((core) => {
+    const current = coreProgress[core.name];
+    return current?.phase === "downloading" || current?.phase === "extracting";
+  });
+
+  let coresRowStatus = t("retroarch_cores_installed_count", {
+    installed: installedCoreCount,
+    total: RETROARCH_CORE_LIST.length,
+  });
+  if (busyCore) {
+    coresRowStatus = `${busyCore.label}: ${retroArchCoreStatusText(
+      t,
+      busyCore.name,
+      config,
+      coreProgress
+    )}`;
+  } else if (allCoresInstalled) {
+    coresRowStatus = t("retroarch_cores_ready");
+  }
+
+  let coresRowIcon = <DownloadIcon size={24} />;
+  if (busyCore) {
+    coresRowIcon = (
+      <SyncIcon
+        size={24}
+        className="emulator-detail__redetect-icon--spinning"
+      />
+    );
+  } else if (allCoresInstalled) {
+    coresRowIcon = <CheckCircleFillIcon size={24} />;
+  }
 
   const tabs: { id: RetroArchTab; label: string }[] = [
     { id: "emulator", label: t("tab_emulator") },
@@ -399,37 +417,17 @@ export function RetroArchDetail({
             </header>
 
             <div className="emulator-detail__folders">
-              {RETROARCH_CORE_LIST.map((core) => {
-                const installed = config.cores[core.name]?.installed === true;
-                return (
-                  <div className="emulator-detail__row" key={core.name}>
-                    {installed ? (
-                      <CheckCircleFillIcon size={24} />
-                    ) : (
-                      <DownloadIcon size={24} />
-                    )}
-                    <div className="emulator-detail__folder-info">
-                      <span className="emulator-detail__folder-path">
-                        {core.label}
-                        {" · "}
-                        {core.platforms}
-                      </span>
-                      <div className="emulator-detail__folder-meta">
-                        <span>{coreStatusText(core.name)}</span>
-                      </div>
-                    </div>
-                    <Button
-                      theme="outline"
-                      onClick={() => handleInstallCore(core.name)}
-                      disabled={installingCores}
-                    >
-                      {installed
-                        ? t("retroarch_core_update")
-                        : t("retroarch_core_download")}
-                    </Button>
+              <div className="emulator-detail__row">
+                {coresRowIcon}
+                <div className="emulator-detail__folder-info">
+                  <span className="emulator-detail__folder-path">
+                    {RETROARCH_CORES_LINE}
+                  </span>
+                  <div className="emulator-detail__folder-meta">
+                    <span>{coresRowStatus}</span>
                   </div>
-                );
-              })}
+                </div>
+              </div>
             </div>
           </section>
 

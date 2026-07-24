@@ -137,7 +137,7 @@ export const resolveRetroArchInstallOptions = async (
         downloadUrl: null,
         fileName: null,
         version: null,
-        linkUrl: "https://aur.archlinux.org/packages/retroarch",
+        linkUrl: "https://aur.archlinux.org/packages/retroarch-git",
         linkKind: "aur",
       }
     );

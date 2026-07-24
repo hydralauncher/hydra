@@ -23,6 +23,14 @@ export const RETROARCH_CORE_LIST: RetroArchCoreMeta[] = [
 
 export const RETROARCH_LABEL = "RetroArch";
 
+export const RETROARCH_CORES_LINE = RETROARCH_CORE_LIST.map(
+  (core) => core.label
+).join(" · ");
+
+export const RETROARCH_CORES_TAGLINE = `${RETROARCH_CORE_LIST.slice(0, 2)
+  .map((core) => core.label)
+  .join(" · ")} +${RETROARCH_CORE_LIST.length - 2}`;
+
 export const retroArchCoreStatusText = (
   t: TFunction<"settings">,
   core: RetroArchCoreName,

@@ -607,7 +607,6 @@
   },
   "settings": {
     "setup_official_website": "Site oficial",
-    "retroarch_card_title": "Clássicos Nintendo",
     "retroarch_setup_cores_title": "Núcleos do emulador",
     "retroarch_setup_cores_intro": "O Hydra usa núcleos libretro para executar cada plataforma. Descarregue os cinco núcleos para ativar jogos de NES, SNES, N64 e Game Boy.",
     "retroarch_core_installed": "Instalado",
@@ -617,6 +616,7 @@
     "retroarch_core_update": "Atualizar",
     "retroarch_download_all_cores": "Descarregar todos os núcleos",
     "retroarch_downloading_cores": "A descarregar núcleos…",
+    "retroarch_cores_installed_count": "{{installed}} de {{total}} núcleos instalados",
     "retroarch_cores_ready": "Todos os núcleos instalados",
     "retroarch_cores_section_title": "Núcleos",
     "retroarch_cores_section_description": "{{installed}} de {{total}} núcleos instalados. Os núcleos são descarregados do buildbot do libretro.",

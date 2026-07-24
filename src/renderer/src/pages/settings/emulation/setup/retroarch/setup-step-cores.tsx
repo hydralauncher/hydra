@@ -31,8 +31,6 @@ export function SetupStepCores({ config, onConfigChange }: Readonly<Props>) {
     Partial<Record<RetroArchCoreName, RetroArchCoreInstallProgress>>
   >({});
   const [installingAll, setInstallingAll] = useState(false);
-  const [installingCore, setInstallingCore] =
-    useState<RetroArchCoreName | null>(null);
 
   useEffect(() => {
     const unsubscribe = window.electron.onRetroArchCoreInstallProgress(
@@ -48,22 +46,8 @@ export function SetupStepCores({ config, onConfigChange }: Readonly<Props>) {
     onConfigChange(next);
   }, [onConfigChange]);
 
-  const handleInstallCore = useCallback(
-    async (core: RetroArchCoreName) => {
-      if (installingAll || installingCore) return;
-      setInstallingCore(core);
-      try {
-        await window.electron.installRetroArchCore(core);
-        await refreshConfig();
-      } finally {
-        setInstallingCore(null);
-      }
-    },
-    [installingAll, installingCore, refreshConfig]
-  );
-
   const handleInstallAll = useCallback(async () => {
-    if (installingAll || installingCore) return;
+    if (installingAll) return;
     setInstallingAll(true);
     try {
       await window.electron.installAllRetroArchCores();
@@ -71,7 +55,7 @@ export function SetupStepCores({ config, onConfigChange }: Readonly<Props>) {
     } finally {
       setInstallingAll(false);
     }
-  }, [installingAll, installingCore, refreshConfig]);
+  }, [installingAll, refreshConfig]);
 
   const allInstalled = useMemo(
     () =>
@@ -81,21 +65,15 @@ export function SetupStepCores({ config, onConfigChange }: Readonly<Props>) {
     [config.cores]
   );
 
-  const coreStatusText = (core: RetroArchCoreName): string =>
-    retroArchCoreStatusText(t, core, config, progress);
-
   const coreIcon = (core: RetroArchCoreName) => {
     const current = progress[core];
     const busy =
-      current &&
-      (current.phase === "downloading" || current.phase === "extracting");
+      current?.phase === "downloading" || current?.phase === "extracting";
     if (busy) return <SyncIcon size={18} className="setup-modal__spin" />;
     if (current?.phase === "error") return <AlertIcon size={18} />;
     if (config.cores[core]?.installed) return <CheckCircleFillIcon size={20} />;
     return <DownloadIcon size={18} />;
   };
-
-  const busy = installingAll || installingCore !== null;
 
   return (
     <>
@@ -128,18 +106,9 @@ export function SetupStepCores({ config, onConfigChange }: Readonly<Props>) {
                   </span>
                 </div>
                 <span className="setup-modal__row-path">
-                  {coreStatusText(core.name)}
+                  {retroArchCoreStatusText(t, core.name, config, progress)}
                 </span>
               </div>
-              <Button
-                theme="outline"
-                onClick={() => handleInstallCore(core.name)}
-                disabled={busy}
-              >
-                {installed
-                  ? t("retroarch_core_update")
-                  : t("retroarch_core_download")}
-              </Button>
             </div>
           );
         })}
@@ -152,10 +121,17 @@ export function SetupStepCores({ config, onConfigChange }: Readonly<Props>) {
             <span>{t("retroarch_cores_ready")}</span>
           </div>
         ) : (
-          <Button theme="primary" onClick={handleInstallAll} disabled={busy}>
-            {installingAll
-              ? t("retroarch_downloading_cores")
-              : t("retroarch_download_all_cores")}
+          <Button
+            theme="primary"
+            onClick={handleInstallAll}
+            disabled={installingAll}
+          >
+            <DownloadIcon size={14} />
+            <span>
+              {installingAll
+                ? t("retroarch_downloading_cores")
+                : t("retroarch_download_all_cores")}
+            </span>
           </Button>
         )}
       </div>
