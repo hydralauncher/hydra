@@ -75,7 +75,7 @@ export const isGlobalTrackersUrlCacheStale = (
   cache: GlobalTrackersUrlCache | null | undefined,
   url: string
 ): boolean => {
-  if (!cache || cache.url !== url) return true;
+  if (cache?.url !== url) return true;
   return Date.now() - cache.updatedAt >= CACHE_TTL_MS;
 };
 

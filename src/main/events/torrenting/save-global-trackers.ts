@@ -23,7 +23,7 @@ const saveGlobalTrackers = async (
     await db.put(
       levelKeys.userPreferences,
       {
-        ...(userPreferences ?? {}),
+        ...userPreferences,
         globalTrackers: validManual,
         appendGlobalTrackers: appendManual,
         globalTrackersUrl: trimmedUrl,
