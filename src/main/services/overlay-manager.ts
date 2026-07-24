@@ -17,13 +17,13 @@ import path from "node:path";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { logger } from "./logger";
-import { injectedOverlayManager } from "./injected-overlay-manager";
 import { NativeAddon } from "./native-addon";
+import { findOverlayGameProcesses } from "./overlay-game-process";
 import { overlayFpsMonitor } from "./overlay-fps-monitor";
+import { ensureOverlayInputBroker } from "./overlay-input-broker";
 import { WindowManager } from "./window-manager";
 
-const PREFERRED_SHORTCUT = "Shift+F3";
-const FALLBACK_SHORTCUT = "Control+Shift+F3";
+const PREFERRED_SHORTCUT = "Shift+Tab";
 const CONTROLLER_SHORTCUT = "View + Menu";
 const TOAST_WIDTH = 620;
 const TOAST_HEIGHT = 190;
@@ -74,20 +74,15 @@ export class OverlayManager {
   private static performance = emptyPerformance();
   private static preferences = DEFAULT_HYDRA_OVERLAY_PREFERENCES;
   private static lastToggleAt = 0;
+  private static targetPid = 0;
+  private static targetPoll: NodeJS.Timeout | null = null;
+  private static targetRefreshPending = false;
+  private static lastTargetRefreshAt = 0;
 
   public static initialize() {
     overlayFpsMonitor.setUpdateHandler((metrics) =>
       this.updatePerformance(metrics)
     );
-    injectedOverlayManager.setStatusHandler((status) => {
-      logger.info("Hydra overlay backend status", status);
-      if (status.state === "access-denied") {
-        logger.error("The game process blocks Hydra overlay injection", {
-          ...status,
-          hydraElevated: NativeAddon.isCurrentProcessElevated(),
-        });
-      }
-    });
     app.once("will-quit", () => this.dispose());
   }
 
@@ -123,7 +118,6 @@ export class OverlayManager {
     }
     if (this.preferences.overlayPerformanceEnabled !== wasPerformanceEnabled) {
       this.performancePinned = false;
-      void injectedOverlayManager.setPinned(false);
       this.destroyFpsWindow();
       if (this.preferences.overlayPerformanceEnabled) {
         void overlayFpsMonitor.start(game);
@@ -155,19 +149,24 @@ export class OverlayManager {
     this.servicesActive = true;
     const nativeKeyboardActive = this.startControllerPolling();
     this.registerShortcut(nativeKeyboardActive);
-    if (process.platform !== "win32") this.showActivationToast();
-    if (this.preferences.overlayPerformanceEnabled) {
-      void overlayFpsMonitor.start(game);
+    if (process.platform === "win32") {
+      void ensureOverlayInputBroker().then((ready) => {
+        if (ready && this.servicesActive) NativeAddon.startOverlayInputBroker();
+      });
     }
-    void injectedOverlayManager.attach(game).then((ready) => {
+    this.startTargetPolling();
+    void this.refreshTargetProcess(game).then(() => {
       if (
-        ready &&
+        this.servicesActive &&
         this.activeGame?.objectId === game.objectId &&
         this.activeGame.shop === game.shop
       ) {
-        this.destroyToast();
+        this.showActivationToast();
       }
     });
+    if (this.preferences.overlayPerformanceEnabled) {
+      void overlayFpsMonitor.start(game);
+    }
   }
 
   public static getActiveGame() {
@@ -258,7 +257,7 @@ export class OverlayManager {
   private static async toggleOverlayWindow() {
     const game = this.activeGame;
     if (!game) return;
-    const injectedReady = await injectedOverlayManager.whenReady();
+    await this.refreshTargetProcess(game);
     if (
       !this.activeGame ||
       this.activeGame.objectId !== game.objectId ||
@@ -266,29 +265,6 @@ export class OverlayManager {
     ) {
       return;
     }
-    if (injectedReady) {
-      this.destroyToast();
-      this.destroyFpsWindow();
-      if (injectedOverlayManager.isVisible()) {
-        await injectedOverlayManager.hide();
-      } else {
-        await injectedOverlayManager.show();
-      }
-      return;
-    }
-
-    if (process.platform === "win32") {
-      if (injectedOverlayManager.isShowRequested()) {
-        await injectedOverlayManager.hide();
-      } else {
-        await injectedOverlayManager.show();
-        if (injectedOverlayManager.getStatus().state !== "access-denied") {
-          injectedOverlayManager.retry();
-        }
-      }
-      return;
-    }
-
     const overlayWindow = this.ensureOverlayWindow();
     if (overlayWindow.isVisible()) {
       this.hideOverlay();
@@ -298,19 +274,18 @@ export class OverlayManager {
     const show = () => {
       if (overlayWindow.isDestroyed() || !this.activeGame) return;
       this.fpsWindow?.hide();
-      const display = screen.getDisplayNearestPoint(
-        screen.getCursorScreenPoint()
-      );
-      overlayWindow.setBounds(display.bounds);
+      overlayWindow.setBounds(this.getTargetBounds());
       overlayWindow.setAlwaysOnTop(false);
       overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
       overlayWindow.show();
+      this.placeWindowOverGame(overlayWindow);
       overlayWindow.moveTop();
       overlayWindow.focus();
       overlayWindow.webContents.send("on-overlay-shown");
       setTimeout(() => {
         if (!overlayWindow.isDestroyed() && overlayWindow.isVisible()) {
           overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
+          this.placeWindowOverGame(overlayWindow);
           overlayWindow.moveTop();
           overlayWindow.focus();
         }
@@ -325,29 +300,20 @@ export class OverlayManager {
   }
 
   public static hideOverlay() {
-    void injectedOverlayManager.hide();
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
       this.overlayWindow.hide();
     }
-    if (
-      this.activeGame &&
-      this.performancePinned &&
-      !injectedOverlayManager.isReady()
-    ) {
+    if (this.activeGame && this.performancePinned) {
       this.showFpsWindow();
     }
+    const pid = this.targetPid;
+    if (pid) setTimeout(() => NativeAddon.focusProcessWindow(pid), 25);
   }
 
   public static setPerformancePinned(pinned: boolean) {
     if (!this.preferences.overlayPerformanceEnabled) return;
     this.performancePinned = pinned;
     this.overlayWindow?.webContents.send("on-overlay-performance-pin", pinned);
-    injectedOverlayManager.send("on-overlay-performance-pin", pinned);
-    void injectedOverlayManager.setPinned(pinned);
-    if (injectedOverlayManager.isReady()) {
-      this.destroyFpsWindow();
-      return;
-    }
     if (!pinned) {
       this.destroyFpsWindow();
     } else if (!this.overlayWindow?.isVisible()) {
@@ -360,11 +326,9 @@ export class OverlayManager {
       return this.overlayWindow;
     }
 
-    const display = screen.getDisplayNearestPoint(
-      screen.getCursorScreenPoint()
-    );
+    const bounds = this.getTargetBounds();
     const overlayWindow = new BrowserWindow({
-      ...display.bounds,
+      ...bounds,
       show: false,
       transparent: true,
       backgroundColor: "#00000000",
@@ -385,6 +349,13 @@ export class OverlayManager {
 
     overlayWindow.removeMenu();
     overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    if (process.platform === "linux") {
+      overlayWindow.setVisibleOnAllWorkspaces(true);
+      NativeAddon.markGamescopeOverlay(
+        overlayWindow.getNativeWindowHandle(),
+        false
+      );
+    }
     WindowManager.loadWindowURL(overlayWindow, "overlay");
 
     if ((!app.isPackaged || isStaging) && process.env.HYDRA_OVERLAY_DEVTOOLS) {
@@ -399,15 +370,86 @@ export class OverlayManager {
     return overlayWindow;
   }
 
+  private static async refreshTargetProcess(game: Game) {
+    if (this.targetRefreshPending) return this.targetPid;
+    this.targetRefreshPending = true;
+    try {
+      const candidates = await findOverlayGameProcesses(game);
+      if (
+        this.activeGame?.objectId !== game.objectId ||
+        this.activeGame.shop !== game.shop
+      ) {
+        return this.targetPid;
+      }
+      this.targetPid = candidates[0]?.pid ?? 0;
+      this.lastTargetRefreshAt = Date.now();
+      return this.targetPid;
+    } finally {
+      this.targetRefreshPending = false;
+    }
+  }
+
+  private static getTargetBounds(): Electron.Rectangle {
+    if (this.targetPid) {
+      const bounds = NativeAddon.getProcessWindowBounds(this.targetPid);
+      if (bounds && bounds.width > 0 && bounds.height > 0) return bounds;
+    }
+    return screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).bounds;
+  }
+
+  private static placeWindowOverGame(window: BrowserWindow) {
+    if (window.isDestroyed()) return;
+    if (
+      process.platform === "win32" &&
+      this.targetPid &&
+      NativeAddon.placeOverlayWindow(
+        window.getNativeWindowHandle(),
+        this.targetPid
+      )
+    ) {
+      return;
+    }
+    window.setBounds(this.getTargetBounds());
+  }
+
+  private static startTargetPolling() {
+    this.stopTargetPolling();
+    this.targetPoll = setInterval(() => {
+      const game = this.activeGame;
+      if (!game) return;
+      if (Date.now() - this.lastTargetRefreshAt >= 2_000) {
+        void this.refreshTargetProcess(game);
+      }
+      const bounds = this.getTargetBounds();
+      if (this.overlayWindow?.isVisible()) {
+        this.placeWindowOverGame(this.overlayWindow);
+      }
+      if (this.toastWindow?.isVisible()) {
+        this.toastWindow.setPosition(
+          bounds.x + bounds.width - TOAST_WIDTH - TOAST_MARGIN,
+          bounds.y + TOAST_MARGIN
+        );
+      }
+      if (this.fpsWindow?.isVisible()) {
+        this.fpsWindow.setPosition(bounds.x + 24, bounds.y + 24);
+      }
+    }, 250);
+  }
+
+  private static stopTargetPolling() {
+    if (this.targetPoll) clearInterval(this.targetPoll);
+    this.targetPoll = null;
+    this.targetRefreshPending = false;
+    this.lastTargetRefreshAt = 0;
+  }
+
   private static showActivationToast() {
     this.destroyToast();
 
-    const display = screen.getDisplayNearestPoint(
-      screen.getCursorScreenPoint()
-    );
+    const targetBounds = this.getTargetBounds();
     const toastWindow = new BrowserWindow({
-      x: display.bounds.x + display.bounds.width - TOAST_WIDTH - TOAST_MARGIN,
-      y: display.bounds.y + TOAST_MARGIN,
+      x: targetBounds.x + targetBounds.width - TOAST_WIDTH - TOAST_MARGIN,
+      y: targetBounds.y + TOAST_MARGIN,
       width: TOAST_WIDTH,
       height: TOAST_HEIGHT,
       show: false,
@@ -426,6 +468,13 @@ export class OverlayManager {
     toastWindow.removeMenu();
     toastWindow.setIgnoreMouseEvents(true);
     toastWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    if (process.platform === "linux") {
+      toastWindow.setVisibleOnAllWorkspaces(true);
+      NativeAddon.markGamescopeOverlay(
+        toastWindow.getNativeWindowHandle(),
+        true
+      );
+    }
     WindowManager.loadWindowURL(toastWindow, "overlay-toast");
     toastWindow.once("ready-to-show", () => toastWindow.showInactive());
     toastWindow.on("closed", () => {
@@ -450,7 +499,6 @@ export class OverlayManager {
     if (!this.activeGame) return;
     this.fpsWindow?.webContents.send("on-overlay-performance", metrics);
     this.overlayWindow?.webContents.send("on-overlay-performance", metrics);
-    injectedOverlayManager.send("on-overlay-performance", metrics);
   }
 
   private static readPreferences(preferences: UserPreferences | null) {
@@ -460,7 +508,6 @@ export class OverlayManager {
   private static notifyOverlayContextChanged() {
     this.fpsWindow?.webContents.send("on-overlay-shown");
     this.overlayWindow?.webContents.send("on-overlay-shown");
-    injectedOverlayManager.send("on-overlay-shown");
   }
 
   private static stopActiveServices() {
@@ -470,11 +517,13 @@ export class OverlayManager {
     this.destroyToast();
     this.unregisterShortcut();
     this.stopControllerPolling();
+    NativeAddon.stopOverlayInputBroker();
+    this.stopTargetPolling();
     overlayFpsMonitor.stop();
-    injectedOverlayManager.detach();
     this.destroyFpsWindow();
     this.performancePinned = false;
     this.performance = emptyPerformance();
+    this.targetPid = 0;
   }
 
   private static showFpsWindow() {
@@ -493,12 +542,10 @@ export class OverlayManager {
 
   private static ensureFpsWindow() {
     if (this.fpsWindow && !this.fpsWindow.isDestroyed()) return this.fpsWindow;
-    const display = screen.getDisplayNearestPoint(
-      screen.getCursorScreenPoint()
-    );
+    const targetBounds = this.getTargetBounds();
     const fpsWindow = new BrowserWindow({
-      x: display.bounds.x + 24,
-      y: display.bounds.y + 24,
+      x: targetBounds.x + 24,
+      y: targetBounds.y + 24,
       width: FPS_WIDTH,
       height: FPS_HEIGHT,
       show: false,
@@ -517,6 +564,10 @@ export class OverlayManager {
     fpsWindow.removeMenu();
     fpsWindow.setIgnoreMouseEvents(true);
     fpsWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    if (process.platform === "linux") {
+      fpsWindow.setVisibleOnAllWorkspaces(true);
+      NativeAddon.markGamescopeOverlay(fpsWindow.getNativeWindowHandle(), true);
+    }
     WindowManager.loadWindowURL(fpsWindow, "overlay-fps");
     fpsWindow.on("closed", () => {
       if (this.fpsWindow === fpsWindow) this.fpsWindow = null;
@@ -549,16 +600,8 @@ export class OverlayManager {
 
     if (process.platform === "win32") {
       logger.warn(
-        "Shift+F3 OS registration failed; native overlay polling remains active"
+        "Shift+Tab OS registration failed; native overlay polling remains active"
       );
-      return;
-    }
-
-    if (
-      globalShortcut.register(FALLBACK_SHORTCUT, () => this.toggleOverlay())
-    ) {
-      this.registeredShortcut = FALLBACK_SHORTCUT;
-      this.registeredWithElectron = true;
       return;
     }
 
@@ -608,9 +651,7 @@ export class OverlayManager {
   }
 
   private static processGamepadNavigation(buttons: number) {
-    const overlayVisible =
-      injectedOverlayManager.isVisible() ||
-      Boolean(this.overlayWindow?.isVisible());
+    const overlayVisible = Boolean(this.overlayWindow?.isVisible());
     if (!overlayVisible) {
       this.previousGamepadButtons = buttons;
       this.repeatingGamepadButton = 0;
@@ -648,7 +689,6 @@ export class OverlayManager {
 
   private static sendGamepadAction(action: HydraOverlayGamepadAction) {
     this.overlayWindow?.webContents.send("on-overlay-gamepad-action", action);
-    injectedOverlayManager.send("on-overlay-gamepad-action", action);
   }
 
   private static dispose() {

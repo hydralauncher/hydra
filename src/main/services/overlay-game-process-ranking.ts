@@ -48,3 +48,17 @@ export const rankOverlayGameProcesses = (
         right.pid - left.pid
     );
 };
+
+export const prioritizeVisibleOverlayProcesses = (
+  candidates: OverlayProcessCandidate[],
+  visiblePids: ReadonlySet<number>
+) =>
+  candidates
+    .map((candidate, index) => ({ candidate, index }))
+    .sort(
+      (left, right) =>
+        Number(visiblePids.has(right.candidate.pid)) -
+          Number(visiblePids.has(left.candidate.pid)) ||
+        left.index - right.index
+    )
+    .map(({ candidate }) => candidate);

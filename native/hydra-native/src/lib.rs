@@ -6,6 +6,8 @@ use std::{cmp::Ordering, collections::HashMap};
 #[cfg(target_os = "windows")]
 use std::mem::{size_of, zeroed};
 #[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
 use std::ptr::{null, null_mut};
 #[cfg(target_os = "windows")]
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering as AtomicOrdering};
@@ -29,42 +31,38 @@ use sysinfo::{ProcessesToUpdate, System};
 use uuid::Uuid;
 
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HWND, LPARAM, LRESULT, WPARAM};
+use windows_sys::core::BOOL;
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::Security::{
-    GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY,
-};
+use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::Graphics::Gdi::ClientToScreen;
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::System::Threading::{
-    GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_CREATE_THREAD,
-    PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_VM_OPERATION, PROCESS_VM_READ, PROCESS_VM_WRITE,
-};
-#[cfg(target_os = "windows")]
-use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-    GetAsyncKeyState, RegisterHotKey, MOD_NOREPEAT, MOD_SHIFT,
-};
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState;
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::UI::Input::{
     GetRawInputData, RegisterRawInputDevices, HRAWINPUT, RAWINPUT, RAWINPUTDEVICE, RAWINPUTHEADER,
     RIDEV_INPUTSINK, RID_INPUT, RIM_TYPEKEYBOARD,
 };
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::UI::Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW};
-#[cfg(target_os = "windows")]
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DispatchMessageW, GetForegroundWindow, GetMessageW,
-    GetWindowThreadProcessId, RegisterClassW, TranslateMessage, HWND_MESSAGE, MSG, SW_SHOWNORMAL,
-    WM_HOTKEY, WM_INPUT, WNDCLASSW,
+    CreateWindowExW, DefWindowProcW, DispatchMessageW, EnumWindows, GetClientRect,
+    GetForegroundWindow, GetMessageW, GetWindow, GetWindowLongW, GetWindowThreadProcessId,
+    IsIconic, IsWindowVisible, RegisterClassW, SetForegroundWindow, SetWindowPos, ShowWindow,
+    TranslateMessage, GWL_EXSTYLE, GW_OWNER, HWND_MESSAGE, HWND_TOPMOST, MSG, SWP_NOACTIVATE,
+    SWP_SHOWWINDOW, SW_RESTORE, WM_APP, WM_INPUT, WNDCLASSW, WS_EX_TOOLWINDOW,
 };
+
+#[cfg(target_os = "windows")]
+const BROKER_EVENT_MESSAGE: u32 = WM_APP + 42;
 
 #[cfg(target_os = "windows")]
 static RAW_INPUT_STARTED: AtomicBool = AtomicBool::new(false);
 #[cfg(target_os = "windows")]
 static SHIFT_DOWN: AtomicBool = AtomicBool::new(false);
 #[cfg(target_os = "windows")]
-static F3_DOWN: AtomicBool = AtomicBool::new(false);
+static TAB_DOWN: AtomicBool = AtomicBool::new(false);
 #[cfg(target_os = "windows")]
 static COMBO_LATCHED: AtomicBool = AtomicBool::new(false);
 #[cfg(target_os = "windows")]
@@ -155,8 +153,8 @@ fn record_overlay_shortcut() {
 #[cfg(target_os = "windows")]
 fn poll_overlay_combo() {
     let shift_down = unsafe { GetAsyncKeyState(0x10) } as u16 & 0x8000 != 0;
-    let f3_down = unsafe { GetAsyncKeyState(0x72) } as u16 & 0x8000 != 0;
-    let active = shift_down && f3_down;
+    let tab_down = unsafe { GetAsyncKeyState(0x09) } as u16 & 0x8000 != 0;
+    let active = shift_down && tab_down;
 
     if active && !POLLED_COMBO_LATCHED.swap(true, AtomicOrdering::AcqRel) {
         record_overlay_shortcut();
@@ -169,11 +167,11 @@ fn poll_overlay_combo() {
 fn update_overlay_combo(virtual_key: u16, pressed: bool) {
     match virtual_key {
         0x10 | 0xA0 | 0xA1 => SHIFT_DOWN.store(pressed, AtomicOrdering::Release),
-        0x72 => F3_DOWN.store(pressed, AtomicOrdering::Release),
+        0x09 => TAB_DOWN.store(pressed, AtomicOrdering::Release),
         _ => return,
     }
 
-    let active = SHIFT_DOWN.load(AtomicOrdering::Acquire) && F3_DOWN.load(AtomicOrdering::Acquire);
+    let active = SHIFT_DOWN.load(AtomicOrdering::Acquire) && TAB_DOWN.load(AtomicOrdering::Acquire);
     if active && !COMBO_LATCHED.swap(true, AtomicOrdering::AcqRel) {
         record_overlay_shortcut();
     } else if !active {
@@ -188,7 +186,7 @@ unsafe extern "system" fn raw_input_window_proc(
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
-    if message == WM_HOTKEY {
+    if message == BROKER_EVENT_MESSAGE {
         record_overlay_shortcut();
         return 0;
     }
@@ -261,8 +259,6 @@ fn run_raw_input_thread(sender: mpsc::SyncSender<bool>) {
             return;
         }
 
-        RegisterHotKey(window, 1, MOD_SHIFT | MOD_NOREPEAT, 0x72);
-
         let _ = sender.send(true);
         let mut message: MSG = zeroed();
         while GetMessageW(&mut message, null_mut(), 0, 0) > 0 {
@@ -272,40 +268,214 @@ fn run_raw_input_thread(sender: mpsc::SyncSender<bool>) {
     }
 }
 
-#[napi(object)]
-pub struct ProcessAccessStatus {
-    pub can_inject: bool,
-    pub error_code: u32,
+#[napi]
+pub fn start_overlay_input_broker() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("schtasks.exe")
+            .args(["/Run", "/TN", "Hydra Overlay Input"])
+            .creation_flags(0x0800_0000)
+            .status()
+            .is_ok_and(|status| status.success())
+    }
+    #[cfg(not(target_os = "windows"))]
+    false
 }
 
 #[napi]
-pub fn get_process_access_status(pid: u32) -> ProcessAccessStatus {
+pub fn stop_overlay_input_broker() -> bool {
     #[cfg(target_os = "windows")]
-    unsafe {
-        let rights = PROCESS_CREATE_THREAD
-            | PROCESS_QUERY_LIMITED_INFORMATION
-            | PROCESS_VM_OPERATION
-            | PROCESS_VM_WRITE
-            | PROCESS_VM_READ;
-        let handle = OpenProcess(rights, 0, pid);
-        if handle.is_null() {
-            return ProcessAccessStatus {
-                can_inject: false,
-                error_code: GetLastError(),
-            };
-        }
-        CloseHandle(handle);
-        ProcessAccessStatus {
-            can_inject: true,
-            error_code: 0,
-        }
+    {
+        std::process::Command::new("schtasks.exe")
+            .args(["/End", "/TN", "Hydra Overlay Input"])
+            .creation_flags(0x0800_0000)
+            .status()
+            .is_ok_and(|status| status.success())
+    }
+    #[cfg(not(target_os = "windows"))]
+    false
+}
+
+#[napi(object)]
+pub struct NativeWindowBounds {
+    pub x: i32,
+    pub y: i32,
+    pub width: i32,
+    pub height: i32,
+}
+
+#[cfg(target_os = "windows")]
+struct WindowSearch {
+    pid: u32,
+    window: HWND,
+    bounds: RECT,
+    area: i64,
+}
+
+#[cfg(target_os = "windows")]
+unsafe extern "system" fn find_process_window(window: HWND, parameter: LPARAM) -> BOOL {
+    let search = unsafe { &mut *(parameter as *mut WindowSearch) };
+    let mut pid = 0;
+    unsafe { GetWindowThreadProcessId(window, &mut pid) };
+    if pid != search.pid || unsafe { IsWindowVisible(window) } == 0 {
+        return 1;
+    }
+    if unsafe { GetWindowLongW(window, GWL_EXSTYLE) } as u32 & WS_EX_TOOLWINDOW != 0 {
+        return 1;
+    }
+    if !unsafe { GetWindow(window, GW_OWNER) }.is_null() {
+        return 1;
     }
 
-    #[cfg(not(target_os = "windows"))]
-    ProcessAccessStatus {
-        can_inject: false,
-        error_code: 0,
+    let mut client: RECT = unsafe { zeroed() };
+    if unsafe { GetClientRect(window, &mut client) } == 0 {
+        return 1;
     }
+    let mut origin = POINT { x: 0, y: 0 };
+    if unsafe { ClientToScreen(window, &mut origin) } == 0 {
+        return 1;
+    }
+    let width = client.right - client.left;
+    let height = client.bottom - client.top;
+    let area = i64::from(width) * i64::from(height);
+    if width > 0 && height > 0 && area > search.area {
+        search.window = window;
+        search.bounds = RECT {
+            left: origin.x,
+            top: origin.y,
+            right: origin.x + width,
+            bottom: origin.y + height,
+        };
+        search.area = area;
+    }
+    1
+}
+
+#[cfg(target_os = "windows")]
+fn process_window(pid: u32) -> Option<(HWND, RECT)> {
+    let mut search = WindowSearch {
+        pid,
+        window: null_mut(),
+        bounds: unsafe { zeroed() },
+        area: 0,
+    };
+    unsafe {
+        EnumWindows(
+            Some(find_process_window),
+            &mut search as *mut WindowSearch as LPARAM,
+        );
+    }
+    (!search.window.is_null()).then_some((search.window, search.bounds))
+}
+
+#[napi]
+pub fn get_process_window_bounds(_pid: u32) -> Option<NativeWindowBounds> {
+    #[cfg(target_os = "windows")]
+    if let Some((_, bounds)) = process_window(_pid) {
+        return Some(NativeWindowBounds {
+            x: bounds.left,
+            y: bounds.top,
+            width: bounds.right - bounds.left,
+            height: bounds.bottom - bounds.top,
+        });
+    }
+    None
+}
+
+#[napi]
+pub fn place_overlay_window(_window_handle: i64, _pid: u32) -> bool {
+    #[cfg(target_os = "windows")]
+    if let Some((_, bounds)) = process_window(_pid) {
+        let overlay = _window_handle as HWND;
+        if overlay.is_null() {
+            return false;
+        }
+        return unsafe {
+            SetWindowPos(
+                overlay,
+                HWND_TOPMOST,
+                bounds.left,
+                bounds.top,
+                bounds.right - bounds.left,
+                bounds.bottom - bounds.top,
+                SWP_NOACTIVATE | SWP_SHOWWINDOW,
+            ) != 0
+        };
+    }
+    false
+}
+
+#[napi]
+pub fn mark_gamescope_overlay(_window_handle: i64, _no_focus: bool) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        use x11rb::connection::Connection;
+        use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _, PropMode};
+        use x11rb::wrapper::ConnectionExt as _;
+
+        let Ok((connection, _)) = x11rb::connect(None) else {
+            return false;
+        };
+        let Ok(external_overlay) = connection.intern_atom(false, b"GAMESCOPE_EXTERNAL_OVERLAY")
+        else {
+            return false;
+        };
+        let Ok(external_overlay) = external_overlay.reply() else {
+            return false;
+        };
+        let Ok(window) = u32::try_from(_window_handle) else {
+            return false;
+        };
+        if window == 0 {
+            return false;
+        }
+        let Ok(external_overlay_cookie) = connection.change_property32(
+            PropMode::REPLACE,
+            window,
+            external_overlay.atom,
+            AtomEnum::CARDINAL,
+            &[1],
+        ) else {
+            return false;
+        };
+        if external_overlay_cookie.check().is_err() {
+            return false;
+        }
+        let Ok(no_focus_atom) = connection.intern_atom(false, b"GAMESCOPE_NO_FOCUS") else {
+            return false;
+        };
+        let Ok(no_focus_atom) = no_focus_atom.reply() else {
+            return false;
+        };
+        let focus_cookie = if _no_focus {
+            connection.change_property32(
+                PropMode::REPLACE,
+                window,
+                no_focus_atom.atom,
+                AtomEnum::CARDINAL,
+                &[1],
+            )
+        } else {
+            connection.delete_property(window, no_focus_atom.atom)
+        };
+        focus_cookie.is_ok_and(|cookie| cookie.check().is_ok()) && connection.flush().is_ok()
+    }
+    #[cfg(not(target_os = "linux"))]
+    false
+}
+
+#[napi]
+pub fn focus_process_window(_pid: u32) -> bool {
+    #[cfg(target_os = "windows")]
+    if let Some((window, _)) = process_window(_pid) {
+        unsafe {
+            if IsIconic(window) != 0 {
+                ShowWindow(window, SW_RESTORE);
+            }
+            return SetForegroundWindow(window) != 0;
+        }
+    }
+    false
 }
 
 #[napi]
@@ -323,70 +493,6 @@ pub fn get_foreground_process_id() -> u32 {
 
     #[cfg(not(target_os = "windows"))]
     0
-}
-
-#[napi]
-pub fn is_current_process_elevated() -> bool {
-    #[cfg(target_os = "windows")]
-    unsafe {
-        let mut token = null_mut();
-        if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) == 0 {
-            return false;
-        }
-
-        let mut elevation: TOKEN_ELEVATION = zeroed();
-        let mut returned_size = 0;
-        let result = GetTokenInformation(
-            token,
-            TokenElevation,
-            &mut elevation as *mut TOKEN_ELEVATION as *mut _,
-            size_of::<TOKEN_ELEVATION>() as u32,
-            &mut returned_size,
-        );
-        CloseHandle(token);
-        result != 0 && elevation.TokenIsElevated != 0
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    false
-}
-
-#[napi]
-pub fn launch_elevated(executable: String, parameters: String, working_directory: String) -> bool {
-    #[cfg(target_os = "windows")]
-    unsafe {
-        let verb: Vec<u16> = "runas\0".encode_utf16().collect();
-        let executable: Vec<u16> = executable
-            .encode_utf16()
-            .chain(std::iter::once(0))
-            .collect();
-        let parameters: Vec<u16> = parameters
-            .encode_utf16()
-            .chain(std::iter::once(0))
-            .collect();
-        let working_directory: Vec<u16> = working_directory
-            .encode_utf16()
-            .chain(std::iter::once(0))
-            .collect();
-        let mut execute_info: SHELLEXECUTEINFOW = zeroed();
-        execute_info.cbSize = size_of::<SHELLEXECUTEINFOW>() as u32;
-        execute_info.fMask = SEE_MASK_NOCLOSEPROCESS;
-        execute_info.lpVerb = verb.as_ptr();
-        execute_info.lpFile = executable.as_ptr();
-        execute_info.lpParameters = parameters.as_ptr();
-        execute_info.lpDirectory = working_directory.as_ptr();
-        execute_info.nShow = SW_SHOWNORMAL;
-        if ShellExecuteExW(&mut execute_info) == 0 {
-            return false;
-        }
-        if !execute_info.hProcess.is_null() {
-            CloseHandle(execute_info.hProcess);
-        }
-        true
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    false
 }
 
 #[napi]

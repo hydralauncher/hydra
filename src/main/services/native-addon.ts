@@ -34,26 +34,30 @@ type HydraNativeModule = {
   ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
   startOverlayKeyboardWatcher: () => boolean;
+  startOverlayInputBroker: () => boolean;
+  stopOverlayInputBroker: () => boolean;
   getOverlayKeyboardEventCount: () => number;
   getOverlayGamepadButtons: () => number;
   getForegroundProcessId: () => number;
-  isCurrentProcessElevated: () => boolean;
-  getProcessAccessStatus: (pid: number) => {
-    canInject?: boolean;
-    can_inject?: boolean;
-    errorCode?: number;
-    error_code?: number;
-  };
-  launchElevated: (
-    executable: string,
-    parameters: string,
-    workingDirectory: string
+  getProcessWindowBounds: (
+    pid: number
+  ) => { x: number; y: number; width: number; height: number } | undefined;
+  placeOverlayWindow: (windowHandle: bigint | number, pid: number) => boolean;
+  focusProcessWindow: (pid: number) => boolean;
+  markGamescopeOverlay: (
+    windowHandle: bigint | number,
+    noFocus: boolean
   ) => boolean;
 };
 
 export type SystemProcessMap = {
   processMap: Record<string, string[]>;
   winePrefixMap: Record<string, string>;
+  windowsProcesses: Array<{
+    name: string;
+    exe: string | null;
+    pid: number;
+  }>;
   linuxProcesses: Array<{
     name: string;
     cwd: string;
@@ -81,6 +85,7 @@ const platform = process.platform;
 function buildMaps(processes) {
   const processMap = Object.create(null);
   const winePrefixMap = Object.create(null);
+  const windowsProcesses = [];
   const linuxProcesses = [];
 
   for (const proc of processes) {
@@ -89,7 +94,13 @@ function buildMaps(processes) {
       ? proc.exe
       : path.join(proc.cwd || '', proc.name || '');
 
-    if (!key || !value) continue;
+    if (!key) continue;
+
+    if (platform === 'win32') {
+      windowsProcesses.push({ name: key, exe: proc.exe || null, pid: proc.pid });
+    }
+
+    if (!value) continue;
 
     const steamCompatDataPath = proc.environ && proc.environ.STEAM_COMPAT_DATA_PATH;
     if (steamCompatDataPath) winePrefixMap[value] = steamCompatDataPath;
@@ -110,7 +121,7 @@ function buildMaps(processes) {
     processMap[key].push(value);
   }
 
-  return { processMap, winePrefixMap, linuxProcesses };
+  return { processMap, winePrefixMap, windowsProcesses, linuxProcesses };
 }
 
 parentPort.on('message', (type) => {
@@ -123,7 +134,7 @@ parentPort.on('message', (type) => {
     }
   } catch (_) {
     if (type === 'map') {
-      parentPort.postMessage({ type: 'map', result: { processMap: {}, winePrefixMap: {}, linuxProcesses: [] } });
+      parentPort.postMessage({ type: 'map', result: { processMap: {}, winePrefixMap: {}, windowsProcesses: [], linuxProcesses: [] } });
     } else {
       parentPort.postMessage({ type: 'list', result: [] });
     }
@@ -296,6 +307,7 @@ export class NativeAddon {
         pending.resolve({
           processMap: {},
           winePrefixMap: {},
+          windowsProcesses: [],
           linuxProcesses: [],
         });
     }
@@ -320,7 +332,12 @@ export class NativeAddon {
         this.pendingResolvers.push({ type: "map", resolve });
         worker.postMessage("map");
       } catch {
-        resolve({ processMap: {}, winePrefixMap: {}, linuxProcesses: [] });
+        resolve({
+          processMap: {},
+          winePrefixMap: {},
+          windowsProcesses: [],
+          linuxProcesses: [],
+        });
       }
     });
   }
@@ -341,6 +358,22 @@ export class NativeAddon {
     }
   }
 
+  public static startOverlayInputBroker(): boolean {
+    try {
+      return this.load().startOverlayInputBroker();
+    } catch {
+      return false;
+    }
+  }
+
+  public static stopOverlayInputBroker(): boolean {
+    try {
+      return this.load().stopOverlayInputBroker();
+    } catch {
+      return false;
+    }
+  }
+
   public static getOverlayGamepadButtons(): number {
     try {
       return this.load().getOverlayGamepadButtons();
@@ -357,39 +390,42 @@ export class NativeAddon {
     }
   }
 
-  public static isCurrentProcessElevated(): boolean {
+  public static getProcessWindowBounds(pid: number) {
     try {
-      return this.load().isCurrentProcessElevated();
+      return this.load().getProcessWindowBounds(pid) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  public static placeOverlayWindow(windowHandle: Buffer, pid: number) {
+    try {
+      const handle =
+        windowHandle.length >= 8
+          ? windowHandle.readBigUInt64LE(0)
+          : windowHandle.readUInt32LE(0);
+      return this.load().placeOverlayWindow(handle, pid);
     } catch {
       return false;
     }
   }
 
-  public static getProcessAccessStatus(pid: number) {
+  public static focusProcessWindow(pid: number) {
     try {
-      const status = this.load().getProcessAccessStatus(pid);
-      return {
-        canInject: status.canInject ?? status.can_inject ?? false,
-        errorCode: status.errorCode ?? status.error_code ?? 0,
-      };
+      return this.load().focusProcessWindow(pid);
     } catch {
-      return { canInject: false, errorCode: 0 };
+      return false;
     }
   }
 
-  public static launchElevated(
-    executable: string,
-    parameters: string,
-    workingDirectory: string
-  ) {
+  public static markGamescopeOverlay(windowHandle: Buffer, noFocus: boolean) {
     try {
-      return this.load().launchElevated(
-        executable,
-        parameters,
-        workingDirectory
-      );
-    } catch (error) {
-      logger.error("Failed to request elevated Hydra process", error);
+      const handle =
+        windowHandle.length >= 8
+          ? windowHandle.readBigUInt64LE(0)
+          : windowHandle.readUInt32LE(0);
+      return this.load().markGamescopeOverlay(handle, noFocus);
+    } catch {
       return false;
     }
   }

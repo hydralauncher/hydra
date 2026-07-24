@@ -33,7 +33,7 @@ export function SettingsContextOverlay() {
       <div className="settings-context-panel__group">
         <h3>Hydra overlay</h3>
         <p className="settings-context-panel__description">
-          Open your game hub with Shift + F3 without leaving the game.
+          Open your game hub with Shift + Tab without leaving the game.
         </p>
         <CheckboxField
           label="Enable Hydra overlay"

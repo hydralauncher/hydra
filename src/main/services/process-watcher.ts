@@ -21,6 +21,7 @@ import {
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
 import { OverlayManager } from "./overlay-manager";
+import { hasWindowsVisibleProcessMatch } from "./windows-process-match";
 
 export const gamesPlaytime = new Map<
   string,
@@ -167,6 +168,7 @@ const getSystemProcessMap = async () => {
   const {
     processMap: rawMap,
     winePrefixMap: rawWineMap,
+    windowsProcesses,
     linuxProcesses,
   } = await NativeAddon.getSystemProcessMap();
 
@@ -176,7 +178,7 @@ const getSystemProcessMap = async () => {
 
   const winePrefixMap = new Map<string, string>(Object.entries(rawWineMap));
 
-  return { processMap, winePrefixMap, linuxProcesses };
+  return { processMap, winePrefixMap, windowsProcesses, linuxProcesses };
 };
 
 const hasLinuxCompatibilityProcessMatch = (
@@ -232,7 +234,7 @@ export const watchProcesses = async () => {
 
   if (!games.length) return;
 
-  const { processMap, winePrefixMap, linuxProcesses } =
+  const { processMap, winePrefixMap, windowsProcesses, linuxProcesses } =
     await getSystemProcessMap();
 
   const pidToProcess = new Map<number, LinuxProcessInfo>(
@@ -275,6 +277,14 @@ export const watchProcesses = async () => {
 
       return false;
     });
+
+    if (!hasProcess && platform === "win32") {
+      hasProcess = hasWindowsVisibleProcessMatch(
+        matchPaths,
+        windowsProcesses,
+        (pid) => Boolean(NativeAddon.getProcessWindowBounds(pid))
+      );
+    }
 
     if (!hasProcess && platform === "linux") {
       hasProcess = hasLaunchedPidMatch(

@@ -21,12 +21,10 @@ files:
   - "!scripts/*"
 asarUnpack:
   - resources/**
-  - node_modules/@asdf-overlay/core/**
   - node_modules/sharp/**
   - node_modules/@img/sharp-libvips-*/**
 win:
   executableName: Hydra
-  requestedExecutionLevel: requireAdministrator
   extraResources:
     - from: presentmon
       to: presentmon
@@ -41,6 +39,7 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
   oneClick: false
+  perMachine: true
   allowToChangeInstallationDirectory: true
   include: installer.nsh
 portable:

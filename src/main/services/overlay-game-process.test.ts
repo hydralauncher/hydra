@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { rankOverlayGameProcesses } from "./overlay-game-process-ranking.js";
+import {
+  prioritizeVisibleOverlayProcesses,
+  rankOverlayGameProcesses,
+} from "./overlay-game-process-ranking.js";
 
 test("prefers an exact executable path over a foreground basename match", () => {
   const candidates = rankOverlayGameProcesses(
@@ -42,4 +45,17 @@ test("uses foreground and start time to disambiguate matching child processes", 
     "C:\\Games\\game.exe",
   ]);
   assert.equal(withoutForeground[0]?.pid, 20);
+});
+
+test("prefers a process with a visible game window over a launch stub", () => {
+  const candidates = rankOverlayGameProcesses(
+    [
+      { pid: 10, name: "game.exe", exe: "C:\\Games\\game.exe" },
+      { pid: 20, name: "game.exe", exe: "D:\\Games\\game.exe" },
+    ],
+    ["C:\\Games\\game.exe"]
+  );
+
+  const visible = prioritizeVisibleOverlayProcesses(candidates, new Set([20]));
+  assert.equal(visible[0]?.pid, 20);
 });

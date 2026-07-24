@@ -80,7 +80,7 @@ export function OverlaySettingsSection({
     >
       <SettingsSection
         title="Hydra overlay"
-        description="Open your game hub with Shift + F3 without leaving the game."
+        description="Open your game hub with Shift + Tab without leaving the game."
       >
         <VerticalFocusGroup regionId={OVERLAY_SECTION_REGION_ID} asChild>
           <div className="big-picture-settings-section__content">

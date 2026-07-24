@@ -212,7 +212,7 @@ export default function Overlay() {
     const unsubscribeGamepad =
       globalThis.electron.onOverlayGamepadAction(handleGamepadAction);
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "F3" && event.shiftKey) event.preventDefault();
+      if (event.key === "Tab" && event.shiftKey) event.preventDefault();
       if (event.key === "Escape") void globalThis.electron.closeHydraOverlay();
       if (event.target instanceof HTMLTextAreaElement) return;
       if (
