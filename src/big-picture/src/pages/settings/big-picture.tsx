@@ -1,6 +1,15 @@
 import "./big-picture.scss";
 
-import type { BigPictureDiagnosticsPosition } from "@types";
+import {
+  BIG_PICTURE_UI_SCALE_VALUES,
+  resolveBigPictureUiScale,
+  type BigPictureUiScale,
+} from "../../../../types/big-picture-ui-scale";
+import {
+  type BigPictureDiagnosticsPosition,
+  type HydraAudioDevice,
+  type HydraDisplay,
+} from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,11 +19,15 @@ import { useUserPreferences } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import {
   BIG_PICTURE_AUDIO_SECTION_REGION_ID,
+  BIG_PICTURE_DISPLAY_SECTION_REGION_ID,
   BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID,
   BIG_PICTURE_DIAGNOSTICS_SECTION_REGION_ID,
   BIG_PICTURE_ITEM_FOCUS_IDS,
+  BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID,
+  BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID,
   BIG_PICTURE_SECTION_REGION_ID,
   BIG_PICTURE_STARTUP_SECTION_REGION_ID,
+  BIG_PICTURE_UI_SCALE_SELECT_ID,
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
@@ -25,6 +38,9 @@ interface BigPictureSettingsSectionProps {
 
 interface BigPictureForm {
   launchInBigPicture: boolean;
+  bigPictureDisplayId: string;
+  bigPictureAudioDeviceId: string;
+  bigPictureUiScale: BigPictureUiScale;
   bigPictureSoundsEnabled: boolean;
   bigPictureVirtualKeyboardEnabled: boolean;
   bigPictureDiagnosticsEnabled: boolean;
@@ -41,11 +57,17 @@ interface BigPictureItem {
 
 const DEFAULT_FORM: BigPictureForm = {
   launchInBigPicture: false,
+  bigPictureDisplayId: "default",
+  bigPictureAudioDeviceId: "default",
+  bigPictureUiScale: 100,
   bigPictureSoundsEnabled: true,
   bigPictureVirtualKeyboardEnabled: true,
   bigPictureDiagnosticsEnabled: false,
   bigPictureDiagnosticsPosition: "bottom-center",
 };
+
+const DEFAULT_BIG_PICTURE_DISPLAY_ID = "default";
+const DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID = "default";
 
 function getPositionLabel(
   position: BigPictureDiagnosticsPosition,
@@ -60,12 +82,56 @@ export function BigPictureSettingsSection({
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
   const [form, setForm] = useState<BigPictureForm>(DEFAULT_FORM);
+  const [displays, setDisplays] = useState<HydraDisplay[]>([]);
+  const [audioDevices, setAudioDevices] = useState<HydraAudioDevice[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    globalThis.window.electron
+      .getDisplays()
+      .then((nextDisplays) => {
+        if (!isMounted) return;
+
+        setDisplays(nextDisplays);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+
+        setDisplays([]);
+      });
+
+    globalThis.window.electron
+      .getAudioDevices()
+      .then((nextAudioDevices) => {
+        if (!isMounted) return;
+
+        setAudioDevices(nextAudioDevices);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+
+        setAudioDevices([]);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!userPreferences) return;
 
     setForm({
       launchInBigPicture: userPreferences.launchInBigPicture ?? false,
+      bigPictureDisplayId:
+        userPreferences.bigPictureDisplayId ?? DEFAULT_BIG_PICTURE_DISPLAY_ID,
+      bigPictureAudioDeviceId:
+        userPreferences.bigPictureAudioDeviceId ??
+        DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
+      bigPictureUiScale: resolveBigPictureUiScale(
+        userPreferences.bigPictureUiScale
+      ),
       bigPictureSoundsEnabled: userPreferences.bigPictureSoundsEnabled ?? true,
       bigPictureVirtualKeyboardEnabled:
         userPreferences.bigPictureVirtualKeyboardEnabled ?? true,
@@ -84,6 +150,56 @@ export function BigPictureSettingsSection({
     },
     []
   );
+
+  const handleBigPictureDisplayChange = useCallback(
+    async (displayId: string) => {
+      const selectedDisplay = displays.find(
+        (display) => display.id === displayId
+      );
+
+      setForm((current) => ({
+        ...current,
+        bigPictureDisplayId: displayId,
+      }));
+
+      await globalThis.window.electron.updateUserPreferences({
+        bigPictureDisplayId:
+          displayId === DEFAULT_BIG_PICTURE_DISPLAY_ID ? null : displayId,
+        bigPictureDisplayBounds: selectedDisplay?.bounds ?? null,
+      });
+    },
+    [displays]
+  );
+
+  const handleBigPictureAudioDeviceChange = useCallback(
+    async (audioDeviceId: string) => {
+      setForm((current) => ({
+        ...current,
+        bigPictureAudioDeviceId: audioDeviceId,
+      }));
+
+      await globalThis.window.electron.updateUserPreferences({
+        bigPictureAudioDeviceId:
+          audioDeviceId === DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID
+            ? null
+            : audioDeviceId,
+      });
+    },
+    []
+  );
+
+  const handleBigPictureUiScaleChange = useCallback((value: string) => {
+    const bigPictureUiScale = resolveBigPictureUiScale(Number(value));
+
+    setForm((current) => ({
+      ...current,
+      bigPictureUiScale,
+    }));
+
+    globalThis.window.electron.updateUserPreferences({
+      bigPictureUiScale,
+    });
+  }, []);
 
   const handleLaunchInBigPictureChange = useCallback(
     (checked: boolean) => {
@@ -130,7 +246,7 @@ export function BigPictureSettingsSection({
         onChange: handleLaunchInBigPictureChange,
       },
     ];
-  }, [form.launchInBigPicture, handleLaunchInBigPictureChange]);
+  }, [form.launchInBigPicture, handleLaunchInBigPictureChange, t]);
 
   const inputItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -142,7 +258,7 @@ export function BigPictureSettingsSection({
         onChange: handleVirtualKeyboardChange,
       },
     ];
-  }, [form.bigPictureVirtualKeyboardEnabled, handleVirtualKeyboardChange]);
+  }, [form.bigPictureVirtualKeyboardEnabled, handleVirtualKeyboardChange, t]);
 
   const audioItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -154,7 +270,7 @@ export function BigPictureSettingsSection({
         onChange: handleBigPictureSoundsChange,
       },
     ];
-  }, [form.bigPictureSoundsEnabled, handleBigPictureSoundsChange]);
+  }, [form.bigPictureSoundsEnabled, handleBigPictureSoundsChange, t]);
 
   const diagnosticsItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -166,7 +282,7 @@ export function BigPictureSettingsSection({
         onChange: handleDiagnosticsEnabledChange,
       },
     ];
-  }, [form.bigPictureDiagnosticsEnabled, handleDiagnosticsEnabledChange]);
+  }, [form.bigPictureDiagnosticsEnabled, handleDiagnosticsEnabledChange, t]);
 
   const diagnosticsPositionOptions = useMemo<
     Array<DropdownSelectOption<BigPictureDiagnosticsPosition>>
@@ -184,14 +300,83 @@ export function BigPictureSettingsSection({
       value: position,
       label: getPositionLabel(position, t),
     }));
-  }, []);
+  }, [t]);
+
+  const displayOptions = useMemo<Array<DropdownSelectOption<string>>>(() => {
+    const selectedDisplayMissing =
+      form.bigPictureDisplayId !== DEFAULT_BIG_PICTURE_DISPLAY_ID &&
+      displays.every((display) => display.id !== form.bigPictureDisplayId);
+
+    return [
+      {
+        value: DEFAULT_BIG_PICTURE_DISPLAY_ID,
+        label: t("settings_system_default_monitor"),
+      },
+      ...displays.map((display) => ({
+        value: display.id,
+        label: display.isPrimary
+          ? `${display.label} (${t("settings_primary_monitor")})`
+          : display.label,
+      })),
+      ...(selectedDisplayMissing
+        ? [
+            {
+              value: form.bigPictureDisplayId,
+              label: `${t("settings_missing_monitor")} (${form.bigPictureDisplayId})`,
+            },
+          ]
+        : []),
+    ];
+  }, [displays, form.bigPictureDisplayId, t]);
+
+  const audioDeviceOptions = useMemo<
+    Array<DropdownSelectOption<string>>
+  >(() => {
+    const selectedAudioDeviceMissing =
+      form.bigPictureAudioDeviceId !== DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID &&
+      audioDevices.every(
+        (device) => device.id !== form.bigPictureAudioDeviceId
+      );
+
+    return [
+      {
+        value: DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
+        label: t("settings_system_default_audio_device"),
+      },
+      ...audioDevices.map((device) => ({
+        value: device.id,
+        label: device.isDefault
+          ? `${device.label} (${t("settings_default_audio_device")})`
+          : device.label,
+      })),
+      ...(selectedAudioDeviceMissing
+        ? [
+            {
+              value: form.bigPictureAudioDeviceId,
+              label: `${t("settings_missing_audio_device")} (${form.bigPictureAudioDeviceId})`,
+            },
+          ]
+        : []),
+    ];
+  }, [audioDevices, form.bigPictureAudioDeviceId, t]);
+
+  const uiScaleOptions = useMemo<Array<DropdownSelectOption<string>>>(
+    () =>
+      BIG_PICTURE_UI_SCALE_VALUES.map((scale) => ({
+        value: String(scale),
+        label: `${scale}%`,
+      })),
+    []
+  );
 
   const inputNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
   >(() => {
     const previousFallback: FocusOverrideTarget = {
       type: "item",
-      itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
+      itemId: form.bigPictureSoundsEnabled
+        ? BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID
+        : BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
     };
 
     return Object.fromEntries(
@@ -221,14 +406,14 @@ export function BigPictureSettingsSection({
         ];
       })
     );
-  }, [inputItems]);
+  }, [form.bigPictureSoundsEnabled, inputItems]);
 
   const audioNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
   >(() => {
     const previousFallback: FocusOverrideTarget = {
       type: "item",
-      itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
+      itemId: BIG_PICTURE_UI_SCALE_SELECT_ID,
     };
 
     return Object.fromEntries(
@@ -252,13 +437,15 @@ export function BigPictureSettingsSection({
                 }
               : {
                   type: "item",
-                  itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableVirtualKeyboard,
+                  itemId: form.bigPictureSoundsEnabled
+                    ? BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID
+                    : BIG_PICTURE_ITEM_FOCUS_IDS.enableVirtualKeyboard,
                 },
           } satisfies FocusOverrides,
         ];
       })
     );
-  }, [audioItems]);
+  }, [audioItems, form.bigPictureSoundsEnabled]);
 
   const startupNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -284,13 +471,15 @@ export function BigPictureSettingsSection({
                 }
               : {
                   type: "item",
-                  itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
+                  itemId: form.launchInBigPicture
+                    ? BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID
+                    : BIG_PICTURE_UI_SCALE_SELECT_ID,
                 },
           } satisfies FocusOverrides,
         ];
       })
     );
-  }, [startupItems]);
+  }, [form.launchInBigPicture, startupItems]);
 
   const diagnosticsNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -331,6 +520,50 @@ export function BigPictureSettingsSection({
       })
     );
   }, [diagnosticsItems, form.bigPictureDiagnosticsEnabled]);
+
+  const displaySelectNavigationOverrides = useMemo<FocusOverrides>(
+    () => ({
+      up: {
+        type: "item",
+        itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
+      },
+      down: {
+        type: "item",
+        itemId: BIG_PICTURE_UI_SCALE_SELECT_ID,
+      },
+    }),
+    []
+  );
+
+  const uiScaleSelectNavigationOverrides = useMemo<FocusOverrides>(
+    () => ({
+      up: {
+        type: "item",
+        itemId: form.launchInBigPicture
+          ? BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID
+          : BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
+      },
+      down: {
+        type: "item",
+        itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
+      },
+    }),
+    [form.launchInBigPicture]
+  );
+
+  const audioDeviceSelectNavigationOverrides = useMemo<FocusOverrides>(
+    () => ({
+      up: {
+        type: "item",
+        itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
+      },
+      down: {
+        type: "item",
+        itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableVirtualKeyboard,
+      },
+    }),
+    []
+  );
 
   const diagnosticsSelectNavigationOverrides = useMemo<FocusOverrides>(
     () => ({
@@ -381,6 +614,39 @@ export function BigPictureSettingsSection({
       </SettingsSection>
 
       <SettingsSection
+        title={t("settings_display_section_title")}
+        description={t("settings_display_section_description")}
+      >
+        <VerticalFocusGroup
+          regionId={BIG_PICTURE_DISPLAY_SECTION_REGION_ID}
+          asChild
+        >
+          <div className="big-picture-settings-section__content">
+            <DropdownSelect
+              className="big-picture-settings-section__select"
+              label={t("settings_big_picture_launching_monitor")}
+              value={form.bigPictureDisplayId}
+              options={displayOptions}
+              disabled={!form.launchInBigPicture}
+              focusId={BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID}
+              focusNavigationOverrides={displaySelectNavigationOverrides}
+              onValueChange={handleBigPictureDisplayChange}
+            />
+
+            <DropdownSelect
+              className="big-picture-settings-section__select"
+              label={t("settings_big_picture_ui_scale")}
+              value={String(form.bigPictureUiScale)}
+              options={uiScaleOptions}
+              focusId={BIG_PICTURE_UI_SCALE_SELECT_ID}
+              focusNavigationOverrides={uiScaleSelectNavigationOverrides}
+              onValueChange={handleBigPictureUiScaleChange}
+            />
+          </div>
+        </VerticalFocusGroup>
+      </SettingsSection>
+
+      <SettingsSection
         title={t("settings_audio_section_title")}
         description={t("settings_audio_section_description")}
       >
@@ -403,6 +669,17 @@ export function BigPictureSettingsSection({
                 onChange={item.onChange}
               />
             ))}
+
+            <DropdownSelect
+              className="big-picture-settings-section__select"
+              label={t("settings_big_picture_output_device")}
+              value={form.bigPictureAudioDeviceId}
+              options={audioDeviceOptions}
+              disabled={!form.bigPictureSoundsEnabled}
+              focusId={BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID}
+              focusNavigationOverrides={audioDeviceSelectNavigationOverrides}
+              onValueChange={handleBigPictureAudioDeviceChange}
+            />
           </div>
         </VerticalFocusGroup>
       </SettingsSection>

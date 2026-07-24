@@ -2,13 +2,14 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { db, gamesSublevel, levelKeys } from "@main/level";
-import { emulators, logger } from "@main/services";
+import { DisplayManager, emulators, logger } from "@main/services";
 import type {
   EmulatorBinary,
   EmulatorConfig,
   EmulatorSystem,
   Game,
   GameShop,
+  LaunchSource,
   UserPreferences,
 } from "@types";
 import { isGamemodeAvailable } from "./is-gamemode-available";
@@ -115,6 +116,7 @@ export interface LaunchClassicsGameOptions {
   objectId: string;
   discPath: string;
   system: EmulatorSystem;
+  launchSource?: LaunchSource;
 }
 
 const buildEmulatorArgs = (
@@ -174,7 +176,7 @@ const resolveEmulatorWrappers = (
 export const launchClassicsGame = async (
   options: LaunchClassicsGameOptions
 ): Promise<void> => {
-  const { shop, objectId, discPath, system } = options;
+  const { shop, objectId, discPath, system, launchSource } = options;
 
   const config = await emulators.getEmulatorConfig(system);
   if (!config.executablePath || !existsSync(config.executablePath)) {
@@ -234,6 +236,11 @@ export const launchClassicsGame = async (
   }
 
   const baseArgs = buildEmulatorArgs(config.binary, bootTarget);
+
+  if (launchSource === "big-picture") {
+    // Re-assert at launch time because display settings can change while Big Picture stays open.
+    await DisplayManager.prepareBigPictureDisplayForLaunch();
+  }
 
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executableTarget,

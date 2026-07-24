@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { logger, NativeAddon } from "@main/services";
-import type { GameShop } from "@types";
+import type { GameShop, LaunchSource } from "@types";
 import { launchClassicsGame } from "./launch-classics-game";
 import { platformToSystem } from "./platform-to-system";
 
@@ -134,7 +134,8 @@ export const openClassicsGame = async (
   shop: GameShop,
   objectId: string,
   discPath?: string,
-  force?: boolean
+  force?: boolean,
+  launchSource: LaunchSource = "default"
 ) => {
   if (shop !== "launchbox") {
     throw new Error("openClassicsGame called for non-launchbox shop");
@@ -171,6 +172,7 @@ export const openClassicsGame = async (
       objectId,
       discPath: resolvedDiscPath,
       system,
+      launchSource,
     });
   } catch (error) {
     throw translateLaunchError(error, objectId, system);
