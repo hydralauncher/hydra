@@ -18,7 +18,6 @@ import type {
 } from "@types";
 import axios from "axios";
 import createDesktopShortcut from "create-desktop-shortcuts";
-import { app } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import pngToIco from "png-to-ico";
@@ -30,6 +29,7 @@ import { getPathType } from "./extraction-path";
 import { GameExecutables } from "./game-executables";
 import { logger } from "./logger";
 import { platformToRetroArchPlatform, platformToSystem } from "@main/helpers";
+import { getWindowsVbsPath } from "@main/helpers/shortcut-launch";
 import { deleteArchiveFile } from "@main/events/library/delete-archive";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { SystemPath } from "./system-path";
@@ -615,9 +615,7 @@ export class GameFilesManager {
     this.deleteShortcutIfExists(linkPath);
     this.deleteShortcutIfExists(urlPath);
 
-    const windowVbsPath = app.isPackaged
-      ? path.join(process.resourcesPath, "windows.vbs")
-      : undefined;
+    const windowVbsPath = getWindowsVbsPath();
 
     const nativeShortcutCreated = createDesktopShortcut({
       windows: {
@@ -696,9 +694,7 @@ export class GameFilesManager {
           );
         }
       } else {
-        const windowVbsPath = app.isPackaged
-          ? path.join(process.resourcesPath, "windows.vbs")
-          : undefined;
+        const windowVbsPath = getWindowsVbsPath();
 
         const options = {
           filePath: process.execPath,
