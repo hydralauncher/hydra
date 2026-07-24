@@ -20,6 +20,14 @@ describe("cloud save automatic sync policy", () => {
     assert.equal(getSyncAction("environment-changed", "synced"), "none");
   });
 
+  it("syncs bidirectionally when the game page opens", () => {
+    assert.equal(getSyncDirection("game-page-open"), "bidirectional");
+    assert.equal(getSyncAction("game-page-open", "local-ahead"), "upload");
+    assert.equal(getSyncAction("game-page-open", "remote-ahead"), "restore");
+    assert.equal(getSyncAction("game-page-open", "conflict"), "conflict");
+    assert.equal(getSyncAction("game-page-open", "synced"), "none");
+  });
+
   it("keeps pre-launch restore-only and post-exit upload-only", () => {
     assert.equal(getSyncDirection("pre-launch"), "restore-only");
     assert.equal(getSyncAction("pre-launch", "local-ahead"), "none");

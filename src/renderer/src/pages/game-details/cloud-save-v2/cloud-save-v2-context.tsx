@@ -15,6 +15,7 @@ import type {
 } from "@types";
 
 import { CloudSaveModal } from "./cloud-save-modal";
+import { shouldSyncCloudSaveOnGamePage } from "./cloud-save-presentation";
 import { CloudSaveV2FileBrowserModal } from "./cloud-save-v2-file-browser-modal";
 import { useCloudSaveOverview } from "./use-cloud-save-overview";
 import { useCloudSaveV2FileDetails } from "./use-cloud-save-v2-file-details";
@@ -107,6 +108,8 @@ export function CloudSaveV2Provider({
   });
   const gameKey = `${shop}:${objectId}`;
   const activeGameKey = useRef(gameKey);
+  const gamePageSyncInFlight = useRef(false);
+  const gamePageSyncCompleted = useRef(false);
 
   activeGameKey.current = gameKey;
 
@@ -118,6 +121,8 @@ export function CloudSaveV2Provider({
     setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
     setPendingResolution(null);
+    gamePageSyncInFlight.current = false;
+    gamePageSyncCompleted.current = false;
   }, [gameKey]);
 
   const wasGameRunning = useRef(isGameRunning);
@@ -214,6 +219,58 @@ export function CloudSaveV2Provider({
     shop,
     showErrorToast,
     showWarningToast,
+    t,
+  ]);
+
+  useEffect(() => {
+    if (
+      !shouldSyncCloudSaveOnGamePage({
+        overview,
+        shop,
+        canUseCloudSaves,
+        hasExecutablePath,
+        isGameRunning,
+        isSyncing,
+        isInFlight: gamePageSyncInFlight.current,
+        isCompleted: gamePageSyncCompleted.current,
+      })
+    ) {
+      return;
+    }
+
+    gamePageSyncInFlight.current = true;
+    const requestedGame = gameKey;
+
+    void window.electron
+      .syncCloudSaveOnGamePage(objectId, shop)
+      .then((response) => {
+        if (activeGameKey.current !== requestedGame) return;
+        if (response.accepted) gamePageSyncCompleted.current = true;
+      })
+      .catch(() => {
+        if (activeGameKey.current !== requestedGame) return;
+
+        setHasSyncError(true);
+        showErrorToast(
+          t("cloud_save_v2_auto_sync_failed_title"),
+          t("cloud_save_v2_auto_sync_failed_description")
+        );
+      })
+      .finally(() => {
+        if (activeGameKey.current === requestedGame) {
+          gamePageSyncInFlight.current = false;
+        }
+      });
+  }, [
+    canUseCloudSaves,
+    gameKey,
+    hasExecutablePath,
+    isGameRunning,
+    isSyncing,
+    objectId,
+    overview,
+    shop,
+    showErrorToast,
     t,
   ]);
 

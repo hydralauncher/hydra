@@ -1,11 +1,44 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import type { CloudSaveOverview } from "@types";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
 import * as presentationModule from "./cloud-save-presentation.ts";
 
-const { getCloudSavePanelAction, getCloudSavePresentation } =
-  presentationModule;
+const {
+  getCloudSavePanelAction,
+  getCloudSavePresentation,
+  shouldSyncCloudSaveOnGamePage,
+} = presentationModule;
+
+const overview = (
+  overrides: Partial<CloudSaveOverview> = {}
+): CloudSaveOverview => ({
+  state: "local-ahead",
+  hasChanged: true,
+  activeRemoteSnapshot: null,
+  isAutomaticSyncEnabled: true,
+  suggestedAction: "upload",
+  discoveredVariantCount: 1,
+  unresolvedRemoteVariantCount: 0,
+  warnings: [],
+  ...overrides,
+});
+
+const shouldSyncOnGamePage = (
+  overrides: Partial<Parameters<typeof shouldSyncCloudSaveOnGamePage>[0]> = {}
+) =>
+  shouldSyncCloudSaveOnGamePage({
+    overview: overview(),
+    shop: "steam",
+    canUseCloudSaves: true,
+    hasExecutablePath: true,
+    isGameRunning: false,
+    isSyncing: false,
+    isInFlight: false,
+    isCompleted: false,
+    ...overrides,
+  });
 
 const presentation = (
   overrides: Partial<Parameters<typeof getCloudSavePresentation>[0]> = {}
@@ -133,5 +166,52 @@ describe("cloud save panel action", () => {
       getCloudSavePanelAction("conflict", "conflict").kind,
       "conflict"
     );
+  });
+});
+
+describe("game page automatic cloud save sync", () => {
+  it("starts once for every actionable overview", () => {
+    for (const suggestedAction of [
+      "upload",
+      "restore",
+      "merge",
+      "conflict",
+    ] as const) {
+      assert.equal(
+        shouldSyncOnGamePage({
+          overview: overview({ suggestedAction }),
+        }),
+        true
+      );
+    }
+  });
+
+  it("does not start without a suggested action", () => {
+    assert.equal(
+      shouldSyncOnGamePage({
+        overview: overview({ suggestedAction: "none" }),
+      }),
+      false
+    );
+  });
+
+  it("blocks concurrent and completed attempts", () => {
+    assert.equal(shouldSyncOnGamePage({ isInFlight: true }), false);
+    assert.equal(shouldSyncOnGamePage({ isCompleted: true }), false);
+  });
+
+  it("respects automatic sync and game eligibility", () => {
+    assert.equal(
+      shouldSyncOnGamePage({
+        overview: overview({ isAutomaticSyncEnabled: false }),
+      }),
+      false
+    );
+    assert.equal(shouldSyncOnGamePage({ overview: null }), false);
+    assert.equal(shouldSyncOnGamePage({ shop: "launchbox" }), false);
+    assert.equal(shouldSyncOnGamePage({ canUseCloudSaves: false }), false);
+    assert.equal(shouldSyncOnGamePage({ hasExecutablePath: false }), false);
+    assert.equal(shouldSyncOnGamePage({ isGameRunning: true }), false);
+    assert.equal(shouldSyncOnGamePage({ isSyncing: true }), false);
   });
 });

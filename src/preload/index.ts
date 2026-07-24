@@ -44,6 +44,7 @@ import type {
   CloudSaveV2FileDetails,
   CloudSaveSyncIpcProgressPayload,
   CloudSaveSyncProgressPayload,
+  SyncCloudSaveOnGamePageResult,
   SyncGameCloudSaveResult,
 } from "@types";
 import type { AuthPage } from "@shared";
@@ -114,6 +115,12 @@ contextBridge.exposeInMainWorld("electron", {
       shop,
       enabled
     ) as Promise<boolean>,
+  syncCloudSaveOnGamePage: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "syncCloudSaveOnGamePage",
+      objectId,
+      shop
+    ) as Promise<SyncCloudSaveOnGamePageResult>,
   syncGameCloudSave: (
     objectId: string,
     shop: GameShop,
