@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { CheckIcon, ChevronDownIcon } from "@primer/octicons-react";
 import type { ReactNode } from "react";
-import { ChevronDownIcon, CheckIcon } from "@primer/octicons-react";
+import { useEffect, useRef, useState } from "react";
 import "./filter-dropdown.scss";
 
 type FilterIcon = (props: { size?: number; className?: string }) => ReactNode;

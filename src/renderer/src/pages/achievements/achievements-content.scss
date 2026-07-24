@@ -288,4 +288,22 @@ $logo-max-width: 200px;
     position: relative;
     object-fit: cover;
   }
+
+  &__panel-container {
+    position: relative;
+    padding: globals.$spacing-unit * 2 globals.$spacing-unit * 3;
+    background-color: globals.$background-color;
+    border-bottom: solid 1px globals.$border-color;
+
+    &__panel {
+      width: 100%;
+    }
+
+    &__sort {
+      position: absolute;
+      right: globals.$spacing-unit * 3;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+  }
 }

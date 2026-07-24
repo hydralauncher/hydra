@@ -2,13 +2,10 @@
 
 .achievement-panel {
   width: 100%;
-  padding: globals.$spacing-unit * 2 globals.$spacing-unit * 3;
-  background-color: globals.$background-color;
   display: flex;
   flex-direction: column;
   align-items: start;
   justify-content: space-between;
-  border-bottom: solid 1px globals.$border-color;
 
   &__content {
     display: flex;
