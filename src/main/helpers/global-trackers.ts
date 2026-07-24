@@ -10,6 +10,7 @@ import type { UserPreferences } from "@types";
 
 const MAX_TRACKER_LIST_SIZE = 200_000; // ~4,000 tracker URLs
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const AXIOS_TIMEOUT_MS = 15_000;
 
 interface GlobalTrackersUrlCache {
   url: string;
@@ -45,7 +46,7 @@ export const fetchGlobalTrackersFromUrl = async (
   }
 
   const { data } = await axios.get<string>(url, {
-    timeout: 15000,
+    timeout: AXIOS_TIMEOUT_MS,
     responseType: "text",
     maxContentLength: MAX_TRACKER_LIST_SIZE,
   });

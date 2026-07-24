@@ -33,9 +33,10 @@ const saveGlobalTrackers = async (
     );
 
     if (
-      !appendUrl ||
-      !trimmedUrl ||
-      trimmedUrl !== userPreferences?.globalTrackersUrl
+      userPreferences &&
+      (!appendUrl ||
+        !trimmedUrl ||
+        trimmedUrl !== userPreferences.globalTrackersUrl)
     ) {
       await db.del(levelKeys.globalTrackersUrlCache).catch(() => {});
     }
