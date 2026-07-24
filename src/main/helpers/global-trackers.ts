@@ -22,9 +22,10 @@ const pendingUrlFetches = new Map<string, Promise<string[]>>();
 
 const dedupedFetchAndCache = (url: string): Promise<string[]> => {
   if (!pendingUrlFetches.has(url)) {
-    const promise = fetchAndCacheGlobalTrackersUrl(url);
+    const promise = fetchAndCacheGlobalTrackersUrl(url).finally(() =>
+      pendingUrlFetches.delete(url)
+    );
     pendingUrlFetches.set(url, promise);
-    promise.finally(() => pendingUrlFetches.delete(url));
   }
   return pendingUrlFetches.get(url)!;
 };
