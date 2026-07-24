@@ -55,6 +55,7 @@ export class WindowManager {
   private static gameLauncherWindowInstance: Electron.BrowserWindow | null =
     null;
   private static bigPicture: Electron.BrowserWindow | null = null;
+  private static bigPicturePlacementRetryTimers: NodeJS.Timeout[] = [];
   private static friendsWindow: Electron.BrowserWindow | null = null;
   private static authWindow: Electron.BrowserWindow | null = null;
   private static deferredMainMaximize = false;
@@ -223,11 +224,26 @@ export class WindowManager {
     this.placeBigPictureWindowOnDisplay(window, display);
   }
 
+  private static cancelBigPictureWindowPlacementRetries() {
+    for (const timer of this.bigPicturePlacementRetryTimers) {
+      clearTimeout(timer);
+    }
+
+    this.bigPicturePlacementRetryTimers = [];
+  }
+
   private static scheduleBigPictureWindowPlacement(display: Electron.Display) {
+    this.cancelBigPictureWindowPlacementRetries();
+
     if (process.platform !== "linux") return;
 
     for (const delayMs of LINUX_BIG_PICTURE_PLACEMENT_RETRY_DELAYS_MS) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        this.bigPicturePlacementRetryTimers =
+          this.bigPicturePlacementRetryTimers.filter(
+            (retryTimer) => retryTimer !== timer
+          );
+
         if (!this.bigPicture || this.bigPicture.isDestroyed()) {
           return;
         }
@@ -236,6 +252,8 @@ export class WindowManager {
         this.bigPicture.moveTop();
         this.bigPicture.focus();
       }, delayMs);
+
+      this.bigPicturePlacementRetryTimers.push(timer);
     }
   }
 
@@ -531,6 +549,7 @@ export class WindowManager {
     });
 
     this.bigPicture.on("closed", () => {
+      this.cancelBigPictureWindowPlacementRetries();
       this.bigPicture = null;
       const main = this.mainWindow;
       if (main && !main.isDestroyed()) {
