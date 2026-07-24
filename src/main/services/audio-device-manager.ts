@@ -23,17 +23,14 @@ async function commandExists(command: string) {
 export class AudioDeviceManager {
   private static async getLinuxAudioDevices(): Promise<HydraAudioDevice[]> {
     if (await commandExists("pactl")) {
-      const [{ stdout: sinksOutput }, defaultSinkName] = await Promise.all([
-        execFileAsync("pactl", ["list", "sinks"]),
-        this.getLinuxDefaultAudioDeviceId(),
-      ]);
+      const [{ stdout: sinksOutput }, { stdout: defaultSinkOutput }] =
+        await Promise.all([
+          execFileAsync("pactl", ["list", "sinks"]),
+          execFileAsync("pactl", ["get-default-sink"]),
+        ]);
+      const defaultSinkName = defaultSinkOutput.trim();
 
-      return parsePactlAudioSinks(
-        sinksOutput,
-        defaultSinkName?.startsWith(PACTL_AUDIO_DEVICE_PREFIX)
-          ? defaultSinkName.slice(PACTL_AUDIO_DEVICE_PREFIX.length)
-          : null
-      );
+      return parsePactlAudioSinks(sinksOutput, defaultSinkName || null);
     }
 
     if (await commandExists("wpctl")) {

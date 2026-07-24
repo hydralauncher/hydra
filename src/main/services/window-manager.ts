@@ -201,6 +201,13 @@ export class WindowManager {
     return this.bigPicture === window && !window.isDestroyed();
   }
 
+  private static isBigPictureWindowOnDisplay(
+    window: BrowserWindow,
+    display: Electron.Display
+  ) {
+    return screen.getDisplayMatching(window.getBounds()).id === display.id;
+  }
+
   private static presentBigPictureWindow(
     window: BrowserWindow,
     display: Electron.Display
@@ -446,7 +453,16 @@ export class WindowManager {
 
   public static async openBigPictureWindow() {
     if (this.bigPicture) {
-      await this.applyBigPictureDisplayPreference();
+      const targetDisplay = await DisplayManager.getBigPictureDisplay();
+
+      if (!this.isActiveBigPictureWindow(this.bigPicture)) {
+        return;
+      }
+
+      if (!this.isBigPictureWindowOnDisplay(this.bigPicture, targetDisplay)) {
+        await this.applyBigPictureDisplayPreference(targetDisplay);
+      }
+
       this.bigPicture.focus();
       return;
     }
@@ -533,14 +549,17 @@ export class WindowManager {
     });
   }
 
-  public static async applyBigPictureDisplayPreference() {
+  public static async applyBigPictureDisplayPreference(
+    targetDisplay?: Electron.Display
+  ) {
     const bigPicture = this.bigPicture;
 
     if (!bigPicture || bigPicture.isDestroyed()) {
       return;
     }
 
-    const targetDisplay = await DisplayManager.getBigPictureDisplay();
+    const display =
+      targetDisplay ?? (await DisplayManager.getBigPictureDisplay());
 
     if (!this.isActiveBigPictureWindow(bigPicture)) {
       return;
@@ -559,8 +578,8 @@ export class WindowManager {
       }
     }
 
-    this.presentBigPictureWindow(bigPicture, targetDisplay);
-    this.scheduleBigPictureWindowPlacement(targetDisplay);
+    this.presentBigPictureWindow(bigPicture, display);
+    this.scheduleBigPictureWindowPlacement(display);
 
     if (wasFullScreen && this.useNativeBigPictureFullscreen()) {
       await new Promise((resolve) =>
@@ -571,7 +590,7 @@ export class WindowManager {
         return;
       }
 
-      this.placeBigPictureWindowOnDisplay(bigPicture, targetDisplay);
+      this.placeBigPictureWindowOnDisplay(bigPicture, display);
     }
 
     if (!this.isActiveBigPictureWindow(bigPicture)) {

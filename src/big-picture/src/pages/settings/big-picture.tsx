@@ -188,14 +188,18 @@ export function BigPictureSettingsSection({
     []
   );
 
-  const handleBigPictureUiScaleChange = useCallback(
-    (value: string) => {
-      updateUserPreferences({
-        bigPictureUiScale: resolveBigPictureUiScale(Number(value)),
-      });
-    },
-    [updateUserPreferences]
-  );
+  const handleBigPictureUiScaleChange = useCallback((value: string) => {
+    const bigPictureUiScale = resolveBigPictureUiScale(Number(value));
+
+    setForm((current) => ({
+      ...current,
+      bigPictureUiScale,
+    }));
+
+    globalThis.window.electron.updateUserPreferences({
+      bigPictureUiScale,
+    });
+  }, []);
 
   const handleLaunchInBigPictureChange = useCallback(
     (checked: boolean) => {
