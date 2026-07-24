@@ -43,8 +43,6 @@ const startGameDownload = async (
   try {
     const globalTrackers = await getGlobalTrackers();
 
-    const mergedTrackers = globalTrackers;
-
     const download: Download = {
       shop,
       objectId,
@@ -65,7 +63,7 @@ const startGameDownload = async (
       fileIndices,
       selectedFilesSize,
       fileSize: selectedFilesSize ?? null,
-      ...(mergedTrackers?.length ? { customTrackers: mergedTrackers } : {}),
+      ...(globalTrackers.length ? { customTrackers: globalTrackers } : {}),
     };
     await DownloadManager.validateDownloadUrl(download);
     await prepareGameEntry({ gameKey, title, objectId, shop });
