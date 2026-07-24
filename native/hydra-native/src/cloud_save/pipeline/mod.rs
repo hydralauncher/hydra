@@ -181,6 +181,7 @@ fn collect_discovered_files(
                     variant_id: Some(discovered.variant_id.clone()),
                     raw_path: Some(discovered.raw_path.clone()),
                     relative_path: Some(discovered.relative_path.clone()),
+                    selected_root: true,
                     authority: discovered.confidence.clone(),
                     outcome: "partial".to_string(),
                     enumerated_completely: false,

@@ -66,7 +66,8 @@ export const restoreRemoteSnapshot = async (
   requestedEntryIds?: string[],
   updateAnchor = true,
   carriedUnresolvedEntryIds: string[] = [],
-  versionChangeAttempt = 0
+  versionChangeAttempt = 0,
+  assertEnvironmentCurrent?: () => Promise<void>
 ): Promise<RestoreRemoteSnapshotResult> => {
   assertCloudSaveSubscription();
 
@@ -180,7 +181,8 @@ export const restoreRemoteSnapshot = async (
           requestedEntryIds,
           updateAnchor,
           carriedUnresolvedEntryIds,
-          1
+          1,
+          assertEnvironmentCurrent
         );
       }
       throw new Error("cloud_save_restore_snapshot_changed_twice");
@@ -190,6 +192,7 @@ export const restoreRemoteSnapshot = async (
       plan.actions,
       downloadedFiles
     );
+    await assertEnvironmentCurrent?.();
     emitProgress("applying_restore", 0, replacements.length);
     const result = await replaceRestoreTargets(replacements);
     emitProgress("applying_restore", replacements.length, replacements.length);
@@ -212,6 +215,7 @@ export const restoreRemoteSnapshot = async (
 
     const restoreSucceeded = isRestoreReplacementSuccessful(result);
     if (restoreSucceeded && updateAnchor) {
+      await assertEnvironmentCurrent?.();
       await saveCloudSaveSyncAnchor(
         manifest.snapshot.shop,
         manifest.snapshot.objectId,

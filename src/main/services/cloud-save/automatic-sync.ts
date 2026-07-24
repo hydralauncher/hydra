@@ -14,6 +14,7 @@ import { canAccessCloudSaves } from "./cloud-save-access";
 import { syncGameCloudSave } from "./sync-game-cloud-save";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { getCloudSaveErrorDetails } from "./cloud-save-error-details";
+import { isCloudSaveEnvironmentChangedError } from "./environment-guard";
 import {
   canUploadCloudSaveAfterLaunch,
   consumeCloudSaveLaunchGuard,
@@ -123,6 +124,22 @@ export const runAutomaticCloudSaveSync = async (
         return result;
       })
       .catch((error: unknown) => {
+        if (isCloudSaveEnvironmentChangedError(error)) {
+          logger.info(
+            "[Cloud Save] Automatic sync cancelled after environment change",
+            {
+              shop,
+              objectId,
+              trigger,
+            }
+          );
+          emitAutomaticSyncEvent({
+            gameId: { objectId, shop },
+            trigger,
+            status: "cancelled",
+          });
+          return null;
+        }
         const errorDetails = getCloudSaveErrorDetails(error);
         logger.error("[Cloud Save] Automatic sync failed", {
           shop,

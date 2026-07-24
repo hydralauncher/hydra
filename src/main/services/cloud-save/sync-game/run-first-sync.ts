@@ -42,7 +42,8 @@ export const runFirstSync = async (
   shop: GameShop,
   trigger: CloudSaveSyncTrigger,
   analysis: CloudSaveAnalysis,
-  emitProgress: ProgressCallback
+  emitProgress: ProgressCallback,
+  assertEnvironmentCurrent?: () => Promise<void>
 ): Promise<SyncOutcome> => {
   const initialState = "untracked";
   const firstSyncState = getFirstSyncState(analysis);
@@ -75,7 +76,8 @@ export const runFirstSync = async (
         files: analysis.merge.files,
         aggregateHash: analysis.mergedAggregateHash ?? undefined,
         unresolvedRemoteEntryIds: analysis.merge.unresolvedRemoteEntryIds,
-      }
+      },
+      assertEnvironmentCurrent
     );
     return {
       result: {
@@ -95,7 +97,11 @@ export const runFirstSync = async (
       shop,
       remoteSnapshot,
       analysis.localSnapshotContext,
-      emitProgress
+      emitProgress,
+      undefined,
+      true,
+      [],
+      assertEnvironmentCurrent
     );
     return {
       result: {

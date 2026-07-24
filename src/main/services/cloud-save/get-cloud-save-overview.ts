@@ -32,7 +32,8 @@ export const getCloudSaveOverview = async (
     isAutomaticSyncEnabled,
     suggestedAction: getSuggestedCloudSaveAction(
       state,
-      analysis.merge.restoreEntryIds.length
+      analysis.merge.restoreEntryIds.length +
+        analysis.merge.deleteLocalEntryIds.length
     ),
     discoveredVariantCount: analysis.localSnapshot.variants.length,
     unresolvedRemoteVariantCount: new Set(

@@ -32,6 +32,8 @@ export interface CreateRemoteSnapshotOptions
   extends PrepareLocalSnapshotOptions {
   expectedSnapshotId?: string | null;
   unresolvedRemoteEntryIds?: string[];
+  updateAnchor?: boolean;
+  assertEnvironmentCurrent?: () => Promise<void>;
 }
 
 const validateCommitResponse = (value: unknown): CommitSnapshotResponse => {
@@ -107,6 +109,7 @@ export const createRemoteSnapshotFromLocalState = async (
   let committed: CommitSnapshotResponse | null = null;
   for (let prepareAttempt = 0; prepareAttempt < 2; prepareAttempt += 1) {
     try {
+      await options.assertEnvironmentCurrent?.();
       const upload = await uploadLocalGameSnapshot(
         objectId,
         shop,
@@ -115,6 +118,7 @@ export const createRemoteSnapshotFromLocalState = async (
         { ...options, variants, files, aggregateHash: expectedAggregateHash }
       );
       if (!upload.pendingSnapshotId) return null;
+      await options.assertEnvironmentCurrent?.();
       committed = await commitPendingSnapshot(upload.pendingSnapshotId);
       break;
     } catch (error) {
@@ -140,24 +144,27 @@ export const createRemoteSnapshotFromLocalState = async (
     throw new Error("Committed Cloud Save snapshot is inconsistent");
   }
 
-  await saveCloudSaveSyncAnchor(shop, objectId, context.environmentId, {
-    schemaVersion: 4,
-    environmentId: context.environmentId,
-    baseSnapshotId: committed.snapshotId,
-    baseVersion: committed.version,
-    baseAggregateHash: committed.aggregateHash,
-    entries: files.map((file) => ({
-      variantId: file.variantId,
-      rawPath: file.rawPath,
-      relativePath: file.relativePath,
-      hash: file.hash,
-      sizeBytes: file.sizeBytes,
-    })),
-    unresolvedRemoteEntryIds: (options.unresolvedRemoteEntryIds ?? []).filter(
-      (entryId) => files.some((file) => cloudSaveFileKey(file) === entryId)
-    ),
-    updatedAt: new Date().toISOString(),
-  });
+  if (options.updateAnchor !== false) {
+    await options.assertEnvironmentCurrent?.();
+    await saveCloudSaveSyncAnchor(shop, objectId, context.environmentId, {
+      schemaVersion: 4,
+      environmentId: context.environmentId,
+      baseSnapshotId: committed.snapshotId,
+      baseVersion: committed.version,
+      baseAggregateHash: committed.aggregateHash,
+      entries: files.map((file) => ({
+        variantId: file.variantId,
+        rawPath: file.rawPath,
+        relativePath: file.relativePath,
+        hash: file.hash,
+        sizeBytes: file.sizeBytes,
+      })),
+      unresolvedRemoteEntryIds: (options.unresolvedRemoteEntryIds ?? []).filter(
+        (entryId) => files.some((file) => cloudSaveFileKey(file) === entryId)
+      ),
+      updatedAt: new Date().toISOString(),
+    });
+  }
 
   return {
     id: committed.snapshotId,

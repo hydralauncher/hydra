@@ -142,3 +142,27 @@ pub struct ReplaceRestoreTargetsResult {
     pub metadata_failures: Vec<RestoreMetadataFailure>,
     pub updated_directory_count: u32,
 }
+
+#[napi(object)]
+#[derive(Clone)]
+pub struct DeleteLocalSaveTarget {
+    pub variant_id: String,
+    pub raw_path: String,
+    pub relative_path: String,
+    pub target_path: String,
+    pub restore_root_path: String,
+    pub expected_hash: String,
+    pub expected_size_bytes: f64,
+}
+
+#[napi(object)]
+pub struct DeletedLocalSaveFile {
+    pub variant_id: String,
+    pub raw_path: String,
+    pub relative_path: String,
+}
+
+#[napi(object)]
+pub struct DeleteLocalSaveTargetsResult {
+    pub deleted_files: Vec<DeletedLocalSaveFile>,
+}

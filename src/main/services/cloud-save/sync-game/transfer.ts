@@ -20,7 +20,8 @@ export const uploadLocalState = async (
   shop: GameShop,
   localSnapshotContext: LocalGameSnapshotContext,
   emitProgress: ProgressCallback,
-  options?: CreateRemoteSnapshotOptions
+  options: CreateRemoteSnapshotOptions = { baseVersion: 0 },
+  assertEnvironmentCurrent?: () => Promise<void>
 ) => {
   emitProgress({
     gameId: { objectId, shop },
@@ -39,7 +40,10 @@ export const uploadLocalState = async (
         totalFiles: progress.totalFiles,
       }),
     localSnapshotContext,
-    options
+    {
+      ...options,
+      assertEnvironmentCurrent,
+    }
   );
   if (!snapshot) throw new Error("Local cloud save snapshot is empty");
   return snapshot;
@@ -53,7 +57,8 @@ export const restoreRemoteState = async (
   emitProgress: ProgressCallback,
   entryIds?: string[],
   updateAnchor = true,
-  carriedUnresolvedEntryIds: string[] = []
+  carriedUnresolvedEntryIds: string[] = [],
+  assertEnvironmentCurrent?: () => Promise<void>
 ): Promise<RestoreRemoteSnapshotResult> => {
   emitProgress({
     gameId: { objectId, shop },
@@ -78,7 +83,9 @@ export const restoreRemoteState = async (
     },
     entryIds,
     updateAnchor,
-    carriedUnresolvedEntryIds
+    carriedUnresolvedEntryIds,
+    0,
+    assertEnvironmentCurrent
   );
   if (result.metadataFailedPaths > 0) {
     throw new Error("cloud_save_restore_metadata_failed");

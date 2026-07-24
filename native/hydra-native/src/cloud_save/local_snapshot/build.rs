@@ -47,6 +47,7 @@ pub fn build_snapshot(
         variant_id: Some(file.variant_id.clone()),
         raw_path: Some(file.raw_path.clone()),
         relative_path: Some(file.relative_path.clone()),
+        selected_root: true,
         authority: file.confidence.clone(),
         outcome: "partial".to_string(),
         enumerated_completely: false,
