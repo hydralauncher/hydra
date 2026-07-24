@@ -36,6 +36,8 @@ export function SettingsGlobalTrackers() {
   const appendUrlRef = useRef(appendUrl);
   const initialManualTrackers = useRef<string[]>([]);
   const initialTrackerUrl = useRef("");
+  const initialAppendManual = useRef(appendManual);
+  const initialAppendUrl = useRef(appendUrl);
 
   useEffect(() => {
     appendManualRef.current = appendManual;
@@ -78,6 +80,11 @@ export function SettingsGlobalTrackers() {
         );
 
         await refreshUserPreferences();
+
+        initialManualTrackers.current = manual;
+        initialTrackerUrl.current = url;
+        initialAppendManual.current = appendManualFlag;
+        initialAppendUrl.current = appendUrlFlag;
       } catch (err) {
         console.error("Failed to save global trackers", err);
         setSaveError(t("global_trackers_save_error"));
@@ -111,15 +118,40 @@ export function SettingsGlobalTrackers() {
     setAppendUrl(au);
     appendManualRef.current = am;
     appendUrlRef.current = au;
+    initialAppendManual.current = am;
+    initialAppendUrl.current = au;
     setIsInitialized(true);
   }, [userPreferences, isInitialized, setValue]);
 
   useEffect(() => {
     if (!userPreferences || !isInitialized) return;
 
-    initialManualTrackers.current = userPreferences.globalTrackers ?? [];
-    initialTrackerUrl.current = userPreferences.globalTrackersUrl ?? "";
-  }, [userPreferences, isInitialized]);
+    const manualChanged =
+      JSON.stringify(manualTrackers) !==
+      JSON.stringify(initialManualTrackers.current);
+    const urlChanged = trackerUrl !== initialTrackerUrl.current;
+    const appendManualChanged = appendManual !== initialAppendManual.current;
+    const appendUrlChanged = appendUrl !== initialAppendUrl.current;
+
+    const isDirty = manualChanged || urlChanged || appendManualChanged || appendUrlChanged;
+
+    if (isDirty) return;
+
+    const newManual = userPreferences.globalTrackers ?? [];
+    const newUrl = userPreferences.globalTrackersUrl ?? "";
+    const newAppendManual = userPreferences.appendGlobalTrackers ?? false;
+    const newAppendUrl = userPreferences.appendGlobalTrackersUrl ?? false;
+
+    setValue("manualTrackers", newManual.join("\n"));
+    setTrackerUrl(newUrl);
+    setAppendManual(newAppendManual);
+    setAppendUrl(newAppendUrl);
+
+    initialManualTrackers.current = newManual;
+    initialTrackerUrl.current = newUrl;
+    initialAppendManual.current = newAppendManual;
+    initialAppendUrl.current = newAppendUrl;
+  }, [userPreferences, isInitialized, manualTrackers, trackerUrl, appendManual, appendUrl, setValue]);
 
   useEffect(() => {
     if (!isInitialized) return;

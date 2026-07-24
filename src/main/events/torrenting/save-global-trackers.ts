@@ -31,6 +31,10 @@ const saveGlobalTrackers = async (
       },
       { valueEncoding: "json" }
     );
+
+    if (!appendUrl || !trimmedUrl || trimmedUrl !== userPreferences?.globalTrackersUrl) {
+      await db.del(levelKeys.globalTrackersUrlCache).catch(() => {});
+    }
   } finally {
     clearGlobalTrackersMemoryCache();
   }

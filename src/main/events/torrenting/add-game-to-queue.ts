@@ -70,6 +70,7 @@ const addGameToQueue = async (
 
     await DownloadManager.validateDownloadUrl(download);
     await prepareGameEntry({ gameKey, title, objectId, shop });
+    await DownloadManager.cancelDownload(gameKey).catch(() => null);
   } catch (err: unknown) {
     if (isKnownDownloadError(err)) {
       logger.warn(
