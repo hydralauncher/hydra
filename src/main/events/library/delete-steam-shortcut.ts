@@ -19,7 +19,7 @@ const deleteSteamShortcutHandler = async (
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
 
-  if (!game?.executablePath) {
+  if (!game || (!game.executablePath && game.shop !== "launchbox")) {
     logger.info(
       `[deleteSteamShortcut] No game or executable found for ${shop}-${objectId}`
     );
