@@ -1,67 +1,92 @@
+import { isAxiosError } from "axios";
+
 import { logger } from "@main/services/logger";
 import { SystemPath } from "@main/services/system-path";
 import type {
   CloudSaveGameId,
   CloudSavePathContext,
-  GameShop,
-  ReplaceRestoreTarget,
+  RemoteGameSnapshot,
   RemoteSnapshotSummary,
-  ResolvedRestoreTarget,
-  RestoreRemoteSnapshotResult,
+  ReplaceRestoreTarget,
   RestoreProgressPayload,
+  RestoreRemoteSnapshotResult,
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
+import { assertCloudSaveSubscription } from "./cloud-save-access";
+import { cloudSaveFileKey } from "./cloud-save-contract";
+import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { downloadRemoteSnapshotToTemp } from "./download-remote-snapshot-to-temp";
+import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
+import {
+  mapWithConcurrency,
+  MAX_CONCURRENT_RESTORE_OPERATIONS,
+} from "./map-with-concurrency";
 import { replaceRestoreTargets } from "./replace-restore-targets";
+import {
+  buildRestoreReplacements,
+  isRestoreReplacementSuccessful,
+} from "./restore-replacements";
+import { getRestoreVersionDecision } from "./restore-version-policy";
 import {
   getRemoteSnapshotRestoreManifest,
   resolveRestoreManifestTargets,
 } from "./resolve-remote-snapshot-targets";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
-import { shouldSkipRestoreFile } from "./should-skip-restore-file";
-import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
-import {
-  mapWithConcurrency,
-  MAX_CONCURRENT_RESTORE_OPERATIONS,
-} from "./map-with-concurrency";
-import { getCloudSaveGameContext } from "./cloud-save-game-context";
 
 interface RestoreCloudSaveContext {
   environmentId: string;
   pathContext: CloudSavePathContext;
 }
 
-const fileKey = (rawPath: string, relativePath: string) =>
-  JSON.stringify([rawPath, relativePath]);
-
-const getSnapshotSummary = async (
-  snapshotId: string,
-  shop: GameShop,
-  objectId: string
+const assertSnapshotStillCurrent = async (
+  gameId: CloudSaveGameId,
+  expected: RemoteSnapshotSummary | RemoteGameSnapshot
 ) => {
-  const snapshots = await listRemoteGameSnapshots(objectId, shop);
-  const snapshot = snapshots.find((item) => item.id === snapshotId);
-  if (!snapshot) throw new Error("Restore snapshot metadata not found");
-  return snapshot;
+  try {
+    const current = (
+      await listRemoteGameSnapshots(gameId.objectId, gameId.shop)
+    )[0];
+    return current?.id === expected.id && current.version === expected.version
+      ? current
+      : (current ?? null);
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.status === 404) return null;
+    throw error;
+  }
 };
 
 export const restoreRemoteSnapshot = async (
   snapshotId: string,
   gameId: CloudSaveGameId,
   onProgress?: (progress: RestoreProgressPayload) => void,
-  knownSnapshot?: RemoteSnapshotSummary,
-  suppliedContext?: RestoreCloudSaveContext
+  knownSnapshot?: RemoteSnapshotSummary | RemoteGameSnapshot,
+  suppliedContext?: RestoreCloudSaveContext,
+  requestedEntryIds?: string[],
+  updateAnchor = true,
+  carriedUnresolvedEntryIds: string[] = [],
+  versionChangeAttempt = 0,
+  assertEnvironmentCurrent?: () => Promise<void>
 ): Promise<RestoreRemoteSnapshotResult> => {
+  assertCloudSaveSubscription();
+
   const emitProgress = (
     stage: RestoreProgressPayload["stage"],
     processedFiles: number,
     totalFiles: number
   ) => onProgress?.({ gameId, stage, processedFiles, totalFiles });
 
+  const snapshot =
+    knownSnapshot ??
+    (await listRemoteGameSnapshots(gameId.objectId, gameId.shop)).find(
+      (item) => item.id === snapshotId
+    );
+  if (!snapshot) throw new Error("cloud_save_restore_snapshot_not_found");
+  const tempSnapshotId = `${snapshot.id}-${snapshot.version}`;
+
   emitProgress("starting", 0, 0);
-  const manifest = await getRemoteSnapshotRestoreManifest(snapshotId);
+  const manifest = await getRemoteSnapshotRestoreManifest(snapshot);
   if (
     manifest.snapshot.shop !== gameId.shop ||
     manifest.snapshot.objectId !== gameId.objectId
@@ -69,80 +94,59 @@ export const restoreRemoteSnapshot = async (
     throw new Error("Restore snapshot does not belong to the requested game");
   }
 
-  emitProgress("resolving", 0, manifest.files.length);
+  const requestedIds = requestedEntryIds ? new Set(requestedEntryIds) : null;
+  const selectedFiles = requestedIds
+    ? manifest.files.filter((file) => requestedIds.has(cloudSaveFileKey(file)))
+    : manifest.files;
+  const selectedIds = new Set(selectedFiles.map(cloudSaveFileKey));
+  if (requestedIds && selectedFiles.length !== requestedIds.size) {
+    throw new Error("Requested restore file is missing from manifest");
+  }
+  const usedVariantIds = new Set(selectedFiles.map((file) => file.variantId));
+  const selectedManifest = {
+    ...manifest,
+    variants: manifest.variants.filter((variant) =>
+      usedVariantIds.has(variant.variantId)
+    ),
+    files: selectedFiles,
+  };
+  emitProgress("resolving", 0, selectedFiles.length);
   const cloudSaveContext =
     suppliedContext ??
     (await getCloudSaveGameContext(gameId.objectId, gameId.shop));
-  const [targets, snapshot] = await Promise.all([
-    resolveRestoreManifestTargets(manifest, cloudSaveContext.pathContext),
-    knownSnapshot ??
-      getSnapshotSummary(
-        snapshotId,
-        manifest.snapshot.shop,
-        manifest.snapshot.objectId
-      ),
-  ]);
-  emitProgress("resolving", targets.length, targets.length);
-  const skipKeys = new Set<string>();
-  const restoreTargets: ResolvedRestoreTarget[] = [];
-
-  emitProgress("checking", 0, targets.length);
-  let checkedFiles = 0;
-  const skipResults = await mapWithConcurrency(
-    targets,
-    MAX_CONCURRENT_RESTORE_OPERATIONS,
-    (target) =>
-      shouldSkipRestoreFile({
-        localPath: target.targetPath,
-        expectedHash: target.hash,
-      }),
-    () => {
-      checkedFiles += 1;
-      emitProgress("checking", checkedFiles, targets.length);
-    }
+  const plan = await resolveRestoreManifestTargets(
+    selectedManifest,
+    cloudSaveContext.pathContext
   );
-  for (const [index, target] of targets.entries()) {
-    if (skipResults[index]) {
-      skipKeys.add(fileKey(target.rawPath, target.relativePath));
-    } else {
-      restoreTargets.push(target);
-    }
-  }
+  emitProgress("resolving", plan.actions.length, selectedFiles.length);
 
-  const shouldCleanup = restoreTargets.length > 0;
+  const restoreTargets = plan.actions.filter(
+    (target) => target.action !== "skip-identical"
+  );
+
   try {
     emitProgress("downloading", 0, restoreTargets.length);
     const downloadedFiles = await downloadRemoteSnapshotToTemp(
-      snapshotId,
+      snapshot.id,
+      snapshot.version,
       restoreTargets,
       (processedFiles, totalFiles) =>
         emitProgress("downloading", processedFiles, totalFiles)
     );
-    const downloadedByPath = new Map(
-      downloadedFiles.map((file) => [
-        fileKey(file.rawPath, file.relativePath),
-        file,
-      ])
-    );
-
-    const downloadedFilesByHash = new Map<string, typeof downloadedFiles>();
+    const downloadedFilesByContent = new Map<string, typeof downloadedFiles>();
     for (const file of downloadedFiles) {
-      const existing = downloadedFilesByHash.get(file.hash) ?? [];
-      if (
-        existing.some(
-          (item) =>
-            item.sizeBytes !== file.sizeBytes || item.tempPath !== file.tempPath
-        )
-      ) {
+      const key = JSON.stringify([file.hash, file.sizeBytes]);
+      const existing = downloadedFilesByContent.get(key) ?? [];
+      if (existing.some((item) => item.tempPath !== file.tempPath)) {
         throw new Error("Downloaded restore blob is inconsistent");
       }
-      downloadedFilesByHash.set(file.hash, [...existing, file]);
+      downloadedFilesByContent.set(key, [...existing, file]);
     }
-    const verificationGroups = Array.from(downloadedFilesByHash.values());
+
     let verifiedFiles = 0;
     emitProgress("verifying", 0, downloadedFiles.length);
     await mapWithConcurrency(
-      verificationGroups,
+      [...downloadedFilesByContent.values()],
       MAX_CONCURRENT_RESTORE_OPERATIONS,
       async (group) => {
         const [file] = group;
@@ -160,67 +164,101 @@ export const restoreRemoteSnapshot = async (
       }
     );
 
-    const replacements: ReplaceRestoreTarget[] = targets.map((target) => {
-      const key = fileKey(target.rawPath, target.relativePath);
-      if (skipKeys.has(key)) {
-        return {
-          rawPath: target.rawPath,
-          relativePath: target.relativePath,
-          targetPath: target.targetPath,
-          action: "skip",
-        };
+    const current = await assertSnapshotStillCurrent(gameId, snapshot);
+    const versionDecision = getRestoreVersionDecision(
+      snapshot,
+      current,
+      versionChangeAttempt
+    );
+    if (versionDecision !== "stable") {
+      if (versionDecision === "retry" && current) {
+        return restoreRemoteSnapshot(
+          current.id,
+          gameId,
+          onProgress,
+          current,
+          cloudSaveContext,
+          requestedEntryIds,
+          updateAnchor,
+          carriedUnresolvedEntryIds,
+          1,
+          assertEnvironmentCurrent
+        );
       }
-      const file = downloadedByPath.get(key);
-      if (!file) throw new Error("Missing downloaded restore file");
-      return {
-        rawPath: target.rawPath,
-        relativePath: target.relativePath,
-        targetPath: target.targetPath,
-        action: "restore",
-        tempPath: file.tempPath,
-        expectedHash: file.hash,
-      };
-    });
+      throw new Error("cloud_save_restore_snapshot_changed_twice");
+    }
+
+    const replacements: ReplaceRestoreTarget[] = buildRestoreReplacements(
+      plan.actions,
+      downloadedFiles
+    );
+    await assertEnvironmentCurrent?.();
     emitProgress("applying_restore", 0, replacements.length);
     const result = await replaceRestoreTargets(replacements);
     emitProgress("applying_restore", replacements.length, replacements.length);
-    if (result.failedFiles.length > 0) {
-      const restoreResult = {
-        ok: false,
-        restoredFiles: result.restoredFiles.length,
-        skippedFiles: result.skippedFiles.length,
-        failedFiles: result.failedFiles.length,
-      };
-      emitProgress("completed", replacements.length, replacements.length);
-      return restoreResult;
-    }
-
-    await saveCloudSaveSyncAnchor(
-      manifest.snapshot.shop,
-      manifest.snapshot.objectId,
-      cloudSaveContext.environmentId,
-      {
-        baseSnapshotId: snapshot.id,
-        baseAggregateHash: snapshot.aggregateHash,
-        updatedAt: new Date().toISOString(),
-      }
-    );
-    const restoreResult = {
-      ok: true,
+    logger.info("[Cloud Save] Restore metadata applied", {
       restoredFiles: result.restoredFiles.length,
-      skippedFiles: result.skippedFiles.length,
-      failedFiles: 0,
-    };
-    emitProgress("completed", targets.length, targets.length);
-    return restoreResult;
-  } finally {
-    if (shouldCleanup) {
-      await NativeAddon.cleanupRestoreTempSnapshot(
-        snapshotId,
-        SystemPath.getPath("temp")
-      ).catch((error) =>
-        logger.warn("Failed to clean cloud save restore temp files", error)
+      timestampedIdenticalFiles: result.skippedFiles.length,
+      updatedDirectories: result.updatedDirectoryCount,
+      metadataFailures: result.metadataFailures.length,
+    });
+
+    const blockedIds = plan.blocked.map(cloudSaveFileKey);
+    const unresolvedRemoteEntryIds = [
+      ...new Set([
+        ...carriedUnresolvedEntryIds.filter(
+          (entryId) => !selectedIds.has(entryId)
+        ),
+        ...blockedIds,
+      ]),
+    ].sort();
+
+    const restoreSucceeded = isRestoreReplacementSuccessful(result);
+    if (restoreSucceeded && updateAnchor) {
+      await assertEnvironmentCurrent?.();
+      await saveCloudSaveSyncAnchor(
+        manifest.snapshot.shop,
+        manifest.snapshot.objectId,
+        cloudSaveContext.environmentId,
+        {
+          schemaVersion: 4,
+          environmentId: cloudSaveContext.environmentId,
+          baseSnapshotId: manifest.snapshot.id,
+          baseVersion: manifest.snapshot.version,
+          baseAggregateHash: snapshot.aggregateHash,
+          entries: manifest.files.map((file) => ({
+            variantId: file.variantId,
+            rawPath: file.rawPath,
+            relativePath: file.relativePath,
+            hash: file.hash,
+            sizeBytes: file.sizeBytes,
+          })),
+          unresolvedRemoteEntryIds,
+          updatedAt: new Date().toISOString(),
+        }
       );
     }
+
+    const partial =
+      unresolvedRemoteEntryIds.length > 0 || result.metadataFailures.length > 0;
+    const restoreResult: RestoreRemoteSnapshotResult = {
+      ok: restoreSucceeded,
+      partial,
+      restoredFiles: result.restoredFiles.length,
+      skippedFiles: result.skippedFiles.length,
+      failedFiles: result.failedFiles.length,
+      metadataFailedPaths: result.metadataFailures.length,
+      blockedFiles: plan.blocked.length,
+      unresolvedRemoteEntryIds,
+    };
+    emitProgress("completed", plan.actions.length, selectedFiles.length);
+    return restoreResult;
+  } finally {
+    await NativeAddon.cleanupRestoreTempSnapshot(
+      tempSnapshotId,
+      SystemPath.getPath("temp")
+    ).catch((error) =>
+      logger.warn("Failed to clean cloud save restore temp files", error)
+    );
   }
 };

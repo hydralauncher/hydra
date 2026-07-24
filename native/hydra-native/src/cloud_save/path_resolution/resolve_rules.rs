@@ -12,6 +12,7 @@ pub fn resolve_rules(
         .map(|rule| {
             let resolved = resolve_path(&rule.raw_path, context);
             ResolvedCloudSaveRule {
+                rule_id: rule.rule_id,
                 kind: rule.kind,
                 raw_path: rule.raw_path,
                 source: rule.source,

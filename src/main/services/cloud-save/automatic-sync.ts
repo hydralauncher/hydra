@@ -10,8 +10,11 @@ import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
 import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
+import { canAccessCloudSaves } from "./cloud-save-access";
 import { syncGameCloudSave } from "./sync-game-cloud-save";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getCloudSaveErrorDetails } from "./cloud-save-error-details";
+import { isCloudSaveEnvironmentChangedError } from "./environment-guard";
 import {
   canUploadCloudSaveAfterLaunch,
   consumeCloudSaveLaunchGuard,
@@ -23,25 +26,6 @@ const automaticSyncCoordinator =
 
 const gameKey = (objectId: string, shop: GameShop) =>
   JSON.stringify([shop, objectId]);
-
-const getErrorLogDetails = (error: unknown) => {
-  const rawErrorCode =
-    error && typeof error === "object" && "code" in error
-      ? error.code
-      : undefined;
-  const errorMessage = error instanceof Error ? error.message : "Unknown error";
-  const nativeErrorCode = errorMessage.match(/\bcloud_save_[a-z0-9_]+\b/)?.[0];
-  const errorCode =
-    typeof rawErrorCode === "string" || typeof rawErrorCode === "number"
-      ? rawErrorCode
-      : nativeErrorCode;
-
-  return {
-    errorName: error instanceof Error ? error.name : "UnknownError",
-    errorMessage,
-    errorCode,
-  };
-};
 
 const emitAutomaticSyncEvent = (event: CloudSaveAutomaticSyncEvent) => {
   WindowManager.sendToAppWindows("on-cloud-save-automatic-sync", event);
@@ -56,8 +40,10 @@ export const runAutomaticCloudSaveSync = async (
 ): Promise<SyncGameCloudSaveResult | null> => {
   if (
     shop !== "steam" ||
-    !HydraApi.isLoggedIn() ||
-    !HydraApi.hasActiveSubscription()
+    !canAccessCloudSaves(
+      HydraApi.isLoggedIn(),
+      HydraApi.hasActiveSubscription()
+    )
   ) {
     return null;
   }
@@ -138,16 +124,37 @@ export const runAutomaticCloudSaveSync = async (
         return result;
       })
       .catch((error: unknown) => {
+        if (isCloudSaveEnvironmentChangedError(error)) {
+          logger.info(
+            "[Cloud Save] Automatic sync cancelled after environment change",
+            {
+              shop,
+              objectId,
+              trigger,
+            }
+          );
+          emitAutomaticSyncEvent({
+            gameId: { objectId, shop },
+            trigger,
+            status: "cancelled",
+          });
+          return null;
+        }
+        const errorDetails = getCloudSaveErrorDetails(error);
         logger.error("[Cloud Save] Automatic sync failed", {
           shop,
           objectId,
           trigger,
-          ...getErrorLogDetails(error),
+          ...errorDetails,
         });
         emitAutomaticSyncEvent({
           gameId: { objectId, shop },
           trigger,
           status: "failed",
+          errorCode:
+            typeof errorDetails.errorCode === "string"
+              ? errorDetails.errorCode
+              : undefined,
         });
         return null;
       })
@@ -159,6 +166,14 @@ export const runAutomaticCloudSavePostExit = async (
   shop: GameShop
 ): Promise<SyncGameCloudSaveResult | null> => {
   const guard = consumeCloudSaveLaunchGuard(objectId, shop);
+  if (
+    !canAccessCloudSaves(
+      HydraApi.isLoggedIn(),
+      HydraApi.hasActiveSubscription()
+    )
+  ) {
+    return null;
+  }
   if (!guard?.uploadAllowed) {
     logger.warn("[Cloud Save] Post-exit upload blocked by launch guard", {
       shop,

@@ -1,8 +1,7 @@
-import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
-  CaretDownIcon,
+  ArrowClockwiseIcon,
   CircleNotchIcon,
-  ClockIcon,
   CloudArrowDownIcon,
   CloudArrowUpIcon,
   CloudIcon,
@@ -12,14 +11,17 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type {
-  CloudSaveOverview,
   CloudSaveConflictResolution,
-  CloudSaveState,
+  CloudSaveOverview,
   CloudSaveSyncProgressPayload,
 } from "@types";
 import { formatBytes } from "@shared";
 import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
+import {
+  getCloudSavePanelAction,
+  getCloudSavePresentation,
+} from "./cloud-save-presentation";
 
 export interface CloudSavePanelProps {
   active?: boolean;
@@ -29,7 +31,7 @@ export interface CloudSavePanelProps {
   isSyncing: boolean;
   isGameRunning: boolean;
   hasExecutablePath: boolean;
-  isAutomaticSyncEnabled: boolean;
+  isAutomaticSyncEnabled: boolean | null;
   hasError: boolean;
   progress: CloudSaveSyncProgressPayload | null;
   onSync: () => void;
@@ -44,29 +46,7 @@ interface CloudSaveModalProps extends Omit<CloudSavePanelProps, "active"> {
   onClose: () => void;
 }
 
-const stateKey: Record<CloudSaveState, string> = {
-  synced: "cloud_save_v2_synced",
-  "local-ahead": "cloud_save_v2_outdated",
-  "remote-ahead": "cloud_save_v2_outdated",
-  conflict: "cloud_save_v2_conflict",
-  untracked: "cloud_save",
-};
-
-const statusTone: Record<
-  CloudSaveState,
-  "synced" | "outdated" | "conflict" | "neutral"
-> = {
-  synced: "synced",
-  "local-ahead": "outdated",
-  "remote-ahead": "outdated",
-  conflict: "conflict",
-  untracked: "neutral",
-};
-
-const MAX_VISIBLE_HISTORICAL_SNAPSHOTS = 3;
-
 export function CloudSavePanel({
-  active = true,
   showLaunchConflictWarning,
   overview,
   isLoading,
@@ -84,12 +64,10 @@ export function CloudSavePanel({
 }: Readonly<CloudSavePanelProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
-  const historyId = useId();
   const [isCloudSaveEnabled, setIsCloudSaveEnabled] = useState(
-    isAutomaticSyncEnabled
+    isAutomaticSyncEnabled ?? false
   );
   const [isUpdatingAutomaticSync, setIsUpdatingAutomaticSync] = useState(false);
-  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const cloudSaveToggleTitle = t("cloud_save_v2_toggle_title", {
     status: t(
       isCloudSaveEnabled
@@ -97,34 +75,23 @@ export function CloudSavePanel({
         : "cloud_save_v2_toggle_disabled"
     ),
   });
-  const { activeSnapshot, historicalSnapshots, historicalSnapshotCount } =
-    useMemo(() => {
-      const snapshots = overview?.snapshots ?? [];
-      const historical = snapshots
-        .filter((snapshot) => snapshot.status === "historical")
-        .sort(
-          (left, right) =>
-            Date.parse(right.createdAt) - Date.parse(left.createdAt)
-        );
-
-      return {
-        activeSnapshot: snapshots.find(
-          (snapshot) => snapshot.status === "active"
-        ),
-        historicalSnapshots: historical.slice(
-          0,
-          MAX_VISIBLE_HISTORICAL_SNAPSHOTS
-        ),
-        historicalSnapshotCount: historical.length,
-      };
-    }, [overview?.snapshots]);
+  const activeSnapshot = overview?.activeRemoteSnapshot ?? null;
+  const presentation = getCloudSavePresentation({
+    canUseCloudSaves: true,
+    hasExecutablePath,
+    isChecking: isLoading && !overview,
+    isSyncing,
+    hasError,
+    state: overview?.state ?? null,
+    progressStage: isSyncing ? (progress?.stage ?? null) : null,
+  });
+  const panelAction = getCloudSavePanelAction(
+    overview?.state ?? null,
+    overview?.suggestedAction ?? null
+  );
 
   useEffect(() => {
-    if (!active) setIsHistoryExpanded(false);
-  }, [active]);
-
-  useEffect(() => {
-    setIsCloudSaveEnabled(isAutomaticSyncEnabled);
+    setIsCloudSaveEnabled(isAutomaticSyncEnabled ?? false);
   }, [isAutomaticSyncEnabled]);
 
   const handleAutomaticSyncChange = async () => {
@@ -145,15 +112,17 @@ export function CloudSavePanel({
   const progressLabel = progress
     ? t(`cloud_save_v2_progress_${progress.stage}`)
     : null;
-  const currentStatusTone = overview ? statusTone[overview.state] : "neutral";
   const snapshotMetadata = (
-    createdAt: string,
+    updatedAt: string,
+    version: number,
     fileCount: number,
     totalSizeBytes: number,
     interactive = false
   ) => {
     const stats = (
       <>
+        <span>v{version}</span>
+        <span aria-hidden="true">·</span>
         <span>
           {t("cloud_save_v2_file_count", {
             count: fileCount,
@@ -166,7 +135,7 @@ export function CloudSavePanel({
 
     return (
       <div className="cloud-save-v2__snapshot-metadata">
-        <span>{formatDateTime(createdAt)}</span>
+        <span>{formatDateTime(updatedAt)}</span>
         {interactive ? (
           <button
             type="button"
@@ -190,16 +159,6 @@ export function CloudSavePanel({
     );
   };
 
-  let syncButtonIcon: ReactNode = <CloudIcon size={20} />;
-  let syncButtonLabel = t("cloud_save_v2_sync_now");
-  if (overview?.state === "local-ahead") {
-    syncButtonIcon = <CloudArrowUpIcon size={20} />;
-    syncButtonLabel = t("cloud_save_v2_sync_to_remote");
-  } else if (overview?.state === "remote-ahead") {
-    syncButtonIcon = <CloudArrowDownIcon size={20} />;
-    syncButtonLabel = t("cloud_save_v2_sync_from_remote");
-  }
-
   const syncingIcon: ReactNode = (
     <CircleNotchIcon className="cloud-save-v2__spinner" size={20} />
   );
@@ -213,7 +172,7 @@ export function CloudSavePanel({
         })
       : null;
 
-  let syncAction: ReactNode;
+  let syncAction: ReactNode = null;
   if (isSyncing) {
     syncAction = (
       <Button className="cloud-save-v2__sync-button" disabled>
@@ -226,36 +185,76 @@ export function CloudSavePanel({
         )}
       </Button>
     );
-  } else if (overview?.state === "conflict") {
-    syncAction = (
-      <div className="cloud-save-v2__conflict-actions">
-        <Button
-          onClick={() => onResolveConflict("keep-local")}
-          disabled={isLoading || isGameRunning}
-        >
-          <CloudArrowUpIcon size={20} />
-          {t("cloud_save_v2_keep_local")}
-        </Button>
-        <Button
-          onClick={() => onResolveConflict("keep-remote")}
-          disabled={isLoading || isGameRunning}
-        >
-          <CloudArrowDownIcon size={20} />
-          {t("cloud_save_v2_keep_remote")}
-        </Button>
-      </div>
-    );
   } else {
-    syncAction = (
-      <Button
-        className="cloud-save-v2__sync-button"
-        onClick={onSync}
-        disabled={isLoading || isGameRunning}
-      >
-        {syncButtonIcon}
-        <span>{syncButtonLabel}</span>
-      </Button>
-    );
+    switch (panelAction.kind) {
+      case "conflict":
+        syncAction = (
+          <div className="cloud-save-v2__conflict-actions">
+            <Button
+              onClick={() => onResolveConflict("keep-local")}
+              disabled={isLoading || isGameRunning}
+            >
+              <CloudArrowUpIcon size={20} />
+              {t("cloud_save_v2_keep_local")}
+            </Button>
+            <Button
+              onClick={() => onResolveConflict("keep-remote")}
+              disabled={isLoading || isGameRunning}
+            >
+              <CloudArrowDownIcon size={20} />
+              {t("cloud_save_v2_keep_remote")}
+            </Button>
+          </div>
+        );
+        break;
+      case "details":
+        syncAction = (
+          <Button
+            className="cloud-save-v2__sync-button"
+            onClick={onOpenFileBrowser}
+            disabled={isLoading}
+          >
+            <FolderOpenIcon size={20} />
+            <span>{t(panelAction.labelKey)}</span>
+          </Button>
+        );
+        break;
+      case "verify":
+        syncAction = (
+          <Button
+            className="cloud-save-v2__sync-button"
+            onClick={onSync}
+            disabled={isLoading || isGameRunning}
+          >
+            <ArrowClockwiseIcon size={20} />
+            <span>{t(panelAction.labelKey)}</span>
+          </Button>
+        );
+        break;
+      case "sync": {
+        const actionIcon =
+          panelAction.icon === "upload" ? (
+            <CloudArrowUpIcon size={20} />
+          ) : panelAction.icon === "restore" ? (
+            <CloudArrowDownIcon size={20} />
+          ) : (
+            <CloudIcon size={20} />
+          );
+        syncAction = (
+          <Button
+            className="cloud-save-v2__sync-button"
+            onClick={onSync}
+            disabled={isLoading || isGameRunning}
+          >
+            {actionIcon}
+            <span>{t(panelAction.labelKey)}</span>
+          </Button>
+        );
+        break;
+      }
+      case "none":
+        break;
+    }
   }
 
   const missingExecutableCard = (
@@ -289,7 +288,11 @@ export function CloudSavePanel({
           role="switch"
           aria-checked={isCloudSaveEnabled}
           aria-label={cloudSaveToggleTitle}
-          disabled={isUpdatingAutomaticSync}
+          disabled={
+            isUpdatingAutomaticSync ||
+            !hasExecutablePath ||
+            isAutomaticSyncEnabled === null
+          }
           className={`cloud-save-v2__switch ${isCloudSaveEnabled ? "cloud-save-v2__switch--enabled" : ""}`}
           onClick={() => void handleAutomaticSyncChange()}
         >
@@ -309,6 +312,10 @@ export function CloudSavePanel({
         </p>
       )}
 
+      {hasError && (
+        <p className="cloud-save-v2__error">{t("cloud_save_v2_error")}</p>
+      )}
+
       {!hasExecutablePath ? (
         missingExecutableCard
       ) : (
@@ -320,15 +327,14 @@ export function CloudSavePanel({
                   <div className="cloud-save-v2__snapshot-header">
                     <strong>{t("cloud_save_v2_active_snapshot")}</strong>
                     <span
-                      className={`cloud-save-v2__status-pill cloud-save-v2__status-pill--${currentStatusTone}`}
+                      className={`cloud-save-v2__status-pill cloud-save-v2__status-pill--${presentation.tone}`}
                     >
-                      {overview
-                        ? t(stateKey[overview.state])
-                        : t("cloud_save_v2_checking")}
+                      {t(presentation.labelKey)}
                     </span>
                   </div>
                   {snapshotMetadata(
-                    activeSnapshot.createdAt,
+                    activeSnapshot.updatedAt,
+                    activeSnapshot.version,
                     activeSnapshot.fileCount,
                     activeSnapshot.totalSizeBytes,
                     true
@@ -350,61 +356,9 @@ export function CloudSavePanel({
                 )
               )}
 
-              <div className="cloud-save-v2__action-area">
-                {hasError && (
-                  <p className="cloud-save-v2__error">
-                    {t("cloud_save_v2_error")}
-                  </p>
-                )}
-
-                {syncAction}
-              </div>
+              <div className="cloud-save-v2__action-area">{syncAction}</div>
             </article>
           </section>
-
-          {historicalSnapshotCount > 0 && (
-            <section className="cloud-save-v2__history">
-              <button
-                type="button"
-                className="cloud-save-v2__history-toggle"
-                aria-controls={historyId}
-                aria-expanded={isHistoryExpanded}
-                onClick={() => setIsHistoryExpanded((expanded) => !expanded)}
-              >
-                <span className="cloud-save-v2__history-title">
-                  <ClockIcon size={18} />
-                  {t("cloud_save_v2_history")}
-                </span>
-                <span className="cloud-save-v2__history-summary">
-                  <CaretDownIcon
-                    size={16}
-                    className={`cloud-save-v2__history-caret ${isHistoryExpanded ? "cloud-save-v2__history-caret--expanded" : ""}`}
-                  />
-                </span>
-              </button>
-
-              <div
-                id={historyId}
-                className={`cloud-save-v2__history-content ${isHistoryExpanded ? "cloud-save-v2__history-content--expanded" : ""}`}
-              >
-                <div className="cloud-save-v2__history-list">
-                  {historicalSnapshots.map((snapshot) => (
-                    <article
-                      className="cloud-save-v2__snapshot cloud-save-v2__snapshot--historical"
-                      key={snapshot.id}
-                    >
-                      <strong>{t("cloud_save_v2_historical_snapshot")}</strong>
-                      {snapshotMetadata(
-                        snapshot.createdAt,
-                        snapshot.fileCount,
-                        snapshot.totalSizeBytes
-                      )}
-                    </article>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
         </>
       )}
     </div>

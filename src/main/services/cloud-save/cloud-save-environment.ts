@@ -424,7 +424,6 @@ export const resolveCloudSaveEnvironment = async (
     winePrefixPath,
     prefixGeneration: prefixGeneration?.value ?? null,
     steamPath: canonicalContext.steamPath ?? null,
-    storeUserId: canonicalContext.storeUserId ?? null,
   });
 
   return {

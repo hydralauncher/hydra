@@ -7,15 +7,18 @@ import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
 import type {
   BuildLocalGameSnapshotPipelineInput,
-  CompareGameSnapshotsInput,
-  NativeCloudSaveStateResult,
+  DeleteLocalSaveTarget,
+  DeleteLocalSaveTargetsResult,
   NativeLocalGameSnapshotPipelineResult,
   ReplaceRestoreTarget,
   ReplaceRestoreTargetsResult,
   ResolveRestoreTargetsInput,
-  ResolvedRestoreTarget,
   ShouldSkipRestoreFileInput,
   VerifyDownloadedRestoreFileResult,
+  GameSaveRules,
+  GetSaveRulesForGameInput,
+  ResolveRestoreTargetsResult,
+  BuildSnapshotAggregateHashInput,
 } from "@types";
 
 import { logger } from "./logger";
@@ -48,16 +51,21 @@ type HydraNativeModule = {
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
-  compareGameSnapshots: (
-    input: CompareGameSnapshotsInput
-  ) => NativeCloudSaveStateResult;
+  getSaveRulesForGame: (
+    input: GetSaveRulesForGameInput
+  ) => Promise<GameSaveRules>;
+  buildSnapshotAggregateHash: (
+    input: BuildSnapshotAggregateHashInput
+  ) => string;
   uploadLocalSaveBlob: (
     absolutePath: string,
-    uploadUrl: string
+    uploadUrl: string,
+    contentLength: string,
+    checksumSha256: string
   ) => Promise<void>;
   resolveRestoreTargets: (
     input: ResolveRestoreTargetsInput
-  ) => ResolvedRestoreTarget[];
+  ) => ResolveRestoreTargetsResult;
   downloadRestoreBlobToTemp: (
     snapshotId: string,
     hash: string,
@@ -75,6 +83,9 @@ type HydraNativeModule = {
   replaceRestoreTargets: (
     files: ReplaceRestoreTarget[]
   ) => Promise<ReplaceRestoreTargetsResult>;
+  deleteLocalSaveTargets: (
+    files: DeleteLocalSaveTarget[]
+  ) => Promise<DeleteLocalSaveTargetsResult>;
   cleanupRestoreTempSnapshot: (
     snapshotId: string,
     tempRoot: string
@@ -361,12 +372,28 @@ export class NativeAddon {
     return this.load().buildLocalGameSnapshotPipeline(input);
   }
 
-  public static compareGameSnapshots(input: CompareGameSnapshotsInput) {
-    return this.load().compareGameSnapshots(input);
+  public static getSaveRulesForGame(input: GetSaveRulesForGameInput) {
+    return this.load().getSaveRulesForGame(input);
   }
 
-  public static uploadLocalSaveBlob(absolutePath: string, uploadUrl: string) {
-    return this.load().uploadLocalSaveBlob(absolutePath, uploadUrl);
+  public static buildSnapshotAggregateHash(
+    input: BuildSnapshotAggregateHashInput
+  ) {
+    return this.load().buildSnapshotAggregateHash(input);
+  }
+
+  public static uploadLocalSaveBlob(
+    absolutePath: string,
+    uploadUrl: string,
+    contentLength: string,
+    checksumSha256: string
+  ) {
+    return this.load().uploadLocalSaveBlob(
+      absolutePath,
+      uploadUrl,
+      contentLength,
+      checksumSha256
+    );
   }
 
   public static resolveRestoreTargets(input: ResolveRestoreTargetsInput) {
@@ -403,6 +430,10 @@ export class NativeAddon {
 
   public static replaceRestoreTargets(files: ReplaceRestoreTarget[]) {
     return this.load().replaceRestoreTargets(files);
+  }
+
+  public static deleteLocalSaveTargets(files: DeleteLocalSaveTarget[]) {
+    return this.load().deleteLocalSaveTargets(files);
   }
 
   public static cleanupRestoreTempSnapshot(

@@ -1,36 +1,14 @@
 import { HydraApi } from "@main/services/hydra-api";
 import type { GameShop, RemoteSnapshotSummary } from "@types";
 
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === "string" && value.length > 0;
+import { validateRemoteSnapshotSummary } from "./cloud-save-contract";
 
 const validateRemoteSnapshots = (value: unknown): RemoteSnapshotSummary[] => {
   if (!Array.isArray(value)) throw new Error("Invalid snapshots response");
-
-  return value.map((snapshot) => {
-    if (!snapshot || typeof snapshot !== "object") {
-      throw new Error("Invalid snapshot response item");
-    }
-
-    const item = snapshot as Record<string, unknown>;
-    if (
-      !isNonEmptyString(item.id) ||
-      (item.status !== "active" && item.status !== "historical") ||
-      !isNonEmptyString(item.createdAt) ||
-      !Number.isFinite(Date.parse(item.createdAt)) ||
-      typeof item.fileCount !== "number" ||
-      !Number.isInteger(item.fileCount) ||
-      item.fileCount < 0 ||
-      typeof item.totalSizeBytes !== "number" ||
-      !Number.isFinite(item.totalSizeBytes) ||
-      item.totalSizeBytes < 0 ||
-      !isNonEmptyString(item.aggregateHash)
-    ) {
-      throw new Error("Invalid snapshot response item");
-    }
-
-    return item as unknown as RemoteSnapshotSummary;
-  });
+  if (value.length > 1) {
+    throw new Error("Cloud Save API returned more than one active snapshot");
+  }
+  return value.map(validateRemoteSnapshotSummary);
 };
 
 export const listRemoteGameSnapshots = async (
@@ -38,8 +16,15 @@ export const listRemoteGameSnapshots = async (
   shop: GameShop
 ) =>
   validateRemoteSnapshots(
-    await HydraApi.get<unknown>("/profile/cloud-saves/snapshots", {
-      shop,
-      objectId,
-    })
+    await HydraApi.get<unknown>(
+      "/profile/cloud-saves/snapshots",
+      {
+        shop,
+        objectId,
+      },
+      {
+        needsAuth: true,
+        needsSubscription: true,
+      }
+    )
   );

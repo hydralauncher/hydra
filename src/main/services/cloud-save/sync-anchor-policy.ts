@@ -1,10 +1,15 @@
-import type { CloudSaveSyncAnchor } from "@types";
-
 export const canMigrateLegacyCloudSaveAnchor = (
-  anchor: CloudSaveSyncAnchor | null,
-  localSnapshotHash: string,
-  localSnapshotFileCount: number
-) =>
-  anchor !== null &&
-  localSnapshotFileCount > 0 &&
-  localSnapshotHash === anchor.baseAggregateHash;
+  _anchor: unknown,
+  _localSnapshotHash: string,
+  _localSnapshotFileCount: number
+) => false;
+
+export const hasCloudSaveV4AnchorSchema = (
+  value: unknown
+): value is { schemaVersion: 4 } =>
+  Boolean(
+    value &&
+      typeof value === "object" &&
+      "schemaVersion" in value &&
+      value.schemaVersion === 4
+  );

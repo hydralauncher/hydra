@@ -24,11 +24,13 @@ const localFile = (
   sizeBytes = 4
 ): CloudSaveV2LocalFile => ({
   source: "local",
+  variantId: `variant:${rawPath}`,
   rawPath,
   relativePath,
   absolutePath,
   sizeBytes,
   lastModifiedAt: "2026-07-21T10:00:00.000Z",
+  userLabel: "Profile ••••test",
 });
 
 const remoteFile = (
@@ -37,10 +39,12 @@ const remoteFile = (
   sizeBytes = 4
 ): CloudSaveV2RemoteFile => ({
   source: "remote",
+  variantId: `variant:${rawPath}`,
   rawPath,
   relativePath,
   sizeBytes,
   lastModifiedAt: null,
+  userLabel: "Profile ••••test",
 });
 
 describe("cloud save V2 local file tree", () => {
@@ -213,6 +217,7 @@ describe("cloud save V2 comparison tree", () => {
     const remote = remoteFile(rawPath, "profiles/slot.dat");
     const comparisons: CloudSaveV2FileComparison[] = [
       {
+        variantId: local.variantId,
         rawPath,
         relativePath: "profiles/slot.dat",
         status: "modified",
@@ -220,6 +225,7 @@ describe("cloud save V2 comparison tree", () => {
         remote,
       },
       {
+        variantId: `variant:${rawPath}`,
         rawPath,
         relativePath: "remote.dat",
         status: "remote-only",
@@ -251,6 +257,7 @@ describe("cloud save V2 comparison tree", () => {
   it("keeps homonymous paths separated by rawPath", () => {
     const comparisons: CloudSaveV2FileComparison[] = ["rule-b", "rule-a"].map(
       (rawPath) => ({
+        variantId: `variant:${rawPath}`,
         rawPath,
         relativePath: "slot.dat",
         status: "unchanged",
@@ -263,6 +270,49 @@ describe("cloud save V2 comparison tree", () => {
     assert.deepEqual(
       roots.map((root) => root.rawPath),
       ["rule-a", "rule-b"]
+    );
+    assert.notEqual(roots[0].children[0].id, roots[1].children[0].id);
+  });
+
+  it("keeps the same rule and relative path separated by variant", () => {
+    const rawPath = "<winAppData>/Sekiro/<storeUserId>";
+    const first = localFile(rawPath, "S0000.sl2", "C:\\Sekiro\\111\\S0000.sl2");
+    const second = localFile(
+      rawPath,
+      "S0000.sl2",
+      "C:\\Sekiro\\222\\S0000.sl2"
+    );
+    first.variantId = "variant-111";
+    first.userLabel = "Steam ••••0111";
+    second.variantId = "variant-222";
+    second.userLabel = "Steam ••••0222";
+
+    const roots = buildCloudSaveV2ComparisonTree([
+      {
+        variantId: first.variantId,
+        rawPath,
+        relativePath: first.relativePath,
+        status: "local-only",
+        local: first,
+        remote: null,
+      },
+      {
+        variantId: second.variantId,
+        rawPath,
+        relativePath: second.relativePath,
+        status: "local-only",
+        local: second,
+        remote: null,
+      },
+    ]);
+
+    assert.equal(roots.length, 2);
+    assert.deepEqual(
+      roots.map((root) => root.name),
+      [
+        "Steam ••••0111 · <winAppData>/Sekiro/<storeUserId>",
+        "Steam ••••0222 · <winAppData>/Sekiro/<storeUserId>",
+      ]
     );
     assert.notEqual(roots[0].children[0].id, roots[1].children[0].id);
   });

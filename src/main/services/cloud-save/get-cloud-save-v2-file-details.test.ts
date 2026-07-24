@@ -2,214 +2,174 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type {
-  CloudSaveState,
-  LocalGameSnapshotFile,
   LocalGameSnapshotSourceFile,
-  RemoteSnapshotSummary,
-  RestoreManifestFile,
+  SnapshotFile,
+  SnapshotVariant,
 } from "@types";
 
+// @ts-ignore The Node ESM test runner requires the source extension.
 import {
   buildCloudSaveV2FileDetails,
   loadCloudSaveV2FileDetails,
 } from "./cloud-save-v2-file-details.ts";
+// @ts-ignore The Node ESM test runner requires the source extension.
+import { cloudSaveFileKey } from "./cloud-save-contract.ts";
 
-const localFile = (
-  rawPath: string,
-  relativePath: string,
-  hash: string,
-  sizeBytes = 4
-): LocalGameSnapshotFile => ({
-  rawPath,
-  relativePath,
-  hash,
-  sizeBytes,
-  lastModifiedAt: "2026-07-21T10:00:00.000Z",
+const firstVariantId = "1".repeat(64);
+const secondVariantId = "2".repeat(64);
+const variants: SnapshotVariant[] = [
+  {
+    variantId: firstVariantId,
+    kind: "steam-account",
+    steamId64: "76561197960278073",
+  },
+  {
+    variantId: secondVariantId,
+    kind: "steam-account",
+    steamId64: "76561198051718575",
+  },
+];
+const hash = (value: string) => value.repeat(64).slice(0, 64);
+const file = (variantId: string, value: string): SnapshotFile => ({
+  variantId,
+  rawPath: "<winAppData>/Sekiro/<storeUserId>",
+  relativePath: "S0000.sl2",
+  hash: hash(value),
+  sizeBytes: 4,
+  lastModifiedAt: "2026-07-22T10:00:00.000Z",
 });
-
-const sourceFile = (
-  file: LocalGameSnapshotFile,
-  absolutePath = `C:\\Saves\\${file.relativePath.replaceAll("/", "\\")}`
-): LocalGameSnapshotSourceFile => ({
-  rawPath: file.rawPath,
-  relativePath: file.relativePath,
-  absolutePath,
-  hash: file.hash,
-  sizeBytes: file.sizeBytes,
+const source = (snapshotFile: SnapshotFile): LocalGameSnapshotSourceFile => ({
+  variantId: snapshotFile.variantId,
+  ruleId: "local-rule",
+  rawPath: snapshotFile.rawPath,
+  relativePath: snapshotFile.relativePath,
+  absolutePath: `C:/Sekiro/${snapshotFile.variantId}/S0000.sl2`,
+  hash: snapshotFile.hash,
+  sizeBytes: snapshotFile.sizeBytes,
+  lastModifiedAt: snapshotFile.lastModifiedAt,
+  localBindings: {
+    environmentId: "environment",
+    rootId: "root",
+    concreteUserSegment: snapshotFile.variantId,
+    concretePath: `C:/Sekiro/${snapshotFile.variantId}`,
+  },
+  confidence: "authoritative",
+  provenance: ["test"],
 });
-
-const remoteFile = (
-  rawPath: string,
-  relativePath: string,
-  hash: string,
-  sizeBytes = 4,
-  lastModifiedAt?: string
-): RestoreManifestFile => ({
-  rawPath,
-  relativePath,
-  hash,
-  sizeBytes,
-  lastModifiedAt,
-});
-
-const snapshot = (
-  fileCount: number,
-  totalSizeBytes: number
-): RemoteSnapshotSummary => ({
-  id: "active-snapshot",
-  status: "active",
-  createdAt: "2026-07-21T11:00:00.000Z",
-  fileCount,
-  totalSizeBytes,
-  aggregateHash: "snapshot-hash",
-});
-
-const buildDetails = (
-  state: CloudSaveState,
-  localFiles: LocalGameSnapshotFile[],
-  activeSnapshot: RemoteSnapshotSummary | null,
-  remoteFiles: RestoreManifestFile[]
-) =>
-  buildCloudSaveV2FileDetails({
-    state,
-    localFiles,
-    localSourceFiles: localFiles.map((file) => sourceFile(file)),
-    localTotalSizeBytes: localFiles.reduce(
-      (total, file) => total + file.sizeBytes,
-      0
-    ),
-    activeSnapshot,
-    remoteFiles,
-  });
+const summary = {
+  id: "snapshot",
+  version: 3,
+  createdAt: "2026-07-20T10:00:00.000Z",
+  updatedAt: "2026-07-22T10:00:00.000Z",
+  fileCount: 2,
+  totalSizeBytes: 8,
+  aggregateHash: "a".repeat(64),
+};
 
 describe("cloud save V2 file details", () => {
-  it("pairs files using rawPath and relativePath without exposing hashes", () => {
-    const localFiles = [
-      localFile("<home>/game-a", "slot.dat", "same"),
-      localFile("<home>/game-b", "slot.dat", "local-version"),
-      localFile("<home>/game-a", "local.dat", "local-only"),
-    ];
-    const remoteFiles = [
-      remoteFile("<home>/game-a", "slot.dat", "same"),
-      remoteFile("<home>/game-b", "slot.dat", "remote-version"),
-      remoteFile("<home>/game-a", "remote.dat", "remote-only"),
-    ];
-
-    const details = buildDetails(
-      "conflict",
+  it("keeps equal paths separated by variant and exposes active version", () => {
+    const localFiles = [file(firstVariantId, "a"), file(secondVariantId, "a")];
+    const details = buildCloudSaveV2FileDetails({
+      state: "synced",
+      localVariants: variants,
       localFiles,
-      snapshot(3, 12),
-      remoteFiles
+      localSourceFiles: localFiles.map(source),
+      localTotalSizeBytes: 8,
+      activeSnapshot: summary,
+      remoteVariants: variants,
+      remoteFiles: localFiles,
+    });
+
+    assert.equal(details.variants.length, 2);
+    assert.equal(details.activeSnapshot?.version, 3);
+    assert.equal(details.activeSnapshot?.updatedAt, "2026-07-22T10:00:00.000Z");
+    assert.notEqual(
+      cloudSaveFileKey(localFiles[0]),
+      cloudSaveFileKey(localFiles[1])
     );
+  });
+
+  it("compares conflicts using variant + rawPath + relativePath", () => {
+    const localFiles = [file(firstVariantId, "l"), file(secondVariantId, "a")];
+    const remoteFiles = [file(firstVariantId, "r"), file(secondVariantId, "a")];
+    const details = buildCloudSaveV2FileDetails({
+      state: "conflict",
+      localVariants: variants,
+      localFiles,
+      localSourceFiles: localFiles.map(source),
+      localTotalSizeBytes: 8,
+      activeSnapshot: summary,
+      remoteVariants: variants,
+      remoteFiles,
+      conflictEntryIds: [cloudSaveFileKey(remoteFiles[0])],
+    });
 
     assert.deepEqual(
-      details.comparisons.map(({ rawPath, relativePath, status }) => [
-        rawPath,
-        relativePath,
-        status,
-      ]),
-      [
-        ["<home>/game-a", "local.dat", "local-only"],
-        ["<home>/game-a", "remote.dat", "remote-only"],
-        ["<home>/game-a", "slot.dat", "unchanged"],
-        ["<home>/game-b", "slot.dat", "modified"],
-      ]
+      details.comparisons.map((comparison) => comparison.status),
+      ["modified", "unchanged"]
     );
     assert.equal(
-      details.comparisons[0].local?.absolutePath,
-      "C:\\Saves\\local.dat"
+      details.variants.find((variant) => variant.variantId === firstVariantId)
+        ?.conflictCount,
+      1
     );
-    assert.equal("hash" in details.comparisons[0].local!, false);
-    assert.equal("hash" in details.comparisons[1].remote!, false);
   });
 
-  it("returns only the local source outside conflicts", () => {
-    const file = localFile("<home>/game", "slot.dat", "same");
-    const details = buildDetails("synced", [file], null, []);
-
-    assert.equal(details.local.files[0].absolutePath, "C:\\Saves\\slot.dat");
-    assert.equal(details.activeSnapshot, null);
-    assert.deepEqual(details.comparisons, []);
-  });
-
-  it("preserves optional remote modification dates during conflicts", () => {
-    const lastModifiedAt = "2026-07-20T09:30:00.000Z";
-    const details = buildDetails("conflict", [], snapshot(2, 8), [
-      remoteFile("<home>/game", "dated.dat", "remote", 4, lastModifiedAt),
-      remoteFile("<home>/game", "undated.dat", "remote"),
-    ]);
-
-    assert.equal(
-      details.activeSnapshot?.files[0].lastModifiedAt,
-      lastModifiedAt
-    );
-    assert.equal(details.activeSnapshot?.files[1].lastModifiedAt, null);
-  });
-
-  it("rejects mismatched local sources and inconsistent remote manifests", () => {
-    const file = localFile("<home>/game", "slot.dat", "same");
-
-    assert.throws(() =>
-      buildCloudSaveV2FileDetails({
-        state: "local-ahead",
-        localFiles: [file],
+  it("loads and verifies the active manifest version", async () => {
+    const remoteFiles = [file(firstVariantId, "a"), file(secondVariantId, "a")];
+    const details = await loadCloudSaveV2FileDetails(
+      {
+        objectId: "814380",
+        shop: "steam",
+        state: "synced",
+        localVariants: [],
+        localFiles: [],
         localSourceFiles: [],
-        localTotalSizeBytes: 4,
-        activeSnapshot: null,
-        remoteFiles: [],
-      })
-    );
-    assert.throws(() => buildDetails("conflict", [], snapshot(2, 8), []));
-    assert.throws(() => buildDetails("conflict", [], null, []));
-  });
-});
-
-describe("loadCloudSaveV2FileDetails", () => {
-  const createInput = (
-    state: CloudSaveState,
-    activeSnapshot: RemoteSnapshotSummary | null
-  ) => {
-    const file = localFile("<home>/game", "slot.dat", "local");
-    return {
-      objectId: "game",
-      shop: "steam" as const,
-      state,
-      localFiles: [file],
-      localSourceFiles: [sourceFile(file)],
-      localTotalSizeBytes: 4,
-      activeSnapshot,
-    };
-  };
-
-  it("does not request a remote manifest outside conflicts", async () => {
-    let manifestRequests = 0;
-    const details = await loadCloudSaveV2FileDetails(
-      createInput("synced", snapshot(1, 4)),
-      async () => {
-        manifestRequests += 1;
-        throw new Error("Manifest should not be requested");
-      }
-    );
-
-    assert.equal(manifestRequests, 0);
-    assert.equal(details.activeSnapshot, null);
-  });
-
-  it("requests and validates only the active snapshot during conflicts", async () => {
-    const activeSnapshot = snapshot(1, 4);
-    const requestedSnapshots: string[] = [];
-    const details = await loadCloudSaveV2FileDetails(
-      createInput("conflict", activeSnapshot),
-      async (snapshotId) => {
-        requestedSnapshots.push(snapshotId);
+        localTotalSizeBytes: 0,
+        activeSnapshot: summary,
+      },
+      async (snapshot) => {
+        assert.equal(snapshot.version, 3);
         return {
-          snapshot: { id: snapshotId, objectId: "game", shop: "steam" },
-          files: [remoteFile("<home>/game", "slot.dat", "remote")],
+          snapshot: {
+            id: "snapshot",
+            version: 3,
+            shop: "steam",
+            objectId: "814380",
+          },
+          variants,
+          files: remoteFiles,
         };
       }
     );
 
-    assert.deepEqual(requestedSnapshots, ["active-snapshot"]);
-    assert.equal(details.comparisons[0].status, "modified");
+    assert.equal(details.activeSnapshot?.fileCount, 2);
+  });
+
+  it("rejects a manifest from a different active version", async () => {
+    await assert.rejects(() =>
+      loadCloudSaveV2FileDetails(
+        {
+          objectId: "814380",
+          shop: "steam",
+          state: "synced",
+          localVariants: [],
+          localFiles: [],
+          localSourceFiles: [],
+          localTotalSizeBytes: 0,
+          activeSnapshot: summary,
+        },
+        async () => ({
+          snapshot: {
+            id: "snapshot",
+            version: 4,
+            shop: "steam",
+            objectId: "814380",
+          },
+          variants,
+          files: [file(firstVariantId, "a"), file(secondVariantId, "a")],
+        })
+      )
+    );
   });
 });

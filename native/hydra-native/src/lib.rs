@@ -1,15 +1,15 @@
 mod cloud_save;
 mod constants;
 
-pub use cloud_save::comparison::compare_game_snapshots;
 pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};
 pub use cloud_save::local_snapshot::build_local_game_snapshot;
 pub use cloud_save::manifest::get_save_rules_for_game;
 pub use cloud_save::path_resolution::resolve_save_rules;
 pub use cloud_save::pipeline::build_local_game_snapshot_pipeline;
 pub use cloud_save::restore::{
-    cleanup_restore_temp_snapshot, download_restore_blob_to_temp, replace_restore_targets,
-    resolve_restore_targets, should_skip_restore_file, verify_downloaded_restore_file,
+    cleanup_restore_temp_snapshot, delete_local_save_targets, download_restore_blob_to_temp,
+    replace_restore_targets, resolve_restore_targets, should_skip_restore_file,
+    verify_downloaded_restore_file,
 };
 pub use cloud_save::save_scanner::scan_resolved_save_rules;
 pub use cloud_save::upload::upload_local_save_blob;

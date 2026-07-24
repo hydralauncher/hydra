@@ -6,7 +6,6 @@ import type {
 } from "@types";
 
 import type { analyzeCloudSaveState } from "../analyze-cloud-save-state";
-import { saveCloudSaveSyncAnchor } from "../sync-anchor";
 import { getSyncAction } from "./policy";
 import {
   type ProgressCallback,
@@ -43,7 +42,8 @@ export const runFirstSync = async (
   shop: GameShop,
   trigger: CloudSaveSyncTrigger,
   analysis: CloudSaveAnalysis,
-  emitProgress: ProgressCallback
+  emitProgress: ProgressCallback,
+  assertEnvironmentCurrent?: () => Promise<void>
 ): Promise<SyncOutcome> => {
   const initialState = "untracked";
   const firstSyncState = getFirstSyncState(analysis);
@@ -63,47 +63,52 @@ export const runFirstSync = async (
     };
   }
 
-  if (firstSyncState === "synced" && remoteSnapshot) {
-    await saveCloudSaveSyncAnchor(shop, objectId, analysis.environmentId, {
-      baseSnapshotId: remoteSnapshot.id,
-      baseAggregateHash: remoteSnapshot.aggregateHash,
-      updatedAt: new Date().toISOString(),
-    });
-    return {
-      result: { trigger, action: "none", initialState, finalState: "synced" },
-      processedFiles: 0,
-      totalFiles: 0,
-    };
-  }
-
   if (action === "upload") {
     await uploadLocalState(
       objectId,
       shop,
       analysis.localSnapshotContext,
-      emitProgress
+      emitProgress,
+      {
+        baseVersion: analysis.activeRemoteSnapshot?.version ?? 0,
+        expectedSnapshotId: analysis.activeRemoteSnapshot?.id ?? null,
+        variants: analysis.merge.variants,
+        files: analysis.merge.files,
+        aggregateHash: analysis.mergedAggregateHash ?? undefined,
+        unresolvedRemoteEntryIds: analysis.merge.unresolvedRemoteEntryIds,
+      },
+      assertEnvironmentCurrent
     );
     return {
-      result: { trigger, action: "upload", initialState, finalState: "synced" },
+      result: {
+        trigger,
+        action: "upload",
+        initialState,
+        finalState: analysis.merge.partial ? "partial" : "synced",
+      },
       processedFiles: analysis.localSnapshot.fileCount,
       totalFiles: analysis.localSnapshot.fileCount,
     };
   }
 
   if (action === "restore" && remoteSnapshot) {
-    await restoreRemoteState(
+    const restored = await restoreRemoteState(
       objectId,
       shop,
       remoteSnapshot,
       analysis.localSnapshotContext,
-      emitProgress
+      emitProgress,
+      undefined,
+      true,
+      [],
+      assertEnvironmentCurrent
     );
     return {
       result: {
         trigger,
         action: "restore",
         initialState,
-        finalState: "synced",
+        finalState: restored.partial ? "partial" : "synced",
       },
       processedFiles: remoteSnapshot.fileCount,
       totalFiles: remoteSnapshot.fileCount,

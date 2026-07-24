@@ -141,6 +141,58 @@ export function CloudSaveV2FileBrowserModal({
 
         {details && (
           <>
+            {(details.variants.length > 0 ||
+              details.unresolvedRemoteVariantCount > 0) && (
+              <section
+                className="cloud-save-v2__variant-diagnostics"
+                aria-label={t("cloud_save_v2_variants_title")}
+              >
+                <strong>{t("cloud_save_v2_variants_title")}</strong>
+                <div className="cloud-save-v2__variant-list">
+                  {details.variants.map((variant) => (
+                    <div
+                      className="cloud-save-v2__variant-item"
+                      key={variant.variantId}
+                    >
+                      <span>
+                        {variant.userLabel}
+                        {variant.active && (
+                          <em>{t("cloud_save_v2_variant_active")}</em>
+                        )}
+                      </span>
+                      <span>
+                        {t("cloud_save_v2_variant_file_count", {
+                          count: variant.fileCount,
+                        })}
+                      </span>
+                      {variant.conflictCount > 0 && (
+                        <small className="cloud-save-v2__variant-conflicts">
+                          <WarningCircleIcon size={14} />
+                          {t("cloud_save_v2_variant_conflict_count", {
+                            count: variant.conflictCount,
+                          })}
+                        </small>
+                      )}
+                      {variant.warningCodes.length > 0 && (
+                        <small>
+                          <WarningCircleIcon size={14} />
+                          {variant.warningCodes.join(", ")}
+                        </small>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {details.unresolvedRemoteVariantCount > 0 && (
+                  <p className="cloud-save-v2__variant-unresolved">
+                    <WarningCircleIcon size={16} />
+                    {t("cloud_save_v2_unresolved_variant_count", {
+                      count: details.unresolvedRemoteVariantCount,
+                    })}
+                  </p>
+                )}
+              </section>
+            )}
+
             <div className="cloud-save-v2__browser-toolbar">
               {!isConflict && (
                 <div className="cloud-save-v2__browser-source-summary">

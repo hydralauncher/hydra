@@ -1,8 +1,10 @@
 use std::collections::HashSet;
+use std::path::Path;
 
-use crate::cloud_save::path_resolution::ResolvedCloudSaveRule;
+use crate::cloud_save::identity::{local_id, UserLocationCoverage};
+use crate::cloud_save::path_resolution::{capture_template, ResolvedCloudSaveRule};
 
-use super::scan_path::scan_resolved_path;
+use super::scan_path::scan_resolved_path_with_capture;
 use super::types::{ScannedCloudSavePath, ScannedCloudSaveRule};
 
 pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudSaveRule>, String> {
@@ -10,34 +12,127 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
         .into_iter()
         .map(|rule| {
             let mut selected_paths = Vec::<ScannedCloudSavePath>::new();
+            let mut coverage = Vec::<UserLocationCoverage>::new();
+            let user_bound = rule.raw_path.contains("<storeUserId>");
 
             if rule.unresolved_tokens.is_empty() {
                 for candidate in &rule.resolved_paths {
-                    let scanned_paths = scan_resolved_path(
+                    let template = capture_template(&rule.raw_path, &candidate.path);
+                    let mut scanned_paths = match scan_resolved_path_with_capture(
                         &candidate.path,
                         candidate.case_sensitive,
                         candidate.scan_root.as_deref(),
-                    )?;
+                        template.as_deref(),
+                    ) {
+                        Ok(paths) => paths,
+                        Err(error) => {
+                            coverage.push(UserLocationCoverage {
+                                candidate_id: local_id(&[&candidate.path]),
+                                rule_id: rule.rule_id.clone(),
+                                variant_id: None,
+                                raw_path: Some(rule.raw_path.clone()),
+                                relative_path: None,
+                                selected_root: false,
+                                authority: "inferred".to_string(),
+                                outcome: "failed".to_string(),
+                                enumerated_completely: false,
+                                warning_codes: vec![error
+                                    .split(':')
+                                    .next()
+                                    .unwrap_or("cloud_save_filesystem_error")
+                                    .to_string()],
+                            });
+                            continue;
+                        }
+                    };
+                    if scanned_paths.is_empty() && rule.kind == "file" {
+                        let existing_root = candidate
+                            .scan_root
+                            .as_deref()
+                            .map(Path::new)
+                            .filter(|path| path.is_dir())
+                            .or_else(|| {
+                                Path::new(&candidate.path)
+                                    .parent()
+                                    .filter(|path| path.is_dir())
+                            });
+                        if let Some(root) = existing_root {
+                            if let Ok(root) = std::fs::canonicalize(root) {
+                                let resolved_path = root.to_string_lossy().replace('\\', "/");
+                                scanned_paths.push(ScannedCloudSavePath {
+                                    candidate_id: local_id(&[&candidate.path, &resolved_path]),
+                                    resolved_path,
+                                    store_user_id: None,
+                                    case_sensitive: candidate.case_sensitive,
+                                    files: vec![],
+                                });
+                            }
+                        }
+                    }
                     let shared_scan_root = candidate.scan_root.as_deref().and_then(|root| {
                         std::fs::canonicalize(root)
                             .ok()
                             .map(|root| root.to_string_lossy().replace('\\', "/"))
                     });
+                    if scanned_paths.is_empty() {
+                        coverage.push(UserLocationCoverage {
+                            candidate_id: local_id(&[&candidate.path]),
+                            rule_id: rule.rule_id.clone(),
+                            variant_id: None,
+                            raw_path: Some(rule.raw_path.clone()),
+                            relative_path: None,
+                            selected_root: false,
+                            authority: "inferred".to_string(),
+                            outcome: "confirmed-missing".to_string(),
+                            enumerated_completely: true,
+                            warning_codes: vec![],
+                        });
+                    }
                     let mut selected_concrete_root = false;
-                    for scanned in scanned_paths
-                        .into_iter()
-                        .filter(|scanned| !scanned.files.is_empty())
-                    {
+                    let mut candidate_selected_paths = Vec::new();
+                    let candidate_has_files = scanned_paths
+                        .iter()
+                        .any(|scanned| !scanned.files.is_empty());
+                    if !user_bound && candidate_has_files {
+                        for item in &mut coverage {
+                            item.selected_root = false;
+                        }
+                        selected_paths.clear();
+                    }
+                    for scanned in &scanned_paths {
                         let is_shared_scan_root = shared_scan_root
                             .as_ref()
                             .is_some_and(|root| root == &scanned.resolved_path);
-                        if is_shared_scan_root || !selected_concrete_root {
-                            selected_concrete_root |= !is_shared_scan_root;
-                            selected_paths.push(scanned);
+                        let selected_root = if user_bound {
+                            !is_shared_scan_root && scanned.store_user_id.is_some()
+                        } else if !selected_paths.is_empty() && !candidate_has_files {
+                            false
+                        } else {
+                            is_shared_scan_root || !selected_concrete_root
+                        };
+                        if selected_root && !is_shared_scan_root {
+                            selected_concrete_root = true;
+                        }
+                        coverage.push(UserLocationCoverage {
+                            candidate_id: scanned.candidate_id.clone(),
+                            rule_id: rule.rule_id.clone(),
+                            variant_id: None,
+                            raw_path: Some(rule.raw_path.clone()),
+                            relative_path: None,
+                            selected_root,
+                            authority: "inferred".to_string(),
+                            outcome: "scanned".to_string(),
+                            enumerated_completely: true,
+                            warning_codes: vec![],
+                        });
+
+                        if selected_root {
+                            candidate_selected_paths.push(scanned.clone());
                         }
                     }
+                    selected_paths.extend(candidate_selected_paths);
 
-                    if !selected_paths.is_empty() {
+                    if !user_bound && candidate_has_files {
                         let mut seen_absolute_paths = HashSet::new();
                         let mut seen_relative_paths = HashSet::new();
                         for scanned in &mut selected_paths {
@@ -46,13 +141,31 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                                     && seen_relative_paths.insert(file.relative_path.clone())
                             });
                         }
-                        selected_paths.retain(|scanned| !scanned.files.is_empty());
                         break;
                     }
                 }
             }
 
+            if user_bound {
+                let mut seen = HashSet::new();
+                for scanned in &mut selected_paths {
+                    scanned.files.retain(|file| {
+                        seen.insert((scanned.store_user_id.clone(), file.absolute_path.clone()))
+                    });
+                }
+                selected_paths.sort_by(|left, right| {
+                    left.store_user_id
+                        .cmp(&right.store_user_id)
+                        .then_with(|| left.resolved_path.cmp(&right.resolved_path))
+                });
+                selected_paths.dedup_by(|left, right| {
+                    left.store_user_id == right.store_user_id
+                        && left.resolved_path == right.resolved_path
+                });
+            }
+
             Ok(ScannedCloudSaveRule {
+                rule_id: rule.rule_id,
                 kind: rule.kind,
                 raw_path: rule.raw_path,
                 source: rule.source,
@@ -61,6 +174,7 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                 resolved_paths: rule.resolved_paths,
                 unresolved_tokens: rule.unresolved_tokens,
                 scanned_paths: selected_paths,
+                coverage,
             })
         })
         .collect()
@@ -90,6 +204,7 @@ mod tests {
             wine_prefix_path: Some(prefix.display().to_string()),
             steam_path: None,
             rules: vec![CloudSaveRule {
+                rule_id: "test-rule".into(),
                 kind: "dir".into(),
                 raw_path: raw_path.into(),
                 source: "ludusavi".into(),
@@ -101,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    fn deduplicates_same_logical_file_across_store_users() {
+    fn preserves_same_relative_file_across_store_users() {
         let temp = tempdir().unwrap();
         for user in ["Goldberg", "Rune"] {
             let root = temp.path().join(format!(
@@ -117,15 +232,85 @@ mod tests {
         ))
         .unwrap();
 
-        assert_eq!(scanned[0].scanned_paths.len(), 1);
+        assert_eq!(scanned[0].scanned_paths.len(), 2);
         assert_eq!(
             scanned[0]
                 .scanned_paths
                 .iter()
                 .flat_map(|path| &path.files)
                 .count(),
-            1
+            2
         );
+        let users = scanned[0]
+            .scanned_paths
+            .iter()
+            .filter_map(|path| path.store_user_id.as_deref())
+            .collect::<Vec<_>>();
+        assert_eq!(users, vec!["Goldberg", "Rune"]);
+    }
+
+    #[test]
+    fn preserves_selected_empty_store_user_roots_as_complete_coverage() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join(
+            "drive_c/users/steamuser/Saved Games/The Last of Us Part I/users/Goldberg/savedata",
+        );
+        fs::create_dir_all(&root).unwrap();
+
+        let scanned = scan_rules(resolve(
+            temp.path(),
+            "<home>/Saved Games/The Last of Us Part I/users/<storeUserId>/savedata",
+        ))
+        .unwrap();
+
+        assert_eq!(scanned[0].scanned_paths.len(), 1);
+        assert!(scanned[0].scanned_paths[0].files.is_empty());
+        assert_eq!(
+            scanned[0].scanned_paths[0].store_user_id.as_deref(),
+            Some("Goldberg")
+        );
+        assert!(scanned[0].coverage.iter().any(|coverage| {
+            coverage.selected_root
+                && coverage.outcome == "scanned"
+                && coverage.enumerated_completely
+        }));
+    }
+
+    #[test]
+    fn proves_an_exact_file_is_absent_when_its_parent_was_enumerated() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("game");
+        fs::create_dir_all(&root).unwrap();
+        let rules = resolve_save_rules(ResolveSaveRulesInput {
+            shop: "steam".into(),
+            object_id: "1".into(),
+            platform: "linux".into(),
+            home_dir: temp.path().display().to_string(),
+            documents_dir: None,
+            app_data_dir: None,
+            executable_path: None,
+            wine_prefix_path: None,
+            steam_path: None,
+            rules: vec![CloudSaveRule {
+                rule_id: "file-rule".into(),
+                kind: "file".into(),
+                raw_path: "<home>/game/slot.sav".into(),
+                source: "test".into(),
+                tags: vec!["save".into()],
+                when: vec![],
+            }],
+        })
+        .unwrap();
+
+        let scanned = scan_rules(rules).unwrap();
+
+        assert_eq!(scanned[0].scanned_paths.len(), 1);
+        assert!(scanned[0].scanned_paths[0].files.is_empty());
+        assert!(scanned[0].coverage.iter().any(|coverage| {
+            coverage.selected_root
+                && coverage.outcome == "scanned"
+                && coverage.enumerated_completely
+        }));
     }
 
     #[test]
@@ -146,10 +331,13 @@ mod tests {
         .unwrap();
 
         let paths = &scanned[0].scanned_paths;
-        assert_eq!(paths.len(), 1);
+        assert_eq!(paths.len(), 2);
         assert_eq!(paths[0].files.len(), 1);
+        assert_eq!(paths[1].files.len(), 1);
+        assert_eq!(paths[0].store_user_id.as_deref(), Some("Goldberg"));
+        assert_eq!(paths[1].store_user_id.as_deref(), Some("Rune"));
         assert_eq!(paths[0].files[0].relative_path, "slot.dat");
-        assert!(paths[0].resolved_path.contains("/Goldberg/"));
+        assert_eq!(paths[1].files[0].relative_path, "profile.dat");
     }
 
     #[test]
@@ -200,6 +388,7 @@ mod tests {
         fs::write(fallback.join("extra.dat"), b"fallback-only").unwrap();
 
         let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "test-rule".into(),
             kind: "dir".into(),
             raw_path: "<winAppData>/Game".into(),
             source: "test".into(),
@@ -261,6 +450,7 @@ mod tests {
             wine_prefix_path: Some(hydra_prefix.display().to_string()),
             steam_path: None,
             rules: vec![CloudSaveRule {
+                rule_id: "test-rule".into(),
                 kind: "dir".into(),
                 raw_path: "<winLocalAppData>/CD Projekt Red/Cyberpunk 2077".into(),
                 source: "ludusavi".into(),
@@ -283,6 +473,7 @@ mod tests {
                 .unwrap()
                 .display()
                 .to_string()
+                .replace('\\', "/")
         ));
         assert!(!files[0].absolute_path.contains("/compatdata/"));
     }
@@ -309,6 +500,7 @@ mod tests {
             wine_prefix_path: Some(active_prefix.display().to_string()),
             steam_path: None,
             rules: vec![CloudSaveRule {
+                rule_id: "test-rule".into(),
                 kind: "dir".into(),
                 raw_path: "<home>/AppData/LocalLow/Phobia/Carrion".into(),
                 source: "ludusavi".into(),
@@ -321,9 +513,11 @@ mod tests {
         let scanned = scan_rules(rules).unwrap();
 
         assert!(scanned[0].scanned_paths.is_empty());
-        assert!(scanned[0].resolved_paths.iter().all(|candidate| candidate
-            .path
-            .starts_with(&active_prefix.display().to_string())));
+        let active_prefix = active_prefix.display().to_string().replace('\\', "/");
+        assert!(scanned[0]
+            .resolved_paths
+            .iter()
+            .all(|candidate| candidate.path.starts_with(&active_prefix)));
     }
 
     #[test]
@@ -336,6 +530,7 @@ mod tests {
         fs::write(user.join("ER0000.sl2"), b"save").unwrap();
 
         let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "test-rule".into(),
             kind: "dir".into(),
             raw_path: "<winAppData>/EldenRing/<storeUserId>".into(),
             source: "ludusavi".into(),
@@ -358,16 +553,14 @@ mod tests {
             .map(|file| file.absolute_path.as_str())
             .collect::<Vec<_>>();
 
-        assert_eq!(files.len(), 2);
-        assert!(files
-            .iter()
-            .any(|path| path.ends_with("GraphicsConfig.xml")));
+        assert_eq!(files.len(), 1);
         assert!(files.iter().any(|path| path.ends_with("ER0000.sl2")));
     }
 
     #[test]
     fn unresolved_rule_returns_empty_scan() {
         let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "test-rule".into(),
             kind: "dir".into(),
             raw_path: "<unknown>/save".into(),
             source: "ludusavi".into(),
@@ -393,6 +586,7 @@ mod tests {
         };
 
         let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "test-rule".into(),
             kind: "file".into(),
             raw_path: "ignored-kind".into(),
             source: "ludusavi".into(),

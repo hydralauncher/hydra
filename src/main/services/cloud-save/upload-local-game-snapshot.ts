@@ -5,11 +5,15 @@ import type {
   CloudSaveUploadProgress,
   GameShop,
   LocalGameSnapshotContext,
+  SnapshotFile,
+  SnapshotVariant,
   UploadLocalGameSnapshotResult,
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
+import { cloudSaveFileKey } from "./cloud-save-contract";
+import { buildPrepareSnapshotPayload } from "./prepare-snapshot-payload";
 import {
   groupUploadsByHash,
   validatePrepareResponse,
@@ -18,64 +22,104 @@ import {
 type ProgressCallback = (progress: CloudSaveUploadProgress) => void;
 
 const MAX_CONCURRENT_UPLOADS = 8;
+const blobKey = (file: Pick<SnapshotFile, "hash" | "sizeBytes">) =>
+  JSON.stringify([file.hash, file.sizeBytes]);
 
-const fileKey = (rawPath: string, relativePath: string) =>
-  JSON.stringify([rawPath, relativePath]);
+export interface PrepareLocalSnapshotOptions {
+  baseVersion: number;
+  variants?: SnapshotVariant[];
+  files?: SnapshotFile[];
+  aggregateHash?: string;
+}
 
 export const uploadLocalGameSnapshot = async (
   objectId: string,
   shop: GameShop,
   onProgress?: ProgressCallback,
-  localSnapshotContext?: LocalGameSnapshotContext
+  localSnapshotContext?: LocalGameSnapshotContext,
+  options: PrepareLocalSnapshotOptions = { baseVersion: 0 }
 ): Promise<UploadLocalGameSnapshotResult> => {
   const context =
     localSnapshotContext ??
     (await buildLocalGameSnapshotContext(objectId, shop));
-  if (context.files.length === 0) {
-    return { snapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
-  }
-  const response = validatePrepareResponse(
-    await HydraApi.post<unknown>("/profile/cloud-saves/prepare-snapshot", {
-      shop,
-      objectId,
-      platform: process.platform,
-      hostname: os.hostname(),
-      snapshotHash: context.aggregateHash,
-      files: context.files,
-    })
-  );
-  if (response.snapshotHash !== context.aggregateHash) {
-    throw new Error("Prepare snapshot hash does not match local snapshot");
+  const proposalVariants = options.variants ?? context.variants;
+  const proposalFiles = options.files ?? context.files;
+  const aggregateHash = options.aggregateHash ?? context.aggregateHash;
+  if (proposalFiles.length === 0) {
+    return { pendingSnapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
   }
 
-  const sourceByPath = new Map(
-    context.sourceFiles.map((file) => [
-      fileKey(file.rawPath, file.relativePath),
-      file,
-    ])
+  const response = validatePrepareResponse(
+    await HydraApi.post<unknown>(
+      "/profile/cloud-saves/prepare-snapshot",
+      buildPrepareSnapshotPayload({
+        shop,
+        objectId,
+        platform: context.pathContext.platform,
+        hostname: os.hostname() || undefined,
+        snapshotHash: aggregateHash,
+        baseVersion: options.baseVersion,
+        variants: proposalVariants,
+        files: proposalFiles,
+      }),
+      { needsAuth: true, needsSubscription: true }
+    )
   );
-  if (response.files.length !== sourceByPath.size) {
-    throw new Error("Prepare snapshot response does not cover local files");
+  if (response.snapshotHash !== aggregateHash) {
+    throw new Error("Prepare snapshot hash does not match the proposal");
   }
-  const responseWithSources = response.files.map((file) => {
-    const source = sourceByPath.get(fileKey(file.rawPath, file.relativePath));
-    if (!source) {
-      throw new Error(
-        `Missing local source for ${file.rawPath}/${file.relativePath}`
-      );
+
+  const sourceByIdentity = new Map(
+    context.sourceFiles.map((file) => [cloudSaveFileKey(file), file])
+  );
+  const sourceByBlob = new Map(
+    context.sourceFiles.map((file) => [blobKey(file), file])
+  );
+  const proposalByIdentity = new Map(
+    proposalFiles.map((file) => [cloudSaveFileKey(file), file])
+  );
+  if (
+    proposalByIdentity.size !== proposalFiles.length ||
+    response.files.length !== proposalByIdentity.size
+  ) {
+    throw new Error("Prepare snapshot response does not cover proposal files");
+  }
+
+  const responseItems = response.files.map((file) => {
+    const key = cloudSaveFileKey(file);
+    const proposal = proposalByIdentity.get(key);
+    if (!proposal) {
+      throw new Error(`Unknown prepare response file ${key}`);
     }
-    return { file, source };
+    let source = sourceByIdentity.get(key);
+    if (file.status === "upload") {
+      if (
+        file.requiredHeaders["Content-Length"] !== String(proposal.sizeBytes) ||
+        file.requiredHeaders["x-amz-checksum-sha256"] !==
+          Buffer.from(proposal.hash, "hex").toString("base64")
+      ) {
+        throw new Error("Prepare upload headers do not match the proposal");
+      }
+      source ??= sourceByBlob.get(blobKey(proposal));
+      if (
+        !source ||
+        source.hash !== proposal.hash ||
+        source.sizeBytes !== proposal.sizeBytes
+      ) {
+        throw new Error(`Missing local upload source for ${key}`);
+      }
+    }
+    return { file, proposal, source };
   });
-  const totalBytes = responseWithSources.reduce(
-    (total, item) => total + item.source.sizeBytes,
+
+  const totalBytes = responseItems.reduce(
+    (total, item) => total + item.proposal.sizeBytes,
     0
   );
-  const skipped = responseWithSources.filter(
-    (item) => item.file.status === "skip"
-  );
+  const skipped = responseItems.filter((item) => item.file.status === "skip");
   let completedFiles = skipped.length;
   let completedBytes = skipped.reduce(
-    (total, item) => total + item.source.sizeBytes,
+    (total, item) => total + item.proposal.sizeBytes,
     0
   );
   const emitProgress = (currentFile: string | null) =>
@@ -88,8 +132,10 @@ export const uploadLocalGameSnapshot = async (
     });
   emitProgress(null);
 
-  const uploadsByHash = groupUploadsByHash(responseWithSources);
-  const uploadJobs = Array.from(uploadsByHash.values());
+  const uploadItems = responseItems.flatMap(({ file, source }) =>
+    file.status === "upload" && source ? [{ file, source }] : []
+  );
+  const uploadJobs = [...groupUploadsByHash(uploadItems).values()];
   const activeFiles = new Map<number, string>();
   let nextUploadIndex = 0;
   let hasFailed = false;
@@ -101,7 +147,6 @@ export const uploadLocalGameSnapshot = async (
       const uploadIndex = nextUploadIndex;
       if (uploadIndex >= uploadJobs.length) return;
       nextUploadIndex += 1;
-
       const uploads = uploadJobs[uploadIndex];
       const [{ file, source }] = uploads;
       activeFiles.set(uploadIndex, source.relativePath);
@@ -110,7 +155,9 @@ export const uploadLocalGameSnapshot = async (
       try {
         await NativeAddon.uploadLocalSaveBlob(
           source.absolutePath,
-          file.uploadUrl
+          file.uploadUrl,
+          file.requiredHeaders["Content-Length"],
+          file.requiredHeaders["x-amz-checksum-sha256"]
         );
       } catch (error) {
         hasFailed = true;
@@ -120,7 +167,6 @@ export const uploadLocalGameSnapshot = async (
 
       activeFiles.delete(uploadIndex);
       if (hasFailed) return;
-
       completedFiles += uploads.length;
       completedBytes += uploads.reduce(
         (total, upload) => total + upload.source.sizeBytes,
@@ -138,8 +184,8 @@ export const uploadLocalGameSnapshot = async (
   );
 
   return {
-    snapshotId: response.snapshotId,
-    uploadedFiles: responseWithSources.length - skipped.length,
+    pendingSnapshotId: response.pendingSnapshotId,
+    uploadedFiles: responseItems.length - skipped.length,
     skippedFiles: skipped.length,
   };
 };

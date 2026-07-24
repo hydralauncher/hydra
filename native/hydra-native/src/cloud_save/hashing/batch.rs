@@ -8,8 +8,14 @@ use time::OffsetDateTime;
 use super::file::hash_file;
 use super::types::{HashFilesResult, HashedLocalFile, LocalFileHashCacheEntry};
 
+pub struct HashFilesBestEffortResult {
+    pub result: HashFilesResult,
+    pub failures: Vec<(String, String)>,
+}
+
 pub const MAX_CONCURRENT_HASHES: usize = 8;
-const BLAKE3_HEX_HASH_LENGTH: usize = 64;
+const SHA256_HEX_HASH_LENGTH: usize = 64;
+const HASH_ALGORITHM: &str = "sha256";
 static HASHING_POOL: OnceLock<rayon::ThreadPool> = OnceLock::new();
 
 fn hashing_pool() -> &'static rayon::ThreadPool {
@@ -37,7 +43,7 @@ pub(crate) fn format_modified_at(modified: std::time::SystemTime) -> String {
 }
 
 fn is_valid_hash(hash: &str) -> bool {
-    hash.len() == BLAKE3_HEX_HASH_LENGTH
+    hash.len() == SHA256_HEX_HASH_LENGTH
         && hash
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
@@ -62,6 +68,7 @@ fn hash_file_with_cache(
             entry.absolute_path == absolute_path
                 && entry.size_bytes == size_bytes
                 && entry.last_modified_at == last_modified_at
+                && entry.algorithm.as_deref() == Some(HASH_ALGORITHM)
                 && is_valid_hash(&entry.hash)
         })
         .map(|entry| entry.hash.clone())
@@ -79,6 +86,17 @@ pub fn hash_files(
     absolute_paths: Vec<String>,
     hash_cache: Vec<LocalFileHashCacheEntry>,
 ) -> Result<HashFilesResult, String> {
+    let result = hash_files_best_effort(absolute_paths, hash_cache);
+    if let Some((_, error)) = result.failures.into_iter().next() {
+        return Err(error);
+    }
+    Ok(result.result)
+}
+
+pub fn hash_files_best_effort(
+    absolute_paths: Vec<String>,
+    hash_cache: Vec<LocalFileHashCacheEntry>,
+) -> HashFilesBestEffortResult {
     let paths = absolute_paths
         .into_iter()
         .collect::<BTreeSet<_>>()
@@ -89,15 +107,24 @@ pub fn hash_files(
         .map(|entry| (entry.absolute_path.clone(), entry))
         .collect::<HashMap<_, _>>();
 
-    let files = hashing_pool().install(|| {
+    let results = hashing_pool().install(|| {
         paths
             .into_par_iter()
             .map(|absolute_path| {
                 let cached = cache_by_path.get(&absolute_path);
-                hash_file_with_cache(absolute_path, cached)
+                let path = absolute_path.clone();
+                hash_file_with_cache(absolute_path, cached).map_err(|error| (path, error))
             })
-            .collect::<Result<Vec<_>, _>>()
-    })?;
+            .collect::<Vec<_>>()
+    });
+    let mut files = Vec::new();
+    let mut failures = Vec::new();
+    for result in results {
+        match result {
+            Ok(file) => files.push(file),
+            Err(failure) => failures.push(failure),
+        }
+    }
     let hash_cache = files
         .iter()
         .map(|file| LocalFileHashCacheEntry {
@@ -105,10 +132,14 @@ pub fn hash_files(
             size_bytes: file.size_bytes,
             last_modified_at: file.last_modified_at.clone(),
             hash: file.hash.clone(),
+            algorithm: Some(HASH_ALGORITHM.to_string()),
         })
         .collect();
 
-    Ok(HashFilesResult { files, hash_cache })
+    HashFilesBestEffortResult {
+        result: HashFilesResult { files, hash_cache },
+        failures,
+    }
 }
 
 #[cfg(test)]
@@ -141,7 +172,7 @@ mod tests {
     fn invalidates_cache_mismatches() {
         let temp = tempdir().unwrap();
         let path = temp.path().join("save.dat").display().to_string();
-        let expected = blake3::hash(b"save").to_hex().to_string();
+        let expected = "157dca92e4250458339d4b835250d44c238f3355e1b7986195188ee434e9baff";
         fs::write(&path, b"save").unwrap();
         let initial = hash_files(vec![path.clone()], vec![]).unwrap();
 
@@ -149,6 +180,7 @@ mod tests {
             |entry: &mut LocalFileHashCacheEntry| entry.hash = "invalid".into(),
             |entry: &mut LocalFileHashCacheEntry| entry.size_bytes += 1.0,
             |entry: &mut LocalFileHashCacheEntry| entry.last_modified_at = "changed".into(),
+            |entry: &mut LocalFileHashCacheEntry| entry.algorithm = None,
         ] {
             let mut cache = initial.hash_cache.clone();
             mutate(&mut cache[0]);
@@ -197,7 +229,10 @@ mod tests {
         let result = hash_files(vec![empty], vec![]).unwrap();
 
         assert_eq!(result.files[0].size_bytes, 0.0);
-        assert_eq!(result.files[0].hash, blake3::hash(b"").to_hex().to_string());
+        assert_eq!(
+            result.files[0].hash,
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
         assert_eq!(
             hash_files(vec![temp.path().display().to_string()], vec![]).unwrap_err(),
             "cloud_save_hash_path_is_not_file"

@@ -2,14 +2,16 @@ import type {
   LocalGameSnapshotSourceFile,
   PrepareSnapshotFile,
   PrepareSnapshotResponse,
-} from "../../../types/cloud-save.types";
+} from "@types";
 
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === "string" && value.length > 0;
+import {
+  CLOUD_SAVE_HASH_PATTERN,
+  cloudSaveFileKey,
+  isNonEmptyString,
+} from "./cloud-save-contract.js";
 
 const isHttpUrl = (value: unknown): value is string => {
   if (!isNonEmptyString(value)) return false;
-
   try {
     const url = new URL(value);
     return url.protocol === "http:" || url.protocol === "https:";
@@ -18,8 +20,11 @@ const isHttpUrl = (value: unknown): value is string => {
   }
 };
 
-const fileKey = (rawPath: string, relativePath: string) =>
-  JSON.stringify([rawPath, relativePath]);
+const validateIdentity = (file: Record<string, unknown>) =>
+  isNonEmptyString(file.variantId) &&
+  CLOUD_SAVE_HASH_PATTERN.test(file.variantId) &&
+  isNonEmptyString(file.rawPath) &&
+  isNonEmptyString(file.relativePath);
 
 export const validatePrepareResponse = (
   value: unknown
@@ -27,11 +32,14 @@ export const validatePrepareResponse = (
   if (!value || typeof value !== "object") {
     throw new Error("Invalid prepare snapshot response");
   }
-
   const response = value as Record<string, unknown>;
   if (
-    !isNonEmptyString(response.snapshotId) ||
+    Object.keys(response).some(
+      (key) => !["pendingSnapshotId", "snapshotHash", "files"].includes(key)
+    ) ||
+    !isNonEmptyString(response.pendingSnapshotId) ||
     !isNonEmptyString(response.snapshotHash) ||
+    !CLOUD_SAVE_HASH_PATTERN.test(response.snapshotHash) ||
     !Array.isArray(response.files)
   ) {
     throw new TypeError("Invalid prepare snapshot response");
@@ -43,17 +51,44 @@ export const validatePrepareResponse = (
       throw new Error("Invalid prepare snapshot file response");
     }
     const file = item as Record<string, unknown>;
-    const { rawPath, relativePath, status, uploadUrl } = file;
-    if (
-      !isNonEmptyString(rawPath) ||
-      !isNonEmptyString(relativePath) ||
-      (status !== "skip" && status !== "upload") ||
-      (status === "upload" && !isHttpUrl(uploadUrl))
-    ) {
-      throw new Error("Invalid prepare snapshot file response");
+    if (!validateIdentity(file)) {
+      throw new Error("Invalid prepare snapshot file identity");
+    }
+    const commonKeys = ["variantId", "rawPath", "relativePath", "status"];
+    if (file.status === "skip") {
+      if (
+        Object.keys(file).some((key) => !commonKeys.includes(key)) ||
+        Object.keys(file).length !== commonKeys.length
+      ) {
+        throw new Error("Invalid skipped prepare snapshot file");
+      }
+    } else if (file.status === "upload") {
+      const headers = file.requiredHeaders as
+        | Record<string, unknown>
+        | undefined;
+      if (
+        Object.keys(file).some(
+          (key) =>
+            ![...commonKeys, "uploadUrl", "requiredHeaders"].includes(key)
+        ) ||
+        !isHttpUrl(file.uploadUrl) ||
+        !headers ||
+        Object.keys(headers).length !== 2 ||
+        !/^(0|[1-9]\d*)$/.test(String(headers["Content-Length"] ?? "")) ||
+        !isNonEmptyString(headers["x-amz-checksum-sha256"]) ||
+        !/^[A-Za-z0-9+/]{43}=$/.test(headers["x-amz-checksum-sha256"])
+      ) {
+        throw new Error("Invalid upload prepare snapshot file");
+      }
+    } else {
+      throw new Error("Invalid prepare snapshot file status");
     }
 
-    const key = fileKey(rawPath, relativePath);
+    const key = cloudSaveFileKey({
+      variantId: file.variantId as string,
+      rawPath: file.rawPath as string,
+      relativePath: file.relativePath as string,
+    });
     if (seenFiles.has(key)) {
       throw new Error("Duplicate prepare snapshot file response");
     }
@@ -79,10 +114,13 @@ export const groupUploadsByHash = (items: PreparedSnapshotSource[]) => {
 
   for (const item of items) {
     if (item.file.status !== "upload") continue;
-    const uploads = groups.get(item.source.hash) ?? [];
+    const contentKey = JSON.stringify([
+      item.source.hash,
+      item.source.sizeBytes,
+    ]);
+    const uploads = groups.get(contentKey) ?? [];
     uploads.push({ file: item.file, source: item.source });
-    groups.set(item.source.hash, uploads);
+    groups.set(contentKey, uploads);
   }
-
   return groups;
 };

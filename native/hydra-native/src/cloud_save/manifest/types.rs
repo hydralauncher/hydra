@@ -62,6 +62,7 @@ pub struct CloudSaveRuleCondition {
 #[napi(object)]
 #[derive(Debug, Clone)]
 pub struct CloudSaveRule {
+    pub rule_id: String,
     pub kind: String,
     pub raw_path: String,
     pub source: String,
@@ -74,5 +75,6 @@ pub struct CloudSaveRule {
 pub struct GameSaveRules {
     pub game_id: CloudSaveGameId,
     pub manifest_key: Option<String>,
+    pub rule_source_revision: String,
     pub rules: Vec<CloudSaveRule>,
 }

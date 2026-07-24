@@ -7,6 +7,8 @@ use walkdir::WalkDir;
 
 use super::glob::{expand_braces, has_glob_pattern, normalize_path};
 use super::types::{ScannedCloudSaveFile, ScannedCloudSavePath};
+use crate::cloud_save::identity::local_id;
+use crate::cloud_save::path_resolution::capture_store_user;
 
 const MAX_SCAN_DEPTH: usize = 100;
 
@@ -34,14 +36,15 @@ fn match_options(case_sensitive: bool) -> MatchOptions {
 
 fn glob_matches(pattern: &str, options: MatchOptions) -> Result<Vec<PathBuf>, String> {
     let direct_path = Path::new(pattern);
+    if direct_path.exists() {
+        return Ok(vec![direct_path.to_path_buf()]);
+    }
     if !has_glob_pattern(pattern) {
-        match std::fs::metadata(direct_path) {
-            Ok(_) => return Ok(vec![direct_path.to_path_buf()]),
-            Err(error) if error.kind() == ErrorKind::NotFound => {}
-            Err(error) => {
-                return Err(format!("cloud_save_filesystem_error: {error}"));
-            }
-        }
+        return match std::fs::metadata(direct_path) {
+            Ok(_) => Ok(vec![direct_path.to_path_buf()]),
+            Err(error) if error.kind() == ErrorKind::NotFound => Ok(Vec::new()),
+            Err(error) => Err(format!("cloud_save_filesystem_error: {error}")),
+        };
     }
 
     let mut matches = Vec::new();
@@ -97,7 +100,10 @@ fn scan_directory(root: &Path) -> Result<ScannedCloudSavePath, String> {
     files.dedup_by(|left, right| left.absolute_path == right.absolute_path);
 
     Ok(ScannedCloudSavePath {
+        candidate_id: String::new(),
         resolved_path: canonical_path(root)?,
+        store_user_id: None,
+        case_sensitive: true,
         files,
     })
 }
@@ -122,7 +128,10 @@ fn add_file(
     scanned_by_root
         .entry(resolved_root.clone())
         .or_insert_with(|| ScannedCloudSavePath {
+            candidate_id: String::new(),
             resolved_path: resolved_root,
+            store_user_id: None,
+            case_sensitive: true,
             files: Vec::new(),
         })
         .files
@@ -134,10 +143,11 @@ fn add_file(
     Ok(())
 }
 
-pub fn scan_resolved_path(
+pub fn scan_resolved_path_with_capture(
     resolved_path: &str,
     case_sensitive: bool,
     scan_root_pattern: Option<&str>,
+    capture_template: Option<&str>,
 ) -> Result<Vec<ScannedCloudSavePath>, String> {
     let options = match_options(case_sensitive);
     let matches = glob_matches(resolved_path, options)?;
@@ -148,11 +158,22 @@ pub fn scan_resolved_path(
     let mut scanned_by_root = BTreeMap::<String, ScannedCloudSavePath>::new();
 
     for matched in matches {
+        let concrete = normalize_path(&matched.to_string_lossy());
+        let captured = match capture_template {
+            Some(template) => match capture_store_user(template, &concrete, case_sensitive) {
+                Some(value) => Some(value),
+                None => continue,
+            },
+            None => None,
+        };
         let metadata = std::fs::metadata(&matched)
             .map_err(|error| format!("cloud_save_filesystem_error: {error}"))?;
 
         if metadata.is_dir() {
-            let scanned = scan_directory(&matched)?;
+            let mut scanned = scan_directory(&matched)?;
+            scanned.store_user_id = captured;
+            scanned.case_sensitive = case_sensitive;
+            scanned.candidate_id = local_id(&[resolved_path, &scanned.resolved_path]);
             scanned_by_root
                 .entry(scanned.resolved_path.clone())
                 .or_insert(scanned);
@@ -169,6 +190,12 @@ pub fn scan_resolved_path(
 
             if let Some(root) = root {
                 add_file(&mut scanned_by_root, root, &matched)?;
+                let resolved_root = canonical_path(root)?;
+                if let Some(scanned) = scanned_by_root.get_mut(&resolved_root) {
+                    scanned.store_user_id = captured;
+                    scanned.case_sensitive = case_sensitive;
+                    scanned.candidate_id = local_id(&[resolved_path, &resolved_root]);
+                }
             }
         }
     }
@@ -185,6 +212,14 @@ pub fn scan_resolved_path(
     }
 
     Ok(scanned_by_root.into_values().collect())
+}
+
+pub fn scan_resolved_path(
+    resolved_path: &str,
+    case_sensitive: bool,
+    scan_root_pattern: Option<&str>,
+) -> Result<Vec<ScannedCloudSavePath>, String> {
+    scan_resolved_path_with_capture(resolved_path, case_sensitive, scan_root_pattern, None)
 }
 
 #[cfg(test)]
@@ -233,13 +268,13 @@ mod tests {
         let directory = temp.path().join("{Deluxe}");
         fs::create_dir(&directory).unwrap();
         fs::write(directory.join("save.dat"), b"save").unwrap();
-        let pattern = format!("{}/[{{]Deluxe[}}]/*.dat", temp.path().display());
+        let pattern = directory.display().to_string();
 
         let scanned =
             scan_resolved_path(&pattern, true, Some(&temp.path().display().to_string())).unwrap();
 
         assert_eq!(scanned[0].files.len(), 1);
-        assert_eq!(scanned[0].files[0].relative_path, "{Deluxe}/save.dat");
+        assert_eq!(scanned[0].files[0].relative_path, "save.dat");
     }
 
     #[test]

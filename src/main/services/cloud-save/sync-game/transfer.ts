@@ -2,10 +2,15 @@ import type {
   CloudSaveSyncProgressPayload,
   GameShop,
   LocalGameSnapshotContext,
+  RemoteGameSnapshot,
   RemoteSnapshotSummary,
+  RestoreRemoteSnapshotResult,
 } from "@types";
 
-import { createRemoteSnapshotFromLocalState } from "../create-remote-snapshot-from-local-state";
+import {
+  createRemoteSnapshotFromLocalState,
+  type CreateRemoteSnapshotOptions,
+} from "../create-remote-snapshot-from-local-state";
 import { restoreRemoteSnapshot } from "../restore-remote-snapshot";
 
 export type ProgressCallback = (progress: CloudSaveSyncProgressPayload) => void;
@@ -14,7 +19,9 @@ export const uploadLocalState = async (
   objectId: string,
   shop: GameShop,
   localSnapshotContext: LocalGameSnapshotContext,
-  emitProgress: ProgressCallback
+  emitProgress: ProgressCallback,
+  options: CreateRemoteSnapshotOptions = { baseVersion: 0 },
+  assertEnvironmentCurrent?: () => Promise<void>
 ) => {
   emitProgress({
     gameId: { objectId, shop },
@@ -32,18 +39,27 @@ export const uploadLocalState = async (
         processedFiles: progress.completedFiles,
         totalFiles: progress.totalFiles,
       }),
-    localSnapshotContext
+    localSnapshotContext,
+    {
+      ...options,
+      assertEnvironmentCurrent,
+    }
   );
   if (!snapshot) throw new Error("Local cloud save snapshot is empty");
+  return snapshot;
 };
 
 export const restoreRemoteState = async (
   objectId: string,
   shop: GameShop,
-  snapshot: RemoteSnapshotSummary,
+  snapshot: RemoteSnapshotSummary | RemoteGameSnapshot,
   localSnapshotContext: LocalGameSnapshotContext,
-  emitProgress: ProgressCallback
-) => {
+  emitProgress: ProgressCallback,
+  entryIds?: string[],
+  updateAnchor = true,
+  carriedUnresolvedEntryIds: string[] = [],
+  assertEnvironmentCurrent?: () => Promise<void>
+): Promise<RestoreRemoteSnapshotResult> => {
   emitProgress({
     gameId: { objectId, shop },
     stage: "restoring",
@@ -64,11 +80,20 @@ export const restoreRemoteState = async (
     {
       environmentId: localSnapshotContext.environmentId,
       pathContext: localSnapshotContext.pathContext,
-    }
+    },
+    entryIds,
+    updateAnchor,
+    carriedUnresolvedEntryIds,
+    0,
+    assertEnvironmentCurrent
   );
+  if (result.metadataFailedPaths > 0) {
+    throw new Error("cloud_save_restore_metadata_failed");
+  }
   if (!result.ok || result.failedFiles > 0) {
     throw new Error(
       `Cloud save restore failed for ${result.failedFiles} file(s)`
     );
   }
+  return result;
 };
