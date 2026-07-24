@@ -107,6 +107,19 @@
     }
   }
 
+  &__similar-games {
+    width: 100%;
+    min-width: 0;
+
+    .focus-carousel {
+      padding: 0 0 calc(var(--spacing-unit) * 8);
+    }
+
+    .focus-carousel__slide {
+      flex-basis: calc(260px + var(--focus-carousel-ring-space) * 2);
+    }
+  }
+
   &__sidebar-stats {
     display: flex;
     gap: 16px;

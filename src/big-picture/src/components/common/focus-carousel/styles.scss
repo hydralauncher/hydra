@@ -51,9 +51,18 @@
     background-color: var(--secondary-hover);
   }
 
+  &[data-focused="true"] {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
   &:disabled {
     opacity: 0.5;
     pointer-events: none;
+  }
+
+  &[aria-disabled="true"] {
+    opacity: 0.5;
   }
 }
 

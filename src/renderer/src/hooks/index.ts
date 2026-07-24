@@ -11,6 +11,7 @@ export * from "./use-download-options-listener";
 export * from "./use-game-card";
 export * from "./use-search-history";
 export * from "./use-search-suggestions";
+export * from "./use-similar-games";
 export * from "./use-game-collections";
 export * from "./use-classics-scan";
 export * from "./use-game-artwork-grid";

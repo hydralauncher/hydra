@@ -14,6 +14,8 @@ import flagJP from "./assets/flags/jp.png";
 import flagKR from "./assets/flags/kr.png";
 import flagAsia from "./assets/flags/asia.png";
 
+export { platformToSystem } from "../../shared/platform-to-system";
+
 export const ensureArray = <T>(value: unknown, source: string): T[] => {
   if (Array.isArray(value)) return value as T[];
 
@@ -31,17 +33,6 @@ export const ensureArray = <T>(value: unknown, source: string): T[] => {
     `Expected an array from ${source}, received (${typeof value}): ${preview}`
   );
   return [];
-};
-
-export const platformToSystem = (
-  platform?: string | null
-): EmulatorSystem | null => {
-  if (!platform) return null;
-  const p = platform.toLowerCase();
-  if (/playstation\s*3|\bps3\b/.test(p)) return "ps3";
-  if (/playstation\s*2|\bps2\b/.test(p)) return "ps2";
-  if (/playstation|\bps1\b|\bpsx\b/.test(p)) return "ps1";
-  return null;
 };
 
 export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {

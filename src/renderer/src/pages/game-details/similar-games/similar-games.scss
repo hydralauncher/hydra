@@ -1,0 +1,186 @@
+@use "../../../scss/globals.scss";
+
+.similar-games {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 1.5);
+  width: 100%;
+  align-self: center;
+  margin-inline: auto;
+
+  @media (min-width: 1280px) {
+    width: 60%;
+  }
+
+  @media (min-width: 1536px) {
+    width: 50%;
+  }
+
+  &__title {
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  &__carousel {
+    position: relative;
+    width: 100%;
+  }
+
+  &__viewport {
+    position: relative;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+
+  &__container {
+    display: flex;
+    margin-inline: calc(globals.$spacing-unit * -1);
+  }
+
+  &__slide {
+    flex: 0 0 calc(100% / 3);
+    min-width: 0;
+    padding-inline: globals.$spacing-unit;
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 0;
+    overflow: hidden;
+    color: globals.$body-color;
+    background-color: globals.$dark-background-color;
+    border: solid 1px globals.$border-color;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    transition:
+      border-color 0.2s ease,
+      transform 0.2s ease;
+
+    &:hover {
+      border-color: globals.$muted-color;
+      transform: translateY(-2px);
+    }
+
+    &:active {
+      opacity: globals.$active-opacity;
+    }
+  }
+
+  &__cover {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    background-color: globals.$background-color;
+
+    img,
+    &-placeholder {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    img {
+      object-fit: cover;
+      transition: transform 0.2s ease;
+    }
+  }
+
+  &__card:hover &__cover img {
+    transform: scale(1.03);
+  }
+
+  &__cover-placeholder {
+    background: linear-gradient(
+      180deg,
+      globals.$dark-background-color,
+      globals.$background-color
+    );
+  }
+
+  &__card-content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+    min-width: 0;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__card-title,
+  &__card-subtitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__card-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  &__card-subtitle {
+    color: globals.$muted-color;
+    font-size: 12px;
+  }
+
+  &__skeleton {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    border-radius: 6px;
+  }
+
+  &__control {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    color: globals.$muted-color;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover:not(:disabled) {
+      background-color: rgba(0, 0, 0, 0.6);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    &:disabled {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &--previous {
+      left: globals.$spacing-unit;
+      opacity: 0;
+      transform: translateY(-50%) translateX(-16px);
+
+      .similar-games__viewport:hover &:not(:disabled) {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0);
+      }
+    }
+
+    &--next {
+      right: globals.$spacing-unit;
+      opacity: 0;
+      transform: translateY(-50%) translateX(16px);
+
+      .similar-games__viewport:hover &:not(:disabled) {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0);
+      }
+    }
+  }
+}

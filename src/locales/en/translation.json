@@ -291,6 +291,7 @@
     "last_time_played": "Last played {{period}}",
     "not_played_yet": "You haven't played {{title}} yet",
     "next_suggestion": "Next suggestion",
+    "similar_games": "More like this",
     "play": "Play",
     "deleting": "Deleting installer…",
     "close": "Close",
