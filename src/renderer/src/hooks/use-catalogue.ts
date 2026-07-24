@@ -5,6 +5,8 @@ import type { DownloadSource } from "@types";
 import { useAppDispatch } from "./redux";
 import { setGenres, setTags } from "@renderer/features";
 
+import { sanitizeFilterList } from "../pages/catalogue/filter-sanitizer";
+
 export const externalResourcesInstance = axios.create({
   baseURL: import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL,
 });
@@ -30,13 +32,13 @@ export function useCatalogue() {
 
   const getSteamPublishers = useCallback(() => {
     externalResourcesInstance.get("/steam-publishers.json").then((response) => {
-      setSteamPublishers(response.data);
+      setSteamPublishers(sanitizeFilterList(response.data));
     });
   }, []);
 
   const getSteamDevelopers = useCallback(() => {
     externalResourcesInstance.get("/steam-developers.json").then((response) => {
-      setSteamDevelopers(response.data);
+      setSteamDevelopers(sanitizeFilterList(response.data));
     });
   }, []);
 

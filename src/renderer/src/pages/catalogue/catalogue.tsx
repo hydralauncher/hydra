@@ -29,6 +29,7 @@ import cn from "classnames";
 import { CatalogueModeToggle } from "./catalogue-mode-toggle";
 import { FilterItem } from "./filter-item";
 import { FilterSection } from "./filter-section";
+import { sanitizeFilterName, isAllowedFeature } from "./filter-sanitizer";
 import { GameItem } from "./game-item";
 import { GameItemClassics } from "./game-item-classics";
 import { Pagination } from "./pagination";
@@ -251,16 +252,26 @@ export default function Catalogue() {
   const language = i18n.language.split("-")[0];
 
   const steamGenresMapping = useMemo<Record<string, string>>(() => {
-    if (!steamGenres[language]) return {};
+    const activeLanguage = steamGenres[language] ? language : "en";
+    if (!steamGenres[activeLanguage]) return {};
 
-    return steamGenres[language].reduce((prev, genre, index) => {
+    return steamGenres[activeLanguage].reduce((prev, genre, index) => {
       prev[genre] = steamGenres["en"][index];
       return prev;
     }, {});
   }, [steamGenres, language]);
 
   const steamGenresFilterItems = useMemo(() => {
-    return Object.entries(steamGenresMapping)
+    const sanitizedMap = new Map<string, string>();
+    for (const [key, value] of Object.entries(steamGenresMapping)) {
+      const cleanedLabel = sanitizeFilterName(key);
+      if (cleanedLabel) {
+        if (!sanitizedMap.has(cleanedLabel)) {
+          sanitizedMap.set(cleanedLabel, value);
+        }
+      }
+    }
+    return Array.from(sanitizedMap.entries())
       .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
       .map(([key, value]) => ({
         label: key,
@@ -270,9 +281,20 @@ export default function Catalogue() {
   }, [steamGenresMapping, filters.genres]);
 
   const steamUserTagsFilterItems = useMemo(() => {
-    if (!steamUserTags[language]) return [];
-
-    return Object.entries(steamUserTags[language])
+    const activeLanguage = steamUserTags[language] ? language : "en";
+    if (!steamUserTags[activeLanguage]) return [];
+    const sanitizedMap = new Map<string, number>();
+    for (const [key, value] of Object.entries(steamUserTags[activeLanguage])) {
+      if (isAllowedFeature(value) || filters.tags.includes(value)) {
+        const cleanedLabel = sanitizeFilterName(key);
+        if (cleanedLabel) {
+          if (!sanitizedMap.has(cleanedLabel)) {
+            sanitizedMap.set(cleanedLabel, value);
+          }
+        }
+      }
+    }
+    return Array.from(sanitizedMap.entries())
       .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
       .map(([key, value]) => ({
         label: key,
@@ -422,15 +444,21 @@ export default function Catalogue() {
         value: genre,
       })),
 
-      ...filters.tags.map((tag) => ({
-        label: Object.keys(steamUserTags[language]).find(
-          (key) => steamUserTags[language][key] === tag
-        ),
-        filterType: t("tags"),
-        orbColor: filterCategoryColors.tags,
-        key: "tags",
-        value: tag,
-      })),
+      ...filters.tags.map((tag) => {
+        const activeLanguage = steamUserTags[language] ? language : "en";
+        const rawKey = steamUserTags[activeLanguage]
+          ? Object.keys(steamUserTags[activeLanguage]).find(
+              (key) => steamUserTags[activeLanguage][key] === tag
+            )
+          : undefined;
+        return {
+          label: sanitizeFilterName(rawKey) ?? rawKey ?? "",
+          filterType: t("features"),
+          orbColor: filterCategoryColors.tags,
+          key: "tags",
+          value: tag,
+        };
+      }),
 
       ...filters.downloadSourceFingerprints.map((fingerprint) => ({
         label: downloadSources.find(
@@ -514,7 +542,7 @@ export default function Catalogue() {
         key: "genres",
       },
       {
-        title: t("tags"),
+        title: t("features"),
         items: steamUserTagsFilterItems,
         key: "tags",
       },
