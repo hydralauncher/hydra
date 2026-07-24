@@ -8,7 +8,6 @@ import {
   Battery,
   Check,
   Clock3,
-  Gamepad2,
   LockKeyhole,
   NotebookPen,
   Power,
@@ -510,21 +509,14 @@ export default function Overlay() {
                       alt={game.title}
                     />
                   )}
-                  <div className="overlay-achievements-user">
-                    {user?.profileImageUrl ? (
-                      <img src={user.profileImageUrl} alt="" />
-                    ) : (
-                      <span>{(user?.displayName ?? "G").slice(0, 1)}</span>
-                    )}
-                    <div>
-                      <strong>{user?.displayName ?? "Guest"}</strong>
-                      <small>
-                        <Trophy size={13} /> {progress.unlocked.length} /{" "}
-                        {context.achievements.length}
-                      </small>
-                    </div>
+                  <div className="overlay-achievements-progress">
+                    <span>
+                      {progress.unlocked.length} / {context.achievements.length}
+                    </span>
+                    <strong>
+                      <Trophy size={20} /> {progress.percentage}%
+                    </strong>
                   </div>
-                  <b>{progress.percentage}%</b>
                   <i>
                     <span style={{ width: `${progress.percentage}%` }} />
                   </i>
@@ -676,12 +668,6 @@ export default function Overlay() {
           >
             Back to game <X size={19} />
           </button>
-          <div>
-            <span>
-              <Gamepad2 size={14} /> A Select
-            </span>
-            <span>B Back</span>
-          </div>
         </section>
       </footer>
     </main>

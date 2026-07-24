@@ -3,6 +3,7 @@ import type { HydraOverlayPerformance } from "@types";
 export type PresentMonFrameTimeColumns = {
   displayChange: number;
   presents: number;
+  processId: number;
 };
 
 export const resolvePresentMonFrameTimeColumns = (header: string[]) => {
@@ -10,6 +11,7 @@ export const resolvePresentMonFrameTimeColumns = (header: string[]) => {
   return {
     displayChange: normalized.indexOf("msbetweendisplaychange"),
     presents: normalized.indexOf("msbetweenpresents"),
+    processId: normalized.indexOf("processid"),
   } satisfies PresentMonFrameTimeColumns;
 };
 

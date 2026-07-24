@@ -50,14 +50,14 @@ button {
   top: 24px;
   right: 24px;
   bottom: 112px;
-  width: min(720px, calc(100vw - 400px));
+  width: min(680px, calc(100vw - 400px));
 }
 
 .overlay-surface {
   box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 15px;
-  background: rgba(9, 11, 14, 0.97);
+  border-radius: 12px;
+  background: rgba(11, 13, 16, 0.97);
   box-shadow: 0 20px 56px rgba(0, 0, 0, 0.38);
 }
 
@@ -65,17 +65,18 @@ button {
   display: flex;
   height: 100%;
   flex-direction: column;
-  padding: 11px;
+  padding: 10px;
 }
 
 .overlay-tabs {
   display: grid;
   flex: 0 0 auto;
   grid-template-columns: repeat(4, 1fr);
-  gap: 5px;
+  gap: 4px;
   padding: 4px;
-  border-radius: 11px;
-  background: #07080a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  background: #080a0d;
 }
 
 .overlay-tabs button {
@@ -88,21 +89,30 @@ button {
   gap: 8px;
   padding: 0 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 7px;
   outline: none;
   background: transparent;
   color: #9ca0a8;
   cursor: pointer;
   font-size: 12px;
   transition:
-    background 120ms ease,
-    color 120ms ease;
+    background-color 150ms ease,
+    color 150ms ease,
+    opacity 100ms ease;
 }
 
-.overlay-tabs button:hover,
-.overlay-tabs button.is-active {
-  background: #292e36;
+.overlay-tabs button:hover {
+  background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
+}
+
+.overlay-tabs button:active {
+  opacity: 0.72;
+}
+
+.overlay-tabs button.is-active {
+  background: #f0f1f3;
+  color: #0b0d10;
 }
 
 .overlay-tabs button i {
@@ -115,7 +125,7 @@ button {
 }
 
 .overlay-tabs button.is-active svg {
-  color: #64ead1;
+  color: #0b0d10;
 }
 
 .overlay-hub__content {
@@ -123,7 +133,7 @@ button {
   flex: 1;
   margin-top: 10px;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 9px;
   background: #090b0e;
 }
 
@@ -137,15 +147,35 @@ button {
   position: relative;
   height: 42%;
   min-height: 220px;
-  overflow: hidden;
+  overflow: visible;
   background: #111318;
 }
 
 .overlay-game-hero > img:first-child {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   opacity: 0.62;
+}
+
+.overlay-game-hero::after,
+.overlay-achievements-hero::after {
+  position: absolute;
+  right: 0;
+  bottom: -24px;
+  left: 0;
+  z-index: 1;
+  height: 76px;
+  background: linear-gradient(
+    to bottom,
+    rgba(9, 11, 14, 0),
+    rgba(9, 11, 14, 0.78) 50%,
+    #090b0e 86%
+  );
+  backdrop-filter: blur(5px);
+  content: "";
+  pointer-events: none;
 }
 
 .overlay-game-hero > div {
@@ -164,6 +194,7 @@ button {
   max-height: 48%;
   object-fit: contain;
   object-position: left bottom;
+  z-index: 2;
   filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.72));
 }
 
@@ -175,9 +206,13 @@ button {
 }
 
 .overlay-playing-now {
-  margin: 10px 12px 0;
+  position: relative;
+  z-index: 2;
+  margin: 0 12px;
   padding: 18px 20px;
-  background: #15171b;
+  border: 1px solid #292d33;
+  border-radius: 8px;
+  background: #15181c;
 }
 
 .overlay-playing-now > span {
@@ -209,10 +244,8 @@ button {
 .overlay-overview-counters {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin: 10px 12px 12px;
-  border-top: 1px solid #292c31;
-  border-bottom: 1px solid #292c31;
-  background: #0c0e11;
 }
 
 .overlay-overview-counters > div {
@@ -221,10 +254,9 @@ button {
   place-items: center;
   align-content: center;
   gap: 5px;
-}
-
-.overlay-overview-counters > div + div {
-  border-left: 1px solid #292c31;
+  border: 1px solid #292d33;
+  border-radius: 8px;
+  background: #111419;
 }
 
 .overlay-overview-counters svg {
@@ -354,7 +386,7 @@ button {
 .overlay-achievements-hero {
   position: relative;
   flex: 0 0 220px;
-  overflow: hidden;
+  overflow: visible;
   background: #15171b;
 }
 
@@ -381,59 +413,39 @@ button {
   max-height: 34%;
   object-fit: contain;
   object-position: left top;
+  z-index: 2;
   filter: drop-shadow(0 4px 12px #000000);
 }
 
-.overlay-achievements-user {
+.overlay-achievements-progress {
   position: absolute;
-  bottom: 28px;
+  z-index: 2;
+  right: 22px;
+  bottom: 34px;
   left: 24px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
 }
 
-.overlay-achievements-user > img,
-.overlay-achievements-user > span {
-  width: 50px;
-  height: 50px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  object-fit: cover;
+.overlay-achievements-progress > span {
+  color: #c2c6cc;
+  font-size: 11px;
+  font-weight: 650;
 }
 
-.overlay-achievements-user > span {
-  display: grid;
-  place-items: center;
-  background: #24272c;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.overlay-achievements-user strong {
-  display: block;
-  font-size: 22px;
-}
-
-.overlay-achievements-user small {
+.overlay-achievements-progress > strong {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 5px;
-  font-size: 10px;
-}
-
-.overlay-achievements-hero > b {
-  position: absolute;
-  right: 22px;
-  bottom: 34px;
-  font-size: 13px;
+  gap: 7px;
+  font-size: 20px;
 }
 
 .overlay-achievements-hero > i {
   position: absolute;
   right: 22px;
-  bottom: 22px;
+  z-index: 2;
+  bottom: 20px;
   left: 22px;
   height: 3px;
   overflow: hidden;
@@ -447,6 +459,8 @@ button {
 }
 
 .overlay-earned-points {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -505,7 +519,7 @@ button {
 .overlay-notes-tab {
   display: flex;
   flex-direction: column;
-  padding: 22px;
+  padding: 24px;
 }
 
 .overlay-notes-tab > header > div,
@@ -550,17 +564,18 @@ button {
   margin-top: 16px;
   padding: 18px;
   resize: none;
-  border: 1px solid #282b30;
+  border: 1px solid #30343a;
   border-radius: 8px;
   outline: none;
-  background: #0e1013;
+  background: #111419;
   color: #eceef1;
   font-size: 12px;
   line-height: 1.65;
 }
 
 .overlay-notes-tab textarea:focus {
-  border-color: #626872;
+  border-color: #747a84;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .overlay-notes-tab > footer {
@@ -637,6 +652,10 @@ button {
   text-transform: uppercase;
 }
 
+.hydra-overlay__identity > div:nth-child(2) span {
+  color: #ffffff;
+}
+
 .hydra-overlay__identity > div:nth-child(2) strong {
   display: block;
   margin-top: 2px;
@@ -683,8 +702,8 @@ button {
 
 .hydra-overlay__game-brand {
   display: grid;
-  width: 210px;
-  height: 66px;
+  width: 240px;
+  height: 72px;
   place-items: center;
 }
 
@@ -692,7 +711,7 @@ button {
   width: auto;
   max-width: 100%;
   height: auto;
-  max-height: 58px;
+  max-height: 68px;
   object-fit: contain;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.68));
 }
@@ -706,7 +725,6 @@ button {
   align-items: flex-end;
   flex-direction: column;
   justify-self: end;
-  gap: 8px;
 }
 
 .hydra-overlay__close-area > button {
@@ -721,19 +739,6 @@ button {
   cursor: pointer;
   font-size: 12px;
   font-weight: 650;
-}
-
-.hydra-overlay__close-area > div {
-  display: flex;
-  gap: 12px;
-  color: #777d85;
-  font-size: 8px;
-}
-
-.hydra-overlay__close-area > div span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .hydra-overlay__performance-widget {
@@ -918,8 +923,14 @@ button {
 .overlay-toast__prompt {
   align-items: flex-start;
   flex-direction: column;
-  padding: 0 24px;
-  background: rgba(8, 10, 14, 0.76);
+  margin-left: -52px;
+  padding: 0 24px 0 70px;
+  background: linear-gradient(
+    90deg,
+    rgba(8, 10, 14, 0),
+    rgba(8, 10, 14, 0.9) 28%,
+    rgba(8, 10, 14, 0.97) 100%
+  );
 }
 
 .overlay-toast__prompt > span {

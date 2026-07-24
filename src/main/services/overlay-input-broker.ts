@@ -10,6 +10,16 @@ const execFileAsync = promisify(execFile);
 const taskName = "Hydra Overlay Input";
 let installation: Promise<boolean> | null = null;
 
+export const getOverlayInputDirectory = () =>
+  app.isPackaged
+    ? path.join(app.getPath("userData"), "overlay-input")
+    : path.join(app.getAppPath(), "hydra-native");
+
+const filesMatch = (left: string, right: string) => {
+  if (!fs.existsSync(left) || !fs.existsSync(right)) return false;
+  return fs.readFileSync(left).equals(fs.readFileSync(right));
+};
+
 const taskContains = async (executable: string) => {
   try {
     const { stdout } = await execFileAsync(
@@ -54,21 +64,41 @@ const install = async () => {
     "hydra-native",
     "hydra-overlay-input.exe"
   );
-  if (!fs.existsSync(bundled)) return false;
-  if (await taskContains(bundled)) return true;
+  const bundledPresentMon = path.join(
+    resources,
+    "presentmon",
+    "PresentMon.exe"
+  );
+  if (!fs.existsSync(bundled) || !fs.existsSync(bundledPresentMon)) {
+    return false;
+  }
+  if (await taskContains(bundled)) {
+    const developmentPresentMon = path.join(
+      path.dirname(bundled),
+      "PresentMon.exe"
+    );
+    if (!filesMatch(bundledPresentMon, developmentPresentMon)) {
+      fs.copyFileSync(bundledPresentMon, developmentPresentMon);
+    }
+    return true;
+  }
 
-  const stableDirectory = path.join(app.getPath("userData"), "overlay-input");
+  const stableDirectory = getOverlayInputDirectory();
   const stable = path.join(stableDirectory, "hydra-overlay-input.exe");
+  const stablePresentMon = path.join(stableDirectory, "PresentMon.exe");
   fs.mkdirSync(stableDirectory, { recursive: true });
   const stableTask = await taskContains(stable);
-  const current = fs.existsSync(stable) ? fs.readFileSync(stable) : null;
-  const bundledBytes = fs.readFileSync(bundled);
-  if (!current?.equals(bundledBytes)) {
-    try {
-      fs.copyFileSync(bundled, stable);
-    } catch (error) {
-      if (!stableTask) throw error;
-    }
+  const needsUpdate =
+    !filesMatch(bundled, stable) ||
+    !filesMatch(bundledPresentMon, stablePresentMon);
+  if (needsUpdate && stableTask) {
+    await execFileAsync("schtasks.exe", ["/End", "/TN", taskName], {
+      windowsHide: true,
+    }).catch(() => undefined);
+  }
+  if (needsUpdate) {
+    fs.copyFileSync(bundled, stable);
+    fs.copyFileSync(bundledPresentMon, stablePresentMon);
   }
   if (stableTask) return true;
   if (!(await runSetup(stable))) return false;

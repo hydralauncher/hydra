@@ -38,6 +38,20 @@ test("recognizes legacy PresentMon metric casing", () => {
   );
 });
 
+test("resolves the target process column for system capture filtering", () => {
+  const indexes = resolvePresentMonFrameTimeColumns([
+    "Application",
+    "ProcessID",
+    "MsBetweenPresents",
+  ]);
+
+  assert.equal(indexes.processId, 1);
+  assert.equal(
+    parsePresentMonFrameTime(["game.exe", "42", "6.9"], indexes),
+    6.9
+  );
+});
+
 test("parses only MangoHud frame metric rows", () => {
   assert.deepEqual(
     parseMangoHudFrameTimes([

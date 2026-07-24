@@ -33,6 +33,7 @@ const FPS_HEIGHT = 116;
 const TOGGLE_DEBOUNCE_MS = 350;
 const GAMEPAD_REPEAT_DELAY_MS = 360;
 const GAMEPAD_REPEAT_INTERVAL_MS = 105;
+const OVERLAY_FADE_DURATION_MS = 140;
 
 const GAMEPAD_ACTIONS: Array<[number, HydraOverlayGamepadAction]> = [
   [0x1000, "accept"],
@@ -78,6 +79,7 @@ export class OverlayManager {
   private static targetPoll: NodeJS.Timeout | null = null;
   private static targetRefreshPending = false;
   private static lastTargetRefreshAt = 0;
+  private static fadeTimer: NodeJS.Timeout | null = null;
 
   public static initialize() {
     overlayFpsMonitor.setUpdateHandler((metrics) =>
@@ -151,7 +153,11 @@ export class OverlayManager {
     this.registerShortcut(nativeKeyboardActive);
     if (process.platform === "win32") {
       void ensureOverlayInputBroker().then((ready) => {
-        if (ready && this.servicesActive) NativeAddon.startOverlayInputBroker();
+        if (!this.servicesActive) return;
+        if (ready) NativeAddon.startOverlayInputBroker();
+        if (this.preferences.overlayPerformanceEnabled) {
+          void overlayFpsMonitor.start(game);
+        }
       });
     }
     this.startTargetPolling();
@@ -164,7 +170,10 @@ export class OverlayManager {
         this.showActivationToast();
       }
     });
-    if (this.preferences.overlayPerformanceEnabled) {
+    if (
+      process.platform !== "win32" &&
+      this.preferences.overlayPerformanceEnabled
+    ) {
       void overlayFpsMonitor.start(game);
     }
   }
@@ -277,10 +286,12 @@ export class OverlayManager {
       overlayWindow.setBounds(this.getTargetBounds());
       overlayWindow.setAlwaysOnTop(false);
       overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
+      overlayWindow.setOpacity(0);
       overlayWindow.show();
       this.placeWindowOverGame(overlayWindow);
       overlayWindow.moveTop();
       overlayWindow.focus();
+      this.fadeOverlayWindow(1);
       overlayWindow.webContents.send("on-overlay-shown");
       setTimeout(() => {
         if (!overlayWindow.isDestroyed() && overlayWindow.isVisible()) {
@@ -300,14 +311,57 @@ export class OverlayManager {
   }
 
   public static hideOverlay() {
-    if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-      this.overlayWindow.hide();
+    const overlayWindow = this.overlayWindow;
+    const finish = () => {
+      if (overlayWindow && !overlayWindow.isDestroyed()) {
+        overlayWindow.hide();
+        overlayWindow.setOpacity(1);
+      }
+      if (this.activeGame && this.performancePinned) this.showFpsWindow();
+      const pid = this.targetPid;
+      if (pid) setTimeout(() => NativeAddon.focusProcessWindow(pid), 25);
+    };
+    if (
+      overlayWindow &&
+      !overlayWindow.isDestroyed() &&
+      overlayWindow.isVisible()
+    ) {
+      this.fadeOverlayWindow(0, finish);
+    } else {
+      finish();
     }
-    if (this.activeGame && this.performancePinned) {
-      this.showFpsWindow();
+  }
+
+  private static fadeOverlayWindow(opacity: number, onComplete?: () => void) {
+    if (this.fadeTimer) clearInterval(this.fadeTimer);
+    this.fadeTimer = null;
+    const window = this.overlayWindow;
+    if (!window || window.isDestroyed()) {
+      onComplete?.();
+      return;
     }
-    const pid = this.targetPid;
-    if (pid) setTimeout(() => NativeAddon.focusProcessWindow(pid), 25);
+
+    const startedAt = Date.now();
+    const initialOpacity = opacity === 1 ? 0 : 1;
+    const tick = () => {
+      if (window.isDestroyed()) {
+        if (this.fadeTimer) clearInterval(this.fadeTimer);
+        this.fadeTimer = null;
+        onComplete?.();
+        return;
+      }
+      const progress = Math.min(
+        1,
+        (Date.now() - startedAt) / OVERLAY_FADE_DURATION_MS
+      );
+      window.setOpacity(initialOpacity + (opacity - initialOpacity) * progress);
+      if (progress < 1) return;
+      if (this.fadeTimer) clearInterval(this.fadeTimer);
+      this.fadeTimer = null;
+      onComplete?.();
+    };
+    tick();
+    if (this.fadeTimer === null) this.fadeTimer = setInterval(tick, 16);
   }
 
   public static setPerformancePinned(pinned: boolean) {

@@ -50,3 +50,15 @@ test("platform overlay integration is installed on demand", () => {
   assert.match(brokerInstaller, /app\.getPath\("userData"\)/u);
   assert.match(brokerInstaller, /Register-ScheduledTask/u);
 });
+
+test("Windows FPS capture falls back to borderless native frame events", () => {
+  const cargo = read("native/hydra-native/Cargo.toml");
+  const broker = read("native/hydra-native/src/bin/hydra-overlay-input.rs");
+  const monitor = read("src/main/services/overlay-fps-monitor.ts");
+
+  assert.match(cargo, /windows-capture = "2\.0\.0"/u);
+  assert.match(broker, /DrawBorderSettings::WithoutBorder/u);
+  assert.match(broker, /MsBetweenPresents/u);
+  assert.match(monitor, /FILTERED_CAPTURE_TIMEOUT/u);
+  assert.match(monitor, /Windows Graphics Capture FPS fallback/u);
+});
