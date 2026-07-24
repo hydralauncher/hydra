@@ -44,6 +44,7 @@ nsis:
   include: installer.nsh
 portable:
   artifactName: ${name}-${version}-portable.${ext}
+  unpackDirName: false
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extraResources:
