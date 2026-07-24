@@ -2,6 +2,7 @@ import { registerEvent } from "../register-event";
 import path from "node:path";
 
 import type { UserPreferences } from "@types";
+import { resolveBigPictureUiScale } from "../../../types/big-picture-ui-scale";
 import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
@@ -76,6 +77,13 @@ const updateUserPreferences = async (
   const updatedPreferences = {
     ...mergedPreferences,
     ...normalizedDownloadDirectoryPreferences,
+    ...(Object.hasOwn(preferences, "bigPictureUiScale")
+      ? {
+          bigPictureUiScale: resolveBigPictureUiScale(
+            preferences.bigPictureUiScale
+          ),
+        }
+      : {}),
   };
 
   await db.put<string, UserPreferences>(
@@ -111,6 +119,10 @@ const updateUserPreferences = async (
     Object.hasOwn(preferences, "bigPictureDisplayBounds")
   ) {
     await WindowManager.applyBigPictureDisplayPreference();
+  }
+
+  if (Object.hasOwn(preferences, "bigPictureUiScale")) {
+    WindowManager.applyBigPictureUiScalePreference(updatedPreferences);
   }
 
   if (Object.hasOwn(preferences, "torrentNetworkInterface")) {

@@ -3,6 +3,7 @@ import type { GameShop } from "./game.types";
 import type { DownloadStatus } from "./download.types";
 import type { HydraDisplayBounds } from "./display.types";
 import type { ClassicsDisc } from "./emulator.types";
+import type { BigPictureUiScale } from "./big-picture-ui-scale";
 
 export type SubscriptionStatus = "active" | "pending" | "cancelled";
 
@@ -153,6 +154,7 @@ export interface UserPreferences {
   bigPictureDisplayId?: string | null;
   bigPictureDisplayBounds?: HydraDisplayBounds | null;
   bigPictureAudioDeviceId?: string | null;
+  bigPictureUiScale?: BigPictureUiScale;
   disableNsfwAlert?: boolean;
   enableAutoInstall?: boolean;
   seedAfterDownloadComplete?: boolean;

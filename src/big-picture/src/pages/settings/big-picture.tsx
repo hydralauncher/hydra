@@ -1,9 +1,14 @@
 import "./big-picture.scss";
 
-import type {
-  BigPictureDiagnosticsPosition,
-  HydraAudioDevice,
-  HydraDisplay,
+import {
+  BIG_PICTURE_UI_SCALE_VALUES,
+  resolveBigPictureUiScale,
+  type BigPictureUiScale,
+} from "../../../../types/big-picture-ui-scale";
+import {
+  type BigPictureDiagnosticsPosition,
+  type HydraAudioDevice,
+  type HydraDisplay,
 } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,6 +19,7 @@ import { useUserPreferences } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import {
   BIG_PICTURE_AUDIO_SECTION_REGION_ID,
+  BIG_PICTURE_DISPLAY_SECTION_REGION_ID,
   BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID,
   BIG_PICTURE_DIAGNOSTICS_SECTION_REGION_ID,
   BIG_PICTURE_ITEM_FOCUS_IDS,
@@ -21,6 +27,7 @@ import {
   BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID,
   BIG_PICTURE_SECTION_REGION_ID,
   BIG_PICTURE_STARTUP_SECTION_REGION_ID,
+  BIG_PICTURE_UI_SCALE_SELECT_ID,
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
@@ -33,6 +40,7 @@ interface BigPictureForm {
   launchInBigPicture: boolean;
   bigPictureDisplayId: string;
   bigPictureAudioDeviceId: string;
+  bigPictureUiScale: BigPictureUiScale;
   bigPictureSoundsEnabled: boolean;
   bigPictureVirtualKeyboardEnabled: boolean;
   bigPictureDiagnosticsEnabled: boolean;
@@ -51,6 +59,7 @@ const DEFAULT_FORM: BigPictureForm = {
   launchInBigPicture: false,
   bigPictureDisplayId: "default",
   bigPictureAudioDeviceId: "default",
+  bigPictureUiScale: 100,
   bigPictureSoundsEnabled: true,
   bigPictureVirtualKeyboardEnabled: true,
   bigPictureDiagnosticsEnabled: false,
@@ -120,6 +129,9 @@ export function BigPictureSettingsSection({
       bigPictureAudioDeviceId:
         userPreferences.bigPictureAudioDeviceId ??
         DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
+      bigPictureUiScale: resolveBigPictureUiScale(
+        userPreferences.bigPictureUiScale
+      ),
       bigPictureSoundsEnabled: userPreferences.bigPictureSoundsEnabled ?? true,
       bigPictureVirtualKeyboardEnabled:
         userPreferences.bigPictureVirtualKeyboardEnabled ?? true,
@@ -174,6 +186,15 @@ export function BigPictureSettingsSection({
       });
     },
     []
+  );
+
+  const handleBigPictureUiScaleChange = useCallback(
+    (value: string) => {
+      updateUserPreferences({
+        bigPictureUiScale: resolveBigPictureUiScale(Number(value)),
+      });
+    },
+    [updateUserPreferences]
   );
 
   const handleLaunchInBigPictureChange = useCallback(
@@ -335,6 +356,15 @@ export function BigPictureSettingsSection({
     ];
   }, [audioDevices, form.bigPictureAudioDeviceId, t]);
 
+  const uiScaleOptions = useMemo<Array<DropdownSelectOption<string>>>(
+    () =>
+      BIG_PICTURE_UI_SCALE_VALUES.map((scale) => ({
+        value: String(scale),
+        label: `${scale}%`,
+      })),
+    []
+  );
+
   const inputNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
   >(() => {
@@ -379,9 +409,7 @@ export function BigPictureSettingsSection({
   >(() => {
     const previousFallback: FocusOverrideTarget = {
       type: "item",
-      itemId: form.launchInBigPicture
-        ? BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID
-        : BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
+      itemId: BIG_PICTURE_UI_SCALE_SELECT_ID,
     };
 
     return Object.fromEntries(
@@ -413,7 +441,7 @@ export function BigPictureSettingsSection({
         ];
       })
     );
-  }, [audioItems, form.bigPictureSoundsEnabled, form.launchInBigPicture]);
+  }, [audioItems, form.bigPictureSoundsEnabled]);
 
   const startupNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -441,7 +469,7 @@ export function BigPictureSettingsSection({
                   type: "item",
                   itemId: form.launchInBigPicture
                     ? BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID
-                    : BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
+                    : BIG_PICTURE_UI_SCALE_SELECT_ID,
                 },
           } satisfies FocusOverrides,
         ];
@@ -497,10 +525,26 @@ export function BigPictureSettingsSection({
       },
       down: {
         type: "item",
-        itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
+        itemId: BIG_PICTURE_UI_SCALE_SELECT_ID,
       },
     }),
     []
+  );
+
+  const uiScaleSelectNavigationOverrides = useMemo<FocusOverrides>(
+    () => ({
+      up: {
+        type: "item",
+        itemId: form.launchInBigPicture
+          ? BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID
+          : BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
+      },
+      down: {
+        type: "item",
+        itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
+      },
+    }),
+    [form.launchInBigPicture]
   );
 
   const audioDeviceSelectNavigationOverrides = useMemo<FocusOverrides>(
@@ -561,7 +605,19 @@ export function BigPictureSettingsSection({
                 onChange={item.onChange}
               />
             ))}
+          </div>
+        </VerticalFocusGroup>
+      </SettingsSection>
 
+      <SettingsSection
+        title={t("settings_display_section_title")}
+        description={t("settings_display_section_description")}
+      >
+        <VerticalFocusGroup
+          regionId={BIG_PICTURE_DISPLAY_SECTION_REGION_ID}
+          asChild
+        >
+          <div className="big-picture-settings-section__content">
             <DropdownSelect
               className="big-picture-settings-section__select"
               label={t("settings_big_picture_launching_monitor")}
@@ -571,6 +627,16 @@ export function BigPictureSettingsSection({
               focusId={BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID}
               focusNavigationOverrides={displaySelectNavigationOverrides}
               onValueChange={handleBigPictureDisplayChange}
+            />
+
+            <DropdownSelect
+              className="big-picture-settings-section__select"
+              label={t("settings_big_picture_ui_scale")}
+              value={String(form.bigPictureUiScale)}
+              options={uiScaleOptions}
+              focusId={BIG_PICTURE_UI_SCALE_SELECT_ID}
+              focusNavigationOverrides={uiScaleSelectNavigationOverrides}
+              onValueChange={handleBigPictureUiScaleChange}
             />
           </div>
         </VerticalFocusGroup>

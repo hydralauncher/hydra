@@ -4,6 +4,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { AuthPage } from "@shared";
+import { getBigPictureZoomFactor } from "../../types/big-picture-ui-scale";
 import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
@@ -478,6 +479,8 @@ export class WindowManager {
       },
     });
 
+    this.applyBigPictureUiScalePreference(userPreferences);
+
     this.bigPicture.removeMenu();
 
     if (!app.isPackaged || isStaging) {
@@ -502,6 +505,7 @@ export class WindowManager {
       }
 
       if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+        this.applyBigPictureUiScalePreference(userPreferences);
         this.bigPicture.show();
         this.placeBigPictureWindowOnDisplay(this.bigPicture, targetDisplay);
         this.presentBigPictureWindow(this.bigPicture, targetDisplay);
@@ -576,6 +580,20 @@ export class WindowManager {
 
     bigPicture.show();
     bigPicture.focus();
+  }
+
+  public static applyBigPictureUiScalePreference(
+    userPreferences: UserPreferences | null | undefined
+  ) {
+    const bigPicture = this.bigPicture;
+
+    if (!bigPicture || bigPicture.isDestroyed()) {
+      return;
+    }
+
+    bigPicture.webContents.setZoomFactor(
+      getBigPictureZoomFactor(userPreferences?.bigPictureUiScale)
+    );
   }
 
   public static openFriendsWindow() {
