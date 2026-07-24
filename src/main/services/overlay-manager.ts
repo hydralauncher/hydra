@@ -81,6 +81,9 @@ export class OverlayManager {
   private static targetRefreshPending = false;
   private static lastTargetRefreshAt = 0;
   private static fadeTimer: NodeJS.Timeout | null = null;
+  private static toastTimer: NodeJS.Timeout | null = null;
+  private static linuxToastActive = false;
+  private static toastSequence = 0;
 
   public static initialize() {
     overlayFpsMonitor.setUpdateHandler((metrics) =>
@@ -119,7 +122,10 @@ export class OverlayManager {
       this.startActiveServices(game);
       return;
     }
-    if (this.preferences.overlayPerformanceEnabled !== wasPerformanceEnabled) {
+    if (
+      process.platform !== "linux" &&
+      this.preferences.overlayPerformanceEnabled !== wasPerformanceEnabled
+    ) {
       this.performancePinned = false;
       this.destroyFpsWindow();
       if (this.preferences.overlayPerformanceEnabled) {
@@ -171,12 +177,6 @@ export class OverlayManager {
         this.showActivationToast();
       }
     });
-    if (
-      process.platform !== "win32" &&
-      this.preferences.overlayPerformanceEnabled
-    ) {
-      void overlayFpsMonitor.start(game);
-    }
   }
 
   public static getActiveGame() {
@@ -246,7 +246,9 @@ export class OverlayManager {
       performance: this.performance,
       performancePinned: this.performancePinned,
       settings: {
-        performanceEnabled: this.preferences.overlayPerformanceEnabled,
+        performanceEnabled:
+          process.platform !== "linux" &&
+          this.preferences.overlayPerformanceEnabled,
         performanceRows: {
           fps: this.preferences.overlayPerformanceShowFps,
           averageFps: this.preferences.overlayPerformanceShowAverageFps,
@@ -286,11 +288,14 @@ export class OverlayManager {
     const show = () => {
       if (overlayWindow.isDestroyed() || !this.activeGame) return;
       const preserveGameFocus = this.shouldPreserveGameFocus();
+      this.linuxToastActive = false;
+      this.clearToastTimer();
       this.fpsWindow?.hide();
-      overlayWindow.setBounds(this.getTargetBounds());
+      this.setOverlayBounds(overlayWindow);
       overlayWindow.setAlwaysOnTop(false);
       overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
       overlayWindow.setOpacity(0);
+      overlayWindow.webContents.send("on-overlay-mode", "full");
       if (preserveGameFocus) overlayWindow.showInactive();
       else overlayWindow.show();
       this.placeWindowOverGame(overlayWindow);
@@ -316,6 +321,8 @@ export class OverlayManager {
   }
 
   public static hideOverlay() {
+    this.linuxToastActive = false;
+    this.clearToastTimer();
     const overlayWindow = this.overlayWindow;
     const finish = () => {
       if (overlayWindow && !overlayWindow.isDestroyed()) {
@@ -370,7 +377,12 @@ export class OverlayManager {
   }
 
   public static setPerformancePinned(pinned: boolean) {
-    if (!this.preferences.overlayPerformanceEnabled) return;
+    if (
+      process.platform === "linux" ||
+      !this.preferences.overlayPerformanceEnabled
+    ) {
+      return;
+    }
     this.performancePinned = pinned;
     this.overlayWindow?.webContents.send("on-overlay-performance-pin", pinned);
     if (!pinned) {
@@ -396,7 +408,8 @@ export class OverlayManager {
       movable: false,
       minimizable: false,
       maximizable: false,
-      fullscreenable: false,
+      fullscreenable: process.platform === "linux",
+      fullscreen: process.platform === "linux",
       skipTaskbar: true,
       alwaysOnTop: true,
       webPreferences: {
@@ -410,6 +423,7 @@ export class OverlayManager {
     overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
     if (process.platform === "linux") {
       overlayWindow.setVisibleOnAllWorkspaces(true);
+      overlayWindow.setFullScreen(true);
       NativeAddon.markGamescopeOverlay(
         overlayWindow.getNativeWindowHandle(),
         false
@@ -449,6 +463,7 @@ export class OverlayManager {
   }
 
   private static getTargetBounds(): Electron.Rectangle {
+    if (process.platform === "linux") return screen.getPrimaryDisplay().bounds;
     if (this.targetPid) {
       const bounds = NativeAddon.getProcessWindowBounds(this.targetPid);
       if (bounds && bounds.width > 0 && bounds.height > 0) return bounds;
@@ -466,6 +481,10 @@ export class OverlayManager {
 
   private static placeWindowOverGame(window: BrowserWindow) {
     if (window.isDestroyed()) return;
+    if (process.platform === "linux") {
+      this.setOverlayBounds(window);
+      return;
+    }
     if (
       process.platform === "win32" &&
       this.targetPid &&
@@ -477,6 +496,15 @@ export class OverlayManager {
       return;
     }
     window.setBounds(this.getTargetBounds());
+  }
+
+  private static setOverlayBounds(window: BrowserWindow) {
+    const bounds = this.getTargetBounds();
+    if (process.platform === "linux") {
+      if (!window.isFullScreen()) window.setFullScreen(true);
+      return;
+    }
+    window.setBounds(bounds);
   }
 
   private static startTargetPolling() {
@@ -513,6 +541,11 @@ export class OverlayManager {
   private static showActivationToast() {
     this.destroyToast();
 
+    if (process.platform === "linux") {
+      this.showLinuxActivationToast();
+      return;
+    }
+
     const targetBounds = this.getTargetBounds();
     const toastWindow = new BrowserWindow({
       x: targetBounds.x + targetBounds.width - TOAST_WIDTH - TOAST_MARGIN,
@@ -535,13 +568,6 @@ export class OverlayManager {
     toastWindow.removeMenu();
     toastWindow.setIgnoreMouseEvents(true);
     toastWindow.setAlwaysOnTop(true, "screen-saver", 1);
-    if (process.platform === "linux") {
-      toastWindow.setVisibleOnAllWorkspaces(true);
-      NativeAddon.markGamescopeOverlay(
-        toastWindow.getNativeWindowHandle(),
-        true
-      );
-    }
     WindowManager.loadWindowURL(toastWindow, "overlay-toast");
     toastWindow.once("ready-to-show", () => toastWindow.showInactive());
     toastWindow.on("closed", () => {
@@ -549,16 +575,62 @@ export class OverlayManager {
     });
 
     this.toastWindow = toastWindow;
-    setTimeout(() => {
+    this.toastTimer = setTimeout(() => {
       if (this.toastWindow === toastWindow) this.destroyToast();
     }, 8_000);
   }
 
+  private static showLinuxActivationToast() {
+    const overlayWindow = this.ensureOverlayWindow();
+    const toastSequence = ++this.toastSequence;
+    const show = () => {
+      if (
+        toastSequence !== this.toastSequence ||
+        overlayWindow.isDestroyed() ||
+        !this.activeGame
+      ) {
+        return;
+      }
+      this.linuxToastActive = true;
+      overlayWindow.webContents.send("on-overlay-mode", "toast");
+      overlayWindow.setOpacity(0);
+      this.setOverlayBounds(overlayWindow);
+      overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
+      overlayWindow.showInactive();
+      overlayWindow.moveTop();
+      this.fadeOverlayWindow(1);
+      overlayWindow.webContents.send("on-overlay-shown");
+    };
+
+    if (overlayWindow.webContents.isLoadingMainFrame()) {
+      overlayWindow.webContents.once("did-finish-load", show);
+    } else {
+      show();
+    }
+    this.toastTimer = setTimeout(() => {
+      if (toastSequence === this.toastSequence) this.destroyToast();
+    }, 8_000);
+  }
+
   private static destroyToast() {
+    this.toastSequence += 1;
+    this.clearToastTimer();
     if (this.toastWindow && !this.toastWindow.isDestroyed()) {
       this.toastWindow.destroy();
     }
     this.toastWindow = null;
+    if (!this.linuxToastActive) return;
+    this.linuxToastActive = false;
+    const overlayWindow = this.overlayWindow;
+    if (!overlayWindow || overlayWindow.isDestroyed()) return;
+    overlayWindow.webContents.send("on-overlay-mode", "hidden");
+    overlayWindow.hide();
+    overlayWindow.setOpacity(1);
+  }
+
+  private static clearToastTimer() {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastTimer = null;
   }
 
   private static updatePerformance(metrics: HydraOverlayPerformance) {
@@ -594,6 +666,7 @@ export class OverlayManager {
   }
 
   private static showFpsWindow() {
+    if (process.platform === "linux") return;
     const fpsWindow = this.ensureFpsWindow();
     const show = () => {
       if (!fpsWindow.isDestroyed() && this.performancePinned) {

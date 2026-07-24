@@ -421,9 +421,11 @@ export class NativeAddon {
   public static markGamescopeOverlay(windowHandle: Buffer, noFocus: boolean) {
     try {
       const handle =
-        windowHandle.length >= 8
-          ? windowHandle.readBigUInt64LE(0)
-          : windowHandle.readUInt32LE(0);
+        process.platform === "linux"
+          ? windowHandle.readUInt32LE(0)
+          : windowHandle.length >= 8
+            ? windowHandle.readBigUInt64LE(0)
+            : windowHandle.readUInt32LE(0);
       return this.load().markGamescopeOverlay(handle, noFocus);
     } catch {
       return false;

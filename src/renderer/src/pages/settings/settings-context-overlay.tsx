@@ -27,6 +27,7 @@ export function SettingsContextOverlay() {
 
   const performanceDisabled =
     !form.overlayEnabled || !form.overlayPerformanceEnabled;
+  const performanceAvailable = globalThis.electron.platform !== "linux";
 
   return (
     <div className="settings-context-panel">
@@ -44,67 +45,82 @@ export function SettingsContextOverlay() {
         />
       </div>
 
-      <hr className="settings-context-panel__divider" />
+      {performanceAvailable ? (
+        <>
+          <hr className="settings-context-panel__divider" />
 
-      <div className="settings-context-panel__group">
-        <h3>Performance</h3>
-        <p className="settings-context-panel__description">
-          Choose which live metrics appear in the performance panel.
-        </p>
-        <CheckboxField
-          label="Enable performance monitoring"
-          checked={form.overlayPerformanceEnabled}
-          disabled={!form.overlayEnabled}
-          onChange={() =>
-            handleChange({
-              overlayPerformanceEnabled: !form.overlayPerformanceEnabled,
-            })
-          }
-        />
-        <CheckboxField
-          label="Frames per second"
-          checked={form.overlayPerformanceShowFps}
-          disabled={performanceDisabled}
-          onChange={() =>
-            handleChange({
-              overlayPerformanceShowFps: !form.overlayPerformanceShowFps,
-            })
-          }
-        />
-        <CheckboxField
-          label="Average FPS"
-          checked={form.overlayPerformanceShowAverageFps}
-          disabled={performanceDisabled}
-          onChange={() =>
-            handleChange({
-              overlayPerformanceShowAverageFps:
-                !form.overlayPerformanceShowAverageFps,
-            })
-          }
-        />
-        <CheckboxField
-          label="Frame time"
-          checked={form.overlayPerformanceShowFrameTime}
-          disabled={performanceDisabled}
-          onChange={() =>
-            handleChange({
-              overlayPerformanceShowFrameTime:
-                !form.overlayPerformanceShowFrameTime,
-            })
-          }
-        />
-        <CheckboxField
-          label="1% low FPS"
-          checked={form.overlayPerformanceShowOnePercentLow}
-          disabled={performanceDisabled}
-          onChange={() =>
-            handleChange({
-              overlayPerformanceShowOnePercentLow:
-                !form.overlayPerformanceShowOnePercentLow,
-            })
-          }
-        />
-      </div>
+          <div className="settings-context-panel__group">
+            <h3>Performance</h3>
+            <p className="settings-context-panel__description">
+              Choose which live metrics appear in the performance panel.
+            </p>
+            <CheckboxField
+              label="Enable performance monitoring"
+              checked={form.overlayPerformanceEnabled}
+              disabled={!form.overlayEnabled}
+              onChange={() =>
+                handleChange({
+                  overlayPerformanceEnabled: !form.overlayPerformanceEnabled,
+                })
+              }
+            />
+            <CheckboxField
+              label="Frames per second"
+              checked={form.overlayPerformanceShowFps}
+              disabled={performanceDisabled}
+              onChange={() =>
+                handleChange({
+                  overlayPerformanceShowFps: !form.overlayPerformanceShowFps,
+                })
+              }
+            />
+            <CheckboxField
+              label="Average FPS"
+              checked={form.overlayPerformanceShowAverageFps}
+              disabled={performanceDisabled}
+              onChange={() =>
+                handleChange({
+                  overlayPerformanceShowAverageFps:
+                    !form.overlayPerformanceShowAverageFps,
+                })
+              }
+            />
+            <CheckboxField
+              label="Frame time"
+              checked={form.overlayPerformanceShowFrameTime}
+              disabled={performanceDisabled}
+              onChange={() =>
+                handleChange({
+                  overlayPerformanceShowFrameTime:
+                    !form.overlayPerformanceShowFrameTime,
+                })
+              }
+            />
+            <CheckboxField
+              label="1% low FPS"
+              checked={form.overlayPerformanceShowOnePercentLow}
+              disabled={performanceDisabled}
+              onChange={() =>
+                handleChange({
+                  overlayPerformanceShowOnePercentLow:
+                    !form.overlayPerformanceShowOnePercentLow,
+                })
+              }
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <hr className="settings-context-panel__divider" />
+          <div className="settings-context-panel__group">
+            <h3>Performance</h3>
+            <p className="settings-context-panel__description">
+              Use MangoHud for Linux performance metrics. Hydra does not inject
+              or display a duplicate Linux performance panel.
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }
