@@ -21,15 +21,42 @@ import {
   transcodeNotificationIcon,
 } from "./notification-icon";
 
+/**
+ * Icons live in a directory of our own so it can be emptied wholesale. It is
+ * cleared once per run rather than per notification because Electron reads the
+ * icon off disk lazily, and the app holds a single-instance lock, so no other
+ * run can be relying on what is already there.
+ */
+let notificationIconDirectory: Promise<string> | null = null;
+
+const getNotificationIconDirectory = () => {
+  notificationIconDirectory ??= (async () => {
+    const directory = path.join(
+      SystemPath.getPath("temp"),
+      "hydra-notifications"
+    );
+
+    await fs.promises.rm(directory, { recursive: true, force: true });
+    await fs.promises.mkdir(directory, { recursive: true });
+
+    return directory;
+  })();
+
+  return notificationIconDirectory;
+};
+
 const getStaticImage = async (imagePath: string) => {
   try {
     return await transcodeNotificationIcon(
       imagePath,
-      SystemPath.getPath("temp")
+      await getNotificationIconDirectory()
     );
   } catch (error) {
     logger.error("Failed to transcode notification icon", imagePath, error);
     return undefined;
+  } finally {
+    // The download is only ever an input to the transcode.
+    await fs.promises.unlink(imagePath).catch(() => undefined);
   }
 };
 
@@ -39,7 +66,7 @@ async function downloadImage(url: string | null, signal?: AbortSignal) {
   if (!url.startsWith("http")) return undefined;
 
   const fileName = buildDownloadFileName(url);
-  const outputPath = path.join(SystemPath.getPath("temp"), fileName);
+  const outputPath = path.join(await getNotificationIconDirectory(), fileName);
   const writer = fs.createWriteStream(outputPath);
 
   const response = await axios.get(url, {
@@ -55,8 +82,11 @@ async function downloadImage(url: string | null, signal?: AbortSignal) {
       signal?.removeEventListener("abort", onAbort);
       resolve(value);
     };
+    const discardDownload = () =>
+      fs.promises.unlink(outputPath).catch(() => undefined);
     const onAbort = () => {
       writer.destroy();
+      void discardDownload();
       finish(undefined);
     };
 
@@ -67,6 +97,7 @@ async function downloadImage(url: string | null, signal?: AbortSignal) {
     });
     writer.on("error", () => {
       if (!signal?.aborted) logger.error("Failed to download image", { url });
+      void discardDownload();
       finish(undefined);
     });
     response.data.pipe(writer);

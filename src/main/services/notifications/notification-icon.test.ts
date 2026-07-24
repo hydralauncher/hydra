@@ -6,6 +6,7 @@ import { after, before, describe, it } from "node:test";
 import sharp from "sharp";
 import {
   buildDownloadFileName,
+  NOTIFICATION_ICON_SIZE,
   transcodeNotificationIcon,
 } from "./notification-icon.js";
 
@@ -114,7 +115,21 @@ describe("transcodeNotificationIcon", () => {
     assert.equal(metadata.pages ?? 1, 1);
   });
 
-  it("resizes to the notification icon size", async () => {
+  it("bounds a square source to the notification icon size", async () => {
+    const source = path.join(workingDirectory, "large-square.png");
+    await createSolidImage(1024, 1024).png().toFile(source);
+
+    const outputPath = await transcodeNotificationIcon(
+      source,
+      workingDirectory
+    );
+    const metadata = await sharp(outputPath).metadata();
+
+    assert.equal(metadata.width, NOTIFICATION_ICON_SIZE);
+    assert.equal(metadata.height, NOTIFICATION_ICON_SIZE);
+  });
+
+  it("keeps the aspect ratio of a landscape game icon", async () => {
     const source = path.join(workingDirectory, "wide.png");
     await createSolidImage(1024, 256).png().toFile(source);
 
@@ -124,8 +139,22 @@ describe("transcodeNotificationIcon", () => {
     );
     const metadata = await sharp(outputPath).metadata();
 
-    assert.equal(metadata.width, 256);
-    assert.equal(metadata.height, 256);
+    assert.equal(metadata.width, NOTIFICATION_ICON_SIZE);
+    assert.equal(metadata.height, NOTIFICATION_ICON_SIZE / 4);
+  });
+
+  it("does not upscale a source smaller than the icon size", async () => {
+    const source = path.join(workingDirectory, "tiny.png");
+    await createSolidImage(32, 32).png().toFile(source);
+
+    const outputPath = await transcodeNotificationIcon(
+      source,
+      workingDirectory
+    );
+    const metadata = await sharp(outputPath).metadata();
+
+    assert.equal(metadata.width, 32);
+    assert.equal(metadata.height, 32);
   });
 
   it("rejects for a file that is not an image", async () => {
