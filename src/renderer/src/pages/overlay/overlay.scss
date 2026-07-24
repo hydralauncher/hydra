@@ -163,17 +163,17 @@ button {
 .overlay-achievements-hero::after {
   position: absolute;
   right: 0;
-  bottom: -24px;
+  bottom: -1px;
   left: 0;
   z-index: 1;
-  height: 76px;
+  height: 104px;
   background: linear-gradient(
     to bottom,
-    rgba(9, 11, 14, 0),
-    rgba(9, 11, 14, 0.78) 50%,
-    #090b0e 86%
+    rgba(9, 11, 14, 0) 0%,
+    rgba(9, 11, 14, 0.16) 28%,
+    rgba(9, 11, 14, 0.58) 62%,
+    #090b0e 100%
   );
-  backdrop-filter: blur(5px);
   content: "";
   pointer-events: none;
 }

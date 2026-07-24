@@ -6,6 +6,7 @@ mod windows_broker {
     use std::io::{BufWriter, Write};
     use std::mem::zeroed;
     use std::os::windows::fs::OpenOptionsExt;
+    use std::os::windows::process::CommandExt;
     use std::path::PathBuf;
     use std::process::{Child, Command, Stdio};
     use std::ptr::{null, null_mut};
@@ -37,6 +38,7 @@ mod windows_broker {
 
     const HOTKEY_ID: i32 = 1;
     const BROKER_EVENT_MESSAGE: u32 = WM_APP + 42;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
 
     struct CaptureState {
         pid: u32,
@@ -261,6 +263,7 @@ mod windows_broker {
         ]);
         if let Ok(child) = Command::new(presentmon)
             .args(arguments)
+            .creation_flags(CREATE_NO_WINDOW)
             .stdin(Stdio::null())
             .stdout(Stdio::from(output_stream))
             .stderr(Stdio::from(error_stream))

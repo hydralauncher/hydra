@@ -62,3 +62,10 @@ test("Windows FPS capture falls back to borderless native frame events", () => {
   assert.match(monitor, /FILTERED_CAPTURE_TIMEOUT/u);
   assert.match(monitor, /Windows Graphics Capture FPS fallback/u);
 });
+
+test("PresentMon runs without creating a console window", () => {
+  const broker = read("native/hydra-native/src/bin/hydra-overlay-input.rs");
+
+  assert.match(broker, /CommandExt/u);
+  assert.match(broker, /creation_flags\(CREATE_NO_WINDOW\)/u);
+});
