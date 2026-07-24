@@ -273,6 +273,7 @@ export interface CloudSaveV2FileDetails {
 export type CloudSaveSyncTrigger =
   | "manual"
   | "environment-changed"
+  | "game-page-open"
   | "pre-launch"
   | "post-exit";
 
@@ -293,6 +294,16 @@ export interface SyncGameCloudSaveResult {
   remoteHash?: string | null;
   environmentId?: string;
 }
+
+export type SyncCloudSaveOnGamePageResult =
+  | {
+      accepted: false;
+      reason: "game-running";
+    }
+  | {
+      accepted: true;
+      result: SyncGameCloudSaveResult | null;
+    };
 
 export type CloudSaveAutomaticSyncTrigger = Exclude<
   CloudSaveSyncTrigger,

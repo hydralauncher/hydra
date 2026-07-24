@@ -1,7 +1,9 @@
 import type {
+  CloudSaveOverview,
   CloudSaveState,
   CloudSaveSyncAction,
   CloudSaveSyncProgressStage,
+  GameShop,
 } from "@types";
 
 export type CloudSavePresentationTone =
@@ -25,6 +27,37 @@ export interface CloudSavePresentation {
   icon: CloudSavePresentationIcon;
   tone: CloudSavePresentationTone;
 }
+
+interface GamePageOpenSyncInput {
+  overview: CloudSaveOverview | null;
+  shop: GameShop;
+  canUseCloudSaves: boolean;
+  hasExecutablePath: boolean;
+  isGameRunning: boolean;
+  isSyncing: boolean;
+  isInFlight: boolean;
+  isCompleted: boolean;
+}
+
+export const shouldSyncCloudSaveOnGamePage = ({
+  overview,
+  shop,
+  canUseCloudSaves,
+  hasExecutablePath,
+  isGameRunning,
+  isSyncing,
+  isInFlight,
+  isCompleted,
+}: GamePageOpenSyncInput) =>
+  shop === "steam" &&
+  canUseCloudSaves &&
+  hasExecutablePath &&
+  !isGameRunning &&
+  !isSyncing &&
+  !isInFlight &&
+  !isCompleted &&
+  overview?.isAutomaticSyncEnabled === true &&
+  overview.suggestedAction !== "none";
 
 interface CloudSavePresentationInput {
   canUseCloudSaves: boolean;
