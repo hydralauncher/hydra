@@ -17,6 +17,17 @@ interface GlobalTrackersUrlCache {
   updatedAt: number;
 }
 
+const pendingUrlFetches = new Map<string, Promise<string[]>>();
+
+const dedupedFetchAndCache = (url: string): Promise<string[]> => {
+  if (!pendingUrlFetches.has(url)) {
+    const promise = fetchAndCacheGlobalTrackersUrl(url);
+    pendingUrlFetches.set(url, promise);
+    promise.finally(() => pendingUrlFetches.delete(url));
+  }
+  return pendingUrlFetches.get(url)!;
+};
+
 let cachedGlobalTrackers: {
   manual: string[];
   url: string;
@@ -99,12 +110,12 @@ export const getGlobalTrackers = async (): Promise<string[]> => {
     if (isGlobalTrackersUrlCacheStale(cache, url)) {
       if (!cache || cache.url !== url) {
         try {
-          urlCache = await fetchAndCacheGlobalTrackersUrl(url);
+          urlCache = await dedupedFetchAndCache(url);
         } catch (err) {
           logger.error("Global tracker URL cache fetch failed", err);
         }
       } else {
-        void fetchAndCacheGlobalTrackersUrl(url).catch((err) =>
+        void dedupedFetchAndCache(url).catch((err) =>
           logger.error(
             "Background refresh of global tracker URL cache failed",
             err
