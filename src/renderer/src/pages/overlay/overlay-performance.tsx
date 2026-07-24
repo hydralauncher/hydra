@@ -4,13 +4,13 @@ import type {
 } from "@types";
 import { Pin } from "lucide-react";
 
-interface OverlayPerformanceProps {
+type OverlayPerformanceProps = Readonly<{
   metrics: HydraOverlayPerformance;
   compact?: boolean;
   pinned?: boolean;
   onPinnedChange?: (pinned: boolean) => void;
   rows: HydraOverlayPerformanceRows;
-}
+}>;
 
 const display = (value: number | null, suffix = "") =>
   value === null ? "--" : `${value}${suffix}`;
@@ -30,6 +30,7 @@ export function OverlayPerformance({
         <header>
           <strong>Performance</strong>
           <button
+            type="button"
             data-overlay-focusable
             className={pinned ? "is-pinned" : ""}
             onClick={() => onPinnedChange?.(!pinned)}

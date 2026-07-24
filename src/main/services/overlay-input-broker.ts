@@ -8,6 +8,15 @@ import { logger } from "./logger";
 
 const execFileAsync = promisify(execFile);
 const taskName = "Hydra Overlay Input";
+const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
+const taskScheduler = path.join(systemRoot, "System32", "schtasks.exe");
+const powershell = path.join(
+  systemRoot,
+  "System32",
+  "WindowsPowerShell",
+  "v1.0",
+  "powershell.exe"
+);
 let installation: Promise<boolean> | null = null;
 
 export const getOverlayInputDirectory = () =>
@@ -23,7 +32,7 @@ const filesMatch = (left: string, right: string) => {
 const taskContains = async (executable: string) => {
   try {
     const { stdout } = await execFileAsync(
-      "schtasks.exe",
+      taskScheduler,
       ["/Query", "/TN", taskName, "/XML"],
       { windowsHide: true }
     );
@@ -42,13 +51,14 @@ const runSetup = (executable: string) => {
     `Register-ScheduledTask -TaskName '${taskName}' -Action $action -Trigger $trigger -Principal $principal -Force | Out-Null`,
   ].join("; ");
   const encoded = Buffer.from(command, "utf16le").toString("base64");
+  const escapedPowershell = powershell.replaceAll("'", "''");
   return new Promise<boolean>((resolve) => {
     const setup = spawn(
-      "powershell.exe",
+      powershell,
       [
         "-NoProfile",
         "-Command",
-        `Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList '-NoProfile','-EncodedCommand','${encoded}'`,
+        `Start-Process '${escapedPowershell}' -Verb RunAs -Wait -ArgumentList '-NoProfile','-EncodedCommand','${encoded}'`,
       ],
       { windowsHide: true, stdio: "ignore" }
     );
@@ -92,7 +102,7 @@ const install = async () => {
     !filesMatch(bundled, stable) ||
     !filesMatch(bundledPresentMon, stablePresentMon);
   if (needsUpdate && stableTask) {
-    await execFileAsync("schtasks.exe", ["/End", "/TN", taskName], {
+    await execFileAsync(taskScheduler, ["/End", "/TN", taskName], {
       windowsHide: true,
     }).catch(() => undefined);
   }

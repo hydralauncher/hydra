@@ -69,3 +69,32 @@ test("PresentMon runs without creating a console window", () => {
   assert.match(broker, /CommandExt/u);
   assert.match(broker, /creation_flags\(CREATE_NO_WINDOW\)/u);
 });
+
+test("Windows overlay helpers do not resolve system tools through PATH", () => {
+  const sources = [
+    read("scripts/setup-overlay-input.cjs"),
+    read("scripts/start-dev.cjs"),
+    read("src/main/services/overlay-input-broker.ts"),
+  ];
+  const pathResolvedSystemTool =
+    /(?:spawn|spawnSync|execFileAsync)\(\s*["'](?:powershell|schtasks)\.exe["']/u;
+
+  for (const source of sources) {
+    assert.doesNotMatch(source, pathResolvedSystemTool);
+    assert.match(source, /SystemRoot/u);
+    assert.match(source, /System32/u);
+  }
+});
+
+test("overlay buttons declare non-submit behavior", () => {
+  const sources = [
+    read("src/renderer/src/pages/overlay/overlay.tsx"),
+    read("src/renderer/src/pages/overlay/overlay-performance.tsx"),
+  ];
+
+  for (const source of sources) {
+    const buttons = source.match(/<button\b[^>]*>/gu) ?? [];
+    assert.ok(buttons.length > 0);
+    for (const button of buttons) assert.match(button, /type="button"/u);
+  }
+});

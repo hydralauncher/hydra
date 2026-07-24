@@ -4,6 +4,14 @@ const path = require("node:path");
 
 if (process.platform !== "win32") process.exit(0);
 
+const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
+const powershell = path.join(
+  systemRoot,
+  "System32",
+  "WindowsPowerShell",
+  "v1.0",
+  "powershell.exe"
+);
 const broker = path.resolve(
   __dirname,
   "..",
@@ -21,6 +29,7 @@ if (!fs.existsSync(brokerPresentMon)) {
   fs.copyFileSync(presentMon, brokerPresentMon);
 }
 const escapedBroker = broker.replaceAll("'", "''");
+const escapedPowershell = powershell.replaceAll("'", "''");
 const command = [
   `$action = New-ScheduledTaskAction -Execute '${escapedBroker}'`,
   "$trigger = New-ScheduledTaskTrigger -Once -At ([datetime]'2099-01-01T00:00:00')",
@@ -29,11 +38,11 @@ const command = [
 ].join("; ");
 const encoded = Buffer.from(command, "utf16le").toString("base64");
 const result = childProcess.spawnSync(
-  "powershell.exe",
+  powershell,
   [
     "-NoProfile",
     "-Command",
-    `Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList '-NoProfile','-EncodedCommand','${encoded}'`,
+    `Start-Process '${escapedPowershell}' -Verb RunAs -Wait -ArgumentList '-NoProfile','-EncodedCommand','${encoded}'`,
   ],
   { stdio: "inherit" }
 );

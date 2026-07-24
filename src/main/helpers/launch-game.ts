@@ -255,16 +255,27 @@ const cleanupStaleCompatibilityProcesses = async (
   }
 };
 
-const launchWindowsBinaryOnLinux = async (
-  gameKey: string,
-  objectId: string,
-  parsedPath: string,
-  game: Game | undefined,
-  launchOptions: string | null | undefined,
-  useMangohud: boolean,
-  useGamemode: boolean,
-  environment: Record<string, string>
-): Promise<boolean> => {
+type WindowsBinaryLaunchOptions = {
+  gameKey: string;
+  objectId: string;
+  parsedPath: string;
+  game: Game | undefined;
+  launchOptions: string | null | undefined;
+  useMangohud: boolean;
+  useGamemode: boolean;
+  environment: Record<string, string>;
+};
+
+const launchWindowsBinaryOnLinux = async ({
+  gameKey,
+  objectId,
+  parsedPath,
+  game,
+  launchOptions,
+  useMangohud,
+  useGamemode,
+  environment,
+}: WindowsBinaryLaunchOptions): Promise<boolean> => {
   const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
   const winePrefixPath = Wine.getEffectivePrefixPath(
     game?.winePrefixPath,
@@ -366,7 +377,7 @@ export const launchGame = async (
 
   if (process.platform === "linux") {
     if (isWindowsExecutable(parsedPath)) {
-      const launched = await launchWindowsBinaryOnLinux(
+      const launched = await launchWindowsBinaryOnLinux({
         gameKey,
         objectId,
         parsedPath,
@@ -374,8 +385,8 @@ export const launchGame = async (
         launchOptions,
         useMangohud,
         useGamemode,
-        linuxOverlayLaunch.environment
-      );
+        environment: linuxOverlayLaunch.environment,
+      });
 
       if (launched) return null;
     }

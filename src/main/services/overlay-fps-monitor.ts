@@ -201,16 +201,26 @@ export class OverlayFpsMonitor {
     if (!file || !fs.existsSync(file)) return;
 
     const size = fs.statSync(file).size;
-    if (size < this.windowsOffset) {
-      this.samples = [];
-      this.lastUpdate = 0;
-      this.windowsOffset = 0;
-      this.windowsPending = "";
-      this.windowsFrameTimeColumns = null;
-      this.reportedCapture = false;
-    }
+    if (size < this.windowsOffset) this.resetWindowsReadState();
     if (size === this.windowsOffset) return;
 
+    for (const line of this.readWindowsMetricLines(file, size)) {
+      this.processWindowsMetricLine(line);
+    }
+    this.reportWindowsCapture();
+    this.publishSamples();
+  }
+
+  private resetWindowsReadState() {
+    this.samples = [];
+    this.lastUpdate = 0;
+    this.windowsOffset = 0;
+    this.windowsPending = "";
+    this.windowsFrameTimeColumns = null;
+    this.reportedCapture = false;
+  }
+
+  private readWindowsMetricLines(file: string, size: number) {
     const length = size - this.windowsOffset;
     const buffer = Buffer.alloc(length);
     const descriptor = fs.openSync(file, "r");
@@ -225,40 +235,43 @@ export class OverlayFpsMonitor {
       /\r?\n/u
     );
     this.windowsPending = lines.pop() ?? "";
-    for (const line of lines) {
-      if (!line) continue;
-      const columns = line.split(",");
-      if (!this.windowsFrameTimeColumns) {
-        const resolved = resolvePresentMonFrameTimeColumns(columns);
-        if (resolved.displayChange < 0 && resolved.presents < 0) continue;
+    return lines.filter(Boolean);
+  }
+
+  private processWindowsMetricLine(line: string) {
+    const columns = line.split(",");
+    if (!this.windowsFrameTimeColumns) {
+      const resolved = resolvePresentMonFrameTimeColumns(columns);
+      if (resolved.displayChange >= 0 || resolved.presents >= 0) {
         this.windowsFrameTimeColumns = resolved;
-        continue;
       }
-      const frameTime = parsePresentMonFrameTime(
-        columns,
-        this.windowsFrameTimeColumns
-      );
-      const processIdIndex = this.windowsFrameTimeColumns.processId;
-      if (
-        processIdIndex >= 0 &&
-        Number(columns[processIdIndex]) !== this.windowsTargetPid
-      ) {
-        continue;
-      }
-      if (frameTime === null) continue;
-      this.samples.push(frameTime);
-      this.windowsLastFrameAt = Date.now();
-      if (this.samples.length > 120) this.samples.shift();
+      return;
     }
-    if (this.samples.length && !this.reportedCapture) {
-      this.reportedCapture = true;
-      logger.info(
-        this.windowsFallbackCapture
-          ? "Windows Graphics Capture FPS fallback is reporting frames"
-          : "PresentMon performance capture is reporting frames"
-      );
-    }
-    this.publishSamples();
+
+    const processIdIndex = this.windowsFrameTimeColumns.processId;
+    const belongsToTarget =
+      processIdIndex < 0 ||
+      Number(columns[processIdIndex]) === this.windowsTargetPid;
+    if (!belongsToTarget) return;
+
+    const frameTime = parsePresentMonFrameTime(
+      columns,
+      this.windowsFrameTimeColumns
+    );
+    if (frameTime === null) return;
+    this.samples.push(frameTime);
+    this.windowsLastFrameAt = Date.now();
+    if (this.samples.length > 120) this.samples.shift();
+  }
+
+  private reportWindowsCapture() {
+    if (!this.samples.length || this.reportedCapture) return;
+    this.reportedCapture = true;
+    logger.info(
+      this.windowsFallbackCapture
+        ? "Windows Graphics Capture FPS fallback is reporting frames"
+        : "PresentMon performance capture is reporting frames"
+    );
   }
 
   public stop() {

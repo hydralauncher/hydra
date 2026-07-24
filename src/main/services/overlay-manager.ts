@@ -184,9 +184,8 @@ export class OverlayManager {
 
   public static clearActiveGame(game: Game) {
     if (
-      !this.activeGame ||
-      this.activeGame.objectId !== game.objectId ||
-      this.activeGame.shop !== game.shop
+      this.activeGame?.objectId !== game.objectId ||
+      this.activeGame?.shop !== game.shop
     ) {
       return;
     }
@@ -268,9 +267,8 @@ export class OverlayManager {
     if (!game) return;
     await this.refreshTargetProcess(game);
     if (
-      !this.activeGame ||
-      this.activeGame.objectId !== game.objectId ||
-      this.activeGame.shop !== game.shop
+      this.activeGame?.objectId !== game.objectId ||
+      this.activeGame?.shop !== game.shop
     ) {
       return;
     }

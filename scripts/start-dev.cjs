@@ -3,6 +3,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "..");
+const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
+const taskScheduler = path.join(systemRoot, "System32", "schtasks.exe");
 const broker = path.join(
   projectRoot,
   "hydra-native",
@@ -20,7 +22,7 @@ if (process.platform === "win32") {
   }
 
   const task = childProcess.spawnSync(
-    "schtasks.exe",
+    taskScheduler,
     ["/Query", "/TN", "Hydra Overlay Input", "/XML"],
     { encoding: "utf8", windowsHide: true }
   );

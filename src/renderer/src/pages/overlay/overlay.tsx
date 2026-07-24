@@ -2,6 +2,7 @@ import type {
   HydraOverlayContext,
   HydraOverlayGamepadAction,
   ProfileFriends,
+  UserAchievement,
   UserFriend,
 } from "@types";
 import {
@@ -35,6 +36,8 @@ type NavigatorWithBattery = Navigator & {
 
 type OverlayTab = "overview" | "friends" | "achievements" | "notes";
 type Direction = "up" | "down" | "left" | "right";
+type OverlayMode = "full" | "pinned" | "hidden" | "toast";
+type BatteryStatus = { level: number; charging: boolean } | null;
 
 const TABS: OverlayTab[] = ["overview", "friends", "achievements", "notes"];
 
@@ -66,6 +69,23 @@ const focusForController = (element: HTMLElement | null) => {
   element.focus({ preventScroll: false });
 };
 
+const getPrimaryOffset = (
+  direction: Direction,
+  horizontal: number,
+  vertical: number
+) => {
+  switch (direction) {
+    case "left":
+      return -horizontal;
+    case "right":
+      return horizontal;
+    case "up":
+      return -vertical;
+    case "down":
+      return vertical;
+  }
+};
+
 const moveControllerFocus = (direction: Direction) => {
   const candidates = getFocusableElements();
   if (!candidates.length) return;
@@ -84,14 +104,7 @@ const moveControllerFocus = (direction: Direction) => {
       const y = rect.top + rect.height / 2;
       const horizontal = x - currentX;
       const vertical = y - currentY;
-      const primary =
-        direction === "left"
-          ? -horizontal
-          : direction === "right"
-            ? horizontal
-            : direction === "up"
-              ? -vertical
-              : vertical;
+      const primary = getPrimaryOffset(direction, horizontal, vertical);
       const secondary =
         direction === "left" || direction === "right"
           ? Math.abs(vertical)
@@ -104,22 +117,118 @@ const moveControllerFocus = (direction: Direction) => {
   focusForController(scored[0]?.candidate ?? current);
 };
 
+const getBatteryLabel = (battery: BatteryStatus) => {
+  if (!battery) return "Desktop";
+  return `${battery.level}%${battery.charging ? " ⚡" : ""}`;
+};
+
+const AchievementResult = ({
+  achievement,
+}: Readonly<{ achievement: UserAchievement }>) => {
+  if (achievement.points) {
+    return (
+      <b>
+        <Trophy size={13} /> {achievement.points}
+      </b>
+    );
+  }
+  return achievement.unlocked ? <Check size={17} /> : <LockKeyhole size={16} />;
+};
+
+type OverlayTabsProps = Readonly<{
+  activeTab: OverlayTab;
+  onlineFriends: number;
+  achievementCount: string;
+  onSelect: (tab: OverlayTab) => void;
+}>;
+
+const OverlayTabs = ({
+  activeTab,
+  onlineFriends,
+  achievementCount,
+  onSelect,
+}: OverlayTabsProps) => (
+  <nav className="overlay-tabs" aria-label="Overlay sections">
+    <button
+      type="button"
+      data-overlay-focusable
+      data-overlay-tab="overview"
+      className={activeTab === "overview" ? "is-active" : ""}
+      onClick={() => onSelect("overview")}
+    >
+      <UserRound size={18} /> <span>Overview</span>
+    </button>
+    <button
+      type="button"
+      data-overlay-focusable
+      data-overlay-tab="friends"
+      className={activeTab === "friends" ? "is-active" : ""}
+      onClick={() => onSelect("friends")}
+    >
+      <UsersRound size={18} /> <span>Friends</span>
+      {onlineFriends > 0 && <i>{onlineFriends}</i>}
+    </button>
+    <button
+      type="button"
+      data-overlay-focusable
+      data-overlay-tab="achievements"
+      className={activeTab === "achievements" ? "is-active" : ""}
+      onClick={() => onSelect("achievements")}
+    >
+      <Trophy size={18} /> <span>Achievements</span>
+      <i>{achievementCount}</i>
+    </button>
+    <button
+      type="button"
+      data-overlay-focusable
+      data-overlay-tab="notes"
+      className={activeTab === "notes" ? "is-active" : ""}
+      onClick={() => onSelect("notes")}
+    >
+      <NotebookPen size={18} /> <span>Notes</span>
+    </button>
+  </nav>
+);
+
+const renderNonFullOverlay = (
+  mode: OverlayMode,
+  context: HydraOverlayContext
+) => {
+  switch (mode) {
+    case "hidden":
+      return null;
+    case "toast":
+      return (
+        <main className="hydra-overlay hydra-overlay--injected-toast">
+          <OverlayToast />
+        </main>
+      );
+    case "pinned":
+      return context.settings.performanceEnabled ? (
+        <main className="hydra-overlay hydra-overlay--pinned-performance">
+          <OverlayPerformance
+            metrics={context.performance}
+            rows={context.settings.performanceRows}
+            compact
+          />
+        </main>
+      ) : null;
+    case "full":
+      return undefined;
+  }
+};
+
 export default function Overlay() {
   const [context, setContext] = useState<HydraOverlayContext | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [battery, setBattery] = useState<{
-    level: number;
-    charging: boolean;
-  } | null>(null);
+  const [battery, setBattery] = useState<BatteryStatus>(null);
   const [activeTab, setActiveTab] = useState<OverlayTab>("overview");
   const [friends, setFriends] = useState<UserFriend[]>([]);
   const [onlineFriends, setOnlineFriends] = useState(0);
   const [note, setNote] = useState("");
   const [noteSaved, setNoteSaved] = useState(true);
   const [confirmExit, setConfirmExit] = useState(false);
-  const [overlayMode, setOverlayMode] = useState<
-    "full" | "pinned" | "hidden" | "toast"
-  >("full");
+  const [overlayMode, setOverlayMode] = useState<OverlayMode>("full");
   const noteLoaded = useRef(false);
   const activeTabRef = useRef(activeTab);
 
@@ -296,26 +405,8 @@ export default function Overlay() {
   }, [context]);
 
   if (!context) return <div className="hydra-overlay hydra-overlay--loading" />;
-  if (overlayMode === "hidden") return null;
-  if (overlayMode === "toast") {
-    return (
-      <main className="hydra-overlay hydra-overlay--injected-toast">
-        <OverlayToast />
-      </main>
-    );
-  }
-  if (overlayMode === "pinned") {
-    if (!context.settings.performanceEnabled) return null;
-    return (
-      <main className="hydra-overlay hydra-overlay--pinned-performance">
-        <OverlayPerformance
-          metrics={context.performance}
-          rows={context.settings.performanceRows}
-          compact
-        />
-      </main>
-    );
-  }
+  const nonFullOverlay = renderNonFullOverlay(overlayMode, context);
+  if (overlayMode !== "full") return nonFullOverlay ?? null;
 
   const { game, user } = context;
   const sessionDuration = now - game.sessionStartedAt;
@@ -328,11 +419,9 @@ export default function Overlay() {
     <main
       className="hydra-overlay hydra-overlay--vertical"
       onFocusCapture={(event) => {
-        if (
-          (event.target as HTMLElement).hasAttribute("data-overlay-focusable")
-        ) {
-          focusForController(event.target as HTMLElement);
-        }
+        const target = event.target as HTMLElement;
+        if (target.dataset.overlayFocusable !== undefined)
+          focusForController(target);
       }}
       onPointerDownCapture={(event) => {
         const target = (event.target as HTMLElement).closest<HTMLElement>(
@@ -370,44 +459,12 @@ export default function Overlay() {
 
       <div className="hydra-overlay__workspace">
         <section className="overlay-surface overlay-hub">
-          <nav className="overlay-tabs" aria-label="Overlay sections">
-            <button
-              data-overlay-focusable
-              data-overlay-tab="overview"
-              className={activeTab === "overview" ? "is-active" : ""}
-              onClick={() => selectTab("overview")}
-            >
-              <UserRound size={18} /> <span>Overview</span>
-            </button>
-            <button
-              data-overlay-focusable
-              data-overlay-tab="friends"
-              className={activeTab === "friends" ? "is-active" : ""}
-              onClick={() => selectTab("friends")}
-            >
-              <UsersRound size={18} /> <span>Friends</span>
-              {onlineFriends > 0 && <i>{onlineFriends}</i>}
-            </button>
-            <button
-              data-overlay-focusable
-              data-overlay-tab="achievements"
-              className={activeTab === "achievements" ? "is-active" : ""}
-              onClick={() => selectTab("achievements")}
-            >
-              <Trophy size={18} /> <span>Achievements</span>
-              <i>
-                {progress.unlocked.length}/{context.achievements.length}
-              </i>
-            </button>
-            <button
-              data-overlay-focusable
-              data-overlay-tab="notes"
-              className={activeTab === "notes" ? "is-active" : ""}
-              onClick={() => selectTab("notes")}
-            >
-              <NotebookPen size={18} /> <span>Notes</span>
-            </button>
-          </nav>
+          <OverlayTabs
+            activeTab={activeTab}
+            onlineFriends={onlineFriends}
+            achievementCount={`${progress.unlocked.length}/${context.achievements.length}`}
+            onSelect={selectTab}
+          />
 
           <div className="overlay-hub__content">
             {activeTab === "overview" && (
@@ -433,10 +490,7 @@ export default function Overlay() {
                       <TimerReset size={14} /> Current session
                     </span>
                     <span>
-                      <Battery size={14} />{" "}
-                      {battery
-                        ? `${battery.level}%${battery.charging ? " ⚡" : ""}`
-                        : "Desktop"}
+                      <Battery size={14} /> {getBatteryLabel(battery)}
                     </span>
                   </div>
                 </section>
@@ -556,15 +610,7 @@ export default function Overlay() {
                               {achievement.description ?? "Hidden achievement"}
                             </small>
                           </span>
-                          {achievement.points ? (
-                            <b>
-                              <Trophy size={13} /> {achievement.points}
-                            </b>
-                          ) : achievement.unlocked ? (
-                            <Check size={17} />
-                          ) : (
-                            <LockKeyhole size={16} />
-                          )}
+                          <AchievementResult achievement={achievement} />
                         </article>
                       )
                     )}
@@ -632,6 +678,7 @@ export default function Overlay() {
           </div>
           {!confirmExit ? (
             <button
+              type="button"
               data-overlay-focusable
               className="hydra-overlay__exit"
               onClick={() => setConfirmExit(true)}
@@ -640,10 +687,11 @@ export default function Overlay() {
             </button>
           ) : (
             <div className="hydra-overlay__exit-confirm">
-              <button data-overlay-focusable onClick={endGame}>
+              <button type="button" data-overlay-focusable onClick={endGame}>
                 End game
               </button>
               <button
+                type="button"
                 data-overlay-focusable
                 onClick={() => setConfirmExit(false)}
               >
@@ -663,6 +711,7 @@ export default function Overlay() {
 
         <section className="hydra-overlay__close-area">
           <button
+            type="button"
             data-overlay-focusable
             onClick={() => globalThis.electron.closeHydraOverlay()}
           >
