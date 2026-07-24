@@ -354,11 +354,9 @@ const computeFolderRollups = (
 
 const persistMatchedTitles = async (
   aggregated: AggregatedMatches,
-  language: string,
-  signal: CancelSignal
+  language: string
 ): Promise<void> => {
   for (const entry of aggregated.matchedEntries.values()) {
-    if (signal.cancelled) break;
     const titleDiscs = aggregated.discsByTitle.get(entry.objectId) ?? [];
     const discs = buildRomDiscList(titleDiscs);
     const info = aggregated.titleInfo.get(entry.objectId);
@@ -377,7 +375,7 @@ const persistMatchedTitles = async (
   }
 };
 
-export async function runRetroArchImport(
+async function runRetroArchImport(
   folders: FolderInput[],
   language: string,
   signal: CancelSignal,
@@ -465,9 +463,7 @@ export async function runRetroArchImport(
 
   if (signal.cancelled) return asCancelled();
 
-  await persistMatchedTitles(aggregated, language, signal);
-  if (signal.cancelled) return asCancelled();
-
+  await persistMatchedTitles(aggregated, language);
   await persistFolderRollups(folders, folderRollup);
   await reconcileDeletedGames(folders);
   await recomputeRetroArchPlatformCounts();
@@ -479,19 +475,28 @@ export async function runRetroArchImport(
     matched: aggregated.matchedEntries.size,
     unmatched: aggregated.unmatchedFiles.length,
     unmatchedFiles: aggregated.unmatchedFiles,
-    cancelled: signal.cancelled,
+    cancelled: false,
   };
 }
 
 const RETROARCH_IMPORT_PROGRESS_CHANNEL = "on-retroarch-import-progress";
 
-const importRetroArchRoms = async (
-  _event: Electron.IpcMainInvokeEvent,
+interface TrackedRetroArchImport {
+  requestId: string;
+  signal: CancelSignal;
+  done: Promise<RetroArchImportResult | null>;
+}
+
+let activeImport: TrackedRetroArchImport | null = null;
+
+export const startTrackedRetroArchImport = (
   folders: FolderInput[],
   language: string
-) => {
+): TrackedRetroArchImport => {
+  if (activeImport) return activeImport;
+
   const requestId = randomUUID();
-  const signal = { cancelled: false };
+  const signal: CancelSignal = { cancelled: false };
   inflight.set(requestId, signal);
 
   setActiveRetroArchImport({
@@ -508,7 +513,7 @@ const importRetroArchRoms = async (
   });
   WindowManager.sendToAppWindows("on-retroarch-import-status", true);
 
-  void (async () => {
+  const done = (async () => {
     try {
       const result = await runRetroArchImport(
         folders,
@@ -542,19 +547,33 @@ const importRetroArchRoms = async (
         unmatched: result.unmatched,
         unmatchedFiles: result.unmatchedFiles,
       });
+      return result;
     } catch (err) {
       WindowManager.sendToAppWindows(RETROARCH_IMPORT_PROGRESS_CHANNEL, {
         type: "error",
         requestId,
         message: err instanceof Error ? err.message : String(err),
       });
+      return null;
     } finally {
       inflight.delete(requestId);
+      activeImport = null;
       setActiveRetroArchImport(null);
       WindowManager.sendToAppWindows("on-retroarch-import-status", false);
     }
   })();
 
+  const tracked: TrackedRetroArchImport = { requestId, signal, done };
+  activeImport = tracked;
+  return tracked;
+};
+
+const importRetroArchRoms = async (
+  _event: Electron.IpcMainInvokeEvent,
+  folders: FolderInput[],
+  language: string
+) => {
+  const { requestId } = startTrackedRetroArchImport(folders, language);
   return { requestId };
 };
 

@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import { retroarch } from "@main/services";
 
-import { runRetroArchImport } from "./import-retroarch-roms";
+import { startTrackedRetroArchImport } from "./import-retroarch-roms";
 
 const rescanRetroArch = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -15,15 +15,14 @@ const rescanRetroArch = async (
     );
   }
 
-  const signal = { cancelled: false };
-  await runRetroArchImport(
+  const tracked = startTrackedRetroArchImport(
     current.romFolders.map((f) => ({
       path: f.path,
       scanSubfolders: f.scanSubfolders,
     })),
-    language,
-    signal
+    language
   );
+  await tracked.done;
 
   return retroarch.getRetroArchConfig();
 };
