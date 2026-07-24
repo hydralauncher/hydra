@@ -3,6 +3,7 @@ const LANGUAGE_FLAG_MAP = {
   "pt-PT": "PT",
   en: "US",
   de: "DE",
+  el: "GR",
   es: "ES",
   nl: "NL",
   fr: "FR",
