@@ -31,6 +31,12 @@ describe("isValidTrackerUrl", () => {
     assert.strictEqual(isValidTrackerUrl("not-a-url"), false);
     assert.strictEqual(isValidTrackerUrl(""), false);
   });
+
+  it("rejects protocol-only URLs with no host", () => {
+    assert.strictEqual(isValidTrackerUrl("udp://"), false);
+    assert.strictEqual(isValidTrackerUrl("udp:///announce"), false);
+    assert.strictEqual(isValidTrackerUrl("http://"), false);
+  });
 });
 
 describe("isValidTrackerListUrl", () => {
@@ -56,6 +62,11 @@ describe("isValidTrackerListUrl", () => {
     );
     assert.strictEqual(isValidTrackerListUrl("not-a-url"), false);
     assert.strictEqual(isValidTrackerListUrl(""), false);
+  });
+
+  it("rejects protocol-only list URLs with no host", () => {
+    assert.strictEqual(isValidTrackerListUrl("http://"), false);
+    assert.strictEqual(isValidTrackerListUrl("https://"), false);
   });
 });
 

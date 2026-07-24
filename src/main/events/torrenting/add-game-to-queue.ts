@@ -59,7 +59,7 @@ const addGameToQueue = async (
       automaticallyDeleteArchiveFiles,
       fileIndices,
       selectedFilesSize,
-      ...(globalTrackers.length ? { customTrackers: globalTrackers } : {}),
+      customTrackers: globalTrackers,
     };
 
     await DownloadManager.validateDownloadUrl(download);

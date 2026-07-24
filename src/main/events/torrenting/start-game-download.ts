@@ -63,7 +63,7 @@ const startGameDownload = async (
       fileIndices,
       selectedFilesSize,
       fileSize: selectedFilesSize ?? null,
-      ...(globalTrackers.length ? { customTrackers: globalTrackers } : {}),
+      customTrackers: globalTrackers,
     };
     await DownloadManager.validateDownloadUrl(download);
     await prepareGameEntry({ gameKey, title, objectId, shop });
