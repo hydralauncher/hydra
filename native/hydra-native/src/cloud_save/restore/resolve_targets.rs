@@ -217,7 +217,7 @@ pub fn resolve_restore_targets(
     let approved = input
         .approved_rules
         .into_iter()
-        .filter(|rule| !rule.kind.is_empty() && !rule.raw_rule.is_empty())
+        .filter(|rule| !rule.kind.is_empty() && !rule.raw_path.is_empty())
         .collect::<Vec<_>>();
     let mut candidates = Vec::<(ResolvedRestoreTarget, RestoreManifestFile)>::new();
     let mut blocked_files = Vec::new();
@@ -236,7 +236,7 @@ pub fn resolve_restore_targets(
 
         let rules = approved
             .iter()
-            .filter(|rule| normalize_rule_path(&rule.raw_rule) == file.raw_path)
+            .filter(|rule| normalize_rule_path(&rule.raw_path) == file.raw_path)
             .collect::<Vec<_>>();
         if rules.is_empty() {
             blocked_files.push(blocked(file, "blocked-rule-unavailable"));
@@ -261,11 +261,11 @@ pub fn resolve_restore_targets(
 
         let mut resolved_targets = Vec::new();
         for rule in rules {
-            let directory = rule.kind == "dir" || has_glob(&rule.raw_rule);
-            let root_rule = if has_glob(&rule.raw_rule) {
-                glob_base_path(&rule.raw_rule).unwrap_or_else(|| rule.raw_rule.clone())
+            let directory = rule.kind == "dir" || has_glob(&rule.raw_path);
+            let root_rule = if has_glob(&rule.raw_path) {
+                glob_base_path(&rule.raw_path).unwrap_or_else(|| rule.raw_path.clone())
             } else {
-                rule.raw_rule.clone()
+                rule.raw_path.clone()
             };
             let concrete_values = if variant.kind == "default" {
                 vec![None]
@@ -468,7 +468,7 @@ mod tests {
             store_user_context: context,
             approved_rules: vec![ApprovedRestoreRule {
                 kind: "dir".into(),
-                raw_rule: RAW_RULE.into(),
+                raw_path: RAW_RULE.into(),
                 source: "test".into(),
             }],
             variants,
@@ -576,7 +576,7 @@ mod tests {
             store_user_context: StoreUserContext::default(),
             approved_rules: vec![ApprovedRestoreRule {
                 kind: "file".into(),
-                raw_rule: raw_path.into(),
+                raw_path: raw_path.into(),
                 source: "test".into(),
             }],
             variants: vec![default.clone()],
@@ -623,12 +623,12 @@ mod tests {
             approved_rules: vec![
                 ApprovedRestoreRule {
                     kind: "file".into(),
-                    raw_rule: raw_path.into(),
+                    raw_path: raw_path.into(),
                     source: "first".into(),
                 },
                 ApprovedRestoreRule {
                     kind: "dir".into(),
-                    raw_rule: raw_path.into(),
+                    raw_path: raw_path.into(),
                     source: "second".into(),
                 },
             ],

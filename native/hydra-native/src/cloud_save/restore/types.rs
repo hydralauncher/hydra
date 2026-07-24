@@ -17,7 +17,7 @@ pub struct RestoreManifestFile {
 #[derive(Clone)]
 pub struct ApprovedRestoreRule {
     pub kind: String,
-    pub raw_rule: String,
+    pub raw_path: String,
     pub source: String,
 }
 
