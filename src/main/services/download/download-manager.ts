@@ -1778,9 +1778,6 @@ export class DownloadManager {
             download.uri
           );
           if (!entries?.length) {
-            this.isPreparingDownload = false;
-            this.usingJsDownloader = false;
-            this.downloadingGameId = null;
             throw new Error(DownloadError.NotCachedOnAllDebrid);
           }
 
@@ -1823,9 +1820,6 @@ export class DownloadManager {
           const options = await this.getJsDownloadOptions(download);
 
           if (!options) {
-            this.isPreparingDownload = false;
-            this.usingJsDownloader = false;
-            this.downloadingGameId = null;
             throw new Error("Failed to get download options for JS downloader");
           }
 
@@ -1858,10 +1852,13 @@ export class DownloadManager {
           });
         }
       } catch (err) {
-        this.isPreparingDownload = false;
-        this.usingJsDownloader = false;
-        this.downloadingGameId = null;
-        this.allDebridBatch = null;
+        if (this.startGeneration === myGeneration) {
+          this.isPreparingDownload = false;
+          this.usingJsDownloader = false;
+          this.downloadingGameId = null;
+          this.allDebridBatch = null;
+        }
+
         throw err;
       }
     } else {
@@ -1896,20 +1893,28 @@ export class DownloadManager {
           this.startGeneration !== myGeneration;
 
         if (downloadWasCancelledOrReplaced) {
-          await PythonRPC.rpc
-            .call("action", { action: "cancel", game_id: downloadId })
-            .catch((error) => {
-              logger.error(
-                "[DownloadManager] Failed to cancel stale torrent download",
-                error
-              );
-            });
+          const wasReplacedBySameGame = this.downloadingGameId === downloadId;
+
+          if (!wasReplacedBySameGame) {
+            await PythonRPC.rpc
+              .call("action", { action: "cancel", game_id: downloadId })
+              .catch((error) => {
+                logger.error(
+                  "[DownloadManager] Failed to cancel stale torrent download",
+                  error
+                );
+              });
+          }
+
           return;
         }
 
         this.isPreparingDownload = false;
       } catch (error) {
-        if (this.downloadingGameId === downloadId) {
+        if (
+          this.downloadingGameId === downloadId &&
+          this.startGeneration === myGeneration
+        ) {
           this.downloadingGameId = previousDownloadingGameId;
           this.isPreparingDownload = previousIsPreparingDownload;
           this.usingJsDownloader = previousUsingJsDownloader;

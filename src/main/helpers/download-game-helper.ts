@@ -5,7 +5,7 @@ import {
   levelKeys,
 } from "@main/level";
 import { DownloadOrchestrator } from "@main/services/download-orchestrator";
-import { isDownloadInFlight, type GameShop } from "../../types";
+import { canDiscardDownload, type GameShop } from "../../types";
 
 interface PrepareGameEntryParams {
   gameKey: string;
@@ -21,7 +21,7 @@ export const clearFinishedDownload = async (
   const gameKey = levelKeys.game(shop, objectId);
   const download = await downloadsSublevel.get(gameKey);
 
-  if (!download || isDownloadInFlight(download)) return;
+  if (!download || !canDiscardDownload(download)) return;
 
   await downloadsSublevel.del(gameKey).catch(() => {});
   await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId }).catch(
