@@ -170,9 +170,16 @@ export const downloadAndInstallRetroArch = async (
   const fileName = path.basename(option.fileName ?? option.downloadUrl);
   const archivePath = path.join(SystemPath.getPath("temp"), fileName);
   const extractDir = path.join(managedRetroArchDir(), "emulator");
+  const stagingDir = `${extractDir}-staging`;
 
   const removeArchive = async () => {
     await removeFileQuietly(archivePath);
+  };
+
+  const removeStaging = async () => {
+    await fs.promises
+      .rm(stagingDir, { recursive: true, force: true })
+      .catch(() => {});
   };
 
   try {
@@ -187,20 +194,21 @@ export const downloadAndInstallRetroArch = async (
     });
 
     sendInstallProgress({ optionId, phase: "extracting" });
-    await fs.promises.rm(extractDir, { recursive: true, force: true });
-    await fs.promises.mkdir(extractDir, { recursive: true });
+    await removeStaging();
+    await fs.promises.mkdir(stagingDir, { recursive: true });
     await SevenZip.extractFile({
       filePath: archivePath,
-      outputPath: extractDir,
+      outputPath: stagingDir,
     });
     await removeArchive();
 
-    const executablePath =
+    const stagedExecutable =
       process.platform === "win32"
-        ? findExecutableInDir(extractDir, (name) => name === "retroarch.exe")
-        : findExecutableInDir(extractDir, (name) => name.endsWith(".appimage"));
+        ? findExecutableInDir(stagingDir, (name) => name === "retroarch.exe")
+        : findExecutableInDir(stagingDir, (name) => name.endsWith(".appimage"));
 
-    if (!executablePath) {
+    if (!stagedExecutable) {
+      await removeStaging();
       sendInstallProgress({
         optionId,
         phase: "error",
@@ -208,6 +216,11 @@ export const downloadAndInstallRetroArch = async (
       });
       return { ok: false, reason: "executable_not_found" };
     }
+
+    const relativeExecutable = path.relative(stagingDir, stagedExecutable);
+    await fs.promises.rm(extractDir, { recursive: true, force: true });
+    await fs.promises.rename(stagingDir, extractDir);
+    const executablePath = path.join(extractDir, relativeExecutable);
 
     if (process.platform !== "win32") {
       const { mode } = await fs.promises.stat(executablePath);
@@ -228,6 +241,7 @@ export const downloadAndInstallRetroArch = async (
   } catch (error) {
     logger.error("Failed to install RetroArch", error);
     await removeArchive();
+    await removeStaging();
     sendInstallProgress({ optionId, phase: "error", reason: "install_failed" });
     return { ok: false, reason: "install_failed" };
   }
