@@ -20,6 +20,7 @@ import {
   GameDetailsContextProvider,
 } from "@renderer/context";
 import { useDownload } from "@renderer/hooks";
+import { logger } from "@renderer/logger";
 import { GameOptionsModal, RepacksModal } from "./modals";
 import { Downloader, getDownloadersForUri } from "@shared";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
@@ -73,7 +74,9 @@ export default function GameDetails() {
   };
 
   const selectRepackUri = (repack: GameRepack, downloader: Downloader) =>
-    repack.uris.find((uri) => getDownloadersForUri(uri).includes(downloader))!;
+    (Array.isArray(repack.uris) ? repack.uris : []).find((uri) =>
+      getDownloadersForUri(uri).includes(downloader)
+    );
 
   return (
     <GameDetailsContextProvider
@@ -108,6 +111,17 @@ export default function GameDetails() {
             automaticallyDeleteArchiveFiles = false,
             signal?: AbortSignal
           ) => {
+            const uri = selectRepackUri(repack, downloader);
+            if (!uri) {
+              logger.warn(
+                "[game-details] No matching URI for repack",
+                repack.id,
+                "with downloader",
+                downloader
+              );
+              return { ok: false, error: "invalid_repack" };
+            }
+
             const response = addToQueueOnly
               ? await addGameToQueue(
                   {
@@ -116,7 +130,7 @@ export default function GameDetails() {
                     downloader,
                     shop,
                     downloadPath,
-                    uri: selectRepackUri(repack, downloader),
+                    uri,
                     automaticallyExtract,
                     automaticallyDeleteArchiveFiles,
                     fileSize: repack.fileSize,
@@ -132,7 +146,7 @@ export default function GameDetails() {
                     downloader,
                     shop,
                     downloadPath,
-                    uri: selectRepackUri(repack, downloader),
+                    uri,
                     automaticallyExtract,
                     automaticallyDeleteArchiveFiles,
                     fileSize: repack.fileSize,
