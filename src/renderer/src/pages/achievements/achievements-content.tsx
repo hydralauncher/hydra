@@ -215,7 +215,11 @@ export function AchievementsContent({
                   })}
                 >
                   <img
-                    src={shopDetails?.assets?.logoImageUrl ?? ""}
+                    src={
+                      game?.customLogoImageUrl ||
+                      shopDetails?.assets?.logoImageUrl ||
+                      ""
+                    }
                     className="achievements-content__achievements-list__section__container__hero__content__game-logo"
                     alt={gameTitle}
                   />

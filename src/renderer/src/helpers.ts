@@ -1,11 +1,19 @@
-import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
+import type {
+  EmulatorBinary,
+  EmulatorSystem,
+  GameShop,
+  LibraryGame,
+} from "@types";
 
+import { EMULATOR_ICONS } from "./pages/settings/emulation/emulator-icons";
 import Color from "color";
 import i18next from "i18next";
 import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
 import { logger } from "./logger";
+import type { LibraryCategory } from "./pages/library/category-filter";
+import type { SortOption } from "./pages/library/filter-options";
 
 // Pixel-art flag icons from R74n PixelFlags (https://r74n.com/pixelflags).
 import flagUS from "./assets/flags/us.png";
@@ -48,6 +56,27 @@ export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
   ps1: "duckstation",
   ps2: "pcsx2",
   ps3: "rpcs3",
+};
+
+export const CLASSICS_PLATFORM_LABELS: Record<EmulatorSystem, string> = {
+  ps1: "PS",
+  ps2: "PS2",
+  ps3: "PS3",
+};
+
+export const getClassicsPlatformDetails = (
+  platform?: string | null
+): {
+  system: EmulatorSystem | null;
+  label: string | null;
+  emulatorIcon: string | undefined;
+} => {
+  const system = platformToSystem(platform);
+  return {
+    system,
+    label: system ? CLASSICS_PLATFORM_LABELS[system] : null,
+    emulatorIcon: system ? EMULATOR_ICONS[SYSTEM_TO_BINARY[system]] : undefined,
+  };
 };
 
 export const formatDownloadProgress = (
@@ -328,4 +357,119 @@ export const getClassicsLaunchErrorSystem = (
   return (["ps1", "ps2", "ps3"] as const).find((system) =>
     message.includes(system)
   );
+};
+
+const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {
+  const aHasPlayed = a.lastTimePlayed !== null;
+  const bHasPlayed = b.lastTimePlayed !== null;
+
+  if (aHasPlayed && bHasPlayed) {
+    const aLastPlayed = new Date(a.lastTimePlayed as Date).getTime();
+    const bLastPlayed = new Date(b.lastTimePlayed as Date).getTime();
+    return bLastPlayed - aLastPlayed;
+  }
+
+  if (aHasPlayed !== bHasPlayed) {
+    return aHasPlayed ? -1 : 1;
+  }
+
+  return 0;
+};
+
+const getMostPlayedDifference = (a: LibraryGame, b: LibraryGame): number =>
+  b.playTimeInMilliseconds - a.playTimeInMilliseconds;
+
+const isGameInstalled = (game: LibraryGame): boolean =>
+  Boolean(game.executablePath) ||
+  game.installedSizeInBytes != null ||
+  (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
+
+const getInstalledFirstDifference = (
+  a: LibraryGame,
+  b: LibraryGame
+): number => {
+  const aIsInstalled = isGameInstalled(a);
+  const bIsInstalled = isGameInstalled(b);
+
+  if (aIsInstalled !== bIsInstalled) {
+    return aIsInstalled ? -1 : 1;
+  }
+
+  return 0;
+};
+
+const compareLibraryGamesByTitle = (
+  a: LibraryGame,
+  b: LibraryGame,
+  ascending = true
+): number =>
+  ascending
+    ? (a.title ?? "").localeCompare(b.title ?? "", undefined, {
+        sensitivity: "base",
+      })
+    : (b.title ?? "").localeCompare(a.title ?? "", undefined, {
+        sensitivity: "base",
+      });
+
+export const sortLibraryGames = (
+  games: LibraryGame[],
+  sortBy: SortOption
+): LibraryGame[] => {
+  return [...games].sort((a, b) => {
+    switch (sortBy) {
+      case "recently_played": {
+        const difference = getPlayTimeDifference(a, b);
+        if (difference !== 0) return difference;
+        break;
+      }
+
+      case "most_played": {
+        const difference = getMostPlayedDifference(a, b);
+        if (difference !== 0) return difference;
+        break;
+      }
+
+      case "installed_first": {
+        const difference = getInstalledFirstDifference(a, b);
+        if (difference !== 0) return difference;
+        break;
+      }
+
+      case "title_desc": {
+        return compareLibraryGamesByTitle(a, b, false);
+      }
+
+      case "title_asc":
+      default:
+        break;
+    }
+
+    return compareLibraryGamesByTitle(a, b);
+  });
+};
+
+export const getGameCollectionIds = (game: LibraryGame): string[] => {
+  if (Array.isArray(game.collectionIds)) {
+    return game.collectionIds;
+  }
+
+  const legacyCollectionId = (game as { collectionId?: string | null })
+    .collectionId;
+
+  return legacyCollectionId ? [legacyCollectionId] : [];
+};
+
+export const filterLibraryGamesByCategory = (
+  games: LibraryGame[],
+  category: LibraryCategory
+): LibraryGame[] => {
+  if (category === "pc") {
+    return games.filter((game) => game.shop !== "launchbox");
+  }
+
+  if (category === "classics") {
+    return games.filter((game) => game.shop === "launchbox");
+  }
+
+  return games;
 };

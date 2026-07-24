@@ -1,36 +1,29 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Tooltip } from "react-tooltip";
 
 import type { LibraryGame } from "@types";
 
 import { ConfirmationModal, TextField } from "@renderer/components";
-import {
-  useDownload,
-  useLibrary,
-  useToast,
-  useUserDetails,
-} from "@renderer/hooks";
+import { useDownload, useLibrary, useToast } from "@renderer/hooks";
 import { routes } from "./routes";
 
 import "./sidebar.scss";
 
-import { buildGameDetailsPath } from "@renderer/helpers";
-import { useFormat } from "@renderer/hooks/use-format";
-
 import {
-  ChevronRightIcon,
-  CommentDiscussionIcon,
-  PlayIcon,
-  PlusIcon,
-  VideoIcon,
-} from "@primer/octicons-react";
+  buildGameDetailsPath,
+  filterLibraryGamesByCategory,
+  sortLibraryGames,
+} from "@renderer/helpers";
+import type { LibraryCategory } from "@renderer/pages/library/category-filter";
+import type { SortOption } from "@renderer/pages/library/filter-options";
+
+import { PlayIcon, VideoIcon } from "@primer/octicons-react";
+import { Tooltip } from "react-tooltip";
 import deckyIcon from "@renderer/assets/icons/decky.png";
 import cn from "classnames";
-import { sortBy } from "lodash-es";
-import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal";
+import { SidebarFilterMenu } from "./sidebar-filter-menu";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarProfile } from "./sidebar-profile";
 
@@ -39,17 +32,21 @@ const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
 const SIDEBAR_GAME_ITEM_HEIGHT = 42;
 
-const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
+const SIDEBAR_CATEGORIES = new Set<LibraryCategory>(["all", "pc", "classics"]);
+const SIDEBAR_SORT_OPTIONS = new Set<SortOption>([
+  "title_asc",
+  "recently_played",
+  "most_played",
+]);
 
 const isGamePlayable = (game: LibraryGame) =>
   Boolean(game.executablePath) ||
   (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
 
-export function Sidebar() {
-  const filterRef = useRef<HTMLInputElement>(null);
+const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
-  const { t } = useTranslation("sidebar");
-  const { formatNumber } = useFormat();
+export function Sidebar() {
+  const { t } = useTranslation(["sidebar", "library"]);
   const { library, updateLibrary } = useLibrary();
   const [deckyPluginInfo, setDeckyPluginInfo] = useState<{
     installed: boolean;
@@ -60,7 +57,7 @@ export function Sidebar() {
   const [showDeckyConfirmModal, setShowDeckyConfirmModal] = useState(false);
   const navigate = useNavigate();
 
-  const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
+  const filterRef = useRef<HTMLInputElement>(null);
 
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(
@@ -69,23 +66,86 @@ export function Sidebar() {
 
   const location = useLocation();
 
-  const sortedLibrary = useMemo(() => {
-    return sortBy(library, (game) => game.title);
+  const [sidebarCategory, setSidebarCategory] = useState<LibraryCategory>(
+    () => {
+      const saved = localStorage.getItem("sidebar-category");
+      if (SIDEBAR_CATEGORIES.has(saved as LibraryCategory)) {
+        return saved as LibraryCategory;
+      }
+      return "all";
+    }
+  );
+
+  const [sidebarSortBy, setSidebarSortBy] = useState<SortOption>(() => {
+    const saved = localStorage.getItem("sidebar-sort-by");
+    if (SIDEBAR_SORT_OPTIONS.has(saved as SortOption)) {
+      return saved as SortOption;
+    }
+    return "title_asc";
+  });
+
+  const [showFavoritesFirst, setShowFavoritesFirst] = useState<boolean>(() => {
+    return localStorage.getItem("sidebar-favorites-first") !== "false";
+  });
+
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [showPlayableOnly, setShowPlayableOnly] = useState(false);
+
+  const uniquePlatforms = useMemo(() => {
+    const set = new Set<string>();
+    for (const game of library) {
+      if (game.shop === "launchbox" && game.platform) {
+        set.add(game.platform);
+      }
+    }
+    return Array.from(set).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" })
+    );
   }, [library]);
 
-  const { hasActiveSubscription } = useUserDetails();
+  const sortedLibrary = useMemo(() => {
+    let games = filterLibraryGamesByCategory(library, sidebarCategory);
+
+    if (sidebarCategory === "classics" && selectedPlatform) {
+      games = games.filter((game) => game.platform === selectedPlatform);
+    }
+
+    games = sortLibraryGames(games, sidebarSortBy);
+
+    if (showFavoritesFirst) {
+      games = [
+        ...games.filter((game) => game.favorite),
+        ...games.filter((game) => !game.favorite),
+      ];
+    }
+
+    return games;
+  }, [
+    library,
+    sidebarCategory,
+    sidebarSortBy,
+    selectedPlatform,
+    showFavoritesFirst,
+  ]);
 
   const { lastPacket, progress } = useDownload();
 
   const { showSuccessToast, showErrorToast } = useToast();
 
-  const [showPlayableOnly, setShowPlayableOnly] = useState(false);
-  const [isGamesCollapsed, setIsGamesCollapsed] = useState(false);
-  const [showAddGameModal, setShowAddGameModal] = useState(false);
   const [isGameListScrolled, setIsGameListScrolled] = useState(false);
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
 
   const gameListRef = useRef<HTMLDivElement>(null);
+
+  const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
+
+  useEffect(() => {
+    setFilteredLibrary(sortedLibrary);
+
+    if (filterRef.current) {
+      filterRef.current.value = "";
+    }
+  }, [sortedLibrary]);
 
   const visibleGames = useMemo(
     () =>
@@ -112,17 +172,33 @@ export function Sidebar() {
     return () => ro.disconnect();
   }, []);
 
-  const handlePlayButtonClick = () => {
-    setShowPlayableOnly(!showPlayableOnly);
+  const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
+    setFilteredLibrary(
+      sortedLibrary.filter((game) =>
+        (game.title ?? "")
+          .toLowerCase()
+          .includes(event.target.value.toLocaleLowerCase())
+      )
+    );
   };
 
-  const handleAddGameButtonClick = () => {
-    setShowAddGameModal(true);
-  };
+  const handleSidebarCategoryChange = useCallback((next: LibraryCategory) => {
+    setSidebarCategory(next);
+    localStorage.setItem("sidebar-category", next);
+    if (next !== "classics") {
+      setSelectedPlatform(null);
+    }
+  }, []);
 
-  const handleCloseAddGameModal = () => {
-    setShowAddGameModal(false);
-  };
+  const handleSidebarSortChange = useCallback((next: SortOption) => {
+    setSidebarSortBy(next);
+    localStorage.setItem("sidebar-sort-by", next);
+  }, []);
+
+  const handleToggleFavoritesFirst = useCallback((next: boolean) => {
+    setShowFavoritesFirst(next);
+    localStorage.setItem("sidebar-favorites-first", String(next));
+  }, []);
 
   const loadDeckyPluginInfo = async () => {
     if (window.electron.platform !== "linux") return;
@@ -183,6 +259,17 @@ export function Sidebar() {
   }, [lastPacket?.gameId, updateLibrary]);
 
   useEffect(() => {
+    const handlePinToggled = () => {
+      void updateLibrary();
+    };
+
+    window.addEventListener("hydra:game-pin-toggled", handlePinToggled);
+    return () => {
+      window.removeEventListener("hydra:game-pin-toggled", handlePinToggled);
+    };
+  }, [updateLibrary]);
+
+  useEffect(() => {
     loadDeckyPluginInfo();
   }, []);
 
@@ -199,24 +286,6 @@ export function Sidebar() {
     sidebarInitialWidth.current =
       sidebarRef.current?.clientWidth || SIDEBAR_INITIAL_WIDTH;
   };
-
-  const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
-    setFilteredLibrary(
-      sortedLibrary.filter((game) =>
-        game.title
-          .toLowerCase()
-          .includes(event.target.value.toLocaleLowerCase())
-      )
-    );
-  };
-
-  useEffect(() => {
-    setFilteredLibrary(sortedLibrary);
-
-    if (filterRef.current) {
-      filterRef.current.value = "";
-    }
-  }, [sortedLibrary]);
 
   useEffect(() => {
     window.onmousemove = (event: MouseEvent) => {
@@ -360,138 +429,92 @@ export function Sidebar() {
           </section>
 
           <section className="sidebar__section sidebar__section--games">
-            <div className="sidebar__section-header">
+            <div className="sidebar__search-row">
+              <TextField
+                ref={filterRef}
+                placeholder={t("filter")}
+                onChange={handleFilter}
+                theme="dark"
+              />
+
               <button
                 type="button"
-                className="sidebar__section-toggle"
-                onClick={() => setIsGamesCollapsed(!isGamesCollapsed)}
-                aria-label={
-                  isGamesCollapsed ? t("expand_games") : t("collapse_games")
+                className={cn("sidebar__play-button", {
+                  "sidebar__play-button--active": showPlayableOnly,
+                })}
+                onClick={() => setShowPlayableOnly((prev) => !prev)}
+                data-tooltip-id="sidebar-show-playable-only-tooltip"
+                data-tooltip-content={t("show_playable_only_tooltip")}
+                data-tooltip-place="top"
+              >
+                <PlayIcon size={16} />
+              </button>
+
+              <Tooltip id="sidebar-show-playable-only-tooltip" place="top" />
+
+              <SidebarFilterMenu
+                category={sidebarCategory}
+                onCategoryChange={handleSidebarCategoryChange}
+                sortBy={sidebarSortBy}
+                onSortChange={handleSidebarSortChange}
+                showFavoritesFirst={showFavoritesFirst}
+                onToggleFavoritesFirst={handleToggleFavoritesFirst}
+                platforms={uniquePlatforms}
+                selectedPlatform={selectedPlatform}
+                onPlatformChange={setSelectedPlatform}
+              />
+            </div>
+
+            <div
+              className={`sidebar__game-list${isGameListScrolled ? " sidebar__game-list--scrolled" : ""}`}
+            >
+              <div
+                ref={gameListRef}
+                className="sidebar__game-list-scroll"
+                onScroll={(e) =>
+                  setIsGameListScrolled(
+                    (e.currentTarget as HTMLElement).scrollTop > 0
+                  )
                 }
               >
-                <ChevronRightIcon
-                  size={14}
-                  className={cn("sidebar__section-toggle-chevron", {
-                    "sidebar__section-toggle-chevron--expanded":
-                      !isGamesCollapsed,
-                  })}
-                />
-                <small className="sidebar__section-title">{t("games")}</small>
-                {library.length > 0 && (
-                  <span className="sidebar__collection-count">
-                    {formatNumber(library.length)}
-                  </span>
-                )}
-              </button>
-              <div
-                style={{ display: "flex", gap: "8px", alignItems: "center" }}
-              >
-                <button
-                  type="button"
-                  className="sidebar__add-button"
-                  onClick={handleAddGameButtonClick}
-                  data-tooltip-id="add-custom-game-tooltip"
-                  data-tooltip-content={t("add_custom_game_tooltip")}
-                  data-tooltip-place="top"
+                <div
+                  style={{
+                    height: `${virtualizer.getTotalSize()}px`,
+                    position: "relative",
+                  }}
                 >
-                  <PlusIcon size={16} />
-                </button>
-                <button
-                  type="button"
-                  className={cn("sidebar__play-button", {
-                    "sidebar__play-button--active": showPlayableOnly,
+                  {virtualizer.getVirtualItems().map((virtualItem) => {
+                    const game = visibleGames[virtualItem.index];
+                    return (
+                      <div
+                        key={game.id}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 16 - scrollbarWidth,
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                      >
+                        <SidebarGameItem
+                          game={game}
+                          handleSidebarGameClick={handleSidebarGameClick}
+                          getGameTitle={getGameTitle}
+                        />
+                      </div>
+                    );
                   })}
-                  onClick={handlePlayButtonClick}
-                  data-tooltip-id="show-playable-only-tooltip"
-                  data-tooltip-content={t("show_playable_only_tooltip")}
-                  data-tooltip-place="top"
-                >
-                  <PlayIcon size={16} />
-                </button>
+                </div>
               </div>
             </div>
-
-            {!isGamesCollapsed && (
-              <>
-                <TextField
-                  ref={filterRef}
-                  placeholder={t("filter")}
-                  onChange={handleFilter}
-                  theme="dark"
-                />
-
-                <div
-                  className={`sidebar__game-list${isGameListScrolled ? " sidebar__game-list--scrolled" : ""}`}
-                >
-                  <div
-                    ref={gameListRef}
-                    className="sidebar__game-list-scroll"
-                    onScroll={(e) =>
-                      setIsGameListScrolled(
-                        (e.currentTarget as HTMLElement).scrollTop > 0
-                      )
-                    }
-                  >
-                    <div
-                      style={{
-                        height: `${virtualizer.getTotalSize()}px`,
-                        position: "relative",
-                      }}
-                    >
-                      {virtualizer.getVirtualItems().map((virtualItem) => {
-                        const game = visibleGames[virtualItem.index];
-                        return (
-                          <div
-                            key={game.id}
-                            style={{
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                              right: 16 - scrollbarWidth,
-                              transform: `translateY(${virtualItem.start}px)`,
-                            }}
-                          >
-                            <SidebarGameItem
-                              game={game}
-                              handleSidebarGameClick={handleSidebarGameClick}
-                              getGameTitle={getGameTitle}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
           </section>
         </div>
-      </div>
-
-      <div className="sidebar__bottom-buttons">
-        {hasActiveSubscription && (
-          <button
-            type="button"
-            className="sidebar__help-button"
-            data-open-support-chat
-          >
-            <div className="sidebar__help-button-icon">
-              <CommentDiscussionIcon size={14} />
-            </div>
-            <span>{t("need_help")}</span>
-          </button>
-        )}
       </div>
 
       <button
         type="button"
         className="sidebar__handle"
         onMouseDown={handleMouseDown}
-      />
-
-      <SidebarAddingCustomGameModal
-        visible={showAddGameModal}
-        onClose={handleCloseAddGameModal}
       />
 
       <ConfirmationModal
@@ -511,9 +534,6 @@ export function Sidebar() {
         cancelButtonLabel={t("cancel")}
         confirmButtonLabel={t("confirm")}
       />
-
-      <Tooltip id="add-custom-game-tooltip" />
-      <Tooltip id="show-playable-only-tooltip" />
     </aside>
   );
 }

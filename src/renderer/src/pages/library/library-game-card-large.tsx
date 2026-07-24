@@ -1,27 +1,18 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { isGameCompleted } from "@renderer/helpers";
-import { ProgressBar } from "@renderer/components";
+import { AchievementProgress } from "@renderer/components";
 import { formatBytes } from "@shared";
 import {
   ClockIcon,
   AlertFillIcon,
-  TrophyIcon,
   DatabaseIcon,
   FileZipIcon,
   CheckCircleFillIcon,
 } from "@primer/octicons-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
-import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import { getClassicsPlatformDetails } from "@renderer/helpers";
 import "./library-game-card-large.scss";
-
-const PLATFORM_LABELS: Record<string, string> = {
-  ps1: "PS",
-  ps2: "PS2",
-  ps3: "PS3",
-};
 
 interface LibraryGameCardLargeProps {
   game: LibraryGame;
@@ -89,16 +80,37 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     }));
   }, [game.installerSizeInBytes, game.installedSizeInBytes]);
 
-  const heroSources = useMemo(
-    () =>
+  const isClassics = game.shop === "launchbox";
+
+  const heroCandidates = useMemo(() => {
+    const isSelectedHero = Boolean(game.selectedArtworkTypes?.includes("hero"));
+    const isSelectedGrid = Boolean(game.selectedArtworkTypes?.includes("grid"));
+
+    const candidates: { url: string | null | undefined; isChosen: boolean }[] =
       [
-        game.customHeroImageUrl,
-        game.libraryHeroImageUrl,
-        game.libraryImageUrl,
-        game.iconUrl,
-      ].filter((url) => !!url && url.trim() !== ""),
-    [game]
-  );
+        { url: game.customHeroImageUrl, isChosen: true },
+        { url: game.libraryHeroImageUrl, isChosen: isSelectedHero },
+      ];
+
+    if (!isClassics) {
+      candidates.push(
+        { url: game.customCoverImageUrl, isChosen: true },
+        { url: game.coverImageUrl, isChosen: isSelectedGrid }
+      );
+    }
+
+    candidates.push(
+      { url: game.libraryImageUrl, isChosen: false },
+      { url: game.iconUrl, isChosen: false }
+    );
+
+    return candidates.filter(
+      (candidate): candidate is { url: string; isChosen: boolean } =>
+        Boolean(candidate.url && candidate.url.trim() !== "")
+    );
+  }, [game, isClassics]);
+
+  const heroSources = heroCandidates.map((candidate) => candidate.url);
 
   const [heroIndex, setHeroIndex] = useState(0);
 
@@ -108,7 +120,15 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   useEffect(() => {
     setHeroIndex(0);
-  }, [game.objectId]);
+  }, [
+    game.objectId,
+    game.customHeroImageUrl,
+    game.libraryHeroImageUrl,
+    game.customCoverImageUrl,
+    game.coverImageUrl,
+    game.libraryImageUrl,
+    game.iconUrl,
+  ]);
 
   useEffect(() => {
     if (game.unlockedAchievementCount != null) {
@@ -154,6 +174,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         setHeroIndex((prev) => prev + 1);
       }
     };
+
+    return () => {
+      img.onerror = null;
+    };
   }, [heroIndex, heroSources]);
 
   const backgroundStyle = useMemo(() => {
@@ -161,32 +185,25 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     return url ? { backgroundImage: `url("${normalizePathForCss(url)}")` } : {};
   }, [heroIndex, heroSources]);
 
-  const isCompleted = useMemo(
-    () => isGameCompleted(game.achievementCount, unlockedAchievementsCount),
-    [game.achievementCount, unlockedAchievementsCount]
-  );
+  const activeHeroCandidate = heroCandidates[heroIndex];
+  const isActiveHeroChosen = activeHeroCandidate?.isChosen ?? false;
+  const renderClassicsBlurred = isClassics && !isActiveHeroChosen;
 
-  const isClassics = game.shop === "launchbox";
   const classicsForegroundUrl = useMemo(() => {
-    if (!isClassics) return null;
-    const url = heroSources[heroIndex];
-    return url ? normalizePathForCss(url) : null;
-  }, [isClassics, heroIndex, heroSources]);
+    if (!renderClassicsBlurred || !activeHeroCandidate) return null;
+
+    return normalizePathForCss(activeHeroCandidate.url);
+  }, [renderClassicsBlurred, activeHeroCandidate]);
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
-  const classicsSystem = isClassics ? platformToSystem(game.platform) : null;
-  const classicsPlatformLabel = classicsSystem
-    ? PLATFORM_LABELS[classicsSystem]
-    : null;
-  const classicsEmulatorIcon = classicsSystem
-    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
-    : undefined;
+  const { label: classicsPlatformLabel, emulatorIcon: classicsEmulatorIcon } =
+    getClassicsPlatformDetails(game.platform);
 
   return (
     <button
       type="button"
-      className={`library-game-card-large ${isClassics ? "library-game-card-large--classics" : ""}`}
+      className={`library-game-card-large ${renderClassicsBlurred ? "library-game-card-large--classics" : ""}`}
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >
@@ -202,7 +219,9 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           loading="lazy"
         />
       )}
-      <div className="library-game-card-large__gradient" />
+      {(game.achievementCount ?? 0) > 0 && (
+        <div className="library-game-card-large__gradient" />
+      )}
 
       <div className="library-game-card-large__overlay">
         <div className="library-game-card-large__top-section">
@@ -285,47 +304,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         </div>
 
         <div className="library-game-card-large__info-bar">
-          {/* Achievements section */}
           {(game.achievementCount ?? 0) > 0 && (
-            <div className="library-game-card-large__achievements">
-              <div className="library-game-card-large__achievement-header">
-                <div className="library-game-card-large__achievements-gap">
-                  {!isCompleted && (
-                    <TrophyIcon
-                      size={14}
-                      className="library-game-card-large__achievement-trophy"
-                    />
-                  )}
-                  <span className="library-game-card-large__achievement-count">
-                    {unlockedAchievementsCount} / {game.achievementCount ?? 0}
-                  </span>
-                </div>
-                <span
-                  className={`library-game-card-large__achievement-percentage${isCompleted ? " library-game-card-large__achievement-percentage--completed" : ""}`}
-                >
-                  {isCompleted ? (
-                    <TrophyIcon size={14} />
-                  ) : (
-                    <>
-                      {Math.round(
-                        (unlockedAchievementsCount /
-                          (game.achievementCount ?? 1)) *
-                          100
-                      )}
-                      %
-                    </>
-                  )}
-                </span>
-              </div>
-              <ProgressBar
-                now={unlockedAchievementsCount}
-                max={game.achievementCount ?? 1}
-                label={`${game.title} achievements`}
-                completed={isCompleted}
-                trackClassName="library-game-card-large__achievement-progress"
-                barClassName="library-game-card-large__achievement-bar"
-              />
-            </div>
+            <AchievementProgress
+              achievementCount={game.achievementCount ?? 0}
+              unlockedAchievementCount={unlockedAchievementsCount}
+              classNamePrefix="library-game-card-large"
+              label={`${game.title} achievements`}
+              trophyIconSize={14}
+            />
           )}
         </div>
       </div>

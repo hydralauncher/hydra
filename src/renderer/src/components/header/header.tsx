@@ -10,11 +10,13 @@ import {
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
+  PlusIcon,
   SearchIcon,
   SyncIcon,
   XIcon,
 } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
+import { SidebarAddingCustomGameModal } from "@renderer/components/sidebar/sidebar-adding-custom-game-modal";
 
 import {
   useAppDispatch,
@@ -46,6 +48,8 @@ export function Header() {
   const inputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const scanButtonTooltipId = useId();
+  const addCustomGameTooltipId = useId();
+  const [showAddGameModal, setShowAddGameModal] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -388,12 +392,31 @@ export function Header() {
         </section>
 
         <section className="header__section">
+          {isOnLibraryPage && (
+            <button
+              type="button"
+              className="header__action-button header__action-button--outlined"
+              onClick={() => setShowAddGameModal(true)}
+              data-tooltip-id={addCustomGameTooltipId}
+              data-tooltip-content={t("add_custom_game_tooltip", {
+                ns: "sidebar",
+              })}
+              data-tooltip-place="bottom"
+            >
+              <PlusIcon size={16} />
+            </button>
+          )}
+
           {isOnLibraryPage && isLibraryScanSupported && (
             <button
               type="button"
-              className={cn("header__action-button", {
-                "header__action-button--scanning": isScanning,
-              })}
+              className={cn(
+                "header__action-button",
+                "header__action-button--outlined",
+                {
+                  "header__action-button--scanning": isScanning,
+                }
+              )}
               onClick={() => setShowScanModal(true)}
               data-tooltip-id={scanButtonTooltipId}
               data-tooltip-content={t("scan_games_tooltip")}
@@ -444,6 +467,10 @@ export function Header() {
         </section>
       </header>
 
+      {isOnLibraryPage && (
+        <Tooltip id={addCustomGameTooltipId} style={{ zIndex: 1 }} />
+      )}
+
       {isOnLibraryPage && isLibraryScanSupported && (
         <Tooltip id={scanButtonTooltipId} style={{ zIndex: 1 }} />
       )}
@@ -482,6 +509,11 @@ export function Header() {
         scanResult={scanResult}
         onStartScan={handleStartScan}
         onClearResult={handleClearScanResult}
+      />
+
+      <SidebarAddingCustomGameModal
+        visible={showAddGameModal}
+        onClose={() => setShowAddGameModal(false)}
       />
     </>
   );

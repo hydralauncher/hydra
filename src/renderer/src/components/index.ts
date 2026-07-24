@@ -1,3 +1,4 @@
+export * from "./achievement-progress/achievement-progress";
 export * from "./avatar/avatar";
 export * from "./bottom-panel/bottom-panel";
 export * from "./button/button";

@@ -8,8 +8,13 @@ import {
   DeviceDesktopIcon,
 } from "@primer/octicons-react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { useFormat } from "@renderer/hooks";
-import type { UserGame } from "@types";
+import { useCallback, useMemo, useState } from "react";
+import { useFormat, useLibrary, useToast } from "@renderer/hooks";
+import { logger } from "@renderer/logger";
+import type { LibraryGame, UserGame } from "@types";
+import { useCollectionContextMenu } from "@renderer/context";
+import { GameContextMenu } from "@renderer/components";
+import type { GameContextMenuGame } from "@renderer/components/game-context-menu/game-context-menu.types";
 import { ClassicsIcon } from "@renderer/pages/library/category-filter";
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import { UserLibraryGameCard } from "./user-library-game-card";
@@ -55,6 +60,87 @@ export function LibraryTab({
 }: Readonly<LibraryTabProps>) {
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
+  const { library } = useLibrary();
+  const { openCollectionContextMenu } = useCollectionContextMenu();
+  const { showSuccessToast, showErrorToast } = useToast();
+  const [contextMenu, setContextMenu] = useState<{
+    game: UserGame | null;
+    visible: boolean;
+    position: { x: number; y: number };
+  }>({ game: null, visible: false, position: { x: 0, y: 0 } });
+
+  const localGameByKey = useMemo(() => {
+    const map = new Map<string, LibraryGame>();
+    for (const localGame of library) {
+      map.set(`${localGame.shop}:${localGame.objectId}`, localGame);
+    }
+    return map;
+  }, [library]);
+
+  const handleOpenContextMenu = useCallback(
+    (game: UserGame, position: { x: number; y: number }) => {
+      setContextMenu({ game, visible: true, position });
+    },
+    []
+  );
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+  }, []);
+
+  const contextMenuGame = useMemo<GameContextMenuGame | null>(() => {
+    const selectedGame = contextMenu.game;
+    if (!selectedGame) return null;
+
+    const localGame = localGameByKey.get(
+      `${selectedGame.shop}:${selectedGame.objectId}`
+    );
+
+    return {
+      ...selectedGame,
+      id: localGame?.id,
+      executablePath: localGame?.executablePath ?? null,
+      download: localGame?.download ?? null,
+      collectionIds: localGame?.collectionIds,
+      launchOptions: localGame?.launchOptions,
+      discs: localGame?.discs,
+      selectedDiscPath: localGame?.selectedDiscPath,
+      dontAskDiscSelection: localGame?.dontAskDiscSelection,
+      favorite: localGame?.favorite ?? selectedGame.isFavorite,
+    };
+  }, [contextMenu.game, localGameByKey]);
+
+  const toggleGamePinned = useCallback(
+    async (game: UserGame) => {
+      try {
+        await window.electron.toggleGamePin(
+          game.shop,
+          game.objectId,
+          !game.isPinned
+        );
+
+        try {
+          window.dispatchEvent(
+            new CustomEvent("hydra:game-pin-toggled", {
+              detail: { shop: game.shop, objectId: game.objectId },
+            })
+          );
+        } catch (error) {
+          logger.error("Failed to dispatch pin toggled event", error);
+        }
+
+        if (game.isPinned) {
+          showSuccessToast(t("game_removed_from_pinned"));
+        } else {
+          showSuccessToast(t("game_added_to_pinned"));
+        }
+      } catch (error) {
+        logger.error("Failed to toggle game pin", error);
+        showErrorToast(t("failed_update_pinned", { ns: "game_details" }));
+      }
+    },
+    [showErrorToast, showSuccessToast, t]
+  );
 
   const platformOptions: FilterDropdownOption<ProfilePlatform>[] = [
     { value: "all", label: t("platform_all"), icon: StackIcon },
@@ -135,7 +221,7 @@ export function LibraryTab({
                     <UserLibraryGameCard
                       game={game}
                       statIndex={statsIndex}
-                      sortBy={sortBy}
+                      onContextMenu={handleOpenContextMenu}
                     />
                   </li>
                 ))}
@@ -175,7 +261,7 @@ export function LibraryTab({
                         <UserLibraryGameCard
                           game={game}
                           statIndex={statsIndex}
-                          sortBy={sortBy}
+                          onContextMenu={handleOpenContextMenu}
                         />
                       </li>
                     );
@@ -185,6 +271,20 @@ export function LibraryTab({
             </div>
           )}
         </div>
+      )}
+
+      {contextMenuGame && (
+        <GameContextMenu
+          game={contextMenuGame}
+          visible={contextMenu.visible}
+          position={contextMenu.position}
+          onClose={handleCloseContextMenu}
+          onPinToggle={() => {
+            if (contextMenu.game) void toggleGamePinned(contextMenu.game);
+          }}
+          isPinned={contextMenu.game?.isPinned}
+          onCollectionContextMenu={openCollectionContextMenu}
+        />
       )}
     </div>
   );

@@ -2,7 +2,6 @@ import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import {
   useFormat,
-  useToast,
   useCoverPoster,
   isAnimatedCoverCandidate,
 } from "@renderer/hooks";
@@ -19,8 +18,6 @@ import {
   ClockIcon,
   TrophyIcon,
   AlertFillIcon,
-  PinIcon,
-  PinSlashIcon,
   ImageIcon,
 } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
@@ -32,22 +29,19 @@ import "./user-library-game-card.scss";
 interface UserLibraryGameCardProps {
   game: UserGame;
   statIndex: number;
-  sortBy?: string;
+  onContextMenu: (game: UserGame, position: { x: number; y: number }) => void;
 }
 
 export function UserLibraryGameCard({
   game,
   statIndex,
-  sortBy,
+  onContextMenu,
 }: UserLibraryGameCardProps) {
-  const { userProfile, isMe, getUserLibraryGames } =
-    useContext(userProfileContext);
+  const { userProfile, isMe } = useContext(userProfileContext);
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
-  const { showSuccessToast } = useToast();
   const navigate = useNavigate();
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
-  const [isPinning, setIsPinning] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
@@ -124,26 +118,13 @@ export function UserLibraryGameCard({
     [numberFormatter, t]
   );
 
-  const toggleGamePinned = async () => {
-    setIsPinning(true);
+  const handleContextMenu = (event: React.MouseEvent) => {
+    if (!isMe) return;
 
-    try {
-      await window.electron.toggleGamePin(
-        game.shop,
-        game.objectId,
-        !game.isPinned
-      );
+    event.preventDefault();
+    event.stopPropagation();
 
-      await getUserLibraryGames(sortBy);
-
-      if (game.isPinned) {
-        showSuccessToast(t("game_removed_from_pinned"));
-      } else {
-        showSuccessToast(t("game_added_to_pinned"));
-      }
-    } finally {
-      setIsPinning(false);
-    }
+    onContextMenu(game, { x: event.clientX, y: event.clientY });
   };
 
   const renderCoverMedia = () => {
@@ -201,31 +182,13 @@ export function UserLibraryGameCard({
           type="button"
           className="user-library-game__cover"
           onClick={() => navigate(buildUserGameDetailsPath(game))}
+          onContextMenu={handleContextMenu}
           onMouseEnter={() => setIsCoverHovered(true)}
           onMouseLeave={() => setIsCoverHovered(false)}
         >
           <div
-            className={`user-library-game__overlay${game.shop === "launchbox" ? " user-library-game__overlay--classics" : ""}`}
+            className={`user-library-game__overlay${game.shop === "launchbox" && !game.customLibraryImageUrl ? " user-library-game__overlay--classics" : ""}${(game.achievementCount ?? 0) > 0 ? "" : " user-library-game__overlay--no-fade"}`}
           >
-            {isMe && (
-              <div className="user-library-game__actions-container">
-                <button
-                  type="button"
-                  className="user-library-game__pin-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleGamePinned();
-                  }}
-                  disabled={isPinning}
-                >
-                  {game.isPinned ? (
-                    <PinSlashIcon size={12} />
-                  ) : (
-                    <PinIcon size={12} />
-                  )}
-                </button>
-              </div>
-            )}
             <div
               className="user-library-game__playtime"
               data-tooltip-place="top"

@@ -12,7 +12,6 @@ import {
   useAppDispatch,
   useAppSelector,
   useGameCollections,
-  useToast,
   useUserDetails,
 } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
@@ -20,24 +19,13 @@ import {
   HeartIcon,
   TelescopeIcon,
   FileDirectoryIcon,
-  PencilIcon,
-  PlusIcon,
-  TrashIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { Tooltip } from "react-tooltip";
 import { AuthPage } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
-import {
-  Button,
-  ConfirmationModal,
-  ContextMenu,
-  CreateCollectionModal,
-  GameContextMenu,
-  Modal,
-  TextField,
-} from "@renderer/components";
+import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
+import { useCollectionContextMenu } from "@renderer/context";
 import { useSearchParams } from "react-router-dom";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
@@ -45,6 +33,7 @@ import { ViewOptions, ViewMode } from "./view-options";
 import { FilterOptions, SortOption } from "./filter-options";
 import { CategoryFilter, LibraryCategory } from "./category-filter";
 import { PlatformFilter } from "./platform-filter";
+import { CollectionsFilter } from "./collections-filter";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -88,7 +77,6 @@ const getGameCollectionIds = (game: LibraryGame): string[] => {
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
-  const { showSuccessToast, showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
   const {
     collections,
@@ -96,6 +84,7 @@ export default function Library() {
     hasLoaded: hasLoadedCollections,
   } = useGameCollections();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { openCollectionContextMenu } = useCollectionContextMenu();
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const savedViewMode = localStorage.getItem("library-view-mode");
@@ -114,20 +103,6 @@ export default function Library() {
     visible: boolean;
     position: { x: number; y: number };
   }>({ game: null, visible: false, position: { x: 0, y: 0 } });
-  const [collectionContextMenu, setCollectionContextMenu] = useState<{
-    collection: GameCollection | null;
-    visible: boolean;
-    position: { x: number; y: number };
-  }>({ collection: null, visible: false, position: { x: 0, y: 0 } });
-  const [activeCollection, setActiveCollection] =
-    useState<GameCollection | null>(null);
-  const [showRenameCollectionModal, setShowRenameCollectionModal] =
-    useState(false);
-  const [collectionName, setCollectionName] = useState("");
-  const [isRenamingCollection, setIsRenamingCollection] = useState(false);
-  const [showDeleteCollectionModal, setShowDeleteCollectionModal] =
-    useState(false);
-  const [isDeletingCollection, setIsDeletingCollection] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
 
@@ -151,6 +126,42 @@ export default function Library() {
   const gamesScrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [isGamesScrolled, setIsGamesScrolled] = useState(false);
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const isHeaderHiddenRef = useRef(false);
+
+  const setHeaderHidden = useCallback((next: boolean) => {
+    isHeaderHiddenRef.current = next;
+    setIsHeaderHidden(next);
+  }, []);
+
+  const handleGamesScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      setIsGamesScrolled(event.currentTarget.scrollTop > 0);
+    },
+    []
+  );
+
+  useEffect(() => {
+    const el = gamesScrollRef.current;
+    if (!el) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      if (event.deltaY > 0) {
+        if (!isHeaderHiddenRef.current) {
+          event.preventDefault();
+          el.scrollTo({ top: el.scrollTop, behavior: "auto" });
+          setHeaderHidden(true);
+        }
+      } else if (event.deltaY < 0 && isHeaderHiddenRef.current) {
+        event.preventDefault();
+        el.scrollTo({ top: el.scrollTop, behavior: "auto" });
+        setHeaderHidden(false);
+      }
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [setHeaderHidden]);
 
   useEffect(() => {
     const el = gamesScrollRef.current;
@@ -262,25 +273,16 @@ export default function Library() {
     setGameContextMenu((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const handleOpenCollectionContextMenu = useCallback(
-    (
-      event: React.MouseEvent<HTMLButtonElement>,
-      collection: GameCollection
-    ) => {
-      event.preventDefault();
+  useEffect(() => {
+    const handlePinToggled = () => {
+      void updateLibrary();
+    };
 
-      setCollectionContextMenu({
-        collection,
-        visible: true,
-        position: { x: event.clientX, y: event.clientY },
-      });
-    },
-    []
-  );
-
-  const handleCloseCollectionContextMenu = useCallback(() => {
-    setCollectionContextMenu((prev) => ({ ...prev, visible: false }));
-  }, []);
+    window.addEventListener("hydra:game-pin-toggled", handlePinToggled);
+    return () => {
+      window.removeEventListener("hydra:game-pin-toggled", handlePinToggled);
+    };
+  }, [updateLibrary]);
 
   const handleCreateCollectionButtonClick = useCallback(() => {
     if (!userDetails) {
@@ -290,172 +292,6 @@ export default function Library() {
 
     setShowCreateCollectionModal(true);
   }, [userDetails]);
-
-  const resolveCollectionErrorMessage = useCallback(
-    (
-      error: unknown,
-      fallbackKey: "failed_rename_collection" | "failed_delete_collection"
-    ) => {
-      if (!(error instanceof Error)) return t(fallbackKey);
-
-      if (error.message.includes("game/collection-name-already-in-use")) {
-        return t("collection_name_already_in_use", { ns: "sidebar" });
-      }
-
-      if (error.message.includes("game/collection-name-required")) {
-        return t("collection_name_required", { ns: "sidebar" });
-      }
-
-      return t(fallbackKey);
-    },
-    [t]
-  );
-
-  const handleOpenRenameCollectionModal = useCallback(() => {
-    const collection = collectionContextMenu.collection;
-    if (!collection) return;
-
-    setActiveCollection(collection);
-    setCollectionName(collection.name);
-    setShowRenameCollectionModal(true);
-    handleCloseCollectionContextMenu();
-  }, [collectionContextMenu.collection, handleCloseCollectionContextMenu]);
-
-  const handleCloseRenameCollectionModal = useCallback(() => {
-    if (isRenamingCollection) return;
-
-    setShowRenameCollectionModal(false);
-    setCollectionName("");
-    setActiveCollection(null);
-  }, [isRenamingCollection]);
-
-  const handleRenameCollection = useCallback(async () => {
-    if (!activeCollection) return;
-
-    const nextName = collectionName.trim();
-    if (!nextName) {
-      showErrorToast(t("collection_name_required", { ns: "sidebar" }));
-      return;
-    }
-
-    if (nextName === activeCollection.name.trim()) {
-      handleCloseRenameCollectionModal();
-      return;
-    }
-
-    setIsRenamingCollection(true);
-
-    try {
-      await window.electron.hydraApi.put(
-        `/profile/games/collections/${activeCollection.id}`,
-        {
-          data: { name: nextName },
-          needsAuth: true,
-        }
-      );
-
-      await loadCollections();
-      showSuccessToast(t("collection_renamed"));
-      handleCloseRenameCollectionModal();
-    } catch (error) {
-      showErrorToast(
-        resolveCollectionErrorMessage(error, "failed_rename_collection")
-      );
-    } finally {
-      setIsRenamingCollection(false);
-    }
-  }, [
-    activeCollection,
-    collectionName,
-    handleCloseRenameCollectionModal,
-    loadCollections,
-    resolveCollectionErrorMessage,
-    showErrorToast,
-    showSuccessToast,
-    t,
-  ]);
-
-  const handleOpenDeleteCollectionModal = useCallback(() => {
-    const collection = collectionContextMenu.collection;
-    if (!collection) return;
-
-    setActiveCollection(collection);
-    setShowDeleteCollectionModal(true);
-    handleCloseCollectionContextMenu();
-  }, [collectionContextMenu.collection, handleCloseCollectionContextMenu]);
-
-  const handleCloseDeleteCollectionModal = useCallback(() => {
-    if (isDeletingCollection) return;
-
-    setShowDeleteCollectionModal(false);
-    setActiveCollection(null);
-  }, [isDeletingCollection]);
-
-  const handleDeleteCollection = useCallback(async () => {
-    if (!activeCollection) return;
-
-    setIsDeletingCollection(true);
-
-    try {
-      await window.electron.hydraApi.delete(
-        `/profile/games/collections/${activeCollection.id}`,
-        { needsAuth: true }
-      );
-
-      if (selectedCollectionId === activeCollection.id) {
-        handleCollectionSelect(null);
-      }
-
-      await Promise.all([loadCollections(), updateLibrary()]);
-      showSuccessToast(t("collection_deleted"));
-      handleCloseDeleteCollectionModal();
-    } catch (error) {
-      showErrorToast(
-        resolveCollectionErrorMessage(error, "failed_delete_collection")
-      );
-    } finally {
-      setIsDeletingCollection(false);
-    }
-  }, [
-    activeCollection,
-    selectedCollectionId,
-    handleCollectionSelect,
-    loadCollections,
-    updateLibrary,
-    showSuccessToast,
-    t,
-    handleCloseDeleteCollectionModal,
-    showErrorToast,
-    resolveCollectionErrorMessage,
-  ]);
-
-  const collectionContextMenuItems = useMemo(() => {
-    const isCollectionActionBusy = isRenamingCollection || isDeletingCollection;
-
-    return [
-      {
-        id: "rename-collection",
-        label: t("rename_collection"),
-        icon: <PencilIcon size={16} />,
-        onClick: handleOpenRenameCollectionModal,
-        disabled: isCollectionActionBusy,
-      },
-      {
-        id: "delete-collection",
-        label: t("delete_collection"),
-        icon: <TrashIcon size={16} />,
-        onClick: handleOpenDeleteCollectionModal,
-        danger: true,
-        disabled: isCollectionActionBusy,
-      },
-    ];
-  }, [
-    handleOpenDeleteCollectionModal,
-    handleOpenRenameCollectionModal,
-    isDeletingCollection,
-    isRenamingCollection,
-    t,
-  ]);
 
   useEffect(() => {
     if (!selectedCollectionId) return;
@@ -504,10 +340,13 @@ export default function Library() {
         }
 
         case "installed_first": {
-          const aIsInstalled =
-            Boolean(a.executablePath) || a.installedSizeInBytes != null;
-          const bIsInstalled =
-            Boolean(b.executablePath) || b.installedSizeInBytes != null;
+          const isInstalled = (game: LibraryGame) =>
+            Boolean(game.executablePath) ||
+            game.installedSizeInBytes != null ||
+            (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
+
+          const aIsInstalled = isInstalled(a);
+          const bIsInstalled = isInstalled(b);
 
           if (aIsInstalled !== bIsInstalled) {
             return aIsInstalled ? -1 : 1;
@@ -651,7 +490,14 @@ export default function Library() {
 
   useEffect(() => {
     gamesScrollRef.current?.scrollTo({ top: 0 });
-  }, [effectiveCategory, selectedPlatform]);
+    setHeaderHidden(false);
+  }, [
+    effectiveCategory,
+    selectedPlatform,
+    sortBy,
+    selectedCollectionId,
+    setHeaderHidden,
+  ]);
 
   const hasGames = library.length > 0;
   const hasNoFilteredGames = filteredLibrary.length === 0;
@@ -671,14 +517,26 @@ export default function Library() {
     hasNoFilteredGames;
 
   return (
-    <section className="library__content">
+    <section
+      className={`library__content${hasGames && isHeaderHidden ? " library__content--header-hidden" : ""}`}
+    >
       {hasGames && (
-        <div className="library__page-header">
+        <div
+          className={`library__page-header${isHeaderHidden ? " library__page-header--hidden" : ""}`}
+        >
           <div className="library__controls-row">
             <div className="library__controls-left">
               <CategoryFilter
                 category={effectiveCategory}
                 onCategoryChange={handleCategoryChange}
+              />
+              <CollectionsFilter
+                collections={libraryCollections}
+                selectedCollectionId={selectedCollectionId}
+                favoritesCollectionId={FAVORITES_COLLECTION_ID}
+                onSelect={handleCollectionSelect}
+                onCreate={handleCreateCollectionButtonClick}
+                onCollectionContextMenu={openCollectionContextMenu}
               />
             </div>
 
@@ -695,69 +553,6 @@ export default function Library() {
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
               />
-            </div>
-          </div>
-
-          <div className="library__collections-section">
-            <div className="library__collections-header">
-              <small className="library__collections-title">
-                {t("collections")}
-              </small>
-              <button
-                type="button"
-                className="library__add-collection-button"
-                onClick={handleCreateCollectionButtonClick}
-                aria-label={t("create_collection", { ns: "sidebar" })}
-                data-tooltip-id="library-create-collection-tooltip"
-                data-tooltip-content={t("create_collection_tooltip", {
-                  ns: "sidebar",
-                })}
-                data-tooltip-place="top"
-              >
-                <PlusIcon size={16} />
-              </button>
-            </div>
-
-            <div
-              className="library__collections"
-              role="group"
-              aria-label={t("collections")}
-            >
-              {libraryCollections.map((collection) => {
-                const isFavoritesCollection =
-                  collection.id === FAVORITES_COLLECTION_ID;
-
-                return (
-                  <button
-                    key={collection.id}
-                    type="button"
-                    className={`library__collection-item ${selectedCollectionId === collection.id ? "library__collection-item--active" : ""}`}
-                    onClick={() =>
-                      handleCollectionSelect(
-                        selectedCollectionId === collection.id
-                          ? null
-                          : collection.id
-                      )
-                    }
-                    onContextMenu={
-                      isFavoritesCollection
-                        ? undefined
-                        : (event) =>
-                            handleOpenCollectionContextMenu(event, collection)
-                    }
-                  >
-                    {isFavoritesCollection ? (
-                      <HeartIcon size={16} />
-                    ) : (
-                      <FileDirectoryIcon size={16} />
-                    )}
-                    <span>{collection.name}</span>
-                    <span className="library__collection-count">
-                      {collection.gamesCount}
-                    </span>
-                  </button>
-                );
-              })}
             </div>
           </div>
         </div>
@@ -806,12 +601,10 @@ export default function Library() {
       <div
         className="library__games-scroll"
         ref={gamesScrollRef}
-        onScroll={(e) =>
-          setIsGamesScrolled((e.currentTarget as HTMLElement).scrollTop > 0)
-        }
+        onScroll={handleGamesScroll}
       >
         <div
-          className={`library__scroll-shadow${isGamesScrolled ? " library__scroll-shadow--visible" : ""}`}
+          className={`library__scroll-shadow${isGamesScrolled && isHeaderHidden ? " library__scroll-shadow--visible" : ""}`}
         />
         {hasGames &&
           !shouldShowFavoritesEmptyState &&
@@ -866,71 +659,9 @@ export default function Library() {
           visible={gameContextMenu.visible}
           position={gameContextMenu.position}
           onClose={handleCloseContextMenu}
+          onCollectionContextMenu={openCollectionContextMenu}
         />
       )}
-
-      <ContextMenu
-        items={collectionContextMenuItems}
-        visible={collectionContextMenu.visible}
-        position={collectionContextMenu.position}
-        onClose={handleCloseCollectionContextMenu}
-      />
-
-      <Modal
-        visible={showRenameCollectionModal}
-        title={t("rename_collection")}
-        description={t("rename_collection_description")}
-        onClose={handleCloseRenameCollectionModal}
-      >
-        <div className="library__collection-modal">
-          <TextField
-            label={t("collection_name", { ns: "sidebar" })}
-            placeholder={t("collection_name_placeholder", { ns: "sidebar" })}
-            value={collectionName}
-            onChange={(event) => setCollectionName(event.target.value)}
-            theme="dark"
-            disabled={isRenamingCollection}
-            maxLength={60}
-          />
-
-          <div className="library__collection-modal-actions">
-            <Button
-              type="button"
-              theme="outline"
-              onClick={handleCloseRenameCollectionModal}
-              disabled={isRenamingCollection}
-            >
-              {t("cancel", { ns: "sidebar" })}
-            </Button>
-
-            <Button
-              type="button"
-              theme="primary"
-              onClick={handleRenameCollection}
-              disabled={!collectionName.trim() || isRenamingCollection}
-            >
-              {isRenamingCollection
-                ? t("renaming_collection")
-                : t("rename_collection")}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <ConfirmationModal
-        visible={showDeleteCollectionModal}
-        title={t("delete_collection_title")}
-        descriptionText={t("delete_collection_description", {
-          collectionName: activeCollection?.name ?? "",
-        })}
-        onClose={handleCloseDeleteCollectionModal}
-        onConfirm={() => {
-          void handleDeleteCollection();
-        }}
-        cancelButtonLabel={t("cancel", { ns: "sidebar" })}
-        confirmButtonLabel={t("delete_collection")}
-        buttonsIsDisabled={isDeletingCollection}
-      />
 
       <CreateCollectionModal
         visible={showCreateCollectionModal}
@@ -941,8 +672,6 @@ export default function Library() {
         visible={showClassicsOnboarding}
         onClose={() => setShowClassicsOnboarding(false)}
       />
-
-      <Tooltip id="library-create-collection-tooltip" />
     </section>
   );
 }

@@ -7,17 +7,18 @@ import {
   DownloadIcon,
   HeartIcon,
   HeartFillIcon,
-  CheckCircleFillIcon,
   PlusIcon,
   GearIcon,
   PencilIcon,
   FileDirectoryIcon,
+  FileDirectoryFillIcon,
   LinkIcon,
   TrashIcon,
   XIcon,
+  PinIcon,
+  PinSlashIcon,
 } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { LibraryGame } from "@types";
 import {
   ContextMenu,
   ContextMenuItemData,
@@ -27,12 +28,21 @@ import {
   useGameActions,
 } from "..";
 import { useGameCollections, useToast, useUserDetails } from "@renderer/hooks";
+import { useCollectionContextMenu } from "@renderer/context";
+import type { GameCollection } from "@types";
+import type { GameContextMenuGame } from "./game-context-menu.types";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
-  game: LibraryGame;
+  game: GameContextMenuGame;
+  onPinToggle?: () => void;
+  isPinned?: boolean;
+  onCollectionContextMenu?: (
+    event: React.MouseEvent<HTMLElement>,
+    collection: GameCollection
+  ) => void;
 }
 
-const getGameCollectionIds = (currentGame: LibraryGame): string[] => {
+const getGameCollectionIds = (currentGame: GameContextMenuGame): string[] => {
   if (Array.isArray(currentGame.collectionIds)) {
     return currentGame.collectionIds;
   }
@@ -47,6 +57,9 @@ const FAVORITES_COLLECTION_ID = "__favorites__";
 
 export function GameContextMenu({
   game,
+  onPinToggle,
+  isPinned,
+  onCollectionContextMenu,
   visible,
   position,
   onClose,
@@ -70,10 +83,6 @@ export function GameContextMenu({
     null
   );
   const [isFavoritePending, setIsFavoritePending] = useState(false);
-  const [favoriteSuccessVisible, setFavoriteSuccessVisible] = useState(false);
-  const [collectionSuccessId, setCollectionSuccessId] = useState<string | null>(
-    null
-  );
   const {
     collections,
     isLoading: isCollectionsLoading,
@@ -96,6 +105,7 @@ export function GameContextMenu({
     handleOpenFolder,
     handleOpenDownloadOptions,
     handleOpenDownloadLocation,
+    handleTogglePin,
     handleRemoveFromLibrary,
     handleRemoveFiles,
     handleOpenGameOptions,
@@ -103,6 +113,7 @@ export function GameContextMenu({
     handleConfirmRpcs3Launch,
     handleCancelRpcs3Launch,
   } = useGameActions(game);
+  const { isCollectionContextMenuOrModalOpen } = useCollectionContextMenu();
   const selectedCollectionId = searchParams.get("collection");
 
   useEffect(() => {
@@ -117,8 +128,6 @@ export function GameContextMenu({
     setIsFavoriteSelected(Boolean(game.favorite));
     setPendingCollectionId(null);
     setIsFavoritePending(false);
-    setFavoriteSuccessVisible(false);
-    setCollectionSuccessId(null);
   }, [visible, game]);
 
   const handleAssignGameCollection = async (collectionId: string) => {
@@ -135,14 +144,6 @@ export function GameContextMenu({
       await assignGameToCollection(game, nextCollectionIds);
 
       setLocalCollectionIds(nextCollectionIds);
-      if (!isCurrentlyAssigned) {
-        setCollectionSuccessId(collectionId);
-        window.setTimeout(() => {
-          setCollectionSuccessId((currentId) =>
-            currentId === collectionId ? null : currentId
-          );
-        }, 320);
-      }
 
       showSuccessToast(t("game_collection_updated"));
 
@@ -169,14 +170,6 @@ export function GameContextMenu({
 
       setIsFavoriteSelected((currentValue) => !currentValue);
 
-      if (isAddingToFavorites) {
-        setFavoriteSuccessVisible(true);
-
-        window.setTimeout(() => {
-          setFavoriteSuccessVisible(false);
-        }, 320);
-      }
-
       if (
         !isAddingToFavorites &&
         selectedCollectionId === FAVORITES_COLLECTION_ID
@@ -199,15 +192,6 @@ export function GameContextMenu({
       ) : (
         <HeartIcon size={16} />
       ),
-      trailingIcon:
-        favoriteSuccessVisible || isFavoriteSelected ? (
-          <CheckCircleFillIcon
-            size={16}
-            className={
-              favoriteSuccessVisible ? "context-menu__success-check" : undefined
-            }
-          />
-        ) : undefined,
       onClick: () => {
         void handleToggleFavoriteStatus();
       },
@@ -219,20 +203,21 @@ export function GameContextMenu({
       : collections.map((collection) => ({
           id: `collection-${collection.id}`,
           label: collection.name,
-          icon: <FileDirectoryIcon size={16} />,
-          trailingIcon: localCollectionIds.includes(collection.id) ? (
-            <CheckCircleFillIcon
-              size={16}
-              className={
-                collectionSuccessId === collection.id
-                  ? "context-menu__success-check"
-                  : undefined
-              }
-            />
-          ) : undefined,
+          icon: localCollectionIds.includes(collection.id) ? (
+            <FileDirectoryFillIcon size={16} />
+          ) : (
+            <FileDirectoryIcon size={16} />
+          ),
           onClick: () => {
             void handleAssignGameCollection(collection.id);
           },
+          onContextMenu: onCollectionContextMenu
+            ? (event: React.MouseEvent<HTMLElement>) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onCollectionContextMenu(event, collection);
+              }
+            : undefined,
           closeOnClick: false,
           disabled: isDeleting,
         }))),
@@ -252,6 +237,7 @@ export function GameContextMenu({
 
               setShowCreateCollectionModal(true);
             },
+            closeOnClick: false,
             disabled: isDeleting || Boolean(pendingCollectionId),
           },
         ]),
@@ -332,6 +318,21 @@ export function GameContextMenu({
       icon: <GearIcon size={16} />,
       disabled: isDeleting,
       submenu: [
+        {
+          id: "pin-game",
+          label:
+            (isPinned ?? game.isPinned ?? false)
+              ? t("unpin_game")
+              : t("pin_game"),
+          icon:
+            (isPinned ?? game.isPinned ?? false) ? (
+              <PinSlashIcon size={16} />
+            ) : (
+              <PinIcon size={16} />
+            ),
+          onClick: onPinToggle ?? handleTogglePin,
+          disabled: isDeleting,
+        },
         ...(game.executablePath
           ? [
               {
@@ -373,6 +374,7 @@ export function GameContextMenu({
           onClick: () => setShowConfirmRemoveLibrary(true),
           disabled: isDeleting,
           danger: true,
+          closeOnClick: false,
         },
         ...(game.download?.downloadPath
           ? [
@@ -383,6 +385,7 @@ export function GameContextMenu({
                 onClick: () => setShowConfirmRemoveFiles(true),
                 disabled: isDeleting || isGameDownloading,
                 danger: true,
+                closeOnClick: false,
               },
             ]
           : []),
@@ -398,6 +401,13 @@ export function GameContextMenu({
     },
   ];
 
+  let forceOpenSubmenuId: string | undefined;
+  if (showConfirmRemoveLibrary || showConfirmRemoveFiles) {
+    forceOpenSubmenuId = "manage";
+  } else if (isCollectionContextMenuOrModalOpen || showCreateCollectionModal) {
+    forceOpenSubmenuId = "collection";
+  }
+
   return (
     <>
       <ContextMenu
@@ -405,6 +415,7 @@ export function GameContextMenu({
         visible={visible}
         position={position}
         onClose={onClose}
+        forceOpenSubmenuId={forceOpenSubmenuId}
         className={
           !game.executablePath ? "context-menu--game-not-installed" : undefined
         }
@@ -424,12 +435,6 @@ export function GameContextMenu({
             try {
               await assignGameToCollection(game, nextCollectionIds);
               setLocalCollectionIds(nextCollectionIds);
-              setCollectionSuccessId(collection.id);
-              window.setTimeout(() => {
-                setCollectionSuccessId((currentId) =>
-                  currentId === collection.id ? null : currentId
-                );
-              }, 320);
               showSuccessToast(t("game_collection_updated"));
             } catch (error) {
               void error;
@@ -449,7 +454,6 @@ export function GameContextMenu({
         })}
         onClose={() => {
           setShowConfirmRemoveLibrary(false);
-          onClose();
         }}
         onConfirm={async () => {
           setShowConfirmRemoveLibrary(false);
@@ -466,7 +470,6 @@ export function GameContextMenu({
         descriptionText={t("delete_modal_description", { ns: "downloads" })}
         onClose={() => {
           setShowConfirmRemoveFiles(false);
-          onClose();
         }}
         onConfirm={async () => {
           setShowConfirmRemoveFiles(false);

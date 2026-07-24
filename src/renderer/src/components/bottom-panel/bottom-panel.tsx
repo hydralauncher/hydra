@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { CommentDiscussionIcon } from "@primer/octicons-react";
 
 import {
   useAppSelector,
@@ -14,11 +15,11 @@ import "./bottom-panel.scss";
 import { useNavigate } from "react-router-dom";
 
 export function BottomPanel() {
-  const { t } = useTranslation("bottom_panel");
+  const { t } = useTranslation(["bottom_panel", "sidebar"]);
 
   const navigate = useNavigate();
 
-  const { userDetails } = useUserDetails();
+  const { userDetails, hasActiveSubscription } = useUserDetails();
 
   const { library } = useLibrary();
 
@@ -163,22 +164,67 @@ export function BottomPanel() {
 
   return (
     <footer className="bottom-panel">
-      <button
-        type="button"
-        className="bottom-panel__downloads-button"
-        onClick={() => navigate("/downloads")}
-      >
-        <small>{status}</small>
-      </button>
+      <div className="bottom-panel__left">
+        {hasActiveSubscription && (
+          <button
+            type="button"
+            className="bottom-panel__help-button"
+            data-open-support-chat
+          >
+            <svg
+              width="0"
+              height="0"
+              aria-hidden="true"
+              className="bottom-panel__gradient-defs"
+            >
+              <defs>
+                <linearGradient
+                  id="hydra-cloud-gradient"
+                  x1="0%"
+                  y1="100%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop offset="0%" stopColor="#16b195" />
+                  <stop offset="100%" stopColor="#3e62c0" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <CommentDiscussionIcon
+              size={14}
+              className="bottom-panel__help-icon"
+            />
+            <small>{t("need_help", { ns: "sidebar" })}</small>
+          </button>
+        )}
+      </div>
 
-      <button
-        data-open-workwonders-changelog-mini
-        className="bottom-panel__version-button"
+      <div
+        className={`bottom-panel__center${
+          !userDetails || !hasActiveSubscription
+            ? " bottom-panel__center--start"
+            : ""
+        }`}
       >
-        <small>
-          {sessionHash ? `${sessionHash} -` : ""} v{version}
-        </small>
-      </button>
+        <button
+          type="button"
+          className="bottom-panel__downloads-button"
+          onClick={() => navigate("/downloads")}
+        >
+          <small>{status}</small>
+        </button>
+      </div>
+
+      <div className="bottom-panel__right">
+        <button
+          data-open-workwonders-changelog-mini
+          className="bottom-panel__version-button"
+        >
+          <small>
+            {sessionHash ? `${sessionHash} -` : ""} v{version}
+          </small>
+        </button>
+      </div>
     </footer>
   );
 }
