@@ -312,6 +312,10 @@ export function CloudSavePanel({
         </p>
       )}
 
+      {hasError && (
+        <p className="cloud-save-v2__error">{t("cloud_save_v2_error")}</p>
+      )}
+
       {!hasExecutablePath ? (
         missingExecutableCard
       ) : (
@@ -352,15 +356,7 @@ export function CloudSavePanel({
                 )
               )}
 
-              <div className="cloud-save-v2__action-area">
-                {hasError && (
-                  <p className="cloud-save-v2__error">
-                    {t("cloud_save_v2_error")}
-                  </p>
-                )}
-
-                {syncAction}
-              </div>
+              <div className="cloud-save-v2__action-area">{syncAction}</div>
             </article>
           </section>
         </>

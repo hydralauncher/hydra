@@ -8,7 +8,7 @@
 
 @keyframes cloud-save-v2-button-spin {
   to {
-    transform: translateY(1px) rotate(360deg);
+    transform: rotate(360deg);
   }
 }
 
@@ -71,14 +71,16 @@
   }
 
   &__launch-conflict-warning,
-  &__game-running-warning {
+  &__game-running-warning,
+  &__error {
     margin: 0;
     font-size: globals.$small-font-size;
     line-height: 1.4;
     text-align: center;
   }
 
-  &__launch-conflict-warning {
+  &__launch-conflict-warning,
+  &__error {
     color: globals.$error-color;
   }
 
@@ -145,13 +147,13 @@
     svg {
       display: block;
       flex-shrink: 0;
-      transform: translateY(1px);
     }
 
     > span {
       display: inline-flex;
       align-items: center;
       line-height: 1;
+      transform: translateY(1px);
     }
 
     .cloud-save-v2__spinner {
@@ -207,12 +209,6 @@
 
   &__spinner {
     animation: cloud-save-v2-spin 1s linear infinite;
-  }
-
-  &__error {
-    margin: 0;
-    color: globals.$error-color;
-    font-size: globals.$small-font-size;
   }
 
   &__snapshot {
