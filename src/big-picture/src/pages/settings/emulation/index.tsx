@@ -10,7 +10,10 @@ import cn from "classnames";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RETROARCH_EMULATOR_ICON } from "@renderer/pages/settings/emulation/emulator-icons";
-import { RETROARCH_LABEL } from "@renderer/pages/settings/emulation/retroarch-meta";
+import {
+  RETROARCH_LABEL,
+  RETROARCH_CORES_TAGLINE,
+} from "@renderer/pages/settings/emulation/retroarch-meta";
 import { getItemFocusTarget } from "../../../helpers";
 import type { FocusOverrides } from "../../../services";
 
@@ -418,8 +421,8 @@ export function EmulationSettingsSection({
           <ConsoleCard
             focusId={EMULATION_OVERVIEW_CARD_FOCUS_IDS.retroarch}
             art={RETROARCH_EMULATOR_ICON}
-            title={t("retroarch_card_title")}
-            emulatorName={RETROARCH_LABEL}
+            title={RETROARCH_LABEL}
+            emulatorName={RETROARCH_CORES_TAGLINE}
             detectedVersion={retroArchConfig.detectedVersion}
             executablePath={retroArchConfig.executablePath}
             romFoldersCount={retroArchConfig.romFolders.length}

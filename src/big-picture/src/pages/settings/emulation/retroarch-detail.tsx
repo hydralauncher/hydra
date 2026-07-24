@@ -1,5 +1,5 @@
 import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
-import type { RetroArchConfig, RetroArchCoreName, RomFolder } from "@types";
+import type { RetroArchConfig, RomFolder } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,10 +10,11 @@ import {
 import { RETROARCH_EMULATOR_ICON } from "@renderer/pages/settings/emulation/emulator-icons";
 import {
   RETROARCH_CORE_LIST,
+  RETROARCH_CORES_LINE,
   RETROARCH_LABEL,
 } from "@renderer/pages/settings/emulation/retroarch-meta";
 
-import { Button, FocusItem, VerticalFocusGroup } from "../../../components";
+import { Button, VerticalFocusGroup } from "../../../components";
 import { useBigPictureToast, useNavigationScreenActions } from "../../../hooks";
 import {
   EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
@@ -23,7 +24,6 @@ import {
   EMULATION_DETAIL_REGION_ID,
   EMULATION_DETAIL_RESCAN_BUTTON_ID,
   SETTINGS_HEADER_RETURN_TARGET,
-  getEmulationCoreInstallFocusId,
   getEmulationRomFolderRemoveFocusId,
 } from "../settings-navigation";
 import {
@@ -88,12 +88,15 @@ export function RetroArchEmulationDetail({
     [config.lastScanAt]
   );
 
-  const firstCoreFocusId = getEmulationCoreInstallFocusId(
-    RETROARCH_CORE_LIST[0].name
+  const installedCoreCount = useMemo(
+    () =>
+      RETROARCH_CORE_LIST.filter(
+        (core) => config.cores[core.name]?.installed === true
+      ).length,
+    [config.cores]
   );
-  const lastCoreFocusId = getEmulationCoreInstallFocusId(
-    RETROARCH_CORE_LIST.at(-1)!.name
-  );
+  const allCoresInstalled = installedCoreCount === RETROARCH_CORE_LIST.length;
+
   const lastRomFolder = config.romFolders.at(-1);
   const lastRomFolderFocusId = lastRomFolder
     ? getEmulationRomFolderRemoveFocusId(lastRomFolder.id)
@@ -154,29 +157,6 @@ export function RetroArchEmulationDetail({
     showErrorToast,
     showSuccessToast,
   ]);
-
-  const handleInstallCore = useCallback(
-    async (core: RetroArchCoreName) => {
-      setIsBusy(true);
-
-      try {
-        const result =
-          await globalThis.window.electron.installRetroArchCore(core);
-        const next = await globalThis.window.electron.getRetroArchConfig();
-        onChange(next);
-        if (result.ok) {
-          showSuccessToast("Core installed", SETTINGS_TOAST_OPTIONS);
-        } else {
-          showErrorToast("Failed to install core", SETTINGS_TOAST_OPTIONS);
-        }
-      } catch {
-        showErrorToast("Failed to install core", SETTINGS_TOAST_OPTIONS);
-      } finally {
-        setIsBusy(false);
-      }
-    },
-    [onChange, showErrorToast, showSuccessToast]
-  );
 
   const handleInstallAllCores = useCallback(async () => {
     setIsBusy(true);
@@ -323,7 +303,7 @@ export function RetroArchEmulationDetail({
       <DetailBackButton onBack={onBack} />
 
       <DetailHeroBP
-        title={t("retroarch_card_title")}
+        title={RETROARCH_LABEL}
         icon={RETROARCH_EMULATOR_ICON}
         detectedName={RETROARCH_LABEL}
         isConfigured={isConfigured}
@@ -359,9 +339,7 @@ export function RetroArchEmulationDetail({
               <h3>{t("retroarch_cores_section_title")}</h3>
               <p>
                 {t("retroarch_cores_section_description", {
-                  installed: RETROARCH_CORE_LIST.filter(
-                    (core) => config.cores[core.name]?.installed
-                  ).length,
+                  installed: installedCoreCount,
                   total: RETROARCH_CORE_LIST.length,
                 })}
               </p>
@@ -378,7 +356,7 @@ export function RetroArchEmulationDetail({
                   },
                   down: {
                     type: "item",
-                    itemId: firstCoreFocusId,
+                    itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
                   },
                 }}
                 variant="secondary"
@@ -394,83 +372,29 @@ export function RetroArchEmulationDetail({
           </header>
 
           <div className="emulator-detail__folders">
-            {RETROARCH_CORE_LIST.map((core, index) => {
-              const installed = config.cores[core.name]?.installed === true;
-              return (
-                <div className="emulator-detail__row" key={core.name}>
-                  {installed ? (
-                    <CheckCircleFillIcon size={24} />
-                  ) : (
-                    <DownloadIcon size={24} />
-                  )}
+            <div className="emulator-detail__row">
+              {allCoresInstalled ? (
+                <CheckCircleFillIcon size={24} />
+              ) : (
+                <DownloadIcon size={24} />
+              )}
 
-                  <div className="emulator-detail__folder-info">
-                    <span className="emulator-detail__folder-path">
-                      {core.label}
-                      {" · "}
-                      {core.platforms}
-                    </span>
-                    <div className="emulator-detail__folder-meta">
-                      <span>
-                        {installed
-                          ? t("retroarch_core_installed")
-                          : t("retroarch_core_not_installed")}
-                      </span>
-                    </div>
-                  </div>
-
-                  <FocusItem
-                    id={getEmulationCoreInstallFocusId(core.name)}
-                    navigationOverrides={{
-                      left: { type: "block" },
-                      right: { type: "block" },
-                      up:
-                        index === 0
-                          ? {
-                              type: "item",
-                              itemId:
-                                EMULATION_DETAIL_INSTALL_ALL_CORES_BUTTON_ID,
-                            }
-                          : {
-                              type: "item",
-                              itemId: getEmulationCoreInstallFocusId(
-                                RETROARCH_CORE_LIST[index - 1].name
-                              ),
-                            },
-                      down:
-                        index < RETROARCH_CORE_LIST.length - 1
-                          ? {
-                              type: "item",
-                              itemId: getEmulationCoreInstallFocusId(
-                                RETROARCH_CORE_LIST[index + 1].name
-                              ),
-                            }
-                          : {
-                              type: "item",
-                              itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
-                            },
-                    }}
-                    asChild
-                  >
-                    <button
-                      type="button"
-                      className="emulator-detail__remove"
-                      onClick={() => {
-                        void handleInstallCore(core.name);
-                      }}
-                      aria-label={
-                        installed
-                          ? t("retroarch_core_update")
-                          : t("retroarch_core_download")
-                      }
-                      disabled={isBusy}
-                    >
-                      <DownloadIcon size={16} />
-                    </button>
-                  </FocusItem>
+              <div className="emulator-detail__folder-info">
+                <span className="emulator-detail__folder-path">
+                  {RETROARCH_CORES_LINE}
+                </span>
+                <div className="emulator-detail__folder-meta">
+                  <span>
+                    {allCoresInstalled
+                      ? t("retroarch_cores_ready")
+                      : t("retroarch_cores_installed_count", {
+                          installed: installedCoreCount,
+                          total: RETROARCH_CORE_LIST.length,
+                        })}
+                  </span>
                 </div>
-              );
-            })}
+              </div>
+            </div>
           </div>
         </section>
       </VerticalFocusGroup>
@@ -478,7 +402,7 @@ export function RetroArchEmulationDetail({
       <RomFoldersSectionBP
         folders={config.romFolders}
         isBusy={isBusy}
-        addUpTargetId={lastCoreFocusId}
+        addUpTargetId={EMULATION_DETAIL_INSTALL_ALL_CORES_BUTTON_ID}
         rowsDownTargetId={EMULATION_DETAIL_RESCAN_BUTTON_ID}
         onAddFolder={() => {
           void handleAddFolder();
