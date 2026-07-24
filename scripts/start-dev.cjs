@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "..");
-const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
+const systemRoot = process.env.SystemRoot ?? String.raw`C:\Windows`;
 const taskScheduler = path.join(systemRoot, "System32", "schtasks.exe");
 const broker = path.join(
   projectRoot,

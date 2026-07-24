@@ -4,7 +4,7 @@ const path = require("node:path");
 
 if (process.platform !== "win32") process.exit(0);
 
-const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
+const systemRoot = process.env.SystemRoot ?? String.raw`C:\Windows`;
 const powershell = path.join(
   systemRoot,
   "System32",

@@ -9,7 +9,12 @@ export type OverlayProcess = {
 
 export type OverlayProcessCandidate = OverlayProcess & { score: number };
 
-const normalizePath = (value: string) => path.normalize(value).toLowerCase();
+const normalizePath = (value: string) =>
+  path.posix
+    .normalize(value.replaceAll(path.win32.sep, path.posix.sep))
+    .toLowerCase();
+
+const getPathName = (value: string) => path.posix.basename(value);
 
 export const rankOverlayGameProcesses = (
   processes: OverlayProcess[],
@@ -25,10 +30,10 @@ export const rankOverlayGameProcesses = (
       let score = 0;
 
       for (const [index, target] of normalizedTargets.entries()) {
-        const targetName = path.basename(target);
+        const targetName = getPathName(target);
         if (executable === target) {
           score = Math.max(score, 10_000 - index * 10);
-        } else if (executable && path.basename(executable) === targetName) {
+        } else if (executable && getPathName(executable) === targetName) {
           score = Math.max(score, 2_000 - index * 10);
         } else if (processName === targetName) {
           score = Math.max(score, 1_500 - index * 10);

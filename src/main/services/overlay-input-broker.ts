@@ -8,7 +8,7 @@ import { logger } from "./logger";
 
 const execFileAsync = promisify(execFile);
 const taskName = "Hydra Overlay Input";
-const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
+const systemRoot = process.env.SystemRoot ?? String.raw`C:\Windows`;
 const taskScheduler = path.join(systemRoot, "System32", "schtasks.exe");
 const powershell = path.join(
   systemRoot,
