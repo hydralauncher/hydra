@@ -4,7 +4,9 @@ const VALID_TRACKER_LIST_PROTOCOLS = ["http:", "https:"];
 export const isValidTrackerUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
-    return VALID_TRACKER_PROTOCOLS.includes(parsed.protocol) && !!parsed.hostname;
+    return (
+      VALID_TRACKER_PROTOCOLS.includes(parsed.protocol) && !!parsed.hostname
+    );
   } catch {
     return false;
   }
@@ -13,7 +15,10 @@ export const isValidTrackerUrl = (url: string): boolean => {
 export const isValidTrackerListUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
-    return VALID_TRACKER_LIST_PROTOCOLS.includes(parsed.protocol) && !!parsed.hostname;
+    return (
+      VALID_TRACKER_LIST_PROTOCOLS.includes(parsed.protocol) &&
+      !!parsed.hostname
+    );
   } catch {
     return false;
   }
