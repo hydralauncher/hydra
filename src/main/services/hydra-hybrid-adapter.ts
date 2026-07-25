@@ -410,11 +410,12 @@ function normalizeProfilePatch(config: AxiosRequestConfig): AxiosRequestConfig {
   for (const key of ["profileImageUrl", "backgroundImageUrl"] as const) {
     const val = patched[key];
     if (typeof val === "string" && val.startsWith("hydra-hybrid-uploaded://")) {
-      // The real URL is already stored in Level DB by the PUT handler; the
-      // /profile/me response interceptor will inject it. Send `null` up to
-      // Hydra so their server doesn't store a garbage URL, and let the
-      // response interceptor override the value on the way back down.
-      patched[key] = null;
+      // The real URL is already stored in Level DB by the PUT handler and the
+      // /profile/me response interceptor injects it on read. Hydra's schema
+      // rejects `null` here (400: "Expected string, received null"), so we
+      // omit the field entirely — Hydra leaves whatever it had unchanged,
+      // and our local override wins on the way back down.
+      delete patched[key];
       mutated = true;
     }
   }
