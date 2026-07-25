@@ -46,7 +46,7 @@ export function toXmlString(options: NotificationOptions) {
   //Visual
   template += `<visual><binding template="ToastGeneric">`;
   if (options.icon)
-    template += `<image placement="appLogoOverride" src="${options.icon}" hint-crop="none"/>`;
+    template += `<image placement="appLogoOverride" src="${escape(options.icon)}" hint-crop="none"/>`;
   template +=
     `<text><![CDATA[${options.title}]]></text>` +
     `<text><![CDATA[${options.body}]]></text>`;
