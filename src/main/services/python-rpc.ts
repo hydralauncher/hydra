@@ -101,6 +101,13 @@ export class PythonRPC {
   private static readyPromise: Promise<void> | null = null;
   private static readyResolver: (() => void) | null = null;
   private static readyRejecter: ((error: unknown) => void) | null = null;
+  // If Python is missing or misconfigured we spawn and fail immediately, then
+  // status pollers try again 2s later, ad infinitum. After a few consecutive
+  // spawn-then-die cycles we treat Python as permanently unavailable for this
+  // session — every subsequent call rejects fast without another spawn.
+  private static consecutiveSpawnFailures = 0;
+  private static unavailableForSession = false;
+  private static readonly MAX_SPAWN_FAILURES = 3;
 
   private static logStderr(readable: Readable | null) {
     if (!readable) return;
@@ -207,6 +214,19 @@ export class PythonRPC {
 
     if (this.readyRejecter && !this.ready) {
       this.readyRejecter(error);
+      this.consecutiveSpawnFailures += 1;
+      if (this.consecutiveSpawnFailures >= this.MAX_SPAWN_FAILURES && !this.unavailableForSession) {
+        this.unavailableForSession = true;
+        pythonRpcLogger.error(
+          `Python RPC failed to start ${this.consecutiveSpawnFailures}x in a row; ` +
+            "marking unavailable for this session. Torrent downloads and seeding will be disabled. " +
+            "Fix your Python install and restart Hydra to try again."
+        );
+      }
+    } else if (this.ready) {
+      // A previously-running process died — reset the failure counter so a
+      // one-off crash doesn't count against us.
+      this.consecutiveSpawnFailures = 0;
     }
 
     this.readyPromise = null;
@@ -222,6 +242,9 @@ export class PythonRPC {
     params?: unknown,
     config?: RpcRequestConfig
   ): Promise<T> {
+    if (this.unavailableForSession) {
+      throw new Error("Python RPC is unavailable for this session");
+    }
     if (!this.pythonProcess) {
       await this.spawn();
     }
@@ -229,6 +252,9 @@ export class PythonRPC {
     try {
       await this.ensureReady();
     } catch (error) {
+      if (this.unavailableForSession) {
+        throw new Error("Python RPC is unavailable for this session");
+      }
       pythonRpcLogger.error("Python RPC not ready, restarting process", error);
       this.kill();
       await this.spawn();
@@ -293,6 +319,9 @@ export class PythonRPC {
     initialDownload?: GamePayload,
     initialSeeding?: GamePayload[]
   ) {
+    if (this.unavailableForSession) {
+      throw new Error("Python RPC is unavailable for this session");
+    }
     if (this.pythonProcess) {
       await this.ensureReady().catch(() => {
         this.kill();
