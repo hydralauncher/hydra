@@ -175,19 +175,31 @@ export const loadState = async () => {
   }
 
   // For torrents use Python RPC; HTTP downloads use JS downloader.
+  // Python RPC failures used to be fatal here because these awaits bubbled
+  // up through loadState() and prevented createMainWindow() from ever firing
+  // in index.ts — the launcher would just silently never open a window. On
+  // hybrid installs where the user doesn't have Python configured, torrents/
+  // seeding are broken anyway, so it's better to log and continue: the app
+  // opens, cloud saves + Drive still work, HTTP downloads still work.
   const isTorrent = downloadToResume?.downloader === Downloader.Torrent;
-  if (downloadToResume && !isTorrent) {
-    // Start Python RPC for seeding only, then resume HTTP download with JS
-    await DownloadManager.startRPC(undefined, downloadsToSeed);
-    await DownloadManager.startDownload(downloadToResume).catch((err) => {
-      // If resume fails, just log it - user can manually retry
-      logger.error("Failed to auto-resume download:", err);
-    });
-  } else {
-    // Use Python RPC for everything (torrent or fallback)
-    await DownloadManager.startRPC(
-      downloadToResume ?? undefined,
-      downloadsToSeed
+  try {
+    if (downloadToResume && !isTorrent) {
+      // Start Python RPC for seeding only, then resume HTTP download with JS
+      await DownloadManager.startRPC(undefined, downloadsToSeed);
+      await DownloadManager.startDownload(downloadToResume).catch((err) => {
+        logger.error("Failed to auto-resume download:", err);
+      });
+    } else {
+      // Use Python RPC for everything (torrent or fallback)
+      await DownloadManager.startRPC(
+        downloadToResume ?? undefined,
+        downloadsToSeed
+      );
+    }
+  } catch (err) {
+    logger.error(
+      "Python RPC unavailable — torrents/seeding disabled for this session:",
+      err
     );
   }
 
