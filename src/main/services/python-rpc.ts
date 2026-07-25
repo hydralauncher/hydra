@@ -77,6 +77,10 @@ export class PythonRpcError extends Error {
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
 
+  public static isUnavailable(): boolean {
+    return this.unavailableForSession;
+  }
+
   public static readonly rpc = {
     call: async <T>(
       method: PythonRpcMethod,

@@ -517,6 +517,9 @@ export class DownloadManager {
   }
 
   private static async getDownloadStatusFromRpc(): Promise<DownloadProgress | null> {
+    // Skip silently when Python RPC has been marked unavailable for this
+    // session — the pollers fire every ~2s and would otherwise fill the log.
+    if (PythonRPC.isUnavailable()) return null;
     let response: { data: LibtorrentPayload | null };
 
     try {
@@ -959,6 +962,12 @@ export class DownloadManager {
   }
 
   public static async getSeedStatus() {
+    // Same reason as getDownloadStatusFromRpc: skip poll silently once Python
+    // RPC is known-unavailable, so the log stays clean.
+    if (PythonRPC.isUnavailable()) {
+      WindowManager.sendToAppWindows("on-seeding-status", []);
+      return;
+    }
     let seedStatus: LibtorrentPayload[] = [];
 
     try {
