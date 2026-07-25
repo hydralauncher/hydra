@@ -12,6 +12,7 @@ import type {
 
 import { NativeAddon } from "../native-addon";
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
+import { assertCloudSaveExecutableExists } from "./assert-cloud-save-executable";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
@@ -444,6 +445,7 @@ export const syncGameCloudSave = async (
   expectedRemoteHash?: string | null
 ) => {
   assertCloudSaveSubscription();
+  await assertCloudSaveExecutableExists(objectId, shop);
 
   const context =
     suppliedContext ?? (await getCloudSaveGameContext(objectId, shop));
@@ -457,15 +459,17 @@ export const syncGameCloudSave = async (
     objectId,
     shop,
     operationKey,
-    (emitProgress) =>
-      runGameCloudSaveSync(
+    async (emitProgress) => {
+      await assertCloudSaveExecutableExists(objectId, shop);
+      return runGameCloudSaveSync(
         objectId,
         shop,
         trigger,
         emitProgress,
         undefined,
         context
-      ),
+      );
+    },
     onProgress
   );
 };
@@ -477,21 +481,24 @@ export const resolveCloudSaveConflict = async (
   onProgress?: ProgressCallback
 ) => {
   assertCloudSaveSubscription();
+  await assertCloudSaveExecutableExists(objectId, shop);
 
   const context = await getCloudSaveGameContext(objectId, shop);
   return runCloudSaveOperation(
     objectId,
     shop,
     `resolve:${resolution}:${context.environmentId}`,
-    (emitProgress) =>
-      runGameCloudSaveSync(
+    async (emitProgress) => {
+      await assertCloudSaveExecutableExists(objectId, shop);
+      return runGameCloudSaveSync(
         objectId,
         shop,
         "manual",
         emitProgress,
         resolution,
         context
-      ),
+      );
+    },
     onProgress
   );
 };

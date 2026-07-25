@@ -329,14 +329,15 @@ export function CloudSaveV2Provider({
         await window.electron.syncGameCloudSave(objectId, shop, onProgress);
       }
     } catch (error) {
-      const environmentChanged =
+      const syncCancelled =
         error instanceof Error &&
-        error.message.includes("cloud_save_environment_changed_during_sync");
+        (error.message.includes("cloud_save_environment_changed_during_sync") ||
+          error.message.includes("cloud_save_executable_missing"));
       if (activeGameKey.current === requestedGame) {
-        setHasSyncError(!environmentChanged);
+        setHasSyncError(!syncCancelled);
       }
       if (
-        !environmentChanged &&
+        !syncCancelled &&
         error instanceof Error &&
         error.message.includes("cloud_save_restore_metadata_failed")
       ) {
