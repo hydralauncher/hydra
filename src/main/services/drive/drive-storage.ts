@@ -256,8 +256,13 @@ export async function getStoredProfileAssetUrls(): Promise<{
 }
 
 function extractDriveIdFromUrl(url: string): string | null {
-  const match = /[?&]id=([^&]+)/.exec(url);
-  return match ? decodeURIComponent(match[1]) : null;
+  // lh3.googleusercontent.com/d/<fileId>  — current shape
+  const lh3 = /\/d\/([^/?#]+)/.exec(url);
+  if (lh3) return decodeURIComponent(lh3[1]);
+  // drive.google.com/uc?id=<fileId>       — legacy shape from earlier builds
+  const legacy = /[?&]id=([^&]+)/.exec(url);
+  if (legacy) return decodeURIComponent(legacy[1]);
+  return null;
 }
 
 // --- Custom artwork (per-game, per-kind) ---

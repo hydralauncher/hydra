@@ -212,18 +212,13 @@ export async function makePublic(fileId: string): Promise<string> {
       { role: "reader", type: "anyone" },
       { headers: { ...headers, "Content-Type": "application/json" } }
     );
-    // Prefer `webContentLink` (direct binary) over `webViewLink` (HTML page)
-    // for use in <img> tags. The public URL survives token rotation because
-    // permission was set to anyone-with-link.
-    const { data } = await axios.get<DriveFile>(
-      `${DRIVE_API}/files/${fileId}?fields=webContentLink,webViewLink`,
-      { headers }
-    );
-    // Google's webContentLink includes `&export=download` which forces the
-    // file to be served as an attachment; strip it so browsers render inline.
-    const link = data.webContentLink?.replace(/&export=download/, "") ??
-      `https://drive.google.com/uc?id=${fileId}`;
-    return link;
+    // Google's user-content CDN (lh3.googleusercontent.com/d/<fileId>) is the
+    // only URL that reliably serves image bytes for public Drive files inside
+    // an <img> tag — the older `drive.google.com/uc?id=X` and webContentLink
+    // paths redirect to an HTML preview page, which fails as an image source.
+    // The lh3 path also correctly serves animated WebP/GIF so avatars keep
+    // animating.
+    return `https://lh3.googleusercontent.com/d/${fileId}`;
   });
 }
 
