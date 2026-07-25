@@ -26,6 +26,7 @@ import { SettingsContextContentGameplay } from "./settings-context-content-gamep
 import { SettingsContextIntegrations } from "./settings-context-integrations";
 import { SettingsContextCompatibility } from "./settings-context-compatibility";
 import { SettingsContextBigPicture } from "./settings-context-big-picture";
+import { SettingsContextCloudStorage } from "./settings-context-cloud-storage";
 import { SettingsContextEmulation } from "./emulation/settings-context-emulation";
 
 export default function Settings() {
@@ -63,6 +64,11 @@ export default function Settings() {
       {
         id: "integrations" as const,
         label: t("integrations"),
+        icon: <CloudIcon size={16} />,
+      },
+      {
+        id: "cloud_storage" as const,
+        label: t("cloud_storage", { defaultValue: "Cloud Storage" }),
         icon: <CloudIcon size={16} />,
       },
       {
@@ -126,6 +132,10 @@ export default function Settings() {
 
             if (selectedCategoryId === "integrations") {
               return <SettingsContextIntegrations />;
+            }
+
+            if (selectedCategoryId === "cloud_storage") {
+              return <SettingsContextCloudStorage />;
             }
 
             if (selectedCategoryId === "compatibility") {

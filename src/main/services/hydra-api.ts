@@ -4,7 +4,7 @@ import url from "url";
 import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 import { networkLogger as logger } from "./logger";
-import { UserNotLoggedInError, SubscriptionRequiredError } from "@shared";
+import { UserNotLoggedInError } from "@shared";
 import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
 import { getUserData } from "./user/get-user-data";
@@ -12,6 +12,22 @@ import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 import { SSEClient } from "./sse";
+import { getStoredProfileAssetUrls } from "./drive/drive-storage";
+import { createHybridAdapter } from "./hydra-hybrid-adapter";
+
+// Hybrid mode: this build never enforces the Hydra Cloud paywall. Every
+// paid feature is either satisfied locally (avatar/banner served from Drive)
+// or intercepted before it reaches Hydra's server (cloud saves go to Drive
+// instead). The interceptor below rewrites /profile/me responses so the
+// renderer's Redux slice sees an evergreen subscription, and hasActiveSubscription()
+// hard-returns true so main-process gates never throw SubscriptionRequiredError.
+const HYBRID_SUBSCRIPTION_PAYLOAD = {
+  id: "hybrid-drive",
+  status: "active" as const,
+  plan: { id: "hybrid", name: "Google Drive (Hybrid)" },
+  expiresAt: "9999-12-31T23:59:59.000Z",
+  paymentMethod: "pix" as const,
+};
 
 export interface HydraApiOptions {
   needsAuth?: boolean;
@@ -51,8 +67,30 @@ export class HydraApi {
   }
 
   public static hasActiveSubscription() {
-    const expiresAt = new Date(this.userAuth.subscription?.expiresAt ?? 0);
-    return expiresAt > new Date();
+    // Hybrid: paywalled features are unlocked locally. Every caller that used
+    // to gate on this flag (cloud-sync.ts, game-artwork-cloud.ts, etc.) is
+    // either intercepted to hit Google Drive or already rewritten to skip the
+    // Hydra endpoint entirely, so it's always safe to return true here.
+    return true;
+  }
+
+  public static async applyHybridProfileOverrides<T>(payload: T): Promise<T> {
+    if (!payload || typeof payload !== "object") return payload;
+    const stored = await getStoredProfileAssetUrls().catch(() => ({
+      profileImageUrl: null,
+      backgroundImageUrl: null,
+    }));
+    const overrides: Record<string, unknown> = {
+      subscription: HYBRID_SUBSCRIPTION_PAYLOAD,
+      hasActiveSubscription: true,
+      quirks: {
+        ...((payload as any).quirks ?? {}),
+        backupsPerGameLimit: 0,
+      },
+    };
+    if (stored.profileImageUrl) overrides.profileImageUrl = stored.profileImageUrl;
+    if (stored.backgroundImageUrl) overrides.backgroundImageUrl = stored.backgroundImageUrl;
+    return { ...(payload as object), ...overrides } as T;
   }
 
   static async handleExternalAuth(uri: string) {
@@ -139,10 +177,14 @@ export class HydraApi {
   }
 
   static async setupApi() {
-    this.instance = axios.create({
+    const base = axios.create({
       baseURL: import.meta.env.MAIN_VITE_API_URL,
       headers: { "User-Agent": `Hydra Launcher v${appVersion}` },
     });
+    // Wrap the default adapter with the hybrid one so specific URLs get
+    // served from Drive + local Level DB before ever leaving the process.
+    base.defaults.adapter = createHybridAdapter(base.defaults.adapter as any);
+    this.instance = base;
 
     if (this.ADD_LOG_INTERCEPTOR) {
       this.instance.interceptors.request.use(
@@ -160,7 +202,7 @@ export class HydraApi {
         }
       );
       this.instance.interceptors.response.use(
-        (response) => {
+        async (response) => {
           logger.log(" ---- RESPONSE -----");
           const data = Array.isArray(response.data)
             ? response.data
@@ -176,6 +218,21 @@ export class HydraApi {
             response.config.url,
             data
           );
+          // Hybrid rewrite: any Hydra `/profile/me` response (or the
+          // `/profile` PATCH echo, which has the same shape) gets a permanent
+          // active subscription grafted on, and locally-stored Drive URLs for
+          // avatar/banner override whatever Hydra returned. This is what
+          // unlocks the entire Redux paywall UI without patching individual
+          // gates in the renderer.
+          const requestUrl = response.config?.url ?? "";
+          if (
+            response.status === 200 &&
+            response.data &&
+            typeof response.data === "object" &&
+            (requestUrl.endsWith("/profile/me") || requestUrl.endsWith("/profile"))
+          ) {
+            response.data = await HydraApi.applyHybridProfileOverrides(response.data);
+          }
           return response;
         },
         (error) => {
@@ -347,15 +404,13 @@ export class HydraApi {
 
   private static async validateOptions(options?: HydraApiOptions) {
     const needsAuth = options?.needsAuth == undefined || options.needsAuth;
-    const needsSubscription = options?.needsSubscription === true;
-
+    // Hybrid: needsSubscription is a no-op — hasActiveSubscription() is
+    // always true so any caller passing that flag would have proceeded
+    // anyway. The check is dropped here to avoid an import cycle around
+    // SubscriptionRequiredError, which no longer has a live throw site.
     if (needsAuth) {
       if (!this.isLoggedIn()) throw new UserNotLoggedInError();
       await this.revalidateAccessTokenIfExpired();
-    }
-
-    if (needsSubscription && !this.hasActiveSubscription()) {
-      throw new SubscriptionRequiredError();
     }
   }
 

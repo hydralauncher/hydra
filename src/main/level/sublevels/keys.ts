@@ -31,4 +31,16 @@ export const levelKeys = {
   ps1MemoryCardSaves: "ps1MemoryCardSaves",
   ps1MemoryCardSave: (cardFilePath: string, identifier: string) =>
     `${cardFilePath}::${identifier}`,
+
+  // Hybrid Google Drive state — see src/main/services/drive/
+  driveOAuthClient: "driveOAuthClient",
+  driveAuth: "driveAuth",
+  driveRootFolderId: "driveRootFolderId",
+  driveProfileImageUrl: "driveProfileImageUrl",
+  driveBackgroundImageUrl: "driveBackgroundImageUrl",
+  driveSaveArtifacts: (shop: GameShop, objectId: string) =>
+    `driveSaveArtifacts:${shop}:${objectId}`,
+  driveEmulationSaves: "driveEmulationSaves",
+  driveCustomArtwork: (shop: GameShop, objectId: string, kind: string) =>
+    `driveCustomArtwork:${shop}:${objectId}:${kind}`,
 };

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { UpdateProfileRequest, UserProfile } from "@types";
 import { omit } from "lodash-es";
-import axios from "axios";
+import { hybridAxios } from "@main/services/hybrid-axios";
 import { fileTypeFromFile } from "file-type";
 
 export const patchUserProfile = async (updateProfile: UpdateProfileRequest) => {
@@ -29,7 +29,7 @@ const uploadImage = async (
 
   const mimeType = await fileTypeFromFile(imagePath);
 
-  await axios.put(response.presignedUrl, fileBuffer, {
+  await hybridAxios.put(response.presignedUrl, fileBuffer, {
     headers: {
       "Content-Type": mimeType?.mime,
     },

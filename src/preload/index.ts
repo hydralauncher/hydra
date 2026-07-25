@@ -1080,6 +1080,13 @@ contextBridge.exposeInMainWorld("electron", {
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
 
+  /* Google Drive (hybrid cloud storage) */
+  connectDrive: () => ipcRenderer.invoke("connectDrive"),
+  disconnectDrive: () => ipcRenderer.invoke("disconnectDrive"),
+  getDriveStatus: () => ipcRenderer.invoke("getDriveStatus"),
+  setDriveOAuthClient: (input: { clientId: string; clientSecret?: string }) =>
+    ipcRenderer.invoke("setDriveOAuthClient", input),
+
   /* Profile */
   getMe: () => ipcRenderer.invoke("getMe"),
   updateProfile: (updateProfile: UpdateProfileRequest) =>

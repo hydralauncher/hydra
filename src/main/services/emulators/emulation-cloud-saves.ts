@@ -1,6 +1,6 @@
 import os from "node:os";
 
-import axios from "axios";
+import { hybridAxios } from "@main/services/hybrid-axios";
 
 import { HydraApi } from "@main/services/hydra-api";
 import type {
@@ -67,7 +67,7 @@ export const uploadEmulationSave = async (
     SUB
   );
 
-  await axios.put(uploadUrl, input.buffer, {
+  await hybridAxios.put(uploadUrl, input.buffer, {
     headers: { "Content-Type": "application/octet-stream" },
   });
 
@@ -112,7 +112,7 @@ export const downloadEmulationSaveBytes = async (
     undefined,
     SUB
   );
-  const response = await axios.get<ArrayBuffer>(downloadUrl, {
+  const response = await hybridAxios.get<ArrayBuffer>(downloadUrl, {
     responseType: "arraybuffer",
   });
   return Buffer.from(response.data);

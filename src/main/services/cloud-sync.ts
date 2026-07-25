@@ -1,21 +1,20 @@
-import { levelKeys, gamesSublevel, db } from "@main/level";
+import { gamesSublevel, levelKeys } from "@main/level";
 import path from "node:path";
 import * as tar from "tar";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
-import type { GameShop, User } from "@types";
+import type { GameShop } from "@types";
 import { backupsPath } from "@main/constants";
-import { HydraApi } from "./hydra-api";
 import { normalizePath, parseRegFile } from "@main/helpers";
 import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
-import axios from "axios";
 import { Ludusavi } from "./ludusavi";
-import { formatDate, SubscriptionRequiredError } from "@shared";
+import { formatDate } from "@shared";
 import i18next, { t } from "i18next";
 import { SystemPath } from "./system-path";
 import { Wine } from "./wine";
+import { uploadSaveArtifact } from "./drive/drive-storage";
 
 export class CloudSync {
   public static getWindowsLikeUserProfilePath(winePrefixPath?: string | null) {
@@ -76,7 +75,6 @@ export class CloudSync {
   ) {
     const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
 
-    // Remove existing backup
     if (fs.existsSync(backupPath)) {
       try {
         await fs.promises.rm(backupPath, { recursive: true });
@@ -101,23 +99,16 @@ export class CloudSync {
     return tarLocation;
   }
 
+  // Hybrid mode: uploads land in the user's Google Drive instead of Hydra
+  // Cloud. The archive shape (Ludusavi output tarred with no gzip) matches
+  // what the download flow expects to extract, so this stays transparent to
+  // the rest of the app.
   public static async uploadSaveGame(
     objectId: string,
     shop: GameShop,
     downloadOptionTitle: string | null,
     label?: string
   ) {
-    const hasActiveSubscription = await db
-      .get<string, User>(levelKeys.user, { valueEncoding: "json" })
-      .then((user) => {
-        const expiresAt = new Date(user?.subscription?.expiresAt ?? 0);
-        return expiresAt > new Date();
-      });
-
-    if (!hasActiveSubscription) {
-      throw new SubscriptionRequiredError();
-    }
-
     const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
     const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
       game?.winePrefixPath,
@@ -130,50 +121,41 @@ export class CloudSync {
       effectiveWinePrefixPath
     );
 
-    const stat = await fs.promises.stat(bundleLocation);
     let resolvedWinePrefixPath: string | null = null;
-
     if (effectiveWinePrefixPath) {
       resolvedWinePrefixPath = fs.existsSync(effectiveWinePrefixPath)
         ? fs.realpathSync(effectiveWinePrefixPath)
         : effectiveWinePrefixPath;
     }
 
-    const { uploadUrl } = await HydraApi.post<{
-      id: string;
-      uploadUrl: string;
-    }>("/profile/games/artifacts", {
-      artifactLengthInBytes: stat.size,
-      shop,
-      objectId,
-      hostname: os.hostname(),
-      winePrefixPath: resolvedWinePrefixPath,
-      homeDir: this.getWindowsLikeUserProfilePath(effectiveWinePrefixPath),
-      downloadOptionTitle,
-      platform: process.platform,
-      label,
-    });
-
-    const fileBuffer = await fs.promises.readFile(bundleLocation);
-
-    await axios.put(uploadUrl, fileBuffer, {
-      headers: {
-        "Content-Type": "application/tar",
-      },
-      onUploadProgress: (progressEvent) => {
-        logger.log(progressEvent);
-      },
-    });
-
-    WindowManager.sendToAppWindows(
-      `on-upload-complete-${objectId}-${shop}`,
-      true
-    );
-
     try {
-      await fs.promises.unlink(bundleLocation);
+      await uploadSaveArtifact(shop, objectId, bundleLocation, {
+        id: crypto.randomUUID(),
+        hostname: os.hostname(),
+        homeDir: this.getWindowsLikeUserProfilePath(effectiveWinePrefixPath),
+        winePrefixPath: resolvedWinePrefixPath,
+        downloadOptionTitle,
+        platform: process.platform,
+        label: label ?? this.getBackupLabel(false),
+      });
+
+      WindowManager.sendToAppWindows(
+        `on-upload-complete-${objectId}-${shop}`,
+        true
+      );
     } catch (error) {
-      logger.error("Failed to remove tar file", { bundleLocation, error });
+      logger.error("Cloud save upload to Drive failed", { shop, objectId, error });
+      WindowManager.sendToAppWindows(
+        `on-upload-complete-${objectId}-${shop}`,
+        false
+      );
+      throw error;
+    } finally {
+      try {
+        await fs.promises.unlink(bundleLocation);
+      } catch (error) {
+        logger.error("Failed to remove tar file", { bundleLocation, error });
+      }
     }
   }
 }

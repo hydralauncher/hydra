@@ -8,6 +8,7 @@ import "./catalogue";
 import "./cloud-save";
 import "./connectivity";
 import "./download-sources";
+import "./drive";
 import "./friends";
 import "./hardware";
 import "./library";

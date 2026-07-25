@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import axios from "axios";
 import { fileTypeFromFile } from "file-type";
 
 import type { ArtworkAssetType, ArtworkKind, GameShop } from "@types";
 
 import { HydraApi } from "@main/services/hydra-api";
+import { hybridAxios } from "@main/services/hybrid-axios";
 import { logger } from "./logger";
 
 const MAX_ARTWORK_SIZE_IN_BYTES = 1024 * 1024 * 20;
@@ -104,7 +104,7 @@ export const uploadCustomArtwork = async (
       SUBSCRIPTION_OPTIONS
     );
 
-    await axios.put(presignedUrl, fileBuffer, {
+    await hybridAxios.put(presignedUrl, fileBuffer, {
       headers: { "Content-Type": MIME_BY_EXTENSION[imageExt] },
     });
 

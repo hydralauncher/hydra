@@ -843,6 +843,20 @@ declare global {
     ) => Promise<UserAchievement[] | null>;
     resetRetroAchievementsAchievements: () => Promise<void>;
 
+    /* Google Drive (hybrid cloud storage) */
+    connectDrive: () => Promise<{ ok: true }>;
+    disconnectDrive: () => Promise<{ ok: true }>;
+    getDriveStatus: () => Promise<{
+      hasOAuthClient: boolean;
+      connected: boolean;
+      storageQuota?: { limitBytes: number | null; usageBytes: number };
+      user?: { email: string; displayName: string };
+    }>;
+    setDriveOAuthClient: (input: {
+      clientId: string;
+      clientSecret?: string;
+    }) => Promise<{ ok: true }>;
+
     /* Profile */
     getMe: () => Promise<UserDetails | null>;
     updateProfile: (
