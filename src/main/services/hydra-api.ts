@@ -173,6 +173,7 @@ export class HydraApi {
       expirationTimestamp: 0,
       subscription: null,
     };
+    this.currentUserId = null;
 
     const { AchievementWatcherManager } = await import(
       "./achievements/achievement-watcher-manager"
@@ -309,6 +310,14 @@ export class HydraApi {
 
     const userAuth = result.at(0) as Auth | undefined;
     const user = result.at(1) as User | undefined;
+
+    // Seed currentUserId eagerly from the User cached in Level DB so the
+    // /users/:userId interceptor can identify "our own profile" even when
+    // that response happens to arrive before the /profile/me response does
+    // (they fire in parallel on boot and either can win the race).
+    if (user?.id) {
+      HydraApi.currentUserId = user.id;
+    }
 
     this.userAuth = {
       authToken: userAuth?.accessToken ?? "",
