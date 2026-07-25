@@ -28,6 +28,13 @@ export interface CloudSavePresentation {
   tone: CloudSavePresentationTone;
 }
 
+export const isCloudSaveOverviewEmpty = (overview: CloudSaveOverview | null) =>
+  overview?.state === "untracked";
+
+export const canOpenCloudSaveFileBrowser = (
+  overview: CloudSaveOverview | null
+) => overview !== null && !isCloudSaveOverviewEmpty(overview);
+
 interface GamePageOpenSyncInput {
   overview: CloudSaveOverview | null;
   shop: GameShop;
@@ -206,7 +213,7 @@ export const getCloudSavePanelAction = (
       icon: "restore",
     };
   }
-  if (state === "synced") {
+  if (state === "synced" || state === "untracked") {
     return {
       kind: "verify",
       labelKey: "cloud_save_v2_check_again",
