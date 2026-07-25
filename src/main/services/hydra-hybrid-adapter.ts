@@ -1,7 +1,7 @@
-import type {
-  AxiosAdapter,
-  AxiosRequestConfig,
-  AxiosResponse,
+import axios, {
+  type AxiosAdapter,
+  type AxiosRequestConfig,
+  type AxiosResponse,
 } from "axios";
 import {
   clearCustomArtwork,
@@ -431,7 +431,15 @@ async function normalizeProfileAssetClear(config: AxiosRequestConfig): Promise<A
   return config;
 }
 
-export function createHybridAdapter(defaultAdapter: AxiosAdapter): AxiosAdapter {
+export function createHybridAdapter(
+  defaultAdapterConfig: unknown
+): AxiosAdapter {
+  // In axios 1.x, `axios.defaults.adapter` is a list of adapter names
+  // (['xhr','http','fetch']) that axios resolves at request time — not a
+  // callable function. We resolve it here once and then invoke it directly
+  // for pass-through requests.
+  const defaultAdapter = axios.getAdapter(defaultAdapterConfig as any);
+
   return async (config: AxiosRequestConfig): Promise<AxiosResponse> => {
     const method = (config.method ?? "get").toLowerCase() as Method;
     const rawUrl = config.url ?? "";
@@ -468,6 +476,6 @@ export function createHybridAdapter(defaultAdapter: AxiosAdapter): AxiosAdapter 
       }
     }
 
-    return defaultAdapter(rewritten as any);
+    return defaultAdapter(rewritten as any) as Promise<AxiosResponse>;
   };
 }
