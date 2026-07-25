@@ -6,8 +6,10 @@ import type { CloudSaveOverview } from "@types";
 import * as presentationModule from "./cloud-save-presentation.ts";
 
 const {
+  canOpenCloudSaveFileBrowser,
   getCloudSavePanelAction,
   getCloudSavePresentation,
+  isCloudSaveOverviewEmpty,
   shouldSyncCloudSaveOnGamePage,
 } = presentationModule;
 
@@ -161,10 +163,46 @@ describe("cloud save panel action", () => {
   it("uses specific actions for partial, synced and empty states", () => {
     assert.equal(getCloudSavePanelAction("partial", "none").kind, "details");
     assert.equal(getCloudSavePanelAction("synced", "none").kind, "verify");
-    assert.equal(getCloudSavePanelAction("untracked", "none").kind, "none");
+    assert.equal(getCloudSavePanelAction("untracked", "none").kind, "verify");
     assert.equal(
       getCloudSavePanelAction("conflict", "conflict").kind,
       "conflict"
+    );
+  });
+
+  it("opens the file browser only when the overview has files to inspect", () => {
+    assert.equal(canOpenCloudSaveFileBrowser(null), false);
+    assert.equal(
+      canOpenCloudSaveFileBrowser(overview({ state: "untracked" })),
+      false
+    );
+    assert.equal(
+      canOpenCloudSaveFileBrowser(
+        overview({
+          state: "local-ahead",
+          activeRemoteSnapshot: null,
+          suggestedAction: "upload",
+        })
+      ),
+      true
+    );
+  });
+
+  it("identifies only an untracked overview as the empty state", () => {
+    assert.equal(isCloudSaveOverviewEmpty(null), false);
+    assert.equal(
+      isCloudSaveOverviewEmpty(overview({ state: "untracked" })),
+      true
+    );
+    assert.equal(
+      isCloudSaveOverviewEmpty(
+        overview({
+          state: "local-ahead",
+          activeRemoteSnapshot: null,
+          suggestedAction: "upload",
+        })
+      ),
+      false
     );
   });
 });

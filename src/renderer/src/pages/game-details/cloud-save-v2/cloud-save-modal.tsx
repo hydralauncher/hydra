@@ -19,8 +19,10 @@ import { formatBytes } from "@shared";
 import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 import {
+  canOpenCloudSaveFileBrowser,
   getCloudSavePanelAction,
   getCloudSavePresentation,
+  isCloudSaveOverviewEmpty,
 } from "./cloud-save-presentation";
 
 export interface CloudSavePanelProps {
@@ -316,6 +318,12 @@ export function CloudSavePanel({
         <p className="cloud-save-v2__error">{t("cloud_save_v2_error")}</p>
       )}
 
+      {!isLoading && isCloudSaveOverviewEmpty(overview) && (
+        <p className="cloud-save-v2__empty-message">
+          {t("cloud_save_v2_no_snapshots")}
+        </p>
+      )}
+
       {!hasExecutablePath ? (
         missingExecutableCard
       ) : (
@@ -341,7 +349,8 @@ export function CloudSavePanel({
                   )}
                 </>
               ) : (
-                !isLoading && (
+                !isLoading &&
+                canOpenCloudSaveFileBrowser(overview) && (
                   <div className="cloud-save-v2__empty cloud-save-v2__empty--inline">
                     <button
                       type="button"
