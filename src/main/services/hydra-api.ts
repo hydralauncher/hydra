@@ -256,6 +256,29 @@ export class HydraApi {
               HydraApi.currentUserId = responseId;
             }
             response.data = await HydraApi.applyHybridProfileOverrides(response.data);
+            // Temporary debug: show what my hybrid override actually put on
+            // the response. Look for "[hybrid override]" lines in the log.
+            logger.log(
+              "[hybrid override]",
+              requestPath,
+              "profileImageUrl=",
+              (response.data as { profileImageUrl?: string | null })
+                ?.profileImageUrl,
+              "backgroundImageUrl=",
+              (response.data as { backgroundImageUrl?: string | null })
+                ?.backgroundImageUrl,
+              "currentUserId=",
+              HydraApi.currentUserId
+            );
+          } else if (userMatch) {
+            logger.log(
+              "[hybrid override] SKIPPED",
+              requestPath,
+              "responseId=",
+              responseId,
+              "currentUserId=",
+              HydraApi.currentUserId
+            );
           }
           return response;
         },
