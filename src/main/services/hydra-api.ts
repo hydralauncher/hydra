@@ -62,6 +62,13 @@ export class HydraApi {
     subscription: null,
   };
 
+  // Cached id of the signed-in user. Populated the first time we see a
+  // /profile/me or /profile PATCH response. Used by the response interceptor
+  // to decide whether a /users/:userId response is for the current user
+  // (so we should inject our Drive-hosted avatar/banner) or someone else
+  // (leave the response alone).
+  private static currentUserId: string | null = null;
+
   public static isLoggedIn() {
     return this.userAuth.authToken !== "";
   }
@@ -223,14 +230,30 @@ export class HydraApi {
           // active subscription grafted on, and locally-stored Drive URLs for
           // avatar/banner override whatever Hydra returned. This is what
           // unlocks the entire Redux paywall UI without patching individual
-          // gates in the renderer.
-          const requestUrl = response.config?.url ?? "";
+          // gates in the renderer. We also apply the same overrides to
+          // `/users/:userId` responses when the id matches the signed-in
+          // user, so their own profile page shows the Drive avatar too.
+          const requestPath = (response.config?.url ?? "").split("?")[0];
+          const isSelfProfile =
+            requestPath.endsWith("/profile/me") || requestPath.endsWith("/profile");
+          const userMatch = /^\/users\/([^/]+)$/.exec(requestPath);
+          const responseId =
+            response.data && typeof response.data === "object"
+              ? (response.data as { id?: string }).id
+              : undefined;
+          const isOwnUserPage = Boolean(
+            userMatch && responseId && HydraApi.currentUserId === responseId
+          );
+
           if (
             response.status === 200 &&
             response.data &&
             typeof response.data === "object" &&
-            (requestUrl.endsWith("/profile/me") || requestUrl.endsWith("/profile"))
+            (isSelfProfile || isOwnUserPage)
           ) {
+            if (isSelfProfile && typeof responseId === "string") {
+              HydraApi.currentUserId = responseId;
+            }
             response.data = await HydraApi.applyHybridProfileOverrides(response.data);
           }
           return response;
