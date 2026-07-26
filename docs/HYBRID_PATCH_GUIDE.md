@@ -58,6 +58,8 @@ git merge --ff-only merge/upstream-YYYY-MM-DD
 git push origin main
 ```
 
+To cut a release from the merged `main`, follow §12.
+
 ---
 
 ## 4. Files We Own (new — no merge conflicts unless upstream lands at the same path)
@@ -261,4 +263,150 @@ MODIFIED:
   src/main/services/update-profile.ts        (hybridAxios for PUT)
   src/main/services/game-artwork-cloud.ts    (hybridAxios for PUT)
   src/main/services/emulation-cloud-saves.ts (hybridAxios for PUT)
+  electron-builder.yml                       (publish.owner: spoofer8, updater points at fork)
 ```
+
+---
+
+## 12. Release Process
+
+### 12.1 One-time repo setup (already done for `spoofer8/hydra`)
+
+**Publish target** — in `electron-builder.yml`:
+```yaml
+publish:
+  provider: github
+  owner: spoofer8
+  repo: hydra
+```
+This bakes an `app-update.yml` into every build telling electron-updater to poll `github.com/spoofer8/hydra/releases`. Auto-updates come from your fork, not upstream. **If you re-merge upstream and this key gets clobbered back to `hydralauncher`, updates start pulling from upstream and your users get a broken app.** Always re-check this file after a merge.
+
+**Repo variables** (set via `gh variable set …`, one-time — reused by every release build):
+
+| Variable | Value | Notes |
+|---|---|---|
+| `MAIN_VITE_API_URL` | `https://hydra-api-us-east-1.losbroxas.org` | Hydra's public API |
+| `MAIN_VITE_AUTH_URL` | `https://auth.hydralauncher.gg` | Auth server |
+| `MAIN_VITE_CHECKOUT_URL` | `https://checkout.hydralauncher.gg` | Subscription checkout (bypassed but must not be empty) |
+| `EXTERNAL_RESOURCES_URL` | `https://assets.hydralauncher.gg` | Static assets (icons, banners) |
+| `MAIN_VITE_WS_URL` | `wss://ws.hydralauncher.gg` | Achievement/friend WebSocket |
+| `MAIN_VITE_NIMBUS_API_URL` | `https://hydra-api-us-east-1.losbroxas.org` | Only used by the vikingfile hoster; placeholder is fine |
+
+GitHub rejects empty-string variable values, so `MAIN_VITE_NIMBUS_API_URL` is set to the API URL as a placeholder — its only consumer (`src/main/services/hosters/vikingfile.ts`) will just get 404s, no crash.
+
+**Optional (Sentry):** `SENTRY_AUTH_TOKEN` (secret) and `SENTRY_DSN` (variable). Skipping them is fine — the build succeeds without source-map upload.
+
+Verify current state anytime:
+```bash
+gh variable list --repo spoofer8/hydra
+gh secret list --repo spoofer8/hydra
+```
+
+### 12.2 Version scheme
+
+`package.json → version` uses:
+
+```
+<upstream-version>-hybrid.<counter>
+```
+
+Examples:
+- `4.0.6-hybrid.1` — first fork release built on top of upstream 4.0.6
+- `4.0.6-hybrid.2` — second fork build, still on upstream 4.0.6 base
+- `4.0.7-hybrid.0` — after merging upstream 4.0.7, reset counter to 0
+
+Why: distinguishes fork builds from official upstream releases in logs, GitHub tags, and the "About" dialog, without confusing semver ordering (a `-hybrid.N` suffix sorts *below* the plain upstream version, so a user manually installing upstream `4.0.6` would still see the fork as an "older" prerelease — which is intentional; we don't want fork builds to auto-update over official Hydra installs).
+
+### 12.3 Cutting a release — commands
+
+From a clean `main` (typecheck green, verification checklist §7 passed):
+
+```bash
+# 1. Bump version
+# Edit package.json → "version": "4.0.7-hybrid.0"  (or next appropriate)
+
+# 2. Commit
+git add package.json
+git commit -m "release: v4.0.7-hybrid.0"
+git push origin main
+
+# 3. Create + push release branch (triggers the Release workflow)
+git checkout -b release/v4.0.7-hybrid.0
+git push -u origin release/v4.0.7-hybrid.0
+```
+
+The workflow at `.github/workflows/release.yml` fires on any `release/**` push and:
+- Builds Linux and Windows in parallel on GitHub-hosted runners
+- Bundles the Python RPC binary via `cx_Freeze` (Windows runner has Python preinstalled — no local build needed)
+- Publishes a **draft** release to `spoofer8/hydra/releases`
+
+Watch progress:
+```bash
+gh run list --repo spoofer8/hydra --branch release/v4.0.7-hybrid.0
+gh run watch --repo spoofer8/hydra <run-id>
+```
+
+Typical duration: 15–25 min.
+
+### 12.4 After the workflow completes
+
+1. Open https://github.com/spoofer8/hydra/releases — a **draft** release with the version tag will be there.
+2. Verify assets uploaded:
+   - `hydralauncher-<version>-setup.exe` (Windows installer)
+   - `hydralauncher-<version>.AppImage` (Linux)
+   - `latest.yml` / `latest-linux.yml` — **critical for auto-update**; if these are missing, updater clients won't see the release
+3. Edit release notes (optional).
+4. Click **Publish release**. Auto-updater picks it up on next check-in (usually within a few hours of an existing install).
+
+### 12.5 Auto-update mechanics
+
+- Every install polls `https://github.com/spoofer8/hydra/releases/latest` via `electron-updater`.
+- `latest.yml` (from the release assets) is fetched, its `version` compared to the running version.
+- If newer, the installer is downloaded in the background, and the app prompts the user to restart on next launch.
+- Prereleases (anything with a `-` in the version like `-hybrid.1`) are **only** offered when `allowPrerelease: true` — check `electron-builder.yml` if you want fork builds served as stable. Currently the fork uses `-hybrid.N` and users are expected to enable prerelease updates. To serve fork builds as stable, drop the `-hybrid` suffix and just use e.g. `4.0.6.1` — but semver won't like it. Cleanest alternative: bump to a distinct minor line (e.g. `4.100.x`) so no upstream version ever collides.
+
+### 12.6 Troubleshooting
+
+**Workflow didn't fire after pushing the branch.**
+- Confirm the branch prefix is exactly `release/` (with the slash). `releases/` or `Release/` won't match.
+- Check the Actions tab is enabled at the fork level (Settings → Actions → General).
+
+**Release workflow ran but no assets uploaded.**
+- Check the `GITHUB_TOKEN` in the workflow has `contents: write`. It does by default on fork repos, but org policies can strip it. Add `permissions: { contents: write }` to the job if missing.
+
+**Windows build fails at `winCodeSign` extraction with symlink error.**
+- Not a workflow issue — that's the *local* Windows build. Enable Developer Mode (Settings → Privacy & security → For developers) or run as admin. GitHub runners are unaffected.
+
+**Auto-update not triggering on existing installs.**
+- Check `latest.yml` is present on the release. If missing, `electron-builder` didn't publish it — usually a `GITHUB_TOKEN` scope issue.
+- Confirm the installed app's `resources/app-update.yml` has `owner: spoofer8`. If it still says `hydralauncher`, the build predates the publish-owner change (§12.1) and needs a fresh install to pick up the new updater target.
+- Prereleases require `allowPrerelease: true` client-side — see §12.5.
+
+**Wrong version bumped / need to re-release.**
+- Delete the draft release: `gh release delete v<version> --repo spoofer8/hydra --yes`
+- Delete the release branch: `git push origin --delete release/v<version>`
+- Bump version again, push a new `release/vX.Y.Z-hybrid.N+1` branch. Never reuse a version tag — auto-updater caches ETags.
+
+**Missing repo variables.**
+- Symptom: build succeeds but the app boots pointing at `undefined` for API endpoints and every request 404s.
+- Run `gh variable list --repo spoofer8/hydra` and compare against the table in §12.1.
+
+---
+
+## 13. Release Checklist (copy-paste)
+
+```
+[ ] main is clean, typecheck passes
+[ ] §7 verification checklist passed on Windows dev build
+[ ] electron-builder.yml → publish.owner is `spoofer8` (not `hydralauncher`)
+[ ] package.json version bumped to X.Y.Z-hybrid.N
+[ ] Commit + push to main
+[ ] Create release/vX.Y.Z-hybrid.N branch, push it
+[ ] Watch workflow: gh run watch --repo spoofer8/hydra <id>
+[ ] Draft release created at github.com/spoofer8/hydra/releases
+[ ] Assets present: <version>-setup.exe, .AppImage, latest.yml, latest-linux.yml
+[ ] Edit release notes
+[ ] Publish release
+[ ] Test auto-update on one existing install
+```
+
