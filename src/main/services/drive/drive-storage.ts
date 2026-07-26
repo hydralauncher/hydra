@@ -1,5 +1,9 @@
+import fs from "node:fs";
+import fsp from "node:fs/promises";
+import path from "node:path";
 import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
+import { ASSETS_PATH } from "@main/constants";
 import {
   findOrCreateFolder,
   uploadFileFromDisk,
@@ -10,6 +14,31 @@ import {
   makePublic,
 } from "./drive-client.js";
 import { isDriveConnected } from "./drive-oauth.js";
+
+// Hybrid images are ALSO written to a local cache under userData/Assets/hybrid
+// and served via Hydra's built-in `local:` protocol. Google's public image
+// endpoints (lh3.googleusercontent.com, drive.google.com/uc) rate-limit and
+// ORB-block hotlinked <img src=…> loads for personal accounts, so we don't
+// rely on them for display; Drive is kept purely as a backup / restore
+// destination. The local file path is what the renderer actually sees.
+const HYBRID_CACHE_DIR = path.join(ASSETS_PATH, "hybrid");
+
+function ensureCacheDir(...sub: string[]): string {
+  const dir = path.join(HYBRID_CACHE_DIR, ...sub);
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function toLocalUrl(absolutePath: string): string {
+  // Hydra's `local:` protocol handler expects the raw absolute path with
+  // forward slashes; net.fetch(pathToFileURL(...)) normalises the rest.
+  return `local:${absolutePath.replace(/\\/g, "/")}`;
+}
+
+function extractLocalPathFromUrl(url: string): string | null {
+  if (!url.startsWith("local:")) return null;
+  return url.slice("local:".length);
+}
 
 // The hybrid layer keeps ALL user-authored blobs under a single top-level
 // folder in the user's Drive so it's easy to spot, back up, or delete. Inside
@@ -191,8 +220,7 @@ export async function uploadProfileAsset(
   await ensureConnected();
   const folderId = await getSubfolder("profile");
 
-  // Replace any existing avatar/banner so the user's Drive doesn't accumulate
-  // orphaned copies.
+  // Clean previous versions: both the Drive copy AND the local cache file.
   const previousUrl = await db
     .get<string, string>(
       asset === "profile-image"
@@ -201,25 +229,46 @@ export async function uploadProfileAsset(
       { valueEncoding: "utf8" }
     )
     .catch(() => null);
-  if (previousUrl) {
-    const oldId = extractDriveIdFromUrl(previousUrl);
-    if (oldId) await deleteFile(oldId).catch(() => undefined);
-  }
+  await removePreviousAsset(previousUrl);
 
   const uploaded = await uploadFileFromBuffer(data, {
     name: `${asset === "profile-image" ? "avatar" : "banner"}.${ext}`,
     mimeType,
     parentId: folderId,
+    // Stash the Drive fileId in appProperties so a future restore-from-Drive
+    // path can pick it back up if the local cache is wiped.
+    appProperties: { hydraAsset: asset },
   });
-  const publicUrl = await makePublic(uploaded.id);
+  await makePublic(uploaded.id).catch(() => undefined);
+
+  // Write the local cache copy the renderer will actually load from.
+  const cacheDir = ensureCacheDir("profile");
+  const cacheFile = path.join(
+    cacheDir,
+    `${asset === "profile-image" ? "avatar" : "banner"}-${uploaded.id}.${ext}`
+  );
+  await fsp.writeFile(cacheFile, data);
+
+  const localUrl = toLocalUrl(cacheFile);
   await db.put(
     asset === "profile-image"
       ? levelKeys.driveProfileImageUrl
       : levelKeys.driveBackgroundImageUrl,
-    publicUrl,
+    localUrl,
     { valueEncoding: "utf8" }
   );
-  return publicUrl;
+  return localUrl;
+}
+
+async function removePreviousAsset(url: string | null): Promise<void> {
+  if (!url) return;
+  const localPath = extractLocalPathFromUrl(url);
+  if (localPath) {
+    await fsp.unlink(localPath).catch(() => undefined);
+    return;
+  }
+  const oldId = extractDriveIdFromUrl(url);
+  if (oldId) await deleteFile(oldId).catch(() => undefined);
 }
 
 export async function clearProfileAsset(asset: ProfileAsset): Promise<void> {
@@ -231,8 +280,7 @@ export async function clearProfileAsset(asset: ProfileAsset): Promise<void> {
     .get<string, string>(key, { valueEncoding: "utf8" })
     .catch(() => null);
   if (url) {
-    const id = extractDriveIdFromUrl(url);
-    if (id) await deleteFile(id).catch(() => undefined);
+    await removePreviousAsset(url);
     await db.del(key).catch(() => undefined);
   }
 }
@@ -286,23 +334,28 @@ export async function uploadCustomArtwork(
       { valueEncoding: "utf8" }
     )
     .catch(() => null);
-  if (previous) {
-    const oldId = extractDriveIdFromUrl(previous);
-    if (oldId) await deleteFile(oldId).catch(() => undefined);
-  }
+  await removePreviousAsset(previous);
 
   const uploaded = await uploadFileFromBuffer(fileBuffer, {
     name: `artwork.${ext}`,
     mimeType,
     parentId: folderId,
   });
-  const url = await makePublic(uploaded.id);
+  await makePublic(uploaded.id).catch(() => undefined);
+
+  // Local cache so the renderer sees the artwork immediately without hitting
+  // Google's rate-limited hotlink endpoint.
+  const cacheDir = ensureCacheDir("artwork", `${shop}-${objectId}`, kind);
+  const cacheFile = path.join(cacheDir, `${uploaded.id}.${ext}`);
+  await fsp.writeFile(cacheFile, fileBuffer);
+
+  const localUrl = toLocalUrl(cacheFile);
   await db.put(
     levelKeys.driveCustomArtwork(shop as any, objectId, kind),
-    url,
+    localUrl,
     { valueEncoding: "utf8" }
   );
-  return url;
+  return localUrl;
 }
 
 export async function clearCustomArtwork(
@@ -317,8 +370,7 @@ export async function clearCustomArtwork(
     )
     .catch(() => null);
   if (url) {
-    const id = extractDriveIdFromUrl(url);
-    if (id) await deleteFile(id).catch(() => undefined);
+    await removePreviousAsset(url);
     await db.del(levelKeys.driveCustomArtwork(shop as any, objectId, kind))
       .catch(() => undefined);
   }
