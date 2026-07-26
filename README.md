@@ -32,7 +32,7 @@ Please, refer to our Documentation pages: [docs.hydralauncher.gg](https://docs.h
 ### Local development requirements
 
 - Node.js + Yarn
-- Python 3.9+ with `pip install -r requirements.txt`
+- Python 3.9 with `pip install -r requirements.txt`
 - Rust toolchain (for `hydra-native`)
 
 After installing dependencies, `postinstall` now builds the Rust native addon automatically (`hydra-native/hydra-native.node`).
