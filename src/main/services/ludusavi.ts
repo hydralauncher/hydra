@@ -109,6 +109,33 @@ export class Ludusavi {
     };
   }
 
+  public static async restoreGame(
+    _shop: GameShop,
+    objectId: string,
+    backupPath: string,
+    winePrefix?: string | null
+  ): Promise<void> {
+    const args = [
+      "--config",
+      this.configPath,
+      "restore",
+      "--force",
+      "--api",
+      "--path",
+      backupPath,
+      "--games",
+      objectId,
+    ];
+    if (winePrefix) args.push("--wine-prefix", winePrefix);
+
+    return new Promise((resolve, reject) => {
+      cp.execFile(this.binaryPath, args, (err: cp.ExecFileException | null) => {
+        if (err) return reject(err);
+        return resolve();
+      });
+    });
+  }
+
   static async addCustomGame(title: string, savePath: string | null) {
     const config = await this.getConfig();
     const filteredGames = config.customGames.filter(

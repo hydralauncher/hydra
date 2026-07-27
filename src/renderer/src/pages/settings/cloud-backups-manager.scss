@@ -1,0 +1,115 @@
+@use "../../scss/globals.scss";
+
+.cloud-backups-manager {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__usage {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit * 2);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__toolbar {
+    display: flex;
+    align-items: flex-end;
+    gap: globals.$spacing-unit;
+
+    > *:first-child {
+      flex: 1;
+    }
+  }
+
+  &__refresh-icon--spinning {
+    animation: cloud-backups-manager-spin 1s linear infinite;
+  }
+
+  &__state-message {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+    padding: calc(globals.$spacing-unit * 3) 0;
+
+    &--error {
+      color: #f85149;
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 0.75);
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+
+  &__item-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__item-title {
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__item-meta {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.45);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__item-progress {
+    font-size: 11px;
+    color: #58a6ff;
+  }
+
+  &__item-menu {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    flex-shrink: 0;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+  }
+}
+
+@keyframes cloud-backups-manager-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

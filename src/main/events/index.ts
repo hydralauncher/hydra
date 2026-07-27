@@ -22,6 +22,8 @@ import "./user";
 import "./user-preferences";
 import "./library/transfer-game-files";
 import "./emulators";
+import "./yandex-disk";
+import "./cloud-storage";
 
 import { isPortableVersion } from "@main/helpers";
 

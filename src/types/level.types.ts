@@ -186,6 +186,10 @@ export interface UserPreferences {
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
+  yandexDiskToken?: string | null;
+  yandexDiskBackupEnabled?: boolean;
+  yandexDiskRestoreOnStartup?: boolean;
+  yandexDiskMaxBackups?: number;
 }
 
 export interface NetworkInterface {

@@ -1422,6 +1422,63 @@ contextBridge.exposeInMainWorld("electron", {
   getAvailableDrives: () => ipcRenderer.invoke("getAvailableDrives"),
   transferGameFiles: (shop: GameShop, objectId: string, destParent: string) =>
     ipcRenderer.invoke("transferGameFiles", shop, objectId, destParent),
+
+  /* Yandex Disk Backup */
+  getYandexDiskSettings: () => ipcRenderer.invoke("getYandexDiskSettings"),
+  getYandexDiskAccountInfo: () =>
+    ipcRenderer.invoke("getYandexDiskAccountInfo"),
+  updateYandexDiskSettings: (settings: {
+    token?: string | null;
+    backupEnabled?: boolean;
+    restoreOnStartup?: boolean;
+    maxBackups?: number;
+  }) => ipcRenderer.invoke("updateYandexDiskSettings", settings),
+  validateYandexDiskToken: (token: string) =>
+    ipcRenderer.invoke("validateYandexDiskToken", token),
+  listYandexDiskBackups: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("listYandexDiskBackups", objectId, shop),
+  restoreYandexDiskBackup: (
+    objectId: string,
+    shop: GameShop,
+    remotePath: string
+  ) =>
+    ipcRenderer.invoke("restoreYandexDiskBackup", objectId, shop, remotePath),
+  backupNowYandexDisk: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("backupNowYandexDisk", objectId, shop),
+
+  /* Cloud Storage (unified manager, built on top of Yandex Disk Backup) */
+  listCloudBackups: () => ipcRenderer.invoke("listCloudBackups"),
+  getCloudStorageUsage: () => ipcRenderer.invoke("getCloudStorageUsage"),
+  downloadCloudBackup: (remotePath: string, destDir: string) =>
+    ipcRenderer.invoke("downloadCloudBackup", remotePath, destDir),
+  deleteCloudBackup: (remotePath: string) =>
+    ipcRenderer.invoke("deleteCloudBackup", remotePath),
+  onCloudBackupDownloadProgress: (
+    cb: (payload: { path: string; percent: number }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: { path: string; percent: number }
+    ) => cb(payload);
+    ipcRenderer.on("on-cloud-backup-download-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-cloud-backup-download-progress", listener);
+  },
+  onCloudBackupDownloadComplete: (
+    cb: (payload: {
+      path: string;
+      success: boolean;
+      localPath?: string;
+    }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: { path: string; success: boolean; localPath?: string }
+    ) => cb(payload);
+    ipcRenderer.on("on-cloud-backup-download-complete", listener);
+    return () =>
+      ipcRenderer.removeListener("on-cloud-backup-download-complete", listener);
+  },
 });
 
 const reportNetworkStatus = (online: boolean, switched = false) => {

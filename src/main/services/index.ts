@@ -31,3 +31,6 @@ export * from "./achievement-notification-presenter-electron";
 export * from "./game-artwork";
 export * from "./game-artwork-cloud";
 export * as emulators from "./emulators";
+export * from "./yandex-disk-backup";
+export * from "./backup-metadata";
+export * from "./cloud-storage";

@@ -103,6 +103,12 @@ export const loadState = async () => {
     DeckyPlugin.checkAndUpdateIfOutdated();
   }
 
+  // Yandex Disk: restore saves and achievements on startup
+  const { YandexDiskBackup } = await import("./services/yandex-disk-backup");
+  YandexDiskBackup.checkAndRestoreOnStartup().catch((err) =>
+    logger.warn("[YandexDisk] checkAndRestoreOnStartup failed", err)
+  );
+
   await HydraApi.setupApi().then(async () => {
     uploadGamesBatch();
     void migrateDownloadSources();

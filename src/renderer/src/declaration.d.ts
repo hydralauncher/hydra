@@ -63,6 +63,8 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  CloudBackupEntry,
+  CloudStorageUsage,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -92,6 +94,22 @@ declare global {
     exists: boolean;
     isDirectory: boolean;
     isFile: boolean;
+  };
+
+  type YandexDiskBackupEntry = {
+    path: string;
+    name: string;
+    created: string;
+    modified: string;
+    size: number;
+    type: string;
+  };
+
+  type YandexDiskSettings = {
+    token: string | null;
+    backupEnabled: boolean;
+    restoreOnStartup: boolean;
+    maxBackups: number;
   };
 
   interface Electron {
@@ -1016,6 +1034,53 @@ declare global {
     /* Event listeners for transfer progress */
     on: (channel: string, listener: (...args) => void) => void;
     off: (channel: string, listener: (...args) => void) => void;
+
+    /* Yandex Disk Backup — connection + per-game settings, used by the
+       "connection" and "settings" blocks of the Cloud Storage section */
+    getYandexDiskSettings: () => Promise<YandexDiskSettings>;
+    getYandexDiskAccountInfo: () => Promise<{
+      login: string | null;
+      displayName: string | null;
+    } | null>;
+    updateYandexDiskSettings: (settings: {
+      token?: string | null;
+      backupEnabled?: boolean;
+      restoreOnStartup?: boolean;
+      maxBackups?: number;
+    }) => Promise<boolean>;
+    validateYandexDiskToken: (token: string) => Promise<boolean>;
+    listYandexDiskBackups: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<YandexDiskBackupEntry[]>;
+    restoreYandexDiskBackup: (
+      objectId: string,
+      shop: GameShop,
+      remotePath: string
+    ) => Promise<{ success: boolean }>;
+    backupNowYandexDisk: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<{ success: boolean }>;
+
+    /* Cloud Storage — unified backup manager */
+    listCloudBackups: () => Promise<CloudBackupEntry[]>;
+    getCloudStorageUsage: () => Promise<CloudStorageUsage>;
+    downloadCloudBackup: (
+      remotePath: string,
+      destDir: string
+    ) => Promise<{ success: boolean; localPath: string }>;
+    deleteCloudBackup: (remotePath: string) => Promise<{ success: boolean }>;
+    onCloudBackupDownloadProgress: (
+      cb: (payload: { path: string; percent: number }) => void
+    ) => () => Electron.IpcRenderer;
+    onCloudBackupDownloadComplete: (
+      cb: (payload: {
+        path: string;
+        success: boolean;
+        localPath?: string;
+      }) => void
+    ) => () => Electron.IpcRenderer;
   }
 
   interface Window {

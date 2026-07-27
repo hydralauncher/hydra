@@ -17,12 +17,13 @@ import {
   VideoIcon,
   ShieldCheckIcon,
 } from "@primer/octicons-react";
-import { Gamepad2, Wrench } from "lucide-react";
+import { Gamepad2, Plug, Wrench } from "lucide-react";
 import { SettingsContextGeneral } from "./settings-context-general";
 import { SettingsContextDownloads } from "./settings-context-downloads";
 import { SettingsContextDownloadSources } from "./settings-context-download-sources";
 import { SettingsContextNotifications } from "./settings-context-notifications";
 import { SettingsContextContentGameplay } from "./settings-context-content-gameplay";
+import { SettingsContextCloudStorage } from "./settings-cloud-storage";
 import { SettingsContextIntegrations } from "./settings-context-integrations";
 import { SettingsContextCompatibility } from "./settings-context-compatibility";
 import { SettingsContextBigPicture } from "./settings-context-big-picture";
@@ -61,9 +62,14 @@ export default function Settings() {
         icon: <PlayIcon size={16} />,
       },
       {
+        id: "cloud_storage" as const,
+        label: t("cloud_storage", "Облачное хранилище"),
+        icon: <CloudIcon size={16} />,
+      },
+      {
         id: "integrations" as const,
         label: t("integrations"),
-        icon: <CloudIcon size={16} />,
+        icon: <Plug size={16} />,
       },
       {
         id: "compatibility" as const,
@@ -122,6 +128,10 @@ export default function Settings() {
 
             if (selectedCategoryId === "content_gameplay") {
               return <SettingsContextContentGameplay />;
+            }
+
+            if (selectedCategoryId === "cloud_storage") {
+              return <SettingsContextCloudStorage />;
             }
 
             if (selectedCategoryId === "integrations") {

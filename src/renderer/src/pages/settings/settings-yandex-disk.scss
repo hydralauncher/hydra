@@ -1,0 +1,165 @@
+@use "../../scss/globals.scss";
+
+.settings-yandex-disk {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  &__status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  &__status-icon {
+    &--connected {
+      color: #3fb950;
+    }
+
+    &--disconnected {
+      color: rgba(255, 255, 255, 0.35);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 0.75);
+  }
+
+  &__account {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0;
+  }
+
+  &__description {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__token-row {
+    display: flex;
+    align-items: flex-end;
+    gap: globals.$spacing-unit;
+
+    > *:first-child {
+      flex: 1;
+    }
+  }
+
+  &__token-hint {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  &__max-backups {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 0.5);
+  }
+
+  &__max-backups-label {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  &__max-backups-input {
+    width: 80px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 14px;
+    padding: 6px 10px;
+    outline: none;
+
+    &:focus {
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  &__backups-section {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__backups-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+  }
+
+  &__backups-list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 0.5);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  &__backup-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    padding: 8px 12px;
+    gap: globals.$spacing-unit;
+
+    &-name {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &-size {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      flex-shrink: 0;
+    }
+  }
+
+  &__empty {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: center;
+    padding: calc(globals.$spacing-unit * 2) 0;
+  }
+}

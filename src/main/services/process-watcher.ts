@@ -1,6 +1,7 @@
 import { WindowManager } from "./window-manager";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { createGame, trackGamePlaytime } from "./library-sync";
+import { YandexDiskBackup } from "./yandex-disk-backup";
 import type { Game, GameRunning, UserPreferences } from "@types";
 import axios from "axios";
 import { db, gamesSublevel, levelKeys } from "@main/level";
@@ -491,6 +492,11 @@ const onCloseGame = (game: Game) => {
   };
 
   gamesSublevel.put(gameKey, updatedGame);
+
+  // Yandex Disk backup (non-blocking)
+  YandexDiskBackup.backupOnGameExit(updatedGame).catch((err) => {
+    logger.warn("[YandexDisk] backupOnGameExit error", err);
+  });
 
   if (game.shop === "custom") return;
 
