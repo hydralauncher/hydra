@@ -26,7 +26,10 @@ jobs:
         with:
           node-version: 22.21.0
 
-      - name: Materialize base locales
+      - name: Install dependencies
+        run: yarn --frozen-lockfile --ignore-scripts
+
+      - name: Materialize base revision
         id: base
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -38,12 +41,12 @@ jobs:
 
           target="$RUNNER_TEMP/locale-base"
           mkdir -p "$target"
-          git archive "$BASE_SHA" src/locales src/big-picture/src/locales | tar -x -C "$target"
+          git archive "$BASE_SHA" src | tar -x -C "$target"
 
           echo "dir=$target" >> "$GITHUB_OUTPUT"
           echo "label=$(git rev-parse --short "$BASE_SHA")" >> "$GITHUB_OUTPUT"
 
-      - name: Check locale parity
+      - name: Check locales
         env:
           LOCALE_CHECK_BASE_DIR: ${{ steps.base.outputs.dir }}
           LOCALE_CHECK_BASE_LABEL: ${{ steps.base.outputs.label }}
