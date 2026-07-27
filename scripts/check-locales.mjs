@@ -4,6 +4,7 @@ import {
   REFERENCE_LOCALE,
   TREES,
   byFirstEntry,
+  byText,
   fileTree,
   flattenText,
   localeFile,
@@ -80,11 +81,38 @@ function collectFindings(source, { withSource }) {
   return { ...collect, usage };
 }
 
+function diffReferenceTree(treeName, baseFlat, headFlat, delta) {
+  const treeRemoved = new Set();
+
+  for (const key of headFlat.keys()) {
+    if (!baseFlat.has(key)) delta.added.add(`${treeName}|${key}`);
+  }
+
+  for (const key of baseFlat.keys()) {
+    if (headFlat.has(key)) continue;
+
+    delta.removed.add(`${treeName}|${key}`);
+    treeRemoved.add(key);
+  }
+
+  for (const [key, value] of headFlat) {
+    if (!baseFlat.has(key)) continue;
+
+    if (placeholdersDiffer(value, baseFlat.get(key))) {
+      delta.placeholderChanged.add(`${treeName}|${key}`);
+    }
+  }
+
+  delta.removedByTree.set(treeName, treeRemoved);
+}
+
 function referenceDelta(baseSource, headSource) {
-  const added = new Set();
-  const removed = new Set();
-  const placeholderChanged = new Set();
-  const removedByTree = new Map();
+  const delta = {
+    added: new Set(),
+    removed: new Set(),
+    placeholderChanged: new Set(),
+    removedByTree: new Map(),
+  };
 
   for (const tree of TREES) {
     const file = localeFile(tree, REFERENCE_LOCALE);
@@ -92,31 +120,10 @@ function referenceDelta(baseSource, headSource) {
     const headFlat = flattenText(headSource.read(file));
     if (baseFlat === null || headFlat === null) continue;
 
-    const treeRemoved = new Set();
-
-    for (const key of headFlat.keys()) {
-      if (!baseFlat.has(key)) added.add(`${tree.name}|${key}`);
-    }
-
-    for (const key of baseFlat.keys()) {
-      if (headFlat.has(key)) continue;
-
-      removed.add(`${tree.name}|${key}`);
-      treeRemoved.add(key);
-    }
-
-    for (const [key, value] of headFlat) {
-      if (!baseFlat.has(key)) continue;
-
-      if (placeholdersDiffer(value, baseFlat.get(key))) {
-        placeholderChanged.add(`${tree.name}|${key}`);
-      }
-    }
-
-    removedByTree.set(tree.name, treeRemoved);
+    diffReferenceTree(tree.name, baseFlat, headFlat, delta);
   }
 
-  return { added, removed, placeholderChanged, removedByTree };
+  return delta;
 }
 
 function placeholdersDiffer(first, second) {
@@ -268,35 +275,32 @@ function writeList(findings) {
 function advisoryNote(usage) {
   if (usage === undefined || usage.dynamic.size === 0) return null;
 
-  return `Unused keys are approximate. These namespaces contain fully dynamic \`t()\` lookups that no static pass can resolve, so keys in them may be used after all: ${[...usage.dynamic].sort().join(", ")}.`;
+  return `Unused keys are approximate. These namespaces contain fully dynamic \`t()\` lookups that no static pass can resolve, so keys in them may be used after all: ${[...usage.dynamic].sort(byText).join(", ")}.`;
 }
 
-function report(introduced, advisory, inherited, baseLabel, usage) {
+function summaryFor(introduced, advisory, inherited, baseLabel, usage) {
   const failing = introduced.length > 0;
 
-  annotate(introduced);
-  annotate(advisory, "warning");
+  return [
+    failing ? "## Locale check failed" : "## Locale check",
+    "",
+    failing
+      ? `**${introduced.length}** problems introduced by this change.`
+      : "No new locale problems introduced.",
+    "",
+    `**${inherited}** pre-existing problems inherited from ${baseLabel}, not blocking.`,
+    "",
+    ...renderSection("Introduced by this change", introduced, null),
+    ...renderSection(
+      "Advisory",
+      advisory,
+      advisoryNote(usage) ?? "Not blocking, listed so the gap stays visible."
+    ),
+  ].join("\n");
+}
 
-  writeSummary(
-    [
-      failing ? "## Locale check failed" : "## Locale check",
-      "",
-      failing
-        ? `**${introduced.length}** problems introduced by this change.`
-        : "No new locale problems introduced.",
-      "",
-      `**${inherited}** pre-existing problems inherited from ${baseLabel}, not blocking.`,
-      "",
-      ...renderSection("Introduced by this change", introduced, null),
-      ...renderSection(
-        "Advisory",
-        advisory,
-        advisoryNote(usage) ?? "Not blocking, listed so the gap stays visible."
-      ),
-    ].join("\n")
-  );
-
-  if (failing) {
+function writeOutcome(introduced, advisory, inherited, baseLabel) {
+  if (introduced.length > 0) {
     process.stdout.write(
       `\n${introduced.length} locale problems introduced by this change:\n\n`
     );
@@ -312,13 +316,20 @@ function report(introduced, advisory, inherited, baseLabel, usage) {
     writeList(advisory);
   }
 
-  if (failing) {
+  if (introduced.length > 0) {
     process.stdout.write(
       `\n${inherited} pre-existing problems were inherited and are not blocking.\n`
     );
   }
+}
 
-  return failing ? 1 : 0;
+function report(introduced, advisory, inherited, baseLabel, usage) {
+  annotate(introduced);
+  annotate(advisory, "warning");
+  writeSummary(summaryFor(introduced, advisory, inherited, baseLabel, usage));
+  writeOutcome(introduced, advisory, inherited, baseLabel);
+
+  return introduced.length > 0 ? 1 : 0;
 }
 
 function reportOnly(head) {

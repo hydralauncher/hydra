@@ -294,48 +294,70 @@ function checkCall(call, usage, table, report) {
   checkStaticCall(call, usage, namespaces, table, report);
 }
 
+function createReporter(state, file, collect) {
+  return (result) => {
+    if (result.used !== undefined) {
+      state.used.add(result.used);
+      return;
+    }
+
+    if (result.wildcard !== undefined) {
+      state.wildcards.add(result.wildcard);
+      return;
+    }
+
+    if (result.dynamic !== undefined) {
+      state.dynamic.add(result.dynamic);
+      return;
+    }
+
+    const identity = `${file}|${result.kind}|${result.key}`;
+    if (state.seen.has(identity)) return;
+    state.seen.add(identity);
+
+    collect.push({
+      tree: { name: "source" },
+      scope: "usage",
+      file,
+      ...result,
+    });
+  };
+}
+
+function checkFile(source, file, table, state, collect) {
+  const text = source.read(file);
+  if (text === null || !text.includes("useTranslation")) return;
+
+  const usage = collectFileUsage(parseSource(file, text));
+  const report = createReporter(state, file, collect);
+
+  for (const call of usage.calls) {
+    checkCall(call, usage, table, report);
+  }
+}
+
 export function checkUsage(source, table, collect) {
-  const used = new Set();
-  const wildcards = new Set();
-  const dynamic = new Set();
-  const seen = new Set();
+  const state = {
+    used: new Set(),
+    wildcards: new Set(),
+    dynamic: new Set(),
+    seen: new Set(),
+  };
   const roots = [...new Set(TREES.flatMap((tree) => tree.sourceRoots))].sort(
     byText
   );
 
   for (const root of roots) {
     for (const file of source.listSources(root)) {
-      const text = source.read(file);
-      if (text === null || !text.includes("useTranslation")) continue;
-
-      const usage = collectFileUsage(parseSource(file, text));
-
-      for (const call of usage.calls) {
-        checkCall(call, usage, table, (result) => {
-          if (result.used !== undefined) return void used.add(result.used);
-          if (result.wildcard !== undefined) {
-            return void wildcards.add(result.wildcard);
-          }
-          if (result.dynamic !== undefined) {
-            return void dynamic.add(result.dynamic);
-          }
-
-          const identity = `${file}|${result.kind}|${result.key}`;
-          if (seen.has(identity)) return;
-          seen.add(identity);
-
-          collect.push({
-            tree: { name: "source" },
-            scope: "usage",
-            file,
-            ...result,
-          });
-        });
-      }
+      checkFile(source, file, table, state, collect);
     }
   }
 
-  return { used, wildcards, dynamic };
+  return {
+    used: state.used,
+    wildcards: state.wildcards,
+    dynamic: state.dynamic,
+  };
 }
 
 function isCoveredByUsage(key, usage) {

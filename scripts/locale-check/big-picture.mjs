@@ -26,41 +26,13 @@ function collapseJsxWhitespace(text) {
 
 function collectLiterals(sourceFile) {
   const literals = [];
+  const lineOf = (node) =>
+    sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
 
   const visit = (node) => {
-    if (ts.isJsxText(node)) {
-      const text = collapseJsxWhitespace(node.text);
+    const found = jsxTextOf(node) ?? translatedAttributeOf(node);
 
-      if (isMeaningful(text)) {
-        literals.push({
-          text,
-          line:
-            sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
-          origin: "text",
-        });
-      }
-    }
-
-    if (
-      ts.isJsxAttribute(node) &&
-      TRANSLATED_ATTRIBUTES.has(node.name.getText())
-    ) {
-      const value = node.initializer;
-
-      if (value !== undefined && ts.isStringLiteral(value)) {
-        const text = value.text.trim();
-
-        if (isMeaningful(text)) {
-          literals.push({
-            text,
-            line:
-              sourceFile.getLineAndCharacterOfPosition(node.getStart()).line +
-              1,
-            origin: node.name.getText(),
-          });
-        }
-      }
-    }
+    if (found !== null) literals.push({ ...found, line: lineOf(node) });
 
     ts.forEachChild(node, visit);
   };
@@ -68,6 +40,28 @@ function collectLiterals(sourceFile) {
   visit(sourceFile);
 
   return literals;
+}
+
+function jsxTextOf(node) {
+  if (!ts.isJsxText(node)) return null;
+
+  const text = collapseJsxWhitespace(node.text);
+
+  return isMeaningful(text) ? { text, origin: "text" } : null;
+}
+
+function translatedAttributeOf(node) {
+  if (!ts.isJsxAttribute(node)) return null;
+
+  const name = node.name.getText();
+  if (!TRANSLATED_ATTRIBUTES.has(name)) return null;
+
+  const value = node.initializer;
+  if (value === undefined || !ts.isStringLiteral(value)) return null;
+
+  const text = value.text.trim();
+
+  return isMeaningful(text) ? { text, origin: name } : null;
 }
 
 export function checkBigPictureLiterals(source, collect) {
