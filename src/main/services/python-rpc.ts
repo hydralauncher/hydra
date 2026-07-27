@@ -397,6 +397,7 @@ export class PythonRPC {
     }
 
     const candidates = [
+      import.meta.env.MAIN_VITE_HYDRA_PYTHON_BIN,
       process.env.HYDRA_PYTHON_BIN,
       process.env.PYTHON,
       "python3",
@@ -415,7 +416,7 @@ export class PythonRPC {
     }
 
     throw new Error(
-      "Python executable not found. Set HYDRA_PYTHON_BIN or install python3/python."
+      "Python executable not found. Set MAIN_VITE_HYDRA_PYTHON_BIN or HYDRA_PYTHON_BIN or install python3/python."
     );
   }
 

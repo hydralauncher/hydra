@@ -419,3 +419,55 @@
 .achievements-placeholder__blur {
   filter: blur(4px);
 }
+
+.game-details-sidebar {
+  &__chips-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__chips-group {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__chips-label {
+    font-size: globals.$small-font-size;
+    font-weight: bold;
+    color: globals.$muted-color;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit * 1);
+  }
+
+  &__chip {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+    line-height: 1.25;
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: globals.$body-color;
+
+    &--genre {
+      background-color: #261f36;
+      border-color: rgba(154, 106, 255, 0.3);
+      color: #c09eff;
+    }
+
+    &--feature {
+      background-color: #172e26;
+      border-color: rgba(50, 205, 153, 0.3);
+      color: #58ebb9;
+    }
+  }
+}
