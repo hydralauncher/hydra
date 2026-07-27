@@ -17,6 +17,7 @@
     "format": "prettier --write .",
     "format-check": "prettier --check .",
     "test": "node --import ./scripts/register-ts-node.mjs --test \"src/**/*.test.ts\"",
+    "check-locales": "node ./scripts/check-locales.mjs",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
