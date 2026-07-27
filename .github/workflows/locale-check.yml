@@ -26,7 +26,25 @@ jobs:
         with:
           node-version: 22.21.0
 
+      - name: Materialize base locales
+        id: base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || ! git rev-parse --verify "$BASE_SHA^{commit}" >/dev/null 2>&1; then
+            echo "No usable base revision, the check will report instead of comparing."
+            exit 0
+          fi
+
+          target="$RUNNER_TEMP/locale-base"
+          mkdir -p "$target"
+          git archive "$BASE_SHA" src/locales src/big-picture/src/locales | tar -x -C "$target"
+
+          echo "dir=$target" >> "$GITHUB_OUTPUT"
+          echo "label=$(git rev-parse --short "$BASE_SHA")" >> "$GITHUB_OUTPUT"
+
       - name: Check locale parity
         env:
-          LOCALE_CHECK_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          LOCALE_CHECK_BASE_DIR: ${{ steps.base.outputs.dir }}
+          LOCALE_CHECK_BASE_LABEL: ${{ steps.base.outputs.label }}
         run: node scripts/check-locales.mjs

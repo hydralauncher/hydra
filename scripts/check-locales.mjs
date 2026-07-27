@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -25,60 +24,33 @@ const SUMMARY_LIMIT = 60;
 const byText = (first, second) => first.localeCompare(second);
 const byFirstEntry = ([first], [second]) => first.localeCompare(second);
 
-function git(args) {
-  try {
-    return execFileSync("git", args, {
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-  } catch {
-    return null;
-  }
-}
+function fileTree(root) {
+  const resolve = (target) => path.join(root, target);
 
-const workingTree = {
-  listLocales(dir) {
-    if (!fs.existsSync(dir)) return null;
-
-    return fs
-      .readdirSync(dir, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name)
-      .filter((name) => fs.existsSync(path.join(dir, name, TRANSLATION_FILE)))
-      .sort(byText);
-  },
-  read(file) {
-    if (!fs.existsSync(file)) return null;
-
-    return fs.readFileSync(file, "utf8");
-  },
-};
-
-function gitTree(sha) {
   return {
     listLocales(dir) {
-      const output = git(["ls-tree", "-d", "--name-only", `${sha}:${dir}`]);
-      if (output === null) return null;
+      const absolute = resolve(dir);
+      if (!fs.existsSync(absolute)) return null;
 
-      return output
-        .split("\n")
-        .filter(Boolean)
-        .filter(
-          (name) =>
-            git([
-              "cat-file",
-              "-e",
-              `${sha}:${dir}/${name}/${TRANSLATION_FILE}`,
-            ]) !== null
+      return fs
+        .readdirSync(absolute, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+        .filter((name) =>
+          fs.existsSync(path.join(absolute, name, TRANSLATION_FILE))
         )
         .sort(byText);
     },
     read(file) {
-      return git(["show", `${sha}:${file}`]);
+      const absolute = resolve(file);
+      if (!fs.existsSync(absolute)) return null;
+
+      return fs.readFileSync(absolute, "utf8");
     },
   };
 }
+
+const workingTree = fileTree(".");
 
 function flatten(value, prefix, out) {
   for (const [key, entry] of Object.entries(value)) {
@@ -568,7 +540,7 @@ function renderSummary(title, findings, inherited) {
 
 function reportOnly(findings) {
   process.stdout.write(
-    `No base revision to compare against, reporting only.\n\n`
+    `No base locales to compare against, reporting only.\n\n`
   );
 
   for (const { scope, detail } of countedScopes(findings)) {
@@ -581,14 +553,14 @@ function reportOnly(findings) {
   return 0;
 }
 
-function requestedBaseSha() {
-  const argumentIndex = process.argv.indexOf("--base");
+function readOption(flag, variable) {
+  const argumentIndex = process.argv.indexOf(flag);
   const requested =
     argumentIndex === -1
-      ? (process.env.LOCALE_CHECK_BASE_SHA ?? "")
+      ? (process.env[variable] ?? "")
       : (process.argv[argumentIndex + 1] ?? "");
 
-  return requested.replace(/^0+$/, "").trim();
+  return requested.trim();
 }
 
 function reportIntroduced(introduced, inherited) {
@@ -616,15 +588,15 @@ function reportIntroduced(introduced, inherited) {
   return 1;
 }
 
-function reportClean(inherited, baseSha) {
+function reportClean(inherited, baseLabel) {
   process.stdout.write(
-    `No new locale problems. ${inherited} pre-existing problems inherited from ${baseSha.slice(0, 7)}.\n`
+    `No new locale problems. ${inherited} pre-existing problems inherited from ${baseLabel}.\n`
   );
   writeSummary(
     [
       "## Locale check",
       "",
-      `No new locale problems introduced. **${inherited}** pre-existing problems inherited from the base branch.`,
+      `No new locale problems introduced. **${inherited}** pre-existing problems inherited from ${baseLabel}.`,
       "",
     ].join("\n")
   );
@@ -632,8 +604,7 @@ function reportClean(inherited, baseSha) {
   return 0;
 }
 
-function ratchet(head, baseSha) {
-  const baseSource = gitTree(baseSha);
+function ratchet(head, baseSource, baseLabel) {
   const base = collectFindings(baseSource);
   const baseIds = new Set(base.findings.map((finding) => finding.id));
   const delta = referenceDelta(baseSource, workingTree);
@@ -654,7 +625,7 @@ function ratchet(head, baseSha) {
     introduced.push(finding);
   }
 
-  if (introduced.length === 0) return reportClean(inherited, baseSha);
+  if (introduced.length === 0) return reportClean(inherited, baseLabel);
 
   return reportIntroduced(introduced, inherited);
 }
@@ -673,21 +644,26 @@ function main() {
     return 1;
   }
 
-  const baseSha = requestedBaseSha();
-  const isReachable =
-    baseSha && git(["rev-parse", "--verify", `${baseSha}^{commit}`]) !== null;
+  const baseDir = readOption("--base-dir", "LOCALE_CHECK_BASE_DIR");
+  if (!baseDir) return reportOnly(head.findings);
 
-  if (!isReachable) {
-    if (baseSha) {
-      process.stdout.write(
-        `::warning::base revision ${baseSha} is not reachable, the repository may be shallow cloned\n`
-      );
-    }
+  const baseSource = fileTree(baseDir);
+  const hasBaseLocales = TREES.some(
+    (tree) => baseSource.listLocales(tree.dir) !== null
+  );
+
+  if (!hasBaseLocales) {
+    process.stdout.write(
+      `::warning::no locale directories found under ${baseDir}, falling back to a report\n`
+    );
 
     return reportOnly(head.findings);
   }
 
-  return ratchet(head, baseSha);
+  const baseLabel =
+    readOption("--base-label", "LOCALE_CHECK_BASE_LABEL") || "the base branch";
+
+  return ratchet(head, baseSource, baseLabel);
 }
 
 process.exitCode = main();
