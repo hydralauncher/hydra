@@ -483,7 +483,7 @@
     "install_backup": "Установить",
     "delete_backup": "Удалить",
     "create_backup": "Создать новую резервную копию",
-    "last_backup_date": "Последняя резервная копия от {{date}}",
+    "last_backup_date": "Последняя копия {{wrongvar}}",
     "no_backup_preview": "Сохранения для этого заголовка не найдены",
     "restoring_backup": "Восстановление резервной копии ({{progress}} завершено)…",
     "uploading_backup": "Загрузка резервной копии…",
@@ -835,7 +835,6 @@
     "debrid_services": "Сервисы Debrid",
     "download_sources": "Источники загрузки",
     "compatibility": "Совместимость",
-    "language": "Язык",
     "api_token": "API Ключ",
     "enable_real_debrid": "Включить Real-Debrid",
     "real_debrid_description": "Real-Debrid - это неограниченный загрузчик, который позволяет быстро скачивать файлы, размещенные в Интернете, или мгновенно передавать их в плеер через частную сеть, позволяющую обходить любые блокировки.",
@@ -1292,7 +1291,8 @@
     "big_picture_enable_sounds": "Включить звуки Big Picture",
     "big_picture_enable_virtual_keyboard": "Включить виртуальную клавиатуру",
     "big_picture_enable_diagnostics": "Включить диагностику",
-    "big_picture_diagnostics_position": "Положение диагностики"
+    "big_picture_diagnostics_position": "Положение диагностики",
+    "test_alpha": "Тест альфа"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
