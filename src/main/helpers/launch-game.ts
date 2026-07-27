@@ -13,6 +13,7 @@ import {
   Wine,
   NativeAddon,
   launchedGamePids,
+  resolveSteamClientCompatEnv,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
@@ -259,6 +260,11 @@ const launchWindowsBinaryOnLinux = async (
 
   await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
 
+  const extraEnv = await resolveSteamClientCompatEnv({
+    executablePath: parsedPath,
+    winePrefixPath,
+  });
+
   try {
     await Umu.launchExecutable(parsedPath, [], {
       winePrefixPath,
@@ -267,6 +273,7 @@ const launchWindowsBinaryOnLinux = async (
       launchOptions,
       useGamemode,
       useMangohud,
+      extraEnv,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;

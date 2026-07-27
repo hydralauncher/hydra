@@ -212,6 +212,7 @@ export class Umu {
       launchOptions?: string | null;
       useMangohud?: boolean;
       useGamemode?: boolean;
+      extraEnv?: Record<string, string> | null;
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -233,7 +234,16 @@ export class Umu {
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
     ensureExecutablePermission(umuBinaryPath);
 
-    const launchEnv = {
+    const extraEnv = options?.extraEnv ?? {};
+
+    const dllOverrides = [
+      extraEnv.WINEDLLOVERRIDES,
+      resolvedLaunchCommand.env.WINEDLLOVERRIDES,
+    ]
+      .filter(Boolean)
+      .join(";");
+
+    const launchEnv: Record<string, string> = {
       PROTON_LOG: "1",
       ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
       ...(options?.winePrefixPath
@@ -241,7 +251,9 @@ export class Umu {
         : {}),
       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
+      ...extraEnv,
       ...resolvedLaunchCommand.env,
+      ...(dllOverrides ? { WINEDLLOVERRIDES: dllOverrides } : {}),
     };
 
     const envCommandPart = Object.entries(launchEnv)
