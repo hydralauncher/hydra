@@ -25,6 +25,7 @@ export function SidebarGameItem({
   const { showWarningToast } = useToast();
   const {
     canPlay,
+    isGameRunning,
     handlePlayGame,
     rpcs3ConfirmPending,
     handleConfirmRpcs3Launch,
@@ -73,6 +74,8 @@ export function SidebarGameItem({
           "sidebar__menu-item--active":
             location.pathname === `/game/${game.shop}/${game.objectId}`,
           "sidebar__menu-item--muted": game.download?.status === "removed",
+          "sidebar__menu-item--not-playable": !canPlay,
+          "sidebar__menu-item--running": isGameRunning,
         })}
       >
         <button
