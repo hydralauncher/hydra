@@ -1,6 +1,5 @@
 import {
   REFERENCE_LOCALE,
-  TRANSLATION_FILE,
   VARIANT_SUFFIX,
   flatten,
   localeFile,
@@ -111,16 +110,6 @@ function checkLocale(source, tree, locale, shared, collect) {
   const push = (finding) =>
     collect.push({ file, ...finding, tree, scope: locale });
 
-  if (!shared.registry.includes(`./${locale}/${TRANSLATION_FILE}`)) {
-    push({
-      kind: "unregistered",
-      key: "",
-      file: tree.registry,
-      line: 1,
-      message: `locale "${locale}" ships a ${TRANSLATION_FILE} but is never imported, so it is unreachable`,
-    });
-  }
-
   const parsed = parseLocale(text);
   if (parsed.error !== null) {
     push({
@@ -170,7 +159,6 @@ export function checkTreeParity(source, tree, collect) {
 
   const reference = flatten(parsedReference.json, "", new Map());
   const shared = {
-    registry: source.read(tree.registry) ?? "",
     reference,
     referenceVariantBases: variantBasesOf(reference.keys()),
   };

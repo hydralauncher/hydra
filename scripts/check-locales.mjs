@@ -28,7 +28,35 @@ const SOURCE_KINDS = new Set([
   "wiring",
 ]);
 
-const ADVISORY_PRIORITY = ["rename", "missing", "unused"];
+const ADVISORY_PRIORITY = ["placeholder-drift", "rename", "missing", "unused"];
+
+function aggregatePlaceholderDrift(suppressed) {
+  const byKey = new Map();
+
+  for (const finding of suppressed) {
+    const identity = `${finding.tree}|${finding.key}`;
+    const group = byKey.get(identity) ?? { finding, locales: [] };
+
+    group.locales.push(finding.scope);
+    byKey.set(identity, group);
+  }
+
+  return [...byKey.values()].map(({ finding, locales }) => {
+    const listed = locales.slice(0, 6).join(", ");
+    const rest = locales.length > 6 ? ", and more" : "";
+
+    return {
+      tree: finding.tree,
+      scope: "placeholders",
+      kind: "placeholder-drift",
+      key: finding.key,
+      file: finding.file,
+      line: finding.line,
+      advisory: true,
+      message: `the placeholders in "${finding.key}" changed in ${REFERENCE_LOCALE}, so ${locales.length} locales now interpolate the wrong set (${listed}${rest}) until they are retranslated`,
+    };
+  });
+}
 
 function byAdvisoryPriority(first, second) {
   const rank = (finding) => {
@@ -374,41 +402,59 @@ function localeFlatsOf(source, tree) {
   return flats;
 }
 
-function ratchet(head, baseSource, baseLabel, baseHasSource) {
-  const base = collectFindings(baseSource, { withSource: baseHasSource });
-  const baseIds = new Set(base.findings.map((finding) => finding.id));
-  const delta = referenceDelta(baseSource, workingTree);
-  const touched = touchedLocales(baseSource, workingTree);
+function classifyFinding(finding, context) {
+  if (finding.advisory) return "advisory";
+  if (!context.baseHasSource && SOURCE_KINDS.has(finding.kind)) {
+    return "advisory";
+  }
 
+  const scope = `${finding.tree}|${finding.scope}`;
+  const isOwned = !context.baseScopes.has(scope) || context.touched.has(scope);
+
+  if (context.baseIds.has(finding.id)) {
+    return isOwned && finding.kind === "missing"
+      ? "inheritedAdvisory"
+      : "inherited";
+  }
+
+  if (!isOwned && isExemptForUntouchedLocale(finding, context.delta)) {
+    return finding.kind === "placeholder" ? "drift" : "exempt";
+  }
+
+  return "introduced";
+}
+
+function partitionFindings(findings, context) {
   const introduced = [];
   const advisory = [];
+  const drift = [];
   let inherited = 0;
 
-  for (const finding of head.findings) {
-    const scope = `${finding.tree}|${finding.scope}`;
-    const isOwned = !base.scopes.has(scope) || touched.has(scope);
-
-    if (finding.advisory) {
-      advisory.push(finding);
-      continue;
-    }
-
-    if (!baseHasSource && SOURCE_KINDS.has(finding.kind)) {
-      advisory.push(finding);
-      continue;
-    }
-
-    if (baseIds.has(finding.id)) {
+  const buckets = {
+    introduced,
+    advisory,
+    drift,
+    inherited: () => (inherited += 1),
+    inheritedAdvisory: (finding) => {
       inherited += 1;
+      advisory.push(finding);
+    },
+  };
 
-      if (isOwned && finding.kind === "missing") advisory.push(finding);
-      continue;
-    }
+  for (const finding of findings) {
+    const bucket = classifyFinding(finding, context);
 
-    if (!isOwned && isExemptForUntouchedLocale(finding, delta)) continue;
-
-    introduced.push(finding);
+    if (bucket === "exempt") continue;
+    if (bucket === "inherited") buckets.inherited();
+    else if (bucket === "inheritedAdvisory") buckets.inheritedAdvisory(finding);
+    else buckets[bucket].push(finding);
   }
+
+  return { introduced, advisory, drift, inherited };
+}
+
+function collectAdvisories(advisory, drift, delta) {
+  advisory.push(...aggregatePlaceholderDrift(drift));
 
   for (const tree of TREES) {
     const removedKeys = delta.removedByTree.get(tree.name);
@@ -420,6 +466,24 @@ function ratchet(head, baseSource, baseLabel, baseHasSource) {
   }
 
   advisory.sort(byAdvisoryPriority);
+}
+
+function ratchet(head, baseSource, baseLabel, baseHasSource) {
+  const base = collectFindings(baseSource, { withSource: baseHasSource });
+  const delta = referenceDelta(baseSource, workingTree);
+
+  const { introduced, advisory, drift, inherited } = partitionFindings(
+    head.findings,
+    {
+      baseHasSource,
+      baseScopes: base.scopes,
+      baseIds: new Set(base.findings.map((finding) => finding.id)),
+      touched: touchedLocales(baseSource, workingTree),
+      delta,
+    }
+  );
+
+  collectAdvisories(advisory, drift, delta);
 
   return report(introduced, advisory, inherited, baseLabel, head.usage);
 }

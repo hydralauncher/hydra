@@ -64,48 +64,59 @@ function translatedAttributeOf(node) {
   return isMeaningful(text) ? { text, origin: name } : null;
 }
 
+function isCheckable(file) {
+  return (
+    file.endsWith(".tsx") &&
+    !IGNORED_SOURCES.some((ignored) => file.includes(ignored))
+  );
+}
+
+function checkFile(source, tree, file, state, collect) {
+  const text = source.read(file);
+  if (text === null) return;
+
+  const sourceFile = ts.createSourceFile(
+    file,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  );
+
+  for (const literal of collectLiterals(sourceFile)) {
+    if (state.exact.has(literal.text)) continue;
+    if (state.seen.has(literal.text)) continue;
+    state.seen.add(literal.text);
+
+    collect.push({
+      tree,
+      scope: "literals",
+      kind: "bp-literal",
+      key: literal.text,
+      file,
+      line: literal.line,
+      message: `Big Picture renders "${literal.text}" but it is not a key in the ${REFERENCE_LOCALE} exact map, so it stays English in every language`,
+    });
+  }
+}
+
 export function checkBigPictureLiterals(source, collect) {
   const tree = TREES.find((candidate) => candidate.name === "big-picture");
   if (tree === undefined) return;
 
-  const referenceFile = localeFile(tree, REFERENCE_LOCALE);
-  const parsed = parseLocale(source.read(referenceFile) ?? "");
+  const parsed = parseLocale(
+    source.read(localeFile(tree, REFERENCE_LOCALE)) ?? ""
+  );
   if (parsed.error !== null) return;
 
-  const exact = new Set(Object.keys(parsed.json.exact ?? {}));
-  const seen = new Set();
+  const state = {
+    exact: new Set(Object.keys(parsed.json.exact ?? {})),
+    seen: new Set(),
+  };
 
   for (const root of tree.sourceRoots) {
-    for (const file of source.listSources(root)) {
-      if (!file.endsWith(".tsx")) continue;
-      if (IGNORED_SOURCES.some((ignored) => file.includes(ignored))) continue;
-
-      const text = source.read(file);
-      if (text === null) continue;
-
-      const sourceFile = ts.createSourceFile(
-        file,
-        text,
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TSX
-      );
-
-      for (const literal of collectLiterals(sourceFile)) {
-        if (exact.has(literal.text)) continue;
-        if (seen.has(literal.text)) continue;
-        seen.add(literal.text);
-
-        collect.push({
-          tree,
-          scope: "literals",
-          kind: "bp-literal",
-          key: literal.text,
-          file,
-          line: literal.line,
-          message: `Big Picture renders "${literal.text}" but it is not a key in the ${REFERENCE_LOCALE} exact map, so it stays English in every language`,
-        });
-      }
+    for (const file of source.listSources(root).filter(isCheckable)) {
+      checkFile(source, tree, file, state, collect);
     }
   }
 }

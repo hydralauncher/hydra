@@ -113,6 +113,124 @@ function collectObjectKeys(node) {
   return keys;
 }
 
+function importedBindings(sourceFile) {
+  const bindings = new Map();
+
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement)) continue;
+    if (!ts.isStringLiteral(statement.moduleSpecifier)) continue;
+
+    const match = /^\.\/(.+)\/translation\.json$/.exec(
+      statement.moduleSpecifier.text
+    );
+    if (match === null) continue;
+
+    const name = statement.importClause?.name;
+    if (name === undefined) continue;
+
+    bindings.set(match[1], name.text);
+  }
+
+  return bindings;
+}
+
+function referencedBinding(property) {
+  if (ts.isShorthandPropertyAssignment(property)) return property.name.text;
+
+  if (!ts.isPropertyAssignment(property)) return null;
+
+  const { initializer } = property;
+
+  if (ts.isIdentifier(initializer)) return initializer.text;
+
+  if (
+    ts.isPropertyAccessExpression(initializer) &&
+    ts.isIdentifier(initializer.expression)
+  ) {
+    return initializer.expression.text;
+  }
+
+  return null;
+}
+
+function exportedRecords(sourceFile) {
+  const records = [];
+
+  const collect = (expression) => {
+    if (!ts.isObjectLiteralExpression(expression)) return;
+
+    const bindings = new Set();
+
+    for (const property of expression.properties) {
+      const binding = referencedBinding(property);
+      if (binding !== null) bindings.add(binding);
+    }
+
+    records.push(bindings);
+  };
+
+  for (const statement of sourceFile.statements) {
+    if (ts.isExportAssignment(statement)) {
+      collect(statement.expression);
+      continue;
+    }
+
+    const isExported = statement.modifiers?.some(
+      (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword
+    );
+
+    if (!isExported || !ts.isVariableStatement(statement)) continue;
+
+    for (const declaration of statement.declarationList.declarations) {
+      if (declaration.initializer !== undefined) {
+        collect(declaration.initializer);
+      }
+    }
+  }
+
+  return records;
+}
+
+function checkRegistration(source, tree, locales, collect) {
+  const text = source.read(tree.registry);
+  if (text === null) return;
+
+  const sourceFile = parse(tree.registry, text);
+  const bindings = importedBindings(sourceFile);
+  const records = exportedRecords(sourceFile);
+  if (records.length === 0) return;
+
+  for (const locale of locales) {
+    const binding = bindings.get(locale);
+
+    if (binding === undefined) {
+      collect.push({
+        tree,
+        scope: locale,
+        kind: "unregistered",
+        key: "import",
+        file: tree.registry,
+        line: 1,
+        message: `locale "${locale}" ships a translation.json but ${tree.registry} never imports it, so it is unreachable`,
+      });
+      continue;
+    }
+
+    const missingFrom = records.filter((record) => !record.has(binding));
+    if (missingFrom.length === 0) continue;
+
+    collect.push({
+      tree,
+      scope: locale,
+      kind: "unregistered",
+      key: "export",
+      file: tree.registry,
+      line: 1,
+      message: `locale "${locale}" is imported in ${tree.registry} but "${binding}" is missing from ${missingFrom.length} of the ${records.length} exported records, so it never reaches i18next`,
+    });
+  }
+}
+
 function localesByTree(source) {
   const map = new Map();
 
@@ -185,6 +303,10 @@ function checkPrefixChain(source, chain, trees, collect) {
 
 export function checkWiring(source, collect) {
   const trees = localesByTree(source);
+
+  for (const { tree, locales } of trees.values()) {
+    checkRegistration(source, tree, locales, collect);
+  }
 
   checkFlagMap(source, trees, collect);
 
