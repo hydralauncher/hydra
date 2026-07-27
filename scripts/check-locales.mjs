@@ -465,13 +465,13 @@ function describe(finding) {
   return `${finding.file}:${finding.line}  [${finding.kind}] ${finding.message}`;
 }
 
-function annotate(findings) {
+function annotate(findings, level = "error") {
   for (const finding of findings.slice(0, ANNOTATION_LIMIT)) {
     const title = `locale ${finding.kind}: ${finding.tree}/${finding.locale}`;
     const message = finding.message.replaceAll("\n", "%0A");
 
     process.stdout.write(
-      `::error file=${finding.file},line=${finding.line},title=${title}::${message}\n`
+      `::${level} file=${finding.file},line=${finding.line},title=${title}::${message}\n`
     );
   }
 
@@ -563,22 +563,49 @@ function readOption(flag, variable) {
   return requested.trim();
 }
 
-function reportIntroduced(introduced, inherited) {
+function writeList(findings) {
+  for (const finding of findings.slice(0, SUMMARY_LIMIT)) {
+    process.stdout.write(`  ${describe(finding)}\n`);
+  }
+
+  if (findings.length > SUMMARY_LIMIT) {
+    process.stdout.write(`  ... and ${findings.length - SUMMARY_LIMIT} more\n`);
+  }
+}
+
+function renderAdvisory(advisory) {
+  if (advisory.length === 0) return [];
+
+  return [
+    "### Untranslated keys in the locales this change touches",
+    "",
+    "Not blocking, listed so the gap is visible.",
+    "",
+    ...summaryTable(advisory),
+    ...summaryDetails(advisory),
+  ];
+}
+
+function reportIntroduced(introduced, advisory, inherited) {
   annotate(introduced);
-  writeSummary(renderSummary("Locale check failed", introduced, inherited));
+  annotate(advisory, "warning");
+  writeSummary(
+    [
+      renderSummary("Locale check failed", introduced, inherited),
+      ...renderAdvisory(advisory),
+    ].join("\n")
+  );
 
   process.stdout.write(
     `\n${introduced.length} locale problems introduced by this change:\n\n`
   );
+  writeList(introduced);
 
-  for (const finding of introduced.slice(0, SUMMARY_LIMIT)) {
-    process.stdout.write(`  ${describe(finding)}\n`);
-  }
-
-  if (introduced.length > SUMMARY_LIMIT) {
+  if (advisory.length > 0) {
     process.stdout.write(
-      `  ... and ${introduced.length - SUMMARY_LIMIT} more\n`
+      `\n${advisory.length} keys are still untranslated in the locales this change touches, not blocking:\n\n`
     );
+    writeList(advisory);
   }
 
   process.stdout.write(
@@ -588,46 +615,79 @@ function reportIntroduced(introduced, inherited) {
   return 1;
 }
 
-function reportClean(inherited, baseLabel) {
+function reportClean(advisory, inherited, baseLabel) {
+  annotate(advisory, "warning");
   process.stdout.write(
     `No new locale problems. ${inherited} pre-existing problems inherited from ${baseLabel}.\n`
   );
+
+  if (advisory.length > 0) {
+    process.stdout.write(
+      `\n${advisory.length} keys are still untranslated in the locales this change touches, not blocking:\n\n`
+    );
+    writeList(advisory);
+  }
+
   writeSummary(
     [
       "## Locale check",
       "",
       `No new locale problems introduced. **${inherited}** pre-existing problems inherited from ${baseLabel}.`,
       "",
+      ...renderAdvisory(advisory),
     ].join("\n")
   );
 
   return 0;
 }
 
+function touchedLocales(baseSource, headSource) {
+  const touched = new Set();
+
+  for (const tree of TREES) {
+    for (const locale of headSource.listLocales(tree.dir) ?? []) {
+      const file = path.posix.join(tree.dir, locale, TRANSLATION_FILE);
+
+      if (baseSource.read(file) !== headSource.read(file)) {
+        touched.add(`${tree.name}|${locale}`);
+      }
+    }
+  }
+
+  return touched;
+}
+
 function ratchet(head, baseSource, baseLabel) {
   const base = collectFindings(baseSource);
   const baseIds = new Set(base.findings.map((finding) => finding.id));
   const delta = referenceDelta(baseSource, workingTree);
+  const touched = touchedLocales(baseSource, workingTree);
 
   const introduced = [];
+  const advisory = [];
   let inherited = 0;
 
   for (const finding of head.findings) {
+    const scope = `${finding.tree}|${finding.locale}`;
+    const isOwned = !base.locales.has(scope) || touched.has(scope);
+
     if (baseIds.has(finding.id)) {
       inherited += 1;
+
+      if (isOwned && finding.kind === "missing") advisory.push(finding);
       continue;
     }
 
-    const isNewLocale = !base.locales.has(`${finding.tree}|${finding.locale}`);
-
-    if (!isNewLocale && isIntroducedByPullRequest(finding, delta)) continue;
+    if (!isOwned && isIntroducedByPullRequest(finding, delta)) continue;
 
     introduced.push(finding);
   }
 
-  if (introduced.length === 0) return reportClean(inherited, baseLabel);
+  if (introduced.length === 0) {
+    return reportClean(advisory, inherited, baseLabel);
+  }
 
-  return reportIntroduced(introduced, inherited);
+  return reportIntroduced(introduced, advisory, inherited);
 }
 
 function main() {
