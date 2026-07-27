@@ -73,6 +73,8 @@ const SORT_OPTIONS: SortOption[] = [
   "most_played",
   "installed_first",
   "title_desc",
+  "release_date_asc",
+  "release_date_desc",
 ];
 
 const getGameCollectionIds = (game: LibraryGame): string[] => {
@@ -520,6 +522,30 @@ export default function Library() {
           return (b.title ?? "").localeCompare(a.title ?? "", undefined, {
             sensitivity: "base",
           });
+        }
+
+        case "release_date_asc": {
+          const getReleaseDate = (game: LibraryGame): number => {
+            if (game.userReleaseDate) return new Date(game.userReleaseDate).getTime();
+            if (game.releaseDate) return new Date(game.releaseDate).getTime();
+            return 0;
+          };
+          const aDate = getReleaseDate(a);
+          const bDate = getReleaseDate(b);
+          if (aDate !== bDate) return aDate - bDate;
+          break;
+        }
+
+        case "release_date_desc": {
+          const getReleaseDate = (game: LibraryGame): number => {
+            if (game.userReleaseDate) return new Date(game.userReleaseDate).getTime();
+            if (game.releaseDate) return new Date(game.releaseDate).getTime();
+            return 0;
+          };
+          const aDate = getReleaseDate(a);
+          const bDate = getReleaseDate(b);
+          if (aDate !== bDate) return bDate - aDate;
+          break;
         }
 
         case "title_asc":
