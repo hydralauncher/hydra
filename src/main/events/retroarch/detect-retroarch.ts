@@ -8,12 +8,32 @@ const detectRetroArch = async (_event: Electron.IpcMainInvokeEvent) => {
     return retroarch.getRetroArchConfig();
   }
 
-  return retroarch.updateRetroArchConfig((current) => ({
-    ...current,
-    executablePath: result.executablePath,
-    detectedVersion: result.detectedVersion,
-    detectedAt: Date.now(),
-  }));
+  return retroarch.updateRetroArchConfig((current) => {
+    const next = {
+      ...current,
+      executablePath: result.executablePath,
+      detectedVersion: result.detectedVersion,
+      detectedAt: Date.now(),
+    };
+
+    const hasInstalledCores = Object.values(current.cores).some(
+      (core) => core.installed
+    );
+    if (current.coresDir === null && !hasInstalledCores) {
+      const autoCoresDir = retroarch.detectRetroArchCoresDir(
+        result.executablePath
+      );
+      if (autoCoresDir) {
+        next.coresDir = autoCoresDir;
+        next.cores = retroarch.buildCoresStateForDir(
+          autoCoresDir,
+          current.cores
+        );
+      }
+    }
+
+    return next;
+  });
 };
 
 registerEvent("detectRetroArch", detectRetroArch);

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type {
+  RetroArchCore,
   RetroArchCoreInstallProgress,
   RetroArchCoreInstallResult,
   RetroArchCoreName,
@@ -47,6 +48,30 @@ export const detectInstalledCores = (
     }
   }
   return found;
+};
+
+export const buildCoresStateForDir = (
+  coresDir: string | null,
+  currentCores: Record<RetroArchCoreName, RetroArchCore>
+): Record<RetroArchCoreName, RetroArchCore> => {
+  const detected = detectInstalledCores(resolveCoresDir(coresDir));
+  const cores = { ...currentCores };
+  for (const core of RETROARCH_CORE_NAMES) {
+    const libraryPath = detected[core] ?? null;
+    const previous = currentCores[core];
+    if (libraryPath && previous?.path === libraryPath) {
+      cores[core] = previous;
+    } else {
+      cores[core] = {
+        name: core,
+        installed: libraryPath !== null,
+        version: null,
+        path: libraryPath,
+        installedAt: libraryPath ? Date.now() : null,
+      };
+    }
+  }
+  return cores;
 };
 
 const sendCoreProgress = (progress: RetroArchCoreInstallProgress): void => {

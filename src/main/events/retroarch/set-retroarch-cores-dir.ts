@@ -8,28 +8,12 @@ const setRetroArchCoresDir = async (
   coresDir: string | null
 ) => {
   const normalized = coresDir ? path.normalize(coresDir) : null;
-  const resolvedDir = retroarch.resolveCoresDir(normalized);
-  const detected = retroarch.detectInstalledCores(resolvedDir);
 
-  return retroarch.updateRetroArchConfig((current) => {
-    const cores = { ...current.cores };
-    for (const core of retroarch.RETROARCH_CORE_NAMES) {
-      const libraryPath = detected[core] ?? null;
-      const previous = current.cores[core];
-      if (libraryPath && previous?.path === libraryPath) {
-        cores[core] = previous;
-      } else {
-        cores[core] = {
-          name: core,
-          installed: libraryPath !== null,
-          version: null,
-          path: libraryPath,
-          installedAt: libraryPath ? Date.now() : null,
-        };
-      }
-    }
-    return { ...current, coresDir: normalized, cores };
-  });
+  return retroarch.updateRetroArchConfig((current) => ({
+    ...current,
+    coresDir: normalized,
+    cores: retroarch.buildCoresStateForDir(normalized, current.cores),
+  }));
 };
 
 registerEvent("setRetroArchCoresDir", setRetroArchCoresDir);

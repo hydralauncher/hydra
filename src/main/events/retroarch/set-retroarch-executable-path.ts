@@ -19,12 +19,30 @@ const setRetroArchExecutablePath = async (
     ? retroarch.getRetroArchVersion(resolvedPath)
     : null;
 
-  return retroarch.updateRetroArchConfig((current) => ({
-    ...current,
-    executablePath: resolvedPath,
-    detectedVersion: version,
-    detectedAt: resolvedPath ? Date.now() : null,
-  }));
+  return retroarch.updateRetroArchConfig((current) => {
+    const next = {
+      ...current,
+      executablePath: resolvedPath,
+      detectedVersion: version,
+      detectedAt: resolvedPath ? Date.now() : null,
+    };
+
+    const hasInstalledCores = Object.values(current.cores).some(
+      (core) => core.installed
+    );
+    if (resolvedPath && current.coresDir === null && !hasInstalledCores) {
+      const autoCoresDir = retroarch.detectRetroArchCoresDir(resolvedPath);
+      if (autoCoresDir) {
+        next.coresDir = autoCoresDir;
+        next.cores = retroarch.buildCoresStateForDir(
+          autoCoresDir,
+          current.cores
+        );
+      }
+    }
+
+    return next;
+  });
 };
 
 registerEvent("setRetroArchExecutablePath", setRetroArchExecutablePath);
