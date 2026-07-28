@@ -346,8 +346,6 @@
     "open_download_location": "Просмотреть загруженные файлы",
     "pin_game": "Закрепить игру",
     "unpin_game": "Открепить игру",
-    "game_added_to_pinned": "Игра закреплена",
-    "game_removed_from_pinned": "Игра откреплена",
     "failed_update_pinned": "Не удалось обновить закрепление",
     "create_shortcut": "Создать ярлык на рабочем столе",
     "create_shortcut_simple": "Создать ярлык",
