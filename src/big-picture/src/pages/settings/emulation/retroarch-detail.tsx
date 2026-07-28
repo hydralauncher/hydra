@@ -1,4 +1,8 @@
-import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
+import {
+  CheckCircleFillIcon,
+  DownloadIcon,
+  SyncIcon,
+} from "@primer/octicons-react";
 import type { RetroArchConfig, RomFolder } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -164,6 +168,10 @@ export function RetroArchEmulationDetail({
     setIsBusy(true);
 
     try {
+      const rescanned = await globalThis.window.electron.setRetroArchCoresDir(
+        config.coresDir
+      );
+      onChange(rescanned);
       const results =
         await globalThis.window.electron.installAllRetroArchCores();
       const next = await globalThis.window.electron.getRetroArchConfig();
@@ -182,7 +190,7 @@ export function RetroArchEmulationDetail({
     } finally {
       setIsBusy(false);
     }
-  }, [onChange, showErrorToast, showSuccessToast]);
+  }, [config.coresDir, onChange, showErrorToast, showSuccessToast]);
 
   const handleChangeCoresDir = useCallback(async () => {
     const result = await globalThis.window.electron.showOpenDialog({
@@ -396,13 +404,13 @@ export function RetroArchEmulationDetail({
                   },
                 }}
                 variant="secondary"
-                disabled={isBusy || allCoresInstalled}
-                icon={<DownloadIcon size={14} />}
+                disabled={isBusy}
+                icon={<SyncIcon size={14} />}
                 onClick={() => {
                   void handleInstallAllCores();
                 }}
               >
-                {t("retroarch_download_all_cores")}
+                {t("re_detect")}
               </Button>
             </div>
           </header>

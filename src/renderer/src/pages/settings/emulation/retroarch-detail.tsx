@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  DownloadIcon,
-  SyncIcon,
-  TrashIcon,
-  XIcon,
-} from "@primer/octicons-react";
+import { FileDirectoryIcon, SyncIcon, TrashIcon } from "@primer/octicons-react";
 
 import { Button, RetroArchScanIndicator } from "@renderer/components";
 import { useRetroArchScan, useToast } from "@renderer/hooks";
@@ -166,16 +161,20 @@ export function RetroArchDetail({
     }
   }, [config.executablePath, onChange, showErrorToast, t]);
 
-  const handleInstallAllCores = useCallback(async () => {
+  const handleRedetectCores = useCallback(async () => {
     if (installingCores) return;
     setInstallingCores(true);
     try {
+      const rescanned = await window.electron.setRetroArchCoresDir(
+        config.coresDir
+      );
+      onChange(rescanned);
       await window.electron.installAllRetroArchCores();
       await refresh();
     } finally {
       setInstallingCores(false);
     }
-  }, [installingCores, refresh]);
+  }, [config.coresDir, installingCores, onChange, refresh]);
 
   const handleChangeCoresDir = useCallback(async () => {
     const result = await window.electron.showOpenDialog({
@@ -405,6 +404,18 @@ export function RetroArchDetail({
             description={RETROARCH_CORES_LINE}
             detected={allCoresInstalled}
             statusLabel={coresRowStatus}
+            headerAccessory={
+              config.coresDir ? (
+                <button
+                  type="button"
+                  className="emulator-detail__res-link"
+                  onClick={handleResetCoresDir}
+                  disabled={busy || installingCores}
+                >
+                  {t("retroarch_cores_folder_reset")}
+                </button>
+              ) : undefined
+            }
             path={{
               text: config.coresDir,
               placeholder: t("retroarch_cores_folder_default"),
@@ -414,27 +425,28 @@ export function RetroArchDetail({
             }}
             actions={
               <>
-                {config.coresDir && (
-                  <Button
-                    theme="outline"
-                    onClick={handleResetCoresDir}
-                    disabled={busy || installingCores}
-                  >
-                    <XIcon size={13} />
-                    <span>{t("retroarch_cores_folder_reset")}</span>
-                  </Button>
-                )}
+                <Button
+                  theme="outline"
+                  onClick={handleRedetectCores}
+                  disabled={busy || installingCores}
+                >
+                  <SyncIcon
+                    size={13}
+                    className={
+                      installingCores
+                        ? "emulator-detail__redetect-icon--spinning"
+                        : undefined
+                    }
+                  />
+                  <span>{t("re_detect")}</span>
+                </Button>
                 <Button
                   theme="primary"
-                  onClick={handleInstallAllCores}
-                  disabled={installingCores || allCoresInstalled}
+                  onClick={handleChangeCoresDir}
+                  disabled={busy || installingCores}
                 >
-                  <DownloadIcon size={13} />
-                  <span>
-                    {installingCores
-                      ? t("retroarch_downloading_cores")
-                      : t("retroarch_download_all_cores")}
-                  </span>
+                  <FileDirectoryIcon size={16} />
+                  <span>{t("browse")}</span>
                 </Button>
               </>
             }
