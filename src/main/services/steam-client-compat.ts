@@ -30,6 +30,13 @@ const REQUIRED_STEAM_CLIENT_FILE = "steamclient64.dll";
 
 const LEGACY_COMPAT_DIRECTORY = "legacycompat";
 
+const OVERLAY_LIBRARIES = [
+  path.join("ubuntu12_32", "gameoverlayrenderer.so"),
+  path.join("ubuntu12_64", "gameoverlayrenderer.so"),
+];
+
+const FALLBACK_OVERLAY_GAME_ID = "480";
+
 const PREFIX_STEAM_DIRECTORY = path.join(
   "drive_c",
   "Program Files (x86)",
@@ -44,6 +51,7 @@ export interface SteamEmulatorDetection {
 export interface SteamClientCompatOptions {
   executablePath: string;
   winePrefixPath: string | null;
+  objectId?: string | null;
 }
 
 const readDirectoryEntries = (directoryPath: string) => {
@@ -130,9 +138,27 @@ const copySteamClientFiles = (
   }
 };
 
+const resolveOverlayEnv = (
+  steamInstallPath: string,
+  objectId?: string | null
+): Record<string, string> => {
+  const libraryPaths = OVERLAY_LIBRARIES.map((library) =>
+    path.join(steamInstallPath, library)
+  ).filter((libraryPath) => fs.existsSync(libraryPath));
+
+  if (!libraryPaths.length) return {};
+
+  return {
+    LD_PRELOAD: `:${libraryPaths.join(":")}`,
+    ENABLE_VK_LAYER_VALVE_steam_overlay_1: "1",
+    SteamOverlayGameId: objectId || FALLBACK_OVERLAY_GAME_ID,
+  };
+};
+
 export const resolveSteamClientCompatEnv = async ({
   executablePath,
   winePrefixPath,
+  objectId,
 }: SteamClientCompatOptions): Promise<Record<string, string> | null> => {
   if (process.platform !== "linux") return null;
 
@@ -199,6 +225,7 @@ export const resolveSteamClientCompatEnv = async ({
 
   return {
     STEAM_COMPAT_CLIENT_INSTALL_PATH: steamInstallPath,
+    ...resolveOverlayEnv(steamInstallPath, objectId),
     ...(dllOverrides ? { WINEDLLOVERRIDES: dllOverrides } : {}),
   };
 };

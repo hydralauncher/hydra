@@ -243,8 +243,16 @@ export class Umu {
       .filter(Boolean)
       .join(";");
 
+    const preloadedLibraries = [
+      extraEnv.LD_PRELOAD,
+      resolvedLaunchCommand.env.LD_PRELOAD,
+    ]
+      .filter(Boolean)
+      .join(":");
+
     const launchEnv: Record<string, string> = {
       PROTON_LOG: "1",
+      PROTON_LOG_DIR: logsPath,
       ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
       ...(options?.winePrefixPath
         ? { WINEPREFIX: options.winePrefixPath }
@@ -254,6 +262,7 @@ export class Umu {
       ...extraEnv,
       ...resolvedLaunchCommand.env,
       ...(dllOverrides ? { WINEDLLOVERRIDES: dllOverrides } : {}),
+      ...(preloadedLibraries ? { LD_PRELOAD: preloadedLibraries } : {}),
     };
 
     const envCommandPart = Object.entries(launchEnv)
