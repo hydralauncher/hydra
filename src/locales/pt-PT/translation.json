@@ -620,7 +620,6 @@
     "retroarch_cores_ready": "Todos os núcleos instalados",
     "retroarch_cores_section_title": "Núcleos",
     "retroarch_cores_section_description": "{{installed}} de {{total}} núcleos instalados. Os núcleos são descarregados do buildbot do libretro.",
-    "retroarch_scan_in_progress": "A verificar pastas de ROMs… {{percent}}%",
     "setup_install_with_hydra": "Instalar a partir do GitHub",
     "setup_recommended": "Recomendado",
     "setup_view_on_github": "Ver no GitHub",

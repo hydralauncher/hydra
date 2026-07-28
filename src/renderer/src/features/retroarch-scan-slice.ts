@@ -13,6 +13,7 @@ export interface RetroArchScanResult {
 
 export interface RetroArchScanState {
   active: boolean;
+  modalVisible: boolean;
   requestId: string | null;
   phase: ScanPhase;
   processed: number;
@@ -30,6 +31,7 @@ export interface RetroArchScanState {
 
 const baseState = {
   active: false,
+  modalVisible: false,
   requestId: null,
   phase: "scanning" as ScanPhase,
   processed: 0,
@@ -81,10 +83,11 @@ export const retroarchScanSlice = createSlice({
   reducers: {
     startRetroArchScan: (
       state,
-      action: PayloadAction<{ requestId: string }>
+      action: PayloadAction<{ requestId: string; openModal: boolean }>
     ) => {
       Object.assign(state, baseState);
       state.active = true;
+      state.modalVisible = action.payload.openModal;
       state.requestId = action.payload.requestId;
     },
     hydrateRetroArchScan: (
@@ -157,6 +160,17 @@ export const retroarchScanSlice = createSlice({
       Object.assign(state, baseState);
       state.completedNonce = completedNonce;
     },
+    openRetroArchScanModal: (state) => {
+      if (state.requestId) state.modalVisible = true;
+    },
+    closeRetroArchScanModal: (state) => {
+      state.modalVisible = false;
+      if (!state.active) {
+        const { completedNonce } = state;
+        Object.assign(state, baseState);
+        state.completedNonce = completedNonce;
+      }
+    },
   },
 });
 
@@ -167,4 +181,6 @@ export const {
   finishRetroArchScan,
   failRetroArchScan,
   resetRetroArchScan,
+  openRetroArchScanModal,
+  closeRetroArchScanModal,
 } = retroarchScanSlice.actions;

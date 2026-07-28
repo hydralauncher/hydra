@@ -44,6 +44,7 @@ import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-m
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
+import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
@@ -662,6 +663,7 @@ export function App() {
       />
 
       <ClassicsScanModal />
+      <RetroArchScanModal />
 
       <main>
         <Sidebar />

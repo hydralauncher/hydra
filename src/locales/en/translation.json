@@ -1228,7 +1228,6 @@
     "retroarch_cores_ready": "All cores installed",
     "retroarch_cores_section_title": "Cores",
     "retroarch_cores_section_description": "{{installed}} of {{total}} cores installed. Cores are downloaded from the libretro buildbot.",
-    "retroarch_scan_in_progress": "Scanning ROM folders… {{percent}}%",
     "setup_modal_subtitle": "Step {{current}} of {{total}} · {{stepLabel}}",
     "setup_step_find_emulator": "Find {{name}} on your computer",
     "setup_step_find_intro": "Hydra needs to know where {{name}} is installed so it can launch your games. We tried to detect it automatically.",

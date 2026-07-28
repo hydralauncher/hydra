@@ -360,7 +360,7 @@ export function RetroArchEmulationDetail({
                   },
                 }}
                 variant="secondary"
-                disabled={isBusy}
+                disabled={isBusy || allCoresInstalled}
                 icon={<DownloadIcon size={14} />}
                 onClick={() => {
                   void handleInstallAllCores();

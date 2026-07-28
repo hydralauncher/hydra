@@ -1189,7 +1189,6 @@
     "retroarch_cores_ready": "Todos los núcleos instalados",
     "retroarch_cores_section_title": "Núcleos",
     "retroarch_cores_section_description": "{{installed}} de {{total}} núcleos instalados. Los núcleos se descargan del buildbot de libretro.",
-    "retroarch_scan_in_progress": "Escaneando carpetas de ROMs… {{percent}}%",
     "setup_modal_subtitle": "Paso {{current}} de {{total}} · {{stepLabel}}",
     "setup_step_find_emulator": "Encuentra {{name}} en tu computadora",
     "setup_step_find_intro": "Hydra necesita saber dónde está instalado {{name}} para poder iniciar tus juegos. Intentamos detectarlo automáticamente.",

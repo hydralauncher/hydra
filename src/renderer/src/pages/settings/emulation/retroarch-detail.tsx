@@ -7,7 +7,7 @@ import {
   TrashIcon,
 } from "@primer/octicons-react";
 
-import { Button } from "@renderer/components";
+import { Button, RetroArchScanIndicator } from "@renderer/components";
 import { useRetroArchScan, useToast } from "@renderer/hooks";
 import { formatBytes } from "@shared";
 import type {
@@ -199,7 +199,8 @@ export function RetroArchDetail({
         next.romFolders.map((f) => ({
           path: f.path,
           scanSubfolders: f.scanSubfolders,
-        }))
+        })),
+        { openModal: true }
       );
     } finally {
       setBusy(false);
@@ -232,7 +233,8 @@ export function RetroArchDetail({
           next.romFolders.map((f) => ({
             path: f.path,
             scanSubfolders: f.scanSubfolders,
-          }))
+          })),
+          { openModal: true }
         );
       } finally {
         setBusy(false);
@@ -280,7 +282,8 @@ export function RetroArchDetail({
       config.romFolders.map((f) => ({
         path: f.path,
         scanSubfolders: f.scanSubfolders,
-      }))
+      })),
+      { openModal: true }
     );
   }, [config.romFolders, start, showErrorToast, t]);
 
@@ -405,7 +408,7 @@ export function RetroArchDetail({
               <Button
                 theme="outline"
                 onClick={handleInstallAllCores}
-                disabled={installingCores}
+                disabled={installingCores || allCoresInstalled}
               >
                 <DownloadIcon size={14} />
                 <span>
@@ -479,19 +482,7 @@ export function RetroArchDetail({
               </Button>
             </header>
 
-            {scan.active && (
-              <div className="emulator-detail__folder-meta">
-                <SyncIcon
-                  size={13}
-                  className="emulator-detail__redetect-icon--spinning"
-                />
-                <span>
-                  {t("retroarch_scan_in_progress", {
-                    percent: Math.floor(scan.percent),
-                  })}
-                </span>
-              </div>
-            )}
+            <RetroArchScanIndicator variant="section" />
 
             <LibraryStatsGrid
               systemLabel={RETROARCH_LABEL}

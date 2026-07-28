@@ -27,6 +27,7 @@ export * from "./create-collection-modal/create-collection-modal";
 export * from "./progress-bar/progress-bar";
 export * from "./classics-onboarding-modal/classics-onboarding-modal";
 export * from "./classics-scan-indicator/classics-scan-indicator";
+export * from "./retroarch-scan-indicator/retroarch-scan-indicator";
 export * from "./classics-spinner/classics-spinner";
 export * from "./error-boundary/error-fallback";
 export * from "./error-boundary/error-boundary";

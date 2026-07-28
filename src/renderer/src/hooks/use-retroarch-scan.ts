@@ -2,7 +2,12 @@ import { useCallback } from "react";
 import i18n from "i18next";
 
 import { useAppDispatch, useAppSelector } from "./redux";
-import { resetRetroArchScan, startRetroArchScan } from "@renderer/features";
+import {
+  closeRetroArchScanModal,
+  openRetroArchScanModal,
+  resetRetroArchScan,
+  startRetroArchScan,
+} from "@renderer/features";
 
 interface ScanFolderInput {
   path: string;
@@ -14,7 +19,7 @@ export function useRetroArchScan() {
   const scan = useAppSelector((state) => state.retroarchScan);
 
   const start = useCallback(
-    async (folders: ScanFolderInput[]) => {
+    async (folders: ScanFolderInput[], options?: { openModal?: boolean }) => {
       if (scan.active) return;
       const language = i18n.language.split("-")[0] || "en";
       const { requestId } = await window.electron.importRetroArchRoms(
@@ -24,10 +29,23 @@ export function useRetroArchScan() {
         })),
         language
       );
-      dispatch(startRetroArchScan({ requestId }));
+      dispatch(
+        startRetroArchScan({
+          requestId,
+          openModal: options?.openModal ?? false,
+        })
+      );
     },
     [dispatch, scan.active]
   );
+
+  const openModal = useCallback(() => {
+    dispatch(openRetroArchScanModal());
+  }, [dispatch]);
+
+  const closeModal = useCallback(() => {
+    dispatch(closeRetroArchScanModal());
+  }, [dispatch]);
 
   const cancel = useCallback(() => {
     if (scan.requestId) {
@@ -39,5 +57,5 @@ export function useRetroArchScan() {
     if (!scan.active) dispatch(resetRetroArchScan());
   }, [dispatch, scan.active]);
 
-  return { scan, start, cancel, reset };
+  return { scan, start, openModal, closeModal, cancel, reset };
 }

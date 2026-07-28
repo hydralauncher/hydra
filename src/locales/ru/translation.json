@@ -1229,7 +1229,6 @@
     "retroarch_cores_ready": "Все ядра установлены",
     "retroarch_cores_section_title": "Ядра",
     "retroarch_cores_section_description": "Установлено ядер: {{installed}} из {{total}}. Ядра скачиваются с buildbot libretro.",
-    "retroarch_scan_in_progress": "Сканирование папок с ROM… {{percent}}%",
     "setup_modal_subtitle": "Шаг {{current}} из {{total}} · {{stepLabel}}",
     "setup_step_find_emulator": "Найдите {{name}} на вашем компьютере",
     "setup_step_find_intro": "Hydra нужно знать, где установлен {{name}}, чтобы запускать ваши игры. Мы попытались обнаружить его автоматически.",
