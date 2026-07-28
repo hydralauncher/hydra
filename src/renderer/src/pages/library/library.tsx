@@ -27,7 +27,7 @@ import { AuthPage } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
 import { useCollectionContextMenu } from "@renderer/context";
-import { getGameCollectionIds } from "@renderer/helpers";
+import { getGameCollectionIds, sortLibraryGames } from "@renderer/helpers";
 import { useSearchParams } from "react-router-dom";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
@@ -296,64 +296,10 @@ export default function Library() {
     hasLoadedCollections,
   ]);
 
-  const sortedLibrary = useMemo(() => {
-    return [...library].sort((a, b) => {
-      switch (sortBy) {
-        case "recently_played": {
-          const aHasPlayed = a.lastTimePlayed !== null;
-          const bHasPlayed = b.lastTimePlayed !== null;
-
-          if (aHasPlayed && bHasPlayed) {
-            const aLastPlayed = new Date(a.lastTimePlayed as Date).getTime();
-            const bLastPlayed = new Date(b.lastTimePlayed as Date).getTime();
-            const lastPlayedDifference = bLastPlayed - aLastPlayed;
-            if (lastPlayedDifference !== 0) return lastPlayedDifference;
-          } else if (aHasPlayed !== bHasPlayed) {
-            return aHasPlayed ? -1 : 1;
-          }
-
-          break;
-        }
-
-        case "most_played": {
-          const playTimeDifference =
-            b.playTimeInMilliseconds - a.playTimeInMilliseconds;
-          if (playTimeDifference !== 0) return playTimeDifference;
-          break;
-        }
-
-        case "installed_first": {
-          const isInstalled = (game: LibraryGame) =>
-            Boolean(game.executablePath) ||
-            game.installedSizeInBytes != null ||
-            (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
-
-          const aIsInstalled = isInstalled(a);
-          const bIsInstalled = isInstalled(b);
-
-          if (aIsInstalled !== bIsInstalled) {
-            return aIsInstalled ? -1 : 1;
-          }
-
-          break;
-        }
-
-        case "title_desc": {
-          return (b.title ?? "").localeCompare(a.title ?? "", undefined, {
-            sensitivity: "base",
-          });
-        }
-
-        case "title_asc":
-        default:
-          break;
-      }
-
-      return (a.title ?? "").localeCompare(b.title ?? "", undefined, {
-        sensitivity: "base",
-      });
-    });
-  }, [library, sortBy]);
+  const sortedLibrary = useMemo(
+    () => sortLibraryGames(library, sortBy),
+    [library, sortBy]
+  );
 
   const filteredLibrary = useMemo(() => {
     let filtered = sortedLibrary;
