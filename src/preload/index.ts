@@ -47,6 +47,7 @@ import type {
   SyncCloudSaveOnGamePageResult,
   SyncGameCloudSaveResult,
   SelectCloudSaveCustomPathResult,
+  SetEmulatorCloudSaveCardInput,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -111,6 +112,8 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<SelectCloudSaveCustomPathResult>,
+  selectEmulatorCloudSaveCard: (input: SetEmulatorCloudSaveCardInput) =>
+    ipcRenderer.invoke("selectEmulatorCloudSaveCard", input) as Promise<string>,
   setCloudSaveAutomaticSyncEnabled: (
     objectId: string,
     shop: GameShop,

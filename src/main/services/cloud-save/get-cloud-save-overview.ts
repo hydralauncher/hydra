@@ -44,5 +44,14 @@ export const getCloudSaveOverview = async (
     warnings: analysis.localSnapshot.coverage.filter(
       (item) => item.warningCodes.length > 0
     ),
+    ...(analysis.localSnapshotContext.emulator
+      ? {
+          emulator: {
+            platform: analysis.localSnapshotContext.emulator.platform,
+            cards: analysis.localSnapshotContext.emulator.cards,
+            selections: analysis.emulatorSelections,
+          },
+        }
+      : {}),
   };
 };

@@ -22,6 +22,7 @@ export function HydraCloudV2SettingsSection({
     runCloudSaveOperation,
     setAutomaticSyncEnabled,
     requestConflictResolution,
+    selectEmulatorCard,
   } = useCloudSaveV2();
 
   return (
@@ -46,6 +47,7 @@ export function HydraCloudV2SettingsSection({
         onSelectExecutable={onSelectExecutable}
         onAutomaticSyncChange={setAutomaticSyncEnabled}
         onResolveConflict={requestConflictResolution}
+        onSelectEmulatorCard={selectEmulatorCard}
       />
     </div>
   );

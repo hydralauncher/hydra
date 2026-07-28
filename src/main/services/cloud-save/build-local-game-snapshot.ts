@@ -5,6 +5,10 @@ import type { GameShop, LocalGameSnapshotContext } from "@types";
 import { NativeAddon } from "../native-addon";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { getCloudSaveCustomPathRules } from "./custom-path-store";
+import {
+  buildEmulatorLocalGameSnapshot,
+  getEmulatorCloudSavePlatform,
+} from "./emulator-cloud-save";
 
 export const buildLocalGameSnapshotContext = async (
   objectId: string,
@@ -14,6 +18,9 @@ export const buildLocalGameSnapshotContext = async (
   const context =
     suppliedContext ?? (await getCloudSaveGameContext(objectId, shop));
   const { game, pathContext, environmentId } = context;
+  if (game && getEmulatorCloudSavePlatform(game, shop)) {
+    return buildEmulatorLocalGameSnapshot(game, environmentId, pathContext);
+  }
   const cacheKey = levelKeys.game(shop, objectId);
   const [hashCache, extraRules] = await Promise.all([
     cloudSaveLocalHashCacheSublevel.get(cacheKey).then((value) => value ?? []),

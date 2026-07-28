@@ -4,10 +4,9 @@ import { logger } from "@main/services/logger";
 import { SystemPath } from "@main/services/system-path";
 import type {
   CloudSaveGameId,
-  CloudSavePathContext,
+  LocalGameSnapshotContext,
   RemoteGameSnapshot,
   RemoteSnapshotSummary,
-  ReplaceRestoreTarget,
   RestoreProgressPayload,
   RestoreRemoteSnapshotResult,
 } from "@types";
@@ -37,11 +36,18 @@ import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
 import { registerCloudSaveCustomPaths } from "./custom-path-store";
 import { CLOUD_SAVE_CUSTOM_PATH_PREFIX } from "./custom-path";
+import { isEmulatorCloudSaveRawPath } from "./emulator-cloud-save-codec";
+import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
+import {
+  applyEmulatorRestoreFiles,
+  resolveEmulatorRestoreTargets,
+} from "./emulator-cloud-save-restore";
 
-interface RestoreCloudSaveContext {
-  environmentId: string;
-  pathContext: CloudSavePathContext;
-}
+interface RestoreCloudSaveContext
+  extends Pick<
+    LocalGameSnapshotContext,
+    "environmentId" | "pathContext" | "emulator"
+  > {}
 
 const assertSnapshotStillCurrent = async (
   gameId: CloudSaveGameId,
@@ -114,13 +120,42 @@ export const restoreRemoteSnapshot = async (
     files: selectedFiles,
   };
   emitProgress("resolving", 0, selectedFiles.length);
-  const cloudSaveContext =
+  const initialCloudSaveContext =
     suppliedContext ??
     (await getCloudSaveGameContext(gameId.objectId, gameId.shop));
-  const plan = await resolveRestoreManifestTargets(
-    selectedManifest,
-    cloudSaveContext.pathContext
-  );
+  const emulatorFileCount = selectedFiles.filter((file) =>
+    isEmulatorCloudSaveRawPath(file.rawPath)
+  ).length;
+  if (emulatorFileCount > 0 && emulatorFileCount !== selectedFiles.length) {
+    throw new Error("Mixed emulator and filesystem restores are unsupported");
+  }
+  const cloudSaveContext =
+    emulatorFileCount > 0 &&
+    !("emulator" in initialCloudSaveContext && initialCloudSaveContext.emulator)
+      ? await buildLocalGameSnapshotContext(gameId.objectId, gameId.shop)
+      : initialCloudSaveContext;
+  const emulatorTargets =
+    emulatorFileCount > 0
+      ? await resolveEmulatorRestoreTargets(
+          cloudSaveContext as LocalGameSnapshotContext,
+          selectedFiles
+        )
+      : [];
+  const plan =
+    emulatorTargets.length > 0
+      ? {
+          actions: emulatorTargets.map((target) => ({
+            ...target,
+            targetPath: target.cardFilePath,
+            restoreRootPath: target.cardFilePath,
+            action: "replace" as const,
+          })),
+          blocked: [],
+        }
+      : await resolveRestoreManifestTargets(
+          selectedManifest,
+          cloudSaveContext.pathContext
+        );
   emitProgress("resolving", plan.actions.length, selectedFiles.length);
 
   const restoreTargets = plan.actions.filter(
@@ -180,7 +215,7 @@ export const restoreRemoteSnapshot = async (
           gameId,
           onProgress,
           current,
-          cloudSaveContext,
+          emulatorTargets.length > 0 ? undefined : cloudSaveContext,
           requestedEntryIds,
           updateAnchor,
           carriedUnresolvedEntryIds,
@@ -191,14 +226,19 @@ export const restoreRemoteSnapshot = async (
       throw new Error("cloud_save_restore_snapshot_changed_twice");
     }
 
-    const replacements: ReplaceRestoreTarget[] = buildRestoreReplacements(
-      plan.actions,
-      downloadedFiles
-    );
     await assertEnvironmentCurrent?.();
-    emitProgress("applying_restore", 0, replacements.length);
-    const result = await replaceRestoreTargets(replacements);
-    emitProgress("applying_restore", replacements.length, replacements.length);
+    emitProgress("applying_restore", 0, plan.actions.length);
+    const result =
+      emulatorTargets.length > 0
+        ? await applyEmulatorRestoreFiles(
+            cloudSaveContext as LocalGameSnapshotContext,
+            emulatorTargets,
+            downloadedFiles
+          )
+        : await replaceRestoreTargets(
+            buildRestoreReplacements(plan.actions, downloadedFiles)
+          );
+    emitProgress("applying_restore", plan.actions.length, plan.actions.length);
     logger.info("[Cloud Save] Restore metadata applied", {
       restoredFiles: result.restoredFiles.length,
       timestampedIdenticalFiles: result.skippedFiles.length,

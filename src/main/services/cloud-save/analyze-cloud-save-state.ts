@@ -8,6 +8,7 @@ import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
 import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
 import { getCloudSaveSyncAnchor } from "./sync-anchor";
 import type { SyncDirection } from "./sync-game/policy";
+import { getEmulatorCloudSaveSelections } from "./emulator-cloud-save";
 
 export const analyzeCloudSaveState = async (
   objectId: string,
@@ -51,6 +52,11 @@ export const analyzeCloudSaveState = async (
     base: anchor,
     direction: syncDirection,
   });
+  const emulatorSelections = getEmulatorCloudSaveSelections(
+    localSnapshotContext,
+    remoteManifest?.files ?? [],
+    merge.restoreEntryIds
+  );
   const mergedAggregateHash =
     merge.files.length > 0
       ? NativeAddon.buildSnapshotAggregateHash({
@@ -60,7 +66,9 @@ export const analyzeCloudSaveState = async (
       : null;
 
   let currentState: CloudSaveState;
-  if (!activeRemoteSnapshot) {
+  if (emulatorSelections.length > 0) {
+    currentState = "conflict";
+  } else if (!activeRemoteSnapshot) {
     currentState = "untracked";
   } else if (merge.conflicts.length > 0) {
     currentState = "conflict";
@@ -86,6 +94,7 @@ export const analyzeCloudSaveState = async (
     activeRemoteSnapshot,
     remoteManifest,
     merge,
+    emulatorSelections,
     mergedAggregateHash,
     state: {
       state: currentState,

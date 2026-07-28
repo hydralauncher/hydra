@@ -56,7 +56,7 @@ export const shouldSyncCloudSaveOnGamePage = ({
   isInFlight,
   isCompleted,
 }: GamePageOpenSyncInput) =>
-  shop === "steam" &&
+  (shop === "steam" || shop === "launchbox") &&
   canUseCloudSaves &&
   hasExecutablePath &&
   !isGameRunning &&

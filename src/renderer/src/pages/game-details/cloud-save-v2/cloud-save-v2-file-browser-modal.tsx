@@ -32,6 +32,7 @@ interface CloudSaveV2FileBrowserModalProps {
   isGameRunning: boolean;
   isSyncing: boolean;
   onRetry: () => void | Promise<void>;
+  onChangeEmulatorCard?: (saveIdentity: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -46,6 +47,7 @@ export function CloudSaveV2FileBrowserModal({
   isGameRunning,
   isSyncing,
   onRetry,
+  onChangeEmulatorCard,
   onClose,
 }: Readonly<CloudSaveV2FileBrowserModalProps>) {
   const { t } = useTranslation("game_details");
@@ -53,6 +55,7 @@ export function CloudSaveV2FileBrowserModal({
   const [showOnlyChanged, setShowOnlyChanged] = useState(true);
   const [isFileListScrolled, setIsFileListScrolled] = useState(false);
   const [isAddingCustomPath, setIsAddingCustomPath] = useState(false);
+  const [isChangingEmulatorCard, setIsChangingEmulatorCard] = useState(false);
   const isConflict = details?.state === "conflict";
   const titleIsConflict = isConflict || overviewState === "conflict";
   const visibleComparisons = useMemo(
@@ -130,8 +133,19 @@ export function CloudSaveV2FileBrowserModal({
     }
   };
 
+  const handleChangeEmulatorCard = async (saveIdentity: string) => {
+    if (!onChangeEmulatorCard) return;
+    setIsChangingEmulatorCard(true);
+    try {
+      await onChangeEmulatorCard(saveIdentity);
+    } finally {
+      setIsChangingEmulatorCard(false);
+    }
+  };
+
   const loadingState = !details && isLoading;
   const errorState = !details && hasError;
+  const canAddCustomPath = shop !== "launchbox";
   const addCustomPathButton = (
     <Button
       theme="outline"
@@ -202,7 +216,7 @@ export function CloudSaveV2FileBrowserModal({
                   </div>
                 )}
 
-                {!isConflict && addCustomPathButton}
+                {!isConflict && canAddCustomPath && addCustomPathButton}
 
                 {isConflict && (
                   <div className="cloud-save-v2__browser-diff-summary">
@@ -303,6 +317,15 @@ export function CloudSaveV2FileBrowserModal({
                         roots={comparisonRoots}
                         mode="comparison"
                         onOpenFolder={(path) => void handleOpenFolder(path)}
+                        onChangeEmulatorCard={(saveIdentity) =>
+                          void handleChangeEmulatorCard(saveIdentity)
+                        }
+                        canChangeEmulatorCard={
+                          !isChangingEmulatorCard &&
+                          !isLoading &&
+                          !isGameRunning &&
+                          !isSyncing
+                        }
                       />
                     ) : (
                       <p className="cloud-save-v2__browser-empty">
@@ -326,6 +349,15 @@ export function CloudSaveV2FileBrowserModal({
                   roots={localRoots}
                   mode="local"
                   onOpenFolder={(path) => void handleOpenFolder(path)}
+                  onChangeEmulatorCard={(saveIdentity) =>
+                    void handleChangeEmulatorCard(saveIdentity)
+                  }
+                  canChangeEmulatorCard={
+                    !isChangingEmulatorCard &&
+                    !isLoading &&
+                    !isGameRunning &&
+                    !isSyncing
+                  }
                 />
               </div>
             ) : isConflict ? (
@@ -353,7 +385,7 @@ export function CloudSaveV2FileBrowserModal({
                     )}
                     <span>{t("cloud_save_v2_check_again")}</span>
                   </Button>
-                  {addCustomPathButton}
+                  {canAddCustomPath && addCustomPathButton}
                 </div>
               </div>
             )}

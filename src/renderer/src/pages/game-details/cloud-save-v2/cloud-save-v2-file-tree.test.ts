@@ -188,6 +188,22 @@ describe("cloud save V2 local file tree", () => {
     assert.equal(zFile.type, "file");
     if (zFile.type === "file") assert.equal(zFile.local?.sizeBytes, 8);
   });
+
+  it("groups virtual emulator saves by card without exposing it as a folder", () => {
+    const file = localFile(
+      "<emulator><v1><ps2>",
+      "QkVTTEVTLTUwMDA5.psu",
+      "C:\\Cards\\Mcd001.ps2\\BESLES-50009.psu"
+    );
+    file.displayPath = "BESLES-50009.psu";
+    file.emulatorSaveIdentity = "BESLES-50009";
+
+    const [root] = buildCloudSaveV2LocalFileTree([file]);
+
+    assert.equal(root.name, "C:\\Cards\\Mcd001.ps2");
+    assert.equal(root.localDirectoryPath, null);
+    assert.equal(root.children[0].type, "file");
+  });
 });
 
 describe("cloud save V2 comparison tree", () => {
@@ -315,5 +331,41 @@ describe("cloud save V2 comparison tree", () => {
       ]
     );
     assert.notEqual(roots[0].children[0].id, roots[1].children[0].id);
+  });
+
+  it("groups emulator comparisons by their selected memory card", () => {
+    const rawPath = "<emulator><v1><ps2>";
+    const first = localFile(
+      rawPath,
+      "Zmlyc3Q.psu",
+      "C:\\Cards\\First.ps2\\first.psu"
+    );
+    first.displayPath = "first.psu";
+    const second = localFile(
+      rawPath,
+      "c2Vjb25k.psu",
+      "C:\\Cards\\Second.ps2\\second.psu"
+    );
+    second.displayPath = "second.psu";
+
+    const roots = buildCloudSaveV2ComparisonTree(
+      [first, second].map((local) => ({
+        variantId: local.variantId,
+        rawPath,
+        relativePath: local.relativePath,
+        status: "local-only",
+        local,
+        remote: null,
+      }))
+    );
+
+    assert.deepEqual(
+      roots.map((root) => root.name),
+      ["C:\\Cards\\First.ps2", "C:\\Cards\\Second.ps2"]
+    );
+    assert.deepEqual(
+      roots.map((root) => root.localDirectoryPath),
+      [null, null]
+    );
   });
 });

@@ -25,6 +25,8 @@ interface CloudSaveV2FileTreeViewProps {
   roots: CloudSaveV2FileTreeRoot[];
   mode: "local" | "comparison";
   onOpenFolder: (path: string) => void;
+  onChangeEmulatorCard?: (saveIdentity: string) => void;
+  canChangeEmulatorCard?: boolean;
 }
 
 const statusTranslationKey: Record<CloudSaveV2FileComparisonStatus, string> = {
@@ -44,6 +46,8 @@ export function CloudSaveV2FileTreeView({
   roots,
   mode,
   onOpenFolder,
+  onChangeEmulatorCard,
+  canChangeEmulatorCard = true,
 }: Readonly<CloudSaveV2FileTreeViewProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
@@ -111,6 +115,18 @@ export function CloudSaveV2FileTreeView({
             {fileMetadata(file)}
           </div>
         </div>
+        {file.emulatorSaveIdentity && onChangeEmulatorCard && (
+          <button
+            type="button"
+            className="cloud-save-v2__browser-path-action"
+            disabled={!canChangeEmulatorCard}
+            onClick={() =>
+              onChangeEmulatorCard(file.emulatorSaveIdentity as string)
+            }
+          >
+            {t("cloud_save_v2_emulator_change_card")}
+          </button>
+        )}
       </div>
     );
   };

@@ -121,4 +121,30 @@ describe("Cloud Save launcher API contract", () => {
       })
     );
   });
+
+  it("preserves emulator V1 markers literally for LaunchBox snapshots", () => {
+    const rawPaths = ["<emulator><v1><ps1>", "<emulator><v1><ps2>"];
+    for (const rawPath of rawPaths) {
+      const manifest = validateRestoreManifest({
+        snapshot: {
+          id: "snapshot",
+          version: 1,
+          shop: "launchbox",
+          objectId: "classic-game",
+        },
+        variants: [{ variantId: firstVariantId, kind: "default" }],
+        files: [
+          {
+            ...file(firstVariantId),
+            rawPath,
+            relativePath: rawPath.endsWith("<ps1>")
+              ? "QkFTQ1VTLTk0MTYzRFJBS0FO.mcs"
+              : "QkVTTEVTLTUwMDA5.psu",
+          },
+        ],
+      });
+
+      assert.equal(manifest.files[0].rawPath, rawPath);
+    }
+  });
 });

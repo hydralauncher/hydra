@@ -1,4 +1,5 @@
 import type { GameShop } from "./game.types";
+import type { EmulationSavePlatform } from "./emulator.types";
 
 export interface CloudSaveGameId {
   shop: GameShop;
@@ -213,6 +214,38 @@ export interface CloudSaveOverview extends CloudSaveStateResult {
   discoveredVariantCount: number;
   unresolvedRemoteVariantCount: number;
   warnings: UserLocationCoverage[];
+  emulator?: EmulatorCloudSaveOverview;
+}
+
+export interface EmulatorCloudSaveCard {
+  cardFilePath: string;
+  cardLabel: string;
+}
+
+export interface EmulatorCloudSaveCandidate extends EmulatorCloudSaveCard {
+  hash?: string;
+  sizeBytes?: number;
+  fileCount?: number;
+  modifiedAt?: string | null;
+}
+
+export interface EmulatorCloudSaveSelection {
+  reason: "divergent-copies" | "preferred-card-missing" | "restore-target";
+  saveIdentities: string[];
+  candidates: EmulatorCloudSaveCandidate[];
+}
+
+export interface EmulatorCloudSaveOverview {
+  platform: EmulationSavePlatform;
+  cards: EmulatorCloudSaveCard[];
+  selections: EmulatorCloudSaveSelection[];
+}
+
+export interface SetEmulatorCloudSaveCardInput extends CloudSaveGameId {
+  platform: EmulationSavePlatform;
+  saveIdentities: string[];
+  cardFilePath: string;
+  requireExistingSave: boolean;
 }
 
 export type CloudSaveV2FileComparisonStatus =
@@ -225,6 +258,8 @@ interface CloudSaveV2FileBase extends CloudSaveFileIdentity {
   sizeBytes: number;
   lastModifiedAt: string | null;
   userLabel: string;
+  displayPath?: string;
+  emulatorSaveIdentity?: string;
 }
 
 export interface CloudSaveV2LocalFile extends CloudSaveV2FileBase {
@@ -538,6 +573,23 @@ export interface LocalGameSnapshotContext
   extends LocalGameSnapshotPipelineResult {
   environmentId: string;
   pathContext: CloudSavePathContext;
+  emulator?: EmulatorLocalSnapshotMetadata;
+}
+
+export interface EmulatorLocalSaveCopy extends EmulatorCloudSaveCandidate {
+  saveIdentity: string;
+  hash: string;
+  sizeBytes: number;
+  fileCount: number;
+  modifiedAt: string | null;
+}
+
+export interface EmulatorLocalSnapshotMetadata {
+  platform: EmulationSavePlatform;
+  cards: EmulatorCloudSaveCard[];
+  copies: EmulatorLocalSaveCopy[];
+  selections: EmulatorCloudSaveSelection[];
+  preferredCardPaths: Record<string, string>;
 }
 
 export interface NativeLocalGameSnapshotPipelineResult

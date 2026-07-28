@@ -1,10 +1,12 @@
 import type { GameShop, SyncGameCloudSaveResult } from "@types";
+import type { EmulatorCloudSaveLaunchBaseline } from "./emulator-cloud-save";
 
 export interface CloudSaveLaunchGuard {
   environmentId: string;
   baseRemoteHash: string | null;
   uploadAllowed: boolean;
   createdAt: string;
+  emulatorBaseline?: EmulatorCloudSaveLaunchBaseline;
 }
 
 const guards = new Map<string, CloudSaveLaunchGuard>();

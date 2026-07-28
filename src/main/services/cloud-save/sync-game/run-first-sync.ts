@@ -24,6 +24,7 @@ export interface SyncOutcome {
 export const getFirstSyncState = (
   analysis: CloudSaveAnalysis
 ): CloudSaveState => {
+  if (analysis.emulatorSelections.length > 0) return "conflict";
   const hasLocalFiles = analysis.localSnapshot.files.length > 0;
   const remoteSnapshot = analysis.state.activeRemoteSnapshot;
 

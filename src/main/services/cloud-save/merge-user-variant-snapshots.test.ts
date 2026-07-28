@@ -324,6 +324,48 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.deleteLocalEntryIds, [cloudSaveFileKey(deleted)]);
   });
 
+  it("never deletes an individual save from a memory card", () => {
+    const deleted = file("QkVTTEVTLTUwMDA5.psu", "a", "<emulator><v1><ps2>");
+    const result = mergeUserVariantSnapshots({
+      local: context([deleted]),
+      remoteVariants: [],
+      remoteFiles: [],
+      base: anchor([deleted]),
+    });
+
+    assert.deepEqual(result.files, []);
+    assert.deepEqual(result.deleteLocalEntryIds, []);
+  });
+
+  it("never treats a missing memory-card save as a remote deletion", () => {
+    const remote = file("QkVTTEVTLTUwMDA5.psu", "a", "<emulator><v1><ps2>");
+    const local = context([]);
+    local.coverage = [
+      {
+        candidateId: "emulator-ps2",
+        ruleId: "emulator-rule",
+        variantId,
+        rawPath: remote.rawPath,
+        selectedRoot: true,
+        authority: "authoritative",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: anchor([remote]),
+    });
+
+    assert.deepEqual(result.files, [remote]);
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(remote)]);
+  });
+
   it("conflicts when a remotely deleted file changed locally", () => {
     const base = file("slot.sav", "a");
     const local = file("slot.sav", "l");

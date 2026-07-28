@@ -3,7 +3,18 @@ import { existsSync } from "node:fs";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { launchClassicsGame, platformToSystem } from "@main/helpers";
-import { logger, NativeAddon } from "@main/services";
+import { HydraApi, logger, NativeAddon, WindowManager } from "@main/services";
+import {
+  canCreateCloudSaveUploadGuard,
+  canAccessCloudSaves,
+  buildLocalGameSnapshotContext,
+  clearCloudSaveLaunchGuard,
+  getCloudSaveGameContext,
+  runAutomaticCloudSaveSync,
+  setCloudSaveLaunchGuard,
+  shouldBlockGameLaunchForCloudSave,
+} from "@main/services/cloud-save";
+import { createEmulatorCloudSaveLaunchBaseline } from "@main/services/cloud-save/emulator-cloud-save";
 import type { GameShop } from "@types";
 
 const codedLaunchError = (
@@ -111,6 +122,65 @@ const openClassicsGame = async (
     }
   }
 
+  clearCloudSaveLaunchGuard(objectId, shop);
+  const canUseCloudSaves = canAccessCloudSaves(
+    HydraApi.isLoggedIn(),
+    HydraApi.hasActiveSubscription()
+  );
+  const cloudSaveContext =
+    canUseCloudSaves && (system === "ps1" || system === "ps2")
+      ? await getCloudSaveGameContext(objectId, shop).catch((error) => {
+          logger.error(
+            "Failed to resolve classics cloud save environment",
+            error
+          );
+          return null;
+        })
+      : null;
+  const preLaunchResult = cloudSaveContext
+    ? await runAutomaticCloudSaveSync(
+        objectId,
+        shop,
+        "pre-launch",
+        cloudSaveContext
+      )
+    : null;
+  if (shouldBlockGameLaunchForCloudSave(preLaunchResult)) {
+    const searchParams = new URLSearchParams({
+      title: game.title,
+      openCloudSaveConflict: "1",
+    });
+    WindowManager.redirectToMainWindow(
+      `game/${shop}/${objectId}?${searchParams.toString()}`
+    );
+    return;
+  }
+  if (cloudSaveContext) {
+    const uploadAllowed = canCreateCloudSaveUploadGuard(
+      true,
+      cloudSaveContext.environmentId,
+      preLaunchResult
+    );
+    const emulatorBaseline = uploadAllowed
+      ? await buildLocalGameSnapshotContext(objectId, shop, cloudSaveContext)
+          .then(createEmulatorCloudSaveLaunchBaseline)
+          .catch((error) => {
+            logger.error(
+              "Failed to capture classics cloud save baseline",
+              error
+            );
+            return undefined;
+          })
+      : undefined;
+    setCloudSaveLaunchGuard(objectId, shop, {
+      environmentId: cloudSaveContext.environmentId,
+      baseRemoteHash: preLaunchResult?.remoteHash ?? null,
+      uploadAllowed: uploadAllowed && emulatorBaseline !== undefined,
+      createdAt: new Date().toISOString(),
+      emulatorBaseline,
+    });
+  }
+
   try {
     await launchClassicsGame({
       shop,
@@ -119,6 +189,7 @@ const openClassicsGame = async (
       system,
     });
   } catch (error) {
+    clearCloudSaveLaunchGuard(objectId, shop);
     if (
       error &&
       typeof error === "object" &&

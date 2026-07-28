@@ -95,7 +95,7 @@ const getDirectoryPath = (path: string) => {
 
 const getLocalRootPath = (file: CloudSaveV2LocalFile) => {
   let rootPath = file.absolutePath;
-  const relativeSegments = splitPath(file.relativePath);
+  const relativeSegments = splitPath(file.displayPath ?? file.relativePath);
   const levels = Math.max(1, relativeSegments.length);
 
   for (let index = 0; index < levels; index += 1) {
@@ -202,6 +202,7 @@ export const buildCloudSaveV2LocalFileTree = (
 
   for (const file of files) {
     const rootPath = getLocalRootPath(file);
+    const isVirtualEmulatorPath = file.rawPath.startsWith("<emulator>");
     const rootPathIdentity = getLocalPathIdentity(rootPath);
     const rootId = JSON.stringify(["local-root", rootPathIdentity]);
     let root = roots.get(rootPathIdentity);
@@ -211,7 +212,7 @@ export const buildCloudSaveV2LocalFileTree = (
         id: rootId,
         name: rootPath,
         rawPath: file.rawPath,
-        localDirectoryPath: rootPath,
+        localDirectoryPath: isVirtualEmulatorPath ? null : rootPath,
         hasLocalFiles: true,
         hasRemoteFiles: false,
         branches: new Map(),
@@ -220,17 +221,21 @@ export const buildCloudSaveV2LocalFileTree = (
       roots.set(rootPathIdentity, root);
     }
 
-    const pathSegments = splitPath(file.relativePath);
-    const fileName = pathSegments.pop() ?? file.relativePath;
+    const visiblePath = file.displayPath ?? file.relativePath;
+    const pathSegments = splitPath(visiblePath);
+    const fileName = pathSegments.pop() ?? visiblePath;
     let parent = root;
     const directorySegments: string[] = [];
 
     for (const segment of pathSegments) {
       directorySegments.push(segment);
-      const localDirectoryPath = joinPath(rootPath, directorySegments);
+      const localDirectoryPath = root.localDirectoryPath
+        ? joinPath(rootPath, directorySegments)
+        : null;
       const directoryId = JSON.stringify([
         "local-directory",
-        getLocalPathIdentity(localDirectoryPath),
+        localDirectoryPath ? getLocalPathIdentity(localDirectoryPath) : root.id,
+        ...directorySegments,
       ]);
       let directory = parent.branches.get(directoryId);
       if (!directory) {
@@ -275,25 +280,31 @@ export const buildCloudSaveV2ComparisonTree = (
   const roots = new Map<string, MutableBranch>();
 
   for (const comparison of comparisons) {
-    const rootId = JSON.stringify([
-      "comparison-root",
-      comparison.variantId,
-      comparison.rawPath,
-    ]);
     const identity = comparison.local ?? comparison.remote;
     const localRootPath = comparison.local
       ? getLocalRootPath(comparison.local)
       : null;
+    const isVirtualEmulatorPath = comparison.rawPath.startsWith("<emulator>");
+    const localDirectoryPath = isVirtualEmulatorPath ? null : localRootPath;
+    const rootId = JSON.stringify([
+      "comparison-root",
+      comparison.variantId,
+      comparison.rawPath,
+      isVirtualEmulatorPath ? localRootPath : null,
+    ]);
     let root = roots.get(rootId);
     if (!root) {
       root = {
         type: "root",
         id: rootId,
-        name: identity
-          ? `${identity.userLabel} · ${comparison.rawPath}`
-          : comparison.rawPath,
+        name:
+          isVirtualEmulatorPath && localRootPath
+            ? localRootPath
+            : identity
+              ? `${identity.userLabel} · ${comparison.rawPath}`
+              : comparison.rawPath,
         rawPath: comparison.rawPath,
-        localDirectoryPath: localRootPath,
+        localDirectoryPath,
         hasLocalFiles: Boolean(comparison.local),
         hasRemoteFiles: Boolean(comparison.remote),
         branches: new Map(),
@@ -303,14 +314,15 @@ export const buildCloudSaveV2ComparisonTree = (
     } else {
       updateBranchSources(
         root,
-        localRootPath,
+        localDirectoryPath,
         Boolean(comparison.local),
         Boolean(comparison.remote)
       );
     }
 
-    const pathSegments = splitPath(comparison.relativePath);
-    const fileName = pathSegments.pop() ?? comparison.relativePath;
+    const visiblePath = identity?.displayPath ?? comparison.relativePath;
+    const pathSegments = splitPath(visiblePath);
+    const fileName = pathSegments.pop() ?? visiblePath;
     let parent = root;
     const directorySegments: string[] = [];
 
@@ -322,8 +334,8 @@ export const buildCloudSaveV2ComparisonTree = (
         comparison.rawPath,
         ...directorySegments,
       ]);
-      const localDirectoryPath = localRootPath
-        ? joinPath(localRootPath, directorySegments)
+      const nestedLocalDirectoryPath = localDirectoryPath
+        ? joinPath(localDirectoryPath, directorySegments)
         : null;
       let directory = parent.branches.get(directoryId);
       if (!directory) {
@@ -331,7 +343,7 @@ export const buildCloudSaveV2ComparisonTree = (
           type: "directory",
           id: directoryId,
           name: segment,
-          localDirectoryPath,
+          localDirectoryPath: nestedLocalDirectoryPath,
           hasLocalFiles: Boolean(comparison.local),
           hasRemoteFiles: Boolean(comparison.remote),
           branches: new Map(),
@@ -341,7 +353,7 @@ export const buildCloudSaveV2ComparisonTree = (
       } else {
         updateBranchSources(
           directory,
-          localDirectoryPath,
+          nestedLocalDirectoryPath,
           Boolean(comparison.local),
           Boolean(comparison.remote)
         );

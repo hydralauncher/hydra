@@ -246,7 +246,7 @@ describe("game page automatic cloud save sync", () => {
       false
     );
     assert.equal(shouldSyncOnGamePage({ overview: null }), false);
-    assert.equal(shouldSyncOnGamePage({ shop: "launchbox" }), false);
+    assert.equal(shouldSyncOnGamePage({ shop: "launchbox" }), true);
     assert.equal(shouldSyncOnGamePage({ canUseCloudSaves: false }), false);
     assert.equal(shouldSyncOnGamePage({ hasExecutablePath: false }), false);
     assert.equal(shouldSyncOnGamePage({ isGameRunning: true }), false);

@@ -5,12 +5,15 @@ import { useSearchParams } from "react-router-dom";
 import { AuthPage, getCloudSaveAccessAction } from "@shared";
 import { ConfirmationModal } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
+import { platformToSystem } from "@renderer/helpers";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
+  EmulatorCloudSaveSelection,
+  EmulationSavePlatform,
   GameShop,
 } from "@types";
 
@@ -36,6 +39,10 @@ interface CloudSaveV2ContextValue {
   ) => Promise<void>;
   setAutomaticSyncEnabled: (enabled: boolean) => Promise<void>;
   requestConflictResolution: (resolution: CloudSaveConflictResolution) => void;
+  selectEmulatorCard: (
+    selection: EmulatorCloudSaveSelection,
+    cardFilePath?: string
+  ) => Promise<void>;
 }
 
 const cloudSaveV2Context = createContext<CloudSaveV2ContextValue | null>(null);
@@ -76,9 +83,34 @@ export function CloudSaveV2Provider({
     hasActiveSubscription
   );
   const canUseCloudSaves = cloudSaveAccessAction === "open";
-  const hasExecutablePath = Boolean(game?.executablePath);
+  const emulatorPlatform =
+    shop === "launchbox" ? platformToSystem(game?.platform) : null;
+  const supportsEmulatorCloudSaves =
+    emulatorPlatform === "ps1" || emulatorPlatform === "ps2";
+  const [hasEmulatorExecutable, setHasEmulatorExecutable] = useState(false);
+  useEffect(() => {
+    if (!supportsEmulatorCloudSaves) {
+      setHasEmulatorExecutable(false);
+      return;
+    }
+    let cancelled = false;
+    void window.electron
+      .checkEmulatorExecutable(emulatorPlatform)
+      .then(({ exists }) => {
+        if (!cancelled) setHasEmulatorExecutable(exists);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [emulatorPlatform, supportsEmulatorCloudSaves]);
+  const hasExecutablePath =
+    shop === "steam"
+      ? Boolean(game?.executablePath)
+      : supportsEmulatorCloudSaves && hasEmulatorExecutable;
   const canCheckCloudSaves =
-    shop === "steam" && canUseCloudSaves && hasExecutablePath;
+    (shop === "steam" || supportsEmulatorCloudSaves) &&
+    canUseCloudSaves &&
+    hasExecutablePath;
   const { overview, isRefreshing, hasRefreshError, refresh } =
     useCloudSaveOverview({
       objectId,
@@ -139,7 +171,10 @@ export function CloudSaveV2Provider({
   }, [isGameRunning, refresh]);
 
   useEffect(() => {
-    if (shop !== "steam" || searchParams.get("openCloudSaveConflict") !== "1") {
+    if (
+      (shop !== "steam" && !supportsEmulatorCloudSaves) ||
+      searchParams.get("openCloudSaveConflict") !== "1"
+    ) {
       return;
     }
 
@@ -165,6 +200,7 @@ export function CloudSaveV2Provider({
     setSearchParams,
     shop,
     showHydraCloudModal,
+    supportsEmulatorCloudSaves,
   ]);
 
   useEffect(() => {
@@ -291,14 +327,22 @@ export function CloudSaveV2Provider({
     setIsModalVisible(false);
     setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
-    setGameOptionsInitialCategory("locations");
+    setGameOptionsInitialCategory(
+      supportsEmulatorCloudSaves ? "general" : "locations"
+    );
     setShowGameOptionsModal(true);
   };
 
   const runCloudSaveOperation = async (
     resolution?: CloudSaveConflictResolution
   ) => {
-    if (isGameRunning || !hasExecutablePath || shop !== "steam") return;
+    if (
+      isGameRunning ||
+      !hasExecutablePath ||
+      (shop !== "steam" && !supportsEmulatorCloudSaves)
+    ) {
+      return;
+    }
     if (cloudSaveAccessAction !== "open") {
       if (cloudSaveAccessAction === "sign-in") {
         window.electron.openAuthWindow(AuthPage.SignIn);
@@ -380,6 +424,53 @@ export function CloudSaveV2Provider({
     if (resolution) void runCloudSaveOperation(resolution);
   };
 
+  const selectEmulatorCard = async (
+    selection: EmulatorCloudSaveSelection,
+    suppliedCardFilePath?: string
+  ) => {
+    if (!overview?.emulator) return;
+    let cardFilePath = suppliedCardFilePath;
+    if (!cardFilePath) {
+      const filters: Record<
+        EmulationSavePlatform,
+        { name: string; extensions: string[] }
+      > = {
+        ps1: {
+          name: "PS1 Memory Card",
+          extensions: ["mcd", "mcr", "mc", "gme", "vgs", "vmp", "ps1"],
+        },
+        ps2: {
+          name: "PS2 Memory Card",
+          extensions: ["ps2", "mcd", "mc2"],
+        },
+      };
+      const result = await window.electron.showOpenDialog({
+        properties: ["openFile"],
+        filters: [filters[overview.emulator.platform]],
+      });
+      if (result.canceled || result.filePaths.length === 0) return;
+      [cardFilePath] = result.filePaths;
+    }
+    if (!cardFilePath) return;
+    try {
+      await window.electron.selectEmulatorCloudSaveCard({
+        objectId,
+        shop,
+        platform: overview.emulator.platform,
+        saveIdentities: selection.saveIdentities,
+        cardFilePath,
+        requireExistingSave: selection.reason !== "restore-target",
+      });
+      await refresh();
+      await refreshFileDetails();
+    } catch {
+      showErrorToast(
+        t("cloud_save_v2_emulator_card_error_title"),
+        t("cloud_save_v2_emulator_card_error_description")
+      );
+    }
+  };
+
   const hasError = hasRefreshError || hasSyncError;
   const value: CloudSaveV2ContextValue = {
     overview,
@@ -403,6 +494,7 @@ export function CloudSaveV2Provider({
     runCloudSaveOperation,
     setAutomaticSyncEnabled,
     requestConflictResolution: setPendingResolution,
+    selectEmulatorCard,
   };
 
   return (
@@ -425,6 +517,7 @@ export function CloudSaveV2Provider({
         onSelectExecutable={handleSelectExecutable}
         onAutomaticSyncChange={setAutomaticSyncEnabled}
         onResolveConflict={setPendingResolution}
+        onSelectEmulatorCard={selectEmulatorCard}
         onClose={() => {
           setIsFileBrowserVisible(false);
           setIsModalVisible(false);
@@ -446,6 +539,16 @@ export function CloudSaveV2Provider({
           await refreshFileDetails();
           await refresh();
         }}
+        onChangeEmulatorCard={
+          overview?.emulator
+            ? (saveIdentity) =>
+                selectEmulatorCard({
+                  reason: "divergent-copies",
+                  saveIdentities: [saveIdentity],
+                  candidates: [],
+                })
+            : undefined
+        }
         onClose={() => setIsFileBrowserVisible(false)}
       />
 

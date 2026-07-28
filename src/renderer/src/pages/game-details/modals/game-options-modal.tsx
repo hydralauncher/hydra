@@ -50,7 +50,7 @@ import { Wrench } from "lucide-react";
 import { GameAssetsSettings } from "./game-assets-settings";
 import { debounce } from "lodash-es";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import { getGameKey } from "@renderer/helpers";
+import { getGameKey, platformToSystem } from "@renderer/helpers";
 import "./game-options-modal.scss";
 import { logger } from "@renderer/logger";
 import { GameOptionsSidebar } from "./game-options-modal/sidebar";
@@ -723,6 +723,9 @@ export function GameOptionsModal({
   };
 
   const isLaunchbox = game.shop === "launchbox";
+  const launchboxSystem = isLaunchbox ? platformToSystem(game.platform) : null;
+  const supportsEmulatorCloudSaves =
+    launchboxSystem === "ps1" || launchboxSystem === "ps2";
   const shouldShowWinePrefixConfiguration =
     globalThis.window.electron.platform === "linux";
   const defaultHydraWinePrefixPath = defaultWinePrefixPath
@@ -752,7 +755,8 @@ export function GameOptionsModal({
         label: t("settings_category_assets"),
         icon: <ImageIcon size={16} />,
       },
-      ...(game.shop === "steam" && cloudSaveAccessAction !== "sign-in"
+      ...((game.shop === "steam" || supportsEmulatorCloudSaves) &&
+      cloudSaveAccessAction !== "sign-in"
         ? [
             {
               id: "hydra_cloud" as const,
@@ -794,6 +798,7 @@ export function GameOptionsModal({
       cloudSaveAccessAction,
       game.shop,
       isLaunchbox,
+      supportsEmulatorCloudSaves,
       shouldShowWinePrefixConfiguration,
       t,
     ]

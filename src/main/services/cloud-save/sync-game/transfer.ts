@@ -80,6 +80,7 @@ export const restoreRemoteState = async (
     {
       environmentId: localSnapshotContext.environmentId,
       pathContext: localSnapshotContext.pathContext,
+      emulator: localSnapshotContext.emulator,
     },
     entryIds,
     updateAnchor,

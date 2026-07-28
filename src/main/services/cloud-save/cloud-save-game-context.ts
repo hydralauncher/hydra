@@ -1,15 +1,22 @@
+import { createHash } from "node:crypto";
+
 import { gamesSublevel, levelKeys } from "@main/level";
 import { getSteamLocation } from "@main/services/steam";
 import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
 import { logger } from "@main/services/logger";
 import { getSteamStoreUserContext } from "@main/services/steam-login-users";
+import * as emulators from "@main/services/emulators";
 import type { CloudSavePathContext, GameShop } from "@types";
 
 import {
   resolveCloudSaveEnvironment,
   type CloudSavePrefixGenerationOverride,
 } from "./cloud-save-environment";
+import {
+  getEmulatorCloudSaveEnvironmentFingerprint,
+  getEmulatorCloudSavePlatform,
+} from "./emulator-cloud-save";
 
 export interface CloudSaveGameContextOverrides {
   executablePath?: string;
@@ -50,8 +57,13 @@ export const getCloudSaveGameContext = async (
       ? await getSteamStoreUserContext(steamPath)
       : { known: [] };
   const platform = getCloudSavePlatform();
-  const executablePath =
-    overrides?.executablePath ?? game?.executablePath ?? undefined;
+  const emulatorPlatform = getEmulatorCloudSavePlatform(game, shop);
+  const emulatorExecutablePath = emulatorPlatform
+    ? (await emulators.getEmulatorConfig(emulatorPlatform)).executablePath
+    : null;
+  const executablePath = emulatorPlatform
+    ? (emulatorExecutablePath ?? undefined)
+    : (overrides?.executablePath ?? game?.executablePath ?? undefined);
   const usesWindowsCompatibility =
     platform === "linux" &&
     executablePath?.toLowerCase().endsWith(".exe") === true;
@@ -87,6 +99,23 @@ export const getCloudSaveGameContext = async (
     winePrefixIsValid,
     prefixGenerationOverride: overrides?.prefixGenerationOverride,
   });
+  const emulatorEnvironmentFingerprint =
+    emulatorPlatform && game
+      ? await getEmulatorCloudSaveEnvironmentFingerprint(game, emulatorPlatform)
+      : null;
+  const resolvedEnvironment = emulatorEnvironmentFingerprint
+    ? {
+        ...environment,
+        environmentId: createHash("sha256")
+          .update(
+            JSON.stringify([
+              environment.environmentId,
+              emulatorEnvironmentFingerprint,
+            ])
+          )
+          .digest("hex"),
+      }
+    : environment;
   if (winePrefixIsValid && environment.prefixIdentityMode !== "marker") {
     logger.warn(
       "[Cloud Save] Wine prefix marker unavailable; using degraded identity",
@@ -94,5 +123,5 @@ export const getCloudSaveGameContext = async (
     );
   }
 
-  return { game, ...environment };
+  return { game, ...resolvedEnvironment };
 };

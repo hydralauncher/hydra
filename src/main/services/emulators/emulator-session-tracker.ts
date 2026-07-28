@@ -8,6 +8,7 @@ import { logger } from "../logger";
 import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
 import { WindowManager } from "../window-manager";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
+import { runAutomaticCloudSavePostExit } from "../cloud-save/automatic-sync";
 
 export interface EmulatorSession {
   shop: GameShop;
@@ -172,6 +173,9 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
     });
 
   if (game.shop === "launchbox") {
+    if (session.system === "ps1" || session.system === "ps2") {
+      void runAutomaticCloudSavePostExit(game.objectId, game.shop);
+    }
     syncRetroAchievements({
       objectId: game.objectId,
       shop: game.shop,

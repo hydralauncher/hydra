@@ -1,12 +1,16 @@
 import { access } from "node:fs/promises";
 
 import { gamesSublevel, levelKeys } from "@main/level";
+import {
+  getEmulatorCloudSavePlatform,
+  assertEmulatorCloudSaveAvailable,
+} from "./emulator-cloud-save";
 
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
 import { createCloudSaveExecutableGuard } from "./executable-path-guard";
 
-export const assertCloudSaveExecutableExists = createCloudSaveExecutableGuard({
+const assertGameExecutableExists = createCloudSaveExecutableGuard({
   getGame: (objectId, shop) =>
     gamesSublevel.get(levelKeys.game(shop, objectId)),
   saveGame: (game) =>
@@ -28,3 +32,18 @@ export const assertCloudSaveExecutableExists = createCloudSaveExecutableGuard({
     WindowManager.sendToAppWindows("on-library-batch-complete");
   },
 });
+
+export const assertCloudSaveExecutableExists = async (
+  objectId: string,
+  shop: Parameters<typeof assertGameExecutableExists>[1]
+) => {
+  const game = await gamesSublevel
+    .get(levelKeys.game(shop, objectId))
+    .catch(() => undefined);
+  const emulatorPlatform = getEmulatorCloudSavePlatform(game, shop);
+  if (emulatorPlatform) {
+    await assertEmulatorCloudSaveAvailable(emulatorPlatform);
+    return game!;
+  }
+  return assertGameExecutableExists(objectId, shop);
+};

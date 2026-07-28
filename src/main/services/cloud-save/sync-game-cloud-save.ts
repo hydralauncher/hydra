@@ -185,6 +185,9 @@ const executeGameCloudSaveSync = async (
     };
   };
 
+  if (analysis.emulatorSelections.length > 0) {
+    return finish("conflict", "conflict");
+  }
   if (merge.conflicts.length > 0) {
     return finish("conflict", "conflict");
   }

@@ -21,6 +21,9 @@ import {
   consumeCloudSaveLaunchGuard,
 } from "./launch-guard";
 import { CloudSaveOperationCoordinator } from "./operation-coordinator";
+import { getEmulatorCloudSavePlatform } from "./emulator-cloud-save";
+import { invalidateChangedUnselectedEmulatorCopies } from "./emulator-cloud-save";
+import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 
 const automaticSyncCoordinator =
   new CloudSaveOperationCoordinator<SyncGameCloudSaveResult | null>();
@@ -40,7 +43,6 @@ export const runAutomaticCloudSaveSync = async (
   expectedRemoteHash?: string | null
 ): Promise<SyncGameCloudSaveResult | null> => {
   if (
-    shop !== "steam" ||
     !canAccessCloudSaves(
       HydraApi.isLoggedIn(),
       HydraApi.hasActiveSubscription()
@@ -62,7 +64,17 @@ export const runAutomaticCloudSaveSync = async (
       });
       return null;
     });
-  if (!game?.executablePath) return null;
+  const emulatorPlatform = getEmulatorCloudSavePlatform(
+    game ?? undefined,
+    shop
+  );
+  if (
+    !game ||
+    (shop !== "steam" && !emulatorPlatform) ||
+    (shop === "steam" && !game.executablePath)
+  ) {
+    return null;
+  }
 
   const context =
     suppliedContext ??
@@ -208,6 +220,41 @@ export const runAutomaticCloudSavePostExit = async (
       }
     );
     return null;
+  }
+
+  if (guard.emulatorBaseline) {
+    const localContext = await buildLocalGameSnapshotContext(
+      objectId,
+      shop,
+      context
+    ).catch((error: unknown) => {
+      logger.error("[Cloud Save] Failed to inspect emulator saves after exit", {
+        shop,
+        objectId,
+        error,
+      });
+      return null;
+    });
+    if (!localContext) return null;
+    const invalidated = await invalidateChangedUnselectedEmulatorCopies(
+      shop,
+      objectId,
+      localContext,
+      guard.emulatorBaseline
+    );
+    if (invalidated.length > 0) {
+      logger.warn(
+        "[Cloud Save] Emulator save source changed outside the selected card",
+        { shop, objectId, saveIdentities: invalidated }
+      );
+      return runAutomaticCloudSaveSync(
+        objectId,
+        shop,
+        "post-exit",
+        undefined,
+        guard.baseRemoteHash
+      );
+    }
   }
 
   return runAutomaticCloudSaveSync(

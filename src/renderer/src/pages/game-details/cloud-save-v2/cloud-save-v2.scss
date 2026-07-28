@@ -841,6 +841,50 @@
     }
   }
 
+  &__emulator-selection {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__emulator-selection-copy {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+    text-align: left;
+
+    span {
+      color: globals.$muted-color;
+      font-size: globals.$small-font-size;
+      line-height: 1.4;
+    }
+  }
+
+  &__emulator-cards {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__emulator-card {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+
+    small {
+      max-width: 100%;
+      overflow: hidden;
+      color: globals.$muted-color;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     &__switch,
     &__switch-thumb,

@@ -364,9 +364,11 @@ export function GameDetailsContent() {
                   </button>
                 )}
 
-                {game && objectId && game.shop === "steam" && (
-                  <CloudSaveWidget />
-                )}
+                {game &&
+                  objectId &&
+                  (game.shop === "steam" ||
+                    launchboxSystem === "ps1" ||
+                    launchboxSystem === "ps2") && <CloudSaveWidget />}
               </div>
             </div>
 

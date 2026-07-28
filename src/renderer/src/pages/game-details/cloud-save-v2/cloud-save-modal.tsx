@@ -14,6 +14,7 @@ import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
+  EmulatorCloudSaveSelection,
 } from "@types";
 import { formatBytes } from "@shared";
 import { Button, Modal } from "@renderer/components";
@@ -40,6 +41,10 @@ export interface CloudSavePanelProps {
   onSelectExecutable: () => void;
   onAutomaticSyncChange: (enabled: boolean) => Promise<void>;
   onResolveConflict: (resolution: CloudSaveConflictResolution) => void;
+  onSelectEmulatorCard: (
+    selection: EmulatorCloudSaveSelection,
+    cardFilePath?: string
+  ) => Promise<void>;
 }
 
 interface CloudSaveModalProps extends Omit<CloudSavePanelProps, "active"> {
@@ -62,6 +67,7 @@ export function CloudSavePanel({
   onSelectExecutable,
   onAutomaticSyncChange,
   onResolveConflict,
+  onSelectEmulatorCard,
 }: Readonly<CloudSavePanelProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
@@ -69,6 +75,7 @@ export function CloudSavePanel({
     isAutomaticSyncEnabled ?? false
   );
   const [isUpdatingAutomaticSync, setIsUpdatingAutomaticSync] = useState(false);
+  const [isSelectingEmulatorCard, setIsSelectingEmulatorCard] = useState(false);
   const cloudSaveToggleTitle = t("cloud_save_v2_toggle_title", {
     status: t(
       isCloudSaveEnabled
@@ -174,6 +181,13 @@ export function CloudSavePanel({
       : null;
 
   let syncAction: ReactNode = null;
+  const emulatorSelection = overview?.emulator?.selections[0] ?? null;
+  const emulatorSelectionKind =
+    emulatorSelection?.reason === "restore-target"
+      ? "restore_target"
+      : emulatorSelection?.reason === "preferred-card-missing"
+        ? "missing_card"
+        : "source";
   if (isSyncing) {
     syncAction = (
       <Button className="cloud-save-v2__sync-button" disabled>
@@ -189,7 +203,78 @@ export function CloudSavePanel({
   } else {
     switch (panelAction.kind) {
       case "conflict":
-        syncAction = (
+        syncAction = emulatorSelection ? (
+          <div className="cloud-save-v2__emulator-selection">
+            <div className="cloud-save-v2__emulator-selection-copy">
+              <strong>
+                {t(`cloud_save_v2_emulator_${emulatorSelectionKind}_title`)}
+              </strong>
+              <span>
+                {t(
+                  `cloud_save_v2_emulator_${emulatorSelectionKind}_description`,
+                  {
+                    save: emulatorSelection.saveIdentities.join(", "),
+                  }
+                )}
+              </span>
+            </div>
+            <div className="cloud-save-v2__emulator-cards">
+              {emulatorSelection.candidates.map((candidate) => (
+                <Button
+                  key={candidate.cardFilePath}
+                  theme="outline"
+                  disabled={
+                    isLoading || isGameRunning || isSelectingEmulatorCard
+                  }
+                  onClick={() => {
+                    setIsSelectingEmulatorCard(true);
+                    void onSelectEmulatorCard(
+                      emulatorSelection,
+                      candidate.cardFilePath
+                    ).finally(() => setIsSelectingEmulatorCard(false));
+                  }}
+                >
+                  <span className="cloud-save-v2__emulator-card">
+                    <strong>{candidate.cardLabel}</strong>
+                    <small>{candidate.cardFilePath}</small>
+                    {candidate.sizeBytes !== undefined && (
+                      <small>
+                        {[
+                          t(
+                            overview?.emulator?.platform === "ps1"
+                              ? "cloud_save_v2_emulator_block_count"
+                              : "cloud_save_v2_file_count",
+                            { count: candidate.fileCount ?? 0 }
+                          ),
+                          formatBytes(candidate.sizeBytes),
+                          candidate.modifiedAt
+                            ? formatDateTime(candidate.modifiedAt)
+                            : null,
+                          candidate.hash?.slice(0, 8),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </small>
+                    )}
+                  </span>
+                </Button>
+              ))}
+              <Button
+                theme="outline"
+                disabled={isLoading || isGameRunning || isSelectingEmulatorCard}
+                onClick={() => {
+                  setIsSelectingEmulatorCard(true);
+                  void onSelectEmulatorCard(emulatorSelection).finally(() =>
+                    setIsSelectingEmulatorCard(false)
+                  );
+                }}
+              >
+                <FolderOpenIcon size={20} />
+                {t("cloud_save_v2_emulator_choose_another_card")}
+              </Button>
+            </div>
+          </div>
+        ) : (
           <div className="cloud-save-v2__conflict-actions">
             <Button
               onClick={() => onResolveConflict("keep-local")}

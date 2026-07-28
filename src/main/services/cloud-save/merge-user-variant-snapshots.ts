@@ -8,6 +8,7 @@ import type {
 } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
+import { isEmulatorCloudSaveRawPath } from "./emulator-cloud-save-codec.js";
 import type { SyncDirection } from "./sync-game/policy.js";
 
 interface MergeUserVariantSnapshotsInput {
@@ -107,7 +108,10 @@ export const mergeUserVariantSnapshots = ({
     );
     return {
       incomplete,
-      provesDeletion: selectedCompleteRoot && !incomplete,
+      provesDeletion:
+        !isEmulatorCloudSaveRawPath(file.rawPath) &&
+        selectedCompleteRoot &&
+        !incomplete,
     };
   };
 
@@ -122,12 +126,16 @@ export const mergeUserVariantSnapshots = ({
         continue;
       }
       if (sameBytes(localFile, baseEntry)) {
-        deleteLocalEntryIds.add(entryId);
+        if (!isEmulatorCloudSaveRawPath(localFile.rawPath)) {
+          deleteLocalEntryIds.add(entryId);
+        }
         continue;
       }
       const resolution = resolutions?.get(entryId);
       if (resolution === "keep-remote") {
-        deleteLocalEntryIds.add(entryId);
+        if (!isEmulatorCloudSaveRawPath(localFile.rawPath)) {
+          deleteLocalEntryIds.add(entryId);
+        }
       } else {
         files.push(localFile);
         if (!resolution) {

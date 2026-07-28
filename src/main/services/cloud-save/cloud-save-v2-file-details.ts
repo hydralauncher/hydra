@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import type {
   CloudSaveState,
   CloudSaveCustomPath,
@@ -18,6 +20,30 @@ import type {
 } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
+import {
+  decodeEmulatorSaveIdentity,
+  emulatorCloudSaveRawPath,
+} from "./emulator-cloud-save-codec.js";
+
+const emulatorFilePresentation = (rawPath: string, relativePath: string) => {
+  const platform =
+    rawPath === emulatorCloudSaveRawPath("ps1")
+      ? "ps1"
+      : rawPath === emulatorCloudSaveRawPath("ps2")
+        ? "ps2"
+        : null;
+  if (!platform) return {};
+  const emulatorSaveIdentity = decodeEmulatorSaveIdentity(
+    relativePath,
+    platform
+  );
+  return {
+    displayPath: `${emulatorSaveIdentity}.${
+      platform === "ps1" ? "mcs" : "psu"
+    }`,
+    emulatorSaveIdentity,
+  };
+};
 
 interface BuildCloudSaveV2FileDetailsInput {
   state: CloudSaveState;
@@ -100,15 +126,22 @@ const toLocalFiles = (
     ) {
       throw new Error("Local cloud save source does not match its snapshot");
     }
+    const presentation = emulatorFilePresentation(
+      file.rawPath,
+      file.relativePath
+    );
     return {
       source: "local",
       variantId: file.variantId,
       rawPath: file.rawPath,
       relativePath: file.relativePath,
-      absolutePath: source.absolutePath,
+      absolutePath: presentation.displayPath
+        ? path.join(source.localBindings.concretePath, presentation.displayPath)
+        : source.absolutePath,
       sizeBytes: file.sizeBytes,
       lastModifiedAt: source.lastModifiedAt,
       userLabel: userLabel(variant),
+      ...presentation,
     };
   });
 };
@@ -120,6 +153,10 @@ const toRemoteFiles = (
   files.map((file) => {
     const variant = variants.get(file.variantId);
     if (!variant) throw new Error("Remote Cloud Save variant is missing");
+    const presentation = emulatorFilePresentation(
+      file.rawPath,
+      file.relativePath
+    );
     return {
       source: "remote",
       variantId: file.variantId,
@@ -128,6 +165,7 @@ const toRemoteFiles = (
       sizeBytes: file.sizeBytes,
       lastModifiedAt: file.lastModifiedAt,
       userLabel: userLabel(variant),
+      ...presentation,
     };
   });
 

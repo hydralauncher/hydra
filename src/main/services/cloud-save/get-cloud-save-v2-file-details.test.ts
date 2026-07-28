@@ -115,6 +115,38 @@ describe("cloud save V2 file details", () => {
     );
   });
 
+  it("presents emulator artifacts from their memory card instead of the cache", () => {
+    const emulatorFile: SnapshotFile = {
+      variantId: firstVariantId,
+      rawPath: "<emulator><v1><ps2>",
+      relativePath: "QkVTTEVTLTUwMDA5.psu",
+      hash: hash("e"),
+      sizeBytes: 128,
+      lastModifiedAt: "2026-07-22T10:00:00.000Z",
+    };
+    const emulatorSource = source(emulatorFile);
+    emulatorSource.absolutePath = "C:/Hydra/cache/artifact.psu";
+    emulatorSource.localBindings.concretePath = "C:/Cards/Mcd001.ps2";
+
+    const details = buildCloudSaveV2FileDetails({
+      state: "local-ahead",
+      localVariants: [variants[0]],
+      localFiles: [emulatorFile],
+      localSourceFiles: [emulatorSource],
+      localTotalSizeBytes: 128,
+      activeSnapshot: null,
+      remoteVariants: [],
+      remoteFiles: [],
+    });
+
+    assert.equal(
+      details.local.files[0].absolutePath.replaceAll("\\", "/"),
+      "C:/Cards/Mcd001.ps2/BESLES-50009.psu"
+    );
+    assert.equal(details.local.files[0].displayPath, "BESLES-50009.psu");
+    assert.equal(details.local.files[0].emulatorSaveIdentity, "BESLES-50009");
+  });
+
   it("loads and verifies the active manifest version", async () => {
     const remoteFiles = [file(firstVariantId, "a"), file(secondVariantId, "a")];
     const details = await loadCloudSaveV2FileDetails(
