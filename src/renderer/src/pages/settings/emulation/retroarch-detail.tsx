@@ -3,8 +3,11 @@ import { useTranslation } from "react-i18next";
 import {
   CheckCircleFillIcon,
   DownloadIcon,
+  FileDirectoryIcon,
+  PencilIcon,
   SyncIcon,
   TrashIcon,
+  XIcon,
 } from "@primer/octicons-react";
 
 import { Button, RetroArchScanIndicator } from "@renderer/components";
@@ -175,6 +178,23 @@ export function RetroArchDetail({
       setInstallingCores(false);
     }
   }, [installingCores, refresh]);
+
+  const handleChangeCoresDir = useCallback(async () => {
+    const result = await window.electron.showOpenDialog({
+      properties: ["openDirectory"],
+      defaultPath: config.coresDir ?? undefined,
+    });
+    if (result.canceled || result.filePaths.length === 0) return;
+    const next = await window.electron.setRetroArchCoresDir(
+      result.filePaths[0]
+    );
+    onChange(next);
+  }, [config.coresDir, onChange]);
+
+  const handleResetCoresDir = useCallback(async () => {
+    const next = await window.electron.setRetroArchCoresDir(null);
+    onChange(next);
+  }, [onChange]);
 
   const handleAddFolder = useCallback(async () => {
     const result = await window.electron.showOpenDialog({
@@ -430,6 +450,39 @@ export function RetroArchDetail({
                     <span>{coresRowStatus}</span>
                   </div>
                 </div>
+              </div>
+              <div className="emulator-detail__row">
+                <FileDirectoryIcon size={24} />
+                <div className="emulator-detail__folder-info">
+                  <span className="emulator-detail__folder-path">
+                    {config.coresDir ?? t("retroarch_cores_folder_default")}
+                  </span>
+                  <div className="emulator-detail__folder-meta">
+                    <span>{t("retroarch_cores_folder_label")}</span>
+                  </div>
+                </div>
+                {config.coresDir && (
+                  <button
+                    type="button"
+                    className="emulator-detail__remove"
+                    onClick={handleResetCoresDir}
+                    aria-label={t("retroarch_cores_folder_reset")}
+                    title={t("retroarch_cores_folder_reset")}
+                    disabled={busy || installingCores}
+                  >
+                    <XIcon size={16} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="emulator-detail__remove"
+                  onClick={handleChangeCoresDir}
+                  aria-label={t("retroarch_cores_folder_change")}
+                  title={t("retroarch_cores_folder_change")}
+                  disabled={busy || installingCores}
+                >
+                  <PencilIcon size={16} />
+                </button>
               </div>
             </div>
           </section>

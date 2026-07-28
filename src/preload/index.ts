@@ -263,6 +263,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("previewRetroArchExecutable", executablePath ?? null),
   setRetroArchExecutablePath: (executablePath: string | null) =>
     ipcRenderer.invoke("setRetroArchExecutablePath", executablePath),
+  setRetroArchCoresDir: (coresDir: string | null) =>
+    ipcRenderer.invoke("setRetroArchCoresDir", coresDir),
   getRetroArchInstallOptions: () =>
     ipcRenderer.invoke("getRetroArchInstallOptions"),
   installRetroArch: (optionId: string) =>

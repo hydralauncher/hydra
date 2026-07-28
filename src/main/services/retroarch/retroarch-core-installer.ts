@@ -22,13 +22,32 @@ import {
   coreLibraryFileName,
   resolveRetroArchInstallOptions,
 } from "./retroarch-install-sources";
-import { updateRetroArchConfig } from "./retroarch-repository";
+import {
+  getRetroArchConfig,
+  updateRetroArchConfig,
+} from "./retroarch-repository";
 
 export const managedRetroArchDir = (): string =>
   path.join(SystemPath.getPath("userData"), "retroarch");
 
 export const managedCoresDir = (): string =>
   path.join(managedRetroArchDir(), "cores");
+
+export const resolveCoresDir = (coresDir: string | null): string =>
+  coresDir ?? managedCoresDir();
+
+export const detectInstalledCores = (
+  coresDir: string
+): Partial<Record<RetroArchCoreName, string>> => {
+  const found: Partial<Record<RetroArchCoreName, string>> = {};
+  for (const core of RETROARCH_CORE_NAMES) {
+    const libraryPath = path.join(coresDir, coreLibraryFileName(core));
+    if (fs.existsSync(libraryPath)) {
+      found[core] = libraryPath;
+    }
+  }
+  return found;
+};
 
 const sendCoreProgress = (progress: RetroArchCoreInstallProgress): void => {
   WindowManager.mainWindow?.webContents.send(
@@ -62,7 +81,8 @@ export const downloadAndInstallCore = async (
     SystemPath.getPath("temp"),
     `${libraryFileName}.zip`
   );
-  const coresDir = managedCoresDir();
+  const currentConfig = await getRetroArchConfig();
+  const coresDir = resolveCoresDir(currentConfig.coresDir);
   const libraryPath = path.join(coresDir, libraryFileName);
 
   const removeArchive = async () => {

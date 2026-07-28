@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   CheckCircleFillIcon,
   DownloadIcon,
+  FileDirectoryIcon,
   SyncIcon,
   AlertIcon,
 } from "@primer/octicons-react";
@@ -57,6 +58,23 @@ export function SetupStepCores({ config, onConfigChange }: Readonly<Props>) {
     }
   }, [installingAll, refreshConfig]);
 
+  const handleChangeCoresDir = useCallback(async () => {
+    const result = await window.electron.showOpenDialog({
+      properties: ["openDirectory"],
+      defaultPath: config.coresDir ?? undefined,
+    });
+    if (result.canceled || result.filePaths.length === 0) return;
+    const next = await window.electron.setRetroArchCoresDir(
+      result.filePaths[0]
+    );
+    onConfigChange(next);
+  }, [config.coresDir, onConfigChange]);
+
+  const handleResetCoresDir = useCallback(async () => {
+    const next = await window.electron.setRetroArchCoresDir(null);
+    onConfigChange(next);
+  }, [onConfigChange]);
+
   const allInstalled = useMemo(
     () =>
       RETROARCH_CORE_LIST.every(
@@ -83,6 +101,43 @@ export function SetupStepCores({ config, onConfigChange }: Readonly<Props>) {
       <p className="setup-modal__body-intro">
         {t("retroarch_setup_cores_intro")}
       </p>
+      <p className="setup-modal__body-intro">
+        {t("retroarch_cores_folder_hint")}
+      </p>
+
+      <div className="setup-modal__folder-list">
+        <div className="setup-modal__row-card">
+          <div className="setup-modal__row-icon setup-modal__row-icon--found">
+            <FileDirectoryIcon size={18} />
+          </div>
+          <div className="setup-modal__row-text">
+            <div className="setup-modal__row-heading">
+              <span className="setup-modal__row-title">
+                {t("retroarch_cores_folder_label")}
+              </span>
+            </div>
+            <span className="setup-modal__row-path">
+              {config.coresDir ?? t("retroarch_cores_folder_default")}
+            </span>
+          </div>
+          {config.coresDir && (
+            <Button
+              theme="outline"
+              onClick={handleResetCoresDir}
+              disabled={installingAll}
+            >
+              {t("retroarch_cores_folder_reset")}
+            </Button>
+          )}
+          <Button
+            theme="outline"
+            onClick={handleChangeCoresDir}
+            disabled={installingAll}
+          >
+            {t("retroarch_cores_folder_change")}
+          </Button>
+        </div>
+      </div>
 
       <div className="setup-modal__folder-list">
         {RETROARCH_CORE_LIST.map((core) => {

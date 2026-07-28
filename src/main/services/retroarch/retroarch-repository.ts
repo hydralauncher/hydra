@@ -31,6 +31,7 @@ const emptyConfig = (): RetroArchConfig => ({
   executablePath: null,
   detectedVersion: null,
   detectedAt: null,
+  coresDir: null,
   cores: emptyCores(),
   romFolders: [],
   perPlatformCounts: emptyCounts(),

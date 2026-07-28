@@ -523,6 +523,7 @@ declare global {
     setRetroArchExecutablePath: (
       executablePath: string | null
     ) => Promise<RetroArchConfig | null>;
+    setRetroArchCoresDir: (coresDir: string | null) => Promise<RetroArchConfig>;
     getRetroArchInstallOptions: () => Promise<RetroArchInstallOption[]>;
     installRetroArch: (optionId: string) => Promise<RetroArchInstallResult>;
     installRetroArchCore: (

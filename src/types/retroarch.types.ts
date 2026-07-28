@@ -21,6 +21,7 @@ export interface RetroArchConfig {
   executablePath: string | null;
   detectedVersion: string | null;
   detectedAt: number | null;
+  coresDir: string | null;
   cores: Record<RetroArchCoreName, RetroArchCore>;
   romFolders: RomFolder[];
   perPlatformCounts: Record<RetroArchPlatform, number>;

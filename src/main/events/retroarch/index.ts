@@ -2,6 +2,7 @@ import "./get-retroarch-config";
 import "./detect-retroarch";
 import "./preview-retroarch-executable";
 import "./set-retroarch-executable-path";
+import "./set-retroarch-cores-dir";
 import "./get-retroarch-install-options";
 import "./install-retroarch";
 import "./install-retroarch-core";
