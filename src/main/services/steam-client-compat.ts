@@ -22,6 +22,18 @@ const STEAM_EMULATOR_CONFIG_FILES = ["onlinefix.ini", "steamfix.ini"];
 
 const OVERLAY_GAME_ID_KEY = "FakeAppId";
 
+const STEAMWORKS_FILES = [
+  "steam_api64.dll",
+  "steam_api.dll",
+  "steam_appid.txt",
+];
+
+const MAX_SCAN_DEPTH = 8;
+
+const MAX_SCANNED_ENTRIES = 8000;
+
+const STEAM_LIBRARY_SEGMENT = `${path.sep}steamapps${path.sep}common${path.sep}`;
+
 const STEAM_CLIENT_FILES: [string, string][] = [
   ["steamclient.dll", "steamclient.dll"],
   ["steamclient64.dll", "steamclient64.dll"],
@@ -47,8 +59,9 @@ const PREFIX_STEAM_DIRECTORY = path.join(
   "Steam"
 );
 
-export interface SteamEmulatorDetection {
-  detected: boolean;
+export interface SteamClientDetection {
+  usesSteamworks: boolean;
+  hasBundledEmulator: boolean;
   dllOverrides: string;
 }
 
@@ -66,26 +79,75 @@ const readDirectoryEntries = (directoryPath: string) => {
   }
 };
 
-export const detectBundledSteamEmulator = (
-  executablePath: string
-): SteamEmulatorDetection => {
-  const entries = new Set(readDirectoryEntries(path.dirname(executablePath)));
+const containsSteamworksFiles = (gameDirectory: string) => {
+  let remainingEntries = MAX_SCANNED_ENTRIES;
 
-  const detected = STEAM_EMULATOR_MARKER_FILES.some((markerFile) =>
+  const scan = (directoryPath: string, depth: number): boolean => {
+    if (depth > MAX_SCAN_DEPTH || remainingEntries <= 0) return false;
+
+    let entries: fs.Dirent[];
+
+    try {
+      entries = fs.readdirSync(directoryPath, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+
+    const subdirectories: string[] = [];
+
+    for (const entry of entries) {
+      if (remainingEntries-- <= 0) return false;
+
+      if (entry.isDirectory()) {
+        subdirectories.push(entry.name);
+        continue;
+      }
+
+      if (STEAMWORKS_FILES.includes(entry.name.toLowerCase())) return true;
+    }
+
+    return subdirectories.some((subdirectory) =>
+      scan(path.join(directoryPath, subdirectory), depth + 1)
+    );
+  };
+
+  return scan(gameDirectory, 0);
+};
+
+export const detectSteamClientUsage = (
+  executablePath: string
+): SteamClientDetection => {
+  const gameDirectory = path.dirname(executablePath);
+  const entries = new Set(readDirectoryEntries(gameDirectory));
+
+  const hasBundledEmulator = STEAM_EMULATOR_MARKER_FILES.some((markerFile) =>
     entries.has(markerFile)
   );
 
-  if (!detected) {
-    return { detected: false, dllOverrides: "" };
+  const isInsideSteamLibrary = executablePath
+    .toLowerCase()
+    .includes(STEAM_LIBRARY_SEGMENT);
+
+  const usesSteamworks =
+    hasBundledEmulator ||
+    isInsideSteamLibrary ||
+    containsSteamworksFiles(gameDirectory);
+
+  if (!usesSteamworks) {
+    return {
+      usesSteamworks: false,
+      hasBundledEmulator: false,
+      dllOverrides: "",
+    };
   }
 
-  const dllOverrides = STEAM_EMULATOR_PROXY_DLLS.filter((proxyDll) =>
-    entries.has(proxyDll)
-  )
-    .map((proxyDll) => `${path.basename(proxyDll, ".dll")}=n,b`)
-    .join(";");
+  const dllOverrides = hasBundledEmulator
+    ? STEAM_EMULATOR_PROXY_DLLS.filter((proxyDll) => entries.has(proxyDll))
+        .map((proxyDll) => `${path.basename(proxyDll, ".dll")}=n,b`)
+        .join(";")
+    : "";
 
-  return { detected: true, dllOverrides };
+  return { usesSteamworks, hasBundledEmulator, dllOverrides };
 };
 
 export const isSteamClientRunning = () => {
@@ -208,13 +270,14 @@ export const resolveSteamClientCompatEnv = async ({
 }: SteamClientCompatOptions): Promise<Record<string, string> | null> => {
   if (process.platform !== "linux") return null;
 
-  const { detected, dllOverrides } = detectBundledSteamEmulator(executablePath);
+  const { usesSteamworks, hasBundledEmulator, dllOverrides } =
+    detectSteamClientUsage(executablePath);
 
-  if (!detected) return null;
+  if (!usesSteamworks) return null;
 
   if (!winePrefixPath) {
     logger.warn(
-      "Bundled Steam emulator detected but no wine prefix is configured, skipping Steam client setup",
+      "Game requires the Steam client but no wine prefix is configured, skipping Steam client setup",
       { executablePath }
     );
     return null;
@@ -236,7 +299,7 @@ export const resolveSteamClientCompatEnv = async ({
     !fs.existsSync(requiredFilePath)
   ) {
     logger.warn(
-      "Bundled Steam emulator detected but the Steam client files were not found, skipping Steam client setup",
+      "Game requires the Steam client but the Steam client files were not found, skipping Steam client setup",
       { executablePath, steamInstallPath }
     );
     return null;
@@ -254,24 +317,24 @@ export const resolveSteamClientCompatEnv = async ({
 
   if (!isSteamClientRunning()) {
     logger.warn(
-      "Bundled Steam emulator detected but the Steam client is not running, the game will likely fail to initialize Steam",
+      "Game requires the Steam client but it is not running, the game will likely fail to initialize Steam",
       { executablePath }
     );
   }
 
-  logger.info(
-    "Enabling Steam client compatibility for a bundled Steam emulator",
-    {
-      executablePath,
-      steamInstallPath,
-      winePrefixPath,
-      dllOverrides,
-    }
-  );
+  logger.info("Enabling Steam client compatibility", {
+    executablePath,
+    steamInstallPath,
+    winePrefixPath,
+    hasBundledEmulator,
+    dllOverrides,
+  });
 
   return {
     STEAM_COMPAT_CLIENT_INSTALL_PATH: steamInstallPath,
-    ...resolveOverlayEnv(steamInstallPath, executablePath, objectId),
+    ...(hasBundledEmulator
+      ? resolveOverlayEnv(steamInstallPath, executablePath, objectId)
+      : {}),
     ...(dllOverrides ? { WINEDLLOVERRIDES: dllOverrides } : {}),
   };
 };
