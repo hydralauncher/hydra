@@ -369,7 +369,10 @@ export const launchGame = async (
         steamAppId,
       });
 
-      if (await launchThroughSteam(steamAppId)) return null;
+      if (await launchThroughSteam(steamAppId)) {
+        PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+        return null;
+      }
 
       logger.warn("Failed to hand the game over to Steam, launching directly", {
         steamAppId,
