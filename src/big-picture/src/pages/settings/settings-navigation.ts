@@ -74,6 +74,10 @@ export const EMULATION_OVERVIEW_CARD_FOCUS_IDS = {
 export const EMULATION_DETAIL_CORES_REGION_ID = "emulation-detail-cores-region";
 export const EMULATION_DETAIL_INSTALL_ALL_CORES_BUTTON_ID =
   "emulation-detail-install-all-cores";
+export const EMULATION_DETAIL_CORES_FOLDER_CHANGE_BUTTON_ID =
+  "emulation-detail-cores-folder-change";
+export const EMULATION_DETAIL_CORES_FOLDER_RESET_BUTTON_ID =
+  "emulation-detail-cores-folder-reset";
 export const EMULATION_DETAIL_BACK_BUTTON_ID = "emulation-detail-back-button";
 export const EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID =
   "emulation-detail-remove-emulator";

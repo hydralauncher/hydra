@@ -1,4 +1,8 @@
-import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
+import {
+  CheckCircleFillIcon,
+  DownloadIcon,
+  FileDirectoryIcon,
+} from "@primer/octicons-react";
 import type { RetroArchConfig, RomFolder } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,6 +24,8 @@ import {
   EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
   EMULATION_DETAIL_CORES_REGION_ID,
   EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
+  EMULATION_DETAIL_CORES_FOLDER_CHANGE_BUTTON_ID,
+  EMULATION_DETAIL_CORES_FOLDER_RESET_BUTTON_ID,
   EMULATION_DETAIL_INSTALL_ALL_CORES_BUTTON_ID,
   EMULATION_DETAIL_REGION_ID,
   EMULATION_DETAIL_RESCAN_BUTTON_ID,
@@ -177,6 +183,40 @@ export function RetroArchEmulationDetail({
       }
     } catch {
       showErrorToast("Failed to install cores", SETTINGS_TOAST_OPTIONS);
+    } finally {
+      setIsBusy(false);
+    }
+  }, [onChange, showErrorToast, showSuccessToast]);
+
+  const handleChangeCoresDir = useCallback(async () => {
+    const result = await globalThis.window.electron.showOpenDialog({
+      properties: ["openDirectory"],
+      defaultPath: config.coresDir ?? undefined,
+    });
+    if (result.canceled || result.filePaths.length === 0) return;
+
+    setIsBusy(true);
+    try {
+      const next = await globalThis.window.electron.setRetroArchCoresDir(
+        result.filePaths[0]
+      );
+      onChange(next);
+      showSuccessToast("Cores folder updated", SETTINGS_TOAST_OPTIONS);
+    } catch {
+      showErrorToast("Failed to change cores folder", SETTINGS_TOAST_OPTIONS);
+    } finally {
+      setIsBusy(false);
+    }
+  }, [config.coresDir, onChange, showErrorToast, showSuccessToast]);
+
+  const handleResetCoresDir = useCallback(async () => {
+    setIsBusy(true);
+    try {
+      const next = await globalThis.window.electron.setRetroArchCoresDir(null);
+      onChange(next);
+      showSuccessToast("Cores folder reset", SETTINGS_TOAST_OPTIONS);
+    } catch {
+      showErrorToast("Failed to reset cores folder", SETTINGS_TOAST_OPTIONS);
     } finally {
       setIsBusy(false);
     }
@@ -356,7 +396,7 @@ export function RetroArchEmulationDetail({
                   },
                   down: {
                     type: "item",
-                    itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
+                    itemId: EMULATION_DETAIL_CORES_FOLDER_CHANGE_BUTTON_ID,
                   },
                 }}
                 variant="secondary"
@@ -395,6 +435,71 @@ export function RetroArchEmulationDetail({
                 </div>
               </div>
             </div>
+            <div className="emulator-detail__row">
+              <FileDirectoryIcon size={24} />
+              <div className="emulator-detail__folder-info">
+                <span className="emulator-detail__folder-path">
+                  {config.coresDir ?? t("retroarch_cores_folder_default")}
+                </span>
+                <div className="emulator-detail__folder-meta">
+                  <span>{t("retroarch_cores_folder_label")}</span>
+                </div>
+              </div>
+              <Button
+                focusId={EMULATION_DETAIL_CORES_FOLDER_CHANGE_BUTTON_ID}
+                focusNavigationOverrides={{
+                  left: { type: "block" },
+                  right: config.coresDir
+                    ? {
+                        type: "item",
+                        itemId: EMULATION_DETAIL_CORES_FOLDER_RESET_BUTTON_ID,
+                      }
+                    : { type: "block" },
+                  up: {
+                    type: "item",
+                    itemId: EMULATION_DETAIL_INSTALL_ALL_CORES_BUTTON_ID,
+                  },
+                  down: {
+                    type: "item",
+                    itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
+                  },
+                }}
+                variant="secondary"
+                disabled={isBusy}
+                onClick={() => {
+                  void handleChangeCoresDir();
+                }}
+              >
+                {t("retroarch_cores_folder_change")}
+              </Button>
+              {config.coresDir && (
+                <Button
+                  focusId={EMULATION_DETAIL_CORES_FOLDER_RESET_BUTTON_ID}
+                  focusNavigationOverrides={{
+                    left: {
+                      type: "item",
+                      itemId: EMULATION_DETAIL_CORES_FOLDER_CHANGE_BUTTON_ID,
+                    },
+                    right: { type: "block" },
+                    up: {
+                      type: "item",
+                      itemId: EMULATION_DETAIL_INSTALL_ALL_CORES_BUTTON_ID,
+                    },
+                    down: {
+                      type: "item",
+                      itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
+                    },
+                  }}
+                  variant="secondary"
+                  disabled={isBusy}
+                  onClick={() => {
+                    void handleResetCoresDir();
+                  }}
+                >
+                  {t("retroarch_cores_folder_reset")}
+                </Button>
+              )}
+            </div>
           </div>
         </section>
       </VerticalFocusGroup>
@@ -402,7 +507,7 @@ export function RetroArchEmulationDetail({
       <RomFoldersSectionBP
         folders={config.romFolders}
         isBusy={isBusy}
-        addUpTargetId={EMULATION_DETAIL_INSTALL_ALL_CORES_BUTTON_ID}
+        addUpTargetId={EMULATION_DETAIL_CORES_FOLDER_CHANGE_BUTTON_ID}
         rowsDownTargetId={EMULATION_DETAIL_RESCAN_BUTTON_ID}
         onAddFolder={() => {
           void handleAddFolder();
