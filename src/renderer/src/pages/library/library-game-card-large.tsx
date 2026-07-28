@@ -110,7 +110,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     );
   }, [game, isClassics]);
 
-  const heroSources = heroCandidates.map((candidate) => candidate.url);
+  const heroSources = useMemo(
+    () => heroCandidates.map((candidate) => candidate.url),
+    [heroCandidates]
+  );
 
   const [heroIndex, setHeroIndex] = useState(0);
 

@@ -19,8 +19,6 @@ import { logger } from "@renderer/logger";
 
 interface LibraryGameCardProps {
   game: LibraryGame;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
   onContextMenu: (
     game: LibraryGame,
     position: { x: number; y: number }
@@ -31,8 +29,6 @@ interface LibraryGameCardProps {
 
 export const LibraryGameCard = memo(function LibraryGameCard({
   game,
-  onMouseEnter,
-  onMouseLeave,
   onContextMenu,
 }: Readonly<LibraryGameCardProps>) {
   const { t } = useTranslation("library");
@@ -171,14 +167,8 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   return (
     <button
       type="button"
-      onMouseEnter={() => {
-        setIsCoverHovered(true);
-        onMouseEnter();
-      }}
-      onMouseLeave={() => {
-        setIsCoverHovered(false);
-        onMouseLeave();
-      }}
+      onMouseEnter={() => setIsCoverHovered(true)}
+      onMouseLeave={() => setIsCoverHovered(false)}
       className="library-game-card__wrapper"
       title={game.title}
       onClick={handleCardClick}

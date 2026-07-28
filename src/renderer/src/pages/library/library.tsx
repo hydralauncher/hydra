@@ -19,6 +19,7 @@ import {
   HeartIcon,
   TelescopeIcon,
   FileDirectoryIcon,
+  SearchIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
@@ -253,14 +254,6 @@ export default function Library() {
       unsubscribeClassicsImport();
     };
   }, [dispatch, t, updateLibrary, loadCollections, hasLoadedCollections]);
-
-  const handleOnMouseEnterGameCard = useCallback(() => {
-    // Optional: pause animations if needed
-  }, []);
-
-  const handleOnMouseLeaveGameCard = useCallback(() => {
-    // Optional: resume animations if needed
-  }, []);
 
   const handleOpenContextMenu = useCallback(
     (game: LibraryGame, position: { x: number; y: number }) => {
@@ -515,6 +508,12 @@ export default function Library() {
     effectiveCategory === "classics" &&
     isImportingClassics &&
     hasNoFilteredGames;
+  const shouldShowNoResultsEmptyState =
+    hasGames &&
+    hasNoFilteredGames &&
+    !shouldShowFavoritesEmptyState &&
+    !shouldShowCollectionEmptyState &&
+    !shouldShowClassicsImporting;
 
   return (
     <section
@@ -598,6 +597,16 @@ export default function Library() {
         </div>
       )}
 
+      {shouldShowNoResultsEmptyState && (
+        <div className="library__empty">
+          <div className="library__icon-container">
+            <SearchIcon size={24} />
+          </div>
+          <h2>{t("no_results")}</h2>
+          <p>{t("no_results_description")}</p>
+        </div>
+      )}
+
       <div
         className="library__games-scroll"
         ref={gamesScrollRef}
@@ -609,7 +618,8 @@ export default function Library() {
         {hasGames &&
           !shouldShowFavoritesEmptyState &&
           !shouldShowCollectionEmptyState &&
-          !shouldShowClassicsImporting && (
+          !shouldShowClassicsImporting &&
+          !shouldShowNoResultsEmptyState && (
             <div
               style={{
                 height: `${rowVirtualizer.getTotalSize()}px`,
@@ -641,8 +651,6 @@ export default function Library() {
                       <LibraryGameCard
                         key={`${game.shop}-${game.objectId}`}
                         game={game}
-                        onMouseEnter={handleOnMouseEnterGameCard}
-                        onMouseLeave={handleOnMouseLeaveGameCard}
                         onContextMenu={handleOpenContextMenu}
                       />
                     )

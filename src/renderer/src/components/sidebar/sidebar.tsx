@@ -138,9 +138,11 @@ export function Sidebar() {
   const gameListRef = useRef<HTMLDivElement>(null);
 
   const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
+  const [filterQuery, setFilterQuery] = useState("");
 
   useEffect(() => {
     setFilteredLibrary(sortedLibrary);
+    setFilterQuery("");
 
     if (filterRef.current) {
       filterRef.current.value = "";
@@ -154,6 +156,13 @@ export function Sidebar() {
       ),
     [filteredLibrary, showPlayableOnly]
   );
+
+  const hasActiveFilter =
+    library.length > 0 &&
+    (sidebarCategory !== "all" ||
+      Boolean(selectedPlatform) ||
+      showPlayableOnly ||
+      filterQuery.trim().length > 0);
 
   const virtualizer = useVirtualizer({
     count: visibleGames.length,
@@ -173,6 +182,7 @@ export function Sidebar() {
   }, []);
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
+    setFilterQuery(event.target.value);
     setFilteredLibrary(
       sortedLibrary.filter((game) =>
         (game.title ?? "")
@@ -477,6 +487,12 @@ export function Sidebar() {
                   )
                 }
               >
+                {hasActiveFilter && visibleGames.length === 0 && (
+                  <p className="sidebar__game-list-empty">
+                    {t("library:no_results")}
+                  </p>
+                )}
+
                 <div
                   style={{
                     height: `${virtualizer.getTotalSize()}px`,
