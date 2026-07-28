@@ -264,7 +264,7 @@ export function RetroArchSetupModal({
       goNext();
     } else if (currentStep === "rom_folder") {
       refreshConfig();
-      onComplete();
+      setStepIndex(STEPS.indexOf("done"));
     }
   };
 
