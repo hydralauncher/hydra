@@ -1,8 +1,4 @@
-import {
-  CheckCircleFillIcon,
-  DownloadIcon,
-  FileDirectoryIcon,
-} from "@primer/octicons-react";
+import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
 import type { RetroArchConfig, RomFolder } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -432,17 +428,10 @@ export function RetroArchEmulationDetail({
                           total: RETROARCH_CORE_LIST.length,
                         })}
                   </span>
-                </div>
-              </div>
-            </div>
-            <div className="emulator-detail__row">
-              <FileDirectoryIcon size={24} />
-              <div className="emulator-detail__folder-info">
-                <span className="emulator-detail__folder-path">
-                  {config.coresDir ?? t("retroarch_cores_folder_default")}
-                </span>
-                <div className="emulator-detail__folder-meta">
-                  <span>{t("retroarch_cores_folder_label")}</span>
+                  <span className="emulator-detail__dot" />
+                  <span>
+                    {config.coresDir ?? t("retroarch_cores_folder_default")}
+                  </span>
                 </div>
               </div>
               <Button

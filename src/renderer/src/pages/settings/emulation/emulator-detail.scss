@@ -104,7 +104,7 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #0cf1ca;
+      background: #c0c1c7;
     }
   }
 
@@ -255,7 +255,8 @@
     background: #26262b;
 
     &--found {
-      color: #6ee7a0;
+      color: #c0c1c7;
+      background: rgba(192, 193, 199, 0.12);
     }
 
     &--warn {

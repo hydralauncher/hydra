@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CheckCircleFillIcon,
   DownloadIcon,
-  FileDirectoryIcon,
-  PencilIcon,
   SyncIcon,
   TrashIcon,
   XIcon,
@@ -36,6 +33,7 @@ import {
   RomFoldersSection,
 } from "./emulation-detail-sections";
 import { RetroArchRomsSection } from "./retroarch-roms-section";
+import { EmulatorResourceRow } from "./emulator-resource-row";
 import {
   RETROARCH_CORE_LIST,
   RETROARCH_CORES_LINE,
@@ -369,18 +367,6 @@ export function RetroArchDetail({
     coresRowStatus = t("retroarch_cores_ready");
   }
 
-  let coresRowIcon = <DownloadIcon size={24} />;
-  if (busyCore) {
-    coresRowIcon = (
-      <SyncIcon
-        size={24}
-        className="emulator-detail__redetect-icon--spinning"
-      />
-    );
-  } else if (allCoresInstalled) {
-    coresRowIcon = <CheckCircleFillIcon size={24} />;
-  }
-
   const tabs: { id: RetroArchTab; label: string }[] = [
     { id: "emulator", label: t("tab_emulator") },
     { id: "rom-folders", label: t("tab_rom_folders") },
@@ -414,78 +400,45 @@ export function RetroArchDetail({
             onBrowse={handleBrowseExecutable}
           />
 
-          <section className="emulator-detail__section">
-            <header className="emulator-detail__section-header">
-              <div className="emulator-detail__section-text">
-                <h3>{t("retroarch_cores_section_title")}</h3>
-                <p>
-                  {t("retroarch_cores_section_description", {
-                    installed: installedCoreCount,
-                    total: RETROARCH_CORE_LIST.length,
-                  })}
-                </p>
-              </div>
-              <Button
-                theme="outline"
-                onClick={handleInstallAllCores}
-                disabled={installingCores || allCoresInstalled}
-              >
-                <DownloadIcon size={14} />
-                <span>
-                  {installingCores
-                    ? t("retroarch_downloading_cores")
-                    : t("retroarch_download_all_cores")}
-                </span>
-              </Button>
-            </header>
-
-            <div className="emulator-detail__folders">
-              <div className="emulator-detail__row">
-                {coresRowIcon}
-                <div className="emulator-detail__folder-info">
-                  <span className="emulator-detail__folder-path">
-                    {RETROARCH_CORES_LINE}
-                  </span>
-                  <div className="emulator-detail__folder-meta">
-                    <span>{coresRowStatus}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="emulator-detail__row">
-                <FileDirectoryIcon size={24} />
-                <div className="emulator-detail__folder-info">
-                  <span className="emulator-detail__folder-path">
-                    {config.coresDir ?? t("retroarch_cores_folder_default")}
-                  </span>
-                  <div className="emulator-detail__folder-meta">
-                    <span>{t("retroarch_cores_folder_label")}</span>
-                  </div>
-                </div>
+          <EmulatorResourceRow
+            title={t("retroarch_cores_section_title")}
+            description={RETROARCH_CORES_LINE}
+            detected={allCoresInstalled}
+            statusLabel={coresRowStatus}
+            path={{
+              text: config.coresDir,
+              placeholder: t("retroarch_cores_folder_default"),
+              onClick: handleChangeCoresDir,
+              disabled: busy || installingCores,
+              title: t("retroarch_cores_folder_change"),
+            }}
+            actions={
+              <>
                 {config.coresDir && (
-                  <button
-                    type="button"
-                    className="emulator-detail__remove"
+                  <Button
+                    theme="outline"
                     onClick={handleResetCoresDir}
-                    aria-label={t("retroarch_cores_folder_reset")}
-                    title={t("retroarch_cores_folder_reset")}
                     disabled={busy || installingCores}
                   >
-                    <XIcon size={16} />
-                  </button>
+                    <XIcon size={13} />
+                    <span>{t("retroarch_cores_folder_reset")}</span>
+                  </Button>
                 )}
-                <button
-                  type="button"
-                  className="emulator-detail__remove"
-                  onClick={handleChangeCoresDir}
-                  aria-label={t("retroarch_cores_folder_change")}
-                  title={t("retroarch_cores_folder_change")}
-                  disabled={busy || installingCores}
+                <Button
+                  theme="primary"
+                  onClick={handleInstallAllCores}
+                  disabled={installingCores || allCoresInstalled}
                 >
-                  <PencilIcon size={16} />
-                </button>
-              </div>
-            </div>
-          </section>
+                  <DownloadIcon size={13} />
+                  <span>
+                    {installingCores
+                      ? t("retroarch_downloading_cores")
+                      : t("retroarch_download_all_cores")}
+                  </span>
+                </Button>
+              </>
+            }
+          />
 
           {isConfigured && (
             <button
