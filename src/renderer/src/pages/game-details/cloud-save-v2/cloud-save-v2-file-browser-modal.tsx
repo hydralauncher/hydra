@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CircleNotchIcon,
   CloudIcon,
+  FolderIcon,
   MonitorIcon,
+  PlusIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
@@ -27,7 +29,9 @@ interface CloudSaveV2FileBrowserModalProps {
   details: CloudSaveV2FileDetails | null;
   isLoading: boolean;
   hasError: boolean;
-  onRetry: () => void;
+  isGameRunning: boolean;
+  isSyncing: boolean;
+  onRetry: () => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -39,13 +43,16 @@ export function CloudSaveV2FileBrowserModal({
   details,
   isLoading,
   hasError,
+  isGameRunning,
+  isSyncing,
   onRetry,
   onClose,
 }: Readonly<CloudSaveV2FileBrowserModalProps>) {
   const { t } = useTranslation("game_details");
-  const { showErrorToast } = useToast();
+  const { showErrorToast, showSuccessToast } = useToast();
   const [showOnlyChanged, setShowOnlyChanged] = useState(true);
   const [isFileListScrolled, setIsFileListScrolled] = useState(false);
+  const [isAddingCustomPath, setIsAddingCustomPath] = useState(false);
   const isConflict = details?.state === "conflict";
   const titleIsConflict = isConflict || overviewState === "conflict";
   const visibleComparisons = useMemo(
@@ -102,6 +109,27 @@ export function CloudSaveV2FileBrowserModal({
     }
   };
 
+  const handleAddCustomPath = async () => {
+    setIsAddingCustomPath(true);
+    try {
+      const result = await window.electron.selectCloudSaveCustomPath(
+        objectId,
+        shop
+      );
+      if (!result.canceled && result.customPath) {
+        await onRetry();
+        showSuccessToast(t("cloud_save_v2_custom_path_added"));
+      }
+    } catch {
+      showErrorToast(
+        t("cloud_save_v2_custom_path_error_title"),
+        t("cloud_save_v2_custom_path_error_description")
+      );
+    } finally {
+      setIsAddingCustomPath(false);
+    }
+  };
+
   const loadingState = !details && isLoading;
   const errorState = !details && hasError;
 
@@ -141,6 +169,52 @@ export function CloudSaveV2FileBrowserModal({
 
         {details && (
           <>
+            <section className="cloud-save-v2__custom-paths">
+              <div className="cloud-save-v2__custom-paths-header">
+                <div>
+                  <strong>{t("cloud_save_v2_custom_paths_title")}</strong>
+                  <p>{t("cloud_save_v2_custom_paths_description")}</p>
+                </div>
+                <Button
+                  theme="outline"
+                  disabled={
+                    isAddingCustomPath ||
+                    isLoading ||
+                    isGameRunning ||
+                    isSyncing
+                  }
+                  onClick={() => void handleAddCustomPath()}
+                >
+                  {isAddingCustomPath ? (
+                    <CircleNotchIcon
+                      className="cloud-save-v2__spinner"
+                      size={16}
+                    />
+                  ) : (
+                    <PlusIcon size={16} />
+                  )}
+                  {t("cloud_save_v2_add_custom_path")}
+                </Button>
+              </div>
+              {details.customPaths.length > 0 ? (
+                <div className="cloud-save-v2__custom-path-list">
+                  {details.customPaths.map((customPath) => (
+                    <button
+                      type="button"
+                      key={customPath.rawPath}
+                      title={customPath.path}
+                      onClick={() => void handleOpenFolder(customPath.path)}
+                    >
+                      <FolderIcon size={18} />
+                      <span>{customPath.path}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <small>{t("cloud_save_v2_no_custom_paths")}</small>
+              )}
+            </section>
+
             {(details.variants.length > 0 ||
               details.unresolvedRemoteVariantCount > 0) && (
               <section

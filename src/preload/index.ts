@@ -46,6 +46,7 @@ import type {
   CloudSaveSyncProgressPayload,
   SyncCloudSaveOnGamePageResult,
   SyncGameCloudSaveResult,
+  SelectCloudSaveCustomPathResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -104,6 +105,12 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveV2FileDetails>,
+  selectCloudSaveCustomPath: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "selectCloudSaveCustomPath",
+      objectId,
+      shop
+    ) as Promise<SelectCloudSaveCustomPathResult>,
   setCloudSaveAutomaticSyncEnabled: (
     objectId: string,
     shop: GameShop,

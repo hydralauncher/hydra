@@ -33,7 +33,7 @@ export const isCloudSaveOverviewEmpty = (overview: CloudSaveOverview | null) =>
 
 export const canOpenCloudSaveFileBrowser = (
   overview: CloudSaveOverview | null
-) => overview !== null && !isCloudSaveOverviewEmpty(overview);
+) => overview !== null;
 
 interface GamePageOpenSyncInput {
   overview: CloudSaveOverview | null;

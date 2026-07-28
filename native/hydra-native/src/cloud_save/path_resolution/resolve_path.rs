@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use super::candidates::{native_paths, normalize_candidate, steam_proton_paths, wine_paths};
+use super::custom::{decode_custom_path, CUSTOM_PATH_PREFIX};
 use super::tokens::{has_unresolved_placeholder, tokens_in_path, uses_windows_profile};
 use super::types::{PathResolutionContext, ResolvedCloudSavePath};
 
@@ -119,6 +120,25 @@ fn assign_scan_roots(paths: &mut [ResolvedCloudSavePath], roots: &[ResolvedCloud
 }
 
 pub fn resolve_path(raw_path: &str, context: &PathResolutionContext) -> ResolvedPath {
+    if raw_path.starts_with(CUSTOM_PATH_PREFIX) {
+        return match decode_custom_path(raw_path, &context.platform) {
+            Some(Ok(path)) => ResolvedPath {
+                paths: vec![ResolvedCloudSavePath {
+                    path,
+                    case_sensitive: context.platform == "linux",
+                    dynamic: false,
+                    scan_root: None,
+                }],
+                unresolved_tokens: vec![],
+            },
+            Some(Err(error)) => ResolvedPath {
+                paths: vec![],
+                unresolved_tokens: vec![error],
+            },
+            None => unreachable!(),
+        };
+    }
+
     let raw_path = normalize_candidate(raw_path)
         .replace("*<storeUserId>", "<storeUserId>")
         .replace("<storeUserId>*", "<storeUserId>");

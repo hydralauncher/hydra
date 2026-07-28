@@ -23,6 +23,7 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                         candidate.case_sensitive,
                         candidate.scan_root.as_deref(),
                         template.as_deref(),
+                        !rule.raw_path.starts_with("<custom>"),
                     ) {
                         Ok(paths) => paths,
                         Err(error) => {

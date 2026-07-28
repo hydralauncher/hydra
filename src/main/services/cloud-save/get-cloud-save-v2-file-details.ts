@@ -5,6 +5,7 @@ import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { loadCloudSaveV2FileDetails } from "./cloud-save-v2-file-details";
 import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
 import { getFirstSyncState } from "./sync-game";
+import { getCloudSaveCustomPaths } from "./custom-path-store";
 
 export const getCloudSaveV2FileDetails = async (
   objectId: string,
@@ -12,7 +13,10 @@ export const getCloudSaveV2FileDetails = async (
 ): Promise<CloudSaveV2FileDetails> => {
   assertCloudSaveSubscription();
 
-  const analysis = await analyzeCloudSaveState(objectId, shop);
+  const [analysis, customPaths] = await Promise.all([
+    analyzeCloudSaveState(objectId, shop),
+    getCloudSaveCustomPaths(shop, objectId),
+  ]);
   const state =
     analysis.state.state === "untracked"
       ? getFirstSyncState(analysis)
@@ -35,6 +39,7 @@ export const getCloudSaveV2FileDetails = async (
       conflictEntryIds: analysis.merge.conflicts.map(
         (conflict) => conflict.entryId
       ),
+      customPaths,
     },
     getRemoteSnapshotRestoreManifest
   );

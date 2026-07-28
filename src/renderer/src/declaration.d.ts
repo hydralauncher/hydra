@@ -65,6 +65,7 @@ import type {
   CloudSaveSyncProgressPayload,
   SyncCloudSaveOnGamePageResult,
   SyncGameCloudSaveResult,
+  SelectCloudSaveCustomPathResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -108,6 +109,10 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveV2FileDetails>;
+    selectCloudSaveCustomPath: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<SelectCloudSaveCustomPathResult>;
     setCloudSaveAutomaticSyncEnabled: (
       objectId: string,
       shop: GameShop,

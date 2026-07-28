@@ -25,12 +25,12 @@ fn relative_path(root: &Path, path: &Path) -> Option<String> {
         .filter(|relative| !relative.is_empty())
 }
 
-fn match_options(case_sensitive: bool) -> MatchOptions {
+fn match_options(case_sensitive: bool, follow_links: bool) -> MatchOptions {
     MatchOptions {
         case_sensitive,
         require_literal_separator: true,
         require_literal_leading_dot: false,
-        follow_links: true,
+        follow_links,
     }
 }
 
@@ -71,12 +71,12 @@ fn path_starts_with(path: &Path, root: &Path, case_sensitive: bool) -> bool {
     path == root || path.starts_with(&format!("{}/", root.trim_end_matches('/')))
 }
 
-fn scan_directory(root: &Path) -> Result<ScannedCloudSavePath, String> {
+fn scan_directory(root: &Path, follow_links: bool) -> Result<ScannedCloudSavePath, String> {
     let mut files = Vec::new();
 
     for entry in WalkDir::new(root)
         .max_depth(MAX_SCAN_DEPTH)
-        .follow_links(true)
+        .follow_links(follow_links)
     {
         let entry = entry.map_err(|error| format!("cloud_save_filesystem_error: {error}"))?;
         if !entry.file_type().is_file() {
@@ -148,8 +148,9 @@ pub fn scan_resolved_path_with_capture(
     case_sensitive: bool,
     scan_root_pattern: Option<&str>,
     capture_template: Option<&str>,
+    follow_links: bool,
 ) -> Result<Vec<ScannedCloudSavePath>, String> {
-    let options = match_options(case_sensitive);
+    let options = match_options(case_sensitive, follow_links);
     let matches = glob_matches(resolved_path, options)?;
     let scan_roots = scan_root_pattern
         .map(|pattern| glob_matches(pattern, options))
@@ -170,7 +171,7 @@ pub fn scan_resolved_path_with_capture(
             .map_err(|error| format!("cloud_save_filesystem_error: {error}"))?;
 
         if metadata.is_dir() {
-            let mut scanned = scan_directory(&matched)?;
+            let mut scanned = scan_directory(&matched, follow_links)?;
             scanned.store_user_id = captured;
             scanned.case_sensitive = case_sensitive;
             scanned.candidate_id = local_id(&[resolved_path, &scanned.resolved_path]);
@@ -219,7 +220,7 @@ pub fn scan_resolved_path(
     case_sensitive: bool,
     scan_root_pattern: Option<&str>,
 ) -> Result<Vec<ScannedCloudSavePath>, String> {
-    scan_resolved_path_with_capture(resolved_path, case_sensitive, scan_root_pattern, None)
+    scan_resolved_path_with_capture(resolved_path, case_sensitive, scan_root_pattern, None, true)
 }
 
 #[cfg(test)]
@@ -298,6 +299,26 @@ mod tests {
         assert!(!files
             .iter()
             .any(|file| file.relative_path.ends_with("100.sav")));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn can_refuse_symlinks_that_leave_a_custom_root() {
+        use std::os::unix::fs::symlink;
+
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("custom");
+        let outside = temp.path().join("outside");
+        fs::create_dir_all(&root).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        fs::write(outside.join("save.dat"), b"save").unwrap();
+        symlink(&outside, root.join("linked")).unwrap();
+
+        let scanned =
+            scan_resolved_path_with_capture(&root.display().to_string(), true, None, None, false)
+                .unwrap();
+
+        assert!(scanned[0].files.is_empty());
     }
 
     #[cfg(unix)]

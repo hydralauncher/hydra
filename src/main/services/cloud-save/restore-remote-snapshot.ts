@@ -29,11 +29,14 @@ import {
 } from "./restore-replacements";
 import { getRestoreVersionDecision } from "./restore-version-policy";
 import {
+  getRestorableCloudSaveCustomPaths,
   getRemoteSnapshotRestoreManifest,
   resolveRestoreManifestTargets,
 } from "./resolve-remote-snapshot-targets";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
+import { registerCloudSaveCustomPaths } from "./custom-path-store";
+import { CLOUD_SAVE_CUSTOM_PATH_PREFIX } from "./custom-path";
 
 interface RestoreCloudSaveContext {
   environmentId: string;
@@ -214,6 +217,29 @@ export const restoreRemoteSnapshot = async (
     ].sort();
 
     const restoreSucceeded = isRestoreReplacementSuccessful(result);
+    if (restoreSucceeded) {
+      await assertEnvironmentCurrent?.();
+      const restoredCustomRawPaths = new Set(
+        plan.actions
+          .map(({ rawPath }) => rawPath)
+          .filter((rawPath) =>
+            rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)
+          )
+      );
+      if (restoredCustomRawPaths.size > 0) {
+        const restorableCustomPaths = await getRestorableCloudSaveCustomPaths(
+          selectedManifest,
+          cloudSaveContext.pathContext.platform
+        );
+        await registerCloudSaveCustomPaths(
+          manifest.snapshot.shop,
+          manifest.snapshot.objectId,
+          restorableCustomPaths.filter(({ rawPath }) =>
+            restoredCustomRawPaths.has(rawPath)
+          )
+        );
+      }
+    }
     if (restoreSucceeded && updateAnchor) {
       await assertEnvironmentCurrent?.();
       await saveCloudSaveSyncAnchor(

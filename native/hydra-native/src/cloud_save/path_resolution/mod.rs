@@ -1,6 +1,7 @@
 mod candidates;
 mod capture;
 mod context;
+mod custom;
 mod resolve_path;
 mod resolve_rules;
 mod restore_root;

@@ -226,6 +226,8 @@ pub async fn build_local_game_snapshot_pipeline(
     .await?;
     let manifest_key = save_rules.manifest_key;
     let rule_source_revision = save_rules.rule_source_revision;
+    let mut rules = save_rules.rules;
+    rules.extend(input.extra_rules.unwrap_or_default());
     let resolved_rules = resolve_save_rules(ResolveSaveRulesInput {
         shop: shop.clone(),
         object_id: object_id.clone(),
@@ -236,7 +238,7 @@ pub async fn build_local_game_snapshot_pipeline(
         executable_path: input.executable_path,
         wine_prefix_path: input.wine_prefix_path,
         steam_path: input.steam_path,
-        rules: save_rules.rules,
+        rules,
     })?;
     let scanned_rules = scan_resolved_save_rules(resolved_rules).await?;
     let environment_id = input.environment_id;

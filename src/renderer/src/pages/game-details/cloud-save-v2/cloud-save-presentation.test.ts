@@ -24,6 +24,7 @@ const overview = (
   discoveredVariantCount: 1,
   unresolvedRemoteVariantCount: 0,
   warnings: [],
+  remoteCustomPaths: [],
   ...overrides,
 });
 
@@ -170,11 +171,11 @@ describe("cloud save panel action", () => {
     );
   });
 
-  it("opens the file browser only when the overview has files to inspect", () => {
+  it("opens the file browser for tracked and not-yet-tracked games", () => {
     assert.equal(canOpenCloudSaveFileBrowser(null), false);
     assert.equal(
       canOpenCloudSaveFileBrowser(overview({ state: "untracked" })),
-      false
+      true
     );
     assert.equal(
       canOpenCloudSaveFileBrowser(

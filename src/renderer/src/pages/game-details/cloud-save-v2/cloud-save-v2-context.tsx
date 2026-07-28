@@ -440,7 +440,12 @@ export function CloudSaveV2Provider({
         details={fileDetails}
         isLoading={isFileDetailsLoading}
         hasError={hasFileDetailsError}
-        onRetry={() => void refreshFileDetails()}
+        isGameRunning={isGameRunning}
+        isSyncing={isSyncing}
+        onRetry={async () => {
+          await refreshFileDetails();
+          await refresh();
+        }}
         onClose={() => setIsFileBrowserVisible(false)}
       />
 

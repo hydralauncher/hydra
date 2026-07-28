@@ -1,5 +1,6 @@
 import type {
   CloudSaveState,
+  CloudSaveCustomPath,
   CloudSaveV2ActiveSnapshotFileSource,
   CloudSaveV2FileComparison,
   CloudSaveV2FileDetails,
@@ -30,6 +31,7 @@ interface BuildCloudSaveV2FileDetailsInput {
   coverage?: UserLocationCoverage[];
   unresolvedRemoteEntryIds?: string[];
   conflictEntryIds?: string[];
+  customPaths?: CloudSaveCustomPath[];
 }
 
 interface LoadCloudSaveV2FileDetailsInput
@@ -177,6 +179,7 @@ export const buildCloudSaveV2FileDetails = ({
   coverage = [],
   unresolvedRemoteEntryIds = [],
   conflictEntryIds = [],
+  customPaths = [],
 }: BuildCloudSaveV2FileDetailsInput): CloudSaveV2FileDetails => {
   const variantById = indexVariants([...localVariants, ...remoteVariants]);
   indexFiles(localFiles);
@@ -267,6 +270,7 @@ export const buildCloudSaveV2FileDetails = ({
     state,
     local,
     activeSnapshot: remote,
+    customPaths,
     comparisons:
       state === "conflict"
         ? buildComparisons(

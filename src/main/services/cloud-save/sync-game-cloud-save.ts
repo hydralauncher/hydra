@@ -436,6 +436,9 @@ const runCloudSaveOperation = (
   return promise;
 };
 
+export const isCloudSaveSyncActive = (objectId: string, shop: GameShop) =>
+  activeSyncs.has(gameKey(objectId, shop));
+
 export const syncGameCloudSave = async (
   objectId: string,
   shop: GameShop,

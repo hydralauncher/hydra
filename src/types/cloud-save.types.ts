@@ -19,6 +19,19 @@ export interface CloudSaveRule {
   when: CloudSaveRuleCondition[];
 }
 
+export type CloudSaveCustomPathPlatform = "windows" | "linux" | "mac";
+
+export interface CloudSaveCustomPath {
+  rawPath: string;
+  path: string;
+  platform: CloudSaveCustomPathPlatform;
+}
+
+export interface SelectCloudSaveCustomPathResult {
+  canceled: boolean;
+  customPath?: CloudSaveCustomPath;
+}
+
 export interface GetSaveRulesForGameInput extends CloudSaveGameId {
   title?: string;
   remoteId?: string;
@@ -103,6 +116,7 @@ export interface BuildLocalGameSnapshotPipelineInput
   sourceUrl?: string;
   environmentId: string;
   hashCache: LocalFileHashCacheEntry[];
+  extraRules?: CloudSaveRule[];
 }
 
 export interface LocalFileHashCacheEntry {
@@ -199,6 +213,7 @@ export interface CloudSaveOverview extends CloudSaveStateResult {
   discoveredVariantCount: number;
   unresolvedRemoteVariantCount: number;
   warnings: UserLocationCoverage[];
+  remoteCustomPaths: CloudSaveCustomPath[];
 }
 
 export type CloudSaveV2FileComparisonStatus =
@@ -258,6 +273,7 @@ export interface CloudSaveV2FileDetails {
   state: CloudSaveState;
   local: CloudSaveV2LocalFileSource;
   activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
+  customPaths: CloudSaveCustomPath[];
   comparisons: CloudSaveV2FileComparison[];
   variants: Array<{
     variantId: string;

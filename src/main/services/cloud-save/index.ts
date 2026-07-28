@@ -4,6 +4,8 @@ export * from "./build-local-game-snapshot";
 export * from "./cloud-save-access";
 export * from "./cloud-save-environment";
 export * from "./cloud-save-game-context";
+export * from "./custom-path";
+export * from "./custom-path-store";
 export * from "./create-remote-snapshot-from-local-state";
 export * from "./download-remote-snapshot-to-temp";
 export * from "./get-cloud-save-overview";

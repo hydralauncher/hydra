@@ -318,6 +318,21 @@ export function CloudSavePanel({
         <p className="cloud-save-v2__error">{t("cloud_save_v2_error")}</p>
       )}
 
+      {(overview?.remoteCustomPaths.length ?? 0) > 0 && (
+        <section className="cloud-save-v2__restore-custom-paths">
+          <strong>{t("cloud_save_v2_restore_custom_paths_title")}</strong>
+          <p>{t("cloud_save_v2_restore_custom_paths_description")}</p>
+          <div>
+            {overview!.remoteCustomPaths.map((customPath) => (
+              <span key={customPath.rawPath} title={customPath.rawPath}>
+                <FolderOpenIcon size={16} />
+                {customPath.path}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
       {!isLoading && isCloudSaveOverviewEmpty(overview) && (
         <p className="cloud-save-v2__empty-message">
           {t("cloud_save_v2_no_snapshots")}

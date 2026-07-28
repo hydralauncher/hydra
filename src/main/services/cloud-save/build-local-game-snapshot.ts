@@ -4,6 +4,7 @@ import type { GameShop, LocalGameSnapshotContext } from "@types";
 
 import { NativeAddon } from "../native-addon";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getCloudSaveCustomPathRules } from "./custom-path-store";
 
 export const buildLocalGameSnapshotContext = async (
   objectId: string,
@@ -14,7 +15,10 @@ export const buildLocalGameSnapshotContext = async (
     suppliedContext ?? (await getCloudSaveGameContext(objectId, shop));
   const { game, pathContext, environmentId } = context;
   const cacheKey = levelKeys.game(shop, objectId);
-  const hashCache = (await cloudSaveLocalHashCacheSublevel.get(cacheKey)) ?? [];
+  const [hashCache, extraRules] = await Promise.all([
+    cloudSaveLocalHashCacheSublevel.get(cacheKey).then((value) => value ?? []),
+    getCloudSaveCustomPathRules(shop, objectId),
+  ]);
   const { hashCache: updatedHashCache, ...snapshot } =
     await NativeAddon.buildLocalGameSnapshotPipeline({
       ...pathContext,
@@ -23,6 +27,7 @@ export const buildLocalGameSnapshotContext = async (
       remoteId: game?.remoteId ?? undefined,
       userDataPath: SystemPath.getPath("userData"),
       hashCache,
+      extraRules,
     });
 
   if (updatedHashCache.length === 0) {

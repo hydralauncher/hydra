@@ -3,6 +3,7 @@ import { logger } from "@main/services/logger";
 import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
 import type {
+  CloudSaveCustomPath,
   CloudSavePathContext,
   RemoteGameSnapshot,
   RemoteSnapshotSummary,
@@ -13,6 +14,11 @@ import type {
 import { NativeAddon } from "../native-addon";
 import { validateRestoreManifest } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import {
+  CLOUD_SAVE_CUSTOM_PATH_PREFIX,
+  validateCloudSaveCustomPathForRestore,
+} from "./custom-path";
+import { customPathToCloudSaveRule } from "./custom-path-store";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
   if (!winePrefixPath) return false;
@@ -52,6 +58,35 @@ export const getRemoteSnapshotRestoreManifest = async (
   return manifest;
 };
 
+export const getRestorableCloudSaveCustomPaths = async (
+  manifest: RestoreManifestResponse,
+  platform: CloudSavePathContext["platform"]
+): Promise<CloudSaveCustomPath[]> => {
+  const rawPaths = [
+    ...new Set(
+      manifest.files
+        .map(({ rawPath }) => rawPath)
+        .filter((rawPath) => rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX))
+    ),
+  ].sort();
+  const customPaths: CloudSaveCustomPath[] = [];
+  for (const rawPath of rawPaths) {
+    try {
+      const customPath = await validateCloudSaveCustomPathForRestore(
+        rawPath,
+        platform
+      );
+      if (customPath) customPaths.push(customPath);
+    } catch (error) {
+      logger.warn("[Cloud Save] Rejected custom restore path", {
+        rawPath,
+        error,
+      });
+    }
+  }
+  return customPaths;
+};
+
 export const resolveRestoreManifestTargets = async (
   manifest: RestoreManifestResponse,
   suppliedPathContext?: CloudSavePathContext
@@ -68,6 +103,10 @@ export const resolveRestoreManifestTargets = async (
     remoteId: gameContext.game?.remoteId ?? undefined,
     userDataPath: SystemPath.getPath("userData"),
   });
+  const customPaths = await getRestorableCloudSaveCustomPaths(
+    manifest,
+    pathContext.platform
+  );
 
   const wineProfiles = pathContext.winePrefixPath
     ? Wine.getPrefixUserProfiles(pathContext.winePrefixPath)
@@ -99,11 +138,14 @@ export const resolveRestoreManifestTargets = async (
 
   return NativeAddon.resolveRestoreTargets({
     ...pathContext,
-    approvedRules: approved.rules.map(({ kind, rawPath, source }) => ({
-      kind,
-      rawPath,
-      source,
-    })),
+    approvedRules: [
+      ...approved.rules.map(({ kind, rawPath, source }) => ({
+        kind,
+        rawPath,
+        source,
+      })),
+      ...customPaths.map(customPathToCloudSaveRule),
+    ].map(({ kind, rawPath, source }) => ({ kind, rawPath, source })),
     variants: manifest.variants,
     files: manifest.files,
   });

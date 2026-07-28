@@ -605,6 +605,55 @@ mod tests {
     }
 
     #[test]
+    fn resolves_an_approved_custom_directory_and_can_create_it() {
+        let temp = tempdir().unwrap();
+        let default = variant("default", "default");
+        let custom_root = temp.path().join("Custom Saves");
+        let normalized_root = custom_root.display().to_string().replace('\\', "/");
+        let raw_path = format!("<custom><windows>{normalized_root}");
+        let input = ResolveRestoreTargetsInput {
+            shop: "steam".into(),
+            object_id: "1".into(),
+            platform: "windows".into(),
+            home_dir: temp.path().display().to_string(),
+            documents_dir: None,
+            app_data_dir: None,
+            executable_path: None,
+            wine_prefix_path: None,
+            steam_path: None,
+            store_user_context: StoreUserContext::default(),
+            approved_rules: vec![ApprovedRestoreRule {
+                kind: "dir".into(),
+                raw_path: raw_path.clone(),
+                source: "custom".into(),
+            }],
+            variants: vec![default.clone()],
+            files: vec![RestoreManifestFile {
+                variant_id: default.variant_id,
+                raw_path,
+                relative_path: "Profile/slot.sav".into(),
+                hash: "a".repeat(64),
+                size_bytes: 4.0,
+                last_modified_at: LAST_MODIFIED_AT.into(),
+            }],
+        };
+
+        let result = resolve_restore_targets(input).unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(result.actions[0].action, "create");
+        assert_eq!(
+            result.actions[0].restore_root_path.replace('\\', "/"),
+            normalized_root
+        );
+        assert!(result.actions[0]
+            .target_path
+            .replace('\\', "/")
+            .ends_with("/Custom Saves/Profile/slot.sav"));
+    }
+
+    #[test]
     fn blocks_rules_that_resolve_the_same_entry_to_different_targets() {
         let temp = tempdir().unwrap();
         let default = variant("default", "default");

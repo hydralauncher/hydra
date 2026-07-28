@@ -337,6 +337,100 @@
     border-bottom: 1px solid globals.$border-color;
   }
 
+  &__custom-paths {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.025);
+
+    > small {
+      color: globals.$muted-color;
+    }
+  }
+
+  &__restore-custom-paths {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit;
+    border: 1px solid globals.$warning-color;
+    border-radius: 6px;
+    background: rgba(255, 193, 7, 0.08);
+
+    p {
+      margin: 0;
+      color: globals.$muted-color;
+      font-size: globals.$small-font-size;
+    }
+
+    > div {
+      display: flex;
+      flex-direction: column;
+      gap: calc(globals.$spacing-unit / 2);
+    }
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: globals.$spacing-unit;
+      overflow-wrap: anywhere;
+      font-size: globals.$small-font-size;
+    }
+  }
+
+  &__custom-paths-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+
+    > div {
+      min-width: 0;
+    }
+
+    p {
+      margin: calc(globals.$spacing-unit / 2) 0 0;
+      color: globals.$muted-color;
+      font-size: globals.$small-font-size;
+    }
+
+    button {
+      flex-shrink: 0;
+    }
+  }
+
+  &__custom-path-list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: globals.$spacing-unit;
+      min-width: 0;
+      padding: calc(globals.$spacing-unit / 2);
+      border: 0;
+      background: transparent;
+      color: globals.$body-color;
+      text-align: left;
+      cursor: pointer;
+
+      &:hover {
+        color: globals.$brand-teal;
+      }
+
+      span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+
   &__variant-diagnostics {
     display: flex;
     flex-direction: column;
