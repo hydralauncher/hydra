@@ -105,6 +105,12 @@ const hashRoms = async (
     if (signal.cancelled) break;
     const rom = collected[i];
     const crc = await retroarch.hashRomFile(rom.primaryPath, rom.platform);
+    if (!crc) {
+      logger.warn("Failed to hash ROM file", {
+        path: rom.primaryPath,
+        platform: rom.platform,
+      });
+    }
     hashed.push({ ...rom, crc32: crc });
     onHash?.(i + 1, collected.length, rom.name);
   }
@@ -448,6 +454,32 @@ async function runRetroArchImport(
         sizeBytes,
       })
   );
+
+  const byPlatform: Partial<
+    Record<RetroArchPlatform, { discovered: number; matched: number }>
+  > = {};
+  for (const rom of hashed) {
+    const tally = byPlatform[rom.platform] ?? { discovered: 0, matched: 0 };
+    tally.discovered += 1;
+    if (rom.crc32 && lookup.has(rom.crc32)) tally.matched += 1;
+    byPlatform[rom.platform] = tally;
+  }
+  const unmatchedSample = hashed
+    .filter((rom) => !rom.crc32 || !lookup.has(rom.crc32))
+    .slice(0, 25)
+    .map((rom) => ({
+      name: rom.name,
+      crc32: rom.crc32,
+      platform: rom.platform,
+    }));
+  logger.info("RetroArch import summary", {
+    discovered: totalGames,
+    hashed: hashed.filter((rom) => rom.crc32).length,
+    matchedTitles: aggregated.matchedEntries.size,
+    unmatched: aggregated.unmatchedFiles.length,
+    byPlatform,
+    unmatchedSample,
+  });
 
   const { folderRollup, totalFileCount, totalSizeBytes } = computeFolderRollups(
     folders,

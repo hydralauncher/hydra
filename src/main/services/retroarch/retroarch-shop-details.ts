@@ -43,7 +43,14 @@ export const fetchShopDetailsForHashes = async (
         },
         { needsAuth: false }
       );
-      if (!Array.isArray(response)) continue;
+      if (!Array.isArray(response)) {
+        logger.warn("Unexpected rom-match response shape", {
+          platform,
+          chunkSize: romChunk.length,
+          responseType: typeof response,
+        });
+        continue;
+      }
 
       for (const entry of response) {
         if (!entry?.objectId || !entry.data) continue;
@@ -54,9 +61,19 @@ export const fetchShopDetailsForHashes = async (
         }
       }
     } catch (err) {
-      logger.error("Failed to fetch rom-match batch", err);
+      logger.error("Failed to fetch rom-match batch", {
+        platform,
+        chunkSize: romChunk.length,
+        err,
+      });
     }
   }
+
+  logger.info("RetroArch rom-match result", {
+    platform,
+    sent: roms.length,
+    matched: lookup.size,
+  });
 
   return lookup;
 };
