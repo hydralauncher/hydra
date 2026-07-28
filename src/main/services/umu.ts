@@ -251,7 +251,6 @@ export class Umu {
       .join(":");
 
     const launchEnv: Record<string, string> = {
-      PROTON_LOG: "1",
       PROTON_LOG_DIR: logsPath,
       ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
       ...(options?.winePrefixPath

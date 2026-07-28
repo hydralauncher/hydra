@@ -18,6 +18,10 @@ const STEAM_EMULATOR_PROXY_DLLS = [
   "version.dll",
 ];
 
+const STEAM_EMULATOR_CONFIG_FILES = ["onlinefix.ini", "steamfix.ini"];
+
+const OVERLAY_GAME_ID_KEY = "FakeAppId";
+
 const STEAM_CLIENT_FILES: [string, string][] = [
   ["steamclient.dll", "steamclient.dll"],
   ["steamclient64.dll", "steamclient64.dll"],
@@ -138,8 +142,45 @@ const copySteamClientFiles = (
   }
 };
 
+const readConfiguredOverlayGameId = (executablePath: string) => {
+  const gameDirectory = path.dirname(executablePath);
+
+  let entries: string[];
+
+  try {
+    entries = fs.readdirSync(gameDirectory);
+  } catch {
+    return null;
+  }
+
+  const configEntries = entries.filter((entry) =>
+    STEAM_EMULATOR_CONFIG_FILES.includes(entry.toLowerCase())
+  );
+
+  for (const configEntry of configEntries) {
+    try {
+      const contents = fs.readFileSync(
+        path.join(gameDirectory, configEntry),
+        "utf-8"
+      );
+
+      const value = new RegExp(
+        `^\\s*${OVERLAY_GAME_ID_KEY}\\s*=\\s*(\\d+)\\s*$`,
+        "im"
+      ).exec(contents)?.[1];
+
+      if (value) return value;
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+};
+
 const resolveOverlayEnv = (
   steamInstallPath: string,
+  executablePath: string,
   objectId?: string | null
 ): Record<string, string> => {
   const libraryPaths = OVERLAY_LIBRARIES.map((library) =>
@@ -148,10 +189,15 @@ const resolveOverlayEnv = (
 
   if (!libraryPaths.length) return {};
 
+  const overlayGameId =
+    readConfiguredOverlayGameId(executablePath) ??
+    objectId ??
+    FALLBACK_OVERLAY_GAME_ID;
+
   return {
     LD_PRELOAD: `:${libraryPaths.join(":")}`,
     ENABLE_VK_LAYER_VALVE_steam_overlay_1: "1",
-    SteamOverlayGameId: objectId || FALLBACK_OVERLAY_GAME_ID,
+    SteamOverlayGameId: overlayGameId,
   };
 };
 
@@ -225,7 +271,7 @@ export const resolveSteamClientCompatEnv = async ({
 
   return {
     STEAM_COMPAT_CLIENT_INSTALL_PATH: steamInstallPath,
-    ...resolveOverlayEnv(steamInstallPath, objectId),
+    ...resolveOverlayEnv(steamInstallPath, executablePath, objectId),
     ...(dllOverrides ? { WINEDLLOVERRIDES: dllOverrides } : {}),
   };
 };
