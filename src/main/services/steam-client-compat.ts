@@ -199,7 +199,6 @@ export const resolveSteamClientCompatEnv = async ({
 
   return {
     STEAM_COMPAT_CLIENT_INSTALL_PATH: steamInstallPath,
-    UMU_USE_STEAM: "1",
     ...(dllOverrides ? { WINEDLLOVERRIDES: dllOverrides } : {}),
   };
 };
