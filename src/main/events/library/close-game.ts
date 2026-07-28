@@ -1,5 +1,11 @@
 import { registerEvent } from "../register-event";
-import { emulators, launchedGamePids, logger, Wine } from "@main/services";
+import {
+  emulators,
+  isInsideSteamLibrary,
+  launchedGamePids,
+  logger,
+  Wine,
+} from "@main/services";
 import sudo from "sudo-prompt";
 import { app } from "electron";
 import { gamesSublevel, levelKeys } from "@main/level";
@@ -91,6 +97,7 @@ const closeGame = async (
             runningProcess.environ?.STEAM_COMPAT_DATA_PATH?.toLowerCase();
 
           if (
+            !isInsideSteamLibrary(game.executablePath!) &&
             expectedPrefix &&
             processPrefix &&
             processPrefix !== expectedPrefix
