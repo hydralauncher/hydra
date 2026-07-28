@@ -65,13 +65,14 @@ export const CLASSICS_PLATFORM_LABELS: Record<EmulatorSystem, string> = {
 };
 
 export const getClassicsPlatformDetails = (
+  shop: GameShop | null | undefined,
   platform?: string | null
 ): {
   system: EmulatorSystem | null;
   label: string | null;
   emulatorIcon: string | undefined;
 } => {
-  const system = platformToSystem(platform);
+  const system = shop === "launchbox" ? platformToSystem(platform) : null;
   return {
     system,
     label: system ? CLASSICS_PLATFORM_LABELS[system] : null,
@@ -448,7 +449,9 @@ export const sortLibraryGames = (
   });
 };
 
-export const getGameCollectionIds = (game: LibraryGame): string[] => {
+export const getGameCollectionIds = (game: {
+  collectionIds?: string[] | null;
+}): string[] => {
   if (Array.isArray(game.collectionIds)) {
     return game.collectionIds;
   }

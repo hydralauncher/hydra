@@ -27,6 +27,7 @@ import { AuthPage } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
 import { useCollectionContextMenu } from "@renderer/context";
+import { getGameCollectionIds } from "@renderer/helpers";
 import { useSearchParams } from "react-router-dom";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
@@ -64,17 +65,6 @@ const SORT_OPTIONS: SortOption[] = [
   "installed_first",
   "title_desc",
 ];
-
-const getGameCollectionIds = (game: LibraryGame): string[] => {
-  if (Array.isArray(game.collectionIds)) {
-    return game.collectionIds;
-  }
-
-  const legacyCollectionId = (game as { collectionId?: string | null })
-    .collectionId;
-
-  return legacyCollectionId ? [legacyCollectionId] : [];
-};
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();

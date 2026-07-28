@@ -29,6 +29,7 @@ import {
 } from "..";
 import { useGameCollections, useToast, useUserDetails } from "@renderer/hooks";
 import { useCollectionContextMenu } from "@renderer/context";
+import { getGameCollectionIds } from "@renderer/helpers";
 import type { GameCollection } from "@types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
 
@@ -41,17 +42,6 @@ interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
     collection: GameCollection
   ) => void;
 }
-
-const getGameCollectionIds = (currentGame: GameContextMenuGame): string[] => {
-  if (Array.isArray(currentGame.collectionIds)) {
-    return currentGame.collectionIds;
-  }
-
-  const legacyCollectionId = (currentGame as { collectionId?: string | null })
-    .collectionId;
-
-  return legacyCollectionId ? [legacyCollectionId] : [];
-};
 
 const FAVORITES_COLLECTION_ID = "__favorites__";
 

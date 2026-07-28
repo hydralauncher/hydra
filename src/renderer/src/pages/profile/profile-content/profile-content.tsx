@@ -169,7 +169,7 @@ export function ProfileContent() {
   useEffect(() => {
     const handlePinToggled = () => {
       if (userProfile) {
-        getUserLibraryGames(sortBy, true, shops);
+        getUserLibraryGames(effectiveSortBy, true, shops);
       }
     };
 
@@ -177,7 +177,7 @@ export function ProfileContent() {
     return () => {
       window.removeEventListener("hydra:game-pin-toggled", handlePinToggled);
     };
-  }, [getUserLibraryGames, sortBy, shops, userProfile]);
+  }, [getUserLibraryGames, effectiveSortBy, shops, userProfile]);
 
   // Clear reviews state and reset tab when switching users
   useEffect(() => {
