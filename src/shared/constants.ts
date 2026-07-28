@@ -82,6 +82,7 @@ export enum DownloadError {
   TorrentInvalidFileSelection = "download_error_torrent_invalid_file_selection",
   TorrentTooManyFiles = "download_error_torrent_too_many_files",
   TorrentFilesUnavailable = "download_error_torrent_files_unavailable",
+  TorrentInvalidTrackers = "download_error_torrent_invalid_trackers",
 }
 
 export const FILE_EXTENSIONS_TO_EXTRACT = [".rar", ".zip", ".7z"];
