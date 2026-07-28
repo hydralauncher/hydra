@@ -840,10 +840,7 @@ export function GeneralSettingsSection({
             <h2>{t("launch_options")}</h2>
             <h4 className="game-options-modal__header-description">
               {launchedThroughSteam ? (
-                t("launch_options_managed_by_steam", {
-                  defaultValue:
-                    "This game is installed through Steam, so Hydra starts it with Steam. Set its launch options in Steam instead.",
-                })
+                t("launch_options_managed_by_steam")
               ) : shouldShowWinePrefixConfiguration ? (
                 <Trans
                   i18nKey="launch_options_description_linux"
@@ -865,7 +862,6 @@ export function GeneralSettingsSection({
             placeholder={t("launch_options_placeholder")}
             onChange={onChangeLaunchOptions}
             rightContent={
-              !launchedThroughSteam &&
               game.launchOptions && (
                 <Button onClick={onClearLaunchOptions} theme="outline">
                   {t("clear")}

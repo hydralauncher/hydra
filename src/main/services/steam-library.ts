@@ -3,8 +3,17 @@ import path from "node:path";
 import { shell } from "electron";
 
 import { logger } from "./logger";
+import { SystemPath } from "./system-path";
 
 const STEAM_APPS_DIRECTORY = "steamapps";
+
+const STEAM_INSTALL_DIRECTORIES = [
+  [".steam", "steam"],
+  [".local", "share", "Steam"],
+  [".var", "app", "com.valvesoftware.Steam"],
+];
+
+const STEAM_BINARY_NAME = "steam";
 
 const STEAM_LIBRARY_SEGMENT = `${path.sep}${STEAM_APPS_DIRECTORY}${path.sep}common${path.sep}`;
 
@@ -101,7 +110,41 @@ export const resolveSteamAppId = (executablePath: string): string | null => {
   return null;
 };
 
+const isSteamBinaryOnPath = () =>
+  (process.env.PATH ?? "")
+    .split(path.delimiter)
+    .filter(Boolean)
+    .some((directory) => {
+      try {
+        fs.accessSync(
+          path.join(directory, STEAM_BINARY_NAME),
+          fs.constants.X_OK
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    });
+
+export const isSteamAvailable = () => {
+  const homePath = SystemPath.getPath("home");
+
+  const hasInstallDirectory = STEAM_INSTALL_DIRECTORIES.some((segments) =>
+    fs.existsSync(path.join(homePath, ...segments))
+  );
+
+  return hasInstallDirectory || isSteamBinaryOnPath();
+};
+
 export const launchThroughSteam = async (appId: string) => {
+  if (!isSteamAvailable()) {
+    logger.warn(
+      "The game is inside a Steam library but Steam is not installed, skipping the handover",
+      { appId }
+    );
+    return false;
+  }
+
   try {
     await shell.openExternal(`steam://rungameid/${appId}`);
     return true;
