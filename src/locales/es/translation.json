@@ -381,6 +381,7 @@
     "wine_prefix_description": "El prefijo de Wine usado para este juego",
     "launch_options": "Opciones para iniciar",
     "launch_options_description": "Los usuarios avanzados pueden ingresar sus modificaciones para el inicio de sus juegos (característica experimental)",
+    "launch_options_managed_by_steam": "Este juego está instalado a través de Steam, así que Hydra lo inicia con Steam. Configura sus opciones de inicio en Steam.",
     "launch_options_placeholder": "Sin parámetro específicado",
     "no_download_option_info": "Sin información disponible",
     "backup_deletion_failed": "Error al eliminar copia de seguridad",

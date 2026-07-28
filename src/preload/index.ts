@@ -528,6 +528,8 @@ contextBridge.exposeInMainWorld("electron", {
   isGamemodeAvailable: () => ipcRenderer.invoke("isGamemodeAvailable"),
   isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
   isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),
+  isGameLaunchedThroughSteam: (executablePath: string | null) =>
+    ipcRenderer.invoke("isGameLaunchedThroughSteam", executablePath),
   addGameToLibrary: (
     shop: GameShop,
     objectId: string,

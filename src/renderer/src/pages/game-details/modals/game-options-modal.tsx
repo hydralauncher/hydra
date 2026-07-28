@@ -128,6 +128,7 @@ export function GameOptionsModal({
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
   const [winetricksAvailable, setWinetricksAvailable] = useState(false);
+  const [launchedThroughSteam, setLaunchedThroughSteam] = useState(false);
   const [selectedCategory, setSelectedCategory] =
     useState<GameSettingsCategoryId>("general");
   const [defaultWinePrefixPath, setDefaultWinePrefixPath] = useState<
@@ -246,6 +247,17 @@ export function GameOptionsModal({
       .then(setWinetricksAvailable)
       .catch(() => setWinetricksAvailable(false));
   }, [visible]);
+
+  useEffect(() => {
+    if (!visible || globalThis.window.electron.platform !== "linux") {
+      setLaunchedThroughSteam(false);
+      return;
+    }
+    globalThis.window.electron
+      .isGameLaunchedThroughSteam(game.executablePath ?? null)
+      .then(setLaunchedThroughSteam)
+      .catch(() => setLaunchedThroughSteam(false));
+  }, [visible, game.executablePath]);
 
   useEffect(() => {
     if (game.shop !== "custom") {
@@ -874,6 +886,7 @@ export function GameOptionsModal({
       game,
       gameTitle,
       launchOptions,
+      launchedThroughSteam,
       updatingGameTitle,
       creatingSteamShortcut,
       shouldShowCreateStartMenuShortcut,
@@ -909,6 +922,7 @@ export function GameOptionsModal({
       game,
       gameTitle,
       launchOptions,
+      launchedThroughSteam,
       updatingGameTitle,
       creatingSteamShortcut,
       shouldShowCreateStartMenuShortcut,
