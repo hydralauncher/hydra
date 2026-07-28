@@ -4,9 +4,10 @@ import path from "node:path";
 
 import type { KnownBinary } from "./known-binaries";
 import { resolveSniffTarget, sniffDiscImage } from "./sniff-disc-platform";
+import { logger } from "../logger";
 import type { EmulatorSystem } from "@types";
 
-const MAX_ENTRIES_PER_DIR = 5000;
+const MAX_COLLECTED_FILES = 50_000;
 
 export interface ScannedGame {
   primaryPath: string;
@@ -308,12 +309,20 @@ const collectCandidates = async (
   const seen = new Set<string>();
 
   for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
+    if (candidates.length >= MAX_COLLECTED_FILES) {
+      logger.warn("ROM scan stopped at file cap", {
+        rootPath,
+        cap: MAX_COLLECTED_FILES,
+      });
+      break;
+    }
+
     const real = await safeRealpath(dir);
     if (real === null || seen.has(real)) continue;
     seen.add(real);
 
     const entries = await safeReaddirTypes(dir);
-    if (!entries || entries.length > MAX_ENTRIES_PER_DIR) continue;
+    if (!entries) continue;
 
     for (const entry of entries) {
       collectEntry(entry, dir, binary, scanSubfolders, candidates, queue);
@@ -444,12 +453,20 @@ export const collectFilesByExtension = async (
   const seen = new Set<string>();
 
   for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
+    if (out.length >= MAX_COLLECTED_FILES) {
+      logger.warn("ROM scan stopped at file cap", {
+        rootPath,
+        cap: MAX_COLLECTED_FILES,
+      });
+      break;
+    }
+
     const real = await safeRealpath(dir);
     if (real === null || seen.has(real)) continue;
     seen.add(real);
 
     const entries = await safeReaddirTypes(dir);
-    if (!entries || entries.length > MAX_ENTRIES_PER_DIR) continue;
+    if (!entries) continue;
 
     for (const entry of entries) {
       await collectFileEntry(
