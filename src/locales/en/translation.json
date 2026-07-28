@@ -1499,6 +1499,8 @@
     "large_view": "Large view",
     "no_games_title": "Your library is empty",
     "no_games_description": "Add games from the catalogue or download them to get started",
+    "no_results": "No results found",
+    "no_results_description": "Try a different search or adjust your filters.",
     "amount_hours": "{{amount}} hours",
     "amount_minutes": "{{amount}} minutes",
     "amount_hours_short": "{{amount}}h",

@@ -1504,6 +1504,8 @@
     "large_view": "Большой вид",
     "no_games_title": "Ваша библиотека пуста",
     "no_games_description": "Добавьте игры из каталога или скачайте их, чтобы начать",
+    "no_results": "Ничего не найдено",
+    "no_results_description": "Попробуйте изменить поиск или фильтры.",
     "amount_hours": "{{amount}} часов",
     "amount_minutes": "{{amount}} минут",
     "amount_hours_short": "{{amount}}ч",

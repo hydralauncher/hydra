@@ -1482,6 +1482,8 @@
     "large_view": "Vista grande",
     "no_games_title": "Tu librería está vacía",
     "no_games_description": "Agregá juegos del catálogo o descargalos para comenzar",
+    "no_results": "No se encontraron resultados",
+    "no_results_description": "Probá con otra búsqueda o ajustá los filtros.",
     "amount_hours": "{{amount}} horas",
     "amount_minutes": "{{amount}} minutos",
     "amount_hours_short": "{{amount}}h",

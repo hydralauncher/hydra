@@ -86,6 +86,14 @@
     padding-bottom: calc(globals.$spacing-unit * 2);
   }
 
+  &__game-list-empty {
+    margin: 0;
+    padding: calc(globals.$spacing-unit * 2);
+    font-size: 12px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
   &__handle {
     width: 5px;
     height: 100%;
