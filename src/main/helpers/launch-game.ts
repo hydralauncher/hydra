@@ -356,7 +356,14 @@ export const launchGame = async (
   if (process.platform === "linux") {
     const steamAppId = resolveSteamAppId(parsedPath);
 
-    if (steamAppId && !launchOptions) {
+    if (steamAppId) {
+      if (launchOptions) {
+        logger.warn(
+          "Launch options set in Hydra are not applied when the game starts through Steam",
+          { objectId, steamAppId }
+        );
+      }
+
       logger.info("Launching an installed Steam game through Steam", {
         objectId,
         steamAppId,
@@ -367,11 +374,6 @@ export const launchGame = async (
       logger.warn("Failed to hand the game over to Steam, launching directly", {
         steamAppId,
       });
-    } else if (steamAppId && launchOptions) {
-      logger.info(
-        "Skipping the Steam handover because custom launch options are set",
-        { objectId, steamAppId }
-      );
     }
 
     if (isWindowsExecutable(parsedPath)) {

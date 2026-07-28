@@ -547,6 +547,7 @@
     "settings_not_available_for_custom_games": "This category is not available for custom games.",
     "launch_options": "Launch Options",
     "launch_options_description": "Add game launch arguments.",
+    "launch_options_managed_by_steam": "This game is installed through Steam, so Hydra starts it with Steam. Set its launch options in Steam instead.",
     "launch_options_description_linux": "Add game launch arguments, or use <code>%command%</code> to wrap the launch command.",
     "launch_options_placeholder": "No parameter specified",
     "no_download_option_info": "No information available",

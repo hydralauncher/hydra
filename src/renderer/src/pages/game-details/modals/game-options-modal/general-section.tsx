@@ -248,6 +248,7 @@ interface GeneralSettingsSectionProps {
   game: LibraryGame;
   gameTitle: string;
   launchOptions: string;
+  launchedThroughSteam?: boolean;
   updatingGameTitle: boolean;
   creatingSteamShortcut: boolean;
   shouldShowCreateStartMenuShortcut: boolean;
@@ -319,6 +320,7 @@ export function GeneralSettingsSection({
   game,
   gameTitle,
   launchOptions,
+  launchedThroughSteam = false,
   updatingGameTitle,
   creatingSteamShortcut,
   shouldShowCreateStartMenuShortcut,
@@ -837,7 +839,12 @@ export function GeneralSettingsSection({
           <div className="game-options-modal__header">
             <h2>{t("launch_options")}</h2>
             <h4 className="game-options-modal__header-description">
-              {shouldShowWinePrefixConfiguration ? (
+              {launchedThroughSteam ? (
+                t("launch_options_managed_by_steam", {
+                  defaultValue:
+                    "This game is installed through Steam, so Hydra starts it with Steam. Set its launch options in Steam instead.",
+                })
+              ) : shouldShowWinePrefixConfiguration ? (
                 <Trans
                   i18nKey="launch_options_description_linux"
                   ns="game_details"
@@ -854,9 +861,11 @@ export function GeneralSettingsSection({
           <TextField
             value={launchOptions}
             theme="dark"
+            disabled={launchedThroughSteam}
             placeholder={t("launch_options_placeholder")}
             onChange={onChangeLaunchOptions}
             rightContent={
+              !launchedThroughSteam &&
               game.launchOptions && (
                 <Button onClick={onClearLaunchOptions} theme="outline">
                   {t("clear")}
