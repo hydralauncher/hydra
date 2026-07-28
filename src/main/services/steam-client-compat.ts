@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { logger } from "./logger";
 import { getSteamLocation } from "./steam";
+import { isInsideSteamLibrary } from "./steam-library";
 import { SystemPath } from "./system-path";
 
 const STEAM_EMULATOR_MARKER_FILES = [
@@ -31,8 +32,6 @@ const STEAMWORKS_FILES = [
 const MAX_SCAN_DEPTH = 8;
 
 const MAX_SCANNED_ENTRIES = 8000;
-
-const STEAM_LIBRARY_SEGMENT = `${path.sep}steamapps${path.sep}common${path.sep}`;
 
 const STEAM_CLIENT_FILES: [string, string][] = [
   ["steamclient.dll", "steamclient.dll"],
@@ -124,13 +123,9 @@ export const detectSteamClientUsage = (
     entries.has(markerFile)
   );
 
-  const isInsideSteamLibrary = executablePath
-    .toLowerCase()
-    .includes(STEAM_LIBRARY_SEGMENT);
-
   const usesSteamworks =
     hasBundledEmulator ||
-    isInsideSteamLibrary ||
+    isInsideSteamLibrary(executablePath) ||
     containsSteamworksFiles(gameDirectory);
 
   if (!usesSteamworks) {

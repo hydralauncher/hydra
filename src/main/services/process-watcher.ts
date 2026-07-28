@@ -11,6 +11,7 @@ import path from "node:path";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 import { INTERVALS } from "@main/constants";
 import { Wine } from "./wine";
+import { isInsideSteamLibrary } from "./steam-library";
 import { NativeAddon } from "./native-addon";
 import { emulatorSessions } from "./emulators/emulator-session-tracker";
 import { launchedGamePids } from "./launched-game-pids";
@@ -195,12 +196,15 @@ const hasLinuxCompatibilityProcessMatch = (
     game.objectId
   )?.toLowerCase();
 
+  const launchedBySteam = isInsideSteamLibrary(executablePath);
+
   return linuxProcesses.some((process) => {
     if (process.cwd !== executableDirectory) {
       return false;
     }
 
     if (
+      !launchedBySteam &&
       expectedWinePrefix &&
       process.steamCompatDataPath &&
       process.steamCompatDataPath !== expectedWinePrefix

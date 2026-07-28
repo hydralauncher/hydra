@@ -14,6 +14,8 @@ import {
   NativeAddon,
   launchedGamePids,
   resolveSteamClientCompatEnv,
+  resolveSteamAppId,
+  launchThroughSteam,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
@@ -352,6 +354,26 @@ export const launchGame = async (
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
   if (process.platform === "linux") {
+    const steamAppId = resolveSteamAppId(parsedPath);
+
+    if (steamAppId && !launchOptions) {
+      logger.info("Launching an installed Steam game through Steam", {
+        objectId,
+        steamAppId,
+      });
+
+      if (await launchThroughSteam(steamAppId)) return null;
+
+      logger.warn("Failed to hand the game over to Steam, launching directly", {
+        steamAppId,
+      });
+    } else if (steamAppId && launchOptions) {
+      logger.info(
+        "Skipping the Steam handover because custom launch options are set",
+        { objectId, steamAppId }
+      );
+    }
+
     if (isWindowsExecutable(parsedPath)) {
       const launched = await launchWindowsBinaryOnLinux(
         gameKey,
