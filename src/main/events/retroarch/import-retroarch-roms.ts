@@ -113,6 +113,7 @@ const hashRoms = async (
 
 const matchRoms = async (
   hashed: HashedRom[],
+  language: string,
   signal: CancelSignal
 ): Promise<Map<string, LaunchboxShopDetailsEntry>> => {
   const lookup = new Map<string, LaunchboxShopDetailsEntry>();
@@ -134,7 +135,8 @@ const matchRoms = async (
         fileName: rom.name,
         sizeBytes: rom.sizeBytes,
         serial: null,
-      }))
+      })),
+      language
     );
     for (const [hash, entry] of platformLookup) {
       lookup.set(hash, entry);
@@ -420,7 +422,7 @@ async function runRetroArchImport(
   );
   if (signal.cancelled) return cancelledResult();
 
-  const lookup = await matchRoms(hashed, signal);
+  const lookup = await matchRoms(hashed, language, signal);
   if (signal.cancelled) return cancelledResult();
 
   const aggregated = aggregateMatches(

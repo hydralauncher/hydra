@@ -23,7 +23,8 @@ const normalizeCrc = (raw: string): string => raw.trim().toUpperCase();
 
 export const fetchShopDetailsForHashes = async (
   platform: RetroArchPlatform,
-  roms: RomMatchRequestEntry[]
+  roms: RomMatchRequestEntry[],
+  language: string
 ): Promise<Map<string, LaunchboxShopDetailsEntry>> => {
   const lookup = new Map<string, LaunchboxShopDetailsEntry>();
   if (roms.length === 0) return lookup;
@@ -32,8 +33,14 @@ export const fetchShopDetailsForHashes = async (
   for (const romChunk of chunks) {
     try {
       const response = await HydraApi.post<RomMatchResponseEntry[]>(
-        "/games/rom-match",
-        { shop: "launchbox", platform, roms: romChunk },
+        "/games/shop-details",
+        {
+          shop: "launchbox",
+          platform,
+          hashFormat: "headerless-v1",
+          roms: romChunk,
+          language,
+        },
         { needsAuth: false }
       );
       if (!Array.isArray(response)) continue;
