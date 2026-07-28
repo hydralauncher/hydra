@@ -12,6 +12,7 @@ import {
 } from "@primer/octicons-react";
 
 import { Button, CheckboxField, ConfirmationModal } from "@renderer/components";
+import { useFormat } from "@renderer/hooks";
 import type { RomFolder } from "@types";
 
 import { EmulatorResourceRow } from "./emulator-resource-row";
@@ -163,6 +164,7 @@ export function LibraryStatsGrid({
   romFoldersCount,
 }: Readonly<LibraryStatsGridProps>) {
   const { t } = useTranslation("settings");
+  const { formatNumber } = useFormat();
 
   let storageCaptionKey = "stat_storage_caption_other";
   if (totalFiles === 0) {
@@ -178,7 +180,9 @@ export function LibraryStatsGrid({
           <GamepadIcon size={16} />
           <span className="emulator-detail__stat-label">{t("stat_games")}</span>
         </div>
-        <span className="emulator-detail__stat-value">{totalFiles}</span>
+        <span className="emulator-detail__stat-value">
+          {formatNumber(totalFiles)}
+        </span>
         <span className="emulator-detail__stat-caption">
           {t("stat_games_caption", { system: systemLabel })}
         </span>

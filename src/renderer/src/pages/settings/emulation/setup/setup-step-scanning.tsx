@@ -10,6 +10,7 @@ import {
 import { Gamepad2 } from "lucide-react";
 
 import { ClassicsSpinner } from "@renderer/components";
+import { useFormat } from "@renderer/hooks";
 
 type Phase = "scanning" | "matching" | "done";
 
@@ -52,6 +53,7 @@ export function SetupStepScanning({
   unmatchedFiles,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
+  const { formatNumber } = useFormat();
 
   const [unmatchedOpen, setUnmatchedOpen] = useState(false);
 
@@ -134,7 +136,9 @@ export function SetupStepScanning({
             <Gamepad2 size={16} className="setup-modal__stat-icon" />
             <span className="setup-modal__stat-label">{t("stat_games")}</span>
           </div>
-          <span className="setup-modal__stat-value">{gamesValue}</span>
+          <span className="setup-modal__stat-value">
+            {formatNumber(gamesValue)}
+          </span>
         </div>
         <div className="setup-modal__stat">
           <div className="setup-modal__stat-head">
