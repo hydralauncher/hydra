@@ -1,14 +1,10 @@
-import type { CloudSaveCustomPath, CloudSaveOverview, GameShop } from "@types";
+import type { CloudSaveOverview, GameShop } from "@types";
 
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getFirstSyncState, getSuggestedCloudSaveAction } from "./sync-game";
-import {
-  CLOUD_SAVE_CUSTOM_PATH_PREFIX,
-  tryDecodeCloudSaveCustomPath,
-} from "./custom-path";
 
 export const getCloudSaveOverview = async (
   objectId: string,
@@ -48,19 +44,5 @@ export const getCloudSaveOverview = async (
     warnings: analysis.localSnapshot.coverage.filter(
       (item) => item.warningCodes.length > 0
     ),
-    remoteCustomPaths: [
-      ...new Map(
-        (analysis.remoteManifest?.files ?? [])
-          .filter(({ rawPath }) =>
-            rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)
-          )
-          .map(({ rawPath }) => tryDecodeCloudSaveCustomPath(rawPath))
-          .filter(
-            (customPath): customPath is CloudSaveCustomPath =>
-              customPath !== null
-          )
-          .map((customPath) => [customPath.rawPath, customPath])
-      ).values(),
-    ],
   };
 };

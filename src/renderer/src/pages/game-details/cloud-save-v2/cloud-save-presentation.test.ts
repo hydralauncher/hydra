@@ -24,7 +24,6 @@ const overview = (
   discoveredVariantCount: 1,
   unresolvedRemoteVariantCount: 0,
   warnings: [],
-  remoteCustomPaths: [],
   ...overrides,
 });
 

@@ -213,7 +213,6 @@ export interface CloudSaveOverview extends CloudSaveStateResult {
   discoveredVariantCount: number;
   unresolvedRemoteVariantCount: number;
   warnings: UserLocationCoverage[];
-  remoteCustomPaths: CloudSaveCustomPath[];
 }
 
 export type CloudSaveV2FileComparisonStatus =

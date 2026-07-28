@@ -90,6 +90,7 @@
   }
 
   &__empty-message {
+    align-self: center;
     color: globals.$muted-color;
   }
 
@@ -331,163 +332,15 @@
   &__browser-toolbar {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: calc(globals.$spacing-unit * 1.5);
     flex-wrap: wrap;
     padding-bottom: calc(globals.$spacing-unit * 1.5);
     border-bottom: 1px solid globals.$border-color;
   }
 
-  &__custom-paths {
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-    padding: globals.$spacing-unit;
-    border: 1px solid globals.$border-color;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.025);
-
-    > small {
-      color: globals.$muted-color;
-    }
-  }
-
-  &__restore-custom-paths {
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-    padding: globals.$spacing-unit;
-    border: 1px solid globals.$warning-color;
-    border-radius: 6px;
-    background: rgba(255, 193, 7, 0.08);
-
-    p {
-      margin: 0;
-      color: globals.$muted-color;
-      font-size: globals.$small-font-size;
-    }
-
-    > div {
-      display: flex;
-      flex-direction: column;
-      gap: calc(globals.$spacing-unit / 2);
-    }
-
-    span {
-      display: flex;
-      align-items: center;
-      gap: globals.$spacing-unit;
-      overflow-wrap: anywhere;
-      font-size: globals.$small-font-size;
-    }
-  }
-
-  &__custom-paths-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: calc(globals.$spacing-unit * 2);
-
-    > div {
-      min-width: 0;
-    }
-
-    p {
-      margin: calc(globals.$spacing-unit / 2) 0 0;
-      color: globals.$muted-color;
-      font-size: globals.$small-font-size;
-    }
-
-    button {
-      flex-shrink: 0;
-    }
-  }
-
-  &__custom-path-list {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
-
-    button {
-      display: flex;
-      align-items: center;
-      gap: globals.$spacing-unit;
-      min-width: 0;
-      padding: calc(globals.$spacing-unit / 2);
-      border: 0;
-      background: transparent;
-      color: globals.$body-color;
-      text-align: left;
-      cursor: pointer;
-
-      &:hover {
-        color: globals.$brand-teal;
-      }
-
-      span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
-  }
-
-  &__variant-diagnostics {
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-    padding: globals.$spacing-unit;
-    border: 1px solid globals.$border-color;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.025);
-    font-size: globals.$small-font-size;
-  }
-
-  &__variant-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: globals.$spacing-unit;
-  }
-
-  &__variant-item {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
-    min-width: 0;
-    color: globals.$muted-color;
-
-    > span:first-child {
-      display: flex;
-      align-items: center;
-      gap: globals.$spacing-unit;
-      color: globals.$body-color;
-      font-weight: 500;
-    }
-
-    em {
-      color: globals.$success-color;
-      font-size: 0.75rem;
-      font-style: normal;
-    }
-
-    small {
-      display: flex;
-      align-items: center;
-      gap: calc(globals.$spacing-unit / 2);
-      overflow-wrap: anywhere;
-      color: globals.$warning-color;
-    }
-
-    .cloud-save-v2__variant-conflicts {
-      color: globals.$error-color;
-    }
-  }
-
-  &__variant-unresolved {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    margin: 0;
-    color: globals.$warning-color;
+  &__add-custom-path-button {
+    flex-shrink: 0;
   }
 
   &__browser-source-summary {
@@ -927,6 +780,32 @@
     padding: calc(globals.$spacing-unit * 2);
     color: globals.$muted-color;
     text-align: center;
+
+    &--actions {
+      flex: 1;
+      flex-direction: column;
+      gap: 24px;
+      min-height: 240px;
+    }
+  }
+
+  &__browser-empty-copy {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+
+    strong {
+      color: globals.$body-color;
+      font-size: 16px;
+    }
+  }
+
+  &__browser-empty-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    flex-wrap: wrap;
   }
 
   &__empty {
@@ -936,11 +815,6 @@
     color: globals.$muted-color;
     font-size: globals.$small-font-size;
     text-align: center;
-
-    &--inline {
-      padding: 0;
-      border: 0;
-    }
   }
 
   &__empty-files-link {

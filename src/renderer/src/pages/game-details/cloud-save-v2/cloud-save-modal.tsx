@@ -19,7 +19,6 @@ import { formatBytes } from "@shared";
 import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 import {
-  canOpenCloudSaveFileBrowser,
   getCloudSavePanelAction,
   getCloudSavePresentation,
   isCloudSaveOverviewEmpty,
@@ -318,25 +317,16 @@ export function CloudSavePanel({
         <p className="cloud-save-v2__error">{t("cloud_save_v2_error")}</p>
       )}
 
-      {(overview?.remoteCustomPaths.length ?? 0) > 0 && (
-        <section className="cloud-save-v2__restore-custom-paths">
-          <strong>{t("cloud_save_v2_restore_custom_paths_title")}</strong>
-          <p>{t("cloud_save_v2_restore_custom_paths_description")}</p>
-          <div>
-            {overview!.remoteCustomPaths.map((customPath) => (
-              <span key={customPath.rawPath} title={customPath.rawPath}>
-                <FolderOpenIcon size={16} />
-                {customPath.path}
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-
       {!isLoading && isCloudSaveOverviewEmpty(overview) && (
-        <p className="cloud-save-v2__empty-message">
+        <button
+          type="button"
+          className="cloud-save-v2__empty-message cloud-save-v2__empty-files-link"
+          onClick={onOpenFileBrowser}
+          disabled={isSyncing}
+          aria-label={t("cloud_save_v2_view_files")}
+        >
           {t("cloud_save_v2_no_snapshots")}
-        </p>
+        </button>
       )}
 
       {!hasExecutablePath ? (
@@ -363,22 +353,7 @@ export function CloudSavePanel({
                     true
                   )}
                 </>
-              ) : (
-                !isLoading &&
-                canOpenCloudSaveFileBrowser(overview) && (
-                  <div className="cloud-save-v2__empty cloud-save-v2__empty--inline">
-                    <button
-                      type="button"
-                      className="cloud-save-v2__empty-files-link"
-                      onClick={onOpenFileBrowser}
-                      disabled={isSyncing}
-                      aria-label={t("cloud_save_v2_view_files")}
-                    >
-                      {t("cloud_save_v2_no_snapshots")}
-                    </button>
-                  </div>
-                )
-              )}
+              ) : null}
 
               <div className="cloud-save-v2__action-area">{syncAction}</div>
             </article>

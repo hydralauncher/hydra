@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowClockwiseIcon,
   CircleNotchIcon,
   CloudIcon,
-  FolderIcon,
   MonitorIcon,
   PlusIcon,
   WarningCircleIcon,
@@ -132,6 +132,21 @@ export function CloudSaveV2FileBrowserModal({
 
   const loadingState = !details && isLoading;
   const errorState = !details && hasError;
+  const addCustomPathButton = (
+    <Button
+      theme="outline"
+      className="cloud-save-v2__add-custom-path-button"
+      disabled={isAddingCustomPath || isLoading || isGameRunning || isSyncing}
+      onClick={() => void handleAddCustomPath()}
+    >
+      {isAddingCustomPath ? (
+        <CircleNotchIcon className="cloud-save-v2__spinner" size={16} />
+      ) : (
+        <PlusIcon size={16} />
+      )}
+      <span>{t("cloud_save_v2_add_custom_path")}</span>
+    </Button>
+  );
 
   return (
     <Modal
@@ -169,160 +184,66 @@ export function CloudSaveV2FileBrowserModal({
 
         {details && (
           <>
-            <section className="cloud-save-v2__custom-paths">
-              <div className="cloud-save-v2__custom-paths-header">
-                <div>
-                  <strong>{t("cloud_save_v2_custom_paths_title")}</strong>
-                  <p>{t("cloud_save_v2_custom_paths_description")}</p>
-                </div>
-                <Button
-                  theme="outline"
-                  disabled={
-                    isAddingCustomPath ||
-                    isLoading ||
-                    isGameRunning ||
-                    isSyncing
-                  }
-                  onClick={() => void handleAddCustomPath()}
-                >
-                  {isAddingCustomPath ? (
-                    <CircleNotchIcon
-                      className="cloud-save-v2__spinner"
-                      size={16}
-                    />
-                  ) : (
-                    <PlusIcon size={16} />
-                  )}
-                  {t("cloud_save_v2_add_custom_path")}
-                </Button>
-              </div>
-              {details.customPaths.length > 0 ? (
-                <div className="cloud-save-v2__custom-path-list">
-                  {details.customPaths.map((customPath) => (
-                    <button
-                      type="button"
-                      key={customPath.rawPath}
-                      title={customPath.path}
-                      onClick={() => void handleOpenFolder(customPath.path)}
-                    >
-                      <FolderIcon size={18} />
-                      <span>{customPath.path}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <small>{t("cloud_save_v2_no_custom_paths")}</small>
-              )}
-            </section>
-
-            {(details.variants.length > 0 ||
-              details.unresolvedRemoteVariantCount > 0) && (
-              <section
-                className="cloud-save-v2__variant-diagnostics"
-                aria-label={t("cloud_save_v2_variants_title")}
-              >
-                <strong>{t("cloud_save_v2_variants_title")}</strong>
-                <div className="cloud-save-v2__variant-list">
-                  {details.variants.map((variant) => (
-                    <div
-                      className="cloud-save-v2__variant-item"
-                      key={variant.variantId}
-                    >
-                      <span>
-                        {variant.userLabel}
-                        {variant.active && (
-                          <em>{t("cloud_save_v2_variant_active")}</em>
-                        )}
-                      </span>
-                      <span>
-                        {t("cloud_save_v2_variant_file_count", {
-                          count: variant.fileCount,
-                        })}
-                      </span>
-                      {variant.conflictCount > 0 && (
-                        <small className="cloud-save-v2__variant-conflicts">
-                          <WarningCircleIcon size={14} />
-                          {t("cloud_save_v2_variant_conflict_count", {
-                            count: variant.conflictCount,
-                          })}
-                        </small>
-                      )}
-                      {variant.warningCodes.length > 0 && (
-                        <small>
-                          <WarningCircleIcon size={14} />
-                          {variant.warningCodes.join(", ")}
-                        </small>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {details.unresolvedRemoteVariantCount > 0 && (
-                  <p className="cloud-save-v2__variant-unresolved">
-                    <WarningCircleIcon size={16} />
-                    {t("cloud_save_v2_unresolved_variant_count", {
-                      count: details.unresolvedRemoteVariantCount,
-                    })}
-                  </p>
-                )}
-              </section>
-            )}
-
-            <div className="cloud-save-v2__browser-toolbar">
-              {!isConflict && (
-                <div className="cloud-save-v2__browser-source-summary">
-                  <span>
-                    <MonitorIcon
-                      size={20}
-                      className="cloud-save-v2__browser-monitor-icon"
-                    />
-                    <strong>{t("cloud_save_v2_local_files")}</strong>
-                    {t("cloud_save_v2_source_summary", {
-                      count: details.local.fileCount,
-                      size: formatBytes(details.local.totalSizeBytes),
-                    })}
-                  </span>
-                </div>
-              )}
-
-              {isConflict && (
-                <div className="cloud-save-v2__browser-diff-summary">
-                  <span>
-                    {t("cloud_save_v2_diff_modified", {
-                      count: comparisonCounts.modified,
-                    })}
-                  </span>
-                  <span>
-                    {t("cloud_save_v2_diff_local_only", {
-                      count: comparisonCounts.localOnly,
-                    })}
-                  </span>
-                  <span>
-                    {t("cloud_save_v2_diff_remote_only", {
-                      count: comparisonCounts.remoteOnly,
-                    })}
-                  </span>
-                  {!showOnlyChanged && (
+            {(isConflict || details.local.files.length > 0) && (
+              <div className="cloud-save-v2__browser-toolbar">
+                {!isConflict && (
+                  <div className="cloud-save-v2__browser-source-summary">
                     <span>
-                      {t("cloud_save_v2_diff_unchanged", {
-                        count: comparisonCounts.unchanged,
+                      <MonitorIcon
+                        size={20}
+                        className="cloud-save-v2__browser-monitor-icon"
+                      />
+                      <strong>{t("cloud_save_v2_local_files")}</strong>
+                      {t("cloud_save_v2_source_summary", {
+                        count: details.local.fileCount,
+                        size: formatBytes(details.local.totalSizeBytes),
                       })}
                     </span>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
 
-              {isConflict && (
-                <div className="cloud-save-v2__browser-filter">
-                  <CheckboxField
-                    label={t("cloud_save_v2_show_only_changed")}
-                    checked={showOnlyChanged}
-                    onChange={(event) =>
-                      setShowOnlyChanged(event.target.checked)
-                    }
-                  />
-                </div>
-              )}
-            </div>
+                {!isConflict && addCustomPathButton}
+
+                {isConflict && (
+                  <div className="cloud-save-v2__browser-diff-summary">
+                    <span>
+                      {t("cloud_save_v2_diff_modified", {
+                        count: comparisonCounts.modified,
+                      })}
+                    </span>
+                    <span>
+                      {t("cloud_save_v2_diff_local_only", {
+                        count: comparisonCounts.localOnly,
+                      })}
+                    </span>
+                    <span>
+                      {t("cloud_save_v2_diff_remote_only", {
+                        count: comparisonCounts.remoteOnly,
+                      })}
+                    </span>
+                    {!showOnlyChanged && (
+                      <span>
+                        {t("cloud_save_v2_diff_unchanged", {
+                          count: comparisonCounts.unchanged,
+                        })}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {isConflict && (
+                  <div className="cloud-save-v2__browser-filter">
+                    <CheckboxField
+                      label={t("cloud_save_v2_show_only_changed")}
+                      checked={showOnlyChanged}
+                      onChange={(event) =>
+                        setShowOnlyChanged(event.target.checked)
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {hasError && (
               <div className="cloud-save-v2__browser-inline-error">
@@ -407,10 +328,34 @@ export function CloudSaveV2FileBrowserModal({
                   onOpenFolder={(path) => void handleOpenFolder(path)}
                 />
               </div>
-            ) : (
+            ) : isConflict ? (
               <p className="cloud-save-v2__browser-empty">
                 {t("cloud_save_v2_no_local_files")}
               </p>
+            ) : (
+              <div className="cloud-save-v2__browser-empty cloud-save-v2__browser-empty--actions">
+                <div className="cloud-save-v2__browser-empty-copy">
+                  <strong>{t("cloud_save_v2_no_local_files")}</strong>
+                  <span>{t("cloud_save_v2_no_local_files_description")}</span>
+                </div>
+                <div className="cloud-save-v2__browser-empty-actions">
+                  <Button
+                    disabled={isLoading || isGameRunning || isSyncing}
+                    onClick={() => void onRetry()}
+                  >
+                    {isLoading ? (
+                      <CircleNotchIcon
+                        className="cloud-save-v2__spinner"
+                        size={16}
+                      />
+                    ) : (
+                      <ArrowClockwiseIcon size={16} />
+                    )}
+                    <span>{t("cloud_save_v2_check_again")}</span>
+                  </Button>
+                  {addCustomPathButton}
+                </div>
+              </div>
             )}
           </>
         )}
