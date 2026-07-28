@@ -263,6 +263,7 @@ const launchWindowsBinaryOnLinux = async (
   const extraEnv = await resolveSteamClientCompatEnv({
     executablePath: parsedPath,
     winePrefixPath,
+    objectId,
   });
 
   try {
