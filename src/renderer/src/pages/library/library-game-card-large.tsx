@@ -201,7 +201,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
   const { label: classicsPlatformLabel, emulatorIcon: classicsEmulatorIcon } =
-    getClassicsPlatformDetails(game.platform);
+    getClassicsPlatformDetails(game.shop, game.platform);
 
   return (
     <button

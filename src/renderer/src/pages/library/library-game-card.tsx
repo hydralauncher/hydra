@@ -94,7 +94,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       : activeImageSource;
 
   const { label: classicsPlatformLabel, emulatorIcon: classicsEmulatorIcon } =
-    getClassicsPlatformDetails(game.platform);
+    getClassicsPlatformDetails(game.shop, game.platform);
 
   const handleImageError = () => {
     logger.warn(`Image failed to load for ${game.title}`, {
