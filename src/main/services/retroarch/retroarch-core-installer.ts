@@ -92,11 +92,17 @@ export const downloadAndInstallCore = async (
   core: RetroArchCoreName
 ): Promise<RetroArchCoreInstallResult> => {
   if (!isRetroArchCoreName(core)) {
+    logger.error("Refused to install unknown RetroArch core", { core });
     return { ok: false, core, reason: "invalid_core" };
   }
 
   const downloadUrl = buildCoreDownloadUrl(core);
   if (!downloadUrl) {
+    logger.error("No core download available for this platform", {
+      core,
+      platform: process.platform,
+      arch: process.arch,
+    });
     sendCoreProgress({ core, phase: "error", reason: "unsupported_platform" });
     return { ok: false, core, reason: "unsupported_platform" };
   }
@@ -138,6 +144,11 @@ export const downloadAndInstallCore = async (
     await removeArchive();
 
     if (!fs.existsSync(libraryPath)) {
+      logger.error("Core archive extracted but library file is missing", {
+        core,
+        downloadUrl,
+        libraryPath,
+      });
       sendCoreProgress({ core, phase: "error", reason: "extract_failed" });
       return { ok: false, core, reason: "extract_failed" };
     }
@@ -159,7 +170,12 @@ export const downloadAndInstallCore = async (
     sendCoreProgress({ core, phase: "done", path: libraryPath });
     return { ok: true, core, path: libraryPath };
   } catch (error) {
-    logger.error(`Failed to install RetroArch core ${core}`, error);
+    logger.error("Failed to install RetroArch core", {
+      core,
+      downloadUrl,
+      coresDir,
+      error,
+    });
     await removeArchive();
     sendCoreProgress({ core, phase: "error", reason: "install_failed" });
     return { ok: false, core, reason: "install_failed" };
@@ -209,6 +225,7 @@ export const downloadAndInstallRetroArch = async (
   const option = options.find((candidate) => candidate.id === optionId);
 
   if (!option || option.kind === "link" || !option.downloadUrl) {
+    logger.error("RetroArch install option is not installable", { optionId });
     return { ok: false, reason: "option_not_installable" };
   }
 
@@ -253,6 +270,11 @@ export const downloadAndInstallRetroArch = async (
         : findExecutableInDir(stagingDir, (name) => name.endsWith(".appimage"));
 
     if (!stagedExecutable) {
+      logger.error("No RetroArch executable found in extracted archive", {
+        optionId,
+        downloadUrl: option.downloadUrl,
+        stagingDir,
+      });
       await removeStaging();
       sendInstallProgress({
         optionId,

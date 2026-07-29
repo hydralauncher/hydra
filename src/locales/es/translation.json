@@ -1191,6 +1191,8 @@
     "retroarch_cores_folder_change": "Cambiar carpeta",
     "retroarch_cores_folder_reset": "Usar carpeta predeterminada",
     "retroarch_cores_folder_hint": "Selecciona la carpeta de cores de RetroArch si quieres que los cores también aparezcan dentro del propio RetroArch.",
+    "retroarch_cores_install_failed_one": "Error al instalar {{count}} core",
+    "retroarch_cores_install_failed_other": "Error al instalar {{count}} cores",
     "retroarch_cores_ready": "Todos los núcleos instalados",
     "retroarch_cores_section_title": "Núcleos",
     "retroarch_cores_section_description": "{{installed}} de {{total}} núcleos instalados. Los núcleos se descargan del buildbot de libretro.",

@@ -169,12 +169,39 @@ export function RetroArchDetail({
         config.coresDir
       );
       onChange(rescanned);
-      await window.electron.installAllRetroArchCores();
+      const results = await window.electron.installAllRetroArchCores();
       await refresh();
+
+      const failed = results.filter((result) => !result.ok).length;
+      if (failed > 0) {
+        showErrorToast(t("retroarch_cores_install_failed", { count: failed }));
+        return;
+      }
+
+      const next = await window.electron.getRetroArchConfig();
+      const installed = Object.values(next.cores).filter(
+        (core) => core.installed
+      ).length;
+      showSuccessToast(
+        installed === RETROARCH_CORE_LIST.length
+          ? t("retroarch_cores_ready")
+          : t("retroarch_cores_installed_count", {
+              installed,
+              total: RETROARCH_CORE_LIST.length,
+            })
+      );
     } finally {
       setInstallingCores(false);
     }
-  }, [config.coresDir, installingCores, onChange, refresh]);
+  }, [
+    config.coresDir,
+    installingCores,
+    onChange,
+    refresh,
+    showErrorToast,
+    showSuccessToast,
+    t,
+  ]);
 
   const handleChangeCoresDir = useCallback(async () => {
     const result = await window.electron.showOpenDialog({

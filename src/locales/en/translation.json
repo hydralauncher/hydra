@@ -1238,6 +1238,8 @@
     "retroarch_cores_folder_change": "Change folder",
     "retroarch_cores_folder_reset": "Use default folder",
     "retroarch_cores_folder_hint": "Pick your RetroArch cores folder if you want the cores to also show up inside RetroArch itself.",
+    "retroarch_cores_install_failed_one": "Failed to install {{count}} core",
+    "retroarch_cores_install_failed_other": "Failed to install {{count}} cores",
     "retroarch_cores_ready": "All cores installed",
     "retroarch_cores_section_title": "Cores",
     "retroarch_cores_section_description": "{{installed}} of {{total}} cores installed. Cores are downloaded from the libretro buildbot.",

@@ -1199,6 +1199,8 @@
     "retroarch_cores_folder_change": "Alterar pasta",
     "retroarch_cores_folder_reset": "Usar pasta padrão",
     "retroarch_cores_folder_hint": "Selecione a pasta de cores do RetroArch se quiser que os cores também apareçam dentro do próprio RetroArch.",
+    "retroarch_cores_install_failed_one": "Falha ao instalar {{count}} core",
+    "retroarch_cores_install_failed_other": "Falha ao instalar {{count}} cores",
     "retroarch_cores_ready": "Todos os núcleos instalados",
     "retroarch_cores_section_title": "Núcleos",
     "retroarch_cores_section_description": "{{installed}} de {{total}} núcleos instalados. Os núcleos são baixados do buildbot do libretro.",
