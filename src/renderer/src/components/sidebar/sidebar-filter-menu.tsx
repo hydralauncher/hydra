@@ -8,6 +8,7 @@ import {
   SlidersIcon,
   SortDescIcon,
   StackIcon,
+  TrophyIcon,
 } from "@primer/octicons-react";
 import { useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -27,8 +28,8 @@ interface SidebarFilterMenuProps {
   showFavoritesFirst: boolean;
   onToggleFavoritesFirst: (next: boolean) => void;
   platforms: string[];
-  selectedPlatform: string | null;
-  onPlatformChange: (platform: string | null) => void;
+  selectedPlatforms: string[];
+  onPlatformsChange: (platforms: string[]) => void;
 }
 
 export function SidebarFilterMenu({
@@ -39,13 +40,27 @@ export function SidebarFilterMenu({
   showFavoritesFirst,
   onToggleFavoritesFirst,
   platforms,
-  selectedPlatform,
-  onPlatformChange,
+  selectedPlatforms,
+  onPlatformsChange,
 }: Readonly<SidebarFilterMenuProps>) {
   const { t } = useTranslation(["sidebar", "library"]);
 
   const tooltipId = useId();
   const pointerInteractionRef = useRef(false);
+
+  const handlePlatformToggle = (platform: string, checked: boolean) => {
+    if (checked) {
+      if (selectedPlatforms.includes(platform)) return;
+      onPlatformsChange([...selectedPlatforms, platform]);
+      return;
+    }
+
+    if (selectedPlatforms.length <= 1) return;
+
+    onPlatformsChange(
+      selectedPlatforms.filter((selected) => selected !== platform)
+    );
+  };
 
   const categoryOptions: {
     value: LibraryCategory;
@@ -88,6 +103,11 @@ export function SidebarFilterMenu({
       value: "most_played",
       label: t("sort_most_played", { ns: "library" }),
       icon: <HourglassIcon size={14} />,
+    },
+    {
+      value: "achievements",
+      label: t("sort_achievements", { ns: "library" }),
+      icon: <TrophyIcon size={14} />,
     },
   ];
 
@@ -206,41 +226,40 @@ export function SidebarFilterMenu({
                     {t("consoles_label")}
                   </DropdownMenuPrimitive.Label>
 
-                  <DropdownMenuPrimitive.RadioGroup
-                    value={selectedPlatform ?? ""}
-                    onValueChange={(value) =>
-                      onPlatformChange(value === "" ? null : value)
-                    }
+                  <DropdownMenuPrimitive.CheckboxItem
+                    checked={selectedPlatforms.length === 0}
+                    onCheckedChange={(checked) => {
+                      if (checked === true) onPlatformsChange([]);
+                    }}
+                    onSelect={(event) => event.preventDefault()}
+                    className="sidebar-filter-menu__item"
                   >
-                    <DropdownMenuPrimitive.RadioItem
-                      value=""
+                    <span className="sidebar-filter-menu__item-label">
+                      {t("all_consoles", { ns: "library" })}
+                    </span>
+                    <DropdownMenuPrimitive.ItemIndicator className="sidebar-filter-menu__item-indicator">
+                      <CheckIcon size={14} />
+                    </DropdownMenuPrimitive.ItemIndicator>
+                  </DropdownMenuPrimitive.CheckboxItem>
+
+                  {platforms.map((platform) => (
+                    <DropdownMenuPrimitive.CheckboxItem
+                      key={platform}
+                      checked={selectedPlatforms.includes(platform)}
+                      onCheckedChange={(checked) =>
+                        handlePlatformToggle(platform, checked === true)
+                      }
                       onSelect={(event) => event.preventDefault()}
                       className="sidebar-filter-menu__item"
                     >
                       <span className="sidebar-filter-menu__item-label">
-                        {t("all_consoles", { ns: "library" })}
+                        {platform}
                       </span>
                       <DropdownMenuPrimitive.ItemIndicator className="sidebar-filter-menu__item-indicator">
                         <CheckIcon size={14} />
                       </DropdownMenuPrimitive.ItemIndicator>
-                    </DropdownMenuPrimitive.RadioItem>
-
-                    {platforms.map((platform) => (
-                      <DropdownMenuPrimitive.RadioItem
-                        key={platform}
-                        value={platform}
-                        onSelect={(event) => event.preventDefault()}
-                        className="sidebar-filter-menu__item"
-                      >
-                        <span className="sidebar-filter-menu__item-label">
-                          {platform}
-                        </span>
-                        <DropdownMenuPrimitive.ItemIndicator className="sidebar-filter-menu__item-indicator">
-                          <CheckIcon size={14} />
-                        </DropdownMenuPrimitive.ItemIndicator>
-                      </DropdownMenuPrimitive.RadioItem>
-                    ))}
-                  </DropdownMenuPrimitive.RadioGroup>
+                    </DropdownMenuPrimitive.CheckboxItem>
+                  ))}
                 </DropdownMenuPrimitive.Group>
               </div>
             </>

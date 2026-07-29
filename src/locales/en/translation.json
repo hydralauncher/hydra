@@ -1515,6 +1515,7 @@
     "sort_title_asc": "Title (A-Z)",
     "sort_title_desc": "Title (Z-A)",
     "sort_most_played": "Most played",
+    "sort_achievements": "Achievements",
     "sort_installed_first": "Installed first",
     "rename_collection": "Rename collection",
     "renaming_collection": "Renaming...",

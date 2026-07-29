@@ -62,6 +62,7 @@ const SORT_OPTIONS: SortOption[] = [
   "title_asc",
   "recently_played",
   "most_played",
+  "achievements",
   "installed_first",
   "title_desc",
 ];
