@@ -50,10 +50,15 @@ export const scanRetroArchFolders = async (
   onFolderScanned?: (scanned: number, total: number, kept: number) => void
 ): Promise<ScannedRetroArchRom[]> => {
   const collected: ScannedRetroArchRom[] = [];
+  const seen = new Set<string>();
   for (let i = 0; i < folders.length; i++) {
     if (signal?.cancelled) break;
     const roms = await scanRetroArchFolder(folders[i]);
-    collected.push(...roms);
+    for (const rom of roms) {
+      if (seen.has(rom.primaryPath)) continue;
+      seen.add(rom.primaryPath);
+      collected.push(rom);
+    }
     onFolderScanned?.(i + 1, folders.length, collected.length);
   }
   return collected;

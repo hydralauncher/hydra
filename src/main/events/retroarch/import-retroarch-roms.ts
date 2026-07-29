@@ -222,6 +222,34 @@ export const recomputeRetroArchPlatformCounts = async (): Promise<void> => {
   }));
 };
 
+export const reconcileRemovedRetroArchFolder = async (
+  removedPath: string,
+  remainingFolderPaths: string[]
+): Promise<void> => {
+  const entries = await gamesSublevel.iterator().all();
+  for (const [key, game] of entries) {
+    if (game.isDeleted) continue;
+    if (game.shop !== "launchbox") continue;
+    if (!platformToRetroArchPlatform(game.platform)) continue;
+
+    const discs = game.discs ?? [];
+    if (discs.length === 0) continue;
+
+    const underRemoved = discs.some((disc) => isWithin(disc.path, removedPath));
+    if (!underRemoved) continue;
+
+    const stillCovered = discs.some((disc) =>
+      remainingFolderPaths.some((folder) => isWithin(disc.path, folder))
+    );
+    if (stillCovered) continue;
+
+    game.isDeleted = true;
+    await gamesSublevel.put(key, game).catch((err) => {
+      logger.error("Could not reconcile removed RetroArch folder entry", err);
+    });
+  }
+};
+
 const reconcileDeletedGames = async (folders: FolderInput[]) => {
   const entries = await gamesSublevel.iterator().all();
   for (const [key, game] of entries) {
@@ -265,6 +293,15 @@ const recordMatchedRom = (
 ): void => {
   aggregated.matchedEntries.set(entry.objectId, entry);
 
+  const discs = aggregated.discsByTitle.get(entry.objectId) ?? [];
+  const isNewDisc = !discs.some((d) => d.primaryPath === rom.primaryPath);
+  if (isNewDisc) {
+    discs.push({ primaryPath: rom.primaryPath, name: rom.name });
+  }
+  aggregated.discsByTitle.set(entry.objectId, discs);
+
+  if (!isNewDisc) return;
+
   const info = aggregated.titleInfo.get(entry.objectId);
   if (info) {
     info.sizeBytes += rom.sizeBytes;
@@ -275,12 +312,6 @@ const recordMatchedRom = (
       platform: rom.platform,
     });
   }
-
-  const discs = aggregated.discsByTitle.get(entry.objectId) ?? [];
-  if (!discs.some((d) => d.primaryPath === rom.primaryPath)) {
-    discs.push({ primaryPath: rom.primaryPath, name: rom.name });
-  }
-  aggregated.discsByTitle.set(entry.objectId, discs);
 };
 
 const aggregateMatches = (

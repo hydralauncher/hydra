@@ -116,8 +116,19 @@ export const downloadAndInstallCore = async (
   const coresDir = resolveCoresDir(currentConfig.coresDir);
   const libraryPath = path.join(coresDir, libraryFileName);
 
+  const stagingDir = path.join(
+    SystemPath.getPath("temp"),
+    `retroarch-core-${core}-staging`
+  );
+
   const removeArchive = async () => {
     await removeFileQuietly(archivePath);
+  };
+
+  const removeStaging = async () => {
+    await fs.promises
+      .rm(stagingDir, { recursive: true, force: true })
+      .catch(() => {});
   };
 
   try {
@@ -136,22 +147,46 @@ export const downloadAndInstallCore = async (
     );
 
     sendCoreProgress({ core, phase: "extracting" });
-    await fs.promises.mkdir(coresDir, { recursive: true });
+    await removeStaging();
+    await fs.promises.mkdir(stagingDir, { recursive: true });
     await SevenZip.extractFile({
       filePath: archivePath,
-      outputPath: coresDir,
+      outputPath: stagingDir,
     });
     await removeArchive();
 
-    if (!fs.existsSync(libraryPath)) {
+    const stagedLibrary = path.join(stagingDir, libraryFileName);
+    if (!fs.existsSync(stagedLibrary)) {
       logger.error("Core archive extracted but library file is missing", {
         core,
         downloadUrl,
-        libraryPath,
+        stagedLibrary,
       });
+      await removeStaging();
       sendCoreProgress({ core, phase: "error", reason: "extract_failed" });
       return { ok: false, core, reason: "extract_failed" };
     }
+
+    await fs.promises.mkdir(coresDir, { recursive: true });
+    const backupPath = `${libraryPath}.backup`;
+    await removeFileQuietly(backupPath);
+    const hadPrevious = fs.existsSync(libraryPath);
+    if (hadPrevious) {
+      await fs.promises.rename(libraryPath, backupPath);
+    }
+
+    try {
+      await fs.promises.copyFile(stagedLibrary, libraryPath);
+    } catch (copyError) {
+      await removeFileQuietly(libraryPath);
+      if (hadPrevious) {
+        await fs.promises.rename(backupPath, libraryPath).catch(() => {});
+      }
+      throw copyError;
+    }
+
+    await removeFileQuietly(backupPath);
+    await removeStaging();
 
     await updateRetroArchConfig((current) => ({
       ...current,
@@ -177,6 +212,7 @@ export const downloadAndInstallCore = async (
       error,
     });
     await removeArchive();
+    await removeStaging();
     sendCoreProgress({ core, phase: "error", reason: "install_failed" });
     return { ok: false, core, reason: "install_failed" };
   }
@@ -285,22 +321,45 @@ export const downloadAndInstallRetroArch = async (
     }
 
     const relativeExecutable = path.relative(stagingDir, stagedExecutable);
-    await fs.promises.rm(extractDir, { recursive: true, force: true });
-    await fs.promises.rename(stagingDir, extractDir);
-    const executablePath = path.join(extractDir, relativeExecutable);
+    const backupDir = `${extractDir}-backup`;
+    const removeBackup = async () => {
+      await fs.promises
+        .rm(backupDir, { recursive: true, force: true })
+        .catch(() => {});
+    };
 
-    if (process.platform !== "win32") {
-      const { mode } = await fs.promises.stat(executablePath);
-      await fs.promises.chmod(executablePath, mode | 0o100);
+    await removeBackup();
+    const hadPrevious = fs.existsSync(extractDir);
+    if (hadPrevious) {
+      await fs.promises.rename(extractDir, backupDir);
     }
 
-    await updateRetroArchConfig((current) => ({
-      ...current,
-      executablePath,
-      detectedVersion:
-        getRetroArchVersion(executablePath) ?? option.version ?? null,
-      detectedAt: Date.now(),
-    }));
+    const executablePath = path.join(extractDir, relativeExecutable);
+    try {
+      await fs.promises.rename(stagingDir, extractDir);
+
+      if (process.platform !== "win32") {
+        const { mode } = await fs.promises.stat(executablePath);
+        await fs.promises.chmod(executablePath, mode | 0o100);
+      }
+
+      await updateRetroArchConfig((current) => ({
+        ...current,
+        executablePath,
+        detectedVersion:
+          getRetroArchVersion(executablePath) ?? option.version ?? null,
+        detectedAt: Date.now(),
+      }));
+    } catch (swapError) {
+      await fs.promises
+        .rm(extractDir, { recursive: true, force: true })
+        .catch(() => {});
+      if (hadPrevious) {
+        await fs.promises.rename(backupDir, extractDir).catch(() => {});
+      }
+      throw swapError;
+    }
+    await removeBackup();
 
     shell.showItemInFolder(executablePath);
     sendInstallProgress({ optionId, phase: "done", path: executablePath });
