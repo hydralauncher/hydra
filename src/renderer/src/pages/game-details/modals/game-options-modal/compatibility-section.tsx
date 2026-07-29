@@ -8,12 +8,18 @@ import {
   TextField,
 } from "@renderer/components";
 import type { LibraryGame, ProtonVersion } from "@types";
-import { FileDirectoryIcon, LinkExternalIcon } from "@primer/octicons-react";
+import {
+  FileDirectoryIcon,
+  InfoIcon,
+  LinkExternalIcon,
+} from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 
 interface CompatibilitySettingsSectionProps {
   game: LibraryGame;
   displayedWinePrefixPath: string | null;
+  steamAppId?: string | null;
+  onOpenSteamGameProperties?: () => void;
   protonVersions: ProtonVersion[];
   selectedProtonPath: string;
   autoRunGamemode: boolean;
@@ -36,6 +42,8 @@ interface CompatibilitySettingsSectionProps {
 export function CompatibilitySettingsSection({
   game,
   displayedWinePrefixPath,
+  steamAppId = null,
+  onOpenSteamGameProperties,
   protonVersions,
   selectedProtonPath,
   autoRunGamemode,
@@ -56,21 +64,29 @@ export function CompatibilitySettingsSection({
 }: Readonly<CompatibilitySettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
-  const showWinetricksUnavailableTooltip = !winetricksAvailable;
-  const gamemodeToggleDisabled = !gamemodeAvailable || globalAutoRunGamemode;
-  const mangohudToggleDisabled = !mangohudAvailable || globalAutoRunMangohud;
+  const managedBySteam = Boolean(steamAppId);
+  const showWinetricksUnavailableTooltip =
+    !winetricksAvailable && !managedBySteam;
+  const gamemodeToggleDisabled =
+    managedBySteam || !gamemodeAvailable || globalAutoRunGamemode;
+  const mangohudToggleDisabled =
+    managedBySteam || !mangohudAvailable || globalAutoRunMangohud;
 
-  const gamemodeTooltipId = !gamemodeAvailable
-    ? "gamemode-unavailable-tooltip"
-    : globalAutoRunGamemode
-      ? "gamemode-global-enabled-tooltip"
-      : undefined;
+  const gamemodeTooltipId = managedBySteam
+    ? undefined
+    : !gamemodeAvailable
+      ? "gamemode-unavailable-tooltip"
+      : globalAutoRunGamemode
+        ? "gamemode-global-enabled-tooltip"
+        : undefined;
 
-  const mangohudTooltipId = !mangohudAvailable
-    ? "mangohud-unavailable-tooltip"
-    : globalAutoRunMangohud
-      ? "mangohud-global-enabled-tooltip"
-      : undefined;
+  const mangohudTooltipId = managedBySteam
+    ? undefined
+    : !mangohudAvailable
+      ? "mangohud-unavailable-tooltip"
+      : globalAutoRunMangohud
+        ? "mangohud-global-enabled-tooltip"
+        : undefined;
 
   const protonVersionAutoLabel = t("proton_version_auto", {
     ns: ["game_details", "settings"],
@@ -97,11 +113,32 @@ export function CompatibilitySettingsSection({
 
   return (
     <>
+      {managedBySteam && (
+        <div className="game-options-modal__steam-managed">
+          <InfoIcon className="game-options-modal__steam-managed-icon" />
+          <div className="game-options-modal__steam-managed-content">
+            <p className="game-options-modal__steam-managed-description">
+              {t("compatibility_managed_by_steam")}
+            </p>
+            <Button
+              type="button"
+              theme="outline"
+              onClick={onOpenSteamGameProperties}
+            >
+              {t("open_steam_game_properties")}
+              <LinkExternalIcon />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="game-options-modal__wine-prefix">
         <div className="game-options-modal__header">
           <h2>{t("wine_prefix")}</h2>
           <h4 className="game-options-modal__header-description">
-            {t("wine_prefix_description")}
+            {managedBySteam
+              ? t("wine_prefix_description_steam")
+              : t("wine_prefix_description")}
           </h4>
         </div>
 
@@ -112,21 +149,23 @@ export function CompatibilitySettingsSection({
           disabled
           placeholder={t("no_directory_selected")}
           rightContent={
-            <>
-              <Button
-                type="button"
-                theme="outline"
-                onClick={onChangeWinePrefixPath}
-              >
-                <FileDirectoryIcon />
-                {t("select_executable")}
-              </Button>
-              {game.winePrefixPath && (
-                <Button onClick={onClearWinePrefixPath} theme="outline">
-                  {t("clear")}
+            !managedBySteam && (
+              <>
+                <Button
+                  type="button"
+                  theme="outline"
+                  onClick={onChangeWinePrefixPath}
+                >
+                  <FileDirectoryIcon />
+                  {t("select_executable")}
                 </Button>
-              )}
-            </>
+                {game.winePrefixPath && (
+                  <Button onClick={onClearWinePrefixPath} theme="outline">
+                    {t("clear")}
+                  </Button>
+                )}
+              </>
+            )
           }
         />
 
@@ -144,7 +183,7 @@ export function CompatibilitySettingsSection({
               type="button"
               theme="outline"
               onClick={onOpenWinetricks}
-              disabled={!winetricksAvailable}
+              disabled={managedBySteam || !winetricksAvailable}
             >
               {t("open_winetricks")}
             </Button>
@@ -260,13 +299,16 @@ export function CompatibilitySettingsSection({
         <div className="game-options-modal__header">
           <h2>{t("proton_version")}</h2>
           <h4 className="game-options-modal__header-description">
-            {t("proton_version_description")}
+            {managedBySteam
+              ? t("proton_version_description_steam")
+              : t("proton_version_description")}
           </h4>
         </div>
 
         <ProtonPathPicker
           versions={protonVersions}
           selectedPath={selectedProtonPath}
+          disabled={managedBySteam}
           onChange={onChangeProtonVersion}
           radioName={`proton-version-${game.objectId}`}
           autoLabel={protonVersionAutoLabel}

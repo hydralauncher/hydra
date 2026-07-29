@@ -7,6 +7,7 @@ import "./proton-path-picker.scss";
 export interface ProtonPathPickerProps {
   versions: ProtonVersion[];
   selectedPath: string;
+  disabled?: boolean;
   onChange: (value: string) => void;
   radioName: string;
   autoLabel: string;
@@ -34,6 +35,7 @@ const getProtonSourceDescription = (
 export function ProtonPathPicker({
   versions,
   selectedPath,
+  disabled = false,
   onChange,
   radioName,
   autoLabel,
@@ -49,6 +51,7 @@ export function ProtonPathPicker({
         name={radioName}
         value=""
         checked={selectedPath === ""}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         className="proton-path-picker__option"
         labelClassName="proton-path-picker__option-label"
@@ -69,6 +72,7 @@ export function ProtonPathPicker({
           name={radioName}
           value={version.path}
           checked={selectedPath === version.path}
+          disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
           className="proton-path-picker__option"
           labelClassName="proton-path-picker__option-label"

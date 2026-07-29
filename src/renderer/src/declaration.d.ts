@@ -190,9 +190,9 @@ declare global {
     isGamemodeAvailable: () => Promise<boolean>;
     isMangohudAvailable: () => Promise<boolean>;
     isWinetricksAvailable: () => Promise<boolean>;
-    isGameLaunchedThroughSteam: (
+    getSteamLaunchInfo: (
       executablePath: string | null
-    ) => Promise<boolean>;
+    ) => Promise<{ appId: string; winePrefixPath: string | null } | null>;
     addGameToLibrary: (
       shop: GameShop,
       objectId: string,
