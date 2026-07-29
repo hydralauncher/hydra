@@ -63,6 +63,10 @@ export function UserLibraryGameCard({
     game.unlockedAchievementCount
   );
 
+  const hasAchievementProgress =
+    Boolean(userProfile?.hasActiveSubscription) &&
+    (game.achievementCount ?? 0) > 0;
+
   const getStatsItemCount = useCallback(() => {
     let statsCount = 1;
     if (game.achievementsPointsEarnedSum > 0) statsCount++;
@@ -187,7 +191,7 @@ export function UserLibraryGameCard({
           onMouseLeave={() => setIsCoverHovered(false)}
         >
           <div
-            className={`user-library-game__overlay${game.shop === "launchbox" && !game.customLibraryImageUrl ? " user-library-game__overlay--classics" : ""}${(game.achievementCount ?? 0) > 0 ? "" : " user-library-game__overlay--no-fade"}`}
+            className={`user-library-game__overlay${game.shop === "launchbox" && !game.customLibraryImageUrl ? " user-library-game__overlay--classics" : ""}${hasAchievementProgress ? "" : " user-library-game__overlay--no-fade"}`}
           >
             <div
               className="user-library-game__playtime"
@@ -215,63 +219,62 @@ export function UserLibraryGameCard({
               </span>
             </div>
 
-            {userProfile?.hasActiveSubscription &&
-              game.achievementCount > 0 && (
-                <div className="user-library-game__stats">
-                  <div className="user-library-game__stats-header">
-                    <div className="user-library-game__stats-content">
+            {hasAchievementProgress && (
+              <div className="user-library-game__stats">
+                <div className="user-library-game__stats-header">
+                  <div className="user-library-game__stats-content">
+                    <div
+                      className="user-library-game__stats-item"
+                      style={{
+                        transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
+                      }}
+                    >
+                      {!isCompleted && <TrophyIcon size={13} />}
+                      <span>
+                        {game.unlockedAchievementCount} /{" "}
+                        {game.achievementCount}
+                      </span>
+                    </div>
+
+                    {game.achievementsPointsEarnedSum > 0 && (
                       <div
                         className="user-library-game__stats-item"
                         style={{
                           transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
                         }}
                       >
-                        {!isCompleted && <TrophyIcon size={13} />}
-                        <span>
-                          {game.unlockedAchievementCount} /{" "}
-                          {game.achievementCount}
-                        </span>
+                        <HydraIcon width={16} height={16} />
+                        {formatAchievementPoints(
+                          game.achievementsPointsEarnedSum
+                        )}
                       </div>
-
-                      {game.achievementsPointsEarnedSum > 0 && (
-                        <div
-                          className="user-library-game__stats-item"
-                          style={{
-                            transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
-                          }}
-                        >
-                          <HydraIcon width={16} height={16} />
-                          {formatAchievementPoints(
-                            game.achievementsPointsEarnedSum
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <span
-                      className={`user-library-game__stats-percentage${isCompleted ? " user-library-game__stats-percentage--completed" : ""}`}
-                    >
-                      {isCompleted ? (
-                        <TrophyIcon size={13} />
-                      ) : (
-                        formatDownloadProgress(
-                          game.unlockedAchievementCount / game.achievementCount,
-                          1
-                        )
-                      )}
-                    </span>
+                    )}
                   </div>
 
-                  <ProgressBar
-                    now={game.unlockedAchievementCount ?? 0}
-                    max={game.achievementCount ?? 1}
-                    label={`${game.title} achievements`}
-                    completed={isCompleted}
-                    trackClassName="user-library-game__achievements-progress-track"
-                    barClassName="user-library-game__achievements-progress"
-                  />
+                  <span
+                    className={`user-library-game__stats-percentage${isCompleted ? " user-library-game__stats-percentage--completed" : ""}`}
+                  >
+                    {isCompleted ? (
+                      <TrophyIcon size={13} />
+                    ) : (
+                      formatDownloadProgress(
+                        game.unlockedAchievementCount / game.achievementCount,
+                        1
+                      )
+                    )}
+                  </span>
                 </div>
-              )}
+
+                <ProgressBar
+                  now={game.unlockedAchievementCount ?? 0}
+                  max={game.achievementCount ?? 1}
+                  label={`${game.title} achievements`}
+                  completed={isCompleted}
+                  trackClassName="user-library-game__achievements-progress-track"
+                  barClassName="user-library-game__achievements-progress"
+                />
+              </div>
+            )}
           </div>
 
           {renderCoverMedia()}
