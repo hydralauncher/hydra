@@ -839,9 +839,7 @@ export function GeneralSettingsSection({
           <div className="game-options-modal__header">
             <h2>{t("launch_options")}</h2>
             <h4 className="game-options-modal__header-description">
-              {launchedThroughSteam ? (
-                t("launch_options_managed_by_steam")
-              ) : shouldShowWinePrefixConfiguration ? (
+              {shouldShowWinePrefixConfiguration ? (
                 <Trans
                   i18nKey="launch_options_description_linux"
                   ns="game_details"
@@ -859,7 +857,11 @@ export function GeneralSettingsSection({
             value={launchOptions}
             theme="dark"
             disabled={launchedThroughSteam}
-            placeholder={t("launch_options_placeholder")}
+            placeholder={
+              launchedThroughSteam
+                ? t("launch_options_managed_by_steam")
+                : t("launch_options_placeholder")
+            }
             onChange={onChangeLaunchOptions}
             rightContent={
               game.launchOptions && (

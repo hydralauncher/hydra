@@ -379,7 +379,7 @@
     "proton_version_description_steam": "A versão do Proton é escolhida pela Steam",
     "launch_options": "Opções de Lançamento",
     "launch_options_description": "Utilizadores avançados podem escolher introduzir modificações nas suas opções de lançamento (funcionalidade experimental)",
-    "launch_options_managed_by_steam": "Este jogo está instalado através da Steam, por isso o Hydra inicia-o pela Steam. Define as opções de lançamento na Steam.",
+    "launch_options_managed_by_steam": "Gerido pela Steam",
     "launch_options_placeholder": "Nenhum parâmetro especificado",
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar o backup",
