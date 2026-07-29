@@ -135,6 +135,7 @@
 
   &__steam-managed {
     display: flex;
+    align-items: center;
     gap: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit * 2);
     border: solid 1px globals.$border-color;
@@ -143,15 +144,16 @@
 
     &-icon {
       flex-shrink: 0;
-      margin-top: 2px;
       color: globals.$body-color;
     }
 
     &-content {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: calc(globals.$spacing-unit * 1.5);
+      flex: 1;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: globals.$spacing-unit;
     }
 
     &-description {

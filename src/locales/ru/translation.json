@@ -503,7 +503,7 @@
     "loading_save_preview": "Поиск сохранений…",
     "wine_prefix": "Префикс Wine",
     "wine_prefix_description": "Префикс Wine, используемый для запуска этой игры",
-    "compatibility_managed_by_steam": "Hydra запускает эту игру через Steam, поэтому эти параметры не применяются. Измените их в свойствах игры в Steam.",
+    "compatibility_managed_by_steam": "Этими настройками управляет Steam, измените их в Steam",
     "open_steam_game_properties": "Открыть в Steam",
     "wine_prefix_description_steam": "Префикс Wine, который Steam использует для запуска этой игры",
     "proton_version_description_steam": "Версию Proton выбирает Steam",
