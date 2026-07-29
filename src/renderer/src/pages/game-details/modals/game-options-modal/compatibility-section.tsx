@@ -149,23 +149,26 @@ export function CompatibilitySettingsSection({
           disabled
           placeholder={t("no_directory_selected")}
           rightContent={
-            !managedBySteam && (
-              <>
+            <>
+              <Button
+                type="button"
+                theme="outline"
+                disabled={managedBySteam}
+                onClick={onChangeWinePrefixPath}
+              >
+                <FileDirectoryIcon />
+                {t("select_executable")}
+              </Button>
+              {game.winePrefixPath && (
                 <Button
-                  type="button"
+                  onClick={onClearWinePrefixPath}
                   theme="outline"
-                  onClick={onChangeWinePrefixPath}
+                  disabled={managedBySteam}
                 >
-                  <FileDirectoryIcon />
-                  {t("select_executable")}
+                  {t("clear")}
                 </Button>
-                {game.winePrefixPath && (
-                  <Button onClick={onClearWinePrefixPath} theme="outline">
-                    {t("clear")}
-                  </Button>
-                )}
-              </>
-            )
+              )}
+            </>
           }
         />
 
