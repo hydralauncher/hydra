@@ -310,6 +310,71 @@ function fmt(b: number) {
   return (b / 1e3).toFixed(0) + " KB";
 }
 
+interface LaunchOptionsSectionProps {
+  launchOptions: string;
+  launchedThroughSteam: boolean;
+  hasStoredLaunchOptions: boolean;
+  shouldShowWinePrefixConfiguration: boolean;
+  onChangeLaunchOptions: (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => Promise<void> | void;
+  onClearLaunchOptions: () => Promise<void> | void;
+}
+
+function LaunchOptionsSection({
+  launchOptions,
+  launchedThroughSteam,
+  hasStoredLaunchOptions,
+  shouldShowWinePrefixConfiguration,
+  onChangeLaunchOptions,
+  onClearLaunchOptions,
+}: Readonly<LaunchOptionsSectionProps>) {
+  const { t } = useTranslation("game_details");
+
+  const description = shouldShowWinePrefixConfiguration ? (
+    <Trans
+      i18nKey="launch_options_description_linux"
+      ns="game_details"
+      defaults="Add game launch arguments, or use <code>%command%</code> to wrap the launch command."
+      components={{
+        code: <code className="game-options-modal__inline-code" />,
+      }}
+    />
+  ) : (
+    t("launch_options_description")
+  );
+
+  const placeholder = launchedThroughSteam
+    ? t("launch_options_managed_by_steam")
+    : t("launch_options_placeholder");
+
+  return (
+    <div className="game-options-modal__launch-options">
+      <div className="game-options-modal__header">
+        <h2>{t("launch_options")}</h2>
+        <h4 className="game-options-modal__header-description">
+          {description}
+        </h4>
+      </div>
+      <TextField
+        value={launchedThroughSteam ? "" : launchOptions}
+        theme="dark"
+        disabled={launchedThroughSteam}
+        placeholder={placeholder}
+        onChange={onChangeLaunchOptions}
+        rightContent={
+          !launchedThroughSteam &&
+          hasStoredLaunchOptions && (
+            <Button onClick={onClearLaunchOptions} theme="outline">
+              {t("clear")}
+            </Button>
+          )
+        }
+      />
+    </div>
+  );
+}
+
 const isBatchExecutable = (executablePath?: string | null) =>
   !!executablePath && /\.(bat|cmd)$/i.test(executablePath);
 
@@ -835,44 +900,14 @@ export function GeneralSettingsSection({
 
       {/* Launch options */}
       {showLaunchOptionsSection && (
-        <div className="game-options-modal__launch-options">
-          <div className="game-options-modal__header">
-            <h2>{t("launch_options")}</h2>
-            <h4 className="game-options-modal__header-description">
-              {shouldShowWinePrefixConfiguration ? (
-                <Trans
-                  i18nKey="launch_options_description_linux"
-                  ns="game_details"
-                  defaults="Add game launch arguments, or use <code>%command%</code> to wrap the launch command."
-                  components={{
-                    code: <code className="game-options-modal__inline-code" />,
-                  }}
-                />
-              ) : (
-                t("launch_options_description")
-              )}
-            </h4>
-          </div>
-          <TextField
-            value={launchedThroughSteam ? "" : launchOptions}
-            theme="dark"
-            disabled={launchedThroughSteam}
-            placeholder={
-              launchedThroughSteam
-                ? t("launch_options_managed_by_steam")
-                : t("launch_options_placeholder")
-            }
-            onChange={onChangeLaunchOptions}
-            rightContent={
-              !launchedThroughSteam &&
-              game.launchOptions && (
-                <Button onClick={onClearLaunchOptions} theme="outline">
-                  {t("clear")}
-                </Button>
-              )
-            }
-          />
-        </div>
+        <LaunchOptionsSection
+          launchOptions={launchOptions}
+          launchedThroughSteam={launchedThroughSteam}
+          hasStoredLaunchOptions={Boolean(game.launchOptions)}
+          shouldShowWinePrefixConfiguration={shouldShowWinePrefixConfiguration}
+          onChangeLaunchOptions={onChangeLaunchOptions}
+          onClearLaunchOptions={onClearLaunchOptions}
+        />
       )}
     </>
   );

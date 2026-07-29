@@ -299,6 +299,100 @@ const launchWindowsBinaryOnLinux = async (
   return false;
 };
 
+const resolveLaunchTooling = (
+  userPreferences: UserPreferences | null,
+  game: Game | undefined
+) => ({
+  useMangohud:
+    (userPreferences?.autoRunMangohud === true ||
+      game?.autoRunMangohud === true) &&
+    isMangohudAvailable(),
+  useGamemode:
+    (userPreferences?.autoRunGamemode === true ||
+      game?.autoRunGamemode === true) &&
+    isGamemodeAvailable(),
+});
+
+const runWindowsPreflight = async (shop: GameShop, objectId: string) => {
+  try {
+    logger.log("Starting preflight check for game launch", { shop, objectId });
+    const preflightPassed = await CommonRedistManager.runPreflight();
+    logger.log("Preflight check result", { passed: preflightPassed });
+  } catch (error) {
+    logger.error("Preflight check failed with error", error);
+  }
+};
+
+const handOverToSteam = async (
+  parsedPath: string,
+  objectId: string,
+  launchOptions?: string | null
+) => {
+  const steamAppId = resolveSteamAppId(parsedPath);
+
+  if (!steamAppId) return false;
+
+  if (launchOptions) {
+    logger.warn(
+      "Launch options set in Hydra are not applied when the game starts through Steam",
+      { objectId, steamAppId }
+    );
+  }
+
+  logger.info("Launching an installed Steam game through Steam", {
+    objectId,
+    steamAppId,
+  });
+
+  if (await launchThroughSteam(steamAppId)) return true;
+
+  logger.warn("Failed to hand the game over to Steam, launching directly", {
+    steamAppId,
+  });
+
+  return false;
+};
+
+const launchOnLinux = async (
+  gameKey: string,
+  objectId: string,
+  parsedPath: string,
+  game: Game | undefined,
+  launchOptions: string | null | undefined,
+  useMangohud: boolean,
+  useGamemode: boolean
+): Promise<number | null> => {
+  if (await handOverToSteam(parsedPath, objectId, launchOptions)) {
+    PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+    return null;
+  }
+
+  if (isWindowsExecutable(parsedPath)) {
+    const launched = await launchWindowsBinaryOnLinux(
+      gameKey,
+      objectId,
+      parsedPath,
+      game,
+      launchOptions,
+      useMangohud,
+      useGamemode
+    );
+
+    if (launched) return null;
+  }
+
+  const pid = launchNatively(
+    parsedPath,
+    launchOptions,
+    useMangohud,
+    useGamemode
+  );
+
+  if (pid !== null) launchedGamePids.set(gameKey, pid);
+
+  return pid;
+};
+
 /**
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
@@ -319,15 +413,10 @@ export const launchGame = async (
     })
     .catch(() => null);
 
-  const useMangohud =
-    (userPreferences?.autoRunMangohud === true ||
-      game?.autoRunMangohud === true) &&
-    isMangohudAvailable();
-
-  const useGamemode =
-    (userPreferences?.autoRunGamemode === true ||
-      game?.autoRunGamemode === true) &&
-    isGamemodeAvailable();
+  const { useMangohud, useGamemode } = resolveLaunchTooling(
+    userPreferences,
+    game
+  );
 
   if (game) {
     await gamesSublevel.put(gameKey, {
@@ -339,70 +428,21 @@ export const launchGame = async (
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
   if (process.platform === "win32") {
-    try {
-      logger.log("Starting preflight check for game launch", {
-        shop,
-        objectId,
-      });
-      const preflightPassed = await CommonRedistManager.runPreflight();
-      logger.log("Preflight check result", { passed: preflightPassed });
-    } catch (error) {
-      logger.error("Preflight check failed with error", error);
-    }
+    await runWindowsPreflight(shop, objectId);
   }
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
   if (process.platform === "linux") {
-    const steamAppId = resolveSteamAppId(parsedPath);
-
-    if (steamAppId) {
-      if (launchOptions) {
-        logger.warn(
-          "Launch options set in Hydra are not applied when the game starts through Steam",
-          { objectId, steamAppId }
-        );
-      }
-
-      logger.info("Launching an installed Steam game through Steam", {
-        objectId,
-        steamAppId,
-      });
-
-      if (await launchThroughSteam(steamAppId)) {
-        PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
-        return null;
-      }
-
-      logger.warn("Failed to hand the game over to Steam, launching directly", {
-        steamAppId,
-      });
-    }
-
-    if (isWindowsExecutable(parsedPath)) {
-      const launched = await launchWindowsBinaryOnLinux(
-        gameKey,
-        objectId,
-        parsedPath,
-        game,
-        launchOptions,
-        useMangohud,
-        useGamemode
-      );
-
-      if (launched) return null;
-    }
-
-    const pid = launchNatively(
+    return launchOnLinux(
+      gameKey,
+      objectId,
       parsedPath,
+      game,
       launchOptions,
       useMangohud,
       useGamemode
     );
-
-    if (pid !== null) launchedGamePids.set(gameKey, pid);
-
-    return pid;
   }
 
   return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
