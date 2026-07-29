@@ -18,8 +18,12 @@
     flex: 1;
     min-width: 0;
 
-    &:hover {
+    &:hover:not(:has(input:disabled)) {
       border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:has(input:disabled) {
+      cursor: not-allowed;
     }
 
     &--primary {
@@ -53,6 +57,10 @@
 
     &:focus {
       cursor: text;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
     }
 
     &--read-only {

@@ -548,7 +548,7 @@
     "settings_not_available_for_custom_games": "Эта категория недоступна для пользовательских игр.",
     "launch_options": "Параметры запуска",
     "launch_options_description": "Опытные пользователи могут внести изменения в параметры запуска",
-    "launch_options_managed_by_steam": "Игра установлена через Steam, поэтому Hydra запускает её через Steam. Укажите параметры запуска в Steam.",
+    "launch_options_managed_by_steam": "Управляется Steam",
     "launch_options_description_linux": "Добавьте аргументы запуска игры или используйте <code>%command%</code> для оборачивания команды запуска.",
     "launch_options_placeholder": "Параметр не указан ",
     "no_download_option_info": "Информация недоступна",
