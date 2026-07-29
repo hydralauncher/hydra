@@ -12,6 +12,7 @@ import type {
 import { getWinePrefixUserProfile } from "../wine-prefix.js";
 
 export const CLOUD_SAVE_CUSTOM_PATH_PREFIX = "<custom>";
+export const CLOUD_SAVE_CUSTOM_ABSOLUTE_PATH_MARKER = "<absolute>";
 
 const PLATFORM_MARKERS: Record<CloudSaveCustomPathPlatform, string> = {
   windows: "<windows>",
@@ -412,6 +413,32 @@ const portablePathFromAbsolute = (
   return absolutePath;
 };
 
+export const isLegacyCloudSaveCustomPathRawPath = (rawPath: string) => {
+  if (!rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)) return false;
+
+  const encoded = rawPath.slice(CLOUD_SAVE_CUSTOM_PATH_PREFIX.length);
+  const platformEntry = (
+    Object.entries(PLATFORM_MARKERS) as Array<
+      [CloudSaveCustomPathPlatform, string]
+    >
+  ).find(([, marker]) => encoded.startsWith(marker));
+  if (!platformEntry) return false;
+
+  const [platform, marker] = platformEntry;
+  const encodedPath = encoded.slice(marker.length);
+  if (!encodedPath || encodedPath.startsWith("<")) return false;
+
+  try {
+    const normalizedPath = normalizeAbsolutePath(encodedPath, platform);
+    assertAbsolutePath(normalizedPath, platform);
+    return (
+      `${CLOUD_SAVE_CUSTOM_PATH_PREFIX}${marker}${normalizedPath}` === rawPath
+    );
+  } catch {
+    return false;
+  }
+};
+
 const portableWindowsProfilePath = (profilePath: string) => {
   const suffix = profilePath.startsWith("/") ? profilePath : `/${profilePath}`;
   if (/^\/AppData\/Roaming(?:\/|$)/i.test(suffix)) {
@@ -620,24 +647,48 @@ export const decodeCloudSaveCustomPath = (
   if (!platform) throw new Error("cloud_save_custom_path_invalid_platform");
   const marker = PLATFORM_MARKERS[platform];
   const encodedPath = encoded.slice(marker.length);
-  const portable = splitPortablePath(encodedPath, platform);
+  const explicitAbsolutePath = encodedPath.startsWith(
+    CLOUD_SAVE_CUSTOM_ABSOLUTE_PATH_MARKER
+  )
+    ? encodedPath.slice(CLOUD_SAVE_CUSTOM_ABSOLUTE_PATH_MARKER.length)
+    : null;
+  const portable =
+    explicitAbsolutePath === null
+      ? splitPortablePath(encodedPath, platform)
+      : null;
+  if (!portable && explicitAbsolutePath === null) {
+    throw new Error(
+      isLegacyCloudSaveCustomPathRawPath(rawPath)
+        ? "cloud_save_custom_path_legacy"
+        : "cloud_save_custom_path_invalid"
+    );
+  }
+  const normalizedPath =
+    explicitAbsolutePath !== null
+      ? normalizeAbsolutePath(explicitAbsolutePath, platform)
+      : null;
   const normalizedEncodedPath = portable
     ? `${portable.token}${trimTrailingSeparators(portable.suffix, platform)}`
-    : normalizeAbsolutePath(encodedPath, platform);
+    : `${CLOUD_SAVE_CUSTOM_ABSOLUTE_PATH_MARKER}${normalizedPath}`;
   if (portable) {
     assertPortablePath(normalizedEncodedPath, platform);
   } else {
-    assertAbsolutePath(normalizedEncodedPath, platform);
+    assertAbsolutePath(normalizedPath!, platform);
   }
 
   let decodedPath: string;
   if (platform === context.platform) {
-    decodedPath = resolveNativePortablePath(normalizedEncodedPath, context);
+    decodedPath = portable
+      ? resolveNativePortablePath(normalizedEncodedPath, context)
+      : normalizedPath!;
   } else if (
     platform === "windows" &&
     context.platform === "linux" &&
     context.windowsCompatibility
   ) {
+    if (!portable) {
+      throw new Error("cloud_save_custom_path_non_portable");
+    }
     decodedPath = resolveWindowsPortablePathInWine(
       normalizedEncodedPath,
       context
@@ -730,9 +781,12 @@ export const encodeCloudSaveCustomPath = (
     };
   }
   const portablePath = portablePathFromAbsolute(normalizedPath, context);
+  const encodedPath = portablePath.startsWith("<")
+    ? portablePath
+    : `${CLOUD_SAVE_CUSTOM_ABSOLUTE_PATH_MARKER}${portablePath}`;
   const storeUserId = selectedStoreUserId(normalizedPath, context);
   const decoded = decodeCloudSaveCustomPath(
-    `${CLOUD_SAVE_CUSTOM_PATH_PREFIX}${PLATFORM_MARKERS[platform]}${portablePath}`,
+    `${CLOUD_SAVE_CUSTOM_PATH_PREFIX}${PLATFORM_MARKERS[platform]}${encodedPath}`,
     { ...context, preferredStoreUserId: storeUserId }
   );
   return {

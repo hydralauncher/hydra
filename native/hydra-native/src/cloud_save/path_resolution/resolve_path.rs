@@ -437,10 +437,14 @@ mod tests {
 
         let portable = resolve_path("<custom><windows><home>/Downloads/Game/Saves", &context);
         let absolute = resolve_path(
-            "<custom><windows>C:/Users/Rodrigo/Downloads/Game/Saves",
+            "<custom><windows><absolute>C:/Users/Rodrigo/Downloads/Game/Saves",
             &context,
         );
         let absolute_app_data = resolve_path(
+            "<custom><windows><absolute>C:/Users/Rodrigo/AppData/Roaming/Game/Saves",
+            &context,
+        );
+        let legacy = resolve_path(
             "<custom><windows>C:/Users/Rodrigo/AppData/Roaming/Game/Saves",
             &context,
         );
@@ -460,6 +464,11 @@ mod tests {
         assert!(portable.unresolved_tokens.is_empty());
         assert!(absolute.unresolved_tokens.is_empty());
         assert!(absolute_app_data.unresolved_tokens.is_empty());
+        assert!(legacy.paths.is_empty());
+        assert_eq!(
+            legacy.unresolved_tokens,
+            vec!["cloud_save_custom_path_legacy"]
+        );
     }
 
     #[test]
@@ -539,7 +548,10 @@ mod tests {
         wine_input.executable_path = Some("/games/Game/game.exe".to_string());
         wine_input.wine_prefix_path = Some("/home/maria/.wine".to_string());
         let wine_context = build_context(&wine_input).unwrap();
-        let unmapped = resolve_path("<custom><windows>D:/Unmapped/Saves", &wine_context);
+        let unmapped = resolve_path(
+            "<custom><windows><absolute>D:/Unmapped/Saves",
+            &wine_context,
+        );
         assert!(unmapped.paths.is_empty());
         assert_eq!(
             unmapped.unresolved_tokens,

@@ -3,6 +3,7 @@ pub const CUSTOM_PATH_PREFIX: &str = "<custom>";
 const WINDOWS_MARKER: &str = "<windows>";
 const LINUX_MARKER: &str = "<linux>";
 const MAC_MARKER: &str = "<mac>";
+const ABSOLUTE_MARKER: &str = "<absolute>";
 
 const WINDOWS_TOKENS: [&str; 6] = [
     "<winAppData>",
@@ -107,14 +108,20 @@ pub fn decode_custom_path(raw_path: &str) -> Option<Result<DecodedCustomPath, St
         return Some(Err("cloud_save_custom_path_invalid_platform".to_string()));
     };
 
-    let validation = if path.starts_with('<') {
-        validate_portable_path(path, encoded_platform)
+    let (decoded_path, validation) = if let Some(absolute_path) = path.strip_prefix(ABSOLUTE_MARKER)
+    {
+        (
+            absolute_path,
+            validate_absolute_path(absolute_path, encoded_platform),
+        )
+    } else if path.starts_with('<') {
+        (path, validate_portable_path(path, encoded_platform))
     } else {
-        validate_absolute_path(path, encoded_platform)
+        (path, Err("cloud_save_custom_path_legacy".to_string()))
     };
     Some(validation.map(|_| DecodedCustomPath {
         platform: encoded_platform.to_string(),
-        path: path.to_string(),
+        path: decoded_path.to_string(),
     }))
 }
 
@@ -153,10 +160,10 @@ mod tests {
             }))
         );
         assert_eq!(
-            decode_custom_path("<custom><windows>C:/Users/Hydra/Saves"),
+            decode_custom_path("<custom><windows><absolute>D:/Saves/Game"),
             Some(Ok(DecodedCustomPath {
                 platform: "windows".to_string(),
-                path: "C:/Users/Hydra/Saves".to_string()
+                path: "D:/Saves/Game".to_string()
             }))
         );
     }
@@ -173,6 +180,12 @@ mod tests {
             .unwrap()
             .is_err());
         assert!(decode_custom_path("<custom><windows>c:/Saves")
+            .unwrap()
+            .is_err());
+        assert!(decode_custom_path("<custom><windows>C:/Users/Hydra/Saves")
+            .unwrap()
+            .is_err());
+        assert!(decode_custom_path("<custom><linux>/home/hydra/Saves")
             .unwrap()
             .is_err());
     }

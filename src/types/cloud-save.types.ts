@@ -279,6 +279,7 @@ export interface CloudSaveV2FileDetails {
   local: CloudSaveV2LocalFileSource;
   activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
   customPaths: CloudSaveCustomPath[];
+  legacyCustomRawPaths: string[];
   comparisons: CloudSaveV2FileComparison[];
   variants: Array<{
     variantId: string;

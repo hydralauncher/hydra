@@ -497,7 +497,8 @@ mod tests {
         let temp = tempdir().unwrap();
         let variant = variant("default", "");
         let mut remote_file = file(&variant, "slot.sav");
-        remote_file.raw_path = "<custom><windows>C:/Users/Rodrigo/Downloads/Game/Saves".into();
+        remote_file.raw_path =
+            "<custom><windows><absolute>C:/Users/Rodrigo/Downloads/Game/Saves".into();
         let mut restore_input = input(
             temp.path(),
             StoreUserContext {
@@ -509,7 +510,7 @@ mod tests {
         );
         restore_input.approved_rules = vec![ApprovedRestoreRule {
             kind: "dir".into(),
-            raw_path: "<custom><windows>C:/Users/Rodrigo/Downloads/Game/Saves".into(),
+            raw_path: "<custom><windows><absolute>C:/Users/Rodrigo/Downloads/Game/Saves".into(),
             source: "custom".into(),
             preferred_path: None,
         }];
@@ -740,7 +741,7 @@ mod tests {
         let default = variant("default", "default");
         let custom_root = temp.path().join("Custom Saves");
         let normalized_root = custom_root.display().to_string().replace('\\', "/");
-        let raw_path = format!("<custom><windows>{normalized_root}");
+        let raw_path = format!("<custom><windows><absolute>{normalized_root}");
         let input = ResolveRestoreTargetsInput {
             shop: "steam".into(),
             object_id: "1".into(),

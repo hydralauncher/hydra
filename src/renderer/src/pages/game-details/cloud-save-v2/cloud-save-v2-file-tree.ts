@@ -19,6 +19,7 @@ export interface CloudSaveV2FileTreeRoot extends CloudSaveV2FileTreeBranchBase {
   type: "root";
   rawPath: string;
   customPath: CloudSaveCustomPath | null;
+  removableCustomRawPath: string | null;
 }
 
 export interface CloudSaveV2FileTreeDirectory
@@ -46,6 +47,7 @@ interface MutableBranch {
   name: string;
   rawPath?: string;
   customPath?: CloudSaveCustomPath;
+  removableCustomRawPath?: string;
   localDirectoryPath: string | null;
   hasLocalFiles: boolean;
   hasRemoteFiles: boolean;
@@ -173,6 +175,7 @@ const finalizeBranch = (
       type: "root",
       rawPath: branch.rawPath!,
       customPath: branch.customPath ?? null,
+      removableCustomRawPath: branch.removableCustomRawPath ?? null,
       ...shared,
     };
   }
@@ -201,7 +204,8 @@ export const filterCloudSaveV2Comparisons = (
 
 export const buildCloudSaveV2LocalFileTree = (
   files: CloudSaveV2LocalFile[],
-  customPaths: CloudSaveCustomPath[] = []
+  customPaths: CloudSaveCustomPath[] = [],
+  legacyCustomRawPaths: string[] = []
 ): CloudSaveV2FileTreeRoot[] => {
   const roots = new Map<string, MutableBranch>();
 
@@ -274,6 +278,7 @@ export const buildCloudSaveV2LocalFileTree = (
     const existing = roots.get(rootPathIdentity);
     if (existing) {
       existing.customPath = customPath;
+      existing.removableCustomRawPath = customPath.rawPath;
       continue;
     }
 
@@ -283,9 +288,34 @@ export const buildCloudSaveV2LocalFileTree = (
       name: customPath.path,
       rawPath: customPath.rawPath,
       customPath,
+      removableCustomRawPath: customPath.rawPath,
       localDirectoryPath: customPath.path,
       hasLocalFiles: false,
       hasRemoteFiles: false,
+      branches: new Map(),
+      files: [],
+    });
+  }
+
+  for (const rawPath of legacyCustomRawPaths) {
+    const existing = [...roots.values()].find(
+      (root) => root.rawPath === rawPath
+    );
+    if (existing) {
+      existing.removableCustomRawPath = rawPath;
+      continue;
+    }
+
+    const rootIdentity = `legacy:${rawPath}`;
+    roots.set(rootIdentity, {
+      type: "root",
+      id: JSON.stringify(["legacy-custom-root", rawPath]),
+      name: rawPath,
+      rawPath,
+      removableCustomRawPath: rawPath,
+      localDirectoryPath: null,
+      hasLocalFiles: false,
+      hasRemoteFiles: true,
       branches: new Map(),
       files: [],
     });
@@ -298,12 +328,14 @@ export const buildCloudSaveV2LocalFileTree = (
 
 export const buildCloudSaveV2ComparisonTree = (
   comparisons: CloudSaveV2FileComparison[],
-  customPaths: CloudSaveCustomPath[] = []
+  customPaths: CloudSaveCustomPath[] = [],
+  legacyCustomRawPaths: string[] = []
 ): CloudSaveV2FileTreeRoot[] => {
   const roots = new Map<string, MutableBranch>();
   const customPathByRawPath = new Map(
     customPaths.map((customPath) => [customPath.rawPath, customPath])
   );
+  const legacyCustomRawPathSet = new Set(legacyCustomRawPaths);
 
   for (const comparison of comparisons) {
     const rootId = JSON.stringify([
@@ -326,6 +358,11 @@ export const buildCloudSaveV2ComparisonTree = (
           : comparison.rawPath,
         rawPath: comparison.rawPath,
         customPath,
+        removableCustomRawPath:
+          customPath?.rawPath ??
+          (legacyCustomRawPathSet.has(comparison.rawPath)
+            ? comparison.rawPath
+            : undefined),
         localDirectoryPath: localRootPath,
         hasLocalFiles: Boolean(comparison.local),
         hasRemoteFiles: Boolean(comparison.remote),

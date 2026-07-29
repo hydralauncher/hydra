@@ -202,6 +202,19 @@ describe("cloud save V2 local file tree", () => {
     assert.equal(root.localDirectoryPath, customPath.path);
     assert.equal(root.rawPath, customPath.rawPath);
     assert.equal(root.customPath, customPath);
+    assert.equal(root.removableCustomRawPath, customPath.rawPath);
+    assert.deepEqual(root.children, []);
+  });
+
+  it("shows a remote-only legacy custom location as removable", () => {
+    const rawPath = "<custom><windows>C:/Users/Hydra/AppData/Roaming/Game";
+    const [root] = buildCloudSaveV2LocalFileTree([], [], [rawPath]);
+
+    assert.equal(root.rawPath, rawPath);
+    assert.equal(root.localDirectoryPath, null);
+    assert.equal(root.customPath, null);
+    assert.equal(root.removableCustomRawPath, rawPath);
+    assert.equal(root.hasRemoteFiles, true);
     assert.deepEqual(root.children, []);
   });
 
@@ -366,5 +379,29 @@ describe("cloud save V2 comparison tree", () => {
 
     assert.equal(root.localDirectoryPath, customPath.path);
     assert.equal(root.customPath, customPath);
+    assert.equal(root.removableCustomRawPath, customPath.rawPath);
+  });
+
+  it("marks a remote-only legacy custom root as removable", () => {
+    const rawPath = "<custom><linux>/home/hydra/.local/share/game";
+    const remote = remoteFile(rawPath, "slot.dat");
+    const [root] = buildCloudSaveV2ComparisonTree(
+      [
+        {
+          variantId: remote.variantId,
+          rawPath,
+          relativePath: remote.relativePath,
+          status: "remote-only",
+          local: null,
+          remote,
+        },
+      ],
+      [],
+      [rawPath]
+    );
+
+    assert.equal(root.customPath, null);
+    assert.equal(root.localDirectoryPath, null);
+    assert.equal(root.removableCustomRawPath, rawPath);
   });
 });

@@ -9,12 +9,7 @@ import {
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 
-import type {
-  CloudSaveCustomPath,
-  CloudSaveState,
-  CloudSaveV2FileDetails,
-  GameShop,
-} from "@types";
+import type { CloudSaveState, CloudSaveV2FileDetails, GameShop } from "@types";
 import { formatBytes } from "@shared";
 import {
   Button,
@@ -63,10 +58,12 @@ export function CloudSaveV2FileBrowserModal({
   const [showOnlyChanged, setShowOnlyChanged] = useState(true);
   const [isFileListScrolled, setIsFileListScrolled] = useState(false);
   const [isAddingCustomPath, setIsAddingCustomPath] = useState(false);
-  const [removingCustomPath, setRemovingCustomPath] =
-    useState<CloudSaveCustomPath | null>(null);
-  const [pendingCustomPathRemoval, setPendingCustomPathRemoval] =
-    useState<CloudSaveCustomPath | null>(null);
+  const [removingCustomPath, setRemovingCustomPath] = useState<string | null>(
+    null
+  );
+  const [pendingCustomPathRemoval, setPendingCustomPathRemoval] = useState<
+    string | null
+  >(null);
   const isConflict = details?.state === "conflict";
   const titleIsConflict = isConflict || overviewState === "conflict";
   const visibleComparisons = useMemo(
@@ -78,17 +75,19 @@ export function CloudSaveV2FileBrowserModal({
     () =>
       buildCloudSaveV2LocalFileTree(
         details?.local.files ?? [],
-        details?.customPaths ?? []
+        details?.customPaths ?? [],
+        details?.legacyCustomRawPaths ?? []
       ),
-    [details?.customPaths, details?.local.files]
+    [details?.customPaths, details?.legacyCustomRawPaths, details?.local.files]
   );
   const comparisonRoots = useMemo(
     () =>
       buildCloudSaveV2ComparisonTree(
         visibleComparisons,
-        details?.customPaths ?? []
+        details?.customPaths ?? [],
+        details?.legacyCustomRawPaths ?? []
       ),
-    [details?.customPaths, visibleComparisons]
+    [details?.customPaths, details?.legacyCustomRawPaths, visibleComparisons]
   );
   const comparisonCounts = useMemo(() => {
     const counts = {
@@ -181,7 +180,7 @@ export function CloudSaveV2FileBrowserModal({
       await window.electron.removeCloudSaveCustomPath(
         objectId,
         shop,
-        pendingCustomPathRemoval.rawPath
+        pendingCustomPathRemoval
       );
       setPendingCustomPathRemoval(null);
       await onRetry();

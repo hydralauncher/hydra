@@ -18,6 +18,7 @@ import type {
 } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
+import { isLegacyCloudSaveCustomPathRawPath } from "./custom-path.js";
 
 interface BuildCloudSaveV2FileDetailsInput {
   state: CloudSaveState;
@@ -32,6 +33,7 @@ interface BuildCloudSaveV2FileDetailsInput {
   unresolvedRemoteEntryIds?: string[];
   conflictEntryIds?: string[];
   customPaths?: CloudSaveCustomPath[];
+  legacyCustomRawPaths?: string[];
 }
 
 interface LoadCloudSaveV2FileDetailsInput
@@ -180,6 +182,7 @@ export const buildCloudSaveV2FileDetails = ({
   unresolvedRemoteEntryIds = [],
   conflictEntryIds = [],
   customPaths = [],
+  legacyCustomRawPaths = [],
 }: BuildCloudSaveV2FileDetailsInput): CloudSaveV2FileDetails => {
   const variantById = indexVariants([...localVariants, ...remoteVariants]);
   indexFiles(localFiles);
@@ -271,6 +274,14 @@ export const buildCloudSaveV2FileDetails = ({
     local,
     activeSnapshot: remote,
     customPaths,
+    legacyCustomRawPaths: [
+      ...new Set([
+        ...legacyCustomRawPaths.filter(isLegacyCloudSaveCustomPathRawPath),
+        ...remoteFiles
+          .map((file) => file.rawPath)
+          .filter(isLegacyCloudSaveCustomPathRawPath),
+      ]),
+    ].sort(),
     comparisons:
       state === "conflict"
         ? buildComparisons(

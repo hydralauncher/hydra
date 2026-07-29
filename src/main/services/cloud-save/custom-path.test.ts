@@ -11,6 +11,7 @@ import {
   cloudSaveCustomPathStorageKey,
   decodeCloudSaveCustomPath,
   encodeCloudSaveCustomPath,
+  isLegacyCloudSaveCustomPathRawPath,
   type CloudSaveCustomPathContext,
   validateCloudSaveCustomPathForRestore,
 } from "./custom-path.ts";
@@ -288,9 +289,9 @@ describe("cloud save custom path codec", () => {
     );
   });
 
-  it("does not reinterpret an unrelated drive_c backup as a Wine prefix", () => {
+  it("keeps explicit absolute paths platform-specific", () => {
     const rawPath =
-      "<custom><linux>/mnt/backups/drive_c/users/steamuser/Documents/Game";
+      "<custom><linux><absolute>/mnt/backups/drive_c/users/steamuser/Documents/Game";
     assert.equal(
       decodeCloudSaveCustomPath(rawPath, {
         ...linuxContext("hydra"),
@@ -303,14 +304,48 @@ describe("cloud save custom path codec", () => {
     );
   });
 
-  it("keeps literal absolute paths exact", () => {
-    const rawPath = "<custom><windows>C:/Users/Rodrigo/AppData/Roaming/Game";
+  it("keeps explicit absolute paths exact", () => {
+    const rawPath =
+      "<custom><windows><absolute>C:/Users/Rodrigo/AppData/Roaming/Game";
     const receivingContext = windowsContext("Maria", "D:");
     receivingContext.appDataDir = "E:/Profiles/Maria/Roaming";
     const decoded = decodeCloudSaveCustomPath(rawPath, receivingContext);
 
     assert.equal(decoded.rawPath, rawPath);
     assert.equal(decoded.path, "C:/Users/Rodrigo/AppData/Roaming/Game");
+  });
+
+  it("marks bare absolute paths as legacy and never decodes them", () => {
+    const legacyWindows =
+      "<custom><windows>C:/Users/Rodrigo/AppData/Roaming/Game";
+    const legacyLinux = "<custom><linux>/home/rodrigo/.local/share/game";
+
+    assert.equal(isLegacyCloudSaveCustomPathRawPath(legacyWindows), true);
+    assert.equal(isLegacyCloudSaveCustomPathRawPath(legacyLinux), true);
+    assert.equal(
+      isLegacyCloudSaveCustomPathRawPath("<custom><windows><winAppData>/Game"),
+      false
+    );
+    assert.equal(
+      isLegacyCloudSaveCustomPathRawPath(
+        "<custom><windows><absolute>D:/Saves/Game"
+      ),
+      false
+    );
+    assert.throws(() =>
+      decodeCloudSaveCustomPath(legacyWindows, windowsContext("Hydra"))
+    );
+    assert.throws(() =>
+      decodeCloudSaveCustomPath(legacyLinux, linuxContext("hydra"))
+    );
+  });
+
+  it("encodes new non-portable absolute paths with the explicit marker", () => {
+    assert.equal(
+      encodeCloudSaveCustomPath("D:/Saves/Game", windowsContext("Hydra"))
+        .rawPath,
+      "<custom><windows><absolute>D:/Saves/Game"
+    );
   });
 
   it("rejects unknown platforms, relative paths, traversal and roots", () => {
@@ -322,9 +357,9 @@ describe("cloud save custom path codec", () => {
     );
     for (const rawPath of [
       "<custom><linux>relative/game",
-      "<custom><linux>/home/hydra/../game",
+      "<custom><linux><absolute>/home/hydra/../game",
       "<custom><linux><home>/../game",
-      "<custom><linux>/",
+      "<custom><linux><absolute>/",
     ]) {
       assert.throws(() =>
         decodeCloudSaveCustomPath(rawPath, linuxContext("hydra"))
@@ -332,8 +367,8 @@ describe("cloud save custom path codec", () => {
     }
     for (const rawPath of [
       "<custom><windows>c:/Users/Hydra/Game",
-      "<custom><windows>C:/",
-      "<custom><windows>C:/Windows/System32",
+      "<custom><windows><absolute>C:/",
+      "<custom><windows><absolute>C:/Windows/System32",
       "<custom><windows><xdgData>/Game",
     ]) {
       assert.throws(() =>
@@ -342,13 +377,13 @@ describe("cloud save custom path codec", () => {
     }
     assert.throws(() =>
       decodeCloudSaveCustomPath(
-        "<custom><mac>/System/Library",
+        "<custom><mac><absolute>/System/Library",
         macContext("hydra")
       )
     );
     assert.throws(() =>
       decodeCloudSaveCustomPath(
-        "<custom><windows>D:/Unmapped/Saves",
+        "<custom><windows><absolute>D:/Unmapped/Saves",
         wineContext("hydra")
       )
     );
@@ -357,7 +392,7 @@ describe("cloud save custom path codec", () => {
   it("does not apply a valid path from another platform", async () => {
     assert.equal(
       await validateCloudSaveCustomPathForRestore(
-        "<custom><linux>/home/hydra/game",
+        "<custom><linux><home>/game",
         "windows",
         windowsContext("Hydra")
       ),

@@ -146,6 +146,28 @@ describe("cloud save V2 file details", () => {
       "local-only",
       "remote-only",
     ]);
+    assert.deepEqual(details.legacyCustomRawPaths, [remote.rawPath]);
+  });
+
+  it("exposes stored legacy paths without classifying current paths as legacy", () => {
+    const details = buildCloudSaveV2FileDetails({
+      state: "untracked",
+      localVariants: [],
+      localFiles: [],
+      localSourceFiles: [],
+      localTotalSizeBytes: 0,
+      activeSnapshot: null,
+      remoteVariants: [],
+      remoteFiles: [],
+      legacyCustomRawPaths: [
+        "<custom><linux>/home/hydra/.local/share/game",
+        "<custom><linux><home>/.local/share/game",
+      ],
+    });
+
+    assert.deepEqual(details.legacyCustomRawPaths, [
+      "<custom><linux>/home/hydra/.local/share/game",
+    ]);
   });
 
   it("loads and verifies the active manifest version", async () => {

@@ -23,6 +23,14 @@ const isIncompleteCoverage = (
   coverage.outcome === "partial" ||
   coverage.outcome === "unresolved";
 
+export const isCloudSaveRawPathRemovable = (
+  rawPath: string,
+  registeredRawPaths: ReadonlySet<string>,
+  activeRemoteFiles: ReadonlyArray<{ rawPath: string }>
+) =>
+  registeredRawPaths.has(rawPath) ||
+  activeRemoteFiles.some((file) => file.rawPath === rawPath);
+
 export const excludeCloudSaveRawPathsFromMerge = (
   analysis: CloudSaveRawPathRemovalAnalysis,
   merge: CloudSaveMergeResult,

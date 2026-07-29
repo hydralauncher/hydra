@@ -9,7 +9,6 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type {
-  CloudSaveCustomPath,
   CloudSaveV2FileComparisonStatus,
   CloudSaveV2LocalFile,
   CloudSaveV2RemoteFile,
@@ -27,7 +26,7 @@ interface CloudSaveV2FileTreeViewProps {
   roots: CloudSaveV2FileTreeRoot[];
   mode: "local" | "comparison";
   onOpenFolder: (path: string) => void;
-  onRemoveCustomPath: (customPath: CloudSaveCustomPath) => void;
+  onRemoveCustomPath: (rawPath: string) => void;
   customPathActionsDisabled: boolean;
 }
 
@@ -146,9 +145,9 @@ export function CloudSaveV2FileTreeView({
   const folderActions = (
     path: string | null,
     name: string,
-    customPath: CloudSaveCustomPath | null
+    removableCustomRawPath: string | null
   ) => {
-    if (!path && !customPath) return null;
+    if (!path && !removableCustomRawPath) return null;
 
     return (
       <div className="cloud-save-v2__browser-path-actions">
@@ -164,12 +163,12 @@ export function CloudSaveV2FileTreeView({
             <span>{t("cloud_save_v2_open")}</span>
           </button>
         )}
-        {customPath && (
+        {removableCustomRawPath && (
           <button
             type="button"
             className="cloud-save-v2__browser-path-action cloud-save-v2__browser-path-action--remove"
             disabled={customPathActionsDisabled}
-            onClick={() => onRemoveCustomPath(customPath)}
+            onClick={() => onRemoveCustomPath(removableCustomRawPath)}
             title={t("cloud_save_v2_remove_custom_path")}
             aria-label={t("cloud_save_v2_remove_custom_path_named", { name })}
           >
@@ -288,7 +287,7 @@ export function CloudSaveV2FileTreeView({
             {folderActions(
               node.localDirectoryPath,
               node.name,
-              node.type === "root" ? node.customPath : null
+              node.type === "root" ? node.removableCustomRawPath : null
             )}
           </div>
           {children}
@@ -340,7 +339,7 @@ export function CloudSaveV2FileTreeView({
                 {folderActions(
                   node.localDirectoryPath,
                   node.name,
-                  node.type === "root" ? node.customPath : null
+                  node.type === "root" ? node.removableCustomRawPath : null
                 )}
               </div>
             ) : (
@@ -361,6 +360,9 @@ export function CloudSaveV2FileTreeView({
                 <div className="cloud-save-v2__browser-folder-copy">
                   <strong title={remoteName}>{remoteName}</strong>
                 </div>
+                {node.type === "root" &&
+                  !node.localDirectoryPath &&
+                  folderActions(null, node.name, node.removableCustomRawPath)}
               </div>
             ) : (
               <span className="cloud-save-v2__browser-missing-side">—</span>

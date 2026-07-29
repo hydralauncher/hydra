@@ -8,7 +8,10 @@ import type {
 } from "@types";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
-import { excludeCloudSaveRawPathsFromMerge } from "./custom-path-removal.ts";
+import {
+  excludeCloudSaveRawPathsFromMerge,
+  isCloudSaveRawPathRemovable,
+} from "./custom-path-removal.ts";
 
 const variant = (id: string): SnapshotVariant => ({
   variantId: id,
@@ -25,6 +28,29 @@ const file = (rawPath: string, relativePath: string): SnapshotFile => ({
 });
 
 describe("custom path removal proposal", () => {
+  it("allows an exact legacy rawPath from the active snapshot without local registration", () => {
+    const rawPath = "<custom><windows>C:/Users/Hydra/AppData/Roaming/Game";
+    const otherRawPath = "<custom><windows><winAppData>/Other";
+
+    assert.equal(
+      isCloudSaveRawPathRemovable(rawPath, new Set(), [
+        { rawPath },
+        { rawPath: otherRawPath },
+      ]),
+      true
+    );
+    assert.equal(
+      isCloudSaveRawPathRemovable("<custom><windows>C:/Unknown", new Set(), [
+        { rawPath },
+      ]),
+      false
+    );
+    assert.equal(
+      isCloudSaveRawPathRemovable(otherRawPath, new Set([otherRawPath]), []),
+      true
+    );
+  });
+
   it("removes only the selected rawPath and does not schedule local deletion", () => {
     const removed = file("<custom><windows><winDocuments>/Game", "slot.dat");
     const kept = file("<winAppData>/Game", "settings.dat");

@@ -5,8 +5,14 @@ import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { loadCloudSaveV2FileDetails } from "./cloud-save-v2-file-details";
 import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
 import { getFirstSyncState } from "./sync-game";
-import { getCloudSaveCustomPaths } from "./custom-path-store";
-import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
+import {
+  getCloudSaveCustomPaths,
+  getUnavailableCloudSaveCustomPathRawPaths,
+} from "./custom-path-store";
+import {
+  cloudSaveCustomPathContextFromPathContext,
+  isLegacyCloudSaveCustomPathRawPath,
+} from "./custom-path";
 
 export const getCloudSaveV2FileDetails = async (
   objectId: string,
@@ -15,13 +21,17 @@ export const getCloudSaveV2FileDetails = async (
   assertCloudSaveSubscription();
 
   const analysis = await analyzeCloudSaveState(objectId, shop);
-  const customPaths = await getCloudSaveCustomPaths(
-    shop,
-    objectId,
-    cloudSaveCustomPathContextFromPathContext(
-      analysis.localSnapshotContext.pathContext
-    )
+  const customPathContext = cloudSaveCustomPathContextFromPathContext(
+    analysis.localSnapshotContext.pathContext
   );
+  const [customPaths, unavailableCustomRawPaths] = await Promise.all([
+    getCloudSaveCustomPaths(shop, objectId, customPathContext),
+    getUnavailableCloudSaveCustomPathRawPaths(
+      shop,
+      objectId,
+      customPathContext
+    ),
+  ]);
   const state =
     analysis.state.state === "untracked"
       ? getFirstSyncState(analysis)
@@ -45,6 +55,9 @@ export const getCloudSaveV2FileDetails = async (
         (conflict) => conflict.entryId
       ),
       customPaths,
+      legacyCustomRawPaths: unavailableCustomRawPaths.filter(
+        isLegacyCloudSaveCustomPathRawPath
+      ),
     },
     getRemoteSnapshotRestoreManifest
   );
