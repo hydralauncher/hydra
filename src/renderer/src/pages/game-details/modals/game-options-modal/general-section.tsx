@@ -854,7 +854,7 @@ export function GeneralSettingsSection({
             </h4>
           </div>
           <TextField
-            value={launchOptions}
+            value={launchedThroughSteam ? "" : launchOptions}
             theme="dark"
             disabled={launchedThroughSteam}
             placeholder={
@@ -864,6 +864,7 @@ export function GeneralSettingsSection({
             }
             onChange={onChangeLaunchOptions}
             rightContent={
+              !launchedThroughSteam &&
               game.launchOptions && (
                 <Button onClick={onClearLaunchOptions} theme="outline">
                   {t("clear")}
