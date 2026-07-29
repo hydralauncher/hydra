@@ -399,6 +399,27 @@ const getInstalledFirstDifference = (
   return 0;
 };
 
+const getAchievementRateDifference = (
+  a: LibraryGame,
+  b: LibraryGame
+): number => {
+  const aTotal = a.achievementCount ?? 0;
+  const bTotal = b.achievementCount ?? 0;
+
+  if (aTotal === 0 || bTotal === 0) {
+    if (aTotal === bTotal) return 0;
+    return aTotal === 0 ? 1 : -1;
+  }
+
+  const aUnlocked = a.unlockedAchievementCount ?? 0;
+  const bUnlocked = b.unlockedAchievementCount ?? 0;
+
+  const rateDifference = bUnlocked * aTotal - aUnlocked * bTotal;
+  if (rateDifference !== 0) return rateDifference;
+
+  return bUnlocked - aUnlocked;
+};
+
 const compareLibraryGamesByTitle = (
   a: LibraryGame,
   b: LibraryGame,
@@ -426,6 +447,12 @@ export const sortLibraryGames = (
 
       case "most_played": {
         const difference = getMostPlayedDifference(a, b);
+        if (difference !== 0) return difference;
+        break;
+      }
+
+      case "achievements": {
+        const difference = getAchievementRateDifference(a, b);
         if (difference !== 0) return difference;
         break;
       }

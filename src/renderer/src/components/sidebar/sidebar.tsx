@@ -37,6 +37,7 @@ const SIDEBAR_SORT_OPTIONS = new Set<SortOption>([
   "title_asc",
   "recently_played",
   "most_played",
+  "achievements",
 ]);
 
 const isGamePlayable = (game: LibraryGame) =>
@@ -88,7 +89,7 @@ export function Sidebar() {
     return localStorage.getItem("sidebar-favorites-first") !== "false";
   });
 
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [showPlayableOnly, setShowPlayableOnly] = useState(false);
 
   const uniquePlatforms = useMemo(() => {
@@ -106,8 +107,11 @@ export function Sidebar() {
   const sortedLibrary = useMemo(() => {
     let games = filterLibraryGamesByCategory(library, sidebarCategory);
 
-    if (sidebarCategory === "classics" && selectedPlatform) {
-      games = games.filter((game) => game.platform === selectedPlatform);
+    if (sidebarCategory === "classics" && selectedPlatforms.length > 0) {
+      const platforms = new Set(selectedPlatforms);
+      games = games.filter(
+        (game) => game.platform && platforms.has(game.platform)
+      );
     }
 
     games = sortLibraryGames(games, sidebarSortBy);
@@ -124,7 +128,7 @@ export function Sidebar() {
     library,
     sidebarCategory,
     sidebarSortBy,
-    selectedPlatform,
+    selectedPlatforms,
     showFavoritesFirst,
   ]);
 
@@ -160,7 +164,7 @@ export function Sidebar() {
   const hasActiveFilter =
     library.length > 0 &&
     (sidebarCategory !== "all" ||
-      Boolean(selectedPlatform) ||
+      selectedPlatforms.length > 0 ||
       showPlayableOnly ||
       filterQuery.trim().length > 0);
 
@@ -196,7 +200,7 @@ export function Sidebar() {
     setSidebarCategory(next);
     localStorage.setItem("sidebar-category", next);
     if (next !== "classics") {
-      setSelectedPlatform(null);
+      setSelectedPlatforms([]);
     }
   }, []);
 
@@ -470,8 +474,8 @@ export function Sidebar() {
                 showFavoritesFirst={showFavoritesFirst}
                 onToggleFavoritesFirst={handleToggleFavoritesFirst}
                 platforms={uniquePlatforms}
-                selectedPlatform={selectedPlatform}
-                onPlatformChange={setSelectedPlatform}
+                selectedPlatforms={selectedPlatforms}
+                onPlatformsChange={setSelectedPlatforms}
               />
             </div>
 
