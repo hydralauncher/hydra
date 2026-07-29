@@ -161,6 +161,24 @@
       color: globals.$body-color;
       font-size: globals.$small-font-size;
     }
+
+    &-link {
+      display: inline-flex;
+      align-items: center;
+      gap: calc(globals.$spacing-unit / 2);
+      padding: 0;
+      border: none;
+      background: none;
+      color: globals.$body-color;
+      font-family: inherit;
+      font-size: globals.$small-font-size;
+      white-space: nowrap;
+      cursor: pointer;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   }
 
   &__wine-prefix {

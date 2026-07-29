@@ -115,19 +115,22 @@ export function CompatibilitySettingsSection({
     <>
       {managedBySteam && (
         <div className="game-options-modal__steam-managed">
-          <InfoIcon className="game-options-modal__steam-managed-icon" />
+          <InfoIcon
+            size={14}
+            className="game-options-modal__steam-managed-icon"
+          />
           <div className="game-options-modal__steam-managed-content">
             <p className="game-options-modal__steam-managed-description">
               {t("compatibility_managed_by_steam")}
             </p>
-            <Button
+            <button
               type="button"
-              theme="outline"
+              className="game-options-modal__steam-managed-link"
               onClick={onOpenSteamGameProperties}
             >
               {t("open_steam_game_properties")}
-              <LinkExternalIcon />
-            </Button>
+              <LinkExternalIcon size={12} />
+            </button>
           </div>
         </div>
       )}
