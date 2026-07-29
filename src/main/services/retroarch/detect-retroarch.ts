@@ -33,82 +33,79 @@ const isDirectory = (target: string): boolean => {
   }
 };
 
+const stripQuotes = (value: string): string =>
+  value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+    ? value.slice(1, -1)
+    : value;
+
+const resolveLibretroPath = (raw: string, cfgPath: string): string => {
+  if (raw.startsWith(":")) {
+    const relative = raw.slice(1).replace(/^[\\/]/, "");
+    return path.join(path.dirname(cfgPath), relative);
+  }
+  if (raw.startsWith("~")) {
+    return path.join(os.homedir(), raw.slice(1));
+  }
+  return path.isAbsolute(raw) ? raw : path.join(path.dirname(cfgPath), raw);
+};
+
 const readLibretroDirectory = (cfgPath: string): string | null => {
   try {
     const content = fs.readFileSync(cfgPath, "utf8");
-    const match = /^\s*libretro_directory\s*=\s*"?([^"\r\n]+?)"?\s*$/m.exec(
-      content
-    );
-    if (!match) return null;
+    for (const line of content.split("\n")) {
+      const eq = line.indexOf("=");
+      if (eq === -1) continue;
+      if (line.slice(0, eq).trim() !== "libretro_directory") continue;
 
-    const raw = match[1].trim();
-    if (!raw) return null;
-
-    if (raw.startsWith(":")) {
-      const relative = raw.slice(1).replace(/^[\\/]/, "");
-      return path.join(path.dirname(cfgPath), relative);
+      const raw = stripQuotes(line.slice(eq + 1).trim());
+      if (!raw) return null;
+      return resolveLibretroPath(raw, cfgPath);
     }
-    if (raw.startsWith("~")) {
-      return path.join(os.homedir(), raw.slice(1));
-    }
-    return path.isAbsolute(raw) ? raw : path.join(path.dirname(cfgPath), raw);
+    return null;
   } catch {
     return null;
   }
 };
 
+const retroArchConfigRoots = (executablePath: string): string[] => {
+  const home = os.homedir();
+
+  if (executablePath.includes("org.libretro.RetroArch")) {
+    return [
+      path.join(
+        home,
+        ".var",
+        "app",
+        "org.libretro.RetroArch",
+        "config",
+        "retroarch"
+      ),
+    ];
+  }
+
+  const roots = [path.dirname(executablePath)];
+  if (process.platform === "win32") {
+    const appData = process.env.APPDATA;
+    if (appData) roots.push(path.join(appData, "RetroArch"));
+  } else if (process.platform === "darwin") {
+    roots.push(path.join(home, "Library", "Application Support", "RetroArch"));
+  } else {
+    roots.push(path.join(home, ".config", "retroarch"));
+  }
+  return roots;
+};
+
 export const detectRetroArchCoresDir = (
   executablePath: string
 ): string | null => {
-  const home = os.homedir();
-  const exeDir = path.dirname(executablePath);
-  const isFlatpak = executablePath.includes("org.libretro.RetroArch");
+  const roots = retroArchConfigRoots(executablePath);
 
-  const configCandidates: string[] = [];
-  const dirCandidates: string[] = [];
-
-  if (isFlatpak) {
-    const flatpakConfigDir = path.join(
-      home,
-      ".var",
-      "app",
-      "org.libretro.RetroArch",
-      "config",
-      "retroarch"
-    );
-    configCandidates.push(path.join(flatpakConfigDir, "retroarch.cfg"));
-    dirCandidates.push(path.join(flatpakConfigDir, "cores"));
-  } else {
-    configCandidates.push(path.join(exeDir, "retroarch.cfg"));
-    dirCandidates.push(path.join(exeDir, "cores"));
-
-    if (process.platform === "win32") {
-      const appData = process.env.APPDATA;
-      if (appData) {
-        configCandidates.push(path.join(appData, "RetroArch", "retroarch.cfg"));
-        dirCandidates.push(path.join(appData, "RetroArch", "cores"));
-      }
-    } else if (process.platform === "darwin") {
-      const supportDir = path.join(
-        home,
-        "Library",
-        "Application Support",
-        "RetroArch"
-      );
-      configCandidates.push(path.join(supportDir, "retroarch.cfg"));
-      dirCandidates.push(path.join(supportDir, "cores"));
-    } else {
-      const configDir = path.join(home, ".config", "retroarch");
-      configCandidates.push(path.join(configDir, "retroarch.cfg"));
-      dirCandidates.push(path.join(configDir, "cores"));
-    }
-  }
-
-  for (const cfg of configCandidates) {
-    const resolved = readLibretroDirectory(cfg);
+  for (const root of roots) {
+    const resolved = readLibretroDirectory(path.join(root, "retroarch.cfg"));
     if (resolved && isDirectory(resolved)) return resolved;
   }
-  for (const dir of dirCandidates) {
+  for (const root of roots) {
+    const dir = path.join(root, "cores");
     if (isDirectory(dir)) return dir;
   }
 
