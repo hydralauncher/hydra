@@ -11,7 +11,7 @@ import path from "node:path";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 import { INTERVALS } from "@main/constants";
 import { Wine } from "./wine";
-import { isInsideSteamLibrary } from "./steam-library";
+import { steamLaunchedGames } from "./steam-launched-games";
 import { NativeAddon } from "./native-addon";
 import { emulatorSessions } from "./emulators/emulator-session-tracker";
 import { launchedGamePids } from "./launched-game-pids";
@@ -196,7 +196,9 @@ const hasLinuxCompatibilityProcessMatch = (
     game.objectId
   )?.toLowerCase();
 
-  const launchedBySteam = isInsideSteamLibrary(executablePath);
+  const launchedBySteam = steamLaunchedGames.has(
+    levelKeys.game(game.shop, game.objectId)
+  );
 
   return linuxProcesses.some((process) => {
     if (process.cwd !== executableDirectory) {
@@ -476,6 +478,7 @@ const onCloseGame = (game: Game) => {
   const gamePlaytime = gamesPlaytime.get(gameKey)!;
   gamesPlaytime.delete(gameKey);
   launchedGamePids.delete(gameKey);
+  steamLaunchedGames.delete(gameKey);
   PowerSaveBlockerManager.markGameClosed(gameKey);
 
   const delta = now - gamePlaytime.lastTick;

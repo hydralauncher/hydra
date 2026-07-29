@@ -16,6 +16,7 @@ import {
   resolveSteamClientCompatEnv,
   resolveSteamAppId,
   launchThroughSteam,
+  steamLaunchedGames,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
@@ -363,9 +364,12 @@ const launchOnLinux = async (
   useGamemode: boolean
 ): Promise<number | null> => {
   if (await handOverToSteam(parsedPath, objectId, launchOptions)) {
+    steamLaunchedGames.add(gameKey);
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return null;
   }
+
+  steamLaunchedGames.delete(gameKey);
 
   if (isWindowsExecutable(parsedPath)) {
     const launched = await launchWindowsBinaryOnLinux(

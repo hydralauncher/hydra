@@ -134,19 +134,6 @@ const resolveSteamPrefixPath = (executablePath: string, appId: string) => {
   return fs.existsSync(prefixPath) ? prefixPath : null;
 };
 
-export const resolveSteamLaunchInfo = (
-  executablePath: string
-): SteamLaunchInfo | null => {
-  const appId = resolveSteamAppId(executablePath);
-
-  if (!appId) return null;
-
-  return {
-    appId,
-    winePrefixPath: resolveSteamPrefixPath(executablePath, appId),
-  };
-};
-
 const isSteamBinaryOnPath = () =>
   (process.env.PATH ?? "")
     .split(path.delimiter)
@@ -171,6 +158,21 @@ export const isSteamAvailable = () => {
   );
 
   return hasInstallDirectory || isSteamBinaryOnPath();
+};
+
+export const resolveSteamLaunchInfo = (
+  executablePath: string
+): SteamLaunchInfo | null => {
+  if (!isSteamAvailable()) return null;
+
+  const appId = resolveSteamAppId(executablePath);
+
+  if (!appId) return null;
+
+  return {
+    appId,
+    winePrefixPath: resolveSteamPrefixPath(executablePath, appId),
+  };
 };
 
 export const launchThroughSteam = async (appId: string) => {

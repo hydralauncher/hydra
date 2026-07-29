@@ -363,7 +363,6 @@ function LaunchOptionsSection({
         placeholder={placeholder}
         onChange={onChangeLaunchOptions}
         rightContent={
-          !launchedThroughSteam &&
           hasStoredLaunchOptions && (
             <Button onClick={onClearLaunchOptions} theme="outline">
               {t("clear")}

@@ -1,9 +1,9 @@
 import { registerEvent } from "../register-event";
 import {
   emulators,
-  isInsideSteamLibrary,
   launchedGamePids,
   logger,
+  steamLaunchedGames,
   Wine,
 } from "@main/services";
 import sudo from "sudo-prompt";
@@ -37,6 +37,9 @@ const closeGame = async (
   if (!game) return;
 
   const launchedPid = launchedGamePids.get(levelKeys.game(shop, objectId));
+  const launchedBySteam = steamLaunchedGames.has(
+    levelKeys.game(shop, objectId)
+  );
   const trackingPaths = game.trackingExecutablePaths?.filter(Boolean) ?? [];
   const targetPaths =
     game.executablePath && !isWindowsBatchFile(game.executablePath)
@@ -97,7 +100,7 @@ const closeGame = async (
             runningProcess.environ?.STEAM_COMPAT_DATA_PATH?.toLowerCase();
 
           if (
-            !isInsideSteamLibrary(game.executablePath!) &&
+            !launchedBySteam &&
             expectedPrefix &&
             processPrefix &&
             processPrefix !== expectedPrefix
