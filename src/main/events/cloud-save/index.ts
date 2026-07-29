@@ -9,3 +9,4 @@ import "./sync-cloud-save-on-game-page";
 import "./resolve-cloud-save-conflict";
 import "./set-cloud-save-automatic-sync-enabled";
 import "./select-cloud-save-custom-path";
+import "./remove-cloud-save-custom-path";

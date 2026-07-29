@@ -16,9 +16,14 @@ import { validateRestoreManifest } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import {
   CLOUD_SAVE_CUSTOM_PATH_PREFIX,
+  cloudSaveCustomPathContextFromPathContext,
   validateCloudSaveCustomPathForRestore,
 } from "./custom-path";
-import { customPathToCloudSaveRule } from "./custom-path-store";
+import {
+  customPathToCloudSaveRule,
+  getCloudSaveCustomPaths,
+  getUnavailableCloudSaveCustomPathRawPaths,
+} from "./custom-path-store";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
   if (!winePrefixPath) return false;
@@ -60,7 +65,18 @@ export const getRemoteSnapshotRestoreManifest = async (
 
 export const getRestorableCloudSaveCustomPaths = async (
   manifest: RestoreManifestResponse,
-  platform: CloudSavePathContext["platform"]
+  pathContext: Pick<
+    CloudSavePathContext,
+    | "platform"
+    | "homeDir"
+    | "documentsDir"
+    | "appDataDir"
+    | "executablePath"
+    | "winePrefixPath"
+    | "steamPath"
+    | "objectId"
+    | "storeUserContext"
+  >
 ): Promise<CloudSaveCustomPath[]> => {
   const rawPaths = [
     ...new Set(
@@ -70,11 +86,14 @@ export const getRestorableCloudSaveCustomPaths = async (
     ),
   ].sort();
   const customPaths: CloudSaveCustomPath[] = [];
+  const customPathContext =
+    cloudSaveCustomPathContextFromPathContext(pathContext);
   for (const rawPath of rawPaths) {
     try {
       const customPath = await validateCloudSaveCustomPathForRestore(
         rawPath,
-        platform
+        pathContext.platform,
+        customPathContext
       );
       if (customPath) customPaths.push(customPath);
     } catch (error) {
@@ -103,30 +122,59 @@ export const resolveRestoreManifestTargets = async (
     remoteId: gameContext.game?.remoteId ?? undefined,
     userDataPath: SystemPath.getPath("userData"),
   });
-  const customPaths = await getRestorableCloudSaveCustomPaths(
+  const remoteCustomPaths = await getRestorableCloudSaveCustomPaths(
     manifest,
-    pathContext.platform
+    pathContext
   );
+  const customPathContext =
+    cloudSaveCustomPathContextFromPathContext(pathContext);
+  const [localCustomPaths, unavailableLocalRawPaths] = await Promise.all([
+    getCloudSaveCustomPaths(
+      manifest.snapshot.shop,
+      manifest.snapshot.objectId,
+      customPathContext
+    ),
+    getUnavailableCloudSaveCustomPathRawPaths(
+      manifest.snapshot.shop,
+      manifest.snapshot.objectId,
+      customPathContext
+    ),
+  ]);
+  const unavailableKeys = new Set(unavailableLocalRawPaths);
+  const customPaths = remoteCustomPaths.flatMap((remotePath) => {
+    if (unavailableKeys.has(remotePath.rawPath)) {
+      return [];
+    }
+    const localPath = localCustomPaths.find(
+      (localPath) => localPath.rawPath === remotePath.rawPath
+    );
+    return [
+      localPath ? { ...localPath, rawPath: remotePath.rawPath } : remotePath,
+    ];
+  });
 
-  const wineProfiles = pathContext.winePrefixPath
-    ? Wine.getPrefixUserProfiles(pathContext.winePrefixPath)
+  const effectiveWinePrefixPath = customPathContext.winePrefixPath;
+  const wineUserProfilePath = customPathContext.wineUserProfilePath;
+  const wineProfiles = effectiveWinePrefixPath
+    ? Wine.getPrefixUserProfiles(effectiveWinePrefixPath)
     : [];
   const usesWindowsCompatibility =
     pathContext.platform === "linux" &&
     pathContext.executablePath?.toLowerCase().endsWith(".exe") === true;
-  const winePrefixIsValid = isWinePrefixValid(pathContext.winePrefixPath);
+  const winePrefixIsValid = isWinePrefixValid(effectiveWinePrefixPath);
   logger.info("[Cloud Save] Resolving remote snapshot targets", {
     shop: manifest.snapshot.shop,
     objectId: manifest.snapshot.objectId,
     fileCount: manifest.files.length,
-    winePrefixPath: pathContext.winePrefixPath ?? null,
+    winePrefixPath: effectiveWinePrefixPath ?? null,
     winePrefixIsValid,
+    wineUserProfilePath: wineUserProfilePath ?? null,
     wineProfileCount: wineProfiles.length,
     hasActiveStoreUser: Boolean(pathContext.storeUserContext.active),
     knownStoreUsers: pathContext.storeUserContext.known.length,
   });
 
-  if (usesWindowsCompatibility && !pathContext.winePrefixPath) {
+  if (usesWindowsCompatibility && !effectiveWinePrefixPath) {
     throw new Error("cloud_save_restore_prefix_unresolved");
   }
   if (usesWindowsCompatibility && !winePrefixIsValid) {
@@ -138,14 +186,21 @@ export const resolveRestoreManifestTargets = async (
 
   return NativeAddon.resolveRestoreTargets({
     ...pathContext,
+    winePrefixPath: effectiveWinePrefixPath,
     approvedRules: [
       ...approved.rules.map(({ kind, rawPath, source }) => ({
         kind,
         rawPath,
         source,
+        preferredPath: undefined,
       })),
       ...customPaths.map(customPathToCloudSaveRule),
-    ].map(({ kind, rawPath, source }) => ({ kind, rawPath, source })),
+    ].map(({ kind, rawPath, source, preferredPath }) => ({
+      kind,
+      rawPath,
+      source,
+      preferredPath,
+    })),
     variants: manifest.variants,
     files: manifest.files,
   });

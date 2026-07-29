@@ -115,6 +115,39 @@ describe("cloud save V2 file details", () => {
     );
   });
 
+  it("shows different custom raw paths as separate files", () => {
+    const local = {
+      ...file(firstVariantId, "l"),
+      rawPath: "<custom><windows><winAppData>/Game",
+    };
+    const remote = {
+      ...file(firstVariantId, "r"),
+      rawPath: "<custom><windows>C:/Users/Rodrigo/AppData/Roaming/Game",
+    };
+    const oneFileSummary = {
+      ...summary,
+      fileCount: 1,
+      totalSizeBytes: 4,
+    };
+    const details = buildCloudSaveV2FileDetails({
+      state: "conflict",
+      localVariants: [variants[0]],
+      localFiles: [local],
+      localSourceFiles: [source(local)],
+      localTotalSizeBytes: 4,
+      activeSnapshot: oneFileSummary,
+      remoteVariants: [variants[0]],
+      remoteFiles: [remote],
+      conflictEntryIds: [cloudSaveFileKey(remote)],
+    });
+
+    assert.equal(details.comparisons.length, 2);
+    assert.deepEqual(details.comparisons.map(({ status }) => status).sort(), [
+      "local-only",
+      "remote-only",
+    ]);
+  });
+
   it("loads and verifies the active manifest version", async () => {
     const remoteFiles = [file(firstVariantId, "a"), file(secondVariantId, "a")];
     const details = await loadCloudSaveV2FileDetails(

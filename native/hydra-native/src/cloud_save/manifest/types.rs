@@ -68,6 +68,7 @@ pub struct CloudSaveRule {
     pub source: String,
     pub tags: Vec<String>,
     pub when: Vec<CloudSaveRuleCondition>,
+    pub preferred_path: Option<String>,
 }
 
 #[napi(object)]

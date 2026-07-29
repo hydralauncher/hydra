@@ -63,6 +63,16 @@ describe("prepare snapshot response", () => {
     assert.equal(response.files.length, 2);
   });
 
+  it("accepts an empty prepare response for an empty snapshot", () => {
+    const response = validatePrepareResponse({
+      pendingSnapshotId: "pending-empty",
+      snapshotHash: "c".repeat(64),
+      files: [],
+    });
+
+    assert.deepEqual(response.files, []);
+  });
+
   it("rejects missing required upload headers and duplicate identities", () => {
     assert.throws(() =>
       validatePrepareResponse({

@@ -5,6 +5,7 @@ import path from "node:path";
 import { after, describe, it } from "node:test";
 
 import {
+  getWinePrefixUserProfile,
   getWinePrefixUserProfiles,
   resolveWinePrefixPath,
 } from "./wine-prefix.ts";
@@ -74,5 +75,56 @@ describe("Wine prefix resolution", () => {
 
     await fs.promises.mkdir(path.join(prefix, "drive_c", "users", "steamuser"));
     assert.deepEqual(getWinePrefixUserProfiles(prefix, root), ["steamuser"]);
+  });
+
+  it("resolves the active profile from user.reg", async () => {
+    const root = await createRoot();
+    const prefix = path.join(root, "prefix");
+    await createValidPrefix(prefix);
+    await Promise.all(
+      ["other-user", "steamuser"].map((profile) =>
+        fs.promises.mkdir(path.join(prefix, "drive_c", "users", profile), {
+          recursive: true,
+        })
+      )
+    );
+    await fs.promises.writeFile(
+      path.join(prefix, "user.reg"),
+      String.raw`WINE REGISTRY Version 2
+
+[Volatile Environment]
+"USERPROFILE"="C:\\users\\other-user"
+`
+    );
+
+    assert.deepEqual(getWinePrefixUserProfile(prefix), {
+      name: "other-user",
+      path: await fs.promises.realpath(
+        path.join(prefix, "drive_c", "users", "other-user")
+      ),
+      windowsPath: "C:/users/other-user",
+    });
+  });
+
+  it("rejects missing, external, and system profiles from user.reg", async () => {
+    const root = await createRoot();
+    const prefix = path.join(root, "prefix");
+    await createValidPrefix(prefix);
+    await fs.promises.mkdir(path.join(prefix, "drive_c", "users", "Public"), {
+      recursive: true,
+    });
+
+    for (const userProfile of [
+      String.raw`C:\\users\\missing`,
+      String.raw`D:\\users\\player`,
+      String.raw`C:\\users\\Public`,
+      String.raw`C:\\users\\player\\nested`,
+    ]) {
+      await fs.promises.writeFile(
+        path.join(prefix, "user.reg"),
+        `WINE REGISTRY Version 2\n\n[Volatile Environment]\n"USERPROFILE"="${userProfile}"\n`
+      );
+      assert.equal(getWinePrefixUserProfile(prefix), null);
+    }
   });
 });

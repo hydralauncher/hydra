@@ -60,6 +60,32 @@ describe("Cloud Save launcher API contract", () => {
     );
   });
 
+  it("accepts an empty snapshot after the last tracked location is removed", () => {
+    const summary = validateRemoteSnapshotSummary({
+      id: "snapshot",
+      version: 4,
+      createdAt: "2026-07-20T10:00:00.000Z",
+      updatedAt: "2026-07-22T10:00:00.000Z",
+      fileCount: 0,
+      totalSizeBytes: 0,
+      aggregateHash: "c".repeat(64),
+    });
+    const manifest = validateRestoreManifest({
+      snapshot: {
+        id: "snapshot",
+        version: 4,
+        shop: "steam",
+        objectId: "814380",
+      },
+      variants: [],
+      files: [],
+    });
+
+    assert.equal(summary.fileCount, 0);
+    assert.deepEqual(manifest.variants, []);
+    assert.deepEqual(manifest.files, []);
+  });
+
   it("rejects legacy head, revision and locator fields", () => {
     assert.throws(() =>
       validateRemoteSnapshotSummary({

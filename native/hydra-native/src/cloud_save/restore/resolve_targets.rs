@@ -273,7 +273,22 @@ pub fn resolve_restore_targets(
                 user_values.iter().map(Some).collect()
             };
             let mut resolved_roots = Vec::new();
+            let preferred_path = rule.preferred_path.as_ref().filter(|preferred_path| {
+                variant.kind == "default"
+                    || user_values.iter().any(|value| {
+                        preferred_path
+                            .replace('\\', "/")
+                            .split('/')
+                            .any(|segment| segment == value)
+                    })
+            });
+            if let Some(preferred_path) = preferred_path {
+                resolved_roots.push(preferred_path.replace('\\', "/"));
+            }
             for user_value in concrete_values {
+                if preferred_path.is_some() {
+                    break;
+                }
                 let concrete_rule = user_value
                     .map(|value| bind_store_user(&root_rule, value))
                     .unwrap_or_else(|| root_rule.clone());
@@ -470,10 +485,124 @@ mod tests {
                 kind: "dir".into(),
                 raw_path: RAW_RULE.into(),
                 source: "test".into(),
+                preferred_path: None,
             }],
             variants,
             files,
         }
+    }
+
+    #[test]
+    fn keeps_an_absolute_custom_path_exact() {
+        let temp = tempdir().unwrap();
+        let variant = variant("default", "");
+        let mut remote_file = file(&variant, "slot.sav");
+        remote_file.raw_path = "<custom><windows>C:/Users/Rodrigo/Downloads/Game/Saves".into();
+        let mut restore_input = input(
+            temp.path(),
+            StoreUserContext {
+                active: None,
+                known: Vec::new(),
+            },
+            vec![variant],
+            vec![remote_file],
+        );
+        restore_input.approved_rules = vec![ApprovedRestoreRule {
+            kind: "dir".into(),
+            raw_path: "<custom><windows>C:/Users/Rodrigo/Downloads/Game/Saves".into(),
+            source: "custom".into(),
+            preferred_path: None,
+        }];
+
+        let result = resolve_restore_targets(restore_input).unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(
+            Path::new(&result.actions[0].target_path),
+            Path::new("C:/Users/Rodrigo/Downloads/Game/Saves/slot.sav")
+        );
+    }
+
+    #[test]
+    fn restores_a_windows_custom_path_to_the_approved_active_profile() {
+        let temp = tempdir().unwrap();
+        let prefix = temp.path().join("prefix");
+        fs::create_dir_all(prefix.join("drive_c/users/steamuser")).unwrap();
+        fs::create_dir_all(prefix.join("drive_c/users/player-two")).unwrap();
+        let approved_root = prefix.join("drive_c/users/player-two/AppData/Roaming/Game");
+        let variant = variant("default", "");
+        let raw_path = "<custom><windows><winAppData>/Game";
+        let mut remote_file = file(&variant, "slot.sav");
+        remote_file.raw_path = raw_path.into();
+        let mut restore_input = input(
+            temp.path(),
+            StoreUserContext {
+                active: None,
+                known: Vec::new(),
+            },
+            vec![variant],
+            vec![remote_file],
+        );
+        restore_input.platform = "linux".into();
+        restore_input.executable_path =
+            Some(temp.path().join("Game/game.exe").display().to_string());
+        restore_input.wine_prefix_path = Some(prefix.display().to_string());
+        restore_input.approved_rules = vec![ApprovedRestoreRule {
+            kind: "dir".into(),
+            raw_path: raw_path.into(),
+            source: "custom".into(),
+            preferred_path: Some(approved_root.display().to_string()),
+        }];
+
+        let result = resolve_restore_targets(restore_input).unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(
+            Path::new(&result.actions[0].target_path),
+            approved_root.join("slot.sav")
+        );
+    }
+
+    #[test]
+    fn an_approved_custom_path_restores_to_its_exact_preferred_path() {
+        let temp = tempdir().unwrap();
+        let prefix = temp.path().join("prefix");
+        let selected = prefix.join("drive_c/users/player-two/Documents/Game");
+        fs::create_dir_all(prefix.join("drive_c/users/steamuser/Documents/Game")).unwrap();
+        fs::create_dir_all(&selected).unwrap();
+        let variant = variant("default", "");
+        let raw_path = "<custom><windows><winDocuments>/Game";
+        let mut remote_file = file(&variant, "slot.sav");
+        remote_file.raw_path = raw_path.into();
+        let mut restore_input = input(
+            temp.path(),
+            StoreUserContext {
+                active: None,
+                known: Vec::new(),
+            },
+            vec![variant],
+            vec![remote_file],
+        );
+        restore_input.platform = "linux".into();
+        restore_input.executable_path =
+            Some(temp.path().join("Game/game.exe").display().to_string());
+        restore_input.wine_prefix_path = Some(prefix.display().to_string());
+        restore_input.approved_rules = vec![ApprovedRestoreRule {
+            kind: "dir".into(),
+            raw_path: raw_path.into(),
+            source: "custom".into(),
+            preferred_path: Some(selected.display().to_string()),
+        }];
+
+        let result = resolve_restore_targets(restore_input).unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(
+            Path::new(&result.actions[0].target_path),
+            selected.join("slot.sav")
+        );
     }
 
     #[test]
@@ -578,6 +707,7 @@ mod tests {
                 kind: "file".into(),
                 raw_path: raw_path.into(),
                 source: "test".into(),
+                preferred_path: None,
             }],
             variants: vec![default.clone()],
             files: vec![RestoreManifestFile {
@@ -626,6 +756,7 @@ mod tests {
                 kind: "dir".into(),
                 raw_path: raw_path.clone(),
                 source: "custom".into(),
+                preferred_path: None,
             }],
             variants: vec![default.clone()],
             files: vec![RestoreManifestFile {
@@ -674,11 +805,13 @@ mod tests {
                     kind: "file".into(),
                     raw_path: raw_path.into(),
                     source: "first".into(),
+                    preferred_path: None,
                 },
                 ApprovedRestoreRule {
                     kind: "dir".into(),
                     raw_path: raw_path.into(),
                     source: "second".into(),
+                    preferred_path: None,
                 },
             ],
             variants: vec![default.clone()],

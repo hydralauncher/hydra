@@ -740,6 +740,13 @@
     white-space: nowrap;
   }
 
+  &__browser-path-actions {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    flex-shrink: 0;
+  }
+
   &__browser-path-action {
     display: inline-flex;
     align-items: center;
@@ -752,10 +759,20 @@
     cursor: pointer;
     font-size: 11px;
 
-    &:hover {
+    &:hover:not(:disabled) {
       border-color: rgba(255, 255, 255, 0.18);
       background: rgba(255, 255, 255, 0.05);
       color: globals.$body-color;
+    }
+
+    &--remove:hover:not(:disabled) {
+      border-color: rgba(255, 82, 82, 0.35);
+      color: #ff7373;
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: globals.$disabled-opacity;
     }
 
     &:focus-visible {

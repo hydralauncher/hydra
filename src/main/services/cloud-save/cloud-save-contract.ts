@@ -194,7 +194,7 @@ export const validateRemoteSnapshotSummary = (
     !Number.isFinite(Date.parse(snapshot.updatedAt)) ||
     typeof snapshot.fileCount !== "number" ||
     !Number.isSafeInteger(snapshot.fileCount) ||
-    snapshot.fileCount < 1 ||
+    snapshot.fileCount < 0 ||
     typeof snapshot.totalSizeBytes !== "number" ||
     !Number.isSafeInteger(snapshot.totalSizeBytes) ||
     snapshot.totalSizeBytes < 0 ||

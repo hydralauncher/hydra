@@ -17,6 +17,11 @@ export interface CloudSaveRule {
   source: string;
   tags: string[];
   when: CloudSaveRuleCondition[];
+  /**
+   * Local-only binding for an explicitly approved custom path. It is never
+   * included in the remote snapshot identity.
+   */
+  preferredPath?: string;
 }
 
 export type CloudSaveCustomPathPlatform = "windows" | "linux" | "mac";
@@ -25,6 +30,7 @@ export interface CloudSaveCustomPath {
   rawPath: string;
   path: string;
   platform: CloudSaveCustomPathPlatform;
+  storeUserId?: string;
 }
 
 export interface SelectCloudSaveCustomPathResult {
@@ -365,7 +371,9 @@ export interface CloudSaveSyncIpcProgressPayload
 }
 
 export interface ResolveRestoreTargetsInput extends CloudSavePathContext {
-  approvedRules: Array<Pick<CloudSaveRule, "kind" | "rawPath" | "source">>;
+  approvedRules: Array<
+    Pick<CloudSaveRule, "kind" | "rawPath" | "source" | "preferredPath">
+  >;
   variants: SnapshotVariant[];
   files: RestoreManifestFile[];
 }

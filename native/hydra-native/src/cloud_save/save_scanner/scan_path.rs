@@ -73,8 +73,10 @@ fn path_starts_with(path: &Path, root: &Path, case_sensitive: bool) -> bool {
 
 fn scan_directory(root: &Path, follow_links: bool) -> Result<ScannedCloudSavePath, String> {
     let mut files = Vec::new();
+    let traversal_root = std::fs::canonicalize(root)
+        .map_err(|error| format!("cloud_save_filesystem_error: {error}"))?;
 
-    for entry in WalkDir::new(root)
+    for entry in WalkDir::new(&traversal_root)
         .max_depth(MAX_SCAN_DEPTH)
         .follow_links(follow_links)
     {
@@ -83,7 +85,7 @@ fn scan_directory(root: &Path, follow_links: bool) -> Result<ScannedCloudSavePat
             continue;
         }
 
-        let Some(relative_path) = relative_path(root, entry.path()) else {
+        let Some(relative_path) = relative_path(&traversal_root, entry.path()) else {
             continue;
         };
         files.push(ScannedCloudSaveFile {
@@ -101,7 +103,7 @@ fn scan_directory(root: &Path, follow_links: bool) -> Result<ScannedCloudSavePat
 
     Ok(ScannedCloudSavePath {
         candidate_id: String::new(),
-        resolved_path: canonical_path(root)?,
+        resolved_path: canonical_path(&traversal_root)?,
         store_user_id: None,
         case_sensitive: true,
         files,
@@ -319,6 +321,26 @@ mod tests {
                 .unwrap();
 
         assert!(scanned[0].files.is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn traverses_a_custom_root_that_is_itself_a_symlink() {
+        use std::os::unix::fs::symlink;
+
+        let temp = tempdir().unwrap();
+        let real = temp.path().join("real");
+        let linked = temp.path().join("linked");
+        fs::create_dir_all(&real).unwrap();
+        fs::write(real.join("save.dat"), b"save").unwrap();
+        symlink(&real, &linked).unwrap();
+
+        let scanned =
+            scan_resolved_path_with_capture(&linked.display().to_string(), true, None, None, false)
+                .unwrap();
+
+        assert_eq!(scanned[0].files.len(), 1);
+        assert_eq!(scanned[0].files[0].relative_path, "save.dat");
     }
 
     #[cfg(unix)]

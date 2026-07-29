@@ -29,14 +29,17 @@ import {
 } from "./restore-replacements";
 import { getRestoreVersionDecision } from "./restore-version-policy";
 import {
-  getRestorableCloudSaveCustomPaths,
   getRemoteSnapshotRestoreManifest,
   resolveRestoreManifestTargets,
 } from "./resolve-remote-snapshot-targets";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
 import { registerCloudSaveCustomPaths } from "./custom-path-store";
-import { CLOUD_SAVE_CUSTOM_PATH_PREFIX } from "./custom-path";
+import {
+  bindCloudSaveCustomPathToLocalPath,
+  CLOUD_SAVE_CUSTOM_PATH_PREFIX,
+  cloudSaveCustomPathContextFromPathContext,
+} from "./custom-path";
 
 interface RestoreCloudSaveContext {
   environmentId: string;
@@ -227,16 +230,29 @@ export const restoreRemoteSnapshot = async (
           )
       );
       if (restoredCustomRawPaths.size > 0) {
-        const restorableCustomPaths = await getRestorableCloudSaveCustomPaths(
-          selectedManifest,
-          cloudSaveContext.pathContext.platform
+        const customPathContext = cloudSaveCustomPathContextFromPathContext(
+          cloudSaveContext.pathContext
         );
+        const boundCustomPaths = [...restoredCustomRawPaths]
+          .map((rawPath) => {
+            const target = plan.actions.find(
+              (action) => action.rawPath === rawPath
+            );
+            if (!target) return null;
+            return bindCloudSaveCustomPathToLocalPath(
+              rawPath,
+              target.restoreRootPath,
+              customPathContext
+            );
+          })
+          .filter(
+            (customPath): customPath is NonNullable<typeof customPath> =>
+              customPath !== null
+          );
         await registerCloudSaveCustomPaths(
           manifest.snapshot.shop,
           manifest.snapshot.objectId,
-          restorableCustomPaths.filter(({ rawPath }) =>
-            restoredCustomRawPaths.has(rawPath)
-          )
+          boundCustomPaths
         );
       }
     }

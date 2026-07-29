@@ -211,6 +211,7 @@ mod tests {
                 source: "ludusavi".into(),
                 tags: vec!["save".into()],
                 when: vec![],
+                preferred_path: None,
             }],
         })
         .unwrap()
@@ -299,6 +300,7 @@ mod tests {
                 source: "test".into(),
                 tags: vec!["save".into()],
                 when: vec![],
+                preferred_path: None,
             }],
         })
         .unwrap();
@@ -457,6 +459,7 @@ mod tests {
                 source: "ludusavi".into(),
                 tags: vec!["save".into()],
                 when: vec![],
+                preferred_path: None,
             }],
         })
         .unwrap();
@@ -507,6 +510,7 @@ mod tests {
                 source: "ludusavi".into(),
                 tags: vec!["save".into()],
                 when: vec![],
+                preferred_path: None,
             }],
         })
         .unwrap();

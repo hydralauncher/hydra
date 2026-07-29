@@ -4,13 +4,28 @@ const WINDOWS_MARKER: &str = "<windows>";
 const LINUX_MARKER: &str = "<linux>";
 const MAC_MARKER: &str = "<mac>";
 
-fn validate_segments(path: &str, windows: bool) -> Result<(), String> {
-    if path.contains(['\\', '\0', '<', '>', '*', '?', '[', ']', '{', '}']) {
-        return Err("cloud_save_custom_path_invalid".to_string());
-    }
+const WINDOWS_TOKENS: [&str; 6] = [
+    "<winAppData>",
+    "<winLocalAppData>",
+    "<winDocuments>",
+    "<base>",
+    "<root>",
+    "<home>",
+];
+const UNIX_TOKENS: [&str; 5] = ["<xdgData>", "<xdgConfig>", "<base>", "<root>", "<home>"];
 
-    let without_root = if windows { &path[3..] } else { &path[1..] };
-    if without_root.split('/').any(|segment| {
+#[derive(Debug, PartialEq, Eq)]
+pub struct DecodedCustomPath {
+    pub platform: String,
+    pub path: String,
+}
+
+fn validate_relative_segments(path: &str, windows: bool) -> Result<(), String> {
+    let relative = path.strip_prefix('/').unwrap_or(path);
+    if relative.is_empty() {
+        return Ok(());
+    }
+    if relative.split('/').any(|segment| {
         segment.is_empty()
             || segment == "."
             || segment == ".."
@@ -22,7 +37,65 @@ fn validate_segments(path: &str, windows: bool) -> Result<(), String> {
     Ok(())
 }
 
-pub fn decode_custom_path(raw_path: &str, platform: &str) -> Option<Result<String, String>> {
+fn validate_common(path: &str) -> Result<(), String> {
+    if path.contains(['\\', '\0', '*', '?', '[', ']', '{', '}'])
+        || path.chars().any(char::is_control)
+        || path.ends_with('/')
+    {
+        return Err("cloud_save_custom_path_invalid".to_string());
+    }
+    Ok(())
+}
+
+fn portable_token(path: &str, platform: &str) -> Option<&'static str> {
+    let tokens: &[&'static str] = if platform == "windows" {
+        &WINDOWS_TOKENS
+    } else {
+        &UNIX_TOKENS
+    };
+    tokens.iter().copied().find(|token| path.starts_with(token))
+}
+
+fn validate_portable_path(path: &str, platform: &str) -> Result<(), String> {
+    validate_common(path)?;
+    let Some(token) = portable_token(path, platform) else {
+        return Err("cloud_save_custom_path_invalid".to_string());
+    };
+    let suffix = &path[token.len()..];
+    if !suffix.is_empty() && !suffix.starts_with('/') {
+        return Err("cloud_save_custom_path_invalid".to_string());
+    }
+    if suffix
+        .split('/')
+        .any(|segment| segment.contains(['<', '>']) && segment != "<storeUserId>")
+    {
+        return Err("cloud_save_custom_path_invalid".to_string());
+    }
+    validate_relative_segments(suffix, platform == "windows")
+}
+
+fn validate_absolute_path(path: &str, platform: &str) -> Result<(), String> {
+    validate_common(path)?;
+    if path.contains(['<', '>']) {
+        return Err("cloud_save_custom_path_invalid".to_string());
+    }
+
+    let windows = platform == "windows";
+    let absolute = if windows {
+        let bytes = path.as_bytes();
+        bytes.len() > 3 && bytes[0].is_ascii_uppercase() && bytes[1] == b':' && bytes[2] == b'/'
+    } else {
+        path.len() > 1 && path.starts_with('/') && !path.starts_with("//")
+    };
+    if !absolute {
+        return Err("cloud_save_custom_path_must_be_local_absolute".to_string());
+    }
+
+    let without_root = if windows { &path[3..] } else { &path[1..] };
+    validate_relative_segments(without_root, windows)
+}
+
+pub fn decode_custom_path(raw_path: &str) -> Option<Result<DecodedCustomPath, String>> {
     let encoded = raw_path.strip_prefix(CUSTOM_PATH_PREFIX)?;
     let (encoded_platform, path) = if let Some(path) = encoded.strip_prefix(WINDOWS_MARKER) {
         ("windows", path)
@@ -34,30 +107,15 @@ pub fn decode_custom_path(raw_path: &str, platform: &str) -> Option<Result<Strin
         return Some(Err("cloud_save_custom_path_invalid_platform".to_string()));
     };
 
-    if encoded_platform != platform {
-        return Some(Err("cloud_save_custom_path_foreign_platform".to_string()));
-    }
-    if path.ends_with('/') {
-        return Some(Err("cloud_save_custom_path_not_canonical".to_string()));
-    }
-
-    let windows = platform == "windows";
-    let absolute = if windows {
-        let bytes = path.as_bytes();
-        bytes.len() > 3 && bytes[0].is_ascii_uppercase() && bytes[1] == b':' && bytes[2] == b'/'
+    let validation = if path.starts_with('<') {
+        validate_portable_path(path, encoded_platform)
     } else {
-        path.len() > 1 && path.starts_with('/') && !path.starts_with("//")
+        validate_absolute_path(path, encoded_platform)
     };
-    if !absolute {
-        return Some(Err(
-            "cloud_save_custom_path_must_be_local_absolute".to_string()
-        ));
-    }
-    if let Err(error) = validate_segments(path, windows) {
-        return Some(Err(error));
-    }
-
-    Some(Ok(path.to_string()))
+    Some(validation.map(|_| DecodedCustomPath {
+        platform: encoded_platform.to_string(),
+        path: path.to_string(),
+    }))
 }
 
 #[cfg(test)]
@@ -65,33 +123,56 @@ mod tests {
     use super::*;
 
     #[test]
-    fn decodes_canonical_paths_for_each_platform() {
+    fn decodes_portable_and_absolute_paths_for_each_platform() {
         assert_eq!(
-            decode_custom_path("<custom><windows>C:/Users/Hydra/Saves", "windows"),
-            Some(Ok("C:/Users/Hydra/Saves".to_string()))
+            decode_custom_path("<custom><windows><winAppData>/Hydra/Saves"),
+            Some(Ok(DecodedCustomPath {
+                platform: "windows".to_string(),
+                path: "<winAppData>/Hydra/Saves".to_string()
+            }))
         );
         assert_eq!(
-            decode_custom_path("<custom><linux>/home/hydra/saves", "linux"),
-            Some(Ok("/home/hydra/saves".to_string()))
+            decode_custom_path("<custom><linux><xdgData>/game"),
+            Some(Ok(DecodedCustomPath {
+                platform: "linux".to_string(),
+                path: "<xdgData>/game".to_string()
+            }))
         );
         assert_eq!(
-            decode_custom_path("<custom><mac>/Users/hydra/Saves", "mac"),
-            Some(Ok("/Users/hydra/Saves".to_string()))
+            decode_custom_path("<custom><mac><home>/Saves"),
+            Some(Ok(DecodedCustomPath {
+                platform: "mac".to_string(),
+                path: "<home>/Saves".to_string()
+            }))
+        );
+        assert_eq!(
+            decode_custom_path("<custom><windows><base>/saves/<storeUserId>"),
+            Some(Ok(DecodedCustomPath {
+                platform: "windows".to_string(),
+                path: "<base>/saves/<storeUserId>".to_string()
+            }))
+        );
+        assert_eq!(
+            decode_custom_path("<custom><windows>C:/Users/Hydra/Saves"),
+            Some(Ok(DecodedCustomPath {
+                platform: "windows".to_string(),
+                path: "C:/Users/Hydra/Saves".to_string()
+            }))
         );
     }
 
     #[test]
-    fn rejects_foreign_relative_and_traversing_paths() {
-        assert!(decode_custom_path("<custom><windows>C:/Saves", "linux")
+    fn rejects_relative_traversing_and_wrong_platform_tokens() {
+        assert!(decode_custom_path("<custom><linux>relative/saves")
             .unwrap()
             .is_err());
-        assert!(decode_custom_path("<custom><linux>relative/saves", "linux")
+        assert!(decode_custom_path("<custom><linux><home>/../etc")
             .unwrap()
             .is_err());
-        assert!(decode_custom_path("<custom><linux>/home/../etc", "linux")
+        assert!(decode_custom_path("<custom><windows><xdgData>/Saves")
             .unwrap()
             .is_err());
-        assert!(decode_custom_path("<custom><windows>c:/Saves", "windows")
+        assert!(decode_custom_path("<custom><windows>c:/Saves")
             .unwrap()
             .is_err());
     }

@@ -387,6 +387,7 @@ mod tests {
             source: "ludusavi".into(),
             tags: vec!["save".into()],
             when: vec![],
+            preferred_path: None,
         };
         rule.rule_id = build_rule_id(&rule);
         rule

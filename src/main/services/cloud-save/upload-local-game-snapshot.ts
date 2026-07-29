@@ -45,9 +45,6 @@ export const uploadLocalGameSnapshot = async (
   const proposalVariants = options.variants ?? context.variants;
   const proposalFiles = options.files ?? context.files;
   const aggregateHash = options.aggregateHash ?? context.aggregateHash;
-  if (proposalFiles.length === 0) {
-    return { pendingSnapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
-  }
 
   const response = validatePrepareResponse(
     await HydraApi.post<unknown>(

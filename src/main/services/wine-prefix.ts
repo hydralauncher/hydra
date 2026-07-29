@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { parseRegFile } from "../helpers/reg-parser.js";
+
 const systemProfileNames = new Set([
   "all users",
   "default",
@@ -8,6 +10,71 @@ const systemProfileNames = new Set([
   "defaultuser0",
   "public",
 ]);
+
+export interface WinePrefixUserProfile {
+  name: string;
+  path: string;
+  windowsPath: string;
+}
+
+export const getWinePrefixWindowsUserProfilePath = (
+  winePrefixPath: string
+): string | null => {
+  try {
+    const userReg = fs.readFileSync(
+      path.join(winePrefixPath, "user.reg"),
+      "utf8"
+    );
+    const volatileEnvironment = parseRegFile(userReg).find(
+      (entry) => entry.path === "Volatile Environment"
+    );
+    const rawUserProfile = volatileEnvironment?.values["USERPROFILE"];
+    if (typeof rawUserProfile !== "string" || !rawUserProfile.trim()) {
+      return null;
+    }
+    return path.posix
+      .normalize(rawUserProfile.replaceAll(/\\+/g, "/"))
+      .replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+};
+
+export const getWinePrefixUserProfile = (
+  winePrefixPath: string
+): WinePrefixUserProfile | null => {
+  try {
+    const windowsPath = getWinePrefixWindowsUserProfilePath(winePrefixPath);
+    if (!windowsPath) return null;
+    const match = windowsPath.match(/^C:\/users\/([^/]+)$/i);
+    if (!match) return null;
+
+    const name = match[1];
+    if (systemProfileNames.has(name.toLowerCase())) return null;
+
+    const usersRoot = fs.realpathSync(
+      path.join(winePrefixPath, "drive_c", "users")
+    );
+    const profilePath = fs.realpathSync(path.join(usersRoot, name));
+    const relative = path.relative(usersRoot, profilePath);
+    if (
+      relative !== "" &&
+      !relative.startsWith(`..${path.sep}`) &&
+      relative !== ".." &&
+      !path.isAbsolute(relative)
+    ) {
+      return {
+        name,
+        path: profilePath,
+        windowsPath,
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
 
 export const resolveWinePrefixPath = async (
   winePrefixPath: string | null,

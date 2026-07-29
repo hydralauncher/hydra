@@ -58,7 +58,7 @@ const validateCommitResponse = (value: unknown): CommitSnapshotResponse => {
     response.version < 1 ||
     typeof response.fileCount !== "number" ||
     !Number.isSafeInteger(response.fileCount) ||
-    response.fileCount < 1 ||
+    response.fileCount < 0 ||
     typeof response.totalSizeBytes !== "number" ||
     !Number.isSafeInteger(response.totalSizeBytes) ||
     response.totalSizeBytes < 0 ||
@@ -95,13 +95,12 @@ export const createRemoteSnapshotFromLocalState = async (
   onProgress?: ProgressCallback,
   localSnapshotContext?: LocalGameSnapshotContext,
   options: CreateRemoteSnapshotOptions = { baseVersion: 0 }
-): Promise<RemoteGameSnapshot | null> => {
+): Promise<RemoteGameSnapshot> => {
   const context =
     localSnapshotContext ??
     (await buildLocalGameSnapshotContext(objectId, shop));
   const variants = options.variants ?? context.variants;
   const files: SnapshotFile[] = options.files ?? context.files;
-  if (files.length === 0) return null;
   const expectedAggregateHash =
     options.aggregateHash ??
     NativeAddon.buildSnapshotAggregateHash({ variants, files });
@@ -117,7 +116,9 @@ export const createRemoteSnapshotFromLocalState = async (
         context,
         { ...options, variants, files, aggregateHash: expectedAggregateHash }
       );
-      if (!upload.pendingSnapshotId) return null;
+      if (!upload.pendingSnapshotId) {
+        throw new Error("Cloud Save prepare did not create a pending snapshot");
+      }
       await options.assertEnvironmentCurrent?.();
       committed = await commitPendingSnapshot(upload.pendingSnapshotId);
       break;

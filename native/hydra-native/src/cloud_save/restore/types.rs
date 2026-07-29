@@ -19,6 +19,7 @@ pub struct ApprovedRestoreRule {
     pub kind: String,
     pub raw_path: String,
     pub source: String,
+    pub preferred_path: Option<String>,
 }
 
 #[napi(object)]

@@ -4,10 +4,12 @@ import {
   FileDirectoryIcon,
   FileIcon,
   LinkExternalIcon,
+  TrashIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
 import type {
+  CloudSaveCustomPath,
   CloudSaveV2FileComparisonStatus,
   CloudSaveV2LocalFile,
   CloudSaveV2RemoteFile,
@@ -25,6 +27,8 @@ interface CloudSaveV2FileTreeViewProps {
   roots: CloudSaveV2FileTreeRoot[];
   mode: "local" | "comparison";
   onOpenFolder: (path: string) => void;
+  onRemoveCustomPath: (customPath: CloudSaveCustomPath) => void;
+  customPathActionsDisabled: boolean;
 }
 
 const statusTranslationKey: Record<CloudSaveV2FileComparisonStatus, string> = {
@@ -44,6 +48,8 @@ export function CloudSaveV2FileTreeView({
   roots,
   mode,
   onOpenFolder,
+  onRemoveCustomPath,
+  customPathActionsDisabled,
 }: Readonly<CloudSaveV2FileTreeViewProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
@@ -137,20 +143,41 @@ export function CloudSaveV2FileTreeView({
     );
   };
 
-  const folderAction = (path: string | null, name: string) => {
-    if (!path) return null;
+  const folderActions = (
+    path: string | null,
+    name: string,
+    customPath: CloudSaveCustomPath | null
+  ) => {
+    if (!path && !customPath) return null;
 
     return (
-      <button
-        type="button"
-        className="cloud-save-v2__browser-path-action"
-        onClick={() => onOpenFolder(path)}
-        title={t("cloud_save_v2_open_folder")}
-        aria-label={t("cloud_save_v2_open_folder_named", { name })}
-      >
-        <LinkExternalIcon size={15} />
-        <span>{t("cloud_save_v2_open")}</span>
-      </button>
+      <div className="cloud-save-v2__browser-path-actions">
+        {path && (
+          <button
+            type="button"
+            className="cloud-save-v2__browser-path-action"
+            onClick={() => onOpenFolder(path)}
+            title={t("cloud_save_v2_open_folder")}
+            aria-label={t("cloud_save_v2_open_folder_named", { name })}
+          >
+            <LinkExternalIcon size={15} />
+            <span>{t("cloud_save_v2_open")}</span>
+          </button>
+        )}
+        {customPath && (
+          <button
+            type="button"
+            className="cloud-save-v2__browser-path-action cloud-save-v2__browser-path-action--remove"
+            disabled={customPathActionsDisabled}
+            onClick={() => onRemoveCustomPath(customPath)}
+            title={t("cloud_save_v2_remove_custom_path")}
+            aria-label={t("cloud_save_v2_remove_custom_path_named", { name })}
+          >
+            <TrashIcon size={15} />
+            <span>{t("cloud_save_v2_remove")}</span>
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -258,7 +285,11 @@ export function CloudSaveV2FileTreeView({
                 {node.type === "root" ? displayLocalName : node.name}
               </strong>
             </div>
-            {folderAction(node.localDirectoryPath, node.name)}
+            {folderActions(
+              node.localDirectoryPath,
+              node.name,
+              node.type === "root" ? node.customPath : null
+            )}
           </div>
           {children}
         </li>
@@ -289,7 +320,7 @@ export function CloudSaveV2FileTreeView({
             className="cloud-save-v2__browser-diff-cell"
             style={{ paddingLeft: contentPaddingLeft }}
           >
-            {node.hasLocalFiles ? (
+            {node.hasLocalFiles || (node.type === "root" && node.customPath) ? (
               <div className="cloud-save-v2__browser-folder-cell">
                 <FileDirectoryIcon
                   size={18}
@@ -306,7 +337,11 @@ export function CloudSaveV2FileTreeView({
                     {node.type === "root" ? displayLocalName : node.name}
                   </strong>
                 </div>
-                {folderAction(node.localDirectoryPath, node.name)}
+                {folderActions(
+                  node.localDirectoryPath,
+                  node.name,
+                  node.type === "root" ? node.customPath : null
+                )}
               </div>
             ) : (
               <span className="cloud-save-v2__browser-missing-side">—</span>

@@ -58,7 +58,10 @@ const fileExplorerApi = {
 };
 
 const invokeCloudSaveOperation = async (
-  channel: "syncGameCloudSave" | "resolveCloudSaveConflict",
+  channel:
+    | "syncGameCloudSave"
+    | "resolveCloudSaveConflict"
+    | "removeCloudSaveCustomPath",
   args: unknown[],
   onProgress?: (progress: CloudSaveSyncProgressPayload) => void
 ) => {
@@ -111,6 +114,17 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<SelectCloudSaveCustomPathResult>,
+  removeCloudSaveCustomPath: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation(
+      "removeCloudSaveCustomPath",
+      [objectId, shop, rawPath],
+      onProgress
+    ),
   setCloudSaveAutomaticSyncEnabled: (
     objectId: string,
     shop: GameShop,

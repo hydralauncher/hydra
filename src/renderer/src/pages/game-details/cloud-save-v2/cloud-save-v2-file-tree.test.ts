@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type {
+  CloudSaveCustomPath,
   CloudSaveV2FileComparison,
   CloudSaveV2LocalFile,
   CloudSaveV2RemoteFile,
@@ -46,6 +47,12 @@ const remoteFile = (
   lastModifiedAt: null,
   userLabel: "Profile ••••test",
 });
+
+const customPath: CloudSaveCustomPath = {
+  rawPath: "<custom><windows><winDocuments>/Game",
+  path: "C:\\Users\\Hydra\\Documents\\Game",
+  platform: "windows",
+};
 
 describe("cloud save V2 local file tree", () => {
   it("formats Windows extended paths without changing Unix paths", () => {
@@ -188,6 +195,30 @@ describe("cloud save V2 local file tree", () => {
     assert.equal(zFile.type, "file");
     if (zFile.type === "file") assert.equal(zFile.local?.sizeBytes, 8);
   });
+
+  it("keeps an empty custom location visible so it can be removed", () => {
+    const [root] = buildCloudSaveV2LocalFileTree([], [customPath]);
+
+    assert.equal(root.localDirectoryPath, customPath.path);
+    assert.equal(root.rawPath, customPath.rawPath);
+    assert.equal(root.customPath, customPath);
+    assert.deepEqual(root.children, []);
+  });
+
+  it("marks a populated root with its registered custom location", () => {
+    const [root] = buildCloudSaveV2LocalFileTree(
+      [
+        localFile(
+          customPath.rawPath,
+          "slot.dat",
+          `${customPath.path}\\slot.dat`
+        ),
+      ],
+      [customPath]
+    );
+
+    assert.equal(root.customPath, customPath);
+  });
 });
 
 describe("cloud save V2 comparison tree", () => {
@@ -315,5 +346,25 @@ describe("cloud save V2 comparison tree", () => {
       ]
     );
     assert.notEqual(roots[0].children[0].id, roots[1].children[0].id);
+  });
+
+  it("resolves a remote-only custom root to its registered local location", () => {
+    const remote = remoteFile(customPath.rawPath, "slot.dat");
+    const [root] = buildCloudSaveV2ComparisonTree(
+      [
+        {
+          variantId: remote.variantId,
+          rawPath: remote.rawPath,
+          relativePath: remote.relativePath,
+          status: "remote-only",
+          local: null,
+          remote,
+        },
+      ],
+      [customPath]
+    );
+
+    assert.equal(root.localDirectoryPath, customPath.path);
+    assert.equal(root.customPath, customPath);
   });
 });

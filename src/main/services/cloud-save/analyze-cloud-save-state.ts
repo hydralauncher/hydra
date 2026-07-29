@@ -51,13 +51,10 @@ export const analyzeCloudSaveState = async (
     base: anchor,
     direction: syncDirection,
   });
-  const mergedAggregateHash =
-    merge.files.length > 0
-      ? NativeAddon.buildSnapshotAggregateHash({
-          variants: merge.variants,
-          files: merge.files,
-        })
-      : null;
+  const mergedAggregateHash = NativeAddon.buildSnapshotAggregateHash({
+    variants: merge.variants,
+    files: merge.files,
+  });
 
   let currentState: CloudSaveState;
   if (!activeRemoteSnapshot) {

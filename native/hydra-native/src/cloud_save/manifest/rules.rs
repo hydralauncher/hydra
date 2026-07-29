@@ -33,6 +33,7 @@ fn build_rule(file: &ManifestFileRule) -> CloudSaveRule {
         raw_path: file.raw_path.clone(),
         source: LUDUSAVI_RULE_SOURCE.to_string(),
         tags: file.tags.clone(),
+        preferred_path: None,
         when: file
             .when
             .iter()

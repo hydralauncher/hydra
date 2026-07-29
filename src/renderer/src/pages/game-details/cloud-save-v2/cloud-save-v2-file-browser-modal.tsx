@@ -9,9 +9,19 @@ import {
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 
-import type { CloudSaveState, CloudSaveV2FileDetails, GameShop } from "@types";
+import type {
+  CloudSaveCustomPath,
+  CloudSaveState,
+  CloudSaveV2FileDetails,
+  GameShop,
+} from "@types";
 import { formatBytes } from "@shared";
-import { Button, CheckboxField, Modal } from "@renderer/components";
+import {
+  Button,
+  CheckboxField,
+  ConfirmationModal,
+  Modal,
+} from "@renderer/components";
 import { useToast } from "@renderer/hooks";
 
 import {
@@ -53,6 +63,10 @@ export function CloudSaveV2FileBrowserModal({
   const [showOnlyChanged, setShowOnlyChanged] = useState(true);
   const [isFileListScrolled, setIsFileListScrolled] = useState(false);
   const [isAddingCustomPath, setIsAddingCustomPath] = useState(false);
+  const [removingCustomPath, setRemovingCustomPath] =
+    useState<CloudSaveCustomPath | null>(null);
+  const [pendingCustomPathRemoval, setPendingCustomPathRemoval] =
+    useState<CloudSaveCustomPath | null>(null);
   const isConflict = details?.state === "conflict";
   const titleIsConflict = isConflict || overviewState === "conflict";
   const visibleComparisons = useMemo(
@@ -61,12 +75,20 @@ export function CloudSaveV2FileBrowserModal({
     [details?.comparisons, showOnlyChanged]
   );
   const localRoots = useMemo(
-    () => buildCloudSaveV2LocalFileTree(details?.local.files ?? []),
-    [details?.local.files]
+    () =>
+      buildCloudSaveV2LocalFileTree(
+        details?.local.files ?? [],
+        details?.customPaths ?? []
+      ),
+    [details?.customPaths, details?.local.files]
   );
   const comparisonRoots = useMemo(
-    () => buildCloudSaveV2ComparisonTree(visibleComparisons),
-    [visibleComparisons]
+    () =>
+      buildCloudSaveV2ComparisonTree(
+        visibleComparisons,
+        details?.customPaths ?? []
+      ),
+    [details?.customPaths, visibleComparisons]
   );
   const comparisonCounts = useMemo(() => {
     const counts = {
@@ -86,8 +108,11 @@ export function CloudSaveV2FileBrowserModal({
   }, [details?.comparisons]);
 
   useEffect(() => {
-    if (!visible) setShowOnlyChanged(true);
-  }, [visible]);
+    if (!visible) {
+      setShowOnlyChanged(true);
+      if (!removingCustomPath) setPendingCustomPathRemoval(null);
+    }
+  }, [removingCustomPath, visible]);
 
   const showPathError = () => {
     showErrorToast(
@@ -111,32 +136,77 @@ export function CloudSaveV2FileBrowserModal({
 
   const handleAddCustomPath = async () => {
     setIsAddingCustomPath(true);
+    let wasAdded = false;
     try {
       const result = await window.electron.selectCloudSaveCustomPath(
         objectId,
         shop
       );
       if (!result.canceled && result.customPath) {
+        wasAdded = true;
+        const syncResult = await window.electron.syncGameCloudSave(
+          objectId,
+          shop
+        );
+        if (syncResult.finalState === "conflict") {
+          throw new Error("cloud_save_custom_path_sync_conflict");
+        }
         await onRetry();
         showSuccessToast(t("cloud_save_v2_custom_path_added"));
       }
     } catch {
+      if (wasAdded) await onRetry();
       showErrorToast(
-        t("cloud_save_v2_custom_path_error_title"),
-        t("cloud_save_v2_custom_path_error_description")
+        t(
+          wasAdded
+            ? "cloud_save_v2_custom_path_sync_error_title"
+            : "cloud_save_v2_custom_path_error_title"
+        ),
+        t(
+          wasAdded
+            ? "cloud_save_v2_custom_path_sync_error_description"
+            : "cloud_save_v2_custom_path_error_description"
+        )
       );
     } finally {
       setIsAddingCustomPath(false);
     }
   };
 
+  const handleRemoveCustomPath = async () => {
+    if (!pendingCustomPathRemoval) return;
+
+    setRemovingCustomPath(pendingCustomPathRemoval);
+    try {
+      await window.electron.removeCloudSaveCustomPath(
+        objectId,
+        shop,
+        pendingCustomPathRemoval.rawPath
+      );
+      setPendingCustomPathRemoval(null);
+      await onRetry();
+      showSuccessToast(t("cloud_save_v2_custom_path_removed"));
+    } catch {
+      showErrorToast(
+        t("cloud_save_v2_custom_path_remove_error_title"),
+        t("cloud_save_v2_custom_path_remove_error_description")
+      );
+    } finally {
+      setRemovingCustomPath(null);
+    }
+  };
+
   const loadingState = !details && isLoading;
   const errorState = !details && hasError;
+  const isChangingCustomPaths =
+    isAddingCustomPath || removingCustomPath !== null;
   const addCustomPathButton = (
     <Button
       theme="outline"
       className="cloud-save-v2__add-custom-path-button"
-      disabled={isAddingCustomPath || isLoading || isGameRunning || isSyncing}
+      disabled={
+        isChangingCustomPaths || isLoading || isGameRunning || isSyncing
+      }
       onClick={() => void handleAddCustomPath()}
     >
       {isAddingCustomPath ? (
@@ -149,217 +219,253 @@ export function CloudSaveV2FileBrowserModal({
   );
 
   return (
-    <Modal
-      visible={visible}
-      title={
-        titleIsConflict
-          ? t("cloud_save_v2_conflicts_modal_title")
-          : t("cloud_save_v2_files_modal_title")
-      }
-      description={
-        titleIsConflict
-          ? t("cloud_save_v2_conflicts_modal_description")
-          : t("cloud_save_v2_files_modal_description")
-      }
-      className={`cloud-save-v2__file-browser-modal ${titleIsConflict ? "cloud-save-v2__file-browser-modal--comparison" : ""}`}
-      onClose={onClose}
-    >
-      <div className="cloud-save-v2__file-browser">
-        {loadingState && (
-          <div className="cloud-save-v2__browser-state">
-            <CircleNotchIcon className="cloud-save-v2__spinner" size={20} />
-            <span>{t("cloud_save_v2_files_loading")}</span>
-          </div>
-        )}
+    <>
+      <Modal
+        visible={visible}
+        title={
+          titleIsConflict
+            ? t("cloud_save_v2_conflicts_modal_title")
+            : t("cloud_save_v2_files_modal_title")
+        }
+        description={
+          titleIsConflict
+            ? t("cloud_save_v2_conflicts_modal_description")
+            : t("cloud_save_v2_files_modal_description")
+        }
+        className={`cloud-save-v2__file-browser-modal ${titleIsConflict ? "cloud-save-v2__file-browser-modal--comparison" : ""}`}
+        onClose={() => {
+          if (!isChangingCustomPaths) onClose();
+        }}
+      >
+        <div className="cloud-save-v2__file-browser">
+          {loadingState && (
+            <div className="cloud-save-v2__browser-state">
+              <CircleNotchIcon className="cloud-save-v2__spinner" size={20} />
+              <span>{t("cloud_save_v2_files_loading")}</span>
+            </div>
+          )}
 
-        {errorState && (
-          <div className="cloud-save-v2__browser-state cloud-save-v2__browser-state--error">
-            <WarningCircleIcon size={20} />
-            <span>{t("cloud_save_v2_files_error")}</span>
-            <Button theme="outline" onClick={onRetry}>
-              {t("cloud_save_v2_files_retry")}
-            </Button>
-          </div>
-        )}
+          {errorState && (
+            <div className="cloud-save-v2__browser-state cloud-save-v2__browser-state--error">
+              <WarningCircleIcon size={20} />
+              <span>{t("cloud_save_v2_files_error")}</span>
+              <Button theme="outline" onClick={onRetry}>
+                {t("cloud_save_v2_files_retry")}
+              </Button>
+            </div>
+          )}
 
-        {details && (
-          <>
-            {(isConflict || details.local.files.length > 0) && (
-              <div className="cloud-save-v2__browser-toolbar">
-                {!isConflict && (
-                  <div className="cloud-save-v2__browser-source-summary">
-                    <span>
-                      <MonitorIcon
-                        size={20}
-                        className="cloud-save-v2__browser-monitor-icon"
-                      />
-                      <strong>{t("cloud_save_v2_local_files")}</strong>
-                      {t("cloud_save_v2_source_summary", {
-                        count: details.local.fileCount,
-                        size: formatBytes(details.local.totalSizeBytes),
-                      })}
-                    </span>
-                  </div>
-                )}
-
-                {!isConflict && addCustomPathButton}
-
-                {isConflict && (
-                  <div className="cloud-save-v2__browser-diff-summary">
-                    <span>
-                      {t("cloud_save_v2_diff_modified", {
-                        count: comparisonCounts.modified,
-                      })}
-                    </span>
-                    <span>
-                      {t("cloud_save_v2_diff_local_only", {
-                        count: comparisonCounts.localOnly,
-                      })}
-                    </span>
-                    <span>
-                      {t("cloud_save_v2_diff_remote_only", {
-                        count: comparisonCounts.remoteOnly,
-                      })}
-                    </span>
-                    {!showOnlyChanged && (
+          {details && (
+            <>
+              {(isConflict || details.local.files.length > 0) && (
+                <div className="cloud-save-v2__browser-toolbar">
+                  {!isConflict && (
+                    <div className="cloud-save-v2__browser-source-summary">
                       <span>
-                        {t("cloud_save_v2_diff_unchanged", {
-                          count: comparisonCounts.unchanged,
-                        })}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {isConflict && (
-                  <div className="cloud-save-v2__browser-filter">
-                    <CheckboxField
-                      label={t("cloud_save_v2_show_only_changed")}
-                      checked={showOnlyChanged}
-                      onChange={(event) =>
-                        setShowOnlyChanged(event.target.checked)
-                      }
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {hasError && (
-              <div className="cloud-save-v2__browser-inline-error">
-                <WarningCircleIcon size={16} />
-                <span>{t("cloud_save_v2_files_refresh_error")}</span>
-                <button type="button" onClick={onRetry}>
-                  {t("cloud_save_v2_files_retry")}
-                </button>
-              </div>
-            )}
-
-            {isConflict && details.activeSnapshot ? (
-              <>
-                <div
-                  className="cloud-save-v2__browser-table-scroll"
-                  onScroll={(event) =>
-                    setIsFileListScrolled(event.currentTarget.scrollTop > 0)
-                  }
-                >
-                  <div
-                    className={`cloud-save-v2__browser-scroll-shadow cloud-save-v2__browser-scroll-shadow--below-header ${isFileListScrolled ? "cloud-save-v2__browser-scroll-shadow--visible" : ""}`}
-                  />
-                  <div className="cloud-save-v2__browser-diff-table">
-                    <div className="cloud-save-v2__browser-diff-header">
-                      <span />
-                      <div className="cloud-save-v2__browser-diff-source-header">
                         <MonitorIcon
                           size={20}
                           className="cloud-save-v2__browser-monitor-icon"
                         />
                         <strong>{t("cloud_save_v2_local_files")}</strong>
-                        <span>
-                          {t("cloud_save_v2_source_summary", {
-                            count: details.local.fileCount,
-                            size: formatBytes(details.local.totalSizeBytes),
-                          })}
-                        </span>
-                      </div>
-                      <strong className="cloud-save-v2__browser-diff-status-header">
-                        {t("cloud_save_v2_status")}
-                      </strong>
-                      <div className="cloud-save-v2__browser-diff-source-header">
-                        <CloudIcon size={20} />
-                        <strong>{t("cloud_save_v2_remote_files")}</strong>
-                        <span>
-                          {t("cloud_save_v2_source_summary", {
-                            count: details.activeSnapshot.fileCount,
-                            size: formatBytes(
-                              details.activeSnapshot.totalSizeBytes
-                            ),
-                          })}
-                        </span>
-                      </div>
+                        {t("cloud_save_v2_source_summary", {
+                          count: details.local.fileCount,
+                          size: formatBytes(details.local.totalSizeBytes),
+                        })}
+                      </span>
                     </div>
-                    {comparisonRoots.length > 0 ? (
-                      <CloudSaveV2FileTreeView
-                        roots={comparisonRoots}
-                        mode="comparison"
-                        onOpenFolder={(path) => void handleOpenFolder(path)}
+                  )}
+
+                  {!isConflict && addCustomPathButton}
+
+                  {isConflict && (
+                    <div className="cloud-save-v2__browser-diff-summary">
+                      <span>
+                        {t("cloud_save_v2_diff_modified", {
+                          count: comparisonCounts.modified,
+                        })}
+                      </span>
+                      <span>
+                        {t("cloud_save_v2_diff_local_only", {
+                          count: comparisonCounts.localOnly,
+                        })}
+                      </span>
+                      <span>
+                        {t("cloud_save_v2_diff_remote_only", {
+                          count: comparisonCounts.remoteOnly,
+                        })}
+                      </span>
+                      {!showOnlyChanged && (
+                        <span>
+                          {t("cloud_save_v2_diff_unchanged", {
+                            count: comparisonCounts.unchanged,
+                          })}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {isConflict && (
+                    <div className="cloud-save-v2__browser-filter">
+                      <CheckboxField
+                        label={t("cloud_save_v2_show_only_changed")}
+                        checked={showOnlyChanged}
+                        onChange={(event) =>
+                          setShowOnlyChanged(event.target.checked)
+                        }
                       />
-                    ) : (
-                      <p className="cloud-save-v2__browser-empty">
-                        {t("cloud_save_v2_no_visible_differences")}
-                      </p>
-                    )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {hasError && (
+                <div className="cloud-save-v2__browser-inline-error">
+                  <WarningCircleIcon size={16} />
+                  <span>{t("cloud_save_v2_files_refresh_error")}</span>
+                  <button type="button" onClick={onRetry}>
+                    {t("cloud_save_v2_files_retry")}
+                  </button>
+                </div>
+              )}
+
+              {isConflict && details.activeSnapshot ? (
+                <>
+                  <div
+                    className="cloud-save-v2__browser-table-scroll"
+                    onScroll={(event) =>
+                      setIsFileListScrolled(event.currentTarget.scrollTop > 0)
+                    }
+                  >
+                    <div
+                      className={`cloud-save-v2__browser-scroll-shadow cloud-save-v2__browser-scroll-shadow--below-header ${isFileListScrolled ? "cloud-save-v2__browser-scroll-shadow--visible" : ""}`}
+                    />
+                    <div className="cloud-save-v2__browser-diff-table">
+                      <div className="cloud-save-v2__browser-diff-header">
+                        <span />
+                        <div className="cloud-save-v2__browser-diff-source-header">
+                          <MonitorIcon
+                            size={20}
+                            className="cloud-save-v2__browser-monitor-icon"
+                          />
+                          <strong>{t("cloud_save_v2_local_files")}</strong>
+                          <span>
+                            {t("cloud_save_v2_source_summary", {
+                              count: details.local.fileCount,
+                              size: formatBytes(details.local.totalSizeBytes),
+                            })}
+                          </span>
+                        </div>
+                        <strong className="cloud-save-v2__browser-diff-status-header">
+                          {t("cloud_save_v2_status")}
+                        </strong>
+                        <div className="cloud-save-v2__browser-diff-source-header">
+                          <CloudIcon size={20} />
+                          <strong>{t("cloud_save_v2_remote_files")}</strong>
+                          <span>
+                            {t("cloud_save_v2_source_summary", {
+                              count: details.activeSnapshot.fileCount,
+                              size: formatBytes(
+                                details.activeSnapshot.totalSizeBytes
+                              ),
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      {comparisonRoots.length > 0 ? (
+                        <CloudSaveV2FileTreeView
+                          roots={comparisonRoots}
+                          mode="comparison"
+                          onOpenFolder={(path) => void handleOpenFolder(path)}
+                          onRemoveCustomPath={setPendingCustomPathRemoval}
+                          customPathActionsDisabled={
+                            isChangingCustomPaths ||
+                            isLoading ||
+                            isGameRunning ||
+                            isSyncing
+                          }
+                        />
+                      ) : (
+                        <p className="cloud-save-v2__browser-empty">
+                          {t("cloud_save_v2_no_visible_differences")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : localRoots.length > 0 ? (
+                <div
+                  className="cloud-save-v2__browser-local-tree"
+                  onScroll={(event) =>
+                    setIsFileListScrolled(event.currentTarget.scrollTop > 0)
+                  }
+                >
+                  <div
+                    className={`cloud-save-v2__browser-scroll-shadow ${isFileListScrolled ? "cloud-save-v2__browser-scroll-shadow--visible" : ""}`}
+                  />
+                  <CloudSaveV2FileTreeView
+                    roots={localRoots}
+                    mode="local"
+                    onOpenFolder={(path) => void handleOpenFolder(path)}
+                    onRemoveCustomPath={setPendingCustomPathRemoval}
+                    customPathActionsDisabled={
+                      isChangingCustomPaths ||
+                      isLoading ||
+                      isGameRunning ||
+                      isSyncing
+                    }
+                  />
+                </div>
+              ) : isConflict ? (
+                <p className="cloud-save-v2__browser-empty">
+                  {t("cloud_save_v2_no_local_files")}
+                </p>
+              ) : (
+                <div className="cloud-save-v2__browser-empty cloud-save-v2__browser-empty--actions">
+                  <div className="cloud-save-v2__browser-empty-copy">
+                    <strong>{t("cloud_save_v2_no_local_files")}</strong>
+                    <span>{t("cloud_save_v2_no_local_files_description")}</span>
+                  </div>
+                  <div className="cloud-save-v2__browser-empty-actions">
+                    <Button
+                      disabled={
+                        isChangingCustomPaths ||
+                        isLoading ||
+                        isGameRunning ||
+                        isSyncing
+                      }
+                      onClick={() => void onRetry()}
+                    >
+                      {isLoading ? (
+                        <CircleNotchIcon
+                          className="cloud-save-v2__spinner"
+                          size={16}
+                        />
+                      ) : (
+                        <ArrowClockwiseIcon size={16} />
+                      )}
+                      <span>{t("cloud_save_v2_check_again")}</span>
+                    </Button>
+                    {addCustomPathButton}
                   </div>
                 </div>
-              </>
-            ) : details.local.files.length > 0 ? (
-              <div
-                className="cloud-save-v2__browser-local-tree"
-                onScroll={(event) =>
-                  setIsFileListScrolled(event.currentTarget.scrollTop > 0)
-                }
-              >
-                <div
-                  className={`cloud-save-v2__browser-scroll-shadow ${isFileListScrolled ? "cloud-save-v2__browser-scroll-shadow--visible" : ""}`}
-                />
-                <CloudSaveV2FileTreeView
-                  roots={localRoots}
-                  mode="local"
-                  onOpenFolder={(path) => void handleOpenFolder(path)}
-                />
-              </div>
-            ) : isConflict ? (
-              <p className="cloud-save-v2__browser-empty">
-                {t("cloud_save_v2_no_local_files")}
-              </p>
-            ) : (
-              <div className="cloud-save-v2__browser-empty cloud-save-v2__browser-empty--actions">
-                <div className="cloud-save-v2__browser-empty-copy">
-                  <strong>{t("cloud_save_v2_no_local_files")}</strong>
-                  <span>{t("cloud_save_v2_no_local_files_description")}</span>
-                </div>
-                <div className="cloud-save-v2__browser-empty-actions">
-                  <Button
-                    disabled={isLoading || isGameRunning || isSyncing}
-                    onClick={() => void onRetry()}
-                  >
-                    {isLoading ? (
-                      <CircleNotchIcon
-                        className="cloud-save-v2__spinner"
-                        size={16}
-                      />
-                    ) : (
-                      <ArrowClockwiseIcon size={16} />
-                    )}
-                    <span>{t("cloud_save_v2_check_again")}</span>
-                  </Button>
-                  {addCustomPathButton}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </Modal>
+              )}
+            </>
+          )}
+        </div>
+      </Modal>
+
+      <ConfirmationModal
+        visible={pendingCustomPathRemoval !== null}
+        title={t("cloud_save_v2_remove_custom_path_title")}
+        descriptionText={t("cloud_save_v2_remove_custom_path_description")}
+        confirmButtonLabel={t("cloud_save_v2_remove")}
+        cancelButtonLabel={t("cloud_save_v2_cancel")}
+        buttonsIsDisabled={removingCustomPath !== null}
+        onConfirm={() => void handleRemoveCustomPath()}
+        onClose={() => {
+          if (!removingCustomPath) setPendingCustomPathRemoval(null);
+        }}
+      />
+    </>
   );
 }

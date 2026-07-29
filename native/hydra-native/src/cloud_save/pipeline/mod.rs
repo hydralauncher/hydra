@@ -56,7 +56,7 @@ fn collect_discovered_files(
     let mut variants_by_id = BTreeMap::<String, SnapshotVariant>::new();
 
     for rule in scanned_rules {
-        let priority = if rule
+        let path_priority = if rule
             .resolved_paths
             .iter()
             .any(|path| !path.dynamic && Path::new(&path.path).is_file())
@@ -67,6 +67,9 @@ fn collect_discovered_files(
         } else {
             DYNAMIC_PATH_PRIORITY
         };
+        // A custom rule that overlaps a manifest rule must not rename an
+        // already tracked file and create a second remote identity.
+        let priority = (rule.source != "custom", path_priority);
         for scanned_path in rule.scanned_paths {
             let store_user = store_user_identity(
                 shop,
@@ -357,5 +360,39 @@ mod tests {
         assert_eq!(files.len(), 2);
         assert_eq!(variants.len(), 2);
         assert_ne!(files[0].variant_id, files[1].variant_id);
+    }
+
+    #[test]
+    fn manifest_identity_wins_when_a_custom_rule_finds_the_same_file() {
+        let temp = tempdir().unwrap();
+        let save = temp.path().join("slot.sav");
+        fs::write(&save, b"same").unwrap();
+        let mut custom = scanned_rule(
+            "<custom><windows><winDocuments>/Game",
+            None,
+            &save.display().to_string(),
+            "slot.sav",
+        );
+        custom.source = "custom".into();
+        let mut manifest = scanned_rule(
+            "<winDocuments>/Game",
+            None,
+            &save.display().to_string(),
+            "slot.sav",
+        );
+        manifest.source = "ludusavi".into();
+
+        let (_, files, _) = collect_discovered_files(
+            "steam",
+            "1",
+            "steam:1",
+            "environment",
+            &StoreUserContext::default(),
+            vec![custom, manifest],
+        )
+        .unwrap();
+
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].raw_path, "<winDocuments>/Game");
     }
 }

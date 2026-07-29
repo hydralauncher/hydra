@@ -3,6 +3,8 @@ import { BrowserWindow, dialog } from "electron";
 import {
   assertCloudSaveSubscription,
   canonicalizeSelectedCloudSaveCustomPath,
+  cloudSaveCustomPathContextFromPathContext,
+  getCloudSaveGameContext,
   isCloudSaveSyncActive,
   registerCloudSaveCustomPaths,
 } from "@main/services/cloud-save";
@@ -47,8 +49,13 @@ registerEvent(
       throw new Error("cloud_save_custom_path_sync_active");
     }
 
-    const customPath =
-      await canonicalizeSelectedCloudSaveCustomPath(selectedPath);
+    const { pathContext } = await getCloudSaveGameContext(objectId, shop);
+    const customPathContext =
+      cloudSaveCustomPathContextFromPathContext(pathContext);
+    const customPath = await canonicalizeSelectedCloudSaveCustomPath(
+      selectedPath,
+      customPathContext
+    );
     await registerCloudSaveCustomPaths(shop, objectId, [customPath]);
     return { canceled: false, customPath };
   }

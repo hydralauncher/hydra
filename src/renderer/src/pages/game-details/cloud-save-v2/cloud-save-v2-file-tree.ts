@@ -1,4 +1,5 @@
 import type {
+  CloudSaveCustomPath,
   CloudSaveV2FileComparison,
   CloudSaveV2FileComparisonStatus,
   CloudSaveV2LocalFile,
@@ -17,6 +18,7 @@ interface CloudSaveV2FileTreeBranchBase {
 export interface CloudSaveV2FileTreeRoot extends CloudSaveV2FileTreeBranchBase {
   type: "root";
   rawPath: string;
+  customPath: CloudSaveCustomPath | null;
 }
 
 export interface CloudSaveV2FileTreeDirectory
@@ -43,6 +45,7 @@ interface MutableBranch {
   id: string;
   name: string;
   rawPath?: string;
+  customPath?: CloudSaveCustomPath;
   localDirectoryPath: string | null;
   hasLocalFiles: boolean;
   hasRemoteFiles: boolean;
@@ -169,6 +172,7 @@ const finalizeBranch = (
     return {
       type: "root",
       rawPath: branch.rawPath!,
+      customPath: branch.customPath ?? null,
       ...shared,
     };
   }
@@ -196,7 +200,8 @@ export const filterCloudSaveV2Comparisons = (
   );
 
 export const buildCloudSaveV2LocalFileTree = (
-  files: CloudSaveV2LocalFile[]
+  files: CloudSaveV2LocalFile[],
+  customPaths: CloudSaveCustomPath[] = []
 ): CloudSaveV2FileTreeRoot[] => {
   const roots = new Map<string, MutableBranch>();
 
@@ -264,15 +269,41 @@ export const buildCloudSaveV2LocalFileTree = (
     });
   }
 
+  for (const customPath of customPaths) {
+    const rootPathIdentity = getLocalPathIdentity(customPath.path);
+    const existing = roots.get(rootPathIdentity);
+    if (existing) {
+      existing.customPath = customPath;
+      continue;
+    }
+
+    roots.set(rootPathIdentity, {
+      type: "root",
+      id: JSON.stringify(["local-root", rootPathIdentity]),
+      name: customPath.path,
+      rawPath: customPath.rawPath,
+      customPath,
+      localDirectoryPath: customPath.path,
+      hasLocalFiles: false,
+      hasRemoteFiles: false,
+      branches: new Map(),
+      files: [],
+    });
+  }
+
   return Array.from(roots.values(), finalizeBranch).sort(
     compareTreeNodes
   ) as CloudSaveV2FileTreeRoot[];
 };
 
 export const buildCloudSaveV2ComparisonTree = (
-  comparisons: CloudSaveV2FileComparison[]
+  comparisons: CloudSaveV2FileComparison[],
+  customPaths: CloudSaveCustomPath[] = []
 ): CloudSaveV2FileTreeRoot[] => {
   const roots = new Map<string, MutableBranch>();
+  const customPathByRawPath = new Map(
+    customPaths.map((customPath) => [customPath.rawPath, customPath])
+  );
 
   for (const comparison of comparisons) {
     const rootId = JSON.stringify([
@@ -281,9 +312,10 @@ export const buildCloudSaveV2ComparisonTree = (
       comparison.rawPath,
     ]);
     const identity = comparison.local ?? comparison.remote;
+    const customPath = customPathByRawPath.get(comparison.rawPath);
     const localRootPath = comparison.local
       ? getLocalRootPath(comparison.local)
-      : null;
+      : (customPath?.path ?? null);
     let root = roots.get(rootId);
     if (!root) {
       root = {
@@ -293,6 +325,7 @@ export const buildCloudSaveV2ComparisonTree = (
           ? `${identity.userLabel} · ${comparison.rawPath}`
           : comparison.rawPath,
         rawPath: comparison.rawPath,
+        customPath,
         localDirectoryPath: localRootPath,
         hasLocalFiles: Boolean(comparison.local),
         hasRemoteFiles: Boolean(comparison.remote),

@@ -113,6 +113,12 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<SelectCloudSaveCustomPathResult>;
+    removeCloudSaveCustomPath: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string,
+      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    ) => Promise<SyncGameCloudSaveResult>;
     setCloudSaveAutomaticSyncEnabled: (
       objectId: string,
       shop: GameShop,
