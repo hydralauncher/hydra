@@ -47,6 +47,9 @@ import type {
   SyncCloudSaveOnGamePageResult,
   SyncGameCloudSaveResult,
   SelectCloudSaveCustomPathResult,
+  CloudSaveCustomPathApproval,
+  SelectCloudSaveCustomPathApprovalResult,
+  ConfirmCloudSaveCustomPathApprovalResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -114,6 +117,27 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<SelectCloudSaveCustomPathResult>,
+  getPendingCloudSaveCustomPathApproval: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getPendingCloudSaveCustomPathApproval",
+      objectId,
+      shop
+    ) as Promise<CloudSaveCustomPathApproval | null>,
+  selectCloudSaveCustomPathApproval: (approvalId: string) =>
+    ipcRenderer.invoke(
+      "selectCloudSaveCustomPathApproval",
+      approvalId
+    ) as Promise<SelectCloudSaveCustomPathApprovalResult>,
+  confirmCloudSaveCustomPathApproval: (approvalId: string) =>
+    ipcRenderer.invoke(
+      "confirmCloudSaveCustomPathApproval",
+      approvalId
+    ) as Promise<ConfirmCloudSaveCustomPathApprovalResult>,
+  dismissCloudSaveCustomPathApproval: (approvalId: string) =>
+    ipcRenderer.invoke(
+      "dismissCloudSaveCustomPathApproval",
+      approvalId
+    ) as Promise<void>,
   removeCloudSaveCustomPath: (
     objectId: string,
     shop: GameShop,

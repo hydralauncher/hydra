@@ -66,6 +66,9 @@ import type {
   SyncCloudSaveOnGamePageResult,
   SyncGameCloudSaveResult,
   SelectCloudSaveCustomPathResult,
+  CloudSaveCustomPathApproval,
+  SelectCloudSaveCustomPathApprovalResult,
+  ConfirmCloudSaveCustomPathApprovalResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -113,6 +116,17 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<SelectCloudSaveCustomPathResult>;
+    getPendingCloudSaveCustomPathApproval: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveCustomPathApproval | null>;
+    selectCloudSaveCustomPathApproval: (
+      approvalId: string
+    ) => Promise<SelectCloudSaveCustomPathApprovalResult>;
+    confirmCloudSaveCustomPathApproval: (
+      approvalId: string
+    ) => Promise<ConfirmCloudSaveCustomPathApprovalResult>;
+    dismissCloudSaveCustomPathApproval: (approvalId: string) => Promise<void>;
     removeCloudSaveCustomPath: (
       objectId: string,
       shop: GameShop,

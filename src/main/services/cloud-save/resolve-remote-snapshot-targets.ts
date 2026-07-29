@@ -3,7 +3,6 @@ import { logger } from "@main/services/logger";
 import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
 import type {
-  CloudSaveCustomPath,
   CloudSavePathContext,
   RemoteGameSnapshot,
   RemoteSnapshotSummary,
@@ -14,11 +13,7 @@ import type {
 import { NativeAddon } from "../native-addon";
 import { validateRestoreManifest } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
-import {
-  CLOUD_SAVE_CUSTOM_PATH_PREFIX,
-  cloudSaveCustomPathContextFromPathContext,
-  validateCloudSaveCustomPathForRestore,
-} from "./custom-path";
+import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import {
   customPathToCloudSaveRule,
   getCloudSaveCustomPaths,
@@ -63,49 +58,6 @@ export const getRemoteSnapshotRestoreManifest = async (
   return manifest;
 };
 
-export const getRestorableCloudSaveCustomPaths = async (
-  manifest: RestoreManifestResponse,
-  pathContext: Pick<
-    CloudSavePathContext,
-    | "platform"
-    | "homeDir"
-    | "documentsDir"
-    | "appDataDir"
-    | "executablePath"
-    | "winePrefixPath"
-    | "steamPath"
-    | "objectId"
-    | "storeUserContext"
-  >
-): Promise<CloudSaveCustomPath[]> => {
-  const rawPaths = [
-    ...new Set(
-      manifest.files
-        .map(({ rawPath }) => rawPath)
-        .filter((rawPath) => rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX))
-    ),
-  ].sort();
-  const customPaths: CloudSaveCustomPath[] = [];
-  const customPathContext =
-    cloudSaveCustomPathContextFromPathContext(pathContext);
-  for (const rawPath of rawPaths) {
-    try {
-      const customPath = await validateCloudSaveCustomPathForRestore(
-        rawPath,
-        pathContext.platform,
-        customPathContext
-      );
-      if (customPath) customPaths.push(customPath);
-    } catch (error) {
-      logger.warn("[Cloud Save] Rejected custom restore path", {
-        rawPath,
-        error,
-      });
-    }
-  }
-  return customPaths;
-};
-
 export const resolveRestoreManifestTargets = async (
   manifest: RestoreManifestResponse,
   suppliedPathContext?: CloudSavePathContext
@@ -122,10 +74,6 @@ export const resolveRestoreManifestTargets = async (
     remoteId: gameContext.game?.remoteId ?? undefined,
     userDataPath: SystemPath.getPath("userData"),
   });
-  const remoteCustomPaths = await getRestorableCloudSaveCustomPaths(
-    manifest,
-    pathContext
-  );
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
   const [localCustomPaths, unavailableLocalRawPaths] = await Promise.all([
@@ -141,17 +89,9 @@ export const resolveRestoreManifestTargets = async (
     ),
   ]);
   const unavailableKeys = new Set(unavailableLocalRawPaths);
-  const customPaths = remoteCustomPaths.flatMap((remotePath) => {
-    if (unavailableKeys.has(remotePath.rawPath)) {
-      return [];
-    }
-    const localPath = localCustomPaths.find(
-      (localPath) => localPath.rawPath === remotePath.rawPath
-    );
-    return [
-      localPath ? { ...localPath, rawPath: remotePath.rawPath } : remotePath,
-    ];
-  });
+  const customPaths = localCustomPaths.filter(
+    (localPath) => !unavailableKeys.has(localPath.rawPath)
+  );
 
   const effectiveWinePrefixPath = customPathContext.winePrefixPath;
   const wineUserProfilePath = customPathContext.wineUserProfilePath;

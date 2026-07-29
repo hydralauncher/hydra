@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
+  bindCloudSaveCustomPathToLocalPath,
   canonicalizeSelectedCloudSaveCustomPath,
   cloudSaveCustomPathContextFromPathContext,
   cloudSaveCustomPathStorageKey,
@@ -91,6 +92,32 @@ describe("cloud save custom path codec", () => {
       decodeCloudSaveCustomPath(rawPath, windowsContext("Maria", "D:")).path,
       "D:/Users/Maria/Documents/Game/Saves"
     );
+  });
+
+  it("binds a remote custom path identity to an explicitly chosen folder", () => {
+    const rawPath = "<custom><windows><winDocuments>/Game/Saves";
+    const binding = bindCloudSaveCustomPathToLocalPath(
+      rawPath,
+      "D:/Hydra Saves/Game",
+      windowsContext("Maria", "D:")
+    );
+
+    assert.equal(binding.rawPath, rawPath);
+    assert.equal(binding.path, "D:/Hydra Saves/Game");
+    assert.equal(binding.platform, "windows");
+  });
+
+  it("binds an unmappable remote identity after a local folder is chosen", () => {
+    const rawPath = "<custom><linux><home>/Game/Saves";
+    const binding = bindCloudSaveCustomPathToLocalPath(
+      rawPath,
+      "D:/Hydra Saves/Game",
+      windowsContext("Maria", "D:")
+    );
+
+    assert.equal(binding.rawPath, rawPath);
+    assert.equal(binding.path, "D:/Hydra Saves/Game");
+    assert.equal(binding.platform, "windows");
   });
 
   it("uses one Windows identity on native Windows and Wine", () => {

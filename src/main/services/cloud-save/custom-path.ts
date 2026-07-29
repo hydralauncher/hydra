@@ -800,16 +800,23 @@ export const bindCloudSaveCustomPathToLocalPath = (
   localPath: string,
   context = getCurrentCloudSaveCustomPathContext()
 ) => {
+  if (!rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)) {
+    throw new Error("cloud_save_custom_path_invalid_prefix");
+  }
+  const encodedRemotePath = rawPath.slice(CLOUD_SAVE_CUSTOM_PATH_PREFIX.length);
+  if (
+    !Object.values(PLATFORM_MARKERS).some((marker) =>
+      encodedRemotePath.startsWith(marker)
+    )
+  ) {
+    throw new Error("cloud_save_custom_path_invalid_platform");
+  }
   const normalizedPath = normalizeAbsolutePath(localPath, context.platform);
   const localBinding = encodeCloudSaveCustomPath(normalizedPath, context);
-  const decoded = decodeCloudSaveCustomPath(rawPath, {
-    ...context,
-    preferredStoreUserId: localBinding.storeUserId,
-  });
   return {
-    ...decoded,
     rawPath,
     path: normalizedPath,
+    platform: localBinding.platform,
     ...(localBinding.storeUserId
       ? { storeUserId: localBinding.storeUserId }
       : {}),

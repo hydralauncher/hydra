@@ -28,6 +28,27 @@ const automaticSyncCoordinator =
 const gameKey = (objectId: string, shop: GameShop) =>
   JSON.stringify([shop, objectId]);
 
+export const canRunAutomaticCloudSaveSync = async (
+  objectId: string,
+  shop: GameShop
+) => {
+  if (
+    shop !== "steam" ||
+    !canAccessCloudSaves(
+      HydraApi.isLoggedIn(),
+      HydraApi.hasActiveSubscription()
+    ) ||
+    !(await getCloudSaveAutomaticSyncEnabled(objectId, shop))
+  ) {
+    return false;
+  }
+
+  const game = await gamesSublevel
+    .get(levelKeys.game(shop, objectId))
+    .catch(() => null);
+  return Boolean(game?.executablePath);
+};
+
 const emitAutomaticSyncEvent = (event: CloudSaveAutomaticSyncEvent) => {
   WindowManager.sendToAppWindows("on-cloud-save-automatic-sync", event);
 };

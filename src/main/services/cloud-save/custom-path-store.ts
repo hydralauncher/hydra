@@ -9,6 +9,7 @@ import type {
 } from "@types";
 
 import {
+  bindCloudSaveCustomPathToLocalPath,
   type CloudSaveCustomPathContext,
   cloudSaveCustomPathStorageKey,
   decodeCloudSaveCustomPath,
@@ -18,6 +19,7 @@ import {
 interface StoredCloudSaveCustomPath {
   rawPath: string;
   storeUserId?: string;
+  localPath?: string;
 }
 
 const getCurrentUserId = async () => {
@@ -38,8 +40,9 @@ const isStoredPath = (value: unknown): value is StoredCloudSaveCustomPath => {
     typeof record.rawPath === "string" &&
     (record.storeUserId === undefined ||
       typeof record.storeUserId === "string") &&
+    (record.localPath === undefined || typeof record.localPath === "string") &&
     Object.keys(record).every(
-      (key) => key === "rawPath" || key === "storeUserId"
+      (key) => key === "rawPath" || key === "storeUserId" || key === "localPath"
     )
   );
 };
@@ -58,6 +61,7 @@ const normalizeStoredEntries = (
     byRawPath.set(entry.rawPath, {
       rawPath: entry.rawPath,
       storeUserId: entry.storeUserId ?? existing?.storeUserId,
+      localPath: entry.localPath ?? existing?.localPath,
     });
   }
   return [...byRawPath.values()].sort((left, right) =>
@@ -70,20 +74,28 @@ const decodeStoredPath = (
   context: CloudSaveCustomPathContext
 ) => {
   if (
+    !stored.localPath &&
     stored.rawPath.includes("<storeUserId>") &&
     !stored.storeUserId &&
     (context.storeUserIds?.length ?? 0) !== 1
   ) {
     throw new Error("cloud_save_custom_path_store_user_ambiguous");
   }
-  return decodeCloudSaveCustomPath(stored.rawPath, {
+  const bindingContext = {
     ...context,
     preferredStoreUserId:
       stored.storeUserId ??
       (stored.rawPath.includes("<storeUserId>")
         ? context.storeUserIds?.[0]
         : undefined),
-  });
+  };
+  return stored.localPath
+    ? bindCloudSaveCustomPathToLocalPath(
+        stored.rawPath,
+        stored.localPath,
+        bindingContext
+      )
+    : decodeCloudSaveCustomPath(stored.rawPath, bindingContext);
 };
 
 const getStoredEntries = async (shop: GameShop, objectId: string) =>
@@ -154,6 +166,7 @@ export const saveCloudSaveCustomPaths = async (
     customPaths.map((customPath) => ({
       rawPath: customPath.rawPath,
       storeUserId: customPath.storeUserId,
+      localPath: customPath.path,
     }))
   );
 
@@ -168,11 +181,12 @@ export const registerCloudSaveCustomPaths = async (
       entry,
     ])
   );
-  for (const { rawPath, storeUserId } of customPaths) {
+  for (const { rawPath, storeUserId, path: localPath } of customPaths) {
     const existing = byRawPath.get(rawPath);
     byRawPath.set(rawPath, {
       rawPath,
       storeUserId: storeUserId ?? existing?.storeUserId,
+      localPath: localPath ?? existing?.localPath,
     });
   }
   await putStoredEntries(shop, objectId, [...byRawPath.values()]);

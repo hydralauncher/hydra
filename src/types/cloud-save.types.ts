@@ -38,6 +38,28 @@ export interface SelectCloudSaveCustomPathResult {
   customPath?: CloudSaveCustomPath;
 }
 
+export interface CloudSaveCustomPathApproval {
+  id: string;
+  gameId: CloudSaveGameId;
+  rawPath: string;
+  suggestedPath: string | null;
+  selectedPath: string | null;
+  canUseSuggestedPath: boolean;
+  fileCount: number;
+  totalSizeBytes: number;
+  snapshotId: string;
+  snapshotVersion: number;
+}
+
+export interface SelectCloudSaveCustomPathApprovalResult {
+  canceled: boolean;
+  approval: CloudSaveCustomPathApproval;
+}
+
+export interface ConfirmCloudSaveCustomPathApprovalResult {
+  pendingApproval: CloudSaveCustomPathApproval | null;
+}
+
 export interface GetSaveRulesForGameInput extends CloudSaveGameId {
   title?: string;
   remoteId?: string;

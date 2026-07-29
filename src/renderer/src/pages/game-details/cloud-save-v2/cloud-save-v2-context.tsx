@@ -9,11 +9,13 @@ import { useToast, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import type {
   CloudSaveConflictResolution,
+  CloudSaveCustomPathApproval,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   GameShop,
 } from "@types";
 
+import { CloudSaveCustomPathApprovalModal } from "./cloud-save-custom-path-approval-modal";
 import { CloudSaveModal } from "./cloud-save-modal";
 import { shouldSyncCloudSaveOnGamePage } from "./cloud-save-presentation";
 import { CloudSaveV2FileBrowserModal } from "./cloud-save-v2-file-browser-modal";
@@ -94,6 +96,14 @@ export function CloudSaveV2Provider({
     null
   );
   const [hasSyncError, setHasSyncError] = useState(false);
+  const [customPathApproval, setCustomPathApproval] =
+    useState<CloudSaveCustomPathApproval | null>(null);
+  const [isSelectingCustomPath, setIsSelectingCustomPath] = useState(false);
+  const [isConfirmingCustomPath, setIsConfirmingCustomPath] = useState(false);
+  const [hasCustomPathApprovalError, setHasCustomPathApprovalError] =
+    useState(false);
+  const [isCustomPathApprovalGateActive, setIsCustomPathApprovalGateActive] =
+    useState(searchParams.get("openCloudSavePathApproval") === "1");
   const [pendingResolution, setPendingResolution] =
     useState<CloudSaveConflictResolution | null>(null);
   const {
@@ -120,6 +130,11 @@ export function CloudSaveV2Provider({
     setIsModalVisible(false);
     setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
+    setCustomPathApproval(null);
+    setIsSelectingCustomPath(false);
+    setIsConfirmingCustomPath(false);
+    setHasCustomPathApprovalError(false);
+    setIsCustomPathApprovalGateActive(false);
     setPendingResolution(null);
     gamePageSyncInFlight.current = false;
     gamePageSyncCompleted.current = false;
@@ -166,6 +181,44 @@ export function CloudSaveV2Provider({
     shop,
     showHydraCloudModal,
   ]);
+
+  useEffect(() => {
+    if (
+      shop !== "steam" ||
+      searchParams.get("openCloudSavePathApproval") !== "1"
+    ) {
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("openCloudSavePathApproval");
+    setIsCustomPathApprovalGateActive(true);
+    setSearchParams(nextSearchParams, { replace: true });
+
+    let canceled = false;
+    setHasCustomPathApprovalError(false);
+    void window.electron
+      .getPendingCloudSaveCustomPathApproval(objectId, shop)
+      .then((approval) => {
+        if (!canceled) {
+          setCustomPathApproval(approval);
+          setIsCustomPathApprovalGateActive(approval !== null);
+        }
+      })
+      .catch(() => {
+        if (!canceled) {
+          setHasCustomPathApprovalError(true);
+          showErrorToast(
+            t("cloud_save_v2_path_approval_error_title"),
+            t("cloud_save_v2_path_approval_load_error_description")
+          );
+        }
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [objectId, searchParams, setSearchParams, shop, showErrorToast, t]);
 
   useEffect(() => {
     return window.electron.onCloudSaveAutomaticSync((event) => {
@@ -223,7 +276,11 @@ export function CloudSaveV2Provider({
   ]);
 
   useEffect(() => {
+    const isPathApprovalBlockingSync =
+      isCustomPathApprovalGateActive ||
+      searchParams.get("openCloudSavePathApproval") === "1";
     if (
+      isPathApprovalBlockingSync ||
       !shouldSyncCloudSaveOnGamePage({
         overview,
         shop,
@@ -265,10 +322,12 @@ export function CloudSaveV2Provider({
     canUseCloudSaves,
     gameKey,
     hasExecutablePath,
+    isCustomPathApprovalGateActive,
     isGameRunning,
     isSyncing,
     objectId,
     overview,
+    searchParams,
     shop,
     showErrorToast,
     t,
@@ -380,6 +439,54 @@ export function CloudSaveV2Provider({
     if (resolution) void runCloudSaveOperation(resolution);
   };
 
+  const handleSelectCustomPathApproval = async () => {
+    const approvalId = customPathApproval?.id;
+    if (!approvalId || isSelectingCustomPath || isConfirmingCustomPath) return;
+
+    setIsSelectingCustomPath(true);
+    setHasCustomPathApprovalError(false);
+    try {
+      const result =
+        await window.electron.selectCloudSaveCustomPathApproval(approvalId);
+      if (!result.canceled) setCustomPathApproval(result.approval);
+    } catch {
+      setHasCustomPathApprovalError(true);
+    } finally {
+      setIsSelectingCustomPath(false);
+    }
+  };
+
+  const handleConfirmCustomPathApproval = async () => {
+    const approvalId = customPathApproval?.id;
+    if (!approvalId || isSelectingCustomPath || isConfirmingCustomPath) return;
+
+    setIsConfirmingCustomPath(true);
+    setHasCustomPathApprovalError(false);
+    try {
+      const result =
+        await window.electron.confirmCloudSaveCustomPathApproval(approvalId);
+      setCustomPathApproval(result.pendingApproval);
+      setIsCustomPathApprovalGateActive(result.pendingApproval !== null);
+    } catch {
+      setHasCustomPathApprovalError(true);
+    } finally {
+      setIsConfirmingCustomPath(false);
+    }
+  };
+
+  const handleCloseCustomPathApproval = () => {
+    if (isSelectingCustomPath || isConfirmingCustomPath) return;
+
+    const approvalId = customPathApproval?.id;
+    setCustomPathApproval(null);
+    setHasCustomPathApprovalError(false);
+    if (approvalId) {
+      void window.electron
+        .dismissCloudSaveCustomPathApproval(approvalId)
+        .catch(() => undefined);
+    }
+  };
+
   const hasError = hasRefreshError || hasSyncError;
   const value: CloudSaveV2ContextValue = {
     overview,
@@ -408,6 +515,16 @@ export function CloudSaveV2Provider({
   return (
     <cloudSaveV2Context.Provider value={value}>
       {children}
+
+      <CloudSaveCustomPathApprovalModal
+        approval={customPathApproval}
+        isSelecting={isSelectingCustomPath}
+        isConfirming={isConfirmingCustomPath}
+        hasError={hasCustomPathApprovalError}
+        onSelectPath={() => void handleSelectCustomPathApproval()}
+        onConfirm={() => void handleConfirmCustomPathApproval()}
+        onClose={handleCloseCustomPathApproval}
+      />
 
       <CloudSaveModal
         visible={isModalVisible}

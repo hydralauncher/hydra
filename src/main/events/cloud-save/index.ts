@@ -10,3 +10,7 @@ import "./resolve-cloud-save-conflict";
 import "./set-cloud-save-automatic-sync-enabled";
 import "./select-cloud-save-custom-path";
 import "./remove-cloud-save-custom-path";
+import "./get-pending-cloud-save-custom-path-approval";
+import "./select-cloud-save-custom-path-approval";
+import "./confirm-cloud-save-custom-path-approval";
+import "./dismiss-cloud-save-custom-path-approval";

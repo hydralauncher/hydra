@@ -7,7 +7,9 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { updateGameExecutablePath } from "./update-executable-path";
 import {
   clearCloudSaveLaunchGuard,
+  canRunAutomaticCloudSaveSync,
   canCreateCloudSaveUploadGuard,
+  createPendingCloudSaveCustomPathApproval,
   getCloudSaveGameContext,
   rotateCloudSavePrefixGeneration,
   runAutomaticCloudSaveSync,
@@ -494,6 +496,42 @@ export const launchGame = async (
     logger.error("Failed to resolve cloud save launch environment", error);
     return null;
   });
+  const shouldCheckCustomPathApproval =
+    prefixReadyForRestore &&
+    cloudSaveContext !== null &&
+    (await canRunAutomaticCloudSaveSync(objectId, shop));
+  const customPathApproval = shouldCheckCustomPathApproval
+    ? await createPendingCloudSaveCustomPathApproval(
+        options,
+        cloudSaveContext
+      ).catch((error: unknown) => {
+        logger.error(
+          "[Cloud Save] Failed to inspect custom restore destinations",
+          error
+        );
+        return null;
+      })
+    : null;
+  if (customPathApproval) {
+    const searchParams = new URLSearchParams({
+      title: game?.title ?? objectId,
+      openCloudSavePathApproval: "1",
+    });
+    logger.warn(
+      "[Cloud Save] Game launch blocked by an unapproved custom restore path",
+      {
+        shop,
+        objectId,
+        rawPath: customPathApproval.rawPath,
+      }
+    );
+    clearCloudSaveLaunchGuard(objectId, shop);
+    WindowManager.closeGameLauncherWindow();
+    WindowManager.redirectToMainWindow(
+      `game/${shop}/${objectId}?${searchParams.toString()}`
+    );
+    return null;
+  }
   const preLaunchResult = prefixReadyForRestore
     ? await runAutomaticCloudSaveSync(
         objectId,
