@@ -52,6 +52,8 @@ const OVERLAY_LIBRARIES = [
 
 const FALLBACK_OVERLAY_GAME_ID = "480";
 
+const NUMERIC_APP_ID_PATTERN = /^\d+$/;
+
 const PREFIX_STEAM_DIRECTORY = path.join(
   "drive_c",
   "Program Files (x86)",
@@ -246,9 +248,12 @@ const resolveOverlayEnv = (
 
   if (!libraryPaths.length) return {};
 
+  const numericObjectId =
+    objectId && NUMERIC_APP_ID_PATTERN.test(objectId) ? objectId : null;
+
   const overlayGameId =
     readConfiguredOverlayGameId(executablePath) ??
-    objectId ??
+    numericObjectId ??
     FALLBACK_OVERLAY_GAME_ID;
 
   return {
