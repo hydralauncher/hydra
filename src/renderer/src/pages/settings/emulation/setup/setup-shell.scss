@@ -69,6 +69,10 @@
     &--end {
       justify-content: flex-end;
     }
+
+    .button {
+      white-space: nowrap;
+    }
   }
 
   &__ghost-button {
@@ -80,6 +84,7 @@
     padding: 10px 16px;
     border-radius: 8px;
     cursor: pointer;
+    white-space: nowrap;
 
     &:hover {
       color: #fafafa;

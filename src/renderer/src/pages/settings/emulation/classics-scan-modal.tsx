@@ -47,17 +47,12 @@ export function ClassicsScanModal() {
         </div>
 
         <div className="setup-modal__footer">
-          <div className="setup-modal__footer-side" />
           <div className="setup-modal__footer-side setup-modal__footer-side--end">
             {scan.active && (
               <>
-                <button
-                  type="button"
-                  className="setup-modal__ghost-button"
-                  onClick={cancel}
-                >
+                <Button theme="outline" onClick={cancel}>
                   {t("setup_cancel_scan")}
-                </button>
+                </Button>
                 <Button theme="outline" onClick={closeModal}>
                   {t("setup_run_in_background")}
                 </Button>
