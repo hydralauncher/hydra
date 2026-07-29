@@ -19,15 +19,15 @@ const STEAM_EMULATOR_PROXY_DLLS = [
   "version.dll",
 ];
 
-const STEAM_EMULATOR_CONFIG_FILES = ["onlinefix.ini", "steamfix.ini"];
+const STEAM_EMULATOR_CONFIG_FILES = new Set(["onlinefix.ini", "steamfix.ini"]);
 
 const OVERLAY_GAME_ID_KEY = "FakeAppId";
 
-const STEAMWORKS_FILES = [
+const STEAMWORKS_FILES = new Set([
   "steam_api64.dll",
   "steam_api.dll",
   "steam_appid.txt",
-];
+]);
 
 const MAX_SCAN_DEPTH = 8;
 
@@ -102,7 +102,7 @@ const containsSteamworksFiles = (gameDirectory: string) => {
         continue;
       }
 
-      if (STEAMWORKS_FILES.includes(entry.name.toLowerCase())) return true;
+      if (STEAMWORKS_FILES.has(entry.name.toLowerCase())) return true;
     }
 
     return subdirectories.some((subdirectory) =>
@@ -211,7 +211,7 @@ const readConfiguredOverlayGameId = (executablePath: string) => {
   }
 
   const configEntries = entries.filter((entry) =>
-    STEAM_EMULATOR_CONFIG_FILES.includes(entry.toLowerCase())
+    STEAM_EMULATOR_CONFIG_FILES.has(entry.toLowerCase())
   );
 
   for (const configEntry of configEntries) {
@@ -222,7 +222,7 @@ const readConfiguredOverlayGameId = (executablePath: string) => {
       );
 
       const value = new RegExp(
-        `^\\s*${OVERLAY_GAME_ID_KEY}\\s*=\\s*(\\d+)\\s*$`,
+        String.raw`^\s*${OVERLAY_GAME_ID_KEY}\s*=\s*(\d+)\s*$`,
         "im"
       ).exec(contents)?.[1];
 

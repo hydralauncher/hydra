@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import cn from "classnames";
 
 import {
   Button,
@@ -39,6 +40,124 @@ interface CompatibilitySettingsSectionProps {
   onChangeProtonVersion: (value: string) => void;
 }
 
+interface ToggleTooltipOptions {
+  managedBySteam: boolean;
+  isAvailable: boolean;
+  isEnabledGlobally: boolean;
+  unavailableTooltipId: string;
+  globalTooltipId: string;
+  unavailableContent: string;
+  globalContent: string;
+}
+
+const resolveToggleTooltip = ({
+  managedBySteam,
+  isAvailable,
+  isEnabledGlobally,
+  unavailableTooltipId,
+  globalTooltipId,
+  unavailableContent,
+  globalContent,
+}: ToggleTooltipOptions): { id?: string; content?: string } => {
+  if (managedBySteam) return {};
+
+  if (!isAvailable) {
+    return { id: unavailableTooltipId, content: unavailableContent };
+  }
+
+  if (isEnabledGlobally) {
+    return { id: globalTooltipId, content: globalContent };
+  }
+
+  return {};
+};
+
+interface SteamManagedNoticeProps {
+  description: string;
+  actionLabel: string;
+  onOpenSteamGameProperties?: () => void;
+}
+
+function SteamManagedNotice({
+  description,
+  actionLabel,
+  onOpenSteamGameProperties,
+}: Readonly<SteamManagedNoticeProps>) {
+  return (
+    <div className="game-options-modal__steam-managed">
+      <InfoIcon size={14} className="game-options-modal__steam-managed-icon" />
+      <div className="game-options-modal__steam-managed-content">
+        <p className="game-options-modal__steam-managed-description">
+          {description}
+        </p>
+        <button
+          type="button"
+          className="game-options-modal__steam-managed-link"
+          onClick={onOpenSteamGameProperties}
+        >
+          {actionLabel}
+          <LinkExternalIcon size={12} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface LaunchToolToggleProps {
+  toolName: string;
+  toolSiteUrl: string;
+  prefixLabel: string;
+  wrapperClassName: string;
+  labelClassName: string;
+  linkClassName: string;
+  tooltipId?: string;
+  tooltipContent?: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (value: boolean) => Promise<void>;
+}
+
+function LaunchToolToggle({
+  toolName,
+  toolSiteUrl,
+  prefixLabel,
+  wrapperClassName,
+  labelClassName,
+  linkClassName,
+  tooltipId,
+  tooltipContent,
+  checked,
+  disabled,
+  onChange,
+}: Readonly<LaunchToolToggleProps>) {
+  return (
+    <div className={wrapperClassName}>
+      <CheckboxField
+        label={
+          <span
+            className={cn(labelClassName, {
+              [`${labelClassName}--disabled`]: disabled,
+            })}
+            data-tooltip-id={tooltipId}
+            data-tooltip-content={tooltipContent}
+          >
+            <span>{prefixLabel}</span>
+            <Link to={toolSiteUrl} className={linkClassName}>
+              {toolName}
+              <LinkExternalIcon />
+            </Link>
+          </span>
+        }
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+
+      {disabled && tooltipId && <Tooltip id={tooltipId} />}
+    </div>
+  );
+}
+
 export function CompatibilitySettingsSection({
   game,
   displayedWinePrefixPath,
@@ -72,21 +191,35 @@ export function CompatibilitySettingsSection({
   const mangohudToggleDisabled =
     managedBySteam || !mangohudAvailable || globalAutoRunMangohud;
 
-  const gamemodeTooltipId = managedBySteam
-    ? undefined
-    : !gamemodeAvailable
-      ? "gamemode-unavailable-tooltip"
-      : globalAutoRunGamemode
-        ? "gamemode-global-enabled-tooltip"
-        : undefined;
+  const gamemodeTooltip = resolveToggleTooltip({
+    managedBySteam,
+    isAvailable: gamemodeAvailable,
+    isEnabledGlobally: globalAutoRunGamemode,
+    unavailableTooltipId: "gamemode-unavailable-tooltip",
+    globalTooltipId: "gamemode-global-enabled-tooltip",
+    unavailableContent: t("gamemode_not_available_tooltip", {
+      defaultValue: "GameMode is not available in your PATH",
+    }),
+    globalContent: t("gamemode_disabled_due_to_global_setting_tooltip", {
+      defaultValue:
+        "This option is disabled because GameMode is enabled globally",
+    }),
+  });
 
-  const mangohudTooltipId = managedBySteam
-    ? undefined
-    : !mangohudAvailable
-      ? "mangohud-unavailable-tooltip"
-      : globalAutoRunMangohud
-        ? "mangohud-global-enabled-tooltip"
-        : undefined;
+  const mangohudTooltip = resolveToggleTooltip({
+    managedBySteam,
+    isAvailable: mangohudAvailable,
+    isEnabledGlobally: globalAutoRunMangohud,
+    unavailableTooltipId: "mangohud-unavailable-tooltip",
+    globalTooltipId: "mangohud-global-enabled-tooltip",
+    unavailableContent: t("mangohud_not_available_tooltip", {
+      defaultValue: "MangoHud is not available in your PATH",
+    }),
+    globalContent: t("mangohud_disabled_due_to_global_setting_tooltip", {
+      defaultValue:
+        "This option is disabled because MangoHud is enabled globally",
+    }),
+  });
 
   const protonVersionAutoLabel = t("proton_version_auto", {
     ns: ["game_details", "settings"],
@@ -111,37 +244,29 @@ export function CompatibilitySettingsSection({
     }
   );
 
+  const winePrefixDescription = managedBySteam
+    ? t("wine_prefix_description_steam")
+    : t("wine_prefix_description");
+
+  const protonVersionDescription = managedBySteam
+    ? t("proton_version_description_steam")
+    : t("proton_version_description");
+
   return (
     <>
       {managedBySteam && (
-        <div className="game-options-modal__steam-managed">
-          <InfoIcon
-            size={14}
-            className="game-options-modal__steam-managed-icon"
-          />
-          <div className="game-options-modal__steam-managed-content">
-            <p className="game-options-modal__steam-managed-description">
-              {t("compatibility_managed_by_steam")}
-            </p>
-            <button
-              type="button"
-              className="game-options-modal__steam-managed-link"
-              onClick={onOpenSteamGameProperties}
-            >
-              {t("open_steam_game_properties")}
-              <LinkExternalIcon size={12} />
-            </button>
-          </div>
-        </div>
+        <SteamManagedNotice
+          description={t("compatibility_managed_by_steam")}
+          actionLabel={t("open_steam_game_properties")}
+          onOpenSteamGameProperties={onOpenSteamGameProperties}
+        />
       )}
 
       <div className="game-options-modal__wine-prefix">
         <div className="game-options-modal__header">
           <h2>{t("wine_prefix")}</h2>
           <h4 className="game-options-modal__header-description">
-            {managedBySteam
-              ? t("wine_prefix_description_steam")
-              : t("wine_prefix_description")}
+            {winePrefixDescription}
           </h4>
         </div>
 
@@ -206,108 +331,44 @@ export function CompatibilitySettingsSection({
           <h2>{t("additional_options")}</h2>
         </div>
 
-        <div className="game-options-modal__gamemode-toggle">
-          <CheckboxField
-            label={
-              <span
-                className={`game-options-modal__gamemode-label ${
-                  gamemodeToggleDisabled
-                    ? "game-options-modal__gamemode-label--disabled"
-                    : ""
-                }`}
-                data-tooltip-id={gamemodeTooltipId}
-                data-tooltip-content={
-                  !gamemodeAvailable
-                    ? t("gamemode_not_available_tooltip", {
-                        defaultValue: "GameMode is not available in your PATH",
-                      })
-                    : globalAutoRunGamemode
-                      ? t("gamemode_disabled_due_to_global_setting_tooltip", {
-                          defaultValue:
-                            "This option is disabled because GameMode is enabled globally",
-                        })
-                      : undefined
-                }
-              >
-                <span>
-                  {t("run_with_gamemode_prefix", {
-                    defaultValue: "Automatically run with",
-                  })}
-                </span>
-                <Link
-                  to={gamemodeSiteUrl}
-                  className="game-options-modal__gamemode-link"
-                >
-                  GameMode
-                  <LinkExternalIcon />
-                </Link>
-              </span>
-            }
-            checked={autoRunGamemode || globalAutoRunGamemode}
-            disabled={gamemodeToggleDisabled}
-            onChange={(event) => onChangeGamemodeState(event.target.checked)}
-          />
+        <LaunchToolToggle
+          toolName="GameMode"
+          toolSiteUrl={gamemodeSiteUrl}
+          prefixLabel={t("run_with_gamemode_prefix", {
+            defaultValue: "Automatically run with",
+          })}
+          wrapperClassName="game-options-modal__gamemode-toggle"
+          labelClassName="game-options-modal__gamemode-label"
+          linkClassName="game-options-modal__gamemode-link"
+          tooltipId={gamemodeTooltip.id}
+          tooltipContent={gamemodeTooltip.content}
+          checked={autoRunGamemode || globalAutoRunGamemode}
+          disabled={gamemodeToggleDisabled}
+          onChange={onChangeGamemodeState}
+        />
 
-          {gamemodeToggleDisabled && gamemodeTooltipId && (
-            <Tooltip id={gamemodeTooltipId} />
-          )}
-        </div>
-
-        <div className="game-options-modal__mangohud-toggle">
-          <CheckboxField
-            label={
-              <span
-                className={`game-options-modal__mangohud-label ${
-                  mangohudToggleDisabled
-                    ? "game-options-modal__mangohud-label--disabled"
-                    : ""
-                }`}
-                data-tooltip-id={mangohudTooltipId}
-                data-tooltip-content={
-                  !mangohudAvailable
-                    ? t("mangohud_not_available_tooltip", {
-                        defaultValue: "MangoHud is not available in your PATH",
-                      })
-                    : globalAutoRunMangohud
-                      ? t("mangohud_disabled_due_to_global_setting_tooltip", {
-                          defaultValue:
-                            "This option is disabled because MangoHud is enabled globally",
-                        })
-                      : undefined
-                }
-              >
-                <span>
-                  {t("run_with_mangohud_prefix", {
-                    defaultValue: "Automatically run with",
-                  })}
-                </span>
-                <Link
-                  to={mangohudSiteUrl}
-                  className="game-options-modal__mangohud-link"
-                >
-                  MangoHud
-                  <LinkExternalIcon />
-                </Link>
-              </span>
-            }
-            checked={autoRunMangohud || globalAutoRunMangohud}
-            disabled={mangohudToggleDisabled}
-            onChange={(event) => onChangeMangohudState(event.target.checked)}
-          />
-
-          {mangohudToggleDisabled && mangohudTooltipId && (
-            <Tooltip id={mangohudTooltipId} />
-          )}
-        </div>
+        <LaunchToolToggle
+          toolName="MangoHud"
+          toolSiteUrl={mangohudSiteUrl}
+          prefixLabel={t("run_with_mangohud_prefix", {
+            defaultValue: "Automatically run with",
+          })}
+          wrapperClassName="game-options-modal__mangohud-toggle"
+          labelClassName="game-options-modal__mangohud-label"
+          linkClassName="game-options-modal__mangohud-link"
+          tooltipId={mangohudTooltip.id}
+          tooltipContent={mangohudTooltip.content}
+          checked={autoRunMangohud || globalAutoRunMangohud}
+          disabled={mangohudToggleDisabled}
+          onChange={onChangeMangohudState}
+        />
       </div>
 
       <div className="game-options-modal__section">
         <div className="game-options-modal__header">
           <h2>{t("proton_version")}</h2>
           <h4 className="game-options-modal__header-description">
-            {managedBySteam
-              ? t("proton_version_description_steam")
-              : t("proton_version_description")}
+            {protonVersionDescription}
           </h4>
         </div>
 

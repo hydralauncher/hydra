@@ -61,7 +61,7 @@ const resolveInstallDirectory = (
 };
 
 const readManifestValue = (contents: string, key: string) =>
-  new RegExp(`"${key}"\\s*"([^"]*)"`, "i").exec(contents)?.[1] ?? null;
+  new RegExp(String.raw`"${key}"\s*"([^"]*)"`, "i").exec(contents)?.[1] ?? null;
 
 export const resolveSteamAppId = (executablePath: string): string | null => {
   const steamAppsPath = resolveSteamAppsPath(executablePath);
