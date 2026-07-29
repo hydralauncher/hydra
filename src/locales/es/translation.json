@@ -379,7 +379,7 @@
     "loading_save_preview": "Buscando por guardado de juegos…",
     "wine_prefix": "Prefijo de Wine",
     "wine_prefix_description": "El prefijo de Wine usado para este juego",
-    "compatibility_managed_by_steam": "Hydra inicia este juego a través de Steam, así que estas opciones no se aplican. Cámbialas en las propiedades del juego en Steam.",
+    "compatibility_managed_by_steam": "Steam controla estos ajustes, modifícalos en Steam",
     "open_steam_game_properties": "Abrir en Steam",
     "wine_prefix_description_steam": "El prefijo de Wine que Steam usa para ejecutar este juego",
     "proton_version_description_steam": "La versión de Proton la elige Steam",

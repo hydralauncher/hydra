@@ -506,7 +506,7 @@
     "loading_save_preview": "Searching for save games…",
     "wine_prefix": "Wine Prefix",
     "wine_prefix_description": "The Wine prefix used to run this game",
-    "compatibility_managed_by_steam": "Hydra starts this game through Steam, so these options are not applied. Change them in the game's properties in Steam.",
+    "compatibility_managed_by_steam": "Steam controls these settings, please modify them within Steam",
     "open_steam_game_properties": "Open in Steam",
     "wine_prefix_description_steam": "The Wine prefix Steam uses to run this game",
     "proton_version_description_steam": "The Proton version is chosen by Steam",

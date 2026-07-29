@@ -353,7 +353,7 @@
     "loading_save_preview": "Buscando por arquivos de salvamento…",
     "wine_prefix": "Prefixo Wine",
     "wine_prefix_description": "O prefixo Wine que foi utilizado para instalar o jogo",
-    "compatibility_managed_by_steam": "O Hydra inicia este jogo pela Steam, então estas opções não são aplicadas. Altere-as nas propriedades do jogo na Steam.",
+    "compatibility_managed_by_steam": "A Steam controla estas configurações, altere-as pela Steam",
     "open_steam_game_properties": "Abrir na Steam",
     "wine_prefix_description_steam": "O prefixo Wine que a Steam usa para executar este jogo",
     "proton_version_description_steam": "A versão do Proton é escolhida pela Steam",
