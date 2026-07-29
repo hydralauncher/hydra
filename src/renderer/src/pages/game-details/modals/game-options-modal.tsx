@@ -128,7 +128,10 @@ export function GameOptionsModal({
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
   const [winetricksAvailable, setWinetricksAvailable] = useState(false);
-  const [launchedThroughSteam, setLaunchedThroughSteam] = useState(false);
+  const [steamLaunchInfo, setSteamLaunchInfo] = useState<{
+    appId: string;
+    winePrefixPath: string | null;
+  } | null>(null);
   const [selectedCategory, setSelectedCategory] =
     useState<GameSettingsCategoryId>("general");
   const [defaultWinePrefixPath, setDefaultWinePrefixPath] = useState<
@@ -250,13 +253,13 @@ export function GameOptionsModal({
 
   useEffect(() => {
     if (!visible || globalThis.window.electron.platform !== "linux") {
-      setLaunchedThroughSteam(false);
+      setSteamLaunchInfo(null);
       return;
     }
     globalThis.window.electron
-      .isGameLaunchedThroughSteam(game.executablePath ?? null)
-      .then(setLaunchedThroughSteam)
-      .catch(() => setLaunchedThroughSteam(false));
+      .getSteamLaunchInfo(game.executablePath ?? null)
+      .then(setSteamLaunchInfo)
+      .catch(() => setSteamLaunchInfo(null));
   }, [visible, game.executablePath]);
 
   useEffect(() => {
@@ -743,8 +746,18 @@ export function GameOptionsModal({
   const defaultHydraWinePrefixPath = defaultWinePrefixPath
     ? `${defaultWinePrefixPath}/${game.objectId}`
     : null;
-  const displayedWinePrefixPath =
-    game.winePrefixPath ?? defaultHydraWinePrefixPath;
+  const launchedThroughSteam = steamLaunchInfo !== null;
+  const displayedWinePrefixPath = launchedThroughSteam
+    ? steamLaunchInfo.winePrefixPath
+    : (game.winePrefixPath ?? defaultHydraWinePrefixPath);
+
+  const handleOpenSteamGameProperties = useCallback(() => {
+    if (!steamLaunchInfo) return;
+
+    globalThis.window.electron.openExternal(
+      `steam://gameproperties/${steamLaunchInfo.appId}`
+    );
+  }, [steamLaunchInfo]);
 
   const categories = useMemo(
     () => [
@@ -1047,6 +1060,8 @@ export function GameOptionsModal({
                 <CompatibilitySettingsSection
                   game={game}
                   displayedWinePrefixPath={displayedWinePrefixPath}
+                  steamAppId={steamLaunchInfo?.appId ?? null}
+                  onOpenSteamGameProperties={handleOpenSteamGameProperties}
                   protonVersions={protonVersions}
                   selectedProtonPath={selectedProtonPath}
                   autoRunGamemode={autoRunGamemode}

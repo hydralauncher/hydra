@@ -21,6 +21,15 @@ const APP_MANIFEST_PREFIX = "appmanifest_";
 
 const APP_MANIFEST_SUFFIX = ".acf";
 
+const COMPAT_DATA_DIRECTORY = "compatdata";
+
+const PREFIX_DIRECTORY = "pfx";
+
+export interface SteamLaunchInfo {
+  appId: string;
+  winePrefixPath: string | null;
+}
+
 export const isInsideSteamLibrary = (executablePath: string) =>
   executablePath.toLowerCase().includes(STEAM_LIBRARY_SEGMENT);
 
@@ -108,6 +117,34 @@ export const resolveSteamAppId = (executablePath: string): string | null => {
   }
 
   return null;
+};
+
+const resolveSteamPrefixPath = (executablePath: string, appId: string) => {
+  const steamAppsPath = resolveSteamAppsPath(executablePath);
+
+  if (!steamAppsPath) return null;
+
+  const prefixPath = path.join(
+    steamAppsPath,
+    COMPAT_DATA_DIRECTORY,
+    appId,
+    PREFIX_DIRECTORY
+  );
+
+  return fs.existsSync(prefixPath) ? prefixPath : null;
+};
+
+export const resolveSteamLaunchInfo = (
+  executablePath: string
+): SteamLaunchInfo | null => {
+  const appId = resolveSteamAppId(executablePath);
+
+  if (!appId) return null;
+
+  return {
+    appId,
+    winePrefixPath: resolveSteamPrefixPath(executablePath, appId),
+  };
 };
 
 const isSteamBinaryOnPath = () =>

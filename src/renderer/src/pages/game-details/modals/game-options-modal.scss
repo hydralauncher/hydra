@@ -133,6 +133,34 @@
     font-size: globals.$small-font-size;
   }
 
+  &__steam-managed {
+    display: flex;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 2);
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$dark-background-color;
+
+    &-icon {
+      flex-shrink: 0;
+      margin-top: 2px;
+      color: globals.$body-color;
+    }
+
+    &-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: calc(globals.$spacing-unit * 1.5);
+    }
+
+    &-description {
+      margin: 0;
+      color: globals.$body-color;
+      font-size: globals.$small-font-size;
+    }
+  }
+
   &__wine-prefix {
     display: flex;
     flex-direction: column;
