@@ -527,7 +527,7 @@ export const launchGame = async (
     );
     clearCloudSaveLaunchGuard(objectId, shop);
     WindowManager.closeGameLauncherWindow();
-    WindowManager.redirectToMainWindow(
+    WindowManager.redirectToGameWindow(
       `game/${shop}/${objectId}?${searchParams.toString()}`
     );
     return null;
@@ -559,7 +559,7 @@ export const launchGame = async (
     });
     clearCloudSaveLaunchGuard(objectId, shop);
     WindowManager.closeGameLauncherWindow();
-    WindowManager.redirectToMainWindow(
+    WindowManager.redirectToGameWindow(
       `game/${shop}/${objectId}?${searchParams.toString()}`
     );
     return null;

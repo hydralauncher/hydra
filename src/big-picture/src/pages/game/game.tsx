@@ -36,6 +36,7 @@ import {
   SupportedLanguages,
 } from "../../components/pages/game";
 import { useGameSettingsModalState } from "../../components/pages/game/game-settings-modal/use-game-settings-modal-state";
+import { BigPictureCloudSaveProvider } from "../../components/pages/game/cloud-save-v2";
 import {
   useBigPictureToast,
   useGameDetails,
@@ -1163,33 +1164,41 @@ export default function Game() {
   return (
     <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
       <div ref={pageRef} className="game-page">
-        <Hero
-          shopDetails={shopDetails}
-          game={game}
+        <BigPictureCloudSaveProvider
+          objectId={objectId!}
+          shop={shop!}
+          hasExecutablePath={Boolean(game?.executablePath)}
           isGameRunning={isGameRunning}
-          isFavorite={game?.favorite ?? false}
-          toggleFavorite={toggleFavorite}
-          onPlay={handlePlayGame}
-          onDownload={handleOpenDownloadModal}
-          onAddToLibrary={handleAddToLibrary}
-          onOpenDownloadOptions={handleOpenDownloadModal}
-          onOpenSettings={() => setIsGameSettingsModalOpen(true)}
-          onClose={closeGame}
-          isAddingToLibrary={isAddingToLibrary}
-          canAddToLibrary={canAddToLibrary}
-          downNavigationTarget={contentBelowHeroTarget}
-          sidebarEntryTarget={sidebarEntryTarget}
-        />
-        {game && launchSettings && customizationSettings && cloudSettings && (
-          <GameSettingsModal
-            visible={isGameSettingsModalOpen}
+          onSelectExecutable={() => setIsGameSettingsModalOpen(true)}
+        >
+          <Hero
+            shopDetails={shopDetails}
             game={game}
-            launchSettings={launchSettings}
-            customizationSettings={customizationSettings}
-            cloudSettings={cloudSettings}
-            onClose={() => setIsGameSettingsModalOpen(false)}
+            isGameRunning={isGameRunning}
+            isFavorite={game?.favorite ?? false}
+            toggleFavorite={toggleFavorite}
+            onPlay={handlePlayGame}
+            onDownload={handleOpenDownloadModal}
+            onAddToLibrary={handleAddToLibrary}
+            onOpenDownloadOptions={handleOpenDownloadModal}
+            onOpenSettings={() => setIsGameSettingsModalOpen(true)}
+            onClose={closeGame}
+            isAddingToLibrary={isAddingToLibrary}
+            canAddToLibrary={canAddToLibrary}
+            downNavigationTarget={contentBelowHeroTarget}
+            sidebarEntryTarget={sidebarEntryTarget}
           />
-        )}
+          {game && launchSettings && customizationSettings && cloudSettings && (
+            <GameSettingsModal
+              visible={isGameSettingsModalOpen}
+              game={game}
+              launchSettings={launchSettings}
+              customizationSettings={customizationSettings}
+              cloudSettings={cloudSettings}
+              onClose={() => setIsGameSettingsModalOpen(false)}
+            />
+          )}
+        </BigPictureCloudSaveProvider>
 
         <section className="game-page__content">
           <PlaytimeBar

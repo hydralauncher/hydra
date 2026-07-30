@@ -1019,6 +1019,20 @@ export class WindowManager {
     this.openMainWindow();
   }
 
+  public static redirectToGameWindow(hash: string) {
+    if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      this.bigPicture.webContents.send(
+        "on-navigate",
+        `/big-picture/${hash.replace(/^\/+/, "")}`
+      );
+      this.bigPicture.show();
+      this.bigPicture.focus();
+      return;
+    }
+
+    this.redirectToMainWindow(hash);
+  }
+
   public static async createSystemTray(language: string) {
     let tray: Tray;
 

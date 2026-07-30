@@ -14,10 +14,28 @@ registerEvent(
   "selectCloudSaveCustomPathApproval",
   async (
     event: Electron.IpcMainInvokeEvent,
-    approvalId: string
+    approvalId: string,
+    selectedPath?: string
   ): Promise<SelectCloudSaveCustomPathApprovalResult> => {
     assertCloudSaveSubscription();
     const approval = getPendingCloudSaveCustomPathApprovalById(approvalId);
+    if (selectedPath !== undefined) {
+      if (
+        typeof selectedPath !== "string" ||
+        selectedPath.trim().length === 0
+      ) {
+        throw new Error("Invalid cloud save custom path selection");
+      }
+
+      return {
+        canceled: false,
+        approval: await selectPendingCloudSaveCustomPathApproval(
+          approvalId,
+          selectedPath
+        ),
+      };
+    }
+
     const senderWindow = BrowserWindow.fromWebContents(event.sender);
     const owner =
       senderWindow && !senderWindow.isDestroyed()
@@ -29,8 +47,8 @@ registerEvent(
       properties: ["openDirectory", "dontAddToRecent"],
       defaultPath: approval.selectedPath ?? approval.suggestedPath ?? undefined,
     });
-    const selectedPath = selection.filePaths[0];
-    if (selection.canceled || !selectedPath) {
+    const dialogSelectedPath = selection.filePaths[0];
+    if (selection.canceled || !dialogSelectedPath) {
       return { canceled: true, approval };
     }
 
@@ -38,7 +56,7 @@ registerEvent(
       canceled: false,
       approval: await selectPendingCloudSaveCustomPathApproval(
         approvalId,
-        selectedPath
+        dialogSelectedPath
       ),
     };
   }
