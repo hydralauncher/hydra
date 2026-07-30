@@ -215,10 +215,12 @@ export function CloudSaveV2FileBrowserModal({
       );
       if (!result.canceled && result.customPath) {
         wasRebound = true;
-        const syncResult = await window.electron.syncGameCloudSave(
-          objectId,
-          shop
-        );
+        const syncResult =
+          await window.electron.syncCloudSaveAfterCustomPathRebind(
+            objectId,
+            shop,
+            rawPath
+          );
         if (syncResult.finalState === "conflict") {
           throw new Error("cloud_save_custom_path_sync_conflict");
         }

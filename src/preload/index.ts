@@ -63,6 +63,7 @@ const fileExplorerApi = {
 const invokeCloudSaveOperation = async (
   channel:
     | "syncGameCloudSave"
+    | "syncCloudSaveAfterCustomPathRebind"
     | "resolveCloudSaveConflict"
     | "removeCloudSaveCustomPath",
   args: unknown[],
@@ -183,6 +184,17 @@ contextBridge.exposeInMainWorld("electron", {
     onProgress?: (progress: CloudSaveSyncProgressPayload) => void
   ) =>
     invokeCloudSaveOperation("syncGameCloudSave", [objectId, shop], onProgress),
+  syncCloudSaveAfterCustomPathRebind: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation(
+      "syncCloudSaveAfterCustomPathRebind",
+      [objectId, shop, rawPath],
+      onProgress
+    ),
   resolveCloudSaveConflict: (
     objectId: string,
     shop: GameShop,

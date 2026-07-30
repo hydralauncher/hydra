@@ -344,6 +344,7 @@ export type CloudSaveSyncTrigger =
   | "manual"
   | "environment-changed"
   | "game-page-open"
+  | "custom-path-rebind"
   | "pre-launch"
   | "post-exit";
 
@@ -377,7 +378,7 @@ export type SyncCloudSaveOnGamePageResult =
 
 export type CloudSaveAutomaticSyncTrigger = Exclude<
   CloudSaveSyncTrigger,
-  "manual"
+  "manual" | "custom-path-rebind"
 >;
 
 export type CloudSaveAutomaticSyncEvent =

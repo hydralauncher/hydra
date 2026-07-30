@@ -152,6 +152,12 @@ declare global {
       shop: GameShop,
       onProgress?: (progress: CloudSaveSyncProgressPayload) => void
     ) => Promise<SyncGameCloudSaveResult>;
+    syncCloudSaveAfterCustomPathRebind: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string,
+      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    ) => Promise<SyncGameCloudSaveResult>;
     resolveCloudSaveConflict: (
       objectId: string,
       shop: GameShop,
