@@ -9,6 +9,7 @@ import { useSearchParams } from "react-router-dom";
 export type SettingsCategoryId =
   | "general"
   | "downloads"
+  | "download_sources"
   | "notifications"
   | "content_gameplay"
   | "integrations"
@@ -30,6 +31,7 @@ const isSettingsCategoryId = (value: string): value is SettingsCategoryId => {
   return [
     "general",
     "downloads",
+    "download_sources",
     "notifications",
     "content_gameplay",
     "integrations",
@@ -107,7 +109,7 @@ export function SettingsContextProvider({
   const defaultAppearanceAuthorName = searchParams.get("authorName");
 
   useEffect(() => {
-    if (sourceUrl) setCurrentCategoryId("downloads");
+    if (sourceUrl) setCurrentCategoryId("download_sources");
   }, [sourceUrl]);
 
   useEffect(() => {

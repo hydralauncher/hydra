@@ -63,6 +63,19 @@ export const isCompletedLikeDownload = (download: Download) => {
   return download.status === "complete" || download.status === "seeding";
 };
 
+export const isSeedingDownload = (download: Download) => {
+  return download.status === "seeding" || download.shouldSeed;
+};
+
+export const canDiscardDownload = (download: Download) => {
+  if (download.status === "removed") return true;
+  if (isActiveLikeDownload(download) || isSeedingDownload(download)) {
+    return false;
+  }
+
+  return isCompletedLikeDownload(download);
+};
+
 function orderIdsByLayoutState(
   downloads: Download[],
   preferredOrder: string[]
