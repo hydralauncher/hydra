@@ -32,6 +32,13 @@ export interface PrepareLocalSnapshotOptions {
   aggregateHash?: string;
 }
 
+const resolvePrepareLocalSnapshotOptions = (
+  options?: PrepareLocalSnapshotOptions
+) => {
+  if (options !== undefined) return options;
+  return { baseVersion: 0 };
+};
+
 export const uploadLocalGameSnapshot = async (
   objectId: string,
   shop: GameShop,
@@ -39,10 +46,7 @@ export const uploadLocalGameSnapshot = async (
   localSnapshotContext?: LocalGameSnapshotContext,
   options?: PrepareLocalSnapshotOptions
 ): Promise<UploadLocalGameSnapshotResult> => {
-  let resolvedOptions = options;
-  if (resolvedOptions === undefined) {
-    resolvedOptions = { baseVersion: 0 };
-  }
+  const resolvedOptions = resolvePrepareLocalSnapshotOptions(options);
   const context =
     localSnapshotContext ??
     (await buildLocalGameSnapshotContext(objectId, shop));

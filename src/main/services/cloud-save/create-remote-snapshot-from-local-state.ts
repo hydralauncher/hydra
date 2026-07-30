@@ -36,6 +36,13 @@ export interface CreateRemoteSnapshotOptions
   assertEnvironmentCurrent?: () => Promise<void>;
 }
 
+const resolveCreateRemoteSnapshotOptions = (
+  options?: CreateRemoteSnapshotOptions
+) => {
+  if (options !== undefined) return options;
+  return { baseVersion: 0 };
+};
+
 const validateCommitResponse = (value: unknown): CommitSnapshotResponse => {
   if (!value || typeof value !== "object") {
     throw new Error("Invalid commit snapshot response");
@@ -96,10 +103,7 @@ export const createRemoteSnapshotFromLocalState = async (
   localSnapshotContext?: LocalGameSnapshotContext,
   options?: CreateRemoteSnapshotOptions
 ): Promise<RemoteGameSnapshot | null> => {
-  let resolvedOptions = options;
-  if (resolvedOptions === undefined) {
-    resolvedOptions = { baseVersion: 0 };
-  }
+  const resolvedOptions = resolveCreateRemoteSnapshotOptions(options);
   const context =
     localSnapshotContext ??
     (await buildLocalGameSnapshotContext(objectId, shop));
