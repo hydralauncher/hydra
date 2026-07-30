@@ -7,6 +7,7 @@ import {
   PlusIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
+import { TrashIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
 import type { CloudSaveState, CloudSaveV2FileDetails, GameShop } from "@types";
@@ -25,6 +26,7 @@ import {
   filterCloudSaveV2Comparisons,
 } from "./cloud-save-v2-file-tree";
 import { CloudSaveV2FileTreeView } from "./cloud-save-v2-file-tree-view";
+import { hasCloudSaveDataToDelete } from "./cloud-save-presentation";
 
 const getCustomPathOverlapError = (error: unknown) => {
   const message = error instanceof Error ? error.message : "";
@@ -80,6 +82,9 @@ export function CloudSaveV2FileBrowserModal({
   const [pendingCustomPathRemoval, setPendingCustomPathRemoval] = useState<
     string | null
   >(null);
+  const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
+    useState(false);
+  const [isDeletingCloudSave, setIsDeletingCloudSave] = useState(false);
   const isConflict = details?.state === "conflict";
   const titleIsConflict = isConflict || overviewState === "conflict";
   const visibleComparisons = useMemo(
@@ -132,8 +137,9 @@ export function CloudSaveV2FileBrowserModal({
     if (!visible) {
       setShowOnlyChanged(true);
       if (!removingCustomPath) setPendingCustomPathRemoval(null);
+      if (!isDeletingCloudSave) setIsDeleteConfirmationVisible(false);
     }
-  }, [removingCustomPath, visible]);
+  }, [isDeletingCloudSave, removingCustomPath, visible]);
 
   const showPathError = () => {
     showErrorToast(
@@ -240,19 +246,50 @@ export function CloudSaveV2FileBrowserModal({
     }
   };
 
+  const handleDeleteCloudSave = async () => {
+    if (isDeletingCloudSave || !hasSaveData) return;
+
+    setIsDeletingCloudSave(true);
+    try {
+      await window.electron.deleteGameCloudSaveData(objectId, shop);
+    } catch {
+      showErrorToast(
+        t("cloud_save_v2_delete_error_title"),
+        t("cloud_save_v2_delete_error_description")
+      );
+      setIsDeletingCloudSave(false);
+      return;
+    }
+
+    setIsDeleteConfirmationVisible(false);
+    showSuccessToast(t("cloud_save_v2_delete_success"));
+    try {
+      await onRetry();
+    } catch {
+      // The deletion succeeded. Existing refresh error handling remains visible.
+    } finally {
+      setIsDeletingCloudSave(false);
+    }
+  };
+
   const loadingState = !details && isLoading;
   const errorState = !details && hasError;
   const isChangingCustomPaths =
     isAddingCustomPath ||
     rebindingCustomPath !== null ||
     removingCustomPath !== null;
+  const actionsAreDisabled =
+    isChangingCustomPaths ||
+    isDeletingCloudSave ||
+    isLoading ||
+    isGameRunning ||
+    isSyncing;
+  const hasSaveData = hasCloudSaveDataToDelete(details);
   const addCustomPathButton = (
     <Button
       theme="outline"
       className="cloud-save-v2__add-custom-path-button"
-      disabled={
-        isChangingCustomPaths || isLoading || isGameRunning || isSyncing
-      }
+      disabled={actionsAreDisabled}
       onClick={() => void handleAddCustomPath()}
     >
       {isAddingCustomPath ? (
@@ -263,6 +300,17 @@ export function CloudSaveV2FileBrowserModal({
       <span>{t("cloud_save_v2_add_custom_path")}</span>
     </Button>
   );
+  const deleteCloudSaveButton = hasSaveData ? (
+    <Button
+      theme="danger"
+      className="cloud-save-v2__delete-cloud-save-button"
+      disabled={actionsAreDisabled}
+      onClick={() => setIsDeleteConfirmationVisible(true)}
+    >
+      <TrashIcon size={16} />
+      <span>{t("cloud_save_v2_delete")}</span>
+    </Button>
+  ) : null;
 
   return (
     <>
@@ -280,7 +328,7 @@ export function CloudSaveV2FileBrowserModal({
         }
         className={`cloud-save-v2__file-browser-modal ${titleIsConflict ? "cloud-save-v2__file-browser-modal--comparison" : ""}`}
         onClose={() => {
-          if (!isChangingCustomPaths) onClose();
+          if (!isChangingCustomPaths && !isDeletingCloudSave) onClose();
         }}
       >
         <div className="cloud-save-v2__file-browser">
@@ -303,7 +351,7 @@ export function CloudSaveV2FileBrowserModal({
 
           {details && (
             <>
-              {(isConflict || localRoots.length > 0) && (
+              {(isConflict || localRoots.length > 0 || hasSaveData) && (
                 <div className="cloud-save-v2__browser-toolbar">
                   {!isConflict && (
                     <div className="cloud-save-v2__browser-source-summary">
@@ -321,7 +369,12 @@ export function CloudSaveV2FileBrowserModal({
                     </div>
                   )}
 
-                  {!isConflict && addCustomPathButton}
+                  {!isConflict && (
+                    <div className="cloud-save-v2__browser-toolbar-actions">
+                      {deleteCloudSaveButton}
+                      {addCustomPathButton}
+                    </div>
+                  )}
 
                   {isConflict && (
                     <div className="cloud-save-v2__browser-diff-summary">
@@ -351,14 +404,17 @@ export function CloudSaveV2FileBrowserModal({
                   )}
 
                   {isConflict && (
-                    <div className="cloud-save-v2__browser-filter">
-                      <CheckboxField
-                        label={t("cloud_save_v2_show_only_changed")}
-                        checked={showOnlyChanged}
-                        onChange={(event) =>
-                          setShowOnlyChanged(event.target.checked)
-                        }
-                      />
+                    <div className="cloud-save-v2__browser-toolbar-actions">
+                      <div className="cloud-save-v2__browser-filter">
+                        <CheckboxField
+                          label={t("cloud_save_v2_show_only_changed")}
+                          checked={showOnlyChanged}
+                          onChange={(event) =>
+                            setShowOnlyChanged(event.target.checked)
+                          }
+                        />
+                      </div>
+                      {deleteCloudSaveButton}
                     </div>
                   )}
                 </div>
@@ -426,12 +482,7 @@ export function CloudSaveV2FileBrowserModal({
                             void handleRebindCustomPath(rawPath)
                           }
                           onRemoveCustomPath={setPendingCustomPathRemoval}
-                          customPathActionsDisabled={
-                            isChangingCustomPaths ||
-                            isLoading ||
-                            isGameRunning ||
-                            isSyncing
-                          }
+                          customPathActionsDisabled={actionsAreDisabled}
                         />
                       ) : (
                         <p className="cloud-save-v2__browser-empty">
@@ -459,12 +510,7 @@ export function CloudSaveV2FileBrowserModal({
                       void handleRebindCustomPath(rawPath)
                     }
                     onRemoveCustomPath={setPendingCustomPathRemoval}
-                    customPathActionsDisabled={
-                      isChangingCustomPaths ||
-                      isLoading ||
-                      isGameRunning ||
-                      isSyncing
-                    }
+                    customPathActionsDisabled={actionsAreDisabled}
                   />
                 </div>
               ) : isConflict ? (
@@ -479,12 +525,7 @@ export function CloudSaveV2FileBrowserModal({
                   </div>
                   <div className="cloud-save-v2__browser-empty-actions">
                     <Button
-                      disabled={
-                        isChangingCustomPaths ||
-                        isLoading ||
-                        isGameRunning ||
-                        isSyncing
-                      }
+                      disabled={actionsAreDisabled}
                       onClick={() => void onRetry()}
                     >
                       {isLoading ? (
@@ -497,7 +538,7 @@ export function CloudSaveV2FileBrowserModal({
                       )}
                       <span>{t("cloud_save_v2_check_again")}</span>
                     </Button>
-                    {addCustomPathButton}
+                    {!hasSaveData && addCustomPathButton}
                   </div>
                 </div>
               )}
@@ -516,6 +557,24 @@ export function CloudSaveV2FileBrowserModal({
         onConfirm={() => void handleRemoveCustomPath()}
         onClose={() => {
           if (!removingCustomPath) setPendingCustomPathRemoval(null);
+        }}
+      />
+
+      <ConfirmationModal
+        visible={isDeleteConfirmationVisible}
+        title={t("cloud_save_v2_delete_title")}
+        descriptionText={t("cloud_save_v2_delete_description")}
+        confirmButtonLabel={t(
+          isDeletingCloudSave
+            ? "cloud_save_v2_deleting"
+            : "cloud_save_v2_delete_confirm"
+        )}
+        confirmButtonTheme="danger"
+        cancelButtonLabel={t("cloud_save_v2_cancel")}
+        buttonsIsDisabled={isDeletingCloudSave}
+        onConfirm={() => void handleDeleteCloudSave()}
+        onClose={() => {
+          if (!isDeletingCloudSave) setIsDeleteConfirmationVisible(false);
         }}
       />
     </>

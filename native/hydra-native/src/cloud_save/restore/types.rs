@@ -166,4 +166,5 @@ pub struct DeletedLocalSaveFile {
 #[napi(object)]
 pub struct DeleteLocalSaveTargetsResult {
     pub deleted_files: Vec<DeletedLocalSaveFile>,
+    pub deleted_directories: Vec<String>,
 }

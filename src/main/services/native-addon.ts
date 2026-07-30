@@ -89,7 +89,8 @@ type HydraNativeModule = {
     files: ReplaceRestoreTarget[]
   ) => Promise<ReplaceRestoreTargetsResult>;
   deleteLocalSaveTargets: (
-    files: DeleteLocalSaveTarget[]
+    files: DeleteLocalSaveTarget[],
+    cleanupRootPaths?: string[]
   ) => Promise<DeleteLocalSaveTargetsResult>;
   cleanupRestoreTempSnapshot: (
     snapshotId: string,
@@ -443,8 +444,11 @@ export class NativeAddon {
     return this.load().replaceRestoreTargets(files);
   }
 
-  public static deleteLocalSaveTargets(files: DeleteLocalSaveTarget[]) {
-    return this.load().deleteLocalSaveTargets(files);
+  public static deleteLocalSaveTargets(
+    files: DeleteLocalSaveTarget[],
+    cleanupRootPaths?: string[]
+  ) {
+    return this.load().deleteLocalSaveTargets(files, cleanupRootPaths);
   }
 
   public static cleanupRestoreTempSnapshot(

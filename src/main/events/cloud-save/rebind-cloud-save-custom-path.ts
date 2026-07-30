@@ -1,5 +1,6 @@
 import {
   assertCloudSaveSubscription,
+  assertCloudSaveDeletionInactive,
   confirmPendingCustomPathRebindApproval,
   createPendingCustomPathRebindApproval,
   getCloudSaveGameContext,
@@ -15,6 +16,7 @@ import type {
 import { registerEvent } from "../register-event";
 
 const assertCustomPathCanChange = (objectId: string, shop: GameShop) => {
+  assertCloudSaveDeletionInactive(objectId, shop);
   if (isGameRunning(objectId, shop)) {
     throw new Error("cloud_save_custom_path_game_running");
   }

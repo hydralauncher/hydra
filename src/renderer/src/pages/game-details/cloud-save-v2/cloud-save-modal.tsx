@@ -21,7 +21,7 @@ import { useDate } from "@renderer/hooks";
 import {
   getCloudSavePanelAction,
   getCloudSavePresentation,
-  isCloudSaveOverviewEmpty,
+  shouldShowCloudSaveEmptySnapshot,
 } from "./cloud-save-presentation";
 
 export interface CloudSavePanelProps {
@@ -77,6 +77,12 @@ export function CloudSavePanel({
     ),
   });
   const activeSnapshot = overview?.activeRemoteSnapshot ?? null;
+  const showEmptySnapshot = shouldShowCloudSaveEmptySnapshot({
+    overview,
+    isLoading,
+    hasError,
+  });
+  const hasSnapshotSummary = activeSnapshot !== null || showEmptySnapshot;
   const presentation = getCloudSavePresentation({
     canUseCloudSaves: true,
     hasExecutablePath,
@@ -115,15 +121,12 @@ export function CloudSavePanel({
     : null;
   const snapshotMetadata = (
     updatedAt: string,
-    version: number,
     fileCount: number,
     totalSizeBytes: number,
     interactive = false
   ) => {
     const stats = (
       <>
-        <span>v{version}</span>
-        <span aria-hidden="true">·</span>
         <span>
           {t("cloud_save_v2_file_count", {
             count: fileCount,
@@ -317,18 +320,6 @@ export function CloudSavePanel({
         <p className="cloud-save-v2__error">{t("cloud_save_v2_error")}</p>
       )}
 
-      {!isLoading && isCloudSaveOverviewEmpty(overview) && (
-        <button
-          type="button"
-          className="cloud-save-v2__empty-message cloud-save-v2__empty-files-link"
-          onClick={onOpenFileBrowser}
-          disabled={isSyncing}
-          aria-label={t("cloud_save_v2_view_files")}
-        >
-          {t("cloud_save_v2_no_snapshots")}
-        </button>
-      )}
-
       {!hasExecutablePath ? (
         missingExecutableCard
       ) : (
@@ -347,15 +338,42 @@ export function CloudSavePanel({
                   </div>
                   {snapshotMetadata(
                     activeSnapshot.updatedAt,
-                    activeSnapshot.version,
                     activeSnapshot.fileCount,
                     activeSnapshot.totalSizeBytes,
                     true
                   )}
                 </>
+              ) : showEmptySnapshot ? (
+                <>
+                  <div className="cloud-save-v2__snapshot-header">
+                    <strong>{t("cloud_save_v2_cloud_saves")}</strong>
+                    <span className="cloud-save-v2__status-pill">
+                      {t("cloud_save_v2_not_created")}
+                    </span>
+                  </div>
+                  <div className="cloud-save-v2__snapshot-metadata">
+                    <span>{t("cloud_save_v2_no_cloud_saves_description")}</span>
+                    <button
+                      type="button"
+                      className="cloud-save-v2__snapshot-stats cloud-save-v2__snapshot-stats--interactive"
+                      onClick={onOpenFileBrowser}
+                      disabled={isLoading || isSyncing}
+                    >
+                      {t("cloud_save_v2_manage_save_locations")}
+                    </button>
+                  </div>
+                </>
               ) : null}
 
-              <div className="cloud-save-v2__action-area">{syncAction}</div>
+              <div
+                className={`cloud-save-v2__action-area ${
+                  hasSnapshotSummary
+                    ? "cloud-save-v2__action-area--with-snapshot"
+                    : ""
+                }`}
+              >
+                {syncAction}
+              </div>
             </article>
           </section>
         </>

@@ -68,6 +68,110 @@ fn backup_path(target: &Path) -> Result<PathBuf, String> {
     Ok(parent.join(format!(".hydra-delete-{}-backup", Uuid::new_v4())))
 }
 
+fn collect_directory_tree(
+    directory: &Path,
+    directories: &mut HashSet<PathBuf>,
+) -> Result<(), String> {
+    let metadata = match std::fs::symlink_metadata(directory) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(()),
+        Err(_) => return Err("cloud_save_delete_directory_inspection_failed".to_string()),
+    };
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Ok(());
+    }
+
+    let entries = std::fs::read_dir(directory)
+        .map_err(|_| "cloud_save_delete_directory_inspection_failed".to_string())?;
+    for entry in entries {
+        let entry =
+            entry.map_err(|_| "cloud_save_delete_directory_inspection_failed".to_string())?;
+        let file_type = entry
+            .file_type()
+            .map_err(|_| "cloud_save_delete_directory_inspection_failed".to_string())?;
+        if file_type.is_dir() && !file_type.is_symlink() {
+            collect_directory_tree(&entry.path(), directories)?;
+        }
+    }
+    directories.insert(directory.to_path_buf());
+    Ok(())
+}
+
+fn collect_target_ancestors(target: &Path, root: &Path, directories: &mut HashSet<PathBuf>) {
+    let mut current = target.parent();
+    while let Some(directory) = current {
+        if !target_is_within_root(directory, root) {
+            break;
+        }
+        directories.insert(directory.to_path_buf());
+        if path_key(directory) == path_key(root) {
+            break;
+        }
+        current = directory.parent();
+    }
+}
+
+fn prune_empty_directory_trees(
+    roots: Vec<String>,
+    targets: Vec<(String, String)>,
+) -> Result<Vec<String>, String> {
+    let mut directories = HashSet::new();
+    let mut cleanup_roots = Vec::new();
+    for root in roots {
+        let path = PathBuf::from(root);
+        if !path.is_absolute() || path.parent().is_none() {
+            return Err("cloud_save_delete_invalid_cleanup_root".to_string());
+        }
+        cleanup_roots.push(path);
+    }
+
+    let allowed_root_keys = cleanup_roots
+        .iter()
+        .map(|root| path_key(root))
+        .collect::<HashSet<_>>();
+    let mut matched_root_keys = HashSet::new();
+    for (target, restore_root) in targets {
+        let root = PathBuf::from(restore_root);
+        let root_key = path_key(&root);
+        if allowed_root_keys.contains(&root_key) {
+            collect_target_ancestors(Path::new(&target), &root, &mut directories);
+            matched_root_keys.insert(root_key);
+        }
+    }
+
+    for root in cleanup_roots {
+        if !matched_root_keys.contains(&path_key(&root)) {
+            collect_directory_tree(&root, &mut directories)?;
+        }
+    }
+
+    let mut directories = directories.into_iter().collect::<Vec<_>>();
+    directories.sort_by(|left, right| {
+        right
+            .components()
+            .count()
+            .cmp(&left.components().count())
+            .then_with(|| path_key(left).cmp(&path_key(right)))
+    });
+
+    let mut deleted = Vec::new();
+    for directory in directories {
+        if let Ok(metadata) = std::fs::symlink_metadata(&directory) {
+            if metadata.file_type().is_symlink() {
+                continue;
+            }
+        }
+        match std::fs::remove_dir(&directory) {
+            Ok(()) => deleted.push(directory.to_string_lossy().to_string()),
+            Err(error)
+                if error.kind() == ErrorKind::NotFound
+                    || error.kind() == ErrorKind::DirectoryNotEmpty => {}
+            Err(_) => return Err("cloud_save_delete_directory_cleanup_failed".to_string()),
+        }
+    }
+    Ok(deleted)
+}
+
 async fn hash_path(path: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || hash_file(&path))
         .await
@@ -123,6 +227,7 @@ async fn prepare(input: DeleteLocalSaveTarget) -> Result<PreparedDeletion, Strin
 #[napi]
 pub async fn delete_local_save_targets(
     files: Vec<DeleteLocalSaveTarget>,
+    cleanup_root_paths: Option<Vec<String>>,
 ) -> napi::Result<DeleteLocalSaveTargetsResult> {
     let mut seen_targets = HashSet::new();
     let mut prepared = Vec::with_capacity(files.len());
@@ -151,6 +256,23 @@ pub async fn delete_local_save_targets(
             .map_err(|_| Error::from_reason("cloud_save_delete_cleanup_failed"))?;
     }
 
+    let cleanup_roots = cleanup_root_paths.unwrap_or_default();
+    let cleanup_targets = prepared
+        .iter()
+        .map(|item| {
+            (
+                item.input.target_path.clone(),
+                item.input.restore_root_path.clone(),
+            )
+        })
+        .collect();
+    let deleted_directories = tokio::task::spawn_blocking(move || {
+        prune_empty_directory_trees(cleanup_roots, cleanup_targets)
+    })
+    .await
+    .map_err(|_| Error::from_reason("cloud_save_delete_directory_task_failed"))?
+    .map_err(Error::from_reason)?;
+
     Ok(DeleteLocalSaveTargetsResult {
         deleted_files: prepared
             .into_iter()
@@ -160,6 +282,7 @@ pub async fn delete_local_save_targets(
                 relative_path: item.input.relative_path,
             })
             .collect(),
+        deleted_directories,
     })
 }
 
@@ -192,7 +315,7 @@ mod tests {
         let bytes = b"save";
         std::fs::write(temp.path().join("slot.sav"), bytes).unwrap();
 
-        let result = delete_local_save_targets(vec![target(temp.path(), "slot.sav", bytes)])
+        let result = delete_local_save_targets(vec![target(temp.path(), "slot.sav", bytes)], None)
             .await
             .unwrap();
 
@@ -211,10 +334,13 @@ mod tests {
         std::fs::write(temp.path().join("first.sav"), b"first").unwrap();
         std::fs::write(temp.path().join("second.sav"), b"changed").unwrap();
 
-        let result = delete_local_save_targets(vec![
-            target(temp.path(), "first.sav", b"first"),
-            target(temp.path(), "second.sav", b"expected"),
-        ])
+        let result = delete_local_save_targets(
+            vec![
+                target(temp.path(), "first.sav", b"first"),
+                target(temp.path(), "second.sav", b"expected"),
+            ],
+            None,
+        )
         .await;
 
         assert!(result.is_err());
@@ -233,7 +359,81 @@ mod tests {
         let mut input = target(&outside, "slot.sav", b"save");
         input.restore_root_path = approved.display().to_string();
 
-        assert!(delete_local_save_targets(vec![input]).await.is_err());
+        assert!(delete_local_save_targets(vec![input], None).await.is_err());
         assert!(outside.join("slot.sav").exists());
+    }
+
+    #[tokio::test]
+    async fn removes_empty_save_directory_trees() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("save");
+        let nested = root.join("slots");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::write(nested.join("slot.sav"), b"save").unwrap();
+
+        let result = delete_local_save_targets(
+            vec![target(&root, "slots/slot.sav", b"save")],
+            Some(vec![root.display().to_string()]),
+        )
+        .await
+        .unwrap();
+
+        assert!(!root.exists());
+        assert!(result
+            .deleted_directories
+            .iter()
+            .any(|directory| directory == &root.display().to_string()));
+    }
+
+    #[tokio::test]
+    async fn keeps_directories_with_unrecognized_files() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("save");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("slot.sav"), b"save").unwrap();
+        std::fs::write(root.join("keep.log"), b"keep").unwrap();
+
+        delete_local_save_targets(
+            vec![target(&root, "slot.sav", b"save")],
+            Some(vec![root.display().to_string()]),
+        )
+        .await
+        .unwrap();
+
+        assert!(root.exists());
+        assert!(root.join("keep.log").exists());
+    }
+
+    #[tokio::test]
+    async fn removes_an_empty_registered_root_without_files() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("empty-save");
+        std::fs::create_dir_all(root.join("nested")).unwrap();
+
+        delete_local_save_targets(Vec::new(), Some(vec![root.display().to_string()]))
+            .await
+            .unwrap();
+
+        assert!(!root.exists());
+    }
+
+    #[tokio::test]
+    async fn does_not_prune_unrelated_empty_sibling_directories() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("save");
+        let slots = root.join("slots");
+        let unrelated = root.join("unrelated-empty");
+        std::fs::create_dir_all(&slots).unwrap();
+        std::fs::create_dir_all(&unrelated).unwrap();
+        std::fs::write(slots.join("slot.sav"), b"save").unwrap();
+
+        delete_local_save_targets(
+            vec![target(&root, "slots/slot.sav", b"save")],
+            Some(vec![root.display().to_string()]),
+        )
+        .await
+        .unwrap();
+
+        assert!(unrelated.exists());
     }
 }

@@ -2,6 +2,7 @@ import { BrowserWindow, dialog } from "electron";
 
 import {
   assertCloudSaveSubscription,
+  assertCloudSaveDeletionInactive,
   canonicalizeSelectedCloudSaveCustomPath,
   cloudSaveCustomPathContextFromPathContext,
   getCloudSaveGameContext,
@@ -28,6 +29,7 @@ registerEvent(
     if (isCloudSaveSyncActive(objectId, shop)) {
       throw new Error("cloud_save_custom_path_sync_active");
     }
+    assertCloudSaveDeletionInactive(objectId, shop);
 
     const senderWindow = BrowserWindow.fromWebContents(event.sender);
     const owner =
@@ -48,6 +50,7 @@ registerEvent(
     if (isCloudSaveSyncActive(objectId, shop)) {
       throw new Error("cloud_save_custom_path_sync_active");
     }
+    assertCloudSaveDeletionInactive(objectId, shop);
 
     const context = await getCloudSaveGameContext(objectId, shop);
     const customPathContext = cloudSaveCustomPathContextFromPathContext(
@@ -69,6 +72,7 @@ registerEvent(
         if (isCloudSaveSyncActive(objectId, shop)) {
           throw new Error("cloud_save_custom_path_sync_active");
         }
+        assertCloudSaveDeletionInactive(objectId, shop);
       },
     });
     return { canceled: false, customPath };

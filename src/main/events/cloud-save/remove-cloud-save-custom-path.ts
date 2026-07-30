@@ -1,4 +1,7 @@
-import { removeCloudSaveCustomPathAndSync } from "@main/services/cloud-save";
+import {
+  assertCloudSaveDeletionInactive,
+  removeCloudSaveCustomPathAndSync,
+} from "@main/services/cloud-save";
 import { isGameRunning } from "@main/services/process-watcher";
 import type { CloudSaveSyncIpcProgressPayload, GameShop } from "@types";
 
@@ -21,6 +24,7 @@ registerEvent(
         "Cloud save custom paths cannot be removed while the game is running"
       );
     }
+    assertCloudSaveDeletionInactive(objectId, shop);
 
     return removeCloudSaveCustomPathAndSync(
       objectId,

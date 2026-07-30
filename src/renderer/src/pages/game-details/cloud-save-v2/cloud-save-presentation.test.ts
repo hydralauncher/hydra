@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { CloudSaveOverview } from "@types";
+import type { CloudSaveOverview, CloudSaveV2FileDetails } from "@types";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
 import * as presentationModule from "./cloud-save-presentation.ts";
@@ -10,9 +10,82 @@ const {
   getCloudSaveUploadLimitError,
   getCloudSavePanelAction,
   getCloudSavePresentation,
-  isCloudSaveOverviewEmpty,
+  hasCloudSaveDataToDelete,
+  shouldShowCloudSaveEmptySnapshot,
   shouldSyncCloudSaveOnGamePage,
 } = presentationModule;
+
+const fileDetails = (
+  overrides: Partial<CloudSaveV2FileDetails> = {}
+): CloudSaveV2FileDetails =>
+  ({
+    state: "untracked",
+    local: {
+      kind: "local",
+      fileCount: 0,
+      totalSizeBytes: 0,
+      files: [],
+    },
+    activeSnapshot: null,
+    customPaths: [],
+    unresolvedCustomPaths: [],
+    comparisons: [],
+    variants: [],
+    unresolvedRemoteVariantCount: 0,
+    ...overrides,
+  }) as CloudSaveV2FileDetails;
+
+describe("cloud save deletion availability", () => {
+  it("supports remote-only, local-only and custom-path-only states", () => {
+    assert.equal(hasCloudSaveDataToDelete(null), false);
+    assert.equal(hasCloudSaveDataToDelete(fileDetails()), false);
+    assert.equal(
+      hasCloudSaveDataToDelete(
+        fileDetails({
+          activeSnapshot: {
+            kind: "active-snapshot",
+            snapshotId: "snapshot",
+            version: 1,
+            updatedAt: "2026-07-30T00:00:00.000Z",
+            fileCount: 0,
+            totalSizeBytes: 0,
+            files: [],
+          },
+        })
+      ),
+      true
+    );
+    assert.equal(
+      hasCloudSaveDataToDelete(
+        fileDetails({
+          local: {
+            kind: "local",
+            fileCount: 1,
+            totalSizeBytes: 4,
+            files: [],
+          },
+        })
+      ),
+      true
+    );
+    assert.equal(
+      hasCloudSaveDataToDelete(
+        fileDetails({
+          unresolvedCustomPaths: [
+            {
+              rawPath: "<custom>/save",
+              pathHint: "save",
+              state: "needs-confirmation",
+              reason: "legacy",
+              registered: true,
+            },
+          ],
+        })
+      ),
+      true
+    );
+  });
+});
 
 describe("cloud save upload limit errors", () => {
   it("recognizes size and file-count failures from IPC errors", () => {
@@ -205,20 +278,74 @@ describe("cloud save panel action", () => {
     );
   });
 
-  it("identifies only an untracked overview as the empty state", () => {
-    assert.equal(isCloudSaveOverviewEmpty(null), false);
+  it("shows an empty snapshot after a completed overview without a remote snapshot", () => {
     assert.equal(
-      isCloudSaveOverviewEmpty(overview({ state: "untracked" })),
+      shouldShowCloudSaveEmptySnapshot({
+        overview: overview({ state: "untracked" }),
+        isLoading: false,
+        hasError: false,
+      }),
       true
     );
     assert.equal(
-      isCloudSaveOverviewEmpty(
-        overview({
+      shouldShowCloudSaveEmptySnapshot({
+        overview: overview({
           state: "local-ahead",
           activeRemoteSnapshot: null,
           suggestedAction: "upload",
-        })
-      ),
+        }),
+        isLoading: false,
+        hasError: false,
+      }),
+      true
+    );
+  });
+
+  it("keeps the empty snapshot visible while refreshing an existing overview", () => {
+    assert.equal(
+      shouldShowCloudSaveEmptySnapshot({
+        overview: overview({ state: "untracked" }),
+        isLoading: true,
+        hasError: false,
+      }),
+      true
+    );
+  });
+
+  it("does not show the empty snapshot on error or before an overview", () => {
+    assert.equal(
+      shouldShowCloudSaveEmptySnapshot({
+        overview: null,
+        isLoading: true,
+        hasError: false,
+      }),
+      false
+    );
+    assert.equal(
+      shouldShowCloudSaveEmptySnapshot({
+        overview: overview({ state: "untracked" }),
+        isLoading: false,
+        hasError: true,
+      }),
+      false
+    );
+    assert.equal(
+      shouldShowCloudSaveEmptySnapshot({
+        overview: overview({
+          state: "synced",
+          activeRemoteSnapshot: {
+            id: "snapshot",
+            version: 1,
+            createdAt: "2026-07-30T00:00:00.000Z",
+            updatedAt: "2026-07-30T00:00:00.000Z",
+            fileCount: 1,
+            totalSizeBytes: 1,
+            aggregateHash: "hash",
+          },
+        }),
+        isLoading: false,
+        hasError: false,
+      }),
       false
     );
   });

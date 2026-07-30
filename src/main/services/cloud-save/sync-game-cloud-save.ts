@@ -30,6 +30,7 @@ import {
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { isCloudSaveSyncPartialAfterApply } from "./sync-result-policy";
 import { shouldRetryCloudSaveConflict } from "./snapshot-retry-policy";
+import { cloudSaveOperationGate } from "./operation-gate";
 import {
   type ProgressCallback,
   getSyncDirection,
@@ -470,9 +471,11 @@ const runCloudSaveOperation = (
     progressState.latestProgress = progress;
     for (const listener of progressState.listeners) listener(progress);
   };
-  const promise = run(emitProgress).finally(() => {
-    if (activeSyncs.get(key)?.promise === promise) activeSyncs.delete(key);
-  });
+  const promise = cloudSaveOperationGate
+    .runSync(key, operationKey, () => run(emitProgress))
+    .finally(() => {
+      if (activeSyncs.get(key)?.promise === promise) activeSyncs.delete(key);
+    });
   activeSyncs.set(key, { operationKey, promise, progress: progressState });
   return promise;
 };

@@ -6,7 +6,8 @@ import { cloudSaveFileKey } from "./cloud-save-contract";
 export const deleteLocalSaveTargets = async (
   context: LocalGameSnapshotContext,
   entryIds: string[],
-  assertEnvironmentCurrent?: () => Promise<void>
+  assertEnvironmentCurrent?: () => Promise<void>,
+  cleanupRootPaths: string[] = []
 ) => {
   const requestedIds = new Set(entryIds);
   const targets: DeleteLocalSaveTarget[] = context.sourceFiles
@@ -24,8 +25,6 @@ export const deleteLocalSaveTargets = async (
   if (targets.length !== requestedIds.size) {
     throw new Error("cloud_save_delete_local_target_missing");
   }
-  if (targets.length === 0) return { deletedFiles: [] };
-
   await assertEnvironmentCurrent?.();
-  return NativeAddon.deleteLocalSaveTargets(targets);
+  return NativeAddon.deleteLocalSaveTargets(targets, cleanupRootPaths);
 };
