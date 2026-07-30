@@ -1,4 +1,9 @@
-import { Downloader, DownloadError, FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
+import {
+  Downloader,
+  DownloadError,
+  FILE_EXTENSIONS_TO_EXTRACT,
+  resolveArchiveOrgFile,
+} from "@shared";
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, Game, UserPreferences } from "@types";
@@ -153,6 +158,7 @@ export class DownloadManager {
   private static sanitizeRelativePath(pathValue: string): string {
     return pathValue
       .split(/[\\/]+/)
+      .filter((segment) => segment !== "." && segment !== "..")
       .map((segment) => this.sanitizeFilename(segment))
       .filter(Boolean)
       .join("/");
@@ -1115,6 +1121,8 @@ export class DownloadManager {
         return this.getVikingFileDownloadOptions(download, resumingFilename);
       case Downloader.Rootz:
         return this.getRootzDownloadOptions(download, resumingFilename);
+      case Downloader.ArchiveOrg:
+        return this.getArchiveOrgDownloadOptions(download, resumingFilename);
       default:
         return null;
     }
@@ -1435,6 +1443,20 @@ export class DownloadManager {
       downloadUrl,
       download.downloadPath,
       filename
+    );
+  }
+
+  private static async getArchiveOrgDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const resolvedFile = resolveArchiveOrgFile(download.uri);
+    if (!resolvedFile) throw new Error(DownloadError.ArchiveOrgInvalidFileUrl);
+
+    return this.buildDownloadOptions(
+      resolvedFile.url,
+      download.downloadPath,
+      resumingFilename ?? this.sanitizeFilename(resolvedFile.filename)
     );
   }
 
