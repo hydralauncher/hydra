@@ -52,11 +52,13 @@ const mergeVariantMetadata = (
     }
     variants.set(variant.variantId, variant);
   }
-  return [...usedVariantIds].sort().map((variantId) => {
-    const variant = variants.get(variantId);
-    if (!variant) throw new Error("Cloud Save file has no variant metadata");
-    return variant;
-  });
+  return [...usedVariantIds]
+    .sort((left, right) => left.localeCompare(right))
+    .map((variantId) => {
+      const variant = variants.get(variantId);
+      if (!variant) throw new Error("Cloud Save file has no variant metadata");
+      return variant;
+    });
 };
 
 export const mergeUserVariantSnapshots = ({
@@ -108,7 +110,9 @@ export const mergeUserVariantSnapshots = ({
     };
   };
 
-  for (const entryId of [...ids].sort()) {
+  for (const entryId of [...ids].sort((left, right) =>
+    left.localeCompare(right)
+  )) {
     const localFile = localById.get(entryId);
     const remoteFile = remoteById.get(entryId);
     const baseEntry = baseById.get(entryId);
@@ -226,10 +230,18 @@ export const mergeUserVariantSnapshots = ({
     ),
     files,
     conflicts,
-    restoreEntryIds: [...restoreEntryIds].sort(),
-    deleteRemoteEntryIds: [...deleteRemoteEntryIds].sort(),
-    deleteLocalEntryIds: [...deleteLocalEntryIds].sort(),
-    unresolvedRemoteEntryIds: [...unresolvedRemoteEntryIds].sort(),
+    restoreEntryIds: [...restoreEntryIds].sort((left, right) =>
+      left.localeCompare(right)
+    ),
+    deleteRemoteEntryIds: [...deleteRemoteEntryIds].sort((left, right) =>
+      left.localeCompare(right)
+    ),
+    deleteLocalEntryIds: [...deleteLocalEntryIds].sort((left, right) =>
+      left.localeCompare(right)
+    ),
+    unresolvedRemoteEntryIds: [...unresolvedRemoteEntryIds].sort(
+      (left, right) => left.localeCompare(right)
+    ),
     partial:
       incompleteCoverage ||
       unresolvedRemoteEntryIds.size > 0 ||
