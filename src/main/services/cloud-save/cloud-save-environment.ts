@@ -167,6 +167,14 @@ const runPrefixGenerationOperation = async <T>(
   }
 };
 
+const resolvePrefixFingerprint = async (
+  prefixPath: string,
+  fingerprint?: string | null
+) => {
+  if (fingerprint !== undefined) return fingerprint;
+  return getPrefixFingerprint(prefixPath);
+};
+
 const persistMarker = async (
   prefixPath: string,
   marker: string,
@@ -176,10 +184,10 @@ const persistMarker = async (
   const key = getPrefixGenerationKey(prefixPath);
   const store = dependencies.store ?? defaultPrefixGenerationStore;
   const markerWriter = dependencies.writeMarker ?? writePrefixMarker;
-  const currentFingerprint =
-    fingerprint === undefined
-      ? await getPrefixFingerprint(prefixPath)
-      : fingerprint;
+  const currentFingerprint = await resolvePrefixFingerprint(
+    prefixPath,
+    fingerprint
+  );
   let storedLocally = false;
 
   if (currentFingerprint) {

@@ -81,7 +81,9 @@ export const validatePrepareResponse = (
         !isHttpUrl(file.uploadUrl) ||
         !headers ||
         Object.keys(headers).length !== 2 ||
-        !/^(0|[1-9]\d*)$/.test(String(headers["Content-Length"] ?? "")) ||
+        !/^(0|[1-9]\d*)$/.test(
+          String((headers["Content-Length"] ?? "") as string | number)
+        ) ||
         !isNonEmptyString(headers["x-amz-checksum-sha256"]) ||
         !/^[A-Za-z0-9+/]{43}=$/.test(headers["x-amz-checksum-sha256"])
       ) {

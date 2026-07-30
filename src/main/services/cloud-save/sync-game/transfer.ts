@@ -15,6 +15,13 @@ import { restoreRemoteSnapshot } from "../restore-remote-snapshot";
 
 export type ProgressCallback = (progress: CloudSaveSyncProgressPayload) => void;
 
+const resolveCreateRemoteSnapshotOptions = (
+  options?: CreateRemoteSnapshotOptions
+) => {
+  if (options !== undefined) return options;
+  return { baseVersion: 0 };
+};
+
 export const uploadLocalState = async (
   objectId: string,
   shop: GameShop,
@@ -23,10 +30,7 @@ export const uploadLocalState = async (
   options?: CreateRemoteSnapshotOptions,
   assertEnvironmentCurrent?: () => Promise<void>
 ) => {
-  let resolvedOptions = options;
-  if (resolvedOptions === undefined) {
-    resolvedOptions = { baseVersion: 0 };
-  }
+  const resolvedOptions = resolveCreateRemoteSnapshotOptions(options);
   emitProgress({
     gameId: { objectId, shop },
     stage: "uploading",
