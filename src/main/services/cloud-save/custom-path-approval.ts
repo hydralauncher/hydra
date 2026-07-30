@@ -18,11 +18,13 @@ import {
   validateBoundCloudSaveCustomPathForRestore,
   validateCloudSaveCustomPathForRestore,
 } from "./custom-path";
-import {
-  getCloudSaveCustomPathBindings,
-  registerCloudSaveCustomPaths,
-} from "./custom-path-store";
+import { getCloudSaveCustomPathBindings } from "./custom-path-store";
 import { buildCloudSaveCustomPathRebindApproval } from "./custom-path-rebind-approval";
+import {
+  assertCloudSaveCustomPathDoesNotOverlap,
+  getUsableCloudSaveCustomPathBindings,
+  registerCloudSaveCustomPathWithoutOverlap,
+} from "./custom-path-overlap";
 
 export interface CloudSavePendingLaunchOptions {
   shop: GameShop;
@@ -107,7 +109,9 @@ const createPendingApproval = async (
   );
   const locallyBoundRawPaths = new Set(
     (
-      await getCloudSaveCustomPathBindings(shop, objectId, customPathContext)
+      await getUsableCloudSaveCustomPathBindings(objectId, shop, context, {
+        remoteFiles: manifest.files,
+      })
     ).ready.map(({ rawPath }) => rawPath)
   );
   const candidates = getUnboundCloudSaveCustomPathRestoreCandidates(
@@ -136,6 +140,16 @@ const createPendingApproval = async (
             context.pathContext.platform,
             customPathContext
           )) !== null;
+        if (canUseSuggestedPath) {
+          await assertCloudSaveCustomPathDoesNotOverlap({
+            objectId,
+            shop,
+            selectedPath: suggestedPath,
+            context,
+            currentRawPath: rawPath,
+            remoteRelativePaths: files.map(({ relativePath }) => relativePath),
+          });
+        }
       } catch {
         canUseSuggestedPath = false;
       }
@@ -242,6 +256,23 @@ export const createPendingCustomPathRebindApproval = async (
       selectedPath = null;
     }
   }
+  if (selectedPath) {
+    try {
+      await assertCloudSaveCustomPathDoesNotOverlap({
+        objectId,
+        shop,
+        selectedPath,
+        context,
+        currentRawPath: rawPath,
+        remoteRelativePaths: matchingRemoteFiles.map(
+          ({ relativePath }) => relativePath
+        ),
+      });
+    } catch {
+      selectedPath = null;
+      canUseSuggestedPath = false;
+    }
+  }
 
   const approval = buildCloudSaveCustomPathRebindApproval({
     gameId,
@@ -273,6 +304,16 @@ export const selectPendingCloudSaveCustomPathApproval = async (
     selectedPath,
     customPathContext
   );
+  await assertCloudSaveCustomPathDoesNotOverlap({
+    objectId: pending.approval.gameId.objectId,
+    shop: pending.approval.gameId.shop,
+    selectedPath: selected.path,
+    context: pending.context,
+    currentRawPath: pending.approval.rawPath,
+    remoteRelativePaths: pending.approval.files.map(
+      ({ relativePath }) => relativePath
+    ),
+  });
   pending.approval = {
     ...pending.approval,
     selectedPath: selected.path,
@@ -338,12 +379,15 @@ const bindPendingCloudSaveCustomPathApproval = async (
     selectedPath,
     customPathContext
   );
-  assertCanBind?.();
-  await registerCloudSaveCustomPaths(
-    approval.gameId.shop,
-    approval.gameId.objectId,
-    [binding]
-  );
+  await registerCloudSaveCustomPathWithoutOverlap({
+    objectId: approval.gameId.objectId,
+    shop: approval.gameId.shop,
+    customPath: binding,
+    context,
+    currentRawPath: approval.rawPath,
+    remoteRelativePaths: approval.files.map(({ relativePath }) => relativePath),
+    assertCanRegister: assertCanBind,
+  });
   if (removePending) {
     pendingByGame.delete(
       gameKey(approval.gameId.shop, approval.gameId.objectId)

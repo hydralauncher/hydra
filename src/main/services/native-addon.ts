@@ -19,6 +19,8 @@ import type {
   GetSaveRulesForGameInput,
   ResolveRestoreTargetsResult,
   BuildSnapshotAggregateHashInput,
+  CheckCloudSaveCustomPathOverlapInput,
+  CheckCloudSaveCustomPathOverlapResult,
 } from "@types";
 
 import { logger } from "./logger";
@@ -57,6 +59,9 @@ type HydraNativeModule = {
   buildSnapshotAggregateHash: (
     input: BuildSnapshotAggregateHashInput
   ) => string;
+  checkCloudSaveCustomPathOverlap: (
+    input: CheckCloudSaveCustomPathOverlapInput
+  ) => CheckCloudSaveCustomPathOverlapResult;
   uploadLocalSaveBlob: (
     absolutePath: string,
     uploadUrl: string,
@@ -374,6 +379,12 @@ export class NativeAddon {
 
   public static getSaveRulesForGame(input: GetSaveRulesForGameInput) {
     return this.load().getSaveRulesForGame(input);
+  }
+
+  public static checkCloudSaveCustomPathOverlap(
+    input: CheckCloudSaveCustomPathOverlapInput
+  ) {
+    return this.load().checkCloudSaveCustomPathOverlap(input);
   }
 
   public static buildSnapshotAggregateHash(

@@ -86,6 +86,7 @@ export const analyzeCloudSaveState = async (
   }
 
   return {
+    context,
     localSnapshot,
     localSnapshotContext,
     environmentId,

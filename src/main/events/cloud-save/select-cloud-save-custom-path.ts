@@ -6,7 +6,7 @@ import {
   cloudSaveCustomPathContextFromPathContext,
   getCloudSaveGameContext,
   isCloudSaveSyncActive,
-  registerCloudSaveCustomPaths,
+  registerCloudSaveCustomPathWithoutOverlap,
 } from "@main/services/cloud-save";
 import { isGameRunning } from "@main/services/process-watcher";
 import { WindowManager } from "@main/services/window-manager";
@@ -49,14 +49,28 @@ registerEvent(
       throw new Error("cloud_save_custom_path_sync_active");
     }
 
-    const { pathContext } = await getCloudSaveGameContext(objectId, shop);
-    const customPathContext =
-      cloudSaveCustomPathContextFromPathContext(pathContext);
+    const context = await getCloudSaveGameContext(objectId, shop);
+    const customPathContext = cloudSaveCustomPathContextFromPathContext(
+      context.pathContext
+    );
     const customPath = await canonicalizeSelectedCloudSaveCustomPath(
       selectedPath,
       customPathContext
     );
-    await registerCloudSaveCustomPaths(shop, objectId, [customPath]);
+    await registerCloudSaveCustomPathWithoutOverlap({
+      objectId,
+      shop,
+      customPath,
+      context,
+      assertCanRegister: () => {
+        if (isGameRunning(objectId, shop)) {
+          throw new Error("cloud_save_custom_path_game_running");
+        }
+        if (isCloudSaveSyncActive(objectId, shop)) {
+          throw new Error("cloud_save_custom_path_sync_active");
+        }
+      },
+    });
     return { canceled: false, customPath };
   }
 );

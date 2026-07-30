@@ -17,7 +17,7 @@ interface CloudSaveCustomPathApprovalModalProps {
   approval: CloudSaveCustomPathApproval | null;
   isSelecting: boolean;
   isConfirming: boolean;
-  hasError: boolean;
+  errorMessage?: string;
   onSelectPath: () => void;
   onConfirm: () => void;
   onClose: () => void;
@@ -27,7 +27,7 @@ export function CloudSaveCustomPathApprovalModal({
   approval,
   isSelecting,
   isConfirming,
-  hasError,
+  errorMessage,
   onSelectPath,
   onConfirm,
   onClose,
@@ -146,17 +146,7 @@ export function CloudSaveCustomPathApprovalModal({
               ? undefined
               : t("cloud_save_v2_path_approval_destination_unavailable")
           }
-          error={
-            hasError
-              ? t(
-                  isManualSync
-                    ? "cloud_save_v2_path_approval_manual_sync_error_description"
-                    : isCustomPathRebind
-                      ? "cloud_save_v2_custom_path_rebind_error_description"
-                      : "cloud_save_v2_path_approval_error_description"
-                )
-              : undefined
-          }
+          error={errorMessage}
           rightContent={
             <Button
               className="cloud-save-v2__path-approval-choose"

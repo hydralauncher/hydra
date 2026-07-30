@@ -7,6 +7,7 @@ export * from "./cloud-save-game-context";
 export * from "./cloud-save-modal-sync-flow";
 export * from "./custom-path";
 export * from "./custom-path-approval";
+export * from "./custom-path-overlap";
 export * from "./custom-path-store";
 export * from "./create-remote-snapshot-from-local-state";
 export * from "./download-remote-snapshot-to-temp";

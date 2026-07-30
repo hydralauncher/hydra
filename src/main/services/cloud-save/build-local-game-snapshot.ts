@@ -8,8 +8,8 @@ import type {
 
 import { NativeAddon } from "../native-addon";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
-import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
-import { getCloudSaveCustomPathRules } from "./custom-path-store";
+import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
+import { customPathToCloudSaveRule } from "./custom-path-store";
 
 interface BuildLocalGameSnapshotContextOptions {
   scanStoreUserContext?: StoreUserContext;
@@ -27,10 +27,8 @@ export const buildLocalGameSnapshotContext = async (
   const cacheKey = levelKeys.game(shop, objectId);
   const [hashCache, extraRules] = await Promise.all([
     cloudSaveLocalHashCacheSublevel.get(cacheKey).then((value) => value ?? []),
-    getCloudSaveCustomPathRules(
-      shop,
-      objectId,
-      cloudSaveCustomPathContextFromPathContext(pathContext)
+    getUsableCloudSaveCustomPathBindings(objectId, shop, context).then(
+      ({ ready }) => ready.map(customPathToCloudSaveRule)
     ),
   ]);
   const { hashCache: updatedHashCache, ...snapshot } =

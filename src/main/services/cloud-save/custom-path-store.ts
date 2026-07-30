@@ -13,6 +13,7 @@ import type {
 import {
   cloudSaveCustomPathStorageKey,
   getCurrentCloudSaveCustomPathContext,
+  type CloudSaveCustomPathContext,
 } from "./custom-path";
 import {
   applyCloudSaveCustomPathLocalPathMigrations,
@@ -93,14 +94,14 @@ const mutateStoredEntriesByKey = (
   key: string,
   mutation: (
     entries: StoredCloudSaveCustomPath[]
-  ) => StoredCloudSaveCustomPath[]
+  ) => StoredCloudSaveCustomPath[] | Promise<StoredCloudSaveCustomPath[]>
 ) =>
   storeMutationCoordinator.run(
     key,
     `custom-path-store:${++storeMutationId}`,
     async () => {
       const entries = await getStoredEntriesByKey(key);
-      await putStoredEntriesByKey(key, mutation(entries));
+      await putStoredEntriesByKey(key, await mutation(entries));
     }
   );
 
@@ -109,7 +110,7 @@ const mutateStoredEntries = async (
   objectId: string,
   mutation: (
     entries: StoredCloudSaveCustomPath[]
-  ) => StoredCloudSaveCustomPath[]
+  ) => StoredCloudSaveCustomPath[] | Promise<StoredCloudSaveCustomPath[]>
 ) => mutateStoredEntriesByKey(await getStorageKey(shop, objectId), mutation);
 
 export const getCloudSaveCustomPathBindings = async (
@@ -155,9 +156,22 @@ export const saveCloudSaveCustomPaths = async (
 export const registerCloudSaveCustomPaths = async (
   shop: GameShop,
   objectId: string,
-  customPaths: CloudSaveCustomPath[]
+  customPaths: CloudSaveCustomPath[],
+  options: {
+    context?: CloudSaveCustomPathContext;
+    assertCurrentBindings?: (
+      bindings: CloudSaveCustomPathBindings
+    ) => void | Promise<void>;
+  } = {}
 ) => {
-  await mutateStoredEntries(shop, objectId, (entries) => {
+  await mutateStoredEntries(shop, objectId, async (entries) => {
+    if (options.assertCurrentBindings) {
+      const { bindings } = resolveStoredCloudSaveCustomPathBindings(
+        entries,
+        options.context ?? getCurrentCloudSaveCustomPathContext()
+      );
+      await options.assertCurrentBindings(bindings);
+    }
     const byRawPath = new Map(entries.map((entry) => [entry.rawPath, entry]));
     for (const { rawPath, storeUserId, path: localPath } of customPaths) {
       const existing = byRawPath.get(rawPath);

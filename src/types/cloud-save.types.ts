@@ -44,6 +44,8 @@ export type CloudSaveUnresolvedCustomPathReason =
   | "legacy"
   | "foreign-platform"
   | "unregistered"
+  | "mapped-location-overlap"
+  | "custom-location-overlap"
   | "invalid";
 
 export interface CloudSaveUnresolvedCustomPath {
@@ -57,6 +59,24 @@ export interface CloudSaveUnresolvedCustomPath {
 export interface CloudSaveCustomPathBindings {
   ready: CloudSaveCustomPath[];
   unresolved: CloudSaveUnresolvedCustomPath[];
+}
+
+export interface CheckCloudSaveCustomPathOverlapInput
+  extends Omit<CloudSavePathContext, "storeUserContext"> {
+  rules: CloudSaveRule[];
+  selectedPath: string;
+  remoteRelativePaths: string[];
+}
+
+export type CloudSaveCustomPathOverlapReason =
+  | "mapped-location-overlap"
+  | "custom-location-overlap"
+  | "remote-target-mapped";
+
+export interface CheckCloudSaveCustomPathOverlapResult {
+  hasOverlap: boolean;
+  reason?: CloudSaveCustomPathOverlapReason;
+  conflictingRawPath?: string;
 }
 
 export interface SelectCloudSaveCustomPathResult {

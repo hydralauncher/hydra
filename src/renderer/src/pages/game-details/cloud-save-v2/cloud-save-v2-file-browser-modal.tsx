@@ -26,6 +26,17 @@ import {
 } from "./cloud-save-v2-file-tree";
 import { CloudSaveV2FileTreeView } from "./cloud-save-v2-file-tree-view";
 
+const getCustomPathOverlapError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("cloud_save_custom_path_custom_location_overlap")) {
+    return "custom" as const;
+  }
+  if (message.includes("cloud_save_custom_path_mapped_location_overlap")) {
+    return "mapped" as const;
+  }
+  return null;
+};
+
 interface CloudSaveV2FileBrowserModalProps {
   visible: boolean;
   objectId: string;
@@ -164,18 +175,27 @@ export function CloudSaveV2FileBrowserModal({
         await onRetry();
         showSuccessToast(t("cloud_save_v2_custom_path_added"));
       }
-    } catch {
+    } catch (error) {
       if (wasAdded) await onRetry();
+      const overlapError = !wasAdded ? getCustomPathOverlapError(error) : null;
       showErrorToast(
         t(
           wasAdded
             ? "cloud_save_v2_custom_path_sync_error_title"
-            : "cloud_save_v2_custom_path_error_title"
+            : overlapError === "mapped"
+              ? "cloud_save_v2_custom_path_mapped_overlap_error_title"
+              : overlapError === "custom"
+                ? "cloud_save_v2_custom_path_custom_overlap_error_title"
+                : "cloud_save_v2_custom_path_error_title"
         ),
         t(
           wasAdded
             ? "cloud_save_v2_custom_path_sync_error_description"
-            : "cloud_save_v2_custom_path_error_description"
+            : overlapError === "mapped"
+              ? "cloud_save_v2_custom_path_mapped_overlap_error_description"
+              : overlapError === "custom"
+                ? "cloud_save_v2_custom_path_custom_overlap_error_description"
+                : "cloud_save_v2_custom_path_error_description"
         )
       );
     } finally {

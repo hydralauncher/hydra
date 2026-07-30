@@ -14,10 +14,8 @@ import { NativeAddon } from "../native-addon";
 import { validateRestoreManifest } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
-import {
-  customPathToCloudSaveRule,
-  getCloudSaveCustomPathBindings,
-} from "./custom-path-store";
+import { customPathToCloudSaveRule } from "./custom-path-store";
+import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
 import { storeUserContextWithSnapshotAccounts } from "./snapshot-store-user-context";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
@@ -67,6 +65,10 @@ export const resolveRestoreManifestTargets = async (
     manifest.snapshot.shop
   );
   const pathContext = suppliedPathContext ?? gameContext.pathContext;
+  const effectiveGameContext =
+    pathContext === gameContext.pathContext
+      ? gameContext
+      : { ...gameContext, pathContext };
   const approved = await NativeAddon.getSaveRulesForGame({
     shop: manifest.snapshot.shop,
     objectId: manifest.snapshot.objectId,
@@ -76,10 +78,14 @@ export const resolveRestoreManifestTargets = async (
   });
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
-  const { ready: customPaths } = await getCloudSaveCustomPathBindings(
-    manifest.snapshot.shop,
+  const { ready: customPaths } = await getUsableCloudSaveCustomPathBindings(
     manifest.snapshot.objectId,
-    customPathContext
+    manifest.snapshot.shop,
+    effectiveGameContext,
+    {
+      approvedRules: approved.rules,
+      remoteFiles: manifest.files,
+    }
   );
 
   const effectiveWinePrefixPath = customPathContext.winePrefixPath;

@@ -10,7 +10,7 @@ import { loadCloudSaveV2FileDetails } from "./cloud-save-v2-file-details";
 import { classifyCloudSaveCustomPathResolutionError } from "./custom-path-binding-state";
 import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
 import { getFirstSyncState } from "./sync-game";
-import { getCloudSaveCustomPathBindings } from "./custom-path-store";
+import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
 import {
   cloudSaveCustomPathContextFromPathContext,
   decodeCloudSaveCustomPath,
@@ -73,10 +73,11 @@ export const getCloudSaveV2FileDetails = async (
   const customPathContext = cloudSaveCustomPathContextFromPathContext(
     analysis.localSnapshotContext.pathContext
   );
-  const bindings = await getCloudSaveCustomPathBindings(
-    shop,
+  const bindings = await getUsableCloudSaveCustomPathBindings(
     objectId,
-    customPathContext
+    shop,
+    analysis.context,
+    { remoteFiles: analysis.remoteManifest?.files }
   );
   const state =
     analysis.state.state === "untracked"

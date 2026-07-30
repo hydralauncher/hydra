@@ -7,11 +7,28 @@ import * as presentationModule from "./cloud-save-presentation.ts";
 
 const {
   canOpenCloudSaveFileBrowser,
+  getCloudSaveUploadLimitError,
   getCloudSavePanelAction,
   getCloudSavePresentation,
   isCloudSaveOverviewEmpty,
   shouldSyncCloudSaveOnGamePage,
 } = presentationModule;
+
+describe("cloud save upload limit errors", () => {
+  it("recognizes size and file-count failures from IPC errors", () => {
+    assert.equal(
+      getCloudSaveUploadLimitError(
+        new Error("Cloud save failed: cloud_save_snapshot_too_large")
+      ),
+      "snapshot-too-large"
+    );
+    assert.equal(
+      getCloudSaveUploadLimitError("cloud_save_too_many_files"),
+      "too-many-files"
+    );
+    assert.equal(getCloudSaveUploadLimitError(new Error("network")), null);
+  });
+});
 
 const overview = (
   overrides: Partial<CloudSaveOverview> = {}

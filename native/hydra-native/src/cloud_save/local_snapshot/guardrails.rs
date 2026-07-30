@@ -92,12 +92,8 @@ pub fn prepare_snapshot_files(
 pub fn prepare_snapshot_files_best_effort(
     files: &[DiscoveredLocalSaveFile],
 ) -> Result<PreparedSnapshotFiles, LocalSnapshotGuardError> {
-    if files.len() > MAX_SNAPSHOT_FILE_COUNT {
-        return Err(LocalSnapshotGuardError::TooManyFiles);
-    }
     validate_unique(files)?;
 
-    let mut total_size_bytes = 0_u64;
     let mut metadata_by_path = HashMap::with_capacity(files.len());
     let mut unavailable_paths = Vec::new();
     for file in files {
@@ -113,12 +109,6 @@ pub fn prepare_snapshot_files_best_effort(
             unavailable_paths.push(file.absolute_path.clone());
             continue;
         };
-        total_size_bytes = total_size_bytes
-            .checked_add(metadata.len())
-            .ok_or(LocalSnapshotGuardError::SnapshotTooLarge)?;
-        if total_size_bytes > MAX_SNAPSHOT_TOTAL_SIZE_BYTES {
-            return Err(LocalSnapshotGuardError::SnapshotTooLarge);
-        }
         metadata_by_path.insert(
             file.absolute_path.clone(),
             InitialFileMetadata {
@@ -141,9 +131,6 @@ pub fn validate_built_files(files: &[BuiltLocalSaveFile]) -> Result<u64, LocalSn
         total_size_bytes = total_size_bytes
             .checked_add(size_bytes)
             .ok_or(LocalSnapshotGuardError::SnapshotTooLarge)?;
-        if total_size_bytes > MAX_SNAPSHOT_TOTAL_SIZE_BYTES {
-            return Err(LocalSnapshotGuardError::SnapshotTooLarge);
-        }
         if let Some(previous_size) = size_by_hash.insert(&file.hash, size_bytes) {
             if previous_size != size_bytes {
                 return Err(LocalSnapshotGuardError::HashSizeMismatch);
@@ -155,6 +142,8 @@ pub fn validate_built_files(files: &[BuiltLocalSaveFile]) -> Result<u64, LocalSn
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+
     use super::*;
     use crate::cloud_save::identity::LocalResolutionBindings;
 
@@ -197,5 +186,53 @@ mod tests {
             discovered("two", "save.dat")
         ])
         .is_err());
+    }
+
+    #[test]
+    fn best_effort_discovery_keeps_files_above_the_upload_limit() {
+        let temp = tempfile::tempdir().unwrap();
+        let save = temp.path().join("large.sav");
+        File::create(&save)
+            .unwrap()
+            .set_len(MAX_SNAPSHOT_TOTAL_SIZE_BYTES + 1)
+            .unwrap();
+
+        let prepared =
+            prepare_snapshot_files_best_effort(&[discovered("variant", &save.to_string_lossy())])
+                .unwrap();
+
+        assert_eq!(
+            prepared.metadata_by_path[&save.to_string_lossy().to_string()].size_bytes,
+            (MAX_SNAPSHOT_TOTAL_SIZE_BYTES + 1) as f64
+        );
+        assert!(prepared.unavailable_paths.is_empty());
+    }
+
+    #[test]
+    fn built_snapshot_can_be_analyzed_above_the_upload_limit() {
+        let file = BuiltLocalSaveFile {
+            variant_id: "variant".into(),
+            rule_id: "rule".into(),
+            raw_path: "<home>/game".into(),
+            relative_path: "large.sav".into(),
+            absolute_path: "/game/large.sav".into(),
+            hash: "a".repeat(64),
+            size_bytes: (MAX_SNAPSHOT_TOTAL_SIZE_BYTES + 1) as f64,
+            last_modified_at: "2026-07-30T00:00:00.000Z".into(),
+            local_bindings: LocalResolutionBindings {
+                environment_id: "environment".into(),
+                root_id: "root".into(),
+                prefix_generation_id: None,
+                concrete_user_segment: "__default__".into(),
+                concrete_path: "/game".into(),
+            },
+            confidence: "inferred".into(),
+            provenance: vec!["test".into()],
+        };
+
+        assert_eq!(
+            validate_built_files(&[file]).unwrap(),
+            MAX_SNAPSHOT_TOTAL_SIZE_BYTES + 1
+        );
     }
 }
