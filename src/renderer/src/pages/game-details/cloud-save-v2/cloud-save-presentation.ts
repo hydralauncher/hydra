@@ -33,7 +33,28 @@ export const isCloudSaveOverviewEmpty = (overview: CloudSaveOverview | null) =>
 
 export const canOpenCloudSaveFileBrowser = (
   overview: CloudSaveOverview | null
-) => overview !== null && !isCloudSaveOverviewEmpty(overview);
+) => overview !== null;
+
+export type CloudSaveUploadLimitError = "snapshot-too-large" | "too-many-files";
+
+export const getCloudSaveUploadLimitError = (
+  error: unknown
+): CloudSaveUploadLimitError | null => {
+  const message =
+    typeof error === "string"
+      ? error
+      : error instanceof Error
+        ? error.message
+        : "";
+
+  if (message.includes("cloud_save_snapshot_too_large")) {
+    return "snapshot-too-large";
+  }
+  if (message.includes("cloud_save_too_many_files")) {
+    return "too-many-files";
+  }
+  return null;
+};
 
 interface GamePageOpenSyncInput {
   overview: CloudSaveOverview | null;

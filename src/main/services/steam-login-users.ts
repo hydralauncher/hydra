@@ -107,7 +107,7 @@ const parseUsers = (content: string) => {
   return asObject(getCaseInsensitive(parsed.value, "users"));
 };
 
-const toSteamAccount = (
+export const toSteamAccount = (
   steamId64: string,
   source: KnownStoreAccount["source"]
 ): KnownStoreAccount | null => {

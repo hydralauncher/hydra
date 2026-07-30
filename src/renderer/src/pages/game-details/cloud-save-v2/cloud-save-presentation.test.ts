@@ -7,11 +7,28 @@ import * as presentationModule from "./cloud-save-presentation.ts";
 
 const {
   canOpenCloudSaveFileBrowser,
+  getCloudSaveUploadLimitError,
   getCloudSavePanelAction,
   getCloudSavePresentation,
   isCloudSaveOverviewEmpty,
   shouldSyncCloudSaveOnGamePage,
 } = presentationModule;
+
+describe("cloud save upload limit errors", () => {
+  it("recognizes size and file-count failures from IPC errors", () => {
+    assert.equal(
+      getCloudSaveUploadLimitError(
+        new Error("Cloud save failed: cloud_save_snapshot_too_large")
+      ),
+      "snapshot-too-large"
+    );
+    assert.equal(
+      getCloudSaveUploadLimitError("cloud_save_too_many_files"),
+      "too-many-files"
+    );
+    assert.equal(getCloudSaveUploadLimitError(new Error("network")), null);
+  });
+});
 
 const overview = (
   overrides: Partial<CloudSaveOverview> = {}
@@ -170,11 +187,11 @@ describe("cloud save panel action", () => {
     );
   });
 
-  it("opens the file browser only when the overview has files to inspect", () => {
+  it("opens the file browser for tracked and not-yet-tracked games", () => {
     assert.equal(canOpenCloudSaveFileBrowser(null), false);
     assert.equal(
       canOpenCloudSaveFileBrowser(overview({ state: "untracked" })),
-      false
+      true
     );
     assert.equal(
       canOpenCloudSaveFileBrowser(

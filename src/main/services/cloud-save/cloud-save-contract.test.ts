@@ -60,6 +60,32 @@ describe("Cloud Save launcher API contract", () => {
     );
   });
 
+  it("accepts an empty snapshot after the last tracked location is removed", () => {
+    const summary = validateRemoteSnapshotSummary({
+      id: "snapshot",
+      version: 4,
+      createdAt: "2026-07-20T10:00:00.000Z",
+      updatedAt: "2026-07-22T10:00:00.000Z",
+      fileCount: 0,
+      totalSizeBytes: 0,
+      aggregateHash: "c".repeat(64),
+    });
+    const manifest = validateRestoreManifest({
+      snapshot: {
+        id: "snapshot",
+        version: 4,
+        shop: "steam",
+        objectId: "814380",
+      },
+      variants: [],
+      files: [],
+    });
+
+    assert.equal(summary.fileCount, 0);
+    assert.deepEqual(manifest.variants, []);
+    assert.deepEqual(manifest.files, []);
+  });
+
   it("rejects legacy head, revision and locator fields", () => {
     assert.throws(() =>
       validateRemoteSnapshotSummary({
@@ -119,6 +145,34 @@ describe("Cloud Save launcher API contract", () => {
           file(secondVariantId),
         ],
       })
+    );
+  });
+
+  it("rejects Steam accounts outside the individual account range", () => {
+    const manifest = (steamId64: string) => ({
+      snapshot: {
+        id: "snapshot",
+        version: 1,
+        shop: "steam",
+        objectId: "814380",
+      },
+      variants: [
+        {
+          variantId: firstVariantId,
+          kind: "steam-account",
+          steamId64,
+        },
+      ],
+      files: [file(firstVariantId)],
+    });
+
+    assert.throws(() => validateRestoreManifest(manifest("76561197960265727")));
+    assert.throws(() => validateRestoreManifest(manifest("76561202255233024")));
+    assert.doesNotThrow(() =>
+      validateRestoreManifest(manifest("76561197960265728"))
+    );
+    assert.doesNotThrow(() =>
+      validateRestoreManifest(manifest("76561202255233023"))
     );
   });
 });

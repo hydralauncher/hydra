@@ -100,6 +100,70 @@ describe("merge user variant snapshots", () => {
     ]);
   });
 
+  it("preserves a custom-path entry when this launcher has no local coverage", () => {
+    const remote = file(
+      "slot.sav",
+      "r",
+      "<custom><windows>C:/Users/Hydra/Saves/Game"
+    );
+    const result = mergeUserVariantSnapshots({
+      local: context([]),
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: anchor([remote]),
+    });
+
+    assert.deepEqual(result.files, [remote]);
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, [
+      cloudSaveFileKey(remote),
+    ]);
+  });
+
+  it("treats different custom raw paths as different files", () => {
+    const local = file("slot.sav", "a", "<custom><windows><winAppData>/Game");
+    const remote = file(
+      "slot.sav",
+      "a",
+      "<custom><linux><home>/.local/share/hydra/prefix/drive_c/users/steamuser/AppData/Roaming/Game"
+    );
+    const result = mergeUserVariantSnapshots({
+      local: context([local]),
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: null,
+    });
+
+    assert.deepEqual(
+      result.files.map(({ rawPath }) => rawPath).sort(),
+      [local.rawPath, remote.rawPath].sort()
+    );
+    assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(remote)]);
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.conflicts, []);
+  });
+
+  it("does not create a conflict between different custom raw paths", () => {
+    const local = file("slot.sav", "l", "<custom><windows><winAppData>/Game");
+    const remote = file(
+      "slot.sav",
+      "r",
+      "<custom><windows>C:/Users/Rodrigo/AppData/Roaming/Game"
+    );
+    const result = mergeUserVariantSnapshots({
+      local: context([local]),
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: null,
+    });
+
+    assert.deepEqual(
+      result.files.map(({ rawPath }) => rawPath).sort(),
+      [local.rawPath, remote.rawPath].sort()
+    );
+    assert.deepEqual(result.conflicts, []);
+  });
+
   it("restores everything when the local snapshot is empty", () => {
     const remote = file("remote.sav", "r");
     const local = context([]);

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type {
+  CloudSaveCustomPath,
+  CloudSaveUnresolvedCustomPath,
   CloudSaveV2FileComparison,
   CloudSaveV2LocalFile,
   CloudSaveV2RemoteFile,
@@ -45,6 +47,23 @@ const remoteFile = (
   sizeBytes,
   lastModifiedAt: null,
   userLabel: "Profile ••••test",
+});
+
+const customPath: CloudSaveCustomPath = {
+  rawPath: "<custom><windows><winDocuments>/Game",
+  path: "C:\\Users\\Hydra\\Documents\\Game",
+  platform: "windows",
+};
+
+const unresolvedCustomPath = (
+  rawPath: string,
+  registered = false
+): CloudSaveUnresolvedCustomPath => ({
+  rawPath,
+  pathHint: null,
+  state: "needs-confirmation",
+  reason: "legacy",
+  registered,
 });
 
 describe("cloud save V2 local file tree", () => {
@@ -188,6 +207,61 @@ describe("cloud save V2 local file tree", () => {
     assert.equal(zFile.type, "file");
     if (zFile.type === "file") assert.equal(zFile.local?.sizeBytes, 8);
   });
+
+  it("keeps an empty custom location visible so it can be removed", () => {
+    const [root] = buildCloudSaveV2LocalFileTree([], [customPath]);
+
+    assert.equal(root.localDirectoryPath, customPath.path);
+    assert.equal(root.rawPath, customPath.rawPath);
+    assert.equal(root.customPath, customPath);
+    assert.equal(root.removableCustomRawPath, customPath.rawPath);
+    assert.deepEqual(root.children, []);
+  });
+
+  it("shows a remote-only legacy custom location as removable", () => {
+    const rawPath = "<custom><windows>C:/Users/Hydra/AppData/Roaming/Game";
+    const unresolved = unresolvedCustomPath(rawPath);
+    const remote = remoteFile(rawPath, "profiles/one/slot.dat");
+    const [root] = buildCloudSaveV2LocalFileTree(
+      [],
+      [],
+      [unresolved],
+      [remote]
+    );
+
+    assert.equal(root.rawPath, rawPath);
+    assert.equal(root.localDirectoryPath, null);
+    assert.equal(root.customPath, null);
+    assert.equal(root.unresolvedCustomPath, unresolved);
+    assert.equal(root.removableCustomRawPath, rawPath);
+    assert.equal(root.hasRemoteFiles, true);
+    const profiles = root.children[0];
+    assert.equal(profiles.type, "directory");
+    if (profiles.type !== "directory") return;
+    const one = profiles.children[0];
+    assert.equal(one.type, "directory");
+    if (one.type !== "directory") return;
+    const slot = one.children[0];
+    assert.equal(slot.type, "file");
+    if (slot.type !== "file") return;
+    assert.equal(slot.local, null);
+    assert.equal(slot.remote, remote);
+  });
+
+  it("marks a populated root with its registered custom location", () => {
+    const [root] = buildCloudSaveV2LocalFileTree(
+      [
+        localFile(
+          customPath.rawPath,
+          "slot.dat",
+          `${customPath.path}\\slot.dat`
+        ),
+      ],
+      [customPath]
+    );
+
+    assert.equal(root.customPath, customPath);
+  });
 });
 
 describe("cloud save V2 comparison tree", () => {
@@ -315,5 +389,66 @@ describe("cloud save V2 comparison tree", () => {
       ]
     );
     assert.notEqual(roots[0].children[0].id, roots[1].children[0].id);
+  });
+
+  it("resolves a remote-only custom root to its registered local location", () => {
+    const remote = remoteFile(customPath.rawPath, "slot.dat");
+    const [root] = buildCloudSaveV2ComparisonTree(
+      [
+        {
+          variantId: remote.variantId,
+          rawPath: remote.rawPath,
+          relativePath: remote.relativePath,
+          status: "remote-only",
+          local: null,
+          remote,
+        },
+      ],
+      [customPath]
+    );
+
+    assert.equal(root.localDirectoryPath, customPath.path);
+    assert.equal(root.customPath, customPath);
+    assert.equal(root.removableCustomRawPath, customPath.rawPath);
+  });
+
+  it("marks a remote-only legacy custom root as removable", () => {
+    const rawPath = "<custom><linux>/home/hydra/.local/share/game";
+    const remote = remoteFile(rawPath, "slot.dat");
+    const [root] = buildCloudSaveV2ComparisonTree(
+      [
+        {
+          variantId: remote.variantId,
+          rawPath,
+          relativePath: remote.relativePath,
+          status: "remote-only",
+          local: null,
+          remote,
+        },
+      ],
+      [],
+      [unresolvedCustomPath(rawPath)]
+    );
+
+    assert.equal(root.customPath, null);
+    assert.equal(root.localDirectoryPath, null);
+    assert.equal(root.removableCustomRawPath, rawPath);
+  });
+
+  it("keeps a registered unresolved binding visible without comparisons", () => {
+    const rawPath = "<custom><windows><winDocuments>/Game";
+    const unresolved = unresolvedCustomPath(rawPath, true);
+    unresolved.state = "recoverable";
+    unresolved.reason = "environment-unavailable";
+    unresolved.pathHint = "C:\\Users\\Hydra\\Documents\\Game";
+
+    const [root] = buildCloudSaveV2ComparisonTree([], [], [unresolved]);
+
+    assert.equal(root.rawPath, rawPath);
+    assert.equal(root.unresolvedCustomPath, unresolved);
+    assert.equal(root.removableCustomRawPath, rawPath);
+    assert.equal(root.localDirectoryPath, null);
+    assert.equal(root.hasLocalFiles, false);
+    assert.equal(root.hasRemoteFiles, false);
   });
 });

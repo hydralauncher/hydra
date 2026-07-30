@@ -3,9 +3,12 @@ import {
   ChevronRightIcon,
   FileDirectoryIcon,
   FileIcon,
+  InfoIcon,
   LinkExternalIcon,
+  TrashIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
+import { Tooltip } from "react-tooltip";
 
 import type {
   CloudSaveV2FileComparisonStatus,
@@ -27,6 +30,9 @@ interface CloudSaveV2FileTreeViewProps {
   roots: CloudSaveV2FileTreeRoot[];
   mode: "local" | "comparison";
   onOpenFolder: (path: string) => void;
+  onRebindCustomPath: (rawPath: string) => void;
+  onRemoveCustomPath: (rawPath: string) => void;
+  customPathActionsDisabled: boolean;
 }
 
 const statusTranslationKey: Record<CloudSaveV2FileComparisonStatus, string> = {
@@ -38,6 +44,7 @@ const statusTranslationKey: Record<CloudSaveV2FileComparisonStatus, string> = {
 
 const TREE_LEVEL_INDENT_PX = 24;
 const TREE_ROW_PADDING_PX = 8;
+const CUSTOM_PATH_STATUS_TOOLTIP_ID = "cloud-save-v2-custom-path-status";
 
 const getRootIdsFromFingerprint = (fingerprint: string) =>
   fingerprint ? fingerprint.split("\u0000") : [];
@@ -46,6 +53,9 @@ export function CloudSaveV2FileTreeView({
   roots,
   mode,
   onOpenFolder,
+  onRebindCustomPath,
+  onRemoveCustomPath,
+  customPathActionsDisabled,
 }: Readonly<CloudSaveV2FileTreeViewProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
@@ -120,20 +130,55 @@ export function CloudSaveV2FileTreeView({
     );
   };
 
-  const folderAction = (path: string | null, name: string) => {
-    if (!path) return null;
+  const folderActions = (
+    path: string | null,
+    name: string,
+    removableCustomRawPath: string | null,
+    rebindCustomRawPath: string | null
+  ) => {
+    if (!path && !removableCustomRawPath && !rebindCustomRawPath) return null;
 
     return (
-      <button
-        type="button"
-        className="cloud-save-v2__browser-path-action"
-        onClick={() => onOpenFolder(path)}
-        title={t("cloud_save_v2_open_folder")}
-        aria-label={t("cloud_save_v2_open_folder_named", { name })}
-      >
-        <LinkExternalIcon size={15} />
-        <span>{t("cloud_save_v2_open")}</span>
-      </button>
+      <div className="cloud-save-v2__browser-path-actions">
+        {path && (
+          <button
+            type="button"
+            className="cloud-save-v2__browser-path-action"
+            onClick={() => onOpenFolder(path)}
+            title={t("cloud_save_v2_open_folder")}
+            aria-label={t("cloud_save_v2_open_folder_named", { name })}
+          >
+            <LinkExternalIcon size={15} />
+            <span>{t("cloud_save_v2_open")}</span>
+          </button>
+        )}
+        {rebindCustomRawPath && (
+          <button
+            type="button"
+            className="cloud-save-v2__browser-path-action cloud-save-v2__browser-path-action--rebind"
+            disabled={customPathActionsDisabled}
+            onClick={() => onRebindCustomPath(rebindCustomRawPath)}
+            title={t("cloud_save_v2_rebind_custom_path")}
+            aria-label={t("cloud_save_v2_rebind_custom_path_named", { name })}
+          >
+            <FileDirectoryIcon size={15} />
+            <span>{t("cloud_save_v2_choose_location")}</span>
+          </button>
+        )}
+        {removableCustomRawPath && (
+          <button
+            type="button"
+            className="cloud-save-v2__browser-path-action cloud-save-v2__browser-path-action--remove"
+            disabled={customPathActionsDisabled}
+            onClick={() => onRemoveCustomPath(removableCustomRawPath)}
+            title={t("cloud_save_v2_remove_custom_path")}
+            aria-label={t("cloud_save_v2_remove_custom_path_named", { name })}
+          >
+            <TrashIcon size={15} />
+            <span>{t("cloud_save_v2_remove")}</span>
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -151,7 +196,7 @@ export function CloudSaveV2FileTreeView({
           style={{ paddingLeft: contentPaddingLeft }}
         >
           <span className="cloud-save-v2__browser-tree-spacer" />
-          {fileCell(node.local, node.name)}
+          {fileCell(node.local ?? node.remote, node.name)}
         </li>
       );
     }
@@ -192,8 +237,9 @@ export function CloudSaveV2FileTreeView({
     node: CloudSaveV2FileTreeRoot | CloudSaveV2FileTreeDirectory,
     isExpanded: boolean,
     contentPaddingLeft: string,
-    displayLocalName: string,
+    displayRootName: string,
     displayLocalDirectoryPath: string | null,
+    unresolvedStatusIcon: ReactNode,
     children: ReactNode
   ) => (
     <li
@@ -222,17 +268,27 @@ export function CloudSaveV2FileTreeView({
           className="cloud-save-v2__browser-tree-icon"
         />
         <div className="cloud-save-v2__browser-folder-copy">
-          <strong
-            title={
-              node.type === "root"
-                ? displayLocalName
-                : (displayLocalDirectoryPath ?? node.name)
-            }
-          >
-            {node.type === "root" ? displayLocalName : node.name}
-          </strong>
+          <div className="cloud-save-v2__browser-folder-heading">
+            <strong
+              title={
+                node.type === "root"
+                  ? displayRootName
+                  : (displayLocalDirectoryPath ?? node.name)
+              }
+            >
+              {node.type === "root" ? displayRootName : node.name}
+            </strong>
+            {unresolvedStatusIcon}
+          </div>
         </div>
-        {folderAction(node.localDirectoryPath, node.name)}
+        {folderActions(
+          node.localDirectoryPath,
+          node.type === "root" ? displayRootName : node.name,
+          node.type === "root" ? node.removableCustomRawPath : null,
+          node.type === "root"
+            ? (node.unresolvedCustomPath?.rawPath ?? null)
+            : null
+        )}
       </div>
       {children}
     </li>
@@ -247,12 +303,39 @@ export function CloudSaveV2FileTreeView({
     }
 
     const isExpanded = expandedNodeIds.has(node.id);
+    const unresolvedCustomPath =
+      node.type === "root" ? node.unresolvedCustomPath : null;
     const localName = node.localDirectoryPath ?? node.name;
     const displayLocalName = formatCloudSaveV2LocalPath(localName);
     const displayLocalDirectoryPath = node.localDirectoryPath
       ? formatCloudSaveV2LocalPath(node.localDirectoryPath)
       : null;
-    const remoteName = node.type === "root" ? node.rawPath : node.name;
+    const unresolvedDisplayName = unresolvedCustomPath?.pathHint
+      ? formatCloudSaveV2LocalPath(unresolvedCustomPath.pathHint)
+      : t("cloud_save_v2_unresolved_custom_path_name");
+    const displayRootName = unresolvedCustomPath
+      ? unresolvedDisplayName
+      : displayLocalName;
+    const unresolvedStatus = unresolvedCustomPath
+      ? t(`cloud_save_v2_custom_path_reason_${unresolvedCustomPath.reason}`)
+      : null;
+    const unresolvedStatusIcon = unresolvedStatus ? (
+      <button
+        type="button"
+        className="cloud-save-v2__browser-custom-path-info"
+        aria-label={unresolvedStatus}
+        data-tooltip-id={CUSTOM_PATH_STATUS_TOOLTIP_ID}
+        data-tooltip-content={unresolvedStatus}
+      >
+        <InfoIcon size={14} />
+      </button>
+    ) : null;
+    const remoteName =
+      node.type === "root"
+        ? unresolvedCustomPath
+          ? unresolvedDisplayName
+          : node.rawPath
+        : node.name;
     const childDepth = depth + 1;
     const children = isExpanded ? (
       <ul className="cloud-save-v2__browser-tree-list">
@@ -265,8 +348,9 @@ export function CloudSaveV2FileTreeView({
         node,
         isExpanded,
         contentPaddingLeft,
-        displayLocalName,
+        displayRootName,
         displayLocalDirectoryPath,
+        unresolvedStatusIcon,
         children
       );
     }
@@ -295,24 +379,34 @@ export function CloudSaveV2FileTreeView({
             className="cloud-save-v2__browser-diff-cell"
             style={{ paddingLeft: contentPaddingLeft }}
           >
-            {node.hasLocalFiles ? (
+            {node.hasLocalFiles ||
+            (node.type === "root" &&
+              (node.customPath || node.unresolvedCustomPath)) ? (
               <div className="cloud-save-v2__browser-folder-cell">
                 <FileDirectoryIcon
                   size={18}
                   className="cloud-save-v2__browser-tree-icon"
                 />
                 <div className="cloud-save-v2__browser-folder-copy">
-                  <strong
-                    title={
-                      node.type === "root"
-                        ? displayLocalName
-                        : (displayLocalDirectoryPath ?? node.name)
-                    }
-                  >
-                    {node.type === "root" ? displayLocalName : node.name}
-                  </strong>
+                  <div className="cloud-save-v2__browser-folder-heading">
+                    <strong
+                      title={
+                        node.type === "root"
+                          ? displayRootName
+                          : (displayLocalDirectoryPath ?? node.name)
+                      }
+                    >
+                      {node.type === "root" ? displayRootName : node.name}
+                    </strong>
+                    {unresolvedStatusIcon}
+                  </div>
                 </div>
-                {folderAction(node.localDirectoryPath, node.name)}
+                {folderActions(
+                  node.localDirectoryPath,
+                  node.type === "root" ? displayRootName : node.name,
+                  node.type === "root" ? node.removableCustomRawPath : null,
+                  unresolvedCustomPath?.rawPath ?? null
+                )}
               </div>
             ) : (
               <span className="cloud-save-v2__browser-missing-side">—</span>
@@ -344,8 +438,15 @@ export function CloudSaveV2FileTreeView({
   };
 
   return (
-    <ul className="cloud-save-v2__browser-tree-list" role="tree">
-      {roots.map((root) => renderNode(root, 0))}
-    </ul>
+    <>
+      <ul className="cloud-save-v2__browser-tree-list" role="tree">
+        {roots.map((root) => renderNode(root, 0))}
+      </ul>
+      <Tooltip
+        id={CUSTOM_PATH_STATUS_TOOLTIP_ID}
+        place="top"
+        className="cloud-save-v2__browser-custom-path-tooltip"
+      />
+    </>
   );
 }

@@ -32,6 +32,12 @@ describe("cloud save automatic sync policy", () => {
     assert.equal(getSyncDirection("pre-launch"), "restore-only");
     assert.equal(getSyncAction("pre-launch", "local-ahead"), "none");
     assert.equal(getSyncAction("pre-launch", "remote-ahead"), "restore");
+    assert.equal(getSyncDirection("custom-path-rebind"), "restore-only");
+    assert.equal(getSyncAction("custom-path-rebind", "local-ahead"), "none");
+    assert.equal(
+      getSyncAction("custom-path-rebind", "remote-ahead"),
+      "restore"
+    );
 
     assert.equal(getSyncDirection("post-exit"), "upload-only");
     assert.equal(getSyncAction("post-exit", "remote-ahead"), "none");

@@ -1,4 +1,6 @@
 import type {
+  CloudSaveCustomPath,
+  CloudSaveUnresolvedCustomPath,
   CloudSaveV2FileComparison,
   CloudSaveV2FileComparisonStatus,
   CloudSaveV2LocalFile,
@@ -17,6 +19,9 @@ interface CloudSaveV2FileTreeBranchBase {
 export interface CloudSaveV2FileTreeRoot extends CloudSaveV2FileTreeBranchBase {
   type: "root";
   rawPath: string;
+  customPath: CloudSaveCustomPath | null;
+  unresolvedCustomPath: CloudSaveUnresolvedCustomPath | null;
+  removableCustomRawPath: string | null;
 }
 
 export interface CloudSaveV2FileTreeDirectory
@@ -43,6 +48,9 @@ interface MutableBranch {
   id: string;
   name: string;
   rawPath?: string;
+  customPath?: CloudSaveCustomPath;
+  unresolvedCustomPath?: CloudSaveUnresolvedCustomPath;
+  removableCustomRawPath?: string;
   localDirectoryPath: string | null;
   hasLocalFiles: boolean;
   hasRemoteFiles: boolean;
@@ -194,6 +202,9 @@ const finalizeBranch = (
     return {
       type: "root",
       rawPath: branch.rawPath!,
+      customPath: branch.customPath ?? null,
+      unresolvedCustomPath: branch.unresolvedCustomPath ?? null,
+      removableCustomRawPath: branch.removableCustomRawPath ?? null,
       ...shared,
     };
   }
@@ -216,6 +227,8 @@ const getOrCreateComparisonRoot = (
   roots: Map<string, MutableBranch>,
   comparison: CloudSaveV2FileComparison,
   localRootPath: string | null,
+  customPath: CloudSaveCustomPath | undefined,
+  unresolvedCustomPath: CloudSaveUnresolvedCustomPath | undefined,
   hasLocalFile: boolean,
   hasRemoteFile: boolean
 ) => {
@@ -243,6 +256,10 @@ const getOrCreateComparisonRoot = (
       ? `${identity.userLabel} · ${comparison.rawPath}`
       : comparison.rawPath,
     rawPath: comparison.rawPath,
+    customPath,
+    unresolvedCustomPath,
+    removableCustomRawPath:
+      customPath?.rawPath ?? unresolvedCustomPath?.rawPath,
     localDirectoryPath: localRootPath,
     hasLocalFiles: hasLocalFile,
     hasRemoteFiles: hasRemoteFile,
@@ -297,17 +314,25 @@ const getOrCreateComparisonDirectory = (
 
 const addComparisonToTree = (
   roots: Map<string, MutableBranch>,
-  comparison: CloudSaveV2FileComparison
+  comparison: CloudSaveV2FileComparison,
+  customPathByRawPath: Map<string, CloudSaveCustomPath>,
+  unresolvedCustomPathByRawPath: Map<string, CloudSaveUnresolvedCustomPath>
 ) => {
   const hasLocalFile = Boolean(comparison.local);
   const hasRemoteFile = Boolean(comparison.remote);
+  const customPath = customPathByRawPath.get(comparison.rawPath);
+  const unresolvedCustomPath = unresolvedCustomPathByRawPath.get(
+    comparison.rawPath
+  );
   const localRootPath = comparison.local
     ? getLocalRootPath(comparison.local)
-    : null;
+    : (customPath?.path ?? null);
   const root = getOrCreateComparisonRoot(
     roots,
     comparison,
     localRootPath,
+    customPath,
+    unresolvedCustomPath,
     hasLocalFile,
     hasRemoteFile
   );
@@ -352,9 +377,13 @@ export const filterCloudSaveV2Comparisons = (
   );
 
 export const buildCloudSaveV2LocalFileTree = (
-  files: CloudSaveV2LocalFile[]
+  files: CloudSaveV2LocalFile[],
+  customPaths: CloudSaveCustomPath[] = [],
+  unresolvedCustomPaths: CloudSaveUnresolvedCustomPath[] = [],
+  remoteFiles: CloudSaveV2RemoteFile[] = []
 ): CloudSaveV2FileTreeRoot[] => {
   const roots = new Map<string, MutableBranch>();
+  const unresolvedRootsByRawPath = new Map<string, MutableBranch>();
 
   for (const file of files) {
     const rootPath = getLocalRootPath(file);
@@ -420,18 +449,162 @@ export const buildCloudSaveV2LocalFileTree = (
     });
   }
 
+  for (const customPath of customPaths) {
+    const rootPathIdentity = getLocalPathIdentity(customPath.path);
+    const existing = roots.get(rootPathIdentity);
+    if (existing) {
+      existing.customPath = customPath;
+      existing.removableCustomRawPath = customPath.rawPath;
+      continue;
+    }
+
+    roots.set(rootPathIdentity, {
+      type: "root",
+      id: JSON.stringify(["local-root", rootPathIdentity]),
+      name: customPath.path,
+      rawPath: customPath.rawPath,
+      customPath,
+      removableCustomRawPath: customPath.rawPath,
+      localDirectoryPath: customPath.path,
+      hasLocalFiles: false,
+      hasRemoteFiles: false,
+      branches: new Map(),
+      files: [],
+    });
+  }
+
+  for (const unresolvedCustomPath of unresolvedCustomPaths) {
+    const { rawPath } = unresolvedCustomPath;
+    const existing = [...roots.values()].find(
+      (root) => root.rawPath === rawPath
+    );
+    if (existing) {
+      existing.unresolvedCustomPath = unresolvedCustomPath;
+      existing.removableCustomRawPath = rawPath;
+      unresolvedRootsByRawPath.set(rawPath, existing);
+      continue;
+    }
+
+    const rootIdentity = `unresolved:${rawPath}`;
+    const root: MutableBranch = {
+      type: "root",
+      id: JSON.stringify(["unresolved-custom-root", rawPath]),
+      name: unresolvedCustomPath.pathHint ?? rawPath,
+      rawPath,
+      unresolvedCustomPath,
+      removableCustomRawPath: rawPath,
+      localDirectoryPath: null,
+      hasLocalFiles: false,
+      hasRemoteFiles: !unresolvedCustomPath.registered,
+      branches: new Map(),
+      files: [],
+    };
+    roots.set(rootIdentity, root);
+    unresolvedRootsByRawPath.set(rawPath, root);
+  }
+
+  for (const file of remoteFiles) {
+    const root = unresolvedRootsByRawPath.get(file.rawPath);
+    if (!root) continue;
+
+    root.hasRemoteFiles = true;
+    const pathSegments = splitPath(file.relativePath);
+    const fileName = pathSegments.pop() ?? file.relativePath;
+    let parent = root;
+    const directorySegments: string[] = [];
+
+    for (const segment of pathSegments) {
+      directorySegments.push(segment);
+      const directoryId = JSON.stringify([
+        "unresolved-remote-directory",
+        file.rawPath,
+        ...directorySegments,
+      ]);
+      let directory = parent.branches.get(directoryId);
+      if (!directory) {
+        directory = {
+          type: "directory",
+          id: directoryId,
+          name: segment,
+          localDirectoryPath: null,
+          hasLocalFiles: false,
+          hasRemoteFiles: true,
+          branches: new Map(),
+          files: [],
+        };
+        parent.branches.set(directoryId, directory);
+      } else {
+        directory.hasRemoteFiles = true;
+      }
+      parent = directory;
+    }
+
+    parent.files.push({
+      type: "file",
+      id: JSON.stringify([
+        "unresolved-remote-file",
+        file.variantId,
+        file.rawPath,
+        file.relativePath,
+      ]),
+      name: fileName,
+      local: null,
+      remote: file,
+      status: null,
+    });
+  }
+
   return Array.from(roots.values(), finalizeBranch).sort(
     compareTreeNodes
   ) as CloudSaveV2FileTreeRoot[];
 };
 
 export const buildCloudSaveV2ComparisonTree = (
-  comparisons: CloudSaveV2FileComparison[]
+  comparisons: CloudSaveV2FileComparison[],
+  customPaths: CloudSaveCustomPath[] = [],
+  unresolvedCustomPaths: CloudSaveUnresolvedCustomPath[] = []
 ): CloudSaveV2FileTreeRoot[] => {
   const roots = new Map<string, MutableBranch>();
+  const customPathByRawPath = new Map(
+    customPaths.map((customPath) => [customPath.rawPath, customPath])
+  );
+  const unresolvedCustomPathByRawPath = new Map(
+    unresolvedCustomPaths.map((customPath) => [customPath.rawPath, customPath])
+  );
 
   for (const comparison of comparisons) {
-    addComparisonToTree(roots, comparison);
+    addComparisonToTree(
+      roots,
+      comparison,
+      customPathByRawPath,
+      unresolvedCustomPathByRawPath
+    );
+  }
+
+  for (const unresolvedCustomPath of unresolvedCustomPaths) {
+    if (
+      [...roots.values()].some(
+        (root) => root.rawPath === unresolvedCustomPath.rawPath
+      )
+    ) {
+      continue;
+    }
+
+    const { rawPath } = unresolvedCustomPath;
+    const rootId = JSON.stringify(["comparison-unresolved-root", rawPath]);
+    roots.set(rootId, {
+      type: "root",
+      id: rootId,
+      name: unresolvedCustomPath.pathHint ?? rawPath,
+      rawPath,
+      unresolvedCustomPath,
+      removableCustomRawPath: rawPath,
+      localDirectoryPath: null,
+      hasLocalFiles: false,
+      hasRemoteFiles: !unresolvedCustomPath.registered,
+      branches: new Map(),
+      files: [],
+    });
   }
 
   return Array.from(roots.values(), finalizeBranch).sort(

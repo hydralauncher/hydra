@@ -80,6 +80,15 @@ describe("cloud save launch guard", () => {
       canCreateCloudSaveUploadGuard(false, "environment-a", result),
       false
     );
+    assert.equal(
+      canCreateCloudSaveUploadGuard(true, "environment-a", {
+        ...result,
+        action: "restore",
+        initialState: "remote-ahead",
+        finalState: "partial",
+      }),
+      false
+    );
   });
 
   it("blocks launch only for a pre-launch cloud save conflict", () => {

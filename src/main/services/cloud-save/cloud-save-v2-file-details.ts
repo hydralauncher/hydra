@@ -1,5 +1,7 @@
 import type {
   CloudSaveState,
+  CloudSaveCustomPath,
+  CloudSaveUnresolvedCustomPath,
   CloudSaveV2ActiveSnapshotFileSource,
   CloudSaveV2FileComparison,
   CloudSaveV2FileDetails,
@@ -17,6 +19,10 @@ import type {
 } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
+import {
+  CLOUD_SAVE_CUSTOM_PATH_PREFIX,
+  getLegacyCloudSaveCustomPathPathHint,
+} from "./custom-path.js";
 
 interface BuildCloudSaveV2FileDetailsInput {
   state: CloudSaveState;
@@ -30,6 +36,11 @@ interface BuildCloudSaveV2FileDetailsInput {
   coverage?: UserLocationCoverage[];
   unresolvedRemoteEntryIds?: string[];
   conflictEntryIds?: string[];
+  customPaths?: CloudSaveCustomPath[];
+  unresolvedCustomPaths?: CloudSaveUnresolvedCustomPath[];
+  describeUnregisteredCustomPath?: (
+    rawPath: string
+  ) => CloudSaveUnresolvedCustomPath;
 }
 
 interface LoadCloudSaveV2FileDetailsInput
@@ -179,6 +190,9 @@ export const buildCloudSaveV2FileDetails = ({
   coverage = [],
   unresolvedRemoteEntryIds = [],
   conflictEntryIds = [],
+  customPaths = [],
+  unresolvedCustomPaths = [],
+  describeUnregisteredCustomPath,
 }: BuildCloudSaveV2FileDetailsInput): CloudSaveV2FileDetails => {
   const variantById = indexVariants([...localVariants, ...remoteVariants]);
   indexFiles(localFiles);
@@ -264,10 +278,44 @@ export const buildCloudSaveV2FileDetails = ({
     throw new Error("Remote files require an active snapshot summary");
   }
 
+  const readyCustomRawPaths = new Set(
+    customPaths.map(({ rawPath }) => rawPath)
+  );
+  const unresolvedCustomPathByRawPath = new Map(
+    unresolvedCustomPaths.map((customPath) => [customPath.rawPath, customPath])
+  );
+  for (const rawPath of new Set(
+    remoteFiles
+      .map((file) => file.rawPath)
+      .filter((rawPath) => rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX))
+  )) {
+    if (
+      readyCustomRawPaths.has(rawPath) ||
+      unresolvedCustomPathByRawPath.has(rawPath)
+    ) {
+      continue;
+    }
+    const pathHint = getLegacyCloudSaveCustomPathPathHint(rawPath);
+    unresolvedCustomPathByRawPath.set(
+      rawPath,
+      describeUnregisteredCustomPath?.(rawPath) ?? {
+        rawPath,
+        pathHint,
+        state: "needs-confirmation",
+        reason: pathHint ? "legacy" : "unregistered",
+        registered: false,
+      }
+    );
+  }
+
   return {
     state,
     local,
     activeSnapshot: remote,
+    customPaths,
+    unresolvedCustomPaths: [...unresolvedCustomPathByRawPath.values()].sort(
+      (left, right) => left.rawPath.localeCompare(right.rawPath)
+    ),
     comparisons:
       state === "conflict"
         ? buildComparisons(

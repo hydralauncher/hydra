@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type {
+  CloudSaveUnresolvedCustomPath,
   LocalGameSnapshotSourceFile,
   SnapshotFile,
   SnapshotVariant,
@@ -66,6 +67,18 @@ const summary = {
   aggregateHash: "a".repeat(64),
 };
 
+const unresolvedCustomPath = (
+  rawPath: string,
+  overrides: Partial<CloudSaveUnresolvedCustomPath> = {}
+): CloudSaveUnresolvedCustomPath => ({
+  rawPath,
+  pathHint: null,
+  state: "needs-confirmation",
+  reason: "legacy",
+  registered: true,
+  ...overrides,
+});
+
 describe("cloud save V2 file details", () => {
   it("keeps equal paths separated by variant and exposes active version", () => {
     const localFiles = [file(firstVariantId, "a"), file(secondVariantId, "a")];
@@ -113,6 +126,99 @@ describe("cloud save V2 file details", () => {
         ?.conflictCount,
       1
     );
+  });
+
+  it("shows different custom raw paths as separate files", () => {
+    const local = {
+      ...file(firstVariantId, "l"),
+      rawPath: "<custom><windows><winAppData>/Game",
+    };
+    const remote = {
+      ...file(firstVariantId, "r"),
+      rawPath: "<custom><windows>C:/Users/Rodrigo/AppData/Roaming/Game",
+    };
+    const oneFileSummary = {
+      ...summary,
+      fileCount: 1,
+      totalSizeBytes: 4,
+    };
+    const details = buildCloudSaveV2FileDetails({
+      state: "conflict",
+      localVariants: [variants[0]],
+      localFiles: [local],
+      localSourceFiles: [source(local)],
+      localTotalSizeBytes: 4,
+      activeSnapshot: oneFileSummary,
+      remoteVariants: [variants[0]],
+      remoteFiles: [remote],
+      conflictEntryIds: [cloudSaveFileKey(remote)],
+    });
+
+    assert.equal(details.comparisons.length, 2);
+    assert.deepEqual(details.comparisons.map(({ status }) => status).sort(), [
+      "local-only",
+      "remote-only",
+    ]);
+    assert.deepEqual(details.unresolvedCustomPaths, [
+      unresolvedCustomPath(remote.rawPath, {
+        pathHint: "C:/Users/Rodrigo/AppData/Roaming/Game",
+        registered: false,
+      }),
+    ]);
+  });
+
+  it("preserves every stored unresolved binding without hiding current paths", () => {
+    const legacy = unresolvedCustomPath(
+      "<custom><linux>/home/hydra/.local/share/game"
+    );
+    const current = unresolvedCustomPath(
+      "<custom><linux><home>/.local/share/game",
+      {
+        state: "recoverable",
+        reason: "environment-unavailable",
+      }
+    );
+    const details = buildCloudSaveV2FileDetails({
+      state: "untracked",
+      localVariants: [],
+      localFiles: [],
+      localSourceFiles: [],
+      localTotalSizeBytes: 0,
+      activeSnapshot: null,
+      remoteVariants: [],
+      remoteFiles: [],
+      unresolvedCustomPaths: [legacy, current],
+    });
+
+    assert.deepEqual(details.unresolvedCustomPaths, [legacy, current]);
+  });
+
+  it("exposes a current remote-only custom path as unregistered", () => {
+    const remote = {
+      ...file(firstVariantId, "r"),
+      rawPath: "<custom><windows><winDocuments>/Game",
+    };
+    const details = buildCloudSaveV2FileDetails({
+      state: "remote-ahead",
+      localVariants: [],
+      localFiles: [],
+      localSourceFiles: [],
+      localTotalSizeBytes: 0,
+      activeSnapshot: {
+        ...summary,
+        fileCount: 1,
+        totalSizeBytes: 4,
+      },
+      remoteVariants: [variants[0]],
+      remoteFiles: [remote],
+    });
+
+    assert.deepEqual(details.unresolvedCustomPaths, [
+      unresolvedCustomPath(remote.rawPath, {
+        reason: "unregistered",
+        registered: false,
+      }),
+    ]);
   });
 
   it("loads and verifies the active manifest version", async () => {

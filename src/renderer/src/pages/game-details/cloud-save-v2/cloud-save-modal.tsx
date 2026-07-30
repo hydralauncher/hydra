@@ -19,7 +19,6 @@ import { formatBytes } from "@shared";
 import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 import {
-  canOpenCloudSaveFileBrowser,
   getCloudSavePanelAction,
   getCloudSavePresentation,
   isCloudSaveOverviewEmpty,
@@ -347,9 +346,15 @@ export function CloudSavePanel({
       )}
 
       {!isLoading && isCloudSaveOverviewEmpty(overview) && (
-        <p className="cloud-save-v2__empty-message">
+        <button
+          type="button"
+          className="cloud-save-v2__empty-message cloud-save-v2__empty-files-link"
+          onClick={onOpenFileBrowser}
+          disabled={isSyncing}
+          aria-label={t("cloud_save_v2_view_files")}
+        >
           {t("cloud_save_v2_no_snapshots")}
-        </p>
+        </button>
       )}
 
       {!hasExecutablePath ? (
@@ -375,22 +380,7 @@ export function CloudSavePanel({
                   true
                 )}
               </>
-            ) : (
-              !isLoading &&
-              canOpenCloudSaveFileBrowser(overview) && (
-                <div className="cloud-save-v2__empty cloud-save-v2__empty--inline">
-                  <button
-                    type="button"
-                    className="cloud-save-v2__empty-files-link"
-                    onClick={onOpenFileBrowser}
-                    disabled={isSyncing}
-                    aria-label={t("cloud_save_v2_view_files")}
-                  >
-                    {t("cloud_save_v2_no_snapshots")}
-                  </button>
-                </div>
-              )
-            )}
+            ) : null}
 
             <div className="cloud-save-v2__action-area">{syncAction}</div>
           </article>

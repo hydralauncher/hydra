@@ -1,3 +1,4 @@
+pub mod custom_path_overlap;
 pub mod hashing;
 mod http;
 pub mod identity;

@@ -51,6 +51,12 @@ import type {
   CloudSaveSyncProgressPayload,
   SyncCloudSaveOnGamePageResult,
   SyncGameCloudSaveResult,
+  SelectCloudSaveCustomPathResult,
+  CloudSaveCustomPathApproval,
+  CloudSaveModalSyncResult,
+  SelectCloudSaveCustomPathApprovalResult,
+  ConfirmCloudSaveCustomPathApprovalResult,
+  ConfirmCloudSaveCustomPathRebindApprovalResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -61,8 +67,13 @@ const fileExplorerApi = {
   listDrives: () => ipcRenderer.invoke("listDrives"),
 };
 
-const invokeCloudSaveOperation = async (
-  channel: "syncGameCloudSave" | "resolveCloudSaveConflict",
+const invokeCloudSaveOperation = async <TResult = SyncGameCloudSaveResult>(
+  channel:
+    | "syncGameCloudSave"
+    | "syncGameCloudSaveFromModal"
+    | "syncCloudSaveAfterCustomPathRebind"
+    | "resolveCloudSaveConflict"
+    | "removeCloudSaveCustomPath",
   args: unknown[],
   onProgress?: (progress: CloudSaveSyncProgressPayload) => void
 ) => {
@@ -75,11 +86,7 @@ const invokeCloudSaveOperation = async (
   };
   ipcRenderer.on("on-cloud-save-sync-progress", listener);
   try {
-    return (await ipcRenderer.invoke(
-      channel,
-      operationId,
-      ...args
-    )) as SyncGameCloudSaveResult;
+    return (await ipcRenderer.invoke(channel, operationId, ...args)) as TResult;
   } finally {
     ipcRenderer.removeListener("on-cloud-save-sync-progress", listener);
   }
@@ -123,6 +130,66 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveV2FileDetails>,
+  selectCloudSaveCustomPath: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "selectCloudSaveCustomPath",
+      objectId,
+      shop
+    ) as Promise<SelectCloudSaveCustomPathResult>,
+  createCloudSaveCustomPathRebindApproval: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string
+  ) =>
+    ipcRenderer.invoke(
+      "createCloudSaveCustomPathRebindApproval",
+      objectId,
+      shop,
+      rawPath
+    ) as Promise<CloudSaveCustomPathApproval>,
+  confirmCloudSaveCustomPathRebindApproval: (
+    approvalId: string,
+    objectId: string,
+    shop: GameShop
+  ) =>
+    ipcRenderer.invoke(
+      "confirmCloudSaveCustomPathRebindApproval",
+      approvalId,
+      objectId,
+      shop
+    ) as Promise<ConfirmCloudSaveCustomPathRebindApprovalResult>,
+  getPendingCloudSaveCustomPathApproval: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getPendingCloudSaveCustomPathApproval",
+      objectId,
+      shop
+    ) as Promise<CloudSaveCustomPathApproval | null>,
+  selectCloudSaveCustomPathApproval: (approvalId: string) =>
+    ipcRenderer.invoke(
+      "selectCloudSaveCustomPathApproval",
+      approvalId
+    ) as Promise<SelectCloudSaveCustomPathApprovalResult>,
+  confirmCloudSaveCustomPathApproval: (approvalId: string) =>
+    ipcRenderer.invoke(
+      "confirmCloudSaveCustomPathApproval",
+      approvalId
+    ) as Promise<ConfirmCloudSaveCustomPathApprovalResult>,
+  dismissCloudSaveCustomPathApproval: (approvalId: string) =>
+    ipcRenderer.invoke(
+      "dismissCloudSaveCustomPathApproval",
+      approvalId
+    ) as Promise<void>,
+  removeCloudSaveCustomPath: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation(
+      "removeCloudSaveCustomPath",
+      [objectId, shop, rawPath],
+      onProgress
+    ),
   setCloudSaveAutomaticSyncEnabled: (
     objectId: string,
     shop: GameShop,
@@ -146,6 +213,28 @@ contextBridge.exposeInMainWorld("electron", {
     onProgress?: (progress: CloudSaveSyncProgressPayload) => void
   ) =>
     invokeCloudSaveOperation("syncGameCloudSave", [objectId, shop], onProgress),
+  syncGameCloudSaveFromModal: (
+    objectId: string,
+    shop: GameShop,
+    approvalId: string | null,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation<CloudSaveModalSyncResult>(
+      "syncGameCloudSaveFromModal",
+      [objectId, shop, approvalId],
+      onProgress
+    ),
+  syncCloudSaveAfterCustomPathRebind: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation(
+      "syncCloudSaveAfterCustomPathRebind",
+      [objectId, shop, rawPath],
+      onProgress
+    ),
   resolveCloudSaveConflict: (
     objectId: string,
     shop: GameShop,

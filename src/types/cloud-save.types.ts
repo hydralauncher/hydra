@@ -17,7 +17,117 @@ export interface CloudSaveRule {
   source: string;
   tags: string[];
   when: CloudSaveRuleCondition[];
+  /**
+   * Local-only binding for an explicitly approved custom path. It is never
+   * included in the remote snapshot identity.
+   */
+  preferredPath?: string;
 }
+
+export type CloudSaveCustomPathPlatform = "windows" | "linux" | "mac";
+
+export interface CloudSaveCustomPath {
+  rawPath: string;
+  path: string;
+  platform: CloudSaveCustomPathPlatform;
+  storeUserId?: string;
+}
+
+export type CloudSaveUnresolvedCustomPathState =
+  | "recoverable"
+  | "needs-confirmation"
+  | "invalid";
+
+export type CloudSaveUnresolvedCustomPathReason =
+  | "environment-unavailable"
+  | "account-selection-required"
+  | "legacy"
+  | "foreign-platform"
+  | "unregistered"
+  | "mapped-location-overlap"
+  | "custom-location-overlap"
+  | "invalid";
+
+export interface CloudSaveUnresolvedCustomPath {
+  rawPath: string;
+  pathHint: string | null;
+  state: CloudSaveUnresolvedCustomPathState;
+  reason: CloudSaveUnresolvedCustomPathReason;
+  registered: boolean;
+}
+
+export interface CloudSaveCustomPathBindings {
+  ready: CloudSaveCustomPath[];
+  unresolved: CloudSaveUnresolvedCustomPath[];
+}
+
+export interface CheckCloudSaveCustomPathOverlapInput
+  extends Omit<CloudSavePathContext, "storeUserContext"> {
+  rules: CloudSaveRule[];
+  selectedPath: string;
+  remoteRelativePaths: string[];
+}
+
+export type CloudSaveCustomPathOverlapReason =
+  | "mapped-location-overlap"
+  | "custom-location-overlap"
+  | "remote-target-mapped";
+
+export interface CheckCloudSaveCustomPathOverlapResult {
+  hasOverlap: boolean;
+  reason?: CloudSaveCustomPathOverlapReason;
+  conflictingRawPath?: string;
+}
+
+export interface SelectCloudSaveCustomPathResult {
+  canceled: boolean;
+  customPath?: CloudSaveCustomPath;
+}
+
+export interface CloudSaveCustomPathApproval {
+  id: string;
+  gameId: CloudSaveGameId;
+  purpose: "pre-launch" | "manual-sync" | "custom-path-rebind";
+  rawPath: string;
+  suggestedPath: string | null;
+  selectedPath: string | null;
+  canUseSuggestedPath: boolean;
+  fileCount: number;
+  totalSizeBytes: number;
+  files: CloudSaveCustomPathApprovalFile[];
+  snapshotId: string | null;
+  snapshotVersion: number | null;
+}
+
+export interface CloudSaveCustomPathApprovalFile {
+  name: string;
+  relativePath: string;
+  sizeBytes: number;
+  lastModifiedAt: string;
+}
+
+export interface SelectCloudSaveCustomPathApprovalResult {
+  canceled: boolean;
+  approval: CloudSaveCustomPathApproval;
+}
+
+export interface ConfirmCloudSaveCustomPathApprovalResult {
+  pendingApproval: CloudSaveCustomPathApproval | null;
+}
+
+export interface ConfirmCloudSaveCustomPathRebindApprovalResult {
+  rawPath: string;
+}
+
+export type CloudSaveModalSyncResult =
+  | {
+      status: "approval-required";
+      approval: CloudSaveCustomPathApproval;
+    }
+  | {
+      status: "completed";
+      result: SyncGameCloudSaveResult;
+    };
 
 export interface GetSaveRulesForGameInput extends CloudSaveGameId {
   title?: string;
@@ -37,7 +147,11 @@ export interface KnownStoreAccount {
   store: string;
   steamId64?: string;
   accountId32?: string;
-  source: "active-login" | "known-login" | "userdata-folder";
+  source:
+    | "active-login"
+    | "known-login"
+    | "userdata-folder"
+    | "remote-snapshot";
 }
 
 export interface StoreUserContext {
@@ -103,6 +217,7 @@ export interface BuildLocalGameSnapshotPipelineInput
   sourceUrl?: string;
   environmentId: string;
   hashCache: LocalFileHashCacheEntry[];
+  extraRules?: CloudSaveRule[];
 }
 
 export interface LocalFileHashCacheEntry {
@@ -265,6 +380,8 @@ export interface CloudSaveV2FileDetails {
   state: CloudSaveState;
   local: CloudSaveV2LocalFileSource;
   activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
+  customPaths: CloudSaveCustomPath[];
+  unresolvedCustomPaths: CloudSaveUnresolvedCustomPath[];
   comparisons: CloudSaveV2FileComparison[];
   variants: Array<{
     variantId: string;
@@ -281,6 +398,7 @@ export type CloudSaveSyncTrigger =
   | "manual"
   | "environment-changed"
   | "game-page-open"
+  | "custom-path-rebind"
   | "pre-launch"
   | "post-exit";
 
@@ -314,7 +432,7 @@ export type SyncCloudSaveOnGamePageResult =
 
 export type CloudSaveAutomaticSyncTrigger = Exclude<
   CloudSaveSyncTrigger,
-  "manual"
+  "manual" | "custom-path-rebind"
 >;
 
 export type CloudSaveAutomaticSyncEvent =
@@ -357,7 +475,9 @@ export interface CloudSaveSyncIpcProgressPayload
 }
 
 export interface ResolveRestoreTargetsInput extends CloudSavePathContext {
-  approvedRules: Array<Pick<CloudSaveRule, "kind" | "rawPath" | "source">>;
+  approvedRules: Array<
+    Pick<CloudSaveRule, "kind" | "rawPath" | "source" | "preferredPath">
+  >;
   variants: SnapshotVariant[];
   files: RestoreManifestFile[];
 }

@@ -18,6 +18,7 @@ import {
   groupUploadsByHash,
   validatePrepareResponse,
 } from "./upload-local-game-snapshot-helpers";
+import { assertCloudSaveUploadWithinLimits } from "./upload-limits";
 
 type ProgressCallback = (progress: CloudSaveUploadProgress) => void;
 
@@ -52,11 +53,12 @@ export const uploadLocalGameSnapshot = async (
     (await buildLocalGameSnapshotContext(objectId, shop));
   const proposalVariants = resolvedOptions.variants ?? context.variants;
   const proposalFiles = resolvedOptions.files ?? context.files;
-  const aggregateHash =
-    resolvedOptions.aggregateHash ?? context.aggregateHash;
+  const aggregateHash = resolvedOptions.aggregateHash ?? context.aggregateHash;
   if (proposalFiles.length === 0) {
     return { pendingSnapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
   }
+
+  assertCloudSaveUploadWithinLimits(proposalFiles);
 
   const response = validatePrepareResponse(
     await HydraApi.post<unknown>(

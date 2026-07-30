@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -16,13 +17,18 @@ import { useToast, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import type {
   CloudSaveConflictResolution,
+  CloudSaveCustomPathApproval,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   GameShop,
 } from "@types";
 
+import { CloudSaveCustomPathApprovalModal } from "./cloud-save-custom-path-approval-modal";
 import { CloudSaveModal } from "./cloud-save-modal";
-import { shouldSyncCloudSaveOnGamePage } from "./cloud-save-presentation";
+import {
+  getCloudSaveUploadLimitError,
+  shouldSyncCloudSaveOnGamePage,
+} from "./cloud-save-presentation";
 import { CloudSaveV2FileBrowserModal } from "./cloud-save-v2-file-browser-modal";
 import { useCloudSaveOverview } from "./use-cloud-save-overview";
 import { useCloudSaveV2FileDetails } from "./use-cloud-save-v2-file-details";
@@ -48,6 +54,21 @@ interface CloudSaveV2ContextValue {
 
 const cloudSaveV2Context = createContext<CloudSaveV2ContextValue | null>(null);
 
+type CustomPathApprovalError = "generic" | "mapped-overlap" | "custom-overlap";
+
+const getCustomPathApprovalError = (
+  error: unknown
+): CustomPathApprovalError => {
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("cloud_save_custom_path_custom_location_overlap")) {
+    return "custom-overlap";
+  }
+  if (message.includes("cloud_save_custom_path_mapped_location_overlap")) {
+    return "mapped-overlap";
+  }
+  return "generic";
+};
+
 export const useCloudSaveV2 = () => {
   const context = useContext(cloudSaveV2Context);
   if (!context) {
@@ -72,7 +93,7 @@ export function CloudSaveV2Provider({
   const [searchParams, setSearchParams] = useSearchParams();
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
-  const { showErrorToast, showWarningToast } = useToast();
+  const { showErrorToast, showSuccessToast, showWarningToast } = useToast();
   const {
     game,
     isGameRunning,
@@ -107,6 +128,14 @@ export function CloudSaveV2Provider({
     null
   );
   const [hasSyncError, setHasSyncError] = useState(false);
+  const [customPathApproval, setCustomPathApproval] =
+    useState<CloudSaveCustomPathApproval | null>(null);
+  const [isSelectingCustomPath, setIsSelectingCustomPath] = useState(false);
+  const [isConfirmingCustomPath, setIsConfirmingCustomPath] = useState(false);
+  const [customPathApprovalError, setCustomPathApprovalError] =
+    useState<CustomPathApprovalError | null>(null);
+  const [isCustomPathApprovalGateActive, setIsCustomPathApprovalGateActive] =
+    useState(searchParams.get("openCloudSavePathApproval") === "1");
   const [pendingResolution, setPendingResolution] =
     useState<CloudSaveConflictResolution | null>(null);
   const {
@@ -126,6 +155,28 @@ export function CloudSaveV2Provider({
 
   activeGameKey.current = gameKey;
 
+  const showCloudSaveUploadLimitError = useCallback(
+    (error: unknown) => {
+      const limitError = getCloudSaveUploadLimitError(error);
+      if (!limitError) return false;
+
+      showErrorToast(
+        t(
+          limitError === "snapshot-too-large"
+            ? "cloud_save_v2_snapshot_too_large_title"
+            : "cloud_save_v2_too_many_files_title"
+        ),
+        t(
+          limitError === "snapshot-too-large"
+            ? "cloud_save_v2_snapshot_too_large_description"
+            : "cloud_save_v2_too_many_files_description"
+        )
+      );
+      return true;
+    },
+    [showErrorToast, t]
+  );
+
   useEffect(() => {
     setProgress(null);
     setHasSyncError(false);
@@ -133,6 +184,11 @@ export function CloudSaveV2Provider({
     setIsModalVisible(false);
     setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
+    setCustomPathApproval(null);
+    setIsSelectingCustomPath(false);
+    setIsConfirmingCustomPath(false);
+    setCustomPathApprovalError(null);
+    setIsCustomPathApprovalGateActive(false);
     setPendingResolution(null);
     gamePageSyncInFlight.current = false;
     gamePageSyncCompleted.current = false;
@@ -181,6 +237,44 @@ export function CloudSaveV2Provider({
   ]);
 
   useEffect(() => {
+    if (
+      shop !== "steam" ||
+      searchParams.get("openCloudSavePathApproval") !== "1"
+    ) {
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("openCloudSavePathApproval");
+    setIsCustomPathApprovalGateActive(true);
+    setSearchParams(nextSearchParams, { replace: true });
+
+    let canceled = false;
+    setCustomPathApprovalError(null);
+    void window.electron
+      .getPendingCloudSaveCustomPathApproval(objectId, shop)
+      .then((approval) => {
+        if (!canceled) {
+          setCustomPathApproval(approval);
+          setIsCustomPathApprovalGateActive(approval !== null);
+        }
+      })
+      .catch(() => {
+        if (!canceled) {
+          setCustomPathApprovalError("generic");
+          showErrorToast(
+            t("cloud_save_v2_path_approval_error_title"),
+            t("cloud_save_v2_path_approval_load_error_description")
+          );
+        }
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [objectId, searchParams, setSearchParams, shop, showErrorToast, t]);
+
+  useEffect(() => {
     return window.electron.onCloudSaveAutomaticSync((event) => {
       if (event.gameId.objectId !== objectId || event.gameId.shop !== shop) {
         return;
@@ -194,13 +288,19 @@ export function CloudSaveV2Provider({
       }
 
       if (event.status === "failed") {
-        setHasSyncError(true);
-        if (event.errorCode === "cloud_save_restore_metadata_failed") {
+        const isUploadLimitError = showCloudSaveUploadLimitError(
+          event.errorCode
+        );
+        setHasSyncError(!isUploadLimitError);
+        if (
+          !isUploadLimitError &&
+          event.errorCode === "cloud_save_restore_metadata_failed"
+        ) {
           showErrorToast(
             t("cloud_save_v2_restore_metadata_failed_title"),
             t("cloud_save_v2_restore_metadata_failed_description")
           );
-        } else {
+        } else if (!isUploadLimitError) {
           showErrorToast(
             t("cloud_save_v2_auto_sync_failed_title"),
             t("cloud_save_v2_auto_sync_failed_description")
@@ -230,13 +330,18 @@ export function CloudSaveV2Provider({
     refresh,
     refreshFileDetails,
     shop,
+    showCloudSaveUploadLimitError,
     showErrorToast,
     showWarningToast,
     t,
   ]);
 
   useEffect(() => {
+    const isPathApprovalBlockingSync =
+      isCustomPathApprovalGateActive ||
+      searchParams.get("openCloudSavePathApproval") === "1";
     if (
+      isPathApprovalBlockingSync ||
       !shouldSyncCloudSaveOnGamePage({
         overview,
         shop,
@@ -278,10 +383,12 @@ export function CloudSaveV2Provider({
     canUseCloudSaves,
     gameKey,
     hasExecutablePath,
+    isCustomPathApprovalGateActive,
     isGameRunning,
     isSyncing,
     objectId,
     overview,
+    searchParams,
     shop,
     showErrorToast,
     t,
@@ -335,18 +442,30 @@ export function CloudSaveV2Provider({
           onProgress
         );
       } else {
-        await window.electron.syncGameCloudSave(objectId, shop, onProgress);
+        const result = await window.electron.syncGameCloudSaveFromModal(
+          objectId,
+          shop,
+          null,
+          onProgress
+        );
+        if (result.status === "approval-required") {
+          setCustomPathApproval(result.approval);
+          setIsCustomPathApprovalGateActive(true);
+        }
       }
     } catch (error) {
       const syncCancelled =
         error instanceof Error &&
         (error.message.includes("cloud_save_environment_changed_during_sync") ||
           error.message.includes("cloud_save_executable_missing"));
+      const isUploadLimitError =
+        !syncCancelled && showCloudSaveUploadLimitError(error);
       if (activeGameKey.current === requestedGame) {
-        setHasSyncError(!syncCancelled);
+        setHasSyncError(!syncCancelled && !isUploadLimitError);
       }
       if (
         !syncCancelled &&
+        !isUploadLimitError &&
         error instanceof Error &&
         error.message.includes("cloud_save_restore_metadata_failed")
       ) {
@@ -385,6 +504,199 @@ export function CloudSaveV2Provider({
     const resolution = pendingResolution;
     setPendingResolution(null);
     if (resolution) void runCloudSaveOperation(resolution);
+  };
+
+  const handleSelectCustomPathApproval = async () => {
+    const approvalId = customPathApproval?.id;
+    if (!approvalId || isSelectingCustomPath || isConfirmingCustomPath) return;
+
+    setIsSelectingCustomPath(true);
+    setCustomPathApprovalError(null);
+    try {
+      const result =
+        await window.electron.selectCloudSaveCustomPathApproval(approvalId);
+      if (!result.canceled) setCustomPathApproval(result.approval);
+    } catch (error) {
+      setCustomPathApprovalError(getCustomPathApprovalError(error));
+    } finally {
+      setIsSelectingCustomPath(false);
+    }
+  };
+
+  const handleRequestCustomPathRebind = async (rawPath: string) => {
+    if (
+      isGameRunning ||
+      isSyncing ||
+      isSelectingCustomPath ||
+      isConfirmingCustomPath
+    ) {
+      throw new Error("cloud_save_custom_path_sync_active");
+    }
+
+    setCustomPathApprovalError(null);
+    setIsCustomPathApprovalGateActive(true);
+    try {
+      const approval =
+        await window.electron.createCloudSaveCustomPathRebindApproval(
+          objectId,
+          shop,
+          rawPath
+        );
+      setCustomPathApproval(approval);
+    } catch (error) {
+      setIsCustomPathApprovalGateActive(false);
+      throw error;
+    }
+  };
+
+  const handleConfirmCustomPathApproval = async () => {
+    const approval = customPathApproval;
+    const approvalId = approval?.id;
+    if (!approvalId || isSelectingCustomPath || isConfirmingCustomPath) return;
+
+    setIsConfirmingCustomPath(true);
+    setCustomPathApprovalError(null);
+    if (approval.purpose === "custom-path-rebind") {
+      const requestedGame = gameKey;
+      let wasRebound = false;
+      setIsSyncing(true);
+      setHasSyncError(false);
+      setProgress(null);
+      try {
+        const confirmed =
+          await window.electron.confirmCloudSaveCustomPathRebindApproval(
+            approvalId,
+            objectId,
+            shop
+          );
+        wasRebound = true;
+        const syncResult =
+          await window.electron.syncCloudSaveAfterCustomPathRebind(
+            objectId,
+            shop,
+            confirmed.rawPath,
+            (nextProgress) => {
+              if (activeGameKey.current === requestedGame) {
+                setProgress(nextProgress);
+              }
+            }
+          );
+        if (activeGameKey.current === requestedGame) {
+          setCustomPathApproval(null);
+          setIsCustomPathApprovalGateActive(false);
+          if (syncResult.finalState === "conflict") {
+            setHasSyncError(true);
+            showErrorToast(
+              t("cloud_save_v2_custom_path_rebind_sync_error_title"),
+              t("cloud_save_v2_custom_path_rebind_sync_error_description")
+            );
+          } else {
+            showSuccessToast(t("cloud_save_v2_custom_path_rebound"));
+          }
+        }
+      } catch (error) {
+        if (activeGameKey.current === requestedGame) {
+          if (wasRebound) {
+            const isUploadLimitError = showCloudSaveUploadLimitError(error);
+            setCustomPathApproval(null);
+            setIsCustomPathApprovalGateActive(false);
+            setHasSyncError(!isUploadLimitError);
+            if (!isUploadLimitError) {
+              showErrorToast(
+                t("cloud_save_v2_custom_path_rebind_sync_error_title"),
+                t("cloud_save_v2_custom_path_rebind_sync_error_description")
+              );
+            }
+          } else {
+            setCustomPathApprovalError(getCustomPathApprovalError(error));
+          }
+        }
+      } finally {
+        if (activeGameKey.current === requestedGame && wasRebound) {
+          await refresh();
+          await refreshFileDetails();
+        }
+        if (activeGameKey.current === requestedGame) {
+          setIsSyncing(false);
+          setIsConfirmingCustomPath(false);
+        }
+      }
+      return;
+    }
+
+    if (approval.purpose === "manual-sync") {
+      const requestedGame = gameKey;
+      setIsSyncing(true);
+      setHasSyncError(false);
+      setProgress(null);
+      try {
+        const result = await window.electron.syncGameCloudSaveFromModal(
+          objectId,
+          shop,
+          approvalId,
+          (nextProgress) => {
+            if (activeGameKey.current === requestedGame) {
+              setProgress(nextProgress);
+            }
+          }
+        );
+        if (activeGameKey.current === requestedGame) {
+          if (result.status === "approval-required") {
+            setCustomPathApproval(result.approval);
+            setIsCustomPathApprovalGateActive(true);
+          } else {
+            setCustomPathApproval(null);
+            setIsCustomPathApprovalGateActive(false);
+          }
+        }
+      } catch (error) {
+        if (activeGameKey.current === requestedGame) {
+          const isUploadLimitError = showCloudSaveUploadLimitError(error);
+          setCustomPathApprovalError(
+            isUploadLimitError ? null : getCustomPathApprovalError(error)
+          );
+          setHasSyncError(!isUploadLimitError);
+        }
+      } finally {
+        if (activeGameKey.current === requestedGame) {
+          await refresh();
+          await refreshFileDetails();
+        }
+        if (activeGameKey.current === requestedGame) {
+          setIsSyncing(false);
+          setIsConfirmingCustomPath(false);
+        }
+      }
+      return;
+    }
+
+    try {
+      const result =
+        await window.electron.confirmCloudSaveCustomPathApproval(approvalId);
+      setCustomPathApproval(result.pendingApproval);
+      setIsCustomPathApprovalGateActive(result.pendingApproval !== null);
+    } catch (error) {
+      setCustomPathApprovalError(getCustomPathApprovalError(error));
+    } finally {
+      setIsConfirmingCustomPath(false);
+    }
+  };
+
+  const handleCloseCustomPathApproval = () => {
+    if (isSelectingCustomPath || isConfirmingCustomPath) return;
+
+    const approvalId = customPathApproval?.id;
+    const purpose = customPathApproval?.purpose;
+    setCustomPathApproval(null);
+    setCustomPathApprovalError(null);
+    if (purpose === "manual-sync" || purpose === "custom-path-rebind") {
+      setIsCustomPathApprovalGateActive(false);
+    }
+    if (approvalId) {
+      void window.electron
+        .dismissCloudSaveCustomPathApproval(approvalId)
+        .catch(() => undefined);
+    }
   };
 
   const hasError = hasRefreshError || hasSyncError;
@@ -435,6 +747,30 @@ export function CloudSaveV2Provider({
     <cloudSaveV2Context.Provider value={value}>
       {children}
 
+      <CloudSaveCustomPathApprovalModal
+        approval={customPathApproval}
+        isSelecting={isSelectingCustomPath}
+        isConfirming={isConfirmingCustomPath}
+        errorMessage={
+          customPathApprovalError === "mapped-overlap"
+            ? t("cloud_save_v2_custom_path_mapped_overlap_error_description")
+            : customPathApprovalError === "custom-overlap"
+              ? t("cloud_save_v2_custom_path_custom_overlap_error_description")
+              : customPathApprovalError
+                ? t(
+                    customPathApproval?.purpose === "manual-sync"
+                      ? "cloud_save_v2_path_approval_manual_sync_error_description"
+                      : customPathApproval?.purpose === "custom-path-rebind"
+                        ? "cloud_save_v2_custom_path_rebind_error_description"
+                        : "cloud_save_v2_path_approval_error_description"
+                  )
+                : undefined
+        }
+        onSelectPath={() => void handleSelectCustomPathApproval()}
+        onConfirm={() => void handleConfirmCustomPathApproval()}
+        onClose={handleCloseCustomPathApproval}
+      />
+
       <CloudSaveModal
         visible={isModalVisible}
         showLaunchConflictWarning={wasOpenedFromLaunchConflict}
@@ -466,7 +802,13 @@ export function CloudSaveV2Provider({
         details={fileDetails}
         isLoading={isFileDetailsLoading}
         hasError={hasFileDetailsError}
-        onRetry={() => void refreshFileDetails()}
+        isGameRunning={isGameRunning}
+        isSyncing={isSyncing}
+        onRetry={async () => {
+          await refreshFileDetails();
+          await refresh();
+        }}
+        onRequestCustomPathRebind={handleRequestCustomPathRebind}
         onClose={() => setIsFileBrowserVisible(false)}
       />
 

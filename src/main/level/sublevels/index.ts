@@ -17,3 +17,4 @@ export * from "./cloud-save-local-hash-cache";
 export * from "./cloud-save-prefix-generations";
 export * from "./cloud-save-sync-anchors";
 export * from "./cloud-save-automatic-sync-settings";
+export * from "./cloud-save-custom-paths";

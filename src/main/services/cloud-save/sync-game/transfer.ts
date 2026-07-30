@@ -53,7 +53,6 @@ export const uploadLocalState = async (
       assertEnvironmentCurrent,
     }
   );
-  if (!snapshot) throw new Error("Local cloud save snapshot is empty");
   return snapshot;
 };
 

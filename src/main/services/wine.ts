@@ -3,7 +3,9 @@ import path from "node:path";
 import type { UserPreferences } from "@types";
 import { SystemPath } from "./system-path";
 import {
+  getWinePrefixUserProfile,
   getWinePrefixUserProfiles,
+  getWinePrefixWindowsUserProfilePath,
   resolveWinePrefixPath,
 } from "./wine-prefix";
 
@@ -80,6 +82,14 @@ export class Wine {
     homeDir = SystemPath.getPath("home")
   ): string[] {
     return getWinePrefixUserProfiles(winePrefixPath, homeDir);
+  }
+
+  public static getPrefixUserProfile(winePrefixPath: string) {
+    return getWinePrefixUserProfile(winePrefixPath);
+  }
+
+  public static getWindowsUserProfilePath(winePrefixPath: string) {
+    return getWinePrefixWindowsUserProfilePath(winePrefixPath);
   }
 
   public static isPrefixReadyForRestore(

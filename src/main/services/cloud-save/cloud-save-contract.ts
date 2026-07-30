@@ -7,6 +7,8 @@ import type {
   SnapshotVariant,
 } from "@types";
 
+import { toSteamAccount } from "../steam-login-users.js";
+
 export const CLOUD_SAVE_HASH_PATTERN = /^[a-f0-9]{64}$/;
 
 export const isNonEmptyString = (value: unknown): value is string =>
@@ -64,7 +66,7 @@ export const validateSnapshotVariant = (value: unknown): SnapshotVariant => {
     variant.kind === "steam-account" &&
     hasOnlyKeys(variant, ["variantId", "kind", "steamId64"]) &&
     typeof variant.steamId64 === "string" &&
-    /^\d{17}$/.test(variant.steamId64)
+    toSteamAccount(variant.steamId64, "remote-snapshot") !== null
   ) {
     return value as SnapshotVariant;
   }
@@ -191,7 +193,7 @@ export const validateRemoteSnapshotSummary = (
     !Number.isFinite(Date.parse(snapshot.updatedAt)) ||
     typeof snapshot.fileCount !== "number" ||
     !Number.isSafeInteger(snapshot.fileCount) ||
-    snapshot.fileCount < 1 ||
+    snapshot.fileCount < 0 ||
     typeof snapshot.totalSizeBytes !== "number" ||
     !Number.isSafeInteger(snapshot.totalSizeBytes) ||
     snapshot.totalSizeBytes < 0 ||

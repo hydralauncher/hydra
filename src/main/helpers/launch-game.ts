@@ -7,14 +7,14 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { updateGameExecutablePath } from "./update-executable-path";
 import {
   clearCloudSaveLaunchGuard,
+  canRunAutomaticCloudSaveSync,
   canCreateCloudSaveUploadGuard,
-  getCloudSaveAutomaticSyncMode,
+  createPendingCloudSaveCustomPathApproval,
   getCloudSaveGameContext,
   rotateCloudSavePrefixGeneration,
   runAutomaticCloudSaveSync,
   setCloudSaveLaunchGuard,
   shouldBlockGameLaunchForCloudSave,
-  shouldRunV2AutomaticCloudSave,
 } from "@main/services/cloud-save";
 import {
   WindowManager,
@@ -449,16 +449,16 @@ export const launchGame = async (
 
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
-  const automaticSyncMode = await getCloudSaveAutomaticSyncMode(objectId, shop);
-  const shouldRunV2AutomaticSync =
-    shouldRunV2AutomaticCloudSave(automaticSyncMode) && shop === "steam";
+  const shouldRunV2AutomaticSync = await canRunAutomaticCloudSaveSync(
+    objectId,
+    shop
+  );
   let compatibilityContext: LinuxCompatibilityLaunchContext | null = null;
   let prefixReadyForRestore = true;
   let prefixSafeForUpload = true;
   let prefixGenerationOverride:
     | Awaited<ReturnType<typeof rotateCloudSavePrefixGeneration>>
     | undefined;
-
   if (process.platform === "linux" && isWindowsExecutable(parsedPath)) {
     const requestedWinePrefixPath = Wine.getEffectivePrefixPath(
       game?.winePrefixPath,
@@ -468,7 +468,6 @@ export const launchGame = async (
       protonPath: await resolveProtonPathForLaunch(game?.protonPath),
       winePrefixPath: await Wine.resolvePrefixPath(requestedWinePrefixPath),
     };
-
     logger.info("[Cloud Save] Resolved authoritative launch prefix", {
       shop,
       objectId,
@@ -476,7 +475,6 @@ export const launchGame = async (
       canonicalWinePrefixPath: compatibilityContext.winePrefixPath,
       prefixSource: game?.winePrefixPath ? "game" : "default",
     });
-
     await cleanupStaleCompatibilityProcesses(
       objectId,
       compatibilityContext.winePrefixPath
@@ -507,6 +505,41 @@ export const launchGame = async (
         return null;
       })
     : null;
+  const customPathApproval =
+    prefixReadyForRestore && cloudSaveContext
+      ? await createPendingCloudSaveCustomPathApproval(
+          options,
+          cloudSaveContext
+        ).catch((error: unknown) => {
+          logger.error(
+            "[Cloud Save] Failed to inspect custom restore destinations",
+            error
+          );
+          return null;
+        })
+      : null;
+
+  if (customPathApproval) {
+    const searchParams = new URLSearchParams({
+      title: game?.title ?? objectId,
+      openCloudSavePathApproval: "1",
+    });
+    logger.warn(
+      "[Cloud Save] Game launch blocked by an unapproved custom restore path",
+      {
+        shop,
+        objectId,
+        rawPath: customPathApproval.rawPath,
+      }
+    );
+    clearCloudSaveLaunchGuard(objectId, shop);
+    WindowManager.closeGameLauncherWindow();
+    WindowManager.redirect(
+      `game/${shop}/${objectId}?${searchParams.toString()}`
+    );
+    return null;
+  }
+
   const preLaunchResult =
     shouldRunV2AutomaticSync && prefixReadyForRestore
       ? await runAutomaticCloudSaveSync(
@@ -556,6 +589,8 @@ export const launchGame = async (
     });
   }
 
+  // Run preflight check for common redistributables (Windows only)
+  // Wrapped in try/catch to ensure game launch is never blocked
   if (process.platform === "win32") {
     try {
       logger.log("Starting preflight check for game launch", {

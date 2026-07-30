@@ -65,7 +65,7 @@ const validateCommitResponse = (value: unknown): CommitSnapshotResponse => {
     response.version < 1 ||
     typeof response.fileCount !== "number" ||
     !Number.isSafeInteger(response.fileCount) ||
-    response.fileCount < 1 ||
+    response.fileCount < 0 ||
     typeof response.totalSizeBytes !== "number" ||
     !Number.isSafeInteger(response.totalSizeBytes) ||
     response.totalSizeBytes < 0 ||

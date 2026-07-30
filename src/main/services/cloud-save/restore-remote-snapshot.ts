@@ -34,6 +34,12 @@ import {
 } from "./resolve-remote-snapshot-targets";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
+import { registerCloudSaveCustomPaths } from "./custom-path-store";
+import {
+  bindCloudSaveCustomPathToLocalPath,
+  CLOUD_SAVE_CUSTOM_PATH_PREFIX,
+  cloudSaveCustomPathContextFromPathContext,
+} from "./custom-path";
 
 interface RestoreCloudSaveContext {
   environmentId: string;
@@ -214,6 +220,42 @@ export const restoreRemoteSnapshot = async (
     ].sort((left, right) => left.localeCompare(right));
 
     const restoreSucceeded = isRestoreReplacementSuccessful(result);
+    if (restoreSucceeded) {
+      await assertEnvironmentCurrent?.();
+      const restoredCustomRawPaths = new Set(
+        plan.actions
+          .map(({ rawPath }) => rawPath)
+          .filter((rawPath) =>
+            rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)
+          )
+      );
+      if (restoredCustomRawPaths.size > 0) {
+        const customPathContext = cloudSaveCustomPathContextFromPathContext(
+          cloudSaveContext.pathContext
+        );
+        const boundCustomPaths = [...restoredCustomRawPaths]
+          .map((rawPath) => {
+            const target = plan.actions.find(
+              (action) => action.rawPath === rawPath
+            );
+            if (!target) return null;
+            return bindCloudSaveCustomPathToLocalPath(
+              rawPath,
+              target.restoreRootPath,
+              customPathContext
+            );
+          })
+          .filter(
+            (customPath): customPath is NonNullable<typeof customPath> =>
+              customPath !== null
+          );
+        await registerCloudSaveCustomPaths(
+          manifest.snapshot.shop,
+          manifest.snapshot.objectId,
+          boundCustomPaths
+        );
+      }
+    }
     if (restoreSucceeded && updateAnchor) {
       await assertEnvironmentCurrent?.();
       await saveCloudSaveSyncAnchor(
