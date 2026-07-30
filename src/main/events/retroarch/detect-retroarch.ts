@@ -2,7 +2,9 @@ import { registerEvent } from "../register-event";
 import { retroarch } from "@main/services";
 
 const detectRetroArch = async (_event: Electron.IpcMainInvokeEvent) => {
-  const result = retroarch.detectRetroArch({ resolveVersion: true });
+  const result = await retroarch.detectRetroArchWithFallback({
+    resolveVersion: true,
+  });
 
   if (!result) {
     return retroarch.getRetroArchConfig();

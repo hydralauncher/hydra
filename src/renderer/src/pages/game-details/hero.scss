@@ -138,6 +138,13 @@ $hero-height: 350px;
     gap: 4px;
   }
 
+  &__hero-standard-chips {
+    position: absolute;
+    left: 24px;
+    bottom: 16px;
+    z-index: 1;
+  }
+
   &__hero-classics-chip {
     background-color: rgba(0, 0, 0, 0.24);
     border: 1px solid rgba(255, 255, 255, 0.12);

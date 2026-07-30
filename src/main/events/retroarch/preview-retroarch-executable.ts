@@ -13,6 +13,7 @@ const previewRetroArchExecutable = async (
       emulators.findMacAppBundleRoot(normalizedPath) ?? normalizedPath;
 
     if (!emulators.isValidEmulatorExecutable(resolvedPath)) return null;
+    if (!retroarch.isLikelyRetroArchExecutable(resolvedPath)) return null;
 
     return {
       executablePath: resolvedPath,
@@ -20,7 +21,9 @@ const previewRetroArchExecutable = async (
     };
   }
 
-  const result = retroarch.detectRetroArch({ resolveVersion: true });
+  const result = await retroarch.detectRetroArchWithFallback({
+    resolveVersion: true,
+  });
   if (!result) return null;
 
   return {

@@ -2,12 +2,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { getDownloadsPath } from "@main/events/helpers/get-downloads-path";
+
 import {
   detectEmulator,
   type DetectableBinary,
   type DetectionResult,
 } from "../emulators/detect-emulator";
 import { getEmulatorVersion } from "../emulators/get-emulator-version";
+import { SystemPath } from "../system-path";
 
 export const RETROARCH_DETECTABLE: DetectableBinary = {
   binary: "retroarch",
@@ -24,6 +27,64 @@ export const detectRetroArch = (options?: {
 
 export const getRetroArchVersion = (executablePath: string): string | null =>
   getEmulatorVersion(executablePath, RETROARCH_DETECTABLE);
+
+export const isLikelyRetroArchExecutable = (executablePath: string): boolean =>
+  path.basename(executablePath).toLowerCase().includes("retroarch");
+
+const matchesRetroArchBinary = (name: string): boolean => {
+  if (process.platform === "win32") return name === "retroarch.exe";
+  return name === "retroarch" || name.endsWith(".appimage");
+};
+
+const findExecutableInManagedDir = (root: string): string | null => {
+  const stack = [root];
+  while (stack.length > 0) {
+    const dir = stack.pop();
+    if (!dir) continue;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(full);
+      } else if (matchesRetroArchBinary(entry.name.toLowerCase())) {
+        return full;
+      }
+    }
+  }
+  return null;
+};
+
+export const detectRetroArchWithFallback = async (options?: {
+  resolveVersion?: boolean;
+}): Promise<DetectionResult | null> => {
+  const generic = detectRetroArch(options);
+  if (generic) return generic;
+
+  const downloadsRoot = await getDownloadsPath().catch(() => null);
+  const candidates = [
+    downloadsRoot ? path.join(downloadsRoot, "RetroArch") : null,
+    path.join(SystemPath.getPath("userData"), "retroarch", "emulator"),
+  ].filter((dir): dir is string => dir !== null);
+
+  for (const dir of candidates) {
+    const executablePath = findExecutableInManagedDir(dir);
+    if (executablePath) {
+      return {
+        executablePath,
+        detectedVersion: options?.resolveVersion
+          ? getRetroArchVersion(executablePath)
+          : null,
+      };
+    }
+  }
+
+  return null;
+};
 
 const isDirectory = (target: string): boolean => {
   try {

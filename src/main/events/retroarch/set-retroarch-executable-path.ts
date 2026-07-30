@@ -14,6 +14,9 @@ const setRetroArchExecutablePath = async (
   if (resolvedPath && !emulators.isValidEmulatorExecutable(resolvedPath)) {
     return null;
   }
+  if (resolvedPath && !retroarch.isLikelyRetroArchExecutable(resolvedPath)) {
+    return null;
+  }
 
   const version = resolvedPath
     ? retroarch.getRetroArchVersion(resolvedPath)

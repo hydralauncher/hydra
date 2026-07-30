@@ -92,6 +92,14 @@ export interface ClassicsBadgeInfo {
   icon: string | undefined;
 }
 
+export const CLASSICS_PS_PLATFORM_LABELS: Partial<
+  Record<EmulatorSystem, string>
+> = {
+  ps1: "PS",
+  ps2: "PS2",
+  ps3: "PS3",
+};
+
 export const resolveClassicsBadge = (
   shop: GameShop,
   platform: string | null | undefined,

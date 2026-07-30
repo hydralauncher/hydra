@@ -11,6 +11,8 @@ import type {
   RetroArchInstallResult,
 } from "@types";
 
+import { getDownloadsPath } from "@main/events/helpers/get-downloads-path";
+
 import { logger } from "../logger";
 import { SevenZip } from "../7zip";
 import { SystemPath } from "../system-path";
@@ -267,7 +269,8 @@ export const downloadAndInstallRetroArch = async (
 
   const fileName = path.basename(option.fileName ?? option.downloadUrl);
   const archivePath = path.join(SystemPath.getPath("temp"), fileName);
-  const extractDir = path.join(managedRetroArchDir(), "emulator");
+  const downloadsRoot = await getDownloadsPath();
+  const extractDir = path.join(downloadsRoot, "RetroArch");
   const stagingDir = `${extractDir}-staging`;
 
   const removeArchive = async () => {
@@ -321,45 +324,30 @@ export const downloadAndInstallRetroArch = async (
     }
 
     const relativeExecutable = path.relative(stagingDir, stagedExecutable);
-    const backupDir = `${extractDir}-backup`;
-    const removeBackup = async () => {
-      await fs.promises
-        .rm(backupDir, { recursive: true, force: true })
-        .catch(() => {});
-    };
-
-    await removeBackup();
-    const hadPrevious = fs.existsSync(extractDir);
-    if (hadPrevious) {
-      await fs.promises.rename(extractDir, backupDir);
-    }
-
     const executablePath = path.join(extractDir, relativeExecutable);
-    try {
+
+    if (fs.existsSync(extractDir)) {
+      await fs.promises.cp(stagingDir, extractDir, {
+        recursive: true,
+        force: true,
+      });
+      await removeStaging();
+    } else {
       await fs.promises.rename(stagingDir, extractDir);
-
-      if (process.platform !== "win32") {
-        const { mode } = await fs.promises.stat(executablePath);
-        await fs.promises.chmod(executablePath, mode | 0o100);
-      }
-
-      await updateRetroArchConfig((current) => ({
-        ...current,
-        executablePath,
-        detectedVersion:
-          getRetroArchVersion(executablePath) ?? option.version ?? null,
-        detectedAt: Date.now(),
-      }));
-    } catch (swapError) {
-      await fs.promises
-        .rm(extractDir, { recursive: true, force: true })
-        .catch(() => {});
-      if (hadPrevious) {
-        await fs.promises.rename(backupDir, extractDir).catch(() => {});
-      }
-      throw swapError;
     }
-    await removeBackup();
+
+    if (process.platform !== "win32") {
+      const { mode } = await fs.promises.stat(executablePath);
+      await fs.promises.chmod(executablePath, mode | 0o100);
+    }
+
+    await updateRetroArchConfig((current) => ({
+      ...current,
+      executablePath,
+      detectedVersion:
+        getRetroArchVersion(executablePath) ?? option.version ?? null,
+      detectedAt: Date.now(),
+    }));
 
     shell.showItemInFolder(executablePath);
     sendInstallProgress({ optionId, phase: "done", path: executablePath });

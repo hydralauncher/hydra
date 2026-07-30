@@ -552,7 +552,9 @@ export function RetroArchDetail({
             </div>
           </section>
 
-          <RetroArchRomsSection refreshKey={romsNonce} />
+          {config.lastScanAt !== null && (
+            <RetroArchRomsSection refreshKey={romsNonce} />
+          )}
         </>
       )}
 

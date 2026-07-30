@@ -23,7 +23,10 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
 import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
-import { resolveClassicsBadge } from "@renderer/helpers";
+import {
+  CLASSICS_PS_PLATFORM_LABELS,
+  resolveClassicsBadge,
+} from "@renderer/helpers";
 import {
   EMULATOR_ICONS,
   RETROARCH_EMULATOR_ICON,
@@ -223,17 +226,29 @@ export function GameDetailsContent() {
     ? (game?.title ?? shopDetails?.name ?? "")
     : "";
 
-  const launchboxEmulatorIcon = isLaunchboxGame
-    ? resolveClassicsBadge(
-        "launchbox",
-        launchboxPlatform,
-        {},
-        {
-          emulatorIcons: EMULATOR_ICONS,
-          retroarchIcon: RETROARCH_EMULATOR_ICON,
-        }
-      ).icon
-    : undefined;
+  const classicsBadge = resolveClassicsBadge(
+    "launchbox",
+    isLaunchboxGame ? launchboxPlatform : null,
+    CLASSICS_PS_PLATFORM_LABELS,
+    {
+      emulatorIcons: EMULATOR_ICONS,
+      retroarchIcon: RETROARCH_EMULATOR_ICON,
+    }
+  );
+
+  const classicsChips =
+    isLaunchboxGame && classicsBadge.label ? (
+      <div className="game-details__hero-classics-chips">
+        <span className="game-details__hero-classics-chip">
+          {classicsBadge.label}
+        </span>
+        {classicsBadge.icon && (
+          <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
+            <img src={classicsBadge.icon} alt="" />
+          </span>
+        )}
+      </div>
+    ) : null;
 
   return (
     <div
@@ -263,27 +278,23 @@ export function GameDetailsContent() {
                   <h1 className="game-details__hero-classics-title">
                     {launchboxTitle}
                   </h1>
-                  {launchboxPlatform && (
-                    <div className="game-details__hero-classics-chips">
-                      <span className="game-details__hero-classics-chip">
-                        {launchboxPlatform}
-                      </span>
-                      {launchboxEmulatorIcon && (
-                        <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
-                          <img src={launchboxEmulatorIcon} alt="" />
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {classicsChips}
                 </div>
               </div>
             </>
           ) : (
-            <img
-              src={isLaunchboxGame ? heroImage || launchboxCover : heroImage}
-              className="game-details__hero-image"
-              alt={game?.title}
-            />
+            <>
+              <img
+                src={isLaunchboxGame ? heroImage || launchboxCover : heroImage}
+                className="game-details__hero-image"
+                alt={game?.title}
+              />
+              {classicsChips && (
+                <div className="game-details__hero-standard-chips">
+                  {classicsChips}
+                </div>
+              )}
+            </>
           )}
 
           {isLaunchboxGame && !hideClassicsBookmark && (

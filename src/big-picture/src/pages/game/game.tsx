@@ -664,6 +664,46 @@ export default function Game() {
           return;
         }
 
+        if (code === "RETROARCH_NOT_CONFIGURED") {
+          showErrorToast("RetroArch not configured", {
+            message: "Configure RetroArch before launching this game.",
+            fallbackVisual: "settings",
+            action: {
+              label: "Open Settings",
+              onClick: () => navigate("/settings"),
+            },
+          });
+          navigate("/settings");
+          return;
+        }
+
+        if (code === "CORE_NOT_INSTALLED") {
+          showErrorToast("Core not installed", {
+            message:
+              "Download the RetroArch core for this platform before launching.",
+            fallbackVisual: "settings",
+            action: {
+              label: "Open Settings",
+              onClick: () => navigate("/settings"),
+            },
+          });
+          navigate("/settings");
+          return;
+        }
+
+        if (code === "BIOS_NOT_CONFIGURED") {
+          showErrorToast("BIOS not configured", {
+            message: "Add the BIOS files for this platform before launching.",
+            fallbackVisual: "settings",
+            action: {
+              label: "Open Settings",
+              onClick: () => navigate("/settings"),
+            },
+          });
+          navigate("/settings");
+          return;
+        }
+
         showErrorToast("Launch failed", {
           message: "Hydra could not launch this Classics game.",
         });
