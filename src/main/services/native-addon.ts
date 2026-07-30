@@ -5,6 +5,21 @@ import { Worker } from "node:worker_threads";
 
 import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
+import type {
+  BuildLocalGameSnapshotPipelineInput,
+  BuildSnapshotAggregateHashInput,
+  DeleteLocalSaveTarget,
+  DeleteLocalSaveTargetsResult,
+  GameSaveRules,
+  GetSaveRulesForGameInput,
+  NativeLocalGameSnapshotPipelineResult,
+  ReplaceRestoreTarget,
+  ReplaceRestoreTargetsResult,
+  ResolveRestoreTargetsInput,
+  ResolveRestoreTargetsResult,
+  ShouldSkipRestoreFileInput,
+  VerifyDownloadedRestoreFileResult,
+} from "@types";
 
 import { logger } from "./logger";
 
@@ -33,6 +48,48 @@ type HydraNativeModule = {
     preserveAnimation: boolean
   ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
+  buildLocalGameSnapshotPipeline: (
+    input: BuildLocalGameSnapshotPipelineInput
+  ) => Promise<NativeLocalGameSnapshotPipelineResult>;
+  getSaveRulesForGame: (
+    input: GetSaveRulesForGameInput
+  ) => Promise<GameSaveRules>;
+  buildSnapshotAggregateHash: (
+    input: BuildSnapshotAggregateHashInput
+  ) => string;
+  uploadLocalSaveBlob: (
+    absolutePath: string,
+    uploadUrl: string,
+    contentLength: string,
+    checksumSha256: string
+  ) => Promise<void>;
+  resolveRestoreTargets: (
+    input: ResolveRestoreTargetsInput
+  ) => ResolveRestoreTargetsResult;
+  downloadRestoreBlobToTemp: (
+    snapshotId: string,
+    hash: string,
+    downloadUrl: string,
+    tempRoot: string
+  ) => Promise<string>;
+  verifyDownloadedRestoreFile: (
+    tempPath: string,
+    expectedHash: string
+  ) => Promise<VerifyDownloadedRestoreFileResult>;
+  shouldSkipRestoreFile: (
+    localPath: string,
+    expectedHash: string
+  ) => Promise<boolean>;
+  replaceRestoreTargets: (
+    files: ReplaceRestoreTarget[]
+  ) => Promise<ReplaceRestoreTargetsResult>;
+  deleteLocalSaveTargets: (
+    files: DeleteLocalSaveTarget[]
+  ) => Promise<DeleteLocalSaveTargetsResult>;
+  cleanupRestoreTempSnapshot: (
+    snapshotId: string,
+    tempRoot: string
+  ) => Promise<void>;
 };
 
 export type SystemProcessMap = {
@@ -307,5 +364,82 @@ export class NativeAddon {
         resolve({ processMap: {}, winePrefixMap: {}, linuxProcesses: [] });
       }
     });
+  }
+
+  public static buildLocalGameSnapshotPipeline(
+    input: BuildLocalGameSnapshotPipelineInput
+  ) {
+    return this.load().buildLocalGameSnapshotPipeline(input);
+  }
+
+  public static getSaveRulesForGame(input: GetSaveRulesForGameInput) {
+    return this.load().getSaveRulesForGame(input);
+  }
+
+  public static buildSnapshotAggregateHash(
+    input: BuildSnapshotAggregateHashInput
+  ) {
+    return this.load().buildSnapshotAggregateHash(input);
+  }
+
+  public static uploadLocalSaveBlob(
+    absolutePath: string,
+    uploadUrl: string,
+    contentLength: string,
+    checksumSha256: string
+  ) {
+    return this.load().uploadLocalSaveBlob(
+      absolutePath,
+      uploadUrl,
+      contentLength,
+      checksumSha256
+    );
+  }
+
+  public static resolveRestoreTargets(input: ResolveRestoreTargetsInput) {
+    return this.load().resolveRestoreTargets(input);
+  }
+
+  public static downloadRestoreBlobToTemp(
+    snapshotId: string,
+    hash: string,
+    downloadUrl: string,
+    tempRoot: string
+  ) {
+    return this.load().downloadRestoreBlobToTemp(
+      snapshotId,
+      hash,
+      downloadUrl,
+      tempRoot
+    );
+  }
+
+  public static verifyDownloadedRestoreFile(
+    tempPath: string,
+    expectedHash: string
+  ) {
+    return this.load().verifyDownloadedRestoreFile(tempPath, expectedHash);
+  }
+
+  public static shouldSkipRestoreFile(input: ShouldSkipRestoreFileInput) {
+    return this.load().shouldSkipRestoreFile(
+      input.localPath,
+      input.expectedHash
+    );
+  }
+
+  public static replaceRestoreTargets(files: ReplaceRestoreTarget[]) {
+    return this.load().replaceRestoreTargets(files);
+  }
+
+  public static deleteLocalSaveTargets(files: DeleteLocalSaveTarget[]) {
+    return this.load().deleteLocalSaveTargets(files);
+  }
+
+  public static cleanupRestoreTempSnapshot(
+    snapshotId: string,
+    tempRoot: string
+  ) {
+    return this.load().cleanupRestoreTempSnapshot(snapshotId, tempRoot);
   }
 }

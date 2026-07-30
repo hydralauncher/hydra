@@ -1,4 +1,9 @@
 import "./download-game-artifact";
+import "./get-cloud-save-overview";
+import "./get-cloud-save-v2-file-details";
 import "./get-game-backup-preview";
+import "./resolve-cloud-save-conflict";
 import "./select-game-backup-path";
+import "./set-cloud-save-automatic-sync-enabled";
+import "./sync-game-cloud-save";
 import "./upload-save-game";
