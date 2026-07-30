@@ -4,6 +4,7 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import {
   composeSteamShortcut,
   CreateSteamShortcutOptions,
+  detectSteamClientUsage,
   getSteamLocation,
   getSteamShortcuts,
   getSteamUsersIds,
@@ -24,6 +25,22 @@ import {
   buildRunDeepLink,
   getHydraShortcutTarget,
 } from "@main/helpers/shortcut-launch";
+
+const resolveShortcutLaunchOptions = (executablePath: string) => {
+  if (process.platform !== "linux") return "";
+
+  const { hasBundledEmulator, dllOverrides } =
+    detectSteamClientUsage(executablePath);
+
+  if (!hasBundledEmulator || !dllOverrides) return "";
+
+  logger.info("Adding the dll overrides to the Steam shortcut", {
+    executablePath,
+    dllOverrides,
+  });
+
+  return `WINEDLLOVERRIDES="${dllOverrides}" %command%`;
+};
 
 const downloadAsset = async (
   downloadPath: string,
@@ -226,7 +243,8 @@ const createSteamShortcut = async (
     : null;
   const shortcutTarget = deepLink ? getHydraShortcutTarget(deepLink) : null;
   const executablePath = shortcutTarget?.executablePath ?? game.executablePath!;
-  const launchOptions = shortcutTarget?.arguments ?? "";
+  const launchOptions =
+    shortcutTarget?.arguments ?? resolveShortcutLaunchOptions(executablePath);
 
   const newShortcut = composeSteamShortcut(
     game.title,
