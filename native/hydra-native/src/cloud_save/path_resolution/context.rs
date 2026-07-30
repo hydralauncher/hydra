@@ -182,5 +182,6 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
         windows_compatibility,
         derived_steam_root,
         configured_steam_root,
+        store_user_id: None,
     })
 }

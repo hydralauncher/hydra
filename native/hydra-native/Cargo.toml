@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1.0"
 blake3 = "=1.8.5"
+filetime = "0.2"
 globetter = "=0.2.0"
 globset = "=0.4.15"
 image = { version = "0.25.8", default-features = false, features = ["gif", "jpeg", "png", "webp"] }
