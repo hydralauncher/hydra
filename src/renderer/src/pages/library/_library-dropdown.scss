@@ -1,0 +1,84 @@
+@use "../../scss/globals.scss";
+
+@mixin trigger($selector) {
+  display: inline-flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid globals.$border-color;
+  background-color: globals.$background-color;
+  color: #dadbe1;
+  cursor: pointer;
+  font-size: globals.$body-font-size;
+
+  #{$selector}:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  #{$selector}[data-state="open"] {
+    border-color: #dadbe1;
+  }
+}
+
+@mixin chevron {
+  color: globals.$muted-color;
+  flex-shrink: 0;
+  transition: transform ease 0.15s;
+}
+
+@mixin content {
+  max-height: var(--radix-dropdown-menu-content-available-height);
+  overflow-y: auto;
+  background-color: globals.$dark-background-color;
+  border: 1px solid globals.$border-color;
+  border-radius: 6px;
+  padding: 4px;
+  z-index: globals.$backdrop-z-index;
+  animation: library-dropdown-fade-in 0.15s ease-out;
+}
+
+@mixin item {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition:
+    background-color 0.1s ease-in-out,
+    color 0.1s ease-in-out;
+  font-size: 14px;
+  color: globals.$muted-color;
+  outline: none;
+  white-space: nowrap;
+}
+
+@mixin ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin item-label {
+  flex: 1;
+  min-width: 0;
+  @include ellipsis;
+}
+
+@keyframes library-dropdown-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
