@@ -7,7 +7,7 @@ import type {
 } from "@types";
 
 const getFileName = (relativePath: string) =>
-  relativePath.replaceAll("\\", "/").split("/").filter(Boolean).pop() ??
+  relativePath.replaceAll("\\", "/").split("/").findLast(Boolean) ??
   relativePath;
 
 export const buildCloudSaveCustomPathRebindApproval = ({

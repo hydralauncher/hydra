@@ -23,6 +23,41 @@ interface CloudSaveCustomPathApprovalModalProps {
   onClose: () => void;
 }
 
+type ApprovalPurpose = CloudSaveCustomPathApproval["purpose"] | undefined;
+
+const getApprovalDescriptionKey = (purpose: ApprovalPurpose) => {
+  if (purpose === "manual-sync") {
+    return "cloud_save_v2_path_approval_manual_sync_description";
+  }
+  if (purpose === "custom-path-rebind") {
+    return "cloud_save_v2_path_approval_rebind_description";
+  }
+  return "cloud_save_v2_path_approval_description";
+};
+
+const getApprovalActionKey = (
+  purpose: ApprovalPurpose,
+  isConfirming: boolean
+) => {
+  if (isConfirming) {
+    if (purpose === "manual-sync") {
+      return "cloud_save_v2_path_approval_manual_sync_running";
+    }
+    if (purpose === "custom-path-rebind") {
+      return "cloud_save_v2_path_approval_rebind_running";
+    }
+    return "cloud_save_v2_path_approval_restoring";
+  }
+
+  if (purpose === "manual-sync") {
+    return "cloud_save_v2_path_approval_manual_sync_confirm";
+  }
+  if (purpose === "custom-path-rebind") {
+    return "cloud_save_v2_path_approval_rebind_confirm";
+  }
+  return "cloud_save_v2_path_approval_confirm";
+};
+
 export function CloudSaveCustomPathApprovalModal({
   approval,
   isSelecting,
@@ -37,9 +72,9 @@ export function CloudSaveCustomPathApprovalModal({
   const [areFilesExpanded, setAreFilesExpanded] = useState(false);
   const isBusy = isSelecting || isConfirming;
   const displayedPath = approval?.selectedPath ?? approval?.suggestedPath ?? "";
-  const isManualSync = approval?.purpose === "manual-sync";
-  const isCustomPathRebind = approval?.purpose === "custom-path-rebind";
   const hasRemoteFiles = (approval?.fileCount ?? 0) > 0;
+  const descriptionKey = getApprovalDescriptionKey(approval?.purpose);
+  const actionKey = getApprovalActionKey(approval?.purpose, isConfirming);
   const fileListId = approval
     ? `cloud-save-path-approval-files-${approval.id}`
     : undefined;
@@ -67,16 +102,7 @@ export function CloudSaveCustomPathApprovalModal({
         )}
 
         <p className="cloud-save-v2__path-approval-description">
-          <Trans
-            t={t}
-            i18nKey={
-              isManualSync
-                ? "cloud_save_v2_path_approval_manual_sync_description"
-                : isCustomPathRebind
-                  ? "cloud_save_v2_path_approval_rebind_description"
-                  : "cloud_save_v2_path_approval_description"
-            }
-          />
+          <Trans t={t} i18nKey={descriptionKey} />
         </p>
 
         {hasRemoteFiles && (
@@ -173,23 +199,7 @@ export function CloudSaveCustomPathApprovalModal({
             {isConfirming && (
               <CircleNotchIcon className="cloud-save-v2__spinner" size={18} />
             )}
-            <span>
-              {isConfirming
-                ? t(
-                    isManualSync
-                      ? "cloud_save_v2_path_approval_manual_sync_running"
-                      : isCustomPathRebind
-                        ? "cloud_save_v2_path_approval_rebind_running"
-                        : "cloud_save_v2_path_approval_restoring"
-                  )
-                : t(
-                    isManualSync
-                      ? "cloud_save_v2_path_approval_manual_sync_confirm"
-                      : isCustomPathRebind
-                        ? "cloud_save_v2_path_approval_rebind_confirm"
-                        : "cloud_save_v2_path_approval_confirm"
-                  )}
-            </span>
+            <span>{t(actionKey)}</span>
           </Button>
         </div>
       </div>

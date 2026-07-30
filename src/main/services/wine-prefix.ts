@@ -17,6 +17,12 @@ export interface WinePrefixUserProfile {
   windowsPath: string;
 }
 
+const trimTrailingForwardSlashes = (value: string) => {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end -= 1;
+  return value.slice(0, end);
+};
+
 export const getWinePrefixWindowsUserProfilePath = (
   winePrefixPath: string
 ): string | null => {
@@ -32,9 +38,9 @@ export const getWinePrefixWindowsUserProfilePath = (
     if (typeof rawUserProfile !== "string" || !rawUserProfile.trim()) {
       return null;
     }
-    return path.posix
-      .normalize(rawUserProfile.replaceAll(/\\+/g, "/"))
-      .replace(/\/+$/, "");
+    return trimTrailingForwardSlashes(
+      path.posix.normalize(rawUserProfile.replaceAll(/\\+/g, "/"))
+    );
   } catch {
     return null;
   }
@@ -46,7 +52,7 @@ export const getWinePrefixUserProfile = (
   try {
     const windowsPath = getWinePrefixWindowsUserProfilePath(winePrefixPath);
     if (!windowsPath) return null;
-    const match = windowsPath.match(/^C:\/users\/([^/]+)$/i);
+    const match = /^C:\/users\/([^/]+)$/i.exec(windowsPath);
     if (!match) return null;
 
     const name = match[1];

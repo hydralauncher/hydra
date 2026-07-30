@@ -79,7 +79,7 @@ export const excludeCloudSaveRawPathsFromMerge = (
         ...filterEntryIds(merge.deleteRemoteEntryIds),
         ...remoteEntryIds,
       ]),
-    ].sort(),
+    ].sort((left, right) => left.localeCompare(right)),
     deleteLocalEntryIds,
     unresolvedRemoteEntryIds,
     partial:

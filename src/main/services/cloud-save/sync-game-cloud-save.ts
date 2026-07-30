@@ -141,6 +141,309 @@ const saveSnapshotAnchor = async (
   });
 };
 
+type AssertEnvironmentCurrent = () => Promise<void>;
+type SyncFinisher = (
+  action: SyncGameCloudSaveResult["action"],
+  finalState: CloudSaveState,
+  processedFiles?: number,
+  totalFiles?: number,
+  remoteHash?: string | null
+) => SyncGameCloudSaveResult;
+
+const createSyncFinisher = (
+  objectId: string,
+  shop: GameShop,
+  trigger: CloudSaveSyncTrigger,
+  analysis: CloudSaveAnalysis,
+  emitProgress: ProgressCallback
+): SyncFinisher => {
+  const initialState = analysis.state.state;
+  return (
+    action,
+    finalState,
+    processedFiles = 0,
+    totalFiles = 0,
+    remoteHash = analysis.activeRemoteSnapshot?.aggregateHash ?? null
+  ) => {
+    emitProgress({
+      gameId: { objectId, shop },
+      stage: action === "conflict" ? "conflict" : "completed",
+      processedFiles,
+      totalFiles,
+    });
+    return {
+      trigger,
+      action,
+      initialState,
+      finalState,
+      remoteHash,
+      environmentId: analysis.environmentId,
+    };
+  };
+};
+
+const assertExcludedRawPathsRemovable = (
+  excludedRawPaths: ReadonlySet<string>,
+  registeredExcludedRawPaths: ReadonlySet<string>,
+  analysis: CloudSaveAnalysis
+) => {
+  for (const rawPath of excludedRawPaths) {
+    if (
+      !isCloudSaveRawPathRemovable(
+        rawPath,
+        registeredExcludedRawPaths,
+        analysis.remoteManifest?.files ?? []
+      )
+    ) {
+      throw new Error("cloud_save_custom_path_not_registered");
+    }
+  }
+};
+
+const executeRestoreOnlySync = async ({
+  objectId,
+  shop,
+  analysis,
+  merge,
+  proposalChanged,
+  emitProgress,
+  assertEnvironmentCurrent,
+  finish,
+}: {
+  objectId: string;
+  shop: GameShop;
+  analysis: CloudSaveAnalysis;
+  merge: CloudSaveMergeResult;
+  proposalChanged: boolean;
+  emitProgress: ProgressCallback;
+  assertEnvironmentCurrent: AssertEnvironmentCurrent;
+  finish: SyncFinisher;
+}) => {
+  const restoreIds = merge.restoreEntryIds;
+  const deleteLocalIds = merge.deleteLocalEntryIds;
+  const activeSnapshot = analysis.state.activeRemoteSnapshot;
+  if ((restoreIds.length > 0 || deleteLocalIds.length > 0) && !activeSnapshot) {
+    throw new Error("Active remote cloud save snapshot not found");
+  }
+  if (restoreIds.length === 0 && deleteLocalIds.length === 0) {
+    return finish("none", getPostSyncState(proposalChanged, merge.partial));
+  }
+
+  const restored =
+    restoreIds.length > 0 && activeSnapshot
+      ? await restoreRemoteState(
+          objectId,
+          shop,
+          activeSnapshot,
+          analysis.localSnapshotContext,
+          emitProgress,
+          restoreIds,
+          false,
+          merge.unresolvedRemoteEntryIds,
+          assertEnvironmentCurrent
+        )
+      : null;
+  if (deleteLocalIds.length > 0) {
+    await deleteLocalSaveTargets(
+      analysis.localSnapshotContext,
+      deleteLocalIds,
+      assertEnvironmentCurrent
+    );
+  }
+  const finalUnresolvedRemoteEntryIds =
+    restored?.unresolvedRemoteEntryIds ?? merge.unresolvedRemoteEntryIds;
+  await saveCurrentHeadAnchor(
+    objectId,
+    shop,
+    analysis,
+    finalUnresolvedRemoteEntryIds,
+    assertEnvironmentCurrent
+  );
+  const partial = isCloudSaveSyncPartialAfterApply({
+    coverage: analysis.localSnapshotContext.coverage,
+    unresolvedRemoteEntryIds: finalUnresolvedRemoteEntryIds,
+    restorePartial: restored?.partial,
+  });
+  const processedFiles = restoreIds.length + deleteLocalIds.length;
+  return finish(
+    "restore",
+    getPostSyncState(proposalChanged, partial),
+    processedFiles,
+    processedFiles
+  );
+};
+
+const getAppliedSyncAction = (
+  proposalChanged: boolean,
+  appliedLocalChanges: boolean
+): SyncGameCloudSaveResult["action"] => {
+  if (proposalChanged) return appliedLocalChanges ? "merge" : "upload";
+  return appliedLocalChanges ? "restore" : "none";
+};
+
+const saveAppliedSyncAnchor = async ({
+  objectId,
+  shop,
+  analysis,
+  merge,
+  committedSnapshot,
+  finalUnresolvedRemoteEntryIds,
+  hasDeferredLocalChanges,
+  proposalChanged,
+  assertEnvironmentCurrent,
+}: {
+  objectId: string;
+  shop: GameShop;
+  analysis: CloudSaveAnalysis;
+  merge: CloudSaveMergeResult;
+  committedSnapshot: Awaited<ReturnType<typeof uploadLocalState>> | null;
+  finalUnresolvedRemoteEntryIds: string[];
+  hasDeferredLocalChanges: boolean;
+  proposalChanged: boolean;
+  assertEnvironmentCurrent: AssertEnvironmentCurrent;
+}) => {
+  if (hasDeferredLocalChanges) return;
+  if (committedSnapshot) {
+    await saveSnapshotAnchor(
+      objectId,
+      shop,
+      analysis,
+      committedSnapshot,
+      merge.files,
+      finalUnresolvedRemoteEntryIds,
+      assertEnvironmentCurrent
+    );
+    return;
+  }
+  if (!proposalChanged) {
+    await saveCurrentHeadAnchor(
+      objectId,
+      shop,
+      analysis,
+      finalUnresolvedRemoteEntryIds,
+      assertEnvironmentCurrent
+    );
+  }
+};
+
+const executeAppliedSync = async ({
+  objectId,
+  shop,
+  analysis,
+  merge,
+  mergedAggregateHash,
+  proposalChanged,
+  uploadOnly,
+  emitProgress,
+  assertEnvironmentCurrent,
+  finish,
+}: {
+  objectId: string;
+  shop: GameShop;
+  analysis: CloudSaveAnalysis;
+  merge: CloudSaveMergeResult;
+  mergedAggregateHash: ReturnType<
+    typeof NativeAddon.buildSnapshotAggregateHash
+  >;
+  proposalChanged: boolean;
+  uploadOnly: boolean;
+  emitProgress: ProgressCallback;
+  assertEnvironmentCurrent: AssertEnvironmentCurrent;
+  finish: SyncFinisher;
+}) => {
+  const restoreIds = merge.restoreEntryIds;
+  const deleteLocalIds = merge.deleteLocalEntryIds;
+  const activeSnapshot = analysis.state.activeRemoteSnapshot;
+  let committedSnapshot: Awaited<ReturnType<typeof uploadLocalState>> | null =
+    null;
+  if (proposalChanged) {
+    const unresolved = uploadOnly
+      ? [...new Set([...merge.unresolvedRemoteEntryIds, ...restoreIds])]
+      : merge.unresolvedRemoteEntryIds;
+    committedSnapshot = await uploadLocalState(
+      objectId,
+      shop,
+      analysis.localSnapshotContext,
+      emitProgress,
+      {
+        baseVersion: analysis.activeRemoteSnapshot?.version ?? 0,
+        expectedSnapshotId: analysis.activeRemoteSnapshot?.id ?? null,
+        variants: merge.variants,
+        files: merge.files,
+        aggregateHash: mergedAggregateHash ?? undefined,
+        unresolvedRemoteEntryIds: unresolved,
+        updateAnchor: false,
+      },
+      assertEnvironmentCurrent
+    );
+  }
+
+  let restoredPartial = false;
+  let finalUnresolvedRemoteEntryIds = merge.unresolvedRemoteEntryIds;
+  if (!uploadOnly && restoreIds.length > 0) {
+    const snapshot = committedSnapshot ?? activeSnapshot;
+    if (!snapshot) {
+      throw new Error("Active remote cloud save snapshot not found");
+    }
+    const restored = await restoreRemoteState(
+      objectId,
+      shop,
+      snapshot,
+      analysis.localSnapshotContext,
+      emitProgress,
+      restoreIds,
+      false,
+      merge.unresolvedRemoteEntryIds,
+      assertEnvironmentCurrent
+    );
+    restoredPartial = restored.partial;
+    finalUnresolvedRemoteEntryIds = restored.unresolvedRemoteEntryIds;
+  }
+
+  if (!uploadOnly && deleteLocalIds.length > 0) {
+    await deleteLocalSaveTargets(
+      analysis.localSnapshotContext,
+      deleteLocalIds,
+      assertEnvironmentCurrent
+    );
+  }
+
+  const hasDeferredLocalChanges =
+    uploadOnly && (restoreIds.length > 0 || deleteLocalIds.length > 0);
+  await saveAppliedSyncAnchor({
+    objectId,
+    shop,
+    analysis,
+    merge,
+    committedSnapshot,
+    finalUnresolvedRemoteEntryIds,
+    hasDeferredLocalChanges,
+    proposalChanged,
+    assertEnvironmentCurrent,
+  });
+  const partial = isCloudSaveSyncPartialAfterApply({
+    coverage: analysis.localSnapshotContext.coverage,
+    unresolvedRemoteEntryIds: finalUnresolvedRemoteEntryIds,
+    restorePartial: restoredPartial,
+    hasDeferredLocalChanges,
+  });
+  const appliedLocalChanges =
+    !uploadOnly && (restoreIds.length > 0 || deleteLocalIds.length > 0);
+  const action = getAppliedSyncAction(proposalChanged, appliedLocalChanges);
+  const processedFiles =
+    (proposalChanged ? merge.files.length : 0) +
+    (!uploadOnly ? restoreIds.length + deleteLocalIds.length : 0);
+  return finish(
+    action,
+    partial ? "partial" : "synced",
+    processedFiles,
+    processedFiles,
+    committedSnapshot?.aggregateHash ??
+      analysis.activeRemoteSnapshot?.aggregateHash ??
+      null
+  );
+};
+
 const executeGameCloudSaveSync = async (
   objectId: string,
   shop: GameShop,
@@ -172,17 +475,11 @@ const executeGameCloudSaveSync = async (
     syncDirection
   );
   await assertEnvironmentCurrent();
-  for (const rawPath of excludedRawPaths) {
-    if (
-      !isCloudSaveRawPathRemovable(
-        rawPath,
-        registeredExcludedRawPaths,
-        analysis.remoteManifest?.files ?? []
-      )
-    ) {
-      throw new Error("cloud_save_custom_path_not_registered");
-    }
-  }
+  assertExcludedRawPathsRemovable(
+    excludedRawPaths,
+    registeredExcludedRawPaths,
+    analysis
+  );
   const initialState = analysis.state.state;
   const merge = excludeCloudSaveRawPathsFromMerge(
     analysis,
@@ -193,28 +490,13 @@ const executeGameCloudSaveSync = async (
     variants: merge.variants,
     files: merge.files,
   });
-  const finish = (
-    action: SyncGameCloudSaveResult["action"],
-    finalState: CloudSaveState,
-    processedFiles = 0,
-    totalFiles = 0,
-    remoteHash = analysis.activeRemoteSnapshot?.aggregateHash ?? null
-  ) => {
-    emitProgress({
-      gameId: { objectId, shop },
-      stage: action === "conflict" ? "conflict" : "completed",
-      processedFiles,
-      totalFiles,
-    });
-    return {
-      trigger,
-      action,
-      initialState,
-      finalState,
-      remoteHash,
-      environmentId: analysis.environmentId,
-    };
-  };
+  const finish = createSyncFinisher(
+    objectId,
+    shop,
+    trigger,
+    analysis,
+    emitProgress
+  );
 
   if (merge.conflicts.length > 0) {
     return finish("conflict", "conflict");
@@ -238,169 +520,39 @@ const executeGameCloudSaveSync = async (
 
   const proposalChanged =
     mergedAggregateHash !== analysis.activeRemoteSnapshot?.aggregateHash;
-  const restoreIds = merge.restoreEntryIds;
   const restoreOnly = syncDirection === "restore-only";
   const uploadOnly = syncDirection === "upload-only";
   const activeSnapshot = analysis.state.activeRemoteSnapshot;
-  const deleteLocalIds = merge.deleteLocalEntryIds;
 
   if (!activeSnapshot && merge.files.length === 0) {
     return finish("none", "untracked");
   }
 
   if (restoreOnly) {
-    if (
-      (restoreIds.length > 0 || deleteLocalIds.length > 0) &&
-      !activeSnapshot
-    ) {
-      throw new Error("Active remote cloud save snapshot not found");
-    }
-    if (restoreIds.length === 0 && deleteLocalIds.length === 0) {
-      return finish("none", getPostSyncState(proposalChanged, merge.partial));
-    }
-    const restored =
-      restoreIds.length > 0 && activeSnapshot
-        ? await restoreRemoteState(
-            objectId,
-            shop,
-            activeSnapshot,
-            analysis.localSnapshotContext,
-            emitProgress,
-            restoreIds,
-            false,
-            merge.unresolvedRemoteEntryIds,
-            assertEnvironmentCurrent
-          )
-        : null;
-    if (deleteLocalIds.length > 0) {
-      await deleteLocalSaveTargets(
-        analysis.localSnapshotContext,
-        deleteLocalIds,
-        assertEnvironmentCurrent
-      );
-    }
-    const finalUnresolvedRemoteEntryIds =
-      restored?.unresolvedRemoteEntryIds ?? merge.unresolvedRemoteEntryIds;
-    await saveCurrentHeadAnchor(
+    return executeRestoreOnlySync({
       objectId,
       shop,
       analysis,
-      finalUnresolvedRemoteEntryIds,
-      assertEnvironmentCurrent
-    );
-    const partial = isCloudSaveSyncPartialAfterApply({
-      coverage: analysis.localSnapshotContext.coverage,
-      unresolvedRemoteEntryIds: finalUnresolvedRemoteEntryIds,
-      restorePartial: restored?.partial,
+      merge,
+      proposalChanged,
+      emitProgress,
+      assertEnvironmentCurrent,
+      finish,
     });
-    return finish(
-      "restore",
-      getPostSyncState(proposalChanged, partial),
-      restoreIds.length + deleteLocalIds.length,
-      restoreIds.length + deleteLocalIds.length
-    );
   }
 
-  let committedSnapshot: Awaited<ReturnType<typeof uploadLocalState>> | null =
-    null;
-  if (proposalChanged) {
-    const unresolved = uploadOnly
-      ? [...new Set([...merge.unresolvedRemoteEntryIds, ...restoreIds])]
-      : merge.unresolvedRemoteEntryIds;
-    committedSnapshot = await uploadLocalState(
-      objectId,
-      shop,
-      analysis.localSnapshotContext,
-      emitProgress,
-      {
-        baseVersion: analysis.activeRemoteSnapshot?.version ?? 0,
-        expectedSnapshotId: analysis.activeRemoteSnapshot?.id ?? null,
-        variants: merge.variants,
-        files: merge.files,
-        aggregateHash: mergedAggregateHash ?? undefined,
-        unresolvedRemoteEntryIds: unresolved,
-        updateAnchor: false,
-      },
-      assertEnvironmentCurrent
-    );
-  }
-
-  let restoredPartial = false;
-  let finalUnresolvedRemoteEntryIds = merge.unresolvedRemoteEntryIds;
-  if (!uploadOnly && restoreIds.length > 0) {
-    const snapshot = committedSnapshot ?? activeSnapshot;
-    if (!snapshot)
-      throw new Error("Active remote cloud save snapshot not found");
-    const restored = await restoreRemoteState(
-      objectId,
-      shop,
-      snapshot,
-      analysis.localSnapshotContext,
-      emitProgress,
-      restoreIds,
-      false,
-      merge.unresolvedRemoteEntryIds,
-      assertEnvironmentCurrent
-    );
-    restoredPartial = restored.partial;
-    finalUnresolvedRemoteEntryIds = restored.unresolvedRemoteEntryIds;
-  }
-
-  if (!uploadOnly && deleteLocalIds.length > 0) {
-    await deleteLocalSaveTargets(
-      analysis.localSnapshotContext,
-      deleteLocalIds,
-      assertEnvironmentCurrent
-    );
-  }
-
-  const hasDeferredLocalChanges =
-    uploadOnly && (restoreIds.length > 0 || deleteLocalIds.length > 0);
-  if (!hasDeferredLocalChanges && committedSnapshot) {
-    await saveSnapshotAnchor(
-      objectId,
-      shop,
-      analysis,
-      committedSnapshot,
-      merge.files,
-      finalUnresolvedRemoteEntryIds,
-      assertEnvironmentCurrent
-    );
-  } else if (!hasDeferredLocalChanges && !proposalChanged) {
-    await saveCurrentHeadAnchor(
-      objectId,
-      shop,
-      analysis,
-      finalUnresolvedRemoteEntryIds,
-      assertEnvironmentCurrent
-    );
-  }
-  const partial = isCloudSaveSyncPartialAfterApply({
-    coverage: analysis.localSnapshotContext.coverage,
-    unresolvedRemoteEntryIds: finalUnresolvedRemoteEntryIds,
-    restorePartial: restoredPartial,
-    hasDeferredLocalChanges,
+  return executeAppliedSync({
+    objectId,
+    shop,
+    analysis,
+    merge,
+    mergedAggregateHash,
+    proposalChanged,
+    uploadOnly,
+    emitProgress,
+    assertEnvironmentCurrent,
+    finish,
   });
-  const appliedLocalChanges =
-    !uploadOnly && (restoreIds.length > 0 || deleteLocalIds.length > 0);
-  let action: SyncGameCloudSaveResult["action"];
-  if (proposalChanged) {
-    action = appliedLocalChanges ? "merge" : "upload";
-  } else {
-    action = appliedLocalChanges ? "restore" : "none";
-  }
-  const processedFiles =
-    (proposalChanged ? merge.files.length : 0) +
-    (!uploadOnly ? restoreIds.length + deleteLocalIds.length : 0);
-  return finish(
-    action,
-    partial ? "partial" : "synced",
-    processedFiles,
-    processedFiles,
-    committedSnapshot?.aggregateHash ??
-      analysis.activeRemoteSnapshot?.aggregateHash ??
-      null
-  );
 };
 
 const runGameCloudSaveSync = async (

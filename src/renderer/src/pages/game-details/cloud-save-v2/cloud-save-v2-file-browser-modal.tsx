@@ -38,6 +38,34 @@ const getCustomPathOverlapError = (error: unknown) => {
   return null;
 };
 
+const getCustomPathErrorTranslationKeys = (
+  wasAdded: boolean,
+  overlapError: ReturnType<typeof getCustomPathOverlapError>
+) => {
+  if (wasAdded) {
+    return {
+      title: "cloud_save_v2_custom_path_sync_error_title",
+      description: "cloud_save_v2_custom_path_sync_error_description",
+    };
+  }
+  if (overlapError === "mapped") {
+    return {
+      title: "cloud_save_v2_custom_path_mapped_overlap_error_title",
+      description: "cloud_save_v2_custom_path_mapped_overlap_error_description",
+    };
+  }
+  if (overlapError === "custom") {
+    return {
+      title: "cloud_save_v2_custom_path_custom_overlap_error_title",
+      description: "cloud_save_v2_custom_path_custom_overlap_error_description",
+    };
+  }
+  return {
+    title: "cloud_save_v2_custom_path_error_title",
+    description: "cloud_save_v2_custom_path_error_description",
+  };
+};
+
 interface CloudSaveV2FileBrowserModalProps {
   visible: boolean;
   objectId: string;
@@ -320,26 +348,11 @@ export function CloudSaveV2FileBrowserModal({
     } catch (error) {
       if (wasAdded) await onRetry();
       const overlapError = !wasAdded ? getCustomPathOverlapError(error) : null;
-      showErrorToast(
-        t(
-          wasAdded
-            ? "cloud_save_v2_custom_path_sync_error_title"
-            : overlapError === "mapped"
-              ? "cloud_save_v2_custom_path_mapped_overlap_error_title"
-              : overlapError === "custom"
-                ? "cloud_save_v2_custom_path_custom_overlap_error_title"
-                : "cloud_save_v2_custom_path_error_title"
-        ),
-        t(
-          wasAdded
-            ? "cloud_save_v2_custom_path_sync_error_description"
-            : overlapError === "mapped"
-              ? "cloud_save_v2_custom_path_mapped_overlap_error_description"
-              : overlapError === "custom"
-                ? "cloud_save_v2_custom_path_custom_overlap_error_description"
-                : "cloud_save_v2_custom_path_error_description"
-        )
+      const translationKeys = getCustomPathErrorTranslationKeys(
+        wasAdded,
+        overlapError
       );
+      showErrorToast(t(translationKeys.title), t(translationKeys.description));
     } finally {
       setIsAddingCustomPath(false);
     }

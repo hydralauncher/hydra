@@ -46,6 +46,88 @@ interface RestoreCloudSaveContext {
   pathContext: CloudSavePathContext;
 }
 
+type DownloadedRestoreFile = Awaited<
+  ReturnType<typeof downloadRemoteSnapshotToTemp>
+>[number];
+type RestorePlanAction = Awaited<
+  ReturnType<typeof resolveRestoreManifestTargets>
+>["actions"][number];
+
+const verifyDownloadedRestoreFiles = async (
+  downloadedFiles: DownloadedRestoreFile[],
+  emitProgress: (
+    stage: RestoreProgressPayload["stage"],
+    processedFiles: number,
+    totalFiles: number
+  ) => void
+) => {
+  const downloadedFilesByContent = new Map<string, DownloadedRestoreFile[]>();
+  for (const file of downloadedFiles) {
+    const key = JSON.stringify([file.hash, file.sizeBytes]);
+    const existing = downloadedFilesByContent.get(key) ?? [];
+    if (existing.some((item) => item.tempPath !== file.tempPath)) {
+      throw new Error("Downloaded restore blob is inconsistent");
+    }
+    downloadedFilesByContent.set(key, [...existing, file]);
+  }
+
+  let verifiedFiles = 0;
+  emitProgress("verifying", 0, downloadedFiles.length);
+  await mapWithConcurrency(
+    [...downloadedFilesByContent.values()],
+    MAX_CONCURRENT_RESTORE_OPERATIONS,
+    async (group) => {
+      const [file] = group;
+      const integrity = await verifyDownloadedRestoreFile({
+        tempPath: file.tempPath,
+        expectedHash: file.hash,
+      });
+      if (!integrity.ok) {
+        throw new Error("Restore file integrity check failed");
+      }
+    },
+    (_result, group) => {
+      verifiedFiles += group.length;
+      emitProgress("verifying", verifiedFiles, downloadedFiles.length);
+    }
+  );
+};
+
+const registerRestoredCustomPaths = async (
+  actions: RestorePlanAction[],
+  gameId: CloudSaveGameId,
+  pathContext: CloudSavePathContext
+) => {
+  const restoredCustomRawPaths = new Set(
+    actions
+      .map(({ rawPath }) => rawPath)
+      .filter((rawPath) => rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX))
+  );
+  if (restoredCustomRawPaths.size === 0) return;
+
+  const customPathContext =
+    cloudSaveCustomPathContextFromPathContext(pathContext);
+  const boundCustomPaths = [...restoredCustomRawPaths]
+    .map((rawPath) => {
+      const target = actions.find((action) => action.rawPath === rawPath);
+      if (!target) return null;
+      return bindCloudSaveCustomPathToLocalPath(
+        rawPath,
+        target.restoreRootPath,
+        customPathContext
+      );
+    })
+    .filter(
+      (customPath): customPath is NonNullable<typeof customPath> =>
+        customPath !== null
+    );
+  await registerCloudSaveCustomPaths(
+    gameId.shop,
+    gameId.objectId,
+    boundCustomPaths
+  );
+};
+
 const assertSnapshotStillCurrent = async (
   gameId: CloudSaveGameId,
   expected: RemoteSnapshotSummary | RemoteGameSnapshot
@@ -139,36 +221,7 @@ export const restoreRemoteSnapshot = async (
       (processedFiles, totalFiles) =>
         emitProgress("downloading", processedFiles, totalFiles)
     );
-    const downloadedFilesByContent = new Map<string, typeof downloadedFiles>();
-    for (const file of downloadedFiles) {
-      const key = JSON.stringify([file.hash, file.sizeBytes]);
-      const existing = downloadedFilesByContent.get(key) ?? [];
-      if (existing.some((item) => item.tempPath !== file.tempPath)) {
-        throw new Error("Downloaded restore blob is inconsistent");
-      }
-      downloadedFilesByContent.set(key, [...existing, file]);
-    }
-
-    let verifiedFiles = 0;
-    emitProgress("verifying", 0, downloadedFiles.length);
-    await mapWithConcurrency(
-      [...downloadedFilesByContent.values()],
-      MAX_CONCURRENT_RESTORE_OPERATIONS,
-      async (group) => {
-        const [file] = group;
-        const integrity = await verifyDownloadedRestoreFile({
-          tempPath: file.tempPath,
-          expectedHash: file.hash,
-        });
-        if (!integrity.ok) {
-          throw new Error("Restore file integrity check failed");
-        }
-      },
-      (_result, group) => {
-        verifiedFiles += group.length;
-        emitProgress("verifying", verifiedFiles, downloadedFiles.length);
-      }
-    );
+    await verifyDownloadedRestoreFiles(downloadedFiles, emitProgress);
 
     const current = await assertSnapshotStillCurrent(gameId, snapshot);
     const versionDecision = getRestoreVersionDecision(
@@ -222,39 +275,11 @@ export const restoreRemoteSnapshot = async (
     const restoreSucceeded = isRestoreReplacementSuccessful(result);
     if (restoreSucceeded) {
       await assertEnvironmentCurrent?.();
-      const restoredCustomRawPaths = new Set(
-        plan.actions
-          .map(({ rawPath }) => rawPath)
-          .filter((rawPath) =>
-            rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)
-          )
+      await registerRestoredCustomPaths(
+        plan.actions,
+        gameId,
+        cloudSaveContext.pathContext
       );
-      if (restoredCustomRawPaths.size > 0) {
-        const customPathContext = cloudSaveCustomPathContextFromPathContext(
-          cloudSaveContext.pathContext
-        );
-        const boundCustomPaths = [...restoredCustomRawPaths]
-          .map((rawPath) => {
-            const target = plan.actions.find(
-              (action) => action.rawPath === rawPath
-            );
-            if (!target) return null;
-            return bindCloudSaveCustomPathToLocalPath(
-              rawPath,
-              target.restoreRootPath,
-              customPathContext
-            );
-          })
-          .filter(
-            (customPath): customPath is NonNullable<typeof customPath> =>
-              customPath !== null
-          );
-        await registerCloudSaveCustomPaths(
-          manifest.snapshot.shop,
-          manifest.snapshot.objectId,
-          boundCustomPaths
-        );
-      }
     }
     if (restoreSucceeded && updateAnchor) {
       await assertEnvironmentCurrent?.();

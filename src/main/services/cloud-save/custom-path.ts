@@ -48,9 +48,17 @@ export interface CloudSaveCustomPathContext {
   preferredStoreUserId?: string;
 }
 
+const trimTrailingForwardSeparators = (value: string) => {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end -= 1;
+  return value.slice(0, end);
+};
+
 const installDirectory = (executablePath?: string) => {
   if (!executablePath) return undefined;
-  const normalized = executablePath.replaceAll("\\", "/").replace(/\/+$/, "");
+  const normalized = trimTrailingForwardSeparators(
+    executablePath.replaceAll("\\", "/")
+  );
   const marker = "/steamapps/common/";
   const markerIndex = normalized.toLocaleLowerCase("en-US").indexOf(marker);
   if (markerIndex >= 0) {
@@ -221,7 +229,7 @@ const trimTrailingSeparators = (
 ) => {
   if (platform === "windows" && /^[A-Z]:\/$/i.test(value)) return value;
   if (platform !== "windows" && value === "/") return value;
-  return value.replace(/\/+$/, "");
+  return trimTrailingForwardSeparators(value);
 };
 
 const normalizeAbsolutePath = (
@@ -326,7 +334,7 @@ const assertPortablePath = (
   if (
     portablePath.includes("\\") ||
     portablePath.includes("\0") ||
-    [...portablePath].some((character) => character.charCodeAt(0) <= 31) ||
+    [...portablePath].some((character) => character.codePointAt(0)! <= 31) ||
     /[*?[\]{}]/u.test(portablePath)
   ) {
     throw new Error("cloud_save_custom_path_invalid");
@@ -341,7 +349,7 @@ const assertSafeSegments = (
 ) => {
   if (
     absolutePath.includes("\0") ||
-    [...absolutePath].some((character) => character.charCodeAt(0) <= 31) ||
+    [...absolutePath].some((character) => character.codePointAt(0)! <= 31) ||
     absolutePath.includes("<") ||
     absolutePath.includes(">") ||
     /[*?[\]{}]/u.test(absolutePath)
@@ -388,7 +396,7 @@ const isSameOrChildPath = (
   const rootKey = pathKey(root, platform);
   return (
     candidateKey === rootKey ||
-    candidateKey.startsWith(`${rootKey.replace(/\/+$/, "")}/`)
+    candidateKey.startsWith(`${trimTrailingForwardSeparators(rootKey)}/`)
   );
 };
 
@@ -400,12 +408,10 @@ const portablePathFromAbsolute = (
     if (!isSameOrChildPath(absolutePath, root, context.platform)) continue;
     const suffix = absolutePath.slice(root.length);
     const portable = `${token}${suffix}`;
-    const storeUserIds = [...(context.storeUserIds ?? [])].sort(
-      (left, right) => right.length - left.length
-    );
+    const storeUserIds = new Set(context.storeUserIds ?? []);
     const segments = portable.split("/");
     const storeUserIndex = segments.findIndex((segment) =>
-      storeUserIds.includes(segment)
+      storeUserIds.has(segment)
     );
     if (storeUserIndex >= 0) segments[storeUserIndex] = "<storeUserId>";
     return segments.join("/");
@@ -491,8 +497,8 @@ const selectedStoreUserId = (
   absolutePath: string,
   context: CloudSaveCustomPathContext
 ) => {
-  const segments = absolutePath.split("/");
-  return context.storeUserIds?.find((id) => segments.includes(id));
+  const segments = new Set(absolutePath.split("/"));
+  return context.storeUserIds?.find((id) => segments.has(id));
 };
 
 const resolveNativePortablePath = (
@@ -634,23 +640,25 @@ const assertNotProtected = (
   }
 };
 
-export const decodeCloudSaveCustomPath = (
-  rawPath: string,
-  context = getCurrentCloudSaveCustomPathContext()
-): CloudSaveCustomPath => {
-  if (!rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)) {
-    throw new Error("cloud_save_custom_path_invalid_prefix");
-  }
-
-  const encoded = rawPath.slice(CLOUD_SAVE_CUSTOM_PATH_PREFIX.length);
-  const platform = (
+const getCustomPathPlatform = (encoded: string) =>
+  (
     Object.entries(PLATFORM_MARKERS) as Array<
       [CloudSaveCustomPathPlatform, string]
     >
   ).find(([, marker]) => encoded.startsWith(marker))?.[0];
-  if (!platform) throw new Error("cloud_save_custom_path_invalid_platform");
-  const marker = PLATFORM_MARKERS[platform];
-  const encodedPath = encoded.slice(marker.length);
+
+const getInvalidCustomPathError = (rawPath: string) => {
+  if (isLegacyCloudSaveCustomPathRawPath(rawPath)) {
+    return "cloud_save_custom_path_legacy";
+  }
+  return "cloud_save_custom_path_invalid";
+};
+
+const parseEncodedCustomPath = (
+  rawPath: string,
+  encodedPath: string,
+  platform: CloudSaveCustomPathPlatform
+) => {
   const explicitAbsolutePath = encodedPath.startsWith(
     CLOUD_SAVE_CUSTOM_ABSOLUTE_PATH_MARKER
   )
@@ -661,45 +669,77 @@ export const decodeCloudSaveCustomPath = (
       ? splitPortablePath(encodedPath, platform)
       : null;
   if (!portable && explicitAbsolutePath === null) {
-    throw new Error(
-      isLegacyCloudSaveCustomPathRawPath(rawPath)
-        ? "cloud_save_custom_path_legacy"
-        : "cloud_save_custom_path_invalid"
-    );
-  }
-  const normalizedPath =
-    explicitAbsolutePath !== null
-      ? normalizeAbsolutePath(explicitAbsolutePath, platform)
-      : null;
-  const normalizedEncodedPath = portable
-    ? `${portable.token}${trimTrailingSeparators(portable.suffix, platform)}`
-    : `${CLOUD_SAVE_CUSTOM_ABSOLUTE_PATH_MARKER}${normalizedPath}`;
-  if (portable) {
-    assertPortablePath(normalizedEncodedPath, platform);
-  } else {
-    assertAbsolutePath(normalizedPath!, platform);
+    throw new Error(getInvalidCustomPathError(rawPath));
   }
 
-  let decodedPath: string;
+  const normalizedPath =
+    explicitAbsolutePath === null
+      ? null
+      : normalizeAbsolutePath(explicitAbsolutePath, platform);
+  if (portable) {
+    const normalizedEncodedPath = `${portable.token}${trimTrailingSeparators(
+      portable.suffix,
+      platform
+    )}`;
+    assertPortablePath(normalizedEncodedPath, platform);
+    return { normalizedEncodedPath, normalizedPath, portable: true };
+  }
+
+  assertAbsolutePath(normalizedPath!, platform);
+  return {
+    normalizedEncodedPath: `${CLOUD_SAVE_CUSTOM_ABSOLUTE_PATH_MARKER}${normalizedPath}`,
+    normalizedPath,
+    portable: false,
+  };
+};
+
+const resolveDecodedCustomPath = (
+  platform: CloudSaveCustomPathPlatform,
+  normalizedEncodedPath: string,
+  normalizedPath: string | null,
+  portable: boolean,
+  context: CloudSaveCustomPathContext
+) => {
   if (platform === context.platform) {
-    decodedPath = portable
+    return portable
       ? resolveNativePortablePath(normalizedEncodedPath, context)
       : normalizedPath!;
-  } else if (
-    platform === "windows" &&
-    context.platform === "linux" &&
-    context.windowsCompatibility
+  }
+  if (
+    platform !== "windows" ||
+    context.platform !== "linux" ||
+    !context.windowsCompatibility
   ) {
-    if (!portable) {
-      throw new Error("cloud_save_custom_path_non_portable");
-    }
-    decodedPath = resolveWindowsPortablePathInWine(
-      normalizedEncodedPath,
-      context
-    );
-  } else {
     throw new Error("cloud_save_custom_path_foreign_platform");
   }
+  if (!portable) {
+    throw new Error("cloud_save_custom_path_non_portable");
+  }
+  return resolveWindowsPortablePathInWine(normalizedEncodedPath, context);
+};
+
+export const decodeCloudSaveCustomPath = (
+  rawPath: string,
+  context = getCurrentCloudSaveCustomPathContext()
+): CloudSaveCustomPath => {
+  if (!rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)) {
+    throw new Error("cloud_save_custom_path_invalid_prefix");
+  }
+
+  const encoded = rawPath.slice(CLOUD_SAVE_CUSTOM_PATH_PREFIX.length);
+  const platform = getCustomPathPlatform(encoded);
+  if (!platform) throw new Error("cloud_save_custom_path_invalid_platform");
+  const marker = PLATFORM_MARKERS[platform];
+  const encodedPath = encoded.slice(marker.length);
+  const { normalizedEncodedPath, normalizedPath, portable } =
+    parseEncodedCustomPath(rawPath, encodedPath, platform);
+  const decodedPath = resolveDecodedCustomPath(
+    platform,
+    normalizedEncodedPath,
+    normalizedPath,
+    portable,
+    context
+  );
   assertAbsolutePath(decodedPath, context.platform);
   assertNotProtected(decodedPath, context.platform, context);
 
@@ -819,18 +859,16 @@ export const bindCloudSaveCustomPathToLocalPath = (
   };
 };
 
-const assertNoSymlinkAncestor = async (
-  customPath: CloudSaveCustomPath,
-  context = getCurrentCloudSaveCustomPathContext()
+const findExistingCustomPathAncestor = async (
+  customPath: string,
+  platform: CloudSaveCustomPathPlatform
 ) => {
-  const filesystemPlatform = context.platform;
-  const pathApi = filesystemPlatform === "windows" ? path.win32 : path.posix;
-  let existing = customPath.path;
-
+  const pathApi = platform === "windows" ? path.win32 : path.posix;
+  let existing = customPath;
   for (;;) {
     try {
       await fs.lstat(existing);
-      break;
+      return existing;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       const parent = pathApi.dirname(existing);
@@ -840,6 +878,35 @@ const assertNoSymlinkAncestor = async (
       existing = parent;
     }
   }
+};
+
+const getCanonicalAllowedWineRoots = async (
+  customPath: CloudSaveCustomPath,
+  context: CloudSaveCustomPathContext
+) => {
+  if (
+    context.platform !== "linux" ||
+    customPath.platform !== "windows" ||
+    !context.windowsCompatibility
+  ) {
+    return [];
+  }
+
+  const roots = [context.homeDir, context.winePrefixPath].filter(
+    (root): root is string => Boolean(root)
+  );
+  return Promise.all(roots.map((root) => fs.realpath(root).catch(() => root)));
+};
+
+const assertNoSymlinkAncestor = async (
+  customPath: CloudSaveCustomPath,
+  context = getCurrentCloudSaveCustomPathContext()
+) => {
+  const filesystemPlatform = context.platform;
+  const existing = await findExistingCustomPathAncestor(
+    customPath.path,
+    filesystemPlatform
+  );
 
   const canonicalExisting = normalizeAbsolutePath(
     await fs.realpath(existing),
@@ -849,15 +916,10 @@ const assertNoSymlinkAncestor = async (
     pathKey(canonicalExisting, filesystemPlatform) !==
     pathKey(existing, filesystemPlatform)
   ) {
-    const allowedWineRoots =
-      filesystemPlatform === "linux" &&
-      customPath.platform === "windows" &&
-      context.windowsCompatibility
-        ? [context.homeDir, context.winePrefixPath]
-            .filter((root): root is string => Boolean(root))
-            .map((root) => fs.realpath(root).catch(() => root))
-        : [];
-    const canonicalAllowedRoots = await Promise.all(allowedWineRoots);
+    const canonicalAllowedRoots = await getCanonicalAllowedWineRoots(
+      customPath,
+      context
+    );
     if (
       !canonicalAllowedRoots.some((root) =>
         isSameOrChildPath(canonicalExisting, root, "linux")

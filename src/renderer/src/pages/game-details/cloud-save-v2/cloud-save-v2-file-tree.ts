@@ -376,6 +376,184 @@ export const filterCloudSaveV2Comparisons = (
     (comparison) => !showOnlyChanged || comparison.status !== "unchanged"
   );
 
+const addLocalFileToTree = (
+  roots: Map<string, MutableBranch>,
+  file: CloudSaveV2LocalFile
+) => {
+  const rootPath = getLocalRootPath(file);
+  const rootPathIdentity = getLocalPathIdentity(rootPath);
+  const rootId = JSON.stringify(["local-root", rootPathIdentity]);
+  let root = roots.get(rootPathIdentity);
+  if (!root) {
+    root = {
+      type: "root",
+      id: rootId,
+      name: rootPath,
+      rawPath: file.rawPath,
+      localDirectoryPath: rootPath,
+      hasLocalFiles: true,
+      hasRemoteFiles: false,
+      branches: new Map(),
+      files: [],
+    };
+    roots.set(rootPathIdentity, root);
+  }
+
+  const pathSegments = splitPath(file.relativePath);
+  const fileName = pathSegments.pop() ?? file.relativePath;
+  let parent = root;
+  const directorySegments: string[] = [];
+  for (const segment of pathSegments) {
+    directorySegments.push(segment);
+    const localDirectoryPath = joinPath(rootPath, directorySegments);
+    const directoryId = JSON.stringify([
+      "local-directory",
+      getLocalPathIdentity(localDirectoryPath),
+    ]);
+    let directory = parent.branches.get(directoryId);
+    if (!directory) {
+      directory = {
+        type: "directory",
+        id: directoryId,
+        name: segment,
+        localDirectoryPath,
+        hasLocalFiles: true,
+        hasRemoteFiles: false,
+        branches: new Map(),
+        files: [],
+      };
+      parent.branches.set(directoryId, directory);
+    }
+    parent = directory;
+  }
+
+  parent.files.push({
+    type: "file",
+    id: JSON.stringify([
+      "local-file",
+      file.rawPath,
+      file.relativePath,
+      file.absolutePath,
+    ]),
+    name: fileName,
+    local: file,
+    remote: null,
+    status: null,
+  });
+};
+
+const addCustomPathRoot = (
+  roots: Map<string, MutableBranch>,
+  customPath: CloudSaveCustomPath
+) => {
+  const rootPathIdentity = getLocalPathIdentity(customPath.path);
+  const existing = roots.get(rootPathIdentity);
+  if (existing) {
+    existing.customPath = customPath;
+    existing.removableCustomRawPath = customPath.rawPath;
+    return;
+  }
+
+  roots.set(rootPathIdentity, {
+    type: "root",
+    id: JSON.stringify(["local-root", rootPathIdentity]),
+    name: customPath.path,
+    rawPath: customPath.rawPath,
+    customPath,
+    removableCustomRawPath: customPath.rawPath,
+    localDirectoryPath: customPath.path,
+    hasLocalFiles: false,
+    hasRemoteFiles: false,
+    branches: new Map(),
+    files: [],
+  });
+};
+
+const addUnresolvedCustomPathRoot = (
+  roots: Map<string, MutableBranch>,
+  unresolvedRootsByRawPath: Map<string, MutableBranch>,
+  unresolvedCustomPath: CloudSaveUnresolvedCustomPath
+) => {
+  const { rawPath } = unresolvedCustomPath;
+  const existing = [...roots.values()].find((root) => root.rawPath === rawPath);
+  if (existing) {
+    existing.unresolvedCustomPath = unresolvedCustomPath;
+    existing.removableCustomRawPath = rawPath;
+    unresolvedRootsByRawPath.set(rawPath, existing);
+    return;
+  }
+
+  const rootIdentity = `unresolved:${rawPath}`;
+  const root: MutableBranch = {
+    type: "root",
+    id: JSON.stringify(["unresolved-custom-root", rawPath]),
+    name: unresolvedCustomPath.pathHint ?? rawPath,
+    rawPath,
+    unresolvedCustomPath,
+    removableCustomRawPath: rawPath,
+    localDirectoryPath: null,
+    hasLocalFiles: false,
+    hasRemoteFiles: !unresolvedCustomPath.registered,
+    branches: new Map(),
+    files: [],
+  };
+  roots.set(rootIdentity, root);
+  unresolvedRootsByRawPath.set(rawPath, root);
+};
+
+const addUnresolvedRemoteFile = (
+  unresolvedRootsByRawPath: Map<string, MutableBranch>,
+  file: CloudSaveV2RemoteFile
+) => {
+  const root = unresolvedRootsByRawPath.get(file.rawPath);
+  if (!root) return;
+
+  root.hasRemoteFiles = true;
+  const pathSegments = splitPath(file.relativePath);
+  const fileName = pathSegments.pop() ?? file.relativePath;
+  let parent = root;
+  const directorySegments: string[] = [];
+  for (const segment of pathSegments) {
+    directorySegments.push(segment);
+    const directoryId = JSON.stringify([
+      "unresolved-remote-directory",
+      file.rawPath,
+      ...directorySegments,
+    ]);
+    let directory = parent.branches.get(directoryId);
+    if (!directory) {
+      directory = {
+        type: "directory",
+        id: directoryId,
+        name: segment,
+        localDirectoryPath: null,
+        hasLocalFiles: false,
+        hasRemoteFiles: true,
+        branches: new Map(),
+        files: [],
+      };
+      parent.branches.set(directoryId, directory);
+    } else {
+      directory.hasRemoteFiles = true;
+    }
+    parent = directory;
+  }
+
+  parent.files.push({
+    type: "file",
+    id: JSON.stringify([
+      "unresolved-remote-file",
+      file.variantId,
+      file.rawPath,
+      file.relativePath,
+    ]),
+    name: fileName,
+    local: null,
+    remote: file,
+    status: null,
+  });
+};
+
 export const buildCloudSaveV2LocalFileTree = (
   files: CloudSaveV2LocalFile[],
   customPaths: CloudSaveCustomPath[] = [],
@@ -386,172 +564,23 @@ export const buildCloudSaveV2LocalFileTree = (
   const unresolvedRootsByRawPath = new Map<string, MutableBranch>();
 
   for (const file of files) {
-    const rootPath = getLocalRootPath(file);
-    const rootPathIdentity = getLocalPathIdentity(rootPath);
-    const rootId = JSON.stringify(["local-root", rootPathIdentity]);
-    let root = roots.get(rootPathIdentity);
-    if (!root) {
-      root = {
-        type: "root",
-        id: rootId,
-        name: rootPath,
-        rawPath: file.rawPath,
-        localDirectoryPath: rootPath,
-        hasLocalFiles: true,
-        hasRemoteFiles: false,
-        branches: new Map(),
-        files: [],
-      };
-      roots.set(rootPathIdentity, root);
-    }
-
-    const pathSegments = splitPath(file.relativePath);
-    const fileName = pathSegments.pop() ?? file.relativePath;
-    let parent = root;
-    const directorySegments: string[] = [];
-
-    for (const segment of pathSegments) {
-      directorySegments.push(segment);
-      const localDirectoryPath = joinPath(rootPath, directorySegments);
-      const directoryId = JSON.stringify([
-        "local-directory",
-        getLocalPathIdentity(localDirectoryPath),
-      ]);
-      let directory = parent.branches.get(directoryId);
-      if (!directory) {
-        directory = {
-          type: "directory",
-          id: directoryId,
-          name: segment,
-          localDirectoryPath,
-          hasLocalFiles: true,
-          hasRemoteFiles: false,
-          branches: new Map(),
-          files: [],
-        };
-        parent.branches.set(directoryId, directory);
-      }
-      parent = directory;
-    }
-
-    parent.files.push({
-      type: "file",
-      id: JSON.stringify([
-        "local-file",
-        file.rawPath,
-        file.relativePath,
-        file.absolutePath,
-      ]),
-      name: fileName,
-      local: file,
-      remote: null,
-      status: null,
-    });
+    addLocalFileToTree(roots, file);
   }
 
   for (const customPath of customPaths) {
-    const rootPathIdentity = getLocalPathIdentity(customPath.path);
-    const existing = roots.get(rootPathIdentity);
-    if (existing) {
-      existing.customPath = customPath;
-      existing.removableCustomRawPath = customPath.rawPath;
-      continue;
-    }
-
-    roots.set(rootPathIdentity, {
-      type: "root",
-      id: JSON.stringify(["local-root", rootPathIdentity]),
-      name: customPath.path,
-      rawPath: customPath.rawPath,
-      customPath,
-      removableCustomRawPath: customPath.rawPath,
-      localDirectoryPath: customPath.path,
-      hasLocalFiles: false,
-      hasRemoteFiles: false,
-      branches: new Map(),
-      files: [],
-    });
+    addCustomPathRoot(roots, customPath);
   }
 
   for (const unresolvedCustomPath of unresolvedCustomPaths) {
-    const { rawPath } = unresolvedCustomPath;
-    const existing = [...roots.values()].find(
-      (root) => root.rawPath === rawPath
+    addUnresolvedCustomPathRoot(
+      roots,
+      unresolvedRootsByRawPath,
+      unresolvedCustomPath
     );
-    if (existing) {
-      existing.unresolvedCustomPath = unresolvedCustomPath;
-      existing.removableCustomRawPath = rawPath;
-      unresolvedRootsByRawPath.set(rawPath, existing);
-      continue;
-    }
-
-    const rootIdentity = `unresolved:${rawPath}`;
-    const root: MutableBranch = {
-      type: "root",
-      id: JSON.stringify(["unresolved-custom-root", rawPath]),
-      name: unresolvedCustomPath.pathHint ?? rawPath,
-      rawPath,
-      unresolvedCustomPath,
-      removableCustomRawPath: rawPath,
-      localDirectoryPath: null,
-      hasLocalFiles: false,
-      hasRemoteFiles: !unresolvedCustomPath.registered,
-      branches: new Map(),
-      files: [],
-    };
-    roots.set(rootIdentity, root);
-    unresolvedRootsByRawPath.set(rawPath, root);
   }
 
   for (const file of remoteFiles) {
-    const root = unresolvedRootsByRawPath.get(file.rawPath);
-    if (!root) continue;
-
-    root.hasRemoteFiles = true;
-    const pathSegments = splitPath(file.relativePath);
-    const fileName = pathSegments.pop() ?? file.relativePath;
-    let parent = root;
-    const directorySegments: string[] = [];
-
-    for (const segment of pathSegments) {
-      directorySegments.push(segment);
-      const directoryId = JSON.stringify([
-        "unresolved-remote-directory",
-        file.rawPath,
-        ...directorySegments,
-      ]);
-      let directory = parent.branches.get(directoryId);
-      if (!directory) {
-        directory = {
-          type: "directory",
-          id: directoryId,
-          name: segment,
-          localDirectoryPath: null,
-          hasLocalFiles: false,
-          hasRemoteFiles: true,
-          branches: new Map(),
-          files: [],
-        };
-        parent.branches.set(directoryId, directory);
-      } else {
-        directory.hasRemoteFiles = true;
-      }
-      parent = directory;
-    }
-
-    parent.files.push({
-      type: "file",
-      id: JSON.stringify([
-        "unresolved-remote-file",
-        file.variantId,
-        file.rawPath,
-        file.relativePath,
-      ]),
-      name: fileName,
-      local: null,
-      remote: file,
-      status: null,
-    });
+    addUnresolvedRemoteFile(unresolvedRootsByRawPath, file);
   }
 
   return Array.from(roots.values(), finalizeBranch).sort(

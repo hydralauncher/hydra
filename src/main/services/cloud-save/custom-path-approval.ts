@@ -48,7 +48,7 @@ const gameKey = (shop: GameShop, objectId: string) =>
   JSON.stringify([shop, objectId]);
 
 const getFileName = (relativePath: string) =>
-  relativePath.replaceAll("\\", "/").split("/").filter(Boolean).pop() ??
+  relativePath.replaceAll("\\", "/").split("/").findLast(Boolean) ??
   relativePath;
 
 const toApprovalFiles = (
@@ -120,61 +120,60 @@ const createPendingApproval = async (
     locallyBoundRawPaths
   );
 
-  for (const { rawPath, files } of candidates) {
-    let suggestedPath: string | null = null;
-    try {
-      suggestedPath = decodeCloudSaveCustomPath(
-        rawPath,
-        customPathContext
-      ).path;
-    } catch {
-      suggestedPath = null;
-    }
-
-    let canUseSuggestedPath = false;
-    if (suggestedPath) {
-      try {
-        canUseSuggestedPath =
-          (await validateCloudSaveCustomPathForRestore(
-            rawPath,
-            context.pathContext.platform,
-            customPathContext
-          )) !== null;
-        if (canUseSuggestedPath) {
-          await assertCloudSaveCustomPathDoesNotOverlap({
-            objectId,
-            shop,
-            selectedPath: suggestedPath,
-            context,
-            currentRawPath: rawPath,
-            remoteRelativePaths: files.map(({ relativePath }) => relativePath),
-          });
-        }
-      } catch {
-        canUseSuggestedPath = false;
-      }
-    }
-
-    const approval: CloudSaveCustomPathApproval = {
-      id: randomUUID(),
-      gameId: { shop, objectId },
-      purpose,
-      rawPath,
-      suggestedPath,
-      selectedPath: canUseSuggestedPath ? suggestedPath : null,
-      canUseSuggestedPath,
-      fileCount: files.length,
-      totalSizeBytes: files.reduce((total, file) => total + file.sizeBytes, 0),
-      files: toApprovalFiles(files),
-      snapshotId: manifest.snapshot.id,
-      snapshotVersion: manifest.snapshot.version,
-    };
-    pendingByGame.set(key, { approval, launchOptions, context });
-    return approval;
+  const candidate = candidates[0];
+  if (!candidate) {
+    clearPending();
+    return null;
   }
 
-  clearPending();
-  return null;
+  const { rawPath, files } = candidate;
+  let suggestedPath: string | null = null;
+  try {
+    suggestedPath = decodeCloudSaveCustomPath(rawPath, customPathContext).path;
+  } catch {
+    suggestedPath = null;
+  }
+
+  let canUseSuggestedPath = false;
+  if (suggestedPath) {
+    try {
+      canUseSuggestedPath =
+        (await validateCloudSaveCustomPathForRestore(
+          rawPath,
+          context.pathContext.platform,
+          customPathContext
+        )) !== null;
+      if (canUseSuggestedPath) {
+        await assertCloudSaveCustomPathDoesNotOverlap({
+          objectId,
+          shop,
+          selectedPath: suggestedPath,
+          context,
+          currentRawPath: rawPath,
+          remoteRelativePaths: files.map(({ relativePath }) => relativePath),
+        });
+      }
+    } catch {
+      canUseSuggestedPath = false;
+    }
+  }
+
+  const approval: CloudSaveCustomPathApproval = {
+    id: randomUUID(),
+    gameId: { shop, objectId },
+    purpose,
+    rawPath,
+    suggestedPath,
+    selectedPath: canUseSuggestedPath ? suggestedPath : null,
+    canUseSuggestedPath,
+    fileCount: files.length,
+    totalSizeBytes: files.reduce((total, file) => total + file.sizeBytes, 0),
+    files: toApprovalFiles(files),
+    snapshotId: manifest.snapshot.id,
+    snapshotVersion: manifest.snapshot.version,
+  };
+  pendingByGame.set(key, { approval, launchOptions, context });
+  return approval;
 };
 
 export const createPendingCloudSaveCustomPathApproval = (

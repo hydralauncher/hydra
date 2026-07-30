@@ -49,6 +49,16 @@ const CUSTOM_PATH_STATUS_TOOLTIP_ID = "cloud-save-v2-custom-path-status";
 const getRootIdsFromFingerprint = (fingerprint: string) =>
   fingerprint ? fingerprint.split("\u0000") : [];
 
+const getRemoteBranchName = (
+  node: CloudSaveV2FileTreeRoot | CloudSaveV2FileTreeDirectory,
+  unresolvedDisplayName: string,
+  hasUnresolvedCustomPath: boolean
+) => {
+  if (node.type !== "root") return node.name;
+  if (hasUnresolvedCustomPath) return unresolvedDisplayName;
+  return node.rawPath;
+};
+
 export function CloudSaveV2FileTreeView({
   roots,
   mode,
@@ -294,6 +304,98 @@ export function CloudSaveV2FileTreeView({
     </li>
   );
 
+  const renderComparisonBranchNode = (
+    node: CloudSaveV2FileTreeRoot | CloudSaveV2FileTreeDirectory,
+    isExpanded: boolean,
+    hierarchyOffset: number,
+    contentPaddingLeft: string,
+    displayRootName: string,
+    displayLocalDirectoryPath: string | null,
+    unresolvedStatusIcon: ReactNode,
+    remoteName: string,
+    rebindCustomRawPath: string | null,
+    children: ReactNode
+  ) => (
+    <li
+      key={node.id}
+      role="treeitem"
+      aria-selected="false"
+      aria-expanded={isExpanded}
+    >
+      <div className="cloud-save-v2__browser-diff-row cloud-save-v2__browser-folder-row">
+        <button
+          type="button"
+          className="cloud-save-v2__browser-tree-toggle"
+          aria-expanded={isExpanded}
+          onClick={() => toggleNode(node.id)}
+          style={{ transform: `translateX(${hierarchyOffset}px)` }}
+        >
+          <ChevronRightIcon
+            size={15}
+            className={`cloud-save-v2__browser-tree-caret ${isExpanded ? "cloud-save-v2__browser-tree-caret--expanded" : ""}`}
+          />
+        </button>
+        <div
+          className="cloud-save-v2__browser-diff-cell"
+          style={{ paddingLeft: contentPaddingLeft }}
+        >
+          {node.hasLocalFiles ||
+          (node.type === "root" &&
+            (node.customPath || node.unresolvedCustomPath)) ? (
+            <div className="cloud-save-v2__browser-folder-cell">
+              <FileDirectoryIcon
+                size={18}
+                className="cloud-save-v2__browser-tree-icon"
+              />
+              <div className="cloud-save-v2__browser-folder-copy">
+                <div className="cloud-save-v2__browser-folder-heading">
+                  <strong
+                    title={
+                      node.type === "root"
+                        ? displayRootName
+                        : (displayLocalDirectoryPath ?? node.name)
+                    }
+                  >
+                    {node.type === "root" ? displayRootName : node.name}
+                  </strong>
+                  {unresolvedStatusIcon}
+                </div>
+              </div>
+              {folderActions(
+                node.localDirectoryPath,
+                node.type === "root" ? displayRootName : node.name,
+                node.type === "root" ? node.removableCustomRawPath : null,
+                rebindCustomRawPath
+              )}
+            </div>
+          ) : (
+            <span className="cloud-save-v2__browser-missing-side">—</span>
+          )}
+        </div>
+        <div className="cloud-save-v2__browser-status-cell" />
+        <div
+          className="cloud-save-v2__browser-diff-cell"
+          style={{ paddingLeft: contentPaddingLeft }}
+        >
+          {node.hasRemoteFiles ? (
+            <div className="cloud-save-v2__browser-folder-cell">
+              <FileDirectoryIcon
+                size={18}
+                className="cloud-save-v2__browser-tree-icon"
+              />
+              <div className="cloud-save-v2__browser-folder-copy">
+                <strong title={remoteName}>{remoteName}</strong>
+              </div>
+            </div>
+          ) : (
+            <span className="cloud-save-v2__browser-missing-side">—</span>
+          )}
+        </div>
+      </div>
+      {children}
+    </li>
+  );
+
   const renderNode = (node: CloudSaveV2FileTreeNode, depth: number) => {
     const hierarchyOffset = depth * TREE_LEVEL_INDENT_PX;
     const contentPaddingLeft = `${TREE_ROW_PADDING_PX + hierarchyOffset}px`;
@@ -330,12 +432,11 @@ export function CloudSaveV2FileTreeView({
         <InfoIcon size={14} />
       </button>
     ) : null;
-    const remoteName =
-      node.type === "root"
-        ? unresolvedCustomPath
-          ? unresolvedDisplayName
-          : node.rawPath
-        : node.name;
+    const remoteName = getRemoteBranchName(
+      node,
+      unresolvedDisplayName,
+      unresolvedCustomPath !== null
+    );
     const childDepth = depth + 1;
     const children = isExpanded ? (
       <ul className="cloud-save-v2__browser-tree-list">
@@ -355,85 +456,17 @@ export function CloudSaveV2FileTreeView({
       );
     }
 
-    return (
-      <li
-        key={node.id}
-        role="treeitem"
-        aria-selected="false"
-        aria-expanded={isExpanded}
-      >
-        <div className="cloud-save-v2__browser-diff-row cloud-save-v2__browser-folder-row">
-          <button
-            type="button"
-            className="cloud-save-v2__browser-tree-toggle"
-            aria-expanded={isExpanded}
-            onClick={() => toggleNode(node.id)}
-            style={{ transform: `translateX(${hierarchyOffset}px)` }}
-          >
-            <ChevronRightIcon
-              size={15}
-              className={`cloud-save-v2__browser-tree-caret ${isExpanded ? "cloud-save-v2__browser-tree-caret--expanded" : ""}`}
-            />
-          </button>
-          <div
-            className="cloud-save-v2__browser-diff-cell"
-            style={{ paddingLeft: contentPaddingLeft }}
-          >
-            {node.hasLocalFiles ||
-            (node.type === "root" &&
-              (node.customPath || node.unresolvedCustomPath)) ? (
-              <div className="cloud-save-v2__browser-folder-cell">
-                <FileDirectoryIcon
-                  size={18}
-                  className="cloud-save-v2__browser-tree-icon"
-                />
-                <div className="cloud-save-v2__browser-folder-copy">
-                  <div className="cloud-save-v2__browser-folder-heading">
-                    <strong
-                      title={
-                        node.type === "root"
-                          ? displayRootName
-                          : (displayLocalDirectoryPath ?? node.name)
-                      }
-                    >
-                      {node.type === "root" ? displayRootName : node.name}
-                    </strong>
-                    {unresolvedStatusIcon}
-                  </div>
-                </div>
-                {folderActions(
-                  node.localDirectoryPath,
-                  node.type === "root" ? displayRootName : node.name,
-                  node.type === "root" ? node.removableCustomRawPath : null,
-                  unresolvedCustomPath?.rawPath ?? null
-                )}
-              </div>
-            ) : (
-              <span className="cloud-save-v2__browser-missing-side">—</span>
-            )}
-          </div>
-          <div className="cloud-save-v2__browser-status-cell" />
-          <div
-            className="cloud-save-v2__browser-diff-cell"
-            style={{ paddingLeft: contentPaddingLeft }}
-          >
-            {node.hasRemoteFiles ? (
-              <div className="cloud-save-v2__browser-folder-cell">
-                <FileDirectoryIcon
-                  size={18}
-                  className="cloud-save-v2__browser-tree-icon"
-                />
-                <div className="cloud-save-v2__browser-folder-copy">
-                  <strong title={remoteName}>{remoteName}</strong>
-                </div>
-              </div>
-            ) : (
-              <span className="cloud-save-v2__browser-missing-side">—</span>
-            )}
-          </div>
-        </div>
-        {children}
-      </li>
+    return renderComparisonBranchNode(
+      node,
+      isExpanded,
+      hierarchyOffset,
+      contentPaddingLeft,
+      displayRootName,
+      displayLocalDirectoryPath,
+      unresolvedStatusIcon,
+      remoteName,
+      unresolvedCustomPath?.rawPath ?? null,
+      children
     );
   };
 

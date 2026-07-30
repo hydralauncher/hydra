@@ -37,15 +37,16 @@ export const canOpenCloudSaveFileBrowser = (
 
 export type CloudSaveUploadLimitError = "snapshot-too-large" | "too-many-files";
 
+const getErrorMessage = (error: unknown) => {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  return "";
+};
+
 export const getCloudSaveUploadLimitError = (
   error: unknown
 ): CloudSaveUploadLimitError | null => {
-  const message =
-    typeof error === "string"
-      ? error
-      : error instanceof Error
-        ? error.message
-        : "";
+  const message = getErrorMessage(error);
 
   if (message.includes("cloud_save_snapshot_too_large")) {
     return "snapshot-too-large";
