@@ -304,18 +304,29 @@ export function CloudSaveV2FileTreeView({
     </li>
   );
 
-  const renderComparisonBranchNode = (
-    node: CloudSaveV2FileTreeRoot | CloudSaveV2FileTreeDirectory,
-    isExpanded: boolean,
-    hierarchyOffset: number,
-    contentPaddingLeft: string,
-    displayRootName: string,
-    displayLocalDirectoryPath: string | null,
-    unresolvedStatusIcon: ReactNode,
-    remoteName: string,
-    rebindCustomRawPath: string | null,
-    children: ReactNode
-  ) => (
+  const renderComparisonBranchNode = ({
+    node,
+    isExpanded,
+    hierarchyOffset,
+    contentPaddingLeft,
+    displayRootName,
+    displayLocalDirectoryPath,
+    unresolvedStatusIcon,
+    remoteName,
+    rebindCustomRawPath,
+    children,
+  }: {
+    node: CloudSaveV2FileTreeRoot | CloudSaveV2FileTreeDirectory;
+    isExpanded: boolean;
+    hierarchyOffset: number;
+    contentPaddingLeft: string;
+    displayRootName: string;
+    displayLocalDirectoryPath: string | null;
+    unresolvedStatusIcon: ReactNode;
+    remoteName: string;
+    rebindCustomRawPath: string | null;
+    children: ReactNode;
+  }) => (
     <li
       key={node.id}
       role="treeitem"
@@ -456,7 +467,7 @@ export function CloudSaveV2FileTreeView({
       );
     }
 
-    return renderComparisonBranchNode(
+    return renderComparisonBranchNode({
       node,
       isExpanded,
       hierarchyOffset,
@@ -465,9 +476,9 @@ export function CloudSaveV2FileTreeView({
       displayLocalDirectoryPath,
       unresolvedStatusIcon,
       remoteName,
-      unresolvedCustomPath?.rawPath ?? null,
-      children
-    );
+      rebindCustomRawPath: unresolvedCustomPath?.rawPath ?? null,
+      children,
+    });
   };
 
   return (

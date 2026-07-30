@@ -444,16 +444,25 @@ const executeAppliedSync = async ({
   );
 };
 
-const executeGameCloudSaveSync = async (
-  objectId: string,
-  shop: GameShop,
-  trigger: CloudSaveSyncTrigger,
-  emitProgress: ProgressCallback,
-  resolution: CloudSaveConflictResolution | undefined,
-  suppliedContext: Awaited<ReturnType<typeof getCloudSaveGameContext>>,
+const executeGameCloudSaveSync = async ({
+  objectId,
+  shop,
+  trigger,
+  emitProgress,
+  resolution,
+  suppliedContext,
   excludedRawPaths = new Set<string>(),
-  registeredExcludedRawPaths = new Set<string>()
-): Promise<SyncGameCloudSaveResult> => {
+  registeredExcludedRawPaths = new Set<string>(),
+}: {
+  objectId: string;
+  shop: GameShop;
+  trigger: CloudSaveSyncTrigger;
+  emitProgress: ProgressCallback;
+  resolution: CloudSaveConflictResolution | undefined;
+  suppliedContext: Awaited<ReturnType<typeof getCloudSaveGameContext>>;
+  excludedRawPaths?: Set<string>;
+  registeredExcludedRawPaths?: Set<string>;
+}): Promise<SyncGameCloudSaveResult> => {
   const assertEnvironmentCurrent = () =>
     assertCloudSaveEnvironmentCurrent(
       objectId,
@@ -567,7 +576,7 @@ const runGameCloudSaveSync = async (
   attempt = 0
 ): Promise<SyncGameCloudSaveResult> => {
   try {
-    return await executeGameCloudSaveSync(
+    return await executeGameCloudSaveSync({
       objectId,
       shop,
       trigger,
@@ -575,8 +584,8 @@ const runGameCloudSaveSync = async (
       resolution,
       suppliedContext,
       excludedRawPaths,
-      registeredExcludedRawPaths
-    );
+      registeredExcludedRawPaths,
+    });
   } catch (error) {
     if (shouldRetryCloudSaveConflict(error, attempt)) {
       return runGameCloudSaveSync(
