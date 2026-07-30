@@ -201,6 +201,13 @@ export interface CloudSaveOverview extends CloudSaveStateResult {
   warnings: UserLocationCoverage[];
 }
 
+export type CloudSaveAutomaticSyncMode = "disabled" | "legacy" | "v2";
+
+export interface CloudSaveAutomaticSyncModeChangedEvent {
+  gameId: CloudSaveGameId;
+  mode: CloudSaveAutomaticSyncMode;
+}
+
 export type CloudSaveV2FileComparisonStatus =
   | "unchanged"
   | "modified"

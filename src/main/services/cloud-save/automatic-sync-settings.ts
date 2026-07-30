@@ -4,7 +4,11 @@ import {
   gamesSublevel,
   levelKeys,
 } from "@main/level";
-import type { GameShop } from "@types";
+import type {
+  CloudSaveAutomaticSyncMode,
+  CloudSaveAutomaticSyncModeChangedEvent,
+  GameShop,
+} from "@types";
 
 import { WindowManager } from "../window-manager";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
@@ -12,13 +16,25 @@ import {
   getCloudSaveAutomaticSyncStateForMode,
   getNextCloudSaveAutomaticSyncMode,
   resolveCloudSaveAutomaticSyncMode,
-  type CloudSaveAutomaticSyncMode,
 } from "./automatic-sync-mode";
 
 const getAutomaticSyncKey = (shop: GameShop, objectId: string) =>
   levelKeys.game(shop, objectId);
 
-const notifyAutomaticSyncModeChanged = () => {
+const notifyAutomaticSyncModeChanged = (
+  objectId: string,
+  shop: GameShop,
+  mode: CloudSaveAutomaticSyncMode
+) => {
+  const event: CloudSaveAutomaticSyncModeChangedEvent = {
+    gameId: { objectId, shop },
+    mode,
+  };
+
+  WindowManager.sendToAppWindows(
+    "on-cloud-save-automatic-sync-mode-changed",
+    event
+  );
   WindowManager.sendToAppWindows("on-library-batch-complete");
 };
 
@@ -69,7 +85,7 @@ const persistCloudSaveAutomaticSyncMode = async (
   }
 
   await batch.write();
-  notifyAutomaticSyncModeChanged();
+  notifyAutomaticSyncModeChanged(objectId, shop, mode);
 };
 
 export const getCloudSaveAutomaticSyncMode = async (
@@ -93,7 +109,7 @@ export const getCloudSaveAutomaticSyncMode = async (
       { sublevel: gamesSublevel }
     );
     await batch.write();
-    notifyAutomaticSyncModeChanged();
+    notifyAutomaticSyncModeChanged(objectId, shop, mode);
   }
 
   return mode;
