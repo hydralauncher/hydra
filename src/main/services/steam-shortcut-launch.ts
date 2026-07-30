@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { spawn } from "node:child_process";
 import { shell } from "electron";
 
 import type { Game } from "@types";
@@ -9,16 +8,15 @@ import { logger } from "./logger";
 import {
   composeSteamShortcut,
   generateSteamShortcutAppId,
-  getSteamLocation,
   getSteamShortcuts,
   getSteamUsersIds,
   writeSteamShortcuts,
 } from "./steam";
+import { detectSteamClientUsage } from "./steam-client-compat";
 import {
-  detectSteamClientUsage,
-  isSteamClientRunning,
-} from "./steam-client-compat";
-import { resolveSteamBinaryPath } from "./steam-library";
+  resolveSteamInstallation,
+  type SteamInstallation,
+} from "./steam-installation";
 
 const CONFIG_FILE = path.join("config", "config.vdf");
 
@@ -222,14 +220,21 @@ const ensureCompatToolMapping = async (
   return true;
 };
 
-const ensureShortcut = async (game: Game, executablePath: string) => {
+const ensureShortcut = async (
+  installation: SteamInstallation,
+  game: Game,
+  executablePath: string
+) => {
   const shortcutAppId = generateSteamShortcutAppId(executablePath, game.title);
   const launchOptions = resolveShortcutLaunchOptions(executablePath);
 
   let changed = false;
 
-  for (const steamUserId of await getSteamUsersIds()) {
-    const shortcuts = await getSteamShortcuts(steamUserId);
+  for (const steamUserId of await getSteamUsersIds(installation.rootPath)) {
+    const shortcuts = await getSteamShortcuts(
+      steamUserId,
+      installation.rootPath
+    );
     const existing = shortcuts.find(
       (shortcut) => shortcut.appid === shortcutAppId
     );
@@ -246,52 +251,38 @@ const ensureShortcut = async (game: Game, executablePath: string) => {
       );
     }
 
-    await writeSteamShortcuts(steamUserId, shortcuts);
+    await writeSteamShortcuts(steamUserId, shortcuts, installation.rootPath);
     changed = true;
   }
 
   return { shortcutAppId, changed };
 };
 
-const shutdownSteamClient = async () => {
-  const steamBinaryPath = resolveSteamBinaryPath();
-
-  if (!steamBinaryPath) return false;
-
-  spawn(steamBinaryPath, ["-shutdown"], {
-    detached: true,
-    stdio: "ignore",
-  }).unref();
+const shutdownSteamClient = async (installation: SteamInstallation) => {
+  if (!installation.spawnSteam(["-shutdown"])) return false;
 
   const deadline = performance.now() + STEAM_SHUTDOWN_TIMEOUT_MS;
 
   while (performance.now() < deadline) {
     await wait(STEAM_POLL_INTERVAL_MS);
 
-    if (!isSteamClientRunning()) return true;
+    if (!installation.isRunning()) return true;
   }
 
   return false;
 };
 
-const startSteamClient = async () => {
-  if (isSteamClientRunning()) return true;
+const startSteamClient = async (installation: SteamInstallation) => {
+  if (installation.isRunning()) return true;
 
-  const steamBinaryPath = resolveSteamBinaryPath();
-
-  if (!steamBinaryPath) return false;
-
-  spawn(steamBinaryPath, ["-silent"], {
-    detached: true,
-    stdio: "ignore",
-  }).unref();
+  if (!installation.spawnSteam(["-silent"])) return false;
 
   const deadline = performance.now() + STEAM_STARTUP_TIMEOUT_MS;
 
   while (performance.now() < deadline) {
     await wait(STEAM_POLL_INTERVAL_MS);
 
-    if (isSteamClientRunning()) {
+    if (installation.isRunning()) {
       await wait(STEAM_SETTLE_MS);
       return true;
     }
@@ -305,24 +296,29 @@ export const launchThroughSteamShortcut = async (
   executablePath: string,
   onStatus: (status: "preparing" | "restarting" | "starting") => void
 ): Promise<string | null> => {
-  const steamInstallPath = await getSteamLocation().catch(() => null);
+  const installation = await resolveSteamInstallation();
 
-  if (!steamInstallPath) return null;
+  if (!installation) return null;
 
-  if (!(await getSteamUsersIds()).length) {
+  if (!(await getSteamUsersIds(installation.rootPath)).length) {
     logger.warn(
-      "No Steam user was found, cannot launch the game through a shortcut"
+      "No Steam user was found, cannot launch the game through a shortcut",
+      { rootPath: installation.rootPath }
     );
     return null;
   }
 
-  const wasRunning = isSteamClientRunning();
+  const wasRunning = installation.isRunning();
 
   onStatus("preparing");
 
-  const { shortcutAppId, changed } = await ensureShortcut(game, executablePath);
+  const { shortcutAppId, changed } = await ensureShortcut(
+    installation,
+    game,
+    executablePath
+  );
   const mappingChanged = await ensureCompatToolMapping(
-    steamInstallPath,
+    installation.rootPath,
     shortcutAppId
   );
 
@@ -331,18 +327,18 @@ export const launchThroughSteamShortcut = async (
   if (needsRestart && wasRunning) {
     onStatus("restarting");
 
-    if (!(await shutdownSteamClient())) {
+    if (!(await shutdownSteamClient(installation))) {
       logger.warn("Could not close the Steam client to apply the shortcut");
       return null;
     }
 
-    await ensureShortcut(game, executablePath);
-    await ensureCompatToolMapping(steamInstallPath, shortcutAppId);
+    await ensureShortcut(installation, game, executablePath);
+    await ensureCompatToolMapping(installation.rootPath, shortcutAppId);
   }
 
   onStatus("starting");
 
-  if (!(await startSteamClient())) {
+  if (!(await startSteamClient(installation))) {
     logger.warn("Could not start the Steam client for the shortcut");
     return null;
   }
