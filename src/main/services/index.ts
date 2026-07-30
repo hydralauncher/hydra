@@ -3,6 +3,7 @@ export * from "./steam";
 export * from "./steam-250";
 export * from "./steam-client-compat";
 export * from "./steam-library";
+export * from "./steam-shortcut-launch";
 export * from "./window-manager";
 export * from "./download";
 export * from "./download-layout-state";

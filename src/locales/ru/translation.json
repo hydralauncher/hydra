@@ -1599,7 +1599,9 @@
     "preflight_installing": "Установка зависимостей",
     "preflight_installing_detail": "{{detail}}",
     "starting_steam": "Запуск Steam",
-    "steam_start_failed": "Steam не запустился"
+    "steam_start_failed": "Steam не запустился",
+    "preparing_steam": "Настройка Steam",
+    "restarting_steam": "Перезапуск Steam"
   },
   "notifications_page": {
     "title": "Уведомления",

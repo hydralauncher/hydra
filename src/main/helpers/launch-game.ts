@@ -15,7 +15,9 @@ import {
   launchedGamePids,
   resolveSteamClientCompatEnv,
   resolveSteamAppId,
+  detectSteamClientUsage,
   launchThroughSteam,
+  launchThroughSteamShortcut,
   steamLaunchedGames,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
@@ -353,6 +355,12 @@ const handOverToSteam = async (
   return false;
 };
 
+const notifySteamStatus = (status: string) => {
+  WindowManager.gameLauncherWindow?.webContents.send("steam-client-progress", {
+    status,
+  });
+};
+
 const launchOnLinux = async (
   gameKey: string,
   objectId: string,
@@ -369,6 +377,19 @@ const launchOnLinux = async (
   }
 
   steamLaunchedGames.delete(gameKey);
+
+  if (game && isWindowsExecutable(parsedPath)) {
+    const { hasBundledEmulator } = detectSteamClientUsage(parsedPath);
+
+    if (
+      hasBundledEmulator &&
+      (await launchThroughSteamShortcut(game, parsedPath, notifySteamStatus))
+    ) {
+      steamLaunchedGames.add(gameKey);
+      PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+      return null;
+    }
+  }
 
   if (isWindowsExecutable(parsedPath)) {
     const launched = await launchWindowsBinaryOnLinux(

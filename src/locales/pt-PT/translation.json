@@ -1216,7 +1216,9 @@
     "preflight_installing": "A instalar dependências",
     "preflight_installing_detail": "{{detail}}",
     "starting_steam": "A iniciar a Steam",
-    "steam_start_failed": "A Steam não iniciou"
+    "steam_start_failed": "A Steam não iniciou",
+    "preparing_steam": "A configurar a Steam",
+    "restarting_steam": "A reiniciar a Steam"
   },
   "friends_window": {
     "title": "Amigos",
