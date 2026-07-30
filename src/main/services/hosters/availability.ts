@@ -1,5 +1,6 @@
 import axios from "axios";
 import { logger } from "../logger";
+import { HydraApi } from "../hydra-api";
 import {
   getCheckableHosterUris,
   HOSTER_AVAILABILITY_MAX_URIS_PER_REQUEST,
@@ -64,13 +65,13 @@ export class HosterAvailabilityApi {
       );
 
       try {
-        const response = await axios.post<AvailabilityResponse>(
-          `${import.meta.env.MAIN_VITE_NIMBUS_API_URL}/hosters/availability`,
+        const response = await HydraApi.post<AvailabilityResponse>(
+          "/hosters/availability",
           { urls: batch },
-          { timeout: 15_000 }
+          { needsAuth: false }
         );
 
-        for (const result of response.data?.results ?? []) {
+        for (const result of response?.results ?? []) {
           if (
             typeof result?.url !== "string" ||
             typeof result?.available !== "boolean"
