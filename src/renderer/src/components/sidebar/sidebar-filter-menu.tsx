@@ -20,6 +20,9 @@ import {
 import type { SortOption } from "@renderer/pages/library/filter-options";
 import "./sidebar-filter-menu.scss";
 
+const MENU_SIDE_OFFSET = 8;
+const MENU_COLLISION_PADDING = 16;
+
 interface SidebarFilterMenuProps {
   category: LibraryCategory;
   onCategoryChange: (category: LibraryCategory) => void;
@@ -135,8 +138,8 @@ export function SidebarFilterMenu({
         <DropdownMenuPrimitive.Content
           side="right"
           align="start"
-          sideOffset={8}
-          collisionPadding={16}
+          sideOffset={MENU_SIDE_OFFSET}
+          collisionPadding={MENU_COLLISION_PADDING}
           className="sidebar-filter-menu__content"
           onCloseAutoFocus={(event) => {
             if (pointerInteractionRef.current) {

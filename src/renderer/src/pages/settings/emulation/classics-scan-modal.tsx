@@ -46,7 +46,7 @@ export function ClassicsScanModal() {
           />
         </div>
 
-        <div className="setup-modal__footer">
+        <div className="setup-modal__footer setup-modal__footer--single-line">
           <div className="setup-modal__footer-side setup-modal__footer-side--end">
             {scan.active && (
               <>
