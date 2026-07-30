@@ -779,6 +779,9 @@ declare global {
         }
       ) => Promise<T>;
     };
+    checkHostersAvailability: (
+      uris: string[]
+    ) => Promise<Record<string, boolean>>;
     canInstallCommonRedist: () => Promise<boolean>;
     installCommonRedist: () => Promise<void>;
     installHydraDeckyPlugin: () => Promise<{

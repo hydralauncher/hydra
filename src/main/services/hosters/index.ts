@@ -1,3 +1,4 @@
+export * from "./availability";
 export * from "./gofile";
 export * from "./datanodes";
 export * from "./mediafire";

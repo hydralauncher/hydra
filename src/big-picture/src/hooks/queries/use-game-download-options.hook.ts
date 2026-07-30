@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { IS_DESKTOP } from "../../constants";
 import type { DownloadSource, Game, GameRepack } from "@types";
 import { orderBy } from "lodash-es";
+import { applyHosterAvailability, getCheckableHosterUris } from "@shared";
 
 export type DownloadOptionsEmptyStateReason =
   | "no-configured-sources"
@@ -19,7 +20,7 @@ function getKnownGameSourcesEmptyStateReason(
 }
 
 interface DownloadStateSetters {
-  setDownloadOptions: (v: GameRepack[]) => void;
+  setDownloadOptions: React.Dispatch<React.SetStateAction<GameRepack[]>>;
   setLocalDownloadSources: (v: DownloadSource[]) => void;
   setIsCheckingSources: (v: boolean) => void;
   setIsLoading: (v: boolean) => void;
@@ -111,6 +112,33 @@ function setNoDownloadOptionsState(
   });
 }
 
+async function refreshHosterAvailability(
+  downloadOptions: GameRepack[],
+  signal: { cancelled: boolean },
+  setters: DownloadStateSetters
+) {
+  const uris = getCheckableHosterUris(
+    downloadOptions.flatMap((option) =>
+      Array.isArray(option.uris) ? option.uris : []
+    )
+  );
+
+  if (uris.length === 0) return;
+
+  try {
+    const availability =
+      await globalThis.window.electron.checkHostersAvailability(uris);
+
+    applyIfNotCancelled(signal, () => {
+      setters.setDownloadOptions((prev) =>
+        applyHosterAvailability(prev, availability)
+      );
+    });
+  } catch (error) {
+    console.error("Failed to check hosters availability:", error);
+  }
+}
+
 async function fetchDownloadOptions(
   game: Pick<Game, "objectId" | "shop">,
   signal: { cancelled: boolean },
@@ -163,6 +191,10 @@ async function fetchDownloadOptions(
     );
 
     setDownloadOptionsSuccessState(signal, setters, options);
+
+    if (Array.isArray(options) && options.length > 0) {
+      await refreshHosterAvailability(options, signal, setters);
+    }
   } catch {
     setNoDownloadOptionsState(signal, setters);
   }

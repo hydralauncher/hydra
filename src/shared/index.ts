@@ -16,6 +16,7 @@ import {
 import { isArchiveOrgFileUri } from "./archive-org";
 import { charMap } from "./char-map";
 import { Downloader } from "./constants";
+import { VIKINGFILE_URI_PREFIXES } from "./hoster-availability";
 import { format } from "date-fns";
 import { AchievementNotificationInfo } from "@types";
 
@@ -24,6 +25,7 @@ export * from "./constants";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./download-directories";
+export * from "./hoster-availability";
 export * from "./html-sanitizer";
 export * from "./language-flags";
 export * from "./use-hls-video";
@@ -143,10 +145,7 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://fuckingfast.co")) {
     return [Downloader.FuckingFast];
   }
-  if (
-    uri.startsWith("https://vikingfile.com") ||
-    uri.startsWith("https://vik1ngfile.site")
-  ) {
+  if (VIKINGFILE_URI_PREFIXES.some((prefix) => uri.startsWith(prefix))) {
     return [Downloader.VikingFile];
   }
   if (uri.startsWith("https://www.rootz.so")) {

@@ -1030,6 +1030,8 @@ contextBridge.exposeInMainWorld("electron", {
         },
       }),
   },
+  checkHostersAvailability: (uris: string[]) =>
+    ipcRenderer.invoke("checkHostersAvailability", uris),
   canInstallCommonRedist: () => ipcRenderer.invoke("canInstallCommonRedist"),
   installCommonRedist: () => ipcRenderer.invoke("installCommonRedist"),
   installHydraDeckyPlugin: () => ipcRenderer.invoke("installHydraDeckyPlugin"),
