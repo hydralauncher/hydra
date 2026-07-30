@@ -109,7 +109,7 @@ export function SettingsContextProvider({
   const defaultAppearanceAuthorName = searchParams.get("authorName");
 
   useEffect(() => {
-    if (sourceUrl) setCurrentCategoryId("downloads");
+    if (sourceUrl) setCurrentCategoryId("download_sources");
   }, [sourceUrl]);
 
   useEffect(() => {
