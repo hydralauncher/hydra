@@ -4,7 +4,7 @@ export const getCloudSaveErrorDetails = (error: unknown) => {
       ? error.code
       : undefined;
   const errorMessage = error instanceof Error ? error.message : "Unknown error";
-  const nativeErrorCode = errorMessage.match(/\bcloud_save_[a-z0-9_]+\b/)?.[0];
+  const nativeErrorCode = /\bcloud_save_[a-z0-9_]+\b/.exec(errorMessage)?.[0];
   const errorCode =
     typeof rawErrorCode === "string" || typeof rawErrorCode === "number"
       ? rawErrorCode

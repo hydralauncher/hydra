@@ -34,13 +34,10 @@ const indexUnique = <T extends SnapshotFile>(files: T[]) => {
 const sameBytes = (
   left: Pick<SnapshotFile, "hash" | "sizeBytes"> | undefined,
   right: Pick<SnapshotFile, "hash" | "sizeBytes"> | undefined
-) =>
-  Boolean(
-    left &&
-      right &&
-      left.hash === right.hash &&
-      left.sizeBytes === right.sizeBytes
-  );
+) => {
+  if (!left || !right) return false;
+  return left.hash === right.hash && left.sizeBytes === right.sizeBytes;
+};
 
 const mergeVariantMetadata = (
   local: SnapshotVariant[],

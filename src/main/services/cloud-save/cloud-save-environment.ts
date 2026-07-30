@@ -216,6 +216,18 @@ const persistMarker = async (
   return { markerWritten, storedLocally };
 };
 
+const getPrefixIdentityMode = ({
+  markerWritten,
+  storedLocally,
+}: {
+  markerWritten: boolean;
+  storedLocally: boolean;
+}) => {
+  if (markerWritten) return "marker" as const;
+  if (storedLocally) return "local-fallback" as const;
+  return "session" as const;
+};
+
 const ensurePrefixGeneration = async (
   prefixPath: string,
   dependencies: PrefixGenerationDependencies = {}
@@ -262,7 +274,7 @@ const ensurePrefixGeneration = async (
     }
 
     const volatileGeneration = volatilePrefixGenerations.get(key);
-    if (volatileGeneration && volatileGeneration.fingerprint === fingerprint) {
+    if (volatileGeneration?.fingerprint === fingerprint) {
       const persisted = await persistMarker(
         prefixPath,
         volatileGeneration.generationId,
@@ -271,11 +283,7 @@ const ensurePrefixGeneration = async (
       );
       return {
         generationId: volatileGeneration.generationId,
-        prefixIdentityMode: persisted.markerWritten
-          ? ("marker" as const)
-          : persisted.storedLocally
-            ? ("local-fallback" as const)
-            : ("session" as const),
+        prefixIdentityMode: getPrefixIdentityMode(persisted),
       };
     } else if (volatileGeneration) {
       volatilePrefixGenerations.delete(key);
@@ -333,11 +341,7 @@ export const rotateCloudSavePrefixGeneration = async (
     const durable = persisted.markerWritten || persisted.storedLocally;
     return {
       generationId,
-      prefixIdentityMode: persisted.markerWritten
-        ? "marker"
-        : persisted.storedLocally
-          ? "local-fallback"
-          : "session",
+      prefixIdentityMode: getPrefixIdentityMode(persisted),
       durable,
     };
   });

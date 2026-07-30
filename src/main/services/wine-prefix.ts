@@ -39,7 +39,8 @@ export const resolveWinePrefixPath = async (
     const canonicalBase = await fs.promises
       .realpath(existingPath)
       .catch(() => existingPath);
-    return path.join(canonicalBase, ...missingSegments.reverse());
+    missingSegments.reverse();
+    return path.join(canonicalBase, ...missingSegments);
   }
 };
 

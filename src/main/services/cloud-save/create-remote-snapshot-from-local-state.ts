@@ -94,31 +94,40 @@ export const createRemoteSnapshotFromLocalState = async (
   shop: GameShop,
   onProgress?: ProgressCallback,
   localSnapshotContext?: LocalGameSnapshotContext,
-  options: CreateRemoteSnapshotOptions = { baseVersion: 0 }
+  options?: CreateRemoteSnapshotOptions
 ): Promise<RemoteGameSnapshot | null> => {
+  let resolvedOptions = options;
+  if (resolvedOptions === undefined) {
+    resolvedOptions = { baseVersion: 0 };
+  }
   const context =
     localSnapshotContext ??
     (await buildLocalGameSnapshotContext(objectId, shop));
-  const variants = options.variants ?? context.variants;
-  const files: SnapshotFile[] = options.files ?? context.files;
+  const variants = resolvedOptions.variants ?? context.variants;
+  const files: SnapshotFile[] = resolvedOptions.files ?? context.files;
   if (files.length === 0) return null;
   const expectedAggregateHash =
-    options.aggregateHash ??
+    resolvedOptions.aggregateHash ??
     NativeAddon.buildSnapshotAggregateHash({ variants, files });
 
   let committed: CommitSnapshotResponse | null = null;
   for (let prepareAttempt = 0; prepareAttempt < 2; prepareAttempt += 1) {
     try {
-      await options.assertEnvironmentCurrent?.();
+      await resolvedOptions.assertEnvironmentCurrent?.();
       const upload = await uploadLocalGameSnapshot(
         objectId,
         shop,
         onProgress,
         context,
-        { ...options, variants, files, aggregateHash: expectedAggregateHash }
+        {
+          ...resolvedOptions,
+          variants,
+          files,
+          aggregateHash: expectedAggregateHash,
+        }
       );
       if (!upload.pendingSnapshotId) return null;
-      await options.assertEnvironmentCurrent?.();
+      await resolvedOptions.assertEnvironmentCurrent?.();
       committed = await commitPendingSnapshot(upload.pendingSnapshotId);
       break;
     } catch (error) {
@@ -134,9 +143,9 @@ export const createRemoteSnapshotFromLocalState = async (
     0
   );
   if (
-    committed.version !== options.baseVersion + 1 ||
-    (options.expectedSnapshotId &&
-      committed.snapshotId !== options.expectedSnapshotId) ||
+    committed.version !== resolvedOptions.baseVersion + 1 ||
+    (resolvedOptions.expectedSnapshotId &&
+      committed.snapshotId !== resolvedOptions.expectedSnapshotId) ||
     committed.fileCount !== files.length ||
     committed.totalSizeBytes !== expectedTotalSize ||
     committed.aggregateHash !== expectedAggregateHash
@@ -144,8 +153,8 @@ export const createRemoteSnapshotFromLocalState = async (
     throw new Error("Committed Cloud Save snapshot is inconsistent");
   }
 
-  if (options.updateAnchor !== false) {
-    await options.assertEnvironmentCurrent?.();
+  if (resolvedOptions.updateAnchor !== false) {
+    await resolvedOptions.assertEnvironmentCurrent?.();
     await saveCloudSaveSyncAnchor(shop, objectId, context.environmentId, {
       schemaVersion: 4,
       environmentId: context.environmentId,
@@ -159,8 +168,10 @@ export const createRemoteSnapshotFromLocalState = async (
         hash: file.hash,
         sizeBytes: file.sizeBytes,
       })),
-      unresolvedRemoteEntryIds: (options.unresolvedRemoteEntryIds ?? []).filter(
-        (entryId) => files.some((file) => cloudSaveFileKey(file) === entryId)
+      unresolvedRemoteEntryIds: (
+        resolvedOptions.unresolvedRemoteEntryIds ?? []
+      ).filter((entryId) =>
+        files.some((file) => cloudSaveFileKey(file) === entryId)
       ),
       updatedAt: new Date().toISOString(),
     });

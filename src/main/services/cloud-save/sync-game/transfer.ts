@@ -20,9 +20,13 @@ export const uploadLocalState = async (
   shop: GameShop,
   localSnapshotContext: LocalGameSnapshotContext,
   emitProgress: ProgressCallback,
-  options: CreateRemoteSnapshotOptions = { baseVersion: 0 },
+  options?: CreateRemoteSnapshotOptions,
   assertEnvironmentCurrent?: () => Promise<void>
 ) => {
+  let resolvedOptions = options;
+  if (resolvedOptions === undefined) {
+    resolvedOptions = { baseVersion: 0 };
+  }
   emitProgress({
     gameId: { objectId, shop },
     stage: "uploading",
@@ -41,7 +45,7 @@ export const uploadLocalState = async (
       }),
     localSnapshotContext,
     {
-      ...options,
+      ...resolvedOptions,
       assertEnvironmentCurrent,
     }
   );

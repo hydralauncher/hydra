@@ -37,14 +37,19 @@ export const uploadLocalGameSnapshot = async (
   shop: GameShop,
   onProgress?: ProgressCallback,
   localSnapshotContext?: LocalGameSnapshotContext,
-  options: PrepareLocalSnapshotOptions = { baseVersion: 0 }
+  options?: PrepareLocalSnapshotOptions
 ): Promise<UploadLocalGameSnapshotResult> => {
+  let resolvedOptions = options;
+  if (resolvedOptions === undefined) {
+    resolvedOptions = { baseVersion: 0 };
+  }
   const context =
     localSnapshotContext ??
     (await buildLocalGameSnapshotContext(objectId, shop));
-  const proposalVariants = options.variants ?? context.variants;
-  const proposalFiles = options.files ?? context.files;
-  const aggregateHash = options.aggregateHash ?? context.aggregateHash;
+  const proposalVariants = resolvedOptions.variants ?? context.variants;
+  const proposalFiles = resolvedOptions.files ?? context.files;
+  const aggregateHash =
+    resolvedOptions.aggregateHash ?? context.aggregateHash;
   if (proposalFiles.length === 0) {
     return { pendingSnapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
   }
@@ -58,7 +63,7 @@ export const uploadLocalGameSnapshot = async (
         platform: context.pathContext.platform,
         hostname: os.hostname() || undefined,
         snapshotHash: aggregateHash,
-        baseVersion: options.baseVersion,
+        baseVersion: resolvedOptions.baseVersion,
         variants: proposalVariants,
         files: proposalFiles,
       }),
@@ -102,9 +107,8 @@ export const uploadLocalGameSnapshot = async (
       }
       source ??= sourceByBlob.get(blobKey(proposal));
       if (
-        !source ||
-        source.hash !== proposal.hash ||
-        source.sizeBytes !== proposal.sizeBytes
+        source?.hash !== proposal.hash ||
+        source?.sizeBytes !== proposal.sizeBytes
       ) {
         throw new Error(`Missing local upload source for ${key}`);
       }
