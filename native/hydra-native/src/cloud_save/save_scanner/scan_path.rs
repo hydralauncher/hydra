@@ -409,7 +409,6 @@ pub fn scan_resolved_path_with_capture(
     Ok(scanned_by_root.into_values().collect())
 }
 
-#[cfg(test)]
 pub fn scan_resolved_path(
     resolved_path: &str,
     case_sensitive: bool,
