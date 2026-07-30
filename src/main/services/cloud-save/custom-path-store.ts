@@ -1,26 +1,28 @@
 import { createHash } from "node:crypto";
 
 import { cloudSaveCustomPathsSublevel, db, levelKeys } from "@main/level";
+import { logger } from "@main/services/logger";
 import type {
   CloudSaveCustomPath,
+  CloudSaveCustomPathBindings,
   CloudSaveRule,
   GameShop,
   User,
 } from "@types";
 
 import {
-  bindCloudSaveCustomPathToLocalPath,
-  type CloudSaveCustomPathContext,
   cloudSaveCustomPathStorageKey,
-  decodeCloudSaveCustomPath,
   getCurrentCloudSaveCustomPathContext,
 } from "./custom-path";
+import {
+  applyCloudSaveCustomPathLocalPathMigrations,
+  type StoredCloudSaveCustomPath,
+} from "./custom-path-binding-state";
+import { resolveStoredCloudSaveCustomPathBindings } from "./custom-path-binding-resolver";
+import { CloudSaveOperationCoordinator } from "./operation-coordinator";
 
-interface StoredCloudSaveCustomPath {
-  rawPath: string;
-  storeUserId?: string;
-  localPath?: string;
-}
+const storeMutationCoordinator = new CloudSaveOperationCoordinator<void>();
+let storeMutationId = 0;
 
 const getCurrentUserId = async () => {
   const user = await db.get<string, User>(levelKeys.user, {
@@ -69,48 +71,16 @@ const normalizeStoredEntries = (
   );
 };
 
-const decodeStoredPath = (
-  stored: StoredCloudSaveCustomPath,
-  context: CloudSaveCustomPathContext
-) => {
-  if (
-    !stored.localPath &&
-    stored.rawPath.includes("<storeUserId>") &&
-    !stored.storeUserId &&
-    (context.storeUserIds?.length ?? 0) !== 1
-  ) {
-    throw new Error("cloud_save_custom_path_store_user_ambiguous");
-  }
-  const bindingContext = {
-    ...context,
-    preferredStoreUserId:
-      stored.storeUserId ??
-      (stored.rawPath.includes("<storeUserId>")
-        ? context.storeUserIds?.[0]
-        : undefined),
-  };
-  return stored.localPath
-    ? bindCloudSaveCustomPathToLocalPath(
-        stored.rawPath,
-        stored.localPath,
-        bindingContext
-      )
-    : decodeCloudSaveCustomPath(stored.rawPath, bindingContext);
-};
+const getStoredEntriesByKey = async (key: string) =>
+  normalizeStoredEntries((await cloudSaveCustomPathsSublevel.get(key)) ?? []);
 
 const getStoredEntries = async (shop: GameShop, objectId: string) =>
-  normalizeStoredEntries(
-    (await cloudSaveCustomPathsSublevel.get(
-      await getStorageKey(shop, objectId)
-    )) ?? []
-  );
+  getStoredEntriesByKey(await getStorageKey(shop, objectId));
 
-const putStoredEntries = async (
-  shop: GameShop,
-  objectId: string,
+const putStoredEntriesByKey = async (
+  key: string,
   entries: StoredCloudSaveCustomPath[]
 ) => {
-  const key = await getStorageKey(shop, objectId);
   const normalized = normalizeStoredEntries(entries);
   if (normalized.length === 0) {
     await cloudSaveCustomPathsSublevel.del(key).catch(() => undefined);
@@ -119,40 +89,54 @@ const putStoredEntries = async (
   }
 };
 
-export const getCloudSaveCustomPaths = async (
-  shop: GameShop,
-  objectId: string,
-  context = getCurrentCloudSaveCustomPathContext()
-): Promise<CloudSaveCustomPath[]> => {
-  const customPaths: CloudSaveCustomPath[] = [];
-  for (const stored of await getStoredEntries(shop, objectId)) {
-    try {
-      customPaths.push({
-        ...decodeStoredPath(stored, context),
-        ...(stored.storeUserId ? { storeUserId: stored.storeUserId } : {}),
-      });
-    } catch {
-      // Keep unavailable bindings in storage. A missing active Wine profile
-      // or store account must not make another registration erase them.
+const mutateStoredEntriesByKey = (
+  key: string,
+  mutation: (
+    entries: StoredCloudSaveCustomPath[]
+  ) => StoredCloudSaveCustomPath[]
+) =>
+  storeMutationCoordinator.run(
+    key,
+    `custom-path-store:${++storeMutationId}`,
+    async () => {
+      const entries = await getStoredEntriesByKey(key);
+      await putStoredEntriesByKey(key, mutation(entries));
     }
-  }
-  return customPaths;
-};
+  );
 
-export const getUnavailableCloudSaveCustomPathRawPaths = async (
+const mutateStoredEntries = async (
+  shop: GameShop,
+  objectId: string,
+  mutation: (
+    entries: StoredCloudSaveCustomPath[]
+  ) => StoredCloudSaveCustomPath[]
+) => mutateStoredEntriesByKey(await getStorageKey(shop, objectId), mutation);
+
+export const getCloudSaveCustomPathBindings = async (
   shop: GameShop,
   objectId: string,
   context = getCurrentCloudSaveCustomPathContext()
-) => {
-  const unavailable: string[] = [];
-  for (const stored of await getStoredEntries(shop, objectId)) {
-    try {
-      decodeStoredPath(stored, context);
-    } catch {
-      unavailable.push(stored.rawPath);
-    }
+): Promise<CloudSaveCustomPathBindings> => {
+  const key = await getStorageKey(shop, objectId);
+  const entries = await getStoredEntriesByKey(key);
+  const { bindings, migrations } = resolveStoredCloudSaveCustomPathBindings(
+    entries,
+    context
+  );
+
+  if (migrations.length > 0) {
+    await mutateStoredEntriesByKey(key, (currentEntries) =>
+      applyCloudSaveCustomPathLocalPathMigrations(currentEntries, migrations)
+    ).catch((error: unknown) => {
+      logger.warn("[Cloud Save] Failed to migrate custom path bindings", {
+        shop,
+        objectId,
+        error,
+      });
+    });
   }
-  return unavailable;
+
+  return bindings;
 };
 
 export const saveCloudSaveCustomPaths = async (
@@ -160,9 +144,7 @@ export const saveCloudSaveCustomPaths = async (
   objectId: string,
   customPaths: CloudSaveCustomPath[]
 ) =>
-  putStoredEntries(
-    shop,
-    objectId,
+  mutateStoredEntries(shop, objectId, () =>
     customPaths.map((customPath) => ({
       rawPath: customPath.rawPath,
       storeUserId: customPath.storeUserId,
@@ -175,21 +157,18 @@ export const registerCloudSaveCustomPaths = async (
   objectId: string,
   customPaths: CloudSaveCustomPath[]
 ) => {
-  const byRawPath = new Map(
-    (await getStoredEntries(shop, objectId)).map((entry) => [
-      entry.rawPath,
-      entry,
-    ])
-  );
-  for (const { rawPath, storeUserId, path: localPath } of customPaths) {
-    const existing = byRawPath.get(rawPath);
-    byRawPath.set(rawPath, {
-      rawPath,
-      storeUserId: storeUserId ?? existing?.storeUserId,
-      localPath: localPath ?? existing?.localPath,
-    });
-  }
-  await putStoredEntries(shop, objectId, [...byRawPath.values()]);
+  await mutateStoredEntries(shop, objectId, (entries) => {
+    const byRawPath = new Map(entries.map((entry) => [entry.rawPath, entry]));
+    for (const { rawPath, storeUserId, path: localPath } of customPaths) {
+      const existing = byRawPath.get(rawPath);
+      byRawPath.set(rawPath, {
+        rawPath,
+        storeUserId: storeUserId ?? existing?.storeUserId,
+        localPath: localPath ?? existing?.localPath,
+      });
+    }
+    return [...byRawPath.values()];
+  });
 };
 
 export const isCloudSaveCustomPathRegistered = async (
@@ -206,16 +185,12 @@ export const unregisterCloudSaveCustomPath = async (
   objectId: string,
   rawPath: string
 ) => {
-  const entries = await getStoredEntries(shop, objectId);
-  if (!entries.some((entry) => entry.rawPath === rawPath)) {
-    throw new Error("cloud_save_custom_path_not_registered");
-  }
-
-  await putStoredEntries(
-    shop,
-    objectId,
-    entries.filter((entry) => entry.rawPath !== rawPath)
-  );
+  await mutateStoredEntries(shop, objectId, (entries) => {
+    if (!entries.some((entry) => entry.rawPath === rawPath)) {
+      throw new Error("cloud_save_custom_path_not_registered");
+    }
+    return entries.filter((entry) => entry.rawPath !== rawPath);
+  });
 };
 
 export const customPathToCloudSaveRule = (
@@ -237,6 +212,6 @@ export const getCloudSaveCustomPathRules = async (
   objectId: string,
   context = getCurrentCloudSaveCustomPathContext()
 ) =>
-  (await getCloudSaveCustomPaths(shop, objectId, context)).map(
+  (await getCloudSaveCustomPathBindings(shop, objectId, context)).ready.map(
     customPathToCloudSaveRule
   );

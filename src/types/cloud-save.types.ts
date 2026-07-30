@@ -33,6 +33,32 @@ export interface CloudSaveCustomPath {
   storeUserId?: string;
 }
 
+export type CloudSaveUnresolvedCustomPathState =
+  | "recoverable"
+  | "needs-confirmation"
+  | "invalid";
+
+export type CloudSaveUnresolvedCustomPathReason =
+  | "environment-unavailable"
+  | "account-selection-required"
+  | "legacy"
+  | "foreign-platform"
+  | "unregistered"
+  | "invalid";
+
+export interface CloudSaveUnresolvedCustomPath {
+  rawPath: string;
+  pathHint: string | null;
+  state: CloudSaveUnresolvedCustomPathState;
+  reason: CloudSaveUnresolvedCustomPathReason;
+  registered: boolean;
+}
+
+export interface CloudSaveCustomPathBindings {
+  ready: CloudSaveCustomPath[];
+  unresolved: CloudSaveUnresolvedCustomPath[];
+}
+
 export interface SelectCloudSaveCustomPathResult {
   canceled: boolean;
   customPath?: CloudSaveCustomPath;
@@ -301,7 +327,7 @@ export interface CloudSaveV2FileDetails {
   local: CloudSaveV2LocalFileSource;
   activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
   customPaths: CloudSaveCustomPath[];
-  legacyCustomRawPaths: string[];
+  unresolvedCustomPaths: CloudSaveUnresolvedCustomPath[];
   comparisons: CloudSaveV2FileComparison[];
   variants: Array<{
     variantId: string;

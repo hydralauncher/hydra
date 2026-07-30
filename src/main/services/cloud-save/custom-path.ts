@@ -413,8 +413,8 @@ const portablePathFromAbsolute = (
   return absolutePath;
 };
 
-export const isLegacyCloudSaveCustomPathRawPath = (rawPath: string) => {
-  if (!rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)) return false;
+export const getLegacyCloudSaveCustomPathPathHint = (rawPath: string) => {
+  if (!rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)) return null;
 
   const encoded = rawPath.slice(CLOUD_SAVE_CUSTOM_PATH_PREFIX.length);
   const platformEntry = (
@@ -422,22 +422,26 @@ export const isLegacyCloudSaveCustomPathRawPath = (rawPath: string) => {
       [CloudSaveCustomPathPlatform, string]
     >
   ).find(([, marker]) => encoded.startsWith(marker));
-  if (!platformEntry) return false;
+  if (!platformEntry) return null;
 
   const [platform, marker] = platformEntry;
   const encodedPath = encoded.slice(marker.length);
-  if (!encodedPath || encodedPath.startsWith("<")) return false;
+  if (!encodedPath || encodedPath.startsWith("<")) return null;
 
   try {
     const normalizedPath = normalizeAbsolutePath(encodedPath, platform);
     assertAbsolutePath(normalizedPath, platform);
-    return (
-      `${CLOUD_SAVE_CUSTOM_PATH_PREFIX}${marker}${normalizedPath}` === rawPath
-    );
+    return `${CLOUD_SAVE_CUSTOM_PATH_PREFIX}${marker}${normalizedPath}` ===
+      rawPath
+      ? normalizedPath
+      : null;
   } catch {
-    return false;
+    return null;
   }
 };
+
+export const isLegacyCloudSaveCustomPathRawPath = (rawPath: string) =>
+  getLegacyCloudSaveCustomPathPathHint(rawPath) !== null;
 
 const portableWindowsProfilePath = (profilePath: string) => {
   const suffix = profilePath.startsWith("/") ? profilePath : `/${profilePath}`;
@@ -802,14 +806,6 @@ export const bindCloudSaveCustomPathToLocalPath = (
 ) => {
   if (!rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX)) {
     throw new Error("cloud_save_custom_path_invalid_prefix");
-  }
-  const encodedRemotePath = rawPath.slice(CLOUD_SAVE_CUSTOM_PATH_PREFIX.length);
-  if (
-    !Object.values(PLATFORM_MARKERS).some((marker) =>
-      encodedRemotePath.startsWith(marker)
-    )
-  ) {
-    throw new Error("cloud_save_custom_path_invalid_platform");
   }
   const normalizedPath = normalizeAbsolutePath(localPath, context.platform);
   const localBinding = encodeCloudSaveCustomPath(normalizedPath, context);

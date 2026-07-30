@@ -13,7 +13,7 @@ import {
   validateCloudSaveCustomPathForRestore,
 } from "./custom-path";
 import {
-  getCloudSaveCustomPaths,
+  getCloudSaveCustomPathBindings,
   registerCloudSaveCustomPaths,
 } from "./custom-path-store";
 
@@ -74,9 +74,9 @@ export const createPendingCloudSaveCustomPathApproval = async (
     context.pathContext
   );
   const locallyBoundRawPaths = new Set(
-    (await getCloudSaveCustomPaths(shop, objectId, customPathContext)).map(
-      ({ rawPath }) => rawPath
-    )
+    (
+      await getCloudSaveCustomPathBindings(shop, objectId, customPathContext)
+    ).ready.map(({ rawPath }) => rawPath)
   );
   const candidates = getUnboundCloudSaveCustomPathRestoreCandidates(
     manifest.files,

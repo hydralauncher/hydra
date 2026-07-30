@@ -772,6 +772,41 @@
     }
   }
 
+  &__browser-folder-heading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+
+    strong {
+      flex: 0 1 auto;
+    }
+  }
+
+  &__browser-custom-path-info {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: globals.$warning-color;
+    cursor: help;
+
+    &:focus-visible {
+      border-radius: 50%;
+      outline: 2px solid globals.$warning-color;
+      outline-offset: 2px;
+    }
+  }
+
+  &__browser-custom-path-tooltip {
+    z-index: 2000;
+    max-width: min(360px, calc(100vw - 32px));
+    line-height: 1.45;
+  }
+
   &__browser-file-heading {
     display: flex;
     align-items: center;
@@ -816,6 +851,12 @@
     cursor: pointer;
     font-size: 11px;
 
+    > svg {
+      width: 15px;
+      height: 15px;
+      flex: 0 0 15px;
+    }
+
     &:hover:not(:disabled) {
       border-color: rgba(255, 255, 255, 0.18);
       background: rgba(255, 255, 255, 0.05);
@@ -825,6 +866,11 @@
     &--remove:hover:not(:disabled) {
       border-color: rgba(255, 82, 82, 0.35);
       color: #ff7373;
+    }
+
+    &--rebind:hover:not(:disabled) {
+      border-color: rgba(255, 255, 255, 0.25);
+      color: globals.$body-color;
     }
 
     &:disabled {

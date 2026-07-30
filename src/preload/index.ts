@@ -117,6 +117,17 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<SelectCloudSaveCustomPathResult>,
+  rebindCloudSaveCustomPath: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string
+  ) =>
+    ipcRenderer.invoke(
+      "rebindCloudSaveCustomPath",
+      objectId,
+      shop,
+      rawPath
+    ) as Promise<SelectCloudSaveCustomPathResult>,
   getPendingCloudSaveCustomPathApproval: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "getPendingCloudSaveCustomPathApproval",

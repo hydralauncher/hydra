@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import type {
   CloudSaveCustomPath,
+  CloudSaveUnresolvedCustomPath,
   CloudSaveV2FileComparison,
   CloudSaveV2LocalFile,
   CloudSaveV2RemoteFile,
@@ -53,6 +54,17 @@ const customPath: CloudSaveCustomPath = {
   path: "C:\\Users\\Hydra\\Documents\\Game",
   platform: "windows",
 };
+
+const unresolvedCustomPath = (
+  rawPath: string,
+  registered = false
+): CloudSaveUnresolvedCustomPath => ({
+  rawPath,
+  pathHint: null,
+  state: "needs-confirmation",
+  reason: "legacy",
+  registered,
+});
 
 describe("cloud save V2 local file tree", () => {
   it("formats Windows extended paths without changing Unix paths", () => {
@@ -208,14 +220,32 @@ describe("cloud save V2 local file tree", () => {
 
   it("shows a remote-only legacy custom location as removable", () => {
     const rawPath = "<custom><windows>C:/Users/Hydra/AppData/Roaming/Game";
-    const [root] = buildCloudSaveV2LocalFileTree([], [], [rawPath]);
+    const unresolved = unresolvedCustomPath(rawPath);
+    const remote = remoteFile(rawPath, "profiles/one/slot.dat");
+    const [root] = buildCloudSaveV2LocalFileTree(
+      [],
+      [],
+      [unresolved],
+      [remote]
+    );
 
     assert.equal(root.rawPath, rawPath);
     assert.equal(root.localDirectoryPath, null);
     assert.equal(root.customPath, null);
+    assert.equal(root.unresolvedCustomPath, unresolved);
     assert.equal(root.removableCustomRawPath, rawPath);
     assert.equal(root.hasRemoteFiles, true);
-    assert.deepEqual(root.children, []);
+    const profiles = root.children[0];
+    assert.equal(profiles.type, "directory");
+    if (profiles.type !== "directory") return;
+    const one = profiles.children[0];
+    assert.equal(one.type, "directory");
+    if (one.type !== "directory") return;
+    const slot = one.children[0];
+    assert.equal(slot.type, "file");
+    if (slot.type !== "file") return;
+    assert.equal(slot.local, null);
+    assert.equal(slot.remote, remote);
   });
 
   it("marks a populated root with its registered custom location", () => {
@@ -397,11 +427,28 @@ describe("cloud save V2 comparison tree", () => {
         },
       ],
       [],
-      [rawPath]
+      [unresolvedCustomPath(rawPath)]
     );
 
     assert.equal(root.customPath, null);
     assert.equal(root.localDirectoryPath, null);
     assert.equal(root.removableCustomRawPath, rawPath);
+  });
+
+  it("keeps a registered unresolved binding visible without comparisons", () => {
+    const rawPath = "<custom><windows><winDocuments>/Game";
+    const unresolved = unresolvedCustomPath(rawPath, true);
+    unresolved.state = "recoverable";
+    unresolved.reason = "environment-unavailable";
+    unresolved.pathHint = "C:\\Users\\Hydra\\Documents\\Game";
+
+    const [root] = buildCloudSaveV2ComparisonTree([], [], [unresolved]);
+
+    assert.equal(root.rawPath, rawPath);
+    assert.equal(root.unresolvedCustomPath, unresolved);
+    assert.equal(root.removableCustomRawPath, rawPath);
+    assert.equal(root.localDirectoryPath, null);
+    assert.equal(root.hasLocalFiles, false);
+    assert.equal(root.hasRemoteFiles, false);
   });
 });

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type {
+  CloudSaveUnresolvedCustomPath,
   LocalGameSnapshotSourceFile,
   SnapshotFile,
   SnapshotVariant,
@@ -65,6 +66,18 @@ const summary = {
   totalSizeBytes: 8,
   aggregateHash: "a".repeat(64),
 };
+
+const unresolvedCustomPath = (
+  rawPath: string,
+  overrides: Partial<CloudSaveUnresolvedCustomPath> = {}
+): CloudSaveUnresolvedCustomPath => ({
+  rawPath,
+  pathHint: null,
+  state: "needs-confirmation",
+  reason: "legacy",
+  registered: true,
+  ...overrides,
+});
 
 describe("cloud save V2 file details", () => {
   it("keeps equal paths separated by variant and exposes active version", () => {
@@ -146,10 +159,25 @@ describe("cloud save V2 file details", () => {
       "local-only",
       "remote-only",
     ]);
-    assert.deepEqual(details.legacyCustomRawPaths, [remote.rawPath]);
+    assert.deepEqual(details.unresolvedCustomPaths, [
+      unresolvedCustomPath(remote.rawPath, {
+        pathHint: "C:/Users/Rodrigo/AppData/Roaming/Game",
+        registered: false,
+      }),
+    ]);
   });
 
-  it("exposes stored legacy paths without classifying current paths as legacy", () => {
+  it("preserves every stored unresolved binding without hiding current paths", () => {
+    const legacy = unresolvedCustomPath(
+      "<custom><linux>/home/hydra/.local/share/game"
+    );
+    const current = unresolvedCustomPath(
+      "<custom><linux><home>/.local/share/game",
+      {
+        state: "recoverable",
+        reason: "environment-unavailable",
+      }
+    );
     const details = buildCloudSaveV2FileDetails({
       state: "untracked",
       localVariants: [],
@@ -159,14 +187,37 @@ describe("cloud save V2 file details", () => {
       activeSnapshot: null,
       remoteVariants: [],
       remoteFiles: [],
-      legacyCustomRawPaths: [
-        "<custom><linux>/home/hydra/.local/share/game",
-        "<custom><linux><home>/.local/share/game",
-      ],
+      unresolvedCustomPaths: [legacy, current],
     });
 
-    assert.deepEqual(details.legacyCustomRawPaths, [
-      "<custom><linux>/home/hydra/.local/share/game",
+    assert.deepEqual(details.unresolvedCustomPaths, [legacy, current]);
+  });
+
+  it("exposes a current remote-only custom path as unregistered", () => {
+    const remote = {
+      ...file(firstVariantId, "r"),
+      rawPath: "<custom><windows><winDocuments>/Game",
+    };
+    const details = buildCloudSaveV2FileDetails({
+      state: "remote-ahead",
+      localVariants: [],
+      localFiles: [],
+      localSourceFiles: [],
+      localTotalSizeBytes: 0,
+      activeSnapshot: {
+        ...summary,
+        fileCount: 1,
+        totalSizeBytes: 4,
+      },
+      remoteVariants: [variants[0]],
+      remoteFiles: [remote],
+    });
+
+    assert.deepEqual(details.unresolvedCustomPaths, [
+      unresolvedCustomPath(remote.rawPath, {
+        reason: "unregistered",
+        registered: false,
+      }),
     ]);
   });
 

@@ -116,6 +116,11 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<SelectCloudSaveCustomPathResult>;
+    rebindCloudSaveCustomPath: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string
+    ) => Promise<SelectCloudSaveCustomPathResult>;
     getPendingCloudSaveCustomPathApproval: (
       objectId: string,
       shop: GameShop

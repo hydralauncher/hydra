@@ -120,6 +120,19 @@ describe("cloud save custom path codec", () => {
     assert.equal(binding.platform, "windows");
   });
 
+  it("preserves a malformed custom identity after a safe folder is chosen", () => {
+    const rawPath = "<custom><bsd>/Game/Saves";
+    const binding = bindCloudSaveCustomPathToLocalPath(
+      rawPath,
+      "D:/Hydra Saves/Game",
+      windowsContext("Maria", "D:")
+    );
+
+    assert.equal(binding.rawPath, rawPath);
+    assert.equal(binding.path, "D:/Hydra Saves/Game");
+    assert.equal(binding.platform, "windows");
+  });
+
   it("uses one Windows identity on native Windows and Wine", () => {
     const rawPath = "<custom><windows><winAppData>/Game/Saves";
 

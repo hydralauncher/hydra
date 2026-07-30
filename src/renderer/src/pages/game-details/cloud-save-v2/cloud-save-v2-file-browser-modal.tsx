@@ -58,6 +58,9 @@ export function CloudSaveV2FileBrowserModal({
   const [showOnlyChanged, setShowOnlyChanged] = useState(true);
   const [isFileListScrolled, setIsFileListScrolled] = useState(false);
   const [isAddingCustomPath, setIsAddingCustomPath] = useState(false);
+  const [rebindingCustomPath, setRebindingCustomPath] = useState<string | null>(
+    null
+  );
   const [removingCustomPath, setRemovingCustomPath] = useState<string | null>(
     null
   );
@@ -76,18 +79,24 @@ export function CloudSaveV2FileBrowserModal({
       buildCloudSaveV2LocalFileTree(
         details?.local.files ?? [],
         details?.customPaths ?? [],
-        details?.legacyCustomRawPaths ?? []
+        details?.unresolvedCustomPaths ?? [],
+        details?.activeSnapshot?.files ?? []
       ),
-    [details?.customPaths, details?.legacyCustomRawPaths, details?.local.files]
+    [
+      details?.activeSnapshot?.files,
+      details?.customPaths,
+      details?.local.files,
+      details?.unresolvedCustomPaths,
+    ]
   );
   const comparisonRoots = useMemo(
     () =>
       buildCloudSaveV2ComparisonTree(
         visibleComparisons,
         details?.customPaths ?? [],
-        details?.legacyCustomRawPaths ?? []
+        details?.unresolvedCustomPaths ?? []
       ),
-    [details?.customPaths, details?.legacyCustomRawPaths, visibleComparisons]
+    [details?.customPaths, details?.unresolvedCustomPaths, visibleComparisons]
   );
   const comparisonCounts = useMemo(() => {
     const counts = {
@@ -195,10 +204,52 @@ export function CloudSaveV2FileBrowserModal({
     }
   };
 
+  const handleRebindCustomPath = async (rawPath: string) => {
+    setRebindingCustomPath(rawPath);
+    let wasRebound = false;
+    try {
+      const result = await window.electron.rebindCloudSaveCustomPath(
+        objectId,
+        shop,
+        rawPath
+      );
+      if (!result.canceled && result.customPath) {
+        wasRebound = true;
+        const syncResult = await window.electron.syncGameCloudSave(
+          objectId,
+          shop
+        );
+        if (syncResult.finalState === "conflict") {
+          throw new Error("cloud_save_custom_path_sync_conflict");
+        }
+        await onRetry();
+        showSuccessToast(t("cloud_save_v2_custom_path_rebound"));
+      }
+    } catch {
+      if (wasRebound) await onRetry();
+      showErrorToast(
+        t(
+          wasRebound
+            ? "cloud_save_v2_custom_path_rebind_sync_error_title"
+            : "cloud_save_v2_custom_path_rebind_error_title"
+        ),
+        t(
+          wasRebound
+            ? "cloud_save_v2_custom_path_rebind_sync_error_description"
+            : "cloud_save_v2_custom_path_rebind_error_description"
+        )
+      );
+    } finally {
+      setRebindingCustomPath(null);
+    }
+  };
+
   const loadingState = !details && isLoading;
   const errorState = !details && hasError;
   const isChangingCustomPaths =
-    isAddingCustomPath || removingCustomPath !== null;
+    isAddingCustomPath ||
+    rebindingCustomPath !== null ||
+    removingCustomPath !== null;
   const addCustomPathButton = (
     <Button
       theme="outline"
@@ -375,6 +426,9 @@ export function CloudSaveV2FileBrowserModal({
                           roots={comparisonRoots}
                           mode="comparison"
                           onOpenFolder={(path) => void handleOpenFolder(path)}
+                          onRebindCustomPath={(rawPath) =>
+                            void handleRebindCustomPath(rawPath)
+                          }
                           onRemoveCustomPath={setPendingCustomPathRemoval}
                           customPathActionsDisabled={
                             isChangingCustomPaths ||
@@ -405,6 +459,9 @@ export function CloudSaveV2FileBrowserModal({
                     roots={localRoots}
                     mode="local"
                     onOpenFolder={(path) => void handleOpenFolder(path)}
+                    onRebindCustomPath={(rawPath) =>
+                      void handleRebindCustomPath(rawPath)
+                    }
                     onRemoveCustomPath={setPendingCustomPathRemoval}
                     customPathActionsDisabled={
                       isChangingCustomPaths ||

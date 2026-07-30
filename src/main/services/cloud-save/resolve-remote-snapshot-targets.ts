@@ -16,8 +16,7 @@ import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import {
   customPathToCloudSaveRule,
-  getCloudSaveCustomPaths,
-  getUnavailableCloudSaveCustomPathRawPaths,
+  getCloudSaveCustomPathBindings,
 } from "./custom-path-store";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
@@ -76,21 +75,10 @@ export const resolveRestoreManifestTargets = async (
   });
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
-  const [localCustomPaths, unavailableLocalRawPaths] = await Promise.all([
-    getCloudSaveCustomPaths(
-      manifest.snapshot.shop,
-      manifest.snapshot.objectId,
-      customPathContext
-    ),
-    getUnavailableCloudSaveCustomPathRawPaths(
-      manifest.snapshot.shop,
-      manifest.snapshot.objectId,
-      customPathContext
-    ),
-  ]);
-  const unavailableKeys = new Set(unavailableLocalRawPaths);
-  const customPaths = localCustomPaths.filter(
-    (localPath) => !unavailableKeys.has(localPath.rawPath)
+  const { ready: customPaths } = await getCloudSaveCustomPathBindings(
+    manifest.snapshot.shop,
+    manifest.snapshot.objectId,
+    customPathContext
   );
 
   const effectiveWinePrefixPath = customPathContext.winePrefixPath;
