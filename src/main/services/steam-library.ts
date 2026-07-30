@@ -10,7 +10,24 @@ const STEAM_APPS_DIRECTORY = "steamapps";
 const STEAM_INSTALL_DIRECTORIES = [
   [".steam", "steam"],
   [".local", "share", "Steam"],
-  [".var", "app", "com.valvesoftware.Steam"],
+];
+
+const STEAM_FLATPAK_APPLICATION_ID = "com.valvesoftware.Steam";
+
+const STEAM_FLATPAK_SYSTEM_DIRECTORY = path.join(
+  "/var",
+  "lib",
+  "flatpak",
+  "app",
+  STEAM_FLATPAK_APPLICATION_ID
+);
+
+const STEAM_FLATPAK_USER_DIRECTORY = [
+  ".local",
+  "share",
+  "flatpak",
+  "app",
+  STEAM_FLATPAK_APPLICATION_ID,
 ];
 
 const STEAM_BINARY_NAME = "steam";
@@ -148,6 +165,12 @@ export const resolveSteamBinaryPath = () =>
       }
     }) ?? null;
 
+export const isFlatpakSteamInstalled = () =>
+  fs.existsSync(STEAM_FLATPAK_SYSTEM_DIRECTORY) ||
+  fs.existsSync(
+    path.join(SystemPath.getPath("home"), ...STEAM_FLATPAK_USER_DIRECTORY)
+  );
+
 export const isSteamAvailable = () => {
   const homePath = SystemPath.getPath("home");
 
@@ -155,7 +178,11 @@ export const isSteamAvailable = () => {
     fs.existsSync(path.join(homePath, ...segments))
   );
 
-  return hasInstallDirectory || resolveSteamBinaryPath() !== null;
+  return (
+    hasInstallDirectory ||
+    isFlatpakSteamInstalled() ||
+    resolveSteamBinaryPath() !== null
+  );
 };
 
 export const resolveSteamLaunchInfo = (
