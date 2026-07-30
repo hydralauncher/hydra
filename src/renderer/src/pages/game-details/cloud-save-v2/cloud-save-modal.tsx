@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowClockwiseIcon,
   CircleNotchIcon,
@@ -23,6 +23,7 @@ import {
   getCloudSavePanelAction,
   getCloudSavePresentation,
   isCloudSaveOverviewEmpty,
+  type CloudSavePanelAction,
 } from "./cloud-save-presentation";
 
 export interface CloudSavePanelProps {
@@ -46,6 +47,121 @@ export interface CloudSavePanelProps {
 interface CloudSaveModalProps extends Omit<CloudSavePanelProps, "active"> {
   visible: boolean;
   onClose: () => void;
+}
+
+interface CloudSaveSyncActionProps {
+  action: CloudSavePanelAction;
+  isLoading: boolean;
+  isSyncing: boolean;
+  isGameRunning: boolean;
+  progress: CloudSaveSyncProgressPayload | null;
+  onSync: () => void;
+  onOpenFileBrowser: () => void;
+  onResolveConflict: (resolution: CloudSaveConflictResolution) => void;
+}
+
+const getSyncActionIcon = (
+  icon: Extract<CloudSavePanelAction, { kind: "sync" }>["icon"]
+) => {
+  if (icon === "upload") return <CloudArrowUpIcon size={20} />;
+  if (icon === "restore") return <CloudArrowDownIcon size={20} />;
+  return <CloudIcon size={20} />;
+};
+
+function CloudSaveSyncAction({
+  action,
+  isLoading,
+  isSyncing,
+  isGameRunning,
+  progress,
+  onSync,
+  onOpenFileBrowser,
+  onResolveConflict,
+}: Readonly<CloudSaveSyncActionProps>) {
+  const { t } = useTranslation("game_details");
+
+  if (isSyncing) {
+    const progressLabel = progress
+      ? t(`cloud_save_v2_progress_${progress.stage}`)
+      : t("cloud_save_v2_syncing");
+    const progressFileCount =
+      progress && progress.totalFiles > 0
+        ? t("cloud_save_v2_progress_file_count", {
+            count: progress.totalFiles,
+            processed: progress.processedFiles,
+            total: progress.totalFiles,
+          })
+        : null;
+
+    return (
+      <Button className="cloud-save-v2__sync-button" disabled>
+        <CircleNotchIcon className="cloud-save-v2__spinner" size={20} />
+        <span>{progressLabel}</span>
+        {progressFileCount && (
+          <span className="cloud-save-v2__sync-file-count">
+            · {progressFileCount}
+          </span>
+        )}
+      </Button>
+    );
+  }
+
+  switch (action.kind) {
+    case "conflict":
+      return (
+        <div className="cloud-save-v2__conflict-actions">
+          <Button
+            onClick={() => onResolveConflict("keep-local")}
+            disabled={isLoading || isGameRunning}
+          >
+            <CloudArrowUpIcon size={20} />
+            {t("cloud_save_v2_keep_local")}
+          </Button>
+          <Button
+            onClick={() => onResolveConflict("keep-remote")}
+            disabled={isLoading || isGameRunning}
+          >
+            <CloudArrowDownIcon size={20} />
+            {t("cloud_save_v2_keep_remote")}
+          </Button>
+        </div>
+      );
+    case "details":
+      return (
+        <Button
+          className="cloud-save-v2__sync-button"
+          onClick={onOpenFileBrowser}
+          disabled={isLoading}
+        >
+          <FolderOpenIcon size={20} />
+          <span>{t(action.labelKey)}</span>
+        </Button>
+      );
+    case "verify":
+      return (
+        <Button
+          className="cloud-save-v2__sync-button"
+          onClick={onSync}
+          disabled={isLoading || isGameRunning}
+        >
+          <ArrowClockwiseIcon size={20} />
+          <span>{t(action.labelKey)}</span>
+        </Button>
+      );
+    case "sync":
+      return (
+        <Button
+          className="cloud-save-v2__sync-button"
+          onClick={onSync}
+          disabled={isLoading || isGameRunning}
+        >
+          {getSyncActionIcon(action.icon)}
+          <span>{t(action.labelKey)}</span>
+        </Button>
+      );
+    case "none":
+      return null;
+  }
 }
 
 export function CloudSavePanel({
@@ -111,9 +227,6 @@ export function CloudSavePanel({
     }
   };
 
-  const progressLabel = progress
-    ? t(`cloud_save_v2_progress_${progress.stage}`)
-    : null;
   const snapshotMetadata = (
     updatedAt: string,
     version: number,
@@ -161,103 +274,18 @@ export function CloudSavePanel({
     );
   };
 
-  const syncingIcon: ReactNode = (
-    <CircleNotchIcon className="cloud-save-v2__spinner" size={20} />
+  const syncAction = (
+    <CloudSaveSyncAction
+      action={panelAction}
+      isLoading={isLoading}
+      isSyncing={isSyncing}
+      isGameRunning={isGameRunning}
+      progress={progress}
+      onSync={onSync}
+      onOpenFileBrowser={onOpenFileBrowser}
+      onResolveConflict={onResolveConflict}
+    />
   );
-
-  const progressFileCount =
-    progress && progress.totalFiles > 0
-      ? t("cloud_save_v2_progress_file_count", {
-          count: progress.totalFiles,
-          processed: progress.processedFiles,
-          total: progress.totalFiles,
-        })
-      : null;
-
-  let syncAction: ReactNode = null;
-  if (isSyncing) {
-    syncAction = (
-      <Button className="cloud-save-v2__sync-button" disabled>
-        {syncingIcon}
-        <span>{progressLabel ?? t("cloud_save_v2_syncing")}</span>
-        {progressFileCount && (
-          <span className="cloud-save-v2__sync-file-count">
-            · {progressFileCount}
-          </span>
-        )}
-      </Button>
-    );
-  } else {
-    switch (panelAction.kind) {
-      case "conflict":
-        syncAction = (
-          <div className="cloud-save-v2__conflict-actions">
-            <Button
-              onClick={() => onResolveConflict("keep-local")}
-              disabled={isLoading || isGameRunning}
-            >
-              <CloudArrowUpIcon size={20} />
-              {t("cloud_save_v2_keep_local")}
-            </Button>
-            <Button
-              onClick={() => onResolveConflict("keep-remote")}
-              disabled={isLoading || isGameRunning}
-            >
-              <CloudArrowDownIcon size={20} />
-              {t("cloud_save_v2_keep_remote")}
-            </Button>
-          </div>
-        );
-        break;
-      case "details":
-        syncAction = (
-          <Button
-            className="cloud-save-v2__sync-button"
-            onClick={onOpenFileBrowser}
-            disabled={isLoading}
-          >
-            <FolderOpenIcon size={20} />
-            <span>{t(panelAction.labelKey)}</span>
-          </Button>
-        );
-        break;
-      case "verify":
-        syncAction = (
-          <Button
-            className="cloud-save-v2__sync-button"
-            onClick={onSync}
-            disabled={isLoading || isGameRunning}
-          >
-            <ArrowClockwiseIcon size={20} />
-            <span>{t(panelAction.labelKey)}</span>
-          </Button>
-        );
-        break;
-      case "sync": {
-        const actionIcon =
-          panelAction.icon === "upload" ? (
-            <CloudArrowUpIcon size={20} />
-          ) : panelAction.icon === "restore" ? (
-            <CloudArrowDownIcon size={20} />
-          ) : (
-            <CloudIcon size={20} />
-          );
-        syncAction = (
-          <Button
-            className="cloud-save-v2__sync-button"
-            onClick={onSync}
-            disabled={isLoading || isGameRunning}
-          >
-            {actionIcon}
-            <span>{t(panelAction.labelKey)}</span>
-          </Button>
-        );
-        break;
-      }
-      case "none":
-        break;
-    }
-  }
 
   const missingExecutableCard = (
     <section className="cloud-save-v2__snapshot cloud-save-v2__missing-executable">
@@ -327,48 +355,46 @@ export function CloudSavePanel({
       {!hasExecutablePath ? (
         missingExecutableCard
       ) : (
-        <>
-          <section className="cloud-save-v2__active-snapshot">
-            <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
-              {activeSnapshot ? (
-                <>
-                  <div className="cloud-save-v2__snapshot-header">
-                    <strong>{t("cloud_save_v2_active_snapshot")}</strong>
-                    <span
-                      className={`cloud-save-v2__status-pill cloud-save-v2__status-pill--${presentation.tone}`}
-                    >
-                      {t(presentation.labelKey)}
-                    </span>
-                  </div>
-                  {snapshotMetadata(
-                    activeSnapshot.updatedAt,
-                    activeSnapshot.version,
-                    activeSnapshot.fileCount,
-                    activeSnapshot.totalSizeBytes,
-                    true
-                  )}
-                </>
-              ) : (
-                !isLoading &&
-                canOpenCloudSaveFileBrowser(overview) && (
-                  <div className="cloud-save-v2__empty cloud-save-v2__empty--inline">
-                    <button
-                      type="button"
-                      className="cloud-save-v2__empty-files-link"
-                      onClick={onOpenFileBrowser}
-                      disabled={isSyncing}
-                      aria-label={t("cloud_save_v2_view_files")}
-                    >
-                      {t("cloud_save_v2_no_snapshots")}
-                    </button>
-                  </div>
-                )
-              )}
+        <section className="cloud-save-v2__active-snapshot">
+          <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
+            {activeSnapshot ? (
+              <>
+                <div className="cloud-save-v2__snapshot-header">
+                  <strong>{t("cloud_save_v2_active_snapshot")}</strong>
+                  <span
+                    className={`cloud-save-v2__status-pill cloud-save-v2__status-pill--${presentation.tone}`}
+                  >
+                    {t(presentation.labelKey)}
+                  </span>
+                </div>
+                {snapshotMetadata(
+                  activeSnapshot.updatedAt,
+                  activeSnapshot.version,
+                  activeSnapshot.fileCount,
+                  activeSnapshot.totalSizeBytes,
+                  true
+                )}
+              </>
+            ) : (
+              !isLoading &&
+              canOpenCloudSaveFileBrowser(overview) && (
+                <div className="cloud-save-v2__empty cloud-save-v2__empty--inline">
+                  <button
+                    type="button"
+                    className="cloud-save-v2__empty-files-link"
+                    onClick={onOpenFileBrowser}
+                    disabled={isSyncing}
+                    aria-label={t("cloud_save_v2_view_files")}
+                  >
+                    {t("cloud_save_v2_no_snapshots")}
+                  </button>
+                </div>
+              )
+            )}
 
-              <div className="cloud-save-v2__action-area">{syncAction}</div>
-            </article>
-          </section>
-        </>
+            <div className="cloud-save-v2__action-area">{syncAction}</div>
+          </article>
+        </section>
       )}
     </div>
   );

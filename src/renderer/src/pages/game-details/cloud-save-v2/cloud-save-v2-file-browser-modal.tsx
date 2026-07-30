@@ -16,6 +16,7 @@ import {
   buildCloudSaveV2ComparisonTree,
   buildCloudSaveV2LocalFileTree,
   filterCloudSaveV2Comparisons,
+  type CloudSaveV2FileTreeRoot,
 } from "./cloud-save-v2-file-tree";
 import { CloudSaveV2FileTreeView } from "./cloud-save-v2-file-tree-view";
 
@@ -29,6 +30,108 @@ interface CloudSaveV2FileBrowserModalProps {
   hasError: boolean;
   onRetry: () => void;
   onClose: () => void;
+}
+
+interface CloudSaveV2FileContentProps {
+  details: CloudSaveV2FileDetails;
+  isConflict: boolean;
+  comparisonRoots: CloudSaveV2FileTreeRoot[];
+  localRoots: CloudSaveV2FileTreeRoot[];
+  onOpenFolder: (path: string) => void;
+}
+
+function CloudSaveV2FileContent({
+  details,
+  isConflict,
+  comparisonRoots,
+  localRoots,
+  onOpenFolder,
+}: Readonly<CloudSaveV2FileContentProps>) {
+  const { t } = useTranslation("game_details");
+  const [isFileListScrolled, setIsFileListScrolled] = useState(false);
+
+  if (isConflict && details.activeSnapshot) {
+    return (
+      <div
+        className="cloud-save-v2__browser-table-scroll"
+        onScroll={(event) =>
+          setIsFileListScrolled(event.currentTarget.scrollTop > 0)
+        }
+      >
+        <div
+          className={`cloud-save-v2__browser-scroll-shadow cloud-save-v2__browser-scroll-shadow--below-header ${isFileListScrolled ? "cloud-save-v2__browser-scroll-shadow--visible" : ""}`}
+        />
+        <div className="cloud-save-v2__browser-diff-table">
+          <div className="cloud-save-v2__browser-diff-header">
+            <span />
+            <div className="cloud-save-v2__browser-diff-source-header">
+              <MonitorIcon
+                size={20}
+                className="cloud-save-v2__browser-monitor-icon"
+              />
+              <strong>{t("cloud_save_v2_local_files")}</strong>
+              <span>
+                {t("cloud_save_v2_source_summary", {
+                  count: details.local.fileCount,
+                  size: formatBytes(details.local.totalSizeBytes),
+                })}
+              </span>
+            </div>
+            <strong className="cloud-save-v2__browser-diff-status-header">
+              {t("cloud_save_v2_status")}
+            </strong>
+            <div className="cloud-save-v2__browser-diff-source-header">
+              <CloudIcon size={20} />
+              <strong>{t("cloud_save_v2_remote_files")}</strong>
+              <span>
+                {t("cloud_save_v2_source_summary", {
+                  count: details.activeSnapshot.fileCount,
+                  size: formatBytes(details.activeSnapshot.totalSizeBytes),
+                })}
+              </span>
+            </div>
+          </div>
+          {comparisonRoots.length > 0 ? (
+            <CloudSaveV2FileTreeView
+              roots={comparisonRoots}
+              mode="comparison"
+              onOpenFolder={onOpenFolder}
+            />
+          ) : (
+            <p className="cloud-save-v2__browser-empty">
+              {t("cloud_save_v2_no_visible_differences")}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (details.local.files.length === 0) {
+    return (
+      <p className="cloud-save-v2__browser-empty">
+        {t("cloud_save_v2_no_local_files")}
+      </p>
+    );
+  }
+
+  return (
+    <div
+      className="cloud-save-v2__browser-local-tree"
+      onScroll={(event) =>
+        setIsFileListScrolled(event.currentTarget.scrollTop > 0)
+      }
+    >
+      <div
+        className={`cloud-save-v2__browser-scroll-shadow ${isFileListScrolled ? "cloud-save-v2__browser-scroll-shadow--visible" : ""}`}
+      />
+      <CloudSaveV2FileTreeView
+        roots={localRoots}
+        mode="local"
+        onOpenFolder={onOpenFolder}
+      />
+    </div>
+  );
 }
 
 export function CloudSaveV2FileBrowserModal({
@@ -45,7 +148,6 @@ export function CloudSaveV2FileBrowserModal({
   const { t } = useTranslation("game_details");
   const { showErrorToast } = useToast();
   const [showOnlyChanged, setShowOnlyChanged] = useState(true);
-  const [isFileListScrolled, setIsFileListScrolled] = useState(false);
   const isConflict = details?.state === "conflict";
   const titleIsConflict = isConflict || overviewState === "conflict";
   const visibleComparisons = useMemo(
@@ -260,84 +362,13 @@ export function CloudSaveV2FileBrowserModal({
               </div>
             )}
 
-            {isConflict && details.activeSnapshot ? (
-              <>
-                <div
-                  className="cloud-save-v2__browser-table-scroll"
-                  onScroll={(event) =>
-                    setIsFileListScrolled(event.currentTarget.scrollTop > 0)
-                  }
-                >
-                  <div
-                    className={`cloud-save-v2__browser-scroll-shadow cloud-save-v2__browser-scroll-shadow--below-header ${isFileListScrolled ? "cloud-save-v2__browser-scroll-shadow--visible" : ""}`}
-                  />
-                  <div className="cloud-save-v2__browser-diff-table">
-                    <div className="cloud-save-v2__browser-diff-header">
-                      <span />
-                      <div className="cloud-save-v2__browser-diff-source-header">
-                        <MonitorIcon
-                          size={20}
-                          className="cloud-save-v2__browser-monitor-icon"
-                        />
-                        <strong>{t("cloud_save_v2_local_files")}</strong>
-                        <span>
-                          {t("cloud_save_v2_source_summary", {
-                            count: details.local.fileCount,
-                            size: formatBytes(details.local.totalSizeBytes),
-                          })}
-                        </span>
-                      </div>
-                      <strong className="cloud-save-v2__browser-diff-status-header">
-                        {t("cloud_save_v2_status")}
-                      </strong>
-                      <div className="cloud-save-v2__browser-diff-source-header">
-                        <CloudIcon size={20} />
-                        <strong>{t("cloud_save_v2_remote_files")}</strong>
-                        <span>
-                          {t("cloud_save_v2_source_summary", {
-                            count: details.activeSnapshot.fileCount,
-                            size: formatBytes(
-                              details.activeSnapshot.totalSizeBytes
-                            ),
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                    {comparisonRoots.length > 0 ? (
-                      <CloudSaveV2FileTreeView
-                        roots={comparisonRoots}
-                        mode="comparison"
-                        onOpenFolder={(path) => void handleOpenFolder(path)}
-                      />
-                    ) : (
-                      <p className="cloud-save-v2__browser-empty">
-                        {t("cloud_save_v2_no_visible_differences")}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </>
-            ) : details.local.files.length > 0 ? (
-              <div
-                className="cloud-save-v2__browser-local-tree"
-                onScroll={(event) =>
-                  setIsFileListScrolled(event.currentTarget.scrollTop > 0)
-                }
-              >
-                <div
-                  className={`cloud-save-v2__browser-scroll-shadow ${isFileListScrolled ? "cloud-save-v2__browser-scroll-shadow--visible" : ""}`}
-                />
-                <CloudSaveV2FileTreeView
-                  roots={localRoots}
-                  mode="local"
-                  onOpenFolder={(path) => void handleOpenFolder(path)}
-                />
-              </div>
-            ) : (
-              <p className="cloud-save-v2__browser-empty">
-                {t("cloud_save_v2_no_local_files")}
-              </p>
-            )}
+            <CloudSaveV2FileContent
+              details={details}
+              isConflict={isConflict}
+              comparisonRoots={comparisonRoots}
+              localRoots={localRoots}
+              onOpenFolder={(path) => void handleOpenFolder(path)}
+            />
           </>
         )}
       </div>

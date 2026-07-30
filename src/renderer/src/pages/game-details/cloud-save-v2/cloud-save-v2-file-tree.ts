@@ -56,6 +56,31 @@ const splitPath = (path: string) =>
     .split("/")
     .filter((segment) => segment.length > 0 && segment !== ".");
 
+const trimTrailingSeparators = (path: string) => {
+  let end = path.length;
+  while (end > 0 && (path[end - 1] === "/" || path[end - 1] === "\\")) {
+    end -= 1;
+  }
+  return path.slice(0, end);
+};
+
+const collapseForwardSeparators = (path: string) => {
+  let collapsed = "";
+  let previousWasSeparator = false;
+
+  for (const character of path) {
+    if (character === "/") {
+      if (!previousWasSeparator) collapsed += character;
+      previousWasSeparator = true;
+    } else {
+      collapsed += character;
+      previousWasSeparator = false;
+    }
+  }
+
+  return collapsed;
+};
+
 export const formatCloudSaveV2LocalPath = (path: string) => {
   const normalized = path.replaceAll("\\", "/");
 
@@ -75,7 +100,7 @@ export const formatCloudSaveV2LocalPath = (path: string) => {
 };
 
 const getDirectoryPath = (path: string) => {
-  const withoutTrailingSeparators = path.replace(/[\\/]+$/, "");
+  const withoutTrailingSeparators = trimTrailingSeparators(path);
   const separatorIndex = Math.max(
     withoutTrailingSeparators.lastIndexOf("\\"),
     withoutTrailingSeparators.lastIndexOf("/")
@@ -113,10 +138,10 @@ const getLocalPathIdentity = (path: string) => {
   const isWindowsPath =
     /^[a-zA-Z]:\//.test(normalizedSeparators) ||
     normalizedSeparators.startsWith("//");
-  const collapsedSeparators = normalizedSeparators.replace(/\/+/g, "/");
+  const collapsedSeparators = collapseForwardSeparators(normalizedSeparators);
   const withoutTrailingSeparators =
     collapsedSeparators.length > 1
-      ? collapsedSeparators.replace(/\/+$/, "")
+      ? trimTrailingSeparators(collapsedSeparators)
       : collapsedSeparators;
   const comparablePath = isWindowsPath
     ? withoutTrailingSeparators.toLowerCase()
@@ -129,7 +154,7 @@ const joinPath = (rootPath: string, segments: string[]) => {
   if (segments.length === 0) return rootPath;
   const separator =
     rootPath.includes("\\") || /^[a-zA-Z]:/.test(rootPath) ? "\\" : "/";
-  const normalizedRoot = rootPath.replace(/[\\/]+$/, "");
+  const normalizedRoot = trimTrailingSeparators(rootPath);
   return `${normalizedRoot}${separator}${segments.join(separator)}`;
 };
 
@@ -185,6 +210,137 @@ const updateBranchSources = (
   branch.localDirectoryPath ??= localDirectoryPath;
   branch.hasLocalFiles ||= hasLocalFile;
   branch.hasRemoteFiles ||= hasRemoteFile;
+};
+
+const getOrCreateComparisonRoot = (
+  roots: Map<string, MutableBranch>,
+  comparison: CloudSaveV2FileComparison,
+  localRootPath: string | null,
+  hasLocalFile: boolean,
+  hasRemoteFile: boolean
+) => {
+  const rootId = JSON.stringify([
+    "comparison-root",
+    comparison.variantId,
+    comparison.rawPath,
+  ]);
+  const existingRoot = roots.get(rootId);
+  if (existingRoot) {
+    updateBranchSources(
+      existingRoot,
+      localRootPath,
+      hasLocalFile,
+      hasRemoteFile
+    );
+    return existingRoot;
+  }
+
+  const identity = comparison.local ?? comparison.remote;
+  const root: MutableBranch = {
+    type: "root",
+    id: rootId,
+    name: identity
+      ? `${identity.userLabel} · ${comparison.rawPath}`
+      : comparison.rawPath,
+    rawPath: comparison.rawPath,
+    localDirectoryPath: localRootPath,
+    hasLocalFiles: hasLocalFile,
+    hasRemoteFiles: hasRemoteFile,
+    branches: new Map(),
+    files: [],
+  };
+  roots.set(rootId, root);
+  return root;
+};
+
+const getOrCreateComparisonDirectory = (
+  parent: MutableBranch,
+  comparison: CloudSaveV2FileComparison,
+  directorySegments: string[],
+  localRootPath: string | null,
+  hasLocalFile: boolean,
+  hasRemoteFile: boolean
+) => {
+  const directoryId = JSON.stringify([
+    "comparison-directory",
+    comparison.variantId,
+    comparison.rawPath,
+    ...directorySegments,
+  ]);
+  const localDirectoryPath = localRootPath
+    ? joinPath(localRootPath, directorySegments)
+    : null;
+  const existingDirectory = parent.branches.get(directoryId);
+  if (existingDirectory) {
+    updateBranchSources(
+      existingDirectory,
+      localDirectoryPath,
+      hasLocalFile,
+      hasRemoteFile
+    );
+    return existingDirectory;
+  }
+
+  const directory: MutableBranch = {
+    type: "directory",
+    id: directoryId,
+    name: directorySegments[directorySegments.length - 1],
+    localDirectoryPath,
+    hasLocalFiles: hasLocalFile,
+    hasRemoteFiles: hasRemoteFile,
+    branches: new Map(),
+    files: [],
+  };
+  parent.branches.set(directoryId, directory);
+  return directory;
+};
+
+const addComparisonToTree = (
+  roots: Map<string, MutableBranch>,
+  comparison: CloudSaveV2FileComparison
+) => {
+  const hasLocalFile = Boolean(comparison.local);
+  const hasRemoteFile = Boolean(comparison.remote);
+  const localRootPath = comparison.local
+    ? getLocalRootPath(comparison.local)
+    : null;
+  const root = getOrCreateComparisonRoot(
+    roots,
+    comparison,
+    localRootPath,
+    hasLocalFile,
+    hasRemoteFile
+  );
+  const pathSegments = splitPath(comparison.relativePath);
+  const fileName = pathSegments.pop() ?? comparison.relativePath;
+  let parent = root;
+  const directorySegments: string[] = [];
+
+  for (const segment of pathSegments) {
+    directorySegments.push(segment);
+    parent = getOrCreateComparisonDirectory(
+      parent,
+      comparison,
+      directorySegments,
+      localRootPath,
+      hasLocalFile,
+      hasRemoteFile
+    );
+  }
+
+  parent.files.push({
+    type: "file",
+    id: JSON.stringify([
+      "comparison-file",
+      comparison.variantId,
+      comparison.rawPath,
+      comparison.relativePath,
+    ]),
+    name: fileName,
+    local: comparison.local,
+    remote: comparison.remote,
+    status: comparison.status,
+  });
 };
 
 export const filterCloudSaveV2Comparisons = (
@@ -275,93 +431,7 @@ export const buildCloudSaveV2ComparisonTree = (
   const roots = new Map<string, MutableBranch>();
 
   for (const comparison of comparisons) {
-    const rootId = JSON.stringify([
-      "comparison-root",
-      comparison.variantId,
-      comparison.rawPath,
-    ]);
-    const identity = comparison.local ?? comparison.remote;
-    const localRootPath = comparison.local
-      ? getLocalRootPath(comparison.local)
-      : null;
-    let root = roots.get(rootId);
-    if (!root) {
-      root = {
-        type: "root",
-        id: rootId,
-        name: identity
-          ? `${identity.userLabel} · ${comparison.rawPath}`
-          : comparison.rawPath,
-        rawPath: comparison.rawPath,
-        localDirectoryPath: localRootPath,
-        hasLocalFiles: Boolean(comparison.local),
-        hasRemoteFiles: Boolean(comparison.remote),
-        branches: new Map(),
-        files: [],
-      };
-      roots.set(rootId, root);
-    } else {
-      updateBranchSources(
-        root,
-        localRootPath,
-        Boolean(comparison.local),
-        Boolean(comparison.remote)
-      );
-    }
-
-    const pathSegments = splitPath(comparison.relativePath);
-    const fileName = pathSegments.pop() ?? comparison.relativePath;
-    let parent = root;
-    const directorySegments: string[] = [];
-
-    for (const segment of pathSegments) {
-      directorySegments.push(segment);
-      const directoryId = JSON.stringify([
-        "comparison-directory",
-        comparison.variantId,
-        comparison.rawPath,
-        ...directorySegments,
-      ]);
-      const localDirectoryPath = localRootPath
-        ? joinPath(localRootPath, directorySegments)
-        : null;
-      let directory = parent.branches.get(directoryId);
-      if (!directory) {
-        directory = {
-          type: "directory",
-          id: directoryId,
-          name: segment,
-          localDirectoryPath,
-          hasLocalFiles: Boolean(comparison.local),
-          hasRemoteFiles: Boolean(comparison.remote),
-          branches: new Map(),
-          files: [],
-        };
-        parent.branches.set(directoryId, directory);
-      } else {
-        updateBranchSources(
-          directory,
-          localDirectoryPath,
-          Boolean(comparison.local),
-          Boolean(comparison.remote)
-        );
-      }
-      parent = directory;
-    }
-
-    parent.files.push({
-      type: "file",
-      id: JSON.stringify([
-        "comparison-file",
-        comparison.variantId,
-        comparison.rawPath,
-        comparison.relativePath,
-      ]),
-      name: fileName,
-      local: comparison.local,
-      remote: comparison.remote,
-      status: comparison.status,
-    });
+    addComparisonToTree(roots, comparison);
   }
 
   return Array.from(roots.values(), finalizeBranch).sort(

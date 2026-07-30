@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronRightIcon,
   FileDirectoryIcon,
@@ -16,6 +16,8 @@ import { formatBytes } from "@shared";
 import { useDate } from "@renderer/hooks";
 
 import type {
+  CloudSaveV2FileTreeDirectory,
+  CloudSaveV2FileTreeFile,
   CloudSaveV2FileTreeNode,
   CloudSaveV2FileTreeRoot,
 } from "./cloud-save-v2-file-tree";
@@ -93,29 +95,10 @@ export function CloudSaveV2FileTreeView({
     </span>
   );
 
-  const localFileCell = (file: CloudSaveV2LocalFile | null, name: string) => {
-    if (!file) {
-      return (
-        <span className="cloud-save-v2__browser-missing-side" aria-label="—">
-          —
-        </span>
-      );
-    }
-
-    return (
-      <div className="cloud-save-v2__browser-file-cell">
-        <FileIcon size={18} className="cloud-save-v2__browser-tree-icon" />
-        <div className="cloud-save-v2__browser-file-copy">
-          <div className="cloud-save-v2__browser-file-heading">
-            <strong title={name}>{name}</strong>
-            {fileMetadata(file)}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const remoteFileCell = (file: CloudSaveV2RemoteFile | null, name: string) => {
+  const fileCell = (
+    file: CloudSaveV2LocalFile | CloudSaveV2RemoteFile | null,
+    name: string
+  ) => {
     if (!file) {
       return (
         <span className="cloud-save-v2__browser-missing-side" aria-label="—">
@@ -154,56 +137,113 @@ export function CloudSaveV2FileTreeView({
     );
   };
 
-  const renderNode = (node: CloudSaveV2FileTreeNode, depth: number) => {
-    const hierarchyOffset = depth * TREE_LEVEL_INDENT_PX;
-    const contentPaddingLeft = `${TREE_ROW_PADDING_PX + hierarchyOffset}px`;
-
-    if (node.type === "file") {
-      if (mode === "local") {
-        return (
-          <li
-            key={node.id}
-            role="treeitem"
-            aria-selected="false"
-            className="cloud-save-v2__browser-local-row"
-            style={{ paddingLeft: contentPaddingLeft }}
-          >
-            <span className="cloud-save-v2__browser-tree-spacer" />
-            {localFileCell(node.local, node.name)}
-          </li>
-        );
-      }
-
-      const status = node.status!;
+  const renderFileNode = (
+    node: CloudSaveV2FileTreeFile,
+    contentPaddingLeft: string
+  ) => {
+    if (mode === "local") {
       return (
         <li
           key={node.id}
           role="treeitem"
           aria-selected="false"
-          className={`cloud-save-v2__browser-diff-row cloud-save-v2__browser-diff-row--${status}`}
+          className="cloud-save-v2__browser-local-row"
+          style={{ paddingLeft: contentPaddingLeft }}
         >
           <span className="cloud-save-v2__browser-tree-spacer" />
-          <div
-            className="cloud-save-v2__browser-diff-cell"
-            style={{ paddingLeft: contentPaddingLeft }}
-          >
-            {localFileCell(node.local, node.name)}
-          </div>
-          <div className="cloud-save-v2__browser-status-cell">
-            <span
-              className={`cloud-save-v2__browser-status cloud-save-v2__browser-status--${status}`}
-            >
-              {t(statusTranslationKey[status])}
-            </span>
-          </div>
-          <div
-            className="cloud-save-v2__browser-diff-cell"
-            style={{ paddingLeft: contentPaddingLeft }}
-          >
-            {remoteFileCell(node.remote, node.name)}
-          </div>
+          {fileCell(node.local, node.name)}
         </li>
       );
+    }
+
+    const status = node.status!;
+    return (
+      <li
+        key={node.id}
+        role="treeitem"
+        aria-selected="false"
+        className={`cloud-save-v2__browser-diff-row cloud-save-v2__browser-diff-row--${status}`}
+      >
+        <span className="cloud-save-v2__browser-tree-spacer" />
+        <div
+          className="cloud-save-v2__browser-diff-cell"
+          style={{ paddingLeft: contentPaddingLeft }}
+        >
+          {fileCell(node.local, node.name)}
+        </div>
+        <div className="cloud-save-v2__browser-status-cell">
+          <span
+            className={`cloud-save-v2__browser-status cloud-save-v2__browser-status--${status}`}
+          >
+            {t(statusTranslationKey[status])}
+          </span>
+        </div>
+        <div
+          className="cloud-save-v2__browser-diff-cell"
+          style={{ paddingLeft: contentPaddingLeft }}
+        >
+          {fileCell(node.remote, node.name)}
+        </div>
+      </li>
+    );
+  };
+
+  const renderLocalBranchNode = (
+    node: CloudSaveV2FileTreeRoot | CloudSaveV2FileTreeDirectory,
+    isExpanded: boolean,
+    contentPaddingLeft: string,
+    displayLocalName: string,
+    displayLocalDirectoryPath: string | null,
+    children: ReactNode
+  ) => (
+    <li
+      key={node.id}
+      role="treeitem"
+      aria-selected="false"
+      aria-expanded={isExpanded}
+    >
+      <div
+        className="cloud-save-v2__browser-local-row cloud-save-v2__browser-folder-row"
+        style={{ paddingLeft: contentPaddingLeft }}
+      >
+        <button
+          type="button"
+          className="cloud-save-v2__browser-tree-toggle"
+          aria-expanded={isExpanded}
+          onClick={() => toggleNode(node.id)}
+        >
+          <ChevronRightIcon
+            size={15}
+            className={`cloud-save-v2__browser-tree-caret ${isExpanded ? "cloud-save-v2__browser-tree-caret--expanded" : ""}`}
+          />
+        </button>
+        <FileDirectoryIcon
+          size={18}
+          className="cloud-save-v2__browser-tree-icon"
+        />
+        <div className="cloud-save-v2__browser-folder-copy">
+          <strong
+            title={
+              node.type === "root"
+                ? displayLocalName
+                : (displayLocalDirectoryPath ?? node.name)
+            }
+          >
+            {node.type === "root" ? displayLocalName : node.name}
+          </strong>
+        </div>
+        {folderAction(node.localDirectoryPath, node.name)}
+      </div>
+      {children}
+    </li>
+  );
+
+  const renderNode = (node: CloudSaveV2FileTreeNode, depth: number) => {
+    const hierarchyOffset = depth * TREE_LEVEL_INDENT_PX;
+    const contentPaddingLeft = `${TREE_ROW_PADDING_PX + hierarchyOffset}px`;
+
+    if (node.type === "file") {
+      return renderFileNode(node, contentPaddingLeft);
     }
 
     const isExpanded = expandedNodeIds.has(node.id);
@@ -215,53 +255,19 @@ export function CloudSaveV2FileTreeView({
     const remoteName = node.type === "root" ? node.rawPath : node.name;
     const childDepth = depth + 1;
     const children = isExpanded ? (
-      <ul className="cloud-save-v2__browser-tree-list" role="group">
+      <ul className="cloud-save-v2__browser-tree-list">
         {node.children.map((child) => renderNode(child, childDepth))}
       </ul>
     ) : null;
 
     if (mode === "local") {
-      return (
-        <li
-          key={node.id}
-          role="treeitem"
-          aria-selected="false"
-          aria-expanded={isExpanded}
-        >
-          <div
-            className="cloud-save-v2__browser-local-row cloud-save-v2__browser-folder-row"
-            style={{ paddingLeft: contentPaddingLeft }}
-          >
-            <button
-              type="button"
-              className="cloud-save-v2__browser-tree-toggle"
-              aria-expanded={isExpanded}
-              onClick={() => toggleNode(node.id)}
-            >
-              <ChevronRightIcon
-                size={15}
-                className={`cloud-save-v2__browser-tree-caret ${isExpanded ? "cloud-save-v2__browser-tree-caret--expanded" : ""}`}
-              />
-            </button>
-            <FileDirectoryIcon
-              size={18}
-              className="cloud-save-v2__browser-tree-icon"
-            />
-            <div className="cloud-save-v2__browser-folder-copy">
-              <strong
-                title={
-                  node.type === "root"
-                    ? displayLocalName
-                    : (displayLocalDirectoryPath ?? node.name)
-                }
-              >
-                {node.type === "root" ? displayLocalName : node.name}
-              </strong>
-            </div>
-            {folderAction(node.localDirectoryPath, node.name)}
-          </div>
-          {children}
-        </li>
+      return renderLocalBranchNode(
+        node,
+        isExpanded,
+        contentPaddingLeft,
+        displayLocalName,
+        displayLocalDirectoryPath,
+        children
       );
     }
 

@@ -76,6 +76,14 @@ interface CloudSavePresentationInput {
   progressStage: CloudSaveSyncProgressStage | null;
 }
 
+const getSyncProgressIcon = (
+  progressStage: CloudSaveSyncProgressStage | null
+): CloudSavePresentationIcon => {
+  if (progressStage === "uploading") return "upload";
+  if (progressStage === "restoring") return "restore";
+  return "spinner";
+};
+
 export const getCloudSavePresentation = ({
   canUseCloudSaves,
   hasExecutablePath,
@@ -94,15 +102,9 @@ export const getCloudSavePresentation = ({
   }
 
   if (isSyncing) {
-    const icon =
-      progressStage === "uploading"
-        ? "upload"
-        : progressStage === "restoring"
-          ? "restore"
-          : "spinner";
     return {
       labelKey: "cloud_save_v2_syncing",
-      icon,
+      icon: getSyncProgressIcon(progressStage),
       tone: "neutral",
     };
   }

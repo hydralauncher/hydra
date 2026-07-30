@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
@@ -300,11 +307,7 @@ export function CloudSaveV2Provider({
   ) => {
     if (isGameRunning || !hasExecutablePath || shop !== "steam") return;
     if (cloudSaveAccessAction !== "open") {
-      if (cloudSaveAccessAction === "sign-in") {
-        window.electron.openAuthWindow(AuthPage.SignIn);
-      } else {
-        showHydraCloudModal("backup");
-      }
+      openManager();
       return;
     }
 
@@ -350,8 +353,6 @@ export function CloudSaveV2Provider({
       if (activeGameKey.current === requestedGame) {
         await refresh();
         await refreshFileDetails();
-      }
-      if (activeGameKey.current === requestedGame) {
         setIsSyncing(false);
       }
     }
@@ -381,29 +382,46 @@ export function CloudSaveV2Provider({
   };
 
   const hasError = hasRefreshError || hasSyncError;
-  const value: CloudSaveV2ContextValue = {
-    overview,
-    isRefreshing,
-    isSyncing,
-    isGameRunning,
-    hasError,
-    progress,
-    hasExecutablePath,
-    canUseCloudSaves,
-    openManager,
-    openFileBrowser: () => {
-      if (cloudSaveAccessAction === "open") {
-        setIsFileBrowserVisible(true);
-      } else if (cloudSaveAccessAction === "sign-in") {
-        window.electron.openAuthWindow(AuthPage.SignIn);
-      } else {
-        showHydraCloudModal("backup");
-      }
-    },
-    runCloudSaveOperation,
-    setAutomaticSyncEnabled,
-    requestConflictResolution: setPendingResolution,
-  };
+  const value = useMemo<CloudSaveV2ContextValue>(
+    () => ({
+      overview,
+      isRefreshing,
+      isSyncing,
+      isGameRunning,
+      hasError,
+      progress,
+      hasExecutablePath,
+      canUseCloudSaves,
+      openManager,
+      openFileBrowser: () => {
+        if (cloudSaveAccessAction === "open") {
+          setIsFileBrowserVisible(true);
+        } else if (cloudSaveAccessAction === "sign-in") {
+          window.electron.openAuthWindow(AuthPage.SignIn);
+        } else {
+          showHydraCloudModal("backup");
+        }
+      },
+      runCloudSaveOperation,
+      setAutomaticSyncEnabled,
+      requestConflictResolution: setPendingResolution,
+    }),
+    [
+      canUseCloudSaves,
+      cloudSaveAccessAction,
+      hasError,
+      hasExecutablePath,
+      isGameRunning,
+      isRefreshing,
+      isSyncing,
+      openManager,
+      overview,
+      progress,
+      runCloudSaveOperation,
+      setAutomaticSyncEnabled,
+      showHydraCloudModal,
+    ]
+  );
 
   return (
     <cloudSaveV2Context.Provider value={value}>
