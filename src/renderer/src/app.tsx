@@ -233,6 +233,7 @@ export function App() {
           "install-duckstation": 6441,
           "install-pcsx2": 6192,
           "install-rpcs3": 6510,
+          "install-retroarch": 7108,
           "retroachievements-emulators": 6629,
         },
         en: {
@@ -243,18 +244,21 @@ export function App() {
           "install-duckstation": 6465,
           "install-pcsx2": 6390,
           "install-rpcs3": 6524,
+          "install-retroarch": 7120,
           "retroachievements-emulators": 6692,
         },
         ru: {
           "install-duckstation": 6479,
           "install-pcsx2": 6429,
           "install-rpcs3": 6541,
+          "install-retroarch": 7135,
           "retroachievements-emulators": 6717,
         },
         es: {
           "install-duckstation": 6492,
           "install-pcsx2": 6410,
           "install-rpcs3": 6552,
+          "install-retroarch": 7142,
           "retroachievements-emulators": 6743,
         },
       };
