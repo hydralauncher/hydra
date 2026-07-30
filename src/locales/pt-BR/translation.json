@@ -657,6 +657,7 @@
     "download_error_torrent_too_many_files": "Este torrent tem arquivos demais para exibir com segurança.",
     "download_error_torrent_files_unavailable": "Não foi possível buscar os arquivos do torrent. Por favor, tente novamente.",
     "download_error_torrent_invalid_trackers": "A lista de trackers contém trackers inválidos. Verifique a lista e tente novamente.",
+    "download_error_archive_org_invalid_file_url": "Este link do archive.org não aponta para um arquivo. Use um link direto para o arquivo.",
     "transferring": "Transferindo...",
     "view_progress": "Ver progresso",
     "game_size": "Tamanho do jogo",
