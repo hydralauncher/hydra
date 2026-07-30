@@ -685,7 +685,8 @@
     "pkg_unreadable_toast": "No se pudo leer este PKG. Instálalo e inícialo directamente desde RPCS3.",
     "rpcs3_already_running_title": "RPCS3 ya se está ejecutando",
     "rpcs3_already_running_description": "RPCS3 solo permite una instancia. ¿Cerrar la sesión en ejecución para iniciar este juego?",
-    "rpcs3_already_running_confirm": "Cerrar e iniciar"
+    "rpcs3_already_running_confirm": "Cerrar e iniciar",
+    "download_error_archive_org_invalid_file_url": "Este enlace de archive.org no apunta a un archivo. Usá un enlace directo al archivo."
   },
   "activation": {
     "title": "Activar Hydra",

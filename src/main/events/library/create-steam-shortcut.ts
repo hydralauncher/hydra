@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import type { Game, GameShop, ShopAssets } from "@types";
+import type { Game, GameShop, ShopAssets, SteamShortcut } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
 import {
   composeSteamShortcut,
@@ -20,6 +20,10 @@ import {
   convertSteamShortcutAsset,
   SteamShortcutAssetFormat,
 } from "./steam-shortcut-assets";
+import {
+  buildRunDeepLink,
+  getHydraShortcutTarget,
+} from "@main/helpers/shortcut-launch";
 
 const downloadAsset = async (
   downloadPath: string,
@@ -99,6 +103,87 @@ const copyAssetIfExists = async (
   }
 };
 
+const addShortcutForSteamUser = async (
+  steamUserId: number,
+  shortcut: SteamShortcut,
+  game: Game,
+  assets: Array<string | null>
+) => {
+  logger.info("Adding shortcut for Steam user", steamUserId);
+
+  const steamShortcuts = await getSteamShortcuts(steamUserId);
+  const duplicate =
+    game.shop === "launchbox"
+      ? steamShortcuts.some(
+          (item) => item.LaunchOptions === shortcut.LaunchOptions
+        )
+      : steamShortcuts.some((item) => item.appname === game.title);
+  if (duplicate) return;
+
+  const gridPath = path.join(
+    await getSteamLocation(),
+    "userdata",
+    steamUserId.toString(),
+    "config",
+    "grid"
+  );
+  await fs.promises.mkdir(gridPath, { recursive: true });
+
+  const [heroImage, logoImage, coverImage, libraryImage] = assets;
+  await Promise.all([
+    copyAssetIfExists(
+      heroImage,
+      path.join(gridPath, `${shortcut.appid}_hero.jpg`)
+    ),
+    copyAssetIfExists(
+      logoImage,
+      path.join(gridPath, `${shortcut.appid}_logo.png`)
+    ),
+    copyAssetIfExists(
+      coverImage,
+      path.join(gridPath, `${shortcut.appid}p.jpg`)
+    ),
+    copyAssetIfExists(
+      libraryImage,
+      path.join(gridPath, `${shortcut.appid}.jpg`)
+    ),
+  ]);
+
+  steamShortcuts.push(shortcut);
+  logger.info(shortcut);
+  logger.info("Writing Steam shortcuts", steamShortcuts);
+  await writeSteamShortcuts(steamUserId, steamShortcuts);
+};
+
+const configureLinuxWinePrefix = async (game: Game, appId: number) => {
+  if (
+    process.platform !== "linux" ||
+    game.shop === "launchbox" ||
+    game.winePrefixPath
+  ) {
+    return;
+  }
+
+  const winePrefixPath = path.join(
+    SystemPath.getPath("home"),
+    ".local",
+    "share",
+    "Steam",
+    "steamapps",
+    "compatdata",
+    appId.toString(),
+    "pfx"
+  );
+  await fs.promises.mkdir(winePrefixPath, { recursive: true });
+
+  const gameKey = levelKeys.game(game.shop, game.objectId);
+  await gamesSublevel.put(gameKey, {
+    ...game,
+    steamShortcutAppId: appId,
+    winePrefixPath,
+  });
+};
+
 const createSteamShortcut = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
@@ -108,105 +193,67 @@ const createSteamShortcut = async (
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
 
-  if (game) {
-    if (!game.executablePath) {
-      throw new Error("No executable path found for game");
-    }
-
-    const assets = await getGameAssets(objectId, shop);
-
-    const steamUserIds = await getSteamUsersIds();
-
-    if (!steamUserIds.length) {
-      logger.error("No Steam user ID found");
-      throw new Error("No Steam user ID found");
-    }
-
-    const [iconImage, heroImage, logoImage, coverImage, libraryImage] =
-      await downloadAssetsFromSteam(game, assets);
-
-    const newShortcut = composeSteamShortcut(
-      game.title,
-      game.executablePath,
-      iconImage,
-      options
-    );
-
-    for (const steamUserId of steamUserIds) {
-      logger.info("Adding shortcut for Steam user", steamUserId);
-
-      const steamShortcuts = await getSteamShortcuts(steamUserId);
-
-      if (steamShortcuts.some((shortcut) => shortcut.appname === game.title)) {
-        continue;
-      }
-
-      const gridPath = path.join(
-        await getSteamLocation(),
-        "userdata",
-        steamUserId.toString(),
-        "config",
-        "grid"
-      );
-
-      await fs.promises.mkdir(gridPath, { recursive: true });
-
-      await Promise.all([
-        copyAssetIfExists(
-          heroImage,
-          path.join(gridPath, `${newShortcut.appid}_hero.jpg`)
-        ),
-        copyAssetIfExists(
-          logoImage,
-          path.join(gridPath, `${newShortcut.appid}_logo.png`)
-        ),
-        copyAssetIfExists(
-          coverImage,
-          path.join(gridPath, `${newShortcut.appid}p.jpg`)
-        ),
-        copyAssetIfExists(
-          libraryImage,
-          path.join(gridPath, `${newShortcut.appid}.jpg`)
-        ),
-      ]);
-
-      steamShortcuts.push(newShortcut);
-
-      logger.info(newShortcut);
-      logger.info("Writing Steam shortcuts", steamShortcuts);
-
-      await writeSteamShortcuts(steamUserId, steamShortcuts);
-    }
-
-    await gamesSublevel.put(gameKey, {
-      ...game,
-      steamShortcutAppId: newShortcut.appid,
-    });
-
-    if (process.platform === "linux" && !game.winePrefixPath) {
-      const steamWinePrefixes = path.join(
-        SystemPath.getPath("home"),
-        ".local",
-        "share",
-        "Steam",
-        "steamapps",
-        "compatdata"
-      );
-
-      const winePrefixPath = path.join(
-        steamWinePrefixes,
-        newShortcut.appid.toString(),
-        "pfx"
-      );
-
-      await fs.promises.mkdir(winePrefixPath, { recursive: true });
-
-      await gamesSublevel.put(gameKey, {
-        ...game,
-        winePrefixPath,
-      });
-    }
+  if (!game) return;
+  if (!game.executablePath && game.shop !== "launchbox") {
+    throw new Error("No executable path found for game");
   }
+  const classicsDiscPath =
+    game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
+  if (
+    game.shop === "launchbox" &&
+    (!classicsDiscPath || !fs.existsSync(classicsDiscPath))
+  ) {
+    throw new Error(
+      "Classic games need an available disc before creating a shortcut"
+    );
+  }
+
+  const assets = await getGameAssets(objectId, shop);
+
+  const steamUserIds = await getSteamUsersIds();
+
+  if (!steamUserIds.length) {
+    logger.error("No Steam user ID found");
+    throw new Error("No Steam user ID found");
+  }
+
+  const [iconImage, heroImage, logoImage, coverImage, libraryImage] =
+    await downloadAssetsFromSteam(game, assets);
+
+  const isClassicsGame = game.shop === "launchbox";
+  const deepLink = isClassicsGame
+    ? buildRunDeepLink(game.shop, game.objectId)
+    : null;
+  const shortcutTarget = deepLink ? getHydraShortcutTarget(deepLink) : null;
+  const executablePath = shortcutTarget?.executablePath ?? game.executablePath!;
+  const launchOptions = shortcutTarget?.arguments ?? "";
+
+  const newShortcut = composeSteamShortcut(
+    game.title,
+    executablePath,
+    iconImage,
+    options,
+    {
+      appIdSeed: deepLink ?? undefined,
+      launchOptions,
+    }
+  );
+
+  for (const steamUserId of steamUserIds) {
+    await addShortcutForSteamUser(steamUserId, newShortcut, game, [
+      heroImage,
+      logoImage,
+      coverImage,
+      libraryImage,
+    ]);
+  }
+
+  await gamesSublevel.put(gameKey, {
+    ...game,
+    steamShortcutAppId: newShortcut.appid,
+  });
+
+  await configureLinuxWinePrefix(game, newShortcut.appid);
 };
 
 registerEvent("createSteamShortcut", createSteamShortcut);

@@ -131,6 +131,27 @@ def parse_file_indices(file_indices):
     return parsed
 
 
+VALID_TRACKER_PROTOCOLS = {"http", "https", "udp", "ws", "wss"}
+
+
+def validate_trackers(trackers):
+    if trackers is None:
+        return []
+
+    if not isinstance(trackers, list):
+        raise RpcError("invalid_trackers")
+
+    for tracker in trackers:
+        if not isinstance(tracker, str):
+            raise RpcError("invalid_trackers")
+
+        parsed = urllib.parse.urlparse(tracker)
+        if parsed.scheme not in VALID_TRACKER_PROTOCOLS or not parsed.netloc:
+            raise RpcError("invalid_trackers")
+
+    return trackers
+
+
 def validate_magnet_uri(magnet: str):
     if not isinstance(magnet, str):
         raise ValueError("invalid_magnet")
@@ -208,6 +229,7 @@ def map_downloader_error_code(error: Exception):
         "empty_selection",
         "invalid_url",
         "invalid_save_path",
+        "invalid_trackers",
     }:
         return code
 
@@ -302,12 +324,14 @@ def start_torrent_download(
     url,
     save_path,
     file_indices=None,
+    trackers=None,
     flags=None,
     metadata_timeout_ms=None,
 ):
     normalized_metadata_timeout_ms = normalize_metadata_timeout_ms(metadata_timeout_ms)
     start_kwargs = {
         "file_indices": file_indices,
+        "trackers": trackers,
     }
     if normalized_metadata_timeout_ms is not None:
         start_kwargs["wait_timeout_seconds"] = normalized_metadata_timeout_ms / 1000
@@ -426,6 +450,8 @@ def torrent_files(data: Optional[dict] = None):
         return cached_payload
 
     timeout_ms = data.get("timeout_ms", 30000)
+    trackers = validate_trackers(data.get("trackers"))
+
     try:
         timeout_ms = int(timeout_ms)
     except (TypeError, ValueError):
@@ -446,7 +472,7 @@ def torrent_files(data: Optional[dict] = None):
     started_at = time.time()
 
     try:
-        temp_downloader.start_download(magnet, tempfile.gettempdir())
+        temp_downloader.start_download(magnet, tempfile.gettempdir(), trackers=trackers)
         files_payload = temp_downloader.get_torrent_files(timeout_seconds=timeout_seconds)
         response = {
             "infoHash": info_hash,
@@ -498,6 +524,7 @@ def action(data: Optional[dict] = None):
                     url,
                     save_path,
                     file_indices=file_indices,
+                    trackers=validate_trackers(data.get("trackers")),
                     metadata_timeout_ms=data.get("metadata_timeout_ms"),
                 )
             else:
@@ -531,6 +558,7 @@ def action(data: Optional[dict] = None):
                 data["url"],
                 data["save_path"],
                 flags=lt.torrent_flags.upload_mode,
+                trackers=validate_trackers(data.get("trackers")),
             )
         elif action_name == "pause_seeding":
             with downloads_lock:

@@ -108,39 +108,23 @@ export default function GameDetails() {
             automaticallyDeleteArchiveFiles = false,
             signal?: AbortSignal
           ) => {
+            const payload = {
+              objectId: objectId!,
+              title: gameTitle,
+              downloader,
+              shop,
+              downloadPath,
+              uri: selectRepackUri(repack, downloader),
+              automaticallyExtract,
+              automaticallyDeleteArchiveFiles,
+              fileSize: repack.fileSize,
+              fileIndices,
+              selectedFilesSize,
+            };
+
             const response = addToQueueOnly
-              ? await addGameToQueue(
-                  {
-                    objectId: objectId!,
-                    title: gameTitle,
-                    downloader,
-                    shop,
-                    downloadPath,
-                    uri: selectRepackUri(repack, downloader),
-                    automaticallyExtract,
-                    automaticallyDeleteArchiveFiles,
-                    fileSize: repack.fileSize,
-                    fileIndices,
-                    selectedFilesSize,
-                  },
-                  signal
-                )
-              : await startDownload(
-                  {
-                    objectId: objectId!,
-                    title: gameTitle,
-                    downloader,
-                    shop,
-                    downloadPath,
-                    uri: selectRepackUri(repack, downloader),
-                    automaticallyExtract,
-                    automaticallyDeleteArchiveFiles,
-                    fileSize: repack.fileSize,
-                    fileIndices,
-                    selectedFilesSize,
-                  },
-                  signal
-                );
+              ? await addGameToQueue(payload, signal)
+              : await startDownload(payload, signal);
 
             if (response.ok) {
               await updateGame();
