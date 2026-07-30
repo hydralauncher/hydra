@@ -60,6 +60,8 @@ const PREFIX_STEAM_DIRECTORY = path.join(
   "Steam"
 );
 
+const STEAM_FLATPAK_DIRECTORY = [".var", "app", "com.valvesoftware.Steam"];
+
 export interface SteamClientDetection {
   usesSteamworks: boolean;
   hasBundledEmulator: boolean;
@@ -147,6 +149,11 @@ export const detectSteamClientUsage = (
   return { usesSteamworks, hasBundledEmulator, dllOverrides };
 };
 
+export const isFlatpakSteamInstalled = () =>
+  fs.existsSync(
+    path.join(SystemPath.getPath("home"), ...STEAM_FLATPAK_DIRECTORY)
+  );
+
 export const isSteamClientRunning = () => {
   const pidFilePath = path.join(
     SystemPath.getPath("home"),
@@ -199,6 +206,32 @@ const copySteamClientFiles = (
 
     fs.copyFileSync(sourceFilePath, targetFilePath);
   }
+};
+
+const removeSteamClientFiles = (
+  steamInstallPath: string,
+  winePrefixPath: string
+) => {
+  const legacyCompatPath = path.join(steamInstallPath, LEGACY_COMPAT_DIRECTORY);
+  const targetDirectory = path.join(winePrefixPath, PREFIX_STEAM_DIRECTORY);
+
+  const removedFiles: string[] = [];
+
+  for (const [sourceName, targetName] of STEAM_CLIENT_FILES) {
+    const sourceFilePath = path.join(legacyCompatPath, sourceName);
+    const targetFilePath = path.join(targetDirectory, targetName);
+
+    if (!isCopyUpToDate(sourceFilePath, targetFilePath)) continue;
+
+    try {
+      fs.rmSync(targetFilePath);
+      removedFiles.push(targetName);
+    } catch {
+      continue;
+    }
+  }
+
+  return removedFiles;
 };
 
 const readConfiguredOverlayGameId = (executablePath: string) => {
@@ -300,7 +333,28 @@ export const resolveSteamClientCompatEnv = async ({
   ) {
     logger.warn(
       "Game requires the Steam client but the Steam client files were not found, skipping Steam client setup",
-      { executablePath, steamInstallPath }
+      {
+        executablePath,
+        steamInstallPath,
+        hasFlatpakSteam: isFlatpakSteamInstalled(),
+      }
+    );
+    return null;
+  }
+
+  if (!isSteamClientRunning()) {
+    const removedFiles = removeSteamClientFiles(
+      steamInstallPath,
+      winePrefixPath
+    );
+
+    logger.warn(
+      "Game requires the Steam client but it is not running, launching the game without the Steam client setup",
+      {
+        executablePath,
+        hasFlatpakSteam: isFlatpakSteamInstalled(),
+        removedFiles,
+      }
     );
     return null;
   }
@@ -313,13 +367,6 @@ export const resolveSteamClientCompatEnv = async ({
       error,
     });
     return null;
-  }
-
-  if (!isSteamClientRunning()) {
-    logger.warn(
-      "Game requires the Steam client but it is not running, the game will likely fail to initialize Steam",
-      { executablePath }
-    );
   }
 
   logger.info("Enabling Steam client compatibility", {
