@@ -107,6 +107,7 @@ export function GameCloudSettingsTab({
   onToggleAutomaticCloudSync,
 }: Readonly<GameCloudSettingsProps>) {
   const { t } = useTranslation("big_picture");
+  const { t: tGameDetails } = useTranslation("game_details");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const { userDetails } = useUserDetails();
 
@@ -527,8 +528,8 @@ export function GameCloudSettingsTab({
       ) : (
         <SettingsSection
           className="game-cloud-settings-tab__section"
-          title={t("cloud_saves_section_title")}
-          description={t("cloud_saves_section_description")}
+          title={tGameDetails("cloud_save_legacy_title")}
+          description={tGameDetails("cloud_save_legacy_description")}
         >
           <div className="game-cloud-settings-tab__section-content">
             <Button
