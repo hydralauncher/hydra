@@ -309,7 +309,7 @@ export function CloudSaveV2FileBrowserModal({
 
           {details && (
             <>
-              {(isConflict || details.local.files.length > 0) && (
+              {(isConflict || localRoots.length > 0) && (
                 <div className="cloud-save-v2__browser-toolbar">
                   {!isConflict && (
                     <div className="cloud-save-v2__browser-source-summary">
