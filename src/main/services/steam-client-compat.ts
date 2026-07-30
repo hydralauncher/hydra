@@ -4,7 +4,11 @@ import { spawn } from "node:child_process";
 
 import { logger } from "./logger";
 import { getSteamLocation } from "./steam";
-import { isInsideSteamLibrary, resolveSteamBinaryPath } from "./steam-library";
+import {
+  isFlatpakSteamInstalled,
+  isInsideSteamLibrary,
+  resolveSteamBinaryPath,
+} from "./steam-library";
 import { SystemPath } from "./system-path";
 import { WindowManager } from "./window-manager";
 
@@ -15,7 +19,9 @@ const STEAM_EMULATOR_MARKER_FILES = [
 ];
 
 const PROXY_DLL_PATTERN =
-  /^(?:emp|custom|dinput8|dsound|version)\.dll$|^win.*\.dll$|^(?:online|steam).*\.dll$|^eos.*\.dll$|^epicfix.*\.dll$/;
+  /^(?:emp|custom|dinput8|dsound|dnet|version)\.dll$|^win.*\.dll$|^(?:online|steam).*\.dll$|^eos.*\.dll$|^epicfix.*\.dll$/;
+
+const UNSUPPORTED_STEAMWORKS_FILE = "steam_api.txt";
 
 const DLL_LIST_FILES = new Set(["winmm.txt", "dlllist.txt"]);
 
@@ -54,15 +60,11 @@ const OVERLAY_LIBRARIES = [
 
 const FALLBACK_OVERLAY_GAME_ID = "480";
 
-const SELF_PROTECTION_KEY = "ExtraProtection";
-
 const PREFIX_STEAM_DIRECTORY = path.join(
   "drive_c",
   "Program Files (x86)",
   "Steam"
 );
-
-const STEAM_FLATPAK_DIRECTORY = [".var", "app", "com.valvesoftware.Steam"];
 
 const STEAM_STARTUP_TIMEOUT_MS = 60_000;
 
@@ -232,11 +234,6 @@ export const detectSteamClientUsage = (
   return { usesSteamworks, hasBundledEmulator, dllOverrides };
 };
 
-export const isFlatpakSteamInstalled = () =>
-  fs.existsSync(
-    path.join(SystemPath.getPath("home"), ...STEAM_FLATPAK_DIRECTORY)
-  );
-
 export const isSteamClientRunning = () => {
   const pidFilePath = path.join(
     SystemPath.getPath("home"),
@@ -312,8 +309,7 @@ const ensureSteamClientRunning = async () => {
 
   if (isFlatpakSteamInstalled()) {
     logger.warn(
-      "Steam is installed as a flatpak and no other client is running, skipping the Steam client setup",
-      { flatpakDirectory: STEAM_FLATPAK_DIRECTORY.join(path.sep) }
+      "Steam is installed as a flatpak and no other client is running, skipping the Steam client setup"
     );
     return false;
   }
@@ -431,37 +427,18 @@ const readConfiguredOverlayGameId = (executablePath: string) => {
   return null;
 };
 
-const disableEmulatorSelfProtection = (executablePath: string) => {
-  const gameDirectory = path.dirname(executablePath);
+const warnAboutUnsupportedSteamworksFile = (executablePath: string) => {
+  const unsupportedFilePath = path.join(
+    path.dirname(executablePath),
+    UNSUPPORTED_STEAMWORKS_FILE
+  );
 
-  for (const configEntry of readConfigEntries(gameDirectory)) {
-    const configFilePath = path.join(gameDirectory, configEntry);
+  if (!fs.existsSync(unsupportedFilePath)) return;
 
-    try {
-      const contents = fs.readFileSync(configFilePath, "utf-8");
-
-      const pattern = new RegExp(
-        String.raw`^([^\S\r\n]*${SELF_PROTECTION_KEY}[^\S\r\n]*=[^\S\r\n]*)(\S*)`,
-        "im"
-      );
-
-      const match = pattern.exec(contents);
-
-      if (!match || match[2].toLowerCase() === "false") continue;
-
-      fs.writeFileSync(configFilePath, contents.replace(pattern, "$1false"));
-
-      logger.info("Disabled the self protection of a bundled Steam emulator", {
-        configFilePath,
-        previousValue: match[2],
-      });
-    } catch (error) {
-      logger.error("Failed to disable the self protection of the config", {
-        configFilePath,
-        error,
-      });
-    }
-  }
+  logger.warn(
+    "The game folder contains a file that is known to send the launch to the Steam store, the game may refuse to start",
+    { unsupportedFilePath }
+  );
 };
 
 const resolveOverlayEnv = (
@@ -557,7 +534,7 @@ export const resolveSteamClientCompatEnv = async ({
   }
 
   if (hasBundledEmulator) {
-    disableEmulatorSelfProtection(executablePath);
+    warnAboutUnsupportedSteamworksFile(executablePath);
   }
 
   logger.info("Enabling Steam client compatibility", {
