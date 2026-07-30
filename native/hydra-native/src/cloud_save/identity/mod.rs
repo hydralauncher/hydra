@@ -8,6 +8,26 @@ use crate::cloud_save::manifest::types::{CloudSaveRule, CloudSaveRuleCondition};
 pub const RULE_ID_VERSION: u32 = 1;
 
 #[napi(object)]
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SnapshotVariant {
+    pub variant_id: String,
+    pub kind: String,
+    pub steam_id64: Option<String>,
+    pub concrete_folder_id: Option<String>,
+}
+
+#[napi(object)]
+#[derive(Clone, Debug)]
+pub struct LocalResolutionBindings {
+    pub environment_id: String,
+    pub root_id: String,
+    pub prefix_generation_id: Option<String>,
+    pub concrete_user_segment: String,
+    pub concrete_path: String,
+}
+
+#[napi(object)]
 #[derive(Clone, Debug)]
 pub struct UserLocationCoverage {
     pub candidate_id: String,
