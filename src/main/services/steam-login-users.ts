@@ -102,7 +102,7 @@ const parseUsers = (content: string) => {
   if (!tokens) return null;
 
   const parsed = parseVdfObject(tokens, 0, false);
-  if (!parsed || parsed.next !== tokens.length) return null;
+  if (parsed?.next !== tokens.length) return null;
 
   return asObject(getCaseInsensitive(parsed.value, "users"));
 };
@@ -159,12 +159,12 @@ export const parseSteamStoreUserContext = (
   const mostRecent = parsedUsers.filter(
     ({ details }) => getCaseInsensitive(details, "MostRecent") === "1"
   );
-  const activeCandidate =
-    mostRecent.length === 1
-      ? mostRecent[0]
-      : mostRecent.length === 0 && parsedUsers.length === 1
-        ? parsedUsers[0]
-        : null;
+  let activeCandidate: (typeof parsedUsers)[number] | null = null;
+  if (mostRecent.length === 1) {
+    activeCandidate = mostRecent[0];
+  } else if (parsedUsers.length === 1) {
+    activeCandidate = parsedUsers[0];
+  }
   const active = activeCandidate
     ? { ...activeCandidate.account, source: "active-login" as const }
     : undefined;

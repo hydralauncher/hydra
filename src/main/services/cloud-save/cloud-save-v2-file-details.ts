@@ -211,9 +211,8 @@ export const buildCloudSaveV2FileDetails = ({
         variantId,
         userLabel: userLabel(variant),
         fileCount: ids.size,
-        conflictCount: conflictEntryIds.filter((entryId) =>
-          [...ids].some((candidate) => candidate === entryId)
-        ).length,
+        conflictCount: conflictEntryIds.filter((entryId) => ids.has(entryId))
+          .length,
         active: variantCoverage.some(
           (item) => item.authority === "authoritative"
         ),

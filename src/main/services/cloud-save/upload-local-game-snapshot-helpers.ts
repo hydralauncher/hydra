@@ -54,11 +54,16 @@ export const validatePrepareResponse = (
     if (!validateIdentity(file)) {
       throw new Error("Invalid prepare snapshot file identity");
     }
-    const commonKeys = ["variantId", "rawPath", "relativePath", "status"];
+    const commonKeys = new Set([
+      "variantId",
+      "rawPath",
+      "relativePath",
+      "status",
+    ]);
     if (file.status === "skip") {
       if (
-        Object.keys(file).some((key) => !commonKeys.includes(key)) ||
-        Object.keys(file).length !== commonKeys.length
+        Object.keys(file).some((key) => !commonKeys.has(key)) ||
+        Object.keys(file).length !== commonKeys.size
       ) {
         throw new Error("Invalid skipped prepare snapshot file");
       }
@@ -66,11 +71,13 @@ export const validatePrepareResponse = (
       const headers = file.requiredHeaders as
         | Record<string, unknown>
         | undefined;
+      const uploadKeys = new Set([
+        ...commonKeys,
+        "uploadUrl",
+        "requiredHeaders",
+      ]);
       if (
-        Object.keys(file).some(
-          (key) =>
-            ![...commonKeys, "uploadUrl", "requiredHeaders"].includes(key)
-        ) ||
+        Object.keys(file).some((key) => !uploadKeys.has(key)) ||
         !isHttpUrl(file.uploadUrl) ||
         !headers ||
         Object.keys(headers).length !== 2 ||

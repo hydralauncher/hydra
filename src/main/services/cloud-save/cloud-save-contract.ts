@@ -158,10 +158,7 @@ export const validateSnapshotFiles = (
     }
     sizeByHash.set(file.hash, file.sizeBytes);
   }
-  if (
-    variants &&
-    variants.some((variant) => !usedVariants.has(variant.variantId))
-  ) {
+  if (variants?.some((variant) => !usedVariants.has(variant.variantId))) {
     throw new Error("Cloud Save manifest contains an unused variant");
   }
   return files;

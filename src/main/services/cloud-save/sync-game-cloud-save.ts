@@ -66,6 +66,14 @@ const resolvedMerge = (
   });
 };
 
+const getPostSyncState = (
+  proposalChanged: boolean,
+  partial: boolean
+): CloudSaveState => {
+  if (proposalChanged) return "local-ahead";
+  return partial ? "partial" : "synced";
+};
+
 const saveCurrentHeadAnchor = async (
   objectId: string,
   shop: GameShop,
@@ -221,10 +229,7 @@ const executeGameCloudSaveSync = async (
       throw new Error("Active remote cloud save snapshot not found");
     }
     if (restoreIds.length === 0 && deleteLocalIds.length === 0) {
-      return finish(
-        "none",
-        proposalChanged ? "local-ahead" : merge.partial ? "partial" : "synced"
-      );
+      return finish("none", getPostSyncState(proposalChanged, merge.partial));
     }
     const restored =
       restoreIds.length > 0 && activeSnapshot
@@ -256,11 +261,10 @@ const executeGameCloudSaveSync = async (
     );
     return finish(
       "restore",
-      proposalChanged
-        ? "local-ahead"
-        : restored?.partial || merge.partial
-          ? "partial"
-          : "synced",
+      getPostSyncState(
+        proposalChanged,
+        Boolean(restored?.partial || merge.partial)
+      ),
       restoreIds.length + deleteLocalIds.length,
       restoreIds.length + deleteLocalIds.length
     );
@@ -343,13 +347,12 @@ const executeGameCloudSaveSync = async (
   const partial = merge.partial || restoredPartial || hasDeferredLocalChanges;
   const appliedLocalChanges =
     !uploadOnly && (restoreIds.length > 0 || deleteLocalIds.length > 0);
-  const action = proposalChanged
-    ? appliedLocalChanges
-      ? "merge"
-      : "upload"
-    : appliedLocalChanges
-      ? "restore"
-      : "none";
+  let action: SyncGameCloudSaveResult["action"];
+  if (proposalChanged) {
+    action = appliedLocalChanges ? "merge" : "upload";
+  } else {
+    action = appliedLocalChanges ? "restore" : "none";
+  }
   const processedFiles =
     (proposalChanged ? merge.files.length : 0) +
     (!uploadOnly ? restoreIds.length + deleteLocalIds.length : 0);
