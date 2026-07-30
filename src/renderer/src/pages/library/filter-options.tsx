@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { SelectField } from "@renderer/components";
+import { LibrarySelect } from "./library-select";
 import "./filter-options.scss";
 
 export type SortOption =
   | "title_asc"
   | "recently_played"
   | "most_played"
+  | "achievements"
   | "installed_first"
   | "title_desc";
 
@@ -23,36 +24,17 @@ export function FilterOptions({
   return (
     <div className="library-filter-options__container">
       <span className="library-filter-options__label">{t("sort_by")}</span>
-      <SelectField
-        className="library-filter-options__select"
+      <LibrarySelect
         value={sortBy}
-        onChange={(event) => onSortChange(event.target.value as SortOption)}
+        ariaLabel={t("sort_by")}
+        onChange={(value) => onSortChange(value as SortOption)}
         options={[
-          {
-            key: "title-asc",
-            value: "title_asc",
-            label: t("sort_title_asc"),
-          },
-          {
-            key: "recently-played",
-            value: "recently_played",
-            label: t("recently_played"),
-          },
-          {
-            key: "most-played",
-            value: "most_played",
-            label: t("sort_most_played"),
-          },
-          {
-            key: "installed-first",
-            value: "installed_first",
-            label: t("sort_installed_first"),
-          },
-          {
-            key: "title-desc",
-            value: "title_desc",
-            label: t("sort_title_desc"),
-          },
+          { value: "title_asc", label: t("sort_title_asc") },
+          { value: "recently_played", label: t("recently_played") },
+          { value: "most_played", label: t("sort_most_played") },
+          { value: "achievements", label: t("sort_achievements") },
+          { value: "installed_first", label: t("sort_installed_first") },
+          { value: "title_desc", label: t("sort_title_desc") },
         ]}
       />
     </div>

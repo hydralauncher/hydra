@@ -322,7 +322,12 @@ function HeroDownloadView({
     <div className="download-group download-group--hero">
       <div className="download-group__hero-background">
         <img
-          src={game.libraryHeroImageUrl || game.libraryImageUrl || ""}
+          src={
+            game.customHeroImageUrl ||
+            game.libraryHeroImageUrl ||
+            game.libraryImageUrl ||
+            ""
+          }
           alt={game.title}
         />
         <div className="download-group__hero-overlay" />
@@ -331,13 +336,16 @@ function HeroDownloadView({
       <div className="download-group__hero-content">
         <div className="download-group__hero-action-row">
           <div className="download-group__hero-logo">
-            {game.logoImageUrl ? (
+            {game.customLogoImageUrl || game.logoImageUrl ? (
               <button
                 type="button"
                 onClick={handleLogoClick}
                 className="download-group__hero-logo-button"
               >
-                <img src={game.logoImageUrl} alt={game.title} />
+                <img
+                  src={game.customLogoImageUrl || game.logoImageUrl || ""}
+                  alt={game.title}
+                />
               </button>
             ) : (
               <button
@@ -699,7 +707,10 @@ export function DownloadGroup({
     if (library.length > 0 && title === t("download_in_progress")) {
       const game = library[0];
       const heroImageUrl =
-        game.libraryHeroImageUrl || game.libraryImageUrl || "";
+        game.customHeroImageUrl ||
+        game.libraryHeroImageUrl ||
+        game.libraryImageUrl ||
+        "";
       if (heroImageUrl && game.id) {
         extractDominantColor(heroImageUrl, game.id);
       }
@@ -1072,7 +1083,10 @@ export function DownloadGroup({
                   onClick={() => navigate(buildGameDetailsPath(game))}
                   className="download-group__simple-thumbnail"
                 >
-                  <img src={game.libraryImageUrl || ""} alt={game.title} />
+                  <img
+                    src={game.customCoverImageUrl || game.libraryImageUrl || ""}
+                    alt={game.title}
+                  />
                 </button>
 
                 <div className="download-group__simple-info">

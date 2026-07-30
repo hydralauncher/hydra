@@ -1,0 +1,48 @@
+@use "../../scss/globals.scss";
+@use "./library-dropdown" as dropdown;
+
+.library-select {
+  &__trigger {
+    @include dropdown.trigger(&);
+
+    &[data-state="open"] .library-select__chevron {
+      transform: rotate(180deg);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__trigger-label {
+    @include dropdown.ellipsis;
+  }
+
+  &__chevron {
+    @include dropdown.chevron;
+  }
+
+  &__content {
+    @include dropdown.content;
+    min-width: var(--radix-dropdown-menu-trigger-width);
+  }
+
+  &__item {
+    @include dropdown.item;
+
+    &[data-state="checked"] {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &:hover,
+    &[data-highlighted] {
+      background-color: rgba(255, 255, 255, 0.15);
+      outline: none;
+    }
+  }
+
+  &__item-label {
+    @include dropdown.item-label;
+  }
+}

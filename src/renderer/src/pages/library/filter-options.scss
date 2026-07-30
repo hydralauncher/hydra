@@ -14,17 +14,4 @@
     color: rgba(255, 255, 255, 0.7);
     white-space: nowrap;
   }
-
-  &__select {
-    flex: 0 0 auto;
-    width: auto;
-
-    .select-field {
-      width: 100%;
-    }
-
-    .select-field__option {
-      width: 100%;
-    }
-  }
 }
