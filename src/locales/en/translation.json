@@ -1605,7 +1605,9 @@
     "preflight_checking": "Checking dependencies",
     "preflight_downloading": "Downloading dependencies",
     "preflight_installing": "Installing dependencies",
-    "preflight_installing_detail": "{{detail}}"
+    "preflight_installing_detail": "{{detail}}",
+    "starting_steam": "Starting Steam",
+    "steam_start_failed": "Steam did not start"
   },
   "notifications_page": {
     "title": "Notifications",

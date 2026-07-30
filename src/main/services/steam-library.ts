@@ -134,21 +134,19 @@ const resolveSteamPrefixPath = (executablePath: string, appId: string) => {
   return fs.existsSync(prefixPath) ? prefixPath : null;
 };
 
-const isSteamBinaryOnPath = () =>
+export const resolveSteamBinaryPath = () =>
   (process.env.PATH ?? "")
     .split(path.delimiter)
     .filter(Boolean)
-    .some((directory) => {
+    .map((directory) => path.join(directory, STEAM_BINARY_NAME))
+    .find((binaryPath) => {
       try {
-        fs.accessSync(
-          path.join(directory, STEAM_BINARY_NAME),
-          fs.constants.X_OK
-        );
+        fs.accessSync(binaryPath, fs.constants.X_OK);
         return true;
       } catch {
         return false;
       }
-    });
+    }) ?? null;
 
 export const isSteamAvailable = () => {
   const homePath = SystemPath.getPath("home");
@@ -157,7 +155,7 @@ export const isSteamAvailable = () => {
     fs.existsSync(path.join(homePath, ...segments))
   );
 
-  return hasInstallDirectory || isSteamBinaryOnPath();
+  return hasInstallDirectory || resolveSteamBinaryPath() !== null;
 };
 
 export const resolveSteamLaunchInfo = (

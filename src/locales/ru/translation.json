@@ -1597,7 +1597,9 @@
     "preflight_checking": "Проверка зависимостей",
     "preflight_downloading": "Загрузка зависимостей",
     "preflight_installing": "Установка зависимостей",
-    "preflight_installing_detail": "{{detail}}"
+    "preflight_installing_detail": "{{detail}}",
+    "starting_steam": "Запуск Steam",
+    "steam_start_failed": "Steam не запустился"
   },
   "notifications_page": {
     "title": "Уведомления",

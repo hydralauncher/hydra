@@ -23,6 +23,8 @@ type PreflightStatus =
   | "complete"
   | "error";
 
+type SteamClientStatus = "idle" | "starting" | "ready" | "failed";
+
 export default function GameLauncher() {
   const { t } = useTranslation("game_launcher");
   const [searchParams] = useSearchParams();
@@ -44,6 +46,8 @@ export default function GameLauncher() {
     useState<PreflightStatus>("idle");
   const [preflightDetail, setPreflightDetail] = useState<string | null>(null);
   const [preflightStarted, setPreflightStarted] = useState(false);
+  const [steamClientStatus, setSteamClientStatus] =
+    useState<SteamClientStatus>("idle");
   const [protonVersion, setProtonVersion] = useState<string | null>(null);
 
   const formatPlayTime = useCallback(
@@ -92,6 +96,18 @@ export default function GameLauncher() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!window.electron.onSteamClientProgress) {
+      return;
+    }
+
+    const unsubscribe = window.electron.onSteamClientProgress(({ status }) => {
+      setSteamClientStatus(status as SteamClientStatus);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // Auto-close timer - only starts after preflight completes
   // Preflight is "done" when: it completed/errored, OR it never started (non-Windows or no preflight needed)
   const isPreflightDone =
@@ -111,7 +127,8 @@ export default function GameLauncher() {
   }, [preflightStarted]);
 
   const canAutoClose =
-    isPreflightDone || (!preflightStarted && preflightTimeout);
+    (isPreflightDone || (!preflightStarted && preflightTimeout)) &&
+    steamClientStatus !== "starting";
 
   useEffect(() => {
     // Don't start timer until window is shown AND preflight is done
@@ -156,6 +173,9 @@ export default function GameLauncher() {
   }, []);
 
   const getStatusMessage = useCallback(() => {
+    if (steamClientStatus === "starting") return t("starting_steam");
+    if (steamClientStatus === "failed") return t("steam_start_failed");
+
     switch (preflightStatus) {
       case "checking":
         return t("preflight_checking");
@@ -171,9 +191,10 @@ export default function GameLauncher() {
       default:
         return t("launching_base");
     }
-  }, [preflightStatus, preflightDetail, t]);
+  }, [preflightStatus, preflightDetail, steamClientStatus, t]);
 
   const isPreflightRunning =
+    steamClientStatus === "starting" ||
     preflightStatus === "checking" ||
     preflightStatus === "downloading" ||
     preflightStatus === "installing";
