@@ -27,6 +27,7 @@ export * from "./download-sources-checker";
 export * from "./notifications/local-notifications";
 export * from "./power-save-blocker";
 export * from "./native-addon";
+export * from "./cloud-save";
 export * from "./achievement-notification-presenter-electron";
 export * from "./game-artwork";
 export * from "./game-artwork-cloud";

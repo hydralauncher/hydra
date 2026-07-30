@@ -26,6 +26,9 @@ export const gamesPlaytime = new Map<
   { lastTick: number; firstTick: number; lastSyncTick: number }
 >();
 
+export const isGameRunning = (objectId: string, shop: Game["shop"]) =>
+  gamesPlaytime.has(levelKeys.game(shop, objectId));
+
 export const getGamesRunning = () => {
   const now = performance.now();
   const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
