@@ -436,6 +436,30 @@ mod tests {
     }
 
     #[test]
+    fn remote_snapshot_account_hint_recognizes_both_steam_representations() {
+        let steam_id64 = "76561199800542110";
+        let account_id32 = "1840276382";
+        let account = KnownStoreAccount {
+            store: "steam".into(),
+            steam_id64: Some(steam_id64.into()),
+            account_id32: Some(account_id32.into()),
+            source: "remote-snapshot".into(),
+        };
+        let context = StoreUserContext {
+            active: None,
+            known: vec![account],
+        };
+
+        for captured in [steam_id64, account_id32] {
+            let identity = store_user_identity("steam", Some(captured), &context);
+            assert_eq!(identity.kind, "validated-account");
+            assert_eq!(identity.steam_id64.as_deref(), Some(steam_id64));
+            assert_eq!(identity.account_id32.as_deref(), Some(account_id32));
+            assert_eq!(identity.source, "remote-snapshot");
+        }
+    }
+
+    #[test]
     fn builds_default_and_opaque_wire_variants_without_local_bindings() {
         let default_bindings = portable_bindings(
             "steam",

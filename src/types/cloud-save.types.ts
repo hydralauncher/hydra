@@ -123,7 +123,11 @@ export interface KnownStoreAccount {
   store: string;
   steamId64?: string;
   accountId32?: string;
-  source: "active-login" | "known-login" | "userdata-folder";
+  source:
+    | "active-login"
+    | "known-login"
+    | "userdata-folder"
+    | "remote-snapshot";
 }
 
 export interface StoreUserContext {

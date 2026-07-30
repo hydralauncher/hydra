@@ -672,6 +672,111 @@ mod tests {
     }
 
     #[test]
+    fn restores_remote_snapshot_accounts_independently_from_the_local_account() {
+        let temp = tempdir().unwrap();
+        let local = KnownStoreAccount {
+            store: "steam".into(),
+            steam_id64: Some("76561199208012825".into()),
+            account_id32: Some("1247747097".into()),
+            source: "active-login".into(),
+        };
+        let remote_accounts = [
+            ("76561199800542110", "1840276382"),
+            ("76561199865645641", "1905379913"),
+            ("76561198835007011", "874741283"),
+        ];
+        let mut known = vec![local.clone()];
+        known.extend(
+            remote_accounts.map(|(steam_id64, account_id32)| KnownStoreAccount {
+                store: "steam".into(),
+                steam_id64: Some(steam_id64.into()),
+                account_id32: Some(account_id32.into()),
+                source: "remote-snapshot".into(),
+            }),
+        );
+        let context = StoreUserContext {
+            active: Some(local),
+            known,
+        };
+        let variants = remote_accounts
+            .map(|(steam_id64, _)| variant("steam-account", steam_id64))
+            .to_vec();
+        let files = variants
+            .iter()
+            .map(|variant| file(variant, "slot.dat"))
+            .collect();
+
+        let result = resolve_restore_targets(input(temp.path(), context, variants, files)).unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 3);
+        for (steam_id64, _) in remote_accounts {
+            assert!(result.actions.iter().any(|action| {
+                action
+                    .target_path
+                    .replace('\\', "/")
+                    .ends_with(&format!("/Game/{steam_id64}/slot.dat"))
+            }));
+        }
+        assert!(result
+            .actions
+            .iter()
+            .all(|action| !action.target_path.contains("76561199208012825")));
+    }
+
+    #[test]
+    fn reuses_an_existing_account_id32_folder_for_a_remote_account() {
+        let temp = tempdir().unwrap();
+        fs::create_dir_all(temp.path().join("Game").join("1840276382")).unwrap();
+        let account = KnownStoreAccount {
+            store: "steam".into(),
+            steam_id64: Some("76561199800542110".into()),
+            account_id32: Some("1840276382".into()),
+            source: "remote-snapshot".into(),
+        };
+        let context = StoreUserContext {
+            active: None,
+            known: vec![account],
+        };
+        let variants = vec![variant("steam-account", "76561199800542110")];
+        let files = vec![file(&variants[0], "slot.dat")];
+
+        let result = resolve_restore_targets(input(temp.path(), context, variants, files)).unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert!(result.actions[0]
+            .target_path
+            .replace('\\', "/")
+            .ends_with("/Game/1840276382/slot.dat"));
+    }
+
+    #[test]
+    fn blocks_a_remote_account_when_both_steam_folder_formats_exist() {
+        let temp = tempdir().unwrap();
+        fs::create_dir_all(temp.path().join("Game").join("76561199800542110")).unwrap();
+        fs::create_dir_all(temp.path().join("Game").join("1840276382")).unwrap();
+        let account = KnownStoreAccount {
+            store: "steam".into(),
+            steam_id64: Some("76561199800542110".into()),
+            account_id32: Some("1840276382".into()),
+            source: "remote-snapshot".into(),
+        };
+        let context = StoreUserContext {
+            active: None,
+            known: vec![account],
+        };
+        let variants = vec![variant("steam-account", "76561199800542110")];
+        let files = vec![file(&variants[0], "slot.dat")];
+
+        let result = resolve_restore_targets(input(temp.path(), context, variants, files)).unwrap();
+
+        assert!(result.actions.is_empty());
+        assert_eq!(result.blocked.len(), 1);
+        assert_eq!(result.blocked[0].reason, "blocked-target-ambiguous");
+    }
+
+    #[test]
     fn blocks_a_steam_variant_when_the_account_is_not_known() {
         let temp = tempdir().unwrap();
         let variants = vec![variant("steam-account", "76561197960278073")];

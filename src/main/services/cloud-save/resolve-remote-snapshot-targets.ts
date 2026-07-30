@@ -18,6 +18,7 @@ import {
   customPathToCloudSaveRule,
   getCloudSaveCustomPathBindings,
 } from "./custom-path-store";
+import { storeUserContextWithSnapshotAccounts } from "./snapshot-store-user-context";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
   if (!winePrefixPath) return false;
@@ -114,6 +115,10 @@ export const resolveRestoreManifestTargets = async (
 
   return NativeAddon.resolveRestoreTargets({
     ...pathContext,
+    storeUserContext: storeUserContextWithSnapshotAccounts(
+      pathContext.storeUserContext,
+      manifest.variants
+    ),
     winePrefixPath: effectiveWinePrefixPath,
     approvedRules: [
       ...approved.rules.map(({ kind, rawPath, source }) => ({

@@ -147,4 +147,32 @@ describe("Cloud Save launcher API contract", () => {
       })
     );
   });
+
+  it("rejects Steam accounts outside the individual account range", () => {
+    const manifest = (steamId64: string) => ({
+      snapshot: {
+        id: "snapshot",
+        version: 1,
+        shop: "steam",
+        objectId: "814380",
+      },
+      variants: [
+        {
+          variantId: firstVariantId,
+          kind: "steam-account",
+          steamId64,
+        },
+      ],
+      files: [file(firstVariantId)],
+    });
+
+    assert.throws(() => validateRestoreManifest(manifest("76561197960265727")));
+    assert.throws(() => validateRestoreManifest(manifest("76561202255233024")));
+    assert.doesNotThrow(() =>
+      validateRestoreManifest(manifest("76561197960265728"))
+    );
+    assert.doesNotThrow(() =>
+      validateRestoreManifest(manifest("76561202255233023"))
+    );
+  });
 });

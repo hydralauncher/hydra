@@ -28,6 +28,7 @@ import {
   isCloudSaveRawPathRemovable,
 } from "./custom-path-removal";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
+import { isCloudSaveSyncPartialAfterApply } from "./sync-result-policy";
 import { shouldRetryCloudSaveConflict } from "./snapshot-retry-policy";
 import {
   type ProgressCallback,
@@ -273,20 +274,23 @@ const executeGameCloudSaveSync = async (
         assertEnvironmentCurrent
       );
     }
+    const finalUnresolvedRemoteEntryIds =
+      restored?.unresolvedRemoteEntryIds ?? merge.unresolvedRemoteEntryIds;
     await saveCurrentHeadAnchor(
       objectId,
       shop,
       analysis,
-      restored?.unresolvedRemoteEntryIds ?? merge.unresolvedRemoteEntryIds,
+      finalUnresolvedRemoteEntryIds,
       assertEnvironmentCurrent
     );
+    const partial = isCloudSaveSyncPartialAfterApply({
+      coverage: analysis.localSnapshotContext.coverage,
+      unresolvedRemoteEntryIds: finalUnresolvedRemoteEntryIds,
+      restorePartial: restored?.partial,
+    });
     return finish(
       "restore",
-      proposalChanged
-        ? "local-ahead"
-        : restored?.partial || merge.partial
-          ? "partial"
-          : "synced",
+      proposalChanged ? "local-ahead" : partial ? "partial" : "synced",
       restoreIds.length + deleteLocalIds.length,
       restoreIds.length + deleteLocalIds.length
     );
@@ -366,7 +370,12 @@ const executeGameCloudSaveSync = async (
       assertEnvironmentCurrent
     );
   }
-  const partial = merge.partial || restoredPartial || hasDeferredLocalChanges;
+  const partial = isCloudSaveSyncPartialAfterApply({
+    coverage: analysis.localSnapshotContext.coverage,
+    unresolvedRemoteEntryIds: finalUnresolvedRemoteEntryIds,
+    restorePartial: restoredPartial,
+    hasDeferredLocalChanges,
+  });
   const appliedLocalChanges =
     !uploadOnly && (restoreIds.length > 0 || deleteLocalIds.length > 0);
   const action = proposalChanged

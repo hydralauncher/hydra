@@ -2,10 +2,11 @@ import type { CloudSaveState, GameShop } from "@types";
 
 import { NativeAddon } from "../native-addon";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
-import type { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
 import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
+import { storeUserContextWithSnapshotAccounts } from "./snapshot-store-user-context";
 import { getCloudSaveSyncAnchor } from "./sync-anchor";
 import type { SyncDirection } from "./sync-game/policy";
 
@@ -15,8 +16,8 @@ export const analyzeCloudSaveState = async (
   suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>,
   syncDirection: SyncDirection = "bidirectional"
 ) => {
-  const [localSnapshotContext, remoteSnapshots] = await Promise.all([
-    buildLocalGameSnapshotContext(objectId, shop, suppliedContext),
+  const [context, remoteSnapshots] = await Promise.all([
+    suppliedContext ?? getCloudSaveGameContext(objectId, shop),
     listRemoteGameSnapshots(objectId, shop),
   ]);
   const activeRemoteSnapshot = remoteSnapshots[0] ?? null;
@@ -30,6 +31,16 @@ export const analyzeCloudSaveState = async (
   ) {
     throw new Error("Active Cloud Save snapshot belongs to another game");
   }
+  const scanStoreUserContext = storeUserContextWithSnapshotAccounts(
+    context.pathContext.storeUserContext,
+    remoteManifest?.variants ?? []
+  );
+  const localSnapshotContext = await buildLocalGameSnapshotContext(
+    objectId,
+    shop,
+    context,
+    { scanStoreUserContext }
+  );
 
   const {
     sourceFiles: _,
