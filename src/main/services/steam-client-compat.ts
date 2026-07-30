@@ -12,12 +12,12 @@ const STEAM_EMULATOR_MARKER_FILES = [
   "onlinefix.ini",
 ];
 
-const STEAM_EMULATOR_PROXY_DLLS = [
-  "winmm.dll",
-  "dinput8.dll",
-  "dsound.dll",
-  "version.dll",
-];
+const PROXY_DLL_PATTERN =
+  /^(?:emp|custom|dinput8|dsound|version)\.dll$|^win.*\.dll$|^(?:online|steam).*\.dll$|^eos.*\.dll$|^epicfix.*\.dll$/;
+
+const DLL_LIST_FILES = new Set(["winmm.txt", "dlllist.txt"]);
+
+const NATIVE_BUILTIN_DLL_PATTERN = /^(?:win|dinput|dsound|version)/;
 
 const STEAM_EMULATOR_CONFIG_FILES = new Set(["onlinefix.ini", "steamfix.ini"]);
 
@@ -117,6 +117,82 @@ const containsSteamworksFiles = (gameDirectory: string) => {
   return scan(gameDirectory, 0);
 };
 
+const readListedModules = (filePath: string) => {
+  try {
+    return fs
+      .readFileSync(filePath, "utf-8")
+      .split(/\r?\n/)
+      .map((line) => line.trim().replaceAll("\\", "/").toLowerCase())
+      .filter((line) => line.endsWith(".dll"))
+      .map((line) => path.basename(line, ".dll"))
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+};
+
+const collectProxyDllOverrides = (gameDirectory: string) => {
+  let remainingEntries = MAX_SCANNED_ENTRIES;
+
+  const overrides = new Map<string, string>();
+  const listFiles: string[] = [];
+
+  const scan = (directoryPath: string, depth: number) => {
+    if (depth > MAX_SCAN_DEPTH || remainingEntries <= 0) return;
+
+    let entries: fs.Dirent[];
+
+    try {
+      entries = fs.readdirSync(directoryPath, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    const subdirectories: string[] = [];
+
+    for (const entry of entries) {
+      if (remainingEntries-- <= 0) return;
+
+      if (entry.isDirectory()) {
+        subdirectories.push(entry.name);
+        continue;
+      }
+
+      const entryName = entry.name.toLowerCase();
+
+      if (DLL_LIST_FILES.has(entryName)) {
+        listFiles.push(path.join(directoryPath, entry.name));
+        continue;
+      }
+
+      if (!PROXY_DLL_PATTERN.test(entryName)) continue;
+
+      const moduleName = path.basename(entryName, ".dll");
+
+      overrides.set(
+        moduleName,
+        NATIVE_BUILTIN_DLL_PATTERN.test(moduleName) ? "n,b" : "n"
+      );
+    }
+
+    for (const subdirectory of subdirectories) {
+      scan(path.join(directoryPath, subdirectory), depth + 1);
+    }
+  };
+
+  scan(gameDirectory, 0);
+
+  for (const listFile of listFiles) {
+    for (const moduleName of readListedModules(listFile)) {
+      if (!overrides.has(moduleName)) overrides.set(moduleName, "n");
+    }
+  }
+
+  return [...overrides.entries()]
+    .map(([moduleName, mode]) => `${moduleName}=${mode}`)
+    .join(";");
+};
+
 export const detectSteamClientUsage = (
   executablePath: string
 ): SteamClientDetection => {
@@ -141,9 +217,7 @@ export const detectSteamClientUsage = (
   }
 
   const dllOverrides = hasBundledEmulator
-    ? STEAM_EMULATOR_PROXY_DLLS.filter((proxyDll) => entries.has(proxyDll))
-        .map((proxyDll) => `${path.basename(proxyDll, ".dll")}=n,b`)
-        .join(";")
+    ? collectProxyDllOverrides(gameDirectory)
     : "";
 
   return { usesSteamworks, hasBundledEmulator, dllOverrides };
