@@ -48,6 +48,7 @@ import type {
   SyncGameCloudSaveResult,
   SelectCloudSaveCustomPathResult,
   CloudSaveCustomPathApproval,
+  CloudSaveModalSyncResult,
   SelectCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathApprovalResult,
 } from "@types";
@@ -60,9 +61,10 @@ const fileExplorerApi = {
   listDrives: () => ipcRenderer.invoke("listDrives"),
 };
 
-const invokeCloudSaveOperation = async (
+const invokeCloudSaveOperation = async <TResult = SyncGameCloudSaveResult>(
   channel:
     | "syncGameCloudSave"
+    | "syncGameCloudSaveFromModal"
     | "syncCloudSaveAfterCustomPathRebind"
     | "resolveCloudSaveConflict"
     | "removeCloudSaveCustomPath",
@@ -78,11 +80,7 @@ const invokeCloudSaveOperation = async (
   };
   ipcRenderer.on("on-cloud-save-sync-progress", listener);
   try {
-    return (await ipcRenderer.invoke(
-      channel,
-      operationId,
-      ...args
-    )) as SyncGameCloudSaveResult;
+    return (await ipcRenderer.invoke(channel, operationId, ...args)) as TResult;
   } finally {
     ipcRenderer.removeListener("on-cloud-save-sync-progress", listener);
   }
@@ -184,6 +182,17 @@ contextBridge.exposeInMainWorld("electron", {
     onProgress?: (progress: CloudSaveSyncProgressPayload) => void
   ) =>
     invokeCloudSaveOperation("syncGameCloudSave", [objectId, shop], onProgress),
+  syncGameCloudSaveFromModal: (
+    objectId: string,
+    shop: GameShop,
+    approvalId: string | null,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation<CloudSaveModalSyncResult>(
+      "syncGameCloudSaveFromModal",
+      [objectId, shop, approvalId],
+      onProgress
+    ),
   syncCloudSaveAfterCustomPathRebind: (
     objectId: string,
     shop: GameShop,

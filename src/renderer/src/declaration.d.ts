@@ -67,6 +67,7 @@ import type {
   SyncGameCloudSaveResult,
   SelectCloudSaveCustomPathResult,
   CloudSaveCustomPathApproval,
+  CloudSaveModalSyncResult,
   SelectCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathApprovalResult,
 } from "@types";
@@ -152,6 +153,12 @@ declare global {
       shop: GameShop,
       onProgress?: (progress: CloudSaveSyncProgressPayload) => void
     ) => Promise<SyncGameCloudSaveResult>;
+    syncGameCloudSaveFromModal: (
+      objectId: string,
+      shop: GameShop,
+      approvalId: string | null,
+      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    ) => Promise<CloudSaveModalSyncResult>;
     syncCloudSaveAfterCustomPathRebind: (
       objectId: string,
       shop: GameShop,

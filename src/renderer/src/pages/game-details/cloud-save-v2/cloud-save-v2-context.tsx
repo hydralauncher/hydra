@@ -385,7 +385,16 @@ export function CloudSaveV2Provider({
           onProgress
         );
       } else {
-        await window.electron.syncGameCloudSave(objectId, shop, onProgress);
+        const result = await window.electron.syncGameCloudSaveFromModal(
+          objectId,
+          shop,
+          null,
+          onProgress
+        );
+        if (result.status === "approval-required") {
+          setCustomPathApproval(result.approval);
+          setIsCustomPathApprovalGateActive(true);
+        }
       }
     } catch (error) {
       const syncCancelled =
@@ -457,11 +466,55 @@ export function CloudSaveV2Provider({
   };
 
   const handleConfirmCustomPathApproval = async () => {
-    const approvalId = customPathApproval?.id;
+    const approval = customPathApproval;
+    const approvalId = approval?.id;
     if (!approvalId || isSelectingCustomPath || isConfirmingCustomPath) return;
 
     setIsConfirmingCustomPath(true);
     setHasCustomPathApprovalError(false);
+    if (approval.purpose === "manual-sync") {
+      const requestedGame = gameKey;
+      setIsSyncing(true);
+      setHasSyncError(false);
+      setProgress(null);
+      try {
+        const result = await window.electron.syncGameCloudSaveFromModal(
+          objectId,
+          shop,
+          approvalId,
+          (nextProgress) => {
+            if (activeGameKey.current === requestedGame) {
+              setProgress(nextProgress);
+            }
+          }
+        );
+        if (activeGameKey.current === requestedGame) {
+          if (result.status === "approval-required") {
+            setCustomPathApproval(result.approval);
+            setIsCustomPathApprovalGateActive(true);
+          } else {
+            setCustomPathApproval(null);
+            setIsCustomPathApprovalGateActive(false);
+          }
+        }
+      } catch {
+        if (activeGameKey.current === requestedGame) {
+          setHasCustomPathApprovalError(true);
+          setHasSyncError(true);
+        }
+      } finally {
+        if (activeGameKey.current === requestedGame) {
+          await refresh();
+          await refreshFileDetails();
+        }
+        if (activeGameKey.current === requestedGame) {
+          setIsSyncing(false);
+          setIsConfirmingCustomPath(false);
+        }
+      }
+      return;
+    }
+
     try {
       const result =
         await window.electron.confirmCloudSaveCustomPathApproval(approvalId);
@@ -478,8 +531,12 @@ export function CloudSaveV2Provider({
     if (isSelectingCustomPath || isConfirmingCustomPath) return;
 
     const approvalId = customPathApproval?.id;
+    const purpose = customPathApproval?.purpose;
     setCustomPathApproval(null);
     setHasCustomPathApprovalError(false);
+    if (purpose === "manual-sync") {
+      setIsCustomPathApprovalGateActive(false);
+    }
     if (approvalId) {
       void window.electron
         .dismissCloudSaveCustomPathApproval(approvalId)

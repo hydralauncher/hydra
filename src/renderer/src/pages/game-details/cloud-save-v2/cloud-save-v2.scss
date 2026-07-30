@@ -46,29 +46,94 @@
   &__path-approval {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 3);
+  }
+
+  &__path-approval-description {
+    margin: 0;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    line-height: 1.5;
   }
 
   &__path-approval-summary {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    overflow: hidden;
+  }
+
+  &__path-approval-summary-toggle {
+    width: 100%;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit * 1.5);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.03);
+    border: 0;
+    background: transparent;
     color: globals.$muted-color;
     font-size: globals.$small-font-size;
+    text-align: left;
+    cursor: pointer;
+
+    span {
+      flex: 1;
+    }
 
     svg {
       flex-shrink: 0;
       color: globals.$body-color;
     }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+  }
+
+  &__path-approval-summary-chevron {
+    transition: transform 0.2s ease;
+
+    &--expanded {
+      transform: rotate(180deg);
+    }
+  }
+
+  &__path-approval-files {
+    max-height: 220px;
+    overflow-y: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  &__path-approval-file {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+
+    & + & {
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+    }
+  }
+
+  &__path-approval-file-name {
+    overflow: hidden;
+    color: globals.$body-color;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__path-approval-file-size,
+  &__path-approval-file-date {
+    color: rgba(255, 255, 255, 0.55);
+    white-space: nowrap;
   }
 
   &__path-approval-warning {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit * 1.5);
     border: 1px solid rgba(255, 183, 77, 0.18);
@@ -81,6 +146,11 @@
     svg {
       flex-shrink: 0;
     }
+  }
+
+  &__path-approval-choose {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   &__path-approval-actions {

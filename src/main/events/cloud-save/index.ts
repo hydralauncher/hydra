@@ -5,6 +5,7 @@ import "./upload-save-game";
 import "./get-cloud-save-overview";
 import "./get-cloud-save-v2-file-details";
 import "./sync-game-cloud-save";
+import "./sync-game-cloud-save-from-modal";
 import "./sync-cloud-save-after-custom-path-rebind";
 import "./sync-cloud-save-on-game-page";
 import "./resolve-cloud-save-conflict";
