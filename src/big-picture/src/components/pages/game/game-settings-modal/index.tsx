@@ -135,7 +135,7 @@ export function GameSettingsModal({
         ? [
             {
               id: "hydra_cloud",
-              label: t("settings_category_hydra_cloud"),
+              label: t("settings_category_hydra_cloud_legacy"),
               content: cloudContent,
             } satisfies SidebarModalTab<GameSettingsTabId>,
           ]
