@@ -67,7 +67,7 @@ export interface SelectCloudSaveCustomPathResult {
 export interface CloudSaveCustomPathApproval {
   id: string;
   gameId: CloudSaveGameId;
-  purpose: "pre-launch" | "manual-sync";
+  purpose: "pre-launch" | "manual-sync" | "custom-path-rebind";
   rawPath: string;
   suggestedPath: string | null;
   selectedPath: string | null;
@@ -75,8 +75,8 @@ export interface CloudSaveCustomPathApproval {
   fileCount: number;
   totalSizeBytes: number;
   files: CloudSaveCustomPathApprovalFile[];
-  snapshotId: string;
-  snapshotVersion: number;
+  snapshotId: string | null;
+  snapshotVersion: number | null;
 }
 
 export interface CloudSaveCustomPathApprovalFile {
@@ -93,6 +93,10 @@ export interface SelectCloudSaveCustomPathApprovalResult {
 
 export interface ConfirmCloudSaveCustomPathApprovalResult {
   pendingApproval: CloudSaveCustomPathApproval | null;
+}
+
+export interface ConfirmCloudSaveCustomPathRebindApprovalResult {
+  rawPath: string;
 }
 
 export type CloudSaveModalSyncResult =

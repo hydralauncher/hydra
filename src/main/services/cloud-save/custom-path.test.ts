@@ -14,6 +14,7 @@ import {
   encodeCloudSaveCustomPath,
   isLegacyCloudSaveCustomPathRawPath,
   type CloudSaveCustomPathContext,
+  validateBoundCloudSaveCustomPathForRestore,
   validateCloudSaveCustomPathForRestore,
 } from "./custom-path.ts";
 
@@ -478,6 +479,32 @@ describe("cloud save custom path codec", () => {
         decodeCloudSaveCustomPath(customPath.rawPath, context).path,
         customPath.path
       );
+    } finally {
+      await fs.rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps an approved missing destination valid when its parent is writable", async () => {
+    const directory = await fs.mkdtemp(
+      path.join(os.tmpdir(), "hydra-custom-path-")
+    );
+    const context: CloudSaveCustomPathContext = {
+      platform:
+        process.platform === "win32"
+          ? "windows"
+          : process.platform === "darwin"
+            ? "mac"
+            : "linux",
+      homeDir: os.homedir(),
+    };
+    const missingDestination = path.join(directory, "missing");
+    try {
+      const customPath = await validateBoundCloudSaveCustomPathForRestore(
+        "<custom><linux><absolute>/remote/identity",
+        missingDestination,
+        context
+      );
+      assert.equal(customPath.path, missingDestination.replaceAll("\\", "/"));
     } finally {
       await fs.rm(directory, { recursive: true, force: true });
     }

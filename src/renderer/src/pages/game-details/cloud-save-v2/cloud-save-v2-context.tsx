@@ -66,7 +66,7 @@ export function CloudSaveV2Provider({
   const [searchParams, setSearchParams] = useSearchParams();
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
-  const { showErrorToast, showWarningToast } = useToast();
+  const { showErrorToast, showSuccessToast, showWarningToast } = useToast();
   const {
     game,
     isGameRunning,
@@ -465,6 +465,32 @@ export function CloudSaveV2Provider({
     }
   };
 
+  const handleRequestCustomPathRebind = async (rawPath: string) => {
+    if (
+      isGameRunning ||
+      isSyncing ||
+      isSelectingCustomPath ||
+      isConfirmingCustomPath
+    ) {
+      throw new Error("cloud_save_custom_path_sync_active");
+    }
+
+    setHasCustomPathApprovalError(false);
+    setIsCustomPathApprovalGateActive(true);
+    try {
+      const approval =
+        await window.electron.createCloudSaveCustomPathRebindApproval(
+          objectId,
+          shop,
+          rawPath
+        );
+      setCustomPathApproval(approval);
+    } catch (error) {
+      setIsCustomPathApprovalGateActive(false);
+      throw error;
+    }
+  };
+
   const handleConfirmCustomPathApproval = async () => {
     const approval = customPathApproval;
     const approvalId = approval?.id;
@@ -472,6 +498,71 @@ export function CloudSaveV2Provider({
 
     setIsConfirmingCustomPath(true);
     setHasCustomPathApprovalError(false);
+    if (approval.purpose === "custom-path-rebind") {
+      const requestedGame = gameKey;
+      let wasRebound = false;
+      setIsSyncing(true);
+      setHasSyncError(false);
+      setProgress(null);
+      try {
+        const confirmed =
+          await window.electron.confirmCloudSaveCustomPathRebindApproval(
+            approvalId,
+            objectId,
+            shop
+          );
+        wasRebound = true;
+        const syncResult =
+          await window.electron.syncCloudSaveAfterCustomPathRebind(
+            objectId,
+            shop,
+            confirmed.rawPath,
+            (nextProgress) => {
+              if (activeGameKey.current === requestedGame) {
+                setProgress(nextProgress);
+              }
+            }
+          );
+        if (activeGameKey.current === requestedGame) {
+          setCustomPathApproval(null);
+          setIsCustomPathApprovalGateActive(false);
+          if (syncResult.finalState === "conflict") {
+            setHasSyncError(true);
+            showErrorToast(
+              t("cloud_save_v2_custom_path_rebind_sync_error_title"),
+              t("cloud_save_v2_custom_path_rebind_sync_error_description")
+            );
+          } else {
+            showSuccessToast(t("cloud_save_v2_custom_path_rebound"));
+          }
+        }
+      } catch {
+        if (activeGameKey.current === requestedGame) {
+          if (wasRebound) {
+            setCustomPathApproval(null);
+            setIsCustomPathApprovalGateActive(false);
+            setHasSyncError(true);
+            showErrorToast(
+              t("cloud_save_v2_custom_path_rebind_sync_error_title"),
+              t("cloud_save_v2_custom_path_rebind_sync_error_description")
+            );
+          } else {
+            setHasCustomPathApprovalError(true);
+          }
+        }
+      } finally {
+        if (activeGameKey.current === requestedGame && wasRebound) {
+          await refresh();
+          await refreshFileDetails();
+        }
+        if (activeGameKey.current === requestedGame) {
+          setIsSyncing(false);
+          setIsConfirmingCustomPath(false);
+        }
+      }
+      return;
+    }
+
     if (approval.purpose === "manual-sync") {
       const requestedGame = gameKey;
       setIsSyncing(true);
@@ -534,7 +625,7 @@ export function CloudSaveV2Provider({
     const purpose = customPathApproval?.purpose;
     setCustomPathApproval(null);
     setHasCustomPathApprovalError(false);
-    if (purpose === "manual-sync") {
+    if (purpose === "manual-sync" || purpose === "custom-path-rebind") {
       setIsCustomPathApprovalGateActive(false);
     }
     if (approvalId) {
@@ -620,6 +711,7 @@ export function CloudSaveV2Provider({
           await refreshFileDetails();
           await refresh();
         }}
+        onRequestCustomPathRebind={handleRequestCustomPathRebind}
         onClose={() => setIsFileBrowserVisible(false)}
       />
 

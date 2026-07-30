@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import type { CloudSaveCustomPathApproval, GameShop } from "@types";
+import type {
+  CloudSaveCustomPathApproval,
+  CloudSaveCustomPathApprovalFile,
+  GameShop,
+  RestoreManifestFile,
+} from "@types";
 
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import type { getCloudSaveGameContext } from "./cloud-save-game-context";
@@ -10,12 +15,14 @@ import {
   canonicalizeSelectedCloudSaveCustomPath,
   cloudSaveCustomPathContextFromPathContext,
   decodeCloudSaveCustomPath,
+  validateBoundCloudSaveCustomPathForRestore,
   validateCloudSaveCustomPathForRestore,
 } from "./custom-path";
 import {
   getCloudSaveCustomPathBindings,
   registerCloudSaveCustomPaths,
 } from "./custom-path-store";
+import { buildCloudSaveCustomPathRebindApproval } from "./custom-path-rebind-approval";
 
 export interface CloudSavePendingLaunchOptions {
   shop: GameShop;
@@ -30,6 +37,7 @@ interface PendingCloudSaveCustomPathApproval {
   approval: CloudSaveCustomPathApproval;
   launchOptions: CloudSavePendingLaunchOptions | null;
   context: CloudSaveGameContext;
+  approvedSelectedPath?: string | null;
 }
 
 const pendingByGame = new Map<string, PendingCloudSaveCustomPathApproval>();
@@ -40,6 +48,18 @@ const gameKey = (shop: GameShop, objectId: string) =>
 const getFileName = (relativePath: string) =>
   relativePath.replaceAll("\\", "/").split("/").filter(Boolean).pop() ??
   relativePath;
+
+const toApprovalFiles = (
+  files: RestoreManifestFile[]
+): CloudSaveCustomPathApprovalFile[] =>
+  [...files]
+    .sort((left, right) => left.relativePath.localeCompare(right.relativePath))
+    .map((file) => ({
+      name: getFileName(file.relativePath),
+      relativePath: file.relativePath,
+      sizeBytes: file.sizeBytes,
+      lastModifiedAt: file.lastModifiedAt,
+    }));
 
 const getPendingById = (id: string) => {
   for (const pending of pendingByGame.values()) {
@@ -131,16 +151,7 @@ const createPendingApproval = async (
       canUseSuggestedPath,
       fileCount: files.length,
       totalSizeBytes: files.reduce((total, file) => total + file.sizeBytes, 0),
-      files: [...files]
-        .sort((left, right) =>
-          left.relativePath.localeCompare(right.relativePath)
-        )
-        .map((file) => ({
-          name: getFileName(file.relativePath),
-          relativePath: file.relativePath,
-          sizeBytes: file.sizeBytes,
-          lastModifiedAt: file.lastModifiedAt,
-        })),
+      files: toApprovalFiles(files),
       snapshotId: manifest.snapshot.id,
       snapshotVersion: manifest.snapshot.version,
     };
@@ -170,6 +181,86 @@ export const createPendingManualCloudSaveCustomPathApproval = (
     preservePendingId
   );
 
+export const createPendingCustomPathRebindApproval = async (
+  gameId: { shop: GameShop; objectId: string },
+  rawPath: string,
+  context: CloudSaveGameContext
+): Promise<CloudSaveCustomPathApproval> => {
+  if (!rawPath.startsWith("<custom>")) {
+    throw new Error("cloud_save_custom_path_invalid");
+  }
+
+  const { shop, objectId } = gameId;
+  const analysis = await analyzeCloudSaveState(
+    objectId,
+    shop,
+    context,
+    "restore-only"
+  );
+  const customPathContext = cloudSaveCustomPathContextFromPathContext(
+    context.pathContext
+  );
+  const bindings = await getCloudSaveCustomPathBindings(
+    shop,
+    objectId,
+    customPathContext
+  );
+  const readyBinding = bindings.ready.find(
+    (binding) => binding.rawPath === rawPath
+  );
+  const unresolvedBinding = bindings.unresolved.find(
+    (binding) => binding.rawPath === rawPath
+  );
+  const remoteFiles = analysis.remoteManifest?.files ?? [];
+  const matchingRemoteFiles = remoteFiles.filter(
+    (file) => file.rawPath === rawPath
+  );
+
+  if (!readyBinding && !unresolvedBinding && matchingRemoteFiles.length === 0) {
+    throw new Error("cloud_save_custom_path_not_registered");
+  }
+
+  let suggestedPath = readyBinding?.path ?? unresolvedBinding?.pathHint ?? null;
+  let selectedPath = readyBinding?.path ?? null;
+  let canUseSuggestedPath = false;
+
+  if (!readyBinding) {
+    try {
+      suggestedPath = decodeCloudSaveCustomPath(
+        rawPath,
+        customPathContext
+      ).path;
+      canUseSuggestedPath =
+        (await validateCloudSaveCustomPathForRestore(
+          rawPath,
+          context.pathContext.platform,
+          customPathContext
+        )) !== null;
+      selectedPath = canUseSuggestedPath ? suggestedPath : null;
+    } catch {
+      canUseSuggestedPath = false;
+      selectedPath = null;
+    }
+  }
+
+  const approval = buildCloudSaveCustomPathRebindApproval({
+    gameId,
+    rawPath,
+    suggestedPath,
+    selectedPath,
+    canUseSuggestedPath,
+    remoteFiles,
+    snapshot: analysis.remoteManifest?.snapshot ?? null,
+  });
+  pendingByGame.set(gameKey(shop, objectId), {
+    approval,
+    launchOptions: null,
+    context,
+    approvedSelectedPath: readyBinding?.path ?? null,
+  });
+  return approval;
+};
+
 export const selectPendingCloudSaveCustomPathApproval = async (
   id: string,
   selectedPath: string
@@ -186,6 +277,7 @@ export const selectPendingCloudSaveCustomPathApproval = async (
     ...pending.approval,
     selectedPath: selected.path,
   };
+  pending.approvedSelectedPath = null;
   return pending.approval;
 };
 
@@ -208,7 +300,21 @@ const bindPendingCloudSaveCustomPathApproval = async (
     context.pathContext
   );
   let selectedPath = approval.selectedPath;
-  if (selectedPath === approval.suggestedPath && approval.canUseSuggestedPath) {
+  if (
+    pending.approvedSelectedPath &&
+    selectedPath === pending.approvedSelectedPath
+  ) {
+    selectedPath = (
+      await validateBoundCloudSaveCustomPathForRestore(
+        approval.rawPath,
+        pending.approvedSelectedPath,
+        customPathContext
+      )
+    ).path;
+  } else if (
+    selectedPath === approval.suggestedPath &&
+    approval.canUseSuggestedPath
+  ) {
     const validated = await validateCloudSaveCustomPathForRestore(
       approval.rawPath,
       context.pathContext.platform,
@@ -276,6 +382,53 @@ export const confirmPendingManualCloudSaveCustomPathApproval = async (
     false,
     assertCanBind
   );
+};
+
+export const confirmPendingCustomPathRebindApproval = async (
+  id: string,
+  gameId: { shop: GameShop; objectId: string },
+  assertCanBind?: () => void
+) => {
+  const pending = getPendingById(id);
+  if (
+    pending.approval.gameId.shop !== gameId.shop ||
+    pending.approval.gameId.objectId !== gameId.objectId
+  ) {
+    throw new Error("cloud_save_custom_path_approval_game_mismatch");
+  }
+  const customPathContext = cloudSaveCustomPathContextFromPathContext(
+    pending.context.pathContext
+  );
+  const bindings = await getCloudSaveCustomPathBindings(
+    gameId.shop,
+    gameId.objectId,
+    customPathContext
+  );
+  let isKnown = [...bindings.ready, ...bindings.unresolved].some(
+    (binding) => binding.rawPath === pending.approval.rawPath
+  );
+  if (!isKnown) {
+    const analysis = await analyzeCloudSaveState(
+      gameId.objectId,
+      gameId.shop,
+      pending.context,
+      "restore-only"
+    );
+    isKnown =
+      analysis.remoteManifest?.files.some(
+        (file) => file.rawPath === pending.approval.rawPath
+      ) ?? false;
+  }
+  if (!isKnown) {
+    throw new Error("cloud_save_custom_path_not_registered");
+  }
+  const { approval } = await bindPendingCloudSaveCustomPathApproval(
+    id,
+    "custom-path-rebind",
+    true,
+    assertCanBind
+  );
+  return { rawPath: approval.rawPath };
 };
 
 export const dismissPendingCloudSaveCustomPathApproval = (id: string) => {

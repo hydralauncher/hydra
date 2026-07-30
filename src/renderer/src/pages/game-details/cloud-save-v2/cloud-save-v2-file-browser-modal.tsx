@@ -37,6 +37,7 @@ interface CloudSaveV2FileBrowserModalProps {
   isGameRunning: boolean;
   isSyncing: boolean;
   onRetry: () => void | Promise<void>;
+  onRequestCustomPathRebind: (rawPath: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -51,6 +52,7 @@ export function CloudSaveV2FileBrowserModal({
   isGameRunning,
   isSyncing,
   onRetry,
+  onRequestCustomPathRebind,
   onClose,
 }: Readonly<CloudSaveV2FileBrowserModalProps>) {
   const { t } = useTranslation("game_details");
@@ -206,40 +208,12 @@ export function CloudSaveV2FileBrowserModal({
 
   const handleRebindCustomPath = async (rawPath: string) => {
     setRebindingCustomPath(rawPath);
-    let wasRebound = false;
     try {
-      const result = await window.electron.rebindCloudSaveCustomPath(
-        objectId,
-        shop,
-        rawPath
-      );
-      if (!result.canceled && result.customPath) {
-        wasRebound = true;
-        const syncResult =
-          await window.electron.syncCloudSaveAfterCustomPathRebind(
-            objectId,
-            shop,
-            rawPath
-          );
-        if (syncResult.finalState === "conflict") {
-          throw new Error("cloud_save_custom_path_sync_conflict");
-        }
-        await onRetry();
-        showSuccessToast(t("cloud_save_v2_custom_path_rebound"));
-      }
+      await onRequestCustomPathRebind(rawPath);
     } catch {
-      if (wasRebound) await onRetry();
       showErrorToast(
-        t(
-          wasRebound
-            ? "cloud_save_v2_custom_path_rebind_sync_error_title"
-            : "cloud_save_v2_custom_path_rebind_error_title"
-        ),
-        t(
-          wasRebound
-            ? "cloud_save_v2_custom_path_rebind_sync_error_description"
-            : "cloud_save_v2_custom_path_rebind_error_description"
-        )
+        t("cloud_save_v2_custom_path_rebind_error_title"),
+        t("cloud_save_v2_custom_path_rebind_error_description")
       );
     } finally {
       setRebindingCustomPath(null);

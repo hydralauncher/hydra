@@ -869,6 +869,20 @@ const assertNoSymlinkAncestor = async (
   await fs.access(existing, fsConstants.W_OK);
 };
 
+export const validateBoundCloudSaveCustomPathForRestore = async (
+  rawPath: string,
+  localPath: string,
+  context = getCurrentCloudSaveCustomPathContext()
+) => {
+  const customPath = bindCloudSaveCustomPathToLocalPath(
+    rawPath,
+    localPath,
+    context
+  );
+  await assertNoSymlinkAncestor(customPath, context);
+  return customPath;
+};
+
 export const canonicalizeSelectedCloudSaveCustomPath = async (
   selectedPath: string,
   context = getCurrentCloudSaveCustomPathContext()

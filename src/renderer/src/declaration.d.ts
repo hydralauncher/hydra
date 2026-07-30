@@ -70,6 +70,7 @@ import type {
   CloudSaveModalSyncResult,
   SelectCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathApprovalResult,
+  ConfirmCloudSaveCustomPathRebindApprovalResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -117,11 +118,16 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<SelectCloudSaveCustomPathResult>;
-    rebindCloudSaveCustomPath: (
+    createCloudSaveCustomPathRebindApproval: (
       objectId: string,
       shop: GameShop,
       rawPath: string
-    ) => Promise<SelectCloudSaveCustomPathResult>;
+    ) => Promise<CloudSaveCustomPathApproval>;
+    confirmCloudSaveCustomPathRebindApproval: (
+      approvalId: string,
+      objectId: string,
+      shop: GameShop
+    ) => Promise<ConfirmCloudSaveCustomPathRebindApprovalResult>;
     getPendingCloudSaveCustomPathApproval: (
       objectId: string,
       shop: GameShop
