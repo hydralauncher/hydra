@@ -547,7 +547,8 @@
     "launch_options_description_linux": "Add game launch arguments, or use <code>%command%</code> to wrap the launch command.",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "download_error_archive_org_invalid_file_url": "Este link do archive.org não aponta para um ficheiro. Use um link direto para o ficheiro."
   },
   "activation": {
     "title": "Ativação",

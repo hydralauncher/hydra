@@ -9,6 +9,7 @@ import {
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
+  getGlobalTrackers,
   handleDownloadError,
   isKnownDownloadError,
   prepareGameEntry,
@@ -37,33 +38,38 @@ const startGameDownload = async (
     `[Downloads] Start requested for ${gameKey} (downloader=${downloader})`
   );
 
-  const download: Download = {
-    shop,
-    objectId,
-    status: "paused",
-    progress: 0,
-    bytesDownloaded: 0,
-    downloadPath,
-    downloader,
-    uri,
-    folderName: null,
-    shouldSeed: false,
-    timestamp: Date.now(),
-    queued: true,
-    pinnedToHero: false,
-    extracting: false,
-    automaticallyExtract,
-    automaticallyDeleteArchiveFiles,
-    fileIndices,
-    selectedFilesSize,
-    fileSize: selectedFilesSize ?? null,
-  };
+  let didWriteDownload = false;
 
   try {
+    const globalTrackers = await getGlobalTrackers();
+
+    const download: Download = {
+      shop,
+      objectId,
+      status: "paused",
+      progress: 0,
+      bytesDownloaded: 0,
+      downloadPath,
+      downloader,
+      uri,
+      folderName: null,
+      shouldSeed: false,
+      timestamp: Date.now(),
+      queued: true,
+      pinnedToHero: false,
+      extracting: false,
+      automaticallyExtract,
+      automaticallyDeleteArchiveFiles,
+      fileIndices,
+      selectedFilesSize,
+      fileSize: selectedFilesSize ?? null,
+      customTrackers: globalTrackers,
+    };
     await DownloadManager.validateDownloadUrl(download);
     await prepareGameEntry({ gameKey, title, objectId, shop });
-    await DownloadManager.cancelDownload(gameKey);
+    await DownloadManager.cancelDownload(gameKey).catch(() => null);
     await downloadsSublevel.put(gameKey, download);
+    didWriteDownload = true;
     await DownloadOrchestrator.startPreparedDownload(download);
 
     const updatedGame = await gamesSublevel.get(gameKey);
@@ -77,8 +83,11 @@ const startGameDownload = async (
 
     return { ok: true };
   } catch (err: unknown) {
-    await downloadsSublevel.del(gameKey).catch(() => null);
-    await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
+    if (didWriteDownload) {
+      await DownloadManager.cancelDownload(gameKey).catch(() => null);
+      await downloadsSublevel.del(gameKey).catch(() => null);
+      await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
+    }
 
     if (isKnownDownloadError(err)) {
       logger.warn("Failed to start download with expected download error", err);
