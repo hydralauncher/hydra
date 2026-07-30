@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::path::Path;
 
 use super::candidates::{native_paths, normalize_candidate, steam_proton_paths, wine_paths};
 use super::custom::{decode_custom_path, CUSTOM_PATH_PREFIX};
@@ -102,6 +103,22 @@ pub(crate) fn glob_base_path(raw_path: &str) -> Option<String> {
         0 => ".".to_string(),
         index => segments[..index].join("/"),
     })
+}
+
+fn is_absolute_candidate(path: &str, platform: &str) -> bool {
+    if Path::new(path).is_absolute() {
+        return true;
+    }
+    if platform == "windows" {
+        let bytes = path.as_bytes();
+        return (bytes.len() >= 3
+            && bytes[0].is_ascii_alphabetic()
+            && bytes[1] == b':'
+            && bytes[2] == b'/')
+            || path.starts_with("//");
+    }
+
+    path.starts_with('/')
 }
 
 fn assign_scan_roots(paths: &mut [ResolvedCloudSavePath], roots: &[ResolvedCloudSavePath]) {
@@ -220,15 +237,23 @@ fn resolve_standard_path(raw_path: &str, context: &PathResolutionContext) -> Res
         }
     }
 
+    paths.retain(|candidate| is_absolute_candidate(&candidate.path, &context.platform));
+
     if let Some(raw_scan_root) = glob_base_path(&raw_path) {
         let roots = resolve_path(&raw_scan_root, context).paths;
         assign_scan_roots(&mut paths, &roots);
     }
 
-    let unresolved_tokens = paths
-        .is_empty()
-        .then(|| tokens_in_path(&raw_path))
-        .unwrap_or_default();
+    let unresolved_tokens = if paths.is_empty() {
+        let tokens = tokens_in_path(&raw_path);
+        if tokens.is_empty() {
+            vec!["cloud_save_relative_path".to_string()]
+        } else {
+            tokens
+        }
+    } else {
+        Vec::new()
+    };
 
     ResolvedPath {
         paths,
@@ -417,6 +442,30 @@ mod tests {
                 && candidate.path
                     == "/prefix/drive_*/users/*/Saved Games/The Last of Us Part I/users/*/savedata"
         }));
+    }
+
+    #[test]
+    fn rejects_manifest_paths_that_remain_relative() {
+        let input = ResolveSaveRulesInput {
+            shop: "steam".to_string(),
+            object_id: "1".to_string(),
+            platform: "linux".to_string(),
+            home_dir: "/home/player".to_string(),
+            executable_path: Some("/games/Game/game".to_string()),
+            documents_dir: None,
+            app_data_dir: None,
+            wine_prefix_path: None,
+            steam_path: None,
+            rules: Vec::new(),
+        };
+        let context = build_context(&input).unwrap();
+
+        let relative = resolve_path("Saves/profile", &context);
+        let rooted = resolve_path("<home>/Saves/profile", &context);
+
+        assert!(relative.paths.is_empty());
+        assert_eq!(relative.unresolved_tokens, vec!["cloud_save_relative_path"]);
+        assert_eq!(rooted.paths[0].path, "/home/player/Saves/profile");
     }
 
     #[test]

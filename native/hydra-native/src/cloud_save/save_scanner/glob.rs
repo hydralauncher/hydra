@@ -97,26 +97,28 @@ fn brace_alternatives(value: &str) -> Vec<&str> {
 }
 
 pub fn expand_braces(pattern: &str) -> Result<Vec<String>, String> {
-    let opening = pattern
-        .char_indices()
-        .find(|(index, character)| *character == '{' && is_brace_syntax(pattern, *index))
-        .map(|(index, _)| index);
-
-    let Some(opening) = opening else {
-        if pattern
-            .char_indices()
-            .any(|(index, character)| character == '}' && is_brace_syntax(pattern, index))
-        {
-            return Err("cloud_save_invalid_glob: unmatched closing brace".to_string());
+    let mut opening = None;
+    let mut closing = None;
+    let mut alternatives = Vec::new();
+    for (index, character) in pattern.char_indices() {
+        if character != '{' || !is_brace_syntax(pattern, index) {
+            continue;
         }
+        let Ok(candidate_closing) = matching_brace(pattern, index) else {
+            continue;
+        };
+        let candidate_alternatives = brace_alternatives(&pattern[index + 1..candidate_closing]);
+        if candidate_alternatives.len() >= 2 {
+            opening = Some(index);
+            closing = Some(candidate_closing);
+            alternatives = candidate_alternatives;
+            break;
+        }
+    }
+
+    let (Some(opening), Some(closing)) = (opening, closing) else {
         return Ok(vec![pattern.to_string()]);
     };
-
-    let closing = matching_brace(pattern, opening)?;
-    let alternatives = brace_alternatives(&pattern[opening + 1..closing]);
-    if alternatives.len() < 2 {
-        return Err("cloud_save_invalid_glob: brace must contain alternatives".to_string());
-    }
 
     let mut expanded = Vec::new();
     for alternative in alternatives {
@@ -156,5 +158,17 @@ mod tests {
         let pattern = "/Games/[{]Deluxe[}]/save.dat";
 
         assert_eq!(expand_braces(pattern).unwrap(), vec![pattern]);
+    }
+
+    #[test]
+    fn preserves_literal_braces_and_expands_later_alternatives() {
+        assert_eq!(
+            expand_braces("save/{random}/*.{sav,dat}").unwrap(),
+            vec!["save/{random}/*.sav", "save/{random}/*.dat"]
+        );
+        assert_eq!(
+            expand_braces("save/{64bitSteamID}/slot.dat").unwrap(),
+            vec!["save/{64bitSteamID}/slot.dat"]
+        );
     }
 }
