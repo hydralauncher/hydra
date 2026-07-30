@@ -712,7 +712,8 @@
     "create_steam_shortcut_modal_cancel_button": "Отмена",
     "delete_shortcut_success": "Ярлык Steam успешно удалён",
     "delete_shortcut_error": "Не удалось удалить ярлык Steam",
-    "delete_steam_shortcut": "Удалить ярлык Steam"
+    "delete_steam_shortcut": "Удалить ярлык Steam",
+    "download_error_archive_org_invalid_file_url": "Эта ссылка archive.org не указывает на файл. Используйте прямую ссылку на файл."
   },
   "activation": {
     "title": "Активировать Hydra",
