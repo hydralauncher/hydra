@@ -29,6 +29,7 @@ import { useCloudSaveV2FileDetails } from "./use-cloud-save-v2-file-details";
 
 interface CloudSaveV2ContextValue {
   overview: CloudSaveOverview | null;
+  isAutomaticSyncEnabled: boolean | null;
   isRefreshing: boolean;
   isSyncing: boolean;
   isGameRunning: boolean;
@@ -86,12 +87,17 @@ export function CloudSaveV2Provider({
   const hasExecutablePath = Boolean(game?.executablePath);
   const canCheckCloudSaves =
     shop === "steam" && canUseCloudSaves && hasExecutablePath;
-  const { overview, isRefreshing, hasRefreshError, refresh } =
-    useCloudSaveOverview({
-      objectId,
-      shop,
-      enabled: canCheckCloudSaves,
-    });
+  const {
+    overview,
+    isAutomaticSyncEnabled,
+    isRefreshing,
+    hasRefreshError,
+    refresh,
+  } = useCloudSaveOverview({
+    objectId,
+    shop,
+    enabled: canCheckCloudSaves,
+  });
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
     useState(false);
@@ -385,6 +391,7 @@ export function CloudSaveV2Provider({
   const value = useMemo<CloudSaveV2ContextValue>(
     () => ({
       overview,
+      isAutomaticSyncEnabled,
       isRefreshing,
       isSyncing,
       isGameRunning,
@@ -411,6 +418,7 @@ export function CloudSaveV2Provider({
       cloudSaveAccessAction,
       hasError,
       hasExecutablePath,
+      isAutomaticSyncEnabled,
       isGameRunning,
       isRefreshing,
       isSyncing,
@@ -435,7 +443,7 @@ export function CloudSaveV2Provider({
         isSyncing={isSyncing}
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
-        isAutomaticSyncEnabled={overview?.isAutomaticSyncEnabled ?? null}
+        isAutomaticSyncEnabled={isAutomaticSyncEnabled}
         hasError={hasError}
         progress={progress}
         onSync={() => void runCloudSaveOperation()}

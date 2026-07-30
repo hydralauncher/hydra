@@ -143,6 +143,21 @@ export function GameOptionsModal({
     setAutomaticCloudSync(game.automaticCloudSync ?? false);
   }, [game.automaticCloudSync]);
 
+  useEffect(
+    () =>
+      globalThis.window.electron.onCloudSaveAutomaticSyncModeChanged(
+        (event) => {
+          if (
+            event.gameId.objectId === game.objectId &&
+            event.gameId.shop === game.shop
+          ) {
+            setAutomaticCloudSync(event.mode === "legacy");
+          }
+        }
+      ),
+    [game.objectId, game.shop]
+  );
+
   const {
     removeGameInstaller,
     removeGameFromLibrary,

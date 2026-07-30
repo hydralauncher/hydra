@@ -42,6 +42,7 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
@@ -85,6 +86,20 @@ const invokeCloudSaveOperation = async (
 };
 
 contextBridge.exposeInMainWorld("electron", {
+  onCloudSaveAutomaticSyncModeChanged: (
+    callback: (event: CloudSaveAutomaticSyncModeChangedEvent) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: CloudSaveAutomaticSyncModeChangedEvent
+    ) => callback(payload);
+    ipcRenderer.on("on-cloud-save-automatic-sync-mode-changed", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-cloud-save-automatic-sync-mode-changed",
+        listener
+      );
+  },
   onCloudSaveAutomaticSync: (
     callback: (event: CloudSaveAutomaticSyncEvent) => void
   ) => {

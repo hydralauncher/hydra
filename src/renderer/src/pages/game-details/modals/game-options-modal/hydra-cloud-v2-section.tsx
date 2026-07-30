@@ -12,6 +12,7 @@ export function HydraCloudV2SettingsSection({
   const { t } = useTranslation("game_details");
   const {
     overview,
+    isAutomaticSyncEnabled,
     isRefreshing,
     isSyncing,
     isGameRunning,
@@ -38,7 +39,7 @@ export function HydraCloudV2SettingsSection({
         isSyncing={isSyncing}
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
-        isAutomaticSyncEnabled={overview?.isAutomaticSyncEnabled ?? true}
+        isAutomaticSyncEnabled={isAutomaticSyncEnabled ?? true}
         hasError={hasError}
         progress={progress}
         onSync={() => void runCloudSaveOperation()}

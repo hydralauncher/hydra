@@ -14,6 +14,9 @@ export const useCloudSaveOverview = ({
   enabled,
 }: UseCloudSaveOverviewOptions) => {
   const [overview, setOverview] = useState<CloudSaveOverview | null>(null);
+  const [isAutomaticSyncEnabled, setIsAutomaticSyncEnabled] = useState<
+    boolean | null
+  >(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasRefreshError, setHasRefreshError] = useState(false);
   const gameKey = `${shop}:${objectId}`;
@@ -47,6 +50,7 @@ export const useCloudSaveOverview = ({
           );
           if (activeGameKey.current === requestedGameKey) {
             setOverview(result);
+            setIsAutomaticSyncEnabled(result.isAutomaticSyncEnabled);
           }
         } catch {
           if (activeGameKey.current === requestedGameKey) {
@@ -84,6 +88,7 @@ export const useCloudSaveOverview = ({
     activeRequest.current = null;
     hasQueuedRefresh.current = false;
     setOverview(null);
+    setIsAutomaticSyncEnabled(null);
     setHasRefreshError(false);
     setIsRefreshing(false);
 
@@ -101,6 +106,22 @@ export const useCloudSaveOverview = ({
   useEffect(() => {
     if (!enabled) return;
 
+    return window.electron.onCloudSaveAutomaticSyncModeChanged((event) => {
+      if (event.gameId.objectId !== objectId || event.gameId.shop !== shop) {
+        return;
+      }
+
+      const enabledForV2 = event.mode === "v2";
+      setIsAutomaticSyncEnabled(enabledForV2);
+      setOverview((current) =>
+        current ? { ...current, isAutomaticSyncEnabled: enabledForV2 } : current
+      );
+    });
+  }, [enabled, objectId, shop]);
+
+  useEffect(() => {
+    if (!enabled) return;
+
     const handleFocus = () => scheduleRefresh();
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") scheduleRefresh();
@@ -114,5 +135,11 @@ export const useCloudSaveOverview = ({
     };
   }, [enabled, scheduleRefresh]);
 
-  return { overview, isRefreshing, hasRefreshError, refresh };
+  return {
+    overview,
+    isAutomaticSyncEnabled,
+    isRefreshing,
+    hasRefreshError,
+    refresh,
+  };
 };

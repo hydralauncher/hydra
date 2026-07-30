@@ -63,6 +63,7 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
@@ -102,6 +103,9 @@ declare global {
   };
 
   interface Electron {
+    onCloudSaveAutomaticSyncModeChanged: (
+      callback: (event: CloudSaveAutomaticSyncModeChangedEvent) => void
+    ) => () => void;
     onCloudSaveAutomaticSync: (
       callback: (event: CloudSaveAutomaticSyncEvent) => void
     ) => () => void;
