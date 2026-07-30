@@ -12,9 +12,68 @@
   position: relative;
   z-index: globals.$bottom-panel-z-index;
 
+  &__left {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  &__center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    padding: 0 calc(globals.$spacing-unit * 2);
+
+    &--start {
+      justify-content: flex-start;
+      padding-left: 0;
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+    flex-shrink: 0;
+  }
+
+  &__help-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: globals.$body-color;
+    border-bottom: solid 1px transparent;
+    flex-shrink: 0;
+
+    &:hover {
+      border-bottom: solid 1px globals.$body-color;
+      cursor: pointer;
+    }
+  }
+
+  &__gradient-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  &__help-icon {
+    fill: url(#hydra-cloud-gradient);
+  }
+
   &__downloads-button {
     color: globals.$body-color;
     border-bottom: solid 1px transparent;
+    min-width: 0;
+    max-width: 100%;
+
+    small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
 
     &:hover {
       border-bottom: solid 1px globals.$body-color;

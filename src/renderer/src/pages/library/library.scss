@@ -2,8 +2,7 @@
 
 .library {
   &__content {
-    padding: calc(globals.$spacing-unit * 2) 0 calc(globals.$spacing-unit * 2)
-      calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2) 0 0 calc(globals.$spacing-unit * 2);
     height: 100%;
     width: 100%;
     overflow: hidden;
@@ -11,6 +10,11 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 3);
     align-items: flex-start;
+    transition: padding-top 0.25s ease;
+
+    &--header-hidden {
+      padding-top: globals.$spacing-unit;
+    }
   }
 
   &__games-scroll {
@@ -26,17 +30,23 @@
     position: sticky;
     top: -4px;
     height: 0;
-    z-index: 10;
+    z-index: 1;
     pointer-events: none;
 
     &::after {
       content: "";
       position: absolute;
       top: 0;
-      left: 0;
-      right: 0;
-      height: 24px;
-      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent);
+      left: -4px;
+      right: -4px;
+      height: 40px;
+      background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.4) 0%,
+        rgba(0, 0, 0, 0.22) 35%,
+        rgba(0, 0, 0, 0.08) 65%,
+        transparent 100%
+      );
       opacity: 0;
       transition: opacity 0.2s ease;
     }
@@ -54,11 +64,25 @@
   }
 
   &__page-header {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 3);
+    display: grid;
+    grid-template-rows: 1fr;
     width: 100%;
     padding-right: calc(globals.$spacing-unit * 2);
+    visibility: visible;
+    transition:
+      grid-template-rows 0.25s ease,
+      opacity 0.2s ease,
+      margin-bottom 0.25s ease,
+      visibility 0s;
+
+    &--hidden {
+      grid-template-rows: 0fr;
+      opacity: 0;
+      margin-bottom: calc(globals.$spacing-unit * -3);
+      pointer-events: none;
+      visibility: hidden;
+      transition-delay: 0s, 0s, 0s, 0.25s;
+    }
   }
 
   &__page-title {
@@ -76,6 +100,8 @@
     gap: calc(globals.$spacing-unit);
     width: 100%;
     position: relative;
+    min-height: 0;
+    overflow: hidden;
   }
 
   &__controls-left {
@@ -83,6 +109,29 @@
     align-items: center;
     gap: calc(globals.$spacing-unit);
     flex-shrink: 0;
+  }
+
+  &__quick-actions {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__quick-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
   }
 
   &__controls-right {
@@ -198,108 +247,6 @@
     to {
       transform: rotate(360deg);
     }
-  }
-
-  &__collections-section {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit);
-    width: 100%;
-  }
-
-  &__collections-header {
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit);
-  }
-
-  &__collections-title {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  &__add-collection-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.7);
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: rgba(255, 255, 255, 0.95);
-    }
-  }
-
-  &__collections {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: calc(globals.$spacing-unit);
-    width: 100%;
-    overflow: hidden;
-
-    @container #{globals.$app-container} (min-width: 900px) {
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    }
-
-    @container #{globals.$app-container} (min-width: 1300px) {
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    }
-  }
-
-  &__collection-item {
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.03);
-    color: rgba(255, 255, 255, 0.8);
-    border-radius: 8px;
-    padding: 8px 12px;
-    cursor: pointer;
-    min-width: 0;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    &--active {
-      border-color: rgba(255, 255, 255, 0.24);
-      background: rgba(255, 255, 255, 0.12);
-      color: rgba(255, 255, 255, 0.95);
-    }
-
-    span:first-of-type {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
-
-  &__collection-count {
-    margin-left: auto;
-    background-color: #fff;
-    color: globals.$background-color;
-    font-size: 10px;
-    font-weight: 700;
-    border-radius: 999px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 6px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    flex-shrink: 0;
   }
 
   &__games-grid {

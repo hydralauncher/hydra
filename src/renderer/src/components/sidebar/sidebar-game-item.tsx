@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { ConfirmationModal, GameContextMenu, useGameActions } from "..";
 import { HeartFillIcon } from "@primer/octicons-react";
 import { useAppSelector, useToast } from "@renderer/hooks";
+import { useCollectionContextMenu } from "@renderer/context";
 
 interface SidebarGameItemProps {
   game: LibraryGame;
@@ -33,6 +34,7 @@ export function SidebarGameItem({
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+  const { openCollectionContextMenu } = useCollectionContextMenu();
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     position: { x: number; y: number };
@@ -125,6 +127,7 @@ export function SidebarGameItem({
         visible={contextMenu.visible}
         position={contextMenu.position}
         onClose={handleCloseContextMenu}
+        onCollectionContextMenu={openCollectionContextMenu}
       />
 
       <ConfirmationModal
