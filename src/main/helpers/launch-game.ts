@@ -497,7 +497,9 @@ const redirectBlockedCloudSaveLaunch = (
   });
   clearCloudSaveLaunchGuard(objectId, shop);
   WindowManager.closeGameLauncherWindow();
-  WindowManager.redirect(`game/${shop}/${objectId}?${searchParams.toString()}`);
+  WindowManager.redirectToGameWindow(
+    `game/${shop}/${objectId}?${searchParams.toString()}`
+  );
 };
 
 const runCommonRedistPreflight = async (shop: GameShop, objectId: string) => {

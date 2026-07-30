@@ -170,10 +170,14 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveCustomPathApproval | null>,
-  selectCloudSaveCustomPathApproval: (approvalId: string) =>
+  selectCloudSaveCustomPathApproval: (
+    approvalId: string,
+    selectedPath?: string
+  ) =>
     ipcRenderer.invoke(
       "selectCloudSaveCustomPathApproval",
-      approvalId
+      approvalId,
+      selectedPath
     ) as Promise<SelectCloudSaveCustomPathApprovalResult>,
   confirmCloudSaveCustomPathApproval: (approvalId: string) =>
     ipcRenderer.invoke(

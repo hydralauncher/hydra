@@ -146,7 +146,8 @@ declare global {
       shop: GameShop
     ) => Promise<CloudSaveCustomPathApproval | null>;
     selectCloudSaveCustomPathApproval: (
-      approvalId: string
+      approvalId: string,
+      selectedPath?: string
     ) => Promise<SelectCloudSaveCustomPathApprovalResult>;
     confirmCloudSaveCustomPathApproval: (
       approvalId: string
