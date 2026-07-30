@@ -20,6 +20,12 @@ import {
   type LinuxProcessInfo,
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
+import {
+  getCloudSaveAutomaticSyncMode,
+  runAutomaticCloudSavePostExit,
+  shouldRunLegacyAutomaticCloudSave,
+  shouldRunV2AutomaticCloudSave,
+} from "./cloud-save";
 
 export const gamesPlaytime = new Map<
   string,
@@ -28,6 +34,53 @@ export const gamesPlaytime = new Map<
 
 export const isGameRunning = (objectId: string, shop: Game["shop"]) =>
   gamesPlaytime.has(levelKeys.game(shop, objectId));
+
+const runAutomaticCloudSaveOnOpen = async (game: Game) => {
+  const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
+
+  if (shouldRunLegacyAutomaticCloudSave(mode)) {
+    await CloudSync.uploadSaveGame(
+      game.objectId,
+      game.shop,
+      null,
+      CloudSync.getBackupLabel(true)
+    );
+  }
+};
+
+const runAutomaticCloudSaveOnClose = async (game: Game) => {
+  const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
+
+  if (shouldRunLegacyAutomaticCloudSave(mode)) {
+    if (game.remoteId) {
+      await CloudSync.uploadSaveGame(
+        game.objectId,
+        game.shop,
+        null,
+        CloudSync.getBackupLabel(true)
+      );
+    }
+    return;
+  }
+
+  if (shouldRunV2AutomaticCloudSave(mode)) {
+    await runAutomaticCloudSavePostExit(game.objectId, game.shop);
+  }
+};
+
+const handleAutomaticCloudSaveLifecycleError = (
+  phase: "open" | "close",
+  game: Game,
+  error: unknown
+) => {
+  logger.error("[Cloud Save] Automatic lifecycle failed", {
+    phase,
+    shop: game.shop,
+    objectId: game.objectId,
+    errorName: error instanceof Error ? error.name : "UnknownError",
+    errorMessage: error instanceof Error ? error.message : "Unknown error",
+  });
+};
 
 export const getGamesRunning = () => {
   const now = performance.now();
@@ -366,14 +419,9 @@ function onOpenGame(game: Game) {
         });
       });
 
-    if (game.automaticCloudSync) {
-      CloudSync.uploadSaveGame(
-        game.objectId,
-        game.shop,
-        null,
-        CloudSync.getBackupLabel(true)
-      );
-    }
+    void runAutomaticCloudSaveOnOpen(game).catch((error: unknown) => {
+      handleAutomaticCloudSaveLifecycleError("open", game, error);
+    });
   } else {
     const payload = { ...game, lastTimePlayed: new Date() };
 
@@ -497,16 +545,11 @@ const onCloseGame = (game: Game) => {
 
   if (game.shop === "custom") return;
 
-  if (game.remoteId) {
-    if (game.automaticCloudSync) {
-      CloudSync.uploadSaveGame(
-        game.objectId,
-        game.shop,
-        null,
-        CloudSync.getBackupLabel(true)
-      );
-    }
+  void runAutomaticCloudSaveOnClose(game).catch((error: unknown) => {
+    handleAutomaticCloudSaveLifecycleError("close", game, error);
+  });
 
+  if (game.remoteId) {
     const deltaToSync =
       now -
       gamePlaytime.lastSyncTick +

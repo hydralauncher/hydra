@@ -82,6 +82,20 @@ export class Wine {
     return getWinePrefixUserProfiles(winePrefixPath, homeDir);
   }
 
+  public static isPrefixReadyForRestore(
+    winePrefixPath: string,
+    homeDir = SystemPath.getPath("home")
+  ) {
+    try {
+      return (
+        this.validatePrefix(winePrefixPath) &&
+        this.getPrefixUserProfiles(winePrefixPath, homeDir).length > 0
+      );
+    } catch {
+      return false;
+    }
+  }
+
   public static validatePrefix(winePrefixPath: string) {
     const requiredFiles = [
       { name: "system.reg", type: "file" },
