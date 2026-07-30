@@ -23,7 +23,19 @@ type PreflightStatus =
   | "complete"
   | "error";
 
-type SteamClientStatus = "idle" | "starting" | "ready" | "failed";
+type SteamClientStatus =
+  | "idle"
+  | "preparing"
+  | "restarting"
+  | "starting"
+  | "ready"
+  | "failed";
+
+const STEAM_CLIENT_BUSY_STATUSES: SteamClientStatus[] = [
+  "preparing",
+  "restarting",
+  "starting",
+];
 
 export default function GameLauncher() {
   const { t } = useTranslation("game_launcher");
@@ -128,7 +140,7 @@ export default function GameLauncher() {
 
   const canAutoClose =
     (isPreflightDone || (!preflightStarted && preflightTimeout)) &&
-    steamClientStatus !== "starting";
+    !STEAM_CLIENT_BUSY_STATUSES.includes(steamClientStatus);
 
   useEffect(() => {
     // Don't start timer until window is shown AND preflight is done
@@ -173,6 +185,8 @@ export default function GameLauncher() {
   }, []);
 
   const getStatusMessage = useCallback(() => {
+    if (steamClientStatus === "preparing") return t("preparing_steam");
+    if (steamClientStatus === "restarting") return t("restarting_steam");
     if (steamClientStatus === "starting") return t("starting_steam");
     if (steamClientStatus === "failed") return t("steam_start_failed");
 
@@ -194,7 +208,7 @@ export default function GameLauncher() {
   }, [preflightStatus, preflightDetail, steamClientStatus, t]);
 
   const isPreflightRunning =
-    steamClientStatus === "starting" ||
+    STEAM_CLIENT_BUSY_STATUSES.includes(steamClientStatus) ||
     preflightStatus === "checking" ||
     preflightStatus === "downloading" ||
     preflightStatus === "installing";
