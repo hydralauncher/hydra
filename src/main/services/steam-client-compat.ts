@@ -54,7 +54,7 @@ const OVERLAY_LIBRARIES = [
 
 const FALLBACK_OVERLAY_GAME_ID = "480";
 
-const NUMERIC_APP_ID_PATTERN = /^\d+$/;
+const SELF_PROTECTION_KEY = "ExtraProtection";
 
 const PREFIX_STEAM_DIRECTORY = path.join(
   "drive_c",
@@ -81,7 +81,6 @@ export interface SteamClientDetection {
 export interface SteamClientCompatOptions {
   executablePath: string;
   winePrefixPath: string | null;
-  objectId?: string | null;
 }
 
 const readDirectoryEntries = (directoryPath: string) => {
@@ -311,6 +310,14 @@ const waitForSteamClient = async () => {
 const ensureSteamClientRunning = async () => {
   if (isSteamClientRunning()) return true;
 
+  if (isFlatpakSteamInstalled()) {
+    logger.warn(
+      "Steam is installed as a flatpak and no other client is running, skipping the Steam client setup",
+      { flatpakDirectory: STEAM_FLATPAK_DIRECTORY.join(path.sep) }
+    );
+    return false;
+  }
+
   logger.info("Starting the Steam client for a game that requires it");
 
   if (!startSteamClient()) return false;
@@ -390,22 +397,20 @@ const removeSteamClientFiles = (
   return removedFiles;
 };
 
+const readConfigEntries = (gameDirectory: string) => {
+  try {
+    return fs
+      .readdirSync(gameDirectory)
+      .filter((entry) => STEAM_EMULATOR_CONFIG_FILES.has(entry.toLowerCase()));
+  } catch {
+    return [];
+  }
+};
+
 const readConfiguredOverlayGameId = (executablePath: string) => {
   const gameDirectory = path.dirname(executablePath);
 
-  let entries: string[];
-
-  try {
-    entries = fs.readdirSync(gameDirectory);
-  } catch {
-    return null;
-  }
-
-  const configEntries = entries.filter((entry) =>
-    STEAM_EMULATOR_CONFIG_FILES.has(entry.toLowerCase())
-  );
-
-  for (const configEntry of configEntries) {
+  for (const configEntry of readConfigEntries(gameDirectory)) {
     try {
       const contents = fs.readFileSync(
         path.join(gameDirectory, configEntry),
@@ -426,10 +431,42 @@ const readConfiguredOverlayGameId = (executablePath: string) => {
   return null;
 };
 
+const disableEmulatorSelfProtection = (executablePath: string) => {
+  const gameDirectory = path.dirname(executablePath);
+
+  for (const configEntry of readConfigEntries(gameDirectory)) {
+    const configFilePath = path.join(gameDirectory, configEntry);
+
+    try {
+      const contents = fs.readFileSync(configFilePath, "utf-8");
+
+      const pattern = new RegExp(
+        String.raw`^([^\S\r\n]*${SELF_PROTECTION_KEY}[^\S\r\n]*=[^\S\r\n]*)(\S*)`,
+        "im"
+      );
+
+      const match = pattern.exec(contents);
+
+      if (!match || match[2].toLowerCase() === "false") continue;
+
+      fs.writeFileSync(configFilePath, contents.replace(pattern, "$1false"));
+
+      logger.info("Disabled the self protection of a bundled Steam emulator", {
+        configFilePath,
+        previousValue: match[2],
+      });
+    } catch (error) {
+      logger.error("Failed to disable the self protection of the config", {
+        configFilePath,
+        error,
+      });
+    }
+  }
+};
+
 const resolveOverlayEnv = (
   steamInstallPath: string,
-  executablePath: string,
-  objectId?: string | null
+  executablePath: string
 ): Record<string, string> => {
   const libraryPaths = OVERLAY_LIBRARIES.map((library) =>
     path.join(steamInstallPath, library)
@@ -437,13 +474,8 @@ const resolveOverlayEnv = (
 
   if (!libraryPaths.length) return {};
 
-  const numericObjectId =
-    objectId && NUMERIC_APP_ID_PATTERN.test(objectId) ? objectId : null;
-
   const overlayGameId =
-    readConfiguredOverlayGameId(executablePath) ??
-    numericObjectId ??
-    FALLBACK_OVERLAY_GAME_ID;
+    readConfiguredOverlayGameId(executablePath) ?? FALLBACK_OVERLAY_GAME_ID;
 
   return {
     LD_PRELOAD: `:${libraryPaths.join(":")}`,
@@ -455,7 +487,6 @@ const resolveOverlayEnv = (
 export const resolveSteamClientCompatEnv = async ({
   executablePath,
   winePrefixPath,
-  objectId,
 }: SteamClientCompatOptions): Promise<Record<string, string> | null> => {
   if (process.platform !== "linux") return null;
 
@@ -525,6 +556,10 @@ export const resolveSteamClientCompatEnv = async ({
     return null;
   }
 
+  if (hasBundledEmulator) {
+    disableEmulatorSelfProtection(executablePath);
+  }
+
   logger.info("Enabling Steam client compatibility", {
     executablePath,
     steamInstallPath,
@@ -536,7 +571,7 @@ export const resolveSteamClientCompatEnv = async ({
   return {
     STEAM_COMPAT_CLIENT_INSTALL_PATH: steamInstallPath,
     ...(hasBundledEmulator
-      ? resolveOverlayEnv(steamInstallPath, executablePath, objectId)
+      ? resolveOverlayEnv(steamInstallPath, executablePath)
       : {}),
     ...(dllOverrides ? { WINEDLLOVERRIDES: dllOverrides } : {}),
   };
