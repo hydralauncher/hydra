@@ -329,7 +329,6 @@
     "downloader_online": "Онлайн",
     "downloader_not_configured": "Доступен, но не настроен",
     "downloader_requires_hydra_cloud": "Требуется активная подписка Hydra Cloud",
-    "hydra_cloud": "Hydra Cloud",
     "downloader_offline": "Ссылка недоступна",
     "downloader_not_available": "Недоступно",
     "go_to_settings": "Перейти в настройки",

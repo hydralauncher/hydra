@@ -309,7 +309,6 @@
     "downloader_online": "En línea",
     "downloader_not_configured": "Disponible pero no configurado",
     "downloader_requires_hydra_cloud": "Requiere una suscripción activa de Hydra Cloud",
-    "hydra_cloud": "Hydra Cloud",
     "downloader_offline": "El enlace está fuera de línea",
     "downloader_not_available": "No disponible",
     "go_to_settings": "Ir a Ajustes",

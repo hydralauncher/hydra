@@ -1350,7 +1350,9 @@ export function DownloadSettingsModal({
                   ) {
                     return (
                       <div className="download-settings-modal__recommendation-badge">
-                        <Badge>{t("hydra_cloud")}</Badge>
+                        <span className="download-settings-modal__hydra-cloud-badge">
+                          Hydra Cloud
+                        </span>
                       </div>
                     );
                   }
