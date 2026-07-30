@@ -18,7 +18,7 @@ const selectGameWinePrefix = async (
   if (!game) return;
 
   if (!winePrefixPath) {
-    const environmentChanged = game.winePrefixPath !== null;
+    const environmentChanged = Boolean(game.winePrefixPath);
 
     await gamesSublevel.put(gameKey, {
       ...game,
