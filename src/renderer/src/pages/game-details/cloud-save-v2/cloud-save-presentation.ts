@@ -3,6 +3,7 @@ import type {
   CloudSaveState,
   CloudSaveSyncAction,
   CloudSaveSyncProgressStage,
+  CloudSaveV2FileDetails,
   GameShop,
 } from "@types";
 
@@ -28,12 +29,30 @@ export interface CloudSavePresentation {
   tone: CloudSavePresentationTone;
 }
 
-export const isCloudSaveOverviewEmpty = (overview: CloudSaveOverview | null) =>
-  overview?.state === "untracked";
+interface CloudSaveEmptySnapshotInput {
+  overview: CloudSaveOverview | null;
+  isLoading: boolean;
+  hasError: boolean;
+}
+
+export const shouldShowCloudSaveEmptySnapshot = ({
+  overview,
+  hasError,
+}: CloudSaveEmptySnapshotInput) =>
+  !hasError && overview !== null && overview.activeRemoteSnapshot === null;
 
 export const canOpenCloudSaveFileBrowser = (
   overview: CloudSaveOverview | null
 ) => overview !== null;
+
+export const hasCloudSaveDataToDelete = (
+  details: CloudSaveV2FileDetails | null
+) =>
+  details !== null &&
+  (details.activeSnapshot !== null ||
+    details.local.fileCount > 0 ||
+    details.customPaths.length > 0 ||
+    details.unresolvedCustomPaths.some(({ registered }) => registered));
 
 export type CloudSaveUploadLimitError = "snapshot-too-large" | "too-many-files";
 

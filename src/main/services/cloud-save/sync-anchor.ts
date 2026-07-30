@@ -5,6 +5,7 @@ import {
   CLOUD_SAVE_HASH_PATTERN,
   cloudSaveFileKey,
 } from "./cloud-save-contract";
+import { isCloudSaveSyncAnchorKeyForGame } from "./sync-anchor-key";
 import { hasCloudSaveV4AnchorSchema } from "./sync-anchor-policy";
 
 const isValidAnchor = (
@@ -140,4 +141,22 @@ export const saveCloudSaveSyncAnchor = async (
   await cloudSaveSyncAnchorsSublevel
     .del(await getLegacyAnchorKey(shop, objectId))
     .catch(() => undefined);
+};
+
+export const clearCloudSaveSyncAnchors = async (
+  shop: GameShop,
+  objectId: string
+) => {
+  const userId = await getCurrentUserId();
+  const batch = cloudSaveSyncAnchorsSublevel.batch();
+  let hasOperations = false;
+
+  for await (const [key] of cloudSaveSyncAnchorsSublevel.iterator()) {
+    if (isCloudSaveSyncAnchorKeyForGame(key, userId, shop, objectId)) {
+      batch.del(key);
+      hasOperations = true;
+    }
+  }
+
+  if (hasOperations) await batch.write();
 };

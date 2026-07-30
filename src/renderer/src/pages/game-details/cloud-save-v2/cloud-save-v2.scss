@@ -199,7 +199,6 @@
 
   &__launch-conflict-warning,
   &__game-running-warning,
-  &__empty-message,
   &__error {
     margin: 0;
     font-size: globals.$small-font-size;
@@ -214,11 +213,6 @@
 
   &__game-running-warning {
     color: globals.$warning-color;
-  }
-
-  &__empty-message {
-    align-self: center;
-    color: globals.$muted-color;
   }
 
   &__switch {
@@ -303,6 +297,9 @@
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
+  }
+
+  &__action-area--with-snapshot {
     margin-top: calc(globals.$spacing-unit * 2);
   }
 
@@ -466,8 +463,23 @@
     border-bottom: 1px solid globals.$border-color;
   }
 
-  &__add-custom-path-button {
+  &__browser-toolbar-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
+    flex-wrap: wrap;
+    margin-left: auto;
+
+    .cloud-save-v2__browser-filter {
+      margin-left: 0;
+    }
+  }
+
+  &__add-custom-path-button,
+  &__delete-cloud-save-button {
     flex-shrink: 0;
+    white-space: nowrap;
   }
 
   &__browser-source-summary {
@@ -1005,30 +1017,6 @@
     color: globals.$muted-color;
     font-size: globals.$small-font-size;
     text-align: center;
-  }
-
-  &__empty-files-link {
-    color: inherit;
-    cursor: pointer;
-    text-decoration: underline;
-    text-decoration-color: rgba(255, 255, 255, 0.35);
-    text-underline-offset: 3px;
-
-    &:hover:not(:disabled) {
-      color: globals.$body-color;
-      text-decoration-color: currentColor;
-    }
-
-    &:focus-visible {
-      border-radius: 2px;
-      outline: 2px solid var(--color-primary);
-      outline-offset: 3px;
-    }
-
-    &:disabled {
-      cursor: default;
-      opacity: globals.$disabled-opacity;
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {

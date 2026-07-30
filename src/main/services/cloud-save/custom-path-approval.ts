@@ -25,6 +25,7 @@ import {
   getUsableCloudSaveCustomPathBindings,
   registerCloudSaveCustomPathWithoutOverlap,
 } from "./custom-path-overlap";
+import { assertCloudSaveDeletionInactive } from "./operation-gate";
 
 export interface CloudSavePendingLaunchOptions {
   shop: GameShop;
@@ -328,6 +329,12 @@ const bindPendingCloudSaveCustomPathApproval = async (
   assertCanBind?: () => void
 ) => {
   const pending = getPendingById(id);
+  const { objectId, shop } = pending.approval.gameId;
+  const assertCanRegister = () => {
+    assertCloudSaveDeletionInactive(objectId, shop);
+    assertCanBind?.();
+  };
+  assertCanRegister();
   if (pending.approval.purpose !== purpose) {
     throw new Error("cloud_save_custom_path_approval_purpose_mismatch");
   }
@@ -385,7 +392,7 @@ const bindPendingCloudSaveCustomPathApproval = async (
     context,
     currentRawPath: approval.rawPath,
     remoteRelativePaths: approval.files.map(({ relativePath }) => relativePath),
-    assertCanRegister: assertCanBind,
+    assertCanRegister,
   });
   if (removePending) {
     pendingByGame.delete(

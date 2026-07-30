@@ -2,6 +2,7 @@ import "./download-game-artifact";
 import "./get-cloud-save-overview";
 import "./get-cloud-save-v2-file-details";
 import "./get-game-backup-preview";
+import "./delete-game-cloud-save-data";
 import "./sync-game-cloud-save";
 import "./sync-game-cloud-save-from-modal";
 import "./sync-cloud-save-after-custom-path-rebind";

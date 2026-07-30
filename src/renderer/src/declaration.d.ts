@@ -123,6 +123,10 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveV2FileDetails>;
+    deleteGameCloudSaveData: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<void>;
     selectCloudSaveCustomPath: (
       objectId: string,
       shop: GameShop
