@@ -66,6 +66,18 @@ fn equal(left: &str, right: &str, case_sensitive: bool) -> bool {
     }
 }
 
+fn matching_prefix_len(value: &str, prefix: &str, case_sensitive: bool) -> Option<usize> {
+    if case_sensitive {
+        return value.starts_with(prefix).then_some(prefix.len());
+    }
+
+    value
+        .char_indices()
+        .map(|(index, _)| index)
+        .chain(std::iter::once(value.len()))
+        .find(|end| equal(&value[..*end], prefix, false))
+}
+
 fn capture_segment(template: &str, value: &str, case_sensitive: bool) -> Option<String> {
     let literals = template
         .split(STORE_USER_CAPTURE_MARKER)
@@ -78,11 +90,7 @@ fn capture_segment(template: &str, value: &str, case_sensitive: bool) -> Option<
         return None;
     }
     let prefix = literals[0];
-    if value.len() < prefix.len() || !equal(&value[..prefix.len()], prefix, case_sensitive) {
-        return None;
-    }
-
-    let capture_start = prefix.len();
+    let capture_start = matching_prefix_len(value, prefix, case_sensitive)?;
     let capture_end = if literals[1].is_empty() {
         if literals.len() == 2 {
             value.len()
@@ -90,17 +98,15 @@ fn capture_segment(template: &str, value: &str, case_sensitive: bool) -> Option<
             return None;
         }
     } else {
-        let haystack = if case_sensitive {
-            value[capture_start..].to_string()
-        } else {
-            value[capture_start..].to_lowercase()
-        };
-        let needle = if case_sensitive {
-            literals[1].to_string()
-        } else {
-            literals[1].to_lowercase()
-        };
-        capture_start + haystack.find(&needle)?
+        let remaining = &value[capture_start..];
+        capture_start
+            + remaining
+                .char_indices()
+                .map(|(index, _)| index)
+                .chain(std::iter::once(remaining.len()))
+                .find(|index| {
+                    matching_prefix_len(&remaining[*index..], literals[1], case_sensitive).is_some()
+                })?
     };
     let captured = &value[capture_start..capture_end];
     if !is_safe_capture(captured) {
@@ -214,5 +220,17 @@ mod tests {
             Some("Rune")
         );
         assert!(capture_store_user(&repeated, "/home/a/Game/Rune/Goldberg/saves", true).is_none());
+    }
+
+    #[test]
+    fn handles_unicode_around_embedded_captures() {
+        let template = format!("_steam_{STORE_USER_CAPTURE_MARKER}");
+        assert_eq!(capture_segment(&template, "日本語です", true), None);
+
+        let template = format!("{STORE_USER_CAPTURE_MARKER}_data");
+        assert_eq!(
+            capture_segment(&template, "ẞé_data", false).as_deref(),
+            Some("ẞé")
+        );
     }
 }

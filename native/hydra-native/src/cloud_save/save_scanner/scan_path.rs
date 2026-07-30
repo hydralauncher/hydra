@@ -71,6 +71,22 @@ fn path_starts_with(path: &Path, root: &Path, case_sensitive: bool) -> bool {
     path == root || path.starts_with(&format!("{}/", root.trim_end_matches('/')))
 }
 
+fn shared_directory_scan_root(
+    matched: &Path,
+    scan_roots: &[PathBuf],
+    case_sensitive: bool,
+) -> Option<(PathBuf, String)> {
+    let root = scan_roots
+        .iter()
+        .filter(|root| root.is_dir() && path_starts_with(matched, root, case_sensitive))
+        .max_by_key(|root| root.components().count())?;
+    let canonical_root = std::fs::canonicalize(root).ok()?;
+    let canonical_matched = std::fs::canonicalize(matched).ok()?;
+    let relative = canonical_matched.strip_prefix(&canonical_root).ok()?;
+
+    Some((canonical_root, normalize_path(&relative.to_string_lossy())))
+}
+
 fn scan_directory(root: &Path, follow_links: bool) -> Result<ScannedCloudSavePath, String> {
     let mut files = Vec::new();
     let traversal_root = std::fs::canonicalize(root)
@@ -176,9 +192,22 @@ pub fn scan_resolved_path_with_capture(
             let mut scanned = scan_directory(&matched, follow_links)?;
             scanned.store_user_id = captured;
             scanned.case_sensitive = case_sensitive;
+            if scanned.store_user_id.is_none() {
+                if let Some((shared_root, relative_root)) =
+                    shared_directory_scan_root(&matched, &scan_roots, case_sensitive)
+                {
+                    if !relative_root.is_empty() {
+                        for file in &mut scanned.files {
+                            file.relative_path = format!("{relative_root}/{}", file.relative_path);
+                        }
+                    }
+                    scanned.resolved_path = canonical_path(&shared_root)?;
+                }
+            }
             scanned.candidate_id = local_id(&[resolved_path, &scanned.resolved_path]);
             scanned_by_root
                 .entry(scanned.resolved_path.clone())
+                .and_modify(|existing| existing.files.extend(scanned.files.iter().cloned()))
                 .or_insert(scanned);
             continue;
         }
@@ -278,7 +307,39 @@ mod tests {
             scan_resolved_path(&pattern, true, Some(&temp.path().display().to_string())).unwrap();
 
         assert_eq!(scanned[0].files.len(), 1);
-        assert_eq!(scanned[0].files[0].relative_path, "save.dat");
+        assert_eq!(scanned[0].files[0].relative_path, "{Deluxe}/save.dat");
+    }
+
+    #[test]
+    fn preserves_every_directory_matched_by_one_glob() {
+        let temp = tempfile::tempdir_in(".").unwrap();
+        let profiles = temp.path().join("Profiles");
+        for profile in ["Profile1", "Profile2"] {
+            let directory = profiles.join(profile);
+            fs::create_dir_all(&directory).unwrap();
+            fs::write(directory.join("slot.dat"), profile.as_bytes()).unwrap();
+        }
+
+        let pattern = profiles.join("Profile*").display().to_string();
+        let scan_root = profiles.display().to_string();
+        assert_eq!(
+            glob_matches(&pattern, match_options(true, true))
+                .unwrap()
+                .len(),
+            2,
+            "pattern: {pattern}"
+        );
+        let scanned = scan_resolved_path(&pattern, true, Some(&scan_root)).unwrap();
+
+        assert_eq!(scanned.len(), 1);
+        assert_eq!(
+            scanned[0]
+                .files
+                .iter()
+                .map(|file| file.relative_path.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Profile1/slot.dat", "Profile2/slot.dat"]
+        );
     }
 
     #[test]
