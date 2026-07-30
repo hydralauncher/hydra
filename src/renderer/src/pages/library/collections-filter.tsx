@@ -10,6 +10,11 @@ import {
 import { useTranslation } from "react-i18next";
 import type { GameCollection } from "@types";
 import { useCloseOnLibraryScroll } from "./use-close-on-library-scroll";
+import {
+  LIBRARY_DROPDOWN_CHEVRON_SIZE,
+  LIBRARY_DROPDOWN_COLLISION_PADDING,
+  LIBRARY_DROPDOWN_SIDE_OFFSET,
+} from "./library-dropdown";
 import "./collections-filter.scss";
 
 interface CollectionsFilterProps {
@@ -74,15 +79,18 @@ export function CollectionsFilter({
           <span className="collections-filter__trigger-label">
             {selectedCollection ? selectedCollection.name : t("collections")}
           </span>
-          <ChevronDownIcon size={12} className="collections-filter__chevron" />
+          <ChevronDownIcon
+            size={LIBRARY_DROPDOWN_CHEVRON_SIZE}
+            className="collections-filter__chevron"
+          />
         </button>
       </DropdownMenuPrimitive.Trigger>
 
       <DropdownMenuPrimitive.Portal>
         <DropdownMenuPrimitive.Content
           align="start"
-          sideOffset={6}
-          collisionPadding={16}
+          sideOffset={LIBRARY_DROPDOWN_SIDE_OFFSET}
+          collisionPadding={LIBRARY_DROPDOWN_COLLISION_PADDING}
           className="collections-filter__content"
           onInteractOutside={(event) => {
             const target = event.detail.originalEvent

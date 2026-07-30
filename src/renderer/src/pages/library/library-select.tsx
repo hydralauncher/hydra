@@ -1,6 +1,11 @@
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { ChevronDownIcon } from "@primer/octicons-react";
 import { useCloseOnLibraryScroll } from "./use-close-on-library-scroll";
+import {
+  LIBRARY_DROPDOWN_CHEVRON_SIZE,
+  LIBRARY_DROPDOWN_COLLISION_PADDING,
+  LIBRARY_DROPDOWN_SIDE_OFFSET,
+} from "./library-dropdown";
 import "./library-select.scss";
 
 interface LibrarySelectOption {
@@ -43,15 +48,18 @@ export function LibrarySelect({
           <span className="library-select__trigger-label">
             {selected?.label ?? ""}
           </span>
-          <ChevronDownIcon size={12} className="library-select__chevron" />
+          <ChevronDownIcon
+            size={LIBRARY_DROPDOWN_CHEVRON_SIZE}
+            className="library-select__chevron"
+          />
         </button>
       </DropdownMenuPrimitive.Trigger>
 
       <DropdownMenuPrimitive.Portal>
         <DropdownMenuPrimitive.Content
           align="start"
-          sideOffset={6}
-          collisionPadding={16}
+          sideOffset={LIBRARY_DROPDOWN_SIDE_OFFSET}
+          collisionPadding={LIBRARY_DROPDOWN_COLLISION_PADDING}
           className="library-select__content"
         >
           <DropdownMenuPrimitive.RadioGroup
