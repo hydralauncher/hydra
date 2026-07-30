@@ -1,4 +1,6 @@
-export type CloudSaveAutomaticSyncMode = "disabled" | "legacy" | "v2";
+import type { CloudSaveAutomaticSyncMode } from "@types";
+
+export type { CloudSaveAutomaticSyncMode } from "@types";
 
 export interface CloudSaveAutomaticSyncState {
   legacyEnabled: boolean;
