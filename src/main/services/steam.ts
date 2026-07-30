@@ -129,8 +129,9 @@ export const getSteamAppDetails = async (
     });
 };
 
-export const getSteamUsersIds = async () => {
-  const steamLocation = await getSteamLocation().catch(() => null);
+export const getSteamUsersIds = async (steamInstallPath?: string) => {
+  const steamLocation =
+    steamInstallPath ?? (await getSteamLocation().catch(() => null));
 
   if (!steamLocation) {
     return [];
@@ -151,9 +152,12 @@ export const getSteamUsersIds = async () => {
     .map((dir) => Number(dir.name));
 };
 
-export const getSteamShortcuts = async (steamUserId: number) => {
+export const getSteamShortcuts = async (
+  steamUserId: number,
+  steamInstallPath?: string
+) => {
   const shortcutsPath = path.join(
-    await getSteamLocation(),
+    steamInstallPath ?? (await getSteamLocation()),
     "userdata",
     steamUserId.toString(),
     "config",
@@ -220,13 +224,14 @@ export const composeSteamShortcut = (
 
 export const writeSteamShortcuts = async (
   steamUserId: number,
-  shortcuts: SteamShortcut[]
+  shortcuts: SteamShortcut[],
+  steamInstallPath?: string
 ) => {
   const buffer = writeBuffer({ shortcuts });
 
   return fs.promises.writeFile(
     path.join(
-      await getSteamLocation(),
+      steamInstallPath ?? (await getSteamLocation()),
       "userdata",
       steamUserId.toString(),
       "config",
