@@ -1077,6 +1077,14 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("preflight-progress", listener);
     return () => ipcRenderer.removeListener("preflight-progress", listener);
   },
+  onSteamClientProgress: (cb: (value: { status: string }) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: { status: string }
+    ) => cb(value);
+    ipcRenderer.on("steam-client-progress", listener);
+    return () => ipcRenderer.removeListener("steam-client-progress", listener);
+  },
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),

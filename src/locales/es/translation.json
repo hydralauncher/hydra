@@ -1577,7 +1577,9 @@
     "preflight_checking": "Comprobando dependencias",
     "preflight_downloading": "Descargando dependencias",
     "preflight_installing": "Instalando dependencias",
-    "preflight_installing_detail": "{{detail}}"
+    "preflight_installing_detail": "{{detail}}",
+    "starting_steam": "Iniciando Steam",
+    "steam_start_failed": "Steam no se inició"
   },
   "friends_window": {
     "title": "Amigos",

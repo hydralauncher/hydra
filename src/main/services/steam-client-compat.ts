@@ -1,10 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawn } from "node:child_process";
 
 import { logger } from "./logger";
 import { getSteamLocation } from "./steam";
-import { isInsideSteamLibrary } from "./steam-library";
+import { isInsideSteamLibrary, resolveSteamBinaryPath } from "./steam-library";
 import { SystemPath } from "./system-path";
+import { WindowManager } from "./window-manager";
 
 const STEAM_EMULATOR_MARKER_FILES = [
   "onlinefix64.dll",
@@ -61,6 +63,14 @@ const PREFIX_STEAM_DIRECTORY = path.join(
 );
 
 const STEAM_FLATPAK_DIRECTORY = [".var", "app", "com.valvesoftware.Steam"];
+
+const STEAM_STARTUP_TIMEOUT_MS = 60_000;
+
+const STEAM_STARTUP_POLL_INTERVAL_MS = 1000;
+
+const STEAM_STARTUP_SETTLE_MS = 5000;
+
+export type SteamClientStartupStatus = "starting" | "ready" | "failed";
 
 export interface SteamClientDetection {
   usesSteamworks: boolean;
@@ -249,6 +259,78 @@ export const isSteamClientRunning = () => {
   }
 };
 
+const notifySteamClientStatus = (status: SteamClientStartupStatus) => {
+  WindowManager.gameLauncherWindow?.webContents.send("steam-client-progress", {
+    status,
+  });
+};
+
+const startSteamClient = () => {
+  const steamBinaryPath = resolveSteamBinaryPath();
+
+  if (!steamBinaryPath) {
+    logger.warn("Could not find the Steam binary to start the Steam client");
+    return false;
+  }
+
+  try {
+    const steamProcess = spawn(steamBinaryPath, ["-silent"], {
+      detached: true,
+      stdio: "ignore",
+    });
+
+    steamProcess.on("error", (error) =>
+      logger.error("Failed to start the Steam client", { error })
+    );
+
+    steamProcess.unref();
+
+    return true;
+  } catch (error) {
+    logger.error("Failed to start the Steam client", { error });
+    return false;
+  }
+};
+
+const waitForSteamClient = async () => {
+  const deadline = performance.now() + STEAM_STARTUP_TIMEOUT_MS;
+
+  while (performance.now() < deadline) {
+    notifySteamClientStatus("starting");
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, STEAM_STARTUP_POLL_INTERVAL_MS)
+    );
+
+    if (isSteamClientRunning()) return true;
+  }
+
+  return false;
+};
+
+const ensureSteamClientRunning = async () => {
+  if (isSteamClientRunning()) return true;
+
+  logger.info("Starting the Steam client for a game that requires it");
+
+  if (!startSteamClient()) return false;
+
+  notifySteamClientStatus("starting");
+
+  const started = await waitForSteamClient();
+
+  if (!started) {
+    notifySteamClientStatus("failed");
+    return false;
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, STEAM_STARTUP_SETTLE_MS));
+
+  notifySteamClientStatus("ready");
+
+  return true;
+};
+
 const isCopyUpToDate = (sourceFilePath: string, targetFilePath: string) => {
   try {
     const source = fs.statSync(sourceFilePath);
@@ -416,14 +498,14 @@ export const resolveSteamClientCompatEnv = async ({
     return null;
   }
 
-  if (!isSteamClientRunning()) {
+  if (!(await ensureSteamClientRunning())) {
     const removedFiles = removeSteamClientFiles(
       steamInstallPath,
       winePrefixPath
     );
 
     logger.warn(
-      "Game requires the Steam client but it is not running, launching the game without the Steam client setup",
+      "Game requires the Steam client but it could not be started, launching the game without the Steam client setup",
       {
         executablePath,
         hasFlatpakSteam: isFlatpakSteamInstalled(),
