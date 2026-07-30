@@ -701,6 +701,8 @@
     "settings_category_customization": "Personalização",
     "settings_category_launch": "Inicialização",
     "settings_category_hydra_cloud": "Hydra Cloud",
+    "cloud_save_legacy_title": "Hydra Cloud Legado",
+    "cloud_save_legacy_description": "Crie e restaure backups manuais na nuvem usando artefatos. A sincronização automática está disponível no Hydra Cloud.",
     "settings_category_hydra_cloud_description": "Configure o comportamento da sincronização na nuvem para este jogo",
     "settings_category_compatibility": "Compatibilidade",
     "settings_category_compatibility_description": "Configurações de compatibilidade do Linux, incluindo Wine e Proton",

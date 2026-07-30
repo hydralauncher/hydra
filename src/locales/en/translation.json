@@ -630,6 +630,8 @@
     "settings_category_customization": "Customization",
     "settings_category_launch": "Launch",
     "settings_category_hydra_cloud": "Hydra Cloud",
+    "cloud_save_legacy_title": "Hydra Cloud Legacy",
+    "cloud_save_legacy_description": "Create and restore manual cloud backups using artifacts. Automatic synchronization is available in Hydra Cloud.",
     "settings_category_hydra_cloud_description": "Configure cloud sync behavior for this game",
     "settings_category_compatibility": "Compatibility",
     "settings_category_compatibility_description": "Linux compatibility settings including Wine and Proton",

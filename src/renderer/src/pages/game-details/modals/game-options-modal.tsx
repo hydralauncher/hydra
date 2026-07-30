@@ -59,7 +59,7 @@ import { GeneralSettingsSection } from "./game-options-modal/general-section";
 import { CompatibilitySettingsSection } from "./game-options-modal/compatibility-section";
 import { DownloadsSettingsSection } from "./game-options-modal/downloads-section";
 import { DangerZoneSection } from "./game-options-modal/danger-zone-section";
-import { HydraCloudSettingsSection } from "./game-options-modal/hydra-cloud-section";
+import { HydraCloudLegacySettingsSection } from "./game-options-modal/hydra-cloud-section";
 import { HydraCloudV2SettingsSection } from "./game-options-modal/hydra-cloud-v2-section";
 import type { GameSettingsCategoryId } from "./game-options-modal/types";
 import { CreateSteamShortcutModal } from "./create-steam-shortcut-modal";
@@ -138,6 +138,10 @@ export function GameOptionsModal({
   >(null);
   const [showSteamShortcutModal, setShowSteamShortcutModal] = useState(false);
   const [steamShortcutExists, setSteamShortcutExists] = useState(false);
+
+  useEffect(() => {
+    setAutomaticCloudSync(game.automaticCloudSync ?? false);
+  }, [game.automaticCloudSync]);
 
   const {
     removeGameInstaller,
@@ -888,19 +892,20 @@ export function GameOptionsModal({
   const handleToggleAutomaticCloudSync = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setAutomaticCloudSync(event.target.checked);
-    const gameKey = getGameKey(game.shop, game.objectId);
-    const gameData = (await levelDBService.get(
-      gameKey,
-      "games"
-    )) as Game | null;
-    if (gameData)
-      await levelDBService.put(
-        gameKey,
-        { ...gameData, automaticCloudSync: event.target.checked },
-        "games"
+    const enabled = event.target.checked;
+    setAutomaticCloudSync(enabled);
+
+    try {
+      await globalThis.window.electron.toggleAutomaticCloudSync(
+        game.shop,
+        game.objectId,
+        enabled
       );
-    updateGame();
+    } catch {
+      setAutomaticCloudSync(!enabled);
+    } finally {
+      await updateGame();
+    }
   };
 
   const baseGeneralSettingsProps = useMemo(
@@ -1061,7 +1066,7 @@ export function GameOptionsModal({
               />
             )}
             {selectedCategory === "hydra_cloud_legacy" && (
-              <HydraCloudSettingsSection
+              <HydraCloudLegacySettingsSection
                 game={game}
                 automaticCloudSync={automaticCloudSync}
                 onToggleAutomaticCloudSync={handleToggleAutomaticCloudSync}
