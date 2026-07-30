@@ -211,7 +211,7 @@ export const restoreRemoteSnapshot = async (
         ),
         ...blockedIds,
       ]),
-    ].sort();
+    ].sort((left, right) => left.localeCompare(right));
 
     const restoreSucceeded = isRestoreReplacementSuccessful(result);
     if (restoreSucceeded && updateAnchor) {

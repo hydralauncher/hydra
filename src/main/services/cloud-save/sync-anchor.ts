@@ -128,7 +128,7 @@ export const saveCloudSaveSyncAnchor = async (
     entries,
     unresolvedRemoteEntryIds: [
       ...new Set(anchor.unresolvedRemoteEntryIds),
-    ].sort(),
+    ].sort((left, right) => left.localeCompare(right)),
   };
   if (!isValidAnchor(environmentAnchor, environmentId)) {
     throw new Error("Invalid Cloud Save V4 sync anchor");

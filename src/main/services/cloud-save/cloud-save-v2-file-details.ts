@@ -140,29 +140,31 @@ const buildComparisons = (
   const remoteByKey = indexFiles(remoteFiles);
   const remoteManifestByKey = indexFiles(remoteManifestFiles);
   const ids = new Set([...localByKey.keys(), ...remoteByKey.keys()]);
-  return [...ids].sort().map((entryId) => {
-    const local = localByKey.get(entryId) ?? null;
-    const remote = remoteByKey.get(entryId) ?? null;
-    const identity = local ?? remote!;
-    let status: CloudSaveV2FileComparison["status"];
-    if (!remote) status = "local-only";
-    else if (!local) status = "remote-only";
-    else {
-      status =
-        localSnapshotByKey.get(entryId)!.hash ===
-        remoteManifestByKey.get(entryId)!.hash
-          ? "unchanged"
-          : "modified";
-    }
-    return {
-      variantId: identity.variantId,
-      rawPath: identity.rawPath,
-      relativePath: identity.relativePath,
-      status,
-      local,
-      remote,
-    };
-  });
+  return [...ids]
+    .sort((left, right) => left.localeCompare(right))
+    .map((entryId) => {
+      const local = localByKey.get(entryId) ?? null;
+      const remote = remoteByKey.get(entryId) ?? null;
+      const identity = local ?? remote!;
+      let status: CloudSaveV2FileComparison["status"];
+      if (!remote) status = "local-only";
+      else if (!local) status = "remote-only";
+      else {
+        status =
+          localSnapshotByKey.get(entryId)!.hash ===
+          remoteManifestByKey.get(entryId)!.hash
+            ? "unchanged"
+            : "modified";
+      }
+      return {
+        variantId: identity.variantId,
+        rawPath: identity.rawPath,
+        relativePath: identity.relativePath,
+        status,
+        local,
+        remote,
+      };
+    });
 };
 
 export const buildCloudSaveV2FileDetails = ({
@@ -218,7 +220,7 @@ export const buildCloudSaveV2FileDetails = ({
         ),
         warningCodes: [
           ...new Set(variantCoverage.flatMap((item) => item.warningCodes)),
-        ].sort(),
+        ].sort((left, right) => left.localeCompare(right)),
       };
     })
     .sort((left, right) => left.variantId.localeCompare(right.variantId));
