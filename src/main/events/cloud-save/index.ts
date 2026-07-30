@@ -5,5 +5,6 @@ import "./get-game-backup-preview";
 import "./resolve-cloud-save-conflict";
 import "./select-game-backup-path";
 import "./set-cloud-save-automatic-sync-enabled";
+import "./sync-cloud-save-on-game-page";
 import "./sync-game-cloud-save";
 import "./upload-save-game";

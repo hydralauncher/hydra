@@ -63,6 +63,13 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  CloudSaveAutomaticSyncEvent,
+  CloudSaveConflictResolution,
+  CloudSaveOverview,
+  CloudSaveV2FileDetails,
+  CloudSaveSyncProgressPayload,
+  SyncCloudSaveOnGamePageResult,
+  SyncGameCloudSaveResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -95,6 +102,37 @@ declare global {
   };
 
   interface Electron {
+    onCloudSaveAutomaticSync: (
+      callback: (event: CloudSaveAutomaticSyncEvent) => void
+    ) => () => void;
+    getCloudSaveOverview: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveOverview>;
+    getCloudSaveV2FileDetails: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveV2FileDetails>;
+    setCloudSaveAutomaticSyncEnabled: (
+      objectId: string,
+      shop: GameShop,
+      enabled: boolean
+    ) => Promise<boolean>;
+    syncCloudSaveOnGamePage: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<SyncCloudSaveOnGamePageResult>;
+    syncGameCloudSave: (
+      objectId: string,
+      shop: GameShop,
+      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    ) => Promise<SyncGameCloudSaveResult>;
+    resolveCloudSaveConflict: (
+      objectId: string,
+      shop: GameShop,
+      resolution: CloudSaveConflictResolution,
+      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    ) => Promise<SyncGameCloudSaveResult>;
     /* Torrenting */
     startGameDownload: (
       payload: StartGameDownloadPayload

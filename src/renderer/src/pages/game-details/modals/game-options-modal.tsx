@@ -11,6 +11,7 @@ import { Modal } from "@renderer/components";
 import {
   formatBytes,
   GAMEMODE_SITE_URL,
+  getCloudSaveAccessAction,
   getGameExecutableFilters,
   MANGOHUD_SITE_URL,
 } from "@shared";
@@ -43,6 +44,7 @@ import {
   DownloadIcon,
   FileDirectoryIcon,
   GearIcon,
+  HistoryIcon,
   ImageIcon,
 } from "@primer/octicons-react";
 import { Wrench } from "lucide-react";
@@ -58,6 +60,7 @@ import { CompatibilitySettingsSection } from "./game-options-modal/compatibility
 import { DownloadsSettingsSection } from "./game-options-modal/downloads-section";
 import { DangerZoneSection } from "./game-options-modal/danger-zone-section";
 import { HydraCloudSettingsSection } from "./game-options-modal/hydra-cloud-section";
+import { HydraCloudV2SettingsSection } from "./game-options-modal/hydra-cloud-v2-section";
 import type { GameSettingsCategoryId } from "./game-options-modal/types";
 import { CreateSteamShortcutModal } from "./create-steam-shortcut-modal";
 
@@ -144,6 +147,10 @@ export function GameOptionsModal({
   } = useDownload();
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
+  const cloudSaveAccessAction = getCloudSaveAccessAction(
+    Boolean(userDetails),
+    hasActiveSubscription
+  );
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -755,11 +762,24 @@ export function GameOptionsModal({
         label: t("settings_category_customization"),
         icon: <ImageIcon size={16} />,
       },
-      {
-        id: "hydra_cloud" as const,
-        label: t("settings_category_hydra_cloud"),
-        icon: <CloudIcon size={16} />,
-      },
+      ...(game.shop === "steam" && cloudSaveAccessAction !== "sign-in"
+        ? [
+            {
+              id: "hydra_cloud" as const,
+              label: t("settings_category_hydra_cloud"),
+              icon: <CloudIcon size={16} />,
+            },
+          ]
+        : []),
+      ...(cloudSaveAccessAction !== "sign-in"
+        ? [
+            {
+              id: "hydra_cloud_legacy" as const,
+              label: t("settings_category_hydra_cloud_legacy"),
+              icon: <HistoryIcon size={16} />,
+            },
+          ]
+        : []),
       ...(shouldShowWinePrefixConfiguration
         ? [
             {
@@ -780,27 +800,41 @@ export function GameOptionsModal({
         icon: <AlertIcon size={16} />,
       },
     ],
-    [isLaunchbox, shouldShowWinePrefixConfiguration, t]
+    [
+      cloudSaveAccessAction,
+      game.shop,
+      isLaunchbox,
+      shouldShowWinePrefixConfiguration,
+      t,
+    ]
   );
 
   useEffect(() => {
     if (!visible) return;
 
     const category = initialCategory ?? "general";
-    if (category === "hydra_cloud" && !hasActiveSubscription) {
+    if (
+      (category === "hydra_cloud" || category === "hydra_cloud_legacy") &&
+      cloudSaveAccessAction !== "open"
+    ) {
       setSelectedCategory("general");
-      showHydraCloudModal("backup");
+      if (cloudSaveAccessAction === "paywall") {
+        showHydraCloudModal("backup");
+      }
       return;
     }
 
     setSelectedCategory(category);
-  }, [hasActiveSubscription, initialCategory, showHydraCloudModal, visible]);
+  }, [cloudSaveAccessAction, initialCategory, showHydraCloudModal, visible]);
 
-  // Non-subscribers don't open the cloud-save panel; clicking the menu item
-  // presents the Hydra Cloud promo (highlighting cloud saving) instead.
   const handleSelectCategory = (category: typeof selectedCategory) => {
-    if (category === "hydra_cloud" && !hasActiveSubscription) {
-      showHydraCloudModal("backup");
+    if (
+      (category === "hydra_cloud" || category === "hydra_cloud_legacy") &&
+      cloudSaveAccessAction !== "open"
+    ) {
+      if (cloudSaveAccessAction === "paywall") {
+        showHydraCloudModal("backup");
+      }
       return;
     }
     setSelectedCategory(category);
@@ -1022,6 +1056,11 @@ export function GameOptionsModal({
               />
             )}
             {selectedCategory === "hydra_cloud" && (
+              <HydraCloudV2SettingsSection
+                onSelectExecutable={() => setSelectedCategory("locations")}
+              />
+            )}
+            {selectedCategory === "hydra_cloud_legacy" && (
               <HydraCloudSettingsSection
                 game={game}
                 automaticCloudSync={automaticCloudSync}
