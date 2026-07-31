@@ -23,6 +23,7 @@ import {
   CLOUD_SAVE_CUSTOM_PATH_PREFIX,
   getLegacyCloudSaveCustomPathPathHint,
 } from "./custom-path.js";
+import { areSnapshotVariantsEqual } from "./snapshot-variant.js";
 
 interface BuildCloudSaveV2FileDetailsInput {
   state: CloudSaveState;
@@ -72,7 +73,7 @@ const indexVariants = (variants: SnapshotVariant[]) => {
   const result = new Map<string, SnapshotVariant>();
   for (const variant of variants) {
     const current = result.get(variant.variantId);
-    if (current && JSON.stringify(current) !== JSON.stringify(variant)) {
+    if (current && !areSnapshotVariantsEqual(current, variant)) {
       throw new Error("Divergent Cloud Save variant metadata");
     }
     result.set(variant.variantId, variant);

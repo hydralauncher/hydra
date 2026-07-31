@@ -5,6 +5,7 @@ import type {
   LocalGameSnapshotContext,
   SnapshotFile,
   SnapshotVariant,
+  UserLocationCoverage,
 } from "@types";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
@@ -162,6 +163,68 @@ describe("merge user variant snapshots", () => {
       [local.rawPath, remote.rawPath].sort()
     );
     assert.deepEqual(result.conflicts, []);
+  });
+
+  it("does not turn an unresolved remote entry into a later deletion", () => {
+    const local = file("local.sav", "l");
+    const remote = file("remote.sav", "r");
+    const unresolvedCoverage: UserLocationCoverage = {
+      candidateId: "candidate",
+      ruleId: "rule",
+      variantId,
+      rawPath: remote.rawPath,
+      relativePath: remote.relativePath,
+      selectedRoot: true,
+      authority: "authoritative",
+      outcome: "partial",
+      enumeratedCompletely: false,
+      warningCodes: [],
+    };
+    const first = mergeUserVariantSnapshots({
+      local: { ...context([local]), coverage: [unresolvedCoverage] },
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: null,
+    });
+    const second = mergeUserVariantSnapshots({
+      local: {
+        ...context([local]),
+        coverage: [
+          {
+            ...unresolvedCoverage,
+            outcome: "scanned",
+            enumeratedCompletely: true,
+          },
+        ],
+      },
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: {
+        ...anchor(first.files),
+        unresolvedRemoteEntryIds: first.unresolvedRemoteEntryIds,
+      },
+    });
+
+    assert.deepEqual(second.deleteRemoteEntryIds, []);
+    assert.deepEqual(second.restoreEntryIds, [cloudSaveFileKey(remote)]);
+  });
+
+  it("treats equivalent N-API and API variant shapes as equal", () => {
+    const napiVariant = {
+      variantId,
+      kind: "default",
+      steamId64: null,
+      concreteFolderId: null,
+    } as unknown as SnapshotVariant;
+
+    assert.doesNotThrow(() =>
+      mergeUserVariantSnapshots({
+        local: { ...context([]), variants: [napiVariant] },
+        remoteVariants: [variant],
+        remoteFiles: [],
+        base: null,
+      })
+    );
   });
 
   it("restores everything when the local snapshot is empty", () => {

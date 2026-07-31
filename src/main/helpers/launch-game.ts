@@ -12,7 +12,7 @@ import {
   createPendingCloudSaveCustomPathApproval,
   getCloudSaveGameContext,
   rotateCloudSavePrefixGeneration,
-  runAutomaticCloudSaveSync,
+  runAutomaticCloudSaveSyncDetailed,
   setCloudSaveLaunchGuard,
   shouldBlockGameLaunchForCloudSave,
 } from "@main/services/cloud-save";
@@ -657,15 +657,19 @@ export const launchGame = async (
     return null;
   }
 
-  const preLaunchResult =
+  const preLaunchOutcome =
     shouldRunV2AutomaticSync && prefixReadyForRestore
-      ? await runAutomaticCloudSaveSync(
+      ? await runAutomaticCloudSaveSyncDetailed(
           objectId,
           shop,
           "pre-launch",
           cloudSaveContext ?? undefined
         )
-      : null;
+      : { status: "skipped" as const, result: null };
+  const preLaunchResult = preLaunchOutcome.result;
+  const hasPreLaunchConflict =
+    preLaunchResult?.trigger === "pre-launch" &&
+    preLaunchResult.action === "conflict";
 
   if (shouldRunV2AutomaticSync && !prefixReadyForRestore) {
     logger.warn(
@@ -674,17 +678,28 @@ export const launchGame = async (
     );
   }
 
-  if (shouldBlockGameLaunchForCloudSave(preLaunchResult)) {
-    logger.warn("[Cloud Save] Game launch blocked by unresolved conflict", {
+  if (
+    shouldBlockGameLaunchForCloudSave(
+      preLaunchResult,
+      preLaunchOutcome.status === "failed"
+    )
+  ) {
+    logger.warn("[Cloud Save] Game launch blocked by pre-launch sync", {
       shop,
       objectId,
+      reason: hasPreLaunchConflict ? "conflict" : "restore_failed",
     });
-    redirectBlockedCloudSaveLaunch(
-      shop,
-      objectId,
-      game?.title ?? objectId,
-      "openCloudSaveConflict"
-    );
+    if (hasPreLaunchConflict) {
+      redirectBlockedCloudSaveLaunch(
+        shop,
+        objectId,
+        game?.title ?? objectId,
+        "openCloudSaveConflict"
+      );
+    } else {
+      clearCloudSaveLaunchGuard(objectId, shop);
+      WindowManager.closeGameLauncherWindow();
+    }
     return null;
   }
 

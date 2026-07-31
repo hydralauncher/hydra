@@ -1,4 +1,5 @@
 export * from "./automatic-sync";
+export * from "./automatic-sync-outcome";
 export * from "./automatic-sync-mode";
 export * from "./automatic-sync-settings";
 export * from "./build-local-game-snapshot";

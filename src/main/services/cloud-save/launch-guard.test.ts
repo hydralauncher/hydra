@@ -117,5 +117,6 @@ describe("cloud save launch guard", () => {
       false
     );
     assert.equal(shouldBlockGameLaunchForCloudSave(null), false);
+    assert.equal(shouldBlockGameLaunchForCloudSave(null, true), true);
   });
 });

@@ -50,7 +50,9 @@ export const canCreateCloudSaveUploadGuard = (
   preLaunchResult.finalState !== "partial";
 
 export const shouldBlockGameLaunchForCloudSave = (
-  preLaunchResult: SyncGameCloudSaveResult | null
+  preLaunchResult: SyncGameCloudSaveResult | null,
+  restoreFailed = false
 ) =>
-  preLaunchResult?.trigger === "pre-launch" &&
-  preLaunchResult.action === "conflict";
+  restoreFailed ||
+  (preLaunchResult?.trigger === "pre-launch" &&
+    preLaunchResult.action === "conflict");

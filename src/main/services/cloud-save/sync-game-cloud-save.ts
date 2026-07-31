@@ -244,6 +244,14 @@ const executeRestoreOnlySync = async ({
         )
       : null;
   if (deleteLocalIds.length > 0) {
+    if (!restored) {
+      emitProgress({
+        gameId: { objectId, shop },
+        stage: "restoring",
+        processedFiles: 0,
+        totalFiles: deleteLocalIds.length,
+      });
+    }
     await deleteLocalSaveTargets(
       analysis.localSnapshotContext,
       deleteLocalIds,

@@ -5,6 +5,7 @@ import {
   getCloudSaveAutomaticSyncStateForMode,
   getNextCloudSaveAutomaticSyncMode,
   resolveCloudSaveAutomaticSyncMode,
+  resolveStoredCloudSaveAutomaticSyncMode,
   shouldRunLegacyAutomaticCloudSave,
   shouldRunV2AutomaticCloudSave,
 } from "./automatic-sync-mode.js";
@@ -45,6 +46,18 @@ describe("cloud save automatic sync mode", () => {
       }),
       "disabled"
     );
+  });
+
+  it("treats an absent V2 setting as disabled and preserves legacy", () => {
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncMode(false, undefined),
+      "disabled"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncMode(true, undefined),
+      "legacy"
+    );
+    assert.equal(resolveStoredCloudSaveAutomaticSyncMode(true, true), "v2");
   });
 
   it("enabling legacy disables V2", () => {
