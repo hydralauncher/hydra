@@ -9,7 +9,7 @@ mod types;
 mod validation;
 mod verify_file;
 
-pub(crate) use artifacts::is_restore_artifact_path;
+pub(crate) use artifacts::is_cloud_save_artifact_path;
 pub use delete_targets::delete_local_save_targets;
 pub use download_blob::{cleanup_restore_temp_snapshot, download_restore_blob_to_temp};
 pub use replace_targets::replace_restore_targets;

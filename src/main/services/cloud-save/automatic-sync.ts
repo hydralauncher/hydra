@@ -1,6 +1,7 @@
 import type {
   CloudSaveAutomaticSyncEvent,
   CloudSaveAutomaticSyncTrigger,
+  CloudSaveSyncProgressStage,
   GameShop,
   SyncGameCloudSaveResult,
 } from "@types";
@@ -21,9 +22,13 @@ import {
   consumeCloudSaveLaunchGuard,
 } from "./launch-guard";
 import { CloudSaveOperationCoordinator } from "./operation-coordinator";
+import {
+  classifyAutomaticCloudSaveFailure,
+  type AutomaticCloudSaveSyncOutcome,
+} from "./automatic-sync-outcome";
 
 const automaticSyncCoordinator =
-  new CloudSaveOperationCoordinator<SyncGameCloudSaveResult | null>();
+  new CloudSaveOperationCoordinator<AutomaticCloudSaveSyncOutcome>();
 
 const gameKey = (objectId: string, shop: GameShop) =>
   JSON.stringify([shop, objectId]);
@@ -32,13 +37,13 @@ const emitAutomaticSyncEvent = (event: CloudSaveAutomaticSyncEvent) => {
   WindowManager.sendToAppWindows("on-cloud-save-automatic-sync", event);
 };
 
-export const runAutomaticCloudSaveSync = async (
+export const runAutomaticCloudSaveSyncDetailed = async (
   objectId: string,
   shop: GameShop,
   trigger: CloudSaveAutomaticSyncTrigger,
   suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>,
   expectedRemoteHash?: string | null
-): Promise<SyncGameCloudSaveResult | null> => {
+): Promise<AutomaticCloudSaveSyncOutcome> => {
   if (
     shop !== "steam" ||
     !canAccessCloudSaves(
@@ -46,11 +51,14 @@ export const runAutomaticCloudSaveSync = async (
       HydraApi.hasActiveSubscription()
     )
   ) {
-    return null;
+    return { status: "skipped", result: null };
   }
 
-  if (!(await getCloudSaveAutomaticSyncEnabled(objectId, shop))) return null;
+  if (!(await getCloudSaveAutomaticSyncEnabled(objectId, shop))) {
+    return { status: "skipped", result: null };
+  }
 
+  let gameReadFailed = false;
   const game = await gamesSublevel
     .get(levelKeys.game(shop, objectId))
     .catch((error: unknown) => {
@@ -60,10 +68,19 @@ export const runAutomaticCloudSaveSync = async (
         trigger,
         errorName: error instanceof Error ? error.name : "UnknownError",
       });
+      gameReadFailed = true;
       return null;
     });
-  if (!game?.executablePath) return null;
+  if (!game?.executablePath) {
+    return {
+      status: gameReadFailed
+        ? classifyAutomaticCloudSaveFailure(trigger)
+        : "skipped",
+      result: null,
+    };
+  }
 
+  let contextResolutionFailed = false;
   const context =
     suppliedContext ??
     (await getCloudSaveGameContext(objectId, shop).catch((error: unknown) => {
@@ -78,9 +95,17 @@ export const runAutomaticCloudSaveSync = async (
         trigger,
         status: "failed",
       });
+      contextResolutionFailed = true;
       return null;
     }));
-  if (!context) return null;
+  if (!context) {
+    return {
+      status: contextResolutionFailed
+        ? classifyAutomaticCloudSaveFailure(trigger)
+        : "skipped",
+      result: null,
+    };
+  }
   const key = gameKey(objectId, shop);
   const operationKey = JSON.stringify([
     trigger,
@@ -90,12 +115,14 @@ export const runAutomaticCloudSaveSync = async (
       : ["expected", expectedRemoteHash],
   ]);
 
-  return automaticSyncCoordinator.run(key, operationKey, () =>
-    syncGameCloudSave(
+  return automaticSyncCoordinator.run(key, operationKey, async () => {
+    let latestStage: CloudSaveSyncProgressStage | undefined;
+    return syncGameCloudSave(
       objectId,
       shop,
       trigger,
       (progress) => {
+        latestStage = progress.stage;
         emitAutomaticSyncEvent({
           gameId: { objectId, shop },
           trigger,
@@ -122,7 +149,7 @@ export const runAutomaticCloudSaveSync = async (
           status,
           result,
         });
-        return result;
+        return { status: "completed", result } as const;
       })
       .catch((error: unknown) => {
         const environmentChanged = isCloudSaveEnvironmentChangedError(error);
@@ -141,7 +168,7 @@ export const runAutomaticCloudSaveSync = async (
             trigger,
             status: "cancelled",
           });
-          return null;
+          return { status: "cancelled", result: null } as const;
         }
         const errorDetails = getCloudSaveErrorDetails(error);
         logger.error("[Cloud Save] Automatic sync failed", {
@@ -159,10 +186,34 @@ export const runAutomaticCloudSaveSync = async (
               ? errorDetails.errorCode
               : undefined,
         });
-        return null;
-      })
-  );
+        return {
+          status: classifyAutomaticCloudSaveFailure(trigger, latestStage),
+          result: null,
+          errorCode:
+            typeof errorDetails.errorCode === "string"
+              ? errorDetails.errorCode
+              : undefined,
+        } as AutomaticCloudSaveSyncOutcome;
+      });
+  });
 };
+
+export const runAutomaticCloudSaveSync = async (
+  objectId: string,
+  shop: GameShop,
+  trigger: CloudSaveAutomaticSyncTrigger,
+  suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>,
+  expectedRemoteHash?: string | null
+): Promise<SyncGameCloudSaveResult | null> =>
+  (
+    await runAutomaticCloudSaveSyncDetailed(
+      objectId,
+      shop,
+      trigger,
+      suppliedContext,
+      expectedRemoteHash
+    )
+  ).result;
 
 export const runAutomaticCloudSavePostExit = async (
   objectId: string,

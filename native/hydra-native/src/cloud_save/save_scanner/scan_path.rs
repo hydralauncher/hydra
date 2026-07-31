@@ -10,7 +10,7 @@ use super::glob::{expand_braces, has_glob_pattern, normalize_path};
 use super::types::{ScannedCloudSaveFile, ScannedCloudSavePath};
 use crate::cloud_save::identity::local_id;
 use crate::cloud_save::path_resolution::capture_store_user;
-use crate::cloud_save::restore::is_restore_artifact_path;
+use crate::cloud_save::restore::is_cloud_save_artifact_path;
 
 const MAX_SCAN_DEPTH: usize = 100;
 
@@ -261,7 +261,7 @@ fn scan_directory(root: &Path, follow_links: bool) -> Result<ScannedCloudSavePat
         .follow_links(follow_links)
     {
         let entry = entry.map_err(|error| format!("cloud_save_filesystem_error: {error}"))?;
-        if !entry.file_type().is_file() || is_restore_artifact_path(entry.path()) {
+        if !entry.file_type().is_file() || is_cloud_save_artifact_path(entry.path()) {
             continue;
         }
 
@@ -295,7 +295,7 @@ fn add_file(
     root: &Path,
     file: &Path,
 ) -> Result<(), String> {
-    if is_restore_artifact_path(file) {
+    if is_cloud_save_artifact_path(file) {
         return Ok(());
     }
     let resolved_root = canonical_path(root)?;
@@ -344,7 +344,7 @@ pub fn scan_resolved_path_with_capture(
     let mut scanned_by_root = BTreeMap::<String, ScannedCloudSavePath>::new();
 
     for matched in matches {
-        if is_restore_artifact_path(&matched) {
+        if is_cloud_save_artifact_path(&matched) {
             continue;
         }
         let concrete = normalize_path(&matched.to_string_lossy());
@@ -543,11 +543,14 @@ mod tests {
     }
 
     #[test]
-    fn ignores_only_exact_restore_artifact_names() {
+    fn ignores_only_exact_cloud_save_artifact_names() {
         let temp = tempdir().unwrap();
-        let artifact = format!(".hydra-restore-{}-stage", "a".repeat(64));
-        fs::write(temp.path().join(&artifact), b"temporary").unwrap();
+        let restore_artifact = format!(".hydra-restore-{}-stage", "a".repeat(64));
+        let delete_artifact = ".hydra-delete-550e8400-e29b-41d4-a716-446655440000-backup";
+        fs::write(temp.path().join(&restore_artifact), b"temporary").unwrap();
+        fs::write(temp.path().join(delete_artifact), b"temporary").unwrap();
         fs::write(temp.path().join(".hydra-restore-save.dat"), b"user").unwrap();
+        fs::write(temp.path().join(".hydra-delete-save.dat"), b"user").unwrap();
         fs::write(temp.path().join("save.dat"), b"save").unwrap();
 
         let scanned = scan_resolved_path(&temp.path().display().to_string(), true, None).unwrap();
@@ -557,8 +560,10 @@ mod tests {
             .map(|file| file.relative_path.as_str())
             .collect::<Vec<_>>();
 
-        assert!(!relative_paths.contains(&artifact.as_str()));
+        assert!(!relative_paths.contains(&restore_artifact.as_str()));
+        assert!(!relative_paths.contains(&delete_artifact));
         assert!(relative_paths.contains(&".hydra-restore-save.dat"));
+        assert!(relative_paths.contains(&".hydra-delete-save.dat"));
         assert!(relative_paths.contains(&"save.dat"));
     }
 

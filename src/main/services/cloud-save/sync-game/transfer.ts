@@ -95,9 +95,6 @@ export const restoreRemoteState = async (
     0,
     assertEnvironmentCurrent
   );
-  if (result.metadataFailedPaths > 0) {
-    throw new Error("cloud_save_restore_metadata_failed");
-  }
   if (!result.ok || result.failedFiles > 0) {
     throw new Error(
       `Cloud save restore failed for ${result.failedFiles} file(s)`

@@ -115,6 +115,32 @@ describe("cloud save V2 file details", () => {
     );
   });
 
+  it("accepts equivalent default variants from N-API and the API", () => {
+    const napiVariant = {
+      variantId: firstVariantId,
+      kind: "default",
+      steamId64: null,
+      concreteFolderId: null,
+    } as unknown as SnapshotVariant;
+    const apiVariant: SnapshotVariant = {
+      variantId: firstVariantId,
+      kind: "default",
+    };
+
+    assert.doesNotThrow(() =>
+      buildCloudSaveV2FileDetails({
+        state: "untracked",
+        localVariants: [napiVariant],
+        localFiles: [],
+        localSourceFiles: [],
+        localTotalSizeBytes: 0,
+        activeSnapshot: null,
+        remoteVariants: [apiVariant],
+        remoteFiles: [],
+      })
+    );
+  });
+
   it("loads and verifies the active manifest version", async () => {
     const remoteFiles = [file(firstVariantId, "a"), file(secondVariantId, "a")];
     const details = await loadCloudSaveV2FileDetails(

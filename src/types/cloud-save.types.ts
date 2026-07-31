@@ -463,6 +463,7 @@ export interface DeleteLocalSaveTarget extends CloudSaveFileIdentity {
 
 export interface DeleteLocalSaveTargetsResult {
   deletedFiles: CloudSaveFileIdentity[];
+  cleanupFailureCount: number;
 }
 
 export interface RestoreRemoteSnapshotResult {
