@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { logger } from "@main/services/logger";
+
 const IGNORED_GAME_EXECUTABLE_FOLDERS = new Set([
   "crack",
   "originalfiles",
@@ -39,7 +41,11 @@ export const findGameExecutableInFolder = async (
       withFileTypes: true,
       recursive: true,
     });
-  } catch {
+  } catch (err) {
+    logger.error(
+      `[findGameExecutableInFolder] Error reading folder ${folderPath}:`,
+      err
+    );
     return null;
   }
 
