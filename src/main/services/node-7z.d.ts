@@ -10,6 +10,7 @@ declare module "node-7z" {
     };
     outputDir?: string;
     yes?: boolean;
+    noWildcards?: boolean;
     password?: string;
     [key: string]: unknown;
   }

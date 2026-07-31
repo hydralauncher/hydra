@@ -75,6 +75,7 @@ export class SevenZip {
           $bin: this.binaryPath,
           $progress: true,
           yes: true,
+          noWildcards: true,
           password: password || undefined,
         };
 
@@ -157,6 +158,7 @@ export class SevenZip {
 
       const options: CommandLineSwitches = {
         $bin: this.binaryPath,
+        noWildcards: true,
         password: password || undefined,
       };
 
