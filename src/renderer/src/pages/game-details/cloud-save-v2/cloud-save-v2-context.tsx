@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -287,7 +288,7 @@ export function CloudSaveV2Provider({
     t,
   ]);
 
-  const openManager = () => {
+  const openManager = useCallback(() => {
     if (cloudSaveAccessAction === "sign-in") {
       window.electron.openAuthWindow(AuthPage.SignIn);
       return;
@@ -298,7 +299,7 @@ export function CloudSaveV2Provider({
     }
     setWasOpenedFromLaunchConflict(false);
     setIsModalVisible(true);
-  };
+  }, [cloudSaveAccessAction, showHydraCloudModal]);
 
   const handleSelectExecutable = () => {
     setIsModalVisible(false);
@@ -308,78 +309,96 @@ export function CloudSaveV2Provider({
     setShowGameOptionsModal(true);
   };
 
-  const runCloudSaveOperation = async (
-    resolution?: CloudSaveConflictResolution
-  ) => {
-    if (isGameRunning || !hasExecutablePath || shop !== "steam") return;
-    if (cloudSaveAccessAction !== "open") {
-      openManager();
-      return;
-    }
+  const runCloudSaveOperation = useCallback(
+    async (resolution?: CloudSaveConflictResolution) => {
+      if (isGameRunning || !hasExecutablePath || shop !== "steam") return;
+      if (cloudSaveAccessAction !== "open") {
+        openManager();
+        return;
+      }
 
-    const requestedGame = gameKey;
-    setIsSyncing(true);
-    setHasSyncError(false);
-    setProgress(null);
-    try {
-      const onProgress = (nextProgress: CloudSaveSyncProgressPayload) => {
-        if (activeGameKey.current === requestedGame) {
-          setProgress(nextProgress);
+      const requestedGame = gameKey;
+      setIsSyncing(true);
+      setHasSyncError(false);
+      setProgress(null);
+      try {
+        const onProgress = (nextProgress: CloudSaveSyncProgressPayload) => {
+          if (activeGameKey.current === requestedGame) {
+            setProgress(nextProgress);
+          }
+        };
+        if (resolution) {
+          await window.electron.resolveCloudSaveConflict(
+            objectId,
+            shop,
+            resolution,
+            onProgress
+          );
+        } else {
+          await window.electron.syncGameCloudSave(objectId, shop, onProgress);
         }
-      };
-      if (resolution) {
-        await window.electron.resolveCloudSaveConflict(
-          objectId,
-          shop,
-          resolution,
-          onProgress
-        );
-      } else {
-        await window.electron.syncGameCloudSave(objectId, shop, onProgress);
+      } catch (error) {
+        const syncCancelled =
+          error instanceof Error &&
+          (error.message.includes(
+            "cloud_save_environment_changed_during_sync"
+          ) ||
+            error.message.includes("cloud_save_executable_missing"));
+        if (activeGameKey.current === requestedGame) {
+          setHasSyncError(!syncCancelled);
+        }
+        if (
+          !syncCancelled &&
+          error instanceof Error &&
+          error.message.includes("cloud_save_restore_metadata_failed")
+        ) {
+          showErrorToast(
+            t("cloud_save_v2_restore_metadata_failed_title"),
+            t("cloud_save_v2_restore_metadata_failed_description")
+          );
+        }
+      } finally {
+        if (activeGameKey.current === requestedGame) {
+          await refresh();
+          await refreshFileDetails();
+          setIsSyncing(false);
+        }
       }
-    } catch (error) {
-      const syncCancelled =
-        error instanceof Error &&
-        (error.message.includes("cloud_save_environment_changed_during_sync") ||
-          error.message.includes("cloud_save_executable_missing"));
-      if (activeGameKey.current === requestedGame) {
-        setHasSyncError(!syncCancelled);
-      }
-      if (
-        !syncCancelled &&
-        error instanceof Error &&
-        error.message.includes("cloud_save_restore_metadata_failed")
-      ) {
-        showErrorToast(
-          t("cloud_save_v2_restore_metadata_failed_title"),
-          t("cloud_save_v2_restore_metadata_failed_description")
-        );
-      }
-    } finally {
-      if (activeGameKey.current === requestedGame) {
-        await refresh();
-        await refreshFileDetails();
-        setIsSyncing(false);
-      }
-    }
-  };
-
-  const setAutomaticSyncEnabled = async (enabled: boolean) => {
-    if (cloudSaveAccessAction !== "open") {
-      if (cloudSaveAccessAction === "sign-in") {
-        window.electron.openAuthWindow(AuthPage.SignIn);
-      } else {
-        showHydraCloudModal("backup");
-      }
-      throw new Error("Cloud Saves require an active subscription");
-    }
-    await window.electron.setCloudSaveAutomaticSyncEnabled(
+    },
+    [
+      cloudSaveAccessAction,
+      gameKey,
+      hasExecutablePath,
+      isGameRunning,
       objectId,
+      openManager,
+      refresh,
+      refreshFileDetails,
       shop,
-      enabled
-    );
-    await refresh();
-  };
+      showErrorToast,
+      t,
+    ]
+  );
+
+  const setAutomaticSyncEnabled = useCallback(
+    async (enabled: boolean) => {
+      if (cloudSaveAccessAction !== "open") {
+        if (cloudSaveAccessAction === "sign-in") {
+          window.electron.openAuthWindow(AuthPage.SignIn);
+        } else {
+          showHydraCloudModal("backup");
+        }
+        throw new Error("Cloud Saves require an active subscription");
+      }
+      await window.electron.setCloudSaveAutomaticSyncEnabled(
+        objectId,
+        shop,
+        enabled
+      );
+      await refresh();
+    },
+    [cloudSaveAccessAction, objectId, refresh, shop, showHydraCloudModal]
+  );
 
   const handleConfirmResolution = () => {
     const resolution = pendingResolution;
