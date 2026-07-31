@@ -170,8 +170,6 @@ export function RetroArchSetupModal({
     try {
       const refreshed = await refreshConfig();
       if (refreshed?.executablePath) {
-        // The managed install writes the executable straight to the config, so
-        // it needs undoing on abandon just like the find_emulator step does.
         persistedExecutableRef.current = true;
         return;
       }
@@ -261,15 +259,6 @@ export function RetroArchSetupModal({
 
   const continueHidden = currentStep === "done";
 
-  /**
-   * Leaving the find_emulator step writes the executable to the global config,
-   * and every "is it installed?" check in the app is just that path being set.
-   * Abandoning the wizard before the scan therefore left RetroArch looking
-   * installed when it was not, so the write is undone here.
-   *
-   * From the scanning step onward the setup is treated as committed: cancelling
-   * a long scan means "finish later", not "undo everything I just configured".
-   */
   const revertAbandonedSetup = useCallback(async () => {
     if (!persistedExecutableRef.current) return;
     if (currentStep === "scanning" || currentStep === "done") return;

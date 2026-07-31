@@ -8,13 +8,6 @@ export interface DiscReconciliation {
   isDeleted: boolean;
 }
 
-/**
- * Turns a surviving subset of discs into the update to persist.
- *
- * A selection pointing at a dropped disc is moved to a surviving one, otherwise
- * launch would keep using a path that no longer resolves. Returns null when
- * nothing was dropped and the title needs no write.
- */
 const buildReconciliation = (
   discs: ClassicsDisc[],
   survivingDiscs: ClassicsDisc[],
@@ -40,13 +33,6 @@ const buildReconciliation = (
   };
 };
 
-/**
- * Works out what survives when a ROM folder is removed.
- *
- * A title can straddle folders — Disc 1 under the removed one, Disc 2 under a
- * folder that stays — so uncovered discs are dropped one by one and the game is
- * marked deleted only once nothing is left.
- */
 export const reconcileDiscsForRemovedFolder = (
   discs: ClassicsDisc[],
   selectedDiscPath: string | null | undefined,
@@ -65,13 +51,6 @@ export const reconcileDiscsForRemovedFolder = (
   return buildReconciliation(discs, coveredDiscs, selectedDiscPath);
 };
 
-/**
- * Works out what survives after a scan, once files have gone missing from disk.
- *
- * Only discs inside the scanned folders are checked: this scan says nothing
- * about files elsewhere, so those are left attached. As with folder removal, a
- * title keeps its remaining discs and is deleted only when every disc is gone.
- */
 export const reconcileDiscsAfterScan = (
   discs: ClassicsDisc[],
   selectedDiscPath: string | null | undefined,

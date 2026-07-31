@@ -62,8 +62,6 @@ describe("swapCoreLibrary", () => {
 
     await assert.rejects(
       swapCoreLibrary(stagedLibrary, libraryPath, async () => {
-        // The new binary is already in place at this point — the rollback has
-        // to undo it, not just report the failure.
         assert.equal(readFileSync(libraryPath, "utf8"), STAGED);
         throw failure;
       }),

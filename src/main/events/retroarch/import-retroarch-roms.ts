@@ -228,11 +228,6 @@ export const recomputeRetroArchPlatformCounts = async (): Promise<void> => {
   }));
 };
 
-/**
- * Adds up the discs still on disk. Nothing else recomputes `romSizeBytes` once
- * a title loses discs — only a full folder scan does — so the stored total is
- * refreshed here instead of leaving it counting bytes that are gone.
- */
 const sumDiscSizes = async (discs: ClassicsDisc[]): Promise<number | null> => {
   let total = 0;
   let counted = 0;
@@ -243,8 +238,7 @@ const sumDiscSizes = async (discs: ClassicsDisc[]): Promise<number | null> => {
       total += size;
       counted += 1;
     } catch {
-      // Unreadable or already gone — better to under-report than to keep
-      // counting a file that is no longer there.
+      continue;
     }
   }
 

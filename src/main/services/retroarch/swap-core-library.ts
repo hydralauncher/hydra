@@ -5,14 +5,6 @@ const removeQuietly = async (target: string): Promise<void> => {
   await fs.promises.rm(target, { force: true }).catch(() => {});
 };
 
-/**
- * Puts `stagedLibrary` in place at `libraryPath` and persists the matching
- * config as a single step.
- *
- * The previous library is held as a backup until `persistConfig` resolves. If
- * the config write rejects, the new binary would otherwise stay on disk while
- * the config still described the old core, with no copy left to roll back to.
- */
 export const swapCoreLibrary = async (
   stagedLibrary: string,
   libraryPath: string,

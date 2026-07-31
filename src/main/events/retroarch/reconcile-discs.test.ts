@@ -27,8 +27,7 @@ describe("reconcileDiscsForRemovedFolder", () => {
     );
   });
 
-  it("ignores titles whose discs all remain covered", () => {
-    // Overlapping folders: the removed path is a parent of one that stays.
+  it("ignores titles whose discs all remain covered when folders overlap", () => {
     const nested = path.join(REMOVED, "nested");
     const discs = [disc(nested, "Disc 1.n64")];
 
