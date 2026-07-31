@@ -8,6 +8,7 @@ import type {
 } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
+import { areSnapshotVariantsEqual } from "./snapshot-variant.js";
 import type { SyncDirection } from "./sync-game/policy.js";
 
 interface MergeUserVariantSnapshotsInput {
@@ -47,7 +48,7 @@ const mergeVariantMetadata = (
   const variants = new Map<string, SnapshotVariant>();
   for (const variant of [...local, ...remote]) {
     const current = variants.get(variant.variantId);
-    if (current && JSON.stringify(current) !== JSON.stringify(variant)) {
+    if (current && !areSnapshotVariantsEqual(current, variant)) {
       throw new Error("Divergent Cloud Save metadata for the same variant");
     }
     variants.set(variant.variantId, variant);
@@ -71,8 +72,11 @@ export const mergeUserVariantSnapshots = ({
 }: MergeUserVariantSnapshotsInput): CloudSaveMergeResult => {
   const localById = indexUnique(local.files);
   const remoteById = indexUnique(remoteFiles);
+  const unresolvedBaseIds = new Set(base?.unresolvedRemoteEntryIds ?? []);
   const baseById = new Map(
-    (base?.entries ?? []).map((entry) => [cloudSaveFileKey(entry), entry])
+    (base?.entries ?? [])
+      .map((entry) => [cloudSaveFileKey(entry), entry] as const)
+      .filter(([entryId]) => !unresolvedBaseIds.has(entryId))
   );
   const ids = new Set([...localById.keys(), ...remoteById.keys()]);
   const files: SnapshotFile[] = [];

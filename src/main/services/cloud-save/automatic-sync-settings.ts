@@ -15,7 +15,7 @@ import { assertCloudSaveSubscription } from "./cloud-save-access";
 import {
   getCloudSaveAutomaticSyncStateForMode,
   getNextCloudSaveAutomaticSyncMode,
-  resolveCloudSaveAutomaticSyncMode,
+  resolveStoredCloudSaveAutomaticSyncMode,
 } from "./automatic-sync-mode";
 
 const getAutomaticSyncKey = (shop: GameShop, objectId: string) =>
@@ -47,10 +47,10 @@ const readCloudSaveAutomaticSyncMode = async (
     cloudSaveAutomaticSyncSettingsSublevel.get(key),
     gamesSublevel.get(key),
   ]);
-  const mode = resolveCloudSaveAutomaticSyncMode({
-    legacyEnabled: game?.automaticCloudSync === true,
-    v2Enabled: storedV2Enabled ?? true,
-  });
+  const mode = resolveStoredCloudSaveAutomaticSyncMode(
+    game?.automaticCloudSync === true,
+    storedV2Enabled
+  );
 
   return { game, key, mode };
 };
@@ -77,11 +77,11 @@ const persistCloudSaveAutomaticSyncMode = async (
   }
 
   if (state.v2Enabled) {
-    batch.del(key, { sublevel: cloudSaveAutomaticSyncSettingsSublevel });
-  } else {
-    batch.put(key, false, {
+    batch.put(key, true, {
       sublevel: cloudSaveAutomaticSyncSettingsSublevel,
     });
+  } else {
+    batch.del(key, { sublevel: cloudSaveAutomaticSyncSettingsSublevel });
   }
 
   await batch.write();
@@ -92,27 +92,7 @@ export const getCloudSaveAutomaticSyncMode = async (
   objectId: string,
   shop: GameShop
 ): Promise<CloudSaveAutomaticSyncMode> => {
-  const { game, key, mode } = await readCloudSaveAutomaticSyncMode(
-    objectId,
-    shop
-  );
-  const legacyEnabled = game?.automaticCloudSync === true;
-
-  if (mode === "v2" && legacyEnabled && game) {
-    const batch = db.batch();
-    batch.put(
-      key,
-      {
-        ...game,
-        automaticCloudSync: false,
-      },
-      { sublevel: gamesSublevel }
-    );
-    await batch.write();
-    notifyAutomaticSyncModeChanged(objectId, shop, mode);
-  }
-
-  return mode;
+  return (await readCloudSaveAutomaticSyncMode(objectId, shop)).mode;
 };
 
 export const getCloudSaveAutomaticSyncEnabled = async (

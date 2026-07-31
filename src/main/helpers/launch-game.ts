@@ -11,7 +11,7 @@ import {
   getCloudSaveAutomaticSyncMode,
   getCloudSaveGameContext,
   rotateCloudSavePrefixGeneration,
-  runAutomaticCloudSaveSync,
+  runAutomaticCloudSaveSyncDetailed,
   setCloudSaveLaunchGuard,
   shouldBlockGameLaunchForCloudSave,
   shouldRunV2AutomaticCloudSave,
@@ -507,15 +507,19 @@ export const launchGame = async (
         return null;
       })
     : null;
-  const preLaunchResult =
+  const preLaunchOutcome =
     shouldRunV2AutomaticSync && prefixReadyForRestore
-      ? await runAutomaticCloudSaveSync(
+      ? await runAutomaticCloudSaveSyncDetailed(
           objectId,
           shop,
           "pre-launch",
           cloudSaveContext ?? undefined
         )
-      : null;
+      : { status: "skipped" as const, result: null };
+  const preLaunchResult = preLaunchOutcome.result;
+  const hasPreLaunchConflict =
+    preLaunchResult?.trigger === "pre-launch" &&
+    preLaunchResult.action === "conflict";
 
   if (shouldRunV2AutomaticSync && !prefixReadyForRestore) {
     logger.warn(
@@ -524,21 +528,28 @@ export const launchGame = async (
     );
   }
 
-  if (shouldBlockGameLaunchForCloudSave(preLaunchResult)) {
-    const searchParams = new URLSearchParams({
-      title: game?.title ?? objectId,
-      openCloudSaveConflict: "1",
-    });
-
-    logger.warn("[Cloud Save] Game launch blocked by unresolved conflict", {
+  if (
+    shouldBlockGameLaunchForCloudSave(
+      preLaunchResult,
+      preLaunchOutcome.status === "failed"
+    )
+  ) {
+    logger.warn("[Cloud Save] Game launch blocked by pre-launch sync", {
       shop,
       objectId,
+      reason: hasPreLaunchConflict ? "conflict" : "restore_failed",
     });
     clearCloudSaveLaunchGuard(objectId, shop);
     WindowManager.closeGameLauncherWindow();
-    WindowManager.redirect(
-      `game/${shop}/${objectId}?${searchParams.toString()}`
-    );
+    if (hasPreLaunchConflict) {
+      const searchParams = new URLSearchParams({
+        title: game?.title ?? objectId,
+        openCloudSaveConflict: "1",
+      });
+      WindowManager.redirect(
+        `game/${shop}/${objectId}?${searchParams.toString()}`
+      );
+    }
     return null;
   }
 
