@@ -46,6 +46,7 @@ export function resolveBigPictureLanguage(
   if (language.startsWith("pt")) return "pt-BR";
   if (language.startsWith("es")) return "es";
   if (language.startsWith("fr")) return "fr";
+  if (language.startsWith("el")) return "el";
   return "en";
 }
 

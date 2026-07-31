@@ -11,6 +11,7 @@ import {
   be,
   zhCN,
   da,
+  el,
 } from "date-fns/locale";
 
 import { isArchiveOrgFileUri } from "./archive-org";
@@ -196,6 +197,7 @@ export const getDateLocale = (language: string) => {
   if (language.startsWith("be")) return be;
   if (language.startsWith("zh")) return zhCN;
   if (language.startsWith("da")) return da;
+  if (language.startsWith("el")) return el;
 
   return enUS;
 };
