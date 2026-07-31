@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 use std::io::ErrorKind;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use globetter::MatchOptions;
+use globset::GlobBuilder;
 use walkdir::WalkDir;
 
 use super::glob::{expand_braces, has_glob_pattern, normalize_path};
@@ -34,6 +35,142 @@ fn match_options(case_sensitive: bool, follow_links: bool) -> MatchOptions {
     }
 }
 
+fn can_descend(path: &Path, follow_links: bool) -> Result<bool, String> {
+    let metadata = std::fs::symlink_metadata(path)
+        .map_err(|error| format!("cloud_save_filesystem_error: {error}"))?;
+    if metadata.file_type().is_symlink() && !follow_links {
+        return Ok(false);
+    }
+
+    std::fs::metadata(path)
+        .map(|metadata| metadata.is_dir())
+        .map_err(|error| format!("cloud_save_filesystem_error: {error}"))
+}
+
+fn component_matches(
+    parent: &Path,
+    pattern: &str,
+    is_last: bool,
+    follow_links: bool,
+) -> Result<Vec<PathBuf>, String> {
+    let has_pattern = pattern.contains(['*', '?', '[']);
+    let exact = parent.join(pattern);
+    if !has_pattern && exact.exists() {
+        if is_last || can_descend(&exact, follow_links)? {
+            return Ok(vec![exact]);
+        }
+        return Ok(Vec::new());
+    }
+
+    let matcher = has_pattern
+        .then(|| {
+            GlobBuilder::new(pattern)
+                .case_insensitive(true)
+                .literal_separator(true)
+                .build()
+                .map(|glob| glob.compile_matcher())
+                .map_err(|error| format!("cloud_save_invalid_glob: {error}"))
+        })
+        .transpose()?;
+    let folded_pattern = (!has_pattern).then(|| pattern.to_lowercase());
+    let entries = match std::fs::read_dir(parent) {
+        Ok(entries) => entries,
+        Err(error) if matches!(error.kind(), ErrorKind::NotFound | ErrorKind::NotADirectory) => {
+            return Ok(Vec::new());
+        }
+        Err(error) => return Err(format!("cloud_save_filesystem_error: {error}")),
+    };
+    let mut matches = Vec::new();
+
+    for entry in entries {
+        let entry = entry.map_err(|error| format!("cloud_save_filesystem_error: {error}"))?;
+        let file_name = entry.file_name();
+        let matches_pattern = if let Some(matcher) = &matcher {
+            matcher.is_match(Path::new(&file_name))
+        } else if let Some(folded_pattern) = &folded_pattern {
+            file_name.to_string_lossy().to_lowercase() == *folded_pattern
+        } else {
+            false
+        };
+        if !matches_pattern {
+            continue;
+        }
+
+        let path = entry.path();
+        if is_last || can_descend(&path, follow_links)? {
+            matches.push(path);
+        }
+    }
+
+    Ok(matches)
+}
+
+fn recursive_components(
+    roots: Vec<PathBuf>,
+    is_last: bool,
+    follow_links: bool,
+) -> Result<Vec<PathBuf>, String> {
+    let mut matches = Vec::new();
+    for root in roots {
+        if !is_last {
+            matches.push(root.clone());
+        }
+        for entry in WalkDir::new(&root)
+            .min_depth(1)
+            .max_depth(MAX_SCAN_DEPTH)
+            .follow_links(follow_links)
+        {
+            let entry = entry.map_err(|error| format!("cloud_save_filesystem_error: {error}"))?;
+            if is_last || entry.file_type().is_dir() {
+                matches.push(entry.into_path());
+            }
+        }
+    }
+
+    Ok(matches)
+}
+
+fn case_insensitive_matches(pattern: &str, follow_links: bool) -> Result<Vec<PathBuf>, String> {
+    let mut anchor = PathBuf::new();
+    let mut patterns = Vec::new();
+    for component in Path::new(pattern).components() {
+        match component {
+            Component::Prefix(prefix) => anchor.push(prefix.as_os_str()),
+            Component::RootDir => anchor.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => patterns.push("..".to_string()),
+            Component::Normal(value) => patterns.push(value.to_string_lossy().into_owned()),
+        }
+    }
+    if anchor.as_os_str().is_empty() {
+        anchor.push(".");
+    }
+
+    let mut matches = vec![anchor];
+    for (index, component) in patterns.iter().enumerate() {
+        let is_last = index + 1 == patterns.len();
+        matches = if component == "**" {
+            recursive_components(matches, is_last, follow_links)?
+        } else {
+            let mut next = Vec::new();
+            for parent in matches {
+                next.extend(component_matches(
+                    &parent,
+                    component,
+                    is_last,
+                    follow_links,
+                )?);
+            }
+            next
+        };
+        if matches.is_empty() {
+            break;
+        }
+    }
+
+    Ok(matches)
+}
+
 fn glob_matches(pattern: &str, options: MatchOptions) -> Result<Vec<PathBuf>, String> {
     let direct_path = Path::new(pattern);
     if direct_path.exists() {
@@ -49,10 +186,15 @@ fn glob_matches(pattern: &str, options: MatchOptions) -> Result<Vec<PathBuf>, St
 
     let mut matches = Vec::new();
     for expanded in expand_braces(pattern)? {
-        let entries = globetter::glob_with(&expanded, options)
-            .map_err(|error| format!("cloud_save_invalid_glob: {error}"))?;
-        for entry in entries {
-            matches.push(entry.map_err(|error| format!("cloud_save_filesystem_error: {error}"))?);
+        if options.case_sensitive {
+            let entries = globetter::glob_with(&expanded, options)
+                .map_err(|error| format!("cloud_save_invalid_glob: {error}"))?;
+            for entry in entries {
+                matches
+                    .push(entry.map_err(|error| format!("cloud_save_filesystem_error: {error}"))?);
+            }
+        } else {
+            matches.extend(case_insensitive_matches(&expanded, options.follow_links)?);
         }
     }
 
@@ -263,6 +405,15 @@ mod tests {
 
     use super::*;
 
+    fn filesystem_is_case_sensitive(root: &Path) -> bool {
+        let exact = root.join("HydraCaseSensitivityProbe");
+        let different_case = root.join("hydracasesensitivityprobe");
+        fs::write(&exact, b"probe").unwrap();
+        let is_case_sensitive = !different_case.exists();
+        fs::remove_file(exact).unwrap();
+        is_case_sensitive
+    }
+
     #[test]
     fn scans_files_directories_recursive_globs_and_braces() {
         let temp = tempdir().unwrap();
@@ -286,10 +437,12 @@ mod tests {
         assert!(sensitive.is_empty());
     }
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
     #[test]
     fn resolves_a_literal_path_case_insensitively_as_a_fallback() {
         let temp = tempdir().unwrap();
+        if !filesystem_is_case_sensitive(temp.path()) {
+            return;
+        }
         let directory = temp.path().join("Prefix").join("Users").join("SteamUser");
         fs::create_dir_all(&directory).unwrap();
         fs::write(directory.join("Save.DAT"), b"save").unwrap();
@@ -306,6 +459,35 @@ mod tests {
         let sensitive = scan_resolved_path(&requested, true, None).unwrap();
 
         assert_eq!(insensitive[0].files.len(), 1);
+        assert!(sensitive.is_empty());
+    }
+
+    #[test]
+    fn resolves_literal_components_after_wildcards_case_insensitively() {
+        let temp = tempdir().unwrap();
+        if !filesystem_is_case_sensitive(temp.path()) {
+            return;
+        }
+        let directory = temp
+            .path()
+            .join("Prefix")
+            .join("drive_c")
+            .join("users")
+            .join("steamuser")
+            .join("AppData")
+            .join("Roaming")
+            .join("Balatro");
+        fs::create_dir_all(&directory).unwrap();
+        fs::write(directory.join("Save.DAT"), b"save").unwrap();
+
+        let requested = format!(
+            "{}/prefix/drive_*/users/*/appdata/roaming/balatro/*.dat",
+            temp.path().display()
+        );
+        let insensitive = scan_resolved_path(&requested, false, None).unwrap();
+        let sensitive = scan_resolved_path(&requested, true, None).unwrap();
+
+        assert_eq!(insensitive.iter().flat_map(|path| &path.files).count(), 1);
         assert!(sensitive.is_empty());
     }
 
