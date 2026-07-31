@@ -39,7 +39,7 @@ fn glob_matches(pattern: &str, options: MatchOptions) -> Result<Vec<PathBuf>, St
     if direct_path.exists() {
         return Ok(vec![direct_path.to_path_buf()]);
     }
-    if !has_glob_pattern(pattern) {
+    if !has_glob_pattern(pattern) && options.case_sensitive {
         return match std::fs::metadata(direct_path) {
             Ok(_) => Ok(vec![direct_path.to_path_buf()]),
             Err(error) if error.kind() == ErrorKind::NotFound => Ok(Vec::new()),
@@ -283,6 +283,29 @@ mod tests {
         assert_eq!(exact[0].files.len(), 1);
         assert_eq!(directory[0].files.len(), 2);
         assert_eq!(insensitive.iter().flat_map(|path| &path.files).count(), 2);
+        assert!(sensitive.is_empty());
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[test]
+    fn resolves_a_literal_path_case_insensitively_as_a_fallback() {
+        let temp = tempdir().unwrap();
+        let directory = temp.path().join("Prefix").join("Users").join("SteamUser");
+        fs::create_dir_all(&directory).unwrap();
+        fs::write(directory.join("Save.DAT"), b"save").unwrap();
+
+        let requested = temp
+            .path()
+            .join("prefix")
+            .join("users")
+            .join("steamuser")
+            .join("save.dat")
+            .display()
+            .to_string();
+        let insensitive = scan_resolved_path(&requested, false, None).unwrap();
+        let sensitive = scan_resolved_path(&requested, true, None).unwrap();
+
+        assert_eq!(insensitive[0].files.len(), 1);
         assert!(sensitive.is_empty());
     }
 
