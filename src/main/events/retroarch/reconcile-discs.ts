@@ -9,15 +9,43 @@ export interface DiscReconciliation {
 }
 
 /**
+ * Turns a surviving subset of discs into the update to persist.
+ *
+ * A selection pointing at a dropped disc is moved to a surviving one, otherwise
+ * launch would keep using a path that no longer resolves. Returns null when
+ * nothing was dropped and the title needs no write.
+ */
+const buildReconciliation = (
+  discs: ClassicsDisc[],
+  survivingDiscs: ClassicsDisc[],
+  selectedDiscPath: string | null | undefined
+): DiscReconciliation | null => {
+  if (survivingDiscs.length === discs.length) return null;
+
+  if (survivingDiscs.length === 0) {
+    return { discs, selectedDiscPath, isDeleted: true };
+  }
+
+  const selectionSurvived = survivingDiscs.some(
+    (disc) => disc.path === selectedDiscPath
+  );
+
+  return {
+    discs: survivingDiscs,
+    selectedDiscPath:
+      selectedDiscPath && !selectionSurvived
+        ? survivingDiscs[0].path
+        : selectedDiscPath,
+    isDeleted: false,
+  };
+};
+
+/**
  * Works out what survives when a ROM folder is removed.
  *
  * A title can straddle folders — Disc 1 under the removed one, Disc 2 under a
  * folder that stays — so uncovered discs are dropped one by one and the game is
- * marked deleted only once nothing is left. A selection pointing at a dropped
- * disc is moved to a surviving one, otherwise launch would keep using a path
- * that no longer resolves.
- *
- * Returns null when the title needs no write.
+ * marked deleted only once nothing is left.
  */
 export const reconcileDiscsForRemovedFolder = (
   discs: ClassicsDisc[],
@@ -33,22 +61,33 @@ export const reconcileDiscsForRemovedFolder = (
   const coveredDiscs = discs.filter((disc) =>
     remainingFolderPaths.some((folder) => isWithin(disc.path, folder))
   );
-  if (coveredDiscs.length === discs.length) return null;
 
-  if (coveredDiscs.length === 0) {
-    return { discs, selectedDiscPath, isDeleted: true };
-  }
+  return buildReconciliation(discs, coveredDiscs, selectedDiscPath);
+};
 
-  const selectionSurvived = coveredDiscs.some(
-    (disc) => disc.path === selectedDiscPath
+/**
+ * Works out what survives after a scan, once files have gone missing from disk.
+ *
+ * Only discs inside the scanned folders are checked: this scan says nothing
+ * about files elsewhere, so those are left attached. As with folder removal, a
+ * title keeps its remaining discs and is deleted only when every disc is gone.
+ */
+export const reconcileDiscsAfterScan = (
+  discs: ClassicsDisc[],
+  selectedDiscPath: string | null | undefined,
+  scannedFolderPaths: string[],
+  discExists: (discPath: string) => boolean
+): DiscReconciliation | null => {
+  if (discs.length === 0) return null;
+
+  const wasScanned = (disc: ClassicsDisc) =>
+    scannedFolderPaths.some((folder) => isWithin(disc.path, folder));
+
+  if (!discs.some(wasScanned)) return null;
+
+  const survivingDiscs = discs.filter(
+    (disc) => !wasScanned(disc) || discExists(disc.path)
   );
 
-  return {
-    discs: coveredDiscs,
-    selectedDiscPath:
-      selectedDiscPath && !selectionSurvived
-        ? coveredDiscs[0].path
-        : selectedDiscPath,
-    isDeleted: false,
-  };
+  return buildReconciliation(discs, survivingDiscs, selectedDiscPath);
 };

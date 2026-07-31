@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
+import { stat } from "node:fs/promises";
 
 import { registerEvent } from "../register-event";
 import {
@@ -7,7 +8,11 @@ import {
   updateActiveRetroArchImport,
 } from "./retroarch-import-state";
 import { isWithin } from "../emulators/rom-path-utils";
-import { reconcileDiscsForRemovedFolder } from "./reconcile-discs";
+import {
+  reconcileDiscsAfterScan,
+  reconcileDiscsForRemovedFolder,
+  type DiscReconciliation,
+} from "./reconcile-discs";
 import {
   bandPercent,
   baseNameWithoutExt,
@@ -20,7 +25,7 @@ import type { LaunchboxShopDetailsEntry } from "@main/services/emulators";
 import { WindowManager, logger, retroarch } from "@main/services";
 import { platformToRetroArchPlatform } from "@main/helpers";
 import { gamesSublevel } from "@main/level";
-import type { ClassicsDisc, RetroArchPlatform, RomFolder } from "@types";
+import type { ClassicsDisc, Game, RetroArchPlatform, RomFolder } from "@types";
 
 interface FolderInput {
   path: string;
@@ -223,6 +228,48 @@ export const recomputeRetroArchPlatformCounts = async (): Promise<void> => {
   }));
 };
 
+/**
+ * Adds up the discs still on disk. Nothing else recomputes `romSizeBytes` once
+ * a title loses discs — only a full folder scan does — so the stored total is
+ * refreshed here instead of leaving it counting bytes that are gone.
+ */
+const sumDiscSizes = async (discs: ClassicsDisc[]): Promise<number | null> => {
+  let total = 0;
+  let counted = 0;
+
+  for (const disc of discs) {
+    try {
+      const { size } = await stat(disc.path);
+      total += size;
+      counted += 1;
+    } catch {
+      // Unreadable or already gone — better to under-report than to keep
+      // counting a file that is no longer there.
+    }
+  }
+
+  return counted > 0 ? total : null;
+};
+
+const applyReconciliation = async (
+  key: string,
+  game: Game,
+  reconciled: DiscReconciliation,
+  errorMessage: string
+): Promise<void> => {
+  if (reconciled.isDeleted) {
+    game.isDeleted = true;
+  } else {
+    game.discs = reconciled.discs;
+    game.selectedDiscPath = reconciled.selectedDiscPath;
+    game.romSizeBytes = await sumDiscSizes(reconciled.discs);
+  }
+
+  await gamesSublevel.put(key, game).catch((err) => {
+    logger.error(errorMessage, err);
+  });
+};
+
 export const reconcileRemovedRetroArchFolder = async (
   removedPath: string,
   remainingFolderPaths: string[]
@@ -233,27 +280,20 @@ export const reconcileRemovedRetroArchFolder = async (
     if (game.shop !== "launchbox") continue;
     if (!platformToRetroArchPlatform(game.platform)) continue;
 
-    const discs = game.discs ?? [];
-    if (discs.length === 0) continue;
-
     const reconciled = reconcileDiscsForRemovedFolder(
-      discs,
+      game.discs ?? [],
       game.selectedDiscPath,
       removedPath,
       remainingFolderPaths
     );
     if (!reconciled) continue;
 
-    if (reconciled.isDeleted) {
-      game.isDeleted = true;
-    } else {
-      game.discs = reconciled.discs;
-      game.selectedDiscPath = reconciled.selectedDiscPath;
-    }
-
-    await gamesSublevel.put(key, game).catch((err) => {
-      logger.error("Could not reconcile removed RetroArch folder entry", err);
-    });
+    await applyReconciliation(
+      key,
+      game,
+      reconciled,
+      "Could not reconcile removed RetroArch folder entry"
+    );
   }
 };
 
@@ -264,19 +304,20 @@ const reconcileDeletedGames = async (folders: FolderInput[]) => {
     if (game.shop !== "launchbox") continue;
     if (!platformToRetroArchPlatform(game.platform)) continue;
 
-    const discs = game.discs ?? [];
-    const inScannedFolders = discs.some((disc) =>
-      folders.some((folder) => isWithin(disc.path, folder.path))
+    const reconciled = reconcileDiscsAfterScan(
+      game.discs ?? [],
+      game.selectedDiscPath,
+      folders.map((folder) => folder.path),
+      existsSync
     );
-    if (!inScannedFolders) continue;
+    if (!reconciled) continue;
 
-    const stillOnDisk = discs.some((disc) => existsSync(disc.path));
-    if (stillOnDisk) continue;
-
-    game.isDeleted = true;
-    await gamesSublevel.put(key, game).catch((err) => {
-      logger.error("Could not mark stale RetroArch game as deleted", err);
-    });
+    await applyReconciliation(
+      key,
+      game,
+      reconciled,
+      "Could not mark stale RetroArch game as deleted"
+    );
   }
 };
 
