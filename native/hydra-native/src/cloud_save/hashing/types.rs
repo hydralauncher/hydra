@@ -25,6 +25,8 @@ pub struct LocalFileHashCacheEntry {
     pub last_modified_at: String,
     pub hash: String,
     pub algorithm: Option<String>,
+    pub hashed_at: Option<String>,
+    pub metadata_fingerprint: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -33,6 +35,8 @@ pub struct HashedLocalFile {
     pub size_bytes: f64,
     pub last_modified_at: String,
     pub hash: String,
+    pub hashed_at: String,
+    pub metadata_fingerprint: Option<String>,
 }
 
 #[derive(Debug)]
