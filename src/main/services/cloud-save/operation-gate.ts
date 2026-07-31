@@ -8,6 +8,7 @@ interface ActiveCloudSaveOperation {
 
 export class CloudSaveOperationGate {
   private readonly active = new Map<string, ActiveCloudSaveOperation>();
+  private readonly activeLaunches = new Map<string, number>();
 
   public isDeletionActive(scopeKey: string) {
     return this.active.get(scopeKey)?.kind === "delete";
@@ -30,6 +31,10 @@ export class CloudSaveOperationGate {
     operationKey: string,
     operation: () => Promise<T>
   ): Promise<T> {
+    if ((this.activeLaunches.get(scopeKey) ?? 0) > 0) {
+      return Promise.reject(new Error("cloud_save_operation_active"));
+    }
+
     const activeOperation = this.active.get(scopeKey);
     if (activeOperation) {
       if (
@@ -43,6 +48,27 @@ export class CloudSaveOperationGate {
     }
 
     return this.run(scopeKey, "delete", operationKey, operation);
+  }
+
+  public runLaunch<T>(
+    scopeKey: string,
+    operation: () => Promise<T>
+  ): Promise<T> {
+    if (this.isDeletionActive(scopeKey)) {
+      return Promise.reject(new Error("cloud_save_delete_active"));
+    }
+
+    this.activeLaunches.set(
+      scopeKey,
+      (this.activeLaunches.get(scopeKey) ?? 0) + 1
+    );
+    return Promise.resolve()
+      .then(operation)
+      .finally(() => {
+        const remaining = (this.activeLaunches.get(scopeKey) ?? 1) - 1;
+        if (remaining === 0) this.activeLaunches.delete(scopeKey);
+        else this.activeLaunches.set(scopeKey, remaining);
+      });
   }
 
   private run<T>(
@@ -82,3 +108,13 @@ export const assertCloudSaveDeletionInactive = (
     throw new Error("cloud_save_delete_active");
   }
 };
+
+export const runWithCloudSaveLaunchGate = <T>(
+  objectId: string,
+  shop: string,
+  operation: () => Promise<T>
+) =>
+  cloudSaveOperationGate.runLaunch(
+    cloudSaveOperationScopeKey(objectId, shop),
+    operation
+  );

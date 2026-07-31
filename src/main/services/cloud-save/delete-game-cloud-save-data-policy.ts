@@ -5,6 +5,7 @@ interface DeleteGameCloudSaveDataDependencies {
   setAutomaticSyncEnabled: (enabled: boolean) => Promise<unknown>;
   prepareLocalDeletion: () => Promise<() => Promise<void>>;
   runWithLocalStateLock: (operation: () => Promise<void>) => Promise<void>;
+  assertGameNotRunning: () => void;
   deleteRemoteSnapshots: () => Promise<void>;
   clearLocalState: () => Promise<void>;
 }
@@ -22,6 +23,7 @@ export const executeDeleteGameCloudSaveData = async ({
   setAutomaticSyncEnabled,
   prepareLocalDeletion,
   runWithLocalStateLock,
+  assertGameNotRunning,
   deleteRemoteSnapshots,
   clearLocalState,
 }: DeleteGameCloudSaveDataDependencies) => {
@@ -32,7 +34,9 @@ export const executeDeleteGameCloudSaveData = async ({
   try {
     const deleteLocalFiles = await prepareLocalDeletion();
     await runWithLocalStateLock(async () => {
+      assertGameNotRunning();
       await deleteRemoteSnapshots();
+      assertGameNotRunning();
       await deleteLocalFiles();
       await clearLocalState();
     });

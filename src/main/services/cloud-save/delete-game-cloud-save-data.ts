@@ -27,7 +27,8 @@ import {
 
 export const deleteGameCloudSaveData = async (
   objectId: string,
-  shop: GameShop
+  shop: GameShop,
+  assertGameNotRunning: () => void
 ) => {
   assertCloudSaveSubscription();
 
@@ -50,6 +51,7 @@ export const deleteGameCloudSaveData = async (
               await operation();
             }
           ),
+        assertGameNotRunning,
         prepareLocalDeletion: async () => {
           const analysis = await analyzeCloudSaveState(objectId, shop);
           const localEntryIds =
@@ -72,12 +74,14 @@ export const deleteGameCloudSaveData = async (
             await deleteLocalSaveTargets(
               analysis.localSnapshotContext,
               localEntryIds,
-              () =>
-                assertCloudSaveEnvironmentCurrent(
+              async () => {
+                assertGameNotRunning();
+                await assertCloudSaveEnvironmentCurrent(
                   objectId,
                   shop,
                   analysis.environmentId
-                ).then(() => undefined),
+                );
+              },
               cleanupRootPaths
             );
           };

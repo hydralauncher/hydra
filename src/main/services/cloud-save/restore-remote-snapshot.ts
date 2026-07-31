@@ -272,7 +272,10 @@ export const restoreRemoteSnapshot = async (
       ]),
     ].sort((left, right) => left.localeCompare(right));
 
-    const restoreSucceeded = isRestoreReplacementSuccessful(result);
+    const restoreSucceeded = isRestoreReplacementSuccessful(
+      result,
+      replacements.length
+    );
     if (restoreSucceeded) {
       await assertEnvironmentCurrent?.();
       await registerRestoredCustomPaths(

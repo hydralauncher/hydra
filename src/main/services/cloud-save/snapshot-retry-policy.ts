@@ -2,7 +2,8 @@ import { isAxiosError } from "axios";
 
 export const isCloudSaveCommitTransportFailure = (error: unknown) =>
   (isAxiosError(error) && !error.response) ||
-  (error instanceof Error &&
+  (!isAxiosError(error) &&
+    error instanceof Error &&
     /Request failed with|ECONN|ETIMEDOUT|timeout|socket hang up/i.test(
       error.message
     ));

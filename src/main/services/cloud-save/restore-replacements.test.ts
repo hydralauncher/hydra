@@ -92,7 +92,7 @@ describe("restore replacements", () => {
     ]);
   });
 
-  it("does not accept metadata failures as a successful restore", () => {
+  it("requires complete file accounting but allows metadata-only failures", () => {
     const result: ReplaceRestoreTargetsResult = {
       restoredFiles: [],
       skippedFiles: [],
@@ -107,12 +107,24 @@ describe("restore replacements", () => {
       updatedDirectoryCount: 0,
     };
 
-    assert.equal(isRestoreReplacementSuccessful(result), false);
+    assert.equal(isRestoreReplacementSuccessful(result, 1), false);
     assert.equal(
-      isRestoreReplacementSuccessful({
-        ...result,
-        metadataFailures: [],
-      }),
+      isRestoreReplacementSuccessful(
+        {
+          ...result,
+          restoredFiles: [
+            {
+              variantId: "variant",
+              rawPath: "<home>/game",
+              relativePath: "slot.sav",
+              targetPath: "C:/Game/slot.sav",
+              restoreRootPath: "C:/Game",
+              lastModifiedAt: "2026-07-20T00:00:00.000Z",
+            },
+          ],
+        },
+        1
+      ),
       true
     );
   });

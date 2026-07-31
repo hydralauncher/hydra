@@ -7,6 +7,7 @@ import {
 } from "./delete-game-cloud-save-data-policy.ts";
 
 const runWithLocalStateLock = (operation: () => Promise<void>) => operation();
+const assertGameNotRunning = () => undefined;
 
 describe("delete all game cloud save data", () => {
   it("builds an encoded request URL for the game", () => {
@@ -37,6 +38,9 @@ describe("delete all game cloud save data", () => {
         calls.push("lock-local-state");
         await operation();
       },
+      assertGameNotRunning: () => {
+        calls.push("assert-game-not-running");
+      },
       deleteRemoteSnapshots: async () => {
         calls.push("delete-remote");
       },
@@ -50,7 +54,9 @@ describe("delete all game cloud save data", () => {
       "set-setting:false",
       "prepare-local",
       "lock-local-state",
+      "assert-game-not-running",
       "delete-remote",
+      "assert-game-not-running",
       "delete-local",
       "clear-local-state",
       "set-setting:true",
@@ -67,11 +73,82 @@ describe("delete all game cloud save data", () => {
       },
       prepareLocalDeletion: async () => async () => undefined,
       runWithLocalStateLock,
+      assertGameNotRunning,
       deleteRemoteSnapshots: async () => undefined,
       clearLocalState: async () => undefined,
     });
 
     assert.deepEqual(settings, [false, false]);
+  });
+
+  it("does not delete remotely when the game starts during preparation", async () => {
+    const settings: boolean[] = [];
+    let remoteDeleted = false;
+    let localDeleted = false;
+
+    await assert.rejects(
+      executeDeleteGameCloudSaveData({
+        getAutomaticSyncEnabled: async () => true,
+        setAutomaticSyncEnabled: async (enabled) => {
+          settings.push(enabled);
+        },
+        prepareLocalDeletion: async () => async () => {
+          localDeleted = true;
+        },
+        runWithLocalStateLock,
+        assertGameNotRunning: () => {
+          throw new Error("cloud_save_delete_game_running");
+        },
+        deleteRemoteSnapshots: async () => {
+          remoteDeleted = true;
+        },
+        clearLocalState: async () => undefined,
+      }),
+      /cloud_save_delete_game_running/
+    );
+
+    assert.equal(remoteDeleted, false);
+    assert.equal(localDeleted, false);
+    assert.deepEqual(settings, [false, true]);
+  });
+
+  it("preserves local files when the game starts after remote deletion", async () => {
+    const settings: boolean[] = [];
+    let checks = 0;
+    let remoteDeleted = false;
+    let localDeleted = false;
+    let localStateCleared = false;
+
+    await assert.rejects(
+      executeDeleteGameCloudSaveData({
+        getAutomaticSyncEnabled: async () => true,
+        setAutomaticSyncEnabled: async (enabled) => {
+          settings.push(enabled);
+        },
+        prepareLocalDeletion: async () => async () => {
+          localDeleted = true;
+        },
+        runWithLocalStateLock,
+        assertGameNotRunning: () => {
+          checks += 1;
+          if (checks === 2) {
+            throw new Error("cloud_save_delete_game_running");
+          }
+        },
+        deleteRemoteSnapshots: async () => {
+          remoteDeleted = true;
+        },
+        clearLocalState: async () => {
+          localStateCleared = true;
+        },
+      }),
+      /cloud_save_delete_game_running/
+    );
+
+    assert.equal(remoteDeleted, true);
+    assert.equal(localDeleted, false);
+    assert.equal(localStateCleared, false);
+    assert.deepEqual(settings, [false, true]);
   });
 
   it("restores the previous automatic sync setting when deletion fails", async () => {
@@ -87,6 +164,7 @@ describe("delete all game cloud save data", () => {
           throw new Error("must not run");
         },
         runWithLocalStateLock,
+        assertGameNotRunning,
         deleteRemoteSnapshots: async () => {
           throw new Error("network");
         },
@@ -113,6 +191,7 @@ describe("delete all game cloud save data", () => {
           throw new Error("scan");
         },
         runWithLocalStateLock,
+        assertGameNotRunning,
         deleteRemoteSnapshots: async () => {
           throw new Error("must not run");
         },
@@ -140,6 +219,7 @@ describe("delete all game cloud save data", () => {
           throw new Error("local-files");
         },
         runWithLocalStateLock,
+        assertGameNotRunning,
         deleteRemoteSnapshots: async () => undefined,
         clearLocalState: async () => {
           anchorsCleared = true;
@@ -163,6 +243,7 @@ describe("delete all game cloud save data", () => {
         },
         prepareLocalDeletion: async () => async () => undefined,
         runWithLocalStateLock,
+        assertGameNotRunning,
         deleteRemoteSnapshots: async () => undefined,
         clearLocalState: async () => {
           throw new Error("leveldb");
@@ -183,6 +264,7 @@ describe("delete all game cloud save data", () => {
         },
         prepareLocalDeletion: async () => async () => undefined,
         runWithLocalStateLock,
+        assertGameNotRunning,
         deleteRemoteSnapshots: async () => {
           throw new Error("network");
         },
