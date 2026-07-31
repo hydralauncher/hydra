@@ -97,7 +97,7 @@ export const resolveRestoreManifestTargets = async (
     throw new Error("cloud_save_restore_profile_unresolved");
   }
 
-  return NativeAddon.resolveRestoreTargets({
+  const targets = await NativeAddon.resolveRestoreTargets({
     ...pathContext,
     approvedRules: approved.rules.map(({ kind, rawPath, source }) => ({
       kind,
@@ -107,4 +107,5 @@ export const resolveRestoreManifestTargets = async (
     variants: manifest.variants,
     files: manifest.files,
   });
+  return targets;
 };

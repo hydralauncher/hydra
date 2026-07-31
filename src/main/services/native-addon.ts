@@ -65,10 +65,11 @@ type HydraNativeModule = {
   ) => Promise<void>;
   resolveRestoreTargets: (
     input: ResolveRestoreTargetsInput
-  ) => ResolveRestoreTargetsResult;
+  ) => Promise<ResolveRestoreTargetsResult>;
   downloadRestoreBlobToTemp: (
     snapshotId: string,
     hash: string,
+    expectedSizeBytes: number,
     downloadUrl: string,
     tempRoot: string
   ) => Promise<string>;
@@ -403,12 +404,14 @@ export class NativeAddon {
   public static downloadRestoreBlobToTemp(
     snapshotId: string,
     hash: string,
+    expectedSizeBytes: number,
     downloadUrl: string,
     tempRoot: string
   ) {
     return this.load().downloadRestoreBlobToTemp(
       snapshotId,
       hash,
+      expectedSizeBytes,
       downloadUrl,
       tempRoot
     );
