@@ -289,11 +289,6 @@ export function GameDetailsContent() {
                 className="game-details__hero-image"
                 alt={game?.title}
               />
-              {classicsChips && (
-                <div className="game-details__hero-standard-chips">
-                  {classicsChips}
-                </div>
-              )}
             </>
           )}
 
@@ -381,7 +376,10 @@ export function GameDetailsContent() {
           >
             <div className="game-details__hero-content">
               {!renderClassicsHero && (
-                <GameLogo game={game} shopDetails={shopDetails} />
+                <div className="game-details__hero-standard-meta">
+                  <GameLogo game={game} shopDetails={shopDetails} />
+                  {classicsChips}
+                </div>
               )}
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">

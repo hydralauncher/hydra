@@ -139,11 +139,17 @@ $hero-height: 350px;
     gap: 4px;
   }
 
-  &__hero-standard-chips {
-    position: absolute;
-    left: 24px;
-    bottom: 16px;
-    z-index: 1;
+  &__hero-standard-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+
+    .game-details__game-logo,
+    .game-details__game-logo-text {
+      align-self: flex-start;
+    }
   }
 
   &__hero-classics-chip {
