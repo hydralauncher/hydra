@@ -2,7 +2,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use super::types::BuildSnapshotAggregateHashInput;
-use crate::cloud_save::identity::{normalize_rule_path, SnapshotVariant};
+use crate::cloud_save::identity::{normalize_rule_path, normalize_text, SnapshotVariant};
 
 const SNAPSHOT_HASH_VERSION: u32 = 1;
 
@@ -72,7 +72,7 @@ fn validate_variant(variant: &SnapshotVariant) -> Result<(), String> {
 pub fn build_hash(mut input: BuildSnapshotAggregateHashInput) -> Result<String, String> {
     for file in &mut input.files {
         file.raw_path = normalize_rule_path(&file.raw_path);
-        file.relative_path = normalize_rule_path(&file.relative_path);
+        file.relative_path = normalize_text(&file.relative_path);
     }
     input
         .variants
@@ -173,6 +173,17 @@ mod tests {
         assert_eq!(
             hash(vec![variant("v")], vec![nfc]),
             hash(vec![variant("v")], vec![nfd])
+        );
+    }
+
+    #[test]
+    fn aggregate_hash_preserves_literal_backslashes_in_relative_paths() {
+        let backslash = file("v", "<home>/game", r"save\slot1.dat", "a", 10.0);
+        let slash = file("v", "<home>/game", "save/slot1.dat", "a", 10.0);
+
+        assert_ne!(
+            hash(vec![variant("v")], vec![backslash]),
+            hash(vec![variant("v")], vec![slash])
         );
     }
 
