@@ -112,6 +112,7 @@ export const downloadRemoteSnapshotToTemp = async (
       const tempPath = await NativeAddon.downloadRestoreBlobToTemp(
         tempSnapshotId,
         file.hash,
+        file.sizeBytes,
         file.downloadUrl,
         tempRoot
       );
