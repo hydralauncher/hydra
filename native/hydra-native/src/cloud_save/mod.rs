@@ -1,4 +1,5 @@
 pub mod hashing;
+mod http;
 pub mod identity;
 pub mod local_snapshot;
 pub mod manifest;

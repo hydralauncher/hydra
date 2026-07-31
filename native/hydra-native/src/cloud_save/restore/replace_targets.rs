@@ -5,16 +5,16 @@ use std::path::{Path, PathBuf};
 use filetime::FileTime;
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
-use uuid::Uuid;
 
 use crate::cloud_save::hashing::hash_file;
 
+use super::artifacts::restore_artifact_paths;
 use super::metadata::{parse_last_modified_at, read_mtime, write_mtime, RestoreTimestamp};
 use super::types::{
     ReplaceRestoreTarget, ReplaceRestoreTargetsResult, RestoreFailedFile, RestoreMetadataFailure,
     RestoreResultFile, RestoreSkippedFile, RestoreTargetAction,
 };
-use super::validation::{validate_hash, validate_relative_path};
+use super::validation::{validate_hash, validate_relative_path, validate_windows_relative_path};
 
 struct ValidatedTarget {
     input: ReplaceRestoreTarget,
@@ -78,13 +78,6 @@ fn metadata_failure(path: &Path, kind: &str, reason: &str) -> RestoreMetadataFai
         kind: kind.to_string(),
         reason: reason.to_string(),
     }
-}
-
-fn sibling_path(target: &Path, suffix: &str) -> Result<PathBuf, String> {
-    let parent = target
-        .parent()
-        .ok_or_else(|| "cloud_save_restore_target_without_parent".to_string())?;
-    Ok(parent.join(format!(".hydra-restore-{}-{suffix}", Uuid::new_v4())))
 }
 
 fn canonical_path_with_missing(path: &Path) -> PathBuf {
@@ -205,6 +198,79 @@ async fn remove_if_exists(path: &Path) -> Result<(), String> {
     }
 }
 
+async fn sync_file(path: &Path) -> Result<(), String> {
+    tokio::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+        .await
+        .map_err(|_| "cloud_save_restore_sync_failed".to_string())?
+        .sync_all()
+        .await
+        .map_err(|_| "cloud_save_restore_sync_failed".to_string())
+}
+
+#[cfg(unix)]
+async fn sync_directory(path: &Path) -> Result<(), String> {
+    tokio::fs::File::open(path)
+        .await
+        .map_err(|_| "cloud_save_restore_directory_sync_failed".to_string())?
+        .sync_all()
+        .await
+        .map_err(|_| "cloud_save_restore_directory_sync_failed".to_string())
+}
+
+#[cfg(not(unix))]
+async fn sync_directory(_path: &Path) -> Result<(), String> {
+    Ok(())
+}
+
+async fn sync_parent_directory(path: &Path) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| "cloud_save_restore_target_without_parent".to_string())?;
+    sync_directory(parent).await
+}
+
+async fn recover_target_artifacts(target: &Path) -> Result<(), String> {
+    let artifacts = restore_artifact_paths(target, &path_key(target))?;
+    match tokio::fs::symlink_metadata(&artifacts.stage).await {
+        Ok(_) => {
+            remove_if_exists(&artifacts.stage).await?;
+            sync_parent_directory(&artifacts.stage).await?;
+        }
+        Err(error) if error.kind() == ErrorKind::NotFound => {}
+        Err(_) => return Err("cloud_save_restore_artifact_inspection_failed".to_string()),
+    }
+
+    let backup_metadata = match tokio::fs::symlink_metadata(&artifacts.backup).await {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(()),
+        Err(_) => return Err("cloud_save_restore_artifact_inspection_failed".to_string()),
+    };
+    if !backup_metadata.is_file() || backup_metadata.file_type().is_symlink() {
+        return Err("cloud_save_restore_invalid_backup_artifact".to_string());
+    }
+
+    match tokio::fs::symlink_metadata(target).await {
+        Ok(metadata) => {
+            if !metadata.is_file() || metadata.file_type().is_symlink() {
+                return Err("cloud_save_restore_target_not_file".to_string());
+            }
+            sync_file(target).await?;
+            remove_if_exists(&artifacts.backup).await?;
+        }
+        Err(error) if error.kind() == ErrorKind::NotFound => {
+            tokio::fs::rename(&artifacts.backup, target)
+                .await
+                .map_err(|_| "cloud_save_restore_backup_recovery_failed".to_string())?;
+            sync_file(target).await?;
+        }
+        Err(_) => return Err("cloud_save_restore_target_inspection_failed".to_string()),
+    }
+    sync_parent_directory(target).await
+}
+
 async fn hash_path(path: String, stage: &'static str) -> Result<String, String> {
     tokio::task::spawn_blocking(move || hash_file(&path))
         .await
@@ -314,10 +380,14 @@ async fn prepare_target(validated: ValidatedTarget) -> Result<PreparedTarget, St
     tokio::fs::create_dir_all(parent)
         .await
         .map_err(|_| "cloud_save_restore_target_directory_failed".to_string())?;
-    let staging_path = sibling_path(target, "stage")?;
+    let staging_path = restore_artifact_paths(target, &path_key(target))?.stage;
     if tokio::fs::copy(temp_path, &staging_path).await.is_err() {
         let _ = remove_if_exists(&staging_path).await;
         return Err("cloud_save_restore_staging_copy_failed".to_string());
+    }
+    if sync_file(&staging_path).await.is_err() {
+        let _ = remove_if_exists(&staging_path).await;
+        return Err("cloud_save_restore_staging_sync_failed".to_string());
     }
     if hash_path(staging_path.display().to_string(), "restore_staging").await?
         != validated.expected_hash
@@ -337,7 +407,11 @@ async fn prepare_target(validated: ValidatedTarget) -> Result<PreparedTarget, St
 async fn cleanup_staging(prepared: &[PreparedTarget]) -> Result<(), String> {
     let mut failed = false;
     for item in prepared {
-        failed |= remove_if_exists(&item.staging_path).await.is_err();
+        if remove_if_exists(&item.staging_path).await.is_err()
+            || sync_parent_directory(&item.staging_path).await.is_err()
+        {
+            failed = true;
+        }
     }
     if failed {
         Err("cloud_save_restore_cleanup_failed".to_string())
@@ -367,7 +441,9 @@ async fn commit_target(item: &mut PreparedTarget) -> Result<(), (&'static str, S
         {
             return Err(("content", "cloud_save_restore_target_not_file".to_string()));
         }
-        let backup = sibling_path(target, "backup").map_err(|error| ("content", error))?;
+        let backup = restore_artifact_paths(target, &path_key(target))
+            .map_err(|error| ("content", error))?
+            .backup;
         tokio::fs::rename(target, &backup)
             .await
             .map_err(|_| ("content", "cloud_save_restore_backup_failed".to_string()))?;
@@ -378,6 +454,9 @@ async fn commit_target(item: &mut PreparedTarget) -> Result<(), (&'static str, S
         .await
         .map_err(|_| ("content", "cloud_save_restore_install_failed".to_string()))?;
     item.installed = true;
+    sync_parent_directory(target)
+        .await
+        .map_err(|error| ("content", error))?;
 
     if hash_path(item.validated.input.target_path.clone(), "restore_final")
         .await
@@ -390,7 +469,8 @@ async fn commit_target(item: &mut PreparedTarget) -> Result<(), (&'static str, S
         ));
     }
     write_mtime(target, item.validated.desired_mtime.as_file_time())
-        .map_err(|error| ("metadata", error))
+        .map_err(|error| ("metadata", error))?;
+    sync_file(target).await.map_err(|error| ("content", error))
 }
 
 fn restore_original_directories(
@@ -447,6 +527,13 @@ async fn rollback(
                         ));
                     }
                 }
+                if sync_file(target).await.is_err() {
+                    metadata_failures.push(metadata_failure(
+                        target,
+                        "file",
+                        "failed-to-sync-during-rollback",
+                    ));
+                }
             } else {
                 metadata_failures.push(metadata_failure(
                     target,
@@ -456,6 +543,13 @@ async fn rollback(
             }
         }
         let _ = remove_if_exists(&item.staging_path).await;
+        if sync_parent_directory(target).await.is_err() {
+            metadata_failures.push(metadata_failure(
+                target,
+                "directory",
+                "failed-to-sync-during-rollback",
+            ));
+        }
     }
     for skip in applied_skips {
         if let Some(original) = skip.original_mtime {
@@ -465,6 +559,12 @@ async fn rollback(
                     target,
                     "file",
                     "failed-to-restore-mtime-during-rollback",
+                ));
+            } else if sync_file(target).await.is_err() {
+                metadata_failures.push(metadata_failure(
+                    target,
+                    "file",
+                    "failed-to-sync-during-rollback",
                 ));
             }
         }
@@ -476,6 +576,9 @@ async fn remove_backups(prepared: &mut [PreparedTarget]) -> Result<(), String> {
     for item in prepared {
         if let Some(backup) = item.backup_path.as_ref() {
             remove_if_exists(backup)
+                .await
+                .map_err(|_| "cloud_save_restore_cleanup_failed".to_string())?;
+            sync_parent_directory(backup)
                 .await
                 .map_err(|_| "cloud_save_restore_cleanup_failed".to_string())?;
             item.backup_path = None;
@@ -517,6 +620,9 @@ pub async fn replace_restore_targets(
 
     for file in files {
         validate_relative_path(&file.relative_path).map_err(Error::from_reason)?;
+        if cfg!(windows) {
+            validate_windows_relative_path(&file.relative_path).map_err(Error::from_reason)?;
+        }
         let expected_hash = file
             .expected_hash
             .as_deref()
@@ -524,6 +630,23 @@ pub async fn replace_restore_targets(
         validate_hash(expected_hash).map_err(Error::from_reason)?;
         if !seen_targets.insert(path_key(Path::new(&file.target_path))) {
             return Err(Error::from_reason("cloud_save_duplicate_restore_target"));
+        }
+        if validate_target_containment(&file).is_err() {
+            return Ok(metadata_result(metadata_failure(
+                Path::new(&file.target_path),
+                "file",
+                "target-outside-restore-root",
+            )));
+        }
+        if recover_target_artifacts(Path::new(&file.target_path))
+            .await
+            .is_err()
+        {
+            return Ok(metadata_result(metadata_failure(
+                Path::new(&file.target_path),
+                "file",
+                "failed-to-recover-restore-artifacts",
+            )));
         }
         let validated = match validate_target(file, &mut directories) {
             Ok(validated) => validated,
@@ -651,6 +774,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
+    use crate::cloud_save::restore::artifacts::RestoreArtifactPaths;
 
     const FIRST_TIME: &str = "2026-07-20T10:00:00.123Z";
     const SECOND_TIME: &str = "2026-07-22T10:05:00.456Z";
@@ -711,6 +835,10 @@ mod tests {
             "{} differs by {difference}s",
             path.display()
         );
+    }
+
+    fn artifacts(target: &Path) -> RestoreArtifactPaths {
+        restore_artifact_paths(target, &path_key(target)).unwrap()
     }
 
     #[tokio::test]
@@ -907,5 +1035,67 @@ mod tests {
         assert!(replace_restore_targets(vec![first.clone(), first])
             .await
             .is_err());
+    }
+
+    #[tokio::test]
+    async fn removes_abandoned_staging_before_a_restore() {
+        let directory = tempdir().unwrap();
+        let root = directory.path().join("saves");
+        tokio::fs::create_dir_all(&root).await.unwrap();
+        let target = root.join("save.dat");
+        tokio::fs::write(&target, b"current").await.unwrap();
+        let artifact_paths = artifacts(&target);
+        tokio::fs::write(&artifact_paths.stage, b"abandoned")
+            .await
+            .unwrap();
+
+        let result = replace_restore_targets(vec![skip(&target, &root, b"current", FIRST_TIME)])
+            .await
+            .unwrap();
+
+        assert_eq!(result.skipped_files.len(), 1);
+        assert!(!artifact_paths.stage.exists());
+        assert_eq!(tokio::fs::read(&target).await.unwrap(), b"current");
+    }
+
+    #[tokio::test]
+    async fn recovers_backup_when_target_is_missing() {
+        let directory = tempdir().unwrap();
+        let root = directory.path().join("saves");
+        tokio::fs::create_dir_all(&root).await.unwrap();
+        let target = root.join("save.dat");
+        let artifact_paths = artifacts(&target);
+        tokio::fs::write(&artifact_paths.backup, b"original")
+            .await
+            .unwrap();
+
+        let result = replace_restore_targets(vec![skip(&target, &root, b"original", FIRST_TIME)])
+            .await
+            .unwrap();
+
+        assert_eq!(result.skipped_files.len(), 1);
+        assert!(!artifact_paths.backup.exists());
+        assert_eq!(tokio::fs::read(&target).await.unwrap(), b"original");
+    }
+
+    #[tokio::test]
+    async fn keeps_installed_target_and_removes_old_backup() {
+        let directory = tempdir().unwrap();
+        let root = directory.path().join("saves");
+        tokio::fs::create_dir_all(&root).await.unwrap();
+        let target = root.join("save.dat");
+        tokio::fs::write(&target, b"installed").await.unwrap();
+        let artifact_paths = artifacts(&target);
+        tokio::fs::write(&artifact_paths.backup, b"old")
+            .await
+            .unwrap();
+
+        let result = replace_restore_targets(vec![skip(&target, &root, b"installed", FIRST_TIME)])
+            .await
+            .unwrap();
+
+        assert_eq!(result.skipped_files.len(), 1);
+        assert!(!artifact_paths.backup.exists());
+        assert_eq!(tokio::fs::read(&target).await.unwrap(), b"installed");
     }
 }
