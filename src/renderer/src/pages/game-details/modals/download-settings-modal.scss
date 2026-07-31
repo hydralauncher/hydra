@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "../../../scss/globals.scss";
 
 .download-settings-modal {
@@ -151,7 +152,11 @@
   }
 
   &__hydra-cloud-badge {
-    background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
+    background: linear-gradient(
+      270deg,
+      color.scale(globals.$brand-teal, $lightness: -30%) 50%,
+      color.scale(globals.$brand-blue, $lightness: -30%) 100%
+    );
     color: #fff;
     padding: 0 globals.$spacing-unit;
     border-radius: 4px;
