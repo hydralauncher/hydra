@@ -561,6 +561,7 @@
     "custom_backup_location_set": "Custom backup location set",
     "no_directory_selected": "No directory selected",
     "no_write_permission": "Cannot download into this directory. Click here to learn more.",
+    "not_enough_space_on_disk": "Not enough space on this drive. {{required}} needed, {{available}} available.",
     "reset_achievements": "Reset achievements",
     "reset_achievements_description": "This will reset all achievements for {{game}}",
     "reset_achievements_retroachievements_note": "Reset the achievements on RetroAchievements first, otherwise they will sync back to Hydra.",

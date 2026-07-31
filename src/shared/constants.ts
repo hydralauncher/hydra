@@ -87,6 +87,8 @@ export enum DownloadError {
   ArchiveOrgInvalidFileUrl = "download_error_archive_org_invalid_file_url",
 }
 
+export const MINIMUM_FREE_DISK_SPACE_BYTES = 512 * 1024 * 1024;
+
 export const FILE_EXTENSIONS_TO_EXTRACT = [".rar", ".zip", ".7z"];
 
 export const WINDOWS_GAME_EXECUTABLE_EXTENSIONS = ["exe", "lnk", "bat", "cmd"];

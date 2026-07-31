@@ -1,7 +1,6 @@
 import checkDiskSpace from "check-disk-space";
+import { MINIMUM_FREE_DISK_SPACE_BYTES } from "@shared";
 import type { Download } from "@types";
-
-export const MINIMUM_FREE_DISK_SPACE_BYTES = 512 * 1024 * 1024;
 
 export const DISK_SPACE_CHECK_INTERVAL_MS = 10_000;
 
