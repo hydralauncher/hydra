@@ -860,16 +860,14 @@ mod tests {
 
     #[test]
     fn resolves_an_approved_custom_directory_and_can_create_it() {
-        let temp = tempdir().unwrap();
         let default = variant("default", "default");
-        let custom_root = temp.path().join("Custom Saves");
-        let normalized_root = custom_root.display().to_string().replace('\\', "/");
+        let normalized_root = "C:/Users/hydra/AppData/Local/Temp/Custom Saves";
         let raw_path = format!("<custom><windows><absolute>{normalized_root}");
         let input = ResolveRestoreTargetsInput {
             shop: "steam".into(),
             object_id: "1".into(),
             platform: "windows".into(),
-            home_dir: temp.path().display().to_string(),
+            home_dir: "C:/Users/hydra".into(),
             documents_dir: None,
             app_data_dir: None,
             executable_path: None,
