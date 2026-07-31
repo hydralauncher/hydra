@@ -648,9 +648,8 @@ export class DownloadManager {
 
     this.orphanedDownloadCandidate = null;
 
-    if (!this.downloadingGameId && this.queueHeldForDiskSpace) {
+    if (this.queueHeldForDiskSpace) {
       await this.retryQueueHeldForDiskSpace();
-      return;
     }
 
     const status = await this.getDownloadStatus();
@@ -1902,6 +1901,8 @@ export class DownloadManager {
   static async startDownload(download: Download) {
     const isHttp = this.isHttpDownloader(download.downloader);
     const downloadId = levelKeys.game(download.shop, download.objectId);
+
+    this.queueHeldForDiskSpace = false;
 
     // The generation token lets a concurrent cancel/restart for the same id
     // invalidate this in-flight preparation before it spawns a downloader.
