@@ -1,17 +1,25 @@
 @use "../../scss/globals.scss";
 
-$context-menu-danger-color: globals.$error-color;
-
 .context-menu {
   position: fixed;
   z-index: 1000;
-  background-color: globals.$background-color;
+  background-color: globals.$dark-background-color;
   border: 1px solid globals.$border-color;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  padding: 4px 0;
+  padding: 4px;
   min-width: 180px;
-  backdrop-filter: blur(8px);
+  animation: contextMenuFadeIn 0.15s ease-out;
+
+  &--modal-open,
+  &--modal-open &__submenu {
+    z-index: calc(globals.$backdrop-z-index - 1);
+    box-shadow: none;
+  }
+
+  &--modal-open &__submenu {
+    overflow: hidden;
+  }
 
   &__list {
     list-style: none;
@@ -27,32 +35,38 @@ $context-menu-danger-color: globals.$error-color;
     width: 100%;
     display: flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 1.5);
-    padding: 8px 12px;
+    gap: 8px;
+    border-radius: 4px;
+    padding: 6px 12px;
     background: transparent;
     border: none;
-    color: globals.$body-color;
+    color: globals.$muted-color;
     cursor: pointer;
     font-size: globals.$body-font-size;
     text-align: left;
-    transition: background-color 0.15s ease;
+    outline: none;
+    white-space: nowrap;
+    transition:
+      background-color 0.1s ease-in-out,
+      color 0.1s ease-in-out;
 
     &:hover:not(&--disabled) {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: globals.$background-color;
+      color: globals.$body-color;
     }
 
     &:active:not(&--disabled) {
-      background-color: rgba(255, 255, 255, 0.15);
+      background-color: rgba(255, 255, 255, 0.08);
     }
 
     &--disabled {
       color: globals.$muted-color;
       cursor: not-allowed;
-      opacity: 0.6;
+      opacity: 0.5;
     }
 
     &--danger {
-      color: $context-menu-danger-color;
+      color: globals.$error-color;
 
       &:hover:not(.context-menu__item--disabled) {
         background-color: rgba(225, 29, 72, 0.18);
@@ -63,20 +77,17 @@ $context-menu-danger-color: globals.$error-color;
       }
 
       .context-menu__item-icon {
-        color: $context-menu-danger-color;
+        color: globals.$error-color;
       }
     }
 
     &--has-submenu {
       position: relative;
-
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-      }
     }
 
     &--active {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: globals.$background-color;
+      color: globals.$body-color;
     }
   }
 
@@ -92,12 +103,15 @@ $context-menu-danger-color: globals.$error-color;
   &__item-label {
     flex: 1;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__item-arrow {
     font-size: 10px;
     color: globals.$muted-color;
     margin-left: auto;
+    flex-shrink: 0;
   }
 
   &__item-trailing-icon {
@@ -108,33 +122,23 @@ $context-menu-danger-color: globals.$error-color;
     height: 16px;
     margin-left: auto;
     color: globals.$muted-color;
-  }
-
-  &__success-check {
-    animation: context-menu-check-in 180ms ease-out;
-    transform-origin: center;
-  }
-
-  &__item--danger &__item-trailing-icon {
-    color: $context-menu-danger-color;
+    flex-shrink: 0;
   }
 
   &__submenu {
     position: absolute;
     left: 100%;
     top: 0;
-    background-color: globals.$background-color;
+    background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    padding: 4px 0;
+    padding: 4px;
     min-width: 160px;
-    backdrop-filter: blur(8px);
-    margin-left: 0;
+    margin-left: -1px;
+    margin-right: -1px;
     z-index: 1200;
-
     pointer-events: auto;
-
     max-height: 60vh;
     overflow-y: auto;
   }
@@ -145,8 +149,11 @@ $context-menu-danger-color: globals.$error-color;
     margin-top: 4px;
   }
 
-  &__item + &__item {
-    border-top: 1px solid transparent;
+  &__separator {
+    height: 1px;
+    background-color: globals.$border-color;
+    margin: 4px 0;
+    border-radius: 1px;
   }
 
   &__item--danger:first-of-type {
@@ -158,38 +165,16 @@ $context-menu-danger-color: globals.$error-color;
     border-top: none;
     margin-top: 0;
   }
-
-  &__separator {
-    height: 1px;
-    background: globals.$border-color;
-    margin: 6px 8px;
-    border-radius: 1px;
-  }
-}
-
-.context-menu {
-  animation: contextMenuFadeIn 0.15s ease-out;
 }
 
 @keyframes contextMenuFadeIn {
   from {
     opacity: 0;
-    transform: scale(0.95) translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes context-menu-check-in {
-  from {
-    transform: scale(0.72);
-    opacity: 0.75;
+    transform: translateY(-4px);
   }
 
   to {
-    transform: scale(1);
     opacity: 1;
+    transform: translateY(0);
   }
 }
