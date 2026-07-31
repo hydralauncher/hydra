@@ -9,6 +9,7 @@ export interface ContextMenuItemData {
   icon?: React.ReactNode;
   trailingIcon?: React.ReactNode;
   onClick?: () => void;
+  onContextMenu?: (event: React.MouseEvent<HTMLElement>) => void;
   closeOnClick?: boolean;
   disabled?: boolean;
   danger?: boolean;
@@ -23,6 +24,7 @@ export interface ContextMenuProps {
   onClose: () => void;
   children?: React.ReactNode;
   className?: string;
+  forceOpenSubmenuId?: string;
 }
 
 export function ContextMenu({
@@ -32,6 +34,7 @@ export function ContextMenu({
   onClose,
   children,
   className,
+  forceOpenSubmenuId,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
@@ -41,14 +44,41 @@ export function ContextMenu({
   const [submenuStyles, setSubmenuStyles] = useState<
     Record<string, React.CSSProperties>
   >({});
+  const [hasModalOpen, setHasModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const updateModalState = () => {
+      const modalOpen = document.querySelector("[data-hydra-dialog]") !== null;
+      setHasModalOpen((prev) => (prev === modalOpen ? prev : modalOpen));
+    };
+
+    const observer = new MutationObserver(updateModalState);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    updateModalState();
+
+    return () => observer.disconnect();
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
+      const target = event.target as Element;
+
+      if (menuRef.current?.contains(target)) return;
+
+      const isInsideOtherContextMenu =
+        target.closest?.(".context-menu") != null;
+      const isInsideModal =
+        target.closest?.("[role='dialog']") != null ||
+        target.closest?.("[data-hydra-dialog]") != null;
+
+      if (isInsideOtherContextMenu || isInsideModal) return;
+
+      onClose();
     };
 
     const handleEscape = (event: KeyboardEvent) => {
@@ -57,12 +87,24 @@ export function ContextMenu({
       }
     };
 
+    const handleScroll = (event: Event) => {
+      const target = event.target as Node;
+      if (menuRef.current?.contains(target)) return;
+
+      onClose();
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
+    window.addEventListener("scroll", handleScroll, {
+      capture: true,
+      passive: true,
+    });
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("scroll", handleScroll, { capture: true });
     };
   }, [visible, onClose]);
 
@@ -115,10 +157,15 @@ export function ContextMenu({
       window.clearTimeout(submenuCloseTimeout.current);
       submenuCloseTimeout.current = null;
     }
+
+    if (forceOpenSubmenuId) return;
+
     setActiveSubmenu(itemId);
   };
 
   const handleSubmenuMouseLeave = () => {
+    if (forceOpenSubmenuId) return;
+
     if (submenuCloseTimeout.current) {
       window.clearTimeout(submenuCloseTimeout.current);
     }
@@ -171,7 +218,9 @@ export function ContextMenu({
   const menuContent = (
     <div
       ref={menuRef}
-      className={cn("context-menu", className)}
+      className={cn("context-menu", className, {
+        "context-menu--modal-open": hasModalOpen,
+      })}
       style={{
         left: adjustedPosition.x,
         top: adjustedPosition.y,
@@ -195,9 +244,11 @@ export function ContextMenu({
                 "context-menu__item--disabled": item.disabled,
                 "context-menu__item--danger": item.danger,
                 "context-menu__item--has-submenu": item.submenu,
-                "context-menu__item--active": activeSubmenu === item.id,
+                "context-menu__item--active":
+                  activeSubmenu === item.id || forceOpenSubmenuId === item.id,
               })}
               onClick={() => handleItemClick(item)}
+              onContextMenu={item.onContextMenu}
               disabled={item.disabled}
             >
               {item.icon && (
@@ -214,50 +265,52 @@ export function ContextMenu({
               )}
             </button>
 
-            {item.submenu && activeSubmenu === item.id && (
-              <div
-                className="context-menu__submenu"
-                style={submenuStyles[item.id] || undefined}
-                onMouseEnter={() => handleSubmenuMouseEnter(item.id)}
-                onMouseLeave={() => handleSubmenuMouseLeave()}
-              >
-                <ul className="context-menu__list">
-                  {item.submenu.map((subItem) => (
-                    <li
-                      key={subItem.id}
-                      className="context-menu__item-container"
-                    >
-                      {subItem.separator && (
-                        <div className="context-menu__separator" />
-                      )}
-                      <button
-                        type="button"
-                        className={cn("context-menu__item", {
-                          "context-menu__item--disabled": subItem.disabled,
-                          "context-menu__item--danger": subItem.danger,
-                        })}
-                        onClick={() => handleItemClick(subItem)}
-                        disabled={subItem.disabled}
+            {item.submenu &&
+              (activeSubmenu === item.id || forceOpenSubmenuId === item.id) && (
+                <div
+                  className="context-menu__submenu"
+                  style={submenuStyles[item.id] || undefined}
+                  onMouseEnter={() => handleSubmenuMouseEnter(item.id)}
+                  onMouseLeave={() => handleSubmenuMouseLeave()}
+                >
+                  <ul className="context-menu__list">
+                    {item.submenu.map((subItem) => (
+                      <li
+                        key={subItem.id}
+                        className="context-menu__item-container"
                       >
-                        {subItem.icon && (
-                          <span className="context-menu__item-icon">
-                            {subItem.icon}
-                          </span>
+                        {subItem.separator && (
+                          <div className="context-menu__separator" />
                         )}
-                        <span className="context-menu__item-label">
-                          {subItem.label}
-                        </span>
-                        {subItem.trailingIcon && (
-                          <span className="context-menu__item-trailing-icon">
-                            {subItem.trailingIcon}
+                        <button
+                          type="button"
+                          className={cn("context-menu__item", {
+                            "context-menu__item--disabled": subItem.disabled,
+                            "context-menu__item--danger": subItem.danger,
+                          })}
+                          onClick={() => handleItemClick(subItem)}
+                          onContextMenu={subItem.onContextMenu}
+                          disabled={subItem.disabled}
+                        >
+                          {subItem.icon && (
+                            <span className="context-menu__item-icon">
+                              {subItem.icon}
+                            </span>
+                          )}
+                          <span className="context-menu__item-label">
+                            {subItem.label}
                           </span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                          {subItem.trailingIcon && (
+                            <span className="context-menu__item-trailing-icon">
+                              {subItem.trailingIcon}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
           </li>
         ))}
       </ul>

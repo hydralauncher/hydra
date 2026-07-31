@@ -3,17 +3,4 @@
     display: flex;
     align-items: center;
   }
-
-  &__select {
-    flex: 0 0 auto;
-    width: auto;
-
-    .select-field {
-      width: 100%;
-    }
-
-    .select-field__option {
-      width: 100%;
-    }
-  }
 }

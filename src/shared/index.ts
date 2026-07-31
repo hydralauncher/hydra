@@ -13,11 +13,13 @@ import {
   da,
 } from "date-fns/locale";
 
+import { isArchiveOrgFileUri } from "./archive-org";
 import { charMap } from "./char-map";
 import { Downloader } from "./constants";
 import { format } from "date-fns";
 import { AchievementNotificationInfo } from "@types";
 
+export * from "./archive-org";
 export * from "./constants";
 export * from "./controller-support";
 export * from "./artwork-resolver";
@@ -150,6 +152,9 @@ export const getDownloadersForUri = (uri: string) => {
   }
   if (uri.startsWith("https://www.rootz.so")) {
     return [Downloader.Rootz];
+  }
+  if (isArchiveOrgFileUri(uri)) {
+    return [Downloader.ArchiveOrg];
   }
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))

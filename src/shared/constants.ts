@@ -12,6 +12,7 @@ export enum Downloader {
   Rootz = 11,
   Premiumize = 12,
   AllDebrid = 13,
+  ArchiveOrg = 14,
 }
 
 export enum DownloadSourceStatus {
@@ -83,6 +84,7 @@ export enum DownloadError {
   TorrentTooManyFiles = "download_error_torrent_too_many_files",
   TorrentFilesUnavailable = "download_error_torrent_files_unavailable",
   TorrentInvalidTrackers = "download_error_torrent_invalid_trackers",
+  ArchiveOrgInvalidFileUrl = "download_error_archive_org_invalid_file_url",
 }
 
 export const FILE_EXTENSIONS_TO_EXTRACT = [".rar", ".zip", ".7z"];

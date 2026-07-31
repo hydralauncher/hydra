@@ -81,6 +81,7 @@ $hero-height: 350px;
     align-items: center;
     gap: 40px;
     z-index: 2;
+    pointer-events: none;
   }
 
   &__hero-classics-cover {

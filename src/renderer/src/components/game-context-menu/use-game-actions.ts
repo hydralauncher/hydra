@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { LibraryGame } from "@types";
 import {
   useDownload,
   useGameCollections,
@@ -13,8 +12,9 @@ import {
   handleClassicsLaunchError,
 } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
+import type { GameContextMenuGame } from "./game-context-menu.types";
 
-export function useGameActions(game: LibraryGame) {
+export function useGameActions(game: GameContextMenuGame) {
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
   const { updateLibrary } = useLibrary();
@@ -40,7 +40,7 @@ export function useGameActions(game: LibraryGame) {
   const hasClassicsDiscs = (game.discs?.length ?? 0) > 0;
   const canPlay =
     Boolean(game.executablePath) || (isClassics && hasClassicsDiscs);
-  const isDeleting = isGameDeleting(game.id);
+  const isDeleting = isGameDeleting(game.id ?? "");
   const isGameDownloading =
     game.download?.status === "active" && lastPacket?.gameId === game.id;
   const hasRepacks = true;
@@ -168,8 +168,8 @@ export function useGameActions(game: LibraryGame) {
             detail: { shop: game.shop, objectId: game.objectId },
           })
         );
-      } catch (e) {
-        void e;
+      } catch {
+        /* empty */
       }
     } catch (error) {
       showErrorToast(t("failed_update_favorites"));
@@ -274,6 +274,31 @@ export function useGameActions(game: LibraryGame) {
     }
   };
 
+  const handleTogglePin = async () => {
+    try {
+      if (game.isPinned) {
+        await window.electron.toggleGamePin(game.shop, game.objectId, false);
+        showSuccessToast(t("game_removed_from_pinned"));
+      } else {
+        await window.electron.toggleGamePin(game.shop, game.objectId, true);
+        showSuccessToast(t("game_added_to_pinned"));
+      }
+      updateLibrary();
+      try {
+        window.dispatchEvent(
+          new CustomEvent("hydra:game-pin-toggled", {
+            detail: { shop: game.shop, objectId: game.objectId },
+          })
+        );
+      } catch {
+        /* empty */
+      }
+    } catch (error) {
+      showErrorToast(t("failed_update_pinned"));
+      logger.error("Failed to toggle pin", error);
+    }
+  };
+
   const handleOpenDownloadLocation = async () => {
     try {
       await window.electron.openGameInstallerPath(game.shop, game.objectId);
@@ -298,8 +323,8 @@ export function useGameActions(game: LibraryGame) {
             detail: { shop: game.shop, objectId: game.objectId },
           })
         );
-      } catch (e) {
-        void e;
+      } catch {
+        /* empty */
       }
     } catch (error) {
       showErrorToast(t("failed_remove_from_library"));
@@ -318,8 +343,8 @@ export function useGameActions(game: LibraryGame) {
             detail: { shop: game.shop, objectId: game.objectId },
           })
         );
-      } catch (e) {
-        void e;
+      } catch {
+        /* empty */
       }
     } catch (error) {
       showErrorToast(t("failed_remove_files"));
@@ -344,6 +369,7 @@ export function useGameActions(game: LibraryGame) {
     handleOpenFolder,
     handleOpenDownloadOptions,
     handleOpenDownloadLocation,
+    handleTogglePin,
     handleRemoveFromLibrary,
     handleRemoveFiles,
     handleOpenGameOptions,
