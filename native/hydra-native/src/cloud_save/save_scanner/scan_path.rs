@@ -13,16 +13,37 @@ use crate::cloud_save::path_resolution::capture_store_user;
 
 const MAX_SCAN_DEPTH: usize = 100;
 
+fn filesystem_path(path: &Path) -> String {
+    let path = path.to_string_lossy();
+
+    #[cfg(windows)]
+    {
+        path.replace('\\', "/")
+    }
+
+    #[cfg(not(windows))]
+    {
+        path.into_owned()
+    }
+}
+
+fn portable_relative_path(path: &Path) -> String {
+    path.iter()
+        .map(|component| component.to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
 fn canonical_path(path: &Path) -> Result<String, String> {
     std::fs::canonicalize(path)
         .map_err(|error| format!("cloud_save_filesystem_error: {error}"))
-        .map(|path| path.to_string_lossy().replace('\\', "/"))
+        .map(|path| filesystem_path(&path))
 }
 
 fn relative_path(root: &Path, path: &Path) -> Option<String> {
     path.strip_prefix(root)
         .ok()
-        .map(|relative| normalize_path(&relative.to_string_lossy()))
+        .map(portable_relative_path)
         .filter(|relative| !relative.is_empty())
 }
 
@@ -226,7 +247,7 @@ fn shared_directory_scan_root(
     let canonical_matched = std::fs::canonicalize(matched).ok()?;
     let relative = canonical_matched.strip_prefix(&canonical_root).ok()?;
 
-    Some((canonical_root, normalize_path(&relative.to_string_lossy())))
+    Some((canonical_root, portable_relative_path(relative)))
 }
 
 fn scan_directory(root: &Path, follow_links: bool) -> Result<ScannedCloudSavePath, String> {
@@ -277,7 +298,7 @@ fn add_file(
     let relative_path = relative_path(root, file)
         .or_else(|| {
             file.file_name()
-                .map(|name| normalize_path(&name.to_string_lossy()))
+                .map(|name| name.to_string_lossy().into_owned())
         })
         .unwrap_or_default();
 
@@ -513,6 +534,28 @@ mod tests {
 
         assert_eq!(scanned[0].files.len(), 1);
         assert_eq!(scanned[0].files[0].relative_path, "{Deluxe}/save.dat");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn preserves_literal_backslashes_in_filesystem_paths() {
+        let temp = tempdir().unwrap();
+        let nested = temp.path().join("save");
+        let backslash = temp.path().join(r"save\slot1.dat");
+        let slash = nested.join("slot1.dat");
+        fs::create_dir(&nested).unwrap();
+        fs::write(&backslash, b"backslash").unwrap();
+        fs::write(&slash, b"slash").unwrap();
+
+        let scanned = scan_resolved_path(&temp.path().display().to_string(), true, None).unwrap();
+        let files = &scanned[0].files;
+
+        assert_eq!(files.len(), 2);
+        assert!(files.iter().any(|file| {
+            file.relative_path == r"save\slot1.dat"
+                && file.absolute_path == backslash.display().to_string()
+        }));
+        assert!(files.iter().any(|file| file.relative_path == "save/slot1.dat"));
     }
 
     #[test]
