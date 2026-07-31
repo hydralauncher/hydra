@@ -59,6 +59,7 @@ export function RetroArchSetupModal({
 
   const autoDetectRef = useRef(false);
   const scanStartedRef = useRef(false);
+  const persistedExecutableRef = useRef(false);
 
   const previewFolder = useCallback(
     async (folderPath: string, scanSubfolders: boolean) => {
@@ -90,6 +91,7 @@ export function RetroArchSetupModal({
       setShowDownloadHelp(false);
       autoDetectRef.current = false;
       scanStartedRef.current = false;
+      persistedExecutableRef.current = false;
       reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,6 +152,7 @@ export function RetroArchSetupModal({
         return;
       }
       setConfig(next);
+      persistedExecutableRef.current = true;
     }
     goNext();
   }, [
@@ -166,7 +169,12 @@ export function RetroArchSetupModal({
     setDetecting(true);
     try {
       const refreshed = await refreshConfig();
-      if (refreshed?.executablePath) return;
+      if (refreshed?.executablePath) {
+        // The managed install writes the executable straight to the config, so
+        // it needs undoing on abandon just like the find_emulator step does.
+        persistedExecutableRef.current = true;
+        return;
+      }
       const preview = await window.electron.previewRetroArchExecutable();
       if (!preview) return;
       setConfig((curr) =>
@@ -253,9 +261,29 @@ export function RetroArchSetupModal({
 
   const continueHidden = currentStep === "done";
 
+  /**
+   * Leaving the find_emulator step writes the executable to the global config,
+   * and every "is it installed?" check in the app is just that path being set.
+   * Abandoning the wizard before the scan therefore left RetroArch looking
+   * installed when it was not, so the write is undone here.
+   *
+   * From the scanning step onward the setup is treated as committed: cancelling
+   * a long scan means "finish later", not "undo everything I just configured".
+   */
+  const revertAbandonedSetup = useCallback(async () => {
+    if (!persistedExecutableRef.current) return;
+    if (currentStep === "scanning" || currentStep === "done") return;
+
+    persistedExecutableRef.current = false;
+    await window.electron.setRetroArchExecutablePath(
+      initialConfig?.executablePath ?? null
+    );
+  }, [currentStep, initialConfig?.executablePath]);
+
   if (!visible) return null;
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    await revertAbandonedSetup();
     onClose();
   };
 
