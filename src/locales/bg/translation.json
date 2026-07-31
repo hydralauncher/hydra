@@ -540,7 +540,6 @@
     "download_error_alldebrid_rate_limit_exceeded": "Превишен е лимитът на AllDebrid. Моля, изчакай и опитай отново.",
     "download_error_premiumize_unavailable": "Premiumize временно не е достъпен. Моля, опитай по-късно.",
     "download_error_alldebrid_unavailable": "AllDebrid временно не е достъпен. Моля, опитай по-късно.",
-    "download_error_vikingfile_nimbus_quota_exceeded": "Квотата на Nimbus за VikingFile е изтекла за днес. Моля, опитайте отново утре.",
     "download_error_invalid_magnet": "Невалиден магнет линк.",
     "download_error_torrent_metadata_timeout": "Време за преобразуване на метаданни на торента. Моля, опитайте отново.",
     "download_error_torrent_metadata_incomplete": "Метаданните на торента са непълни и не могат да бъдат обработени в момента.",

@@ -89,11 +89,21 @@
     position: absolute;
     right: 12px;
     top: 50%;
-    transform: translateY(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
+    pointer-events: none;
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+    transition:
+      transform 0.15s ease-out,
+      opacity 0.15s ease-out;
+
+    &[data-state="unchecked"] {
+      transform: translateY(-50%) scale(0.4);
+      opacity: 0;
+    }
   }
 }
 
