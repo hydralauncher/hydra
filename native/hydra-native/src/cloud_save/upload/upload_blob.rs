@@ -2,6 +2,8 @@ use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 use reqwest::header::{HeaderValue, CONTENT_LENGTH};
 
+use crate::cloud_save::http::blob_http_client;
+
 fn upload_error(error: reqwest::Error) -> Error {
     Error::from_reason(format!(
         "Failed to upload local save file: {}",
@@ -40,7 +42,8 @@ pub async fn upload_local_save_blob(
         return Err(Error::from_reason("cloud_save_upload_source_size_changed"));
     }
 
-    let response = reqwest::Client::new()
+    let response = blob_http_client()
+        .map_err(Error::from_reason)?
         .put(upload_url)
         .header(CONTENT_LENGTH, content_length_header)
         .header("x-amz-checksum-sha256", checksum_header)
