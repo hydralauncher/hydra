@@ -601,7 +601,6 @@
     "select_all_files": "Tout sélectionner",
     "clear_file_selection": "Effacer",
     "retry_fetch_torrent_files": "Réessayer",
-    "download_error_vikingfile_nimbus_quota_exceeded": "Le quota Nimbus pour VikingFile est atteint pour aujourd'hui. Veuillez réessayer demain.",
     "download_error_invalid_magnet": "Lien magnet invalide.",
     "download_error_torrent_metadata_timeout": "Délai dépassé lors de la récupération des métadonnées du torrent. Veuillez réessayer.",
     "download_error_torrent_metadata_incomplete": "Les métadonnées du torrent sont incomplètes et ne peuvent pas être traitées pour le moment.",

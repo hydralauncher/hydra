@@ -16,7 +16,8 @@ export type HydraCloudFeature =
   | "achievements"
   | "backup"
   | "achievements-points"
-  | "customization";
+  | "customization"
+  | "vikingfile";
 
 export interface DiskUsage {
   free: number;

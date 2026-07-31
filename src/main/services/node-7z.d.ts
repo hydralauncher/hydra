@@ -5,11 +5,10 @@ declare module "node-7z" {
   export interface CommandLineSwitches {
     $bin?: string;
     $progress?: boolean;
-    $spawnOptions?: {
-      cwd?: string;
-    };
+    $defer?: boolean;
     outputDir?: string;
     yes?: boolean;
+    noWildcards?: boolean;
     password?: string;
     [key: string]: unknown;
   }
@@ -30,8 +29,12 @@ declare module "node-7z" {
     on(event: "end", listener: () => void): this;
     on(event: "error", listener: (err: Error) => void): this;
     info: Map<string, unknown>;
+    _bin: string;
+    _args: string[];
     _childProcess?: ChildProcess;
   }
+
+  export function listen(stream: ZipStream): ZipStream;
 
   export function extractFull(
     archive: string,
@@ -81,6 +84,7 @@ declare module "node-7z" {
     update: typeof update;
     delete: typeof deleteFiles;
     test: typeof test;
+    listen: typeof listen;
   };
 
   export default Seven;

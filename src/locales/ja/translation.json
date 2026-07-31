@@ -456,7 +456,6 @@
     "download_error_alldebrid_rate_limit_exceeded": "AllDebridのレート制限を超えました。しばらく待ってから再試行してください。",
     "download_error_premiumize_unavailable": "Premiumizeは一時的に利用できません。後でもう一度お試しください。",
     "download_error_alldebrid_unavailable": "AllDebridは一時的に利用できません。後でもう一度お試しください。",
-    "download_error_vikingfile_nimbus_quota_exceeded": "VikingFileのNimbusクォータが本日終了しました。明日再試行してください。",
     "download_error_invalid_magnet": "無効なマグネットリンクです。",
     "download_error_torrent_metadata_timeout": "トレントメタデータの取得がタイムアウトしました。再試行してください。",
     "download_error_torrent_metadata_incomplete": "トレントメタデータが不完全で現在処理できません。",
