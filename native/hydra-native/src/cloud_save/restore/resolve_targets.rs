@@ -18,7 +18,9 @@ use super::types::{
     BlockedRestoreFile, ResolveRestoreTargetsInput, ResolveRestoreTargetsResult,
     ResolvedRestoreTarget, RestoreManifestFile,
 };
-use super::validation::{validate_hash, validate_relative_path, validate_size};
+use super::validation::{
+    validate_hash, validate_relative_path, validate_size, validate_windows_relative_path,
+};
 
 const STEAM_INDIVIDUAL_ACCOUNT_BASE: u64 = 76_561_197_960_265_728;
 
@@ -31,7 +33,7 @@ fn join_path(root: &str, relative_path: &str) -> String {
     .replace('\\', "/")
 }
 
-fn validate_file(file: &RestoreManifestFile) -> Result<(), String> {
+fn validate_file(file: &RestoreManifestFile, windows_semantics: bool) -> Result<(), String> {
     if file.variant_id.len() != 64
         || !file.variant_id.bytes().all(|byte| byte.is_ascii_hexdigit())
         || file.raw_path.is_empty()
@@ -40,6 +42,9 @@ fn validate_file(file: &RestoreManifestFile) -> Result<(), String> {
         return Err("cloud_save_invalid_restore_identity".to_string());
     }
     validate_relative_path(&file.relative_path)?;
+    if windows_semantics {
+        validate_windows_relative_path(&file.relative_path)?;
+    }
     validate_hash(&file.hash)?;
     validate_size(file.size_bytes)?;
     parse_last_modified_at(&file.last_modified_at).map(|_| ())
@@ -184,8 +189,7 @@ fn has_glob(raw_rule: &str) -> bool {
         .any(|character| matches!(character, '*' | '?' | '[' | '{'))
 }
 
-#[napi]
-pub fn resolve_restore_targets(
+fn resolve_restore_targets_inner(
     input: ResolveRestoreTargetsInput,
 ) -> napi::Result<ResolveRestoreTargetsResult> {
     let context = build_context(&ResolveSaveRulesInput {
@@ -202,6 +206,7 @@ pub fn resolve_restore_targets(
     })
     .map_err(Error::from_reason)?;
     let case_sensitive = context.platform == "linux" && !context.windows_compatibility;
+    let windows_semantics = context.platform == "windows" || context.windows_compatibility;
 
     let mut variants = HashMap::new();
     for variant in input.variants {
@@ -225,7 +230,7 @@ pub fn resolve_restore_targets(
     let mut used_variants = HashSet::new();
 
     for file in input.files {
-        validate_file(&file).map_err(Error::from_reason)?;
+        validate_file(&file, windows_semantics).map_err(Error::from_reason)?;
         if !identities.insert(identity_key(&file)) {
             return Err(Error::from_reason("cloud_save_duplicate_restore_identity"));
         }
@@ -430,6 +435,15 @@ pub fn resolve_restore_targets(
     })
 }
 
+#[napi]
+pub async fn resolve_restore_targets(
+    input: ResolveRestoreTargetsInput,
+) -> napi::Result<ResolveRestoreTargetsResult> {
+    tokio::task::spawn_blocking(move || resolve_restore_targets_inner(input))
+        .await
+        .map_err(|_| Error::from_reason("cloud_save_restore_plan_task_failed"))?
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -515,7 +529,7 @@ mod tests {
             preferred_path: None,
         }];
 
-        let result = resolve_restore_targets(restore_input).unwrap();
+        let result = resolve_restore_targets_inner(restore_input).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 1);
@@ -556,7 +570,7 @@ mod tests {
             preferred_path: Some(approved_root.display().to_string()),
         }];
 
-        let result = resolve_restore_targets(restore_input).unwrap();
+        let result = resolve_restore_targets_inner(restore_input).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 1);
@@ -597,7 +611,7 @@ mod tests {
             preferred_path: Some(selected.display().to_string()),
         }];
 
-        let result = resolve_restore_targets(restore_input).unwrap();
+        let result = resolve_restore_targets_inner(restore_input).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(
@@ -620,7 +634,7 @@ mod tests {
             .iter()
             .map(|variant| file(variant, "slot.dat"))
             .collect();
-        let result = resolve_restore_targets(input(
+        let result = resolve_restore_targets_inner(input(
             temp.path(),
             StoreUserContext::default(),
             variants,
@@ -637,7 +651,7 @@ mod tests {
         let temp = tempdir().unwrap();
         let variants = vec![variant("opaque-folder", "Unknown")];
         let files = vec![file(&variants[0], "slot.dat")];
-        let result = resolve_restore_targets(input(
+        let result = resolve_restore_targets_inner(input(
             temp.path(),
             StoreUserContext::default(),
             variants,
@@ -664,7 +678,8 @@ mod tests {
         };
         let variants = vec![variant("steam-account", "76561197960278073")];
         let files = vec![file(&variants[0], "slot.dat")];
-        let result = resolve_restore_targets(input(temp.path(), context, variants, files)).unwrap();
+        let result =
+            resolve_restore_targets_inner(input(temp.path(), context, variants, files)).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 1);
@@ -706,7 +721,8 @@ mod tests {
             .map(|variant| file(variant, "slot.dat"))
             .collect();
 
-        let result = resolve_restore_targets(input(temp.path(), context, variants, files)).unwrap();
+        let result =
+            resolve_restore_targets_inner(input(temp.path(), context, variants, files)).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 3);
@@ -741,7 +757,8 @@ mod tests {
         let variants = vec![variant("steam-account", "76561199800542110")];
         let files = vec![file(&variants[0], "slot.dat")];
 
-        let result = resolve_restore_targets(input(temp.path(), context, variants, files)).unwrap();
+        let result =
+            resolve_restore_targets_inner(input(temp.path(), context, variants, files)).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 1);
@@ -769,7 +786,8 @@ mod tests {
         let variants = vec![variant("steam-account", "76561199800542110")];
         let files = vec![file(&variants[0], "slot.dat")];
 
-        let result = resolve_restore_targets(input(temp.path(), context, variants, files)).unwrap();
+        let result =
+            resolve_restore_targets_inner(input(temp.path(), context, variants, files)).unwrap();
 
         assert!(result.actions.is_empty());
         assert_eq!(result.blocked.len(), 1);
@@ -781,7 +799,7 @@ mod tests {
         let temp = tempdir().unwrap();
         let variants = vec![variant("steam-account", "76561197960278073")];
         let files = vec![file(&variants[0], "slot.dat")];
-        let result = resolve_restore_targets(input(
+        let result = resolve_restore_targets_inner(input(
             temp.path(),
             StoreUserContext::default(),
             variants,
@@ -825,7 +843,7 @@ mod tests {
                 last_modified_at: LAST_MODIFIED_AT.into(),
             }],
         };
-        let result = resolve_restore_targets(input).unwrap();
+        let result = resolve_restore_targets_inner(input).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 1);
@@ -875,7 +893,7 @@ mod tests {
             }],
         };
 
-        let result = resolve_restore_targets(input).unwrap();
+        let result = resolve_restore_targets_inner(input).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 1);
@@ -930,7 +948,7 @@ mod tests {
                 last_modified_at: LAST_MODIFIED_AT.into(),
             }],
         };
-        let result = resolve_restore_targets(input).unwrap();
+        let result = resolve_restore_targets_inner(input).unwrap();
 
         assert!(result.actions.is_empty());
         assert_eq!(result.blocked[0].reason, "blocked-target-ambiguous");
@@ -941,12 +959,29 @@ mod tests {
         let temp = tempdir().unwrap();
         let variants = vec![variant("opaque-folder", "Goldberg")];
         let files = vec![file(&variants[0], "../slot.dat")];
-        assert!(resolve_restore_targets(input(
+        assert!(resolve_restore_targets_inner(input(
             temp.path(),
             StoreUserContext::default(),
             variants,
             files
         ))
         .is_err());
+    }
+
+    #[test]
+    fn rejects_windows_unsafe_relative_paths_during_resolution() {
+        for relative_path in ["slot.sav:stream", "CON", "Profile/NUL.txt", "save. "] {
+            let temp = tempdir().unwrap();
+            let variants = vec![variant("opaque-folder", "Goldberg")];
+            let files = vec![file(&variants[0], relative_path)];
+
+            assert!(resolve_restore_targets_inner(input(
+                temp.path(),
+                StoreUserContext::default(),
+                variants,
+                files,
+            ))
+            .is_err());
+        }
     }
 }

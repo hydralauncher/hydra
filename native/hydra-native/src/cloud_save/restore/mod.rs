@@ -1,3 +1,4 @@
+mod artifacts;
 mod download_blob;
 mod metadata;
 mod replace_targets;
@@ -7,6 +8,7 @@ mod types;
 mod validation;
 mod verify_file;
 
+pub(crate) use artifacts::is_restore_artifact_path;
 pub use download_blob::{cleanup_restore_temp_snapshot, download_restore_blob_to_temp};
 pub use replace_targets::replace_restore_targets;
 pub use resolve_targets::resolve_restore_targets;
