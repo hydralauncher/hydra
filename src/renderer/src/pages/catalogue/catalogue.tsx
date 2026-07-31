@@ -533,7 +533,7 @@ export default function Catalogue() {
       },
       {
         title: t("developers"),
-        items: steamDevelopers.map((developer) => ({
+        items: (Array.isArray(steamDevelopers) ? steamDevelopers : []).map((developer) => ({
           label: developer,
           value: developer,
           checked: filters.developers.includes(developer),
@@ -542,7 +542,7 @@ export default function Catalogue() {
       },
       {
         title: t("publishers"),
-        items: steamPublishers.map((publisher) => ({
+        items: (Array.isArray(steamPublishers) ? steamPublishers : []).map((publisher) => ({
           label: decodeHTML(publisher),
           value: publisher,
           checked: filters.publishers.includes(publisher),
