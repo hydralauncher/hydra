@@ -21,8 +21,11 @@ const handleHydraUnlockError = (
   if (!HYDRA_UNLOCK_DOWNLOADERS.has(downloader)) return null;
 
   const status = err.response?.status;
-  const message = (err.response?.data as { message?: unknown } | undefined)
-    ?.message;
+  const data = err.response?.data;
+  const message =
+    typeof data === "string"
+      ? data
+      : (data as { message?: unknown } | undefined)?.message;
 
   if (status === 429 && downloader === Downloader.VikingFile) {
     return { ok: false, error: DownloadError.VikingFileQuotaExceeded };
