@@ -46,6 +46,20 @@ const SHOP_DETAILS_CHUNK_SIZE = 100;
 export const normalizeSku = (raw: string): string =>
   raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
+const indexEntriesBySku = (
+  entries: LaunchboxShopDetailsEntry[],
+  lookup: Map<string, LaunchboxShopDetailsEntry>
+) => {
+  for (const entry of entries) {
+    if (!entry?.objectId || !entry.data) continue;
+
+    const entrySkus = entry.skus ?? entry.matchedSkus ?? [];
+    for (const matchedSku of entrySkus) {
+      lookup.set(normalizeSku(matchedSku), entry);
+    }
+  }
+};
+
 /**
  * Resolve SKUs to shop-details entries, keyed by `normalizeSku(matchedSku)`.
  * Requests are chunked; failures per chunk are logged and skipped.
@@ -62,22 +76,11 @@ export const fetchShopDetailsForSkus = async (
     try {
       const response = await HydraApi.post<LaunchboxShopDetailsEntry[]>(
         "/games/shop-details",
-        {
-          shop: "launchbox",
-          skus: skuChunk,
-          ...(language ? { language } : {}),
-        },
+        { shop: "launchbox", skus: skuChunk, language },
         { needsAuth: false }
       );
-      if (!Array.isArray(response)) continue;
 
-      for (const entry of response) {
-        if (!entry?.objectId || !entry.data) continue;
-        const entrySkus = entry.skus ?? entry.matchedSkus ?? [];
-        for (const matchedSku of entrySkus) {
-          lookup.set(normalizeSku(matchedSku), entry);
-        }
-      }
+      if (Array.isArray(response)) indexEntriesBySku(response, lookup);
     } catch (err) {
       logger.error("Failed to fetch launchbox shop-details batch", err);
     }

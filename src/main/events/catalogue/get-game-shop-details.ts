@@ -93,7 +93,7 @@ const mapLaunchboxToShopDetails = (
 
   return {
     objectId,
-    descriptionLanguage: language,
+    descriptionLanguage: data ? language : undefined,
     name: data?.title ?? basic?.title ?? "",
     platform: entry?.platform ?? data?.platform ?? undefined,
     skus: entry?.skus ?? undefined,
