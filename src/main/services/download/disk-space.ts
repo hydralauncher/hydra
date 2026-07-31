@@ -12,7 +12,7 @@ export interface DownloadDiskSpace {
 }
 
 const getRemainingBytes = (download: Download) => {
-  const fileSize = download.fileSize ?? download.selectedFilesSize ?? 0;
+  const fileSize = download.selectedFilesSize ?? download.fileSize ?? 0;
 
   if (fileSize <= 0) return 0;
 

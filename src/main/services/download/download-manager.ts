@@ -91,6 +91,8 @@ export class DownloadManager {
     downloadKey: string;
     timestamp: number;
   } | null = null;
+  private static queueHeldForDiskSpace = false;
+  private static lastQueueRetry = 0;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -646,6 +648,11 @@ export class DownloadManager {
 
     this.orphanedDownloadCandidate = null;
 
+    if (!this.downloadingGameId && this.queueHeldForDiskSpace) {
+      await this.retryQueueHeldForDiskSpace();
+      return;
+    }
+
     const status = await this.getDownloadStatus();
     if (!status) return;
 
@@ -672,6 +679,16 @@ export class DownloadManager {
     ) {
       await this.handleDownloadCompletion(download, game, gameId);
     }
+  }
+
+  private static async retryQueueHeldForDiskSpace() {
+    const now = Date.now();
+
+    if (now - this.lastQueueRetry < DISK_SPACE_CHECK_INTERVAL_MS) return;
+
+    this.lastQueueRetry = now;
+
+    await this.processNextQueuedDownload();
   }
 
   private static async haltDownloadIfStorageIsFull(
@@ -740,6 +757,8 @@ export class DownloadManager {
         error
       );
     });
+
+    await this.processNextQueuedDownload();
 
     return true;
   }
@@ -951,12 +970,18 @@ export class DownloadManager {
       const diskSpace = await getDownloadDiskSpace(nextItemOnQueue);
 
       if (diskSpace && !diskSpace.hasEnoughSpace) {
-        logger.warn(
-          `[DownloadManager] Keeping the queue on hold: ${nextItemOnQueue.downloadPath} has ${diskSpace.freeBytes} bytes free, ${diskSpace.requiredBytes} needed`
-        );
-        WindowManager.sendDownloadsUpdated();
+        if (!this.queueHeldForDiskSpace) {
+          logger.warn(
+            `[DownloadManager] Keeping the queue on hold: ${nextItemOnQueue.downloadPath} has ${diskSpace.freeBytes} bytes free, ${diskSpace.requiredBytes} needed`
+          );
+          WindowManager.sendDownloadsUpdated();
+        }
+
+        this.queueHeldForDiskSpace = true;
         return;
       }
+
+      this.queueHeldForDiskSpace = false;
 
       const nextDownloadId = levelKeys.game(
         nextItemOnQueue.shop,
@@ -980,6 +1005,7 @@ export class DownloadManager {
         await this.handleRuntimeDownloadError(nextDownloadId, error);
       }
     } else {
+      this.queueHeldForDiskSpace = false;
       this.downloadingGameId = null;
       this.usingJsDownloader = false;
       this.jsDownloader = null;
