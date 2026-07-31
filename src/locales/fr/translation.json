@@ -1501,6 +1501,11 @@
     "earned_points": "Points gagnés :",
     "available_points": "Points disponibles :",
     "how_to_earn_achievements_points": "Comment gagner des points de succès ?",
+    "sort_by": "Trier",
+    "sort_option_default": "Par défaut",
+    "sort_option_date": "Par date d'obtention",
+    "sort_option_easiest_first": "Par facilité",
+    "sort_option_name": "Par nom",
     "connect_retroachievements_prompt": "Connectez RetroAchievements pour suivre votre progression",
     "hardcore": "Hardcore",
     "hardcore_unlocked_at": "Débloqué en hardcore le : {{date}}"

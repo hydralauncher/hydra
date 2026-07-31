@@ -505,6 +505,8 @@ export interface ComparedAchievements {
   }[];
 }
 
+export type AchievementSort = "easiest_first" | "date" | "name" | "default";
+
 export interface CatalogueSearchPayload {
   title: string;
   sortBy:

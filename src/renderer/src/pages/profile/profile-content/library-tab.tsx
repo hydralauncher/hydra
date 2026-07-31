@@ -1,24 +1,27 @@
-import { useTranslation } from "react-i18next";
 import {
-  TelescopeIcon,
-  TrophyIcon,
   ClockIcon,
+  DeviceDesktopIcon,
   HistoryIcon,
   StackIcon,
-  DeviceDesktopIcon,
+  TelescopeIcon,
+  TrophyIcon,
 } from "@primer/octicons-react";
-import InfiniteScroll from "react-infinite-scroll-component";
-import { useCallback, useMemo, useState } from "react";
+import { GameContextMenu } from "@renderer/components";
+import {
+  FilterDropdown,
+  FilterDropdownOption,
+} from "@renderer/components/filter-dropdown/filter-dropdown";
+import type { GameContextMenuGame } from "@renderer/components/game-context-menu/game-context-menu.types";
+import { useCollectionContextMenu } from "@renderer/context";
 import { useFormat, useLibrary, useToast } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
-import type { LibraryGame, UserGame } from "@types";
-import { useCollectionContextMenu } from "@renderer/context";
-import { GameContextMenu } from "@renderer/components";
-import type { GameContextMenuGame } from "@renderer/components/game-context-menu/game-context-menu.types";
 import { ClassicsIcon } from "@renderer/pages/library/category-filter";
-import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
-import { UserLibraryGameCard } from "./user-library-game-card";
+import type { LibraryGame, UserGame } from "@types";
+import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import InfiniteScroll from "react-infinite-scroll-component";
 import "./profile-content.scss";
+import { UserLibraryGameCard } from "./user-library-game-card";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
 export type ProfilePlatform = "all" | "pc" | "classics";
