@@ -19,6 +19,7 @@ import { SystemPath } from "../system-path";
 import { WindowManager } from "../window-manager";
 import { downloadToFile, removeFileQuietly } from "../download-to-file";
 import { getRetroArchVersion } from "./detect-retroarch";
+import { swapCoreLibrary } from "./swap-core-library";
 import { RETROARCH_CORE_NAMES, isRetroArchCoreName } from "./retroarch-cores";
 import {
   buildCoreDownloadUrl,
@@ -169,40 +170,23 @@ export const downloadAndInstallCore = async (
       return { ok: false, core, reason: "extract_failed" };
     }
 
-    await fs.promises.mkdir(coresDir, { recursive: true });
-    const backupPath = `${libraryPath}.backup`;
-    await removeFileQuietly(backupPath);
-    const hadPrevious = fs.existsSync(libraryPath);
-    if (hadPrevious) {
-      await fs.promises.rename(libraryPath, backupPath);
-    }
-
-    try {
-      await fs.promises.copyFile(stagedLibrary, libraryPath);
-    } catch (copyError) {
-      await removeFileQuietly(libraryPath);
-      if (hadPrevious) {
-        await fs.promises.rename(backupPath, libraryPath).catch(() => {});
-      }
-      throw copyError;
-    }
-
-    await removeFileQuietly(backupPath);
-    await removeStaging();
-
-    await updateRetroArchConfig((current) => ({
-      ...current,
-      cores: {
-        ...current.cores,
-        [core]: {
-          name: core,
-          installed: true,
-          version: lastModified,
-          path: libraryPath,
-          installedAt: Date.now(),
+    await swapCoreLibrary(stagedLibrary, libraryPath, async () => {
+      await updateRetroArchConfig((current) => ({
+        ...current,
+        cores: {
+          ...current.cores,
+          [core]: {
+            name: core,
+            installed: true,
+            version: lastModified,
+            path: libraryPath,
+            installedAt: Date.now(),
+          },
         },
-      },
-    }));
+      }));
+    });
+
+    await removeStaging();
 
     sendCoreProgress({ core, phase: "done", path: libraryPath });
     return { ok: true, core, path: libraryPath };

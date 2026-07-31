@@ -7,6 +7,7 @@ import {
   updateActiveRetroArchImport,
 } from "./retroarch-import-state";
 import { isWithin } from "../emulators/rom-path-utils";
+import { reconcileDiscsForRemovedFolder } from "./reconcile-discs";
 import {
   bandPercent,
   baseNameWithoutExt,
@@ -235,15 +236,21 @@ export const reconcileRemovedRetroArchFolder = async (
     const discs = game.discs ?? [];
     if (discs.length === 0) continue;
 
-    const underRemoved = discs.some((disc) => isWithin(disc.path, removedPath));
-    if (!underRemoved) continue;
-
-    const stillCovered = discs.some((disc) =>
-      remainingFolderPaths.some((folder) => isWithin(disc.path, folder))
+    const reconciled = reconcileDiscsForRemovedFolder(
+      discs,
+      game.selectedDiscPath,
+      removedPath,
+      remainingFolderPaths
     );
-    if (stillCovered) continue;
+    if (!reconciled) continue;
 
-    game.isDeleted = true;
+    if (reconciled.isDeleted) {
+      game.isDeleted = true;
+    } else {
+      game.discs = reconciled.discs;
+      game.selectedDiscPath = reconciled.selectedDiscPath;
+    }
+
     await gamesSublevel.put(key, game).catch((err) => {
       logger.error("Could not reconcile removed RetroArch folder entry", err);
     });
