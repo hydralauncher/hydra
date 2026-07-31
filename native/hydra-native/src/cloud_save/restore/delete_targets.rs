@@ -4,10 +4,10 @@ use std::path::{Path, PathBuf};
 
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
-use uuid::Uuid;
 
 use crate::cloud_save::hashing::hash_file;
 
+use super::artifacts::delete_backup_path;
 use super::types::{DeleteLocalSaveTarget, DeleteLocalSaveTargetsResult, DeletedLocalSaveFile};
 use super::validation::{validate_hash, validate_relative_path};
 
@@ -61,13 +61,6 @@ fn target_is_symlink(path: &Path) -> Result<bool, String> {
     }
 }
 
-fn backup_path(target: &Path) -> Result<PathBuf, String> {
-    let parent = target
-        .parent()
-        .ok_or_else(|| "cloud_save_delete_target_without_parent".to_string())?;
-    Ok(parent.join(format!(".hydra-delete-{}-backup", Uuid::new_v4())))
-}
-
 async fn hash_path(path: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || hash_file(&path))
         .await
@@ -75,29 +68,130 @@ async fn hash_path(path: String) -> Result<String, String> {
         .map_err(|_| "cloud_save_delete_hash_failed".to_string())
 }
 
-async fn rollback(prepared: &mut [PreparedDeletion]) {
+async fn sync_file(path: &Path) -> Result<(), String> {
+    tokio::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+        .await
+        .map_err(|_| "cloud_save_delete_sync_failed".to_string())?
+        .sync_all()
+        .await
+        .map_err(|_| "cloud_save_delete_sync_failed".to_string())
+}
+
+#[cfg(unix)]
+async fn sync_directory(path: &Path) -> Result<(), String> {
+    tokio::fs::File::open(path)
+        .await
+        .map_err(|_| "cloud_save_delete_directory_sync_failed".to_string())?
+        .sync_all()
+        .await
+        .map_err(|_| "cloud_save_delete_directory_sync_failed".to_string())
+}
+
+#[cfg(not(unix))]
+async fn sync_directory(_path: &Path) -> Result<(), String> {
+    Ok(())
+}
+
+async fn sync_parent_directory(path: &Path) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| "cloud_save_delete_target_without_parent".to_string())?;
+    sync_directory(parent).await
+}
+
+async fn rollback(prepared: &mut [PreparedDeletion]) -> Result<(), String> {
+    let mut failed = false;
     for item in prepared.iter_mut().rev() {
         if item.moved {
-            let _ = tokio::fs::rename(&item.backup_path, &item.input.target_path).await;
+            if tokio::fs::rename(&item.backup_path, &item.input.target_path)
+                .await
+                .is_err()
+            {
+                failed = true;
+                continue;
+            }
             item.moved = false;
+            if sync_file(Path::new(&item.input.target_path)).await.is_err()
+                || sync_parent_directory(Path::new(&item.input.target_path))
+                    .await
+                    .is_err()
+            {
+                failed = true;
+            }
         }
+    }
+
+    if failed {
+        Err("cloud_save_delete_rollback_failed".to_string())
+    } else {
+        Ok(())
+    }
+}
+
+async fn rollback_error(prepared: &mut [PreparedDeletion], reason: &str) -> String {
+    match rollback(prepared).await {
+        Ok(()) => reason.to_string(),
+        Err(error) => error,
     }
 }
 
 async fn move_to_backups(prepared: &mut [PreparedDeletion]) -> Result<(), String> {
     for index in 0..prepared.len() {
-        let item = &mut prepared[index];
-        if tokio::fs::rename(&item.input.target_path, &item.backup_path)
-            .await
-            .is_err()
-        {
-            rollback(prepared).await;
-            return Err("cloud_save_delete_move_failed".to_string());
+        let target_path = PathBuf::from(&prepared[index].input.target_path);
+        let backup_path = prepared[index].backup_path.clone();
+        if tokio::fs::rename(&target_path, &backup_path).await.is_err() {
+            return Err(rollback_error(prepared, "cloud_save_delete_move_failed").await);
         }
-        item.moved = true;
+        prepared[index].moved = true;
+        if sync_file(&backup_path).await.is_err()
+            || sync_parent_directory(&backup_path).await.is_err()
+        {
+            return Err(rollback_error(prepared, "cloud_save_delete_move_failed").await);
+        }
     }
 
     Ok(())
+}
+
+async fn recover_backup(item: &PreparedDeletion) -> Result<(), String> {
+    let backup_metadata = match tokio::fs::symlink_metadata(&item.backup_path).await {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(()),
+        Err(_) => return Err("cloud_save_delete_artifact_inspection_failed".to_string()),
+    };
+    if !backup_metadata.is_file() || backup_metadata.file_type().is_symlink() {
+        return Err("cloud_save_delete_invalid_backup_artifact".to_string());
+    }
+
+    let target = Path::new(&item.input.target_path);
+    match tokio::fs::symlink_metadata(target).await {
+        Err(error) if error.kind() == ErrorKind::NotFound => {
+            tokio::fs::rename(&item.backup_path, target)
+                .await
+                .map_err(|_| "cloud_save_delete_backup_recovery_failed".to_string())?;
+            sync_file(target).await?;
+            sync_parent_directory(target).await
+        }
+        Err(_) => Err("cloud_save_delete_target_inspection_failed".to_string()),
+        Ok(metadata) => {
+            if !metadata.is_file() || metadata.file_type().is_symlink() {
+                return Err("cloud_save_delete_recovery_conflict".to_string());
+            }
+            if metadata.len() != backup_metadata.len()
+                || hash_path(item.input.target_path.clone()).await?
+                    != hash_path(item.backup_path.display().to_string()).await?
+            {
+                return Err("cloud_save_delete_recovery_conflict".to_string());
+            }
+            tokio::fs::remove_file(&item.backup_path)
+                .await
+                .map_err(|_| "cloud_save_delete_backup_recovery_failed".to_string())?;
+            sync_parent_directory(&item.backup_path).await
+        }
+    }
 }
 
 async fn validate_moved(item: &PreparedDeletion) -> Result<(), String> {
@@ -118,7 +212,11 @@ async fn cleanup_backups(prepared: &[PreparedDeletion]) -> u32 {
     let mut failure_count = 0;
     for item in prepared {
         match tokio::fs::remove_file(&item.backup_path).await {
-            Ok(()) => {}
+            Ok(()) => {
+                if sync_parent_directory(&item.backup_path).await.is_err() {
+                    failure_count += 1;
+                }
+            }
             Err(error) if error.kind() == ErrorKind::NotFound => {}
             Err(_) => failure_count += 1,
         }
@@ -126,7 +224,7 @@ async fn cleanup_backups(prepared: &[PreparedDeletion]) -> u32 {
     failure_count
 }
 
-async fn prepare(input: DeleteLocalSaveTarget) -> Result<PreparedDeletion, String> {
+fn prepare_input(input: DeleteLocalSaveTarget) -> Result<PreparedDeletion, String> {
     validate_relative_path(&input.relative_path).map_err(|error| error.to_string())?;
     validate_hash(&input.expected_hash).map_err(|error| error.to_string())?;
     if !input.expected_size_bytes.is_finite()
@@ -145,21 +243,29 @@ async fn prepare(input: DeleteLocalSaveTarget) -> Result<PreparedDeletion, Strin
     {
         return Err("cloud_save_delete_target_outside_root".to_string());
     }
-    let metadata = tokio::fs::metadata(target)
-        .await
-        .map_err(|_| "cloud_save_delete_target_missing".to_string())?;
-    if !metadata.is_file() || metadata.len() as f64 != input.expected_size_bytes {
-        return Err("cloud_save_delete_target_changed".to_string());
-    }
-    if hash_path(input.target_path.clone()).await? != input.expected_hash {
-        return Err("cloud_save_delete_target_changed".to_string());
-    }
-
     Ok(PreparedDeletion {
-        backup_path: backup_path(target)?,
+        backup_path: delete_backup_path(target, &path_key(target))?,
         input,
         moved: false,
     })
+}
+
+async fn validate_target(item: &PreparedDeletion) -> Result<(), String> {
+    let target = Path::new(&item.input.target_path);
+    let metadata = tokio::fs::symlink_metadata(target)
+        .await
+        .map_err(|_| "cloud_save_delete_target_missing".to_string())?;
+    if !metadata.is_file()
+        || metadata.file_type().is_symlink()
+        || metadata.len() as f64 != item.input.expected_size_bytes
+    {
+        return Err("cloud_save_delete_target_changed".to_string());
+    }
+    if hash_path(item.input.target_path.clone()).await? != item.input.expected_hash {
+        return Err("cloud_save_delete_target_changed".to_string());
+    }
+
+    Ok(())
 }
 
 #[napi]
@@ -172,7 +278,14 @@ pub async fn delete_local_save_targets(
         if !seen_targets.insert(path_key(Path::new(&file.target_path))) {
             return Err(Error::from_reason("cloud_save_duplicate_delete_target"));
         }
-        prepared.push(prepare(file).await.map_err(Error::from_reason)?);
+        prepared.push(prepare_input(file).map_err(Error::from_reason)?);
+    }
+
+    for item in &prepared {
+        recover_backup(item).await.map_err(Error::from_reason)?;
+    }
+    for item in &prepared {
+        validate_target(item).await.map_err(Error::from_reason)?;
     }
 
     move_to_backups(&mut prepared)
@@ -181,8 +294,8 @@ pub async fn delete_local_save_targets(
 
     for item in &prepared {
         if validate_moved(item).await.is_err() {
-            rollback(&mut prepared).await;
-            return Err(Error::from_reason("cloud_save_delete_target_changed"));
+            let error = rollback_error(&mut prepared, "cloud_save_delete_target_changed").await;
+            return Err(Error::from_reason(error));
         }
     }
 
@@ -283,14 +396,13 @@ mod tests {
         let temp = tempdir().unwrap();
         let path = temp.path().join("slot.sav");
         std::fs::write(&path, b"save").unwrap();
-        let mut prepared = vec![prepare(target(temp.path(), "slot.sav", b"save"))
-            .await
-            .unwrap()];
+        let mut prepared = vec![prepare_input(target(temp.path(), "slot.sav", b"save")).unwrap()];
+        validate_target(&prepared[0]).await.unwrap();
 
         std::fs::write(&path, b"changed").unwrap();
         move_to_backups(&mut prepared).await.unwrap();
         assert!(validate_moved(&prepared[0]).await.is_err());
-        rollback(&mut prepared).await;
+        rollback(&mut prepared).await.unwrap();
 
         assert_eq!(std::fs::read(&path).unwrap(), b"changed");
     }
@@ -303,17 +415,109 @@ mod tests {
         std::fs::write(&first_path, b"first").unwrap();
         std::fs::write(&second_path, b"second").unwrap();
         let mut prepared = vec![
-            prepare(target(temp.path(), "first.sav", b"first"))
-                .await
-                .unwrap(),
-            prepare(target(temp.path(), "second.sav", b"second"))
-                .await
-                .unwrap(),
+            prepare_input(target(temp.path(), "first.sav", b"first")).unwrap(),
+            prepare_input(target(temp.path(), "second.sav", b"second")).unwrap(),
         ];
+        validate_target(&prepared[0]).await.unwrap();
+        validate_target(&prepared[1]).await.unwrap();
         std::fs::remove_file(&second_path).unwrap();
 
         assert!(move_to_backups(&mut prepared).await.is_err());
         assert_eq!(std::fs::read(&first_path).unwrap(), b"first");
+    }
+
+    #[tokio::test]
+    async fn recovers_an_interrupted_move_before_the_next_deletion() {
+        let temp = tempdir().unwrap();
+        let input = target(temp.path(), "slot.sav", b"save");
+        std::fs::write(&input.target_path, b"save").unwrap();
+        let mut interrupted = vec![prepare_input(input.clone()).unwrap()];
+        validate_target(&interrupted[0]).await.unwrap();
+        move_to_backups(&mut interrupted).await.unwrap();
+        assert!(!Path::new(&input.target_path).exists());
+        assert!(interrupted[0].backup_path.exists());
+
+        let recovered = prepare_input(input).unwrap();
+        recover_backup(&recovered).await.unwrap();
+
+        assert_eq!(
+            std::fs::read(&recovered.input.target_path).unwrap(),
+            b"save"
+        );
+        assert!(!recovered.backup_path.exists());
+    }
+
+    #[tokio::test]
+    async fn failed_rollback_leaves_a_recoverable_backup() {
+        let temp = tempdir().unwrap();
+        let input = target(temp.path(), "slot.sav", b"save");
+        std::fs::write(&input.target_path, b"save").unwrap();
+        let mut prepared = vec![prepare_input(input.clone()).unwrap()];
+        validate_target(&prepared[0]).await.unwrap();
+        move_to_backups(&mut prepared).await.unwrap();
+        std::fs::create_dir(&input.target_path).unwrap();
+
+        assert_eq!(
+            rollback(&mut prepared).await.unwrap_err(),
+            "cloud_save_delete_rollback_failed"
+        );
+        assert!(prepared[0].backup_path.exists());
+
+        std::fs::remove_dir(&input.target_path).unwrap();
+        let recovered = prepare_input(input).unwrap();
+        recover_backup(&recovered).await.unwrap();
+        assert_eq!(
+            std::fs::read(&recovered.input.target_path).unwrap(),
+            b"save"
+        );
+    }
+
+    #[tokio::test]
+    async fn preserves_divergent_target_and_backup_during_recovery() {
+        let temp = tempdir().unwrap();
+        let input = target(temp.path(), "slot.sav", b"save");
+        std::fs::write(&input.target_path, b"save").unwrap();
+        let mut prepared = vec![prepare_input(input.clone()).unwrap()];
+        validate_target(&prepared[0]).await.unwrap();
+        move_to_backups(&mut prepared).await.unwrap();
+        std::fs::write(&input.target_path, b"new-save").unwrap();
+
+        assert_eq!(
+            recover_backup(&prepared[0]).await.unwrap_err(),
+            "cloud_save_delete_recovery_conflict"
+        );
+        assert_eq!(std::fs::read(&input.target_path).unwrap(), b"new-save");
+        assert_eq!(std::fs::read(&prepared[0].backup_path).unwrap(), b"save");
+    }
+
+    #[tokio::test]
+    async fn removes_an_identical_redundant_backup_during_recovery() {
+        let temp = tempdir().unwrap();
+        let input = target(temp.path(), "slot.sav", b"save");
+        std::fs::write(&input.target_path, b"save").unwrap();
+        let prepared = prepare_input(input).unwrap();
+        std::fs::write(&prepared.backup_path, b"save").unwrap();
+
+        recover_backup(&prepared).await.unwrap();
+
+        assert_eq!(std::fs::read(&prepared.input.target_path).unwrap(), b"save");
+        assert!(!prepared.backup_path.exists());
+    }
+
+    #[tokio::test]
+    async fn preserves_an_invalid_backup_artifact() {
+        let temp = tempdir().unwrap();
+        let input = target(temp.path(), "slot.sav", b"save");
+        std::fs::write(&input.target_path, b"save").unwrap();
+        let prepared = prepare_input(input).unwrap();
+        std::fs::create_dir(&prepared.backup_path).unwrap();
+
+        assert_eq!(
+            recover_backup(&prepared).await.unwrap_err(),
+            "cloud_save_delete_invalid_backup_artifact"
+        );
+        assert_eq!(std::fs::read(&prepared.input.target_path).unwrap(), b"save");
+        assert!(prepared.backup_path.is_dir());
     }
 
     #[tokio::test]
