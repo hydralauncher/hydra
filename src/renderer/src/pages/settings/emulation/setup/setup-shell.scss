@@ -71,6 +71,12 @@
     }
   }
 
+  &__footer--single-line {
+    .button {
+      white-space: nowrap;
+    }
+  }
+
   &__ghost-button {
     background: transparent;
     border: 0;

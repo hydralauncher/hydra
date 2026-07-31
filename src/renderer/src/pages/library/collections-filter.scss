@@ -1,0 +1,72 @@
+@use "../../scss/globals.scss";
+@use "./library-dropdown" as dropdown;
+
+.collections-filter {
+  &__trigger {
+    @include dropdown.trigger(&);
+    max-width: 220px;
+
+    &[data-state="open"] .collections-filter__chevron {
+      transform: rotate(180deg);
+    }
+  }
+
+  &__trigger-label {
+    @include dropdown.ellipsis;
+  }
+
+  &__chevron {
+    @include dropdown.chevron;
+  }
+
+  &__content {
+    @include dropdown.content;
+    min-width: 220px;
+  }
+
+  &__list {
+    max-height: calc(34px * 8);
+    overflow-y: auto;
+  }
+
+  &__item {
+    @include dropdown.item;
+
+    &:hover,
+    &[data-highlighted] {
+      background-color: globals.$background-color;
+      outline: none;
+    }
+
+    &--active {
+      color: #fff;
+      background-color: globals.$background-color;
+    }
+  }
+
+  &__item-label {
+    @include dropdown.item-label;
+  }
+
+  &__item-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 22px;
+    height: 18px;
+    padding: 0 4px;
+    background-color: globals.$muted-color;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 600;
+    color: globals.$dark-background-color;
+    line-height: 1;
+  }
+
+  &__separator {
+    height: 1px;
+    background-color: globals.$border-color;
+    margin: 4px 0;
+  }
+}
