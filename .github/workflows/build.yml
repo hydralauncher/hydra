@@ -24,10 +24,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Node.js
+        if: matrix.os != 'windows-2022'
         uses: actions/setup-node@v4
         with:
           node-version: 22.21.0
           cache: "yarn"
+
+      # The Yarn cache is ~1.2GB, and extracting it on Windows takes ~90s --
+      # slower than just refetching from the registry. So no cache here.
+      - name: Install Node.js (Windows)
+        if: matrix.os == 'windows-2022'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.0
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -134,10 +143,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Node.js
+        if: matrix.os != 'windows-2022'
         uses: actions/setup-node@v4
         with:
           node-version: 22.21.0
           cache: "yarn"
+
+      # The Yarn cache is ~1.2GB, and extracting it on Windows takes ~90s --
+      # slower than just refetching from the registry. So no cache here.
+      - name: Install Node.js (Windows)
+        if: matrix.os == 'windows-2022'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.0
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
