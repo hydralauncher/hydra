@@ -2,7 +2,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use super::types::BuildSnapshotAggregateHashInput;
-use crate::cloud_save::identity::SnapshotVariant;
+use crate::cloud_save::identity::{normalize_rule_path, SnapshotVariant};
 
 const SNAPSHOT_HASH_VERSION: u32 = 1;
 
@@ -70,6 +70,10 @@ fn validate_variant(variant: &SnapshotVariant) -> Result<(), String> {
 }
 
 pub fn build_hash(mut input: BuildSnapshotAggregateHashInput) -> Result<String, String> {
+    for file in &mut input.files {
+        file.raw_path = normalize_rule_path(&file.raw_path);
+        file.relative_path = normalize_rule_path(&file.relative_path);
+    }
     input
         .variants
         .sort_by(|left, right| left.variant_id.cmp(&right.variant_id));
@@ -158,6 +162,17 @@ mod tests {
         assert_eq!(
             hash(vec![variant("v")], vec![first.clone(), second.clone()]),
             hash(vec![variant("v")], vec![second, first])
+        );
+    }
+
+    #[test]
+    fn aggregate_hash_normalizes_unicode_paths() {
+        let nfc = file("v", "<home>/Café", "Café/save.dat", "a", 10.0);
+        let nfd = file("v", "<home>/Cafe\u{301}", "Cafe\u{301}/save.dat", "a", 10.0);
+
+        assert_eq!(
+            hash(vec![variant("v")], vec![nfc]),
+            hash(vec![variant("v")], vec![nfd])
         );
     }
 

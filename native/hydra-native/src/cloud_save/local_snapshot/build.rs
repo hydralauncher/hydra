@@ -4,7 +4,7 @@ use crate::cloud_save::hashing::{
     batch::{format_modified_at, hash_files_best_effort},
     build_aggregate_hash, BuildSnapshotAggregateHashInput, SnapshotAggregateHashFile,
 };
-use crate::cloud_save::identity::{local_id, UserLocationCoverage};
+use crate::cloud_save::identity::{local_id, normalize_rule_path, UserLocationCoverage};
 
 use super::guardrails::{prepare_snapshot_files_best_effort, validate_built_files};
 use super::types::{
@@ -15,6 +15,19 @@ use super::types::{
 pub fn build_snapshot(
     mut input: BuildLocalGameSnapshotInput,
 ) -> Result<LocalGameSnapshotWithHash, String> {
+    for file in &mut input.files {
+        file.raw_path = normalize_rule_path(&file.raw_path);
+        file.relative_path = normalize_rule_path(&file.relative_path);
+    }
+    for coverage in &mut input.coverage {
+        if let Some(raw_path) = &mut coverage.raw_path {
+            *raw_path = normalize_rule_path(raw_path);
+        }
+        if let Some(relative_path) = &mut coverage.relative_path {
+            *relative_path = normalize_rule_path(relative_path);
+        }
+    }
+
     let prepared =
         prepare_snapshot_files_best_effort(&input.files).map_err(|error| error.to_string())?;
     let unavailable = prepared
@@ -74,7 +87,8 @@ pub fn build_snapshot(
                 .filter(|metadata| metadata.is_file())
                 .and_then(|metadata| {
                     let modified = metadata.modified().ok()?;
-                    Some((metadata.len() as f64, format_modified_at(modified)))
+                    let last_modified_at = format_modified_at(modified).ok()?;
+                    Some((metadata.len() as f64, last_modified_at))
                 });
             if initial.size_bytes != hashed.size_bytes
                 || initial.last_modified_at != hashed.last_modified_at
@@ -100,6 +114,16 @@ pub fn build_snapshot(
             })
         })
         .collect::<Vec<_>>();
+    let accepted_paths = built_files
+        .iter()
+        .map(|file| file.absolute_path.as_str())
+        .collect::<HashSet<_>>();
+    let hash_cache = hashed
+        .result
+        .hash_cache
+        .into_iter()
+        .filter(|entry| accepted_paths.contains(entry.absolute_path.as_str()))
+        .collect();
     let total_size_bytes = validate_built_files(&built_files).map_err(|error| error.to_string())?;
 
     built_files.sort_by(|left, right| {
@@ -178,7 +202,7 @@ pub fn build_snapshot(
         files,
         aggregate_hash,
         source_files,
-        hash_cache: hashed.result.hash_cache,
+        hash_cache,
     })
 }
 
@@ -278,6 +302,44 @@ mod tests {
         assert_eq!(
             snapshot.coverage[0].warning_codes,
             vec!["file-metadata-unavailable"]
+        );
+    }
+
+    #[test]
+    fn normalizes_portable_paths_but_preserves_absolute_paths() {
+        let temp = tempdir().unwrap();
+        let save = temp.path().join("save.dat");
+        fs::write(&save, b"save").unwrap();
+        let mut input = input(vec![discovered(&save, "Cafe\u{301}/save.dat")]);
+        input.files[0].raw_path = "<home>/Cafe\u{301}".into();
+        input.coverage.push(UserLocationCoverage {
+            candidate_id: "candidate".into(),
+            rule_id: "rule".into(),
+            variant_id: Some("variant".into()),
+            raw_path: Some("<home>/Cafe\u{301}".into()),
+            relative_path: Some("Cafe\u{301}/save.dat".into()),
+            selected_root: true,
+            authority: "inferred".into(),
+            outcome: "scanned".into(),
+            enumerated_completely: true,
+            warning_codes: vec![],
+        });
+
+        let snapshot = build_snapshot(input).unwrap();
+
+        assert_eq!(snapshot.files[0].raw_path, "<home>/Café");
+        assert_eq!(snapshot.files[0].relative_path, "Café/save.dat");
+        assert_eq!(
+            snapshot.source_files[0].absolute_path,
+            save.display().to_string()
+        );
+        assert_eq!(
+            snapshot.coverage[0].raw_path.as_deref(),
+            Some("<home>/Café")
+        );
+        assert_eq!(
+            snapshot.coverage[0].relative_path.as_deref(),
+            Some("Café/save.dat")
         );
     }
 }

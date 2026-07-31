@@ -78,11 +78,13 @@ pub fn prepare_snapshot_files(
         let modified = metadata
             .modified()
             .map_err(|_| LocalSnapshotGuardError::FileMetadataUnavailable)?;
+        let last_modified_at = format_modified_at(modified)
+            .map_err(|_| LocalSnapshotGuardError::FileMetadataUnavailable)?;
         metadata_by_path.insert(
             file.absolute_path.clone(),
             InitialFileMetadata {
                 size_bytes: metadata.len() as f64,
-                last_modified_at: format_modified_at(modified),
+                last_modified_at,
             },
         );
     }
@@ -109,11 +111,15 @@ pub fn prepare_snapshot_files_best_effort(
             unavailable_paths.push(file.absolute_path.clone());
             continue;
         };
+        let Ok(last_modified_at) = format_modified_at(modified) else {
+            unavailable_paths.push(file.absolute_path.clone());
+            continue;
+        };
         metadata_by_path.insert(
             file.absolute_path.clone(),
             InitialFileMetadata {
                 size_bytes: metadata.len() as f64,
-                last_modified_at: format_modified_at(modified),
+                last_modified_at,
             },
         );
     }
