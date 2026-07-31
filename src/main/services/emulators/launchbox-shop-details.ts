@@ -51,7 +51,8 @@ export const normalizeSku = (raw: string): string =>
  * Requests are chunked; failures per chunk are logged and skipped.
  */
 export const fetchShopDetailsForSkus = async (
-  skus: string[]
+  skus: string[],
+  language?: string
 ): Promise<Map<string, LaunchboxShopDetailsEntry>> => {
   const lookup = new Map<string, LaunchboxShopDetailsEntry>();
   if (skus.length === 0) return lookup;
@@ -61,7 +62,11 @@ export const fetchShopDetailsForSkus = async (
     try {
       const response = await HydraApi.post<LaunchboxShopDetailsEntry[]>(
         "/games/shop-details",
-        { shop: "launchbox", skus: skuChunk },
+        {
+          shop: "launchbox",
+          skus: skuChunk,
+          ...(language ? { language } : {}),
+        },
         { needsAuth: false }
       );
       if (!Array.isArray(response)) continue;
