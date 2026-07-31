@@ -456,7 +456,6 @@
     "download_error_alldebrid_rate_limit_exceeded": "Az AllDebrid sebességkorlátja túllépve. Várj egy kicsit, majd próbáld újra.",
     "download_error_premiumize_unavailable": "A Premiumize átmenetileg nem elérhető. Próbáld meg később.",
     "download_error_alldebrid_unavailable": "Az AllDebrid átmenetileg nem elérhető. Próbáld meg később.",
-    "download_error_vikingfile_nimbus_quota_exceeded": "A VikingFile Nimbus kvótája mára elfogyott. Próbáld újra holnap.",
     "download_error_invalid_magnet": "Érvénytelen magnet link.",
     "download_error_torrent_metadata_timeout": "Időtúllépés történt a torrent metaadatok lekérése közben. Próbáld újra.",
     "download_error_torrent_metadata_incomplete": "A torrent metaadatai hiányosak, ezért jelenleg nem dolgozhatók fel.",

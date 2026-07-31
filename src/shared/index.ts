@@ -17,7 +17,7 @@ import { isArchiveOrgFileUri } from "./archive-org";
 import { charMap } from "./char-map";
 import { Downloader } from "./constants";
 import { format } from "date-fns";
-import { AchievementNotificationInfo } from "@types";
+import { AchievementNotificationInfo, GameRepack } from "@types";
 
 export * from "./archive-org";
 export * from "./constants";
@@ -182,6 +182,82 @@ export const getDownloadersForUris = (uris: string[]) => {
   }, new Set());
 
   return Array.from(downloadersSet);
+};
+
+const AVAILABILITY_CHECK_DOWNLOADERS = new Set<Downloader>([
+  Downloader.VikingFile,
+]);
+
+export const HOSTER_AVAILABILITY_MAX_URLS = 50;
+
+export interface HosterAvailabilityResult {
+  url: string;
+  available: boolean;
+}
+
+export const supportsHosterAvailabilityCheck = (uri: string) =>
+  getDownloadersForUri(uri).some((downloader) =>
+    AVAILABILITY_CHECK_DOWNLOADERS.has(downloader)
+  );
+
+export const collectHosterAvailabilityUris = (
+  repacks: Pick<GameRepack, "uris">[]
+) => {
+  const uris = new Set<string>();
+
+  for (const repack of repacks) {
+    for (const uri of repack.uris) {
+      if (supportsHosterAvailabilityCheck(uri)) uris.add(uri);
+    }
+  }
+
+  return Array.from(uris).slice(0, HOSTER_AVAILABILITY_MAX_URLS);
+};
+
+export const fetchHosterAvailability = async (
+  repacks: Pick<GameRepack, "uris">[],
+  post: <T>(url: string, data: unknown) => Promise<T>
+): Promise<HosterAvailabilityResult[]> => {
+  const urls = collectHosterAvailabilityUris(repacks);
+
+  if (urls.length === 0) return [];
+
+  try {
+    const response = await post<{ results?: HosterAvailabilityResult[] }>(
+      "/hosters/availability",
+      { urls }
+    );
+
+    return Array.isArray(response?.results) ? response.results : [];
+  } catch {
+    return [];
+  }
+};
+
+export const applyHosterAvailability = <
+  T extends Pick<GameRepack, "uris" | "unavailableUris">,
+>(
+  repacks: T[],
+  results: HosterAvailabilityResult[]
+): T[] => {
+  const unavailable = new Set(
+    results.filter((result) => !result.available).map((result) => result.url)
+  );
+
+  if (unavailable.size === 0) return repacks;
+
+  return repacks.map((repack) => {
+    const extra = repack.uris.filter(
+      (uri) => unavailable.has(uri) && !repack.unavailableUris?.includes(uri)
+    );
+
+    if (extra.length === 0) return repack;
+
+    return {
+      ...repack,
+      unavailableUris: [...(repack.unavailableUris ?? []), ...extra],
+    };
+  });
 };
 
 export const getDateLocale = (language: string) => {

@@ -169,7 +169,10 @@ export function SidebarFilterMenu({
                   >
                     {option.icon}
                     <span>{option.label}</span>
-                    <DropdownMenuPrimitive.ItemIndicator className="sidebar-filter-menu__item-indicator">
+                    <DropdownMenuPrimitive.ItemIndicator
+                      forceMount
+                      className="sidebar-filter-menu__item-indicator"
+                    >
                       <CheckIcon size={14} />
                     </DropdownMenuPrimitive.ItemIndicator>
                   </DropdownMenuPrimitive.RadioItem>
@@ -192,7 +195,10 @@ export function SidebarFilterMenu({
               >
                 <HeartIcon size={14} />
                 <span>{t("show_favorites_first")}</span>
-                <DropdownMenuPrimitive.ItemIndicator className="sidebar-filter-menu__item-indicator">
+                <DropdownMenuPrimitive.ItemIndicator
+                  forceMount
+                  className="sidebar-filter-menu__item-indicator"
+                >
                   <CheckIcon size={14} />
                 </DropdownMenuPrimitive.ItemIndicator>
               </DropdownMenuPrimitive.CheckboxItem>
@@ -210,7 +216,10 @@ export function SidebarFilterMenu({
                   >
                     {option.icon}
                     <span>{option.label}</span>
-                    <DropdownMenuPrimitive.ItemIndicator className="sidebar-filter-menu__item-indicator">
+                    <DropdownMenuPrimitive.ItemIndicator
+                      forceMount
+                      className="sidebar-filter-menu__item-indicator"
+                    >
                       <CheckIcon size={14} />
                     </DropdownMenuPrimitive.ItemIndicator>
                   </DropdownMenuPrimitive.RadioItem>
@@ -240,7 +249,10 @@ export function SidebarFilterMenu({
                     <span className="sidebar-filter-menu__item-label">
                       {t("all_consoles", { ns: "library" })}
                     </span>
-                    <DropdownMenuPrimitive.ItemIndicator className="sidebar-filter-menu__item-indicator">
+                    <DropdownMenuPrimitive.ItemIndicator
+                      forceMount
+                      className="sidebar-filter-menu__item-indicator"
+                    >
                       <CheckIcon size={14} />
                     </DropdownMenuPrimitive.ItemIndicator>
                   </DropdownMenuPrimitive.CheckboxItem>
@@ -258,7 +270,10 @@ export function SidebarFilterMenu({
                       <span className="sidebar-filter-menu__item-label">
                         {platform}
                       </span>
-                      <DropdownMenuPrimitive.ItemIndicator className="sidebar-filter-menu__item-indicator">
+                      <DropdownMenuPrimitive.ItemIndicator
+                        forceMount
+                        className="sidebar-filter-menu__item-indicator"
+                      >
                         <CheckIcon size={14} />
                       </DropdownMenuPrimitive.ItemIndicator>
                     </DropdownMenuPrimitive.CheckboxItem>
