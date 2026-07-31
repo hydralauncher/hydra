@@ -546,7 +546,6 @@
     "protondb_tier_platinum": "Platynowy",
     "protondb_tier_unknown": "Nieznany",
     "protondb_badge_title": "ProtonDB {{tier}}",
-    "download_error_vikingfile_nimbus_quota_exceeded": "Limit Nimbus dla VikingFile na dziś się wyczerpał. Spróbuj ponownie jutro.",
     "create_steam_shortcut_modal_vr_flag": "Gra VR (w Steamie: zaktualizuj flagę VR lub usuń/utwórz ponownie skrót)",
     "create_steam_shortcut_modal_create_button": "Utwórz",
     "create_steam_shortcut_modal_cancel_button": "Anuluj",
