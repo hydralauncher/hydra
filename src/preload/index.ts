@@ -835,6 +835,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-extraction-failed", listener);
     return () => ipcRenderer.removeListener("on-extraction-failed", listener);
   },
+  onDownloadHalted: (cb: (gameTitle: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, gameTitle: string) =>
+      cb(gameTitle);
+    ipcRenderer.on("on-download-halted", listener);
+    return () => ipcRenderer.removeListener("on-download-halted", listener);
+  },
   onArchiveDeletionPrompt: (cb: (archivePaths: string[]) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

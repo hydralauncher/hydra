@@ -408,6 +408,16 @@ export function App() {
           t("extraction_failed_description", { ns: "downloads" })
         );
       }),
+      window.electron.onDownloadHalted((gameTitle) => {
+        updateLibrary();
+        showErrorToast(
+          t("download_halted_title", { ns: "downloads" }),
+          t("download_halted_description", {
+            ns: "downloads",
+            title: gameTitle,
+          })
+        );
+      }),
       window.electron.onArchiveDeletionPrompt((paths) => {
         setArchivePaths(paths);
         setShowArchiveDeletionModal(true);

@@ -642,6 +642,9 @@ declare global {
     onExtractionFailed: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
+    onDownloadHalted: (
+      cb: (gameTitle: string) => void
+    ) => () => Electron.IpcRenderer;
     onArchiveDeletionPrompt: (
       cb: (archivePaths: string[]) => void
     ) => () => Electron.IpcRenderer;
