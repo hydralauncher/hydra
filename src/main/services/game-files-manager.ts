@@ -1,6 +1,7 @@
 import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
+import { findGameExecutableInFolder } from "@main/helpers/find-game-executable";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
@@ -356,7 +357,7 @@ export class GameFilesManager {
         return;
       }
 
-      const foundExePath = await this.findExecutableInFolder(
+      const foundExePath = await findGameExecutableInFolder(
         gameFolderPath,
         executableNames
       );
@@ -662,41 +663,6 @@ export class GameFilesManager {
         err
       );
     }
-  }
-
-  private async findExecutableInFolder(
-    folderPath: string,
-    executableNames: string[]
-  ): Promise<string | null> {
-    const normalizedNames = new Set(
-      executableNames.map((name) => name.toLowerCase())
-    );
-
-    try {
-      const entries = await fs.promises.readdir(folderPath, {
-        withFileTypes: true,
-        recursive: true,
-      });
-
-      for (const entry of entries) {
-        if (!entry.isFile()) continue;
-
-        const fileName = entry.name.toLowerCase();
-
-        if (normalizedNames.has(fileName)) {
-          const parentPath =
-            "parentPath" in entry
-              ? entry.parentPath
-              : (entry as unknown as { path?: string }).path || folderPath;
-
-          return path.join(parentPath, entry.name);
-        }
-      }
-    } catch {
-      // Silently fail if folder cannot be read
-    }
-
-    return null;
   }
 
   async extractDownloadedFile() {

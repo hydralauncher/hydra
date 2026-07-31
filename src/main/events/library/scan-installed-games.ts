@@ -1,7 +1,7 @@
-import path from "node:path";
 import fs from "node:fs";
 import { t } from "i18next";
 import { registerEvent } from "../register-event";
+import { findGameExecutableInFolder } from "@main/helpers/find-game-executable";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { gamesSublevel } from "@main/level";
 import {
@@ -30,13 +30,16 @@ interface ScanResult {
 }
 
 async function searchInDirectories(
-  executableNames: Set<string>,
+  executableNames: string[],
   directories: string[]
 ): Promise<string | null> {
   for (const scanDir of directories) {
     if (!fs.existsSync(scanDir)) continue;
 
-    const foundPath = await findExecutableInFolder(scanDir, executableNames);
+    const foundPath = await findGameExecutableInFolder(
+      scanDir,
+      executableNames
+    );
     if (foundPath) return foundPath;
   }
   return null;
@@ -94,12 +97,8 @@ const scanInstalledGames = async (
 
     if (!executableNames || executableNames.length === 0) continue;
 
-    const normalizedNames = new Set(
-      executableNames.map((name) => name.toLowerCase())
-    );
-
     const foundPath = await searchInDirectories(
-      normalizedNames,
+      executableNames,
       scanDirectories
     );
 
@@ -119,37 +118,5 @@ const scanInstalledGames = async (
 
   return { foundGames, total: gamesToScan.length };
 };
-
-async function findExecutableInFolder(
-  folderPath: string,
-  executableNames: Set<string>
-): Promise<string | null> {
-  try {
-    const entries = await fs.promises.readdir(folderPath, {
-      withFileTypes: true,
-      recursive: true,
-    });
-
-    for (const entry of entries) {
-      if (!entry.isFile()) continue;
-
-      const fileName = entry.name.toLowerCase();
-
-      if (executableNames.has(fileName)) {
-        const parentPath =
-          "parentPath" in entry ? entry.parentPath : folderPath;
-
-        return path.join(parentPath, entry.name);
-      }
-    }
-  } catch (err) {
-    logger.error(
-      `[ScanInstalledGames] Error reading folder ${folderPath}:`,
-      err
-    );
-  }
-
-  return null;
-}
 
 registerEvent("scanInstalledGames", scanInstalledGames);
