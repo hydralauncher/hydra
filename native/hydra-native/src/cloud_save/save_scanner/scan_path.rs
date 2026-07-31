@@ -555,7 +555,9 @@ mod tests {
             file.relative_path == r"save\slot1.dat"
                 && file.absolute_path == backslash.display().to_string()
         }));
-        assert!(files.iter().any(|file| file.relative_path == "save/slot1.dat"));
+        assert!(files
+            .iter()
+            .any(|file| file.relative_path == "save/slot1.dat"));
     }
 
     #[test]
