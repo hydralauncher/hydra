@@ -546,9 +546,11 @@ mod tests {
     fn ignores_only_exact_cloud_save_artifact_names() {
         let temp = tempdir().unwrap();
         let restore_artifact = format!(".hydra-restore-{}-stage", "a".repeat(64));
-        let delete_artifact = ".hydra-delete-550e8400-e29b-41d4-a716-446655440000-backup";
+        let legacy_delete_artifact = ".hydra-delete-550e8400-e29b-41d4-a716-446655440000-backup";
+        let delete_artifact = format!(".hydra-delete-{}-backup", "b".repeat(64));
         fs::write(temp.path().join(&restore_artifact), b"temporary").unwrap();
-        fs::write(temp.path().join(delete_artifact), b"temporary").unwrap();
+        fs::write(temp.path().join(legacy_delete_artifact), b"temporary").unwrap();
+        fs::write(temp.path().join(&delete_artifact), b"temporary").unwrap();
         fs::write(temp.path().join(".hydra-restore-save.dat"), b"user").unwrap();
         fs::write(temp.path().join(".hydra-delete-save.dat"), b"user").unwrap();
         fs::write(temp.path().join("save.dat"), b"save").unwrap();
@@ -561,7 +563,8 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert!(!relative_paths.contains(&restore_artifact.as_str()));
-        assert!(!relative_paths.contains(&delete_artifact));
+        assert!(!relative_paths.contains(&legacy_delete_artifact));
+        assert!(!relative_paths.contains(&delete_artifact.as_str()));
         assert!(relative_paths.contains(&".hydra-restore-save.dat"));
         assert!(relative_paths.contains(&".hydra-delete-save.dat"));
         assert!(relative_paths.contains(&"save.dat"));
