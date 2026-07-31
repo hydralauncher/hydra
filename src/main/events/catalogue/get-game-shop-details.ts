@@ -85,13 +85,15 @@ const mapLaunchboxToShopDetails = (
   objectId: string,
   basic: LaunchboxBasic | null,
   entry: LaunchboxShopDetailsEntry | null,
-  cached: ShopDetailsWithAssets | null
+  cached: ShopDetailsWithAssets | null,
+  language: string
 ): ShopDetails => {
   const data = entry?.data ?? null;
   const description = data?.description ?? "";
 
   return {
     objectId,
+    descriptionLanguage: data ? language : undefined,
     name: data?.title ?? basic?.title ?? "",
     platform: entry?.platform ?? data?.platform ?? undefined,
     skus: entry?.skus ?? undefined,
@@ -140,7 +142,8 @@ const getLaunchboxShopDetails = async (
   const cacheHasNewFields =
     cachedData &&
     (cachedData.platform || cachedData.skus) &&
-    typeof cachedData.retroAchievementsGameId === "number";
+    typeof cachedData.retroAchievementsGameId === "number" &&
+    cachedData.descriptionLanguage === language;
   if (cachedData && cacheHasNewFields) {
     return { ...cachedData, assets: cachedAssets ?? null };
   }
@@ -154,7 +157,7 @@ const getLaunchboxShopDetails = async (
     }),
     HydraApi.post<LaunchboxShopDetailsEntry[]>(
       `/games/shop-details`,
-      { shop, objectIds: [objectId] },
+      { shop, objectIds: [objectId], language },
       { needsAuth: false }
     ).catch((err) => {
       logger.error("Failed to fetch launchbox shop details", err);
@@ -173,7 +176,8 @@ const getLaunchboxShopDetails = async (
     objectId,
     basic,
     detailsEntry,
-    cachedData ? { ...cachedData, assets: cachedAssets ?? null } : null
+    cachedData ? { ...cachedData, assets: cachedAssets ?? null } : null,
+    language
   );
 
   gamesShopCacheSublevel

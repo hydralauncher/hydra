@@ -72,6 +72,7 @@ export type ShopDetails = SteamAppDetails & {
   platform?: string;
   skus?: string[];
   retroAchievementsGameId?: number | null;
+  descriptionLanguage?: string;
 };
 
 export type ShopDetailsWithAssets = ShopDetails & {
