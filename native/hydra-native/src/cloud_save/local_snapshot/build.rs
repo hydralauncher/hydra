@@ -4,7 +4,9 @@ use crate::cloud_save::hashing::{
     batch::{format_modified_at, hash_files_best_effort},
     build_aggregate_hash, BuildSnapshotAggregateHashInput, SnapshotAggregateHashFile,
 };
-use crate::cloud_save::identity::{local_id, normalize_rule_path, UserLocationCoverage};
+use crate::cloud_save::identity::{
+    local_id, normalize_rule_path, normalize_text, UserLocationCoverage,
+};
 
 use super::guardrails::{prepare_snapshot_files_best_effort, validate_built_files};
 use super::types::{
@@ -17,14 +19,14 @@ pub fn build_snapshot(
 ) -> Result<LocalGameSnapshotWithHash, String> {
     for file in &mut input.files {
         file.raw_path = normalize_rule_path(&file.raw_path);
-        file.relative_path = normalize_rule_path(&file.relative_path);
+        file.relative_path = normalize_text(&file.relative_path);
     }
     for coverage in &mut input.coverage {
         if let Some(raw_path) = &mut coverage.raw_path {
             *raw_path = normalize_rule_path(raw_path);
         }
         if let Some(relative_path) = &mut coverage.relative_path {
-            *relative_path = normalize_rule_path(relative_path);
+            *relative_path = normalize_text(relative_path);
         }
     }
 
@@ -341,5 +343,30 @@ mod tests {
             snapshot.coverage[0].relative_path.as_deref(),
             Some("Café/save.dat")
         );
+    }
+
+    #[test]
+    fn preserves_literal_backslashes_in_relative_paths() {
+        let temp = tempdir().unwrap();
+        let backslash = temp.path().join("backslash.dat");
+        let slash = temp.path().join("slash.dat");
+        fs::write(&backslash, b"backslash").unwrap();
+        fs::write(&slash, b"slash").unwrap();
+
+        let snapshot = build_snapshot(input(vec![
+            discovered(&backslash, r"save\slot1.dat"),
+            discovered(&slash, "save/slot1.dat"),
+        ]))
+        .unwrap();
+
+        assert_eq!(snapshot.files.len(), 2);
+        assert!(snapshot
+            .files
+            .iter()
+            .any(|file| file.relative_path == r"save\slot1.dat"));
+        assert!(snapshot
+            .files
+            .iter()
+            .any(|file| file.relative_path == "save/slot1.dat"));
     }
 }
