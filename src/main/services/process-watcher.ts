@@ -14,6 +14,7 @@ import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
 import { emulatorSessions } from "./emulators/emulator-session-tracker";
 import { launchedGamePids } from "./launched-game-pids";
+import { isValidProcessWatcherScan } from "./process-watcher-scan";
 import {
   hasLaunchedPidMatch,
   hasLinuxNativeOrAppImageMatch,
@@ -219,11 +220,14 @@ const findGamePathByProcess = async (
 };
 
 const getSystemProcessMap = async () => {
+  const result = await NativeAddon.getSystemProcessMap();
+  if (result === null) return null;
+
   const {
     processMap: rawMap,
     winePrefixMap: rawWineMap,
     linuxProcesses,
-  } = await NativeAddon.getSystemProcessMap();
+  } = result;
 
   const processMap = new Map<string, Set<string>>(
     Object.entries(rawMap).map(([k, v]) => [k, new Set(v)])
@@ -287,8 +291,12 @@ export const watchProcesses = async () => {
 
   if (!games.length) return;
 
-  const { processMap, winePrefixMap, linuxProcesses } =
-    await getSystemProcessMap();
+  const systemProcessMap = await getSystemProcessMap();
+  if (!isValidProcessWatcherScan(systemProcessMap)) {
+    logger.warn("Process enumeration failed; skipping process watcher tick");
+    return;
+  }
+  const { processMap, winePrefixMap, linuxProcesses } = systemProcessMap;
 
   const pidToProcess = new Map<number, LinuxProcessInfo>(
     linuxProcesses.map((process) => [process.pid, process])

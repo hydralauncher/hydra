@@ -16,6 +16,15 @@ export const resolveCloudSaveAutomaticSyncMode = ({
   return "disabled";
 };
 
+export const resolveStoredCloudSaveAutomaticSyncMode = (
+  legacyEnabled: boolean,
+  storedV2Enabled: boolean | undefined
+) =>
+  resolveCloudSaveAutomaticSyncMode({
+    legacyEnabled,
+    v2Enabled: storedV2Enabled === true,
+  });
+
 export const getCloudSaveAutomaticSyncStateForMode = (
   mode: CloudSaveAutomaticSyncMode
 ): CloudSaveAutomaticSyncState => ({

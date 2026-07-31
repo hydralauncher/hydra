@@ -84,6 +84,48 @@ async fn rollback(prepared: &mut [PreparedDeletion]) {
     }
 }
 
+async fn move_to_backups(prepared: &mut [PreparedDeletion]) -> Result<(), String> {
+    for index in 0..prepared.len() {
+        let item = &mut prepared[index];
+        if tokio::fs::rename(&item.input.target_path, &item.backup_path)
+            .await
+            .is_err()
+        {
+            rollback(prepared).await;
+            return Err("cloud_save_delete_move_failed".to_string());
+        }
+        item.moved = true;
+    }
+
+    Ok(())
+}
+
+async fn validate_moved(item: &PreparedDeletion) -> Result<(), String> {
+    let metadata = tokio::fs::metadata(&item.backup_path)
+        .await
+        .map_err(|_| "cloud_save_delete_target_changed".to_string())?;
+    if !metadata.is_file() || metadata.len() as f64 != item.input.expected_size_bytes {
+        return Err("cloud_save_delete_target_changed".to_string());
+    }
+    if hash_path(item.backup_path.display().to_string()).await? != item.input.expected_hash {
+        return Err("cloud_save_delete_target_changed".to_string());
+    }
+
+    Ok(())
+}
+
+async fn cleanup_backups(prepared: &[PreparedDeletion]) -> u32 {
+    let mut failure_count = 0;
+    for item in prepared {
+        match tokio::fs::remove_file(&item.backup_path).await {
+            Ok(()) => {}
+            Err(error) if error.kind() == ErrorKind::NotFound => {}
+            Err(_) => failure_count += 1,
+        }
+    }
+    failure_count
+}
+
 async fn prepare(input: DeleteLocalSaveTarget) -> Result<PreparedDeletion, String> {
     validate_relative_path(&input.relative_path).map_err(|error| error.to_string())?;
     validate_hash(&input.expected_hash).map_err(|error| error.to_string())?;
@@ -133,23 +175,20 @@ pub async fn delete_local_save_targets(
         prepared.push(prepare(file).await.map_err(Error::from_reason)?);
     }
 
-    for index in 0..prepared.len() {
-        let item = &mut prepared[index];
-        if tokio::fs::rename(&item.input.target_path, &item.backup_path)
-            .await
-            .is_err()
-        {
-            rollback(&mut prepared).await;
-            return Err(Error::from_reason("cloud_save_delete_move_failed"));
-        }
-        item.moved = true;
-    }
+    move_to_backups(&mut prepared)
+        .await
+        .map_err(Error::from_reason)?;
 
     for item in &prepared {
-        tokio::fs::remove_file(&item.backup_path)
-            .await
-            .map_err(|_| Error::from_reason("cloud_save_delete_cleanup_failed"))?;
+        if validate_moved(item).await.is_err() {
+            rollback(&mut prepared).await;
+            return Err(Error::from_reason("cloud_save_delete_target_changed"));
+        }
     }
+
+    // Once every backup has been validated, the deletion is logically committed.
+    // Cleanup must not turn an applied deletion into a failure or attempt rollback.
+    let cleanup_failure_count = cleanup_backups(&prepared).await;
 
     Ok(DeleteLocalSaveTargetsResult {
         deleted_files: prepared
@@ -160,6 +199,7 @@ pub async fn delete_local_save_targets(
                 relative_path: item.input.relative_path,
             })
             .collect(),
+        cleanup_failure_count,
     })
 }
 
@@ -197,6 +237,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(result.deleted_files.len(), 1);
+        assert_eq!(result.cleanup_failure_count, 0);
         assert!(!temp.path().join("slot.sav").exists());
         assert!(std::fs::read_dir(temp.path()).unwrap().all(|entry| !entry
             .unwrap()
@@ -235,5 +276,59 @@ mod tests {
 
         assert!(delete_local_save_targets(vec![input]).await.is_err());
         assert!(outside.join("slot.sav").exists());
+    }
+
+    #[tokio::test]
+    async fn rolls_back_when_a_target_changes_after_preparation() {
+        let temp = tempdir().unwrap();
+        let path = temp.path().join("slot.sav");
+        std::fs::write(&path, b"save").unwrap();
+        let mut prepared = vec![prepare(target(temp.path(), "slot.sav", b"save"))
+            .await
+            .unwrap()];
+
+        std::fs::write(&path, b"changed").unwrap();
+        move_to_backups(&mut prepared).await.unwrap();
+        assert!(validate_moved(&prepared[0]).await.is_err());
+        rollback(&mut prepared).await;
+
+        assert_eq!(std::fs::read(&path).unwrap(), b"changed");
+    }
+
+    #[tokio::test]
+    async fn a_move_failure_restores_targets_already_moved() {
+        let temp = tempdir().unwrap();
+        let first_path = temp.path().join("first.sav");
+        let second_path = temp.path().join("second.sav");
+        std::fs::write(&first_path, b"first").unwrap();
+        std::fs::write(&second_path, b"second").unwrap();
+        let mut prepared = vec![
+            prepare(target(temp.path(), "first.sav", b"first"))
+                .await
+                .unwrap(),
+            prepare(target(temp.path(), "second.sav", b"second"))
+                .await
+                .unwrap(),
+        ];
+        std::fs::remove_file(&second_path).unwrap();
+
+        assert!(move_to_backups(&mut prepared).await.is_err());
+        assert_eq!(std::fs::read(&first_path).unwrap(), b"first");
+    }
+
+    #[tokio::test]
+    async fn cleanup_failure_is_reported_without_rolling_back() {
+        let temp = tempdir().unwrap();
+        let input = target(temp.path(), "slot.sav", b"save");
+        let backup_path = temp.path().join("backup-directory");
+        std::fs::create_dir(&backup_path).unwrap();
+        let prepared = vec![PreparedDeletion {
+            input,
+            backup_path,
+            moved: true,
+        }];
+
+        assert_eq!(cleanup_backups(&prepared).await, 1);
+        assert!(!Path::new(&prepared[0].input.target_path).exists());
     }
 }
