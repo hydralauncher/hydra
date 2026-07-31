@@ -8,6 +8,7 @@ use tokio::fs;
 use tokio::sync::Mutex;
 
 use super::indexer::build_manifest_index;
+use super::lookup::ManifestLookupIndex;
 use super::types::ManifestIndex;
 use crate::constants::MANIFEST_INDEX_VERSION;
 
@@ -16,7 +17,7 @@ const MANIFEST_HTTP_TIMEOUT_SECS: u64 = 30;
 const RAW_MANIFEST_FILE_NAME: &str = "cloud-save-manifest.yaml";
 const INDEX_FILE_NAME: &str = "cloud-save-manifest-index.json";
 
-type ManifestCache = Arc<Mutex<Option<ManifestIndex>>>;
+type ManifestCache = Arc<Mutex<Option<Arc<ManifestLookupIndex>>>>;
 type ManifestCaches = Mutex<HashMap<PathBuf, ManifestCache>>;
 
 static CACHE_LOCKS: OnceLock<ManifestCaches> = OnceLock::new();
@@ -187,23 +188,28 @@ async fn load_index(user_data_path: &Path, source_url: &str) -> Result<ManifestI
     fresh_result.or_else(|error| fallback.ok_or(error))
 }
 
-pub async fn get_manifest_index(user_data_path: &Path, source_url: &str) -> Result<ManifestIndex> {
+pub async fn get_manifest_index(
+    user_data_path: &Path,
+    source_url: &str,
+) -> Result<Arc<ManifestLookupIndex>> {
     let cache = cache_for(user_data_path.to_path_buf()).await;
     let mut cached = cache.lock().await;
 
     if let Some(index) = cached.as_ref() {
-        if index.source_url == source_url && !is_index_expired(index, now_ms()) {
-            return Ok(index.clone());
+        if index.manifest.source_url == source_url && !is_index_expired(&index.manifest, now_ms()) {
+            return Ok(Arc::clone(index));
         }
     }
 
     let fallback = cached
         .as_ref()
-        .filter(|index| index.source_url == source_url)
-        .cloned();
+        .filter(|index| index.manifest.source_url == source_url)
+        .map(Arc::clone);
     let index = load_index(user_data_path, source_url)
         .await
+        .map(ManifestLookupIndex::new)
+        .map(Arc::new)
         .or_else(|error| fallback.ok_or(error))?;
-    *cached = Some(index.clone());
+    *cached = Some(Arc::clone(&index));
     Ok(index)
 }
