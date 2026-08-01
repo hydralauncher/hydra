@@ -5,11 +5,9 @@ import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import { clearCloudSaveLocalState } from "./clear-cloud-save-local-state";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
+import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
-import {
-  getCloudSaveCustomPathBindings,
-  withCloudSaveCustomPathStoreMutation,
-} from "./custom-path-store";
+import { withCloudSaveCustomPathStoreMutation } from "./custom-path-store";
 import {
   buildDeleteGameCloudSaveSnapshotsUrl,
   executeDeleteGameCloudSaveData,
@@ -36,59 +34,67 @@ export const deleteGameCloudSaveData = async (
   return cloudSaveOperationGate.runDeletion(
     cloudSaveOperationScopeKey(objectId, shop),
     "delete-game-cloud-save-data",
-    () => {
-      let customPathStorageKey: string | null = null;
-      return executeDeleteGameCloudSaveData({
+    () =>
+      executeDeleteGameCloudSaveData({
         beginPendingDeletion: () =>
           beginCloudSavePendingDeletion(objectId, shop),
         markRemoteDeletionStarted: () =>
           markCloudSaveRemoteDeletionStarted(objectId, shop),
         clearPendingDeletion: () =>
           clearCloudSavePendingDeletion(objectId, shop),
-        runWithLocalStateLock: (operation) =>
-          withCloudSaveCustomPathStoreMutation(
-            shop,
-            objectId,
-            async (storageKey) => {
-              customPathStorageKey = storageKey;
-              await operation();
-            }
-          ),
-        assertGameNotRunning,
-        prepareLocalDeletion: async () => {
-          const analysis = await analyzeCloudSaveState(objectId, shop);
-          const localEntryIds =
-            analysis.localSnapshotContext.sourceFiles.map(cloudSaveFileKey);
-          const bindings = await getCloudSaveCustomPathBindings(
-            shop,
-            objectId,
-            cloudSaveCustomPathContextFromPathContext(
-              analysis.context.pathContext
-            )
+        runWithLocalDeletionSnapshot: async (operation) => {
+          const context = await getCloudSaveGameContext(objectId, shop);
+          const customPathContext = cloudSaveCustomPathContextFromPathContext(
+            context.pathContext
           );
-          const cleanupRootPaths = [
-            ...bindings.ready.map((binding) => binding.path),
-            ...analysis.localSnapshotContext.sourceFiles.map(
-              (file) => file.localBindings.concretePath
-            ),
-          ];
+          return withCloudSaveCustomPathStoreMutation(
+            shop,
+            objectId,
+            customPathContext,
+            async (customPathStorageKey, bindings) => {
+              const analysis = await analyzeCloudSaveState(
+                objectId,
+                shop,
+                context,
+                "bidirectional",
+                { customPathBindings: bindings }
+              );
+              const localEntryIds =
+                analysis.localSnapshotContext.sourceFiles.map(cloudSaveFileKey);
+              const cleanupRootPaths = [
+                ...bindings.ready.map((binding) => binding.path),
+                ...analysis.localSnapshotContext.sourceFiles.map(
+                  (file) => file.localBindings.concretePath
+                ),
+              ];
 
-          return async () => {
-            await deleteLocalSaveTargets(
-              analysis.localSnapshotContext,
-              localEntryIds,
-              async () => {
-                assertGameNotRunning();
-                await assertCloudSaveEnvironmentCurrent(
-                  objectId,
-                  shop,
-                  analysis.environmentId
-                );
-              },
-              cleanupRootPaths
-            );
-          };
+              await operation({
+                deleteLocalFiles: async () => {
+                  await deleteLocalSaveTargets(
+                    analysis.localSnapshotContext,
+                    localEntryIds,
+                    async () => {
+                      assertGameNotRunning();
+                      await assertCloudSaveEnvironmentCurrent(
+                        objectId,
+                        shop,
+                        analysis.environmentId
+                      );
+                    },
+                    cleanupRootPaths
+                  );
+                },
+                clearLocalState: () =>
+                  clearCloudSaveLocalState(
+                    objectId,
+                    shop,
+                    customPathStorageKey
+                  ),
+              });
+            }
+          );
         },
+        assertGameNotRunning,
         deleteRemoteSnapshots: () =>
           HydraApi.delete<void>(
             buildDeleteGameCloudSaveSnapshotsUrl(objectId, shop),
@@ -97,13 +103,6 @@ export const deleteGameCloudSaveData = async (
               needsSubscription: true,
             }
           ),
-        clearLocalState: () => {
-          if (!customPathStorageKey) {
-            throw new Error("cloud_save_delete_local_state_lock_missing");
-          }
-          return clearCloudSaveLocalState(objectId, shop, customPathStorageKey);
-        },
-      });
-    }
+      })
   );
 };

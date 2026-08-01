@@ -26,6 +26,7 @@ type CloudSaveGameContext = Awaited<ReturnType<typeof getCloudSaveGameContext>>;
 interface GetUsableCloudSaveCustomPathBindingsOptions {
   approvedRules?: CloudSaveRule[];
   remoteFiles?: RestoreManifestFile[];
+  bindings?: CloudSaveCustomPathBindings;
 }
 
 const overlapErrorCode = (result: CheckCloudSaveCustomPathOverlapResult) =>
@@ -171,11 +172,13 @@ export const getUsableCloudSaveCustomPathBindings = async (
   context: CloudSaveGameContext,
   options: GetUsableCloudSaveCustomPathBindingsOptions = {}
 ): Promise<CloudSaveCustomPathBindings> => {
-  const bindings = await getCloudSaveCustomPathBindings(
-    shop,
-    objectId,
-    cloudSaveCustomPathContextFromPathContext(context.pathContext)
-  );
+  const bindings =
+    options.bindings ??
+    (await getCloudSaveCustomPathBindings(
+      shop,
+      objectId,
+      cloudSaveCustomPathContextFromPathContext(context.pathContext)
+    ));
   if (bindings.ready.length === 0) return bindings;
 
   const approvedRules =

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { CloudSaveOperationCoordinator } from "./operation-coordinator.ts";
 import {
   buildDeleteGameCloudSaveSnapshotsUrl,
   executeDeleteGameCloudSaveData,
@@ -14,11 +15,13 @@ const createDependencies = (
   beginPendingDeletion: async () => "prepared",
   markRemoteDeletionStarted: async () => undefined,
   clearPendingDeletion: async () => undefined,
-  prepareLocalDeletion: async () => async () => undefined,
-  runWithLocalStateLock: (operation) => operation(),
+  runWithLocalDeletionSnapshot: (operation) =>
+    operation({
+      deleteLocalFiles: async () => undefined,
+      clearLocalState: async () => undefined,
+    }),
   assertGameNotRunning: () => undefined,
   deleteRemoteSnapshots: async () => undefined,
-  clearLocalState: async () => undefined,
   ...overrides,
 });
 
@@ -30,7 +33,7 @@ describe("delete all game cloud save data", () => {
     );
   });
 
-  it("quarantines before preparation and clears only after local state", async () => {
+  it("locks before preparation and clears only after local state", async () => {
     const calls: string[] = [];
 
     await executeDeleteGameCloudSaveData(
@@ -39,15 +42,17 @@ describe("delete all game cloud save data", () => {
           calls.push("begin-pending");
           return "prepared";
         },
-        prepareLocalDeletion: async () => {
-          calls.push("prepare-local");
-          return async () => {
-            calls.push("delete-local");
-          };
-        },
-        runWithLocalStateLock: async (operation) => {
+        runWithLocalDeletionSnapshot: async (operation) => {
           calls.push("lock-local-state");
-          await operation();
+          calls.push("prepare-local");
+          await operation({
+            deleteLocalFiles: async () => {
+              calls.push("delete-local");
+            },
+            clearLocalState: async () => {
+              calls.push("clear-local-state");
+            },
+          });
         },
         assertGameNotRunning: () => {
           calls.push("assert-game-not-running");
@@ -58,9 +63,6 @@ describe("delete all game cloud save data", () => {
         deleteRemoteSnapshots: async () => {
           calls.push("delete-remote");
         },
-        clearLocalState: async () => {
-          calls.push("clear-local-state");
-        },
         clearPendingDeletion: async () => {
           calls.push("clear-pending");
         },
@@ -69,8 +71,8 @@ describe("delete all game cloud save data", () => {
 
     assert.deepEqual(calls, [
       "begin-pending",
-      "prepare-local",
       "lock-local-state",
+      "prepare-local",
       "assert-game-not-running",
       "mark-remote-started",
       "delete-remote",
@@ -81,13 +83,93 @@ describe("delete all game cloud save data", () => {
     ]);
   });
 
+  it("includes a custom path mutation that was already ahead of deletion", async () => {
+    const coordinator = new CloudSaveOperationCoordinator<void>();
+    const bindings = ["existing"];
+    const deletedBindings: string[] = [];
+    let releaseMutation!: () => void;
+    const mutationBlocked = new Promise<void>((resolve) => {
+      releaseMutation = resolve;
+    });
+
+    const mutation = coordinator.run("game", "rebind", async () => {
+      await mutationBlocked;
+      bindings.push("rebound");
+    });
+    const deletion = executeDeleteGameCloudSaveData(
+      createDependencies({
+        runWithLocalDeletionSnapshot: (operation) =>
+          coordinator.run("game", "delete", async () => {
+            const bindingSnapshot = [...bindings];
+            await operation({
+              deleteLocalFiles: async () => {
+                deletedBindings.push(...bindingSnapshot);
+              },
+              clearLocalState: async () => undefined,
+            });
+          }),
+      })
+    );
+
+    releaseMutation();
+    await Promise.all([mutation, deletion]);
+
+    assert.deepEqual(deletedBindings, ["existing", "rebound"]);
+  });
+
+  it("does not let a later custom path mutation interleave with deletion", async () => {
+    const coordinator = new CloudSaveOperationCoordinator<void>();
+    const bindings = ["existing"];
+    const deletedBindings: string[] = [];
+    let signalPrepared!: () => void;
+    let releaseRemote!: () => void;
+    const prepared = new Promise<void>((resolve) => {
+      signalPrepared = resolve;
+    });
+    const remoteBlocked = new Promise<void>((resolve) => {
+      releaseRemote = resolve;
+    });
+
+    const deletion = executeDeleteGameCloudSaveData(
+      createDependencies({
+        runWithLocalDeletionSnapshot: (operation) =>
+          coordinator.run("game", "delete", async () => {
+            const bindingSnapshot = [...bindings];
+            signalPrepared();
+            await operation({
+              deleteLocalFiles: async () => {
+                deletedBindings.push(...bindingSnapshot);
+              },
+              clearLocalState: async () => {
+                assert.deepEqual(bindings, ["existing"]);
+              },
+            });
+          }),
+        deleteRemoteSnapshots: () => remoteBlocked,
+      })
+    );
+    await prepared;
+
+    const mutation = coordinator.run("game", "rebind", async () => {
+      bindings.push("late-rebind");
+    });
+    await Promise.resolve();
+    assert.deepEqual(bindings, ["existing"]);
+
+    releaseRemote();
+    await Promise.all([deletion, mutation]);
+
+    assert.deepEqual(deletedBindings, ["existing"]);
+    assert.deepEqual(bindings, ["existing", "late-rebind"]);
+  });
+
   it("clears a prepared quarantine when preparation fails", async () => {
     let pendingCleared = false;
 
     await assert.rejects(
       executeDeleteGameCloudSaveData(
         createDependencies({
-          prepareLocalDeletion: async () => {
+          runWithLocalDeletionSnapshot: async () => {
             throw new Error("scan");
           },
           clearPendingDeletion: async () => {
@@ -101,11 +183,38 @@ describe("delete all game cloud save data", () => {
     assert.equal(pendingCleared, true);
   });
 
+  it("releases the custom path lock when preparation fails", async () => {
+    const coordinator = new CloudSaveOperationCoordinator<void>();
+    let pendingCleared = false;
+    let laterMutationRan = false;
+
+    await assert.rejects(
+      executeDeleteGameCloudSaveData(
+        createDependencies({
+          runWithLocalDeletionSnapshot: () =>
+            coordinator.run("game", "delete", async () => {
+              throw new Error("migration");
+            }),
+          clearPendingDeletion: async () => {
+            pendingCleared = true;
+          },
+        })
+      ),
+      /migration/
+    );
+    await coordinator.run("game", "rebind", async () => {
+      laterMutationRan = true;
+    });
+
+    assert.equal(pendingCleared, true);
+    assert.equal(laterMutationRan, true);
+  });
+
   it("reports when a pre-remote failure and quarantine cleanup both fail", async () => {
     await assert.rejects(
       executeDeleteGameCloudSaveData(
         createDependencies({
-          prepareLocalDeletion: async () => {
+          runWithLocalDeletionSnapshot: async () => {
             throw new Error("scan");
           },
           clearPendingDeletion: async () => {
@@ -127,7 +236,7 @@ describe("delete all game cloud save data", () => {
       executeDeleteGameCloudSaveData(
         createDependencies({
           beginPendingDeletion: async () => "remote-started",
-          prepareLocalDeletion: async () => {
+          runWithLocalDeletionSnapshot: async () => {
             throw new Error("scan");
           },
           clearPendingDeletion: async () => {
@@ -230,12 +339,15 @@ describe("delete all game cloud save data", () => {
           deleteRemoteSnapshots: async () => {
             remoteDeleted = true;
           },
-          prepareLocalDeletion: async () => async () => {
-            localDeleted = true;
-          },
-          clearLocalState: async () => {
-            localStateCleared = true;
-          },
+          runWithLocalDeletionSnapshot: (operation) =>
+            operation({
+              deleteLocalFiles: async () => {
+                localDeleted = true;
+              },
+              clearLocalState: async () => {
+                localStateCleared = true;
+              },
+            }),
           clearPendingDeletion: async () => {
             pendingCleared = true;
           },
@@ -256,12 +368,15 @@ describe("delete all game cloud save data", () => {
       await assert.rejects(
         executeDeleteGameCloudSaveData(
           createDependencies({
-            prepareLocalDeletion: async () => async () => {
-              if (failure === "local-files") throw new Error(failure);
-            },
-            clearLocalState: async () => {
-              if (failure === "local-state") throw new Error(failure);
-            },
+            runWithLocalDeletionSnapshot: (operation) =>
+              operation({
+                deleteLocalFiles: async () => {
+                  if (failure === "local-files") throw new Error(failure);
+                },
+                clearLocalState: async () => {
+                  if (failure === "local-state") throw new Error(failure);
+                },
+              }),
             clearPendingDeletion: async () => {
               pendingCleared = true;
             },
@@ -288,12 +403,15 @@ describe("delete all game cloud save data", () => {
         deleteRemoteSnapshots: async () => {
           calls.push("delete-remote-again");
         },
-        prepareLocalDeletion: async () => async () => {
-          calls.push("delete-local");
-        },
-        clearLocalState: async () => {
-          calls.push("clear-local-state");
-        },
+        runWithLocalDeletionSnapshot: (operation) =>
+          operation({
+            deleteLocalFiles: async () => {
+              calls.push("delete-local");
+            },
+            clearLocalState: async () => {
+              calls.push("clear-local-state");
+            },
+          }),
         clearPendingDeletion: async () => {
           calls.push("clear-pending");
         },
@@ -317,12 +435,15 @@ describe("delete all game cloud save data", () => {
     await assert.rejects(
       executeDeleteGameCloudSaveData(
         createDependencies({
-          prepareLocalDeletion: async () => async () => {
-            localDeleted = true;
-          },
-          clearLocalState: async () => {
-            localStateCleared = true;
-          },
+          runWithLocalDeletionSnapshot: (operation) =>
+            operation({
+              deleteLocalFiles: async () => {
+                localDeleted = true;
+              },
+              clearLocalState: async () => {
+                localStateCleared = true;
+              },
+            }),
           clearPendingDeletion: async () => {
             throw new Error("marker-cleanup");
           },

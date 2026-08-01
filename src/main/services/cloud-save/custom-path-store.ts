@@ -108,13 +108,30 @@ const mutateStoredEntriesByKey = (
 export const withCloudSaveCustomPathStoreMutation = async (
   shop: GameShop,
   objectId: string,
-  operation: (storageKey: string) => Promise<void>
+  context: CloudSaveCustomPathContext,
+  operation: (
+    storageKey: string,
+    bindings: CloudSaveCustomPathBindings
+  ) => Promise<void>
 ) => {
   const storageKey = await getStorageKey(shop, objectId);
   return storeMutationCoordinator.run(
     storageKey,
     `custom-path-store:${++storeMutationId}`,
-    () => operation(storageKey)
+    async () => {
+      const entries = await getStoredEntriesByKey(storageKey);
+      const { bindings, migrations } = resolveStoredCloudSaveCustomPathBindings(
+        entries,
+        context
+      );
+      if (migrations.length > 0) {
+        await putStoredEntriesByKey(
+          storageKey,
+          applyCloudSaveCustomPathLocalPathMigrations(entries, migrations)
+        );
+      }
+      await operation(storageKey, bindings);
+    }
   );
 };
 
