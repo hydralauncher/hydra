@@ -1240,6 +1240,23 @@ export function DownloadSettingsModal({
     );
   }
 
+  let downloadPathError: ReactNode;
+  if (hasWritePermission === false) {
+    downloadPathError = (
+      <span
+        className="download-settings-modal__path-error"
+        data-open-article="cannot-write-directory"
+      >
+        {t("no_write_permission")}
+      </span>
+    );
+  } else if (!hasEnoughDiskSpace) {
+    downloadPathError = t("not_enough_space_on_disk", {
+      required: formatBytes(requiredSpace ?? 0),
+      available: formatBytes(diskFreeSpace ?? 0),
+    });
+  }
+
   return (
     <Modal
       visible={visible}
@@ -1418,27 +1435,7 @@ export function DownloadSettingsModal({
             readOnly
             disabled
             label={t("download_path")}
-            error={(() => {
-              if (hasWritePermission === false) {
-                return (
-                  <span
-                    className="download-settings-modal__path-error"
-                    data-open-article="cannot-write-directory"
-                  >
-                    {t("no_write_permission")}
-                  </span>
-                );
-              }
-
-              if (!hasEnoughDiskSpace) {
-                return t("not_enough_space_on_disk", {
-                  required: formatBytes(requiredSpace ?? 0),
-                  available: formatBytes(diskFreeSpace ?? 0),
-                });
-              }
-
-              return undefined;
-            })()}
+            error={downloadPathError}
             rightContent={
               <Button
                 className="download-settings-modal__change-path-button"
