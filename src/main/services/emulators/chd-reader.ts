@@ -489,14 +489,13 @@ const decodeCompList = (
   const comps = new Uint8Array(hunkcount);
   let lastcomp = 0;
   let repcount = 0;
-  let exhaustedAt: number | null = null;
   for (let h = 0; h < hunkcount; h++) {
     if (repcount > 0) {
       comps[h] = lastcomp;
       repcount--;
       continue;
     }
-    if (exhaustedAt === null && bits.overflow()) exhaustedAt = h;
+    if (bits.overflow()) return { comps, exhaustedAt: h };
     const val = decoder.decodeOne(bits);
     if (val === COMPRESSION_RLE_SMALL) {
       comps[h] = lastcomp;
@@ -509,7 +508,7 @@ const decodeCompList = (
       comps[h] = lastcomp = val;
     }
   }
-  return { comps, exhaustedAt };
+  return { comps, exhaustedAt: null };
 };
 
 interface MapState {
@@ -582,11 +581,17 @@ type MapDecodeFailure =
   | "raw-map-truncated"
   | "map-header-truncated"
   | "map-data-truncated"
-  | "huffman-tree-invalid";
+  | "huffman-tree-invalid"
+  | "map-bitstream-exhausted";
 
 type MapDecodeResult =
-  | { entries: MapEntry[]; exhaustedAt: number | null }
-  | { error: MapDecodeFailure; got: number; want: number };
+  | { entries: MapEntry[] }
+  | {
+      reason: MapDecodeFailure;
+      bytesRead?: number;
+      bytesExpected?: number;
+      atHunk?: number;
+    };
 
 const decodeMap = async (
   fh: fs.FileHandle,
@@ -598,7 +603,11 @@ const decodeMap = async (
     const want = hunkcount * 4;
     const raw = await readAt(fh, mapoffset, want);
     if (raw.length < want) {
-      return { error: "raw-map-truncated", got: raw.length, want };
+      return {
+        reason: "raw-map-truncated",
+        bytesRead: raw.length,
+        bytesExpected: want,
+      };
     }
     const entries: MapEntry[] = new Array(hunkcount);
     for (let i = 0; i < hunkcount; i++) {
@@ -608,12 +617,16 @@ const decodeMap = async (
         offset: beU32(raw, i * 4) * hunkbytes,
       };
     }
-    return { entries, exhaustedAt: null };
+    return { entries };
   }
 
   const mapHeader = await readAt(fh, mapoffset, 16);
   if (mapHeader.length < 16) {
-    return { error: "map-header-truncated", got: mapHeader.length, want: 16 };
+    return {
+      reason: "map-header-truncated",
+      bytesRead: mapHeader.length,
+      bytesExpected: 16,
+    };
   }
   const mapbytes = beU32(mapHeader, 0);
   const firstoffs = beU48(mapHeader, 4);
@@ -624,19 +637,22 @@ const decodeMap = async (
   const compressedMap = await readAt(fh, mapoffset + 16, mapbytes);
   if (compressedMap.length < mapbytes) {
     return {
-      error: "map-data-truncated",
-      got: compressedMap.length,
-      want: mapbytes,
+      reason: "map-data-truncated",
+      bytesRead: compressedMap.length,
+      bytesExpected: mapbytes,
     };
   }
   const bits = new Bitstream(compressedMap);
 
   const decoder = new HuffmanDecoder(16, 8);
   if (!decoder.importTreeRle(bits)) {
-    return { error: "huffman-tree-invalid", got: mapbytes, want: mapbytes };
+    return { reason: "huffman-tree-invalid" };
   }
 
   const { comps, exhaustedAt } = decodeCompList(bits, decoder, hunkcount);
+  if (exhaustedAt !== null) {
+    return { reason: "map-bitstream-exhausted", atHunk: exhaustedAt };
+  }
 
   const entries: MapEntry[] = new Array(hunkcount);
   const st: MapState = { curoffset: firstoffs, lastSelf: 0, lastParent: 0 };
@@ -644,7 +660,7 @@ const decodeMap = async (
   for (let h = 0; h < hunkcount; h++) {
     entries[h] = resolveMapEntry(bits, comps[h], h, hunkbytes, meta, st);
   }
-  return { entries, exhaustedAt };
+  return { entries };
 };
 
 const inflateRaw = (src: Buffer): Buffer => zlib.inflateRawSync(src);
@@ -746,27 +762,18 @@ export const readChdLeadingData = async (
     }
 
     const map = await decodeMap(fh, header);
-    if ("error" in map) {
+    if ("reason" in map) {
       logger.log("[chd] map decode failed", {
         filePath,
         version: header.version,
         codecs: header.compression.map(untag),
-        reason: map.error,
-        bytesRead: map.got,
-        bytesExpected: map.want,
         mapoffset: header.mapoffset,
         hunkcount: header.hunkcount,
+        ...map,
       });
       return null;
     }
     const { entries } = map;
-    if (map.exhaustedAt !== null) {
-      logger.log("[chd] map bitstream exhausted", {
-        filePath,
-        atHunk: map.exhaustedAt,
-        hunkcount: header.hunkcount,
-      });
-    }
 
     const chunks: Buffer[] = [];
     let decoded = 0;
