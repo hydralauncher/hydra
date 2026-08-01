@@ -3,6 +3,7 @@ import type {
   CloudSaveSyncAnchor,
   LocalGameSnapshot,
   RestoreManifestResponse,
+  SyncGameCloudSaveResult,
 } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
@@ -30,6 +31,27 @@ export const isCloudSaveRawPathRemovable = (
 ) =>
   registeredRawPaths.has(rawPath) ||
   activeRemoteFiles.some((file) => file.rawPath === rawPath);
+
+export const executeCloudSaveCustomPathRemoval = async ({
+  isRegistered,
+  unregister,
+  sync,
+}: {
+  isRegistered: boolean;
+  unregister: () => Promise<void>;
+  sync: () => Promise<SyncGameCloudSaveResult>;
+}) => {
+  if (isRegistered) {
+    await unregister();
+  }
+
+  const result = await sync();
+  if (result.finalState === "conflict") {
+    throw new Error("cloud_save_custom_path_removal_conflict");
+  }
+
+  return result;
+};
 
 export const excludeCloudSaveRawPathsFromMerge = (
   analysis: CloudSaveRawPathRemovalAnalysis,

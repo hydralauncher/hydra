@@ -84,7 +84,7 @@ const putStoredEntriesByKey = async (
 ) => {
   const normalized = normalizeStoredEntries(entries);
   if (normalized.length === 0) {
-    await cloudSaveCustomPathsSublevel.del(key).catch(() => undefined);
+    await cloudSaveCustomPathsSublevel.del(key);
   } else {
     await cloudSaveCustomPathsSublevel.put(key, normalized);
   }
