@@ -24,14 +24,31 @@ import {
 import { CloudSaveOperationCoordinator } from "./operation-coordinator";
 import {
   classifyAutomaticCloudSaveFailure,
+  getPendingDeletionAutomaticSyncOutcome,
   type AutomaticCloudSaveSyncOutcome,
 } from "./automatic-sync-outcome";
+import { isCloudSaveDeletionPending } from "./pending-deletion";
 
 const automaticSyncCoordinator =
   new CloudSaveOperationCoordinator<AutomaticCloudSaveSyncOutcome>();
 
 const gameKey = (objectId: string, shop: GameShop) =>
   JSON.stringify([shop, objectId]);
+
+const isPendingDeletionBlockingAutomaticSync = async (
+  objectId: string,
+  shop: GameShop,
+  trigger?: CloudSaveAutomaticSyncTrigger
+) =>
+  isCloudSaveDeletionPending(objectId, shop).catch((error: unknown) => {
+    logger.error("[Cloud Save] Failed to inspect pending deletion", {
+      shop,
+      objectId,
+      trigger,
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
+    return true;
+  });
 
 export const canRunAutomaticCloudSaveSync = async (
   objectId: string,
@@ -43,6 +60,7 @@ export const canRunAutomaticCloudSaveSync = async (
       HydraApi.isLoggedIn(),
       HydraApi.hasActiveSubscription()
     ) ||
+    (await isPendingDeletionBlockingAutomaticSync(objectId, shop)) ||
     !(await getCloudSaveAutomaticSyncEnabled(objectId, shop))
   ) {
     return false;
@@ -73,6 +91,23 @@ export const runAutomaticCloudSaveSyncDetailed = async (
     )
   ) {
     return { status: "skipped", result: null };
+  }
+
+  const pendingDeletionOutcome = getPendingDeletionAutomaticSyncOutcome(
+    await isPendingDeletionBlockingAutomaticSync(objectId, shop, trigger)
+  );
+  if (pendingDeletionOutcome) {
+    logger.warn("[Cloud Save] Automatic sync blocked by pending deletion", {
+      shop,
+      objectId,
+      trigger,
+    });
+    emitAutomaticSyncEvent({
+      gameId: { objectId, shop },
+      trigger,
+      status: "cancelled",
+    });
+    return pendingDeletionOutcome;
   }
 
   if (!(await getCloudSaveAutomaticSyncEnabled(objectId, shop))) {

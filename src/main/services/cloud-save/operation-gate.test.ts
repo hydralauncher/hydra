@@ -62,6 +62,34 @@ describe("cloud save operation gate", () => {
     assert.equal(runs, 1);
   });
 
+  it("checks a persistent sync guard inside the operation reservation", async () => {
+    const gate = new CloudSaveOperationGate();
+    let operationCalled = false;
+
+    await assert.rejects(
+      gate.runSync(
+        "game",
+        "sync",
+        async () => {
+          operationCalled = true;
+          return "synced";
+        },
+        async () => {
+          throw new Error("cloud_save_delete_pending");
+        }
+      ),
+      /cloud_save_delete_pending/
+    );
+
+    assert.equal(operationCalled, false);
+    assert.equal(
+      await gate.runDeletion("game", "delete", () =>
+        Promise.resolve("deleted")
+      ),
+      "deleted"
+    );
+  });
+
   it("prevents launch and deletion overlap while allowing pre-launch sync", async () => {
     const gate = new CloudSaveOperationGate();
     const launchRun = deferred<string>();

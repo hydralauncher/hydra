@@ -32,6 +32,7 @@ import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { isCloudSaveSyncPartialAfterApply } from "./sync-result-policy";
 import { shouldRetryCloudSaveConflict } from "./snapshot-retry-policy";
 import { cloudSaveOperationGate } from "./operation-gate";
+import { assertCloudSaveDeletionNotPending } from "./pending-deletion";
 import {
   type ProgressCallback,
   getSyncDirection,
@@ -646,7 +647,12 @@ const runCloudSaveOperation = (
     for (const listener of progressState.listeners) listener(progress);
   };
   const promise = cloudSaveOperationGate
-    .runSync(key, operationKey, () => run(emitProgress))
+    .runSync(
+      key,
+      operationKey,
+      () => run(emitProgress),
+      () => assertCloudSaveDeletionNotPending(objectId, shop)
+    )
     .finally(() => {
       if (activeSyncs.get(key)?.promise === promise) activeSyncs.delete(key);
     });

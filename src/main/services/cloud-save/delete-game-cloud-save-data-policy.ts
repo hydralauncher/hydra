@@ -1,8 +1,9 @@
 import type { GameShop } from "@types";
 
 interface DeleteGameCloudSaveDataDependencies {
-  getAutomaticSyncEnabled: () => Promise<boolean>;
-  setAutomaticSyncEnabled: (enabled: boolean) => Promise<unknown>;
+  beginPendingDeletion: () => Promise<"prepared" | "remote-started">;
+  markRemoteDeletionStarted: () => Promise<void>;
+  clearPendingDeletion: () => Promise<void>;
   prepareLocalDeletion: () => Promise<() => Promise<void>>;
   runWithLocalStateLock: (operation: () => Promise<void>) => Promise<void>;
   assertGameNotRunning: () => void;
@@ -19,42 +20,39 @@ export const buildDeleteGameCloudSaveSnapshotsUrl = (
 };
 
 export const executeDeleteGameCloudSaveData = async ({
-  getAutomaticSyncEnabled,
-  setAutomaticSyncEnabled,
+  beginPendingDeletion,
+  markRemoteDeletionStarted,
+  clearPendingDeletion,
   prepareLocalDeletion,
   runWithLocalStateLock,
   assertGameNotRunning,
   deleteRemoteSnapshots,
   clearLocalState,
 }: DeleteGameCloudSaveDataDependencies) => {
-  const wasAutomaticSyncEnabled = await getAutomaticSyncEnabled();
-  await setAutomaticSyncEnabled(false);
-
-  let operationError: unknown;
+  let pendingPhase = await beginPendingDeletion();
   try {
     const deleteLocalFiles = await prepareLocalDeletion();
     await runWithLocalStateLock(async () => {
       assertGameNotRunning();
+      pendingPhase = "remote-started";
+      await markRemoteDeletionStarted();
       await deleteRemoteSnapshots();
       assertGameNotRunning();
       await deleteLocalFiles();
       await clearLocalState();
+      await clearPendingDeletion();
     });
   } catch (error) {
-    operationError = error;
-  }
-
-  try {
-    await setAutomaticSyncEnabled(wasAutomaticSyncEnabled);
-  } catch (restoreError) {
-    if (operationError) {
-      throw new AggregateError(
-        [operationError, restoreError],
-        "cloud_save_delete_rollback_failed"
-      );
+    if (pendingPhase === "prepared") {
+      try {
+        await clearPendingDeletion();
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          "cloud_save_delete_rollback_failed"
+        );
+      }
     }
-    throw restoreError;
+    throw error;
   }
-
-  if (operationError) throw operationError;
 };

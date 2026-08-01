@@ -1,10 +1,6 @@
 import type { GameShop } from "@types";
 
 import { HydraApi } from "../hydra-api";
-import {
-  getCloudSaveAutomaticSyncEnabled,
-  setCloudSaveAutomaticSyncEnabled,
-} from "./automatic-sync-settings";
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import { clearCloudSaveLocalState } from "./clear-cloud-save-local-state";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
@@ -24,6 +20,11 @@ import {
   cloudSaveOperationGate,
   cloudSaveOperationScopeKey,
 } from "./operation-gate";
+import {
+  beginCloudSavePendingDeletion,
+  clearCloudSavePendingDeletion,
+  markCloudSaveRemoteDeletionStarted,
+} from "./pending-deletion";
 
 export const deleteGameCloudSaveData = async (
   objectId: string,
@@ -38,10 +39,12 @@ export const deleteGameCloudSaveData = async (
     () => {
       let customPathStorageKey: string | null = null;
       return executeDeleteGameCloudSaveData({
-        getAutomaticSyncEnabled: () =>
-          getCloudSaveAutomaticSyncEnabled(objectId, shop),
-        setAutomaticSyncEnabled: (enabled) =>
-          setCloudSaveAutomaticSyncEnabled(objectId, shop, enabled),
+        beginPendingDeletion: () =>
+          beginCloudSavePendingDeletion(objectId, shop),
+        markRemoteDeletionStarted: () =>
+          markCloudSaveRemoteDeletionStarted(objectId, shop),
+        clearPendingDeletion: () =>
+          clearCloudSavePendingDeletion(objectId, shop),
         runWithLocalStateLock: (operation) =>
           withCloudSaveCustomPathStoreMutation(
             shop,

@@ -17,13 +17,17 @@ export class CloudSaveOperationGate {
   public runSync<T>(
     scopeKey: string,
     operationKey: string,
-    operation: () => Promise<T>
+    operation: () => Promise<T>,
+    assertCanStart?: () => Promise<void>
   ): Promise<T> {
     if (this.active.has(scopeKey)) {
       return Promise.reject(new Error("cloud_save_operation_active"));
     }
 
-    return this.run(scopeKey, "sync", operationKey, operation);
+    return this.run(scopeKey, "sync", operationKey, async () => {
+      await assertCanStart?.();
+      return operation();
+    });
   }
 
   public runDeletion<T>(
