@@ -1,6 +1,7 @@
 import { SystemPath } from "@main/services/system-path";
 import { cloudSaveLocalHashCacheSublevel, levelKeys } from "@main/level";
 import type {
+  CloudSaveCustomPathBindings,
   GameShop,
   LocalGameSnapshotContext,
   StoreUserContext,
@@ -13,6 +14,7 @@ import { customPathToCloudSaveRule } from "./custom-path-store";
 
 interface BuildLocalGameSnapshotContextOptions {
   scanStoreUserContext?: StoreUserContext;
+  customPathBindings?: CloudSaveCustomPathBindings;
 }
 
 export const buildLocalGameSnapshotContext = async (
@@ -27,9 +29,9 @@ export const buildLocalGameSnapshotContext = async (
   const cacheKey = levelKeys.game(shop, objectId);
   const [hashCache, extraRules] = await Promise.all([
     cloudSaveLocalHashCacheSublevel.get(cacheKey).then((value) => value ?? []),
-    getUsableCloudSaveCustomPathBindings(objectId, shop, context).then(
-      ({ ready }) => ready.map(customPathToCloudSaveRule)
-    ),
+    getUsableCloudSaveCustomPathBindings(objectId, shop, context, {
+      bindings: options.customPathBindings,
+    }).then(({ ready }) => ready.map(customPathToCloudSaveRule)),
   ]);
   const { hashCache: updatedHashCache, ...snapshot } =
     await NativeAddon.buildLocalGameSnapshotPipeline({

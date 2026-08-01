@@ -171,7 +171,7 @@ parentPort.on('message', (type) => {
     }
   } catch (_) {
     if (type === 'map') {
-      parentPort.postMessage({ type: 'map', result: { processMap: {}, winePrefixMap: {}, linuxProcesses: [] } });
+      parentPort.postMessage({ type: 'map', result: null });
     } else {
       parentPort.postMessage({ type: 'list', result: [] });
     }
@@ -181,7 +181,7 @@ parentPort.on('message', (type) => {
 
 type PendingResolver =
   | { type: "list"; resolve: (p: ProcessPayload[]) => void }
-  | { type: "map"; resolve: (m: SystemProcessMap) => void };
+  | { type: "map"; resolve: (m: SystemProcessMap | null) => void };
 
 export class NativeAddon {
   private static nativeModule: HydraNativeModule | null = null;
@@ -252,8 +252,8 @@ export class NativeAddon {
           )
         );
       } else {
-        (pending.resolve as (m: SystemProcessMap) => void)(
-          result as SystemProcessMap
+        (pending.resolve as (m: SystemProcessMap | null) => void)(
+          result as SystemProcessMap | null
         );
       }
     });
@@ -340,12 +340,7 @@ export class NativeAddon {
     const drained = this.pendingResolvers.splice(0);
     for (const pending of drained) {
       if (pending.type === "list") pending.resolve([]);
-      else
-        pending.resolve({
-          processMap: {},
-          winePrefixMap: {},
-          linuxProcesses: [],
-        });
+      else pending.resolve(null);
     }
   }
 
@@ -361,14 +356,14 @@ export class NativeAddon {
     });
   }
 
-  public static getSystemProcessMap(): Promise<SystemProcessMap> {
+  public static getSystemProcessMap(): Promise<SystemProcessMap | null> {
     return new Promise((resolve) => {
       try {
         const worker = this.getWorker();
         this.pendingResolvers.push({ type: "map", resolve });
         worker.postMessage("map");
       } catch {
-        resolve({ processMap: {}, winePrefixMap: {}, linuxProcesses: [] });
+        resolve(null);
       }
     });
   }

@@ -11,12 +11,13 @@ registerEvent(
     objectId: string,
     shop: GameShop
   ) => {
-    if (isGameRunning(objectId, shop)) {
-      throw new Error(
-        "Cloud saves cannot be deleted while the game is running"
-      );
-    }
+    const assertGameNotRunning = () => {
+      if (isGameRunning(objectId, shop)) {
+        throw new Error("cloud_save_delete_game_running");
+      }
+    };
 
-    await deleteGameCloudSaveData(objectId, shop);
+    assertGameNotRunning();
+    await deleteGameCloudSaveData(objectId, shop, assertGameNotRunning);
   }
 );

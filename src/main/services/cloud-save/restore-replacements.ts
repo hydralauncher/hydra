@@ -58,5 +58,9 @@ export const buildRestoreReplacements = (
 };
 
 export const isRestoreReplacementSuccessful = (
-  result: ReplaceRestoreTargetsResult
-) => result.failedFiles.length === 0 && result.metadataFailures.length === 0;
+  result: ReplaceRestoreTargetsResult,
+  expectedTargetCount: number
+) =>
+  result.failedFiles.length === 0 &&
+  result.restoredFiles.length + result.skippedFiles.length ===
+    expectedTargetCount;

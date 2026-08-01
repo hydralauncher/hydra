@@ -24,6 +24,7 @@ import {
   unregisterCloudSaveCustomPath,
 } from "./custom-path-store";
 import {
+  executeCloudSaveCustomPathRemoval,
   excludeCloudSaveRawPathsFromMerge,
   isCloudSaveRawPathRemovable,
 } from "./custom-path-removal";
@@ -31,6 +32,7 @@ import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { isCloudSaveSyncPartialAfterApply } from "./sync-result-policy";
 import { shouldRetryCloudSaveConflict } from "./snapshot-retry-policy";
 import { cloudSaveOperationGate } from "./operation-gate";
+import { assertCloudSaveDeletionNotPending } from "./pending-deletion";
 import {
   type ProgressCallback,
   getSyncDirection,
@@ -245,6 +247,14 @@ const executeRestoreOnlySync = async ({
         )
       : null;
   if (deleteLocalIds.length > 0) {
+    if (!restored) {
+      emitProgress({
+        gameId: { objectId, shop },
+        stage: "restoring",
+        processedFiles: 0,
+        totalFiles: deleteLocalIds.length,
+      });
+    }
     await deleteLocalSaveTargets(
       analysis.localSnapshotContext,
       deleteLocalIds,
@@ -637,7 +647,12 @@ const runCloudSaveOperation = (
     for (const listener of progressState.listeners) listener(progress);
   };
   const promise = cloudSaveOperationGate
-    .runSync(key, operationKey, () => run(emitProgress))
+    .runSync(
+      key,
+      operationKey,
+      () => run(emitProgress),
+      () => assertCloudSaveDeletionNotPending(objectId, shop)
+    )
     .finally(() => {
       if (activeSyncs.get(key)?.promise === promise) activeSyncs.delete(key);
     });
@@ -710,23 +725,22 @@ export const removeCloudSaveCustomPathAndSync = async (
     JSON.stringify(["remove-custom-path", rawPath, context.environmentId]),
     async (emitProgress) => {
       await assertCloudSaveExecutableExists(objectId, shop);
-      const result = await runGameCloudSaveSync(
-        objectId,
-        shop,
-        "manual",
-        emitProgress,
-        undefined,
-        context,
-        new Set([rawPath]),
-        isRegistered ? new Set([rawPath]) : new Set()
-      );
-      if (result.finalState === "conflict") {
-        throw new Error("cloud_save_custom_path_removal_conflict");
-      }
-      if (isRegistered) {
-        await unregisterCloudSaveCustomPath(shop, objectId, rawPath);
-      }
-      return result;
+      return executeCloudSaveCustomPathRemoval({
+        isRegistered,
+        unregister: () =>
+          unregisterCloudSaveCustomPath(shop, objectId, rawPath),
+        sync: () =>
+          runGameCloudSaveSync(
+            objectId,
+            shop,
+            "manual",
+            emitProgress,
+            undefined,
+            context,
+            new Set([rawPath]),
+            isRegistered ? new Set([rawPath]) : new Set()
+          ),
+      });
     },
     onProgress
   );

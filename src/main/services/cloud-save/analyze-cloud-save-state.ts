@@ -1,4 +1,8 @@
-import type { CloudSaveState, GameShop } from "@types";
+import type {
+  CloudSaveCustomPathBindings,
+  CloudSaveState,
+  GameShop,
+} from "@types";
 
 import { NativeAddon } from "../native-addon";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
@@ -10,11 +14,16 @@ import { storeUserContextWithSnapshotAccounts } from "./snapshot-store-user-cont
 import { getCloudSaveSyncAnchor } from "./sync-anchor";
 import type { SyncDirection } from "./sync-game/policy";
 
+interface AnalyzeCloudSaveStateOptions {
+  customPathBindings?: CloudSaveCustomPathBindings;
+}
+
 export const analyzeCloudSaveState = async (
   objectId: string,
   shop: GameShop,
   suppliedContext?: Awaited<ReturnType<typeof getCloudSaveGameContext>>,
-  syncDirection: SyncDirection = "bidirectional"
+  syncDirection: SyncDirection = "bidirectional",
+  options: AnalyzeCloudSaveStateOptions = {}
 ) => {
   const [context, remoteSnapshots] = await Promise.all([
     suppliedContext ?? getCloudSaveGameContext(objectId, shop),
@@ -39,7 +48,10 @@ export const analyzeCloudSaveState = async (
     objectId,
     shop,
     context,
-    { scanStoreUserContext }
+    {
+      scanStoreUserContext,
+      customPathBindings: options.customPathBindings,
+    }
   );
 
   const {
