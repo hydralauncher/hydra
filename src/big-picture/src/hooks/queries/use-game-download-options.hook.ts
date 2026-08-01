@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { IS_DESKTOP } from "../../constants";
 import type { DownloadSource, Game, GameRepack } from "@types";
+import { applyHosterAvailability, fetchHosterAvailability } from "@shared";
 import { orderBy } from "lodash-es";
 
 export type DownloadOptionsEmptyStateReason =
@@ -163,6 +164,20 @@ async function fetchDownloadOptions(
     );
 
     setDownloadOptionsSuccessState(signal, setters, options);
+
+    if (signal.cancelled || !Array.isArray(options) || options.length === 0) {
+      return;
+    }
+
+    const results = await fetchHosterAvailability(options, (url, data) =>
+      globalThis.window.electron.hydraApi.post(url, { data, needsAuth: false })
+    );
+
+    if (results.length === 0) return;
+
+    applyIfNotCancelled(signal, () => {
+      setters.setDownloadOptions(applyHosterAvailability(options, results));
+    });
   } catch {
     setNoDownloadOptionsState(signal, setters);
   }
