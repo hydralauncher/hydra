@@ -9,6 +9,7 @@ import type {
 
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
+  executeCloudSaveCustomPathRemoval,
   excludeCloudSaveRawPathsFromMerge,
   isCloudSaveRawPathRemovable,
 } from "./custom-path-removal.ts";
@@ -28,6 +29,108 @@ const file = (rawPath: string, relativePath: string): SnapshotFile => ({
 });
 
 describe("custom path removal proposal", () => {
+  const syncResult = {
+    trigger: "manual",
+    action: "upload",
+    initialState: "local-ahead",
+    finalState: "synced",
+    remoteHash: "a".repeat(64),
+    environmentId: "test",
+  } as const;
+
+  it("persists a registered local removal before mutating remote state", async () => {
+    const calls: string[] = [];
+
+    const result = await executeCloudSaveCustomPathRemoval({
+      isRegistered: true,
+      unregister: async () => {
+        calls.push("unregister");
+      },
+      sync: async () => {
+        calls.push("sync");
+        return syncResult;
+      },
+    });
+
+    assert.deepEqual(calls, ["unregister", "sync"]);
+    assert.equal(result, syncResult);
+  });
+
+  it("does not mutate remote state when local removal cannot be persisted", async () => {
+    let syncCalled = false;
+
+    await assert.rejects(
+      executeCloudSaveCustomPathRemoval({
+        isRegistered: true,
+        unregister: async () => {
+          throw new Error("leveldb unavailable");
+        },
+        sync: async () => {
+          syncCalled = true;
+          return syncResult;
+        },
+      }),
+      /leveldb unavailable/
+    );
+
+    assert.equal(syncCalled, false);
+  });
+
+  it("keeps the local binding removed when remote mutation fails", async () => {
+    let registered = true;
+
+    await assert.rejects(
+      executeCloudSaveCustomPathRemoval({
+        isRegistered: true,
+        unregister: async () => {
+          registered = false;
+        },
+        sync: async () => {
+          throw new Error("remote unavailable");
+        },
+      }),
+      /remote unavailable/
+    );
+
+    assert.equal(registered, false);
+  });
+
+  it("removes a remote-only path without changing local bindings", async () => {
+    let unregisterCalled = false;
+
+    const result = await executeCloudSaveCustomPathRemoval({
+      isRegistered: false,
+      unregister: async () => {
+        unregisterCalled = true;
+      },
+      sync: async () => syncResult,
+    });
+
+    assert.equal(unregisterCalled, false);
+    assert.equal(result, syncResult);
+  });
+
+  it("reports a remote conflict after keeping the local binding removed", async () => {
+    let registered = true;
+
+    await assert.rejects(
+      executeCloudSaveCustomPathRemoval({
+        isRegistered: true,
+        unregister: async () => {
+          registered = false;
+        },
+        sync: async () => ({
+          ...syncResult,
+          action: "conflict",
+          finalState: "conflict",
+        }),
+      }),
+      /cloud_save_custom_path_removal_conflict/
+    );
+
+    assert.equal(registered, false);
+  });
+
   it("allows an exact legacy rawPath from the active snapshot without local registration", () => {
     const rawPath = "<custom><windows>C:/Users/Hydra/AppData/Roaming/Game";
     const otherRawPath = "<custom><windows><winAppData>/Other";
