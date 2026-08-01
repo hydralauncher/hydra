@@ -166,7 +166,7 @@ export const mergeUserVariantSnapshots = ({
         files.push(remoteFile);
         continue;
       }
-      if (!baseEntry || local.files.length === 0) {
+      if (!baseEntry) {
         files.push(remoteFile);
         unresolvedRemoteEntryIds.add(entryId);
         if (local.files.length === 0 || !coverage.incomplete) {

@@ -19,9 +19,10 @@ const hash = (value: string) => value.repeat(64).slice(0, 64);
 const file = (
   relativePath: string,
   value: string,
-  rawPath = "<home>/game"
+  rawPath = "<home>/game",
+  fileVariantId = variantId
 ): SnapshotFile => ({
-  variantId,
+  variantId: fileVariantId,
   rawPath,
   relativePath,
   hash: hash(value),
@@ -310,6 +311,110 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.files, [retained]);
     assert.deepEqual(result.deleteRemoteEntryIds, [cloudSaveFileKey(deleted)]);
     assert.deepEqual(result.restoreEntryIds, []);
+  });
+
+  it("deletes one empty profile without affecting another profile", () => {
+    const firstVariant: SnapshotVariant = {
+      variantId,
+      kind: "opaque-folder",
+      concreteFolderId: "76561197960267366",
+    };
+    const secondVariantId = "2".repeat(64);
+    const secondVariant: SnapshotVariant = {
+      variantId: secondVariantId,
+      kind: "opaque-folder",
+      concreteFolderId: "76561199873967367",
+    };
+    const rawPath = "<winAppData>/Sekiro/<storeUserId>/S0000.sl2";
+    const deleted = file("S0000.sl2", "a", rawPath);
+    const retained = file("S0000.sl2", "b", rawPath, secondVariantId);
+    const local = context([retained]);
+    local.variants = [secondVariant];
+    local.coverage = [
+      {
+        candidateId: "empty-sekiro-profile",
+        ruleId: "sekiro-save",
+        variantId,
+        rawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [firstVariant, secondVariant],
+      remoteFiles: [deleted, retained],
+      base: anchor([deleted, retained]),
+    });
+
+    assert.deepEqual(result.files, [retained]);
+    assert.deepEqual(result.deleteRemoteEntryIds, [cloudSaveFileKey(deleted)]);
+    assert.deepEqual(result.restoreEntryIds, []);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, []);
+  });
+
+  it("propagates deletion of the last file when coverage proves it", () => {
+    const deleted = file("S0000.sl2", "a");
+    const local = context([]);
+    local.coverage = [
+      {
+        candidateId: "sekiro-profile",
+        ruleId: "sekiro-save",
+        variantId,
+        rawPath: deleted.rawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [deleted],
+      base: anchor([deleted]),
+    });
+
+    assert.deepEqual(result.files, []);
+    assert.deepEqual(result.deleteRemoteEntryIds, [cloudSaveFileKey(deleted)]);
+    assert.deepEqual(result.restoreEntryIds, []);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, []);
+  });
+
+  it("restores the last file during a restore-only pre-launch sync", () => {
+    const deleted = file("S0000.sl2", "a");
+    const local = context([]);
+    local.coverage = [
+      {
+        candidateId: "sekiro-profile",
+        ruleId: "sekiro-save",
+        variantId,
+        rawPath: deleted.rawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [deleted],
+      base: anchor([deleted]),
+      direction: "restore-only",
+    });
+
+    assert.deepEqual(result.files, [deleted]);
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(deleted)]);
   });
 
   it("preserves an ignored custom path without restoring or deleting it", () => {

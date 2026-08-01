@@ -9,7 +9,9 @@ use walkdir::WalkDir;
 use super::glob::{expand_braces, has_glob_pattern, normalize_path};
 use super::types::{ScannedCloudSaveFile, ScannedCloudSavePath};
 use crate::cloud_save::identity::local_id;
-use crate::cloud_save::path_resolution::{capture_store_user_with_components, StoreUserCapture};
+use crate::cloud_save::path_resolution::{
+    capture_store_user_with_components, StoreUserCapture, STORE_USER_CAPTURE_MARKER,
+};
 use crate::cloud_save::restore::is_cloud_save_artifact_path;
 
 const MAX_SCAN_DEPTH: usize = 100;
@@ -361,6 +363,77 @@ fn captured_components_are_directories(
     Ok(true)
 }
 
+fn captured_file_parent_patterns(
+    resolved_path: &str,
+    capture_template: &str,
+) -> Option<(String, String)> {
+    let resolved_parent = Path::new(resolved_path).parent()?;
+    let template_parent = Path::new(capture_template).parent()?;
+    let template_parent = normalize_path(&template_parent.to_string_lossy());
+    if !template_parent.contains(STORE_USER_CAPTURE_MARKER) {
+        return None;
+    }
+
+    Some((
+        normalize_path(&resolved_parent.to_string_lossy()),
+        template_parent,
+    ))
+}
+
+fn add_empty_captured_file_roots(
+    scanned_by_root: &mut BTreeMap<String, ScannedCloudSavePath>,
+    resolved_path: &str,
+    capture_template: &str,
+    case_sensitive: bool,
+    follow_links: bool,
+) -> Result<(), String> {
+    let Some((parent_pattern, parent_template)) =
+        captured_file_parent_patterns(resolved_path, capture_template)
+    else {
+        return Ok(());
+    };
+    let options = match_options(case_sensitive, follow_links);
+
+    for matched in glob_matches(&parent_pattern, options)? {
+        if is_cloud_save_artifact_path(&matched) {
+            continue;
+        }
+        let metadata = std::fs::metadata(&matched)
+            .map_err(|error| format!("cloud_save_filesystem_error: {error}"))?;
+        if !metadata.is_dir() {
+            continue;
+        }
+        let concrete = normalize_path(&matched.to_string_lossy());
+        let Some(capture) =
+            capture_store_user_with_components(&parent_template, &concrete, case_sensitive)
+        else {
+            continue;
+        };
+        if !captured_components_are_directories(&matched, &capture, follow_links, false)? {
+            continue;
+        }
+
+        let resolved_root = canonical_path(&matched)?;
+        let candidate_id = local_id(&[resolved_path, &resolved_root]);
+        scanned_by_root
+            .entry(resolved_root.clone())
+            .and_modify(|existing| {
+                existing.store_user_id = Some(capture.value.clone());
+                existing.case_sensitive = case_sensitive;
+                existing.candidate_id = candidate_id.clone();
+            })
+            .or_insert_with(|| ScannedCloudSavePath {
+                candidate_id,
+                resolved_path: resolved_root,
+                store_user_id: Some(capture.value),
+                case_sensitive,
+                files: Vec::new(),
+            });
+    }
+
+    Ok(())
+}
+
 pub fn scan_resolved_path_with_capture(
     resolved_path: &str,
     case_sensitive: bool,
@@ -451,6 +524,18 @@ pub fn scan_resolved_path_with_capture(
                     scanned.candidate_id = local_id(&[resolved_path, &resolved_root]);
                 }
             }
+        }
+    }
+
+    if capture_may_be_leaf_file {
+        if let Some(template) = capture_template {
+            add_empty_captured_file_roots(
+                &mut scanned_by_root,
+                resolved_path,
+                template,
+                case_sensitive,
+                follow_links,
+            )?;
         }
     }
 

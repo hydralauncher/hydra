@@ -15,7 +15,10 @@ use napi_derive::napi;
 pub(crate) use applicability::{
     path_is_foreign_environment, rule_is_applicable, FOREIGN_ENVIRONMENT_TOKEN,
 };
-pub(crate) use capture::{capture_store_user_with_components, capture_template, StoreUserCapture};
+pub(crate) use capture::{
+    capture_store_user_with_components, capture_template, StoreUserCapture,
+    STORE_USER_CAPTURE_MARKER,
+};
 pub(crate) use context::build_context;
 pub(crate) use resolve_path::glob_base_path;
 pub(crate) use restore_root::resolve_restore_root;

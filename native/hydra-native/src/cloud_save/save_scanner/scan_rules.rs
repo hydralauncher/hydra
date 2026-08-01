@@ -310,6 +310,48 @@ mod tests {
     }
 
     #[test]
+    fn preserves_an_empty_profile_for_a_missing_leaf_file() {
+        let temp = tempdir().unwrap();
+        let profiles = temp.path().join("Sekiro");
+        let empty_profile = profiles.join("76561197960267366");
+        let populated_profile = profiles.join("76561199873967367");
+        fs::create_dir_all(&empty_profile).unwrap();
+        fs::create_dir_all(&populated_profile).unwrap();
+        fs::write(populated_profile.join("S0000.sl2"), b"save").unwrap();
+
+        let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "sekiro-save".into(),
+            kind: "file".into(),
+            raw_path: "<winAppData>/Sekiro/<storeUserId>/S0000.sl2".into(),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![ResolvedCloudSavePath {
+                path: format!("{}/*/S0000.sl2", profiles.display()),
+                case_sensitive: false,
+                dynamic: true,
+                scan_root: Some(profiles.display().to_string()),
+            }],
+            unresolved_tokens: vec![],
+        }])
+        .unwrap();
+
+        assert_eq!(scanned[0].scanned_paths.len(), 2);
+        let empty = scanned[0]
+            .scanned_paths
+            .iter()
+            .find(|path| path.store_user_id.as_deref() == Some("76561197960267366"))
+            .unwrap();
+        assert!(empty.files.is_empty());
+        assert!(scanned[0].coverage.iter().any(|coverage| {
+            coverage.candidate_id == empty.candidate_id
+                && coverage.selected_root
+                && coverage.outcome == "scanned"
+                && coverage.enumerated_completely
+        }));
+    }
+
+    #[test]
     fn captures_every_profile_file_matched_by_a_filename_glob() {
         let temp = tempdir().unwrap();
         let profiles = temp.path().join("Spider-Man");

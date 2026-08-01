@@ -363,6 +363,70 @@ mod tests {
     }
 
     #[test]
+    fn assigns_variant_coverage_to_an_empty_store_user_root() {
+        let temp = tempdir().unwrap();
+        let profile = temp.path().join("76561197960267366");
+        fs::create_dir_all(&profile).unwrap();
+        let candidate_id = "candidate-empty-profile".to_string();
+        let raw_path = "<winAppData>/Sekiro/<storeUserId>/S0000.sl2";
+        let rule = ScannedCloudSaveRule {
+            rule_id: "sekiro-save".into(),
+            kind: "file".into(),
+            raw_path: raw_path.into(),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![],
+            unresolved_tokens: vec![],
+            scanned_paths: vec![ScannedCloudSavePath {
+                candidate_id: candidate_id.clone(),
+                resolved_path: profile.display().to_string(),
+                store_user_id: Some("76561197960267366".into()),
+                case_sensitive: false,
+                files: vec![],
+            }],
+            coverage: vec![UserLocationCoverage {
+                candidate_id,
+                rule_id: "sekiro-save".into(),
+                variant_id: None,
+                raw_path: Some(raw_path.into()),
+                relative_path: None,
+                selected_root: true,
+                authority: "inferred".into(),
+                outcome: "scanned".into(),
+                enumerated_completely: true,
+                warning_codes: vec![],
+            }],
+        };
+
+        let (variants, files, coverage) = collect_discovered_files(
+            "steam",
+            "814380",
+            "steam:814380",
+            "environment",
+            &StoreUserContext::default(),
+            vec![rule],
+        )
+        .unwrap();
+
+        assert!(files.is_empty());
+        assert_eq!(variants.len(), 1);
+        assert_eq!(variants[0].kind, "opaque-folder");
+        assert_eq!(
+            variants[0].concrete_folder_id.as_deref(),
+            Some("76561197960267366")
+        );
+        assert_eq!(coverage.len(), 1);
+        assert_eq!(
+            coverage[0].variant_id.as_deref(),
+            Some(variants[0].variant_id.as_str())
+        );
+        assert_eq!(coverage[0].authority, "exact");
+        assert!(coverage[0].selected_root);
+        assert!(coverage[0].enumerated_completely);
+    }
+
+    #[test]
     fn manifest_identity_wins_when_a_custom_rule_finds_the_same_file() {
         let temp = tempdir().unwrap();
         let save = temp.path().join("slot.sav");
