@@ -234,15 +234,12 @@ export function CloudSavePanel({
 
   const snapshotMetadata = (
     updatedAt: string,
-    version: number,
     fileCount: number,
     totalSizeBytes: number,
     interactive = false
   ) => {
     const stats = (
       <>
-        <span>v{version}</span>
-        <span aria-hidden="true">·</span>
         <span>
           {t("cloud_save_v2_file_count", {
             count: fileCount,
@@ -368,7 +365,6 @@ export function CloudSavePanel({
                 </div>
                 {snapshotMetadata(
                   activeSnapshot.updatedAt,
-                  activeSnapshot.version,
                   activeSnapshot.fileCount,
                   activeSnapshot.totalSizeBytes,
                   true

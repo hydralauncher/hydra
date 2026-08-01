@@ -172,7 +172,7 @@ export function CloudSaveV2FileTreeView({
             aria-label={t("cloud_save_v2_rebind_custom_path_named", { name })}
           >
             <FileDirectoryIcon size={15} />
-            <span>{t("cloud_save_v2_choose_location")}</span>
+            <span>{t("cloud_save_v2_rebind_custom_path")}</span>
           </button>
         )}
         {removableCustomRawPath && (
