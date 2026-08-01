@@ -29,8 +29,10 @@ import { useSubscription } from "@renderer/hooks/use-subscription";
 import {
   DownloadError,
   Downloader,
+  MINIMUM_FREE_DISK_SPACE_BYTES,
   formatBytes,
   getDownloadersForUri,
+  parseBytes,
 } from "@shared";
 import type { GameRepack, TorrentFile, TorrentFilesResponse } from "@types";
 import { motion } from "framer-motion";
@@ -548,6 +550,18 @@ export function DownloadSettingsModal({
     });
     return total;
   }, [selectedTorrentIndices, torrentFilesByIndex]);
+
+  const requiredSpace = useMemo(() => {
+    if (selectedTorrentSize > 0) return selectedTorrentSize;
+
+    return parseBytes(repack?.fileSize ?? null);
+  }, [selectedTorrentSize, repack?.fileSize]);
+
+  const hasEnoughDiskSpace = useMemo(() => {
+    if (diskFreeSpace === null || requiredSpace === null) return true;
+
+    return diskFreeSpace >= requiredSpace + MINIMUM_FREE_DISK_SPACE_BYTES;
+  }, [diskFreeSpace, requiredSpace]);
 
   const torrentTree = useMemo(
     () => buildTorrentTreeData(torrentFiles, torrentFilesByIndex),
@@ -1234,6 +1248,23 @@ export function DownloadSettingsModal({
     );
   }
 
+  let downloadPathError: ReactNode;
+  if (hasWritePermission === false) {
+    downloadPathError = (
+      <span
+        className="download-settings-modal__path-error"
+        data-open-article="cannot-write-directory"
+      >
+        {t("no_write_permission")}
+      </span>
+    );
+  } else if (!hasEnoughDiskSpace) {
+    downloadPathError = t("not_enough_space_on_disk", {
+      required: formatBytes(requiredSpace ?? 0),
+      available: formatBytes(diskFreeSpace ?? 0),
+    });
+  }
+
   return (
     <Modal
       visible={visible}
@@ -1434,16 +1465,7 @@ export function DownloadSettingsModal({
             readOnly
             disabled
             label={t("download_path")}
-            error={
-              hasWritePermission === false ? (
-                <span
-                  className="download-settings-modal__path-error"
-                  data-open-article="cannot-write-directory"
-                >
-                  {t("no_write_permission")}
-                </span>
-              ) : undefined
-            }
+            error={downloadPathError}
             rightContent={
               <Button
                 className="download-settings-modal__change-path-button"
@@ -1487,6 +1509,7 @@ export function DownloadSettingsModal({
             downloadStarting ||
             selectedDownloader === null ||
             !hasWritePermission ||
+            !hasEnoughDiskSpace ||
             downloadOptions.some(
               (option) =>
                 option.downloader === selectedDownloader &&
@@ -1590,6 +1613,14 @@ export function DownloadSettingsModal({
             <span className="download-settings-modal__torrent-files-summary">
               {t("selected_files")}: {selectedTorrentIndices.size}/
               {torrentFiles.length}
+              {!hasEnoughDiskSpace && (
+                <span className="download-settings-modal__torrent-files-space-error">
+                  {t("not_enough_space_on_disk", {
+                    required: formatBytes(requiredSpace ?? 0),
+                    available: formatBytes(diskFreeSpace ?? 0),
+                  })}
+                </span>
+              )}
             </span>
             <Button
               onClick={handleTorrentStepDownload}
@@ -1597,6 +1628,7 @@ export function DownloadSettingsModal({
                 downloadStarting ||
                 torrentFilesLoading ||
                 !!torrentFilesError ||
+                !hasEnoughDiskSpace ||
                 selectedTorrentIndices.size === 0
               }
             >
