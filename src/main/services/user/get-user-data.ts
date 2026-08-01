@@ -27,6 +27,9 @@ export const getUserData = async () => {
       } catch (error) {
         logger.error("Failed to update user in DB", error);
       }
+
+      HydraApi.updateUserSubscription(me.subscription);
+
       return me;
     })
     .catch(async (err) => {
