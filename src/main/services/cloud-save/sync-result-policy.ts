@@ -15,10 +15,11 @@ export const isCloudSaveSyncPartialAfterApply = ({
 }: CloudSaveSyncPartialAfterApplyInput) =>
   coverage.some(
     (item) =>
-      !item.enumeratedCompletely ||
-      item.outcome === "failed" ||
-      item.outcome === "partial" ||
-      item.outcome === "unresolved"
+      item.outcome !== "foreign-environment" &&
+      (!item.enumeratedCompletely ||
+        item.outcome === "failed" ||
+        item.outcome === "partial" ||
+        item.outcome === "unresolved")
   ) ||
   unresolvedRemoteEntryIds.length > 0 ||
   restorePartial ||

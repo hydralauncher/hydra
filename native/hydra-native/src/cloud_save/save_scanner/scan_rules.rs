@@ -2,7 +2,9 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use crate::cloud_save::identity::{local_id, UserLocationCoverage};
-use crate::cloud_save::path_resolution::{capture_template, ResolvedCloudSaveRule};
+use crate::cloud_save::path_resolution::{
+    capture_template, ResolvedCloudSaveRule, FOREIGN_ENVIRONMENT_TOKEN,
+};
 
 use super::scan_path::scan_resolved_path_with_capture;
 use super::types::{ScannedCloudSavePath, ScannedCloudSaveRule};
@@ -14,6 +16,28 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
             let mut selected_paths = Vec::<ScannedCloudSavePath>::new();
             let mut coverage = Vec::<UserLocationCoverage>::new();
             let user_bound = rule.raw_path.contains("<storeUserId>");
+            if rule
+                .unresolved_tokens
+                .iter()
+                .any(|token| token == FOREIGN_ENVIRONMENT_TOKEN)
+            {
+                coverage.push(UserLocationCoverage {
+                    candidate_id: local_id(&[
+                        FOREIGN_ENVIRONMENT_TOKEN,
+                        &rule.rule_id,
+                        &rule.raw_path,
+                    ]),
+                    rule_id: rule.rule_id.clone(),
+                    variant_id: None,
+                    raw_path: Some(rule.raw_path.clone()),
+                    relative_path: None,
+                    selected_root: false,
+                    authority: "inferred".to_string(),
+                    outcome: "foreign-environment".to_string(),
+                    enumerated_completely: false,
+                    warning_codes: vec![],
+                });
+            }
 
             if rule.unresolved_tokens.is_empty() {
                 for candidate in &rule.resolved_paths {
@@ -23,6 +47,7 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                         candidate.case_sensitive,
                         candidate.scan_root.as_deref(),
                         template.as_deref(),
+                        rule.kind == "file",
                         !rule.raw_path.starts_with("<custom>"),
                     ) {
                         Ok(paths) => paths,
@@ -105,7 +130,7 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                             .as_ref()
                             .is_some_and(|root| root == &scanned.resolved_path);
                         let selected_root = if user_bound {
-                            !is_shared_scan_root && scanned.store_user_id.is_some()
+                            scanned.store_user_id.is_some()
                         } else if !selected_paths.is_empty() && !candidate_has_files {
                             false
                         } else {
@@ -249,6 +274,130 @@ mod tests {
             .filter_map(|path| path.store_user_id.as_deref())
             .collect::<Vec<_>>();
         assert_eq!(users, vec!["Goldberg", "Rune"]);
+    }
+
+    #[test]
+    fn captures_a_profile_directory_above_a_matched_file() {
+        let temp = tempdir().unwrap();
+        let users = temp.path().join("users");
+        let profile = users.join("1312205131");
+        fs::create_dir_all(&profile).unwrap();
+        fs::write(profile.join("screeninfo.cfg"), b"settings").unwrap();
+
+        let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "screeninfo".into(),
+            kind: "file".into(),
+            raw_path: "<home>/Game/users/<storeUserId>/screeninfo.cfg".into(),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![ResolvedCloudSavePath {
+                path: format!("{}/*/screeninfo.cfg", users.display()),
+                case_sensitive: false,
+                dynamic: true,
+                scan_root: Some(users.display().to_string()),
+            }],
+            unresolved_tokens: vec![],
+        }])
+        .unwrap();
+
+        assert_eq!(scanned[0].scanned_paths.len(), 1);
+        assert_eq!(
+            scanned[0].scanned_paths[0].store_user_id.as_deref(),
+            Some("1312205131")
+        );
+        assert_eq!(scanned[0].scanned_paths[0].files.len(), 1);
+    }
+
+    #[test]
+    fn captures_every_profile_file_matched_by_a_filename_glob() {
+        let temp = tempdir().unwrap();
+        let profiles = temp.path().join("Spider-Man");
+        let profile = profiles.join("76561197960271872");
+        fs::create_dir_all(&profile).unwrap();
+        fs::write(profile.join("slot0-s.save"), b"automatic").unwrap();
+        fs::write(profile.join("slot0-s-manual-0.save"), b"manual").unwrap();
+
+        let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "spider-man-slots".into(),
+            kind: "file".into(),
+            raw_path: "<winDocuments>/Marvel's Spider-Man Remastered/<storeUserId>/slot*.save"
+                .into(),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![ResolvedCloudSavePath {
+                path: format!("{}/*/slot*.save", profiles.display()),
+                case_sensitive: false,
+                dynamic: true,
+                scan_root: Some(profiles.display().to_string()),
+            }],
+            unresolved_tokens: vec![],
+        }])
+        .unwrap();
+
+        assert_eq!(scanned[0].scanned_paths.len(), 1);
+        assert_eq!(
+            scanned[0].scanned_paths[0].store_user_id.as_deref(),
+            Some("76561197960271872")
+        );
+        assert_eq!(
+            scanned[0].scanned_paths[0]
+                .files
+                .iter()
+                .map(|file| file.relative_path.as_str())
+                .collect::<Vec<_>>(),
+            vec!["slot0-s-manual-0.save", "slot0-s.save"]
+        );
+    }
+
+    #[test]
+    fn captures_profiles_embedded_in_leaf_file_names() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("profiles");
+        fs::create_dir_all(&root).unwrap();
+
+        for (raw_leaf, concrete_leaf, expected_user) in [
+            (
+                "PlayerProfile<storeUserId>.sav",
+                "PlayerProfileGoldberg.sav",
+                "Goldberg",
+            ),
+            ("<storeUserId>.ini", "Rune.ini", "Rune"),
+        ] {
+            fs::write(root.join(concrete_leaf), expected_user.as_bytes()).unwrap();
+            let resolved_leaf = raw_leaf.replace("<storeUserId>", "*");
+            let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+                rule_id: raw_leaf.into(),
+                kind: "file".into(),
+                raw_path: format!("<home>/Game/{raw_leaf}"),
+                source: "ludusavi".into(),
+                tags: vec!["save".into()],
+                when: vec![],
+                resolved_paths: vec![ResolvedCloudSavePath {
+                    path: root
+                        .join(resolved_leaf)
+                        .display()
+                        .to_string()
+                        .replace('\\', "/"),
+                    case_sensitive: true,
+                    dynamic: true,
+                    scan_root: Some(root.display().to_string().replace('\\', "/")),
+                }],
+                unresolved_tokens: vec![],
+            }])
+            .unwrap();
+
+            assert_eq!(scanned[0].scanned_paths.len(), 1);
+            assert_eq!(
+                scanned[0].scanned_paths[0].store_user_id.as_deref(),
+                Some(expected_user)
+            );
+            assert_eq!(
+                scanned[0].scanned_paths[0].files[0].relative_path,
+                concrete_leaf
+            );
+        }
     }
 
     #[test]
@@ -532,6 +681,7 @@ mod tests {
         let user = root.join("76561198000000000");
         fs::create_dir_all(&user).unwrap();
         fs::write(root.join("GraphicsConfig.xml"), b"config").unwrap();
+        fs::write(root.join("users.zip"), b"not-a-profile").unwrap();
         fs::write(user.join("ER0000.sl2"), b"save").unwrap();
 
         let scanned = scan_rules(vec![ResolvedCloudSaveRule {
@@ -577,6 +727,27 @@ mod tests {
         .unwrap();
 
         assert!(scanned[0].scanned_paths.is_empty());
+    }
+
+    #[test]
+    fn records_a_foreign_rule_without_treating_it_as_incomplete() {
+        let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "linux-rule".into(),
+            kind: "dir".into(),
+            raw_path: "<xdgConfig>/Game".into(),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![],
+            unresolved_tokens: vec![FOREIGN_ENVIRONMENT_TOKEN.into()],
+        }])
+        .unwrap();
+
+        assert!(scanned[0].scanned_paths.is_empty());
+        assert_eq!(scanned[0].coverage.len(), 1);
+        assert_eq!(scanned[0].coverage[0].outcome, "foreign-environment");
+        assert!(!scanned[0].coverage[0].enumerated_completely);
+        assert!(scanned[0].coverage[0].warning_codes.is_empty());
     }
 
     #[test]

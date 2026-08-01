@@ -160,17 +160,17 @@ export interface StoreUserContext {
 }
 
 export interface StoreUserIdentity {
-  kind: "default" | "validated-account" | "opaque-folder";
+  kind: "default" | "folder-profile";
   store: string;
   steamId64?: string;
   accountId32?: string;
   concreteFolderId: string;
-  source: "active-login" | "known-login" | "folder-match" | "unbound-rule";
-  authority: "active" | "known" | "inferred";
+  source: "folder-match" | "unbound-rule";
+  authority: "inferred" | "literal";
 }
 
 export interface PortableStoreUserIdentity {
-  kind: "default" | "validated-account" | "opaque-folder";
+  kind: "default" | "folder-profile";
   store: string;
   steamId64?: string;
   accountId32?: string;
@@ -204,7 +204,8 @@ export interface UserLocationCoverage {
     | "confirmed-missing"
     | "partial"
     | "failed"
-    | "unresolved";
+    | "unresolved"
+    | "foreign-environment";
   enumeratedCompletely: boolean;
   warningCodes: string[];
 }
@@ -476,7 +477,10 @@ export interface CloudSaveSyncIpcProgressPayload
 
 export interface ResolveRestoreTargetsInput extends CloudSavePathContext {
   approvedRules: Array<
-    Pick<CloudSaveRule, "kind" | "rawPath" | "source" | "preferredPath">
+    Pick<
+      CloudSaveRule,
+      "kind" | "rawPath" | "source" | "preferredPath" | "when"
+    >
   >;
   variants: SnapshotVariant[];
   files: RestoreManifestFile[];
@@ -495,7 +499,8 @@ export type BlockedRestoreReason =
   | "blocked-user-ambiguous"
   | "blocked-rule-unavailable"
   | "blocked-target-outside-root"
-  | "blocked-target-ambiguous";
+  | "blocked-target-ambiguous"
+  | "foreign-environment";
 
 export interface BlockedRestoreFile extends RestoreManifestFile {
   reason: BlockedRestoreReason;
@@ -504,6 +509,7 @@ export interface BlockedRestoreFile extends RestoreManifestFile {
 export interface ResolveRestoreTargetsResult {
   actions: ResolvedRestoreTarget[];
   blocked: BlockedRestoreFile[];
+  deferred: BlockedRestoreFile[];
 }
 
 export interface RestoreDownloadUrlFile extends RestoreManifestFile {

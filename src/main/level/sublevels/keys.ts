@@ -35,6 +35,7 @@ export const levelKeys = {
   cloudSavePrefixGenerations: "cloud-save-prefix-generations",
   cloudSaveSyncAnchors: "cloud-save-sync-anchors",
   cloudSaveAutomaticSyncSettings: "cloud-save-automatic-sync-settings",
+  cloudSaveV2DefaultMigration: "cloud-save-v2-default-migration",
   cloudSaveCustomPaths: "cloud-save-custom-paths",
   cloudSavePendingDeletions: "cloud-save-pending-deletions",
 };

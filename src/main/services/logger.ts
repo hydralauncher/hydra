@@ -2,6 +2,13 @@ import { logsPath } from "@main/constants";
 import log from "electron-log";
 import path from "path";
 
+type DepthAwareTransport = log.Transport & { depth: number };
+
+// Main-process logs reach DevTools through electron-log's IPC transport. Its
+// default depth is too shallow for API payloads, turning array entries into
+// "[object]" before the renderer can inspect them.
+(log.transports.ipc as DepthAwareTransport).depth = 12;
+
 log.transports.file.resolvePathFn = (
   _: log.PathVariables,
   message?: log.LogMessage | undefined

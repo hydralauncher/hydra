@@ -56,4 +56,21 @@ describe("Cloud Save final sync state", () => {
       true
     );
   });
+
+  it("does not mark a sync partial only because another OS has files", () => {
+    assert.equal(
+      isCloudSaveSyncPartialAfterApply({
+        coverage: [
+          {
+            ...completeCoverage,
+            selectedRoot: false,
+            outcome: "foreign-environment",
+            enumeratedCompletely: false,
+          },
+        ],
+        unresolvedRemoteEntryIds: [],
+      }),
+      false
+    );
+  });
 });

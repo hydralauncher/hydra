@@ -5,12 +5,11 @@ use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
 use crate::cloud_save::hashing::hash_file;
-use crate::cloud_save::identity::{
-    is_safe_capture, normalize_rule_path, KnownStoreAccount, SnapshotVariant,
-};
+use crate::cloud_save::identity::{is_safe_capture, normalize_rule_path, SnapshotVariant};
 use crate::cloud_save::manifest::types::CloudSaveRule;
 use crate::cloud_save::path_resolution::{
-    build_context, glob_base_path, resolve_restore_root, ResolveSaveRulesInput,
+    build_context, glob_base_path, path_is_foreign_environment, resolve_restore_root,
+    rule_is_applicable, ResolveSaveRulesInput,
 };
 
 use super::metadata::parse_last_modified_at;
@@ -21,8 +20,6 @@ use super::types::{
 use super::validation::{
     validate_hash, validate_relative_path, validate_size, validate_windows_relative_path,
 };
-
-const STEAM_INDIVIDUAL_ACCOUNT_BASE: u64 = 76_561_197_960_265_728;
 
 fn join_path(root: &str, relative_path: &str) -> String {
     format!(
@@ -133,45 +130,17 @@ fn blocked(file: RestoreManifestFile, reason: &str) -> BlockedRestoreFile {
     }
 }
 
-fn validated_steam_ids(account: &KnownStoreAccount) -> Option<(String, String)> {
-    if account.store != "steam" {
-        return None;
-    }
-    let steam_id64 = account.steam_id64.as_deref()?.parse::<u64>().ok()?;
-    let account_id32 = steam_id64.checked_sub(STEAM_INDIVIDUAL_ACCOUNT_BASE)?;
-    if account_id32 > u32::MAX as u64 {
-        return None;
-    }
-    let account_id32 = account_id32.to_string();
-    if account.account_id32.as_deref() != Some(account_id32.as_str()) {
-        return None;
-    }
-    Some((steam_id64.to_string(), account_id32))
-}
-
-fn concrete_user_values(
-    variant: &SnapshotVariant,
-    context: &crate::cloud_save::identity::StoreUserContext,
-) -> Result<Vec<String>, &'static str> {
+fn concrete_user_values(variant: &SnapshotVariant) -> Result<Vec<String>, &'static str> {
     match variant.kind.as_str() {
         "default" => Ok(Vec::new()),
         "opaque-folder" => Ok(vec![variant
             .concrete_folder_id
             .clone()
             .ok_or("blocked-user-ambiguous")?]),
-        "steam-account" => {
-            let expected = variant
-                .steam_id64
-                .as_deref()
-                .ok_or("blocked-user-ambiguous")?;
-            let account = context
-                .active
-                .iter()
-                .chain(context.known.iter())
-                .find_map(|account| validated_steam_ids(account).filter(|ids| ids.0 == expected))
-                .ok_or("blocked-user-not-found")?;
-            Ok(vec![account.0, account.1])
-        }
+        "steam-account" => Ok(vec![variant
+            .steam_id64
+            .clone()
+            .ok_or("blocked-user-ambiguous")?]),
         _ => Err("blocked-user-ambiguous"),
     }
 }
@@ -226,6 +195,7 @@ fn resolve_restore_targets_inner(
         .collect::<Vec<_>>();
     let mut candidates = Vec::<(ResolvedRestoreTarget, RestoreManifestFile)>::new();
     let mut blocked_files = Vec::new();
+    let mut deferred_files = Vec::new();
     let mut identities = HashSet::new();
     let mut used_variants = HashSet::new();
 
@@ -247,6 +217,17 @@ fn resolve_restore_targets_inner(
             blocked_files.push(blocked(file, "blocked-rule-unavailable"));
             continue;
         }
+        let rules = rules
+            .into_iter()
+            .filter(|rule| {
+                rule_is_applicable(&rule.when, &context)
+                    && !path_is_foreign_environment(&rule.raw_path, &context)
+            })
+            .collect::<Vec<_>>();
+        if rules.is_empty() {
+            deferred_files.push(blocked(file, "foreign-environment"));
+            continue;
+        }
         if variant.kind == "default" && file.raw_path.contains("<storeUserId>") {
             blocked_files.push(blocked(file, "blocked-user-ambiguous"));
             continue;
@@ -256,7 +237,7 @@ fn resolve_restore_targets_inner(
             continue;
         }
 
-        let user_values = match concrete_user_values(variant, &input.store_user_context) {
+        let user_values = match concrete_user_values(variant) {
             Ok(values) => values,
             Err(reason) => {
                 blocked_files.push(blocked(file, reason));
@@ -303,25 +284,10 @@ fn resolve_restore_targets_inner(
                     directory,
                     std::slice::from_ref(&file.relative_path),
                 ) {
-                    if variant.kind == "opaque-folder" && !Path::new(&root).exists() {
-                        continue;
-                    }
                     resolved_roots.push(root);
                 }
             }
 
-            if variant.kind == "steam-account" {
-                let existing = resolved_roots
-                    .iter()
-                    .filter(|root| Path::new(root).exists())
-                    .cloned()
-                    .collect::<Vec<_>>();
-                if !existing.is_empty() {
-                    resolved_roots = existing;
-                } else {
-                    resolved_roots.truncate(1);
-                }
-            }
             for root in resolved_roots {
                 let target_path = if directory {
                     join_path(&root, &file.relative_path)
@@ -428,10 +394,17 @@ fn resolve_restore_targets_inner(
             file.variant_id, file.raw_path, file.relative_path
         )
     });
+    deferred_files.sort_by_key(|file| {
+        format!(
+            "{}\0{}\0{}",
+            file.variant_id, file.raw_path, file.relative_path
+        )
+    });
 
     Ok(ResolveRestoreTargetsResult {
         actions,
         blocked: blocked_files,
+        deferred: deferred_files,
     })
 }
 
@@ -452,7 +425,8 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::cloud_save::identity::{KnownStoreAccount, StoreUserContext};
+    use crate::cloud_save::identity::StoreUserContext;
+    use crate::cloud_save::manifest::types::CloudSaveRuleCondition;
     use crate::cloud_save::restore::types::ApprovedRestoreRule;
 
     const RAW_RULE: &str = "<home>/Game/<storeUserId>";
@@ -500,6 +474,7 @@ mod tests {
                 raw_path: RAW_RULE.into(),
                 source: "test".into(),
                 preferred_path: None,
+                when: vec![],
             }],
             variants,
             files,
@@ -527,6 +502,7 @@ mod tests {
             raw_path: "<custom><windows><absolute>C:/Users/Rodrigo/Downloads/Game/Saves".into(),
             source: "custom".into(),
             preferred_path: None,
+            when: vec![],
         }];
 
         let result = resolve_restore_targets_inner(restore_input).unwrap();
@@ -568,6 +544,10 @@ mod tests {
             raw_path: raw_path.into(),
             source: "custom".into(),
             preferred_path: Some(approved_root.display().to_string()),
+            when: vec![CloudSaveRuleCondition {
+                os: Some("windows".into()),
+                store: None,
+            }],
         }];
 
         let result = resolve_restore_targets_inner(restore_input).unwrap();
@@ -609,6 +589,7 @@ mod tests {
             raw_path: raw_path.into(),
             source: "custom".into(),
             preferred_path: Some(selected.display().to_string()),
+            when: vec![],
         }];
 
         let result = resolve_restore_targets_inner(restore_input).unwrap();
@@ -647,7 +628,7 @@ mod tests {
     }
 
     #[test]
-    fn refuses_to_create_a_missing_opaque_folder() {
+    fn creates_an_exact_missing_profile_folder() {
         let temp = tempdir().unwrap();
         let variants = vec![variant("opaque-folder", "Unknown")];
         let files = vec![file(&variants[0], "slot.dat")];
@@ -659,143 +640,49 @@ mod tests {
         ))
         .unwrap();
 
-        assert!(result.actions.is_empty());
-        assert_eq!(result.blocked[0].reason, "blocked-user-not-found");
-    }
-
-    #[test]
-    fn validated_account_can_create_its_exact_missing_folder() {
-        let temp = tempdir().unwrap();
-        let account = KnownStoreAccount {
-            store: "steam".into(),
-            steam_id64: Some("76561197960278073".into()),
-            account_id32: Some("12345".into()),
-            source: "loginusers".into(),
-        };
-        let context = StoreUserContext {
-            active: Some(account.clone()),
-            known: vec![account],
-        };
-        let variants = vec![variant("steam-account", "76561197960278073")];
-        let files = vec![file(&variants[0], "slot.dat")];
-        let result =
-            resolve_restore_targets_inner(input(temp.path(), context, variants, files)).unwrap();
-
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 1);
         assert_eq!(result.actions[0].action, "create");
-    }
-
-    #[test]
-    fn restores_remote_snapshot_accounts_independently_from_the_local_account() {
-        let temp = tempdir().unwrap();
-        let local = KnownStoreAccount {
-            store: "steam".into(),
-            steam_id64: Some("76561199208012825".into()),
-            account_id32: Some("1247747097".into()),
-            source: "active-login".into(),
-        };
-        let remote_accounts = [
-            ("76561199800542110", "1840276382"),
-            ("76561199865645641", "1905379913"),
-            ("76561198835007011", "874741283"),
-        ];
-        let mut known = vec![local.clone()];
-        known.extend(
-            remote_accounts.map(|(steam_id64, account_id32)| KnownStoreAccount {
-                store: "steam".into(),
-                steam_id64: Some(steam_id64.into()),
-                account_id32: Some(account_id32.into()),
-                source: "remote-snapshot".into(),
-            }),
-        );
-        let context = StoreUserContext {
-            active: Some(local),
-            known,
-        };
-        let variants = remote_accounts
-            .map(|(steam_id64, _)| variant("steam-account", steam_id64))
-            .to_vec();
-        let files = variants
-            .iter()
-            .map(|variant| file(variant, "slot.dat"))
-            .collect();
-
-        let result =
-            resolve_restore_targets_inner(input(temp.path(), context, variants, files)).unwrap();
-
-        assert!(result.blocked.is_empty());
-        assert_eq!(result.actions.len(), 3);
-        for (steam_id64, _) in remote_accounts {
-            assert!(result.actions.iter().any(|action| {
-                action
-                    .target_path
-                    .replace('\\', "/")
-                    .ends_with(&format!("/Game/{steam_id64}/slot.dat"))
-            }));
-        }
-        assert!(result
-            .actions
-            .iter()
-            .all(|action| !action.target_path.contains("76561199208012825")));
-    }
-
-    #[test]
-    fn reuses_an_existing_account_id32_folder_for_a_remote_account() {
-        let temp = tempdir().unwrap();
-        fs::create_dir_all(temp.path().join("Game").join("1840276382")).unwrap();
-        let account = KnownStoreAccount {
-            store: "steam".into(),
-            steam_id64: Some("76561199800542110".into()),
-            account_id32: Some("1840276382".into()),
-            source: "remote-snapshot".into(),
-        };
-        let context = StoreUserContext {
-            active: None,
-            known: vec![account],
-        };
-        let variants = vec![variant("steam-account", "76561199800542110")];
-        let files = vec![file(&variants[0], "slot.dat")];
-
-        let result =
-            resolve_restore_targets_inner(input(temp.path(), context, variants, files)).unwrap();
-
-        assert!(result.blocked.is_empty());
-        assert_eq!(result.actions.len(), 1);
         assert!(result.actions[0]
             .target_path
             .replace('\\', "/")
-            .ends_with("/Game/1840276382/slot.dat"));
+            .ends_with("/Game/Unknown/slot.dat"));
     }
 
     #[test]
-    fn blocks_a_remote_account_when_both_steam_folder_formats_exist() {
+    fn defers_a_foreign_environment_without_blocking_the_restore() {
         let temp = tempdir().unwrap();
-        fs::create_dir_all(temp.path().join("Game").join("76561199800542110")).unwrap();
-        fs::create_dir_all(temp.path().join("Game").join("1840276382")).unwrap();
-        let account = KnownStoreAccount {
-            store: "steam".into(),
-            steam_id64: Some("76561199800542110".into()),
-            account_id32: Some("1840276382".into()),
-            source: "remote-snapshot".into(),
-        };
-        let context = StoreUserContext {
-            active: None,
-            known: vec![account],
-        };
-        let variants = vec![variant("steam-account", "76561199800542110")];
-        let files = vec![file(&variants[0], "slot.dat")];
+        let variant = variant("default", "");
+        let raw_path = "<xdgConfig>/Team Cherry/Hollow Knight Silksong";
+        let mut remote_file = file(&variant, "slot.dat");
+        remote_file.raw_path = raw_path.into();
+        let mut restore_input = input(
+            temp.path(),
+            StoreUserContext::default(),
+            vec![variant],
+            vec![remote_file],
+        );
+        restore_input.approved_rules = vec![ApprovedRestoreRule {
+            kind: "dir".into(),
+            raw_path: raw_path.into(),
+            source: "ludusavi".into(),
+            preferred_path: None,
+            when: vec![CloudSaveRuleCondition {
+                os: Some("linux".into()),
+                store: None,
+            }],
+        }];
 
-        let result =
-            resolve_restore_targets_inner(input(temp.path(), context, variants, files)).unwrap();
+        let result = resolve_restore_targets_inner(restore_input).unwrap();
 
         assert!(result.actions.is_empty());
-        assert_eq!(result.blocked.len(), 1);
-        assert_eq!(result.blocked[0].reason, "blocked-target-ambiguous");
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.deferred.len(), 1);
+        assert_eq!(result.deferred[0].reason, "foreign-environment");
     }
 
     #[test]
-    fn blocks_a_steam_variant_when_the_account_is_not_known() {
+    fn legacy_steam_variant_uses_its_literal_folder_without_account_context() {
         let temp = tempdir().unwrap();
         let variants = vec![variant("steam-account", "76561197960278073")];
         let files = vec![file(&variants[0], "slot.dat")];
@@ -807,8 +694,68 @@ mod tests {
         ))
         .unwrap();
 
-        assert!(result.actions.is_empty());
-        assert_eq!(result.blocked[0].reason, "blocked-user-not-found");
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(result.actions[0].action, "create");
+        assert!(result.actions[0]
+            .target_path
+            .replace('\\', "/")
+            .ends_with("/Game/76561197960278073/slot.dat"));
+    }
+
+    #[test]
+    fn preserves_different_numeric_profile_folders_as_different_targets() {
+        let temp = tempdir().unwrap();
+        let profile_ids = ["76561199800542110", "1840276382", "Goldberg"];
+        let variants = profile_ids
+            .map(|profile_id| variant("opaque-folder", profile_id))
+            .to_vec();
+        let files = variants
+            .iter()
+            .map(|variant| file(variant, "slot.dat"))
+            .collect();
+
+        let result = resolve_restore_targets_inner(input(
+            temp.path(),
+            StoreUserContext::default(),
+            variants,
+            files,
+        ))
+        .unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 3);
+        for profile_id in profile_ids {
+            assert!(result.actions.iter().any(|action| {
+                action
+                    .target_path
+                    .replace('\\', "/")
+                    .ends_with(&format!("/Game/{profile_id}/slot.dat"))
+            }));
+        }
+    }
+
+    #[test]
+    fn does_not_alias_different_numeric_folder_formats() {
+        let temp = tempdir().unwrap();
+        fs::create_dir_all(temp.path().join("Game").join("1840276382")).unwrap();
+        let variants = vec![variant("opaque-folder", "76561199800542110")];
+        let files = vec![file(&variants[0], "slot.dat")];
+
+        let result = resolve_restore_targets_inner(input(
+            temp.path(),
+            StoreUserContext::default(),
+            variants,
+            files,
+        ))
+        .unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert!(result.actions[0]
+            .target_path
+            .replace('\\', "/")
+            .ends_with("/Game/76561199800542110/slot.dat"));
     }
 
     #[test]
@@ -832,6 +779,7 @@ mod tests {
                 raw_path: raw_path.into(),
                 source: "test".into(),
                 preferred_path: None,
+                when: vec![],
             }],
             variants: vec![default.clone()],
             files: vec![RestoreManifestFile {
@@ -879,6 +827,7 @@ mod tests {
                 raw_path: raw_path.clone(),
                 source: "custom".into(),
                 preferred_path: None,
+                when: vec![],
             }],
             variants: vec![default.clone()],
             files: vec![RestoreManifestFile {
@@ -928,12 +877,14 @@ mod tests {
                     raw_path: raw_path.into(),
                     source: "first".into(),
                     preferred_path: None,
+                    when: vec![],
                 },
                 ApprovedRestoreRule {
                     kind: "dir".into(),
                     raw_path: raw_path.into(),
                     source: "second".into(),
                     preferred_path: None,
+                    when: vec![],
                 },
             ],
             variants: vec![default.clone()],

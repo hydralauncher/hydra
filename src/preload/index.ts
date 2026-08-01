@@ -72,8 +72,7 @@ const invokeCloudSaveOperation = async <TResult = SyncGameCloudSaveResult>(
     | "syncGameCloudSave"
     | "syncGameCloudSaveFromModal"
     | "syncCloudSaveAfterCustomPathRebind"
-    | "resolveCloudSaveConflict"
-    | "removeCloudSaveCustomPath",
+    | "resolveCloudSaveConflict",
   args: unknown[],
   onProgress?: (progress: CloudSaveSyncProgressPayload) => void
 ) => {
@@ -192,14 +191,14 @@ contextBridge.exposeInMainWorld("electron", {
   removeCloudSaveCustomPath: (
     objectId: string,
     shop: GameShop,
-    rawPath: string,
-    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    rawPath: string
   ) =>
-    invokeCloudSaveOperation(
+    ipcRenderer.invoke(
       "removeCloudSaveCustomPath",
-      [objectId, shop, rawPath],
-      onProgress
-    ),
+      objectId,
+      shop,
+      rawPath
+    ) as Promise<void>,
   setCloudSaveAutomaticSyncEnabled: (
     objectId: string,
     shop: GameShop,

@@ -7,9 +7,7 @@ use crate::cloud_save::manifest::types::{CloudSaveRule, CloudSaveRuleCondition};
 
 pub const IDENTITY_VERSION: u32 = 1;
 pub const RULE_ID_VERSION: u32 = 1;
-pub const DISCOVERY_ENGINE_VERSION: u32 = 2;
-
-const STEAM_INDIVIDUAL_ACCOUNT_BASE: u64 = 76_561_197_960_265_728;
+pub const DISCOVERY_ENGINE_VERSION: u32 = 3;
 
 #[napi(object)]
 #[derive(Clone, Debug, Serialize)]
@@ -179,31 +177,10 @@ pub fn build_rule_id(rule: &CloudSaveRule) -> String {
     })
 }
 
-fn validated_steam_account(account: &KnownStoreAccount) -> Option<(String, String)> {
-    if account.store != "steam" {
-        return None;
-    }
-    let steam_id64 = account.steam_id64.as_deref()?.parse::<u64>().ok()?;
-    let account_id = steam_id64.checked_sub(STEAM_INDIVIDUAL_ACCOUNT_BASE)?;
-    if account_id > u32::MAX as u64 {
-        return None;
-    }
-    let account_id32 = account_id.to_string();
-    if account.account_id32.as_deref() != Some(account_id32.as_str()) {
-        return None;
-    }
-    Some((steam_id64.to_string(), account_id32))
-}
-
-fn account_matches(account: &KnownStoreAccount, captured: &str) -> Option<(String, String)> {
-    let validated = validated_steam_account(account)?;
-    ((captured == validated.0) || (captured == validated.1)).then_some(validated)
-}
-
 pub fn store_user_identity(
     store: &str,
     captured: Option<&str>,
-    context: &StoreUserContext,
+    _context: &StoreUserContext,
 ) -> StoreUserIdentity {
     let concrete = captured.unwrap_or("__unbound__");
     if captured.is_none() {
@@ -217,46 +194,14 @@ pub fn store_user_identity(
             authority: "inferred".to_string(),
         };
     }
-    let active_match = context
-        .active
-        .as_ref()
-        .and_then(|account| account_matches(account, concrete).map(|ids| (account, ids)));
-    let known_match = context
-        .known
-        .iter()
-        .find_map(|account| account_matches(account, concrete).map(|ids| (account, ids)));
-
-    if let Some((account, (steam_id64, account_id32))) = active_match.or(known_match) {
-        let authority = if context.active.as_ref().is_some_and(|active| {
-            validated_steam_account(active).is_some_and(|ids| ids.0 == steam_id64)
-        }) {
-            "active"
-        } else {
-            "known"
-        };
-        return StoreUserIdentity {
-            kind: "validated-account".to_string(),
-            store: store.to_string(),
-            steam_id64: Some(steam_id64),
-            account_id32: Some(account_id32),
-            concrete_folder_id: concrete.to_string(),
-            source: account.source.clone(),
-            authority: authority.to_string(),
-        };
-    }
-
     StoreUserIdentity {
-        kind: "opaque-folder".to_string(),
+        kind: "folder-profile".to_string(),
         store: store.to_string(),
         steam_id64: None,
         account_id32: None,
         concrete_folder_id: concrete.to_string(),
-        source: if captured.is_some() {
-            "folder-match".to_string()
-        } else {
-            "unbound-rule".to_string()
-        },
-        authority: "inferred".to_string(),
+        source: "folder-match".to_string(),
+        authority: "literal".to_string(),
     }
 }
 
@@ -294,17 +239,6 @@ pub fn build_variant_id(
             concrete_folder_id: None,
         });
     }
-    if store_user.kind == "validated-account" {
-        return hash_json(&CanonicalVariant {
-            variant_id_version: IDENTITY_VERSION,
-            shop: &bindings.store,
-            object_id: &bindings.store_game_id,
-            kind: "steam-account",
-            steam_id64: store_user.steam_id64.as_deref(),
-            concrete_folder_id: None,
-        });
-    }
-
     let normalized = normalize_text(&store_user.concrete_folder_id);
     let normalized = if case_sensitive {
         normalized
@@ -333,12 +267,6 @@ pub fn build_snapshot_variant(
             variant_id,
             kind: "default".to_string(),
             steam_id64: None,
-            concrete_folder_id: None,
-        },
-        "validated-account" => SnapshotVariant {
-            variant_id,
-            kind: "steam-account".to_string(),
-            steam_id64: store_user.steam_id64.clone(),
             concrete_folder_id: None,
         },
         _ => {
@@ -405,7 +333,7 @@ mod tests {
     }
 
     #[test]
-    fn steam_representations_share_a_variant() {
+    fn literal_profiles_do_not_change_with_the_steam_context() {
         let steam_id64 = "76561198051718575";
         let account_id32 = "91452847";
         let account = KnownStoreAccount {
@@ -418,25 +346,34 @@ mod tests {
             active: Some(account.clone()),
             known: vec![account],
         };
-        let namespace = "steam:814380";
-        let for_64 = portable_bindings(
+        let with_account = portable_bindings(
             "steam",
             "814380",
             store_user_identity("steam", Some(steam_id64), &context),
         );
-        let for_32 = portable_bindings(
+        let without_account = portable_bindings(
+            "steam",
+            "814380",
+            store_user_identity("steam", Some(steam_id64), &StoreUserContext::default()),
+        );
+        assert_eq!(
+            build_variant_id("steam:814380", &with_account, false),
+            build_variant_id("steam:814380", &without_account, false)
+        );
+
+        let account_id_profile = portable_bindings(
             "steam",
             "814380",
             store_user_identity("steam", Some(account_id32), &context),
         );
-        assert_eq!(
-            build_variant_id(namespace, &for_64, false),
-            build_variant_id(namespace, &for_32, false)
+        assert_ne!(
+            build_variant_id("steam:814380", &with_account, false),
+            build_variant_id("steam:814380", &account_id_profile, false)
         );
     }
 
     #[test]
-    fn remote_snapshot_account_hint_recognizes_both_steam_representations() {
+    fn remote_snapshot_account_hint_does_not_reclassify_literal_profiles() {
         let steam_id64 = "76561199800542110";
         let account_id32 = "1840276382";
         let account = KnownStoreAccount {
@@ -452,10 +389,12 @@ mod tests {
 
         for captured in [steam_id64, account_id32] {
             let identity = store_user_identity("steam", Some(captured), &context);
-            assert_eq!(identity.kind, "validated-account");
-            assert_eq!(identity.steam_id64.as_deref(), Some(steam_id64));
-            assert_eq!(identity.account_id32.as_deref(), Some(account_id32));
-            assert_eq!(identity.source, "remote-snapshot");
+            assert_eq!(identity.kind, "folder-profile");
+            assert!(identity.steam_id64.is_none());
+            assert!(identity.account_id32.is_none());
+            assert_eq!(identity.concrete_folder_id, captured);
+            assert_eq!(identity.source, "folder-match");
+            assert_eq!(identity.authority, "literal");
         }
     }
 
@@ -481,6 +420,36 @@ mod tests {
         assert_eq!(opaque.concrete_folder_id.as_deref(), Some("goldberg"));
         assert!(opaque.steam_id64.is_none());
         assert_ne!(default.variant_id, opaque.variant_id);
+    }
+
+    #[test]
+    fn preserves_existing_default_and_opaque_variant_ids() {
+        let default_bindings = portable_bindings(
+            "steam",
+            "1817070",
+            store_user_identity("steam", None, &StoreUserContext::default()),
+        );
+        let default = build_snapshot_variant("steam:1817070", &default_bindings, false);
+        assert_eq!(
+            default.variant_id,
+            "6bb5b19456b48c65d5b6120154934d146013679fd8673e7d42694fff131774db"
+        );
+
+        let profile_bindings = portable_bindings(
+            "steam",
+            "1817070",
+            store_user_identity(
+                "steam",
+                Some("76561197960271872"),
+                &StoreUserContext::default(),
+            ),
+        );
+        let profile = build_snapshot_variant("steam:1817070", &profile_bindings, false);
+        assert_eq!(profile.kind, "opaque-folder");
+        assert_eq!(
+            profile.variant_id,
+            "82e6580b982018f47d8ce8e17656a22675f2277d2cdd0a11ae501b10c8a430e1"
+        );
     }
 
     #[test]
@@ -524,11 +493,11 @@ mod tests {
         assert_eq!(rule.rule_id.len(), 64);
         assert_eq!(
             variant_id,
-            "a3a47f520bfece378832d82e5c972ebdd0c596a6632a3804e5b71054d0d14c23"
+            "0885b75e18b67b0d4201b78cec6f9711326eb0affcd91ae1bbcb467a40a19e32"
         );
         assert_eq!(
             aggregate_hash,
-            "8965f06a9d4fb91d0c353e4becd1ecac7a5b8ab7f8b66b7fe3f26c03375772bb"
+            "c940e59b1eaa065e7c748a80aafde1328584a58ff5cca3d0810474ebecf5fa15"
         );
     }
 }

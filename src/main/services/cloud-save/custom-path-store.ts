@@ -17,6 +17,8 @@ import {
 } from "./custom-path";
 import {
   applyCloudSaveCustomPathLocalPathMigrations,
+  ignoreStoredCloudSaveCustomPath,
+  trackStoredCloudSaveCustomPaths,
   type StoredCloudSaveCustomPath,
 } from "./custom-path-binding-state";
 import { resolveStoredCloudSaveCustomPathBindings } from "./custom-path-binding-resolver";
@@ -41,11 +43,18 @@ const isStoredPath = (value: unknown): value is StoredCloudSaveCustomPath => {
   const record = value as Record<string, unknown>;
   return (
     typeof record.rawPath === "string" &&
+    (record.tracking === undefined ||
+      record.tracking === "tracked" ||
+      record.tracking === "ignored") &&
     (record.storeUserId === undefined ||
       typeof record.storeUserId === "string") &&
     (record.localPath === undefined || typeof record.localPath === "string") &&
     Object.keys(record).every(
-      (key) => key === "rawPath" || key === "storeUserId" || key === "localPath"
+      (key) =>
+        key === "rawPath" ||
+        key === "tracking" ||
+        key === "storeUserId" ||
+        key === "localPath"
     )
   );
 };
@@ -60,11 +69,24 @@ const normalizeStoredEntries = (
 
   const byRawPath = new Map<string, StoredCloudSaveCustomPath>();
   for (const entry of entries) {
+    if (entry.tracking === "ignored") {
+      byRawPath.set(entry.rawPath, {
+        rawPath: entry.rawPath,
+        tracking: "ignored",
+      });
+      continue;
+    }
+
     const existing = byRawPath.get(entry.rawPath);
     byRawPath.set(entry.rawPath, {
       rawPath: entry.rawPath,
-      storeUserId: entry.storeUserId ?? existing?.storeUserId,
-      localPath: entry.localPath ?? existing?.localPath,
+      tracking: "tracked",
+      storeUserId:
+        entry.storeUserId ??
+        (existing?.tracking !== "ignored" ? existing?.storeUserId : undefined),
+      localPath:
+        entry.localPath ??
+        (existing?.tracking !== "ignored" ? existing?.localPath : undefined),
     });
   }
   return [...byRawPath.values()].sort((left, right) =>
@@ -170,17 +192,62 @@ export const getCloudSaveCustomPathBindings = async (
   return bindings;
 };
 
+export const getCloudSaveCustomPathTrackingState = async (
+  shop: GameShop,
+  objectId: string,
+  context = getCurrentCloudSaveCustomPathContext()
+) => {
+  const entries = await getStoredEntries(shop, objectId);
+  const trackedEntries = entries.filter(
+    (entry) => entry.tracking !== "ignored"
+  );
+  const { bindings, migrations } = resolveStoredCloudSaveCustomPathBindings(
+    trackedEntries,
+    context
+  );
+
+  if (migrations.length > 0) {
+    await mutateStoredEntries(shop, objectId, (currentEntries) =>
+      applyCloudSaveCustomPathLocalPathMigrations(currentEntries, migrations)
+    ).catch((error: unknown) => {
+      logger.warn("[Cloud Save] Failed to migrate custom path bindings", {
+        shop,
+        objectId,
+        error,
+      });
+    });
+  }
+
+  return {
+    bindings,
+    ignoredRawPaths: entries
+      .filter((entry) => entry.tracking === "ignored")
+      .map((entry) => entry.rawPath),
+  };
+};
+
 export const saveCloudSaveCustomPaths = async (
   shop: GameShop,
   objectId: string,
   customPaths: CloudSaveCustomPath[]
 ) =>
-  mutateStoredEntries(shop, objectId, () =>
-    customPaths.map((customPath) => ({
-      rawPath: customPath.rawPath,
-      storeUserId: customPath.storeUserId,
-      localPath: customPath.path,
-    }))
+  mutateStoredEntries(shop, objectId, (entries) =>
+    entries
+      .filter((entry) => entry.tracking === "ignored")
+      .filter(
+        (entry) =>
+          !customPaths.some(
+            (customPath) => customPath.rawPath === entry.rawPath
+          )
+      )
+      .concat(
+        customPaths.map((customPath) => ({
+          rawPath: customPath.rawPath,
+          tracking: "tracked" as const,
+          storeUserId: customPath.storeUserId,
+          localPath: customPath.path,
+        }))
+      )
   );
 
 export const registerCloudSaveCustomPaths = async (
@@ -202,16 +269,14 @@ export const registerCloudSaveCustomPaths = async (
       );
       await options.assertCurrentBindings(bindings);
     }
-    const byRawPath = new Map(entries.map((entry) => [entry.rawPath, entry]));
-    for (const { rawPath, storeUserId, path: localPath } of customPaths) {
-      const existing = byRawPath.get(rawPath);
-      byRawPath.set(rawPath, {
+    return trackStoredCloudSaveCustomPaths(
+      entries,
+      customPaths.map(({ rawPath, storeUserId, path: localPath }) => ({
         rawPath,
-        storeUserId: storeUserId ?? existing?.storeUserId,
-        localPath: localPath ?? existing?.localPath,
-      });
-    }
-    return [...byRawPath.values()];
+        storeUserId,
+        localPath,
+      }))
+    );
   });
 };
 
@@ -221,20 +286,17 @@ export const isCloudSaveCustomPathRegistered = async (
   rawPath: string
 ) =>
   (await getStoredEntries(shop, objectId)).some(
-    (entry) => entry.rawPath === rawPath
+    (entry) => entry.rawPath === rawPath && entry.tracking !== "ignored"
   );
 
-export const unregisterCloudSaveCustomPath = async (
+export const ignoreCloudSaveCustomPath = async (
   shop: GameShop,
   objectId: string,
   rawPath: string
 ) => {
-  await mutateStoredEntries(shop, objectId, (entries) => {
-    if (!entries.some((entry) => entry.rawPath === rawPath)) {
-      throw new Error("cloud_save_custom_path_not_registered");
-    }
-    return entries.filter((entry) => entry.rawPath !== rawPath);
-  });
+  await mutateStoredEntries(shop, objectId, (entries) =>
+    ignoreStoredCloudSaveCustomPath(entries, rawPath)
+  );
 };
 
 export const customPathToCloudSaveRule = (

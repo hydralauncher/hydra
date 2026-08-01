@@ -53,6 +53,8 @@ export const resolveStoredCloudSaveCustomPathBindings = (
   const migrations: CloudSaveCustomPathLocalPathMigration[] = [];
 
   for (const stored of entries) {
+    if (stored.tracking === "ignored") continue;
+
     try {
       const customPath = {
         ...resolveStoredPath(stored, context),

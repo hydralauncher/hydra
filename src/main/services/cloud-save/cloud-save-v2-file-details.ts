@@ -39,6 +39,7 @@ interface BuildCloudSaveV2FileDetailsInput {
   conflictEntryIds?: string[];
   customPaths?: CloudSaveCustomPath[];
   unresolvedCustomPaths?: CloudSaveUnresolvedCustomPath[];
+  ignoredCustomPathRawPaths?: string[];
   describeUnregisteredCustomPath?: (
     rawPath: string
   ) => CloudSaveUnresolvedCustomPath;
@@ -193,6 +194,7 @@ export const buildCloudSaveV2FileDetails = ({
   conflictEntryIds = [],
   customPaths = [],
   unresolvedCustomPaths = [],
+  ignoredCustomPathRawPaths = [],
   describeUnregisteredCustomPath,
 }: BuildCloudSaveV2FileDetailsInput): CloudSaveV2FileDetails => {
   const variantById = indexVariants([...localVariants, ...remoteVariants]);
@@ -282,6 +284,7 @@ export const buildCloudSaveV2FileDetails = ({
   const readyCustomRawPaths = new Set(
     customPaths.map(({ rawPath }) => rawPath)
   );
+  const ignoredRawPaths = new Set(ignoredCustomPathRawPaths);
   const unresolvedCustomPathByRawPath = new Map(
     unresolvedCustomPaths.map((customPath) => [customPath.rawPath, customPath])
   );
@@ -291,6 +294,7 @@ export const buildCloudSaveV2FileDetails = ({
       .filter((rawPath) => rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX))
   )) {
     if (
+      ignoredRawPaths.has(rawPath) ||
       readyCustomRawPaths.has(rawPath) ||
       unresolvedCustomPathByRawPath.has(rawPath)
     ) {

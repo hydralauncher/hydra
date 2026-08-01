@@ -156,9 +156,8 @@ declare global {
     removeCloudSaveCustomPath: (
       objectId: string,
       shop: GameShop,
-      rawPath: string,
-      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
-    ) => Promise<SyncGameCloudSaveResult>;
+      rawPath: string
+    ) => Promise<void>;
     setCloudSaveAutomaticSyncEnabled: (
       objectId: string,
       shop: GameShop,

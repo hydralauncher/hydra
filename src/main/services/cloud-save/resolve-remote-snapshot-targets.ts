@@ -16,7 +16,6 @@ import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import { customPathToCloudSaveRule } from "./custom-path-store";
 import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
-import { storeUserContextWithSnapshotAccounts } from "./snapshot-store-user-context";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
   if (!winePrefixPath) return false;
@@ -105,8 +104,6 @@ export const resolveRestoreManifestTargets = async (
     winePrefixIsValid,
     wineUserProfilePath: wineUserProfilePath ?? null,
     wineProfileCount: wineProfiles.length,
-    hasActiveStoreUser: Boolean(pathContext.storeUserContext.active),
-    knownStoreUsers: pathContext.storeUserContext.known.length,
   });
 
   if (usesWindowsCompatibility && !effectiveWinePrefixPath) {
@@ -121,19 +118,16 @@ export const resolveRestoreManifestTargets = async (
 
   const targets = await NativeAddon.resolveRestoreTargets({
     ...pathContext,
-    storeUserContext: storeUserContextWithSnapshotAccounts(
-      pathContext.storeUserContext,
-      manifest.variants
-    ),
     winePrefixPath: effectiveWinePrefixPath,
     approvedRules: [
       ...approved.rules,
       ...customPaths.map(customPathToCloudSaveRule),
-    ].map(({ kind, rawPath, source, preferredPath }) => ({
+    ].map(({ kind, rawPath, source, preferredPath, when }) => ({
       kind,
       rawPath,
       source,
       preferredPath,
+      when,
     })),
     variants: manifest.variants,
     files: manifest.files,

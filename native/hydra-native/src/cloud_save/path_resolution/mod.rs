@@ -1,3 +1,4 @@
+mod applicability;
 mod candidates;
 mod capture;
 mod context;
@@ -11,7 +12,10 @@ mod types;
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
-pub(crate) use capture::{capture_store_user, capture_template};
+pub(crate) use applicability::{
+    path_is_foreign_environment, rule_is_applicable, FOREIGN_ENVIRONMENT_TOKEN,
+};
+pub(crate) use capture::{capture_store_user_with_components, capture_template, StoreUserCapture};
 pub(crate) use context::build_context;
 pub(crate) use resolve_path::glob_base_path;
 pub(crate) use restore_root::resolve_restore_root;

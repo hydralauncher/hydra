@@ -5,6 +5,8 @@ import { describe, it } from "node:test";
 import {
   applyCloudSaveCustomPathLocalPathMigrations,
   classifyCloudSaveCustomPathResolutionError,
+  ignoreStoredCloudSaveCustomPath,
+  trackStoredCloudSaveCustomPaths,
 } from "./custom-path-binding-state.ts";
 
 describe("cloud save custom path binding state", () => {
@@ -103,6 +105,63 @@ describe("cloud save custom path binding state", () => {
     assert.equal(
       migrated.some(({ rawPath }) => rawPath.includes("Removed")),
       false
+    );
+  });
+
+  it("stores an ignored marker without retaining the local folder", () => {
+    const rawPath = "<custom><windows><winDocuments>/Game";
+    assert.deepEqual(
+      ignoreStoredCloudSaveCustomPath(
+        [
+          {
+            rawPath,
+            tracking: "tracked",
+            localPath: "D:/Saves/Game",
+          },
+        ],
+        rawPath
+      ),
+      [{ rawPath, tracking: "ignored" }]
+    );
+  });
+
+  it("can ignore a remote-only path and remains idempotent", () => {
+    const rawPath = "<custom><windows><winDocuments>/Game";
+    const ignored = ignoreStoredCloudSaveCustomPath([], rawPath);
+
+    assert.deepEqual(ignored, [{ rawPath, tracking: "ignored" }]);
+    assert.deepEqual(
+      ignoreStoredCloudSaveCustomPath(ignored, rawPath),
+      ignored
+    );
+  });
+
+  it("reactivates an ignored path only after a new local folder is selected", () => {
+    const rawPath = "<custom><windows><winDocuments>/Game";
+    assert.deepEqual(
+      trackStoredCloudSaveCustomPaths(
+        [{ rawPath, tracking: "ignored" }],
+        [{ rawPath, localPath: "E:/Restored/Game" }]
+      ),
+      [
+        {
+          rawPath,
+          tracking: "tracked",
+          storeUserId: undefined,
+          localPath: "E:/Restored/Game",
+        },
+      ]
+    );
+  });
+
+  it("does not migrate ignored paths", () => {
+    const rawPath = "<custom><windows><winDocuments>/Game";
+    assert.deepEqual(
+      applyCloudSaveCustomPathLocalPathMigrations(
+        [{ rawPath, tracking: "ignored" }],
+        [{ rawPath, localPath: "C:/Users/Hydra/Documents/Game" }]
+      ),
+      [{ rawPath, tracking: "ignored" }]
     );
   });
 });

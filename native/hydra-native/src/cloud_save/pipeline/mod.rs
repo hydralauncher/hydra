@@ -29,7 +29,7 @@ const STATIC_FILE_PRIORITY: u8 = 2;
 fn coverage_authority(identity_authority: &str) -> String {
     match identity_authority {
         "active" => "authoritative",
-        "known" => "exact",
+        "known" | "literal" => "exact",
         _ => "inferred",
     }
     .to_string()

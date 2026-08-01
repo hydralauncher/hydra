@@ -15,7 +15,7 @@ import { assertCloudSaveSubscription } from "./cloud-save-access";
 import {
   getCloudSaveAutomaticSyncStateForMode,
   getNextCloudSaveAutomaticSyncMode,
-  resolveStoredCloudSaveAutomaticSyncMode,
+  resolveStoredCloudSaveAutomaticSyncModeForShop,
 } from "./automatic-sync-mode";
 
 const getAutomaticSyncKey = (shop: GameShop, objectId: string) =>
@@ -47,8 +47,10 @@ const readCloudSaveAutomaticSyncMode = async (
     cloudSaveAutomaticSyncSettingsSublevel.get(key),
     gamesSublevel.get(key),
   ]);
-  const mode = resolveStoredCloudSaveAutomaticSyncMode(
-    game?.automaticCloudSync === true,
+  const legacyEnabled = game?.automaticCloudSync === true;
+  const mode = resolveStoredCloudSaveAutomaticSyncModeForShop(
+    shop,
+    legacyEnabled,
     storedV2Enabled
   );
 
@@ -76,13 +78,9 @@ const persistCloudSaveAutomaticSyncMode = async (
     );
   }
 
-  if (state.v2Enabled) {
-    batch.put(key, true, {
-      sublevel: cloudSaveAutomaticSyncSettingsSublevel,
-    });
-  } else {
-    batch.del(key, { sublevel: cloudSaveAutomaticSyncSettingsSublevel });
-  }
+  batch.put(key, state.v2Enabled, {
+    sublevel: cloudSaveAutomaticSyncSettingsSublevel,
+  });
 
   await batch.write();
   notifyAutomaticSyncModeChanged(objectId, shop, mode);

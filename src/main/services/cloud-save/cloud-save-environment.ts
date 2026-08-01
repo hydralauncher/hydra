@@ -427,7 +427,7 @@ export const resolveCloudSaveEnvironment = async (
       )
     : null;
   const identity = JSON.stringify({
-    version: 1,
+    version: 2,
     platform: canonicalContext.platform,
     homeDir: canonicalContext.homeDir,
     documentsDir: canonicalContext.documentsDir ?? null,

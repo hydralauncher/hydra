@@ -7,15 +7,20 @@ import type {
 import { NativeAddon } from "../native-addon";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
+import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
+import { getCloudSaveCustomPathTrackingState } from "./custom-path-store";
+import { getInstallationOwnedCustomPathRawPaths } from "./installation-owned-custom-paths";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
 import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
-import { storeUserContextWithSnapshotAccounts } from "./snapshot-store-user-context";
 import { getCloudSaveSyncAnchor } from "./sync-anchor";
 import type { SyncDirection } from "./sync-game/policy";
 
 interface AnalyzeCloudSaveStateOptions {
   customPathBindings?: CloudSaveCustomPathBindings;
+  ignoredCustomPathRawPaths?: string[];
+  allowInstallationOwnedCustomPathDeletion?: boolean;
 }
 
 export const analyzeCloudSaveState = async (
@@ -40,17 +45,38 @@ export const analyzeCloudSaveState = async (
   ) {
     throw new Error("Active Cloud Save snapshot belongs to another game");
   }
-  const scanStoreUserContext = storeUserContextWithSnapshotAccounts(
-    context.pathContext.storeUserContext,
-    remoteManifest?.variants ?? []
+  const trackingState = options.customPathBindings
+    ? {
+        bindings: options.customPathBindings,
+        ignoredRawPaths: options.ignoredCustomPathRawPaths ?? [],
+      }
+    : await getCloudSaveCustomPathTrackingState(
+        shop,
+        objectId,
+        cloudSaveCustomPathContextFromPathContext(context.pathContext)
+      );
+  const customPathBindings = await getUsableCloudSaveCustomPathBindings(
+    objectId,
+    shop,
+    context,
+    {
+      bindings: trackingState.bindings,
+      remoteFiles: remoteManifest?.files ?? [],
+    }
   );
+  const preserveLocalMissingRawPaths =
+    options.allowInstallationOwnedCustomPathDeletion
+      ? new Set<string>()
+      : await getInstallationOwnedCustomPathRawPaths(
+          customPathBindings,
+          context.pathContext
+        );
   const localSnapshotContext = await buildLocalGameSnapshotContext(
     objectId,
     shop,
     context,
     {
-      scanStoreUserContext,
-      customPathBindings: options.customPathBindings,
+      customPathBindings,
     }
   );
 
@@ -73,6 +99,8 @@ export const analyzeCloudSaveState = async (
     remoteFiles: remoteManifest?.files ?? [],
     base: anchor,
     direction: syncDirection,
+    ignoredRawPaths: new Set(trackingState.ignoredRawPaths),
+    preserveLocalMissingRawPaths,
   });
   const mergedAggregateHash = NativeAddon.buildSnapshotAggregateHash({
     variants: merge.variants,
@@ -99,6 +127,9 @@ export const analyzeCloudSaveState = async (
 
   return {
     context,
+    customPathBindings,
+    ignoredCustomPathRawPaths: trackingState.ignoredRawPaths,
+    installationOwnedCustomPathRawPaths: [...preserveLocalMissingRawPaths],
     localSnapshot,
     localSnapshotContext,
     environmentId,

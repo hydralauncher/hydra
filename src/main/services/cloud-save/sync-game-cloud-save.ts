@@ -19,15 +19,7 @@ import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { deleteLocalSaveTargets } from "./delete-local-save-targets";
 import { assertCloudSaveEnvironmentCurrent } from "./environment-guard";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
-import {
-  isCloudSaveCustomPathRegistered,
-  unregisterCloudSaveCustomPath,
-} from "./custom-path-store";
-import {
-  executeCloudSaveCustomPathRemoval,
-  excludeCloudSaveRawPathsFromMerge,
-  isCloudSaveRawPathRemovable,
-} from "./custom-path-removal";
+import { canDeleteInstallationOwnedCustomPathFiles } from "./installation-owned-custom-paths";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { isCloudSaveSyncPartialAfterApply } from "./sync-result-policy";
 import { shouldRetryCloudSaveConflict } from "./snapshot-retry-policy";
@@ -183,24 +175,6 @@ const createSyncFinisher = (
       environmentId: analysis.environmentId,
     };
   };
-};
-
-const assertExcludedRawPathsRemovable = (
-  excludedRawPaths: ReadonlySet<string>,
-  registeredExcludedRawPaths: ReadonlySet<string>,
-  analysis: CloudSaveAnalysis
-) => {
-  for (const rawPath of excludedRawPaths) {
-    if (
-      !isCloudSaveRawPathRemovable(
-        rawPath,
-        registeredExcludedRawPaths,
-        analysis.remoteManifest?.files ?? []
-      )
-    ) {
-      throw new Error("cloud_save_custom_path_not_registered");
-    }
-  }
 };
 
 const executeRestoreOnlySync = async ({
@@ -462,8 +436,6 @@ const executeGameCloudSaveSync = async ({
   emitProgress,
   resolution,
   suppliedContext,
-  excludedRawPaths = new Set<string>(),
-  registeredExcludedRawPaths = new Set<string>(),
 }: {
   objectId: string;
   shop: GameShop;
@@ -471,8 +443,6 @@ const executeGameCloudSaveSync = async ({
   emitProgress: ProgressCallback;
   resolution: CloudSaveConflictResolution | undefined;
   suppliedContext: Awaited<ReturnType<typeof getCloudSaveGameContext>>;
-  excludedRawPaths?: Set<string>;
-  registeredExcludedRawPaths?: Set<string>;
 }): Promise<SyncGameCloudSaveResult> => {
   const assertEnvironmentCurrent = () =>
     assertCloudSaveEnvironmentCurrent(
@@ -492,20 +462,15 @@ const executeGameCloudSaveSync = async ({
     objectId,
     shop,
     suppliedContext,
-    syncDirection
+    syncDirection,
+    {
+      allowInstallationOwnedCustomPathDeletion:
+        canDeleteInstallationOwnedCustomPathFiles(trigger),
+    }
   );
   await assertEnvironmentCurrent();
-  assertExcludedRawPathsRemovable(
-    excludedRawPaths,
-    registeredExcludedRawPaths,
-    analysis
-  );
   const initialState = analysis.state.state;
-  const merge = excludeCloudSaveRawPathsFromMerge(
-    analysis,
-    resolvedMerge(analysis, resolution),
-    excludedRawPaths
-  );
+  const merge = resolvedMerge(analysis, resolution);
   const mergedAggregateHash = NativeAddon.buildSnapshotAggregateHash({
     variants: merge.variants,
     files: merge.files,
@@ -521,7 +486,7 @@ const executeGameCloudSaveSync = async ({
   if (merge.conflicts.length > 0) {
     return finish("conflict", "conflict");
   }
-  if (initialState === "untracked" && excludedRawPaths.size === 0) {
+  if (initialState === "untracked") {
     const outcome = await runFirstSync(
       objectId,
       shop,
@@ -582,8 +547,6 @@ const runGameCloudSaveSync = async (
   emitProgress: ProgressCallback,
   resolution: CloudSaveConflictResolution | undefined,
   suppliedContext: Awaited<ReturnType<typeof getCloudSaveGameContext>>,
-  excludedRawPaths = new Set<string>(),
-  registeredExcludedRawPaths = new Set<string>(),
   attempt = 0
 ): Promise<SyncGameCloudSaveResult> => {
   try {
@@ -594,8 +557,6 @@ const runGameCloudSaveSync = async (
       emitProgress,
       resolution,
       suppliedContext,
-      excludedRawPaths,
-      registeredExcludedRawPaths,
     });
   } catch (error) {
     if (shouldRetryCloudSaveConflict(error, attempt)) {
@@ -606,8 +567,6 @@ const runGameCloudSaveSync = async (
         emitProgress,
         resolution,
         suppliedContext,
-        excludedRawPaths,
-        registeredExcludedRawPaths,
         1
       );
     }
@@ -696,51 +655,6 @@ export const syncGameCloudSave = async (
         undefined,
         context
       );
-    },
-    onProgress
-  );
-};
-
-export const removeCloudSaveCustomPathAndSync = async (
-  objectId: string,
-  shop: GameShop,
-  rawPath: string,
-  onProgress?: ProgressCallback
-) => {
-  assertCloudSaveSubscription();
-  await assertCloudSaveExecutableExists(objectId, shop);
-  if (!rawPath.startsWith("<custom>")) {
-    throw new Error("cloud_save_custom_path_invalid");
-  }
-  const isRegistered = await isCloudSaveCustomPathRegistered(
-    shop,
-    objectId,
-    rawPath
-  );
-
-  const context = await getCloudSaveGameContext(objectId, shop);
-  return runCloudSaveOperation(
-    objectId,
-    shop,
-    JSON.stringify(["remove-custom-path", rawPath, context.environmentId]),
-    async (emitProgress) => {
-      await assertCloudSaveExecutableExists(objectId, shop);
-      return executeCloudSaveCustomPathRemoval({
-        isRegistered,
-        unregister: () =>
-          unregisterCloudSaveCustomPath(shop, objectId, rawPath),
-        sync: () =>
-          runGameCloudSaveSync(
-            objectId,
-            shop,
-            "manual",
-            emitProgress,
-            undefined,
-            context,
-            new Set([rawPath]),
-            isRegistered ? new Set([rawPath]) : new Set()
-          ),
-      });
     },
     onProgress
   );

@@ -3,6 +3,11 @@ use crate::cloud_save::identity::is_safe_capture;
 
 pub const STORE_USER_CAPTURE_MARKER: &str = "__HYDRA_STORE_USER_CAPTURE__";
 
+pub struct StoreUserCapture {
+    pub value: String,
+    pub component_offsets_from_end: Vec<usize>,
+}
+
 fn raw_segments(raw_rule: &str) -> Vec<String> {
     normalize_separators(raw_rule)
         .split('/')
@@ -128,9 +133,16 @@ fn match_segments(
     values: &[&str],
     case_sensitive: bool,
     captured: Option<String>,
-) -> Option<String> {
+    component_offsets_from_end: Vec<usize>,
+) -> Option<StoreUserCapture> {
     if templates.is_empty() {
-        return values.is_empty().then_some(captured).flatten();
+        if !values.is_empty() {
+            return None;
+        }
+        return captured.map(|value| StoreUserCapture {
+            value,
+            component_offsets_from_end,
+        });
     }
     if templates[0] == "**" {
         for consumed in 0..=values.len() {
@@ -139,6 +151,7 @@ fn match_segments(
                 &values[consumed..],
                 case_sensitive,
                 captured.clone(),
+                component_offsets_from_end.clone(),
             ) {
                 return Some(result);
             }
@@ -146,7 +159,7 @@ fn match_segments(
         return None;
     }
     let value = *values.first()?;
-    let next_capture = if templates[0].contains(STORE_USER_CAPTURE_MARKER) {
+    let (next_capture, next_offsets) = if templates[0].contains(STORE_USER_CAPTURE_MARKER) {
         let value = capture_segment(templates[0], value, case_sensitive)?;
         if captured
             .as_ref()
@@ -154,21 +167,29 @@ fn match_segments(
         {
             return None;
         }
-        Some(value)
+        let mut offsets = component_offsets_from_end;
+        offsets.push(values.len() - 1);
+        (Some(value), offsets)
     } else {
         if !segment_matches(templates[0], value, case_sensitive) {
             return None;
         }
-        captured
+        (captured, component_offsets_from_end)
     };
-    match_segments(&templates[1..], &values[1..], case_sensitive, next_capture)
+    match_segments(
+        &templates[1..],
+        &values[1..],
+        case_sensitive,
+        next_capture,
+        next_offsets,
+    )
 }
 
-pub fn capture_store_user(
+pub fn capture_store_user_with_components(
     template: &str,
     concrete_path: &str,
     case_sensitive: bool,
-) -> Option<String> {
+) -> Option<StoreUserCapture> {
     let normalized_template = normalize_separators(template);
     let normalized_path = normalize_separators(concrete_path);
     match_segments(
@@ -176,7 +197,17 @@ pub fn capture_store_user(
         &path_segments(&normalized_path),
         case_sensitive,
         None,
+        Vec::new(),
     )
+}
+
+pub fn capture_store_user(
+    template: &str,
+    concrete_path: &str,
+    case_sensitive: bool,
+) -> Option<String> {
+    capture_store_user_with_components(template, concrete_path, case_sensitive)
+        .map(|capture| capture.value)
 }
 
 #[cfg(test)]

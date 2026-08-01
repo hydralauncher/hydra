@@ -118,7 +118,8 @@ const createPendingApproval = async (
   const candidates = getUnboundCloudSaveCustomPathRestoreCandidates(
     manifest.files,
     analysis.merge.restoreEntryIds,
-    locallyBoundRawPaths
+    locallyBoundRawPaths,
+    analysis.ignoredCustomPathRawPaths
   );
 
   const candidate = candidates[0];
@@ -486,4 +487,15 @@ export const dismissPendingCloudSaveCustomPathApproval = (id: string) => {
   pendingByGame.delete(
     gameKey(pending.approval.gameId.shop, pending.approval.gameId.objectId)
   );
+};
+
+export const dismissPendingCloudSaveCustomPathApprovalForRawPath = (
+  shop: GameShop,
+  objectId: string,
+  rawPath: string
+) => {
+  const key = gameKey(shop, objectId);
+  if (pendingByGame.get(key)?.approval.rawPath === rawPath) {
+    pendingByGame.delete(key);
+  }
 };

@@ -53,4 +53,36 @@ describe("prepare snapshot payload", () => {
     assert.equal(payload.baseVersion, 7);
     assert.equal(payload.hostname, "deck");
   });
+
+  it("rejects duplicate default variants before preparing the request", () => {
+    assert.throws(
+      () =>
+        buildPrepareSnapshotPayload({
+          shop: "steam",
+          objectId: "1",
+          platform: "windows",
+          snapshotHash: "b".repeat(64),
+          baseVersion: 1,
+          variants: [variant, { variantId: "2".repeat(64), kind: "default" }],
+          files: [file],
+        }),
+      /Duplicate default Cloud Save variant/
+    );
+  });
+
+  it("rejects files that reference a missing variant", () => {
+    assert.throws(
+      () =>
+        buildPrepareSnapshotPayload({
+          shop: "steam",
+          objectId: "1",
+          platform: "windows",
+          snapshotHash: "b".repeat(64),
+          baseVersion: 1,
+          variants: [variant],
+          files: [{ ...file, variantId: "2".repeat(64) }],
+        }),
+      /Cloud Save file references an unknown variant/
+    );
+  });
 });

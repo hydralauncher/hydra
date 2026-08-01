@@ -85,6 +85,33 @@ describe("merge user variant snapshots", () => {
     assert.equal(result.conflicts.length, 0);
   });
 
+  it("merges an existing v1 default variant without duplicating it", () => {
+    const stableDefault: SnapshotVariant = {
+      variantId:
+        "6bb5b19456b48c65d5b6120154934d146013679fd8673e7d42694fff131774db",
+      kind: "default",
+    };
+    const localFile = {
+      ...file("achievements.json", "a", "<winAppData>/GSE Saves/1817070"),
+      variantId: stableDefault.variantId,
+    };
+    const remoteFile = { ...localFile };
+
+    const result = mergeUserVariantSnapshots({
+      local: {
+        ...context([localFile]),
+        variants: [stableDefault],
+      },
+      remoteVariants: [stableDefault],
+      remoteFiles: [remoteFile],
+      base: anchor([remoteFile]),
+    });
+
+    assert.deepEqual(result.variants, [stableDefault]);
+    assert.deepEqual(result.files, [remoteFile]);
+    assert.deepEqual(result.conflicts, []);
+  });
+
   it("preserves and schedules remote-only entries for restore", () => {
     const remote = file("remote.sav", "r");
     const result = mergeUserVariantSnapshots({
@@ -285,6 +312,72 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.restoreEntryIds, []);
   });
 
+  it("preserves an ignored custom path without restoring or deleting it", () => {
+    const rawPath = "<custom><windows><base>/Saves";
+    const ignored = file("slot.sav", "a", rawPath);
+    const retained = file("settings.ini", "b", "<home>/other");
+    const local = context([retained]);
+    local.coverage = [
+      {
+        candidateId: "custom",
+        ruleId: "custom",
+        variantId,
+        rawPath,
+        selectedRoot: true,
+        authority: "authoritative",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [ignored, retained],
+      base: anchor([ignored, retained]),
+      ignoredRawPaths: new Set([rawPath]),
+    });
+
+    assert.deepEqual(result.files, [ignored, retained]);
+    assert.deepEqual(result.restoreEntryIds, []);
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, []);
+    assert.equal(result.partial, false);
+  });
+
+  it("restores an installation-owned custom path instead of publishing its absence", () => {
+    const rawPath = "<custom><windows><base>/Saves";
+    const missing = file("slot.sav", "a", rawPath);
+    const retained = file("settings.ini", "b", "<home>/other");
+    const local = context([retained]);
+    local.coverage = [
+      {
+        candidateId: "custom",
+        ruleId: "custom",
+        variantId,
+        rawPath,
+        selectedRoot: true,
+        authority: "authoritative",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [missing, retained],
+      base: anchor([missing, retained]),
+      preserveLocalMissingRawPaths: new Set([rawPath]),
+    });
+
+    assert.deepEqual(result.files, [missing, retained]);
+    assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(missing)]);
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+  });
+
   it("restores instead of deleting when the root is missing", () => {
     const missing = file("missing.sav", "a");
     const retained = file("retained.sav", "b", "<home>/other");
@@ -343,6 +436,45 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.restoreEntryIds, []);
     assert.deepEqual(result.deleteRemoteEntryIds, []);
     assert.equal(result.partial, true);
+  });
+
+  it("preserves foreign-OS files without restoring, deleting or staying partial", () => {
+    const windowsFile = file(
+      "windows-slot.dat",
+      "w",
+      "<winAppData>/Team Cherry/Hollow Knight Silksong"
+    );
+    const linuxFile = file(
+      "linux-slot.dat",
+      "l",
+      "<xdgConfig>/Team Cherry/Hollow Knight Silksong"
+    );
+    const local = context([windowsFile]);
+    local.coverage = [
+      {
+        candidateId: "foreign-linux-rule",
+        ruleId: "linux-rule",
+        rawPath: linuxFile.rawPath,
+        selectedRoot: false,
+        authority: "inferred",
+        outcome: "foreign-environment",
+        enumeratedCompletely: false,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [windowsFile, linuxFile],
+      base: anchor([windowsFile, linuxFile]),
+    });
+
+    assert.deepEqual(result.files, [windowsFile, linuxFile]);
+    assert.deepEqual(result.restoreEntryIds, []);
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, []);
+    assert.equal(result.partial, false);
   });
 
   it("conflicts when a locally deleted file changed remotely", () => {

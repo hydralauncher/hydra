@@ -6,6 +6,7 @@ import {
   getNextCloudSaveAutomaticSyncMode,
   resolveCloudSaveAutomaticSyncMode,
   resolveStoredCloudSaveAutomaticSyncMode,
+  resolveStoredCloudSaveAutomaticSyncModeForShop,
   shouldRunLegacyAutomaticCloudSave,
   shouldRunV2AutomaticCloudSave,
 } from "./automatic-sync-mode.js";
@@ -48,16 +49,42 @@ describe("cloud save automatic sync mode", () => {
     );
   });
 
-  it("treats an absent V2 setting as disabled and preserves legacy", () => {
+  it("treats an absent V2 setting as the day-one V2 default", () => {
     assert.equal(
       resolveStoredCloudSaveAutomaticSyncMode(false, undefined),
-      "disabled"
+      "v2"
     );
     assert.equal(
       resolveStoredCloudSaveAutomaticSyncMode(true, undefined),
-      "legacy"
+      "v2"
     );
     assert.equal(resolveStoredCloudSaveAutomaticSyncMode(true, true), "v2");
+  });
+
+  it("uses an explicit false setting to select legacy or disabled", () => {
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncMode(true, false),
+      "legacy"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncMode(false, false),
+      "disabled"
+    );
+  });
+
+  it("keeps non-Steam games on legacy or disabled", () => {
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("custom", true, undefined),
+      "legacy"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop(
+        "custom",
+        false,
+        undefined
+      ),
+      "disabled"
+    );
   });
 
   it("enabling legacy disables V2", () => {

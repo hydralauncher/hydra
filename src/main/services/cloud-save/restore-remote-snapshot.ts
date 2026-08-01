@@ -203,7 +203,8 @@ export const restoreRemoteSnapshot = async (
     selectedManifest,
     cloudSaveContext.pathContext
   );
-  emitProgress("resolving", plan.actions.length, selectedFiles.length);
+  const applicableFileCount = selectedFiles.length - plan.deferred.length;
+  emitProgress("resolving", plan.actions.length, applicableFileCount);
 
   const restoreTargets = plan.actions.filter(
     (target) => target.action !== "skip-identical"
@@ -318,7 +319,7 @@ export const restoreRemoteSnapshot = async (
       blockedFiles: plan.blocked.length,
       unresolvedRemoteEntryIds,
     };
-    emitProgress("completed", plan.actions.length, selectedFiles.length);
+    emitProgress("completed", plan.actions.length, applicableFileCount);
     return restoreResult;
   } finally {
     await NativeAddon.cleanupRestoreTempSnapshot(
