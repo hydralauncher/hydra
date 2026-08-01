@@ -159,6 +159,26 @@ export const publishDownloadCompleteNotification = async (game: Game) => {
   );
 };
 
+export const publishDownloadHaltedNotification = async (game: Game) => {
+  const userPreferences = await db.get<string, UserPreferences>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
+
+  if (!userPreferences?.downloadNotificationsEnabled) return;
+
+  new Notification({
+    title: t("download_halted", { ns: "notifications" }),
+    body: t("download_halted_no_disk_space", {
+      ns: "notifications",
+      title: game.title,
+    }),
+    icon: await downloadImage(game.iconUrl),
+  }).show();
+};
+
 export const publishNotificationUpdateReadyToInstall = async (
   version: string
 ) => {
