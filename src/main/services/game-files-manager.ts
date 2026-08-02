@@ -336,11 +336,9 @@ export class GameFilesManager {
         return;
       }
 
-      const executableNames = GameExecutables.getExecutablesForGame(
-        this.objectId
-      );
+      const executables = GameExecutables.getExecutablesForGame(this.objectId);
 
-      if (!executableNames || executableNames.length === 0) {
+      if (!executables || executables.length === 0) {
         return;
       }
 
@@ -359,7 +357,7 @@ export class GameFilesManager {
 
       const foundExePath = await findGameExecutableInFolder(
         gameFolderPath,
-        executableNames
+        executables
       );
 
       if (foundExePath) {

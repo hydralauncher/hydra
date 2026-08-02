@@ -2,37 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { logger } from "@main/services/logger";
-
-const IGNORED_GAME_EXECUTABLE_FOLDERS = new Set([
-  "crack",
-  "originalfiles",
-  "voices38",
-  "denuvowo",
-  "rune",
-  "codex",
-  "goldberg",
-  "fixrepair",
-  "onlinefix",
-]);
-
-const normalizeFolderName = (folderName: string) =>
-  folderName.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-const isIgnoredFolderName = (folderName: string) =>
-  IGNORED_GAME_EXECUTABLE_FOLDERS.has(normalizeFolderName(folderName));
-
-const isInsideIgnoredFolder = (rootPath: string, parentPath: string) =>
-  path.relative(rootPath, parentPath).split(/[\\/]/).some(isIgnoredFolderName);
+import {
+  rankExecutableCandidates,
+  type KnownGameExecutable,
+} from "./game-executable-ranking";
 
 export const findGameExecutableInFolder = async (
   folderPath: string,
-  executableNames: Iterable<string>
+  executables: KnownGameExecutable[]
 ): Promise<string | null> => {
-  const normalizedNames = new Set(
-    Array.from(executableNames, (name) => name.toLowerCase())
-  );
-
-  if (normalizedNames.size === 0) return null;
+  if (executables.length === 0) return null;
 
   let entries: fs.Dirent[];
 
@@ -49,25 +28,22 @@ export const findGameExecutableInFolder = async (
     return null;
   }
 
-  let ignoredMatch: string | null = null;
+  const relativeFilePaths: string[] = [];
 
   for (const entry of entries) {
     if (!entry.isFile()) continue;
-    if (!normalizedNames.has(entry.name.toLowerCase())) continue;
 
     const parentPath =
       "parentPath" in entry
         ? entry.parentPath
         : ((entry as unknown as { path?: string }).path ?? folderPath);
 
-    const executablePath = path.join(parentPath, entry.name);
-
-    if (!isInsideIgnoredFolder(folderPath, parentPath)) {
-      return executablePath;
-    }
-
-    ignoredMatch ??= executablePath;
+    relativeFilePaths.push(
+      path.relative(folderPath, path.join(parentPath, entry.name))
+    );
   }
 
-  return ignoredMatch;
+  const match = rankExecutableCandidates(relativeFilePaths, executables);
+
+  return match ? path.join(folderPath, match) : null;
 };

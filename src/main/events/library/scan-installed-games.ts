@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { t } from "i18next";
 import { registerEvent } from "../register-event";
 import { findGameExecutableInFolder } from "@main/helpers/find-game-executable";
+import type { KnownGameExecutable } from "@main/helpers/game-executable-ranking";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { gamesSublevel } from "@main/level";
 import {
@@ -30,16 +31,13 @@ interface ScanResult {
 }
 
 async function searchInDirectories(
-  executableNames: string[],
+  executables: KnownGameExecutable[],
   directories: string[]
 ): Promise<string | null> {
   for (const scanDir of directories) {
     if (!fs.existsSync(scanDir)) continue;
 
-    const foundPath = await findGameExecutableInFolder(
-      scanDir,
-      executableNames
-    );
+    const foundPath = await findGameExecutableInFolder(scanDir, executables);
     if (foundPath) return foundPath;
   }
   return null;
@@ -91,16 +89,11 @@ const scanInstalledGames = async (
   const gamesToScan = games.filter((g) => !g.game.executablePath);
 
   for (const { key, game } of gamesToScan) {
-    const executableNames = GameExecutables.getExecutablesForGame(
-      game.objectId
-    );
+    const executables = GameExecutables.getExecutablesForGame(game.objectId);
 
-    if (!executableNames || executableNames.length === 0) continue;
+    if (!executables || executables.length === 0) continue;
 
-    const foundPath = await searchInDirectories(
-      executableNames,
-      scanDirectories
-    );
+    const foundPath = await searchInDirectories(executables, scanDirectories);
 
     if (foundPath) {
       await gamesSublevel.put(key, updateGameExecutablePath(game, foundPath));
