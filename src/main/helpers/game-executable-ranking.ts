@@ -158,16 +158,7 @@ const rankAcrossInstallations = (
 
   if (candidates.length === 0) return null;
 
-  const suffixes = executables
-    .map((executable) => executable.name)
-    .filter((name) => toSegments(name).length > 1);
-
-  const preferred = candidates.filter((candidate) =>
-    suffixes.some((suffix) => endsWithSegments(candidate, suffix))
-  );
-
-  const pool = preferred.length > 0 ? preferred : candidates;
-  const installations = new Set(pool.map(installationOf));
+  const installations = new Set(candidates.map(installationOf));
 
   if (installations.size !== 1) return null;
 
