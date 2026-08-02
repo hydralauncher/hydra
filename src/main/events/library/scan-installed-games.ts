@@ -37,7 +37,11 @@ async function searchInDirectories(
   for (const scanDir of directories) {
     if (!fs.existsSync(scanDir)) continue;
 
-    const foundPath = await findGameExecutableInFolder(scanDir, executables);
+    const foundPath = await findGameExecutableInFolder(
+      scanDir,
+      executables,
+      "library"
+    );
     if (foundPath) return foundPath;
   }
   return null;

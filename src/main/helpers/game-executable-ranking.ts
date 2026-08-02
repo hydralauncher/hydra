@@ -65,10 +65,27 @@ const countUnsharedSiblings = (
   }).length;
 };
 
+export type ExecutableSearchScope = "installation" | "library";
+
+const installationOf = (relativePath: string) => {
+  const segments = toSegments(relativePath);
+  return segments.length > 1 ? segments[0] : "";
+};
+
+const stripInstallation = (relativePath: string, installation: string) =>
+  installation
+    ? relativePath.slice(relativePath.search(/[\\/]/) + 1)
+    : relativePath;
+
 export const rankExecutableCandidates = (
   relativeFilePaths: string[],
-  executables: KnownGameExecutable[]
+  executables: KnownGameExecutable[],
+  scope: ExecutableSearchScope = "installation"
 ): string | null => {
+  if (scope === "library") {
+    return rankAcrossInstallations(relativeFilePaths, executables);
+  }
+
   const executableIndexes = new Map<string, number>();
 
   executables.forEach((executable, index) => {
@@ -124,4 +141,53 @@ export const rankExecutableCandidates = (
   );
 
   return isTied ? null : ranked[0].relativePath;
+};
+
+const rankAcrossInstallations = (
+  relativeFilePaths: string[],
+  executables: KnownGameExecutable[]
+): string | null => {
+  const exeNames = new Set(
+    executables.map((executable) => executable.exe.toLowerCase())
+  );
+
+  const candidates = relativeFilePaths.filter((filePath) => {
+    const basename = basenameOf(filePath);
+    return !!basename && exeNames.has(basename);
+  });
+
+  if (candidates.length === 0) return null;
+
+  const suffixes = executables
+    .map((executable) => executable.name)
+    .filter((name) => toSegments(name).length > 1);
+
+  const preferred = candidates.filter((candidate) =>
+    suffixes.some((suffix) => endsWithSegments(candidate, suffix))
+  );
+
+  const pool = preferred.length > 0 ? preferred : candidates;
+  const installations = new Set(pool.map(installationOf));
+
+  if (installations.size !== 1) return null;
+
+  const installation = [...installations][0];
+
+  const withinInstallation = relativeFilePaths
+    .filter((filePath) => installationOf(filePath) === installation)
+    .map((filePath) => ({
+      original: filePath,
+      scoped: stripInstallation(filePath, installation),
+    }));
+
+  const match = rankExecutableCandidates(
+    withinInstallation.map((entry) => entry.scoped),
+    executables
+  );
+
+  if (!match) return null;
+
+  return (
+    withinInstallation.find((entry) => entry.scoped === match)?.original ?? null
+  );
 };

@@ -4,12 +4,14 @@ import path from "node:path";
 import { logger } from "@main/services/logger";
 import {
   rankExecutableCandidates,
+  type ExecutableSearchScope,
   type KnownGameExecutable,
 } from "./game-executable-ranking";
 
 export const findGameExecutableInFolder = async (
   folderPath: string,
-  executables: KnownGameExecutable[]
+  executables: KnownGameExecutable[],
+  scope: ExecutableSearchScope = "installation"
 ): Promise<string | null> => {
   if (executables.length === 0) return null;
 
@@ -43,7 +45,7 @@ export const findGameExecutableInFolder = async (
     );
   }
 
-  const match = rankExecutableCandidates(relativeFilePaths, executables);
+  const match = rankExecutableCandidates(relativeFilePaths, executables, scope);
 
   return match ? path.join(folderPath, match) : null;
 };
