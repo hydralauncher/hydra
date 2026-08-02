@@ -173,10 +173,10 @@ export function RepacksModal({
     const bySource = byTerm.filter((repack) => {
       if (selectedFingerprints.length === 0) return true;
 
+      // Match by fingerprint (remote) or id (local sources have no fingerprint).
       return downloadSources.some(
         (src) =>
-          src.fingerprint &&
-          selectedFingerprints.includes(src.fingerprint) &&
+          selectedFingerprints.includes(src.fingerprint ?? src.id) &&
           src.name === repack.downloadSourceName
       );
     });
@@ -284,27 +284,18 @@ export function RepacksModal({
           >
             <div className="repacks-modal__source-grid">
               {downloadSources
-                .filter(
-                  (
-                    source
-                  ): source is DownloadSource & { fingerprint: string } =>
-                    source.fingerprint !== undefined
-                )
+                .filter((source) => source.fingerprint || source.isLocal)
                 .map((source) => {
+                  const sourceKey = source.fingerprint ?? source.id;
                   const label = source.name || source.url;
                   const truncatedLabel =
                     label.length > 16 ? label.substring(0, 16) + "..." : label;
                   return (
-                    <div
-                      key={source.fingerprint}
-                      className="repacks-modal__source-item"
-                    >
+                    <div key={sourceKey} className="repacks-modal__source-item">
                       <CheckboxField
                         label={truncatedLabel}
-                        checked={selectedFingerprints.includes(
-                          source.fingerprint
-                        )}
-                        onChange={() => toggleFingerprint(source.fingerprint)}
+                        checked={selectedFingerprints.includes(sourceKey)}
+                        onChange={() => toggleFingerprint(sourceKey)}
                       />
                     </div>
                   );
