@@ -129,13 +129,23 @@ export default function GameLauncher() {
     window.electron.closeGameLauncherWindow();
   };
 
-  const normalizedCoverImage =
-    gameAssets?.coverImageUrl?.replaceAll("\\", "/").trim() || "";
+  const normalizeImageUrl = (url?: string | null) =>
+    url?.replaceAll("\\", "/").trim() || "";
+
   const fallbackSteamCoverImage =
-    !normalizedCoverImage && shop === "steam" && objectId
+    shop === "steam" && objectId
       ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/library_600x900_2x.jpg`
       : "";
-  const coverImageSource = normalizedCoverImage || fallbackSteamCoverImage;
+
+  // Mirror the library card cover precedence so custom/non-Steam games
+  // (whose assets live on the Game object, not ShopAssets) still show artwork.
+  const coverImageSource =
+    normalizeImageUrl(game?.customCoverImageUrl) ||
+    normalizeImageUrl(gameAssets?.coverImageUrl) ||
+    fallbackSteamCoverImage ||
+    normalizeImageUrl(gameAssets?.libraryImageUrl) ||
+    normalizeImageUrl(game?.customIconUrl) ||
+    normalizeImageUrl(game?.iconUrl ?? gameAssets?.iconUrl);
   const gameTitle = game?.title ?? gameAssets?.title ?? "";
   const playTime = game?.playTimeInMilliseconds ?? 0;
   const achievementCount = game?.achievementCount ?? 0;
