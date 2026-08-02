@@ -8,7 +8,7 @@ import {
 } from "@primer/octicons-react";
 import cn from "classnames";
 
-import { Button, Modal } from "@renderer/components";
+import { Button, CheckboxField, Modal } from "@renderer/components";
 
 import "./scan-games-modal.scss";
 
@@ -19,8 +19,9 @@ interface FoundGame {
   executablePath: string;
 }
 
-interface ScanResult {
-  foundGames: FoundGame[];
+export interface ScanResult {
+  linkedGames: FoundGame[];
+  addedGames: FoundGame[];
   total: number;
 }
 
@@ -31,7 +32,8 @@ export interface ScanGamesModalProps {
   scanResult: ScanResult | null;
   onStartScan: (
     additionalDirectories: string[],
-    includeDefaultDirectories: boolean
+    includeDefaultDirectories: boolean,
+    addGamesToLibrary: boolean
   ) => void;
   onClearResult: () => void;
 }
@@ -52,9 +54,15 @@ export function ScanGamesModal({
   const [scanMode, setScanMode] = useState<ScanMode>(
     isWindows ? "automatic" : "manual"
   );
+  const [addGamesToLibrary, setAddGamesToLibrary] = useState(true);
 
   const isManualMode = !isWindows || scanMode === "manual";
   const requiresFolderSelection = isManualMode && selectedFolders.length === 0;
+
+  const hasResults = Boolean(
+    scanResult &&
+      scanResult.addedGames.length + scanResult.linkedGames.length > 0
+  );
 
   const handleClose = () => {
     setSelectedFolders([]);
@@ -64,9 +72,9 @@ export function ScanGamesModal({
 
   const handleStartScan = () => {
     if (isManualMode) {
-      onStartScan(selectedFolders, false);
+      onStartScan(selectedFolders, false, addGamesToLibrary);
     } else {
-      onStartScan([], true);
+      onStartScan([], true, addGamesToLibrary);
     }
   };
 
@@ -90,6 +98,19 @@ export function ScanGamesModal({
   const handleRemoveFolder = (folder: string) => {
     setSelectedFolders((prev) => prev.filter((item) => item !== folder));
   };
+
+  const renderGamesList = (games: FoundGame[]) => (
+    <ul className="scan-games-modal__games-list">
+      {games.map((game) => (
+        <li key={game.executablePath} className="scan-games-modal__game-item">
+          <span className="scan-games-modal__game-title">{game.title}</span>
+          <span className="scan-games-modal__game-path">
+            {game.executablePath}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <Modal
@@ -177,6 +198,17 @@ export function ScanGamesModal({
                 )}
               </div>
             )}
+
+            <div className="scan-games-modal__option">
+              <CheckboxField
+                label={t("scan_games_add_to_library")}
+                checked={addGamesToLibrary}
+                onChange={() => setAddGamesToLibrary((prev) => !prev)}
+              />
+              <p className="scan-games-modal__option-hint">
+                {t("scan_games_add_to_library_hint")}
+              </p>
+            </div>
           </>
         )}
 
@@ -194,30 +226,30 @@ export function ScanGamesModal({
 
         {scanResult && (
           <div className="scan-games-modal__results">
-            {scanResult.foundGames.length > 0 ? (
+            {hasResults ? (
               <>
-                <p className="scan-games-modal__result">
-                  {t("scan_games_result", {
-                    found: scanResult.foundGames.length,
-                    total: scanResult.total,
-                  })}
-                </p>
+                {scanResult.addedGames.length > 0 && (
+                  <div className="scan-games-modal__result-section">
+                    <p className="scan-games-modal__result">
+                      {t("scan_games_result_added", {
+                        added: scanResult.addedGames.length,
+                      })}
+                    </p>
+                    {renderGamesList(scanResult.addedGames)}
+                  </div>
+                )}
 
-                <ul className="scan-games-modal__games-list">
-                  {scanResult.foundGames.map((game) => (
-                    <li
-                      key={game.executablePath}
-                      className="scan-games-modal__game-item"
-                    >
-                      <span className="scan-games-modal__game-title">
-                        {game.title}
-                      </span>
-                      <span className="scan-games-modal__game-path">
-                        {game.executablePath}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                {scanResult.linkedGames.length > 0 && (
+                  <div className="scan-games-modal__result-section">
+                    <p className="scan-games-modal__result">
+                      {t("scan_games_result_linked", {
+                        found: scanResult.linkedGames.length,
+                        total: scanResult.total,
+                      })}
+                    </p>
+                    {renderGamesList(scanResult.linkedGames)}
+                  </div>
+                )}
               </>
             ) : (
               <p className="scan-games-modal__no-results">

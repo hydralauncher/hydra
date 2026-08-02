@@ -758,12 +758,14 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
   scanInstalledGames: (
     additionalDirectories?: string[],
-    includeDefaultDirectories?: boolean
+    includeDefaultDirectories?: boolean,
+    addGamesToLibrary?: boolean
   ) =>
     ipcRenderer.invoke(
       "scanInstalledGames",
       additionalDirectories,
-      includeDefaultDirectories
+      includeDefaultDirectories,
+      addGamesToLibrary
     ),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),

@@ -128,10 +128,29 @@
     margin-top: 1px;
   }
 
+  &__option {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__option-hint {
+    color: globals.$muted-color;
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0;
+  }
+
   &__results {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__result-section {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
   }
 
   &__result {

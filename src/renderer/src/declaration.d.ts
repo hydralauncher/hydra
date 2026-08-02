@@ -628,9 +628,11 @@ declare global {
     extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
     scanInstalledGames: (
       additionalDirectories?: string[],
-      includeDefaultDirectories?: boolean
+      includeDefaultDirectories?: boolean,
+      addGamesToLibrary?: boolean
     ) => Promise<{
-      foundGames: { title: string; executablePath: string }[];
+      linkedGames: { title: string; executablePath: string }[];
+      addedGames: { title: string; executablePath: string }[];
       total: number;
     }>;
     onExtractionComplete: (
