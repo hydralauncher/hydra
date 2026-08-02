@@ -1,6 +1,10 @@
 import type { CloudSaveOverview, GameShop } from "@types";
 
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
+import {
+  buildCloudSaveObservationKey,
+  recordLatestCloudSaveObservation,
+} from "./automatic-sync-observation";
 import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
@@ -24,6 +28,11 @@ export const getCloudSaveOverview = async (
     ...(analysis.anchor?.unresolvedRemoteEntryIds ?? []),
     ...analysis.merge.unresolvedRemoteEntryIds,
   ]);
+  recordLatestCloudSaveObservation(
+    objectId,
+    shop,
+    buildCloudSaveObservationKey(analysis)
+  );
 
   return {
     ...analysis.state,

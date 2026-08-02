@@ -27,14 +27,9 @@ import {
   shouldRunLegacyAutomaticCloudSave,
   shouldRunV2AutomaticCloudSave,
 } from "./cloud-save";
+import { gamesPlaytime, isGameRunning } from "./game-running-state";
 
-export const gamesPlaytime = new Map<
-  string,
-  { lastTick: number; firstTick: number; lastSyncTick: number }
->();
-
-export const isGameRunning = (objectId: string, shop: Game["shop"]) =>
-  gamesPlaytime.has(levelKeys.game(shop, objectId));
+export { gamesPlaytime, isGameRunning };
 
 const runAutomaticCloudSaveOnOpen = async (game: Game) => {
   const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);

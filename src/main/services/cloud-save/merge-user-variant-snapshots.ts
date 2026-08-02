@@ -89,6 +89,8 @@ export const mergeUserVariantSnapshots = ({
   const deleteRemoteEntryIds = new Set<string>();
   const deleteLocalEntryIds = new Set<string>();
   const unresolvedRemoteEntryIds = new Set<string>();
+  const shouldRestoreEmptyLocalSnapshot =
+    local.files.length === 0 && remoteFiles.length > 0;
 
   const coverageFor = (file: SnapshotFile) =>
     local.coverage.filter(
@@ -117,6 +119,7 @@ export const mergeUserVariantSnapshots = ({
         item.enumeratedCompletely
     );
     return {
+      hasCoverage: coverage.length > 0,
       foreignEnvironment,
       incomplete,
       provesDeletion: selectedCompleteRoot && !incomplete,
@@ -166,10 +169,18 @@ export const mergeUserVariantSnapshots = ({
         files.push(remoteFile);
         continue;
       }
+      if (shouldRestoreEmptyLocalSnapshot) {
+        files.push(remoteFile);
+        restoreEntryIds.add(entryId);
+        if (!baseEntry || !coverage.hasCoverage || coverage.incomplete) {
+          unresolvedRemoteEntryIds.add(entryId);
+        }
+        continue;
+      }
       if (!baseEntry) {
         files.push(remoteFile);
         unresolvedRemoteEntryIds.add(entryId);
-        if (local.files.length === 0 || !coverage.incomplete) {
+        if (!coverage.incomplete) {
           restoreEntryIds.add(entryId);
         }
         continue;

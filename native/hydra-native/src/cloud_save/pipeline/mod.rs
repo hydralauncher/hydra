@@ -427,6 +427,52 @@ mod tests {
     }
 
     #[test]
+    fn keeps_leaf_parent_coverage_generic_without_creating_a_default_variant() {
+        let candidate_id = "candidate-profiles-parent".to_string();
+        let raw_path = "<home>/Game/PlayerProfile<storeUserId>.sav";
+        let rule = ScannedCloudSaveRule {
+            rule_id: "profile-save".into(),
+            kind: "file".into(),
+            raw_path: raw_path.into(),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![],
+            unresolved_tokens: vec![],
+            scanned_paths: vec![],
+            coverage: vec![UserLocationCoverage {
+                candidate_id,
+                rule_id: "profile-save".into(),
+                variant_id: None,
+                raw_path: Some(raw_path.into()),
+                relative_path: None,
+                selected_root: true,
+                authority: "inferred".into(),
+                outcome: "scanned".into(),
+                enumerated_completely: true,
+                warning_codes: vec![],
+            }],
+        };
+
+        let (variants, files, coverage) = collect_discovered_files(
+            "steam",
+            "1",
+            "steam:1",
+            "environment",
+            &StoreUserContext::default(),
+            vec![rule],
+        )
+        .unwrap();
+
+        assert!(variants.is_empty());
+        assert!(files.is_empty());
+        assert_eq!(coverage.len(), 1);
+        assert!(coverage[0].variant_id.is_none());
+        assert!(coverage[0].selected_root);
+        assert!(coverage[0].enumerated_completely);
+    }
+
+    #[test]
     fn manifest_identity_wins_when_a_custom_rule_finds_the_same_file() {
         let temp = tempdir().unwrap();
         let save = temp.path().join("slot.sav");

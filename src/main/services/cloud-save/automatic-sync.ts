@@ -8,6 +8,7 @@ import type {
 import { gamesSublevel, levelKeys } from "@main/level";
 
 import { HydraApi } from "../hydra-api";
+import { isGameRunning } from "../game-running-state";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
 import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
@@ -28,6 +29,10 @@ import {
   type AutomaticCloudSaveSyncOutcome,
 } from "./automatic-sync-outcome";
 import { isCloudSaveDeletionPending } from "./pending-deletion";
+import {
+  beginAutomaticSyncObservation,
+  finishAutomaticSyncObservation,
+} from "./automatic-sync-observation";
 
 const automaticSyncCoordinator =
   new CloudSaveOperationCoordinator<AutomaticCloudSaveSyncOutcome>();
@@ -135,6 +140,9 @@ export const runAutomaticCloudSaveSyncDetailed = async (
       result: null,
     };
   }
+  if (isGameRunning(objectId, shop)) {
+    return { status: "skipped", result: null };
+  }
 
   let contextResolutionFailed = false;
   const context =
@@ -172,6 +180,14 @@ export const runAutomaticCloudSaveSyncDetailed = async (
   ]);
 
   return automaticSyncCoordinator.run(key, operationKey, async () => {
+    const observation =
+      trigger === "game-page-open"
+        ? beginAutomaticSyncObservation(objectId, shop, trigger)
+        : ({ accepted: true, observationKey: null } as const);
+    if (!observation.accepted) {
+      return { status: "skipped", result: null };
+    }
+
     let latestStage: CloudSaveSyncProgressStage | undefined;
     return syncGameCloudSave(
       objectId,
@@ -191,6 +207,13 @@ export const runAutomaticCloudSaveSyncDetailed = async (
     )
       .then((result) => {
         const status = result.action === "conflict" ? "conflict" : "completed";
+        finishAutomaticSyncObservation(
+          objectId,
+          shop,
+          trigger,
+          observation.observationKey,
+          "settled"
+        );
         logger.info("[Cloud Save] Automatic sync finished", {
           shop,
           objectId,
@@ -210,14 +233,25 @@ export const runAutomaticCloudSaveSyncDetailed = async (
       .catch((error: unknown) => {
         const environmentChanged = isCloudSaveEnvironmentChangedError(error);
         const executableMissing = isCloudSaveExecutableMissingError(error);
-        if (environmentChanged || executableMissing) {
+        const gameRunning =
+          error instanceof Error && error.message === "cloud_save_game_running";
+        if (environmentChanged || executableMissing || gameRunning) {
+          finishAutomaticSyncObservation(
+            objectId,
+            shop,
+            trigger,
+            observation.observationKey,
+            "failed"
+          );
           logger.info("[Cloud Save] Automatic sync cancelled", {
             shop,
             objectId,
             trigger,
             reason: executableMissing
               ? "executable_missing"
-              : "environment_changed",
+              : gameRunning
+                ? "game_running"
+                : "environment_changed",
           });
           emitAutomaticSyncEvent({
             gameId: { objectId, shop },
@@ -227,6 +261,13 @@ export const runAutomaticCloudSaveSyncDetailed = async (
           return { status: "cancelled", result: null } as const;
         }
         const errorDetails = getCloudSaveErrorDetails(error);
+        finishAutomaticSyncObservation(
+          objectId,
+          shop,
+          trigger,
+          observation.observationKey,
+          "failed"
+        );
         logger.error("[Cloud Save] Automatic sync failed", {
           shop,
           objectId,

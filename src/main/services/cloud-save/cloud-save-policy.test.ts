@@ -3,7 +3,6 @@ import { describe, it } from "node:test";
 
 import {
   getSuggestedCloudSaveAction,
-  getSyncAction,
   getSyncDirection,
   hasRemoteChangedSinceBase,
 } from "./sync-game/policy.ts";
@@ -11,38 +10,16 @@ import {
 describe("cloud save automatic sync policy", () => {
   it("syncs bidirectionally when the execution environment changes", () => {
     assert.equal(getSyncDirection("environment-changed"), "bidirectional");
-    assert.equal(getSyncAction("environment-changed", "local-ahead"), "upload");
-    assert.equal(
-      getSyncAction("environment-changed", "remote-ahead"),
-      "restore"
-    );
-    assert.equal(getSyncAction("environment-changed", "conflict"), "conflict");
-    assert.equal(getSyncAction("environment-changed", "synced"), "none");
   });
 
   it("syncs bidirectionally when the game page opens", () => {
     assert.equal(getSyncDirection("game-page-open"), "bidirectional");
-    assert.equal(getSyncAction("game-page-open", "local-ahead"), "upload");
-    assert.equal(getSyncAction("game-page-open", "remote-ahead"), "restore");
-    assert.equal(getSyncAction("game-page-open", "conflict"), "conflict");
-    assert.equal(getSyncAction("game-page-open", "synced"), "none");
   });
 
   it("keeps pre-launch restore-only and post-exit upload-only", () => {
     assert.equal(getSyncDirection("pre-launch"), "restore-only");
-    assert.equal(getSyncAction("pre-launch", "local-ahead"), "none");
-    assert.equal(getSyncAction("pre-launch", "remote-ahead"), "restore");
     assert.equal(getSyncDirection("custom-path-rebind"), "restore-only");
-    assert.equal(getSyncAction("custom-path-rebind", "local-ahead"), "none");
-    assert.equal(
-      getSyncAction("custom-path-rebind", "remote-ahead"),
-      "restore"
-    );
-
     assert.equal(getSyncDirection("post-exit"), "upload-only");
-    assert.equal(getSyncAction("post-exit", "remote-ahead"), "none");
-    assert.equal(getSyncAction("manual", "local-ahead"), "upload");
-    assert.equal(getSyncAction("post-exit", "local-ahead"), "upload");
   });
 
   it("detects a remote created or changed during the game session", () => {

@@ -9,6 +9,13 @@ use crate::cloud_save::path_resolution::{
 use super::scan_path::scan_resolved_path_with_capture;
 use super::types::{ScannedCloudSavePath, ScannedCloudSaveRule};
 
+fn store_user_capture_is_in_leaf(raw_path: &str) -> bool {
+    raw_path
+        .rsplit(|character| character == '/' || character == '\\')
+        .next()
+        .is_some_and(|leaf| leaf.contains("<storeUserId>"))
+}
+
 pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudSaveRule>, String> {
     rules
         .into_iter()
@@ -16,6 +23,8 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
             let mut selected_paths = Vec::<ScannedCloudSavePath>::new();
             let mut coverage = Vec::<UserLocationCoverage>::new();
             let user_bound = rule.raw_path.contains("<storeUserId>");
+            let store_user_capture_in_leaf =
+                rule.kind == "file" && store_user_capture_is_in_leaf(&rule.raw_path);
             if rule
                 .unresolved_tokens
                 .iter()
@@ -72,16 +81,21 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                         }
                     };
                     if scanned_paths.is_empty() && rule.kind == "file" {
-                        let existing_root = candidate
-                            .scan_root
-                            .as_deref()
-                            .map(Path::new)
-                            .filter(|path| path.is_dir())
-                            .or_else(|| {
-                                Path::new(&candidate.path)
-                                    .parent()
-                                    .filter(|path| path.is_dir())
-                            });
+                        let exact_parent = || {
+                            Path::new(&candidate.path)
+                                .parent()
+                                .filter(|path| path.is_dir())
+                        };
+                        let existing_root = if store_user_capture_in_leaf {
+                            exact_parent()
+                        } else {
+                            candidate
+                                .scan_root
+                                .as_deref()
+                                .map(Path::new)
+                                .filter(|path| path.is_dir())
+                                .or_else(exact_parent)
+                        };
                         if let Some(root) = existing_root {
                             if let Ok(root) = std::fs::canonicalize(root) {
                                 let resolved_path = root.to_string_lossy().replace('\\', "/");
@@ -130,7 +144,7 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                             .as_ref()
                             .is_some_and(|root| root == &scanned.resolved_path);
                         let selected_root = if user_bound {
-                            scanned.store_user_id.is_some()
+                            scanned.store_user_id.is_some() || store_user_capture_in_leaf
                         } else if !selected_paths.is_empty() && !candidate_has_files {
                             false
                         } else {
@@ -152,7 +166,9 @@ pub fn scan_rules(rules: Vec<ResolvedCloudSaveRule>) -> Result<Vec<ScannedCloudS
                             warning_codes: vec![],
                         });
 
-                        if selected_root {
+                        let coverage_only =
+                            store_user_capture_in_leaf && scanned.store_user_id.is_none();
+                        if selected_root && !coverage_only {
                             candidate_selected_paths.push(scanned.clone());
                         }
                     }
@@ -240,6 +256,28 @@ mod tests {
             }],
         })
         .unwrap()
+    }
+
+    fn leaf_capture_rule(root: &Path, raw_leaf: &str) -> ResolvedCloudSaveRule {
+        ResolvedCloudSaveRule {
+            rule_id: raw_leaf.into(),
+            kind: "file".into(),
+            raw_path: format!("<home>/Game/{raw_leaf}"),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![ResolvedCloudSavePath {
+                path: root
+                    .join(raw_leaf.replace("<storeUserId>", "*"))
+                    .display()
+                    .to_string()
+                    .replace('\\', "/"),
+                case_sensitive: true,
+                dynamic: true,
+                scan_root: Some(root.display().to_string().replace('\\', "/")),
+            }],
+            unresolved_tokens: vec![],
+        }
     }
 
     #[test]
@@ -408,27 +446,7 @@ mod tests {
             ("<storeUserId>.ini", "Rune.ini", "Rune"),
         ] {
             fs::write(root.join(concrete_leaf), expected_user.as_bytes()).unwrap();
-            let resolved_leaf = raw_leaf.replace("<storeUserId>", "*");
-            let scanned = scan_rules(vec![ResolvedCloudSaveRule {
-                rule_id: raw_leaf.into(),
-                kind: "file".into(),
-                raw_path: format!("<home>/Game/{raw_leaf}"),
-                source: "ludusavi".into(),
-                tags: vec!["save".into()],
-                when: vec![],
-                resolved_paths: vec![ResolvedCloudSavePath {
-                    path: root
-                        .join(resolved_leaf)
-                        .display()
-                        .to_string()
-                        .replace('\\', "/"),
-                    case_sensitive: true,
-                    dynamic: true,
-                    scan_root: Some(root.display().to_string().replace('\\', "/")),
-                }],
-                unresolved_tokens: vec![],
-            }])
-            .unwrap();
+            let scanned = scan_rules(vec![leaf_capture_rule(&root, raw_leaf)]).unwrap();
 
             assert_eq!(scanned[0].scanned_paths.len(), 1);
             assert_eq!(
@@ -440,6 +458,88 @@ mod tests {
                 concrete_leaf
             );
         }
+    }
+
+    #[test]
+    fn keeps_multiple_leaf_file_profiles_separate() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("profiles");
+        fs::create_dir_all(&root).unwrap();
+        for user in ["Goldberg", "Rune"] {
+            fs::write(
+                root.join(format!("PlayerProfile{user}.sav")),
+                user.as_bytes(),
+            )
+            .unwrap();
+        }
+
+        let scanned = scan_rules(vec![leaf_capture_rule(
+            &root,
+            "PlayerProfile<storeUserId>.sav",
+        )])
+        .unwrap();
+        let paths = &scanned[0].scanned_paths;
+
+        assert_eq!(paths.len(), 2);
+        assert_eq!(paths[0].store_user_id.as_deref(), Some("Goldberg"));
+        assert_eq!(paths[0].files.len(), 1);
+        assert_eq!(paths[0].files[0].relative_path, "PlayerProfileGoldberg.sav");
+        assert_eq!(paths[1].store_user_id.as_deref(), Some("Rune"));
+        assert_eq!(paths[1].files.len(), 1);
+        assert_eq!(paths[1].files[0].relative_path, "PlayerProfileRune.sav");
+        assert_ne!(paths[0].candidate_id, paths[1].candidate_id);
+    }
+
+    #[test]
+    fn leaf_file_capture_keeps_complete_parent_coverage_after_a_profile_is_deleted() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("profiles");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("PlayerProfileRune.sav"), b"Rune").unwrap();
+
+        let scanned = scan_rules(vec![leaf_capture_rule(
+            &root,
+            "PlayerProfile<storeUserId>.sav",
+        )])
+        .unwrap();
+        let rule = &scanned[0];
+        let selected_candidate_ids = rule
+            .scanned_paths
+            .iter()
+            .map(|path| path.candidate_id.as_str())
+            .collect::<HashSet<_>>();
+
+        assert_eq!(rule.scanned_paths.len(), 1);
+        assert_eq!(rule.scanned_paths[0].store_user_id.as_deref(), Some("Rune"));
+        assert!(rule.coverage.iter().any(|coverage| {
+            coverage.selected_root
+                && coverage.enumerated_completely
+                && !selected_candidate_ids.contains(coverage.candidate_id.as_str())
+        }));
+    }
+
+    #[test]
+    fn leaf_file_capture_proves_all_profiles_missing_only_when_parent_exists() {
+        let temp = tempdir().unwrap();
+        let existing_root = temp.path().join("existing-profiles");
+        fs::create_dir_all(&existing_root).unwrap();
+
+        let existing =
+            scan_rules(vec![leaf_capture_rule(&existing_root, "<storeUserId>.ini")]).unwrap();
+        assert!(existing[0].scanned_paths.is_empty());
+        assert!(existing[0]
+            .coverage
+            .iter()
+            .any(|coverage| coverage.selected_root && coverage.enumerated_completely));
+
+        let missing_root = temp.path().join("missing-profiles");
+        let missing =
+            scan_rules(vec![leaf_capture_rule(&missing_root, "<storeUserId>.ini")]).unwrap();
+        assert!(missing[0].scanned_paths.is_empty());
+        assert!(missing[0]
+            .coverage
+            .iter()
+            .all(|coverage| !coverage.selected_root));
     }
 
     #[test]

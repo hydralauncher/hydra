@@ -128,7 +128,6 @@ const shouldSyncOnGamePage = (
     isGameRunning: false,
     isSyncing: false,
     isInFlight: false,
-    isCompleted: false,
     ...overrides,
   });
 
@@ -377,9 +376,8 @@ describe("game page automatic cloud save sync", () => {
     );
   });
 
-  it("blocks concurrent and completed attempts", () => {
+  it("blocks only concurrent attempts in the renderer", () => {
     assert.equal(shouldSyncOnGamePage({ isInFlight: true }), false);
-    assert.equal(shouldSyncOnGamePage({ isCompleted: true }), false);
   });
 
   it("respects automatic sync and game eligibility", () => {

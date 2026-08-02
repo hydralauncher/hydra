@@ -84,7 +84,6 @@ interface GamePageOpenSyncInput {
   isGameRunning: boolean;
   isSyncing: boolean;
   isInFlight: boolean;
-  isCompleted: boolean;
 }
 
 export const shouldSyncCloudSaveOnGamePage = ({
@@ -95,7 +94,6 @@ export const shouldSyncCloudSaveOnGamePage = ({
   isGameRunning,
   isSyncing,
   isInFlight,
-  isCompleted,
 }: GamePageOpenSyncInput) =>
   shop === "steam" &&
   canUseCloudSaves &&
@@ -103,7 +101,6 @@ export const shouldSyncCloudSaveOnGamePage = ({
   !isGameRunning &&
   !isSyncing &&
   !isInFlight &&
-  !isCompleted &&
   overview?.isAutomaticSyncEnabled === true &&
   overview.suggestedAction !== "none";
 

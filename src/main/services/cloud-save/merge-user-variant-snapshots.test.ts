@@ -357,7 +357,54 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.unresolvedRemoteEntryIds, []);
   });
 
-  it("propagates deletion of the last file when coverage proves it", () => {
+  it("uses complete leaf-parent coverage to delete a missing filename profile", () => {
+    const firstVariant: SnapshotVariant = {
+      variantId,
+      kind: "opaque-folder",
+      concreteFolderId: "Goldberg",
+    };
+    const secondVariantId = "2".repeat(64);
+    const secondVariant: SnapshotVariant = {
+      variantId: secondVariantId,
+      kind: "opaque-folder",
+      concreteFolderId: "Rune",
+    };
+    const rawPath = "<home>/Game/PlayerProfile<storeUserId>.sav";
+    const deleted = file("PlayerProfileGoldberg.sav", "a", rawPath);
+    const retained = file(
+      "PlayerProfileRune.sav",
+      "b",
+      rawPath,
+      secondVariantId
+    );
+    const local = context([retained]);
+    local.variants = [secondVariant];
+    local.coverage = [
+      {
+        candidateId: "profiles-parent",
+        ruleId: "profile-save",
+        rawPath,
+        selectedRoot: true,
+        authority: "inferred",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [firstVariant, secondVariant],
+      remoteFiles: [deleted, retained],
+      base: anchor([deleted, retained]),
+    });
+
+    assert.deepEqual(result.files, [retained]);
+    assert.deepEqual(result.deleteRemoteEntryIds, [cloudSaveFileKey(deleted)]);
+    assert.deepEqual(result.restoreEntryIds, []);
+  });
+
+  it("restores the last file even when coverage could prove deletion", () => {
     const deleted = file("S0000.sl2", "a");
     const local = context([]);
     local.coverage = [
@@ -381,10 +428,41 @@ describe("merge user variant snapshots", () => {
       base: anchor([deleted]),
     });
 
-    assert.deepEqual(result.files, []);
-    assert.deepEqual(result.deleteRemoteEntryIds, [cloudSaveFileKey(deleted)]);
-    assert.deepEqual(result.restoreEntryIds, []);
+    assert.deepEqual(result.files, [deleted]);
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(deleted)]);
     assert.deepEqual(result.unresolvedRemoteEntryIds, []);
+  });
+
+  it("restores an empty local snapshot instead of conflicting with a changed remote", () => {
+    const previous = file("S0000.sl2", "a");
+    const remote = file("S0000.sl2", "b");
+    const local = context([]);
+    local.coverage = [
+      {
+        candidateId: "sekiro-profile",
+        ruleId: "sekiro-save",
+        variantId,
+        rawPath: remote.rawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: anchor([previous]),
+    });
+
+    assert.deepEqual(result.files, [remote]);
+    assert.deepEqual(result.conflicts, []);
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(remote)]);
   });
 
   it("restores the last file during a restore-only pre-launch sync", () => {
@@ -580,6 +658,53 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.deleteRemoteEntryIds, []);
     assert.deepEqual(result.unresolvedRemoteEntryIds, []);
     assert.equal(result.partial, false);
+  });
+
+  it("restores only current-OS files when the local snapshot is empty", () => {
+    const windowsFile = file(
+      "windows-slot.dat",
+      "w",
+      "<winAppData>/Team Cherry/Hollow Knight Silksong"
+    );
+    const linuxFile = file(
+      "linux-slot.dat",
+      "l",
+      "<xdgConfig>/Team Cherry/Hollow Knight Silksong"
+    );
+    const local = context([]);
+    local.coverage = [
+      {
+        candidateId: "windows-rule",
+        ruleId: "windows-rule",
+        rawPath: windowsFile.rawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+      {
+        candidateId: "foreign-linux-rule",
+        ruleId: "linux-rule",
+        rawPath: linuxFile.rawPath,
+        selectedRoot: false,
+        authority: "inferred",
+        outcome: "foreign-environment",
+        enumeratedCompletely: false,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [windowsFile, linuxFile],
+      base: anchor([windowsFile, linuxFile]),
+    });
+
+    assert.deepEqual(result.files, [windowsFile, linuxFile]);
+    assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(windowsFile)]);
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
   });
 
   it("conflicts when a locally deleted file changed remotely", () => {

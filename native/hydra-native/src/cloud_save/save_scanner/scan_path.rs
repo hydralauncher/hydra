@@ -50,6 +50,21 @@ fn relative_path(root: &Path, path: &Path) -> Option<String> {
         .filter(|relative| !relative.is_empty())
 }
 
+fn scanned_group_key(resolved_root: &str, store_user_id: Option<&str>) -> String {
+    format!("{resolved_root}\0{}", store_user_id.unwrap_or_default())
+}
+
+fn scanned_candidate_id(
+    resolved_path: &str,
+    resolved_root: &str,
+    store_user_id: Option<&str>,
+) -> String {
+    match store_user_id {
+        Some(store_user_id) => local_id(&[resolved_path, resolved_root, store_user_id]),
+        None => local_id(&[resolved_path, resolved_root]),
+    }
+}
+
 fn match_options(case_sensitive: bool, follow_links: bool) -> MatchOptions {
     MatchOptions {
         case_sensitive,
@@ -298,9 +313,10 @@ fn add_file(
     scanned_by_root: &mut BTreeMap<String, ScannedCloudSavePath>,
     root: &Path,
     file: &Path,
-) -> Result<(), String> {
+    store_user_id: Option<&str>,
+) -> Result<String, String> {
     if is_cloud_save_artifact_path(file) {
-        return Ok(());
+        return Ok(String::new());
     }
     let resolved_root = canonical_path(root)?;
     let relative_path = relative_path(root, file)
@@ -311,15 +327,16 @@ fn add_file(
         .unwrap_or_default();
 
     if relative_path.is_empty() {
-        return Ok(());
+        return Ok(String::new());
     }
 
+    let group_key = scanned_group_key(&resolved_root, store_user_id);
     scanned_by_root
-        .entry(resolved_root.clone())
+        .entry(group_key.clone())
         .or_insert_with(|| ScannedCloudSavePath {
             candidate_id: String::new(),
             resolved_path: resolved_root,
-            store_user_id: None,
+            store_user_id: store_user_id.map(ToString::to_string),
             case_sensitive: true,
             files: Vec::new(),
         })
@@ -329,7 +346,7 @@ fn add_file(
             relative_path,
         });
 
-    Ok(())
+    Ok(group_key)
 }
 
 fn captured_components_are_directories(
@@ -370,9 +387,6 @@ fn captured_file_parent_patterns(
     let resolved_parent = Path::new(resolved_path).parent()?;
     let template_parent = Path::new(capture_template).parent()?;
     let template_parent = normalize_path(&template_parent.to_string_lossy());
-    if !template_parent.contains(STORE_USER_CAPTURE_MARKER) {
-        return None;
-    }
 
     Some((
         normalize_path(&resolved_parent.to_string_lossy()),
@@ -404,28 +418,34 @@ fn add_empty_captured_file_roots(
             continue;
         }
         let concrete = normalize_path(&matched.to_string_lossy());
-        let Some(capture) =
-            capture_store_user_with_components(&parent_template, &concrete, case_sensitive)
-        else {
-            continue;
+        let capture = if parent_template.contains(STORE_USER_CAPTURE_MARKER) {
+            let Some(capture) =
+                capture_store_user_with_components(&parent_template, &concrete, case_sensitive)
+            else {
+                continue;
+            };
+            if !captured_components_are_directories(&matched, &capture, follow_links, false)? {
+                continue;
+            }
+            Some(capture.value)
+        } else {
+            None
         };
-        if !captured_components_are_directories(&matched, &capture, follow_links, false)? {
-            continue;
-        }
 
         let resolved_root = canonical_path(&matched)?;
-        let candidate_id = local_id(&[resolved_path, &resolved_root]);
+        let group_key = scanned_group_key(&resolved_root, capture.as_deref());
+        let candidate_id = scanned_candidate_id(resolved_path, &resolved_root, capture.as_deref());
         scanned_by_root
-            .entry(resolved_root.clone())
+            .entry(group_key)
             .and_modify(|existing| {
-                existing.store_user_id = Some(capture.value.clone());
+                existing.store_user_id = capture.clone();
                 existing.case_sensitive = case_sensitive;
                 existing.candidate_id = candidate_id.clone();
             })
             .or_insert_with(|| ScannedCloudSavePath {
                 candidate_id,
                 resolved_path: resolved_root,
-                store_user_id: Some(capture.value),
+                store_user_id: capture,
                 case_sensitive,
                 files: Vec::new(),
             });
@@ -493,9 +513,15 @@ pub fn scan_resolved_path_with_capture(
                     scanned.resolved_path = canonical_path(&shared_root)?;
                 }
             }
-            scanned.candidate_id = local_id(&[resolved_path, &scanned.resolved_path]);
+            scanned.candidate_id = scanned_candidate_id(
+                resolved_path,
+                &scanned.resolved_path,
+                scanned.store_user_id.as_deref(),
+            );
+            let group_key =
+                scanned_group_key(&scanned.resolved_path, scanned.store_user_id.as_deref());
             scanned_by_root
-                .entry(scanned.resolved_path.clone())
+                .entry(group_key)
                 .and_modify(|existing| existing.files.extend(scanned.files.iter().cloned()))
                 .or_insert(scanned);
             continue;
@@ -516,12 +542,14 @@ pub fn scan_resolved_path_with_capture(
             };
 
             if let Some(root) = root {
-                add_file(&mut scanned_by_root, root, &matched)?;
                 let resolved_root = canonical_path(root)?;
-                if let Some(scanned) = scanned_by_root.get_mut(&resolved_root) {
-                    scanned.store_user_id = captured;
+                let group_key =
+                    add_file(&mut scanned_by_root, root, &matched, captured.as_deref())?;
+                if let Some(scanned) = scanned_by_root.get_mut(&group_key) {
+                    scanned.store_user_id = captured.clone();
                     scanned.case_sensitive = case_sensitive;
-                    scanned.candidate_id = local_id(&[resolved_path, &resolved_root]);
+                    scanned.candidate_id =
+                        scanned_candidate_id(resolved_path, &resolved_root, captured.as_deref());
                 }
             }
         }

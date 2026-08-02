@@ -181,7 +181,6 @@ export function CloudSaveV2Provider({
   const gameKey = `${shop}:${objectId}`;
   const activeGameKey = useRef(gameKey);
   const gamePageSyncInFlight = useRef(false);
-  const gamePageSyncCompleted = useRef(false);
 
   activeGameKey.current = gameKey;
 
@@ -221,7 +220,6 @@ export function CloudSaveV2Provider({
     setIsCustomPathApprovalGateActive(false);
     setPendingResolution(null);
     gamePageSyncInFlight.current = false;
-    gamePageSyncCompleted.current = false;
   }, [gameKey]);
 
   const wasGameRunning = useRef(isGameRunning);
@@ -380,7 +378,6 @@ export function CloudSaveV2Provider({
         isGameRunning,
         isSyncing,
         isInFlight: gamePageSyncInFlight.current,
-        isCompleted: gamePageSyncCompleted.current,
       })
     ) {
       return;
@@ -391,10 +388,6 @@ export function CloudSaveV2Provider({
 
     void window.electron
       .syncCloudSaveOnGamePage(objectId, shop)
-      .then((response) => {
-        if (activeGameKey.current !== requestedGame) return;
-        if (response.accepted) gamePageSyncCompleted.current = true;
-      })
       .catch(() => {
         if (activeGameKey.current !== requestedGame) return;
 

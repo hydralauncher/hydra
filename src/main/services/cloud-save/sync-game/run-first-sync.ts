@@ -1,4 +1,5 @@
 import type {
+  CloudSaveSyncAction,
   CloudSaveState,
   CloudSaveSyncTrigger,
   GameShop,
@@ -6,12 +7,12 @@ import type {
 } from "@types";
 
 import type { analyzeCloudSaveState } from "../analyze-cloud-save-state";
-import { getSyncAction } from "./policy";
 import {
   type ProgressCallback,
   restoreRemoteState,
   uploadLocalState,
 } from "./transfer";
+import { requireCommittedCloudSaveSnapshot } from "./planner.js";
 
 type CloudSaveAnalysis = Awaited<ReturnType<typeof analyzeCloudSaveState>>;
 
@@ -41,14 +42,14 @@ export const runFirstSync = async (
   objectId: string,
   shop: GameShop,
   trigger: CloudSaveSyncTrigger,
+  plannedAction: CloudSaveSyncAction,
   analysis: CloudSaveAnalysis,
   emitProgress: ProgressCallback,
   assertEnvironmentCurrent?: () => Promise<void>
 ): Promise<SyncOutcome> => {
   const initialState = "untracked";
-  const firstSyncState = getFirstSyncState(analysis);
   const remoteSnapshot = analysis.state.activeRemoteSnapshot;
-  const action = getSyncAction(trigger, firstSyncState);
+  const action = plannedAction;
 
   if (action === "conflict") {
     return {
@@ -64,7 +65,7 @@ export const runFirstSync = async (
   }
 
   if (action === "upload") {
-    await uploadLocalState(
+    const committedSnapshot = await uploadLocalState(
       objectId,
       shop,
       analysis.localSnapshotContext,
@@ -79,6 +80,7 @@ export const runFirstSync = async (
       },
       assertEnvironmentCurrent
     );
+    requireCommittedCloudSaveSnapshot(committedSnapshot);
     return {
       result: {
         trigger,
@@ -92,15 +94,16 @@ export const runFirstSync = async (
   }
 
   if (action === "restore" && remoteSnapshot) {
+    const restoreEntryIds = analysis.merge.restoreEntryIds;
     const restored = await restoreRemoteState(
       objectId,
       shop,
       remoteSnapshot,
       analysis.localSnapshotContext,
       emitProgress,
-      undefined,
+      restoreEntryIds,
       true,
-      [],
+      analysis.merge.unresolvedRemoteEntryIds,
       assertEnvironmentCurrent
     );
     return {
@@ -110,8 +113,8 @@ export const runFirstSync = async (
         initialState,
         finalState: restored.partial ? "partial" : "synced",
       },
-      processedFiles: remoteSnapshot.fileCount,
-      totalFiles: remoteSnapshot.fileCount,
+      processedFiles: restoreEntryIds.length,
+      totalFiles: restoreEntryIds.length,
     };
   }
 
