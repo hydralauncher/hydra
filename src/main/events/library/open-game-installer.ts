@@ -5,9 +5,9 @@ import { spawn } from "node:child_process";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
-import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { GameShop } from "@types";
-import { logger, Umu, Wine } from "@main/services";
+import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { GameShop, UserPreferences } from "@types";
+import { logger, Umu, Wine, CrossOver } from "@main/services";
 
 const launchInstallerWithWine = async (filePath: string): Promise<boolean> => {
   return await new Promise<boolean>((resolve) => {
@@ -60,6 +60,7 @@ const executeGameInstaller = async (
     gameId?: string;
     winePrefixPath?: string | null;
     protonPath?: string | null;
+    crossoverBottle?: string | null;
   }
 ) => {
   if (process.platform === "win32") {
@@ -68,6 +69,20 @@ const executeGameInstaller = async (
       return true;
     }
 
+    return await openPathAndCheck(filePath);
+  }
+
+  if (process.platform === "darwin") {
+    // Run exe in the existing CrossOver bottle (files already copied there)
+    if (CrossOver.isInstalled()) {
+      const bottleName = options?.crossoverBottle ?? CrossOver.getDefaultBottle().name;
+      try {
+        await CrossOver.launchInBottle(bottleName, filePath);
+        return true;
+      } catch (error) {
+        logger.error("Failed to launch executable in CrossOver bottle", error);
+      }
+    }
     return await openPathAndCheck(filePath);
   }
 
@@ -92,6 +107,43 @@ const executeGameInstaller = async (
   }
 
   return await openPathAndCheck(filePath);
+};
+
+const cleanupOriginalDownload = async (
+  gamePath: string,
+  shop: GameShop,
+  objectId: string
+) => {
+  try {
+    const downloadKey = levelKeys.game(shop, objectId);
+    const [download, userPreferences] = await Promise.all([
+      downloadsSublevel.get(downloadKey),
+      db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      }),
+    ]);
+
+    const shouldDelete =
+      download?.automaticallyDeleteArchiveFiles ??
+      userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
+      false;
+
+    if (shouldDelete && fs.existsSync(gamePath)) {
+      await fs.promises.rm(gamePath, { recursive: true, force: true });
+      logger.info(`Cleaned up original download folder after copying to CrossOver bottle: ${gamePath}`);
+
+      // Clear installer size since the original files are gone
+      const game = await gamesSublevel.get(downloadKey).catch(() => null);
+      if (game) {
+        await gamesSublevel.put(downloadKey, {
+          ...game,
+          installerSizeInBytes: null,
+        });
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to clean up original download folder after bottle copy", error);
+  }
 };
 
 const openGameInstaller = async (
@@ -119,6 +171,59 @@ const openGameInstaller = async (
   }
 
   if (process.platform === "darwin") {
+    // On macOS, copy game data into the CrossOver bottle, then run installer
+    if (CrossOver.isInstalled() && game) {
+      const bottleName = game.crossoverBottle ?? CrossOver.getDefaultBottle().name;
+
+      // Copy game files into the bottle's Program Files
+      let bottleGamePath: string;
+      try {
+        bottleGamePath = CrossOver.copyGameToBottle(
+          bottleName,
+          gamePath,
+          game.title
+        );
+      } catch (error) {
+        logger.error("Failed to copy game files to CrossOver bottle", error);
+        shell.openPath(gamePath);
+        return true;
+      }
+
+      // Find installer exe inside the bottle copy
+      if (fs.lstatSync(bottleGamePath).isDirectory()) {
+        const setupPath = path.join(bottleGamePath, "setup.exe");
+        if (fs.existsSync(setupPath)) {
+          const result = await executeGameInstaller(setupPath, {
+            gameId: objectId,
+            crossoverBottle: bottleName,
+          });
+
+          // Clean up original download folder after copying to bottle
+          await cleanupOriginalDownload(gamePath, shop, objectId);
+          return result;
+        }
+
+        const fileNames = fs.readdirSync(bottleGamePath);
+        const exeFiles = fileNames.filter(
+          (fileName: string) => path.extname(fileName).toLowerCase() === ".exe"
+        );
+
+        if (exeFiles.length === 1) {
+          const result = await executeGameInstaller(
+            path.join(bottleGamePath, exeFiles[0]),
+            {
+              gameId: objectId,
+              crossoverBottle: bottleName,
+            }
+          );
+
+          // Clean up original download folder after copying to bottle
+          await cleanupOriginalDownload(gamePath, shop, objectId);
+          return result;
+        }
+      }
+    }
+
     shell.openPath(gamePath);
     return true;
   }

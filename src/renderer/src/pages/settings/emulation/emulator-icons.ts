@@ -8,4 +8,5 @@ export const EMULATOR_ICONS: Partial<Record<EmulatorBinary, string>> = {
   duckstation: duckstationIcon,
   pcsx2: pcsx2Icon,
   rpcs3: rpcs3Icon,
+  crossover: undefined,
 };

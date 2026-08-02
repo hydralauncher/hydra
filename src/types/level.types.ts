@@ -55,6 +55,7 @@ export interface Game {
   isDeleted: boolean;
   winePrefixPath?: string | null;
   protonPath?: string | null;
+  crossoverBottle?: string | null;
   executablePath?: string | null;
   executablePathUpdatedAt?: Date | null;
   trackingExecutablePaths?: string[] | null;

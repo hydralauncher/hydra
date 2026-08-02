@@ -732,6 +732,12 @@ export class DownloadManager {
       }
     } else {
       const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
+
+      // On macOS, automatically copy game to CrossOver bottle even without extraction
+      if (process.platform === "darwin" && download.folderName) {
+        void gameFilesManager.copyToCrossoverBottle(download, game);
+      }
+
       gameFilesManager.searchAndBindExecutable();
       void gameFilesManager.autoLinkClassicsDiscs();
     }

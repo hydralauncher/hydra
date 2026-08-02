@@ -82,6 +82,17 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     romExtensions: [".iso", ".pkg", ".elf", ".self"],
     romDirectoryMarkers: ["PS3_GAME", "ps3_game"],
   },
+  windows: {
+    system: "windows",
+    binary: "crossover",
+    displayName: "CrossOver",
+    linuxNames: [],
+    windowsNames: [],
+    flatpakIds: [],
+    versionFlags: ["--version"],
+    romExtensions: [".exe", ".msi"],
+    romDirectoryMarkers: [],
+  },
 };
 
 export const EMULATOR_BINARIES: readonly EmulatorBinary[] = Object.values(

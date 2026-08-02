@@ -16,6 +16,7 @@ const ART: Record<string, string> = {
   ps1: ps1Art,
   ps2: ps2Art,
   ps3: ps3Art,
+  windows: "",
 };
 
 interface ConsoleCardProps {
@@ -69,12 +70,14 @@ export function ConsoleCard({
     <div
       className={`console-card ${isConfigured ? "" : "console-card--unconfigured"}`}
     >
-      <img
-        src={ART[config.system]}
-        alt=""
-        className="console-card__art"
-        aria-hidden="true"
-      />
+      {ART[config.system] && (
+        <img
+          src={ART[config.system]}
+          alt=""
+          className="console-card__art"
+          aria-hidden="true"
+        />
+      )}
 
       <div className="console-card__heading">
         <h3 className="console-card__title">{systemLabel}</h3>

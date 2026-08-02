@@ -21,6 +21,7 @@ import "./remove-emulator";
 import "./import-launchbox-roms";
 import "./check-emulator-executable";
 import "./get-emulator-rom-extensions";
+import "./crossover";
 import "./scan-ps2-memcards";
 import "./ps2-memcard-saves";
 import "./export-ps2-save";

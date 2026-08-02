@@ -8,7 +8,7 @@ import {
   FILE_EXTENSIONS_TO_EXTRACT,
   removeSymbolsFromName,
 } from "@shared";
-import type { GameShop, UserPreferences } from "@types";
+import type { Download, Game, GameShop, UserPreferences } from "@types";
 import axios from "axios";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import fs from "node:fs";
@@ -16,6 +16,7 @@ import path from "node:path";
 import pngToIco from "png-to-ico";
 import sharp from "sharp";
 import { ExtractionProgress, SevenZip } from "./7zip";
+import { CrossOver } from "./crossover";
 import * as emulators from "./emulators";
 import { getPathType } from "./extraction-path";
 import { GameExecutables } from "./game-executables";
@@ -254,8 +255,49 @@ export class GameFilesManager {
     this.lastProgressUpdateTime = 0;
     this.lastProgressUpdateValue = 0;
 
+    // On macOS, automatically copy game to CrossOver bottle after extraction
+    if (process.platform === "darwin" && game && download.folderName) {
+      await this.copyToCrossoverBottle(download, game);
+    }
+
     await this.searchAndBindExecutable();
     await this.autoLinkClassicsDiscs();
+  }
+
+  async copyToCrossoverBottle(download: Download, game: Game): Promise<void> {
+    if (!CrossOver.isInstalled()) return;
+
+    const gamePath = path.join(download.downloadPath, download.folderName);
+    if (!fs.existsSync(gamePath)) return;
+
+    try {
+      const bottleName = game.crossoverBottle ?? CrossOver.getDefaultBottle().name;
+      CrossOver.copyGameToBottle(bottleName, gamePath, game.title);
+      logger.info(`Automatically copied game to CrossOver bottle: ${game.title}`);
+
+      // Clean up original download folder if user preference is set
+      const userPreferences = await db.get<string, UserPreferences | null>(
+        levelKeys.userPreferences,
+        { valueEncoding: "json" }
+      );
+
+      const shouldDelete =
+        download?.automaticallyDeleteArchiveFiles ??
+        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
+        false;
+
+      if (shouldDelete) {
+        await fs.promises.rm(gamePath, { recursive: true, force: true });
+        logger.info(`Cleaned up original download folder after copying to CrossOver bottle: ${gamePath}`);
+
+        await gamesSublevel.put(this.gameKey, {
+          ...game,
+          installerSizeInBytes: null,
+        });
+      }
+    } catch (error) {
+      logger.error("Failed to copy game to CrossOver bottle", error);
+    }
   }
 
   async autoLinkClassicsDiscs(): Promise<void> {
@@ -335,14 +377,6 @@ export class GameFilesManager {
         return;
       }
 
-      const executableNames = GameExecutables.getExecutablesForGame(
-        this.objectId
-      );
-
-      if (!executableNames || executableNames.length === 0) {
-        return;
-      }
-
       if (!download.folderName) {
         return;
       }
@@ -356,29 +390,95 @@ export class GameFilesManager {
         return;
       }
 
-      const foundExePath = await this.findExecutableInFolder(
-        gameFolderPath,
-        executableNames
+      const executableNames = GameExecutables.getExecutablesForGame(
+        this.objectId
       );
 
-      if (foundExePath) {
-        logger.info(
-          `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${foundExePath}`
+      // Try known executable names first
+      if (executableNames && executableNames.length > 0) {
+        const foundExePath = await this.findExecutableInFolder(
+          gameFolderPath,
+          executableNames
         );
 
-        await gamesSublevel.put(this.gameKey, {
-          ...updateGameExecutablePath(game, foundExePath),
-        });
+        if (foundExePath) {
+          logger.info(
+            `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${foundExePath}`
+          );
 
-        WindowManager.sendToAppWindows("on-library-batch-complete");
+          await gamesSublevel.put(this.gameKey, {
+            ...updateGameExecutablePath(game, foundExePath),
+          });
 
-        await this.createDesktopShortcutForGame(game.title);
+          WindowManager.sendToAppWindows("on-library-batch-complete");
+
+          await this.createDesktopShortcutForGame(game.title);
+          return;
+        }
+      }
+
+      // On macOS, look for any .exe file to use with CrossOver
+      if (process.platform === "darwin") {
+        const exePath = await this.findFirstExeInFolder(gameFolderPath);
+        if (exePath) {
+          logger.info(
+            `[GameFilesManager] Auto-detected Windows executable for CrossOver: ${exePath}`
+          );
+
+          await gamesSublevel.put(this.gameKey, {
+            ...updateGameExecutablePath(game, exePath),
+          });
+
+          WindowManager.sendToAppWindows("on-library-batch-complete");
+          return;
+        }
       }
     } catch (err) {
       logger.error(
         `[GameFilesManager] Error searching for executable: ${this.objectId}`,
         err
       );
+    }
+  }
+
+  /**
+   * Find the first .exe file in a folder (for CrossOver on macOS)
+   */
+  private async findFirstExeInFolder(folderPath: string): Promise<string | null> {
+    try {
+      const entries = await fs.promises.readdir(folderPath, {
+        withFileTypes: true,
+        recursive: true,
+      });
+
+      // Prefer setup.exe, then any .exe
+      let fallbackExe: string | null = null;
+
+      for (const entry of entries) {
+        if (!entry.isFile()) continue;
+
+        const fileName = entry.name.toLowerCase();
+
+        if (fileName === "setup.exe" || fileName === "install.exe") {
+          const parentPath =
+            "parentPath" in entry
+              ? entry.parentPath
+              : (entry as unknown as { path?: string }).path || folderPath;
+          return path.join(parentPath, entry.name);
+        }
+
+        if (!fallbackExe && fileName.endsWith(".exe")) {
+          const parentPath =
+            "parentPath" in entry
+              ? entry.parentPath
+              : (entry as unknown as { path?: string }).path || folderPath;
+          fallbackExe = path.join(parentPath, entry.name);
+        }
+      }
+
+      return fallbackExe;
+    } catch {
+      return null;
     }
   }
 

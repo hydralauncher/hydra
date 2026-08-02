@@ -13,6 +13,7 @@ import {
   Wine,
   NativeAddon,
   launchedGamePids,
+  CrossOver,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
@@ -242,6 +243,41 @@ const cleanupStaleCompatibilityProcesses = async (
   }
 };
 
+const launchWithCrossOver = async (
+  executablePath: string,
+  bottleName?: string | null,
+  gameTitle?: string | null
+): Promise<boolean> => {
+  if (!CrossOver.isInstalled()) {
+    logger.warn("CrossOver is not installed");
+    return false;
+  }
+
+  const bottle = bottleName ?? CrossOver.getDefaultBottle().name;
+
+  // Try to find the executable inside the bottle first
+  if (gameTitle) {
+    const bottleExePath = CrossOver.findExecutableInBottle(bottle, gameTitle, executablePath);
+    if (bottleExePath) {
+      try {
+        await CrossOver.launchInBottle(bottle, bottleExePath);
+        return true;
+      } catch (error) {
+        logger.error("Failed to launch game from bottle path", error);
+      }
+    }
+  }
+
+  // Fallback: launch from the original path
+  try {
+    await CrossOver.launchInBottle(bottle, executablePath);
+    return true;
+  } catch (error) {
+    logger.error("Failed to launch game with CrossOver", error);
+    return false;
+  }
+};
+
 const launchWindowsBinaryOnLinux = async (
   gameKey: string,
   objectId: string,
@@ -368,6 +404,20 @@ export const launchGame = async (
     if (pid !== null) launchedGamePids.set(gameKey, pid);
 
     return pid;
+  }
+
+  // macOS: Try CrossOver for Windows executables
+  if (process.platform === "darwin" && isWindowsExecutable(parsedPath)) {
+    const launched = await launchWithCrossOver(
+      parsedPath,
+      game?.crossoverBottle,
+      game?.title
+    );
+
+    if (launched) {
+      PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+      return null;
+    }
   }
 
   return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);

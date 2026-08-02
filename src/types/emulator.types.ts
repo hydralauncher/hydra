@@ -1,6 +1,6 @@
-export type EmulatorSystem = "ps1" | "ps2" | "ps3";
+export type EmulatorSystem = "ps1" | "ps2" | "ps3" | "windows";
 
-export type EmulatorBinary = "duckstation" | "pcsx2" | "rpcs3";
+export type EmulatorBinary = "duckstation" | "pcsx2" | "rpcs3" | "crossover";
 
 export interface RomFolder {
   id: string;

@@ -463,6 +463,26 @@ contextBridge.exposeInMainWorld("electron", {
     return () => ipcRenderer.removeListener(channel, listener);
   },
 
+  /* CrossOver */
+  getCrossoverInfo: () => ipcRenderer.invoke("getCrossoverInfo"),
+  getCrossoverBottles: () => ipcRenderer.invoke("getCrossoverBottles"),
+  createCrossoverBottle: (name: string) =>
+    ipcRenderer.invoke("createCrossoverBottle", name),
+  getDefaultCrossoverBottle: () =>
+    ipcRenderer.invoke("getDefaultCrossoverBottle"),
+  launchInCrossoverBottle: (
+    bottleName: string,
+    executablePath: string,
+    args?: string[]
+  ) => ipcRenderer.invoke("launchInCrossoverBottle", bottleName, executablePath, args),
+  installInCrossoverBottle: (
+    bottleName: string,
+    installerPath: string,
+    args?: string[]
+  ) => ipcRenderer.invoke("installInCrossoverBottle", bottleName, installerPath, args),
+  copyGameToCrossoverBottle: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("copyGameToCrossoverBottle", shop, objectId),
+
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
   updateUserPreferences: (preferences: Partial<UserPreferences>) =>

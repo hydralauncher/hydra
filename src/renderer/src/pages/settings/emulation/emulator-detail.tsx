@@ -43,7 +43,7 @@ interface EmulatorDetailProps {
   refresh: () => Promise<EmulatorConfig | unknown>;
 }
 
-type EmulatorTab = "emulator" | "rom-folders" | "memory-cards" | "library";
+type EmulatorTab = "emulator" | "rom-folders" | "memory-cards" | "library" | "bottles";
 
 function GamepadIcon({ size = 16 }: Readonly<{ size?: number }>) {
   return (
@@ -92,6 +92,7 @@ export function EmulatorDetail({
     config.system === "ps2" || config.system === "ps1";
   const supportsBios = supportsMemoryCards;
   const supportsFirmware = config.system === "ps3";
+  const isCrossOver = config.system === "windows";
 
   const [activeTab, setActiveTab] = useState<EmulatorTab>("emulator");
 
@@ -294,14 +295,20 @@ export function EmulatorDetail({
 
   const isConfigured = config.executablePath !== null;
 
-  const tabs: { id: EmulatorTab; label: string }[] = [
-    { id: "emulator", label: t("tab_emulator") },
-    { id: "rom-folders", label: t("tab_rom_folders") },
-    ...(supportsMemoryCards
-      ? [{ id: "memory-cards" as const, label: t("tab_memory_card_backups") }]
-      : []),
-    { id: "library", label: t("tab_library") },
-  ];
+  const tabs: { id: EmulatorTab; label: string }[] = isCrossOver
+    ? [
+        { id: "emulator", label: t("tab_crossover", { defaultValue: "CrossOver" }) },
+        { id: "bottles", label: t("tab_bottles", { defaultValue: "Bottles" }) },
+        { id: "library", label: t("tab_library") },
+      ]
+    : [
+        { id: "emulator", label: t("tab_emulator") },
+        { id: "rom-folders", label: t("tab_rom_folders") },
+        ...(supportsMemoryCards
+          ? [{ id: "memory-cards" as const, label: t("tab_memory_card_backups") }]
+          : []),
+        { id: "library", label: t("tab_library") },
+      ];
 
   return (
     <div className="emulator-detail">
@@ -328,8 +335,12 @@ export function EmulatorDetail({
             )}
             <span className="emulator-detail__hero-detected">
               {isConfigured
-                ? t("detected", { name: binaryName })
-                : t("not_detected")}
+                ? isCrossOver
+                  ? t("crossover_detected", { defaultValue: "CrossOver detected" })
+                  : t("detected", { name: binaryName })
+                : isCrossOver
+                  ? t("crossover_not_detected", { defaultValue: "CrossOver not detected" })
+                  : t("not_detected")}
             </span>
             {config.detectedVersion && (
               <span className="emulator-detail__hero-version">
@@ -388,59 +399,104 @@ export function EmulatorDetail({
 
       {activeTab === "emulator" && (
         <>
-          <EmulatorResourceRow
-            title={t("executable_path_title")}
-            description={t("executable_path_description")}
-            detected={isConfigured && executableExists}
-            statusLabel={
-              isConfigured
-                ? executableExists
-                  ? t("synced")
-                  : t("executable_missing")
-                : t("not_detected")
-            }
-            path={{
-              text: config.executablePath,
-              placeholder: t("select_executable_placeholder"),
-              onClick: handleBrowseExecutable,
-              disabled: busy,
-              title: t("change_executable_path"),
-            }}
-            actions={
-              <>
-                <Button
-                  theme="outline"
-                  onClick={handleRedetect}
-                  disabled={busy}
-                >
-                  <SyncIcon
-                    size={13}
-                    className={
-                      busy
-                        ? "emulator-detail__redetect-icon--spinning"
-                        : undefined
-                    }
-                  />
-                  <span>{t("re_detect")}</span>
-                </Button>
-                <Button
-                  theme="primary"
-                  onClick={handleBrowseExecutable}
-                  disabled={busy}
-                >
-                  <FileDirectoryIcon size={16} />
-                  <span>{t("browse")}</span>
-                </Button>
-              </>
-            }
-          />
+          {isCrossOver ? (
+            <div className="emulator-detail__crossover-section">
+              <EmulatorResourceRow
+                title={t("crossover_app_title", { defaultValue: "CrossOver Application" })}
+                description={t("crossover_app_description", { defaultValue: "CrossOver is used to run Windows games on macOS. It creates isolated 'bottles' with Windows environments." })}
+                detected={isConfigured && executableExists}
+                statusLabel={
+                  isConfigured
+                    ? executableExists
+                      ? t("synced")
+                      : t("executable_missing")
+                    : t("not_detected")
+                }
+                path={{
+                  text: config.executablePath,
+                  placeholder: t("crossover_not_installed", { defaultValue: "CrossOver not found in /Applications" }),
+                  onClick: handleBrowseExecutable,
+                  disabled: busy,
+                  title: t("change_executable_path"),
+                }}
+                actions={
+                  <>
+                    <Button
+                      theme="outline"
+                      onClick={handleRedetect}
+                      disabled={busy}
+                    >
+                      <SyncIcon
+                        size={13}
+                        className={
+                          busy
+                            ? "emulator-detail__redetect-icon--spinning"
+                            : undefined
+                        }
+                      />
+                      <span>{t("re_detect")}</span>
+                    </Button>
+                  </>
+                }
+              />
+            </div>
+          ) : (
+            <>
+              <EmulatorResourceRow
+                title={t("executable_path_title")}
+                description={t("executable_path_description")}
+                detected={isConfigured && executableExists}
+                statusLabel={
+                  isConfigured
+                    ? executableExists
+                      ? t("synced")
+                      : t("executable_missing")
+                    : t("not_detected")
+                }
+                path={{
+                  text: config.executablePath,
+                  placeholder: t("select_executable_placeholder"),
+                  onClick: handleBrowseExecutable,
+                  disabled: busy,
+                  title: t("change_executable_path"),
+                }}
+                actions={
+                  <>
+                    <Button
+                      theme="outline"
+                      onClick={handleRedetect}
+                      disabled={busy}
+                    >
+                      <SyncIcon
+                        size={13}
+                        className={
+                          busy
+                            ? "emulator-detail__redetect-icon--spinning"
+                            : undefined
+                        }
+                      />
+                      <span>{t("re_detect")}</span>
+                    </Button>
+                    <Button
+                      theme="primary"
+                      onClick={handleBrowseExecutable}
+                      disabled={busy}
+                    >
+                      <FileDirectoryIcon size={16} />
+                      <span>{t("browse")}</span>
+                    </Button>
+                  </>
+                }
+              />
 
-          {supportsBios && (
-            <BiosSection config={config} disabled={busy} onChange={onChange} />
-          )}
+              {supportsBios && (
+                <BiosSection config={config} disabled={busy} onChange={onChange} />
+              )}
 
-          {supportsFirmware && (
-            <FirmwareSection config={config} disabled={busy} />
+              {supportsFirmware && (
+                <FirmwareSection config={config} disabled={busy} />
+              )}
+            </>
           )}
 
           {isConfigured && (
@@ -533,6 +589,21 @@ export function EmulatorDetail({
           />
           <CloudSavesSection config={config} refreshKey={cloudNonce} />
         </>
+      )}
+
+      {activeTab === "bottles" && isCrossOver && (
+        <section className="emulator-detail__section">
+          <header className="emulator-detail__section-header">
+            <div className="emulator-detail__section-text">
+              <h3>{t("crossover_bottles_title", { defaultValue: "CrossOver Bottles" })}</h3>
+              <p>{t("crossover_bottles_description", { defaultValue: "Bottles are isolated Windows environments for running games. Each bottle acts as a separate Windows installation." })}</p>
+            </div>
+          </header>
+
+          <div className="emulator-detail__bottles-info">
+            <p>{t("crossover_default_bottle_info", { defaultValue: "Games will use the default 'Hydra' bottle. You can create additional bottles for specific games if needed." })}</p>
+          </div>
+        </section>
       )}
 
       {activeTab === "library" && (

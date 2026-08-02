@@ -17,31 +17,43 @@ export function useCatalogue() {
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
 
   const getSteamUserTags = useCallback(() => {
-    externalResourcesInstance.get("/steam-user-tags.json").then((response) => {
-      dispatch(setTags(response.data));
-    }).catch(() => {});
+    externalResourcesInstance
+      .get("/steam-user-tags.json")
+      .then((response) => {
+        dispatch(setTags(response.data));
+      })
+      .catch(() => {});
   }, [dispatch]);
 
   const getSteamGenres = useCallback(() => {
-    externalResourcesInstance.get("/steam-genres.json").then((response) => {
-      dispatch(setGenres(response.data));
-    }).catch(() => {});
+    externalResourcesInstance
+      .get("/steam-genres.json")
+      .then((response) => {
+        dispatch(setGenres(response.data));
+      })
+      .catch(() => {});
   }, [dispatch]);
 
   const getSteamPublishers = useCallback(() => {
-    externalResourcesInstance.get("/steam-publishers.json").then((response) => {
-      if (Array.isArray(response.data)) {
-        setSteamPublishers(response.data);
-      }
-    }).catch(() => {});
+    externalResourcesInstance
+      .get("/steam-publishers.json")
+      .then((response) => {
+        if (Array.isArray(response.data)) {
+          setSteamPublishers(response.data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const getSteamDevelopers = useCallback(() => {
-    externalResourcesInstance.get("/steam-developers.json").then((response) => {
-      if (Array.isArray(response.data)) {
-        setSteamDevelopers(response.data);
-      }
-    }).catch(() => {});
+    externalResourcesInstance
+      .get("/steam-developers.json")
+      .then((response) => {
+        if (Array.isArray(response.data)) {
+          setSteamDevelopers(response.data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const getDownloadSources = useCallback(() => {

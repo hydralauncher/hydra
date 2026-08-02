@@ -2,7 +2,7 @@ import { emulatorsSublevel } from "@main/level";
 import type { EmulatorConfig, EmulatorConfigMap, EmulatorSystem } from "@types";
 import { KNOWN_BINARIES } from "./known-binaries";
 
-const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3"];
+const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3", "windows"];
 
 const emptyConfig = (system: EmulatorSystem): EmulatorConfig => ({
   system,
