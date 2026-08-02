@@ -105,13 +105,12 @@ const getGameExecutables = async () => {
         return false;
       })
       .map((executable) => {
+        const name = executable.name.toLowerCase();
+
         return {
-          name:
-            platform === "win32"
-              ? executable.name.replace(/\//g, "\\")
-              : executable.name,
+          name: platform === "win32" ? name.replace(/\//g, "\\") : name,
           os: executable.os,
-          exe: executable.name.slice(executable.name.lastIndexOf("/") + 1),
+          exe: name.slice(name.lastIndexOf("/") + 1),
         };
       });
   });
