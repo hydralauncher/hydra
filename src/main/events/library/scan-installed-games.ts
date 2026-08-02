@@ -98,8 +98,11 @@ const collectExecutableFiles = async (
   return filesByName;
 };
 
+const normalizePath = (value: string) =>
+  value.replace(/\\/g, "/").toLowerCase();
+
 const matchesRelativePath = (filePath: string, relativePath: string) => {
-  const normalizedFilePath = filePath.replace(/\\/g, "/").toLowerCase();
+  const normalizedFilePath = normalizePath(filePath);
 
   return (
     normalizedFilePath === relativePath ||
@@ -138,7 +141,8 @@ interface PathMatch {
 const findGamesOutsideLibrary = (
   catalogEntries: GameExecutableEntry[],
   filesByName: Map<string, string[]>,
-  libraryObjectIds: Set<string>
+  libraryObjectIds: Set<string>,
+  claimedPaths: Set<string>
 ): Map<string, string> => {
   const matchesByPath = new Map<string, PathMatch>();
 
@@ -167,6 +171,8 @@ const findGamesOutsideLibrary = (
   const pathByObjectId = new Map<string, string>();
 
   for (const [candidate, match] of matchesByPath) {
+    if (claimedPaths.has(normalizePath(candidate))) continue;
+
     if (match.objectIds.size > 1) {
       logger.info(
         `[ScanInstalledGames] Skipping ${candidate}, it matches ${match.objectIds.size} games`
@@ -220,7 +226,12 @@ const addGameOutsideLibrary = async (
   AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
     DISCOVERED_GAMES_SHOP,
     objectId
-  );
+  ).catch((err) => {
+    logger.error(
+      `[ScanInstalledGames] Failed to sync achievements for ${objectId}:`,
+      err
+    );
+  });
 
   logger.info(
     `[ScanInstalledGames] Added ${objectId} to the library: ${executablePath}`
@@ -240,7 +251,13 @@ const addGamesOutsideLibrary = async (
   )) {
     const results = await Promise.all(
       entries.map(([objectId, executablePath]) =>
-        addGameOutsideLibrary(objectId, executablePath)
+        addGameOutsideLibrary(objectId, executablePath).catch((err) => {
+          logger.error(
+            `[ScanInstalledGames] Failed to add ${objectId} to the library:`,
+            err
+          );
+          return null;
+        })
       )
     );
 
@@ -322,6 +339,11 @@ const scanInstalledGames = async (
   );
 
   const linkedGames: FoundGame[] = [];
+  const claimedPaths = new Set(
+    games.flatMap(({ game }) =>
+      game.executablePath ? [normalizePath(game.executablePath)] : []
+    )
+  );
   const gamesToScan = games.filter(({ game }) => !game.executablePath);
 
   for (const { key, game } of gamesToScan) {
@@ -338,6 +360,7 @@ const scanInstalledGames = async (
     );
 
     linkedGames.push({ title: game.title, executablePath: foundPath });
+    claimedPaths.add(normalizePath(foundPath));
   }
 
   const libraryObjectIds = new Set(
@@ -348,7 +371,12 @@ const scanInstalledGames = async (
 
   const addedGames = addGamesToLibrary
     ? await addGamesOutsideLibrary(
-        findGamesOutsideLibrary(catalogEntries, filesByName, libraryObjectIds)
+        findGamesOutsideLibrary(
+          catalogEntries,
+          filesByName,
+          libraryObjectIds,
+          claimedPaths
+        )
       )
     : [];
 
