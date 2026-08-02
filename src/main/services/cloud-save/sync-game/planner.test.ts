@@ -35,6 +35,13 @@ describe("cloud save sync planner", () => {
     });
   });
 
+  it("keeps conflict decisions in the main-process planner", () => {
+    const result = planCloudSaveSync(input({ hasConflicts: true }));
+
+    assert.equal(result.kind, "conflict");
+    assert.equal(result.execution, "none");
+  });
+
   it("restores an empty local snapshot for every sync direction", () => {
     for (const trigger of [
       "manual",

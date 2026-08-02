@@ -101,8 +101,7 @@ export const shouldSyncCloudSaveOnGamePage = ({
   !isGameRunning &&
   !isSyncing &&
   !isInFlight &&
-  overview?.isAutomaticSyncEnabled === true &&
-  overview.suggestedAction !== "none";
+  overview?.isAutomaticSyncEnabled === true;
 
 interface CloudSavePresentationInput {
   canUseCloudSaves: boolean;

@@ -135,6 +135,33 @@ describe("automatic cloud save observation", () => {
     );
   });
 
+  it("runs again when a settled fingerprint returns after an intermediate state", () => {
+    recordLatestCloudSaveObservation("10", "steam", "empty");
+    const emptyAttempt = beginAutomaticSyncObservation(
+      "10",
+      "steam",
+      "game-page-open",
+      1
+    );
+    finishAutomaticSyncObservation(
+      "10",
+      "steam",
+      "game-page-open",
+      emptyAttempt.observationKey,
+      "settled",
+      2
+    );
+
+    recordLatestCloudSaveObservation("10", "steam", "restored");
+    recordLatestCloudSaveObservation("10", "steam", "empty");
+
+    assert.equal(
+      beginAutomaticSyncObservation("10", "steam", "game-page-open", 3)
+        .accepted,
+      true
+    );
+  });
+
   it("retries the same failed state only after the cooldown", () => {
     recordLatestCloudSaveObservation("10", "steam", "state");
     const attempt = beginAutomaticSyncObservation(

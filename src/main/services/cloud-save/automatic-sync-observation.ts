@@ -69,7 +69,20 @@ export const recordLatestCloudSaveObservation = (
   shop: GameShop,
   observationKey: string
 ) => {
-  latestObservations.set(gameKey(objectId, shop), observationKey);
+  const key = gameKey(objectId, shop);
+  const previousObservationKey = latestObservations.get(key);
+  latestObservations.set(key, observationKey);
+
+  // A fingerprint may legitimately reappear after an intermediate state. For
+  // example: empty local files -> restored -> empty local files again. Once a
+  // different state has been observed, an older settled attempt must not
+  // suppress the new transition back to that fingerprint.
+  if (
+    previousObservationKey !== undefined &&
+    previousObservationKey !== observationKey
+  ) {
+    attempts.delete(attemptKey(objectId, shop, "game-page-open"));
+  }
 };
 
 export const beginAutomaticSyncObservation = (

@@ -351,8 +351,9 @@ describe("cloud save panel action", () => {
 });
 
 describe("game page automatic cloud save sync", () => {
-  it("starts once for every actionable overview", () => {
+  it("submits every fresh overview to the main-process planner", () => {
     for (const suggestedAction of [
+      "none",
       "upload",
       "restore",
       "merge",
@@ -365,15 +366,6 @@ describe("game page automatic cloud save sync", () => {
         true
       );
     }
-  });
-
-  it("does not start without a suggested action", () => {
-    assert.equal(
-      shouldSyncOnGamePage({
-        overview: overview({ suggestedAction: "none" }),
-      }),
-      false
-    );
   });
 
   it("blocks only concurrent attempts in the renderer", () => {
