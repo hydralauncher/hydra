@@ -217,6 +217,12 @@ const resolveWithinDirectory = (
     "library"
   );
 
+  if (!match) {
+    logger.info(
+      `[ScanInstalledGames] No pick among ${[...candidates].join(", ")}`
+    );
+  }
+
   return match ? path.join(scanned.directory, match) : null;
 };
 
@@ -315,7 +321,12 @@ const findGamesOutsideLibrary = (
   for (const [executablePath, objectIds] of groupObjectIdsByPath(
     scannedDirectories
   )) {
-    if (claimedPaths.has(normalizePath(executablePath))) continue;
+    if (claimedPaths.has(normalizePath(executablePath))) {
+      logger.info(
+        `[ScanInstalledGames] Skipping ${executablePath}, another game already uses it`
+      );
+      continue;
+    }
 
     const objectId =
       objectIds.size === 1
@@ -329,7 +340,12 @@ const findGamesOutsideLibrary = (
       continue;
     }
 
-    if (libraryObjectIds.has(objectId)) continue;
+    if (libraryObjectIds.has(objectId)) {
+      logger.info(
+        `[ScanInstalledGames] Skipping ${executablePath}, ${objectId} is already in the library`
+      );
+      continue;
+    }
 
     pathByObjectId.set(objectId, executablePath);
   }
@@ -496,6 +512,10 @@ const scanInstalledGames = async (
   for (const scanned of scannedDirectories) {
     logger.info(
       `[ScanInstalledGames] Scanned ${scanned.directory}: ${scanned.relativeFilePaths.length} files, ${scanned.pathsByFileName.size} known executable names`
+    );
+
+    logger.info(
+      `[ScanInstalledGames] Known executables under ${scanned.directory}: ${[...scanned.pathsByFileName.keys()].sort().join(", ")}`
     );
   }
 
