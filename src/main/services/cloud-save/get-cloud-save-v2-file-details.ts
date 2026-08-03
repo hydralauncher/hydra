@@ -97,7 +97,6 @@ export const getCloudSaveV2FileDetails = async (
       ),
       customPaths: bindings.ready,
       unresolvedCustomPaths: bindings.unresolved,
-      ignoredCustomPathRawPaths: analysis.ignoredCustomPathRawPaths,
       describeUnregisteredCustomPath: (rawPath) =>
         describeUnregisteredCustomPath(rawPath, customPathContext),
     },

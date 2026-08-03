@@ -11,7 +11,7 @@ type ResolvableCloudSaveAnalysis = Pick<
   | "localSnapshotContext"
   | "anchor"
   | "syncDirection"
-  | "ignoredCustomPathRawPaths"
+  | "pendingCustomPathRawPaths"
   | "installationOwnedCustomPathRawPaths"
 > & {
   remoteManifest: Pick<RemoteManifest, "variants" | "files"> | null;
@@ -35,7 +35,7 @@ export const resolveAnalyzedCloudSaveMerge = (
     base: analysis.anchor,
     direction: analysis.syncDirection,
     resolutions,
-    ignoredRawPaths: new Set(analysis.ignoredCustomPathRawPaths),
+    treatLocalAsNewRawPaths: new Set(analysis.pendingCustomPathRawPaths),
     preserveLocalMissingRawPaths: new Set(
       analysis.installationOwnedCustomPathRawPaths
     ),

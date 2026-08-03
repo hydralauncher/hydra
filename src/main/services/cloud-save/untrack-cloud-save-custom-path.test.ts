@@ -5,25 +5,51 @@ import { describe, it } from "node:test";
 import { executeCloudSaveCustomPathUntracking } from "./custom-path-untracking-policy.ts";
 
 describe("cloud save custom path untracking", () => {
-  it("persists the local ignore before clearing pending UI state", async () => {
+  it("publishes the removal before dropping the local binding", async () => {
     const calls: string[] = [];
     await executeCloudSaveCustomPathUntracking({
-      ignore: async () => {
-        calls.push("ignore");
+      publishRemoval: async () => {
+        calls.push("publish");
+      },
+      removeBinding: async () => {
+        calls.push("remove-binding");
       },
       dismissPendingApproval: () => {
         calls.push("dismiss");
       },
     });
 
-    assert.deepEqual(calls, ["ignore", "dismiss"]);
+    assert.deepEqual(calls, ["publish", "remove-binding", "dismiss"]);
   });
 
-  it("does not clear pending state when the local ignore cannot be persisted", async () => {
+  it("keeps the binding when the remote removal fails", async () => {
+    let removed = false;
     let dismissed = false;
     await assert.rejects(
       executeCloudSaveCustomPathUntracking({
-        ignore: async () => {
+        publishRemoval: async () => {
+          throw new Error("remote unavailable");
+        },
+        removeBinding: async () => {
+          removed = true;
+        },
+        dismissPendingApproval: () => {
+          dismissed = true;
+        },
+      }),
+      /remote unavailable/
+    );
+
+    assert.equal(removed, false);
+    assert.equal(dismissed, false);
+  });
+
+  it("does not dismiss UI state when dropping the binding fails", async () => {
+    let dismissed = false;
+    await assert.rejects(
+      executeCloudSaveCustomPathUntracking({
+        publishRemoval: async () => undefined,
+        removeBinding: async () => {
           throw new Error("leveldb unavailable");
         },
         dismissPendingApproval: () => {

@@ -13,19 +13,6 @@ const windowsContext = {
 };
 
 describe("stored cloud save custom path bindings", () => {
-  it("does not resolve paths ignored on this device", () => {
-    const rawPath = "<custom><windows><winDocuments>/Game";
-    const result = resolveStoredCloudSaveCustomPathBindings(
-      [{ rawPath, tracking: "ignored" }],
-      windowsContext
-    );
-
-    assert.deepEqual(result, {
-      bindings: { ready: [], unresolved: [] },
-      migrations: [],
-    });
-  });
-
   it("resolves and migrates an old portable binding", () => {
     const rawPath = "<custom><windows><winDocuments>/Game";
     const result = resolveStoredCloudSaveCustomPathBindings(

@@ -29,7 +29,7 @@ const analysis = (
     },
     anchor: null,
     customPathBindings: { ready: [], unresolved: [] },
-    ignoredCustomPathRawPaths: [],
+    mergedCustomPathRawPaths: [],
     ...overrides,
   }) as unknown as Parameters<typeof buildCloudSaveObservationKey>[0];
 

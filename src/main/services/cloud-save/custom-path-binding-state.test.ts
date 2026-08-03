@@ -5,7 +5,8 @@ import { describe, it } from "node:test";
 import {
   applyCloudSaveCustomPathLocalPathMigrations,
   classifyCloudSaveCustomPathResolutionError,
-  ignoreStoredCloudSaveCustomPath,
+  reconcileStoredCloudSaveCustomPaths,
+  removeStoredCloudSaveCustomPath,
   trackStoredCloudSaveCustomPaths,
 } from "./custom-path-binding-state.ts";
 
@@ -108,60 +109,63 @@ describe("cloud save custom path binding state", () => {
     );
   });
 
-  it("stores an ignored marker without retaining the local folder", () => {
+  it("removes the binding instead of storing a local ignore marker", () => {
     const rawPath = "<custom><windows><winDocuments>/Game";
     assert.deepEqual(
-      ignoreStoredCloudSaveCustomPath(
+      removeStoredCloudSaveCustomPath(
         [
           {
             rawPath,
-            tracking: "tracked",
+            syncState: "confirmed",
             localPath: "D:/Saves/Game",
           },
         ],
         rawPath
       ),
-      [{ rawPath, tracking: "ignored" }]
+      []
     );
   });
 
-  it("can ignore a remote-only path and remains idempotent", () => {
+  it("keeps pending additions but removes confirmed paths absent remotely", () => {
     const rawPath = "<custom><windows><winDocuments>/Game";
-    const ignored = ignoreStoredCloudSaveCustomPath([], rawPath);
-
-    assert.deepEqual(ignored, [{ rawPath, tracking: "ignored" }]);
     assert.deepEqual(
-      ignoreStoredCloudSaveCustomPath(ignored, rawPath),
-      ignored
+      reconcileStoredCloudSaveCustomPaths(
+        [{ rawPath, syncState: "confirmed", localPath: "D:/Saves/Game" }],
+        new Set()
+      ),
+      []
     );
-  });
-
-  it("reactivates an ignored path only after a new local folder is selected", () => {
-    const rawPath = "<custom><windows><winDocuments>/Game";
     assert.deepEqual(
-      trackStoredCloudSaveCustomPaths(
-        [{ rawPath, tracking: "ignored" }],
-        [{ rawPath, localPath: "E:/Restored/Game" }]
+      reconcileStoredCloudSaveCustomPaths(
+        [{ rawPath, syncState: "pending", localPath: "D:/Saves/Game" }],
+        new Set()
       ),
       [
         {
           rawPath,
-          tracking: "tracked",
-          storeUserId: undefined,
-          localPath: "E:/Restored/Game",
+          syncState: "pending",
+          localPath: "D:/Saves/Game",
         },
       ]
     );
   });
 
-  it("does not migrate ignored paths", () => {
+  it("marks a local addition pending until the remote snapshot contains it", () => {
     const rawPath = "<custom><windows><winDocuments>/Game";
     assert.deepEqual(
-      applyCloudSaveCustomPathLocalPathMigrations(
-        [{ rawPath, tracking: "ignored" }],
-        [{ rawPath, localPath: "C:/Users/Hydra/Documents/Game" }]
+      trackStoredCloudSaveCustomPaths(
+        [],
+        [{ rawPath, localPath: "C:/Users/Hydra/Documents/Game" }],
+        "pending"
       ),
-      [{ rawPath, tracking: "ignored" }]
+      [
+        {
+          rawPath,
+          syncState: "pending",
+          storeUserId: undefined,
+          localPath: "C:/Users/Hydra/Documents/Game",
+        },
+      ]
     );
   });
 });

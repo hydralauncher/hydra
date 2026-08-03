@@ -29,8 +29,11 @@ import {
 import { CloudSaveV2FileTreeView } from "./cloud-save-v2-file-tree-view";
 import { hasCloudSaveDataToDelete } from "./cloud-save-presentation";
 
-const getCustomPathOverlapError = (error: unknown) => {
+const getCustomPathSelectionError = (error: unknown) => {
   const message = error instanceof Error ? error.message : "";
+  if (message.includes("cloud_save_custom_path_empty")) {
+    return "empty" as const;
+  }
   if (message.includes("cloud_save_custom_path_custom_location_overlap")) {
     return "custom" as const;
   }
@@ -45,7 +48,7 @@ const getCustomPathOverlapError = (error: unknown) => {
 
 const getCustomPathErrorTranslationKeys = (
   wasAdded: boolean,
-  overlapError: ReturnType<typeof getCustomPathOverlapError>
+  selectionError: ReturnType<typeof getCustomPathSelectionError>
 ) => {
   if (wasAdded) {
     return {
@@ -53,13 +56,19 @@ const getCustomPathErrorTranslationKeys = (
       description: "cloud_save_v2_custom_path_sync_error_description",
     };
   }
-  if (overlapError === "mapped") {
+  if (selectionError === "empty") {
+    return {
+      title: "cloud_save_v2_custom_path_empty_error_title",
+      description: "cloud_save_v2_custom_path_empty_error_description",
+    };
+  }
+  if (selectionError === "mapped") {
     return {
       title: "cloud_save_v2_custom_path_mapped_overlap_error_title",
       description: "cloud_save_v2_custom_path_mapped_overlap_error_description",
     };
   }
-  if (overlapError === "custom") {
+  if (selectionError === "custom") {
     return {
       title: "cloud_save_v2_custom_path_custom_overlap_error_title",
       description: "cloud_save_v2_custom_path_custom_overlap_error_description",
@@ -363,10 +372,12 @@ export function CloudSaveV2FileBrowserModal({
       }
     } catch (error) {
       if (wasAdded) await onRetry();
-      const overlapError = !wasAdded ? getCustomPathOverlapError(error) : null;
+      const selectionError = !wasAdded
+        ? getCustomPathSelectionError(error)
+        : null;
       const translationKeys = getCustomPathErrorTranslationKeys(
         wasAdded,
-        overlapError
+        selectionError
       );
       showErrorToast(t(translationKeys.title), t(translationKeys.description));
     } finally {

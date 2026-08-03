@@ -70,7 +70,7 @@ export const buildCloudSaveObservationKey = (analysis: CloudSaveAnalysis) => {
     bindings: {
       ready: [...analysis.customPathBindings.ready].sort(byJson),
       unresolved: [...analysis.customPathBindings.unresolved].sort(byJson),
-      ignoredRawPaths: [...analysis.ignoredCustomPathRawPaths].sort(byText),
+      customPathRawPaths: [...analysis.mergedCustomPathRawPaths].sort(byText),
     },
     coverage: [...analysis.localSnapshot.coverage]
       .map((item) => ({

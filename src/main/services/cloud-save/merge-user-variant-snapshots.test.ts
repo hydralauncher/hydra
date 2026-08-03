@@ -43,6 +43,7 @@ const context = (files: SnapshotFile[]): LocalGameSnapshotContext =>
     aggregateHash: hash("f"),
     sourceFiles: [],
     environmentId: "environment",
+    customPathRawPaths: [],
     pathContext: {
       shop: "steam",
       objectId: "1",
@@ -495,40 +496,6 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(deleted)]);
   });
 
-  it("preserves an ignored custom path without restoring or deleting it", () => {
-    const rawPath = "<custom><windows><base>/Saves";
-    const ignored = file("slot.sav", "a", rawPath);
-    const retained = file("settings.ini", "b", "<home>/other");
-    const local = context([retained]);
-    local.coverage = [
-      {
-        candidateId: "custom",
-        ruleId: "custom",
-        variantId,
-        rawPath,
-        selectedRoot: true,
-        authority: "authoritative",
-        outcome: "scanned",
-        enumeratedCompletely: true,
-        warningCodes: [],
-      },
-    ];
-
-    const result = mergeUserVariantSnapshots({
-      local,
-      remoteVariants: [variant],
-      remoteFiles: [ignored, retained],
-      base: anchor([ignored, retained]),
-      ignoredRawPaths: new Set([rawPath]),
-    });
-
-    assert.deepEqual(result.files, [ignored, retained]);
-    assert.deepEqual(result.restoreEntryIds, []);
-    assert.deepEqual(result.deleteRemoteEntryIds, []);
-    assert.deepEqual(result.unresolvedRemoteEntryIds, []);
-    assert.equal(result.partial, false);
-  });
-
   it("restores an installation-owned custom path instead of publishing its absence", () => {
     const rawPath = "<custom><windows><base>/Saves";
     const missing = file("slot.sav", "a", rawPath);
@@ -791,6 +758,25 @@ describe("merge user variant snapshots", () => {
 
     assert.deepEqual(result.files, [retained]);
     assert.deepEqual(result.deleteLocalEntryIds, [cloudSaveFileKey(deleted)]);
+  });
+
+  it("treats files from an explicitly re-added custom path as new", () => {
+    const rawPath = "<custom><windows><winDocuments>/Game";
+    const retained = file("slot.sav", "a", rawPath);
+    const result = mergeUserVariantSnapshots({
+      local: {
+        ...context([retained]),
+        customPathRawPaths: [rawPath],
+      },
+      remoteVariants: [],
+      remoteFiles: [],
+      base: anchor([retained]),
+      treatLocalAsNewRawPaths: new Set([rawPath]),
+    });
+
+    assert.deepEqual(result.files, [retained]);
+    assert.deepEqual(result.deleteLocalEntryIds, []);
+    assert.deepEqual(result.conflicts, []);
   });
 
   it("conflicts when a remotely deleted file changed locally", () => {

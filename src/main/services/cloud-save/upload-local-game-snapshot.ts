@@ -28,6 +28,7 @@ const blobKey = (file: Pick<SnapshotFile, "hash" | "sizeBytes">) =>
 
 export interface PrepareLocalSnapshotOptions {
   baseVersion: number;
+  customPathRawPaths?: string[];
   variants?: SnapshotVariant[];
   files?: SnapshotFile[];
   aggregateHash?: string;
@@ -53,10 +54,9 @@ export const uploadLocalGameSnapshot = async (
     (await buildLocalGameSnapshotContext(objectId, shop));
   const proposalVariants = resolvedOptions.variants ?? context.variants;
   const proposalFiles = resolvedOptions.files ?? context.files;
+  const proposalCustomPathRawPaths =
+    resolvedOptions.customPathRawPaths ?? context.customPathRawPaths;
   const aggregateHash = resolvedOptions.aggregateHash ?? context.aggregateHash;
-  if (proposalFiles.length === 0) {
-    return { pendingSnapshotId: null, uploadedFiles: 0, skippedFiles: 0 };
-  }
 
   assertCloudSaveUploadWithinLimits(proposalFiles);
 
@@ -70,6 +70,7 @@ export const uploadLocalGameSnapshot = async (
         hostname: os.hostname() || undefined,
         snapshotHash: aggregateHash,
         baseVersion: resolvedOptions.baseVersion,
+        customPathRawPaths: proposalCustomPathRawPaths,
         variants: proposalVariants,
         files: proposalFiles,
       }),

@@ -118,8 +118,7 @@ const createPendingApproval = async (
   const candidates = getUnboundCloudSaveCustomPathRestoreCandidates(
     manifest.files,
     analysis.merge.restoreEntryIds,
-    locallyBoundRawPaths,
-    analysis.ignoredCustomPathRawPaths
+    locallyBoundRawPaths
   );
 
   const candidate = candidates[0];

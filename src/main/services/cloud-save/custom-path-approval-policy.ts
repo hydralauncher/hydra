@@ -11,19 +11,16 @@ export interface CloudSaveCustomPathRestoreCandidate {
 export const getUnboundCloudSaveCustomPathRestoreCandidates = (
   files: RestoreManifestFile[],
   restoreEntryIds: Iterable<string>,
-  locallyBoundRawPaths: Iterable<string>,
-  ignoredRawPaths: Iterable<string> = []
+  locallyBoundRawPaths: Iterable<string>
 ): CloudSaveCustomPathRestoreCandidate[] => {
   const restoreIds = new Set(restoreEntryIds);
   const boundPaths = new Set(locallyBoundRawPaths);
-  const ignoredPaths = new Set(ignoredRawPaths);
   const filesByRawPath = new Map<string, RestoreManifestFile[]>();
 
   for (const file of files) {
     if (
       !file.rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX) ||
       boundPaths.has(file.rawPath) ||
-      ignoredPaths.has(file.rawPath) ||
       !restoreIds.has(cloudSaveFileKey(file))
     ) {
       continue;

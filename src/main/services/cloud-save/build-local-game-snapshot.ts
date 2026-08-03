@@ -32,6 +32,9 @@ export const buildLocalGameSnapshotContext = async (
       : getUsableCloudSaveCustomPathBindings(objectId, shop, context),
   ]);
   const extraRules = customPathBindings.ready.map(customPathToCloudSaveRule);
+  const customPathRawPaths = customPathBindings.ready
+    .map(({ rawPath }) => rawPath)
+    .sort((left, right) => left.localeCompare(right));
   const { hashCache: updatedHashCache, ...snapshot } =
     await NativeAddon.buildLocalGameSnapshotPipeline({
       ...pathContext,
@@ -49,5 +52,5 @@ export const buildLocalGameSnapshotContext = async (
     await cloudSaveLocalHashCacheSublevel.put(cacheKey, updatedHashCache);
   }
 
-  return { ...snapshot, environmentId, pathContext };
+  return { ...snapshot, environmentId, pathContext, customPathRawPaths };
 };

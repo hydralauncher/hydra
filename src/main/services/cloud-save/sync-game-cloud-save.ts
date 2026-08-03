@@ -20,6 +20,7 @@ import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { deleteLocalSaveTargets } from "./delete-local-save-targets";
 import { assertCloudSaveEnvironmentCurrent } from "./environment-guard";
 import { canDeleteInstallationOwnedCustomPathFiles } from "./installation-owned-custom-paths";
+import { confirmCloudSaveCustomPaths } from "./custom-path-store";
 import { resolveAnalyzedCloudSaveMerge } from "./resolve-analyzed-cloud-save-merge";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { isCloudSaveSyncPartialAfterApply } from "./sync-result-policy";
@@ -52,6 +53,10 @@ const activeSyncs = new Map<string, ActiveSync>();
 const gameKey = (objectId: string, shop: GameShop) =>
   JSON.stringify([shop, objectId]);
 type CloudSaveAnalysis = Awaited<ReturnType<typeof analyzeCloudSaveState>>;
+
+const samePaths = (left: string[], right: string[]) =>
+  left.length === right.length &&
+  left.every((value, index) => value === right[index]);
 
 const getPostSyncState = (
   proposalChanged: boolean,
@@ -227,6 +232,11 @@ const executeRestoreOnlySync = async ({
     finalUnresolvedRemoteEntryIds,
     assertEnvironmentCurrent
   );
+  await confirmCloudSaveCustomPaths(
+    shop,
+    objectId,
+    analysis.remoteManifest?.customPathRawPaths ?? []
+  );
   const partial = isCloudSaveSyncPartialAfterApply({
     coverage: analysis.localSnapshotContext.coverage,
     unresolvedRemoteEntryIds: finalUnresolvedRemoteEntryIds,
@@ -300,6 +310,7 @@ const executeAppliedSync = async ({
   analysis,
   merge,
   mergedAggregateHash,
+  mergedCustomPathRawPaths,
   proposalChanged,
   uploadOnly,
   plannedAction,
@@ -314,6 +325,7 @@ const executeAppliedSync = async ({
   mergedAggregateHash: ReturnType<
     typeof NativeAddon.buildSnapshotAggregateHash
   >;
+  mergedCustomPathRawPaths: string[];
   proposalChanged: boolean;
   uploadOnly: boolean;
   plannedAction: Extract<SyncGameCloudSaveResult["action"], "upload" | "merge">;
@@ -327,9 +339,6 @@ const executeAppliedSync = async ({
   let committedSnapshot: Awaited<ReturnType<typeof uploadLocalState>> | null =
     null;
   if (proposalChanged) {
-    if (merge.files.length === 0) {
-      throw new Error("cloud_save_empty_snapshot_proposal");
-    }
     const unresolved = uploadOnly
       ? [...new Set([...merge.unresolvedRemoteEntryIds, ...restoreIds])]
       : merge.unresolvedRemoteEntryIds;
@@ -343,6 +352,7 @@ const executeAppliedSync = async ({
         expectedSnapshotId: analysis.activeRemoteSnapshot?.id ?? null,
         variants: merge.variants,
         files: merge.files,
+        customPathRawPaths: mergedCustomPathRawPaths,
         aggregateHash: mergedAggregateHash ?? undefined,
         unresolvedRemoteEntryIds: unresolved,
         updateAnchor: false,
@@ -395,6 +405,13 @@ const executeAppliedSync = async ({
     proposalChanged,
     assertEnvironmentCurrent,
   });
+  await confirmCloudSaveCustomPaths(
+    shop,
+    objectId,
+    committedSnapshot
+      ? mergedCustomPathRawPaths
+      : (analysis.remoteManifest?.customPathRawPaths ?? [])
+  );
   const partial = isCloudSaveSyncPartialAfterApply({
     coverage: analysis.localSnapshotContext.coverage,
     unresolvedRemoteEntryIds: finalUnresolvedRemoteEntryIds,
@@ -474,14 +491,20 @@ const executeGameCloudSaveSync = async ({
     emitProgress
   );
   const proposalChanged =
-    mergedAggregateHash !== analysis.activeRemoteSnapshot?.aggregateHash;
+    mergedAggregateHash !== analysis.activeRemoteSnapshot?.aggregateHash ||
+    !samePaths(
+      analysis.mergedCustomPathRawPaths,
+      analysis.remoteManifest?.customPathRawPaths ?? []
+    );
   const firstSyncState = getFirstSyncState(analysis);
   const syncPlan = planCloudSaveSync({
     trigger,
     initialState,
     firstSyncState,
     gameRunning: isGameRunning(objectId, shop),
-    hasLocalFiles: analysis.localSnapshot.files.length > 0,
+    hasLocalFiles:
+      analysis.localSnapshot.files.length > 0 ||
+      analysis.localSnapshotContext.customPathRawPaths.length > 0,
     hasRemoteSnapshot: Boolean(analysis.activeRemoteSnapshot),
     hasConflicts: merge.conflicts.length > 0,
     proposalChanged,
@@ -517,6 +540,15 @@ const executeGameCloudSaveSync = async ({
       emitProgress,
       assertEnvironmentCurrent
     );
+    if (outcome.result.action !== "conflict") {
+      await confirmCloudSaveCustomPaths(
+        shop,
+        objectId,
+        outcome.result.action === "upload"
+          ? analysis.localSnapshotContext.customPathRawPaths
+          : (analysis.remoteManifest?.customPathRawPaths ?? [])
+      );
+    }
     return finish(
       outcome.result.action,
       outcome.result.finalState,
@@ -528,7 +560,11 @@ const executeGameCloudSaveSync = async ({
   const uploadOnly = syncDirection === "upload-only";
   const activeSnapshot = analysis.state.activeRemoteSnapshot;
 
-  if (!activeSnapshot && merge.files.length === 0) {
+  if (
+    !activeSnapshot &&
+    merge.files.length === 0 &&
+    analysis.mergedCustomPathRawPaths.length === 0
+  ) {
     return finish("none", "untracked");
   }
 
@@ -555,6 +591,7 @@ const executeGameCloudSaveSync = async ({
     analysis,
     merge,
     mergedAggregateHash,
+    mergedCustomPathRawPaths: analysis.mergedCustomPathRawPaths,
     proposalChanged,
     uploadOnly,
     plannedAction: syncPlan.action,

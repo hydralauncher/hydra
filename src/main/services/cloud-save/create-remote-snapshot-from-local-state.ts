@@ -109,7 +109,8 @@ export const createRemoteSnapshotFromLocalState = async (
     (await buildLocalGameSnapshotContext(objectId, shop));
   const variants = resolvedOptions.variants ?? context.variants;
   const files: SnapshotFile[] = resolvedOptions.files ?? context.files;
-  if (files.length === 0) return null;
+  const customPathRawPaths =
+    resolvedOptions.customPathRawPaths ?? context.customPathRawPaths;
   const expectedAggregateHash =
     resolvedOptions.aggregateHash ??
     NativeAddon.buildSnapshotAggregateHash({ variants, files });
@@ -127,6 +128,7 @@ export const createRemoteSnapshotFromLocalState = async (
           ...resolvedOptions,
           variants,
           files,
+          customPathRawPaths,
           aggregateHash: expectedAggregateHash,
         }
       );

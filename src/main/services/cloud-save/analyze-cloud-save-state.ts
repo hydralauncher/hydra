@@ -9,7 +9,7 @@ import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
-import { getCloudSaveCustomPathTrackingState } from "./custom-path-store";
+import { reconcileCloudSaveCustomPathsWithRemote } from "./custom-path-store";
 import { getInstallationOwnedCustomPathRawPaths } from "./installation-owned-custom-paths";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
@@ -19,9 +19,12 @@ import type { SyncDirection } from "./sync-game/policy";
 
 interface AnalyzeCloudSaveStateOptions {
   customPathBindings?: CloudSaveCustomPathBindings;
-  ignoredCustomPathRawPaths?: string[];
   allowInstallationOwnedCustomPathDeletion?: boolean;
 }
+
+const samePaths = (left: string[], right: string[]) =>
+  left.length === right.length &&
+  left.every((value, index) => value === right[index]);
 
 export const analyzeCloudSaveState = async (
   objectId: string,
@@ -48,11 +51,12 @@ export const analyzeCloudSaveState = async (
   const trackingState = options.customPathBindings
     ? {
         bindings: options.customPathBindings,
-        ignoredRawPaths: options.ignoredCustomPathRawPaths ?? [],
+        pendingRawPaths: [],
       }
-    : await getCloudSaveCustomPathTrackingState(
+    : await reconcileCloudSaveCustomPathsWithRemote(
         shop,
         objectId,
+        remoteManifest?.customPathRawPaths ?? [],
         cloudSaveCustomPathContextFromPathContext(context.pathContext)
       );
   const customPathBindings = await getUsableCloudSaveCustomPathBindings(
@@ -99,9 +103,15 @@ export const analyzeCloudSaveState = async (
     remoteFiles: remoteManifest?.files ?? [],
     base: anchor,
     direction: syncDirection,
-    ignoredRawPaths: new Set(trackingState.ignoredRawPaths),
     preserveLocalMissingRawPaths,
+    treatLocalAsNewRawPaths: new Set(trackingState.pendingRawPaths),
   });
+  const mergedCustomPathRawPaths = [
+    ...new Set([
+      ...(remoteManifest?.customPathRawPaths ?? []),
+      ...localSnapshotContext.customPathRawPaths,
+    ]),
+  ].sort((left, right) => left.localeCompare(right));
   const mergedAggregateHash = NativeAddon.buildSnapshotAggregateHash({
     variants: merge.variants,
     files: merge.files,
@@ -112,7 +122,13 @@ export const analyzeCloudSaveState = async (
     currentState = "untracked";
   } else if (merge.conflicts.length > 0) {
     currentState = "conflict";
-  } else if (mergedAggregateHash !== activeRemoteSnapshot.aggregateHash) {
+  } else if (
+    mergedAggregateHash !== activeRemoteSnapshot.aggregateHash ||
+    !samePaths(
+      mergedCustomPathRawPaths,
+      remoteManifest?.customPathRawPaths ?? []
+    )
+  ) {
     currentState = "local-ahead";
   } else if (
     merge.restoreEntryIds.length > 0 ||
@@ -128,7 +144,7 @@ export const analyzeCloudSaveState = async (
   return {
     context,
     customPathBindings,
-    ignoredCustomPathRawPaths: trackingState.ignoredRawPaths,
+    pendingCustomPathRawPaths: trackingState.pendingRawPaths,
     installationOwnedCustomPathRawPaths: [...preserveLocalMissingRawPaths],
     localSnapshot,
     localSnapshotContext,
@@ -138,6 +154,7 @@ export const analyzeCloudSaveState = async (
     activeRemoteSnapshot,
     remoteManifest,
     merge,
+    mergedCustomPathRawPaths,
     mergedAggregateHash,
     state: {
       state: currentState,

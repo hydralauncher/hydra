@@ -53,6 +53,7 @@ const context = (files: SnapshotFile[]): LocalGameSnapshotContext =>
     aggregateHash: hash("f"),
     sourceFiles: [],
     environmentId: "environment",
+    customPathRawPaths: ["<custom>/installation"],
     pathContext: {
       shop: "steam",
       objectId: "1",
@@ -87,6 +88,7 @@ describe("resolved cloud save merge", () => {
       },
       localSnapshotContext: context([localConflict]),
       remoteManifest: {
+        customPathRawPaths: [protectedFile.rawPath],
         variants: [variant],
         files: [protectedFile, remoteConflict],
       },
@@ -103,7 +105,7 @@ describe("resolved cloud save merge", () => {
         updatedAt: "2026-07-22T10:00:00.000Z",
       },
       syncDirection: "bidirectional",
-      ignoredCustomPathRawPaths: [],
+      pendingCustomPathRawPaths: [],
       installationOwnedCustomPathRawPaths: [protectedFile.rawPath],
     } as Parameters<typeof resolveAnalyzedCloudSaveMerge>[0];
 

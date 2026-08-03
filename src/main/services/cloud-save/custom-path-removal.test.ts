@@ -1,0 +1,87 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import type { RestoreManifestResponse, SnapshotVariant } from "@types";
+
+// @ts-ignore The Node ESM test runner requires the source extension.
+import { buildCloudSaveCustomPathRemovalProposal } from "./custom-path-removal.ts";
+
+const firstPath = "<custom><windows><winDocuments>/First";
+const secondPath = "<custom><windows><winDocuments>/Second";
+const firstVariant: SnapshotVariant = {
+  variantId: "1".repeat(64),
+  kind: "default",
+};
+const secondVariant: SnapshotVariant = {
+  variantId: "2".repeat(64),
+  kind: "opaque-folder",
+  concreteFolderId: "Goldberg",
+};
+const manifest = (): Pick<
+  RestoreManifestResponse,
+  "customPathRawPaths" | "variants" | "files"
+> => ({
+  customPathRawPaths: [firstPath, secondPath],
+  variants: [firstVariant, secondVariant],
+  files: [
+    {
+      variantId: firstVariant.variantId,
+      rawPath: firstPath,
+      relativePath: "first.sav",
+      hash: "a".repeat(64),
+      sizeBytes: 1,
+      lastModifiedAt: "2026-08-02T00:00:00.000Z",
+    },
+    {
+      variantId: secondVariant.variantId,
+      rawPath: secondPath,
+      relativePath: "second.sav",
+      hash: "b".repeat(64),
+      sizeBytes: 2,
+      lastModifiedAt: "2026-08-02T00:00:00.000Z",
+    },
+  ],
+});
+
+describe("cloud save custom path removal proposal", () => {
+  it("removes the location, its files and now-unused variants", () => {
+    const proposal = buildCloudSaveCustomPathRemovalProposal(
+      manifest(),
+      firstPath
+    );
+
+    assert.equal(proposal.changed, true);
+    assert.deepEqual(proposal.customPathRawPaths, [secondPath]);
+    assert.deepEqual(proposal.variants, [secondVariant]);
+    assert.equal(proposal.files.length, 1);
+    assert.equal(proposal.files[0].rawPath, secondPath);
+  });
+
+  it("produces a valid empty snapshot when the final location is removed", () => {
+    const current = manifest();
+    current.customPathRawPaths = [firstPath];
+    current.variants = [firstVariant];
+    current.files = [current.files[0]];
+
+    const proposal = buildCloudSaveCustomPathRemovalProposal(
+      current,
+      firstPath
+    );
+
+    assert.equal(proposal.changed, true);
+    assert.deepEqual(proposal.customPathRawPaths, []);
+    assert.deepEqual(proposal.variants, []);
+    assert.deepEqual(proposal.files, []);
+  });
+
+  it("is idempotent after the location is already absent", () => {
+    const current = manifest();
+    const proposal = buildCloudSaveCustomPathRemovalProposal(
+      current,
+      "<custom><windows><winDocuments>/Missing"
+    );
+
+    assert.equal(proposal.changed, false);
+    assert.equal(proposal.files, current.files);
+  });
+});

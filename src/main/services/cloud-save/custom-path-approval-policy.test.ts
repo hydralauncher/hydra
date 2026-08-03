@@ -57,18 +57,4 @@ describe("cloud save custom path approval policy", () => {
       [first.rawPath, second.rawPath]
     );
   });
-
-  it("does not prompt for a destination ignored on this device", () => {
-    const ignored = file("<custom><windows><winDocuments>/Ignored", "slot.sav");
-
-    assert.deepEqual(
-      getUnboundCloudSaveCustomPathRestoreCandidates(
-        [ignored],
-        [cloudSaveFileKey(ignored)],
-        [],
-        [ignored.rawPath]
-      ),
-      []
-    );
-  });
 });

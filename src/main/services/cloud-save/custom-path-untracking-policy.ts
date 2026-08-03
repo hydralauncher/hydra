@@ -1,10 +1,13 @@
 export const executeCloudSaveCustomPathUntracking = async ({
-  ignore,
+  publishRemoval,
+  removeBinding,
   dismissPendingApproval,
 }: {
-  ignore: () => Promise<void>;
+  publishRemoval: () => Promise<void>;
+  removeBinding: () => Promise<void>;
   dismissPendingApproval: () => void;
 }) => {
-  await ignore();
+  await publishRemoval();
+  await removeBinding();
   dismissPendingApproval();
 };

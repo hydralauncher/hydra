@@ -2,6 +2,7 @@ import { BrowserWindow, dialog } from "electron";
 
 import {
   assertCloudSaveSubscription,
+  assertCloudSaveCustomPathHasEligibleFiles,
   assertCloudSaveDeletionInactive,
   canonicalizeSelectedCloudSaveCustomPath,
   cloudSaveCustomPathContextFromPathContext,
@@ -60,11 +61,18 @@ registerEvent(
       selectedPath,
       customPathContext
     );
+    await assertCloudSaveCustomPathHasEligibleFiles(
+      objectId,
+      shop,
+      context,
+      customPath
+    );
     await registerCloudSaveCustomPathWithoutOverlap({
       objectId,
       shop,
       customPath,
       context,
+      syncState: "pending",
       assertCanRegister: () => {
         if (isGameRunning(objectId, shop)) {
           throw new Error("cloud_save_custom_path_game_running");

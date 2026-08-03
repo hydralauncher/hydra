@@ -281,6 +281,7 @@ export interface RestoreManifestResponse {
     id: string;
     version: number;
   };
+  customPathRawPaths: string[];
   variants: SnapshotVariant[];
   files: RestoreManifestFile[];
 }
@@ -659,6 +660,7 @@ export interface LocalGameSnapshotContext
   extends LocalGameSnapshotPipelineResult {
   environmentId: string;
   pathContext: CloudSavePathContext;
+  customPathRawPaths: string[];
 }
 
 export interface NativeLocalGameSnapshotPipelineResult
@@ -671,6 +673,7 @@ export interface PrepareSnapshotRequest extends CloudSaveGameId {
   hostname?: string;
   snapshotHash: string;
   baseVersion: number;
+  customPathRawPaths: string[];
   variants: SnapshotVariant[];
   files: SnapshotFile[];
 }

@@ -5,7 +5,7 @@ import type {
 
 export interface StoredCloudSaveCustomPath {
   rawPath: string;
-  tracking?: "tracked" | "ignored";
+  syncState?: "pending" | "confirmed";
   storeUserId?: string;
   localPath?: string;
 }
@@ -21,42 +21,47 @@ export const trackStoredCloudSaveCustomPaths = (
   trackedPaths: Pick<
     StoredCloudSaveCustomPath,
     "rawPath" | "storeUserId" | "localPath"
-  >[]
+  >[],
+  syncState: StoredCloudSaveCustomPath["syncState"] = "confirmed"
 ) => {
   const byRawPath = new Map(entries.map((entry) => [entry.rawPath, entry]));
   for (const tracked of trackedPaths) {
     const existing = byRawPath.get(tracked.rawPath);
     byRawPath.set(tracked.rawPath, {
       rawPath: tracked.rawPath,
-      tracking: "tracked",
-      storeUserId:
-        tracked.storeUserId ??
-        (existing?.tracking !== "ignored" ? existing?.storeUserId : undefined),
-      localPath:
-        tracked.localPath ??
-        (existing?.tracking !== "ignored" ? existing?.localPath : undefined),
+      syncState,
+      storeUserId: tracked.storeUserId ?? existing?.storeUserId,
+      localPath: tracked.localPath ?? existing?.localPath,
     });
   }
   return [...byRawPath.values()];
 };
 
-export const ignoreStoredCloudSaveCustomPath = (
+export const removeStoredCloudSaveCustomPath = (
   entries: StoredCloudSaveCustomPath[],
   rawPath: string
-) => {
-  const existing = entries.find((entry) => entry.rawPath === rawPath);
-  if (!existing) {
-    return [...entries, { rawPath, tracking: "ignored" as const }];
-  }
-  if (existing.tracking === "ignored") {
-    return entries;
-  }
-  return entries.map((entry) =>
-    entry.rawPath === rawPath
-      ? { rawPath: entry.rawPath, tracking: "ignored" as const }
+) => entries.filter((entry) => entry.rawPath !== rawPath);
+
+export const reconcileStoredCloudSaveCustomPaths = (
+  entries: StoredCloudSaveCustomPath[],
+  remoteRawPaths: ReadonlySet<string>
+) =>
+  entries.flatMap((entry) => {
+    if (remoteRawPaths.has(entry.rawPath)) {
+      return [{ ...entry, syncState: "confirmed" as const }];
+    }
+    return entry.syncState === "pending" ? [entry] : [];
+  });
+
+export const confirmStoredCloudSaveCustomPaths = (
+  entries: StoredCloudSaveCustomPath[],
+  remoteRawPaths: ReadonlySet<string>
+) =>
+  entries.map((entry) =>
+    remoteRawPaths.has(entry.rawPath)
+      ? { ...entry, syncState: "confirmed" as const }
       : entry
   );
-};
 
 export const classifyCloudSaveCustomPathResolutionError = (
   error: unknown
@@ -113,8 +118,6 @@ export const applyCloudSaveCustomPathLocalPathMigrations = (
   );
 
   return entries.map((entry) => {
-    if (entry.tracking === "ignored") return entry;
-
     const migration = migrationByRawPath.get(entry.rawPath);
     if (!migration || entry.localPath) return entry;
 

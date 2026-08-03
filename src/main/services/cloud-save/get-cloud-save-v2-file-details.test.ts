@@ -221,31 +221,6 @@ describe("cloud save V2 file details", () => {
     ]);
   });
 
-  it("does not prompt for a remote custom path ignored on this device", () => {
-    const remote = {
-      ...file(firstVariantId, "r"),
-      rawPath: "<custom><windows><winDocuments>/Game",
-    };
-    const details = buildCloudSaveV2FileDetails({
-      state: "synced",
-      localVariants: [],
-      localFiles: [],
-      localSourceFiles: [],
-      localTotalSizeBytes: 0,
-      activeSnapshot: {
-        ...summary,
-        fileCount: 1,
-        totalSizeBytes: 4,
-      },
-      remoteVariants: [variants[0]],
-      remoteFiles: [remote],
-      ignoredCustomPathRawPaths: [remote.rawPath],
-    });
-
-    assert.deepEqual(details.unresolvedCustomPaths, []);
-    assert.equal(details.activeSnapshot?.fileCount, 1);
-  });
-
   it("accepts equivalent default variants from N-API and the API", () => {
     const napiVariant = {
       variantId: firstVariantId,
@@ -294,6 +269,7 @@ describe("cloud save V2 file details", () => {
             shop: "steam",
             objectId: "814380",
           },
+          customPathRawPaths: [],
           variants,
           files: remoteFiles,
         };
@@ -323,6 +299,7 @@ describe("cloud save V2 file details", () => {
             shop: "steam",
             objectId: "814380",
           },
+          customPathRawPaths: [],
           variants,
           files: [file(firstVariantId, "a"), file(secondVariantId, "a")],
         })

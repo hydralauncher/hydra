@@ -22,6 +22,7 @@ describe("prepare snapshot payload", () => {
       platform: "windows",
       snapshotHash: "b".repeat(64),
       baseVersion: 0,
+      customPathRawPaths: [],
       variants: [variant],
       files: [file],
     });
@@ -29,6 +30,7 @@ describe("prepare snapshot payload", () => {
     assert.equal(payload.baseVersion, 0);
     assert.deepEqual(Object.keys(payload).sort(), [
       "baseVersion",
+      "customPathRawPaths",
       "files",
       "objectId",
       "platform",
@@ -46,6 +48,7 @@ describe("prepare snapshot payload", () => {
       hostname: "deck",
       snapshotHash: "b".repeat(64),
       baseVersion: 7,
+      customPathRawPaths: [],
       variants: [variant],
       files: [file],
     });
@@ -63,6 +66,7 @@ describe("prepare snapshot payload", () => {
           platform: "windows",
           snapshotHash: "b".repeat(64),
           baseVersion: 1,
+          customPathRawPaths: [],
           variants: [variant, { variantId: "2".repeat(64), kind: "default" }],
           files: [file],
         }),
@@ -79,6 +83,7 @@ describe("prepare snapshot payload", () => {
           platform: "windows",
           snapshotHash: "b".repeat(64),
           baseVersion: 1,
+          customPathRawPaths: [],
           variants: [variant],
           files: [{ ...file, variantId: "2".repeat(64) }],
         }),

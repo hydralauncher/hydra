@@ -17,7 +17,9 @@ import {
 } from "./custom-path";
 import {
   applyCloudSaveCustomPathLocalPathMigrations,
-  ignoreStoredCloudSaveCustomPath,
+  confirmStoredCloudSaveCustomPaths,
+  reconcileStoredCloudSaveCustomPaths,
+  removeStoredCloudSaveCustomPath,
   trackStoredCloudSaveCustomPaths,
   type StoredCloudSaveCustomPath,
 } from "./custom-path-binding-state";
@@ -43,16 +45,16 @@ const isStoredPath = (value: unknown): value is StoredCloudSaveCustomPath => {
   const record = value as Record<string, unknown>;
   return (
     typeof record.rawPath === "string" &&
-    (record.tracking === undefined ||
-      record.tracking === "tracked" ||
-      record.tracking === "ignored") &&
+    (record.syncState === undefined ||
+      record.syncState === "pending" ||
+      record.syncState === "confirmed") &&
     (record.storeUserId === undefined ||
       typeof record.storeUserId === "string") &&
     (record.localPath === undefined || typeof record.localPath === "string") &&
     Object.keys(record).every(
       (key) =>
         key === "rawPath" ||
-        key === "tracking" ||
+        key === "syncState" ||
         key === "storeUserId" ||
         key === "localPath"
     )
@@ -69,24 +71,12 @@ const normalizeStoredEntries = (
 
   const byRawPath = new Map<string, StoredCloudSaveCustomPath>();
   for (const entry of entries) {
-    if (entry.tracking === "ignored") {
-      byRawPath.set(entry.rawPath, {
-        rawPath: entry.rawPath,
-        tracking: "ignored",
-      });
-      continue;
-    }
-
     const existing = byRawPath.get(entry.rawPath);
     byRawPath.set(entry.rawPath, {
       rawPath: entry.rawPath,
-      tracking: "tracked",
-      storeUserId:
-        entry.storeUserId ??
-        (existing?.tracking !== "ignored" ? existing?.storeUserId : undefined),
-      localPath:
-        entry.localPath ??
-        (existing?.tracking !== "ignored" ? existing?.localPath : undefined),
+      syncState: entry.syncState ?? existing?.syncState ?? "confirmed",
+      storeUserId: entry.storeUserId ?? existing?.storeUserId,
+      localPath: entry.localPath ?? existing?.localPath,
     });
   }
   return [...byRawPath.values()].sort((left, right) =>
@@ -133,7 +123,10 @@ export const withCloudSaveCustomPathStoreMutation = async (
   context: CloudSaveCustomPathContext,
   operation: (
     storageKey: string,
-    bindings: CloudSaveCustomPathBindings
+    bindings: CloudSaveCustomPathBindings,
+    mutations: {
+      remove: (rawPath: string) => Promise<void>;
+    }
   ) => Promise<void>
 ) => {
   const storageKey = await getStorageKey(shop, objectId);
@@ -141,18 +134,24 @@ export const withCloudSaveCustomPathStoreMutation = async (
     storageKey,
     `custom-path-store:${++storeMutationId}`,
     async () => {
-      const entries = await getStoredEntriesByKey(storageKey);
+      let entries = await getStoredEntriesByKey(storageKey);
       const { bindings, migrations } = resolveStoredCloudSaveCustomPathBindings(
         entries,
         context
       );
       if (migrations.length > 0) {
-        await putStoredEntriesByKey(
-          storageKey,
-          applyCloudSaveCustomPathLocalPathMigrations(entries, migrations)
+        entries = applyCloudSaveCustomPathLocalPathMigrations(
+          entries,
+          migrations
         );
+        await putStoredEntriesByKey(storageKey, entries);
       }
-      await operation(storageKey, bindings);
+      return operation(storageKey, bindings, {
+        remove: async (rawPath) => {
+          entries = removeStoredCloudSaveCustomPath(entries, rawPath);
+          await putStoredEntriesByKey(storageKey, entries);
+        },
+      });
     }
   );
 };
@@ -198,11 +197,8 @@ export const getCloudSaveCustomPathTrackingState = async (
   context = getCurrentCloudSaveCustomPathContext()
 ) => {
   const entries = await getStoredEntries(shop, objectId);
-  const trackedEntries = entries.filter(
-    (entry) => entry.tracking !== "ignored"
-  );
   const { bindings, migrations } = resolveStoredCloudSaveCustomPathBindings(
-    trackedEntries,
+    entries,
     context
   );
 
@@ -220,9 +216,42 @@ export const getCloudSaveCustomPathTrackingState = async (
 
   return {
     bindings,
-    ignoredRawPaths: entries
-      .filter((entry) => entry.tracking === "ignored")
+    pendingRawPaths: entries
+      .filter((entry) => entry.syncState === "pending")
       .map((entry) => entry.rawPath),
+  };
+};
+
+export const reconcileCloudSaveCustomPathsWithRemote = async (
+  shop: GameShop,
+  objectId: string,
+  remoteRawPaths: string[],
+  context = getCurrentCloudSaveCustomPathContext()
+) => {
+  const key = await getStorageKey(shop, objectId);
+  const remote = new Set(remoteRawPaths);
+  let result: ReturnType<typeof resolveStoredCloudSaveCustomPathBindings>;
+  await storeMutationCoordinator.run(
+    key,
+    `custom-path-store:${++storeMutationId}`,
+    async () => {
+      const entries = await getStoredEntriesByKey(key);
+      const reconciled = reconcileStoredCloudSaveCustomPaths(entries, remote);
+      result = resolveStoredCloudSaveCustomPathBindings(reconciled, context);
+      await putStoredEntriesByKey(
+        key,
+        applyCloudSaveCustomPathLocalPathMigrations(
+          reconciled,
+          result.migrations
+        )
+      );
+    }
+  );
+  return {
+    bindings: result!.bindings,
+    pendingRawPaths: result!.bindings.ready
+      .map(({ rawPath }) => rawPath)
+      .filter((rawPath) => !remote.has(rawPath)),
   };
 };
 
@@ -232,22 +261,14 @@ export const saveCloudSaveCustomPaths = async (
   customPaths: CloudSaveCustomPath[]
 ) =>
   mutateStoredEntries(shop, objectId, (entries) =>
-    entries
-      .filter((entry) => entry.tracking === "ignored")
-      .filter(
-        (entry) =>
-          !customPaths.some(
-            (customPath) => customPath.rawPath === entry.rawPath
-          )
-      )
-      .concat(
-        customPaths.map((customPath) => ({
-          rawPath: customPath.rawPath,
-          tracking: "tracked" as const,
-          storeUserId: customPath.storeUserId,
-          localPath: customPath.path,
-        }))
-      )
+    customPaths.map((customPath) => ({
+      rawPath: customPath.rawPath,
+      syncState:
+        entries.find((entry) => entry.rawPath === customPath.rawPath)
+          ?.syncState ?? ("confirmed" as const),
+      storeUserId: customPath.storeUserId,
+      localPath: customPath.path,
+    }))
   );
 
 export const registerCloudSaveCustomPaths = async (
@@ -259,6 +280,7 @@ export const registerCloudSaveCustomPaths = async (
     assertCurrentBindings?: (
       bindings: CloudSaveCustomPathBindings
     ) => void | Promise<void>;
+    syncState?: StoredCloudSaveCustomPath["syncState"];
   } = {}
 ) => {
   await mutateStoredEntries(shop, objectId, async (entries) => {
@@ -275,7 +297,8 @@ export const registerCloudSaveCustomPaths = async (
         rawPath,
         storeUserId,
         localPath,
-      }))
+      })),
+      options.syncState
     );
   });
 };
@@ -286,16 +309,27 @@ export const isCloudSaveCustomPathRegistered = async (
   rawPath: string
 ) =>
   (await getStoredEntries(shop, objectId)).some(
-    (entry) => entry.rawPath === rawPath && entry.tracking !== "ignored"
+    (entry) => entry.rawPath === rawPath
   );
 
-export const ignoreCloudSaveCustomPath = async (
+export const removeCloudSaveCustomPathBinding = async (
   shop: GameShop,
   objectId: string,
   rawPath: string
 ) => {
   await mutateStoredEntries(shop, objectId, (entries) =>
-    ignoreStoredCloudSaveCustomPath(entries, rawPath)
+    removeStoredCloudSaveCustomPath(entries, rawPath)
+  );
+};
+
+export const confirmCloudSaveCustomPaths = async (
+  shop: GameShop,
+  objectId: string,
+  remoteRawPaths: string[]
+) => {
+  const remote = new Set(remoteRawPaths);
+  await mutateStoredEntries(shop, objectId, (entries) =>
+    confirmStoredCloudSaveCustomPaths(entries, remote)
   );
 };
 
