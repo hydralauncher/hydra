@@ -3,10 +3,43 @@ export interface KnownGameExecutable {
   name: string;
 }
 
+const REDIST_DIRECTORIES = new Set([
+  "_commonredist",
+  "commonredist",
+  "steamworks shared",
+  "redist",
+  "redists",
+  "_redist",
+  "directx",
+  "dotnet",
+  "dotnetfx",
+  "vcredist",
+  "openal",
+  "physx",
+  "prerequisites",
+  "prereq",
+]);
+
+const REDIST_FILE_PATTERN =
+  /^(vcredist|vc_redist|dotnetfx|dxsetup|dxwebsetup|directx|oalinst|xnafx|physx|ue[45]prereqsetup)/;
+
 const toSegments = (value: string) =>
   value.toLowerCase().split(/[\\/]/).filter(Boolean);
 
 const basenameOf = (relativePath: string) => toSegments(relativePath).at(-1);
+
+export const isRedistributableDirectory = (directoryName: string) =>
+  REDIST_DIRECTORIES.has(directoryName.toLowerCase());
+
+export const isRedistributablePath = (relativePath: string) => {
+  const segments = toSegments(relativePath);
+  const basename = segments.pop() ?? "";
+
+  return (
+    REDIST_FILE_PATTERN.test(basename) ||
+    segments.some((segment) => REDIST_DIRECTORIES.has(segment))
+  );
+};
 
 const directoryOf = (relativePath: string) => {
   const segments = toSegments(relativePath);
@@ -95,7 +128,11 @@ export const rankExecutableCandidates = (
 
   const candidates = relativeFilePaths.filter((filePath) => {
     const basename = basenameOf(filePath);
-    return !!basename && executableIndexes.has(basename);
+    return (
+      !!basename &&
+      executableIndexes.has(basename) &&
+      !isRedistributablePath(filePath)
+    );
   });
 
   if (candidates.length <= 1) return candidates[0] ?? null;
@@ -153,7 +190,9 @@ const rankAcrossInstallations = (
 
   const candidates = relativeFilePaths.filter((filePath) => {
     const basename = basenameOf(filePath);
-    return !!basename && exeNames.has(basename);
+    return (
+      !!basename && exeNames.has(basename) && !isRedistributablePath(filePath)
+    );
   });
 
   if (candidates.length === 0) return null;
