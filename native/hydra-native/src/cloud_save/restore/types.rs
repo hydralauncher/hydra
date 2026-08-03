@@ -51,6 +51,9 @@ pub struct ResolvedRestoreTarget {
     pub size_bytes: f64,
     pub last_modified_at: String,
     pub action: String,
+    pub observed_hash: Option<String>,
+    pub observed_size_bytes: Option<f64>,
+    pub observed_last_modified_at: Option<String>,
 }
 
 #[napi(object)]

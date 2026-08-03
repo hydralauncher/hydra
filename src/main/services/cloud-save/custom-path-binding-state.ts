@@ -16,6 +16,69 @@ export interface CloudSaveCustomPathLocalPathMigration {
   storeUserId?: string;
 }
 
+interface LegacyStoredCloudSaveCustomPath
+  extends Omit<StoredCloudSaveCustomPath, "syncState"> {
+  tracking?: "tracked" | "ignored";
+  syncState?: StoredCloudSaveCustomPath["syncState"];
+}
+
+const isStoredCloudSaveCustomPath = (
+  value: unknown
+): value is LegacyStoredCloudSaveCustomPath => {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.rawPath === "string" &&
+    record.rawPath.startsWith("<custom>") &&
+    (record.syncState === undefined ||
+      record.syncState === "pending" ||
+      record.syncState === "confirmed") &&
+    (record.tracking === undefined ||
+      record.tracking === "tracked" ||
+      record.tracking === "ignored") &&
+    (record.storeUserId === undefined ||
+      typeof record.storeUserId === "string") &&
+    (record.localPath === undefined || typeof record.localPath === "string") &&
+    Object.keys(record).every(
+      (key) =>
+        key === "rawPath" ||
+        key === "syncState" ||
+        key === "tracking" ||
+        key === "storeUserId" ||
+        key === "localPath"
+    )
+  );
+};
+
+export const normalizeStoredCloudSaveCustomPathEntries = (
+  value: unknown
+): StoredCloudSaveCustomPath[] => {
+  if (!Array.isArray(value)) return [];
+  const entries = value.filter(isStoredCloudSaveCustomPath);
+  const ignoredRawPaths = new Set(
+    entries
+      .filter(({ tracking }) => tracking === "ignored")
+      .map(({ rawPath }) => rawPath)
+  );
+  const byRawPath = new Map<string, StoredCloudSaveCustomPath>();
+  for (const entry of entries) {
+    if (ignoredRawPaths.has(entry.rawPath)) continue;
+    const existing = byRawPath.get(entry.rawPath);
+    byRawPath.set(entry.rawPath, {
+      rawPath: entry.rawPath,
+      syncState:
+        entry.tracking === "tracked"
+          ? "confirmed"
+          : (entry.syncState ?? existing?.syncState ?? "confirmed"),
+      storeUserId: entry.storeUserId ?? existing?.storeUserId,
+      localPath: entry.localPath ?? existing?.localPath,
+    });
+  }
+  return [...byRawPath.values()].sort((left, right) =>
+    left.rawPath.localeCompare(right.rawPath)
+  );
+};
+
 export const trackStoredCloudSaveCustomPaths = (
   entries: StoredCloudSaveCustomPath[],
   trackedPaths: Pick<

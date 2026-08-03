@@ -18,6 +18,7 @@ import {
 import {
   applyCloudSaveCustomPathLocalPathMigrations,
   confirmStoredCloudSaveCustomPaths,
+  normalizeStoredCloudSaveCustomPathEntries,
   reconcileStoredCloudSaveCustomPaths,
   removeStoredCloudSaveCustomPath,
   trackStoredCloudSaveCustomPaths,
@@ -40,52 +41,10 @@ const getCurrentUserId = async () => {
 const getStorageKey = async (shop: GameShop, objectId: string) =>
   cloudSaveCustomPathStorageKey(await getCurrentUserId(), shop, objectId);
 
-const isStoredPath = (value: unknown): value is StoredCloudSaveCustomPath => {
-  if (!value || typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.rawPath === "string" &&
-    (record.syncState === undefined ||
-      record.syncState === "pending" ||
-      record.syncState === "confirmed") &&
-    (record.storeUserId === undefined ||
-      typeof record.storeUserId === "string") &&
-    (record.localPath === undefined || typeof record.localPath === "string") &&
-    Object.keys(record).every(
-      (key) =>
-        key === "rawPath" ||
-        key === "syncState" ||
-        key === "storeUserId" ||
-        key === "localPath"
-    )
-  );
-};
-
-const normalizeStoredEntries = (
-  value: unknown
-): StoredCloudSaveCustomPath[] => {
-  if (!Array.isArray(value)) return [];
-  const entries = value
-    .filter(isStoredPath)
-    .filter(({ rawPath }) => rawPath.startsWith("<custom>"));
-
-  const byRawPath = new Map<string, StoredCloudSaveCustomPath>();
-  for (const entry of entries) {
-    const existing = byRawPath.get(entry.rawPath);
-    byRawPath.set(entry.rawPath, {
-      rawPath: entry.rawPath,
-      syncState: entry.syncState ?? existing?.syncState ?? "confirmed",
-      storeUserId: entry.storeUserId ?? existing?.storeUserId,
-      localPath: entry.localPath ?? existing?.localPath,
-    });
-  }
-  return [...byRawPath.values()].sort((left, right) =>
-    left.rawPath.localeCompare(right.rawPath)
-  );
-};
-
 const getStoredEntriesByKey = async (key: string) =>
-  normalizeStoredEntries((await cloudSaveCustomPathsSublevel.get(key)) ?? []);
+  normalizeStoredCloudSaveCustomPathEntries(
+    (await cloudSaveCustomPathsSublevel.get(key)) ?? []
+  );
 
 const getStoredEntries = async (shop: GameShop, objectId: string) =>
   getStoredEntriesByKey(await getStorageKey(shop, objectId));
@@ -94,7 +53,7 @@ const putStoredEntriesByKey = async (
   key: string,
   entries: StoredCloudSaveCustomPath[]
 ) => {
-  const normalized = normalizeStoredEntries(entries);
+  const normalized = normalizeStoredCloudSaveCustomPathEntries(entries);
   if (normalized.length === 0) {
     await cloudSaveCustomPathsSublevel.del(key);
   } else {

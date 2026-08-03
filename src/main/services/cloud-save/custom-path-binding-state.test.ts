@@ -5,12 +5,48 @@ import { describe, it } from "node:test";
 import {
   applyCloudSaveCustomPathLocalPathMigrations,
   classifyCloudSaveCustomPathResolutionError,
+  normalizeStoredCloudSaveCustomPathEntries,
   reconcileStoredCloudSaveCustomPaths,
   removeStoredCloudSaveCustomPath,
   trackStoredCloudSaveCustomPaths,
 } from "./custom-path-binding-state.ts";
 
 describe("cloud save custom path binding state", () => {
+  it("normalizes legacy tracking records without preserving ignored bindings", () => {
+    assert.deepEqual(
+      normalizeStoredCloudSaveCustomPathEntries([
+        {
+          rawPath: "<custom><windows><winDocuments>/Implicit",
+          localPath: "C:/Saves/Implicit",
+        },
+        {
+          rawPath: "<custom><windows><winDocuments>/Tracked",
+          tracking: "tracked",
+          localPath: "C:/Saves/Tracked",
+        },
+        {
+          rawPath: "<custom><windows><winDocuments>/Ignored",
+          tracking: "ignored",
+          localPath: "C:/Saves/Ignored",
+        },
+      ]),
+      [
+        {
+          rawPath: "<custom><windows><winDocuments>/Implicit",
+          syncState: "confirmed",
+          storeUserId: undefined,
+          localPath: "C:/Saves/Implicit",
+        },
+        {
+          rawPath: "<custom><windows><winDocuments>/Tracked",
+          syncState: "confirmed",
+          storeUserId: undefined,
+          localPath: "C:/Saves/Tracked",
+        },
+      ]
+    );
+  });
+
   it("classifies temporary environment and account failures as recoverable", () => {
     assert.deepEqual(
       classifyCloudSaveCustomPathResolutionError(

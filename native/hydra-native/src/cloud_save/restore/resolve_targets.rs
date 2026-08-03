@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
-use crate::cloud_save::hashing::hash_file;
+use crate::cloud_save::hashing::batch::hash_files;
 use crate::cloud_save::identity::{is_safe_capture, normalize_rule_path, SnapshotVariant};
 use crate::cloud_save::manifest::types::CloudSaveRule;
 use crate::cloud_save::path_resolution::{
@@ -334,8 +334,13 @@ fn resolve_restore_targets_inner(
         }
 
         let (target_path, restore_root_path) = resolved_targets.remove(0);
-        let action = if Path::new(&target_path).is_file()
-            && hash_file(&target_path).is_ok_and(|hash| hash == file.hash)
+        let observed = hash_files(vec![target_path.clone()], vec![])
+            .ok()
+            .and_then(|mut result| result.files.pop())
+            .map(|file| (file.hash, file.size_bytes, file.last_modified_at));
+        let action = if observed
+            .as_ref()
+            .is_some_and(|(hash, _, _)| hash == &file.hash)
         {
             "skip-identical"
         } else if Path::new(&target_path).exists() {
@@ -343,6 +348,11 @@ fn resolve_restore_targets_inner(
         } else {
             "create"
         };
+        let (observed_hash, observed_size_bytes, observed_last_modified_at) = observed
+            .map(|(hash, size_bytes, last_modified_at)| {
+                (Some(hash), Some(size_bytes), Some(last_modified_at))
+            })
+            .unwrap_or((None, None, None));
         candidates.push((
             ResolvedRestoreTarget {
                 variant_id: file.variant_id.clone(),
@@ -354,6 +364,9 @@ fn resolve_restore_targets_inner(
                 size_bytes: file.size_bytes,
                 last_modified_at: file.last_modified_at.clone(),
                 action: action.to_string(),
+                observed_hash,
+                observed_size_bytes,
+                observed_last_modified_at,
             },
             file,
         ));
@@ -502,6 +515,45 @@ mod tests {
             Path::new(&result.actions[0].target_path),
             Path::new("C:/Users/Rodrigo/Downloads/Game/Saves/slot.sav")
         );
+    }
+
+    #[test]
+    fn reports_the_current_file_metadata_for_an_existing_target() {
+        let temp = tempdir().unwrap();
+        let target_root = temp.path().join("Game");
+        fs::create_dir_all(&target_root).unwrap();
+        fs::write(target_root.join("slot.sav"), b"save").unwrap();
+        let variant = variant("default", "");
+        let mut remote_file = file(&variant, "slot.sav");
+        remote_file.raw_path = "<home>/Game".into();
+        remote_file.hash = format!("{:x}", Sha256::digest(b"save"));
+        let mut restore_input = input(
+            temp.path(),
+            StoreUserContext {
+                active: None,
+                known: Vec::new(),
+            },
+            vec![variant],
+            vec![remote_file.clone()],
+        );
+        restore_input.approved_rules = vec![ApprovedRestoreRule {
+            kind: "dir".into(),
+            raw_path: remote_file.raw_path.clone(),
+            source: "test".into(),
+            preferred_path: None,
+            when: vec![],
+        }];
+
+        let result = resolve_restore_targets_inner(restore_input).unwrap();
+
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(result.actions[0].action, "skip-identical");
+        assert_eq!(
+            result.actions[0].observed_hash.as_deref(),
+            Some(remote_file.hash.as_str())
+        );
+        assert_eq!(result.actions[0].observed_size_bytes, Some(4.0));
+        assert!(result.actions[0].observed_last_modified_at.is_some());
     }
 
     #[test]

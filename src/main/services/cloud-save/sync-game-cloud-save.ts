@@ -23,7 +23,6 @@ import { canDeleteInstallationOwnedCustomPathFiles } from "./installation-owned-
 import { confirmCloudSaveCustomPaths } from "./custom-path-store";
 import { resolveAnalyzedCloudSaveMerge } from "./resolve-analyzed-cloud-save-merge";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
-import { isCloudSaveSyncPartialAfterApply } from "./sync-result-policy";
 import { shouldRetryCloudSaveConflict } from "./snapshot-retry-policy";
 import { cloudSaveOperationGate } from "./operation-gate";
 import { assertCloudSaveDeletionNotPending } from "./pending-deletion";
@@ -133,6 +132,28 @@ type SyncFinisher = (
   remoteHash?: string | null
 ) => SyncGameCloudSaveResult;
 
+const analyzeAfterMutation = async (
+  objectId: string,
+  shop: GameShop,
+  trigger: CloudSaveSyncTrigger,
+  analysis: CloudSaveAnalysis,
+  assertEnvironmentCurrent: AssertEnvironmentCurrent
+) => {
+  await assertEnvironmentCurrent();
+  const verified = await analyzeCloudSaveState(
+    objectId,
+    shop,
+    analysis.context,
+    analysis.syncDirection,
+    {
+      allowInstallationOwnedCustomPathDeletion:
+        canDeleteInstallationOwnedCustomPathFiles(trigger),
+    }
+  );
+  await assertEnvironmentCurrent();
+  return verified;
+};
+
 const createSyncFinisher = (
   objectId: string,
   shop: GameShop,
@@ -168,6 +189,7 @@ const createSyncFinisher = (
 const executeRestoreOnlySync = async ({
   objectId,
   shop,
+  trigger,
   analysis,
   merge,
   proposalChanged,
@@ -177,6 +199,7 @@ const executeRestoreOnlySync = async ({
 }: {
   objectId: string;
   shop: GameShop;
+  trigger: CloudSaveSyncTrigger;
   analysis: CloudSaveAnalysis;
   merge: CloudSaveMergeResult;
   proposalChanged: boolean;
@@ -237,17 +260,20 @@ const executeRestoreOnlySync = async ({
     objectId,
     analysis.remoteManifest?.customPathRawPaths ?? []
   );
-  const partial = isCloudSaveSyncPartialAfterApply({
-    coverage: analysis.localSnapshotContext.coverage,
-    unresolvedRemoteEntryIds: finalUnresolvedRemoteEntryIds,
-    restorePartial: restored?.partial,
-  });
+  const verified = await analyzeAfterMutation(
+    objectId,
+    shop,
+    trigger,
+    analysis,
+    assertEnvironmentCurrent
+  );
   const processedFiles = restoreIds.length + deleteLocalIds.length;
   return finish(
     "restore",
-    getPostSyncState(proposalChanged, partial),
+    verified.state.state,
     processedFiles,
-    processedFiles
+    processedFiles,
+    verified.activeRemoteSnapshot?.aggregateHash ?? null
   );
 };
 
@@ -307,6 +333,7 @@ const saveAppliedSyncAnchor = async ({
 const executeAppliedSync = async ({
   objectId,
   shop,
+  trigger,
   analysis,
   merge,
   mergedAggregateHash,
@@ -320,6 +347,7 @@ const executeAppliedSync = async ({
 }: {
   objectId: string;
   shop: GameShop;
+  trigger: CloudSaveSyncTrigger;
   analysis: CloudSaveAnalysis;
   merge: CloudSaveMergeResult;
   mergedAggregateHash: ReturnType<
@@ -362,7 +390,6 @@ const executeAppliedSync = async ({
     requireCommittedCloudSaveSnapshot(committedSnapshot);
   }
 
-  let restoredPartial = false;
   let finalUnresolvedRemoteEntryIds = merge.unresolvedRemoteEntryIds;
   if (!uploadOnly && restoreIds.length > 0) {
     const snapshot = committedSnapshot ?? activeSnapshot;
@@ -380,7 +407,6 @@ const executeAppliedSync = async ({
       merge.unresolvedRemoteEntryIds,
       assertEnvironmentCurrent
     );
-    restoredPartial = restored.partial;
     finalUnresolvedRemoteEntryIds = restored.unresolvedRemoteEntryIds;
   }
 
@@ -412,12 +438,6 @@ const executeAppliedSync = async ({
       ? mergedCustomPathRawPaths
       : (analysis.remoteManifest?.customPathRawPaths ?? [])
   );
-  const partial = isCloudSaveSyncPartialAfterApply({
-    coverage: analysis.localSnapshotContext.coverage,
-    unresolvedRemoteEntryIds: finalUnresolvedRemoteEntryIds,
-    restorePartial: restoredPartial,
-    hasDeferredLocalChanges,
-  });
   const appliedLocalChanges =
     !uploadOnly && (restoreIds.length > 0 || deleteLocalIds.length > 0);
   const action = proposalChanged
@@ -426,14 +446,19 @@ const executeAppliedSync = async ({
   const processedFiles =
     (proposalChanged ? merge.files.length : 0) +
     (!uploadOnly ? restoreIds.length + deleteLocalIds.length : 0);
+  const verified = await analyzeAfterMutation(
+    objectId,
+    shop,
+    trigger,
+    analysis,
+    assertEnvironmentCurrent
+  );
   return finish(
     action,
-    partial ? "partial" : "synced",
+    verified.state.state,
     processedFiles,
     processedFiles,
-    committedSnapshot?.aggregateHash ??
-      analysis.activeRemoteSnapshot?.aggregateHash ??
-      null
+    verified.activeRemoteSnapshot?.aggregateHash ?? null
   );
 };
 
@@ -549,11 +574,22 @@ const executeGameCloudSaveSync = async ({
           : (analysis.remoteManifest?.customPathRawPaths ?? [])
       );
     }
+    const verified =
+      outcome.result.action === "upload" || outcome.result.action === "restore"
+        ? await analyzeAfterMutation(
+            objectId,
+            shop,
+            trigger,
+            analysis,
+            assertEnvironmentCurrent
+          )
+        : null;
     return finish(
       outcome.result.action,
-      outcome.result.finalState,
+      verified?.state.state ?? outcome.result.finalState,
       outcome.processedFiles,
-      outcome.totalFiles
+      outcome.totalFiles,
+      verified?.activeRemoteSnapshot?.aggregateHash ?? null
     );
   }
 
@@ -576,6 +612,7 @@ const executeGameCloudSaveSync = async ({
     return executeRestoreOnlySync({
       objectId,
       shop,
+      trigger,
       analysis,
       merge,
       proposalChanged,
@@ -588,6 +625,7 @@ const executeGameCloudSaveSync = async ({
   return executeAppliedSync({
     objectId,
     shop,
+    trigger,
     analysis,
     merge,
     mergedAggregateHash,

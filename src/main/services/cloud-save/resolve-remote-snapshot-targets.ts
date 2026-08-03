@@ -3,6 +3,7 @@ import { logger } from "@main/services/logger";
 import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
 import type {
+  CloudSaveCustomPathBindings,
   CloudSavePathContext,
   RemoteGameSnapshot,
   RemoteSnapshotSummary,
@@ -57,7 +58,8 @@ export const getRemoteSnapshotRestoreManifest = async (
 
 export const resolveRestoreManifestTargets = async (
   manifest: RestoreManifestResponse,
-  suppliedPathContext?: CloudSavePathContext
+  suppliedPathContext?: CloudSavePathContext,
+  suppliedCustomPathBindings?: CloudSaveCustomPathBindings
 ): Promise<ResolveRestoreTargetsResult> => {
   const gameContext = await getCloudSaveGameContext(
     manifest.snapshot.objectId,
@@ -77,15 +79,19 @@ export const resolveRestoreManifestTargets = async (
   });
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
-  const { ready: customPaths } = await getUsableCloudSaveCustomPathBindings(
-    manifest.snapshot.objectId,
-    manifest.snapshot.shop,
-    effectiveGameContext,
-    {
-      approvedRules: approved.rules,
-      remoteFiles: manifest.files,
-    }
-  );
+  const customPaths = suppliedCustomPathBindings
+    ? suppliedCustomPathBindings.ready
+    : (
+        await getUsableCloudSaveCustomPathBindings(
+          manifest.snapshot.objectId,
+          manifest.snapshot.shop,
+          effectiveGameContext,
+          {
+            approvedRules: approved.rules,
+            remoteFiles: manifest.files,
+          }
+        )
+      ).ready;
 
   const effectiveWinePrefixPath = customPathContext.winePrefixPath;
   const wineUserProfilePath = customPathContext.wineUserProfilePath;
