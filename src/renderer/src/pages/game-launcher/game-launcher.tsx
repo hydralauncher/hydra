@@ -129,13 +129,25 @@ export default function GameLauncher() {
     window.electron.closeGameLauncherWindow();
   };
 
-  const normalizedCoverImage =
-    gameAssets?.coverImageUrl?.replaceAll("\\", "/").trim() || "";
+  const normalizeImageUrl = (url?: string | null) =>
+    url?.replaceAll("\\", "/").trim() || "";
+
   const fallbackSteamCoverImage =
-    !normalizedCoverImage && shop === "steam" && objectId
+    shop === "steam" && objectId
       ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/library_600x900_2x.jpg`
       : "";
-  const coverImageSource = normalizedCoverImage || fallbackSteamCoverImage;
+
+  // Resolve the cover from the artwork the launcher already has for custom/
+  // non-Steam games (whose assets live on the Game object, not ShopAssets).
+  // The guessed Steam capsule URL comes last, since it 404s for games without
+  // a capsule and would otherwise shadow the real assets below it.
+  const coverImageSource =
+    normalizeImageUrl(game?.customCoverImageUrl) ||
+    normalizeImageUrl(gameAssets?.coverImageUrl) ||
+    normalizeImageUrl(gameAssets?.libraryImageUrl) ||
+    normalizeImageUrl(game?.customIconUrl) ||
+    normalizeImageUrl(game?.iconUrl ?? gameAssets?.iconUrl) ||
+    fallbackSteamCoverImage;
   const gameTitle = game?.title ?? gameAssets?.title ?? "";
   const playTime = game?.playTimeInMilliseconds ?? 0;
   const achievementCount = game?.achievementCount ?? 0;
@@ -254,8 +266,13 @@ export default function GameLauncher() {
     };
   }, [isWindowsExecutable, objectId, shop]);
 
+  // Treat a cover that failed to decode as ready so the window still shows and
+  // can auto-close — otherwise isReady would stay false forever on a broken
+  // local cover and leave a hidden, never-closing launcher window.
   const isReady =
-    imageResolved && (coverImage ? imageLoaded : true) && colorExtracted;
+    imageResolved &&
+    (coverImage && !imageError ? imageLoaded : true) &&
+    colorExtracted;
 
   useEffect(() => {
     if (windowShown) return;
@@ -283,7 +300,7 @@ export default function GameLauncher() {
       {coverImage && (
         <div
           className="game-launcher__background"
-          style={{ backgroundImage: `url(${coverImage})` }}
+          style={{ backgroundImage: `url("${encodeURI(coverImage)}")` }}
         />
       )}
       <div className="game-launcher__overlay" />
