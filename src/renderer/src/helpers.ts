@@ -461,6 +461,32 @@ export const parseSortableDate = (dateStr: string | null | undefined): number =>
   return new Date(year, month, 1).getTime();
 };
 
+const getNewUpdatesDifference = (
+  a: LibraryGame,
+  b: LibraryGame
+): number => {
+  const aDate = a.latestUpdateDate
+    ? new Date(a.latestUpdateDate).getTime()
+    : 0;
+  const bDate = b.latestUpdateDate
+    ? new Date(b.latestUpdateDate).getTime()
+    : 0;
+  if (aDate !== bDate) return bDate - aDate;
+
+  const aUpdates = a.newDownloadOptionsCount ?? 0;
+  const bUpdates = b.newDownloadOptionsCount ?? 0;
+  return bUpdates - aUpdates;
+};
+
+const getReleaseDateDifference = (
+  a: LibraryGame,
+  b: LibraryGame
+): number => {
+  const aDate = parseSortableDate(a.releaseDate);
+  const bDate = parseSortableDate(b.releaseDate);
+  return bDate - aDate;
+};
+
 export const sortLibraryGames = (
   games: LibraryGame[],
   sortBy: SortOption
@@ -496,20 +522,14 @@ export const sortLibraryGames = (
       }
 
       case "new_updates": {
-        const aDate = a.latestUpdateDate ? new Date(a.latestUpdateDate).getTime() : 0;
-        const bDate = b.latestUpdateDate ? new Date(b.latestUpdateDate).getTime() : 0;
-        if (aDate !== bDate) return bDate - aDate;
-
-        const aUpdates = a.newDownloadOptionsCount ?? 0;
-        const bUpdates = b.newDownloadOptionsCount ?? 0;
-        if (aUpdates !== bUpdates) return bUpdates - aUpdates;
+        const difference = getNewUpdatesDifference(a, b);
+        if (difference !== 0) return difference;
         break;
       }
 
       case "release_date": {
-        const aDate = parseSortableDate(a.releaseDate);
-        const bDate = parseSortableDate(b.releaseDate);
-        if (aDate !== bDate) return bDate - aDate;
+        const difference = getReleaseDateDifference(a, b);
+        if (difference !== 0) return difference;
         break;
       }
 
