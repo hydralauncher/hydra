@@ -767,6 +767,8 @@ contextBridge.exposeInMainWorld("electron", {
       includeDefaultDirectories,
       addGamesToLibrary
     ),
+  addScannedGame: (objectId: string, executablePath: string) =>
+    ipcRenderer.invoke("addScannedGame", objectId, executablePath),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (

@@ -633,8 +633,13 @@ declare global {
     ) => Promise<{
       linkedGames: { title: string; executablePath: string }[];
       addedGames: { title: string; executablePath: string }[];
+      ambiguousMatches: { executablePath: string; objectIds: string[] }[];
       total: number;
     }>;
+    addScannedGame: (
+      objectId: string,
+      executablePath: string
+    ) => Promise<{ title: string; executablePath: string } | null>;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;

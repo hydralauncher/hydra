@@ -39,9 +39,15 @@ interface FoundGame {
   executablePath: string;
 }
 
+interface AmbiguousMatch {
+  executablePath: string;
+  objectIds: string[];
+}
+
 interface ScanResult {
   linkedGames: FoundGame[];
   addedGames: FoundGame[];
+  ambiguousMatches: AmbiguousMatch[];
   total: number;
 }
 
@@ -265,25 +271,12 @@ const claimsKnownFolder = (objectId: string, executablePath: string) =>
     endsWithKnownFolder(executablePath, executable.name)
   ) ?? false;
 
-const claimsAnyFolder = (objectId: string) =>
-  GameExecutables.getExecutablesForGame(objectId)?.some(
-    (executable) => toComparableSegments(executable.name).length === 1
-  ) ?? false;
-
 const resolveOwner = (executablePath: string, objectIds: Set<string>) => {
-  const candidates = [...objectIds];
-
-  const matchingFolder = candidates.filter((objectId) =>
+  const matchingFolder = [...objectIds].filter((objectId) =>
     claimsKnownFolder(objectId, executablePath)
   );
 
-  if (matchingFolder.length > 0) {
-    return matchingFolder.length === 1 ? matchingFolder[0] : null;
-  }
-
-  const withoutFolder = candidates.filter(claimsAnyFolder);
-
-  return withoutFolder.length === 1 ? withoutFolder[0] : null;
+  return matchingFolder.length === 1 ? matchingFolder[0] : null;
 };
 
 const groupObjectIdsByPath = (scannedDirectories: ScannedDirectory[]) => {
@@ -315,8 +308,9 @@ const findGamesOutsideLibrary = (
   scannedDirectories: ScannedDirectory[],
   libraryObjectIds: Set<string>,
   claimedPaths: Set<string>
-): Map<string, string> => {
+) => {
   const pathByObjectId = new Map<string, string>();
+  const ambiguousMatches: AmbiguousMatch[] = [];
 
   for (const [executablePath, objectIds] of groupObjectIdsByPath(
     scannedDirectories
@@ -333,27 +327,35 @@ const findGamesOutsideLibrary = (
         ? [...objectIds][0]
         : resolveOwner(executablePath, objectIds);
 
-    if (!objectId) {
-      logger.info(
-        `[ScanInstalledGames] Skipping ${executablePath}, it matches ${objectIds.size} games`
-      );
+    if (objectId) {
+      if (libraryObjectIds.has(objectId)) {
+        logger.info(
+          `[ScanInstalledGames] Skipping ${executablePath}, ${objectId} is already in the library`
+        );
+        continue;
+      }
+
+      pathByObjectId.set(objectId, executablePath);
       continue;
     }
 
-    if (libraryObjectIds.has(objectId)) {
-      logger.info(
-        `[ScanInstalledGames] Skipping ${executablePath}, ${objectId} is already in the library`
-      );
-      continue;
-    }
+    const choices = [...objectIds]
+      .filter((candidate) => !libraryObjectIds.has(candidate))
+      .sort((a, b) => Number(a) - Number(b));
 
-    pathByObjectId.set(objectId, executablePath);
+    if (choices.length === 0) continue;
+
+    logger.info(
+      `[ScanInstalledGames] ${executablePath} needs a choice between ${choices.length} games`
+    );
+
+    ambiguousMatches.push({ executablePath, objectIds: choices });
   }
 
-  return pathByObjectId;
+  return { pathByObjectId, ambiguousMatches };
 };
 
-const addGameOutsideLibrary = async (
+export const addGameOutsideLibrary = async (
   objectId: string,
   executablePath: string
 ): Promise<FoundGame | null> => {
@@ -550,24 +552,31 @@ const scanInstalledGames = async (
       .map(({ game }) => game.objectId)
   );
 
-  const addedGames = addGamesToLibrary
-    ? await addGamesOutsideLibrary(
-        findGamesOutsideLibrary(
-          scannedDirectories,
-          libraryObjectIds,
-          claimedPaths
-        )
+  const outsideLibrary = addGamesToLibrary
+    ? findGamesOutsideLibrary(
+        scannedDirectories,
+        libraryObjectIds,
+        claimedPaths
       )
-    : [];
+    : { pathByObjectId: new Map<string, string>(), ambiguousMatches: [] };
+
+  const addedGames = await addGamesOutsideLibrary(
+    outsideLibrary.pathByObjectId
+  );
 
   logger.info(
-    `[ScanInstalledGames] Linked ${linkedGames.length} of ${gamesToScan.length} games in the library, added ${addedGames.length} new ones`
+    `[ScanInstalledGames] Linked ${linkedGames.length} of ${gamesToScan.length} games in the library, added ${addedGames.length} new ones, ${outsideLibrary.ambiguousMatches.length} need a choice`
   );
 
   WindowManager.sendToAppWindows("on-library-batch-complete");
   await publishScanNotification(addedGames.length, linkedGames.length);
 
-  return { linkedGames, addedGames, total: gamesToScan.length };
+  return {
+    linkedGames,
+    addedGames,
+    ambiguousMatches: outsideLibrary.ambiguousMatches,
+    total: gamesToScan.length,
+  };
 };
 
 registerEvent("scanInstalledGames", scanInstalledGames);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertIcon,
@@ -19,9 +19,21 @@ interface FoundGame {
   executablePath: string;
 }
 
+interface AmbiguousMatch {
+  executablePath: string;
+  objectIds: string[];
+}
+
+interface AmbiguousChoice {
+  objectId: string;
+  title: string;
+  iconUrl: string | null;
+}
+
 export interface ScanResult {
   linkedGames: FoundGame[];
   addedGames: FoundGame[];
+  ambiguousMatches: AmbiguousMatch[];
   total: number;
 }
 
@@ -55,14 +67,95 @@ export function ScanGamesModal({
     isWindows ? "automatic" : "manual"
   );
   const [addGamesToLibrary, setAddGamesToLibrary] = useState(true);
+  const [pending, setPending] = useState<AmbiguousMatch[]>([]);
+  const [choicesByPath, setChoicesByPath] = useState<
+    Record<string, AmbiguousChoice[]>
+  >({});
+  const [picks, setPicks] = useState<Record<string, string>>({});
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolvedGames, setResolvedGames] = useState<FoundGame[]>([]);
 
   const isManualMode = !isWindows || scanMode === "manual";
   const requiresFolderSelection = isManualMode && selectedFolders.length === 0;
 
+  const addedGames = [...(scanResult?.addedGames ?? []), ...resolvedGames];
+
   const hasResults = Boolean(
-    scanResult &&
-      scanResult.addedGames.length + scanResult.linkedGames.length > 0
+    scanResult && addedGames.length + scanResult.linkedGames.length > 0
   );
+
+  useEffect(() => {
+    if (!scanResult) {
+      setPending([]);
+      setChoicesByPath({});
+      setPicks({});
+      setResolvedGames([]);
+      return;
+    }
+
+    setPending(scanResult.ambiguousMatches);
+  }, [scanResult]);
+
+  useEffect(() => {
+    if (pending.length === 0) return;
+
+    let cancelled = false;
+
+    const loadChoices = async () => {
+      const entries = await Promise.all(
+        pending.map(async (match) => {
+          const choices = await Promise.all(
+            match.objectIds.map(async (objectId) => {
+              const assets = await window.electron
+                .getGameAssets(objectId, "steam")
+                .catch(() => null);
+
+              return {
+                objectId,
+                title: assets?.title ?? objectId,
+                iconUrl: assets?.iconUrl ?? null,
+              };
+            })
+          );
+
+          return [match.executablePath, choices] as const;
+        })
+      );
+
+      if (!cancelled) setChoicesByPath(Object.fromEntries(entries));
+    };
+
+    loadChoices();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pending]);
+
+  const handlePick = useCallback((executablePath: string, objectId: string) => {
+    setPicks((prev) => ({ ...prev, [executablePath]: objectId }));
+  }, []);
+
+  const handleConfirmPicks = async () => {
+    setIsResolving(true);
+
+    try {
+      const added: FoundGame[] = [];
+
+      for (const [executablePath, objectId] of Object.entries(picks)) {
+        const game = await window.electron
+          .addScannedGame(objectId, executablePath)
+          .catch(() => null);
+
+        if (game) added.push(game);
+      }
+
+      setResolvedGames(added);
+    } finally {
+      setIsResolving(false);
+      setPending([]);
+    }
+  };
 
   const handleClose = () => {
     setSelectedFolders([]);
@@ -224,18 +317,69 @@ export function ScanGamesModal({
           </div>
         )}
 
-        {scanResult && (
+        {scanResult && pending.length > 0 && (
+          <div className="scan-games-modal__ambiguous">
+            <p className="scan-games-modal__ambiguous-title">
+              {t("scan_games_ambiguous_title", { count: pending.length })}
+            </p>
+            <p className="scan-games-modal__ambiguous-hint">
+              {t("scan_games_ambiguous_hint")}
+            </p>
+
+            <ul className="scan-games-modal__ambiguous-list">
+              {pending.map((match) => (
+                <li
+                  key={match.executablePath}
+                  className="scan-games-modal__ambiguous-item"
+                >
+                  <span className="scan-games-modal__game-path">
+                    {match.executablePath}
+                  </span>
+
+                  <div className="scan-games-modal__ambiguous-choices">
+                    {(choicesByPath[match.executablePath] ?? []).map(
+                      (choice) => (
+                        <button
+                          key={choice.objectId}
+                          type="button"
+                          className={cn("scan-games-modal__choice", {
+                            "scan-games-modal__choice--active":
+                              picks[match.executablePath] === choice.objectId,
+                          })}
+                          onClick={() =>
+                            handlePick(match.executablePath, choice.objectId)
+                          }
+                        >
+                          {choice.iconUrl && (
+                            <img
+                              src={choice.iconUrl}
+                              alt=""
+                              className="scan-games-modal__choice-icon"
+                            />
+                          )}
+                          <span>{choice.title}</span>
+                        </button>
+                      )
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {scanResult && pending.length === 0 && (
           <div className="scan-games-modal__results">
             {hasResults ? (
               <>
-                {scanResult.addedGames.length > 0 && (
+                {addedGames.length > 0 && (
                   <div className="scan-games-modal__result-section">
                     <p className="scan-games-modal__result">
                       {t("scan_games_result_added", {
-                        added: scanResult.addedGames.length,
+                        added: addedGames.length,
                       })}
                     </p>
-                    {renderGamesList(scanResult.addedGames)}
+                    {renderGamesList(addedGames)}
                   </div>
                 )}
 
@@ -260,25 +404,41 @@ export function ScanGamesModal({
         )}
 
         <div className="scan-games-modal__actions">
-          <Button theme="outline" onClick={handleClose}>
-            {scanResult
-              ? t("scan_games_close")
-              : isScanning
-                ? t("scan_games_hide")
-                : t("scan_games_cancel")}
-          </Button>
-          {!scanResult && (
-            <Button
-              onClick={handleStartScan}
-              disabled={isScanning || requiresFolderSelection}
-            >
-              {t("scan_games_start")}
-            </Button>
-          )}
-          {scanResult && (
-            <Button onClick={handleScanAgain}>
-              {t("scan_games_scan_again")}
-            </Button>
+          {scanResult && pending.length > 0 ? (
+            <>
+              <Button theme="outline" onClick={() => setPending([])}>
+                {t("scan_games_ambiguous_skip")}
+              </Button>
+              <Button
+                onClick={handleConfirmPicks}
+                disabled={isResolving || Object.keys(picks).length === 0}
+              >
+                {t("scan_games_ambiguous_confirm")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button theme="outline" onClick={handleClose}>
+                {scanResult
+                  ? t("scan_games_close")
+                  : isScanning
+                    ? t("scan_games_hide")
+                    : t("scan_games_cancel")}
+              </Button>
+              {!scanResult && (
+                <Button
+                  onClick={handleStartScan}
+                  disabled={isScanning || requiresFolderSelection}
+                >
+                  {t("scan_games_start")}
+                </Button>
+              )}
+              {scanResult && (
+                <Button onClick={handleScanAgain}>
+                  {t("scan_games_scan_again")}
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
