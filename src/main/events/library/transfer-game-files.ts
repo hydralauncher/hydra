@@ -7,7 +7,7 @@ import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { findGameRootFromExe } from "../helpers/find-game-root";
 import { getDirectorySize } from "../helpers/get-directory-size";
 import { WindowManager } from "@main/services/window-manager";
-import { DownloadOrchestrator } from "@main/services";
+import { DownloadOrchestrator, logger } from "@main/services";
 import type { GameShop, LibraryGame } from "@types";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -310,10 +310,25 @@ async function updateDatabaseAfterTransfer(
   // resurface as a resumable "paused" download for an already-playable game,
   // so drop it instead (cancels the handle and marks it removed, no files
   // deleted).
-  await DownloadOrchestrator.cancelDownloadById(
-    game.shop,
-    game.objectId
-  ).catch(() => {});
+  try {
+    await DownloadOrchestrator.cancelDownloadById(game.shop, game.objectId);
+  } catch (error) {
+    // Don't fail the (already completed) transfer, but make sure the stale
+    // record can't resurface as a resumable download if the full cancel path
+    // failed partway through.
+    logger.warn(
+      "Failed to cancel stale download after transfer; marking it removed",
+      error
+    );
+    await downloadsSublevel
+      .put(gameKey, {
+        ...download,
+        status: "removed",
+        queued: false,
+        shouldSeed: false,
+      })
+      .catch(() => {});
+  }
 }
 
 async function cleanupOnError(id: string, targetRoot: string) {
