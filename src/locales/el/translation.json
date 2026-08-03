@@ -212,8 +212,8 @@
     "protondb_silver_plus": "Ασημένιο+",
     "protondb_gold_plus": "Χρυσό+",
     "protondb_platinum_only": "Μόνο Πλατινένιο",
-    "deck_playable_plus": "Παίξιμο+",
-    "deck_verified_only": "Μόνο επαληθευμένα",
+    "deck_playable_plus": "Παίζεται+",
+    "deck_verified_only": "Μόνο Επαληθευμένο",
     "result_count": "{{resultCount}} αποτελέσματα",
     "filter_count": "{{filterCount}} διαθέσιμα",
     "clear_filters": "Διαγραφή",
@@ -275,7 +275,7 @@
     "protondb_badge_title": "ProtonDB {{tier}}",
     "deck_compatibility": "Steam Deck",
     "deck_verified": "Επαληθευμένο",
-    "deck_playable": "Μπορεί να παιχτεί",
+    "deck_playable": "Παίζεται",
     "deck_unsupported": "Δεν υποστηρίζεται",
     "deck_unknown": "Άγνωστο",
     "view_on_protondb": "Προβολή στο ProtonDB",
@@ -1338,7 +1338,7 @@
     "scan_games_no_results_description": "Δεν εντοπίστηκαν εγκατεστημένα παιχνίδια"
   },
   "system_tray": {
-    "open": "Άνοιγμα Hydra",
+    "open": "Άνοιγμα του Hydra",
     "quit": "Έξοδος"
   },
   "game_card": {
@@ -1605,7 +1605,7 @@
   "game_launcher": {
     "launching": "Εκκίνηση...",
     "launching_base": "Έναρξη",
-    "open_hydra": "Άνοιγμα Hydra",
+    "open_hydra": "Άνοιγμα του Hydra",
     "playtime": "Χρόνος παιχνιδιού",
     "amount_hours": "{{amount}} ώρες",
     "amount_minutes": "{{amount}} λεπτά",
