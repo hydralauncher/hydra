@@ -1,6 +1,7 @@
 import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckIcon, XIcon } from "@primer/octicons-react";
+import { parseSupportedLanguages } from "@shared";
 import { gameDetailsContext } from "@renderer/context/game-details/game-details.context";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import "./game-language-section.scss";
@@ -9,18 +10,10 @@ export function GameLanguageSection() {
   const { t } = useTranslation("game_details");
   const { shopDetails } = useContext(gameDetailsContext);
 
-  const languages = useMemo(() => {
-    const supportedLanguages = shopDetails?.supported_languages;
-    if (!supportedLanguages) return [];
-
-    const languagesString = supportedLanguages.split("<br>")[0];
-    const languageArray = languagesString?.split(",") || [];
-
-    return languageArray.map((lang) => ({
-      language: lang.replace("<strong>*</strong>", "").trim(),
-      hasAudio: lang.includes("*"),
-    }));
-  }, [shopDetails?.supported_languages]);
+  const languages = useMemo(
+    () => parseSupportedLanguages(shopDetails?.supported_languages),
+    [shopDetails?.supported_languages]
+  );
 
   if (languages.length === 0) {
     return null;
