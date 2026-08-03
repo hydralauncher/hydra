@@ -7,6 +7,7 @@ import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { findGameRootFromExe } from "../helpers/find-game-root";
 import { getDirectorySize } from "../helpers/get-directory-size";
 import { WindowManager } from "@main/services/window-manager";
+import { DownloadOrchestrator } from "@main/services";
 import type { GameShop, LibraryGame } from "@types";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -284,7 +285,16 @@ async function updateDatabaseAfterTransfer(
   });
 
   const download = await downloadsSublevel.get(gameKey).catch(() => null);
-  if (download) {
+  if (!download) return;
+
+  const isFinishedDownload =
+    download.status === "complete" ||
+    download.status === "seeding" ||
+    download.progress >= 1;
+
+  if (isFinishedDownload) {
+    // A completed/seeding download is still valid after the move — just point
+    // it at the new location so seeding keeps working.
     await downloadsSublevel
       .put(gameKey, {
         ...download,
@@ -292,7 +302,18 @@ async function updateDatabaseAfterTransfer(
         folderName: path.basename(targetRoot),
       })
       .catch(() => {});
+    return;
   }
+
+  // The game is now fully present on disk. An unfinished download left over
+  // from before would otherwise be re-pointed at the installed folder and
+  // resurface as a resumable "paused" download for an already-playable game,
+  // so drop it instead (cancels the handle and marks it removed, no files
+  // deleted).
+  await DownloadOrchestrator.cancelDownloadById(
+    game.shop,
+    game.objectId
+  ).catch(() => {});
 }
 
 async function cleanupOnError(id: string, targetRoot: string) {
