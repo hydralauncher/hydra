@@ -34,7 +34,7 @@ import { useHeroBackgroundLayers } from "../../library/hero/use-hero-background-
 import cn from "classnames";
 
 export interface HeroProps {
-  shopDetails: ShopDetailsWithAssets;
+  shopDetails: ShopDetailsWithAssets | null;
   game: LibraryGame | null;
   isGameRunning: boolean;
   isFavorite: boolean;
@@ -91,8 +91,8 @@ export function Hero({
 }: Readonly<HeroProps>) {
   const { t } = useTranslation("game_details");
   const preferredAssets = useMemo(
-    () => resolvePreferredGameAssets(game, shopDetails.assets),
-    [game, shopDetails.assets]
+    () => resolvePreferredGameAssets(game, shopDetails?.assets),
+    [game, shopDetails?.assets]
   );
   const dominantColor = useDominantColor(preferredAssets.heroSrc || null);
   const { backgroundLayers, getLayerEventHandlers } = useHeroBackgroundLayers(
@@ -362,7 +362,7 @@ export function Hero({
         <Typography
           className="game-page__hero-description"
           dangerouslySetInnerHTML={{
-            __html: shopDetails.short_description || "",
+            __html: shopDetails?.short_description || "",
           }}
         />
 
