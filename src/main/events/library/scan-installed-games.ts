@@ -342,10 +342,21 @@ const addGameOutsideLibrary = async (
   executablePath: string
 ): Promise<FoundGame | null> => {
   const assets = await getGameAssets(objectId, DISCOVERED_GAMES_SHOP).catch(
-    () => null
+    (err) => {
+      logger.error(
+        `[ScanInstalledGames] Failed to fetch assets for ${objectId}:`,
+        err
+      );
+      return null;
+    }
   );
 
-  if (!assets?.title) return null;
+  if (!assets?.title) {
+    logger.info(
+      `[ScanInstalledGames] Not adding ${objectId}, no title for ${executablePath}`
+    );
+    return null;
+  }
 
   const gameKey = levelKeys.game(DISCOVERED_GAMES_SHOP, objectId);
   const existingGame = await gamesSublevel.get(gameKey);
@@ -482,6 +493,12 @@ const scanInstalledGames = async (
     getCatalogFileNames()
   );
 
+  for (const scanned of scannedDirectories) {
+    logger.info(
+      `[ScanInstalledGames] Scanned ${scanned.directory}: ${scanned.relativeFilePaths.length} files, ${scanned.pathsByFileName.size} known executable names`
+    );
+  }
+
   const linkedGames: FoundGame[] = [];
   const claimedPaths = new Set(
     games.flatMap(({ game }) =>
@@ -522,6 +539,10 @@ const scanInstalledGames = async (
         )
       )
     : [];
+
+  logger.info(
+    `[ScanInstalledGames] Linked ${linkedGames.length} of ${gamesToScan.length} games in the library, added ${addedGames.length} new ones`
+  );
 
   WindowManager.sendToAppWindows("on-library-batch-complete");
   await publishScanNotification(addedGames.length, linkedGames.length);
