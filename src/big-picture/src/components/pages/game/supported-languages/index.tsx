@@ -5,7 +5,7 @@ import type { FocusOverrides } from "../../../../services";
 import { FocusItem, Typography } from "../../../common";
 
 export interface SupportedLanguagesProps {
-  shopDetails: ShopDetails;
+  shopDetails: ShopDetails | null;
   focusId?: string;
   focusNavigationOverrides?: FocusOverrides;
   focusNavigationOrder?: number;
@@ -18,7 +18,7 @@ export function SupportedLanguages({
   focusNavigationOrder,
 }: Readonly<SupportedLanguagesProps>) {
   const languages = useMemo(() => {
-    const supportedLanguages = shopDetails.supported_languages;
+    const supportedLanguages = shopDetails?.supported_languages;
     if (!supportedLanguages) return [];
 
     const languagesString = supportedLanguages.split("<br>")[0];
@@ -28,7 +28,7 @@ export function SupportedLanguages({
       language: lang.replace("<strong>*</strong>", "").trim(),
       hasAudio: lang.includes("*"),
     }));
-  }, [shopDetails.supported_languages]);
+  }, [shopDetails?.supported_languages]);
 
   if (languages.length === 0) {
     return null;

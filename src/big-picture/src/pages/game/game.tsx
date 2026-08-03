@@ -1246,7 +1246,7 @@ export default function Game() {
     };
   }, [descriptionBlocks]);
 
-  if (isLoading || !shopDetails) {
+  if (isLoading || (shop !== "custom" && !shopDetails)) {
     return (
       <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
         <div className="game-page">
@@ -1305,8 +1305,8 @@ export default function Game() {
           <div className="game-page__main-layout">
             <div className="game-page__main-column">
               <ScreenshotCarousel
-                videos={shopDetails.movies ?? []}
-                screenshots={shopDetails.screenshots ?? []}
+                videos={shopDetails?.movies ?? []}
+                screenshots={shopDetails?.screenshots ?? []}
                 onActiveItemChange={setActiveMediaItemId}
                 nextContentEntryTarget={
                   descriptionEntryTarget ?? commentsEntryTarget
@@ -1487,7 +1487,7 @@ export default function Game() {
                     className="game-page__sidebar-section game-page__metadata"
                     aria-label="Game info"
                   >
-                    {isLaunchboxGame && shopDetails.platform ? (
+                    {isLaunchboxGame && shopDetails?.platform ? (
                       <div className="game-page__metadata-row">
                         <Typography className="game-page__metadata-label">
                           Platform

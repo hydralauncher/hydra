@@ -11,7 +11,7 @@ import PlayStationLogo from "@renderer/assets/PlayStation Logo Wordmark.svg?reac
 
 export interface ControllerSupportBoxProps {
   shop?: GameShop;
-  shopDetails: ShopDetails;
+  shopDetails: ShopDetails | null;
   focusId?: string;
   focusNavigationOverrides?: FocusOverrides;
   focusNavigationOrder?: number;
@@ -26,7 +26,7 @@ export function ControllerSupportBox({
 }: Readonly<ControllerSupportBoxProps>) {
   const { t } = useTranslation("game_details");
 
-  if (shop !== "steam") return null;
+  if (shop !== "steam" || !shopDetails) return null;
 
   const controllerSupport = resolveControllerSupport(shopDetails);
 
