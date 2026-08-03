@@ -14,6 +14,7 @@ import { AchievementWatcherManager } from "@main/services/achievements/achieveme
 import { createGame } from "@main/services/library-sync";
 import {
   GameExecutables,
+  getSteamLibraryFolders,
   LocalNotificationManager,
   logger,
   WindowManager,
@@ -25,7 +26,7 @@ const SCAN_DIRECTORIES = [
   String.raw`D:\Games`,
   String.raw`C:\Program Files (x86)\Steam\steamapps\common`,
   String.raw`C:\Program Files\Steam\steamapps\common`,
-  String.raw`C:\Program Files (x86)\DODI-Repacks`,
+  String.raw`D:\SteamLibrary\steamapps\common`,
 ];
 
 const DISCOVERED_GAMES_SHOP: GameShop = "steam";
@@ -117,27 +118,54 @@ const scanDirectory = async (
   return { directory, relativeFilePaths, pathsByFileName };
 };
 
-const scanDirectories = async (
-  directories: string[],
-  catalogFileNames: Set<string>
-): Promise<ScannedDirectory[]> => {
-  const scannedDirectories: ScannedDirectory[] = [];
-  const visitedDirectories = new Set<string>();
+const isWithin = (child: string, parent: string) => {
+  const relative = path.relative(parent, child);
+
+  return (
+    relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
+  );
+};
+
+const getDefaultScanDirectories = async () => {
+  const libraryFolders = await getSteamLibraryFolders().catch((err) => {
+    logger.error("[ScanInstalledGames] Failed to read Steam libraries:", err);
+    return [];
+  });
+
+  return [
+    ...SCAN_DIRECTORIES,
+    ...libraryFolders.map((libraryFolder) =>
+      path.join(libraryFolder, "steamapps", "common")
+    ),
+  ];
+};
+
+const resolveScanRoots = async (directories: string[]) => {
+  const resolved: string[] = [];
 
   for (const directory of directories) {
     const resolvedDirectory = await fs.promises
       .realpath(directory)
       .catch(() => null);
 
-    if (!resolvedDirectory || visitedDirectories.has(resolvedDirectory)) {
-      continue;
+    if (resolvedDirectory && !resolved.includes(resolvedDirectory)) {
+      resolved.push(resolvedDirectory);
     }
+  }
 
-    visitedDirectories.add(resolvedDirectory);
+  return resolved.filter(
+    (directory) => !resolved.some((other) => isWithin(directory, other))
+  );
+};
 
-    scannedDirectories.push(
-      await scanDirectory(resolvedDirectory, catalogFileNames)
-    );
+const scanDirectories = async (
+  directories: string[],
+  catalogFileNames: Set<string>
+): Promise<ScannedDirectory[]> => {
+  const scannedDirectories: ScannedDirectory[] = [];
+
+  for (const root of await resolveScanRoots(directories)) {
+    scannedDirectories.push(await scanDirectory(root, catalogFileNames));
   }
 
   return scannedDirectories;
@@ -174,6 +202,38 @@ const resolveExecutablePath = (
   return null;
 };
 
+const toComparableSegments = (value: string) =>
+  value
+    .toLowerCase()
+    .split(/[\\/]/)
+    .map((segment) => segment.replace(/[^a-z0-9]+/g, ""))
+    .filter(Boolean);
+
+const endsWithKnownFolder = (filePath: string, executableName: string) => {
+  const pathSegments = toComparableSegments(filePath);
+  const nameSegments = toComparableSegments(executableName);
+
+  if (nameSegments.length < 2 || nameSegments.length > pathSegments.length) {
+    return false;
+  }
+
+  const offset = pathSegments.length - nameSegments.length;
+
+  return nameSegments.every(
+    (segment, index) => segment === pathSegments[offset + index]
+  );
+};
+
+const resolveOwner = (executablePath: string, objectIds: Set<string>) => {
+  const owners = [...objectIds].filter((objectId) =>
+    GameExecutables.getExecutablesForGame(objectId)?.some((executable) =>
+      endsWithKnownFolder(executablePath, executable.name)
+    )
+  );
+
+  return owners.length === 1 ? owners[0] : null;
+};
+
 const findGamesOutsideLibrary = (
   scannedDirectories: ScannedDirectory[],
   libraryObjectIds: Set<string>,
@@ -205,14 +265,18 @@ const findGamesOutsideLibrary = (
   for (const [executablePath, objectIds] of objectIdsByPath) {
     if (claimedPaths.has(normalizePath(executablePath))) continue;
 
-    if (objectIds.size > 1) {
+    const objectId =
+      objectIds.size === 1
+        ? [...objectIds][0]
+        : resolveOwner(executablePath, objectIds);
+
+    if (!objectId) {
       logger.info(
         `[ScanInstalledGames] Skipping ${executablePath}, it matches ${objectIds.size} games`
       );
       continue;
     }
 
-    const [objectId] = objectIds;
     if (libraryObjectIds.has(objectId)) continue;
 
     pathByObjectId.set(objectId, executablePath);
@@ -345,10 +409,10 @@ const scanInstalledGames = async (
   includeDefaultDirectories = true,
   addGamesToLibrary = true
 ): Promise<ScanResult> => {
-  const baseDirectories = includeDefaultDirectories ? SCAN_DIRECTORIES : [];
-  const directories = [
-    ...new Set([...baseDirectories, ...additionalDirectories]),
-  ];
+  const baseDirectories = includeDefaultDirectories
+    ? await getDefaultScanDirectories()
+    : [];
+  const directories = [...baseDirectories, ...additionalDirectories];
 
   const games = await gamesSublevel
     .iterator()
