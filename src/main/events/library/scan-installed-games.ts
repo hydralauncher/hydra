@@ -517,7 +517,7 @@ const scanInstalledGames = async (
     );
 
     logger.info(
-      `[ScanInstalledGames] Known executables under ${scanned.directory}: ${[...scanned.pathsByFileName.keys()].sort().join(", ")}`
+      `[ScanInstalledGames] Known executables under ${scanned.directory}: ${[...scanned.pathsByFileName.keys()].sort((a, b) => a.localeCompare(b)).join(", ")}`
     );
   }
 

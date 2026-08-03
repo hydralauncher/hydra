@@ -37,6 +37,24 @@ export interface ScanResult {
   total: number;
 }
 
+const fetchChoice = async (objectId: string): Promise<AmbiguousChoice> => {
+  const assets = await window.electron
+    .getGameAssets(objectId, "steam")
+    .catch(() => null);
+
+  return {
+    objectId,
+    title: assets?.title ?? objectId,
+    iconUrl: assets?.iconUrl ?? null,
+  };
+};
+
+const fetchChoicesFor = async (match: AmbiguousMatch) =>
+  [
+    match.executablePath,
+    await Promise.all(match.objectIds.map(fetchChoice)),
+  ] as const;
+
 export interface ScanGamesModalProps {
   visible: boolean;
   onClose: () => void;
@@ -102,25 +120,7 @@ export function ScanGamesModal({
     let cancelled = false;
 
     const loadChoices = async () => {
-      const entries = await Promise.all(
-        pending.map(async (match) => {
-          const choices = await Promise.all(
-            match.objectIds.map(async (objectId) => {
-              const assets = await window.electron
-                .getGameAssets(objectId, "steam")
-                .catch(() => null);
-
-              return {
-                objectId,
-                title: assets?.title ?? objectId,
-                iconUrl: assets?.iconUrl ?? null,
-              };
-            })
-          );
-
-          return [match.executablePath, choices] as const;
-        })
-      );
+      const entries = await Promise.all(pending.map(fetchChoicesFor));
 
       if (!cancelled) setChoicesByPath(Object.fromEntries(entries));
     };
