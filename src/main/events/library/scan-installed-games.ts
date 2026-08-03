@@ -4,6 +4,10 @@ import { t } from "i18next";
 import { chunk } from "lodash-es";
 import { registerEvent } from "../register-event";
 import { getGameAssets } from "../catalogue/get-game-assets";
+import {
+  rankExecutableCandidates,
+  type KnownGameExecutable,
+} from "@main/helpers/game-executable-ranking";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
@@ -14,7 +18,6 @@ import {
   logger,
   WindowManager,
 } from "@main/services";
-import type { GameExecutableEntry } from "@main/services/game-executables";
 import type { Game, GameShop } from "@types";
 
 const SCAN_DIRECTORIES = [
@@ -39,28 +42,52 @@ interface ScanResult {
   total: number;
 }
 
-const collectExecutableFiles = async (
-  directories: string[],
-  fileNames: Set<string>
-): Promise<Map<string, string[]>> => {
-  const filesByName = new Map<string, string[]>();
-  const visitedDirectories = new Set<string>();
+interface ScannedDirectory {
+  directory: string;
+  relativeFilePaths: string[];
+  pathsByFileName: Map<string, string[]>;
+}
 
-  const walk = async (directory: string) => {
+const normalizePath = (value: string) =>
+  value.replace(/\\/g, "/").toLowerCase();
+
+const getCatalogFileNames = () => {
+  const fileNames = new Set<string>();
+
+  for (const objectId of GameExecutables.getAllObjectIds()) {
+    const executables = GameExecutables.getExecutablesForGame(objectId);
+    if (!executables) continue;
+
+    for (const executable of executables) {
+      fileNames.add(executable.exe.toLowerCase());
+    }
+  }
+
+  return fileNames;
+};
+
+const scanDirectory = async (
+  directory: string,
+  catalogFileNames: Set<string>
+): Promise<ScannedDirectory> => {
+  const relativeFilePaths: string[] = [];
+  const pathsByFileName = new Map<string, string[]>();
+
+  const walk = async (current: string) => {
     let entries: fs.Dirent[];
 
     try {
-      entries = await fs.promises.readdir(directory, { withFileTypes: true });
+      entries = await fs.promises.readdir(current, { withFileTypes: true });
     } catch (err) {
       logger.error(
-        `[ScanInstalledGames] Error reading folder ${directory}:`,
+        `[ScanInstalledGames] Error reading folder ${current}:`,
         err
       );
       return;
     }
 
     for (const entry of entries) {
-      const entryPath = path.join(directory, entry.name);
+      const entryPath = path.join(current, entry.name);
 
       if (entry.isDirectory()) {
         await walk(entryPath);
@@ -69,18 +96,33 @@ const collectExecutableFiles = async (
 
       if (!entry.isFile()) continue;
 
-      const fileName = entry.name.toLowerCase();
-      if (!fileNames.has(fileName)) continue;
+      const relativeFilePath = path.relative(directory, entryPath);
+      relativeFilePaths.push(relativeFilePath);
 
-      const paths = filesByName.get(fileName);
+      const fileName = entry.name.toLowerCase();
+      if (!catalogFileNames.has(fileName)) continue;
+
+      const paths = pathsByFileName.get(fileName);
 
       if (paths) {
-        paths.push(entryPath);
+        paths.push(relativeFilePath);
       } else {
-        filesByName.set(fileName, [entryPath]);
+        pathsByFileName.set(fileName, [relativeFilePath]);
       }
     }
   };
+
+  await walk(directory);
+
+  return { directory, relativeFilePaths, pathsByFileName };
+};
+
+const scanDirectories = async (
+  directories: string[],
+  catalogFileNames: Set<string>
+): Promise<ScannedDirectory[]> => {
+  const scannedDirectories: ScannedDirectory[] = [];
+  const visitedDirectories = new Set<string>();
 
   for (const directory of directories) {
     const resolvedDirectory = await fs.promises
@@ -92,97 +134,88 @@ const collectExecutableFiles = async (
     }
 
     visitedDirectories.add(resolvedDirectory);
-    await walk(resolvedDirectory);
+
+    scannedDirectories.push(
+      await scanDirectory(resolvedDirectory, catalogFileNames)
+    );
   }
 
-  return filesByName;
+  return scannedDirectories;
 };
 
-const normalizePath = (value: string) =>
-  value.replace(/\\/g, "/").toLowerCase();
-
-const matchesRelativePath = (filePath: string, relativePath: string) => {
-  const normalizedFilePath = normalizePath(filePath);
-
-  return (
-    normalizedFilePath === relativePath ||
-    normalizedFilePath.endsWith(`/${relativePath}`)
-  );
-};
-
-const findExecutablePath = (
-  entries: GameExecutableEntry[],
-  filesByName: Map<string, string[]>
+const resolveExecutablePath = (
+  executables: KnownGameExecutable[],
+  scannedDirectories: ScannedDirectory[]
 ): string | null => {
-  const entriesBySpecificity = [...entries].sort(
-    (a, b) =>
-      b.relativePath.split("/").length - a.relativePath.split("/").length
-  );
+  for (const scanned of scannedDirectories) {
+    const candidates = new Set<string>();
 
-  for (const entry of entriesBySpecificity) {
-    const candidates = filesByName.get(entry.fileName);
-    if (!candidates) continue;
+    for (const executable of executables) {
+      const paths = scanned.pathsByFileName.get(executable.exe.toLowerCase());
+      if (paths) for (const candidate of paths) candidates.add(candidate);
+    }
 
-    const match = candidates.find((candidate) =>
-      matchesRelativePath(candidate, entry.relativePath)
+    if (candidates.size === 0) continue;
+
+    if (candidates.size === 1) {
+      const [relativeFilePath] = candidates;
+      return path.join(scanned.directory, relativeFilePath);
+    }
+
+    const match = rankExecutableCandidates(
+      scanned.relativeFilePaths,
+      executables,
+      "library"
     );
 
-    if (match) return match;
+    if (match) return path.join(scanned.directory, match);
   }
 
   return null;
 };
 
-interface PathMatch {
-  segmentCount: number;
-  objectIds: Set<string>;
-}
-
 const findGamesOutsideLibrary = (
-  catalogEntries: GameExecutableEntry[],
-  filesByName: Map<string, string[]>,
+  scannedDirectories: ScannedDirectory[],
   libraryObjectIds: Set<string>,
   claimedPaths: Set<string>
 ): Map<string, string> => {
-  const matchesByPath = new Map<string, PathMatch>();
+  const objectIdsByPath = new Map<string, Set<string>>();
 
-  for (const entry of catalogEntries) {
-    const candidates = filesByName.get(entry.fileName);
-    if (!candidates) continue;
+  for (const objectId of GameExecutables.getAllObjectIds()) {
+    const executables = GameExecutables.getExecutablesForGame(objectId);
+    if (!executables) continue;
 
-    const segmentCount = entry.relativePath.split("/").length;
+    const executablePath = resolveExecutablePath(
+      executables,
+      scannedDirectories
+    );
+    if (!executablePath) continue;
 
-    for (const candidate of candidates) {
-      if (!matchesRelativePath(candidate, entry.relativePath)) continue;
+    const objectIds = objectIdsByPath.get(executablePath);
 
-      const match = matchesByPath.get(candidate);
-
-      if (!match || segmentCount > match.segmentCount) {
-        matchesByPath.set(candidate, {
-          segmentCount,
-          objectIds: new Set([entry.objectId]),
-        });
-      } else if (segmentCount === match.segmentCount) {
-        match.objectIds.add(entry.objectId);
-      }
+    if (objectIds) {
+      objectIds.add(objectId);
+    } else {
+      objectIdsByPath.set(executablePath, new Set([objectId]));
     }
   }
 
   const pathByObjectId = new Map<string, string>();
 
-  for (const [candidate, match] of matchesByPath) {
-    if (claimedPaths.has(normalizePath(candidate))) continue;
+  for (const [executablePath, objectIds] of objectIdsByPath) {
+    if (claimedPaths.has(normalizePath(executablePath))) continue;
 
-    if (match.objectIds.size > 1) {
+    if (objectIds.size > 1) {
       logger.info(
-        `[ScanInstalledGames] Skipping ${candidate}, it matches ${match.objectIds.size} games`
+        `[ScanInstalledGames] Skipping ${executablePath}, it matches ${objectIds.size} games`
       );
       continue;
     }
 
-    const [objectId] = match.objectIds;
+    const [objectId] = objectIds;
     if (libraryObjectIds.has(objectId)) continue;
-    if (!pathByObjectId.has(objectId)) pathByObjectId.set(objectId, candidate);
+
+    pathByObjectId.set(objectId, executablePath);
   }
 
   return pathByObjectId;
@@ -313,7 +346,7 @@ const scanInstalledGames = async (
   addGamesToLibrary = true
 ): Promise<ScanResult> => {
   const baseDirectories = includeDefaultDirectories ? SCAN_DIRECTORIES : [];
-  const scanDirectories = [
+  const directories = [
     ...new Set([...baseDirectories, ...additionalDirectories]),
   ];
 
@@ -328,14 +361,9 @@ const scanInstalledGames = async (
         .map(([key, game]) => ({ key, game }))
     );
 
-  const catalogEntries = GameExecutables.getAllEntries();
-  const catalogFileNames = new Set(
-    catalogEntries.map((entry) => entry.fileName)
-  );
-
-  const filesByName = await collectExecutableFiles(
-    scanDirectories,
-    catalogFileNames
+  const scannedDirectories = await scanDirectories(
+    directories,
+    getCatalogFileNames()
   );
 
   const linkedGames: FoundGame[] = [];
@@ -347,10 +375,10 @@ const scanInstalledGames = async (
   const gamesToScan = games.filter(({ game }) => !game.executablePath);
 
   for (const { key, game } of gamesToScan) {
-    const entries = GameExecutables.getEntriesForGame(game.objectId);
-    if (entries.length === 0) continue;
+    const executables = GameExecutables.getExecutablesForGame(game.objectId);
+    if (!executables) continue;
 
-    const foundPath = findExecutablePath(entries, filesByName);
+    const foundPath = resolveExecutablePath(executables, scannedDirectories);
     if (!foundPath) continue;
 
     await gamesSublevel.put(key, updateGameExecutablePath(game, foundPath));
@@ -372,8 +400,7 @@ const scanInstalledGames = async (
   const addedGames = addGamesToLibrary
     ? await addGamesOutsideLibrary(
         findGamesOutsideLibrary(
-          catalogEntries,
-          filesByName,
+          scannedDirectories,
           libraryObjectIds,
           claimedPaths
         )
