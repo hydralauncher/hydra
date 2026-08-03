@@ -49,8 +49,31 @@ interface ScannedDirectory {
   pathsByFileName: Map<string, string[]>;
 }
 
+const REDIST_DIRECTORIES = new Set([
+  "_commonredist",
+  "commonredist",
+  "steamworks shared",
+  "redist",
+  "redists",
+  "_redist",
+  "directx",
+  "dotnet",
+  "dotnetfx",
+  "vcredist",
+  "openal",
+  "physx",
+  "prerequisites",
+  "prereq",
+]);
+
+const REDIST_FILE_PATTERN =
+  /^(vcredist|vc_redist|dotnetfx|dxsetup|dxwebsetup|directx|oalinst|xnafx|physx|ue[45]prereqsetup)/;
+
 const normalizePath = (value: string) =>
   value.replace(/\\/g, "/").toLowerCase();
+
+const isRedistributableDirectory = (directoryName: string) =>
+  REDIST_DIRECTORIES.has(directoryName.toLowerCase());
 
 const getCatalogFileNames = () => {
   const fileNames = new Set<string>();
@@ -91,16 +114,18 @@ const scanDirectory = async (
       const entryPath = path.join(current, entry.name);
 
       if (entry.isDirectory()) {
-        await walk(entryPath);
+        if (!isRedistributableDirectory(entry.name)) await walk(entryPath);
         continue;
       }
 
       if (!entry.isFile()) continue;
 
+      const fileName = entry.name.toLowerCase();
+      if (REDIST_FILE_PATTERN.test(fileName)) continue;
+
       const relativeFilePath = path.relative(directory, entryPath);
       relativeFilePaths.push(relativeFilePath);
 
-      const fileName = entry.name.toLowerCase();
       if (!catalogFileNames.has(fileName)) continue;
 
       const paths = pathsByFileName.get(fileName);
