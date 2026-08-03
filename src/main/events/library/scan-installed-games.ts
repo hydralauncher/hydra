@@ -254,14 +254,30 @@ const endsWithKnownFolder = (filePath: string, executableName: string) => {
   );
 };
 
+const claimsKnownFolder = (objectId: string, executablePath: string) =>
+  GameExecutables.getExecutablesForGame(objectId)?.some((executable) =>
+    endsWithKnownFolder(executablePath, executable.name)
+  ) ?? false;
+
+const claimsAnyFolder = (objectId: string) =>
+  GameExecutables.getExecutablesForGame(objectId)?.some(
+    (executable) => toComparableSegments(executable.name).length === 1
+  ) ?? false;
+
 const resolveOwner = (executablePath: string, objectIds: Set<string>) => {
-  const owners = [...objectIds].filter((objectId) =>
-    GameExecutables.getExecutablesForGame(objectId)?.some((executable) =>
-      endsWithKnownFolder(executablePath, executable.name)
-    )
+  const candidates = [...objectIds];
+
+  const matchingFolder = candidates.filter((objectId) =>
+    claimsKnownFolder(objectId, executablePath)
   );
 
-  return owners.length === 1 ? owners[0] : null;
+  if (matchingFolder.length > 0) {
+    return matchingFolder.length === 1 ? matchingFolder[0] : null;
+  }
+
+  const withoutFolder = candidates.filter(claimsAnyFolder);
+
+  return withoutFolder.length === 1 ? withoutFolder[0] : null;
 };
 
 const groupObjectIdsByPath = (scannedDirectories: ScannedDirectory[]) => {
