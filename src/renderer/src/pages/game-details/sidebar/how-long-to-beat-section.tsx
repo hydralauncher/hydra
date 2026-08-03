@@ -25,15 +25,16 @@ export function HowLongToBeatSection({
     return `${value} ${t(durationTranslation[unit])}`;
   };
 
-  if ((!howLongToBeatData || howLongToBeatData.length === 0) && !isLoading)
-    return null;
+  const categories = Array.isArray(howLongToBeatData) ? howLongToBeatData : null;
+
+  if ((!categories || categories.length === 0) && !isLoading) return null;
 
   return (
     <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
       <SidebarSection title="HowLongToBeat">
         <ul className="how-long-to-beat__categories-list">
-          {howLongToBeatData
-            ? howLongToBeatData.map((category) => (
+          {categories
+            ? categories.map((category) => (
                 <li key={category.title} className="how-long-to-beat__category">
                   <p className="how-long-to-beat__category-label how-long-to-beat__category-label--bold">
                     {category.title}
