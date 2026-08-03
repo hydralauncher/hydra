@@ -182,32 +182,51 @@ const scanDirectories = async (
   return scannedDirectories;
 };
 
+const collectCandidates = (
+  executables: KnownGameExecutable[],
+  pathsByFileName: Map<string, string[]>
+) => {
+  const candidates = new Set<string>();
+
+  for (const executable of executables) {
+    const paths = pathsByFileName.get(executable.exe.toLowerCase());
+    if (!paths) continue;
+
+    for (const candidate of paths) candidates.add(candidate);
+  }
+
+  return candidates;
+};
+
+const resolveWithinDirectory = (
+  executables: KnownGameExecutable[],
+  scanned: ScannedDirectory
+): string | null => {
+  const candidates = collectCandidates(executables, scanned.pathsByFileName);
+
+  if (candidates.size === 0) return null;
+
+  if (candidates.size === 1) {
+    const [relativeFilePath] = candidates;
+    return path.join(scanned.directory, relativeFilePath);
+  }
+
+  const match = rankExecutableCandidates(
+    scanned.relativeFilePaths,
+    executables,
+    "library"
+  );
+
+  return match ? path.join(scanned.directory, match) : null;
+};
+
 const resolveExecutablePath = (
   executables: KnownGameExecutable[],
   scannedDirectories: ScannedDirectory[]
 ): string | null => {
   for (const scanned of scannedDirectories) {
-    const candidates = new Set<string>();
-
-    for (const executable of executables) {
-      const paths = scanned.pathsByFileName.get(executable.exe.toLowerCase());
-      if (paths) for (const candidate of paths) candidates.add(candidate);
-    }
-
-    if (candidates.size === 0) continue;
-
-    if (candidates.size === 1) {
-      const [relativeFilePath] = candidates;
-      return path.join(scanned.directory, relativeFilePath);
-    }
-
-    const match = rankExecutableCandidates(
-      scanned.relativeFilePaths,
-      executables,
-      "library"
-    );
-
-    if (match) return path.join(scanned.directory, match);
+    const executablePath = resolveWithinDirectory(executables, scanned);
+    if (executablePath) return executablePath;
   }
 
   return null;
