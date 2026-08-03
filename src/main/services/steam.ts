@@ -65,7 +65,7 @@ const parseLibraryFolderPaths = (content: string) => {
   const values = [
     ...content.matchAll(/"path"\s*"([^"]+)"/g),
     ...content.matchAll(/"\d+"\s*"([^"]+)"/g),
-  ].map((match) => match[1].replace(/\\\\/g, "\\"));
+  ].map((match) => match[1].replaceAll("\\\\", "\\"));
 
   return values.filter((value) => path.isAbsolute(value));
 };

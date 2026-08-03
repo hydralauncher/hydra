@@ -52,7 +52,7 @@ interface ScannedDirectory {
 }
 
 const normalizePath = (value: string) =>
-  value.replace(/\\/g, "/").toLowerCase();
+  value.replaceAll("\\", "/").toLowerCase();
 
 const getCatalogFileNames = () => {
   const fileNames = new Set<string>();
@@ -69,25 +69,19 @@ const getCatalogFileNames = () => {
   return fileNames;
 };
 
-const scanDirectory = async (
-  directory: string,
-  catalogFileNames: Set<string>
-): Promise<ScannedDirectory> => {
+const listGameFiles = async (root: string): Promise<string[]> => {
   const relativeFilePaths: string[] = [];
-  const pathsByFileName = new Map<string, string[]>();
 
   const walk = async (current: string) => {
-    let entries: fs.Dirent[];
-
-    try {
-      entries = await fs.promises.readdir(current, { withFileTypes: true });
-    } catch (err) {
-      logger.error(
-        `[ScanInstalledGames] Error reading folder ${current}:`,
-        err
-      );
-      return;
-    }
+    const entries = await fs.promises
+      .readdir(current, { withFileTypes: true })
+      .catch((err) => {
+        logger.error(
+          `[ScanInstalledGames] Error reading folder ${current}:`,
+          err
+        );
+        return [] as fs.Dirent[];
+      });
 
     for (const entry of entries) {
       const entryPath = path.join(current, entry.name);
@@ -99,25 +93,38 @@ const scanDirectory = async (
 
       if (!entry.isFile()) continue;
 
-      const relativeFilePath = path.relative(directory, entryPath);
-      if (isRedistributablePath(relativeFilePath)) continue;
+      const relativeFilePath = path.relative(root, entryPath);
 
-      relativeFilePaths.push(relativeFilePath);
-
-      const fileName = entry.name.toLowerCase();
-      if (!catalogFileNames.has(fileName)) continue;
-
-      const paths = pathsByFileName.get(fileName);
-
-      if (paths) {
-        paths.push(relativeFilePath);
-      } else {
-        pathsByFileName.set(fileName, [relativeFilePath]);
+      if (!isRedistributablePath(relativeFilePath)) {
+        relativeFilePaths.push(relativeFilePath);
       }
     }
   };
 
-  await walk(directory);
+  await walk(root);
+
+  return relativeFilePaths;
+};
+
+const scanDirectory = async (
+  directory: string,
+  catalogFileNames: Set<string>
+): Promise<ScannedDirectory> => {
+  const relativeFilePaths = await listGameFiles(directory);
+  const pathsByFileName = new Map<string, string[]>();
+
+  for (const relativeFilePath of relativeFilePaths) {
+    const fileName = path.basename(relativeFilePath).toLowerCase();
+    if (!catalogFileNames.has(fileName)) continue;
+
+    const paths = pathsByFileName.get(fileName);
+
+    if (paths) {
+      paths.push(relativeFilePath);
+    } else {
+      pathsByFileName.set(fileName, [relativeFilePath]);
+    }
+  }
 
   return { directory, relativeFilePaths, pathsByFileName };
 };
@@ -210,7 +217,7 @@ const toComparableSegments = (value: string) =>
   value
     .toLowerCase()
     .split(/[\\/]/)
-    .map((segment) => segment.replace(/[^a-z0-9]+/g, ""))
+    .map((segment) => segment.replaceAll(/[^a-z0-9]+/g, ""))
     .filter(Boolean);
 
 const endsWithKnownFolder = (filePath: string, executableName: string) => {
@@ -238,11 +245,7 @@ const resolveOwner = (executablePath: string, objectIds: Set<string>) => {
   return owners.length === 1 ? owners[0] : null;
 };
 
-const findGamesOutsideLibrary = (
-  scannedDirectories: ScannedDirectory[],
-  libraryObjectIds: Set<string>,
-  claimedPaths: Set<string>
-): Map<string, string> => {
+const groupObjectIdsByPath = (scannedDirectories: ScannedDirectory[]) => {
   const objectIdsByPath = new Map<string, Set<string>>();
 
   for (const objectId of GameExecutables.getAllObjectIds()) {
@@ -264,9 +267,19 @@ const findGamesOutsideLibrary = (
     }
   }
 
+  return objectIdsByPath;
+};
+
+const findGamesOutsideLibrary = (
+  scannedDirectories: ScannedDirectory[],
+  libraryObjectIds: Set<string>,
+  claimedPaths: Set<string>
+): Map<string, string> => {
   const pathByObjectId = new Map<string, string>();
 
-  for (const [executablePath, objectIds] of objectIdsByPath) {
+  for (const [executablePath, objectIds] of groupObjectIdsByPath(
+    scannedDirectories
+  )) {
     if (claimedPaths.has(normalizePath(executablePath))) continue;
 
     const objectId =
