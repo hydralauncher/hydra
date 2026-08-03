@@ -69,18 +69,6 @@ const SORT_OPTIONS: SortOption[] = [
   "new_updates",
 ];
 
-
-const getGameCollectionIds = (game: LibraryGame): string[] => {
-  if (Array.isArray(game.collectionIds)) {
-    return game.collectionIds;
-  }
-
-  const legacyCollectionId = (game as { collectionId?: string | null })
-    .collectionId;
-
-  return legacyCollectionId ? [legacyCollectionId] : [];
-};
-
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
   const { userDetails } = useUserDetails();
