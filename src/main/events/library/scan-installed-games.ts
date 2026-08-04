@@ -393,44 +393,59 @@ const namesTheFolder = (executablePath: string, title: string) => {
   );
 };
 
+const unnamedPathsIn = (
+  scanned: ScannedDirectory,
+  objectIdsByFileName: Map<string, string[]>,
+  libraryObjectIds: Set<string>,
+  claimedPaths: Set<string>
+) => {
+  const unnamed: { executablePath: string; objectIds: string[] }[] = [];
+  const skipped: string[] = [];
+
+  for (const [fileName, relativeFilePaths] of scanned.pathsByFileName) {
+    const objectIds = (objectIdsByFileName.get(fileName) ?? []).filter(
+      (objectId) => !libraryObjectIds.has(objectId)
+    );
+
+    if (objectIds.length === 0) continue;
+
+    if (objectIds.length > UNNAMED_PATH_CANDIDATE_LIMIT) {
+      skipped.push(fileName);
+      continue;
+    }
+
+    for (const relativeFilePath of relativeFilePaths) {
+      const executablePath = path.join(scanned.directory, relativeFilePath);
+
+      if (!claimedPaths.has(normalizePath(executablePath))) {
+        unnamed.push({ executablePath, objectIds });
+      }
+    }
+  }
+
+  return { unnamed, skipped };
+};
+
 const collectUnnamedPaths = (
   scannedDirectories: ScannedDirectory[],
   libraryObjectIds: Set<string>,
   claimedPaths: Set<string>
 ) => {
   const objectIdsByFileName = getObjectIdsByFileName();
-  const unnamed: { executablePath: string; objectIds: string[] }[] = [];
-  let skipped = 0;
 
-  for (const scanned of scannedDirectories) {
-    for (const [fileName, relativeFilePaths] of scanned.pathsByFileName) {
-      const owners = (objectIdsByFileName.get(fileName) ?? []).filter(
-        (objectId) => !libraryObjectIds.has(objectId)
-      );
+  const results = scannedDirectories.map((scanned) =>
+    unnamedPathsIn(scanned, objectIdsByFileName, libraryObjectIds, claimedPaths)
+  );
 
-      if (owners.length === 0) continue;
+  const skipped = results.flatMap((result) => result.skipped);
 
-      if (owners.length > UNNAMED_PATH_CANDIDATE_LIMIT) {
-        skipped += 1;
-        continue;
-      }
-
-      for (const relativeFilePath of relativeFilePaths) {
-        const executablePath = path.join(scanned.directory, relativeFilePath);
-        if (claimedPaths.has(normalizePath(executablePath))) continue;
-
-        unnamed.push({ executablePath, objectIds: owners });
-      }
-    }
-  }
-
-  if (skipped > 0) {
+  if (skipped.length > 0) {
     logger.info(
-      `[ScanInstalledGames] Not naming ${skipped} executable names claimed by more than ${UNNAMED_PATH_CANDIDATE_LIMIT} games`
+      `[ScanInstalledGames] Not naming ${skipped.length} executable names claimed by more than ${UNNAMED_PATH_CANDIDATE_LIMIT} games: ${skipped.join(", ")}`
     );
   }
 
-  return unnamed;
+  return results.flatMap((result) => result.unnamed);
 };
 
 const createChoiceResolver = () => {
@@ -438,7 +453,7 @@ const createChoiceResolver = () => {
 
   return (objectId: string) => {
     const cached = cache.get(objectId);
-    if (cached) return cached;
+    if (cached !== undefined) return cached;
 
     const pending = getGameAssets(objectId, DISCOVERED_GAMES_SHOP)
       .then((assets) =>
