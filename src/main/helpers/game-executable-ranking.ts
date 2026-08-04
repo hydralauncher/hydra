@@ -21,7 +21,10 @@ const REDIST_DIRECTORIES = new Set([
 ]);
 
 const REDIST_FILE_PATTERN =
-  /^(vcredist|vc_redist|dotnetfx|dxsetup|dxwebsetup|directx|oalinst|xnafx|physx|ue[45]prereqsetup)/;
+  /^(vcredist|vc_redist|dotnetfx|dxsetup|dxwebsetup|directx|oalinst|xnafx|physx|ue[345]prereqsetup|ue3redist)/;
+
+const SHARED_INSTALLER_PATTERN =
+  /^(uplayinstaller|pbsvc|pbsetup|setup_battleye|beservice|social-club-setup|easyanticheat|dauservicesetup)/;
 
 const toSegments = (value: string) =>
   value.toLowerCase().split(/[\\/]/).filter(Boolean);
@@ -37,6 +40,7 @@ export const isRedistributablePath = (relativePath: string) => {
 
   return (
     REDIST_FILE_PATTERN.test(basename) ||
+    SHARED_INSTALLER_PATTERN.test(basename) ||
     segments.some((segment) => REDIST_DIRECTORIES.has(segment))
   );
 };
