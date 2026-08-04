@@ -393,6 +393,17 @@ const namesTheFolder = (executablePath: string, title: string) => {
   );
 };
 
+const installationFolderOf = (normalized: string, roots: string[]) => {
+  for (const root of roots) {
+    if (!normalized.startsWith(`${root}/`)) continue;
+
+    const [folder] = normalized.slice(root.length + 1).split("/");
+    return folder ? `${root}/${folder}` : null;
+  }
+
+  return null;
+};
+
 const unnamedPathsIn = (
   scanned: ScannedDirectory,
   objectIdsByFileName: Map<string, string[]>,
@@ -576,11 +587,34 @@ const findGamesOutsideLibrary = async (
     ambiguousMatches
   );
 
-  ambiguousMatches.sort((a, b) =>
-    a.executablePath.localeCompare(b.executablePath)
+  const roots = scannedDirectories.map((scanned) =>
+    normalizePath(scanned.directory)
   );
 
-  return { pathByObjectId, ambiguousMatches };
+  const occupiedFolders = new Set(
+    [...claimedPaths, ...[...pathByObjectId.values()].map(normalizePath)]
+      .map((claimed) => installationFolderOf(claimed, roots))
+      .filter((folder) => folder !== null)
+  );
+
+  const unoccupied = ambiguousMatches.filter((match) => {
+    const folder = installationFolderOf(
+      normalizePath(match.executablePath),
+      roots
+    );
+
+    if (!folder || !occupiedFolders.has(folder)) return true;
+
+    logger.info(
+      `[ScanInstalledGames] Not asking about ${match.executablePath}, its folder already holds a game`
+    );
+
+    return false;
+  });
+
+  unoccupied.sort((a, b) => a.executablePath.localeCompare(b.executablePath));
+
+  return { pathByObjectId, ambiguousMatches: unoccupied };
 };
 
 export const addGameOutsideLibrary = async (

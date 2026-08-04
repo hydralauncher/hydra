@@ -26,6 +26,20 @@ const REDIST_FILE_PATTERN =
 const SHARED_INSTALLER_PATTERN =
   /^(uplayinstaller|pbsvc|pbsetup|setup_battleye|beservice|social-club-setup|easyanticheat|dauservicesetup)/;
 
+const SHARED_RUNTIME_FILES = new Set([
+  "unitycrashhandler32.exe",
+  "unitycrashhandler64.exe",
+  "crashreportclient.exe",
+  "crashpad_handler.exe",
+  "unrealcefsubprocess.exe",
+  "epicwebhelper.exe",
+  "start_protected_game.exe",
+  "javaw.exe",
+  "java.exe",
+  "dotnet.exe",
+  "setup.exe",
+]);
+
 const toSegments = (value: string) =>
   value.toLowerCase().split(/[\\/]/).filter(Boolean);
 
@@ -41,6 +55,7 @@ export const isRedistributablePath = (relativePath: string) => {
   return (
     REDIST_FILE_PATTERN.test(basename) ||
     SHARED_INSTALLER_PATTERN.test(basename) ||
+    SHARED_RUNTIME_FILES.has(basename) ||
     segments.some((segment) => REDIST_DIRECTORIES.has(segment))
   );
 };
