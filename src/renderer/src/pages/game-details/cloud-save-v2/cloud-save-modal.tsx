@@ -9,6 +9,7 @@ import {
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import type {
   CloudSaveConflictResolution,
@@ -21,6 +22,7 @@ import { useDate } from "@renderer/hooks";
 import {
   getCloudSavePanelAction,
   getCloudSavePresentation,
+  getCloudSaveSnapshotPanelMode,
   type CloudSavePanelAction,
   shouldShowCloudSaveEmptySnapshot,
 } from "./cloud-save-presentation";
@@ -57,6 +59,32 @@ interface CloudSaveSyncActionProps {
   onSync: () => void;
   onOpenFileBrowser: () => void;
   onResolveConflict: (resolution: CloudSaveConflictResolution) => void;
+}
+
+function CloudSaveSnapshotSkeleton({ label }: Readonly<{ label: string }>) {
+  return (
+    <section
+      className="cloud-save-v2__active-snapshot"
+      aria-busy="true"
+      aria-label={label}
+    >
+      <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
+        <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active cloud-save-v2__snapshot--skeleton">
+          <div className="cloud-save-v2__snapshot-header">
+            <Skeleton width={120} height={16} />
+            <Skeleton width={82} height={22} borderRadius={999} />
+          </div>
+          <div className="cloud-save-v2__snapshot-metadata">
+            <Skeleton width={112} height={14} />
+            <Skeleton width={128} height={14} />
+          </div>
+          <div className="cloud-save-v2__action-area cloud-save-v2__action-area--with-snapshot">
+            <Skeleton height={40} borderRadius={4} />
+          </div>
+        </article>
+      </SkeletonTheme>
+    </section>
+  );
 }
 
 const getSyncActionIcon = (
@@ -212,6 +240,12 @@ export function CloudSavePanel({
     overview?.state ?? null,
     overview?.suggestedAction ?? null
   );
+  const snapshotPanelMode = getCloudSaveSnapshotPanelMode({
+    overview,
+    isLoading,
+    isSyncing,
+    hasError,
+  });
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled ?? false);
@@ -394,7 +428,9 @@ export function CloudSavePanel({
 
       {!hasExecutablePath ? (
         missingExecutableCard
-      ) : (
+      ) : snapshotPanelMode === "skeleton" ? (
+        <CloudSaveSnapshotSkeleton label={t("cloud_save_v2_checking")} />
+      ) : snapshotPanelMode === "content" ? (
         <section className="cloud-save-v2__active-snapshot">
           <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
             {snapshotSummary}
@@ -410,7 +446,7 @@ export function CloudSavePanel({
             </div>
           </article>
         </section>
-      )}
+      ) : null}
     </div>
   );
 }

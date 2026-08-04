@@ -10,6 +10,7 @@ const {
   getCloudSaveUploadLimitError,
   getCloudSavePanelAction,
   getCloudSavePresentation,
+  getCloudSaveSnapshotPanelMode,
   hasCloudSaveDataToDelete,
   shouldShowCloudSaveEmptySnapshot,
   shouldSyncCloudSaveOnGamePage,
@@ -300,7 +301,7 @@ describe("cloud save panel action", () => {
     );
   });
 
-  it("keeps the empty snapshot visible while refreshing an existing overview", () => {
+  it("keeps the empty snapshot visible after a completed overview", () => {
     assert.equal(
       shouldShowCloudSaveEmptySnapshot({
         overview: overview({ state: "untracked" }),
@@ -309,22 +310,22 @@ describe("cloud save panel action", () => {
       }),
       true
     );
-  });
-
-  it("does not show the empty snapshot on error or before an overview", () => {
-    assert.equal(
-      shouldShowCloudSaveEmptySnapshot({
-        overview: null,
-        isLoading: true,
-        hasError: false,
-      }),
-      false
-    );
     assert.equal(
       shouldShowCloudSaveEmptySnapshot({
         overview: overview({ state: "untracked" }),
         isLoading: false,
         hasError: true,
+      }),
+      true
+    );
+  });
+
+  it("does not show the empty snapshot before an overview", () => {
+    assert.equal(
+      shouldShowCloudSaveEmptySnapshot({
+        overview: null,
+        isLoading: true,
+        hasError: false,
       }),
       false
     );
@@ -346,6 +347,57 @@ describe("cloud save panel action", () => {
         hasError: false,
       }),
       false
+    );
+  });
+
+  it("shows a skeleton only during the initial load", () => {
+    assert.equal(
+      getCloudSaveSnapshotPanelMode({
+        overview: null,
+        isLoading: true,
+        isSyncing: false,
+        hasError: false,
+      }),
+      "skeleton"
+    );
+    assert.equal(
+      getCloudSaveSnapshotPanelMode({
+        overview: null,
+        isLoading: true,
+        isSyncing: false,
+        hasError: true,
+      }),
+      "hidden"
+    );
+  });
+
+  it("hides an empty settled panel and preserves real or active content", () => {
+    assert.equal(
+      getCloudSaveSnapshotPanelMode({
+        overview: null,
+        isLoading: false,
+        isSyncing: false,
+        hasError: false,
+      }),
+      "hidden"
+    );
+    assert.equal(
+      getCloudSaveSnapshotPanelMode({
+        overview: null,
+        isLoading: false,
+        isSyncing: true,
+        hasError: false,
+      }),
+      "content"
+    );
+    assert.equal(
+      getCloudSaveSnapshotPanelMode({
+        overview: overview({ state: "untracked" }),
+        isLoading: true,
+        isSyncing: false,
+        hasError: true,
+      }),
+      "content"
     );
   });
 });

@@ -37,9 +37,28 @@ interface CloudSaveEmptySnapshotInput {
 
 export const shouldShowCloudSaveEmptySnapshot = ({
   overview,
-  hasError,
 }: CloudSaveEmptySnapshotInput) =>
-  !hasError && overview !== null && overview.activeRemoteSnapshot === null;
+  overview !== null && overview.activeRemoteSnapshot === null;
+
+interface CloudSaveSnapshotPanelModeInput {
+  overview: CloudSaveOverview | null;
+  isLoading: boolean;
+  isSyncing: boolean;
+  hasError: boolean;
+}
+
+export type CloudSaveSnapshotPanelMode = "content" | "skeleton" | "hidden";
+
+export const getCloudSaveSnapshotPanelMode = ({
+  overview,
+  isLoading,
+  isSyncing,
+  hasError,
+}: CloudSaveSnapshotPanelModeInput): CloudSaveSnapshotPanelMode => {
+  if (overview !== null || isSyncing) return "content";
+  if (isLoading && !hasError) return "skeleton";
+  return "hidden";
+};
 
 export const canOpenCloudSaveFileBrowser = (
   overview: CloudSaveOverview | null
