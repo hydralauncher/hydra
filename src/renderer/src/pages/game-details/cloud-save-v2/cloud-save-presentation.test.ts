@@ -7,10 +7,12 @@ import * as presentationModule from "./cloud-save-presentation.ts";
 
 const {
   canOpenCloudSaveFileBrowser,
-  getCloudSaveUploadLimitError,
   getCloudSavePanelAction,
+  getCloudSavePartialDescriptionKey,
   getCloudSavePresentation,
   getCloudSaveSnapshotPanelMode,
+  getCloudSaveSyncErrorKind,
+  getCloudSaveUploadLimitError,
   hasCloudSaveDataToDelete,
   shouldShowCloudSaveEmptySnapshot,
   shouldSyncCloudSaveOnGamePage,
@@ -102,6 +104,16 @@ describe("cloud save upload limit errors", () => {
     );
     assert.equal(getCloudSaveUploadLimitError(new Error("network")), null);
   });
+
+  it("classifies metadata and unknown sync failures", () => {
+    assert.equal(
+      getCloudSaveSyncErrorKind(
+        new Error("cloud_save_restore_metadata_failed")
+      ),
+      "restore-metadata"
+    );
+    assert.equal(getCloudSaveSyncErrorKind(new Error("network")), "generic");
+  });
 });
 
 const overview = (
@@ -116,6 +128,41 @@ const overview = (
   unresolvedRemoteVariantCount: 0,
   warnings: [],
   ...overrides,
+});
+
+describe("partial cloud save explanations", () => {
+  it("distinguishes unresolved targets, scan warnings and deferred changes", () => {
+    assert.equal(
+      getCloudSavePartialDescriptionKey(
+        overview({ state: "partial", unresolvedRemoteVariantCount: 1 })
+      ),
+      "cloud_save_v2_partial_unresolved_description"
+    );
+    assert.equal(
+      getCloudSavePartialDescriptionKey(
+        overview({
+          state: "partial",
+          warnings: [
+            {
+              candidateId: "candidate",
+              ruleId: "rule",
+              selectedRoot: true,
+              authority: "authoritative",
+              outcome: "failed",
+              enumeratedCompletely: false,
+              warningCodes: ["permission-denied"],
+            },
+          ],
+        })
+      ),
+      "cloud_save_v2_partial_scan_description"
+    );
+    assert.equal(
+      getCloudSavePartialDescriptionKey(overview({ state: "partial" })),
+      "cloud_save_v2_partial_deferred_description"
+    );
+    assert.equal(getCloudSavePartialDescriptionKey(overview()), null);
+  });
 });
 
 const shouldSyncOnGamePage = (

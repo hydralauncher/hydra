@@ -56,7 +56,7 @@ describe("cloud save custom path untracking", () => {
           dismissed = true;
         },
       }),
-      /leveldb unavailable/
+      /cloud_save_custom_path_local_cleanup_failed/
     );
 
     assert.equal(dismissed, false);

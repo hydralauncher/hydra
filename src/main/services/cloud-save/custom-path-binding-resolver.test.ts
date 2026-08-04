@@ -69,7 +69,7 @@ describe("stored cloud save custom path bindings", () => {
         rawPath,
         pathHint: null,
         state: "recoverable",
-        reason: "environment-unavailable",
+        reason: "wine-profile-unavailable",
         registered: true,
       },
     ]);

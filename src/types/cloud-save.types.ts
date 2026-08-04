@@ -40,6 +40,8 @@ export type CloudSaveUnresolvedCustomPathState =
 
 export type CloudSaveUnresolvedCustomPathReason =
   | "environment-unavailable"
+  | "wine-prefix-unavailable"
+  | "wine-profile-unavailable"
   | "account-selection-required"
   | "legacy"
   | "foreign-platform"

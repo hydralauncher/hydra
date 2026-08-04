@@ -34,6 +34,15 @@ const getCustomPathSelectionError = (error: unknown) => {
   if (message.includes("cloud_save_custom_path_empty")) {
     return "empty" as const;
   }
+  if (message.includes("cloud_save_custom_path_environment_unavailable")) {
+    return "environment" as const;
+  }
+  if (message.includes("cloud_save_custom_path_foreign_environment")) {
+    return "wine-environment" as const;
+  }
+  if (message.includes("cloud_save_custom_path_unreadable")) {
+    return "unreadable" as const;
+  }
   if (message.includes("cloud_save_custom_path_custom_location_overlap")) {
     return "custom" as const;
   }
@@ -66,6 +75,25 @@ const getCustomPathErrorTranslationKeys = (
     return {
       title: "cloud_save_v2_custom_path_mapped_overlap_error_title",
       description: "cloud_save_v2_custom_path_mapped_overlap_error_description",
+    };
+  }
+  if (selectionError === "environment") {
+    return {
+      title: "cloud_save_v2_custom_path_environment_error_title",
+      description: "cloud_save_v2_custom_path_environment_error_description",
+    };
+  }
+  if (selectionError === "wine-environment") {
+    return {
+      title: "cloud_save_v2_custom_path_wine_environment_error_title",
+      description:
+        "cloud_save_v2_custom_path_wine_environment_error_description",
+    };
+  }
+  if (selectionError === "unreadable") {
+    return {
+      title: "cloud_save_v2_custom_path_read_error_title",
+      description: "cloud_save_v2_custom_path_read_error_description",
     };
   }
   if (selectionError === "custom") {
@@ -398,10 +426,21 @@ export function CloudSaveV2FileBrowserModal({
       setPendingCustomPathRemoval(null);
       await onRetry();
       showSuccessToast(t("cloud_save_v2_custom_path_removed"));
-    } catch {
+    } catch (error) {
+      const localCleanupFailed =
+        error instanceof Error &&
+        error.message.includes("cloud_save_custom_path_local_cleanup_failed");
       showErrorToast(
-        t("cloud_save_v2_custom_path_remove_error_title"),
-        t("cloud_save_v2_custom_path_remove_error_description")
+        t(
+          localCleanupFailed
+            ? "cloud_save_v2_custom_path_remove_local_error_title"
+            : "cloud_save_v2_custom_path_remove_error_title"
+        ),
+        t(
+          localCleanupFailed
+            ? "cloud_save_v2_custom_path_remove_local_error_description"
+            : "cloud_save_v2_custom_path_remove_error_description"
+        )
       );
     } finally {
       setRemovingCustomPath(null);

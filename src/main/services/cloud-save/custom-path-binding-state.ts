@@ -134,11 +134,21 @@ export const classifyCloudSaveCustomPathResolutionError = (
 } => {
   const code = error instanceof Error ? error.message : "";
 
-  if (
-    code === "cloud_save_custom_path_wine_prefix_unavailable" ||
-    code === "cloud_save_custom_path_wine_profile_unavailable" ||
-    code === "cloud_save_custom_path_token_unavailable"
-  ) {
+  if (code === "cloud_save_custom_path_wine_prefix_unavailable") {
+    return {
+      state: "recoverable",
+      reason: "wine-prefix-unavailable",
+    };
+  }
+
+  if (code === "cloud_save_custom_path_wine_profile_unavailable") {
+    return {
+      state: "recoverable",
+      reason: "wine-profile-unavailable",
+    };
+  }
+
+  if (code === "cloud_save_custom_path_token_unavailable") {
     return {
       state: "recoverable",
       reason: "environment-unavailable",

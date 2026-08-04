@@ -21,6 +21,7 @@ import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 import {
   getCloudSavePanelAction,
+  getCloudSavePartialDescriptionKey,
   getCloudSavePresentation,
   getCloudSaveSnapshotPanelMode,
   type CloudSavePanelAction,
@@ -37,6 +38,10 @@ export interface CloudSavePanelProps {
   hasExecutablePath: boolean;
   isAutomaticSyncEnabled: boolean | null;
   hasError: boolean;
+  errorMessageKey:
+    | "cloud_save_v2_load_error"
+    | "cloud_save_v2_sync_error"
+    | null;
   progress: CloudSaveSyncProgressPayload | null;
   onSync: () => void;
   onOpenFileBrowser: () => void;
@@ -200,6 +205,7 @@ export function CloudSavePanel({
   hasExecutablePath,
   isAutomaticSyncEnabled,
   hasError,
+  errorMessageKey,
   progress,
   onSync,
   onOpenFileBrowser,
@@ -246,6 +252,7 @@ export function CloudSavePanel({
     isSyncing,
     hasError,
   });
+  const partialDescriptionKey = getCloudSavePartialDescriptionKey(overview);
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled ?? false);
@@ -422,8 +429,14 @@ export function CloudSavePanel({
         </p>
       )}
 
-      {hasError && (
-        <p className="cloud-save-v2__error">{t("cloud_save_v2_error")}</p>
+      {errorMessageKey && (
+        <p className="cloud-save-v2__error">{t(errorMessageKey)}</p>
+      )}
+
+      {partialDescriptionKey && !hasError && (
+        <p className="cloud-save-v2__partial-warning">
+          {t(partialDescriptionKey)}
+        </p>
       )}
 
       {!hasExecutablePath ? (

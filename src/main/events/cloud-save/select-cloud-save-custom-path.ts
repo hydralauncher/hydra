@@ -2,6 +2,7 @@ import { BrowserWindow, dialog } from "electron";
 
 import {
   assertCloudSaveSubscription,
+  assertCloudSaveCustomPathDoesNotOverlap,
   assertCloudSaveCustomPathHasEligibleFiles,
   assertCloudSaveDeletionInactive,
   canonicalizeSelectedCloudSaveCustomPath,
@@ -61,6 +62,12 @@ registerEvent(
       selectedPath,
       customPathContext
     );
+    await assertCloudSaveCustomPathDoesNotOverlap({
+      objectId,
+      shop,
+      selectedPath: customPath.path,
+      context,
+    });
     await assertCloudSaveCustomPathHasEligibleFiles(
       objectId,
       shop,

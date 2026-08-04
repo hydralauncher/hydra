@@ -199,6 +199,7 @@
 
   &__launch-conflict-warning,
   &__game-running-warning,
+  &__partial-warning,
   &__error {
     margin: 0;
     font-size: globals.$small-font-size;
@@ -211,7 +212,8 @@
     color: globals.$error-color;
   }
 
-  &__game-running-warning {
+  &__game-running-warning,
+  &__partial-warning {
     color: globals.$warning-color;
   }
 

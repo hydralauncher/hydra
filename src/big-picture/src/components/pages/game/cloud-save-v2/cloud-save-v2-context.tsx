@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
 import {
-  getCloudSaveUploadLimitError,
+  getCloudSaveSyncErrorKind,
   shouldSyncCloudSaveOnGamePage,
 } from "@renderer/pages/game-details/cloud-save-v2/cloud-save-presentation";
 import { useCloudSaveOverview } from "@renderer/pages/game-details/cloud-save-v2/use-cloud-save-overview";
@@ -34,7 +34,10 @@ type CustomPathApprovalError =
   | "generic"
   | "mapped-overlap"
   | "custom-overlap"
-  | "remote-target-overlap";
+  | "remote-target-overlap"
+  | "environment-unavailable"
+  | "foreign-environment"
+  | "unreadable";
 
 interface BigPictureCloudSaveContextValue {
   overview: CloudSaveOverview | null;
@@ -61,6 +64,15 @@ function getCustomPathApprovalError(error: unknown): CustomPathApprovalError {
   }
   if (message.includes("cloud_save_custom_path_remote_target_overlap")) {
     return "remote-target-overlap";
+  }
+  if (message.includes("cloud_save_custom_path_environment_unavailable")) {
+    return "environment-unavailable";
+  }
+  if (message.includes("cloud_save_custom_path_foreign_environment")) {
+    return "foreign-environment";
+  }
+  if (message.includes("cloud_save_custom_path_unreadable")) {
+    return "unreadable";
   }
   return "generic";
 }
@@ -134,18 +146,25 @@ export function BigPictureCloudSaveProvider({
 
   const showSyncError = useCallback(
     (error: unknown) => {
-      const limitError = getCloudSaveUploadLimitError(error);
+      const errorKind = getCloudSaveSyncErrorKind(error);
 
-      if (limitError) {
+      if (errorKind === "restore-metadata") {
+        showErrorToast(t("cloud_save_v2_restore_metadata_failed_title"), {
+          message: t("cloud_save_v2_restore_metadata_failed_description"),
+        });
+        return true;
+      }
+
+      if (errorKind !== "generic") {
         showErrorToast(
           t(
-            limitError === "snapshot-too-large"
+            errorKind === "snapshot-too-large"
               ? "cloud_save_v2_snapshot_too_large_title"
               : "cloud_save_v2_too_many_files_title"
           ),
           {
             message: t(
-              limitError === "snapshot-too-large"
+              errorKind === "snapshot-too-large"
                 ? "cloud_save_v2_snapshot_too_large_description"
                 : "cloud_save_v2_too_many_files_description"
             ),
@@ -235,8 +254,8 @@ export function BigPictureCloudSaveProvider({
       }
 
       if (event.status === "failed") {
-        setHasSyncError(true);
-        showSyncError(event.errorCode);
+        const isKnownError = showSyncError(event.errorCode);
+        setHasSyncError(!isKnownError);
       } else {
         setHasSyncError(false);
         if (event.status === "conflict" && event.trigger !== "pre-launch") {
@@ -279,8 +298,8 @@ export function BigPictureCloudSaveProvider({
       .syncCloudSaveOnGamePage(objectId, shop)
       .catch((error) => {
         if (activeGameKey.current !== requestedGame) return;
-        const isLimitError = showSyncError(error);
-        setHasSyncError(!isLimitError);
+        const isKnownError = showSyncError(error);
+        setHasSyncError(!isKnownError);
       })
       .finally(() => {
         if (activeGameKey.current === requestedGame) {
@@ -351,8 +370,8 @@ export function BigPictureCloudSaveProvider({
         return true;
       } catch (error) {
         if (activeGameKey.current === requestedGame) {
-          const isLimitError = showSyncError(error);
-          setHasSyncError(!isLimitError);
+          const isKnownError = showSyncError(error);
+          setHasSyncError(!isKnownError);
         }
         return false;
       } finally {
@@ -380,12 +399,19 @@ export function BigPictureCloudSaveProvider({
       throw new Error("Cloud Saves require an active subscription");
     }
 
-    await globalThis.window.electron.setCloudSaveAutomaticSyncEnabled(
-      objectId,
-      shop,
-      enabled
-    );
-    await refresh();
+    try {
+      await globalThis.window.electron.setCloudSaveAutomaticSyncEnabled(
+        objectId,
+        shop,
+        enabled
+      );
+      await refresh();
+    } catch (error) {
+      showErrorToast(t("cloud_save_v2_toggle_error_title"), {
+        message: t("cloud_save_v2_toggle_error_description"),
+      });
+      throw error;
+    }
   };
 
   const handleSelectCustomPath = async (selectedPath: string) => {
@@ -510,16 +536,27 @@ export function BigPictureCloudSaveProvider({
         ? t("cloud_save_v2_custom_path_remote_target_overlap_error_description")
         : customPathApprovalError === "custom-overlap"
           ? t("cloud_save_v2_custom_path_custom_overlap_error_description")
-          : customPathApprovalError
-            ? t(
-                customPathApproval?.purpose === "manual-sync"
-                  ? "cloud_save_v2_path_approval_manual_sync_error_description"
-                  : customPathApproval?.purpose === "custom-path-rebind"
-                    ? "cloud_save_v2_custom_path_rebind_error_description"
-                    : "cloud_save_v2_path_approval_error_description"
-              )
-            : undefined;
+          : customPathApprovalError === "environment-unavailable"
+            ? t("cloud_save_v2_custom_path_environment_error_description")
+            : customPathApprovalError === "foreign-environment"
+              ? t("cloud_save_v2_custom_path_wine_environment_error_description")
+              : customPathApprovalError === "unreadable"
+                ? t("cloud_save_v2_custom_path_read_error_description")
+                : customPathApprovalError
+                  ? t(
+                      customPathApproval?.purpose === "manual-sync"
+                        ? "cloud_save_v2_path_approval_manual_sync_error_description"
+                        : customPathApproval?.purpose === "custom-path-rebind"
+                          ? "cloud_save_v2_custom_path_rebind_error_description"
+                          : "cloud_save_v2_path_approval_error_description"
+                    )
+                  : undefined;
   const hasError = hasRefreshError || hasSyncError;
+  const errorMessageKey = hasSyncError
+    ? ("cloud_save_v2_sync_error" as const)
+    : hasRefreshError
+      ? ("cloud_save_v2_load_error" as const)
+      : null;
   const value: BigPictureCloudSaveContextValue = {
     overview,
     isRefreshing,
@@ -530,7 +567,20 @@ export function BigPictureCloudSaveProvider({
     hasExecutablePath,
     openManager: () => {
       if (!canUseCloudSaves) {
-        showErrorToast(t("cloud_save_v2_unavailable"));
+        showErrorToast(
+          t(
+            userDetails
+              ? "cloud_save_v2_subscription_required_title"
+              : "cloud_save_v2_sign_in_required_title"
+          ),
+          {
+            message: t(
+              userDetails
+                ? "cloud_save_v2_subscription_required_description"
+                : "cloud_save_v2_sign_in_required_description"
+            ),
+          }
+        );
         return;
       }
       setWasOpenedFromLaunchConflict(false);
@@ -551,6 +601,7 @@ export function BigPictureCloudSaveProvider({
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
         hasError={hasError}
+        errorMessageKey={errorMessageKey}
         progress={progress}
         onSync={() => void runCloudSaveOperation()}
         onSelectExecutable={() => {

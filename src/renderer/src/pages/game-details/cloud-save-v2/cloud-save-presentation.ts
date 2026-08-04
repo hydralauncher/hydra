@@ -74,6 +74,10 @@ export const hasCloudSaveDataToDelete = (
     details.unresolvedCustomPaths.some(({ registered }) => registered));
 
 export type CloudSaveUploadLimitError = "snapshot-too-large" | "too-many-files";
+export type CloudSaveSyncErrorKind =
+  | CloudSaveUploadLimitError
+  | "restore-metadata"
+  | "generic";
 
 const getErrorMessage = (error: unknown) => {
   if (typeof error === "string") return error;
@@ -93,6 +97,30 @@ export const getCloudSaveUploadLimitError = (
     return "too-many-files";
   }
   return null;
+};
+
+export const getCloudSaveSyncErrorKind = (
+  error: unknown
+): CloudSaveSyncErrorKind => {
+  const limitError = getCloudSaveUploadLimitError(error);
+  if (limitError) return limitError;
+  if (getErrorMessage(error).includes("cloud_save_restore_metadata_failed")) {
+    return "restore-metadata";
+  }
+  return "generic";
+};
+
+export const getCloudSavePartialDescriptionKey = (
+  overview: CloudSaveOverview | null
+) => {
+  if (overview?.state !== "partial") return null;
+  if (overview.unresolvedRemoteVariantCount > 0) {
+    return "cloud_save_v2_partial_unresolved_description";
+  }
+  if (overview.warnings.length > 0) {
+    return "cloud_save_v2_partial_scan_description";
+  }
+  return "cloud_save_v2_partial_deferred_description";
 };
 
 interface GamePageOpenSyncInput {

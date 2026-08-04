@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 
 import {
   getCloudSavePanelAction,
+  getCloudSavePartialDescriptionKey,
   getCloudSavePresentation,
   shouldShowCloudSaveEmptySnapshot,
 } from "@renderer/pages/game-details/cloud-save-v2/cloud-save-presentation";
@@ -49,6 +50,10 @@ interface BigPictureCloudSaveModalProps {
   isGameRunning: boolean;
   hasExecutablePath: boolean;
   hasError: boolean;
+  errorMessageKey:
+    | "cloud_save_v2_load_error"
+    | "cloud_save_v2_sync_error"
+    | null;
   progress: CloudSaveSyncProgressPayload | null;
   onClose: () => void;
   onSync: () => void;
@@ -79,6 +84,7 @@ export function BigPictureCloudSaveModal({
   isGameRunning,
   hasExecutablePath,
   hasError,
+  errorMessageKey,
   progress,
   onClose,
   onSync,
@@ -98,6 +104,7 @@ export function BigPictureCloudSaveModal({
   }, [overview?.isAutomaticSyncEnabled]);
 
   const activeSnapshot = overview?.activeRemoteSnapshot ?? null;
+  const partialDescriptionKey = getCloudSavePartialDescriptionKey(overview);
   const showEmptySnapshot = shouldShowCloudSaveEmptySnapshot({
     overview,
     isLoading,
@@ -215,9 +222,14 @@ export function BigPictureCloudSaveModal({
           </p>
         ) : null}
 
-        {hasError ? (
-          <p className="big-picture-cloud-save__error">
-            {t("cloud_save_v2_error")}
+        {errorMessageKey ? (
+          <p className="big-picture-cloud-save__error">{t(errorMessageKey)}</p>
+        ) : null}
+
+        {partialDescriptionKey && !hasError ? (
+          <p className="big-picture-cloud-save__notice big-picture-cloud-save__notice--warning">
+            <WarningCircleIcon size={20} weight="fill" />
+            {t(partialDescriptionKey)}
           </p>
         ) : null}
 

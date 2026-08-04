@@ -47,16 +47,37 @@ describe("cloud save custom path binding state", () => {
     );
   });
 
-  it("classifies temporary environment and account failures as recoverable", () => {
+  it("preserves the cause of recoverable environment failures", () => {
+    assert.deepEqual(
+      classifyCloudSaveCustomPathResolutionError(
+        new Error("cloud_save_custom_path_wine_prefix_unavailable")
+      ),
+      {
+        state: "recoverable",
+        reason: "wine-prefix-unavailable",
+      }
+    );
     assert.deepEqual(
       classifyCloudSaveCustomPathResolutionError(
         new Error("cloud_save_custom_path_wine_profile_unavailable")
       ),
       {
         state: "recoverable",
+        reason: "wine-profile-unavailable",
+      }
+    );
+    assert.deepEqual(
+      classifyCloudSaveCustomPathResolutionError(
+        new Error("cloud_save_custom_path_token_unavailable")
+      ),
+      {
+        state: "recoverable",
         reason: "environment-unavailable",
       }
     );
+  });
+
+  it("classifies account selection failures as recoverable", () => {
     assert.deepEqual(
       classifyCloudSaveCustomPathResolutionError(
         new Error("cloud_save_custom_path_store_user_ambiguous")

@@ -8,6 +8,12 @@ export const executeCloudSaveCustomPathUntracking = async ({
   dismissPendingApproval: () => void;
 }) => {
   await publishRemoval();
-  await removeBinding();
+  try {
+    await removeBinding();
+  } catch (error) {
+    throw new Error("cloud_save_custom_path_local_cleanup_failed", {
+      cause: error,
+    });
+  }
   dismissPendingApproval();
 };
