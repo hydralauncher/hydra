@@ -15,6 +15,7 @@ import {
   launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
+import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
@@ -319,11 +320,12 @@ export const launchGame = async (
       game?.autoRunGamemode === true) &&
     isGamemodeAvailable();
 
-  if (game) {
-    await gamesSublevel.put(gameKey, {
-      ...updateGameExecutablePath(game, parsedPath),
-      launchOptions,
-    });
+  const updatedGame = game
+    ? { ...updateGameExecutablePath(game, parsedPath), launchOptions }
+    : null;
+
+  if (updatedGame) {
+    await gamesSublevel.put(gameKey, updatedGame);
   }
 
   await WindowManager.createGameLauncherWindow(shop, objectId);
@@ -341,7 +343,10 @@ export const launchGame = async (
     }
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  await Promise.all([
+    new Promise((resolve) => setTimeout(resolve, 2000)),
+    updatedGame ? runAchievementMetadataExport(updatedGame) : Promise.resolve(),
+  ]);
 
   if (process.platform === "linux") {
     if (isWindowsExecutable(parsedPath)) {

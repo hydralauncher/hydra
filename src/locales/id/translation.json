@@ -1562,7 +1562,10 @@
     "preflight_checking": "Memeriksa dependensi",
     "preflight_downloading": "Mengunduh dependensi",
     "preflight_installing": "Menginstal dependensi",
-    "preflight_installing_detail": "{{detail}}"
+    "preflight_installing_detail": "{{detail}}",
+    "generating_achievements": "Generating achievements file",
+    "downloading_achievement_icons": "Downloading achievement icons",
+    "downloading_achievement_icons_detail": "Downloading achievement icons ({{detail}})"
   },
   "notifications_page": {
     "title": "Notifikasi",

@@ -8,6 +8,7 @@ import {
   findAllAchievementFiles,
   getAlternativeObjectIds,
 } from "./find-achievement-files";
+import { findNestedAchievementFiles } from "./find-nested-achievement-files";
 import type {
   AchievementFile,
   Game,
@@ -26,6 +27,33 @@ import { achievementNotificationPresenter } from "../achievement-notification-pr
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
+
+/**
+ * The same file can be reached through more than one cracker path variant, and
+ * through more than one alternative object id. Parsing it twice would upload the
+ * same achievements twice.
+ */
+const dedupeAchievementFiles = (achievementFiles: AchievementFile[]) => {
+  const filesByKey = new Map<string, AchievementFile>();
+
+  for (const file of achievementFiles) {
+    filesByKey.set(`${file.type}:${file.filePath}`, file);
+  }
+
+  return [...filesByKey.values()];
+};
+
+const getWinePrefixPath = (game: Game) =>
+  Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId) ?? "";
+
+const getNestedAchievementFiles = async (game: Game, winePrefixPath = "") => {
+  const nestedAchievementFiles =
+    await findNestedAchievementFiles(winePrefixPath);
+
+  return getAlternativeObjectIds(game.objectId).flatMap(
+    (objectId) => nestedAchievementFiles.get(objectId) ?? []
+  );
+};
 
 const watchAchievementsWindows = async () => {
   const games = await gamesSublevel
@@ -47,7 +75,9 @@ const watchAchievementsWindows = async () => {
     userPreferences?.enableSteamAchievements ?? false;
 
   for (const game of games) {
-    const gameAchievementFiles: AchievementFile[] = [];
+    const gameAchievementFiles: AchievementFile[] = [
+      ...(await getNestedAchievementFiles(game)),
+    ];
 
     for (const objectId of getAlternativeObjectIds(game.objectId)) {
       gameAchievementFiles.push(...(achievementFiles.get(objectId) ?? []));
@@ -61,9 +91,7 @@ const watchAchievementsWindows = async () => {
       }
     }
 
-    for (const file of gameAchievementFiles) {
-      await compareFile(game, file);
-    }
+    await processChangedAchievementFiles(game, gameAchievementFiles);
   }
 };
 
@@ -93,17 +121,19 @@ const watchAchievementsWithWine = async () => {
   for (const game of games) {
     const gameAchievementFiles = findAchievementFiles(game);
 
+    gameAchievementFiles.push(
+      ...(await getNestedAchievementFiles(game, getWinePrefixPath(game)))
+    );
+
     if (enableSteamAchievements) {
       gameAchievementFiles.push(...findAchievementFileInSteamPath(game));
     }
 
-    for (const file of gameAchievementFiles) {
-      await compareFile(game, file);
-    }
+    await processChangedAchievementFiles(game, gameAchievementFiles);
   }
 };
 
-const compareFltFolder = async (game: Game, file: AchievementFile) => {
+const hasFltFolderChanged = (file: AchievementFile) => {
   try {
     const currentAchievements = new Set(readdirSync(file.filePath));
     const previousAchievements = fltFiles.get(file.filePath);
@@ -113,20 +143,21 @@ const compareFltFolder = async (game: Game, file: AchievementFile) => {
       !previousAchievements ||
       currentAchievements.difference(previousAchievements).size === 0
     ) {
-      return;
+      return false;
     }
 
     achievementsLogger.log("Detected change in FLT folder", file.filePath);
-    await processAchievementFileDiff(game, file);
+    return true;
   } catch (err) {
     achievementsLogger.error(err);
     fltFiles.set(file.filePath, new Set());
+    return false;
   }
 };
 
-const compareFile = (game: Game, file: AchievementFile) => {
+const hasAchievementFileChanged = (file: AchievementFile) => {
   if (file.type === Cracker.flt) {
-    return compareFltFolder(game, file);
+    return hasFltFolderChanged(file);
   }
 
   try {
@@ -134,30 +165,20 @@ const compareFile = (game: Game, file: AchievementFile) => {
     const previousStat = fileStats.get(file.filePath);
     fileStats.set(file.filePath, currentStat.mtimeMs);
 
-    if (!previousStat || previousStat === -1) {
-      if (currentStat.mtimeMs) {
-        achievementsLogger.log(
-          "First change in file",
-          file.filePath,
-          previousStat,
-          currentStat.mtimeMs
-        );
-
-        return processAchievementFileDiff(game, file);
-      }
-    }
-
     if (previousStat === currentStat.mtimeMs) {
-      return;
+      return false;
     }
+
+    const isFirstChange = previousStat === undefined || previousStat === -1;
 
     achievementsLogger.log(
-      "Detected change in file",
+      isFirstChange ? "First change in file" : "Detected change in file",
       file.filePath,
       previousStat,
       currentStat.mtimeMs
     );
-    return processAchievementFileDiff(game, file);
+
+    return true;
   } catch (err) {
     achievementsLogger.error(
       "Error reading file",
@@ -165,21 +186,32 @@ const compareFile = (game: Game, file: AchievementFile) => {
       err instanceof Error ? err.message : err
     );
     fileStats.set(file.filePath, -1);
-    return;
+    return false;
   }
 };
 
-const processAchievementFileDiff = async (
+/**
+ * Merges once per game rather than once per file. Emulators often rewrite
+ * several files for a single unlock, and every merge uploads the full
+ * achievement list back to the API.
+ */
+const processChangedAchievementFiles = async (
   game: Game,
-  file: AchievementFile
+  achievementFiles: AchievementFile[]
 ) => {
-  const parsedAchievements = parseAchievementFile(file.filePath, file.type);
+  const changedFiles = dedupeAchievementFiles(achievementFiles).filter(
+    hasAchievementFileChanged
+  );
 
-  if (parsedAchievements.length) {
-    return mergeAchievements(game, parsedAchievements, true);
-  }
+  if (!changedFiles.length) return 0;
 
-  return 0;
+  const unlockedAchievements = changedFiles.flatMap((file) =>
+    parseAchievementFile(file.filePath, file.type)
+  );
+
+  if (!unlockedAchievements.length) return 0;
+
+  return mergeAchievements(game, unlockedAchievements, true);
 };
 
 export class AchievementWatcherManager {
@@ -212,6 +244,13 @@ export class AchievementWatcherManager {
 
     const gameAchievementFiles = findAchievementFiles(game);
 
+    gameAchievementFiles.push(
+      ...(await getNestedAchievementFiles(
+        game,
+        process.platform === "win32" ? "" : getWinePrefixPath(game)
+      ))
+    );
+
     const userPreferences = await db.get<string, UserPreferences | null>(
       levelKeys.userPreferences,
       {
@@ -225,7 +264,9 @@ export class AchievementWatcherManager {
 
     const unlockedAchievements: UnlockedAchievement[] = [];
 
-    for (const achievementFile of gameAchievementFiles) {
+    for (const achievementFile of dedupeAchievementFiles(
+      gameAchievementFiles
+    )) {
       const localAchievementFile = parseAchievementFile(
         achievementFile.filePath,
         achievementFile.type
@@ -272,7 +313,9 @@ export class AchievementWatcherManager {
     gameAchievementFiles: AchievementFile[]
   ) {
     const unlockedAchievements: UnlockedAchievement[] = [];
-    for (const achievementFile of gameAchievementFiles) {
+    for (const achievementFile of dedupeAchievementFiles(
+      gameAchievementFiles
+    )) {
       const parsedAchievements = parseAchievementFile(
         achievementFile.filePath,
         achievementFile.type
@@ -323,7 +366,9 @@ export class AchievementWatcherManager {
 
     return Promise.all(
       games.map(async (game) => {
-        const achievementFiles: AchievementFile[] = [];
+        const achievementFiles: AchievementFile[] = [
+          ...(await getNestedAchievementFiles(game)),
+        ];
 
         for (const objectId of getAlternativeObjectIds(game.objectId)) {
           achievementFiles.push(
@@ -362,6 +407,10 @@ export class AchievementWatcherManager {
     return Promise.all(
       games.map(async (game) => {
         const achievementFiles = findAchievementFiles(game);
+
+        achievementFiles.push(
+          ...(await getNestedAchievementFiles(game, getWinePrefixPath(game)))
+        );
 
         if (enableSteamAchievements) {
           achievementFiles.push(...findAchievementFileInSteamPath(game));

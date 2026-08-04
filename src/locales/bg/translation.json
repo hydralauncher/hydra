@@ -1498,7 +1498,10 @@
     "preflight_checking": "Проверка на зависимости",
     "preflight_downloading": "Изтегляне на зависимости",
     "preflight_installing": "Инсталиране на зависимости",
-    "preflight_installing_detail": "{{detail}}"
+    "preflight_installing_detail": "{{detail}}",
+    "generating_achievements": "Generating achievements file",
+    "downloading_achievement_icons": "Downloading achievement icons",
+    "downloading_achievement_icons_detail": "Downloading achievement icons ({{detail}})"
   },
   "notifications_page": {
     "title": "Уведомления",

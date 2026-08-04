@@ -241,6 +241,16 @@ const getPathFromCracker = (cracker: Cracker) => {
   throw new Error(`Cracker ${cracker} not implemented`);
 };
 
+/**
+ * Base folders holding one subfolder per app id. Some emulators write their
+ * achievements below that subfolder instead of directly inside it, so these are
+ * the roots the recursive scan starts from.
+ */
+export const getEmulatorSaveFolders = (winePrefixPath = "") =>
+  getPathFromCracker(Cracker.goldberg).map(({ folderPath }) =>
+    path.join(winePrefixPath, folderPath)
+  );
+
 export const getAlternativeObjectIds = (objectId: string) => {
   // Dishonored
   if (objectId === "205100") {

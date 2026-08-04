@@ -1226,7 +1226,10 @@
     "preflight_checking": "A verificar dependências",
     "preflight_downloading": "A transferir dependências",
     "preflight_installing": "A instalar dependências",
-    "preflight_installing_detail": "{{detail}}"
+    "preflight_installing_detail": "{{detail}}",
+    "generating_achievements": "Generating achievements file",
+    "downloading_achievement_icons": "Downloading achievement icons",
+    "downloading_achievement_icons_detail": "Downloading achievement icons ({{detail}})"
   },
   "friends_window": {
     "title": "Amigos",

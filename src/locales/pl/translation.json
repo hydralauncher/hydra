@@ -1625,7 +1625,10 @@
     "preflight_checking": "Sprawdzanie zależności",
     "preflight_downloading": "Pobieranie zależności",
     "preflight_installing": "Instalowanie zależności",
-    "preflight_installing_detail": "{{detail}}"
+    "preflight_installing_detail": "{{detail}}",
+    "generating_achievements": "Generating achievements file",
+    "downloading_achievement_icons": "Downloading achievement icons",
+    "downloading_achievement_icons_detail": "Downloading achievement icons ({{detail}})"
   },
   "notifications_page": {
     "title": "Powiadomienia",
