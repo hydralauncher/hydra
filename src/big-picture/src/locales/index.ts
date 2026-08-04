@@ -3,8 +3,9 @@ import ru from "./ru/translation.json";
 import ptBR from "./pt-BR/translation.json";
 import es from "./es/translation.json";
 import fr from "./fr/translation.json";
+import el from "./el/translation.json";
 
-export type BigPictureLanguage = "en" | "ru" | "pt-BR" | "es" | "fr";
+export type BigPictureLanguage = "en" | "ru" | "pt-BR" | "es" | "fr" | "el";
 
 export const exactTranslations: Record<
   BigPictureLanguage,
@@ -15,6 +16,7 @@ export const exactTranslations: Record<
   "pt-BR": ptBR.exact,
   es: es.exact,
   fr: fr.exact,
+  el: el.exact,
 };
 
 export const formatResources: Record<
@@ -26,4 +28,5 @@ export const formatResources: Record<
   "pt-BR": ptBR.format,
   es: es.format,
   fr: fr.format,
+  el: el.format,
 };
