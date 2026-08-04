@@ -33,6 +33,7 @@ const SCAN_DIRECTORIES = [
 
 const DISCOVERED_GAMES_SHOP: GameShop = "steam";
 const DISCOVERED_GAMES_CHUNK_SIZE = 4;
+const UNNAMED_PATH_CANDIDATE_LIMIT = 40;
 
 interface FoundGame {
   title: string;
@@ -357,6 +358,81 @@ const partitionMatches = (
   return { pathByObjectId, undecided };
 };
 
+const getObjectIdsByFileName = () => {
+  const objectIdsByFileName = new Map<string, string[]>();
+
+  for (const objectId of GameExecutables.getAllObjectIds()) {
+    const executables = GameExecutables.getExecutablesForGame(objectId);
+    if (!executables) continue;
+
+    for (const exe of new Set(
+      executables.map((executable) => executable.exe.toLowerCase())
+    )) {
+      const owners = objectIdsByFileName.get(exe);
+
+      if (owners) {
+        owners.push(objectId);
+      } else {
+        objectIdsByFileName.set(exe, [objectId]);
+      }
+    }
+  }
+
+  return objectIdsByFileName;
+};
+
+const toComparableName = (value: string) =>
+  value.toLowerCase().replaceAll(/[^a-z0-9]+/g, "");
+
+const namesTheFolder = (executablePath: string, title: string) => {
+  const wanted = toComparableName(title);
+
+  return (
+    !!wanted &&
+    toComparableSegments(executablePath).slice(0, -1).includes(wanted)
+  );
+};
+
+const collectUnnamedPaths = (
+  scannedDirectories: ScannedDirectory[],
+  libraryObjectIds: Set<string>,
+  claimedPaths: Set<string>
+) => {
+  const objectIdsByFileName = getObjectIdsByFileName();
+  const unnamed: { executablePath: string; objectIds: string[] }[] = [];
+  let skipped = 0;
+
+  for (const scanned of scannedDirectories) {
+    for (const [fileName, relativeFilePaths] of scanned.pathsByFileName) {
+      const owners = (objectIdsByFileName.get(fileName) ?? []).filter(
+        (objectId) => !libraryObjectIds.has(objectId)
+      );
+
+      if (owners.length === 0) continue;
+
+      if (owners.length > UNNAMED_PATH_CANDIDATE_LIMIT) {
+        skipped += 1;
+        continue;
+      }
+
+      for (const relativeFilePath of relativeFilePaths) {
+        const executablePath = path.join(scanned.directory, relativeFilePath);
+        if (claimedPaths.has(normalizePath(executablePath))) continue;
+
+        unnamed.push({ executablePath, objectIds: owners });
+      }
+    }
+  }
+
+  if (skipped > 0) {
+    logger.info(
+      `[ScanInstalledGames] Not naming ${skipped} executable names claimed by more than ${UNNAMED_PATH_CANDIDATE_LIMIT} games`
+    );
+  }
+
+  return unnamed;
+};
+
 const createChoiceResolver = () => {
   const cache = new Map<string, Promise<AmbiguousChoice | null>>();
 
@@ -381,6 +457,44 @@ const createChoiceResolver = () => {
     cache.set(objectId, pending);
     return pending;
   };
+};
+
+const nameByFolder = async (
+  unnamed: { executablePath: string; objectIds: string[] }[],
+  resolveChoice: (objectId: string) => Promise<AmbiguousChoice | null>,
+  pathByObjectId: Map<string, string>,
+  ambiguousMatches: AmbiguousMatch[]
+) => {
+  for (const entries of chunk(unnamed, DISCOVERED_GAMES_CHUNK_SIZE)) {
+    await Promise.all(
+      entries.map(async ({ executablePath, objectIds }) => {
+        const choices = (await Promise.all(objectIds.map(resolveChoice)))
+          .filter((choice) => choice !== null)
+          .filter((choice) => namesTheFolder(executablePath, choice.title));
+
+        if (choices.length === 0) return;
+
+        if (choices.length === 1) {
+          const [choice] = choices;
+
+          if (pathByObjectId.has(choice.objectId)) return;
+
+          logger.info(
+            `[ScanInstalledGames] ${executablePath} sits in a folder named after ${choice.title}`
+          );
+
+          pathByObjectId.set(choice.objectId, executablePath);
+          return;
+        }
+
+        logger.info(
+          `[ScanInstalledGames] ${executablePath} sits in a folder naming ${choices.length} games`
+        );
+
+        ambiguousMatches.push({ executablePath, choices });
+      })
+    );
+  }
 };
 
 const findGamesOutsideLibrary = async (
@@ -433,6 +547,19 @@ const findGamesOutsideLibrary = async (
       })
     );
   }
+
+  const takenPaths = new Set([
+    ...claimedPaths,
+    ...[...pathByObjectId.values()].map(normalizePath),
+    ...ambiguousMatches.map((match) => normalizePath(match.executablePath)),
+  ]);
+
+  await nameByFolder(
+    collectUnnamedPaths(scannedDirectories, libraryObjectIds, takenPaths),
+    resolveChoice,
+    pathByObjectId,
+    ambiguousMatches
+  );
 
   ambiguousMatches.sort((a, b) =>
     a.executablePath.localeCompare(b.executablePath)
