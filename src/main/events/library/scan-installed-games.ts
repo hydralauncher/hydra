@@ -39,9 +39,15 @@ interface FoundGame {
   executablePath: string;
 }
 
+interface AmbiguousChoice {
+  objectId: string;
+  title: string;
+  iconUrl: string | null;
+}
+
 interface AmbiguousMatch {
   executablePath: string;
-  objectIds: string[];
+  choices: AmbiguousChoice[];
 }
 
 interface ScanResult {
@@ -304,13 +310,13 @@ const groupObjectIdsByPath = (scannedDirectories: ScannedDirectory[]) => {
   return objectIdsByPath;
 };
 
-const findGamesOutsideLibrary = (
+const partitionMatches = (
   scannedDirectories: ScannedDirectory[],
   libraryObjectIds: Set<string>,
   claimedPaths: Set<string>
 ) => {
   const pathByObjectId = new Map<string, string>();
-  const ambiguousMatches: AmbiguousMatch[] = [];
+  const undecided: { executablePath: string; objectIds: string[] }[] = [];
 
   for (const [executablePath, objectIds] of groupObjectIdsByPath(
     scannedDirectories
@@ -339,18 +345,98 @@ const findGamesOutsideLibrary = (
       continue;
     }
 
-    const choices = [...objectIds]
+    const candidates = [...objectIds]
       .filter((candidate) => !libraryObjectIds.has(candidate))
       .sort((a, b) => Number(a) - Number(b));
 
-    if (choices.length === 0) continue;
-
-    logger.info(
-      `[ScanInstalledGames] ${executablePath} needs a choice between ${choices.length} games`
-    );
-
-    ambiguousMatches.push({ executablePath, objectIds: choices });
+    if (candidates.length > 0) {
+      undecided.push({ executablePath, objectIds: candidates });
+    }
   }
+
+  return { pathByObjectId, undecided };
+};
+
+const createChoiceResolver = () => {
+  const cache = new Map<string, Promise<AmbiguousChoice | null>>();
+
+  return (objectId: string) => {
+    const cached = cache.get(objectId);
+    if (cached) return cached;
+
+    const pending = getGameAssets(objectId, DISCOVERED_GAMES_SHOP)
+      .then((assets) =>
+        assets?.title
+          ? { objectId, title: assets.title, iconUrl: assets.iconUrl ?? null }
+          : null
+      )
+      .catch((err) => {
+        logger.error(
+          `[ScanInstalledGames] Failed to fetch assets for ${objectId}:`,
+          err
+        );
+        return null;
+      });
+
+    cache.set(objectId, pending);
+    return pending;
+  };
+};
+
+const findGamesOutsideLibrary = async (
+  scannedDirectories: ScannedDirectory[],
+  libraryObjectIds: Set<string>,
+  claimedPaths: Set<string>
+) => {
+  const { pathByObjectId, undecided } = partitionMatches(
+    scannedDirectories,
+    libraryObjectIds,
+    claimedPaths
+  );
+
+  const resolveChoice = createChoiceResolver();
+  const ambiguousMatches: AmbiguousMatch[] = [];
+
+  for (const entries of chunk(undecided, DISCOVERED_GAMES_CHUNK_SIZE)) {
+    await Promise.all(
+      entries.map(async ({ executablePath, objectIds }) => {
+        const choices = (
+          await Promise.all(objectIds.map(resolveChoice))
+        ).filter((choice) => choice !== null);
+
+        if (choices.length === 0) {
+          logger.info(
+            `[ScanInstalledGames] Skipping ${executablePath}, none of its ${objectIds.length} candidates are in the catalogue`
+          );
+          return;
+        }
+
+        if (choices.length === 1) {
+          const [choice] = choices;
+
+          logger.info(
+            `[ScanInstalledGames] ${executablePath} resolved to ${choice.objectId}, its only candidate in the catalogue`
+          );
+
+          if (!pathByObjectId.has(choice.objectId)) {
+            pathByObjectId.set(choice.objectId, executablePath);
+          }
+
+          return;
+        }
+
+        logger.info(
+          `[ScanInstalledGames] ${executablePath} needs a choice between ${choices.length} of ${objectIds.length} candidates`
+        );
+
+        ambiguousMatches.push({ executablePath, choices });
+      })
+    );
+  }
+
+  ambiguousMatches.sort((a, b) =>
+    a.executablePath.localeCompare(b.executablePath)
+  );
 
   return { pathByObjectId, ambiguousMatches };
 };
@@ -553,12 +639,15 @@ const scanInstalledGames = async (
   );
 
   const outsideLibrary = addGamesToLibrary
-    ? findGamesOutsideLibrary(
+    ? await findGamesOutsideLibrary(
         scannedDirectories,
         libraryObjectIds,
         claimedPaths
       )
-    : { pathByObjectId: new Map<string, string>(), ambiguousMatches: [] };
+    : {
+        pathByObjectId: new Map<string, string>(),
+        ambiguousMatches: [] as AmbiguousMatch[],
+      };
 
   const addedGames = await addGamesOutsideLibrary(
     outsideLibrary.pathByObjectId

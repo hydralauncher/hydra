@@ -633,7 +633,10 @@ declare global {
     ) => Promise<{
       linkedGames: { title: string; executablePath: string }[];
       addedGames: { title: string; executablePath: string }[];
-      ambiguousMatches: { executablePath: string; objectIds: string[] }[];
+      ambiguousMatches: {
+        executablePath: string;
+        choices: { objectId: string; title: string; iconUrl: string | null }[];
+      }[];
       total: number;
     }>;
     addScannedGame: (

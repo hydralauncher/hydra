@@ -19,15 +19,15 @@ interface FoundGame {
   executablePath: string;
 }
 
-interface AmbiguousMatch {
-  executablePath: string;
-  objectIds: string[];
-}
-
 interface AmbiguousChoice {
   objectId: string;
   title: string;
   iconUrl: string | null;
+}
+
+interface AmbiguousMatch {
+  executablePath: string;
+  choices: AmbiguousChoice[];
 }
 
 export interface ScanResult {
@@ -36,24 +36,6 @@ export interface ScanResult {
   ambiguousMatches: AmbiguousMatch[];
   total: number;
 }
-
-const fetchChoice = async (objectId: string): Promise<AmbiguousChoice> => {
-  const assets = await window.electron
-    .getGameAssets(objectId, "steam")
-    .catch(() => null);
-
-  return {
-    objectId,
-    title: assets?.title ?? objectId,
-    iconUrl: assets?.iconUrl ?? null,
-  };
-};
-
-const fetchChoicesFor = async (match: AmbiguousMatch) =>
-  [
-    match.executablePath,
-    await Promise.all(match.objectIds.map(fetchChoice)),
-  ] as const;
 
 export interface ScanGamesModalProps {
   visible: boolean;
@@ -86,9 +68,6 @@ export function ScanGamesModal({
   );
   const [addGamesToLibrary, setAddGamesToLibrary] = useState(true);
   const [pending, setPending] = useState<AmbiguousMatch[]>([]);
-  const [choicesByPath, setChoicesByPath] = useState<
-    Record<string, AmbiguousChoice[]>
-  >({});
   const [picks, setPicks] = useState<Record<string, string>>({});
   const [isResolving, setIsResolving] = useState(false);
   const [resolvedGames, setResolvedGames] = useState<FoundGame[]>([]);
@@ -105,7 +84,6 @@ export function ScanGamesModal({
   useEffect(() => {
     if (!scanResult) {
       setPending([]);
-      setChoicesByPath({});
       setPicks({});
       setResolvedGames([]);
       return;
@@ -113,24 +91,6 @@ export function ScanGamesModal({
 
     setPending(scanResult.ambiguousMatches);
   }, [scanResult]);
-
-  useEffect(() => {
-    if (pending.length === 0) return;
-
-    let cancelled = false;
-
-    const loadChoices = async () => {
-      const entries = await Promise.all(pending.map(fetchChoicesFor));
-
-      if (!cancelled) setChoicesByPath(Object.fromEntries(entries));
-    };
-
-    loadChoices();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pending]);
 
   const handlePick = useCallback((executablePath: string, objectId: string) => {
     setPicks((prev) => ({ ...prev, [executablePath]: objectId }));
@@ -337,30 +297,28 @@ export function ScanGamesModal({
                   </span>
 
                   <div className="scan-games-modal__ambiguous-choices">
-                    {(choicesByPath[match.executablePath] ?? []).map(
-                      (choice) => (
-                        <button
-                          key={choice.objectId}
-                          type="button"
-                          className={cn("scan-games-modal__choice", {
-                            "scan-games-modal__choice--active":
-                              picks[match.executablePath] === choice.objectId,
-                          })}
-                          onClick={() =>
-                            handlePick(match.executablePath, choice.objectId)
-                          }
-                        >
-                          {choice.iconUrl && (
-                            <img
-                              src={choice.iconUrl}
-                              alt=""
-                              className="scan-games-modal__choice-icon"
-                            />
-                          )}
-                          <span>{choice.title}</span>
-                        </button>
-                      )
-                    )}
+                    {match.choices.map((choice) => (
+                      <button
+                        key={choice.objectId}
+                        type="button"
+                        className={cn("scan-games-modal__choice", {
+                          "scan-games-modal__choice--active":
+                            picks[match.executablePath] === choice.objectId,
+                        })}
+                        onClick={() =>
+                          handlePick(match.executablePath, choice.objectId)
+                        }
+                      >
+                        {choice.iconUrl && (
+                          <img
+                            src={choice.iconUrl}
+                            alt=""
+                            className="scan-games-modal__choice-icon"
+                          />
+                        )}
+                        <span>{choice.title}</span>
+                      </button>
+                    ))}
                   </div>
                 </li>
               ))}
