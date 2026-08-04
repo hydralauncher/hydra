@@ -124,7 +124,7 @@ export const analyzeCloudSaveState = async (
           remoteManifest.variants,
           missingRemoteFiles,
           resolution,
-          NativeAddon.buildSnapshotAggregateHash
+          (input) => NativeAddon.buildSnapshotAggregateHash(input)
         );
       } catch (error) {
         if (!isUnavailableRestoreEnvironment(error)) throw error;
