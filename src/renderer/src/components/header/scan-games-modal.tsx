@@ -24,11 +24,17 @@ interface ScanResult {
   total: number;
 }
 
+interface RemoveExecutableResult {
+  removedGames: { title: string }[];
+}
+
 export interface ScanGamesModalProps {
   visible: boolean;
   onClose: () => void;
   isScanning: boolean;
+  isRemovingExecutables: boolean;
   scanResult: ScanResult | null;
+  removeExecutableResult: RemoveExecutableResult | null;
   onStartScan: (
     additionalDirectories: string[],
     includeDefaultDirectories: boolean
@@ -40,7 +46,9 @@ export function ScanGamesModal({
   visible,
   onClose,
   isScanning,
+  isRemovingExecutables,
   scanResult,
+  removeExecutableResult,
   onStartScan,
   onClearResult,
 }: Readonly<ScanGamesModalProps>) {
@@ -91,15 +99,27 @@ export function ScanGamesModal({
     setSelectedFolders((prev) => prev.filter((item) => item !== folder));
   };
 
+  let closeButtonLabel: string;
+
+  if (scanResult) {
+    closeButtonLabel = isRemovingExecutables
+      ? t("scan_games_hide")
+      : t("scan_games_close");
+  } else if (isScanning || isRemovingExecutables) {
+    closeButtonLabel = t("scan_games_hide");
+  } else {
+    closeButtonLabel = t("scan_games_cancel");
+  }
+
   return (
     <Modal
       visible={visible}
       title={t("scan_games_title")}
       onClose={handleClose}
-      clickOutsideToClose={!isScanning}
+      clickOutsideToClose={!isScanning && !isRemovingExecutables}
     >
       <div className="scan-games-modal">
-        {!scanResult && !isScanning && (
+        {!scanResult && !isScanning && !isRemovingExecutables && (
           <>
             {isWindows && (
               <div className="scan-games-modal__mode-toggle">
@@ -192,6 +212,15 @@ export function ScanGamesModal({
           </div>
         )}
 
+        {isRemovingExecutables && !removeExecutableResult && !scanResult && (
+          <div className="scan-games-modal__scanning">
+            <SyncIcon size={24} className="scan-games-modal__spinner" />
+            <p className="scan-games-modal__scanning-text">
+              {t("remove_executables_in_progress")}
+            </p>
+          </div>
+        )}
+
         {scanResult && (
           <div className="scan-games-modal__results">
             {scanResult.foundGames.length > 0 ? (
@@ -224,27 +253,51 @@ export function ScanGamesModal({
                 {t("scan_games_no_results")}
               </p>
             )}
+
+            {removeExecutableResult &&
+              (removeExecutableResult.removedGames.length > 0 ? (
+                <>
+                  <p className="scan-games-modal__result">
+                    {t("remove_executables_result", {
+                      removed: removeExecutableResult.removedGames.length,
+                    })}
+                  </p>
+
+                  <ul className="scan-games-modal__games-list">
+                    {removeExecutableResult.removedGames.map((game, index) => (
+                      <li
+                        key={`${game.title}-${index}`}
+                        className="scan-games-modal__game-item"
+                      >
+                        <span className="scan-games-modal__game-title">
+                          {game.title}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="scan-games-modal__no-results">
+                  {t("remove_executables_no_results")}
+                </p>
+              ))}
           </div>
         )}
 
         <div className="scan-games-modal__actions">
           <Button theme="outline" onClick={handleClose}>
-            {scanResult
-              ? t("scan_games_close")
-              : isScanning
-                ? t("scan_games_hide")
-                : t("scan_games_cancel")}
+            {closeButtonLabel}
           </Button>
-          {!scanResult && (
+          {!scanResult && !isRemovingExecutables && !isScanning && (
             <Button
               onClick={handleStartScan}
-              disabled={isScanning || requiresFolderSelection}
+              disabled={requiresFolderSelection}
             >
               {t("scan_games_start")}
             </Button>
           )}
           {scanResult && (
-            <Button onClick={handleScanAgain}>
+            <Button onClick={handleScanAgain} disabled={isRemovingExecutables}>
               {t("scan_games_scan_again")}
             </Button>
           )}
