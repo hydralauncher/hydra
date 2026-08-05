@@ -479,6 +479,57 @@ export function CloudSaveV2Provider({
     [showKnownCloudSaveSyncError]
   );
 
+  const runFileBrowserCloudSaveOperation = useCallback(
+    async <T,>(
+      operation: (
+        onProgress: (progress: CloudSaveSyncProgressPayload) => void
+      ) => Promise<T>
+    ): Promise<T> => {
+      const requestedGame = gameKey;
+      setIsSyncing(true);
+      setHasSyncError(false);
+      setProgress(null);
+
+      try {
+        return await operation((nextProgress) => {
+          if (activeGameKey.current === requestedGame) {
+            setProgress(nextProgress);
+          }
+        });
+      } catch (error) {
+        handleCloudSaveOperationError(error, requestedGame);
+        throw error;
+      } finally {
+        if (activeGameKey.current === requestedGame) {
+          await refresh();
+          await refreshFileDetails();
+          setIsSyncing(false);
+        }
+      }
+    },
+    [gameKey, handleCloudSaveOperationError, refresh, refreshFileDetails]
+  );
+
+  const syncAfterCustomPathAdded = useCallback(
+    () =>
+      runFileBrowserCloudSaveOperation((onProgress) =>
+        window.electron.syncGameCloudSave(objectId, shop, onProgress)
+      ),
+    [objectId, runFileBrowserCloudSaveOperation, shop]
+  );
+
+  const removeTrackedCustomPath = useCallback(
+    (rawPath: string) =>
+      runFileBrowserCloudSaveOperation(async () => {
+        await window.electron.removeCloudSaveCustomPath(
+          objectId,
+          shop,
+          rawPath
+        );
+      }),
+    [objectId, runFileBrowserCloudSaveOperation, shop]
+  );
+
   const runCloudSaveOperation = useCallback(
     async (resolution?: CloudSaveConflictResolution) => {
       if (isGameRunning || !hasExecutablePath || shop !== "steam") return;
@@ -902,6 +953,8 @@ export function CloudSaveV2Provider({
           await refreshFileDetails();
           await refresh();
         }}
+        onSyncAfterCustomPathAdded={syncAfterCustomPathAdded}
+        onRemoveTrackedCustomPath={removeTrackedCustomPath}
         onRequestCustomPathRebind={handleRequestCustomPathRebind}
         onClose={() => setIsFileBrowserVisible(false)}
       />

@@ -10,7 +10,12 @@ import {
 import { TrashIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
-import type { CloudSaveState, CloudSaveV2FileDetails, GameShop } from "@types";
+import type {
+  CloudSaveState,
+  CloudSaveV2FileDetails,
+  GameShop,
+  SyncGameCloudSaveResult,
+} from "@types";
 import { formatBytes } from "@shared";
 import {
   Button,
@@ -26,6 +31,7 @@ import {
   filterCloudSaveV2Comparisons,
   type CloudSaveV2FileTreeRoot,
 } from "./cloud-save-v2-file-tree";
+import { getCloudSaveFileBrowserOperationPolicy } from "./cloud-save-v2-file-browser-policy";
 import { CloudSaveV2FileTreeView } from "./cloud-save-v2-file-tree-view";
 import { hasCloudSaveDataToDelete } from "./cloud-save-presentation";
 
@@ -126,6 +132,8 @@ interface CloudSaveV2FileBrowserModalProps {
   isGameRunning: boolean;
   isSyncing: boolean;
   onRetry: () => void | Promise<void>;
+  onSyncAfterCustomPathAdded: () => Promise<SyncGameCloudSaveResult>;
+  onRemoveTrackedCustomPath: (rawPath: string) => Promise<void>;
   onRequestCustomPathRebind: (rawPath: string) => Promise<void>;
   onClose: () => void;
 }
@@ -283,6 +291,8 @@ export function CloudSaveV2FileBrowserModal({
   isGameRunning,
   isSyncing,
   onRetry,
+  onSyncAfterCustomPathAdded,
+  onRemoveTrackedCustomPath,
   onRequestCustomPathRebind,
   onClose,
 }: Readonly<CloudSaveV2FileBrowserModalProps>) {
@@ -388,18 +398,13 @@ export function CloudSaveV2FileBrowserModal({
       );
       if (!result.canceled && result.customPath) {
         wasAdded = true;
-        const syncResult = await window.electron.syncGameCloudSave(
-          objectId,
-          shop
-        );
+        const syncResult = await onSyncAfterCustomPathAdded();
         if (syncResult.finalState === "conflict") {
           throw new Error("cloud_save_custom_path_sync_conflict");
         }
-        await onRetry();
         showSuccessToast(t("cloud_save_v2_custom_path_added"));
       }
     } catch (error) {
-      if (wasAdded) await onRetry();
       const selectionError = !wasAdded
         ? getCustomPathSelectionError(error)
         : null;
@@ -414,17 +419,13 @@ export function CloudSaveV2FileBrowserModal({
   };
 
   const handleRemoveCustomPath = async () => {
-    if (!pendingCustomPathRemoval) return;
+    const rawPath = pendingCustomPathRemoval;
+    if (!rawPath) return;
 
-    setRemovingCustomPath(pendingCustomPathRemoval);
+    setRemovingCustomPath(rawPath);
+    setPendingCustomPathRemoval(null);
     try {
-      await window.electron.removeCloudSaveCustomPath(
-        objectId,
-        shop,
-        pendingCustomPathRemoval
-      );
-      setPendingCustomPathRemoval(null);
-      await onRetry();
+      await onRemoveTrackedCustomPath(rawPath);
       showSuccessToast(t("cloud_save_v2_custom_path_removed"));
     } catch (error) {
       const localCleanupFailed =
@@ -489,16 +490,16 @@ export function CloudSaveV2FileBrowserModal({
 
   const loadingState = !details && isLoading;
   const errorState = !details && hasError;
-  const isChangingCustomPaths =
-    isAddingCustomPath ||
-    rebindingCustomPath !== null ||
-    removingCustomPath !== null;
-  const actionsAreDisabled =
-    isChangingCustomPaths ||
-    isDeletingCloudSave ||
-    isLoading ||
-    isGameRunning ||
-    isSyncing;
+  const { actionsAreDisabled, closeIsBlocked } =
+    getCloudSaveFileBrowserOperationPolicy({
+      isAddingCustomPath,
+      isRebindingCustomPath: rebindingCustomPath !== null,
+      isRemovingCustomPath: removingCustomPath !== null,
+      isDeletingCloudSave,
+      isLoading,
+      isGameRunning,
+      isSyncing,
+    });
   const hasSaveData = hasCloudSaveDataToDelete(details);
   const addCustomPathButton = (
     <Button
@@ -543,7 +544,7 @@ export function CloudSaveV2FileBrowserModal({
         }
         className={`cloud-save-v2__file-browser-modal ${titleIsConflict ? "cloud-save-v2__file-browser-modal--comparison" : ""}`}
         onClose={() => {
-          if (!isChangingCustomPaths && !isDeletingCloudSave) onClose();
+          if (!closeIsBlocked) onClose();
         }}
       >
         <div className="cloud-save-v2__file-browser">
