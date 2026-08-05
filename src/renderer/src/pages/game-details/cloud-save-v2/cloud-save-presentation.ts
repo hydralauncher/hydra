@@ -113,7 +113,12 @@ export const getCloudSaveSyncErrorKind = (
 export const getCloudSavePartialDescriptionKey = (
   overview: CloudSaveOverview | null
 ) => {
-  if (overview?.state !== "partial") return null;
+  if (
+    overview?.state !== "partial" ||
+    overview.unconfiguredCustomPathCount > 0
+  ) {
+    return null;
+  }
   if (overview.unresolvedRemoteVariantCount > 0) {
     return "cloud_save_v2_partial_unresolved_description";
   }
@@ -148,6 +153,7 @@ export const shouldSyncCloudSaveOnGamePage = ({
   !isGameRunning &&
   !isSyncing &&
   !isInFlight &&
+  (overview?.unconfiguredCustomPathCount ?? 0) === 0 &&
   overview?.isAutomaticSyncEnabled === true;
 
 interface CloudSavePresentationInput {
@@ -156,6 +162,7 @@ interface CloudSavePresentationInput {
   isChecking: boolean;
   isSyncing: boolean;
   hasError: boolean;
+  hasUnconfiguredCustomPaths: boolean;
   state: CloudSaveState | null;
   progressStage: CloudSaveSyncProgressStage | null;
 }
@@ -174,6 +181,7 @@ export const getCloudSavePresentation = ({
   isChecking,
   isSyncing,
   hasError,
+  hasUnconfiguredCustomPaths,
   state,
   progressStage,
 }: CloudSavePresentationInput): CloudSavePresentation => {
@@ -206,6 +214,14 @@ export const getCloudSavePresentation = ({
       labelKey: "cloud_save_v2_unavailable",
       icon: "cloud-x",
       tone: "neutral",
+    };
+  }
+
+  if (hasUnconfiguredCustomPaths) {
+    return {
+      labelKey: "cloud_save_v2_location_required",
+      icon: "warning",
+      tone: "outdated",
     };
   }
 
@@ -257,6 +273,11 @@ export type CloudSavePanelAction =
       icon: "details";
     }
   | {
+      kind: "confirm-location";
+      labelKey: "cloud_save_v2_confirm_location";
+      icon: "folder";
+    }
+  | {
       kind: "verify";
       labelKey: "cloud_save_v2_check_again";
       icon: "refresh";
@@ -266,8 +287,16 @@ export type CloudSavePanelAction =
 
 export const getCloudSavePanelAction = (
   state: CloudSaveState | null,
-  suggestedAction: CloudSaveSyncAction | null
+  suggestedAction: CloudSaveSyncAction | null,
+  hasUnconfiguredCustomPaths = false
 ): CloudSavePanelAction => {
+  if (hasUnconfiguredCustomPaths) {
+    return {
+      kind: "confirm-location",
+      labelKey: "cloud_save_v2_confirm_location",
+      icon: "folder",
+    };
+  }
   if (state === "conflict" || suggestedAction === "conflict") {
     return { kind: "conflict" };
   }

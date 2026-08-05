@@ -12,6 +12,7 @@ import {
   buildDeleteGameCloudSaveSnapshotsUrl,
   executeDeleteGameCloudSaveData,
 } from "./delete-game-cloud-save-data-policy";
+import { getDeletableGameCloudSaveSourceFiles } from "./delete-game-cloud-save-targets";
 import { deleteLocalSaveTargets } from "./delete-local-save-targets";
 import { assertCloudSaveEnvironmentCurrent } from "./environment-guard";
 import {
@@ -59,14 +60,15 @@ export const deleteGameCloudSaveData = async (
                 "bidirectional",
                 { customPathBindings: bindings }
               );
-              const localEntryIds =
-                analysis.localSnapshotContext.sourceFiles.map(cloudSaveFileKey);
-              const cleanupRootPaths = [
-                ...bindings.ready.map((binding) => binding.path),
-                ...analysis.localSnapshotContext.sourceFiles.map(
-                  (file) => file.localBindings.concretePath
-                ),
-              ];
+              const deletableSourceFiles = getDeletableGameCloudSaveSourceFiles(
+                analysis.localSnapshotContext.sourceFiles,
+                bindings,
+                analysis.localSnapshotContext.pathContext.platform
+              );
+              const localEntryIds = deletableSourceFiles.map(cloudSaveFileKey);
+              const cleanupRootPaths = deletableSourceFiles.map(
+                (file) => file.localBindings.concretePath
+              );
 
               await operation({
                 deleteLocalFiles: async () => {

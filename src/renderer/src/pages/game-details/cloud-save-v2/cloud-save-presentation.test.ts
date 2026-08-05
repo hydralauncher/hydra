@@ -126,6 +126,7 @@ const overview = (
   suggestedAction: "upload",
   discoveredVariantCount: 1,
   unresolvedRemoteVariantCount: 0,
+  unconfiguredCustomPathCount: 0,
   warnings: [],
   ...overrides,
 });
@@ -161,6 +162,12 @@ describe("partial cloud save explanations", () => {
       getCloudSavePartialDescriptionKey(overview({ state: "partial" })),
       "cloud_save_v2_partial_deferred_description"
     );
+    assert.equal(
+      getCloudSavePartialDescriptionKey(
+        overview({ state: "partial", unconfiguredCustomPathCount: 1 })
+      ),
+      null
+    );
     assert.equal(getCloudSavePartialDescriptionKey(overview()), null);
   });
 });
@@ -188,6 +195,7 @@ const presentation = (
     isChecking: false,
     isSyncing: false,
     hasError: false,
+    hasUnconfiguredCustomPaths: false,
     state: "untracked",
     progressStage: null,
     ...overrides,
@@ -276,6 +284,20 @@ describe("cloud save presentation", () => {
       tone: "neutral",
     });
   });
+
+  it("shows a specific status when a remote custom path needs a destination", () => {
+    assert.deepEqual(
+      presentation({
+        state: "partial",
+        hasUnconfiguredCustomPaths: true,
+      }),
+      {
+        labelKey: "cloud_save_v2_location_required",
+        icon: "warning",
+        tone: "outdated",
+      }
+    );
+  });
 });
 
 describe("cloud save panel action", () => {
@@ -304,6 +326,18 @@ describe("cloud save panel action", () => {
     assert.equal(
       getCloudSavePanelAction("conflict", "conflict").kind,
       "conflict"
+    );
+  });
+
+  it("prioritizes confirming a custom save destination", () => {
+    assert.deepEqual(getCloudSavePanelAction("partial", "none", true), {
+      kind: "confirm-location",
+      labelKey: "cloud_save_v2_confirm_location",
+      icon: "folder",
+    });
+    assert.equal(
+      getCloudSavePanelAction("conflict", "conflict", true).kind,
+      "confirm-location"
     );
   });
 
@@ -469,6 +503,15 @@ describe("game page automatic cloud save sync", () => {
 
   it("blocks only concurrent attempts in the renderer", () => {
     assert.equal(shouldSyncOnGamePage({ isInFlight: true }), false);
+  });
+
+  it("waits for the user to confirm remote custom save destinations", () => {
+    assert.equal(
+      shouldSyncOnGamePage({
+        overview: overview({ unconfiguredCustomPathCount: 1 }),
+      }),
+      false
+    );
   });
 
   it("respects automatic sync and game eligibility", () => {

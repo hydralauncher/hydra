@@ -317,6 +317,7 @@ export interface CloudSaveOverview extends CloudSaveStateResult {
   suggestedAction: CloudSaveSyncAction;
   discoveredVariantCount: number;
   unresolvedRemoteVariantCount: number;
+  unconfiguredCustomPathCount: number;
   warnings: UserLocationCoverage[];
 }
 
@@ -505,6 +506,7 @@ export type BlockedRestoreReason =
   | "blocked-user-not-found"
   | "blocked-user-ambiguous"
   | "blocked-rule-unavailable"
+  | "blocked-relative-path-incomplete"
   | "blocked-target-outside-root"
   | "blocked-target-ambiguous"
   | "foreign-environment";

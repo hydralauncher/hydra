@@ -9,7 +9,7 @@ import type {
 
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import type { getCloudSaveGameContext } from "./cloud-save-game-context";
-import { getUnboundCloudSaveCustomPathRestoreCandidates } from "./custom-path-approval-policy";
+import { getUnconfiguredCloudSaveCustomPathCandidates } from "./custom-path-approval-policy";
 import {
   bindCloudSaveCustomPathToLocalPath,
   canonicalizeSelectedCloudSaveCustomPath,
@@ -100,7 +100,7 @@ const createPendingApproval = async (
     "restore-only"
   );
   const manifest = analysis.remoteManifest;
-  if (!manifest || analysis.merge.restoreEntryIds.length === 0) {
+  if (!manifest) {
     clearPending();
     return null;
   }
@@ -115,9 +115,8 @@ const createPendingApproval = async (
       })
     ).ready.map(({ rawPath }) => rawPath)
   );
-  const candidates = getUnboundCloudSaveCustomPathRestoreCandidates(
+  const candidates = getUnconfiguredCloudSaveCustomPathCandidates(
     manifest.files,
-    analysis.merge.restoreEntryIds,
     locallyBoundRawPaths
   );
 

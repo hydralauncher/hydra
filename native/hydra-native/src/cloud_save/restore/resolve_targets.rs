@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use globset::GlobBuilder;
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
@@ -8,8 +9,8 @@ use crate::cloud_save::hashing::batch::hash_files;
 use crate::cloud_save::identity::{is_safe_capture, normalize_rule_path, SnapshotVariant};
 use crate::cloud_save::manifest::types::CloudSaveRule;
 use crate::cloud_save::path_resolution::{
-    build_context, glob_base_path, path_is_foreign_environment, resolve_restore_root,
-    rule_is_applicable, ResolveSaveRulesInput,
+    build_context, glob_base_path, path_is_foreign_environment, resolve_path, resolve_restore_root,
+    rule_is_applicable, ResolveSaveRulesInput, ResolvedCloudSavePath,
 };
 
 use super::metadata::parse_last_modified_at;
@@ -158,6 +159,33 @@ fn has_glob(raw_rule: &str) -> bool {
         .any(|character| matches!(character, '*' | '?' | '[' | '{'))
 }
 
+fn target_matches_rule(
+    candidates: &[ResolvedCloudSavePath],
+    target: &str,
+    directory: bool,
+) -> bool {
+    let target = target.replace('\\', "/");
+    candidates.iter().any(|candidate| {
+        let Ok(pattern) = GlobBuilder::new(&candidate.path)
+            .case_insensitive(!candidate.case_sensitive)
+            .literal_separator(true)
+            .build()
+        else {
+            return false;
+        };
+        let matcher = pattern.compile_matcher();
+        if !directory {
+            return matcher.is_match(&target);
+        }
+
+        Path::new(&target).parent().is_some_and(|parent| {
+            parent
+                .ancestors()
+                .any(|ancestor| matcher.is_match(ancestor.to_string_lossy().replace('\\', "/")))
+        })
+    })
+}
+
 fn resolve_restore_targets_inner(
     input: ResolveRestoreTargetsInput,
 ) -> napi::Result<ResolveRestoreTargetsResult> {
@@ -246,6 +274,7 @@ fn resolve_restore_targets_inner(
         };
 
         let mut resolved_targets = Vec::new();
+        let mut rejected_incomplete_relative_path = false;
         for rule in rules {
             let directory = rule.kind == "dir" || has_glob(&rule.raw_path);
             let root_rule = if has_glob(&rule.raw_path) {
@@ -269,7 +298,7 @@ fn resolve_restore_targets_inner(
                     })
             });
             if let Some(preferred_path) = preferred_path {
-                resolved_roots.push(preferred_path.replace('\\', "/"));
+                resolved_roots.push((preferred_path.replace('\\', "/"), None));
             }
             for user_value in concrete_values {
                 if preferred_path.is_some() {
@@ -284,16 +313,28 @@ fn resolve_restore_targets_inner(
                     directory,
                     std::slice::from_ref(&file.relative_path),
                 ) {
-                    resolved_roots.push(root);
+                    let concrete_rule = has_glob(&rule.raw_path).then(|| {
+                        let raw_rule = user_value
+                            .map(|value| bind_store_user(&rule.raw_path, value))
+                            .unwrap_or_else(|| rule.raw_path.clone());
+                        resolve_path(&raw_rule, &context).paths
+                    });
+                    resolved_roots.push((root, concrete_rule));
                 }
             }
 
-            for root in resolved_roots {
+            for (root, concrete_rule) in resolved_roots {
                 let target_path = if directory {
                     join_path(&root, &file.relative_path)
                 } else {
                     root.clone()
                 };
+                if concrete_rule.as_ref().is_some_and(|candidates| {
+                    !target_matches_rule(candidates, &target_path, rule.kind == "dir")
+                }) {
+                    rejected_incomplete_relative_path = true;
+                    continue;
+                }
                 let restore_root_path = if directory {
                     root
                 } else {
@@ -325,7 +366,14 @@ fn resolve_restore_targets_inner(
                 == canonical_target_key(&right.0, case_sensitive)
         });
         if resolved_targets.is_empty() {
-            blocked_files.push(blocked(file, "blocked-user-not-found"));
+            blocked_files.push(blocked(
+                file,
+                if rejected_incomplete_relative_path {
+                    "blocked-relative-path-incomplete"
+                } else {
+                    "blocked-user-not-found"
+                },
+            ));
             continue;
         }
         if resolved_targets.len() > 1 {
@@ -660,6 +708,209 @@ mod tests {
             .target_path
             .replace('\\', "/")
             .ends_with("/Game/Unknown/slot.dat"));
+    }
+
+    fn intermediate_glob_restore_input(
+        home: &Path,
+        relative_path: &str,
+    ) -> ResolveRestoreTargetsInput {
+        let profile = variant("opaque-folder", "76561197960267366");
+        let raw_path = "<home>/Hk_project/Saved/SaveGames/<storeUserId>/Slots/Slot_*/Data.sav";
+        ResolveRestoreTargetsInput {
+            shop: "steam".into(),
+            object_id: "1332010".into(),
+            platform: "windows".into(),
+            home_dir: home.display().to_string(),
+            documents_dir: None,
+            app_data_dir: None,
+            executable_path: None,
+            wine_prefix_path: None,
+            steam_path: None,
+            store_user_context: StoreUserContext::default(),
+            approved_rules: vec![ApprovedRestoreRule {
+                kind: "file".into(),
+                raw_path: raw_path.into(),
+                source: "ludusavi".into(),
+                preferred_path: None,
+                when: vec![],
+            }],
+            variants: vec![profile.clone()],
+            files: vec![RestoreManifestFile {
+                variant_id: profile.variant_id,
+                raw_path: raw_path.into(),
+                relative_path: relative_path.into(),
+                hash: "a".repeat(64),
+                size_bytes: 4.0,
+                last_modified_at: LAST_MODIFIED_AT.into(),
+            }],
+        }
+    }
+
+    #[test]
+    fn restores_intermediate_glob_segments_from_the_portable_relative_path() {
+        let temp = tempdir().unwrap();
+        let result = resolve_restore_targets_inner(intermediate_glob_restore_input(
+            temp.path(),
+            "Slot_1/Data.sav",
+        ))
+        .unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert!(result.actions[0]
+            .restore_root_path
+            .replace('\\', "/")
+            .ends_with("/76561197960267366/Slots"));
+        assert!(result.actions[0]
+            .target_path
+            .replace('\\', "/")
+            .ends_with("/76561197960267366/Slots/Slot_1/Data.sav"));
+    }
+
+    #[test]
+    fn blocks_legacy_file_glob_entries_that_lost_intermediate_segments() {
+        let temp = tempdir().unwrap();
+        let result =
+            resolve_restore_targets_inner(intermediate_glob_restore_input(temp.path(), "Data.sav"))
+                .unwrap();
+
+        assert!(result.actions.is_empty());
+        assert_eq!(result.blocked.len(), 1);
+        assert_eq!(result.blocked[0].reason, "blocked-relative-path-incomplete");
+    }
+
+    #[test]
+    fn validates_intermediate_segments_for_directory_globs() {
+        let temp = tempdir().unwrap();
+        let raw_path = "<home>/Hk_project/Saved/SaveGames/<storeUserId>/Slots/Slot_*".to_string();
+        let mut valid = intermediate_glob_restore_input(temp.path(), "Slot_1/Data.sav");
+        valid.approved_rules[0].kind = "dir".into();
+        valid.approved_rules[0].raw_path = raw_path.clone();
+        valid.files[0].raw_path = raw_path.clone();
+
+        let valid_result = resolve_restore_targets_inner(valid).unwrap();
+        assert!(valid_result.blocked.is_empty());
+        assert_eq!(valid_result.actions.len(), 1);
+        assert!(valid_result.actions[0]
+            .target_path
+            .replace('\\', "/")
+            .ends_with("/76561197960267366/Slots/Slot_1/Data.sav"));
+
+        let mut legacy = intermediate_glob_restore_input(temp.path(), "Data.sav");
+        legacy.approved_rules[0].kind = "dir".into();
+        legacy.approved_rules[0].raw_path = raw_path.clone();
+        legacy.files[0].raw_path = raw_path;
+
+        let legacy_result = resolve_restore_targets_inner(legacy).unwrap();
+        assert!(legacy_result.actions.is_empty());
+        assert_eq!(legacy_result.blocked.len(), 1);
+        assert_eq!(
+            legacy_result.blocked[0].reason,
+            "blocked-relative-path-incomplete"
+        );
+    }
+
+    #[test]
+    fn restores_wildcard_segments_that_precede_a_captured_profile() {
+        let temp = tempdir().unwrap();
+        let profile = variant("opaque-folder", "Goldberg");
+        let raw_path = "<home>/Games/Game_*/<storeUserId>/slot.dat";
+        let result = resolve_restore_targets_inner(ResolveRestoreTargetsInput {
+            shop: "steam".into(),
+            object_id: "1".into(),
+            platform: "windows".into(),
+            home_dir: temp.path().display().to_string(),
+            documents_dir: None,
+            app_data_dir: None,
+            executable_path: None,
+            wine_prefix_path: None,
+            steam_path: None,
+            store_user_context: StoreUserContext::default(),
+            approved_rules: vec![ApprovedRestoreRule {
+                kind: "file".into(),
+                raw_path: raw_path.into(),
+                source: "test".into(),
+                preferred_path: None,
+                when: vec![],
+            }],
+            variants: vec![profile.clone()],
+            files: vec![RestoreManifestFile {
+                variant_id: profile.variant_id,
+                raw_path: raw_path.into(),
+                relative_path: "Game_A/Goldberg/slot.dat".into(),
+                hash: "a".repeat(64),
+                size_bytes: 4.0,
+                last_modified_at: LAST_MODIFIED_AT.into(),
+            }],
+        })
+        .unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert!(result.actions[0]
+            .target_path
+            .replace('\\', "/")
+            .ends_with("/Games/Game_A/Goldberg/slot.dat"));
+    }
+
+    #[test]
+    fn keeps_valid_file_glob_shapes_restoreable() {
+        for (raw_path, relative_path) in [
+            ("<home>/Game/SLOT*.SAV", "slot1.sav"),
+            ("<home>/Game/*.{sav,dat}", "slot.dat"),
+            ("<home>/Game/[{]Deluxe[}]/save*.dat", "{Deluxe}/save1.dat"),
+        ] {
+            let temp = tempdir().unwrap();
+            let default = variant("default", "default");
+            let result = resolve_restore_targets_inner(ResolveRestoreTargetsInput {
+                shop: "steam".into(),
+                object_id: "1".into(),
+                platform: "windows".into(),
+                home_dir: temp.path().display().to_string(),
+                documents_dir: None,
+                app_data_dir: None,
+                executable_path: None,
+                wine_prefix_path: None,
+                steam_path: None,
+                store_user_context: StoreUserContext::default(),
+                approved_rules: vec![ApprovedRestoreRule {
+                    kind: "file".into(),
+                    raw_path: raw_path.into(),
+                    source: "test".into(),
+                    preferred_path: None,
+                    when: vec![],
+                }],
+                variants: vec![default.clone()],
+                files: vec![RestoreManifestFile {
+                    variant_id: default.variant_id,
+                    raw_path: raw_path.into(),
+                    relative_path: relative_path.into(),
+                    hash: "a".repeat(64),
+                    size_bytes: 4.0,
+                    last_modified_at: LAST_MODIFIED_AT.into(),
+                }],
+            })
+            .unwrap();
+
+            assert!(
+                result.blocked.is_empty(),
+                "{raw_path}: {:?}",
+                result
+                    .blocked
+                    .iter()
+                    .map(|file| file.reason.as_str())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(result.actions.len(), 1, "{raw_path}");
+            assert!(
+                result.actions[0]
+                    .target_path
+                    .replace('\\', "/")
+                    .ends_with(&format!("/Game/{relative_path}")),
+                "{raw_path}: {}",
+                result.actions[0].target_path
+            );
+        }
     }
 
     #[test]

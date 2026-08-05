@@ -5,7 +5,10 @@ import {
   CLOUD_SAVE_HASH_PATTERN,
   cloudSaveFileKey,
 } from "./cloud-save-contract";
-import { isCloudSaveSyncAnchorKeyForGame } from "./sync-anchor-key";
+import {
+  getCloudSaveSyncAnchorEnvironmentFromKey,
+  isCloudSaveSyncAnchorKeyForGame,
+} from "./sync-anchor-key";
 import { hasCloudSaveV4AnchorSchema } from "./sync-anchor-policy";
 
 const isValidAnchor = (
@@ -15,6 +18,7 @@ const isValidAnchor = (
   if (
     !anchor ||
     !hasCloudSaveV4AnchorSchema(anchor) ||
+    !anchor.environmentId ||
     anchor.environmentId !== environmentId ||
     !anchor.baseSnapshotId ||
     !Number.isSafeInteger(anchor.baseVersion) ||
@@ -87,8 +91,7 @@ export const getCloudSaveSyncAnchor = async (
   shop: GameShop,
   objectId: string,
   environmentId: string,
-  _localSnapshotHash: string,
-  _localSnapshotFileCount: number
+  options: { allowEnvironmentFallback?: boolean } = {}
 ) => {
   const environmentAnchor = await getCloudSaveSyncAnchorForEnvironment(
     shop,
@@ -100,7 +103,36 @@ export const getCloudSaveSyncAnchor = async (
   await cloudSaveSyncAnchorsSublevel
     .del(await getLegacyAnchorKey(shop, objectId))
     .catch(() => undefined);
-  return null;
+  if (!options.allowEnvironmentFallback) return null;
+
+  const userId = await getCurrentUserId();
+  let latestAnchor: CloudSaveSyncAnchor | null = null;
+  let latestUpdatedAt = Number.NEGATIVE_INFINITY;
+
+  for await (const [
+    key,
+    candidate,
+  ] of cloudSaveSyncAnchorsSublevel.iterator()) {
+    const candidateEnvironmentId = getCloudSaveSyncAnchorEnvironmentFromKey(
+      key,
+      userId,
+      shop,
+      objectId
+    );
+    if (
+      !candidateEnvironmentId ||
+      !isValidAnchor(candidate, candidateEnvironmentId)
+    ) {
+      continue;
+    }
+    const updatedAt = Date.parse(candidate.updatedAt);
+    if (updatedAt > latestUpdatedAt) {
+      latestAnchor = candidate;
+      latestUpdatedAt = updatedAt;
+    }
+  }
+
+  return latestAnchor;
 };
 
 export const saveCloudSaveSyncAnchor = async (

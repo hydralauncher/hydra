@@ -70,6 +70,8 @@ function getActionIcon(icon: string | undefined): ReactNode {
       return <CloudArrowDownIcon size={24} />;
     case "cloud":
       return <CloudIcon size={24} />;
+    case "folder":
+      return <FolderOpenIcon size={24} />;
     default:
       return <ArrowClockwiseIcon size={24} />;
   }
@@ -104,6 +106,8 @@ export function BigPictureCloudSaveModal({
   }, [overview?.isAutomaticSyncEnabled]);
 
   const activeSnapshot = overview?.activeRemoteSnapshot ?? null;
+  const hasUnconfiguredCustomPaths =
+    (overview?.unconfiguredCustomPathCount ?? 0) > 0;
   const partialDescriptionKey = getCloudSavePartialDescriptionKey(overview);
   const showEmptySnapshot = shouldShowCloudSaveEmptySnapshot({
     overview,
@@ -116,13 +120,15 @@ export function BigPictureCloudSaveModal({
     isChecking: isLoading && overview === null,
     isSyncing,
     hasError,
+    hasUnconfiguredCustomPaths,
     state: overview?.state ?? null,
     progressStage: progress?.stage ?? null,
   });
   const derivedAction = getBigPictureCloudSaveAction(
     getCloudSavePanelAction(
       overview?.state ?? null,
-      overview?.suggestedAction ?? null
+      overview?.suggestedAction ?? null,
+      hasUnconfiguredCustomPaths
     )
   );
   const action =
@@ -224,6 +230,12 @@ export function BigPictureCloudSaveModal({
 
         {errorMessageKey ? (
           <p className="big-picture-cloud-save__error">{t(errorMessageKey)}</p>
+        ) : null}
+
+        {hasUnconfiguredCustomPaths && !hasError ? (
+          <p className="big-picture-cloud-save__error">
+            {t("cloud_save_v2_unconfigured_custom_path_description")}
+          </p>
         ) : null}
 
         {partialDescriptionKey && !hasError ? (

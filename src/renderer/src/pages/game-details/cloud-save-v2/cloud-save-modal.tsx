@@ -169,6 +169,17 @@ function CloudSaveSyncAction({
           <span>{t(action.labelKey)}</span>
         </Button>
       );
+    case "confirm-location":
+      return (
+        <Button
+          className="cloud-save-v2__sync-button"
+          onClick={onSync}
+          disabled={isLoading || isGameRunning}
+        >
+          <FolderOpenIcon size={20} />
+          <span>{t(action.labelKey)}</span>
+        </Button>
+      );
     case "verify":
       return (
         <Button
@@ -233,18 +244,22 @@ export function CloudSavePanel({
     hasError,
   });
   const hasSnapshotSummary = activeSnapshot !== null || showEmptySnapshot;
+  const hasUnconfiguredCustomPaths =
+    (overview?.unconfiguredCustomPathCount ?? 0) > 0;
   const presentation = getCloudSavePresentation({
     canUseCloudSaves: true,
     hasExecutablePath,
     isChecking: isLoading && !overview,
     isSyncing,
     hasError,
+    hasUnconfiguredCustomPaths,
     state: overview?.state ?? null,
     progressStage: isSyncing ? (progress?.stage ?? null) : null,
   });
   const panelAction = getCloudSavePanelAction(
     overview?.state ?? null,
-    overview?.suggestedAction ?? null
+    overview?.suggestedAction ?? null,
+    hasUnconfiguredCustomPaths
   );
   const snapshotPanelMode = getCloudSaveSnapshotPanelMode({
     overview,
@@ -431,6 +446,12 @@ export function CloudSavePanel({
 
       {errorMessageKey && (
         <p className="cloud-save-v2__error">{t(errorMessageKey)}</p>
+      )}
+
+      {hasUnconfiguredCustomPaths && !hasError && (
+        <p className="cloud-save-v2__error">
+          {t("cloud_save_v2_unconfigured_custom_path_description")}
+        </p>
       )}
 
       {partialDescriptionKey && !hasError && (

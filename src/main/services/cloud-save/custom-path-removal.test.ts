@@ -4,7 +4,10 @@ import { describe, it } from "node:test";
 import type { RestoreManifestResponse, SnapshotVariant } from "@types";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
-import { buildCloudSaveCustomPathRemovalProposal } from "./custom-path-removal.ts";
+import {
+  buildCloudSaveCustomPathRemovalProposal,
+  executeCloudSaveCustomPathRemoteRemoval,
+} from "./custom-path-removal.ts";
 
 const firstPath = "<custom><windows><winDocuments>/First";
 const secondPath = "<custom><windows><winDocuments>/Second";
@@ -57,7 +60,7 @@ describe("cloud save custom path removal proposal", () => {
     assert.equal(proposal.files[0].rawPath, secondPath);
   });
 
-  it("produces a valid empty snapshot when the final location is removed", () => {
+  it("deletes the remote snapshot when the final location is removed", async () => {
     const current = manifest();
     current.customPathRawPaths = [firstPath];
     current.variants = [firstVariant];
@@ -72,6 +75,112 @@ describe("cloud save custom path removal proposal", () => {
     assert.deepEqual(proposal.customPathRawPaths, []);
     assert.deepEqual(proposal.variants, []);
     assert.deepEqual(proposal.files, []);
+
+    const calls: string[] = [];
+    const result = await executeCloudSaveCustomPathRemoteRemoval({
+      proposal,
+      updateSnapshot: async () => {
+        calls.push("update");
+      },
+      deleteSnapshot: async () => {
+        calls.push("delete");
+      },
+    });
+
+    assert.equal(result, "snapshot-deleted");
+    assert.deepEqual(calls, ["delete"]);
+  });
+
+  it("updates the snapshot when any other tracked file remains", async () => {
+    const proposal = buildCloudSaveCustomPathRemovalProposal(
+      manifest(),
+      firstPath
+    );
+    const calls: string[] = [];
+
+    const result = await executeCloudSaveCustomPathRemoteRemoval({
+      proposal,
+      updateSnapshot: async () => {
+        calls.push("update");
+      },
+      deleteSnapshot: async () => {
+        calls.push("delete");
+      },
+    });
+
+    assert.equal(result, "snapshot-updated");
+    assert.deepEqual(calls, ["update"]);
+  });
+
+  it("keeps the normal update flow when an automatic save remains", async () => {
+    const current = manifest();
+    current.customPathRawPaths = [firstPath];
+    current.files[1].rawPath = "<winAppData>/Game";
+    const proposal = buildCloudSaveCustomPathRemovalProposal(
+      current,
+      firstPath
+    );
+    const calls: string[] = [];
+
+    const result = await executeCloudSaveCustomPathRemoteRemoval({
+      proposal,
+      updateSnapshot: async () => {
+        calls.push("update");
+      },
+      deleteSnapshot: async () => {
+        calls.push("delete");
+      },
+    });
+
+    assert.equal(result, "snapshot-updated");
+    assert.equal(proposal.files[0].rawPath, "<winAppData>/Game");
+    assert.deepEqual(calls, ["update"]);
+  });
+
+  it("does not delete unrelated declared locations from an invalid empty manifest", async () => {
+    const current = manifest();
+    current.files = [current.files[0]];
+    current.variants = [firstVariant];
+    const proposal = buildCloudSaveCustomPathRemovalProposal(
+      current,
+      firstPath
+    );
+    let requested = false;
+
+    await assert.rejects(
+      executeCloudSaveCustomPathRemoteRemoval({
+        proposal,
+        updateSnapshot: async () => {
+          requested = true;
+        },
+        deleteSnapshot: async () => {
+          requested = true;
+        },
+      }),
+      /cloud_save_custom_path_removal_invalid_empty_snapshot/
+    );
+    assert.equal(requested, false);
+  });
+
+  it("does not make a remote request when the location is already absent", async () => {
+    const proposal = buildCloudSaveCustomPathRemovalProposal(
+      manifest(),
+      "<custom><windows><winDocuments>/Missing"
+    );
+    const calls: string[] = [];
+
+    const result = await executeCloudSaveCustomPathRemoteRemoval({
+      proposal,
+      updateSnapshot: async () => {
+        calls.push("update");
+      },
+      deleteSnapshot: async () => {
+        calls.push("delete");
+      },
+    });
+
+    assert.equal(result, "unchanged");
+    assert.deepEqual(calls, []);
   });
 
   it("is idempotent after the location is already absent", () => {

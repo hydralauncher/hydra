@@ -30,6 +30,8 @@ export function BigPictureCloudSaveHeroButton({
     isChecking: hasExecutablePath && isRefreshing && overview === null,
     isSyncing,
     hasError,
+    hasUnconfiguredCustomPaths:
+      (overview?.unconfiguredCustomPathCount ?? 0) > 0,
     state: overview?.state ?? null,
     progressStage: isSyncing ? (progress?.stage ?? null) : null,
   });

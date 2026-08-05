@@ -259,15 +259,24 @@ fn shared_directory_scan_root(
     scan_roots: &[PathBuf],
     case_sensitive: bool,
 ) -> Option<(PathBuf, String)> {
-    let root = scan_roots
-        .iter()
-        .filter(|root| root.is_dir() && path_starts_with(matched, root, case_sensitive))
-        .max_by_key(|root| root.components().count())?;
+    let root = most_specific_scan_root(matched, scan_roots, case_sensitive)?;
     let canonical_root = std::fs::canonicalize(root).ok()?;
     let canonical_matched = std::fs::canonicalize(matched).ok()?;
     let relative = canonical_matched.strip_prefix(&canonical_root).ok()?;
 
     Some((canonical_root, portable_relative_path(relative)))
+}
+
+fn most_specific_scan_root<'a>(
+    matched: &Path,
+    scan_roots: &'a [PathBuf],
+    case_sensitive: bool,
+) -> Option<&'a Path> {
+    scan_roots
+        .iter()
+        .filter(|root| root.is_dir() && path_starts_with(matched, root, case_sensitive))
+        .max_by_key(|root| root.components().count())
+        .map(PathBuf::as_path)
 }
 
 fn scan_directory(root: &Path, follow_links: bool) -> Result<ScannedCloudSavePath, String> {
@@ -398,6 +407,7 @@ fn add_empty_captured_file_roots(
     scanned_by_root: &mut BTreeMap<String, ScannedCloudSavePath>,
     resolved_path: &str,
     capture_template: &str,
+    scan_roots: &[PathBuf],
     case_sensitive: bool,
     follow_links: bool,
 ) -> Result<(), String> {
@@ -432,7 +442,9 @@ fn add_empty_captured_file_roots(
             None
         };
 
-        let resolved_root = canonical_path(&matched)?;
+        let identity_root =
+            most_specific_scan_root(&matched, scan_roots, case_sensitive).unwrap_or(&matched);
+        let resolved_root = canonical_path(identity_root)?;
         let group_key = scanned_group_key(&resolved_root, capture.as_deref());
         let candidate_id = scanned_candidate_id(resolved_path, &resolved_root, capture.as_deref());
         scanned_by_root
@@ -501,17 +513,15 @@ pub fn scan_resolved_path_with_capture(
             let mut scanned = scan_directory(&matched, follow_links)?;
             scanned.store_user_id = captured;
             scanned.case_sensitive = case_sensitive;
-            if scanned.store_user_id.is_none() {
-                if let Some((shared_root, relative_root)) =
-                    shared_directory_scan_root(&matched, &scan_roots, case_sensitive)
-                {
-                    if !relative_root.is_empty() {
-                        for file in &mut scanned.files {
-                            file.relative_path = format!("{relative_root}/{}", file.relative_path);
-                        }
+            if let Some((shared_root, relative_root)) =
+                shared_directory_scan_root(&matched, &scan_roots, case_sensitive)
+            {
+                if !relative_root.is_empty() {
+                    for file in &mut scanned.files {
+                        file.relative_path = format!("{relative_root}/{}", file.relative_path);
                     }
-                    scanned.resolved_path = canonical_path(&shared_root)?;
                 }
+                scanned.resolved_path = canonical_path(&shared_root)?;
             }
             scanned.candidate_id = scanned_candidate_id(
                 resolved_path,
@@ -528,18 +538,8 @@ pub fn scan_resolved_path_with_capture(
         }
 
         if metadata.is_file() {
-            let root = if captured.is_some() {
-                matched.parent()
-            } else {
-                scan_roots
-                    .iter()
-                    .filter(|root| {
-                        root.is_dir() && path_starts_with(&matched, root, case_sensitive)
-                    })
-                    .max_by_key(|root| root.components().count())
-                    .map(PathBuf::as_path)
-                    .or_else(|| matched.parent())
-            };
+            let root = most_specific_scan_root(&matched, &scan_roots, case_sensitive)
+                .or_else(|| matched.parent());
 
             if let Some(root) = root {
                 let resolved_root = canonical_path(root)?;
@@ -561,6 +561,7 @@ pub fn scan_resolved_path_with_capture(
                 &mut scanned_by_root,
                 resolved_path,
                 template,
+                &scan_roots,
                 case_sensitive,
                 follow_links,
             )?;

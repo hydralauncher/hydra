@@ -10,6 +10,11 @@ type CloudSavePanelAction =
       icon: "details";
     }
   | {
+      kind: "confirm-location";
+      labelKey: "cloud_save_v2_confirm_location";
+      icon: "folder";
+    }
+  | {
       kind: "verify";
       labelKey: "cloud_save_v2_check_again";
       icon: "refresh";
@@ -24,6 +29,7 @@ type CloudSavePresentationIcon =
   | "spinner"
   | "upload"
   | "restore"
+  | "folder"
   | "synced"
   | "warning";
 
@@ -49,6 +55,14 @@ export function getBigPictureCloudSaveAction(
       kind: "sync",
       labelKey: "cloud_save_v2_check_again",
       icon: "spinner",
+    };
+  }
+
+  if (action.kind === "confirm-location") {
+    return {
+      kind: "sync",
+      labelKey: action.labelKey,
+      icon: "folder",
     };
   }
 

@@ -4,9 +4,7 @@ import { describe, it } from "node:test";
 import type { RestoreManifestFile } from "@types";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
-import { cloudSaveFileKey } from "./cloud-save-contract.ts";
-// @ts-ignore The Node ESM test runner requires the source extension.
-import { getUnboundCloudSaveCustomPathRestoreCandidates } from "./custom-path-approval-policy.ts";
+import { getUnconfiguredCloudSaveCustomPathCandidates } from "./custom-path-approval-policy.ts";
 
 const file = (rawPath: string, relativePath: string): RestoreManifestFile => ({
   variantId: "default",
@@ -18,19 +16,18 @@ const file = (rawPath: string, relativePath: string): RestoreManifestFile => ({
 });
 
 describe("cloud save custom path approval policy", () => {
-  it("returns only unbound custom paths included in the restore plan", () => {
+  it("returns every remote custom path without a local binding", () => {
     const first = file("<custom><windows><winDocuments>/Game", "slot-1.sav");
     const second = file("<custom><windows><winDocuments>/Game", "slot-2.sav");
     const bound = file("<custom><windows><winAppData>/OtherGame", "save.dat");
-    const notRestored = file(
+    const mixedSnapshotCustom = file(
       "<custom><windows><winLocalAppData>/ThirdGame",
       "save.dat"
     );
     const regular = file("<winDocuments>/Game", "settings.ini");
 
-    const result = getUnboundCloudSaveCustomPathRestoreCandidates(
-      [first, second, bound, notRestored, regular],
-      [first, second, bound, regular].map(cloudSaveFileKey),
+    const result = getUnconfiguredCloudSaveCustomPathCandidates(
+      [first, second, bound, mixedSnapshotCustom, regular],
       [bound.rawPath]
     );
 
@@ -39,6 +36,10 @@ describe("cloud save custom path approval policy", () => {
         rawPath: first.rawPath,
         files: [first, second],
       },
+      {
+        rawPath: mixedSnapshotCustom.rawPath,
+        files: [mixedSnapshotCustom],
+      },
     ]);
   });
 
@@ -46,9 +47,8 @@ describe("cloud save custom path approval policy", () => {
     const second = file("<custom><windows><winDocuments>/Zeta", "save.dat");
     const first = file("<custom><windows><winDocuments>/Alpha", "save.dat");
 
-    const result = getUnboundCloudSaveCustomPathRestoreCandidates(
+    const result = getUnconfiguredCloudSaveCustomPathCandidates(
       [second, first],
-      [cloudSaveFileKey(second), cloudSaveFileKey(first)],
       []
     );
 
@@ -56,5 +56,9 @@ describe("cloud save custom path approval policy", () => {
       result.map(({ rawPath }) => rawPath),
       [first.rawPath, second.rawPath]
     );
+  });
+
+  it("does not create a candidate without remote files", () => {
+    assert.deepEqual(getUnconfiguredCloudSaveCustomPathCandidates([], []), []);
   });
 });

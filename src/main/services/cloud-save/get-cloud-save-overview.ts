@@ -8,6 +8,7 @@ import {
 import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
+import { getUnconfiguredCloudSaveCustomPathCandidates } from "./custom-path-approval-policy";
 import { getFirstSyncState, getSuggestedCloudSaveAction } from "./sync-game";
 
 export const getCloudSaveOverview = async (
@@ -28,6 +29,11 @@ export const getCloudSaveOverview = async (
     ...(analysis.anchor?.unresolvedRemoteEntryIds ?? []),
     ...analysis.merge.unresolvedRemoteEntryIds,
   ]);
+  const unconfiguredCustomPathCount =
+    getUnconfiguredCloudSaveCustomPathCandidates(
+      analysis.remoteManifest?.files ?? [],
+      analysis.customPathBindings.ready.map(({ rawPath }) => rawPath)
+    ).length;
   recordLatestCloudSaveObservation(
     objectId,
     shop,
@@ -50,6 +56,7 @@ export const getCloudSaveOverview = async (
         .filter((file) => unresolvedEntryIds.has(cloudSaveFileKey(file)))
         .map((file) => file.variantId)
     ).size,
+    unconfiguredCustomPathCount,
     warnings: analysis.localSnapshot.coverage.filter(
       (item) => item.warningCodes.length > 0
     ),

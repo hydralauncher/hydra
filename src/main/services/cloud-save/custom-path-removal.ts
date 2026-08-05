@@ -11,6 +11,37 @@ export interface CloudSaveCustomPathRemovalProposal {
   files: SnapshotFile[];
 }
 
+export type CloudSaveCustomPathRemoteRemovalResult =
+  | "unchanged"
+  | "snapshot-updated"
+  | "snapshot-deleted";
+
+export const executeCloudSaveCustomPathRemoteRemoval = async ({
+  proposal,
+  updateSnapshot,
+  deleteSnapshot,
+}: {
+  proposal: CloudSaveCustomPathRemovalProposal;
+  updateSnapshot: () => Promise<void>;
+  deleteSnapshot: () => Promise<void>;
+}): Promise<CloudSaveCustomPathRemoteRemovalResult> => {
+  if (!proposal.changed) return "unchanged";
+
+  if (proposal.files.length === 0) {
+    if (
+      proposal.customPathRawPaths.length > 0 ||
+      proposal.variants.length > 0
+    ) {
+      throw new Error("cloud_save_custom_path_removal_invalid_empty_snapshot");
+    }
+    await deleteSnapshot();
+    return "snapshot-deleted";
+  }
+
+  await updateSnapshot();
+  return "snapshot-updated";
+};
+
 export const buildCloudSaveCustomPathRemovalProposal = (
   manifest: Pick<
     RestoreManifestResponse,

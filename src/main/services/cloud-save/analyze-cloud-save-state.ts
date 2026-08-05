@@ -11,7 +11,10 @@ import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
-import { reconcileCloudSaveCustomPathsWithRemote } from "./custom-path-store";
+import {
+  getCloudSaveCustomPathTrackingState,
+  reconcileCloudSaveCustomPathsWithRemote,
+} from "./custom-path-store";
 import { getInstallationOwnedCustomPathRawPaths } from "./installation-owned-custom-paths";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
@@ -60,17 +63,32 @@ export const analyzeCloudSaveState = async (
   ) {
     throw new Error("Active Cloud Save snapshot belongs to another game");
   }
+  const anchor = await getCloudSaveSyncAnchor(
+    shop,
+    objectId,
+    context.environmentId,
+    { allowEnvironmentFallback: !activeRemoteSnapshot }
+  );
+  const customPathContext = cloudSaveCustomPathContextFromPathContext(
+    context.pathContext
+  );
   const trackingState = options.customPathBindings
     ? {
         bindings: options.customPathBindings,
         pendingRawPaths: [],
       }
-    : await reconcileCloudSaveCustomPathsWithRemote(
-        shop,
-        objectId,
-        remoteManifest?.customPathRawPaths ?? [],
-        cloudSaveCustomPathContextFromPathContext(context.pathContext)
-      );
+    : !remoteManifest && anchor
+      ? await getCloudSaveCustomPathTrackingState(
+          shop,
+          objectId,
+          customPathContext
+        )
+      : await reconcileCloudSaveCustomPathsWithRemote(
+          shop,
+          objectId,
+          remoteManifest?.customPathRawPaths ?? [],
+          customPathContext
+        );
   const customPathBindings = await getUsableCloudSaveCustomPathBindings(
     objectId,
     shop,
@@ -142,13 +160,6 @@ export const analyzeCloudSaveState = async (
     pathContext: __,
     ...localSnapshot
   } = localSnapshotContext;
-  const anchor = await getCloudSaveSyncAnchor(
-    shop,
-    objectId,
-    environmentId,
-    localSnapshot.aggregateHash,
-    localSnapshot.fileCount
-  );
   const merge = mergeUserVariantSnapshots({
     local: localSnapshotContext,
     remoteVariants: remoteManifest?.variants ?? [],

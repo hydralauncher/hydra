@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { isCloudSaveSyncAnchorKeyForGame } from "./sync-anchor-key.ts";
+import {
+  getCloudSaveSyncAnchorEnvironmentFromKey,
+  isCloudSaveSyncAnchorKeyForGame,
+} from "./sync-anchor-key.ts";
 
 describe("cloud save sync anchor keys", () => {
   it("matches legacy and environment anchors for one user and game", () => {
@@ -47,5 +50,37 @@ describe("cloud save sync anchor keys", () => {
         false
       );
     }
+  });
+
+  it("extracts only an environment belonging to the current user and game", () => {
+    const key = JSON.stringify([
+      "user",
+      "steam",
+      "game",
+      "environment",
+      "environment-a",
+    ]);
+    assert.equal(
+      getCloudSaveSyncAnchorEnvironmentFromKey(key, "user", "steam", "game"),
+      "environment-a"
+    );
+    assert.equal(
+      getCloudSaveSyncAnchorEnvironmentFromKey(
+        key,
+        "other-user",
+        "steam",
+        "game"
+      ),
+      null
+    );
+    assert.equal(
+      getCloudSaveSyncAnchorEnvironmentFromKey(
+        JSON.stringify(["user", "steam", "game"]),
+        "user",
+        "steam",
+        "game"
+      ),
+      null
+    );
   });
 });

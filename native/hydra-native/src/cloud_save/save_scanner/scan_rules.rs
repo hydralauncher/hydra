@@ -410,7 +410,7 @@ mod tests {
                 path: format!("{}/*/slot*.save", profiles.display()),
                 case_sensitive: false,
                 dynamic: true,
-                scan_root: Some(profiles.display().to_string()),
+                scan_root: Some(format!("{}/*", profiles.display())),
             }],
             unresolved_tokens: vec![],
         }])
@@ -429,6 +429,125 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["slot0-s-manual-0.save", "slot0-s.save"]
         );
+    }
+
+    #[test]
+    fn preserves_intermediate_file_glob_matches_below_a_captured_profile() {
+        let temp = tempdir().unwrap();
+        let profiles = temp.path().join("Stray");
+        let slots = profiles.join("76561197960267366/Slots");
+        for slot in ["Slot_1", "Slot_2"] {
+            let directory = slots.join(slot);
+            fs::create_dir_all(&directory).unwrap();
+            fs::write(directory.join("Data.sav"), slot.as_bytes()).unwrap();
+        }
+
+        let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "stray-slots".into(),
+            kind: "file".into(),
+            raw_path:
+                "<winLocalAppData>/Hk_project/Saved/SaveGames/<storeUserId>/Slots/Slot_*/Data.sav"
+                    .into(),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![ResolvedCloudSavePath {
+                path: format!("{}/*/Slots/Slot_*/Data.sav", profiles.display()),
+                case_sensitive: false,
+                dynamic: true,
+                scan_root: Some(format!("{}/*/Slots", profiles.display())),
+            }],
+            unresolved_tokens: vec![],
+        }])
+        .unwrap();
+
+        assert_eq!(scanned[0].scanned_paths.len(), 1);
+        let profile = &scanned[0].scanned_paths[0];
+        assert_eq!(profile.store_user_id.as_deref(), Some("76561197960267366"));
+        assert!(profile
+            .resolved_path
+            .replace('\\', "/")
+            .ends_with("/76561197960267366/Slots"));
+        assert_eq!(
+            profile
+                .files
+                .iter()
+                .map(|file| file.relative_path.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Slot_1/Data.sav", "Slot_2/Data.sav"]
+        );
+    }
+
+    #[test]
+    fn preserves_intermediate_directory_glob_matches_below_a_captured_profile() {
+        let temp = tempdir().unwrap();
+        let profiles = temp.path().join("Game");
+        let slots = profiles.join("Goldberg/Slots");
+        for slot in ["Slot_A", "Slot_B"] {
+            let directory = slots.join(slot);
+            fs::create_dir_all(&directory).unwrap();
+            fs::write(directory.join("save.dat"), slot.as_bytes()).unwrap();
+        }
+
+        let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "directory-slots".into(),
+            kind: "dir".into(),
+            raw_path: "<home>/Game/<storeUserId>/Slots/Slot_*".into(),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![ResolvedCloudSavePath {
+                path: format!("{}/*/Slots/Slot_*", profiles.display()),
+                case_sensitive: false,
+                dynamic: true,
+                scan_root: Some(format!("{}/*/Slots", profiles.display())),
+            }],
+            unresolved_tokens: vec![],
+        }])
+        .unwrap();
+
+        assert_eq!(scanned[0].scanned_paths.len(), 1);
+        let profile = &scanned[0].scanned_paths[0];
+        assert_eq!(profile.store_user_id.as_deref(), Some("Goldberg"));
+        assert_eq!(
+            profile
+                .files
+                .iter()
+                .map(|file| file.relative_path.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Slot_A/save.dat", "Slot_B/save.dat"]
+        );
+    }
+
+    #[test]
+    fn preserves_wildcard_segments_that_precede_a_captured_profile() {
+        let temp = tempdir().unwrap();
+        let games = temp.path().join("Games");
+        let profile = games.join("Game_A/Goldberg");
+        fs::create_dir_all(&profile).unwrap();
+        fs::write(profile.join("slot.dat"), b"save").unwrap();
+
+        let scanned = scan_rules(vec![ResolvedCloudSaveRule {
+            rule_id: "wildcard-before-profile".into(),
+            kind: "file".into(),
+            raw_path: "<home>/Games/Game_*/<storeUserId>/slot.dat".into(),
+            source: "test".into(),
+            tags: vec!["save".into()],
+            when: vec![],
+            resolved_paths: vec![ResolvedCloudSavePath {
+                path: format!("{}/Game_*/*/slot.dat", games.display()),
+                case_sensitive: false,
+                dynamic: true,
+                scan_root: Some(games.display().to_string()),
+            }],
+            unresolved_tokens: vec![],
+        }])
+        .unwrap();
+
+        assert_eq!(scanned[0].scanned_paths.len(), 1);
+        let profile = &scanned[0].scanned_paths[0];
+        assert_eq!(profile.store_user_id.as_deref(), Some("Goldberg"));
+        assert_eq!(profile.files[0].relative_path, "Game_A/Goldberg/slot.dat");
     }
 
     #[test]

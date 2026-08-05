@@ -7,7 +7,7 @@ use crate::cloud_save::manifest::types::{CloudSaveRule, CloudSaveRuleCondition};
 
 pub const IDENTITY_VERSION: u32 = 1;
 pub const RULE_ID_VERSION: u32 = 1;
-pub const DISCOVERY_ENGINE_VERSION: u32 = 3;
+pub const DISCOVERY_ENGINE_VERSION: u32 = 4;
 
 #[napi(object)]
 #[derive(Clone, Debug, Serialize)]

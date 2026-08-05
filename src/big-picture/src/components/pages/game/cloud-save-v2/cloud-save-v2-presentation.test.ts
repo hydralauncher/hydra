@@ -25,4 +25,19 @@ describe("getBigPictureCloudSaveAction", () => {
       kind: "conflict",
     });
   });
+
+  it("keeps custom path confirmation actionable in Big Picture", () => {
+    assert.deepEqual(
+      getBigPictureCloudSaveAction({
+        kind: "confirm-location",
+        labelKey: "cloud_save_v2_confirm_location",
+        icon: "folder",
+      }),
+      {
+        kind: "sync",
+        labelKey: "cloud_save_v2_confirm_location",
+        icon: "folder",
+      }
+    );
+  });
 });
