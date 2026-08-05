@@ -1294,6 +1294,7 @@
     "scan_games_complete_added_and_linked_description": "Se añadieron {{added}} juegos nuevos a tu biblioteca y se encontró el ejecutable de {{linked}} juegos que ya estaban en ella",
     "scan_games_complete_added_description": "Se añadieron {{added}} juegos nuevos a tu biblioteca",
     "scan_games_complete_linked_description": "Se encontró el ejecutable de {{linked}} juegos de tu biblioteca",
+    "scan_games_complete_pending_description": "Se encontraron {{pending}} ejecutables para los que debes elegir a qué juego pertenecen",
     "scan_games_no_results_title": "Escaneo de juegos finalizado",
     "scan_games_no_results_description": "No se encontraron juegos instalados"
   },

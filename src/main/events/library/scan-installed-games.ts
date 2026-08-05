@@ -34,6 +34,7 @@ const SCAN_DIRECTORIES = [
 const DISCOVERED_GAMES_SHOP: GameShop = "steam";
 const DISCOVERED_GAMES_CHUNK_SIZE = 4;
 const UNNAMED_PATH_CANDIDATE_LIMIT = 40;
+const ASSET_LOOKUP_CONCURRENCY = 8;
 
 interface FoundGame {
   title: string;
@@ -45,6 +46,11 @@ interface AmbiguousChoice {
   title: string;
   iconUrl: string | null;
 }
+
+type ChoiceLookup =
+  | { status: "found"; choice: AmbiguousChoice }
+  | { status: "missing" }
+  | { status: "failed" };
 
 interface AmbiguousMatch {
   executablePath: string;
@@ -459,49 +465,111 @@ const collectUnnamedPaths = (
   return results.flatMap((result) => result.unnamed);
 };
 
+const createLimiter = (limit: number) => {
+  let active = 0;
+  const waiting: (() => void)[] = [];
+
+  const acquire = async () => {
+    if (active < limit) {
+      active += 1;
+      return;
+    }
+
+    await new Promise<void>((resolve) => waiting.push(resolve));
+  };
+
+  const release = () => {
+    const next = waiting.shift();
+
+    if (next) {
+      next();
+    } else {
+      active -= 1;
+    }
+  };
+
+  return async <T>(task: () => Promise<T>) => {
+    await acquire();
+
+    try {
+      return await task();
+    } finally {
+      release();
+    }
+  };
+};
+
 const createChoiceResolver = () => {
-  const cache = new Map<string, Promise<AmbiguousChoice | null>>();
+  const cache = new Map<string, Promise<ChoiceLookup>>();
+  const limit = createLimiter(ASSET_LOOKUP_CONCURRENCY);
 
   return (objectId: string) => {
     const cached = cache.get(objectId);
     if (cached !== undefined) return cached;
 
-    const pending = getGameAssets(objectId, DISCOVERED_GAMES_SHOP)
-      .then((assets) =>
+    const pending = limit(() =>
+      getGameAssets(objectId, DISCOVERED_GAMES_SHOP)
+    ).then(
+      (assets): ChoiceLookup =>
         assets?.title
-          ? { objectId, title: assets.title, iconUrl: assets.iconUrl ?? null }
-          : null
-      )
-      .catch((err) => {
+          ? {
+              status: "found",
+              choice: {
+                objectId,
+                title: assets.title,
+                iconUrl: assets.iconUrl ?? null,
+              },
+            }
+          : { status: "missing" },
+      (err): ChoiceLookup => {
         logger.error(
           `[ScanInstalledGames] Failed to fetch assets for ${objectId}:`,
           err
         );
-        return null;
-      });
+        return { status: "failed" };
+      }
+    );
 
     cache.set(objectId, pending);
     return pending;
   };
 };
 
+const readLookups = (lookups: ChoiceLookup[]) => ({
+  choices: lookups.flatMap((lookup) =>
+    lookup.status === "found" ? [lookup.choice] : []
+  ),
+  failed: lookups.some((lookup) => lookup.status === "failed"),
+});
+
 const nameByFolder = async (
   unnamed: { executablePath: string; objectIds: string[] }[],
-  resolveChoice: (objectId: string) => Promise<AmbiguousChoice | null>,
+  resolveChoice: (objectId: string) => Promise<ChoiceLookup>,
   pathByObjectId: Map<string, string>,
   ambiguousMatches: AmbiguousMatch[]
 ) => {
   for (const entries of chunk(unnamed, DISCOVERED_GAMES_CHUNK_SIZE)) {
     await Promise.all(
       entries.map(async ({ executablePath, objectIds }) => {
-        const choices = (await Promise.all(objectIds.map(resolveChoice)))
-          .filter((choice) => choice !== null)
-          .filter((choice) => namesTheFolder(executablePath, choice.title));
+        const { choices: named, failed } = readLookups(
+          await Promise.all(objectIds.map(resolveChoice))
+        );
+
+        const choices = named.filter((choice) =>
+          namesTheFolder(executablePath, choice.title)
+        );
 
         if (choices.length === 0) return;
 
         if (choices.length === 1) {
           const [choice] = choices;
+
+          if (failed) {
+            logger.info(
+              `[ScanInstalledGames] Not naming ${executablePath} after ${choice.title}, some candidate lookups failed`
+            );
+            return;
+          }
 
           if (pathByObjectId.has(choice.objectId)) return;
 
@@ -540,9 +608,16 @@ const findGamesOutsideLibrary = async (
   for (const entries of chunk(undecided, DISCOVERED_GAMES_CHUNK_SIZE)) {
     await Promise.all(
       entries.map(async ({ executablePath, objectIds }) => {
-        const choices = (
+        const { choices, failed } = readLookups(
           await Promise.all(objectIds.map(resolveChoice))
-        ).filter((choice) => choice !== null);
+        );
+
+        if (choices.length < 2 && failed) {
+          logger.info(
+            `[ScanInstalledGames] Skipping ${executablePath}, some of its ${objectIds.length} candidate lookups failed`
+          );
+          return;
+        }
 
         if (choices.length === 0) {
           logger.info(
@@ -722,26 +797,47 @@ const getScanNotificationDescriptionKey = (
   return "scan_games_complete_linked_description";
 };
 
+const getScanNotificationKeys = (
+  addedCount: number,
+  linkedCount: number,
+  pendingCount: number
+) => {
+  if (addedCount + linkedCount > 0) {
+    return {
+      title: "scan_games_complete_title",
+      description: getScanNotificationDescriptionKey(addedCount, linkedCount),
+    };
+  }
+
+  if (pendingCount > 0) {
+    return {
+      title: "scan_games_complete_title",
+      description: "scan_games_complete_pending_description",
+    };
+  }
+
+  return {
+    title: "scan_games_no_results_title",
+    description: "scan_games_no_results_description",
+  };
+};
+
 async function publishScanNotification(
   addedCount: number,
-  linkedCount: number
+  linkedCount: number,
+  pendingCount: number
 ): Promise<void> {
-  const hasResults = addedCount + linkedCount > 0;
+  const keys = getScanNotificationKeys(addedCount, linkedCount, pendingCount);
 
   await LocalNotificationManager.createNotification(
     "SCAN_GAMES_COMPLETE",
-    t(
-      hasResults ? "scan_games_complete_title" : "scan_games_no_results_title",
-      {
-        ns: "notifications",
-      }
-    ),
-    t(
-      hasResults
-        ? getScanNotificationDescriptionKey(addedCount, linkedCount)
-        : "scan_games_no_results_description",
-      { ns: "notifications", added: addedCount, linked: linkedCount }
-    ),
+    t(keys.title, { ns: "notifications" }),
+    t(keys.description, {
+      ns: "notifications",
+      added: addedCount,
+      linked: linkedCount,
+      pending: pendingCount,
+    }),
     { url: "/library?openScanModal=true" }
   );
 }
@@ -834,7 +930,11 @@ const scanInstalledGames = async (
   );
 
   WindowManager.sendToAppWindows("on-library-batch-complete");
-  await publishScanNotification(addedGames.length, linkedGames.length);
+  await publishScanNotification(
+    addedGames.length,
+    linkedGames.length,
+    outsideLibrary.ambiguousMatches.length
+  );
 
   return {
     linkedGames,

@@ -1334,6 +1334,7 @@
     "scan_games_complete_added_and_linked_description": "В вашу библиотеку добавлено {{added}} новых игр, а также найден исполняемый файл для {{linked}} игр, которые уже были в ней",
     "scan_games_complete_added_description": "В вашу библиотеку добавлено {{added}} новых игр",
     "scan_games_complete_linked_description": "Найден исполняемый файл для {{linked}} игр в вашей библиотеке",
+    "scan_games_complete_pending_description": "Найдено {{pending}} исполняемых файлов, для которых нужно выбрать игру",
     "scan_games_no_results_title": "Сканирование игр завершено",
     "scan_games_no_results_description": "Установленные игры не найдены"
   },

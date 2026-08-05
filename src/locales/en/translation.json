@@ -1343,6 +1343,7 @@
     "scan_games_complete_added_and_linked_description": "Added {{added}} new games to your library and found the executable of {{linked}} games that were already in it",
     "scan_games_complete_added_description": "Added {{added}} new games to your library",
     "scan_games_complete_linked_description": "Found the executable of {{linked}} games in your library",
+    "scan_games_complete_pending_description": "Found {{pending}} executables that need you to choose which game they belong to",
     "scan_games_no_results_title": "Scanning for games finished",
     "scan_games_no_results_description": "No installed games were found"
   },
