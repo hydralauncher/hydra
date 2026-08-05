@@ -134,7 +134,7 @@ export function SettingsContextCompatibility() {
         setDefaultWinePrefixBasePath("");
         setDefaultWinePrefixPath(userPreferences?.defaultWinePrefixPath ?? "");
       });
-  }, [userPreferences?.defaultWinePrefixPath]);
+  }, []);
 
   useEffect(() => {
     if (window.electron.platform !== "linux") return;

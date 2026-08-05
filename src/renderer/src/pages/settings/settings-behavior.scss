@@ -114,6 +114,18 @@
     gap: calc(globals.$spacing-unit / 2);
   }
 
+  &__env-vars-label {
+    margin: 0;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+  }
+
+  &__env-vars-help {
+    margin: 0;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+  }
+
   &__textarea {
     width: 100%;
     min-height: 4.5rem;

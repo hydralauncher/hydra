@@ -286,6 +286,7 @@ const launchWindowsBinaryOnLinux = async (
   launchOptions: string | null | undefined,
   useMangohud: boolean,
   useGamemode: boolean,
+  protonLogEnabled: boolean,
   compatibilityEnvironmentVariables: Record<string, string>
 ): Promise<boolean> => {
   const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
@@ -295,15 +296,6 @@ const launchWindowsBinaryOnLinux = async (
   );
 
   await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
-
-  const userPreferences = await db
-    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-      valueEncoding: "json",
-    })
-    .catch(() => null);
-
-  const protonLogEnabled =
-    game?.protonLogEnabled ?? userPreferences?.protonLogEnabled === true;
 
   try {
     await Umu.launchExecutable(parsedPath, [], {
@@ -368,6 +360,10 @@ export const launchGame = async (
       game?.autoRunGamemode === true) &&
     isGamemodeAvailable();
 
+  const protonLogEnabled =
+    userPreferences?.protonLogEnabled === true ||
+    game?.protonLogEnabled === true;
+
   if (game) {
     await gamesSublevel.put(gameKey, {
       ...updateGameExecutablePath(game, parsedPath),
@@ -392,12 +388,12 @@ export const launchGame = async (
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  const compatibilityEnvironmentVariables =
-    parseCompatibilityEnvironmentVariables(
-      userPreferences?.compatibilityEnvironmentVariables
-    );
-
   if (process.platform === "linux") {
+    const compatibilityEnvironmentVariables =
+      parseCompatibilityEnvironmentVariables(
+        userPreferences?.compatibilityEnvironmentVariables
+      );
+
     if (isWindowsExecutable(parsedPath)) {
       const launched = await launchWindowsBinaryOnLinux(
         gameKey,
@@ -407,6 +403,7 @@ export const launchGame = async (
         launchOptions,
         useMangohud,
         useGamemode,
+        protonLogEnabled,
         compatibilityEnvironmentVariables
       );
 

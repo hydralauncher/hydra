@@ -4,8 +4,7 @@ import { SystemPath } from "./services/system-path";
 
 export const defaultDownloadsPath = SystemPath.getPath("downloads");
 
-const mainViteApiUrl = import.meta.env.MAIN_VITE_API_URL ?? "";
-export const isStaging = mainViteApiUrl.includes("staging");
+export const isStaging = import.meta.env.MAIN_VITE_API_URL.includes("staging");
 
 export const windowsStartMenuPath = path.join(
   SystemPath.getPath("appData"),

@@ -362,15 +362,11 @@ export function GameCompatibilitySettingsTab({
 
         <Checkbox
           id="game-compatibility-settings-proton-log"
-          label={t("Proton logging")}
+          label="Proton logging"
           secondaryText={
             globalProtonLogEnabled
-              ? t(
-                  "This option is disabled because Proton logging is enabled globally"
-                )
-              : t(
-                  "Write Proton debug logs for this game. Overrides the global setting."
-                )
+              ? "This option is disabled because Proton logging is enabled globally"
+              : "Write Proton debug logs for this game."
           }
           checked={protonLogEnabled || globalProtonLogEnabled}
           disabled={globalProtonLogEnabled}
