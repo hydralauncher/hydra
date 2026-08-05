@@ -557,7 +557,6 @@
     "download_error_alldebrid_rate_limit_exceeded": "Batas kecepatan AllDebrid terlampaui. Harap tunggu dan coba lagi.",
     "download_error_premiumize_unavailable": "Premiumize sedang tidak tersedia untuk sementara. Silakan coba lagi nanti.",
     "download_error_alldebrid_unavailable": "AllDebrid sedang tidak tersedia untuk sementara. Silakan coba lagi nanti.",
-    "download_error_vikingfile_nimbus_quota_exceeded": "Kuota Nimbus untuk VikingFile hari ini telah habis. Silakan coba lagi besok.",
     "download_error_invalid_magnet": "Link magnet tidak valid.",
     "download_error_torrent_metadata_timeout": "Waktu habis saat mengambil metadata torrent. Silakan coba lagi.",
     "download_error_torrent_metadata_incomplete": "Metadata torrent tidak lengkap dan tidak dapat diproses saat ini.",
