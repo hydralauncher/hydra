@@ -41,6 +41,11 @@ export function SettingsContextCompatibility() {
 
   const [autoRunMangohud, setAutoRunMangohud] = useState(false);
   const [autoRunGamemode, setAutoRunGamemode] = useState(false);
+  const [protonLogEnabled, setProtonLogEnabled] = useState(false);
+  const [
+    compatibilityEnvironmentVariables,
+    setCompatibilityEnvironmentVariables,
+  ] = useState("");
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
 
@@ -82,6 +87,10 @@ export function SettingsContextCompatibility() {
     setSelectedDefaultProtonPath(userPreferences.defaultProtonPath ?? "");
     setAutoRunMangohud(userPreferences.autoRunMangohud ?? false);
     setAutoRunGamemode(userPreferences.autoRunGamemode ?? false);
+    setProtonLogEnabled(userPreferences.protonLogEnabled ?? false);
+    setCompatibilityEnvironmentVariables(
+      userPreferences.compatibilityEnvironmentVariables ?? ""
+    );
     setDefaultWinePrefixPath(
       userPreferences.defaultWinePrefixPath ?? defaultWinePrefixBasePath
     );
@@ -125,7 +134,7 @@ export function SettingsContextCompatibility() {
         setDefaultWinePrefixBasePath("");
         setDefaultWinePrefixPath(userPreferences?.defaultWinePrefixPath ?? "");
       });
-  }, []);
+  }, [userPreferences?.defaultWinePrefixPath]);
 
   useEffect(() => {
     if (window.electron.platform !== "linux") return;
@@ -369,6 +378,54 @@ export function SettingsContextCompatibility() {
                 {!mangohudAvailable && (
                   <Tooltip id="settings-mangohud-unavailable-tooltip" />
                 )}
+              </div>
+
+              <div className="settings-behavior__mangohud-toggle">
+                <CheckboxField
+                  label={
+                    <span>
+                      <span>{t("enable_proton_logging")}</span>
+                    </span>
+                  }
+                  checked={protonLogEnabled}
+                  onChange={() =>
+                    setProtonLogEnabled((previousValue) => {
+                      const nextValue = !previousValue;
+                      updateUserPreferences({ protonLogEnabled: nextValue });
+                      return nextValue;
+                    })
+                  }
+                />
+              </div>
+
+              <div className="settings-context-compatibility__env-vars">
+                <label
+                  className="settings-context-compatibility__env-vars-label"
+                  htmlFor="compatibility-environment-variables"
+                >
+                  {t("compatibility_environment_variables")}
+                </label>
+                <textarea
+                  id="compatibility-environment-variables"
+                  className="settings-context-compatibility__textarea"
+                  value={compatibilityEnvironmentVariables}
+                  onChange={(event) =>
+                    setCompatibilityEnvironmentVariables(event.target.value)
+                  }
+                  onBlur={() =>
+                    updateUserPreferences({
+                      compatibilityEnvironmentVariables:
+                        compatibilityEnvironmentVariables || null,
+                    })
+                  }
+                  placeholder={t(
+                    "compatibility_environment_variables_placeholder"
+                  )}
+                  rows={5}
+                />
+                <p className="settings-context-compatibility__env-vars-help">
+                  {t("compatibility_environment_variables_description")}
+                </p>
               </div>
             </div>
           </div>

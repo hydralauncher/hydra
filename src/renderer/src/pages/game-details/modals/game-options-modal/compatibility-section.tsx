@@ -18,6 +18,7 @@ interface CompatibilitySettingsSectionProps {
   selectedProtonPath: string;
   autoRunGamemode: boolean;
   autoRunMangohud: boolean;
+  protonLogEnabled: boolean;
   globalAutoRunGamemode: boolean;
   globalAutoRunMangohud: boolean;
   gamemodeAvailable: boolean;
@@ -30,6 +31,7 @@ interface CompatibilitySettingsSectionProps {
   onOpenWinetricks: () => Promise<void>;
   onChangeGamemodeState: (value: boolean) => Promise<void>;
   onChangeMangohudState: (value: boolean) => Promise<void>;
+  onChangeProtonLogState: (value: boolean) => Promise<void>;
   onChangeProtonVersion: (value: string) => void;
 }
 
@@ -40,6 +42,7 @@ export function CompatibilitySettingsSection({
   selectedProtonPath,
   autoRunGamemode,
   autoRunMangohud,
+  protonLogEnabled,
   globalAutoRunGamemode,
   globalAutoRunMangohud,
   gamemodeAvailable,
@@ -52,6 +55,7 @@ export function CompatibilitySettingsSection({
   onOpenWinetricks,
   onChangeGamemodeState,
   onChangeMangohudState,
+  onChangeProtonLogState,
   onChangeProtonVersion,
 }: Readonly<CompatibilitySettingsSectionProps>) {
   const { t } = useTranslation("game_details");
@@ -253,6 +257,18 @@ export function CompatibilitySettingsSection({
           {mangohudToggleDisabled && mangohudTooltipId && (
             <Tooltip id={mangohudTooltipId} />
           )}
+        </div>
+
+        <div className="game-options-modal__mangohud-toggle">
+          <CheckboxField
+            label={
+              <span>
+                <span>{t("proton_logging")}</span>
+              </span>
+            }
+            checked={protonLogEnabled}
+            onChange={(event) => onChangeProtonLogState(event.target.checked)}
+          />
         </div>
       </div>
 

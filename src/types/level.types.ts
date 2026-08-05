@@ -62,6 +62,7 @@ export interface Game {
   launchOptions?: string | null;
   autoRunMangohud?: boolean | null;
   autoRunGamemode?: boolean | null;
+  protonLogEnabled?: boolean | null;
   favorite?: boolean;
   isPinned?: boolean;
   achievementCount?: number;
@@ -182,6 +183,8 @@ export interface UserPreferences {
   globalTrackersUrl?: string;
   appendGlobalTrackersUrl?: boolean;
   defaultProtonPath?: string | null;
+  protonLogEnabled?: boolean;
+  compatibilityEnvironmentVariables?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;

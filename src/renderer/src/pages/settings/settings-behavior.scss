@@ -107,4 +107,23 @@
     padding-top: calc(globals.$spacing-unit / 2);
     gap: calc(globals.$spacing-unit * 1.25);
   }
+
+  &__env-vars {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__textarea {
+    width: 100%;
+    min-height: 4.5rem;
+    resize: vertical;
+    font-family: var(--font-space-grotesk), monospace;
+    font-size: 13px;
+    padding: calc(globals.$spacing-unit / 3);
+    background: globals.$dark-background-color;
+    color: globals.$body-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+  }
 }

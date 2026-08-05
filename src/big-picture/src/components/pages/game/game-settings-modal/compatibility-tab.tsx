@@ -59,6 +59,7 @@ type ElectronCompatibilityBridge = Pick<
   | "selectGameProtonPath"
   | "toggleGameGamemode"
   | "toggleGameMangohud"
+  | "toggleGameProtonLog"
 >;
 
 export function GameCompatibilitySettingsTab({
@@ -84,6 +85,9 @@ export function GameCompatibilitySettingsTab({
   const [autoRunMangohud, setAutoRunMangohud] = useState(
     game.autoRunMangohud ?? false
   );
+  const [protonLogEnabled, setProtonLogEnabled] = useState(
+    game.protonLogEnabled ?? false
+  );
   const [winePickerOpen, setWinePickerOpen] = useState(false);
   const [winePickerInitialPath, setWinePickerInitialPath] = useState<
     string | undefined
@@ -94,6 +98,7 @@ export function GameCompatibilitySettingsTab({
     setWinePrefixPath(game.winePrefixPath ?? null);
     setAutoRunGamemode(game.autoRunGamemode ?? false);
     setAutoRunMangohud(game.autoRunMangohud ?? false);
+    setProtonLogEnabled(game.protonLogEnabled ?? false);
   }, [game]);
 
   useEffect(() => {
@@ -198,6 +203,14 @@ export function GameCompatibilitySettingsTab({
     async (checked: boolean) => {
       setAutoRunMangohud(checked);
       await electron.toggleGameMangohud(game.shop, game.objectId, checked);
+    },
+    [electron, game.shop, game.objectId]
+  );
+
+  const handleToggleProtonLog = useCallback(
+    async (checked: boolean) => {
+      setProtonLogEnabled(checked);
+      await electron.toggleGameProtonLog(game.shop, game.objectId, checked);
     },
     [electron, game.shop, game.objectId]
   );
@@ -343,6 +356,19 @@ export function GameCompatibilitySettingsTab({
           block
           onChange={(checked) => {
             handleToggleMangohud(checked).catch(() => {});
+          }}
+        />
+
+        <Checkbox
+          id="game-compatibility-settings-proton-log"
+          label={t("Proton logging")}
+          secondaryText={t(
+            "Write Proton debug logs for this game. Overrides the global setting."
+          )}
+          checked={protonLogEnabled}
+          block
+          onChange={(checked) => {
+            handleToggleProtonLog(checked).catch(() => {});
           }}
         />
       </SettingsSection>

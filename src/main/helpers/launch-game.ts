@@ -50,6 +50,40 @@ const ensureExecutablePermission = (executablePath: string) => {
   }
 };
 
+const parseCompatibilityEnvironmentVariables = (
+  rawVariables: string | null | undefined
+): Record<string, string> => {
+  if (!rawVariables) {
+    return {};
+  }
+
+  const environmentVariables: Record<string, string> = {};
+  const envVariableNameRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+  for (const rawLine of rawVariables.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const equalsIndex = line.indexOf("=");
+    if (equalsIndex <= 0) {
+      continue;
+    }
+
+    const name = line.slice(0, equalsIndex).trim();
+    const value = line.slice(equalsIndex + 1);
+
+    if (!envVariableNameRegex.test(name)) {
+      continue;
+    }
+
+    environmentVariables[name] = value;
+  }
+
+  return environmentVariables;
+};
+
 const launchNatively = (
   executablePath: string,
   launchOptions?: string | null,
@@ -135,7 +169,8 @@ const launchWithWine = async (
   executablePath: string,
   launchOptions?: string | null,
   useMangohud = false,
-  useGamemode = false
+  useGamemode = false,
+  compatibilityEnvironmentVariables: Record<string, string> = {}
 ): Promise<boolean> => {
   const workingDirectory = path.dirname(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
@@ -159,6 +194,7 @@ const launchWithWine = async (
         cwd: workingDirectory,
         env: {
           ...process.env,
+          ...compatibilityEnvironmentVariables,
           ...resolvedLaunchCommand.env,
         },
       }
@@ -249,7 +285,8 @@ const launchWindowsBinaryOnLinux = async (
   game: Game | undefined,
   launchOptions: string | null | undefined,
   useMangohud: boolean,
-  useGamemode: boolean
+  useGamemode: boolean,
+  compatibilityEnvironmentVariables: Record<string, string>
 ): Promise<boolean> => {
   const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
   const winePrefixPath = Wine.getEffectivePrefixPath(
@@ -259,6 +296,15 @@ const launchWindowsBinaryOnLinux = async (
 
   await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
 
+  const userPreferences = await db
+    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    })
+    .catch(() => null);
+
+  const protonLogEnabled =
+    game?.protonLogEnabled ?? userPreferences?.protonLogEnabled === true;
+
   try {
     await Umu.launchExecutable(parsedPath, [], {
       winePrefixPath,
@@ -267,6 +313,8 @@ const launchWindowsBinaryOnLinux = async (
       launchOptions,
       useGamemode,
       useMangohud,
+      protonLogEnabled,
+      compatibilityEnvironmentVariables,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
@@ -278,7 +326,8 @@ const launchWindowsBinaryOnLinux = async (
     parsedPath,
     launchOptions,
     useMangohud,
-    useGamemode
+    useGamemode,
+    compatibilityEnvironmentVariables
   );
 
   if (launchedWithWine) {
@@ -343,6 +392,11 @@ export const launchGame = async (
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
+  const compatibilityEnvironmentVariables =
+    parseCompatibilityEnvironmentVariables(
+      userPreferences?.compatibilityEnvironmentVariables
+    );
+
   if (process.platform === "linux") {
     if (isWindowsExecutable(parsedPath)) {
       const launched = await launchWindowsBinaryOnLinux(
@@ -352,7 +406,8 @@ export const launchGame = async (
         game,
         launchOptions,
         useMangohud,
-        useGamemode
+        useGamemode,
+        compatibilityEnvironmentVariables
       );
 
       if (launched) return null;

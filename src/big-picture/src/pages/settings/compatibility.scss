@@ -63,6 +63,25 @@
     gap: calc(var(--spacing-unit));
   }
 
+  &__env-vars-group {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) / 2);
+  }
+
+  &__env-vars-textarea {
+    width: 100%;
+    min-height: 4.5rem;
+    resize: vertical;
+    font-family: var(--font-space-grotesk), monospace;
+    font-size: 13px;
+    padding: calc(var(--spacing-unit) * 0.5);
+    background: var(--surface-elevated);
+    color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+  }
+
   &__helper-note {
     opacity: 0.7;
   }
