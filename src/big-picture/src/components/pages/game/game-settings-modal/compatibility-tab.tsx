@@ -217,6 +217,7 @@ export function GameCompatibilitySettingsTab({
 
   const globalAutoRunGamemode = userPreferences?.autoRunGamemode ?? false;
   const globalAutoRunMangohud = userPreferences?.autoRunMangohud ?? false;
+  const globalProtonLogEnabled = userPreferences?.protonLogEnabled ?? false;
 
   const gamemodeDisabled = !gamemodeAvailable || globalAutoRunGamemode;
   const mangohudDisabled = !mangohudAvailable || globalAutoRunMangohud;
@@ -362,10 +363,17 @@ export function GameCompatibilitySettingsTab({
         <Checkbox
           id="game-compatibility-settings-proton-log"
           label={t("Proton logging")}
-          secondaryText={t(
-            "Write Proton debug logs for this game. Overrides the global setting."
-          )}
-          checked={protonLogEnabled}
+          secondaryText={
+            globalProtonLogEnabled
+              ? t(
+                  "This option is disabled because Proton logging is enabled globally"
+                )
+              : t(
+                  "Write Proton debug logs for this game. Overrides the global setting."
+                )
+          }
+          checked={protonLogEnabled || globalProtonLogEnabled}
+          disabled={globalProtonLogEnabled}
           block
           onChange={(checked) => {
             handleToggleProtonLog(checked).catch(() => {});

@@ -153,6 +153,7 @@ export function GameOptionsModal({
 
   const globalAutoRunGamemode = userPreferences?.autoRunGamemode === true;
   const globalAutoRunMangohud = userPreferences?.autoRunMangohud === true;
+  const globalProtonLogEnabled = userPreferences?.protonLogEnabled === true;
   const hasAchievements =
     (achievements?.filter((a) => a.unlocked).length ?? 0) > 0;
   const deleting = isGameDeleting(game.id);
@@ -1055,6 +1056,7 @@ export function GameOptionsModal({
                   protonLogEnabled={protonLogEnabled}
                   globalAutoRunGamemode={globalAutoRunGamemode}
                   globalAutoRunMangohud={globalAutoRunMangohud}
+                  globalProtonLogEnabled={globalProtonLogEnabled}
                   gamemodeAvailable={gamemodeAvailable}
                   mangohudAvailable={mangohudAvailable}
                   winetricksAvailable={winetricksAvailable}

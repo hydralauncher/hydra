@@ -21,6 +21,7 @@ interface CompatibilitySettingsSectionProps {
   protonLogEnabled: boolean;
   globalAutoRunGamemode: boolean;
   globalAutoRunMangohud: boolean;
+  globalProtonLogEnabled: boolean;
   gamemodeAvailable: boolean;
   mangohudAvailable: boolean;
   winetricksAvailable: boolean;
@@ -45,6 +46,7 @@ export function CompatibilitySettingsSection({
   protonLogEnabled,
   globalAutoRunGamemode,
   globalAutoRunMangohud,
+  globalProtonLogEnabled,
   gamemodeAvailable,
   mangohudAvailable,
   winetricksAvailable,
@@ -63,6 +65,7 @@ export function CompatibilitySettingsSection({
   const showWinetricksUnavailableTooltip = !winetricksAvailable;
   const gamemodeToggleDisabled = !gamemodeAvailable || globalAutoRunGamemode;
   const mangohudToggleDisabled = !mangohudAvailable || globalAutoRunMangohud;
+  const protonLogToggleDisabled = globalProtonLogEnabled;
 
   const gamemodeTooltipId = !gamemodeAvailable
     ? "gamemode-unavailable-tooltip"
@@ -75,6 +78,10 @@ export function CompatibilitySettingsSection({
     : globalAutoRunMangohud
       ? "mangohud-global-enabled-tooltip"
       : undefined;
+
+  const protonLogTooltipId = globalProtonLogEnabled
+    ? "proton-log-global-enabled-tooltip"
+    : undefined;
 
   const protonVersionAutoLabel = t("proton_version_auto", {
     ns: ["game_details", "settings"],
@@ -262,13 +269,33 @@ export function CompatibilitySettingsSection({
         <div className="game-options-modal__mangohud-toggle">
           <CheckboxField
             label={
-              <span>
+              <span
+                className={`game-options-modal__mangohud-label ${
+                  protonLogToggleDisabled
+                    ? "game-options-modal__mangohud-label--disabled"
+                    : ""
+                }`}
+                data-tooltip-id={protonLogTooltipId}
+                data-tooltip-content={
+                  globalProtonLogEnabled
+                    ? t("proton_log_disabled_due_to_global_setting_tooltip", {
+                        defaultValue:
+                          "This option is disabled because Proton logging is enabled globally",
+                      })
+                    : undefined
+                }
+              >
                 <span>{t("proton_logging")}</span>
               </span>
             }
-            checked={protonLogEnabled}
+            checked={protonLogEnabled || globalProtonLogEnabled}
+            disabled={protonLogToggleDisabled}
             onChange={(event) => onChangeProtonLogState(event.target.checked)}
           />
+
+          {protonLogToggleDisabled && protonLogTooltipId && (
+            <Tooltip id={protonLogTooltipId} />
+          )}
         </div>
       </div>
 

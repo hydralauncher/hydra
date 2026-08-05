@@ -236,6 +236,7 @@ export class Umu {
     ensureExecutablePermission(umuBinaryPath);
 
     const launchEnv = {
+      ...(options?.compatibilityEnvironmentVariables ?? {}),
       ...(options?.protonLogEnabled ? { PROTON_LOG: "1" } : {}),
       ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
       ...(options?.winePrefixPath
@@ -244,7 +245,6 @@ export class Umu {
       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
       ...resolvedLaunchCommand.env,
-      ...(options?.compatibilityEnvironmentVariables ?? {}),
     };
 
     const envCommandPart = Object.entries(launchEnv)

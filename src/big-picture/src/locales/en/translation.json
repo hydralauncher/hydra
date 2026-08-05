@@ -628,6 +628,7 @@
     "Write Proton debug logs for compatibility launches.": "Write Proton debug logs for compatibility launches.",
     "Proton logging": "Proton logging",
     "Write Proton debug logs for this game. Overrides the global setting.": "Write Proton debug logs for this game. Overrides the global setting.",
+    "This option is disabled because Proton logging is enabled globally": "This option is disabled because Proton logging is enabled globally",
     "Compatibility environment variables": "Compatibility environment variables",
     "Applies these variables to every compatibility launch.": "Applies these variables to every compatibility launch.",
     "Save exported": "Save exported",

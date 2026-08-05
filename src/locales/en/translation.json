@@ -516,6 +516,7 @@
     "gamemode_disabled_due_to_global_setting_tooltip": "This option is disabled because GameMode is enabled globally",
     "proton_logging": "Proton logging",
     "proton_logging_description": "Write Proton debug logs for this game. Overrides the global setting.",
+    "proton_log_disabled_due_to_global_setting_tooltip": "This option is disabled because Proton logging is enabled globally",
     "auto_run_inherit_global": "Use global setting",
     "auto_run_enabled": "Enabled",
     "auto_run_disabled": "Disabled",
