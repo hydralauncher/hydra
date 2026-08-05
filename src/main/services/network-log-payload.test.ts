@@ -75,6 +75,17 @@ describe("network log payload", () => {
     assert.equal(sanitized.downloadUrl, "[REDACTED]");
   });
 
+  it("redacts duplicate sensitive URL parameters", () => {
+    const sanitized = sanitizeNetworkLogPayload({
+      sourceUrl: "https://example.com/file?token=first&part=1&token=second",
+    }) as Record<string, string>;
+
+    assert.equal(
+      sanitized.sourceUrl,
+      "https://example.com/file?token=%5BREDACTED%5D&part=1"
+    );
+  });
+
   it("handles circular diagnostic objects safely", () => {
     const value: Record<string, unknown> = { status: 200 };
     value.self = value;

@@ -103,6 +103,45 @@ describe("automatic cloud save observation", () => {
     );
   });
 
+  it("normalizes unordered observation collections", () => {
+    const original = analysis();
+    const coverage = {
+      candidateId: "candidate",
+      ruleId: "rule",
+      selectedRoot: true,
+      authority: "exact",
+      outcome: "scanned",
+      enumeratedCompletely: true,
+    };
+    const withOrder = (
+      unresolvedRemoteEntryIds: string[],
+      ignoredCustomPathRawPaths: string[],
+      warningCodes: string[]
+    ) =>
+      analysis({
+        anchor: {
+          baseSnapshotId: "base",
+          baseVersion: 1,
+          baseAggregateHash: "aggregate",
+          unresolvedRemoteEntryIds,
+        },
+        ignoredCustomPathRawPaths,
+        localSnapshot: {
+          ...original.localSnapshot,
+          coverage: [{ ...coverage, warningCodes }],
+        },
+      });
+
+    assert.equal(
+      buildCloudSaveObservationKey(
+        withOrder(["second", "first"], ["z-path", "a-path"], ["z", "a"])
+      ),
+      buildCloudSaveObservationKey(
+        withOrder(["first", "second"], ["a-path", "z-path"], ["a", "z"])
+      )
+    );
+  });
+
   it("runs once for an observed state and runs again after it changes", () => {
     recordLatestCloudSaveObservation("10", "steam", "first");
     const first = beginAutomaticSyncObservation(

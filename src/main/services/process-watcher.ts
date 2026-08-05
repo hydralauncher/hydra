@@ -27,9 +27,10 @@ import {
   shouldRunLegacyAutomaticCloudSave,
   shouldRunV2AutomaticCloudSave,
 } from "./cloud-save";
-import { gamesPlaytime, isGameRunning } from "./game-running-state";
+import { gamesPlaytime, setGamePlaytime } from "./game-running-state";
 
-export { gamesPlaytime, isGameRunning };
+export { gamesPlaytime };
+export { isGameRunning } from "./game-running-state";
 
 const runAutomaticCloudSaveOnOpen = async (game: Game) => {
   const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
@@ -362,7 +363,7 @@ function onOpenGame(game: Game) {
   const now = performance.now();
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
-  gamesPlaytime.set(gameKey, {
+  setGamePlaytime(gameKey, {
     lastTick: now,
     firstTick: now,
     lastSyncTick: now,
@@ -463,7 +464,7 @@ function onTickGame(game: Game) {
 
   gamesSublevel.put(levelKeys.game(game.shop, game.objectId), updatedGame);
 
-  gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
+  setGamePlaytime(levelKeys.game(game.shop, game.objectId), {
     ...gamePlaytime,
     lastTick: now,
   });
@@ -511,7 +512,7 @@ function onTickGame(game: Game) {
         });
       })
       .finally(() => {
-        gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
+        setGamePlaytime(levelKeys.game(game.shop, game.objectId), {
           ...gamePlaytime,
           lastTick: now,
           lastSyncTick: now,

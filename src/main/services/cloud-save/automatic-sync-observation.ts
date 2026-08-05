@@ -23,6 +23,7 @@ const attemptKey = (objectId: string, shop: GameShop, trigger: string) =>
   JSON.stringify([shop, objectId, trigger]);
 const byJson = (left: unknown, right: unknown) =>
   JSON.stringify(left).localeCompare(JSON.stringify(right));
+const byText = (left: string, right: string) => left.localeCompare(right);
 
 const invalidateSettledGamePageAttemptOnObservationChange = (
   objectId: string,
@@ -59,18 +60,18 @@ export const buildCloudSaveObservationKey = (analysis: CloudSaveAnalysis) => {
           baseAggregateHash: analysis.anchor.baseAggregateHash,
           unresolvedRemoteEntryIds: [
             ...analysis.anchor.unresolvedRemoteEntryIds,
-          ].sort(),
+          ].sort(byText),
         }
       : null,
     bindings: {
       ready: [...analysis.customPathBindings.ready].sort(byJson),
       unresolved: [...analysis.customPathBindings.unresolved].sort(byJson),
-      ignoredRawPaths: [...analysis.ignoredCustomPathRawPaths].sort(),
+      ignoredRawPaths: [...analysis.ignoredCustomPathRawPaths].sort(byText),
     },
     coverage: [...analysis.localSnapshot.coverage]
       .map((item) => ({
         ...item,
-        warningCodes: [...item.warningCodes].sort(),
+        warningCodes: [...item.warningCodes].sort(byText),
       }))
       .sort(byJson),
   };

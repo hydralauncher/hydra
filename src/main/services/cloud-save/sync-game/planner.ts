@@ -36,15 +36,18 @@ const plan = (
   kind: Exclude<CloudSaveSyncPlan["kind"], "blocked">
 ): CloudSaveSyncPlan => {
   const action: CloudSaveSyncAction = kind === "noop" ? "none" : kind;
+  let execution: CloudSaveSyncPlan["execution"] = "none";
+
+  if (kind === "restore") {
+    execution = "restore-only";
+  } else if (kind === "upload" || kind === "merge") {
+    execution = "apply";
+  }
+
   return {
     kind,
     action,
-    execution:
-      kind === "restore"
-        ? "restore-only"
-        : kind === "upload" || kind === "merge"
-          ? "apply"
-          : "none",
+    execution,
   } as CloudSaveSyncPlan;
 };
 

@@ -37,7 +37,9 @@ const redactSensitiveUrlParameters = (value: string) => {
 
   try {
     const parsed = new URL(value);
-    for (const key of [...parsed.searchParams.keys()]) {
+    const queryKeys = new Set(parsed.searchParams.keys());
+
+    for (const key of queryKeys) {
       if (sensitiveQueryKeys.has(normalizedKey(key))) {
         parsed.searchParams.set(key, REDACTED_VALUE);
       }

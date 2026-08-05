@@ -236,6 +236,13 @@ export const runAutomaticCloudSaveSyncDetailed = async (
         const gameRunning =
           error instanceof Error && error.message === "cloud_save_game_running";
         if (environmentChanged || executableMissing || gameRunning) {
+          let cancellationReason = "environment_changed";
+          if (executableMissing) {
+            cancellationReason = "executable_missing";
+          } else if (gameRunning) {
+            cancellationReason = "game_running";
+          }
+
           finishAutomaticSyncObservation(
             objectId,
             shop,
@@ -247,11 +254,7 @@ export const runAutomaticCloudSaveSyncDetailed = async (
             shop,
             objectId,
             trigger,
-            reason: executableMissing
-              ? "executable_missing"
-              : gameRunning
-                ? "game_running"
-                : "environment_changed",
+            reason: cancellationReason,
           });
           emitAutomaticSyncEvent({
             gameId: { objectId, shop },
