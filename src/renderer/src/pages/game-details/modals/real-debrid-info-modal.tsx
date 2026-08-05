@@ -47,7 +47,7 @@ export function RealDebridInfoModal({
         <Button
           onClick={() => {
             onClose();
-            navigate("/settings?tab=4");
+            navigate("/settings?tab=integrations");
           }}
         >
           {t("go_to_settings")}
