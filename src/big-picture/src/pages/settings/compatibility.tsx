@@ -465,7 +465,7 @@ export function CompatibilitySettingsSection({
                           form.compatibilityEnvironmentVariables || null,
                       });
                     }}
-                    placeholder={`PROTON_FSR4_UPGRADE=1\nMANGOHUD=1\n# Applies these variables to every compatibility launch.`}
+                    placeholder={`PROTON_FSR4_UPGRADE=1\nMANGOHUD=1\n# One variable per line`}
                     rows={5}
                   />
                   <p className="compatibility-settings-section__env-vars-help">
