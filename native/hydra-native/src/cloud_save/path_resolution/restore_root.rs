@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use globetter::MatchOptions;
+use globset::GlobBuilder;
 
 use super::context::normalize_separators;
 use super::resolve_path::resolve_path;
@@ -164,6 +165,71 @@ fn first_sorted(mut paths: Vec<String>) -> Option<String> {
     paths.into_iter().next()
 }
 
+pub(crate) fn target_matches_rule(
+    candidates: &[ResolvedCloudSavePath],
+    target: &str,
+    directory: bool,
+) -> bool {
+    let target = normalize_separators(target);
+    candidates.iter().any(|candidate| {
+        let Ok(pattern) = GlobBuilder::new(&candidate.path)
+            .case_insensitive(!candidate.case_sensitive)
+            .literal_separator(true)
+            .build()
+        else {
+            return false;
+        };
+        let matcher = pattern.compile_matcher();
+        if !directory {
+            return matcher.is_match(&target);
+        }
+
+        Path::new(&target).parent().is_some_and(|parent| {
+            parent
+                .ancestors()
+                .any(|ancestor| matcher.is_match(normalize_separators(&ancestor.to_string_lossy())))
+        })
+    })
+}
+
+fn root_matches_rule(
+    root: &str,
+    relative_paths: &[String],
+    candidates: &[ResolvedCloudSavePath],
+    directory: bool,
+) -> bool {
+    !relative_paths.is_empty()
+        && relative_paths.iter().all(|relative_path| {
+            let target = Path::new(root).join(relative_path.replace('\\', "/"));
+            target_matches_rule(
+                candidates,
+                &normalize_separators(&target.to_string_lossy()),
+                directory,
+            )
+        })
+}
+
+fn first_compatible_root(
+    paths: Vec<String>,
+    relative_paths: &[String],
+    candidates: &[ResolvedCloudSavePath],
+    directory: bool,
+    rejected_incompatible_root: &mut bool,
+) -> Option<String> {
+    if candidates.is_empty() {
+        return first_sorted(paths);
+    }
+    let mut paths = paths;
+    paths.sort();
+    paths.dedup();
+    let had_paths = !paths.is_empty();
+    let compatible = paths
+        .into_iter()
+        .find(|root| root_matches_rule(root, relative_paths, candidates, directory));
+    *rejected_incompatible_root |= had_paths && compatible.is_none();
+    compatible
+}
+
 fn valid_store_user_id(value: &str) -> bool {
     (5..=20).contains(&value.len()) && value.bytes().all(|byte| byte.is_ascii_digit())
 }
@@ -268,8 +334,10 @@ fn restore_root_not_found(
 
 pub fn resolve_restore_root(
     raw_path: &str,
+    target_raw_path: &str,
     context: &PathResolutionContext,
     directory: bool,
+    target_directory: bool,
     relative_paths: &[String],
 ) -> Result<String, String> {
     let resolved = resolve_path(raw_path, context);
@@ -280,6 +348,19 @@ pub fn resolve_restore_root(
         ));
     }
     let candidates = authoritative_candidates(raw_path, context, resolved.paths)?;
+    let target_candidates = if directory {
+        let resolved = resolve_path(target_raw_path, context);
+        if resolved.paths.is_empty() {
+            return Err(format!(
+                "cloud_save_unresolved_restore_tokens: {}",
+                resolved.unresolved_tokens.join(", ")
+            ));
+        }
+        authoritative_candidates(target_raw_path, context, resolved.paths)?
+    } else {
+        Vec::new()
+    };
+    let mut rejected_incompatible_root = false;
     let mut complete_by_candidate = Vec::with_capacity(candidates.len());
     for candidate in &candidates {
         let mut complete = complete_matches(candidate, directory)?;
@@ -287,11 +368,12 @@ pub fn resolve_restore_root(
         complete.dedup();
         if directory {
             let requested_target = complete.iter().find(|root| {
-                relative_paths.iter().any(|relative_path| {
-                    Path::new(root)
-                        .join(relative_path.replace('\\', "/"))
-                        .is_file()
-                })
+                root_matches_rule(root, relative_paths, &target_candidates, target_directory)
+                    && relative_paths.iter().any(|relative_path| {
+                        Path::new(root)
+                            .join(relative_path.replace('\\', "/"))
+                            .is_file()
+                    })
             });
             if let Some(root) = requested_target {
                 return Ok(root.clone());
@@ -309,24 +391,43 @@ pub fn resolve_restore_root(
                 candidate.case_sensitive,
                 candidate.scan_root.as_deref(),
             )?;
-            if let Some(scanned) = scanned_paths
-                .into_iter()
-                .find(|scanned| !scanned.files.is_empty())
-            {
-                return Ok(scanned.resolved_path);
+            if let Some(scanned) = first_compatible_root(
+                scanned_paths
+                    .into_iter()
+                    .filter(|scanned| !scanned.files.is_empty())
+                    .map(|scanned| scanned.resolved_path)
+                    .collect(),
+                relative_paths,
+                &target_candidates,
+                target_directory,
+                &mut rejected_incompatible_root,
+            ) {
+                return Ok(scanned);
             }
         }
     }
 
     for complete in complete_by_candidate {
-        if let Some(existing) = first_sorted(complete) {
+        if let Some(existing) = first_compatible_root(
+            complete,
+            relative_paths,
+            &target_candidates,
+            target_directory,
+            &mut rejected_incompatible_root,
+        ) {
             return Ok(existing);
         }
     }
 
     if raw_path.contains("<storeUserId>") {
         for candidate in &candidates {
-            if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
+            if let Some(materialized) = first_compatible_root(
+                materialize_candidate(candidate, directory),
+                relative_paths,
+                &target_candidates,
+                target_directory,
+                &mut rejected_incompatible_root,
+            ) {
                 return Ok(materialized);
             }
         }
@@ -340,7 +441,13 @@ pub fn resolve_restore_root(
         let resolved = resolve_path(&concrete, context);
         let candidates = authoritative_candidates(raw_path, context, resolved.paths)?;
         for candidate in &candidates {
-            if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
+            if let Some(materialized) = first_compatible_root(
+                materialize_candidate(candidate, directory),
+                relative_paths,
+                &target_candidates,
+                target_directory,
+                &mut rejected_incompatible_root,
+            ) {
                 return Ok(materialized);
             }
         }
@@ -351,7 +458,13 @@ pub fn resolve_restore_root(
     }
 
     for candidate in &candidates {
-        if let Some(materialized) = first_sorted(materialize_candidate(candidate, directory)) {
+        if let Some(materialized) = first_compatible_root(
+            materialize_candidate(candidate, directory),
+            relative_paths,
+            &target_candidates,
+            target_directory,
+            &mut rejected_incompatible_root,
+        ) {
             return Ok(materialized);
         }
     }
@@ -361,6 +474,10 @@ pub fn resolve_restore_root(
         && existing_wine_profiles(context).is_empty()
     {
         return Err(profile_unresolved(raw_path, context));
+    }
+
+    if rejected_incompatible_root {
+        return Err("cloud_save_restore_relative_path_incomplete".to_string());
     }
 
     Err(restore_root_not_found(raw_path, context, &candidates))

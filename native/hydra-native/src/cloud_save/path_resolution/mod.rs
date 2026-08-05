@@ -21,7 +21,7 @@ pub(crate) use capture::{
 };
 pub(crate) use context::build_context;
 pub(crate) use resolve_path::{glob_base_path, resolve_path};
-pub(crate) use restore_root::resolve_restore_root;
+pub(crate) use restore_root::{resolve_restore_root, target_matches_rule};
 pub use types::{ResolveSaveRulesInput, ResolvedCloudSavePath, ResolvedCloudSaveRule};
 
 #[napi]

@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use globset::GlobBuilder;
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
@@ -10,7 +9,7 @@ use crate::cloud_save::identity::{is_safe_capture, normalize_rule_path, Snapshot
 use crate::cloud_save::manifest::types::CloudSaveRule;
 use crate::cloud_save::path_resolution::{
     build_context, glob_base_path, path_is_foreign_environment, resolve_path, resolve_restore_root,
-    rule_is_applicable, ResolveSaveRulesInput, ResolvedCloudSavePath,
+    rule_is_applicable, target_matches_rule, ResolveSaveRulesInput,
 };
 
 use super::metadata::parse_last_modified_at;
@@ -159,33 +158,6 @@ fn has_glob(raw_rule: &str) -> bool {
         .any(|character| matches!(character, '*' | '?' | '[' | '{'))
 }
 
-fn target_matches_rule(
-    candidates: &[ResolvedCloudSavePath],
-    target: &str,
-    directory: bool,
-) -> bool {
-    let target = target.replace('\\', "/");
-    candidates.iter().any(|candidate| {
-        let Ok(pattern) = GlobBuilder::new(&candidate.path)
-            .case_insensitive(!candidate.case_sensitive)
-            .literal_separator(true)
-            .build()
-        else {
-            return false;
-        };
-        let matcher = pattern.compile_matcher();
-        if !directory {
-            return matcher.is_match(&target);
-        }
-
-        Path::new(&target).parent().is_some_and(|parent| {
-            parent
-                .ancestors()
-                .any(|ancestor| matcher.is_match(ancestor.to_string_lossy().replace('\\', "/")))
-        })
-    })
-}
-
 fn resolve_restore_targets_inner(
     input: ResolveRestoreTargetsInput,
 ) -> napi::Result<ResolveRestoreTargetsResult> {
@@ -307,18 +279,26 @@ fn resolve_restore_targets_inner(
                 let concrete_rule = user_value
                     .map(|value| bind_store_user(&root_rule, value))
                     .unwrap_or_else(|| root_rule.clone());
-                if let Ok(root) = resolve_restore_root(
+                let concrete_target_rule = user_value
+                    .map(|value| bind_store_user(&rule.raw_path, value))
+                    .unwrap_or_else(|| rule.raw_path.clone());
+                let resolved_root = resolve_restore_root(
                     &concrete_rule,
+                    &concrete_target_rule,
                     &context,
                     directory,
+                    rule.kind == "dir",
                     std::slice::from_ref(&file.relative_path),
-                ) {
-                    let concrete_rule = has_glob(&rule.raw_path).then(|| {
-                        let raw_rule = user_value
-                            .map(|value| bind_store_user(&rule.raw_path, value))
-                            .unwrap_or_else(|| rule.raw_path.clone());
-                        resolve_path(&raw_rule, &context).paths
-                    });
+                );
+                if resolved_root
+                    .as_ref()
+                    .is_err_and(|error| error == "cloud_save_restore_relative_path_incomplete")
+                {
+                    rejected_incomplete_relative_path = true;
+                }
+                if let Ok(root) = resolved_root {
+                    let concrete_rule = has_glob(&rule.raw_path)
+                        .then(|| resolve_path(&concrete_target_rule, &context).paths);
                     resolved_roots.push((root, concrete_rule));
                 }
             }
@@ -756,6 +736,95 @@ mod tests {
             .target_path
             .replace('\\', "/")
             .ends_with("/76561197960267366/Slots/Slot_1/Data.sav"));
+    }
+
+    #[test]
+    fn ignores_a_legacy_layout_when_resolving_intermediate_glob_segments() {
+        let temp = tempdir().unwrap();
+        let legacy = temp
+            .path()
+            .join("Hk_project/Saved/SaveGames/76561197960267366/Slots/Data.sav");
+        fs::create_dir_all(legacy.parent().unwrap()).unwrap();
+        fs::write(&legacy, b"legacy save").unwrap();
+
+        let result = resolve_restore_targets_inner(intermediate_glob_restore_input(
+            temp.path(),
+            "Slot_1/Data.sav",
+        ))
+        .unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert!(result.actions[0]
+            .target_path
+            .replace('\\', "/")
+            .ends_with("/76561197960267366/Slots/Slot_1/Data.sav"));
+        assert_eq!(fs::read(&legacy).unwrap(), b"legacy save");
+    }
+
+    #[test]
+    fn ignores_a_legacy_layout_inside_the_active_wine_prefix() {
+        let temp = tempdir().unwrap();
+        let prefix = temp.path().join("prefix");
+        let save_root = prefix.join(
+            "drive_c/users/steamuser/AppData/Local/Hk_project/Saved/SaveGames/76561197960267366/Slots",
+        );
+        fs::create_dir_all(&save_root).unwrap();
+        let legacy = save_root.join("Data.sav");
+        fs::write(&legacy, b"legacy save").unwrap();
+
+        let raw_path =
+            "<winLocalAppData>/Hk_project/Saved/SaveGames/<storeUserId>/Slots/Slot_*/Data.sav";
+        let mut restore_input = intermediate_glob_restore_input(temp.path(), "Slot_1/Data.sav");
+        restore_input.platform = "linux".into();
+        restore_input.executable_path = Some(temp.path().join("Stray.exe").display().to_string());
+        restore_input.wine_prefix_path = Some(prefix.display().to_string());
+        restore_input.approved_rules[0].raw_path = raw_path.into();
+        restore_input.files[0].raw_path = raw_path.into();
+
+        let result = resolve_restore_targets_inner(restore_input).unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(
+            Path::new(&result.actions[0].target_path),
+            save_root.join("Slot_1/Data.sav")
+        );
+        assert_eq!(fs::read(&legacy).unwrap(), b"legacy save");
+    }
+
+    #[test]
+    fn resolves_each_profile_independently_when_legacy_layouts_exist() {
+        let temp = tempdir().unwrap();
+        let second_profile = variant("opaque-folder", "76561199873967367");
+        let mut restore_input = intermediate_glob_restore_input(temp.path(), "Slot_1/Data.sav");
+        let mut second_file = restore_input.files[0].clone();
+        second_file.variant_id = second_profile.variant_id.clone();
+        restore_input.variants.push(second_profile);
+        restore_input.files.push(second_file);
+
+        for profile in ["76561197960267366", "76561199873967367"] {
+            let legacy = temp
+                .path()
+                .join("Hk_project/Saved/SaveGames")
+                .join(profile)
+                .join("Slots/Data.sav");
+            fs::create_dir_all(legacy.parent().unwrap()).unwrap();
+            fs::write(legacy, b"legacy save").unwrap();
+        }
+
+        let result = resolve_restore_targets_inner(restore_input).unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 2);
+        for profile in ["76561197960267366", "76561199873967367"] {
+            assert!(result.actions.iter().any(|action| {
+                action
+                    .target_path
+                    .replace('\\', "/")
+                    .ends_with(&format!("/{profile}/Slots/Slot_1/Data.sav"))
+            }));
+        }
     }
 
     #[test]
