@@ -194,7 +194,7 @@
     "downloading_metadata": "Baixando metadados de {{title}}…",
     "downloading": "Baixando {{title}}… ({{percentage}} concluído) - Conclusão {{eta}} - {{speed}}",
     "calculating_eta": "Baixando {{title}}… ({{percentage}} concluído) - Calculando tempo restante…",
-    "checking_files": "Verificando arquivos de {{title}}…",
+    "checking_files": "Verificando arquivos de {{title}}… ({{percentage}} concluído)",
     "extracting": "Extraindo {{title}}… ({{percentage}} concluído)",
     "installing_common_redist": "{{log}}…",
     "installation_complete": "Instalação concluída",
@@ -284,6 +284,7 @@
     "retry_fetch_torrent_files": "Tentar novamente",
     "downloader_online": "Online",
     "downloader_not_configured": "Disponível mas não configurado",
+    "downloader_requires_hydra_cloud": "Requer uma assinatura ativa do Hydra Cloud",
     "downloader_offline": "Link está offline",
     "downloader_not_available": "Não disponível",
     "go_to_settings": "Ir para Configurações",
@@ -488,7 +489,11 @@
     "download_error_alldebrid_rate_limit_exceeded": "Limite de requisições do AllDebrid excedido. Tente novamente mais tarde.",
     "download_error_premiumize_unavailable": "Premiumize está temporariamente indisponível. Tente novamente mais tarde.",
     "download_error_alldebrid_unavailable": "AllDebrid está temporariamente indisponível. Tente novamente mais tarde.",
-    "download_error_vikingfile_nimbus_quota_exceeded": "A cota do Nimbus para o VikingFile terminou hoje. Tente novamente amanhã.",
+    "download_error_vikingfile_quota_exceeded": "Você atingiu o limite diário do VikingFile. Tente novamente amanhã.",
+    "download_error_vikingfile_subscription_required": "Downloads pelo VikingFile exigem uma assinatura ativa do Hydra Cloud.",
+    "download_error_hoster_unlock_login_required": "Você precisa estar conectado para baixar desse hospedeiro.",
+    "download_error_hoster_unlock_file_not_found": "Este arquivo não está mais disponível no hospedeiro.",
+    "download_error_hoster_unlock_unavailable": "O hospedeiro está indisponível no momento. Tente novamente mais tarde.",
     "download_error_not_cached_on_torbox": "Este download não está disponível no TorBox e a verificação do status do download não está disponível.",
     "download_error_not_cached_on_hydra": "Este download não está disponível no Nimbus.",
     "game_removed_from_favorites": "Jogo removido dos favoritos",
@@ -775,7 +780,12 @@
     "controller_support_partial_description": "Alguns menus podem exigir teclado e mouse.",
     "controller_support_none_label": "Sem suporte oficial",
     "controller_support_xbox_label": "Controle Xbox",
-    "controller_support_playstation_label": "Controle PlayStation"
+    "controller_support_playstation_label": "Controle PlayStation",
+    "video": "Vídeo {{number}}",
+    "view_fullscreen": "Ver em tela cheia",
+    "previous_media": "Anterior",
+    "next_media": "Próximo",
+    "not_enough_space_on_disk": "Espaço insuficiente neste disco. Necessário {{required}}, disponível {{available}}."
   },
   "activation": {
     "title": "Ativação",
@@ -829,9 +839,11 @@
     "peak": "PICO",
     "move_up": "Mover para cima",
     "move_down": "Mover para baixo",
-    "files": "FILES",
+    "files": "ARQUIVOS",
     "extraction_failed_title": "Extração falhou",
-    "extraction_failed_description": "O Hydra não conseguiu extrair este arquivo. Verifique a integridade do arquivo/espaço em disco e tente extrair novamente."
+    "extraction_failed_description": "O Hydra não conseguiu extrair este arquivo. Verifique a integridade do arquivo/espaço em disco e tente extrair novamente.",
+    "download_halted_title": "Download interrompido",
+    "download_halted_description": "{{title}} foi interrompido porque a pasta de download ficou sem espaço. Libere espaço e retome o download."
   },
   "settings": {
     "setup_official_website": "Site oficial",
@@ -1387,7 +1399,9 @@
     "scan_games_complete_title": "Escaneamento de jogos finalizado com sucesso",
     "scan_games_complete_description": "Encontrados {{count}} jogos sem caminho executável definido",
     "scan_games_no_results_title": "Escaneamento de jogos finalizado",
-    "scan_games_no_results_description": "Nenhum jogo instalado foi encontrado"
+    "scan_games_no_results_description": "Nenhum jogo instalado foi encontrado",
+    "download_halted": "Download interrompido",
+    "download_halted_no_disk_space": "{{title}} foi interrompido porque você ficou sem espaço de armazenamento"
   },
   "system_tray": {
     "open": "Abrir Hydra",
@@ -1527,8 +1541,8 @@
     "your_friend_code": "Seu código de amigo:",
     "copy_friend_code": "Copiar código de amigo",
     "copied": "Copiado!",
-    "change_profile_picture": "Change profile picture",
-    "crop_profile_image_stage": "Profile image crop area. Use the arrow keys to move the image.",
+    "change_profile_picture": "Alterar foto de perfil",
+    "crop_profile_image_stage": "Área de recorte da foto de perfil. Use as setas do teclado para mover a imagem.",
     "crop_profile_picture": "Ajustar foto de perfil",
     "crop_profile_banner": "Ajustar banner",
     "crop_profile_image_description": "Arraste a imagem para reposicioná-la e use o zoom para redimensioná-la.",

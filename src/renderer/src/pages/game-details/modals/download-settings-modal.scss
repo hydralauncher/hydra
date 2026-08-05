@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "../../../scss/globals.scss";
 
 .download-settings-modal {
@@ -148,6 +149,19 @@
       align-items: center;
       white-space: nowrap;
     }
+  }
+
+  &__hydra-cloud-badge {
+    background: linear-gradient(
+      270deg,
+      color.scale(globals.$brand-teal, $lightness: -30%) 50%,
+      color.scale(globals.$brand-blue, $lightness: -30%) 100%
+    );
+    color: #fff;
+    padding: 0 globals.$spacing-unit;
+    border-radius: 4px;
+    font-size: globals.$small-font-size;
+    white-space: nowrap;
   }
 
   &__availability-indicator-wrapper {
@@ -487,6 +501,12 @@
   &__torrent-files-summary {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.76);
+  }
+
+  &__torrent-files-space-error {
+    display: block;
+    margin-top: calc(globals.$spacing-unit / 2);
+    color: globals.$error-color;
   }
 }
 

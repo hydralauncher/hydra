@@ -55,6 +55,14 @@ export class HydraApi {
     return expiresAt > new Date();
   }
 
+  public static updateUserSubscription(
+    subscription?: { expiresAt: Date | string | null } | null
+  ) {
+    this.userAuth.subscription = subscription
+      ? { expiresAt: subscription.expiresAt }
+      : null;
+  }
+
   static async handleExternalAuth(uri: string) {
     const { payload } = url.parse(uri, true).query;
 
@@ -100,11 +108,11 @@ export class HydraApi {
 
     await getUserData().then((userDetails) => {
       if (userDetails?.subscription) {
-        this.userAuth.subscription = {
+        this.updateUserSubscription({
           expiresAt: userDetails.subscription.expiresAt
             ? new Date(userDetails.subscription.expiresAt)
             : null,
-        };
+        });
       }
     });
 
@@ -241,11 +249,7 @@ export class HydraApi {
 
     const updatedUserData = await getUserData();
 
-    this.userAuth.subscription = updatedUserData?.subscription
-      ? {
-          expiresAt: updatedUserData.subscription.expiresAt,
-        }
-      : null;
+    this.updateUserSubscription(updatedUserData?.subscription);
   }
 
   private static sendSignOutEvent() {
@@ -355,7 +359,22 @@ export class HydraApi {
     }
 
     if (needsSubscription && !this.hasActiveSubscription()) {
-      throw new SubscriptionRequiredError();
+      await this.refreshUserSubscription();
+
+      if (!this.hasActiveSubscription()) {
+        throw new SubscriptionRequiredError();
+      }
+    }
+  }
+
+  private static async refreshUserSubscription() {
+    if (!this.isLoggedIn()) return;
+
+    try {
+      const userDetails = await getUserData();
+      if (userDetails) this.updateUserSubscription(userDetails.subscription);
+    } catch (err) {
+      logger.error("Failed to refresh subscription state", err);
     }
   }
 
