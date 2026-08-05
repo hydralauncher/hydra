@@ -30,8 +30,4 @@
   border: 1px solid globals.$border-color;
   border-radius: 6px;
 
-  &:focus {
-    outline: none;
-    border-color: globals.$primary-color;
-  }
 }
