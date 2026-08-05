@@ -712,7 +712,13 @@
     "steamgriddb_sign_in_required": "Entre na sua conta Hydra para explorar as artes do SteamGridDB.",
     "steamgriddb_fetch_failed": "Falha ao carregar recursos do SteamGridDB",
     "steamgriddb_artwork_updated": "Arte atualizada",
-    "steamgriddb_artwork_reset": "Arte redefinida para o padrão"
+    "steamgriddb_artwork_reset": "Arte redefinida para o padrão",
+    "Main Story": "História Principal",
+    "Main + Sides": "Principal + Secundárias",
+    "Completionist": "Completista",
+    "Try adjusting your search terms or filters.": "Tente ajustar os termos de busca ou os filtros.",
+    "Empty collection": "Coleção vazia",
+    "Add games to this collection to see them here.": "Adicione jogos a esta coleção para vê-los aqui."
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",
@@ -776,6 +782,32 @@
     "file_explorer_select_this_directory": "Selecionar esta pasta",
     "file_explorer_select_download_directory": "Selecionar diretório de download",
     "steamgriddb_artwork_updated": "Arte atualizada",
-    "steamgriddb_artwork_reset": "Arte redefinida para o padrão"
+    "steamgriddb_artwork_reset": "Arte redefinida para o padrão",
+    "download_options_count_one": "{{formattedCount}} opção de download",
+    "download_options_count_other": "{{formattedCount}} opções de download",
+    "download_sources_count_one": "{{count}} fonte de download",
+    "download_sources_count_other": "{{count}} fontes de download",
+    "game_review_played_for": "após jogar por {{time}}",
+    "game_review_rating_only": "avaliação",
+    "remove_from_library": "Remover da Biblioteca",
+    "remove_from_library_description": "Isso removerá {{game}} da sua biblioteca",
+    "reset_achievements": "Redefinir conquistas",
+    "reset_achievements_description": "Suas conquistas de {{game}} serão excluídas localmente e na nuvem",
+    "remove_game_files": "Remover arquivos do jogo",
+    "remove_game_files_description": "Os arquivos baixados de {{game}} serão excluídos",
+    "downloads_finished_at": "Concluído às {{time}}",
+    "library_tab_all": "Todos ({{count}})",
+    "library_tab_moderns": "Modernos ({{count}})",
+    "library_tab_classics": "Clássicos ({{count}})",
+    "library_tab_favorites": "Favoritos ({{count}})",
+    "library_tab_completed": "Concluídos ({{count}})",
+    "recently_played_fallback": "recentemente",
+    "select_executable_path": "Selecionar caminho",
+    "clear_executable_path": "Limpar caminho",
+    "clear_launch_args": "Limpar argumentos",
+    "additional_options_description": "Configure ajustes por jogo para GameMode e MangoHud",
+    "never_played": "Nunca jogado",
+    "compact_hours": "{{count}}h",
+    "compact_minutes": "{{count}}min"
   }
 }
