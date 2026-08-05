@@ -13,6 +13,8 @@ import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import type { ProtonVersion } from "@types";
 import { DesktopDownloadIcon, LinkExternalIcon } from "@primer/octicons-react";
+
+import "./settings-context-compatibility.scss";
 import { logger } from "@renderer/logger";
 import { Tooltip } from "react-tooltip";
 

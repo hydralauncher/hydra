@@ -237,7 +237,7 @@ export class Umu {
 
     const launchEnv = {
       PROTON_LOG: options?.protonLogEnabled ? "1" : "0",
-      ...(options?.compatibilityEnvironmentVariables ?? {}),
+      ...options?.compatibilityEnvironmentVariables,
       ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
       ...(options?.winePrefixPath
         ? { WINEPREFIX: options.winePrefixPath }

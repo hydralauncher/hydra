@@ -18,7 +18,10 @@ import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
-import { resolveLaunchCommand } from "./resolve-launch-command";
+import {
+  envVariableNameRegex,
+  resolveLaunchCommand,
+} from "./resolve-launch-command";
 import {
   buildWindowsBatchCommand,
   isWindowsBatchFile,
@@ -58,7 +61,6 @@ const parseCompatibilityEnvironmentVariables = (
   }
 
   const environmentVariables: Record<string, string> = {};
-  const envVariableNameRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
   for (const rawLine of rawVariables.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -278,17 +280,29 @@ const cleanupStaleCompatibilityProcesses = async (
   }
 };
 
-const launchWindowsBinaryOnLinux = async (
-  gameKey: string,
-  objectId: string,
-  parsedPath: string,
-  game: Game | undefined,
-  launchOptions: string | null | undefined,
-  useMangohud: boolean,
-  useGamemode: boolean,
-  protonLogEnabled: boolean,
-  compatibilityEnvironmentVariables: Record<string, string>
-): Promise<boolean> => {
+interface LaunchWindowsBinaryOnLinuxOptions {
+  gameKey: string;
+  objectId: string;
+  parsedPath: string;
+  game: Game | undefined;
+  launchOptions: string | null | undefined;
+  useMangohud: boolean;
+  useGamemode: boolean;
+  protonLogEnabled: boolean;
+  compatibilityEnvironmentVariables: Record<string, string>;
+}
+
+const launchWindowsBinaryOnLinux = async ({
+  gameKey,
+  objectId,
+  parsedPath,
+  game,
+  launchOptions,
+  useMangohud,
+  useGamemode,
+  protonLogEnabled,
+  compatibilityEnvironmentVariables,
+}: LaunchWindowsBinaryOnLinuxOptions): Promise<boolean> => {
   const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
   const winePrefixPath = Wine.getEffectivePrefixPath(
     game?.winePrefixPath,
@@ -395,7 +409,7 @@ export const launchGame = async (
       );
 
     if (isWindowsExecutable(parsedPath)) {
-      const launched = await launchWindowsBinaryOnLinux(
+      const launched = await launchWindowsBinaryOnLinux({
         gameKey,
         objectId,
         parsedPath,
@@ -404,8 +418,8 @@ export const launchGame = async (
         useMangohud,
         useGamemode,
         protonLogEnabled,
-        compatibilityEnvironmentVariables
-      );
+        compatibilityEnvironmentVariables,
+      });
 
       if (launched) return null;
     }
