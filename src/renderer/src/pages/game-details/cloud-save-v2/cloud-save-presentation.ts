@@ -2,6 +2,7 @@ import type {
   CloudSaveOverview,
   CloudSaveState,
   CloudSaveSyncAction,
+  CloudSaveSyncProgressPayload,
   CloudSaveSyncProgressStage,
   CloudSaveV2FileDetails,
   GameShop,
@@ -109,6 +110,32 @@ export const getCloudSaveSyncErrorKind = (
   }
   return "generic";
 };
+
+export interface CloudSaveOperationPresentation {
+  labelKey: string;
+  fileCount: {
+    count: number;
+    processed: number;
+    total: number;
+  } | null;
+}
+
+export const getCloudSaveOperationPresentation = (
+  progress: CloudSaveSyncProgressPayload | null,
+  fallbackLabelKey = "cloud_save_v2_syncing"
+): CloudSaveOperationPresentation => ({
+  labelKey: progress
+    ? `cloud_save_v2_progress_${progress.stage}`
+    : fallbackLabelKey,
+  fileCount:
+    progress && progress.totalFiles > 0
+      ? {
+          count: progress.totalFiles,
+          processed: progress.processedFiles,
+          total: progress.totalFiles,
+        }
+      : null,
+});
 
 export const getCloudSavePartialDescriptionKey = (
   overview: CloudSaveOverview | null

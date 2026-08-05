@@ -21,6 +21,7 @@ import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 import {
   getCloudSavePanelAction,
+  getCloudSaveOperationPresentation,
   getCloudSavePartialDescriptionKey,
   getCloudSavePresentation,
   getCloudSaveSnapshotPanelMode,
@@ -113,22 +114,15 @@ function CloudSaveSyncAction({
   const { t } = useTranslation("game_details");
 
   if (isSyncing) {
-    const progressLabel = progress
-      ? t(`cloud_save_v2_progress_${progress.stage}`)
-      : t("cloud_save_v2_syncing");
-    const progressFileCount =
-      progress && progress.totalFiles > 0
-        ? t("cloud_save_v2_progress_file_count", {
-            count: progress.totalFiles,
-            processed: progress.processedFiles,
-            total: progress.totalFiles,
-          })
-        : null;
+    const operation = getCloudSaveOperationPresentation(progress);
+    const progressFileCount = operation.fileCount
+      ? t("cloud_save_v2_progress_file_count", operation.fileCount)
+      : null;
 
     return (
       <Button className="cloud-save-v2__sync-button" disabled>
         <CircleNotchIcon className="cloud-save-v2__spinner" size={20} />
-        <span>{progressLabel}</span>
+        <span>{t(operation.labelKey)}</span>
         {progressFileCount && (
           <span className="cloud-save-v2__sync-file-count">
             · {progressFileCount}

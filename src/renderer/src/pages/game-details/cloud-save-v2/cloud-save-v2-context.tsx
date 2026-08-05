@@ -949,6 +949,7 @@ export function CloudSaveV2Provider({
         hasError={hasFileDetailsError}
         isGameRunning={isGameRunning}
         isSyncing={isSyncing}
+        progress={progress}
         onRetry={async () => {
           await refreshFileDetails();
           await refresh();

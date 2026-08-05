@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 
 import type {
   CloudSaveState,
+  CloudSaveSyncProgressPayload,
   CloudSaveV2FileDetails,
   GameShop,
   SyncGameCloudSaveResult,
@@ -33,7 +34,10 @@ import {
 } from "./cloud-save-v2-file-tree";
 import { getCloudSaveFileBrowserOperationPolicy } from "./cloud-save-v2-file-browser-policy";
 import { CloudSaveV2FileTreeView } from "./cloud-save-v2-file-tree-view";
-import { hasCloudSaveDataToDelete } from "./cloud-save-presentation";
+import {
+  getCloudSaveOperationPresentation,
+  hasCloudSaveDataToDelete,
+} from "./cloud-save-presentation";
 
 const getCustomPathSelectionError = (error: unknown) => {
   const message = error instanceof Error ? error.message : "";
@@ -131,6 +135,7 @@ interface CloudSaveV2FileBrowserModalProps {
   hasError: boolean;
   isGameRunning: boolean;
   isSyncing: boolean;
+  progress: CloudSaveSyncProgressPayload | null;
   onRetry: () => void | Promise<void>;
   onSyncAfterCustomPathAdded: () => Promise<SyncGameCloudSaveResult>;
   onRemoveTrackedCustomPath: (rawPath: string) => Promise<void>;
@@ -290,6 +295,7 @@ export function CloudSaveV2FileBrowserModal({
   hasError,
   isGameRunning,
   isSyncing,
+  progress,
   onRetry,
   onSyncAfterCustomPathAdded,
   onRemoveTrackedCustomPath,
@@ -500,6 +506,14 @@ export function CloudSaveV2FileBrowserModal({
       isGameRunning,
       isSyncing,
     });
+  const activeOperation = isDeletingCloudSave
+    ? getCloudSaveOperationPresentation(null, "cloud_save_v2_deleting")
+    : isSyncing
+      ? getCloudSaveOperationPresentation(progress)
+      : null;
+  const activeOperationFileCount = activeOperation?.fileCount
+    ? t("cloud_save_v2_progress_file_count", activeOperation.fileCount)
+    : null;
   const hasSaveData = hasCloudSaveDataToDelete(details);
   const addCustomPathButton = (
     <Button
@@ -567,9 +581,34 @@ export function CloudSaveV2FileBrowserModal({
 
           {details && (
             <>
-              {(isConflict || localRoots.length > 0 || hasSaveData) && (
+              {(activeOperation ||
+                isConflict ||
+                localRoots.length > 0 ||
+                hasSaveData) && (
                 <div className="cloud-save-v2__browser-toolbar">
-                  {!isConflict && (
+                  {activeOperation ? (
+                    <div
+                      className="cloud-save-v2__browser-source-summary"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <span>
+                        <CircleNotchIcon
+                          className="cloud-save-v2__spinner"
+                          size={20}
+                        />
+                        <strong>{t(activeOperation.labelKey)}</strong>
+                        {activeOperationFileCount && (
+                          <span aria-hidden="true">·</span>
+                        )}
+                        {activeOperationFileCount && (
+                          <span className="cloud-save-v2__browser-operation-count">
+                            {activeOperationFileCount}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ) : !isConflict ? (
                     <div className="cloud-save-v2__browser-source-summary">
                       <span>
                         <MonitorIcon
@@ -583,7 +622,7 @@ export function CloudSaveV2FileBrowserModal({
                         })}
                       </span>
                     </div>
-                  )}
+                  ) : null}
 
                   {!isConflict && (
                     <div className="cloud-save-v2__browser-toolbar-actions">
@@ -592,7 +631,7 @@ export function CloudSaveV2FileBrowserModal({
                     </div>
                   )}
 
-                  {isConflict && (
+                  {isConflict && !activeOperation && (
                     <div className="cloud-save-v2__browser-diff-summary">
                       <span>
                         {t("cloud_save_v2_diff_modified", {

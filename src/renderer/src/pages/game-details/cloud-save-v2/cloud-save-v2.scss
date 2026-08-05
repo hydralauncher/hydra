@@ -514,6 +514,10 @@
     margin-left: -2px;
   }
 
+  &__browser-operation-count {
+    color: globals.$muted-color;
+  }
+
   &__browser-filter {
     margin-left: auto;
     flex-shrink: 0;

@@ -7,6 +7,7 @@ import * as presentationModule from "./cloud-save-presentation.ts";
 
 const {
   canOpenCloudSaveFileBrowser,
+  getCloudSaveOperationPresentation,
   getCloudSavePanelAction,
   getCloudSavePartialDescriptionKey,
   getCloudSavePresentation,
@@ -17,6 +18,49 @@ const {
   shouldShowCloudSaveEmptySnapshot,
   shouldSyncCloudSaveOnGamePage,
 } = presentationModule;
+
+describe("cloud save operation presentation", () => {
+  it("shares progress labels and file counts between surfaces", () => {
+    assert.deepEqual(getCloudSaveOperationPresentation(null), {
+      labelKey: "cloud_save_v2_syncing",
+      fileCount: null,
+    });
+    assert.deepEqual(
+      getCloudSaveOperationPresentation({
+        gameId: { shop: "steam", objectId: "game" },
+        stage: "uploading",
+        processedFiles: 2,
+        totalFiles: 5,
+      }),
+      {
+        labelKey: "cloud_save_v2_progress_uploading",
+        fileCount: { count: 5, processed: 2, total: 5 },
+      }
+    );
+  });
+
+  it("supports operations without transfer progress", () => {
+    assert.deepEqual(
+      getCloudSaveOperationPresentation(null, "cloud_save_v2_deleting"),
+      {
+        labelKey: "cloud_save_v2_deleting",
+        fileCount: null,
+      }
+    );
+    assert.deepEqual(
+      getCloudSaveOperationPresentation({
+        gameId: { shop: "steam", objectId: "game" },
+        stage: "completed",
+        processedFiles: 0,
+        totalFiles: 0,
+      }),
+      {
+        labelKey: "cloud_save_v2_progress_completed",
+        fileCount: null,
+      }
+    );
+  });
+});
 
 const fileDetails = (
   overrides: Partial<CloudSaveV2FileDetails> = {}
