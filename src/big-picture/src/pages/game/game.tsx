@@ -1151,7 +1151,7 @@ export default function Game() {
     };
   }, [descriptionBlocks]);
 
-  if (isLoading || (shop !== "custom" && !shopDetails)) {
+  if (isLoading) {
     return (
       <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
         <div className="game-page">
