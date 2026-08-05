@@ -20,6 +20,7 @@ import { WindowManager } from "../window-manager";
 import { downloadToFile, removeFileQuietly } from "../download-to-file";
 import { getRetroArchVersion } from "./detect-retroarch";
 import { swapCoreLibrary } from "./swap-core-library";
+import { removeDirectoryQuietly, swapDirectory } from "./swap-directory";
 import { RETROARCH_CORE_NAMES, isRetroArchCoreName } from "./retroarch-cores";
 import {
   buildCoreDownloadUrl,
@@ -75,12 +76,6 @@ export const buildCoresStateForDir = (
     }
   }
   return cores;
-};
-
-const removeDirectoryQuietly = async (target: string): Promise<void> => {
-  await fs.promises
-    .rm(target, { recursive: true, force: true })
-    .catch(() => {});
 };
 
 const sendCoreProgress = (progress: RetroArchCoreInstallProgress): void => {
@@ -304,28 +299,20 @@ export const downloadAndInstallRetroArch = async (
     const relativeExecutable = path.relative(stagingDir, stagedExecutable);
     const executablePath = path.join(extractDir, relativeExecutable);
 
-    if (fs.existsSync(extractDir)) {
-      await fs.promises.cp(stagingDir, extractDir, {
-        recursive: true,
-        force: true,
-      });
-      await removeDirectoryQuietly(stagingDir);
-    } else {
-      await fs.promises.rename(stagingDir, extractDir);
-    }
+    await swapDirectory(stagingDir, extractDir, async () => {
+      if (process.platform !== "win32") {
+        const { mode } = await fs.promises.stat(executablePath);
+        await fs.promises.chmod(executablePath, mode | 0o100);
+      }
 
-    if (process.platform !== "win32") {
-      const { mode } = await fs.promises.stat(executablePath);
-      await fs.promises.chmod(executablePath, mode | 0o100);
-    }
-
-    await updateRetroArchConfig((current) => ({
-      ...current,
-      executablePath,
-      detectedVersion:
-        getRetroArchVersion(executablePath) ?? option.version ?? null,
-      detectedAt: Date.now(),
-    }));
+      await updateRetroArchConfig((current) => ({
+        ...current,
+        executablePath,
+        detectedVersion:
+          getRetroArchVersion(executablePath) ?? option.version ?? null,
+        detectedAt: Date.now(),
+      }));
+    });
 
     shell.showItemInFolder(executablePath);
     sendInstallProgress({ optionId, phase: "done", path: executablePath });
