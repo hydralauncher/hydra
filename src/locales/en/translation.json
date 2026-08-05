@@ -514,6 +514,8 @@
     "cloud_save_v2_subscription_required_description": "Cloud saves require an active Hydra Cloud subscription.",
     "cloud_save_v2_modal_title": "Cloud Save V2 (BETA)",
     "cloud_save_v2_modal_description": "Review cloud save status and synchronize this game.",
+    "cloud_save_v2_feedback_prompt": "Facing issues?",
+    "cloud_save_v2_feedback_action": "Give us feedback.",
     "cloud_save_v2_toggle_title": "Automatic sync is {{status}}",
     "cloud_save_v2_toggle_enabled": "enabled",
     "cloud_save_v2_toggle_disabled": "disabled",

@@ -17,7 +17,7 @@ import type {
   CloudSaveSyncProgressPayload,
 } from "@types";
 import { formatBytes } from "@shared";
-import { Button, Modal } from "@renderer/components";
+import { Button, Link, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 import {
   getCloudSavePanelAction,
@@ -495,7 +495,18 @@ export function CloudSaveModal({
       description={t("cloud_save_v2_modal_description")}
       onClose={onClose}
     >
-      <CloudSavePanel {...panelProps} active={visible} />
+      <div className="cloud-save-v2__dialog-content">
+        <CloudSavePanel {...panelProps} active={visible} />
+        <p className="cloud-save-v2__feedback">
+          {t("cloud_save_v2_feedback_prompt")}
+          <Link
+            className="cloud-save-v2__feedback-link"
+            to="https://hydra.workwonders.app/feedback"
+          >
+            {t("cloud_save_v2_feedback_action")}
+          </Link>
+        </p>
+      </div>
     </Modal>
   );
 }

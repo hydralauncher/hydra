@@ -39,6 +39,33 @@
     gap: calc(globals.$spacing-unit * 2);
   }
 
+  &__dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__feedback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit / 2);
+    margin: 0;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  &__feedback-link,
+  &__feedback-link:hover,
+  &__feedback-link:focus-visible {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
   &__path-approval-modal {
     width: min(560px, calc(100vw - 32px));
   }
