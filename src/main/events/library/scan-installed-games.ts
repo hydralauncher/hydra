@@ -4,6 +4,7 @@ import { t } from "i18next";
 import { chunk } from "lodash-es";
 import { registerEvent } from "../register-event";
 import { getGameAssets } from "../catalogue/get-game-assets";
+import { getDownloadsPath } from "../helpers/get-downloads-path";
 import {
   isRedistributableDirectory,
   isRedistributablePath,
@@ -39,7 +40,14 @@ const ASSET_LOOKUP_CONCURRENCY = 8;
 interface FoundGame {
   title: string;
   executablePath: string;
+  iconUrl: string | null;
 }
+
+interface CancelSignal {
+  cancelled: boolean;
+}
+
+const inflightScans = new Map<string, CancelSignal>();
 
 interface AmbiguousChoice {
   objectId: string;
@@ -88,10 +96,15 @@ const getCatalogFileNames = () => {
   return fileNames;
 };
 
-const listGameFiles = async (root: string): Promise<string[]> => {
+const listGameFiles = async (
+  root: string,
+  signal: CancelSignal
+): Promise<string[]> => {
   const relativeFilePaths: string[] = [];
 
   const walk = async (current: string) => {
+    if (signal.cancelled) return;
+
     const entries = await fs.promises
       .readdir(current, { withFileTypes: true })
       .catch((err) => {
@@ -127,9 +140,10 @@ const listGameFiles = async (root: string): Promise<string[]> => {
 
 const scanDirectory = async (
   directory: string,
-  catalogFileNames: Set<string>
+  catalogFileNames: Set<string>,
+  signal: CancelSignal
 ): Promise<ScannedDirectory> => {
-  const relativeFilePaths = await listGameFiles(directory);
+  const relativeFilePaths = await listGameFiles(directory, signal);
   const pathsByFileName = new Map<string, string[]>();
 
   for (const relativeFilePath of relativeFilePaths) {
@@ -162,11 +176,20 @@ const getDefaultScanDirectories = async () => {
     return [];
   });
 
+  const downloadsPath = await getDownloadsPath().catch((err) => {
+    logger.error(
+      "[ScanInstalledGames] Failed to read the downloads path:",
+      err
+    );
+    return null;
+  });
+
   return [
     ...SCAN_DIRECTORIES,
     ...libraryFolders.map((libraryFolder) =>
       path.join(libraryFolder, "steamapps", "common")
     ),
+    ...(downloadsPath ? [downloadsPath] : []),
   ];
 };
 
@@ -190,12 +213,17 @@ const resolveScanRoots = async (directories: string[]) => {
 
 const scanDirectories = async (
   directories: string[],
-  catalogFileNames: Set<string>
+  catalogFileNames: Set<string>,
+  signal: CancelSignal
 ): Promise<ScannedDirectory[]> => {
   const scannedDirectories: ScannedDirectory[] = [];
 
   for (const root of await resolveScanRoots(directories)) {
-    scannedDirectories.push(await scanDirectory(root, catalogFileNames));
+    if (signal.cancelled) break;
+
+    scannedDirectories.push(
+      await scanDirectory(root, catalogFileNames, signal)
+    );
   }
 
   return scannedDirectories;
@@ -292,10 +320,15 @@ const resolveOwner = (executablePath: string, objectIds: Set<string>) => {
   return matchingFolder.length === 1 ? matchingFolder[0] : null;
 };
 
-const groupObjectIdsByPath = (scannedDirectories: ScannedDirectory[]) => {
+const groupObjectIdsByPath = (
+  scannedDirectories: ScannedDirectory[],
+  signal: CancelSignal
+) => {
   const objectIdsByPath = new Map<string, Set<string>>();
 
   for (const objectId of GameExecutables.getAllObjectIds()) {
+    if (signal.cancelled) break;
+
     const executables = GameExecutables.getExecutablesForGame(objectId);
     if (!executables) continue;
 
@@ -320,13 +353,15 @@ const groupObjectIdsByPath = (scannedDirectories: ScannedDirectory[]) => {
 const partitionMatches = (
   scannedDirectories: ScannedDirectory[],
   libraryObjectIds: Set<string>,
-  claimedPaths: Set<string>
+  claimedPaths: Set<string>,
+  signal: CancelSignal
 ) => {
   const pathByObjectId = new Map<string, string>();
   const undecided: { executablePath: string; objectIds: string[] }[] = [];
 
   for (const [executablePath, objectIds] of groupObjectIdsByPath(
-    scannedDirectories
+    scannedDirectories,
+    signal
   )) {
     if (claimedPaths.has(normalizePath(executablePath))) {
       logger.info(
@@ -594,12 +629,14 @@ const nameByFolder = async (
 const findGamesOutsideLibrary = async (
   scannedDirectories: ScannedDirectory[],
   libraryObjectIds: Set<string>,
-  claimedPaths: Set<string>
+  claimedPaths: Set<string>,
+  signal: CancelSignal
 ) => {
   const { pathByObjectId, undecided } = partitionMatches(
     scannedDirectories,
     libraryObjectIds,
-    claimedPaths
+    claimedPaths,
+    signal
   );
 
   const resolveChoice = createChoiceResolver();
@@ -752,7 +789,11 @@ export const addGameOutsideLibrary = async (
     `[ScanInstalledGames] Added ${objectId} to the library: ${executablePath}`
   );
 
-  return { title: game.title, executablePath };
+  return {
+    title: game.title,
+    executablePath,
+    iconUrl: game.iconUrl ?? null,
+  };
 };
 
 const addGamesOutsideLibrary = async (
@@ -846,7 +887,41 @@ const scanInstalledGames = async (
   _event: Electron.IpcMainInvokeEvent,
   additionalDirectories: string[] = [],
   includeDefaultDirectories = true,
-  addGamesToLibrary = true
+  addGamesToLibrary = true,
+  requestId?: string
+): Promise<ScanResult> => {
+  const signal: CancelSignal = { cancelled: false };
+  if (requestId) inflightScans.set(requestId, signal);
+
+  try {
+    return await runScan(
+      signal,
+      additionalDirectories,
+      includeDefaultDirectories,
+      addGamesToLibrary
+    );
+  } finally {
+    if (requestId) inflightScans.delete(requestId);
+  }
+};
+
+const cancelScanInstalledGames = async (
+  _event: Electron.IpcMainInvokeEvent,
+  requestId: string
+) => {
+  const signal = inflightScans.get(requestId);
+
+  if (signal) {
+    signal.cancelled = true;
+    logger.info(`[ScanInstalledGames] Cancelling scan ${requestId}`);
+  }
+};
+
+const runScan = async (
+  signal: CancelSignal,
+  additionalDirectories: string[],
+  includeDefaultDirectories: boolean,
+  addGamesToLibrary: boolean
 ): Promise<ScanResult> => {
   const baseDirectories = includeDefaultDirectories
     ? await getDefaultScanDirectories()
@@ -866,7 +941,8 @@ const scanInstalledGames = async (
 
   const scannedDirectories = await scanDirectories(
     directories,
-    getCatalogFileNames()
+    getCatalogFileNames(),
+    signal
   );
 
   for (const scanned of scannedDirectories) {
@@ -888,6 +964,8 @@ const scanInstalledGames = async (
   const gamesToScan = games.filter(({ game }) => !game.executablePath);
 
   for (const { key, game } of gamesToScan) {
+    if (signal.cancelled) break;
+
     const executables = GameExecutables.getExecutablesForGame(game.objectId);
     if (!executables) continue;
 
@@ -900,7 +978,11 @@ const scanInstalledGames = async (
       `[ScanInstalledGames] Found executable for ${game.objectId}: ${foundPath}`
     );
 
-    linkedGames.push({ title: game.title, executablePath: foundPath });
+    linkedGames.push({
+      title: game.title,
+      executablePath: foundPath,
+      iconUrl: game.iconUrl ?? null,
+    });
     claimedPaths.add(normalizePath(foundPath));
   }
 
@@ -910,31 +992,36 @@ const scanInstalledGames = async (
       .map(({ game }) => game.objectId)
   );
 
-  const outsideLibrary = addGamesToLibrary
-    ? await findGamesOutsideLibrary(
-        scannedDirectories,
-        libraryObjectIds,
-        claimedPaths
-      )
-    : {
-        pathByObjectId: new Map<string, string>(),
-        ambiguousMatches: [] as AmbiguousMatch[],
-      };
+  const outsideLibrary =
+    addGamesToLibrary && !signal.cancelled
+      ? await findGamesOutsideLibrary(
+          scannedDirectories,
+          libraryObjectIds,
+          claimedPaths,
+          signal
+        )
+      : {
+          pathByObjectId: new Map<string, string>(),
+          ambiguousMatches: [] as AmbiguousMatch[],
+        };
 
-  const addedGames = await addGamesOutsideLibrary(
-    outsideLibrary.pathByObjectId
-  );
+  const addedGames = signal.cancelled
+    ? []
+    : await addGamesOutsideLibrary(outsideLibrary.pathByObjectId);
 
   logger.info(
     `[ScanInstalledGames] Linked ${linkedGames.length} of ${gamesToScan.length} games in the library, added ${addedGames.length} new ones, ${outsideLibrary.ambiguousMatches.length} need a choice`
   );
 
   WindowManager.sendToAppWindows("on-library-batch-complete");
-  await publishScanNotification(
-    addedGames.length,
-    linkedGames.length,
-    outsideLibrary.ambiguousMatches.length
-  );
+
+  if (!signal.cancelled) {
+    await publishScanNotification(
+      addedGames.length,
+      linkedGames.length,
+      outsideLibrary.ambiguousMatches.length
+    );
+  }
 
   return {
     linkedGames,
@@ -945,3 +1032,4 @@ const scanInstalledGames = async (
 };
 
 registerEvent("scanInstalledGames", scanInstalledGames);
+registerEvent("cancelScanInstalledGames", cancelScanInstalledGames);

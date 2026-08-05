@@ -294,7 +294,7 @@
   &__games-list {
     list-style: none;
     margin: 0;
-    max-height: 200px;
+    max-height: 340px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -306,8 +306,8 @@
 
   &__game-item {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
     padding-bottom: globals.$spacing-unit;
     border-bottom: 1px solid globals.$border-color;
 
@@ -315,6 +315,29 @@
       border-bottom: none;
       padding-bottom: 0;
     }
+  }
+
+  &__game-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    object-fit: cover;
+    background-color: globals.$background-color;
+
+    &--empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: globals.$body-color;
+    }
+  }
+
+  &__game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
   }
 
   &__game-title {

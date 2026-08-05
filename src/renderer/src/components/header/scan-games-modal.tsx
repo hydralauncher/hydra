@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertIcon,
+  DeviceDesktopIcon,
   FileDirectoryIcon,
   SyncIcon,
   XIcon,
@@ -17,6 +18,7 @@ type ScanMode = "automatic" | "manual";
 interface FoundGame {
   title: string;
   executablePath: string;
+  iconUrl: string | null;
 }
 
 interface AmbiguousChoice {
@@ -47,6 +49,7 @@ export interface ScanGamesModalProps {
     includeDefaultDirectories: boolean,
     addGamesToLibrary: boolean
   ) => void;
+  onCancelScan: () => void;
   onClearResult: () => void;
 }
 
@@ -56,6 +59,7 @@ export function ScanGamesModal({
   isScanning,
   scanResult,
   onStartScan,
+  onCancelScan,
   onClearResult,
 }: Readonly<ScanGamesModalProps>) {
   const { t } = useTranslation("header");
@@ -156,9 +160,22 @@ export function ScanGamesModal({
     <ul className="scan-games-modal__games-list">
       {games.map((game) => (
         <li key={game.executablePath} className="scan-games-modal__game-item">
-          <span className="scan-games-modal__game-title">{game.title}</span>
-          <span className="scan-games-modal__game-path">
-            {game.executablePath}
+          {game.iconUrl ? (
+            <img
+              src={game.iconUrl}
+              alt=""
+              className="scan-games-modal__game-icon"
+            />
+          ) : (
+            <span className="scan-games-modal__game-icon scan-games-modal__game-icon--empty">
+              <DeviceDesktopIcon size={16} />
+            </span>
+          )}
+          <span className="scan-games-modal__game-info">
+            <span className="scan-games-modal__game-title">{game.title}</span>
+            <span className="scan-games-modal__game-path">
+              {game.executablePath}
+            </span>
           </span>
         </li>
       ))}
@@ -198,17 +215,6 @@ export function ScanGamesModal({
                   {t("scan_games_mode_manual")}
                 </button>
               </div>
-            )}
-
-            <div className="scan-games-modal__warning">
-              <AlertIcon size={14} className="scan-games-modal__warning-icon" />
-              <span>{t("scan_games_detection_warning")}</span>
-            </div>
-
-            {!isManualMode && (
-              <p className="scan-games-modal__description">
-                {t("scan_games_description")}
-              </p>
             )}
 
             {isManualMode && (
@@ -258,9 +264,6 @@ export function ScanGamesModal({
                 checked={addGamesToLibrary}
                 onChange={() => setAddGamesToLibrary((prev) => !prev)}
               />
-              <p className="scan-games-modal__option-hint">
-                {t("scan_games_add_to_library_hint")}
-              </p>
             </div>
           </>
         )}
@@ -328,13 +331,18 @@ export function ScanGamesModal({
 
         {scanResult && pending.length === 0 && (
           <div className="scan-games-modal__results">
+            <div className="scan-games-modal__warning">
+              <AlertIcon size={14} className="scan-games-modal__warning-icon" />
+              <span>{t("scan_games_detection_warning")}</span>
+            </div>
+
             {hasResults ? (
               <>
                 {addedGames.length > 0 && (
                   <div className="scan-games-modal__result-section">
                     <p className="scan-games-modal__result">
                       {t("scan_games_result_added", {
-                        added: addedGames.length,
+                        count: addedGames.length,
                       })}
                     </p>
                     {renderGamesList(addedGames)}
@@ -345,8 +353,7 @@ export function ScanGamesModal({
                   <div className="scan-games-modal__result-section">
                     <p className="scan-games-modal__result">
                       {t("scan_games_result_linked", {
-                        found: scanResult.linkedGames.length,
-                        total: scanResult.total,
+                        count: scanResult.linkedGames.length,
                       })}
                     </p>
                     {renderGamesList(scanResult.linkedGames)}
@@ -383,10 +390,15 @@ export function ScanGamesModal({
                     ? t("scan_games_hide")
                     : t("scan_games_cancel")}
               </Button>
-              {!scanResult && (
+              {!scanResult && isScanning && (
+                <Button theme="danger" onClick={onCancelScan}>
+                  {t("scan_games_cancel_scan")}
+                </Button>
+              )}
+              {!scanResult && !isScanning && (
                 <Button
                   onClick={handleStartScan}
-                  disabled={isScanning || requiresFolderSelection}
+                  disabled={requiresFolderSelection}
                 >
                   {t("scan_games_start")}
                 </Button>

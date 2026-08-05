@@ -109,6 +109,7 @@ export function Header() {
   const [showScanModal, setShowScanModal] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [scanRequestId, setScanRequestId] = useState<string | null>(null);
 
   const { t } = useTranslation("header");
 
@@ -323,19 +324,28 @@ export function Header() {
   ) => {
     if (isScanning) return;
 
+    const requestId = crypto.randomUUID();
+
     setIsScanning(true);
+    setScanRequestId(requestId);
     setScanResult(null);
 
     try {
       const result = await window.electron.scanInstalledGames(
         additionalDirectories,
         includeDefaultDirectories,
-        addGamesToLibrary
+        addGamesToLibrary,
+        requestId
       );
       setScanResult(result);
     } finally {
       setIsScanning(false);
+      setScanRequestId(null);
     }
+  };
+
+  const handleCancelScan = () => {
+    if (scanRequestId) window.electron.cancelScanInstalledGames(scanRequestId);
   };
 
   const handleClearScanResult = () => {
@@ -507,6 +517,7 @@ export function Header() {
         isScanning={isScanning}
         scanResult={scanResult}
         onStartScan={handleStartScan}
+        onCancelScan={handleCancelScan}
         onClearResult={handleClearScanResult}
       />
 

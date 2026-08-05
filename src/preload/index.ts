@@ -759,14 +759,18 @@ contextBridge.exposeInMainWorld("electron", {
   scanInstalledGames: (
     additionalDirectories?: string[],
     includeDefaultDirectories?: boolean,
-    addGamesToLibrary?: boolean
+    addGamesToLibrary?: boolean,
+    requestId?: string
   ) =>
     ipcRenderer.invoke(
       "scanInstalledGames",
       additionalDirectories,
       includeDefaultDirectories,
-      addGamesToLibrary
+      addGamesToLibrary,
+      requestId
     ),
+  cancelScanInstalledGames: (requestId: string) =>
+    ipcRenderer.invoke("cancelScanInstalledGames", requestId),
   addScannedGame: (objectId: string, executablePath: string) =>
     ipcRenderer.invoke("addScannedGame", objectId, executablePath),
   getDefaultWinePrefixSelectionPath: () =>
