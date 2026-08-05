@@ -283,13 +283,11 @@ export function GameDetailsContent() {
               </div>
             </>
           ) : (
-            <>
-              <img
-                src={isLaunchboxGame ? heroImage || launchboxCover : heroImage}
-                className="game-details__hero-image"
-                alt={game?.title}
-              />
-            </>
+            <img
+              src={isLaunchboxGame ? heroImage || launchboxCover : heroImage}
+              className="game-details__hero-image"
+              alt={game?.title}
+            />
           )}
 
           {isLaunchboxGame && !hideClassicsBookmark && (

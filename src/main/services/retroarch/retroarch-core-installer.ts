@@ -77,6 +77,12 @@ export const buildCoresStateForDir = (
   return cores;
 };
 
+const removeDirectoryQuietly = async (target: string): Promise<void> => {
+  await fs.promises
+    .rm(target, { recursive: true, force: true })
+    .catch(() => {});
+};
+
 const sendCoreProgress = (progress: RetroArchCoreInstallProgress): void => {
   WindowManager.mainWindow?.webContents.send(
     "on-retroarch-core-install-progress",
@@ -128,12 +134,6 @@ export const downloadAndInstallCore = async (
     await removeFileQuietly(archivePath);
   };
 
-  const removeStaging = async () => {
-    await fs.promises
-      .rm(stagingDir, { recursive: true, force: true })
-      .catch(() => {});
-  };
-
   try {
     sendCoreProgress({ core, phase: "downloading", loaded: 0 });
     const { lastModified } = await downloadToFile(
@@ -150,7 +150,7 @@ export const downloadAndInstallCore = async (
     );
 
     sendCoreProgress({ core, phase: "extracting" });
-    await removeStaging();
+    await removeDirectoryQuietly(stagingDir);
     await fs.promises.mkdir(stagingDir, { recursive: true });
     await SevenZip.extractFile({
       filePath: archivePath,
@@ -165,7 +165,7 @@ export const downloadAndInstallCore = async (
         downloadUrl,
         stagedLibrary,
       });
-      await removeStaging();
+      await removeDirectoryQuietly(stagingDir);
       sendCoreProgress({ core, phase: "error", reason: "extract_failed" });
       return { ok: false, core, reason: "extract_failed" };
     }
@@ -186,7 +186,7 @@ export const downloadAndInstallCore = async (
       }));
     });
 
-    await removeStaging();
+    await removeDirectoryQuietly(stagingDir);
 
     sendCoreProgress({ core, phase: "done", path: libraryPath });
     return { ok: true, core, path: libraryPath };
@@ -198,7 +198,7 @@ export const downloadAndInstallCore = async (
       error,
     });
     await removeArchive();
-    await removeStaging();
+    await removeDirectoryQuietly(stagingDir);
     sendCoreProgress({ core, phase: "error", reason: "install_failed" });
     return { ok: false, core, reason: "install_failed" };
   }
@@ -261,12 +261,6 @@ export const downloadAndInstallRetroArch = async (
     await removeFileQuietly(archivePath);
   };
 
-  const removeStaging = async () => {
-    await fs.promises
-      .rm(stagingDir, { recursive: true, force: true })
-      .catch(() => {});
-  };
-
   try {
     sendInstallProgress({ optionId, phase: "downloading", loaded: 0 });
     await downloadToFile(option.downloadUrl, archivePath, (loaded, total) => {
@@ -279,7 +273,7 @@ export const downloadAndInstallRetroArch = async (
     });
 
     sendInstallProgress({ optionId, phase: "extracting" });
-    await removeStaging();
+    await removeDirectoryQuietly(stagingDir);
     await fs.promises.mkdir(stagingDir, { recursive: true });
     await SevenZip.extractFile({
       filePath: archivePath,
@@ -298,7 +292,7 @@ export const downloadAndInstallRetroArch = async (
         downloadUrl: option.downloadUrl,
         stagingDir,
       });
-      await removeStaging();
+      await removeDirectoryQuietly(stagingDir);
       sendInstallProgress({
         optionId,
         phase: "error",
@@ -315,7 +309,7 @@ export const downloadAndInstallRetroArch = async (
         recursive: true,
         force: true,
       });
-      await removeStaging();
+      await removeDirectoryQuietly(stagingDir);
     } else {
       await fs.promises.rename(stagingDir, extractDir);
     }
@@ -339,7 +333,7 @@ export const downloadAndInstallRetroArch = async (
   } catch (error) {
     logger.error("Failed to install RetroArch", error);
     await removeArchive();
-    await removeStaging();
+    await removeDirectoryQuietly(stagingDir);
     sendInstallProgress({ optionId, phase: "error", reason: "install_failed" });
     return { ok: false, reason: "install_failed" };
   }
