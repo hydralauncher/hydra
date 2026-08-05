@@ -177,11 +177,7 @@ pub fn build_rule_id(rule: &CloudSaveRule) -> String {
     })
 }
 
-pub fn store_user_identity(
-    store: &str,
-    captured: Option<&str>,
-    _context: &StoreUserContext,
-) -> StoreUserIdentity {
+pub fn store_user_identity(store: &str, captured: Option<&str>) -> StoreUserIdentity {
     let concrete = captured.unwrap_or("__unbound__");
     if captured.is_none() {
         return StoreUserIdentity {
@@ -333,62 +329,32 @@ mod tests {
     }
 
     #[test]
-    fn literal_profiles_do_not_change_with_the_steam_context() {
+    fn literal_profiles_keep_distinct_variant_ids() {
         let steam_id64 = "76561198051718575";
         let account_id32 = "91452847";
-        let account = KnownStoreAccount {
-            store: "steam".into(),
-            steam_id64: Some(steam_id64.into()),
-            account_id32: Some(account_id32.into()),
-            source: "active-login".into(),
-        };
-        let context = StoreUserContext {
-            active: Some(account.clone()),
-            known: vec![account],
-        };
-        let with_account = portable_bindings(
+        let steam_id_profile = portable_bindings(
             "steam",
             "814380",
-            store_user_identity("steam", Some(steam_id64), &context),
+            store_user_identity("steam", Some(steam_id64)),
         );
-        let without_account = portable_bindings(
-            "steam",
-            "814380",
-            store_user_identity("steam", Some(steam_id64), &StoreUserContext::default()),
-        );
-        assert_eq!(
-            build_variant_id("steam:814380", &with_account, false),
-            build_variant_id("steam:814380", &without_account, false)
-        );
-
         let account_id_profile = portable_bindings(
             "steam",
             "814380",
-            store_user_identity("steam", Some(account_id32), &context),
+            store_user_identity("steam", Some(account_id32)),
         );
         assert_ne!(
-            build_variant_id("steam:814380", &with_account, false),
+            build_variant_id("steam:814380", &steam_id_profile, false),
             build_variant_id("steam:814380", &account_id_profile, false)
         );
     }
 
     #[test]
-    fn remote_snapshot_account_hint_does_not_reclassify_literal_profiles() {
+    fn numeric_profiles_remain_literal() {
         let steam_id64 = "76561199800542110";
         let account_id32 = "1840276382";
-        let account = KnownStoreAccount {
-            store: "steam".into(),
-            steam_id64: Some(steam_id64.into()),
-            account_id32: Some(account_id32.into()),
-            source: "remote-snapshot".into(),
-        };
-        let context = StoreUserContext {
-            active: None,
-            known: vec![account],
-        };
 
         for captured in [steam_id64, account_id32] {
-            let identity = store_user_identity("steam", Some(captured), &context);
+            let identity = store_user_identity("steam", Some(captured));
             assert_eq!(identity.kind, "folder-profile");
             assert!(identity.steam_id64.is_none());
             assert!(identity.account_id32.is_none());
@@ -400,21 +366,14 @@ mod tests {
 
     #[test]
     fn builds_default_and_opaque_wire_variants_without_local_bindings() {
-        let default_bindings = portable_bindings(
-            "steam",
-            "1",
-            store_user_identity("steam", None, &StoreUserContext::default()),
-        );
+        let default_bindings = portable_bindings("steam", "1", store_user_identity("steam", None));
         let default = build_snapshot_variant("steam:1", &default_bindings, false);
         assert_eq!(default.kind, "default");
         assert!(default.steam_id64.is_none());
         assert!(default.concrete_folder_id.is_none());
 
-        let opaque_bindings = portable_bindings(
-            "steam",
-            "1",
-            store_user_identity("steam", Some("Goldberg"), &StoreUserContext::default()),
-        );
+        let opaque_bindings =
+            portable_bindings("steam", "1", store_user_identity("steam", Some("Goldberg")));
         let opaque = build_snapshot_variant("steam:1", &opaque_bindings, false);
         assert_eq!(opaque.kind, "opaque-folder");
         assert_eq!(opaque.concrete_folder_id.as_deref(), Some("goldberg"));
@@ -424,11 +383,8 @@ mod tests {
 
     #[test]
     fn preserves_existing_default_and_opaque_variant_ids() {
-        let default_bindings = portable_bindings(
-            "steam",
-            "1817070",
-            store_user_identity("steam", None, &StoreUserContext::default()),
-        );
+        let default_bindings =
+            portable_bindings("steam", "1817070", store_user_identity("steam", None));
         let default = build_snapshot_variant("steam:1817070", &default_bindings, false);
         assert_eq!(
             default.variant_id,
@@ -438,11 +394,7 @@ mod tests {
         let profile_bindings = portable_bindings(
             "steam",
             "1817070",
-            store_user_identity(
-                "steam",
-                Some("76561197960271872"),
-                &StoreUserContext::default(),
-            ),
+            store_user_identity("steam", Some("76561197960271872")),
         );
         let profile = build_snapshot_variant("steam:1817070", &profile_bindings, false);
         assert_eq!(profile.kind, "opaque-folder");
@@ -461,20 +413,10 @@ mod tests {
         let mut rule = rule("<winAppData>/Sekiro/<storeUserId>/S0000.sl2");
         rule.kind = "file".into();
         rule.rule_id = build_rule_id(&rule);
-        let account = KnownStoreAccount {
-            store: "steam".into(),
-            steam_id64: Some("76561197960278073".into()),
-            account_id32: Some("12345".into()),
-            source: "active-login".into(),
-        };
-        let context = StoreUserContext {
-            active: Some(account.clone()),
-            known: vec![account],
-        };
         let bindings = portable_bindings(
             "steam",
             "814380",
-            store_user_identity("steam", Some("12345"), &context),
+            store_user_identity("steam", Some("12345")),
         );
         let variant = build_snapshot_variant("steam:814380", &bindings, false);
         let variant_id = variant.variant_id.clone();

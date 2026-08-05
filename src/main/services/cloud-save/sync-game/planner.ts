@@ -72,10 +72,10 @@ export const planCloudSaveSync = ({
 
   const hasLocalChangesToApply =
     restoreEntryCount > 0 || deleteLocalEntryCount > 0;
+  const emptyLocalRequiresRemotePreservation =
+    !hasLocalFiles && hasRemoteSnapshot;
 
-  // An empty local snapshot is never proof that every remote save should be
-  // deleted. Full deletion is an explicit operation outside the sync flow.
-  if (!hasLocalFiles && hasRemoteSnapshot) {
+  if (emptyLocalRequiresRemotePreservation) {
     return hasLocalChangesToApply ? plan("restore") : plan("noop");
   }
 

@@ -8,8 +8,7 @@ use napi_derive::napi;
 
 use super::identity::{
     build_snapshot_variant, local_id, normalize_text, portable_bindings, store_user_identity,
-    LocalResolutionBindings, SnapshotVariant, StoreUserContext, UserLocationCoverage,
-    DISCOVERY_ENGINE_VERSION,
+    LocalResolutionBindings, SnapshotVariant, UserLocationCoverage, DISCOVERY_ENGINE_VERSION,
 };
 use super::local_snapshot::types::DiscoveredLocalSaveFile;
 use super::local_snapshot::{
@@ -40,7 +39,6 @@ fn collect_discovered_files(
     object_id: &str,
     save_namespace_key: &str,
     environment_id: &str,
-    store_user_context: &StoreUserContext,
     scanned_rules: Vec<ScannedCloudSaveRule>,
 ) -> Result<
     (
@@ -71,11 +69,7 @@ fn collect_discovered_files(
         // already tracked file and create a second remote identity.
         let priority = (rule.source != "custom", path_priority);
         for scanned_path in rule.scanned_paths {
-            let store_user = store_user_identity(
-                shop,
-                scanned_path.store_user_id.as_deref(),
-                store_user_context,
-            );
+            let store_user = store_user_identity(shop, scanned_path.store_user_id.as_deref());
             let authority = store_user.authority.clone();
             let coverage_authority = coverage_authority(&authority);
             let concrete_user_segment = store_user.concrete_folder_id.clone();
@@ -245,7 +239,6 @@ pub async fn build_local_game_snapshot_pipeline(
     })?;
     let scanned_rules = scan_resolved_save_rules(resolved_rules).await?;
     let environment_id = input.environment_id;
-    let store_user_context = input.store_user_context;
     let namespace_for_collect = save_namespace_key.clone();
     let shop_for_collect = shop.clone();
     let object_for_collect = object_id.clone();
@@ -255,7 +248,6 @@ pub async fn build_local_game_snapshot_pipeline(
             &object_for_collect,
             &namespace_for_collect,
             &environment_id,
-            &store_user_context,
             scanned_rules,
         )
     })
@@ -339,7 +331,6 @@ mod tests {
             "814380",
             "steam:814380",
             "environment",
-            &StoreUserContext::default(),
             vec![
                 scanned_rule(
                     "<winAppData>/Sekiro/<storeUserId>",
@@ -399,15 +390,9 @@ mod tests {
             }],
         };
 
-        let (variants, files, coverage) = collect_discovered_files(
-            "steam",
-            "814380",
-            "steam:814380",
-            "environment",
-            &StoreUserContext::default(),
-            vec![rule],
-        )
-        .unwrap();
+        let (variants, files, coverage) =
+            collect_discovered_files("steam", "814380", "steam:814380", "environment", vec![rule])
+                .unwrap();
 
         assert!(files.is_empty());
         assert_eq!(variants.len(), 1);
@@ -454,15 +439,8 @@ mod tests {
             }],
         };
 
-        let (variants, files, coverage) = collect_discovered_files(
-            "steam",
-            "1",
-            "steam:1",
-            "environment",
-            &StoreUserContext::default(),
-            vec![rule],
-        )
-        .unwrap();
+        let (variants, files, coverage) =
+            collect_discovered_files("steam", "1", "steam:1", "environment", vec![rule]).unwrap();
 
         assert!(variants.is_empty());
         assert!(files.is_empty());
@@ -497,7 +475,6 @@ mod tests {
             "1",
             "steam:1",
             "environment",
-            &StoreUserContext::default(),
             vec![custom, manifest],
         )
         .unwrap();

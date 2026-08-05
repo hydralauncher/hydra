@@ -24,6 +24,20 @@ const attemptKey = (objectId: string, shop: GameShop, trigger: string) =>
 const byJson = (left: unknown, right: unknown) =>
   JSON.stringify(left).localeCompare(JSON.stringify(right));
 
+const invalidateSettledGamePageAttemptOnObservationChange = (
+  objectId: string,
+  shop: GameShop,
+  previousObservationKey: string | undefined,
+  observationKey: string
+) => {
+  if (
+    previousObservationKey !== undefined &&
+    previousObservationKey !== observationKey
+  ) {
+    attempts.delete(attemptKey(objectId, shop, "game-page-open"));
+  }
+};
+
 export const buildCloudSaveObservationKey = (analysis: CloudSaveAnalysis) => {
   const payload = {
     environmentId: analysis.environmentId,
@@ -72,17 +86,12 @@ export const recordLatestCloudSaveObservation = (
   const key = gameKey(objectId, shop);
   const previousObservationKey = latestObservations.get(key);
   latestObservations.set(key, observationKey);
-
-  // A fingerprint may legitimately reappear after an intermediate state. For
-  // example: empty local files -> restored -> empty local files again. Once a
-  // different state has been observed, an older settled attempt must not
-  // suppress the new transition back to that fingerprint.
-  if (
-    previousObservationKey !== undefined &&
-    previousObservationKey !== observationKey
-  ) {
-    attempts.delete(attemptKey(objectId, shop, "game-page-open"));
-  }
+  invalidateSettledGamePageAttemptOnObservationChange(
+    objectId,
+    shop,
+    previousObservationKey,
+    observationKey
+  );
 };
 
 export const beginAutomaticSyncObservation = (
