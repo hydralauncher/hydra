@@ -60,12 +60,14 @@ const ymlValueForGame = (primaryPath: string): string =>
 
 const mapToShopDetails = (
   objectId: string,
-  entry: LaunchboxShopDetailsEntry
+  entry: LaunchboxShopDetailsEntry,
+  language: string
 ): ShopDetails => {
   const data = entry.data;
   const description = data?.description ?? "";
   return {
     objectId,
+    descriptionLanguage: language,
     name: data?.title ?? "",
     platform: entry.platform ?? data?.platform ?? undefined,
     skus: entry.skus ?? undefined,
@@ -171,7 +173,7 @@ const persistEntryLocally = async (
   const gameKey = levelKeys.game(shop, objectId);
   const cacheKey = levelKeys.gameShopCacheItem(shop, objectId, language);
 
-  const shopDetails = mapToShopDetails(objectId, entry);
+  const shopDetails = mapToShopDetails(objectId, entry, language);
   await gamesShopCacheSublevel.put(cacheKey, shopDetails).catch((err) => {
     logger.error("Could not cache launchbox shop details", err);
   });
@@ -816,7 +818,7 @@ export async function runLaunchboxImport(
         .filter((s): s is string => s !== null && s.length > 0)
     )
   );
-  const skuLookup = await fetchShopDetailsForSkus(uniqueSkus);
+  const skuLookup = await fetchShopDetailsForSkus(uniqueSkus, language);
   if (signal.cancelled) return cancelledResult();
 
   const { enriched, groupCanonical } = buildEnriched(

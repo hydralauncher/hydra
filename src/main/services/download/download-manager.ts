@@ -5,7 +5,10 @@ import {
   resolveArchiveOrgFile,
 } from "@shared";
 import { WindowManager } from "../window-manager";
-import { publishDownloadCompleteNotification } from "../notifications";
+import {
+  publishDownloadCompleteNotification,
+  publishDownloadHaltedNotification,
+} from "../notifications";
 import type { Download, DownloadProgress, Game, UserPreferences } from "@types";
 import {
   GofileApi,
@@ -48,6 +51,10 @@ import {
   setDownloadLayoutQueues,
 } from "../download-layout-state";
 import { shouldFinalizeDownload } from "./download-completion";
+import {
+  DISK_SPACE_CHECK_INTERVAL_MS,
+  getDownloadDiskSpace,
+} from "./disk-space";
 
 interface AllDebridBatchEntry {
   url: string;
@@ -80,6 +87,12 @@ export class DownloadManager {
     downloadKey: string;
     generation: number;
   } | null = null;
+  private static lastDiskSpaceCheck: {
+    downloadKey: string;
+    timestamp: number;
+  } | null = null;
+  private static queueHeldForDiskSpace = false;
+  private static lastQueueRetry = 0;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -635,6 +648,10 @@ export class DownloadManager {
 
     this.orphanedDownloadCandidate = null;
 
+    if (this.queueHeldForDiskSpace) {
+      await this.retryQueueHeldForDiskSpace();
+    }
+
     const status = await this.getDownloadStatus();
     if (!status) return;
 
@@ -645,6 +662,8 @@ export class DownloadManager {
     ]);
 
     if (!download || !game) return;
+
+    if (await this.haltDownloadIfStorageIsFull(download, game, gameId)) return;
 
     this.sendProgressUpdate(progress, status, game);
 
@@ -659,6 +678,88 @@ export class DownloadManager {
     ) {
       await this.handleDownloadCompletion(download, game, gameId);
     }
+  }
+
+  private static async retryQueueHeldForDiskSpace() {
+    const now = Date.now();
+
+    if (now - this.lastQueueRetry < DISK_SPACE_CHECK_INTERVAL_MS) return;
+
+    this.lastQueueRetry = now;
+
+    await this.processNextQueuedDownload();
+  }
+
+  private static async haltDownloadIfStorageIsFull(
+    download: Download,
+    game: Game,
+    downloadKey: string
+  ) {
+    if (download.progress >= 1) return false;
+
+    const now = Date.now();
+
+    if (
+      this.lastDiskSpaceCheck?.downloadKey === downloadKey &&
+      now - this.lastDiskSpaceCheck.timestamp < DISK_SPACE_CHECK_INTERVAL_MS
+    ) {
+      return false;
+    }
+
+    this.lastDiskSpaceCheck = { downloadKey, timestamp: now };
+
+    const diskSpace = await getDownloadDiskSpace(download);
+
+    if (!diskSpace) {
+      logger.error(
+        `[DownloadManager] Failed to read free space for ${download.downloadPath}`
+      );
+      return false;
+    }
+
+    if (diskSpace.hasEnoughSpace) return false;
+
+    logger.warn(
+      `[DownloadManager] Halting ${downloadKey}: ${download.downloadPath} has ${diskSpace.freeBytes} bytes free, ${diskSpace.requiredBytes} needed`
+    );
+
+    this.lastDiskSpaceCheck = null;
+
+    await this.pauseDownload(downloadKey);
+    WindowManager.sendToAppWindows("on-download-progress", null);
+
+    await downloadsSublevel.put(downloadKey, {
+      ...download,
+      status: "error",
+      queued: false,
+      pinnedToHero: false,
+      extracting: false,
+    });
+
+    const downloads = await downloadsSublevel.values().all();
+    const layoutState = await getDownloadLayoutStateRecord();
+    await setDownloadLayoutQueues(
+      downloads,
+      layoutState.queueOrder.filter((id) => id !== downloadKey),
+      [
+        downloadKey,
+        ...layoutState.pausedOrder.filter((id) => id !== downloadKey),
+      ]
+    );
+
+    WindowManager.sendDownloadsUpdated();
+    WindowManager.sendToAppWindows("on-download-halted", game.title);
+
+    await publishDownloadHaltedNotification(game).catch((error) => {
+      logger.error(
+        "[DownloadManager] Failed to publish download halted notification",
+        error
+      );
+    });
+
+    await this.processNextQueuedDownload();
+
+    return true;
   }
 
   private static sendProgressUpdate(
@@ -865,6 +966,22 @@ export class DownloadManager {
     );
 
     if (nextItemOnQueue) {
+      const diskSpace = await getDownloadDiskSpace(nextItemOnQueue);
+
+      if (diskSpace && !diskSpace.hasEnoughSpace) {
+        if (!this.queueHeldForDiskSpace) {
+          logger.warn(
+            `[DownloadManager] Keeping the queue on hold: ${nextItemOnQueue.downloadPath} has ${diskSpace.freeBytes} bytes free, ${diskSpace.requiredBytes} needed`
+          );
+          WindowManager.sendDownloadsUpdated();
+        }
+
+        this.queueHeldForDiskSpace = true;
+        return;
+      }
+
+      this.queueHeldForDiskSpace = false;
+
       const nextDownloadId = levelKeys.game(
         nextItemOnQueue.shop,
         nextItemOnQueue.objectId
@@ -887,6 +1004,7 @@ export class DownloadManager {
         await this.handleRuntimeDownloadError(nextDownloadId, error);
       }
     } else {
+      this.queueHeldForDiskSpace = false;
       this.downloadingGameId = null;
       this.usingJsDownloader = false;
       this.jsDownloader = null;
@@ -1783,6 +1901,8 @@ export class DownloadManager {
   static async startDownload(download: Download) {
     const isHttp = this.isHttpDownloader(download.downloader);
     const downloadId = levelKeys.game(download.shop, download.objectId);
+
+    this.queueHeldForDiskSpace = false;
 
     // The generation token lets a concurrent cancel/restart for the same id
     // invalidate this in-flight preparation before it spawns a downloader.
