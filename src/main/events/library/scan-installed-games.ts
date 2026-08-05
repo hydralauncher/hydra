@@ -387,9 +387,7 @@ const partitionMatches = (
       continue;
     }
 
-    const candidates = [...objectIds]
-      .filter((candidate) => !libraryObjectIds.has(candidate))
-      .sort((a, b) => Number(a) - Number(b));
+    const candidates = [...objectIds].sort((a, b) => Number(a) - Number(b));
 
     if (candidates.length > 0) {
       undecided.push({ executablePath, objectIds: candidates });
@@ -543,7 +541,9 @@ const createChoiceResolver = () => {
     if (cached !== undefined) return cached;
 
     const pending = limit(() =>
-      getGameAssets(objectId, DISCOVERED_GAMES_SHOP)
+      getGameAssets(objectId, DISCOVERED_GAMES_SHOP).catch(() =>
+        getGameAssets(objectId, DISCOVERED_GAMES_SHOP)
+      )
     ).then(
       (assets): ChoiceLookup =>
         assets?.title
@@ -590,6 +590,13 @@ const nameByFolder = async (
           await Promise.all(objectIds.map(resolveChoice))
         );
 
+        if (failed) {
+          logger.info(
+            `[ScanInstalledGames] Not naming ${executablePath}, some candidate lookups failed`
+          );
+          return;
+        }
+
         const choices = named.filter((choice) =>
           namesTheFolder(executablePath, choice.title)
         );
@@ -598,13 +605,6 @@ const nameByFolder = async (
 
         if (choices.length === 1) {
           const [choice] = choices;
-
-          if (failed) {
-            logger.info(
-              `[ScanInstalledGames] Not naming ${executablePath} after ${choice.title}, some candidate lookups failed`
-            );
-            return;
-          }
 
           if (pathByObjectId.has(choice.objectId)) return;
 
@@ -649,7 +649,7 @@ const findGamesOutsideLibrary = async (
           await Promise.all(objectIds.map(resolveChoice))
         );
 
-        if (choices.length < 2 && failed) {
+        if (failed) {
           logger.info(
             `[ScanInstalledGames] Skipping ${executablePath}, some of its ${objectIds.length} candidate lookups failed`
           );
@@ -663,8 +663,19 @@ const findGamesOutsideLibrary = async (
           return;
         }
 
+        const external = choices.filter(
+          (choice) => !libraryObjectIds.has(choice.objectId)
+        );
+
+        if (external.length === 0) {
+          logger.info(
+            `[ScanInstalledGames] Skipping ${executablePath}, every candidate is already in the library`
+          );
+          return;
+        }
+
         if (choices.length === 1) {
-          const [choice] = choices;
+          const [choice] = external;
 
           logger.info(
             `[ScanInstalledGames] ${executablePath} resolved to ${choice.objectId}, its only candidate in the catalogue`
@@ -678,10 +689,10 @@ const findGamesOutsideLibrary = async (
         }
 
         logger.info(
-          `[ScanInstalledGames] ${executablePath} needs a choice between ${choices.length} of ${objectIds.length} candidates`
+          `[ScanInstalledGames] ${executablePath} needs a choice between ${external.length} of ${objectIds.length} candidates`
         );
 
-        ambiguousMatches.push({ executablePath, choices });
+        ambiguousMatches.push({ executablePath, choices: external });
       })
     );
   }
