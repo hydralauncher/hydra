@@ -14,6 +14,15 @@ export interface CloudSaveVisibility {
   settings: CloudSaveSettingsVisibility;
 }
 
+export const isLegacyCloudSaveSettingsAvailable = (
+  settings: CloudSaveSettingsVisibility,
+  hasActiveSubscription: boolean,
+  artifactCount: number
+): boolean =>
+  settings.showLegacy &&
+  (settings.legacyPurpose === "active" ||
+    (hasActiveSubscription && artifactCount > 0));
+
 export const getCloudSaveVisibility = (shop: GameShop): CloudSaveVisibility => {
   if (shop === "steam") {
     return {

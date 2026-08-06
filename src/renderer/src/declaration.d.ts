@@ -77,6 +77,7 @@ import type {
   SelectCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathRebindApprovalResult,
+  LegacySaveExportResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -804,6 +805,10 @@ declare global {
       shop: GameShop,
       gameArtifactId: string
     ) => Promise<void>;
+    exportGameArtifact: (
+      gameArtifactId: string,
+      suggestedName: string
+    ) => Promise<LegacySaveExportResult>;
     getGameArtifacts: (
       objectId: string,
       shop: GameShop

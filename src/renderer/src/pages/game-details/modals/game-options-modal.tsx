@@ -23,7 +23,7 @@ import type {
   ProtonVersion,
   ShortcutLocation,
 } from "@types";
-import { gameDetailsContext } from "@renderer/context";
+import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import {
   useAppSelector,
@@ -63,8 +63,11 @@ import { HydraCloudLegacySettingsSection } from "./game-options-modal/hydra-clou
 import { HydraCloudV2SettingsSection } from "./game-options-modal/hydra-cloud-v2-section";
 import type { GameSettingsCategoryId } from "./game-options-modal/types";
 import { CreateSteamShortcutModal } from "./create-steam-shortcut-modal";
-import { getCloudSaveVisibility } from "../cloud-save-visibility";
-import { LegacySavesPlaceholder } from "./game-options-modal/legacy-saves-placeholder";
+import {
+  getCloudSaveVisibility,
+  isLegacyCloudSaveSettingsAvailable,
+} from "../cloud-save-visibility";
+import { LegacySavesSection } from "./game-options-modal/legacy-saves-section";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -167,16 +170,19 @@ export function GameOptionsModal({
     cancelDownload,
   } = useDownload();
   const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { artifacts } = useContext(cloudSyncContext);
   const { showHydraCloudModal } = useSubscription();
   const cloudSaveAccessAction = getCloudSaveAccessAction(
     Boolean(userDetails),
     hasActiveSubscription
   );
-  const {
-    showV2: showCloudSaveV2Settings,
-    showLegacy: showLegacyCloudSaveSettings,
-    legacyPurpose,
-  } = getCloudSaveVisibility(game.shop).settings;
+  const cloudSaveSettings = getCloudSaveVisibility(game.shop).settings;
+  const { showV2: showCloudSaveV2Settings, legacyPurpose } = cloudSaveSettings;
+  const showLegacyCloudSaveSettings = isLegacyCloudSaveSettingsAvailable(
+    cloudSaveSettings,
+    hasActiveSubscription,
+    artifacts.length
+  );
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -1134,7 +1140,7 @@ export function GameOptionsModal({
               )}
             {selectedCategory === "hydra_cloud_legacy" &&
               showLegacyCloudSaveSettings &&
-              legacyPurpose === "archive" && <LegacySavesPlaceholder />}
+              legacyPurpose === "archive" && <LegacySavesSection />}
             {selectedCategory === "compatibility" &&
               shouldShowWinePrefixConfiguration && (
                 <CompatibilitySettingsSection

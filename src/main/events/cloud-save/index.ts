@@ -1,4 +1,5 @@
 import "./download-game-artifact";
+import "./export-game-artifact";
 import "./get-cloud-save-overview";
 import "./get-cloud-save-v2-file-details";
 import "./get-game-backup-preview";

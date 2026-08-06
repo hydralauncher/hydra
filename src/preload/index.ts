@@ -57,6 +57,7 @@ import type {
   SelectCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathRebindApprovalResult,
+  LegacySaveExportResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1084,6 +1085,11 @@ contextBridge.exposeInMainWorld("electron", {
     gameArtifactId: string
   ) =>
     ipcRenderer.invoke("downloadGameArtifact", objectId, shop, gameArtifactId),
+  exportGameArtifact: (
+    gameArtifactId: string,
+    suggestedName: string
+  ): Promise<LegacySaveExportResult> =>
+    ipcRenderer.invoke("exportGameArtifact", gameArtifactId, suggestedName),
   getGameArtifacts: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameArtifacts", objectId, shop),
   getGameBackupPreview: (objectId: string, shop: GameShop) =>

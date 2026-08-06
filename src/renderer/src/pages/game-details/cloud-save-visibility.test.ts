@@ -4,7 +4,8 @@ import { describe, it } from "node:test";
 // @ts-ignore The Node ESM test runner requires the source extension.
 import * as visibilityModule from "./cloud-save-visibility.ts";
 
-const { getCloudSaveVisibility } = visibilityModule;
+const { getCloudSaveVisibility, isLegacyCloudSaveSettingsAvailable } =
+  visibilityModule;
 
 describe("cloud save visibility", () => {
   it("uses V2 for Steam and keeps legacy saves as an archive", () => {
@@ -38,5 +39,19 @@ describe("cloud save visibility", () => {
         legacyPurpose: "active",
       },
     });
+  });
+
+  it("shows active legacy settings without requiring existing artifacts", () => {
+    const settings = getCloudSaveVisibility("launchbox").settings;
+
+    assert.equal(isLegacyCloudSaveSettingsAvailable(settings, false, 0), true);
+  });
+
+  it("shows archived legacy saves only to subscribers with artifacts", () => {
+    const settings = getCloudSaveVisibility("steam").settings;
+
+    assert.equal(isLegacyCloudSaveSettingsAvailable(settings, false, 1), false);
+    assert.equal(isLegacyCloudSaveSettingsAvailable(settings, true, 0), false);
+    assert.equal(isLegacyCloudSaveSettingsAvailable(settings, true, 2), true);
   });
 });
