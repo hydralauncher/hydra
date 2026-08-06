@@ -30,7 +30,11 @@ import { BigPictureCloudSaveModal } from "./cloud-save-modal";
 
 import "./styles.scss";
 
-type CustomPathApprovalError = "generic" | "mapped-overlap" | "custom-overlap";
+type CustomPathApprovalError =
+  | "generic"
+  | "mapped-overlap"
+  | "custom-overlap"
+  | "remote-target-overlap";
 
 interface BigPictureCloudSaveContextValue {
   overview: CloudSaveOverview | null;
@@ -54,6 +58,9 @@ function getCustomPathApprovalError(error: unknown): CustomPathApprovalError {
   }
   if (message.includes("cloud_save_custom_path_mapped_location_overlap")) {
     return "mapped-overlap";
+  }
+  if (message.includes("cloud_save_custom_path_remote_target_overlap")) {
+    return "remote-target-overlap";
   }
   return "generic";
 }
@@ -507,17 +514,19 @@ export function BigPictureCloudSaveProvider({
   const customPathErrorMessage =
     customPathApprovalError === "mapped-overlap"
       ? t("cloud_save_v2_custom_path_mapped_overlap_error_description")
-      : customPathApprovalError === "custom-overlap"
-        ? t("cloud_save_v2_custom_path_custom_overlap_error_description")
-        : customPathApprovalError
-          ? t(
-              customPathApproval?.purpose === "manual-sync"
-                ? "cloud_save_v2_path_approval_manual_sync_error_description"
-                : customPathApproval?.purpose === "custom-path-rebind"
-                  ? "cloud_save_v2_custom_path_rebind_error_description"
-                  : "cloud_save_v2_path_approval_error_description"
-            )
-          : undefined;
+      : customPathApprovalError === "remote-target-overlap"
+        ? t("cloud_save_v2_custom_path_remote_target_overlap_error_description")
+        : customPathApprovalError === "custom-overlap"
+          ? t("cloud_save_v2_custom_path_custom_overlap_error_description")
+          : customPathApprovalError
+            ? t(
+                customPathApproval?.purpose === "manual-sync"
+                  ? "cloud_save_v2_path_approval_manual_sync_error_description"
+                  : customPathApproval?.purpose === "custom-path-rebind"
+                    ? "cloud_save_v2_custom_path_rebind_error_description"
+                    : "cloud_save_v2_path_approval_error_description"
+              )
+            : undefined;
   const hasError = hasRefreshError || hasSyncError;
   const value: BigPictureCloudSaveContextValue = {
     overview,
