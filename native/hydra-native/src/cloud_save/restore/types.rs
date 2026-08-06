@@ -1,6 +1,6 @@
 use napi_derive::napi;
 
-use crate::cloud_save::identity::{SnapshotVariant, StoreUserContext};
+use crate::cloud_save::identity::SnapshotVariant;
 use crate::cloud_save::manifest::types::CloudSaveRuleCondition;
 
 #[napi(object)]
@@ -35,7 +35,6 @@ pub struct ResolveRestoreTargetsInput {
     pub executable_path: Option<String>,
     pub wine_prefix_path: Option<String>,
     pub steam_path: Option<String>,
-    pub store_user_context: StoreUserContext,
     pub approved_rules: Vec<ApprovedRestoreRule>,
     pub variants: Vec<SnapshotVariant>,
     pub files: Vec<RestoreManifestFile>,

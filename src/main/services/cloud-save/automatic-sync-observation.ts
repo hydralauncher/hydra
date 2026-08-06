@@ -23,7 +23,11 @@ const attemptKey = (objectId: string, shop: GameShop, trigger: string) =>
   JSON.stringify([shop, objectId, trigger]);
 const byJson = (left: unknown, right: unknown) =>
   JSON.stringify(left).localeCompare(JSON.stringify(right));
-const byText = (left: string, right: string) => left.localeCompare(right);
+const byText = (left: string, right: string) => {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+};
 
 const invalidateSettledGamePageAttemptOnObservationChange = (
   objectId: string,

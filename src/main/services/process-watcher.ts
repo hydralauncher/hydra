@@ -27,7 +27,12 @@ import {
   shouldRunLegacyAutomaticCloudSave,
   shouldRunV2AutomaticCloudSave,
 } from "./cloud-save";
-import { gamesPlaytime, setGamePlaytime } from "./game-running-state";
+import {
+  clearGamesPlaytimeState,
+  deleteGamePlaytime,
+  gamesPlaytime,
+  setGamePlaytime,
+} from "./game-running-state";
 
 export { gamesPlaytime };
 export { isGameRunning } from "./game-running-state";
@@ -525,7 +530,7 @@ const onCloseGame = (game: Game) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
   const now = performance.now();
   const gamePlaytime = gamesPlaytime.get(gameKey)!;
-  gamesPlaytime.delete(gameKey);
+  deleteGamePlaytime(gameKey);
   launchedGamePids.delete(gameKey);
   PowerSaveBlockerManager.markGameClosed(gameKey);
 
@@ -618,5 +623,5 @@ export const clearGamesPlaytime = async () => {
     }
   }
 
-  gamesPlaytime.clear();
+  clearGamesPlaytimeState();
 };

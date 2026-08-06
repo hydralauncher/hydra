@@ -117,7 +117,14 @@ export const resolveRestoreManifestTargets = async (
   }
 
   const targets = await NativeAddon.resolveRestoreTargets({
-    ...pathContext,
+    shop: pathContext.shop,
+    objectId: pathContext.objectId,
+    platform: pathContext.platform,
+    homeDir: pathContext.homeDir,
+    documentsDir: pathContext.documentsDir,
+    appDataDir: pathContext.appDataDir,
+    executablePath: pathContext.executablePath,
+    steamPath: pathContext.steamPath,
     winePrefixPath: effectiveWinePrefixPath,
     approvedRules: [
       ...approved.rules,

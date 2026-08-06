@@ -475,7 +475,8 @@ export interface CloudSaveSyncIpcProgressPayload
   operationId: string;
 }
 
-export interface ResolveRestoreTargetsInput extends CloudSavePathContext {
+export interface ResolveRestoreTargetsInput
+  extends Omit<CloudSavePathContext, "storeUserContext"> {
   approvedRules: Array<
     Pick<
       CloudSaveRule,

@@ -7,13 +7,23 @@ interface GamePlaytimeState {
   lastSyncTick: number;
 }
 
-export const gamesPlaytime = new Map<string, GamePlaytimeState>();
+const mutableGamesPlaytime = new Map<string, GamePlaytimeState>();
+
+export const gamesPlaytime: ReadonlyMap<string, GamePlaytimeState> =
+  mutableGamesPlaytime;
 
 export const setGamePlaytime = (
   gameKey: string,
   playtime: GamePlaytimeState
 ) => {
-  gamesPlaytime.set(gameKey, playtime);
+  mutableGamesPlaytime.set(gameKey, playtime);
+};
+
+export const deleteGamePlaytime = (gameKey: string) =>
+  mutableGamesPlaytime.delete(gameKey);
+
+export const clearGamesPlaytimeState = () => {
+  mutableGamesPlaytime.clear();
 };
 
 export const isGameRunning = (objectId: string, shop: Game["shop"]) =>

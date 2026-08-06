@@ -142,6 +142,29 @@ describe("automatic cloud save observation", () => {
     );
   });
 
+  it("orders canonically equivalent text by code units", () => {
+    const composed = "Caf\u00e9.sav";
+    const decomposed = "Cafe\u0301.sav";
+    const withUnresolvedEntries = (unresolvedRemoteEntryIds: string[]) =>
+      analysis({
+        anchor: {
+          baseSnapshotId: "base",
+          baseVersion: 1,
+          baseAggregateHash: "aggregate",
+          unresolvedRemoteEntryIds,
+        },
+      });
+
+    assert.equal(
+      buildCloudSaveObservationKey(
+        withUnresolvedEntries([composed, decomposed])
+      ),
+      buildCloudSaveObservationKey(
+        withUnresolvedEntries([decomposed, composed])
+      )
+    );
+  });
+
   it("runs once for an observed state and runs again after it changes", () => {
     recordLatestCloudSaveObservation("10", "steam", "first");
     const first = beginAutomaticSyncObservation(

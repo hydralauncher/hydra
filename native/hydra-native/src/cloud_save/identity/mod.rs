@@ -20,22 +20,6 @@ pub struct SnapshotVariant {
 }
 
 #[napi(object)]
-#[derive(Clone, Debug)]
-pub struct KnownStoreAccount {
-    pub store: String,
-    pub steam_id64: Option<String>,
-    pub account_id32: Option<String>,
-    pub source: String,
-}
-
-#[napi(object)]
-#[derive(Clone, Debug, Default)]
-pub struct StoreUserContext {
-    pub active: Option<KnownStoreAccount>,
-    pub known: Vec<KnownStoreAccount>,
-}
-
-#[napi(object)]
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StoreUserIdentity {

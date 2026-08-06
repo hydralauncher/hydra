@@ -425,7 +425,6 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::cloud_save::identity::StoreUserContext;
     use crate::cloud_save::manifest::types::CloudSaveRuleCondition;
     use crate::cloud_save::restore::types::ApprovedRestoreRule;
 
@@ -454,7 +453,6 @@ mod tests {
 
     fn input(
         home: &Path,
-        context: StoreUserContext,
         variants: Vec<SnapshotVariant>,
         files: Vec<RestoreManifestFile>,
     ) -> ResolveRestoreTargetsInput {
@@ -468,7 +466,6 @@ mod tests {
             executable_path: None,
             wine_prefix_path: None,
             steam_path: None,
-            store_user_context: context,
             approved_rules: vec![ApprovedRestoreRule {
                 kind: "dir".into(),
                 raw_path: RAW_RULE.into(),
@@ -488,15 +485,7 @@ mod tests {
         let mut remote_file = file(&variant, "slot.sav");
         remote_file.raw_path =
             "<custom><windows><absolute>C:/Users/Rodrigo/Downloads/Game/Saves".into();
-        let mut restore_input = input(
-            temp.path(),
-            StoreUserContext {
-                active: None,
-                known: Vec::new(),
-            },
-            vec![variant],
-            vec![remote_file],
-        );
+        let mut restore_input = input(temp.path(), vec![variant], vec![remote_file]);
         restore_input.approved_rules = vec![ApprovedRestoreRule {
             kind: "dir".into(),
             raw_path: "<custom><windows><absolute>C:/Users/Rodrigo/Downloads/Game/Saves".into(),
@@ -526,15 +515,7 @@ mod tests {
         let raw_path = "<custom><windows><winAppData>/Game";
         let mut remote_file = file(&variant, "slot.sav");
         remote_file.raw_path = raw_path.into();
-        let mut restore_input = input(
-            temp.path(),
-            StoreUserContext {
-                active: None,
-                known: Vec::new(),
-            },
-            vec![variant],
-            vec![remote_file],
-        );
+        let mut restore_input = input(temp.path(), vec![variant], vec![remote_file]);
         restore_input.platform = "linux".into();
         restore_input.executable_path =
             Some(temp.path().join("Game/game.exe").display().to_string());
@@ -571,15 +552,7 @@ mod tests {
         let raw_path = "<custom><windows><winDocuments>/Game";
         let mut remote_file = file(&variant, "slot.sav");
         remote_file.raw_path = raw_path.into();
-        let mut restore_input = input(
-            temp.path(),
-            StoreUserContext {
-                active: None,
-                known: Vec::new(),
-            },
-            vec![variant],
-            vec![remote_file],
-        );
+        let mut restore_input = input(temp.path(), vec![variant], vec![remote_file]);
         restore_input.platform = "linux".into();
         restore_input.executable_path =
             Some(temp.path().join("Game/game.exe").display().to_string());
@@ -615,13 +588,7 @@ mod tests {
             .iter()
             .map(|variant| file(variant, "slot.dat"))
             .collect();
-        let result = resolve_restore_targets_inner(input(
-            temp.path(),
-            StoreUserContext::default(),
-            variants,
-            files,
-        ))
-        .unwrap();
+        let result = resolve_restore_targets_inner(input(temp.path(), variants, files)).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 2);
@@ -632,13 +599,7 @@ mod tests {
         let temp = tempdir().unwrap();
         let variants = vec![variant("opaque-folder", "Unknown")];
         let files = vec![file(&variants[0], "slot.dat")];
-        let result = resolve_restore_targets_inner(input(
-            temp.path(),
-            StoreUserContext::default(),
-            variants,
-            files,
-        ))
-        .unwrap();
+        let result = resolve_restore_targets_inner(input(temp.path(), variants, files)).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 1);
@@ -656,12 +617,7 @@ mod tests {
         let raw_path = "<xdgConfig>/Team Cherry/Hollow Knight Silksong";
         let mut remote_file = file(&variant, "slot.dat");
         remote_file.raw_path = raw_path.into();
-        let mut restore_input = input(
-            temp.path(),
-            StoreUserContext::default(),
-            vec![variant],
-            vec![remote_file],
-        );
+        let mut restore_input = input(temp.path(), vec![variant], vec![remote_file]);
         restore_input.approved_rules = vec![ApprovedRestoreRule {
             kind: "dir".into(),
             raw_path: raw_path.into(),
@@ -686,13 +642,7 @@ mod tests {
         let temp = tempdir().unwrap();
         let variants = vec![variant("steam-account", "76561197960278073")];
         let files = vec![file(&variants[0], "slot.dat")];
-        let result = resolve_restore_targets_inner(input(
-            temp.path(),
-            StoreUserContext::default(),
-            variants,
-            files,
-        ))
-        .unwrap();
+        let result = resolve_restore_targets_inner(input(temp.path(), variants, files)).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 1);
@@ -715,13 +665,7 @@ mod tests {
             .map(|variant| file(variant, "slot.dat"))
             .collect();
 
-        let result = resolve_restore_targets_inner(input(
-            temp.path(),
-            StoreUserContext::default(),
-            variants,
-            files,
-        ))
-        .unwrap();
+        let result = resolve_restore_targets_inner(input(temp.path(), variants, files)).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 3);
@@ -742,13 +686,7 @@ mod tests {
         let variants = vec![variant("opaque-folder", "76561199800542110")];
         let files = vec![file(&variants[0], "slot.dat")];
 
-        let result = resolve_restore_targets_inner(input(
-            temp.path(),
-            StoreUserContext::default(),
-            variants,
-            files,
-        ))
-        .unwrap();
+        let result = resolve_restore_targets_inner(input(temp.path(), variants, files)).unwrap();
 
         assert!(result.blocked.is_empty());
         assert_eq!(result.actions.len(), 1);
@@ -773,7 +711,6 @@ mod tests {
             executable_path: None,
             wine_prefix_path: None,
             steam_path: None,
-            store_user_context: StoreUserContext::default(),
             approved_rules: vec![ApprovedRestoreRule {
                 kind: "file".into(),
                 raw_path: raw_path.into(),
@@ -821,7 +758,6 @@ mod tests {
             executable_path: None,
             wine_prefix_path: None,
             steam_path: None,
-            store_user_context: StoreUserContext::default(),
             approved_rules: vec![ApprovedRestoreRule {
                 kind: "dir".into(),
                 raw_path: raw_path.clone(),
@@ -870,7 +806,6 @@ mod tests {
             executable_path: None,
             wine_prefix_path: None,
             steam_path: None,
-            store_user_context: StoreUserContext::default(),
             approved_rules: vec![
                 ApprovedRestoreRule {
                     kind: "file".into(),
@@ -908,13 +843,7 @@ mod tests {
         let temp = tempdir().unwrap();
         let variants = vec![variant("opaque-folder", "Goldberg")];
         let files = vec![file(&variants[0], "../slot.dat")];
-        assert!(resolve_restore_targets_inner(input(
-            temp.path(),
-            StoreUserContext::default(),
-            variants,
-            files
-        ))
-        .is_err());
+        assert!(resolve_restore_targets_inner(input(temp.path(), variants, files)).is_err());
     }
 
     #[test]
@@ -924,13 +853,7 @@ mod tests {
             let variants = vec![variant("opaque-folder", "Goldberg")];
             let files = vec![file(&variants[0], relative_path)];
 
-            assert!(resolve_restore_targets_inner(input(
-                temp.path(),
-                StoreUserContext::default(),
-                variants,
-                files,
-            ))
-            .is_err());
+            assert!(resolve_restore_targets_inner(input(temp.path(), variants, files,)).is_err());
         }
     }
 }
