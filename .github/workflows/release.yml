@@ -30,6 +30,19 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # Must run before `yarn`, since postinstall builds the Rust addon.
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/hydra-native
+
+      # Must run before `yarn`, since postinstall downloads Ludusavi.
+      - name: Cache Ludusavi
+        uses: actions/cache@v4
+        with:
+          path: ludusavi
+          key: ${{ runner.os }}-ludusavi-${{ hashFiles('scripts/postinstall.cjs') }}
+
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
@@ -37,12 +50,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.9
+          cache: "pip"
+          cache-dependency-path: requirements.txt
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
-
-      - name: Build Python RPC with cx_Freeze
-        run: python python_rpc/setup.py build
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
