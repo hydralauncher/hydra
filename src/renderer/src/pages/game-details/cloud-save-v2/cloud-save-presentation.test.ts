@@ -166,6 +166,10 @@ const overview = (
   state: "local-ahead",
   hasChanged: true,
   activeRemoteSnapshot: null,
+  localSnapshotSummary: {
+    updatedAt: "2026-07-22T10:00:00.000Z",
+    totalSizeBytes: 1024,
+  },
   isAutomaticSyncEnabled: true,
   suggestedAction: "upload",
   discoveredVariantCount: 1,

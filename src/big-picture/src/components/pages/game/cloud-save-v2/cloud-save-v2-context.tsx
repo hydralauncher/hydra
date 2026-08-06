@@ -26,7 +26,10 @@ import type {
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
 import { BigPictureCloudSaveConflictModal } from "./cloud-save-conflict-modal";
 import { BigPictureCloudSaveCustomPathModal } from "./cloud-save-custom-path-modal";
-import { BigPictureCloudSaveModal } from "./cloud-save-modal";
+import {
+  BigPictureCloudSaveModal,
+  type BigPictureCloudSavePanelProps,
+} from "./cloud-save-modal";
 
 import "./styles.scss";
 
@@ -48,6 +51,10 @@ interface BigPictureCloudSaveContextValue {
   canUseCloudSaves: boolean;
   hasExecutablePath: boolean;
   openManager: () => void;
+  panelProps: Omit<
+    BigPictureCloudSavePanelProps,
+    "showLaunchConflictWarning" | "onSelectExecutable"
+  >;
 }
 
 const bigPictureCloudSaveContext =
@@ -127,6 +134,7 @@ interface BigPictureCloudSaveProviderProps {
   shop: GameShop;
   hasExecutablePath: boolean;
   isGameRunning: boolean;
+  enableGamePageSync?: boolean;
   onSelectExecutable: () => void;
 }
 
@@ -136,6 +144,7 @@ export function BigPictureCloudSaveProvider({
   shop,
   hasExecutablePath,
   isGameRunning,
+  enableGamePageSync = true,
   onSelectExecutable,
 }: Readonly<BigPictureCloudSaveProviderProps>) {
   const { t } = useTranslation("game_details");
@@ -308,6 +317,7 @@ export function BigPictureCloudSaveProvider({
 
   useEffect(() => {
     if (
+      !enableGamePageSync ||
       customPathApproval !== null ||
       searchParams.get("openCloudSavePathApproval") === "1" ||
       !shouldSyncCloudSaveOnGamePage({
@@ -341,6 +351,7 @@ export function BigPictureCloudSaveProvider({
   }, [
     canUseCloudSaves,
     customPathApproval,
+    enableGamePageSync,
     gameKey,
     hasExecutablePath,
     isGameRunning,
@@ -578,6 +589,22 @@ export function BigPictureCloudSaveProvider({
   } else if (hasRefreshError) {
     errorMessageKey = "cloud_save_v2_load_error";
   }
+  const panelProps = {
+    overview,
+    isLoading: isRefreshing,
+    isSyncing,
+    isGameRunning,
+    hasExecutablePath,
+    hasError,
+    errorMessageKey,
+    progress,
+    onSync: () => void runCloudSaveOperation(),
+    onAutomaticSyncChange: handleAutomaticSyncChange,
+    onResolveConflict: setPendingResolution,
+  } satisfies Omit<
+    BigPictureCloudSavePanelProps,
+    "showLaunchConflictWarning" | "onSelectExecutable"
+  >;
   const value: BigPictureCloudSaveContextValue = {
     overview,
     isRefreshing,
@@ -586,6 +613,7 @@ export function BigPictureCloudSaveProvider({
     progress,
     canUseCloudSaves,
     hasExecutablePath,
+    panelProps,
     openManager: () => {
       if (!canUseCloudSaves) {
         showErrorToast(
@@ -614,23 +642,13 @@ export function BigPictureCloudSaveProvider({
       {children}
 
       <BigPictureCloudSaveModal
+        {...panelProps}
         visible={isModalVisible}
         showLaunchConflictWarning={wasOpenedFromLaunchConflict}
-        overview={overview}
-        isLoading={isRefreshing}
-        isSyncing={isSyncing}
-        isGameRunning={isGameRunning}
-        hasExecutablePath={hasExecutablePath}
-        hasError={hasError}
-        errorMessageKey={errorMessageKey}
-        progress={progress}
-        onSync={() => void runCloudSaveOperation()}
         onSelectExecutable={() => {
           setIsModalVisible(false);
           onSelectExecutable();
         }}
-        onAutomaticSyncChange={handleAutomaticSyncChange}
-        onResolveConflict={setPendingResolution}
         onClose={() => {
           setIsModalVisible(false);
           setWasOpenedFromLaunchConflict(false);

@@ -42,11 +42,24 @@ export const getCloudSaveOverview = async (
     shop,
     buildCloudSaveObservationKey(analysis)
   );
+  let localSnapshotUpdatedAt: string | null = null;
+  for (const file of analysis.localSnapshot.files) {
+    if (
+      !localSnapshotUpdatedAt ||
+      Date.parse(file.lastModifiedAt) > Date.parse(localSnapshotUpdatedAt)
+    ) {
+      localSnapshotUpdatedAt = file.lastModifiedAt;
+    }
+  }
 
   return {
     ...analysis.state,
     state,
     hasChanged: state !== "synced",
+    localSnapshotSummary: {
+      updatedAt: localSnapshotUpdatedAt,
+      totalSizeBytes: analysis.localSnapshot.totalSizeBytes,
+    },
     isAutomaticSyncEnabled,
     suggestedAction: getSuggestedCloudSaveAction(
       state,

@@ -313,6 +313,10 @@ export interface CloudSaveStateResult {
 }
 
 export interface CloudSaveOverview extends CloudSaveStateResult {
+  localSnapshotSummary: {
+    updatedAt: string | null;
+    totalSizeBytes: number;
+  };
   isAutomaticSyncEnabled: boolean;
   suggestedAction: CloudSaveSyncAction;
   discoveredVariantCount: number;

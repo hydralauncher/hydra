@@ -6,6 +6,7 @@ import {
   CloudArrowUpIcon,
   CloudIcon,
   FolderOpenIcon,
+  MonitorIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
@@ -288,6 +289,7 @@ export function CloudSavePanel({
     totalSizeBytes: number,
     interactive = false
   ) => {
+    const isConflict = overview?.state === "conflict";
     const stats = (
       <>
         <span>
@@ -299,10 +301,37 @@ export function CloudSavePanel({
         <span>{formatBytes(totalSizeBytes)}</span>
       </>
     );
+    const snapshotVersion = (
+      icon: React.ReactNode,
+      updatedAt: string | null,
+      sizeBytes: number
+    ) => (
+      <span className="cloud-save-v2__snapshot-version">
+        {icon}
+        {updatedAt && <span>{formatDateTime(updatedAt)}</span>}
+        <span aria-hidden="true">{"\u00b7"}</span>
+        <span>{formatBytes(sizeBytes)}</span>
+      </span>
+    );
 
     return (
       <div className="cloud-save-v2__snapshot-metadata">
-        <span>{formatDateTime(updatedAt)}</span>
+        {isConflict ? (
+          <div className="cloud-save-v2__snapshot-versions">
+            {snapshotVersion(
+              <MonitorIcon size={14} aria-label={t("cloud_save_v2_local")} />,
+              overview.localSnapshotSummary.updatedAt,
+              overview.localSnapshotSummary.totalSizeBytes
+            )}
+            {snapshotVersion(
+              <CloudIcon size={14} aria-label={t("cloud_save_v2_remote")} />,
+              updatedAt,
+              totalSizeBytes
+            )}
+          </div>
+        ) : (
+          <span>{formatDateTime(updatedAt)}</span>
+        )}
         {interactive ? (
           <button
             type="button"
@@ -310,14 +339,12 @@ export function CloudSavePanel({
             onClick={onOpenFileBrowser}
             disabled={isLoading || isSyncing}
             aria-label={t(
-              overview?.state === "conflict"
+              isConflict
                 ? "cloud_save_v2_view_conflicts"
                 : "cloud_save_v2_view_files"
             )}
           >
-            {overview?.state === "conflict"
-              ? t("cloud_save_v2_view_conflicts")
-              : stats}
+            {isConflict ? t("cloud_save_v2_view_conflicts") : stats}
           </button>
         ) : (
           <div className="cloud-save-v2__snapshot-stats">{stats}</div>

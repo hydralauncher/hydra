@@ -528,7 +528,7 @@ export function GameCloudSettingsTab({
       ) : (
         <SettingsSection
           className="game-cloud-settings-tab__section"
-          title={tGameDetails("cloud_save_legacy_title")}
+          title={tGameDetails("settings_category_hydra_cloud")}
           description={tGameDetails("cloud_save_legacy_description")}
         >
           <div className="game-cloud-settings-tab__section-content">

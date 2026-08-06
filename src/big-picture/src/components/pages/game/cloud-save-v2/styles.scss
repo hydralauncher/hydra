@@ -96,6 +96,22 @@
   font-size: 0.9rem;
 }
 
+.big-picture-cloud-save__snapshot-versions {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 1.5);
+}
+
+.big-picture-cloud-save__snapshot-version {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 1.5);
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
 .big-picture-cloud-save__pill {
   padding: calc(var(--spacing-unit) * 1.25) calc(var(--spacing-unit) * 2.5);
   border-radius: 999px;

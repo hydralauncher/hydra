@@ -388,6 +388,22 @@
     font-size: globals.$small-font-size;
   }
 
+  &__snapshot-versions {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__snapshot-version {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
   &__snapshot-stats {
     display: flex;
     align-items: center;
