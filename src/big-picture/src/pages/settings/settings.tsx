@@ -25,6 +25,7 @@ import { GeneralSettingsSection } from "./general";
 import { IntegrationsSettingsSection } from "./integrations";
 import { SETTINGS_PAGE_REGION_ID } from "./navigation";
 import { NotificationsSettingsSection } from "./notifications";
+import { OverlaySettingsSection } from "./overlay";
 import { useUserDetails } from "../../hooks";
 import {
   ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
@@ -38,6 +39,7 @@ import {
   EMULATION_OVERVIEW_CARD_FOCUS_IDS,
   getIntegrationProviderCheckboxFocusId,
   NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS,
+  OVERLAY_ITEM_FOCUS_IDS,
 } from "./settings-navigation";
 
 import "./page.scss";
@@ -48,6 +50,7 @@ const ALL_SETTINGS_TABS = [
   { id: "notifications", label: "Notifications" },
   { id: "content", label: "Content" },
   { id: "big-picture", label: "Big Picture" },
+  { id: "overlay", label: "Overlay" },
   { id: "emulation", label: "Emulation" },
   { id: "integrations", label: "Integrations" },
   { id: "compatibility", label: "Compatibility" },
@@ -95,6 +98,7 @@ const SETTINGS_TAB_CONTENT: Record<
   notifications: NotificationsSettingsSection,
   content: ContentSettingsSection,
   "big-picture": BigPictureSettingsSection,
+  overlay: OverlaySettingsSection,
   emulation: EmulationSettingsSection,
   integrations: IntegrationsSettingsSection,
   compatibility: CompatibilitySettingsSection,
@@ -304,6 +308,11 @@ export default function Settings() {
         return {
           type: "item",
           itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableVirtualKeyboard,
+        };
+      case "overlay":
+        return {
+          type: "item",
+          itemId: OVERLAY_ITEM_FOCUS_IDS.enabled,
         };
       case "emulation":
         return {

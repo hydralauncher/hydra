@@ -10,6 +10,7 @@ out
 .vite
 ludusavi/**
 !ludusavi/config.yaml
+presentmon/**
 hydra-python-rpc/
 /hydra-native/
 native/hydra-native/target/

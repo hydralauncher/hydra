@@ -20,6 +20,9 @@ import {
   type LinuxProcessInfo,
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
+import { OverlayManager } from "./overlay-manager";
+import { hasWindowsVisibleProcessMatch } from "./windows-process-match";
+import { resolveActiveOverlayGame } from "./overlay-active-game";
 
 export const gamesPlaytime = new Map<
   string,
@@ -166,6 +169,7 @@ const getSystemProcessMap = async () => {
   const {
     processMap: rawMap,
     winePrefixMap: rawWineMap,
+    windowsProcesses,
     linuxProcesses,
   } = await NativeAddon.getSystemProcessMap();
 
@@ -175,7 +179,7 @@ const getSystemProcessMap = async () => {
 
   const winePrefixMap = new Map<string, string>(Object.entries(rawWineMap));
 
-  return { processMap, winePrefixMap, linuxProcesses };
+  return { processMap, winePrefixMap, windowsProcesses, linuxProcesses };
 };
 
 const hasLinuxCompatibilityProcessMatch = (
@@ -196,14 +200,14 @@ const hasLinuxCompatibilityProcessMatch = (
   )?.toLowerCase();
 
   return linuxProcesses.some((process) => {
-    if (process.cwd !== executableDirectory) {
+    if (process.cwd.toLowerCase() !== executableDirectory) {
       return false;
     }
 
     if (
       expectedWinePrefix &&
       process.steamCompatDataPath &&
-      process.steamCompatDataPath !== expectedWinePrefix
+      process.steamCompatDataPath.toLowerCase() !== expectedWinePrefix
     ) {
       return false;
     }
@@ -215,7 +219,7 @@ const hasLinuxCompatibilityProcessMatch = (
       return true;
     }
 
-    const processRunsUnderWine = process.exe.includes("wine");
+    const processRunsUnderWine = process.exe.toLowerCase().includes("wine");
 
     return processRunsUnderWine && process.name.length > 0;
   });
@@ -229,9 +233,13 @@ export const watchProcesses = async () => {
       return results.filter((game) => game.isDeleted === false);
     });
 
-  if (!games.length) return;
+  if (!games.length) {
+    const activeOverlayGame = OverlayManager.getActiveGame();
+    if (activeOverlayGame) OverlayManager.clearActiveGame(activeOverlayGame);
+    return;
+  }
 
-  const { processMap, winePrefixMap, linuxProcesses } =
+  const { processMap, winePrefixMap, windowsProcesses, linuxProcesses } =
     await getSystemProcessMap();
 
   const pidToProcess = new Map<number, LinuxProcessInfo>(
@@ -275,6 +283,14 @@ export const watchProcesses = async () => {
       return false;
     });
 
+    if (!hasProcess && platform === "win32") {
+      hasProcess = hasWindowsVisibleProcessMatch(
+        matchPaths,
+        windowsProcesses,
+        (pid) => Boolean(NativeAddon.getProcessWindowBounds(pid))
+      );
+    }
+
     if (!hasProcess && platform === "linux") {
       hasProcess = hasLaunchedPidMatch(
         launchedGamePids.get(gameKey),
@@ -292,6 +308,18 @@ export const watchProcesses = async () => {
     } else if (gamesPlaytime.has(gameKey)) {
       onCloseGame(game);
     }
+  }
+
+  const nextOverlayGame = resolveActiveOverlayGame(
+    games,
+    gamesPlaytime,
+    OverlayManager.getActiveGame()
+  );
+  if (nextOverlayGame) {
+    OverlayManager.setActiveGame(nextOverlayGame);
+  } else {
+    const activeOverlayGame = OverlayManager.getActiveGame();
+    if (activeOverlayGame) OverlayManager.clearActiveGame(activeOverlayGame);
   }
 
   currentTick++;
@@ -312,6 +340,8 @@ function onOpenGame(game: Game) {
   logPlaytimeTrace("session-open", game, {
     performanceNow: now,
   });
+
+  OverlayManager.setActiveGame(game);
 
   // On Linux, keep the launcher visible briefly and let it auto-close itself.
   if (process.platform !== "linux") {
@@ -473,6 +503,7 @@ const onCloseGame = (game: Game) => {
   gamesPlaytime.delete(gameKey);
   launchedGamePids.delete(gameKey);
   PowerSaveBlockerManager.markGameClosed(gameKey);
+  OverlayManager.clearActiveGame(game);
 
   const delta = now - gamePlaytime.lastTick;
 

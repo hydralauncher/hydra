@@ -157,9 +157,9 @@ const resolveEmulatorWrappers = (
   preferences: UserPreferences | null,
   game: Game | undefined
 ): string[] => {
-  const useMangohud =
-    (preferences?.autoRunMangohud === true || game?.autoRunMangohud === true) &&
-    isMangohudAvailable();
+  const mangohudRequestedByUser =
+    preferences?.autoRunMangohud === true || game?.autoRunMangohud === true;
+  const useMangohud = mangohudRequestedByUser && isMangohudAvailable();
 
   const useGamemode =
     (preferences?.autoRunGamemode === true || game?.autoRunGamemode === true) &&
@@ -196,7 +196,7 @@ export const launchClassicsGame = async (
     })
     .catch(() => null);
 
-  const wrapperCommands = resolveEmulatorWrappers(userPreferences, game);
+  const emulatorWrappers = resolveEmulatorWrappers(userPreferences, game);
 
   const selectedDisc = game?.discs?.find((d) => d.path === discPath) ?? null;
 
@@ -239,7 +239,7 @@ export const launchClassicsGame = async (
     baseCommand: executableTarget,
     baseArgs,
     launchOptions: null,
-    wrapperCommands,
+    wrapperCommands: emulatorWrappers,
   });
 
   const workingDirectory = path.dirname(executableTarget);

@@ -28,6 +28,7 @@ export * from "./download-directories";
 export * from "./html-sanitizer";
 export * from "./language-flags";
 export * from "./use-hls-video";
+export * from "./overlay-preferences";
 export * from "./tracker-list";
 
 export class UserNotLoggedInError extends Error {

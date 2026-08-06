@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 
@@ -55,8 +56,9 @@ export const transcodeNotificationIcon = async (
 ) => {
   const hash = crypto.createHash("sha256").update(imagePath).digest("hex");
   const outputPath = path.join(outputDirectory, `icon-${hash}.png`);
+  const source = await fs.promises.readFile(imagePath);
 
-  await sharp(imagePath)
+  await sharp(source)
     .resize(NOTIFICATION_ICON_SIZE, NOTIFICATION_ICON_SIZE, {
       fit: "inside",
       withoutEnlargement: true,

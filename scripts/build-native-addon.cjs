@@ -20,6 +20,7 @@ const cargoTargetDir = path.join(
 );
 const outputDir = path.join(projectRoot, "hydra-native");
 const outputNodePath = path.join(outputDir, "hydra-native.node");
+const overlayInputBrokerPath = path.join(outputDir, "hydra-overlay-input.exe");
 
 const sourceLibraryNameByPlatform = {
   linux: "libhydra_native.so",
@@ -106,6 +107,18 @@ const build = async () => {
 
   fs.mkdirSync(outputDir, { recursive: true });
   fs.copyFileSync(sourceLibraryPath, outputNodePath);
+
+  if (process.platform === "win32") {
+    const brokerSource = path.join(
+      cargoTargetDir,
+      "release",
+      "hydra-overlay-input.exe"
+    );
+    if (!fs.existsSync(brokerSource)) {
+      throw new Error(`Overlay input broker not found at ${brokerSource}`);
+    }
+    fs.copyFileSync(brokerSource, overlayInputBrokerPath);
+  }
 
   await copySidecarLibrariesOnWindows(path.dirname(sourceLibraryPath));
   await ensureDepsResolvableOnLinux();

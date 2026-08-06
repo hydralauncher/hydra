@@ -41,6 +41,10 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  HydraOverlayContext,
+  HydraOverlayGamepadAction,
+  HydraOverlayMode,
+  HydraOverlayPerformance,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1053,6 +1057,7 @@ contextBridge.exposeInMainWorld("electron", {
   platform: process.platform,
   isWayland:
     process.platform === "linux" &&
+    !process.env.DISPLAY &&
     (process.env.XDG_SESSION_TYPE === "wayland" ||
       Boolean(process.env.WAYLAND_DISPLAY)),
 
@@ -1344,6 +1349,70 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-window-maximize-change", listener);
     return () =>
       ipcRenderer.removeListener("on-window-maximize-change", listener);
+  },
+
+  getOverlayContext: () =>
+    ipcRenderer.invoke(
+      "getOverlayContext"
+    ) as Promise<HydraOverlayContext | null>,
+  closeHydraOverlay: () => ipcRenderer.invoke("closeHydraOverlay"),
+  setOverlayPerformancePinned: (pinned: boolean) =>
+    ipcRenderer.invoke("setOverlayPerformancePinned", pinned),
+  getOverlayNote: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getOverlayNote", shop, objectId) as Promise<
+      string | null
+    >,
+  saveOverlayNote: (shop: GameShop, objectId: string, note: string) =>
+    ipcRenderer.invoke(
+      "saveOverlayNote",
+      shop,
+      objectId,
+      note
+    ) as Promise<boolean>,
+  onOverlayPerformance: (cb: (metrics: HydraOverlayPerformance) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      metrics: HydraOverlayPerformance
+    ) => cb(metrics);
+    ipcRenderer.on("on-overlay-performance", listener);
+    return () => {
+      ipcRenderer.removeListener("on-overlay-performance", listener);
+    };
+  },
+  onOverlayShown: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-overlay-shown", listener);
+    return () => {
+      ipcRenderer.removeListener("on-overlay-shown", listener);
+    };
+  },
+  onOverlayPerformancePin: (cb: (pinned: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, pinned: boolean) =>
+      cb(pinned);
+    ipcRenderer.on("on-overlay-performance-pin", listener);
+    return () => {
+      ipcRenderer.removeListener("on-overlay-performance-pin", listener);
+    };
+  },
+  onOverlayMode: (cb: (mode: HydraOverlayMode) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      mode: HydraOverlayMode
+    ) => cb(mode);
+    ipcRenderer.on("on-overlay-mode", listener);
+    return () => {
+      ipcRenderer.removeListener("on-overlay-mode", listener);
+    };
+  },
+  onOverlayGamepadAction: (cb: (action: HydraOverlayGamepadAction) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      action: HydraOverlayGamepadAction
+    ) => cb(action);
+    ipcRenderer.on("on-overlay-gamepad-action", listener);
+    return () => {
+      ipcRenderer.removeListener("on-overlay-gamepad-action", listener);
+    };
   },
 
   /* Big Picture */

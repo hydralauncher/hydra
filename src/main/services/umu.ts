@@ -8,6 +8,7 @@ import { logsPath } from "@main/constants";
 import { logger } from "./logger";
 import type { ProtonVersion } from "@types";
 import { resolveLaunchCommand } from "@main/helpers/resolve-launch-command";
+import { normalizeGamescopeMangoHud } from "@main/helpers/linux-gamescope-launch";
 
 const isValidProtonDirectory = (directoryPath: string) => {
   const protonFilePath = path.join(directoryPath, "proton");
@@ -223,12 +224,15 @@ export class Umu {
     const executableArgs = pythonPath
       ? [umuBinaryPath, executablePath, ...launchParameters]
       : [executablePath, ...launchParameters];
-    const resolvedLaunchCommand = resolveLaunchCommand({
-      baseCommand: executableToSpawn,
-      baseArgs: executableArgs,
-      launchOptions: options?.launchOptions,
-      wrapperCommands: [...(options?.useGamemode ? ["gamemoderun"] : [])],
-    });
+    const resolvedLaunchCommand = normalizeGamescopeMangoHud(
+      resolveLaunchCommand({
+        baseCommand: executableToSpawn,
+        baseArgs: executableArgs,
+        launchOptions: options?.launchOptions,
+        wrapperCommands: [...(options?.useGamemode ? ["gamemoderun"] : [])],
+      }),
+      options?.useMangohud ?? false
+    );
 
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
     ensureExecutablePermission(umuBinaryPath);
