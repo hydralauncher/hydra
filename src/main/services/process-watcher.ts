@@ -105,10 +105,11 @@ const getGameExecutables = async () => {
         return false;
       })
       .map((executable) => {
-        const name = executable.name.toLowerCase();
+        const lowered = executable.name.toLowerCase();
+        const name = lowered.startsWith(">") ? lowered.slice(1) : lowered;
 
         return {
-          name: platform === "win32" ? name.replace(/\//g, "\\") : name,
+          name: platform === "win32" ? name.replaceAll("/", "\\") : name,
           os: executable.os,
           exe: name.slice(name.lastIndexOf("/") + 1),
         };
