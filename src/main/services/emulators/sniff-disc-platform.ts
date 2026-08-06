@@ -61,21 +61,86 @@ const resolveCueRef = async (
   }
 };
 
-export const parseCueReferencedFiles = async (
+const decodeCueText = (raw: Buffer): string => {
+  if (raw.length >= 2 && raw[0] === 0xff && raw[1] === 0xfe) {
+    return raw.subarray(2).toString("utf16le");
+  }
+  if (raw.length >= 2 && raw[0] === 0xfe && raw[1] === 0xff) {
+    return raw.subarray(2).swap16().toString("utf16le");
+  }
+  if (
+    raw.length >= 3 &&
+    raw[0] === 0xef &&
+    raw[1] === 0xbb &&
+    raw[2] === 0xbf
+  ) {
+    return raw.subarray(3).toString("utf-8");
+  }
+  return raw.toString("utf-8");
+};
+
+const CUE_FILE_TYPES = "BINARY|MOTOROLA|MOTOROLLA|AIFF|WAVE|MP3|FLAC";
+const CUE_FILE_LINE_RE = new RegExp(
+  `^[^\\S\\r\\n]*FILE[^\\S\\r\\n]+(?:"([^"\\r\\n]+)"|'([^'\\r\\n]+)'|(.+?))[^\\S\\r\\n]*(?:${CUE_FILE_TYPES})?[^\\S\\r\\n]*$`,
+  "gim"
+);
+const CUE_TRACK_LINE_RE = /^[^\S\r\n]*TRACK[^\S\r\n]+\S+[^\S\r\n]+(\S+)/gim;
+
+export interface CueTrackFile {
+  filePath: string;
+  hasDataTrack: boolean;
+}
+
+const parseCueEntries = (content: string): { ref: string; at: number }[] => {
+  CUE_FILE_LINE_RE.lastIndex = 0;
+  const entries: { ref: string; at: number }[] = [];
+  for (const m of content.matchAll(CUE_FILE_LINE_RE)) {
+    const ref = (m[1] ?? m[2] ?? m[3] ?? "").trim();
+    if (ref) entries.push({ ref, at: m.index ?? 0 });
+  }
+  return entries;
+};
+
+const dataTrackOffsets = (content: string): number[] => {
+  CUE_TRACK_LINE_RE.lastIndex = 0;
+  const offsets: number[] = [];
+  for (const m of content.matchAll(CUE_TRACK_LINE_RE)) {
+    if (m[1].toUpperCase() !== "AUDIO") offsets.push(m.index ?? 0);
+  }
+  return offsets;
+};
+
+export const parseCueTrackFiles = async (
   cuePath: string
-): Promise<string[]> => {
+): Promise<CueTrackFile[]> => {
   try {
-    const content = await fs.readFile(cuePath, "utf-8");
+    const content = decodeCueText(await fs.readFile(cuePath));
     const dir = path.dirname(cuePath);
-    const matches = [...content.matchAll(/FILE\s+"(.+?)"\s+\w+/gi)];
+    const entries = parseCueEntries(content);
+    const dataOffsets = dataTrackOffsets(content);
+
     const resolved = await Promise.all(
-      matches.map((m) => resolveCueRef(dir, m[1]))
+      entries.map((entry) => resolveCueRef(dir, entry.ref))
     );
-    return resolved.filter((p): p is string => p !== null);
+
+    return entries.flatMap((entry, i) => {
+      const filePath = resolved[i];
+      if (!filePath) return [];
+      const next = entries[i + 1]?.at ?? Number.MAX_SAFE_INTEGER;
+      const hasDataTrack = dataOffsets.some(
+        (offset) => offset > entry.at && offset < next
+      );
+      return [{ filePath, hasDataTrack }];
+    });
   } catch {
     return [];
   }
 };
+
+export const parseCueReferencedFiles = async (
+  cuePath: string
+): Promise<string[]> =>
+  (await parseCueTrackFiles(cuePath)).map((t) => t.filePath);
 
 export const resolveSidecarWithExt = async (
   filePath: string,
@@ -98,13 +163,56 @@ export const resolveSidecarWithExt = async (
   }
 };
 
+const TRACK_MARKER_RE = /^(.*\S)\s*[([]\s*(?:track|trk)\s*(\d+)\s*[)\]]$/i;
+
+export const splitTrackMarker = (
+  baseName: string
+): { base: string; track: number } | null => {
+  const match = TRACK_MARKER_RE.exec(baseName);
+  if (!match) return null;
+  const track = Number.parseInt(match[2], 10);
+  return Number.isFinite(track) ? { base: match[1], track } : null;
+};
+
+const TRACK_SIDECAR_EXTS = [".bin", ".img"];
+
+export const resolveTrackSiblings = async (
+  filePath: string
+): Promise<string[]> => {
+  const dir = path.dirname(filePath);
+  const base = path.basename(filePath, path.extname(filePath)).toLowerCase();
+  const entries = await fs.readdir(dir).catch(() => null);
+  if (!entries) return [];
+
+  const found: { filePath: string; track: number }[] = [];
+  for (const entry of entries) {
+    const ext = path.extname(entry).toLowerCase();
+    if (!TRACK_SIDECAR_EXTS.includes(ext)) continue;
+
+    const entryBase = path.basename(entry, path.extname(entry));
+    if (entryBase.toLowerCase() === base) {
+      found.push({ filePath: path.join(dir, entry), track: 1 });
+      continue;
+    }
+
+    const split = splitTrackMarker(entryBase);
+    if (split && split.base.toLowerCase() === base) {
+      found.push({ filePath: path.join(dir, entry), track: split.track });
+    }
+  }
+
+  return found.sort((a, b) => a.track - b.track).map((f) => f.filePath);
+};
+
 export const resolveSniffTarget = async (
   filePath: string
 ): Promise<string | null> => {
   const lower = filePath.toLowerCase();
   if (lower.endsWith(".cue")) {
-    const refs = await parseCueReferencedFiles(filePath);
-    return refs[0] ?? null;
+    const tracks = await parseCueTrackFiles(filePath);
+    const preferred = tracks.find((t) => t.hasDataTrack) ?? tracks[0];
+    if (preferred) return preferred.filePath;
+    return (await resolveTrackSiblings(filePath))[0] ?? null;
   }
   if (lower.endsWith(".mds")) return resolveSidecarWithExt(filePath, ".mdf");
   if (lower.endsWith(".ccd")) return resolveSidecarWithExt(filePath, ".img");

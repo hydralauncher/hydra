@@ -3,7 +3,12 @@ import type { Dirent } from "node:fs";
 import path from "node:path";
 
 import type { KnownBinary } from "./known-binaries";
-import { resolveSniffTarget, sniffDiscImage } from "./sniff-disc-platform";
+import {
+  parseCueReferencedFiles,
+  resolveSniffTarget,
+  sniffDiscImage,
+  splitTrackMarker,
+} from "./sniff-disc-platform";
 import type { EmulatorSystem } from "@types";
 
 const MAX_ENTRIES_PER_DIR = 5000;
@@ -185,27 +190,79 @@ interface GameGroup {
   sidecars: Candidate[];
 }
 
-const buildSidecarMap = (
+const sidecarsForPrimary = async (
+  primary: Candidate,
+  group: Candidate[],
+  sidecarExts: string[]
+): Promise<Candidate[]> => {
+  const eligible = group.filter(
+    (other) => other !== primary && sidecarExts.includes(extOf(other.name))
+  );
+  const base = basenameNoExt(primary.name);
+  const matched = new Set<Candidate>();
+
+  if (extOf(primary.name) === ".cue") {
+    const refs = await parseCueReferencedFiles(primary.fullPath);
+    const wanted = new Set(refs.map((ref) => path.basename(ref).toLowerCase()));
+    for (const other of eligible) {
+      if (wanted.has(other.name.toLowerCase())) matched.add(other);
+    }
+  }
+
+  for (const other of eligible) {
+    const otherBase = basenameNoExt(other.name);
+    if (otherBase === base || splitTrackMarker(otherBase)?.base === base) {
+      matched.add(other);
+    }
+  }
+
+  return [...matched];
+};
+
+const buildSidecarMap = async (
   group: Candidate[],
   pairRules: Record<string, string[]>
-): { sidecarOf: Map<string, Candidate[]>; skipped: Set<string> } => {
+): Promise<{ sidecarOf: Map<string, Candidate[]>; skipped: Set<string> }> => {
   const sidecarOf = new Map<string, Candidate[]>();
   const skipped = new Set<string>();
   for (const f of group) {
     const sidecarExts = pairRules[extOf(f.name)];
     if (!sidecarExts) continue;
-    const base = basenameNoExt(f.name);
-    const matched: Candidate[] = [];
-    for (const other of group) {
-      if (other === f || basenameNoExt(other.name) !== base) continue;
-      if (sidecarExts.includes(extOf(other.name))) {
-        matched.push(other);
-        skipped.add(other.fullPath);
-      }
-    }
+    const matched = await sidecarsForPrimary(f, group, sidecarExts);
+    for (const other of matched) skipped.add(other.fullPath);
     sidecarOf.set(f.fullPath, matched);
   }
   return { sidecarOf, skipped };
+};
+
+const groupLooseTracks = (leftovers: Candidate[]): GameGroup[] => {
+  const byBase = new Map<string, { candidate: Candidate; track: number }[]>();
+  const standalone: Candidate[] = [];
+
+  for (const f of leftovers) {
+    const split = splitTrackMarker(basenameNoExt(f.name));
+    if (!split) {
+      standalone.push(f);
+      continue;
+    }
+    const key = `${path.dirname(f.fullPath)}::${split.base.toLowerCase()}`;
+    const arr = byBase.get(key) ?? [];
+    arr.push({ candidate: f, track: split.track });
+    byBase.set(key, arr);
+  }
+
+  const out: GameGroup[] = standalone.map((primary) => ({
+    primary,
+    sidecars: [],
+  }));
+  for (const [, tracks] of byBase) {
+    tracks.sort((a, b) => a.track - b.track);
+    out.push({
+      primary: tracks[0].candidate,
+      sidecars: tracks.slice(1).map((t) => t.candidate),
+    });
+  }
+  return out;
 };
 
 const collectSidecarExts = (
@@ -218,27 +275,29 @@ const collectSidecarExts = (
   return exts;
 };
 
-const applyPairedRules = (
+const applyPairedRules = async (
   group: Candidate[],
   primaryExts: Set<string>,
   pairRules: Record<string, string[]>
-): GameGroup[] => {
+): Promise<GameGroup[]> => {
   const m3u = group.filter((f) => extOf(f.name) === ".m3u");
   if (m3u.length > 0) return m3u.map((primary) => ({ primary, sidecars: [] }));
 
-  const { sidecarOf, skipped } = buildSidecarMap(group, pairRules);
+  const { sidecarOf, skipped } = await buildSidecarMap(group, pairRules);
   const sidecarExts = collectSidecarExts(pairRules);
 
   const out: GameGroup[] = [];
+  const leftovers: Candidate[] = [];
   for (const f of group) {
     if (skipped.has(f.fullPath)) continue;
     const ext = extOf(f.name);
     if (primaryExts.has(ext)) {
       out.push({ primary: f, sidecars: sidecarOf.get(f.fullPath) ?? [] });
     } else if (sidecarExts.has(ext)) {
-      out.push({ primary: f, sidecars: [] });
+      leftovers.push(f);
     }
   }
+  out.push(...groupLooseTracks(leftovers));
   return out;
 };
 
@@ -247,7 +306,10 @@ const applyPs3Rules = (group: Candidate[]): GameGroup[] =>
     .filter((f) => PS3_LAUNCHABLE_EXTS.has(extOf(f.name)))
     .map((primary) => ({ primary, sidecars: [] }));
 
-const dedupGames = (binary: KnownBinary, files: Candidate[]): GameGroup[] => {
+const dedupGames = async (
+  binary: KnownBinary,
+  files: Candidate[]
+): Promise<GameGroup[]> => {
   const markerDirs = files.filter((f) => f.isMarkerDir);
   const regular = files.filter((f) => !f.isMarkerDir);
 
@@ -267,9 +329,13 @@ const dedupGames = (binary: KnownBinary, files: Candidate[]): GameGroup[] => {
     if (binary.system === "ps3") {
       games.push(...applyPs3Rules(group));
     } else if (binary.system === "ps2") {
-      games.push(...applyPairedRules(group, PS2_PRIMARY_EXTS, PS2_PAIR_RULES));
+      games.push(
+        ...(await applyPairedRules(group, PS2_PRIMARY_EXTS, PS2_PAIR_RULES))
+      );
     } else {
-      games.push(...applyPairedRules(group, PS1_PRIMARY_EXTS, PS1_PAIR_RULES));
+      games.push(
+        ...(await applyPairedRules(group, PS1_PRIMARY_EXTS, PS1_PAIR_RULES))
+      );
     }
   }
   return games;
@@ -354,7 +420,7 @@ export const scanRomFolder = async (
   options?: ScanOptions
 ): Promise<ScanResult> => {
   const raw = await collectCandidates(rootPath, binary, scanSubfolders);
-  const games = dedupGames(binary, raw);
+  const games = await dedupGames(binary, raw);
   const total = games.length;
 
   let fileCount = 0;
@@ -400,5 +466,5 @@ export const countRomGroups = async (
   scanSubfolders: boolean
 ): Promise<number> => {
   const raw = await collectCandidates(rootPath, binary, scanSubfolders);
-  return dedupGames(binary, raw).length;
+  return (await dedupGames(binary, raw)).length;
 };
