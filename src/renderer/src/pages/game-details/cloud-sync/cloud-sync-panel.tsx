@@ -209,7 +209,7 @@ export function CloudSyncPanel({
       />
 
       <div className="cloud-sync-panel__section-header">
-        <h2>{t("cloud_save_legacy_title")}</h2>
+        <h2>{t("settings_category_hydra_cloud")}</h2>
         <p>{t("cloud_save_legacy_description")}</p>
       </div>
 
@@ -219,7 +219,7 @@ export function CloudSyncPanel({
             <div className="cloud-sync-panel__automatic-sync-label">
               {t("enable_automatic_cloud_sync")}
               <span className="cloud-sync-panel__automatic-sync-badge">
-                Hydra Cloud Legacy
+                Hydra Cloud
               </span>
             </div>
           }

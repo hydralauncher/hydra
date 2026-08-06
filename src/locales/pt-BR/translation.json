@@ -819,6 +819,7 @@
     "settings_category_customization": "Personalização",
     "settings_category_launch": "Inicialização",
     "settings_category_hydra_cloud": "Hydra Cloud",
+    "settings_category_legacy_saves": "Saves legados",
     "cloud_save_legacy_title": "Hydra Cloud Legado",
     "cloud_save_legacy_description": "Crie e restaure backups manuais na nuvem usando artefatos. A sincronização automática está disponível no Hydra Cloud.",
     "settings_category_hydra_cloud_description": "Configure o comportamento da sincronização na nuvem para este jogo",

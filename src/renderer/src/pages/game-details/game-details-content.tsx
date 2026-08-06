@@ -17,9 +17,12 @@ import { Sidebar } from "./sidebar/sidebar";
 import { GameReviews } from "./game-reviews";
 import { GameLogo } from "./game-logo";
 import { CloudSaveWidget } from "./cloud-save-v2";
+import { getCloudSaveVisibility } from "./cloud-save-visibility";
 
+import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
+import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
 import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
 import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
@@ -80,6 +83,7 @@ export function GameDetailsContent() {
   const { library } = useLibrary();
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
+  const cloudSaveVisibility = game ? getCloudSaveVisibility(game.shop) : null;
 
   const aboutTheGame = useMemo(() => {
     const aboutTheGame = shopDetails?.about_the_game;
@@ -148,6 +152,16 @@ export function GameDetailsContent() {
       images.forEach((img) => img.removeEventListener("load", onMediaLoad));
     };
   }, [aboutTheGame]);
+
+  const handleLegacyCloudSaveButtonClick = () => {
+    if (!userDetails) {
+      globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+
+    setGameOptionsInitialCategory("hydra_cloud_legacy");
+    setShowGameOptionsModal(true);
+  };
 
   const handleEditGameClick = () => {
     setGameOptionsInitialCategory("assets");
@@ -361,7 +375,24 @@ export function GameDetailsContent() {
                   </button>
                 )}
 
-                {game && objectId && game.shop === "steam" && (
+                {game && cloudSaveVisibility?.hero === "legacy" && (
+                  <button
+                    type="button"
+                    className="game-details__cloud-sync-button"
+                    onClick={handleLegacyCloudSaveButtonClick}
+                  >
+                    <div className="game-details__cloud-icon-container">
+                      <img
+                        src={cloudIconAnimated}
+                        alt=""
+                        className="game-details__cloud-icon"
+                      />
+                    </div>
+                    {t("cloud_save")}
+                  </button>
+                )}
+
+                {game && objectId && cloudSaveVisibility?.hero === "v2" && (
                   <CloudSaveWidget />
                 )}
               </div>
