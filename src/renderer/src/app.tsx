@@ -40,6 +40,10 @@ import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-m
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
+import {
+  MissingRedistModal,
+  type MissingRedistData,
+} from "./pages/game-details/modals/missing-redist-modal";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
@@ -103,6 +107,20 @@ export function App() {
     useState(false);
   const [archivePaths, setArchivePaths] = useState<string[]>([]);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [missingRedistData, setMissingRedistData] =
+    useState<MissingRedistData | null>(null);
+
+  useEffect(() => {
+    const handleMissingRedist = (data: MissingRedistData) => {
+      setMissingRedistData(data);
+    };
+
+    window.electron.on("on-missing-redist-detected", handleMissingRedist);
+
+    return () => {
+      window.electron.off("on-missing-redist-detected", handleMissingRedist);
+    };
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -631,6 +649,12 @@ export function App() {
       <AddFriendModal
         visible={showAddFriendModal}
         onClose={() => setShowAddFriendModal(false)}
+      />
+
+      <MissingRedistModal
+        visible={missingRedistData !== null}
+        data={missingRedistData}
+        onClose={() => setMissingRedistData(null)}
       />
 
       <ClassicsScanModal />

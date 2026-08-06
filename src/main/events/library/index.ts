@@ -28,6 +28,7 @@ import "./open-game-executable-path";
 import "./open-game-installer-path";
 import "./open-game-installer";
 import "./open-game-winetricks";
+import "./install-game-redist";
 import "./open-game-save-folder";
 import "./open-game";
 import "./open-classics-game";

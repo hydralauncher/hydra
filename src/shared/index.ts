@@ -13,6 +13,7 @@ import {
   da,
   el,
   vi,
+  ja,
 } from "date-fns/locale";
 
 import { isArchiveOrgFileUri } from "./archive-org";
@@ -276,6 +277,7 @@ export const getDateLocale = (language: string) => {
   if (language.startsWith("da")) return da;
   if (language.startsWith("el")) return el;
   if (language.startsWith("vi")) return vi;
+  if (language.startsWith("ja")) return ja;
 
   return enUS;
 };

@@ -31,7 +31,6 @@ import fi from "./fi/translation.json";
 import sv from "./sv/translation.json";
 import lv from "./lv/translation.json";
 import ja from "./ja/translation.json";
-import sl from "./sl/translation.json";
 import vi from "./vi/translation.json";
 
 export default {
@@ -68,7 +67,5 @@ export default {
   sv,
   lv,
   ja,
-  sl,
   vi,
 };
-

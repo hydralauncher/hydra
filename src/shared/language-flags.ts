@@ -32,6 +32,7 @@ const LANGUAGE_FLAG_MAP = {
   sv: "SE",
   lv: "LV",
   vi: "VN",
+  ja: "JP",
 } as const;
 
 const REGIONAL_INDICATOR_SYMBOL_LETTER_A = 0x1f1e6;

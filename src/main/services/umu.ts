@@ -202,6 +202,18 @@ export class Umu {
     );
   }
 
+  public static getUmuLogContent(): string {
+    const umuLogPath = getUmuLogPath();
+    if (fs.existsSync(umuLogPath)) {
+      try {
+        return fs.readFileSync(umuLogPath, "utf-8");
+      } catch {
+        return "";
+      }
+    }
+    return "";
+  }
+
   public static async launchExecutable(
     executablePath: string,
     launchParameters: string[] = [],
