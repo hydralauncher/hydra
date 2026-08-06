@@ -367,8 +367,6 @@
     "cloud_save_v2_subscription_required_description": "O salvamento na nuvem requer uma assinatura ativa do Hydra Cloud.",
     "cloud_save_v2_modal_title": "Salvamento na nuvem V2 (BETA)",
     "cloud_save_v2_modal_description": "Veja o estado dos saves e sincronize este jogo.",
-    "cloud_save_v2_feedback_prompt": "Está com problemas?",
-    "cloud_save_v2_feedback_action": "Fale com a gente.",
     "cloud_save_v2_toggle_title": "A sincronização automática está {{status}}",
     "cloud_save_v2_toggle_enabled": "ativado",
     "cloud_save_v2_toggle_disabled": "desativado",
