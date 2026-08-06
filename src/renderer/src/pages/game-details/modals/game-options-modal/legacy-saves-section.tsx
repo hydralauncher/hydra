@@ -88,6 +88,8 @@ export function LegacySavesSection() {
           <p>{t("legacy_saves_description")}</p>
         </div>
 
+        <hr className="legacy-saves-section__divider" />
+
         {sortedArtifacts.length > 0 ? (
           <ul className="legacy-saves-section__list">
             {sortedArtifacts.map((artifact) => (

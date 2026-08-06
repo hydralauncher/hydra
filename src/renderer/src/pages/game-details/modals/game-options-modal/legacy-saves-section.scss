@@ -20,6 +20,13 @@
     list-style: none;
   }
 
+  &__divider {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid globals.$border-color;
+  }
+
   &__card {
     display: flex;
     align-items: center;
