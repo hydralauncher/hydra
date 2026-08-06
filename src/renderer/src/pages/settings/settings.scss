@@ -143,4 +143,12 @@
     border: none;
     border-top: 1px solid globals.$border-color;
   }
+
+  &__description {
+    max-width: 680px;
+    margin: -4px 0 4px;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    line-height: 1.5;
+  }
 }

@@ -37,6 +37,7 @@ import {
 
 const isLinuxWayland =
   process.platform === "linux" &&
+  !process.env.DISPLAY &&
   (process.env.XDG_SESSION_TYPE === "wayland" ||
     Boolean(process.env.WAYLAND_DISPLAY));
 

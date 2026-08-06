@@ -12,6 +12,7 @@ import {
   PowerSaveBlockerManager,
   DownloadOrchestrator,
   SSEClient,
+  OverlayManager,
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
@@ -36,6 +37,8 @@ if (!gotTheLock) app.quit();
 
 if (process.platform !== "linux") {
   app.commandLine.appendSwitch("--no-sandbox");
+} else if (process.env.DISPLAY) {
+  app.commandLine.appendSwitch("ozone-platform", "x11");
 } else {
   app.commandLine.appendSwitch("ozone-platform-hint", "auto");
 }
@@ -149,6 +152,7 @@ const initializeApp = async () => {
     });
   });
 
+  OverlayManager.initialize();
   await loadState();
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead

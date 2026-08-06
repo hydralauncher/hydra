@@ -5,7 +5,14 @@ directories:
 extraResources:
   - ludusavi
   - hydra-python-rpc
-  - hydra-native
+  - from: hydra-native
+    to: hydra-native
+    filter:
+      - hydra-native.node
+      - hydra-overlay-input.exe
+      - "*.dll"
+      - "*.so"
+      - "*.dylib"
   - seeds
   - from: node_modules/create-desktop-shortcuts/src/windows.vbs
   - from: resources/achievement.wav
@@ -18,7 +25,7 @@ files:
   - "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
   - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
   - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,tsconfig.test.json}"
-  - "!scripts/register-ts-node.mjs"
+  - "!scripts/*"
 asarUnpack:
   - resources/**
   - node_modules/sharp/**
@@ -26,6 +33,11 @@ asarUnpack:
 win:
   executableName: Hydra
   extraResources:
+    - from: presentmon
+      to: hydra-native
+      filter:
+        - PresentMon.exe
+        - PresentMon-LICENSE.txt
     - from: binaries/7z.exe
     - from: binaries/7z.dll
   target:
@@ -37,6 +49,7 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
   oneClick: false
+  perMachine: true
   allowToChangeInstallationDirectory: true
   include: installer.nsh
 portable:

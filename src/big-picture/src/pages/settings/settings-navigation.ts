@@ -39,6 +39,9 @@ export const BIG_PICTURE_DIAGNOSTICS_SECTION_REGION_ID =
   "big-picture-diagnostics-section-region";
 export const BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID =
   "big-picture-diagnostics-position-select";
+export const OVERLAY_SECTION_REGION_ID = "overlay-section-region";
+export const OVERLAY_PERFORMANCE_SECTION_REGION_ID =
+  "overlay-performance-section-region";
 export const COMPATIBILITY_SECTION_REGION_ID = "compatibility-section-region";
 export const INTEGRATIONS_SECTION_REGION_ID = "integrations-section-region";
 export const ACCOUNT_PRIVACY_PRIVACY_SELECT_ID =
@@ -137,6 +140,15 @@ export const BIG_PICTURE_ITEM_FOCUS_IDS = {
   enableSounds: "big-picture-enable-sounds",
   enableVirtualKeyboard: "big-picture-enable-virtual-keyboard",
   enableDiagnostics: "big-picture-enable-diagnostics",
+} as const;
+
+export const OVERLAY_ITEM_FOCUS_IDS = {
+  enabled: "overlay-enabled",
+  performanceEnabled: "overlay-performance-enabled",
+  fps: "overlay-performance-fps",
+  averageFps: "overlay-performance-average-fps",
+  frameTime: "overlay-performance-frame-time",
+  onePercentLow: "overlay-performance-one-percent-low",
 } as const;
 
 export const COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID =

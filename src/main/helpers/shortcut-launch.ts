@@ -40,15 +40,15 @@ export const getShortcutArguments = (deepLink: string) => {
 
 const escapeVbsString = (value: string) => value.replaceAll('"', '""');
 
+const getPortableShortcutLauncherPath = () =>
+  path.join(app.getPath("userData"), "shortcut-assets", "launch-portable.vbs");
+
 export const refreshPortableShortcutLauncher = () => {
   const portableExecutable = process.env.PORTABLE_EXECUTABLE_FILE;
   if (process.platform !== "win32" || !portableExecutable) return null;
 
-  const launcherDirectory = path.join(
-    app.getPath("userData"),
-    "shortcut-assets"
-  );
-  const launcherPath = path.join(launcherDirectory, "launch-portable.vbs");
+  const launcherPath = getPortableShortcutLauncherPath();
+  const launcherDirectory = path.dirname(launcherPath);
   const script = [
     'Set shell = CreateObject("WScript.Shell")',
     'Set fso = CreateObject("Scripting.FileSystemObject")',
@@ -72,8 +72,16 @@ export const refreshPortableShortcutLauncher = () => {
   return launcherPath;
 };
 
-export const getHydraShortcutTarget = (deepLink: string) => {
-  const portableLauncherPath = refreshPortableShortcutLauncher();
+export const getHydraShortcutTarget = (
+  deepLink: string,
+  refreshPortableLauncher = true
+) => {
+  let portableLauncherPath: string | null = null;
+  if (process.platform === "win32" && process.env.PORTABLE_EXECUTABLE_FILE) {
+    portableLauncherPath = refreshPortableLauncher
+      ? refreshPortableShortcutLauncher()
+      : getPortableShortcutLauncherPath();
+  }
   if (!portableLauncherPath) {
     return {
       executablePath: getHydraExecutablePath(),

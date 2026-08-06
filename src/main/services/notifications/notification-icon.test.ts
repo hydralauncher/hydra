@@ -32,8 +32,13 @@ before(() => {
   );
 });
 
-after(() => {
-  fs.rmSync(workingDirectory, { recursive: true, force: true });
+after(async () => {
+  await fs.promises.rm(workingDirectory, {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 100,
+  });
 });
 
 describe("buildDownloadFileName", () => {

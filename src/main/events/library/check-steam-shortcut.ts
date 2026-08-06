@@ -1,4 +1,5 @@
 import { registerEvent } from "../register-event";
+import path from "node:path";
 import type { Game, GameShop, SteamShortcut } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { getSteamShortcuts, getSteamUsersIds, logger } from "@main/services";
@@ -24,15 +25,22 @@ const findSteamShortcut = async (
 const matchesGameFallback = (game: Game, shortcut: SteamShortcut) => {
   if (game.shop === "launchbox") {
     const deepLink = buildRunDeepLink(game.shop, game.objectId);
-    const shortcutArguments = getHydraShortcutTarget(deepLink).arguments;
+    const shortcutArguments = getHydraShortcutTarget(deepLink, false).arguments;
     return (
       shortcut.LaunchOptions === shortcutArguments ||
       shortcut.LaunchOptions === getShortcutArguments(deepLink)
     );
   }
 
+  const shortcutExecutable = shortcut.Exe.trim().replace(/^"|"$/g, "");
+  const caseInsensitive =
+    process.platform === "win32" ||
+    path.extname(game.executablePath ?? "").toLowerCase() === ".exe";
+  const executableMatches = caseInsensitive
+    ? shortcutExecutable.toLowerCase() === game.executablePath?.toLowerCase()
+    : shortcutExecutable === game.executablePath;
   return (
-    (game.executablePath && shortcut.Exe === game.executablePath) ||
+    (game.executablePath && executableMatches) ||
     shortcut.appname === game.title
   );
 };
@@ -42,7 +50,7 @@ const persistSteamShortcutAppId = async (
   game: Game,
   shortcut: SteamShortcut
 ) => {
-  if (game.steamShortcutAppId || !shortcut.appid) return;
+  if (!shortcut.appid || game.steamShortcutAppId === shortcut.appid) return;
 
   const updatedGame = {
     ...game,
@@ -50,10 +58,7 @@ const persistSteamShortcutAppId = async (
   };
   await gamesSublevel.put(gameKey, updatedGame);
 
-  logger.info(
-    "Updated game with steamShortcutAppId:",
-    JSON.stringify(updatedGame, null, 2)
-  );
+  logger.info("Updated Steam shortcut app id", shortcut.appid);
 };
 
 const checkSteamShortcut = async (
@@ -81,20 +86,12 @@ const checkSteamShortcut = async (
     );
     if (shortcut) return true;
   }
-
   const match = await findSteamShortcut(steamUserIds, (shortcut) =>
     matchesGameFallback(game, shortcut)
   );
   if (!match) return false;
 
-  logger.info(
-    "Steam shortcut detected for game (before adding steamShortcutAppId):",
-    JSON.stringify(game, null, 2)
-  );
-  logger.info("Matching Steam shortcut:", match);
-
   await persistSteamShortcutAppId(gameKey, game, match);
-  logger.info("Displaying game object after Steam shortcut check:", game);
 
   return true;
 };
