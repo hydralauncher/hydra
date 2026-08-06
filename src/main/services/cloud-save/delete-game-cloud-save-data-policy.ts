@@ -31,14 +31,19 @@ export const executeDeleteGameCloudSaveData = async ({
   deleteRemoteSnapshots,
 }: DeleteGameCloudSaveDataDependencies) => {
   let pendingPhase = await beginPendingDeletion();
+
+  const advanceToRemoteStarted = async () => {
+    pendingPhase = "remote-started";
+    await markRemoteDeletionStarted();
+  };
+
+  const rollbackIsSafe = () => pendingPhase === "prepared";
+
   try {
     await runWithLocalDeletionSnapshot(
       async ({ deleteLocalFiles, clearLocalState }) => {
         assertGameNotRunning();
-        // Advance in memory first so an ambiguous persistence failure keeps
-        // deletion quarantined instead of rolling back a potentially saved phase.
-        pendingPhase = "remote-started";
-        await markRemoteDeletionStarted();
+        await advanceToRemoteStarted();
         await deleteRemoteSnapshots();
         assertGameNotRunning();
         await deleteLocalFiles();
@@ -47,7 +52,7 @@ export const executeDeleteGameCloudSaveData = async ({
       }
     );
   } catch (error) {
-    if (pendingPhase === "prepared") {
+    if (rollbackIsSafe()) {
       try {
         await clearPendingDeletion();
       } catch (cleanupError) {
