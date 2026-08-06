@@ -35,6 +35,8 @@ export const executeDeleteGameCloudSaveData = async ({
     await runWithLocalDeletionSnapshot(
       async ({ deleteLocalFiles, clearLocalState }) => {
         assertGameNotRunning();
+        // Advance in memory first so an ambiguous persistence failure keeps
+        // deletion quarantined instead of rolling back a potentially saved phase.
         pendingPhase = "remote-started";
         await markRemoteDeletionStarted();
         await deleteRemoteSnapshots();
