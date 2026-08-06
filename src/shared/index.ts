@@ -12,6 +12,7 @@ import {
   zhCN,
   da,
   el,
+  vi,
 } from "date-fns/locale";
 
 import { isArchiveOrgFileUri } from "./archive-org";
@@ -274,6 +275,7 @@ export const getDateLocale = (language: string) => {
   if (language.startsWith("zh")) return zhCN;
   if (language.startsWith("da")) return da;
   if (language.startsWith("el")) return el;
+  if (language.startsWith("vi")) return vi;
 
   return enUS;
 };
