@@ -233,12 +233,36 @@ export class Umu {
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
     ensureExecutablePermission(umuBinaryPath);
 
+    const onlineFix =
+      fs.existsSync(path.join(workingDirectory, "OnlineFix64.dll")) ||
+      fs.existsSync(path.join(workingDirectory, "OnlineFix.ini"));
+
+    logger.info("ONLINEFIX CHECK", {
+      workingDirectory,
+      onlineFix,
+      dll: fs.existsSync(path.join(workingDirectory, "OnlineFix64.dll")),
+      ini: fs.existsSync(path.join(workingDirectory, "OnlineFix.ini")),
+    });
+
     const launchEnv = {
       PROTON_LOG: "1",
-      ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
-      ...(options?.winePrefixPath
-        ? { WINEPREFIX: options.winePrefixPath }
-        : {}),
+
+      ...(onlineFix
+        ? {
+            GAMEID: "480",
+            SteamAppId: "480",
+            SteamGameId: "480",
+            WINEPREFIX: `${process.env.HOME}/SteamPrefixes/480`,
+            WINEDLLOVERRIDES:
+              "OnlineFix64=n;SteamOverlay64=n;winmm=n,b;dnet=n;steam_api64=n;winhttp=n,b",
+          }
+        : {
+            ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
+            ...(options?.winePrefixPath
+              ? { WINEPREFIX: options.winePrefixPath }
+              : {}),
+          }),
+
       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
       ...resolvedLaunchCommand.env,
