@@ -1,6 +1,5 @@
 import { SystemPath } from "@main/services/system-path";
 import type {
-  CheckCloudSaveCustomPathOverlapResult,
   CloudSaveCustomPath,
   CloudSaveCustomPathBindings,
   CloudSaveRule,
@@ -11,6 +10,7 @@ import type {
 import { NativeAddon } from "../native-addon";
 import type { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
+import { getCloudSaveCustomPathOverlapErrorCode } from "./custom-path-overlap-error";
 import {
   partitionCloudSaveCustomPathBindingsByOverlap,
   type CloudSaveCustomPathOverlapChecker,
@@ -28,11 +28,6 @@ interface GetUsableCloudSaveCustomPathBindingsOptions {
   remoteFiles?: RestoreManifestFile[];
   bindings?: CloudSaveCustomPathBindings;
 }
-
-const overlapErrorCode = (result: CheckCloudSaveCustomPathOverlapResult) =>
-  result.reason === "custom-location-overlap"
-    ? "cloud_save_custom_path_custom_location_overlap"
-    : "cloud_save_custom_path_mapped_location_overlap";
 
 const checkOverlap: CloudSaveCustomPathOverlapChecker = ({
   objectId,
@@ -115,7 +110,7 @@ export const assertCloudSaveCustomPathDoesNotOverlap = async ({
   });
 
   if (result.hasOverlap) {
-    throw new Error(overlapErrorCode(result));
+    throw new Error(getCloudSaveCustomPathOverlapErrorCode(result.reason));
   }
 };
 
@@ -159,7 +154,7 @@ export const registerCloudSaveCustomPathWithoutOverlap = async ({
         remoteRelativePaths,
       });
       if (result.hasOverlap) {
-        throw new Error(overlapErrorCode(result));
+        throw new Error(getCloudSaveCustomPathOverlapErrorCode(result.reason));
       }
       assertCanRegister?.();
     },

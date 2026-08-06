@@ -54,7 +54,11 @@ interface CloudSaveV2ContextValue {
 
 const cloudSaveV2Context = createContext<CloudSaveV2ContextValue | null>(null);
 
-type CustomPathApprovalError = "generic" | "mapped-overlap" | "custom-overlap";
+type CustomPathApprovalError =
+  | "generic"
+  | "mapped-overlap"
+  | "custom-overlap"
+  | "remote-target-overlap";
 
 const getCustomPathApprovalError = (
   error: unknown
@@ -65,6 +69,9 @@ const getCustomPathApprovalError = (
   }
   if (message.includes("cloud_save_custom_path_mapped_location_overlap")) {
     return "mapped-overlap";
+  }
+  if (message.includes("cloud_save_custom_path_remote_target_overlap")) {
+    return "remote-target-overlap";
   }
   return "generic";
 };
@@ -78,6 +85,9 @@ const getCustomPathApprovalErrorKey = (
   }
   if (error === "custom-overlap") {
     return "cloud_save_v2_custom_path_custom_overlap_error_description";
+  }
+  if (error === "remote-target-overlap") {
+    return "cloud_save_v2_custom_path_remote_target_overlap_error_description";
   }
   if (!error) return null;
   if (purpose === "manual-sync") {

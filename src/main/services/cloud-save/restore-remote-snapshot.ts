@@ -98,29 +98,26 @@ const registerRestoredCustomPaths = async (
   gameId: CloudSaveGameId,
   pathContext: CloudSavePathContext
 ) => {
-  const restoredCustomRawPaths = new Set(
-    actions
-      .map(({ rawPath }) => rawPath)
-      .filter((rawPath) => rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX))
-  );
-  if (restoredCustomRawPaths.size === 0) return;
+  const actionByCustomRawPath = new Map<string, RestorePlanAction>();
+  for (const action of actions) {
+    if (
+      action.rawPath.startsWith(CLOUD_SAVE_CUSTOM_PATH_PREFIX) &&
+      !actionByCustomRawPath.has(action.rawPath)
+    ) {
+      actionByCustomRawPath.set(action.rawPath, action);
+    }
+  }
+  if (actionByCustomRawPath.size === 0) return;
 
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
-  const boundCustomPaths = [...restoredCustomRawPaths]
-    .map((rawPath) => {
-      const target = actions.find((action) => action.rawPath === rawPath);
-      if (!target) return null;
-      return bindCloudSaveCustomPathToLocalPath(
-        rawPath,
-        target.restoreRootPath,
-        customPathContext
-      );
-    })
-    .filter(
-      (customPath): customPath is NonNullable<typeof customPath> =>
-        customPath !== null
-    );
+  const boundCustomPaths = [...actionByCustomRawPath].map(([rawPath, target]) =>
+    bindCloudSaveCustomPathToLocalPath(
+      rawPath,
+      target.restoreRootPath,
+      customPathContext
+    )
+  );
   await registerCloudSaveCustomPaths(
     gameId.shop,
     gameId.objectId,

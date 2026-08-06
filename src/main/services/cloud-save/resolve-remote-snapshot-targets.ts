@@ -127,12 +127,7 @@ export const resolveRestoreManifestTargets = async (
     ),
     winePrefixPath: effectiveWinePrefixPath,
     approvedRules: [
-      ...approved.rules.map(({ kind, rawPath, source }) => ({
-        kind,
-        rawPath,
-        source,
-        preferredPath: undefined,
-      })),
+      ...approved.rules,
       ...customPaths.map(customPathToCloudSaveRule),
     ].map(({ kind, rawPath, source, preferredPath }) => ({
       kind,
