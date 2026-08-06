@@ -719,11 +719,35 @@ declare global {
     extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
     scanInstalledGames: (
       additionalDirectories?: string[],
-      includeDefaultDirectories?: boolean
+      includeDefaultDirectories?: boolean,
+      addGamesToLibrary?: boolean,
+      requestId?: string
     ) => Promise<{
-      foundGames: { title: string; executablePath: string }[];
+      linkedGames: {
+        title: string;
+        executablePath: string;
+        iconUrl: string | null;
+      }[];
+      addedGames: {
+        title: string;
+        executablePath: string;
+        iconUrl: string | null;
+      }[];
+      ambiguousMatches: {
+        executablePath: string;
+        choices: { objectId: string; title: string; iconUrl: string | null }[];
+      }[];
       total: number;
     }>;
+    cancelScanInstalledGames: (requestId: string) => Promise<void>;
+    addScannedGame: (
+      objectId: string,
+      executablePath: string
+    ) => Promise<{
+      title: string;
+      executablePath: string;
+      iconUrl: string | null;
+    } | null>;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
