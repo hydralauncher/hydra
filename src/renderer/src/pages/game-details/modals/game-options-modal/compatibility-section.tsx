@@ -40,6 +40,7 @@ interface CompatibilityToggleRowProps {
   label: React.ReactNode;
   checked: boolean;
   disabled: boolean;
+  classNamePrefix: string;
   tooltipId?: string;
   tooltipContent?: string;
   onChange: (checked: boolean) => void;
@@ -49,17 +50,20 @@ function CompatibilityToggleRow({
   label,
   checked,
   disabled,
+  classNamePrefix,
   tooltipId,
   tooltipContent,
   onChange,
 }: Readonly<CompatibilityToggleRowProps>) {
   return (
-    <div className="game-options-modal__mangohud-toggle">
+    <div className={`game-options-modal__${classNamePrefix}-toggle`}>
       <CheckboxField
         label={
           <span
-            className={`game-options-modal__mangohud-label ${
-              disabled ? "game-options-modal__mangohud-label--disabled" : ""
+            className={`game-options-modal__${classNamePrefix}-label ${
+              disabled
+                ? `game-options-modal__${classNamePrefix}-label--disabled`
+                : ""
             }`}
             data-tooltip-id={tooltipId}
             data-tooltip-content={tooltipContent}
@@ -102,6 +106,8 @@ export function CompatibilitySettingsSection({
   onChangeProtonVersion,
 }: Readonly<CompatibilitySettingsSectionProps>) {
   const { t } = useTranslation("game_details");
+
+  const showWinetricksUnavailableTooltip = !winetricksAvailable;
 
   const gamemodeToggleDisabled = !gamemodeAvailable || globalAutoRunGamemode;
   const mangohudToggleDisabled = !mangohudAvailable || globalAutoRunMangohud;
@@ -159,26 +165,25 @@ export function CompatibilitySettingsSection({
 
   const protonSourceUmuDefault = t("proton_source_umu_default", {
     ns: ["game_details", "settings"],
-    defaultValue: "Uses the default UMU-managed Proton version.",
+    defaultValue: "umu default selection",
   });
 
   const protonSourceSteam = t("proton_source_steam", {
     ns: ["game_details", "settings"],
-    defaultValue: "Proton installation found in Steam directories.",
+    defaultValue: "Installed by Steam",
   });
 
   const protonSourceCompatibilityTools = t(
     "proton_source_compatibility_tools",
     {
       ns: ["game_details", "settings"],
-      defaultValue:
-        "Proton installation found in compatibilitytools.d directories.",
+      defaultValue: "Installed in Steam compatibilitytools.d",
     }
   );
 
   return (
     <>
-      <div className="game-options-modal__section">
+      <div className="game-options-modal__wine-prefix">
         <div className="game-options-modal__header">
           <h2>{t("wine_prefix")}</h2>
           <h4 className="game-options-modal__header-description">
@@ -202,7 +207,7 @@ export function CompatibilitySettingsSection({
                 <FileDirectoryIcon />
                 {t("select_executable")}
               </Button>
-              {displayedWinePrefixPath && (
+              {game.winePrefixPath && (
                 <Button onClick={onClearWinePrefixPath} theme="outline">
                   {t("clear")}
                 </Button>
@@ -212,14 +217,28 @@ export function CompatibilitySettingsSection({
         />
 
         <div className="game-options-modal__row">
-          <Button
-            type="button"
-            theme="outline"
-            onClick={onOpenWinetricks}
-            disabled={!winetricksAvailable}
+          <span
+            className="game-options-modal__tool-button-wrapper"
+            data-tooltip-id="winetricks-unavailable-tooltip"
+            data-tooltip-content={
+              showWinetricksUnavailableTooltip
+                ? t("winetricks_not_available_tooltip")
+                : undefined
+            }
           >
-            {t("open_winetricks")}
-          </Button>
+            <Button
+              type="button"
+              theme="outline"
+              onClick={onOpenWinetricks}
+              disabled={!winetricksAvailable}
+            >
+              {t("open_winetricks")}
+            </Button>
+          </span>
+
+          {showWinetricksUnavailableTooltip && (
+            <Tooltip id="winetricks-unavailable-tooltip" />
+          )}
         </div>
       </div>
 
@@ -247,6 +266,7 @@ export function CompatibilitySettingsSection({
           }
           checked={autoRunGamemode || globalAutoRunGamemode}
           disabled={gamemodeToggleDisabled}
+          classNamePrefix="gamemode"
           tooltipId={gamemodeTooltipId}
           tooltipContent={gamemodeTooltipContent}
           onChange={(checked) => onChangeGamemodeState(checked)}
@@ -271,6 +291,7 @@ export function CompatibilitySettingsSection({
           }
           checked={autoRunMangohud || globalAutoRunMangohud}
           disabled={mangohudToggleDisabled}
+          classNamePrefix="mangohud"
           tooltipId={mangohudTooltipId}
           tooltipContent={mangohudTooltipContent}
           onChange={(checked) => onChangeMangohudState(checked)}
@@ -280,6 +301,7 @@ export function CompatibilitySettingsSection({
           label={<span>{t("proton_logging")}</span>}
           checked={protonLogEnabled || globalProtonLogEnabled}
           disabled={protonLogToggleDisabled}
+          classNamePrefix="proton-log"
           tooltipId={protonLogTooltipId}
           tooltipContent={protonLogTooltipContent}
           onChange={(checked) => onChangeProtonLogState(checked)}
