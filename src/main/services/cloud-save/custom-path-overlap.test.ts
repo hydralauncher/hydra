@@ -8,6 +8,7 @@ import type {
   RestoreManifestFile,
 } from "../../../types/index.ts";
 
+import { getCloudSaveCustomPathOverlapErrorCode } from "./custom-path-overlap-error.ts";
 import {
   partitionCloudSaveCustomPathBindingsByOverlap,
   type CloudSaveCustomPathOverlapOptions,
@@ -37,6 +38,23 @@ const remoteFile = (
   hash: "b".repeat(64),
   sizeBytes: 10,
   lastModifiedAt: "2026-07-30T00:00:00.000Z",
+});
+
+describe("Cloud Save custom path overlap errors", () => {
+  it("preserves the overlap reason in the surfaced error code", () => {
+    assert.equal(
+      getCloudSaveCustomPathOverlapErrorCode("mapped-location-overlap"),
+      "cloud_save_custom_path_mapped_location_overlap"
+    );
+    assert.equal(
+      getCloudSaveCustomPathOverlapErrorCode("custom-location-overlap"),
+      "cloud_save_custom_path_custom_location_overlap"
+    );
+    assert.equal(
+      getCloudSaveCustomPathOverlapErrorCode("remote-target-mapped"),
+      "cloud_save_custom_path_remote_target_overlap"
+    );
+  });
 });
 
 describe("Cloud Save custom path overlap bindings", () => {

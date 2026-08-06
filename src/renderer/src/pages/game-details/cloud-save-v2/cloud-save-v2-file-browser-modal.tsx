@@ -37,6 +37,9 @@ const getCustomPathOverlapError = (error: unknown) => {
   if (message.includes("cloud_save_custom_path_mapped_location_overlap")) {
     return "mapped" as const;
   }
+  if (message.includes("cloud_save_custom_path_remote_target_overlap")) {
+    return "remote-target" as const;
+  }
   return null;
 };
 
@@ -60,6 +63,13 @@ const getCustomPathErrorTranslationKeys = (
     return {
       title: "cloud_save_v2_custom_path_custom_overlap_error_title",
       description: "cloud_save_v2_custom_path_custom_overlap_error_description",
+    };
+  }
+  if (overlapError === "remote-target") {
+    return {
+      title: "cloud_save_v2_custom_path_remote_target_overlap_error_title",
+      description:
+        "cloud_save_v2_custom_path_remote_target_overlap_error_description",
     };
   }
   return {
