@@ -11,6 +11,7 @@ interface LegacySaveCardProps {
   isDownloading: boolean;
   actionsDisabled: boolean;
   onDownload: (artifactId: string, suggestedName: string) => void;
+  onDelete: (artifactId: string, artifactName: string) => void;
 }
 
 export function LegacySaveCard({
@@ -18,6 +19,7 @@ export function LegacySaveCard({
   isDownloading,
   actionsDisabled,
   onDownload,
+  onDelete,
 }: Readonly<LegacySaveCardProps>) {
   const { t } = useTranslation("game_details");
   const { formatDate, formatDateTime } = useDate();
@@ -73,6 +75,7 @@ export function LegacySaveCard({
           className="legacy-saves-section__delete-button"
           aria-label={t("delete_backup")}
           disabled={actionsDisabled}
+          onClick={() => onDelete(artifact.id, artifactName)}
         >
           <TrashIcon />
         </Button>
