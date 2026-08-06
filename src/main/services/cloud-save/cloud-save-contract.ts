@@ -168,7 +168,7 @@ export const validateSnapshotFiles = (
 
 export const validateCustomPathRawPaths = (value: unknown): string[] => {
   if (!Array.isArray(value)) {
-    throw new Error("Invalid Cloud Save custom path list");
+    throw new TypeError("Invalid Cloud Save custom path list");
   }
   const rawPaths = value.map((rawPath) => {
     if (

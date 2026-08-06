@@ -102,7 +102,7 @@ const getCustomPathErrorTranslationKeys = (
       description: "cloud_save_v2_custom_path_custom_overlap_error_description",
     };
   }
-  if (overlapError === "remote-target") {
+  if (selectionError === "remote-target") {
     return {
       title: "cloud_save_v2_custom_path_remote_target_overlap_error_title",
       description:

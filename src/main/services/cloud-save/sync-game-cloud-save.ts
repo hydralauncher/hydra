@@ -19,11 +19,13 @@ import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
-import { withCloudSaveCustomPathStoreMutation } from "./custom-path-store";
+import {
+  confirmCloudSaveCustomPaths,
+  withCloudSaveCustomPathStoreMutation,
+} from "./custom-path-store";
 import { deleteLocalSaveTargets } from "./delete-local-save-targets";
 import { assertCloudSaveEnvironmentCurrent } from "./environment-guard";
 import { canDeleteInstallationOwnedCustomPathFiles } from "./installation-owned-custom-paths";
-import { confirmCloudSaveCustomPaths } from "./custom-path-store";
 import { resolveAnalyzedCloudSaveMerge } from "./resolve-analyzed-cloud-save-merge";
 import {
   buildRemoteSnapshotDeletionPlan,

@@ -72,23 +72,28 @@ export const analyzeCloudSaveState = async (
   const customPathContext = cloudSaveCustomPathContextFromPathContext(
     context.pathContext
   );
-  const trackingState = options.customPathBindings
-    ? {
-        bindings: options.customPathBindings,
-        pendingRawPaths: [],
-      }
-    : !remoteManifest && anchor
-      ? await getCloudSaveCustomPathTrackingState(
-          shop,
-          objectId,
-          customPathContext
-        )
-      : await reconcileCloudSaveCustomPathsWithRemote(
-          shop,
-          objectId,
-          remoteManifest?.customPathRawPaths ?? [],
-          customPathContext
-        );
+  let trackingState: Awaited<
+    ReturnType<typeof getCloudSaveCustomPathTrackingState>
+  >;
+  if (options.customPathBindings) {
+    trackingState = {
+      bindings: options.customPathBindings,
+      pendingRawPaths: [],
+    };
+  } else if (!remoteManifest && anchor) {
+    trackingState = await getCloudSaveCustomPathTrackingState(
+      shop,
+      objectId,
+      customPathContext
+    );
+  } else {
+    trackingState = await reconcileCloudSaveCustomPathsWithRemote(
+      shop,
+      objectId,
+      remoteManifest?.customPathRawPaths ?? [],
+      customPathContext
+    );
+  }
   const customPathBindings = await getUsableCloudSaveCustomPathBindings(
     objectId,
     shop,

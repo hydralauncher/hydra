@@ -77,6 +77,38 @@ function getCustomPathApprovalError(error: unknown): CustomPathApprovalError {
   return "generic";
 }
 
+const getCustomPathApprovalErrorKey = (
+  error: CustomPathApprovalError | null,
+  purpose: CloudSaveCustomPathApproval["purpose"] | undefined
+) => {
+  if (error === "mapped-overlap") {
+    return "cloud_save_v2_custom_path_mapped_overlap_error_description";
+  }
+  if (error === "custom-overlap") {
+    return "cloud_save_v2_custom_path_custom_overlap_error_description";
+  }
+  if (error === "remote-target-overlap") {
+    return "cloud_save_v2_custom_path_remote_target_overlap_error_description";
+  }
+  if (error === "environment-unavailable") {
+    return "cloud_save_v2_custom_path_environment_error_description";
+  }
+  if (error === "foreign-environment") {
+    return "cloud_save_v2_custom_path_wine_environment_error_description";
+  }
+  if (error === "unreadable") {
+    return "cloud_save_v2_custom_path_read_error_description";
+  }
+  if (!error) return null;
+  if (purpose === "manual-sync") {
+    return "cloud_save_v2_path_approval_manual_sync_error_description";
+  }
+  if (purpose === "custom-path-rebind") {
+    return "cloud_save_v2_custom_path_rebind_error_description";
+  }
+  return "cloud_save_v2_path_approval_error_description";
+};
+
 export function useBigPictureCloudSave() {
   const context = useContext(bigPictureCloudSaveContext);
 
@@ -529,34 +561,23 @@ export function BigPictureCloudSaveProvider({
     });
   };
 
-  const customPathErrorMessage =
-    customPathApprovalError === "mapped-overlap"
-      ? t("cloud_save_v2_custom_path_mapped_overlap_error_description")
-      : customPathApprovalError === "remote-target-overlap"
-        ? t("cloud_save_v2_custom_path_remote_target_overlap_error_description")
-        : customPathApprovalError === "custom-overlap"
-          ? t("cloud_save_v2_custom_path_custom_overlap_error_description")
-          : customPathApprovalError === "environment-unavailable"
-            ? t("cloud_save_v2_custom_path_environment_error_description")
-            : customPathApprovalError === "foreign-environment"
-              ? t("cloud_save_v2_custom_path_wine_environment_error_description")
-              : customPathApprovalError === "unreadable"
-                ? t("cloud_save_v2_custom_path_read_error_description")
-                : customPathApprovalError
-                  ? t(
-                      customPathApproval?.purpose === "manual-sync"
-                        ? "cloud_save_v2_path_approval_manual_sync_error_description"
-                        : customPathApproval?.purpose === "custom-path-rebind"
-                          ? "cloud_save_v2_custom_path_rebind_error_description"
-                          : "cloud_save_v2_path_approval_error_description"
-                    )
-                  : undefined;
+  const customPathErrorKey = getCustomPathApprovalErrorKey(
+    customPathApprovalError,
+    customPathApproval?.purpose
+  );
+  const customPathErrorMessage = customPathErrorKey
+    ? t(customPathErrorKey)
+    : undefined;
   const hasError = hasRefreshError || hasSyncError;
-  const errorMessageKey = hasSyncError
-    ? ("cloud_save_v2_sync_error" as const)
-    : hasRefreshError
-      ? ("cloud_save_v2_load_error" as const)
-      : null;
+  let errorMessageKey:
+    | "cloud_save_v2_sync_error"
+    | "cloud_save_v2_load_error"
+    | null = null;
+  if (hasSyncError) {
+    errorMessageKey = "cloud_save_v2_sync_error";
+  } else if (hasRefreshError) {
+    errorMessageKey = "cloud_save_v2_load_error";
+  }
   const value: BigPictureCloudSaveContextValue = {
     overview,
     isRefreshing,

@@ -460,11 +460,13 @@ export function CloudSavePanel({
         </p>
       )}
 
-      {!hasExecutablePath ? (
-        missingExecutableCard
-      ) : snapshotPanelMode === "skeleton" ? (
+      {!hasExecutablePath && missingExecutableCard}
+
+      {hasExecutablePath && snapshotPanelMode === "skeleton" && (
         <CloudSaveSnapshotSkeleton label={t("cloud_save_v2_checking")} />
-      ) : snapshotPanelMode === "content" ? (
+      )}
+
+      {hasExecutablePath && snapshotPanelMode === "content" && (
         <section className="cloud-save-v2__active-snapshot">
           <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
             {snapshotSummary}
@@ -480,7 +482,7 @@ export function CloudSavePanel({
             </div>
           </article>
         </section>
-      ) : null}
+      )}
     </div>
   );
 }

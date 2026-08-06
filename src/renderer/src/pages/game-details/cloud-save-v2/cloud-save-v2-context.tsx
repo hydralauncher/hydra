@@ -793,11 +793,12 @@ export function CloudSaveV2Provider({
   };
 
   const hasError = hasRefreshError || hasSyncError;
-  const errorMessageKey = hasSyncError
-    ? ("cloud_save_v2_sync_error" as const)
-    : hasRefreshError
-      ? ("cloud_save_v2_load_error" as const)
-      : null;
+  let errorMessageKey: CloudSaveV2ContextValue["errorMessageKey"] = null;
+  if (hasSyncError) {
+    errorMessageKey = "cloud_save_v2_sync_error";
+  } else if (hasRefreshError) {
+    errorMessageKey = "cloud_save_v2_load_error";
+  }
   const openFileBrowser = useCallback(() => {
     if (cloudSaveAccessAction === "open") {
       setIsFileBrowserVisible(true);
