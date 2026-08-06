@@ -137,7 +137,7 @@ describe("cloud save custom path removal proposal", () => {
     assert.deepEqual(calls, ["update"]);
   });
 
-  it("does not delete unrelated declared locations from an invalid empty manifest", async () => {
+  it("updates an empty snapshot when another declared location remains", async () => {
     const current = manifest();
     current.files = [current.files[0]];
     current.variants = [firstVariant];
@@ -145,11 +145,36 @@ describe("cloud save custom path removal proposal", () => {
       current,
       firstPath
     );
+    const calls: string[] = [];
+
+    const result = await executeCloudSaveCustomPathRemoteRemoval({
+      proposal,
+      updateSnapshot: async () => {
+        calls.push("update");
+      },
+      deleteSnapshot: async () => {
+        calls.push("delete");
+      },
+    });
+
+    assert.deepEqual(proposal.customPathRawPaths, [secondPath]);
+    assert.deepEqual(proposal.variants, []);
+    assert.deepEqual(proposal.files, []);
+    assert.equal(result, "snapshot-updated");
+    assert.deepEqual(calls, ["update"]);
+  });
+
+  it("rejects an empty snapshot with an orphaned variant", async () => {
     let requested = false;
 
     await assert.rejects(
       executeCloudSaveCustomPathRemoteRemoval({
-        proposal,
+        proposal: {
+          changed: true,
+          customPathRawPaths: [secondPath],
+          variants: [secondVariant],
+          files: [],
+        },
         updateSnapshot: async () => {
           requested = true;
         },

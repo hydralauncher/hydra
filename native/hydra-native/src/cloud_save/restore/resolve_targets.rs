@@ -575,15 +575,7 @@ mod tests {
         let mut remote_file = file(&variant, "slot.sav");
         remote_file.raw_path = "<home>/Game".into();
         remote_file.hash = format!("{:x}", Sha256::digest(b"save"));
-        let mut restore_input = input(
-            temp.path(),
-            StoreUserContext {
-                active: None,
-                known: Vec::new(),
-            },
-            vec![variant],
-            vec![remote_file.clone()],
-        );
+        let mut restore_input = input(temp.path(), vec![variant], vec![remote_file.clone()]);
         restore_input.approved_rules = vec![ApprovedRestoreRule {
             kind: "dir".into(),
             raw_path: remote_file.raw_path.clone(),
@@ -726,7 +718,6 @@ mod tests {
             executable_path: None,
             wine_prefix_path: None,
             steam_path: None,
-            store_user_context: StoreUserContext::default(),
             approved_rules: vec![ApprovedRestoreRule {
                 kind: "file".into(),
                 raw_path: raw_path.into(),
@@ -825,7 +816,6 @@ mod tests {
             executable_path: None,
             wine_prefix_path: None,
             steam_path: None,
-            store_user_context: StoreUserContext::default(),
             approved_rules: vec![ApprovedRestoreRule {
                 kind: "file".into(),
                 raw_path: raw_path.into(),
@@ -872,7 +862,6 @@ mod tests {
                 executable_path: None,
                 wine_prefix_path: None,
                 steam_path: None,
-                store_user_context: StoreUserContext::default(),
                 approved_rules: vec![ApprovedRestoreRule {
                     kind: "file".into(),
                     raw_path: raw_path.into(),

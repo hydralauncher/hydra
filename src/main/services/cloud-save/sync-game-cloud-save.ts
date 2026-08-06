@@ -30,7 +30,10 @@ import {
   decideRemoteSnapshotDeletion,
 } from "./remote-snapshot-deletion";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
-import { shouldRetryCloudSaveConflict } from "./snapshot-retry-policy";
+import {
+  shouldRetryCloudSaveConflict,
+  shouldRetryCloudSaveStateChange,
+} from "./snapshot-retry-policy";
 import { cloudSaveOperationGate } from "./operation-gate";
 import { assertCloudSaveDeletionNotPending } from "./pending-deletion";
 import {
@@ -53,6 +56,12 @@ interface ActiveSync {
 interface ActiveSyncProgress {
   listeners: Set<ProgressCallback>;
   latestProgress?: CloudSaveSyncProgressPayload;
+}
+
+class CloudSaveSyncStateChangedError extends Error {
+  constructor() {
+    super("cloud_save_sync_state_changed");
+  }
 }
 
 const activeSyncs = new Map<string, ActiveSync>();
@@ -644,6 +653,7 @@ const executeGameCloudSaveSync = async ({
   emitProgress,
   resolution,
   suppliedContext,
+  attempt,
 }: {
   objectId: string;
   shop: GameShop;
@@ -651,6 +661,7 @@ const executeGameCloudSaveSync = async ({
   emitProgress: ProgressCallback;
   resolution: CloudSaveConflictResolution | undefined;
   suppliedContext: Awaited<ReturnType<typeof getCloudSaveGameContext>>;
+  attempt: number;
 }): Promise<SyncGameCloudSaveResult> => {
   const assertEnvironmentCurrent = () =>
     assertCloudSaveEnvironmentCurrent(
@@ -696,14 +707,10 @@ const executeGameCloudSaveSync = async ({
       assertEnvironmentCurrent,
     });
     if (remoteDeletionOutcome.kind === "retry") {
-      return executeGameCloudSaveSync({
-        objectId,
-        shop,
-        trigger,
-        emitProgress,
-        resolution,
-        suppliedContext,
-      });
+      if (!shouldRetryCloudSaveStateChange(attempt)) {
+        throw new Error("cloud_save_sync_state_changed_twice");
+      }
+      throw new CloudSaveSyncStateChangedError();
     }
     if (remoteDeletionOutcome.kind === "conflict") {
       return finish("conflict", "conflict");
@@ -879,8 +886,20 @@ const runGameCloudSaveSync = async (
       emitProgress,
       resolution,
       suppliedContext,
+      attempt,
     });
   } catch (error) {
+    if (error instanceof CloudSaveSyncStateChangedError) {
+      return runGameCloudSaveSync(
+        objectId,
+        shop,
+        trigger,
+        emitProgress,
+        resolution,
+        suppliedContext,
+        attempt + 1
+      );
+    }
     if (shouldRetryCloudSaveConflict(error, attempt)) {
       return runGameCloudSaveSync(
         objectId,

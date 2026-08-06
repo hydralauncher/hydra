@@ -7,6 +7,7 @@ import {
   isCloudSaveCommitTransportFailure,
   shouldReprepareCloudSaveSnapshot,
   shouldRetryCloudSaveConflict,
+  shouldRetryCloudSaveStateChange,
 } from "./snapshot-retry-policy.ts";
 
 const axiosError = (status: number, data: unknown = null) => ({
@@ -78,5 +79,10 @@ describe("Cloud Save snapshot retry policy", () => {
     assert.equal(shouldRetryCloudSaveConflict(realAxiosError(409), 0), true);
     assert.equal(shouldRetryCloudSaveConflict(realAxiosError(409), 1), false);
     assert.equal(shouldRetryCloudSaveConflict(realAxiosError(429), 0), false);
+  });
+
+  it("allows only one retry after the analyzed state changes", () => {
+    assert.equal(shouldRetryCloudSaveStateChange(0), true);
+    assert.equal(shouldRetryCloudSaveStateChange(1), false);
   });
 });

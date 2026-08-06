@@ -32,7 +32,10 @@ export const getCloudSaveOverview = async (
   const unconfiguredCustomPathCount =
     getUnconfiguredCloudSaveCustomPathCandidates(
       analysis.remoteManifest?.files ?? [],
-      analysis.customPathBindings.ready.map(({ rawPath }) => rawPath)
+      [
+        ...analysis.customPathBindings.ready,
+        ...analysis.customPathBindings.unresolved,
+      ].map(({ rawPath }) => rawPath)
     ).length;
   recordLatestCloudSaveObservation(
     objectId,

@@ -26,3 +26,6 @@ export const shouldReprepareCloudSaveSnapshot = (error: unknown) => {
 
 export const shouldRetryCloudSaveConflict = (error: unknown, attempt: number) =>
   attempt === 0 && isAxiosError(error) && error.response?.status === 409;
+
+export const shouldRetryCloudSaveStateChange = (attempt: number) =>
+  attempt === 0;

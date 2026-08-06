@@ -58,6 +58,29 @@ describe("cloud save custom path approval policy", () => {
     );
   });
 
+  it("treats ready and unresolved bindings as already configured", () => {
+    const ready = file("<custom><windows><winDocuments>/Ready", "ready.sav");
+    const unresolved = file(
+      "<custom><windows><winDocuments>/Unresolved",
+      "unresolved.sav"
+    );
+    const unbound = file(
+      "<custom><windows><winDocuments>/Unbound",
+      "unbound.sav"
+    );
+    const bindings = {
+      ready: [{ rawPath: ready.rawPath }],
+      unresolved: [{ rawPath: unresolved.rawPath }],
+    };
+
+    const result = getUnconfiguredCloudSaveCustomPathCandidates(
+      [ready, unresolved, unbound],
+      [...bindings.ready, ...bindings.unresolved].map(({ rawPath }) => rawPath)
+    );
+
+    assert.deepEqual(result, [{ rawPath: unbound.rawPath, files: [unbound] }]);
+  });
+
   it("does not create a candidate without remote files", () => {
     assert.deepEqual(getUnconfiguredCloudSaveCustomPathCandidates([], []), []);
   });

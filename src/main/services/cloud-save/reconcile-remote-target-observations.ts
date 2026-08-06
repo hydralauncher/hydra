@@ -24,13 +24,17 @@ const stableId = (parts: string[]) => {
   return hash.digest("hex");
 };
 
-const pathKey = (value: string, context: LocalGameSnapshotContext) => {
-  let canonical = path.resolve(value);
+const canonicalOrLexicalPath = (value: string) => {
+  const resolved = path.resolve(value);
   try {
-    canonical = realpathSync.native(canonical);
+    return realpathSync.native(resolved);
   } catch {
-    // A missing target has no filesystem identity yet; lexical identity is enough.
+    return resolved;
   }
+};
+
+const pathKey = (value: string, context: LocalGameSnapshotContext) => {
+  const canonical = canonicalOrLexicalPath(value);
   const normalized = canonical.replaceAll("\\", "/").normalize("NFC");
   const caseSensitive =
     context.pathContext.platform === "linux" &&
