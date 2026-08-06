@@ -94,6 +94,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
                 className="text-field-container__toggle-password-button"
                 onClick={() => setIsPasswordVisible(!isPasswordVisible)}
                 aria-label={t("toggle_password_visibility")}
+                tabIndex={-1}
               >
                 {isPasswordVisible ? (
                   <EyeClosedIcon size={16} />
