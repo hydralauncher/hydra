@@ -114,7 +114,7 @@ export function EmulatorSetupModal({
       scanStartedRef.current = false;
       persistedExecutableRef.current = false;
     }
-  }, [visible, initialConfig]);
+  }, [visible, initialConfig, setFolders]);
 
   useEffect(() => {
     if (!visible || !system) return;
@@ -281,7 +281,15 @@ export function EmulatorSetupModal({
         );
       }
     })();
-  }, [visible, system, steps, stepIndex, folders.length, previewFolder]);
+  }, [
+    visible,
+    system,
+    steps,
+    stepIndex,
+    folders.length,
+    previewFolder,
+    setFolders,
+  ]);
 
   useEffect(() => {
     if (!visible || !system) return;

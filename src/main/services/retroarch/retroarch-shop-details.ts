@@ -21,14 +21,20 @@ interface RomMatchResponseEntry extends LaunchboxShopDetailsEntry {
 
 const normalizeCrc = (raw: string): string => raw.trim().toUpperCase();
 
+export interface RomMatchResult {
+  lookup: Map<string, LaunchboxShopDetailsEntry>;
+  failed: boolean;
+}
+
 export const fetchShopDetailsForHashes = async (
   platform: RetroArchPlatform,
   roms: RomMatchRequestEntry[],
   language: string
-): Promise<Map<string, LaunchboxShopDetailsEntry>> => {
+): Promise<RomMatchResult> => {
   const lookup = new Map<string, LaunchboxShopDetailsEntry>();
-  if (roms.length === 0) return lookup;
+  if (roms.length === 0) return { lookup, failed: false };
 
+  let failed = false;
   const chunks = chunk(roms, ROM_MATCH_CHUNK_SIZE);
   for (const romChunk of chunks) {
     try {
@@ -44,6 +50,7 @@ export const fetchShopDetailsForHashes = async (
         { needsAuth: false }
       );
       if (!Array.isArray(response)) {
+        failed = true;
         logger.warn("Unexpected rom-match response shape", {
           platform,
           chunkSize: romChunk.length,
@@ -61,6 +68,7 @@ export const fetchShopDetailsForHashes = async (
         }
       }
     } catch (err) {
+      failed = true;
       logger.error("Failed to fetch rom-match batch", {
         platform,
         chunkSize: romChunk.length,
@@ -73,7 +81,8 @@ export const fetchShopDetailsForHashes = async (
     platform,
     sent: roms.length,
     matched: lookup.size,
+    failed,
   });
 
-  return lookup;
+  return { lookup, failed };
 };

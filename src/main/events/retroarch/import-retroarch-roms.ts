@@ -127,8 +127,9 @@ const matchRoms = async (
   hashed: HashedRom[],
   language: string,
   signal: CancelSignal
-): Promise<Map<string, LaunchboxShopDetailsEntry>> => {
+): Promise<retroarch.RomMatchResult> => {
   const lookup = new Map<string, LaunchboxShopDetailsEntry>();
+  let failed = false;
 
   const byPlatform = new Map<RetroArchPlatform, HashedRom[]>();
   for (const rom of hashed) {
@@ -140,7 +141,7 @@ const matchRoms = async (
 
   for (const [platform, roms] of byPlatform) {
     if (signal.cancelled) break;
-    const platformLookup = await retroarch.fetchShopDetailsForHashes(
+    const platformResult = await retroarch.fetchShopDetailsForHashes(
       platform,
       roms.map((rom) => ({
         crc32: rom.crc32!,
@@ -150,12 +151,13 @@ const matchRoms = async (
       })),
       language
     );
-    for (const [hash, entry] of platformLookup) {
+    if (platformResult.failed) failed = true;
+    for (const [hash, entry] of platformResult.lookup) {
       lookup.set(hash, entry);
     }
   }
 
-  return lookup;
+  return { lookup, failed };
 };
 
 const persistFolderRollups = async (
@@ -501,7 +503,11 @@ async function runRetroArchImport(
   );
   if (signal.cancelled) return cancelledResult();
 
-  const lookup = await matchRoms(hashed, language, signal);
+  const { lookup, failed: matchFailed } = await matchRoms(
+    hashed,
+    language,
+    signal
+  );
   if (signal.cancelled) return cancelledResult();
 
   const aggregated = aggregateMatches(
@@ -550,6 +556,7 @@ async function runRetroArchImport(
     hashed: hashed.filter((rom) => rom.crc32).length,
     matchedTitles: aggregated.matchedEntries.size,
     unmatched: aggregated.unmatchedFiles.length,
+    matchFailed,
     byPlatform,
     unmatchedSample,
   });
@@ -571,7 +578,16 @@ async function runRetroArchImport(
   if (signal.cancelled) return asCancelled();
 
   await persistMatchedTitles(aggregated, language);
-  await persistFolderRollups(folders, folderRollup);
+  if (matchFailed) {
+    logger.warn(
+      "Keeping previous RetroArch folder totals after a failed match",
+      {
+        folders: folders.map((folder) => folder.path),
+      }
+    );
+  } else {
+    await persistFolderRollups(folders, folderRollup);
+  }
   await reconcileDeletedGames(folders);
   await recomputeRetroArchPlatformCounts();
   await syncProfileBatch(Array.from(aggregated.matchedEntries.keys()));

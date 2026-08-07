@@ -236,11 +236,13 @@ export function GameDetailsContent() {
     }
   );
 
+  const classicsChipLabel = classicsBadge.label ?? launchboxPlatform;
+
   const classicsChips =
-    isLaunchboxGame && classicsBadge.label ? (
+    isLaunchboxGame && classicsChipLabel ? (
       <div className="game-details__hero-classics-chips">
         <span className="game-details__hero-classics-chip">
-          {classicsBadge.label}
+          {classicsChipLabel}
         </span>
         {classicsBadge.icon && (
           <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
