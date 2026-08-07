@@ -936,7 +936,14 @@
     "delete_shortcut_success": "Ярлык Steam успешно удалён",
     "delete_shortcut_error": "Не удалось удалить ярлык Steam",
     "delete_steam_shortcut": "Удалить ярлык Steam",
-    "download_error_archive_org_invalid_file_url": "Эта ссылка archive.org не указывает на файл. Используйте прямую ссылку на файл."
+    "download_error_archive_org_invalid_file_url": "Эта ссылка archive.org не указывает на файл. Используйте прямую ссылку на файл.",
+    "download_error_torbox_account_not_authorized": "Вашей учётной записи TorBox не разрешено начинать новые загрузки. Проверьте настройки аккаунта и попробуйте снова.",
+    "download_error_torbox_rate_limit_exceeded": "Превышен лимит запросов TorBox. Подождите и попробуйте снова.",
+    "download_error_torbox_unavailable": "TorBox временно недоступен. Попробуйте позже.",
+    "download_error_torbox_torrent_not_ready": "TorBox ещё готовит этот торрент. Подождите немного и попробуйте снова.",
+    "download_error_torbox_link_unavailable": "TorBox не смог создать ссылку для скачивания этого торрента. Попробуйте позже.",
+    "download_error_network_unreachable": "Не удалось связаться с сервером загрузки. Проверьте подключение к интернету и попробуйте снова.",
+    "download_error_network_certificate_rejected": "Не удалось проверить соединение с сервером загрузки. Антивирус или прокси может перехватывать HTTPS-трафик."
   },
   "activation": {
     "title": "Активировать Hydra",
