@@ -22,6 +22,10 @@ import { SelectField } from "@renderer/components/select-field/select-field";
 import { setFilters, setPage } from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
+import {
+  resolveClassicsPlatformsForRequest,
+  sanitizeClassicsPlatforms,
+} from "@shared";
 import { debounce } from "lodash-es";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
@@ -195,7 +199,7 @@ export default function Catalogue() {
             ? {
                 ...baseRequest,
                 shops: ["launchbox"],
-                platforms: platforms ?? [],
+                platforms: resolveClassicsPlatformsForRequest(platforms),
               }
             : baseRequest;
 
@@ -290,7 +294,7 @@ export default function Catalogue() {
   }, [steamUserTags, filters.tags, language]);
 
   const classicsPlatforms = useMemo(
-    () => filters.platforms ?? [],
+    () => sanitizeClassicsPlatforms(filters.platforms),
     [filters.platforms]
   );
 
