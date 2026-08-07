@@ -30,6 +30,7 @@ export * from "./download-directories";
 export * from "./html-sanitizer";
 export * from "./language-flags";
 export * from "./use-hls-video";
+export * from "./retroarch-platform";
 export * from "./tracker-list";
 
 export class UserNotLoggedInError extends Error {

@@ -2,12 +2,10 @@ import { useTranslation } from "react-i18next";
 import { FileDirectoryIcon, PlusIcon, XIcon } from "@primer/octicons-react";
 
 import { Button, CheckboxField } from "@renderer/components";
-import type { EmulatorSystem } from "@types";
 
 import type { PendingFolder } from "./types";
 
 interface Props {
-  system: EmulatorSystem;
   systemLabel: string;
   folders: PendingFolder[];
   ymlEntryCount?: number;

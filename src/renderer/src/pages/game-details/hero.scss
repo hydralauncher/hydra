@@ -139,6 +139,19 @@ $hero-height: 350px;
     gap: 4px;
   }
 
+  &__hero-standard-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+
+    .game-details__game-logo,
+    .game-details__game-logo-text {
+      align-self: flex-start;
+    }
+  }
+
   &__hero-classics-chip {
     background-color: rgba(0, 0, 0, 0.24);
     border: 1px solid rgba(255, 255, 255, 0.12);
