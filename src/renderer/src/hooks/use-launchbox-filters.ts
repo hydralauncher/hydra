@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { isSupportedClassicsPlatform } from "@shared";
+
 export interface LaunchboxPlatform {
   key: string;
   name: string;
@@ -35,11 +37,13 @@ const fetchLaunchboxFilters = async (): Promise<LaunchboxCatalogueFilters> => {
     } | null>("/catalogue/filters?shop=launchbox", { needsAuth: false })
     .then((response) => {
       const normalized: LaunchboxCatalogueFilters = {
-        platforms: (response?.platforms ?? []).map((platform) =>
-          typeof platform === "string"
-            ? { key: platform, name: platform }
-            : platform
-        ),
+        platforms: (response?.platforms ?? [])
+          .map((platform) =>
+            typeof platform === "string"
+              ? { key: platform, name: platform }
+              : platform
+          )
+          .filter((platform) => isSupportedClassicsPlatform(platform.key)),
         genres: response?.genres ?? [],
         developers: response?.developers ?? [],
         publishers: response?.publishers ?? [],
