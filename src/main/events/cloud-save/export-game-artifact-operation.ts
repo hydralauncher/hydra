@@ -52,7 +52,6 @@ export const exportGameArtifactArchive = async (
 
     dependencies.signal?.throwIfAborted();
     await dependencies.copyZip(zipPath, destinationPath);
-    dependencies.signal?.throwIfAborted();
     return { status: "saved", filePath: destinationPath };
   } finally {
     await dependencies.cleanupTemporaryDirectory(temporaryDirectory);

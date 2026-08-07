@@ -137,6 +137,32 @@ describe("legacy save artifact export", () => {
     ]);
   });
 
+  it("treats the final copy as committed when cancellation arrives during it", async () => {
+    const controller = new AbortController();
+    const { calls, dependencies } = createDependencies();
+    const originalCopyZip = dependencies.copyZip;
+
+    dependencies.signal = controller.signal;
+    dependencies.copyZip = async (sourcePath, destinationPath) => {
+      await originalCopyZip(sourcePath, destinationPath);
+      controller.abort();
+    };
+
+    assert.deepEqual(await exportGameArtifactArchive(dependencies), {
+      status: "saved",
+      filePath: "C:\\exports\\save.zip",
+    });
+    assert.deepEqual(calls, [
+      "create-temporary-directory",
+      "download",
+      "extract",
+      "zip",
+      "dialog",
+      "copy",
+      "cleanup",
+    ]);
+  });
+
   for (const failingStep of ["download", "zip", "copy"] as const) {
     it(`cleans up and rejects when ${failingStep} fails`, async () => {
       const { calls, dependencies } = createDependencies({ failingStep });
