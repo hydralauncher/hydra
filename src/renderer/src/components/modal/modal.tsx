@@ -17,6 +17,7 @@ export interface ModalProps {
   noContentPadding?: boolean;
   children: React.ReactNode;
   clickOutsideToClose?: boolean;
+  className?: string;
 }
 
 export function Modal({
@@ -28,6 +29,7 @@ export function Modal({
   noContentPadding,
   children,
   clickOutsideToClose = true,
+  className,
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
@@ -121,10 +123,14 @@ export function Modal({
   return createPortal(
     <Backdrop isClosing={isClosing}>
       <div
-        className={cn("modal", {
-          "modal--closing": isClosing,
-          "modal--large": large,
-        })}
+        className={cn(
+          "modal",
+          {
+            "modal--closing": isClosing,
+            "modal--large": large,
+          },
+          className
+        )}
         role="dialog"
         aria-describedby={description}
         ref={modalContentRef}
