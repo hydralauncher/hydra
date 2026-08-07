@@ -30,6 +30,12 @@ export const downloadToFile = async (
   const writer = fs.createWriteStream(dest);
 
   await new Promise<void>((resolve, reject) => {
+    const fail = (error: Error) => {
+      response.data.destroy();
+      writer.destroy();
+      reject(error);
+    };
+
     response.data.on("data", (chunk: Buffer) => {
       received += chunk.length;
       const done = total !== null && received >= total;
@@ -38,8 +44,8 @@ export const downloadToFile = async (
         onProgress(received, total);
       }
     });
-    response.data.on("error", reject);
-    writer.on("error", reject);
+    response.data.on("error", fail);
+    writer.on("error", fail);
     writer.on("close", resolve);
     response.data.pipe(writer);
   });
