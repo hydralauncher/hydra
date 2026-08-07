@@ -434,10 +434,19 @@ export function GameDetailsContextProvider({
 
         if (cancelled) return;
 
-        const downloadOptions = ensureArray<GameRepack>(
+        const remoteOptions = ensureArray<GameRepack>(
           downloads,
           `/games/${shop}/${objectId}/download-sources`
         );
+
+        // Local (file-based) sources are matched on the client by title.
+        const localOptions = await window.electron
+          .getLocalDownloadOptions(gameTitle)
+          .catch(() => [] as GameRepack[]);
+
+        if (cancelled) return;
+
+        const downloadOptions = [...remoteOptions, ...localOptions];
 
         setRepacks(downloadOptions);
 
@@ -460,7 +469,7 @@ export function GameDetailsContextProvider({
     return () => {
       cancelled = true;
     };
-  }, [shop, objectId]);
+  }, [shop, objectId, gameTitle]);
 
   const getDownloadsPath = async () => {
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
