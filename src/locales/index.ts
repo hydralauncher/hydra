@@ -32,6 +32,7 @@ import sv from "./sv/translation.json";
 import lv from "./lv/translation.json";
 import ja from "./ja/translation.json";
 import vi from "./vi/translation.json";
+import sl from "./sl/translation.json";
 
 export default {
   "pt-BR": ptBR,
@@ -68,4 +69,5 @@ export default {
   lv,
   ja,
   vi,
+  sl,
 };
