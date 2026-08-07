@@ -22,6 +22,7 @@ import { SelectField } from "@renderer/components/select-field/select-field";
 import { setFilters, setPage } from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
+import { SUPPORTED_CLASSICS_PLATFORMS } from "@shared";
 import { debounce } from "lodash-es";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
@@ -190,12 +191,18 @@ export default function Catalogue() {
           ),
         };
 
+        const selectedPlatforms = (platforms ?? []).filter((platform) =>
+          SUPPORTED_CLASSICS_PLATFORMS.includes(platform)
+        );
+
         const requestData =
           mode === "classics"
             ? {
                 ...baseRequest,
                 shops: ["launchbox"],
-                platforms: platforms ?? [],
+                platforms: selectedPlatforms.length
+                  ? selectedPlatforms
+                  : SUPPORTED_CLASSICS_PLATFORMS,
               }
             : baseRequest;
 
