@@ -207,10 +207,16 @@ export class WindowManager {
     );
   }
 
-  private static fitToWorkArea<T extends { width?: number; height?: number }>(
-    bounds: T
-  ) {
-    const { workAreaSize } = screen.getPrimaryDisplay();
+  private static fitToWorkArea<
+    T extends { x?: number; y?: number; width?: number; height?: number },
+  >(bounds: T) {
+    const width = bounds.width ?? this.DEFAULT_WINDOW_WIDTH;
+    const height = bounds.height ?? this.DEFAULT_WINDOW_HEIGHT;
+
+    const { workAreaSize } =
+      bounds.x !== undefined && bounds.y !== undefined
+        ? screen.getDisplayMatching({ x: bounds.x, y: bounds.y, width, height })
+        : screen.getPrimaryDisplay();
 
     const minWidth = Math.min(this.MIN_WINDOW_WIDTH, workAreaSize.width);
     const minHeight = Math.min(this.MIN_WINDOW_HEIGHT, workAreaSize.height);
@@ -219,17 +225,8 @@ export class WindowManager {
       ...bounds,
       minWidth,
       minHeight,
-      width: Math.max(
-        minWidth,
-        Math.min(bounds.width ?? this.DEFAULT_WINDOW_WIDTH, workAreaSize.width)
-      ),
-      height: Math.max(
-        minHeight,
-        Math.min(
-          bounds.height ?? this.DEFAULT_WINDOW_HEIGHT,
-          workAreaSize.height
-        )
-      ),
+      width: Math.max(minWidth, Math.min(width, workAreaSize.width)),
+      height: Math.max(minHeight, Math.min(height, workAreaSize.height)),
     };
   }
 
