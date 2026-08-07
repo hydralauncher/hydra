@@ -23,7 +23,7 @@ import {
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { AuthPage } from "@shared";
+import { AuthPage, removeDiacritics } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
 import { useCollectionContextMenu } from "@renderer/context";
@@ -333,9 +333,9 @@ export default function Library() {
 
     if (!deferredSearchQuery.trim()) return filtered;
 
-    const queryLower = deferredSearchQuery.toLowerCase();
+    const queryLower = removeDiacritics(deferredSearchQuery).toLowerCase();
     return filtered.filter((game) => {
-      const titleLower = (game.title ?? "").toLowerCase();
+      const titleLower = removeDiacritics(game.title ?? "").toLowerCase();
       let queryIndex = 0;
 
       for (
