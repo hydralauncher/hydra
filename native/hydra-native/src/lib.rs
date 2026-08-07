@@ -1,3 +1,19 @@
+mod cloud_save;
+mod constants;
+
+pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};
+pub use cloud_save::local_snapshot::build_local_game_snapshot;
+pub use cloud_save::manifest::get_save_rules_for_game;
+pub use cloud_save::path_resolution::resolve_save_rules;
+pub use cloud_save::pipeline::build_local_game_snapshot_pipeline;
+pub use cloud_save::restore::{
+    cleanup_restore_temp_snapshot, delete_local_save_targets, download_restore_blob_to_temp,
+    replace_restore_targets, resolve_restore_targets, should_skip_restore_file,
+    verify_downloaded_restore_file,
+};
+pub use cloud_save::save_scanner::scan_resolved_save_rules;
+pub use cloud_save::upload::upload_local_save_blob;
+
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
@@ -297,7 +313,8 @@ fn encode_animation_frames_to_gif<I>(
 where
     I: IntoIterator<Item = ImageResult<Frame>>,
 {
-    let output_file = File::create(output_path).map_err(|err| Error::from_reason(err.to_string()))?;
+    let output_file =
+        File::create(output_path).map_err(|err| Error::from_reason(err.to_string()))?;
     let mut encoder = GifEncoder::new(BufWriter::new(output_file));
     encoder
         .set_repeat(Repeat::Infinite)
@@ -350,12 +367,7 @@ fn resize_cover_rgba(image: &RgbaImage, width: u32, height: u32) -> napi::Result
 
     let resized_width = ((source_width as f32 * scale).ceil() as u32).max(width);
     let resized_height = ((source_height as f32 * scale).ceil() as u32).max(height);
-    let resized = resize(
-        image,
-        resized_width,
-        resized_height,
-        FilterType::Lanczos3,
-    );
+    let resized = resize(image, resized_width, resized_height, FilterType::Lanczos3);
 
     let left = (resized_width.saturating_sub(width)) / 2;
     let top = (resized_height.saturating_sub(height)) / 2;
