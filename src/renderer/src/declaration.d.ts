@@ -323,13 +323,6 @@ declare global {
     ) => Promise<"install" | "open-folder">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameWinetricks: (shop: GameShop, objectId: string) => Promise<boolean>;
-    installGameRedist: (
-      shop: GameShop,
-      objectId: string,
-      packageName: string,
-      silentArgs: string[],
-      localPath?: string | null
-    ) => Promise<boolean>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
     getGameSaveFolder: (
       shop: GameShop,

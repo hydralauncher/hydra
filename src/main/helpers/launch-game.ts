@@ -9,7 +9,6 @@ import {
   WindowManager,
   logger,
   Umu,
-  RedistDetector,
   PowerSaveBlockerManager,
   Wine,
   NativeAddon,
@@ -273,22 +272,6 @@ const launchWindowsBinaryOnLinux = async (
     return true;
   } catch (error) {
     logger.error("Failed to launch game with umu-run, falling back", error);
-
-    const umuLog = Umu.getUmuLogContent();
-    const gameDir = path.dirname(parsedPath);
-    const detectedRedist = RedistDetector.detectFromLog(umuLog, gameDir);
-
-    if (detectedRedist) {
-      logger.info("Missing redistributable detected on launch failure", {
-        objectId,
-        detectedRedist,
-      });
-      WindowManager.sendToAppWindows("on-missing-redist-detected", {
-        shop: game?.shop ?? "custom",
-        objectId,
-        ...detectedRedist,
-      });
-    }
   }
 
   const launchedWithWine = await launchWithWine(

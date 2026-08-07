@@ -697,21 +697,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openGameInstallerPath", shop, objectId),
   openGameWinetricks: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameWinetricks", shop, objectId),
-  installGameRedist: (
-    shop: GameShop,
-    objectId: string,
-    packageName: string,
-    silentArgs: string[],
-    localPath?: string | null
-  ) =>
-    ipcRenderer.invoke(
-      "installGameRedist",
-      shop,
-      objectId,
-      packageName,
-      silentArgs,
-      localPath
-    ),
   openGameExecutablePath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameExecutablePath", shop, objectId),
   getGameSaveFolder: (shop: GameShop, objectId: string) =>
