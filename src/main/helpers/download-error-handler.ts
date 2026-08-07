@@ -137,8 +137,103 @@ const handleAxiosError = (
   if (hydraUnlockResult) return hydraUnlockResult;
 
   if (downloader === Downloader.TorBox) {
-    const data = err.response?.data as { detail?: string } | undefined;
-    return { ok: false, error: data?.detail };
+    const status = err.response?.status;
+
+    if (status === 401 || status === 403) {
+      return { ok: false, error: DownloadError.TorBoxAccountNotAuthorized };
+    }
+
+    if (status === 429) {
+      return { ok: false, error: DownloadError.TorBoxRateLimitExceeded };
+    }
+
+    if (status === 503) {
+      return { ok: false, error: DownloadError.TorBoxUnavailable };
+    }
+
+    const detail = (err.response?.data as { detail?: unknown } | undefined)
+      ?.detail;
+
+    if (typeof detail === "string" && detail.length > 0) {
+      return { ok: false, error: detail };
+    }
+  }
+
+  return null;
+};
+
+const NETWORK_ERROR_CODES = new Set([
+  "EAI_AGAIN",
+  "ECONNABORTED",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "ENOTFOUND",
+  "EPIPE",
+  "ETIMEDOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+
+const TLS_ERROR_CODE_PREFIXES = [
+  "CERT_",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "ERR_TLS_",
+  "SELF_SIGNED_CERT",
+  "UNABLE_TO_",
+];
+
+const MAX_CAUSE_DEPTH = 5;
+
+export const describeErrorCause = (err: unknown): string => {
+  const parts: string[] = [];
+
+  let current = err;
+
+  for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth++) {
+    if (!(current instanceof Error)) break;
+
+    const code = (current as Error & { code?: unknown }).code;
+    parts.push(
+      typeof code === "string"
+        ? `${current.name}(${code}): ${current.message}`
+        : `${current.name}: ${current.message}`
+    );
+
+    current = current.cause;
+  }
+
+  return parts.join(" <- ") || String(err);
+};
+
+const findErrorCode = (err: unknown): string | null => {
+  let current = err;
+
+  for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth++) {
+    if (!(current instanceof Error)) return null;
+
+    const code = (current as Error & { code?: unknown }).code;
+    if (typeof code === "string") return code;
+
+    current = current.cause;
+  }
+
+  return null;
+};
+
+const handleNetworkError = (err: unknown): DownloadErrorResult | null => {
+  const code = findErrorCode(err);
+  if (!code) return null;
+
+  if (TLS_ERROR_CODE_PREFIXES.some((prefix) => code.startsWith(prefix))) {
+    return { ok: false, error: DownloadError.NetworkCertificateRejected };
+  }
+
+  if (NETWORK_ERROR_CODES.has(code)) {
+    return { ok: false, error: DownloadError.NetworkUnreachable };
   }
 
   return null;
@@ -236,6 +331,9 @@ export const handleDownloadError = (
 
     const hostResult = handleHostSpecificError(err.message, downloader);
     if (hostResult) return hostResult;
+
+    const networkResult = handleNetworkError(err);
+    if (networkResult) return networkResult;
 
     return { ok: false, error: err.message };
   }

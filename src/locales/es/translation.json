@@ -699,7 +699,14 @@
     "rpcs3_already_running_title": "RPCS3 ya se está ejecutando",
     "rpcs3_already_running_description": "RPCS3 solo permite una instancia. ¿Cerrar la sesión en ejecución para iniciar este juego?",
     "rpcs3_already_running_confirm": "Cerrar e iniciar",
-    "download_error_archive_org_invalid_file_url": "Este enlace de archive.org no apunta a un archivo. Usá un enlace directo al archivo."
+    "download_error_archive_org_invalid_file_url": "Este enlace de archive.org no apunta a un archivo. Usá un enlace directo al archivo.",
+    "download_error_torbox_account_not_authorized": "Tu cuenta de TorBox no está autorizada para hacer nuevas descargas. Revisá la configuración de tu cuenta e intentá de nuevo.",
+    "download_error_torbox_rate_limit_exceeded": "Se excedió el límite de solicitudes de TorBox. Esperá e intentá de nuevo.",
+    "download_error_torbox_unavailable": "TorBox no está disponible temporalmente. Intentá de nuevo más tarde.",
+    "download_error_torbox_torrent_not_ready": "TorBox todavía está preparando este torrent. Esperá un momento e intentá de nuevo.",
+    "download_error_torbox_link_unavailable": "TorBox no pudo crear un enlace de descarga para este torrent. Intentá de nuevo más tarde.",
+    "download_error_network_unreachable": "No se pudo conectar con el servidor de descarga. Revisá tu conexión a internet e intentá de nuevo.",
+    "download_error_network_certificate_rejected": "No se pudo verificar la conexión con el servidor de descarga. Puede que un antivirus o proxy esté inspeccionando el tráfico HTTPS."
   },
   "activation": {
     "title": "Activar Hydra",
