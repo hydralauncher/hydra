@@ -4,6 +4,10 @@ import {
   useCoverPoster,
   isAnimatedCoverCandidate,
 } from "@renderer/hooks";
+import {
+  CLASSICS_PS_PLATFORM_LABELS,
+  resolveClassicsBadge,
+} from "@renderer/helpers";
 import { AchievementProgress } from "@renderer/components";
 import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,7 +17,10 @@ import {
   ImageIcon,
   CheckCircleFillIcon,
 } from "@primer/octicons-react";
-import { getClassicsPlatformDetails } from "@renderer/helpers";
+import {
+  EMULATOR_ICONS,
+  RETROARCH_EMULATOR_ICON,
+} from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
 
@@ -93,8 +100,16 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       ? resolveImageSource(coverPoster)
       : activeImageSource;
 
-  const { label: classicsPlatformLabel, emulatorIcon: classicsEmulatorIcon } =
-    getClassicsPlatformDetails(game.shop, game.platform);
+  const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
+    resolveClassicsBadge(
+      game.shop,
+      game.platform,
+      CLASSICS_PS_PLATFORM_LABELS,
+      {
+        emulatorIcons: EMULATOR_ICONS,
+        retroarchIcon: RETROARCH_EMULATOR_ICON,
+      }
+    );
 
   const handleImageError = () => {
     logger.warn(`Image failed to load for ${game.title}`, {
