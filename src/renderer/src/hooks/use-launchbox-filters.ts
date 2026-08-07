@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { SUPPORTED_CLASSICS_PLATFORMS } from "@shared";
+import { isSupportedClassicsPlatform } from "@shared";
 
 export interface LaunchboxPlatform {
   key: string;
@@ -43,9 +43,7 @@ const fetchLaunchboxFilters = async (): Promise<LaunchboxCatalogueFilters> => {
               ? { key: platform, name: platform }
               : platform
           )
-          .filter((platform) =>
-            SUPPORTED_CLASSICS_PLATFORMS.includes(platform.key)
-          ),
+          .filter((platform) => isSupportedClassicsPlatform(platform.key)),
         genres: response?.genres ?? [],
         developers: response?.developers ?? [],
         publishers: response?.publishers ?? [],
