@@ -237,6 +237,7 @@
     "mode_modern_games": "Juegos modernos"
   },
   "game_details": {
+    "similar_games": "Juegos similares",
     "bios_not_configured_toast": "BIOS no encontrada. Añade la carpeta de BIOS en los ajustes de Emulación.",
     "open_download_options": "Abrir opciones de descargas",
     "download_options_zero": "Sin opciones de descargas",
