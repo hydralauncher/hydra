@@ -4,7 +4,11 @@ import type {
   DownloadSource,
 } from "@types";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import { SUPPORTED_CLASSICS_PLATFORMS } from "@shared";
+import {
+  isSupportedClassicsPlatform,
+  resolveClassicsPlatformsForRequest,
+  sanitizeClassicsPlatforms,
+} from "@shared";
 import axios from "axios";
 import {
   useCallback,
@@ -247,7 +251,7 @@ function normalizeLaunchboxFilters(
         (platform): platform is LaunchboxPlatform =>
           Boolean(platform.key) &&
           Boolean(platform.name) &&
-          SUPPORTED_CLASSICS_PLATFORMS.includes(platform.key)
+          isSupportedClassicsPlatform(platform.key)
       ),
     genres: filters.genres ?? [],
     developers: filters.developers ?? [],
@@ -299,8 +303,8 @@ export function useCatalogueData() {
       title: searchParams.get("title") ?? "",
       sortBy: sortOption.sortBy,
       sortOrder: sortOption.sortOrder,
-      platforms: parseStringArrayParam(searchParams.get("platforms")).filter(
-        (platform) => SUPPORTED_CLASSICS_PLATFORMS.includes(platform)
+      platforms: sanitizeClassicsPlatforms(
+        parseStringArrayParam(searchParams.get("platforms"))
       ),
       tags: parseNumberArrayParam(searchParams.get("tags")),
       genres: parseStringArrayParam(searchParams.get("genres")),
@@ -491,9 +495,9 @@ export function useCatalogueData() {
           payload.tags = values.tags ?? [];
         } else {
           payload.shops = ["launchbox"];
-          payload.platforms = values.platforms?.length
-            ? values.platforms
-            : SUPPORTED_CLASSICS_PLATFORMS;
+          payload.platforms = resolveClassicsPlatformsForRequest(
+            values.platforms
+          );
         }
 
         const response =
