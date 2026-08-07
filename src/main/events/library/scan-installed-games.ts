@@ -22,6 +22,7 @@ import {
   logger,
   WindowManager,
 } from "@main/services";
+import { runAutomaticCloudSaveSync } from "@main/services/cloud-save";
 import type { Game, GameShop } from "@types";
 
 const SCAN_DIRECTORIES = [
@@ -984,6 +985,11 @@ const runScan = async (
     if (!foundPath) continue;
 
     await gamesSublevel.put(key, updateGameExecutablePath(game, foundPath));
+    void runAutomaticCloudSaveSync(
+      game.objectId,
+      game.shop,
+      "environment-changed"
+    );
 
     logger.info(
       `[ScanInstalledGames] Found executable for ${game.objectId}: ${foundPath}`
