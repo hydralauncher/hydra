@@ -331,9 +331,10 @@ export default function Library() {
       );
     }
 
-    if (!deferredSearchQuery.trim()) return filtered;
-
     const queryLower = removeDiacritics(deferredSearchQuery).toLowerCase();
+
+    if (!queryLower.trim()) return filtered;
+
     return filtered.filter((game) => {
       const titleLower = removeDiacritics(game.title ?? "").toLowerCase();
       let queryIndex = 0;

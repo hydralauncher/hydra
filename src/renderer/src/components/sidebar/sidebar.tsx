@@ -191,6 +191,12 @@ export function Sidebar() {
     const normalizedQuery = removeDiacritics(query).toLowerCase();
 
     setFilterQuery(query);
+
+    if (!normalizedQuery.trim()) {
+      setFilteredLibrary(sortedLibrary);
+      return;
+    }
+
     setFilteredLibrary(
       sortedLibrary.filter((game) =>
         removeDiacritics(game.title ?? "")
