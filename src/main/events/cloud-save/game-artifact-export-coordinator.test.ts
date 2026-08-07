@@ -7,6 +7,12 @@ import * as coordinatorModule from "./game-artifact-export-coordinator.ts";
 const { GameArtifactExportCoordinator } = coordinatorModule;
 
 describe("game artifact export coordinator", () => {
+  it("does not cancel when there is no active export", () => {
+    const coordinator = new GameArtifactExportCoordinator();
+
+    assert.equal(coordinator.cancel(1), false);
+  });
+
   it("allows only one active export", () => {
     const coordinator = new GameArtifactExportCoordinator();
     const first = coordinator.start(1);

@@ -15,6 +15,17 @@ interface LegacySaveCardProps {
   onDelete: (artifactId: string, artifactName: string) => void;
 }
 
+const formatDownloadProgress = (
+  progress: LegacySaveExportProgress | null
+): string => {
+  if (!progress) return "0%";
+  if (progress.percentage === null) {
+    return formatBytes(progress.downloadedBytes);
+  }
+
+  return `${progress.percentage}%`;
+};
+
 export function LegacySaveCard({
   artifact,
   isDownloading,
@@ -30,13 +41,7 @@ export function LegacySaveCard({
     t("backup_from", {
       date: formatDate(artifact.createdAt),
     });
-  const downloadProgressLabel =
-    downloadProgress?.percentage !== null &&
-    downloadProgress?.percentage !== undefined
-      ? `${downloadProgress.percentage}%`
-      : downloadProgress
-        ? formatBytes(downloadProgress.downloadedBytes)
-        : "0%";
+  const downloadProgressLabel = formatDownloadProgress(downloadProgress);
 
   return (
     <li className="legacy-saves-section__card">

@@ -15,7 +15,7 @@ export class GameArtifactExportCoordinator {
   }
 
   cancel(senderId: number): boolean {
-    if (!this.activeExport || this.activeExport.senderId !== senderId) {
+    if (this.activeExport?.senderId !== senderId) {
       return false;
     }
 
