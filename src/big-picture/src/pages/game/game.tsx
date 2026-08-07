@@ -92,6 +92,7 @@ const DESCRIPTION_DISALLOWED_SELECTORS = [
   "link",
   "meta",
 ].join(", ");
+const DESCRIPTION_PARAGRAPH_BREAK = /(?:\r?\n){2,}/;
 const DESCRIPTION_LINE_BREAK = /\r?\n/;
 const DESCRIPTION_SCROLL_STEP = 180;
 const DESCRIPTION_SCROLL_EDGE_TOLERANCE = 4;
@@ -224,6 +225,33 @@ function normalizeDescriptionMediaElement(
   mediaElement.style.boxSizing = "border-box";
 }
 
+function appendDescriptionParagraph(
+  document: Document,
+  fragment: DocumentFragment,
+  block: string
+) {
+  const lines = block
+    .split(DESCRIPTION_LINE_BREAK)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length === 0) {
+    return;
+  }
+
+  const paragraph = document.createElement("p");
+
+  lines.forEach((line, index) => {
+    if (index > 0) {
+      paragraph.appendChild(document.createElement("br"));
+    }
+
+    paragraph.appendChild(document.createTextNode(line));
+  });
+
+  fragment.appendChild(paragraph);
+}
+
 function wrapLooseDescriptionText(document: Document) {
   const looseTextNodes = Array.from(document.body.childNodes).filter(
     (node) =>
@@ -231,21 +259,16 @@ function wrapLooseDescriptionText(document: Document) {
   );
 
   for (const textNode of looseTextNodes) {
-    const lines = (textNode.textContent ?? "")
-      .split(DESCRIPTION_LINE_BREAK)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-
-    if (lines.length === 0) {
-      continue;
-    }
-
     const fragment = document.createDocumentFragment();
 
-    for (const line of lines) {
-      const paragraph = document.createElement("p");
-      paragraph.textContent = line;
-      fragment.appendChild(paragraph);
+    for (const block of (textNode.textContent ?? "").split(
+      DESCRIPTION_PARAGRAPH_BREAK
+    )) {
+      appendDescriptionParagraph(document, fragment, block);
+    }
+
+    if (fragment.childNodes.length === 0) {
+      continue;
     }
 
     textNode.replaceWith(fragment);

@@ -135,22 +135,28 @@ export function useGameDetails(objectId: string, shop: GameShop) {
       return;
     }
 
-    if (shouldUseRetroAchievements) {
-      globalThis.window.electron
-        .getRetroAchievementsAchievements(objectId, shop)
-        .then((result) => setAchievements(result ?? []))
-        .catch(() => setAchievements([]));
-      return;
-    }
+    let isCurrentRequest = true;
 
-    globalThis.window.electron
-      .getUnlockedAchievements(objectId, shop)
+    const request = shouldUseRetroAchievements
+      ? globalThis.window.electron.getRetroAchievementsAchievements(
+          objectId,
+          shop
+        )
+      : globalThis.window.electron.getUnlockedAchievements(objectId, shop);
+
+    request
       .then((result) => {
-        if (result) {
-          setAchievements(result);
-        }
+        if (!isCurrentRequest) return;
+        setAchievements(result ?? []);
       })
-      .catch(() => setAchievements([]));
+      .catch(() => {
+        if (!isCurrentRequest) return;
+        setAchievements([]);
+      });
+
+    return () => {
+      isCurrentRequest = false;
+    };
   }, [objectId, shop, shouldUseRetroAchievements]);
 
   useEffect(() => {
