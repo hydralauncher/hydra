@@ -1,0 +1,87 @@
+@use "../../../../scss/globals.scss";
+
+@keyframes legacy-saves-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.legacy-saves-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  &__divider {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid globals.$border-color;
+  }
+
+  &__card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2);
+    color: globals.$body-color;
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+  }
+
+  &__card-content {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__card-name {
+    overflow: hidden;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__card-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+
+    span + span::before {
+      margin-right: globals.$spacing-unit;
+      content: "•";
+    }
+  }
+
+  &__card-actions {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    flex-shrink: 0;
+  }
+
+  &__spinner {
+    animation: legacy-saves-spin 1s linear infinite;
+  }
+
+  &__delete-button {
+    width: 40px;
+    padding: 0;
+  }
+}

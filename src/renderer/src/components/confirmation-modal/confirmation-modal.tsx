@@ -1,5 +1,6 @@
-import { Button } from "../button/button";
+import { Button, type ButtonProps } from "../button/button";
 import { Modal, type ModalProps } from "../modal/modal";
+import type { ReactNode } from "react";
 
 import "./confirmation-modal.scss";
 
@@ -12,6 +13,8 @@ export interface ConfirmationModalProps extends Omit<ModalProps, "children"> {
   onCancel?: () => void;
 
   buttonsIsDisabled?: boolean;
+  confirmButtonIcon?: ReactNode;
+  confirmButtonTheme?: ButtonProps["theme"];
 }
 
 export function ConfirmationModal({
@@ -21,6 +24,8 @@ export function ConfirmationModal({
   onConfirm,
   onCancel,
   buttonsIsDisabled = false,
+  confirmButtonIcon,
+  confirmButtonTheme = "primary",
   ...props
 }: ConfirmationModalProps) {
   const handleCancelClick = () => {
@@ -38,14 +43,19 @@ export function ConfirmationModal({
         <p className="confirmation-modal__description">{descriptionText}</p>
 
         <div className="confirmation-modal__actions">
-          <Button theme="outline" onClick={handleCancelClick}>
+          <Button
+            theme="outline"
+            disabled={buttonsIsDisabled}
+            onClick={handleCancelClick}
+          >
             {cancelButtonLabel}
           </Button>
           <Button
-            theme="primary"
+            theme={confirmButtonTheme}
             disabled={buttonsIsDisabled}
             onClick={onConfirm}
           >
+            {confirmButtonIcon}
             {confirmButtonLabel}
           </Button>
         </div>
