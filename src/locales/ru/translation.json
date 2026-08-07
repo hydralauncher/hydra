@@ -751,6 +751,7 @@
     "legacy_save_downloading": "Загрузка",
     "legacy_save_download_success": "Старое сохранение загружено",
     "legacy_save_download_failed": "Не удалось загрузить старое сохранение",
+    "legacy_save_download_in_progress": "Другое старое сохранение уже загружается",
     "legacy_save_delete_title": "Удалить старое сохранение?",
     "legacy_save_delete_description": "\"{{name}}\" будет безвозвратно удалено из Hydra Cloud. Это действие нельзя отменить.",
     "legacy_save_deleting": "Удаление",

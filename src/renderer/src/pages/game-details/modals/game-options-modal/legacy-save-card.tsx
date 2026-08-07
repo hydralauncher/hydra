@@ -3,12 +3,13 @@ import { DownloadIcon, TrashIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 import { formatBytes } from "@shared";
-import type { GameArtifact } from "@types";
+import type { GameArtifact, LegacySaveExportProgress } from "@types";
 import { useTranslation } from "react-i18next";
 
 interface LegacySaveCardProps {
   artifact: GameArtifact;
   isDownloading: boolean;
+  downloadProgress: LegacySaveExportProgress | null;
   actionsDisabled: boolean;
   onDownload: (artifactId: string, suggestedName: string) => void;
   onDelete: (artifactId: string, artifactName: string) => void;
@@ -17,6 +18,7 @@ interface LegacySaveCardProps {
 export function LegacySaveCard({
   artifact,
   isDownloading,
+  downloadProgress,
   actionsDisabled,
   onDownload,
   onDelete,
@@ -28,6 +30,13 @@ export function LegacySaveCard({
     t("backup_from", {
       date: formatDate(artifact.createdAt),
     });
+  const downloadProgressLabel =
+    downloadProgress?.percentage !== null &&
+    downloadProgress?.percentage !== undefined
+      ? `${downloadProgress.percentage}%`
+      : downloadProgress
+        ? formatBytes(downloadProgress.downloadedBytes)
+        : "0%";
 
   return (
     <li className="legacy-saves-section__card">
@@ -59,7 +68,7 @@ export function LegacySaveCard({
                 className="legacy-saves-section__spinner"
                 size={16}
               />
-              {t("legacy_save_downloading")}
+              {downloadProgressLabel}
             </>
           ) : (
             <>

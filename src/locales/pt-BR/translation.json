@@ -821,6 +821,7 @@
     "legacy_save_downloading": "Baixando",
     "legacy_save_download_success": "Save legado baixado",
     "legacy_save_download_failed": "Falha ao baixar o save legado",
+    "legacy_save_download_in_progress": "Outro save legado já está sendo baixado",
     "legacy_save_delete_title": "Excluir save legado?",
     "legacy_save_delete_description": "\"{{name}}\" será removido permanentemente do Hydra Cloud. Esta ação não pode ser desfeita.",
     "legacy_save_deleting": "Excluindo",

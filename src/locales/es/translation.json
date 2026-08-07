@@ -870,6 +870,7 @@
     "legacy_save_downloading": "Descargando",
     "legacy_save_download_success": "Partida guardada antigua descargada",
     "legacy_save_download_failed": "No se pudo descargar la partida guardada antigua",
+    "legacy_save_download_in_progress": "Ya se está descargando otra partida guardada antigua",
     "legacy_save_delete_title": "¿Eliminar partida guardada antigua?",
     "legacy_save_delete_description": "\"{{name}}\" se eliminará permanentemente de Hydra Cloud. Esta acción no se puede deshacer.",
     "legacy_save_deleting": "Eliminando",

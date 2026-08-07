@@ -19,6 +19,7 @@ import {
 import type {
   CreateSteamShortcutOptions,
   Game,
+  LegacySaveExportProgress,
   LibraryGame,
   ProtonVersion,
   ShortcutLocation,
@@ -153,6 +154,63 @@ export function GameOptionsModal({
   >(null);
   const [showSteamShortcutModal, setShowSteamShortcutModal] = useState(false);
   const [steamShortcutExists, setSteamShortcutExists] = useState(false);
+  const [downloadingLegacySaveArtifactId, setDownloadingLegacySaveArtifactId] =
+    useState<string | null>(null);
+  const [legacySaveDownloadProgress, setLegacySaveDownloadProgress] =
+    useState<LegacySaveExportProgress | null>(null);
+  const legacySaveExportInProgressRef = useRef(false);
+
+  const cancelLegacySaveExport = useCallback(() => {
+    if (!legacySaveExportInProgressRef.current) return;
+
+    void globalThis.window.electron
+      .cancelGameArtifactExport()
+      .catch((error) =>
+        logger.error("Failed to cancel legacy save export", error)
+      );
+  }, []);
+
+  const handleLegacySaveDownload = useCallback(
+    async (artifactId: string, suggestedName: string) => {
+      if (legacySaveExportInProgressRef.current) return;
+
+      legacySaveExportInProgressRef.current = true;
+      setDownloadingLegacySaveArtifactId(artifactId);
+      setLegacySaveDownloadProgress(null);
+
+      try {
+        const result = await globalThis.window.electron.exportGameArtifact(
+          artifactId,
+          suggestedName,
+          setLegacySaveDownloadProgress
+        );
+
+        if (result.status === "saved") {
+          showSuccessToast(t("legacy_save_download_success"));
+        } else if (result.status === "busy") {
+          showErrorToast(t("legacy_save_download_in_progress"));
+        }
+      } catch {
+        showErrorToast(t("legacy_save_download_failed"));
+      } finally {
+        legacySaveExportInProgressRef.current = false;
+        setDownloadingLegacySaveArtifactId(null);
+        setLegacySaveDownloadProgress(null);
+      }
+    },
+    [showErrorToast, showSuccessToast, t]
+  );
+
+  useEffect(() => {
+    if (!visible) cancelLegacySaveExport();
+  }, [cancelLegacySaveExport, visible]);
+
+  useEffect(
+    () => () => {
+      cancelLegacySaveExport();
+    },
+    [cancelLegacySaveExport]
+  );
 
   useEffect(() => {
     setAutomaticCloudSync(game.automaticCloudSync ?? false);
@@ -1111,6 +1169,7 @@ export function GameOptionsModal({
         visible={visible}
         title={game.title}
         onClose={onClose}
+        onCloseStart={cancelLegacySaveExport}
         large={true}
         noContentPadding
       >
@@ -1168,7 +1227,13 @@ export function GameOptionsModal({
               )}
             {selectedCategory === "hydra_cloud_legacy" &&
               showLegacyCloudSaveSettings &&
-              legacyPurpose === "archive" && <LegacySavesSection />}
+              legacyPurpose === "archive" && (
+                <LegacySavesSection
+                  downloadingArtifactId={downloadingLegacySaveArtifactId}
+                  downloadProgress={legacySaveDownloadProgress}
+                  onDownload={handleLegacySaveDownload}
+                />
+              )}
             {selectedCategory === "compatibility" &&
               shouldShowWinePrefixConfiguration && (
                 <CompatibilitySettingsSection
