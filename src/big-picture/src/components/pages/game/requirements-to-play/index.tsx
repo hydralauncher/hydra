@@ -8,7 +8,7 @@ import { useNavigationIsFocused } from "../../../../stores";
 import { FocusItem, Typography } from "../../../common";
 
 export interface RequirementsToPlayProps {
-  shopDetails: ShopDetails;
+  shopDetails: ShopDetails | null;
   focusId?: string;
   focusNavigationOverrides?: FocusOverrides;
   focusNavigationOrder?: number;
@@ -74,11 +74,11 @@ export function RequirementsToPlay({
   const normalizedHtml = useMemo(() => {
     const raw =
       activeRequirement === "minimum"
-        ? shopDetails.pc_requirements.minimum
-        : shopDetails.pc_requirements.recommended;
+        ? shopDetails?.pc_requirements?.minimum
+        : shopDetails?.pc_requirements?.recommended;
 
-    return normalizeRequirementsHtml(raw);
-  }, [activeRequirement, shopDetails.pc_requirements]);
+    return normalizeRequirementsHtml(raw ?? "");
+  }, [activeRequirement, shopDetails?.pc_requirements]);
 
   const requirementRows = useMemo(
     () => parseRequirementRows(normalizedHtml),
@@ -127,6 +127,8 @@ export function RequirementsToPlay({
     selectRequirementByIndex,
     selectedTabIndex,
   ]);
+
+  if (!shopDetails) return null;
 
   return (
     <FocusItem
