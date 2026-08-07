@@ -299,7 +299,9 @@ export function useCatalogueData() {
       title: searchParams.get("title") ?? "",
       sortBy: sortOption.sortBy,
       sortOrder: sortOption.sortOrder,
-      platforms: parseStringArrayParam(searchParams.get("platforms")),
+      platforms: parseStringArrayParam(searchParams.get("platforms")).filter(
+        (platform) => SUPPORTED_CLASSICS_PLATFORMS.includes(platform)
+      ),
       tags: parseNumberArrayParam(searchParams.get("tags")),
       genres: parseStringArrayParam(searchParams.get("genres")),
       publishers: parseStringArrayParam(searchParams.get("publishers")),
@@ -488,13 +490,9 @@ export function useCatalogueData() {
         if (catalogueMode === "modern") {
           payload.tags = values.tags ?? [];
         } else {
-          const selectedPlatforms = (values.platforms ?? []).filter(
-            (platform) => SUPPORTED_CLASSICS_PLATFORMS.includes(platform)
-          );
-
           payload.shops = ["launchbox"];
-          payload.platforms = selectedPlatforms.length
-            ? selectedPlatforms
+          payload.platforms = values.platforms?.length
+            ? values.platforms
             : SUPPORTED_CLASSICS_PLATFORMS;
         }
 
