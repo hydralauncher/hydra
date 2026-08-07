@@ -6,6 +6,18 @@ import { GameShop, type Game, type UserPreferences } from "@types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { updateGameExecutablePath } from "./update-executable-path";
 import {
+  clearCloudSaveLaunchGuard,
+  canRunAutomaticCloudSaveSync,
+  canCreateCloudSaveUploadGuard,
+  createPendingCloudSaveCustomPathApproval,
+  getCloudSaveGameContext,
+  rotateCloudSavePrefixGeneration,
+  runAutomaticCloudSaveSyncDetailed,
+  runWithCloudSaveLaunchGate,
+  setCloudSaveLaunchGuard,
+  shouldBlockGameLaunchForCloudSave,
+} from "@main/services/cloud-save";
+import {
   WindowManager,
   logger,
   Umu,
@@ -172,7 +184,8 @@ const launchWithWine = async (
   launchOptions?: string | null,
   useMangohud = false,
   useGamemode = false,
-  compatibilityEnvironmentVariables: Record<string, string> = {}
+  compatibilityEnvironmentVariables: Record<string, string> = {},
+  winePrefixPath?: string | null
 ): Promise<boolean> => {
   const workingDirectory = path.dirname(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
@@ -197,6 +210,7 @@ const launchWithWine = async (
         env: {
           ...process.env,
           ...compatibilityEnvironmentVariables,
+          ...(winePrefixPath ? { WINEPREFIX: winePrefixPath } : {}),
           ...resolvedLaunchCommand.env,
         },
       }
@@ -212,6 +226,21 @@ const launchWithWine = async (
       resolve(false);
     });
   });
+};
+
+interface LinuxCompatibilityLaunchContext {
+  protonPath: string | null;
+  winePrefixPath: string | null;
+}
+
+const isValidWinePrefix = (winePrefixPath: string | null) => {
+  if (!winePrefixPath) return false;
+
+  try {
+    return Wine.validatePrefix(winePrefixPath);
+  } catch {
+    return false;
+  }
 };
 
 const resolveProtonPathForLaunch = async (
@@ -236,13 +265,121 @@ const resolveProtonPathForLaunch = async (
   return null;
 };
 
+interface CloudSavePrefixPreparationResult {
+  winePrefixPath: string | null;
+  readyForRestore: boolean;
+  safeForUpload: boolean;
+  generationOverride?: Awaited<
+    ReturnType<typeof rotateCloudSavePrefixGeneration>
+  >;
+}
+
+const prepareWinePrefixIfNeeded = async (
+  context: LinuxCompatibilityLaunchContext,
+  objectId: string,
+  prefixWasReadyForRestore: boolean
+) => {
+  if (prefixWasReadyForRestore) return false;
+
+  try {
+    await Umu.preparePrefix({
+      winePrefixPath: context.winePrefixPath!,
+      protonPath: context.protonPath,
+      gameId: objectId,
+    });
+    return false;
+  } catch (error) {
+    logger.error("Failed to prepare Wine prefix before cloud save restore", {
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+    });
+    return true;
+  }
+};
+
+const prepareCompatibilityPrefixForCloudSave = async (
+  context: LinuxCompatibilityLaunchContext,
+  objectId: string
+): Promise<CloudSavePrefixPreparationResult> => {
+  const winePrefixPath = context.winePrefixPath;
+  if (!winePrefixPath) {
+    return {
+      winePrefixPath: null,
+      readyForRestore: false,
+      safeForUpload: false,
+    };
+  }
+
+  const prefixWasValid = isValidWinePrefix(winePrefixPath);
+  const prefixWasReadyForRestore =
+    prefixWasValid && Wine.isPrefixReadyForRestore(winePrefixPath);
+  const preparationFailed = await prepareWinePrefixIfNeeded(
+    context,
+    objectId,
+    prefixWasReadyForRestore
+  );
+
+  const canonicalWinePrefixPath =
+    (await Wine.resolvePrefixPath(winePrefixPath)) ?? winePrefixPath;
+  const prefixValid = isValidWinePrefix(canonicalWinePrefixPath);
+  const wineProfiles = prefixValid
+    ? Wine.getPrefixUserProfiles(canonicalWinePrefixPath)
+    : [];
+  const readyForRestore = prefixValid && wineProfiles.length > 0;
+
+  logger.info("[Cloud Save] Wine prefix preparation result", {
+    objectId,
+    requestedWinePrefixPath: winePrefixPath,
+    canonicalWinePrefixPath,
+    prefixValid,
+    wineProfiles,
+    readyForRestore,
+    preparationFailed,
+  });
+
+  if (!readyForRestore) {
+    return {
+      winePrefixPath: canonicalWinePrefixPath,
+      readyForRestore: false,
+      safeForUpload: false,
+    };
+  }
+
+  if (prefixWasReadyForRestore) {
+    return {
+      winePrefixPath: canonicalWinePrefixPath,
+      readyForRestore: true,
+      safeForUpload: !preparationFailed,
+    };
+  }
+
+  const generationOverride = await rotateCloudSavePrefixGeneration(
+    canonicalWinePrefixPath
+  ).catch((error: unknown) => {
+    logger.error("Failed to rotate cloud save prefix generation", {
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+    });
+    return undefined;
+  });
+
+  return {
+    winePrefixPath: canonicalWinePrefixPath,
+    readyForRestore: true,
+    safeForUpload: !preparationFailed && generationOverride?.durable === true,
+    generationOverride,
+  };
+};
+
 const cleanupStaleCompatibilityProcesses = async (
   objectId: string,
   winePrefixPath: string | null
 ) => {
   if (process.platform !== "linux" || !winePrefixPath) return;
 
-  const defaultPrefixPath = Wine.getDefaultPrefixPathForGame(objectId);
+  const defaultPrefixPath = await Wine.resolvePrefixPath(
+    Wine.getDefaultPrefixPathForGame(objectId)
+  );
   if (defaultPrefixPath !== winePrefixPath) return;
 
   const processes = await NativeAddon.listProcesses();
@@ -280,35 +417,18 @@ const cleanupStaleCompatibilityProcesses = async (
   }
 };
 
-interface LaunchWindowsBinaryOnLinuxOptions {
-  gameKey: string;
-  objectId: string;
-  parsedPath: string;
-  game: Game | undefined;
-  launchOptions: string | null | undefined;
-  useMangohud: boolean;
-  useGamemode: boolean;
-  protonLogEnabled: boolean;
-  compatibilityEnvironmentVariables: Record<string, string>;
-}
-
-const launchWindowsBinaryOnLinux = async ({
-  gameKey,
-  objectId,
-  parsedPath,
-  game,
-  launchOptions,
-  useMangohud,
-  useGamemode,
-  protonLogEnabled,
-  compatibilityEnvironmentVariables,
-}: LaunchWindowsBinaryOnLinuxOptions): Promise<boolean> => {
-  const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
-  const winePrefixPath = Wine.getEffectivePrefixPath(
-    game?.winePrefixPath,
-    objectId
-  );
-
+const launchWindowsBinaryOnLinux = async (
+  gameKey: string,
+  objectId: string,
+  parsedPath: string,
+  compatibilityContext: LinuxCompatibilityLaunchContext,
+  launchOptions: string | null | undefined,
+  useMangohud: boolean,
+  useGamemode: boolean,
+  protonLogEnabled: boolean,
+  compatibilityEnvironmentVariables: Record<string, string>
+): Promise<boolean> => {
+  const { protonPath, winePrefixPath } = compatibilityContext;
   await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
 
   try {
@@ -333,7 +453,8 @@ const launchWindowsBinaryOnLinux = async ({
     launchOptions,
     useMangohud,
     useGamemode,
-    compatibilityEnvironmentVariables
+    compatibilityEnvironmentVariables,
+    winePrefixPath
   );
 
   if (launchedWithWine) {
@@ -344,11 +465,155 @@ const launchWindowsBinaryOnLinux = async ({
   return false;
 };
 
+interface PreparedLinuxCompatibility {
+  context: LinuxCompatibilityLaunchContext | null;
+  prefixReadyForRestore: boolean;
+  prefixSafeForUpload: boolean;
+  prefixGenerationOverride?: Awaited<
+    ReturnType<typeof rotateCloudSavePrefixGeneration>
+  >;
+}
+
+const prepareLinuxCompatibilityForLaunch = async (
+  parsedPath: string,
+  game: Game | undefined,
+  objectId: string,
+  shop: GameShop,
+  shouldPrepareForCloudSave: boolean
+): Promise<PreparedLinuxCompatibility> => {
+  if (process.platform !== "linux" || !isWindowsExecutable(parsedPath)) {
+    return {
+      context: null,
+      prefixReadyForRestore: true,
+      prefixSafeForUpload: true,
+    };
+  }
+
+  const requestedWinePrefixPath = Wine.getEffectivePrefixPath(
+    game?.winePrefixPath,
+    objectId
+  );
+  let context: LinuxCompatibilityLaunchContext = {
+    protonPath: await resolveProtonPathForLaunch(game?.protonPath),
+    winePrefixPath: await Wine.resolvePrefixPath(requestedWinePrefixPath),
+  };
+  logger.info("[Cloud Save] Resolved authoritative launch prefix", {
+    shop,
+    objectId,
+    requestedWinePrefixPath,
+    canonicalWinePrefixPath: context.winePrefixPath,
+    prefixSource: game?.winePrefixPath ? "game" : "default",
+  });
+  await cleanupStaleCompatibilityProcesses(objectId, context.winePrefixPath);
+
+  if (!shouldPrepareForCloudSave) {
+    return {
+      context,
+      prefixReadyForRestore: true,
+      prefixSafeForUpload: true,
+    };
+  }
+
+  const prefixPreparation = await prepareCompatibilityPrefixForCloudSave(
+    context,
+    objectId
+  );
+  context = {
+    ...context,
+    winePrefixPath: prefixPreparation.winePrefixPath,
+  };
+  return {
+    context,
+    prefixReadyForRestore: prefixPreparation.readyForRestore,
+    prefixSafeForUpload: prefixPreparation.safeForUpload,
+    prefixGenerationOverride: prefixPreparation.generationOverride,
+  };
+};
+
+const redirectBlockedCloudSaveLaunch = (
+  shop: GameShop,
+  objectId: string,
+  title: string,
+  searchParam: "openCloudSavePathApproval" | "openCloudSaveConflict"
+) => {
+  const searchParams = new URLSearchParams({
+    title,
+    [searchParam]: "1",
+  });
+  clearCloudSaveLaunchGuard(objectId, shop);
+  WindowManager.closeGameLauncherWindow();
+  WindowManager.redirectToGameWindow(
+    `game/${shop}/${objectId}?${searchParams.toString()}`
+  );
+};
+
+const runCommonRedistPreflight = async (shop: GameShop, objectId: string) => {
+  if (process.platform !== "win32") return;
+
+  try {
+    logger.log("Starting preflight check for game launch", {
+      shop,
+      objectId,
+    });
+    const preflightPassed = await CommonRedistManager.runPreflight();
+    logger.log("Preflight check result", { passed: preflightPassed });
+  } catch (error) {
+    logger.error("Preflight check failed with error", error);
+  }
+};
+
+const launchResolvedGame = async (
+  gameKey: string,
+  shop: GameShop,
+  objectId: string,
+  parsedPath: string,
+  compatibilityContext: LinuxCompatibilityLaunchContext | null,
+  launchOptions: string | null | undefined,
+  useMangohud: boolean,
+  useGamemode: boolean,
+  protonLogEnabled: boolean,
+  compatibilityEnvironmentVariables: Record<string, string>
+) => {
+  if (process.platform !== "linux") {
+    return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+  }
+
+  if (isWindowsExecutable(parsedPath)) {
+    if (!compatibilityContext) {
+      clearCloudSaveLaunchGuard(objectId, shop);
+      return null;
+    }
+
+    const launched = await launchWindowsBinaryOnLinux(
+      gameKey,
+      objectId,
+      parsedPath,
+      compatibilityContext,
+      launchOptions,
+      useMangohud,
+      useGamemode,
+      protonLogEnabled,
+      compatibilityEnvironmentVariables
+    );
+    if (launched) return null;
+    clearCloudSaveLaunchGuard(objectId, shop);
+  }
+
+  const pid = launchNatively(
+    parsedPath,
+    launchOptions,
+    useMangohud,
+    useGamemode
+  );
+  if (pid !== null) launchedGamePids.set(gameKey, pid);
+  return pid;
+};
+
 /**
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
  */
-export const launchGame = async (
+const launchGameWithCloudSaveChecks = async (
   options: LaunchGameOptions
 ): Promise<number | null> => {
   const { shop, objectId, executablePath, launchOptions } = options;
@@ -357,6 +622,7 @@ export const launchGame = async (
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
+  clearCloudSaveLaunchGuard(objectId, shop);
 
   const userPreferences = await db
     .get<string, UserPreferences | null>(levelKeys.userPreferences, {
@@ -387,54 +653,149 @@ export const launchGame = async (
 
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
-  if (process.platform === "win32") {
-    try {
-      logger.log("Starting preflight check for game launch", {
+  const shouldRunV2AutomaticSync = await canRunAutomaticCloudSaveSync(
+    objectId,
+    shop
+  );
+  const {
+    context: compatibilityContext,
+    prefixReadyForRestore,
+    prefixSafeForUpload,
+    prefixGenerationOverride,
+  } = await prepareLinuxCompatibilityForLaunch(
+    parsedPath,
+    game,
+    objectId,
+    shop,
+    shouldRunV2AutomaticSync
+  );
+
+  const cloudSaveContext = shouldRunV2AutomaticSync
+    ? await getCloudSaveGameContext(objectId, shop, {
+        executablePath: parsedPath,
+        winePrefixPath: compatibilityContext?.winePrefixPath,
+        prefixGenerationOverride,
+      }).catch((error: unknown) => {
+        logger.error("Failed to resolve cloud save launch environment", error);
+        return null;
+      })
+    : null;
+  const customPathApproval =
+    prefixReadyForRestore && cloudSaveContext
+      ? await createPendingCloudSaveCustomPathApproval(
+          options,
+          cloudSaveContext
+        ).catch((error: unknown) => {
+          logger.error(
+            "[Cloud Save] Failed to inspect custom restore destinations",
+            error
+          );
+          return null;
+        })
+      : null;
+
+  if (customPathApproval) {
+    logger.warn(
+      "[Cloud Save] Game launch blocked by an unapproved custom restore path",
+      {
         shop,
         objectId,
-      });
-      const preflightPassed = await CommonRedistManager.runPreflight();
-      logger.log("Preflight check result", { passed: preflightPassed });
-    } catch (error) {
-      logger.error("Preflight check failed with error", error);
-    }
+        rawPath: customPathApproval.rawPath,
+      }
+    );
+    redirectBlockedCloudSaveLaunch(
+      shop,
+      objectId,
+      game?.title ?? objectId,
+      "openCloudSavePathApproval"
+    );
+    return null;
   }
+
+  const preLaunchOutcome =
+    shouldRunV2AutomaticSync && prefixReadyForRestore
+      ? await runAutomaticCloudSaveSyncDetailed(
+          objectId,
+          shop,
+          "pre-launch",
+          cloudSaveContext ?? undefined
+        )
+      : { status: "skipped" as const, result: null };
+  const preLaunchResult = preLaunchOutcome.result;
+  const hasPreLaunchConflict =
+    preLaunchResult?.trigger === "pre-launch" &&
+    preLaunchResult.action === "conflict";
+
+  if (shouldRunV2AutomaticSync && !prefixReadyForRestore) {
+    logger.warn(
+      "[Cloud Save] Pre-launch restore skipped because Wine prefix is invalid",
+      { shop, objectId }
+    );
+  }
+
+  if (
+    shouldBlockGameLaunchForCloudSave(
+      preLaunchResult,
+      preLaunchOutcome.status === "failed"
+    )
+  ) {
+    logger.warn("[Cloud Save] Game launch blocked by pre-launch sync", {
+      shop,
+      objectId,
+      reason: hasPreLaunchConflict ? "conflict" : "restore_failed",
+    });
+    if (hasPreLaunchConflict) {
+      redirectBlockedCloudSaveLaunch(
+        shop,
+        objectId,
+        game?.title ?? objectId,
+        "openCloudSaveConflict"
+      );
+    } else {
+      clearCloudSaveLaunchGuard(objectId, shop);
+      WindowManager.closeGameLauncherWindow();
+    }
+    return null;
+  }
+
+  if (cloudSaveContext) {
+    setCloudSaveLaunchGuard(objectId, shop, {
+      environmentId: cloudSaveContext.environmentId,
+      baseRemoteHash: preLaunchResult?.remoteHash ?? null,
+      uploadAllowed: canCreateCloudSaveUploadGuard(
+        prefixSafeForUpload &&
+          cloudSaveContext.prefixIdentityMode !== "session",
+        cloudSaveContext.environmentId,
+        preLaunchResult
+      ),
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  // Run preflight check for common redistributables (Windows only)
+  // Wrapped in try/catch to ensure game launch is never blocked
+  await runCommonRedistPreflight(shop, objectId);
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
+  const compatibilityEnvironmentVariables = process.platform === "linux"
+    ? parseCompatibilityEnvironmentVariables(userPreferences?.compatibilityEnvironmentVariables)
+    : {};
 
-  if (process.platform === "linux") {
-    const compatibilityEnvironmentVariables =
-      parseCompatibilityEnvironmentVariables(
-        userPreferences?.compatibilityEnvironmentVariables
-      );
-
-    if (isWindowsExecutable(parsedPath)) {
-      const launched = await launchWindowsBinaryOnLinux({
-        gameKey,
-        objectId,
-        parsedPath,
-        game,
-        launchOptions,
-        useMangohud,
-        useGamemode,
-        protonLogEnabled,
-        compatibilityEnvironmentVariables,
-      });
-
-      if (launched) return null;
-    }
-
-    const pid = launchNatively(
-      parsedPath,
-      launchOptions,
-      useMangohud,
-      useGamemode
-    );
-
-    if (pid !== null) launchedGamePids.set(gameKey, pid);
-
-    return pid;
-  }
-
-  return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+  return launchResolvedGame(
+    gameKey,
+    shop,
+    objectId,
+    parsedPath,
+    compatibilityContext,
+    launchOptions,
+    useMangohud,
+    useGamemode,
+    protonLogEnabled,
+    compatibilityEnvironmentVariables
+  );
 };
+
+export const launchGame = (options: LaunchGameOptions) =>
+  runWithCloudSaveLaunchGate(options.objectId, options.shop, () =>
+    launchGameWithCloudSaveChecks(options)
+  );
