@@ -4,6 +4,11 @@ import type {
   DownloadSource,
 } from "@types";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import {
+  isSupportedClassicsPlatform,
+  resolveClassicsPlatformsForRequest,
+  sanitizeClassicsPlatforms,
+} from "@shared";
 import axios from "axios";
 import {
   useCallback,
@@ -244,7 +249,9 @@ function normalizeLaunchboxFilters(
       )
       .filter(
         (platform): platform is LaunchboxPlatform =>
-          Boolean(platform.key) && Boolean(platform.name)
+          Boolean(platform.key) &&
+          Boolean(platform.name) &&
+          isSupportedClassicsPlatform(platform.key)
       ),
     genres: filters.genres ?? [],
     developers: filters.developers ?? [],
@@ -296,7 +303,9 @@ export function useCatalogueData() {
       title: searchParams.get("title") ?? "",
       sortBy: sortOption.sortBy,
       sortOrder: sortOption.sortOrder,
-      platforms: parseStringArrayParam(searchParams.get("platforms")),
+      platforms: sanitizeClassicsPlatforms(
+        parseStringArrayParam(searchParams.get("platforms"))
+      ),
       tags: parseNumberArrayParam(searchParams.get("tags")),
       genres: parseStringArrayParam(searchParams.get("genres")),
       publishers: parseStringArrayParam(searchParams.get("publishers")),
@@ -486,7 +495,9 @@ export function useCatalogueData() {
           payload.tags = values.tags ?? [];
         } else {
           payload.shops = ["launchbox"];
-          payload.platforms = values.platforms ?? [];
+          payload.platforms = resolveClassicsPlatformsForRequest(
+            values.platforms
+          );
         }
 
         const response =
