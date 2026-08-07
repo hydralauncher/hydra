@@ -42,6 +42,12 @@ export const BIG_PICTURE_CLOUD_SAVE_TOGGLE_BUTTON_ID =
 const PRIMARY_ACTION_ID = "big-picture-cloud-save-primary-action";
 const KEEP_LOCAL_ID = "big-picture-cloud-save-keep-local";
 const USE_CLOUD_ID = "big-picture-cloud-save-use-cloud";
+const TOGGLE_ICON_SIZE = 30;
+const LOADING_ICON_SIZE = 26;
+const CLOUD_ACTION_ICON_SIZE = 24;
+const INLINE_STATUS_ICON_SIZE = 22;
+const NOTICE_ICON_SIZE = 20;
+const SNAPSHOT_METADATA_ICON_SIZE = 16;
 
 export interface BigPictureCloudSavePanelProps {
   showLaunchConflictWarning: boolean;
@@ -71,15 +77,15 @@ interface BigPictureCloudSaveModalProps extends BigPictureCloudSavePanelProps {
 function getActionIcon(icon: string | undefined): ReactNode {
   switch (icon) {
     case "upload":
-      return <CloudArrowUpIcon size={24} />;
+      return <CloudArrowUpIcon size={CLOUD_ACTION_ICON_SIZE} />;
     case "restore":
-      return <CloudArrowDownIcon size={24} />;
+      return <CloudArrowDownIcon size={CLOUD_ACTION_ICON_SIZE} />;
     case "cloud":
-      return <CloudIcon size={24} />;
+      return <CloudIcon size={CLOUD_ACTION_ICON_SIZE} />;
     case "folder":
-      return <FolderOpenIcon size={24} />;
+      return <FolderOpenIcon size={CLOUD_ACTION_ICON_SIZE} />;
     default:
-      return <ArrowClockwiseIcon size={24} />;
+      return <ArrowClockwiseIcon size={CLOUD_ACTION_ICON_SIZE} />;
   }
 }
 
@@ -214,16 +220,16 @@ export function BigPictureCloudSavePanel({
           onClick={() => void handleAutomaticSyncChange()}
         >
           {isAutomaticSyncEnabled ? (
-            <ToggleRightIcon size={30} weight="fill" />
+            <ToggleRightIcon size={TOGGLE_ICON_SIZE} weight="fill" />
           ) : (
-            <ToggleLeftIcon size={30} />
+            <ToggleLeftIcon size={TOGGLE_ICON_SIZE} />
           )}
         </Button>
       </section>
 
       {showLaunchConflictWarning && overview?.state === "conflict" ? (
         <p className="big-picture-cloud-save__notice big-picture-cloud-save__notice--warning">
-          <WarningCircleIcon size={20} weight="fill" />
+          <WarningCircleIcon size={NOTICE_ICON_SIZE} weight="fill" />
           {t("cloud_save_v2_resolve_before_launch")}
         </p>
       ) : null}
@@ -246,7 +252,7 @@ export function BigPictureCloudSavePanel({
 
       {partialDescriptionKey && !hasError ? (
         <p className="big-picture-cloud-save__notice big-picture-cloud-save__notice--warning">
-          <WarningCircleIcon size={20} weight="fill" />
+          <WarningCircleIcon size={NOTICE_ICON_SIZE} weight="fill" />
           {t(partialDescriptionKey)}
         </p>
       ) : null}
@@ -255,7 +261,7 @@ export function BigPictureCloudSavePanel({
         {!hasExecutablePath ? (
           <div className="big-picture-cloud-save__missing-executable-copy">
             <strong>
-              <WarningCircleIcon size={20} />
+              <WarningCircleIcon size={NOTICE_ICON_SIZE} />
               {t("cloud_save_v2_executable_required_title")}
             </strong>
             <span>{t("cloud_save_v2_executable_required_description")}</span>
@@ -275,7 +281,7 @@ export function BigPictureCloudSavePanel({
                 <div className="big-picture-cloud-save__snapshot-versions">
                   {snapshotVersion(
                     <MonitorIcon
-                      size={16}
+                      size={SNAPSHOT_METADATA_ICON_SIZE}
                       aria-label={t("cloud_save_v2_local")}
                     />,
                     overview.localSnapshotSummary.updatedAt,
@@ -283,7 +289,7 @@ export function BigPictureCloudSavePanel({
                   )}
                   {snapshotVersion(
                     <CloudIcon
-                      size={16}
+                      size={SNAPSHOT_METADATA_ICON_SIZE}
                       aria-label={t("cloud_save_v2_remote")}
                     />,
                     activeSnapshot.updatedAt,
@@ -319,7 +325,7 @@ export function BigPictureCloudSavePanel({
             aria-label={t("cloud_save_v2_checking")}
           >
             <SpinnerIcon
-              size={26}
+              size={LOADING_ICON_SIZE}
               className="big-picture-cloud-save__spinner"
             />
             <span>{t("cloud_save_v2_checking")}</span>
@@ -330,7 +336,7 @@ export function BigPictureCloudSavePanel({
           <Button
             focusId={PRIMARY_ACTION_ID}
             variant="primary"
-            icon={<FolderOpenIcon size={22} />}
+            icon={<FolderOpenIcon size={INLINE_STATUS_ICON_SIZE} />}
             stealFocusOnAppear={stealFocusOnActionAppear}
             onClick={onSelectExecutable}
           >
@@ -350,7 +356,7 @@ export function BigPictureCloudSavePanel({
             <Button
               focusId={KEEP_LOCAL_ID}
               variant="primary"
-              icon={<CloudArrowUpIcon size={24} />}
+              icon={<CloudArrowUpIcon size={CLOUD_ACTION_ICON_SIZE} />}
               stealFocusOnAppear={stealFocusOnActionAppear}
               disabled={isLoading || isGameRunning}
               onClick={() => onResolveConflict("keep-local")}
@@ -366,7 +372,7 @@ export function BigPictureCloudSavePanel({
             <Button
               focusId={USE_CLOUD_ID}
               variant="primary"
-              icon={<CloudArrowDownIcon size={24} />}
+              icon={<CloudArrowDownIcon size={CLOUD_ACTION_ICON_SIZE} />}
               disabled={isLoading || isGameRunning}
               onClick={() => onResolveConflict("keep-remote")}
               focusNavigationOverrides={{
@@ -392,7 +398,7 @@ export function BigPictureCloudSavePanel({
           </Button>
         ) : (
           <div className="big-picture-cloud-save__synced">
-            <CloudCheckIcon size={22} />
+            <CloudCheckIcon size={INLINE_STATUS_ICON_SIZE} />
             <span>{t("cloud_save_v2_synced")}</span>
           </div>
         )}

@@ -68,6 +68,11 @@ import {
   isLegacyCloudSaveSettingsAvailable,
 } from "../cloud-save-visibility";
 import { LegacySavesSection } from "./game-options-modal/legacy-saves-section";
+import {
+  getAvailableGameSettingsCategory,
+  shouldInitializeGameSettingsCategory,
+  type GameSettingsCategoryInitializationState,
+} from "./game-options-modal/category-selection";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -138,6 +143,11 @@ export function GameOptionsModal({
   const [winetricksAvailable, setWinetricksAvailable] = useState(false);
   const [selectedCategory, setSelectedCategory] =
     useState<GameSettingsCategoryId>("general");
+  const categoryInitializationStateRef =
+    useRef<GameSettingsCategoryInitializationState>({
+      visible: false,
+      initialCategory,
+    });
   const [defaultWinePrefixPath, setDefaultWinePrefixPath] = useState<
     string | null
   >(null);
@@ -852,39 +862,57 @@ export function GameOptionsModal({
   );
 
   useEffect(() => {
-    if (!visible) return;
+    const currentInitializationState = { visible, initialCategory };
+    const shouldInitialize = shouldInitializeGameSettingsCategory(
+      categoryInitializationStateRef.current,
+      currentInitializationState
+    );
+    categoryInitializationStateRef.current = currentInitializationState;
+
+    if (!shouldInitialize) return;
 
     const category = initialCategory ?? "general";
-    let isCloudSaveCategoryUnavailable = false;
-    if (category === "hydra_cloud") {
-      isCloudSaveCategoryUnavailable = !showCloudSaveV2Settings;
-    } else if (category === "hydra_cloud_legacy") {
-      isCloudSaveCategoryUnavailable = !showLegacyCloudSaveSettings;
-    }
+    const availableCategory = getAvailableGameSettingsCategory(category, {
+      cloudSaveAccessAction,
+      showCloudSaveV2Settings,
+      showLegacyCloudSaveSettings,
+    });
 
-    if (isCloudSaveCategoryUnavailable) {
-      setSelectedCategory("general");
-      return;
-    }
+    setSelectedCategory(availableCategory);
+
+    const isRequestedCloudCategoryAvailable =
+      (category === "hydra_cloud" && showCloudSaveV2Settings) ||
+      (category === "hydra_cloud_legacy" && showLegacyCloudSaveSettings);
 
     if (
-      (category === "hydra_cloud" || category === "hydra_cloud_legacy") &&
-      cloudSaveAccessAction !== "open"
+      isRequestedCloudCategoryAvailable &&
+      cloudSaveAccessAction === "paywall"
     ) {
-      setSelectedCategory("general");
-      if (cloudSaveAccessAction === "paywall") {
-        showHydraCloudModal("backup");
-      }
-      return;
+      showHydraCloudModal("backup");
     }
-
-    setSelectedCategory(category);
   }, [
     cloudSaveAccessAction,
     initialCategory,
     showCloudSaveV2Settings,
     showLegacyCloudSaveSettings,
     showHydraCloudModal,
+    visible,
+  ]);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    setSelectedCategory((currentCategory) =>
+      getAvailableGameSettingsCategory(currentCategory, {
+        cloudSaveAccessAction,
+        showCloudSaveV2Settings,
+        showLegacyCloudSaveSettings,
+      })
+    );
+  }, [
+    cloudSaveAccessAction,
+    showCloudSaveV2Settings,
+    showLegacyCloudSaveSettings,
     visible,
   ]);
 
