@@ -78,12 +78,17 @@ export class WindowManager {
     this.mainWindowInstance = null;
   }
 
+  private static readonly DEFAULT_WINDOW_WIDTH = 1200;
+  private static readonly DEFAULT_WINDOW_HEIGHT = 860;
+  private static readonly MIN_WINDOW_WIDTH = 1024;
+  private static readonly MIN_WINDOW_HEIGHT = 600;
+
   private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
     {
-      width: 1200,
-      height: 860,
-      minWidth: 1024,
-      minHeight: 860,
+      width: WindowManager.DEFAULT_WINDOW_WIDTH,
+      height: WindowManager.DEFAULT_WINDOW_HEIGHT,
+      minWidth: WindowManager.MIN_WINDOW_WIDTH,
+      minHeight: WindowManager.MIN_WINDOW_HEIGHT,
       icon,
       trafficLightPosition: { x: 16, y: 16 },
       webPreferences: {
@@ -193,7 +198,39 @@ export class WindowManager {
         valueEncoding: "json",
       }
     );
-    return data ?? { isMaximized: false, height: 860, width: 1200 };
+    return (
+      data ?? {
+        isMaximized: false,
+        height: this.DEFAULT_WINDOW_HEIGHT,
+        width: this.DEFAULT_WINDOW_WIDTH,
+      }
+    );
+  }
+
+  private static fitToWorkArea<T extends { width?: number; height?: number }>(
+    bounds: T
+  ) {
+    const { workAreaSize } = screen.getPrimaryDisplay();
+
+    const minWidth = Math.min(this.MIN_WINDOW_WIDTH, workAreaSize.width);
+    const minHeight = Math.min(this.MIN_WINDOW_HEIGHT, workAreaSize.height);
+
+    return {
+      ...bounds,
+      minWidth,
+      minHeight,
+      width: Math.max(
+        minWidth,
+        Math.min(bounds.width ?? this.DEFAULT_WINDOW_WIDTH, workAreaSize.width)
+      ),
+      height: Math.max(
+        minHeight,
+        Math.min(
+          bounds.height ?? this.DEFAULT_WINDOW_HEIGHT,
+          workAreaSize.height
+        )
+      ),
+    };
   }
 
   private static updateInitialConfig(
@@ -217,7 +254,7 @@ export class WindowManager {
     const { isMaximized = false, ...configWithoutMaximized } =
       await this.loadScreenConfig();
 
-    this.updateInitialConfig(configWithoutMaximized);
+    this.updateInitialConfig(this.fitToWorkArea(configWithoutMaximized));
 
     const mainWindow = new BrowserWindow(
       this.initialConfigInitializationMainWindow
@@ -360,8 +397,12 @@ export class WindowManager {
         ? {
             x: undefined,
             y: undefined,
-            height: this.initialConfigInitializationMainWindow.height ?? 860,
-            width: this.initialConfigInitializationMainWindow.width ?? 1200,
+            height:
+              this.initialConfigInitializationMainWindow.height ??
+              this.DEFAULT_WINDOW_HEIGHT,
+            width:
+              this.initialConfigInitializationMainWindow.width ??
+              this.DEFAULT_WINDOW_WIDTH,
             isMaximized: true,
           }
         : { ...lastBounds, isMaximized };
