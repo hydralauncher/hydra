@@ -125,7 +125,5 @@ export const getGameExecutableFilters = (
   ];
 };
 
-export const SUPPORTED_CLASSICS_PLATFORMS = ["ps1", "ps2", "ps3"];
-
 export const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
 export const MANGOHUD_SITE_URL = "https://github.com/flightlessmango/MangoHud";
