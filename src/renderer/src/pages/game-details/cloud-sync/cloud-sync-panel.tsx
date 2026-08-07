@@ -209,8 +209,8 @@ export function CloudSyncPanel({
       />
 
       <div className="cloud-sync-panel__section-header">
-        <h2>{t("cloud_save")}</h2>
-        <p>{t("cloud_save_description")}</p>
+        <h2>{t("settings_category_hydra_cloud")}</h2>
+        <p>{t("cloud_save_legacy_description")}</p>
       </div>
 
       <div className="cloud-sync-panel__automatic-sync">
