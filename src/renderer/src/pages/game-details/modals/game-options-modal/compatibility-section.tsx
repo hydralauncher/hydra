@@ -40,7 +40,6 @@ interface CompatibilityToggleRowProps {
   label: React.ReactNode;
   checked: boolean;
   disabled: boolean;
-  classNamePrefix: string;
   tooltipId?: string;
   tooltipContent?: string;
   onChange: (checked: boolean) => void;
@@ -50,20 +49,17 @@ function CompatibilityToggleRow({
   label,
   checked,
   disabled,
-  classNamePrefix,
   tooltipId,
   tooltipContent,
   onChange,
 }: Readonly<CompatibilityToggleRowProps>) {
   return (
-    <div className={`game-options-modal__${classNamePrefix}-toggle`}>
+    <div className="game-options-modal__toggle">
       <CheckboxField
         label={
           <span
-            className={`game-options-modal__${classNamePrefix}-label ${
-              disabled
-                ? `game-options-modal__${classNamePrefix}-label--disabled`
-                : ""
+            className={`game-options-modal__toggle-label ${
+              disabled ? "game-options-modal__toggle-label--disabled" : ""
             }`}
             data-tooltip-id={tooltipId}
             data-tooltip-content={tooltipContent}
@@ -266,7 +262,6 @@ export function CompatibilitySettingsSection({
           }
           checked={autoRunGamemode || globalAutoRunGamemode}
           disabled={gamemodeToggleDisabled}
-          classNamePrefix="gamemode"
           tooltipId={gamemodeTooltipId}
           tooltipContent={gamemodeTooltipContent}
           onChange={(checked) => onChangeGamemodeState(checked)}
@@ -291,7 +286,6 @@ export function CompatibilitySettingsSection({
           }
           checked={autoRunMangohud || globalAutoRunMangohud}
           disabled={mangohudToggleDisabled}
-          classNamePrefix="mangohud"
           tooltipId={mangohudTooltipId}
           tooltipContent={mangohudTooltipContent}
           onChange={(checked) => onChangeMangohudState(checked)}
@@ -301,7 +295,6 @@ export function CompatibilitySettingsSection({
           label={<span>{t("proton_logging")}</span>}
           checked={protonLogEnabled || globalProtonLogEnabled}
           disabled={protonLogToggleDisabled}
-          classNamePrefix="proton-log"
           tooltipId={protonLogTooltipId}
           tooltipContent={protonLogTooltipContent}
           onChange={(checked) => onChangeProtonLogState(checked)}

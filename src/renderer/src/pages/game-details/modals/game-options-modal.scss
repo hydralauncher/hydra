@@ -158,32 +158,14 @@
     user-select: text;
   }
 
-  &__mangohud-toggle {
+  &__toggle {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: calc(globals.$spacing-unit / 2);
   }
 
-  &__gamemode-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: calc(globals.$spacing-unit / 2);
-  }
-
-  &__mangohud-label {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit / 2);
-
-    &--disabled {
-      text-decoration: underline dotted;
-      text-underline-offset: 2px;
-    }
-  }
-
-  &__gamemode-label {
+  &__toggle-label {
     display: inline-flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
