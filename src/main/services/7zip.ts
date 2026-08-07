@@ -157,6 +157,37 @@ export class SevenZip {
     });
   }
 
+  public static async createZip({
+    sourcePath,
+    destinationPath,
+  }: {
+    sourcePath: string;
+    destinationPath: string;
+  }): Promise<void> {
+    await fs.promises.mkdir(path.dirname(destinationPath), { recursive: true });
+
+    return new Promise((resolve, reject) => {
+      const options: CommandLineSwitches = {
+        $bin: this.binaryPath,
+        $defer: true,
+        yes: true,
+        recursive: true,
+        noWildcards: true,
+      };
+
+      const stream = Seven.add(destinationPath, ".", options);
+
+      stream._childProcess = spawn(stream._bin, stream._args, {
+        cwd: sourcePath,
+        windowsHide: true,
+      });
+
+      stream.on("end", resolve);
+      stream.on("error", reject);
+      Seven.listen(stream);
+    });
+  }
+
   public static listFiles(
     filePath: string,
     password?: string

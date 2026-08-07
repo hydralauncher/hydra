@@ -16,6 +16,8 @@ import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 import { GameReviews } from "./game-reviews";
 import { GameLogo } from "./game-logo";
+import { CloudSaveWidget } from "./cloud-save-v2";
+import { getCloudSaveVisibility } from "./cloud-save-visibility";
 
 import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
@@ -77,10 +79,11 @@ export function GameDetailsContent() {
     setGameOptionsInitialCategory,
   } = useContext(gameDetailsContext);
 
-  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { userDetails } = useUserDetails();
   const { library } = useLibrary();
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
+  const cloudSaveVisibility = game ? getCloudSaveVisibility(game.shop) : null;
 
   const aboutTheGame = useMemo(() => {
     const aboutTheGame = shopDetails?.about_the_game;
@@ -150,19 +153,13 @@ export function GameDetailsContent() {
     };
   }, [aboutTheGame]);
 
-  const handleCloudSaveButtonClick = () => {
+  const handleLegacyCloudSaveButtonClick = () => {
     if (!userDetails) {
-      window.electron.openAuthWindow(AuthPage.SignIn);
+      globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
       return;
     }
 
-    if (!hasActiveSubscription) {
-      setGameOptionsInitialCategory("hydra_cloud");
-      setShowGameOptionsModal(true);
-      return;
-    }
-
-    setGameOptionsInitialCategory("hydra_cloud");
+    setGameOptionsInitialCategory("hydra_cloud_legacy");
     setShowGameOptionsModal(true);
   };
 
@@ -378,11 +375,11 @@ export function GameDetailsContent() {
                   </button>
                 )}
 
-                {game && game.shop !== "custom" && (
+                {game && cloudSaveVisibility?.hero === "legacy" && (
                   <button
                     type="button"
                     className="game-details__cloud-sync-button"
-                    onClick={handleCloudSaveButtonClick}
+                    onClick={handleLegacyCloudSaveButtonClick}
                   >
                     <div className="game-details__cloud-icon-container">
                       <img
@@ -393,6 +390,10 @@ export function GameDetailsContent() {
                     </div>
                     {t("cloud_save")}
                   </button>
+                )}
+
+                {game && objectId && cloudSaveVisibility?.hero === "v2" && (
+                  <CloudSaveWidget />
                 )}
               </div>
             </div>
