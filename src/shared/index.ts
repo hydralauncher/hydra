@@ -23,6 +23,7 @@ import { AchievementNotificationInfo, GameRepack } from "@types";
 
 export * from "./archive-org";
 export * from "./constants";
+export * from "./cloud-save-access";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./download-directories";
@@ -115,12 +116,19 @@ export const replaceNbspWithSpace = (name: string) =>
 export const replaceUnderscoreWithSpace = (name: string) =>
   name.replace(/_/g, " ");
 
+const charMapPattern = new RegExp(Object.keys(charMap).join("|"), "g");
+
+const COMBINING_MARKS = /[\u0300-\u036f]/g;
+
+export const removeDiacritics = (value: string) =>
+  value
+    .normalize("NFC")
+    .replace(charMapPattern, (match) => charMap[match])
+    .normalize("NFD")
+    .replace(COMBINING_MARKS, "");
+
 export const formatName = pipe<string>(
-  (str) =>
-    str.replace(
-      new RegExp(Object.keys(charMap).join("|"), "g"),
-      (match) => charMap[match]
-    ),
+  (str) => str.replace(charMapPattern, (match) => charMap[match]),
   (str) => str.toLowerCase(),
   removeReleaseYearFromName,
   removeSpecialEditionFromName,

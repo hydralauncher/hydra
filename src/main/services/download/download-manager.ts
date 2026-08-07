@@ -51,10 +51,24 @@ import {
   setDownloadLayoutQueues,
 } from "../download-layout-state";
 import { shouldFinalizeDownload } from "./download-completion";
+import { describeErrorCause } from "@main/helpers/download-error-handler";
 import {
   DISK_SPACE_CHECK_INTERVAL_MS,
   getDownloadDiskSpace,
 } from "./disk-space";
+
+interface JsDownloadOptions {
+  url: string;
+  savePath: string;
+  filename?: string;
+  headers?: Record<string, string>;
+}
+
+interface PreparedJsDownload {
+  uri: string;
+  resolvedAt: number;
+  options: JsDownloadOptions;
+}
 
 interface AllDebridBatchEntry {
   url: string;
@@ -93,6 +107,11 @@ export class DownloadManager {
   } | null = null;
   private static queueHeldForDiskSpace = false;
   private static lastQueueRetry = 0;
+  private static readonly preparedJsDownloads = new Map<
+    string,
+    PreparedJsDownload
+  >();
+  private static readonly PREPARED_JS_DOWNLOAD_TTL_MS = 120_000;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -1206,12 +1225,9 @@ export class DownloadManager {
     });
   }
 
-  private static async getJsDownloadOptions(download: Download): Promise<{
-    url: string;
-    savePath: string;
-    filename?: string;
-    headers?: Record<string, string>;
-  } | null> {
+  private static async getJsDownloadOptions(
+    download: Download
+  ): Promise<JsDownloadOptions | null> {
     const resumingFilename = download.folderName || undefined;
 
     switch (download.downloader) {
@@ -1775,16 +1791,49 @@ export class DownloadManager {
   }
 
   static async validateDownloadUrl(download: Download): Promise<void> {
-    const isHttp = this.isHttpDownloader(download.downloader);
+    if (!this.isHttpDownloader(download.downloader)) return;
 
-    if (isHttp) {
-      const options = await this.getJsDownloadOptions(download);
-      if (!options) {
-        throw new Error("Failed to validate download URL");
-      }
+    const downloadId = levelKeys.game(download.shop, download.objectId);
+    this.preparedJsDownloads.delete(downloadId);
 
-      await this.validateJsDownloadResponse(options);
+    const options = await this.getJsDownloadOptions(download);
+    if (!options) {
+      throw new Error("Failed to validate download URL");
     }
+
+    await this.validateJsDownloadResponse(options);
+
+    this.prunePreparedJsDownloads();
+    this.preparedJsDownloads.set(downloadId, {
+      uri: download.uri,
+      resolvedAt: Date.now(),
+      options,
+    });
+  }
+
+  private static prunePreparedJsDownloads() {
+    for (const [key, prepared] of this.preparedJsDownloads) {
+      if (Date.now() - prepared.resolvedAt > this.PREPARED_JS_DOWNLOAD_TTL_MS) {
+        this.preparedJsDownloads.delete(key);
+      }
+    }
+  }
+
+  private static takePreparedJsDownload(
+    download: Download,
+    downloadId: string
+  ): JsDownloadOptions | null {
+    const prepared = this.preparedJsDownloads.get(downloadId);
+    if (!prepared) return null;
+
+    this.preparedJsDownloads.delete(downloadId);
+
+    if (prepared.uri !== download.uri) return null;
+    if (Date.now() - prepared.resolvedAt > this.PREPARED_JS_DOWNLOAD_TTL_MS) {
+      return null;
+    }
+
+    return prepared.options;
   }
 
   private static buildPreflightHeaders(
@@ -1804,6 +1853,13 @@ export class DownloadManager {
     );
     if (!hasAcceptEncoding) {
       headers["Accept-Encoding"] = "identity";
+    }
+
+    const hasRange = Object.keys(headers).some(
+      (key) => key.toLowerCase() === "range"
+    );
+    if (!hasRange) {
+      headers["Range"] = "bytes=0-0";
     }
 
     return headers;
@@ -1832,6 +1888,13 @@ export class DownloadManager {
       );
 
       await response.body?.cancel().catch(() => undefined);
+
+      if (response.status === 416) {
+        logger.log(
+          "[DownloadManager] Preflight range was rejected but the link resolved; allowing the download to start"
+        );
+        return "done";
+      }
 
       if (isRetryableHttpStatus(response.status)) {
         if (attempt < maxAttempts) {
@@ -1867,6 +1930,10 @@ export class DownloadManager {
       if (error instanceof Error && error.name === "AbortError") {
         throw new Error("Download URL validation timed out");
       }
+
+      logger.error(
+        `[DownloadManager] Preflight request failed: ${describeErrorCause(error)}`
+      );
 
       throw error;
     } finally {
@@ -1910,6 +1977,8 @@ export class DownloadManager {
 
     if (isHttp) {
       logger.log("[DownloadManager] Using JS HTTP downloader");
+
+      const preparedOptions = this.takePreparedJsDownload(download, downloadId);
 
       // Set preparing state immediately so UI knows download is starting.
       this.downloadingGameId = downloadId;
@@ -1961,7 +2030,8 @@ export class DownloadManager {
           void this.runAllDebridBatch();
         } else {
           this.allDebridBatch = null;
-          const options = await this.getJsDownloadOptions(download);
+          const options =
+            preparedOptions ?? (await this.getJsDownloadOptions(download));
 
           if (!options) {
             throw new Error("Failed to get download options for JS downloader");
