@@ -210,23 +210,42 @@ export class WindowManager {
   private static fitToWorkArea<
     T extends { x?: number; y?: number; width?: number; height?: number },
   >(bounds: T) {
-    const width = bounds.width ?? this.DEFAULT_WINDOW_WIDTH;
-    const height = bounds.height ?? this.DEFAULT_WINDOW_HEIGHT;
+    const savedWidth = bounds.width ?? this.DEFAULT_WINDOW_WIDTH;
+    const savedHeight = bounds.height ?? this.DEFAULT_WINDOW_HEIGHT;
+    const savedX = bounds.x;
+    const savedY = bounds.y;
+    const hasSavedPosition = savedX !== undefined && savedY !== undefined;
 
-    const { workAreaSize } =
-      bounds.x !== undefined && bounds.y !== undefined
-        ? screen.getDisplayMatching({ x: bounds.x, y: bounds.y, width, height })
-        : screen.getPrimaryDisplay();
+    const { workArea } = hasSavedPosition
+      ? screen.getDisplayMatching({
+          x: savedX,
+          y: savedY,
+          width: savedWidth,
+          height: savedHeight,
+        })
+      : screen.getPrimaryDisplay();
 
-    const minWidth = Math.min(this.MIN_WINDOW_WIDTH, workAreaSize.width);
-    const minHeight = Math.min(this.MIN_WINDOW_HEIGHT, workAreaSize.height);
+    const minWidth = Math.min(this.MIN_WINDOW_WIDTH, workArea.width);
+    const minHeight = Math.min(this.MIN_WINDOW_HEIGHT, workArea.height);
+
+    const width = Math.max(minWidth, Math.min(savedWidth, workArea.width));
+    const height = Math.max(minHeight, Math.min(savedHeight, workArea.height));
+
+    if (!hasSavedPosition) {
+      return { ...bounds, minWidth, minHeight, width, height };
+    }
+
+    const maxX = Math.max(workArea.x, workArea.x + workArea.width - width);
+    const maxY = Math.max(workArea.y, workArea.y + workArea.height - height);
 
     return {
       ...bounds,
       minWidth,
       minHeight,
-      width: Math.max(minWidth, Math.min(width, workAreaSize.width)),
-      height: Math.max(minHeight, Math.min(height, workAreaSize.height)),
+      width,
+      height,
+      x: Math.min(Math.max(savedX, workArea.x), maxX),
+      y: Math.min(Math.max(savedY, workArea.y), maxY),
     };
   }
 
