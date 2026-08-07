@@ -233,39 +233,148 @@ export class Umu {
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
     ensureExecutablePermission(umuBinaryPath);
 
+    const SPACEWAR_GAME_ID = "umu-480";
+
     const onlineFix =
       fs.existsSync(path.join(workingDirectory, "OnlineFix64.dll")) ||
       fs.existsSync(path.join(workingDirectory, "OnlineFix.ini"));
 
-    logger.info("ONLINEFIX CHECK", {
-      workingDirectory,
-      onlineFix,
-      dll: fs.existsSync(path.join(workingDirectory, "OnlineFix64.dll")),
-      ini: fs.existsSync(path.join(workingDirectory, "OnlineFix.ini")),
-    });
+    const homePath = SystemPath.getPath("home");
+
+    const steamCompatClientInstallPath = [
+      path.join(homePath, ".steam", "steam"),
+      path.join(homePath, ".local", "share", "Steam"),
+    ].find((candidate) => fs.existsSync(candidate));
+
+    /*
+     * OnlineFix expects the Windows Steam client files inside the Wine
+     * prefix. Keep Hydra's existing per-game prefix so process tracking,
+     * saves, backups and compatibility settings all resolve to the same
+     * prefix that UMU actually launches.
+     */
+    const onlineFixSteamClientPath =
+      onlineFix && options?.winePrefixPath
+        ? path.join(
+            options.winePrefixPath,
+            "drive_c",
+            "Program Files (x86)",
+            "Steam"
+          )
+        : null;
+
+    const requiredSteamClientSources: Record<string, string[]> =
+      steamCompatClientInstallPath
+        ? {
+            "steamclient64.dll": [
+              path.join(steamCompatClientInstallPath, "steamclient64.dll"),
+            ],
+            "steamclient.dll": [
+              path.join(steamCompatClientInstallPath, "steamclient.dll"),
+              path.join(
+                steamCompatClientInstallPath,
+                "legacycompat",
+                "steamclient.dll"
+              ),
+            ],
+            "Steam.dll": [
+              path.join(
+                steamCompatClientInstallPath,
+                "legacycompat",
+                "Steam.dll"
+              ),
+              path.join(steamCompatClientInstallPath, "Steam.dll"),
+            ],
+            "steam.exe": options?.protonPath
+              ? [
+                  path.join(
+                    options.protonPath,
+                    "files",
+                    "lib",
+                    "wine",
+                    "x86_64-windows",
+                    "steam.exe"
+                  ),
+                  path.join(
+                    options.protonPath,
+                    "files",
+                    "lib",
+                    "wine",
+                    "i386-windows",
+                    "steam.exe"
+                  ),
+                ]
+              : [],
+          }
+        : {};
+
+    if (onlineFix && onlineFixSteamClientPath) {
+      fs.mkdirSync(onlineFixSteamClientPath, { recursive: true });
+
+      const provisionedSteamClientFiles: string[] = [];
+
+      for (const [fileName, sourceCandidates] of Object.entries(
+        requiredSteamClientSources
+      )) {
+        const destination = path.join(onlineFixSteamClientPath, fileName);
+
+        if (fs.existsSync(destination)) continue;
+
+        const source = sourceCandidates.find((candidate) =>
+          fs.existsSync(candidate)
+        );
+
+        if (!source) {
+          throw new Error(
+            `Could not provision ${fileName}; no valid Steam source was found`
+          );
+        }
+
+        fs.copyFileSync(source, destination);
+        provisionedSteamClientFiles.push(fileName);
+      }
+
+      if (provisionedSteamClientFiles.length > 0) {
+        logger.info("Provisioned OnlineFix Steam client files", {
+          destination: onlineFixSteamClientPath,
+          files: provisionedSteamClientFiles,
+        });
+      }
+    }
 
     const launchEnv = {
       PROTON_LOG: "1",
 
-      ...(onlineFix
+      ...(options?.gameId
         ? {
-            GAMEID: "480",
-            SteamAppId: "480",
-            SteamGameId: "480",
-            WINEPREFIX: `${process.env.HOME}/SteamPrefixes/480`,
-            WINEDLLOVERRIDES:
-              "OnlineFix64=n;SteamOverlay64=n;winmm=n,b;dnet=n;steam_api64=n;winhttp=n,b",
+            GAMEID: onlineFix ? SPACEWAR_GAME_ID : `umu-${options.gameId}`,
           }
-        : {
-            ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
-            ...(options?.winePrefixPath
-              ? { WINEPREFIX: options.winePrefixPath }
-              : {}),
-          }),
+        : {}),
+
+      ...(options?.winePrefixPath
+        ? { WINEPREFIX: options.winePrefixPath }
+        : {}),
 
       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
+
       ...resolvedLaunchCommand.env,
+
+      ...(onlineFix
+        ? {
+            GAMEID: SPACEWAR_GAME_ID,
+            ...(options?.winePrefixPath
+              ? { WINEPREFIX: options.winePrefixPath }
+              : {}),
+            ...(steamCompatClientInstallPath
+              ? {
+                  STEAM_COMPAT_CLIENT_INSTALL_PATH:
+                    steamCompatClientInstallPath,
+                }
+              : {}),
+            WINEDLLOVERRIDES:
+              "OnlineFix64,SteamOverlay64,winmm,dnet,steam_api64=n,b",
+          }
+        : {}),
     };
 
     const envCommandPart = Object.entries(launchEnv)
