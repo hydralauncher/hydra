@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   ArrowClockwiseIcon,
   CircleNotchIcon,
@@ -279,6 +279,51 @@ export function CloudSavePanel({
     );
   };
 
+  let snapshotSummary: ReactNode = null;
+  if (activeSnapshot) {
+    snapshotSummary = (
+      <>
+        <div className="cloud-save-v2__snapshot-header">
+          <strong>{t("cloud_save_v2_active_snapshot")}</strong>
+          <span
+            className={`cloud-save-v2__status-pill cloud-save-v2__status-pill--${presentation.tone}`}
+          >
+            {t(presentation.labelKey)}
+          </span>
+        </div>
+        {snapshotMetadata(
+          activeSnapshot.updatedAt,
+          activeSnapshot.version,
+          activeSnapshot.fileCount,
+          activeSnapshot.totalSizeBytes,
+          true
+        )}
+      </>
+    );
+  } else if (showEmptySnapshot) {
+    snapshotSummary = (
+      <>
+        <div className="cloud-save-v2__snapshot-header">
+          <strong>{t("cloud_save_v2_cloud_saves")}</strong>
+          <span className="cloud-save-v2__status-pill">
+            {t("cloud_save_v2_not_created")}
+          </span>
+        </div>
+        <div className="cloud-save-v2__snapshot-metadata">
+          <span>{t("cloud_save_v2_no_cloud_saves_description")}</span>
+          <button
+            type="button"
+            className="cloud-save-v2__snapshot-stats cloud-save-v2__snapshot-stats--interactive"
+            onClick={onOpenFileBrowser}
+            disabled={isLoading || isSyncing}
+          >
+            {t("cloud_save_v2_manage_save_locations")}
+          </button>
+        </div>
+      </>
+    );
+  }
+
   const syncAction = (
     <CloudSaveSyncAction
       action={panelAction}
@@ -356,45 +401,7 @@ export function CloudSavePanel({
       ) : (
         <section className="cloud-save-v2__active-snapshot">
           <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
-            {activeSnapshot ? (
-              <>
-                <div className="cloud-save-v2__snapshot-header">
-                  <strong>{t("cloud_save_v2_active_snapshot")}</strong>
-                  <span
-                    className={`cloud-save-v2__status-pill cloud-save-v2__status-pill--${presentation.tone}`}
-                  >
-                    {t(presentation.labelKey)}
-                  </span>
-                </div>
-                {snapshotMetadata(
-                  activeSnapshot.updatedAt,
-                  activeSnapshot.version,
-                  activeSnapshot.fileCount,
-                  activeSnapshot.totalSizeBytes,
-                  true
-                )}
-              </>
-            ) : showEmptySnapshot ? (
-              <>
-                <div className="cloud-save-v2__snapshot-header">
-                  <strong>{t("cloud_save_v2_cloud_saves")}</strong>
-                  <span className="cloud-save-v2__status-pill">
-                    {t("cloud_save_v2_not_created")}
-                  </span>
-                </div>
-                <div className="cloud-save-v2__snapshot-metadata">
-                  <span>{t("cloud_save_v2_no_cloud_saves_description")}</span>
-                  <button
-                    type="button"
-                    className="cloud-save-v2__snapshot-stats cloud-save-v2__snapshot-stats--interactive"
-                    onClick={onOpenFileBrowser}
-                    disabled={isLoading || isSyncing}
-                  >
-                    {t("cloud_save_v2_manage_save_locations")}
-                  </button>
-                </div>
-              </>
-            ) : null}
+            {snapshotSummary}
 
             <div
               className={`cloud-save-v2__action-area ${
