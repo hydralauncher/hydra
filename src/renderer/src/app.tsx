@@ -23,8 +23,11 @@ import {
   clearExtraction,
   closeToast,
   failClassicsScan,
+  failRetroArchScan,
   finishClassicsScan,
+  finishRetroArchScan,
   hydrateClassicsScan,
+  hydrateRetroArchScan,
   setExtractionProgress,
   setGameRunning,
   setProfileBackground,
@@ -32,6 +35,7 @@ import {
   setUserPreferences,
   toggleDraggingDisabled,
   updateClassicsScanProgress,
+  updateRetroArchScanProgress,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -40,6 +44,7 @@ import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-m
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
+import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
@@ -228,6 +233,7 @@ export function App() {
           "install-duckstation": 6441,
           "install-pcsx2": 6192,
           "install-rpcs3": 6510,
+          "install-retroarch": 7108,
           "retroachievements-emulators": 6629,
         },
         en: {
@@ -238,18 +244,21 @@ export function App() {
           "install-duckstation": 6465,
           "install-pcsx2": 6390,
           "install-rpcs3": 6524,
+          "install-retroarch": 7120,
           "retroachievements-emulators": 6692,
         },
         ru: {
           "install-duckstation": 6479,
           "install-pcsx2": 6429,
           "install-rpcs3": 6541,
+          "install-retroarch": 7135,
           "retroachievements-emulators": 6717,
         },
         es: {
           "install-duckstation": 6492,
           "install-pcsx2": 6410,
           "install-rpcs3": 6552,
+          "install-retroarch": 7142,
           "retroachievements-emulators": 6743,
         },
       };
@@ -368,6 +377,40 @@ export function App() {
         finishClassicsScan({
           cancelled: payload.type === "cancelled",
           system: payload.system,
+          result: {
+            fileCount: payload.fileCount,
+            sizeBytes: payload.sizeBytes,
+            matched: payload.matched,
+            unmatched: payload.unmatched,
+            unmatchedFiles: payload.unmatchedFiles,
+          },
+        })
+      );
+      updateLibrary();
+    });
+
+    return () => unsubscribe();
+  }, [dispatch, updateLibrary]);
+
+  useEffect(() => {
+    window.electron.getActiveRetroArchImport().then((snapshot) => {
+      if (snapshot) dispatch(hydrateRetroArchScan(snapshot));
+    });
+
+    const unsubscribe = window.electron.onRetroArchImportProgress((payload) => {
+      if (payload.type === "error") {
+        dispatch(failRetroArchScan(payload.message));
+        return;
+      }
+
+      if (payload.type === "progress") {
+        dispatch(updateRetroArchScanProgress(payload));
+        return;
+      }
+
+      dispatch(
+        finishRetroArchScan({
+          cancelled: payload.type === "cancelled",
           result: {
             fileCount: payload.fileCount,
             sizeBytes: payload.sizeBytes,
@@ -634,6 +677,7 @@ export function App() {
       />
 
       <ClassicsScanModal />
+      <RetroArchScanModal />
 
       <main>
         <Sidebar />

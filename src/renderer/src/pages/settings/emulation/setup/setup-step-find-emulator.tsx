@@ -5,26 +5,25 @@ import {
   SyncIcon,
 } from "@primer/octicons-react";
 
-import type { EmulatorConfig } from "@types";
-
-import { KNOWN_BINARY_LABELS } from "../known-binary-labels";
-
 interface Props {
-  config: EmulatorConfig;
+  name: string;
+  executablePath: string | null;
+  detectedVersion: string | null;
   detecting?: boolean;
   onBrowse: () => void;
   onShowDownloadHelp: () => void;
 }
 
 export function SetupStepFindEmulator({
-  config,
+  name,
+  executablePath,
+  detectedVersion,
   detecting = false,
   onBrowse,
   onShowDownloadHelp,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
-  const name = KNOWN_BINARY_LABELS[config.binary];
-  const found = config.executablePath !== null;
+  const found = executablePath !== null;
 
   return (
     <>
@@ -62,14 +61,14 @@ export function SetupStepFindEmulator({
                   ? t("setup_emulator_found", { name })
                   : t("setup_emulator_not_found", { name })}
             </span>
-            {config.detectedVersion && (
+            {detectedVersion && (
               <span className="setup-modal__row-version">
-                v{config.detectedVersion}
+                v{detectedVersion}
               </span>
             )}
           </div>
           <span className="setup-modal__row-path">
-            {config.executablePath ?? t("setup_emulator_not_found_hint")}
+            {executablePath ?? t("setup_emulator_not_found_hint")}
           </span>
         </div>
       </div>
