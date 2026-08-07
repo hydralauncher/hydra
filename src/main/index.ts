@@ -19,6 +19,7 @@ import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
+import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
 
 const { autoUpdater } = updater;
@@ -149,7 +150,11 @@ const initializeApp = async () => {
     });
   });
 
-  await loadState();
+  try {
+    await loadState();
+  } catch (error) {
+    logger.error("Failed to load app state during startup", error);
+  }
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
   powerMonitor.on("resume", () => {
@@ -210,6 +215,13 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
   }
 
   if (shop === "launchbox") {
+    if (!game.platform) {
+      const cachedPlatform = await lookupCachedPlatform(gameKey);
+      if (cachedPlatform) {
+        game.platform = cachedPlatform;
+        await gamesSublevel.put(gameKey, game).catch(() => {});
+      }
+    }
     await openClassicsGame(shop, objectId);
     return;
   }
@@ -240,6 +252,7 @@ const handleDeepLinkPath = (uri?: string) => {
       if (shop && objectId) {
         void handleRunGame(shop, objectId).catch((error) => {
           logger.error("Failed to launch game from deep link", error);
+          WindowManager.createMainWindow();
         });
       }
 
