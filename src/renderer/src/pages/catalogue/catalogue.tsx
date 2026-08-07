@@ -297,7 +297,10 @@ export default function Catalogue() {
   }, [steamUserTags, filters.tags, language]);
 
   const classicsPlatforms = useMemo(
-    () => filters.platforms ?? [],
+    () =>
+      (filters.platforms ?? []).filter((platform) =>
+        SUPPORTED_CLASSICS_PLATFORMS.includes(platform)
+      ),
     [filters.platforms]
   );
 
