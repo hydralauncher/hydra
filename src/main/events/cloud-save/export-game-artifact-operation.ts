@@ -2,6 +2,7 @@ import type { LegacySaveExportResult } from "@types";
 import path from "node:path";
 
 export interface ExportGameArtifactDependencies {
+  signal?: AbortSignal;
   createTemporaryDirectory: () => Promise<string>;
   downloadTar: (destinationPath: string) => Promise<void>;
   extractTar: (tarPath: string, destinationPath: string) => Promise<void>;
@@ -31,19 +32,25 @@ export const sanitizeLegacySaveArchiveName = (value: string): string => {
 export const exportGameArtifactArchive = async (
   dependencies: ExportGameArtifactDependencies
 ): Promise<LegacySaveExportResult> => {
+  dependencies.signal?.throwIfAborted();
   const temporaryDirectory = await dependencies.createTemporaryDirectory();
   const tarPath = path.join(temporaryDirectory, "artifact.tar");
   const extractedPath = path.join(temporaryDirectory, "extracted");
   const zipPath = path.join(temporaryDirectory, "artifact.zip");
 
   try {
+    dependencies.signal?.throwIfAborted();
     await dependencies.downloadTar(tarPath);
+    dependencies.signal?.throwIfAborted();
     await dependencies.extractTar(tarPath, extractedPath);
+    dependencies.signal?.throwIfAborted();
     await dependencies.createZip(extractedPath, zipPath);
+    dependencies.signal?.throwIfAborted();
 
     const destinationPath = await dependencies.selectDestination();
     if (!destinationPath) return { status: "cancelled" };
 
+    dependencies.signal?.throwIfAborted();
     await dependencies.copyZip(zipPath, destinationPath);
     return { status: "saved", filePath: destinationPath };
   } finally {

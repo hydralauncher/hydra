@@ -32,19 +32,24 @@ const createDependencies = ({
   return {
     calls,
     dependencies: {
+      signal: undefined as AbortSignal | undefined,
       createTemporaryDirectory: async () => {
         runStep("create-temporary-directory");
         return "C:\\temp\\legacy-save";
       },
-      downloadTar: async () => runStep("download"),
-      extractTar: async () => runStep("extract"),
-      createZip: async () => runStep("zip"),
+      downloadTar: async (_destinationPath: string) => runStep("download"),
+      extractTar: async (_tarPath: string, _destinationPath: string) =>
+        runStep("extract"),
+      createZip: async (_sourcePath: string, _destinationPath: string) =>
+        runStep("zip"),
       selectDestination: async () => {
         runStep("dialog");
         return destinationPath;
       },
-      copyZip: async () => runStep("copy"),
-      cleanupTemporaryDirectory: async () => runStep("cleanup"),
+      copyZip: async (_sourcePath: string, _destinationPath: string) =>
+        runStep("copy"),
+      cleanupTemporaryDirectory: async (_temporaryDirectory: string) =>
+        runStep("cleanup"),
     },
   };
 };
@@ -82,6 +87,78 @@ describe("legacy save artifact export", () => {
       "extract",
       "zip",
       "dialog",
+      "cleanup",
+    ]);
+  });
+
+  it("stops after the download when the export is cancelled", async () => {
+    const controller = new AbortController();
+    const { calls, dependencies } = createDependencies();
+    const originalDownload = dependencies.downloadTar;
+
+    dependencies.signal = controller.signal;
+    dependencies.downloadTar = async (destinationPath) => {
+      await originalDownload(destinationPath);
+      controller.abort();
+    };
+
+    await assert.rejects(
+      exportGameArtifactArchive(dependencies),
+      (error: unknown) => error instanceof Error && error.name === "AbortError"
+    );
+    assert.deepEqual(calls, [
+      "create-temporary-directory",
+      "download",
+      "cleanup",
+    ]);
+  });
+
+  it("does not open the destination dialog when ZIP creation is cancelled", async () => {
+    const controller = new AbortController();
+    const { calls, dependencies } = createDependencies();
+    const originalCreateZip = dependencies.createZip;
+
+    dependencies.signal = controller.signal;
+    dependencies.createZip = async (sourcePath, destinationPath) => {
+      await originalCreateZip(sourcePath, destinationPath);
+      controller.abort();
+    };
+
+    await assert.rejects(
+      exportGameArtifactArchive(dependencies),
+      (error: unknown) => error instanceof Error && error.name === "AbortError"
+    );
+    assert.deepEqual(calls, [
+      "create-temporary-directory",
+      "download",
+      "extract",
+      "zip",
+      "cleanup",
+    ]);
+  });
+
+  it("treats the final copy as committed when cancellation arrives during it", async () => {
+    const controller = new AbortController();
+    const { calls, dependencies } = createDependencies();
+    const originalCopyZip = dependencies.copyZip;
+
+    dependencies.signal = controller.signal;
+    dependencies.copyZip = async (sourcePath, destinationPath) => {
+      await originalCopyZip(sourcePath, destinationPath);
+      controller.abort();
+    };
+
+    assert.deepEqual(await exportGameArtifactArchive(dependencies), {
+      status: "saved",
+      filePath: "C:\\exports\\save.zip",
+    });
+    assert.deepEqual(calls, [
+      "create-temporary-directory",
+      "download",
+      "extract",
+      "zip",
+      "dialog",
+      "copy",
       "cleanup",
     ]);
   });
