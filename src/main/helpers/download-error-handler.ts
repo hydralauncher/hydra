@@ -188,6 +188,19 @@ const TLS_ERROR_CODE_PREFIXES = [
 
 const MAX_CAUSE_DEPTH = 5;
 
+const stringifyUnknownError = (err: unknown): string => {
+  if (typeof err === "string") return err;
+  if (typeof err === "number" || typeof err === "boolean") return `${err}`;
+  if (err === null) return "null";
+  if (err === undefined) return "undefined";
+
+  try {
+    return JSON.stringify(err) ?? "unknown error";
+  } catch {
+    return "unknown error";
+  }
+};
+
 export const describeErrorCause = (err: unknown): string => {
   const parts: string[] = [];
 
@@ -206,7 +219,7 @@ export const describeErrorCause = (err: unknown): string => {
     current = current.cause;
   }
 
-  return parts.join(" <- ") || String(err);
+  return parts.join(" <- ") || stringifyUnknownError(err);
 };
 
 const findErrorCode = (err: unknown): string | null => {
@@ -300,6 +313,21 @@ const mapTorrentErrorCode = (code: string): DownloadErrorResult | null => {
   return null;
 };
 
+const handleThrownError = (
+  err: Error,
+  downloader: Downloader
+): DownloadErrorResult => {
+  if (downloader === Downloader.Torrent) {
+    const mapped = mapTorrentErrorCode(err.message);
+    if (mapped) return mapped;
+  }
+
+  return (
+    handleHostSpecificError(err.message, downloader) ??
+    handleNetworkError(err) ?? { ok: false, error: err.message }
+  );
+};
+
 export const handleDownloadError = (
   err: unknown,
   downloader: Downloader
@@ -323,20 +351,7 @@ export const handleDownloadError = (
     return { ok: false, error: DownloadError.HosterUnlockLoginRequired };
   }
 
-  if (err instanceof Error) {
-    if (downloader === Downloader.Torrent) {
-      const mapped = mapTorrentErrorCode(err.message);
-      if (mapped) return mapped;
-    }
-
-    const hostResult = handleHostSpecificError(err.message, downloader);
-    if (hostResult) return hostResult;
-
-    const networkResult = handleNetworkError(err);
-    if (networkResult) return networkResult;
-
-    return { ok: false, error: err.message };
-  }
+  if (err instanceof Error) return handleThrownError(err, downloader);
 
   return { ok: false };
 };
