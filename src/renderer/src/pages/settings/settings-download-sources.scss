@@ -55,6 +55,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+
+    .button {
+      white-space: nowrap;
+    }
   }
 
   &__navigate-button {
@@ -77,5 +83,6 @@
   &__buttons-container {
     display: flex;
     gap: globals.$spacing-unit;
+    flex-wrap: wrap;
   }
 }
