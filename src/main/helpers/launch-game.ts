@@ -30,7 +30,10 @@ import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
-import { resolveLaunchCommand } from "./resolve-launch-command";
+import {
+  envVariableNameRegex,
+  resolveLaunchCommand,
+} from "./resolve-launch-command";
 import {
   buildWindowsBatchCommand,
   isWindowsBatchFile,
@@ -60,6 +63,39 @@ const ensureExecutablePermission = (executablePath: string) => {
       error,
     });
   }
+};
+
+const parseCompatibilityEnvironmentVariables = (
+  rawVariables: string | null | undefined
+): Record<string, string> => {
+  if (!rawVariables) {
+    return {};
+  }
+
+  const environmentVariables: Record<string, string> = {};
+
+  for (const rawLine of rawVariables.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const equalsIndex = line.indexOf("=");
+    if (equalsIndex <= 0) {
+      continue;
+    }
+
+    const name = line.slice(0, equalsIndex).trim();
+    const value = line.slice(equalsIndex + 1);
+
+    if (!envVariableNameRegex.test(name)) {
+      continue;
+    }
+
+    environmentVariables[name] = value;
+  }
+
+  return environmentVariables;
 };
 
 const launchNatively = (
@@ -148,6 +184,7 @@ const launchWithWine = async (
   launchOptions?: string | null,
   useMangohud = false,
   useGamemode = false,
+  compatibilityEnvironmentVariables: Record<string, string> = {},
   winePrefixPath?: string | null
 ): Promise<boolean> => {
   const workingDirectory = path.dirname(executablePath);
@@ -172,6 +209,7 @@ const launchWithWine = async (
         cwd: workingDirectory,
         env: {
           ...process.env,
+          ...compatibilityEnvironmentVariables,
           ...(winePrefixPath ? { WINEPREFIX: winePrefixPath } : {}),
           ...resolvedLaunchCommand.env,
         },
@@ -379,16 +417,34 @@ const cleanupStaleCompatibilityProcesses = async (
   }
 };
 
+interface LaunchWindowsBinaryOptions {
+  gameKey: string;
+  objectId: string;
+  parsedPath: string;
+  compatibilityContext: LinuxCompatibilityLaunchContext;
+  launchOptions: string | null | undefined;
+  useMangohud: boolean;
+  useGamemode: boolean;
+  protonLogEnabled: boolean;
+  compatibilityEnvironmentVariables: Record<string, string>;
+}
+
 const launchWindowsBinaryOnLinux = async (
-  gameKey: string,
-  objectId: string,
-  parsedPath: string,
-  compatibilityContext: LinuxCompatibilityLaunchContext,
-  launchOptions: string | null | undefined,
-  useMangohud: boolean,
-  useGamemode: boolean
+  options: LaunchWindowsBinaryOptions
 ): Promise<boolean> => {
+  const {
+    gameKey,
+    objectId,
+    parsedPath,
+    compatibilityContext,
+    launchOptions,
+    useMangohud,
+    useGamemode,
+    protonLogEnabled,
+    compatibilityEnvironmentVariables,
+  } = options;
   const { protonPath, winePrefixPath } = compatibilityContext;
+  await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
 
   try {
     await Umu.launchExecutable(parsedPath, [], {
@@ -398,6 +454,8 @@ const launchWindowsBinaryOnLinux = async (
       launchOptions,
       useGamemode,
       useMangohud,
+      protonLogEnabled,
+      compatibilityEnvironmentVariables,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
@@ -410,6 +468,7 @@ const launchWindowsBinaryOnLinux = async (
     launchOptions,
     useMangohud,
     useGamemode,
+    compatibilityEnvironmentVariables,
     winePrefixPath
   );
 
@@ -518,16 +577,34 @@ const runCommonRedistPreflight = async (shop: GameShop, objectId: string) => {
   }
 };
 
+interface LaunchResolvedGameOptions {
+  gameKey: string;
+  shop: GameShop;
+  objectId: string;
+  parsedPath: string;
+  compatibilityContext: LinuxCompatibilityLaunchContext | null;
+  launchOptions: string | null | undefined;
+  useMangohud: boolean;
+  useGamemode: boolean;
+  protonLogEnabled: boolean;
+  compatibilityEnvironmentVariables: Record<string, string>;
+}
+
 const launchResolvedGame = async (
-  gameKey: string,
-  shop: GameShop,
-  objectId: string,
-  parsedPath: string,
-  compatibilityContext: LinuxCompatibilityLaunchContext | null,
-  launchOptions: string | null | undefined,
-  useMangohud: boolean,
-  useGamemode: boolean
+  options: LaunchResolvedGameOptions
 ) => {
+  const {
+    gameKey,
+    shop,
+    objectId,
+    parsedPath,
+    compatibilityContext,
+    launchOptions,
+    useMangohud,
+    useGamemode,
+    protonLogEnabled,
+    compatibilityEnvironmentVariables,
+  } = options;
   if (process.platform !== "linux") {
     return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
   }
@@ -538,15 +615,17 @@ const launchResolvedGame = async (
       return null;
     }
 
-    const launched = await launchWindowsBinaryOnLinux(
+    const launched = await launchWindowsBinaryOnLinux({
       gameKey,
       objectId,
       parsedPath,
       compatibilityContext,
       launchOptions,
       useMangohud,
-      useGamemode
-    );
+      useGamemode,
+      protonLogEnabled,
+      compatibilityEnvironmentVariables,
+    });
     if (launched) return null;
     clearCloudSaveLaunchGuard(objectId, shop);
   }
@@ -591,6 +670,10 @@ const launchGameWithCloudSaveChecks = async (
     (userPreferences?.autoRunGamemode === true ||
       game?.autoRunGamemode === true) &&
     isGamemodeAvailable();
+
+  const protonLogEnabled =
+    userPreferences?.protonLogEnabled === true ||
+    game?.protonLogEnabled === true;
 
   if (game) {
     await gamesSublevel.put(gameKey, {
@@ -725,7 +808,11 @@ const launchGameWithCloudSaveChecks = async (
   await runCommonRedistPreflight(shop, objectId);
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
-  return launchResolvedGame(
+  const compatibilityEnvironmentVariables = process.platform === "linux"
+    ? parseCompatibilityEnvironmentVariables(userPreferences?.compatibilityEnvironmentVariables)
+    : {};
+
+  return launchResolvedGame({
     gameKey,
     shop,
     objectId,
@@ -733,8 +820,10 @@ const launchGameWithCloudSaveChecks = async (
     compatibilityContext,
     launchOptions,
     useMangohud,
-    useGamemode
-  );
+    useGamemode,
+    protonLogEnabled,
+    compatibilityEnvironmentVariables,
+  });
 };
 
 export const launchGame = (options: LaunchGameOptions) =>

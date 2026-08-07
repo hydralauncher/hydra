@@ -18,8 +18,10 @@ interface CompatibilitySettingsSectionProps {
   selectedProtonPath: string;
   autoRunGamemode: boolean;
   autoRunMangohud: boolean;
+  protonLogEnabled: boolean;
   globalAutoRunGamemode: boolean;
   globalAutoRunMangohud: boolean;
+  globalProtonLogEnabled: boolean;
   gamemodeAvailable: boolean;
   mangohudAvailable: boolean;
   winetricksAvailable: boolean;
@@ -30,7 +32,49 @@ interface CompatibilitySettingsSectionProps {
   onOpenWinetricks: () => Promise<void>;
   onChangeGamemodeState: (value: boolean) => Promise<void>;
   onChangeMangohudState: (value: boolean) => Promise<void>;
+  onChangeProtonLogState: (value: boolean) => Promise<void>;
   onChangeProtonVersion: (value: string) => void;
+}
+
+interface CompatibilityToggleRowProps {
+  label: React.ReactNode;
+  checked: boolean;
+  disabled: boolean;
+  tooltipId?: string;
+  tooltipContent?: string;
+  onChange: (checked: boolean) => void;
+}
+
+function CompatibilityToggleRow({
+  label,
+  checked,
+  disabled,
+  tooltipId,
+  tooltipContent,
+  onChange,
+}: Readonly<CompatibilityToggleRowProps>) {
+  return (
+    <div className="game-options-modal__toggle">
+      <CheckboxField
+        label={
+          <span
+            className={`game-options-modal__toggle-label ${
+              disabled ? "game-options-modal__toggle-label--disabled" : ""
+            }`}
+            data-tooltip-id={tooltipId}
+            data-tooltip-content={tooltipContent}
+          >
+            {label}
+          </span>
+        }
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+
+      {disabled && tooltipId && <Tooltip id={tooltipId} />}
+    </div>
+  );
 }
 
 export function CompatibilitySettingsSection({
@@ -40,8 +84,10 @@ export function CompatibilitySettingsSection({
   selectedProtonPath,
   autoRunGamemode,
   autoRunMangohud,
+  protonLogEnabled,
   globalAutoRunGamemode,
   globalAutoRunMangohud,
+  globalProtonLogEnabled,
   gamemodeAvailable,
   mangohudAvailable,
   winetricksAvailable,
@@ -52,13 +98,16 @@ export function CompatibilitySettingsSection({
   onOpenWinetricks,
   onChangeGamemodeState,
   onChangeMangohudState,
+  onChangeProtonLogState,
   onChangeProtonVersion,
 }: Readonly<CompatibilitySettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
   const showWinetricksUnavailableTooltip = !winetricksAvailable;
+
   const gamemodeToggleDisabled = !gamemodeAvailable || globalAutoRunGamemode;
   const mangohudToggleDisabled = !mangohudAvailable || globalAutoRunMangohud;
+  const protonLogToggleDisabled = globalProtonLogEnabled;
 
   const gamemodeTooltipId = !gamemodeAvailable
     ? "gamemode-unavailable-tooltip"
@@ -71,6 +120,39 @@ export function CompatibilitySettingsSection({
     : globalAutoRunMangohud
       ? "mangohud-global-enabled-tooltip"
       : undefined;
+
+  const protonLogTooltipId = globalProtonLogEnabled
+    ? "proton-log-global-enabled-tooltip"
+    : undefined;
+
+  const gamemodeTooltipContent = !gamemodeAvailable
+    ? t("gamemode_not_available_tooltip", {
+        defaultValue: "GameMode is not available in your PATH",
+      })
+    : globalAutoRunGamemode
+      ? t("gamemode_disabled_due_to_global_setting_tooltip", {
+          defaultValue:
+            "This option is disabled because GameMode is enabled globally",
+        })
+      : undefined;
+
+  const mangohudTooltipContent = !mangohudAvailable
+    ? t("mangohud_not_available_tooltip", {
+        defaultValue: "MangoHud is not available in your PATH",
+      })
+    : globalAutoRunMangohud
+      ? t("mangohud_disabled_due_to_global_setting_tooltip", {
+          defaultValue:
+            "This option is disabled because MangoHud is enabled globally",
+        })
+      : undefined;
+
+  const protonLogTooltipContent = globalProtonLogEnabled
+    ? t("proton_log_disabled_due_to_global_setting_tooltip", {
+        defaultValue:
+          "This option is disabled because Proton logging is enabled globally",
+      })
+    : undefined;
 
   const protonVersionAutoLabel = t("proton_version_auto", {
     ns: ["game_details", "settings"],
@@ -161,99 +243,62 @@ export function CompatibilitySettingsSection({
           <h2>{t("additional_options")}</h2>
         </div>
 
-        <div className="game-options-modal__gamemode-toggle">
-          <CheckboxField
-            label={
-              <span
-                className={`game-options-modal__gamemode-label ${
-                  gamemodeToggleDisabled
-                    ? "game-options-modal__gamemode-label--disabled"
-                    : ""
-                }`}
-                data-tooltip-id={gamemodeTooltipId}
-                data-tooltip-content={
-                  !gamemodeAvailable
-                    ? t("gamemode_not_available_tooltip", {
-                        defaultValue: "GameMode is not available in your PATH",
-                      })
-                    : globalAutoRunGamemode
-                      ? t("gamemode_disabled_due_to_global_setting_tooltip", {
-                          defaultValue:
-                            "This option is disabled because GameMode is enabled globally",
-                        })
-                      : undefined
-                }
-              >
-                <span>
-                  {t("run_with_gamemode_prefix", {
-                    defaultValue: "Automatically run with",
-                  })}
-                </span>
-                <Link
-                  to={gamemodeSiteUrl}
-                  className="game-options-modal__gamemode-link"
-                >
-                  GameMode
-                  <LinkExternalIcon />
-                </Link>
+        <CompatibilityToggleRow
+          label={
+            <>
+              <span>
+                {t("run_with_gamemode_prefix", {
+                  defaultValue: "Automatically run with",
+                })}
               </span>
-            }
-            checked={autoRunGamemode || globalAutoRunGamemode}
-            disabled={gamemodeToggleDisabled}
-            onChange={(event) => onChangeGamemodeState(event.target.checked)}
-          />
-
-          {gamemodeToggleDisabled && gamemodeTooltipId && (
-            <Tooltip id={gamemodeTooltipId} />
-          )}
-        </div>
-
-        <div className="game-options-modal__mangohud-toggle">
-          <CheckboxField
-            label={
-              <span
-                className={`game-options-modal__mangohud-label ${
-                  mangohudToggleDisabled
-                    ? "game-options-modal__mangohud-label--disabled"
-                    : ""
-                }`}
-                data-tooltip-id={mangohudTooltipId}
-                data-tooltip-content={
-                  !mangohudAvailable
-                    ? t("mangohud_not_available_tooltip", {
-                        defaultValue: "MangoHud is not available in your PATH",
-                      })
-                    : globalAutoRunMangohud
-                      ? t("mangohud_disabled_due_to_global_setting_tooltip", {
-                          defaultValue:
-                            "This option is disabled because MangoHud is enabled globally",
-                        })
-                      : undefined
-                }
+              <Link
+                to={gamemodeSiteUrl}
+                className="game-options-modal__gamemode-link"
               >
-                <span>
-                  {t("run_with_mangohud_prefix", {
-                    defaultValue: "Automatically run with",
-                  })}
-                </span>
-                <Link
-                  to={mangohudSiteUrl}
-                  className="game-options-modal__mangohud-link"
-                >
-                  MangoHud
-                  <LinkExternalIcon />
-                </Link>
-              </span>
-            }
-            checked={autoRunMangohud || globalAutoRunMangohud}
-            disabled={mangohudToggleDisabled}
-            onChange={(event) => onChangeMangohudState(event.target.checked)}
-          />
+                GameMode
+                <LinkExternalIcon />
+              </Link>
+            </>
+          }
+          checked={autoRunGamemode || globalAutoRunGamemode}
+          disabled={gamemodeToggleDisabled}
+          tooltipId={gamemodeTooltipId}
+          tooltipContent={gamemodeTooltipContent}
+          onChange={(checked) => onChangeGamemodeState(checked)}
+        />
 
-          {mangohudToggleDisabled && mangohudTooltipId && (
-            <Tooltip id={mangohudTooltipId} />
-          )}
-        </div>
+        <CompatibilityToggleRow
+          label={
+            <>
+              <span>
+                {t("run_with_mangohud_prefix", {
+                  defaultValue: "Automatically run with",
+                })}
+              </span>
+              <Link
+                to={mangohudSiteUrl}
+                className="game-options-modal__mangohud-link"
+              >
+                MangoHud
+                <LinkExternalIcon />
+              </Link>
+            </>
+          }
+          checked={autoRunMangohud || globalAutoRunMangohud}
+          disabled={mangohudToggleDisabled}
+          tooltipId={mangohudTooltipId}
+          tooltipContent={mangohudTooltipContent}
+          onChange={(checked) => onChangeMangohudState(checked)}
+        />
+
+        <CompatibilityToggleRow
+          label={<span>{t("proton_logging")}</span>}
+          checked={protonLogEnabled || globalProtonLogEnabled}
+          disabled={protonLogToggleDisabled}
+          tooltipId={protonLogTooltipId}
+          tooltipContent={protonLogTooltipContent}
+          onChange={(checked) => onChangeProtonLogState(checked)}
+        />
       </div>
 
       <div className="game-options-modal__section">

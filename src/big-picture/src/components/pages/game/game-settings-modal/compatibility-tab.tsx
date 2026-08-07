@@ -59,6 +59,7 @@ type ElectronCompatibilityBridge = Pick<
   | "selectGameProtonPath"
   | "toggleGameGamemode"
   | "toggleGameMangohud"
+  | "toggleGameProtonLog"
 >;
 
 export function GameCompatibilitySettingsTab({
@@ -84,6 +85,9 @@ export function GameCompatibilitySettingsTab({
   const [autoRunMangohud, setAutoRunMangohud] = useState(
     game.autoRunMangohud ?? false
   );
+  const [protonLogEnabled, setProtonLogEnabled] = useState(
+    game.protonLogEnabled ?? false
+  );
   const [winePickerOpen, setWinePickerOpen] = useState(false);
   const [winePickerInitialPath, setWinePickerInitialPath] = useState<
     string | undefined
@@ -94,6 +98,7 @@ export function GameCompatibilitySettingsTab({
     setWinePrefixPath(game.winePrefixPath ?? null);
     setAutoRunGamemode(game.autoRunGamemode ?? false);
     setAutoRunMangohud(game.autoRunMangohud ?? false);
+    setProtonLogEnabled(game.protonLogEnabled ?? false);
   }, [game]);
 
   useEffect(() => {
@@ -202,8 +207,17 @@ export function GameCompatibilitySettingsTab({
     [electron, game.shop, game.objectId]
   );
 
+  const handleToggleProtonLog = useCallback(
+    async (checked: boolean) => {
+      setProtonLogEnabled(checked);
+      await electron.toggleGameProtonLog(game.shop, game.objectId, checked);
+    },
+    [electron, game.shop, game.objectId]
+  );
+
   const globalAutoRunGamemode = userPreferences?.autoRunGamemode ?? false;
   const globalAutoRunMangohud = userPreferences?.autoRunMangohud ?? false;
+  const globalProtonLogEnabled = userPreferences?.protonLogEnabled ?? false;
 
   const gamemodeDisabled = !gamemodeAvailable || globalAutoRunGamemode;
   const mangohudDisabled = !mangohudAvailable || globalAutoRunMangohud;
@@ -343,6 +357,22 @@ export function GameCompatibilitySettingsTab({
           block
           onChange={(checked) => {
             handleToggleMangohud(checked).catch(() => {});
+          }}
+        />
+
+        <Checkbox
+          id="game-compatibility-settings-proton-log"
+          label="Proton logging"
+          secondaryText={
+            globalProtonLogEnabled
+              ? "This option is disabled because Proton logging is enabled globally"
+              : "Write Proton debug logs for this game. Overrides the global setting."
+          }
+          checked={protonLogEnabled || globalProtonLogEnabled}
+          disabled={globalProtonLogEnabled}
+          block
+          onChange={(checked) => {
+            handleToggleProtonLog(checked).catch(() => {});
           }}
         />
       </SettingsSection>

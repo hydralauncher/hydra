@@ -6,11 +6,18 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
 
-import { Button, Checkbox, Radio, VerticalFocusGroup } from "../../components";
+import {
+  Button,
+  Checkbox,
+  FocusItem,
+  Radio,
+  VerticalFocusGroup,
+} from "../../components";
 import { useUserPreferences, useBigPictureToast } from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
@@ -24,6 +31,10 @@ import {
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 
+const COMPATIBILITY_PROTON_LOGGING_FOCUS_ID = "compatibility-proton-logging";
+const COMPATIBILITY_ENV_VARS_INPUT_ID =
+  "compatibility-environment-variables-input";
+
 interface SettingsSectionProps {
   className?: string;
 }
@@ -32,12 +43,16 @@ interface CompatibilityForm {
   defaultProtonPath: string;
   autoRunGamemode: boolean;
   autoRunMangohud: boolean;
+  protonLogEnabled: boolean;
+  compatibilityEnvironmentVariables: string;
 }
 
 interface CompatibilityPreferenceValues {
   defaultProtonPath?: string | null;
+  compatibilityEnvironmentVariables?: string | null;
   autoRunGamemode?: boolean;
   autoRunMangohud?: boolean;
+  protonLogEnabled?: boolean;
 }
 
 interface CompatibilityItem {
@@ -58,6 +73,8 @@ const DEFAULT_FORM: CompatibilityForm = {
   defaultProtonPath: "",
   autoRunGamemode: false,
   autoRunMangohud: false,
+  protonLogEnabled: false,
+  compatibilityEnvironmentVariables: "",
 };
 
 function getProtonSourceDescription(version: ProtonVersion | null) {
@@ -87,6 +104,7 @@ export function CompatibilitySettingsSection({
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
   const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(false);
   const [installingCommonRedist, setInstallingCommonRedist] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const isDev = import.meta.env.DEV;
   const isLinux = globalThis.window.electron.platform === "linux";
@@ -105,6 +123,9 @@ export function CompatibilitySettingsSection({
       defaultProtonPath: userPreferences.defaultProtonPath ?? "",
       autoRunGamemode: userPreferences.autoRunGamemode ?? false,
       autoRunMangohud: userPreferences.autoRunMangohud ?? false,
+      protonLogEnabled: userPreferences.protonLogEnabled ?? false,
+      compatibilityEnvironmentVariables:
+        userPreferences.compatibilityEnvironmentVariables ?? "",
     });
   }, [userPreferences]);
 
@@ -204,6 +225,10 @@ export function CompatibilitySettingsSection({
           values.defaultProtonPath === undefined
             ? currentForm.defaultProtonPath
             : (values.defaultProtonPath ?? ""),
+        compatibilityEnvironmentVariables:
+          values.compatibilityEnvironmentVariables === undefined
+            ? currentForm.compatibilityEnvironmentVariables
+            : (values.compatibilityEnvironmentVariables ?? ""),
       }));
 
       await globalThis.window.electron.updateUserPreferences(values);
@@ -387,6 +412,69 @@ export function CompatibilitySettingsSection({
               ) : null}
             </div>
           ),
+        },
+        {
+          focusId: COMPATIBILITY_PROTON_LOGGING_FOCUS_ID,
+          disabled: !canUseBehaviorSection,
+          render: () => (
+            <div
+              key={COMPATIBILITY_PROTON_LOGGING_FOCUS_ID}
+              className="compatibility-settings-section__behavior-item"
+            >
+              <Checkbox
+                id={COMPATIBILITY_PROTON_LOGGING_FOCUS_ID}
+                label="Enable Proton logging"
+                secondaryText="Write Proton debug logs for compatibility launches."
+                checked={form.protonLogEnabled}
+                disabled={!canUseBehaviorSection}
+                focusId={COMPATIBILITY_PROTON_LOGGING_FOCUS_ID}
+                block
+                onChange={(checked) => {
+                  void updateCompatibilityPreferences({
+                    protonLogEnabled: checked,
+                  });
+                }}
+              />
+
+              <FocusItem
+                id={COMPATIBILITY_ENV_VARS_INPUT_ID}
+                actions={{ primary: () => textareaRef.current?.focus() }}
+              >
+                <div className="compatibility-settings-section__env-vars-group">
+                  <label
+                    htmlFor="compatibility-environment-variables"
+                    className="compatibility-settings-section__env-vars-label"
+                  >
+                    Compatibility environment variables
+                  </label>
+                  <textarea
+                    ref={textareaRef}
+                    id="compatibility-environment-variables"
+                    className="compatibility-settings-section__env-vars-textarea"
+                    value={form.compatibilityEnvironmentVariables}
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      setForm((prev) => ({
+                        ...prev,
+                        compatibilityEnvironmentVariables: nextValue,
+                      }));
+                    }}
+                    onBlur={() => {
+                      void updateCompatibilityPreferences({
+                        compatibilityEnvironmentVariables:
+                          form.compatibilityEnvironmentVariables || null,
+                      });
+                    }}
+                    placeholder={`PROTON_FSR4_UPGRADE=1\nMANGOHUD=1\n# One variable per line`}
+                    rows={5}
+                  />
+                  <p className="compatibility-settings-section__env-vars-help">
+                    Applies these variables to every compatibility launch.
+                  </p>
+                </div>
+              </FocusItem>
+            </div>
+          ),
         }
       );
     }
@@ -506,7 +594,8 @@ export function CompatibilitySettingsSection({
               .filter(
                 (item) =>
                   item.focusId === COMPATIBILITY_GAMEMODE_FOCUS_ID ||
-                  item.focusId === COMPATIBILITY_MANGOHUD_FOCUS_ID
+                  item.focusId === COMPATIBILITY_MANGOHUD_FOCUS_ID ||
+                  item.focusId === COMPATIBILITY_PROTON_LOGGING_FOCUS_ID
               )
               .map((item) =>
                 item.render(navigationOverridesByFocusId[item.focusId] ?? {})
