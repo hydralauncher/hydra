@@ -65,7 +65,6 @@ interface JsDownloadOptions {
 }
 
 interface PreparedJsDownload {
-  downloadId: string;
   uri: string;
   resolvedAt: number;
   options: JsDownloadOptions;
@@ -108,7 +107,10 @@ export class DownloadManager {
   } | null = null;
   private static queueHeldForDiskSpace = false;
   private static lastQueueRetry = 0;
-  private static preparedJsDownload: PreparedJsDownload | null = null;
+  private static readonly preparedJsDownloads = new Map<
+    string,
+    PreparedJsDownload
+  >();
   private static readonly PREPARED_JS_DOWNLOAD_TTL_MS = 120_000;
 
   public static hasActiveDownload() {
@@ -1791,7 +1793,8 @@ export class DownloadManager {
   static async validateDownloadUrl(download: Download): Promise<void> {
     if (!this.isHttpDownloader(download.downloader)) return;
 
-    this.preparedJsDownload = null;
+    const downloadId = levelKeys.game(download.shop, download.objectId);
+    this.preparedJsDownloads.delete(downloadId);
 
     const options = await this.getJsDownloadOptions(download);
     if (!options) {
@@ -1800,23 +1803,31 @@ export class DownloadManager {
 
     await this.validateJsDownloadResponse(options);
 
-    this.preparedJsDownload = {
-      downloadId: levelKeys.game(download.shop, download.objectId),
+    this.prunePreparedJsDownloads();
+    this.preparedJsDownloads.set(downloadId, {
       uri: download.uri,
       resolvedAt: Date.now(),
       options,
-    };
+    });
+  }
+
+  private static prunePreparedJsDownloads() {
+    for (const [key, prepared] of this.preparedJsDownloads) {
+      if (Date.now() - prepared.resolvedAt > this.PREPARED_JS_DOWNLOAD_TTL_MS) {
+        this.preparedJsDownloads.delete(key);
+      }
+    }
   }
 
   private static takePreparedJsDownload(
     download: Download,
     downloadId: string
   ): JsDownloadOptions | null {
-    const prepared = this.preparedJsDownload;
-    this.preparedJsDownload = null;
-
+    const prepared = this.preparedJsDownloads.get(downloadId);
     if (!prepared) return null;
-    if (prepared.downloadId !== downloadId) return null;
+
+    this.preparedJsDownloads.delete(downloadId);
+
     if (prepared.uri !== download.uri) return null;
     if (Date.now() - prepared.resolvedAt > this.PREPARED_JS_DOWNLOAD_TTL_MS) {
       return null;
