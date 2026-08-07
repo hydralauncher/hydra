@@ -128,6 +128,17 @@ export function SettingsContextEmulation() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = window.electron.onLibraryBatchComplete(() => {
+      void refresh();
+      void refreshRetroArch();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [refresh, refreshRetroArch]);
+
+  useEffect(() => {
     if (deepLinkAppliedRef.current || !configs || !retroArchConfig) return;
     const system = searchParams.get("system");
     if (system === "retroarch") {

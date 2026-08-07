@@ -1,5 +1,6 @@
 export * from "./retroarch-cores";
 export * from "./retroarch-repository";
+export * from "./retroarch-library-stats";
 export * from "./detect-retroarch";
 export * from "./retroarch-install-sources";
 export * from "./retroarch-core-installer";

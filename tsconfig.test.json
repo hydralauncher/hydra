@@ -10,8 +10,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "types": ["node", "electron-vite/node"]
-  },
-  "ts-node": {
-    "experimentalSpecifierResolution": "node"
   }
 }

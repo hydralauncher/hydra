@@ -315,6 +315,10 @@ export class GameFilesManager {
     }
 
     await this.persistLinkedDiscs(game, roms, linked, "ROM(s)");
+
+    if (linked > 0) {
+      await retroarch.refreshRetroArchLibraryStats();
+    }
   }
 
   private async linkClassicsDiscsFromScan(
