@@ -11,7 +11,6 @@ import { appVersion } from "@main/constants";
 import { DownloadError } from "@shared";
 import { logger } from "../logger";
 
-const READY_DOWNLOAD_STATES = new Set(["completed", "cached"]);
 const READINESS_POLL_ATTEMPTS = 6;
 const READINESS_POLL_DELAY_MS = 1000;
 const MY_LIST_PAGE_SIZE = 1000;
@@ -125,9 +124,7 @@ export class TorBoxClient {
   }
 
   private static isReady(torrent: TorBoxTorrentInfo) {
-    return (
-      READY_DOWNLOAD_STATES.has(torrent.download_state) || torrent.progress >= 1
-    );
+    return Boolean(torrent.download_finished && torrent.download_present);
   }
 
   private static async waitForTorrentReady(id: number) {
@@ -137,7 +134,7 @@ export class TorBoxClient {
       if (torrent && this.isReady(torrent)) return torrent;
 
       logger.log(
-        `[TorBox] Torrent ${id} not downloadable yet (state=${torrent?.download_state ?? "unknown"}, attempt ${attempt}/${READINESS_POLL_ATTEMPTS})`
+        `[TorBox] Torrent ${id} not downloadable yet (state=${torrent?.download_state ?? "unknown"}, finished=${torrent?.download_finished}, present=${torrent?.download_present}, attempt ${attempt}/${READINESS_POLL_ATTEMPTS})`
       );
 
       if (attempt < READINESS_POLL_ATTEMPTS) {
