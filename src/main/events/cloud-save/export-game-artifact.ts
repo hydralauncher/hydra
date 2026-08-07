@@ -15,6 +15,8 @@ import {
 import { requestGameArtifactDownload } from "./game-artifact-download";
 import { gameArtifactExportCoordinator } from "./game-artifact-export-coordinator";
 
+const UNKNOWN_TOTAL_PROGRESS_REPORT_INTERVAL_BYTES = 1024 * 1024;
+
 const exportGameArtifact = async (
   event: Electron.IpcMainInvokeEvent,
   operationId: string,
@@ -83,7 +85,8 @@ const exportGameArtifact = async (
           const shouldReportUnknownTotal =
             percentage === null &&
             (lastReportedBytes < 0 ||
-              downloadedBytes - lastReportedBytes >= 1024 * 1024);
+              downloadedBytes - lastReportedBytes >=
+                UNKNOWN_TOTAL_PROGRESS_REPORT_INTERVAL_BYTES);
 
           if (!force && !shouldReportKnownTotal && !shouldReportUnknownTotal) {
             return;
