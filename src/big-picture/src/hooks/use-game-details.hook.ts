@@ -157,7 +157,8 @@ export function useGameDetails(objectId: string, shop: GameShop) {
           game.shop,
           game.objectId,
           discPath,
-          force
+          force,
+          "big-picture"
         );
         return;
       }
@@ -169,7 +170,8 @@ export function useGameDetails(objectId: string, shop: GameShop) {
         game.shop,
         game.objectId,
         game.executablePath,
-        game.launchOptions
+        game.launchOptions,
+        "big-picture"
       );
     },
     [game]
