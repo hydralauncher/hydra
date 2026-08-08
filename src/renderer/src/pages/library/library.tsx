@@ -65,6 +65,8 @@ const SORT_OPTIONS: SortOption[] = [
   "achievements",
   "installed_first",
   "title_desc",
+  "release_date",
+  "new_updates",
 ];
 
 export default function Library() {
@@ -187,7 +189,7 @@ export default function Library() {
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const dispatch = useAppDispatch();
-  const { t } = useTranslation(["library", "sidebar"]);
+  const { t, i18n } = useTranslation(["library", "sidebar"]);
 
   const selectedCollectionId = searchParams.get("collection");
 
@@ -215,6 +217,17 @@ export default function Library() {
     setSortBy(nextSortBy);
     localStorage.setItem("library-sort-by", nextSortBy);
   }, []);
+
+  useEffect(() => {
+    if (sortBy === "release_date") {
+      window.electron
+        .refreshLibraryReleaseDates?.(i18n.language)
+        .catch(() => {});
+    } else if (sortBy === "new_updates") {
+      window.electron.refreshLibraryUpdateDates?.().catch(() => {});
+      window.electron.checkForNewUpdates?.().catch(() => {});
+    }
+  }, [sortBy, i18n.language]);
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
