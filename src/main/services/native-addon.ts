@@ -5,16 +5,26 @@ import { Worker } from "node:worker_threads";
 
 import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
-import type { HydraAudioDevice } from "@types";
+import type {
+  BuildLocalGameSnapshotPipelineInput,
+  BuildSnapshotAggregateHashInput,
+  DeleteLocalSaveTarget,
+  DeleteLocalSaveTargetsResult,
+  GameSaveRules,
+  GetSaveRulesForGameInput,
+  NativeLocalGameSnapshotPipelineResult,
+  ReplaceRestoreTarget,
+  ReplaceRestoreTargetsResult,
+  ResolveRestoreTargetsInput,
+  ResolveRestoreTargetsResult,
+  ShouldSkipRestoreFileInput,
+  VerifyDownloadedRestoreFileResult,
+  CheckCloudSaveCustomPathOverlapInput,
+  CheckCloudSaveCustomPathOverlapResult,
+  HydraAudioDevice,
+} from "@types";
 
 import { logger } from "./logger";
-
-type NativeDisplayBounds = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
 
 type NativeProcessProfileImageResponse = {
   imagePath?: string;
@@ -26,6 +36,13 @@ type NativeProcessProfileImageResponse = {
 type NativeProcessFriendImageResponse = NativeProcessProfileImageResponse & {
   isAnimated?: boolean;
   is_animated?: boolean;
+};
+
+type NativeDisplayBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 };
 
 type HydraNativeModule = {
@@ -48,6 +65,53 @@ type HydraNativeModule = {
   listAudioRenderDevices?: () => HydraAudioDevice[];
   getDefaultAudioRenderDeviceId?: () => string | null;
   setDefaultAudioRenderDeviceId?: (id: string) => boolean;
+  buildLocalGameSnapshotPipeline: (
+    input: BuildLocalGameSnapshotPipelineInput
+  ) => Promise<NativeLocalGameSnapshotPipelineResult>;
+  getSaveRulesForGame: (
+    input: GetSaveRulesForGameInput
+  ) => Promise<GameSaveRules>;
+  buildSnapshotAggregateHash: (
+    input: BuildSnapshotAggregateHashInput
+  ) => string;
+  checkCloudSaveCustomPathOverlap: (
+    input: CheckCloudSaveCustomPathOverlapInput
+  ) => CheckCloudSaveCustomPathOverlapResult;
+  uploadLocalSaveBlob: (
+    absolutePath: string,
+    uploadUrl: string,
+    contentLength: string,
+    checksumSha256: string
+  ) => Promise<void>;
+  resolveRestoreTargets: (
+    input: ResolveRestoreTargetsInput
+  ) => Promise<ResolveRestoreTargetsResult>;
+  downloadRestoreBlobToTemp: (
+    snapshotId: string,
+    hash: string,
+    expectedSizeBytes: number,
+    downloadUrl: string,
+    tempRoot: string
+  ) => Promise<string>;
+  verifyDownloadedRestoreFile: (
+    tempPath: string,
+    expectedHash: string
+  ) => Promise<VerifyDownloadedRestoreFileResult>;
+  shouldSkipRestoreFile: (
+    localPath: string,
+    expectedHash: string
+  ) => Promise<boolean>;
+  replaceRestoreTargets: (
+    files: ReplaceRestoreTarget[]
+  ) => Promise<ReplaceRestoreTargetsResult>;
+  deleteLocalSaveTargets: (
+    files: DeleteLocalSaveTarget[],
+    cleanupRootPaths?: string[]
+  ) => Promise<DeleteLocalSaveTargetsResult>;
+  cleanupRestoreTempSnapshot: (
+    snapshotId: string,
+    tempRoot: string
+  ) => Promise<void>;
 };
 
 export type SystemProcessMap = {
@@ -122,7 +186,7 @@ parentPort.on('message', (type) => {
     }
   } catch (_) {
     if (type === 'map') {
-      parentPort.postMessage({ type: 'map', result: { processMap: {}, winePrefixMap: {}, linuxProcesses: [] } });
+      parentPort.postMessage({ type: 'map', result: null });
     } else {
       parentPort.postMessage({ type: 'list', result: [] });
     }
@@ -132,12 +196,12 @@ parentPort.on('message', (type) => {
 
 type PendingResolver =
   | { type: "list"; resolve: (p: ProcessPayload[]) => void }
-  | { type: "map"; resolve: (m: SystemProcessMap) => void };
+  | { type: "map"; resolve: (m: SystemProcessMap | null) => void };
 
 export class NativeAddon {
   private static nativeModule: HydraNativeModule | null = null;
   private static worker: Worker | null = null;
-  private static readonly pendingResolvers: PendingResolver[] = [];
+  private static pendingResolvers: PendingResolver[] = [];
 
   private static resolveAddonPath() {
     if (app.isPackaged) {
@@ -203,8 +267,8 @@ export class NativeAddon {
           )
         );
       } else {
-        (pending.resolve as (m: SystemProcessMap) => void)(
-          result as SystemProcessMap
+        (pending.resolve as (m: SystemProcessMap | null) => void)(
+          result as SystemProcessMap | null
         );
       }
     });
@@ -291,12 +355,7 @@ export class NativeAddon {
     const drained = this.pendingResolvers.splice(0);
     for (const pending of drained) {
       if (pending.type === "list") pending.resolve([]);
-      else
-        pending.resolve({
-          processMap: {},
-          winePrefixMap: {},
-          linuxProcesses: [],
-        });
+      else pending.resolve(null);
     }
   }
 
@@ -312,14 +371,14 @@ export class NativeAddon {
     });
   }
 
-  public static getSystemProcessMap(): Promise<SystemProcessMap> {
+  public static getSystemProcessMap(): Promise<SystemProcessMap | null> {
     return new Promise((resolve) => {
       try {
         const worker = this.getWorker();
         this.pendingResolvers.push({ type: "map", resolve });
         worker.postMessage("map");
       } catch {
-        resolve({ processMap: {}, winePrefixMap: {}, linuxProcesses: [] });
+        resolve(null);
       }
     });
   }
@@ -389,5 +448,93 @@ export class NativeAddon {
       logger.error("Failed to set default audio render device", error);
       return false;
     }
+  }
+
+  public static buildLocalGameSnapshotPipeline(
+    input: BuildLocalGameSnapshotPipelineInput
+  ) {
+    return this.load().buildLocalGameSnapshotPipeline(input);
+  }
+
+  public static getSaveRulesForGame(input: GetSaveRulesForGameInput) {
+    return this.load().getSaveRulesForGame(input);
+  }
+
+  public static checkCloudSaveCustomPathOverlap(
+    input: CheckCloudSaveCustomPathOverlapInput
+  ) {
+    return this.load().checkCloudSaveCustomPathOverlap(input);
+  }
+
+  public static buildSnapshotAggregateHash(
+    input: BuildSnapshotAggregateHashInput
+  ) {
+    return this.load().buildSnapshotAggregateHash(input);
+  }
+
+  public static uploadLocalSaveBlob(
+    absolutePath: string,
+    uploadUrl: string,
+    contentLength: string,
+    checksumSha256: string
+  ) {
+    return this.load().uploadLocalSaveBlob(
+      absolutePath,
+      uploadUrl,
+      contentLength,
+      checksumSha256
+    );
+  }
+
+  public static resolveRestoreTargets(input: ResolveRestoreTargetsInput) {
+    return this.load().resolveRestoreTargets(input);
+  }
+
+  public static downloadRestoreBlobToTemp(
+    snapshotId: string,
+    hash: string,
+    expectedSizeBytes: number,
+    downloadUrl: string,
+    tempRoot: string
+  ) {
+    return this.load().downloadRestoreBlobToTemp(
+      snapshotId,
+      hash,
+      expectedSizeBytes,
+      downloadUrl,
+      tempRoot
+    );
+  }
+
+  public static verifyDownloadedRestoreFile(
+    tempPath: string,
+    expectedHash: string
+  ) {
+    return this.load().verifyDownloadedRestoreFile(tempPath, expectedHash);
+  }
+
+  public static shouldSkipRestoreFile(input: ShouldSkipRestoreFileInput) {
+    return this.load().shouldSkipRestoreFile(
+      input.localPath,
+      input.expectedHash
+    );
+  }
+
+  public static replaceRestoreTargets(files: ReplaceRestoreTarget[]) {
+    return this.load().replaceRestoreTargets(files);
+  }
+
+  public static deleteLocalSaveTargets(
+    files: DeleteLocalSaveTarget[],
+    cleanupRootPaths?: string[]
+  ) {
+    return this.load().deleteLocalSaveTargets(files, cleanupRootPaths);
+  }
+
+  public static cleanupRestoreTempSnapshot(
+    snapshotId: string,
+    tempRoot: string
+  ) {
+    return this.load().cleanupRestoreTempSnapshot(snapshotId, tempRoot);
   }
 }

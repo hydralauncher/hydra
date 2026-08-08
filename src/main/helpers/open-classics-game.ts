@@ -1,9 +1,11 @@
 import { existsSync } from "node:fs";
 
 import { gamesSublevel, levelKeys } from "@main/level";
-import { logger, NativeAddon } from "@main/services";
-import type { GameShop, LaunchSource } from "@types";
+import { DisplayManager, logger, NativeAddon } from "@main/services";
+import type { GameShop, LaunchSource, RetroArchPlatform } from "@types";
 import { launchClassicsGame } from "./launch-classics-game";
+import { launchRetroArchGame } from "./launch-retroarch-game";
+import { platformToRetroArchPlatform } from "./platform-to-retroarch-platform";
 import { platformToSystem } from "./platform-to-system";
 
 const codedLaunchError = (
@@ -130,6 +132,50 @@ const translateLaunchError = (
   return error;
 };
 
+const launchRetroArchWithErrors = async (
+  shop: GameShop,
+  objectId: string,
+  romPath: string,
+  platform: RetroArchPlatform,
+  launchSource: LaunchSource
+): Promise<void> => {
+  const code = (error: unknown) =>
+    error && typeof error === "object" && "code" in error ? error.code : null;
+
+  try {
+    if (launchSource === "big-picture") {
+      await DisplayManager.prepareBigPictureDisplayForLaunch();
+    }
+
+    await launchRetroArchGame({ shop, objectId, romPath, platform });
+  } catch (error) {
+    if (code(error) === "RETROARCH_NOT_CONFIGURED") {
+      throw Object.assign(
+        codedLaunchError(
+          "RETROARCH_NOT_CONFIGURED",
+          `RETROARCH_NOT_CONFIGURED: RetroArch not configured for ${platform}`,
+          { objectId, platform }
+        ),
+        { system: "retroarch" }
+      );
+    }
+
+    if (code(error) === "CORE_NOT_INSTALLED") {
+      throw Object.assign(
+        codedLaunchError(
+          "CORE_NOT_INSTALLED",
+          `CORE_NOT_INSTALLED: Core not installed for ${platform}`,
+          { objectId, platform }
+        ),
+        { system: "retroarch" }
+      );
+    }
+
+    logger.error("Failed to launch RetroArch game", error);
+    throw error;
+  }
+};
+
 export const openClassicsGame = async (
   shop: GameShop,
   objectId: string,
@@ -144,6 +190,28 @@ export const openClassicsGame = async (
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
   if (!game) throw new Error(`Game not found: ${gameKey}`);
+
+  const retroArchPlatform = platformToRetroArchPlatform(game.platform);
+  if (retroArchPlatform) {
+    const resolvedRomPath =
+      discPath ?? game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
+    if (!resolvedRomPath || !existsSync(resolvedRomPath)) {
+      throw codedLaunchError(
+        "NO_DISC",
+        `NO_DISC: No ROM available for game ${objectId}`,
+        { objectId, platform: retroArchPlatform, resolvedRomPath }
+      );
+    }
+
+    await launchRetroArchWithErrors(
+      shop,
+      objectId,
+      resolvedRomPath,
+      retroArchPlatform,
+      launchSource
+    );
+    return;
+  }
 
   const system = platformToSystem(game.platform);
   if (!system) {

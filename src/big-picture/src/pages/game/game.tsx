@@ -36,6 +36,7 @@ import {
   SupportedLanguages,
 } from "../../components/pages/game";
 import { useGameSettingsModalState } from "../../components/pages/game/game-settings-modal/use-game-settings-modal-state";
+import { BigPictureCloudSaveProvider } from "../../components/pages/game/cloud-save-v2";
 import {
   useBigPictureToast,
   useGameDetails,
@@ -96,6 +97,74 @@ const DESCRIPTION_SCROLL_EDGE_TOLERANCE = 4;
 const DESCRIPTION_FOCUS_ENTRY_MARGIN = 32;
 const DESCRIPTION_SCROLL_ANIMATION_DURATION = 220;
 const DESCRIPTION_RETURN_MIN_VISIBLE_RATIO = 0.5;
+
+type ClassicsLaunchErrorCode = NonNullable<
+  ReturnType<typeof getClassicsLaunchErrorCode>
+>;
+
+interface ClassicsLaunchNotice {
+  title: string;
+  message: string;
+  kind: "error" | "success";
+  opensSettings?: boolean;
+}
+
+const CLASSICS_LAUNCH_FALLBACK: ClassicsLaunchNotice = {
+  title: "Launch failed",
+  message: "Hydra could not launch this Classics game.",
+  kind: "error",
+};
+
+const CLASSICS_LAUNCH_NOTICES: Partial<
+  Record<ClassicsLaunchErrorCode, ClassicsLaunchNotice>
+> = {
+  EMULATOR_NOT_CONFIGURED: {
+    title: "Emulator not configured",
+    message: "Configure the emulator for this platform before launching.",
+    kind: "error",
+    opensSettings: true,
+  },
+  BIOS_NOT_CONFIGURED: {
+    title: "BIOS not configured",
+    message: "Add the BIOS files for this platform before launching.",
+    kind: "error",
+    opensSettings: true,
+  },
+  RETROARCH_NOT_CONFIGURED: {
+    title: "RetroArch not configured",
+    message: "Configure RetroArch before launching this game.",
+    kind: "error",
+    opensSettings: true,
+  },
+  CORE_NOT_INSTALLED: {
+    title: "Core not installed",
+    message: "Download the RetroArch core for this platform before launching.",
+    kind: "error",
+    opensSettings: true,
+  },
+  PLATFORM_UNKNOWN: {
+    title: "Platform not supported",
+    message: "Hydra could not identify an emulator for this platform.",
+    kind: "error",
+  },
+  NO_DISC: {
+    title: "No disc found",
+    message: "Add or rescan discs for this Classics game before launching.",
+    kind: "error",
+  },
+  PKG_INSTALLING: {
+    title: "Installing PKG",
+    message:
+      "Installing the package in RPCS3. Once it finishes, press Play again to launch the game.",
+    kind: "success",
+  },
+  PKG_UNREADABLE: {
+    title: "Unsupported PKG",
+    message:
+      "Hydra could not read this package. Install and launch it from RPCS3 directly.",
+    kind: "error",
+  },
+};
 
 const REGION_LABELS: Record<SkuRegion, string> = {
   US: "United States",
@@ -614,59 +683,32 @@ export default function Game() {
       } catch (error) {
         const code = getClassicsLaunchErrorCode(error);
 
-        if (code === "EMULATOR_NOT_CONFIGURED") {
-          showErrorToast("Emulator not configured", {
-            message:
-              "Configure the emulator for this platform before launching.",
-            fallbackVisual: "settings",
-            action: {
-              label: "Open Settings",
-              onClick: () => navigate("/settings"),
-            },
-          });
-          navigate("/settings");
-          return;
-        }
-
-        if (code === "PLATFORM_UNKNOWN") {
-          showErrorToast("Platform not supported", {
-            message: "Hydra could not identify an emulator for this platform.",
-          });
-          return;
-        }
-
-        if (code === "NO_DISC") {
-          showErrorToast("No disc found", {
-            message:
-              "Add or rescan discs for this Classics game before launching.",
-          });
-          return;
-        }
-
-        if (code === "PKG_INSTALLING") {
-          showSuccessToast("Installing PKG", {
-            message:
-              "Installing the package in RPCS3. Once it finishes, press Play again to launch the game.",
-          });
-          return;
-        }
-
-        if (code === "PKG_UNREADABLE") {
-          showErrorToast("Unsupported PKG", {
-            message:
-              "Hydra could not read this package. Install and launch it from RPCS3 directly.",
-          });
-          return;
-        }
-
         if (code === "EMULATOR_ALREADY_RUNNING") {
           setPendingClassicsLaunch({ discPath });
           return;
         }
 
-        showErrorToast("Launch failed", {
-          message: "Hydra could not launch this Classics game.",
-        });
+        const notice =
+          (code && CLASSICS_LAUNCH_NOTICES[code]) ?? CLASSICS_LAUNCH_FALLBACK;
+
+        const options = notice.opensSettings
+          ? {
+              message: notice.message,
+              fallbackVisual: "settings" as const,
+              action: {
+                label: "Open Settings",
+                onClick: () => navigate("/settings"),
+              },
+            }
+          : { message: notice.message };
+
+        if (notice.kind === "success") {
+          showSuccessToast(notice.title, options);
+        } else {
+          showErrorToast(notice.title, options);
+        }
+
+        if (notice.opensSettings) navigate("/settings");
       }
     },
     [game, navigate, openGame, showErrorToast, showSuccessToast, updateGame]
@@ -1163,33 +1205,41 @@ export default function Game() {
   return (
     <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
       <div ref={pageRef} className="game-page">
-        <Hero
-          shopDetails={shopDetails}
-          game={game}
+        <BigPictureCloudSaveProvider
+          objectId={objectId!}
+          shop={shop!}
+          hasExecutablePath={Boolean(game?.executablePath)}
           isGameRunning={isGameRunning}
-          isFavorite={game?.favorite ?? false}
-          toggleFavorite={toggleFavorite}
-          onPlay={handlePlayGame}
-          onDownload={handleOpenDownloadModal}
-          onAddToLibrary={handleAddToLibrary}
-          onOpenDownloadOptions={handleOpenDownloadModal}
-          onOpenSettings={() => setIsGameSettingsModalOpen(true)}
-          onClose={closeGame}
-          isAddingToLibrary={isAddingToLibrary}
-          canAddToLibrary={canAddToLibrary}
-          downNavigationTarget={contentBelowHeroTarget}
-          sidebarEntryTarget={sidebarEntryTarget}
-        />
-        {game && launchSettings && customizationSettings && cloudSettings && (
-          <GameSettingsModal
-            visible={isGameSettingsModalOpen}
+          onSelectExecutable={() => setIsGameSettingsModalOpen(true)}
+        >
+          <Hero
+            shopDetails={shopDetails}
             game={game}
-            launchSettings={launchSettings}
-            customizationSettings={customizationSettings}
-            cloudSettings={cloudSettings}
-            onClose={() => setIsGameSettingsModalOpen(false)}
+            isGameRunning={isGameRunning}
+            isFavorite={game?.favorite ?? false}
+            toggleFavorite={toggleFavorite}
+            onPlay={handlePlayGame}
+            onDownload={handleOpenDownloadModal}
+            onAddToLibrary={handleAddToLibrary}
+            onOpenDownloadOptions={handleOpenDownloadModal}
+            onOpenSettings={() => setIsGameSettingsModalOpen(true)}
+            onClose={closeGame}
+            isAddingToLibrary={isAddingToLibrary}
+            canAddToLibrary={canAddToLibrary}
+            downNavigationTarget={contentBelowHeroTarget}
+            sidebarEntryTarget={sidebarEntryTarget}
           />
-        )}
+          {game && launchSettings && customizationSettings && cloudSettings && (
+            <GameSettingsModal
+              visible={isGameSettingsModalOpen}
+              game={game}
+              launchSettings={launchSettings}
+              customizationSettings={customizationSettings}
+              cloudSettings={cloudSettings}
+              onClose={() => setIsGameSettingsModalOpen(false)}
+            />
+          )}
+        </BigPictureCloudSaveProvider>
 
         <section className="game-page__content">
           <PlaytimeBar
