@@ -297,12 +297,10 @@ export function GameOptionsModal({
   }, [visible]);
 
   useEffect(() => {
-    if (game.shop !== "custom") {
-      globalThis.window.electron
-        .checkSteamShortcut(game.shop, game.objectId)
-        .then(setSteamShortcutExists)
-        .catch(() => setSteamShortcutExists(false));
-    }
+    globalThis.window.electron
+      .checkSteamShortcut(game.shop, game.objectId)
+      .then(setSteamShortcutExists)
+      .catch(() => setSteamShortcutExists(false));
   }, [game.shop, game.objectId]);
 
   useEffect(() => {

@@ -373,32 +373,33 @@ export function GeneralSettingsSection({
       Boolean(game.discs?.some((disc) => disc.path)));
   const transferGameLabel =
     gameSize > 0 ? `${game.title} (${fmt(gameSize)})` : game.title;
+  // Mirrors the context menu's gate (game-context-menu.tsx), which only
+  // requires an executable path — custom games have always been able to
+  // create a Steam shortcut from there, this tab just didn't offer it too.
   let steamShortcutButton: ReactNode = null;
 
-  if (game.shop !== "custom") {
-    if (steamShortcutExists) {
-      steamShortcutButton = (
-        <Button
-          onClick={onDeleteSteamShortcut}
-          theme="danger"
-          disabled={creatingSteamShortcut}
-        >
-          <SteamLogo />
-          {t("delete_steam_shortcut")}
-        </Button>
-      );
-    } else if (hasShortcutLaunchTarget) {
-      steamShortcutButton = (
-        <Button
-          onClick={onCreateSteamShortcut}
-          theme="outline"
-          disabled={creatingSteamShortcut}
-        >
-          <SteamLogo />
-          {t("create_steam_shortcut")}
-        </Button>
-      );
-    }
+  if (steamShortcutExists) {
+    steamShortcutButton = (
+      <Button
+        onClick={onDeleteSteamShortcut}
+        theme="danger"
+        disabled={creatingSteamShortcut}
+      >
+        <SteamLogo />
+        {t("delete_steam_shortcut")}
+      </Button>
+    );
+  } else if (hasShortcutLaunchTarget) {
+    steamShortcutButton = (
+      <Button
+        onClick={onCreateSteamShortcut}
+        theme="outline"
+        disabled={creatingSteamShortcut}
+      >
+        <SteamLogo />
+        {t("create_steam_shortcut")}
+      </Button>
+    );
   }
 
   useEffect(() => {
