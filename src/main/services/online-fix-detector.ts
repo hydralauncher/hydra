@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-
 export type OnlineFixProvider = "onlinefix" | "freetp" | "photon" | "unknown";
 
 export interface OnlineFixDetectionResult {
@@ -28,8 +27,16 @@ const KNOWN_ONLINEFIX_DLLS = new Map<string, string>([
 ]);
 
 const IGNORED_DIRS = new Set([
-  ".git", "assets", "audio", "content", "data", "engine",
-  "movies", "music", "node_modules", "sound",
+  ".git",
+  "assets",
+  "audio",
+  "content",
+  "data",
+  "engine",
+  "movies",
+  "music",
+  "node_modules",
+  "sound",
 ]);
 
 const MANIFEST_NAMES = new Set(["winmm.txt", "dlllist.txt"]);
@@ -56,7 +63,10 @@ function addOverride(state: ScanState, dllName: string, value = "n") {
   const key = canonicalDllKey(dllName);
   if (!key) return;
   if (!state.overrides.has(key)) {
-    state.overrides.set(key, `${path.parse(path.basename(dllName)).name}=${value}`);
+    state.overrides.set(
+      key,
+      `${path.parse(path.basename(dllName)).name}=${value}`
+    );
   }
 }
 
@@ -90,11 +100,7 @@ async function parseManifest(manifestPath: string, state: ScanState) {
       const dll = normalizeManifestDll(unquoted);
       if (!dll) continue;
 
-      addOverride(
-        state,
-        dll,
-        dll.toLowerCase() === "winmm.dll" ? "n,b" : "n"
-      );
+      addOverride(state, dll, dll.toLowerCase() === "winmm.dll" ? "n,b" : "n");
     }
   } catch (error) {
     state.warnings.push(`Could not read ${manifestPath}`);
