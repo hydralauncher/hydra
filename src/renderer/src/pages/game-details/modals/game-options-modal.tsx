@@ -123,6 +123,9 @@ export function GameOptionsModal({
     useState<SteamMatchSuggestion | null>(null);
   const [pendingSteamMatchAssets, setPendingSteamMatchAssets] =
     useState<ShopAssets | null>(null);
+  // Tracks which match is currently "active" so an asset fetch for a match
+  // the user has since changed away from can't clobber newer state.
+  const pendingSteamMatchRef = useRef<SteamMatchSuggestion | null>(null);
   const {
     suggestions: steamMatchSuggestions,
     isSearching: isSearchingSteamMatch,
@@ -249,6 +252,23 @@ export function GameOptionsModal({
   useEffect(() => {
     setGameTitle(game.title ?? "");
   }, [game.title]);
+  useEffect(() => {
+    // Restore the persisted Steam match (if any) so it isn't lost when the
+    // modal is reopened for an already-matched custom game.
+    const persistedMatch: SteamMatchSuggestion | null =
+      game.matchedSteamObjectId
+        ? {
+            objectId: game.matchedSteamObjectId,
+            shop: "steam",
+            title: game.title ?? "",
+            iconUrl: game.iconUrl ?? null,
+          }
+        : null;
+
+    pendingSteamMatchRef.current = persistedMatch;
+    setPendingSteamMatch(persistedMatch);
+    setPendingSteamMatchAssets(null);
+  }, [game.matchedSteamObjectId]);
   useEffect(() => {
     setSelectedProtonPath(game.protonPath ?? "");
   }, [game.protonPath]);
@@ -699,12 +719,14 @@ export function GameOptionsModal({
   ) => {
     setGameTitle(event.target.value);
     if (pendingSteamMatch) {
+      pendingSteamMatchRef.current = null;
       setPendingSteamMatch(null);
       setPendingSteamMatchAssets(null);
     }
   };
 
   const handleSelectSteamMatch = (suggestion: SteamMatchSuggestion) => {
+    pendingSteamMatchRef.current = suggestion;
     setPendingSteamMatch(suggestion);
     setGameTitle(suggestion.title);
     clearSteamMatchSuggestions();
@@ -712,13 +734,22 @@ export function GameOptionsModal({
 
     globalThis.window.electron
       .getGameAssets(suggestion.objectId, "steam")
-      .then(setPendingSteamMatchAssets)
+      .then((assets) => {
+        if (pendingSteamMatchRef.current?.objectId !== suggestion.objectId) {
+          return;
+        }
+        setPendingSteamMatchAssets(assets);
+      })
       .catch((error) => {
+        if (pendingSteamMatchRef.current?.objectId !== suggestion.objectId) {
+          return;
+        }
         logger.error("Failed to fetch matched Steam game assets", error);
       });
   };
 
   const handleClearSteamMatch = () => {
+    pendingSteamMatchRef.current = null;
     setPendingSteamMatch(null);
     setPendingSteamMatchAssets(null);
   };
@@ -765,6 +796,7 @@ export function GameOptionsModal({
       }
       await Promise.all([updateGame(), updateLibrary()]);
       setGameTitle(trimmed);
+      pendingSteamMatchRef.current = null;
       setPendingSteamMatch(null);
       setPendingSteamMatchAssets(null);
     } catch (error) {

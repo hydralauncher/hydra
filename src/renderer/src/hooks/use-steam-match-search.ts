@@ -18,9 +18,14 @@ export interface SteamMatchSuggestion {
 export function useSteamMatchSearch(query: string, enabled: boolean) {
   const [suggestions, setSuggestions] = useState<SteamMatchSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  // Tracks the most recently *started* request so an earlier request that
+  // resolves after a later one can't overwrite fresher suggestions.
+  const latestQueryRef = useRef<string | null>(null);
 
   const fetchSuggestions = useRef(
     debounce(async (searchQuery: string) => {
+      latestQueryRef.current = searchQuery;
+
       try {
         const results = await window.electron.hydraApi.get<
           SteamMatchSuggestion[]
@@ -29,12 +34,16 @@ export function useSteamMatchSearch(query: string, enabled: boolean) {
           needsAuth: false,
         });
 
+        if (latestQueryRef.current !== searchQuery) return;
         setSuggestions(results);
       } catch (error) {
+        if (latestQueryRef.current !== searchQuery) return;
         logger.error("Failed to fetch Steam match suggestions", error);
         setSuggestions([]);
       } finally {
-        setIsSearching(false);
+        if (latestQueryRef.current === searchQuery) {
+          setIsSearching(false);
+        }
       }
     }, 350)
   ).current;
@@ -43,6 +52,7 @@ export function useSteamMatchSearch(query: string, enabled: boolean) {
     const trimmed = query.trim();
 
     if (!enabled || trimmed.length < 2) {
+      latestQueryRef.current = null;
       setSuggestions([]);
       setIsSearching(false);
       return;

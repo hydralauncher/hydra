@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { FileDirectoryIcon, XIcon } from "@primer/octicons-react";
@@ -41,6 +41,9 @@ export function SidebarAddingCustomGameModal({
     null
   );
   const [matchedAssets, setMatchedAssets] = useState<ShopAssets | null>(null);
+  // Tracks which match is currently "active" so an asset fetch for a match
+  // the user has since changed away from can't clobber newer state.
+  const matchedGameRef = useRef<SteamMatchSuggestion | null>(null);
 
   const {
     suggestions: steamSuggestions,
@@ -95,12 +98,14 @@ export function SidebarAddingCustomGameModal({
     setGameName(event.target.value);
 
     if (matchedGame) {
+      matchedGameRef.current = null;
       setMatchedGame(null);
       setMatchedAssets(null);
     }
   };
 
   const handleSelectMatch = (suggestion: SteamMatchSuggestion) => {
+    matchedGameRef.current = suggestion;
     setMatchedGame(suggestion);
     setGameName(suggestion.title);
     clearSuggestions();
@@ -108,13 +113,18 @@ export function SidebarAddingCustomGameModal({
 
     window.electron
       .getGameAssets(suggestion.objectId, "steam")
-      .then(setMatchedAssets)
+      .then((assets) => {
+        if (matchedGameRef.current?.objectId !== suggestion.objectId) return;
+        setMatchedAssets(assets);
+      })
       .catch((error) => {
+        if (matchedGameRef.current?.objectId !== suggestion.objectId) return;
         logger.error("Failed to fetch matched Steam game assets", error);
       });
   };
 
   const handleClearMatch = () => {
+    matchedGameRef.current = null;
     setMatchedGame(null);
     setMatchedAssets(null);
   };
@@ -160,6 +170,7 @@ export function SidebarAddingCustomGameModal({
 
       setGameName("");
       setExecutablePath("");
+      matchedGameRef.current = null;
       setMatchedGame(null);
       setMatchedAssets(null);
       onClose();
@@ -177,6 +188,7 @@ export function SidebarAddingCustomGameModal({
     if (!isAdding) {
       setGameName("");
       setExecutablePath("");
+      matchedGameRef.current = null;
       setMatchedGame(null);
       setMatchedAssets(null);
       onClose();
