@@ -1,7 +1,7 @@
 import { WindowManager } from "./window-manager";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { createGame, trackGamePlaytime } from "./library-sync";
-import type { Game, GameRunning, UserPreferences } from "@types";
+import type { Game, GameRunning, GameShop, UserPreferences } from "@types";
 import axios from "axios";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
@@ -394,12 +394,33 @@ function onOpenGame(game: Game) {
     })
     .catch(() => {});
 
-  if (game.shop === "custom") return;
+  const matchedSteamObjectId =
+    game.shop === "custom" ? (game.matchedSteamObjectId ?? null) : null;
+
+  if (game.shop === "custom" && !matchedSteamObjectId) return;
+
+  const achievementsShop: GameShop = matchedSteamObjectId ? "steam" : game.shop;
+  const achievementsObjectId = matchedSteamObjectId ?? game.objectId;
 
   AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
-    game.shop,
-    game.objectId
+    achievementsShop,
+    achievementsObjectId
   );
+
+  // Custom games are never registered with the Hydra account library
+  // (no remoteId), so cloud save runs unconditionally here instead of
+  // going through the remoteId-gated branches below, which don't apply.
+  if (game.shop === "custom") {
+    void runAutomaticCloudSaveOnOpen({
+      ...game,
+      shop: achievementsShop,
+      objectId: achievementsObjectId,
+    }).catch((error: unknown) => {
+      handleAutomaticCloudSaveLifecycleError("open", game, error);
+    });
+
+    return;
+  }
 
   if (game.remoteId) {
     const deltaToSync = game.unsyncedDeltaPlayTimeInMilliseconds ?? 0;
@@ -552,7 +573,25 @@ const onCloseGame = (game: Game) => {
 
   gamesSublevel.put(gameKey, updatedGame);
 
-  if (game.shop === "custom") return;
+  const matchedSteamObjectId =
+    game.shop === "custom" ? (game.matchedSteamObjectId ?? null) : null;
+
+  if (game.shop === "custom" && !matchedSteamObjectId) return;
+
+  // Custom games are never registered with the Hydra account library
+  // (no remoteId), so cloud save runs unconditionally here instead of
+  // going through the remoteId-gated branches below, which don't apply.
+  if (game.shop === "custom") {
+    void runAutomaticCloudSaveOnClose({
+      ...game,
+      shop: "steam",
+      objectId: matchedSteamObjectId!,
+    }).catch((error: unknown) => {
+      handleAutomaticCloudSaveLifecycleError("close", game, error);
+    });
+
+    return;
+  }
 
   void runAutomaticCloudSaveOnClose(game).catch((error: unknown) => {
     handleAutomaticCloudSaveLifecycleError("close", game, error);
