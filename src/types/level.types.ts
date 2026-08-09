@@ -71,6 +71,7 @@ export interface Game {
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
   latestUpdateDate?: string | null;
+  releaseDateTimestamp?: number | null;
   installedSizeInBytes?: number | null;
   installerSizeInBytes?: number | null;
   steamShortcutAppId?: number;

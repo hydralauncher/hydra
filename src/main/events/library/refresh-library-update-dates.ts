@@ -9,14 +9,14 @@ import { chunk } from "lodash-es";
 
 let isFetching = false;
 
-const refreshLibraryUpdateDates = async (_event: any) => {
+const refreshLibraryUpdateDates = async () => {
   if (isFetching) return;
   isFetching = true;
 
   try {
     const installedGames = await gamesSublevel.values().all();
     const nonCustomGames = installedGames.filter(
-      (game) => game.shop !== "custom"
+      (game) => !game.isDeleted && game.shop !== "custom"
     );
 
     if (nonCustomGames.length === 0) {

@@ -189,7 +189,7 @@ export default function Library() {
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const dispatch = useAppDispatch();
-  const { t, i18n } = useTranslation(["library", "sidebar"]);
+  const { t } = useTranslation(["library", "sidebar"]);
 
   const selectedCollectionId = searchParams.get("collection");
 
@@ -220,14 +220,12 @@ export default function Library() {
 
   useEffect(() => {
     if (sortBy === "release_date") {
-      window.electron
-        .refreshLibraryReleaseDates?.(i18n.language)
-        .catch(() => {});
+      window.electron.refreshLibraryReleaseDates?.().catch(() => {});
     } else if (sortBy === "new_updates") {
       window.electron.refreshLibraryUpdateDates?.().catch(() => {});
       window.electron.checkForNewUpdates?.().catch(() => {});
     }
-  }, [sortBy, i18n.language]);
+  }, [sortBy]);
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));

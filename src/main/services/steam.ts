@@ -138,35 +138,44 @@ export const getSteamAppDetails = async (
   objectId: string,
   language: string
 ) => {
+  const details = await getSteamAppDetailsBatch([objectId], language);
+  return details.get(objectId) ?? null;
+};
+
+export const getSteamAppDetailsBatch = async (
+  objectIds: string[],
+  language: string
+) => {
+  const details = new Map<string, SteamAppDetails & { objectId: string }>();
+  if (objectIds.length === 0) return details;
+
   const searchParams = new URLSearchParams({
-    appids: objectId,
+    appids: objectIds.join(","),
     l: getSteamLanguage(language),
     cc: "us",
   });
 
-  return axios
+  await axios
     .get<SteamAppDetailsResponse>(
-      `http://store.steampowered.com/api/appdetails?${searchParams.toString()}`
+      `https://store.steampowered.com/api/appdetails?${searchParams.toString()}`
     )
     .then((response) => {
-      if (response.data[objectId].success) {
-        const data = response.data[objectId].data;
-        return {
-          ...data,
-          objectId,
-        };
+      for (const objectId of objectIds) {
+        const result = response.data[objectId];
+        if (result?.success && result.data) {
+          details.set(objectId, { ...result.data, objectId });
+        }
       }
-
-      return null;
     })
     .catch((err) => {
-      logger.error("Error on getSteamAppDetails", {
+      logger.error("Error on getSteamAppDetailsBatch", {
         message: err?.message,
         code: err?.code,
         name: err?.name,
       });
-      return null;
     });
+
+  return details;
 };
 
 export const getSteamUsersIds = async () => {

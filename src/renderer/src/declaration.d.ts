@@ -419,7 +419,7 @@ declare global {
       objectId: string
     ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
-    refreshLibraryReleaseDates: (language: string) => Promise<void>;
+    refreshLibraryReleaseDates: () => Promise<void>;
     refreshLibraryUpdateDates: () => Promise<void>;
     checkForNewUpdates: () => Promise<void>;
     getLibrary: () => Promise<LibraryGame[]>;
