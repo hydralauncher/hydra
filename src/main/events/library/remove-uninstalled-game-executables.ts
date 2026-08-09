@@ -10,12 +10,15 @@ interface RemovedGame {
   iconUrl: string | null;
 }
 
-const pathExists = async (filePath: string) => {
+const pathExists = async (filePath: string): Promise<boolean | undefined> => {
   try {
     await fs.promises.access(filePath);
     return true;
-  } catch {
-    return false;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "ENOTDIR") return false;
+    logger.warn(`[RemoveUninstalledGameExecutables] Skipping ${filePath}: ${(err as Error).message}`);
+    return undefined; // unavailable/unreadable — don't mark as removed
   }
 };
 
@@ -36,7 +39,8 @@ const removeUninstalledGameExecutables = async () => {
 
   for (const { key, game } of gamesToCheck) {
     const exePath = game.executablePath!;
-    if (!(await pathExists(exePath))) {
+    const exists = await pathExists(exePath);
+    if (exists === false) {
       await gamesSublevel.put(key, {
         ...updateGameExecutablePath(game, null),
         installedSizeInBytes: null,
