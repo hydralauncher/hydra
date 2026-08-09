@@ -54,6 +54,11 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     setGame(result);
   }, [objectId, shop]);
 
+  const matchedSteamObjectId =
+    shop === "custom" ? (game?.matchedSteamObjectId ?? null) : null;
+  const effectiveShop: GameShop = matchedSteamObjectId ? "steam" : shop;
+  const effectiveObjectId = matchedSteamObjectId ?? objectId;
+
   const fetchGameDetails = useCallback(
     async ({
       showLoadingState = false,
@@ -68,16 +73,19 @@ export function useGameDetails(objectId: string, shop: GameShop) {
 
       try {
         const shopDetailsPromise =
-          shop === "custom"
+          effectiveShop === "custom"
             ? Promise.resolve(null)
             : globalThis.window.electron
-                .getGameShopDetails(objectId, shop, language)
+                .getGameShopDetails(effectiveObjectId, effectiveShop, language)
                 .catch(() => null);
 
         const [statsResult, assets, shopDetailsResult] = await Promise.all([
-          shop === "custom"
+          effectiveShop === "custom"
             ? Promise.resolve(null)
-            : globalThis.window.electron.getGameStats(objectId, shop),
+            : globalThis.window.electron.getGameStats(
+                effectiveObjectId,
+                effectiveShop
+              ),
           globalThis.window.electron.getGameAssets(objectId, shop),
           shopDetailsPromise,
         ]);
@@ -93,7 +101,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
         setIsRefreshing(false);
       }
     },
-    [language, objectId, shop]
+    [effectiveObjectId, effectiveShop, language, objectId, shop]
   );
 
   const refreshGameDetails = useCallback(
@@ -108,29 +116,32 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   useEffect(() => {
     refreshGameDetails({ showLoadingState: true }).catch(() => {});
 
-    if (IS_DESKTOP && shop !== "custom") {
+    if (IS_DESKTOP && effectiveShop !== "custom") {
       globalThis.window.electron.hydraApi
         .get<HowLongToBeatCategory[] | null>(
-          `/games/${shop}/${objectId}/how-long-to-beat`,
+          `/games/${effectiveShop}/${effectiveObjectId}/how-long-to-beat`,
           { needsAuth: false }
         )
         .then(setHowLongToBeat)
         .catch(() => setHowLongToBeat(null));
 
       globalThis.window.electron.hydraApi
-        .get<ProtonDBData | null>(`/games/${shop}/${objectId}/protondb`, {
-          needsAuth: false,
-        })
+        .get<ProtonDBData | null>(
+          `/games/${effectiveShop}/${effectiveObjectId}/protondb`,
+          {
+            needsAuth: false,
+          }
+        )
         .then(setProtonDBData)
         .catch(() => setProtonDBData(null));
     } else {
       setHowLongToBeat(null);
       setProtonDBData(null);
     }
-  }, [objectId, refreshGameDetails, shop]);
+  }, [effectiveObjectId, effectiveShop, refreshGameDetails]);
 
   useEffect(() => {
-    if (!IS_DESKTOP || shop === "custom") {
+    if (!IS_DESKTOP || effectiveShop === "custom") {
       setAchievements([]);
       return;
     }
@@ -139,10 +150,13 @@ export function useGameDetails(objectId: string, shop: GameShop) {
 
     const request = shouldUseRetroAchievements
       ? globalThis.window.electron.getRetroAchievementsAchievements(
-          objectId,
-          shop
+          effectiveObjectId,
+          effectiveShop
         )
-      : globalThis.window.electron.getUnlockedAchievements(objectId, shop);
+      : globalThis.window.electron.getUnlockedAchievements(
+          effectiveObjectId,
+          effectiveShop
+        );
 
     request
       .then((result) => {
@@ -157,7 +171,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     return () => {
       isCurrentRequest = false;
     };
-  }, [objectId, shop, shouldUseRetroAchievements]);
+  }, [effectiveObjectId, effectiveShop, shouldUseRetroAchievements]);
 
   useEffect(() => {
     if (!IS_DESKTOP) return;
@@ -265,6 +279,8 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     preferredAssets,
     stats,
     game,
+    effectiveShop,
+    effectiveObjectId,
     isGameRunning,
     runningSessionDurationInMillis,
     isLoading,
