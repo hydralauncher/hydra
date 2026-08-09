@@ -6,7 +6,8 @@ import { downloadAchievementIcons } from "./download-achievement-icons";
 import { generateAchievementMetadata } from "./generate-achievement-metadata";
 
 const GENERATION_TIMEOUT_IN_MS = 15_000;
-const ICONS_TIMEOUT_IN_MS = 5 * 60_000;
+
+const abortControllers = new Map<string, AbortController>();
 
 const withTimeout = <T>(promise: Promise<T>, timeoutInMs: number) =>
   Promise.race([
@@ -16,12 +17,28 @@ const withTimeout = <T>(promise: Promise<T>, timeoutInMs: number) =>
     ),
   ]);
 
-/**
- * Runs during game launch: writes the emulator achievement metadata file when
- * it is missing, then downloads its icons in the background. Never rejects, and
- * never holds the launch for longer than the generation timeout.
- */
-export const runAchievementMetadataExport = async (game: Game) => {
+export const abortAchievementMetadataExport = (gameKey: string) => {
+  const abortController = abortControllers.get(gameKey);
+
+  if (!abortController) return;
+
+  abortControllers.delete(gameKey);
+  abortController.abort();
+
+  achievementsLogger.log(
+    `Stopped the achievement metadata export of ${gameKey}, the game was closed`
+  );
+};
+
+export const runAchievementMetadataExport = async (
+  gameKey: string,
+  game: Game
+) => {
+  abortAchievementMetadataExport(gameKey);
+
+  const abortController = new AbortController();
+  abortControllers.set(gameKey, abortController);
+
   try {
     sendGameLauncherStatus("generating_achievements");
 
@@ -30,7 +47,10 @@ export const runAchievementMetadataExport = async (game: Game) => {
       GENERATION_TIMEOUT_IN_MS
     );
 
-    if (!result?.icons.length) {
+    if (abortController.signal.aborted) return;
+
+    if (!result?.icons.length || !result.steamSettingsDirectories.length) {
+      abortControllers.delete(gameKey);
       sendGameLauncherStatus("complete");
       return;
     }
@@ -43,23 +63,28 @@ export const runAchievementMetadataExport = async (game: Game) => {
     downloadAchievementIcons({
       steamSettingsDirectories: result.steamSettingsDirectories,
       icons: result.icons,
-      signal: AbortSignal.timeout(ICONS_TIMEOUT_IN_MS),
+      signal: abortController.signal,
       onProgress: (downloaded, total) =>
         sendGameLauncherStatus(
           "downloading_achievement_icons",
           `${downloaded}/${total}`
         ),
     })
-      .then(() => sendGameLauncherStatus("complete"))
       .catch((error) => {
         achievementsLogger.error("Failed to download achievement icons", error);
+      })
+      .finally(() => {
+        abortControllers.delete(gameKey);
         sendGameLauncherStatus("complete");
       });
   } catch (error) {
+    abortControllers.delete(gameKey);
+
     achievementsLogger.error(
       "Failed to export emulator achievement metadata",
       error
     );
+
     sendGameLauncherStatus("complete");
   }
 };

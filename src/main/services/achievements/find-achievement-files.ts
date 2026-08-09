@@ -206,6 +206,10 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [];
   }
 
+  if (cracker === Cracker.ali213) {
+    return [];
+  }
+
   if (cracker === Cracker.flt) {
     return [
       // {
@@ -241,11 +245,6 @@ const getPathFromCracker = (cracker: Cracker) => {
   throw new Error(`Cracker ${cracker} not implemented`);
 };
 
-/**
- * Base folders holding one subfolder per app id. Some emulators write their
- * achievements below that subfolder instead of directly inside it, so these are
- * the roots the recursive scan starts from.
- */
 export const getEmulatorSaveFolders = (winePrefixPath = "") =>
   getPathFromCracker(Cracker.goldberg).map(({ folderPath }) =>
     path.join(winePrefixPath, folderPath)
@@ -284,10 +283,7 @@ export const findAchievementFiles = (game: Game) => {
     }
   }
 
-  const achievementFileInsideDirectory =
-    findAchievementFileInExecutableDirectory(game);
-
-  return achievementFiles.concat(achievementFileInsideDirectory);
+  return achievementFiles;
 };
 
 const steamUserIds = await getSteamUsersIds();
@@ -323,42 +319,6 @@ export const findAchievementFileInSteamPath = (game: Game) => {
   }
 
   return achievementFiles;
-};
-
-export const findAchievementFileInExecutableDirectory = (
-  game: Game
-): AchievementFile[] => {
-  if (!game.executablePath) {
-    return [];
-  }
-
-  const effectiveWinePrefixPath =
-    Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId) ?? "";
-
-  return [
-    {
-      type: Cracker.userstats,
-      filePath: path.join(
-        effectiveWinePrefixPath,
-        game.executablePath,
-        "..",
-        "SteamData",
-        "user_stats.ini"
-      ),
-    },
-    {
-      type: Cracker._3dm,
-      filePath: path.join(
-        effectiveWinePrefixPath,
-        game.executablePath,
-        "..",
-        "3DMGAME",
-        "Player",
-        "stats",
-        "achievements.ini"
-      ),
-    },
-  ].filter((file) => fs.existsSync(file.filePath)) as AchievementFile[];
 };
 
 const mapFileLocationWithObjectId = (

@@ -345,7 +345,9 @@ export const launchGame = async (
 
   await Promise.all([
     new Promise((resolve) => setTimeout(resolve, 2000)),
-    updatedGame ? runAchievementMetadataExport(updatedGame) : Promise.resolve(),
+    updatedGame
+      ? runAchievementMetadataExport(gameKey, updatedGame)
+      : Promise.resolve(),
   ]);
 
   if (process.platform === "linux") {

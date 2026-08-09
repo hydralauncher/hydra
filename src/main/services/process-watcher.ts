@@ -9,6 +9,7 @@ import { logger, networkLogger } from "./logger";
 import { PowerSaveBlockerManager } from "./power-save-blocker";
 import path from "node:path";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
+import { abortAchievementMetadataExport } from "./achievements/metadata-export";
 import { INTERVALS } from "@main/constants";
 import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
@@ -472,6 +473,7 @@ const onCloseGame = (game: Game) => {
   gamesPlaytime.delete(gameKey);
   launchedGamePids.delete(gameKey);
   PowerSaveBlockerManager.markGameClosed(gameKey);
+  abortAchievementMetadataExport(gameKey);
 
   const delta = now - gamePlaytime.lastTick;
 

@@ -50,6 +50,11 @@ export const parseAchievementFile = (
       return process3DM(parsed);
     }
 
+    if (type === Cracker.ali213) {
+      const parsed = iniParse(filePath);
+      return processDefault(parsed, "HaveAchieved", "HaveAchievedTime");
+    }
+
     if (type === Cracker.flt) {
       const achievements = readdirSync(filePath);
 
@@ -291,16 +296,20 @@ const process3DM = (unlockedAchievements: any): UnlockedAchievement[] => {
   return newUnlockedAchievements;
 };
 
-const processDefault = (unlockedAchievements: any): UnlockedAchievement[] => {
+const processDefault = (
+  unlockedAchievements: any,
+  achievedKey = "Achieved",
+  unlockTimeKey = "UnlockTime"
+): UnlockedAchievement[] => {
   const newUnlockedAchievements: UnlockedAchievement[] = [];
 
   for (const achievement of Object.keys(unlockedAchievements)) {
     const unlockedAchievement = unlockedAchievements[achievement];
 
-    if (unlockedAchievement?.Achieved == "1") {
+    if (unlockedAchievement?.[achievedKey] == "1") {
       newUnlockedAchievements.push({
         name: achievement,
-        unlockTime: unlockedAchievement.UnlockTime * 1000,
+        unlockTime: unlockedAchievement[unlockTimeKey] * 1000,
       });
     }
   }

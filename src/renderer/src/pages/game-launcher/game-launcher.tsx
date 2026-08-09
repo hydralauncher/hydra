@@ -132,7 +132,6 @@ export default function GameLauncher() {
     return () => clearTimeout(timer);
   }, [preflightStarted]);
 
-  // Icon downloads deliberately do not hold the window open, they outlive it
   const isGeneratingAchievements =
     achievementsExportStatus === "generating_achievements";
 

@@ -25,11 +25,6 @@ export interface AchievementMetadata {
   icons: AchievementIcon[];
 }
 
-/**
- * Icon urls are attacker-adjacent data, so nothing from them reaches the file
- * system except an extension drawn from a fixed image allowlist. File names come
- * from the achievement index instead.
- */
 const getIconExtension = (iconUrl: string) => {
   let extension: string;
 
@@ -47,7 +42,6 @@ const getIconExtension = (iconUrl: string) => {
 export const getAchievementIconUrls = (achievement: SteamAchievement) => {
   const icon = achievement.icon;
 
-  // The catalogue returns a bare directory url when a game has no gray icon
   const icongray = achievement.icongray?.endsWith("/")
     ? icon
     : achievement.icongray;
@@ -55,12 +49,6 @@ export const getAchievementIconUrls = (achievement: SteamAchievement) => {
   return { icon, icongray: icongray || icon };
 };
 
-/**
- * Converts catalogue achievements into the `steam_settings/achievements.json`
- * metadata format the Steam emulators read, alongside the icon downloads it
- * references. Icons are numbered by achievement position, which is what keeps
- * the file names stable and free of anything derived from a remote url.
- */
 export const buildAchievementMetadata = (
   achievements: SteamAchievement[]
 ): AchievementMetadata => {

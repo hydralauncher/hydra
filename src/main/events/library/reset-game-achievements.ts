@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { findAchievementFiles } from "@main/services/achievements/find-achievement-files";
+import { collectGameAchievementFiles } from "@main/services/achievements/collect-game-achievement-files";
 import fs from "fs";
 import { achievementsLogger, HydraApi, WindowManager } from "@main/services";
 import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
@@ -18,13 +18,18 @@ const resetGameAchievements = async (
 
     if (!game) return;
 
-    const achievementFiles = findAchievementFiles(game);
+    const achievementFiles = await collectGameAchievementFiles(game, {
+      includeSteamCache: false,
+      awaitGameDirectoryLocations: true,
+    });
 
-    if (achievementFiles.length) {
-      for (const achievementFile of achievementFiles) {
-        achievementsLogger.log(`deleting ${achievementFile.filePath}`);
-        await fs.promises.rm(achievementFile.filePath);
-      }
+    for (const achievementFile of achievementFiles) {
+      achievementsLogger.log(`deleting ${achievementFile.filePath}`);
+
+      await fs.promises.rm(achievementFile.filePath, {
+        force: true,
+        recursive: true,
+      });
     }
 
     const gameAchievements = AchievementMemoryStore.get(shop, objectId);

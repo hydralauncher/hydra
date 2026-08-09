@@ -1,39 +1,15 @@
 import path from "node:path";
-import fs from "node:fs";
 
 import { isUnsafePath } from "../../../events/helpers/find-game-root.js";
+import {
+  STEAM_SETTINGS_DIR_NAME,
+  isDirectory,
+  readDirectorySafe,
+  resolveGameSearchRoot,
+} from "../game-directory.js";
 
-const STEAM_SETTINGS_DIR_NAME = "steam_settings";
-
-const MAX_UPWARD_LEVELS = 3;
 const MAX_DEPTH = 8;
 const MAX_DIRECTORIES_VISITED = 2000;
-
-const NESTED_EXECUTABLE_DIRS = new Set([
-  "bin",
-  "bin32",
-  "bin64",
-  "binaries",
-  "win32",
-  "win64",
-  "x64",
-  "x86",
-  "game",
-  "runtime",
-]);
-
-const GAME_ROOT_MARKER_DIRS = new Set([
-  "engine",
-  "binaries",
-  "content",
-  "plugins",
-]);
-
-const GAME_ROOT_MARKER_FILES = new Set([
-  "steam_api.dll",
-  "steam_api64.dll",
-  "steam_appid.txt",
-]);
 
 const IGNORED_DIRS = new Set([
   ".git",
@@ -58,73 +34,6 @@ const IGNORED_DIRS = new Set([
   "videos",
 ]);
 
-const readDirectory = async (dirPath: string) => {
-  try {
-    return await fs.promises.readdir(dirPath, { withFileTypes: true });
-  } catch {
-    return null;
-  }
-};
-
-const isDirectory = async (dirPath: string) => {
-  try {
-    return (await fs.promises.stat(dirPath)).isDirectory();
-  } catch {
-    return false;
-  }
-};
-
-const hasGameRootMarker = (entries: fs.Dirent[]) =>
-  entries.some((entry) => {
-    const name = entry.name.toLowerCase();
-
-    if (entry.isDirectory()) {
-      return (
-        GAME_ROOT_MARKER_DIRS.has(name) ||
-        name.endsWith("_data") ||
-        name === STEAM_SETTINGS_DIR_NAME
-      );
-    }
-
-    return GAME_ROOT_MARKER_FILES.has(name);
-  });
-
-/**
- * Walks up from the executable directory looking for the outermost directory
- * that still belongs to the game. Unreal Engine keeps the Steamworks DLL three
- * levels away from the shipping executable, so the search has to start above
- * the executable directory. A plain `.exe` is deliberately not treated as a
- * marker, otherwise a stray executable inside a games library folder would
- * turn that whole library into the search root.
- */
-const resolveSearchRoot = async (executableDirectory: string) => {
-  let searchRoot = executableDirectory;
-
-  for (let level = 0; level < MAX_UPWARD_LEVELS; level++) {
-    const parent = path.dirname(searchRoot);
-
-    if (parent === searchRoot || isUnsafePath(parent)) break;
-
-    const entries = await readDirectory(parent);
-
-    if (!entries) break;
-
-    const currentIsNestedExecutableDir = NESTED_EXECUTABLE_DIRS.has(
-      path.basename(searchRoot).toLowerCase()
-    );
-
-    if (!currentIsNestedExecutableDir && !hasGameRootMarker(entries)) break;
-
-    searchRoot = parent;
-  }
-
-  return searchRoot;
-};
-
-/**
- * Known layouts where emulators are shipped, probed before falling back to a
- * breadth-first search so that the common cases never walk the whole game.
- */
 const collectProbeCandidates = async (
   searchRoot: string,
   executableDirectory: string
@@ -134,7 +43,7 @@ const collectProbeCandidates = async (
     path.join(searchRoot, STEAM_SETTINGS_DIR_NAME),
   ];
 
-  const entries = await readDirectory(searchRoot);
+  const entries = await readDirectorySafe(searchRoot);
 
   for (const entry of entries ?? []) {
     if (!entry.isDirectory()) continue;
@@ -176,7 +85,7 @@ const collectProbeCandidates = async (
     "Steamworks"
   );
 
-  const steamworksEntries = await readDirectory(steamworksPath);
+  const steamworksEntries = await readDirectorySafe(steamworksPath);
 
   for (const entry of steamworksEntries ?? []) {
     if (!entry.isDirectory()) continue;
@@ -210,7 +119,7 @@ const searchBreadthFirst = async (searchRoot: string) => {
 
       visited++;
 
-      const entries = await readDirectory(dirPath);
+      const entries = await readDirectorySafe(dirPath);
 
       if (!entries) continue;
 
@@ -238,17 +147,12 @@ const searchBreadthFirst = async (searchRoot: string) => {
   return found;
 };
 
-/**
- * Finds every `steam_settings` directory that belongs to the game the given
- * executable is part of. Hydra never creates one: its presence is what tells us
- * a Steam emulator is installed alongside the game.
- */
 export const findSteamSettingsDirectories = async (executablePath: string) => {
   const executableDirectory = path.dirname(executablePath);
 
   if (isUnsafePath(executableDirectory)) return [];
 
-  const searchRoot = await resolveSearchRoot(executableDirectory);
+  const searchRoot = await resolveGameSearchRoot(executablePath);
 
   const probeCandidates = await collectProbeCandidates(
     searchRoot,

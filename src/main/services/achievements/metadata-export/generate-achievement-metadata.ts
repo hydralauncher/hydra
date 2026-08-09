@@ -7,26 +7,22 @@ import { achievementsLogger } from "../../logger";
 import { HydraApi } from "../../hydra-api";
 import { Wine } from "../../wine";
 import {
+  ACHIEVEMENT_IMAGES_DIR_NAME,
   buildAchievementMetadata,
   type AchievementIcon,
 } from "./build-achievement-metadata";
 import { findSteamSettingsDirectories } from "./find-steam-settings-directories";
 
 const ACHIEVEMENTS_FILE_NAME = "achievements.json";
-
-// The emulators read a single string per field, so the export is always english
 const METADATA_LANGUAGE = "en";
+
+const EXISTING_IMAGES_DIR_NAMES = [ACHIEVEMENT_IMAGES_DIR_NAME, "img"];
 
 export interface AchievementMetadataExportResult {
   steamSettingsDirectories: string[];
   icons: AchievementIcon[];
 }
 
-/**
- * Wine games store the windows side path, so it has to be resolved against the
- * prefix. Games added by hand may already hold a native path, in which case the
- * prefixed path simply does not exist.
- */
 const resolveExecutablePath = (game: Game, executablePath: string) => {
   const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
     game.winePrefixPath,
@@ -45,16 +41,26 @@ const resolveExecutablePath = (game: Game, executablePath: string) => {
     : executablePath;
 };
 
-/**
- * Deliberately bypasses `getGameAchievementData`: that one follows the user
- * interface language and caches by it, and writing english into that cache
- * would change what the achievements page shows.
- */
 const fetchEnglishAchievements = (objectId: string, shop: GameShop) =>
   HydraApi.getResponse<SteamAchievement[]>(
     `/games/${shop}/${objectId}/achievements`,
     { language: METADATA_LANGUAGE }
   ).then((response) => response.data ?? []);
+
+const hasAchievementsFile = (steamSettingsDirectory: string) =>
+  fs.existsSync(path.join(steamSettingsDirectory, ACHIEVEMENTS_FILE_NAME));
+
+const hasImages = async (steamSettingsDirectory: string) => {
+  for (const imagesDirName of EXISTING_IMAGES_DIR_NAMES) {
+    const entries = await fs.promises
+      .readdir(path.join(steamSettingsDirectory, imagesDirName))
+      .catch(() => []);
+
+    if (entries.length) return true;
+  }
+
+  return false;
+};
 
 const writeAchievementsFile = async (
   steamSettingsDirectory: string,
@@ -67,16 +73,6 @@ const writeAchievementsFile = async (
   await fs.promises.rename(temporaryFilePath, filePath);
 };
 
-/**
- * Steam emulators only record unlocks for achievements declared in
- * `steam_settings/achievements.json`, and repacks frequently ship without it.
- * When the emulator is present but that file is missing, generate it from the
- * catalogue so the achievements Hydra already knows how to read get written in
- * the first place.
- *
- * An existing file is never overwritten: it may carry stat and progress
- * definitions the catalogue cannot reproduce.
- */
 export const generateAchievementMetadata = async (
   game: Game
 ): Promise<AchievementMetadataExportResult | null> => {
@@ -84,13 +80,28 @@ export const generateAchievementMetadata = async (
 
   const executablePath = resolveExecutablePath(game, game.executablePath);
 
-  const steamSettingsDirectories = (
-    await findSteamSettingsDirectories(executablePath)
-  ).filter(
-    (directory) => !fs.existsSync(path.join(directory, ACHIEVEMENTS_FILE_NAME))
-  );
+  const steamSettingsDirectories =
+    await findSteamSettingsDirectories(executablePath);
 
   if (!steamSettingsDirectories.length) return null;
+
+  const directoriesMissingAchievements = steamSettingsDirectories.filter(
+    (directory) => !hasAchievementsFile(directory)
+  );
+
+  const directoriesMissingImages = (
+    await Promise.all(
+      steamSettingsDirectories.map(async (directory) =>
+        (await hasImages(directory)) ? null : directory
+      )
+    )
+  ).filter((directory) => directory !== null);
+
+  if (
+    !directoriesMissingAchievements.length &&
+    !directoriesMissingImages.length
+  )
+    return null;
 
   const achievements = await fetchEnglishAchievements(
     game.objectId,
@@ -110,12 +121,9 @@ export const generateAchievementMetadata = async (
 
   const contents = JSON.stringify(entries, null, 2);
 
-  const writtenDirectories: string[] = [];
-
-  for (const steamSettingsDirectory of steamSettingsDirectories) {
+  for (const steamSettingsDirectory of directoriesMissingAchievements) {
     try {
       await writeAchievementsFile(steamSettingsDirectory, contents);
-      writtenDirectories.push(steamSettingsDirectory);
 
       achievementsLogger.log(
         `Generated ${ACHIEVEMENTS_FILE_NAME} for ${game.objectId} at ${steamSettingsDirectory}`
@@ -128,10 +136,8 @@ export const generateAchievementMetadata = async (
     }
   }
 
-  if (!writtenDirectories.length) return null;
-
   return {
-    steamSettingsDirectories: writtenDirectories,
+    steamSettingsDirectories: directoriesMissingImages,
     icons: icons.filter(({ url }) => url?.startsWith("http")),
   };
 };

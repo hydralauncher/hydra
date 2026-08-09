@@ -3,9 +3,6 @@ import fs from "node:fs";
 
 const ACHIEVEMENTS_FILE_NAME = "achievements.json";
 
-const MAX_DEPTH = 4;
-const MAX_DIRECTORIES_PER_OBJECT_ID = 64;
-
 const readDirectory = async (dirPath: string) => {
   try {
     return await fs.promises.readdir(dirPath, { withFileTypes: true });
@@ -14,52 +11,45 @@ const readDirectory = async (dirPath: string) => {
   }
 };
 
-/**
- * Breadth first so the shallow, realistic locations are always reached before
- * the budget can be spent on a bulky save folder such as `remote`.
- */
+const findAchievementsFile = (entries: fs.Dirent[], dirPath: string) => {
+  const match = entries.find(
+    (entry) =>
+      !entry.isDirectory() &&
+      entry.name.toLowerCase() === ACHIEVEMENTS_FILE_NAME
+  );
+
+  return match ? path.join(dirPath, match.name) : null;
+};
+
 export const scanObjectIdFolder = async (objectIdPath: string) => {
+  const entries = await readDirectory(objectIdPath);
+
+  if (!entries) return [];
+
   const filePaths: string[] = [];
 
-  let currentLevel = [objectIdPath];
-  let visitedDirectories = 0;
+  const ownFilePath = findAchievementsFile(entries, objectIdPath);
 
-  for (let depth = 0; depth <= MAX_DEPTH && currentLevel.length; depth++) {
-    const nextLevel: string[] = [];
+  if (ownFilePath) filePaths.push(ownFilePath);
 
-    for (const dirPath of currentLevel) {
-      if (visitedDirectories >= MAX_DIRECTORIES_PER_OBJECT_ID) break;
+  await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory())
+      .map(async (entry) => {
+        const subfolderPath = path.join(objectIdPath, entry.name);
+        const subfolderEntries = await readDirectory(subfolderPath);
 
-      visitedDirectories++;
+        if (!subfolderEntries) return;
 
-      const entries = await readDirectory(dirPath);
+        const filePath = findAchievementsFile(subfolderEntries, subfolderPath);
 
-      if (!entries) continue;
-
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          nextLevel.push(path.join(dirPath, entry.name));
-          continue;
-        }
-
-        if (entry.name.toLowerCase() === ACHIEVEMENTS_FILE_NAME) {
-          filePaths.push(path.join(dirPath, entry.name));
-        }
-      }
-    }
-
-    currentLevel = nextLevel;
-  }
+        if (filePath) filePaths.push(filePath);
+      })
+  );
 
   return filePaths;
 };
 
-/**
- * Walks a save folder that holds one subfolder per app id, collecting every
- * achievements file below each of them. The canonical
- * `<objectId>/achievements.json` is included, so callers that also use the
- * static path table must deduplicate.
- */
 export const scanSaveFolder = async (folderPath: string) => {
   const filePathsByObjectId = new Map<string, string[]>();
 

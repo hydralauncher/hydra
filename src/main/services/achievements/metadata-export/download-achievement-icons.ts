@@ -47,11 +47,6 @@ const downloadIcon = async (
   );
 };
 
-/**
- * Downloads the colored and gray icons referenced by generated achievement
- * metadata. Only the emulator's own in-game overlay consumes them, so this runs
- * detached from the launch flow and never reports failures as fatal.
- */
 export const downloadAchievementIcons = async ({
   steamSettingsDirectories,
   icons,
@@ -78,6 +73,8 @@ export const downloadAchievementIcons = async ({
       try {
         await downloadIcon(icon, imagesDirectories, signal);
       } catch (error) {
+        if (signal?.aborted) return;
+
         achievementsLogger.error(
           `Failed to download achievement icon ${icon.url}`,
           error

@@ -34,18 +34,16 @@ describe("scanSaveFolder", () => {
     fs.rmSync(saveFolder, { recursive: true, force: true });
   });
 
-  it("finds files at the canonical location and below it", async () => {
+  it("finds files at the canonical location and one level below it", async () => {
     makeFile("480", "achievements.json");
-    makeFile("480", "SomeEmulator", "achievements.json");
-    makeFile("480", "stats", "user", "achievements.json");
+    makeFile("480", "6100", "achievements.json");
     makeFile("480", "remote", "win64_save", "save.dat");
 
     const filePathsByObjectId = await scanSaveFolder(saveFolder);
 
     assert.deepEqual(relative(filePathsByObjectId.get("480")!), [
-      "480/SomeEmulator/achievements.json",
+      "480/6100/achievements.json",
       "480/achievements.json",
-      "480/stats/user/achievements.json",
     ]);
   });
 
@@ -99,36 +97,19 @@ describe("scanObjectIdFolder", () => {
     fs.rmSync(objectIdFolder, { recursive: true, force: true });
   });
 
-  it("stops descending past the depth limit", async () => {
-    const withinLimit = path.join(
-      objectIdFolder,
-      "a",
-      "b",
-      "c",
-      "d",
-      "achievements.json"
-    );
-    const pastLimit = path.join(
-      objectIdFolder,
-      "a",
-      "b",
-      "c",
-      "d",
-      "e",
-      "achievements.json"
-    );
+  it("does not descend past one level", async () => {
+    const withinLimit = path.join(objectIdFolder, "a", "achievements.json");
+    const pastLimit = path.join(objectIdFolder, "a", "b", "achievements.json");
 
     for (const filePath of [withinLimit, pastLimit]) {
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
       fs.writeFileSync(filePath, "[]");
     }
 
-    const filePaths = await scanObjectIdFolder(objectIdFolder);
-
-    assert.deepEqual(filePaths, [withinLimit]);
+    assert.deepEqual(await scanObjectIdFolder(objectIdFolder), [withinLimit]);
   });
 
-  it("does not exhaust its budget on a wide save folder", async () => {
+  it("reads a wide save folder without walking into it", async () => {
     const wideFolder = fs.mkdtempSync(path.join(os.tmpdir(), "hydra-wide-"));
 
     try {
