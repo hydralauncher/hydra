@@ -849,7 +849,11 @@ declare global {
       total: number;
     }>;
     removeUninstalledGameExecutables: () => Promise<{
-      removedGames: { title: string }[];
+      removedGames: {
+        title: string;
+        executablePath: string;
+        iconUrl: string | null;
+      }[];
     }>;
     cancelScanInstalledGames: (requestId: string) => Promise<void>;
     addScannedGame: (

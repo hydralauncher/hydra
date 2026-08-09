@@ -6,6 +6,8 @@ import { logger, WindowManager } from "@main/services";
 
 interface RemovedGame {
   title: string;
+  executablePath: string;
+  iconUrl: string | null;
 }
 
 const pathExists = async (filePath: string) => {
@@ -44,7 +46,11 @@ const removeUninstalledGameExecutables = async () => {
       logger.info(
         `[RemoveUninstalledGameExecutables] Removed executable for ${game.objectId}: ${exePath}`
       );
-      removedGames.push({ title: game.title });
+      removedGames.push({
+        title: game.title,
+        executablePath: exePath,
+        iconUrl: game.iconUrl ?? null,
+      });
     }
   }
 

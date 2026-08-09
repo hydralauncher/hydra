@@ -110,7 +110,11 @@ export function Header() {
   const [isScanning, setIsScanning] = useState(false);
   const [isRemovingExecutables, setIsRemovingExecutables] = useState(false);
   const [removeExeResult, setRemoveExeResult] = useState<{
-    removedGames: { title: string }[];
+    removedGames: {
+      title: string;
+      executablePath: string;
+      iconUrl: string | null;
+    }[];
   } | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanRequestId, setScanRequestId] = useState<string | null>(null);

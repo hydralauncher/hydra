@@ -40,7 +40,7 @@ export interface ScanResult {
 }
 
 interface RemoveExecutableResult {
-  removedGames: { title: string }[];
+  removedGames: FoundGame[];
 }
 
 export interface ScanGamesModalProps {
@@ -337,7 +337,7 @@ export function ScanGamesModal({
           </div>
         )}
 
-        {scanResult && pending.length === 0 && (
+        {scanResult && removeExecutableResult && pending.length === 0 && (
           <div className="scan-games-modal__results">
             <div className="scan-games-modal__warning">
               <AlertIcon size={14} className="scan-games-modal__warning-icon" />
@@ -383,18 +383,7 @@ export function ScanGamesModal({
                     })}
                   </p>
 
-                  <ul className="scan-games-modal__games-list">
-                    {removeExecutableResult.removedGames.map((game, index) => (
-                      <li
-                        key={`${game.title}-${index}`}
-                        className="scan-games-modal__game-item"
-                      >
-                        <span className="scan-games-modal__game-title">
-                          {game.title}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  {renderGamesList(removeExecutableResult.removedGames)}
                 </>
               ) : (
                 <p className="scan-games-modal__no-results">
@@ -431,7 +420,7 @@ export function ScanGamesModal({
                   {t("scan_games_cancel_scan")}
                 </Button>
               )}
-              {!scanResult && !isScanning && (
+              {!scanResult && !isRemovingExecutables && !isScanning && (
                 <Button
                   onClick={handleStartScan}
                   disabled={requiresFolderSelection}
