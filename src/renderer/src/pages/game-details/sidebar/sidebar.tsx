@@ -123,8 +123,16 @@ export function Sidebar() {
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
-  const { gameTitle, shopDetails, objectId, shop, stats, achievements } =
-    useContext(gameDetailsContext);
+  const {
+    gameTitle,
+    shopDetails,
+    objectId,
+    shop,
+    steamMatchShop,
+    steamMatchObjectId,
+    stats,
+    achievements,
+  } = useContext(gameDetailsContext);
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -141,13 +149,13 @@ export function Sidebar() {
       !userPreferences?.retroAchievementsWebApiKey);
 
   useEffect(() => {
-    if (objectId) {
+    if (steamMatchObjectId && steamMatchShop !== "custom") {
       setHowLongToBeat({ isLoading: true, data: null });
 
       // Directly fetch from API without checking cache
       window.electron.hydraApi
         .get<HowLongToBeatCategory[] | null>(
-          `/games/${shop}/${objectId}/how-long-to-beat`,
+          `/games/${steamMatchShop}/${steamMatchObjectId}/how-long-to-beat`,
           {
             needsAuth: false,
           }
@@ -159,7 +167,7 @@ export function Sidebar() {
           setHowLongToBeat({ isLoading: false, data: null });
         });
     }
-  }, [objectId, shop]);
+  }, [steamMatchObjectId, steamMatchShop]);
 
   useEffect(() => {
     if (!shouldShowProtonFeatures || !objectId) {

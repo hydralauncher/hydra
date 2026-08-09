@@ -43,6 +43,8 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   isGameRunning: false,
   isLoading: false,
   objectId: undefined,
+  steamMatchShop: "steam",
+  steamMatchObjectId: undefined,
   showRepacksModal: false,
   showGameOptionsModal: false,
   gameOptionsInitialCategory: "general",
@@ -118,13 +120,18 @@ export function GameDetailsContextProvider({
       .then((result) => setGame(result));
   }, [shop, objectId]);
 
+  const matchedSteamObjectId =
+    shop === "custom" ? (game?.matchedSteamObjectId ?? null) : null;
+  const steamMatchShop: GameShop = matchedSteamObjectId ? "steam" : shop;
+  const steamMatchObjectId = matchedSteamObjectId ?? objectId;
+
   const fetchGameDetails = useCallback(async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
     const shopDetailsPromise = window.electron
-      .getGameShopDetails(objectId, shop, i18n.language)
+      .getGameShopDetails(steamMatchObjectId, steamMatchShop, i18n.language)
       .then((result) => {
         if (abortController.signal.aborted) return;
 
@@ -143,7 +150,7 @@ export function GameDetailsContextProvider({
           setIsLoading(false);
         }
 
-        if (userDetails && shop !== "custom") {
+        if (userDetails && steamMatchShop !== "custom") {
           const useRetroAchievements =
             shop === "launchbox" &&
             Boolean(userPreferences?.retroAchievementsWebApiKey);
@@ -151,8 +158,8 @@ export function GameDetailsContextProvider({
           if (useRetroAchievements) {
             globalThis.window.electron
               .getRetroAchievementsAchievements(
-                objectId,
-                shop,
+                steamMatchObjectId,
+                steamMatchShop,
                 result?.retroAchievementsGameId ?? undefined
               )
               .then((achievements) => {
@@ -164,7 +171,7 @@ export function GameDetailsContextProvider({
               });
           } else {
             globalThis.window.electron
-              .getUnlockedAchievements(objectId, shop)
+              .getUnlockedAchievements(steamMatchObjectId, steamMatchShop)
               .then((achievements) => {
                 if (abortController.signal.aborted) return;
                 if (achievements) setAchievements(achievements);
@@ -174,11 +181,13 @@ export function GameDetailsContextProvider({
         }
       });
 
-    if (shop !== "custom") {
-      window.electron.getGameStats(objectId, shop).then((result) => {
-        if (abortController.signal.aborted) return;
-        setStats(result);
-      });
+    if (steamMatchShop !== "custom") {
+      window.electron
+        .getGameStats(steamMatchObjectId, steamMatchShop)
+        .then((result) => {
+          if (abortController.signal.aborted) return;
+          setStats(result);
+        });
     }
 
     const assetsPromise = window.electron.getGameAssets(objectId, shop);
@@ -204,6 +213,8 @@ export function GameDetailsContextProvider({
     i18n.language,
     objectId,
     shop,
+    steamMatchObjectId,
+    steamMatchShop,
     userDetails,
     userPreferences?.disableNsfwAlert,
     userPreferences?.retroAchievementsWebApiKey,
@@ -511,6 +522,8 @@ export function GameDetailsContextProvider({
         isGameRunning,
         isLoading,
         objectId,
+        steamMatchShop,
+        steamMatchObjectId,
         showGameOptionsModal,
         gameOptionsInitialCategory,
         showRepacksModal,

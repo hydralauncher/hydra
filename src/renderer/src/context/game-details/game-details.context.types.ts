@@ -26,6 +26,16 @@ export interface GameDetailsContext {
   isGameRunning: boolean;
   isLoading: boolean;
   objectId: string | undefined;
+  /**
+   * The shop/objectId to use for Steam-sourced data (shop details,
+   * achievements, stats, reviews, how-long-to-beat). Equal to `shop`/
+   * `objectId` normally, but for a custom game matched to a real Steam
+   * entry (`game.matchedSteamObjectId`), points at that real entry instead
+   * so custom games can show the same Steam-sourced content as any other
+   * game.
+   */
+  steamMatchShop: GameShop;
+  steamMatchObjectId: string | undefined;
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
   gameOptionsInitialCategory: GameOptionsCategoryId;
