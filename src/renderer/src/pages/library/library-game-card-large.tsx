@@ -265,6 +265,17 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           )}
 
           <div className="library-game-card-large__top-right">
+            {game.shop === "custom" && (
+              <div
+                className="library-game-card-large__custom-badge"
+                title={t("custom_game_badge_tooltip")}
+              >
+                <span className="library-game-card-large__custom-text">
+                  {t("custom_game_badge")}
+                </span>
+              </div>
+            )}
+
             {isInstalled && (
               <div
                 className="library-game-card-large__installed-badge"

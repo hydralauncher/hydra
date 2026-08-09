@@ -245,6 +245,7 @@
     "platforms": "Platforms"
   },
   "game_details": {
+    "custom_game_badge": "Custom",
     "bios_not_configured_toast": "BIOS not found. Please add BIOS folder in Emulation settings.",
     "open_download_options": "Open download options",
     "download_options_zero": "No download option",
@@ -1769,6 +1770,8 @@
     "manual_playtime_tooltip": "This playtime has been manually updated",
     "installed": "Ready",
     "installed_tooltip": "Executable set, ready to play",
+    "custom_game_badge": "Custom",
+    "custom_game_badge_tooltip": "Added manually, not from the catalogue",
     "category_all": "All",
     "category_pc": "PC",
     "category_classics": "Classics",

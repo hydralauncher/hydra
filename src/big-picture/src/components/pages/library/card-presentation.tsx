@@ -178,6 +178,18 @@ export function useLibraryGameCardPresentation(
   };
 }
 
+export function CustomGameBadge() {
+  const { t } = useTranslation("game_details");
+
+  return (
+    <div className="library-custom-badge" aria-hidden="true">
+      <span className="library-custom-badge__label">
+        {t("custom_game_badge")}
+      </span>
+    </div>
+  );
+}
+
 interface ClassicsCoverBadgesProps {
   platformLabel: string;
   emulatorIcon?: string;

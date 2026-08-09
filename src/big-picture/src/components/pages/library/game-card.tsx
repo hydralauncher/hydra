@@ -17,6 +17,7 @@ import {
 import {
   ClassicsCoverBadges,
   ClassicsVerticalCoverMedia,
+  CustomGameBadge,
   useFocusAnimatedCover,
   useLibraryGameCardPresentation,
 } from "./card-presentation";
@@ -111,6 +112,8 @@ export function VerticalLibraryGameCard({
         platformLabel={classicsPlatformLabel}
         emulatorIcon={classicsEmulatorIcon}
       />
+    ) : game.shop === "custom" ? (
+      <CustomGameBadge />
     ) : null;
 
   const openContextMenuFromRect = (
@@ -220,6 +223,8 @@ export function HorizontalLibraryGameListCard({
         platformLabel={classicsPlatformLabel}
         emulatorIcon={classicsEmulatorIcon}
       />
+    ) : game.shop === "custom" ? (
+      <CustomGameBadge />
     ) : null;
 
   const openContextMenuFromRect = (
