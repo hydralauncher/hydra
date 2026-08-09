@@ -89,7 +89,7 @@ async function parseManifest(manifestPath: string, state: ScanState) {
       const trimmed = rawLine.split(/[;#]/, 1)[0]?.trim() ?? "";
       if (!trimmed) continue;
 
-      const unquoted = trimmed.replace(/^[\"']|[\"']$/g, "");
+      const unquoted = trimmed.replace(/^["']|["']$/g, "");
       const lower = unquoted.toLowerCase();
 
       if (lower.endsWith(".net") || lower.endsWith(".net.org")) {
