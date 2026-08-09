@@ -9,7 +9,13 @@ import {
   publishDownloadCompleteNotification,
   publishDownloadHaltedNotification,
 } from "../notifications";
-import type { Download, DownloadProgress, Game, UserPreferences } from "@types";
+import type {
+  Download,
+  DownloadProgress,
+  Game,
+  QbittorrentServer,
+  UserPreferences,
+} from "@types";
 import {
   GofileApi,
   DatanodesApi,
@@ -56,6 +62,8 @@ import {
   DISK_SPACE_CHECK_INTERVAL_MS,
   getDownloadDiskSpace,
 } from "./disk-space";
+import { QbittorrentClient } from "./qbittorrent";
+import parseTorrent from "parse-torrent";
 
 interface JsDownloadOptions {
   url: string;
@@ -95,6 +103,13 @@ export class DownloadManager {
   private static usingJsDownloader = false;
   private static isPreparingDownload = false;
   private static allDebridBatch: AllDebridBatchState | null = null;
+  private static qbittorrentClient: QbittorrentClient | null = null;
+  private static qbittorrentInfoHash: string | null = null;
+  private static usingQbittorrent = false;
+  private static readonly qbittorrentClients = new Map<
+    string,
+    { signature: string; client: QbittorrentClient }
+  >();
   private static maxDownloadSpeedBytesPerSecond: number | null = null;
   private static startGeneration = 0;
   private static orphanedDownloadCandidate: {
@@ -112,6 +127,71 @@ export class DownloadManager {
     PreparedJsDownload
   >();
   private static readonly PREPARED_JS_DOWNLOAD_TTL_MS = 120_000;
+
+  private static clearQbittorrentRuntime() {
+    this.qbittorrentClient = null;
+    this.qbittorrentInfoHash = null;
+    this.usingQbittorrent = false;
+  }
+
+  private static async getQbittorrentServer(
+    serverId: string
+  ): Promise<QbittorrentServer> {
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+    const server = userPreferences?.qbittorrentServers?.find(
+      (entry) => entry.id === serverId
+    );
+
+    if (!server) {
+      throw new Error(
+        "The qBittorrent server used by this download is no longer configured"
+      );
+    }
+
+    return server;
+  }
+
+  private static async getQbittorrentInfoHash(download: Download) {
+    const torrent = await parseTorrent(download.uri);
+    if (!torrent.infoHash) throw new Error(DownloadError.InvalidMagnet);
+    return torrent.infoHash.toLowerCase();
+  }
+
+  private static getCachedQbittorrentClient(server: QbittorrentServer) {
+    const signature = JSON.stringify([
+      server.url,
+      server.username,
+      server.password,
+    ]);
+    const cached = this.qbittorrentClients.get(server.id);
+    if (cached?.signature === signature) return cached.client;
+
+    const client = new QbittorrentClient(server);
+    this.qbittorrentClients.set(server.id, { signature, client });
+    return client;
+  }
+
+  private static async getQbittorrentContext(download: Download) {
+    if (!download.qbittorrentServerId) return null;
+
+    const server = await this.getQbittorrentServer(
+      download.qbittorrentServerId
+    );
+    return {
+      client: this.getCachedQbittorrentClient(server),
+      infoHash: await this.getQbittorrentInfoHash(download),
+      server,
+    };
+  }
+
+  private static async getQbittorrentContextByDownloadKey(downloadKey: string) {
+    const download = await downloadsSublevel.get(downloadKey);
+    if (!download) return null;
+    return this.getQbittorrentContext(download);
+  }
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -625,7 +705,71 @@ export class DownloadManager {
     }
   }
 
+  private static async getDownloadStatusFromQbittorrent(): Promise<DownloadProgress | null> {
+    if (
+      !this.qbittorrentClient ||
+      !this.qbittorrentInfoHash ||
+      !this.downloadingGameId
+    ) {
+      return null;
+    }
+
+    const downloadId = this.downloadingGameId;
+
+    try {
+      const [torrent, download] = await Promise.all([
+        this.qbittorrentClient.getTorrent(this.qbittorrentInfoHash),
+        downloadsSublevel.get(downloadId),
+      ]);
+      if (!torrent || !download) return null;
+
+      const isDownloadingMetadata = torrent.state === "metaDL";
+      const isCheckingFiles = torrent.state
+        .toLowerCase()
+        .startsWith("checking");
+      const progress = clampProgress(torrent.progress);
+      const fileSize =
+        torrent.size > 0
+          ? torrent.size
+          : (download.selectedFilesSize ?? download.fileSize ?? 0);
+      const folderName = torrent.name || download.folderName;
+      const updatedDownload: Download = {
+        ...download,
+        progress,
+        bytesDownloaded: torrent.downloaded,
+        fileSize,
+        folderName,
+        status: "active",
+      };
+
+      if (!isDownloadingMetadata && !isCheckingFiles) {
+        await downloadsSublevel.put(downloadId, updatedDownload);
+      }
+
+      return {
+        numPeers: torrent.num_leechs,
+        numSeeds: torrent.num_seeds,
+        downloadSpeed: torrent.dlspeed,
+        timeRemaining:
+          Number.isFinite(torrent.eta) && torrent.eta >= 0
+            ? torrent.eta * 1_000
+            : calculateETA(fileSize, torrent.downloaded, torrent.dlspeed),
+        isDownloadingMetadata,
+        isCheckingFiles,
+        progress,
+        gameId: downloadId,
+        download: updatedDownload,
+      };
+    } catch (error) {
+      logger.error("[DownloadManager] qBittorrent status poll failed", error);
+      return null;
+    }
+  }
+
   private static async getDownloadStatus(): Promise<DownloadProgress | null> {
+    if (this.usingQbittorrent) {
+      return this.getDownloadStatusFromQbittorrent();
+    }
     if (this.usingJsDownloader) {
       return this.getDownloadStatusFromJs();
     }
@@ -834,7 +978,9 @@ export class DownloadManager {
 
     if (download.automaticallyExtract) {
       const shouldPauseSeedingForExtraction =
-        shouldSeed && download.downloader === Downloader.Torrent;
+        shouldSeed &&
+        download.downloader === Downloader.Torrent &&
+        !download.qbittorrentServerId;
 
       if (shouldPauseSeedingForExtraction) {
         await this.cancelDownload(gameId);
@@ -1028,6 +1174,7 @@ export class DownloadManager {
       this.usingJsDownloader = false;
       this.jsDownloader = null;
       this.allDebridBatch = null;
+      this.clearQbittorrentRuntime();
     }
   }
 
@@ -1065,6 +1212,7 @@ export class DownloadManager {
     this.usingJsDownloader = false;
     this.jsDownloader = null;
     this.allDebridBatch = null;
+    this.clearQbittorrentRuntime();
     WindowManager.mainWindow?.setProgressBar(-1);
     WindowManager.sendToAppWindows("on-download-progress", null);
 
@@ -1110,21 +1258,59 @@ export class DownloadManager {
         .then((res) => res.data);
     } catch (error) {
       logger.error("[DownloadManager] RPC seed status poll failed", error);
-      WindowManager.sendToAppWindows("on-seeding-status", []);
-      return;
     }
+
+    const downloads = await downloadsSublevel.values().all();
+    const remoteSeedStatuses = await Promise.all(
+      downloads
+        .filter(
+          (download) =>
+            download.status === "seeding" && download.qbittorrentServerId
+        )
+        .map(async (download): Promise<LibtorrentPayload | null> => {
+          try {
+            const context = await this.getQbittorrentContext(download);
+            if (!context) return null;
+            const torrent = await context.client.getTorrent(context.infoHash);
+            if (!torrent) return null;
+
+            return {
+              progress: torrent.progress,
+              numPeers: torrent.num_leechs,
+              numSeeds: torrent.num_seeds,
+              downloadSpeed: torrent.dlspeed,
+              uploadSpeed: torrent.upspeed,
+              bytesDownloaded: torrent.downloaded,
+              fileSize: torrent.size,
+              folderName: torrent.name,
+              status: LibtorrentStatus.Seeding,
+              gameId: levelKeys.game(download.shop, download.objectId),
+            };
+          } catch (error) {
+            logger.error(
+              "[DownloadManager] qBittorrent seed status poll failed",
+              error
+            );
+            return null;
+          }
+        })
+    );
+    seedStatus.push(
+      ...remoteSeedStatuses.filter(
+        (status): status is LibtorrentPayload => status !== null
+      )
+    );
 
     if (!seedStatus.length) {
       WindowManager.sendToAppWindows("on-seeding-status", []);
       return;
     }
 
-    logger.log(seedStatus);
-
     for (const status of seedStatus) {
       const download = await downloadsSublevel.get(status.gameId);
 
       if (!download) continue;
+      if (download.qbittorrentServerId) continue;
 
       const totalSize = await getDirSize(
         path.join(download.downloadPath, status.folderName)
@@ -1153,7 +1339,16 @@ export class DownloadManager {
   }
 
   static async pauseDownload(downloadKey = this.downloadingGameId) {
-    if (this.usingJsDownloader && this.jsDownloader) {
+    if (
+      this.usingQbittorrent &&
+      this.qbittorrentClient &&
+      this.qbittorrentInfoHash
+    ) {
+      logger.log("[DownloadManager] Pausing qBittorrent download");
+      this.startGeneration += 1;
+      await this.qbittorrentClient.pauseTorrent(this.qbittorrentInfoHash);
+      this.clearQbittorrentRuntime();
+    } else if (this.usingJsDownloader && this.jsDownloader) {
       logger.log("[DownloadManager] Pausing JS download");
       this.jsDownloader.pauseDownload();
     } else if (downloadKey) {
@@ -1183,7 +1378,19 @@ export class DownloadManager {
       // late-resolving prepare cannot spawn a downloader after cancellation.
       this.startGeneration += 1;
 
-      if (this.usingJsDownloader && this.jsDownloader) {
+      if (
+        this.usingQbittorrent &&
+        this.qbittorrentClient &&
+        this.qbittorrentInfoHash
+      ) {
+        logger.log("[DownloadManager] Removing qBittorrent download");
+        await this.qbittorrentClient
+          .deleteTorrent(this.qbittorrentInfoHash, false)
+          .catch((err) =>
+            logger.error("Failed to remove qBittorrent download", err)
+          );
+        this.clearQbittorrentRuntime();
+      } else if (this.usingJsDownloader && this.jsDownloader) {
         logger.log("[DownloadManager] Cancelling JS download");
         this.jsDownloader.cancelDownload();
         this.jsDownloader = null;
@@ -1201,7 +1408,27 @@ export class DownloadManager {
       this.isPreparingDownload = false;
       this.usingJsDownloader = false;
       this.allDebridBatch = null;
+      this.clearQbittorrentRuntime();
     } else if (downloadKey) {
+      const download = await downloadsSublevel.get(downloadKey);
+      if (download?.qbittorrentServerId) {
+        const qbittorrentContext = await this.getQbittorrentContext(
+          download
+        ).catch((error) => {
+          logger.error("Failed to load qBittorrent server", error);
+          return null;
+        });
+
+        if (qbittorrentContext) {
+          await qbittorrentContext.client
+            .deleteTorrent(qbittorrentContext.infoHash, false)
+            .catch((err) =>
+              logger.error("Failed to remove qBittorrent download", err)
+            );
+        }
+        return;
+      }
+
       await PythonRPC.rpc
         .call("action", { action: "cancel", game_id: downloadKey })
         .catch((err) => logger.error("Failed to cancel game download", err));
@@ -1209,6 +1436,14 @@ export class DownloadManager {
   }
 
   static async resumeSeeding(download: Download) {
+    const qbittorrentContext = await this.getQbittorrentContext(download);
+    if (qbittorrentContext) {
+      await qbittorrentContext.client.resumeTorrent(
+        qbittorrentContext.infoHash
+      );
+      return;
+    }
+
     await PythonRPC.rpc.call("action", {
       action: "resume_seeding",
       game_id: levelKeys.game(download.shop, download.objectId),
@@ -1219,6 +1454,13 @@ export class DownloadManager {
   }
 
   static async pauseSeeding(downloadKey: string) {
+    const qbittorrentContext =
+      await this.getQbittorrentContextByDownloadKey(downloadKey);
+    if (qbittorrentContext) {
+      await qbittorrentContext.client.pauseTorrent(qbittorrentContext.infoHash);
+      return;
+    }
+
     await PythonRPC.rpc.call("action", {
       action: "pause_seeding",
       game_id: downloadKey,
@@ -1368,6 +1610,7 @@ export class DownloadManager {
     this.allDebridBatch = null;
     this.downloadingGameId = null;
     this.isPreparingDownload = false;
+    this.clearQbittorrentRuntime();
     WindowManager.mainWindow?.setProgressBar(-1);
   }
 
@@ -1836,6 +2079,56 @@ export class DownloadManager {
     return prepared.options;
   }
 
+  private static async startQbittorrentDownload(
+    download: Download,
+    downloadId: string,
+    generation: number
+  ) {
+    const context = await this.getQbittorrentContext(download);
+    if (!context) throw new Error("qBittorrent server is not configured");
+    if (this.startGeneration !== generation) return;
+
+    this.downloadingGameId = downloadId;
+    this.isPreparingDownload = true;
+    this.usingJsDownloader = false;
+    this.allDebridBatch = null;
+    this.usingQbittorrent = true;
+    this.qbittorrentClient = context.client;
+    this.qbittorrentInfoHash = context.infoHash;
+
+    try {
+      await context.client.addTorrent({
+        magnetUri: download.uri,
+        infoHash: context.infoHash,
+        savePath: context.server.defaultSavePath,
+        fileIndices: download.fileIndices,
+        trackers: download.customTrackers,
+        canResume: () =>
+          this.downloadingGameId === downloadId &&
+          this.startGeneration === generation,
+      });
+
+      if (
+        this.downloadingGameId !== downloadId ||
+        this.startGeneration !== generation
+      ) {
+        return;
+      }
+
+      this.isPreparingDownload = false;
+    } catch (error) {
+      if (
+        this.downloadingGameId === downloadId &&
+        this.startGeneration === generation
+      ) {
+        this.downloadingGameId = null;
+        this.isPreparingDownload = false;
+        this.clearQbittorrentRuntime();
+      }
+      throw error;
+    }
+  }
+
   private static buildPreflightHeaders(
     base?: Record<string, string>
   ): Record<string, string> {
@@ -1975,7 +2268,13 @@ export class DownloadManager {
     // invalidate this in-flight preparation before it spawns a downloader.
     const myGeneration = ++this.startGeneration;
 
-    if (isHttp) {
+    if (
+      download.downloader === Downloader.Torrent &&
+      download.qbittorrentServerId
+    ) {
+      logger.log("[DownloadManager] Using remote qBittorrent downloader");
+      await this.startQbittorrentDownload(download, downloadId, myGeneration);
+    } else if (isHttp) {
       logger.log("[DownloadManager] Using JS HTTP downloader");
 
       const preparedOptions = this.takePreparedJsDownload(download, downloadId);
@@ -1984,6 +2283,7 @@ export class DownloadManager {
       this.downloadingGameId = downloadId;
       this.isPreparingDownload = true;
       this.usingJsDownloader = true;
+      this.clearQbittorrentRuntime();
 
       try {
         if (download.downloader === Downloader.AllDebrid) {
@@ -2092,6 +2392,7 @@ export class DownloadManager {
       this.isPreparingDownload = true;
       this.usingJsDownloader = false;
       this.allDebridBatch = null;
+      this.clearQbittorrentRuntime();
 
       if (payload?.url) {
         this.logResolvedUrl(payload.url);

@@ -107,6 +107,7 @@ export default function GameDetails() {
             fileIndices?: number[],
             selectedFilesSize?: number | null,
             automaticallyDeleteArchiveFiles = false,
+            qbittorrentServerId?: string,
             signal?: AbortSignal
           ) => {
             const payload = {
@@ -121,6 +122,7 @@ export default function GameDetails() {
               fileSize: repack.fileSize,
               fileIndices,
               selectedFilesSize,
+              qbittorrentServerId,
             };
 
             const response = addToQueueOnly

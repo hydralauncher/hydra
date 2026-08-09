@@ -102,6 +102,7 @@ export interface Download {
   fileIndices?: number[];
   selectedFilesSize?: number | null;
   customTrackers?: string[];
+  qbittorrentServerId?: string;
 }
 
 export interface DownloadLayoutState {
@@ -130,6 +131,15 @@ export interface DownloadDirectoryPreference {
   path: string;
   createdAt: string;
   source: "manual" | "auto";
+}
+
+export interface QbittorrentServer {
+  id: string;
+  name: string;
+  url: string;
+  username: string;
+  password: string;
+  defaultSavePath?: string | null;
 }
 
 export interface UserPreferences {
@@ -177,6 +187,7 @@ export interface UserPreferences {
   bigPictureDiagnosticsPosition?: BigPictureDiagnosticsPosition;
   maxDownloadSpeedBytesPerSecond?: number | null;
   torrentNetworkInterface?: string | null;
+  qbittorrentServers?: QbittorrentServer[];
   globalTrackers?: string[];
   appendGlobalTrackers?: boolean;
   globalTrackersUrl?: string;

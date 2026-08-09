@@ -32,6 +32,7 @@ const startGameDownload = async (
     fileSize,
     fileIndices,
     selectedFilesSize,
+    qbittorrentServerId,
   } = payload;
 
   const parsedFileSize = parseBytes(fileSize ?? null);
@@ -67,6 +68,7 @@ const startGameDownload = async (
       selectedFilesSize,
       fileSize: selectedFilesSize ?? parsedFileSize,
       customTrackers: globalTrackers,
+      qbittorrentServerId,
     };
     await DownloadManager.validateDownloadUrl(download);
     await prepareGameEntry({ gameKey, title, objectId, shop });

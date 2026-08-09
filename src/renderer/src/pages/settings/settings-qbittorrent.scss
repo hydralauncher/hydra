@@ -1,0 +1,99 @@
+@use "../../scss/globals.scss";
+
+.settings-qbittorrent {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+
+    p {
+      margin-top: globals.$spacing-unit;
+      color: globals.$body-color;
+      font-size: globals.$small-font-size;
+      line-height: 1.5;
+    }
+
+    .button {
+      flex-shrink: 0;
+    }
+  }
+
+  &__servers {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__server {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.5);
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    background: globals.$dark-background-color;
+  }
+
+  &__server-details {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+
+    span,
+    small {
+      overflow: hidden;
+      color: globals.$body-color;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__server-actions,
+  &__form-actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
+  &__server-actions .button {
+    min-width: 40px;
+    padding: globals.$spacing-unit;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 2);
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+  }
+
+  &__form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__form-actions {
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 700px) {
+    &__header,
+    &__server {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    &__form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

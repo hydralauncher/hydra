@@ -6,6 +6,7 @@ import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import type { NetworkInterface } from "@types";
 import { SettingsGlobalTrackers } from "./settings-global-trackers";
+import { SettingsQbittorrent } from "./settings-qbittorrent";
 
 import "./settings-general.scss";
 
@@ -270,6 +271,12 @@ export function SettingsContextDownloads() {
       <div className="settings-context-panel__group">
         <h3>{t("global_trackers")}</h3>
         <SettingsGlobalTrackers />
+      </div>
+
+      <hr className="settings-context-panel__divider" />
+
+      <div className="settings-context-panel__group">
+        <SettingsQbittorrent />
       </div>
     </div>
   );

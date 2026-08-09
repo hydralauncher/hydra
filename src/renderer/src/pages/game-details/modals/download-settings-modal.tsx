@@ -34,7 +34,12 @@ import {
   getDownloadersForUri,
   parseBytes,
 } from "@shared";
-import type { GameRepack, TorrentFile, TorrentFilesResponse } from "@types";
+import type {
+  GameRepack,
+  QbittorrentServer,
+  TorrentFile,
+  TorrentFilesResponse,
+} from "@types";
 import { motion } from "framer-motion";
 import {
   type ReactNode,
@@ -67,6 +72,7 @@ export interface DownloadSettingsModalProps {
     fileIndices?: number[],
     selectedFilesSize?: number | null,
     automaticallyDeleteArchiveFiles?: boolean,
+    qbittorrentServerId?: string,
     signal?: AbortSignal
   ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
@@ -133,6 +139,7 @@ interface TorrentTreeData {
 }
 
 const ROOT_TORRENT_FOLDER_ID = "__root__";
+const EMPTY_QBITTORRENT_SERVERS: QbittorrentServer[] = [];
 
 const createTorrentFolderNode = (
   id: string,
@@ -284,6 +291,8 @@ export function DownloadSettingsModal({
   );
   const [selectedDownloader, setSelectedDownloader] =
     useState<Downloader | null>(null);
+  const [selectedQbittorrentServerId, setSelectedQbittorrentServerId] =
+    useState("");
   const [hasWritePermission, setHasWritePermission] = useState<boolean | null>(
     null
   );
@@ -331,6 +340,35 @@ export function DownloadSettingsModal({
     if (!selectedUri?.startsWith("magnet:")) return null;
     return selectedUri;
   }, [selectedDownloader, selectedUri]);
+
+  const qbittorrentServers =
+    userPreferences?.qbittorrentServers ?? EMPTY_QBITTORRENT_SERVERS;
+  const torrentClientOptions = useMemo(
+    () => [
+      {
+        key: "built-in",
+        value: "",
+        label: t("built_in_torrent_client"),
+      },
+      ...qbittorrentServers.map((server) => ({
+        key: server.id,
+        value: server.id,
+        label: server.name,
+      })),
+    ],
+    [qbittorrentServers, t]
+  );
+
+  useEffect(() => {
+    if (
+      selectedQbittorrentServerId &&
+      !qbittorrentServers.some(
+        (server) => server.id === selectedQbittorrentServerId
+      )
+    ) {
+      setSelectedQbittorrentServerId("");
+    }
+  }, [qbittorrentServers, selectedQbittorrentServerId]);
 
   const getDiskFreeSpace = async (path: string) => {
     const result = await globalThis.electron.getDiskFreeSpace(path);
@@ -1028,6 +1066,9 @@ export function DownloadSettingsModal({
           selectedFileIndices,
           totalSelectedSize,
           deleteArchiveFilesAfterExtraction,
+          selectedDownloader === Downloader.Torrent
+            ? selectedQbittorrentServerId || undefined
+            : undefined,
           abortController.signal
         );
 
@@ -1461,17 +1502,31 @@ export function DownloadSettingsModal({
           </div>
 
           {canOpenTorrentStep && (
-            <button
-              type="button"
-              className="download-settings-modal__select-files-link"
-              onClick={() => setShowTorrentStepModal(true)}
-              disabled={downloadStarting}
-            >
-              <FileIcon size={12} />
-              <span className="download-settings-modal__select-files-link-text">
-                {t("select_files_to_download")}
-              </span>
-            </button>
+            <>
+              {qbittorrentServers.length > 0 && (
+                <SelectField
+                  label={t("torrent_client")}
+                  value={selectedQbittorrentServerId}
+                  onChange={(event) =>
+                    setSelectedQbittorrentServerId(event.target.value)
+                  }
+                  options={torrentClientOptions}
+                  disabled={downloadStarting}
+                />
+              )}
+
+              <button
+                type="button"
+                className="download-settings-modal__select-files-link"
+                onClick={() => setShowTorrentStepModal(true)}
+                disabled={downloadStarting}
+              >
+                <FileIcon size={12} />
+                <span className="download-settings-modal__select-files-link-text">
+                  {t("select_files_to_download")}
+                </span>
+              </button>
+            </>
           )}
         </div>
 
