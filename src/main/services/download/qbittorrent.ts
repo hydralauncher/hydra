@@ -104,9 +104,8 @@ export class QbittorrentClient {
       );
     }
 
-    const setCookie = response.headers.get("set-cookie");
-    const sessionCookie = setCookie
-      ?.split(/,\s*(?=[^;,]+=)/)
+    const sessionCookie = response.headers
+      .getSetCookie()
       .map((value) => value.split(";", 1)[0])
       .find((value) => value.startsWith("SID="));
 

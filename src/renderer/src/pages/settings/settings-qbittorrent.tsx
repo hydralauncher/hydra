@@ -64,7 +64,7 @@ export function SettingsQbittorrent() {
     try {
       const parsedUrl = new URL(normalized.url);
       if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-        throw new Error();
+        throw new Error("qBittorrent WebUI URL must use HTTP or HTTPS");
       }
       parsedUrl.username = "";
       parsedUrl.password = "";
@@ -196,7 +196,7 @@ export function SettingsQbittorrent() {
             />
             <TextField
               label={t("qbittorrent_server_url")}
-              placeholder="http://192.168.1.10:8080"
+              placeholder="https://qbittorrent.example.com"
               value={form.url}
               onChange={(event) => setField("url", event.target.value)}
               required
