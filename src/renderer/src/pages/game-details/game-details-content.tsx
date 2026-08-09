@@ -16,6 +16,8 @@ import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 import { GameReviews } from "./game-reviews";
 import { GameLogo } from "./game-logo";
+import { CloudSaveWidget } from "./cloud-save-v2";
+import { getCloudSaveVisibility } from "./cloud-save-visibility";
 
 import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
@@ -23,8 +25,14 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
 import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
-import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
-import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import {
+  CLASSICS_PS_PLATFORM_LABELS,
+  resolveClassicsBadge,
+} from "@renderer/helpers";
+import {
+  EMULATOR_ICONS,
+  RETROARCH_EMULATOR_ICON,
+} from "@renderer/pages/settings/emulation/emulator-icons";
 import "./game-details.scss";
 import "./hero.scss";
 
@@ -77,10 +85,11 @@ export function GameDetailsContent() {
     setGameOptionsInitialCategory,
   } = useContext(gameDetailsContext);
 
-  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { userDetails } = useUserDetails();
   const { library } = useLibrary();
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
+  const cloudSaveVisibility = game ? getCloudSaveVisibility(game.shop) : null;
 
   const aboutTheGame = useMemo(() => {
     const aboutTheGame = shopDetails?.about_the_game;
@@ -150,19 +159,13 @@ export function GameDetailsContent() {
     };
   }, [aboutTheGame]);
 
-  const handleCloudSaveButtonClick = () => {
+  const handleLegacyCloudSaveButtonClick = () => {
     if (!userDetails) {
-      window.electron.openAuthWindow(AuthPage.SignIn);
+      globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
       return;
     }
 
-    if (!hasActiveSubscription) {
-      setGameOptionsInitialCategory("hydra_cloud");
-      setShowGameOptionsModal(true);
-      return;
-    }
-
-    setGameOptionsInitialCategory("hydra_cloud");
+    setGameOptionsInitialCategory("hydra_cloud_legacy");
     setShowGameOptionsModal(true);
   };
 
@@ -216,17 +219,35 @@ export function GameDetailsContent() {
     ? (game?.platform ?? shopDetails?.platform ?? null)
     : null;
 
-  const launchboxSystem = isLaunchboxGame
-    ? platformToSystem(launchboxPlatform)
-    : null;
-
   const launchboxTitle = isLaunchboxGame
     ? (game?.title ?? shopDetails?.name ?? "")
     : "";
 
-  const launchboxEmulatorIcon = launchboxSystem
-    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[launchboxSystem]]
-    : undefined;
+  const classicsBadge = resolveClassicsBadge(
+    "launchbox",
+    isLaunchboxGame ? launchboxPlatform : null,
+    CLASSICS_PS_PLATFORM_LABELS,
+    {
+      emulatorIcons: EMULATOR_ICONS,
+      retroarchIcon: RETROARCH_EMULATOR_ICON,
+    }
+  );
+
+  const classicsChipLabel = classicsBadge.label ?? launchboxPlatform;
+
+  const classicsChips =
+    isLaunchboxGame && classicsChipLabel ? (
+      <div className="game-details__hero-classics-chips">
+        <span className="game-details__hero-classics-chip">
+          {classicsChipLabel}
+        </span>
+        {classicsBadge.icon && (
+          <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
+            <img src={classicsBadge.icon} alt="" />
+          </span>
+        )}
+      </div>
+    ) : null;
 
   return (
     <div
@@ -256,18 +277,7 @@ export function GameDetailsContent() {
                   <h1 className="game-details__hero-classics-title">
                     {launchboxTitle}
                   </h1>
-                  {launchboxPlatform && (
-                    <div className="game-details__hero-classics-chips">
-                      <span className="game-details__hero-classics-chip">
-                        {launchboxPlatform}
-                      </span>
-                      {launchboxEmulatorIcon && (
-                        <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
-                          <img src={launchboxEmulatorIcon} alt="" />
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {classicsChips}
                 </div>
               </div>
             </>
@@ -363,7 +373,10 @@ export function GameDetailsContent() {
           >
             <div className="game-details__hero-content">
               {!renderClassicsHero && (
-                <GameLogo game={game} shopDetails={shopDetails} />
+                <div className="game-details__hero-standard-meta">
+                  <GameLogo game={game} shopDetails={shopDetails} />
+                  {classicsChips}
+                </div>
               )}
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
@@ -378,11 +391,11 @@ export function GameDetailsContent() {
                   </button>
                 )}
 
-                {game && game.shop !== "custom" && (
+                {game && cloudSaveVisibility?.hero === "legacy" && (
                   <button
                     type="button"
                     className="game-details__cloud-sync-button"
-                    onClick={handleCloudSaveButtonClick}
+                    onClick={handleLegacyCloudSaveButtonClick}
                   >
                     <div className="game-details__cloud-icon-container">
                       <img
@@ -393,6 +406,10 @@ export function GameDetailsContent() {
                     </div>
                     {t("cloud_save")}
                   </button>
+                )}
+
+                {game && objectId && cloudSaveVisibility?.hero === "v2" && (
+                  <CloudSaveWidget />
                 )}
               </div>
             </div>

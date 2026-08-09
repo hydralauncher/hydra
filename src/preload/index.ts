@@ -1,6 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer } from "electron";
+import { randomUUID } from "node:crypto";
 
 import type {
   GameShop,
@@ -27,6 +28,9 @@ import type {
   EmulatorSystem,
   EmulatorBinary,
   EmulatorInstallProgress,
+  RetroArchCoreName,
+  RetroArchCoreInstallProgress,
+  RetroArchInstallProgress,
   Ps2MemcardScanInput,
   Ps2MemcardScanProgress,
   Ps2MemoryCardSaveRecord,
@@ -41,6 +45,22 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  CloudSaveAutomaticSyncModeChangedEvent,
+  CloudSaveAutomaticSyncEvent,
+  CloudSaveConflictResolution,
+  CloudSaveOverview,
+  CloudSaveV2FileDetails,
+  CloudSaveSyncIpcProgressPayload,
+  CloudSaveSyncProgressPayload,
+  SyncCloudSaveOnGamePageResult,
+  SyncGameCloudSaveResult,
+  SelectCloudSaveCustomPathResult,
+  CloudSaveCustomPathApproval,
+  CloudSaveModalSyncResult,
+  SelectCloudSaveCustomPathApprovalResult,
+  ConfirmCloudSaveCustomPathApprovalResult,
+  ConfirmCloudSaveCustomPathRebindApprovalResult,
+  LegacySaveExportResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -51,7 +71,194 @@ const fileExplorerApi = {
   listDrives: () => ipcRenderer.invoke("listDrives"),
 };
 
+const invokeCloudSaveOperation = async <TResult = SyncGameCloudSaveResult>(
+  channel:
+    | "syncGameCloudSave"
+    | "syncGameCloudSaveFromModal"
+    | "syncCloudSaveAfterCustomPathRebind"
+    | "resolveCloudSaveConflict",
+  args: unknown[],
+  onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+) => {
+  const operationId = randomUUID();
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    progress: CloudSaveSyncIpcProgressPayload
+  ) => {
+    if (progress.operationId === operationId) onProgress?.(progress);
+  };
+  ipcRenderer.on("on-cloud-save-sync-progress", listener);
+  try {
+    return (await ipcRenderer.invoke(channel, operationId, ...args)) as TResult;
+  } finally {
+    ipcRenderer.removeListener("on-cloud-save-sync-progress", listener);
+  }
+};
+
 contextBridge.exposeInMainWorld("electron", {
+  onCloudSaveAutomaticSyncModeChanged: (
+    callback: (event: CloudSaveAutomaticSyncModeChangedEvent) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: CloudSaveAutomaticSyncModeChangedEvent
+    ) => callback(payload);
+    ipcRenderer.on("on-cloud-save-automatic-sync-mode-changed", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-cloud-save-automatic-sync-mode-changed",
+        listener
+      );
+  },
+  onCloudSaveAutomaticSync: (
+    callback: (event: CloudSaveAutomaticSyncEvent) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: CloudSaveAutomaticSyncEvent
+    ) => callback(payload);
+    ipcRenderer.on("on-cloud-save-automatic-sync", listener);
+    return () =>
+      ipcRenderer.removeListener("on-cloud-save-automatic-sync", listener);
+  },
+  getCloudSaveOverview: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getCloudSaveOverview",
+      objectId,
+      shop
+    ) as Promise<CloudSaveOverview>,
+  getCloudSaveV2FileDetails: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getCloudSaveV2FileDetails",
+      objectId,
+      shop
+    ) as Promise<CloudSaveV2FileDetails>,
+  deleteGameCloudSaveData: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "deleteGameCloudSaveData",
+      objectId,
+      shop
+    ) as Promise<void>,
+  selectCloudSaveCustomPath: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "selectCloudSaveCustomPath",
+      objectId,
+      shop
+    ) as Promise<SelectCloudSaveCustomPathResult>,
+  createCloudSaveCustomPathRebindApproval: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string
+  ) =>
+    ipcRenderer.invoke(
+      "createCloudSaveCustomPathRebindApproval",
+      objectId,
+      shop,
+      rawPath
+    ) as Promise<CloudSaveCustomPathApproval>,
+  confirmCloudSaveCustomPathRebindApproval: (
+    approvalId: string,
+    objectId: string,
+    shop: GameShop
+  ) =>
+    ipcRenderer.invoke(
+      "confirmCloudSaveCustomPathRebindApproval",
+      approvalId,
+      objectId,
+      shop
+    ) as Promise<ConfirmCloudSaveCustomPathRebindApprovalResult>,
+  getPendingCloudSaveCustomPathApproval: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getPendingCloudSaveCustomPathApproval",
+      objectId,
+      shop
+    ) as Promise<CloudSaveCustomPathApproval | null>,
+  selectCloudSaveCustomPathApproval: (
+    approvalId: string,
+    selectedPath?: string
+  ) =>
+    ipcRenderer.invoke(
+      "selectCloudSaveCustomPathApproval",
+      approvalId,
+      selectedPath
+    ) as Promise<SelectCloudSaveCustomPathApprovalResult>,
+  confirmCloudSaveCustomPathApproval: (approvalId: string) =>
+    ipcRenderer.invoke(
+      "confirmCloudSaveCustomPathApproval",
+      approvalId
+    ) as Promise<ConfirmCloudSaveCustomPathApprovalResult>,
+  dismissCloudSaveCustomPathApproval: (approvalId: string) =>
+    ipcRenderer.invoke(
+      "dismissCloudSaveCustomPathApproval",
+      approvalId
+    ) as Promise<void>,
+  removeCloudSaveCustomPath: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string
+  ) =>
+    ipcRenderer.invoke(
+      "removeCloudSaveCustomPath",
+      objectId,
+      shop,
+      rawPath
+    ) as Promise<void>,
+  setCloudSaveAutomaticSyncEnabled: (
+    objectId: string,
+    shop: GameShop,
+    enabled: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "setCloudSaveAutomaticSyncEnabled",
+      objectId,
+      shop,
+      enabled
+    ) as Promise<boolean>,
+  syncCloudSaveOnGamePage: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "syncCloudSaveOnGamePage",
+      objectId,
+      shop
+    ) as Promise<SyncCloudSaveOnGamePageResult>,
+  syncGameCloudSave: (
+    objectId: string,
+    shop: GameShop,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation("syncGameCloudSave", [objectId, shop], onProgress),
+  syncGameCloudSaveFromModal: (
+    objectId: string,
+    shop: GameShop,
+    approvalId: string | null,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation<CloudSaveModalSyncResult>(
+      "syncGameCloudSaveFromModal",
+      [objectId, shop, approvalId],
+      onProgress
+    ),
+  syncCloudSaveAfterCustomPathRebind: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation(
+      "syncCloudSaveAfterCustomPathRebind",
+      [objectId, shop, rawPath],
+      onProgress
+    ),
+  resolveCloudSaveConflict: (
+    objectId: string,
+    shop: GameShop,
+    resolution: CloudSaveConflictResolution,
+    onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+  ) =>
+    invokeCloudSaveOperation(
+      "resolveCloudSaveConflict",
+      [objectId, shop, resolution],
+      onProgress
+    ),
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("startGameDownload", payload),
@@ -252,6 +459,113 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-emulator-install-progress", listener);
     return () =>
       ipcRenderer.removeListener("on-emulator-install-progress", listener);
+  },
+  /* RetroArch */
+  getRetroArchConfig: () => ipcRenderer.invoke("getRetroArchConfig"),
+  detectRetroArch: () => ipcRenderer.invoke("detectRetroArch"),
+  previewRetroArchExecutable: (executablePath?: string | null) =>
+    ipcRenderer.invoke("previewRetroArchExecutable", executablePath ?? null),
+  setRetroArchExecutablePath: (executablePath: string | null) =>
+    ipcRenderer.invoke("setRetroArchExecutablePath", executablePath),
+  setRetroArchCoresDir: (coresDir: string | null) =>
+    ipcRenderer.invoke("setRetroArchCoresDir", coresDir),
+  getRetroArchInstallOptions: () =>
+    ipcRenderer.invoke("getRetroArchInstallOptions"),
+  installRetroArch: (optionId: string) =>
+    ipcRenderer.invoke("installRetroArch", optionId),
+  installRetroArchCore: (core: RetroArchCoreName) =>
+    ipcRenderer.invoke("installRetroArchCore", core),
+  installAllRetroArchCores: () =>
+    ipcRenderer.invoke("installAllRetroArchCores"),
+  onRetroArchCoreInstallProgress: (
+    cb: (payload: RetroArchCoreInstallProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RetroArchCoreInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-retroarch-core-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-retroarch-core-install-progress",
+        listener
+      );
+  },
+  onRetroArchInstallProgress: (
+    cb: (payload: RetroArchInstallProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RetroArchInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-retroarch-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-retroarch-install-progress", listener);
+  },
+  importRetroArchRoms: (
+    folders: { path: string; scanSubfolders: boolean }[],
+    language: string
+  ) => ipcRenderer.invoke("importRetroArchRoms", folders, language),
+  cancelRetroArchImport: (requestId: string) =>
+    ipcRenderer.invoke("cancelRetroArchImport", requestId),
+  rescanRetroArch: (language?: string) =>
+    ipcRenderer.invoke("rescanRetroArch", language),
+  listRetroArchRoms: () => ipcRenderer.invoke("listRetroArchRoms"),
+  getActiveRetroArchImport: () =>
+    ipcRenderer.invoke("getActiveRetroArchImport"),
+  previewRetroArchRomFolder: (folderPath: string, scanSubfolders: boolean) =>
+    ipcRenderer.invoke("previewRetroArchRomFolder", folderPath, scanSubfolders),
+  checkRetroArchExecutable: () =>
+    ipcRenderer.invoke("checkRetroArchExecutable"),
+  removeRetroArch: () => ipcRenderer.invoke("removeRetroArch"),
+  addRetroArchRomFolder: (folderPath: string, scanSubfolders: boolean) =>
+    ipcRenderer.invoke("addRetroArchRomFolder", folderPath, scanSubfolders),
+  changeRetroArchRomFolder: (folderId: string, newPath: string) =>
+    ipcRenderer.invoke("changeRetroArchRomFolder", folderId, newPath),
+  removeRetroArchRomFolder: (folderId: string) =>
+    ipcRenderer.invoke("removeRetroArchRomFolder", folderId),
+  toggleRetroArchSubfolders: (folderId: string, scanSubfolders: boolean) =>
+    ipcRenderer.invoke("toggleRetroArchSubfolders", folderId, scanSubfolders),
+  onRetroArchImportProgress: (
+    cb: (
+      payload:
+        | {
+            type: "progress";
+            requestId: string;
+            phase: "scanning" | "matching";
+            processed: number;
+            total: number;
+            percent: number;
+            currentFile: string | null;
+            status: "matched" | "unmatched" | null;
+            discovered: number;
+            matched: number;
+            sizeBytes: number;
+          }
+        | {
+            type: "done" | "cancelled";
+            requestId: string;
+            fileCount: number;
+            sizeBytes: number;
+            matched: number;
+            unmatched: number;
+            unmatchedFiles: { name: string; reason: "unmatched" }[];
+          }
+        | {
+            type: "error";
+            requestId: string;
+            message: string;
+          }
+    ) => void
+  ) => {
+    const channel = "on-retroarch-import-progress";
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Parameters<typeof cb>[0]);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
+  onRetroArchImportStatus: (cb: (importing: boolean) => void) => {
+    const channel = "on-retroarch-import-status";
+    const listener = (_event: Electron.IpcRendererEvent, importing: boolean) =>
+      cb(importing);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
   },
   startRomScan: (
     system: EmulatorSystem,
@@ -758,15 +1072,23 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
   scanInstalledGames: (
     additionalDirectories?: string[],
-    includeDefaultDirectories?: boolean
+    includeDefaultDirectories?: boolean,
+    addGamesToLibrary?: boolean,
+    requestId?: string
   ) =>
     ipcRenderer.invoke(
       "scanInstalledGames",
       additionalDirectories,
-      includeDefaultDirectories
+      includeDefaultDirectories,
+      addGamesToLibrary,
+      requestId
     ),
   removeUninstalledGameExecutables: () =>
     ipcRenderer.invoke("removeUninstalledGameExecutables"),
+  cancelScanInstalledGames: (requestId: string) =>
+    ipcRenderer.invoke("cancelScanInstalledGames", requestId),
+  addScannedGame: (objectId: string, executablePath: string) =>
+    ipcRenderer.invoke("addScannedGame", objectId, executablePath),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (
@@ -875,6 +1197,11 @@ contextBridge.exposeInMainWorld("electron", {
     gameArtifactId: string
   ) =>
     ipcRenderer.invoke("downloadGameArtifact", objectId, shop, gameArtifactId),
+  exportGameArtifact: (
+    gameArtifactId: string,
+    suggestedName: string
+  ): Promise<LegacySaveExportResult> =>
+    ipcRenderer.invoke("exportGameArtifact", gameArtifactId, suggestedName),
   getGameArtifacts: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameArtifacts", objectId, shop),
   getGameBackupPreview: (objectId: string, shop: GameShop) =>

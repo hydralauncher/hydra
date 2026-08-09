@@ -1,4 +1,4 @@
-import { enUS, es, fr, ptBR, ru } from "date-fns/locale";
+import { el, enUS, es, fr, ptBR, ru, vi } from "date-fns/locale";
 import { format, formatDistance, subMilliseconds } from "date-fns";
 import type { FormatDistanceOptions } from "date-fns";
 import { useCallback, useMemo } from "react";
@@ -11,6 +11,8 @@ function getDateLocale(language: string) {
   if (language.startsWith("pt")) return ptBR;
   if (language.startsWith("es")) return es;
   if (language.startsWith("fr")) return fr;
+  if (language.startsWith("el")) return el;
+  if (language.startsWith("vi")) return vi;
   return enUS;
 }
 

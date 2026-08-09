@@ -414,6 +414,10 @@ export interface GameArtifact {
   isFrozen: boolean;
 }
 
+export type LegacySaveExportResult =
+  | { status: "saved"; filePath: string }
+  | { status: "cancelled" };
+
 export type NotificationType =
   | "FRIEND_REQUEST_RECEIVED"
   | "FRIEND_REQUEST_ACCEPTED"
@@ -597,4 +601,6 @@ export * from "./how-long-to-beat.types";
 export * from "./level.types";
 export * from "./theme.types";
 export * from "./emulator.types";
+export * from "./retroarch.types";
 export * from "./artwork.types";
+export * from "./cloud-save.types";

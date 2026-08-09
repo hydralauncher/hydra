@@ -3,8 +3,16 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
-import type { KnownBinary } from "./known-binaries";
 import { getEmulatorVersion } from "./get-emulator-version";
+
+export interface DetectableBinary {
+  binary: string;
+  displayName: string;
+  linuxNames: string[];
+  windowsNames: string[];
+  flatpakIds: string[];
+  versionFlags: string[];
+}
 
 const isWindows = process.platform === "win32";
 
@@ -202,7 +210,7 @@ export interface DetectionResult {
 }
 
 export const detectEmulator = (
-  binary: KnownBinary,
+  binary: DetectableBinary,
   options?: { resolveVersion?: boolean }
 ): DetectionResult | null => {
   const names = isWindows ? binary.windowsNames : binary.linuxNames;
