@@ -2,6 +2,7 @@ import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
 import { randomUUID } from "node:crypto";
 import type { GameShop } from "@types";
+import { GameExecutables } from "@main/services";
 
 const addCustomGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -9,7 +10,9 @@ const addCustomGameToLibrary = async (
   executablePath: string,
   iconUrl?: string,
   logoImageUrl?: string,
-  libraryHeroImageUrl?: string
+  libraryHeroImageUrl?: string,
+  matchedSteamObjectId?: string | null,
+  customCoverImageUrl?: string | null
 ) => {
   const objectId = randomUUID();
   const shop: GameShop = "custom";
@@ -36,16 +39,28 @@ const addCustomGameToLibrary = async (
     libraryImageUrl: iconUrl || "",
     logoImageUrl: logoImageUrl || "",
     logoPosition: null,
-    coverImageUrl: iconUrl || "",
+    coverImageUrl: customCoverImageUrl || iconUrl || "",
     downloadSources: [],
   };
   await gamesShopAssetsSublevel.put(gameKey, assets);
+
+  // If the user matched this custom game to a real Steam entry, pull in the
+  // community-maintained known-executable list for that title so the
+  // system-wide process watcher (playtime, achievements, cloud save sync)
+  // can still recognize the game even if it's launched through a different
+  // wrapper/launcher exe than the one picked here.
+  const trackingExecutablePaths = matchedSteamObjectId
+    ? (GameExecutables.getExecutablesForGame(matchedSteamObjectId)?.map(
+        (executable) => executable.name
+      ) ?? null)
+    : null;
 
   const game = {
     title,
     iconUrl: iconUrl || null,
     logoImageUrl: logoImageUrl || null,
     libraryHeroImageUrl: libraryHeroImageUrl || null,
+    customCoverImageUrl: customCoverImageUrl || null,
     objectId,
     shop,
     remoteId: null,
@@ -59,6 +74,8 @@ const addCustomGameToLibrary = async (
     favorite: false,
     automaticCloudSync: false,
     hasManuallyUpdatedPlaytime: false,
+    matchedSteamObjectId: matchedSteamObjectId || null,
+    trackingExecutablePaths,
   };
 
   await gamesSublevel.put(gameKey, game);

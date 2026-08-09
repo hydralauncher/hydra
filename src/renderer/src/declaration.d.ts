@@ -307,7 +307,9 @@ declare global {
       executablePath: string,
       iconUrl?: string,
       logoImageUrl?: string,
-      libraryHeroImageUrl?: string
+      libraryHeroImageUrl?: string,
+      matchedSteamObjectId?: string | null,
+      customCoverImageUrl?: string | null
     ) => Promise<Game>;
     updateCustomGame: (params: {
       shop: GameShop;
@@ -321,6 +323,7 @@ declare global {
       originalLogoPath?: string;
       originalHeroPath?: string;
       customOriginalCoverPath?: string;
+      matchedSteamObjectId?: string | null;
     }) => Promise<Game>;
     copyCustomGameAsset: (
       sourcePath: string,

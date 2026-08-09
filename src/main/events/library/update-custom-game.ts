@@ -2,7 +2,7 @@ import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 import fs from "node:fs";
-import { WindowManager, logger } from "@main/services";
+import { WindowManager, logger, GameExecutables } from "@main/services";
 
 interface UpdateCustomGameParams {
   shop: GameShop;
@@ -16,6 +16,7 @@ interface UpdateCustomGameParams {
   originalLogoPath?: string;
   originalHeroPath?: string;
   customOriginalCoverPath?: string;
+  matchedSteamObjectId?: string | null;
 }
 
 const updateCustomGame = async (
@@ -34,6 +35,7 @@ const updateCustomGame = async (
     originalLogoPath,
     originalHeroPath,
     customOriginalCoverPath,
+    matchedSteamObjectId,
   } = params;
   const gameKey = levelKeys.game(shop, objectId);
 
@@ -69,6 +71,21 @@ const updateCustomGame = async (
     }
   }
 
+  // Only touch the Steam match / known-executable tracking when the caller
+  // explicitly passes it (e.g. from the title-rename flow) — leave it alone
+  // on unrelated updates like saving artwork.
+  const matchFields =
+    matchedSteamObjectId !== undefined
+      ? {
+          matchedSteamObjectId,
+          trackingExecutablePaths: matchedSteamObjectId
+            ? (GameExecutables.getExecutablesForGame(matchedSteamObjectId)?.map(
+                (executable) => executable.name
+              ) ?? null)
+            : null,
+        }
+      : {};
+
   const updatedGame = {
     ...existingGame,
     title,
@@ -81,6 +98,7 @@ const updateCustomGame = async (
     originalHeroPath: originalHeroPath || existingGame.originalHeroPath || null,
     customOriginalCoverPath:
       customOriginalCoverPath || existingGame.customOriginalCoverPath || null,
+    ...matchFields,
   };
 
   await gamesSublevel.put(gameKey, updatedGame);
