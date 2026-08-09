@@ -1,5 +1,9 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
+import {
+  CLASSICS_PS_PLATFORM_LABELS,
+  resolveClassicsBadge,
+} from "@renderer/helpers";
 import { AchievementProgress } from "@renderer/components";
 import { formatBytes } from "@shared";
 import {
@@ -11,7 +15,10 @@ import {
 } from "@primer/octicons-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getClassicsPlatformDetails } from "@renderer/helpers";
+import {
+  EMULATOR_ICONS,
+  RETROARCH_EMULATOR_ICON,
+} from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card-large.scss";
 
 interface LibraryGameCardLargeProps {
@@ -200,8 +207,16 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
-  const { label: classicsPlatformLabel, emulatorIcon: classicsEmulatorIcon } =
-    getClassicsPlatformDetails(game.shop, game.platform);
+  const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
+    resolveClassicsBadge(
+      game.shop,
+      game.platform,
+      CLASSICS_PS_PLATFORM_LABELS,
+      {
+        emulatorIcons: EMULATOR_ICONS,
+        retroarchIcon: RETROARCH_EMULATOR_ICON,
+      }
+    );
 
   return (
     <button

@@ -7,6 +7,7 @@ import fr from "./fr/translation.json";
 import hu from "./hu/translation.json";
 import it from "./it/translation.json";
 import de from "./de/translation.json";
+import el from "./el/translation.json";
 import pl from "./pl/translation.json";
 import ru from "./ru/translation.json";
 import tr from "./tr/translation.json";
@@ -29,12 +30,14 @@ import uz from "./uz/translation.json";
 import fi from "./fi/translation.json";
 import sv from "./sv/translation.json";
 import lv from "./lv/translation.json";
+import vi from "./vi/translation.json";
 
 export default {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
   en,
   de,
+  el,
   es,
   nl,
   fr,
@@ -62,4 +65,5 @@ export default {
   uz,
   sv,
   lv,
+  vi,
 };
