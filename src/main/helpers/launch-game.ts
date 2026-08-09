@@ -15,6 +15,7 @@ import {
   launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
+import { detectOnlineFixCompatibility } from "@main/services/online-fix-detector";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
@@ -259,6 +260,26 @@ const launchWindowsBinaryOnLinux = async (
 
   await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
 
+  const onlineFixResult = await detectOnlineFixCompatibility(
+    path.dirname(parsedPath)
+  );
+
+  const detectedWineDllOverrides =
+    onlineFixResult.hasFix && onlineFixResult.overrides
+      ? onlineFixResult.overrides
+      : null;
+
+  if (onlineFixResult.hasFix) {
+    logger.info("Detected OnlineFix compatibility files", {
+      executable: parsedPath,
+      provider: onlineFixResult.provider,
+      overrides: detectedWineDllOverrides,
+      detectedFiles: onlineFixResult.detectedFiles,
+      managedEntries: onlineFixResult.managedEntries,
+      warnings: onlineFixResult.warnings,
+    });
+  }
+
   try {
     await Umu.launchExecutable(parsedPath, [], {
       winePrefixPath,
@@ -267,6 +288,7 @@ const launchWindowsBinaryOnLinux = async (
       launchOptions,
       useGamemode,
       useMangohud,
+      wineDllOverrides: detectedWineDllOverrides,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;

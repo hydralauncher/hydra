@@ -212,6 +212,7 @@ export class Umu {
       launchOptions?: string | null;
       useMangohud?: boolean;
       useGamemode?: boolean;
+      wineDllOverrides?: string | null;
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -372,6 +373,7 @@ export class Umu {
                 }
               : {}),
             WINEDLLOVERRIDES:
+              options?.wineDllOverrides ??
               "OnlineFix64,SteamOverlay64,winmm,dnet,steam_api64=n,b",
           }
         : {}),
