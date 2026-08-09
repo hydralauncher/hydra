@@ -10,7 +10,7 @@ import {
   isAnimatedCoverCandidate,
   useCoverPoster,
 } from "@renderer/hooks/use-cover-poster";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   getGameAchievementProgress,
@@ -193,6 +193,27 @@ export function CustomGameBadge() {
 interface ClassicsCoverBadgesProps {
   platformLabel: string;
   emulatorIcon?: string;
+}
+
+export function getLibraryCoverOverlay(
+  game: { shop: GameShop },
+  classicsPlatformLabel: string | null,
+  classicsEmulatorIcon?: string
+): ReactNode {
+  if (classicsPlatformLabel != null) {
+    return (
+      <ClassicsCoverBadges
+        platformLabel={classicsPlatformLabel}
+        emulatorIcon={classicsEmulatorIcon}
+      />
+    );
+  }
+
+  if (game.shop === "custom") {
+    return <CustomGameBadge />;
+  }
+
+  return null;
 }
 
 export function ClassicsCoverBadges({

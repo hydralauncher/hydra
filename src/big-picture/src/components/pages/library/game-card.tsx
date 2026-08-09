@@ -1,10 +1,6 @@
 import type { LibraryGame } from "@types";
 import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
-import type {
-  MouseEvent as ReactMouseEvent,
-  ReactNode,
-  RefObject,
-} from "react";
+import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
 import {
   FocusItem,
   HorizontalLibraryGameCard,
@@ -19,9 +15,8 @@ import {
   getLibraryFocusListItemId,
 } from "./navigation";
 import {
-  ClassicsCoverBadges,
   ClassicsVerticalCoverMedia,
-  CustomGameBadge,
+  getLibraryCoverOverlay,
   useFocusAnimatedCover,
   useLibraryGameCardPresentation,
 } from "./card-presentation";
@@ -110,18 +105,11 @@ export function VerticalLibraryGameCard({
         onImageError={handleCoverImageError}
       />
     ) : null;
-  let coverOverlay: ReactNode = null;
-
-  if (classicsPlatformLabel != null) {
-    coverOverlay = (
-      <ClassicsCoverBadges
-        platformLabel={classicsPlatformLabel}
-        emulatorIcon={classicsEmulatorIcon}
-      />
-    );
-  } else if (game.shop === "custom") {
-    coverOverlay = <CustomGameBadge />;
-  }
+  const coverOverlay = getLibraryCoverOverlay(
+    game,
+    classicsPlatformLabel,
+    classicsEmulatorIcon
+  );
 
   const openContextMenuFromRect = (
     rect: DOMRect,
@@ -224,18 +212,11 @@ export function HorizontalLibraryGameListCard({
   } = useLibraryGameCardPresentation(game, "horizontal");
   const focusId = getLibraryFocusListItemId(game.id);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
-  let coverOverlay: ReactNode = null;
-
-  if (classicsPlatformLabel != null) {
-    coverOverlay = (
-      <ClassicsCoverBadges
-        platformLabel={classicsPlatformLabel}
-        emulatorIcon={classicsEmulatorIcon}
-      />
-    );
-  } else if (game.shop === "custom") {
-    coverOverlay = <CustomGameBadge />;
-  }
+  const coverOverlay = getLibraryCoverOverlay(
+    game,
+    classicsPlatformLabel,
+    classicsEmulatorIcon
+  );
 
   const openContextMenuFromRect = (
     rect: DOMRect,
