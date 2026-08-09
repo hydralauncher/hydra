@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { FileDirectoryIcon } from "@primer/octicons-react";
@@ -16,11 +16,13 @@ import "./sidebar-adding-custom-game-modal.scss";
 export interface SidebarAddingCustomGameModalProps {
   visible: boolean;
   onClose: () => void;
+  initialExecutablePath?: string;
 }
 
 export function SidebarAddingCustomGameModal({
   visible,
   onClose,
+  initialExecutablePath,
 }: Readonly<SidebarAddingCustomGameModalProps>) {
   const { t } = useTranslation("sidebar");
   const { updateLibrary } = useLibrary();
@@ -30,6 +32,16 @@ export function SidebarAddingCustomGameModal({
   const [gameName, setGameName] = useState("");
   const [executablePath, setExecutablePath] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+
+  useEffect(() => {
+    if (visible && initialExecutablePath) {
+      setExecutablePath(initialExecutablePath);
+
+      const fileName = initialExecutablePath.split(/[\\/]/).pop() || "";
+      const gameNameFromFile = fileName.replace(/\.[^/.]+$/, "");
+      setGameName(gameNameFromFile);
+    }
+  }, [visible, initialExecutablePath]);
 
   const handleSelectExecutable = async () => {
     const filters =

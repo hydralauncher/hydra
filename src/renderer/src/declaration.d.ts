@@ -959,6 +959,7 @@ declare global {
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
+    getPathForFile: (file: File) => string;
     readDirectory: (path: string) => Promise<FileExplorerEntry[]>;
     getPathInfo: (path: string) => Promise<FileExplorerPathInfo>;
     listDrives: () => Promise<string[]>;
