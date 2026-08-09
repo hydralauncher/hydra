@@ -28,9 +28,11 @@ def get_windows_openssl_includes():
 build_exe_options = {
     "packages": ["libtorrent"],
     "build_exe": "hydra-python-rpc",
-    "include_msvcr": True,
     "include_files": get_windows_openssl_includes(),
 }
+
+if sys.platform == "win32":
+    build_exe_options["include_msvcr"] = True
 
 setup(
     name="hydra-python-rpc",
@@ -41,7 +43,9 @@ setup(
         Executable(
             "python_rpc/main.py",
             target_name="hydra-python-rpc",
-            icon="build/icon.ico",
+            # cx_Freeze only embeds the icon on Windows; elsewhere it copies
+            # the .ico into the build output, shipping a file nothing reads.
+            icon="build/icon.ico" if sys.platform == "win32" else None,
         )
     ],
 )
