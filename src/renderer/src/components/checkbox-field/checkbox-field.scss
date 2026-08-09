@@ -3,7 +3,7 @@
 .checkbox-field {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   gap: globals.$spacing-unit;
   cursor: pointer;
 
@@ -79,9 +79,9 @@
 
   &__label {
     cursor: pointer;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
+    min-width: 0;
+    line-height: 20px;
+    overflow-wrap: anywhere;
 
     &:has(+ input:disabled) {
       cursor: not-allowed;

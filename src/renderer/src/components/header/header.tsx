@@ -27,7 +27,7 @@ import {
 
 import "./header.scss";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
-import { ScanGamesModal } from "./scan-games-modal";
+import { ScanGamesModal, type ScanResult } from "./scan-games-modal";
 import { setFilters, setLibrarySearchQuery } from "@renderer/features";
 import cn from "classnames";
 import { SearchDropdown } from "@renderer/components";
@@ -108,10 +108,8 @@ export function Header() {
   });
   const [showScanModal, setShowScanModal] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<{
-    foundGames: { title: string; executablePath: string }[];
-    total: number;
-  } | null>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [scanRequestId, setScanRequestId] = useState<string | null>(null);
 
   const { t } = useTranslation("header");
 
@@ -321,22 +319,33 @@ export function Header() {
 
   const handleStartScan = async (
     additionalDirectories: string[] = [],
-    includeDefaultDirectories = true
+    includeDefaultDirectories = true,
+    addGamesToLibrary = true
   ) => {
     if (isScanning) return;
 
+    const requestId = crypto.randomUUID();
+
     setIsScanning(true);
+    setScanRequestId(requestId);
     setScanResult(null);
 
     try {
       const result = await window.electron.scanInstalledGames(
         additionalDirectories,
-        includeDefaultDirectories
+        includeDefaultDirectories,
+        addGamesToLibrary,
+        requestId
       );
       setScanResult(result);
     } finally {
       setIsScanning(false);
+      setScanRequestId(null);
     }
+  };
+
+  const handleCancelScan = () => {
+    if (scanRequestId) window.electron.cancelScanInstalledGames(scanRequestId);
   };
 
   const handleClearScanResult = () => {
@@ -508,6 +517,7 @@ export function Header() {
         isScanning={isScanning}
         scanResult={scanResult}
         onStartScan={handleStartScan}
+        onCancelScan={handleCancelScan}
         onClearResult={handleClearScanResult}
       />
 
