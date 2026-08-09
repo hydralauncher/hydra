@@ -1,9 +1,9 @@
-
 ## Linux OnlineFix Support (Unofficial)
 
 This fork adds Linux support for SteamFix/OnlineFix games through UMU + Proton.
 
 Features:
+
 - Detects `OnlineFix64.dll` and `OnlineFix.ini`
 - Uses Steam Spacewar AppID (`480`)
 - Creates a dedicated SteamFix prefix (`~/SteamPrefixes/480`)
