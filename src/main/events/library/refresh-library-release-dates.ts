@@ -19,7 +19,7 @@ const refreshLibraryReleaseDates = async () => {
 
     const missingSteamGames = libraryGames
       .filter((game) => !game.isDeleted && game.shop === "steam")
-      .filter((game) => game.releaseDateTimestamp === undefined);
+      .filter((game) => game.releaseDateTimestamp == null);
 
     if (missingSteamGames.length === 0) {
       isFetching = false;
@@ -46,9 +46,11 @@ const refreshLibraryReleaseDates = async () => {
 
             for (const game of currentChunk) {
               const details = detailsById.get(game.objectId);
-              const releaseDateTimestamp = details
-                ? parseSortableDate(details.release_date?.date)
-                : 0;
+              if (!details) continue;
+
+              const releaseDateTimestamp = parseSortableDate(
+                details.release_date?.date
+              );
 
               await gamesSublevel.put(
                 levelKeys.game(game.shop, game.objectId),
@@ -59,16 +61,10 @@ const refreshLibraryReleaseDates = async () => {
               );
               updatedCount++;
 
-              if (details) {
-                await gamesShopCacheSublevel.put(
-                  levelKeys.gameShopCacheItem(
-                    "steam",
-                    game.objectId,
-                    "english"
-                  ),
-                  { ...details, name: game.title }
-                );
-              }
+              await gamesShopCacheSublevel.put(
+                levelKeys.gameShopCacheItem("steam", game.objectId, "english"),
+                { ...details, name: game.title }
+              );
             }
 
             WindowManager.mainWindow?.webContents.send(

@@ -2,6 +2,7 @@ import axios from "axios";
 import path from "node:path";
 import fs from "node:fs";
 import { crc32 } from "crc";
+import { chunk } from "lodash-es";
 import WinReg from "winreg";
 import { parseBuffer, writeBuffer } from "steam-shortcut-editor";
 
@@ -9,6 +10,8 @@ import type { SteamAppDetails, SteamShortcut } from "@types";
 
 import { logger } from "./logger";
 import { SystemPath } from "./system-path";
+
+const STEAM_APP_DETAILS_CONCURRENCY = 5;
 
 export interface SteamAppDetailsResponse {
   [key: string]: {
@@ -134,12 +137,37 @@ export const getSteamLanguage = (language: string) => {
   );
 };
 
-export const getSteamAppDetails = async (
+export const getSteamAppDetails = async (objectId: string, language: string) =>
+  getSteamAppDetailsFromApi(objectId, language);
+
+const getSteamAppDetailsFromApi = async (
   objectId: string,
   language: string
 ) => {
-  const details = await getSteamAppDetailsBatch([objectId], language);
-  return details.get(objectId) ?? null;
+  const searchParams = new URLSearchParams({
+    appids: objectId,
+    l: getSteamLanguage(language),
+    cc: "us",
+  });
+
+  return axios
+    .get<SteamAppDetailsResponse>(
+      `https://store.steampowered.com/api/appdetails?${searchParams.toString()}`
+    )
+    .then((response) => {
+      const result = response.data[objectId];
+      return result?.success && result.data
+        ? { ...result.data, objectId }
+        : null;
+    })
+    .catch((err) => {
+      logger.error("Error on getSteamAppDetails", {
+        message: err?.message,
+        code: err?.code,
+        name: err?.name,
+      });
+      return null;
+    });
 };
 
 export const getSteamAppDetailsBatch = async (
@@ -147,33 +175,20 @@ export const getSteamAppDetailsBatch = async (
   language: string
 ) => {
   const details = new Map<string, SteamAppDetails & { objectId: string }>();
-  if (objectIds.length === 0) return details;
 
-  const searchParams = new URLSearchParams({
-    appids: objectIds.join(","),
-    l: getSteamLanguage(language),
-    cc: "us",
-  });
+  for (const objectIdChunk of chunk(objectIds, STEAM_APP_DETAILS_CONCURRENCY)) {
+    const results = await Promise.all(
+      objectIdChunk.map((objectId) =>
+        getSteamAppDetailsFromApi(objectId, language)
+      )
+    );
 
-  await axios
-    .get<SteamAppDetailsResponse>(
-      `https://store.steampowered.com/api/appdetails?${searchParams.toString()}`
-    )
-    .then((response) => {
-      for (const objectId of objectIds) {
-        const result = response.data[objectId];
-        if (result?.success && result.data) {
-          details.set(objectId, { ...result.data, objectId });
-        }
+    for (const detail of results) {
+      if (detail) {
+        details.set(detail.objectId, detail);
       }
-    })
-    .catch((err) => {
-      logger.error("Error on getSteamAppDetailsBatch", {
-        message: err?.message,
-        code: err?.code,
-        name: err?.name,
-      });
-    });
+    }
+  }
 
   return details;
 };
