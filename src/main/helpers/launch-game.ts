@@ -15,6 +15,7 @@ import {
   launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
+import { SystemPath } from "@main/services/system-path";
 import { detectOnlineFixCompatibility } from "@main/services/online-fix-detector";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
@@ -243,6 +244,67 @@ const cleanupStaleCompatibilityProcesses = async (
   }
 };
 
+const ensureSteamOverlayDependency = (
+  winePrefixPath: string | null,
+  detectedFiles: string[]
+) => {
+  if (!winePrefixPath) return;
+
+  const needsSteamOverlay = detectedFiles.some(
+    (file) => path.basename(file).toLowerCase() === "steamoverlay64.dll"
+  );
+
+  if (!needsSteamOverlay) return;
+
+  const targetDirectory = path.join(
+    winePrefixPath,
+    "drive_c",
+    "Program Files (x86)",
+    "Steam"
+  );
+
+  const targetPath = path.join(targetDirectory, "GameOverlayRenderer64.dll");
+
+  if (fs.existsSync(targetPath)) return;
+
+  const homePath = SystemPath.getPath("home");
+
+  const sourceCandidates = [
+    path.join(
+      homePath,
+      ".local",
+      "share",
+      "Steam",
+      "GameOverlayRenderer64.dll"
+    ),
+    path.join(homePath, ".steam", "steam", "GameOverlayRenderer64.dll"),
+  ];
+
+  const sourcePath = sourceCandidates.find((candidate) =>
+    fs.existsSync(candidate)
+  );
+
+  if (!sourcePath) {
+    logger.warn("Steam overlay dependency was detected but not found", {
+      targetPath,
+      sourceCandidates,
+    });
+    return;
+  }
+
+  try {
+    fs.mkdirSync(targetDirectory, { recursive: true });
+    fs.copyFileSync(sourcePath, targetPath);
+
+    logger.info("Provisioned Steam overlay dependency", {
+      source: sourcePath,
+      destination: targetPath,
+    });
+  } catch (error) {
+    logger.error("Failed to provision Steam overlay dependency", error);
+  }
+};
+
 const launchWindowsBinaryOnLinux = async (
   gameKey: string,
   objectId: string,
@@ -270,6 +332,10 @@ const launchWindowsBinaryOnLinux = async (
       : null;
 
   if (onlineFixResult.hasFix) {
+    ensureSteamOverlayDependency(winePrefixPath, onlineFixResult.detectedFiles);
+
+    ensureSteamOverlayDependency(winePrefixPath, onlineFixResult.detectedFiles);
+
     logger.info("Detected OnlineFix compatibility files", {
       executable: parsedPath,
       provider: onlineFixResult.provider,
