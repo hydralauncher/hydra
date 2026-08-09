@@ -11,6 +11,7 @@ export * from "./use-download-options-listener";
 export * from "./use-game-card";
 export * from "./use-search-history";
 export * from "./use-search-suggestions";
+export * from "./use-steam-match-search";
 export * from "./use-game-collections";
 export * from "./use-classics-scan";
 export * from "./use-retroarch-scan";

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { Button, CheckboxField, TextField } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import type { SteamMatchSuggestion } from "@renderer/hooks";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
 import { DotIcon, FileIcon } from "@primer/octicons-react";
 import { HardDrive, X, FolderOpen, ChevronDown } from "lucide-react";
@@ -267,6 +268,11 @@ interface GeneralSettingsSectionProps {
   onChangeGameTitle: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onBlurGameTitle: () => Promise<void>;
   onResetGameTitle?: () => void;
+  steamMatchSuggestions?: SteamMatchSuggestion[];
+  isSearchingSteamMatch?: boolean;
+  pendingSteamMatch?: SteamMatchSuggestion | null;
+  onSelectSteamMatch?: (suggestion: SteamMatchSuggestion) => void;
+  onClearSteamMatch?: () => void;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearLaunchOptions: () => Promise<void>;
   isTransferring: boolean;
@@ -338,6 +344,11 @@ export function GeneralSettingsSection({
   onChangeGameTitle,
   onBlurGameTitle,
   onResetGameTitle,
+  steamMatchSuggestions = [],
+  isSearchingSteamMatch = false,
+  pendingSteamMatch = null,
+  onSelectSteamMatch = () => {},
+  onClearSteamMatch = () => {},
   onChangeLaunchOptions,
   onClearLaunchOptions,
   isTransferring,
@@ -485,6 +496,67 @@ export function GeneralSettingsSection({
               {t("clear")}
             </Button>
           </div>
+
+          {game.shop === "custom" &&
+            (pendingSteamMatch ? (
+              <div className="game-options-modal__steam-match">
+                {pendingSteamMatch.iconUrl && (
+                  <img
+                    src={pendingSteamMatch.iconUrl}
+                    alt=""
+                    className="game-options-modal__steam-match-icon"
+                  />
+                )}
+                <span className="game-options-modal__steam-match-label">
+                  {t("custom_game_modal_match_selected", {
+                    title: pendingSteamMatch.title,
+                    ns: "sidebar",
+                  })}
+                </span>
+                <button
+                  type="button"
+                  className="game-options-modal__steam-match-clear"
+                  onClick={onClearSteamMatch}
+                  disabled={updatingGameTitle}
+                  aria-label={t("custom_game_modal_match_clear", {
+                    ns: "sidebar",
+                  })}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              (isSearchingSteamMatch || steamMatchSuggestions.length > 0) && (
+                <div className="game-options-modal__steam-match-suggestions">
+                  <span className="game-options-modal__steam-match-suggestions-title">
+                    {isSearchingSteamMatch
+                      ? t("custom_game_modal_match_searching", {
+                          ns: "sidebar",
+                        })
+                      : t("custom_game_modal_match_steam_title", {
+                          ns: "sidebar",
+                        })}
+                  </span>
+                  <ul className="game-options-modal__steam-match-suggestions-list">
+                    {steamMatchSuggestions.map((suggestion) => (
+                      <li key={suggestion.objectId}>
+                        <button
+                          type="button"
+                          className="game-options-modal__steam-match-suggestion"
+                          onClick={() => onSelectSteamMatch(suggestion)}
+                          disabled={updatingGameTitle}
+                        >
+                          {suggestion.iconUrl && (
+                            <img src={suggestion.iconUrl} alt="" />
+                          )}
+                          {suggestion.title}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            ))}
         </div>
       )}
 

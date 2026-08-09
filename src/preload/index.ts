@@ -853,7 +853,9 @@ contextBridge.exposeInMainWorld("electron", {
     executablePath: string,
     iconUrl?: string,
     logoImageUrl?: string,
-    libraryHeroImageUrl?: string
+    libraryHeroImageUrl?: string,
+    matchedSteamObjectId?: string | null,
+    customCoverImageUrl?: string | null
   ) =>
     ipcRenderer.invoke(
       "addCustomGameToLibrary",
@@ -861,7 +863,9 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath,
       iconUrl,
       logoImageUrl,
-      libraryHeroImageUrl
+      libraryHeroImageUrl,
+      matchedSteamObjectId,
+      customCoverImageUrl
     ),
   copyCustomGameAsset: (
     sourcePath: string,
@@ -886,6 +890,7 @@ contextBridge.exposeInMainWorld("electron", {
     originalLogoPath?: string;
     originalHeroPath?: string;
     customOriginalCoverPath?: string;
+    matchedSteamObjectId?: string | null;
   }) => ipcRenderer.invoke("updateCustomGame", params),
   updateGameCustomAssets: (params: {
     shop: GameShop;

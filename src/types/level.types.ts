@@ -78,6 +78,7 @@ export interface Game {
   selectedDiscPath?: string | null;
   dontAskDiscSelection?: boolean;
   romSizeBytes?: number | null;
+  matchedSteamObjectId?: string | null;
 }
 
 export interface Download {
