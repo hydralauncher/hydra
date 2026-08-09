@@ -17,7 +17,9 @@ const pathExists = async (filePath: string): Promise<boolean | undefined> => {
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "ENOENT" || code === "ENOTDIR") return false;
-    logger.warn(`[RemoveUninstalledGameExecutables] Skipping ${filePath}: ${(err as Error).message}`);
+    logger.warn(
+      `[RemoveUninstalledGameExecutables] Skipping ${filePath}: ${(err as Error).message}`
+    );
     return undefined; // unavailable/unreadable — don't mark as removed
   }
 };
