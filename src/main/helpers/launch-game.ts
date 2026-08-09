@@ -62,12 +62,65 @@ const ensureExecutablePermission = (executablePath: string) => {
   }
 };
 
+const quotePowerShellString = (value: string) => `'${value.replace(/'/g, "''")}'`;
+
+const buildElevatedStartProcessCommand = (
+  command: string,
+  args: string[],
+  workingDirectory: string
+): string => {
+  const argumentListPart =
+    args.length > 0
+      ? ` -ArgumentList @(${args.map(quotePowerShellString).join(",")})`
+      : "";
+
+  return (
+    `Start-Process -FilePath ${quotePowerShellString(command)}` +
+    ` -WorkingDirectory ${quotePowerShellString(workingDirectory)}` +
+    `${argumentListPart} -Verb RunAs`
+  );
+};
+
+// Windows requires games whose executable manifest declares
+// requestedExecutionLevel="requireAdministrator" to be launched through a
+// mechanism capable of showing the UAC elevation prompt. A plain spawn()
+// can't do that -- Windows returns ERROR_ELEVATION_REQUIRED, which Node
+// reports as EACCES -- so we retry through PowerShell's Start-Process
+// -Verb RunAs, which elevates the same way double-clicking the exe (or a
+// shortcut to it) in Explorer does. The command is passed base64-encoded
+// via -EncodedCommand to sidestep quoting issues with paths/args.
+const spawnElevatedOnWindows = (
+  command: string,
+  args: string[],
+  workingDirectory: string,
+  env: NodeJS.ProcessEnv
+) => {
+  const psCommand = buildElevatedStartProcessCommand(
+    command,
+    args,
+    workingDirectory
+  );
+  const encodedCommand = Buffer.from(psCommand, "utf16le").toString("base64");
+
+  return spawn(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-EncodedCommand", encodedCommand],
+    {
+      shell: false,
+      detached: true,
+      stdio: "ignore",
+      cwd: workingDirectory,
+      env,
+    }
+  );
+};
+
 const launchNatively = (
   executablePath: string,
   launchOptions?: string | null,
   useMangohud = false,
   useGamemode = false
-): number | null => {
+): Promise<number | null> => {
   const workingDirectory = path.dirname(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executablePath,
@@ -86,61 +139,97 @@ const launchNatively = (
     Object.keys(resolvedLaunchCommand.env).length === 0
   ) {
     shell.openPath(executablePath);
-    return null;
+    return Promise.resolve(null);
   }
 
   if (
     process.platform === "win32" &&
     isWindowsBatchFile(resolvedLaunchCommand.command)
   ) {
+    return new Promise((resolve) => {
+      const processRef = spawn(
+        buildWindowsBatchCommand(
+          resolvedLaunchCommand.command,
+          resolvedLaunchCommand.args
+        ),
+        {
+          shell: true,
+          detached: true,
+          stdio: "ignore",
+          cwd: workingDirectory,
+          env: {
+            ...process.env,
+            ...resolvedLaunchCommand.env,
+          },
+        }
+      );
+
+      processRef.on("error", (error) => {
+        logger.error("Failed to launch game", error);
+      });
+
+      processRef.unref();
+      resolve(processRef.pid ?? null);
+    });
+  }
+
+  const env = {
+    ...process.env,
+    ...resolvedLaunchCommand.env,
+  };
+
+  return new Promise((resolve) => {
     const processRef = spawn(
-      buildWindowsBatchCommand(
-        resolvedLaunchCommand.command,
-        resolvedLaunchCommand.args
-      ),
+      resolvedLaunchCommand.command,
+      resolvedLaunchCommand.args,
       {
-        shell: true,
+        shell: false,
         detached: true,
         stdio: "ignore",
         cwd: workingDirectory,
-        env: {
-          ...process.env,
-          ...resolvedLaunchCommand.env,
-        },
+        env,
       }
     );
 
-    processRef.on("error", (error) => {
-      logger.error("Failed to launch game", error);
+    let settled = false;
+
+    processRef.once("spawn", () => {
+      if (settled) return;
+      settled = true;
+      processRef.unref();
+      resolve(processRef.pid ?? null);
     });
 
-    processRef.unref();
+    processRef.once("error", (error: NodeJS.ErrnoException) => {
+      if (settled) return;
+      settled = true;
 
-    return processRef.pid ?? null;
-  }
+      if (process.platform === "win32" && error.code === "EACCES") {
+        logger.warn(
+          "Game executable requires elevation, retrying with UAC prompt",
+          { executablePath: resolvedLaunchCommand.command }
+        );
 
-  const processRef = spawn(
-    resolvedLaunchCommand.command,
-    resolvedLaunchCommand.args,
-    {
-      shell: false,
-      detached: true,
-      stdio: "ignore",
-      cwd: workingDirectory,
-      env: {
-        ...process.env,
-        ...resolvedLaunchCommand.env,
-      },
-    }
-  );
+        const elevatedProcessRef = spawnElevatedOnWindows(
+          resolvedLaunchCommand.command,
+          resolvedLaunchCommand.args,
+          workingDirectory,
+          env
+        );
 
-  processRef.on("error", (error) => {
-    logger.error("Failed to launch game", error);
+        elevatedProcessRef.on("error", (elevatedError) => {
+          logger.error("Failed to launch elevated game", elevatedError);
+        });
+
+        elevatedProcessRef.unref();
+        resolve(null);
+        return;
+      }
+
+      logger.error("Failed to launch game", error);
+      resolve(null);
+    });
   });
-
-  processRef.unref();
-
-  return processRef.pid ?? null;
 };
 
 const launchWithWine = async (
@@ -551,7 +640,7 @@ const launchResolvedGame = async (
     clearCloudSaveLaunchGuard(objectId, shop);
   }
 
-  const pid = launchNatively(
+  const pid = await launchNatively(
     parsedPath,
     launchOptions,
     useMangohud,
