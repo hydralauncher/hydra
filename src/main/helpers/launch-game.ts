@@ -62,7 +62,12 @@ const ensureExecutablePermission = (executablePath: string) => {
   }
 };
 
-const quotePowerShellString = (value: string) => `'${value.replace(/'/g, "''")}'`;
+const quotePowerShellString = (value: string) => `'${value.replaceAll("'", "''")}'`;
+
+const getTrustedPowerShellPath = () => {
+  const systemRoot = process.env.SystemRoot || process.env.windir || "C:\\Windows";
+  return path.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+};
 
 const buildElevatedStartProcessCommand = (
   command: string,
@@ -103,7 +108,7 @@ const spawnElevatedOnWindows = (
   const encodedCommand = Buffer.from(psCommand, "utf16le").toString("base64");
 
   return spawn(
-    "powershell.exe",
+    getTrustedPowerShellPath(),
     ["-NoProfile", "-NonInteractive", "-EncodedCommand", encodedCommand],
     {
       shell: false,
