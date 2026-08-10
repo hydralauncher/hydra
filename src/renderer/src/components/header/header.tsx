@@ -9,6 +9,7 @@ import {
   SearchIcon,
   SyncIcon,
   DownloadIcon,
+  DeviceDesktopIcon,
 } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 
@@ -411,6 +412,15 @@ export function Header() {
               <DownloadIcon size={16} />
             </button>
           )}
+
+          <button
+            type="button"
+            className="header__action-button"
+            onClick={() => globalThis.window.electron.openBigPictureWindow()}
+            title={t("big_picture", { ns: "sidebar", defaultValue: "Big Picture Mode" })}
+          >
+            <DeviceDesktopIcon size={16} />
+          </button>
 
           <button
             type="button"
