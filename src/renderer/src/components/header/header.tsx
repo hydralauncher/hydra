@@ -23,10 +23,7 @@ import {
 
 import "./header.scss";
 import { ScanGamesModal, type ScanResult } from "./scan-games-modal";
-import {
-  setFilters,
-  setLibrarySearchQuery,
-} from "@renderer/features";
+import { setFilters, setLibrarySearchQuery } from "@renderer/features";
 import cn from "classnames";
 import { SearchDropdown, Modal } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
