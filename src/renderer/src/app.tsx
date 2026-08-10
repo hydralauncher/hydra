@@ -617,7 +617,10 @@ export function App() {
             )}
           </div>
 
-          <div className="title-bar__window-controls" style={{ marginLeft: "auto" }}>
+          <div
+            className="title-bar__window-controls"
+            style={{ marginLeft: "auto" }}
+          >
             <button
               type="button"
               className="title-bar__window-control title-bar__window-control--big-picture"
@@ -650,10 +653,14 @@ export function App() {
                   className="title-bar__window-control"
                   onClick={() => window.electron.toggleMaximizeMainWindow()}
                   title={
-                    isWindowMaximized ? t("header:restore") : t("header:maximize")
+                    isWindowMaximized
+                      ? t("header:restore")
+                      : t("header:maximize")
                   }
                   aria-label={
-                    isWindowMaximized ? t("header:restore") : t("header:maximize")
+                    isWindowMaximized
+                      ? t("header:restore")
+                      : t("header:maximize")
                   }
                 >
                   {isWindowMaximized ? (
