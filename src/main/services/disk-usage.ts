@@ -5,6 +5,9 @@ import { logger } from "./logger";
 
 const MAX_PARENT_LOOKUPS = 64;
 
+const isMissingPathError = (error: unknown) =>
+  (error as NodeJS.ErrnoException).code === "ENOENT";
+
 const resolveExistingPath = async (targetPath: string) => {
   let currentPath = path.resolve(targetPath);
 
@@ -12,7 +15,9 @@ const resolveExistingPath = async (targetPath: string) => {
     try {
       await fs.access(currentPath);
       return currentPath;
-    } catch {
+    } catch (error) {
+      if (!isMissingPathError(error)) return null;
+
       const parentPath = path.dirname(currentPath);
       if (parentPath === currentPath) return null;
 

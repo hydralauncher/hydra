@@ -55,8 +55,8 @@ interface DownloadDirectoriesSectionProps {
 interface DownloadDirectory {
   title: string;
   path: string;
-  freeBytes: number;
-  totalBytes: number;
+  freeBytes: number | null;
+  totalBytes: number | null;
   isSelected: boolean;
   canRemove: boolean;
 }
@@ -75,7 +75,6 @@ interface DirectoryGridSlot {
   endColumn: number;
 }
 
-const EMPTY_DISK_USAGE: DiskUsage = { free: 0, total: 0 };
 const DOWNLOAD_DIRECTORIES_REGION_ID = "download-directories-region";
 const DOWNLOAD_DIRECTORIES_CONTROLS_REGION_ID =
   "download-directories-controls-region";
@@ -319,7 +318,7 @@ export function DownloadDirectoriesSection({
   const userPreferences = useUserPreferences();
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
   const [diskUsageByPath, setDiskUsageByPath] = useState<
-    Record<string, DiskUsage>
+    Record<string, DiskUsage | null>
   >({});
   const [directoryMenu, setDirectoryMenu] = useState<DirectoryMenuState | null>(
     null
@@ -362,9 +361,9 @@ export function DownloadDirectoriesSection({
           try {
             const usage =
               await globalThis.window.electron.getDiskFreeSpace(path);
-            return [path, usage ?? EMPTY_DISK_USAGE] as const;
+            return [path, usage] as const;
           } catch {
-            return [path, EMPTY_DISK_USAGE] as const;
+            return [path, null] as const;
           }
         })
       );
@@ -387,15 +386,15 @@ export function DownloadDirectoriesSection({
     }
 
     return resolvedDirectories.allPaths.map((path) => {
-      const diskUsage = diskUsageByPath[path] ?? EMPTY_DISK_USAGE;
+      const diskUsage = diskUsageByPath[path] ?? null;
       const isSelected = path === resolvedDirectories.defaultPath;
       const canRemove = resolvedDirectories.optionalPaths.includes(path);
 
       return {
         title: getDownloadDirectoryTitle(path),
         path,
-        freeBytes: diskUsage.free,
-        totalBytes: diskUsage.total,
+        freeBytes: diskUsage?.free ?? null,
+        totalBytes: diskUsage?.total ?? null,
         isSelected,
         canRemove,
       };
