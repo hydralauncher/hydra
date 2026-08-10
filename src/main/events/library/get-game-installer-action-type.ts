@@ -3,7 +3,7 @@ import fs from "node:fs";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
-import { downloadsSublevel, levelKeys } from "@main/level";
+import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 
 const getGameInstallerActionType = async (
@@ -15,6 +15,14 @@ const getGameInstallerActionType = async (
   const download = await downloadsSublevel.get(downloadKey);
 
   if (!download?.folderName) return "open-folder";
+
+  // Installers don't delete themselves after running, so a setup.exe check
+  // alone would offer "Install" forever, even for a game that's already
+  // been detected as installed (see rescanAndBindExecutableAfterInstall in
+  // open-game-installer.ts). Once executablePath is set, there's nothing
+  // left to install here.
+  const game = await gamesSublevel.get(downloadKey);
+  if (game?.executablePath) return "open-folder";
 
   const gamePath = path.join(
     download.downloadPath ?? (await getDownloadsPath()),

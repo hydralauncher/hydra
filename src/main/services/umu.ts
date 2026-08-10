@@ -333,6 +333,7 @@ export class Umu {
       launchOptions?: string | null;
       useMangohud?: boolean;
       useGamemode?: boolean;
+      onExit?: (code: number | null, signal: NodeJS.Signals | null) => void;
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -443,6 +444,14 @@ export class Umu {
         if (quickExitTimer) {
           clearTimeout(quickExitTimer);
           quickExitTimer = null;
+        }
+
+        if (settled) {
+          // The quick-exit grace period already resolved this launch as
+          // successful, so this is the *real* exit of the wrapped process
+          // (e.g. an installer finishing) -- let callers observe it.
+          options?.onExit?.(code, signal);
+          return;
         }
 
         finalize(() => {
