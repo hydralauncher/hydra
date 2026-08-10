@@ -1,0 +1,44 @@
+.border-beam {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  border-radius: inherit;
+  border: var(--border-width) solid transparent;
+  mask:
+    linear-gradient(#000, #000) padding-box,
+    linear-gradient(#000, #000);
+  -webkit-mask:
+    linear-gradient(#000, #000) padding-box,
+    linear-gradient(#000, #000);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+
+  &::after {
+    content: "";
+    position: absolute;
+    aspect-ratio: 1;
+    width: var(--size);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: conic-gradient(
+      from var(--anchor),
+      transparent,
+      var(--color-from),
+      var(--color-to),
+      transparent var(--beam-length, 25%)
+    );
+    animation: border-beam-spin calc(var(--duration)) linear infinite;
+    animation-delay: calc(var(--delay));
+  }
+}
+
+@keyframes border-beam-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0turn);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(1turn);
+  }
+}
