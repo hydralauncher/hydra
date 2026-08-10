@@ -1,63 +1,166 @@
 import { useTranslation } from "react-i18next";
-import {
-  useDeferredValue,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useGamepad, useGamepadConnected } from "@renderer/hooks/use-gamepad";
+import { GamepadHint } from "@renderer/components/gamepad-hint/gamepad-hint";
 import {
   ArrowLeftIcon,
-  PlusIcon,
+  BellIcon,
   SearchIcon,
   SyncIcon,
-  XIcon,
+  DownloadIcon,
 } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
-import { SidebarAddingCustomGameModal } from "@renderer/components/sidebar/sidebar-adding-custom-game-modal";
 
 import {
   useAppDispatch,
   useAppSelector,
   useSearchHistory,
   useSearchSuggestions,
+  useUserDetails,
+  useDownload,
 } from "@renderer/hooks";
 
 import "./header.scss";
-import { AutoUpdateSubHeader } from "./auto-update-sub-header";
 import { ScanGamesModal, type ScanResult } from "./scan-games-modal";
-import { setFilters, setLibrarySearchQuery } from "@renderer/features";
+import {
+  setFilters,
+  setLibrarySearchQuery,
+} from "@renderer/features";
 import cn from "classnames";
-import { SearchDropdown } from "@renderer/components";
+import { SearchDropdown, Modal } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
-import type { SuggestionShop } from "@renderer/hooks/use-search-suggestions";
-import { debounce } from "lodash-es";
-
-const pathTitle: Record<string, string> = {
-  "/": "home",
-  "/catalogue": "catalogue",
-  "/library": "library",
-  "/downloads": "downloads",
-  "/settings": "settings",
-};
+import { routes as navRoutes } from "../sidebar/routes";
+import { Avatar } from "../avatar/avatar";
+import { AnimatedBorder } from "../animated-border/animated-border";
+import { GradualBlur } from "../ui/gradual-blur";
+import { AuthPage } from "@shared";
+import { NotificationsSidebar } from "../notifications-sidebar/notifications-sidebar";
+import Downloads from "../../pages/downloads/downloads";
 
 export function Header() {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const isGamepadConnected = useGamepadConnected();
   const scanButtonTooltipId = useId();
-  const addCustomGameTooltipId = useId();
-  const [showAddGameModal, setShowAddGameModal] = useState(false);
+
+  const { lastPacket } = useDownload();
+  const [downloadsModalOpen, setDownloadsModalOpen] = useState(false);
+
+  const hasActiveDownload = !!lastPacket?.gameId;
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  const currentRouteIndex = navRoutes.findIndex(({ path }) =>
+    path === "/"
+      ? location.pathname === "/"
+      : location.pathname.startsWith(path)
+  );
+
+  const navigatePrev = useCallback(() => {
+    const idx =
+      currentRouteIndex <= 0 ? navRoutes.length - 1 : currentRouteIndex - 1;
+    navigate(navRoutes[idx].path);
+  }, [currentRouteIndex, navigate]);
+
+  const navigateNext = useCallback(() => {
+    const idx =
+      currentRouteIndex >= navRoutes.length - 1 ? 0 : currentRouteIndex + 1;
+    navigate(navRoutes[idx].path);
+  }, [currentRouteIndex, navigate]);
+
+  useGamepad({
+    priority: 5,
+    onButton: {
+      LB: () => {
+        navigatePrev();
+        return true;
+      },
+      RB: () => {
+        navigateNext();
+        return true;
+      },
+      X: () => {
+        handleToggleSearch();
+        window.electron.showVirtualKeyboard?.();
+        return true;
+      },
+      Y: () => {
+        handleProfileClick();
+        return true;
+      },
+    },
+  });
+
+  useEffect(() => {
+    const handleOpenNotifs = () => {
+      setNotifSidebarOpen((o) => {
+        if (!o) window.dispatchEvent(new CustomEvent("hydra:close-sidebar"));
+        return !o;
+      });
+    };
+    const handleCloseNotifs = () => setNotifSidebarOpen(false);
+
+    window.addEventListener(
+      "hydra:open-notifications",
+      handleOpenNotifs as EventListener
+    );
+    window.addEventListener(
+      "hydra:close-notifications",
+      handleCloseNotifs as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "hydra:open-notifications",
+        handleOpenNotifs as EventListener
+      );
+      window.removeEventListener(
+        "hydra:close-notifications",
+        handleCloseNotifs as EventListener
+      );
+    };
+  }, []);
+
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { headerTitle, draggingDisabled } = useAppSelector(
-    (state) => state.window
-  );
+  const [notifSidebarOpen, setNotifSidebarOpen] = useState(false);
+
+  const [avatarDecorOptions, setAvatarDecorOptions] = useState({
+    border: localStorage.getItem("hydra_avatar_border") || "none",
+    speed: Number(localStorage.getItem("hydra_avatar_beam_speed")) || 6,
+    color: localStorage.getItem("hydra_avatar_beam_color") || "#ef4444",
+    length: Number(localStorage.getItem("hydra_avatar_beam_length")) || 25,
+    chaos: Number(localStorage.getItem("hydra_avatar_beam_chaos")) || 0.12,
+  });
+
+  useEffect(() => {
+    const handleAvatarUpdate = () => {
+      setAvatarDecorOptions({
+        border: localStorage.getItem("hydra_avatar_border") || "none",
+        speed: Number(localStorage.getItem("hydra_avatar_beam_speed")) || 6,
+        color: localStorage.getItem("hydra_avatar_beam_color") || "#ef4444",
+        length: Number(localStorage.getItem("hydra_avatar_beam_length")) || 25,
+        chaos: Number(localStorage.getItem("hydra_avatar_beam_chaos")) || 0.12,
+      });
+    };
+    window.addEventListener("avatar_style_update", handleAvatarUpdate);
+    return () =>
+      window.removeEventListener("avatar_style_update", handleAvatarUpdate);
+  }, []);
+
+  const { draggingDisabled } = useAppSelector((state) => state.window);
+
+  const { userDetails } = useUserDetails();
+  const { hasActiveSubscription } = useUserDetails();
+
+  const handleProfileClick = () => {
+    if (!userDetails) {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+    navigate(`/profile/${userDetails.id}`);
+  };
 
   const catalogueSearchValue = useAppSelector(
     (state) => state.catalogueSearch.filters.title
@@ -67,164 +170,63 @@ export function Header() {
     (state) => state.library.searchQuery
   );
 
+  const isHomePage = location.pathname === "/";
   const isOnLibraryPage = location.pathname.startsWith("/library");
   const isOnCataloguePage = location.pathname.startsWith("/catalogue");
-
-  const isLibraryScanSupported =
-    window.electron.platform === "win32" ||
-    window.electron.platform === "linux";
+  const isGamePage = location.pathname.startsWith("/game");
+  const isSettingsPage = location.pathname.startsWith("/settings");
 
   const searchValue = isOnLibraryPage
     ? librarySearchValue
     : catalogueSearchValue;
 
-  const [localSearchValue, setLocalSearchValue] = useState(searchValue);
-  const deferredSearchValue = useDeferredValue(localSearchValue);
+  const openedFolderName = "";
 
   const dispatch = useAppDispatch();
 
-  const debouncedLibrarySearch = useMemo(
-    () =>
-      debounce((value: string) => {
-        dispatch(setLibrarySearchQuery(value));
-      }, 180),
-    [dispatch]
-  );
-
-  const debouncedCatalogueSearch = useMemo(
-    () =>
-      debounce((value: string) => {
-        dispatch(setFilters({ title: value }));
-      }, 250),
-    [dispatch]
-  );
-
-  const [isFocused, setIsFocused] = useState(false);
-  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const [dropdownPosition, setDropdownPosition] = useState({
-    x: 0,
-    y: 0,
-  });
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-  const [scanRequestId, setScanRequestId] = useState<string | null>(null);
 
   const { t } = useTranslation("header");
-
-  const [suggestionShop, setSuggestionShop] = useState<SuggestionShop>("steam");
 
   const { addToHistory, removeFromHistory, clearHistory, getRecentHistory } =
     useSearchHistory();
 
   const { suggestions, isLoading: isLoadingSuggestions } = useSearchSuggestions(
-    deferredSearchValue,
+    searchValue,
     isOnLibraryPage,
-    isDropdownVisible && isFocused && !isOnCataloguePage,
-    suggestionShop
+    isSearchOpen
   );
 
   const historyItems = getRecentHistory(
     isOnLibraryPage ? "library" : "catalogue",
-    3
+    10
   );
 
-  const title = useMemo(() => {
-    if (location.pathname.startsWith("/game")) return headerTitle;
-    if (location.pathname.startsWith("/achievements")) return headerTitle;
-    if (location.pathname.startsWith("/profile")) return headerTitle;
-    if (location.pathname.startsWith("/notifications")) return headerTitle;
-    if (location.pathname.startsWith("/library"))
-      return headerTitle || t("library");
-    if (location.pathname.startsWith("/search")) return t("search_results");
-
-    return t(pathTitle[location.pathname]);
-  }, [location.pathname, headerTitle, t]);
-
-  const totalItems = historyItems.length + suggestions.length;
-
-  useEffect(() => {
-    setLocalSearchValue(searchValue);
-  }, [searchValue, isOnLibraryPage, isOnCataloguePage]);
-
-  useEffect(() => {
-    return () => {
-      debouncedLibrarySearch.cancel();
-      debouncedCatalogueSearch.cancel();
-    };
-  }, [debouncedCatalogueSearch, debouncedLibrarySearch]);
-
-  const updateDropdownPosition = () => {
-    if (searchContainerRef.current) {
-      const rect = searchContainerRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        x: rect.left,
-        y: rect.bottom,
-      });
-    }
-  };
-
-  const focusInput = () => {
-    setIsFocused(true);
-    inputRef.current?.focus();
-  };
-
-  const handleFocus = () => {
-    if (isFocused && isDropdownVisible) {
-      updateDropdownPosition();
-      return;
-    }
-
-    setIsFocused(true);
-    setActiveIndex(-1);
-    setTimeout(() => {
-      updateDropdownPosition();
-      setIsDropdownVisible(true);
-    }, 220);
-  };
-
-  const handleBlur = () => {
-    setTimeout(() => {
-      setIsFocused(false);
-      setIsDropdownVisible(false);
-      setActiveIndex(-1);
-    }, 200);
-  };
-
   const handleBackButtonClick = () => {
-    navigate(-1);
+    if (
+      searchParams.has("collection") &&
+      searchParams.get("collection") !== "new" &&
+      searchParams.get("action") !== "edit"
+    ) {
+      searchParams.delete("collection");
+      setSearchParams(searchParams, { replace: true });
+    } else {
+      navigate(-1);
+    }
   };
 
   const handleSearch = (value: string) => {
-    debouncedLibrarySearch.cancel();
-    debouncedCatalogueSearch.cancel();
-
     if (isOnLibraryPage) {
       dispatch(setLibrarySearchQuery(value.slice(0, 255)));
     } else {
       dispatch(setFilters({ title: value.slice(0, 255) }));
     }
-    setActiveIndex(-1);
-  };
-
-  const handleInputChange = (value: string) => {
-    const normalizedValue = value.slice(0, 255);
-
-    setLocalSearchValue(normalizedValue);
-    setActiveIndex(-1);
-
-    if (isOnLibraryPage) {
-      debouncedCatalogueSearch.cancel();
-      debouncedLibrarySearch(normalizedValue);
-    } else {
-      debouncedLibrarySearch.cancel();
-      debouncedCatalogueSearch(normalizedValue);
-    }
   };
 
   const executeSearch = (query: string) => {
-    setLocalSearchValue(query.slice(0, 255));
     const context = isOnLibraryPage ? "library" : "catalogue";
     if (query.trim()) {
       addToHistory(query, context);
@@ -235,8 +237,7 @@ export function Header() {
       navigate("/catalogue");
     }
 
-    setIsDropdownVisible(false);
-    inputRef.current?.blur();
+    setIsSearchOpen(false);
   };
 
   const handleSelectHistory = (query: string) => {
@@ -248,29 +249,8 @@ export function Header() {
     objectId: string;
     shop: GameShop;
   }) => {
-    setIsDropdownVisible(false);
-    inputRef.current?.blur();
+    setIsSearchOpen(false);
     navigate(buildGameDetailsPath(suggestion));
-  };
-
-  const handleClearSearch = () => {
-    debouncedLibrarySearch.cancel();
-    debouncedCatalogueSearch.cancel();
-
-    setLocalSearchValue("");
-
-    if (isOnLibraryPage) {
-      dispatch(setLibrarySearchQuery(""));
-    } else {
-      dispatch(setFilters({ title: "" }));
-    }
-    setActiveIndex(-1);
-  };
-
-  const handleClearSearchMouseDown = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.preventDefault();
   };
 
   const handleRemoveHistoryItem = (query: string) => {
@@ -281,87 +261,35 @@ export function Header() {
     clearHistory();
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      if (activeIndex >= 0 && activeIndex < totalItems) {
-        if (activeIndex < historyItems.length) {
-          handleSelectHistory(historyItems[activeIndex].query);
-        } else {
-          const suggestionIndex = activeIndex - historyItems.length;
-          handleSelectSuggestion(suggestions[suggestionIndex]);
-        }
-      } else if (localSearchValue.trim()) {
-        executeSearch(localSearchValue);
-      }
-    } else if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActiveIndex((prev) => (prev < totalItems - 1 ? prev + 1 : prev));
-      if (!isDropdownVisible) {
-        setIsDropdownVisible(true);
-        updateDropdownPosition();
-      }
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActiveIndex((prev) => (prev > -1 ? prev - 1 : -1));
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      setIsDropdownVisible(false);
-      setActiveIndex(-1);
-      inputRef.current?.blur();
-    }
-  };
-
-  const handleCloseDropdown = () => {
-    setIsDropdownVisible(false);
-    setActiveIndex(-1);
-  };
-
   const handleStartScan = async (
-    additionalDirectories: string[] = [],
-    includeDefaultDirectories = true,
-    addGamesToLibrary = true
+    additionalDirectories: string[],
+    includeDefaultDirectories: boolean,
+    addGamesToLibrary: boolean
   ) => {
     if (isScanning) return;
 
-    const requestId = crypto.randomUUID();
-
     setIsScanning(true);
-    setScanRequestId(requestId);
     setScanResult(null);
 
     try {
       const result = await window.electron.scanInstalledGames(
         additionalDirectories,
         includeDefaultDirectories,
-        addGamesToLibrary,
-        requestId
+        addGamesToLibrary
       );
-      setScanResult(result);
+      setScanResult(result as any);
     } finally {
       setIsScanning(false);
-      setScanRequestId(null);
     }
   };
 
   const handleCancelScan = () => {
-    if (scanRequestId) window.electron.cancelScanInstalledGames(scanRequestId);
+    setIsScanning(false);
   };
 
   const handleClearScanResult = () => {
     setScanResult(null);
   };
-
-  useEffect(() => {
-    if (!isDropdownVisible) return;
-
-    const handleResize = () => {
-      updateDropdownPosition();
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isDropdownVisible]);
 
   useEffect(() => {
     if (searchParams.get("openScanModal") === "true") {
@@ -371,61 +299,89 @@ export function Header() {
     }
   }, [searchParams, setSearchParams]);
 
+  const handleToggleSearch = () => {
+    setIsSearchOpen((prev) => !prev);
+  };
+
+  const isMainPage =
+    location.pathname === "/" ||
+    location.pathname === "/catalogue" ||
+    location.pathname === "/library" ||
+    location.pathname === "/downloads" ||
+    location.pathname === "/settings";
+
+  const showBackButton =
+    !isMainPage || !!openedFolderName || searchParams.has("collection");
+
   return (
     <>
+      {!(isHomePage || isGamePage || isSettingsPage) && (
+        <GradualBlur
+          position="top"
+          height="130px"
+          strength={2}
+          divCount={8}
+          curve="linear"
+          exponential
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            zIndex: 9,
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
       <header
+        data-gamepad-ignore="true"
         className={cn("header", {
           "header--dragging-disabled": draggingDisabled,
-          "header--is-windows": window.electron.platform === "win32",
+          "header--search-open": isSearchOpen,
+          "header--transparent": isOnCataloguePage || isOnLibraryPage,
         })}
       >
         <section className="header__section header__section--left">
           <button
             type="button"
             className={cn("header__back-button", {
-              "header__back-button--enabled": location.key !== "default",
+              "header__back-button--enabled": showBackButton,
             })}
             onClick={handleBackButtonClick}
-            disabled={location.key === "default"}
+            disabled={!showBackButton}
           >
             <ArrowLeftIcon />
           </button>
-
-          <h3
-            className={cn("header__title", {
-              "header__title--has-back-button": location.key !== "default",
-            })}
-          >
-            {title}
-          </h3>
         </section>
 
-        <section className="header__section">
-          {isOnLibraryPage && (
+        <nav className="header__nav" data-gamepad-ignore="true">
+          {isGamepadConnected && <GamepadHint label="LB" position="left" />}
+          {navRoutes.map(({ path, nameKey }) => (
             <button
+              key={path}
               type="button"
-              className="header__action-button header__action-button--outlined"
-              onClick={() => setShowAddGameModal(true)}
-              data-tooltip-id={addCustomGameTooltipId}
-              data-tooltip-content={t("add_custom_game_tooltip", {
-                ns: "sidebar",
+              className={cn("header__nav-item", {
+                "header__nav-item--active":
+                  path === "/"
+                    ? location.pathname === "/"
+                    : location.pathname.startsWith(path),
               })}
-              data-tooltip-place="bottom"
+              onClick={() => navigate(path)}
             >
-              <PlusIcon size={16} />
+              {t(nameKey, { ns: "sidebar" })}
             </button>
-          )}
+          ))}
+          {isGamepadConnected && <GamepadHint label="RB" position="right" />}
+        </nav>
 
-          {isOnLibraryPage && isLibraryScanSupported && (
+        <section className="header__section header__section--right">
+          {isOnLibraryPage && window.electron.platform === "win32" && (
             <button
               type="button"
-              className={cn(
-                "header__action-button",
-                "header__action-button--outlined",
-                {
-                  "header__action-button--scanning": isScanning,
-                }
-              )}
+              className={cn("header__action-button", {
+                "header__action-button--scanning": isScanning,
+              })}
               onClick={() => setShowScanModal(true)}
               data-tooltip-id={scanButtonTooltipId}
               data-tooltip-content={t("scan_games_tooltip")}
@@ -435,80 +391,103 @@ export function Header() {
             </button>
           )}
 
-          <div
-            ref={searchContainerRef}
-            className={cn("header__search", {
-              "header__search--focused": isFocused,
-            })}
-          >
+          {!(isOnLibraryPage || isOnCataloguePage) && (
             <button
               type="button"
               className="header__action-button"
-              onClick={focusInput}
+              onClick={handleToggleSearch}
             >
-              <SearchIcon />
+              <SearchIcon size={16} />
             </button>
+          )}
 
-            <input
-              ref={inputRef}
-              type="text"
-              name="search"
-              placeholder={isOnLibraryPage ? t("search_library") : t("search")}
-              value={localSearchValue}
-              className="header__search-input"
-              onChange={(event) => handleInputChange(event.target.value)}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-            />
+          {hasActiveDownload && (
+            <button
+              type="button"
+              className="header__action-button header__action-button--downloading"
+              onClick={() => setDownloadsModalOpen(true)}
+              title={t("downloads", {
+                ns: "sidebar",
+                defaultValue: "Downloads",
+              })}
+            >
+              <DownloadIcon size={16} />
+            </button>
+          )}
 
-            {localSearchValue && (
-              <button
-                type="button"
-                onMouseDown={handleClearSearchMouseDown}
-                onClick={handleClearSearch}
-                className="header__action-button"
-              >
-                <XIcon />
-              </button>
-            )}
-          </div>
+          <button
+            type="button"
+            className="header__action-button"
+            onClick={() =>
+              setNotifSidebarOpen((o) => {
+                if (!o)
+                  window.dispatchEvent(new CustomEvent("hydra:close-sidebar"));
+                return !o;
+              })
+            }
+            title={t("notifications", { ns: "sidebar" })}
+          >
+            <BellIcon size={16} />
+          </button>
+
+          <button
+            type="button"
+            className="header__profile-button"
+            onClick={handleProfileClick}
+          >
+            <AnimatedBorder
+              borderWidth={1}
+              containerSize={28}
+              styleName={avatarDecorOptions.border as any}
+              beamSpeed={avatarDecorOptions.speed}
+              beamColor={avatarDecorOptions.color}
+              beamLength={avatarDecorOptions.length}
+              beamChaos={avatarDecorOptions.chaos}
+            >
+              <Avatar
+                size={28}
+                src={userDetails?.profileImageUrl}
+                alt={userDetails?.displayName}
+              />
+            </AnimatedBorder>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 2,
+                paddingLeft: 4,
+              }}
+            >
+              <span className="header__profile-label" style={{ lineHeight: 1 }}>
+                {userDetails?.displayName || t("sign_in", { ns: "sidebar" })}
+              </span>
+              {hasActiveSubscription && (
+                <span className="header__profile-cloud-badge">CLOUD</span>
+              )}
+            </div>
+          </button>
         </section>
       </header>
 
-      {isOnLibraryPage && (
-        <Tooltip id={addCustomGameTooltipId} style={{ zIndex: 1 }} />
+      {isOnLibraryPage && window.electron.platform === "win32" && (
+        <Tooltip id={scanButtonTooltipId} style={{ zIndex: 9999 }} />
       )}
-
-      {isOnLibraryPage && isLibraryScanSupported && (
-        <Tooltip id={scanButtonTooltipId} style={{ zIndex: 1 }} />
-      )}
-
-      <AutoUpdateSubHeader />
 
       <SearchDropdown
-        visible={
-          isDropdownVisible &&
-          (localSearchValue.trim().length > 0 ||
-            historyItems.length > 0 ||
-            suggestions.length > 0 ||
-            isLoadingSuggestions)
-        }
-        position={dropdownPosition}
+        visible={isSearchOpen}
         historyItems={historyItems}
         suggestions={suggestions}
         isLoadingSuggestions={isLoadingSuggestions}
-        suggestionShop={suggestionShop}
-        onSuggestionShopChange={setSuggestionShop}
-        showShopSwitch={!isOnLibraryPage}
         onSelectHistory={handleSelectHistory}
         onSelectSuggestion={handleSelectSuggestion}
         onRemoveHistoryItem={handleRemoveHistoryItem}
         onClearHistory={handleClearHistory}
-        onClose={handleCloseDropdown}
-        activeIndex={activeIndex}
-        currentQuery={deferredSearchValue}
-        searchContainerRef={searchContainerRef}
+        onClose={() => setIsSearchOpen(false)}
+        searchValue={searchValue}
+        onSearchChange={handleSearch}
+        onExecuteSearch={() => searchValue.trim() && executeSearch(searchValue)}
+        placeholder={isOnLibraryPage ? t("search_library") : t("search")}
       />
 
       <ScanGamesModal
@@ -521,10 +500,19 @@ export function Header() {
         onClearResult={handleClearScanResult}
       />
 
-      <SidebarAddingCustomGameModal
-        visible={showAddGameModal}
-        onClose={() => setShowAddGameModal(false)}
+      <NotificationsSidebar
+        open={notifSidebarOpen}
+        onClose={() => setNotifSidebarOpen(false)}
       />
+
+      <Modal
+        visible={downloadsModalOpen}
+        title={t("downloads", { ns: "sidebar", defaultValue: "Downloads" })}
+        onClose={() => setDownloadsModalOpen(false)}
+        large
+      >
+        {downloadsModalOpen && <Downloads />}
+      </Modal>
     </>
   );
 }

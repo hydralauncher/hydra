@@ -1,0 +1,16 @@
+.animated-border {
+  &-wrapper {
+    position: relative;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    overflow: visible;
+  }
+
+  &-content {
+    position: relative;
+    z-index: 2;
+    border-radius: inherit;
+  }
+}

@@ -11,6 +11,8 @@ export interface SearchSuggestion {
   objectId: string;
   shop: GameShop;
   iconUrl: string | null;
+  libraryImageUrl?: string | null;
+  coverImageUrl?: string | null;
   source: "library" | "catalogue";
 }
 

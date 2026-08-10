@@ -1,56 +1,67 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Tooltip } from "react-tooltip";
 
-import type { LibraryGame } from "@types";
-import { removeDiacritics } from "@shared";
+import type { GameCollection, LibraryGame } from "@types";
 
-import { ConfirmationModal, TextField } from "@renderer/components";
-import { useDownload, useLibrary, useToast } from "@renderer/hooks";
-import { routes } from "./routes";
+import {
+  Button,
+  TextField,
+  ConfirmationModal,
+  ContextMenu,
+  CreateCollectionModal,
+  Modal,
+} from "@renderer/components";
+import {
+  useDownload,
+  useGameCollections,
+  useLibrary,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
+import { AuthPage } from "@shared";
 
 import "./sidebar.scss";
 
-import {
-  buildGameDetailsPath,
-  filterLibraryGamesByCategory,
-  sortLibraryGames,
-} from "@renderer/helpers";
-import type { LibraryCategory } from "@renderer/pages/library/category-filter";
-import type { SortOption } from "@renderer/pages/library/filter-options";
+import { buildGameDetailsPath } from "@renderer/helpers";
 
-import { PlayIcon, VideoIcon } from "@primer/octicons-react";
-import { Tooltip } from "react-tooltip";
-import deckyIcon from "@renderer/assets/icons/decky.png";
+import { sortBy } from "lodash-es";
+import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import cn from "classnames";
-import { SidebarFilterMenu } from "./sidebar-filter-menu";
-import { SidebarGameItem } from "./sidebar-game-item";
-import { SidebarProfile } from "./sidebar-profile";
+import {
+  CommentDiscussionIcon,
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
+  TrophyIcon,
+  PeopleIcon,
+  CloudIcon,
+} from "@primer/octicons-react";
+import { ArrowRightLeft as ArrowRightLeftIcon } from "lucide-react";
+
+import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal";
+import { SidebarFavoriteCard } from "./sidebar-favorite-card";
 import { SidebarGameRunning } from "./sidebar-game-running";
 import { SidebarActiveDownload } from "./sidebar-active-download";
 import { SidebarOnlineFriends } from "./sidebar-online-friends";
+import { setFriendRequestCount } from "@renderer/features/user-details-slice";
+import { setCollections } from "@renderer/features";
+import { useDispatch } from "react-redux";
 
-const SIDEBAR_MIN_WIDTH = 200;
-const SIDEBAR_INITIAL_WIDTH = 250;
-const SIDEBAR_MAX_WIDTH = 450;
-const SIDEBAR_GAME_ITEM_HEIGHT = 42;
-
-const SIDEBAR_CATEGORIES = new Set<LibraryCategory>(["all", "pc", "classics"]);
-const SIDEBAR_SORT_OPTIONS = new Set<SortOption>([
-  "title_asc",
-  "recently_played",
-  "most_played",
-  "achievements",
-]);
-
-const isGamePlayable = (game: LibraryGame) =>
-  Boolean(game.executablePath) ||
-  (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
+const SIDEBAR_MIN_WIDTH = 260;
+const SIDEBAR_INITIAL_WIDTH = 300;
+const SIDEBAR_MAX_WIDTH = 500;
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
+const isGamePlayable = (game: LibraryGame) => Boolean(game.executablePath);
+
 export function Sidebar() {
+  const filterRef = useRef<HTMLInputElement>(null);
+
+  const dispatch = useDispatch();
+
   const { t } = useTranslation(["sidebar", "library"]);
   const { library, updateLibrary } = useLibrary();
   const [deckyPluginInfo, setDeckyPluginInfo] = useState<{
@@ -58,180 +69,110 @@ export function Sidebar() {
     version: string | null;
     outdated: boolean;
   }>({ installed: false, version: null, outdated: false });
-  const [homebrewFolderExists, setHomebrewFolderExists] = useState(false);
+
   const [showDeckyConfirmModal, setShowDeckyConfirmModal] = useState(false);
   const navigate = useNavigate();
-
-  const filterRef = useRef<HTMLInputElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [isResizing, setIsResizing] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(
-    initialSidebarWidth ? Number(initialSidebarWidth) : SIDEBAR_INITIAL_WIDTH
-  );
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const stored = initialSidebarWidth
+      ? Number(initialSidebarWidth)
+      : SIDEBAR_INITIAL_WIDTH;
+    return Math.max(stored, SIDEBAR_MIN_WIDTH);
+  });
 
   const location = useLocation();
 
-  const [sidebarCategory, setSidebarCategory] = useState<LibraryCategory>(
-    () => {
-      const saved = localStorage.getItem("sidebar-category");
-      if (SIDEBAR_CATEGORIES.has(saved as LibraryCategory)) {
-        return saved as LibraryCategory;
-      }
-      return "all";
-    }
-  );
-
-  const [sidebarSortBy, setSidebarSortBy] = useState<SortOption>(() => {
-    const saved = localStorage.getItem("sidebar-sort-by");
-    if (SIDEBAR_SORT_OPTIONS.has(saved as SortOption)) {
-      return saved as SortOption;
-    }
-    return "title_asc";
-  });
-
-  const [showFavoritesFirst, setShowFavoritesFirst] = useState<boolean>(() => {
-    return localStorage.getItem("sidebar-favorites-first") !== "false";
-  });
-
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [showPlayableOnly, setShowPlayableOnly] = useState(false);
-
-  const uniquePlatforms = useMemo(() => {
-    const set = new Set<string>();
-    for (const game of library) {
-      if (game.shop === "launchbox" && game.platform) {
-        set.add(game.platform);
-      }
-    }
-    return Array.from(set).sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: "base" })
-    );
+  const sortedLibrary = useMemo(() => {
+    return sortBy(library, (game) => game.title);
   }, [library]);
 
-  const sortedLibrary = useMemo(() => {
-    let games = filterLibraryGamesByCategory(library, sidebarCategory);
+  const { hasActiveSubscription, userDetails } = useUserDetails();
 
-    if (sidebarCategory === "classics" && selectedPlatforms.length > 0) {
-      const platforms = new Set(selectedPlatforms);
-      games = games.filter(
-        (game) => game.platform && platforms.has(game.platform)
-      );
-    }
+  const { lastPacket } = useDownload();
 
-    games = sortLibraryGames(games, sidebarSortBy);
+  const { showWarningToast, showSuccessToast, showErrorToast } = useToast();
 
-    if (showFavoritesFirst) {
-      games = [
-        ...games.filter((game) => game.favorite),
-        ...games.filter((game) => !game.favorite),
-      ];
-    }
-
-    return games;
-  }, [
-    library,
-    sidebarCategory,
-    sidebarSortBy,
-    selectedPlatforms,
-    showFavoritesFirst,
-  ]);
-
-  const { lastPacket, progress } = useDownload();
-
-  const { showSuccessToast, showErrorToast } = useToast();
-
-  const [isGameListScrolled, setIsGameListScrolled] = useState(false);
-  const [scrollbarWidth, setScrollbarWidth] = useState(0);
-
-  const gameListRef = useRef<HTMLDivElement>(null);
-
-  const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
-  const [filterQuery, setFilterQuery] = useState("");
+  const [showInstalledGames, setShowInstalledGames] = useState(false);
+  const [showAddGameModal, setShowAddGameModal] = useState(false);
+  const [onlineFriendsCount, setOnlineFriendsCount] = useState(0);
+  const [totalAchievements, setTotalAchievements] = useState(0);
 
   useEffect(() => {
-    setFilteredLibrary(sortedLibrary);
-    setFilterQuery("");
-
-    if (filterRef.current) {
-      filterRef.current.value = "";
-    }
-  }, [sortedLibrary]);
-
-  const visibleGames = useMemo(
-    () =>
-      filteredLibrary.filter(
-        (game) => !showPlayableOnly || isGamePlayable(game)
-      ),
-    [filteredLibrary, showPlayableOnly]
-  );
-
-  const hasActiveFilter =
-    library.length > 0 &&
-    (sidebarCategory !== "all" ||
-      selectedPlatforms.length > 0 ||
-      showPlayableOnly ||
-      filterQuery.trim().length > 0);
-
-  const virtualizer = useVirtualizer({
-    count: visibleGames.length,
-    getScrollElement: () => gameListRef.current,
-    estimateSize: () => SIDEBAR_GAME_ITEM_HEIGHT,
-    overscan: 5,
-  });
-
-  useEffect(() => {
-    const el = gameListRef.current;
-    if (!el) return;
-    const measure = () => setScrollbarWidth(el.offsetWidth - el.clientWidth);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
-    const query = event.target.value;
-    const normalizedQuery = removeDiacritics(query).toLowerCase();
-
-    setFilterQuery(query);
-
-    if (!normalizedQuery.trim()) {
-      setFilteredLibrary(sortedLibrary);
+    if (!userDetails?.id) {
+      setOnlineFriendsCount(0);
+      setTotalAchievements(0);
       return;
     }
 
-    setFilteredLibrary(
-      sortedLibrary.filter((game) =>
-        removeDiacritics(game.title ?? "")
-          .toLowerCase()
-          .includes(normalizedQuery)
-      )
-    );
+    window.electron.hydraApi
+      .get<{ friends?: { currentGame: any }[] }>("/profile/friends", {
+        params: { take: 100, skip: 0 },
+      })
+      .then((data) => {
+        if (data?.friends) {
+          setOnlineFriendsCount(
+            data.friends.filter((f) => f.currentGame).length
+          );
+        }
+      })
+      .catch(() => {});
+
+    window.electron.hydraApi
+      .get<any>(`/users/${userDetails.id}/stats`)
+      .then((data) => {
+        if (data?.unlockedAchievementSum) {
+          setTotalAchievements(data.unlockedAchievementSum);
+        }
+      })
+      .catch(() => {});
+  }, [userDetails?.id]);
+
+  useEffect(() => {
+    const handleTestFriend = () => setOnlineFriendsCount((prev) => prev + 1);
+    window.addEventListener("hydra:test-friend", handleTestFriend);
+    return () =>
+      window.removeEventListener("hydra:test-friend", handleTestFriend);
+  }, []);
+
+  const [showCreateCollectionModal, setShowCreateCollectionModal] =
+    useState(false);
+  const [collectionContextMenu, setCollectionContextMenu] = useState<{
+    collection: GameCollection | null;
+    visible: boolean;
+    position: { x: number; y: number };
+  }>({ collection: null, visible: false, position: { x: 0, y: 0 } });
+  const [activeCollection, setActiveCollection] =
+    useState<GameCollection | null>(null);
+  const [showRenameCollectionModal, setShowRenameCollectionModal] =
+    useState(false);
+  const [collectionName, setCollectionName] = useState("");
+  const [isRenamingCollection, setIsRenamingCollection] = useState(false);
+  const [showDeleteCollectionModal, setShowDeleteCollectionModal] =
+    useState(false);
+  const [isDeletingCollection, setIsDeletingCollection] = useState(false);
+  const { hasLoaded: hasLoadedCollections, loadCollections } =
+    useGameCollections();
+
+  const selectedCollectionId = useMemo(() => {
+    if (!location.pathname.startsWith("/library")) return null;
+    return searchParams.get("collection");
+  }, [location.pathname, searchParams]);
+
+  const handleAddGameButtonClick = () => {
+    setShowAddGameModal(true);
   };
 
-  const handleSidebarCategoryChange = useCallback((next: LibraryCategory) => {
-    setSidebarCategory(next);
-    localStorage.setItem("sidebar-category", next);
-    if (next !== "classics") {
-      setSelectedPlatforms([]);
-    }
-  }, []);
-
-  const handleSidebarSortChange = useCallback((next: SortOption) => {
-    setSidebarSortBy(next);
-    localStorage.setItem("sidebar-sort-by", next);
-  }, []);
-
-  const handleToggleFavoritesFirst = useCallback((next: boolean) => {
-    setShowFavoritesFirst(next);
-    localStorage.setItem("sidebar-favorites-first", String(next));
-  }, []);
+  const handleCloseAddGameModal = () => {
+    setShowAddGameModal(false);
+  };
 
   const loadDeckyPluginInfo = async () => {
     if (window.electron.platform !== "linux") return;
 
     try {
-      const [info, folderExists] = await Promise.all([
+      const [info] = await Promise.all([
         window.electron.getHydraDeckyPluginInfo(),
         window.electron.checkHomebrewFolderExists(),
       ]);
@@ -241,17 +182,9 @@ export function Sidebar() {
         version: info.version,
         outdated: info.outdated,
       });
-      setHomebrewFolderExists(folderExists);
     } catch (error) {
       console.error("Failed to load Decky plugin info:", error);
     }
-  };
-
-  const handleInstallHydraDeckyPlugin = () => {
-    if (deckyPluginInfo.installed && !deckyPluginInfo.outdated) {
-      return;
-    }
-    setShowDeckyConfirmModal(true);
   };
 
   const handleConfirmDeckyInstallation = async () => {
@@ -286,19 +219,23 @@ export function Sidebar() {
   }, [lastPacket?.gameId, updateLibrary]);
 
   useEffect(() => {
-    const handlePinToggled = () => {
-      void updateLibrary();
-    };
-
-    window.addEventListener("hydra:game-pin-toggled", handlePinToggled);
-    return () => {
-      window.removeEventListener("hydra:game-pin-toggled", handlePinToggled);
-    };
-  }, [updateLibrary]);
-
-  useEffect(() => {
     loadDeckyPluginInfo();
   }, []);
+
+  useEffect(() => {
+    if (!userDetails || hasLoadedCollections) return;
+    void loadCollections();
+  }, [hasLoadedCollections, loadCollections, userDetails]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onSyncFriendRequests((result) => {
+      dispatch(setFriendRequestCount(result.friendRequestCount));
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch]);
 
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -313,6 +250,12 @@ export function Sidebar() {
     sidebarInitialWidth.current =
       sidebarRef.current?.clientWidth || SIDEBAR_INITIAL_WIDTH;
   };
+
+  useEffect(() => {
+    if (filterRef.current) {
+      filterRef.current.value = "";
+    }
+  }, [sortedLibrary]);
 
   useEffect(() => {
     window.onmousemove = (event: MouseEvent) => {
@@ -341,36 +284,10 @@ export function Sidebar() {
     };
   }, [isResizing]);
 
-  const getGameTitle = (game: LibraryGame) => {
-    if (lastPacket?.gameId === game.id) {
-      return t("downloading", {
-        title: game.title,
-        percentage: progress,
-      });
-    }
-
-    if (
-      game.download?.queued &&
-      game.download.status !== "removed" &&
-      game.download.status !== "complete" &&
-      game.download.status !== "seeding"
-    ) {
-      return t("queued", { title: game.title });
-    }
-
-    if (game.download?.status === "paused")
-      return t("paused", { title: game.title });
-
-    return game.title;
-  };
-
-  const handleSidebarItemClick = (path: string) => {
-    if (path !== location.pathname) {
-      navigate(path);
-    }
-  };
-
-  const handleSidebarGameClick = (game: LibraryGame) => {
+  const handleSidebarGameClick = (
+    event: React.MouseEvent,
+    game: LibraryGame
+  ) => {
     const path = buildGameDetailsPath({
       ...game,
       objectId: game.objectId,
@@ -378,7 +295,189 @@ export function Sidebar() {
     if (path !== location.pathname) {
       navigate(path);
     }
+
+    if (event.detail === 2) {
+      if (game.executablePath) {
+        window.electron.openGame(
+          game.shop,
+          game.objectId,
+          game.executablePath,
+          game.launchOptions
+        );
+      } else {
+        showWarningToast(t("game_has_no_executable"));
+      }
+    }
   };
+
+  const handleCloseCollectionContextMenu = () => {
+    setCollectionContextMenu((prev) => ({ ...prev, visible: false }));
+  };
+
+  const resolveCollectionErrorMessage = (
+    error: unknown,
+    fallbackKey: "failed_rename_collection" | "failed_delete_collection"
+  ) => {
+    if (!(error instanceof Error)) return t(fallbackKey, { ns: "library" });
+
+    if (error.message.includes("game/collection-name-already-in-use")) {
+      return t("collection_name_already_in_use");
+    }
+
+    if (error.message.includes("game/collection-name-required")) {
+      return t("collection_name_required");
+    }
+
+    return t(fallbackKey, { ns: "library" });
+  };
+
+  const handleOpenRenameCollectionModal = () => {
+    const collection = collectionContextMenu.collection;
+    if (!collection) return;
+
+    setActiveCollection(collection);
+    setCollectionName(collection.name);
+    setShowRenameCollectionModal(true);
+    handleCloseCollectionContextMenu();
+  };
+
+  const handleCloseRenameCollectionModal = () => {
+    if (isRenamingCollection) return;
+
+    setShowRenameCollectionModal(false);
+    setCollectionName("");
+    setActiveCollection(null);
+  };
+
+  const handleRenameCollection = async () => {
+    const targetCollection =
+      activeCollection ?? collectionContextMenu.collection;
+    if (!targetCollection) return;
+
+    const nextName = collectionName.trim();
+    if (!nextName) {
+      showErrorToast(t("collection_name_required"));
+      return;
+    }
+
+    if (nextName === targetCollection.name.trim()) {
+      handleCloseRenameCollectionModal();
+      return;
+    }
+
+    setIsRenamingCollection(true);
+
+    try {
+      await window.electron.hydraApi.put(
+        `/profile/games/collections/${targetCollection.id}`,
+        {
+          data: { name: nextName },
+          needsAuth: true,
+        }
+      );
+
+      const updatedCollections = await window.electron.hydraApi.get<
+        GameCollection[]
+      >("/profile/games/collections", { needsAuth: true });
+      dispatch(setCollections(updatedCollections));
+      showSuccessToast(t("collection_renamed", { ns: "library" }));
+      handleCloseRenameCollectionModal();
+    } catch (error) {
+      showErrorToast(
+        resolveCollectionErrorMessage(error, "failed_rename_collection")
+      );
+    } finally {
+      setIsRenamingCollection(false);
+    }
+  };
+
+  const handleOpenDeleteCollectionModal = () => {
+    const collection = collectionContextMenu.collection;
+    if (!collection) return;
+
+    setActiveCollection(collection);
+    setShowDeleteCollectionModal(true);
+    handleCloseCollectionContextMenu();
+  };
+
+  const handleCloseDeleteCollectionModal = () => {
+    if (isDeletingCollection) return;
+
+    setShowDeleteCollectionModal(false);
+    setActiveCollection(null);
+  };
+
+  const handleDeleteCollection = async () => {
+    const targetCollection =
+      activeCollection ?? collectionContextMenu.collection;
+    if (!targetCollection) return;
+
+    setIsDeletingCollection(true);
+
+    try {
+      await window.electron.hydraApi.delete(
+        `/profile/games/collections/${targetCollection.id}`,
+        { needsAuth: true }
+      );
+
+      if (selectedCollectionId === targetCollection.id) {
+        const params = new URLSearchParams(searchParams);
+        params.delete("collection");
+        setSearchParams(params, { replace: true });
+      }
+
+      const updatedCollectionsPromise = window.electron.hydraApi.get<
+        GameCollection[]
+      >("/profile/games/collections", { needsAuth: true });
+      await updateLibrary();
+      const updatedCollections = await updatedCollectionsPromise;
+      dispatch(setCollections(updatedCollections));
+      showSuccessToast(t("collection_deleted", { ns: "library" }));
+      handleCloseDeleteCollectionModal();
+    } catch (error) {
+      showErrorToast(
+        resolveCollectionErrorMessage(error, "failed_delete_collection")
+      );
+    } finally {
+      setIsDeletingCollection(false);
+    }
+  };
+
+  const collectionContextMenuItems = useMemo(() => {
+    const isCollectionActionBusy = isRenamingCollection || isDeletingCollection;
+
+    return [
+      {
+        id: "rename-collection",
+        label: t("rename_collection", { ns: "library" }),
+        icon: <PencilIcon size={16} />,
+        onClick: handleOpenRenameCollectionModal,
+        disabled: isCollectionActionBusy,
+      },
+      {
+        id: "delete-collection",
+        label: t("delete_collection", { ns: "library" }),
+        icon: <TrashIcon size={16} />,
+        onClick: handleOpenDeleteCollectionModal,
+        danger: true,
+        disabled: isCollectionActionBusy,
+      },
+    ];
+  }, [
+    handleOpenDeleteCollectionModal,
+    handleOpenRenameCollectionModal,
+    isDeletingCollection,
+    isRenamingCollection,
+    t,
+  ]);
+
+  const favoriteGames = useMemo(() => {
+    return sortedLibrary.filter((game) => game.favorite);
+  }, [sortedLibrary]);
+
+  const installedGames = useMemo(() => {
+    return sortedLibrary.filter(isGamePlayable);
+  }, [sortedLibrary]);
 
   return (
     <aside
@@ -393,164 +492,247 @@ export function Sidebar() {
         maxWidth: sidebarWidth,
       }}
     >
-      {globalThis.window.electron.platform === "darwin" && (
-        <button
-          type="button"
-          className="sidebar__big-picture-darwin"
-          onClick={() => globalThis.window.electron.openBigPictureWindow()}
-        >
-          <VideoIcon size={14} />
-          {t("big_picture")}
-        </button>
-      )}
-
       <div className="sidebar__container">
-        <SidebarProfile />
-
+        <div className="sidebar__brand">
+          <HydraIcon className="sidebar__brand-icon" />
+          <h1 className="sidebar__brand-name">HYDRA</h1>
+        </div>
         <div className="sidebar__content">
-          <section className="sidebar__section">
-            <ul className="sidebar__menu">
-              {routes.map(({ nameKey, path, render }) => (
-                <li
-                  key={nameKey}
-                  className={cn("sidebar__menu-item", {
-                    "sidebar__menu-item--active": location.pathname === path,
-                  })}
-                >
-                  <button
-                    type="button"
-                    className="sidebar__menu-item-button"
-                    onClick={() => handleSidebarItemClick(path)}
-                  >
-                    {render()}
-                    <span>{t(nameKey)}</span>
-                  </button>
-                </li>
-              ))}
-
-              {window.electron.platform === "linux" && homebrewFolderExists && (
-                <li className="sidebar__menu-item sidebar__menu-item--decky">
-                  <button
-                    type="button"
-                    className="sidebar__menu-item-button"
-                    onClick={handleInstallHydraDeckyPlugin}
-                  >
-                    <img
-                      src={deckyIcon}
-                      alt=""
-                      style={{ width: 16, height: 16 }}
-                    />
-                    <span>
-                      {deckyPluginInfo.installed && !deckyPluginInfo.outdated
-                        ? t("decky_plugin_installed_version", {
-                            version: deckyPluginInfo.version,
-                          })
-                        : deckyPluginInfo.installed && deckyPluginInfo.outdated
-                          ? t("update_decky_plugin")
-                          : t("install_decky_plugin")}
-                    </span>
-                  </button>
-                </li>
-              )}
-            </ul>
-            <SidebarOnlineFriends />
-          </section>
-
-          <section className="sidebar__section sidebar__section--games">
-            <SidebarGameRunning />
-            <SidebarActiveDownload />
-            <div className="sidebar__search-row">
-              <TextField
-                ref={filterRef}
-                placeholder={t("filter")}
-                onChange={handleFilter}
-                theme="dark"
-              />
-
+          {/* ── Nav·Links rápidos ── */}
+          <nav className="sidebar__nav-links">
+            {import.meta.env.DEV && (
               <button
                 type="button"
-                className={cn("sidebar__play-button", {
-                  "sidebar__play-button--active": showPlayableOnly,
-                })}
-                onClick={() => setShowPlayableOnly((prev) => !prev)}
-                data-tooltip-id="sidebar-show-playable-only-tooltip"
-                data-tooltip-content={t("show_playable_only_tooltip")}
-                data-tooltip-place="top"
+                className="sidebar__nav-link"
+                onClick={() => navigate("/achievements")}
               >
-                <PlayIcon size={16} />
+                <TrophyIcon size={14} />
+                <span>Conquistas</span>
+                {totalAchievements > 0 && (
+                  <small className="sidebar__nav-link-badge">
+                    {totalAchievements}
+                  </small>
+                )}
               </button>
+            )}
+            <button
+              type="button"
+              className="sidebar__nav-link"
+              onClick={() =>
+                userDetails
+                  ? navigate(`/profile/${userDetails.id}`)
+                  : window.electron.openAuthWindow(AuthPage.SignIn)
+              }
+            >
+              <PeopleIcon size={14} />
+              <span>Amigos</span>
+              {onlineFriendsCount > 0 && (
+                <small className="sidebar__nav-link-badge">
+                  {onlineFriendsCount > 99 ? "99+" : onlineFriendsCount}
+                </small>
+              )}
+            </button>
+            <button
+              type="button"
+              className="sidebar__nav-link"
+              onClick={() =>
+                hasActiveSubscription
+                  ? navigate("/settings")
+                  : window.electron.openExternal(
+                      "https://checkout.hydralauncher.gg"
+                    )
+              }
+            >
+              <CloudIcon size={14} />
+              <span>Hydra Cloud</span>
+            </button>
+          </nav>
 
-              <Tooltip id="sidebar-show-playable-only-tooltip" place="top" />
+          <div className="sidebar__divider" />
 
-              <SidebarFilterMenu
-                category={sidebarCategory}
-                onCategoryChange={handleSidebarCategoryChange}
-                sortBy={sidebarSortBy}
-                onSortChange={handleSidebarSortChange}
-                showFavoritesFirst={showFavoritesFirst}
-                onToggleFavoritesFirst={handleToggleFavoritesFirst}
-                platforms={uniquePlatforms}
-                selectedPlatforms={selectedPlatforms}
-                onPlatformsChange={setSelectedPlatforms}
-              />
-            </div>
+          <SidebarGameRunning />
+          <SidebarActiveDownload />
+          <SidebarOnlineFriends />
 
-            <div
-              className={`sidebar__game-list${isGameListScrolled ? " sidebar__game-list--scrolled" : ""}`}
+          {/* ── Toggle Favoritos / Instalados ── */}
+          <div className="sidebar__game-toggle">
+            <button
+              type="button"
+              className="sidebar__game-toggle-btn"
+              onClick={() => setShowInstalledGames(!showInstalledGames)}
             >
               <div
-                ref={gameListRef}
-                className="sidebar__game-list-scroll"
-                onScroll={(e) =>
-                  setIsGameListScrolled(
-                    (e.currentTarget as HTMLElement).scrollTop > 0
-                  )
-                }
+                key={showInstalledGames ? "installed" : "favorites"}
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                {hasActiveFilter && visibleGames.length === 0 && (
-                  <p className="sidebar__game-list-empty">
-                    {t("library:no_results")}
-                  </p>
-                )}
-
-                <div
-                  style={{
-                    height: `${virtualizer.getTotalSize()}px`,
-                    position: "relative",
-                  }}
-                >
-                  {virtualizer.getVirtualItems().map((virtualItem) => {
-                    const game = visibleGames[virtualItem.index];
-                    return (
-                      <div
-                        key={game.id}
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          right: 16 - scrollbarWidth,
-                          transform: `translateY(${virtualItem.start}px)`,
-                        }}
+                <div className="sidebar__game-toggle-text">
+                  {(showInstalledGames
+                    ? t("installed", { defaultValue: "Instalados" })
+                    : t("favorites", { defaultValue: "Favoritos" })
+                  )
+                    .split("")
+                    .map((char, index) => (
+                      <span
+                        key={index}
+                        className="sidebar__game-toggle-letter"
+                        style={{ animationDelay: `${index * 25}ms` }}
                       >
-                        <SidebarGameItem
-                          game={game}
-                          handleSidebarGameClick={handleSidebarGameClick}
-                          getGameTitle={getGameTitle}
-                        />
-                      </div>
-                    );
+                        {char === " " ? "\u00A0" : char}
+                      </span>
+                    ))}
+                </div>
+                <div
+                  className={cn("sidebar__game-toggle-icon", {
+                    "sidebar__game-toggle-icon--installed": showInstalledGames,
                   })}
+                >
+                  <ArrowRightLeftIcon size={12} />
                 </div>
               </div>
+              <span className="sidebar__game-toggle-count">
+                {showInstalledGames
+                  ? installedGames.length
+                  : favoriteGames.length}
+              </span>
+            </button>
+
+            <div
+              key={showInstalledGames ? "installed" : "favorites"}
+              className="sidebar__favorites-list"
+            >
+              {(showInstalledGames ? installedGames : favoriteGames).length ===
+              0 ? (
+                <p className="sidebar__menu-empty">
+                  {showInstalledGames
+                    ? t("no_installed_games", {
+                        defaultValue: "Nenhum jogo instalado",
+                      })
+                    : t("no_favorites", {
+                        defaultValue: "Nenhum jogo favorito",
+                      })}
+                </p>
+              ) : (
+                (showInstalledGames ? installedGames : favoriteGames).map(
+                  (game) => (
+                    <SidebarFavoriteCard
+                      key={game.id}
+                      game={game}
+                      onClick={handleSidebarGameClick}
+                    />
+                  )
+                )
+              )}
             </div>
-          </section>
+          </div>
         </div>
+      </div>
+
+      <div className="sidebar__bottom-buttons">
+        <button
+          type="button"
+          className="sidebar__add-game-button"
+          onClick={handleAddGameButtonClick}
+        >
+          <PlusIcon size={14} />
+          <span>
+            {t("add_custom_game_tooltip", { defaultValue: "Adicionar jogo" })}
+          </span>
+        </button>
+
+        {hasActiveSubscription && (
+          <button
+            type="button"
+            className="sidebar__help-button"
+            data-open-support-chat
+          >
+            <div className="sidebar__help-button-icon">
+              <CommentDiscussionIcon size={14} />
+            </div>
+            <span>{t("need_help")}</span>
+          </button>
+        )}
       </div>
 
       <button
         type="button"
         className="sidebar__handle"
         onMouseDown={handleMouseDown}
+      />
+
+      <SidebarAddingCustomGameModal
+        visible={showAddGameModal}
+        onClose={handleCloseAddGameModal}
+      />
+
+      <CreateCollectionModal
+        visible={showCreateCollectionModal}
+        onClose={() => setShowCreateCollectionModal(false)}
+      />
+
+      <ContextMenu
+        items={collectionContextMenuItems}
+        visible={collectionContextMenu.visible}
+        position={collectionContextMenu.position}
+        onClose={handleCloseCollectionContextMenu}
+      />
+
+      <Modal
+        visible={showRenameCollectionModal}
+        title={t("rename_collection", { ns: "library" })}
+        description={t("rename_collection_description", { ns: "library" })}
+        onClose={handleCloseRenameCollectionModal}
+      >
+        <div className="sidebar__collection-modal">
+          <TextField
+            label={t("collection_name")}
+            placeholder={t("collection_name_placeholder")}
+            value={collectionName}
+            onChange={(event) => setCollectionName(event.target.value)}
+            theme="dark"
+            disabled={isRenamingCollection}
+            maxLength={60}
+          />
+
+          <div className="sidebar__collection-modal-actions">
+            <Button
+              type="button"
+              theme="outline"
+              onClick={handleCloseRenameCollectionModal}
+              disabled={isRenamingCollection}
+            >
+              {t("cancel")}
+            </Button>
+
+            <Button
+              type="button"
+              theme="primary"
+              onClick={() => {
+                void handleRenameCollection();
+              }}
+              disabled={!collectionName.trim() || isRenamingCollection}
+            >
+              {isRenamingCollection
+                ? t("renaming_collection", { ns: "library" })
+                : t("rename_collection", { ns: "library" })}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmationModal
+        visible={showDeleteCollectionModal}
+        title={t("delete_collection_title", { ns: "library" })}
+        descriptionText={t("delete_collection_description", {
+          ns: "library",
+          collectionName: activeCollection?.name ?? "",
+        })}
+        onClose={handleCloseDeleteCollectionModal}
+        onConfirm={() => {
+          void handleDeleteCollection();
+        }}
+        cancelButtonLabel={t("cancel")}
+        confirmButtonLabel={t("delete_collection", { ns: "library" })}
+        buttonsIsDisabled={isDeletingCollection}
       />
 
       <ConfirmationModal
@@ -570,6 +752,10 @@ export function Sidebar() {
         cancelButtonLabel={t("cancel")}
         confirmButtonLabel={t("confirm")}
       />
+
+      <Tooltip id="add-custom-game-tooltip" />
+      <Tooltip id="create-collection-tooltip" />
+      <Tooltip id="show-playable-only-tooltip" />
     </aside>
   );
 }

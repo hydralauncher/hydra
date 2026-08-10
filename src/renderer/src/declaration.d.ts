@@ -276,6 +276,7 @@ declare global {
       shop: GameShop,
       cb: (achievements: UserAchievement[]) => void
     ) => () => Electron.IpcRenderer;
+    showVirtualKeyboard?: () => void;
 
     /* Library */
     toggleAutomaticCloudSync: (

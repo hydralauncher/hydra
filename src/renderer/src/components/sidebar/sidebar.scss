@@ -1,15 +1,35 @@
 @use "../../scss/globals.scss";
 
+.sidebar-wrapper {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 1px;
+  z-index: 250;
+  overflow: visible;
+
+  &--force-open,
+  &:hover {
+    width: auto;
+
+    .sidebar {
+      transform: translateX(0);
+    }
+  }
+}
+
 .sidebar {
-  background-color: globals.$dark-background-color;
+  background-color: rgba(0, 0, 0, 0.92);
   color: globals.$muted-color;
   flex-direction: column;
   display: flex;
-  transition: opacity ease 0.2s;
-  border-right: solid 1px globals.$border-color;
-  position: relative;
+  height: 100%;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
   overflow: hidden;
-  padding-top: globals.$spacing-unit;
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 
   &--resizing {
     opacity: globals.$active-opacity;
@@ -20,78 +40,18 @@
     padding-top: calc(globals.$spacing-unit * 6);
   }
 
-  &__big-picture-darwin {
-    position: absolute;
-    top: 14px;
-    right: 12px;
-    color: globals.$muted-color;
-    opacity: 0.6;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    -webkit-app-region: no-drag;
-    transition:
-      opacity ease 0.1s,
-      background-color ease 0.1s;
-
-    &:hover {
-      opacity: 1;
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-
   &__content {
     display: flex;
     flex-direction: column;
     flex: 1;
-    padding: 0 calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2);
     gap: calc(globals.$spacing-unit * 2);
     width: 100%;
-    min-height: 0;
-  }
+    overflow: auto;
 
-  &__section--games {
-    flex: 1;
-    min-height: 0;
-    padding-bottom: 0;
-    margin-bottom: calc(globals.$spacing-unit * -2);
-
-    .text-field-container {
-      flex: none;
+    &::-webkit-scrollbar {
+      display: none;
     }
-  }
-
-  &__game-list {
-    flex: 1;
-    min-height: 0;
-    position: relative;
-    overflow: hidden;
-    margin-right: calc(globals.$spacing-unit * -2);
-    box-shadow: inset 0 6px 6px -4px transparent;
-    transition: box-shadow 0.2s ease;
-
-    &--scrolled {
-      box-shadow: inset 0 6px 6px -4px rgba(0, 0, 0, 0.5);
-    }
-  }
-
-  &__game-list-scroll {
-    position: absolute;
-    inset: 0 0 6px;
-    overflow-y: auto;
-    padding-bottom: calc(globals.$spacing-unit * 2);
-  }
-
-  &__game-list-empty {
-    margin: 0;
-    padding: calc(globals.$spacing-unit * 2);
-    font-size: 12px;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.5);
   }
 
   &__handle {
@@ -121,11 +81,11 @@
     border-radius: 4px;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.15);
+      background-color: rgba(255, 255, 255, 0.1);
     }
 
     &--active {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.08);
     }
 
     &--muted {
@@ -166,48 +126,8 @@
   }
 
   &__menu-item-button-label {
-    flex: 1;
-    min-width: 0;
-    text-align: left;
     text-overflow: ellipsis;
     overflow: hidden;
-  }
-
-  &__game-adornments {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-
-  &__friends-icon {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  &__online-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 9px;
-    background-color: rgba(255, 255, 255, 0.08);
-    color: globals.$body-color;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-
-    &--online {
-      background-color: globals.$success-color;
-      color: #ffffff;
-    }
   }
 
   &__game-icon {
@@ -219,12 +139,6 @@
     background-size: cover;
   }
 
-  &__game-favorite-icon {
-    flex-shrink: 0;
-    color: #ffffff;
-    opacity: 0.85;
-  }
-
   &__game-badge {
     background-color: rgba(34, 197, 94, 0.15);
     color: rgb(187, 247, 208);
@@ -233,9 +147,7 @@
     padding: 4px 6px;
     border-radius: 6px;
     display: flex;
-    flex-shrink: 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.5);
+    margin-left: auto;
   }
 
   &__collection-icon {
@@ -245,8 +157,8 @@
 
   &__collection-count {
     margin-left: auto;
-    background-color: #fff;
-    color: globals.$background-color;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
     font-size: 10px;
     font-weight: 700;
     border-radius: 999px;
@@ -260,14 +172,61 @@
     flex-shrink: 0;
   }
 
-  &__search-row {
+  &__section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__section-toggle {
+    background: none;
+    border: none;
+    color: globals.$muted-color;
     display: flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit);
+    gap: 6px;
+    padding: 0;
+    cursor: pointer;
+  }
 
-    .text-field-container {
-      flex: 1;
+  &__section-toggle-chevron {
+    transition: transform 0.15s ease;
+    transform: rotate(0deg);
+
+    &--expanded {
+      transform: rotate(90deg);
     }
+  }
+
+  &__brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: calc(globals.$spacing-unit * 3.5) 0;
+    gap: 12px;
+
+    &-icon {
+      width: 32px;
+      height: 32px;
+      path {
+        fill: rgba(255, 255, 255, 0.9);
+      }
+    }
+
+    &-name {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 10px;
+      margin: 0;
+      margin-right: -10px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &__section-title {
+    text-transform: uppercase;
+    font-weight: bold;
   }
 
   &__menu-empty {
@@ -296,20 +255,178 @@
     padding-bottom: globals.$spacing-unit;
   }
 
-  &__add-button {
-    background: none;
+  &__bottom-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__game-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__game-toggle-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
     border: none;
     color: globals.$muted-color;
+    padding: 0 calc(globals.$spacing-unit * 0.5);
     cursor: pointer;
-    padding: 0;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: color 0.15s ease;
 
     &:hover {
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(255, 255, 255, 0.9);
     }
+  }
 
-    svg {
-      display: block;
+  &__game-toggle-text {
+    display: flex;
+  }
+
+  &__game-toggle-letter {
+    opacity: 0;
+    animation: sidebar-letter-fade-in 0.35s forwards
+      cubic-bezier(0.19, 1, 0.22, 1);
+  }
+
+  &__game-toggle-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    opacity: 0.6;
+
+    &--installed {
+      transform: rotate(180deg);
     }
+  }
+
+  &__game-toggle-count {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 100px;
+    padding: 1px 7px;
+  }
+
+  &__add-game-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.5);
+    border-radius: 100px;
+    padding: 9px calc(globals.$spacing-unit * 1.5);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: rgba(255, 255, 255, 0.85);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  &__nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 calc(globals.$spacing-unit * 0.5);
+  }
+
+  &__nav-link {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    border: 1px solid transparent;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: left;
+    padding: 9px calc(globals.$spacing-unit * 1.5);
+    border-radius: 100px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  &__nav-link-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    color: globals.$brand-teal;
+    background: rgba(22, 177, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 100px;
+    line-height: 1;
+  }
+
+  &__divider {
+    height: 1px;
+    min-height: 1px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 4px calc(globals.$spacing-unit * 2);
+  }
+
+  &__help-button {
+    color: globals.$muted-color;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    gap: 9px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    border-top: solid 1px rgba(255, 255, 255, 0.06);
+    transition: background-color ease 0.1s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__help-button-icon {
+    background: linear-gradient(
+      0deg,
+      globals.$brand-teal 50%,
+      globals.$brand-blue 100%
+    );
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border-radius: 50%;
   }
 
   &__play-button {
@@ -318,18 +435,33 @@
     color: globals.$muted-color;
     cursor: pointer;
     padding: 0;
-    transition: color 0.15s ease;
+
+    &:active {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    &--active {
+      color: globals.$brand-teal;
+    }
+
+    svg {
+      display: block;
+    }
+  }
+
+  &__add-button {
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    padding: 0;
 
     &:hover {
       color: rgba(255, 255, 255, 0.8);
     }
 
-    &--active {
-      color: globals.$brand-teal;
-
-      &:hover {
-        color: rgba(globals.$brand-teal, 0.6);
-      }
+    &:active {
+      color: rgba(255, 255, 255, 0.5);
     }
 
     svg {
@@ -347,5 +479,334 @@
     display: flex;
     justify-content: flex-end;
     gap: calc(globals.$spacing-unit);
+  }
+
+  &__nav-button {
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 4px;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 6px;
+    transition:
+      color 0.12s ease,
+      background-color 0.12s ease;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.9);
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &__nav-button-label {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: inherit;
+  }
+
+  &__action-button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100px;
+    transition: all ease 0.15s;
+
+    &:hover {
+      color: #fff;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  &__favorites-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 4px;
+
+    > * {
+      opacity: 0;
+      animation: sidebar-item-fade-in 0.3s forwards
+        cubic-bezier(0.19, 1, 0.22, 1);
+
+      @for $i from 1 through 20 {
+        &:nth-child(#{$i}) {
+          animation-delay: #{$i * 35}ms;
+        }
+      }
+    }
+  }
+}
+
+@keyframes sidebar-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sidebar-letter-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sidebar-item-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+// ── Game Running ──────────────────────────────────
+.sidebar-game-running {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(22, 177, 149, 0.08);
+  border: 1px solid rgba(22, 177, 149, 0.15);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(22, 177, 149, 0.14);
+  }
+
+  &__pulse {
+    width: 7px;
+    height: 7px;
+    min-width: 7px;
+    border-radius: 50%;
+    background: globals.$brand-teal;
+    animation: pulse-dot 1.6s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  &__icon {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+
+    &--placeholder {
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__time {
+    font-size: 11px;
+    color: globals.$brand-teal;
+    font-weight: 500;
+  }
+}
+
+// ── Active Download ───────────────────────────────
+.sidebar-active-download {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__pct {
+    font-size: 11px;
+    font-weight: 700;
+    color: globals.$brand-teal;
+    flex-shrink: 0;
+  }
+
+  &__bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  &__fill {
+    height: 100%;
+    background: globals.$brand-teal;
+    border-radius: 100px;
+    transition: width 0.4s ease;
+  }
+}
+
+// ── Online Friends ────────────────────────────────
+.sidebar-online-friends {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &__label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255, 255, 255, 0.3);
+    padding: 0 4px;
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    text-align: left;
+    transition: background 0.12s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &__avatar {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+  }
+
+  &__dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 7px;
+    height: 7px;
+    background: #22c55e;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 0, 0, 0.85);
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__game {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }

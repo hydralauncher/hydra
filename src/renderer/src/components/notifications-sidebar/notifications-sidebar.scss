@@ -1,0 +1,199 @@
+@use "../../scss/globals.scss";
+
+$sidebar-width: 380px;
+
+/* Backdrop */
+.notifications-sidebar__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(globals.$sidebar-z-index + 5);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Wrapper — slides in from right */
+.notifications-sidebar-wrapper {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 1px;
+  z-index: calc(globals.$sidebar-z-index + 10);
+  overflow: visible;
+  pointer-events: none;
+
+  &--open {
+    width: auto;
+    pointer-events: auto;
+
+    .notifications-sidebar {
+      transform: translateX(0);
+    }
+  }
+}
+
+/* Panel */
+.notifications-sidebar {
+  width: $sidebar-width;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: globals.$muted-color;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+    padding-top: calc(95px + globals.$spacing-unit * 2);
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  &__badge {
+    background: globals.$brand-teal;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 100px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 100px;
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.15s ease;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &__tabs {
+    display: flex;
+    gap: 4px;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+
+  &__tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &__tab-badge {
+    background: globals.$brand-teal;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 100px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+
+  &__content {
+    flex: 1;
+    overflow-y: auto;
+    padding: globals.$spacing-unit;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__load-more {
+    display: flex;
+    justify-content: center;
+    padding: globals.$spacing-unit;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    height: 200px;
+    color: rgba(255, 255, 255, 0.3);
+    text-align: center;
+    padding: calc(globals.$spacing-unit * 2);
+
+    p {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+  }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 13px;
+  }
+}
