@@ -480,19 +480,18 @@ export function Sidebar() {
   }, [sortedLibrary]);
 
   return (
-    <aside
-      ref={sidebarRef}
-      className={cn("sidebar", {
-        "sidebar--resizing": isResizing,
-        "sidebar--darwin": window.electron.platform === "darwin",
-      })}
-      style={{
-        width: sidebarWidth,
-        minWidth: sidebarWidth,
-        maxWidth: sidebarWidth,
-      }}
-    >
-      <div className="sidebar__container">
+    <div className="sidebar-wrapper">
+      <aside
+        ref={sidebarRef}
+        className={cn("sidebar", {
+          "sidebar--resizing": isResizing,
+          "sidebar--darwin": window.electron.platform === "darwin",
+        })}
+        style={{
+          width: sidebarWidth,
+        }}
+      >
+        <div className="sidebar__container">
         <div className="sidebar__brand">
           <HydraIcon className="sidebar__brand-icon" />
           <h1 className="sidebar__brand-name">HYDRA</h1>
@@ -757,5 +756,6 @@ export function Sidebar() {
       <Tooltip id="create-collection-tooltip" />
       <Tooltip id="show-playable-only-tooltip" />
     </aside>
+    </div>
   );
 }

@@ -5,7 +5,7 @@
   left: 0;
   top: 0;
   height: 100%;
-  width: 1px;
+  width: 12px;
   z-index: 250;
   overflow: visible;
 
@@ -20,14 +20,16 @@
 }
 
 .sidebar {
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(0, 0, 0, 0.92);
   color: globals.$muted-color;
   flex-direction: column;
   display: flex;
   height: 100%;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
   overflow: hidden;
   backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 
   &--resizing {
     opacity: globals.$active-opacity;
