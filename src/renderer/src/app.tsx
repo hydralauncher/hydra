@@ -1,4 +1,5 @@
 import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
+import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { VideoIcon } from "@primer/octicons-react";
 import {
   DashIcon,
@@ -595,21 +596,23 @@ export function App() {
           className={`title-bar${
             window.electron.platform === "win32" ? " title-bar--windows" : ""
           }`}
+          data-gamepad-ignore="true"
         >
-          <h4>
-            Hydra
+          <div style={{ display: "flex", alignItems: "center", gap: 6, opacity: 0.7 }}>
+            <HydraIcon className="title-bar__logo" aria-hidden="true" />
             {hasActiveSubscription && (
-              <span className="title-bar__cloud-text"> Cloud</span>
+              <span className="title-bar__cloud-text" style={{ fontSize: 11, fontWeight: 600 }}>CLOUD</span>
             )}
-          </h4>
+          </div>
 
           <button
             type="button"
             className="title-bar__big-picture"
             onClick={() => globalThis.window.electron.openBigPictureWindow()}
+            title={t("big_picture", { ns: "sidebar", defaultValue: "Big Picture Mode" })}
           >
             <VideoIcon size={14} />
-            {t("big_picture", { ns: "sidebar" })}
+            <span>{t("big_picture", { ns: "sidebar" })}</span>
           </button>
 
           {window.electron.platform === "linux" && (

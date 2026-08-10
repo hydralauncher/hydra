@@ -132,23 +132,31 @@ progress[value] {
 
 .title-bar {
   display: flex;
-  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 35px;
-  min-height: 35px;
-  background-color: globals.$dark-background-color;
+  background-color: transparent;
   align-items: center;
   padding: 0 calc(globals.$spacing-unit * 2);
   -webkit-app-region: drag;
-  z-index: 4;
-  border-bottom: 1px solid globals.$border-color;
+  z-index: 200;
 
-  &--windows {
-    padding-right: calc(
-      100vw - env(titlebar-area-width, calc(100vw - 140px)) - env(
-          titlebar-area-x,
-          0px
-        )
-    );
+  &__logo {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    opacity: 0.7;
+    margin-right: 8px;
+    -webkit-app-region: no-drag;
+
+    path,
+    circle,
+    rect,
+    polygon {
+      fill: #fff;
+    }
   }
 
   &__cloud-text {
@@ -167,9 +175,10 @@ progress[value] {
     padding: 4px 8px;
     border-radius: 4px;
     margin-left: auto;
-    margin-right: globals.$spacing-unit;
+    margin-right: calc(globals.$spacing-unit * 2);
     font-size: 12px;
     -webkit-app-region: no-drag;
+    pointer-events: auto;
     transition:
       opacity ease 0.1s,
       background-color ease 0.1s;
