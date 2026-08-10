@@ -301,9 +301,11 @@ export default function Home() {
         let result: ShopAssets[] = [];
 
         if (category === CatalogueCategory.Hot) {
-          result = await window.electron.getSteamFeatured(
-            getSteamLanguage(i18n.language)
-          );
+          if (typeof window.electron?.getSteamFeatured === "function") {
+            result = await window.electron.getSteamFeatured(
+              getSteamLanguage(i18n.language)
+            );
+          }
         } else {
           const sources = (await levelDBService.values(
             "downloadSources"

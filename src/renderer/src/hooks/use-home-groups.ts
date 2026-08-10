@@ -26,6 +26,7 @@ export function useHomeGroups() {
   useEffect(() => {
     // Busca assíncrona da nuvem (Stale-While-Revalidate)
     const syncFromCloud = async () => {
+      if (typeof window.electron?.fetchHomeGroups !== "function") return;
       const cloudGroups = await window.electron
         .fetchHomeGroups()
         .catch(() => null);
@@ -42,6 +43,7 @@ export function useHomeGroups() {
     (newGroups: HomeGroup[]) => {
       localStorage.setItem("hydra:home-groups", JSON.stringify(newGroups));
       setGroups(newGroups);
+      if (typeof window.electron?.syncHomeGroups !== "function") return;
       window.electron
         .syncHomeGroups(newGroups)
         .then((res) => {
