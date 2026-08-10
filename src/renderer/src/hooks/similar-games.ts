@@ -1,16 +1,20 @@
 import type { GameShop } from "@types";
 
 export const SIMILAR_GAMES_LIMIT = 9;
+export type SimilarGamesAlgorithm = "legacy" | "jaccard" | "balanced";
 
 export interface SimilarGamesQuery {
   objectId: string;
   shop: GameShop;
+  genres?: readonly unknown[];
+  algorithm?: SimilarGamesAlgorithm;
 }
 
 export interface SimilarGame {
   objectId: string;
   shop: Exclude<GameShop, "custom">;
   title: string;
+  genres: string[];
   iconUrl: string | null;
   libraryHeroImageUrl: string | null;
   libraryImageUrl: string | null;
@@ -99,6 +103,11 @@ const normalizeSimilarGame = (value: unknown): SimilarGame | null => {
     objectId,
     shop: candidate.shop,
     title,
+    genres: Array.isArray(candidate.genres)
+      ? candidate.genres.filter(
+          (genre): genre is string => typeof genre === "string"
+        )
+      : [],
     iconUrl: optionalString(candidate.iconUrl),
     libraryHeroImageUrl: optionalString(candidate.libraryHeroImageUrl),
     libraryImageUrl: optionalString(candidate.libraryImageUrl),
@@ -136,6 +145,46 @@ export const normalizeSimilarGamesResponse = (
     .slice(0, SIMILAR_GAMES_LIMIT);
 };
 
+const normalizedGenreSet = (genres: readonly unknown[]) =>
+  new Set(
+    extractSimilarGameGenres(genres).map((genre) => genre.toLocaleLowerCase())
+  );
+
+export const rankSimilarGames = (
+  games: SimilarGame[],
+  currentGenres: readonly unknown[] = [],
+  algorithm: SimilarGamesAlgorithm = "legacy"
+) => {
+  if (algorithm === "legacy" || games.length < 2) return games;
+
+  const current = normalizedGenreSet(currentGenres);
+
+  return games
+    .map((game, index) => {
+      const candidate = normalizedGenreSet(game.genres);
+      const intersection = [...candidate].filter((genre) =>
+        current.has(genre)
+      ).length;
+      const union = new Set([...current, ...candidate]).size;
+      const jaccard = union === 0 ? 0 : intersection / union;
+      const candidateCoverage =
+        candidate.size === 0 ? 0 : intersection / candidate.size;
+      const score =
+        algorithm === "jaccard"
+          ? jaccard
+          : 0.75 * jaccard + 0.25 * candidateCoverage;
+
+      return { game, index, score, intersection };
+    })
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        right.intersection - left.intersection ||
+        left.index - right.index
+    )
+    .map(({ game }) => game);
+};
+
 export const fetchSimilarGames = async (
   query: SimilarGamesQuery,
   get: SimilarGamesGet,
@@ -151,5 +200,6 @@ export const fetchSimilarGames = async (
     }
   );
 
-  return normalizeSimilarGamesResponse(response, query);
+  const games = normalizeSimilarGamesResponse(response, query);
+  return rankSimilarGames(games, query.genres, query.algorithm);
 };

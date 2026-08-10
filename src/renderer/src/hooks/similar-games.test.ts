@@ -5,6 +5,7 @@ import {
   extractSimilarGameGenres,
   fetchSimilarGames,
   normalizeSimilarGamesResponse,
+  rankSimilarGames,
   type SimilarGame,
   type SimilarGamesGet,
 } from "./similar-games.js";
@@ -16,6 +17,7 @@ const game = (
   objectId,
   shop: "steam",
   title: `Game ${objectId}`,
+  genres: [],
   iconUrl: null,
   libraryHeroImageUrl: null,
   libraryImageUrl: `https://example.com/${objectId}.jpg`,
@@ -23,6 +25,26 @@ const game = (
   logoImageUrl: null,
   downloadSources: [],
   ...overrides,
+});
+
+describe("rankSimilarGames", () => {
+  it("keeps catalogue order in legacy mode", () => {
+    const games = [game("b"), game("a", { genres: ["RPG"] })];
+    assert.deepEqual(rankSimilarGames(games, ["Action"], "legacy"), games);
+  });
+
+  it("ranks the closest Jaccard match first", () => {
+    const games = [
+      game("b", { genres: ["Action", "Indie", "RPG"] }),
+      game("a", { genres: ["Action", "RPG"] }),
+    ];
+    assert.deepEqual(
+      rankSimilarGames(games, ["Action", "RPG"], "jaccard").map(
+        ({ objectId }) => objectId
+      ),
+      ["a", "b"]
+    );
+  });
 });
 
 describe("extractSimilarGameGenres", () => {
@@ -111,6 +133,8 @@ describe("normalizeSimilarGamesResponse", () => {
       [
         null,
         { objectId: "broken", shop: "steam" },
+        { objectId: "   ", shop: "steam", title: "Valid title" },
+        { objectId: "valid-id", shop: "steam", title: "   " },
         {
           ...game("missing-sources"),
           downloadSources: undefined,

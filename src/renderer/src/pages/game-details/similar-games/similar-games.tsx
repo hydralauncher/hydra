@@ -13,25 +13,36 @@ import { useSimilarGames } from "@renderer/hooks";
 import "./similar-games.scss";
 
 const GAMES_PER_PAGE = 3;
+const CAROUSEL_SCROLL_DURATION = 20;
+const CAROUSEL_ICON_SIZE = 36;
 
 interface SimilarGamesProps {
   objectId: string;
   shop: GameShop;
+  genres?: readonly unknown[];
 }
 
 function SimilarGamesSlide({ children }: Readonly<{ children: ReactNode }>) {
   return <div className="similar-games__slide">{children}</div>;
 }
 
-export function SimilarGames({ objectId, shop }: Readonly<SimilarGamesProps>) {
+export function SimilarGames({
+  objectId,
+  shop,
+  genres,
+}: Readonly<SimilarGamesProps>) {
   const navigate = useNavigate();
   const { t } = useTranslation("game_details");
-  const { games, isLoading, isEligible } = useSimilarGames({ objectId, shop });
+  const { games, isLoading, isEligible } = useSimilarGames({
+    objectId,
+    shop,
+    genres,
+  });
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     containScroll: "trimSnaps",
     slidesToScroll: GAMES_PER_PAGE,
-    duration: 20,
+    duration: CAROUSEL_SCROLL_DURATION,
   });
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
@@ -100,7 +111,7 @@ export function SimilarGames({ objectId, shop }: Readonly<SimilarGamesProps>) {
             disabled={!canScrollPrev}
             onClick={() => emblaApi?.scrollPrev()}
           >
-            <ChevronLeftIcon size={36} />
+            <ChevronLeftIcon size={CAROUSEL_ICON_SIZE} />
           </button>
 
           <button
@@ -110,7 +121,7 @@ export function SimilarGames({ objectId, shop }: Readonly<SimilarGamesProps>) {
             disabled={!canScrollNext}
             onClick={() => emblaApi?.scrollNext()}
           >
-            <ChevronRightIcon size={36} />
+            <ChevronRightIcon size={CAROUSEL_ICON_SIZE} />
           </button>
         </div>
       </div>

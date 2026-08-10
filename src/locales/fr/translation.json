@@ -248,6 +248,8 @@
   },
   "game_details": {
     "similar_games": "Jeux similaires",
+    "previous_media": "Précédent",
+    "next_media": "Suivant",
     "open_download_options": "Ouvrir les options de téléchargement",
     "download_options_zero": "Aucune option de téléchargement",
     "download_options_one": "{{count}} option de téléchargement",

@@ -252,6 +252,8 @@
   },
   "game_details": {
     "similar_games": "Похожие игры",
+    "previous_media": "Предыдущий",
+    "next_media": "Следующий",
     "bios_not_configured_toast": "BIOS не найден. Добавьте папку BIOS в настройках эмуляции.",
     "open_download_options": "Открыть источники",
     "download_options_zero": "Нет источников",

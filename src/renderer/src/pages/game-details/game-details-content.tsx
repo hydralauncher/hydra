@@ -451,7 +451,11 @@ export function GameDetailsContent() {
             )}
 
             {shop && objectId && (
-              <SimilarGames objectId={objectId} shop={shop} />
+              <SimilarGames
+                objectId={objectId}
+                shop={shop}
+                genres={shopDetails?.genres}
+              />
             )}
 
             {shop !== "custom" && shop && objectId && (

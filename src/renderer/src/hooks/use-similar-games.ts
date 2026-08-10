@@ -8,20 +8,29 @@ import {
   type SimilarGamesGet,
   type SimilarGamesQuery,
 } from "./similar-games";
+import { useAppSelector } from "@renderer/hooks/redux";
 
 export const useSimilarGames = (query: SimilarGamesQuery) => {
   const [games, setGames] = useState<SimilarGame[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [resultQueryKey, setResultQueryKey] = useState("");
   const requestIdRef = useRef(0);
-  const { objectId, shop } = query;
+  const { objectId, shop, genres } = query;
+  const userAlgorithm = useAppSelector(
+    (state) => state.userPreferences.value?.similarGamesAlgorithm ?? "balanced"
+  );
   const queryKey = `${shop}:${objectId}`;
   const isEligible =
     Boolean(objectId) && (shop === "steam" || shop === "launchbox");
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
-    const stableQuery: SimilarGamesQuery = { objectId, shop };
+    const stableQuery: SimilarGamesQuery = {
+      objectId,
+      shop,
+      genres,
+      algorithm: userAlgorithm,
+    };
 
     setGames([]);
     setResultQueryKey(queryKey);
@@ -71,7 +80,7 @@ export const useSimilarGames = (query: SimilarGamesQuery) => {
     return () => {
       requestIdRef.current += 1;
     };
-  }, [isEligible, objectId, queryKey, shop]);
+  }, [genres, isEligible, objectId, queryKey, shop, userAlgorithm]);
 
   const hasCurrentResults = resultQueryKey === queryKey;
 

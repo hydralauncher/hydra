@@ -148,7 +148,7 @@ export class HydraApi {
 
   static async setupApi() {
     this.instance = axios.create({
-      baseURL: import.meta.env.MAIN_VITE_API_URL,
+      baseURL: import.meta.env.MAIN_VITE_API_URL ?? "",
       headers: { "User-Agent": `Hydra Launcher v${appVersion}` },
     });
 

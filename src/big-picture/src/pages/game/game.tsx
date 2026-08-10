@@ -512,6 +512,7 @@ export default function Game() {
     useSimilarGames({
       objectId: objectId ?? "",
       shop: shop ?? "custom",
+      genres: shopGenres,
     });
   const similarCarouselGames = useMemo<ShopAssets[]>(
     () =>
