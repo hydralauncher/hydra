@@ -598,10 +598,22 @@ export function App() {
           }`}
           data-gamepad-ignore="true"
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, opacity: 0.7 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              opacity: 0.7,
+            }}
+          >
             <HydraIcon className="title-bar__logo" aria-hidden="true" />
             {hasActiveSubscription && (
-              <span className="title-bar__cloud-text" style={{ fontSize: 11, fontWeight: 600 }}>CLOUD</span>
+              <span
+                className="title-bar__cloud-text"
+                style={{ fontSize: 11, fontWeight: 600 }}
+              >
+                CLOUD
+              </span>
             )}
           </div>
 
@@ -609,7 +621,10 @@ export function App() {
             type="button"
             className="title-bar__big-picture"
             onClick={() => globalThis.window.electron.openBigPictureWindow()}
-            title={t("big_picture", { ns: "sidebar", defaultValue: "Big Picture Mode" })}
+            title={t("big_picture", {
+              ns: "sidebar",
+              defaultValue: "Big Picture Mode",
+            })}
           >
             <VideoIcon size={14} />
             <span>{t("big_picture", { ns: "sidebar" })}</span>
