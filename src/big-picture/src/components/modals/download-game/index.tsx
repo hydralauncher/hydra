@@ -649,7 +649,9 @@ function DownloadGameModalSession({
           let diskUsage: DiskUsage = { free: 0, total: 0 };
 
           try {
-            diskUsage = await globalThis.window.electron.getDiskFreeSpace(path);
+            diskUsage = (await globalThis.window.electron.getDiskFreeSpace(
+              path
+            )) ?? { free: 0, total: 0 };
           } catch {
             diskUsage = { free: 0, total: 0 };
           }

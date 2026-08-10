@@ -362,7 +362,7 @@ export function DownloadDirectoriesSection({
           try {
             const usage =
               await globalThis.window.electron.getDiskFreeSpace(path);
-            return [path, usage] as const;
+            return [path, usage ?? EMPTY_DISK_USAGE] as const;
           } catch {
             return [path, EMPTY_DISK_USAGE] as const;
           }
