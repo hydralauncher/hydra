@@ -8,8 +8,11 @@ export interface GameArtifactDownload {
 }
 
 export const requestGameArtifactDownload = (
-  gameArtifactId: string
+  gameArtifactId: string,
+  signal?: AbortSignal
 ): Promise<GameArtifactDownload> =>
   HydraApi.post<GameArtifactDownload>(
-    `/profile/games/artifacts/${gameArtifactId}/download`
+    `/profile/games/artifacts/${gameArtifactId}/download`,
+    undefined,
+    { signal }
   );
