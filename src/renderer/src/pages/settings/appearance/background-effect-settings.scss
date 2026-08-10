@@ -1,0 +1,334 @@
+.bg-effect {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+
+  // ── Selector tabs ──────────────────────────────────────
+  &__selectors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: 12px;
+    padding: 4px 12px;
+    height: 30px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &-icon {
+      display: flex;
+      align-items: center;
+      opacity: 0.8;
+    }
+  }
+
+  // ── Active effect header ───────────────────────────────
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+
+    &-icon {
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    &-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0;
+    }
+
+    p {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      margin: 0;
+    }
+  }
+
+  // ── Config panel ───────────────────────────────────────
+  &__config {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  &__section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.3);
+    padding: 10px 16px 4px;
+    margin: 0;
+  }
+
+  &__section-body {
+    padding: 8px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__section-grid {
+    padding: 8px 16px 14px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+
+  // ── Generic prop ───────────────────────────────────────
+  &__prop {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.45);
+      text-transform: capitalize;
+    }
+
+    &-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    &-value {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.5);
+      min-width: 38px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    // toggle row
+    &--toggle {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+  }
+
+  // ── Slider ────────────────────────────────────────────
+  input[type="range"] {
+    flex: 1;
+    height: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    cursor: pointer;
+    outline: none;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.55);
+      border-radius: 50%;
+      cursor: pointer;
+      transition:
+        transform 0.1s,
+        box-shadow 0.1s;
+
+      &:hover {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+      }
+    }
+  }
+
+  // ── Toggle switch ─────────────────────────────────────
+  &__toggle {
+    position: relative;
+    width: 34px;
+    height: 20px;
+    flex-shrink: 0;
+
+    input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    &-track {
+      display: block;
+      width: 34px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 100px;
+      cursor: pointer;
+      transition: background 0.2s;
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 14px;
+        height: 14px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        transition:
+          transform 0.2s,
+          background 0.2s;
+      }
+    }
+
+    input:checked + &-track {
+      background: rgba(255, 255, 255, 0.28);
+
+      &::after {
+        transform: translateX(14px);
+        background: #fff;
+      }
+    }
+  }
+
+  // ── Color pickers ─────────────────────────────────────
+  &__color-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    input[type="color"] {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      padding: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+
+      &::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+      &::-webkit-color-swatch {
+        border: none;
+        border-radius: 4px;
+      }
+    }
+
+    .text-field {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__color-array {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__color-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__remove-color {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    flex-shrink: 0;
+    transition: color 0.12s;
+
+    &:hover {
+      color: rgba(255, 80, 80, 0.8);
+    }
+  }
+
+  &__add-color {
+    align-self: flex-start;
+    font-size: 12px;
+    height: 28px;
+    margin-top: 2px;
+  }
+
+  // ── Radio group ───────────────────────────────────────
+  &__radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__radio {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition:
+      background 0.12s,
+      color 0.12s,
+      border-color 0.12s;
+
+    input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.09);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #fff;
+    }
+  }
+}
