@@ -417,7 +417,10 @@ export function Header() {
             type="button"
             className="header__action-button"
             onClick={() => globalThis.window.electron.openBigPictureWindow()}
-            title={t("big_picture", { ns: "sidebar", defaultValue: "Big Picture Mode" })}
+            title={t("big_picture", {
+              ns: "sidebar",
+              defaultValue: "Big Picture Mode",
+            })}
           >
             <DeviceDesktopIcon size={16} />
           </button>
