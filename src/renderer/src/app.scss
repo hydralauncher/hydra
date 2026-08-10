@@ -83,8 +83,16 @@ main {
   flex-direction: column;
 }
 
+  height: 100%;
+  width: 100%;
+}
+
 main {
+  flex: 1;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 input::-webkit-outer-spin-button,
@@ -107,7 +115,8 @@ progress[value] {
 }
 
 .container {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   overflow: hidden;
   display: flex;
@@ -122,11 +131,7 @@ progress[value] {
     flex-direction: column;
     position: relative;
     height: 100%;
-    background: linear-gradient(
-      0deg,
-      globals.$dark-background-color 50%,
-      globals.$background-color 100%
-    );
+    background-color: transparent;
   }
 }
 

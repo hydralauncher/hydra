@@ -1,4 +1,4 @@
-import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
+import { Header, Sidebar, Toast } from "@renderer/components";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { VideoIcon } from "@primer/octicons-react";
 import {
@@ -733,8 +733,6 @@ export function App() {
           </section>
         </article>
       </main>
-
-      <BottomPanel />
     </>
   );
 }
