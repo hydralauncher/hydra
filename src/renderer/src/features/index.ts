@@ -11,4 +11,3 @@ export * from "./collections-slice";
 export * from "./classics-scan-slice";
 export * from "./retroarch-scan-slice";
 export * from "./home-catalogue-slice";
-

@@ -20,5 +20,3 @@ export * from "./use-cover-poster";
 export * from "./use-home-groups";
 export * from "./use-home-gamepad";
 export * from "./useDominantColor";
-
-
