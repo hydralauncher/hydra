@@ -618,7 +618,11 @@ export function App() {
           </div>
 
           <div
-            className="title-bar__window-controls"
+            className={`title-bar__window-controls${
+              window.electron.platform === "win32"
+                ? " title-bar__window-controls--windows"
+                : ""
+            }`}
             style={{ marginLeft: "auto" }}
           >
             <button

@@ -194,6 +194,10 @@ progress[value] {
     align-self: stretch;
     margin-right: calc(globals.$spacing-unit * -2);
     -webkit-app-region: no-drag;
+
+    &--windows {
+      margin-right: 135px;
+    }
   }
 
   &__window-control {
