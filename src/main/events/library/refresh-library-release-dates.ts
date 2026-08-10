@@ -20,7 +20,7 @@ const refreshLibraryReleaseDates = async () => {
 
     const missingSteamGames = libraryGames
       .filter((game) => !game.isDeleted && game.shop === "steam")
-      .filter((game) => game.releaseDateTimestamp == null);
+      .filter((game) => game.releaseDateLastCheckedAt === undefined);
 
     if (missingSteamGames.length === 0) {
       isFetching = false;
@@ -66,6 +66,7 @@ const refreshLibraryReleaseDates = async () => {
                   {
                     ...game,
                     releaseDateTimestamp: releaseDateTimestamp || null,
+                    releaseDateLastCheckedAt: Date.now(),
                   }
                 );
                 updatedCount++;
