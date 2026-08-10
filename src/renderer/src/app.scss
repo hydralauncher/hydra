@@ -169,11 +169,12 @@ progress[value] {
     display: flex;
     align-self: stretch;
     height: 100%;
+    gap: 0;
     margin-right: calc(globals.$spacing-unit * -2);
     -webkit-app-region: no-drag;
 
     &--windows {
-      margin-right: 135px;
+      margin-right: calc(138px - globals.$spacing-unit * 2);
     }
   }
 
