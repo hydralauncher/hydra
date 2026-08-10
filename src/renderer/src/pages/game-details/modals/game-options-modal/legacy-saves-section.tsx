@@ -4,18 +4,26 @@ import { useToast } from "@renderer/hooks";
 import { CircleNotchIcon } from "@phosphor-icons/react";
 import { useCallback, useContext, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { LegacySaveExportProgress } from "@types";
 
 import { LegacySaveCard } from "./legacy-save-card";
 import { sortLegacySavesByNewest } from "./legacy-save-presentation";
 import "./legacy-saves-section.scss";
 
-export function LegacySavesSection() {
+interface LegacySavesSectionProps {
+  downloadingArtifactId: string | null;
+  downloadProgress: LegacySaveExportProgress | null;
+  onDownload: (artifactId: string, suggestedName: string) => void;
+}
+
+export function LegacySavesSection({
+  downloadingArtifactId,
+  downloadProgress,
+  onDownload,
+}: Readonly<LegacySavesSectionProps>) {
   const { t } = useTranslation("game_details");
   const { artifacts, deleteGameArtifact } = useContext(cloudSyncContext);
   const { showSuccessToast, showErrorToast } = useToast();
-  const [downloadingArtifactId, setDownloadingArtifactId] = useState<
-    string | null
-  >(null);
   const [pendingDeletion, setPendingDeletion] = useState<{
     artifactId: string;
     artifactName: string;
@@ -23,41 +31,16 @@ export function LegacySavesSection() {
   const [deletingArtifactId, setDeletingArtifactId] = useState<string | null>(
     null
   );
-  const actionInProgressRef = useRef(false);
+  const deletionInProgressRef = useRef(false);
   const sortedArtifacts = useMemo(
     () => sortLegacySavesByNewest(artifacts),
     [artifacts]
   );
 
-  const handleDownload = useCallback(
-    async (artifactId: string, suggestedName: string) => {
-      if (actionInProgressRef.current) return;
-
-      actionInProgressRef.current = true;
-      setDownloadingArtifactId(artifactId);
-      try {
-        const result = await window.electron.exportGameArtifact(
-          artifactId,
-          suggestedName
-        );
-
-        if (result.status === "saved") {
-          showSuccessToast(t("legacy_save_download_success"));
-        }
-      } catch {
-        showErrorToast(t("legacy_save_download_failed"));
-      } finally {
-        actionInProgressRef.current = false;
-        setDownloadingArtifactId(null);
-      }
-    },
-    [showErrorToast, showSuccessToast, t]
-  );
-
   const handleDelete = useCallback(async () => {
-    if (!pendingDeletion || actionInProgressRef.current) return;
+    if (!pendingDeletion || deletionInProgressRef.current) return;
 
-    actionInProgressRef.current = true;
+    deletionInProgressRef.current = true;
     setDeletingArtifactId(pendingDeletion.artifactId);
     try {
       await deleteGameArtifact(pendingDeletion.artifactId);
@@ -66,7 +49,7 @@ export function LegacySavesSection() {
     } catch {
       showErrorToast(t("backup_deletion_failed"));
     } finally {
-      actionInProgressRef.current = false;
+      deletionInProgressRef.current = false;
       setDeletingArtifactId(null);
     }
   }, [
@@ -97,8 +80,13 @@ export function LegacySavesSection() {
                 key={artifact.id}
                 artifact={artifact}
                 isDownloading={downloadingArtifactId === artifact.id}
+                downloadProgress={
+                  downloadingArtifactId === artifact.id
+                    ? downloadProgress
+                    : null
+                }
                 actionsDisabled={actionsDisabled}
-                onDownload={handleDownload}
+                onDownload={onDownload}
                 onDelete={(artifactId, artifactName) =>
                   setPendingDeletion({ artifactId, artifactName })
                 }
