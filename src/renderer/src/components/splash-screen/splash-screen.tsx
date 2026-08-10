@@ -26,10 +26,7 @@ export function SplashScreen() {
           xmlns="http://www.w3.org/2000/svg"
         >
           <circle cx="50" cy="50" r="45" stroke="#7c3aed" strokeWidth="6" />
-          <path
-            d="M30 65L50 30L70 65L50 52L30 65Z"
-            fill="#a78bfa"
-          />
+          <path d="M30 65L50 30L70 65L50 52L30 65Z" fill="#a78bfa" />
         </svg>
         <span className="app-splash-screen__title">Hydra</span>
         <div className="app-splash-screen__loader">

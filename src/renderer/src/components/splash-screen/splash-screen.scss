@@ -8,7 +8,9 @@
   justify-content: center;
   background: var(--background-color, #0f1015);
   color: #ffffff;
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s linear;
+  transition:
+    opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.5s linear;
   pointer-events: none;
 
   &--hidden {
