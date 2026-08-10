@@ -165,33 +165,10 @@ progress[value] {
     color: transparent;
   }
 
-  &__big-picture {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: globals.$muted-color;
-    opacity: 0.6;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    margin-left: auto;
-    margin-right: calc(globals.$spacing-unit * 2);
-    font-size: 12px;
-    -webkit-app-region: no-drag;
-    pointer-events: auto;
-    transition:
-      opacity ease 0.1s,
-      background-color ease 0.1s;
-
-    &:hover {
-      opacity: 1;
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-
   &__window-controls {
     display: flex;
     align-self: stretch;
+    height: 100%;
     margin-right: calc(globals.$spacing-unit * -2);
     -webkit-app-region: no-drag;
 
@@ -205,9 +182,12 @@ progress[value] {
     align-items: center;
     justify-content: center;
     width: 46px;
+    height: 100%;
+    align-self: stretch;
     padding: 0;
     background: none;
     border: none;
+    border-radius: 0;
     color: globals.$muted-color;
     cursor: pointer;
     outline: none;
