@@ -899,6 +899,17 @@ declare global {
     checkFolderWritePermission: (path: string) => Promise<boolean>;
     getNetworkInterfaces: () => Promise<NetworkInterface[]>;
 
+    /* Custom features */
+    fetchHomeGroups: () => Promise<any[] | null>;
+    syncHomeGroups: (groups: any[]) => Promise<any>;
+    getSteamTrending: (language?: string) => Promise<any>;
+    checkFileExists: (path: string) => Promise<boolean>;
+    importEpicGames: () => Promise<any>;
+    importSteamGames: () => Promise<any>;
+    setLibraryStorageMode: (mode: string) => Promise<any>;
+    connectSupabase: (config: any) => Promise<any>;
+    disconnectSupabase: () => Promise<any>;
+
     /* Cloud save */
     uploadSaveGame: (
       objectId: string,

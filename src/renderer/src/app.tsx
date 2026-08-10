@@ -67,6 +67,9 @@ type WorkWondersWithKnowledge = WorkWonders & {
   };
 };
 
+import { BackgroundEffectRenderer } from "./components/react-bits/BackgroundEffectRenderer";
+import { SplashScreen } from "./components/splash-screen/splash-screen";
+
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
@@ -585,6 +588,7 @@ export function App() {
 
   return (
     <>
+      <SplashScreen />
       {(window.electron.platform === "win32" ||
         window.electron.platform === "linux") && (
         <div
@@ -680,6 +684,7 @@ export function App() {
       <RetroArchScanModal />
 
       <main>
+        <BackgroundEffectRenderer />
         <Sidebar />
 
         <article className="container">

@@ -1,11 +1,10 @@
-@use "sass:color";
 @use "../../../scss/globals.scss";
 
 .download-settings-modal {
   &__container {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 3);
+    gap: calc(globals.$spacing-unit * 2);
     width: 100%;
   }
 
@@ -67,8 +66,8 @@
   &__downloader-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     border: 1px solid transparent;
     border-bottom: 1px solid globals.$border-color;
     border-radius: 0;
@@ -80,7 +79,7 @@
     color: globals.$body-color;
     font-size: 14px;
     text-align: left;
-    height: 48px;
+    height: 40px;
     box-sizing: border-box;
 
     &:hover {
@@ -151,19 +150,6 @@
     }
   }
 
-  &__hydra-cloud-badge {
-    background: linear-gradient(
-      270deg,
-      color.scale(globals.$brand-teal, $lightness: -30%) 50%,
-      color.scale(globals.$brand-blue, $lightness: -30%) 100%
-    );
-    color: #fff;
-    padding: 0 globals.$spacing-unit;
-    border-radius: 4px;
-    font-size: globals.$small-font-size;
-    white-space: nowrap;
-  }
-
   &__availability-indicator-wrapper {
     display: flex;
     align-items: center;
@@ -178,22 +164,18 @@
 
     &--available {
       background-color: #22c55e;
-      box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
     }
 
     &--unavailable {
       background-color: #ef4444;
-      box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
     }
 
     &--not-present {
-      background-color: #6b7280;
-      box-shadow: 0 0 6px rgba(107, 114, 128, 0.5);
+      background-color: globals.$muted-color;
     }
 
     &--warning {
-      background-color: #eab308;
-      box-shadow: 0 0 6px rgba(234, 179, 8, 0.5);
+      background-color: globals.$warning-color;
     }
   }
 
@@ -299,9 +281,9 @@
   }
 
   &__torrent-files-feedback {
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background-color: #0b0b0c;
-    padding: calc(globals.$spacing-unit * 1.5);
+    border: 1px solid globals.$border-color;
+    background-color: globals.$dark-background-color;
+    padding: globals.$spacing-unit;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
@@ -310,10 +292,10 @@
   }
 
   &__torrent-files-list {
-    background-color: #0b0b0c;
+    background-color: globals.$dark-background-color;
     overflow: hidden;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid globals.$border-color;
+    border-bottom: 1px solid globals.$border-color;
   }
 
   &__torrent-files-scroll {
@@ -349,8 +331,8 @@
     grid-template-columns: minmax(0, 1fr) 120px;
     align-items: center;
     gap: globals.$spacing-unit;
-    padding: 0 calc(globals.$spacing-unit * 1.5);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0 globals.$spacing-unit;
+    border-bottom: 1px solid globals.$border-color;
     text-align: left;
 
     &:hover {
@@ -363,7 +345,7 @@
 
     &--select-all {
       font-weight: 600;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid globals.$border-color;
       margin-bottom: globals.$spacing-unit;
     }
   }
@@ -501,12 +483,6 @@
   &__torrent-files-summary {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.76);
-  }
-
-  &__torrent-files-space-error {
-    display: block;
-    margin-top: calc(globals.$spacing-unit / 2);
-    color: globals.$error-color;
   }
 }
 

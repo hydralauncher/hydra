@@ -72,7 +72,9 @@
 
     &--outlined {
       border: 1px solid globals.$border-color;
-      border-radius: 6px;
+      border-radius: 8px;
+      height: 40px;
+      width: 40px;
 
       &:hover {
         border-color: rgba(255, 255, 255, 0.5);

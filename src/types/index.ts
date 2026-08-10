@@ -577,6 +577,7 @@ export type CatalogueSearchResult = {
   developers?: string[];
   publishers?: string[];
   skus?: string[];
+  coverImageUrl?: string | null;
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &

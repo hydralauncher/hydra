@@ -27,6 +27,9 @@ import cn from "classnames";
 import { SidebarFilterMenu } from "./sidebar-filter-menu";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarProfile } from "./sidebar-profile";
+import { SidebarGameRunning } from "./sidebar-game-running";
+import { SidebarActiveDownload } from "./sidebar-active-download";
+import { SidebarOnlineFriends } from "./sidebar-online-friends";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -450,9 +453,12 @@ export function Sidebar() {
                 </li>
               )}
             </ul>
+            <SidebarOnlineFriends />
           </section>
 
           <section className="sidebar__section sidebar__section--games">
+            <SidebarGameRunning />
+            <SidebarActiveDownload />
             <div className="sidebar__search-row">
               <TextField
                 ref={filterRef}

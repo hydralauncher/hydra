@@ -36,6 +36,7 @@ import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
 } from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
+import { TopSellers } from "./top-sellers";
 
 const ProtonCompatibilitySection = lazy(async () => {
   const mod = await import("./proton-compatibility-section");
@@ -620,6 +621,7 @@ export default function Catalogue() {
 
   return (
     <div className="catalogue" ref={cataloguePageRef}>
+      {mode === "modern" && <TopSellers games={results} isLoading={isLoading} />}
       <ClassicsOnboardingModal
         visible={showClassicsOnboarding}
         onClose={() => setShowClassicsOnboarding(false)}

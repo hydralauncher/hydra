@@ -26,6 +26,36 @@ import flagJP from "./assets/flags/jp.png";
 import flagKR from "./assets/flags/kr.png";
 import flagAsia from "./assets/flags/asia.png";
 
+export const globalImageCache = new Set<string>();
+
+export const getSteamLanguage = (lang?: string): string => {
+  if (!lang) return "english";
+  const lower = lang.toLowerCase();
+  if (lower.startsWith("pt")) return "brazilian";
+  if (lower.startsWith("es")) return "spanish";
+  if (lower.startsWith("ru")) return "russian";
+  if (lower.startsWith("fr")) return "french";
+  if (lower.startsWith("de")) return "german";
+  if (lower.startsWith("it")) return "italian";
+  if (lower.startsWith("ja")) return "japanese";
+  if (lower.startsWith("zh")) return "schinese";
+  return "english";
+};
+
+export const playBeep = (): void => {
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 440;
+    gain.gain.value = 0.05;
+    osc.start();
+    osc.stop(ctx.currentTime + 0.05);
+  } catch {}
+};
+
 export const ensureArray = <T>(value: unknown, source: string): T[] => {
   if (Array.isArray(value)) return value as T[];
 
