@@ -9,7 +9,6 @@ import {
   buildGameDetailsPath,
   generateRandomGradient,
 } from "@renderer/helpers";
-import { LINUX_GAME_EXECUTABLE_EXTENSIONS } from "@shared";
 
 import "./sidebar-adding-custom-game-modal.scss";
 
@@ -32,34 +31,14 @@ export function SidebarAddingCustomGameModal({
   const [isAdding, setIsAdding] = useState(false);
 
   const handleSelectExecutable = async () => {
-    const filters =
-      window.electron.platform === "linux"
-        ? [
-            {
-              name: t("custom_game_modal_executable"),
-              extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS,
-            },
-            { name: t("all_files", { ns: "game_details" }), extensions: ["*"] },
-          ]
-        : [
-            {
-              name: t("custom_game_modal_executable"),
-              extensions: [
-                "exe",
-                "msi",
-                "bat",
-                "cmd",
-                "app",
-                "deb",
-                "rpm",
-                "dmg",
-              ],
-            },
-          ];
-
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openFile"],
-      filters,
+      filters: [
+        {
+          name: t("custom_game_modal_executable"),
+          extensions: ["exe", "msi", "app", "deb", "rpm", "dmg"],
+        },
+      ],
     });
 
     if (filePaths && filePaths.length > 0) {

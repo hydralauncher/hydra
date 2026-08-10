@@ -16,8 +16,7 @@
     overflow: hidden;
     border-radius: 4px;
     padding: globals.$spacing-unit globals.$spacing-unit;
-    &:hover,
-    &--active {
+    &:hover {
       background-color: rgba(255, 255, 255, 0.15);
     }
   }
@@ -47,62 +46,39 @@
     white-space: nowrap;
   }
 
-  &__chevron {
+  &__notification-button {
     color: globals.$muted-color;
-    opacity: 0.5;
-    transition:
-      transform ease 0.15s,
-      opacity ease 0.15s;
-    flex-shrink: 0;
-
-    &--open {
-      transform: rotate(180deg);
-      opacity: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    height: 40px;
+    background-color: globals.$background-color;
+    position: relative;
+    transition: all ease 0.3s;
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
     }
+  }
+
+  &__notification-button-badge {
+    background-color: globals.$success-color;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 10px;
+    font-weight: bold;
   }
 
   &__game-running-icon {
     border-radius: 4px;
-  }
-
-  &__classic-disc {
-    position: relative;
-    display: block;
-    width: 32px;
-    height: 32px;
-    flex: 0 0 32px;
-    overflow: hidden;
-    border-radius: 50%;
-    background: conic-gradient(
-      from 20deg,
-      #676a73,
-      #c6cad2,
-      #6c7079,
-      #e1e4e9,
-      #676a73
-    );
-    box-shadow:
-      0 2px 5px rgba(0, 0, 0, 0.45),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-    transform-origin: center;
-    animation: sidebar-profile-classic-disc-spin 4s linear infinite;
-    will-change: transform;
-  }
-
-  &__classic-disc-artwork,
-  &__classic-disc-overlay {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  &__classic-disc-artwork {
-    object-fit: cover;
-  }
-
-  &__classic-disc-overlay {
-    pointer-events: none;
   }
 
   &__button-game-running-title {
@@ -112,114 +88,5 @@
     width: 100%;
     text-align: left;
     line-height: 1.15;
-  }
-
-  &__dropdown {
-    position: absolute;
-    top: 100%;
-    left: calc(globals.$spacing-unit * 2);
-    right: calc(globals.$spacing-unit * 2);
-    background-color: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    padding: calc(globals.$spacing-unit / 2) 0;
-    z-index: 100;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    will-change: transform, opacity;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-    animation: sidebar-dropdown-fade-in 0.2s ease-out both;
-
-    &--closing {
-      animation: sidebar-dropdown-fade-out 0.15s ease-in both;
-    }
-  }
-
-  &__dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit + globals.$spacing-unit / 2);
-    width: 100%;
-    padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 2);
-    color: globals.$muted-color;
-    cursor: pointer;
-    transition: background-color ease 0.1s;
-    font-size: globals.$body-font-size;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.08);
-      color: globals.$body-color;
-    }
-
-    &--danger {
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.08);
-        color: globals.$error-color;
-      }
-    }
-
-    span {
-      flex: 1;
-      text-align: left;
-    }
-  }
-
-  &__dropdown-badge {
-    background-color: globals.$success-color;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-width: 20px;
-    height: 20px;
-    border-radius: 10px;
-    padding: 0 4px;
-    font-size: 10px;
-    font-weight: bold;
-    color: #fff;
-
-    &--online {
-      background-color: globals.$success-color;
-    }
-  }
-
-  &__dropdown-separator {
-    height: 1px;
-    background-color: rgba(255, 255, 255, 0.1);
-    margin: calc(globals.$spacing-unit / 2) 0;
-  }
-}
-
-@keyframes sidebar-dropdown-fade-in {
-  0% {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes sidebar-dropdown-fade-out {
-  0% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes sidebar-profile-classic-disc-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-profile__classic-disc {
-    animation: none;
   }
 }
