@@ -617,58 +617,63 @@ export function App() {
             )}
           </div>
 
-          <button
-            type="button"
-            className="title-bar__big-picture"
-            onClick={() => globalThis.window.electron.openBigPictureWindow()}
-            title={t("big_picture", {
-              ns: "sidebar",
-              defaultValue: "Big Picture Mode",
-            })}
-          >
-            <VideoIcon size={14} />
-            <span>{t("big_picture", { ns: "sidebar" })}</span>
-          </button>
+          <div className="title-bar__window-controls" style={{ marginLeft: "auto" }}>
+            <button
+              type="button"
+              className="title-bar__window-control title-bar__window-control--big-picture"
+              onClick={() => globalThis.window.electron.openBigPictureWindow()}
+              title={t("big_picture", {
+                ns: "sidebar",
+                defaultValue: "Big Picture Mode",
+              })}
+              aria-label={t("big_picture", {
+                ns: "sidebar",
+                defaultValue: "Big Picture Mode",
+              })}
+            >
+              <VideoIcon size={14} />
+            </button>
 
-          {window.electron.platform === "linux" && (
-            <div className="title-bar__window-controls">
-              <button
-                type="button"
-                className="title-bar__window-control"
-                onClick={() => window.electron.minimizeMainWindow()}
-                title={t("header:minimize")}
-                aria-label={t("header:minimize")}
-              >
-                <DashIcon size={16} />
-              </button>
-              <button
-                type="button"
-                className="title-bar__window-control"
-                onClick={() => window.electron.toggleMaximizeMainWindow()}
-                title={
-                  isWindowMaximized ? t("header:restore") : t("header:maximize")
-                }
-                aria-label={
-                  isWindowMaximized ? t("header:restore") : t("header:maximize")
-                }
-              >
-                {isWindowMaximized ? (
-                  <ScreenNormalIcon size={16} />
-                ) : (
-                  <ScreenFullIcon size={16} />
-                )}
-              </button>
-              <button
-                type="button"
-                className="title-bar__window-control title-bar__window-control--close"
-                onClick={() => window.electron.closeMainWindow()}
-                title={t("header:close")}
-                aria-label={t("header:close")}
-              >
-                <XIcon size={16} />
-              </button>
-            </div>
-          )}
+            {window.electron.platform === "linux" && (
+              <>
+                <button
+                  type="button"
+                  className="title-bar__window-control"
+                  onClick={() => window.electron.minimizeMainWindow()}
+                  title={t("header:minimize")}
+                  aria-label={t("header:minimize")}
+                >
+                  <DashIcon size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="title-bar__window-control"
+                  onClick={() => window.electron.toggleMaximizeMainWindow()}
+                  title={
+                    isWindowMaximized ? t("header:restore") : t("header:maximize")
+                  }
+                  aria-label={
+                    isWindowMaximized ? t("header:restore") : t("header:maximize")
+                  }
+                >
+                  {isWindowMaximized ? (
+                    <ScreenNormalIcon size={16} />
+                  ) : (
+                    <ScreenFullIcon size={16} />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="title-bar__window-control title-bar__window-control--close"
+                  onClick={() => window.electron.closeMainWindow()}
+                  title={t("header:close")}
+                  aria-label={t("header:close")}
+                >
+                  <XIcon size={16} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
