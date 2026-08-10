@@ -1,115 +1,703 @@
 @use "../../scss/globals.scss";
 
 .home {
-  &__content {
+  width: 100%;
+  height: calc(100% + 95px);
+  margin-top: -95px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 0;
+
+  .gamepad-active & {
+    height: calc(100% + 95px + 52px);
+    margin-bottom: -52px;
+  }
+
+  &__background {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 0;
+    animation: fade-in 0.4s ease;
+  }
+
+  &__solid-background {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #151515;
+    z-index: -1;
+  }
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.2) 0%,
+      rgba(0, 0, 0, 0.4) 40%,
+      rgba(0, 0, 0, 0.8) 100%
+    );
+    z-index: 1;
+  }
+
+  &__content {
+    position: relative;
+    z-index: 2;
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-    padding: 0;
-    flex: 1;
-    overflow-y: auto;
+    justify-content: center;
+    height: 100%;
+    padding: 95px calc(globals.$spacing-unit * 3)
+      calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 1);
+
+    .gamepad-active & {
+      padding-bottom: 52px;
+    }
+
+    @media (max-width: 1300px) {
+      padding: 95px calc(globals.$spacing-unit * 2)
+        calc(globals.$spacing-unit * 2);
+
+      .gamepad-active & {
+        padding-bottom: 52px;
+      }
+    }
+    @media (max-width: 800px) {
+      padding: 95px calc(globals.$spacing-unit * 1.5)
+        calc(globals.$spacing-unit * 2);
+      gap: calc(globals.$spacing-unit * 0.75);
+
+      .gamepad-active & {
+        padding-bottom: 52px;
+      }
+    }
+    @media (max-width: 600px) {
+      padding: 95px calc(globals.$spacing-unit * 1)
+        calc(globals.$spacing-unit * 2);
+    }
+
+    @media (max-height: 800px) {
+      justify-content: flex-start;
+      overflow-y: auto;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+        background: transparent;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+    }
   }
 
-  &__header {
-    display: flex;
-    gap: globals.$spacing-unit;
-    justify-content: space-between;
-    align-items: center;
-    padding: calc(globals.$spacing-unit * 3);
-  }
-
-  &__buttons-list {
+  &__tabs {
     display: flex;
     list-style: none;
     margin: 0;
     padding: 0;
     gap: globals.$spacing-unit;
+    align-items: center;
+
+    @media (max-width: 600px) {
+      gap: calc(globals.$spacing-unit * 0.5);
+      flex-wrap: wrap;
+    }
+  }
+
+  &__tabs-hint {
+    display: flex;
+    align-items: center;
+    list-style: none;
+  }
+
+  &__folder-header {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    margin-bottom: calc(globals.$spacing-unit * 1.5);
+
+    &-title-input {
+      font-size: 32px;
+      font-weight: 400;
+      color: white;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 4px 0;
+      width: auto;
+      min-width: 250px;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.25s ease;
+
+      &:focus,
+      &:hover {
+        border-color: rgba(255, 255, 255, 0.4);
+      }
+
+      @media (max-width: 800px) {
+        font-size: 24px;
+      }
+    }
+
+    &-action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      min-width: unset;
+      min-height: unset;
+      padding: 0;
+      border-radius: 100%;
+      flex-shrink: 0;
+      aspect-ratio: 1 / 1;
+    }
+  }
+
+  &__slider {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 1.5);
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 3)
+      calc(globals.$spacing-unit * 1.5);
+    margin: 0 calc(globals.$spacing-unit * -3);
+    scroll-behavior: smooth;
+    align-items: center;
+    min-height: 290px;
+
+    @media (max-width: 1300px) {
+      padding: calc(globals.$spacing-unit * 0.75)
+        calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1);
+      margin: 0 calc(globals.$spacing-unit * -2);
+      min-height: 240px;
+      gap: globals.$spacing-unit;
+    }
+    @media (max-width: 800px) {
+      padding: calc(globals.$spacing-unit * 0.5)
+        calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1);
+      margin: 0 calc(globals.$spacing-unit * -1.5);
+      min-height: 200px;
+    }
+    @media (max-width: 600px) {
+      padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1)
+        calc(globals.$spacing-unit * 0.75);
+      margin: 0 calc(globals.$spacing-unit * -1);
+      min-height: 170px;
+      gap: calc(globals.$spacing-unit * 0.75);
+    }
+
+    &::-webkit-scrollbar {
+      height: 0;
+      display: none;
+    }
+  }
+
+  &__folder-games-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    width: 100%;
+    margin-top: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 3);
+
+    @media (max-width: 1300px) {
+      padding: calc(globals.$spacing-unit * 0.75)
+        calc(globals.$spacing-unit * 2);
+    }
+    @media (max-width: 800px) {
+      padding: calc(globals.$spacing-unit * 0.5)
+        calc(globals.$spacing-unit * 1.5);
+    }
+    @media (max-width: 600px) {
+      padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1);
+      gap: globals.$spacing-unit;
+    }
+  }
+
+  // ---- Card ----
+  &__card {
+    flex-shrink: 0;
+    width: 140px;
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    background: none;
+    border: none;
+    padding: 0;
+
+    @media (max-width: 1300px) {
+      width: 120px;
+    }
+    @media (max-width: 800px) {
+      width: 100px;
+    }
+    @media (max-width: 600px) {
+      width: 80px;
+      border-radius: 6px;
+    }
+
+    &:hover,
+    &:focus-within {
+      opacity: 0.85;
+      transform: scale(1.03) !important;
+      box-shadow: none !important;
+      z-index: 10;
+    }
+
+    &--selected {
+      width: 180px;
+
+      @media (max-width: 1300px) {
+        width: 150px;
+      }
+      @media (max-width: 800px) {
+        width: 130px;
+      }
+      @media (max-width: 600px) {
+        width: 105px;
+      }
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    &--gamepad-focus {
+      outline: 1px solid rgba(255, 255, 255, 0.5);
+      outline-offset: 2px;
+    }
+
+    &--selecting {
+      outline: 2px solid rgba(255, 255, 255, 0.9) !important;
+      outline-offset: 2px;
+      opacity: 0.75;
+    }
+  }
+
+  &__card-select-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 10;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+    pointer-events: none;
+
+    &--checked {
+      background: white;
+      border-color: white;
+
+      &::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 6px;
+        width: 5px;
+        height: 9px;
+        border: 2px solid #111;
+        border-top: none;
+        border-left: none;
+        transform: rotate(45deg);
+      }
+    }
+  }
+
+  &__card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 8px;
+    transition: box-shadow 0.25s ease;
   }
 
   &__card-skeleton {
+    width: 110px;
+    height: 100%;
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
+
+    @media (max-width: 800px) {
+      width: 85px;
+    }
+    @media (max-width: 600px) {
+      width: 70px;
+    }
+  }
+
+  &__folder-card {
+    background-color: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: none;
+    outline: none;
+    box-shadow: none !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: calc(globals.$spacing-unit * 1.5);
+    transition: all 0.25s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  &__folder-grid {
+    position: absolute;
+    top: calc(globals.$spacing-unit * 1.5);
+    left: calc(globals.$spacing-unit * 1.5);
+    right: calc(globals.$spacing-unit * 1.5);
+    bottom: calc(globals.$spacing-unit * 1.5);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 6px;
+    opacity: 0.8;
+    align-items: center;
+    justify-items: center;
+  }
+
+  &__folder-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    margin-top: auto;
     width: 100%;
-    height: 180px;
-    box-shadow: 0px 0px 15px 0px #000000;
+    z-index: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__folder-thumb-wrapper {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
     border-radius: 4px;
-    transition: all ease 0.2s;
-    z-index: 1;
-
-    &:active {
-      opacity: globals.$active-opacity;
-    }
+    background-color: rgba(255, 255, 255, 0.3); /* Opaque white placeholder */
   }
 
-  &__no-results {
+  &__folder-thumb {
+    width: 100%;
     height: 100%;
+    object-fit: cover;
+  }
+
+  &__folder-thumb-empty {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__action-btn {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px dashed rgba(255, 255, 255, 0.25);
     display: flex;
-    align-items: center;
-    justify-content: center;
     flex-direction: column;
-    gap: 16px;
-    grid-column: 1 / -1;
-  }
-
-  &__flame-icon {
-    width: 30px;
-    top: -10px;
-    left: -5px;
-    position: absolute;
-  }
-
-  &__stars-icon {
-    width: 70px;
-    position: absolute;
-    top: -28px;
-    left: -27px;
-  }
-
-  &__icon-wrapper {
-    width: 16px;
-    height: 16px;
-    position: relative;
-  }
-
-  &__title-icon {
-    width: 24px;
-    height: 24px;
-    position: relative;
-    display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    color: rgba(255, 255, 255, 0.8);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+      color: white;
+    }
+
+    span {
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    // ── Variante compacta ── usada para "Criar pasta"
+    &--compact {
+      aspect-ratio: unset;
+      width: auto;
+      height: 36px;
+      flex-direction: row;
+      gap: 6px;
+      padding: 0 14px;
+      border-radius: 20px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      align-self: center;
+
+      span {
+        font-size: 13px;
+        font-weight: 500;
+      }
+    }
   }
 
-  &__title-flame-icon {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-  }
-
-  &__title {
+  // ---- Bottom info ----
+  &__bottom-segment {
     display: flex;
-    gap: globals.$spacing-unit;
-    padding: 0 calc(globals.$spacing-unit * 3);
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: calc(globals.$spacing-unit * 3);
+    min-height: 220px;
+
+    @media (max-width: 1300px) {
+      gap: calc(globals.$spacing-unit * 2);
+      min-height: 200px;
+    }
+    @media (max-width: 800px) {
+      flex-direction: column;
+      gap: calc(globals.$spacing-unit * 1);
+      min-height: auto;
+    }
   }
 
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    gap: calc(globals.$spacing-unit * 2);
-    transition: all ease 0.2s;
-    padding: 0 calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3);
+  &__details {
+    padding-top: globals.$spacing-unit;
+    min-height: 90px;
+    flex: 1;
+    min-width: 0;
 
-    @media (min-width: 768px) {
-      grid-template-columns: repeat(2, 1fr);
+    @media (max-width: 800px) {
+      min-height: auto;
+      padding-top: calc(globals.$spacing-unit * 0.5);
+    }
+  }
+
+  &__game-title {
+    font-size: 32px;
+    font-weight: 400;
+    color: #fff;
+    margin: 0;
+
+    @media (max-width: 1300px) {
+      font-size: 26px;
+    }
+    @media (max-width: 800px) {
+      font-size: 22px;
+    }
+    @media (max-width: 600px) {
+      font-size: 18px;
+    }
+  }
+
+  &__game-meta {
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 2px 0 0;
+
+    @media (max-width: 600px) {
+      font-size: 12px;
+    }
+  }
+
+  &__play-button,
+  &__install-button {
+    min-width: 180px;
+    padding: 0 32px;
+
+    @media (max-width: 800px) {
+      min-width: 140px;
+      padding: 0 20px;
+    }
+    @media (max-width: 600px) {
+      min-width: unset;
+      padding: 0 16px;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+
+    @media (max-width: 600px) {
+      margin-top: 8px;
+    }
+  }
+
+  &__view-game-button {
+    width: 40px;
+    min-height: 40px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  &__source-tags {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__source-tag {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.12);
+    padding: 2px 10px;
+    border-radius: 12px;
+
+    &--dark {
+      background: rgba(0, 0, 0, 0.4);
+      color: rgba(255, 255, 255, 0.95);
     }
 
-    @media (min-width: 1250px) {
-      grid-template-columns: repeat(3, 1fr);
+    @media (max-width: 600px) {
+      font-size: 10px;
+      padding: 2px 8px;
     }
+  }
+}
 
-    @media (min-width: 1600px) {
-      grid-template-columns: repeat(4, 1fr);
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// ---- Folder Info ----
+.home__folder-info-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  gap: calc(globals.$spacing-unit * 3);
+
+  @media (max-width: 800px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.home__folder-info-text {
+  min-width: 0;
+}
+
+.home__folder-info-content {
+  display: flex;
+  gap: calc(globals.$spacing-unit * 1);
+  align-items: stretch;
+  flex-wrap: wrap;
+
+  @media (max-width: 600px) {
+    gap: calc(globals.$spacing-unit * 0.5);
+  }
+}
+
+.home__folder-game-card-btn {
+  all: unset;
+  cursor: pointer;
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  line-height: 0;
+
+  &:focus-visible,
+  .gamepad-active &:focus {
+    transform: scale(1.1);
+    outline: 1px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+    box-shadow: none;
+    z-index: 10;
+  }
+}
+
+.home__folder-game-card {
+  width: 80px;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+
+  @media (max-width: 1300px) {
+    width: 60px;
+  }
+}
+
+.home__folder-view-btn {
+  width: 80px;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:focus-visible,
+  .gamepad-active &:focus {
+    transform: scale(1.1);
+    outline: 1px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+    box-shadow: none;
+    z-index: 10;
+  }
+
+  @media (max-width: 1300px) {
+    width: 60px;
+    height: 60px;
+    font-size: 11px;
+  }
+}
+
+.home__surprise-container {
+  display: flex;
+  justify-content: center;
+  margin-top: calc(globals.$spacing-unit * 2);
+  width: 100%;
+
+  .home__surprise-button {
+    width: 100%;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
     }
   }
 }

@@ -382,6 +382,7 @@ declare global {
       trackingExecutablePaths: string[]
     ) => Promise<void>;
     addGameToFavorites: (shop: GameShop, objectId: string) => Promise<void>;
+    getSteamFeatured: (language: string) => Promise<ShopAssets[]>;
     removeGameFromFavorites: (
       shop: GameShop,
       objectId: string

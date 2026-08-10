@@ -12,6 +12,7 @@ import {
   collectionsSlice,
   classicsScanSlice,
   retroarchScanSlice,
+  homeCatalogueSlice,
 } from "@renderer/features";
 
 export const store = configureStore({
@@ -28,6 +29,7 @@ export const store = configureStore({
     collections: collectionsSlice.reducer,
     classicsScan: classicsScanSlice.reducer,
     retroarchScan: retroarchScanSlice.reducer,
+    homeCatalogue: homeCatalogueSlice.reducer,
   },
 });
 

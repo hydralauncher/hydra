@@ -32,3 +32,5 @@ export * from "./retroarch-scan-indicator/retroarch-scan-indicator";
 export * from "./classics-spinner/classics-spinner";
 export * from "./error-boundary/error-fallback";
 export * from "./error-boundary/error-boundary";
+export * from "./download-game-modal/download-game-modal";
+
