@@ -334,7 +334,7 @@ export function DownloadSettingsModal({
 
   const getDiskFreeSpace = async (path: string) => {
     const result = await globalThis.electron.getDiskFreeSpace(path);
-    setDiskFreeSpace(result.free);
+    setDiskFreeSpace(result?.free ?? null);
   };
 
   const checkFolderWritePermission = useCallback(
@@ -1285,9 +1285,11 @@ export function DownloadSettingsModal({
     <Modal
       visible={visible}
       title={t("download_settings")}
-      description={t("space_left_on_disk", {
-        space: formatBytes(diskFreeSpace ?? 0),
-      })}
+      description={
+        diskFreeSpace === null
+          ? undefined
+          : t("space_left_on_disk", { space: formatBytes(diskFreeSpace) })
+      }
       onClose={handleCloseModal}
     >
       <div className="download-settings-modal__container">

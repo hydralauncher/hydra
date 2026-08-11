@@ -92,6 +92,8 @@ const DESCRIPTION_DISALLOWED_SELECTORS = [
   "link",
   "meta",
 ].join(", ");
+const DESCRIPTION_PARAGRAPH_BREAK = /(?:\r?\n){2,}/;
+const DESCRIPTION_LINE_BREAK = /\r?\n/;
 const DESCRIPTION_SCROLL_STEP = 180;
 const DESCRIPTION_SCROLL_EDGE_TOLERANCE = 4;
 const DESCRIPTION_FOCUS_ENTRY_MARGIN = 32;
@@ -223,6 +225,56 @@ function normalizeDescriptionMediaElement(
   mediaElement.style.boxSizing = "border-box";
 }
 
+function appendDescriptionParagraph(
+  document: Document,
+  fragment: DocumentFragment,
+  block: string
+) {
+  const lines = block
+    .split(DESCRIPTION_LINE_BREAK)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length === 0) {
+    return;
+  }
+
+  const paragraph = document.createElement("p");
+
+  lines.forEach((line, index) => {
+    if (index > 0) {
+      paragraph.appendChild(document.createElement("br"));
+    }
+
+    paragraph.appendChild(document.createTextNode(line));
+  });
+
+  fragment.appendChild(paragraph);
+}
+
+function wrapLooseDescriptionText(document: Document) {
+  const looseTextNodes = Array.from(document.body.childNodes).filter(
+    (node) =>
+      node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim())
+  );
+
+  for (const textNode of looseTextNodes) {
+    const fragment = document.createDocumentFragment();
+
+    for (const block of (textNode.textContent ?? "").split(
+      DESCRIPTION_PARAGRAPH_BREAK
+    )) {
+      appendDescriptionParagraph(document, fragment, block);
+    }
+
+    if (fragment.childNodes.length === 0) {
+      continue;
+    }
+
+    textNode.replaceWith(fragment);
+  }
+}
+
 function preprocessSteamDescriptionDocument(html: string) {
   if (!html) {
     return null;
@@ -262,6 +314,8 @@ function preprocessSteamDescriptionDocument(html: string) {
     video.setAttribute("playsinline", "");
     normalizeDescriptionMediaElement(video);
   });
+
+  wrapLooseDescriptionText(document);
 
   return document;
 }
@@ -1382,7 +1436,7 @@ export default function Game() {
                   </section>
                 </FocusItem>
 
-                {!isLaunchboxGame && (howLongToBeat?.length ?? 0) > 0 && (
+                {(howLongToBeat?.length ?? 0) > 0 && (
                   <HowLongToBeatBox
                     howLongToBeat={howLongToBeat ?? []}
                     focusId={GAME_SIDEBAR_HLTB_ID}
@@ -1412,7 +1466,7 @@ export default function Game() {
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
-                {!isLaunchboxGame && (game?.achievementCount ?? 0) > 0 && (
+                {achievements.length > 0 && (
                   <AchievementsBox
                     achievements={achievements ?? []}
                     focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}

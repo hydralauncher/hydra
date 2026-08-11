@@ -13,6 +13,7 @@ export interface ModalProps {
   title: React.ReactNode;
   description?: string;
   onClose: () => void;
+  onCloseStart?: () => void;
   large?: boolean;
   noContentPadding?: boolean;
   children: React.ReactNode;
@@ -25,6 +26,7 @@ export function Modal({
   title,
   description,
   onClose,
+  onCloseStart,
   large,
   noContentPadding,
   children,
@@ -37,6 +39,7 @@ export function Modal({
   const { t } = useTranslation("modal");
 
   const handleCloseClick = useCallback(() => {
+    onCloseStart?.();
     setIsClosing(true);
     const zero = performance.now();
 
@@ -48,7 +51,7 @@ export function Modal({
         setIsClosing(false);
       }
     });
-  }, [onClose]);
+  }, [onClose, onCloseStart]);
 
   const isTopMostModal = () => {
     if (
