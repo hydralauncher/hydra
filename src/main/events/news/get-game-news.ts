@@ -30,9 +30,7 @@ const getGameNews = async (
   const localized = sorted.filter((article) =>
     localizedNames.has(article.source)
   );
-  const rest = sorted.filter(
-    (article) => !localizedNames.has(article.source)
-  );
+  const rest = sorted.filter((article) => !localizedNames.has(article.source));
 
   return [...localized, ...rest];
 };

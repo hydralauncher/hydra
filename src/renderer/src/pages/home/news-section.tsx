@@ -96,37 +96,37 @@ export function NewsSection({
           const imageUrl = article.imageUrl ?? fallbackImageUrl;
 
           return (
-          <a
-            key={article.id}
-            className="news-section__card"
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <div className="news-section__image-wrapper">
-              {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className="news-section__image"
-                  loading="lazy"
-                  draggable={false}
-                />
-              ) : (
-                <div className="news-section__image-placeholder">
-                  <ImageIcon size={20} />
-                </div>
-              )}
-            </div>
+            <a
+              key={article.id}
+              className="news-section__card"
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <div className="news-section__image-wrapper">
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className="news-section__image"
+                    loading="lazy"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="news-section__image-placeholder">
+                    <ImageIcon size={20} />
+                  </div>
+                )}
+              </div>
 
-            <div className="news-section__content">
-              <h4 className="news-section__title">{article.title}</h4>
-              <span className="news-section__meta">
-                {article.source} ·{" "}
-                {formatTimeAgo(article.publishedAt, i18n.language)}
-              </span>
-            </div>
-          </a>
+              <div className="news-section__content">
+                <h4 className="news-section__title">{article.title}</h4>
+                <span className="news-section__meta">
+                  {article.source} ·{" "}
+                  {formatTimeAgo(article.publishedAt, i18n.language)}
+                </span>
+              </div>
+            </a>
           );
         })}
       </div>

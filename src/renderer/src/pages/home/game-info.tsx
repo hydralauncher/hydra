@@ -180,14 +180,17 @@ export function GameInfo({
       }
 
       const repacks = await window.electron.hydraApi
-        .get<GameRepack[]>(`/games/${game.shop}/${game.objectId}/download-sources`, {
-          params: {
-            take: 100,
-            skip: 0,
-            downloadSourceIds: sourcesCache.map((source) => source.id),
-          },
-          needsAuth: false,
-        })
+        .get<GameRepack[]>(
+          `/games/${game.shop}/${game.objectId}/download-sources`,
+          {
+            params: {
+              take: 100,
+              skip: 0,
+              downloadSourceIds: sourcesCache.map((source) => source.id),
+            },
+            needsAuth: false,
+          }
+        )
         .catch(() => []);
 
       if (cancelled) return;
@@ -307,7 +310,11 @@ export function GameInfo({
                 className="home__play-button"
                 theme={isBgLight ? "dark" : "primary"}
                 onClick={() =>
-                  window.electron.openGame(game.shop, game.objectId, executablePath)
+                  window.electron.openGame(
+                    game.shop,
+                    game.objectId,
+                    executablePath
+                  )
                 }
               >
                 <PlayIcon size={16} />

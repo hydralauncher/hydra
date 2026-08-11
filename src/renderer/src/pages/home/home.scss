@@ -55,11 +55,13 @@
   &__overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg,
-        rgba(0, 0, 0, 0.25) 0%,
-        rgba(0, 0, 0, 0.45) 45%,
-        rgba(15, 15, 15, 0.88) 80%,
-        rgba(13, 13, 13, 0.98) 100%);
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.25) 0%,
+      rgba(0, 0, 0, 0.45) 45%,
+      rgba(15, 15, 15, 0.88) 80%,
+      rgba(13, 13, 13, 0.98) 100%
+    );
     z-index: 1;
   }
 
@@ -70,21 +72,23 @@
     flex-direction: column;
     justify-content: flex-start;
     height: 100%;
-    padding: max(240px, 22vh) calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3);
+    padding: max(240px, 22vh) calc(globals.$spacing-unit * 3)
+      calc(globals.$spacing-unit * 3);
     gap: calc(globals.$spacing-unit * 1.5);
 
     .gamepad-active & {
       padding-bottom: 52px;
     }
 
-    @media (max-width: 1536px),
-    (max-height: 900px) {
-      padding: 200px calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2.5);
+    @media (max-width: 1536px), (max-height: 900px) {
+      padding: 200px calc(globals.$spacing-unit * 2.5)
+        calc(globals.$spacing-unit * 2.5);
       gap: calc(globals.$spacing-unit * 0.75);
     }
 
     @media (max-width: 1300px) {
-      padding: 110px calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2);
+      padding: 110px calc(globals.$spacing-unit * 2)
+        calc(globals.$spacing-unit * 2);
 
       .gamepad-active & {
         padding-bottom: 52px;
@@ -92,7 +96,8 @@
     }
 
     @media (max-width: 800px) {
-      padding: 100px calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+      padding: 100px calc(globals.$spacing-unit * 1.5)
+        calc(globals.$spacing-unit * 2);
       gap: calc(globals.$spacing-unit * 0.75);
 
       .gamepad-active & {
@@ -101,7 +106,8 @@
     }
 
     @media (max-width: 600px) {
-      padding: 95px calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 2);
+      padding: 95px calc(globals.$spacing-unit * 1)
+        calc(globals.$spacing-unit * 2);
     }
 
     @media (max-height: 800px) {
@@ -157,14 +163,16 @@
       padding: 1px;
       border-radius: 100px;
       opacity: 0.5;
-      background: conic-gradient(from var(--border-angle, 0deg),
-          rgba(255, 255, 255, 0.6) 0deg,
-          rgba(255, 255, 255, 0.08) 45deg,
-          rgba(255, 255, 255, 0.7) 90deg,
-          rgba(255, 255, 255, 0.05) 180deg,
-          rgba(255, 255, 255, 0.6) 270deg,
-          rgba(255, 255, 255, 0.08) 315deg,
-          rgba(255, 255, 255, 0.6) 360deg);
+      background: conic-gradient(
+        from var(--border-angle, 0deg),
+        rgba(255, 255, 255, 0.6) 0deg,
+        rgba(255, 255, 255, 0.08) 45deg,
+        rgba(255, 255, 255, 0.7) 90deg,
+        rgba(255, 255, 255, 0.05) 180deg,
+        rgba(255, 255, 255, 0.6) 270deg,
+        rgba(255, 255, 255, 0.08) 315deg,
+        rgba(255, 255, 255, 0.6) 360deg
+      );
       -webkit-mask:
         linear-gradient(#fff 0 0) content-box,
         linear-gradient(#fff 0 0);
@@ -181,7 +189,9 @@
 
     &:hover {
       transform: translateY(-1px);
-      box-shadow: 0 0 18px rgba(255, 255, 255, 0.15), 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+      box-shadow:
+        0 0 18px rgba(255, 255, 255, 0.15),
+        0 4px 14px rgba(0, 0, 0, 0.4) !important;
 
       &::before {
         opacity: 0.85;
@@ -265,7 +275,7 @@
     overflow-y: visible;
     padding-top: calc(globals.$spacing-unit * 1);
     padding-bottom: calc(globals.$spacing-unit * 3);
-    padding-left: calc(0.0 * (120px + 24px) + globals.$spacing-unit * 3);
+    padding-left: calc(0 * (120px + 24px) + globals.$spacing-unit * 3);
     padding-right: calc(4 * (120px + 24px));
     margin: 0 calc(globals.$spacing-unit * -3);
     align-items: flex-start;
@@ -273,11 +283,10 @@
     min-height: 310px;
     max-height: 310px;
 
-    @media (max-width: 1536px),
-    (max-height: 900px) {
+    @media (max-width: 1536px), (max-height: 900px) {
       padding-top: calc(globals.$spacing-unit * 0.75);
       padding-bottom: calc(globals.$spacing-unit * 2.5);
-      padding-left: calc(0.0 * (118px + 16px) + globals.$spacing-unit * 2.5);
+      padding-left: calc(0 * (118px + 16px) + globals.$spacing-unit * 2.5);
       padding-right: calc(4 * (118px + 16px));
       margin: 0 calc(globals.$spacing-unit * -2);
       height: 275px;
@@ -287,7 +296,8 @@
     }
 
     @media (max-width: 1300px) {
-      padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2);
+      padding: calc(globals.$spacing-unit * 0.75)
+        calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2);
       margin: 0 calc(globals.$spacing-unit * -2);
       height: 240px;
       min-height: 240px;
@@ -296,7 +306,8 @@
     }
 
     @media (max-width: 800px) {
-      padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1.5);
+      padding: calc(globals.$spacing-unit * 0.5)
+        calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1.5);
       margin: 0 calc(globals.$spacing-unit * -1.5);
       height: 200px;
       min-height: 200px;
@@ -304,7 +315,8 @@
     }
 
     @media (max-width: 600px) {
-      padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 1);
+      padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1)
+        calc(globals.$spacing-unit * 1);
       margin: 0 calc(globals.$spacing-unit * -1);
       height: 165px;
       min-height: 165px;
@@ -328,11 +340,13 @@
     padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 3);
 
     @media (max-width: 1300px) {
-      padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 2);
+      padding: calc(globals.$spacing-unit * 0.75)
+        calc(globals.$spacing-unit * 2);
     }
 
     @media (max-width: 800px) {
-      padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1.5);
+      padding: calc(globals.$spacing-unit * 0.5)
+        calc(globals.$spacing-unit * 1.5);
     }
 
     @media (max-width: 600px) {
@@ -368,8 +382,7 @@
     padding: 0;
     box-shadow: none !important;
 
-    @media (max-width: 1536px),
-    (max-height: 900px) {
+    @media (max-width: 1536px), (max-height: 900px) {
       width: 118px;
     }
 
@@ -403,8 +416,7 @@
       box-shadow: none !important;
       z-index: 10;
 
-      @media (max-width: 1536px),
-      (max-height: 900px) {
+      @media (max-width: 1536px), (max-height: 900px) {
         width: 138px;
       }
 
@@ -610,7 +622,9 @@
     pointer-events: none;
     user-select: none;
     opacity: 0.9;
-    transition: transform 0.2s ease, opacity 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      opacity 0.2s ease;
 
     @media (max-width: 800px) {
       width: 48px;
@@ -648,8 +662,7 @@
       transition: none;
     }
 
-    @media (max-width: 1536px),
-    (max-height: 900px) {
+    @media (max-width: 1536px), (max-height: 900px) {
       margin-top: -150px;
       gap: calc(globals.$spacing-unit * 2);
     }
@@ -681,8 +694,7 @@
       bottom: calc(globals.$spacing-unit * 3 + 52px);
     }
 
-    @media (max-width: 1536px),
-    (max-height: 900px) {
+    @media (max-width: 1536px), (max-height: 900px) {
       left: calc(globals.$spacing-unit * 2.5);
       right: calc(globals.$spacing-unit * 2.5);
       bottom: calc(globals.$spacing-unit * 2.5);
@@ -720,8 +732,7 @@
     &--action-welcome {
       padding-left: 170px !important;
 
-      @media (max-width: 1536px),
-      (max-height: 900px) {
+      @media (max-width: 1536px), (max-height: 900px) {
         padding-left: 5px !important;
       }
 
@@ -733,8 +744,7 @@
     &--action-library {
       padding-left: 300px !important;
 
-      @media (max-width: 1536px),
-      (max-height: 900px) {
+      @media (max-width: 1536px), (max-height: 900px) {
         padding-left: 305px !important;
       }
 
@@ -746,8 +756,7 @@
     &--action-create-folder {
       padding-left: 435px !important;
 
-      @media (max-width: 1536px),
-      (max-height: 900px) {
+      @media (max-width: 1536px), (max-height: 900px) {
         padding-left: 435px !important;
       }
 
@@ -760,8 +769,7 @@
       }
     }
 
-    @media (max-width: 1536px),
-    (max-height: 900px) {
+    @media (max-width: 1536px), (max-height: 900px) {
       padding-left: 220px;
     }
 
@@ -782,8 +790,7 @@
     color: #fff;
     margin: 0;
 
-    @media (max-width: 1536px),
-    (max-height: 900px) {
+    @media (max-width: 1536px), (max-height: 900px) {
       font-size: 25px;
     }
 
@@ -818,8 +825,7 @@
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 
-    @media (max-width: 1536px),
-    (max-height: 900px) {
+    @media (max-width: 1536px), (max-height: 900px) {
       min-width: 145px;
       padding: 0 22px;
       min-height: 38px;

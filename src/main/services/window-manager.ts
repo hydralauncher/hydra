@@ -137,14 +137,20 @@ export class WindowManager {
           "Failed to load from MAIN_VITE_LAUNCHER_SUBDOMAIN, falling back to local file:",
           error
         );
-        window.loadFile(path.join(import.meta.dirname, "../renderer/index.html"), {
-          hash,
-        });
+        window.loadFile(
+          path.join(import.meta.dirname, "../renderer/index.html"),
+          {
+            hash,
+          }
+        );
       }
     } else {
-      window.loadFile(path.join(import.meta.dirname, "../renderer/index.html"), {
-        hash,
-      });
+      window.loadFile(
+        path.join(import.meta.dirname, "../renderer/index.html"),
+        {
+          hash,
+        }
+      );
     }
   }
 

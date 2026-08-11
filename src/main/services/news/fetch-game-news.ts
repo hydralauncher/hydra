@@ -10,7 +10,10 @@ const xmlParser = new XMLParser({
 const REQUEST_TIMEOUT = 10_000;
 const MAX_ARTICLES = 12;
 
-const GOOGLE_NEWS_LOCALES: Record<string, { hl: string; gl: string; ceid: string }> = {
+const GOOGLE_NEWS_LOCALES: Record<
+  string,
+  { hl: string; gl: string; ceid: string }
+> = {
   pt: { hl: "pt-BR", gl: "BR", ceid: "BR:pt-419" },
   en: { hl: "en-US", gl: "US", ceid: "US:en" },
   es: { hl: "es", gl: "ES", ceid: "ES:es" },
@@ -63,8 +66,9 @@ export const fetchGameNews = async (
       if (!item.link || !item.title) return null;
 
       const sourceName =
-        (typeof item.source === "string" ? item.source : item.source?.["#text"]) ??
-        "Google News";
+        (typeof item.source === "string"
+          ? item.source
+          : item.source?.["#text"]) ?? "Google News";
 
       const id =
         (typeof item.guid === "string" ? item.guid : item.guid?.["#text"]) ??

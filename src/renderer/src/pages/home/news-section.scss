@@ -30,8 +30,7 @@
   height: auto;
   flex-shrink: 0;
 
-  @media (max-width: 1536px),
-  (max-height: 900px) {
+  @media (max-width: 1536px), (max-height: 900px) {
     gap: calc(globals.$spacing-unit * 0.75);
   }
 
@@ -54,8 +53,7 @@
       box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     transform-origin: center;
 
-    @media (max-width: 1536px),
-    (max-height: 900px) {
+    @media (max-width: 1536px), (max-height: 900px) {
       width: 190px;
     }
 
@@ -74,8 +72,7 @@
     overflow: hidden;
     flex-shrink: 0;
 
-    @media (max-width: 1536px),
-    (max-height: 900px) {
+    @media (max-width: 1536px), (max-height: 900px) {
       height: 80px;
     }
   }

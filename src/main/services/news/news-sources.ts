@@ -10,7 +10,10 @@ const ENGLISH_SOURCES: NewsSourceConfig[] = [
   { name: "IGN", feedUrl: "https://feeds.ign.com/ign/games-all" },
   { name: "PC Gamer", feedUrl: "https://www.pcgamer.com/rss/" },
   { name: "Eurogamer", feedUrl: "https://www.eurogamer.net/feed" },
-  { name: "Rock Paper Shotgun", feedUrl: "https://www.rockpapershotgun.com/feed" },
+  {
+    name: "Rock Paper Shotgun",
+    feedUrl: "https://www.rockpapershotgun.com/feed",
+  },
 ];
 
 // Keyed by the language prefix as stored in userPreferences (e.g. "pt-BR",

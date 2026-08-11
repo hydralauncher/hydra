@@ -52,12 +52,12 @@ const textOf = (
   value: string | { "#text"?: string } | undefined
 ): string | null => {
   if (!value) return null;
-  return typeof value === "string" ? value : value["#text"] ?? null;
+  return typeof value === "string" ? value : (value["#text"] ?? null);
 };
 
 const linkOf = (value: RawRssItem["link"]): string | null => {
   if (!value) return null;
-  return typeof value === "string" ? value : value["@_href"] ?? null;
+  return typeof value === "string" ? value : (value["@_href"] ?? null);
 };
 
 const imageOf = (item: RawRssItem): string | null => {
@@ -68,7 +68,8 @@ const imageOf = (item: RawRssItem): string | null => {
   );
   if (mediaContent?.["@_url"]) return mediaContent["@_url"];
 
-  if (item["media:thumbnail"]?.["@_url"]) return item["media:thumbnail"]["@_url"];
+  if (item["media:thumbnail"]?.["@_url"])
+    return item["media:thumbnail"]["@_url"];
 
   return (
     extractImageFromHtml(item["content:encoded"]) ??
@@ -89,8 +90,7 @@ const parseFeed = (sourceName: string, xml: string): NewsArticle[] => {
       const title = textOf(item.title);
       if (!url || !title) return null;
 
-      const rawDescription =
-        item.description ?? item["content:encoded"] ?? "";
+      const rawDescription = item.description ?? item["content:encoded"] ?? "";
       const description = rawDescription
         ? truncate(stripHtml(rawDescription), 160)
         : null;

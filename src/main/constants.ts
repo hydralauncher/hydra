@@ -41,7 +41,13 @@ export const appIconPath = app.isPackaged
 
 export const trayIconDarkPath = app.isPackaged
   ? path.join(process.resourcesPath, "tray-icon-dark.png")
-  : path.join(import.meta.dirname, "..", "..", "resources", "tray-icon-dark.png");
+  : path.join(
+      import.meta.dirname,
+      "..",
+      "..",
+      "resources",
+      "tray-icon-dark.png"
+    );
 
 export const trayIconPath = app.isPackaged
   ? path.join(process.resourcesPath, "tray-icon.png")
