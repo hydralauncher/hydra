@@ -24,6 +24,16 @@ export interface DiskUsage {
   total: number;
 }
 
+export interface NewsArticle {
+  id: string;
+  title: string;
+  description: string | null;
+  source: string;
+  url: string;
+  imageUrl: string | null;
+  publishedAt: string;
+}
+
 export interface GameRepack {
   id: string;
   title: string;

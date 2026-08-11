@@ -348,7 +348,7 @@ export class PythonRPC {
     } else {
       const pythonExecutable = this.resolvePythonExecutable();
       const scriptPath = path.join(
-        __dirname,
+        import.meta.dirname,
         "..",
         "..",
         "python_rpc",

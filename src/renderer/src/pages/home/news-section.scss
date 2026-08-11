@@ -1,0 +1,128 @@
+@use "../../scss/globals.scss";
+
+.news-section-container {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit;
+  flex-shrink: 0;
+
+  @media (max-width: 1300px) {
+    display: none;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+  }
+}
+
+.news-section {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: calc(globals.$spacing-unit * 1);
+  width: auto;
+  height: auto;
+  flex-shrink: 0;
+
+  @media (max-width: 1536px),
+  (max-height: 900px) {
+    gap: calc(globals.$spacing-unit * 0.75);
+  }
+
+  &__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition:
+      transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      filter 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center;
+
+    @media (max-width: 1536px),
+    (max-height: 900px) {
+      width: 190px;
+    }
+
+    &:hover,
+    &:focus-visible {
+      transform: scale(1.04);
+      filter: brightness(1.1);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+      z-index: 1;
+    }
+  }
+
+  &__image-wrapper {
+    width: 100%;
+    height: 100px;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    @media (max-width: 1536px),
+    (max-height: 900px) {
+      height: 80px;
+    }
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &__image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.95);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  &__meta {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

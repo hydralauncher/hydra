@@ -5,6 +5,7 @@ import type { HomeGroup } from "@renderer/hooks/use-home-groups";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { ArrowRightIcon } from "@primer/octicons-react";
+import { motion, AnimatePresence } from "framer-motion";
 import "./home.scss";
 
 interface FolderInfoProps {
@@ -29,60 +30,58 @@ export function FolderInfo({
 
   const first5 = games.slice(0, 5);
 
-  const getPaddingLeft = () => {
-    const isSmall = window.innerWidth <= 1536 || window.innerHeight <= 900;
-    return isSmall ? 500 : 600;
-  };
-
-  const dynamicPaddingLeft = getPaddingLeft();
-
   return (
-    <div
-      className="home__details home__folder-info-container"
-      style={{
-        paddingLeft: `${dynamicPaddingLeft}px`,
-        transition: "padding-left 0.4s cubic-bezier(0.25, 1, 0.5, 1)",
-      }}
-    >
-      <div className="home__folder-info-text">
-        <h3 className="home__folder-info-title">{folder.name}</h3>
-      </div>
-
-      <div className="home__folder-info-content">
-        {first5.map((g) => (
-          <button
-            key={g.objectId}
-            type="button"
-            className="home__folder-game-card-btn"
-            onClick={() => navigate(buildGameDetailsPath(g))}
-          >
-            <img
-              src={
-                g.shop === "steam"
-                  ? `https://steamcdn-a.akamaihd.net/steam/apps/${g.objectId}/library_600x900_2x.jpg`
-                  : (g.libraryImageUrl ?? undefined)
-              }
-              alt={g.title}
-              className="home__folder-game-card"
-              loading="lazy"
-              onError={(e) => {
-                const img = e.currentTarget;
-                if (g.libraryImageUrl && img.src !== g.libraryImageUrl) {
-                  img.src = g.libraryImageUrl;
-                }
-              }}
-            />
-          </button>
-        ))}
-        <Button
-          className="home__folder-view-btn"
-          theme={isBgLight ? "dark" : "primary"}
-          onClick={onOpenFolder}
-          aria-label={t("ver_pasta", { defaultValue: "Ver pasta" })}
+    <div className="home__details home__folder-info-container">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={folder.id}
+          initial={{ opacity: 0, y: 14, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: -10, filter: "blur(3px)" }}
+          transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
+          style={{ width: "100%" }}
         >
-          <ArrowRightIcon size={24} />
-        </Button>
-      </div>
+          <div className="home__folder-info-text">
+            <h3 className="home__folder-info-title">{folder.name}</h3>
+          </div>
+
+          <div className="home__folder-info-content">
+            {first5.map((g) => (
+              <button
+                key={g.objectId}
+                type="button"
+                className="home__folder-game-card-btn"
+                onClick={() => navigate(buildGameDetailsPath(g))}
+              >
+                <img
+                  src={
+                    g.shop === "steam"
+                      ? `https://steamcdn-a.akamaihd.net/steam/apps/${g.objectId}/library_600x900_2x.jpg`
+                      : (g.libraryImageUrl ?? undefined)
+                  }
+                  alt={g.title}
+                  className="home__folder-game-card"
+                  loading="lazy"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (g.libraryImageUrl && img.src !== g.libraryImageUrl) {
+                      img.src = g.libraryImageUrl;
+                    }
+                  }}
+                />
+              </button>
+            ))}
+            <Button
+              className="home__folder-view-btn"
+              theme={isBgLight ? "dark" : "primary"}
+              onClick={onOpenFolder}
+              aria-label={t("ver_pasta", { defaultValue: "Ver pasta" })}
+            >
+              <ArrowRightIcon size={24} />
+            </Button>
+          </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

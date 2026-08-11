@@ -845,6 +845,12 @@ contextBridge.exposeInMainWorld("electron", {
   getDownloadSourcesSinceValue: () =>
     ipcRenderer.invoke("getDownloadSourcesSinceValue"),
 
+  /* News */
+  getGameNews: (language?: string) =>
+    ipcRenderer.invoke("getGameNews", language),
+  getGameSpecificNews: (gameTitle: string, language?: string) =>
+    ipcRenderer.invoke("getGameSpecificNews", gameTitle, language),
+
   /* Library */
   toggleAutomaticCloudSync: (
     shop: GameShop,

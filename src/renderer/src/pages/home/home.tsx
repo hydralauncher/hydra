@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   useDominantColor,
   useAppDispatch,
@@ -32,7 +39,11 @@ import { CatalogueCategory } from "@shared";
 import cn from "classnames";
 import { GameInfo } from "./game-info";
 import { FolderInfo } from "./folder-info";
+import { ActionInfo } from "./action-info";
+import { NewsSection } from "./news-section";
 import { HeroCarousel } from "./hero-carousel";
+import { WelcomeDashboard } from "./welcome-dashboard";
+import HydraLogoSvg from "@renderer/assets/icons/hydra.svg?react";
 import AddFolderSvg from "@renderer/assets/icons/add folder.svg?react";
 import BibliotecaSvg from "@renderer/assets/icons/Biblioteca.svg?react";
 import {
@@ -257,6 +268,9 @@ export default function Home() {
     hasDragged: false,
   });
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
+  const wheelThrottleRef = useRef(0);
+  const draggedItemKeyRef = useRef<string | null>(null);
+  const [manualOrder, setManualOrder] = useState<string[] | null>(null);
 
   const scrollToCard = useCallback((index: number) => {
     requestAnimationFrame(() => {
@@ -497,7 +511,7 @@ export default function Home() {
           logoImageUrl: g.logoImageUrl ?? null,
           logoPosition: null,
           coverImageUrl: g.coverImageUrl ?? null,
-          downloadSources: [],
+          downloadSources: g.downloadSources ?? [],
           executablePath: g.executablePath,
           lastTimePlayed: (g.lastTimePlayed as any) ?? null,
         })),
@@ -572,10 +586,16 @@ export default function Home() {
     );
 
     const actionButtons: {
-      type: "game" | "folder" | "button_library" | "button_create_folder";
+      type:
+        | "game"
+        | "folder"
+        | "button_welcome"
+        | "button_library"
+        | "button_create_folder";
       data: any;
       covers: string[];
     }[] = [
+      { type: "button_welcome", data: null as any, covers: [] },
       { type: "button_library", data: null as any, covers: [] },
       { type: "button_create_folder", data: null as any, covers: [] },
     ];
@@ -597,14 +617,64 @@ export default function Home() {
   ]);
 
   const showSkeleton = isLoading || isTransitioning;
-  const currentGames = homeItems;
+
+  const getItemKey = (item: (typeof homeItems)[number]): string => {
+    if (item.type === "button_welcome") return "btn-welcome";
+    if (item.type === "button_library") return "btn-lib";
+    if (item.type === "button_create_folder") return "btn-folder";
+    if (item.type === "folder") return (item.data as HomeGroup).id;
+    return (item.data as ShopAssets).objectId;
+  };
+
+  const currentGames = useMemo(() => {
+    if (!manualOrder) return homeItems;
+
+    const byKey = new Map(
+      homeItems.map((item) => [getItemKey(item), item] as const)
+    );
+    const used = new Set<string>();
+    const ordered: typeof homeItems = [];
+
+    for (const key of manualOrder) {
+      const item = byKey.get(key);
+      if (item) {
+        ordered.push(item);
+        used.add(key);
+      }
+    }
+
+    for (const item of homeItems) {
+      if (!used.has(getItemKey(item))) ordered.push(item);
+    }
+
+    return ordered;
+  }, [homeItems, manualOrder]);
+
+  // Decouple the details panel from the raw selectedIndex so it doesn't try
+  // to mount/unmount (and animate) for every card while the user is rapidly
+  // paging through the slider — it only settles once selection stops moving.
+  const [settledIndex, setSettledIndex] = useState(selectedIndex);
+  const [isPagingFast, setIsPagingFast] = useState(false);
+  useLayoutEffect(() => {
+    setIsPagingFast(true);
+    const id = window.setTimeout(() => {
+      setSettledIndex(selectedIndex);
+      setIsPagingFast(false);
+    }, 150);
+    return () => window.clearTimeout(id);
+  }, [selectedIndex]);
+
   const selectedItem = showSkeleton
     ? null
-    : (currentGames[selectedIndex] ?? null);
+    : (currentGames[settledIndex] ?? null);
   const selectedGame =
     selectedItem?.type === "game" ? (selectedItem.data as ShopAssets) : null;
   const selectedFolder =
     selectedItem?.type === "folder" ? (selectedItem.data as HomeGroup) : null;
+  const selectedIsWelcomeButton = selectedItem?.type === "button_welcome";
+  const selectedIsLibraryButton = selectedItem?.type === "button_library";
+  const selectedIsCreateFolderButton =
+    selectedItem?.type === "button_create_folder";
 
   const backgroundSrc = useMemo(() => {
     if (!selectedGame) return undefined;
@@ -626,6 +696,60 @@ export default function Home() {
 
   const { color: glowColor } = useDominantColor(cardImageUrl);
   const { isLight: isBgLight } = useDominantColor(backgroundSrc);
+
+  // Fallback images for the game-specific news cards (which have no image of
+  // their own). Steam provides real store screenshots, which give far more
+  // variety than reusing the game's own cover/icon/header art.
+  const [steamScreenshotUrls, setSteamScreenshotUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!selectedGame || selectedGame.shop !== "steam") {
+      setSteamScreenshotUrls([]);
+      return;
+    }
+
+    let cancelled = false;
+    window.electron
+      .getGameShopDetails(
+        selectedGame.objectId,
+        selectedGame.shop,
+        getSteamLanguage(i18n.language)
+      )
+      .then((details) => {
+        if (cancelled) return;
+        const urls = (details?.screenshots ?? [])
+          .map((screenshot) => screenshot.path_full)
+          .filter(Boolean);
+        setSteamScreenshotUrls(urls);
+      })
+      .catch(() => {
+        if (!cancelled) setSteamScreenshotUrls([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGame, i18n.language]);
+
+  const gameImageVariants = useMemo(() => {
+    if (!selectedGame) return [];
+
+    if (steamScreenshotUrls.length > 0) return steamScreenshotUrls;
+
+    const candidates = [
+      cardImageUrl,
+      selectedGame.libraryImageUrl,
+      selectedGame.iconUrl,
+      selectedGame.coverImageUrl,
+    ];
+    return Array.from(
+      new Set(
+        candidates.filter(
+          (url): url is string => Boolean(url) && url !== backgroundSrc
+        )
+      )
+    );
+  }, [selectedGame, cardImageUrl, backgroundSrc, steamScreenshotUrls]);
 
   const isGamepadConnected = useGamepadConnected();
   const hasInstalledGames = useMemo(
@@ -744,30 +868,68 @@ export default function Home() {
     actionsRef,
   });
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+  const stepSelection = useCallback(
+    (direction: 1 | -1) => {
       if (isLoading || currentGames.length === 0) return;
+      setSelectedIndex((prev) => {
+        const next =
+          direction > 0
+            ? Math.min(prev + 1, currentGames.length - 1)
+            : Math.max(prev - 1, 0);
+        scrollToCard(next);
+        return next;
+      });
+    },
+    [isLoading, currentGames.length, scrollToCard]
+  );
 
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        setSelectedIndex((prev) => {
-          const next = Math.min(prev + 1, currentGames.length - 1);
-          scrollToCard(next);
-          return next;
-        });
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        setSelectedIndex((prev) => {
-          const next = Math.max(prev - 1, 0);
-          scrollToCard(next);
-          return next;
-        });
+  // Repeat cadence while a key is held, instead of relying on the OS's
+  // native (much faster, unthrottled) key-repeat rate.
+  const keyRepeatRef = useRef<{
+    key?: string;
+    timeoutId?: number;
+    intervalId?: number;
+  }>({});
+
+  useEffect(() => {
+    const clearRepeat = () => {
+      if (keyRepeatRef.current.timeoutId) {
+        window.clearTimeout(keyRepeatRef.current.timeoutId);
       }
+      if (keyRepeatRef.current.intervalId) {
+        window.clearInterval(keyRepeatRef.current.intervalId);
+      }
+      keyRepeatRef.current = {};
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      e.preventDefault();
+      if (e.repeat || keyRepeatRef.current.key === e.key) return;
+
+      const direction = e.key === "ArrowRight" ? 1 : -1;
+      stepSelection(direction);
+
+      keyRepeatRef.current.key = e.key;
+      keyRepeatRef.current.timeoutId = window.setTimeout(() => {
+        keyRepeatRef.current.intervalId = window.setInterval(() => {
+          stepSelection(direction);
+        }, 90);
+      }, 220);
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === keyRepeatRef.current.key) clearRepeat();
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isLoading, currentGames.length, scrollToCard]);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      clearRepeat();
+    };
+  }, [stepSelection]);
 
   useEffect(() => {
     if (!isLoading && currentGames.length > 0) {
@@ -1007,6 +1169,14 @@ export default function Home() {
             ref={sliderRef}
             onFocus={() => setIsSliderActive(true)}
             onContextMenu={(e) => handleContextMenu(e)}
+            onWheel={(e) => {
+              if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+              e.preventDefault();
+              const now = performance.now();
+              if (now - wheelThrottleRef.current < 90) return;
+              wheelThrottleRef.current = now;
+              stepSelection(e.deltaY > 0 ? 1 : -1);
+            }}
             onMouseDown={(e) => {
               dragRef.current.isDragging = true;
               dragRef.current.startX = e.pageX - e.currentTarget.offsetLeft;
@@ -1024,6 +1194,19 @@ export default function Home() {
               dragRef.current.isDragging = false;
               e.currentTarget.style.scrollBehavior = "";
               e.currentTarget.style.cursor = "";
+
+              const draggedKey = draggedItemKeyRef.current;
+              draggedItemKeyRef.current = null;
+
+              if (dragRef.current.hasDragged && draggedKey) {
+                const baseOrder =
+                  manualOrder ?? currentGames.map((item) => getItemKey(item));
+                const withoutDragged = baseOrder.filter(
+                  (key) => key !== draggedKey
+                );
+                withoutDragged.splice(2, 0, draggedKey);
+                setManualOrder(withoutDragged);
+              }
             }}
             onMouseMove={(e) => {
               if (!dragRef.current.isDragging) return;
@@ -1041,6 +1224,33 @@ export default function Home() {
                   </div>
                 ))
               : currentGames.map((item, index) => {
+                  if (item.type === "button_welcome") {
+                    return (
+                      <button
+                        key="btn-welcome"
+                        type="button"
+                        className={cn("home__card home__action-btn", {
+                          "home__card--selected": index === selectedIndex,
+                        })}
+                        onFocus={() => {
+                          setSelectedIndex(index);
+                        }}
+                        onClick={() => {
+                          if (dragRef.current.hasDragged) return;
+                          setSelectedIndex(index);
+                        }}
+                        aria-label={t("bem_vindo", {
+                          defaultValue: "Bem-vindo",
+                        })}
+                      >
+                        <HydraLogoSvg
+                          width={64}
+                          height={64}
+                          className="home__action-btn-icon"
+                        />
+                      </button>
+                    );
+                  }
                   if (item.type === "button_library") {
                     return (
                       <button
@@ -1062,8 +1272,8 @@ export default function Home() {
                         })}
                       >
                         <BibliotecaSvg
-                          width={28}
-                          height={28}
+                          width={64}
+                          height={64}
                           className="home__action-btn-icon"
                         />
                       </button>
@@ -1090,8 +1300,8 @@ export default function Home() {
                         })}
                       >
                         <AddFolderSvg
-                          width={28}
-                          height={28}
+                          width={64}
+                          height={64}
                           className="home__action-btn-icon"
                         />
                       </button>
@@ -1128,6 +1338,9 @@ export default function Home() {
                       })}
                       onFocus={() => {
                         setSelectedIndex(index);
+                      }}
+                      onMouseDown={() => {
+                        draggedItemKeyRef.current = itemId;
                       }}
                       onClick={() => {
                         if (dragRef.current.hasDragged) return;
@@ -1199,7 +1412,9 @@ export default function Home() {
           </div>
 
           <div
-            className="home__bottom-segment"
+            className={cn("home__bottom-segment", {
+              "home__bottom-segment--hidden": isPagingFast,
+            })}
             ref={actionsRef}
             onFocus={() => setIsSliderActive(false)}
           >
@@ -1255,13 +1470,51 @@ export default function Home() {
               />
             )}
 
-            {!selectedGame && !selectedFolder && <div />}
+            {selectedIsWelcomeButton && (
+              <ActionInfo
+                kind="welcome"
+                onAction={() => navigate("/library")}
+              />
+            )}
+
+            {selectedIsLibraryButton && (
+              <ActionInfo
+                kind="library"
+                libraryGamesCount={libraryAsGames.length}
+                onAction={() => navigate("/library")}
+              />
+            )}
+
+            {selectedIsCreateFolderButton && (
+              <ActionInfo
+                kind="create-folder"
+                onAction={() => navigate("/library?collection=new")}
+              />
+            )}
+
+            {!selectedGame &&
+              !selectedFolder &&
+              !selectedIsWelcomeButton &&
+              !selectedIsLibraryButton &&
+              !selectedIsCreateFolderButton && <div />}
           </div>
 
-          {catalogue[CatalogueCategory.Hot]?.length > 0 && (
-            <div className="home__carousel-wrapper">
-              <HeroCarousel games={catalogue[CatalogueCategory.Hot]} />
+          {selectedIsWelcomeButton ? (
+            <div className="home__hero-row">
+              <WelcomeDashboard />
             </div>
+          ) : (
+            catalogue[CatalogueCategory.Hot]?.length > 0 && (
+              <div className="home__hero-row">
+                <NewsSection
+                  gameTitle={selectedGame?.title}
+                  gameImageUrls={gameImageVariants}
+                />
+                <div className="home__carousel-wrapper">
+                  <HeroCarousel games={catalogue[CatalogueCategory.Hot]} />
+                </div>
+              </div>
+            )
           )}
         </div>
 

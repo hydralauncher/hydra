@@ -9,12 +9,18 @@ import {
   CheckIcon,
   FileDirectoryIcon,
 } from "@primer/octicons-react";
-import type { DownloadSource, ShopAssets, ShopDetailsWithAssets } from "@types";
+import type {
+  DownloadSource,
+  GameRepack,
+  ShopAssets,
+  ShopDetailsWithAssets,
+} from "@types";
 import { buildGameDetailsPath, getSteamLanguage } from "@renderer/helpers";
 import { Button } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
+import { motion, AnimatePresence } from "framer-motion";
 import "./home.scss";
 
 interface GameInfoProps {
@@ -140,6 +146,8 @@ export function GameInfo({
   }, [game.objectId]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const resolve = async () => {
       if (!sourcesCache) {
         const all = (await levelDBService.values(
@@ -150,26 +158,59 @@ export function GameInfo({
 
       const sources = game.downloadSources ?? [];
 
-      if (!sources.length) {
-        setSourceNames([]);
+      if (sources.length) {
+        const areIds = sources.every((s) => UUID_RE.test(s));
+        if (!areIds) {
+          if (!cancelled) setSourceNames(sources);
+          return;
+        }
+
+        const names = sources
+          .map((id) => sourcesCache!.find((s) => s.id === id)?.name)
+          .filter(Boolean) as string[];
+        if (!cancelled) setSourceNames(names);
         return;
       }
 
-      const areIds = sources.every((s) => UUID_RE.test(s));
-      if (!areIds) {
-        setSourceNames(sources);
+      // Home/library games don't carry pre-resolved download sources, so we
+      // look them up the same way the game details page does.
+      if (game.shop === "custom" || !sourcesCache.length) {
+        if (!cancelled) setSourceNames([]);
         return;
       }
 
-      const names = sources
-        .map((id) => sourcesCache!.find((s) => s.id === id)?.name)
-        .filter(Boolean) as string[];
+      const repacks = await window.electron.hydraApi
+        .get<GameRepack[]>(`/games/${game.shop}/${game.objectId}/download-sources`, {
+          params: {
+            take: 100,
+            skip: 0,
+            downloadSourceIds: sourcesCache.map((source) => source.id),
+          },
+          needsAuth: false,
+        })
+        .catch(() => []);
+
+      if (cancelled) return;
+
+      const names = Array.from(
+        new Set(
+          (Array.isArray(repacks) ? repacks : [])
+            .map((repack) => repack.downloadSourceName)
+            .filter(Boolean)
+        )
+      );
       setSourceNames(names);
     };
 
-    resolve();
+    resolve().catch(() => {
+      if (!cancelled) setSourceNames([]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.objectId, game.downloadSources?.join(",")]);
+  }, [game.objectId, game.shop, game.downloadSources?.join(",")]);
 
   useEffect(() => {
     setExecutableExists(null);
@@ -186,145 +227,175 @@ export function GameInfo({
 
   const meta = [publisher, date].filter(Boolean).join(" - ");
 
-  const getPaddingLeft = () => {
-    const isSmall = window.innerWidth <= 1536 || window.innerHeight <= 900;
-    return isSmall ? 420 : 520;
-  };
-
-  const dynamicPaddingLeft = getPaddingLeft();
-
   const visibleTags =
     showAllTags || sourceNames.length <= 3
       ? sourceNames
       : sourceNames.slice(0, 3);
 
+  const detailsVariants = {
+    initial: { opacity: 0 },
+    animate: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+    exit: {
+      opacity: 0,
+      transition: { duration: 0.12 },
+    },
+  };
+
+  const childVariants = {
+    initial: { opacity: 0, y: 12, filter: "blur(4px)" },
+    animate: {
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const },
+    },
+  };
+
   return (
-    <div
-      className="home__details"
-      style={{
-        paddingLeft: `${dynamicPaddingLeft}px`,
-        transition: "padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
-    >
-      <h1 className="home__game-title">{game.title}</h1>
-      {meta && <p className="home__game-meta">{meta}</p>}
-      {sourceNames.length > 0 && (
-        <div className="home__source-tags">
-          {visibleTags.map((name) => (
-            <span
-              key={name}
-              className={`home__source-tag ${isBgLight ? "home__source-tag--dark" : ""}`}
-            >
-              {name}
-            </span>
-          ))}
-
-          {sourceNames.length > 3 && (
-            <button
-              type="button"
-              className={`home__source-tag home__source-tag--toggle ${
-                isBgLight ? "home__source-tag--dark" : ""
-              }`}
-              onClick={() => setShowAllTags((prev) => !prev)}
-            >
-              {showAllTags ? "-" : `+${sourceNames.length - 3}`}
-            </button>
-          )}
-        </div>
-      )}
-      <div className="home__actions">
-        {executablePath && executableExists === true ? (
-          <Button
-            className="home__play-button"
-            theme={isBgLight ? "dark" : "primary"}
-            onClick={() =>
-              window.electron.openGame(game.shop, game.objectId, executablePath)
-            }
-          >
-            <PlayIcon size={16} />
-            {t("play", { defaultValue: "Jogar" })}
-          </Button>
-        ) : (
-          <>
-            <Button
-              className="home__install-button"
-              theme={isBgLight ? "dark" : "primary"}
-              onClick={() => {
-                if (onInstallClick) {
-                  onInstallClick(game);
-                  return;
-                }
-                const path = buildGameDetailsPath({
-                  ...game,
-                  objectId: game.objectId,
-                });
-                navigate(path, { state: { openRepacks: true } });
-                try {
-                  window.dispatchEvent(
-                    new CustomEvent("hydra:openRepacks", {
-                      detail: { objectId: game.objectId },
-                    })
-                  );
-                } catch (e) {
-                  // Ignore
-                }
-              }}
-            >
-              <DownloadIcon size={16} />
-              {isDownloading
-                ? t("downloading_progress", {
-                    defaultValue: `Baixando - ${progress}`,
-                    progress,
-                  })
-                : t("install", { defaultValue: "Instalar" })}
-            </Button>
-
-            {executablePath &&
-              executableExists === false &&
-              onLocateExecutable && (
-                <Button
-                  className="home__locate-button"
-                  theme={isBgLight ? "dark" : "primary"}
-                  title={t("locate_executable", {
-                    defaultValue: "Localizar executável do jogo",
-                  })}
-                  onClick={() => onLocateExecutable(game)}
-                >
-                  <FileDirectoryIcon size={16} />
-                </Button>
-              )}
-          </>
-        )}
-
-        {onAddToLibrary && (
-          <Button
-            className="home__add-library-button"
-            theme={isBgLight ? "dark" : "primary"}
-            title={
-              isInLibrary
-                ? t("already_in_library", {
-                    defaultValue: "Já está na biblioteca",
-                  })
-                : t("add_to_library", {
-                    defaultValue: "Adicionar à biblioteca",
-                  })
-            }
-            onClick={() => !isInLibrary && onAddToLibrary(game)}
-            disabled={isInLibrary}
-          >
-            {isInLibrary ? <CheckIcon size={16} /> : <PlusIcon size={16} />}
-          </Button>
-        )}
-
-        <Button
-          className="home__view-game-button"
-          theme={isBgLight ? "dark" : "primary"}
-          title={t("see_more", { defaultValue: "Ver página" })}
-          onClick={() => navigate(buildGameDetailsPath(game))}
+    <div className="home__details">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={game.objectId}
+          variants={detailsVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
         >
-          <ArrowRightIcon size={16} />
-        </Button>
-      </div>
+          <motion.h1 variants={childVariants} className="home__game-title">
+            {game.title}
+          </motion.h1>
+
+          {meta && (
+            <motion.p variants={childVariants} className="home__game-meta">
+              {meta}
+            </motion.p>
+          )}
+
+          {sourceNames.length > 0 && (
+            <motion.div variants={childVariants} className="home__source-tags">
+              {visibleTags.map((name) => (
+                <span
+                  key={name}
+                  className={`home__source-tag ${isBgLight ? "home__source-tag--dark" : ""}`}
+                >
+                  {name}
+                </span>
+              ))}
+
+              {sourceNames.length > 3 && (
+                <button
+                  type="button"
+                  className={`home__source-tag home__source-tag--toggle ${
+                    isBgLight ? "home__source-tag--dark" : ""
+                  }`}
+                  onClick={() => setShowAllTags((prev) => !prev)}
+                >
+                  {showAllTags ? "-" : `+${sourceNames.length - 3}`}
+                </button>
+              )}
+            </motion.div>
+          )}
+
+          <motion.div variants={childVariants} className="home__actions">
+            {executablePath && executableExists === true ? (
+              <Button
+                className="home__play-button"
+                theme={isBgLight ? "dark" : "primary"}
+                onClick={() =>
+                  window.electron.openGame(game.shop, game.objectId, executablePath)
+                }
+              >
+                <PlayIcon size={16} />
+                {t("play", { defaultValue: "Jogar" })}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  className="home__install-button"
+                  theme={isBgLight ? "dark" : "primary"}
+                  onClick={() => {
+                    if (onInstallClick) {
+                      onInstallClick(game);
+                      return;
+                    }
+                    const path = buildGameDetailsPath({
+                      ...game,
+                      objectId: game.objectId,
+                    });
+                    navigate(path, { state: { openRepacks: true } });
+                    try {
+                      window.dispatchEvent(
+                        new CustomEvent("hydra:openRepacks", {
+                          detail: { objectId: game.objectId },
+                        })
+                      );
+                    } catch (e) {
+                      // Ignore
+                    }
+                  }}
+                >
+                  <DownloadIcon size={16} />
+                  {isDownloading
+                    ? t("downloading_progress", {
+                        defaultValue: `Baixando - ${progress}`,
+                        progress,
+                      })
+                    : t("install", { defaultValue: "Instalar" })}
+                </Button>
+
+                {executablePath &&
+                  executableExists === false &&
+                  onLocateExecutable && (
+                    <Button
+                      className="home__locate-button"
+                      theme={isBgLight ? "dark" : "primary"}
+                      title={t("locate_executable", {
+                        defaultValue: "Localizar executável do jogo",
+                      })}
+                      onClick={() => onLocateExecutable(game)}
+                    >
+                      <FileDirectoryIcon size={16} />
+                    </Button>
+                  )}
+              </>
+            )}
+
+            {onAddToLibrary && (
+              <Button
+                className="home__add-library-button"
+                theme={isBgLight ? "dark" : "primary"}
+                title={
+                  isInLibrary
+                    ? t("already_in_library", {
+                        defaultValue: "Já está na biblioteca",
+                      })
+                    : t("add_to_library", {
+                        defaultValue: "Adicionar à biblioteca",
+                      })
+                }
+                onClick={() => !isInLibrary && onAddToLibrary(game)}
+                disabled={isInLibrary}
+              >
+                {isInLibrary ? <CheckIcon size={16} /> : <PlusIcon size={16} />}
+              </Button>
+            )}
+
+            <Button
+              className="home__view-game-button"
+              theme={isBgLight ? "dark" : "primary"}
+              title={t("see_more", { defaultValue: "Ver página" })}
+              onClick={() => navigate(buildGameDetailsPath(game))}
+            >
+              <ArrowRightIcon size={16} />
+            </Button>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

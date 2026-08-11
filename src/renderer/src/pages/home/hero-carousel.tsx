@@ -268,9 +268,27 @@ export function HeroCarousel({ games }: Readonly<HeroCarouselProps>) {
 
   return (
     <div className="hero-carousel-container">
-      <h3 className="hero-carousel-container__title">
-        {t("featured_games", "Jogos em Destaque")}
-      </h3>
+      <div className="hero-carousel-container__header">
+        <h3 className="hero-carousel-container__title">
+          {t("featured_games", "Jogos em Destaque")}
+        </h3>
+        {featuredGames.length > 1 && (
+          <div className="hero-carousel__indicators">
+            {featuredGames.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                className={cn("hero-carousel__indicator", {
+                  "hero-carousel__indicator--active": index === currentIndex,
+                })}
+                onClick={() => setCurrentIndex(index)}
+                aria-label={`Slide ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="hero-carousel">
         <div className="hero-carousel__slides">
           {featuredGames.map((game, index) => (
@@ -282,22 +300,6 @@ export function HeroCarousel({ games }: Readonly<HeroCarouselProps>) {
           ))}
         </div>
       </div>
-
-      {featuredGames.length > 1 && (
-        <div className="hero-carousel__indicators">
-          {featuredGames.map((_, index) => (
-            <button
-              key={index}
-              type="button"
-              className={cn("hero-carousel__indicator", {
-                "hero-carousel__indicator--active": index === currentIndex,
-              })}
-              onClick={() => setCurrentIndex(index)}
-              aria-label={`Slide ${index + 1}`}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

@@ -1,0 +1,500 @@
+@use "../../scss/globals.scss";
+
+.welcome-dashboard {
+  width: 100%;
+  animation: welcomeDashboardFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &__bento-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    width: 100%;
+
+    @media (max-width: 1100px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 700px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__column {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+  }
+
+  // Hydra Home Card Standard Style
+  &__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-2px);
+    }
+
+    &--big {
+      height: 200px;
+    }
+
+    &--small {
+      height: 100px;
+    }
+
+    @media (max-width: 1536px), (max-height: 900px) {
+      &--big {
+        height: 190px;
+      }
+      &--small {
+        height: 94px;
+      }
+      padding: 14px 16px;
+    }
+  }
+
+  // Header interno dos cards
+  &__card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    z-index: 2;
+  }
+
+  &__card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__icon {
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  &__card-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    letter-spacing: 0.2px;
+  }
+
+  &__meta {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  // ----------------------------------------------------
+  // CARD 1: TROPHIES
+  // ----------------------------------------------------
+  &__trophies-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 10px 0;
+    z-index: 2;
+  }
+
+  &__trophy-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 4px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  &__trophy-badge {
+    font-size: 18px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+  }
+
+  &__trophy-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  &__level-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    z-index: 2;
+  }
+
+  &__level-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  &__level-progress-bg {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  &__level-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    border-radius: 2px;
+  }
+
+  &__level-percent {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  // ----------------------------------------------------
+  // CARD 2: CONTROLLER (DualSense)
+  // ----------------------------------------------------
+  &__card--controller {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+  }
+
+  &__controller-icon-wrapper {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid #10b981;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+  }
+
+  &__controller-svg {
+    width: 22px;
+    height: 22px;
+    color: #ffffff;
+    z-index: 1;
+  }
+
+  &__controller-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__controller-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  &__controller-battery {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  // ----------------------------------------------------
+  // CARD 3: STORAGE
+  // ----------------------------------------------------
+  &__info-icon {
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+  }
+
+  &__storage-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
+  }
+
+  &__storage-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  &__storage-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  &__storage-label {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  &__storage-value {
+    margin-left: auto;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  &__storage-bar {
+    display: flex;
+    height: 6px;
+    width: 100%;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    gap: 2px;
+  }
+
+  &__storage-segment {
+    height: 100%;
+
+    &--blue {
+      background: #38bdf8;
+      border-radius: 3px 0 0 3px;
+    }
+
+    &--purple {
+      background: #818cf8;
+    }
+
+    &--orange {
+      background: #fb923c;
+      border-radius: 0 3px 3px 0;
+    }
+  }
+
+  // ----------------------------------------------------
+  // CARD 4: STORE / HYDRA STORE
+  // ----------------------------------------------------
+  &__card--store {
+    padding: 0;
+    justify-content: flex-end;
+  }
+
+  &__store-bg {
+    position: absolute;
+    inset: 0;
+    background-image: url("https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80");
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.4s ease;
+
+    .welcome-dashboard__card:hover & {
+      transform: scale(1.03);
+    }
+  }
+
+  &__store-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(15, 15, 15, 0.25) 0%,
+      rgba(15, 15, 15, 0.92) 85%
+    );
+  }
+
+  &__store-content {
+    position: relative;
+    z-index: 2;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+  }
+
+  &__store-badge {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: rgba(56, 189, 248, 0.85);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+  }
+
+  &__store-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__store-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  }
+
+  &__store-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__store-platform {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 4px;
+    color: #ffffff;
+  }
+
+  &__store-price {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  // ----------------------------------------------------
+  // CARD 5: MEDIA GALLERY
+  // ----------------------------------------------------
+  &__card--media {
+    padding: 0;
+  }
+
+  &__media-bg {
+    position: absolute;
+    inset: 0;
+    background-image: url("https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80");
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.4s ease;
+
+    .welcome-dashboard__card:hover & {
+      transform: scale(1.03);
+    }
+  }
+
+  &__media-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(15, 15, 15, 0.4) 0%,
+      rgba(15, 15, 15, 0.88) 100%
+    );
+  }
+
+  &__media-header {
+    padding: 14px 16px 0 16px;
+  }
+
+  &__media-footer {
+    position: relative;
+    z-index: 2;
+    padding: 0 16px 14px 16px;
+  }
+
+  &__media-tag {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  // ----------------------------------------------------
+  // CARD 6: FRIENDS ONLINE
+  // ----------------------------------------------------
+  &__friends-online-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  &__green-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+  }
+
+  &__friends-avatars-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+  }
+
+  &__avatars-stack {
+    display: flex;
+    align-items: center;
+  }
+
+  &__friend-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(20, 20, 20, 0.9);
+    object-fit: cover;
+    margin-left: -6px;
+
+    &:first-child {
+      margin-left: 0;
+    }
+  }
+
+  &__friends-names {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@keyframes welcomeDashboardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

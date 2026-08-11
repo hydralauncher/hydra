@@ -10,6 +10,7 @@
   0% {
     --border-angle: 0deg;
   }
+
   100% {
     --border-angle: 360deg;
   }
@@ -39,7 +40,7 @@
     object-position: center top;
     filter: brightness(0.85);
     z-index: 0;
-    animation: fade-in 0.4s ease;
+    animation: bg-fade-zoom 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   &__solid-background {
@@ -54,13 +55,11 @@
   &__overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0.25) 0%,
-      rgba(0, 0, 0, 0.45) 45%,
-      rgba(15, 15, 15, 0.88) 80%,
-      rgba(13, 13, 13, 0.98) 100%
-    );
+    background: linear-gradient(180deg,
+        rgba(0, 0, 0, 0.25) 0%,
+        rgba(0, 0, 0, 0.45) 45%,
+        rgba(15, 15, 15, 0.88) 80%,
+        rgba(13, 13, 13, 0.98) 100%);
     z-index: 1;
   }
 
@@ -71,40 +70,38 @@
     flex-direction: column;
     justify-content: flex-start;
     height: 100%;
-    padding: 160px calc(globals.$spacing-unit * 3)
-      calc(globals.$spacing-unit * 3);
-    gap: calc(globals.$spacing-unit * 1);
+    padding: max(240px, 22vh) calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3);
+    gap: calc(globals.$spacing-unit * 1.5);
 
     .gamepad-active & {
       padding-bottom: 52px;
     }
 
-    @media (max-width: 1536px), (max-height: 900px) {
-      padding: 230px calc(globals.$spacing-unit * 2.5)
-        calc(globals.$spacing-unit * 2.5);
+    @media (max-width: 1536px),
+    (max-height: 900px) {
+      padding: 200px calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2.5);
       gap: calc(globals.$spacing-unit * 0.75);
     }
 
     @media (max-width: 1300px) {
-      padding: 110px calc(globals.$spacing-unit * 2)
-        calc(globals.$spacing-unit * 2);
+      padding: 110px calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2);
 
       .gamepad-active & {
         padding-bottom: 52px;
       }
     }
+
     @media (max-width: 800px) {
-      padding: 100px calc(globals.$spacing-unit * 1.5)
-        calc(globals.$spacing-unit * 2);
+      padding: 100px calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
       gap: calc(globals.$spacing-unit * 0.75);
 
       .gamepad-active & {
         padding-bottom: 52px;
       }
     }
+
     @media (max-width: 600px) {
-      padding: 95px calc(globals.$spacing-unit * 1)
-        calc(globals.$spacing-unit * 2);
+      padding: 95px calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 2);
     }
 
     @media (max-height: 800px) {
@@ -115,10 +112,12 @@
         width: 6px;
         background: transparent;
       }
+
       &::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.2);
         border-radius: 4px;
       }
+
       &::-webkit-scrollbar-track {
         background: transparent;
       }
@@ -158,16 +157,14 @@
       padding: 1px;
       border-radius: 100px;
       opacity: 0.5;
-      background: conic-gradient(
-        from var(--border-angle, 0deg),
-        rgba(255, 255, 255, 0.6) 0deg,
-        rgba(255, 255, 255, 0.08) 45deg,
-        rgba(255, 255, 255, 0.7) 90deg,
-        rgba(255, 255, 255, 0.05) 180deg,
-        rgba(255, 255, 255, 0.6) 270deg,
-        rgba(255, 255, 255, 0.08) 315deg,
-        rgba(255, 255, 255, 0.6) 360deg
-      );
+      background: conic-gradient(from var(--border-angle, 0deg),
+          rgba(255, 255, 255, 0.6) 0deg,
+          rgba(255, 255, 255, 0.08) 45deg,
+          rgba(255, 255, 255, 0.7) 90deg,
+          rgba(255, 255, 255, 0.05) 180deg,
+          rgba(255, 255, 255, 0.6) 270deg,
+          rgba(255, 255, 255, 0.08) 315deg,
+          rgba(255, 255, 255, 0.6) 360deg);
       -webkit-mask:
         linear-gradient(#fff 0 0) content-box,
         linear-gradient(#fff 0 0);
@@ -267,51 +264,51 @@
     overflow-x: auto;
     overflow-y: visible;
     padding-top: calc(globals.$spacing-unit * 1);
-    padding-bottom: calc(globals.$spacing-unit * 1.5);
+    padding-bottom: calc(globals.$spacing-unit * 3);
     padding-left: calc(0.0 * (120px + 24px) + globals.$spacing-unit * 3);
     padding-right: calc(4 * (120px + 24px));
     margin: 0 calc(globals.$spacing-unit * -3);
     align-items: flex-start;
-    height: 290px;
-    min-height: 290px;
-    max-height: 290px;
+    height: 310px;
+    min-height: 310px;
+    max-height: 310px;
 
-    @media (max-width: 1536px), (max-height: 900px) {
+    @media (max-width: 1536px),
+    (max-height: 900px) {
       padding-top: calc(globals.$spacing-unit * 0.75);
-      padding-bottom: calc(globals.$spacing-unit * 1);
+      padding-bottom: calc(globals.$spacing-unit * 2.5);
       padding-left: calc(0.0 * (118px + 16px) + globals.$spacing-unit * 2.5);
       padding-right: calc(4 * (118px + 16px));
       margin: 0 calc(globals.$spacing-unit * -2);
-      height: 255px;
-      min-height: 255px;
-      max-height: 255px;
+      height: 275px;
+      min-height: 275px;
+      max-height: 275px;
       gap: globals.$spacing-unit;
     }
 
     @media (max-width: 1300px) {
-      padding: calc(globals.$spacing-unit * 0.75)
-        calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1);
+      padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2);
       margin: 0 calc(globals.$spacing-unit * -2);
-      height: 225px;
-      min-height: 225px;
-      max-height: 225px;
+      height: 240px;
+      min-height: 240px;
+      max-height: 240px;
       gap: globals.$spacing-unit;
     }
+
     @media (max-width: 800px) {
-      padding: calc(globals.$spacing-unit * 0.5)
-        calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1);
+      padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1.5);
       margin: 0 calc(globals.$spacing-unit * -1.5);
-      height: 185px;
-      min-height: 185px;
-      max-height: 185px;
+      height: 200px;
+      min-height: 200px;
+      max-height: 200px;
     }
+
     @media (max-width: 600px) {
-      padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1)
-        calc(globals.$spacing-unit * 0.75);
+      padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 1);
       margin: 0 calc(globals.$spacing-unit * -1);
-      height: 155px;
-      min-height: 155px;
-      max-height: 155px;
+      height: 165px;
+      min-height: 165px;
+      max-height: 165px;
       gap: calc(globals.$spacing-unit * 0.75);
     }
 
@@ -331,13 +328,13 @@
     padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 3);
 
     @media (max-width: 1300px) {
-      padding: calc(globals.$spacing-unit * 0.75)
-        calc(globals.$spacing-unit * 2);
+      padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 2);
     }
+
     @media (max-width: 800px) {
-      padding: calc(globals.$spacing-unit * 0.5)
-        calc(globals.$spacing-unit * 1.5);
+      padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1.5);
     }
+
     @media (max-width: 600px) {
       padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1);
       gap: globals.$spacing-unit;
@@ -356,26 +353,34 @@
     // offsetLeft in scrollToCard() right after selection changes, and an
     // animated width would make that read land mid-transition, corrupting
     // the scroll math (worse the faster you navigate between cards).
+    opacity: 1;
+    filter: brightness(0.9);
+    transform: scale(0.97);
     transition:
-      opacity 0.25s ease,
-      transform 0.25s ease,
-      box-shadow 0.25s ease;
-    transform-origin: top left;
+      opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+      filter 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: top center;
+    will-change: transform;
     position: relative;
     background: none;
-    border: none;
+    border: none !important;
     padding: 0;
+    box-shadow: none !important;
 
-    @media (max-width: 1536px), (max-height: 900px) {
+    @media (max-width: 1536px),
+    (max-height: 900px) {
       width: 118px;
     }
 
     @media (max-width: 1300px) {
       width: 120px;
     }
+
     @media (max-width: 800px) {
       width: 100px;
     }
+
     @media (max-width: 600px) {
       width: 80px;
       border-radius: 6px;
@@ -383,30 +388,42 @@
 
     &:hover,
     &:focus-within {
-      opacity: 0.85;
-      transform: scale(1.03) !important;
+      opacity: 1;
+      filter: brightness(1);
+      transform: scale(1.02) !important;
       box-shadow: none !important;
       z-index: 10;
     }
 
     &--selected {
-      width: 175px;
+      width: 150px;
+      opacity: 1 !important;
+      filter: brightness(1.05) !important;
+      transform: scale(1.02) !important;
+      box-shadow: none !important;
+      z-index: 10;
 
-      @media (max-width: 1536px), (max-height: 900px) {
-        width: 152px;
+      @media (max-width: 1536px),
+      (max-height: 900px) {
+        width: 138px;
       }
+
       @media (max-width: 1300px) {
-        width: 128px;
+        width: 120px;
       }
+
       @media (max-width: 800px) {
-        width: 112px;
+        width: 104px;
       }
+
       @media (max-width: 600px) {
-        width: 92px;
+        width: 86px;
       }
 
       &:hover {
-        opacity: 1;
+        opacity: 1 !important;
+        transform: scale(1.04) !important;
+        box-shadow: none !important;
       }
     }
 
@@ -474,6 +491,7 @@
     @media (max-width: 800px) {
       width: 85px;
     }
+
     @media (max-width: 600px) {
       width: 70px;
     }
@@ -485,18 +503,11 @@
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     outline: none;
-    box-shadow: none !important;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     padding: 5px;
     gap: 5px;
-    transition: all 0.25s ease;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.25);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
   }
 
   &__folder-title {
@@ -553,8 +564,10 @@
     -webkit-backdrop-filter: blur(12px);
     border: none;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 8px;
     color: rgba(255, 255, 255, 0.9);
     border-radius: 8px;
 
@@ -562,26 +575,6 @@
       background-color: rgba(255, 255, 255, 0.22);
       color: white;
     }
-  }
-
-  &__action-btn-icon {
-    width: 28px;
-    height: 28px;
-    display: block;
-    pointer-events: none;
-    user-select: none;
-    opacity: 0.9;
-    transition: transform 0.2s ease, opacity 0.2s ease;
-
-    path {
-      fill: currentColor;
-    }
-
-    .home__action-btn:hover & {
-      opacity: 1;
-      transform: scale(1.08);
-    }
-  }
 
     span {
       font-size: 13px;
@@ -610,23 +603,62 @@
     }
   }
 
+  &__action-btn-icon {
+    width: 64px;
+    height: 64px;
+    display: block;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.9;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+
+    @media (max-width: 800px) {
+      width: 48px;
+      height: 48px;
+    }
+
+    @media (max-width: 600px) {
+      width: 38px;
+      height: 38px;
+    }
+
+    path {
+      fill: currentColor;
+    }
+
+    .home__action-btn:hover & {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+  }
+
   // ---- Bottom info ----
   &__bottom-segment {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     width: 100%;
-    margin-top: -45px;
+    margin-top: -130px;
     gap: calc(globals.$spacing-unit * 3);
+    opacity: 1;
+    transition: opacity 0.15s ease;
 
-    @media (max-width: 1536px), (max-height: 900px) {
-      margin-top: -65px;
+    &--hidden {
+      opacity: 0;
+      transition: none;
+    }
+
+    @media (max-width: 1536px),
+    (max-height: 900px) {
+      margin-top: -150px;
       gap: calc(globals.$spacing-unit * 2);
     }
 
     @media (max-width: 1300px) {
+      margin-top: -120px;
       gap: calc(globals.$spacing-unit * 2);
     }
+
     @media (max-width: 800px) {
       flex-direction: column;
       gap: calc(globals.$spacing-unit * 1);
@@ -634,19 +666,24 @@
     }
   }
 
-  &__carousel-wrapper {
+  &__hero-row {
     position: absolute;
+    left: calc(globals.$spacing-unit * 3);
     right: calc(globals.$spacing-unit * 3);
     bottom: calc(globals.$spacing-unit * 3);
     z-index: 5;
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    pointer-events: auto;
 
     .gamepad-active & {
       bottom: calc(globals.$spacing-unit * 3 + 52px);
     }
 
-    @media (max-width: 1536px), (max-height: 900px) {
+    @media (max-width: 1536px),
+    (max-height: 900px) {
+      left: calc(globals.$spacing-unit * 2.5);
       right: calc(globals.$spacing-unit * 2.5);
       bottom: calc(globals.$spacing-unit * 2.5);
 
@@ -657,18 +694,80 @@
 
     @media (max-width: 800px) {
       position: relative;
+      left: auto;
       right: auto;
       bottom: auto;
       margin-top: calc(globals.$spacing-unit * 2);
+      flex-direction: column;
+      align-items: stretch;
     }
+  }
+
+  &__carousel-wrapper {
+    display: flex;
+    flex-direction: column;
   }
 
   &__details {
     padding-top: 0;
+    padding-left: 435px;
     min-height: 90px;
     flex: 1;
     min-width: 0;
     align-self: flex-start;
+    transition: padding-left 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+
+    &--action-welcome {
+      padding-left: 170px !important;
+
+      @media (max-width: 1536px),
+      (max-height: 900px) {
+        padding-left: 5px !important;
+      }
+
+      @media (max-width: 1300px) {
+        padding-left: 5px !important;
+      }
+    }
+
+    &--action-library {
+      padding-left: 300px !important;
+
+      @media (max-width: 1536px),
+      (max-height: 900px) {
+        padding-left: 305px !important;
+      }
+
+      @media (max-width: 1300px) {
+        padding-left: 275px !important;
+      }
+    }
+
+    &--action-create-folder {
+      padding-left: 435px !important;
+
+      @media (max-width: 1536px),
+      (max-height: 900px) {
+        padding-left: 435px !important;
+      }
+
+      @media (max-width: 1300px) {
+        padding-left: 395px !important;
+      }
+
+      @media (max-width: 800px) {
+        padding-left: 0px !important;
+      }
+    }
+
+    @media (max-width: 1536px),
+    (max-height: 900px) {
+      padding-left: 220px;
+    }
+
+    @media (max-width: 1300px) {
+      padding-left: 180px;
+    }
 
     @media (max-width: 800px) {
       padding-left: 0 !important;
@@ -683,16 +782,19 @@
     color: #fff;
     margin: 0;
 
-    @media (max-width: 1536px), (max-height: 900px) {
+    @media (max-width: 1536px),
+    (max-height: 900px) {
       font-size: 25px;
     }
 
     @media (max-width: 1300px) {
       font-size: 26px;
     }
+
     @media (max-width: 800px) {
       font-size: 22px;
     }
+
     @media (max-width: 600px) {
       font-size: 18px;
     }
@@ -713,8 +815,11 @@
   &__install-button {
     min-width: 180px;
     padding: 0 32px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 
-    @media (max-width: 1536px), (max-height: 900px) {
+    @media (max-width: 1536px),
+    (max-height: 900px) {
       min-width: 145px;
       padding: 0 22px;
       min-height: 38px;
@@ -725,6 +830,7 @@
       min-width: 140px;
       padding: 0 20px;
     }
+
     @media (max-width: 600px) {
       min-width: unset;
       padding: 0 16px;
@@ -747,6 +853,8 @@
     min-height: 40px;
     padding: 0;
     flex-shrink: 0;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   &__source-tags {
@@ -760,15 +868,16 @@
     font-size: 11px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.85);
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
     padding: 2px 10px;
     border-radius: 12px;
 
     &--dark {
-      background: rgba(0, 0, 0, 0.4);
       color: rgba(255, 255, 255, 0.95);
+      border-color: rgba(255, 255, 255, 0.35);
     }
 
     @media (max-width: 600px) {
@@ -782,8 +891,21 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
+  }
+}
+
+@keyframes bg-fade-zoom {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -832,16 +954,18 @@
   border-radius: 8px;
   overflow: hidden;
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   line-height: 0;
+  position: relative;
 
+  &:hover,
   &:focus-visible,
   .gamepad-active &:focus {
     transform: scale(1.1);
     outline: 1px solid rgba(255, 255, 255, 0.5);
     outline-offset: 2px;
-    box-shadow: none;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
     z-index: 10;
   }
 }
@@ -872,15 +996,16 @@
   font-size: 13px;
   font-weight: 600;
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 
+  &:hover,
   &:focus-visible,
   .gamepad-active &:focus {
     transform: scale(1.1);
     outline: 1px solid rgba(255, 255, 255, 0.5);
     outline-offset: 2px;
-    box-shadow: none;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
     z-index: 10;
   }
 

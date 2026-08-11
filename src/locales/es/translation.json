@@ -14,12 +14,18 @@
     "error_boundary_restart": "Reiniciar"
   },
   "home": {
-    "surprise_me": "¡Sorpréndeme!",
+    "my_games": "Mis Juegos",
+    "hot": "Populares",
+    "weekly": "Más Descargados",
+    "achievements": "Para Platinar",
+    "surprise_me": "Sorpréndeme",
     "no_results": "No se encontraron resultados",
-    "start_typing": "Empezá a escribir para buscar...",
-    "hot": "Tendencias",
-    "weekly": "📅 Mejores juegos de la semana",
-    "achievements": "🏆 Juegos para platinar"
+    "start_typing": "Empieza a escribir para buscar…",
+    "bem_vindo": "Bienvenido",
+    "welcome_subtitle": "Tu ecosistema de juegos completo",
+    "online_friends": "Amigos en Línea",
+    "subscribe_cloud": "Suscribirse a Hydra Cloud",
+    "patch_notes": "Actualizaciones de Hydra"
   },
   "sidebar": {
     "catalogue": "Catálogo",

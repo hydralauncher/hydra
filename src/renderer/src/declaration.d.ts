@@ -2,6 +2,7 @@ import type { AuthPage } from "@shared";
 import type {
   AppUpdaterEvent,
   GameShop,
+  NewsArticle,
   Steam250Game,
   DownloadProgress,
   SeedingStatus,
@@ -895,6 +896,13 @@ declare global {
     syncDownloadSources: () => Promise<void>;
     getDownloadSourcesCheckBaseline: () => Promise<string | null>;
     getDownloadSourcesSinceValue: () => Promise<string | null>;
+
+    /* News */
+    getGameNews: (language?: string) => Promise<NewsArticle[]>;
+    getGameSpecificNews: (
+      gameTitle: string,
+      language?: string
+    ) => Promise<NewsArticle[]>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage>;

@@ -6,6 +6,12 @@
   gap: globals.$spacing-unit;
   margin-top: 16px;
 
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
   &__title {
     margin: 0;
     font-size: 14px;
@@ -154,14 +160,10 @@
   }
 
   &__indicators {
-    position: relative;
-    top: unset;
-    right: unset;
     display: flex;
-    justify-content: center;
     align-items: center;
     gap: 6px;
-    margin-top: 6px;
+    margin: 0;
     z-index: 2;
   }
 

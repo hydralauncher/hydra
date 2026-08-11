@@ -18,9 +18,14 @@
     "surprise_me": "Surprise me",
     "no_results": "No results found",
     "start_typing": "Start typing to search...",
-    "hot": "Hot now",
-    "weekly": "Top Weekly",
-    "achievements": "Top Achievements"
+    "hot": "Popular",
+    "weekly": "Most Downloaded",
+    "achievements": "To Platinum",
+    "bem_vindo": "Welcome",
+    "welcome_subtitle": "Your complete gaming ecosystem",
+    "online_friends": "Online Friends",
+    "subscribe_cloud": "Subscribe Hydra Cloud",
+    "patch_notes": "Hydra Updates"
   },
   "sidebar": {
     "catalogue": "Catalogue",
