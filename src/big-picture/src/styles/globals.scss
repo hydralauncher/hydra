@@ -70,6 +70,26 @@
   }
 }
 
+// Shared look for a small frosted-glass text badge (e.g. the "Custom" game
+// badge), used on both the library card overlay and the game page hero.
+@mixin big-picture-floating-text-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  color: #fafafa;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 html,
 body,
 #root {
