@@ -1,6 +1,6 @@
-import checkDiskSpace from "check-disk-space";
 import { MINIMUM_FREE_DISK_SPACE_BYTES } from "@shared";
 import type { Download } from "@types";
+import { getDiskUsage } from "../disk-usage";
 
 export const DISK_SPACE_CHECK_INTERVAL_MS = 10_000;
 
@@ -21,20 +21,18 @@ const getRemainingBytes = (download: Download) => {
 export const getDownloadDiskSpace = async (
   download: Download
 ): Promise<DownloadDiskSpace | null> => {
-  try {
-    const { free } = await checkDiskSpace(download.downloadPath);
+  const usage = await getDiskUsage(download.downloadPath);
 
-    const requiredBytes = Math.max(
-      getRemainingBytes(download),
-      MINIMUM_FREE_DISK_SPACE_BYTES
-    );
+  if (!usage) return null;
 
-    return {
-      freeBytes: free,
-      requiredBytes,
-      hasEnoughSpace: free >= requiredBytes,
-    };
-  } catch {
-    return null;
-  }
+  const requiredBytes = Math.max(
+    getRemainingBytes(download),
+    MINIMUM_FREE_DISK_SPACE_BYTES
+  );
+
+  return {
+    freeBytes: usage.free,
+    requiredBytes,
+    hasEnoughSpace: usage.free >= requiredBytes,
+  };
 };
