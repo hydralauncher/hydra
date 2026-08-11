@@ -222,7 +222,20 @@ export class GofileApi {
         return undefined;
       }
 
-      return new URL(match[1], this.websiteUrl).href;
+      const scriptUrl = new URL(match[1], this.websiteUrl);
+      const websiteHostname = new URL(this.websiteUrl).hostname;
+      const isWebsiteHost =
+        scriptUrl.hostname === websiteHostname ||
+        scriptUrl.hostname.endsWith(`.${websiteHostname}`);
+
+      if (scriptUrl.protocol !== "https:" || !isWebsiteHost) {
+        logger.warn(
+          `[Gofile] Ignoring WT script URL outside the Gofile origin: ${scriptUrl.href}`
+        );
+        return undefined;
+      }
+
+      return scriptUrl.href;
     } catch (error) {
       logger.warn("[Gofile] Failed to discover WT script URL", error);
       return undefined;
