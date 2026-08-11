@@ -1398,28 +1398,38 @@ export class DownloadManager {
     url: string;
     headers?: Record<string, string>;
   }> {
-    const alternateCdnDownloadLink =
-      await GofileApi.getAlternateCdnDownloadLinkIfAvailable(id);
+    try {
+      const downloadLink = await GofileApi.getDownloadLink(id, password);
+      await GofileApi.checkDownloadUrl(downloadLink);
+      const token = await GofileApi.authorize();
 
-    if (alternateCdnDownloadLink) {
+      logger.log(
+        `[DownloadManager] GoFile download ${id} will use the official downloader`
+      );
+
+      return {
+        url: downloadLink,
+        headers: { Cookie: `accountToken=${token}` },
+      };
+    } catch (error) {
+      logger.warn(
+        `[DownloadManager] Official GoFile downloader failed for ${id}; checking alternate CDN`,
+        error
+      );
+
+      const alternateCdnDownloadLink =
+        await GofileApi.getAlternateCdnDownloadLinkIfAvailable(id);
+
+      if (!alternateCdnDownloadLink) {
+        throw error;
+      }
+
       logger.log(
         `[DownloadManager] GoFile download ${id} will use alternate CDN`
       );
+
       return { url: alternateCdnDownloadLink };
     }
-
-    logger.log(
-      `[DownloadManager] GoFile download ${id} will use official GoFile fallback`
-    );
-
-    const downloadLink = await GofileApi.getDownloadLink(id, password);
-    await GofileApi.checkDownloadUrl(downloadLink);
-    const token = await GofileApi.authorize();
-
-    return {
-      url: downloadLink,
-      headers: { Cookie: `accountToken=${token}` },
-    };
   }
 
   private static async getPixelDrainDownloadOptions(
