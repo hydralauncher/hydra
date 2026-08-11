@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable */
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import "./ColorBends.scss";

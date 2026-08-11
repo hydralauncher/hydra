@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable */
 /* eslint-disable react/no-unknown-property */
 import {
   forwardRef,

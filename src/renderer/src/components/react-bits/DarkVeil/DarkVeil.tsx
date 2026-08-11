@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable */
 import { useRef, useEffect } from "react";
 import { Renderer, Program, Mesh, Triangle, Vec2 } from "ogl";
 import "./DarkVeil.scss";

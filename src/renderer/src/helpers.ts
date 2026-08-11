@@ -100,7 +100,9 @@ export const playBeep = (): void => {
 
     osc.start(now);
     osc.stop(now + 0.04);
-  } catch {}
+  } catch {
+    // Ignore audio error
+  }
 };
 
 export const playIntroSound = (): void => {
@@ -151,7 +153,9 @@ export const playIntroSound = (): void => {
     setTimeout(() => {
       ctx.close();
     }, 1500);
-  } catch {}
+  } catch {
+    // Ignore audio error
+  }
 };
 
 export const ensureArray = <T>(value: unknown, source: string): T[] => {

@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable */
 import { useEffect, useRef } from "react";
 import { Renderer, Camera, Geometry, Program, Mesh } from "ogl";
 
