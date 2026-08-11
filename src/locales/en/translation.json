@@ -14,12 +14,13 @@
     "error_boundary_restart": "Restart"
   },
   "home": {
+    "my_games": "My Games",
     "surprise_me": "Surprise me",
     "no_results": "No results found",
     "start_typing": "Start typing to search...",
     "hot": "Hot now",
-    "weekly": "📅 Top games of the week",
-    "achievements": "🏆 Games to beat"
+    "weekly": "Top Weekly",
+    "achievements": "Top Achievements"
   },
   "sidebar": {
     "catalogue": "Catalogue",

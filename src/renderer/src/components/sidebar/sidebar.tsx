@@ -492,270 +492,271 @@ export function Sidebar() {
         }}
       >
         <div className="sidebar__container">
-        <div className="sidebar__brand">
-          <HydraIcon className="sidebar__brand-icon" />
-          <h1 className="sidebar__brand-name">HYDRA</h1>
-        </div>
-        <div className="sidebar__content">
-          {/* ── Nav·Links rápidos ── */}
-          <nav className="sidebar__nav-links">
-            {import.meta.env.DEV && (
+          <div className="sidebar__brand">
+            <HydraIcon className="sidebar__brand-icon" />
+            <h1 className="sidebar__brand-name">HYDRA</h1>
+          </div>
+          <div className="sidebar__content">
+            {/* ── Nav·Links rápidos ── */}
+            <nav className="sidebar__nav-links">
+              {import.meta.env.DEV && (
+                <button
+                  type="button"
+                  className="sidebar__nav-link"
+                  onClick={() => navigate("/achievements")}
+                >
+                  <TrophyIcon size={14} />
+                  <span>Conquistas</span>
+                  {totalAchievements > 0 && (
+                    <small className="sidebar__nav-link-badge">
+                      {totalAchievements}
+                    </small>
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 className="sidebar__nav-link"
-                onClick={() => navigate("/achievements")}
+                onClick={() =>
+                  userDetails
+                    ? navigate(`/profile/${userDetails.id}`)
+                    : window.electron.openAuthWindow(AuthPage.SignIn)
+                }
               >
-                <TrophyIcon size={14} />
-                <span>Conquistas</span>
-                {totalAchievements > 0 && (
+                <PeopleIcon size={14} />
+                <span>Amigos</span>
+                {onlineFriendsCount > 0 && (
                   <small className="sidebar__nav-link-badge">
-                    {totalAchievements}
+                    {onlineFriendsCount > 99 ? "99+" : onlineFriendsCount}
                   </small>
                 )}
               </button>
-            )}
-            <button
-              type="button"
-              className="sidebar__nav-link"
-              onClick={() =>
-                userDetails
-                  ? navigate(`/profile/${userDetails.id}`)
-                  : window.electron.openAuthWindow(AuthPage.SignIn)
-              }
-            >
-              <PeopleIcon size={14} />
-              <span>Amigos</span>
-              {onlineFriendsCount > 0 && (
-                <small className="sidebar__nav-link-badge">
-                  {onlineFriendsCount > 99 ? "99+" : onlineFriendsCount}
-                </small>
-              )}
-            </button>
-            <button
-              type="button"
-              className="sidebar__nav-link"
-              onClick={() =>
-                hasActiveSubscription
-                  ? navigate("/settings")
-                  : window.electron.openExternal(
-                      "https://checkout.hydralauncher.gg"
+              <button
+                type="button"
+                className="sidebar__nav-link"
+                onClick={() =>
+                  hasActiveSubscription
+                    ? navigate("/settings")
+                    : window.electron.openExternal(
+                        "https://checkout.hydralauncher.gg"
+                      )
+                }
+              >
+                <CloudIcon size={14} />
+                <span>Hydra Cloud</span>
+              </button>
+            </nav>
+
+            <div className="sidebar__divider" />
+
+            <SidebarGameRunning />
+            <SidebarActiveDownload />
+            <SidebarOnlineFriends />
+
+            {/* ── Toggle Favoritos / Instalados ── */}
+            <div className="sidebar__game-toggle">
+              <button
+                type="button"
+                className="sidebar__game-toggle-btn"
+                onClick={() => setShowInstalledGames(!showInstalledGames)}
+              >
+                <div
+                  key={showInstalledGames ? "installed" : "favorites"}
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <div className="sidebar__game-toggle-text">
+                    {(showInstalledGames
+                      ? t("installed", { defaultValue: "Instalados" })
+                      : t("favorites", { defaultValue: "Favoritos" })
                     )
-              }
-            >
-              <CloudIcon size={14} />
-              <span>Hydra Cloud</span>
-            </button>
-          </nav>
+                      .split("")
+                      .map((char, index) => (
+                        <span
+                          key={index}
+                          className="sidebar__game-toggle-letter"
+                          style={{ animationDelay: `${index * 25}ms` }}
+                        >
+                          {char === " " ? "\u00A0" : char}
+                        </span>
+                      ))}
+                  </div>
+                  <div
+                    className={cn("sidebar__game-toggle-icon", {
+                      "sidebar__game-toggle-icon--installed":
+                        showInstalledGames,
+                    })}
+                  >
+                    <ArrowRightLeftIcon size={12} />
+                  </div>
+                </div>
+                <span className="sidebar__game-toggle-count">
+                  {showInstalledGames
+                    ? installedGames.length
+                    : favoriteGames.length}
+                </span>
+              </button>
 
-          <div className="sidebar__divider" />
-
-          <SidebarGameRunning />
-          <SidebarActiveDownload />
-          <SidebarOnlineFriends />
-
-          {/* ── Toggle Favoritos / Instalados ── */}
-          <div className="sidebar__game-toggle">
-            <button
-              type="button"
-              className="sidebar__game-toggle-btn"
-              onClick={() => setShowInstalledGames(!showInstalledGames)}
-            >
               <div
                 key={showInstalledGames ? "installed" : "favorites"}
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                className="sidebar__favorites-list"
               >
-                <div className="sidebar__game-toggle-text">
-                  {(showInstalledGames
-                    ? t("installed", { defaultValue: "Instalados" })
-                    : t("favorites", { defaultValue: "Favoritos" })
+                {(showInstalledGames ? installedGames : favoriteGames)
+                  .length === 0 ? (
+                  <p className="sidebar__menu-empty">
+                    {showInstalledGames
+                      ? t("no_installed_games", {
+                          defaultValue: "Nenhum jogo instalado",
+                        })
+                      : t("no_favorites", {
+                          defaultValue: "Nenhum jogo favorito",
+                        })}
+                  </p>
+                ) : (
+                  (showInstalledGames ? installedGames : favoriteGames).map(
+                    (game) => (
+                      <SidebarFavoriteCard
+                        key={game.id}
+                        game={game}
+                        onClick={handleSidebarGameClick}
+                      />
+                    )
                   )
-                    .split("")
-                    .map((char, index) => (
-                      <span
-                        key={index}
-                        className="sidebar__game-toggle-letter"
-                        style={{ animationDelay: `${index * 25}ms` }}
-                      >
-                        {char === " " ? "\u00A0" : char}
-                      </span>
-                    ))}
-                </div>
-                <div
-                  className={cn("sidebar__game-toggle-icon", {
-                    "sidebar__game-toggle-icon--installed": showInstalledGames,
-                  })}
-                >
-                  <ArrowRightLeftIcon size={12} />
-                </div>
+                )}
               </div>
-              <span className="sidebar__game-toggle-count">
-                {showInstalledGames
-                  ? installedGames.length
-                  : favoriteGames.length}
-              </span>
-            </button>
-
-            <div
-              key={showInstalledGames ? "installed" : "favorites"}
-              className="sidebar__favorites-list"
-            >
-              {(showInstalledGames ? installedGames : favoriteGames).length ===
-              0 ? (
-                <p className="sidebar__menu-empty">
-                  {showInstalledGames
-                    ? t("no_installed_games", {
-                        defaultValue: "Nenhum jogo instalado",
-                      })
-                    : t("no_favorites", {
-                        defaultValue: "Nenhum jogo favorito",
-                      })}
-                </p>
-              ) : (
-                (showInstalledGames ? installedGames : favoriteGames).map(
-                  (game) => (
-                    <SidebarFavoriteCard
-                      key={game.id}
-                      game={game}
-                      onClick={handleSidebarGameClick}
-                    />
-                  )
-                )
-              )}
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="sidebar__bottom-buttons">
-        <button
-          type="button"
-          className="sidebar__add-game-button"
-          onClick={handleAddGameButtonClick}
-        >
-          <PlusIcon size={14} />
-          <span>
-            {t("add_custom_game_tooltip", { defaultValue: "Adicionar jogo" })}
-          </span>
-        </button>
-
-        {hasActiveSubscription && (
+        <div className="sidebar__bottom-buttons">
           <button
             type="button"
-            className="sidebar__help-button"
-            data-open-support-chat
+            className="sidebar__add-game-button"
+            onClick={handleAddGameButtonClick}
           >
-            <div className="sidebar__help-button-icon">
-              <CommentDiscussionIcon size={14} />
-            </div>
-            <span>{t("need_help")}</span>
+            <PlusIcon size={14} />
+            <span>
+              {t("add_custom_game_tooltip", { defaultValue: "Adicionar jogo" })}
+            </span>
           </button>
-        )}
-      </div>
 
-      <button
-        type="button"
-        className="sidebar__handle"
-        onMouseDown={handleMouseDown}
-      />
-
-      <SidebarAddingCustomGameModal
-        visible={showAddGameModal}
-        onClose={handleCloseAddGameModal}
-      />
-
-      <CreateCollectionModal
-        visible={showCreateCollectionModal}
-        onClose={() => setShowCreateCollectionModal(false)}
-      />
-
-      <ContextMenu
-        items={collectionContextMenuItems}
-        visible={collectionContextMenu.visible}
-        position={collectionContextMenu.position}
-        onClose={handleCloseCollectionContextMenu}
-      />
-
-      <Modal
-        visible={showRenameCollectionModal}
-        title={t("rename_collection", { ns: "library" })}
-        description={t("rename_collection_description", { ns: "library" })}
-        onClose={handleCloseRenameCollectionModal}
-      >
-        <div className="sidebar__collection-modal">
-          <TextField
-            label={t("collection_name")}
-            placeholder={t("collection_name_placeholder")}
-            value={collectionName}
-            onChange={(event) => setCollectionName(event.target.value)}
-            theme="dark"
-            disabled={isRenamingCollection}
-            maxLength={60}
-          />
-
-          <div className="sidebar__collection-modal-actions">
-            <Button
+          {hasActiveSubscription && (
+            <button
               type="button"
-              theme="outline"
-              onClick={handleCloseRenameCollectionModal}
-              disabled={isRenamingCollection}
+              className="sidebar__help-button"
+              data-open-support-chat
             >
-              {t("cancel")}
-            </Button>
-
-            <Button
-              type="button"
-              theme="primary"
-              onClick={() => {
-                void handleRenameCollection();
-              }}
-              disabled={!collectionName.trim() || isRenamingCollection}
-            >
-              {isRenamingCollection
-                ? t("renaming_collection", { ns: "library" })
-                : t("rename_collection", { ns: "library" })}
-            </Button>
-          </div>
+              <div className="sidebar__help-button-icon">
+                <CommentDiscussionIcon size={14} />
+              </div>
+              <span>{t("need_help")}</span>
+            </button>
+          )}
         </div>
-      </Modal>
 
-      <ConfirmationModal
-        visible={showDeleteCollectionModal}
-        title={t("delete_collection_title", { ns: "library" })}
-        descriptionText={t("delete_collection_description", {
-          ns: "library",
-          collectionName: activeCollection?.name ?? "",
-        })}
-        onClose={handleCloseDeleteCollectionModal}
-        onConfirm={() => {
-          void handleDeleteCollection();
-        }}
-        cancelButtonLabel={t("cancel")}
-        confirmButtonLabel={t("delete_collection", { ns: "library" })}
-        buttonsIsDisabled={isDeletingCollection}
-      />
+        <button
+          type="button"
+          className="sidebar__handle"
+          onMouseDown={handleMouseDown}
+        />
 
-      <ConfirmationModal
-        visible={showDeckyConfirmModal}
-        title={
-          deckyPluginInfo.installed && deckyPluginInfo.outdated
-            ? t("update_decky_plugin_title")
-            : t("install_decky_plugin_title")
-        }
-        descriptionText={
-          deckyPluginInfo.installed && deckyPluginInfo.outdated
-            ? t("update_decky_plugin_message")
-            : t("install_decky_plugin_message")
-        }
-        onClose={() => setShowDeckyConfirmModal(false)}
-        onConfirm={handleConfirmDeckyInstallation}
-        cancelButtonLabel={t("cancel")}
-        confirmButtonLabel={t("confirm")}
-      />
+        <SidebarAddingCustomGameModal
+          visible={showAddGameModal}
+          onClose={handleCloseAddGameModal}
+        />
 
-      <Tooltip id="add-custom-game-tooltip" />
-      <Tooltip id="create-collection-tooltip" />
-      <Tooltip id="show-playable-only-tooltip" />
-    </aside>
+        <CreateCollectionModal
+          visible={showCreateCollectionModal}
+          onClose={() => setShowCreateCollectionModal(false)}
+        />
+
+        <ContextMenu
+          items={collectionContextMenuItems}
+          visible={collectionContextMenu.visible}
+          position={collectionContextMenu.position}
+          onClose={handleCloseCollectionContextMenu}
+        />
+
+        <Modal
+          visible={showRenameCollectionModal}
+          title={t("rename_collection", { ns: "library" })}
+          description={t("rename_collection_description", { ns: "library" })}
+          onClose={handleCloseRenameCollectionModal}
+        >
+          <div className="sidebar__collection-modal">
+            <TextField
+              label={t("collection_name")}
+              placeholder={t("collection_name_placeholder")}
+              value={collectionName}
+              onChange={(event) => setCollectionName(event.target.value)}
+              theme="dark"
+              disabled={isRenamingCollection}
+              maxLength={60}
+            />
+
+            <div className="sidebar__collection-modal-actions">
+              <Button
+                type="button"
+                theme="outline"
+                onClick={handleCloseRenameCollectionModal}
+                disabled={isRenamingCollection}
+              >
+                {t("cancel")}
+              </Button>
+
+              <Button
+                type="button"
+                theme="primary"
+                onClick={() => {
+                  void handleRenameCollection();
+                }}
+                disabled={!collectionName.trim() || isRenamingCollection}
+              >
+                {isRenamingCollection
+                  ? t("renaming_collection", { ns: "library" })
+                  : t("rename_collection", { ns: "library" })}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        <ConfirmationModal
+          visible={showDeleteCollectionModal}
+          title={t("delete_collection_title", { ns: "library" })}
+          descriptionText={t("delete_collection_description", {
+            ns: "library",
+            collectionName: activeCollection?.name ?? "",
+          })}
+          onClose={handleCloseDeleteCollectionModal}
+          onConfirm={() => {
+            void handleDeleteCollection();
+          }}
+          cancelButtonLabel={t("cancel")}
+          confirmButtonLabel={t("delete_collection", { ns: "library" })}
+          buttonsIsDisabled={isDeletingCollection}
+        />
+
+        <ConfirmationModal
+          visible={showDeckyConfirmModal}
+          title={
+            deckyPluginInfo.installed && deckyPluginInfo.outdated
+              ? t("update_decky_plugin_title")
+              : t("install_decky_plugin_title")
+          }
+          descriptionText={
+            deckyPluginInfo.installed && deckyPluginInfo.outdated
+              ? t("update_decky_plugin_message")
+              : t("install_decky_plugin_message")
+          }
+          onClose={() => setShowDeckyConfirmModal(false)}
+          onConfirm={handleConfirmDeckyInstallation}
+          cancelButtonLabel={t("cancel")}
+          confirmButtonLabel={t("confirm")}
+        />
+
+        <Tooltip id="add-custom-game-tooltip" />
+        <Tooltip id="create-collection-tooltip" />
+        <Tooltip id="show-playable-only-tooltip" />
+      </aside>
     </div>
   );
 }

@@ -1,16 +1,29 @@
 import { useEffect, useState } from "react";
+import { playIntroSound } from "@renderer/helpers";
 import "./splash-screen.scss";
 
 export function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true);
+  const [isRendered, setIsRendered] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-    }, 900);
+    playIntroSound();
 
-    return () => clearTimeout(timer);
+    const fadeTimer = setTimeout(() => {
+      setIsVisible(false);
+    }, 1400);
+
+    const unmountTimer = setTimeout(() => {
+      setIsRendered(false);
+    }, 1900);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(unmountTimer);
+    };
   }, []);
+
+  if (!isRendered) return null;
 
   return (
     <div

@@ -32,9 +32,7 @@ main {
 body {
   overflow: hidden;
   user-select: none;
-  font-family:
-    Noto Sans,
-    sans-serif;
+  font-family: "Poppins", "Noto Sans", sans-serif;
   font-size: globals.$body-font-size;
   color: globals.$body-color;
   margin: 0;
@@ -214,6 +212,10 @@ progress[value] {
 .woot-widget-bubble,
 .woot--bubble-holder,
 .woot-widget-holder,
-#cw-widget-holder {
-  bottom: 56px !important;
+#cw-widget-holder,
+#ww-feedback-widget,
+.ww-feedback-widget,
+[class*="feedback-widget"],
+iframe[src*="feedback"] {
+  display: none !important;
 }

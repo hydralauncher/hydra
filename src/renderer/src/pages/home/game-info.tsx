@@ -103,6 +103,7 @@ export function GameInfo({
   );
   const fetchedRef = useRef<string>("");
   const [sourceNames, setSourceNames] = useState<string[]>([]);
+  const [showAllTags, setShowAllTags] = useState(false);
   const [executableExists, setExecutableExists] = useState<boolean | null>(
     null
   );
@@ -135,6 +136,10 @@ export function GameInfo({
   }, [game.objectId, game.shop, i18n.language]);
 
   useEffect(() => {
+    setShowAllTags(false);
+  }, [game.objectId]);
+
+  useEffect(() => {
     const resolve = async () => {
       if (!sourcesCache) {
         const all = (await levelDBService.values(
@@ -146,7 +151,7 @@ export function GameInfo({
       const sources = game.downloadSources ?? [];
 
       if (!sources.length) {
-        setSourceNames(sourcesCache.map((s) => s.name));
+        setSourceNames([]);
         return;
       }
 
@@ -181,13 +186,31 @@ export function GameInfo({
 
   const meta = [publisher, date].filter(Boolean).join(" - ");
 
+  const getPaddingLeft = () => {
+    const isSmall = window.innerWidth <= 1536 || window.innerHeight <= 900;
+    return isSmall ? 420 : 520;
+  };
+
+  const dynamicPaddingLeft = getPaddingLeft();
+
+  const visibleTags =
+    showAllTags || sourceNames.length <= 3
+      ? sourceNames
+      : sourceNames.slice(0, 3);
+
   return (
-    <div className="home__details">
+    <div
+      className="home__details"
+      style={{
+        paddingLeft: `${dynamicPaddingLeft}px`,
+        transition: "padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
+    >
       <h1 className="home__game-title">{game.title}</h1>
       {meta && <p className="home__game-meta">{meta}</p>}
       {sourceNames.length > 0 && (
         <div className="home__source-tags">
-          {sourceNames.map((name) => (
+          {visibleTags.map((name) => (
             <span
               key={name}
               className={`home__source-tag ${isBgLight ? "home__source-tag--dark" : ""}`}
@@ -195,6 +218,18 @@ export function GameInfo({
               {name}
             </span>
           ))}
+
+          {sourceNames.length > 3 && (
+            <button
+              type="button"
+              className={`home__source-tag home__source-tag--toggle ${
+                isBgLight ? "home__source-tag--dark" : ""
+              }`}
+              onClick={() => setShowAllTags((prev) => !prev)}
+            >
+              {showAllTags ? "-" : `+${sourceNames.length - 3}`}
+            </button>
+          )}
         </div>
       )}
       <div className="home__actions">

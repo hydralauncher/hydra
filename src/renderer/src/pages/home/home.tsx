@@ -33,6 +33,8 @@ import cn from "classnames";
 import { GameInfo } from "./game-info";
 import { FolderInfo } from "./folder-info";
 import { HeroCarousel } from "./hero-carousel";
+import AddFolderSvg from "@renderer/assets/icons/add folder.svg?react";
+import BibliotecaSvg from "@renderer/assets/icons/Biblioteca.svg?react";
 import {
   ContextMenu,
   type ContextMenuItemData,
@@ -40,12 +42,7 @@ import {
   DownloadGameModal,
 } from "@renderer/components";
 import { useHomeGroups, type HomeGroup } from "@renderer/hooks/use-home-groups";
-import {
-  PlusCircleIcon,
-  StackIcon,
-  TrashIcon,
-  GiftIcon,
-} from "@primer/octicons-react";
+import { PlusCircleIcon, TrashIcon, GiftIcon } from "@primer/octicons-react";
 import { setOpenedFolderName } from "@renderer/features";
 import { useGamepadConnected } from "@renderer/hooks/use-gamepad";
 import { useHomeGamepad } from "@renderer/hooks/use-home-gamepad";
@@ -228,6 +225,17 @@ export function HomeGameImage({ game }: { game: ShopAssets }) {
   );
 }
 
+const cleanTabLabel = (text: string) =>
+  text
+    .replace(
+      /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/gu,
+      ""
+    )
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .join(" ");
+
 export default function Home() {
   const { t, i18n } = useTranslation("home");
   const navigate = useNavigate();
@@ -250,14 +258,35 @@ export default function Home() {
   });
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
 
+  const scrollToCard = useCallback((index: number) => {
+    requestAnimationFrame(() => {
+      const slider = sliderRef.current;
+      if (!slider || !slider.children[index]) return;
+
+      const targetCard = slider.children[index] as HTMLElement;
+      const slot3Card =
+        (slider.children[2] as HTMLElement) ||
+        (slider.children[0] as HTMLElement);
+
+      const slot3X = slot3Card ? slot3Card.offsetLeft : 0;
+      const targetLeft = targetCard.offsetLeft - slot3X;
+
+      slider.scrollTo({
+        left: Math.max(0, targetLeft),
+        behavior: "smooth",
+      });
+    });
+  }, []);
+
   const prevIndexRef = useRef(selectedIndex);
 
   useEffect(() => {
     if (prevIndexRef.current !== selectedIndex) {
       if (!isLoading) playBeep();
       prevIndexRef.current = selectedIndex;
+      scrollToCard(selectedIndex);
     }
-  }, [selectedIndex, isLoading]);
+  }, [selectedIndex, isLoading, scrollToCard]);
 
   const dispatch = useAppDispatch();
   const { closeFolderTrigger } = useAppSelector((state) => state.window);
@@ -502,10 +531,14 @@ export default function Home() {
 
     const FOLDERS = groups.map((g) => {
       const covers = g.gameIds
-        .map(
-          (id) =>
-            libraryAsGames.find((lg) => lg.objectId === id)?.libraryImageUrl
-        )
+        .map((id) => {
+          const game = libraryAsGames.find((lg) => lg.objectId === id);
+          if (!game) return null;
+          if (game.shop === "steam") {
+            return `https://steamcdn-a.akamaihd.net/steam/apps/${game.objectId}/library_600x900_2x.jpg`;
+          }
+          return game.libraryImageUrl ?? null;
+        })
         .filter(Boolean) as string[];
       // We will fill missing covers with null to render opaque boxes later if needed
       return { type: "folder" as const, data: g, covers: covers.slice(0, 4) };
@@ -538,20 +571,21 @@ export default function Home() {
       (a.data.name || "").localeCompare(b.data.name || "")
     );
 
-    const combined: {
+    const actionButtons: {
       type: "game" | "folder" | "button_library" | "button_create_folder";
       data: any;
       covers: string[];
-    }[] = [...trendingGames, ...sortedFolders, ...remainingGames];
+    }[] = [
+      { type: "button_library", data: null as any, covers: [] },
+      { type: "button_create_folder", data: null as any, covers: [] },
+    ];
 
-    combined.push({ type: "button_library", data: null as any, covers: [] });
-    combined.push({
-      type: "button_create_folder",
-      data: null as any,
-      covers: [],
-    });
-
-    return combined;
+    return [
+      ...actionButtons,
+      ...trendingGames,
+      ...sortedFolders,
+      ...remainingGames,
+    ];
   }, [
     isMyGames,
     isInstalledGames,
@@ -578,7 +612,7 @@ export default function Home() {
       return selectedGame.libraryHeroImageUrl;
     }
     if (selectedGame.shop === "steam") {
-      return `https://steamcdn-a.akamaihd.net/steam/apps/${selectedGame.objectId}/library_hero.jpg`;
+      return `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${selectedGame.objectId}/page_bg_generated_v6.jpg`;
     }
     return selectedGame.libraryImageUrl ?? undefined;
   }, [selectedGame]);
@@ -593,44 +627,83 @@ export default function Home() {
   const { color: glowColor } = useDominantColor(cardImageUrl);
   const { isLight: isBgLight } = useDominantColor(backgroundSrc);
 
-  const scrollToCard = useCallback((index: number) => {
-    const slider = sliderRef.current;
-    if (!slider) return;
-    const card = slider.children[index] as HTMLElement | undefined;
-    if (!card) return;
-    const padding = slider.clientWidth * 0.03;
-    const cardLeft = card.offsetLeft;
-    const cardRight = card.offsetLeft + card.offsetWidth;
-    const visibleLeft = slider.scrollLeft;
-    const visibleRight = slider.scrollLeft + slider.clientWidth;
-
-    if (cardLeft < visibleLeft + padding) {
-      slider.scrollTo({ left: cardLeft - padding, behavior: "smooth" });
-    } else if (cardRight > visibleRight - padding) {
-      slider.scrollTo({
-        left: cardRight - slider.clientWidth + padding,
-        behavior: "smooth",
-      });
-    }
-  }, []);
-
   const isGamepadConnected = useGamepadConnected();
-  const allTabKeys = ["myGames", "installed", ...categories] as const;
-  const activeTabIndex = isMyGames
-    ? 0
-    : isInstalledGames
-      ? 1
-      : 2 + categories.indexOf(currentCatalogueCategory);
+  const hasInstalledGames = useMemo(
+    () => libraryAsGames.some((g) => Boolean(g.executablePath)),
+    [libraryAsGames]
+  );
+
+  const allTabKeys = useMemo(
+    () =>
+      hasInstalledGames
+        ? (["myGames", "installed", ...categories] as const)
+        : (["myGames", ...categories] as const),
+    [hasInstalledGames, categories]
+  );
+
+  const activeTabIndex = useMemo(() => {
+    if (isMyGames) return 0;
+    if (hasInstalledGames) {
+      if (isInstalledGames) return 1;
+      return 2 + categories.indexOf(currentCatalogueCategory);
+    }
+    return 1 + categories.indexOf(currentCatalogueCategory);
+  }, [
+    isMyGames,
+    hasInstalledGames,
+    isInstalledGames,
+    categories,
+    currentCatalogueCategory,
+  ]);
 
   const handleTabChange = useCallback(
     (idx: number) => {
-      if (idx === 0) handleMyGamesClick();
-      else if (idx === 1) handleInstalledGamesClick();
-      else handleCatTabClick(categories[idx - 2]);
+      if (idx === 0) {
+        handleMyGamesClick();
+      } else if (hasInstalledGames && idx === 1) {
+        handleInstalledGamesClick();
+      } else {
+        const catIdx = hasInstalledGames ? idx - 2 : idx - 1;
+        if (categories[catIdx]) {
+          handleCatTabClick(categories[catIdx]);
+        }
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [categories, currentCatalogueCategory, isMyGames, isInstalledGames]
+    [
+      hasInstalledGames,
+      categories,
+      handleMyGamesClick,
+      handleInstalledGamesClick,
+      handleCatTabClick,
+    ]
   );
+
+  const handleSurpriseMeClick = useCallback(async () => {
+    if (libraryAsGames.length > 0 && isMyGames) {
+      const randomGame =
+        libraryAsGames[Math.floor(Math.random() * libraryAsGames.length)];
+      navigate(buildGameDetailsPath(randomGame as ShopAssets));
+    } else {
+      try {
+        const randomGame = await window.electron.getRandomGame();
+        if (randomGame) {
+          navigate(
+            buildGameDetailsPath(
+              {
+                shop: "steam",
+                objectId: randomGame.objectId,
+                title: randomGame.title,
+              } as unknown as ShopAssets,
+              { fromRandomizer: "1" }
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Failed to fetch random game", err);
+      }
+    }
+  }, [libraryAsGames, isMyGames, navigate]);
 
   const handleGamepadConfirm = useCallback(() => {
     const item = homeItems[selectedIndex];
@@ -771,60 +844,77 @@ export default function Home() {
 
         <div className="home__content">
           {!openedGroup && (
-            <ul className="home__tabs" data-gamepad-ignore="true">
-              {isGamepadConnected && (
-                <li className="home__tabs-hint">
-                  <GamepadHint label="LT" position="left" />
-                </li>
-              )}
-              <li>
-                <Button
-                  theme={
-                    isMyGames ? (isBgLight ? "dark" : "primary") : "outline"
-                  }
-                  onClick={handleMyGamesClick}
-                >
-                  {t("my_games")}
-                </Button>
-              </li>
-              <li>
-                <Button
-                  theme={
-                    isInstalledGames
-                      ? isBgLight
-                        ? "dark"
-                        : "primary"
-                      : "outline"
-                  }
-                  onClick={handleInstalledGamesClick}
-                >
-                  {t("installed", { defaultValue: "Instalados" })}
-                </Button>
-              </li>
-              {categories.map((category) => (
-                <li key={category}>
+            <div className="home__tabs-row">
+              <ul className="home__tabs" data-gamepad-ignore="true">
+                {isGamepadConnected && (
+                  <li className="home__tabs-hint">
+                    <GamepadHint label="LT" position="left" />
+                  </li>
+                )}
+                <li>
                   <Button
                     theme={
-                      !isMyGames &&
-                      !isInstalledGames &&
-                      category === currentCatalogueCategory
-                        ? isBgLight
-                          ? "dark"
-                          : "primary"
-                        : "outline"
+                      isMyGames ? (isBgLight ? "dark" : "primary") : "outline"
                     }
-                    onClick={() => handleCatTabClick(category)}
+                    onClick={handleMyGamesClick}
                   >
-                    {t(category)}
+                    {cleanTabLabel(
+                      t("my_games", { defaultValue: "Meus Jogos" })
+                    )}
                   </Button>
                 </li>
-              ))}
-              {isGamepadConnected && (
-                <li className="home__tabs-hint">
-                  <GamepadHint label="RT" position="right" />
-                </li>
-              )}
-            </ul>
+                {hasInstalledGames && (
+                  <li>
+                    <Button
+                      theme={
+                        isInstalledGames
+                          ? isBgLight
+                            ? "dark"
+                            : "primary"
+                          : "outline"
+                      }
+                      onClick={handleInstalledGamesClick}
+                    >
+                      {cleanTabLabel(
+                        t("installed", { defaultValue: "Instalados" })
+                      )}
+                    </Button>
+                  </li>
+                )}
+                {categories.map((category) => (
+                  <li key={category}>
+                    <Button
+                      theme={
+                        !isMyGames &&
+                        !isInstalledGames &&
+                        category === currentCatalogueCategory
+                          ? isBgLight
+                            ? "dark"
+                            : "primary"
+                          : "outline"
+                      }
+                      onClick={() => handleCatTabClick(category)}
+                    >
+                      {cleanTabLabel(t(category))}
+                    </Button>
+                  </li>
+                ))}
+                {isGamepadConnected && (
+                  <li className="home__tabs-hint">
+                    <GamepadHint label="RT" position="right" />
+                  </li>
+                )}
+              </ul>
+
+              <Button
+                theme={isBgLight ? "dark" : "outline"}
+                className="home__surprise-me-button"
+                onClick={handleSurpriseMeClick}
+              >
+                <GiftIcon size={16} />
+                {t("surprise_me", { defaultValue: "Surpreenda-me" })}
+              </Button>
+            </div>
           )}
 
           {openedGroup && (
@@ -961,20 +1051,21 @@ export default function Home() {
                         })}
                         onFocus={() => {
                           setSelectedIndex(index);
-                          scrollToCard(index);
                         }}
                         onClick={() => {
                           if (dragRef.current.hasDragged) return;
                           setSelectedIndex(index);
                           navigate("/library");
                         }}
+                        aria-label={t("acessar_biblioteca", {
+                          defaultValue: "Acessar Biblioteca",
+                        })}
                       >
-                        <StackIcon size={32} />
-                        <span>
-                          {t("acessar_biblioteca", {
-                            defaultValue: "Acessar Biblioteca",
-                          })}
-                        </span>
+                        <BibliotecaSvg
+                          width={28}
+                          height={28}
+                          className="home__action-btn-icon"
+                        />
                       </button>
                     );
                   }
@@ -988,18 +1079,21 @@ export default function Home() {
                         })}
                         onFocus={() => {
                           setSelectedIndex(index);
-                          scrollToCard(index);
                         }}
                         onClick={() => {
                           if (dragRef.current.hasDragged) return;
                           setSelectedIndex(index);
                           navigate("/library?collection=new");
                         }}
+                        aria-label={t("criar_pasta", {
+                          defaultValue: "Criar pasta",
+                        })}
                       >
-                        <PlusCircleIcon size={32} />
-                        <span>
-                          {t("criar_pasta", { defaultValue: "Criar pasta" })}
-                        </span>
+                        <AddFolderSvg
+                          width={28}
+                          height={28}
+                          className="home__action-btn-icon"
+                        />
                       </button>
                     );
                   }
@@ -1034,7 +1128,6 @@ export default function Home() {
                       })}
                       onFocus={() => {
                         setSelectedIndex(index);
-                        scrollToCard(index);
                       }}
                       onClick={() => {
                         if (dragRef.current.hasDragged) return;
@@ -1095,6 +1188,14 @@ export default function Home() {
                     </button>
                   );
                 })}
+            <div
+              className="home__slider-spacer"
+              style={{
+                width: "calc(100vw - 3 * (120px + 24px))",
+                flexShrink: 0,
+                pointerEvents: "none",
+              }}
+            />
           </div>
 
           <div
@@ -1155,52 +1256,13 @@ export default function Home() {
             )}
 
             {!selectedGame && !selectedFolder && <div />}
-
-            {catalogue[CatalogueCategory.Hot]?.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <HeroCarousel games={catalogue[CatalogueCategory.Hot]} />
-                <div className="home__surprise-container">
-                  <Button
-                    theme="outline"
-                    className="home__surprise-button"
-                    onClick={async () => {
-                      if (libraryAsGames.length > 0 && isMyGames) {
-                        const randomGame =
-                          libraryAsGames[
-                            Math.floor(Math.random() * libraryAsGames.length)
-                          ];
-                        navigate(
-                          buildGameDetailsPath(randomGame as ShopAssets)
-                        );
-                      } else {
-                        try {
-                          const randomGame =
-                            await window.electron.getRandomGame();
-                          if (randomGame) {
-                            navigate(
-                              buildGameDetailsPath(
-                                {
-                                  shop: "steam",
-                                  objectId: randomGame.objectId,
-                                  title: randomGame.title,
-                                } as unknown as ShopAssets,
-                                { fromRandomizer: "1" }
-                              )
-                            );
-                          }
-                        } catch (err) {
-                          console.error("Failed to fetch random game", err);
-                        }
-                      }
-                    }}
-                  >
-                    <GiftIcon size={16} />
-                    {t("surprise_me", { defaultValue: "Surpreenda-me" })}
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
+
+          {catalogue[CatalogueCategory.Hot]?.length > 0 && (
+            <div className="home__carousel-wrapper">
+              <HeroCarousel games={catalogue[CatalogueCategory.Hot]} />
+            </div>
+          )}
         </div>
 
         {contextMenu && (

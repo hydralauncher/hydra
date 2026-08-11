@@ -29,16 +29,23 @@ export function FolderInfo({
 
   const first5 = games.slice(0, 5);
 
+  const getPaddingLeft = () => {
+    const isSmall = window.innerWidth <= 1536 || window.innerHeight <= 900;
+    return isSmall ? 500 : 600;
+  };
+
+  const dynamicPaddingLeft = getPaddingLeft();
+
   return (
-    <div className="home__details home__folder-info-container">
+    <div
+      className="home__details home__folder-info-container"
+      style={{
+        paddingLeft: `${dynamicPaddingLeft}px`,
+        transition: "padding-left 0.4s cubic-bezier(0.25, 1, 0.5, 1)",
+      }}
+    >
       <div className="home__folder-info-text">
-        <h1 className="home__game-title">{folder.name}</h1>
-        <p className="home__game-meta">
-          {games.length}{" "}
-          {games.length === 1
-            ? t("game", { defaultValue: "jogo" })
-            : t("games", { defaultValue: "jogos" })}
-        </p>
+        <h3 className="home__folder-info-title">{folder.name}</h3>
       </div>
 
       <div className="home__folder-info-content">

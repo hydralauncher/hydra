@@ -1,5 +1,20 @@
 @use "../../scss/globals.scss";
 
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spinBorderAngle {
+  0% {
+    --border-angle: 0deg;
+  }
+  100% {
+    --border-angle: 360deg;
+  }
+}
+
 .home {
   width: 100%;
   height: calc(100% + 95px);
@@ -21,7 +36,8 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center;
+    object-position: center top;
+    filter: brightness(0.85);
     z-index: 0;
     animation: fade-in 0.4s ease;
   }
@@ -40,9 +56,10 @@
     inset: 0;
     background: linear-gradient(
       180deg,
-      rgba(0, 0, 0, 0.2) 0%,
-      rgba(0, 0, 0, 0.4) 40%,
-      rgba(0, 0, 0, 0.8) 100%
+      rgba(0, 0, 0, 0.25) 0%,
+      rgba(0, 0, 0, 0.45) 45%,
+      rgba(15, 15, 15, 0.88) 80%,
+      rgba(13, 13, 13, 0.98) 100%
     );
     z-index: 1;
   }
@@ -52,18 +69,24 @@
     z-index: 2;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     height: 100%;
-    padding: 95px calc(globals.$spacing-unit * 3)
-      calc(globals.$spacing-unit * 2);
+    padding: 160px calc(globals.$spacing-unit * 3)
+      calc(globals.$spacing-unit * 3);
     gap: calc(globals.$spacing-unit * 1);
 
     .gamepad-active & {
       padding-bottom: 52px;
     }
 
+    @media (max-width: 1536px), (max-height: 900px) {
+      padding: 230px calc(globals.$spacing-unit * 2.5)
+        calc(globals.$spacing-unit * 2.5);
+      gap: calc(globals.$spacing-unit * 0.75);
+    }
+
     @media (max-width: 1300px) {
-      padding: 95px calc(globals.$spacing-unit * 2)
+      padding: 110px calc(globals.$spacing-unit * 2)
         calc(globals.$spacing-unit * 2);
 
       .gamepad-active & {
@@ -71,7 +94,7 @@
       }
     }
     @media (max-width: 800px) {
-      padding: 95px calc(globals.$spacing-unit * 1.5)
+      padding: 100px calc(globals.$spacing-unit * 1.5)
         calc(globals.$spacing-unit * 2);
       gap: calc(globals.$spacing-unit * 0.75);
 
@@ -99,6 +122,78 @@
       &::-webkit-scrollbar-track {
         background: transparent;
       }
+    }
+  }
+
+  &__tabs-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__surprise-me-button {
+    flex-shrink: 0;
+    margin-left: auto;
+    position: relative;
+    border: none !important;
+    border-radius: 100px !important;
+    padding: 7px 16px !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.3s ease !important;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      padding: 1px;
+      border-radius: 100px;
+      opacity: 0.5;
+      background: conic-gradient(
+        from var(--border-angle, 0deg),
+        rgba(255, 255, 255, 0.6) 0deg,
+        rgba(255, 255, 255, 0.08) 45deg,
+        rgba(255, 255, 255, 0.7) 90deg,
+        rgba(255, 255, 255, 0.05) 180deg,
+        rgba(255, 255, 255, 0.6) 270deg,
+        rgba(255, 255, 255, 0.08) 315deg,
+        rgba(255, 255, 255, 0.6) 360deg
+      );
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      animation: spinBorderAngle 4s linear infinite;
+      pointer-events: none;
+      z-index: 2;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 18px rgba(255, 255, 255, 0.15), 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+
+      &::before {
+        opacity: 0.85;
+        animation-duration: 2.5s;
+      }
+    }
+
+    &:active {
+      transform: translateY(0);
     }
   }
 
@@ -171,31 +266,52 @@
     gap: calc(globals.$spacing-unit * 1.5);
     overflow-x: auto;
     overflow-y: visible;
-    padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 3)
-      calc(globals.$spacing-unit * 1.5);
+    padding-top: calc(globals.$spacing-unit * 1);
+    padding-bottom: calc(globals.$spacing-unit * 1.5);
+    padding-left: calc(0.0 * (120px + 24px) + globals.$spacing-unit * 3);
+    padding-right: calc(4 * (120px + 24px));
     margin: 0 calc(globals.$spacing-unit * -3);
-    scroll-behavior: smooth;
-    align-items: center;
+    align-items: flex-start;
+    height: 290px;
     min-height: 290px;
+    max-height: 290px;
+
+    @media (max-width: 1536px), (max-height: 900px) {
+      padding-top: calc(globals.$spacing-unit * 0.75);
+      padding-bottom: calc(globals.$spacing-unit * 1);
+      padding-left: calc(0.0 * (118px + 16px) + globals.$spacing-unit * 2.5);
+      padding-right: calc(4 * (118px + 16px));
+      margin: 0 calc(globals.$spacing-unit * -2);
+      height: 255px;
+      min-height: 255px;
+      max-height: 255px;
+      gap: globals.$spacing-unit;
+    }
 
     @media (max-width: 1300px) {
       padding: calc(globals.$spacing-unit * 0.75)
         calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1);
       margin: 0 calc(globals.$spacing-unit * -2);
-      min-height: 240px;
+      height: 225px;
+      min-height: 225px;
+      max-height: 225px;
       gap: globals.$spacing-unit;
     }
     @media (max-width: 800px) {
       padding: calc(globals.$spacing-unit * 0.5)
         calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1);
       margin: 0 calc(globals.$spacing-unit * -1.5);
-      min-height: 200px;
+      height: 185px;
+      min-height: 185px;
+      max-height: 185px;
     }
     @media (max-width: 600px) {
       padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1)
         calc(globals.$spacing-unit * 0.75);
       margin: 0 calc(globals.$spacing-unit * -1);
-      min-height: 170px;
+      height: 155px;
+      min-height: 155px;
+      max-height: 155px;
       gap: calc(globals.$spacing-unit * 0.75);
     }
 
@@ -231,16 +347,28 @@
   // ---- Card ----
   &__card {
     flex-shrink: 0;
-    width: 140px;
+    width: 120px;
     aspect-ratio: 2 / 3;
     border-radius: 8px;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.25s ease;
+    // `width` is intentionally excluded: it's read synchronously via
+    // offsetLeft in scrollToCard() right after selection changes, and an
+    // animated width would make that read land mid-transition, corrupting
+    // the scroll math (worse the faster you navigate between cards).
+    transition:
+      opacity 0.25s ease,
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
+    transform-origin: top left;
     position: relative;
     background: none;
     border: none;
     padding: 0;
+
+    @media (max-width: 1536px), (max-height: 900px) {
+      width: 118px;
+    }
 
     @media (max-width: 1300px) {
       width: 120px;
@@ -262,16 +390,19 @@
     }
 
     &--selected {
-      width: 180px;
+      width: 175px;
 
+      @media (max-width: 1536px), (max-height: 900px) {
+        width: 152px;
+      }
       @media (max-width: 1300px) {
-        width: 150px;
+        width: 128px;
       }
       @media (max-width: 800px) {
-        width: 130px;
+        width: 112px;
       }
       @media (max-width: 600px) {
-        width: 105px;
+        width: 92px;
       }
 
       &:hover {
@@ -349,63 +480,66 @@
   }
 
   &__folder-card {
-    background-color: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: none;
+    background-color: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     outline: none;
     box-shadow: none !important;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    padding: calc(globals.$spacing-unit * 1.5);
+    justify-content: flex-start;
+    padding: 5px;
+    gap: 5px;
     transition: all 0.25s ease;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.3);
+      background-color: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.2);
     }
   }
 
-  &__folder-grid {
-    position: absolute;
-    top: calc(globals.$spacing-unit * 1.5);
-    left: calc(globals.$spacing-unit * 1.5);
-    right: calc(globals.$spacing-unit * 1.5);
-    bottom: calc(globals.$spacing-unit * 1.5);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 6px;
-    opacity: 0.8;
-    align-items: center;
-    justify-items: center;
-  }
-
   &__folder-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
-    color: white;
-    text-align: center;
-    margin-top: auto;
+    color: rgba(255, 255, 255, 0.95);
+    text-align: left;
+    margin: 0;
     width: 100%;
     z-index: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.2;
+  }
+
+  &__folder-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 5px;
+    width: 100%;
+    flex: 1;
+    opacity: 0.9;
+    align-items: center;
+    justify-items: center;
+    position: relative;
   }
 
   &__folder-thumb-wrapper {
     width: 100%;
     height: 100%;
+    aspect-ratio: 2 / 3;
     overflow: hidden;
     border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.3); /* Opaque white placeholder */
+    background-color: rgba(255, 255, 255, 0.12);
   }
 
   &__folder-thumb {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
   }
 
   &__folder-thumb-empty {
@@ -414,23 +548,40 @@
   }
 
   &__action-btn {
-    background-color: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px dashed rgba(255, 255, 255, 0.25);
+    background-color: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: none;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 8px;
-    padding: 16px;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.5);
+      background-color: rgba(255, 255, 255, 0.22);
       color: white;
     }
+  }
+
+  &__action-btn-icon {
+    width: 28px;
+    height: 28px;
+    display: block;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.9;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+
+    path {
+      fill: currentColor;
+    }
+
+    .home__action-btn:hover & {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+  }
 
     span {
       font-size: 13px;
@@ -465,27 +616,62 @@
     justify-content: space-between;
     align-items: flex-start;
     width: 100%;
+    margin-top: -45px;
     gap: calc(globals.$spacing-unit * 3);
-    min-height: 220px;
+
+    @media (max-width: 1536px), (max-height: 900px) {
+      margin-top: -65px;
+      gap: calc(globals.$spacing-unit * 2);
+    }
 
     @media (max-width: 1300px) {
       gap: calc(globals.$spacing-unit * 2);
-      min-height: 200px;
     }
     @media (max-width: 800px) {
       flex-direction: column;
       gap: calc(globals.$spacing-unit * 1);
-      min-height: auto;
+      margin-top: 0;
+    }
+  }
+
+  &__carousel-wrapper {
+    position: absolute;
+    right: calc(globals.$spacing-unit * 3);
+    bottom: calc(globals.$spacing-unit * 3);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+
+    .gamepad-active & {
+      bottom: calc(globals.$spacing-unit * 3 + 52px);
+    }
+
+    @media (max-width: 1536px), (max-height: 900px) {
+      right: calc(globals.$spacing-unit * 2.5);
+      bottom: calc(globals.$spacing-unit * 2.5);
+
+      .gamepad-active & {
+        bottom: calc(globals.$spacing-unit * 2.5 + 52px);
+      }
+    }
+
+    @media (max-width: 800px) {
+      position: relative;
+      right: auto;
+      bottom: auto;
+      margin-top: calc(globals.$spacing-unit * 2);
     }
   }
 
   &__details {
-    padding-top: globals.$spacing-unit;
+    padding-top: 0;
     min-height: 90px;
     flex: 1;
     min-width: 0;
+    align-self: flex-start;
 
     @media (max-width: 800px) {
+      padding-left: 0 !important;
       min-height: auto;
       padding-top: calc(globals.$spacing-unit * 0.5);
     }
@@ -496,6 +682,10 @@
     font-weight: 400;
     color: #fff;
     margin: 0;
+
+    @media (max-width: 1536px), (max-height: 900px) {
+      font-size: 25px;
+    }
 
     @media (max-width: 1300px) {
       font-size: 26px;
@@ -523,6 +713,13 @@
   &__install-button {
     min-width: 180px;
     padding: 0 32px;
+
+    @media (max-width: 1536px), (max-height: 900px) {
+      min-width: 145px;
+      padding: 0 22px;
+      min-height: 38px;
+      font-size: 13px;
+    }
 
     @media (max-width: 800px) {
       min-width: 140px;
@@ -564,6 +761,8 @@
     font-weight: 500;
     color: rgba(255, 255, 255, 0.85);
     background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: 2px 10px;
     border-radius: 12px;
 
@@ -591,20 +790,28 @@
 // ---- Folder Info ----
 .home__folder-info-container {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: flex-start;
   width: 100%;
-  gap: calc(globals.$spacing-unit * 3);
-
-  @media (max-width: 800px) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  gap: 12px;
 }
 
 .home__folder-info-text {
   min-width: 0;
+  width: 100%;
+}
+
+.home__folder-info-title {
+  font-size: 20px;
+  font-weight: 400;
+  color: #ffffff;
+  margin: 0;
+  text-align: left;
+
+  @media (max-width: 800px) {
+    font-size: 18px;
+  }
 }
 
 .home__folder-info-content {

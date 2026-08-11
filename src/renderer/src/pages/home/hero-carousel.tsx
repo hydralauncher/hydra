@@ -210,36 +210,38 @@ function CarouselSlide({
       )}
 
       <div className="hero-carousel__overlay">
-        <div className="hero-carousel__content">
-          {logoImage && !logoPrimaryFailed ? (
-            <img
-              src={logoImage}
-              alt={game.title}
-              className="hero-carousel__logo"
-              loading="lazy"
-              onError={() => setLogoPrimaryFailed(true)}
-            />
-          ) : steamGridArt.logoUrl && logoPrimaryFailed ? (
-            <img
-              src={steamGridArt.logoUrl}
-              alt={game.title}
-              className="hero-carousel__logo"
-              loading="lazy"
-              onError={() => {}} // Se a da Grid também falhar, mantemos o h3 ali logo abaixo
-            />
-          ) : (
-            <h3 className="hero-carousel__title">{game.title}</h3>
-          )}
-          {meta && <span className="hero-carousel__meta">{meta}</span>}
-        </div>
+        <div className="hero-carousel__footer">
+          <div className="hero-carousel__content">
+            {logoImage && !logoPrimaryFailed ? (
+              <img
+                src={logoImage}
+                alt={game.title}
+                className="hero-carousel__logo"
+                loading="lazy"
+                onError={() => setLogoPrimaryFailed(true)}
+              />
+            ) : steamGridArt.logoUrl && logoPrimaryFailed ? (
+              <img
+                src={steamGridArt.logoUrl}
+                alt={game.title}
+                className="hero-carousel__logo"
+                loading="lazy"
+                onError={() => {}}
+              />
+            ) : (
+              <h3 className="hero-carousel__title">{game.title}</h3>
+            )}
+            {meta && <span className="hero-carousel__meta">{meta}</span>}
+          </div>
 
-        <Button
-          className="hero-carousel__view-button"
-          theme="primary"
-          onClick={() => navigate(buildGameDetailsPath(game))}
-        >
-          {t("see_more", "Ver mais")}
-        </Button>
+          <Button
+            className="hero-carousel__view-button"
+            theme="primary"
+            onClick={() => navigate(buildGameDetailsPath(game))}
+          >
+            {t("see_more", "Ver mais")}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -279,23 +281,23 @@ export function HeroCarousel({ games }: Readonly<HeroCarouselProps>) {
             />
           ))}
         </div>
-
-        {featuredGames.length > 1 && (
-          <div className="hero-carousel__indicators">
-            {featuredGames.map((_, index) => (
-              <button
-                key={index}
-                type="button"
-                className={cn("hero-carousel__indicator", {
-                  "hero-carousel__indicator--active": index === currentIndex,
-                })}
-                onClick={() => setCurrentIndex(index)}
-                aria-label={`Slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
       </div>
+
+      {featuredGames.length > 1 && (
+        <div className="hero-carousel__indicators">
+          {featuredGames.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              className={cn("hero-carousel__indicator", {
+                "hero-carousel__indicator--active": index === currentIndex,
+              })}
+              onClick={() => setCurrentIndex(index)}
+              aria-label={`Slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

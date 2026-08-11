@@ -42,19 +42,115 @@ export const getSteamLanguage = (lang?: string): string => {
   return "english";
 };
 
+let sharedAudioCtx: AudioContext | null = null;
+let sharedCompressor: DynamicsCompressorNode | null = null;
+
+const getAudioContext = (): {
+  ctx: AudioContext;
+  compressor: DynamicsCompressorNode;
+} | null => {
+  try {
+    if (!sharedAudioCtx || sharedAudioCtx.state === "closed") {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+      if (!AudioCtx) return null;
+      sharedAudioCtx = new AudioCtx();
+
+      sharedCompressor = sharedAudioCtx.createDynamicsCompressor();
+      sharedCompressor.threshold.setValueAtTime(
+        -24,
+        sharedAudioCtx.currentTime
+      );
+      sharedCompressor.knee.setValueAtTime(30, sharedAudioCtx.currentTime);
+      sharedCompressor.ratio.setValueAtTime(12, sharedAudioCtx.currentTime);
+      sharedCompressor.attack.setValueAtTime(0.003, sharedAudioCtx.currentTime);
+      sharedCompressor.release.setValueAtTime(0.05, sharedAudioCtx.currentTime);
+      sharedCompressor.connect(sharedAudioCtx.destination);
+    }
+    if (sharedAudioCtx.state === "suspended") {
+      void sharedAudioCtx.resume();
+    }
+    return sharedCompressor
+      ? { ctx: sharedAudioCtx, compressor: sharedCompressor }
+      : null;
+  } catch {
+    return null;
+  }
+};
+
 export const playBeep = (): void => {
   try {
-    const ctx = new (window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext)();
+    const audio = getAudioContext();
+    if (!audio) return;
+    const { ctx, compressor } = audio;
+    const now = ctx.currentTime;
+
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0.04, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+    gainNode.connect(compressor);
+
     const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 440;
-    gain.gain.value = 0.05;
-    osc.start();
-    osc.stop(ctx.currentTime + 0.05);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(900, now);
+    osc.frequency.exponentialRampToValueAtTime(250, now + 0.035);
+    osc.connect(gainNode);
+
+    osc.start(now);
+    osc.stop(now + 0.04);
+  } catch {}
+};
+
+export const playIntroSound = (): void => {
+  try {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.001, now);
+    masterGain.gain.linearRampToValueAtTime(0.12, now + 0.15);
+    masterGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+    masterGain.connect(ctx.destination);
+
+    const chordFrequencies = [261.63, 392.0, 523.25, 659.25, 987.77];
+
+    chordFrequencies.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const noteGain = ctx.createGain();
+
+      osc.type = idx === 0 ? "sine" : "triangle";
+      osc.frequency.setValueAtTime(freq, now);
+
+      const delay = idx * 0.04;
+      noteGain.gain.setValueAtTime(0.001, now + delay);
+      noteGain.gain.linearRampToValueAtTime(0.05, now + delay + 0.1);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2 + delay);
+
+      osc.connect(noteGain);
+      noteGain.connect(masterGain);
+
+      osc.start(now + delay);
+      osc.stop(now + 1.4);
+    });
+
+    const subOsc = ctx.createOscillator();
+    subOsc.type = "sine";
+    subOsc.frequency.setValueAtTime(65, now);
+    subOsc.frequency.exponentialRampToValueAtTime(40, now + 1.2);
+    subOsc.connect(masterGain);
+    subOsc.start(now);
+    subOsc.stop(now + 1.4);
+
+    setTimeout(() => {
+      ctx.close();
+    }, 1500);
   } catch {}
 };
 

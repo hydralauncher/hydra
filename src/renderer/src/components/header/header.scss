@@ -7,9 +7,9 @@
   gap: calc(globals.$spacing-unit * 2);
   -webkit-app-region: drag;
   width: 100%;
-  padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 3);
-  padding-top: calc(35px + globals.$spacing-unit * 2);
-  padding-bottom: calc(globals.$spacing-unit * 3);
+  padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+  padding-top: calc(35px + globals.$spacing-unit * 1.5);
+  padding-bottom: calc(globals.$spacing-unit * 1.5);
   color: globals.$muted-color;
   background: linear-gradient(
     180deg,
@@ -71,7 +71,7 @@
     padding: 8px 24px;
     border-radius: 100px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 400;
     transition: all ease 0.15s;
     white-space: nowrap;
     letter-spacing: 0.2px;
@@ -210,7 +210,7 @@
 
   &__profile-label {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 400;
     white-space: nowrap;
   }
 
@@ -318,7 +318,6 @@
       display: flex;
       align-items: center;
       gap: globals.$spacing-unit;
-      padding-right: 135px;
     }
   }
 

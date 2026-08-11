@@ -1,4 +1,4 @@
-import { Header, Sidebar, Toast } from "@renderer/components";
+import { Header, Sidebar, SplashScreen, Toast } from "@renderer/components";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { VideoIcon } from "@primer/octicons-react";
 import {
@@ -69,7 +69,6 @@ type WorkWondersWithKnowledge = WorkWonders & {
 };
 
 import { BackgroundEffectRenderer } from "./components/react-bits/BackgroundEffectRenderer";
-import { SplashScreen } from "./components/splash-screen/splash-screen";
 
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -205,14 +204,6 @@ export function App() {
 
         workwonders.changelog.initChangelogWidget();
         workwonders.changelog.initChangelogWidgetMini();
-        const workWondersWithKnowledge =
-          workwonders as WorkWondersWithKnowledge;
-        workWondersWithKnowledge.knowledge?.initKnowledgeWidget?.();
-
-        if (token) {
-          workwonders.feedback.initFeedbackWidget();
-        }
-
         workwondersRef.current = workwonders;
       } catch (error) {
         console.error("Failed to initialize Work Wonders SDK", error);
@@ -716,6 +707,7 @@ export function App() {
 
       <ClassicsScanModal />
       <RetroArchScanModal />
+      <SplashScreen />
 
       <main>
         <BackgroundEffectRenderer />
