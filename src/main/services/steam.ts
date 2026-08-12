@@ -17,6 +17,12 @@ export interface SteamAppDetailsResponse {
   };
 }
 
+export type SteamAppDetailsRequestResult =
+  | { type: "success"; details: SteamAppDetails & { objectId: string } }
+  | { type: "not_found" }
+  | { type: "rate_limited"; retryAfterMs: number | null }
+  | { type: "error" };
+
 export const getSteamLocation = async () => {
   if (process.platform === "linux") {
     const possiblePaths = [
@@ -134,34 +140,59 @@ export const getSteamLanguage = (language: string) => {
   );
 };
 
-export const getSteamAppDetails = async (
+const getRetryAfterMs = (value: unknown): number | null => {
+  if (typeof value !== "string") return null;
+
+  if (/^\d+$/.test(value)) {
+    return Number.parseInt(value, 10) * 1000;
+  }
+
+  const retryAt = Date.parse(value);
+  return Number.isNaN(retryAt) ? null : Math.max(0, retryAt - Date.now());
+};
+
+export const getSteamAppDetailsWithStatus = async (
   objectId: string,
   language: string
-) => {
+): Promise<SteamAppDetailsRequestResult> => {
   const searchParams = new URLSearchParams({
     appids: objectId,
     l: getSteamLanguage(language),
     cc: "us",
   });
 
-  return axios
-    .get<SteamAppDetailsResponse>(
+  try {
+    const response = await axios.get<SteamAppDetailsResponse>(
       `https://store.steampowered.com/api/appdetails?${searchParams.toString()}`
-    )
-    .then((response) => {
-      const result = response.data[objectId];
-      return result?.success && result.data
-        ? { ...result.data, objectId }
-        : null;
-    })
-    .catch((err) => {
-      logger.error("Error on getSteamAppDetails", {
-        message: err?.message,
-        code: err?.code,
-        name: err?.name,
-      });
-      return null;
+    );
+    const result = response.data[objectId];
+
+    return result?.success && result.data
+      ? { type: "success", details: { ...result.data, objectId } }
+      : { type: "not_found" };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      return {
+        type: "rate_limited",
+        retryAfterMs: getRetryAfterMs(error.response.headers["retry-after"]),
+      };
+    }
+
+    logger.error("Error on getSteamAppDetails", {
+      message: error instanceof Error ? error.message : undefined,
+      code: axios.isAxiosError(error) ? error.code : undefined,
+      name: error instanceof Error ? error.name : undefined,
     });
+    return { type: "error" };
+  }
+};
+
+export const getSteamAppDetails = async (
+  objectId: string,
+  language: string
+) => {
+  const result = await getSteamAppDetailsWithStatus(objectId, language);
+  return result.type === "success" ? result.details : null;
 };
 
 export const getSteamUsersIds = async () => {

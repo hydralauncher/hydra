@@ -1771,6 +1771,8 @@
     "sort_title": "По названию",
     "sort_title_asc": "По названию (A-Z)",
     "sort_title_desc": "По названию (Z-A)",
+    "sort_release_date": "Дата выхода",
+    "sort_new_updates": "Новые обновления",
     "sort_most_played": "По проведенному времени",
     "sort_achievements": "Достижения",
     "sort_installed_first": "Сначала установленные",

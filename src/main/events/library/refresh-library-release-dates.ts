@@ -1,18 +1,25 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopCacheSublevel, levelKeys } from "@main/level";
-import { getSteamAppDetails, logger } from "@main/services";
+import { getSteamAppDetailsWithStatus, logger } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { parseSortableDate } from "@shared";
 import { chunk } from "lodash-es";
+import {
+  getReleaseDateNextCheckAt,
+  needsReleaseDateRefresh,
+} from "./release-date-refresh-policy";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let isFetching = false;
-const RATE_LIMIT_DELAY_MS = 500;
+let nextSteamRequestAt = 0;
+const SUB_BATCH_DELAY_MS = 200;
 const STEAM_APP_DETAILS_CONCURRENCY = 5;
+const RATE_LIMIT_FALLBACK_DELAY_MS = 60 * 60 * 1000;
 
 const refreshLibraryReleaseDates = async () => {
   if (isFetching) return;
+  if (Date.now() < nextSteamRequestAt) return;
   isFetching = true;
 
   try {
@@ -20,7 +27,7 @@ const refreshLibraryReleaseDates = async () => {
 
     const missingSteamGames = libraryGames
       .filter((game) => !game.isDeleted && game.shop === "steam")
-      .filter((game) => game.releaseDateLastCheckedAt === undefined);
+      .filter((game) => needsReleaseDateRefresh(game, Date.now()));
 
     if (missingSteamGames.length === 0) {
       isFetching = false;
@@ -31,7 +38,6 @@ const refreshLibraryReleaseDates = async () => {
       `Fetching release dates for ${missingSteamGames.length} missing games...`
     );
 
-    // Fetch in background in chunks of 50
     (async () => {
       try {
         let updatedCount = 0;
@@ -40,8 +46,6 @@ const refreshLibraryReleaseDates = async () => {
         const chunks = chunk(Array.from(missingSteamGames), chunkSize);
 
         for (const currentChunk of chunks) {
-          const appids = currentChunk.map((game) => game.objectId).join(",");
-
           try {
             for (const gamesBatch of chunk(
               currentChunk,
@@ -49,13 +53,34 @@ const refreshLibraryReleaseDates = async () => {
             )) {
               const details = await Promise.all(
                 gamesBatch.map((game) =>
-                  getSteamAppDetails(game.objectId, "en")
+                  getSteamAppDetailsWithStatus(game.objectId, "en")
                 )
               );
 
               for (const [index, game] of gamesBatch.entries()) {
-                const detailsForGame = details[index];
-                if (!detailsForGame) continue;
+                const result = details[index];
+                const checkedAt = Date.now();
+
+                if (result.type !== "success") {
+                  await gamesSublevel.put(
+                    levelKeys.game(game.shop, game.objectId),
+                    {
+                      ...game,
+                      releaseDateLastCheckedAt: checkedAt,
+                      releaseDateNextCheckAt: getReleaseDateNextCheckAt({
+                        now: checkedAt,
+                        result: result.type,
+                        retryAfterMs:
+                          result.type === "rate_limited"
+                            ? result.retryAfterMs
+                            : undefined,
+                      }),
+                    }
+                  );
+                  continue;
+                }
+
+                const detailsForGame = result.details;
 
                 const releaseDateTimestamp = parseSortableDate(
                   detailsForGame.release_date?.date
@@ -66,7 +91,15 @@ const refreshLibraryReleaseDates = async () => {
                   {
                     ...game,
                     releaseDateTimestamp: releaseDateTimestamp || null,
-                    releaseDateLastCheckedAt: Date.now(),
+                    releaseDateLastCheckedAt: checkedAt,
+                    releaseDateNextCheckAt: releaseDateTimestamp
+                      ? undefined
+                      : getReleaseDateNextCheckAt({
+                          now: checkedAt,
+                          result: detailsForGame.release_date?.coming_soon
+                            ? "coming_soon"
+                            : "not_found",
+                        }),
                   }
                 );
                 updatedCount++;
@@ -80,19 +113,31 @@ const refreshLibraryReleaseDates = async () => {
                   { ...detailsForGame, name: game.title }
                 );
               }
+
+              const rateLimitDelay = Math.max(
+                0,
+                ...details.map((result) =>
+                  result.type === "rate_limited"
+                    ? (result.retryAfterMs ?? RATE_LIMIT_FALLBACK_DELAY_MS)
+                    : 0
+                )
+              );
+
+              if (rateLimitDelay > 0) {
+                nextSteamRequestAt = Date.now() + rateLimitDelay;
+                logger.warn(
+                  `Steam rate limit reached; retrying release dates after ${rateLimitDelay}ms`
+                );
+                return;
+              }
+
+              await delay(SUB_BATCH_DELAY_MS);
             }
 
-            WindowManager.mainWindow?.webContents.send(
-              "on-library-batch-complete"
-            );
+            WindowManager.sendToAppWindows("on-library-batch-complete");
           } catch (err) {
-            logger.error(
-              `Failed to fetch release dates chunk for ${appids}`,
-              err
-            );
+            logger.error("Failed to fetch release dates chunk", err);
           }
-
-          await delay(RATE_LIMIT_DELAY_MS); // Prevent rate limiting between chunks
         }
 
         logger.info(

@@ -40,6 +40,15 @@ export const parseSortableDate = (
     );
   }
 
+  const partialIsoMatch = /^(\d{4})(?:-(\d{2}))?$/.exec(dateStr);
+  if (partialIsoMatch) {
+    return Date.UTC(
+      Number.parseInt(partialIsoMatch[1], 10),
+      partialIsoMatch[2] ? Number.parseInt(partialIsoMatch[2], 10) - 1 : 0,
+      1
+    );
+  }
+
   const nativeParse = Date.parse(dateStr);
   if (!Number.isNaN(nativeParse)) {
     const parsedDate = new Date(nativeParse);

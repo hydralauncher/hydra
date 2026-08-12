@@ -3,11 +3,17 @@ import { gamesSublevel, downloadSourcesSublevel } from "@main/level";
 import { HydraApi } from "@main/services/hydra-api";
 import { logger, WindowManager } from "@main/services";
 import { levelKeys } from "@main/level/sublevels";
+import {
+  getDownloadSourcesSignature,
+  shouldRefreshDownloadSources,
+} from "@main/services/download-sources-refresh-policy";
 import type { GameRepack } from "@types";
 
 import { chunk } from "lodash-es";
 
 let isFetching = false;
+let lastCheckedAt: number | null = null;
+let lastSourceSignature: string | null = null;
 
 const refreshLibraryUpdateDates = async () => {
   if (isFetching) return;
@@ -26,15 +32,42 @@ const refreshLibraryUpdateDates = async () => {
 
     const downloadSources = await downloadSourcesSublevel.values().all();
     const downloadSourceIds = downloadSources.map((source) => source.id);
+    const sourceSignature = getDownloadSourcesSignature(downloadSourceIds);
+    if (
+      !shouldRefreshDownloadSources({
+        lastCheckedAt,
+        lastSourceSignature,
+        sourceSignature,
+        now: Date.now(),
+      })
+    ) {
+      isFetching = false;
+      return;
+    }
 
     if (downloadSourceIds.length === 0) {
+      const gamesWithStaleDates = nonCustomGames.filter(
+        (game) => game.latestUpdateDate != null
+      );
+
+      for (const game of gamesWithStaleDates) {
+        await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          ...game,
+          latestUpdateDate: null,
+        });
+      }
+
+      lastCheckedAt = Date.now();
+      lastSourceSignature = sourceSignature;
       isFetching = false;
+      if (gamesWithStaleDates.length > 0) {
+        WindowManager.sendToAppWindows("on-library-batch-complete");
+      }
       return;
     }
 
     logger.info("Starting refreshLibraryUpdateDates...");
 
-    // Fetch in background
     (async () => {
       try {
         const BATCH_SIZE = 5;
@@ -59,28 +92,25 @@ const refreshLibraryUpdateDates = async () => {
                 }
               );
 
-              if (downloads && downloads.length > 0) {
-                const validDates = downloads
-                  .map((d) =>
-                    d.uploadDate ? new Date(d.uploadDate).getTime() : 0
-                  )
-                  .filter((time) => time > 0);
+              const validDates = (downloads ?? [])
+                .map((d) =>
+                  d.uploadDate ? new Date(d.uploadDate).getTime() : 0
+                )
+                .filter((time) => time > 0);
+              const latestDateIso =
+                validDates.length > 0
+                  ? new Date(Math.max(...validDates)).toISOString()
+                  : null;
 
-                if (validDates.length > 0) {
-                  const latestTime = Math.max(...validDates);
-                  const latestDateIso = new Date(latestTime).toISOString();
-
-                  if (game.latestUpdateDate !== latestDateIso) {
-                    await gamesSublevel.put(
-                      levelKeys.game(game.shop, game.objectId),
-                      {
-                        ...game,
-                        latestUpdateDate: latestDateIso,
-                      }
-                    );
-                    return true;
+              if ((game.latestUpdateDate ?? null) !== latestDateIso) {
+                await gamesSublevel.put(
+                  levelKeys.game(game.shop, game.objectId),
+                  {
+                    ...game,
+                    latestUpdateDate: latestDateIso,
                   }
-                }
+                );
+                return true;
               }
             } catch (err) {
               logger.error(`Failed to fetch updates for ${game.title}`, err);
@@ -97,11 +127,11 @@ const refreshLibraryUpdateDates = async () => {
         );
 
         if (updatedCount > 0) {
-          WindowManager.mainWindow?.webContents.send(
-            "on-library-batch-complete"
-          );
+          WindowManager.sendToAppWindows("on-library-batch-complete");
         }
       } finally {
+        lastCheckedAt = Date.now();
+        lastSourceSignature = sourceSignature;
         isFetching = false;
       }
     })();

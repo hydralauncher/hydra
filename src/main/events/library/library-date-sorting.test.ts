@@ -18,6 +18,11 @@ describe("library date sorting", () => {
     assert.equal(parseSortableDate("Coming soon"), 0);
   });
 
+  it("parses partial ISO dates without depending on the local timezone", () => {
+    assert.equal(parseSortableDate("2025"), Date.UTC(2025, 0, 1));
+    assert.equal(parseSortableDate("2025-01"), Date.UTC(2025, 0, 1));
+  });
+
   it("keeps undated games after dated games", () => {
     const dated = { releaseDateTimestamp: Date.UTC(2024, 4, 20) };
     const undated = { releaseDateTimestamp: null };

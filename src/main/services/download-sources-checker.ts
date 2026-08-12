@@ -10,6 +10,11 @@ import {
 } from "@main/level";
 import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
+import {
+  getDownloadSourcesSignature,
+  shouldAdvanceDownloadSourcesBaseline,
+  shouldRefreshDownloadSources,
+} from "./download-sources-refresh-policy";
 import type { Game, UserPreferences } from "@types";
 
 interface DownloadSourcesChangeResponse {
@@ -20,6 +25,10 @@ interface DownloadSourcesChangeResponse {
 }
 
 export class DownloadSourcesChecker {
+  private static isChecking = false;
+  private static lastManualCheckAt: number | null = null;
+  private static lastManualSourceSignature: string | null = null;
+
   private static async clearStaleBadges(
     nonCustomGames: Game[]
   ): Promise<{ gameId: string; count: number }[]> {
@@ -102,6 +111,9 @@ export class DownloadSourcesChecker {
   static async checkForChanges(
     isManualRefresh: boolean = false
   ): Promise<void> {
+    if (this.isChecking) return;
+    this.isChecking = true;
+
     logger.info("DownloadSourcesChecker.checkForChanges() called");
 
     try {
@@ -122,7 +134,7 @@ export class DownloadSourcesChecker {
       // Get all installed games (excluding custom games)
       const installedGames = await gamesSublevel.values().all();
       const nonCustomGames = installedGames.filter(
-        (game: Game) => game.shop !== "custom"
+        (game: Game) => !game.isDeleted && game.shop !== "custom"
       );
       logger.info(
         `Found ${installedGames.length} total games, ${nonCustomGames.length} non-custom games`
@@ -137,6 +149,7 @@ export class DownloadSourcesChecker {
 
       const downloadSources = await downloadSourcesSublevel.values().all();
       const downloadSourceIds = downloadSources.map((source) => source.id);
+      const sourceSignature = getDownloadSourcesSignature(downloadSourceIds);
       logger.info(
         `Found ${downloadSourceIds.length} download sources: ${downloadSourceIds.join(", ")}`
       );
@@ -145,6 +158,18 @@ export class DownloadSourcesChecker {
         logger.info(
           "No download sources found, skipping download sources check"
         );
+        return;
+      }
+
+      if (
+        isManualRefresh &&
+        !shouldRefreshDownloadSources({
+          lastCheckedAt: this.lastManualCheckAt,
+          lastSourceSignature: this.lastManualSourceSignature,
+          sourceSignature,
+          now: Date.now(),
+        })
+      ) {
         return;
       }
 
@@ -187,11 +212,13 @@ export class DownloadSourcesChecker {
       await updateDownloadSourcesSinceValue(since);
       logger.info(`Saved 'since' value: ${since} (for modal comparison)`);
 
-      const now = new Date().toISOString();
-      await updateDownloadSourcesCheckBaseline(now);
-      logger.info(
-        `Updated baseline to: ${now} (will be 'since' on next app start)`
-      );
+      if (shouldAdvanceDownloadSourcesBaseline(isManualRefresh)) {
+        const now = new Date().toISOString();
+        await updateDownloadSourcesCheckBaseline(now);
+        logger.info(
+          `Updated baseline to: ${now} (will be 'since' on next app start)`
+        );
+      }
 
       const gamesWithNewOptions = await this.processApiResponse(
         response,
@@ -200,9 +227,16 @@ export class DownloadSourcesChecker {
 
       this.sendNewDownloadOptionsEvent(clearedPayload, gamesWithNewOptions);
 
+      if (isManualRefresh) {
+        this.lastManualCheckAt = Date.now();
+        this.lastManualSourceSignature = sourceSignature;
+      }
+
       logger.info("Download sources check completed successfully");
     } catch (error) {
       logger.error("Failed to check download sources changes:", error);
+    } finally {
+      this.isChecking = false;
     }
   }
 }

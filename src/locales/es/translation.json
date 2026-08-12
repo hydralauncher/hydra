@@ -1764,6 +1764,8 @@
     "sort_achievements": "Logros",
     "sort_title_asc": "Título (A-Z)",
     "sort_title_desc": "Título (Z-A)",
+    "sort_release_date": "Fecha de lanzamiento",
+    "sort_new_updates": "Nuevas actualizaciones",
     "category_all": "Todos",
     "category_pc": "PC",
     "category_classics": "Clásicos",

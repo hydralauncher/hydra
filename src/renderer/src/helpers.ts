@@ -11,7 +11,6 @@ import {
   compareNewUpdates,
   compareReleaseDates,
 } from "@shared";
-export { parseSortableDate } from "@shared";
 
 import Color from "color";
 import i18next from "i18next";
