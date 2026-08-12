@@ -121,10 +121,13 @@ export function DownloadsSourcesSection({
   const isBusy = isSyncing || isRemoving;
   const hasSources = downloadSources.length > 0;
   const isWindows = globalThis.window.electron.platform === "win32";
+  const isLinux = globalThis.window.electron.platform === "linux";
   const firstRemoveButtonFocusId = downloadSources[0]
     ? getDownloadsSourceRemoveButtonFocusId(downloadSources[0].id)
     : null;
-  const lastBehaviorFocusId = getLastDownloadsBehaviorItemFocusId(isWindows);
+  const lastBehaviorFocusId = getLastDownloadsBehaviorItemFocusId(
+    isWindows || isLinux
+  );
 
   const actionNavigationOverrides: FocusOverrides = useMemo(
     () => ({
