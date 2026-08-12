@@ -435,7 +435,18 @@ export interface GameArtifact {
 
 export type LegacySaveExportResult =
   | { status: "saved"; filePath: string }
-  | { status: "cancelled" };
+  | { status: "cancelled" }
+  | { status: "busy" };
+
+export interface LegacySaveExportProgress {
+  downloadedBytes: number;
+  totalBytes: number | null;
+  percentage: number | null;
+}
+
+export interface LegacySaveExportIpcProgress extends LegacySaveExportProgress {
+  operationId: string;
+}
 
 export type NotificationType =
   | "FRIEND_REQUEST_RECEIVED"

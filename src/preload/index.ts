@@ -61,6 +61,8 @@ import type {
   SelectCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathRebindApprovalResult,
+  LegacySaveExportIpcProgress,
+  LegacySaveExportProgress,
   LegacySaveExportResult,
 } from "@types";
 import type { AuthPage } from "@shared";
@@ -93,6 +95,32 @@ const invokeCloudSaveOperation = async <TResult = SyncGameCloudSaveResult>(
     return (await ipcRenderer.invoke(channel, operationId, ...args)) as TResult;
   } finally {
     ipcRenderer.removeListener("on-cloud-save-sync-progress", listener);
+  }
+};
+
+const invokeGameArtifactExport = async (
+  gameArtifactId: string,
+  suggestedName: string,
+  onProgress?: (progress: LegacySaveExportProgress) => void
+): Promise<LegacySaveExportResult> => {
+  const operationId = randomUUID();
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    progress: LegacySaveExportIpcProgress
+  ) => {
+    if (progress.operationId === operationId) onProgress?.(progress);
+  };
+
+  ipcRenderer.on("on-game-artifact-export-progress", listener);
+  try {
+    return await ipcRenderer.invoke(
+      "exportGameArtifact",
+      operationId,
+      gameArtifactId,
+      suggestedName
+    );
+  } finally {
+    ipcRenderer.removeListener("on-game-artifact-export-progress", listener);
   }
 };
 
@@ -1198,9 +1226,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("downloadGameArtifact", objectId, shop, gameArtifactId),
   exportGameArtifact: (
     gameArtifactId: string,
-    suggestedName: string
+    suggestedName: string,
+    onProgress?: (progress: LegacySaveExportProgress) => void
   ): Promise<LegacySaveExportResult> =>
-    ipcRenderer.invoke("exportGameArtifact", gameArtifactId, suggestedName),
+    invokeGameArtifactExport(gameArtifactId, suggestedName, onProgress),
+  cancelGameArtifactExport: (): Promise<boolean> =>
+    ipcRenderer.invoke("cancelGameArtifactExport"),
   getGameArtifacts: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameArtifacts", objectId, shop),
   getGameBackupPreview: (objectId: string, shop: GameShop) =>
