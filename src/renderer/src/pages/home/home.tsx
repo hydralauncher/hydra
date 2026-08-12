@@ -249,7 +249,9 @@ function LibraryGridCardImage({ game }: { game: ShopAssets }) {
 
   const fallbackSources = useMemo(
     () =>
-      Array.from(new Set([customLibrary, customIcon].filter(Boolean))) as string[],
+      Array.from(
+        new Set([customLibrary, customIcon].filter(Boolean))
+      ) as string[],
     [customLibrary, customIcon]
   );
 

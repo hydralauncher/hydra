@@ -304,225 +304,257 @@ export function WelcomeDashboard() {
         <div className="welcome-dashboard__bento-grid">
           {/* COLUNA 1: GRANDE em cima, PEQUENO em baixo */}
           <div className="welcome-dashboard__column">
-          {/* Card Grande: Conquistas */}
-          <div className="welcome-dashboard__card welcome-dashboard__card--big welcome-dashboard__card--trophies">
-            <div className="welcome-dashboard__card-header">
-              <div className="welcome-dashboard__card-title-group">
-                <TrophyIcon size={16} className="welcome-dashboard__icon" />
-                <h3 className="welcome-dashboard__card-title">
-                  {t("trophies", { defaultValue: "Trophies" })}
-                </h3>
-              </div>
-              <span className="welcome-dashboard__meta">
-                {t("total", { defaultValue: "Total" })}:{" "}
-                {stats.totalTrophies.toLocaleString()}
-              </span>
-            </div>
-
-            <div className="welcome-dashboard__trophies-row">
-              <div className="welcome-dashboard__trophy-item">
-                <div className="welcome-dashboard__trophy-badge welcome-dashboard__trophy-badge--platinum">
-                  <img
-                    src={platinumTrophyPng}
-                    alt="Platinum"
-                    className="welcome-dashboard__trophy-img"
-                  />
+            {/* Card Grande: Conquistas */}
+            <div className="welcome-dashboard__card welcome-dashboard__card--big welcome-dashboard__card--trophies">
+              <div className="welcome-dashboard__card-header">
+                <div className="welcome-dashboard__card-title-group">
+                  <TrophyIcon size={16} className="welcome-dashboard__icon" />
+                  <h3 className="welcome-dashboard__card-title">
+                    {t("trophies", { defaultValue: "Trophies" })}
+                  </h3>
                 </div>
-                <span className="welcome-dashboard__trophy-name">
-                  {t("platina", { defaultValue: "Platina" })}
-                </span>
-                <span className="welcome-dashboard__trophy-count">
-                  {stats.platinum}
-                </span>
-              </div>
-              <div className="welcome-dashboard__trophy-item">
-                <div className="welcome-dashboard__trophy-badge welcome-dashboard__trophy-badge--gold">
-                  <img
-                    src={goldTrophyPng}
-                    alt="Gold"
-                    className="welcome-dashboard__trophy-img"
-                  />
-                </div>
-                <span className="welcome-dashboard__trophy-name">
-                  {t("ouro", { defaultValue: "Ouro" })}
-                </span>
-                <span className="welcome-dashboard__trophy-count">
-                  {stats.gold}
-                </span>
-              </div>
-              <div className="welcome-dashboard__trophy-item">
-                <div className="welcome-dashboard__trophy-badge welcome-dashboard__trophy-badge--silver">
-                  <img
-                    src={silverTrophyPng}
-                    alt="Silver"
-                    className="welcome-dashboard__trophy-img"
-                  />
-                </div>
-                <span className="welcome-dashboard__trophy-name">
-                  {t("prata", { defaultValue: "Prata" })}
-                </span>
-                <span className="welcome-dashboard__trophy-count">
-                  {stats.silver}
-                </span>
-              </div>
-              <div className="welcome-dashboard__trophy-item">
-                <div className="welcome-dashboard__trophy-badge welcome-dashboard__trophy-badge--bronze">
-                  <img
-                    src={bronzeTrophyPng}
-                    alt="Bronze"
-                    className="welcome-dashboard__trophy-img"
-                  />
-                </div>
-                <span className="welcome-dashboard__trophy-name">
-                  {t("bronze", { defaultValue: "Bronze" })}
-                </span>
-                <span className="welcome-dashboard__trophy-count">1.5K</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card Pequeno: Nível e XP do Usuário */}
-          <div className="welcome-dashboard__card welcome-dashboard__card--small welcome-dashboard__card--level">
-            <div className="welcome-dashboard__level-big-group">
-              <span className="welcome-dashboard__level-label">
-                {t("nivel", { defaultValue: "NÍVEL" })}
-              </span>
-              <span className="welcome-dashboard__level-number">
-                {stats.userLevel}
-              </span>
-            </div>
-
-            <div className="welcome-dashboard__xp-container">
-              <div className="welcome-dashboard__xp-header">
-                <span className="welcome-dashboard__xp-title">
-                  {t("proximo_nivel", {
-                    level: stats.userLevel + 1,
-                    defaultValue: `Nível ${stats.userLevel + 1}`,
-                  })}
-                </span>
-                <span className="welcome-dashboard__xp-value">
-                  {stats.levelProgress}%
+                <span className="welcome-dashboard__meta">
+                  {t("total", { defaultValue: "Total" })}:{" "}
+                  {stats.totalTrophies.toLocaleString()}
                 </span>
               </div>
 
-              <div className="welcome-dashboard__xp-bar-bg">
-                <div
-                  className="welcome-dashboard__xp-bar-fill"
-                  style={{ width: `${stats.levelProgress}%` }}
-                />
-              </div>
-
-              <span className="welcome-dashboard__xp-remaining">
-                {t("xp_restante", {
-                  percent: 100 - stats.levelProgress,
-                  defaultValue: `Faltam ${100 - stats.levelProgress}% de XP para subir`,
-                })}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* COLUNA 2: PEQUENO em cima, GRANDE em baixo */}
-        <div className="welcome-dashboard__column">
-          {/* Card Pequeno: Armazenamento do PC */}
-          <div className="welcome-dashboard__card welcome-dashboard__card--small welcome-dashboard__card--storage">
-            <div className="welcome-dashboard__card-header">
-              <div className="welcome-dashboard__card-title-group">
-                <DatabaseIcon size={16} className="welcome-dashboard__icon" />
-                <h3 className="welcome-dashboard__card-title">
-                  {t("armazenamento_pc", { defaultValue: "Armazenamento do PC" })}
-                </h3>
-              </div>
-              {drives.length > 0 && (
-                <span className="welcome-dashboard__storage-total-free">
-                  {formatStorageBytes(drives.reduce((acc, d) => acc + d.free, 0))} livres
-                </span>
-              )}
-            </div>
-
-            <div className="welcome-dashboard__storage-drives-list">
-              {drives.length === 0 ? (
-                <div className="welcome-dashboard__storage-drive-item">
-                  <div className="welcome-dashboard__storage-drive-info">
-                    <span className="welcome-dashboard__storage-drive-name">C:</span>
-                    <span className="welcome-dashboard__storage-drive-space">Calculando...</span>
+              <div className="welcome-dashboard__trophies-row">
+                <div className="welcome-dashboard__trophy-item">
+                  <div className="welcome-dashboard__trophy-badge welcome-dashboard__trophy-badge--platinum">
+                    <img
+                      src={platinumTrophyPng}
+                      alt="Platinum"
+                      className="welcome-dashboard__trophy-img"
+                    />
                   </div>
-                  <div className="welcome-dashboard__storage-bar">
-                    <div className="welcome-dashboard__storage-bar-fill" style={{ width: "0%" }} />
-                  </div>
+                  <span className="welcome-dashboard__trophy-name">
+                    {t("platina", { defaultValue: "Platina" })}
+                  </span>
+                  <span className="welcome-dashboard__trophy-count">
+                    {stats.platinum}
+                  </span>
                 </div>
-              ) : (
-                drives.map((drive) => {
-                  const used = Math.max(0, drive.total - drive.free);
-                  const usedPercent = Math.min(100, Math.max(0, Math.round((used / drive.total) * 100)));
-                  return (
-                    <div key={drive.name} className="welcome-dashboard__storage-drive-item">
-                      <div className="welcome-dashboard__storage-drive-info">
-                        <span className="welcome-dashboard__storage-drive-name">{drive.name}</span>
-                        <span className="welcome-dashboard__storage-drive-space">
-                          {formatStorageBytes(drive.free)} livres de {formatStorageBytes(drive.total)}
-                        </span>
-                      </div>
-                      <div className="welcome-dashboard__storage-bar">
-                        <div
-                          className="welcome-dashboard__storage-bar-fill"
-                          style={{ width: `${usedPercent}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+                <div className="welcome-dashboard__trophy-item">
+                  <div className="welcome-dashboard__trophy-badge welcome-dashboard__trophy-badge--gold">
+                    <img
+                      src={goldTrophyPng}
+                      alt="Gold"
+                      className="welcome-dashboard__trophy-img"
+                    />
+                  </div>
+                  <span className="welcome-dashboard__trophy-name">
+                    {t("ouro", { defaultValue: "Ouro" })}
+                  </span>
+                  <span className="welcome-dashboard__trophy-count">
+                    {stats.gold}
+                  </span>
+                </div>
+                <div className="welcome-dashboard__trophy-item">
+                  <div className="welcome-dashboard__trophy-badge welcome-dashboard__trophy-badge--silver">
+                    <img
+                      src={silverTrophyPng}
+                      alt="Silver"
+                      className="welcome-dashboard__trophy-img"
+                    />
+                  </div>
+                  <span className="welcome-dashboard__trophy-name">
+                    {t("prata", { defaultValue: "Prata" })}
+                  </span>
+                  <span className="welcome-dashboard__trophy-count">
+                    {stats.silver}
+                  </span>
+                </div>
+                <div className="welcome-dashboard__trophy-item">
+                  <div className="welcome-dashboard__trophy-badge welcome-dashboard__trophy-badge--bronze">
+                    <img
+                      src={bronzeTrophyPng}
+                      alt="Bronze"
+                      className="welcome-dashboard__trophy-img"
+                    />
+                  </div>
+                  <span className="welcome-dashboard__trophy-name">
+                    {t("bronze", { defaultValue: "Bronze" })}
+                  </span>
+                  <span className="welcome-dashboard__trophy-count">1.5K</span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Card Grande: Novidades e Changelog do Hydra */}
-          <div
-            className="welcome-dashboard__card welcome-dashboard__card--big welcome-dashboard__card--changelog"
-            onClick={() => {
-              const widgetBtn = document.querySelector<HTMLButtonElement>(
-                "[data-open-workwonders-changelog-mini], [data-open-workwonders-changelog]"
-              );
-              if (widgetBtn) widgetBtn.click();
-            }}
-            data-open-workwonders-changelog-mini
-            role="button"
-            tabIndex={0}
-          >
-            <div className="welcome-dashboard__changelog-bg" />
-            <div className="welcome-dashboard__changelog-overlay" />
-            <HydraLogoSvg className="welcome-dashboard__changelog-watermark" />
-
-            <div className="welcome-dashboard__changelog-content">
-              <div className="welcome-dashboard__changelog-badge">
-                <SparkleIcon size={12} />
-                <span>
-                  {t("novidades_versao", {
-                    version: appVersion,
-                    defaultValue: `Novidades v${appVersion}`,
-                  })}
+            {/* Card Pequeno: Nível e XP do Usuário */}
+            <div className="welcome-dashboard__card welcome-dashboard__card--small welcome-dashboard__card--level">
+              <div className="welcome-dashboard__level-big-group">
+                <span className="welcome-dashboard__level-label">
+                  {t("nivel", { defaultValue: "NÍVEL" })}
+                </span>
+                <span className="welcome-dashboard__level-number">
+                  {stats.userLevel}
                 </span>
               </div>
 
-              <div className="welcome-dashboard__changelog-details">
-                <h4 className="welcome-dashboard__changelog-title">
-                  {t("o_que_ha_de_novo", {
-                    defaultValue: "O que há de novo no Hydra",
-                  })}
-                </h4>
-                <p className="welcome-dashboard__changelog-desc">
-                  {t("confira_recursos_correcoes", {
-                    defaultValue:
-                      "Confira os novos recursos, correções e melhorias da versão mais recente.",
-                  })}
-                </p>
-                <div className="welcome-dashboard__changelog-action">
-                  <span>
-                    {t("ver_notas_atualizacao", {
-                      defaultValue: "Ver notas da atualização",
+              <div className="welcome-dashboard__xp-container">
+                <div className="welcome-dashboard__xp-header">
+                  <span className="welcome-dashboard__xp-title">
+                    {t("proximo_nivel", {
+                      level: stats.userLevel + 1,
+                      defaultValue: `Nível ${stats.userLevel + 1}`,
                     })}
                   </span>
-                  <span className="welcome-dashboard__changelog-arrow">→</span>
+                  <span className="welcome-dashboard__xp-value">
+                    {stats.levelProgress}%
+                  </span>
+                </div>
+
+                <div className="welcome-dashboard__xp-bar-bg">
+                  <div
+                    className="welcome-dashboard__xp-bar-fill"
+                    style={{ width: `${stats.levelProgress}%` }}
+                  />
+                </div>
+
+                <span className="welcome-dashboard__xp-remaining">
+                  {t("xp_restante", {
+                    percent: 100 - stats.levelProgress,
+                    defaultValue: `Faltam ${100 - stats.levelProgress}% de XP para subir`,
+                  })}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* COLUNA 2: PEQUENO em cima, GRANDE em baixo */}
+          <div className="welcome-dashboard__column">
+            {/* Card Pequeno: Armazenamento do PC */}
+            <div className="welcome-dashboard__card welcome-dashboard__card--small welcome-dashboard__card--storage">
+              <div className="welcome-dashboard__card-header">
+                <div className="welcome-dashboard__card-title-group">
+                  <DatabaseIcon size={16} className="welcome-dashboard__icon" />
+                  <h3 className="welcome-dashboard__card-title">
+                    {t("armazenamento_pc", {
+                      defaultValue: "Armazenamento do PC",
+                    })}
+                  </h3>
+                </div>
+                {drives.length > 0 && (
+                  <span className="welcome-dashboard__storage-total-free">
+                    {formatStorageBytes(
+                      drives.reduce((acc, d) => acc + d.free, 0)
+                    )}{" "}
+                    livres
+                  </span>
+                )}
+              </div>
+
+              <div className="welcome-dashboard__storage-drives-list">
+                {drives.length === 0 ? (
+                  <div className="welcome-dashboard__storage-drive-item">
+                    <div className="welcome-dashboard__storage-drive-info">
+                      <span className="welcome-dashboard__storage-drive-name">
+                        C:
+                      </span>
+                      <span className="welcome-dashboard__storage-drive-space">
+                        Calculando...
+                      </span>
+                    </div>
+                    <div className="welcome-dashboard__storage-bar">
+                      <div
+                        className="welcome-dashboard__storage-bar-fill"
+                        style={{ width: "0%" }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  drives.map((drive) => {
+                    const used = Math.max(0, drive.total - drive.free);
+                    const usedPercent = Math.min(
+                      100,
+                      Math.max(0, Math.round((used / drive.total) * 100))
+                    );
+                    return (
+                      <div
+                        key={drive.name}
+                        className="welcome-dashboard__storage-drive-item"
+                      >
+                        <div className="welcome-dashboard__storage-drive-info">
+                          <span className="welcome-dashboard__storage-drive-name">
+                            {drive.name}
+                          </span>
+                          <span className="welcome-dashboard__storage-drive-space">
+                            {formatStorageBytes(drive.free)} livres de{" "}
+                            {formatStorageBytes(drive.total)}
+                          </span>
+                        </div>
+                        <div className="welcome-dashboard__storage-bar">
+                          <div
+                            className="welcome-dashboard__storage-bar-fill"
+                            style={{ width: `${usedPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Card Grande: Novidades e Changelog do Hydra */}
+            <div
+              className="welcome-dashboard__card welcome-dashboard__card--big welcome-dashboard__card--changelog"
+              onClick={() => {
+                const widgetBtn = document.querySelector<HTMLButtonElement>(
+                  "[data-open-workwonders-changelog-mini], [data-open-workwonders-changelog]"
+                );
+                if (widgetBtn) widgetBtn.click();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  const widgetBtn = document.querySelector<HTMLButtonElement>(
+                    "[data-open-workwonders-changelog-mini], [data-open-workwonders-changelog]"
+                  );
+                  if (widgetBtn) widgetBtn.click();
+                }
+              }}
+              data-open-workwonders-changelog-mini
+              role="button"
+              tabIndex={0}
+            >
+              <div className="welcome-dashboard__changelog-bg" />
+              <div className="welcome-dashboard__changelog-overlay" />
+              <HydraLogoSvg className="welcome-dashboard__changelog-watermark" />
+
+              <div className="welcome-dashboard__changelog-content">
+                <div className="welcome-dashboard__changelog-badge">
+                  <SparkleIcon size={12} />
+                  <span>
+                    {t("novidades_versao", {
+                      version: appVersion,
+                      defaultValue: `Novidades v${appVersion}`,
+                    })}
+                  </span>
+                </div>
+
+                <div className="welcome-dashboard__changelog-details">
+                  <h4 className="welcome-dashboard__changelog-title">
+                    {t("o_que_ha_de_novo", {
+                      defaultValue: "O que há de novo no Hydra",
+                    })}
+                  </h4>
+                  <p className="welcome-dashboard__changelog-desc">
+                    {t("confira_recursos_correcoes", {
+                      defaultValue:
+                        "Confira os novos recursos, correções e melhorias da versão mais recente.",
+                    })}
+                  </p>
+                  <div className="welcome-dashboard__changelog-action">
+                    <span>
+                      {t("ver_notas_atualizacao", {
+                        defaultValue: "Ver notas da atualização",
+                      })}
+                    </span>
+                    <span className="welcome-dashboard__changelog-arrow">
+                      →
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -530,6 +562,5 @@ export function WelcomeDashboard() {
         </div>
       </div>
     </div>
-  </div>
   );
 }
