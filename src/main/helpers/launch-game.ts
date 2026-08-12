@@ -334,9 +334,7 @@ const launchWindowsBinaryOnLinux = async (
   if (onlineFixResult.hasFix) {
     ensureSteamOverlayDependency(winePrefixPath, onlineFixResult.detectedFiles);
 
-    ensureSteamOverlayDependency(winePrefixPath, onlineFixResult.detectedFiles);
-
-    logger.info("Detected OnlineFix compatibility files", {
+    logger.info("Detected Windows compatibility files", {
       executable: parsedPath,
       provider: onlineFixResult.provider,
       overrides: detectedWineDllOverrides,

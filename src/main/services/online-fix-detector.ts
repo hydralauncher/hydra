@@ -295,7 +295,7 @@ function replaceIniKey(
 
 function readMainSectionValue(content: string, key: string): string | null {
   const section = content.match(
-    /^\s*\[Main\]\s*$([\s\S]*?)(?=^\s*\[[^\]]+\]\s*$|\s*$)/im
+    /^\s*\[Main\]\s*\r?\n([\s\S]*?)(?=^\s*\[[^\]]+\]\s*$|(?![\s\S]))/im
   );
   if (!section) return null;
 

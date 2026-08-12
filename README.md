@@ -1,19 +1,3 @@
-## Linux OnlineFix Support (Unofficial)
-
-This fork adds Linux support for SteamFix/OnlineFix games through UMU + Proton.
-
-Features:
-
-- Detects `OnlineFix64.dll` and `OnlineFix.ini`
-- Uses Steam Spacewar AppID (`480`)
-- Creates a dedicated SteamFix prefix (`~/SteamPrefixes/480`)
-- Applies required Proton DLL overrides
-
-Documentation:
-[ONLINEFIX-LINUX.md](ONLINEFIX-LINUX.md)
-
-This is an unofficial fork. Changes may differ from upstream Hydra.
-
 <div align="center">
 
 [<img src="https://raw.githubusercontent.com/hydralauncher/hydra/refs/heads/main/resources/icon.png" width="144"/>](https://help.hydralauncher.gg)

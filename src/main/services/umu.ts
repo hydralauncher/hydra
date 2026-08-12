@@ -234,11 +234,15 @@ export class Umu {
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
     ensureExecutablePermission(umuBinaryPath);
 
-    const SPACEWAR_GAME_ID = "umu-480";
+    const COMPATIBILITY_GAME_ID = "umu-480";
+
+    const compatibilityEntries = fs
+      .readdirSync(workingDirectory, { withFileTypes: true })
+      .map((entry) => entry.name.toLowerCase());
 
     const onlineFix =
-      fs.existsSync(path.join(workingDirectory, "OnlineFix64.dll")) ||
-      fs.existsSync(path.join(workingDirectory, "OnlineFix.ini"));
+      compatibilityEntries.includes("onlinefix64.dll") ||
+      compatibilityEntries.includes("onlinefix.ini");
 
     const homePath = SystemPath.getPath("home");
 
@@ -248,12 +252,12 @@ export class Umu {
     ].find((candidate) => fs.existsSync(candidate));
 
     /*
-     * OnlineFix expects the Windows Steam client files inside the Wine
+     * Some Windows compatibility setups expect Steam client files inside the Wine
      * prefix. Keep Hydra's existing per-game prefix so process tracking,
      * saves, backups and compatibility settings all resolve to the same
      * prefix that UMU actually launches.
      */
-    const onlineFixSteamClientPath =
+    const compatibilitySteamClientPath =
       onlineFix && options?.winePrefixPath
         ? path.join(
             options.winePrefixPath,
@@ -308,15 +312,15 @@ export class Umu {
           }
         : {};
 
-    if (onlineFix && onlineFixSteamClientPath) {
-      fs.mkdirSync(onlineFixSteamClientPath, { recursive: true });
+    if (onlineFix && compatibilitySteamClientPath) {
+      fs.mkdirSync(compatibilitySteamClientPath, { recursive: true });
 
       const provisionedSteamClientFiles: string[] = [];
 
       for (const [fileName, sourceCandidates] of Object.entries(
         requiredSteamClientSources
       )) {
-        const destination = path.join(onlineFixSteamClientPath, fileName);
+        const destination = path.join(compatibilitySteamClientPath, fileName);
 
         if (fs.existsSync(destination)) continue;
 
@@ -335,8 +339,8 @@ export class Umu {
       }
 
       if (provisionedSteamClientFiles.length > 0) {
-        logger.info("Provisioned OnlineFix Steam client files", {
-          destination: onlineFixSteamClientPath,
+        logger.info("Provisioned compatibility Steam client files", {
+          destination: compatibilitySteamClientPath,
           files: provisionedSteamClientFiles,
         });
       }
@@ -347,7 +351,7 @@ export class Umu {
 
       ...(options?.gameId
         ? {
-            GAMEID: onlineFix ? SPACEWAR_GAME_ID : `umu-${options.gameId}`,
+            GAMEID: onlineFix ? COMPATIBILITY_GAME_ID : `umu-${options.gameId}`,
           }
         : {}),
 
@@ -362,7 +366,7 @@ export class Umu {
 
       ...(onlineFix
         ? {
-            GAMEID: SPACEWAR_GAME_ID,
+            GAMEID: COMPATIBILITY_GAME_ID,
             ...(options?.winePrefixPath
               ? { WINEPREFIX: options.winePrefixPath }
               : {}),
