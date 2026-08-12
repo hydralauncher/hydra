@@ -163,6 +163,13 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://www.rootz.so")) {
     return [Downloader.Rootz];
   }
+  if (
+    uri.startsWith("https://bzzhr.to") ||
+    uri.startsWith("https://ts.bzzhr.to") ||
+    uri.startsWith("https://ts.bzzhr.io")
+  ) {
+    return [Downloader.Bzzhr];
+  }
   if (isArchiveOrgFileUri(uri)) {
     return [Downloader.ArchiveOrg];
   }
