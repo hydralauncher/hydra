@@ -45,6 +45,10 @@ export function SettingsContextCompatibility() {
   const [autoRunGamemode, setAutoRunGamemode] = useState(false);
   const [protonLogEnabled, setProtonLogEnabled] = useState(false);
   const [
+    compatibilityEnvironmentVariablesEnabled,
+    setCompatibilityEnvironmentVariablesEnabled,
+  ] = useState(false);
+  const [
     compatibilityEnvironmentVariables,
     setCompatibilityEnvironmentVariables,
   ] = useState("");
@@ -90,6 +94,9 @@ export function SettingsContextCompatibility() {
     setAutoRunMangohud(userPreferences.autoRunMangohud ?? false);
     setAutoRunGamemode(userPreferences.autoRunGamemode ?? false);
     setProtonLogEnabled(userPreferences.protonLogEnabled ?? false);
+    setCompatibilityEnvironmentVariablesEnabled(
+      userPreferences.compatibilityEnvironmentVariablesEnabled ?? false
+    );
     setCompatibilityEnvironmentVariables(
       userPreferences.compatibilityEnvironmentVariables ?? ""
     );
@@ -401,6 +408,21 @@ export function SettingsContextCompatibility() {
               </div>
 
               <div className="settings-context-compatibility__env-vars">
+                <CheckboxField
+                  label={t("enable_compatibility_environment_variables")}
+                  checked={compatibilityEnvironmentVariablesEnabled}
+                  onChange={() =>
+                    setCompatibilityEnvironmentVariablesEnabled(
+                      (previousValue) => {
+                        const nextValue = !previousValue;
+                        updateUserPreferences({
+                          compatibilityEnvironmentVariablesEnabled: nextValue,
+                        });
+                        return nextValue;
+                      }
+                    )
+                  }
+                />
                 <label
                   className="settings-context-compatibility__env-vars-label"
                   htmlFor="compatibility-environment-variables"
@@ -414,12 +436,16 @@ export function SettingsContextCompatibility() {
                   onChange={(event) =>
                     setCompatibilityEnvironmentVariables(event.target.value)
                   }
-                  onBlur={() =>
+                  onBlur={() => {
+                    const trimmedValue = compatibilityEnvironmentVariables
+                      .split("\n")
+                      .filter((line) => line.trim() !== "")
+                      .join("\n");
+                    setCompatibilityEnvironmentVariables(trimmedValue);
                     updateUserPreferences({
-                      compatibilityEnvironmentVariables:
-                        compatibilityEnvironmentVariables || null,
-                    })
-                  }
+                      compatibilityEnvironmentVariables: trimmedValue || null,
+                    });
+                  }}
                   placeholder={t(
                     "compatibility_environment_variables_placeholder"
                   )}

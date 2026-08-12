@@ -1233,6 +1233,7 @@
     "run_games_with_gamemode": "Run games with GameMode by default",
     "run_games_with_mangohud": "Run games with MangoHud by default",
     "enable_proton_logging": "Enable Proton logging",
+    "enable_compatibility_environment_variables": "Enable environment variables",
     "compatibility_environment_variables": "Compatibility environment variables",
     "compatibility_environment_variables_description": "Applies these environment variables to every compatibility launch.",
     "compatibility_environment_variables_placeholder": "PROTON_FSR4_UPGRADE=1\nMANGOHUD=1\n# One variable per line",

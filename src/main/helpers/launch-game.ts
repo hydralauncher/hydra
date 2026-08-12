@@ -805,8 +805,10 @@ const launchGameWithCloudSaveChecks = async (
   await runCommonRedistPreflight(shop, objectId);
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
+  const compatibilityEnvironmentVariablesEnabled =
+    userPreferences?.compatibilityEnvironmentVariablesEnabled ?? false;
   const compatibilityEnvironmentVariables =
-    process.platform === "linux"
+    process.platform === "linux" && compatibilityEnvironmentVariablesEnabled
       ? parseCompatibilityEnvironmentVariables(
           userPreferences?.compatibilityEnvironmentVariables
         )

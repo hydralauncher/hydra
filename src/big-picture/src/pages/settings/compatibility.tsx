@@ -44,6 +44,7 @@ interface CompatibilityForm {
   autoRunGamemode: boolean;
   autoRunMangohud: boolean;
   protonLogEnabled: boolean;
+  compatibilityEnvironmentVariablesEnabled: boolean;
   compatibilityEnvironmentVariables: string;
 }
 
@@ -53,6 +54,7 @@ interface CompatibilityPreferenceValues {
   autoRunGamemode?: boolean;
   autoRunMangohud?: boolean;
   protonLogEnabled?: boolean;
+  compatibilityEnvironmentVariablesEnabled?: boolean | null;
 }
 
 interface CompatibilityItem {
@@ -74,6 +76,7 @@ const DEFAULT_FORM: CompatibilityForm = {
   autoRunGamemode: false,
   autoRunMangohud: false,
   protonLogEnabled: false,
+  compatibilityEnvironmentVariablesEnabled: false,
   compatibilityEnvironmentVariables: "",
 };
 
@@ -124,6 +127,8 @@ export function CompatibilitySettingsSection({
       autoRunGamemode: userPreferences.autoRunGamemode ?? false,
       autoRunMangohud: userPreferences.autoRunMangohud ?? false,
       protonLogEnabled: userPreferences.protonLogEnabled ?? false,
+      compatibilityEnvironmentVariablesEnabled:
+        userPreferences.compatibilityEnvironmentVariablesEnabled ?? false,
       compatibilityEnvironmentVariables:
         userPreferences.compatibilityEnvironmentVariables ?? "",
     });
@@ -225,6 +230,10 @@ export function CompatibilitySettingsSection({
           values.defaultProtonPath === undefined
             ? currentForm.defaultProtonPath
             : (values.defaultProtonPath ?? ""),
+        compatibilityEnvironmentVariablesEnabled:
+          values.compatibilityEnvironmentVariablesEnabled === undefined
+            ? currentForm.compatibilityEnvironmentVariablesEnabled
+            : (values.compatibilityEnvironmentVariablesEnabled ?? false),
         compatibilityEnvironmentVariables:
           values.compatibilityEnvironmentVariables === undefined
             ? currentForm.compatibilityEnvironmentVariables
@@ -436,6 +445,20 @@ export function CompatibilitySettingsSection({
                 }}
               />
 
+              <Checkbox
+                id={`${COMPATIBILITY_ENV_VARS_INPUT_ID}_enable`}
+                label="Enable environment variables"
+                secondaryText="Controls whether compatibility environment variables are injected."
+                checked={form.compatibilityEnvironmentVariablesEnabled}
+                focusId={`${COMPATIBILITY_ENV_VARS_INPUT_ID}_enable`}
+                block
+                onChange={(checked) => {
+                  void updateCompatibilityPreferences({
+                    compatibilityEnvironmentVariablesEnabled: checked,
+                  });
+                }}
+              />
+
               <FocusItem
                 id={COMPATIBILITY_ENV_VARS_INPUT_ID}
                 actions={{ primary: () => textareaRef.current?.focus() }}
@@ -457,9 +480,17 @@ export function CompatibilitySettingsSection({
                       }));
                     }}
                     onBlur={() => {
+                      const trimmedValue =
+                        form.compatibilityEnvironmentVariables
+                          .split("\n")
+                          .filter((line) => line.trim() !== "")
+                          .join("\n");
+                      setForm((prev) => ({
+                        ...prev,
+                        compatibilityEnvironmentVariables: trimmedValue,
+                      }));
                       void updateCompatibilityPreferences({
-                        compatibilityEnvironmentVariables:
-                          form.compatibilityEnvironmentVariables || null,
+                        compatibilityEnvironmentVariables: trimmedValue || null,
                       });
                     }}
                     placeholder={`PROTON_FSR4_UPGRADE=1\nMANGOHUD=1\n# One variable per line`}
