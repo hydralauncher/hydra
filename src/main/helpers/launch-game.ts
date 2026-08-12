@@ -244,10 +244,10 @@ const cleanupStaleCompatibilityProcesses = async (
   }
 };
 
-const ensureSteamOverlayDependency = (
+const ensureSteamOverlayDependency = async (
   winePrefixPath: string | null,
   detectedFiles: string[]
-) => {
+): Promise<void> => {
   if (!winePrefixPath) return;
 
   const needsSteamOverlay = detectedFiles.some(
@@ -265,7 +265,12 @@ const ensureSteamOverlayDependency = (
 
   const targetPath = path.join(targetDirectory, "GameOverlayRenderer64.dll");
 
-  if (fs.existsSync(targetPath)) return;
+  try {
+    await fs.promises.access(targetPath);
+    return;
+  } catch {
+    // Dependency is not provisioned yet.
+  }
 
   const homePath = SystemPath.getPath("home");
 
@@ -280,9 +285,17 @@ const ensureSteamOverlayDependency = (
     path.join(homePath, ".steam", "steam", "GameOverlayRenderer64.dll"),
   ];
 
-  const sourcePath = sourceCandidates.find((candidate) =>
-    fs.existsSync(candidate)
-  );
+  let sourcePath: string | null = null;
+
+  for (const candidate of sourceCandidates) {
+    try {
+      await fs.promises.access(candidate);
+      sourcePath = candidate;
+      break;
+    } catch {
+      // Try the next Steam installation path.
+    }
+  }
 
   if (!sourcePath) {
     logger.warn("Steam overlay dependency was detected but not found", {
@@ -293,8 +306,8 @@ const ensureSteamOverlayDependency = (
   }
 
   try {
-    fs.mkdirSync(targetDirectory, { recursive: true });
-    fs.copyFileSync(sourcePath, targetPath);
+    await fs.promises.mkdir(targetDirectory, { recursive: true });
+    await fs.promises.copyFile(sourcePath, targetPath);
 
     logger.info("Provisioned Steam overlay dependency", {
       source: sourcePath,
@@ -537,7 +550,7 @@ const launchWindowsBinaryOnLinux = async (
       : null;
 
   if (compatibilityResult.requiresCompatibilityMode) {
-    ensureSteamOverlayDependency(
+    await ensureSteamOverlayDependency(
       winePrefixPath,
       compatibilityResult.detectedFiles
     );
@@ -548,8 +561,14 @@ const launchWindowsBinaryOnLinux = async (
       overrides: detectedWineDllOverrides,
       detectedFiles: compatibilityResult.detectedFiles,
       managedEntries: compatibilityResult.managedEntries,
-      warnings: compatibilityResult.warnings,
     });
+
+    for (const warning of compatibilityResult.warnings) {
+      logger.warn("Windows compatibility detection warning", {
+        executable: parsedPath,
+        warning,
+      });
+    }
   }
 
   /*

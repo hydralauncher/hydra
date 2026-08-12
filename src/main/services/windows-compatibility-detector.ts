@@ -105,8 +105,11 @@ async function parseManifest(manifestPath: string, state: ScanState) {
       addOverride(state, dll, dll.toLowerCase() === "winmm.dll" ? "n,b" : "n");
     }
   } catch (error) {
-    state.warnings.push(`Could not read ${manifestPath}`);
-    console.error(`Error reading OnlineFix manifest ${manifestPath}:`, error);
+    state.warnings.push(
+      `Could not read ${manifestPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 }
 
@@ -121,8 +124,12 @@ async function scanDirectory(
   try {
     entries = await fs.readdir(currentPath, { withFileTypes: true });
   } catch (error) {
-    state.warnings.push(`Could not scan ${currentPath}`);
-    console.error(`Error scanning OnlineFix directory ${currentPath}:`, error);
+    state.warnings.push(
+      `Could not scan ${currentPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    return;
     return;
   }
 

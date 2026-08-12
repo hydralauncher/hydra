@@ -246,12 +246,6 @@ export class Umu {
       path.join(homePath, ".local", "share", "Steam"),
     ].find((candidate) => fs.existsSync(candidate));
 
-    /*
-     * Some Windows compatibility setups expect Steam client files inside the Wine
-     * prefix. Keep Hydra's existing per-game prefix so process tracking,
-     * saves, backups and compatibility settings all resolve to the same
-     * prefix that UMU actually launches.
-     */
     const compatibilitySteamClientPath =
       compatibilityMode && options?.winePrefixPath
         ? path.join(
@@ -313,7 +307,9 @@ export class Umu {
         : {};
 
     if (compatibilityMode && compatibilitySteamClientPath) {
-      fs.mkdirSync(compatibilitySteamClientPath, { recursive: true });
+      await fs.promises.mkdir(compatibilitySteamClientPath, {
+        recursive: true,
+      });
 
       const provisionedSteamClientFiles: string[] = [];
 
@@ -336,7 +332,7 @@ export class Umu {
           continue;
         }
 
-        fs.copyFileSync(source, destination);
+        await fs.promises.copyFile(source, destination);
         provisionedSteamClientFiles.push(fileName);
       }
 
