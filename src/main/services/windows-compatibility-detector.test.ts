@@ -5,11 +5,11 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import {
-  detectOnlineFixCompatibility,
+  detectWindowsCompatibility,
   patchSteamFixIniSafely,
-} from "./online-fix-detector.ts";
+} from "./windows-compatibility-detector.ts";
 
-describe("online-fix-detector", () => {
+describe("windows-compatibility-detector", () => {
   let root: string;
 
   beforeEach(async () => {
@@ -25,9 +25,9 @@ describe("online-fix-detector", () => {
     await fs.mkdir(nested, { recursive: true });
     await fs.writeFile(path.join(nested, "OnlineFix64.dll"), "");
 
-    const result = await detectOnlineFixCompatibility(root);
+    const result = await detectWindowsCompatibility(root);
 
-    assert.equal(result.hasFix, true);
+    assert.equal(result.requiresCompatibilityMode, true);
     assert.equal(result.provider, "onlinefix");
     assert.ok(result.overrides.toLowerCase().includes("onlinefix64=n"));
   });
@@ -38,10 +38,10 @@ describe("online-fix-detector", () => {
       "winmm.dll\nSteamOverlay64.dll\n../../evil.dll\n"
     );
 
-    const result = await detectOnlineFixCompatibility(root);
+    const result = await detectWindowsCompatibility(root);
     const overrides = result.overrides.toLowerCase();
 
-    assert.equal(result.hasFix, true);
+    assert.equal(result.requiresCompatibilityMode, true);
     assert.ok(overrides.includes("winmm=n,b"));
     assert.ok(overrides.includes("steamoverlay64=n"));
     assert.equal(overrides.includes("evil=n"), false);
@@ -50,9 +50,9 @@ describe("online-fix-detector", () => {
   it("does not use an EOS DLL alone as proof of OnlineFix", async () => {
     await fs.writeFile(path.join(root, "EOSSDK-Win64-Shipping.dll"), "");
 
-    const result = await detectOnlineFixCompatibility(root);
+    const result = await detectWindowsCompatibility(root);
 
-    assert.equal(result.hasFix, false);
+    assert.equal(result.requiresCompatibilityMode, false);
     assert.equal(result.overrides, "");
   });
 
@@ -60,7 +60,7 @@ describe("online-fix-detector", () => {
     await fs.writeFile(path.join(root, "Launcher.exe"), "");
     await fs.writeFile(path.join(root, "onlinefix.json"), "{}");
 
-    const result = await detectOnlineFixCompatibility(root);
+    const result = await detectWindowsCompatibility(root);
 
     assert.equal(result.provider, "photon");
     assert.deepEqual(result.missingDependencies, [
@@ -73,9 +73,9 @@ describe("online-fix-detector", () => {
     await fs.writeFile(path.join(root, "steam_appid.txt"), "480");
     await fs.writeFile(path.join(root, "steam_emu.ini"), "[Settings]\n");
 
-    const result = await detectOnlineFixCompatibility(root);
+    const result = await detectWindowsCompatibility(root);
 
-    assert.equal(result.hasFix, true);
+    assert.equal(result.requiresCompatibilityMode, true);
     assert.ok(
       result.detectedFiles.some(
         (file) => path.basename(file).toLowerCase() === "steam_emu.ini"
@@ -86,9 +86,9 @@ describe("online-fix-detector", () => {
   it("does not use steam_api64.dll alone as proof of a compatibility setup", async () => {
     await fs.writeFile(path.join(root, "steam_api64.dll"), "");
 
-    const result = await detectOnlineFixCompatibility(root);
+    const result = await detectWindowsCompatibility(root);
 
-    assert.equal(result.hasFix, false);
+    assert.equal(result.requiresCompatibilityMode, false);
   });
 
   it("patches steamfix.ini with backup and is idempotent", async () => {

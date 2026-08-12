@@ -16,7 +16,7 @@ import {
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { SystemPath } from "@main/services/system-path";
-import { detectOnlineFixCompatibility } from "@main/services/online-fix-detector";
+import { detectWindowsCompatibility } from "@main/services/windows-compatibility-detector";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
@@ -512,25 +512,29 @@ const launchWindowsBinaryOnLinux = async (
 
   await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
 
-  const onlineFixResult = await detectOnlineFixCompatibility(
+  const compatibilityResult = await detectWindowsCompatibility(
     path.dirname(parsedPath)
   );
 
   const detectedWineDllOverrides =
-    onlineFixResult.hasFix && onlineFixResult.overrides
-      ? onlineFixResult.overrides
+    compatibilityResult.requiresCompatibilityMode &&
+    compatibilityResult.overrides
+      ? compatibilityResult.overrides
       : null;
 
-  if (onlineFixResult.hasFix) {
-    ensureSteamOverlayDependency(winePrefixPath, onlineFixResult.detectedFiles);
+  if (compatibilityResult.requiresCompatibilityMode) {
+    ensureSteamOverlayDependency(
+      winePrefixPath,
+      compatibilityResult.detectedFiles
+    );
 
     logger.info("Detected Windows compatibility files", {
       executable: parsedPath,
-      provider: onlineFixResult.provider,
+      provider: compatibilityResult.provider,
       overrides: detectedWineDllOverrides,
-      detectedFiles: onlineFixResult.detectedFiles,
-      managedEntries: onlineFixResult.managedEntries,
-      warnings: onlineFixResult.warnings,
+      detectedFiles: compatibilityResult.detectedFiles,
+      managedEntries: compatibilityResult.managedEntries,
+      warnings: compatibilityResult.warnings,
     });
   }
 
@@ -542,7 +546,10 @@ const launchWindowsBinaryOnLinux = async (
    * Exact-path matching prevents selecting another shortcut with the same
    * executable filename.
    */
-  if (onlineFixResult.hasFix && launchThroughSteamShortcut(parsedPath)) {
+  if (
+    compatibilityResult.requiresCompatibilityMode &&
+    launchThroughSteamShortcut(parsedPath)
+  ) {
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
   }
@@ -556,7 +563,7 @@ const launchWindowsBinaryOnLinux = async (
       useGamemode,
       useMangohud,
       wineDllOverrides: detectedWineDllOverrides,
-      compatibilityMode: onlineFixResult.hasFix,
+      compatibilityMode: compatibilityResult.requiresCompatibilityMode,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;

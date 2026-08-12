@@ -1,11 +1,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-export type OnlineFixProvider = "onlinefix" | "freetp" | "photon" | "unknown";
+export type CompatibilityProvider =
+  | "onlinefix"
+  | "freetp"
+  | "photon"
+  | "unknown";
 
-export interface OnlineFixDetectionResult {
-  hasFix: boolean;
-  provider: OnlineFixProvider;
+export interface CompatibilityDetectionResult {
+  requiresCompatibilityMode: boolean;
+  provider: CompatibilityProvider;
   overrides: string;
   detectedFiles: string[];
   managedEntries: string[];
@@ -209,7 +213,7 @@ async function scanDirectory(
   }
 }
 
-function chooseProvider(state: ScanState): OnlineFixProvider {
+function chooseProvider(state: ScanState): CompatibilityProvider {
   if (state.hasPhotonSignature) return "photon";
   if (state.hasFreeTpSignature) return "freetp";
   if (state.hasOnlineFixSignature) return "onlinefix";
@@ -241,12 +245,12 @@ const hasSteamEmulatorConfiguration = (
   );
 };
 
-export async function detectOnlineFixCompatibility(
+export async function detectWindowsCompatibility(
   gameFolder: string
-): Promise<OnlineFixDetectionResult> {
+): Promise<CompatibilityDetectionResult> {
   if (!gameFolder) {
     return {
-      hasFix: false,
+      requiresCompatibilityMode: false,
       provider: "unknown",
       overrides: "",
       detectedFiles: [],
@@ -262,7 +266,7 @@ export async function detectOnlineFixCompatibility(
     if (!stat.isDirectory()) throw new Error("not a directory");
   } catch {
     return {
-      hasFix: false,
+      requiresCompatibilityMode: false,
       provider: "unknown",
       overrides: "",
       detectedFiles: [],
@@ -323,7 +327,8 @@ export async function detectOnlineFixCompatibility(
   }
 
   return {
-    hasFix: state.hasStrongSignature || steamEmulatorDetected,
+    requiresCompatibilityMode:
+      state.hasStrongSignature || steamEmulatorDetected,
     provider: chooseProvider(state),
     overrides: [...state.overrides.values()].join(";"),
     detectedFiles: [...state.detectedFiles].sort((a, b) => a.localeCompare(b)),
