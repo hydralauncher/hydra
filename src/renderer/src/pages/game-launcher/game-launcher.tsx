@@ -105,14 +105,16 @@ export default function GameLauncher() {
     }
 
     const unsubscribe = window.electron.onGameLauncherStatus(
-      ({ status, detail }) => {
+      ({ gameKey, status, detail }) => {
+        if (gameKey !== `${shop}:${objectId}`) return;
+
         setAchievementsExportStatus(status);
         setAchievementsExportDetail(detail);
       }
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [shop, objectId]);
 
   // Auto-close timer - only starts after preflight completes
   // Preflight is "done" when: it completed/errored, OR it never started (non-Windows or no preflight needed)

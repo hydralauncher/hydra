@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
+import { randomUUID } from "node:crypto";
 
 import type { Game, GameShop, SteamAchievement } from "@types";
 
@@ -30,10 +31,15 @@ export interface AchievementMetadataExportResult {
   icons: AchievementIcon[];
 }
 
-const fetchEnglishAchievements = (objectId: string, shop: GameShop) =>
+const fetchEnglishAchievements = (
+  objectId: string,
+  shop: GameShop,
+  signal?: AbortSignal
+) =>
   HydraApi.getResponse<SteamAchievement[]>(
     `/games/${shop}/${objectId}/achievements`,
-    { language: METADATA_LANGUAGE }
+    { language: METADATA_LANGUAGE },
+    { signal }
   ).then((response) => response.data ?? []);
 
 const hasAchievementsFile = (steamSettingsDirectory: string) =>
@@ -56,14 +62,25 @@ const writeAchievementsFile = async (
   contents: string
 ) => {
   const filePath = path.join(steamSettingsDirectory, ACHIEVEMENTS_FILE_NAME);
-  const temporaryFilePath = `${filePath}.tmp`;
+  const temporaryFilePath = `${filePath}.${randomUUID()}.tmp`;
 
-  await fs.promises.writeFile(temporaryFilePath, contents, "utf-8");
-  await fs.promises.rename(temporaryFilePath, filePath);
+  try {
+    await fs.promises.writeFile(temporaryFilePath, contents, {
+      encoding: "utf-8",
+      flag: "wx",
+    });
+
+    await fs.promises.rename(temporaryFilePath, filePath);
+  } catch (error) {
+    await fs.promises.rm(temporaryFilePath, { force: true }).catch(() => {});
+
+    throw error;
+  }
 };
 
 export const generateAchievementMetadata = async (
-  game: Game
+  game: Game,
+  signal?: AbortSignal
 ): Promise<AchievementMetadataExportResult | null> => {
   if (game.shop !== "steam") return null;
 
@@ -73,6 +90,8 @@ export const generateAchievementMetadata = async (
 
   const steamSettingsDirectories =
     await findSteamSettingsDirectories(executablePath);
+
+  if (signal?.aborted) return null;
 
   if (!steamSettingsDirectories.length) {
     achievementsLogger.log(
@@ -110,15 +129,20 @@ export const generateAchievementMetadata = async (
 
   const achievements = await fetchEnglishAchievements(
     game.objectId,
-    game.shop
+    game.shop,
+    signal
   ).catch((error) => {
-    achievementsLogger.error(
-      `Failed to fetch achievement data for ${game.objectId}`,
-      error
-    );
+    if (!signal?.aborted) {
+      achievementsLogger.error(
+        `Failed to fetch achievement data for ${game.objectId}`,
+        error
+      );
+    }
 
     return [];
   });
+
+  if (signal?.aborted) return null;
 
   const defaultMetadata = buildAchievementMetadata(achievements);
 
@@ -130,6 +154,8 @@ export const generateAchievementMetadata = async (
   }
 
   for (const steamSettingsDirectory of directoriesMissingAchievements) {
+    if (signal?.aborted) return null;
+
     const imagesDirName = existingImagesDirNames.get(steamSettingsDirectory);
 
     const { entries } = imagesDirName

@@ -9,14 +9,6 @@ const GENERATION_TIMEOUT_IN_MS = 15_000;
 
 const abortControllers = new Map<string, AbortController>();
 
-const withTimeout = <T>(promise: Promise<T>, timeoutInMs: number) =>
-  Promise.race([
-    promise,
-    new Promise<null>((resolve) =>
-      setTimeout(() => resolve(null), timeoutInMs)
-    ),
-  ]);
-
 export const abortAchievementMetadataExport = (gameKey: string) => {
   const abortController = abortControllers.get(gameKey);
 
@@ -42,19 +34,26 @@ export const runAchievementMetadataExport = async (
   const finishExport = () => {
     if (abortControllers.get(gameKey) === abortController) {
       abortControllers.delete(gameKey);
-      sendGameLauncherStatus("complete");
+      sendGameLauncherStatus(gameKey, "complete");
     }
   };
 
+  const generationTimeout = setTimeout(() => {
+    abortController.abort();
+  }, GENERATION_TIMEOUT_IN_MS);
+
   try {
-    sendGameLauncherStatus("generating_achievements");
+    sendGameLauncherStatus(gameKey, "generating_achievements");
 
-    const result = await withTimeout(
-      generateAchievementMetadata(game),
-      GENERATION_TIMEOUT_IN_MS
-    );
+    const result = await generateAchievementMetadata(
+      game,
+      abortController.signal
+    ).finally(() => clearTimeout(generationTimeout));
 
-    if (abortController.signal.aborted) return;
+    if (abortController.signal.aborted) {
+      finishExport();
+      return;
+    }
 
     if (!result?.icons.length || !result.steamSettingsDirectories.length) {
       finishExport();
@@ -62,6 +61,7 @@ export const runAchievementMetadataExport = async (
     }
 
     sendGameLauncherStatus(
+      gameKey,
       "downloading_achievement_icons",
       `0/${result.icons.length}`
     );
@@ -72,6 +72,7 @@ export const runAchievementMetadataExport = async (
       signal: abortController.signal,
       onProgress: (downloaded, total) =>
         sendGameLauncherStatus(
+          gameKey,
           "downloading_achievement_icons",
           `${downloaded}/${total}`
         ),
@@ -81,10 +82,14 @@ export const runAchievementMetadataExport = async (
       })
       .finally(finishExport);
   } catch (error) {
-    achievementsLogger.error(
-      "Failed to export emulator achievement metadata",
-      error
-    );
+    clearTimeout(generationTimeout);
+
+    if (!abortController.signal.aborted) {
+      achievementsLogger.error(
+        "Failed to export emulator achievement metadata",
+        error
+      );
+    }
 
     finishExport();
   }

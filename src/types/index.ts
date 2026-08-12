@@ -392,6 +392,7 @@ export type GameLauncherStatus =
   | "complete";
 
 export interface GameLauncherStatusPayload {
+  gameKey: string;
   status: GameLauncherStatus;
   detail: string | null;
 }
