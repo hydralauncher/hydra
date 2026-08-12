@@ -5,11 +5,10 @@ export const isGamescopeAvailable = (): boolean => {
     return false;
   }
 
-  const result = spawnSync("gamescope", ["--help"], {
-    // nosonar
+  const result = spawnSync("/bin/sh", ["-c", "command -v gamescope"], {
     stdio: "ignore",
     shell: false,
   });
 
-  return !result.error;
+  return !result.error && result.status === 0;
 };
