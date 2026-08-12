@@ -272,14 +272,14 @@ export function GameCompatibilitySettingsTab({
       if (key === "gamescopeUpscaler") setGamescopeUpscaler(value);
       if (key === "gamescopeFramerateLimit") setGamescopeFramerateLimit(value);
 
-      const payloadGamescopeFramerateLimit =
-        key === "gamescopeFramerateLimit"
-          ? value
-            ? Number(value)
-            : null
-          : gamescopeFramerateLimit
-            ? Number(gamescopeFramerateLimit)
-            : null;
+      let payloadGamescopeFramerateLimit: number | null = null;
+      if (key === "gamescopeFramerateLimit") {
+        payloadGamescopeFramerateLimit = value ? Number(value) : null;
+      } else {
+        payloadGamescopeFramerateLimit = gamescopeFramerateLimit
+          ? Number(gamescopeFramerateLimit)
+          : null;
+      }
 
       const payload = {
         gamescopeResolution:

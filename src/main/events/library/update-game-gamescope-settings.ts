@@ -27,9 +27,8 @@ const updateGameGamescopeSettings = async (
     });
   };
 
-  updatePromises[gameKey] = (updatePromises[gameKey] || Promise.resolve())
-    .then(executeUpdate)
-    .catch(() => {});
+  const previousPromise = updatePromises[gameKey] ?? Promise.resolve();
+  updatePromises[gameKey] = previousPromise.then(executeUpdate).catch(() => {});
 
   await updatePromises[gameKey];
 };
