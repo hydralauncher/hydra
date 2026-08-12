@@ -793,10 +793,12 @@
     "recently_played_fallback": "recently",
     "select_executable_path": "Select Path",
     "clear_executable_path": "Clear Path",
-    "clear_launch_args": "Clear Args",
-    "additional_options_description": "Configure per-game overrides for GameMode and MangoHud",
+    "additional_options_description": "Configure per-game overrides for GameMode, MangoHud, and Gamescope",
     "never_played": "Never played",
     "compact_hours": "{{count}}h",
-    "compact_minutes": "{{count}}min"
+    "compact_minutes": "{{count}}min",
+    "Run with Gamescope": "Run with Gamescope",
+    "Run the game through the gamescope micro-compositor.": "Run the game through the gamescope micro-compositor.",
+    "Gamescope is not available in your PATH.": "Gamescope is not available in your PATH."
   }
 }

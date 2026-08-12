@@ -45,6 +45,7 @@ export const ACCOUNT_PRIVACY_PRIVACY_SELECT_ID =
   "account-privacy-profile-visibility";
 export const COMPATIBILITY_GAMEMODE_FOCUS_ID = "compatibility-gamemode";
 export const COMPATIBILITY_MANGOHUD_FOCUS_ID = "compatibility-mangohud";
+export const COMPATIBILITY_GAMESCOPE_FOCUS_ID = "compatibility-gamescope";
 export const COMPATIBILITY_COMMON_REDIST_BUTTON_ID =
   "compatibility-common-redist";
 export const ACCOUNT_PRIVACY_UPDATE_EMAIL_BUTTON_ID =

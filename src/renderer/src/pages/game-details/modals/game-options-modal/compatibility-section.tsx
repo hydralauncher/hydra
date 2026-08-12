@@ -6,6 +6,7 @@ import {
   Link,
   ProtonPathPicker,
   TextField,
+  SelectField,
 } from "@renderer/components";
 import type { LibraryGame, ProtonVersion } from "@types";
 import { FileDirectoryIcon, LinkExternalIcon } from "@primer/octicons-react";
@@ -18,18 +19,35 @@ interface CompatibilitySettingsSectionProps {
   selectedProtonPath: string;
   autoRunGamemode: boolean;
   autoRunMangohud: boolean;
+  autoRunGamescope: boolean;
   globalAutoRunGamemode: boolean;
   globalAutoRunMangohud: boolean;
+  globalAutoRunGamescope: boolean;
   gamemodeAvailable: boolean;
   mangohudAvailable: boolean;
+  gamescopeAvailable: boolean;
   winetricksAvailable: boolean;
   mangohudSiteUrl: string;
   gamemodeSiteUrl: string;
+  gamescopeSiteUrl: string;
+  gamescopeResolution: string;
+  gamescopeOutputResolution: string;
+  gamescopeUpscaler: string;
+  gamescopeFramerateLimit: string;
   onChangeWinePrefixPath: () => Promise<void>;
   onClearWinePrefixPath: () => Promise<void>;
   onOpenWinetricks: () => Promise<void>;
   onChangeGamemodeState: (value: boolean) => Promise<void>;
   onChangeMangohudState: (value: boolean) => Promise<void>;
+  onChangeGamescopeState: (value: boolean) => Promise<void>;
+  onChangeGamescopeSetting: (
+    key:
+      | "gamescopeResolution"
+      | "gamescopeOutputResolution"
+      | "gamescopeUpscaler"
+      | "gamescopeFramerateLimit",
+    value: string
+  ) => void;
   onChangeProtonVersion: (value: string) => void;
 }
 
@@ -40,18 +58,28 @@ export function CompatibilitySettingsSection({
   selectedProtonPath,
   autoRunGamemode,
   autoRunMangohud,
+  autoRunGamescope,
   globalAutoRunGamemode,
   globalAutoRunMangohud,
+  globalAutoRunGamescope,
   gamemodeAvailable,
   mangohudAvailable,
+  gamescopeAvailable,
   winetricksAvailable,
   mangohudSiteUrl,
   gamemodeSiteUrl,
+  gamescopeSiteUrl,
+  gamescopeResolution,
+  gamescopeOutputResolution,
+  gamescopeUpscaler,
+  gamescopeFramerateLimit,
   onChangeWinePrefixPath,
   onClearWinePrefixPath,
   onOpenWinetricks,
   onChangeGamemodeState,
   onChangeMangohudState,
+  onChangeGamescopeState,
+  onChangeGamescopeSetting,
   onChangeProtonVersion,
 }: Readonly<CompatibilitySettingsSectionProps>) {
   const { t } = useTranslation("game_details");
@@ -59,6 +87,7 @@ export function CompatibilitySettingsSection({
   const showWinetricksUnavailableTooltip = !winetricksAvailable;
   const gamemodeToggleDisabled = !gamemodeAvailable || globalAutoRunGamemode;
   const mangohudToggleDisabled = !mangohudAvailable || globalAutoRunMangohud;
+  const gamescopeToggleDisabled = !gamescopeAvailable || globalAutoRunGamescope;
 
   const gamemodeTooltipId = !gamemodeAvailable
     ? "gamemode-unavailable-tooltip"
@@ -70,6 +99,12 @@ export function CompatibilitySettingsSection({
     ? "mangohud-unavailable-tooltip"
     : globalAutoRunMangohud
       ? "mangohud-global-enabled-tooltip"
+      : undefined;
+
+  const gamescopeTooltipId = !gamescopeAvailable
+    ? "gamescope-unavailable-tooltip"
+    : globalAutoRunGamescope
+      ? "gamescope-global-enabled-tooltip"
       : undefined;
 
   const protonVersionAutoLabel = t("proton_version_auto", {
@@ -252,6 +287,123 @@ export function CompatibilitySettingsSection({
 
           {mangohudToggleDisabled && mangohudTooltipId && (
             <Tooltip id={mangohudTooltipId} />
+          )}
+        </div>
+
+        <div className="game-options-modal__gamescope-toggle">
+          <CheckboxField
+            label={
+              <span
+                className={`game-options-modal__gamescope-label ${
+                  gamescopeToggleDisabled
+                    ? "game-options-modal__gamescope-label--disabled"
+                    : ""
+                }`}
+                data-tooltip-id={gamescopeTooltipId}
+                data-tooltip-content={
+                  !gamescopeAvailable
+                    ? t("gamescope_not_available_tooltip", {
+                        defaultValue: "Gamescope is not available in your PATH",
+                      })
+                    : globalAutoRunGamescope
+                      ? t("gamescope_disabled_due_to_global_setting_tooltip", {
+                          defaultValue:
+                            "This option is disabled because Gamescope is enabled globally",
+                        })
+                      : undefined
+                }
+              >
+                <span>
+                  {t("run_with_gamescope_prefix", {
+                    defaultValue: "Automatically run with",
+                  })}
+                </span>
+                <Link
+                  to={gamescopeSiteUrl}
+                  className="game-options-modal__gamescope-link"
+                >
+                  Gamescope
+                  <LinkExternalIcon />
+                </Link>
+              </span>
+            }
+            checked={autoRunGamescope || globalAutoRunGamescope}
+            disabled={gamescopeToggleDisabled}
+            onChange={(event) => onChangeGamescopeState(event.target.checked)}
+          />
+
+          {gamescopeToggleDisabled && gamescopeTooltipId && (
+            <Tooltip id={gamescopeTooltipId} />
+          )}
+
+          {(autoRunGamescope || globalAutoRunGamescope) && (
+            <div className="game-options-modal__gamescope-settings">
+              <div className="game-options-modal__row">
+                <TextField
+                  label={t("gamescope_resolution", {
+                    defaultValue: "Game Resolution",
+                  })}
+                  value={gamescopeResolution}
+                  onChange={(e) =>
+                    onChangeGamescopeSetting(
+                      "gamescopeResolution",
+                      e.target.value
+                    )
+                  }
+                  placeholder="e.g. 1280x720"
+                />
+                <TextField
+                  label={t("gamescope_output_resolution", {
+                    defaultValue: "Output Resolution",
+                  })}
+                  value={gamescopeOutputResolution}
+                  onChange={(e) =>
+                    onChangeGamescopeSetting(
+                      "gamescopeOutputResolution",
+                      e.target.value
+                    )
+                  }
+                  placeholder="e.g. 1920x1080"
+                />
+              </div>
+              <div className="game-options-modal__row">
+                <SelectField
+                  label={t("gamescope_upscaler", {
+                    defaultValue: "Upscaling Filter",
+                  })}
+                  value={gamescopeUpscaler}
+                  onChange={(e) =>
+                    onChangeGamescopeSetting(
+                      "gamescopeUpscaler",
+                      e.target.value
+                    )
+                  }
+                  options={[
+                    {
+                      key: "none",
+                      label: t("none", { defaultValue: "None" }),
+                      value: "",
+                    },
+                    { key: "linear", label: "Linear", value: "linear" },
+                    { key: "nearest", label: "Nearest", value: "nearest" },
+                    { key: "fsr", label: "FSR", value: "fsr" },
+                    { key: "nis", label: "NIS", value: "nis" },
+                    { key: "pixel", label: "Pixel", value: "pixel" },
+                  ]}
+                />
+                <TextField
+                  label={t("gamescope_framerate_limit", {
+                    defaultValue: "Framerate Limit",
+                  })}
+                  value={gamescopeFramerateLimit}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, "");
+                    onChangeGamescopeSetting("gamescopeFramerateLimit", val);
+                  }}
+                  placeholder="e.g. 60"
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>

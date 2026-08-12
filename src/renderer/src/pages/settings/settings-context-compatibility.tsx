@@ -1,6 +1,10 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
+import {
+  GAMEMODE_SITE_URL,
+  MANGOHUD_SITE_URL,
+  GAMESCOPE_SITE_URL,
+} from "@shared";
 
 import {
   Button,
@@ -41,8 +45,10 @@ export function SettingsContextCompatibility() {
 
   const [autoRunMangohud, setAutoRunMangohud] = useState(false);
   const [autoRunGamemode, setAutoRunGamemode] = useState(false);
+  const [autoRunGamescope, setAutoRunGamescope] = useState(false);
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
+  const [gamescopeAvailable, setGamescopeAvailable] = useState(false);
 
   useEffect(() => {
     if (!shouldShowCommonRedist) return;
@@ -82,6 +88,7 @@ export function SettingsContextCompatibility() {
     setSelectedDefaultProtonPath(userPreferences.defaultProtonPath ?? "");
     setAutoRunMangohud(userPreferences.autoRunMangohud ?? false);
     setAutoRunGamemode(userPreferences.autoRunGamemode ?? false);
+    setAutoRunGamescope(userPreferences.autoRunGamescope ?? false);
     setDefaultWinePrefixPath(
       userPreferences.defaultWinePrefixPath ?? defaultWinePrefixBasePath
     );
@@ -91,6 +98,7 @@ export function SettingsContextCompatibility() {
     if (window.electron.platform !== "linux") {
       setGamemodeAvailable(false);
       setMangohudAvailable(false);
+      setGamescopeAvailable(false);
       return;
     }
 
@@ -103,6 +111,11 @@ export function SettingsContextCompatibility() {
       .isMangohudAvailable()
       .then(setMangohudAvailable)
       .catch(() => setMangohudAvailable(false));
+
+    window.electron
+      .isGamescopeAvailable()
+      .then(setGamescopeAvailable)
+      .catch(() => setGamescopeAvailable(false));
   }, []);
 
   useEffect(() => {
@@ -368,6 +381,59 @@ export function SettingsContextCompatibility() {
 
                 {!mangohudAvailable && (
                   <Tooltip id="settings-mangohud-unavailable-tooltip" />
+                )}
+              </div>
+
+              <div className="settings-behavior__gamescope-toggle">
+                <CheckboxField
+                  label={
+                    <span
+                      className={`settings-behavior__gamescope-label ${
+                        !gamescopeAvailable
+                          ? "settings-behavior__gamescope-label--disabled"
+                          : ""
+                      }`}
+                      data-tooltip-id={
+                        !gamescopeAvailable
+                          ? "settings-gamescope-unavailable-tooltip"
+                          : undefined
+                      }
+                      data-tooltip-content={
+                        !gamescopeAvailable
+                          ? tGameDetails("gamescope_not_available_tooltip", {
+                              defaultValue:
+                                "Gamescope is not available in your PATH",
+                            })
+                          : undefined
+                      }
+                    >
+                      <span>
+                        {tGameDetails("run_with_gamescope_prefix", {
+                          defaultValue: "Automatically run with",
+                        })}
+                      </span>
+                      <Link
+                        to={GAMESCOPE_SITE_URL}
+                        className="settings-behavior__gamescope-link"
+                      >
+                        Gamescope
+                        <LinkExternalIcon />
+                      </Link>
+                    </span>
+                  }
+                  checked={autoRunGamescope}
+                  disabled={!gamescopeAvailable}
+                  onChange={() =>
+                    setAutoRunGamescope((previousValue) => {
+                      const nextValue = !previousValue;
+                      updateUserPreferences({ autoRunGamescope: nextValue });
+                      return nextValue;
+                    })
+                  }
+                />
+
+                {!gamescopeAvailable && (
+                  <Tooltip id="settings-gamescope-unavailable-tooltip" />
                 )}
               </div>
             </div>

@@ -333,6 +333,7 @@ export class Umu {
       launchOptions?: string | null;
       useMangohud?: boolean;
       useGamemode?: boolean;
+      gamescopeArgs?: string[];
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -348,7 +349,12 @@ export class Umu {
       baseCommand: executableToSpawn,
       baseArgs: executableArgs,
       launchOptions: options?.launchOptions,
-      wrapperCommands: [...(options?.useGamemode ? ["gamemoderun"] : [])],
+      wrapperCommands: [
+        ...(options?.gamescopeArgs && options.gamescopeArgs.length > 0
+          ? [options.gamescopeArgs]
+          : []),
+        ...(options?.useGamemode ? ["gamemoderun"] : []),
+      ],
     });
 
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });

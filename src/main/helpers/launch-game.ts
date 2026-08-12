@@ -30,6 +30,7 @@ import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
+import { isGamescopeAvailable } from "./is-gamescope-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 import {
   buildWindowsBatchCommand,
@@ -66,13 +67,15 @@ const launchNatively = (
   executablePath: string,
   launchOptions?: string | null,
   useMangohud = false,
-  useGamemode = false
+  useGamemode = false,
+  gamescopeArgs: string[] = []
 ): number | null => {
   const workingDirectory = path.dirname(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executablePath,
     launchOptions,
     wrapperCommands: [
+      ...(gamescopeArgs.length > 0 ? [gamescopeArgs] : []),
       ...(useGamemode ? ["gamemoderun"] : []),
       ...(useMangohud ? ["mangohud"] : []),
     ],
@@ -148,6 +151,7 @@ const launchWithWine = async (
   launchOptions?: string | null,
   useMangohud = false,
   useGamemode = false,
+  gamescopeArgs: string[] = [],
   winePrefixPath?: string | null
 ): Promise<boolean> => {
   const workingDirectory = path.dirname(executablePath);
@@ -156,6 +160,7 @@ const launchWithWine = async (
     baseArgs: [executablePath],
     launchOptions,
     wrapperCommands: [
+      ...(gamescopeArgs.length > 0 ? [gamescopeArgs] : []),
       ...(useGamemode ? ["gamemoderun"] : []),
       ...(useMangohud ? ["mangohud"] : []),
     ],
@@ -386,7 +391,8 @@ const launchWindowsBinaryOnLinux = async (
   compatibilityContext: LinuxCompatibilityLaunchContext,
   launchOptions: string | null | undefined,
   useMangohud: boolean,
-  useGamemode: boolean
+  useGamemode: boolean,
+  gamescopeArgs: string[]
 ): Promise<boolean> => {
   const { protonPath, winePrefixPath } = compatibilityContext;
 
@@ -398,6 +404,7 @@ const launchWindowsBinaryOnLinux = async (
       launchOptions,
       useGamemode,
       useMangohud,
+      gamescopeArgs,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
@@ -410,6 +417,7 @@ const launchWindowsBinaryOnLinux = async (
     launchOptions,
     useMangohud,
     useGamemode,
+    gamescopeArgs,
     winePrefixPath
   );
 
@@ -526,10 +534,17 @@ const launchResolvedGame = async (
   compatibilityContext: LinuxCompatibilityLaunchContext | null,
   launchOptions: string | null | undefined,
   useMangohud: boolean,
-  useGamemode: boolean
+  useGamemode: boolean,
+  gamescopeArgs: string[] = []
 ) => {
   if (process.platform !== "linux") {
-    return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+    return launchNatively(
+      parsedPath,
+      launchOptions,
+      useMangohud,
+      useGamemode,
+      gamescopeArgs
+    );
   }
 
   if (isWindowsExecutable(parsedPath)) {
@@ -545,7 +560,8 @@ const launchResolvedGame = async (
       compatibilityContext,
       launchOptions,
       useMangohud,
-      useGamemode
+      useGamemode,
+      gamescopeArgs
     );
     if (launched) return null;
     clearCloudSaveLaunchGuard(objectId, shop);
@@ -555,7 +571,8 @@ const launchResolvedGame = async (
     parsedPath,
     launchOptions,
     useMangohud,
-    useGamemode
+    useGamemode,
+    gamescopeArgs
   );
   if (pid !== null) launchedGamePids.set(gameKey, pid);
   return pid;
@@ -591,6 +608,35 @@ const launchGameWithCloudSaveChecks = async (
     (userPreferences?.autoRunGamemode === true ||
       game?.autoRunGamemode === true) &&
     isGamemodeAvailable();
+
+  const useGamescope =
+    (userPreferences?.autoRunGamescope === true ||
+      game?.autoRunGamescope === true) &&
+    isGamescopeAvailable();
+
+  const gamescopeArgs: string[] = [];
+  if (useGamescope) {
+    gamescopeArgs.push("gamescope", "-f");
+    if (game?.gamescopeResolution) {
+      const parts = game.gamescopeResolution.split("x");
+      if (parts.length === 2) {
+        gamescopeArgs.push("-w", parts[0], "-h", parts[1]);
+      }
+    }
+    if (game?.gamescopeOutputResolution) {
+      const parts = game.gamescopeOutputResolution.split("x");
+      if (parts.length === 2) {
+        gamescopeArgs.push("-W", parts[0], "-H", parts[1]);
+      }
+    }
+    if (game?.gamescopeUpscaler) {
+      gamescopeArgs.push("-F", game.gamescopeUpscaler);
+    }
+    if (game?.gamescopeFramerateLimit) {
+      gamescopeArgs.push("-r", String(game.gamescopeFramerateLimit));
+    }
+    gamescopeArgs.push("--");
+  }
 
   if (game) {
     await gamesSublevel.put(gameKey, {
@@ -733,7 +779,8 @@ const launchGameWithCloudSaveChecks = async (
     compatibilityContext,
     launchOptions,
     useMangohud,
-    useGamemode
+    useGamemode,
+    gamescopeArgs
   );
 };
 

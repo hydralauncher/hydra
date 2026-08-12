@@ -12,6 +12,7 @@ import {
   formatBytes,
   GAMEMODE_SITE_URL,
   getCloudSaveAccessAction,
+  GAMESCOPE_SITE_URL,
   getGameExecutableFilters,
   MANGOHUD_SITE_URL,
 } from "@shared";
@@ -139,9 +140,27 @@ export function GameOptionsModal({
   const [autoRunGamemode, setAutoRunGamemode] = useState<boolean>(
     game.autoRunGamemode === true
   );
+  const [autoRunGamescope, setAutoRunGamescope] = useState<boolean>(
+    game.autoRunGamescope === true
+  );
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
+  const [gamescopeAvailable, setGamescopeAvailable] = useState(false);
   const [winetricksAvailable, setWinetricksAvailable] = useState(false);
+
+  const [gamescopeResolution, setGamescopeResolution] = useState(
+    game.gamescopeResolution ?? ""
+  );
+  const [gamescopeOutputResolution, setGamescopeOutputResolution] = useState(
+    game.gamescopeOutputResolution ?? ""
+  );
+  const [gamescopeUpscaler, setGamescopeUpscaler] = useState(
+    game.gamescopeUpscaler ?? ""
+  );
+  const [gamescopeFramerateLimit, setGamescopeFramerateLimit] = useState(
+    game.gamescopeFramerateLimit?.toString() ?? ""
+  );
+
   const [selectedCategory, setSelectedCategory] =
     useState<GameSettingsCategoryId>("general");
   const categoryInitializationStateRef =
@@ -257,6 +276,7 @@ export function GameOptionsModal({
 
   const globalAutoRunGamemode = userPreferences?.autoRunGamemode === true;
   const globalAutoRunMangohud = userPreferences?.autoRunMangohud === true;
+  const globalAutoRunGamescope = userPreferences?.autoRunGamescope === true;
   const hasAchievements =
     (achievements?.filter((a) => a.unlocked).length ?? 0) > 0;
   const deleting = isGameDeleting(game.id);
@@ -301,6 +321,19 @@ export function GameOptionsModal({
   useEffect(() => {
     setAutoRunGamemode(game.autoRunGamemode === true);
   }, [game.autoRunGamemode]);
+  useEffect(() => {
+    setAutoRunGamescope(game.autoRunGamescope === true);
+    setGamescopeResolution(game.gamescopeResolution ?? "");
+    setGamescopeOutputResolution(game.gamescopeOutputResolution ?? "");
+    setGamescopeUpscaler(game.gamescopeUpscaler ?? "");
+    setGamescopeFramerateLimit(game.gamescopeFramerateLimit?.toString() ?? "");
+  }, [
+    game.autoRunGamescope,
+    game.gamescopeResolution,
+    game.gamescopeOutputResolution,
+    game.gamescopeUpscaler,
+    game.gamescopeFramerateLimit,
+  ]);
 
   useEffect(() => {
     if (!visible || globalThis.window.electron.platform !== "linux") return;
@@ -341,6 +374,17 @@ export function GameOptionsModal({
       .isMangohudAvailable()
       .then(setMangohudAvailable)
       .catch(() => setMangohudAvailable(false));
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || globalThis.window.electron.platform !== "linux") {
+      setGamescopeAvailable(false);
+      return;
+    }
+    globalThis.window.electron
+      .isGamescopeAvailable()
+      .then(setGamescopeAvailable)
+      .catch(() => setGamescopeAvailable(false));
   }, [visible]);
 
   useEffect(() => {
@@ -714,6 +758,60 @@ export function GameOptionsModal({
       value
     );
     updateGame();
+  };
+
+  const handleChangeGamescopeState = async (value: boolean) => {
+    setAutoRunGamescope(value);
+    await globalThis.window.electron.toggleGameGamescope(
+      game.shop,
+      game.objectId,
+      value
+    );
+    updateGame();
+  };
+
+  const debounceUpdateGamescopeSettings = useRef(
+    debounce(async (settings: any) => {
+      await globalThis.window.electron.updateGameGamescopeSettings(
+        game.shop,
+        game.objectId,
+        settings
+      );
+      updateGame();
+    }, 1000)
+  ).current;
+
+  const handleGamescopeSettingChange = (
+    key:
+      | "gamescopeResolution"
+      | "gamescopeOutputResolution"
+      | "gamescopeUpscaler"
+      | "gamescopeFramerateLimit",
+    value: string
+  ) => {
+    if (key === "gamescopeResolution") setGamescopeResolution(value);
+    if (key === "gamescopeOutputResolution")
+      setGamescopeOutputResolution(value);
+    if (key === "gamescopeUpscaler") setGamescopeUpscaler(value);
+    if (key === "gamescopeFramerateLimit") setGamescopeFramerateLimit(value);
+
+    const currentResolution =
+      key === "gamescopeResolution" ? value : gamescopeResolution;
+    const currentOutputResolution =
+      key === "gamescopeOutputResolution" ? value : gamescopeOutputResolution;
+    const currentUpscaler =
+      key === "gamescopeUpscaler" ? value : gamescopeUpscaler;
+    const currentFramerateLimit =
+      key === "gamescopeFramerateLimit" ? value : gamescopeFramerateLimit;
+
+    debounceUpdateGamescopeSettings({
+      gamescopeResolution: currentResolution || null,
+      gamescopeOutputResolution: currentOutputResolution || null,
+      gamescopeUpscaler: currentUpscaler || null,
+      gamescopeFramerateLimit: currentFramerateLimit
+        ? Number(currentFramerateLimit)
+        : null,
+    });
   };
 
   const applyProtonPathChange = async (protonPath: string) => {
@@ -1243,18 +1341,28 @@ export function GameOptionsModal({
                   selectedProtonPath={selectedProtonPath}
                   autoRunGamemode={autoRunGamemode}
                   autoRunMangohud={autoRunMangohud}
+                  autoRunGamescope={autoRunGamescope}
                   globalAutoRunGamemode={globalAutoRunGamemode}
                   globalAutoRunMangohud={globalAutoRunMangohud}
+                  globalAutoRunGamescope={globalAutoRunGamescope}
                   gamemodeAvailable={gamemodeAvailable}
                   mangohudAvailable={mangohudAvailable}
+                  gamescopeAvailable={gamescopeAvailable}
                   winetricksAvailable={winetricksAvailable}
                   gamemodeSiteUrl={GAMEMODE_SITE_URL}
                   mangohudSiteUrl={MANGOHUD_SITE_URL}
+                  gamescopeSiteUrl={GAMESCOPE_SITE_URL}
+                  gamescopeResolution={gamescopeResolution}
+                  gamescopeOutputResolution={gamescopeOutputResolution}
+                  gamescopeUpscaler={gamescopeUpscaler}
+                  gamescopeFramerateLimit={gamescopeFramerateLimit}
                   onChangeWinePrefixPath={handleChangeWinePrefixPath}
                   onClearWinePrefixPath={handleClearWinePrefixPath}
                   onOpenWinetricks={handleOpenWinetricks}
                   onChangeGamemodeState={handleChangeGamemodeState}
                   onChangeMangohudState={handleChangeMangohudState}
+                  onChangeGamescopeState={handleChangeGamescopeState}
+                  onChangeGamescopeSetting={handleGamescopeSettingChange}
                   onChangeProtonVersion={handleChangeProtonVersion}
                 />
               )}
