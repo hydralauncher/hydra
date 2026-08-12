@@ -202,6 +202,13 @@
     color: rgba(255, 255, 255, 0.6);
     background-color: transparent;
 
+    .profile-avatar,
+    .animated-border-wrapper,
+    .animated-border-content,
+    img {
+      border-radius: 50% !important;
+    }
+
     &:hover {
       color: #fff;
       background-color: rgba(255, 255, 255, 0.05);

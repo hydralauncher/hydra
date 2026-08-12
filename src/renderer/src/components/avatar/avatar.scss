@@ -1,7 +1,7 @@
 @use "../../scss/globals.scss";
 
 .profile-avatar {
-  border-radius: 4px;
+  border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -17,6 +17,6 @@
     width: 100%;
     object-fit: cover;
     overflow: hidden;
-    border-radius: 4px;
+    border-radius: 50%;
   }
 }

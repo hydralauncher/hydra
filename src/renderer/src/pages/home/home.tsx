@@ -17,7 +17,11 @@ import {
   setIsInstalledGames,
   setCurrentCategory,
 } from "@renderer/features";
-import { useSteamGridCover } from "@renderer/hooks/use-steamgrid-cover";
+import {
+  useSteamGridCover,
+  useSteamGridHeroAndLogo,
+} from "@renderer/hooks/use-steamgrid-cover";
+import { useDownloadSourceNames } from "@renderer/hooks/use-download-source-names";
 import { useTranslation } from "react-i18next";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
@@ -236,6 +240,122 @@ export function HomeGameImage({ game }: { game: ShopAssets }) {
   );
 }
 
+// Same source as the catalogue's GameItem cards (game.libraryImageUrl) —
+// with a fallback to the icon so a missing/broken cover doesn't just show
+// a blank tile.
+function LibraryGridCardImage({ game }: { game: ShopAssets }) {
+  const customLibrary = resolveImageSource(game.libraryImageUrl);
+  const customIcon = resolveImageSource(game.iconUrl);
+
+  const fallbackSources = useMemo(
+    () =>
+      Array.from(new Set([customLibrary, customIcon].filter(Boolean))) as string[],
+    [customLibrary, customIcon]
+  );
+
+  const [fallbackIndex, setFallbackIndex] = useState(0);
+  const [finalFailed, setFinalFailed] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  const activeSrc = fallbackSources[fallbackIndex];
+
+  const [imageLoaded, setImageLoaded] = useState(() =>
+    activeSrc ? globalImageCache.has(activeSrc) : false
+  );
+
+  const handleImageError = () => {
+    if (fallbackIndex < fallbackSources.length - 1) {
+      setFallbackIndex((prev) => prev + 1);
+    } else {
+      setFinalFailed(true);
+    }
+  };
+
+  useEffect(() => {
+    setImageLoaded(activeSrc ? globalImageCache.has(activeSrc) : false);
+    if (activeSrc && imgRef.current?.complete) {
+      if (imgRef.current.naturalWidth > 0) {
+        globalImageCache.add(activeSrc);
+        setImageLoaded(true);
+      } else {
+        handleImageError();
+      }
+    }
+  }, [activeSrc]);
+
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative" }}>
+      {!imageLoaded && (
+        <Skeleton
+          className="home__card-skeleton"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 2,
+            height: "100%",
+            borderRadius: "inherit",
+          }}
+        />
+      )}
+      {!finalFailed && activeSrc && (
+        <img
+          ref={imgRef}
+          key={activeSrc}
+          src={activeSrc}
+          alt={game.title}
+          className="home__card-image"
+          loading="lazy"
+          draggable={false}
+          onLoad={(e) => {
+            if (e.currentTarget.naturalWidth <= 1) {
+              handleImageError();
+            } else {
+              globalImageCache.add(activeSrc);
+              setImageLoaded(true);
+            }
+          }}
+          style={{
+            position: "relative",
+            zIndex: 1,
+            opacity: imageLoaded ? 1 : 0,
+            transition: "opacity 0.3s ease",
+          }}
+          onError={handleImageError}
+        />
+      )}
+    </div>
+  );
+}
+
+function LibraryGridCard({
+  game,
+  onClick,
+}: {
+  game: ShopAssets;
+  onClick: () => void;
+}) {
+  const sourceNames = useDownloadSourceNames(game);
+  const visibleSourceNames = sourceNames.slice(0, 3);
+
+  return (
+    <button type="button" className="home__library-grid-card" onClick={onClick}>
+      <LibraryGridCardImage game={game} />
+      <div className="home__library-grid-card-overlay">
+        <span className="home__library-grid-card-title">{game.title}</span>
+        {visibleSourceNames.length > 0 && (
+          <div className="home__library-grid-card-tags">
+            {visibleSourceNames.map((name) => (
+              <span key={name} className="home__library-grid-card-tag">
+                {name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}
+
 const cleanTabLabel = (text: string) =>
   text
     .replace(
@@ -331,6 +451,42 @@ export default function Home() {
     (state) => state.homeCatalogue.currentCategory
   );
   const catalogue = useAppSelector((state) => state.homeCatalogue.catalogue);
+
+  const [libraryCategory, setLibraryCategory] = useState<CatalogueCategory>(
+    CatalogueCategory.Hot
+  );
+
+  const handleLibraryTabClick = useCallback(
+    async (category: CatalogueCategory) => {
+      setLibraryCategory(category);
+      if (!catalogue[category] || catalogue[category].length === 0) {
+        let result: ShopAssets[] = [];
+        if (category === CatalogueCategory.Hot) {
+          if (typeof window.electron?.getSteamFeatured === "function") {
+            result = await window.electron.getSteamFeatured(
+              getSteamLanguage(i18n.language)
+            );
+          }
+        } else {
+          const sources = (await levelDBService.values(
+            "downloadSources"
+          )) as DownloadSource[];
+          const downloadSources = orderBy(sources, "createdAt", "desc");
+          const params = {
+            take: category === CatalogueCategory.Achievements ? 60 : 20,
+            skip: 0,
+            downloadSourceIds: downloadSources.map((source) => source.id),
+          };
+          result = await window.electron.hydraApi.get<ShopAssets[]>(
+            `/catalogue/${category}`,
+            { params, needsAuth: false }
+          );
+        }
+        dispatch(setCatalogueCategory({ category, games: result }));
+      }
+    },
+    [catalogue, dispatch, i18n.language]
+  );
 
   const getCatalogue = useCallback(
     async (category: CatalogueCategory, forceLoadingState = true) => {
@@ -676,16 +832,49 @@ export default function Home() {
   const selectedIsCreateFolderButton =
     selectedItem?.type === "button_create_folder";
 
-  const backgroundSrc = useMemo(() => {
-    if (!selectedGame) return undefined;
-    if (selectedGame.libraryHeroImageUrl) {
-      return selectedGame.libraryHeroImageUrl;
-    }
+  // Hero/background art can 404 (missing page_bg asset, no SteamGridDB
+  // entry, etc.), so this cycles through candidates on error instead of
+  // leaving the page background blank.
+  const [bgFallbackIndex, setBgFallbackIndex] = useState(0);
+
+  useEffect(() => {
+    setBgFallbackIndex(0);
+  }, [selectedGame?.shop, selectedGame?.objectId]);
+
+  const bgSteamGridArt = useSteamGridHeroAndLogo(
+    selectedGame?.objectId ?? "",
+    selectedGame?.title ?? "",
+    bgFallbackIndex > 0
+  );
+
+  const backgroundCandidates = useMemo(() => {
+    if (!selectedGame) return [];
+
+    const customHero = resolveImageSource(selectedGame.libraryHeroImageUrl);
+    const customLibrary = resolveImageSource(selectedGame.libraryImageUrl);
+
+    const sources: (string | null | undefined)[] = [customHero];
+
     if (selectedGame.shop === "steam") {
-      return `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${selectedGame.objectId}/page_bg_generated_v6.jpg`;
+      sources.push(
+        `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${selectedGame.objectId}/page_bg_generated_v6.jpg`
+      );
     }
-    return selectedGame.libraryImageUrl ?? undefined;
-  }, [selectedGame]);
+
+    if (bgSteamGridArt.heroUrl) sources.push(bgSteamGridArt.heroUrl);
+
+    sources.push(customLibrary);
+
+    return Array.from(new Set(sources.filter(Boolean))) as string[];
+  }, [selectedGame, bgSteamGridArt.heroUrl]);
+
+  const backgroundSrc = backgroundCandidates[bgFallbackIndex] ?? undefined;
+
+  const handleBackgroundError = useCallback(() => {
+    setBgFallbackIndex((prev) =>
+      Math.min(prev + 1, Math.max(backgroundCandidates.length - 1, 0))
+    );
+  }, [backgroundCandidates.length]);
 
   const cardImageUrl = useMemo(() => {
     if (!selectedGame) return undefined;
@@ -1000,6 +1189,7 @@ export default function Home() {
             alt=""
             className="home__background"
             key={backgroundSrc}
+            onError={handleBackgroundError}
           />
         )}
         <div className="home__overlay" />
@@ -1043,24 +1233,7 @@ export default function Home() {
                     </Button>
                   </li>
                 )}
-                {categories.map((category) => (
-                  <li key={category}>
-                    <Button
-                      theme={
-                        !isMyGames &&
-                        !isInstalledGames &&
-                        category === currentCatalogueCategory
-                          ? isBgLight
-                            ? "dark"
-                            : "primary"
-                          : "outline"
-                      }
-                      onClick={() => handleCatTabClick(category)}
-                    >
-                      {cleanTabLabel(t(category))}
-                    </Button>
-                  </li>
-                ))}
+
                 {isGamepadConnected && (
                   <li className="home__tabs-hint">
                     <GamepadHint label="RT" position="right" />
@@ -1217,6 +1390,24 @@ export default function Home() {
               e.currentTarget.scrollLeft = dragRef.current.scrollLeft - walk;
             }}
           >
+            <svg
+              width="0"
+              height="0"
+              style={{ position: "absolute", pointerEvents: "none" }}
+            >
+              <defs>
+                <linearGradient
+                  id="actionBtnGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="0%"
+                  y2="100%"
+                >
+                  <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#4E4E4E" stopOpacity="1" />
+                </linearGradient>
+              </defs>
+            </svg>
             {showSkeleton
               ? Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="home__card">
@@ -1238,6 +1429,11 @@ export default function Home() {
                         onClick={() => {
                           if (dragRef.current.hasDragged) return;
                           setSelectedIndex(index);
+                          const widgetBtn =
+                            document.querySelector<HTMLButtonElement>(
+                              "[data-open-workwonders-changelog-mini], [data-open-workwonders-changelog]"
+                            );
+                          if (widgetBtn) widgetBtn.click();
                         }}
                         aria-label={t("bem_vindo", {
                           defaultValue: "Bem-vindo",
@@ -1473,7 +1669,12 @@ export default function Home() {
             {selectedIsWelcomeButton && (
               <ActionInfo
                 kind="welcome"
-                onAction={() => navigate("/library")}
+                onAction={() => {
+                  const widgetBtn = document.querySelector<HTMLButtonElement>(
+                    "[data-open-workwonders-changelog-mini], [data-open-workwonders-changelog]"
+                  );
+                  if (widgetBtn) widgetBtn.click();
+                }}
               />
             )}
 
@@ -1502,6 +1703,70 @@ export default function Home() {
           {selectedIsWelcomeButton ? (
             <div className="home__hero-row">
               <WelcomeDashboard />
+            </div>
+          ) : selectedIsLibraryButton ? (
+            <div className="home__hero-row">
+              <div className="home__library-section">
+                <div className="home__library-main">
+                  <div className="home__library-tabs">
+                    <button
+                      type="button"
+                      className={cn("home__library-tab", {
+                        "home__library-tab--active":
+                          libraryCategory === CatalogueCategory.Hot,
+                      })}
+                      onClick={() =>
+                        handleLibraryTabClick(CatalogueCategory.Hot)
+                      }
+                    >
+                      {t("populares", { defaultValue: "Populares" })}
+                    </button>
+                    <button
+                      type="button"
+                      className={cn("home__library-tab", {
+                        "home__library-tab--active":
+                          libraryCategory === CatalogueCategory.Weekly,
+                      })}
+                      onClick={() =>
+                        handleLibraryTabClick(CatalogueCategory.Weekly)
+                      }
+                    >
+                      {t("mais_baixados", { defaultValue: "Mais baixados" })}
+                    </button>
+                    <button
+                      type="button"
+                      className={cn("home__library-tab", {
+                        "home__library-tab--active":
+                          libraryCategory === CatalogueCategory.Achievements,
+                      })}
+                      onClick={() =>
+                        handleLibraryTabClick(CatalogueCategory.Achievements)
+                      }
+                    >
+                      {t("pra_platinar", { defaultValue: "Pra platinar" })}
+                    </button>
+                  </div>
+
+                  <div className="home__library-grid-5x2">
+                    {(catalogue[libraryCategory] || [])
+                      .slice(0, 10)
+                      .map((game) => (
+                        <LibraryGridCard
+                          key={game.objectId}
+                          game={game}
+                          onClick={() => navigate(buildGameDetailsPath(game))}
+                        />
+                      ))}
+                  </div>
+                </div>
+
+                {/* Card de Jogos em Destaque na Direita */}
+                {catalogue[CatalogueCategory.Hot]?.length > 0 && (
+                  <div className="home__library-featured-wrapper">
+                    <HeroCarousel games={catalogue[CatalogueCategory.Hot]} />
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             catalogue[CatalogueCategory.Hot]?.length > 0 && (

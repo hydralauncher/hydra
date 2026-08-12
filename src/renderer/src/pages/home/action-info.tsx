@@ -46,7 +46,7 @@ export function ActionInfo({
 
   const buttonLabel =
     kind === "welcome"
-      ? t("explorar", { defaultValue: "Explorar" })
+      ? t("ver_novidades", { defaultValue: "Ver novidades" })
       : kind === "library"
         ? t("acessar", { defaultValue: "Acessar" })
         : t("criar", { defaultValue: "Criar" });
@@ -68,30 +68,40 @@ export function ActionInfo({
           animate="animate"
           exit="exit"
         >
-          <motion.h1 variants={childVariants} className="home__game-title">
-            {title}
-          </motion.h1>
+          <motion.div variants={childVariants} className="home__title-header">
+            <h1 className="home__game-title">{title}</h1>
 
-          {kind === "welcome" && (
-            <motion.div variants={childVariants} className="home__source-tags">
-              <span className="home__source-tag">
-                {t("welcome_subtitle", {
-                  defaultValue: "Seu ecossistema de jogos completo",
-                })}
-              </span>
-            </motion.div>
-          )}
+            {kind === "welcome" && (
+              <div className="home__source-tags">
+                <span className="home__source-tag">
+                  {t("welcome_subtitle", {
+                    defaultValue: "Confira as últimas novidades do Hydra",
+                  })}
+                </span>
+              </div>
+            )}
 
-          {kind === "library" && (
-            <motion.div variants={childVariants} className="home__source-tags">
-              <span className="home__source-tag">
-                {t("jogos_na_biblioteca", {
-                  count: libraryGamesCount,
-                  defaultValue: "{{count}} jogos",
-                })}
-              </span>
-            </motion.div>
-          )}
+            {kind === "library" && (
+              <div className="home__source-tags">
+                <span className="home__source-tag">
+                  {t("jogos_na_biblioteca", {
+                    count: libraryGamesCount,
+                    defaultValue: "{{count}} jogos",
+                  })}
+                </span>
+              </div>
+            )}
+
+            {kind === "create-folder" && (
+              <div className="home__source-tags">
+                <span className="home__source-tag">
+                  {t("organize_seus_jogos", {
+                    defaultValue: "Organize sua biblioteca",
+                  })}
+                </span>
+              </div>
+            )}
+          </motion.div>
 
           <motion.div variants={childVariants} className="home__actions">
             <Button

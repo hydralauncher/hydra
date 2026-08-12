@@ -9,17 +9,14 @@ import {
   CheckIcon,
   FileDirectoryIcon,
 } from "@primer/octicons-react";
-import type {
-  DownloadSource,
-  GameRepack,
-  ShopAssets,
-  ShopDetailsWithAssets,
-} from "@types";
+import type { ShopAssets, ShopDetailsWithAssets } from "@types";
 import { buildGameDetailsPath, getSteamLanguage } from "@renderer/helpers";
 import { Button } from "@renderer/components";
-import { useDownload, useLibrary } from "@renderer/hooks";
-import { levelDBService } from "@renderer/services/leveldb.service";
-import { orderBy } from "lodash-es";
+import {
+  useDownload,
+  useLibrary,
+  useDownloadSourceNames,
+} from "@renderer/hooks";
 import { motion, AnimatePresence } from "framer-motion";
 import "./home.scss";
 
@@ -33,7 +30,6 @@ interface GameInfoProps {
 }
 
 const detailsCache = new Map<string, ShopDetailsWithAssets>();
-let sourcesCache: DownloadSource[] | null = null;
 
 function formatDate(dateStr: string): string {
   const parts = dateStr.replace(/\./g, "").split(/[\s/]+/);
@@ -90,8 +86,6 @@ function cleanPublisher(raw: string): string {
     .trim();
 }
 
-const UUID_RE = /^[0-9a-f-]{36}$/i;
-
 export function GameInfo({
   game,
   isBgLight = false,
@@ -108,7 +102,7 @@ export function GameInfo({
     detailsCache.get(game.objectId) ?? null
   );
   const fetchedRef = useRef<string>("");
-  const [sourceNames, setSourceNames] = useState<string[]>([]);
+  const sourceNames = useDownloadSourceNames(game);
   const [showAllTags, setShowAllTags] = useState(false);
   const [executableExists, setExecutableExists] = useState<boolean | null>(
     null
@@ -144,76 +138,6 @@ export function GameInfo({
   useEffect(() => {
     setShowAllTags(false);
   }, [game.objectId]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const resolve = async () => {
-      if (!sourcesCache) {
-        const all = (await levelDBService.values(
-          "downloadSources"
-        )) as DownloadSource[];
-        sourcesCache = orderBy(all, "createdAt", "desc");
-      }
-
-      const sources = game.downloadSources ?? [];
-
-      if (sources.length) {
-        const areIds = sources.every((s) => UUID_RE.test(s));
-        if (!areIds) {
-          if (!cancelled) setSourceNames(sources);
-          return;
-        }
-
-        const names = sources
-          .map((id) => sourcesCache!.find((s) => s.id === id)?.name)
-          .filter(Boolean) as string[];
-        if (!cancelled) setSourceNames(names);
-        return;
-      }
-
-      // Home/library games don't carry pre-resolved download sources, so we
-      // look them up the same way the game details page does.
-      if (game.shop === "custom" || !sourcesCache.length) {
-        if (!cancelled) setSourceNames([]);
-        return;
-      }
-
-      const repacks = await window.electron.hydraApi
-        .get<GameRepack[]>(
-          `/games/${game.shop}/${game.objectId}/download-sources`,
-          {
-            params: {
-              take: 100,
-              skip: 0,
-              downloadSourceIds: sourcesCache.map((source) => source.id),
-            },
-            needsAuth: false,
-          }
-        )
-        .catch(() => []);
-
-      if (cancelled) return;
-
-      const names = Array.from(
-        new Set(
-          (Array.isArray(repacks) ? repacks : [])
-            .map((repack) => repack.downloadSourceName)
-            .filter(Boolean)
-        )
-      );
-      setSourceNames(names);
-    };
-
-    resolve().catch(() => {
-      if (!cancelled) setSourceNames([]);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.objectId, game.shop, game.downloadSources?.join(",")]);
 
   useEffect(() => {
     setExecutableExists(null);
