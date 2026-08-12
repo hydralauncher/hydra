@@ -441,10 +441,7 @@ export function CompatibilitySettingsSection({
                 actions={{ primary: () => textareaRef.current?.focus() }}
               >
                 <div className="compatibility-settings-section__env-vars-group">
-                  <label
-                    htmlFor="compatibility-environment-variables"
-                    className="compatibility-settings-section__env-vars-label"
-                  >
+                  <label htmlFor="compatibility-environment-variables">
                     Compatibility environment variables
                   </label>
                   <textarea
@@ -468,9 +465,7 @@ export function CompatibilitySettingsSection({
                     placeholder={`PROTON_FSR4_UPGRADE=1\nMANGOHUD=1\n# One variable per line`}
                     rows={5}
                   />
-                  <p className="compatibility-settings-section__env-vars-help">
-                    Applies these variables to every compatibility launch.
-                  </p>
+                  <p>Applies these variables to every compatibility launch.</p>
                 </div>
               </FocusItem>
             </div>

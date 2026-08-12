@@ -444,7 +444,6 @@ const launchWindowsBinaryOnLinux = async (
     compatibilityEnvironmentVariables,
   } = options;
   const { protonPath, winePrefixPath } = compatibilityContext;
-  await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
 
   try {
     await Umu.launchExecutable(parsedPath, [], {
@@ -590,9 +589,7 @@ interface LaunchResolvedGameOptions {
   compatibilityEnvironmentVariables: Record<string, string>;
 }
 
-const launchResolvedGame = async (
-  options: LaunchResolvedGameOptions
-) => {
+const launchResolvedGame = async (options: LaunchResolvedGameOptions) => {
   const {
     gameKey,
     shop,
@@ -808,9 +805,12 @@ const launchGameWithCloudSaveChecks = async (
   await runCommonRedistPreflight(shop, objectId);
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
-  const compatibilityEnvironmentVariables = process.platform === "linux"
-    ? parseCompatibilityEnvironmentVariables(userPreferences?.compatibilityEnvironmentVariables)
-    : {};
+  const compatibilityEnvironmentVariables =
+    process.platform === "linux"
+      ? parseCompatibilityEnvironmentVariables(
+          userPreferences?.compatibilityEnvironmentVariables
+        )
+      : {};
 
   return launchResolvedGame({
     gameKey,
