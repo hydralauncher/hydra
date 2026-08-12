@@ -900,7 +900,7 @@ declare global {
     getDownloadSourcesSinceValue: () => Promise<string | null>;
 
     /* Hardware */
-    getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
+    getDiskFreeSpace: (path: string) => Promise<DiskUsage | null>;
     checkFolderWritePermission: (path: string) => Promise<boolean>;
     getDisplays: () => Promise<HydraDisplay[]>;
     getAudioDevices: () => Promise<HydraAudioDevice[]>;
