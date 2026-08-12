@@ -318,6 +318,76 @@ const ensureSteamOverlayDependency = async (
   }
 };
 
+const steamShortcutRecordMatchesExecutable = (
+  record: Buffer,
+  normalizedTarget: string
+): boolean => {
+  const strings = record
+    .toString("latin1")
+    .split("\0")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return strings.some((value) => {
+    let candidate = value;
+
+    if (
+      candidate.length >= 2 &&
+      candidate.startsWith('"') &&
+      candidate.endsWith('"')
+    ) {
+      candidate = candidate.slice(1, -1);
+    }
+
+    if (!candidate.startsWith("/")) return false;
+
+    try {
+      return path.resolve(candidate) === normalizedTarget;
+    } catch {
+      return false;
+    }
+  });
+};
+
+const findSteamShortcutGameIdInData = (
+  data: Buffer,
+  normalizedTarget: string,
+  shortcutsPath: string
+): bigint | null => {
+  const marker = Buffer.from([0x02, 0x61, 0x70, 0x70, 0x69, 0x64, 0x00]);
+  let offset = 0;
+
+  while (offset < data.length) {
+    const start = data.indexOf(marker, offset);
+    if (start === -1) break;
+
+    const appIdOffset = start + marker.length;
+    if (appIdOffset + 4 > data.length) break;
+
+    const next = data.indexOf(marker, appIdOffset + 4);
+    const end = next === -1 ? data.length : next;
+    const record = data.subarray(start, end);
+    const shortcutAppId = data.readUInt32LE(appIdOffset);
+
+    if (steamShortcutRecordMatchesExecutable(record, normalizedTarget)) {
+      const gameId = (BigInt(shortcutAppId) << 32n) | 0x02000000n;
+
+      logger.info("Matched Steam non-Steam shortcut", {
+        executable: normalizedTarget,
+        shortcutsPath,
+        shortcutAppId,
+        gameId: gameId.toString(),
+      });
+
+      return gameId;
+    }
+
+    offset = appIdOffset + 4;
+  }
+
+  return null;
+};
+
 /**
  * Calculate Steam's 64-bit game id for a non-Steam shortcut.
  *
@@ -387,83 +457,45 @@ const getSteamShortcutGameId = async (
         continue;
       }
 
-      /*
-       * Binary VDF shortcut records contain:
-       *
-       *   0x02 "appid\0" <uint32 little endian>
-       *
-       * followed by the fields belonging to that shortcut. Split records on
-       * the next appid field and inspect each record independently. This is
-       * important because different shortcuts may use the same executable
-       * filename.
-       */
-      const marker = Buffer.from([0x02, 0x61, 0x70, 0x70, 0x69, 0x64, 0x00]);
+      const gameId = findSteamShortcutGameIdInData(
+        data,
+        normalizedTarget,
+        shortcutsPath
+      );
 
-      let offset = 0;
-
-      while (offset < data.length) {
-        const start = data.indexOf(marker, offset);
-        if (start === -1) break;
-
-        const appIdOffset = start + marker.length;
-
-        if (appIdOffset + 4 > data.length) break;
-
-        const next = data.indexOf(marker, appIdOffset + 4);
-        const end = next === -1 ? data.length : next;
-        const record = data.subarray(start, end);
-
-        const shortcutAppId = data.readUInt32LE(appIdOffset);
-
-        /*
-         * VDF strings are NUL terminated. Extract printable strings and look
-         * for the exact executable path rather than merely the basename.
-         */
-        const strings = record
-          .toString("latin1")
-          .split("\0")
-          .map((value) => value.trim())
-          .filter(Boolean);
-
-        const matchingExecutable = strings.find((value) => {
-          let candidate = value;
-
-          if (
-            candidate.length >= 2 &&
-            candidate.startsWith('"') &&
-            candidate.endsWith('"')
-          ) {
-            candidate = candidate.slice(1, -1);
-          }
-
-          if (!candidate.startsWith("/")) return false;
-
-          try {
-            return path.resolve(candidate) === normalizedTarget;
-          } catch {
-            return false;
-          }
-        });
-
-        if (matchingExecutable) {
-          const gameId = (BigInt(shortcutAppId) << 32n) | 0x02000000n;
-
-          logger.info("Matched Steam non-Steam shortcut", {
-            executable: normalizedTarget,
-            shortcutsPath,
-            shortcutAppId,
-            gameId: gameId.toString(),
-          });
-
-          return gameId;
-        }
-
-        offset = appIdOffset + 4;
-      }
+      if (gameId !== null) return gameId;
     }
   }
 
   return null;
+};
+
+const getSteamLaunchCommand = async (): Promise<{
+  command: string;
+  args: string[];
+} | null> => {
+  const nativeCandidates = ["/usr/bin/steam", "/usr/local/bin/steam"];
+
+  for (const candidate of nativeCandidates) {
+    try {
+      await fs.promises.access(candidate, fs.constants.X_OK);
+      return { command: candidate, args: [] };
+    } catch {
+      // Try the next trusted installation path.
+    }
+  }
+
+  const flatpakPath = "/usr/bin/flatpak";
+
+  try {
+    await fs.promises.access(flatpakPath, fs.constants.X_OK);
+    return {
+      command: flatpakPath,
+      args: ["run", "com.valvesoftware.Steam"],
+    };
+  } catch {
+    return null;
+  }
 };
 
 /**
@@ -486,13 +518,25 @@ const launchThroughSteamShortcut = async (
   }
 
   const uri = `steam://rungameid/${gameId.toString()}`;
+  const steamLaunch = await getSteamLaunchCommand();
+
+  if (!steamLaunch) {
+    logger.warn("Could not find a trusted Steam launcher", {
+      executable: executablePath,
+    });
+    return false;
+  }
 
   try {
-    const steamProcess = spawn("steam", [uri], {
-      shell: false,
-      detached: true,
-      stdio: "ignore",
-    });
+    const steamProcess = spawn(
+      steamLaunch.command,
+      [...steamLaunch.args, uri],
+      {
+        shell: false,
+        detached: true,
+        stdio: "ignore",
+      }
+    );
 
     steamProcess.on("error", (error) => {
       logger.error("Steam shortcut launch failed", {

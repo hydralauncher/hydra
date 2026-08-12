@@ -97,6 +97,121 @@ const ensureExecutablePermission = (binaryPath: string) => {
 
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
+const findExistingPath = async (
+  candidates: string[]
+): Promise<string | null> => {
+  for (const candidate of candidates) {
+    try {
+      await fs.promises.access(candidate);
+      return candidate;
+    } catch {
+      // Try the next candidate.
+    }
+  }
+
+  return null;
+};
+
+const provisionCompatibilitySteamClient = async (
+  winePrefixPath: string | null | undefined,
+  protonPath: string | null | undefined
+): Promise<{
+  steamCompatClientInstallPath: string | null;
+}> => {
+  const homePath = SystemPath.getPath("home");
+
+  const steamCompatClientInstallPath = await findExistingPath([
+    path.join(homePath, ".steam", "steam"),
+    path.join(homePath, ".local", "share", "Steam"),
+  ]);
+
+  if (!winePrefixPath || !steamCompatClientInstallPath) {
+    return { steamCompatClientInstallPath };
+  }
+
+  const destinationDirectory = path.join(
+    winePrefixPath,
+    "drive_c",
+    "Program Files (x86)",
+    "Steam"
+  );
+
+  await fs.promises.mkdir(destinationDirectory, { recursive: true });
+
+  const requiredSources: Record<string, string[]> = {
+    "steamclient64.dll": [
+      path.join(steamCompatClientInstallPath, "steamclient64.dll"),
+      path.join(
+        steamCompatClientInstallPath,
+        "legacycompat",
+        "steamclient64.dll"
+      ),
+    ],
+    "steamclient.dll": [
+      path.join(steamCompatClientInstallPath, "steamclient.dll"),
+      path.join(
+        steamCompatClientInstallPath,
+        "legacycompat",
+        "steamclient.dll"
+      ),
+    ],
+    "Steam.dll": [
+      path.join(steamCompatClientInstallPath, "legacycompat", "Steam.dll"),
+      path.join(steamCompatClientInstallPath, "Steam.dll"),
+    ],
+    "steam.exe": protonPath
+      ? [
+          path.join(
+            protonPath,
+            "files",
+            "lib",
+            "wine",
+            "x86_64-windows",
+            "steam.exe"
+          ),
+          path.join(
+            protonPath,
+            "files",
+            "lib",
+            "wine",
+            "i386-windows",
+            "steam.exe"
+          ),
+        ]
+      : [],
+  };
+
+  const provisionedFiles: string[] = [];
+
+  for (const [fileName, sourceCandidates] of Object.entries(requiredSources)) {
+    const destination = path.join(destinationDirectory, fileName);
+
+    if ((await findExistingPath([destination])) !== null) continue;
+
+    const source = await findExistingPath(sourceCandidates);
+
+    if (!source) {
+      logger.warn("Could not provision compatibility Steam client file", {
+        fileName,
+        sourceCandidates,
+      });
+      continue;
+    }
+
+    await fs.promises.copyFile(source, destination);
+    provisionedFiles.push(fileName);
+  }
+
+  if (provisionedFiles.length > 0) {
+    logger.info("Provisioned compatibility Steam client files", {
+      destination: destinationDirectory,
+      files: provisionedFiles,
+    });
+  }
+
+  return { steamCompatClientInstallPath };
+};
+
 export class Umu {
   public static isValidProtonPath(protonPath: string) {
     return isValidProtonDirectory(protonPath);
@@ -239,110 +354,12 @@ export class Umu {
 
     const compatibilityMode = options?.compatibilityMode ?? false;
 
-    const homePath = SystemPath.getPath("home");
-
-    const steamCompatClientInstallPath = [
-      path.join(homePath, ".steam", "steam"),
-      path.join(homePath, ".local", "share", "Steam"),
-    ].find((candidate) => fs.existsSync(candidate));
-
-    const compatibilitySteamClientPath =
-      compatibilityMode && options?.winePrefixPath
-        ? path.join(
-            options.winePrefixPath,
-            "drive_c",
-            "Program Files (x86)",
-            "Steam"
-          )
-        : null;
-
-    const requiredSteamClientSources: Record<string, string[]> =
-      steamCompatClientInstallPath
-        ? {
-            "steamclient64.dll": [
-              path.join(steamCompatClientInstallPath, "steamclient64.dll"),
-              path.join(
-                steamCompatClientInstallPath,
-                "legacycompat",
-                "steamclient64.dll"
-              ),
-            ],
-            "steamclient.dll": [
-              path.join(steamCompatClientInstallPath, "steamclient.dll"),
-              path.join(
-                steamCompatClientInstallPath,
-                "legacycompat",
-                "steamclient.dll"
-              ),
-            ],
-            "Steam.dll": [
-              path.join(
-                steamCompatClientInstallPath,
-                "legacycompat",
-                "Steam.dll"
-              ),
-              path.join(steamCompatClientInstallPath, "Steam.dll"),
-            ],
-            "steam.exe": options?.protonPath
-              ? [
-                  path.join(
-                    options.protonPath,
-                    "files",
-                    "lib",
-                    "wine",
-                    "x86_64-windows",
-                    "steam.exe"
-                  ),
-                  path.join(
-                    options.protonPath,
-                    "files",
-                    "lib",
-                    "wine",
-                    "i386-windows",
-                    "steam.exe"
-                  ),
-                ]
-              : [],
-          }
-        : {};
-
-    if (compatibilityMode && compatibilitySteamClientPath) {
-      await fs.promises.mkdir(compatibilitySteamClientPath, {
-        recursive: true,
-      });
-
-      const provisionedSteamClientFiles: string[] = [];
-
-      for (const [fileName, sourceCandidates] of Object.entries(
-        requiredSteamClientSources
-      )) {
-        const destination = path.join(compatibilitySteamClientPath, fileName);
-
-        if (fs.existsSync(destination)) continue;
-
-        const source = sourceCandidates.find((candidate) =>
-          fs.existsSync(candidate)
-        );
-
-        if (!source) {
-          logger.warn("Could not provision compatibility Steam client file", {
-            fileName,
-            sourceCandidates,
-          });
-          continue;
-        }
-
-        await fs.promises.copyFile(source, destination);
-        provisionedSteamClientFiles.push(fileName);
-      }
-
-      if (provisionedSteamClientFiles.length > 0) {
-        logger.info("Provisioned compatibility Steam client files", {
-          destination: compatibilitySteamClientPath,
-          files: provisionedSteamClientFiles,
-        });
-      }
-    }
+    const { steamCompatClientInstallPath } = compatibilityMode
+      ? await provisionCompatibilitySteamClient(
+          options?.winePrefixPath,
+          options?.protonPath
+        )
+      : { steamCompatClientInstallPath: null };
 
     const launchEnv = {
       PROTON_LOG: "1",

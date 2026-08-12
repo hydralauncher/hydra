@@ -113,6 +113,61 @@ async function parseManifest(manifestPath: string, state: ScanState) {
   }
 }
 
+async function processCompatibilityFile(
+  fullPath: string,
+  lower: string,
+  fileName: string,
+  state: ScanState
+): Promise<{ hasLauncherExe: boolean; hasLaunchMetadata: boolean }> {
+  if (
+    lower === "steam_api.dll" ||
+    lower === "steam_api64.dll" ||
+    lower === "steam_appid.txt" ||
+    lower === "steam_emu.ini" ||
+    lower === "sovereign.ini"
+  ) {
+    state.detectedFiles.add(fullPath);
+  }
+
+  const knownOverride = KNOWN_ONLINEFIX_DLLS.get(lower);
+  if (knownOverride) {
+    state.detectedFiles.add(fullPath);
+    state.hasStrongSignature = true;
+    state.hasOnlineFixSignature = true;
+    const [dllName, value] = knownOverride.split("=");
+    addOverride(state, `${dllName}.dll`, value);
+    return { hasLauncherExe: false, hasLaunchMetadata: false };
+  }
+
+  if (MANIFEST_NAMES.has(lower)) {
+    state.detectedFiles.add(fullPath);
+    state.hasStrongSignature = true;
+    await parseManifest(fullPath, state);
+    return { hasLauncherExe: false, hasLaunchMetadata: false };
+  }
+
+  if (lower === "steamfix.ini") {
+    state.detectedFiles.add(fullPath);
+    state.steamFixIniPaths.add(fullPath);
+    state.hasStrongSignature = true;
+    state.hasFreeTpSignature = true;
+    return { hasLauncherExe: false, hasLaunchMetadata: false };
+  }
+
+  if (
+    lower.endsWith(".dll") &&
+    (lower.startsWith("eos") || lower.startsWith("epicfix"))
+  ) {
+    state.eosCandidates.set(fullPath, fileName);
+  }
+
+  return {
+    hasLauncherExe: lower === "launcher.exe",
+    hasLaunchMetadata:
+      lower === "onlinefix.json" || lower.startsWith("launch_data.of"),
+  };
+}
+
 async function scanDirectory(
   currentPath: string,
   depth: number,
@@ -129,7 +184,6 @@ async function scanDirectory(
         error instanceof Error ? error.message : String(error)
       }`
     );
-    return;
     return;
   }
 
@@ -149,65 +203,15 @@ async function scanDirectory(
 
     if (!entry.isFile()) continue;
 
-    /*
-     * Keep Steam-emulator evidence available to the post-scan detector.
-     *
-     * None of these files is a strong signature by itself. In particular,
-     * steam_api*.dll is present in ordinary Steam games. The conservative
-     * combination check in hasSteamEmulatorConfiguration() decides whether
-     * the collected evidence represents an emulator configuration.
-     */
-    if (
-      lower === "steam_api.dll" ||
-      lower === "steam_api64.dll" ||
-      lower === "steam_appid.txt" ||
-      lower === "steam_emu.ini" ||
-      lower === "sovereign.ini"
-    ) {
-      state.detectedFiles.add(fullPath);
-    }
+    const result = await processCompatibilityFile(
+      fullPath,
+      lower,
+      entry.name,
+      state
+    );
 
-    const knownOverride = KNOWN_ONLINEFIX_DLLS.get(lower);
-    if (knownOverride) {
-      state.detectedFiles.add(fullPath);
-      state.hasStrongSignature = true;
-      state.hasOnlineFixSignature = true;
-      const [dllName, value] = knownOverride.split("=");
-      addOverride(state, `${dllName}.dll`, value);
-      continue;
-    }
-
-    if (MANIFEST_NAMES.has(lower)) {
-      state.detectedFiles.add(fullPath);
-      state.hasStrongSignature = true;
-      await parseManifest(fullPath, state);
-      continue;
-    }
-
-    if (lower === "steamfix.ini") {
-      state.detectedFiles.add(fullPath);
-      state.steamFixIniPaths.add(fullPath);
-      state.hasStrongSignature = true;
-      state.hasFreeTpSignature = true;
-      continue;
-    }
-
-    if (lower === "launcher.exe") {
-      hasLauncherExe = true;
-      continue;
-    }
-
-    if (lower === "onlinefix.json" || lower.startsWith("launch_data.of")) {
-      hasLaunchMetadata = true;
-      continue;
-    }
-
-    if (
-      lower.endsWith(".dll") &&
-      (lower.startsWith("eos") || lower.startsWith("epicfix"))
-    ) {
-      state.eosCandidates.set(fullPath, entry.name);
-    }
+    hasLauncherExe ||= result.hasLauncherExe;
+    hasLaunchMetadata ||= result.hasLaunchMetadata;
   }
 
   if (hasLauncherExe && hasLaunchMetadata) {
