@@ -36,6 +36,3 @@ export const findGameDirectoryAchievementFiles = (
     .resolve(executablePath)
     .then(findAchievementFilesInLocations);
 };
-
-export const clearGameDirectoryAchievementFilesCache = () =>
-  locationsCache.clear();

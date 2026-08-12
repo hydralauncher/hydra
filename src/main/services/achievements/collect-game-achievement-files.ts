@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import type { AchievementFile, Game } from "@types";
 
 import { Wine } from "../wine";
@@ -9,6 +7,7 @@ import {
   getAlternativeObjectIds,
 } from "./find-achievement-files";
 import { findGameDirectoryAchievementFiles } from "./find-game-directory-achievement-files";
+import { resolveGameExecutablePath } from "./resolve-game-executable-path";
 import {
   findNestedAchievementFiles,
   type NestedAchievementFiles,
@@ -21,15 +20,10 @@ interface CollectGameAchievementFilesOptions {
   awaitGameDirectoryLocations?: boolean;
 }
 
-export const getEffectiveWinePrefixPath = (game: Game) =>
+const getEffectiveWinePrefixPath = (game: Game) =>
   Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId) ?? "";
 
-export const getGameExecutablePath = (game: Game) =>
-  game.executablePath
-    ? path.join(getEffectiveWinePrefixPath(game), game.executablePath)
-    : null;
-
-export const dedupeAchievementFiles = (achievementFiles: AchievementFile[]) => {
+const dedupeAchievementFiles = (achievementFiles: AchievementFile[]) => {
   const filesByKey = new Map<string, AchievementFile>();
 
   for (const file of achievementFiles) {
@@ -59,7 +53,7 @@ export const collectGameAchievementFiles = async (
   const [nestedFiles, gameDirectoryFiles] = await Promise.all([
     nestedFilesByObjectId ??
       findNestedAchievementFiles(getEffectiveWinePrefixPath(game)),
-    findGameDirectoryAchievementFiles(getGameExecutablePath(game), {
+    findGameDirectoryAchievementFiles(resolveGameExecutablePath(game), {
       awaitLocations: awaitGameDirectoryLocations,
     }),
   ]);

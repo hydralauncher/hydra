@@ -171,6 +171,15 @@ export class AchievementWatcherManager {
     AchievementMemoryStore.clear();
   }
 
+  public static forgetAchievementFiles(gameKey: string, filePaths: string[]) {
+    this.alreadySyncedGames.delete(gameKey);
+
+    for (const filePath of filePaths) {
+      fileStats.delete(filePath);
+      fltFiles.delete(filePath);
+    }
+  }
+
   public static async firstSyncWithRemoteIfNeeded(
     shop: GameShop,
     objectId: string
@@ -219,7 +228,7 @@ export class AchievementWatcherManager {
       this.alreadySyncedGames.delete(gameKey);
     }
 
-    if (newAchievements > 0) {
+    if (newAchievements > 0 && this.hasFinishedPreSearch) {
       this.notifyCombinedAchievementsUnlocked(1, newAchievements);
     }
   }

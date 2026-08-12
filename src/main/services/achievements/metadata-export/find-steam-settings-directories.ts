@@ -3,6 +3,7 @@ import path from "node:path";
 import { isUnsafePath } from "../../../events/helpers/find-game-root.js";
 import {
   STEAM_SETTINGS_DIR_NAME,
+  collectEmulatorDirectories,
   isDirectory,
   readDirectorySafe,
   resolveGameSearchRoot,
@@ -10,6 +11,13 @@ import {
 
 const MAX_DEPTH = 8;
 const MAX_DIRECTORIES_VISITED = 2000;
+
+const COLD_CLIENT_DIR_NAME = "coldclient";
+
+const STEAM_SETTINGS_RELATIVE_PATHS = [
+  [STEAM_SETTINGS_DIR_NAME],
+  [COLD_CLIENT_DIR_NAME, STEAM_SETTINGS_DIR_NAME],
+];
 
 const IGNORED_DIRS = new Set([
   ".git",
@@ -33,77 +41,6 @@ const IGNORED_DIRS = new Set([
   "textures",
   "videos",
 ]);
-
-const collectProbeCandidates = async (
-  searchRoot: string,
-  executableDirectory: string
-) => {
-  const candidates = [
-    path.join(executableDirectory, STEAM_SETTINGS_DIR_NAME),
-    path.join(searchRoot, STEAM_SETTINGS_DIR_NAME),
-  ];
-
-  const entries = await readDirectorySafe(searchRoot);
-
-  for (const entry of entries ?? []) {
-    if (!entry.isDirectory()) continue;
-
-    const name = entry.name;
-
-    if (name.toLowerCase().endsWith("_data")) {
-      for (const architecture of ["x86_64", "x86"]) {
-        candidates.push(
-          path.join(
-            searchRoot,
-            name,
-            "Plugins",
-            architecture,
-            STEAM_SETTINGS_DIR_NAME
-          )
-        );
-      }
-    }
-
-    for (const architecture of ["Win64", "Win32", "WinGDK"]) {
-      candidates.push(
-        path.join(
-          searchRoot,
-          name,
-          "Binaries",
-          architecture,
-          STEAM_SETTINGS_DIR_NAME
-        )
-      );
-    }
-  }
-
-  const steamworksPath = path.join(
-    searchRoot,
-    "Engine",
-    "Binaries",
-    "ThirdParty",
-    "Steamworks"
-  );
-
-  const steamworksEntries = await readDirectorySafe(steamworksPath);
-
-  for (const entry of steamworksEntries ?? []) {
-    if (!entry.isDirectory()) continue;
-
-    for (const architecture of ["Win64", "Win32"]) {
-      candidates.push(
-        path.join(
-          steamworksPath,
-          entry.name,
-          architecture,
-          STEAM_SETTINGS_DIR_NAME
-        )
-      );
-    }
-  }
-
-  return candidates;
-};
 
 const searchBreadthFirst = async (searchRoot: string) => {
   const found: string[] = [];
@@ -148,26 +85,27 @@ const searchBreadthFirst = async (searchRoot: string) => {
 };
 
 export const findSteamSettingsDirectories = async (executablePath: string) => {
-  const executableDirectory = path.dirname(executablePath);
+  if (isUnsafePath(path.dirname(executablePath))) return [];
 
-  if (isUnsafePath(executableDirectory)) return [];
-
-  const searchRoot = await resolveGameSearchRoot(executablePath);
-
-  const probeCandidates = await collectProbeCandidates(
-    searchRoot,
-    executableDirectory
-  );
+  const emulatorDirectories = await collectEmulatorDirectories(executablePath);
 
   const directories = new Set<string>();
 
-  for (const candidate of probeCandidates) {
-    if (await isDirectory(candidate)) {
-      directories.add(path.resolve(candidate));
-    }
-  }
+  await Promise.all(
+    emulatorDirectories.flatMap((emulatorDirectory) =>
+      STEAM_SETTINGS_RELATIVE_PATHS.map(async (segments) => {
+        const candidate = path.join(emulatorDirectory, ...segments);
+
+        if (await isDirectory(candidate)) {
+          directories.add(path.resolve(candidate));
+        }
+      })
+    )
+  );
 
   if (directories.size) return [...directories];
+
+  const searchRoot = await resolveGameSearchRoot(executablePath);
 
   for (const directory of await searchBreadthFirst(searchRoot)) {
     directories.add(path.resolve(directory));

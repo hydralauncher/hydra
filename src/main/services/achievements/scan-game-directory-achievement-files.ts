@@ -4,26 +4,26 @@ import type { AchievementFile } from "@types";
 import { Cracker } from "../../../shared/constants.js";
 
 import {
-  NESTED_EXECUTABLE_DIRS,
+  ACHIEVEMENTS_FILE_NAME,
+  collectEmulatorDirectories,
   isFile,
   readDirectorySafe,
-  resolveGameSearchRoot,
 } from "./game-directory.js";
 import { findSteamSettingsDirectories } from "./metadata-export/find-steam-settings-directories.js";
 
-const ACHIEVEMENTS_FILE_NAME = "achievements.json";
-
 const OBJECT_ID_DIR_PATTERN = /^\d+$/;
+
+const ANY_PROFILE_DIR = "*";
 
 const RELATIVE_FILE_LOCATIONS: { type: Cracker; segments: string[] }[] = [
   { type: Cracker.userstats, segments: ["SteamData", "user_stats.ini"] },
   {
     type: Cracker._3dm,
-    segments: ["3DMGAME", "Player", "stats", "achievements.ini"],
+    segments: ["3DMGAME", ANY_PROFILE_DIR, "stats", "achievements.ini"],
   },
   {
     type: Cracker.ali213,
-    segments: ["Profile", "Player", "Stats", "Achievements.Bin"],
+    segments: ["Profile", ANY_PROFILE_DIR, "Stats", "Achievements.Bin"],
   },
 ];
 
@@ -37,36 +37,34 @@ export const EMPTY_GAME_DIRECTORY_LOCATIONS: GameDirectoryLocations = {
   steamSettingsDirectories: [],
 };
 
-const collectSearchBases = async (executablePath: string) => {
-  const executableDirectory = path.dirname(executablePath);
-  const searchRoot = await resolveGameSearchRoot(executablePath);
-
-  const bases = new Set([executableDirectory, searchRoot]);
-
-  const entries = await readDirectorySafe(searchRoot);
-
-  for (const entry of entries ?? []) {
-    if (!entry.isDirectory()) continue;
-
-    if (NESTED_EXECUTABLE_DIRS.has(entry.name.toLowerCase())) {
-      bases.add(path.join(searchRoot, entry.name));
-    }
-  }
-
-  return [...bases];
-};
-
 export const resolveGameDirectoryLocations = async (
   executablePath: string
 ): Promise<GameDirectoryLocations> => {
   if (!executablePath) return EMPTY_GAME_DIRECTORY_LOCATIONS;
 
   const [bases, steamSettingsDirectories] = await Promise.all([
-    collectSearchBases(executablePath),
+    collectEmulatorDirectories(executablePath),
     findSteamSettingsDirectories(executablePath),
   ]);
 
   return { bases, steamSettingsDirectories };
+};
+
+const resolveCandidatePaths = async (base: string, segments: string[]) => {
+  const profileIndex = segments.indexOf(ANY_PROFILE_DIR);
+
+  if (profileIndex === -1) return [path.join(base, ...segments)];
+
+  const profilesDirectory = path.join(base, ...segments.slice(0, profileIndex));
+  const remainingSegments = segments.slice(profileIndex + 1);
+
+  const entries = await readDirectorySafe(profilesDirectory);
+
+  return (entries ?? [])
+    .filter((entry) => entry.isDirectory())
+    .map((entry) =>
+      path.join(profilesDirectory, entry.name, ...remainingSegments)
+    );
 };
 
 const findRelativeFiles = async (bases: string[]) => {
@@ -75,11 +73,15 @@ const findRelativeFiles = async (bases: string[]) => {
   await Promise.all(
     bases.flatMap((base) =>
       RELATIVE_FILE_LOCATIONS.map(async ({ type, segments }) => {
-        const filePath = path.join(base, ...segments);
+        const candidatePaths = await resolveCandidatePaths(base, segments);
 
-        if (await isFile(filePath)) {
-          achievementFiles.push({ type, filePath });
-        }
+        await Promise.all(
+          candidatePaths.map(async (filePath) => {
+            if (await isFile(filePath)) {
+              achievementFiles.push({ type, filePath });
+            }
+          })
+        );
       })
     )
   );
@@ -127,10 +129,3 @@ export const findAchievementFilesInLocations = async ({
 
   return [...relativeFiles, ...steamSettingsFiles];
 };
-
-export const scanGameDirectoryAchievementFiles = async (
-  executablePath: string
-): Promise<AchievementFile[]> =>
-  findAchievementFilesInLocations(
-    await resolveGameDirectoryLocations(executablePath)
-  );

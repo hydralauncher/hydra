@@ -39,7 +39,7 @@ const getIconExtension = (iconUrl: string) => {
     : DEFAULT_ICON_EXTENSION;
 };
 
-export const getAchievementIconUrls = (achievement: SteamAchievement) => {
+const getAchievementIconUrls = (achievement: SteamAchievement) => {
   const icon = achievement.icon;
 
   const icongray = achievement.icongray?.endsWith("/")
@@ -50,7 +50,8 @@ export const getAchievementIconUrls = (achievement: SteamAchievement) => {
 };
 
 export const buildAchievementMetadata = (
-  achievements: SteamAchievement[]
+  achievements: SteamAchievement[],
+  imagesDirName: string = ACHIEVEMENT_IMAGES_DIR_NAME
 ): AchievementMetadata => {
   const entries: AchievementMetadataEntry[] = [];
   const icons: AchievementIcon[] = [];
@@ -66,8 +67,8 @@ export const buildAchievementMetadata = (
       description: achievement.description ?? "",
       displayName: achievement.displayName ?? achievement.name,
       hidden: achievement.hidden ? 1 : 0,
-      icon: `${ACHIEVEMENT_IMAGES_DIR_NAME}/${iconFileName}`,
-      icongray: `${ACHIEVEMENT_IMAGES_DIR_NAME}/${icongrayFileName}`,
+      icon: `${imagesDirName}/${iconFileName}`,
+      icongray: `${imagesDirName}/${icongrayFileName}`,
       name: achievement.name,
     });
 

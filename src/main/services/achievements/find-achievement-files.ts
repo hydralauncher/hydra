@@ -53,6 +53,12 @@ const getProgramDataPath = () => {
   return path.join("drive_c", "ProgramData");
 };
 
+const GAME_DIRECTORY_ONLY_CRACKERS = new Set([
+  Cracker.userstats,
+  Cracker._3dm,
+  Cracker.ali213,
+]);
+
 //TODO: change to a automatized method
 const publicDocuments = getPublicDocumentsPath();
 const programData = getProgramDataPath();
@@ -124,7 +130,7 @@ const getPathFromCracker = (cracker: Cracker) => {
     ];
   }
 
-  if (cracker === Cracker.userstats) {
+  if (GAME_DIRECTORY_ONLY_CRACKERS.has(cracker)) {
     return [];
   }
 
@@ -200,14 +206,6 @@ const getPathFromCracker = (cracker: Cracker) => {
         fileLocation: ["<objectId>", "User", "Achievements.ini"],
       },
     ];
-  }
-
-  if (cracker === Cracker._3dm) {
-    return [];
-  }
-
-  if (cracker === Cracker.ali213) {
-    return [];
   }
 
   if (cracker === Cracker.flt) {

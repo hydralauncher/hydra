@@ -5,7 +5,11 @@ import type { Game, GameShop, SteamAchievement } from "@types";
 
 import { achievementsLogger } from "../../logger";
 import { HydraApi } from "../../hydra-api";
-import { Wine } from "../../wine";
+import { resolveGameExecutablePath } from "../resolve-game-executable-path";
+import {
+  ACHIEVEMENTS_FILE_NAME,
+  STEAM_SETTINGS_DIR_NAME,
+} from "../game-directory.js";
 import {
   ACHIEVEMENT_IMAGES_DIR_NAME,
   buildAchievementMetadata,
@@ -13,33 +17,18 @@ import {
 } from "./build-achievement-metadata";
 import { findSteamSettingsDirectories } from "./find-steam-settings-directories";
 
-const ACHIEVEMENTS_FILE_NAME = "achievements.json";
 const METADATA_LANGUAGE = "en";
 
-const EXISTING_IMAGES_DIR_NAMES = [ACHIEVEMENT_IMAGES_DIR_NAME, "img"];
+const EXISTING_IMAGES_DIR_NAMES = [
+  ACHIEVEMENT_IMAGES_DIR_NAME,
+  "img",
+  "achievement_images",
+];
 
 export interface AchievementMetadataExportResult {
   steamSettingsDirectories: string[];
   icons: AchievementIcon[];
 }
-
-const resolveExecutablePath = (game: Game, executablePath: string) => {
-  const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
-    game.winePrefixPath,
-    game.objectId
-  );
-
-  if (!effectiveWinePrefixPath) return executablePath;
-
-  const prefixedExecutablePath = path.join(
-    effectiveWinePrefixPath,
-    executablePath
-  );
-
-  return fs.existsSync(prefixedExecutablePath)
-    ? prefixedExecutablePath
-    : executablePath;
-};
 
 const fetchEnglishAchievements = (objectId: string, shop: GameShop) =>
   HydraApi.getResponse<SteamAchievement[]>(
@@ -50,16 +39,16 @@ const fetchEnglishAchievements = (objectId: string, shop: GameShop) =>
 const hasAchievementsFile = (steamSettingsDirectory: string) =>
   fs.existsSync(path.join(steamSettingsDirectory, ACHIEVEMENTS_FILE_NAME));
 
-const hasImages = async (steamSettingsDirectory: string) => {
+const findExistingImagesDirName = async (steamSettingsDirectory: string) => {
   for (const imagesDirName of EXISTING_IMAGES_DIR_NAMES) {
     const entries = await fs.promises
       .readdir(path.join(steamSettingsDirectory, imagesDirName))
       .catch(() => []);
 
-    if (entries.length) return true;
+    if (entries.length) return imagesDirName;
   }
 
-  return false;
+  return null;
 };
 
 const writeAchievementsFile = async (
@@ -76,32 +65,48 @@ const writeAchievementsFile = async (
 export const generateAchievementMetadata = async (
   game: Game
 ): Promise<AchievementMetadataExportResult | null> => {
-  if (game.shop !== "steam" || !game.executablePath) return null;
+  if (game.shop !== "steam") return null;
 
-  const executablePath = resolveExecutablePath(game, game.executablePath);
+  const executablePath = resolveGameExecutablePath(game);
+
+  if (!executablePath) return null;
 
   const steamSettingsDirectories =
     await findSteamSettingsDirectories(executablePath);
 
-  if (!steamSettingsDirectories.length) return null;
+  if (!steamSettingsDirectories.length) {
+    achievementsLogger.log(
+      `No ${STEAM_SETTINGS_DIR_NAME} directory found for ${game.objectId} from ${executablePath}`
+    );
+    return null;
+  }
 
   const directoriesMissingAchievements = steamSettingsDirectories.filter(
     (directory) => !hasAchievementsFile(directory)
   );
 
-  const directoriesMissingImages = (
+  const existingImagesDirNames = new Map(
     await Promise.all(
-      steamSettingsDirectories.map(async (directory) =>
-        (await hasImages(directory)) ? null : directory
+      steamSettingsDirectories.map(
+        async (directory) =>
+          [directory, await findExistingImagesDirName(directory)] as const
       )
     )
-  ).filter((directory) => directory !== null);
+  );
+
+  const directoriesMissingImages = steamSettingsDirectories.filter(
+    (directory) => !existingImagesDirNames.get(directory)
+  );
 
   if (
     !directoriesMissingAchievements.length &&
     !directoriesMissingImages.length
-  )
+  ) {
+    achievementsLogger.log(
+      `Achievement metadata for ${game.objectId} is already present, nothing to generate`
+    );
     return null;
+  }
 
   const achievements = await fetchEnglishAchievements(
     game.objectId,
@@ -115,15 +120,27 @@ export const generateAchievementMetadata = async (
     return [];
   });
 
-  const { entries, icons } = buildAchievementMetadata(achievements);
+  const defaultMetadata = buildAchievementMetadata(achievements);
 
-  if (!entries.length) return null;
-
-  const contents = JSON.stringify(entries, null, 2);
+  if (!defaultMetadata.entries.length) {
+    achievementsLogger.log(
+      `The catalogue returned no achievements for ${game.objectId}, nothing to generate`
+    );
+    return null;
+  }
 
   for (const steamSettingsDirectory of directoriesMissingAchievements) {
+    const imagesDirName = existingImagesDirNames.get(steamSettingsDirectory);
+
+    const { entries } = imagesDirName
+      ? buildAchievementMetadata(achievements, imagesDirName)
+      : defaultMetadata;
+
     try {
-      await writeAchievementsFile(steamSettingsDirectory, contents);
+      await writeAchievementsFile(
+        steamSettingsDirectory,
+        JSON.stringify(entries, null, 2)
+      );
 
       achievementsLogger.log(
         `Generated ${ACHIEVEMENTS_FILE_NAME} for ${game.objectId} at ${steamSettingsDirectory}`
@@ -138,6 +155,6 @@ export const generateAchievementMetadata = async (
 
   return {
     steamSettingsDirectories: directoriesMissingImages,
-    icons: icons.filter(({ url }) => url?.startsWith("http")),
+    icons: defaultMetadata.icons.filter(({ url }) => url?.startsWith("http")),
   };
 };

@@ -1219,10 +1219,7 @@
     "preflight_checking": "Controllo dipendenze",
     "preflight_downloading": "Download dipendenze",
     "preflight_installing": "Installazione dipendenze",
-    "preflight_installing_detail": "{{detail}}",
-    "generating_achievements": "Generating achievements file",
-    "downloading_achievement_icons": "Downloading achievement icons",
-    "downloading_achievement_icons_detail": "Downloading achievement icons ({{detail}})"
+    "preflight_installing_detail": "{{detail}}"
   },
   "notifications_page": {
     "title": "Notifiche",

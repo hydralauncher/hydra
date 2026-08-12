@@ -6,6 +6,7 @@ import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
 import { gamesSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 
 const resetGameAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -31,6 +32,11 @@ const resetGameAchievements = async (
         recursive: true,
       });
     }
+
+    AchievementWatcherManager.forgetAchievementFiles(
+      levelKey,
+      achievementFiles.map((achievementFile) => achievementFile.filePath)
+    );
 
     const gameAchievements = AchievementMemoryStore.get(shop, objectId);
     if (gameAchievements) {

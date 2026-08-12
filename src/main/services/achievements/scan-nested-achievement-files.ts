@@ -1,15 +1,7 @@
 import path from "node:path";
-import fs from "node:fs";
+import type fs from "node:fs";
 
-const ACHIEVEMENTS_FILE_NAME = "achievements.json";
-
-const readDirectory = async (dirPath: string) => {
-  try {
-    return await fs.promises.readdir(dirPath, { withFileTypes: true });
-  } catch {
-    return null;
-  }
-};
+import { ACHIEVEMENTS_FILE_NAME, readDirectorySafe } from "./game-directory.js";
 
 const findAchievementsFile = (entries: fs.Dirent[], dirPath: string) => {
   const match = entries.find(
@@ -22,7 +14,7 @@ const findAchievementsFile = (entries: fs.Dirent[], dirPath: string) => {
 };
 
 export const scanObjectIdFolder = async (objectIdPath: string) => {
-  const entries = await readDirectory(objectIdPath);
+  const entries = await readDirectorySafe(objectIdPath);
 
   if (!entries) return [];
 
@@ -37,7 +29,7 @@ export const scanObjectIdFolder = async (objectIdPath: string) => {
       .filter((entry) => entry.isDirectory())
       .map(async (entry) => {
         const subfolderPath = path.join(objectIdPath, entry.name);
-        const subfolderEntries = await readDirectory(subfolderPath);
+        const subfolderEntries = await readDirectorySafe(subfolderPath);
 
         if (!subfolderEntries) return;
 
@@ -53,7 +45,7 @@ export const scanObjectIdFolder = async (objectIdPath: string) => {
 export const scanSaveFolder = async (folderPath: string) => {
   const filePathsByObjectId = new Map<string, string[]>();
 
-  const objectIdEntries = await readDirectory(folderPath);
+  const objectIdEntries = await readDirectorySafe(folderPath);
 
   if (!objectIdEntries) return filePathsByObjectId;
 

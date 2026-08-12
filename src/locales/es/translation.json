@@ -1831,10 +1831,7 @@
     "preflight_checking": "Comprobando dependencias",
     "preflight_downloading": "Descargando dependencias",
     "preflight_installing": "Instalando dependencias",
-    "preflight_installing_detail": "{{detail}}",
-    "generating_achievements": "Generating achievements file",
-    "downloading_achievement_icons": "Downloading achievement icons",
-    "downloading_achievement_icons_detail": "Downloading achievement icons ({{detail}})"
+    "preflight_installing_detail": "{{detail}}"
   },
   "friends_window": {
     "title": "Amigos",

@@ -55,11 +55,9 @@ export const createThrottledCache = <T>(
 
       if (entry?.refresh) return entry.refresh;
 
-      if (!isStale(entry)) return Promise.resolve(entry!.value);
+      if (entry && !isStale(entry)) return Promise.resolve(entry.value);
 
       return startRefresh(key, entry);
     },
-
-    clear: () => entries.clear(),
   };
 };

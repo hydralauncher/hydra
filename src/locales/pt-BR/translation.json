@@ -1904,10 +1904,7 @@
     "preflight_checking": "Verificando dependências",
     "preflight_downloading": "Baixando dependências",
     "preflight_installing": "Instalando dependências",
-    "preflight_installing_detail": "{{detail}}",
-    "generating_achievements": "Gerando arquivo de conquistas",
-    "downloading_achievement_icons": "Baixando ícones das conquistas",
-    "downloading_achievement_icons_detail": "Baixando ícones das conquistas ({{detail}})"
+    "preflight_installing_detail": "{{detail}}"
   },
   "friends_window": {
     "title": "Amigos",
