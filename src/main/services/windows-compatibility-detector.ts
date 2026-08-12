@@ -25,8 +25,6 @@ const KNOWN_ONLINEFIX_DLLS = new Map<string, string>([
   ["onlinefix.dll", "OnlineFix=n"],
   ["steamoverlay64.dll", "SteamOverlay64=n"],
   ["steamoverlay.dll", "SteamOverlay=n"],
-  ["winmm.dll", "winmm=n,b"],
-  ["version.dll", "version=n,b"],
   ["emp.dll", "emp=n"],
 ]);
 
@@ -341,94 +339,4 @@ export async function detectWindowsCompatibility(
     missingDependencies,
     warnings: state.warnings,
   };
-}
-
-export interface SteamFixPatchResult {
-  path: string;
-  changed: boolean;
-  backupPath?: string;
-  warnings: string[];
-}
-
-function replaceIniKey(
-  content: string,
-  key: string,
-  value: string
-): { content: string; changed: boolean } {
-  const pattern = new RegExp(`(^\\s*${key}\\s*=\\s*)([^\\r\\n]+)`, "im");
-  if (!pattern.test(content)) return { content, changed: false };
-  const next = content.replace(pattern, `$1${value}`);
-  return { content: next, changed: next !== content };
-}
-
-function readMainSectionValue(content: string, key: string): string | null {
-  const section = content.match(
-    /^\s*\[Main\]\s*\r?\n([\s\S]*?)(?=^\s*\[[^\]]+\]\s*$|(?![\s\S]))/im
-  );
-  if (!section) return null;
-
-  const match = section[1].match(
-    new RegExp(`^\\s*${key}\\s*=\\s*([^;#\\r\\n]+)`, "im")
-  );
-  return match?.[1]?.trim() ?? null;
-}
-
-export async function patchSteamFixIniSafely(
-  iniPath: string
-): Promise<SteamFixPatchResult> {
-  const warnings: string[] = [];
-  let original: string;
-
-  try {
-    original = await fs.readFile(iniPath, "utf-8");
-  } catch (error) {
-    console.error(`Could not read ${iniPath}:`, error);
-    return { path: iniPath, changed: false, warnings: ["Could not read file"] };
-  }
-
-  let content = original;
-  const realAppId = readMainSectionValue(content, "RealAppId");
-  const fakeAppId = readMainSectionValue(content, "FakeAppId");
-
-  if (
-    realAppId &&
-    fakeAppId &&
-    !/^\s*\[OnlineFix Linux\]\s*$/im.test(content)
-  ) {
-    const replaced = replaceIniKey(content, "RealAppId", fakeAppId);
-    content = replaced.content;
-    if (replaced.changed) {
-      content =
-        `${content.trimEnd()}\n\n` +
-        `[OnlineFix Linux]\nOriginalRealAppId=${realAppId}\n`;
-    }
-  } else if (!realAppId || !fakeAppId) {
-    warnings.push(
-      "steamfix.ini did not contain both [Main] RealAppId and FakeAppId"
-    );
-  }
-
-  content = content.replace(
-    /(^\s*ExtraProtection\s*=\s*)(true|1|yes)\s*$/gim,
-    "$1false"
-  );
-
-  if (content === original) {
-    return { path: iniPath, changed: false, warnings };
-  }
-
-  const backupPath = `${iniPath}.hydra-onlinefix.bak`;
-  try {
-    await fs.access(backupPath);
-  } catch {
-    await fs.copyFile(iniPath, backupPath);
-  }
-
-  await fs.writeFile(iniPath, content, "utf-8");
-  console.info("Patched steamfix.ini for Linux compatibility", {
-    iniPath,
-    backupPath,
-  });
-
-  return { path: iniPath, changed: true, backupPath, warnings };
 }

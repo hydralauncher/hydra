@@ -4,10 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
-import {
-  detectWindowsCompatibility,
-  patchSteamFixIniSafely,
-} from "./windows-compatibility-detector.ts";
+import { detectWindowsCompatibility } from "./windows-compatibility-detector.ts";
 
 describe("windows-compatibility-detector", () => {
   let root: string;
@@ -45,6 +42,24 @@ describe("windows-compatibility-detector", () => {
     assert.ok(overrides.includes("winmm=n,b"));
     assert.ok(overrides.includes("steamoverlay64=n"));
     assert.equal(overrides.includes("evil=n"), false);
+  });
+
+  it("does not use winmm.dll alone as proof of a compatibility setup", async () => {
+    await fs.writeFile(path.join(root, "winmm.dll"), "");
+
+    const result = await detectWindowsCompatibility(root);
+
+    assert.equal(result.requiresCompatibilityMode, false);
+    assert.equal(result.overrides, "");
+  });
+
+  it("does not use version.dll alone as proof of a compatibility setup", async () => {
+    await fs.writeFile(path.join(root, "version.dll"), "");
+
+    const result = await detectWindowsCompatibility(root);
+
+    assert.equal(result.requiresCompatibilityMode, false);
+    assert.equal(result.overrides, "");
   });
 
   it("does not use an EOS DLL alone as proof of OnlineFix", async () => {
@@ -89,26 +104,5 @@ describe("windows-compatibility-detector", () => {
     const result = await detectWindowsCompatibility(root);
 
     assert.equal(result.requiresCompatibilityMode, false);
-  });
-
-  it("patches steamfix.ini with backup and is idempotent", async () => {
-    const ini = path.join(root, "steamfix.ini");
-
-    await fs.writeFile(
-      ini,
-      "[Main]\nRealAppId=123456\nFakeAppId=480\nExtraProtection=true\n"
-    );
-
-    const first = await patchSteamFixIniSafely(ini);
-    assert.equal(first.changed, true);
-
-    const patched = await fs.readFile(ini, "utf-8");
-
-    assert.ok(patched.includes("RealAppId=480"));
-    assert.ok(patched.includes("OriginalRealAppId=123456"));
-    assert.ok(patched.includes("ExtraProtection=false"));
-
-    const second = await patchSteamFixIniSafely(ini);
-    assert.equal(second.changed, false);
   });
 });

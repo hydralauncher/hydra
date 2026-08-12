@@ -313,7 +313,9 @@ const ensureSteamOverlayDependency = (
  *
  *   (shortcutAppId << 32) | 0x02000000
  */
-const getSteamShortcutGameId = (executablePath: string): bigint | null => {
+const getSteamShortcutGameId = async (
+  executablePath: string
+): Promise<bigint | null> => {
   const homePath = SystemPath.getPath("home");
 
   const userdataRoots = [
@@ -324,13 +326,18 @@ const getSteamShortcutGameId = (executablePath: string): bigint | null => {
   const normalizedTarget = path.resolve(executablePath);
 
   for (const userdataRoot of userdataRoots) {
-    if (!fs.existsSync(userdataRoot)) continue;
-
     let users: fs.Dirent[];
 
     try {
-      users = fs.readdirSync(userdataRoot, { withFileTypes: true });
+      users = await fs.promises.readdir(userdataRoot, { withFileTypes: true });
     } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
+        continue;
+      }
       logger.warn("Could not inspect Steam userdata", {
         userdataRoot,
         error,
@@ -348,13 +355,18 @@ const getSteamShortcutGameId = (executablePath: string): bigint | null => {
         "shortcuts.vdf"
       );
 
-      if (!fs.existsSync(shortcutsPath)) continue;
-
       let data: Buffer;
 
       try {
-        data = fs.readFileSync(shortcutsPath);
+        data = await fs.promises.readFile(shortcutsPath);
       } catch (error) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "ENOENT"
+        ) {
+          continue;
+        }
         logger.warn("Could not read Steam shortcuts", {
           shortcutsPath,
           error,
@@ -447,8 +459,10 @@ const getSteamShortcutGameId = (executablePath: string): bigint | null => {
  * This deliberately does not attempt to reproduce Steam's pressure-vessel,
  * overlay or IPC environment. Steam owns creation of that environment.
  */
-const launchThroughSteamShortcut = (executablePath: string): boolean => {
-  const gameId = getSteamShortcutGameId(executablePath);
+const launchThroughSteamShortcut = async (
+  executablePath: string
+): Promise<boolean> => {
+  const gameId = await getSteamShortcutGameId(executablePath);
 
   if (gameId === null) {
     logger.info("No matching Steam shortcut found", {
@@ -548,7 +562,7 @@ const launchWindowsBinaryOnLinux = async (
    */
   if (
     compatibilityResult.requiresCompatibilityMode &&
-    launchThroughSteamShortcut(parsedPath)
+    (await launchThroughSteamShortcut(parsedPath))
   ) {
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
