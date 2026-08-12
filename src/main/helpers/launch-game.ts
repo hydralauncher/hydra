@@ -556,6 +556,7 @@ const launchWindowsBinaryOnLinux = async (
       useGamemode,
       useMangohud,
       wineDllOverrides: detectedWineDllOverrides,
+      compatibilityMode: onlineFixResult.hasFix,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;

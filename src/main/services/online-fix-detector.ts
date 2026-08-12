@@ -326,9 +326,13 @@ export async function detectOnlineFixCompatibility(
     hasFix: state.hasStrongSignature || steamEmulatorDetected,
     provider: chooseProvider(state),
     overrides: [...state.overrides.values()].join(";"),
-    detectedFiles: [...state.detectedFiles].sort(),
-    managedEntries: [...state.managedEntries].sort(),
-    steamFixIniPaths: [...state.steamFixIniPaths].sort(),
+    detectedFiles: [...state.detectedFiles].sort((a, b) => a.localeCompare(b)),
+    managedEntries: [...state.managedEntries].sort((a, b) =>
+      a.localeCompare(b)
+    ),
+    steamFixIniPaths: [...state.steamFixIniPaths].sort((a, b) =>
+      a.localeCompare(b)
+    ),
     missingDependencies,
     warnings: state.warnings,
   };

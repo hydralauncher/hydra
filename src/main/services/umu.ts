@@ -213,6 +213,7 @@ export class Umu {
       useMangohud?: boolean;
       useGamemode?: boolean;
       wineDllOverrides?: string | null;
+      compatibilityMode?: boolean;
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -236,13 +237,7 @@ export class Umu {
 
     const COMPATIBILITY_GAME_ID = "umu-480";
 
-    const compatibilityEntries = fs
-      .readdirSync(workingDirectory, { withFileTypes: true })
-      .map((entry) => entry.name.toLowerCase());
-
-    const onlineFix =
-      compatibilityEntries.includes("onlinefix64.dll") ||
-      compatibilityEntries.includes("onlinefix.ini");
+    const compatibilityMode = options?.compatibilityMode ?? false;
 
     const homePath = SystemPath.getPath("home");
 
@@ -258,7 +253,7 @@ export class Umu {
      * prefix that UMU actually launches.
      */
     const compatibilitySteamClientPath =
-      onlineFix && options?.winePrefixPath
+      compatibilityMode && options?.winePrefixPath
         ? path.join(
             options.winePrefixPath,
             "drive_c",
@@ -272,6 +267,11 @@ export class Umu {
         ? {
             "steamclient64.dll": [
               path.join(steamCompatClientInstallPath, "steamclient64.dll"),
+              path.join(
+                steamCompatClientInstallPath,
+                "legacycompat",
+                "steamclient64.dll"
+              ),
             ],
             "steamclient.dll": [
               path.join(steamCompatClientInstallPath, "steamclient.dll"),
@@ -312,7 +312,7 @@ export class Umu {
           }
         : {};
 
-    if (onlineFix && compatibilitySteamClientPath) {
+    if (compatibilityMode && compatibilitySteamClientPath) {
       fs.mkdirSync(compatibilitySteamClientPath, { recursive: true });
 
       const provisionedSteamClientFiles: string[] = [];
@@ -329,9 +329,11 @@ export class Umu {
         );
 
         if (!source) {
-          throw new Error(
-            `Could not provision ${fileName}; no valid Steam source was found`
-          );
+          logger.warn("Could not provision compatibility Steam client file", {
+            fileName,
+            sourceCandidates,
+          });
+          continue;
         }
 
         fs.copyFileSync(source, destination);
@@ -351,7 +353,9 @@ export class Umu {
 
       ...(options?.gameId
         ? {
-            GAMEID: onlineFix ? COMPATIBILITY_GAME_ID : `umu-${options.gameId}`,
+            GAMEID: compatibilityMode
+              ? COMPATIBILITY_GAME_ID
+              : `umu-${options.gameId}`,
           }
         : {}),
 
@@ -362,9 +366,7 @@ export class Umu {
       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
 
-      ...resolvedLaunchCommand.env,
-
-      ...(onlineFix
+      ...(compatibilityMode
         ? {
             GAMEID: COMPATIBILITY_GAME_ID,
             ...(options?.winePrefixPath
@@ -376,11 +378,13 @@ export class Umu {
                     steamCompatClientInstallPath,
                 }
               : {}),
-            WINEDLLOVERRIDES:
-              options?.wineDllOverrides ??
-              "OnlineFix64,SteamOverlay64,winmm,dnet,steam_api64=n,b",
+            ...(options?.wineDllOverrides
+              ? { WINEDLLOVERRIDES: options.wineDllOverrides }
+              : {}),
           }
         : {}),
+
+      ...resolvedLaunchCommand.env,
     };
 
     const envCommandPart = Object.entries(launchEnv)
