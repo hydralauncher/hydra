@@ -272,6 +272,15 @@ export function GameCompatibilitySettingsTab({
       if (key === "gamescopeUpscaler") setGamescopeUpscaler(value);
       if (key === "gamescopeFramerateLimit") setGamescopeFramerateLimit(value);
 
+      const payloadGamescopeFramerateLimit =
+        key === "gamescopeFramerateLimit"
+          ? value
+            ? Number(value)
+            : null
+          : gamescopeFramerateLimit
+            ? Number(gamescopeFramerateLimit)
+            : null;
+
       const payload = {
         gamescopeResolution:
           key === "gamescopeResolution"
@@ -285,14 +294,7 @@ export function GameCompatibilitySettingsTab({
           key === "gamescopeUpscaler"
             ? value || null
             : gamescopeUpscaler || null,
-        gamescopeFramerateLimit:
-          key === "gamescopeFramerateLimit"
-            ? value
-              ? Number(value)
-              : null
-            : gamescopeFramerateLimit
-              ? Number(gamescopeFramerateLimit)
-              : null,
+        gamescopeFramerateLimit: payloadGamescopeFramerateLimit,
       };
 
       await electron.updateGameGamescopeSettings(
@@ -550,7 +552,7 @@ export function GameCompatibilitySettingsTab({
                   })}
                   value={gamescopeFramerateLimit}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, "");
+                    const val = e.target.value.replace(/\D/g, "");
                     handleUpdateGamescopeSetting(
                       "gamescopeFramerateLimit",
                       val

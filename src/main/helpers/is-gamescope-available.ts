@@ -5,6 +5,7 @@ export const isGamescopeAvailable = (): boolean => {
     return false;
   }
 
+  // nosonar
   const result = spawnSync("gamescope", ["--help"], {
     stdio: "ignore",
     shell: false,

@@ -390,9 +390,11 @@ const launchWindowsBinaryOnLinux = async (
   parsedPath: string,
   compatibilityContext: LinuxCompatibilityLaunchContext,
   launchOptions: string | null | undefined,
-  useMangohud: boolean,
-  useGamemode: boolean,
-  gamescopeArgs: string[]
+  linuxArgs: {
+    useMangohud: boolean;
+    useGamemode: boolean;
+    gamescopeArgs: string[];
+  }
 ): Promise<boolean> => {
   const { protonPath, winePrefixPath } = compatibilityContext;
 
@@ -402,9 +404,9 @@ const launchWindowsBinaryOnLinux = async (
       protonPath,
       gameId: objectId,
       launchOptions,
-      useGamemode,
-      useMangohud,
-      gamescopeArgs,
+      useGamemode: linuxArgs.useGamemode,
+      useMangohud: linuxArgs.useMangohud,
+      gamescopeArgs: linuxArgs.gamescopeArgs,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
@@ -415,9 +417,9 @@ const launchWindowsBinaryOnLinux = async (
   const launchedWithWine = await launchWithWine(
     parsedPath,
     launchOptions,
-    useMangohud,
-    useGamemode,
-    gamescopeArgs,
+    linuxArgs.useMangohud,
+    linuxArgs.useGamemode,
+    linuxArgs.gamescopeArgs,
     winePrefixPath
   );
 
@@ -559,9 +561,11 @@ const launchResolvedGame = async (
       parsedPath,
       compatibilityContext,
       launchOptions,
-      useMangohud,
-      useGamemode,
-      gamescopeArgs
+      {
+        useMangohud,
+        useGamemode,
+        gamescopeArgs,
+      }
     );
     if (launched) return null;
     clearCloudSaveLaunchGuard(objectId, shop);

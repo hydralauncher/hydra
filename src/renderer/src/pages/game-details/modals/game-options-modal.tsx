@@ -20,6 +20,7 @@ import {
 import type {
   CreateSteamShortcutOptions,
   Game,
+  GameShop,
   LegacySaveExportProgress,
   LibraryGame,
   ProtonVersion,
@@ -770,15 +771,17 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const GAMESCOPE_DEBOUNCE_DELAY = 1000;
+
   const debounceUpdateGamescopeSettings = useRef(
-    debounce(async (settings: any) => {
+    debounce(async (shop: GameShop, objectId: string, settings: any) => {
       await globalThis.window.electron.updateGameGamescopeSettings(
-        game.shop,
-        game.objectId,
+        shop,
+        objectId,
         settings
       );
       updateGame();
-    }, 1000)
+    }, GAMESCOPE_DEBOUNCE_DELAY)
   ).current;
 
   const handleGamescopeSettingChange = (
@@ -804,7 +807,7 @@ export function GameOptionsModal({
     const currentFramerateLimit =
       key === "gamescopeFramerateLimit" ? value : gamescopeFramerateLimit;
 
-    debounceUpdateGamescopeSettings({
+    debounceUpdateGamescopeSettings(game.shop, game.objectId, {
       gamescopeResolution: currentResolution || null,
       gamescopeOutputResolution: currentOutputResolution || null,
       gamescopeUpscaler: currentUpscaler || null,

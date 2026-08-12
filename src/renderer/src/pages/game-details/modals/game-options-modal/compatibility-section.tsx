@@ -12,21 +12,23 @@ import type { LibraryGame, ProtonVersion } from "@types";
 import { FileDirectoryIcon, LinkExternalIcon } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 
+import type { GamescopeSettingKey } from "./types";
+
 interface CompatibilitySettingsSectionProps {
   game: LibraryGame;
   displayedWinePrefixPath: string | null;
   protonVersions: ProtonVersion[];
   selectedProtonPath: string;
+  winetricksAvailable: boolean;
+  gamemodeAvailable: boolean;
+  mangohudAvailable: boolean;
+  gamescopeAvailable: boolean;
   autoRunGamemode: boolean;
   autoRunMangohud: boolean;
   autoRunGamescope: boolean;
   globalAutoRunGamemode: boolean;
   globalAutoRunMangohud: boolean;
   globalAutoRunGamescope: boolean;
-  gamemodeAvailable: boolean;
-  mangohudAvailable: boolean;
-  gamescopeAvailable: boolean;
-  winetricksAvailable: boolean;
   mangohudSiteUrl: string;
   gamemodeSiteUrl: string;
   gamescopeSiteUrl: string;
@@ -40,14 +42,7 @@ interface CompatibilitySettingsSectionProps {
   onChangeGamemodeState: (value: boolean) => Promise<void>;
   onChangeMangohudState: (value: boolean) => Promise<void>;
   onChangeGamescopeState: (value: boolean) => Promise<void>;
-  onChangeGamescopeSetting: (
-    key:
-      | "gamescopeResolution"
-      | "gamescopeOutputResolution"
-      | "gamescopeUpscaler"
-      | "gamescopeFramerateLimit",
-    value: string
-  ) => void;
+  onChangeGamescopeSetting: (key: GamescopeSettingKey, value: string) => void;
   onChangeProtonVersion: (value: string) => void;
 }
 
@@ -138,14 +133,7 @@ interface GamescopeSettingsInputsProps {
   gamescopeOutputResolution: string;
   gamescopeUpscaler: string;
   gamescopeFramerateLimit: string;
-  onChangeGamescopeSetting: (
-    key:
-      | "gamescopeResolution"
-      | "gamescopeOutputResolution"
-      | "gamescopeUpscaler"
-      | "gamescopeFramerateLimit",
-    value: string
-  ) => void;
+  onChangeGamescopeSetting: (key: GamescopeSettingKey, value: string) => void;
 }
 
 function GamescopeSettingsInputs({
@@ -212,7 +200,7 @@ function GamescopeSettingsInputs({
           })}
           value={gamescopeFramerateLimit}
           onChange={(e) => {
-            const val = e.target.value.replace(/[^0-9]/g, "");
+            const val = e.target.value.replace(/\D/g, "");
             onChangeGamescopeSetting("gamescopeFramerateLimit", val);
           }}
           placeholder="e.g. 60"
@@ -220,6 +208,30 @@ function GamescopeSettingsInputs({
       </div>
     </div>
   );
+}
+
+function getTooltipProps(
+  available: boolean,
+  globalAutoRun: boolean,
+  type: "gamemode" | "mangohud" | "gamescope"
+) {
+  const disabled = !available || globalAutoRun;
+
+  let tooltipId: string | undefined = undefined;
+  if (!available) {
+    tooltipId = `${type}-unavailable-tooltip`;
+  } else if (globalAutoRun) {
+    tooltipId = `${type}-global-enabled-tooltip`;
+  }
+
+  let tooltipContentKey: string | undefined = undefined;
+  if (!available) {
+    tooltipContentKey = `${type}_not_available_tooltip`;
+  } else if (globalAutoRun) {
+    tooltipContentKey = `${type}_disabled_due_to_global_setting_tooltip`;
+  }
+
+  return { disabled, tooltipId, tooltipContentKey };
 }
 
 interface AdditionalOptionsSectionProps {
@@ -242,14 +254,7 @@ interface AdditionalOptionsSectionProps {
   onChangeGamemodeState: (value: boolean) => Promise<void>;
   onChangeMangohudState: (value: boolean) => Promise<void>;
   onChangeGamescopeState: (value: boolean) => Promise<void>;
-  onChangeGamescopeSetting: (
-    key:
-      | "gamescopeResolution"
-      | "gamescopeOutputResolution"
-      | "gamescopeUpscaler"
-      | "gamescopeFramerateLimit",
-    value: string
-  ) => void;
+  onChangeGamescopeSetting: (key: GamescopeSettingKey, value: string) => void;
 }
 
 function AdditionalOptionsSection({
@@ -276,27 +281,21 @@ function AdditionalOptionsSection({
 }: Readonly<AdditionalOptionsSectionProps>) {
   const { t } = useTranslation("game_details");
 
-  const gamemodeToggleDisabled = !gamemodeAvailable || globalAutoRunGamemode;
-  const mangohudToggleDisabled = !mangohudAvailable || globalAutoRunMangohud;
-  const gamescopeToggleDisabled = !gamescopeAvailable || globalAutoRunGamescope;
-
-  const gamemodeTooltipId = !gamemodeAvailable
-    ? "gamemode-unavailable-tooltip"
-    : globalAutoRunGamemode
-      ? "gamemode-global-enabled-tooltip"
-      : undefined;
-
-  const mangohudTooltipId = !mangohudAvailable
-    ? "mangohud-unavailable-tooltip"
-    : globalAutoRunMangohud
-      ? "mangohud-global-enabled-tooltip"
-      : undefined;
-
-  const gamescopeTooltipId = !gamescopeAvailable
-    ? "gamescope-unavailable-tooltip"
-    : globalAutoRunGamescope
-      ? "gamescope-global-enabled-tooltip"
-      : undefined;
+  const gamemodeProps = getTooltipProps(
+    gamemodeAvailable,
+    globalAutoRunGamemode,
+    "gamemode"
+  );
+  const mangohudProps = getTooltipProps(
+    mangohudAvailable,
+    globalAutoRunMangohud,
+    "mangohud"
+  );
+  const gamescopeProps = getTooltipProps(
+    gamescopeAvailable,
+    globalAutoRunGamescope,
+    "gamescope"
+  );
 
   return (
     <div className="game-options-modal__section">
@@ -309,22 +308,15 @@ function AdditionalOptionsSection({
           label={
             <span
               className={`game-options-modal__gamemode-label ${
-                gamemodeToggleDisabled
+                gamemodeProps.disabled
                   ? "game-options-modal__gamemode-label--disabled"
                   : ""
               }`}
-              data-tooltip-id={gamemodeTooltipId}
+              data-tooltip-id={gamemodeProps.tooltipId}
               data-tooltip-content={
-                !gamemodeAvailable
-                  ? t("gamemode_not_available_tooltip", {
-                      defaultValue: "GameMode is not available in your PATH",
-                    })
-                  : globalAutoRunGamemode
-                    ? t("gamemode_disabled_due_to_global_setting_tooltip", {
-                        defaultValue:
-                          "This option is disabled because GameMode is enabled globally",
-                      })
-                    : undefined
+                gamemodeProps.tooltipContentKey
+                  ? t(gamemodeProps.tooltipContentKey)
+                  : undefined
               }
             >
               <span>
@@ -342,12 +334,12 @@ function AdditionalOptionsSection({
             </span>
           }
           checked={autoRunGamemode || globalAutoRunGamemode}
-          disabled={gamemodeToggleDisabled}
+          disabled={gamemodeProps.disabled}
           onChange={(event) => onChangeGamemodeState(event.target.checked)}
         />
 
-        {gamemodeToggleDisabled && gamemodeTooltipId && (
-          <Tooltip id={gamemodeTooltipId} />
+        {gamemodeProps.disabled && gamemodeProps.tooltipId && (
+          <Tooltip id={gamemodeProps.tooltipId} />
         )}
       </div>
 
@@ -356,22 +348,15 @@ function AdditionalOptionsSection({
           label={
             <span
               className={`game-options-modal__mangohud-label ${
-                mangohudToggleDisabled
+                mangohudProps.disabled
                   ? "game-options-modal__mangohud-label--disabled"
                   : ""
               }`}
-              data-tooltip-id={mangohudTooltipId}
+              data-tooltip-id={mangohudProps.tooltipId}
               data-tooltip-content={
-                !mangohudAvailable
-                  ? t("mangohud_not_available_tooltip", {
-                      defaultValue: "MangoHud is not available in your PATH",
-                    })
-                  : globalAutoRunMangohud
-                    ? t("mangohud_disabled_due_to_global_setting_tooltip", {
-                        defaultValue:
-                          "This option is disabled because MangoHud is enabled globally",
-                      })
-                    : undefined
+                mangohudProps.tooltipContentKey
+                  ? t(mangohudProps.tooltipContentKey)
+                  : undefined
               }
             >
               <span>
@@ -389,12 +374,12 @@ function AdditionalOptionsSection({
             </span>
           }
           checked={autoRunMangohud || globalAutoRunMangohud}
-          disabled={mangohudToggleDisabled}
+          disabled={mangohudProps.disabled}
           onChange={(event) => onChangeMangohudState(event.target.checked)}
         />
 
-        {mangohudToggleDisabled && mangohudTooltipId && (
-          <Tooltip id={mangohudTooltipId} />
+        {mangohudProps.disabled && mangohudProps.tooltipId && (
+          <Tooltip id={mangohudProps.tooltipId} />
         )}
       </div>
 
@@ -403,22 +388,15 @@ function AdditionalOptionsSection({
           label={
             <span
               className={`game-options-modal__gamescope-label ${
-                gamescopeToggleDisabled
+                gamescopeProps.disabled
                   ? "game-options-modal__gamescope-label--disabled"
                   : ""
               }`}
-              data-tooltip-id={gamescopeTooltipId}
+              data-tooltip-id={gamescopeProps.tooltipId}
               data-tooltip-content={
-                !gamescopeAvailable
-                  ? t("gamescope_not_available_tooltip", {
-                      defaultValue: "Gamescope is not available in your PATH",
-                    })
-                  : globalAutoRunGamescope
-                    ? t("gamescope_disabled_due_to_global_setting_tooltip", {
-                        defaultValue:
-                          "This option is disabled because Gamescope is enabled globally",
-                      })
-                    : undefined
+                gamescopeProps.tooltipContentKey
+                  ? t(gamescopeProps.tooltipContentKey)
+                  : undefined
               }
             >
               <span>
@@ -436,12 +414,12 @@ function AdditionalOptionsSection({
             </span>
           }
           checked={autoRunGamescope || globalAutoRunGamescope}
-          disabled={gamescopeToggleDisabled}
+          disabled={gamescopeProps.disabled}
           onChange={(event) => onChangeGamescopeState(event.target.checked)}
         />
 
-        {gamescopeToggleDisabled && gamescopeTooltipId && (
-          <Tooltip id={gamescopeTooltipId} />
+        {gamescopeProps.disabled && gamescopeProps.tooltipId && (
+          <Tooltip id={gamescopeProps.tooltipId} />
         )}
 
         {(autoRunGamescope || globalAutoRunGamescope) && (

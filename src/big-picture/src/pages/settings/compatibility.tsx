@@ -429,7 +429,7 @@ export function CompatibilitySettingsSection({
                     >
                       Learn more
                     </a>
-                    .
+                    {"."}
                   </>
                 }
                 checked={form.autoRunGamescope}
