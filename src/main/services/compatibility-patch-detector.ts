@@ -1,26 +1,26 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-export type CompatibilityProvider =
-  | "onlinefix"
-  | "freetp"
-  | "photon"
+export type CompatibilityPatchProvider =
+  | "primary"
+  | "secondary"
+  | "dependency"
   | "unknown";
 
-export interface CompatibilityDetectionResult {
+export interface CompatibilityPatchDetectionResult {
   requiresCompatibilityMode: boolean;
-  provider: CompatibilityProvider;
+  provider: CompatibilityPatchProvider;
   overrides: string;
   detectedFiles: string[];
   managedEntries: string[];
-  steamFixIniPaths: string[];
+  configurationPaths: string[];
   missingDependencies: string[];
   warnings: string[];
 }
 
 const MAX_DEPTH = 3;
 
-const KNOWN_ONLINEFIX_DLLS = new Map<string, string>([
+const KNOWN_COMPATIBILITY_DLLS = new Map<string, string>([
   ["onlinefix64.dll", "OnlineFix64=n"],
   ["onlinefix.dll", "OnlineFix=n"],
   ["steamoverlay64.dll", "SteamOverlay64=n"],
@@ -47,13 +47,13 @@ type ScanState = {
   detectedFiles: Set<string>;
   managedEntries: Set<string>;
   overrides: Map<string, string>;
-  steamFixIniPaths: Set<string>;
-  photonDirs: Set<string>;
+  configurationPaths: Set<string>;
+  dependencyDirectories: Set<string>;
   eosCandidates: Map<string, string>;
   hasStrongSignature: boolean;
-  hasOnlineFixSignature: boolean;
-  hasFreeTpSignature: boolean;
-  hasPhotonSignature: boolean;
+  hasPrimaryPatchSignature: boolean;
+  hasSecondaryPatchSignature: boolean;
+  hasDependencyPatchSignature: boolean;
   warnings: string[];
 };
 
@@ -129,11 +129,11 @@ async function processCompatibilityFile(
     state.detectedFiles.add(fullPath);
   }
 
-  const knownOverride = KNOWN_ONLINEFIX_DLLS.get(lower);
+  const knownOverride = KNOWN_COMPATIBILITY_DLLS.get(lower);
   if (knownOverride) {
     state.detectedFiles.add(fullPath);
     state.hasStrongSignature = true;
-    state.hasOnlineFixSignature = true;
+    state.hasPrimaryPatchSignature = true;
     const [dllName, value] = knownOverride.split("=");
     addOverride(state, `${dllName}.dll`, value);
     return { hasLauncherExe: false, hasLaunchMetadata: false };
@@ -148,9 +148,9 @@ async function processCompatibilityFile(
 
   if (lower === "steamfix.ini") {
     state.detectedFiles.add(fullPath);
-    state.steamFixIniPaths.add(fullPath);
+    state.configurationPaths.add(fullPath);
     state.hasStrongSignature = true;
-    state.hasFreeTpSignature = true;
+    state.hasSecondaryPatchSignature = true;
     return { hasLauncherExe: false, hasLaunchMetadata: false };
   }
 
@@ -216,16 +216,16 @@ async function scanDirectory(
 
   if (hasLauncherExe && hasLaunchMetadata) {
     state.hasStrongSignature = true;
-    state.hasPhotonSignature = true;
-    state.photonDirs.add(currentPath);
+    state.hasDependencyPatchSignature = true;
+    state.dependencyDirectories.add(currentPath);
     state.detectedFiles.add(path.join(currentPath, "Launcher.exe"));
   }
 }
 
-function chooseProvider(state: ScanState): CompatibilityProvider {
-  if (state.hasPhotonSignature) return "photon";
-  if (state.hasFreeTpSignature) return "freetp";
-  if (state.hasOnlineFixSignature) return "onlinefix";
+function chooseProvider(state: ScanState): CompatibilityPatchProvider {
+  if (state.hasDependencyPatchSignature) return "dependency";
+  if (state.hasSecondaryPatchSignature) return "secondary";
+  if (state.hasPrimaryPatchSignature) return "primary";
   return "unknown";
 }
 
@@ -254,9 +254,9 @@ const hasSteamEmulatorConfiguration = (
   );
 };
 
-export async function detectWindowsCompatibility(
+export async function detectCompatibilityPatch(
   gameFolder: string
-): Promise<CompatibilityDetectionResult> {
+): Promise<CompatibilityPatchDetectionResult> {
   if (!gameFolder) {
     return {
       requiresCompatibilityMode: false,
@@ -264,7 +264,7 @@ export async function detectWindowsCompatibility(
       overrides: "",
       detectedFiles: [],
       managedEntries: [],
-      steamFixIniPaths: [],
+      configurationPaths: [],
       missingDependencies: [],
       warnings: ["Game folder was empty"],
     };
@@ -280,7 +280,7 @@ export async function detectWindowsCompatibility(
       overrides: "",
       detectedFiles: [],
       managedEntries: [],
-      steamFixIniPaths: [],
+      configurationPaths: [],
       missingDependencies: [],
       warnings: [`Game folder is unavailable: ${gameFolder}`],
     };
@@ -290,13 +290,13 @@ export async function detectWindowsCompatibility(
     detectedFiles: new Set(),
     managedEntries: new Set(),
     overrides: new Map(),
-    steamFixIniPaths: new Set(),
-    photonDirs: new Set(),
+    configurationPaths: new Set(),
+    dependencyDirectories: new Set(),
     eosCandidates: new Map(),
     hasStrongSignature: false,
-    hasOnlineFixSignature: false,
-    hasFreeTpSignature: false,
-    hasPhotonSignature: false,
+    hasPrimaryPatchSignature: false,
+    hasSecondaryPatchSignature: false,
+    hasDependencyPatchSignature: false,
     warnings: [],
   };
 
@@ -310,8 +310,8 @@ export async function detectWindowsCompatibility(
   }
 
   const missingDependencies: string[] = [];
-  for (const photonDir of state.photonDirs) {
-    const newtonsoft = path.join(photonDir, "Newtonsoft.Json.dll");
+  for (const dependencyDirectory of state.dependencyDirectories) {
+    const newtonsoft = path.join(dependencyDirectory, "Newtonsoft.Json.dll");
     try {
       await fs.access(newtonsoft);
     } catch {
@@ -319,7 +319,7 @@ export async function detectWindowsCompatibility(
     }
   }
   /*
-   * Some Steam-emulator configurations are not OnlineFix but still require
+   * Some Steam-emulator configurations still require
    * a genuine Steam-owned Proton launch for Steam IPC to function correctly.
    *
    * Keep this deliberately conservative: steam_api*.dll alone is common in
@@ -344,7 +344,7 @@ export async function detectWindowsCompatibility(
     managedEntries: [...state.managedEntries].sort((a, b) =>
       a.localeCompare(b)
     ),
-    steamFixIniPaths: [...state.steamFixIniPaths].sort((a, b) =>
+    configurationPaths: [...state.configurationPaths].sort((a, b) =>
       a.localeCompare(b)
     ),
     missingDependencies,

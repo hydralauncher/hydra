@@ -4,28 +4,30 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
-import { detectWindowsCompatibility } from "./windows-compatibility-detector.ts";
+import { detectCompatibilityPatch } from "./compatibility-patch-detector.ts";
 
-describe("windows-compatibility-detector", () => {
+describe("compatibility-patch-detector", () => {
   let root: string;
 
   beforeEach(async () => {
-    root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-onlinefix-"));
+    root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "hydra-compatibility-patch-")
+    );
   });
 
   afterEach(async () => {
     await fs.rm(root, { recursive: true, force: true });
   });
 
-  it("detects known OnlineFix files recursively", async () => {
+  it("detects known compatibility patch files recursively", async () => {
     const nested = path.join(root, "Bin", "Win64");
     await fs.mkdir(nested, { recursive: true });
     await fs.writeFile(path.join(nested, "OnlineFix64.dll"), "");
 
-    const result = await detectWindowsCompatibility(root);
+    const result = await detectCompatibilityPatch(root);
 
     assert.equal(result.requiresCompatibilityMode, true);
-    assert.equal(result.provider, "onlinefix");
+    assert.equal(result.provider, "primary");
     assert.ok(result.overrides.toLowerCase().includes("onlinefix64=n"));
   });
 
@@ -35,7 +37,7 @@ describe("windows-compatibility-detector", () => {
       "winmm.dll\nSteamOverlay64.dll\n../../evil.dll\n"
     );
 
-    const result = await detectWindowsCompatibility(root);
+    const result = await detectCompatibilityPatch(root);
     const overrides = result.overrides.toLowerCase();
 
     assert.equal(result.requiresCompatibilityMode, true);
@@ -47,7 +49,7 @@ describe("windows-compatibility-detector", () => {
   it("does not use winmm.dll alone as proof of a compatibility setup", async () => {
     await fs.writeFile(path.join(root, "winmm.dll"), "");
 
-    const result = await detectWindowsCompatibility(root);
+    const result = await detectCompatibilityPatch(root);
 
     assert.equal(result.requiresCompatibilityMode, false);
     assert.equal(result.overrides, "");
@@ -56,28 +58,28 @@ describe("windows-compatibility-detector", () => {
   it("does not use version.dll alone as proof of a compatibility setup", async () => {
     await fs.writeFile(path.join(root, "version.dll"), "");
 
-    const result = await detectWindowsCompatibility(root);
+    const result = await detectCompatibilityPatch(root);
 
     assert.equal(result.requiresCompatibilityMode, false);
     assert.equal(result.overrides, "");
   });
 
-  it("does not use an EOS DLL alone as proof of OnlineFix", async () => {
+  it("does not use an EOS DLL alone as proof of a compatibility patch", async () => {
     await fs.writeFile(path.join(root, "EOSSDK-Win64-Shipping.dll"), "");
 
-    const result = await detectWindowsCompatibility(root);
+    const result = await detectCompatibilityPatch(root);
 
     assert.equal(result.requiresCompatibilityMode, false);
     assert.equal(result.overrides, "");
   });
 
-  it("detects Photon dependency without downloading it", async () => {
+  it("detects a managed dependency without downloading it", async () => {
     await fs.writeFile(path.join(root, "Launcher.exe"), "");
     await fs.writeFile(path.join(root, "onlinefix.json"), "{}");
 
-    const result = await detectWindowsCompatibility(root);
+    const result = await detectCompatibilityPatch(root);
 
-    assert.equal(result.provider, "photon");
+    assert.equal(result.provider, "dependency");
     assert.deepEqual(result.missingDependencies, [
       path.join(root, "Newtonsoft.Json.dll"),
     ]);
@@ -88,7 +90,7 @@ describe("windows-compatibility-detector", () => {
     await fs.writeFile(path.join(root, "steam_appid.txt"), "480");
     await fs.writeFile(path.join(root, "steam_emu.ini"), "[Settings]\n");
 
-    const result = await detectWindowsCompatibility(root);
+    const result = await detectCompatibilityPatch(root);
 
     assert.equal(result.requiresCompatibilityMode, true);
     assert.ok(
@@ -101,7 +103,7 @@ describe("windows-compatibility-detector", () => {
   it("does not use steam_api64.dll alone as proof of a compatibility setup", async () => {
     await fs.writeFile(path.join(root, "steam_api64.dll"), "");
 
-    const result = await detectWindowsCompatibility(root);
+    const result = await detectCompatibilityPatch(root);
 
     assert.equal(result.requiresCompatibilityMode, false);
   });

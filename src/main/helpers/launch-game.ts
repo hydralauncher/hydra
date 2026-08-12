@@ -16,7 +16,7 @@ import {
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { SystemPath } from "@main/services/system-path";
-import { detectWindowsCompatibility } from "@main/services/windows-compatibility-detector";
+import { detectCompatibilityPatch } from "@main/services/compatibility-patch-detector";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
@@ -583,7 +583,7 @@ const launchWindowsBinaryOnLinux = async (
 
   await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
 
-  const compatibilityResult = await detectWindowsCompatibility(
+  const compatibilityResult = await detectCompatibilityPatch(
     path.dirname(parsedPath)
   );
 
