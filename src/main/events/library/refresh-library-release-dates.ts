@@ -3,7 +3,10 @@ import { gamesSublevel, gamesShopCacheSublevel, levelKeys } from "@main/level";
 import { getSteamAppDetailsWithStatus, logger } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { parseSortableDate } from "@shared";
+import type { Game } from "@types";
 import { chunk } from "lodash-es";
+import type { SteamAppDetailsRequestResult } from "@main/services/steam";
+import { getRateLimitDelay } from "./release-date-rate-limit";
 import {
   getReleaseDateNextCheckAt,
   needsReleaseDateRefresh,
@@ -15,7 +18,104 @@ let isFetching = false;
 let nextSteamRequestAt = 0;
 const SUB_BATCH_DELAY_MS = 200;
 const STEAM_APP_DETAILS_CONCURRENCY = 5;
-const RATE_LIMIT_FALLBACK_DELAY_MS = 60 * 60 * 1000;
+
+const persistReleaseDateResult = async (
+  game: Game,
+  result: SteamAppDetailsRequestResult,
+  checkedAt: number
+) => {
+  if (result.type !== "success") {
+    await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+      ...game,
+      releaseDateLastCheckedAt: checkedAt,
+      releaseDateNextCheckAt: getReleaseDateNextCheckAt({
+        now: checkedAt,
+        result: result.type,
+        retryAfterMs:
+          result.type === "rate_limited" ? result.retryAfterMs : undefined,
+      }),
+    });
+    return false;
+  }
+
+  const detailsForGame = result.details;
+  const releaseDateTimestamp = parseSortableDate(
+    detailsForGame.release_date?.date
+  );
+
+  await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+    ...game,
+    releaseDateTimestamp: releaseDateTimestamp || null,
+    releaseDateLastCheckedAt: checkedAt,
+    releaseDateNextCheckAt: releaseDateTimestamp
+      ? undefined
+      : getReleaseDateNextCheckAt({
+          now: checkedAt,
+          result: detailsForGame.release_date?.coming_soon
+            ? "coming_soon"
+            : "not_found",
+        }),
+  });
+
+  await gamesShopCacheSublevel.put(
+    levelKeys.gameShopCacheItem("steam", game.objectId, "english"),
+    { ...detailsForGame, name: game.title }
+  );
+  return true;
+};
+
+const processGamesBatch = async (gamesBatch: Game[]) => {
+  const results = await Promise.all(
+    gamesBatch.map((game) => getSteamAppDetailsWithStatus(game.objectId, "en"))
+  );
+
+  let updatedCount = 0;
+  for (const [index, game] of gamesBatch.entries()) {
+    const wasUpdated = await persistReleaseDateResult(
+      game,
+      results[index],
+      Date.now()
+    );
+    updatedCount += Number(wasUpdated);
+  }
+
+  return { updatedCount, rateLimitDelay: getRateLimitDelay(results) };
+};
+
+const refreshMissingSteamGames = async (missingSteamGames: Game[]) => {
+  let updatedCount = 0;
+  const chunks = chunk(Array.from(missingSteamGames), 50);
+
+  for (const currentChunk of chunks) {
+    try {
+      for (const gamesBatch of chunk(
+        currentChunk,
+        STEAM_APP_DETAILS_CONCURRENCY
+      )) {
+        const batchResult = await processGamesBatch(gamesBatch);
+        updatedCount += batchResult.updatedCount;
+
+        if (batchResult.rateLimitDelay > 0) {
+          nextSteamRequestAt = Date.now() + batchResult.rateLimitDelay;
+          logger.warn(
+            `Steam rate limit reached; retrying release dates after ${batchResult.rateLimitDelay}ms`
+          );
+          return;
+        }
+
+        await delay(SUB_BATCH_DELAY_MS);
+      }
+
+      WindowManager.sendToAppWindows("on-library-batch-complete");
+    } catch (err) {
+      logger.error("Failed to fetch release dates chunk", err);
+    }
+  }
+
+  logger.info(
+    `Finished fetching release dates. Updated ${updatedCount} games.`
+  );
+};
 
 const refreshLibraryReleaseDates = async () => {
   if (isFetching) return;
@@ -38,111 +138,9 @@ const refreshLibraryReleaseDates = async () => {
       `Fetching release dates for ${missingSteamGames.length} missing games...`
     );
 
-    (async () => {
+    void (async () => {
       try {
-        let updatedCount = 0;
-        const chunkSize = 50;
-
-        const chunks = chunk(Array.from(missingSteamGames), chunkSize);
-
-        for (const currentChunk of chunks) {
-          try {
-            for (const gamesBatch of chunk(
-              currentChunk,
-              STEAM_APP_DETAILS_CONCURRENCY
-            )) {
-              const details = await Promise.all(
-                gamesBatch.map((game) =>
-                  getSteamAppDetailsWithStatus(game.objectId, "en")
-                )
-              );
-
-              for (const [index, game] of gamesBatch.entries()) {
-                const result = details[index];
-                const checkedAt = Date.now();
-
-                if (result.type !== "success") {
-                  await gamesSublevel.put(
-                    levelKeys.game(game.shop, game.objectId),
-                    {
-                      ...game,
-                      releaseDateLastCheckedAt: checkedAt,
-                      releaseDateNextCheckAt: getReleaseDateNextCheckAt({
-                        now: checkedAt,
-                        result: result.type,
-                        retryAfterMs:
-                          result.type === "rate_limited"
-                            ? result.retryAfterMs
-                            : undefined,
-                      }),
-                    }
-                  );
-                  continue;
-                }
-
-                const detailsForGame = result.details;
-
-                const releaseDateTimestamp = parseSortableDate(
-                  detailsForGame.release_date?.date
-                );
-
-                await gamesSublevel.put(
-                  levelKeys.game(game.shop, game.objectId),
-                  {
-                    ...game,
-                    releaseDateTimestamp: releaseDateTimestamp || null,
-                    releaseDateLastCheckedAt: checkedAt,
-                    releaseDateNextCheckAt: releaseDateTimestamp
-                      ? undefined
-                      : getReleaseDateNextCheckAt({
-                          now: checkedAt,
-                          result: detailsForGame.release_date?.coming_soon
-                            ? "coming_soon"
-                            : "not_found",
-                        }),
-                  }
-                );
-                updatedCount++;
-
-                await gamesShopCacheSublevel.put(
-                  levelKeys.gameShopCacheItem(
-                    "steam",
-                    game.objectId,
-                    "english"
-                  ),
-                  { ...detailsForGame, name: game.title }
-                );
-              }
-
-              const rateLimitDelay = Math.max(
-                0,
-                ...details.map((result) =>
-                  result.type === "rate_limited"
-                    ? (result.retryAfterMs ?? RATE_LIMIT_FALLBACK_DELAY_MS)
-                    : 0
-                )
-              );
-
-              if (rateLimitDelay > 0) {
-                nextSteamRequestAt = Date.now() + rateLimitDelay;
-                logger.warn(
-                  `Steam rate limit reached; retrying release dates after ${rateLimitDelay}ms`
-                );
-                return;
-              }
-
-              await delay(SUB_BATCH_DELAY_MS);
-            }
-
-            WindowManager.sendToAppWindows("on-library-batch-complete");
-          } catch (err) {
-            logger.error("Failed to fetch release dates chunk", err);
-          }
-        }
-
-        logger.info(
-          `Finished fetching release dates. Updated ${updatedCount} games.`
-        );
+        await refreshMissingSteamGames(missingSteamGames);
       } finally {
         isFetching = false;
       }
