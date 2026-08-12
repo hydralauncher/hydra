@@ -5,11 +5,14 @@ import type { UnlockedAchievement } from "@types";
 const BYTE_ORDER_MARK = 0xfeff;
 const MICROSECOND_TIMESTAMP_LENGTH = 7;
 
+const UNLOCKED_PATTERN = /\bunlocked\s*=\s*true\b/i;
+const UNLOCK_TIME_PATTERN = /(?:^|[{,\s])time\s*=\s*(\d+)/i;
+
 const readFileLines = (filePath: string) => {
   const fileContent = readFileSync(filePath, "utf-8");
 
   const withoutByteOrderMark =
-    fileContent.charCodeAt(0) === BYTE_ORDER_MARK
+    fileContent.codePointAt(0) === BYTE_ORDER_MARK
       ? fileContent.slice(1)
       : fileContent;
 
@@ -263,16 +266,14 @@ export const processUserStats = (
   for (const achievement of Object.keys(achievements)) {
     const unlockedAchievement = String(achievements[achievement]);
 
-    if (!/\bunlocked\s*=\s*true\b/i.test(unlockedAchievement)) continue;
+    if (!UNLOCKED_PATTERN.test(unlockedAchievement)) continue;
 
-    const unlockTimeMatch = unlockedAchievement.match(
-      /(?:^|[{,\s])time\s*=\s*(\d+)/i
-    );
+    const unlockTimeMatch = UNLOCK_TIME_PATTERN.exec(unlockedAchievement);
 
     if (!unlockTimeMatch) continue;
 
     newUnlockedAchievements.push({
-      name: achievement.replace(/"/g, ``),
+      name: achievement.replaceAll(`"`, ``),
       unlockTime: Number(unlockTimeMatch[1]) * 1000,
     });
   }

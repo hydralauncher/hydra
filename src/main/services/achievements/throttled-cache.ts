@@ -43,7 +43,7 @@ export const createThrottledCache = <T>(
     get(key: string): T {
       const entry = entries.get(key);
 
-      if (isStale(entry) && !entry?.refresh) {
+      if (isStale(entry) && entry?.refresh === undefined) {
         startRefresh(key, entry);
       }
 
@@ -52,8 +52,9 @@ export const createThrottledCache = <T>(
 
     resolve(key: string): Promise<T> {
       const entry = entries.get(key);
+      const refresh = entry?.refresh;
 
-      if (entry?.refresh) return entry.refresh;
+      if (refresh !== undefined) return refresh;
 
       if (entry && !isStale(entry)) return Promise.resolve(entry.value);
 

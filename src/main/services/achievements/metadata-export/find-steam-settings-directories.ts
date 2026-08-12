@@ -42,6 +42,27 @@ const IGNORED_DIRS = new Set([
   "videos",
 ]);
 
+const splitDirectoryEntries = async (dirPath: string) => {
+  const found: string[] = [];
+  const nextLevel: string[] = [];
+
+  const entries = await readDirectorySafe(dirPath);
+
+  for (const entry of entries ?? []) {
+    if (!entry.isDirectory()) continue;
+
+    const name = entry.name.toLowerCase();
+
+    if (name === STEAM_SETTINGS_DIR_NAME) {
+      found.push(path.join(dirPath, entry.name));
+    } else if (!IGNORED_DIRS.has(name)) {
+      nextLevel.push(path.join(dirPath, entry.name));
+    }
+  }
+
+  return { found, nextLevel };
+};
+
 const searchBreadthFirst = async (searchRoot: string) => {
   const found: string[] = [];
 
@@ -56,24 +77,10 @@ const searchBreadthFirst = async (searchRoot: string) => {
 
       visited++;
 
-      const entries = await readDirectorySafe(dirPath);
+      const level = await splitDirectoryEntries(dirPath);
 
-      if (!entries) continue;
-
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-
-        const name = entry.name.toLowerCase();
-
-        if (name === STEAM_SETTINGS_DIR_NAME) {
-          found.push(path.join(dirPath, entry.name));
-          continue;
-        }
-
-        if (IGNORED_DIRS.has(name)) continue;
-
-        nextLevel.push(path.join(dirPath, entry.name));
-      }
+      found.push(...level.found);
+      nextLevel.push(...level.nextLevel);
     }
 
     if (found.length) break;

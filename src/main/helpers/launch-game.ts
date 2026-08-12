@@ -44,6 +44,8 @@ export interface LaunchGameOptions {
   launchOptions?: string | null;
 }
 
+const LAUNCH_DELAY_IN_MS = 2_000;
+
 const isWindowsExecutable = (executablePath: string) =>
   path.extname(executablePath).toLowerCase() === ".exe";
 
@@ -726,12 +728,11 @@ const launchGameWithCloudSaveChecks = async (
   // Wrapped in try/catch to ensure game launch is never blocked
   await runCommonRedistPreflight(shop, objectId);
 
-  await Promise.all([
-    new Promise((resolve) => setTimeout(resolve, 2000)),
-    updatedGame
-      ? runAchievementMetadataExport(gameKey, updatedGame)
-      : Promise.resolve(),
-  ]);
+  if (updatedGame) {
+    void runAchievementMetadataExport(gameKey, updatedGame);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, LAUNCH_DELAY_IN_MS));
 
   return launchResolvedGame(
     gameKey,

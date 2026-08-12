@@ -39,6 +39,13 @@ export const runAchievementMetadataExport = async (
   const abortController = new AbortController();
   abortControllers.set(gameKey, abortController);
 
+  const finishExport = () => {
+    if (abortControllers.get(gameKey) === abortController) {
+      abortControllers.delete(gameKey);
+      sendGameLauncherStatus("complete");
+    }
+  };
+
   try {
     sendGameLauncherStatus("generating_achievements");
 
@@ -50,8 +57,7 @@ export const runAchievementMetadataExport = async (
     if (abortController.signal.aborted) return;
 
     if (!result?.icons.length || !result.steamSettingsDirectories.length) {
-      abortControllers.delete(gameKey);
-      sendGameLauncherStatus("complete");
+      finishExport();
       return;
     }
 
@@ -73,18 +79,13 @@ export const runAchievementMetadataExport = async (
       .catch((error) => {
         achievementsLogger.error("Failed to download achievement icons", error);
       })
-      .finally(() => {
-        abortControllers.delete(gameKey);
-        sendGameLauncherStatus("complete");
-      });
+      .finally(finishExport);
   } catch (error) {
-    abortControllers.delete(gameKey);
-
     achievementsLogger.error(
       "Failed to export emulator achievement metadata",
       error
     );
 
-    sendGameLauncherStatus("complete");
+    finishExport();
   }
 };

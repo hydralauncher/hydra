@@ -76,31 +76,27 @@ const hasGameRootMarker = (entries: fs.Dirent[]) =>
 const WINDOWS_BINARY_DIR_NAMES = ["Win64", "Win32", "WinGDK"];
 const UNITY_PLUGIN_DIR_NAMES = ["x86_64", "x86"];
 
-const collectLayoutDirectories = async (searchRoot: string) => {
+const collectSubdirectoryLayouts = (searchRoot: string, name: string) => {
   const directories: string[] = [];
 
-  const entries = await readDirectorySafe(searchRoot);
+  if (NESTED_EXECUTABLE_DIRS.has(name.toLowerCase())) {
+    directories.push(path.join(searchRoot, name));
+  }
 
-  for (const entry of entries ?? []) {
-    if (!entry.isDirectory()) continue;
+  for (const architecture of WINDOWS_BINARY_DIR_NAMES) {
+    directories.push(path.join(searchRoot, name, "Binaries", architecture));
+  }
 
-    const name = entry.name;
-
-    if (NESTED_EXECUTABLE_DIRS.has(name.toLowerCase())) {
-      directories.push(path.join(searchRoot, name));
-    }
-
-    for (const architecture of WINDOWS_BINARY_DIR_NAMES) {
-      directories.push(path.join(searchRoot, name, "Binaries", architecture));
-    }
-
-    if (name.toLowerCase().endsWith("_data")) {
-      for (const architecture of UNITY_PLUGIN_DIR_NAMES) {
-        directories.push(path.join(searchRoot, name, "Plugins", architecture));
-      }
+  if (name.toLowerCase().endsWith("_data")) {
+    for (const architecture of UNITY_PLUGIN_DIR_NAMES) {
+      directories.push(path.join(searchRoot, name, "Plugins", architecture));
     }
   }
 
+  return directories;
+};
+
+const collectSteamworksLayouts = async (searchRoot: string) => {
   const steamworksPath = path.join(
     searchRoot,
     "Engine",
@@ -109,17 +105,28 @@ const collectLayoutDirectories = async (searchRoot: string) => {
     "Steamworks"
   );
 
-  const steamworksEntries = await readDirectorySafe(steamworksPath);
+  const entries = await readDirectorySafe(steamworksPath);
 
-  for (const entry of steamworksEntries ?? []) {
-    if (!entry.isDirectory()) continue;
+  return (entries ?? [])
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) =>
+      WINDOWS_BINARY_DIR_NAMES.map((architecture) =>
+        path.join(steamworksPath, entry.name, architecture)
+      )
+    );
+};
 
-    for (const architecture of WINDOWS_BINARY_DIR_NAMES) {
-      directories.push(path.join(steamworksPath, entry.name, architecture));
-    }
-  }
+const collectLayoutDirectories = async (searchRoot: string) => {
+  const entries = await readDirectorySafe(searchRoot);
 
-  return directories;
+  const subdirectoryLayouts = (entries ?? [])
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => collectSubdirectoryLayouts(searchRoot, entry.name));
+
+  return [
+    ...subdirectoryLayouts,
+    ...(await collectSteamworksLayouts(searchRoot)),
+  ];
 };
 
 export const collectEmulatorDirectories = async (executablePath: string) => {
