@@ -305,6 +305,196 @@ const ensureSteamOverlayDependency = (
   }
 };
 
+/**
+ * Calculate Steam's 64-bit game id for a non-Steam shortcut.
+ *
+ * shortcuts.vdf stores a uint32 appid. Steam represents a non-Steam game
+ * internally as:
+ *
+ *   (shortcutAppId << 32) | 0x02000000
+ */
+const getSteamShortcutGameId = (executablePath: string): bigint | null => {
+  const homePath = SystemPath.getPath("home");
+
+  const userdataRoots = [
+    path.join(homePath, ".local", "share", "Steam", "userdata"),
+    path.join(homePath, ".steam", "steam", "userdata"),
+  ];
+
+  const normalizedTarget = path.resolve(executablePath);
+
+  for (const userdataRoot of userdataRoots) {
+    if (!fs.existsSync(userdataRoot)) continue;
+
+    let users: fs.Dirent[];
+
+    try {
+      users = fs.readdirSync(userdataRoot, { withFileTypes: true });
+    } catch (error) {
+      logger.warn("Could not inspect Steam userdata", {
+        userdataRoot,
+        error,
+      });
+      continue;
+    }
+
+    for (const user of users) {
+      if (!user.isDirectory()) continue;
+
+      const shortcutsPath = path.join(
+        userdataRoot,
+        user.name,
+        "config",
+        "shortcuts.vdf"
+      );
+
+      if (!fs.existsSync(shortcutsPath)) continue;
+
+      let data: Buffer;
+
+      try {
+        data = fs.readFileSync(shortcutsPath);
+      } catch (error) {
+        logger.warn("Could not read Steam shortcuts", {
+          shortcutsPath,
+          error,
+        });
+        continue;
+      }
+
+      /*
+       * Binary VDF shortcut records contain:
+       *
+       *   0x02 "appid\0" <uint32 little endian>
+       *
+       * followed by the fields belonging to that shortcut. Split records on
+       * the next appid field and inspect each record independently. This is
+       * important because different shortcuts may use the same executable
+       * filename.
+       */
+      const marker = Buffer.from([0x02, 0x61, 0x70, 0x70, 0x69, 0x64, 0x00]);
+
+      let offset = 0;
+
+      while (offset < data.length) {
+        const start = data.indexOf(marker, offset);
+        if (start === -1) break;
+
+        const appIdOffset = start + marker.length;
+
+        if (appIdOffset + 4 > data.length) break;
+
+        const next = data.indexOf(marker, appIdOffset + 4);
+        const end = next === -1 ? data.length : next;
+        const record = data.subarray(start, end);
+
+        const shortcutAppId = data.readUInt32LE(appIdOffset);
+
+        /*
+         * VDF strings are NUL terminated. Extract printable strings and look
+         * for the exact executable path rather than merely the basename.
+         */
+        const strings = record
+          .toString("latin1")
+          .split("\0")
+          .map((value) => value.trim())
+          .filter(Boolean);
+
+        const matchingExecutable = strings.find((value) => {
+          let candidate = value;
+
+          if (
+            candidate.length >= 2 &&
+            candidate.startsWith('"') &&
+            candidate.endsWith('"')
+          ) {
+            candidate = candidate.slice(1, -1);
+          }
+
+          if (!candidate.startsWith("/")) return false;
+
+          try {
+            return path.resolve(candidate) === normalizedTarget;
+          } catch {
+            return false;
+          }
+        });
+
+        if (matchingExecutable) {
+          const gameId = (BigInt(shortcutAppId) << 32n) | 0x02000000n;
+
+          logger.info("Matched Steam non-Steam shortcut", {
+            executable: normalizedTarget,
+            shortcutsPath,
+            shortcutAppId,
+            gameId: gameId.toString(),
+          });
+
+          return gameId;
+        }
+
+        offset = appIdOffset + 4;
+      }
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Ask the running Steam client to perform the launch itself.
+ *
+ * This deliberately does not attempt to reproduce Steam's pressure-vessel,
+ * overlay or IPC environment. Steam owns creation of that environment.
+ */
+const launchThroughSteamShortcut = (executablePath: string): boolean => {
+  const gameId = getSteamShortcutGameId(executablePath);
+
+  if (gameId === null) {
+    logger.info("No matching Steam shortcut found", {
+      executable: executablePath,
+    });
+
+    return false;
+  }
+
+  const uri = `steam://rungameid/${gameId.toString()}`;
+
+  try {
+    const steamProcess = spawn("steam", [uri], {
+      shell: false,
+      detached: true,
+      stdio: "ignore",
+    });
+
+    steamProcess.on("error", (error) => {
+      logger.error("Steam shortcut launch failed", {
+        executable: executablePath,
+        uri,
+        error,
+      });
+    });
+
+    steamProcess.unref();
+
+    logger.info("Delegated compatibility launch to Steam", {
+      executable: executablePath,
+      gameId: gameId.toString(),
+      uri,
+    });
+
+    return true;
+  } catch (error) {
+    logger.error("Could not delegate compatibility launch to Steam", {
+      executable: executablePath,
+      uri,
+      error,
+    });
+
+    return false;
+  }
+};
+
 const launchWindowsBinaryOnLinux = async (
   gameKey: string,
   objectId: string,
@@ -342,6 +532,19 @@ const launchWindowsBinaryOnLinux = async (
       managedEntries: onlineFixResult.managedEntries,
       warnings: onlineFixResult.warnings,
     });
+  }
+
+  /*
+   * Some Windows compatibility setups require a launch that is genuinely
+   * owned by the Steam client. If the exact executable already exists as a
+   * non-Steam shortcut, delegate to Steam before attempting UMU.
+   *
+   * Exact-path matching prevents selecting another shortcut with the same
+   * executable filename.
+   */
+  if (onlineFixResult.hasFix && launchThroughSteamShortcut(parsedPath)) {
+    PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+    return true;
   }
 
   try {

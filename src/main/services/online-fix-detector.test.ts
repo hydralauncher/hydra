@@ -68,6 +68,29 @@ describe("online-fix-detector", () => {
     ]);
   });
 
+  it("detects a Steam emulator configuration without treating steam_api64.dll alone as proof", async () => {
+    await fs.writeFile(path.join(root, "steam_api64.dll"), "");
+    await fs.writeFile(path.join(root, "steam_appid.txt"), "480");
+    await fs.writeFile(path.join(root, "steam_emu.ini"), "[Settings]\n");
+
+    const result = await detectOnlineFixCompatibility(root);
+
+    assert.equal(result.hasFix, true);
+    assert.ok(
+      result.detectedFiles.some(
+        (file) => path.basename(file).toLowerCase() === "steam_emu.ini"
+      )
+    );
+  });
+
+  it("does not use steam_api64.dll alone as proof of a compatibility setup", async () => {
+    await fs.writeFile(path.join(root, "steam_api64.dll"), "");
+
+    const result = await detectOnlineFixCompatibility(root);
+
+    assert.equal(result.hasFix, false);
+  });
+
   it("patches steamfix.ini with backup and is idempotent", async () => {
     const ini = path.join(root, "steamfix.ini");
 

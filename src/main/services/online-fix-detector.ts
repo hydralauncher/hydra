@@ -140,6 +140,24 @@ async function scanDirectory(
 
     if (!entry.isFile()) continue;
 
+    /*
+     * Keep Steam-emulator evidence available to the post-scan detector.
+     *
+     * None of these files is a strong signature by itself. In particular,
+     * steam_api*.dll is present in ordinary Steam games. The conservative
+     * combination check in hasSteamEmulatorConfiguration() decides whether
+     * the collected evidence represents an emulator configuration.
+     */
+    if (
+      lower === "steam_api.dll" ||
+      lower === "steam_api64.dll" ||
+      lower === "steam_appid.txt" ||
+      lower === "steam_emu.ini" ||
+      lower === "sovereign.ini"
+    ) {
+      state.detectedFiles.add(fullPath);
+    }
+
     const knownOverride = KNOWN_ONLINEFIX_DLLS.get(lower);
     if (knownOverride) {
       state.detectedFiles.add(fullPath);
@@ -197,6 +215,31 @@ function chooseProvider(state: ScanState): OnlineFixProvider {
   if (state.hasOnlineFixSignature) return "onlinefix";
   return "unknown";
 }
+
+const STEAM_EMULATOR_CONFIG_NAMES = new Set(["steam_emu.ini", "sovereign.ini"]);
+
+const hasSteamEmulatorConfiguration = (
+  fileNames: Iterable<string>
+): boolean => {
+  const names = new Set(
+    Array.from(fileNames, (fileName) => path.basename(fileName).toLowerCase())
+  );
+
+  const hasEmulatorConfig = [...STEAM_EMULATOR_CONFIG_NAMES].some((name) =>
+    names.has(name)
+  );
+
+  if (!hasEmulatorConfig) return false;
+
+  // steam_api*.dll is common in ordinary Steam games, so it is not
+  // sufficient by itself. Require an emulator configuration plus
+  // Steam API/app-id evidence.
+  return (
+    names.has("steam_api.dll") ||
+    names.has("steam_api64.dll") ||
+    names.has("steam_appid.txt")
+  );
+};
 
 export async function detectOnlineFixCompatibility(
   gameFolder: string
@@ -262,9 +305,25 @@ export async function detectOnlineFixCompatibility(
       missingDependencies.push(newtonsoft);
     }
   }
+  /*
+   * Some Steam-emulator configurations are not OnlineFix but still require
+   * a genuine Steam-owned Proton launch for Steam IPC to function correctly.
+   *
+   * Keep this deliberately conservative: steam_api*.dll alone is common in
+   * legitimate Steam games and must not be treated as proof.
+   */
+  const steamEmulatorDetected = hasSteamEmulatorConfiguration(
+    state.detectedFiles
+  );
+
+  if (steamEmulatorDetected) {
+    state.warnings.push(
+      "Detected Steam-emulator configuration; Steam-owned launch may be required"
+    );
+  }
 
   return {
-    hasFix: state.hasStrongSignature,
+    hasFix: state.hasStrongSignature || steamEmulatorDetected,
     provider: chooseProvider(state),
     overrides: [...state.overrides.values()].join(";"),
     detectedFiles: [...state.detectedFiles].sort(),
