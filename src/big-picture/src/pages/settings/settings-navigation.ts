@@ -190,8 +190,10 @@ export function getIntegrationProviderSaveButtonFocusId(
   return `integrations-${providerId}-save`;
 }
 
-export function getLastDownloadsBehaviorItemFocusId(isWindows: boolean) {
-  return isWindows
+export function getLastDownloadsBehaviorItemFocusId(
+  showsShortcutItem: boolean
+) {
+  return showsShortcutItem
     ? DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.createStartMenuShortcut
     : DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.deleteArchiveFilesAfterExtractionByDefault;
 }
