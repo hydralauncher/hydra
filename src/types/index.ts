@@ -252,7 +252,6 @@ export interface UserDetails {
 }
 
 export interface ProfileAchievement {
-  id: string;
   name: string;
   displayName: string;
   description: string;
@@ -260,7 +259,7 @@ export interface ProfileAchievement {
   achievementIcon: string | null;
   unlockTime: number;
   gameId: string;
-  gameTitle: string;
+  gameTitle: string | null;
   gameIconUrl: string | null;
 }
 

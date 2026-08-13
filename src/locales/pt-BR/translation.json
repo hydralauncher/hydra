@@ -1756,7 +1756,8 @@
     "delete_souvenir_modal_title": "Excluir lembrança",
     "delete_souvenir_modal_description": "A lembrança será removida do seu perfil. Não é possível desfazer.",
     "delete_souvenir_modal_delete_button": "Excluir",
-    "delete_souvenir_modal_cancel_button": "Cancelar"
+    "delete_souvenir_modal_cancel_button": "Cancelar",
+    "unknown_game": "Jogo desconhecido"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",

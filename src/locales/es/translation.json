@@ -1696,7 +1696,8 @@
     "delete_souvenir_modal_title": "Eliminar recuerdo",
     "delete_souvenir_modal_description": "El recuerdo se quitará de tu perfil. Esta acción no se puede deshacer.",
     "delete_souvenir_modal_delete_button": "Eliminar",
-    "delete_souvenir_modal_cancel_button": "Cancelar"
+    "delete_souvenir_modal_cancel_button": "Cancelar",
+    "unknown_game": "Juego desconocido"
   },
   "achievement": {
     "achievement_unlocked": "Logro desbloqueado",

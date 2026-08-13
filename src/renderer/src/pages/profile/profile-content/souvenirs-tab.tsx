@@ -9,10 +9,13 @@ import { useDate, useToast } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import "./profile-content.scss";
 
+const souvenirKey = (achievement: ProfileAchievement) =>
+  `${achievement.gameId}:${achievement.name}`;
+
 interface SouvenirGameGroupProps {
   achievements: ProfileAchievement[];
   isMe: boolean;
-  deletingIds: Set<string>;
+  deletingKeys: Set<string>;
   onSouvenirClick: (achievement: ProfileAchievement) => void;
   onDeleteClick: (achievement: ProfileAchievement) => void;
 }
@@ -20,7 +23,7 @@ interface SouvenirGameGroupProps {
 function SouvenirGameGroup({
   achievements,
   isMe,
-  deletingIds,
+  deletingKeys,
   onSouvenirClick,
   onDeleteClick,
 }: Readonly<SouvenirGameGroupProps>) {
@@ -48,7 +51,9 @@ function SouvenirGameGroup({
           />
         )}
 
-        <h3 className="profile-content__souvenirs-group-title">{gameTitle}</h3>
+        <h3 className="profile-content__souvenirs-group-title">
+          {gameTitle ?? t("unknown_game")}
+        </h3>
 
         <span className="profile-content__tab-badge">
           {achievements.length}
@@ -58,7 +63,10 @@ function SouvenirGameGroup({
       {isExpanded && (
         <ul className="profile-content__souvenirs-grid">
           {achievements.map((achievement) => (
-            <li key={achievement.id} className="profile-content__souvenir">
+            <li
+              key={souvenirKey(achievement)}
+              className="profile-content__souvenir"
+            >
               <button
                 type="button"
                 className="profile-content__souvenir-image-button"
@@ -101,7 +109,7 @@ function SouvenirGameGroup({
                     type="button"
                     className="profile-content__souvenir-delete-button"
                     onClick={() => onDeleteClick(achievement)}
-                    disabled={deletingIds.has(achievement.id)}
+                    disabled={deletingKeys.has(souvenirKey(achievement))}
                     title={t("delete_souvenir")}
                   >
                     <TrashIcon size={14} />
@@ -132,7 +140,7 @@ export function SouvenirsTab({
   const { t } = useTranslation("user_profile");
   const { showErrorToast, showSuccessToast } = useToast();
 
-  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set());
   const [souvenirToDelete, setSouvenirToDelete] =
     useState<ProfileAchievement | null>(null);
 
@@ -153,14 +161,15 @@ export function SouvenirsTab({
   const handleDeleteSouvenir = async () => {
     if (!souvenirToDelete) return;
 
-    const { id, gameId, name } = souvenirToDelete;
+    const { gameId, name } = souvenirToDelete;
+    const key = souvenirKey(souvenirToDelete);
 
     setSouvenirToDelete(null);
-    setDeletingIds((prev) => new Set(prev).add(id));
+    setDeletingKeys((prev) => new Set(prev).add(key));
 
     try {
       await window.electron.hydraApi.delete(
-        `/profile/games/achievements/${gameId}/${name}/image`
+        `/profile/games/achievements/${gameId}/${encodeURIComponent(name)}/image`
       );
 
       showSuccessToast(t("souvenir_deleted_successfully"));
@@ -169,9 +178,9 @@ export function SouvenirsTab({
       logger.error("Failed to delete souvenir", error);
       showErrorToast(t("souvenir_deletion_failed"));
     } finally {
-      setDeletingIds((prev) => {
+      setDeletingKeys((prev) => {
         const next = new Set(prev);
-        next.delete(id);
+        next.delete(key);
         return next;
       });
     }
@@ -195,7 +204,7 @@ export function SouvenirsTab({
               key={gameId}
               achievements={groupAchievements}
               isMe={isMe}
-              deletingIds={deletingIds}
+              deletingKeys={deletingKeys}
               onSouvenirClick={onSouvenirClick}
               onDeleteClick={setSouvenirToDelete}
             />

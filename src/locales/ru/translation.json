@@ -1750,7 +1750,8 @@
     "delete_souvenir_modal_title": "Удалить сувенир",
     "delete_souvenir_modal_description": "Сувенир будет удалён из вашего профиля. Это действие необратимо.",
     "delete_souvenir_modal_delete_button": "Удалить",
-    "delete_souvenir_modal_cancel_button": "Отмена"
+    "delete_souvenir_modal_cancel_button": "Отмена",
+    "unknown_game": "Неизвестная игра"
   },
   "library": {
     "library": "Библиотека",

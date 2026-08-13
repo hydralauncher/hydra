@@ -1756,7 +1756,8 @@
     "delete_souvenir_modal_title": "Delete souvenir",
     "delete_souvenir_modal_description": "This souvenir will be removed from your profile. This cannot be undone.",
     "delete_souvenir_modal_delete_button": "Delete",
-    "delete_souvenir_modal_cancel_button": "Cancel"
+    "delete_souvenir_modal_cancel_button": "Cancel",
+    "unknown_game": "Unknown game"
   },
   "library": {
     "library": "Library",
