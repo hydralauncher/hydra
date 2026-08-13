@@ -29,7 +29,6 @@ type ProfileRecentAchievement = {
   displayName: string;
   description: string;
   unlockTime: number;
-  imageUrl?: string | null;
 };
 
 export type ProfileRecentAchievementGroup = {
@@ -93,7 +92,6 @@ function getOwnUnlockedAchievement(
     displayName: achievement.displayName,
     description: achievement.description ?? "",
     unlockTime: achievement.unlockTime,
-    imageUrl: achievement.imageUrl,
   };
 }
 

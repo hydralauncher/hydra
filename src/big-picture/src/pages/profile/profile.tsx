@@ -1283,16 +1283,6 @@ function ProfileAchievementGroupContent({
               ) : null}
             </div>
 
-            {achievement.imageUrl ? (
-              <img
-                className="profile-page__achievement-souvenir"
-                src={achievement.imageUrl}
-                alt=""
-                draggable={false}
-                onError={hideBrokenPreviewImage}
-              />
-            ) : null}
-
             <div className="profile-page__achievement-meta">
               <span>
                 Earned{" "}
@@ -1736,13 +1726,37 @@ function ProfileSouvenirs({
                 />
 
                 <div className="profile-page__souvenir-copy">
-                  <Typography className="profile-page__souvenir-name">
-                    {souvenir.displayName}
-                  </Typography>
+                  {souvenir.achievementIcon ? (
+                    <img
+                      className="profile-page__souvenir-achievement-icon"
+                      src={souvenir.achievementIcon}
+                      alt=""
+                      draggable={false}
+                      onError={hideBrokenPreviewImage}
+                    />
+                  ) : null}
 
-                  <Typography className="profile-page__souvenir-game">
-                    {souvenir.gameTitle ?? ""}
-                  </Typography>
+                  <div className="profile-page__souvenir-text">
+                    <Typography className="profile-page__souvenir-name">
+                      {souvenir.displayName}
+                    </Typography>
+
+                    <div className="profile-page__souvenir-game-line">
+                      {souvenir.gameIconUrl ? (
+                        <img
+                          className="profile-page__souvenir-game-icon"
+                          src={souvenir.gameIconUrl}
+                          alt=""
+                          draggable={false}
+                          onError={hideBrokenPreviewImage}
+                        />
+                      ) : null}
+
+                      <Typography className="profile-page__souvenir-game">
+                        {souvenir.gameTitle ?? ""}
+                      </Typography>
+                    </div>
+                  </div>
                 </div>
               </li>
             </FocusItem>

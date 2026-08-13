@@ -839,14 +839,6 @@
   padding: calc(var(--spacing-unit) * 3);
 }
 
-.profile-page__achievement-souvenir {
-  flex-shrink: 0;
-  width: 96px;
-  height: 54px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-
 .profile-page__achievement-row > img {
   width: 56px;
   height: 56px;
@@ -1104,6 +1096,7 @@
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 3);
   min-width: 0;
+  padding: 0 calc(var(--spacing-unit) * 16);
 }
 
 .profile-page__souvenirs-header {
@@ -1165,10 +1158,40 @@
 
 .profile-page__souvenir-copy {
   display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+  min-width: 0;
+  padding: 0 calc(var(--spacing-unit) / 2);
+}
+
+.profile-page__souvenir-achievement-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.profile-page__souvenir-text {
+  display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) / 4);
   min-width: 0;
-  padding: 0 calc(var(--spacing-unit) / 2);
+}
+
+.profile-page__souvenir-game-line {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 1.5);
+  min-width: 0;
+}
+
+.profile-page__souvenir-game-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  object-fit: cover;
 }
 
 .profile-page__souvenir-name {
