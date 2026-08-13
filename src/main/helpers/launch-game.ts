@@ -27,6 +27,8 @@ import {
   launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
+import { SystemPath } from "@main/services/system-path";
+import { detectCompatibilityPatch } from "@main/services/compatibility-patch-detector";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
@@ -379,6 +381,328 @@ const cleanupStaleCompatibilityProcesses = async (
   }
 };
 
+const ensureSteamOverlayDependency = async (
+  winePrefixPath: string | null,
+  detectedFiles: string[]
+): Promise<void> => {
+  if (!winePrefixPath) return;
+
+  const needsSteamOverlay = detectedFiles.some(
+    (file) => path.basename(file).toLowerCase() === "steamoverlay64.dll"
+  );
+
+  if (!needsSteamOverlay) return;
+
+  const targetDirectory = path.join(
+    winePrefixPath,
+    "drive_c",
+    "Program Files (x86)",
+    "Steam"
+  );
+
+  const targetPath = path.join(targetDirectory, "GameOverlayRenderer64.dll");
+
+  try {
+    await fs.promises.access(targetPath);
+    return;
+  } catch {
+    // Dependency is not provisioned yet.
+  }
+
+  const homePath = SystemPath.getPath("home");
+
+  const sourceCandidates = [
+    path.join(
+      homePath,
+      ".local",
+      "share",
+      "Steam",
+      "GameOverlayRenderer64.dll"
+    ),
+    path.join(homePath, ".steam", "steam", "GameOverlayRenderer64.dll"),
+  ];
+
+  let sourcePath: string | null = null;
+
+  for (const candidate of sourceCandidates) {
+    try {
+      await fs.promises.access(candidate);
+      sourcePath = candidate;
+      break;
+    } catch {
+      // Try the next Steam installation path.
+    }
+  }
+
+  if (!sourcePath) {
+    logger.warn("Steam overlay dependency was detected but not found", {
+      targetPath,
+      sourceCandidates,
+    });
+    return;
+  }
+
+  try {
+    await fs.promises.mkdir(targetDirectory, { recursive: true });
+    await fs.promises.copyFile(sourcePath, targetPath);
+
+    logger.info("Provisioned Steam overlay dependency", {
+      source: sourcePath,
+      destination: targetPath,
+    });
+  } catch (error) {
+    logger.error("Failed to provision Steam overlay dependency", error);
+  }
+};
+
+const steamShortcutRecordMatchesExecutable = (
+  record: Buffer,
+  normalizedTarget: string
+): boolean => {
+  const strings = record
+    .toString("latin1")
+    .split("\0")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return strings.some((value) => {
+    let candidate = value;
+
+    if (
+      candidate.length >= 2 &&
+      candidate.startsWith('"') &&
+      candidate.endsWith('"')
+    ) {
+      candidate = candidate.slice(1, -1);
+    }
+
+    if (!candidate.startsWith("/")) return false;
+
+    try {
+      return path.resolve(candidate) === normalizedTarget;
+    } catch {
+      return false;
+    }
+  });
+};
+
+const findSteamShortcutGameIdInData = (
+  data: Buffer,
+  normalizedTarget: string,
+  shortcutsPath: string
+): bigint | null => {
+  const marker = Buffer.from([0x02, 0x61, 0x70, 0x70, 0x69, 0x64, 0x00]);
+  let offset = 0;
+
+  while (offset < data.length) {
+    const start = data.indexOf(marker, offset);
+    if (start === -1) break;
+
+    const appIdOffset = start + marker.length;
+    if (appIdOffset + 4 > data.length) break;
+
+    const next = data.indexOf(marker, appIdOffset + 4);
+    const end = next === -1 ? data.length : next;
+    const record = data.subarray(start, end);
+    const shortcutAppId = data.readUInt32LE(appIdOffset);
+
+    if (steamShortcutRecordMatchesExecutable(record, normalizedTarget)) {
+      const gameId = (BigInt(shortcutAppId) << 32n) | 0x02000000n;
+
+      logger.info("Matched Steam non-Steam shortcut", {
+        executable: normalizedTarget,
+        shortcutsPath,
+        shortcutAppId,
+        gameId: gameId.toString(),
+      });
+
+      return gameId;
+    }
+
+    offset = appIdOffset + 4;
+  }
+
+  return null;
+};
+
+/**
+ * Calculate Steam's 64-bit game id for a non-Steam shortcut.
+ *
+ * shortcuts.vdf stores a uint32 appid. Steam represents a non-Steam game
+ * internally as:
+ *
+ *   (shortcutAppId << 32) | 0x02000000
+ */
+const getSteamShortcutGameId = async (
+  executablePath: string
+): Promise<bigint | null> => {
+  const homePath = SystemPath.getPath("home");
+
+  const userdataRoots = [
+    path.join(homePath, ".local", "share", "Steam", "userdata"),
+    path.join(homePath, ".steam", "steam", "userdata"),
+  ];
+
+  const normalizedTarget = path.resolve(executablePath);
+
+  for (const userdataRoot of userdataRoots) {
+    let users: fs.Dirent[];
+
+    try {
+      users = await fs.promises.readdir(userdataRoot, { withFileTypes: true });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
+        continue;
+      }
+      logger.warn("Could not inspect Steam userdata", {
+        userdataRoot,
+        error,
+      });
+      continue;
+    }
+
+    for (const user of users) {
+      if (!user.isDirectory()) continue;
+
+      const shortcutsPath = path.join(
+        userdataRoot,
+        user.name,
+        "config",
+        "shortcuts.vdf"
+      );
+
+      let data: Buffer;
+
+      try {
+        data = await fs.promises.readFile(shortcutsPath);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "ENOENT"
+        ) {
+          continue;
+        }
+        logger.warn("Could not read Steam shortcuts", {
+          shortcutsPath,
+          error,
+        });
+        continue;
+      }
+
+      const gameId = findSteamShortcutGameIdInData(
+        data,
+        normalizedTarget,
+        shortcutsPath
+      );
+
+      if (gameId !== null) return gameId;
+    }
+  }
+
+  return null;
+};
+
+const getSteamLaunchCommand = async (): Promise<{
+  command: string;
+  args: string[];
+} | null> => {
+  const nativeCandidates = ["/usr/bin/steam", "/usr/local/bin/steam"];
+
+  for (const candidate of nativeCandidates) {
+    try {
+      await fs.promises.access(candidate, fs.constants.X_OK);
+      return { command: candidate, args: [] };
+    } catch {
+      // Try the next trusted installation path.
+    }
+  }
+
+  const flatpakPath = "/usr/bin/flatpak";
+
+  try {
+    await fs.promises.access(flatpakPath, fs.constants.X_OK);
+    return {
+      command: flatpakPath,
+      args: ["run", "com.valvesoftware.Steam"],
+    };
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Ask the running Steam client to perform the launch itself.
+ *
+ * This deliberately does not attempt to reproduce Steam's pressure-vessel,
+ * overlay or IPC environment. Steam owns creation of that environment.
+ */
+const launchThroughSteamShortcut = async (
+  executablePath: string
+): Promise<boolean> => {
+  const gameId = await getSteamShortcutGameId(executablePath);
+
+  if (gameId === null) {
+    logger.info("No matching Steam shortcut found", {
+      executable: executablePath,
+    });
+
+    return false;
+  }
+
+  const uri = `steam://rungameid/${gameId.toString()}`;
+  const steamLaunch = await getSteamLaunchCommand();
+
+  if (!steamLaunch) {
+    logger.warn("Could not find a trusted Steam launcher", {
+      executable: executablePath,
+    });
+    return false;
+  }
+
+  try {
+    const steamProcess = spawn(
+      steamLaunch.command,
+      [...steamLaunch.args, uri],
+      {
+        shell: false,
+        detached: true,
+        stdio: "ignore",
+      }
+    );
+
+    steamProcess.on("error", (error) => {
+      logger.error("Steam shortcut launch failed", {
+        executable: executablePath,
+        uri,
+        error,
+      });
+    });
+
+    steamProcess.unref();
+
+    logger.info("Delegated compatibility launch to Steam", {
+      executable: executablePath,
+      gameId: gameId.toString(),
+      uri,
+    });
+
+    return true;
+  } catch (error) {
+    logger.error("Could not delegate compatibility launch to Steam", {
+      executable: executablePath,
+      uri,
+      error,
+    });
+
+    return false;
+  }
+};
+
 const launchWindowsBinaryOnLinux = async (
   gameKey: string,
   objectId: string,
@@ -390,6 +714,54 @@ const launchWindowsBinaryOnLinux = async (
 ): Promise<boolean> => {
   const { protonPath, winePrefixPath } = compatibilityContext;
 
+  const compatibilityResult = await detectCompatibilityPatch(
+    path.dirname(parsedPath)
+  );
+
+  const detectedWineDllOverrides =
+    compatibilityResult.requiresCompatibilityMode &&
+    compatibilityResult.overrides
+      ? compatibilityResult.overrides
+      : null;
+
+  if (compatibilityResult.requiresCompatibilityMode) {
+    await ensureSteamOverlayDependency(
+      winePrefixPath,
+      compatibilityResult.detectedFiles
+    );
+
+    logger.info("Detected Windows compatibility files", {
+      executable: parsedPath,
+      provider: compatibilityResult.provider,
+      overrides: detectedWineDllOverrides,
+      detectedFiles: compatibilityResult.detectedFiles,
+      managedEntries: compatibilityResult.managedEntries,
+    });
+
+    for (const warning of compatibilityResult.warnings) {
+      logger.warn("Windows compatibility detection warning", {
+        executable: parsedPath,
+        warning,
+      });
+    }
+  }
+
+  /*
+   * Some Windows compatibility setups require a launch that is genuinely
+   * owned by the Steam client. If the exact executable already exists as a
+   * non-Steam shortcut, delegate to Steam before attempting UMU.
+   *
+   * Exact-path matching prevents selecting another shortcut with the same
+   * executable filename.
+   */
+  if (
+    compatibilityResult.requiresCompatibilityMode &&
+    (await launchThroughSteamShortcut(parsedPath))
+  ) {
+    PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+    return true;
+  }
+
   try {
     await Umu.launchExecutable(parsedPath, [], {
       winePrefixPath,
@@ -398,6 +770,8 @@ const launchWindowsBinaryOnLinux = async (
       launchOptions,
       useGamemode,
       useMangohud,
+      wineDllOverrides: detectedWineDllOverrides,
+      compatibilityMode: compatibilityResult.requiresCompatibilityMode,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;

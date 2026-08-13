@@ -99,6 +99,121 @@ const ensureExecutablePermission = (binaryPath: string) => {
 
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
+const findExistingPath = async (
+  candidates: string[]
+): Promise<string | null> => {
+  for (const candidate of candidates) {
+    try {
+      await fs.promises.access(candidate);
+      return candidate;
+    } catch {
+      // Try the next candidate.
+    }
+  }
+
+  return null;
+};
+
+const provisionCompatibilitySteamClient = async (
+  winePrefixPath: string | null | undefined,
+  protonPath: string | null | undefined
+): Promise<{
+  steamCompatClientInstallPath: string | null;
+}> => {
+  const homePath = SystemPath.getPath("home");
+
+  const steamCompatClientInstallPath = await findExistingPath([
+    path.join(homePath, ".steam", "steam"),
+    path.join(homePath, ".local", "share", "Steam"),
+  ]);
+
+  if (!winePrefixPath || !steamCompatClientInstallPath) {
+    return { steamCompatClientInstallPath };
+  }
+
+  const destinationDirectory = path.join(
+    winePrefixPath,
+    "drive_c",
+    "Program Files (x86)",
+    "Steam"
+  );
+
+  await fs.promises.mkdir(destinationDirectory, { recursive: true });
+
+  const requiredSources: Record<string, string[]> = {
+    "steamclient64.dll": [
+      path.join(steamCompatClientInstallPath, "steamclient64.dll"),
+      path.join(
+        steamCompatClientInstallPath,
+        "legacycompat",
+        "steamclient64.dll"
+      ),
+    ],
+    "steamclient.dll": [
+      path.join(steamCompatClientInstallPath, "steamclient.dll"),
+      path.join(
+        steamCompatClientInstallPath,
+        "legacycompat",
+        "steamclient.dll"
+      ),
+    ],
+    "Steam.dll": [
+      path.join(steamCompatClientInstallPath, "legacycompat", "Steam.dll"),
+      path.join(steamCompatClientInstallPath, "Steam.dll"),
+    ],
+    "steam.exe": protonPath
+      ? [
+          path.join(
+            protonPath,
+            "files",
+            "lib",
+            "wine",
+            "x86_64-windows",
+            "steam.exe"
+          ),
+          path.join(
+            protonPath,
+            "files",
+            "lib",
+            "wine",
+            "i386-windows",
+            "steam.exe"
+          ),
+        ]
+      : [],
+  };
+
+  const provisionedFiles: string[] = [];
+
+  for (const [fileName, sourceCandidates] of Object.entries(requiredSources)) {
+    const destination = path.join(destinationDirectory, fileName);
+
+    if ((await findExistingPath([destination])) !== null) continue;
+
+    const source = await findExistingPath(sourceCandidates);
+
+    if (!source) {
+      logger.warn("Could not provision compatibility Steam client file", {
+        fileName,
+        sourceCandidates,
+      });
+      continue;
+    }
+
+    await fs.promises.copyFile(source, destination);
+    provisionedFiles.push(fileName);
+  }
+
+  if (provisionedFiles.length > 0) {
+    logger.info("Provisioned compatibility Steam client files", {
+      destination: destinationDirectory,
+      files: provisionedFiles,
+    });
+  }
+
+  return { steamCompatClientInstallPath };
+};
+
 export class Umu {
   public static isValidProtonPath(protonPath: string) {
     return isValidProtonDirectory(protonPath);
@@ -333,6 +448,8 @@ export class Umu {
       launchOptions?: string | null;
       useMangohud?: boolean;
       useGamemode?: boolean;
+      wineDllOverrides?: string | null;
+      compatibilityMode?: boolean;
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -354,14 +471,53 @@ export class Umu {
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
     ensureExecutablePermission(umuBinaryPath);
 
+    const COMPATIBILITY_GAME_ID = "umu-480";
+
+    const compatibilityMode = options?.compatibilityMode ?? false;
+
+    const { steamCompatClientInstallPath } = compatibilityMode
+      ? await provisionCompatibilitySteamClient(
+          options?.winePrefixPath,
+          options?.protonPath
+        )
+      : { steamCompatClientInstallPath: null };
+
     const launchEnv = {
       PROTON_LOG: "1",
-      ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
+
+      ...(options?.gameId
+        ? {
+            GAMEID: compatibilityMode
+              ? COMPATIBILITY_GAME_ID
+              : `umu-${options.gameId}`,
+          }
+        : {}),
+
       ...(options?.winePrefixPath
         ? { WINEPREFIX: options.winePrefixPath }
         : {}),
+
       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
+
+      ...(compatibilityMode
+        ? {
+            GAMEID: COMPATIBILITY_GAME_ID,
+            ...(options?.winePrefixPath
+              ? { WINEPREFIX: options.winePrefixPath }
+              : {}),
+            ...(steamCompatClientInstallPath
+              ? {
+                  STEAM_COMPAT_CLIENT_INSTALL_PATH:
+                    steamCompatClientInstallPath,
+                }
+              : {}),
+            ...(options?.wineDllOverrides
+              ? { WINEDLLOVERRIDES: options.wineDllOverrides }
+              : {}),
+          }
+        : {}),
+
       ...resolvedLaunchCommand.env,
     };
 
