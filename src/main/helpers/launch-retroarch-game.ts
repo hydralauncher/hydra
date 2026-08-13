@@ -11,6 +11,7 @@ import type {
 import { resolveEmulatorWrappers } from "./launch-classics-game";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 import { spawnDetachedEmulator } from "./spawn-detached-emulator";
+import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
 
 export class RetroArchNotConfiguredError extends Error {
   code = "RETROARCH_NOT_CONFIGURED" as const;
@@ -92,6 +93,8 @@ export const launchRetroArchGame = async (
   });
 
   const workingDirectory = path.dirname(executableTarget);
+
+  await prepareEmulatorSouvenirs(platform, config.executablePath);
 
   try {
     const processRef = await spawnDetachedEmulator(

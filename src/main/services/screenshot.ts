@@ -1,4 +1,4 @@
-import { desktopCapturer, screen } from "electron";
+import { desktopCapturer, nativeImage, screen } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { logger } from "./logger";
@@ -91,6 +91,25 @@ export class ScreenshotService {
     }
 
     const image = resizeToFit(source.thumbnail);
+    const filePath = resolveScreenshotPath(gameTitle, achievementDisplayName);
+
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.promises.writeFile(filePath, image.toJPEG(SCREENSHOT_QUALITY));
+
+    return filePath;
+  }
+
+  public static async importGameScreenshot(
+    sourcePath: string,
+    gameTitle: string,
+    achievementDisplayName: string
+  ) {
+    const image = resizeToFit(nativeImage.createFromPath(sourcePath));
+
+    if (image.isEmpty()) {
+      throw new Error(`Could not read emulator screenshot at ${sourcePath}`);
+    }
+
     const filePath = resolveScreenshotPath(gameTitle, achievementDisplayName);
 
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
