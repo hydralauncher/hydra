@@ -1524,8 +1524,8 @@
     "setup_match_wrong_platform": "plataforma errada",
     "setup_run_in_background": "Executar em segundo plano",
     "scanning_system_label": "Escaneando {{system}}…",
-    "enable_achievement_screenshots": "Capturar a tela ao desbloquear uma conquista",
-    "open_screenshots_directory": "Abrir a pasta de capturas"
+    "open_screenshots_directory": "Abrir a pasta de capturas",
+    "enable_achievement_souvenirs": "Habilitar lembranças para conquistas"
   },
   "notifications": {
     "download_complete": "Download concluído",

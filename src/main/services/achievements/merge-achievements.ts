@@ -79,7 +79,7 @@ const withAchievementSouvenirs = async (
     !newAchievements.length ||
     !publishNotification ||
     process.platform === "linux" ||
-    userPreferences.enableAchievementScreenshots !== true ||
+    userPreferences.enableAchievementSouvenirs !== true ||
     !HydraApi.hasActiveSubscription()
   ) {
     return mergedLocalAchievements;

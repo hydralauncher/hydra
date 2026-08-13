@@ -1506,8 +1506,8 @@
     "big_picture_enable_virtual_keyboard": "Activar teclado virtual",
     "big_picture_enable_diagnostics": "Activar diagnóstico de navegación",
     "big_picture_diagnostics_position": "Posición del diagnóstico",
-    "enable_achievement_screenshots": "Capturar la pantalla al desbloquear un logro",
-    "open_screenshots_directory": "Abrir la carpeta de capturas"
+    "open_screenshots_directory": "Abrir la carpeta de capturas",
+    "enable_achievement_souvenirs": "Habilitar recuerdos para los logros"
   },
   "notifications": {
     "download_complete": "Descarga completada",

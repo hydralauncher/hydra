@@ -24,7 +24,7 @@ export function SettingsContextContentGameplay() {
     disableNsfwAlert: false,
     showHiddenAchievementsDescription: false,
     enableSteamAchievements: false,
-    enableAchievementScreenshots: false,
+    enableAchievementSouvenirs: false,
     enableNewDownloadOptionsBadges: true,
     hideClassicsBookmark: false,
     classicsUseHeroLayout: false,
@@ -39,8 +39,8 @@ export function SettingsContextContentGameplay() {
       showHiddenAchievementsDescription:
         userPreferences.showHiddenAchievementsDescription ?? false,
       enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
-      enableAchievementScreenshots:
-        userPreferences.enableAchievementScreenshots ?? false,
+      enableAchievementSouvenirs:
+        userPreferences.enableAchievementSouvenirs ?? false,
       enableNewDownloadOptionsBadges:
         userPreferences.enableNewDownloadOptionsBadges ?? true,
       hideClassicsBookmark: userPreferences.hideClassicsBookmark ?? false,
@@ -112,34 +112,40 @@ export function SettingsContextContentGameplay() {
 
         {window.electron.platform !== "linux" && (
           <>
-            <div className="settings-behavior__checkbox-container--with-tooltip">
+            {hasActiveSubscription ? (
               <CheckboxField
-                label={t("enable_achievement_screenshots")}
-                checked={form.enableAchievementScreenshots}
-                onChange={() => {
-                  if (!hasActiveSubscription) {
-                    showHydraCloudModal("achievements");
-                    return;
-                  }
-
+                label={t("enable_achievement_souvenirs")}
+                checked={form.enableAchievementSouvenirs}
+                onChange={() =>
                   handleChange({
-                    enableAchievementScreenshots:
-                      !form.enableAchievementScreenshots,
-                  });
-                }}
+                    enableAchievementSouvenirs:
+                      !form.enableAchievementSouvenirs,
+                  })
+                }
               />
-
-              <small
-                className="settings-behavior__checkbox-container--tooltip"
-                data-open-article="achievement-souvenirs"
+            ) : (
+              <button
+                type="button"
+                className="settings-behavior__hydra-cloud-row"
+                onClick={() => showHydraCloudModal("achievements")}
               >
-                <QuestionIcon size={12} />
-              </small>
-            </div>
+                <CheckboxField
+                  label={t("enable_achievement_souvenirs")}
+                  checked={false}
+                  disabled
+                  readOnly
+                />
+
+                <span className="settings-behavior__hydra-cloud-badge">
+                  Hydra Cloud
+                </span>
+              </button>
+            )}
 
             <Button
               className="settings-behavior__open-screenshots-button"
               theme="outline"
+              disabled={!hasActiveSubscription}
               onClick={async () =>
                 window.electron.openFolder(
                   await window.electron.getScreenshotsPath()
