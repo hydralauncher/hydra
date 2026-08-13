@@ -1,6 +1,10 @@
 @use "../../scss/globals.scss";
 
 .settings-behavior {
+  &__open-screenshots-button {
+    align-self: flex-start;
+  }
+
   &__proton-section {
     display: flex;
     flex-direction: column;

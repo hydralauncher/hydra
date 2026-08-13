@@ -138,6 +138,7 @@ export function SettingsContextContentGameplay() {
             </div>
 
             <Button
+              className="settings-behavior__open-screenshots-button"
               theme="outline"
               onClick={async () =>
                 window.electron.openFolder(
