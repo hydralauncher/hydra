@@ -1,12 +1,20 @@
 import { net, session } from "electron";
 import { logger } from "../logger";
 
+interface PendingResolution {
+  resolve: (url: string) => void;
+  reject: (error: Error) => void;
+  timer: NodeJS.Timeout;
+}
+
 export class BzzhrApi {
   private static readonly BZZHR_BASE_URL = "https://bzzhr.to";
   private static readonly STEAMRIP_REFERER = "https://steamrip.com/";
   private static readonly USER_AGENT =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
   private static readonly RESOLUTION_TIMEOUT_MS = 30_000;
+  private static pendingResolutions = new Map<string, PendingResolution[]>();
+  private static redirectListenerRegistered = false;
 
   private static isTsDownloadUrl(uri: string): boolean {
     return /^https?:\/\/ts\.bzzhr\.(to|io)\/d\//.test(uri);
@@ -20,6 +28,16 @@ export class BzzhrApi {
       return id;
     } catch {
       throw new Error(`Invalid Bzzhr URL: ${uri}`);
+    }
+  }
+
+  private static extractIdFromRequest(url: string): string | null {
+    try {
+      const pathParts = new URL(url).pathname.split("/").filter(Boolean);
+      if (pathParts[0] === "d") return pathParts[1] ?? null;
+      return pathParts[0] ?? null;
+    } catch {
+      return null;
     }
   }
 
@@ -79,43 +97,66 @@ export class BzzhrApi {
     return match[1].replace(/\\\//g, "/");
   }
 
-  private static resolveDownloadUrl(tokenPath: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const defaultSession = session.defaultSession;
-      const filter = {
+  private static registerRedirectListener(): void {
+    if (this.redirectListenerRegistered) return;
+    this.redirectListenerRegistered = true;
+
+    session.defaultSession.webRequest.onBeforeRedirect(
+      {
         urls: [
           "https://bzzhr.to/*",
           "https://ts.bzzhr.to/*",
           "https://ts.bzzhr.io/*",
         ],
-      };
+      },
+      (details) => {
+        if (!this.isTsDownloadUrl(details.redirectURL)) return;
+        const id = this.extractIdFromRequest(details.url);
+        if (!id) return;
+        const pending = this.pendingResolutions.get(id);
+        if (!pending) return;
 
-      let req: Electron.ClientRequest | null = null;
-      let settled = false;
+        this.pendingResolutions.delete(id);
+        for (const entry of pending) {
+          clearTimeout(entry.timer);
+          entry.resolve(details.redirectURL);
+        }
+      }
+    );
+  }
 
-      const cleanup = () => {
-        clearTimeout(timeout);
-        defaultSession.webRequest.onBeforeRedirect(null);
-        req?.abort();
-      };
+  private static upsertPending(id: string, entry: PendingResolution): void {
+    const pending = this.pendingResolutions.get(id) ?? [];
+    pending.push(entry);
+    this.pendingResolutions.set(id, pending);
+  }
 
-      const resolveOnce = (value: string) => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        resolve(value);
-      };
+  private static removePending(
+    id: string,
+    resolve: (url: string) => void
+  ): void {
+    const pending = this.pendingResolutions.get(id);
+    if (!pending) return;
+    const next = pending.filter((entry) => entry.resolve !== resolve);
+    if (next.length > 0) {
+      this.pendingResolutions.set(id, next);
+    } else {
+      this.pendingResolutions.delete(id);
+    }
+  }
 
-      const rejectOnce = (error: Error) => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        reject(error);
-      };
+  private static resolveDownloadUrl(
+    id: string,
+    tokenPath: string
+  ): Promise<string> {
+    this.registerRedirectListener();
 
-      const timeout = setTimeout(
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(
         () =>
-          rejectOnce(
+          this.failPending(
+            id,
+            resolve,
             new Error(
               "Bzzhr download resolution timed out (link may be expired)"
             )
@@ -123,20 +164,32 @@ export class BzzhrApi {
         this.RESOLUTION_TIMEOUT_MS
       );
 
-      defaultSession.webRequest.onBeforeRedirect(filter, (details) => {
-        if (details.redirectURL) resolveOnce(details.redirectURL);
-      });
+      this.upsertPending(id, { resolve, reject, timer });
 
-      req = net.request(`${this.BZZHR_BASE_URL}${tokenPath}`);
+      const req = net.request(`${this.BZZHR_BASE_URL}${tokenPath}`);
       req.setHeader("User-Agent", this.USER_AGENT);
       req.setHeader("Referer", this.STEAMRIP_REFERER);
       req.on("response", (res) => {
         res.on("data", () => {});
-        res.on("error", (error) => rejectOnce(error));
+        res.on("error", (error) => this.failPending(id, resolve, error));
       });
-      req.on("error", (error) => rejectOnce(error));
+      req.on("error", (error) =>
+        this.failPending(id, resolve, new Error(error.message))
+      );
       req.end();
     });
+  }
+
+  private static failPending(
+    id: string,
+    resolve: (url: string) => void,
+    error: Error
+  ): void {
+    const pending = this.pendingResolutions.get(id) ?? [];
+    const entry = pending.find((entry) => entry.resolve === resolve);
+    if (entry) clearTimeout(entry.timer);
+    this.removePending(id, resolve);
+    entry?.reject(error);
   }
 
   public static async getDownloadUrl(uri: string): Promise<string> {
@@ -148,7 +201,7 @@ export class BzzhrApi {
 
     const id = this.extractId(uri);
     const tokenPath = await this.getTokenPath(id);
-    const directUrl = await this.resolveDownloadUrl(tokenPath);
+    const directUrl = await this.resolveDownloadUrl(id, tokenPath);
 
     if (!directUrl) {
       throw new Error("Failed to resolve Bzzhr download URL");
