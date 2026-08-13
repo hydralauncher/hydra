@@ -5,6 +5,10 @@ import type { EmulatorSystem, Game, GameShop, RetroArchPlatform } from "@types";
 
 import { trackGamePlaytime } from "../library-sync";
 import { logger } from "../logger";
+import {
+  startRetroAchievementsSouvenirWatcher,
+  stopRetroAchievementsSouvenirWatcher,
+} from "../retro-achievements/retro-achievements-souvenir-watcher";
 import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
 import { WindowManager } from "../window-manager";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
@@ -85,6 +89,12 @@ export const startEmulatorSession = async ({
     session.heartbeat.unref?.();
   }
 
+  if (game.shop === "launchbox") {
+    void startRetroAchievementsSouvenirWatcher(gameKey, game).catch((error) => {
+      logger.error("Failed to start RetroAchievements souvenir watcher", error);
+    });
+  }
+
   const finalize = () => {
     if (!emulatorSessions.has(gameKey)) return;
     void finalizeEmulatorSession(gameKey);
@@ -127,6 +137,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   if (!session) return;
   emulatorSessions.delete(gameKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
+  stopRetroAchievementsSouvenirWatcher(gameKey);
 
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
