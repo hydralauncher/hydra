@@ -1757,7 +1757,12 @@
     "delete_souvenir_modal_description": "This souvenir will be removed from your profile. This cannot be undone.",
     "delete_souvenir_modal_delete_button": "Delete",
     "delete_souvenir_modal_cancel_button": "Cancel",
-    "unknown_game": "Unknown game"
+    "unknown_game": "Unknown game",
+    "group_by": "Group by",
+    "group_by_game": "By game",
+    "no_grouping": "No grouping",
+    "most_recent": "Most recent",
+    "oldest_first": "Oldest first"
   },
   "library": {
     "library": "Library",

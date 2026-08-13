@@ -1757,7 +1757,12 @@
     "delete_souvenir_modal_description": "A lembrança será removida do seu perfil. Não é possível desfazer.",
     "delete_souvenir_modal_delete_button": "Excluir",
     "delete_souvenir_modal_cancel_button": "Cancelar",
-    "unknown_game": "Jogo desconhecido"
+    "unknown_game": "Jogo desconhecido",
+    "group_by": "Agrupar por",
+    "group_by_game": "Por jogo",
+    "no_grouping": "Sem agrupamento",
+    "most_recent": "Mais recentes",
+    "oldest_first": "Mais antigos"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",

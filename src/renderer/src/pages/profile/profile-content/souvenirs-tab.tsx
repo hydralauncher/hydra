@@ -4,8 +4,11 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
+  HistoryIcon,
   SearchIcon,
+  StackIcon,
 } from "@primer/octicons-react";
+import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import { TrashIcon } from "lucide-react";
 import type { ProfileAchievement } from "@types";
 import { ConfirmationModal } from "@renderer/components";
@@ -15,6 +18,88 @@ import "./profile-content.scss";
 
 const souvenirKey = (achievement: ProfileAchievement) =>
   `${achievement.gameId}:${achievement.name}`;
+
+type SouvenirGrouping = "game" | "none";
+type SouvenirSort = "recent" | "oldest";
+
+interface SouvenirCardProps {
+  achievement: ProfileAchievement;
+  isMe: boolean;
+  isDeleting: boolean;
+  showGame: boolean;
+  onSouvenirClick: (achievement: ProfileAchievement) => void;
+  onDeleteClick: (achievement: ProfileAchievement) => void;
+}
+
+function SouvenirCard({
+  achievement,
+  isMe,
+  isDeleting,
+  showGame,
+  onSouvenirClick,
+  onDeleteClick,
+}: Readonly<SouvenirCardProps>) {
+  const { t } = useTranslation("user_profile");
+  const { formatDistance } = useDate();
+
+  return (
+    <li className="profile-content__souvenir">
+      <button
+        type="button"
+        className="profile-content__souvenir-image-button"
+        onClick={() => onSouvenirClick(achievement)}
+        title={t("view_souvenir")}
+      >
+        <img
+          className="profile-content__souvenir-image"
+          src={achievement.imageUrl}
+          alt={achievement.displayName}
+          loading="lazy"
+        />
+
+        <span className="profile-content__souvenir-image-overlay">
+          <SearchIcon size={24} />
+        </span>
+      </button>
+
+      <div className="profile-content__souvenir-details">
+        {achievement.achievementIcon && (
+          <img
+            className="profile-content__souvenir-achievement-icon"
+            src={achievement.achievementIcon}
+            alt=""
+            loading="lazy"
+          />
+        )}
+
+        <div className="profile-content__souvenir-text">
+          <span className="profile-content__souvenir-name">
+            {achievement.displayName}
+          </span>
+          <small className="profile-content__souvenir-unlock-time">
+            {showGame
+              ? (achievement.gameTitle ?? t("unknown_game"))
+              : formatDistance(new Date(achievement.unlockTime), new Date(), {
+                  addSuffix: true,
+                })}
+          </small>
+        </div>
+
+        {isMe && (
+          <button
+            type="button"
+            className="profile-content__souvenir-delete-button"
+            onClick={() => onDeleteClick(achievement)}
+            disabled={isDeleting}
+            title={t("delete_souvenir")}
+          >
+            <TrashIcon size={14} />
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
 
 interface SouvenirGameGroupProps {
   achievements: ProfileAchievement[];
@@ -32,7 +117,6 @@ function SouvenirGameGroup({
   onDeleteClick,
 }: Readonly<SouvenirGameGroupProps>) {
   const { t } = useTranslation("user_profile");
-  const { formatDistance } = useDate();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const [{ gameTitle, gameIconUrl }] = achievements;
@@ -67,64 +151,15 @@ function SouvenirGameGroup({
       {isExpanded && (
         <ul className="profile-content__souvenirs-grid">
           {achievements.map((achievement) => (
-            <li
+            <SouvenirCard
               key={souvenirKey(achievement)}
-              className="profile-content__souvenir"
-            >
-              <button
-                type="button"
-                className="profile-content__souvenir-image-button"
-                onClick={() => onSouvenirClick(achievement)}
-                title={t("view_souvenir")}
-              >
-                <img
-                  className="profile-content__souvenir-image"
-                  src={achievement.imageUrl}
-                  alt={achievement.displayName}
-                  loading="lazy"
-                />
-
-                <span className="profile-content__souvenir-image-overlay">
-                  <SearchIcon size={24} />
-                </span>
-              </button>
-
-              <div className="profile-content__souvenir-details">
-                {achievement.achievementIcon && (
-                  <img
-                    className="profile-content__souvenir-achievement-icon"
-                    src={achievement.achievementIcon}
-                    alt=""
-                    loading="lazy"
-                  />
-                )}
-
-                <div className="profile-content__souvenir-text">
-                  <span className="profile-content__souvenir-name">
-                    {achievement.displayName}
-                  </span>
-                  <small className="profile-content__souvenir-unlock-time">
-                    {formatDistance(
-                      new Date(achievement.unlockTime),
-                      new Date(),
-                      { addSuffix: true }
-                    )}
-                  </small>
-                </div>
-
-                {isMe && (
-                  <button
-                    type="button"
-                    className="profile-content__souvenir-delete-button"
-                    onClick={() => onDeleteClick(achievement)}
-                    disabled={deletingKeys.has(souvenirKey(achievement))}
-                    title={t("delete_souvenir")}
-                  >
-                    <TrashIcon size={14} />
-                  </button>
-                )}
-              </div>
-            </li>
+              achievement={achievement}
+              isMe={isMe}
+              isDeleting={deletingKeys.has(souvenirKey(achievement))}
+              showGame={false}
+              onSouvenirClick={onSouvenirClick}
+              onDeleteClick={onDeleteClick}
+            />
           ))}
         </ul>
       )}
@@ -151,9 +186,19 @@ export function SouvenirsTab({
   const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set());
   const [souvenirToDelete, setSouvenirToDelete] =
     useState<ProfileAchievement | null>(null);
+  const [grouping, setGrouping] = useState<SouvenirGrouping>("game");
+  const [sortBy, setSortBy] = useState<SouvenirSort>("recent");
+
+  const sortedAchievements = useMemo(() => {
+    return achievements.toSorted((a, b) =>
+      sortBy === "recent"
+        ? b.unlockTime - a.unlockTime
+        : a.unlockTime - b.unlockTime
+    );
+  }, [achievements, sortBy]);
 
   const groupedAchievements = useMemo(() => {
-    return achievements.reduce<Record<string, ProfileAchievement[]>>(
+    return sortedAchievements.reduce<Record<string, ProfileAchievement[]>>(
       (groups, achievement) => {
         groups[achievement.gameId] = [
           ...(groups[achievement.gameId] ?? []),
@@ -164,7 +209,17 @@ export function SouvenirsTab({
       },
       {}
     );
-  }, [achievements]);
+  }, [sortedAchievements]);
+
+  const groupingOptions: FilterDropdownOption<SouvenirGrouping>[] = [
+    { value: "game", label: t("group_by_game"), icon: StackIcon },
+    { value: "none", label: t("no_grouping"), icon: SearchIcon },
+  ];
+
+  const sortOptions: FilterDropdownOption<SouvenirSort>[] = [
+    { value: "recent", label: t("most_recent"), icon: HistoryIcon },
+    { value: "oldest", label: t("oldest_first"), icon: HistoryIcon },
+  ];
 
   const handleDeleteSouvenir = async () => {
     if (!souvenirToDelete) return;
@@ -209,18 +264,52 @@ export function SouvenirsTab({
       {achievements.length === 0 ? (
         <p className="profile-content__souvenirs-empty">{t("no_souvenirs")}</p>
       ) : (
-        Object.entries(groupedAchievements).map(
-          ([gameId, groupAchievements]) => (
-            <SouvenirGameGroup
-              key={gameId}
-              achievements={groupAchievements}
-              isMe={isMe}
-              deletingKeys={deletingKeys}
-              onSouvenirClick={onSouvenirClick}
-              onDeleteClick={setSouvenirToDelete}
+        <>
+          <div className="profile-content__library-filters">
+            <FilterDropdown
+              placeholder={t("group_by")}
+              value={grouping}
+              options={groupingOptions}
+              onChange={setGrouping}
             />
-          )
-        )
+
+            <FilterDropdown
+              placeholder={t("sort_by")}
+              value={sortBy}
+              options={sortOptions}
+              onChange={setSortBy}
+            />
+          </div>
+
+          {grouping === "game" ? (
+            Object.entries(groupedAchievements).map(
+              ([gameId, groupAchievements]) => (
+                <SouvenirGameGroup
+                  key={gameId}
+                  achievements={groupAchievements}
+                  isMe={isMe}
+                  deletingKeys={deletingKeys}
+                  onSouvenirClick={onSouvenirClick}
+                  onDeleteClick={setSouvenirToDelete}
+                />
+              )
+            )
+          ) : (
+            <ul className="profile-content__souvenirs-grid">
+              {sortedAchievements.map((achievement) => (
+                <SouvenirCard
+                  key={souvenirKey(achievement)}
+                  achievement={achievement}
+                  isMe={isMe}
+                  isDeleting={deletingKeys.has(souvenirKey(achievement))}
+                  showGame
+                  onSouvenirClick={onSouvenirClick}
+                  onDeleteClick={setSouvenirToDelete}
+                />
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
       <ConfirmationModal

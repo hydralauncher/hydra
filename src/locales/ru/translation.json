@@ -1751,7 +1751,12 @@
     "delete_souvenir_modal_description": "Сувенир будет удалён из вашего профиля. Это действие необратимо.",
     "delete_souvenir_modal_delete_button": "Удалить",
     "delete_souvenir_modal_cancel_button": "Отмена",
-    "unknown_game": "Неизвестная игра"
+    "unknown_game": "Неизвестная игра",
+    "group_by": "Группировать",
+    "group_by_game": "По играм",
+    "no_grouping": "Без группировки",
+    "most_recent": "Сначала новые",
+    "oldest_first": "Сначала старые"
   },
   "library": {
     "library": "Библиотека",
