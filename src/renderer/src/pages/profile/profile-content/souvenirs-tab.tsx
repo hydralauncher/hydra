@@ -55,7 +55,7 @@ function SouvenirGameGroup({
           {gameTitle ?? t("unknown_game")}
         </h3>
 
-        <span className="profile-content__tab-badge">
+        <span className="profile-content__souvenirs-group-count">
           {achievements.length}
         </span>
       </button>

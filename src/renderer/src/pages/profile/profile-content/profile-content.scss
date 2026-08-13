@@ -195,6 +195,17 @@
       font-size: 16px;
       font-weight: 600;
     }
+
+    &-count {
+      min-width: 24px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background-color: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
   }
 
   &__souvenirs-grid {
@@ -202,16 +213,8 @@
     margin: 0;
     padding: 0;
     display: grid;
-    gap: calc(globals.$spacing-unit * 2);
-    grid-template-columns: repeat(2, 1fr);
-
-    @container #{globals.$app-container} (min-width: 1300px) {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    @container #{globals.$app-container} (min-width: 2000px) {
-      grid-template-columns: repeat(4, 1fr);
-    }
+    gap: calc(globals.$spacing-unit * 1.5);
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
 
   &__souvenir {
@@ -244,8 +247,8 @@
     &-details {
       display: flex;
       align-items: center;
-      gap: globals.$spacing-unit;
-      padding: globals.$spacing-unit;
+      gap: calc(globals.$spacing-unit * 1.25);
+      padding: calc(globals.$spacing-unit * 1.25);
     }
 
     &-achievement-icon {
@@ -253,12 +256,14 @@
       height: 32px;
       border-radius: 4px;
       object-fit: cover;
+      flex-shrink: 0;
     }
 
     &-text {
       display: flex;
       flex: 1;
       flex-direction: column;
+      gap: 2px;
       overflow: hidden;
     }
 
@@ -271,6 +276,8 @@
 
     &-unlock-time {
       color: globals.$body-color;
+      font-size: globals.$small-font-size;
+      white-space: nowrap;
     }
 
     &-delete-button {
