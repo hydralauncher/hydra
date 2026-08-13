@@ -16,6 +16,7 @@ import {
 import type {
   Badge,
   FriendRequestAction,
+  ProfileAchievement,
   LibraryGame,
   ShopAssets,
   UserDetails,
@@ -41,6 +42,7 @@ import {
   FocusCarousel,
   HorizontalFocusGroup,
   Tooltip,
+  Typography,
   UserProfileAvatar,
   VerticalFocusGroup,
 } from "../../components";
@@ -68,11 +70,13 @@ import {
   PROFILE_FRIENDS_VIEW_ALL_ID,
   PROFILE_RECENT_ACTIVITY_REGION_ID,
   PROFILE_SOCIAL_REGION_ID,
+  PROFILE_SOUVENIRS_REGION_ID,
   PROFILE_LIBRARY_CAROUSEL_REGION_ID,
   PROFILE_PAGE_REGION_ID,
   getProfileAchievementGameItemId,
   getProfileActivityItemId,
   getProfileFriendItemId,
+  getProfileSouvenirItemId,
 } from "./navigation";
 import {
   type ProfileRecentAchievementGroup,
@@ -80,8 +84,10 @@ import {
   useProfileBadges,
   useProfileFriends,
   useProfileLibraryData,
+  useProfileSouvenirs,
   useRecentAchievements,
 } from "./use-profile-data";
+import { SouvenirLightbox } from "../../components/pages/profile/souvenir-lightbox";
 
 interface ProfileHeroUser {
   id: string;
@@ -1277,6 +1283,16 @@ function ProfileAchievementGroupContent({
               ) : null}
             </div>
 
+            {achievement.imageUrl ? (
+              <img
+                className="profile-page__achievement-souvenir"
+                src={achievement.imageUrl}
+                alt=""
+                draggable={false}
+                onError={hideBrokenPreviewImage}
+              />
+            ) : null}
+
             <div className="profile-page__achievement-meta">
               <span>
                 Earned{" "}
@@ -1659,6 +1675,84 @@ function useProfileGames(
   };
 }
 
+const getSouvenirKey = (souvenir: ProfileAchievement) =>
+  `${souvenir.gameId}-${souvenir.name}`;
+
+interface ProfileSouvenirsProps {
+  souvenirs: ProfileAchievement[];
+  upFocusId: string | null;
+  downFocusId: string | null;
+  onActivate: (souvenir: ProfileAchievement) => void;
+}
+
+function ProfileSouvenirs({
+  souvenirs,
+  upFocusId,
+  downFocusId,
+  onActivate,
+}: Readonly<ProfileSouvenirsProps>) {
+  if (!souvenirs.length) return null;
+
+  return (
+    <section className="profile-page__souvenirs-section">
+      <header className="profile-page__souvenirs-header">
+        <Typography className="profile-page__souvenirs-title">
+          Souvenirs
+        </Typography>
+
+        <Typography className="profile-page__souvenirs-count">
+          {souvenirs.length}
+        </Typography>
+      </header>
+
+      <HorizontalFocusGroup
+        regionId={PROFILE_SOUVENIRS_REGION_ID}
+        className="profile-page__souvenirs-row"
+        asChild
+      >
+        <ul className="profile-page__souvenirs-row">
+          {souvenirs.map((souvenir) => (
+            <FocusItem
+              key={getSouvenirKey(souvenir)}
+              id={getProfileSouvenirItemId(getSouvenirKey(souvenir))}
+              actions={{ primary: () => onActivate(souvenir) }}
+              navigationOverrides={{
+                up: upFocusId
+                  ? { type: "item", itemId: upFocusId }
+                  : { type: "block" },
+                down: downFocusId
+                  ? { type: "item", itemId: downFocusId }
+                  : { type: "block" },
+              }}
+              asChild
+            >
+              <li className="profile-page__souvenir">
+                <img
+                  className="profile-page__souvenir-image"
+                  src={souvenir.imageUrl}
+                  alt={souvenir.displayName}
+                  draggable={false}
+                  loading="lazy"
+                />
+
+                <div className="profile-page__souvenir-copy">
+                  <Typography className="profile-page__souvenir-name">
+                    {souvenir.displayName}
+                  </Typography>
+
+                  <Typography className="profile-page__souvenir-game">
+                    {souvenir.gameTitle ?? ""}
+                  </Typography>
+                </div>
+              </li>
+            </FocusItem>
+          ))}
+        </ul>
+      </HorizontalFocusGroup>
+    </section>
+  );
+}
+
 interface ProfileNavigation {
   firstActivityFocusId: string | null;
   lastActivityFocusId: string | null;
@@ -1671,6 +1765,8 @@ interface ProfileNavigation {
   libraryDownFocusId: string | null;
   heroActionsFocusId: string | null;
   libraryUpFocusId: string | null;
+  souvenirUpFocusId: string | null;
+  souvenirDownFocusId: string | null;
   socialUpFocusId: string | null;
 }
 
@@ -1679,6 +1775,7 @@ interface ProfileNavigationInput {
   recentActivityGames: ProfileActivityGame[];
   libraryCarouselGames: ProfileLibraryCarouselGame[];
   recentAchievementGroups: ProfileRecentAchievementGroup[];
+  souvenirs: ProfileAchievement[];
   friends: UserFriend[];
   canFocusRecentAchievements: boolean;
 }
@@ -1693,6 +1790,7 @@ type ProfileFocusIds = Pick<
   | "lastFriendFocusId"
 > & {
   firstLibraryFocusId: string | null;
+  firstSouvenirFocusId: string | null;
 };
 
 function getFirstItem<T>(items: T[]) {
@@ -1715,6 +1813,7 @@ function getProfileFocusIds({
   recentActivityGames,
   libraryCarouselGames,
   recentAchievementGroups,
+  souvenirs,
   friends,
   canFocusRecentAchievements,
 }: Omit<ProfileNavigationInput, "profileUser">) {
@@ -1726,6 +1825,7 @@ function getProfileFocusIds({
     : [];
   const firstAchievement = getFirstItem(focusableAchievements);
   const lastAchievement = getLastItem(focusableAchievements);
+  const firstSouvenir = getFirstItem(souvenirs);
   const firstFriend = getFirstItem(friends);
   const lastFriend = getLastItem(friends);
 
@@ -1738,6 +1838,9 @@ function getProfileFocusIds({
       : null,
     firstLibraryFocusId: firstLibrary
       ? getProfileLibraryGameItemId(firstLibrary)
+      : null,
+    firstSouvenirFocusId: firstSouvenir
+      ? getProfileSouvenirItemId(getSouvenirKey(firstSouvenir))
       : null,
     firstAchievementFocusId: firstAchievement
       ? getProfileAchievementFocusId(firstAchievement.game)
@@ -1759,6 +1862,7 @@ function getProfileNavigation({
   recentActivityGames,
   libraryCarouselGames,
   recentAchievementGroups,
+  souvenirs,
   friends,
   canFocusRecentAchievements,
 }: ProfileNavigationInput): ProfileNavigation {
@@ -1766,6 +1870,7 @@ function getProfileNavigation({
     recentActivityGames,
     libraryCarouselGames,
     recentAchievementGroups,
+    souvenirs,
     friends,
     canFocusRecentAchievements,
   });
@@ -1773,6 +1878,7 @@ function getProfileNavigation({
     firstActivityFocusId,
     lastActivityFocusId,
     firstLibraryFocusId,
+    firstSouvenirFocusId,
     firstAchievementFocusId,
     lastAchievementFocusId,
     firstFriendFocusId,
@@ -1789,13 +1895,23 @@ function getProfileNavigation({
     firstFriendFocusId,
     lastFriendFocusId,
     firstContentFocusId:
-      firstActivityFocusId ?? firstLibraryFocusId ?? firstSocialFocusId,
-    activityDownFocusId: firstLibraryFocusId ?? firstSocialFocusId,
-    libraryDownFocusId: firstSocialFocusId,
+      firstActivityFocusId ??
+      firstLibraryFocusId ??
+      firstSouvenirFocusId ??
+      firstSocialFocusId,
+    activityDownFocusId:
+      firstLibraryFocusId ?? firstSouvenirFocusId ?? firstSocialFocusId,
+    libraryDownFocusId: firstSouvenirFocusId ?? firstSocialFocusId,
     heroActionsFocusId,
     libraryUpFocusId: lastActivityFocusId ?? heroActionsFocusId,
-    socialUpFocusId:
+    souvenirUpFocusId:
       firstLibraryFocusId ?? lastActivityFocusId ?? heroActionsFocusId,
+    souvenirDownFocusId: firstSocialFocusId,
+    socialUpFocusId:
+      firstSouvenirFocusId ??
+      firstLibraryFocusId ??
+      lastActivityFocusId ??
+      heroActionsFocusId,
   };
 }
 
@@ -1894,6 +2010,14 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     ]
   );
 
+  const souvenirs = useProfileSouvenirs(
+    targetUserId,
+    targetHasActiveSubscription
+  );
+  const [openSouvenir, setOpenSouvenir] = useState<ProfileAchievement | null>(
+    null
+  );
+
   const isLoading =
     isLoadingExternalProfile || (!profileUser && Boolean(targetUserId));
   const visibleBadges = useMemo(() => {
@@ -1932,12 +2056,15 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     libraryDownFocusId,
     heroActionsFocusId,
     libraryUpFocusId,
+    souvenirUpFocusId,
+    souvenirDownFocusId,
     socialUpFocusId,
   } = getProfileNavigation({
     profileUser,
     recentActivityGames,
     libraryCarouselGames,
     recentAchievementGroups,
+    souvenirs,
     friends,
     canFocusRecentAchievements,
   });
@@ -1993,6 +2120,13 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
               }
             />
 
+            <ProfileSouvenirs
+              souvenirs={souvenirs}
+              upFocusId={souvenirUpFocusId}
+              downFocusId={souvenirDownFocusId}
+              onActivate={setOpenSouvenir}
+            />
+
             <HorizontalFocusGroup
               regionId={PROFILE_SOCIAL_REGION_ID}
               className="profile-page__social-section"
@@ -2030,6 +2164,11 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
             </HorizontalFocusGroup>
           </div>
         ) : null}
+
+        <SouvenirLightbox
+          souvenir={openSouvenir}
+          onClose={() => setOpenSouvenir(null)}
+        />
       </section>
     </VerticalFocusGroup>
   );

@@ -1,6 +1,7 @@
 import type {
   Badge,
   ComparedAchievements,
+  ProfileAchievement,
   UserAchievement,
   UserFriend,
   UserFriends,
@@ -28,6 +29,7 @@ type ProfileRecentAchievement = {
   displayName: string;
   description: string;
   unlockTime: number;
+  imageUrl?: string | null;
 };
 
 export type ProfileRecentAchievementGroup = {
@@ -91,6 +93,7 @@ function getOwnUnlockedAchievement(
     displayName: achievement.displayName,
     description: achievement.description ?? "",
     unlockTime: achievement.unlockTime,
+    imageUrl: achievement.imageUrl,
   };
 }
 
@@ -582,4 +585,37 @@ export function useRecentAchievements(
   }, [hasActiveSubscription, isOwnProfile, refreshKey, targetUserId]);
 
   return groups;
+}
+
+export function useProfileSouvenirs(
+  targetUserId: string | undefined,
+  hasActiveSubscription: boolean
+) {
+  const [souvenirs, setSouvenirs] = useState<ProfileAchievement[]>([]);
+
+  useEffect(() => {
+    if (!targetUserId || !hasActiveSubscription) {
+      setSouvenirs([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    globalThis.window.electron.hydraApi
+      .get<ProfileAchievement[]>(`/users/${targetUserId}/achievements`, {
+        needsAuth: false,
+      })
+      .then((response) => {
+        if (isMounted) setSouvenirs(ensureArray(response));
+      })
+      .catch(() => {
+        if (isMounted) setSouvenirs([]);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [hasActiveSubscription, targetUserId]);
+
+  return souvenirs;
 }

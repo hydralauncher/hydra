@@ -1,0 +1,47 @@
+.souvenir-lightbox {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 3);
+  width: 70%;
+  max-width: 1280px;
+  user-select: none;
+
+  &__image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 16px;
+    object-fit: cover;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+  }
+
+  &__caption {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 3);
+    min-width: 0;
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  &__copy {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) / 2);
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  &__description {
+    color: var(--text-secondary);
+  }
+}

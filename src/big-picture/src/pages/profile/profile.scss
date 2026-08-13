@@ -839,6 +839,14 @@
   padding: calc(var(--spacing-unit) * 3);
 }
 
+.profile-page__achievement-souvenir {
+  flex-shrink: 0;
+  width: 96px;
+  height: 54px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
 .profile-page__achievement-row > img {
   width: 56px;
   height: 56px;
@@ -1089,4 +1097,91 @@
   .profile-page__stat-card--favorite {
     grid-column: span 2;
   }
+}
+
+.profile-page__souvenirs-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 3);
+  min-width: 0;
+}
+
+.profile-page__souvenirs-header {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.profile-page__souvenirs-title {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.profile-page__souvenirs-count {
+  padding: calc(var(--spacing-unit) / 2) calc(var(--spacing-unit) * 1.5);
+  border-radius: 6px;
+  background: var(--secondary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profile-page__souvenirs-row {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 3);
+  margin: 0;
+  padding: calc(var(--spacing-unit) / 2);
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.profile-page__souvenirs-row::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-page__souvenir {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: calc(var(--spacing-unit) * 1.5);
+  width: 320px;
+  outline: none;
+}
+
+.profile-page__souvenir[data-focused="true"] {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+.profile-page__souvenir-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.profile-page__souvenir-copy {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) / 4);
+  min-width: 0;
+  padding: 0 calc(var(--spacing-unit) / 2);
+}
+
+.profile-page__souvenir-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-page__souvenir-game {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
