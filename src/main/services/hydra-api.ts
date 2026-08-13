@@ -5,13 +5,13 @@ import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 import { networkLogger as logger } from "./logger";
 import { UserNotLoggedInError, SubscriptionRequiredError } from "@shared";
-import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
 import { getUserData } from "./user/get-user-data";
 import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 import { SSEClient } from "./sse";
+import { sanitizeNetworkLogPayload } from "./network-log-payload";
 
 export interface HydraApiOptions {
   needsAuth?: boolean;
@@ -53,6 +53,14 @@ export class HydraApi {
   public static hasActiveSubscription() {
     const expiresAt = new Date(this.userAuth.subscription?.expiresAt ?? 0);
     return expiresAt > new Date();
+  }
+
+  public static updateUserSubscription(
+    subscription?: { expiresAt: Date | string | null } | null
+  ) {
+    this.userAuth.subscription = subscription
+      ? { expiresAt: subscription.expiresAt }
+      : null;
   }
 
   static async handleExternalAuth(uri: string) {
@@ -100,11 +108,11 @@ export class HydraApi {
 
     await getUserData().then((userDetails) => {
       if (userDetails?.subscription) {
-        this.userAuth.subscription = {
+        this.updateUserSubscription({
           expiresAt: userDetails.subscription.expiresAt
             ? new Date(userDetails.subscription.expiresAt)
             : null,
-        };
+        });
       }
     });
 
@@ -148,10 +156,14 @@ export class HydraApi {
       this.instance.interceptors.request.use(
         (request) => {
           logger.log(" ---- REQUEST -----");
-          const data = Array.isArray(request.data)
-            ? request.data
-            : omit(request.data, ["token", "accessToken", "refreshToken"]);
-          logger.log(request.method, request.url, request.params, data);
+          logger.log(
+            request.method,
+            request.url,
+            sanitizeNetworkLogPayload({
+              params: request.params ?? null,
+              data: request.data ?? null,
+            })
+          );
           return request;
         },
         (error) => {
@@ -162,46 +174,32 @@ export class HydraApi {
       this.instance.interceptors.response.use(
         (response) => {
           logger.log(" ---- RESPONSE -----");
-          const data = Array.isArray(response.data)
-            ? response.data
-            : omit(response.data, [
-                "username",
-                "token",
-                "accessToken",
-                "refreshToken",
-              ]);
           logger.log(
             response.status,
             response.config.method,
             response.config.url,
-            data
+            sanitizeNetworkLogPayload(response.data)
           );
           return response;
         },
         (error) => {
           logger.error(" ---- RESPONSE ERROR -----");
-          const { config } = error;
-
-          const data = JSON.parse(config.data ?? null);
+          const config = error.config ?? {};
 
           logger.error(
             config.method,
             config.baseURL,
             config.url,
-            omit(config.headers, [
-              "accessToken",
-              "refreshToken",
-              "Authorization",
-            ]),
-            Array.isArray(data)
-              ? data
-              : omit(data, ["accessToken", "refreshToken"])
+            sanitizeNetworkLogPayload({
+              headers: config.headers ?? null,
+              data: config.data ?? null,
+            })
           );
           if (error.response) {
             logger.error(
               "Response error:",
               error.response.status,
-              error.response.data
+              sanitizeNetworkLogPayload(error.response.data)
             );
 
             return Promise.reject(error as Error);
@@ -241,11 +239,7 @@ export class HydraApi {
 
     const updatedUserData = await getUserData();
 
-    this.userAuth.subscription = updatedUserData?.subscription
-      ? {
-          expiresAt: updatedUserData.subscription.expiresAt,
-        }
-      : null;
+    this.updateUserSubscription(updatedUserData?.subscription);
   }
 
   private static sendSignOutEvent() {
@@ -311,8 +305,10 @@ export class HydraApi {
     if (err instanceof AxiosError && err.response?.status === 401) {
       logger.error(
         "401 - Current credentials:",
-        this.userAuth,
-        err.response?.data
+        sanitizeNetworkLogPayload({
+          credentials: this.userAuth,
+          response: err.response?.data,
+        })
       );
 
       this.userAuth = {
@@ -355,7 +351,22 @@ export class HydraApi {
     }
 
     if (needsSubscription && !this.hasActiveSubscription()) {
-      throw new SubscriptionRequiredError();
+      await this.refreshUserSubscription();
+
+      if (!this.hasActiveSubscription()) {
+        throw new SubscriptionRequiredError();
+      }
+    }
+  }
+
+  private static async refreshUserSubscription() {
+    if (!this.isLoggedIn()) return;
+
+    try {
+      const userDetails = await getUserData();
+      if (userDetails) this.updateUserSubscription(userDetails.subscription);
+    } catch (err) {
+      logger.error("Failed to refresh subscription state", err);
     }
   }
 

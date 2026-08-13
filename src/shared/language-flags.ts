@@ -3,6 +3,7 @@ const LANGUAGE_FLAG_MAP = {
   "pt-PT": "PT",
   en: "US",
   de: "DE",
+  el: "GR",
   es: "ES",
   nl: "NL",
   fr: "FR",
@@ -30,6 +31,9 @@ const LANGUAGE_FLAG_MAP = {
   uz: "UZ",
   sv: "SE",
   lv: "LV",
+  vi: "VN",
+  ja: "JP",
+  sl: "SI",
 } as const;
 
 const REGIONAL_INDICATOR_SYMBOL_LETTER_A = 0x1f1e6;

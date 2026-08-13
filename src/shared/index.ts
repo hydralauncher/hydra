@@ -11,22 +11,28 @@ import {
   be,
   zhCN,
   da,
+  el,
+  vi,
+  ja,
+  sl,
 } from "date-fns/locale";
 
 import { isArchiveOrgFileUri } from "./archive-org";
 import { charMap } from "./char-map";
 import { Downloader } from "./constants";
 import { format } from "date-fns";
-import { AchievementNotificationInfo } from "@types";
+import { AchievementNotificationInfo, GameRepack } from "@types";
 
 export * from "./archive-org";
 export * from "./constants";
+export * from "./cloud-save-access";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./download-directories";
 export * from "./html-sanitizer";
 export * from "./language-flags";
 export * from "./use-hls-video";
+export * from "./retroarch-platform";
 export * from "./tracker-list";
 
 export class UserNotLoggedInError extends Error {
@@ -112,12 +118,19 @@ export const replaceNbspWithSpace = (name: string) =>
 export const replaceUnderscoreWithSpace = (name: string) =>
   name.replace(/_/g, " ");
 
+const charMapPattern = new RegExp(Object.keys(charMap).join("|"), "g");
+
+const COMBINING_MARKS = /[\u0300-\u036f]/g;
+
+export const removeDiacritics = (value: string) =>
+  value
+    .normalize("NFC")
+    .replace(charMapPattern, (match) => charMap[match])
+    .normalize("NFD")
+    .replace(COMBINING_MARKS, "");
+
 export const formatName = pipe<string>(
-  (str) =>
-    str.replace(
-      new RegExp(Object.keys(charMap).join("|"), "g"),
-      (match) => charMap[match]
-    ),
+  (str) => str.replace(charMapPattern, (match) => charMap[match]),
   (str) => str.toLowerCase(),
   removeReleaseYearFromName,
   removeSpecialEditionFromName,
@@ -184,6 +197,82 @@ export const getDownloadersForUris = (uris: string[]) => {
   return Array.from(downloadersSet);
 };
 
+const AVAILABILITY_CHECK_DOWNLOADERS = new Set<Downloader>([
+  Downloader.VikingFile,
+]);
+
+export const HOSTER_AVAILABILITY_MAX_URLS = 50;
+
+export interface HosterAvailabilityResult {
+  url: string;
+  available: boolean;
+}
+
+export const supportsHosterAvailabilityCheck = (uri: string) =>
+  getDownloadersForUri(uri).some((downloader) =>
+    AVAILABILITY_CHECK_DOWNLOADERS.has(downloader)
+  );
+
+export const collectHosterAvailabilityUris = (
+  repacks: Pick<GameRepack, "uris">[]
+) => {
+  const uris = new Set<string>();
+
+  for (const repack of repacks) {
+    for (const uri of repack.uris) {
+      if (supportsHosterAvailabilityCheck(uri)) uris.add(uri);
+    }
+  }
+
+  return Array.from(uris).slice(0, HOSTER_AVAILABILITY_MAX_URLS);
+};
+
+export const fetchHosterAvailability = async (
+  repacks: Pick<GameRepack, "uris">[],
+  post: <T>(url: string, data: unknown) => Promise<T>
+): Promise<HosterAvailabilityResult[]> => {
+  const urls = collectHosterAvailabilityUris(repacks);
+
+  if (urls.length === 0) return [];
+
+  try {
+    const response = await post<{ results?: HosterAvailabilityResult[] }>(
+      "/hosters/availability",
+      { urls }
+    );
+
+    return Array.isArray(response?.results) ? response.results : [];
+  } catch {
+    return [];
+  }
+};
+
+export const applyHosterAvailability = <
+  T extends Pick<GameRepack, "uris" | "unavailableUris">,
+>(
+  repacks: T[],
+  results: HosterAvailabilityResult[]
+): T[] => {
+  const unavailable = new Set(
+    results.filter((result) => !result.available).map((result) => result.url)
+  );
+
+  if (unavailable.size === 0) return repacks;
+
+  return repacks.map((repack) => {
+    const extra = repack.uris.filter(
+      (uri) => unavailable.has(uri) && !repack.unavailableUris?.includes(uri)
+    );
+
+    if (extra.length === 0) return repack;
+
+    return {
+      ...repack,
+      unavailableUris: [...(repack.unavailableUris ?? []), ...extra],
+    };
+  });
+};
+
 export const getDateLocale = (language: string) => {
   if (language.startsWith("pt")) return ptBR;
   if (language.startsWith("es")) return es;
@@ -196,6 +285,10 @@ export const getDateLocale = (language: string) => {
   if (language.startsWith("be")) return be;
   if (language.startsWith("zh")) return zhCN;
   if (language.startsWith("da")) return da;
+  if (language.startsWith("el")) return el;
+  if (language.startsWith("vi")) return vi;
+  if (language.startsWith("ja")) return ja;
+  if (language.startsWith("sl")) return sl;
 
   return enUS;
 };

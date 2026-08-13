@@ -43,6 +43,7 @@ import {
   useNavigationScreenActions,
   useBigPictureToast,
   useUserPreferences,
+  useUserDetails,
 } from "../../../hooks";
 import { useNavigationStore, useVirtualKeyboardStore } from "../../../stores";
 
@@ -118,8 +119,8 @@ interface DownloadGameOptionsProps {
 interface DownloadDirectorySuggestion {
   title: string;
   path: string;
-  freeBytes: number;
-  totalBytes: number;
+  freeBytes: number | null;
+  totalBytes: number | null;
 }
 
 function hasActiveLibraryDownload(
@@ -645,19 +646,19 @@ function DownloadGameModalSession({
 
       const suggestions = await Promise.all(
         resolvedDirectories.allPaths.map(async (path) => {
-          let diskUsage: DiskUsage = { free: 0, total: 0 };
+          let diskUsage: DiskUsage | null = null;
 
           try {
             diskUsage = await globalThis.window.electron.getDiskFreeSpace(path);
           } catch {
-            diskUsage = { free: 0, total: 0 };
+            diskUsage = null;
           }
 
           return {
             title: getDownloadDirectoryTitle(path),
             path,
-            freeBytes: diskUsage.free,
-            totalBytes: diskUsage.total,
+            freeBytes: diskUsage?.free ?? null,
+            totalBytes: diskUsage?.total ?? null,
           };
         })
       );
@@ -1360,15 +1361,17 @@ function DownloadGameOptions({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { features } = useFeature();
   const userPreferences = useUserPreferences();
+  const { hasActiveSubscription } = useUserDetails();
   const isOptionsInteractionLocked = isSubmitting;
 
   const availableDownloaderOptions = useMemo(() => {
     return getDownloaderAvailabilityOptions(
       option,
       userPreferences,
-      features
+      features,
+      hasActiveSubscription
     ).filter((downloaderOption) => downloaderOption.isAvailable);
-  }, [features, option, userPreferences]);
+  }, [features, option, userPreferences, hasActiveSubscription]);
 
   const downloaderItems = useMemo(() => {
     return availableDownloaderOptions.map((downloaderOption) => ({

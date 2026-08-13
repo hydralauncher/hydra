@@ -2,6 +2,7 @@ import { registerEvent } from "../register-event";
 import { gamesSublevel, downloadsSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { lookupCachedPlatform } from "./get-library";
 
 const getGameByObjectId = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -15,6 +16,14 @@ const getGameByObjectId = async (
   ]);
 
   if (!game || game.isDeleted) return null;
+
+  if (game.shop === "launchbox" && !game.platform) {
+    const cachedPlatform = await lookupCachedPlatform(gameKey);
+    if (cachedPlatform) {
+      game.platform = cachedPlatform;
+      gamesSublevel.put(gameKey, game).catch(() => {});
+    }
+  }
 
   const achievements = AchievementMemoryStore.get(shop, objectId);
 

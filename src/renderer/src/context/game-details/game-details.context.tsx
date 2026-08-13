@@ -27,7 +27,12 @@ import {
   GameDetailsContext,
   GameOptionsCategoryId,
 } from "./game-details.context.types";
-import { getGameExecutableFilters, SteamContentDescriptor } from "@shared";
+import {
+  applyHosterAvailability,
+  fetchHosterAvailability,
+  getGameExecutableFilters,
+  SteamContentDescriptor,
+} from "@shared";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
@@ -404,6 +409,8 @@ export function GameDetailsContextProvider({
   useEffect(() => {
     if (shop === "custom") return;
 
+    let cancelled = false;
+
     const fetchDownloadSources = async () => {
       try {
         const sourcesRaw = (await levelDBService.values(
@@ -425,18 +432,34 @@ export function GameDetailsContextProvider({
           }
         );
 
-        setRepacks(
-          ensureArray<GameRepack>(
-            downloads,
-            `/games/${shop}/${objectId}/download-sources`
-          )
+        if (cancelled) return;
+
+        const downloadOptions = ensureArray<GameRepack>(
+          downloads,
+          `/games/${shop}/${objectId}/download-sources`
         );
+
+        setRepacks(downloadOptions);
+
+        const results = await fetchHosterAvailability(
+          downloadOptions,
+          (url, data) =>
+            window.electron.hydraApi.post(url, { data, needsAuth: false })
+        );
+
+        if (cancelled || results.length === 0) return;
+
+        setRepacks(applyHosterAvailability(downloadOptions, results));
       } catch (error) {
         console.error("Failed to fetch download sources:", error);
       }
     };
 
     fetchDownloadSources();
+
+    return () => {
+      cancelled = true;
+    };
   }, [shop, objectId]);
 
   const getDownloadsPath = async () => {

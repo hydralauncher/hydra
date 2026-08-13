@@ -9,6 +9,7 @@ import {
   updateActiveClassicsImport,
 } from "./classics-import-state";
 import { isWithin } from "./rom-path-utils";
+import { bandPercent, baseNameWithoutExt } from "./import-progress-utils";
 import { HydraApi, WindowManager, emulators, logger } from "@main/services";
 import { clearFinishedDownload, platformToSystem } from "@main/helpers";
 import {
@@ -60,12 +61,14 @@ const ymlValueForGame = (primaryPath: string): string =>
 
 const mapToShopDetails = (
   objectId: string,
-  entry: LaunchboxShopDetailsEntry
+  entry: LaunchboxShopDetailsEntry,
+  language: string
 ): ShopDetails => {
   const data = entry.data;
   const description = data?.description ?? "";
   return {
     objectId,
+    descriptionLanguage: language,
     name: data?.title ?? "",
     platform: entry.platform ?? data?.platform ?? undefined,
     skus: entry.skus ?? undefined,
@@ -120,11 +123,6 @@ const stripDiscMarker = (fileName: string): string => {
     .toLowerCase();
 };
 
-const baseNameWithoutExt = (fileName: string): string => {
-  const dot = fileName.lastIndexOf(".");
-  return dot > 0 ? fileName.slice(0, dot) : fileName;
-};
-
 const buildDiscList = (
   files: { primaryPath: string; name: string; sku: string | null }[]
 ): ClassicsDisc[] => {
@@ -159,11 +157,11 @@ const SYSTEM_DEFAULT_PLATFORM: Record<EmulatorSystem, string> = {
   ps3: "PlayStation 3",
 };
 
-const persistEntryLocally = async (
+export const persistEntryLocally = async (
   entry: LaunchboxShopDetailsEntry,
   language: string,
   discs: ClassicsDisc[],
-  system: EmulatorSystem,
+  defaultPlatform: string | null,
   romSizeBytes: number | null
 ) => {
   const shop = "launchbox" as const;
@@ -171,7 +169,7 @@ const persistEntryLocally = async (
   const gameKey = levelKeys.game(shop, objectId);
   const cacheKey = levelKeys.gameShopCacheItem(shop, objectId, language);
 
-  const shopDetails = mapToShopDetails(objectId, entry);
+  const shopDetails = mapToShopDetails(objectId, entry, language);
   await gamesShopCacheSublevel.put(cacheKey, shopDetails).catch((err) => {
     logger.error("Could not cache launchbox shop details", err);
   });
@@ -198,10 +196,7 @@ const persistEntryLocally = async (
     });
 
   const platform =
-    entry.platform ??
-    entry.data?.platform ??
-    SYSTEM_DEFAULT_PLATFORM[system] ??
-    null;
+    entry.platform ?? entry.data?.platform ?? defaultPlatform ?? null;
 
   const existing = await gamesSublevel.get(gameKey);
   if (existing) {
@@ -243,7 +238,7 @@ const persistEntryLocally = async (
   AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
 };
 
-const syncProfileBatch = async (objectIds: string[]) => {
+export const syncProfileBatch = async (objectIds: string[]) => {
   if (objectIds.length === 0) return;
 
   const chunks = chunk(objectIds, PROFILE_BATCH_CHUNK_SIZE);
@@ -315,16 +310,6 @@ export type LaunchboxImportProgress = {
 
 const SCAN_BAND = 15;
 const EXTRACT_BAND = 70;
-
-const bandPercent = (
-  start: number,
-  span: number,
-  processed: number,
-  total: number
-): number => {
-  const frac = total > 0 ? Math.min(1, processed / total) : 0;
-  return Math.min(100, Math.round((start + frac * span) * 10) / 10);
-};
 
 const SYSTEM_CATALOGUE_PLATFORM: Record<EmulatorSystem, string> = {
   ps1: "Sony Playstation",
@@ -705,7 +690,7 @@ const persistMatchedEntries = async (
       entry,
       language,
       discs,
-      system,
+      SYSTEM_DEFAULT_PLATFORM[system],
       romSizeBytes
     ).catch((err) => {
       logger.error("Failed to persist launchbox entry locally", err);
@@ -816,7 +801,7 @@ export async function runLaunchboxImport(
         .filter((s): s is string => s !== null && s.length > 0)
     )
   );
-  const skuLookup = await fetchShopDetailsForSkus(uniqueSkus);
+  const skuLookup = await fetchShopDetailsForSkus(uniqueSkus, language);
   if (signal.cancelled) return cancelledResult();
 
   const { enriched, groupCanonical } = buildEnriched(

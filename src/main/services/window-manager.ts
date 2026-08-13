@@ -2,6 +2,7 @@ import { is } from "@electron-toolkit/utils";
 import { isStaging } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
+import trayIconDark from "@resources/tray-icon-dark.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { AuthPage } from "@shared";
 import type {
@@ -19,6 +20,7 @@ import {
   WebContentsView,
   app,
   nativeImage,
+  nativeTheme,
   screen,
   shell,
 } from "electron";
@@ -76,12 +78,17 @@ export class WindowManager {
     this.mainWindowInstance = null;
   }
 
+  private static readonly DEFAULT_WINDOW_WIDTH = 1200;
+  private static readonly DEFAULT_WINDOW_HEIGHT = 860;
+  private static readonly MIN_WINDOW_WIDTH = 1024;
+  private static readonly MIN_WINDOW_HEIGHT = 600;
+
   private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
     {
-      width: 1200,
-      height: 860,
-      minWidth: 1024,
-      minHeight: 860,
+      width: WindowManager.DEFAULT_WINDOW_WIDTH,
+      height: WindowManager.DEFAULT_WINDOW_HEIGHT,
+      minWidth: WindowManager.MIN_WINDOW_WIDTH,
+      minHeight: WindowManager.MIN_WINDOW_HEIGHT,
       icon,
       trafficLightPosition: { x: 16, y: 16 },
       webPreferences: {
@@ -191,7 +198,55 @@ export class WindowManager {
         valueEncoding: "json",
       }
     );
-    return data ?? { isMaximized: false, height: 860, width: 1200 };
+    return (
+      data ?? {
+        isMaximized: false,
+        height: this.DEFAULT_WINDOW_HEIGHT,
+        width: this.DEFAULT_WINDOW_WIDTH,
+      }
+    );
+  }
+
+  private static fitToWorkArea<
+    T extends { x?: number; y?: number; width?: number; height?: number },
+  >(bounds: T) {
+    const savedWidth = bounds.width ?? this.DEFAULT_WINDOW_WIDTH;
+    const savedHeight = bounds.height ?? this.DEFAULT_WINDOW_HEIGHT;
+    const savedX = bounds.x;
+    const savedY = bounds.y;
+    const hasSavedPosition = savedX !== undefined && savedY !== undefined;
+
+    const { workArea } = hasSavedPosition
+      ? screen.getDisplayMatching({
+          x: savedX,
+          y: savedY,
+          width: savedWidth,
+          height: savedHeight,
+        })
+      : screen.getPrimaryDisplay();
+
+    const minWidth = Math.min(this.MIN_WINDOW_WIDTH, workArea.width);
+    const minHeight = Math.min(this.MIN_WINDOW_HEIGHT, workArea.height);
+
+    const width = Math.max(minWidth, Math.min(savedWidth, workArea.width));
+    const height = Math.max(minHeight, Math.min(savedHeight, workArea.height));
+
+    if (!hasSavedPosition) {
+      return { ...bounds, minWidth, minHeight, width, height };
+    }
+
+    const maxX = Math.max(workArea.x, workArea.x + workArea.width - width);
+    const maxY = Math.max(workArea.y, workArea.y + workArea.height - height);
+
+    return {
+      ...bounds,
+      minWidth,
+      minHeight,
+      width,
+      height,
+      x: Math.min(Math.max(savedX, workArea.x), maxX),
+      y: Math.min(Math.max(savedY, workArea.y), maxY),
+    };
   }
 
   private static updateInitialConfig(
@@ -215,7 +270,7 @@ export class WindowManager {
     const { isMaximized = false, ...configWithoutMaximized } =
       await this.loadScreenConfig();
 
-    this.updateInitialConfig(configWithoutMaximized);
+    this.updateInitialConfig(this.fitToWorkArea(configWithoutMaximized));
 
     const mainWindow = new BrowserWindow(
       this.initialConfigInitializationMainWindow
@@ -358,8 +413,12 @@ export class WindowManager {
         ? {
             x: undefined,
             y: undefined,
-            height: this.initialConfigInitializationMainWindow.height ?? 860,
-            width: this.initialConfigInitializationMainWindow.width ?? 1200,
+            height:
+              this.initialConfigInitializationMainWindow.height ??
+              this.DEFAULT_WINDOW_HEIGHT,
+            width:
+              this.initialConfigInitializationMainWindow.width ??
+              this.DEFAULT_WINDOW_WIDTH,
             isMaximized: true,
           }
         : { ...lastBounds, isMaximized };
@@ -891,6 +950,31 @@ export class WindowManager {
     this.mainWindow?.focus();
   }
 
+  public static redirectToMainWindow(hash: string) {
+    this.redirect(hash);
+
+    if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      this.bigPicture.close();
+      return;
+    }
+
+    this.openMainWindow();
+  }
+
+  public static redirectToGameWindow(hash: string) {
+    if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      this.bigPicture.webContents.send(
+        "on-navigate",
+        `/big-picture/${hash.replace(/^\/+/, "")}`
+      );
+      this.bigPicture.show();
+      this.bigPicture.focus();
+      return;
+    }
+
+    this.redirectToMainWindow(hash);
+  }
+
   public static async createSystemTray(language: string) {
     let tray: Tray;
 
@@ -899,6 +983,17 @@ export class WindowManager {
         .createFromPath(trayIcon)
         .resize({ width: 24, height: 24 });
       tray = new Tray(macIcon);
+    } else if (process.platform === "win32") {
+      const getWindowsTrayIcon = () =>
+        nativeTheme.shouldUseDarkColorsForSystemIntegratedUI
+          ? trayIcon
+          : trayIconDark;
+
+      tray = new Tray(getWindowsTrayIcon());
+
+      nativeTheme.on("updated", () => {
+        tray.setImage(getWindowsTrayIcon());
+      });
     } else {
       tray = new Tray(trayIcon);
     }

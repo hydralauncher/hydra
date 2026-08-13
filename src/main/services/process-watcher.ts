@@ -14,17 +14,75 @@ import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
 import { emulatorSessions } from "./emulators/emulator-session-tracker";
 import { launchedGamePids } from "./launched-game-pids";
+import { isValidProcessWatcherScan } from "./process-watcher-scan";
 import {
   hasLaunchedPidMatch,
   hasLinuxNativeOrAppImageMatch,
   type LinuxProcessInfo,
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
+import {
+  getCloudSaveAutomaticSyncMode,
+  runAutomaticCloudSavePostExit,
+  shouldRunLegacyAutomaticCloudSave,
+  shouldRunV2AutomaticCloudSave,
+} from "./cloud-save";
+import {
+  clearGamesPlaytimeState,
+  deleteGamePlaytime,
+  gamesPlaytime,
+  setGamePlaytime,
+} from "./game-running-state";
 
-export const gamesPlaytime = new Map<
-  string,
-  { lastTick: number; firstTick: number; lastSyncTick: number }
->();
+export { gamesPlaytime };
+export { isGameRunning } from "./game-running-state";
+
+const runAutomaticCloudSaveOnOpen = async (game: Game) => {
+  const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
+
+  if (shouldRunLegacyAutomaticCloudSave(mode)) {
+    await CloudSync.uploadSaveGame(
+      game.objectId,
+      game.shop,
+      null,
+      CloudSync.getBackupLabel(true)
+    );
+  }
+};
+
+const runAutomaticCloudSaveOnClose = async (game: Game) => {
+  const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
+
+  if (shouldRunLegacyAutomaticCloudSave(mode)) {
+    if (game.remoteId) {
+      await CloudSync.uploadSaveGame(
+        game.objectId,
+        game.shop,
+        null,
+        CloudSync.getBackupLabel(true)
+      );
+    }
+    return;
+  }
+
+  if (shouldRunV2AutomaticCloudSave(mode)) {
+    await runAutomaticCloudSavePostExit(game.objectId, game.shop);
+  }
+};
+
+const handleAutomaticCloudSaveLifecycleError = (
+  phase: "open" | "close",
+  game: Game,
+  error: unknown
+) => {
+  logger.error("[Cloud Save] Automatic lifecycle failed", {
+    phase,
+    shop: game.shop,
+    objectId: game.objectId,
+    errorName: error instanceof Error ? error.name : "UnknownError",
+    errorMessage: error instanceof Error ? error.message : "Unknown error",
+  });
+};
 
 export const getGamesRunning = () => {
   const now = performance.now();
@@ -105,13 +163,13 @@ const getGameExecutables = async () => {
         return false;
       })
       .map((executable) => {
+        const lowered = executable.name.toLowerCase();
+        const name = lowered.startsWith(">") ? lowered.slice(1) : lowered;
+
         return {
-          name:
-            platform === "win32"
-              ? executable.name.replace(/\//g, "\\")
-              : executable.name,
+          name: platform === "win32" ? name.replaceAll("/", "\\") : name,
           os: executable.os,
-          exe: executable.name.slice(executable.name.lastIndexOf("/") + 1),
+          exe: name.slice(name.lastIndexOf("/") + 1),
         };
       });
   });
@@ -163,11 +221,14 @@ const findGamePathByProcess = async (
 };
 
 const getSystemProcessMap = async () => {
+  const result = await NativeAddon.getSystemProcessMap();
+  if (result === null) return null;
+
   const {
     processMap: rawMap,
     winePrefixMap: rawWineMap,
     linuxProcesses,
-  } = await NativeAddon.getSystemProcessMap();
+  } = result;
 
   const processMap = new Map<string, Set<string>>(
     Object.entries(rawMap).map(([k, v]) => [k, new Set(v)])
@@ -231,8 +292,12 @@ export const watchProcesses = async () => {
 
   if (!games.length) return;
 
-  const { processMap, winePrefixMap, linuxProcesses } =
-    await getSystemProcessMap();
+  const systemProcessMap = await getSystemProcessMap();
+  if (!isValidProcessWatcherScan(systemProcessMap)) {
+    logger.warn("Process enumeration failed; skipping process watcher tick");
+    return;
+  }
+  const { processMap, winePrefixMap, linuxProcesses } = systemProcessMap;
 
   const pidToProcess = new Map<number, LinuxProcessInfo>(
     linuxProcesses.map((process) => [process.pid, process])
@@ -303,7 +368,7 @@ function onOpenGame(game: Game) {
   const now = performance.now();
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
-  gamesPlaytime.set(gameKey, {
+  setGamePlaytime(gameKey, {
     lastTick: now,
     firstTick: now,
     lastSyncTick: now,
@@ -363,14 +428,9 @@ function onOpenGame(game: Game) {
         });
       });
 
-    if (game.automaticCloudSync) {
-      CloudSync.uploadSaveGame(
-        game.objectId,
-        game.shop,
-        null,
-        CloudSync.getBackupLabel(true)
-      );
-    }
+    void runAutomaticCloudSaveOnOpen(game).catch((error: unknown) => {
+      handleAutomaticCloudSaveLifecycleError("open", game, error);
+    });
   } else {
     const payload = { ...game, lastTimePlayed: new Date() };
 
@@ -409,7 +469,7 @@ function onTickGame(game: Game) {
 
   gamesSublevel.put(levelKeys.game(game.shop, game.objectId), updatedGame);
 
-  gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
+  setGamePlaytime(levelKeys.game(game.shop, game.objectId), {
     ...gamePlaytime,
     lastTick: now,
   });
@@ -457,7 +517,7 @@ function onTickGame(game: Game) {
         });
       })
       .finally(() => {
-        gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
+        setGamePlaytime(levelKeys.game(game.shop, game.objectId), {
           ...gamePlaytime,
           lastTick: now,
           lastSyncTick: now,
@@ -470,7 +530,7 @@ const onCloseGame = (game: Game) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
   const now = performance.now();
   const gamePlaytime = gamesPlaytime.get(gameKey)!;
-  gamesPlaytime.delete(gameKey);
+  deleteGamePlaytime(gameKey);
   launchedGamePids.delete(gameKey);
   PowerSaveBlockerManager.markGameClosed(gameKey);
 
@@ -494,16 +554,11 @@ const onCloseGame = (game: Game) => {
 
   if (game.shop === "custom") return;
 
-  if (game.remoteId) {
-    if (game.automaticCloudSync) {
-      CloudSync.uploadSaveGame(
-        game.objectId,
-        game.shop,
-        null,
-        CloudSync.getBackupLabel(true)
-      );
-    }
+  void runAutomaticCloudSaveOnClose(game).catch((error: unknown) => {
+    handleAutomaticCloudSaveLifecycleError("close", game, error);
+  });
 
+  if (game.remoteId) {
     const deltaToSync =
       now -
       gamePlaytime.lastSyncTick +
@@ -568,5 +623,5 @@ export const clearGamesPlaytime = async () => {
     }
   }
 
-  gamesPlaytime.clear();
+  clearGamesPlaytimeState();
 };

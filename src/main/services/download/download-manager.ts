@@ -5,7 +5,10 @@ import {
   resolveArchiveOrgFile,
 } from "@shared";
 import { WindowManager } from "../window-manager";
-import { publishDownloadCompleteNotification } from "../notifications";
+import {
+  publishDownloadCompleteNotification,
+  publishDownloadHaltedNotification,
+} from "../notifications";
 import type { Download, DownloadProgress, Game, UserPreferences } from "@types";
 import {
   GofileApi,
@@ -48,6 +51,24 @@ import {
   setDownloadLayoutQueues,
 } from "../download-layout-state";
 import { shouldFinalizeDownload } from "./download-completion";
+import { describeErrorCause } from "@main/helpers/download-error-handler";
+import {
+  DISK_SPACE_CHECK_INTERVAL_MS,
+  getDownloadDiskSpace,
+} from "./disk-space";
+
+interface JsDownloadOptions {
+  url: string;
+  savePath: string;
+  filename?: string;
+  headers?: Record<string, string>;
+}
+
+interface PreparedJsDownload {
+  uri: string;
+  resolvedAt: number;
+  options: JsDownloadOptions;
+}
 
 interface AllDebridBatchEntry {
   url: string;
@@ -80,6 +101,17 @@ export class DownloadManager {
     downloadKey: string;
     generation: number;
   } | null = null;
+  private static lastDiskSpaceCheck: {
+    downloadKey: string;
+    timestamp: number;
+  } | null = null;
+  private static queueHeldForDiskSpace = false;
+  private static lastQueueRetry = 0;
+  private static readonly preparedJsDownloads = new Map<
+    string,
+    PreparedJsDownload
+  >();
+  private static readonly PREPARED_JS_DOWNLOAD_TTL_MS = 120_000;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -635,6 +667,10 @@ export class DownloadManager {
 
     this.orphanedDownloadCandidate = null;
 
+    if (this.queueHeldForDiskSpace) {
+      await this.retryQueueHeldForDiskSpace();
+    }
+
     const status = await this.getDownloadStatus();
     if (!status) return;
 
@@ -645,6 +681,8 @@ export class DownloadManager {
     ]);
 
     if (!download || !game) return;
+
+    if (await this.haltDownloadIfStorageIsFull(download, game, gameId)) return;
 
     this.sendProgressUpdate(progress, status, game);
 
@@ -659,6 +697,88 @@ export class DownloadManager {
     ) {
       await this.handleDownloadCompletion(download, game, gameId);
     }
+  }
+
+  private static async retryQueueHeldForDiskSpace() {
+    const now = Date.now();
+
+    if (now - this.lastQueueRetry < DISK_SPACE_CHECK_INTERVAL_MS) return;
+
+    this.lastQueueRetry = now;
+
+    await this.processNextQueuedDownload();
+  }
+
+  private static async haltDownloadIfStorageIsFull(
+    download: Download,
+    game: Game,
+    downloadKey: string
+  ) {
+    if (download.progress >= 1) return false;
+
+    const now = Date.now();
+
+    if (
+      this.lastDiskSpaceCheck?.downloadKey === downloadKey &&
+      now - this.lastDiskSpaceCheck.timestamp < DISK_SPACE_CHECK_INTERVAL_MS
+    ) {
+      return false;
+    }
+
+    this.lastDiskSpaceCheck = { downloadKey, timestamp: now };
+
+    const diskSpace = await getDownloadDiskSpace(download);
+
+    if (!diskSpace) {
+      logger.error(
+        `[DownloadManager] Failed to read free space for ${download.downloadPath}`
+      );
+      return false;
+    }
+
+    if (diskSpace.hasEnoughSpace) return false;
+
+    logger.warn(
+      `[DownloadManager] Halting ${downloadKey}: ${download.downloadPath} has ${diskSpace.freeBytes} bytes free, ${diskSpace.requiredBytes} needed`
+    );
+
+    this.lastDiskSpaceCheck = null;
+
+    await this.pauseDownload(downloadKey);
+    WindowManager.sendToAppWindows("on-download-progress", null);
+
+    await downloadsSublevel.put(downloadKey, {
+      ...download,
+      status: "error",
+      queued: false,
+      pinnedToHero: false,
+      extracting: false,
+    });
+
+    const downloads = await downloadsSublevel.values().all();
+    const layoutState = await getDownloadLayoutStateRecord();
+    await setDownloadLayoutQueues(
+      downloads,
+      layoutState.queueOrder.filter((id) => id !== downloadKey),
+      [
+        downloadKey,
+        ...layoutState.pausedOrder.filter((id) => id !== downloadKey),
+      ]
+    );
+
+    WindowManager.sendDownloadsUpdated();
+    WindowManager.sendToAppWindows("on-download-halted", game.title);
+
+    await publishDownloadHaltedNotification(game).catch((error) => {
+      logger.error(
+        "[DownloadManager] Failed to publish download halted notification",
+        error
+      );
+    });
+
+    await this.processNextQueuedDownload();
+
+    return true;
   }
 
   private static sendProgressUpdate(
@@ -865,6 +985,22 @@ export class DownloadManager {
     );
 
     if (nextItemOnQueue) {
+      const diskSpace = await getDownloadDiskSpace(nextItemOnQueue);
+
+      if (diskSpace && !diskSpace.hasEnoughSpace) {
+        if (!this.queueHeldForDiskSpace) {
+          logger.warn(
+            `[DownloadManager] Keeping the queue on hold: ${nextItemOnQueue.downloadPath} has ${diskSpace.freeBytes} bytes free, ${diskSpace.requiredBytes} needed`
+          );
+          WindowManager.sendDownloadsUpdated();
+        }
+
+        this.queueHeldForDiskSpace = true;
+        return;
+      }
+
+      this.queueHeldForDiskSpace = false;
+
       const nextDownloadId = levelKeys.game(
         nextItemOnQueue.shop,
         nextItemOnQueue.objectId
@@ -887,6 +1023,7 @@ export class DownloadManager {
         await this.handleRuntimeDownloadError(nextDownloadId, error);
       }
     } else {
+      this.queueHeldForDiskSpace = false;
       this.downloadingGameId = null;
       this.usingJsDownloader = false;
       this.jsDownloader = null;
@@ -1088,12 +1225,9 @@ export class DownloadManager {
     });
   }
 
-  private static async getJsDownloadOptions(download: Download): Promise<{
-    url: string;
-    savePath: string;
-    filename?: string;
-    headers?: Record<string, string>;
-  } | null> {
+  private static async getJsDownloadOptions(
+    download: Download
+  ): Promise<JsDownloadOptions | null> {
     const resumingFilename = download.folderName || undefined;
 
     switch (download.downloader) {
@@ -1264,28 +1398,38 @@ export class DownloadManager {
     url: string;
     headers?: Record<string, string>;
   }> {
-    const alternateCdnDownloadLink =
-      await GofileApi.getAlternateCdnDownloadLinkIfAvailable(id);
+    try {
+      const downloadLink = await GofileApi.getDownloadLink(id, password);
+      await GofileApi.checkDownloadUrl(downloadLink);
+      const token = await GofileApi.authorize();
 
-    if (alternateCdnDownloadLink) {
+      logger.log(
+        `[DownloadManager] GoFile download ${id} will use the official downloader`
+      );
+
+      return {
+        url: downloadLink,
+        headers: { Cookie: `accountToken=${token}` },
+      };
+    } catch (error) {
+      logger.warn(
+        `[DownloadManager] Official GoFile downloader failed for ${id}; checking alternate CDN`,
+        error
+      );
+
+      const alternateCdnDownloadLink =
+        await GofileApi.getAlternateCdnDownloadLinkIfAvailable(id);
+
+      if (!alternateCdnDownloadLink) {
+        throw error;
+      }
+
       logger.log(
         `[DownloadManager] GoFile download ${id} will use alternate CDN`
       );
+
       return { url: alternateCdnDownloadLink };
     }
-
-    logger.log(
-      `[DownloadManager] GoFile download ${id} will use official GoFile fallback`
-    );
-
-    const downloadLink = await GofileApi.getDownloadLink(id, password);
-    await GofileApi.checkDownloadUrl(downloadLink);
-    const token = await GofileApi.authorize();
-
-    return {
-      url: downloadLink,
-      headers: { Cookie: `accountToken=${token}` },
-    };
   }
 
   private static async getPixelDrainDownloadOptions(
@@ -1657,16 +1801,49 @@ export class DownloadManager {
   }
 
   static async validateDownloadUrl(download: Download): Promise<void> {
-    const isHttp = this.isHttpDownloader(download.downloader);
+    if (!this.isHttpDownloader(download.downloader)) return;
 
-    if (isHttp) {
-      const options = await this.getJsDownloadOptions(download);
-      if (!options) {
-        throw new Error("Failed to validate download URL");
-      }
+    const downloadId = levelKeys.game(download.shop, download.objectId);
+    this.preparedJsDownloads.delete(downloadId);
 
-      await this.validateJsDownloadResponse(options);
+    const options = await this.getJsDownloadOptions(download);
+    if (!options) {
+      throw new Error("Failed to validate download URL");
     }
+
+    await this.validateJsDownloadResponse(options);
+
+    this.prunePreparedJsDownloads();
+    this.preparedJsDownloads.set(downloadId, {
+      uri: download.uri,
+      resolvedAt: Date.now(),
+      options,
+    });
+  }
+
+  private static prunePreparedJsDownloads() {
+    for (const [key, prepared] of this.preparedJsDownloads) {
+      if (Date.now() - prepared.resolvedAt > this.PREPARED_JS_DOWNLOAD_TTL_MS) {
+        this.preparedJsDownloads.delete(key);
+      }
+    }
+  }
+
+  private static takePreparedJsDownload(
+    download: Download,
+    downloadId: string
+  ): JsDownloadOptions | null {
+    const prepared = this.preparedJsDownloads.get(downloadId);
+    if (!prepared) return null;
+
+    this.preparedJsDownloads.delete(downloadId);
+
+    if (prepared.uri !== download.uri) return null;
+    if (Date.now() - prepared.resolvedAt > this.PREPARED_JS_DOWNLOAD_TTL_MS) {
+      return null;
+    }
+
+    return prepared.options;
   }
 
   private static buildPreflightHeaders(
@@ -1686,6 +1863,13 @@ export class DownloadManager {
     );
     if (!hasAcceptEncoding) {
       headers["Accept-Encoding"] = "identity";
+    }
+
+    const hasRange = Object.keys(headers).some(
+      (key) => key.toLowerCase() === "range"
+    );
+    if (!hasRange) {
+      headers["Range"] = "bytes=0-0";
     }
 
     return headers;
@@ -1714,6 +1898,13 @@ export class DownloadManager {
       );
 
       await response.body?.cancel().catch(() => undefined);
+
+      if (response.status === 416) {
+        logger.log(
+          "[DownloadManager] Preflight range was rejected but the link resolved; allowing the download to start"
+        );
+        return "done";
+      }
 
       if (isRetryableHttpStatus(response.status)) {
         if (attempt < maxAttempts) {
@@ -1750,6 +1941,10 @@ export class DownloadManager {
         throw new Error("Download URL validation timed out");
       }
 
+      logger.error(
+        `[DownloadManager] Preflight request failed: ${describeErrorCause(error)}`
+      );
+
       throw error;
     } finally {
       clearTimeout(timeoutId);
@@ -1784,12 +1979,16 @@ export class DownloadManager {
     const isHttp = this.isHttpDownloader(download.downloader);
     const downloadId = levelKeys.game(download.shop, download.objectId);
 
+    this.queueHeldForDiskSpace = false;
+
     // The generation token lets a concurrent cancel/restart for the same id
     // invalidate this in-flight preparation before it spawns a downloader.
     const myGeneration = ++this.startGeneration;
 
     if (isHttp) {
       logger.log("[DownloadManager] Using JS HTTP downloader");
+
+      const preparedOptions = this.takePreparedJsDownload(download, downloadId);
 
       // Set preparing state immediately so UI knows download is starting.
       this.downloadingGameId = downloadId;
@@ -1841,7 +2040,8 @@ export class DownloadManager {
           void this.runAllDebridBatch();
         } else {
           this.allDebridBatch = null;
-          const options = await this.getJsDownloadOptions(download);
+          const options =
+            preparedOptions ?? (await this.getJsDownloadOptions(download));
 
           if (!options) {
             throw new Error("Failed to get download options for JS downloader");
