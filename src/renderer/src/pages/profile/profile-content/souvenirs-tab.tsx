@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { ChevronDownIcon, ChevronRightIcon } from "@primer/octicons-react";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  SearchIcon,
+} from "@primer/octicons-react";
 import { TrashIcon } from "lucide-react";
 import type { ProfileAchievement } from "@types";
 import { ConfirmationModal } from "@renderer/components";
@@ -79,6 +83,10 @@ function SouvenirGameGroup({
                   alt={achievement.displayName}
                   loading="lazy"
                 />
+
+                <span className="profile-content__souvenir-image-overlay">
+                  <SearchIcon size={24} />
+                </span>
               </button>
 
               <div className="profile-content__souvenir-details">

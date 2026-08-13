@@ -226,10 +226,22 @@
     background-color: globals.$background-color;
 
     &-image-button {
+      position: relative;
+      display: block;
       padding: 0;
       border: none;
       background: none;
       cursor: pointer;
+
+      &:hover {
+        .profile-content__souvenir-image {
+          filter: brightness(0.55);
+        }
+
+        .profile-content__souvenir-image-overlay {
+          opacity: 1;
+        }
+      }
     }
 
     &-image {
@@ -238,10 +250,18 @@
       aspect-ratio: 16 / 9;
       object-fit: cover;
       transition: filter 0.2s ease;
+    }
 
-      &:hover {
-        filter: brightness(0.7);
-      }
+    &-image-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: globals.$muted-color;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
     }
 
     &-details {
