@@ -13,7 +13,14 @@ export class BzzhrApi {
   private static readonly USER_AGENT =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
   private static readonly RESOLUTION_TIMEOUT_MS = 30_000;
-  private static pendingResolutions = new Map<string, PendingResolution[]>();
+  private static readonly COPY_DOWNLOAD_LINK_TOKEN =
+    /copyDownloadLink\('([^']+?download\?t=[^']+)'/;
+  private static readonly DOWNLOAD_TOKEN =
+    /(\/[A-Za-z0-9]+\/download\?t=[^\s'"]+)/;
+  private static readonly pendingResolutions = new Map<
+    string,
+    PendingResolution[]
+  >();
   private static redirectListenerRegistered = false;
 
   private static isTsDownloadUrl(uri: string): boolean {
@@ -22,9 +29,8 @@ export class BzzhrApi {
 
   private static extractId(uri: string): string {
     try {
-      const pathParts = new URL(uri).pathname.split("/").filter(Boolean);
-      const id = pathParts[0];
-      if (!id) throw new Error();
+      const id = new URL(uri).pathname.split("/").find(Boolean);
+      if (!id) throw new Error("Invalid Bzzhr URL");
       return id;
     } catch {
       throw new Error(`Invalid Bzzhr URL: ${uri}`);
@@ -85,8 +91,8 @@ export class BzzhrApi {
     });
 
     const match =
-      html.match(/copyDownloadLink\('([^']+?download\?t=[^']+)'/) ||
-      html.match(/(\/[A-Za-z0-9]+\/download\?t=[^\s'"]+)/);
+      this.COPY_DOWNLOAD_LINK_TOKEN.exec(html) ||
+      this.DOWNLOAD_TOKEN.exec(html);
 
     if (!match?.[1]) {
       throw new Error(
@@ -94,7 +100,7 @@ export class BzzhrApi {
       );
     }
 
-    return match[1].replace(/\\\//g, "/");
+    return match[1].replaceAll("\\/", "/");
   }
 
   private static registerRedirectListener(): void {
