@@ -1695,74 +1695,76 @@ function ProfileSouvenirs({
         </Typography>
       </header>
 
-      <HorizontalFocusGroup
-        regionId={PROFILE_SOUVENIRS_REGION_ID}
-        className="profile-page__souvenirs-row"
-        asChild
-      >
-        <ul className="profile-page__souvenirs-row">
-          {souvenirs.map((souvenir) => (
-            <FocusItem
-              key={getSouvenirKey(souvenir)}
-              id={getProfileSouvenirItemId(getSouvenirKey(souvenir))}
-              actions={{ primary: () => onActivate(souvenir) }}
-              navigationOverrides={{
-                up: upFocusId
-                  ? { type: "item", itemId: upFocusId }
-                  : { type: "block" },
-                down: downFocusId
-                  ? { type: "item", itemId: downFocusId }
-                  : { type: "block" },
-              }}
-              asChild
-            >
-              <li className="profile-page__souvenir">
-                <img
-                  className="profile-page__souvenir-image"
-                  src={souvenir.imageUrl}
-                  alt={souvenir.displayName}
-                  draggable={false}
-                  loading="lazy"
-                />
+      <div className="profile-page__souvenirs-viewport">
+        <HorizontalFocusGroup
+          regionId={PROFILE_SOUVENIRS_REGION_ID}
+          className="profile-page__souvenirs-row"
+          asChild
+        >
+          <ul className="profile-page__souvenirs-row">
+            {souvenirs.map((souvenir) => (
+              <FocusItem
+                key={getSouvenirKey(souvenir)}
+                id={getProfileSouvenirItemId(getSouvenirKey(souvenir))}
+                actions={{ primary: () => onActivate(souvenir) }}
+                navigationOverrides={{
+                  up: upFocusId
+                    ? { type: "item", itemId: upFocusId }
+                    : { type: "block" },
+                  down: downFocusId
+                    ? { type: "item", itemId: downFocusId }
+                    : { type: "block" },
+                }}
+                asChild
+              >
+                <li className="profile-page__souvenir">
+                  <img
+                    className="profile-page__souvenir-image"
+                    src={souvenir.imageUrl}
+                    alt={souvenir.displayName}
+                    draggable={false}
+                    loading="lazy"
+                  />
 
-                <div className="profile-page__souvenir-copy">
-                  {souvenir.achievementIcon ? (
-                    <img
-                      className="profile-page__souvenir-achievement-icon"
-                      src={souvenir.achievementIcon}
-                      alt=""
-                      draggable={false}
-                      onError={hideBrokenPreviewImage}
-                    />
-                  ) : null}
+                  <div className="profile-page__souvenir-copy">
+                    {souvenir.achievementIcon ? (
+                      <img
+                        className="profile-page__souvenir-achievement-icon"
+                        src={souvenir.achievementIcon}
+                        alt=""
+                        draggable={false}
+                        onError={hideBrokenPreviewImage}
+                      />
+                    ) : null}
 
-                  <div className="profile-page__souvenir-text">
-                    <Typography className="profile-page__souvenir-name">
-                      {souvenir.displayName}
-                    </Typography>
-
-                    <div className="profile-page__souvenir-game-line">
-                      {souvenir.gameIconUrl ? (
-                        <img
-                          className="profile-page__souvenir-game-icon"
-                          src={souvenir.gameIconUrl}
-                          alt=""
-                          draggable={false}
-                          onError={hideBrokenPreviewImage}
-                        />
-                      ) : null}
-
-                      <Typography className="profile-page__souvenir-game">
-                        {souvenir.gameTitle ?? ""}
+                    <div className="profile-page__souvenir-text">
+                      <Typography className="profile-page__souvenir-name">
+                        {souvenir.displayName}
                       </Typography>
+
+                      <div className="profile-page__souvenir-game-line">
+                        {souvenir.gameIconUrl ? (
+                          <img
+                            className="profile-page__souvenir-game-icon"
+                            src={souvenir.gameIconUrl}
+                            alt=""
+                            draggable={false}
+                            onError={hideBrokenPreviewImage}
+                          />
+                        ) : null}
+
+                        <Typography className="profile-page__souvenir-game">
+                          {souvenir.gameTitle ?? ""}
+                        </Typography>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </li>
-            </FocusItem>
-          ))}
-        </ul>
-      </HorizontalFocusGroup>
+                </li>
+              </FocusItem>
+            ))}
+          </ul>
+        </HorizontalFocusGroup>
+      </div>
     </section>
   );
 }

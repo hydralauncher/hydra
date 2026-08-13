@@ -1119,6 +1119,24 @@
   font-weight: 600;
 }
 
+.profile-page__souvenirs-viewport {
+  position: relative;
+  min-width: 0;
+}
+
+.profile-page__souvenirs-viewport::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: clamp(120px, 18vw, 240px);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(8, 8, 8, 0) 0%,
+    var(--background) 100%
+  );
+}
+
 .profile-page__souvenirs-row {
   display: flex;
   gap: calc(var(--spacing-unit) * 3);
