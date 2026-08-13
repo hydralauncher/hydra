@@ -138,6 +138,7 @@ export const CONTENT_ITEM_FOCUS_IDS = {
   showHiddenAchievementsDescription:
     "content-show-hidden-achievements-description",
   enableSteamAchievements: "content-enable-steam-achievements",
+  enableAchievementSouvenirs: "content-enable-achievement-souvenirs",
 } as const;
 
 export const BIG_PICTURE_ITEM_FOCUS_IDS = {

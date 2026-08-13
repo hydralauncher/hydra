@@ -1072,6 +1072,12 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<UserAchievement[]>;
+    deleteAchievementSouvenir: (payload: {
+      gameId: string;
+      achievementName: string;
+      gameTitle: string | null;
+      achievementDisplayName: string;
+    }) => Promise<void>;
     getRetroAchievementsAchievements: (
       objectId: string,
       shop: GameShop,

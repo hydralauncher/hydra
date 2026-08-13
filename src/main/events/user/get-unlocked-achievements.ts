@@ -4,34 +4,50 @@ import { getGameAchievementData } from "@main/services/achievements/get-game-ach
 import { db, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { HydraApi } from "@main/services/hydra-api";
 import { achievementsLogger } from "@main/services/logger";
+
+const fetchAchievementSouvenirs = async (
+  objectId: string,
+  shop: GameShop,
+  language: string
+) => {
+  const user = await db.get<string, User>(levelKeys.user, {
+    valueEncoding: "json",
+  });
+
+  if (!user?.id) return new Map<string, string>();
+
+  const remoteAchievements = await HydraApi.get<UserAchievement[]>(
+    `/users/${user.id}/games/achievements`,
+    { shop, objectId, language }
+  );
+
+  return new Map(
+    remoteAchievements
+      .filter((achievement) => achievement.imageUrl)
+      .map((achievement) => [
+        achievement.name.toUpperCase(),
+        achievement.imageUrl!,
+      ])
+  );
+};
 
 const getAchievementSouvenirs = async (
   objectId: string,
   shop: GameShop,
   language: string
 ) => {
+  const cachedSouvenirs = AchievementSouvenirStore.get(shop, objectId);
+
+  if (cachedSouvenirs) return cachedSouvenirs;
+
   try {
-    const user = await db.get<string, User>(levelKeys.user, {
-      valueEncoding: "json",
-    });
+    const souvenirs = await fetchAchievementSouvenirs(objectId, shop, language);
+    AchievementSouvenirStore.set(shop, objectId, souvenirs);
 
-    if (!user?.id) return new Map<string, string>();
-
-    const remoteAchievements = await HydraApi.get<UserAchievement[]>(
-      `/users/${user.id}/games/achievements`,
-      { shop, objectId, language }
-    );
-
-    return new Map(
-      remoteAchievements
-        .filter((achievement) => achievement.imageUrl)
-        .map((achievement) => [
-          achievement.name.toUpperCase(),
-          achievement.imageUrl!,
-        ])
-    );
+    return souvenirs;
   } catch (error) {
     achievementsLogger.error(
       "Failed to fetch achievement souvenirs",
@@ -68,13 +84,13 @@ export const getUnlockedAchievements = async (
 
   const unlockedAchievements = cachedAchievements?.unlockedAchievements ?? [];
 
-  const souvenirs = useCachedData
-    ? new Map<string, string>()
-    : await getAchievementSouvenirs(
-        objectId,
-        shop,
-        userPreferences?.language ?? "en"
-      );
+  if (!useCachedData) AchievementSouvenirStore.invalidate(shop, objectId);
+
+  const souvenirs = await getAchievementSouvenirs(
+    objectId,
+    shop,
+    userPreferences?.language ?? "en"
+  );
 
   return achievementsData
     .map((achievementData) => {

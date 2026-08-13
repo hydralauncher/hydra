@@ -3,7 +3,7 @@ import "./content.scss";
 import { useEffect, useMemo, useState } from "react";
 
 import { Checkbox, VerticalFocusGroup } from "../../components";
-import { useUserPreferences } from "../../hooks";
+import { useUserDetails, useUserPreferences } from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
   CONTENT_ITEM_FOCUS_IDS,
@@ -21,6 +21,7 @@ interface ContentForm {
   disableNsfwAlert: boolean;
   showHiddenAchievementsDescription: boolean;
   enableSteamAchievements: boolean;
+  enableAchievementSouvenirs: boolean;
 }
 
 interface ContentItem {
@@ -36,12 +37,14 @@ const DEFAULT_FORM: ContentForm = {
   disableNsfwAlert: false,
   showHiddenAchievementsDescription: false,
   enableSteamAchievements: false,
+  enableAchievementSouvenirs: false,
 };
 
 export function ContentSettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
   const userPreferences = useUserPreferences();
+  const { hasActiveSubscription } = useUserDetails();
   const [form, setForm] = useState<ContentForm>(DEFAULT_FORM);
 
   useEffect(() => {
@@ -53,6 +56,8 @@ export function ContentSettingsSection({
       showHiddenAchievementsDescription:
         userPreferences.showHiddenAchievementsDescription ?? false,
       enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
+      enableAchievementSouvenirs:
+        userPreferences.enableAchievementSouvenirs ?? false,
     });
   }, [userPreferences]);
 
@@ -62,6 +67,9 @@ export function ContentSettingsSection({
 
     await globalThis.window.electron.updateUserPreferences(values);
   };
+
+  const supportsSouvenirs =
+    hasActiveSubscription && globalThis.window.electron.platform !== "linux";
 
   const items = useMemo<ContentItem[]>(() => {
     return [
@@ -99,8 +107,22 @@ export function ContentSettingsSection({
         onChange: (checked: boolean) =>
           void updateUserPreferences({ enableSteamAchievements: checked }),
       },
+      ...(supportsSouvenirs
+        ? [
+            {
+              id: "enable-achievement-souvenirs",
+              focusId: CONTENT_ITEM_FOCUS_IDS.enableAchievementSouvenirs,
+              label: "Enable souvenirs for achievements",
+              checked: form.enableAchievementSouvenirs,
+              onChange: (checked: boolean) =>
+                void updateUserPreferences({
+                  enableAchievementSouvenirs: checked,
+                }),
+            },
+          ]
+        : []),
     ];
-  }, [form]);
+  }, [form, supportsSouvenirs]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>

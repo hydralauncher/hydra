@@ -69,6 +69,16 @@ const listStoredScreenshots = async (directory: string) => {
   return files.flat();
 };
 
+const resolveScreenshotPath = (
+  gameTitle: string,
+  achievementDisplayName: string
+) =>
+  path.join(
+    screenshotsPath,
+    sanitizePathSegment(gameTitle),
+    `${sanitizePathSegment(achievementDisplayName)}.${SCREENSHOT_EXTENSION}`
+  );
+
 export class ScreenshotService {
   public static async captureGameScreenshot(
     gameTitle: string,
@@ -81,20 +91,28 @@ export class ScreenshotService {
     }
 
     const image = resizeToFit(source.thumbnail);
+    const filePath = resolveScreenshotPath(gameTitle, achievementDisplayName);
 
-    const directory = path.join(
-      screenshotsPath,
-      sanitizePathSegment(gameTitle)
-    );
-    const filePath = path.join(
-      directory,
-      `${sanitizePathSegment(achievementDisplayName)}.${SCREENSHOT_EXTENSION}`
-    );
-
-    await fs.promises.mkdir(directory, { recursive: true });
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
     await fs.promises.writeFile(filePath, image.toJPEG(SCREENSHOT_QUALITY));
 
     return filePath;
+  }
+
+  public static async deleteGameScreenshot(
+    gameTitle: string,
+    achievementDisplayName: string
+  ) {
+    const filePath = resolveScreenshotPath(gameTitle, achievementDisplayName);
+
+    await fs.promises.rm(filePath, { force: true });
+
+    const directory = path.dirname(filePath);
+    const remaining = await fs.promises
+      .readdir(directory)
+      .catch(() => ["keep"]);
+
+    if (!remaining.length) await fs.promises.rmdir(directory);
   }
 
   public static async deleteScreenshot(filePath: string) {

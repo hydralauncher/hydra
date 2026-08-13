@@ -161,16 +161,19 @@ export function SouvenirsTab({
   const handleDeleteSouvenir = async () => {
     if (!souvenirToDelete) return;
 
-    const { gameId, name } = souvenirToDelete;
+    const { gameId, name, gameTitle, displayName } = souvenirToDelete;
     const key = souvenirKey(souvenirToDelete);
 
     setSouvenirToDelete(null);
     setDeletingKeys((prev) => new Set(prev).add(key));
 
     try {
-      await window.electron.hydraApi.delete(
-        `/profile/games/achievements/${gameId}/${encodeURIComponent(name)}/image`
-      );
+      await window.electron.deleteAchievementSouvenir({
+        gameId,
+        achievementName: name,
+        gameTitle,
+        achievementDisplayName: displayName,
+      });
 
       showSuccessToast(t("souvenir_deleted_successfully"));
       onSouvenirDeleted();

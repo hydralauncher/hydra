@@ -19,6 +19,7 @@ import { AchievementMemoryStore } from "./achievement-memory-store";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 import { ScreenshotService } from "../screenshot";
 import { AchievementImageService } from "./achievement-image-service";
+import { AchievementSouvenirStore } from "./achievement-souvenir-store";
 
 const isRareAchievement = (points: number) => {
   const rawPercentage = (50 - Math.sqrt(points)) * 2;
@@ -29,9 +30,21 @@ const isRareAchievement = (points: number) => {
 const captureAchievementSouvenirs = async (
   game: Game,
   newAchievements: UnlockedAchievement[],
-  achievementsData: SteamAchievement[]
+  achievementsData: SteamAchievement[],
+  userPreferences: UserPreferences,
+  publishNotification: boolean
 ) => {
-  const imageKeysByAchievement = new Map<string, string>();
+  const screenshotPathsByAchievement = new Map<string, string>();
+
+  if (
+    !newAchievements.length ||
+    !publishNotification ||
+    process.platform === "linux" ||
+    userPreferences.enableAchievementSouvenirs !== true ||
+    !HydraApi.hasActiveSubscription()
+  ) {
+    return screenshotPathsByAchievement;
+  }
 
   for (const achievement of newAchievements) {
     try {
@@ -43,14 +56,9 @@ const captureAchievementSouvenirs = async (
           );
         })?.displayName ?? achievement.name;
 
-      const screenshotPath = await ScreenshotService.captureGameScreenshot(
-        game.title,
-        displayName
-      );
-
-      imageKeysByAchievement.set(
+      screenshotPathsByAchievement.set(
         achievement.name.toUpperCase(),
-        await AchievementImageService.uploadAchievementImage(screenshotPath)
+        await ScreenshotService.captureGameScreenshot(game.title, displayName)
       );
     } catch (error) {
       achievementsLogger.error(
@@ -62,36 +70,39 @@ const captureAchievementSouvenirs = async (
     }
   }
 
-  await ScreenshotService.cleanupOldScreenshots();
-
-  return imageKeysByAchievement;
+  return screenshotPathsByAchievement;
 };
 
-const withAchievementSouvenirs = async (
+const uploadAchievementSouvenirs = async (
   game: Game,
-  newAchievements: UnlockedAchievement[],
-  mergedLocalAchievements: UnlockedAchievement[],
-  achievementsData: SteamAchievement[],
-  userPreferences: UserPreferences,
-  publishNotification: boolean
+  screenshotPathsByAchievement: Map<string, string>,
+  mergedLocalAchievements: UnlockedAchievement[]
 ) => {
-  if (
-    !newAchievements.length ||
-    !publishNotification ||
-    process.platform === "linux" ||
-    userPreferences.enableAchievementSouvenirs !== true ||
-    !HydraApi.hasActiveSubscription()
-  ) {
-    return mergedLocalAchievements;
+  if (!screenshotPathsByAchievement.size) return mergedLocalAchievements;
+
+  const imageKeysByAchievement = new Map<string, string>();
+
+  for (const [name, screenshotPath] of screenshotPathsByAchievement) {
+    try {
+      imageKeysByAchievement.set(
+        name,
+        await AchievementImageService.uploadAchievementImage(screenshotPath)
+      );
+    } catch (error) {
+      achievementsLogger.error(
+        "Failed to upload achievement souvenir",
+        game.objectId,
+        name,
+        error
+      );
+    }
   }
 
-  const imageKeysByAchievement = await captureAchievementSouvenirs(
-    game,
-    newAchievements,
-    achievementsData
-  );
+  await ScreenshotService.cleanupOldScreenshots();
 
   if (!imageKeysByAchievement.size) return mergedLocalAchievements;
+
+  AchievementSouvenirStore.invalidate(game.shop, game.objectId);
 
   return mergedLocalAchievements.map((achievement) => {
     const imageKey = imageKeysByAchievement.get(achievement.name.toUpperCase());
@@ -175,6 +186,14 @@ export const mergeAchievements = async (
 
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
 
+  const souvenirScreenshots = await captureAchievementSouvenirs(
+    game,
+    newAchievements,
+    achievementsData,
+    userPreferences,
+    publishNotification
+  );
+
   if (
     newAchievements.length &&
     publishNotification &&
@@ -256,13 +275,10 @@ export const mergeAchievements = async (
     }
   }
 
-  const achievementsToSync = await withAchievementSouvenirs(
+  const achievementsToSync = await uploadAchievementSouvenirs(
     game,
-    newAchievements,
-    mergedLocalAchievements,
-    achievementsData,
-    userPreferences,
-    publishNotification
+    souvenirScreenshots,
+    mergedLocalAchievements
   );
 
   const shouldSyncWithRemote =
