@@ -64,6 +64,7 @@ export function DownloadsBehaviorSection({
   }, [userPreferences]);
 
   const isWindows = globalThis.window.electron.platform === "win32";
+  const isLinux = globalThis.window.electron.platform === "linux";
 
   const updateUserPreferences = async (
     values: Partial<DownloadsBehaviorForm>
@@ -113,7 +114,7 @@ export function DownloadsBehaviorSection({
       },
     ];
 
-    if (isWindows) {
+    if (isWindows || isLinux) {
       baseItems.push({
         id: "create-start-menu-shortcut",
         focusId: DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.createStartMenuShortcut,
@@ -125,7 +126,7 @@ export function DownloadsBehaviorSection({
     }
 
     return baseItems;
-  }, [form, isWindows]);
+  }, [form, isWindows, isLinux]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
