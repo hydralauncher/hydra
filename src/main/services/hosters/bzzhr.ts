@@ -100,7 +100,7 @@ export class BzzhrApi {
       );
     }
 
-    return match[1].replaceAll("\\/", "/");
+    return match[1].replaceAll(String.raw`\/`, "/");
   }
 
   private static registerRedirectListener(): void {
