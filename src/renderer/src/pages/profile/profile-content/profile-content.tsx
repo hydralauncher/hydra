@@ -4,7 +4,7 @@ import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat, useUserDetails } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import type { GameShop } from "@types";
+import type { GameShop, ProfileAchievement } from "@types";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { BadgesBox } from "./badges-box";
@@ -18,8 +18,10 @@ import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
+import { SouvenirsTab } from "./souvenirs-tab";
 import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
+import { FullscreenMediaModal } from "@renderer/components";
 import { AuthPage } from "@shared";
 import "./profile-content.scss";
 
@@ -80,6 +82,7 @@ export function ProfileContent() {
     userStats,
     libraryGames,
     pinnedGames,
+    getUserProfile,
     getUserStats,
     getUserLibraryGames,
     loadMoreLibraryGames,
@@ -110,6 +113,7 @@ export function ProfileContent() {
   const [votingReviews, setVotingReviews] = useState<Set<string>>(new Set());
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
+  const [souvenir, setSouvenir] = useState<ProfileAchievement | null>(null);
 
   const dispatch = useAppDispatch();
 
@@ -387,6 +391,7 @@ export function ProfileContent() {
           <ProfileTabs
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
+            souvenirsCount={userProfile.achievements?.length ?? 0}
             onTabChange={setActiveTab}
           />
 
@@ -421,6 +426,15 @@ export function ProfileContent() {
                   getRatingText={getRatingText}
                   onVote={handleVoteReview}
                   onDelete={handleDeleteClick}
+                />
+              )}
+
+              {activeTab === "souvenirs" && (
+                <SouvenirsTab
+                  achievements={userProfile.achievements ?? []}
+                  isMe={isMe}
+                  onSouvenirClick={setSouvenir}
+                  onSouvenirDeleted={getUserProfile}
                 />
               )}
             </AnimatePresence>
@@ -476,6 +490,13 @@ export function ProfileContent() {
       <ProfileHero />
 
       {content}
+
+      <FullscreenMediaModal
+        visible={souvenir !== null}
+        src={souvenir?.imageUrl}
+        alt={souvenir?.displayName}
+        onClose={() => setSouvenir(null)}
+      />
     </div>
   );
 }

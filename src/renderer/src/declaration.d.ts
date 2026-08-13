@@ -958,6 +958,8 @@ declare global {
     isStaging: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
+    getScreenshotsPath: () => Promise<string>;
+    openFolder: (folderPath: string) => Promise<string>;
     isPortableVersion: () => Promise<boolean>;
     showOpenDialog: (
       options: Electron.OpenDialogOptions

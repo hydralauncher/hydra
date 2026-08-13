@@ -159,6 +159,141 @@
     background: white;
   }
 
+  &__souvenirs-empty {
+    padding: calc(globals.$spacing-unit * 2);
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+  }
+
+  &__souvenirs-group {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    margin-bottom: calc(globals.$spacing-unit * 3);
+
+    &-header {
+      display: flex;
+      align-items: center;
+      gap: globals.$spacing-unit;
+      width: 100%;
+      padding: 0;
+      border: none;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    &-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      object-fit: cover;
+    }
+
+    &-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+
+  &__souvenirs-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: calc(globals.$spacing-unit * 2);
+    grid-template-columns: repeat(2, 1fr);
+
+    @container #{globals.$app-container} (min-width: 1300px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 2000px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  &__souvenir {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$background-color;
+
+    &-image-button {
+      padding: 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+
+    &-image {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      transition: filter 0.2s ease;
+
+      &:hover {
+        filter: brightness(0.7);
+      }
+    }
+
+    &-details {
+      display: flex;
+      align-items: center;
+      gap: globals.$spacing-unit;
+      padding: globals.$spacing-unit;
+    }
+
+    &-achievement-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+    }
+
+    &-text {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    &-name {
+      overflow: hidden;
+      font-weight: 500;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &-unlock-time {
+      color: globals.$body-color;
+    }
+
+    &-delete-button {
+      display: flex;
+      padding: 6px;
+      border: none;
+      border-radius: 4px;
+      background: none;
+      color: globals.$body-color;
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        background-color: globals.$border-color;
+        color: globals.$error-color;
+      }
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+    }
+  }
+
   &__games-grid {
     list-style: none;
     margin: 0;

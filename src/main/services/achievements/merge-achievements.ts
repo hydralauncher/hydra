@@ -2,6 +2,7 @@ import type {
   AchievementNotificationInfo,
   Game,
   GameShop,
+  SteamAchievement,
   UnlockedAchievement,
   UpdatedUnlockedAchievements,
   UserPreferences,
@@ -16,11 +17,87 @@ import { getGameAchievementData } from "./get-game-achievement-data";
 import { AchievementWatcherManager } from "./achievement-watcher-manager";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
+import { ScreenshotService } from "../screenshot";
+import { AchievementImageService } from "./achievement-image-service";
 
 const isRareAchievement = (points: number) => {
   const rawPercentage = (50 - Math.sqrt(points)) * 2;
 
   return rawPercentage < 10;
+};
+
+const captureAchievementSouvenirs = async (
+  game: Game,
+  newAchievements: UnlockedAchievement[],
+  achievementsData: SteamAchievement[]
+) => {
+  const imageKeysByAchievement = new Map<string, string>();
+
+  for (const achievement of newAchievements) {
+    try {
+      const displayName =
+        achievementsData.find((steamAchievement) => {
+          return (
+            steamAchievement.name.toUpperCase() ===
+            achievement.name.toUpperCase()
+          );
+        })?.displayName ?? achievement.name;
+
+      const screenshotPath = await ScreenshotService.captureGameScreenshot(
+        game.title,
+        displayName
+      );
+
+      imageKeysByAchievement.set(
+        achievement.name.toUpperCase(),
+        await AchievementImageService.uploadAchievementImage(screenshotPath)
+      );
+    } catch (error) {
+      achievementsLogger.error(
+        "Failed to capture achievement souvenir",
+        game.objectId,
+        achievement.name,
+        error
+      );
+    }
+  }
+
+  await ScreenshotService.cleanupOldScreenshots();
+
+  return imageKeysByAchievement;
+};
+
+const withAchievementSouvenirs = async (
+  game: Game,
+  newAchievements: UnlockedAchievement[],
+  mergedLocalAchievements: UnlockedAchievement[],
+  achievementsData: SteamAchievement[],
+  userPreferences: UserPreferences,
+  publishNotification: boolean
+) => {
+  if (
+    !newAchievements.length ||
+    !publishNotification ||
+    process.platform === "linux" ||
+    userPreferences.enableAchievementScreenshots !== true ||
+    !HydraApi.hasActiveSubscription()
+  ) {
+    return mergedLocalAchievements;
+  }
+
+  const imageKeysByAchievement = await captureAchievementSouvenirs(
+    game,
+    newAchievements,
+    achievementsData
+  );
+
+  if (!imageKeysByAchievement.size) return mergedLocalAchievements;
+
+  return mergedLocalAchievements.map((achievement) => {
+    const imageKey = imageKeysByAchievement.get(achievement.name.toUpperCase());
+
+    return imageKey ? { ...achievement, imageKey } : achievement;
+  });
 };
 
 const saveAchievementsInMemory = async (
@@ -179,6 +256,15 @@ export const mergeAchievements = async (
     }
   }
 
+  const achievementsToSync = await withAchievementSouvenirs(
+    game,
+    newAchievements,
+    mergedLocalAchievements,
+    achievementsData,
+    userPreferences,
+    publishNotification
+  );
+
   const shouldSyncWithRemote =
     Boolean(game.remoteId) && AchievementWatcherManager.hasFinishedPreSearch;
 
@@ -187,7 +273,7 @@ export const mergeAchievements = async (
       "/profile/games/achievements",
       {
         id: game.remoteId,
-        achievements: mergedLocalAchievements,
+        achievements: achievementsToSync,
       }
     )
       .then((response) => {
@@ -205,7 +291,7 @@ export const mergeAchievements = async (
         return saveAchievementsInMemory(
           game.objectId,
           game.shop,
-          mergedLocalAchievements,
+          achievementsToSync,
           publishNotification
         );
       })
@@ -221,7 +307,7 @@ export const mergeAchievements = async (
         return saveAchievementsInMemory(
           game.objectId,
           game.shop,
-          mergedLocalAchievements,
+          achievementsToSync,
           publishNotification
         );
       });
@@ -229,7 +315,7 @@ export const mergeAchievements = async (
     await saveAchievementsInMemory(
       game.objectId,
       game.shop,
-      mergedLocalAchievements,
+      achievementsToSync,
       publishNotification
     );
   }

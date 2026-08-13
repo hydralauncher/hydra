@@ -167,6 +167,7 @@ export interface UserPreferences {
   extractFilesByDefault?: boolean;
   deleteArchiveFilesAfterExtractionByDefault?: boolean;
   enableSteamAchievements?: boolean;
+  enableAchievementScreenshots?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
   enableNewDownloadOptionsBadges?: boolean;

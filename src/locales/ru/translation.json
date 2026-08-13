@@ -1547,7 +1547,9 @@
     "big_picture_enable_sounds": "Включить звуки Big Picture",
     "big_picture_enable_virtual_keyboard": "Включить виртуальную клавиатуру",
     "big_picture_enable_diagnostics": "Включить диагностику",
-    "big_picture_diagnostics_position": "Положение диагностики"
+    "big_picture_diagnostics_position": "Положение диагностики",
+    "enable_achievement_screenshots": "Делать скриншот при получении достижения",
+    "open_screenshots_directory": "Открыть папку со скриншотами"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -1738,7 +1740,17 @@
     "user_reviews": "Отзывы",
     "delete_review": "Удалить отзыв",
     "loading_reviews": "Загрузка отзывов...",
-    "wrapped_2025": "Wrapped 2025"
+    "wrapped_2025": "Wrapped 2025",
+    "souvenirs": "Сувениры",
+    "view_souvenir": "Посмотреть сувенир",
+    "delete_souvenir": "Удалить сувенир",
+    "no_souvenirs": "Сувениров пока нет",
+    "souvenir_deleted_successfully": "Сувенир удалён",
+    "souvenir_deletion_failed": "Не удалось удалить сувенир",
+    "delete_souvenir_modal_title": "Удалить сувенир",
+    "delete_souvenir_modal_description": "Сувенир будет удалён из вашего профиля. Это действие необратимо.",
+    "delete_souvenir_modal_delete_button": "Удалить",
+    "delete_souvenir_modal_cancel_button": "Отмена"
   },
   "library": {
     "library": "Библиотека",
@@ -1825,7 +1837,9 @@
     "earned_points": "Заработано очков:",
     "available_points": "Доступные очки:",
     "how_to_earn_achievements_points": "Как заработать очки достижений?",
-    "achievements_not_sync": "Ваши достижения не будут синхронизированы с вашей учётной записью."
+    "achievements_not_sync": "Ваши достижения не будут синхронизированы с вашей учётной записью.",
+    "view_souvenir": "Посмотреть сувенир",
+    "souvenir_alt": "Скриншот, сделанный при получении достижения {{achievement}}"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Подписка Hydra Cloud",

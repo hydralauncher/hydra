@@ -1,9 +1,47 @@
-import type { GameShop, UserAchievement, UserPreferences } from "@types";
+import type { GameShop, User, UserAchievement, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
 import { db, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { HydraApi } from "@main/services/hydra-api";
+import { achievementsLogger } from "@main/services/logger";
+
+const getAchievementSouvenirs = async (
+  objectId: string,
+  shop: GameShop,
+  language: string
+) => {
+  try {
+    const user = await db.get<string, User>(levelKeys.user, {
+      valueEncoding: "json",
+    });
+
+    if (!user?.id) return new Map<string, string>();
+
+    const remoteAchievements = await HydraApi.get<UserAchievement[]>(
+      `/users/${user.id}/games/achievements`,
+      { shop, objectId, language }
+    );
+
+    return new Map(
+      remoteAchievements
+        .filter((achievement) => achievement.imageUrl)
+        .map((achievement) => [
+          achievement.name.toUpperCase(),
+          achievement.imageUrl!,
+        ])
+    );
+  } catch (error) {
+    achievementsLogger.error(
+      "Failed to fetch achievement souvenirs",
+      objectId,
+      error
+    );
+
+    return new Map<string, string>();
+  }
+};
 
 export const getUnlockedAchievements = async (
   objectId: string,
@@ -30,6 +68,14 @@ export const getUnlockedAchievements = async (
 
   const unlockedAchievements = cachedAchievements?.unlockedAchievements ?? [];
 
+  const souvenirs = useCachedData
+    ? new Map<string, string>()
+    : await getAchievementSouvenirs(
+        objectId,
+        shop,
+        userPreferences?.language ?? "en"
+      );
+
   return achievementsData
     .map((achievementData) => {
       const unlockedAchievementData = unlockedAchievements.find(
@@ -50,6 +96,7 @@ export const getUnlockedAchievements = async (
           ...achievementData,
           unlocked: true,
           unlockTime: unlockedAchievementData.unlockTime,
+          imageUrl: souvenirs.get(achievementData.name.toUpperCase()) ?? null,
         };
       }
 

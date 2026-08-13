@@ -1552,7 +1552,9 @@
     "big_picture_enable_sounds": "Enable Big Picture sounds",
     "big_picture_enable_virtual_keyboard": "Enable Big Picture virtual keyboard",
     "big_picture_enable_diagnostics": "Enable navigation diagnostics",
-    "big_picture_diagnostics_position": "Diagnostics position"
+    "big_picture_diagnostics_position": "Diagnostics position",
+    "enable_achievement_screenshots": "Take a screenshot when an achievement is unlocked",
+    "open_screenshots_directory": "Open screenshots folder"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -1744,7 +1746,17 @@
     "user_reviews": "Reviews",
     "delete_review": "Delete Review",
     "loading_reviews": "Loading reviews...",
-    "wrapped_2025": "Wrapped 2025"
+    "wrapped_2025": "Wrapped 2025",
+    "souvenirs": "Souvenirs",
+    "view_souvenir": "View souvenir",
+    "delete_souvenir": "Delete souvenir",
+    "no_souvenirs": "No souvenirs yet",
+    "souvenir_deleted_successfully": "Souvenir deleted",
+    "souvenir_deletion_failed": "Could not delete the souvenir",
+    "delete_souvenir_modal_title": "Delete souvenir",
+    "delete_souvenir_modal_description": "This souvenir will be removed from your profile. This cannot be undone.",
+    "delete_souvenir_modal_delete_button": "Delete",
+    "delete_souvenir_modal_cancel_button": "Cancel"
   },
   "library": {
     "library": "Library",
@@ -1830,7 +1842,9 @@
     "achievement_earn_points": "Earn {{points}} points with this achievement",
     "earned_points": "Earned points:",
     "available_points": "Available points:",
-    "how_to_earn_achievements_points": "How to earn achievement points?"
+    "how_to_earn_achievements_points": "How to earn achievement points?",
+    "view_souvenir": "View souvenir",
+    "souvenir_alt": "Screenshot taken when {{achievement}} was unlocked"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",

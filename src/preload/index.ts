@@ -1291,6 +1291,9 @@ contextBridge.exposeInMainWorld("electron", {
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
+  getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
+  openFolder: (folderPath: string) =>
+    ipcRenderer.invoke("openFolder", folderPath),
   isStaging: () => ipcRenderer.invoke("isStaging"),
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),

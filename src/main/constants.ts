@@ -31,6 +31,11 @@ export const logsPath = path.join(
   `logs${isStaging ? "-staging" : ""}`
 );
 
+export const screenshotsPath = path.join(
+  SystemPath.getPath("userData"),
+  "Screenshots"
+);
+
 export const achievementSoundPath = app.isPackaged
   ? path.join(process.resourcesPath, "achievement.wav")
   : path.join(__dirname, "..", "..", "resources", "achievement.wav");

@@ -1523,7 +1523,9 @@
     "big_picture_diagnostics_position": "Posição do diagnóstico",
     "setup_match_wrong_platform": "plataforma errada",
     "setup_run_in_background": "Executar em segundo plano",
-    "scanning_system_label": "Escaneando {{system}}…"
+    "scanning_system_label": "Escaneando {{system}}…",
+    "enable_achievement_screenshots": "Capturar a tela ao desbloquear uma conquista",
+    "open_screenshots_directory": "Abrir a pasta de capturas"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -1744,7 +1746,17 @@
     "platform_classics": "Clássicos",
     "platform": "Plataformas",
     "platform_all": "Todos",
-    "platform_pc": "PC"
+    "platform_pc": "PC",
+    "souvenirs": "Lembranças",
+    "view_souvenir": "Ver lembrança",
+    "delete_souvenir": "Excluir lembrança",
+    "no_souvenirs": "Nenhuma lembrança ainda",
+    "souvenir_deleted_successfully": "Lembrança excluída",
+    "souvenir_deletion_failed": "Não foi possível excluir a lembrança",
+    "delete_souvenir_modal_title": "Excluir lembrança",
+    "delete_souvenir_modal_description": "A lembrança será removida do seu perfil. Não é possível desfazer.",
+    "delete_souvenir_modal_delete_button": "Excluir",
+    "delete_souvenir_modal_cancel_button": "Cancelar"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
@@ -1762,7 +1774,9 @@
     "achievement_earn_points": "Ganhe {{points}} pontos com essa conquista",
     "earned_points": "Pontos ganhos:",
     "available_points": "Pontos disponíveis:",
-    "how_to_earn_achievements_points": "Como desbloquear pontos nas conquistas?"
+    "how_to_earn_achievements_points": "Como desbloquear pontos nas conquistas?",
+    "view_souvenir": "Ver lembrança",
+    "souvenir_alt": "Captura feita ao desbloquear {{achievement}}"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Assinatura Hydra Cloud",

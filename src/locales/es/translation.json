@@ -1505,7 +1505,9 @@
     "big_picture_enable_sounds": "Activar sonidos de Big Picture",
     "big_picture_enable_virtual_keyboard": "Activar teclado virtual",
     "big_picture_enable_diagnostics": "Activar diagnóstico de navegación",
-    "big_picture_diagnostics_position": "Posición del diagnóstico"
+    "big_picture_diagnostics_position": "Posición del diagnóstico",
+    "enable_achievement_screenshots": "Capturar la pantalla al desbloquear un logro",
+    "open_screenshots_directory": "Abrir la carpeta de capturas"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -1684,7 +1686,17 @@
     "platform": "Plataformas",
     "platform_all": "Todas",
     "platform_pc": "PC",
-    "platform_classics": "Clásicos"
+    "platform_classics": "Clásicos",
+    "souvenirs": "Recuerdos",
+    "view_souvenir": "Ver recuerdo",
+    "delete_souvenir": "Eliminar recuerdo",
+    "no_souvenirs": "Todavía no hay recuerdos",
+    "souvenir_deleted_successfully": "Recuerdo eliminado",
+    "souvenir_deletion_failed": "No se pudo eliminar el recuerdo",
+    "delete_souvenir_modal_title": "Eliminar recuerdo",
+    "delete_souvenir_modal_description": "El recuerdo se quitará de tu perfil. Esta acción no se puede deshacer.",
+    "delete_souvenir_modal_delete_button": "Eliminar",
+    "delete_souvenir_modal_cancel_button": "Cancelar"
   },
   "achievement": {
     "achievement_unlocked": "Logro desbloqueado",
@@ -1702,7 +1714,9 @@
     "achievement_earn_points": "Conseguí {{points}} puntos por este logro",
     "earned_points": "Puntos obtenidos:",
     "available_points": "Puntos disponibles:",
-    "how_to_earn_achievements_points": "¿Como conseguir puntos por logros?"
+    "how_to_earn_achievements_points": "¿Como conseguir puntos por logros?",
+    "view_souvenir": "Ver recuerdo",
+    "souvenir_alt": "Captura tomada al desbloquear {{achievement}}"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Suscripción Hydra Cloud",

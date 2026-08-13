@@ -1,9 +1,10 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField } from "@renderer/components";
+import { Button, CheckboxField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useUserDetails } from "@renderer/hooks";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 import { QuestionIcon } from "@primer/octicons-react";
 
 import "./settings-behavior.scss";
@@ -11,6 +12,8 @@ import "./settings-behavior.scss";
 export function SettingsContextContentGameplay() {
   const { t } = useTranslation("settings");
   const { updateUserPreferences } = useContext(settingsContext);
+  const { hasActiveSubscription } = useUserDetails();
+  const { showHydraCloudModal } = useSubscription();
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -21,6 +24,7 @@ export function SettingsContextContentGameplay() {
     disableNsfwAlert: false,
     showHiddenAchievementsDescription: false,
     enableSteamAchievements: false,
+    enableAchievementScreenshots: false,
     enableNewDownloadOptionsBadges: true,
     hideClassicsBookmark: false,
     classicsUseHeroLayout: false,
@@ -35,6 +39,8 @@ export function SettingsContextContentGameplay() {
       showHiddenAchievementsDescription:
         userPreferences.showHiddenAchievementsDescription ?? false,
       enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
+      enableAchievementScreenshots:
+        userPreferences.enableAchievementScreenshots ?? false,
       enableNewDownloadOptionsBadges:
         userPreferences.enableNewDownloadOptionsBadges ?? true,
       hideClassicsBookmark: userPreferences.hideClassicsBookmark ?? false,
@@ -103,6 +109,46 @@ export function SettingsContextContentGameplay() {
             <QuestionIcon size={12} />
           </small>
         </div>
+
+        {window.electron.platform !== "linux" && (
+          <>
+            <div className="settings-behavior__checkbox-container--with-tooltip">
+              <CheckboxField
+                label={t("enable_achievement_screenshots")}
+                checked={form.enableAchievementScreenshots}
+                onChange={() => {
+                  if (!hasActiveSubscription) {
+                    showHydraCloudModal("achievements");
+                    return;
+                  }
+
+                  handleChange({
+                    enableAchievementScreenshots:
+                      !form.enableAchievementScreenshots,
+                  });
+                }}
+              />
+
+              <small
+                className="settings-behavior__checkbox-container--tooltip"
+                data-open-article="achievement-souvenirs"
+              >
+                <QuestionIcon size={12} />
+              </small>
+            </div>
+
+            <Button
+              theme="outline"
+              onClick={async () =>
+                window.electron.openFolder(
+                  await window.electron.getScreenshotsPath()
+                )
+              }
+            >
+              {t("open_screenshots_directory")}
+            </Button>
+          </>
+        )}
 
         <CheckboxField
           label={t("enable_new_download_options_badges")}

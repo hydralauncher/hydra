@@ -1,6 +1,12 @@
 import { darkenColor, ensureArray } from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
-import type { Badge, UserProfile, UserStats, UserGame } from "@types";
+import type {
+  Badge,
+  ProfileAchievement,
+  UserProfile,
+  UserStats,
+  UserGame,
+} from "@types";
 import { average } from "color.js";
 
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
@@ -225,12 +231,20 @@ export function UserProfileContextProvider({
     profileParams.append("shop", "steam");
     profileParams.append("shop", "launchbox");
 
+    const language = i18n.language.split("-")[0];
+
+    const souvenirs = window.electron.hydraApi
+      .get<
+        ProfileAchievement[]
+      >(`/users/${userId}/achievements?${new URLSearchParams({ language }).toString()}`, { needsAuth: false })
+      .catch(() => null);
+
     return window.electron.hydraApi
       .get<UserProfile>(`/users/${userId}?${profileParams.toString()}`, {
         needsAuth: false,
       })
-      .then((userProfile) => {
-        setUserProfile(userProfile);
+      .then(async (userProfile) => {
+        setUserProfile({ ...userProfile, achievements: await souvenirs });
 
         if (userProfile.profileImageUrl) {
           getHeroBackgroundFromImageUrl(userProfile.profileImageUrl).then(
@@ -242,7 +256,15 @@ export function UserProfileContextProvider({
         showErrorToast(t("user_not_found"));
         navigate(-1);
       });
-  }, [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t]);
+  }, [
+    navigate,
+    getUserStats,
+    getUserLibraryGames,
+    showErrorToast,
+    userId,
+    t,
+    i18n,
+  ]);
 
   const getBadges = useCallback(async () => {
     const language = i18n.language.split("-")[0];

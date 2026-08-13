@@ -251,6 +251,19 @@ export interface UserDetails {
   };
 }
 
+export interface ProfileAchievement {
+  id: string;
+  name: string;
+  displayName: string;
+  description: string;
+  imageUrl: string;
+  achievementIcon: string | null;
+  unlockTime: number;
+  gameId: string;
+  gameTitle: string;
+  gameIconUrl: string | null;
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;
@@ -273,6 +286,7 @@ export interface UserProfile {
   badges: string[];
   badgesDetails?: { badge: string; unlockedAt: string }[];
   hasCompletedWrapped2025: boolean;
+  achievements: ProfileAchievement[] | null;
 }
 
 export interface UpdateProfileRequest {
