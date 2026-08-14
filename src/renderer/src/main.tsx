@@ -5,22 +5,15 @@ import { initReactI18next } from "react-i18next";
 import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { HashRouter, Route, Routes } from "react-router-dom";
-
 import "@fontsource/noto-sans/400.css";
 import "@fontsource/noto-sans/500.css";
 import "@fontsource/noto-sans/700.css";
-
 import "react-loading-skeleton/dist/skeleton.css";
 import "react-tooltip/dist/react-tooltip.css";
-
 import { CollectionContextMenuProvider } from "@renderer/context";
-
 import { App } from "./app";
-
 import { store } from "./store";
-
 import resources from "@locales";
-
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
 import * as Sentry from "@sentry/react";
@@ -41,6 +34,7 @@ import { AchievementNotificationOverlay } from "./components/achievements/notifi
 import GameLauncher from "./pages/game-launcher/game-launcher";
 import FriendsWindow from "./pages/friends-window/friends-window";
 import AuthWindow from "./pages/auth-window/auth-window";
+import { MacCompatibilityPanel } from "./pages/mac-compatibility/MacCompatibilityPanel";
 import BigPictureApp from "../../big-picture/src/app";
 import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue";
 import BigPictureComponentLab from "../../big-picture/src/pages/component-lab/component-lab";
@@ -51,9 +45,7 @@ import BigPictureLibrary from "../../big-picture/src/pages/library/page";
 import BigPictureGame from "../../big-picture/src/pages/game/game";
 import BigPictureGameAchievements from "../../big-picture/src/pages/game-achievements/game-achievements";
 import BigPictureProfile from "../../big-picture/src/pages/profile/profile";
-
 console.log = logger.log;
-
 Sentry.init({
   dsn: import.meta.env.RENDERER_VITE_SENTRY_DSN,
   integrations: [
@@ -65,23 +57,18 @@ Sentry.init({
   replaysOnErrorSampleRate: 0,
   release: "hydra-launcher@" + (await globalThis.electron.getVersion()),
 });
-
 globalThis.addEventListener("unhandledrejection", (event) => {
   logger.error("Unhandled promise rejection", event.reason);
 });
-
 globalThis.addEventListener("error", (event) => {
   logger.error("Uncaught error", event.error ?? event.message);
 });
-
 const isStaging = await globalThis.electron.isStaging();
 addCookieInterceptor(isStaging);
-
 const syncDocumentLanguage = (language: string) => {
   document.documentElement.lang = language;
   document.documentElement.dir = i18n.dir(language);
 };
-
 await i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -92,22 +79,18 @@ await i18n
       escapeValue: false,
     },
   });
-
 const userPreferences = (await levelDBService.get(
   "userPreferences",
   null,
   "json"
 )) as { language?: string } | null;
-
 if (userPreferences?.language) {
   await i18n.changeLanguage(userPreferences.language);
 } else {
   globalThis.electron.updateUserPreferences({ language: i18n.language });
 }
-
 syncDocumentLanguage(i18n.language);
 i18n.on("languageChanged", syncDocumentLanguage);
-
 // Every BrowserWindow runs its own renderer with its own i18n instance, so a
 // language change must be applied per-window. Subscribe here (the shared entry
 // for all routes) so detached windows — friends, game-launcher, etc. — react
@@ -119,7 +102,6 @@ globalThis.electron.onUserPreferencesUpdated((preferences) => {
     });
   }
 });
-
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
@@ -133,14 +115,20 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 <Route path="/catalogue" element={<Catalogue />} />
                 <Route path="/library" element={<Library />} />
                 <Route path="/downloads" element={<Downloads />} />
-                <Route path="/game/:shop/:objectId" element={<GameDetails />} />
+                <Route
+                  path="/game/:shop/:objectId"
+                  element={<GameDetails />}
+                />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/profile/:userId" element={<Profile />} />
                 <Route path="/achievements" element={<Achievements />} />
                 <Route path="/notifications" element={<Notifications />} />
               </Route>
-
               <Route path="/theme-editor" element={<ThemeEditor />} />
+              <Route
+                path="/mac-compatibility"
+                element={<MacCompatibilityPanel />}
+              />
               <Route
                 path="/achievement-notification"
                 element={<AchievementNotification />}
@@ -148,7 +136,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/game-launcher" element={<GameLauncher />} />
               <Route path="/friends-window" element={<FriendsWindow />} />
               <Route path="/auth-window" element={<AuthWindow />} />
-
               <Route path="/big-picture" element={<BigPictureApp />}>
                 <Route index element={<BigPictureHome />} />
                 <Route path="catalogue" element={<BigPictureCatalogue />} />
@@ -177,5 +164,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         </HashRouter>
       </ErrorBoundary>
     </Provider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
