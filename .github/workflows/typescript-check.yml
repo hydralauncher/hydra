@@ -1,0 +1,41 @@
+name: TypeScript Check
+
+on:
+  workflow_dispatch:
+
+  push:
+    paths:
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "tsconfig*.json"
+      - "package.json"
+      - "yarn.lock"
+
+  pull_request:
+    paths:
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "tsconfig*.json"
+      - "package.json"
+      - "yarn.lock"
+
+jobs:
+  typecheck:
+    name: TypeScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: TypeScript check
+        run: yarn tsc --noEmit -p tsconfig.node.json
