@@ -24,6 +24,7 @@ import {
   buildIconsForExistingMetadata,
   getExistingEntryIconPaths,
   type AchievementIcon,
+  type AchievementMetadata,
 } from "./build-achievement-metadata";
 import { findSteamSettingsDirectories } from "./find-steam-settings-directories";
 
@@ -167,6 +168,59 @@ const writeAchievementsFile = async (
   }
 };
 
+interface WriteGeneratedAchievementFilesOptions {
+  containmentRoot: string;
+  directories: string[];
+  existingImagesDirNames: Map<string, string | null>;
+  achievements: SteamAchievement[];
+  defaultMetadata: AchievementMetadata;
+  objectId: string;
+  signal?: AbortSignal;
+}
+
+const writeGeneratedAchievementFiles = async ({
+  containmentRoot,
+  directories,
+  existingImagesDirNames,
+  achievements,
+  defaultMetadata,
+  objectId,
+  signal,
+}: WriteGeneratedAchievementFilesOptions) => {
+  const generatedIconsByDirectory = new Map<string, AchievementIcon[]>();
+
+  for (const steamSettingsDirectory of directories) {
+    if (signal?.aborted) return null;
+
+    const imagesDirName = existingImagesDirNames.get(steamSettingsDirectory);
+
+    const { entries, icons } = imagesDirName
+      ? buildAchievementMetadata(achievements, imagesDirName)
+      : defaultMetadata;
+
+    generatedIconsByDirectory.set(steamSettingsDirectory, icons);
+
+    try {
+      await writeAchievementsFile(
+        containmentRoot,
+        steamSettingsDirectory,
+        JSON.stringify(entries, null, 2)
+      );
+
+      achievementsLogger.log(
+        `Generated ${ACHIEVEMENTS_FILE_NAME} for ${objectId} at ${steamSettingsDirectory}`
+      );
+    } catch (error) {
+      achievementsLogger.error(
+        `Failed to write ${ACHIEVEMENTS_FILE_NAME} at ${steamSettingsDirectory}`,
+        error
+      );
+    }
+  }
+
+  return generatedIconsByDirectory;
+};
+
 export const generateAchievementMetadata = async (
   game: Game,
   signal?: AbortSignal
@@ -264,36 +318,17 @@ export const generateAchievementMetadata = async (
     return null;
   }
 
-  const generatedIconsByDirectory = new Map<string, AchievementIcon[]>();
+  const generatedIconsByDirectory = await writeGeneratedAchievementFiles({
+    containmentRoot,
+    directories: directoriesMissingAchievements,
+    existingImagesDirNames,
+    achievements,
+    defaultMetadata,
+    objectId: game.objectId,
+    signal,
+  });
 
-  for (const steamSettingsDirectory of directoriesMissingAchievements) {
-    if (signal?.aborted) return null;
-
-    const imagesDirName = existingImagesDirNames.get(steamSettingsDirectory);
-
-    const { entries, icons } = imagesDirName
-      ? buildAchievementMetadata(achievements, imagesDirName)
-      : defaultMetadata;
-
-    generatedIconsByDirectory.set(steamSettingsDirectory, icons);
-
-    try {
-      await writeAchievementsFile(
-        containmentRoot,
-        steamSettingsDirectory,
-        JSON.stringify(entries, null, 2)
-      );
-
-      achievementsLogger.log(
-        `Generated ${ACHIEVEMENTS_FILE_NAME} for ${game.objectId} at ${steamSettingsDirectory}`
-      );
-    } catch (error) {
-      achievementsLogger.error(
-        `Failed to write ${ACHIEVEMENTS_FILE_NAME} at ${steamSettingsDirectory}`,
-        error
-      );
-    }
-  }
+  if (!generatedIconsByDirectory) return null;
 
   const targets = directoriesMissingImages
     .map((steamSettingsDirectory) => {
