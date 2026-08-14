@@ -4,7 +4,6 @@ import { homedir } from "os";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import type {
-  MacArchitecture,
   MacCompatibilityGameKey,
   MacWineEnvironment,
   MacWineVersion,
