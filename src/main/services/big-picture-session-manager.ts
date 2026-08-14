@@ -1,13 +1,15 @@
 import { db, levelKeys } from "@main/level";
 import type { UserPreferences } from "@types";
 import { AudioDeviceManager } from "./audio-device-manager";
+import type { AudioDeviceDefaults } from "./audio-device-manager-utils";
+import { getBigPictureAudioOperation } from "./big-picture-session-manager-utils";
 import { DisplayManager } from "./display-manager";
 import { logger } from "./logger";
 import { NativeAddon } from "./native-addon";
 
 type BigPictureRestoreSnapshot = {
   primaryDisplaySourceName: string | null;
-  defaultAudioDeviceId: string | null;
+  defaultAudioDevices: AudioDeviceDefaults;
 };
 
 const RESTORE_PRIMARY_DISPLAY_MAX_ATTEMPTS = 3;
@@ -93,7 +95,7 @@ export class BigPictureSessionManager {
 
     this.snapshot = {
       primaryDisplaySourceName: NativeAddon.getPrimaryDisplaySourceName(),
-      defaultAudioDeviceId: await AudioDeviceManager.getDefaultAudioDeviceId(),
+      defaultAudioDevices: await AudioDeviceManager.getDefaultAudioDevices(),
     };
 
     logger.info("Captured Big Picture restore snapshot", this.snapshot);
@@ -119,13 +121,15 @@ export class BigPictureSessionManager {
       return false;
     }
 
-    const targetAudioDeviceId =
-      userPreferences.bigPictureSoundsEnabled === false
-        ? this.snapshot.defaultAudioDeviceId
-        : (userPreferences.bigPictureAudioDeviceId ??
-          this.snapshot.defaultAudioDeviceId);
+    const operation = getBigPictureAudioOperation(userPreferences);
 
-    return AudioDeviceManager.setDefaultAudioDevice(targetAudioDeviceId);
+    if (operation.type === "restore") {
+      return AudioDeviceManager.restoreDefaultAudioDevices(
+        this.snapshot.defaultAudioDevices
+      );
+    }
+
+    return AudioDeviceManager.setDefaultAudioDevice(operation.deviceId);
   }
 
   public static applyDisplayPreference() {
@@ -151,11 +155,9 @@ export class BigPictureSessionManager {
       }
     }
 
-    if (snapshot.defaultAudioDeviceId) {
-      await AudioDeviceManager.setDefaultAudioDevice(
-        snapshot.defaultAudioDeviceId
-      );
-    }
+    await AudioDeviceManager.restoreDefaultAudioDevices(
+      snapshot.defaultAudioDevices
+    );
   }
 
   private static async restoreInternal() {

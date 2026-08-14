@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { NativeAddon } from "./native-addon";
 import {
   PACTL_AUDIO_DEVICE_PREFIX,
+  type AudioDeviceDefaults,
   getFirstAvailableAudioBackendResult,
   parsePactlAudioSinks,
   parseWpctlAudioSinks,
@@ -109,14 +110,20 @@ export class AudioDeviceManager {
     return NativeAddon.listAudioRenderDevices();
   }
 
-  public static async getDefaultAudioDeviceId(): Promise<string | null> {
+  public static async getDefaultAudioDevices(): Promise<AudioDeviceDefaults> {
     if (process.platform === "linux") {
-      return this.getLinuxDefaultAudioDeviceId();
+      const defaultAudioDeviceId = await this.getLinuxDefaultAudioDeviceId();
+      return {
+        consoleId: defaultAudioDeviceId,
+        multimediaId: defaultAudioDeviceId,
+      };
     }
 
-    if (process.platform !== "win32") return null;
+    if (process.platform !== "win32") {
+      return { consoleId: null, multimediaId: null };
+    }
 
-    return NativeAddon.getDefaultAudioRenderDeviceId();
+    return NativeAddon.getDefaultAudioRenderDeviceIds();
   }
 
   public static async setDefaultAudioDevice(id: string | null | undefined) {
@@ -127,5 +134,19 @@ export class AudioDeviceManager {
     if (process.platform !== "win32" || !id) return false;
 
     return NativeAddon.setDefaultAudioRenderDeviceId(id);
+  }
+
+  public static async restoreDefaultAudioDevices(
+    defaults: AudioDeviceDefaults
+  ) {
+    if (process.platform === "linux") {
+      return this.setLinuxDefaultAudioDevice(
+        defaults.multimediaId ?? defaults.consoleId
+      );
+    }
+
+    if (process.platform !== "win32") return false;
+
+    return NativeAddon.setDefaultAudioRenderDeviceIds(defaults);
   }
 }

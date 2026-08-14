@@ -98,6 +98,7 @@ export class DisplayManager {
           displayId: display.id,
           bounds: display.bounds,
         });
+        return display;
       }
 
       const primaryDisplaySettled = await this.waitForPrimaryDisplay(display);

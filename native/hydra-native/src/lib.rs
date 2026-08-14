@@ -66,6 +66,12 @@ pub struct NativeAudioDevice {
     pub is_default: bool,
 }
 
+#[napi(object)]
+pub struct NativeAudioDeviceDefaults {
+    pub console_id: Option<String>,
+    pub multimedia_id: Option<String>,
+}
+
 #[napi]
 pub fn process_profile_image(
     image_path: String,
@@ -336,11 +342,43 @@ pub fn set_default_audio_render_device_id(id: String) -> napi::Result<bool> {
     }
 }
 
+#[napi]
+pub fn get_default_audio_render_device_ids() -> napi::Result<NativeAudioDeviceDefaults> {
+    #[cfg(target_os = "windows")]
+    {
+        return core_audio::get_default_render_device_ids().map_err(Error::from_reason);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Ok(NativeAudioDeviceDefaults {
+            console_id: None,
+            multimedia_id: None,
+        })
+    }
+}
+
+#[napi]
+pub fn set_default_audio_render_device_ids(
+    defaults: NativeAudioDeviceDefaults,
+) -> napi::Result<bool> {
+    #[cfg(target_os = "windows")]
+    {
+        return core_audio::set_default_render_device_ids(&defaults).map_err(Error::from_reason);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = defaults;
+        Ok(false)
+    }
+}
+
 #[cfg(target_os = "windows")]
 mod core_audio {
     use std::ffi::c_void;
 
-    use super::NativeAudioDevice;
+    use super::{NativeAudioDevice, NativeAudioDeviceDefaults};
     use windows::core::{IUnknown, IUnknown_Vtbl, Interface, BSTR, GUID, HRESULT, PCWSTR};
     use windows::Win32::Foundation::PROPERTYKEY;
     use windows::Win32::Media::Audio::{
@@ -446,39 +484,80 @@ mod core_audio {
     }
 
     pub fn get_default_render_device_id() -> Result<Option<String>, String> {
+        Ok(get_default_render_device_ids()?.multimedia_id)
+    }
+
+    pub fn get_default_render_device_ids() -> Result<NativeAudioDeviceDefaults, String> {
         initialize_com();
 
         let enumerator: IMMDeviceEnumerator =
             unsafe { CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL) }
                 .map_err(|error| error.to_string())?;
-        let device = unsafe { enumerator.GetDefaultAudioEndpoint(eRender, eMultimedia) }
-            .map_err(|error| error.to_string())?;
-        let id = unsafe { device.GetId() }
-            .map_err(|error| error.to_string())
-            .and_then(device_id_to_string)?;
 
-        Ok(Some(id))
+        Ok(NativeAudioDeviceDefaults {
+            console_id: get_default_render_device_id_for_role(&enumerator, eConsole),
+            multimedia_id: get_default_render_device_id_for_role(&enumerator, eMultimedia),
+        })
     }
 
     pub fn set_default_render_device_id(id: &str) -> Result<bool, String> {
+        set_default_render_device_roles(Some(id), Some(id))
+    }
+
+    pub fn set_default_render_device_ids(
+        defaults: &NativeAudioDeviceDefaults,
+    ) -> Result<bool, String> {
+        set_default_render_device_roles(
+            defaults.console_id.as_deref(),
+            defaults.multimedia_id.as_deref(),
+        )
+    }
+
+    fn get_default_render_device_id_for_role(
+        enumerator: &IMMDeviceEnumerator,
+        role: ERole,
+    ) -> Option<String> {
+        let device = unsafe { enumerator.GetDefaultAudioEndpoint(eRender, role) }.ok()?;
+        let id = unsafe { device.GetId() }.ok()?;
+        device_id_to_string(id).ok()
+    }
+
+    fn set_default_render_device_roles(
+        console_id: Option<&str>,
+        multimedia_id: Option<&str>,
+    ) -> Result<bool, String> {
         initialize_com();
 
         let policy: IPolicyConfig =
             unsafe { CoCreateInstance(&POLICY_CONFIG_CLIENT, None, CLSCTX_ALL) }
                 .map_err(|error| error.to_string())?;
+
+        if let Some(id) = console_id {
+            set_default_render_device_for_role(&policy, id, eConsole)?;
+        }
+
+        if let Some(id) = multimedia_id {
+            set_default_render_device_for_role(&policy, id, eMultimedia)?;
+        }
+
+        Ok(console_id.is_some() || multimedia_id.is_some())
+    }
+
+    fn set_default_render_device_for_role(
+        policy: &IPolicyConfig,
+        id: &str,
+        role: ERole,
+    ) -> Result<(), String> {
         let wide_id: Vec<u16> = id.encode_utf16().chain(std::iter::once(0)).collect();
         let device_id = PCWSTR(wide_id.as_ptr());
 
         unsafe {
-            ((*policy.vtable()).set_default_endpoint)(policy.as_raw(), device_id, eConsole)
-                .ok()
-                .map_err(|error| error.to_string())?;
-            ((*policy.vtable()).set_default_endpoint)(policy.as_raw(), device_id, eMultimedia)
+            ((*policy.vtable()).set_default_endpoint)(policy.as_raw(), device_id, role)
                 .ok()
                 .map_err(|error| error.to_string())?;
         }
 
-        Ok(true)
+        Ok(())
     }
 }
 

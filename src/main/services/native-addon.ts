@@ -24,6 +24,7 @@ import type {
   HydraAudioDevice,
 } from "@types";
 
+import type { AudioDeviceDefaults } from "./audio-device-manager-utils";
 import { logger } from "./logger";
 
 type NativeProcessProfileImageResponse = {
@@ -43,6 +44,11 @@ type NativeDisplayBounds = {
   y: number;
   width: number;
   height: number;
+};
+
+type NativeAudioDeviceDefaults = {
+  consoleId: string | null;
+  multimediaId: string | null;
 };
 
 type HydraNativeModule = {
@@ -65,6 +71,10 @@ type HydraNativeModule = {
   listAudioRenderDevices?: () => HydraAudioDevice[];
   getDefaultAudioRenderDeviceId?: () => string | null;
   setDefaultAudioRenderDeviceId?: (id: string) => boolean;
+  getDefaultAudioRenderDeviceIds?: () => NativeAudioDeviceDefaults;
+  setDefaultAudioRenderDeviceIds?: (
+    defaults: NativeAudioDeviceDefaults
+  ) => boolean;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -446,6 +456,30 @@ export class NativeAddon {
       return this.load().setDefaultAudioRenderDeviceId?.(id) ?? false;
     } catch (error) {
       logger.error("Failed to set default audio render device", error);
+      return false;
+    }
+  }
+
+  public static getDefaultAudioRenderDeviceIds(): AudioDeviceDefaults {
+    try {
+      const defaults = this.load().getDefaultAudioRenderDeviceIds?.();
+      return {
+        consoleId: defaults?.consoleId ?? null,
+        multimediaId: defaults?.multimediaId ?? null,
+      };
+    } catch (error) {
+      logger.error("Failed to get default audio render devices", error);
+      return { consoleId: null, multimediaId: null };
+    }
+  }
+
+  public static setDefaultAudioRenderDeviceIds(
+    defaults: AudioDeviceDefaults
+  ): boolean {
+    try {
+      return this.load().setDefaultAudioRenderDeviceIds?.(defaults) ?? false;
+    } catch (error) {
+      logger.error("Failed to restore default audio render devices", error);
       return false;
     }
   }

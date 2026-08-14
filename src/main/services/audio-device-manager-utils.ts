@@ -3,6 +3,11 @@ import type { HydraAudioDevice } from "@types";
 export const WPCTL_AUDIO_DEVICE_PREFIX = "wpctl:";
 export const PACTL_AUDIO_DEVICE_PREFIX = "pactl:";
 
+export type AudioDeviceDefaults = {
+  consoleId: string | null;
+  multimediaId: string | null;
+};
+
 export async function getFirstAvailableAudioBackendResult<T>(
   backends: Array<() => Promise<T>>,
   fallback: T
