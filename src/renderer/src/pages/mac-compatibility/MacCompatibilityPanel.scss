@@ -1,0 +1,155 @@
+.mac-compatibility-panel {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  box-sizing: border-box;
+  background: #0d0d0f;
+  color: #ffffff;
+  font-family: "Noto Sans", sans-serif;
+}
+
+.mac-compatibility-panel__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.mac-compatibility-panel__title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.mac-compatibility-panel__subtitle {
+  margin: 0;
+  color: #999999;
+  font-size: 14px;
+}
+
+.mac-compatibility-panel__circle {
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: #050505;
+  box-shadow:
+    0 0 20px rgba(255, 255, 255, 0.12),
+    inset 0 0 25px rgba(255, 255, 255, 0.04);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.mac-compatibility-panel__circle:hover {
+  box-shadow:
+    0 0 30px rgba(255, 255, 255, 0.2),
+    inset 0 0 30px rgba(255, 255, 255, 0.06);
+}
+
+.mac-compatibility-panel__circle:active {
+  cursor: grabbing;
+  transform: scale(0.97);
+}
+
+.mac-compatibility-panel__logo {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+}
+
+.mac-compatibility-panel__status {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.mac-compatibility-panel__status-label {
+  margin: 0 0 6px;
+  color: #999999;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.mac-compatibility-panel__status-value {
+  margin: 0;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.mac-compatibility-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.mac-compatibility-panel__button {
+  min-width: 130px;
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: #19191c;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.mac-compatibility-panel__button:hover {
+  background: #242428;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.mac-compatibility-panel__button:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 600px) {
+  .mac-compatibility-panel {
+    padding: 24px;
+  }
+
+  .mac-compatibility-panel__title {
+    font-size: 24px;
+  }
+
+  .mac-compatibility-panel__circle {
+    width: 150px;
+    height: 150px;
+  }
+
+  .mac-compatibility-panel__logo {
+    width: 75px;
+    height: 75px;
+  }
+
+  .mac-compatibility-panel__actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .mac-compatibility-panel__button {
+    width: 100%;
+  }
+}
