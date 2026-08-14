@@ -4,16 +4,29 @@ import { randomUUID } from "node:crypto";
 import type { GameShop } from "@types";
 import { GameExecutables } from "@main/services";
 
+export interface AddCustomGameToLibraryParams {
+  title: string;
+  executablePath: string;
+  iconUrl?: string;
+  logoImageUrl?: string;
+  libraryHeroImageUrl?: string;
+  matchedSteamObjectId?: string | null;
+  customCoverImageUrl?: string | null;
+}
+
 const addCustomGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
-  title: string,
-  executablePath: string,
-  iconUrl?: string,
-  logoImageUrl?: string,
-  libraryHeroImageUrl?: string,
-  matchedSteamObjectId?: string | null,
-  customCoverImageUrl?: string | null
+  params: AddCustomGameToLibraryParams
 ) => {
+  const {
+    title,
+    executablePath,
+    iconUrl,
+    logoImageUrl,
+    libraryHeroImageUrl,
+    matchedSteamObjectId,
+    customCoverImageUrl,
+  } = params;
   const objectId = randomUUID();
   const shop: GameShop = "custom";
   const gameKey = levelKeys.game(shop, objectId);

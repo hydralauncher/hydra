@@ -123,6 +123,9 @@ export function GameOptionsModal({
     useState<SteamMatchSuggestion | null>(null);
   const [pendingSteamMatchAssets, setPendingSteamMatchAssets] =
     useState<ShopAssets | null>(null);
+  // Tracks which match is currently "active" so an asset fetch for a match
+  // the user has since changed away from can't clobber newer state.
+  const pendingSteamMatchRef = useRef<SteamMatchSuggestion | null>(null);
   const {
     suggestions: steamMatchSuggestions,
     isSearching: isSearchingSteamMatch,
@@ -249,6 +252,23 @@ export function GameOptionsModal({
   useEffect(() => {
     setGameTitle(game.title ?? "");
   }, [game.title]);
+  useEffect(() => {
+    // Restore the persisted Steam match (if any) so it isn't lost when the
+    // modal is reopened for an already-matched custom game.
+    const persistedMatch: SteamMatchSuggestion | null =
+      game.matchedSteamObjectId
+        ? {
+            objectId: game.matchedSteamObjectId,
+            shop: "steam",
+            title: game.title ?? "",
+            iconUrl: game.iconUrl ?? null,
+          }
+        : null;
+
+    pendingSteamMatchRef.current = persistedMatch;
+    setPendingSteamMatch(persistedMatch);
+    setPendingSteamMatchAssets(null);
+  }, [game.matchedSteamObjectId]);
   useEffect(() => {
     setSelectedProtonPath(game.protonPath ?? "");
   }, [game.protonPath]);
@@ -699,72 +719,52 @@ export function GameOptionsModal({
   ) => {
     setGameTitle(event.target.value);
     if (pendingSteamMatch) {
+      pendingSteamMatchRef.current = null;
       setPendingSteamMatch(null);
       setPendingSteamMatchAssets(null);
     }
   };
 
-  const handleSelectSteamMatch = (suggestion: SteamMatchSuggestion) => {
-    setPendingSteamMatch(suggestion);
-    setGameTitle(suggestion.title);
-    clearSteamMatchSuggestions();
-    setPendingSteamMatchAssets(null);
-
-    globalThis.window.electron
-      .getGameAssets(suggestion.objectId, "steam")
-      .then(setPendingSteamMatchAssets)
-      .catch((error) => {
-        logger.error("Failed to fetch matched Steam game assets", error);
-      });
-  };
-
-  const handleClearSteamMatch = () => {
-    setPendingSteamMatch(null);
-    setPendingSteamMatchAssets(null);
-  };
-
-  const handleBlurGameTitle = async () => {
-    if (updatingGameTitle) return;
-    const trimmed = gameTitle.trim();
-    if (!trimmed) {
-      setGameTitle(game.title ?? "");
-      showErrorToast(t("edit_game_modal_fill_required"));
-      return;
-    }
-    if (trimmed === (game.title ?? "").trim() && !pendingSteamMatch) {
-      setGameTitle(game.title ?? "");
-      return;
-    }
+  // Shared by every path that changes the title and/or the Steam match, so
+  // a selection or a clear can persist itself immediately rather than
+  // relying on the title field's onBlur firing afterward (the modal can be
+  // closed, or focus can move some other way, without ever blurring it).
+  // matchedSteamObjectId is always sent explicitly (never omitted) since
+  // this call site's `match` argument is always the caller's full intent --
+  // unlike other updateCustomGame callers, there's no "leave it alone"
+  // case here to distinguish with undefined.
+  const persistTitleAndMatch = async (
+    trimmedTitle: string,
+    match: SteamMatchSuggestion | null,
+    matchAssets: ShopAssets | null
+  ) => {
     setUpdatingGameTitle(true);
     try {
       if (game.shop === "custom") {
         await globalThis.window.electron.updateCustomGame({
           shop: game.shop,
           objectId: game.objectId,
-          title: trimmed,
-          iconUrl:
-            pendingSteamMatchAssets?.iconUrl || game.iconUrl || undefined,
+          title: trimmedTitle,
+          iconUrl: matchAssets?.iconUrl || game.iconUrl || undefined,
           logoImageUrl:
-            pendingSteamMatchAssets?.logoImageUrl ||
-            game.logoImageUrl ||
-            undefined,
+            matchAssets?.logoImageUrl || game.logoImageUrl || undefined,
           libraryHeroImageUrl:
-            pendingSteamMatchAssets?.libraryHeroImageUrl ||
+            matchAssets?.libraryHeroImageUrl ||
             game.libraryHeroImageUrl ||
             undefined,
-          customCoverImageUrl:
-            pendingSteamMatchAssets?.coverImageUrl || undefined,
-          matchedSteamObjectId: pendingSteamMatch?.objectId ?? undefined,
+          customCoverImageUrl: matchAssets?.coverImageUrl || undefined,
+          matchedSteamObjectId: match?.objectId ?? null,
         });
       } else {
         await globalThis.window.electron.updateGameCustomAssets({
           shop: game.shop,
           objectId: game.objectId,
-          title: trimmed,
+          title: trimmedTitle,
         });
       }
       await Promise.all([updateGame(), updateLibrary()]);
-      setGameTitle(trimmed);
+      setGameTitle(trimmedTitle);
+      pendingSteamMatchRef.current = null;
       setPendingSteamMatch(null);
       setPendingSteamMatchAssets(null);
     } catch (error) {
@@ -775,6 +775,68 @@ export function GameOptionsModal({
     } finally {
       setUpdatingGameTitle(false);
     }
+  };
+
+  const handleSelectSteamMatch = (suggestion: SteamMatchSuggestion) => {
+    pendingSteamMatchRef.current = suggestion;
+    setPendingSteamMatch(suggestion);
+    setGameTitle(suggestion.title);
+    clearSteamMatchSuggestions();
+    setPendingSteamMatchAssets(null);
+
+    globalThis.window.electron
+      .getGameAssets(suggestion.objectId, "steam")
+      .then((assets) => {
+        if (pendingSteamMatchRef.current?.objectId !== suggestion.objectId) {
+          return;
+        }
+        setPendingSteamMatchAssets(assets);
+        void persistTitleAndMatch(suggestion.title, suggestion, assets);
+      })
+      .catch((error) => {
+        if (pendingSteamMatchRef.current?.objectId !== suggestion.objectId) {
+          return;
+        }
+        logger.error("Failed to fetch matched Steam game assets", error);
+        void persistTitleAndMatch(suggestion.title, suggestion, null);
+      });
+  };
+
+  const handleClearSteamMatch = () => {
+    pendingSteamMatchRef.current = null;
+    setPendingSteamMatch(null);
+    setPendingSteamMatchAssets(null);
+
+    if (game.shop !== "custom" || !game.matchedSteamObjectId) return;
+    void persistTitleAndMatch(
+      gameTitle.trim() || (game.title ?? ""),
+      null,
+      null
+    );
+  };
+
+  const handleBlurGameTitle = async () => {
+    if (updatingGameTitle) return;
+    const trimmed = gameTitle.trim();
+    if (!trimmed) {
+      setGameTitle(game.title ?? "");
+      showErrorToast(t("edit_game_modal_fill_required"));
+      return;
+    }
+    const effectiveMatchId = pendingSteamMatch?.objectId ?? null;
+    const persistedMatchId = game.matchedSteamObjectId ?? null;
+    if (
+      trimmed === (game.title ?? "").trim() &&
+      effectiveMatchId === persistedMatchId
+    ) {
+      setGameTitle(game.title ?? "");
+      return;
+    }
+    await persistTitleAndMatch(
+      trimmed,
+      pendingSteamMatch,
+      pendingSteamMatchAssets
+    );
   };
 
   const handleResetGameTitle = useCallback(async () => {

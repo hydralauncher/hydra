@@ -126,7 +126,6 @@ export function Sidebar() {
   const {
     gameTitle,
     shopDetails,
-    objectId,
     shop,
     steamMatchShop,
     steamMatchObjectId,
@@ -170,21 +169,25 @@ export function Sidebar() {
   }, [steamMatchObjectId, steamMatchShop]);
 
   useEffect(() => {
-    if (!shouldShowProtonFeatures || !objectId) {
+    if (
+      !shouldShowProtonFeatures ||
+      !steamMatchObjectId ||
+      steamMatchShop === "custom"
+    ) {
       setProtonDB({ isLoading: false, data: null });
       return;
     }
 
     setProtonDB({ isLoading: true, data: null });
 
-    getProtonDBData(shop, objectId)
+    getProtonDBData(steamMatchShop, steamMatchObjectId)
       .then((protonData) => {
         setProtonDB({ isLoading: false, data: protonData });
       })
       .catch(() => {
         setProtonDB({ isLoading: false, data: null });
       });
-  }, [shouldShowProtonFeatures, objectId, shop]);
+  }, [shouldShowProtonFeatures, steamMatchObjectId, steamMatchShop]);
 
   return (
     <aside className="content-sidebar">
@@ -193,7 +196,7 @@ export function Sidebar() {
           <ProtonDBSection
             protonDBData={protonDB.data}
             isLoading={protonDB.isLoading}
-            objectId={objectId ?? ""}
+            objectId={steamMatchObjectId ?? ""}
           />
         </Suspense>
       )}
@@ -259,8 +262,8 @@ export function Sidebar() {
               <li key={achievement.displayName}>
                 <Link
                   to={buildGameAchievementPath({
-                    shop: shop,
-                    objectId: objectId!,
+                    shop: steamMatchShop,
+                    objectId: steamMatchObjectId!,
                     title: gameTitle,
                   })}
                   className="list__item"
@@ -287,8 +290,8 @@ export function Sidebar() {
             {achievementsCount > 0 && (
               <Link
                 to={buildGameAchievementPath({
-                  shop: shop,
-                  objectId: objectId!,
+                  shop: steamMatchShop,
+                  objectId: steamMatchObjectId!,
                   title: gameTitle,
                 })}
               >
