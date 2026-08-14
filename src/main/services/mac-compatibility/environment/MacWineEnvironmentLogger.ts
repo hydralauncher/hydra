@@ -1,10 +1,5 @@
-import {
-  appendFile,
-  mkdir,
-  readFile,
-  writeFile,
-} from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { appendFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 
 export type MacWineEnvironmentLogLevel = "info" | "warning" | "error";
 
@@ -16,15 +11,14 @@ export interface MacWineEnvironmentLogEntry {
 }
 
 /**
- * Per-game compatibility log. Each game's compatibility box gets its own
- * log file living alongside its Wine prefix.
+ * Per-game compatibility log.
  *
- * The log is intentionally bounded to MAX_ENTRIES entries so repeated
- * compatibility checks cannot cause the file to grow forever.
+ * Each game's compatibility box gets its own log file inside its
+ * environment directory. This keeps compatibility history isolated
+ * between games and gives the future diagnostics UI real information
+ * to display.
  */
 export class MacWineEnvironmentLogger {
-  private static readonly MAX_ENTRIES = 500;
-
   private static logFilePath(prefixPath: string): string {
     return join(prefixPath, "compatibility.log");
   }
@@ -45,35 +39,14 @@ export class MacWineEnvironmentLogger {
     const logPath = this.logFilePath(prefixPath);
 
     try {
-      await mkdir(dirname(logPath), { recursive: true });
-
-      let entries: MacWineEnvironmentLogEntry[] = [];
-
-      try {
-        const existing = await readFile(logPath, "utf8");
-
-        entries = existing
-          .split("\n")
-          .filter((line) => line.trim().length > 0)
-          .map((line) => JSON.parse(line) as MacWineEnvironmentLogEntry);
-      } catch {
-        // The log does not exist yet, or an existing log could not be read.
-        // Start a fresh log rather than allowing logging to break the
-        // compatibility operation.
-        entries = [];
-      }
-
-      entries.push(entry);
-
-      const trimmedEntries = entries.slice(-MacWineEnvironmentLogger.MAX_ENTRIES);
-
-      await writeFile(
+      await mkdir(prefixPath, { recursive: true });
+      await appendFile(
         logPath,
-        `${trimmedEntries.map((item) => JSON.stringify(item)).join("\n")}\n`,
+        `${JSON.stringify(entry)}\n`,
         "utf8",
       );
     } catch (error) {
-      // Logging must never break the operation it's logging.
+      // Logging must never break the compatibility operation itself.
       console.error(
         "[MacWineEnvironmentLogger] Failed to write log entry:",
         error,
