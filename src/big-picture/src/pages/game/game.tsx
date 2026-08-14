@@ -12,6 +12,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { buildLibraryToastOptions, getItemFocusTarget } from "../../helpers";
 import type { LibraryToastSource } from "../../helpers/library-toast";
 import {
+  Button,
+  EmptyState,
   Typography,
   VerticalFocusGroup,
   Divider,
@@ -49,6 +51,7 @@ import {
 } from "../../layout";
 import {
   GAME_COMMENTS_ACTION_ROWS_REGION_ID,
+  GAME_DETAILS_ERROR_RETRY_ID,
   GAME_DESCRIPTION_BOTTOM_ENTRY_ID,
   GAME_DESCRIPTION_BODY_ID,
   GAME_DESCRIPTION_REGION_ID,
@@ -492,6 +495,7 @@ export default function Game() {
     isGameRunning,
     runningSessionDurationInMillis,
     isLoading,
+    hasDetailsFetchError,
     howLongToBeat,
     protonDBData,
     achievements,
@@ -673,6 +677,10 @@ export default function Game() {
     heroActionsLeftNavigationTarget,
   ]);
   useHeaderTitle(resolvedGameTitle);
+
+  const handleRetryGameDetails = useCallback(() => {
+    refreshGameDetails({ showLoadingState: true }).catch(() => {});
+  }, [refreshGameDetails]);
 
   const handleOpenDownloadModal = useCallback(() => {
     setIsDownloadModalOpen(true);
@@ -1252,6 +1260,28 @@ export default function Game() {
       <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
         <div className="game-page">
           <p style={{ color: "white" }}>Loading...</p>
+        </div>
+      </VerticalFocusGroup>
+    );
+  }
+
+  if (hasDetailsFetchError && !game && !shopDetails && shop !== "custom") {
+    return (
+      <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
+        <div className="game-page game-page--details-error">
+          <EmptyState
+            title="Couldn't load game details"
+            description="Check your internet connection and try again."
+            actions={
+              <Button
+                focusId={GAME_DETAILS_ERROR_RETRY_ID}
+                stealFocusOnAppear
+                onClick={handleRetryGameDetails}
+              >
+                Try again
+              </Button>
+            }
+          />
         </div>
       </VerticalFocusGroup>
     );

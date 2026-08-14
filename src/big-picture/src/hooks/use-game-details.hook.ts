@@ -40,6 +40,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasDetailsFetchError, setHasDetailsFetchError] = useState(false);
   const userPreferences = useUserPreferences();
   const shouldUseRetroAchievements =
     shop === "launchbox" &&
@@ -62,9 +63,12 @@ export function useGameDetails(objectId: string, shop: GameShop) {
 
       if (showLoadingState) {
         setIsLoading(true);
+        setHasDetailsFetchError(false);
       } else {
         setIsRefreshing(true);
       }
+
+      let fetchFailed = false;
 
       try {
         const shopDetailsPromise =
@@ -72,7 +76,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
             ? Promise.resolve(null)
             : globalThis.window.electron
                 .getGameShopDetails(objectId, shop, language)
-                .catch(() => null);
+                .catch(() => {
+                  fetchFailed = true;
+                  return null;
+                });
 
         const [statsResult, assets, shopDetailsResult] = await Promise.all([
           shop === "custom"
@@ -88,7 +95,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
 
         setShopDetails(shopDetailsResult);
         setStats(statsResult);
+      } catch {
+        fetchFailed = true;
       } finally {
+        setHasDetailsFetchError(fetchFailed);
         setIsLoading(false);
         setIsRefreshing(false);
       }
@@ -269,6 +279,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     runningSessionDurationInMillis,
     isLoading,
     isRefreshing,
+    hasDetailsFetchError,
     howLongToBeat,
     protonDBData,
     achievements,
