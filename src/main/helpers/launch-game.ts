@@ -27,7 +27,7 @@ import {
   launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
-import { MacGameLaunchManager } from "@main/services/mac-compatibility/MacGameLaunchManager";
+import { MacGameLaunchManager } from "@main/services/mac-compatibility/launch/MacGameLaunchManager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
