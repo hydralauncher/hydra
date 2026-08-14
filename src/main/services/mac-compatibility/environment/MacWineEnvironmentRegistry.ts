@@ -1,61 +1,28 @@
-import { readFile, writeFile, mkdir } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 import { dirname } from "path";
 import type {
   MacCompatibilityGameKey,
   MacWineEnvironment,
 } from "../MacCompatibilityTypes";
 
-interface StoredEnvironment {
+interface RegistryEntry {
   key: MacCompatibilityGameKey;
   environment: MacWineEnvironment;
 }
 
 export class MacWineEnvironmentRegistry {
-  private readonly filePath: string;
-  private readonly entries = new Map<string, StoredEnvironment>();
+  private readonly registryPath: string;
+  private entries = new Map<string, RegistryEntry>();
   private loaded = false;
 
-  constructor(filePath: string) {
-    this.filePath = filePath;
-  }
-
-  async load(): Promise<void> {
-    if (this.loaded) {
-      return;
-    }
-
-    this.loaded = true;
-
-    try {
-      const contents = await readFile(this.filePath, "utf8");
-      const stored = JSON.parse(contents) as StoredEnvironment[];
-
-      for (const entry of stored) {
-        this.entries.set(this.getKey(entry.key), entry);
-      }
-    } catch {
-      // The registry does not exist yet.
-    }
-  }
-
-  async save(): Promise<void> {
-    await mkdir(dirname(this.filePath), {
-      recursive: true,
-    });
-
-    const contents = JSON.stringify(
-      Array.from(this.entries.values()),
-      null,
-      2,
-    );
-
-    await writeFile(this.filePath, contents, "utf8");
+  constructor(registryPath: string) {
+    this.registryPath = registryPath;
   }
 
   async get(
     key: MacCompatibilityGameKey,
   ): Promise<MacWineEnvironment | null> {
-    await this.load();
+    await this.ensureLoaded();
 
     return this.entries.get(this.getKey(key))?.environment ?? null;
   }
@@ -64,7 +31,7 @@ export class MacWineEnvironmentRegistry {
     key: MacCompatibilityGameKey,
     environment: MacWineEnvironment,
   ): Promise<void> {
-    await this.load();
+    await this.ensureLoaded();
 
     this.entries.set(this.getKey(key), {
       key,
@@ -75,7 +42,7 @@ export class MacWineEnvironmentRegistry {
   }
 
   async delete(key: MacCompatibilityGameKey): Promise<boolean> {
-    await this.load();
+    await this.ensureLoaded();
 
     const deleted = this.entries.delete(this.getKey(key));
 
@@ -87,19 +54,24 @@ export class MacWineEnvironmentRegistry {
   }
 
   async has(key: MacCompatibilityGameKey): Promise<boolean> {
-    await this.load();
+    await this.ensureLoaded();
 
     return this.entries.has(this.getKey(key));
   }
 
-  async getAll(): Promise<StoredEnvironment[]> {
-    await this.load();
+  async getAll(): Promise<
+    Array<{
+      key: MacCompatibilityGameKey;
+      environment: MacWineEnvironment;
+    }>
+  > {
+    await this.ensureLoaded();
 
     return Array.from(this.entries.values());
   }
 
   async clear(): Promise<void> {
-    await this.load();
+    await this.ensureLoaded();
 
     this.entries.clear();
 
@@ -108,5 +80,52 @@ export class MacWineEnvironmentRegistry {
 
   private getKey(key: MacCompatibilityGameKey): string {
     return `${key.shop}:${key.objectId}`;
+  }
+
+  private async ensureLoaded(): Promise<void> {
+    if (this.loaded) {
+      return;
+    }
+
+    this.loaded = true;
+
+    try {
+      const contents = await readFile(this.registryPath, "utf8");
+      const data = JSON.parse(contents) as RegistryEntry[];
+
+      for (const entry of data) {
+        if (
+          entry?.key?.shop &&
+          entry?.key?.objectId &&
+          entry?.environment
+        ) {
+          this.entries.set(this.getKey(entry.key), entry);
+        }
+      }
+    } catch {
+      // The registry does not exist yet.
+      // It will be created automatically when the first
+      // environment is saved.
+    }
+  }
+
+  private async save(): Promise<void> {
+    await this.ensureDirectory();
+
+    const data = Array.from(this.entries.values());
+
+    await writeFile(
+      this.registryPath,
+      JSON.stringify(data, null, 2),
+      "utf8",
+    );
+  }
+
+  private async ensureDirectory(): Promise<void> {
+    const { mkdir } = await import("fs/promises");
+
+    await mkdir(dirname(this.registryPath), {
+      recursive: true,
+    });
   }
 }
