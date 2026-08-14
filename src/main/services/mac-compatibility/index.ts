@@ -5,6 +5,7 @@ export { MacSystemDetector } from "./MacSystemDetector";
 export { MacWineDetector } from "./MacWineDetector";
 
 export {
+  MacGameLaunchController,
   MacGameLaunchManager,
   type MacGameLaunchRequest,
   type MacGameLaunchResult,
