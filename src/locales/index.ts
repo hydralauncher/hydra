@@ -34,7 +34,9 @@ import vi from "./vi/translation.json";
 import ja from "./ja/translation.json";
 import sl from "./sl/translation.json";
 
-export default {
+type Translation = typeof en;
+
+const translations: Record<string, Translation> = {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
   en,
@@ -71,3 +73,5 @@ export default {
   ja,
   sl,
 };
+
+export default translations;
