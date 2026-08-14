@@ -1,138 +1,180 @@
-import { access, mkdir, rm } from "fs/promises";
+import { access, mkdir } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
-import { randomUUID } from "crypto";
-
+import { execFile } from "child_process";
+import { promisify } from "util";
 import type {
   MacArchitecture,
   MacCompatibilityGameKey,
   MacWineEnvironment,
+  MacWineVersion,
 } from "../MacCompatibilityTypes";
+import { MacWineEnvironmentRegistry } from "./MacWineEnvironmentRegistry";
+
+const execFileAsync = promisify(execFile);
 
 export class MacWineEnvironmentManager {
-  private readonly basePath: string;
+  private readonly registry: MacWineEnvironmentRegistry;
+  private readonly environmentsPath: string;
 
-  constructor(basePath?: string) {
-    this.basePath =
-      basePath ?? join(homedir(), "Library", "Application Support", "Hydra", "mac-compatibility");
+  constructor(
+    registryPath = join(
+      homedir(),
+      "Library",
+      "Application Support",
+      "Hydra",
+      "mac-compatibility",
+      "environments.json",
+    ),
+    environmentsPath = join(
+      homedir(),
+      "Library",
+      "Application Support",
+      "Hydra",
+      "mac-compatibility",
+      "environments",
+    ),
+  ) {
+    this.registry = new MacWineEnvironmentRegistry(registryPath);
+    this.environmentsPath = environmentsPath;
+  }
+
+  async getEnvironment(
+    game: MacCompatibilityGameKey,
+  ): Promise<MacWineEnvironment | null> {
+    return this.registry.get(game);
   }
 
   async createEnvironment(
     game: MacCompatibilityGameKey,
-    architecture: MacArchitecture,
-    wineVersionId: string | null = null,
-    wineVersionName: string | null = null,
+    wineVersion: MacWineVersion,
   ): Promise<MacWineEnvironment> {
-    const environmentId = `${game.shop}-${game.objectId}-${randomUUID()}`;
-    const environmentPath = this.getEnvironmentPath(environmentId);
+    const environmentId = this.createEnvironmentId(game);
+    const prefixPath = join(this.environmentsPath, environmentId);
 
-    await mkdir(environmentPath, {
+    await mkdir(prefixPath, {
       recursive: true,
     });
 
-    const now = new Date().toISOString();
+    await this.initializePrefix(prefixPath, wineVersion);
 
     const environment: MacWineEnvironment = {
       id: environmentId,
-      prefixPath: environmentPath,
-      wineVersionId,
-      wineVersionName,
-      architecture,
+      prefixPath,
+      wineVersionId: wineVersion.id,
+      wineVersionName: wineVersion.name,
+      architecture:
+        wineVersion.architecture === "universal"
+          ? "unknown"
+          : wineVersion.architecture,
       exists: true,
-      initialized: false,
-      healthy: false,
+      initialized: true,
+      healthy: true,
       installedComponents: [],
-      createdAt: now,
-      updatedAt: now,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
+
+    await this.registry.set(game, environment);
 
     return environment;
   }
 
-  async environmentExists(
+  async ensureEnvironment(
+    game: MacCompatibilityGameKey,
+    wineVersion: MacWineVersion,
+  ): Promise<MacWineEnvironment> {
+    const existing = await this.getEnvironment(game);
+
+    if (existing?.exists && existing.initialized) {
+      return existing;
+    }
+
+    return this.createEnvironment(game, wineVersion);
+  }
+
+  async testEnvironment(
     environment: MacWineEnvironment,
+    wineVersion: MacWineVersion,
   ): Promise<boolean> {
     try {
       await access(environment.prefixPath);
+
+      await execFileAsync(
+        wineVersion.executablePath,
+        ["--version"],
+        {
+          env: {
+            ...process.env,
+            WINEPREFIX: environment.prefixPath,
+          },
+        },
+      );
+
       return true;
     } catch {
       return false;
     }
   }
 
-  async initializeEnvironment(
-    environment: MacWineEnvironment,
-  ): Promise<MacWineEnvironment> {
-    const exists = await this.environmentExists(environment);
-
-    if (!exists) {
-      throw new Error(
-        `Wine environment does not exist: ${environment.prefixPath}`,
-      );
-    }
-
-    const updatedEnvironment: MacWineEnvironment = {
-      ...environment,
-      exists: true,
-      initialized: true,
-      healthy: true,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return updatedEnvironment;
-  }
-
-  async repairEnvironment(
-    environment: MacWineEnvironment,
-  ): Promise<MacWineEnvironment> {
-    const exists = await this.environmentExists(environment);
-
-    if (!exists) {
-      throw new Error(
-        `Cannot repair missing Wine environment: ${environment.prefixPath}`,
-      );
-    }
-
-    return {
-      ...environment,
-      exists: true,
-      initialized: true,
-      healthy: true,
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
   async deleteEnvironment(
-    environment: MacWineEnvironment,
-  ): Promise<void> {
-    const exists = await this.environmentExists(environment);
+    game: MacCompatibilityGameKey,
+  ): Promise<boolean> {
+    const environment = await this.getEnvironment(game);
 
-    if (!exists) {
-      return;
+    if (!environment) {
+      return false;
     }
+
+    const { rm } = await import("fs/promises");
 
     await rm(environment.prefixPath, {
       recursive: true,
       force: true,
     });
+
+    return this.registry.delete(game);
   }
 
-  async addInstalledComponent(
-    environment: MacWineEnvironment,
-    component: string,
-  ): Promise<MacWineEnvironment> {
-    const components = environment.installedComponents.includes(component)
-      ? environment.installedComponents
-      : [...environment.installedComponents, component];
-
-    return {
-      ...environment,
-      installedComponents: components,
-      updatedAt: new Date().toISOString(),
-    };
+  async getAllEnvironments(): Promise<
+    Array<{
+      key: MacCompatibilityGameKey;
+      environment: MacWineEnvironment;
+    }>
+  > {
+    return this.registry.getAll();
   }
 
-  private getEnvironmentPath(environmentId: string): string {
-    return join(this.basePath, "environments", environmentId);
+  private async initializePrefix(
+    prefixPath: string,
+    wineVersion: MacWineVersion,
+  ): Promise<void> {
+    await execFileAsync(
+      wineVersion.executablePath,
+      ["wineboot", "--init"],
+      {
+        env: {
+          ...process.env,
+          WINEPREFIX: prefixPath,
+        },
+      },
+    );
+  }
+
+  private createEnvironmentId(
+    game: MacCompatibilityGameKey,
+  ): string {
+    const shop = this.sanitizeId(game.shop);
+    const objectId = this.sanitizeId(game.objectId);
+
+    return `${shop}-${objectId}`;
+  }
+
+  private sanitizeId(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
   }
 }
