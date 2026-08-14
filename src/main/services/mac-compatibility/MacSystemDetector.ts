@@ -1,42 +1,16 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
-import os from "os";
+import type { MacArchitecture, MacSystemInfo } from "./MacCompatibilityTypes";
 
 const execFileAsync = promisify(execFile);
 
-export interface MacSystemInfo {
-  platform: "macos";
-  architecture: "arm64" | "x64" | "unknown";
-  osVersion: string;
-  computerName: string;
-  isAppleSilicon: boolean;
-  isIntel: boolean;
-  memoryBytes: number;
-  availableDiskBytes: number;
-  wineAvailable: boolean;
-  protonAvailable: boolean;
-  rosettaAvailable: boolean;
-}
-
 export class MacSystemDetector {
-  public async detect(): Promise<MacSystemInfo> {
-    const architecture = this.detectArchitecture();
-
-    const [
-      osVersion,
-      computerName,
-      availableDiskBytes,
-      wineAvailable,
-      protonAvailable,
-      rosettaAvailable,
-    ] = await Promise.all([
-      this.getOsVersion(),
-      this.getComputerName(),
-      this.getAvailableDiskSpace(),
-      this.commandExists("wine"),
-      this.commandExists("proton"),
-      this.detectRosetta(),
-    ]);
+  async detect(): Promise<MacSystemInfo> {
+    const architecture = await this.detectArchitecture();
+    const osVersion = await this.getMacOSVersion();
+    const computerName = await this.getComputerName();
+    const memoryBytes = await this.getMemoryBytes();
+    const availableDiskBytes = await this.getAvailableDiskBytes();
 
     return {
       platform: "macos",
@@ -45,35 +19,39 @@ export class MacSystemDetector {
       computerName,
       isAppleSilicon: architecture === "arm64",
       isIntel: architecture === "x64",
-      memoryBytes: os.totalmem(),
+      memoryBytes,
       availableDiskBytes,
-      wineAvailable,
-      protonAvailable,
-      rosettaAvailable,
+      wineAvailable: await this.commandExists("wine"),
+      protonAvailable: await this.commandExists("proton"),
+      rosettaAvailable: await this.detectRosetta(),
     };
   }
 
-  private detectArchitecture(): "arm64" | "x64" | "unknown" {
-    const architecture = process.arch;
+  private async detectArchitecture(): Promise<MacArchitecture> {
+    try {
+      const { stdout } = await execFileAsync("uname", ["-m"]);
+      const architecture = stdout.trim();
 
-    if (architecture === "arm64") {
-      return "arm64";
+      if (architecture === "arm64") {
+        return "arm64";
+      }
+
+      if (architecture === "x86_64") {
+        return "x64";
+      }
+
+      return "unknown";
+    } catch {
+      return "unknown";
     }
-
-    if (architecture === "x64") {
-      return "x64";
-    }
-
-    return "unknown";
   }
 
-  private async getOsVersion(): Promise<string> {
+  private async getMacOSVersion(): Promise<string> {
     try {
       const { stdout } = await execFileAsync("sw_vers", ["-productVersion"]);
-
       return stdout.trim();
     } catch {
-      return os.release();
+      return "unknown";
     }
   }
 
@@ -86,11 +64,23 @@ export class MacSystemDetector {
 
       return stdout.trim();
     } catch {
-      return os.hostname();
+      return "Mac";
     }
   }
 
-  private async getAvailableDiskSpace(): Promise<number> {
+  private async getMemoryBytes(): Promise<number> {
+    try {
+      const { stdout } = await execFileAsync("sysctl", ["-n", "hw.memsize"]);
+
+      const memoryBytes = Number(stdout.trim());
+
+      return Number.isFinite(memoryBytes) ? memoryBytes : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  private async getAvailableDiskBytes(): Promise<number> {
     try {
       const { stdout } = await execFileAsync("df", ["-k", "/"]);
 
@@ -100,7 +90,11 @@ export class MacSystemDetector {
         return 0;
       }
 
-      const parts = lines[lines.length - 1].trim().split(/\s+/);
+      const parts = lines[1].trim().split(/\s+/);
+
+      if (parts.length < 4) {
+        return 0;
+      }
 
       const availableKilobytes = Number(parts[3]);
 
@@ -117,7 +111,6 @@ export class MacSystemDetector {
   private async commandExists(command: string): Promise<boolean> {
     try {
       await execFileAsync("which", [command]);
-
       return true;
     } catch {
       return false;
@@ -125,14 +118,9 @@ export class MacSystemDetector {
   }
 
   private async detectRosetta(): Promise<boolean> {
-    if (this.detectArchitecture() !== "arm64") {
-      return false;
-    }
-
     try {
-      await execFileAsync("/usr/bin/pgrep", ["oahd"]);
-
-      return true;
+      const { stdout } = await execFileAsync("pgrep", ["oahd"]);
+      return stdout.trim().length > 0;
     } catch {
       return false;
     }
