@@ -10,6 +10,10 @@ export interface SteamMatchSuggestion {
   iconUrl: string | null;
 }
 
+const SEARCH_RESULT_LIMIT = 5;
+const SEARCH_DEBOUNCE_MS = 350;
+const MIN_QUERY_LENGTH = 2;
+
 /**
  * Debounced search against Hydra's Steam catalogue, used to let a custom
  * game be matched to a real Steam AppID (for known-executable tracking and
@@ -30,7 +34,11 @@ export function useSteamMatchSearch(query: string, enabled: boolean) {
         const results = await window.electron.hydraApi.get<
           SteamMatchSuggestion[]
         >("/catalogue/search/suggestions", {
-          params: { query: searchQuery, limit: 5, shop: "steam" },
+          params: {
+            query: searchQuery,
+            limit: SEARCH_RESULT_LIMIT,
+            shop: "steam",
+          },
           needsAuth: false,
         });
 
@@ -45,13 +53,13 @@ export function useSteamMatchSearch(query: string, enabled: boolean) {
           setIsSearching(false);
         }
       }
-    }, 350)
+    }, SEARCH_DEBOUNCE_MS)
   ).current;
 
   useEffect(() => {
     const trimmed = query.trim();
 
-    if (!enabled || trimmed.length < 2) {
+    if (!enabled || trimmed.length < MIN_QUERY_LENGTH) {
       latestQueryRef.current = null;
       setSuggestions([]);
       setIsSearching(false);

@@ -147,15 +147,15 @@ export function SidebarAddingCustomGameModal({
         matchedAssets?.libraryHeroImageUrl || generateRandomGradient();
       const customCoverImageUrl = matchedAssets?.coverImageUrl || null;
 
-      const newGame = await window.electron.addCustomGameToLibrary(
-        gameNameForSeed,
+      const newGame = await window.electron.addCustomGameToLibrary({
+        title: gameNameForSeed,
         executablePath,
         iconUrl,
         logoImageUrl,
         libraryHeroImageUrl,
-        matchedGame?.objectId ?? null,
-        customCoverImageUrl
-      );
+        matchedSteamObjectId: matchedGame?.objectId ?? null,
+        customCoverImageUrl,
+      });
 
       showSuccessToast(t("custom_game_modal_success"));
       updateLibrary();

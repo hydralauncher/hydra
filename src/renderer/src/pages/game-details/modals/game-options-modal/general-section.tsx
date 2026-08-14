@@ -321,6 +321,135 @@ const isBatchExecutable = (executablePath?: string | null) =>
 const supportsTrackingExecutables = (executablePath?: string | null) =>
   !!executablePath && /\.(bat|cmd|exe)$/i.test(executablePath);
 
+interface SteamShortcutButtonProps {
+  gameShop: LibraryGame["shop"];
+  steamShortcutExists: boolean;
+  hasShortcutLaunchTarget: boolean;
+  creatingSteamShortcut: boolean;
+  onDeleteSteamShortcut: () => Promise<void>;
+  onCreateSteamShortcut: () => void;
+}
+
+function SteamShortcutButton({
+  gameShop,
+  steamShortcutExists,
+  hasShortcutLaunchTarget,
+  creatingSteamShortcut,
+  onDeleteSteamShortcut,
+  onCreateSteamShortcut,
+}: Readonly<SteamShortcutButtonProps>) {
+  const { t } = useTranslation("game_details");
+
+  if (gameShop === "custom") return null;
+
+  if (steamShortcutExists) {
+    return (
+      <Button
+        onClick={onDeleteSteamShortcut}
+        theme="danger"
+        disabled={creatingSteamShortcut}
+      >
+        <SteamLogo />
+        {t("delete_steam_shortcut")}
+      </Button>
+    );
+  }
+
+  if (!hasShortcutLaunchTarget) return null;
+
+  return (
+    <Button
+      onClick={onCreateSteamShortcut}
+      theme="outline"
+      disabled={creatingSteamShortcut}
+    >
+      <SteamLogo />
+      {t("create_steam_shortcut")}
+    </Button>
+  );
+}
+
+interface SteamMatchIndicatorProps {
+  pendingSteamMatch: SteamMatchSuggestion | null;
+  isSearchingSteamMatch: boolean;
+  steamMatchSuggestions: SteamMatchSuggestion[];
+  updatingGameTitle: boolean;
+  onSelectSteamMatch: (suggestion: SteamMatchSuggestion) => void;
+  onClearSteamMatch: () => void;
+}
+
+function SteamMatchIndicator({
+  pendingSteamMatch,
+  isSearchingSteamMatch,
+  steamMatchSuggestions,
+  updatingGameTitle,
+  onSelectSteamMatch,
+  onClearSteamMatch,
+}: Readonly<SteamMatchIndicatorProps>) {
+  const { t } = useTranslation("game_details");
+
+  if (pendingSteamMatch) {
+    return (
+      <div className="game-options-modal__steam-match">
+        {pendingSteamMatch.iconUrl && (
+          <img
+            src={pendingSteamMatch.iconUrl}
+            alt=""
+            className="game-options-modal__steam-match-icon"
+          />
+        )}
+        <span className="game-options-modal__steam-match-label">
+          {t("custom_game_modal_match_selected", {
+            title: pendingSteamMatch.title,
+            ns: "sidebar",
+          })}
+        </span>
+        <button
+          type="button"
+          className="game-options-modal__steam-match-clear"
+          onClick={onClearSteamMatch}
+          disabled={updatingGameTitle}
+          aria-label={t("custom_game_modal_match_clear", { ns: "sidebar" })}
+        >
+          <X size={14} />
+        </button>
+      </div>
+    );
+  }
+
+  if (!isSearchingSteamMatch && steamMatchSuggestions.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="game-options-modal__steam-match-suggestions">
+      <span className="game-options-modal__steam-match-suggestions-title">
+        {isSearchingSteamMatch
+          ? t("custom_game_modal_match_searching", { ns: "sidebar" })
+          : t("custom_game_modal_match_steam_title", { ns: "sidebar" })}
+      </span>
+      <ul className="game-options-modal__steam-match-suggestions-list">
+        {steamMatchSuggestions.map((suggestion) => (
+          <li key={suggestion.objectId}>
+            <button
+              type="button"
+              className="game-options-modal__steam-match-suggestion"
+              // Prevent the title field from blurring (and saving) before
+              // this click is handled -- see onSelectSteamMatch.
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => onSelectSteamMatch(suggestion)}
+              disabled={updatingGameTitle}
+            >
+              {suggestion.iconUrl && <img src={suggestion.iconUrl} alt="" />}
+              {suggestion.title}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function GeneralSettingsSection({
   game,
   gameTitle,
@@ -384,33 +513,16 @@ export function GeneralSettingsSection({
       Boolean(game.discs?.some((disc) => disc.path)));
   const transferGameLabel =
     gameSize > 0 ? `${game.title} (${fmt(gameSize)})` : game.title;
-  let steamShortcutButton: ReactNode = null;
-
-  if (game.shop !== "custom") {
-    if (steamShortcutExists) {
-      steamShortcutButton = (
-        <Button
-          onClick={onDeleteSteamShortcut}
-          theme="danger"
-          disabled={creatingSteamShortcut}
-        >
-          <SteamLogo />
-          {t("delete_steam_shortcut")}
-        </Button>
-      );
-    } else if (hasShortcutLaunchTarget) {
-      steamShortcutButton = (
-        <Button
-          onClick={onCreateSteamShortcut}
-          theme="outline"
-          disabled={creatingSteamShortcut}
-        >
-          <SteamLogo />
-          {t("create_steam_shortcut")}
-        </Button>
-      );
-    }
-  }
+  const steamShortcutButton: ReactNode = (
+    <SteamShortcutButton
+      gameShop={game.shop}
+      steamShortcutExists={steamShortcutExists}
+      hasShortcutLaunchTarget={hasShortcutLaunchTarget}
+      creatingSteamShortcut={creatingSteamShortcut}
+      onDeleteSteamShortcut={onDeleteSteamShortcut}
+      onCreateSteamShortcut={onCreateSteamShortcut}
+    />
+  );
 
   useEffect(() => {
     if (!isTransferring) return;
@@ -497,66 +609,16 @@ export function GeneralSettingsSection({
             </Button>
           </div>
 
-          {game.shop === "custom" &&
-            (pendingSteamMatch ? (
-              <div className="game-options-modal__steam-match">
-                {pendingSteamMatch.iconUrl && (
-                  <img
-                    src={pendingSteamMatch.iconUrl}
-                    alt=""
-                    className="game-options-modal__steam-match-icon"
-                  />
-                )}
-                <span className="game-options-modal__steam-match-label">
-                  {t("custom_game_modal_match_selected", {
-                    title: pendingSteamMatch.title,
-                    ns: "sidebar",
-                  })}
-                </span>
-                <button
-                  type="button"
-                  className="game-options-modal__steam-match-clear"
-                  onClick={onClearSteamMatch}
-                  disabled={updatingGameTitle}
-                  aria-label={t("custom_game_modal_match_clear", {
-                    ns: "sidebar",
-                  })}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
-              (isSearchingSteamMatch || steamMatchSuggestions.length > 0) && (
-                <div className="game-options-modal__steam-match-suggestions">
-                  <span className="game-options-modal__steam-match-suggestions-title">
-                    {isSearchingSteamMatch
-                      ? t("custom_game_modal_match_searching", {
-                          ns: "sidebar",
-                        })
-                      : t("custom_game_modal_match_steam_title", {
-                          ns: "sidebar",
-                        })}
-                  </span>
-                  <ul className="game-options-modal__steam-match-suggestions-list">
-                    {steamMatchSuggestions.map((suggestion) => (
-                      <li key={suggestion.objectId}>
-                        <button
-                          type="button"
-                          className="game-options-modal__steam-match-suggestion"
-                          onClick={() => onSelectSteamMatch(suggestion)}
-                          disabled={updatingGameTitle}
-                        >
-                          {suggestion.iconUrl && (
-                            <img src={suggestion.iconUrl} alt="" />
-                          )}
-                          {suggestion.title}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )
-            ))}
+          {game.shop === "custom" && (
+            <SteamMatchIndicator
+              pendingSteamMatch={pendingSteamMatch}
+              isSearchingSteamMatch={isSearchingSteamMatch}
+              steamMatchSuggestions={steamMatchSuggestions}
+              updatingGameTitle={updatingGameTitle}
+              onSelectSteamMatch={onSelectSteamMatch}
+              onClearSteamMatch={onClearSteamMatch}
+            />
+          )}
         </div>
       )}
 
