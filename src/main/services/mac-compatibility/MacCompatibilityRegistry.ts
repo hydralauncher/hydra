@@ -1,7 +1,8 @@
-import { readFileSync, existsSync, mkdirSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { readFileSync, existsSync } from "node:fs";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { randomUUID } from "node:crypto";
 import type {
   MacCompatibilityGameKey,
   MacCompatibilityRegistryEntry,
@@ -23,16 +24,18 @@ import type {
  * construction (a single small JSON read at startup is cheap), and
  * persist writes in the background without blocking the caller.
  *
- * Trade-off this accepts: a save may still be in flight if the process
- * is killed immediately after a write (not on clean quit/close, since
- * Node keeps the process alive for pending I/O by default). Acceptable
- * here because this registry only stores derived/re-checkable state
- * (status, selection) — worst case on an unclean exit is one stale
- * write, not data loss of anything not re-derivable.
+ * Background writes are queued and atomic (see persist()), so they
+ * cannot land out of order or leave a half-written file, and flush()
+ * exists for callers that want to wait for the disk before quitting.
  */
 export class MacCompatibilityRegistry {
   private readonly entries = new Map<string, MacCompatibilityRegistryEntry>();
   private readonly registryPath: string;
+
+  /**
+   * Serializes background writes so disk order matches call order.
+   */
+  private persistQueue: Promise<void> = Promise.resolve();
 
   constructor(
     registryPath: string = join(
@@ -61,6 +64,10 @@ export class MacCompatibilityRegistry {
       const contents = readFileSync(this.registryPath, "utf8");
       const data = JSON.parse(contents) as MacCompatibilityRegistryEntry[];
 
+      if (!Array.isArray(data)) {
+        return;
+      }
+
       for (const entry of data) {
         if (entry?.key?.shop && entry?.key?.objectId) {
           this.entries.set(this.getKey(entry.key), entry);
@@ -72,27 +79,57 @@ export class MacCompatibilityRegistry {
     }
   }
 
+  /**
+   * Queues one atomic write of the current state.
+   *
+   * Two problems are fixed here. Ordering: these writes used to be
+   * started in parallel and whichever finished last won, so a stale
+   * snapshot could overwrite a newer one. Each write now waits for the
+   * previous one, so the file ends up matching the last call. Atomicity:
+   * writing directly over registry.json meant an interrupted write left
+   * a truncated file that fails to parse on the next start, wiping every
+   * game's saved status. The data now goes to a temporary file in the
+   * same folder and is renamed over the real one, which is atomic.
+   */
   private persist(): void {
-    const data = Array.from(this.entries.values());
-    const dir = dirname(this.registryPath);
+    const contents = JSON.stringify(Array.from(this.entries.values()), null, 2);
 
-    // Fire-and-forget by design (see class-level comment). Errors are
-    // logged-equivalent via console since this file has no logger
-    // dependency today; a failed save just means the next in-memory
-    // write will retry via the same path.
-    void (async () => {
-      try {
-        if (!existsSync(dir)) {
-          mkdirSync(dir, { recursive: true });
-        }
-        await writeFile(this.registryPath, JSON.stringify(data, null, 2), "utf8");
-      } catch (error) {
-        console.error(
-          "[MacCompatibilityRegistry] Failed to persist registry:",
-          error,
-        );
-      }
-    })();
+    this.persistQueue = this.persistQueue.then(
+      () => this.writeAtomically(contents),
+      () => this.writeAtomically(contents),
+    );
+
+    // Fire-and-forget by design (see class-level comment), but a failure
+    // must not poison the queue for later writes, and must not become an
+    // unhandled rejection.
+    this.persistQueue = this.persistQueue.catch((error) => {
+      console.error(
+        "[MacCompatibilityRegistry] Failed to persist registry:",
+        error,
+      );
+    });
+  }
+
+  private async writeAtomically(contents: string): Promise<void> {
+    await mkdir(dirname(this.registryPath), { recursive: true });
+
+    const temporaryPath = `${this.registryPath}.${randomUUID()}.tmp`;
+
+    try {
+      await writeFile(temporaryPath, contents, "utf8");
+      await rename(temporaryPath, this.registryPath);
+    } catch (error) {
+      await rm(temporaryPath, { force: true }).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  /**
+   * Waits for every queued write to reach disk. Call before quitting if
+   * the very last status change must survive.
+   */
+  public async flush(): Promise<void> {
+    await this.persistQueue;
   }
 
   public get(
