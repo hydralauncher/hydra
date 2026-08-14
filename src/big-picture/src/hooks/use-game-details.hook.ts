@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IS_DESKTOP } from "../constants";
 import type {
@@ -59,11 +59,22 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const effectiveShop: GameShop = matchedSteamObjectId ? "steam" : shop;
   const effectiveObjectId = matchedSteamObjectId ?? objectId;
 
+  // The effective identity starts as the raw custom shop/objectId (before
+  // `game` has loaded) and can change to the matched Steam identity once it
+  // does, re-running this callback's owning effect with a second, competing
+  // in-flight fetch. Track which identity each fetch was actually *for* so
+  // a slower, superseded fetch (e.g. the initial "custom" one, which always
+  // resolves shopDetails to null) can't clobber a newer one's real result.
+  const latestFetchIdentityRef = useRef<string | null>(null);
+
   const fetchGameDetails = useCallback(
     async ({
       showLoadingState = false,
     }: { showLoadingState?: boolean } = {}) => {
       if (!IS_DESKTOP) return;
+
+      const fetchIdentity = `${effectiveShop}:${effectiveObjectId}`;
+      latestFetchIdentityRef.current = fetchIdentity;
 
       if (showLoadingState) {
         setIsLoading(true);
@@ -90,6 +101,8 @@ export function useGameDetails(objectId: string, shop: GameShop) {
           shopDetailsPromise,
         ]);
 
+        if (latestFetchIdentityRef.current !== fetchIdentity) return;
+
         if (shopDetailsResult) {
           shopDetailsResult.assets = assets ?? shopDetailsResult.assets;
         }
@@ -97,8 +110,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
         setShopDetails(shopDetailsResult);
         setStats(statsResult);
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (latestFetchIdentityRef.current === fetchIdentity) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     },
     [effectiveObjectId, effectiveShop, language, objectId, shop]

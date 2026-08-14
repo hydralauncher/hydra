@@ -302,15 +302,15 @@ declare global {
       title: string,
       platform?: string | null
     ) => Promise<void>;
-    addCustomGameToLibrary: (
-      title: string,
-      executablePath: string,
-      iconUrl?: string,
-      logoImageUrl?: string,
-      libraryHeroImageUrl?: string,
-      matchedSteamObjectId?: string | null,
-      customCoverImageUrl?: string | null
-    ) => Promise<Game>;
+    addCustomGameToLibrary: (params: {
+      title: string;
+      executablePath: string;
+      iconUrl?: string;
+      logoImageUrl?: string;
+      libraryHeroImageUrl?: string;
+      matchedSteamObjectId?: string | null;
+      customCoverImageUrl?: string | null;
+    }) => Promise<Game>;
     updateCustomGame: (params: {
       shop: GameShop;
       objectId: string;

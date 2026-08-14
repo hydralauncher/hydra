@@ -10,6 +10,10 @@ export interface SteamMatchSuggestion {
   iconUrl: string | null;
 }
 
+const SEARCH_RESULT_LIMIT = 5;
+const SEARCH_DEBOUNCE_MS = 350;
+const MIN_QUERY_LENGTH = 2;
+
 /**
  * Debounced search against Hydra's Steam catalogue, used to let a custom
  * game be matched to a real Steam AppID (for known-executable tracking and
@@ -18,31 +22,45 @@ export interface SteamMatchSuggestion {
 export function useSteamMatchSearch(query: string, enabled: boolean) {
   const [suggestions, setSuggestions] = useState<SteamMatchSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  // Tracks the most recently *started* request so an earlier request that
+  // resolves after a later one can't overwrite fresher suggestions.
+  const latestQueryRef = useRef<string | null>(null);
 
   const fetchSuggestions = useRef(
     debounce(async (searchQuery: string) => {
+      latestQueryRef.current = searchQuery;
+
       try {
         const results = await window.electron.hydraApi.get<
           SteamMatchSuggestion[]
         >("/catalogue/search/suggestions", {
-          params: { query: searchQuery, limit: 5, shop: "steam" },
+          params: {
+            query: searchQuery,
+            limit: SEARCH_RESULT_LIMIT,
+            shop: "steam",
+          },
           needsAuth: false,
         });
 
+        if (latestQueryRef.current !== searchQuery) return;
         setSuggestions(results);
       } catch (error) {
+        if (latestQueryRef.current !== searchQuery) return;
         logger.error("Failed to fetch Steam match suggestions", error);
         setSuggestions([]);
       } finally {
-        setIsSearching(false);
+        if (latestQueryRef.current === searchQuery) {
+          setIsSearching(false);
+        }
       }
-    }, 350)
+    }, SEARCH_DEBOUNCE_MS)
   ).current;
 
   useEffect(() => {
     const trimmed = query.trim();
 
-    if (!enabled || trimmed.length < 2) {
+    if (!enabled || trimmed.length < MIN_QUERY_LENGTH) {
+      latestQueryRef.current = null;
       setSuggestions([]);
       setIsSearching(false);
       return;
