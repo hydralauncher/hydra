@@ -3,18 +3,22 @@ import type {
   MacCompatibilityGameKey,
   MacGameCompatibility,
   MacSystemInfo,
+  MacWineEnvironment,
   MacWineVersion,
 } from "./MacCompatibilityTypes";
 import { MacSystemDetector } from "./MacSystemDetector";
 import { MacWineDetector } from "./MacWineDetector";
+import { MacWineEnvironmentManager } from "./environment/MacWineEnvironmentManager";
 
 export class MacCompatibilityManager {
   private readonly systemDetector: MacSystemDetector;
   private readonly wineDetector: MacWineDetector;
+  private readonly environmentManager: MacWineEnvironmentManager;
 
   constructor() {
     this.systemDetector = new MacSystemDetector();
     this.wineDetector = new MacWineDetector();
+    this.environmentManager = new MacWineEnvironmentManager();
   }
 
   async getSystemInfo(): Promise<MacSystemInfo> {
@@ -40,8 +44,8 @@ export class MacCompatibilityManager {
     const requiresWine = isWindowsGame;
     const wineAvailable = wineVersions.length > 0;
 
-    const issues = [];
-    const recommendations = [];
+    const issues: MacGameCompatibility["issues"] = [];
+    const recommendations: MacGameCompatibility["recommendations"] = [];
 
     if (!isWindowsGame) {
       return {
@@ -62,6 +66,8 @@ export class MacCompatibilityManager {
       };
     }
 
+    const environment = this.environmentManager.getEnvironment(game);
+
     if (!wineAvailable) {
       issues.push({
         id: "wine-not-installed",
@@ -69,9 +75,9 @@ export class MacCompatibilityManager {
         title: "Wine is not installed",
         description:
           "A Windows compatibility environment is required to run this game on macOS.",
-        severity: "error" as const,
+        severity: "error",
         fixable: true,
-        action: "create-environment" as const,
+        action: "create-environment",
       });
 
       recommendations.push({
@@ -79,17 +85,46 @@ export class MacCompatibilityManager {
         title: "Set up a Wine environment",
         description:
           "Install or configure a compatible Wine version before launching this game.",
-        action: "create-environment" as const,
-        priority: "high" as const,
+        action: "create-environment",
+        priority: "high",
+      });
+    } else if (!environment) {
+      issues.push({
+        id: "environment-not-created",
+        code: "ENVIRONMENT_NOT_CREATED",
+        title: "Game environment has not been created",
+        description:
+          "This game does not have a dedicated Wine environment yet.",
+        severity: "warning",
+        fixable: true,
+        action: "create-environment",
+      });
+
+      recommendations.push({
+        id: "create-environment",
+        title: "Create game environment",
+        description:
+          "Create a dedicated Wine environment for this game.",
+        action: "create-environment",
+        priority: "high",
       });
     }
 
     const recommendedWine =
       wineVersions.find((wine) => wine.isRecommended) ?? wineVersions[0];
 
-    const status = wineAvailable ? "needs_setup" : "needs_setup";
-    const level = wineAvailable ? "good" : "poor";
-    const score = wineAvailable ? 70 : 25;
+    let status: MacGameCompatibility["status"] = "needs_setup";
+    let level: MacGameCompatibility["level"] = "good";
+    let score: number | null = 70;
+
+    if (!wineAvailable) {
+      level = "poor";
+      score = 25;
+    } else if (environment?.healthy) {
+      status = "ready";
+      level = "good";
+      score = 85;
+    }
 
     return {
       shop: game.shop,
@@ -103,7 +138,7 @@ export class MacCompatibilityManager {
       requiresRosetta: systemInfo.isAppleSilicon,
       recommendedWineVersionId: recommendedWine?.id ?? null,
       recommendedWineVersionName: recommendedWine?.name ?? null,
-      environment: null,
+      environment,
       issues,
       recommendations,
     };
@@ -122,5 +157,11 @@ export class MacCompatibilityManager {
       recommendations: result.recommendations,
       checkedAt: new Date().toISOString(),
     };
+  }
+
+  async getGameEnvironment(
+    game: MacCompatibilityGameKey,
+  ): Promise<MacWineEnvironment | null> {
+    return this.environmentManager.getEnvironment(game);
   }
 }
