@@ -1,5 +1,4 @@
 import { execFile } from "child_process";
-import { promisify } from "util";
 import type {
   MacCompatibilityGameKey,
   MacGameCompatibility,
@@ -7,8 +6,6 @@ import type {
   MacWineVersion,
 } from "../MacCompatibilityTypes";
 import { MacCompatibilityManager } from "../MacCompatibilityManager";
-
-const execFileAsync = promisify(execFile);
 
 export interface MacGameLaunchRequest {
   game: MacCompatibilityGameKey;
@@ -62,7 +59,8 @@ export class MacGameLaunchManager {
       await this.compatibilityManager.getWineVersions();
 
     let wineVersion = this.findWineVersion(
-      environment?.wineVersionId ?? compatibility.recommendedWineVersionId,
+      environment?.wineVersionId ??
+        compatibility.recommendedWineVersionId,
       wineVersions,
     );
 
@@ -121,7 +119,9 @@ export class MacGameLaunchManager {
 
     const healthy =
       environment?.healthy ??
-      (await this.compatibilityManager.testGameEnvironment(request.game));
+      (await this.compatibilityManager.testGameEnvironment(
+        request.game,
+      ));
 
     if (!healthy) {
       try {
