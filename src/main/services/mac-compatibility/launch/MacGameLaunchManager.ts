@@ -1,4 +1,5 @@
-import { execFile } from "child_process";
+import { spawn } from "node:child_process";
+import path from "node:path";
 import type {
   MacCompatibilityGameKey,
   MacGameCompatibility,
@@ -189,24 +190,57 @@ export class MacGameLaunchManager {
     prepared: MacGameLaunchResult,
   ): Promise<MacGameLaunchResult> {
     try {
-      const child = execFile(
+      const workingDirectory = path.dirname(request.executablePath);
+
+      const child = spawn(
         request.executablePath,
         request.args ?? [],
         {
-          windowsHide: true,
+          shell: false,
+          detached: true,
+          stdio: "ignore",
+          cwd: workingDirectory,
+          env: {
+            ...process.env,
+          },
         },
       );
 
-      return {
-        ...prepared,
-        success: true,
-        pid: child.pid ?? null,
-        message: "Game launched natively.",
-      };
+      return await new Promise<MacGameLaunchResult>((resolve) => {
+        const onSpawn = () => {
+          child.off("error", onError);
+          child.unref();
+
+          resolve({
+            ...prepared,
+            success: true,
+            pid: child.pid ?? null,
+            message: "Game launched natively.",
+          });
+        };
+
+        const onError = (error: Error) => {
+          child.off("spawn", onSpawn);
+
+          resolve({
+            ...prepared,
+            success: false,
+            pid: null,
+            message: this.getErrorMessage(
+              error,
+              "Failed to launch the native macOS game.",
+            ),
+          });
+        };
+
+        child.once("spawn", onSpawn);
+        child.once("error", onError);
+      });
     } catch (error) {
       return {
         ...prepared,
         success: false,
+        pid: null,
         message: this.getErrorMessage(
           error,
           "Failed to launch the native macOS game.",
@@ -222,28 +256,58 @@ export class MacGameLaunchManager {
     wineVersion: MacWineVersion,
   ): Promise<MacGameLaunchResult> {
     try {
-      const child = execFile(
+      const workingDirectory = path.dirname(request.executablePath);
+
+      const child = spawn(
         wineVersion.executablePath,
         [request.executablePath, ...(request.args ?? [])],
         {
+          shell: false,
+          detached: true,
+          stdio: "ignore",
+          cwd: workingDirectory,
           env: {
             ...process.env,
             WINEPREFIX: environment.prefixPath,
           },
-          windowsHide: true,
         },
       );
 
-      return {
-        ...prepared,
-        success: true,
-        pid: child.pid ?? null,
-        message: `Game launched with ${wineVersion.name}.`,
-      };
+      return await new Promise<MacGameLaunchResult>((resolve) => {
+        const onSpawn = () => {
+          child.off("error", onError);
+          child.unref();
+
+          resolve({
+            ...prepared,
+            success: true,
+            pid: child.pid ?? null,
+            message: `Game launched with ${wineVersion.name}.`,
+          });
+        };
+
+        const onError = (error: Error) => {
+          child.off("spawn", onSpawn);
+
+          resolve({
+            ...prepared,
+            success: false,
+            pid: null,
+            message: this.getErrorMessage(
+              error,
+              "Failed to launch the Windows game with Wine.",
+            ),
+          });
+        };
+
+        child.once("spawn", onSpawn);
+        child.once("error", onError);
+      });
     } catch (error) {
       return {
         ...prepared,
         success: false,
+        pid: null,
         message: this.getErrorMessage(
           error,
           "Failed to launch the Windows game with Wine.",
