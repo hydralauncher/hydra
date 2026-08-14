@@ -34,9 +34,9 @@ import vi from "./vi/translation.json";
 import ja from "./ja/translation.json";
 import sl from "./sl/translation.json";
 
-type Translation = Record<string, unknown>;
+import type { Resource } from "i18next";
 
-const translations: Record<string, Translation> = {
+const translations: Resource = {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
   en,
