@@ -1,5 +1,7 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { access, constants } from "node:fs/promises";
+import { join } from "node:path";
 import type { MacWineEnvironment } from "../MacCompatibilityTypes";
 
 const execFileAsync = promisify(execFile);
@@ -21,10 +23,7 @@ export class MacWineEnvironmentInitializer {
         wineExecutablePath,
       );
 
-      const healthy = await this.verifyPrefix(
-        environment.prefixPath,
-        wineExecutablePath,
-      );
+      const healthy = await this.verifyPrefix(environment.prefixPath);
 
       const updatedEnvironment: MacWineEnvironment = {
         ...environment,
@@ -77,22 +76,16 @@ export class MacWineEnvironmentInitializer {
     );
   }
 
-  private async verifyPrefix(
-    prefixPath: string,
-    wineExecutablePath: string,
-  ): Promise<boolean> {
+  /**
+   * "wineboot --check" is not a valid Wine subcommand and always failed,
+   * regardless of prefix state. A freshly initialized prefix always has
+   * a system.reg file and a drive_c directory — checking for those
+   * directly is what actually verifies initialization succeeded.
+   */
+  private async verifyPrefix(prefixPath: string): Promise<boolean> {
     try {
-      await execFileAsync(
-        wineExecutablePath,
-        ["wineboot", "--check"],
-        {
-          env: {
-            ...process.env,
-            WINEPREFIX: prefixPath,
-          },
-        },
-      );
-
+      await access(join(prefixPath, "system.reg"), constants.F_OK);
+      await access(join(prefixPath, "drive_c"), constants.F_OK);
       return true;
     } catch {
       return false;
