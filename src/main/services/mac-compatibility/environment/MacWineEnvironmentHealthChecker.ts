@@ -1,7 +1,5 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
-
-const execFileAsync = promisify(execFile);
+import { access, constants } from "node:fs/promises";
+import { join } from "node:path";
 
 export interface MacWineEnvironmentHealthResult {
   healthy: boolean;
@@ -10,37 +8,35 @@ export interface MacWineEnvironmentHealthResult {
 }
 
 export class MacWineEnvironmentHealthChecker {
+  /**
+   * Wine has no valid "wineboot --check" subcommand — that call always
+   * fails regardless of prefix state, which made this always report
+   * unhealthy. A real Wine prefix, once initialized, always has a
+   * system.reg file and a drive_c directory; checking for those directly
+   * is what actually verifies the prefix exists and was initialized.
+   */
   async check(
     prefixPath: string,
-    wineExecutablePath: string,
+    _wineExecutablePath: string,
   ): Promise<MacWineEnvironmentHealthResult> {
+    const systemRegPath = join(prefixPath, "system.reg");
+    const driveCPath = join(prefixPath, "drive_c");
+
     try {
-      await execFileAsync(
-        wineExecutablePath,
-        ["wineboot", "--check"],
-        {
-          env: {
-            ...process.env,
-            WINEPREFIX: prefixPath,
-          },
-        },
-      );
+      await access(systemRegPath, constants.F_OK);
+      await access(driveCPath, constants.F_OK);
 
       return {
         healthy: true,
         initialized: true,
         message: "Wine environment is healthy.",
       };
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Wine environment health check failed.";
-
+    } catch {
       return {
         healthy: false,
         initialized: false,
-        message,
+        message:
+          "Wine environment is missing required files (system.reg or drive_c).",
       };
     }
   }
