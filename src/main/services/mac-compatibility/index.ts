@@ -5,6 +5,12 @@ export { MacSystemDetector } from "./MacSystemDetector";
 export { MacWineDetector } from "./MacWineDetector";
 
 export {
+  MacGameLaunchManager,
+  type MacGameLaunchRequest,
+  type MacGameLaunchResult,
+} from "./launch";
+
+export {
   MacWineEnvironmentHealthChecker,
   MacWineEnvironmentInitializer,
   MacWineEnvironmentManager,
