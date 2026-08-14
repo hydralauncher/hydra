@@ -1253,7 +1253,7 @@
     "global_trackers_manual_placeholder": "udp://tracker.example.com:6969/announce\nhttps://tracker.example.org:443/announce",
     "global_trackers_url_placeholder": "https://example.com/trackers.txt",
     "global_trackers_save_error": "Falha ao salvar trackers. Tente novamente.",
-    "create_shortcuts_on_download": "Criar atalhos na Área de Trabalho e no Menu Iniciar quando o jogo terminar de baixar",
+    "create_shortcuts_on_download": "Criar atalhos quando o jogo terminar de baixar",
     "default_wine_prefix": "Local padrão do prefixo Wine",
     "default_proton_version": "Versão padrão do Proton",
     "default_proton_version_description": "Selecione a versão do Proton usada pelo modo Automático quando um jogo não tiver substituição personalizada",
