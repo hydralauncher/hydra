@@ -5,11 +5,14 @@ import { spawn } from "node:child_process";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
+import { withGameRecordLock } from "@main/helpers/game-record-lock";
 import {
   rankExecutableCandidates,
+  type ExecutableSearchScope,
   type KnownGameExecutable,
 } from "@main/helpers/game-executable-ranking";
 import { registerEvent } from "../register-event";
+import { getInstallLocationScanDirectories } from "./scan-installed-games";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 import {
@@ -21,23 +24,6 @@ import {
   runAutomaticCloudSaveSync,
 } from "@main/services";
 
-// After an installer-based repack finishes installing, nothing else in the
-// app ever re-checks for the resulting executable -- the only auto-detection
-// pass runs once, right after extraction, before the installer has placed
-// any files. This scans the plausible install destinations once the
-// installer process actually exits, so the game is recognized as installed
-// without the user having to set the executable path manually.
-//
-// Program Files on Windows contains a long tail of folders locked down to
-// TrustedInstaller/System that throw EPERM even for elevated processes --
-// WindowsApps, various Windows Defender folders, etc. There's no reliable
-// list of which ones; fs.readdir's `recursive` option also aborts the
-// *entire* walk on the first unreadable subdirectory it hits, so scanning
-// Program Files as one big recursive tree means a single restricted folder
-// anywhere in the tree can silently block finding an otherwise perfectly
-// accessible install elsewhere under it. This walks manually instead,
-// catching permission errors per-directory and just skipping that subtree,
-// so one inaccessible folder never takes out the rest of the scan.
 const MAX_INSTALL_SCAN_DEPTH = 6;
 
 const collectAccessibleFilePaths = async (
@@ -54,8 +40,6 @@ const collectAccessibleFilePaths = async (
         withFileTypes: true,
       });
     } catch {
-      // Expected for OS-protected folders (WindowsApps, Defender, etc.) --
-      // not an error worth surfacing, just an inaccessible subtree to skip.
       return;
     }
 
@@ -78,14 +62,54 @@ const collectAccessibleFilePaths = async (
 
 const findGameExecutableResilient = async (
   folderPath: string,
-  executables: KnownGameExecutable[]
+  executables: KnownGameExecutable[],
+  scope: ExecutableSearchScope
 ): Promise<string | null> => {
   if (executables.length === 0) return null;
 
   const relativeFilePaths = await collectAccessibleFilePaths(folderPath);
-  const match = rankExecutableCandidates(relativeFilePaths, executables);
+  const match = rankExecutableCandidates(relativeFilePaths, executables, scope);
 
   return match ? path.join(folderPath, match) : null;
+};
+
+interface ScanCandidate {
+  folderPath: string;
+  // "installation" commits to a pick even when ambiguous, appropriate for
+  // the download folder since extraction only ever puts one game there.
+  // "library" backs off to null on ambiguity instead, required for shared
+  // roots (Program Files-equivalents, Steam library folders) that can
+  // contain other installed software or games with clashing executable
+  // names -- see rankExecutableCandidates in game-executable-ranking.ts.
+  scope: ExecutableSearchScope;
+}
+
+const getScanCandidates = async (
+  downloadFolderPath: string,
+  winePrefixPath?: string | null
+): Promise<ScanCandidate[]> => {
+  const candidates: ScanCandidate[] = [
+    { folderPath: downloadFolderPath, scope: "installation" },
+  ];
+
+  if (process.platform === "linux" && winePrefixPath) {
+    candidates.push({
+      folderPath: path.join(winePrefixPath, "drive_c"),
+      scope: "library",
+    });
+  }
+
+  if (process.platform === "win32") {
+    const sharedInstallDirectories = await getInstallLocationScanDirectories();
+    candidates.push(
+      ...sharedInstallDirectories.map((folderPath) => ({
+        folderPath,
+        scope: "library" as const,
+      }))
+    );
+  }
+
+  return candidates;
 };
 
 const rescanAndBindExecutableAfterInstall = async (
@@ -112,46 +136,38 @@ const rescanAndBindExecutableAfterInstall = async (
       `[openGameInstaller] Installer exited for ${objectId}, scanning for executable`
     );
 
-    const candidateFolders = [downloadFolderPath];
+    const candidateFolders = await getScanCandidates(
+      downloadFolderPath,
+      winePrefixPath
+    );
 
-    if (process.platform === "linux" && winePrefixPath) {
-      candidateFolders.push(path.join(winePrefixPath, "drive_c"));
-    }
-
-    if (process.platform === "win32") {
-      candidateFolders.push(
-        ...[
-          process.env["ProgramFiles"],
-          process.env["ProgramFiles(x86)"],
-          process.env["LOCALAPPDATA"]
-            ? path.join(process.env["LOCALAPPDATA"], "Programs")
-            : undefined,
-        ].filter((candidate): candidate is string => Boolean(candidate))
-      );
-    }
-
-    for (const candidateFolder of candidateFolders) {
-      if (!fs.existsSync(candidateFolder)) continue;
+    for (const candidate of candidateFolders) {
+      if (!fs.existsSync(candidate.folderPath)) continue;
 
       const foundExePath = await findGameExecutableResilient(
-        candidateFolder,
-        executables
+        candidate.folderPath,
+        executables,
+        candidate.scope
       );
 
       if (!foundExePath) continue;
 
-      // Re-check under the lock of "hasn't been set since we started" --
-      // the user may have set it manually while the installer was running.
-      const latestGame = await gamesSublevel.get(gameKey);
-      if (!latestGame || latestGame.executablePath) return;
+      const bound = await withGameRecordLock(gameKey, async () => {
+        const latestGame = await gamesSublevel.get(gameKey);
+        if (!latestGame || latestGame.executablePath) return false;
+
+        await gamesSublevel.put(gameKey, {
+          ...updateGameExecutablePath(latestGame, foundExePath),
+        });
+
+        return true;
+      });
+
+      if (!bound) return;
 
       logger.info(
         `[openGameInstaller] Auto-detected executable after installer exit for ${objectId}: ${foundExePath}`
       );
-
-      await gamesSublevel.put(gameKey, {
-        ...updateGameExecutablePath(latestGame, foundExePath),
-      });
 
       void runAutomaticCloudSaveSync(objectId, shop, "environment-changed");
       WindowManager.sendToAppWindows("on-library-batch-complete");
@@ -167,6 +183,51 @@ const rescanAndBindExecutableAfterInstall = async (
       error
     );
   }
+};
+
+// shell.openPath (the fallback when we can't spawn the installer ourselves,
+// e.g. it needs elevation) hands the launch off to the OS and returns as
+// soon as that succeeds -- there's no child process to observe exiting, so
+// rescanAndBindExecutableAfterInstall would otherwise never run for these
+// launches. Poll instead: check periodically for a bounded window, stopping
+// as soon as the executable is found or the game is otherwise linked.
+const POST_INSTALL_POLL_INTERVAL_MS = 30_000;
+const POST_INSTALL_POLL_ATTEMPTS = 60;
+
+const scheduleRescanPoll = (
+  shop: GameShop,
+  objectId: string,
+  downloadFolderPath: string,
+  winePrefixPath?: string | null,
+  attemptsRemaining = POST_INSTALL_POLL_ATTEMPTS
+) => {
+  if (attemptsRemaining <= 0) return;
+
+  setTimeout(() => {
+    void (async () => {
+      const gameKey = levelKeys.game(shop, objectId);
+      const game = await gamesSublevel.get(gameKey).catch(() => null);
+      if (!game || game.executablePath) return;
+
+      await rescanAndBindExecutableAfterInstall(
+        shop,
+        objectId,
+        downloadFolderPath,
+        winePrefixPath
+      );
+
+      const updatedGame = await gamesSublevel.get(gameKey).catch(() => null);
+      if (updatedGame?.executablePath) return;
+
+      scheduleRescanPoll(
+        shop,
+        objectId,
+        downloadFolderPath,
+        winePrefixPath,
+        attemptsRemaining - 1
+      );
+    })();
+  }, POST_INSTALL_POLL_INTERVAL_MS);
 };
 
 const launchInstallerWithWine = async (
@@ -235,8 +296,15 @@ const executeGameInstaller = async (
     winePrefixPath?: string | null;
     protonPath?: string | null;
     onExit?: (code: number | null, signal: NodeJS.Signals | null) => void;
+    onIndeterminateLaunch?: () => void;
   }
 ) => {
+  const fallBackToShellOpen = async (targetPath: string) => {
+    const opened = await openPathAndCheck(targetPath);
+    if (opened) options?.onIndeterminateLaunch?.();
+    return opened;
+  };
+
   if (process.platform === "win32") {
     const launchedDirectly = await launchInstallerDirectly(
       filePath,
@@ -246,7 +314,7 @@ const executeGameInstaller = async (
       return true;
     }
 
-    return await openPathAndCheck(filePath);
+    return await fallBackToShellOpen(filePath);
   }
 
   if (process.platform === "linux") {
@@ -269,11 +337,11 @@ const executeGameInstaller = async (
         return true;
       }
 
-      return await openPathAndCheck(filePath);
+      return await fallBackToShellOpen(filePath);
     }
   }
 
-  return await openPathAndCheck(filePath);
+  return await fallBackToShellOpen(filePath);
 };
 
 const openGameInstaller = async (
@@ -319,6 +387,10 @@ const openGameInstaller = async (
     );
   };
 
+  const onIndeterminateLaunch = () => {
+    scheduleRescanPoll(shop, objectId, gamePath, effectiveWinePrefixPath);
+  };
+
   const setupPath = path.join(gamePath, "setup.exe");
   if (fs.existsSync(setupPath)) {
     return await executeGameInstaller(setupPath, {
@@ -326,6 +398,7 @@ const openGameInstaller = async (
       winePrefixPath: effectiveWinePrefixPath,
       protonPath: game?.protonPath,
       onExit: onInstallerExit,
+      onIndeterminateLaunch,
     });
   }
 
@@ -342,6 +415,7 @@ const openGameInstaller = async (
         winePrefixPath: effectiveWinePrefixPath,
         protonPath: game?.protonPath,
         onExit: onInstallerExit,
+        onIndeterminateLaunch,
       }
     );
   }

@@ -397,7 +397,7 @@ export class Umu {
         ? null
         : fs.openSync(umuLogPath, "a");
 
-      let settled = false;
+      let hasResolvedLaunch = false;
 
       const closeLogFileDescriptor = () => {
         if (logFileDescriptor !== null) {
@@ -406,8 +406,8 @@ export class Umu {
       };
 
       const finalize = (callback: () => void) => {
-        if (settled) return;
-        settled = true;
+        if (hasResolvedLaunch) return;
+        hasResolvedLaunch = true;
         callback();
       };
 
@@ -446,10 +446,7 @@ export class Umu {
           quickExitTimer = null;
         }
 
-        if (settled) {
-          // The quick-exit grace period already resolved this launch as
-          // successful, so this is the *real* exit of the wrapped process
-          // (e.g. an installer finishing) -- let callers observe it.
+        if (hasResolvedLaunch) {
           options?.onExit?.(code, signal);
           return;
         }
