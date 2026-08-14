@@ -28,32 +28,14 @@ concurrency:
 jobs:
   build:
     name: Mac Staging
-    runs-on: macos-latest
+    runs-on: macos-14
+
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
 
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
-
-      - name: Show Mac environment
-        run: |
-          echo "=== macOS ==="
-          sw_vers
-          echo ""
-          echo "=== Architecture ==="
-          uname -m
-          echo ""
-          echo "=== CPU ==="
-          sysctl -n machdep.cpu.brand_string
-          echo ""
-          echo "=== Node ==="
-          node --version || true
-          echo ""
-          echo "=== Yarn ==="
-          yarn --version || true
-
-      - name: Install Rosetta 2
-        run: |
-          softwareupdate --install-rosetta --agree-to-license
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -61,24 +43,8 @@ jobs:
           node-version: 22.21.0
           cache: "yarn"
 
-      - name: Verify Node architecture
-        run: |
-          echo "Node version:"
-          node --version
-          echo ""
-          echo "Node architecture:"
-          node -p "process.arch"
-          echo ""
-          echo "Node platform:"
-          node -p "process.platform"
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Verify Rust architecture
-        run: |
-          rustc --version
-          rustc -vV
 
       - name: Install dependencies
         run: yarn --frozen-lockfile
@@ -87,11 +53,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.9
-
-      - name: Verify Python architecture
-        run: |
-          python --version
-          python -c "import platform; print('Python architecture:', platform.machine())"
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
@@ -129,26 +90,14 @@ jobs:
 
     if: github.event_name == 'push'
 
-    runs-on: macos-latest
+    runs-on: macos-14
+
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
 
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
-
-      - name: Show Mac environment
-        run: |
-          echo "=== macOS ==="
-          sw_vers
-          echo ""
-          echo "=== Architecture ==="
-          uname -m
-          echo ""
-          echo "=== CPU ==="
-          sysctl -n machdep.cpu.brand_string
-
-      - name: Install Rosetta 2
-        run: |
-          softwareupdate --install-rosetta --agree-to-license
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -156,24 +105,8 @@ jobs:
           node-version: 22.21.0
           cache: "yarn"
 
-      - name: Verify Node architecture
-        run: |
-          echo "Node version:"
-          node --version
-          echo ""
-          echo "Node architecture:"
-          node -p "process.arch"
-          echo ""
-          echo "Node platform:"
-          node -p "process.platform"
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Verify Rust architecture
-        run: |
-          rustc --version
-          rustc -vV
 
       - name: Install dependencies
         run: yarn --frozen-lockfile
@@ -182,11 +115,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.9
-
-      - name: Verify Python architecture
-        run: |
-          python --version
-          python -c "import platform; print('Python architecture:', platform.machine())"
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
