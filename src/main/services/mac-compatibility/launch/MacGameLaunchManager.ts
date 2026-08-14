@@ -189,7 +189,7 @@ export class MacGameLaunchManager {
     prepared: MacGameLaunchResult,
   ): Promise<MacGameLaunchResult> {
     try {
-      const child = await execFileAsync(
+      const child = execFile(
         request.executablePath,
         request.args ?? [],
         {
@@ -197,12 +197,10 @@ export class MacGameLaunchManager {
         },
       );
 
-      const pid = child.pid ?? null;
-
       return {
         ...prepared,
         success: true,
-        pid,
+        pid: child.pid ?? null,
         message: "Game launched natively.",
       };
     } catch (error) {
@@ -224,7 +222,7 @@ export class MacGameLaunchManager {
     wineVersion: MacWineVersion,
   ): Promise<MacGameLaunchResult> {
     try {
-      const child = await execFileAsync(
+      const child = execFile(
         wineVersion.executablePath,
         [request.executablePath, ...(request.args ?? [])],
         {
@@ -236,12 +234,10 @@ export class MacGameLaunchManager {
         },
       );
 
-      const pid = child.pid ?? null;
-
       return {
         ...prepared,
         success: true,
-        pid,
+        pid: child.pid ?? null,
         message: `Game launched with ${wineVersion.name}.`,
       };
     } catch (error) {
