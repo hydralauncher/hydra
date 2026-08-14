@@ -1,6 +1,4 @@
-import { access, mkdir } from "fs/promises";
-import { join } from "path";
-import { homedir } from "os";
+import { access, mkdir, rm } from "fs/promises";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import type {
@@ -10,6 +8,13 @@ import type {
 } from "../MacCompatibilityTypes";
 import { MacWineEnvironmentRegistry } from "./MacWineEnvironmentRegistry";
 import { MacWineEnvironmentLogger } from "./MacWineEnvironmentLogger";
+import {
+  DEFAULT_MAC_ENVIRONMENTS_PATH,
+  DEFAULT_MAC_ENVIRONMENTS_REGISTRY_PATH,
+  assertManagedPrefixPath,
+  createEnvironmentId,
+  resolveManagedPrefixPath,
+} from "./MacWineEnvironmentPaths";
 
 const execFileAsync = promisify(execFile);
 
@@ -18,25 +23,20 @@ export class MacWineEnvironmentManager {
   private readonly environmentsPath: string;
 
   constructor(
-    registryPath = join(
-      homedir(),
-      "Library",
-      "Application Support",
-      "Hydra",
-      "mac-compatibility",
-      "environments.json",
-    ),
-    environmentsPath = join(
-      homedir(),
-      "Library",
-      "Application Support",
-      "Hydra",
-      "mac-compatibility",
-      "environments",
-    ),
+    registryPath = DEFAULT_MAC_ENVIRONMENTS_REGISTRY_PATH,
+    environmentsPath = DEFAULT_MAC_ENVIRONMENTS_PATH,
   ) {
     this.registry = new MacWineEnvironmentRegistry(registryPath);
     this.environmentsPath = environmentsPath;
+  }
+
+  /**
+   * The folder this game owns, derived from the game identity rather
+   * than read from environments.json. Two different games can never
+   * resolve to the same folder.
+   */
+  getPrefixPathForGame(game: MacCompatibilityGameKey): string {
+    return resolveManagedPrefixPath(this.environmentsPath, game);
   }
 
   async getEnvironment(
@@ -50,7 +50,7 @@ export class MacWineEnvironmentManager {
     wineVersion: MacWineVersion,
   ): Promise<MacWineEnvironment> {
     const environmentId = this.createEnvironmentId(game);
-    const prefixPath = join(this.environmentsPath, environmentId);
+    const prefixPath = this.getPrefixPathForGame(game);
 
     await mkdir(prefixPath, {
       recursive: true,
@@ -178,6 +178,14 @@ export class MacWineEnvironmentManager {
     return updated;
   }
 
+  /**
+   * Deletes one game's Wine environment folder.
+   *
+   * The path stored in environments.json is never trusted on its own:
+   * it is validated against the environments root immediately before
+   * rm() runs, and an unsafe value throws instead of deleting anything.
+   * When no path is stored, the folder is derived from the game key.
+   */
   async deleteEnvironment(
     game: MacCompatibilityGameKey,
   ): Promise<boolean> {
@@ -187,9 +195,18 @@ export class MacWineEnvironmentManager {
       return false;
     }
 
-    const { rm } = await import("fs/promises");
+    const candidatePrefixPath =
+      typeof environment.prefixPath === "string" &&
+      environment.prefixPath.trim() !== ""
+        ? environment.prefixPath
+        : this.getPrefixPathForGame(game);
 
-    await rm(environment.prefixPath, {
+    const safePrefixPath = await assertManagedPrefixPath(
+      this.environmentsPath,
+      candidatePrefixPath,
+    );
+
+    await rm(safePrefixPath, {
       recursive: true,
       force: true,
     });
@@ -225,17 +242,6 @@ export class MacWineEnvironmentManager {
   private createEnvironmentId(
     game: MacCompatibilityGameKey,
   ): string {
-    const shop = this.sanitizeId(game.shop);
-    const objectId = this.sanitizeId(game.objectId);
-
-    return `${shop}-${objectId}`;
-  }
-
-  private sanitizeId(value: string): string {
-    return value
-      .toLowerCase()
-      .replace(/[^a-z0-9-_]/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
+    return createEnvironmentId(game);
   }
 }
