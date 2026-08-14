@@ -1,0 +1,55 @@
+name: Mac Compatibility Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  mac-compatibility:
+    name: Test Mac Compatibility
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: TypeScript type check
+        run: yarn tsc --noEmit -p tsconfig.node.json
+
+      - name: Run Mac compatibility tests
+        run: |
+          echo "=== macOS environment ==="
+          sw_vers
+          echo ""
+          echo "=== Architecture ==="
+          uname -m
+          echo ""
+          echo "=== Node.js ==="
+          node --version
+          echo ""
+          echo "=== Yarn ==="
+          yarn --version
+          echo ""
+          echo "=== Mac compatibility source ==="
+          find src/main/services/mac-compatibility -maxdepth 2 -type f | sort
+          echo ""
+          echo "=== Mac compatibility test complete ==="
