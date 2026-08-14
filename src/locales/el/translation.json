@@ -1317,7 +1317,8 @@
     "big_picture_enable_sounds": "Ενεργοποίηση ήχων Big Picture",
     "big_picture_enable_virtual_keyboard": "Ενεργοποίηση του εικονικού πληκτρολογίου «Big Picture»",
     "big_picture_enable_diagnostics": "Ενεργοποίηση διαγνωστικών πλοήγησης",
-    "big_picture_diagnostics_position": "Θέση διαγνωστικών"
+    "big_picture_diagnostics_position": "Θέση διαγνωστικών",
+    "enable_compatibility_environment_variables": "Ενεργοποίηση μεταβλητών περιβάλλοντος"
   },
   "notifications": {
     "download_complete": "Η λήψη ολοκληρώθηκε",

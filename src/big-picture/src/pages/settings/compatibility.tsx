@@ -34,6 +34,8 @@ import { SettingsSection } from "./settings-section";
 const COMPATIBILITY_PROTON_LOGGING_FOCUS_ID = "compatibility-proton-logging";
 const COMPATIBILITY_ENV_VARS_INPUT_ID =
   "compatibility-environment-variables-input";
+const COMPATIBILITY_ENV_VARS_ENABLE_FOCUS_ID =
+  "compatibility-environment-variables-enable";
 
 interface SettingsSectionProps {
   className?: string;
@@ -54,7 +56,7 @@ interface CompatibilityPreferenceValues {
   autoRunGamemode?: boolean;
   autoRunMangohud?: boolean;
   protonLogEnabled?: boolean;
-  compatibilityEnvironmentVariablesEnabled?: boolean | null;
+  compatibilityEnvironmentVariablesEnabled?: boolean;
 }
 
 interface CompatibilityItem {
@@ -100,6 +102,7 @@ export function CompatibilitySettingsSection({
 }: Readonly<SettingsSectionProps>) {
   const userPreferences = useUserPreferences();
   const { showSuccessToast } = useBigPictureToast();
+
   const [form, setForm] = useState<CompatibilityForm>(DEFAULT_FORM);
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
@@ -425,7 +428,7 @@ export function CompatibilitySettingsSection({
         {
           focusId: COMPATIBILITY_PROTON_LOGGING_FOCUS_ID,
           disabled: !canUseBehaviorSection,
-          render: () => (
+          render: (navigationOverrides: FocusOverrides) => (
             <div
               key={COMPATIBILITY_PROTON_LOGGING_FOCUS_ID}
               className="compatibility-settings-section__behavior-item"
@@ -437,6 +440,7 @@ export function CompatibilitySettingsSection({
                 checked={form.protonLogEnabled}
                 disabled={!canUseBehaviorSection}
                 focusId={COMPATIBILITY_PROTON_LOGGING_FOCUS_ID}
+                navigationOverrides={navigationOverrides}
                 block
                 onChange={(checked) => {
                   void updateCompatibilityPreferences({
@@ -444,13 +448,25 @@ export function CompatibilitySettingsSection({
                   });
                 }}
               />
-
+            </div>
+          ),
+        },
+        {
+          focusId: COMPATIBILITY_ENV_VARS_ENABLE_FOCUS_ID,
+          disabled: !canUseBehaviorSection,
+          render: (navigationOverrides: FocusOverrides) => (
+            <div
+              key={COMPATIBILITY_ENV_VARS_ENABLE_FOCUS_ID}
+              className="compatibility-settings-section__behavior-item"
+            >
               <Checkbox
-                id={`${COMPATIBILITY_ENV_VARS_INPUT_ID}_enable`}
+                id={COMPATIBILITY_ENV_VARS_ENABLE_FOCUS_ID}
                 label="Enable environment variables"
                 secondaryText="Controls whether compatibility environment variables are injected."
                 checked={form.compatibilityEnvironmentVariablesEnabled}
-                focusId={`${COMPATIBILITY_ENV_VARS_INPUT_ID}_enable`}
+                disabled={!canUseBehaviorSection}
+                focusId={COMPATIBILITY_ENV_VARS_ENABLE_FOCUS_ID}
+                navigationOverrides={navigationOverrides}
                 block
                 onChange={(checked) => {
                   void updateCompatibilityPreferences({
@@ -458,9 +474,26 @@ export function CompatibilitySettingsSection({
                   });
                 }}
               />
-
+            </div>
+          ),
+        },
+        {
+          focusId: COMPATIBILITY_ENV_VARS_INPUT_ID,
+          disabled:
+            !canUseBehaviorSection ||
+            !form.compatibilityEnvironmentVariablesEnabled,
+          render: (navigationOverrides: FocusOverrides) => (
+            <div
+              key={COMPATIBILITY_ENV_VARS_INPUT_ID}
+              className="compatibility-settings-section__behavior-item"
+            >
               <FocusItem
                 id={COMPATIBILITY_ENV_VARS_INPUT_ID}
+                focusable={
+                  canUseBehaviorSection &&
+                  form.compatibilityEnvironmentVariablesEnabled
+                }
+                navigationOverrides={navigationOverrides}
                 actions={{ primary: () => textareaRef.current?.focus() }}
               >
                 <div className="compatibility-settings-section__env-vars-group">
@@ -471,6 +504,10 @@ export function CompatibilitySettingsSection({
                     ref={textareaRef}
                     id="compatibility-environment-variables"
                     className="compatibility-settings-section__env-vars-textarea"
+                    disabled={
+                      !canUseBehaviorSection ||
+                      !form.compatibilityEnvironmentVariablesEnabled
+                    }
                     value={form.compatibilityEnvironmentVariables}
                     onChange={(event) => {
                       const nextValue = event.target.value;
@@ -537,6 +574,9 @@ export function CompatibilitySettingsSection({
     form.autoRunGamemode,
     form.autoRunMangohud,
     form.defaultProtonPath,
+    form.protonLogEnabled,
+    form.compatibilityEnvironmentVariablesEnabled,
+    form.compatibilityEnvironmentVariables,
     gamemodeAvailable,
     handleInstallCommonRedist,
     installingCommonRedist,
@@ -621,7 +661,9 @@ export function CompatibilitySettingsSection({
                 (item) =>
                   item.focusId === COMPATIBILITY_GAMEMODE_FOCUS_ID ||
                   item.focusId === COMPATIBILITY_MANGOHUD_FOCUS_ID ||
-                  item.focusId === COMPATIBILITY_PROTON_LOGGING_FOCUS_ID
+                  item.focusId === COMPATIBILITY_PROTON_LOGGING_FOCUS_ID ||
+                  item.focusId === COMPATIBILITY_ENV_VARS_ENABLE_FOCUS_ID ||
+                  item.focusId === COMPATIBILITY_ENV_VARS_INPUT_ID
               )
               .map((item) =>
                 item.render(navigationOverridesByFocusId[item.focusId] ?? {})

@@ -1529,7 +1529,8 @@
     "big_picture_diagnostics_position": "Posição do diagnóstico",
     "setup_match_wrong_platform": "plataforma errada",
     "setup_run_in_background": "Executar em segundo plano",
-    "scanning_system_label": "Escaneando {{system}}…"
+    "scanning_system_label": "Escaneando {{system}}…",
+    "enable_compatibility_environment_variables": "Ativar variáveis de ambiente"
   },
   "notifications": {
     "download_complete": "Download concluído",

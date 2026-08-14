@@ -627,7 +627,6 @@
     "Enable Proton logging": "Activer la journalisation de Proton",
     "Write Proton debug logs for compatibility launches.": "Écrire les journaux de débogage Proton pour les lancements de compatibilité.",
     "Proton logging": "Journalisation de Proton",
-    "Write Proton debug logs for this game. Overrides the global setting.": "Écrire les journaux de débogage Proton pour ce jeu. Remplace le paramètre global.",
     "This option is disabled because Proton logging is enabled globally": "Cette option est désactivée car la journalisation de Proton est activée globalement",
     "Compatibility environment variables": "Variables d'environnement de compatibilité",
     "Applies these variables to every compatibility launch.": "Applique ces variables à chaque lancement de compatibilité.",
@@ -725,7 +724,10 @@
     "steamgriddb_sign_in_required": "Connectez-vous à Hydra pour parcourir les illustrations SteamGridDB.",
     "steamgriddb_fetch_failed": "Échec du chargement des ressources SteamGridDB",
     "steamgriddb_artwork_updated": "Illustration mise à jour",
-    "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut"
+    "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut",
+    "Enable environment variables": "Activer les variables d'environnement",
+    "Controls whether compatibility environment variables are injected.": "Contrôle si les variables d'environnement de compatibilité sont injectées.",
+    "Write Proton debug logs for this game.": "Write Proton debug logs for this game."
   },
   "format": {
     "playtime_hours_one": "{{count}} heure",

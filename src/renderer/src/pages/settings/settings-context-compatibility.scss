@@ -29,4 +29,53 @@
   color: globals.$body-color;
   border: 1px solid globals.$border-color;
   border-radius: 6px;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.settings-context-compatibility {
+  &__stack {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.75);
+    padding-top: calc(globals.$spacing-unit / 2);
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__global-toggles {
+    padding-top: calc(globals.$spacing-unit / 2);
+    gap: calc(globals.$spacing-unit * 1.25);
+  }
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+
+    &--disabled {
+      text-decoration: underline dotted;
+      text-underline-offset: 2px;
+    }
+  }
+
+  &__toggle-link {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 3);
+  }
 }

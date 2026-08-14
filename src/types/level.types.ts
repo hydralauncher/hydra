@@ -185,7 +185,7 @@ export interface UserPreferences {
   defaultProtonPath?: string | null;
   protonLogEnabled?: boolean;
   compatibilityEnvironmentVariables?: string | null;
-  compatibilityEnvironmentVariablesEnabled?: boolean | null;
+  compatibilityEnvironmentVariablesEnabled?: boolean;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;

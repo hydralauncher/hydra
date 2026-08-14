@@ -454,7 +454,6 @@
     "Enable Proton logging": "Включить логирование Proton",
     "Write Proton debug logs for compatibility launches.": "Записывать отладочные логи Proton для запусков совместимости.",
     "Proton logging": "Логирование Proton",
-    "Write Proton debug logs for this game. Overrides the global setting.": "Записывать отладочные логи Proton для этой игры. Переопределяет глобальную настройку.",
     "This option is disabled because Proton logging is enabled globally": "Эта опция отключена, так как логирование Proton включено глобально",
     "Compatibility environment variables": "Переменные окружения совместимости",
     "Applies these variables to every compatibility launch.": "Применяет эти переменные окружения к каждому запуску совместимости.",
@@ -719,7 +718,10 @@
     "steamgriddb_sign_in_required": "Войдите в Hydra, чтобы просматривать обложки SteamGridDB.",
     "steamgriddb_fetch_failed": "Не удалось загрузить ресурсы SteamGridDB",
     "steamgriddb_artwork_updated": "Оформление обновлено",
-    "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию"
+    "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию",
+    "Enable environment variables": "Включить переменные окружения",
+    "Controls whether compatibility environment variables are injected.": "Определяет, будут ли применяться переменные окружения совместимости.",
+    "Write Proton debug logs for this game.": "Write Proton debug logs for this game."
   },
   "format": {
     "playtime_hours_one": "{{count}} час",

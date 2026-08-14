@@ -366,7 +366,7 @@ export function GameCompatibilitySettingsTab({
           secondaryText={
             globalProtonLogEnabled
               ? "This option is disabled because Proton logging is enabled globally"
-              : "Write Proton debug logs for this game. Overrides the global setting."
+              : "Write Proton debug logs for this game."
           }
           checked={protonLogEnabled || globalProtonLogEnabled}
           disabled={globalProtonLogEnabled}

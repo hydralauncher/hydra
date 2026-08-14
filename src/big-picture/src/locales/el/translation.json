@@ -627,7 +627,6 @@
     "Enable Proton logging": "Ενεργοποίηση καταγραφής Proton",
     "Write Proton debug logs for compatibility launches.": "Εγγραφή αρχείων καταγραφής εντοπισμού σφαλμάτων Proton για εκκινήσεις συμβατότητας.",
     "Proton logging": "Καταγραφή Proton",
-    "Write Proton debug logs for this game. Overrides the global setting.": "Εγγραφή αρχείων καταγραφής εντοπισμού σφαλμάτων Proton για αυτό το παιχνίδι. Παρακάμπτει τη γενική ρύθμιση.",
     "This option is disabled because Proton logging is enabled globally": "Αυτή η επιλογή είναι απενεργοποιημένη επειδή η καταγραφή Proton είναι ενεργοποιημένη καθολικά",
     "Compatibility environment variables": "Μεταβλητές περιβάλλοντος συμβατότητας",
     "Applies these variables to every compatibility launch.": "Εφαρμόζει αυτές τις μεταβλητές σε κάθε εκκίνηση συμβατότητας.",
@@ -725,7 +724,10 @@
     "steamgriddb_sign_in_required": "Συνδεθείτε στο Hydra για να περιηγηθείτε στα εικαστικά του SteamGridDB.",
     "steamgriddb_fetch_failed": "Δεν κατέστη δυνατή η φόρτωση των στοιχείων του SteamGridDB",
     "steamgriddb_artwork_updated": "Τα γραφικά ενημερώθηκαν",
-    "steamgriddb_artwork_reset": "Έγινε επαναφορά των γραφικών στην προεπιλογή"
+    "steamgriddb_artwork_reset": "Έγινε επαναφορά των γραφικών στην προεπιλογή",
+    "Enable environment variables": "Ενεργοποίηση μεταβλητών περιβάλλοντος",
+    "Controls whether compatibility environment variables are injected.": "Ελέγχει αν εισάγονται μεταβλητές περιβάλλοντος συμβατότητας.",
+    "Write Proton debug logs for this game.": "Write Proton debug logs for this game."
   },
   "format": {
     "playtime_hours_one": "{{count}} ώρα",
