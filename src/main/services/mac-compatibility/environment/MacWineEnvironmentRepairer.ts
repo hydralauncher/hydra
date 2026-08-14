@@ -3,6 +3,11 @@ import { join } from "node:path";
 import type { MacWineEnvironment } from "../MacCompatibilityTypes";
 import { MacWineEnvironmentInitializer } from "./MacWineEnvironmentInitializer";
 import { MacWineEnvironmentLogger } from "./MacWineEnvironmentLogger";
+import {
+  DEFAULT_MAC_ENVIRONMENTS_PATH,
+  assertManagedPrefixPath,
+  assertPathInsidePrefix,
+} from "./MacWineEnvironmentPaths";
 
 export interface MacWineEnvironmentRepairResult {
   success: boolean;
@@ -12,9 +17,11 @@ export interface MacWineEnvironmentRepairResult {
 
 export class MacWineEnvironmentRepairer {
   private readonly initializer: MacWineEnvironmentInitializer;
+  private readonly environmentsPath: string;
 
-  constructor() {
+  constructor(environmentsPath = DEFAULT_MAC_ENVIRONMENTS_PATH) {
     this.initializer = new MacWineEnvironmentInitializer();
+    this.environmentsPath = environmentsPath;
   }
 
   async repair(
@@ -97,21 +104,21 @@ export class MacWineEnvironmentRepairer {
    * so this deletes every entry in the folder except compatibility.log
    * instead of rm-ing the folder itself.
    *
-   * Only ever deletes contents of environment.prefixPath as resolved
-   * upstream by MacWineEnvironmentManager (userData/mac-compatibility/
-   * environments/<sanitized-shop>-<sanitized-objectId>) — never a
-   * caller-supplied or constructed path.
+   * The prefix path arrives from environments.json, so it is never
+   * trusted as-is. assertManagedPrefixPath() re-validates it against
+   * the environments root immediately before anything is deleted, and
+   * every individual entry is re-checked to be inside that validated
+   * folder. An unsafe path throws and deletes nothing.
    */
   private async removeBrokenPrefix(prefixPath: string): Promise<void> {
-    if (!prefixPath) {
-      throw new Error(
-        "Refusing to repair: no prefix path was provided.",
-      );
-    }
+    const safePrefixPath = await assertManagedPrefixPath(
+      this.environmentsPath,
+      prefixPath,
+    );
 
     let entries: string[];
     try {
-      entries = await readdir(prefixPath);
+      entries = await readdir(safePrefixPath);
     } catch {
       // Prefix folder doesn't exist yet — nothing to remove.
       return;
@@ -121,7 +128,13 @@ export class MacWineEnvironmentRepairer {
       entries
         .filter((entry) => entry !== "compatibility.log")
         .map((entry) =>
-          rm(join(prefixPath, entry), { recursive: true, force: true }),
+          rm(
+            assertPathInsidePrefix(
+              safePrefixPath,
+              join(safePrefixPath, entry),
+            ),
+            { recursive: true, force: true },
+          ),
         ),
     );
   }
