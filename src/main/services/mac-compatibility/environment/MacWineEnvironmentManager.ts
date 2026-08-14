@@ -9,6 +9,7 @@ import type {
   MacWineVersion,
 } from "../MacCompatibilityTypes";
 import { MacWineEnvironmentRegistry } from "./MacWineEnvironmentRegistry";
+import { MacWineEnvironmentLogger } from "./MacWineEnvironmentLogger";
 
 const execFileAsync = promisify(execFile);
 
@@ -55,6 +56,12 @@ export class MacWineEnvironmentManager {
       recursive: true,
     });
 
+    await MacWineEnvironmentLogger.info(
+      prefixPath,
+      `Creating environment with ${wineVersion.name}.`,
+      wineVersion.executablePath,
+    );
+
     await this.initializePrefix(prefixPath, wineVersion);
 
     const environment: MacWineEnvironment = {
@@ -69,12 +76,22 @@ export class MacWineEnvironmentManager {
       exists: true,
       initialized: true,
       healthy: true,
-      installedComponents: [],
+      // "wine-prefix" marks that wineboot --init has completed for this
+      // environment — the first and, for now, only tracked component.
+      // Future dependency installs (VC++ Redist, .NET, etc.) append here
+      // via recordInstalledComponent() rather than being written inline,
+      // so every install path shares one consistent record-keeping spot.
+      installedComponents: ["wine-prefix"],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     await this.registry.set(game, environment);
+
+    await MacWineEnvironmentLogger.info(
+      prefixPath,
+      "Environment created successfully.",
+    );
 
     return environment;
   }
@@ -111,9 +128,54 @@ export class MacWineEnvironmentManager {
       );
 
       return true;
-    } catch {
+    } catch (error) {
+      await MacWineEnvironmentLogger.warning(
+        environment.prefixPath,
+        "Environment test failed.",
+        error instanceof Error ? error.message : String(error),
+      );
+
       return false;
     }
+  }
+
+  /**
+   * Appends a component id to this environment's installedComponents
+   * list (e.g. a Visual C++ Redistributable or .NET version once that
+   * dependency-installation work exists) and logs it. Idempotent: adding
+   * the same component id twice is a no-op rather than a duplicate.
+   */
+  async recordInstalledComponent(
+    game: MacCompatibilityGameKey,
+    componentId: string,
+  ): Promise<MacWineEnvironment | null> {
+    const environment = await this.getEnvironment(game);
+
+    if (!environment) {
+      return null;
+    }
+
+    if (environment.installedComponents.includes(componentId)) {
+      return environment;
+    }
+
+    const updated: MacWineEnvironment = {
+      ...environment,
+      installedComponents: [
+        ...environment.installedComponents,
+        componentId,
+      ],
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.registry.set(game, updated);
+
+    await MacWineEnvironmentLogger.info(
+      environment.prefixPath,
+      `Component installed: ${componentId}`,
+    );
+
+    return updated;
   }
 
   async deleteEnvironment(
