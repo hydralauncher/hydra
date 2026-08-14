@@ -18,6 +18,7 @@ import {
 import { useBigPictureToast } from "./use-big-picture-toast.hook";
 import { NavigationAudioService } from "../services";
 import { useBigPictureRunningGame } from "./use-big-picture-running-games.hook";
+import { useUserPreferences } from "./use-user-preferences.hook";
 
 export function useGameDetails(objectId: string, shop: GameShop) {
   const { i18n } = useTranslation();
@@ -39,6 +40,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const userPreferences = useUserPreferences();
+  const shouldUseRetroAchievements =
+    shop === "launchbox" &&
+    Boolean(userPreferences?.retroAchievementsWebApiKey);
 
   const updateGame = useCallback(async () => {
     if (!IS_DESKTOP) return;
@@ -109,7 +114,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
           `/games/${shop}/${objectId}/how-long-to-beat`,
           { needsAuth: false }
         )
-        .then(setHowLongToBeat)
+        .then((data) => setHowLongToBeat(Array.isArray(data) ? data : null))
         .catch(() => setHowLongToBeat(null));
 
       globalThis.window.electron.hydraApi
@@ -118,21 +123,41 @@ export function useGameDetails(objectId: string, shop: GameShop) {
         })
         .then(setProtonDBData)
         .catch(() => setProtonDBData(null));
-
-      globalThis.window.electron
-        .getUnlockedAchievements(objectId, shop)
-        .then((result) => {
-          if (result) {
-            setAchievements(result);
-          }
-        })
-        .catch(() => setAchievements([]));
     } else {
       setHowLongToBeat(null);
       setProtonDBData(null);
-      setAchievements([]);
     }
   }, [objectId, refreshGameDetails, shop]);
+
+  useEffect(() => {
+    if (!IS_DESKTOP || shop === "custom") {
+      setAchievements([]);
+      return;
+    }
+
+    let isCurrentRequest = true;
+
+    const request = shouldUseRetroAchievements
+      ? globalThis.window.electron.getRetroAchievementsAchievements(
+          objectId,
+          shop
+        )
+      : globalThis.window.electron.getUnlockedAchievements(objectId, shop);
+
+    request
+      .then((result) => {
+        if (!isCurrentRequest) return;
+        setAchievements(result ?? []);
+      })
+      .catch(() => {
+        if (!isCurrentRequest) return;
+        setAchievements([]);
+      });
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [objectId, shop, shouldUseRetroAchievements]);
 
   useEffect(() => {
     if (!IS_DESKTOP) return;

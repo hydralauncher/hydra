@@ -100,6 +100,8 @@ mod tests {
 
     #[tokio::test]
     async fn builds_index_from_real_manifest() {
+        crate::cloud_save::http::ensure_crypto_provider();
+
         let source_url = resolve_source_url(None);
 
         let raw_yaml = reqwest::get(&source_url)

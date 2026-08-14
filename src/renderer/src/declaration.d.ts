@@ -86,6 +86,7 @@ import type {
   SelectCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathApprovalResult,
   ConfirmCloudSaveCustomPathRebindApprovalResult,
+  LegacySaveExportProgress,
   LegacySaveExportResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
@@ -894,7 +895,7 @@ declare global {
     getDownloadSourcesSinceValue: () => Promise<string | null>;
 
     /* Hardware */
-    getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
+    getDiskFreeSpace: (path: string) => Promise<DiskUsage | null>;
     checkFolderWritePermission: (path: string) => Promise<boolean>;
     getNetworkInterfaces: () => Promise<NetworkInterface[]>;
 
@@ -911,8 +912,10 @@ declare global {
     ) => Promise<void>;
     exportGameArtifact: (
       gameArtifactId: string,
-      suggestedName: string
+      suggestedName: string,
+      onProgress?: (progress: LegacySaveExportProgress) => void
     ) => Promise<LegacySaveExportResult>;
+    cancelGameArtifactExport: () => Promise<boolean>;
     getGameArtifacts: (
       objectId: string,
       shop: GameShop

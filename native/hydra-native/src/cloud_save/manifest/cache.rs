@@ -25,6 +25,8 @@ static HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 fn http_client() -> &'static reqwest::Client {
     HTTP_CLIENT.get_or_init(|| {
+        crate::cloud_save::http::ensure_crypto_provider();
+
         reqwest::Client::builder()
             .timeout(Duration::from_secs(MANIFEST_HTTP_TIMEOUT_SECS))
             .build()
