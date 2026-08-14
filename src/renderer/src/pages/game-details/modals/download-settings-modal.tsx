@@ -50,7 +50,10 @@ import { Tooltip } from "react-tooltip";
 import "./download-settings-modal.scss";
 import { RealDebridInfoModal } from "./real-debrid-info-modal";
 import { gameDetailsContext } from "@renderer/context";
-import { platformToSystem } from "@renderer/helpers";
+import {
+  platformToRetroArchPlatform,
+  platformToSystem,
+} from "@renderer/helpers";
 
 export interface DownloadSettingsModalProps {
   visible: boolean;
@@ -251,6 +254,13 @@ export function DownloadSettingsModal({
     return platformToSystem(game?.platform ?? shopDetails?.platform ?? null);
   }, [shop, game?.platform, shopDetails?.platform]);
 
+  const retroArchPlatform = useMemo(() => {
+    if (shop !== "launchbox" || emulatorSystem) return null;
+    return platformToRetroArchPlatform(
+      game?.platform ?? shopDetails?.platform ?? null
+    );
+  }, [shop, emulatorSystem, game?.platform, shopDetails?.platform]);
+
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -324,7 +334,7 @@ export function DownloadSettingsModal({
 
   const getDiskFreeSpace = async (path: string) => {
     const result = await globalThis.electron.getDiskFreeSpace(path);
-    setDiskFreeSpace(result.free);
+    setDiskFreeSpace(result?.free ?? null);
   };
 
   const checkFolderWritePermission = useCallback(
@@ -483,15 +493,21 @@ export function DownloadSettingsModal({
     let cancelled = false;
 
     const resolveDefaultPath = async () => {
-      const romPath = emulatorSystem
-        ? await globalThis.electron
-            .getEmulatorConfigs()
-            .then(
-              (configs) =>
-                configs[emulatorSystem]?.romFolders?.[0]?.path ?? null
-            )
-            .catch(() => null)
-        : null;
+      let romPath: string | null = null;
+
+      if (emulatorSystem) {
+        romPath = await globalThis.electron
+          .getEmulatorConfigs()
+          .then(
+            (configs) => configs[emulatorSystem]?.romFolders?.[0]?.path ?? null
+          )
+          .catch(() => null);
+      } else if (retroArchPlatform) {
+        romPath = await globalThis.electron
+          .getRetroArchConfig()
+          .then((config) => config.romFolders?.[0]?.path ?? null)
+          .catch(() => null);
+      }
 
       if (cancelled) return;
 
@@ -522,6 +538,7 @@ export function DownloadSettingsModal({
     userPreferences?.downloadsPath,
     downloadOptions,
     emulatorSystem,
+    retroArchPlatform,
   ]);
 
   useEffect(() => {
@@ -1268,9 +1285,11 @@ export function DownloadSettingsModal({
     <Modal
       visible={visible}
       title={t("download_settings")}
-      description={t("space_left_on_disk", {
-        space: formatBytes(diskFreeSpace ?? 0),
-      })}
+      description={
+        diskFreeSpace === null
+          ? undefined
+          : t("space_left_on_disk", { space: formatBytes(diskFreeSpace) })
+      }
       onClose={handleCloseModal}
     >
       <div className="download-settings-modal__container">

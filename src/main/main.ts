@@ -26,6 +26,7 @@ import {
   Wine,
   WindowManager,
   logger,
+  migrateCloudSaveAutomaticSyncDefaults,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
@@ -57,6 +58,7 @@ const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
 export const loadState = async () => {
   await Lock.acquireLock();
   await clearLegacyAchievementPersistence();
+  await migrateCloudSaveAutomaticSyncDefaults();
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,

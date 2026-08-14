@@ -20,10 +20,7 @@ import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { gameDetailsContext } from "@renderer/context";
-import {
-  getClassicsLaunchErrorCode,
-  getClassicsLaunchErrorSystem,
-} from "@renderer/helpers";
+import { handleClassicsLaunchError } from "@renderer/helpers";
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
 
 import "./hero-panel-actions.scss";
@@ -216,30 +213,13 @@ export function HeroPanelActions() {
         force
       );
     } catch (error) {
-      const code = getClassicsLaunchErrorCode(error);
-      const system = getClassicsLaunchErrorSystem(error);
-      const emulationPath = system
-        ? `/settings?tab=emulation&system=${system}`
-        : "/settings?tab=emulation";
-      if (code === "EMULATOR_NOT_CONFIGURED") {
-        showErrorToast(t("emulator_not_configured_toast"));
-        navigate(emulationPath);
-      } else if (code === "BIOS_NOT_CONFIGURED") {
-        showErrorToast(t("bios_not_configured_toast"));
-        navigate(emulationPath);
-      } else if (code === "PLATFORM_UNKNOWN") {
-        showErrorToast(t("platform_unknown_toast"));
-      } else if (code === "NO_DISC") {
-        showErrorToast(t("no_disc_toast"));
-      } else if (code === "PKG_INSTALLING") {
-        showSuccessToast(t("pkg_installing_toast"));
-      } else if (code === "PKG_UNREADABLE") {
-        showErrorToast(t("pkg_unreadable_toast"));
-      } else if (code === "EMULATOR_ALREADY_RUNNING") {
-        setPendingClassicsLaunch({ discPath });
-      } else {
-        showErrorToast(t("launch_failed_toast"));
-      }
+      handleClassicsLaunchError(error, {
+        t,
+        showErrorToast,
+        showSuccessToast,
+        navigate,
+        onEmulatorAlreadyRunning: () => setPendingClassicsLaunch({ discPath }),
+      });
     }
   };
 

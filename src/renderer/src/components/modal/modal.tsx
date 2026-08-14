@@ -13,10 +13,12 @@ export interface ModalProps {
   title: React.ReactNode;
   description?: string;
   onClose: () => void;
+  onCloseStart?: () => void;
   large?: boolean;
   noContentPadding?: boolean;
   children: React.ReactNode;
   clickOutsideToClose?: boolean;
+  className?: string;
 }
 
 export function Modal({
@@ -24,10 +26,12 @@ export function Modal({
   title,
   description,
   onClose,
+  onCloseStart,
   large,
   noContentPadding,
   children,
   clickOutsideToClose = true,
+  className,
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
@@ -35,6 +39,7 @@ export function Modal({
   const { t } = useTranslation("modal");
 
   const handleCloseClick = useCallback(() => {
+    onCloseStart?.();
     setIsClosing(true);
     const zero = performance.now();
 
@@ -46,7 +51,7 @@ export function Modal({
         setIsClosing(false);
       }
     });
-  }, [onClose]);
+  }, [onClose, onCloseStart]);
 
   const isTopMostModal = () => {
     if (
@@ -121,10 +126,14 @@ export function Modal({
   return createPortal(
     <Backdrop isClosing={isClosing}>
       <div
-        className={cn("modal", {
-          "modal--closing": isClosing,
-          "modal--large": large,
-        })}
+        className={cn(
+          "modal",
+          {
+            "modal--closing": isClosing,
+            "modal--large": large,
+          },
+          className
+        )}
         role="dialog"
         aria-describedby={description}
         ref={modalContentRef}
