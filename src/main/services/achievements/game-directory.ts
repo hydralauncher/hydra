@@ -50,6 +50,44 @@ export const isDirectory = async (dirPath: string) => {
   }
 };
 
+export const realPathOrNull = async (target: string) => {
+  try {
+    return await fs.promises.realpath(target);
+  } catch {
+    return null;
+  }
+};
+
+export const isWithin = (root: string, target: string) => {
+  const relative = path.relative(root, target);
+
+  return (
+    relative === "" ||
+    (!relative.startsWith(`..${path.sep}`) &&
+      relative !== ".." &&
+      !path.isAbsolute(relative))
+  );
+};
+
+export const resolveContainedDirectory = async (
+  containmentRoot: string,
+  candidate: string
+) => {
+  const resolved = await realPathOrNull(candidate);
+
+  if (!resolved) return null;
+  if (!isWithin(containmentRoot, resolved)) return null;
+  if (!(await isDirectory(resolved))) return null;
+
+  return resolved;
+};
+
+export const resolveContainmentRoot = async (executablePath: string) => {
+  const searchRoot = await resolveGameSearchRoot(executablePath);
+
+  return realPathOrNull(searchRoot);
+};
+
 export const isFile = async (filePath: string) => {
   try {
     return (await fs.promises.stat(filePath)).isFile();

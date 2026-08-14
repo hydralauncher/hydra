@@ -4,74 +4,139 @@ import fs from "node:fs";
 import axios from "axios";
 
 import { achievementsLogger } from "../../logger";
-import {
-  ACHIEVEMENT_IMAGES_DIR_NAME,
-  type AchievementIcon,
-} from "./build-achievement-metadata";
+import { resolveContainedDirectory } from "../game-directory.js";
+import type { AchievementIcon } from "./build-achievement-metadata";
+import type { AchievementMetadataExportTarget } from "./generate-achievement-metadata";
 
 const CONCURRENCY = 8;
 const REQUEST_TIMEOUT_IN_MS = 15_000;
+const PROGRESS_REPORT_INTERVAL = 10;
 
 interface DownloadAchievementIconsOptions {
-  steamSettingsDirectories: string[];
-  icons: AchievementIcon[];
+  containmentRoot: string;
+  targets: AchievementMetadataExportTarget[];
   signal?: AbortSignal;
   onProgress?: (downloaded: number, total: number) => void;
 }
 
-const downloadIcon = async (
-  icon: AchievementIcon,
-  imagesDirectories: string[],
-  signal?: AbortSignal
+interface ResolvedIcon {
+  filePath: string;
+  url: string;
+}
+
+const resolveIconDirectories = async (
+  containmentRoot: string,
+  steamSettingsDirectory: string,
+  icons: AchievementIcon[]
 ) => {
-  const missingDirectories = imagesDirectories.filter(
-    (imagesDirectory) =>
-      !fs.existsSync(path.join(imagesDirectory, icon.fileName))
+  const resolvedParent = await resolveContainedDirectory(
+    containmentRoot,
+    steamSettingsDirectory
   );
 
-  if (!missingDirectories.length) return;
+  if (!resolvedParent) {
+    achievementsLogger.error(
+      `Refusing to write achievement icons: ${steamSettingsDirectory} is outside ${containmentRoot}`
+    );
 
+    return [];
+  }
+
+  const iconsByDirectory = new Map<string, AchievementIcon[]>();
+
+  for (const icon of icons) {
+    const directory = path.posix.dirname(icon.relativePath);
+    const directoryIcons = iconsByDirectory.get(directory) ?? [];
+
+    directoryIcons.push(icon);
+    iconsByDirectory.set(directory, directoryIcons);
+  }
+
+  const resolvedIcons: ResolvedIcon[] = [];
+
+  for (const [directory, directoryIcons] of iconsByDirectory) {
+    const iconsDirectory = path.join(resolvedParent, directory);
+
+    await fs.promises.mkdir(iconsDirectory, { recursive: true });
+
+    const resolvedIconsDirectory = await resolveContainedDirectory(
+      containmentRoot,
+      iconsDirectory
+    );
+
+    if (!resolvedIconsDirectory) {
+      achievementsLogger.error(
+        `Refusing to write achievement icons: ${iconsDirectory} is outside ${containmentRoot}`
+      );
+      continue;
+    }
+
+    const entries = await fs.promises
+      .readdir(resolvedIconsDirectory)
+      .catch(() => []);
+
+    const presentFileNames = new Set(entries);
+
+    for (const icon of directoryIcons) {
+      const fileName = path.posix.basename(icon.relativePath);
+
+      if (presentFileNames.has(fileName)) continue;
+
+      presentFileNames.add(fileName);
+
+      resolvedIcons.push({
+        filePath: path.join(resolvedIconsDirectory, fileName),
+        url: icon.url,
+      });
+    }
+  }
+
+  return resolvedIcons;
+};
+
+const downloadIcon = async (icon: ResolvedIcon, signal?: AbortSignal) => {
   const response = await axios.get<ArrayBuffer>(icon.url, {
     responseType: "arraybuffer",
     timeout: REQUEST_TIMEOUT_IN_MS,
     signal,
   });
 
-  await Promise.all(
-    missingDirectories.map((imagesDirectory) =>
-      fs.promises.writeFile(
-        path.join(imagesDirectory, icon.fileName),
-        Buffer.from(response.data)
-      )
-    )
-  );
+  await fs.promises.writeFile(icon.filePath, Buffer.from(response.data));
 };
 
 export const downloadAchievementIcons = async ({
-  steamSettingsDirectories,
-  icons,
+  containmentRoot,
+  targets,
   signal,
   onProgress,
 }: DownloadAchievementIconsOptions) => {
-  const imagesDirectories = steamSettingsDirectories.map((directory) =>
-    path.join(directory, ACHIEVEMENT_IMAGES_DIR_NAME)
-  );
+  const pendingIcons: ResolvedIcon[] = [];
 
-  for (const imagesDirectory of imagesDirectories) {
-    await fs.promises.mkdir(imagesDirectory, { recursive: true });
+  for (const { steamSettingsDirectory, icons } of targets) {
+    if (signal?.aborted) return;
+
+    pendingIcons.push(
+      ...(await resolveIconDirectories(
+        containmentRoot,
+        steamSettingsDirectory,
+        icons
+      ))
+    );
   }
+
+  if (!pendingIcons.length) return;
 
   let downloaded = 0;
   let cursor = 0;
 
   const worker = async () => {
-    while (cursor < icons.length) {
+    while (cursor < pendingIcons.length) {
       if (signal?.aborted) return;
 
-      const icon = icons[cursor++];
+      const icon = pendingIcons[cursor++];
 
       try {
-        await downloadIcon(icon, imagesDirectories, signal);
+        await downloadIcon(icon, signal);
       } catch (error) {
         if (signal?.aborted) return;
 
@@ -82,11 +147,17 @@ export const downloadAchievementIcons = async ({
       }
 
       downloaded++;
-      onProgress?.(downloaded, icons.length);
+
+      if (
+        downloaded % PROGRESS_REPORT_INTERVAL === 0 ||
+        downloaded === pendingIcons.length
+      ) {
+        onProgress?.(downloaded, pendingIcons.length);
+      }
     }
   };
 
   await Promise.all(
-    Array.from({ length: Math.min(CONCURRENCY, icons.length) }, worker)
+    Array.from({ length: Math.min(CONCURRENCY, pendingIcons.length) }, worker)
   );
 };

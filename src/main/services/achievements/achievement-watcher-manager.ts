@@ -180,6 +180,15 @@ export class AchievementWatcherManager {
     }
   }
 
+  public static async syncGameAchievementFiles(
+    shop: GameShop,
+    objectId: string
+  ) {
+    this.alreadySyncedGames.delete(levelKeys.game(shop, objectId));
+
+    return this.firstSyncWithRemoteIfNeeded(shop, objectId);
+  }
+
   public static async firstSyncWithRemoteIfNeeded(
     shop: GameShop,
     objectId: string

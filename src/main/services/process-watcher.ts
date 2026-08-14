@@ -397,10 +397,7 @@ function onOpenGame(game: Game) {
 
   if (game.shop === "custom") return;
 
-  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
-    game.shop,
-    game.objectId
-  );
+  AchievementWatcherManager.syncGameAchievementFiles(game.shop, game.objectId);
 
   if (game.remoteId) {
     const deltaToSync = game.unsyncedDeltaPlayTimeInMilliseconds ?? 0;

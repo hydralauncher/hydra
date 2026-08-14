@@ -4,9 +4,9 @@ import { isUnsafePath } from "../../../events/helpers/find-game-root.js";
 import {
   STEAM_SETTINGS_DIR_NAME,
   collectEmulatorDirectories,
-  isDirectory,
   readDirectorySafe,
-  resolveGameSearchRoot,
+  resolveContainedDirectory,
+  resolveContainmentRoot,
 } from "../game-directory.js";
 
 const MAX_DEPTH = 8;
@@ -94,6 +94,10 @@ const searchBreadthFirst = async (searchRoot: string) => {
 export const findSteamSettingsDirectories = async (executablePath: string) => {
   if (isUnsafePath(path.dirname(executablePath))) return [];
 
+  const containmentRoot = await resolveContainmentRoot(executablePath);
+
+  if (!containmentRoot) return [];
+
   const emulatorDirectories = await collectEmulatorDirectories(executablePath);
 
   const directories = new Set<string>();
@@ -102,20 +106,25 @@ export const findSteamSettingsDirectories = async (executablePath: string) => {
     emulatorDirectories.flatMap((emulatorDirectory) =>
       STEAM_SETTINGS_RELATIVE_PATHS.map(async (segments) => {
         const candidate = path.join(emulatorDirectory, ...segments);
+        const resolved = await resolveContainedDirectory(
+          containmentRoot,
+          candidate
+        );
 
-        if (await isDirectory(candidate)) {
-          directories.add(path.resolve(candidate));
-        }
+        if (resolved) directories.add(resolved);
       })
     )
   );
 
   if (directories.size) return [...directories];
 
-  const searchRoot = await resolveGameSearchRoot(executablePath);
+  for (const directory of await searchBreadthFirst(containmentRoot)) {
+    const resolved = await resolveContainedDirectory(
+      containmentRoot,
+      directory
+    );
 
-  for (const directory of await searchBreadthFirst(searchRoot)) {
-    directories.add(path.resolve(directory));
+    if (resolved) directories.add(resolved);
   }
 
   return [...directories];

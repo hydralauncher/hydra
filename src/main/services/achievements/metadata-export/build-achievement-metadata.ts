@@ -4,6 +4,8 @@ import type { AchievementMetadataEntry, SteamAchievement } from "@types";
 
 export const ACHIEVEMENT_IMAGES_DIR_NAME = "images";
 
+const ALTERNATE_ICON_GRAY_KEY = "icon_gray";
+
 const DEFAULT_ICON_EXTENSION = ".jpg";
 
 const ALLOWED_ICON_EXTENSIONS = new Set([
@@ -16,7 +18,7 @@ const ALLOWED_ICON_EXTENSIONS = new Set([
 ]);
 
 export interface AchievementIcon {
-  fileName: string;
+  relativePath: string;
   url: string;
 }
 
@@ -60,23 +62,74 @@ export const buildAchievementMetadata = (
     const { icon, icongray } = getAchievementIconUrls(achievement);
 
     const position = entries.length + 1;
-    const iconFileName = `${position}${getIconExtension(icon)}`;
-    const icongrayFileName = `${position}_gray${getIconExtension(icongray)}`;
+
+    const iconPath = `${imagesDirName}/${position}${getIconExtension(icon)}`;
+    const icongrayPath = `${imagesDirName}/${position}_gray${getIconExtension(
+      icongray
+    )}`;
 
     entries.push({
       description: achievement.description ?? "",
       displayName: achievement.displayName ?? achievement.name,
       hidden: achievement.hidden ? 1 : 0,
-      icon: `${imagesDirName}/${iconFileName}`,
-      icongray: `${imagesDirName}/${icongrayFileName}`,
+      icon: iconPath,
+      icongray: icongrayPath,
       name: achievement.name,
     });
 
     icons.push(
-      { fileName: iconFileName, url: icon },
-      { fileName: icongrayFileName, url: icongray }
+      { relativePath: iconPath, url: icon },
+      { relativePath: icongrayPath, url: icongray }
     );
   }
 
   return { entries, icons };
+};
+
+export const getExistingEntryIconPaths = (entry: AchievementMetadataEntry) => {
+  const icongray =
+    entry.icongray ??
+    (entry as unknown as Record<string, unknown>)[ALTERNATE_ICON_GRAY_KEY];
+
+  return [entry.icon, icongray].filter(
+    (iconPath): iconPath is string =>
+      typeof iconPath === "string" && iconPath.length > 0
+  );
+};
+
+export const buildIconsForExistingMetadata = (
+  achievements: SteamAchievement[],
+  existingEntries: AchievementMetadataEntry[]
+): AchievementIcon[] => {
+  const urlsByName = new Map(
+    achievements
+      .filter(({ name }) => Boolean(name))
+      .map((achievement) => [
+        achievement.name.toUpperCase(),
+        getAchievementIconUrls(achievement),
+      ])
+  );
+
+  const icons: AchievementIcon[] = [];
+
+  for (const entry of existingEntries) {
+    if (typeof entry?.name !== "string") continue;
+
+    const urls = urlsByName.get(entry.name.toUpperCase());
+
+    if (!urls) continue;
+
+    const [iconPath, icongrayPath] = getExistingEntryIconPaths(entry);
+
+    for (const [relativePath, url] of [
+      [iconPath, urls.icon],
+      [icongrayPath, urls.icongray],
+    ]) {
+      if (!relativePath || !url) continue;
+
+      icons.push({ relativePath: relativePath.replaceAll("\\", "/"), url });
+    }
+  }
+
+  return icons;
 };

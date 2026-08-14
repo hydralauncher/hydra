@@ -55,20 +55,25 @@ export const runAchievementMetadataExport = async (
       return;
     }
 
-    if (!result?.icons.length || !result.steamSettingsDirectories.length) {
+    if (!result?.targets.length) {
       finishExport();
       return;
     }
 
+    const totalIcons = result.targets.reduce(
+      (total, { icons }) => total + icons.length,
+      0
+    );
+
     sendGameLauncherStatus(
       gameKey,
       "downloading_achievement_icons",
-      `0/${result.icons.length}`
+      `0/${totalIcons}`
     );
 
     downloadAchievementIcons({
-      steamSettingsDirectories: result.steamSettingsDirectories,
-      icons: result.icons,
+      containmentRoot: result.containmentRoot,
+      targets: result.targets,
       signal: abortController.signal,
       onProgress: (downloaded, total) =>
         sendGameLauncherStatus(
