@@ -198,7 +198,14 @@ export class AchievementWatcherManager {
 
   public static async firstSyncWithRemoteIfNeeded(
     shop: GameShop,
-    objectId: string
+    objectId: string,
+    // Callers that already have a resolved game record under a *different*
+    // storage key than (shop, objectId) -- e.g. a matched custom game,
+    // where achievement lookups need to run under the matched Steam
+    // identity but no separate "steam:<id>" library record actually
+    // exists -- pass it directly instead of letting this method re-fetch
+    // from gamesSublevel by a key that would resolve to nothing.
+    gameOverride?: Game
   ) {
     if (shop === "custom") return;
 
@@ -207,7 +214,8 @@ export class AchievementWatcherManager {
 
     this.alreadySyncedGames.set(gameKey, true);
 
-    const game = await gamesSublevel.get(gameKey).catch(() => null);
+    const game =
+      gameOverride ?? (await gamesSublevel.get(gameKey).catch(() => null));
     if (!game || game.isDeleted) return;
 
     const gameAchievementFiles = findAchievementFiles(game);

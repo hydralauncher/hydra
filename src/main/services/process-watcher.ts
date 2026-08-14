@@ -404,7 +404,10 @@ function onOpenGame(game: Game) {
 
   AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
     achievementsShop,
-    achievementsObjectId
+    achievementsObjectId,
+    matchedSteamObjectId
+      ? { ...game, shop: achievementsShop, objectId: achievementsObjectId }
+      : undefined
   );
 
   // Custom games are never registered with the Hydra account library

@@ -704,6 +704,55 @@ export function GameOptionsModal({
     }
   };
 
+  // Shared by both save paths (title blur, and picking a Steam suggestion)
+  // so a match selection can persist itself immediately instead of relying
+  // on the title field's onBlur firing afterward -- clicking a suggestion
+  // button blurs the title field first (mousedown fires blur before the
+  // button's own click), so a blur-only save would persist the typed title
+  // without the match that was about to be picked.
+  const persistTitleAndMatch = async (
+    trimmedTitle: string,
+    match: SteamMatchSuggestion | null,
+    matchAssets: ShopAssets | null
+  ) => {
+    setUpdatingGameTitle(true);
+    try {
+      if (game.shop === "custom") {
+        await globalThis.window.electron.updateCustomGame({
+          shop: game.shop,
+          objectId: game.objectId,
+          title: trimmedTitle,
+          iconUrl: matchAssets?.iconUrl || game.iconUrl || undefined,
+          logoImageUrl:
+            matchAssets?.logoImageUrl || game.logoImageUrl || undefined,
+          libraryHeroImageUrl:
+            matchAssets?.libraryHeroImageUrl ||
+            game.libraryHeroImageUrl ||
+            undefined,
+          customCoverImageUrl: matchAssets?.coverImageUrl || undefined,
+          matchedSteamObjectId: match?.objectId ?? undefined,
+        });
+      } else {
+        await globalThis.window.electron.updateGameCustomAssets({
+          shop: game.shop,
+          objectId: game.objectId,
+          title: trimmedTitle,
+        });
+      }
+      await Promise.all([updateGame(), updateLibrary()]);
+      setGameTitle(trimmedTitle);
+      setPendingSteamMatch(null);
+      setPendingSteamMatchAssets(null);
+    } catch (error) {
+      setGameTitle(game.title ?? "");
+      showErrorToast(
+        error instanceof Error ? error.message : t("edit_game_modal_failed")
+      );
+    } finally {
+      setUpdatingGameTitle(false);
+    }
+  };
+
   const handleSelectSteamMatch = (suggestion: SteamMatchSuggestion) => {
     setPendingSteamMatch(suggestion);
     setGameTitle(suggestion.title);
@@ -712,9 +761,13 @@ export function GameOptionsModal({
 
     globalThis.window.electron
       .getGameAssets(suggestion.objectId, "steam")
-      .then(setPendingSteamMatchAssets)
+      .then((assets) => {
+        setPendingSteamMatchAssets(assets);
+        void persistTitleAndMatch(suggestion.title, suggestion, assets);
+      })
       .catch((error) => {
         logger.error("Failed to fetch matched Steam game assets", error);
+        void persistTitleAndMatch(suggestion.title, suggestion, null);
       });
   };
 
@@ -735,46 +788,11 @@ export function GameOptionsModal({
       setGameTitle(game.title ?? "");
       return;
     }
-    setUpdatingGameTitle(true);
-    try {
-      if (game.shop === "custom") {
-        await globalThis.window.electron.updateCustomGame({
-          shop: game.shop,
-          objectId: game.objectId,
-          title: trimmed,
-          iconUrl:
-            pendingSteamMatchAssets?.iconUrl || game.iconUrl || undefined,
-          logoImageUrl:
-            pendingSteamMatchAssets?.logoImageUrl ||
-            game.logoImageUrl ||
-            undefined,
-          libraryHeroImageUrl:
-            pendingSteamMatchAssets?.libraryHeroImageUrl ||
-            game.libraryHeroImageUrl ||
-            undefined,
-          customCoverImageUrl:
-            pendingSteamMatchAssets?.coverImageUrl || undefined,
-          matchedSteamObjectId: pendingSteamMatch?.objectId ?? undefined,
-        });
-      } else {
-        await globalThis.window.electron.updateGameCustomAssets({
-          shop: game.shop,
-          objectId: game.objectId,
-          title: trimmed,
-        });
-      }
-      await Promise.all([updateGame(), updateLibrary()]);
-      setGameTitle(trimmed);
-      setPendingSteamMatch(null);
-      setPendingSteamMatchAssets(null);
-    } catch (error) {
-      setGameTitle(game.title ?? "");
-      showErrorToast(
-        error instanceof Error ? error.message : t("edit_game_modal_failed")
-      );
-    } finally {
-      setUpdatingGameTitle(false);
-    }
+    await persistTitleAndMatch(
+      trimmed,
+      pendingSteamMatch,
+      pendingSteamMatchAssets
+    );
   };
 
   const handleResetGameTitle = useCallback(async () => {

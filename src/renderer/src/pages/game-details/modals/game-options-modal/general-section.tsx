@@ -543,6 +543,7 @@ export function GeneralSettingsSection({
                         <button
                           type="button"
                           className="game-options-modal__steam-match-suggestion"
+                          onMouseDown={(event) => event.preventDefault()}
                           onClick={() => onSelectSteamMatch(suggestion)}
                           disabled={updatingGameTitle}
                         >
