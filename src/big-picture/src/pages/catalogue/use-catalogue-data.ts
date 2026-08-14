@@ -4,6 +4,7 @@ import type {
   DownloadSource,
 } from "@types";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import { logger } from "@renderer/logger";
 import axios from "axios";
 import {
   useCallback,
@@ -190,6 +191,15 @@ interface LaunchboxFiltersResponse {
 const externalResourcesInstance = axios.create({
   baseURL: import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL,
 });
+
+const logRejectedMetadataRequest = (
+  resource: string,
+  result: PromiseSettledResult<unknown>
+) => {
+  if (result.status === "rejected") {
+    logger.warn(`[catalogue] failed to load ${resource}:`, result.reason);
+  }
+};
 
 function parseJsonParam(value: string | null): unknown {
   if (!value) return undefined;
@@ -406,6 +416,13 @@ export function useCatalogueData() {
       ]);
 
       if (cancelled) return;
+
+      logRejectedMetadataRequest("steam-genres", genresResponse);
+      logRejectedMetadataRequest("steam-user-tags", tagsResponse);
+      logRejectedMetadataRequest("steam-developers", developersResponse);
+      logRejectedMetadataRequest("steam-publishers", publishersResponse);
+      logRejectedMetadataRequest("launchbox-filters", launchboxFiltersResponse);
+      logRejectedMetadataRequest("download-sources", rawDownloadSources);
 
       if (genresResponse.status === "fulfilled") {
         setSteamGenres(genresResponse.value.data.en);
