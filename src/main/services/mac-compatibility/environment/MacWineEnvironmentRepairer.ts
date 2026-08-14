@@ -1,9 +1,6 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
+import { rm } from "node:fs/promises";
 import type { MacWineEnvironment } from "../MacCompatibilityTypes";
 import { MacWineEnvironmentInitializer } from "./MacWineEnvironmentInitializer";
-
-const execFileAsync = promisify(execFile);
 
 export interface MacWineEnvironmentRepairResult {
   success: boolean;
@@ -23,10 +20,7 @@ export class MacWineEnvironmentRepairer {
     wineExecutablePath: string,
   ): Promise<MacWineEnvironmentRepairResult> {
     try {
-      await this.removeBrokenPrefix(
-        environment.prefixPath,
-        wineExecutablePath,
-      );
+      await this.removeBrokenPrefix(environment.prefixPath);
 
       const result = await this.initializer.initialize(
         {
@@ -64,24 +58,27 @@ export class MacWineEnvironmentRepairer {
     }
   }
 
-  private async removeBrokenPrefix(
-    prefixPath: string,
-    wineExecutablePath: string,
-  ): Promise<void> {
-    try {
-      await execFileAsync(
-        wineExecutablePath,
-        ["wineboot", "--end-session"],
-        {
-          env: {
-            ...process.env,
-            WINEPREFIX: prefixPath,
-          },
-        },
+  /**
+   * "wineboot --end-session" is not a valid Wine command and never
+   * deleted anything — repair was re-initializing over the same
+   * corrupted files every time. This deletes the prefix directory
+   * outright so initialize() below starts from a clean state.
+   *
+   * Only ever deletes environment.prefixPath as resolved upstream by
+   * MacWineEnvironmentManager (userData/mac-compatibility/environments/
+   * <sanitized-shop>-<sanitized-objectId>) — never a caller-supplied or
+   * constructed path.
+   */
+  private async removeBrokenPrefix(prefixPath: string): Promise<void> {
+    if (!prefixPath) {
+      throw new Error(
+        "Refusing to repair: no prefix path was provided.",
       );
-    } catch {
-      // The prefix may already be broken enough that wineboot
-      // cannot end the session. Continue with reinitialization.
     }
+
+    await rm(prefixPath, {
+      recursive: true,
+      force: true,
+    });
   }
 }
