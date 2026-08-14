@@ -4,84 +4,103 @@ import type {
   MacWineEnvironment,
 } from "./MacCompatibilityTypes";
 import { MacCompatibilityManager } from "./MacCompatibilityManager";
-import { MacCompatibilityRegistry } from "./MacCompatibilityRegistry";
-
 export class MacGameManager {
   private readonly compatibilityManager: MacCompatibilityManager;
-  private readonly registry: MacCompatibilityRegistry;
-
-  constructor(
-    compatibilityManager?: MacCompatibilityManager,
-    registry?: MacCompatibilityRegistry,
-  ) {
+  constructor(compatibilityManager?: MacCompatibilityManager) {
     this.compatibilityManager =
       compatibilityManager ?? new MacCompatibilityManager();
-
-    this.registry = registry ?? new MacCompatibilityRegistry();
   }
-
   async checkGame(
     game: MacCompatibilityGameKey,
     title: string,
     isWindowsGame: boolean,
   ): Promise<MacGameCompatibility> {
-    const compatibility = await this.compatibilityManager.checkGame(
+    return this.compatibilityManager.checkGame(
       game,
       title,
       isWindowsGame,
     );
-
-    const existingEnvironment = this.registry.getEnvironment(game);
-
-    if (existingEnvironment) {
+  }
+  async getEnvironment(
+    game: MacCompatibilityGameKey,
+  ): Promise<MacWineEnvironment | null> {
+    return this.compatibilityManager.getGameEnvironment(game);
+  }
+  async isReadyToLaunch(
+    game: MacCompatibilityGameKey,
+    title: string,
+    isWindowsGame: boolean,
+  ): Promise<boolean> {
+    if (!isWindowsGame) {
+      return true;
+    }
+    const compatibility = await this.checkGame(
+      game,
+      title,
+      isWindowsGame,
+    );
+    return compatibility.status === "ready";
+  }
+  async getLaunchStatus(
+    game: MacCompatibilityGameKey,
+    title: string,
+    isWindowsGame: boolean,
+  ): Promise<{
+    ready: boolean;
+    compatibility: MacGameCompatibility;
+    message: string;
+  }> {
+    const compatibility = await this.checkGame(
+      game,
+      title,
+      isWindowsGame,
+    );
+    if (!isWindowsGame) {
       return {
-        ...compatibility,
-        environment: existingEnvironment,
+        ready: true,
+        compatibility,
+        message: "Native macOS game is ready to launch.",
       };
     }
-
-    this.registry.setStatus(game, compatibility.status);
-
-    return compatibility;
-  }
-
-  getEnvironment(
-    game: MacCompatibilityGameKey,
-  ): MacWineEnvironment | null {
-    return this.registry.getEnvironment(game);
-  }
-
-  setEnvironment(
-    game: MacCompatibilityGameKey,
-    environment: MacWineEnvironment | null,
-  ): void {
-    this.registry.setEnvironment(game, environment);
-  }
-
-  setWineVersion(
-    game: MacCompatibilityGameKey,
-    wineVersionId: string | null,
-  ): void {
-    this.registry.setWineVersion(game, wineVersionId);
-  }
-
-  getSelectedWineVersionId(
-    game: MacCompatibilityGameKey,
-  ): string | null {
-    return this.registry.get(game)?.selectedWineVersionId ?? null;
-  }
-
-  getStatus(
-    game: MacCompatibilityGameKey,
-  ): MacGameCompatibility["status"] {
-    return this.registry.get(game)?.lastStatus ?? "unknown";
-  }
-
-  removeGame(game: MacCompatibilityGameKey): boolean {
-    return this.registry.delete(game);
-  }
-
-  hasGame(game: MacCompatibilityGameKey): boolean {
-    return this.registry.has(game);
+    if (compatibility.status === "ready") {
+      return {
+        ready: true,
+        compatibility,
+        message: "Game environment is ready.",
+      };
+    }
+    if (compatibility.status === "needs_setup") {
+      return {
+        ready: false,
+        compatibility,
+        message: "Game requires a macOS compatibility environment.",
+      };
+    }
+    if (compatibility.status === "needs_repair") {
+      return {
+        ready: false,
+        compatibility,
+        message: "Game environment needs repair before launching.",
+      };
+    }
+    if (compatibility.status === "unsupported") {
+      return {
+        ready: false,
+        compatibility,
+        message: "This game is not currently supported on macOS.",
+      };
+    }
+    if (compatibility.status === "error") {
+      return {
+        ready: false,
+        compatibility,
+        message: "Unable to prepare the game for macOS.",
+      };
+    }
+    return {
+      ready: false,
+      compatibility,
+      message: "Game compatibility has not been fully configured.",
+    };
   }
 }
