@@ -118,6 +118,7 @@ const updateUserPreferences = async (
     Object.hasOwn(preferences, "bigPictureDisplayId") ||
     Object.hasOwn(preferences, "bigPictureDisplayBounds")
   ) {
+    await BigPictureSessionManager.applyDisplayPreference();
     await WindowManager.applyBigPictureDisplayPreference();
   }
 

@@ -128,6 +128,16 @@ export class BigPictureSessionManager {
     return AudioDeviceManager.setDefaultAudioDevice(targetAudioDeviceId);
   }
 
+  public static applyDisplayPreference() {
+    return this.enqueueSessionOperation(async () => {
+      if (this.snapshot === null || this.isRestoring) {
+        return;
+      }
+
+      await DisplayManager.prepareBigPictureDisplayForLaunch();
+    });
+  }
+
   private static async restoreSnapshot(snapshot: BigPictureRestoreSnapshot) {
     if (snapshot.primaryDisplaySourceName) {
       const restored = await this.restorePrimaryDisplay(

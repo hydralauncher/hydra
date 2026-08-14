@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { NativeAddon } from "./native-addon";
 import {
   PACTL_AUDIO_DEVICE_PREFIX,
+  getFirstAvailableAudioBackendResult,
   parsePactlAudioSinks,
   parseWpctlAudioSinks,
   WPCTL_AUDIO_DEVICE_PREFIX,
@@ -22,40 +23,52 @@ async function commandExists(command: string) {
 
 export class AudioDeviceManager {
   private static async getLinuxAudioDevices(): Promise<HydraAudioDevice[]> {
-    if (await commandExists("pactl")) {
-      const [{ stdout: sinksOutput }, { stdout: defaultSinkOutput }] =
-        await Promise.all([
-          execFileAsync("pactl", ["list", "sinks"]),
-          execFileAsync("pactl", ["get-default-sink"]),
-        ]);
-      const defaultSinkName = defaultSinkOutput.trim();
+    const backends: Array<() => Promise<HydraAudioDevice[]>> = [];
 
-      return parsePactlAudioSinks(sinksOutput, defaultSinkName || null);
+    if (await commandExists("pactl")) {
+      backends.push(async () => {
+        const [{ stdout: sinksOutput }, { stdout: defaultSinkOutput }] =
+          await Promise.all([
+            execFileAsync("pactl", ["list", "sinks"]),
+            execFileAsync("pactl", ["get-default-sink"]),
+          ]);
+        const defaultSinkName = defaultSinkOutput.trim();
+
+        return parsePactlAudioSinks(sinksOutput, defaultSinkName || null);
+      });
     }
 
     if (await commandExists("wpctl")) {
-      const { stdout } = await execFileAsync("wpctl", ["status"]);
-      return parseWpctlAudioSinks(stdout);
+      backends.push(async () => {
+        const { stdout } = await execFileAsync("wpctl", ["status"]);
+        return parseWpctlAudioSinks(stdout);
+      });
     }
 
-    return [];
+    return getFirstAvailableAudioBackendResult(backends, []);
   }
 
   private static async getLinuxDefaultAudioDeviceId(): Promise<string | null> {
+    const backends: Array<() => Promise<string | null>> = [];
+
     if (await commandExists("pactl")) {
-      const { stdout } = await execFileAsync("pactl", ["get-default-sink"]);
-      const sinkName = stdout.trim();
-      return sinkName ? `${PACTL_AUDIO_DEVICE_PREFIX}${sinkName}` : null;
+      backends.push(async () => {
+        const { stdout } = await execFileAsync("pactl", ["get-default-sink"]);
+        const sinkName = stdout.trim();
+        return sinkName ? `${PACTL_AUDIO_DEVICE_PREFIX}${sinkName}` : null;
+      });
     }
 
     if (await commandExists("wpctl")) {
-      const devices = parseWpctlAudioSinks(
-        (await execFileAsync("wpctl", ["status"])).stdout
-      );
-      return devices.find((device) => device.isDefault)?.id ?? null;
+      backends.push(async () => {
+        const devices = parseWpctlAudioSinks(
+          (await execFileAsync("wpctl", ["status"])).stdout
+        );
+        return devices.find((device) => device.isDefault)?.id ?? null;
+      });
     }
 
-    return null;
+    return getFirstAvailableAudioBackendResult(backends, null);
   }
 
   private static async setLinuxDefaultAudioDevice(

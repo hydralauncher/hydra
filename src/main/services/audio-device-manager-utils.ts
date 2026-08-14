@@ -3,6 +3,21 @@ import type { HydraAudioDevice } from "@types";
 export const WPCTL_AUDIO_DEVICE_PREFIX = "wpctl:";
 export const PACTL_AUDIO_DEVICE_PREFIX = "pactl:";
 
+export async function getFirstAvailableAudioBackendResult<T>(
+  backends: Array<() => Promise<T>>,
+  fallback: T
+) {
+  for (const backend of backends) {
+    try {
+      return await backend();
+    } catch {
+      // Continue with the next compatible Linux audio backend.
+    }
+  }
+
+  return fallback;
+}
+
 function getWpctlSinksSection(output: string) {
   const lines = output.split(/\r?\n/);
   const startIndex = lines.findIndex((line) => line.trim().endsWith("Sinks:"));

@@ -352,9 +352,10 @@ mod core_audio {
     };
 
     const POLICY_CONFIG_CLIENT: GUID = GUID::from_u128(0x870af99c_171d_4f9e_af0d_e63df40c2bc9);
+    const FRIENDLY_NAME_PROPERTY_ID: u32 = 14;
     const FRIENDLY_NAME_KEY: PROPERTYKEY = PROPERTYKEY {
         fmtid: GUID::from_u128(0xa45c254e_df1c_4efd_8020_67d146a850e0),
-        pid: 14,
+        pid: FRIENDLY_NAME_PROPERTY_ID,
     };
 
     #[repr(transparent)]

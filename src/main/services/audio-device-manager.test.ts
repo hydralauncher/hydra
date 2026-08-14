@@ -2,11 +2,33 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  getFirstAvailableAudioBackendResult,
   parsePactlAudioSinks,
   parseWpctlAudioSinks,
 } from "./audio-device-manager-utils.ts";
 
 describe("audio device manager utilities", () => {
+  it("falls back to the next Linux audio backend when the first one fails", async () => {
+    const devices = await getFirstAvailableAudioBackendResult(
+      [
+        async () => Promise.reject(new Error("PulseAudio unavailable")),
+        async () => ["PipeWire device"],
+      ],
+      []
+    );
+
+    assert.deepEqual(devices, ["PipeWire device"]);
+  });
+
+  it("uses the fallback value when every Linux audio backend fails", async () => {
+    const device = await getFirstAvailableAudioBackendResult(
+      [async () => Promise.reject(new Error("Audio unavailable"))],
+      null
+    );
+
+    assert.equal(device, null);
+  });
+
   it("parses PipeWire sinks from wpctl status", () => {
     const output = `PipeWire 'pipewire-0'
 
