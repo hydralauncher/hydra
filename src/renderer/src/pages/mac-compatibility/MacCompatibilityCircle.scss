@@ -1,0 +1,221 @@
+@use "../../scss/globals.scss";
+
+.mac-compatibility-circle {
+  --circle-size: 208px;
+  --drag-x: 0px;
+  --drag-y: 0px;
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --drag-amount: 0;
+  --status-color: #{globals.$brand-teal};
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(globals.$spacing-unit * 3);
+  perspective: 900px;
+  user-select: none;
+
+  &--ready {
+    --status-color: #{globals.$brand-teal};
+  }
+
+  &--needs-setup {
+    --status-color: #{globals.$warning-color};
+  }
+
+  &--needs-fix {
+    --status-color: #fc5812;
+  }
+
+  &--not-compatible {
+    --status-color: #{globals.$error-color};
+  }
+
+  &--unknown {
+    --status-color: #{globals.$body-color};
+  }
+
+  &__disc {
+    position: relative;
+    width: var(--circle-size);
+    height: var(--circle-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid globals.$border-color;
+    background:
+      radial-gradient(
+        circle at 30% 25%,
+        rgba(255, 255, 255, 0.07),
+        transparent 60%
+      ),
+      globals.$dark-background-color;
+    box-shadow:
+      0 18px 40px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    cursor: grab;
+    touch-action: none;
+    -webkit-user-drag: none;
+    transform: translate3d(var(--drag-x), var(--drag-y), 0)
+      rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+    transition:
+      box-shadow ease 0.2s,
+      border-color ease 0.2s;
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--status-color) 45%, transparent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--status-color);
+      outline-offset: 6px;
+    }
+
+    &--dragging {
+      cursor: grabbing;
+      box-shadow:
+        0 26px 60px rgba(0, 0, 0, 0.65),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &__glow {
+    position: absolute;
+    inset: -12%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--status-color) 34%, transparent) 0%,
+      transparent 68%
+    );
+    opacity: calc(0.35 + var(--drag-amount) * 0.5);
+    filter: blur(6px);
+    pointer-events: none;
+    animation: mac-compatibility-circle-pulse 3.4s ease-in-out infinite;
+  }
+
+  &__ring {
+    position: absolute;
+    inset: 6px;
+    width: auto;
+    height: auto;
+    transform: rotate(-90deg);
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  &__ring-track {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 3;
+  }
+
+  &__ring-value {
+    fill: none;
+    stroke: var(--status-color);
+    stroke-width: 3;
+    stroke-linecap: round;
+    filter: drop-shadow(
+      0 0 6px color-mix(in srgb, var(--status-color) 60%, transparent)
+    );
+    transition: stroke-dasharray ease 0.6s;
+  }
+
+  &__logo {
+    width: 44%;
+    height: 44%;
+    object-fit: contain;
+    pointer-events: none;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+  }
+
+  &--busy &__ring {
+    animation: mac-compatibility-circle-spin 1.4s linear infinite;
+  }
+
+  &--busy &__logo {
+    animation: mac-compatibility-circle-breathe 1.6s ease-in-out infinite;
+  }
+
+  &__caption {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    text-align: center;
+    max-width: 280px;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: globals.$muted-color;
+    font-size: 18px;
+    font-weight: 600;
+
+    &::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--status-color);
+      box-shadow: 0 0 8px var(--status-color);
+    }
+  }
+
+  &__description {
+    color: globals.$body-color;
+    font-size: globals.$hint-font-size;
+    line-height: 1.5;
+    opacity: 0.75;
+  }
+}
+
+@keyframes mac-compatibility-circle-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes mac-compatibility-circle-spin {
+  from {
+    transform: rotate(-90deg);
+  }
+
+  to {
+    transform: rotate(270deg);
+  }
+}
+
+@keyframes mac-compatibility-circle-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mac-compatibility-circle__glow,
+  .mac-compatibility-circle--busy .mac-compatibility-circle__ring,
+  .mac-compatibility-circle--busy .mac-compatibility-circle__logo {
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .mac-compatibility-circle {
+    --circle-size: 168px;
+  }
+}
