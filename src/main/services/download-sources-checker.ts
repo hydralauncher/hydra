@@ -109,16 +109,31 @@ export class DownloadSourcesChecker {
     );
   }
 
+  private static acquireCheckLock(isManualRefresh: boolean): boolean {
+    if (isManualRefresh) {
+      if (this.isManualChecking) return false;
+      this.isManualChecking = true;
+      return true;
+    }
+
+    if (this.isAutoChecking) return false;
+    this.isAutoChecking = true;
+    return true;
+  }
+
+  private static releaseCheckLock(isManualRefresh: boolean): void {
+    if (isManualRefresh) {
+      this.isManualChecking = false;
+      return;
+    }
+
+    this.isAutoChecking = false;
+  }
+
   static async checkForChanges(
     isManualRefresh: boolean = false
   ): Promise<void> {
-    if (isManualRefresh) {
-      if (this.isManualChecking) return;
-      this.isManualChecking = true;
-    } else {
-      if (this.isAutoChecking) return;
-      this.isAutoChecking = true;
-    }
+    if (!this.acquireCheckLock(isManualRefresh)) return;
 
     logger.info("DownloadSourcesChecker.checkForChanges() called");
 
@@ -242,11 +257,7 @@ export class DownloadSourcesChecker {
     } catch (error) {
       logger.error("Failed to check download sources changes:", error);
     } finally {
-      if (isManualRefresh) {
-        this.isManualChecking = false;
-      } else {
-        this.isAutoChecking = false;
-      }
+      this.releaseCheckLock(isManualRefresh);
     }
   }
 }
