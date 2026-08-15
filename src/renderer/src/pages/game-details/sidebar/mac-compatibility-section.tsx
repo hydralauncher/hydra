@@ -17,15 +17,19 @@ import "./sidebar.scss";
 export function MacCompatibilitySection() {
   const navigate = useNavigate();
 
-  const { gameTitle, objectId, shop } = useContext(gameDetailsContext);
+  const { game, gameTitle, objectId, shop } = useContext(gameDetailsContext);
 
   if (!objectId) return null;
 
   const openPanel = () => {
+    const isWindowsExecutable =
+      game?.executablePath?.toLowerCase().endsWith(".exe") ?? false;
+
     const searchParams = new URLSearchParams({
       shop,
       objectId,
       title: gameTitle || objectId,
+      isWindowsGame: String(isWindowsExecutable),
     });
 
     navigate(`/mac-compatibility?${searchParams.toString()}`);
@@ -33,20 +37,17 @@ export function MacCompatibilitySection() {
 
   return (
     <SidebarSection title="Mac Compatibility">
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          padding: "16px",
-        }}
-      >
-        <p style={{ fontSize: "12px", lineHeight: 1.5, opacity: 0.7 }}>
+      <div className="mac-compatibility-section">
+        <p className="mac-compatibility-section__description">
           Check whether this game can run on your Mac, and let Hydra set up or
           repair what it needs.
         </p>
 
-        <Button theme="outline" onClick={openPanel}>
+        <Button
+          theme="outline"
+          className="mac-compatibility-section__button"
+          onClick={openPanel}
+        >
           Open Mac compatibility
         </Button>
       </div>
