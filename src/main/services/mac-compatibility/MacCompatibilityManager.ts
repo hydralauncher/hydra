@@ -81,7 +81,11 @@ export class MacCompatibilityManager {
       return result;
     }
 
-    const environment = await this.getGameEnvironment(game);
+    // Cheap correction pass before the stored flags are used for
+    // anything: if the prefix folder is gone, the environment reports
+    // itself unhealthy instead of showing a stale "ready".
+    const environment =
+      await this.environmentManager.refreshEnvironmentPresence(game);
 
     const recommendedWine =
       wineVersions.find((wine) => wine.isRecommended) ?? wineVersions[0];
@@ -217,6 +221,10 @@ export class MacCompatibilityManager {
     return environment;
   }
 
+  /**
+   * Really tests the game's environment and writes the true result back,
+   * so a stale "healthy" flag cannot survive a test.
+   */
   async testGameEnvironment(
     game: MacCompatibilityGameKey,
   ): Promise<boolean> {
@@ -238,17 +246,22 @@ export class MacCompatibilityManager {
       return false;
     }
 
-    const healthy = await this.environmentManager.testEnvironment(
-      environment,
-      wineVersion,
-    );
+    const { environment: checkedEnvironment, health } =
+      await this.environmentManager.checkEnvironmentHealth(
+        game,
+        wineVersion,
+      );
+
+    if (checkedEnvironment) {
+      this.registry.setEnvironment(game, checkedEnvironment);
+    }
 
     this.registry.setStatus(
       game,
-      healthy ? "ready" : "needs_repair",
+      health.healthy ? "ready" : "needs_repair",
     );
 
-    return healthy;
+    return health.healthy;
   }
 
   async repairGameEnvironment(
@@ -282,11 +295,28 @@ export class MacCompatibilityManager {
       throw new Error(result.message);
     }
 
-    this.registry.setEnvironment(game, result.environment);
+    // A successful repair is still verified before anything is marked
+    // ready, so "repaired" always means "tested and working".
+    const { environment: repairedEnvironment, health } =
+      await this.environmentManager.checkEnvironmentHealth(
+        game,
+        wineVersion,
+      );
+
+    const finalEnvironment = repairedEnvironment ?? result.environment;
+
+    if (!health.healthy) {
+      this.registry.setEnvironment(game, finalEnvironment);
+      this.registry.setStatus(game, "needs_repair");
+
+      throw new Error(health.message);
+    }
+
+    this.registry.setEnvironment(game, finalEnvironment);
     this.registry.setWineVersion(game, wineVersion.id);
     this.registry.setStatus(game, "ready");
 
-    return result.environment;
+    return finalEnvironment;
   }
 
   async deleteGameEnvironment(
