@@ -20,6 +20,24 @@ describe("audio device manager utilities", () => {
     assert.deepEqual(devices, ["PipeWire device"]);
   });
 
+  it("falls back to the next Linux audio backend when the first has no devices", async () => {
+    const devices = await getFirstAvailableAudioBackendResult(
+      [async () => [], async () => ["PipeWire device"]],
+      []
+    );
+
+    assert.deepEqual(devices, ["PipeWire device"]);
+  });
+
+  it("falls back to the next Linux audio backend when the first has no default device", async () => {
+    const device = await getFirstAvailableAudioBackendResult(
+      [async () => null, async () => "wpctl:52"],
+      null
+    );
+
+    assert.equal(device, "wpctl:52");
+  });
+
   it("uses the fallback value when every Linux audio backend fails", async () => {
     const device = await getFirstAvailableAudioBackendResult(
       [async () => Promise.reject(new Error("Audio unavailable"))],

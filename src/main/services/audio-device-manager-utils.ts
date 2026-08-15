@@ -10,11 +10,17 @@ export type AudioDeviceDefaults = {
 
 export async function getFirstAvailableAudioBackendResult<T>(
   backends: Array<() => Promise<T>>,
-  fallback: T
+  fallback: T,
+  isAvailable: (result: T) => boolean = (result) =>
+    result !== null && (!Array.isArray(result) || result.length > 0)
 ) {
   for (const backend of backends) {
     try {
-      return await backend();
+      const result = await backend();
+
+      if (isAvailable(result)) {
+        return result;
+      }
     } catch {
       // Continue with the next compatible Linux audio backend.
     }
