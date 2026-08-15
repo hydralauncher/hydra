@@ -33,6 +33,7 @@ import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achie
 import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { ControllerSupportSection } from "./controller-support-section";
+import { MacCompatibilitySection } from "./mac-compatibility-section";
 
 const ProtonDBSection = lazy(async () => {
   const mod = await import("./protondb-section");
@@ -110,6 +111,7 @@ const achievementsPlaceholder: UserAchievement[] = [
 
 export function Sidebar() {
   const shouldShowProtonFeatures = window.electron.platform === "linux";
+  const shouldShowMacFeatures = window.electron.platform === "darwin";
   const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
     data: HowLongToBeatCategory[] | null;
@@ -183,6 +185,8 @@ export function Sidebar() {
 
   return (
     <aside className="content-sidebar">
+      {shouldShowMacFeatures && <MacCompatibilitySection />}
+
       {shouldShowProtonFeatures && (
         <Suspense fallback={null}>
           <ProtonDBSection
