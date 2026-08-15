@@ -3,6 +3,8 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { randomUUID } from "node:crypto";
 
+import "./mac-compatibility";
+
 import type {
   GameShop,
   DownloadProgress,
