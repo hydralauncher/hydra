@@ -419,3 +419,21 @@
 .achievements-placeholder__blur {
   filter: blur(4px);
 }
+
+.mac-compatibility-section {
+  padding: calc(globals.$spacing-unit * 2);
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__description {
+    margin: 0;
+    line-height: 1.45;
+    font-size: globals.$body-font-size;
+    color: globals.$body-color;
+  }
+
+  &__button {
+    width: 100%;
+  }
+}
