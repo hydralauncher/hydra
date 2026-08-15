@@ -1,4 +1,4 @@
-import { access, mkdir, rm } from "fs/promises";
+import { mkdir, rm } from "fs/promises";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import type {
@@ -9,6 +9,10 @@ import type {
 import { MacWineEnvironmentRegistry } from "./MacWineEnvironmentRegistry";
 import { MacWineEnvironmentLogger } from "./MacWineEnvironmentLogger";
 import {
+  MacWineEnvironmentHealthChecker,
+  type MacWineEnvironmentHealthResult,
+} from "./MacWineEnvironmentHealthChecker";
+import {
   DEFAULT_MAC_ENVIRONMENTS_PATH,
   DEFAULT_MAC_ENVIRONMENTS_REGISTRY_PATH,
   assertManagedPrefixPath,
@@ -18,8 +22,16 @@ import {
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * Creating a Wine prefix from scratch is slow but not unbounded. A
+ * wineboot that has not finished in five minutes is stuck, and hanging
+ * forever would leave the UI waiting with no way out.
+ */
+const WINEBOOT_TIMEOUT_MS = 300_000;
+
 export class MacWineEnvironmentManager {
   private readonly registry: MacWineEnvironmentRegistry;
+  private readonly healthChecker: MacWineEnvironmentHealthChecker;
   private readonly environmentsPath: string;
 
   constructor(
@@ -27,6 +39,7 @@ export class MacWineEnvironmentManager {
     environmentsPath = DEFAULT_MAC_ENVIRONMENTS_PATH,
   ) {
     this.registry = new MacWineEnvironmentRegistry(registryPath);
+    this.healthChecker = new MacWineEnvironmentHealthChecker();
     this.environmentsPath = environmentsPath;
   }
 
@@ -64,6 +77,14 @@ export class MacWineEnvironmentManager {
 
     await this.initializePrefix(prefixPath, wineVersion);
 
+    // The prefix is tested rather than assumed: wineboot can exit 0 and
+    // still leave an unusable prefix, and writing healthy: true without
+    // checking is what produced "ready" games that failed to launch.
+    const health = await this.healthChecker.check(
+      prefixPath,
+      wineVersion.executablePath,
+    );
+
     const environment: MacWineEnvironment = {
       id: environmentId,
       prefixPath,
@@ -74,24 +95,32 @@ export class MacWineEnvironmentManager {
           ? "unknown"
           : wineVersion.architecture,
       exists: true,
-      initialized: true,
-      healthy: true,
+      initialized: health.initialized,
+      healthy: health.healthy,
       // "wine-prefix" marks that wineboot --init has completed for this
       // environment — the first and, for now, only tracked component.
       // Future dependency installs (VC++ Redist, .NET, etc.) append here
       // via recordInstalledComponent() rather than being written inline,
       // so every install path shares one consistent record-keeping spot.
-      installedComponents: ["wine-prefix"],
+      installedComponents: health.initialized ? ["wine-prefix"] : [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     await this.registry.set(game, environment);
 
-    await MacWineEnvironmentLogger.info(
-      prefixPath,
-      "Environment created successfully.",
-    );
+    if (health.healthy) {
+      await MacWineEnvironmentLogger.info(
+        prefixPath,
+        "Environment created successfully.",
+      );
+    } else {
+      await MacWineEnvironmentLogger.warning(
+        prefixPath,
+        "Environment was created but did not pass its health check.",
+        health.message,
+      );
+    }
 
     return environment;
   }
@@ -109,34 +138,120 @@ export class MacWineEnvironmentManager {
     return this.createEnvironment(game, wineVersion);
   }
 
+  /**
+   * Tests one environment for real. Does not write anything — use
+   * checkEnvironmentHealth() when the stored flags should be corrected
+   * as well.
+   *
+   * The old implementation ran `wine --version`, which never reads
+   * WINEPREFIX and therefore passed for a deleted or corrupted prefix.
+   * The health checker is now the single place that decides what
+   * "healthy" means, instead of that check existing in three files with
+   * three different answers.
+   */
   async testEnvironment(
     environment: MacWineEnvironment,
     wineVersion: MacWineVersion,
   ): Promise<boolean> {
-    try {
-      await access(environment.prefixPath);
+    const health = await this.checkHealth(environment, wineVersion);
 
-      await execFileAsync(
-        wineVersion.executablePath,
-        ["--version"],
-        {
-          env: {
-            ...process.env,
-            WINEPREFIX: environment.prefixPath,
-          },
+    return health.healthy;
+  }
+
+  /**
+   * Tests the game's environment and writes the true result back to
+   * environments.json, so a stale healthy/initialized flag is corrected
+   * the first time anything asks.
+   */
+  async checkEnvironmentHealth(
+    game: MacCompatibilityGameKey,
+    wineVersion: MacWineVersion | null,
+  ): Promise<{
+    environment: MacWineEnvironment | null;
+    health: MacWineEnvironmentHealthResult;
+  }> {
+    const environment = await this.getEnvironment(game);
+
+    if (!environment) {
+      return {
+        environment: null,
+        health: {
+          healthy: false,
+          initialized: false,
+          message: "No Wine environment exists for this game.",
         },
-      );
-
-      return true;
-    } catch (error) {
-      await MacWineEnvironmentLogger.warning(
-        environment.prefixPath,
-        "Environment test failed.",
-        error instanceof Error ? error.message : String(error),
-      );
-
-      return false;
+      };
     }
+
+    const health = await this.checkHealth(environment, wineVersion);
+
+    const updated: MacWineEnvironment = {
+      ...environment,
+      exists: health.initialized,
+      initialized: health.initialized,
+      healthy: health.healthy,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Only write when something actually changed, so a routine check
+    // does not rewrite the registry file on every launch.
+    if (
+      environment.exists !== updated.exists ||
+      environment.initialized !== updated.initialized ||
+      environment.healthy !== updated.healthy
+    ) {
+      await this.registry.set(game, updated);
+    }
+
+    return { environment: updated, health };
+  }
+
+  /**
+   * Cheap correction pass: confirms the prefix folder still exists and
+   * still looks initialized, without spawning Wine.
+   *
+   * If the folder is gone (the user deleted it in Finder, or a disk
+   * cleanup removed it), the stored exists/initialized/healthy flags are
+   * corrected to false. It deliberately never sets healthy to true —
+   * only a real Wine probe in checkEnvironmentHealth() is allowed to do
+   * that.
+   */
+  async refreshEnvironmentPresence(
+    game: MacCompatibilityGameKey,
+  ): Promise<MacWineEnvironment | null> {
+    const environment = await this.getEnvironment(game);
+
+    if (!environment) {
+      return null;
+    }
+
+    const present = await this.healthChecker.checkPrefixFiles(
+      environment.prefixPath,
+    );
+
+    if (present) {
+      return environment;
+    }
+
+    if (
+      !environment.exists &&
+      !environment.initialized &&
+      !environment.healthy
+    ) {
+      return environment;
+    }
+
+    const updated: MacWineEnvironment = {
+      ...environment,
+      exists: false,
+      initialized: false,
+      healthy: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.registry.set(game, updated);
+
+    return updated;
   }
 
   /**
@@ -223,6 +338,26 @@ export class MacWineEnvironmentManager {
     return this.registry.getAll();
   }
 
+  private async checkHealth(
+    environment: MacWineEnvironment,
+    wineVersion: MacWineVersion | null,
+  ): Promise<MacWineEnvironmentHealthResult> {
+    const health = await this.healthChecker.check(
+      environment.prefixPath,
+      wineVersion?.executablePath ?? "",
+    );
+
+    if (!health.healthy) {
+      await MacWineEnvironmentLogger.warning(
+        environment.prefixPath,
+        "Environment test failed.",
+        health.message,
+      );
+    }
+
+    return health;
+  }
+
   private async initializePrefix(
     prefixPath: string,
     wineVersion: MacWineVersion,
@@ -231,9 +366,14 @@ export class MacWineEnvironmentManager {
       wineVersion.executablePath,
       ["wineboot", "--init"],
       {
+        timeout: WINEBOOT_TIMEOUT_MS,
         env: {
           ...process.env,
           WINEPREFIX: prefixPath,
+          WINEDEBUG: "-all",
+          // Stops Wine from opening blocking "install Mono/Gecko?"
+          // dialogs during a headless setup.
+          WINEDLLOVERRIDES: "mscoree=d;mshtml=d",
         },
       },
     );
