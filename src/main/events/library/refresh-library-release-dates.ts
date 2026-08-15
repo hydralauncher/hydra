@@ -1,5 +1,10 @@
 import { registerEvent } from "../register-event";
-import { gamesSublevel, gamesShopCacheSublevel, levelKeys } from "@main/level";
+import {
+  gamesSublevel,
+  gamesShopCacheSublevel,
+  levelKeys,
+  db,
+} from "@main/level";
 import { getSteamAppDetailsWithStatus, logger } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { parseSortableDate } from "@shared";
@@ -15,9 +20,12 @@ import {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let isFetching = false;
-let nextSteamRequestAt = 0;
-const SUB_BATCH_DELAY_MS = 200;
+const SUB_BATCH_DELAY_MS = 1500;
 const STEAM_APP_DETAILS_CONCURRENCY = 5;
+
+interface SteamRateLimitState {
+  nextSteamRequestAt: number;
+}
 
 const persistReleaseDateResult = async (
   game: Game,
@@ -27,7 +35,6 @@ const persistReleaseDateResult = async (
   if (result.type !== "success") {
     await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
       ...game,
-      releaseDateLastCheckedAt: checkedAt,
       releaseDateNextCheckAt: getReleaseDateNextCheckAt({
         now: checkedAt,
         result: result.type,
@@ -46,7 +53,6 @@ const persistReleaseDateResult = async (
   await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
     ...game,
     releaseDateTimestamp: releaseDateTimestamp || null,
-    releaseDateLastCheckedAt: checkedAt,
     releaseDateNextCheckAt: releaseDateTimestamp
       ? undefined
       : getReleaseDateNextCheckAt({
@@ -84,7 +90,7 @@ const processGamesBatch = async (gamesBatch: Game[]) => {
 
 const refreshMissingSteamGames = async (missingSteamGames: Game[]) => {
   let updatedCount = 0;
-  const chunks = chunk(Array.from(missingSteamGames), 50);
+  const chunks = chunk(missingSteamGames, 50);
 
   for (const currentChunk of chunks) {
     try {
@@ -96,7 +102,12 @@ const refreshMissingSteamGames = async (missingSteamGames: Game[]) => {
         updatedCount += batchResult.updatedCount;
 
         if (batchResult.rateLimitDelay > 0) {
-          nextSteamRequestAt = Date.now() + batchResult.rateLimitDelay;
+          const nextRequestAt = Date.now() + batchResult.rateLimitDelay;
+          await db.put(
+            levelKeys.steamRateLimitState,
+            { nextSteamRequestAt: nextRequestAt },
+            { valueEncoding: "json" }
+          );
           logger.warn(
             `Steam rate limit reached; retrying release dates after ${batchResult.rateLimitDelay}ms`
           );
@@ -119,7 +130,16 @@ const refreshMissingSteamGames = async (missingSteamGames: Game[]) => {
 
 const refreshLibraryReleaseDates = async () => {
   if (isFetching) return;
-  if (Date.now() < nextSteamRequestAt) return;
+
+  const state = await db
+    .get<
+      string,
+      SteamRateLimitState | null
+    >(levelKeys.steamRateLimitState, { valueEncoding: "json" })
+    .catch(() => null);
+
+  if (state && Date.now() < state.nextSteamRequestAt) return;
+
   isFetching = true;
 
   try {

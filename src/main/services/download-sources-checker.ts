@@ -25,7 +25,8 @@ interface DownloadSourcesChangeResponse {
 }
 
 export class DownloadSourcesChecker {
-  private static isChecking = false;
+  private static isAutoChecking = false;
+  private static isManualChecking = false;
   private static lastManualCheckAt: number | null = null;
   private static lastManualSourceSignature: string | null = null;
 
@@ -111,8 +112,13 @@ export class DownloadSourcesChecker {
   static async checkForChanges(
     isManualRefresh: boolean = false
   ): Promise<void> {
-    if (this.isChecking) return;
-    this.isChecking = true;
+    if (isManualRefresh) {
+      if (this.isManualChecking) return;
+      this.isManualChecking = true;
+    } else {
+      if (this.isAutoChecking) return;
+      this.isAutoChecking = true;
+    }
 
     logger.info("DownloadSourcesChecker.checkForChanges() called");
 
@@ -236,7 +242,11 @@ export class DownloadSourcesChecker {
     } catch (error) {
       logger.error("Failed to check download sources changes:", error);
     } finally {
-      this.isChecking = false;
+      if (isManualRefresh) {
+        this.isManualChecking = false;
+      } else {
+        this.isAutoChecking = false;
+      }
     }
   }
 }

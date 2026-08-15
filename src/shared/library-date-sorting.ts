@@ -53,9 +53,9 @@ export const parseSortableDate = (
   if (!Number.isNaN(nativeParse)) {
     const parsedDate = new Date(nativeParse);
     return Date.UTC(
-      parsedDate.getFullYear(),
-      parsedDate.getMonth(),
-      parsedDate.getDate()
+      parsedDate.getUTCFullYear(),
+      parsedDate.getUTCMonth(),
+      parsedDate.getUTCDate()
     );
   }
 

@@ -1,8 +1,12 @@
 import { registerEvent } from "../register-event";
-import { gamesSublevel, downloadSourcesSublevel } from "@main/level";
+import {
+  gamesSublevel,
+  downloadSourcesSublevel,
+  db,
+  levelKeys,
+} from "@main/level";
 import { HydraApi } from "@main/services/hydra-api";
 import { logger, WindowManager } from "@main/services";
-import { levelKeys } from "@main/level/sublevels";
 import {
   getDownloadSourcesSignature,
   shouldRefreshDownloadSources,
@@ -12,14 +16,35 @@ import type { GameRepack } from "@types";
 import { chunk } from "lodash-es";
 
 let isFetching = false;
-let lastCheckedAt: number | null = null;
-let lastSourceSignature: string | null = null;
+
+interface LibraryUpdateDatesState {
+  lastCheckedAt: number | null;
+  lastSourceSignature: string | null;
+}
 
 const refreshLibraryUpdateDates = async () => {
   if (isFetching) return;
   isFetching = true;
 
   try {
+    const state = await db
+      .get<
+        string,
+        LibraryUpdateDatesState | null
+      >(levelKeys.libraryUpdateDatesState, { valueEncoding: "json" })
+      .catch(() => null);
+
+    const lastCheckedAt = state?.lastCheckedAt ?? null;
+    const lastSourceSignature = state?.lastSourceSignature ?? null;
+
+    const updateState = async (checkedAt: number, signature: string) => {
+      await db.put(
+        levelKeys.libraryUpdateDatesState,
+        { lastCheckedAt: checkedAt, lastSourceSignature: signature },
+        { valueEncoding: "json" }
+      );
+    };
+
     const installedGames = await gamesSublevel.values().all();
     const nonCustomGames = installedGames.filter(
       (game) => !game.isDeleted && game.shop !== "custom"
@@ -57,8 +82,7 @@ const refreshLibraryUpdateDates = async () => {
         });
       }
 
-      lastCheckedAt = Date.now();
-      lastSourceSignature = sourceSignature;
+      await updateState(Date.now(), sourceSignature);
       isFetching = false;
       if (gamesWithStaleDates.length > 0) {
         WindowManager.sendToAppWindows("on-library-batch-complete");
@@ -130,8 +154,7 @@ const refreshLibraryUpdateDates = async () => {
           WindowManager.sendToAppWindows("on-library-batch-complete");
         }
       } finally {
-        lastCheckedAt = Date.now();
-        lastSourceSignature = sourceSignature;
+        await updateState(Date.now(), sourceSignature);
         isFetching = false;
       }
     })();
