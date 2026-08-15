@@ -118,14 +118,27 @@ export class MacGameLaunchManager {
       };
     }
 
-    const healthy =
-      environment?.healthy ??
-      (await this.compatibilityManager.testGameEnvironment(
-        request.game,
-      ));
+    // The stored healthy flag is a memory of the last check, not a fact
+    // about right now: the prefix may have been deleted, moved, or left
+    // half-written since then, and Wine may have been upgraded or
+    // uninstalled. Trusting it here is what let a game be launched into
+    // a broken prefix and fail with no explanation, so the environment
+    // is always tested for real immediately before launch.
+    const healthy = await this.compatibilityManager.testGameEnvironment(
+      request.game,
+    );
+
+    // The test writes the corrected flags, so re-read the environment to
+    // report the true state back to the caller.
+    environment =
+      (await this.compatibilityManager.getGameEnvironment(request.game)) ??
+      environment;
 
     if (!healthy) {
       try {
+        // repairGameEnvironment() re-tests after repairing and throws if
+        // the environment is still not usable, so reaching the next line
+        // means the prefix really works.
         environment =
           await this.compatibilityManager.repairGameEnvironment(
             request.game,
