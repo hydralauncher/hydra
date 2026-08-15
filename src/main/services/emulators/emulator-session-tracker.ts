@@ -90,18 +90,28 @@ export const startEmulatorSession = async ({
   }
 
   if (game.shop === "launchbox") {
+    const souvenirWatcherToken = {};
+
     void startEmulatorSouvenirWatcher({
       gameKey,
       game,
       system,
       executablePath,
-    }).catch((error) => {
-      logger.error("Failed to start emulator souvenir watcher", error);
-    });
+      processId: child.pid ?? 0,
+      watcherToken: souvenirWatcherToken,
+    })
+      .then(() => {
+        if (emulatorSessions.get(gameKey) !== session) {
+          stopEmulatorSouvenirWatcher(gameKey, souvenirWatcherToken);
+        }
+      })
+      .catch((error) => {
+        logger.error("Failed to start emulator souvenir watcher", error);
+      });
   }
 
   const finalize = () => {
-    if (!emulatorSessions.has(gameKey)) return;
+    if (emulatorSessions.get(gameKey) !== session) return;
     void finalizeEmulatorSession(gameKey);
   };
 

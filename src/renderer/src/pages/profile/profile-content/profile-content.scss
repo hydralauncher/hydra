@@ -184,10 +184,25 @@
     }
 
     &-icon {
+      position: relative;
+      display: flex;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
       width: 24px;
       height: 24px;
       border-radius: 4px;
-      object-fit: cover;
+      overflow: hidden;
+      background: globals.$border-color;
+      color: globals.$body-color;
+
+      &-image {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
     }
 
     &-title {
@@ -218,6 +233,7 @@
   }
 
   &__souvenir {
+    position: relative;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -225,13 +241,29 @@
     border-radius: 8px;
     background-color: globals.$background-color;
 
+    &--rare {
+      border-color: rgba(244, 165, 16, 0.85);
+      box-shadow: 0 0 12px rgba(244, 165, 16, 0.2);
+    }
+
+    &--platinum {
+      border-color: rgba(12, 241, 202, 0.85);
+      box-shadow: 0 0 12px rgba(12, 241, 202, 0.2);
+    }
+
     &-image-button {
       position: relative;
       display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
       padding: 0;
       border: none;
       background: none;
       cursor: pointer;
+
+      &:disabled {
+        cursor: default;
+      }
 
       &:hover {
         .profile-content__souvenir-image {
@@ -245,11 +277,23 @@
     }
 
     &-image {
+      position: absolute;
+      inset: 0;
       display: block;
       width: 100%;
-      aspect-ratio: 16 / 9;
+      height: 100%;
       object-fit: cover;
       transition: filter 0.2s ease;
+    }
+
+    &-image-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.3);
     }
 
     &-image-overlay {
@@ -266,17 +310,32 @@
 
     &-details {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: calc(globals.$spacing-unit * 1.25);
       padding: calc(globals.$spacing-unit * 1.25);
     }
 
     &-achievement-icon {
+      position: relative;
+      display: flex;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
       width: 32px;
       height: 32px;
       border-radius: 4px;
-      object-fit: cover;
-      flex-shrink: 0;
+      overflow: hidden;
+      background: globals.$border-color;
+      color: globals.$body-color;
+
+      &-image {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
     }
 
     &-text {
@@ -300,25 +359,47 @@
       white-space: nowrap;
     }
 
-    &-delete-button {
-      display: flex;
-      padding: 6px;
-      border: none;
+    &-action-button {
+      position: absolute;
+      top: globals.$spacing-unit;
+      right: globals.$spacing-unit;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 24px;
+      padding: 0 6px;
+      border: solid 1px rgba(255, 255, 255, 0.15);
       border-radius: 4px;
-      background: none;
-      color: globals.$body-color;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       cursor: pointer;
+      transition: all ease 0.2s;
 
       &:hover:not(:disabled) {
-        background-color: globals.$border-color;
-        color: globals.$error-color;
+        background: rgba(0, 0, 0, 0.6);
+        color: globals.$muted-color;
       }
 
       &:disabled {
         cursor: not-allowed;
         opacity: 0.5;
       }
+
+      &--pending:disabled {
+        opacity: 1;
+      }
     }
+  }
+
+  &__souvenirs-loading {
+    padding: calc(globals.$spacing-unit * 2);
+    color: globals.$body-color;
+    text-align: center;
   }
 
   &__games-grid {

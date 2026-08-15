@@ -29,5 +29,7 @@ export const prepareEmulatorSouvenirs = async (
 
   if (system === "ps2" || system === "ps3") return;
 
-  if (executablePath) enableRetroArchAchievementScreenshots(executablePath);
+  if (executablePath) {
+    await enableRetroArchAchievementScreenshots(executablePath);
+  }
 };

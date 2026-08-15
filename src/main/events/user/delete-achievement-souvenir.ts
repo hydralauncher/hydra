@@ -30,7 +30,9 @@ const deleteAchievementSouvenir = async (
 
   await ScreenshotService.deleteGameScreenshot(
     gameTitle,
-    achievementDisplayName
+    achievementDisplayName,
+    gameId,
+    achievementName
   ).catch((error) => {
     achievementsLogger.error(
       "Failed to delete local achievement souvenir",

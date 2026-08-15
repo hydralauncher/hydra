@@ -2,11 +2,17 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { db, levelKeys } from "@main/level";
 import { logger } from "../logger";
 import {
   duckstationConfigCandidates,
   findExistingConfig,
 } from "./emulator-config";
+import {
+  getCfgLine,
+  restoreCfgLine,
+  setCfgValue,
+} from "./retroarch-souvenir-config-value";
 
 const setIniValue = (
   content: string,
@@ -42,21 +48,16 @@ const setIniValue = (
   return lines.join("\n");
 };
 
-const setCfgValue = (content: string, key: string, value: string) => {
-  const lines = content.split(/\r?\n/);
+interface RetroArchSouvenirConfigBackup {
+  configPath: string;
+  originalLine: string | null;
+}
 
-  for (let index = 0; index < lines.length; index += 1) {
-    const separator = lines[index].indexOf("=");
-    if (separator === -1) continue;
-
-    if (lines[index].slice(0, separator).trim() === key) {
-      lines[index] = `${key} = "${value}"`;
-      return lines.join("\n");
-    }
-  }
-
-  return `${content.trimEnd()}\n${key} = "${value}"\n`;
-};
+const getRetroArchSouvenirConfigBackups = async () =>
+  (await db.get<string, RetroArchSouvenirConfigBackup[]>(
+    levelKeys.retroArchSouvenirConfigBackups,
+    { valueEncoding: "json" }
+  )) ?? [];
 
 export const retroArchConfigRoots = (executablePath: string): string[] => {
   const home = os.homedir();
@@ -122,7 +123,7 @@ export const readRetroArchScreenshotDirectory = (configPath: string) => {
   return path.join(path.dirname(configPath), "screenshots");
 };
 
-export const enableRetroArchAchievementScreenshots = (
+export const enableRetroArchAchievementScreenshots = async (
   executablePath: string
 ) => {
   const configPath = findRetroArchConfig(executablePath);
@@ -131,11 +132,73 @@ export const enableRetroArchAchievementScreenshots = (
 
   try {
     const content = fs.readFileSync(configPath, "utf8");
+    const backups = await getRetroArchSouvenirConfigBackups();
+
+    if (!backups.some((backup) => backup.configPath === configPath)) {
+      await db.put<string, RetroArchSouvenirConfigBackup[]>(
+        levelKeys.retroArchSouvenirConfigBackups,
+        [
+          ...backups,
+          {
+            configPath,
+            originalLine: getCfgLine(content, "cheevos_auto_screenshot"),
+          },
+        ],
+        { valueEncoding: "json" }
+      );
+    }
+
     const updated = setCfgValue(content, "cheevos_auto_screenshot", "true");
 
     if (updated !== content) fs.writeFileSync(configPath, updated, "utf8");
   } catch (error) {
     logger.error("Failed to enable RetroArch achievement screenshots", error);
+  }
+};
+
+export const restoreRetroArchAchievementScreenshots = async () => {
+  let backups: RetroArchSouvenirConfigBackup[];
+
+  try {
+    backups = await getRetroArchSouvenirConfigBackups();
+  } catch (error) {
+    logger.error("Failed to read RetroArch souvenir config backups", error);
+    return;
+  }
+
+  const retainedBackups: RetroArchSouvenirConfigBackup[] = [];
+
+  for (const backup of backups) {
+    if (!fs.existsSync(backup.configPath)) continue;
+
+    try {
+      const content = fs.readFileSync(backup.configPath, "utf8");
+      const restored = restoreCfgLine(
+        content,
+        "cheevos_auto_screenshot",
+        backup.originalLine
+      );
+
+      if (restored !== content) {
+        fs.writeFileSync(backup.configPath, restored, "utf8");
+      }
+    } catch (error) {
+      retainedBackups.push(backup);
+      logger.error(
+        "Failed to restore RetroArch achievement screenshots",
+        error
+      );
+    }
+  }
+
+  if (retainedBackups.length) {
+    await db.put<string, RetroArchSouvenirConfigBackup[]>(
+      levelKeys.retroArchSouvenirConfigBackups,
+      retainedBackups,
+      { valueEncoding: "json" }
+    );
+  } else {
+    await db.del(levelKeys.retroArchSouvenirConfigBackups);
   }
 };
 

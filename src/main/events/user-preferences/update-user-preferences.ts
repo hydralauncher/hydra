@@ -9,6 +9,11 @@ import { patchUserProfile } from "../profile/update-profile";
 import { DownloadManager, Wine } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
+import {
+  enableRetroArchAchievementScreenshots,
+  restoreRetroArchAchievementScreenshots,
+} from "@main/services/emulators/emulator-souvenir-config";
+import { getRetroArchConfig } from "@main/services/retroarch/retroarch-repository";
 
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -83,6 +88,23 @@ const updateUserPreferences = async (
   );
 
   Wine.syncUserPreferences(updatedPreferences);
+
+  if (
+    process.platform !== "linux" &&
+    Object.hasOwn(preferences, "enableAchievementSouvenirs")
+  ) {
+    if (preferences.enableAchievementSouvenirs === true) {
+      const retroArchConfig = await getRetroArchConfig();
+
+      if (retroArchConfig.executablePath) {
+        await enableRetroArchAchievementScreenshots(
+          retroArchConfig.executablePath
+        );
+      }
+    } else {
+      await restoreRetroArchAchievementScreenshots();
+    }
+  }
 
   WindowManager.sendToAppWindows(
     "on-user-preferences-updated",

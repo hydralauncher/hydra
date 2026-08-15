@@ -34,6 +34,7 @@ export * from "./language-flags";
 export * from "./use-hls-video";
 export * from "./retroarch-platform";
 export * from "./tracker-list";
+export * from "./souvenirs";
 
 export class UserNotLoggedInError extends Error {
   constructor() {

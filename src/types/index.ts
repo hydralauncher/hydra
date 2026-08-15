@@ -224,6 +224,9 @@ export type UserProfileCurrentGame = GameRunning &
   };
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
+export type SouvenirVisibility = ProfileVisibility;
+export type SouvenirSort = "recent" | "oldest" | "rare";
+export type SouvenirsHiddenReason = "FRIENDS_ONLY" | "PRIVATE" | null;
 
 export interface Badge {
   name: string;
@@ -242,6 +245,7 @@ export interface UserDetails {
   profileImageUrl: string | null;
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
+  souvenirsVisibility: SouvenirVisibility;
   bio: string;
   workwondersJwt: string;
   subscription: Subscription | null;
@@ -255,12 +259,31 @@ export interface ProfileAchievement {
   name: string;
   displayName: string;
   description: string;
-  imageUrl: string;
+  imageUrl: string | null;
   achievementIcon: string | null;
   unlockTime: number;
+  points: number | null;
+  isRare: boolean | null;
+  isPlatinum: boolean;
+  gameUnlockedAchievementCount: number;
+  gameTotalAchievementCount: number;
+  visibility?: SouvenirVisibility;
   gameId: string;
   gameTitle: string | null;
   gameIconUrl: string | null;
+  unlockedOn: {
+    hydra: boolean;
+    steam: boolean;
+    retroachievements: boolean;
+  };
+  likeCount: number;
+  likedByMe: boolean;
+}
+
+export interface SouvenirsResponse {
+  items: ProfileAchievement[];
+  total: number;
+  hiddenReason: SouvenirsHiddenReason;
 }
 
 export interface UserProfile {
@@ -270,6 +293,7 @@ export interface UserProfile {
   email: string | null;
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
+  souvenirsVisibility: SouvenirVisibility;
   libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriend[];
@@ -285,12 +309,12 @@ export interface UserProfile {
   badges: string[];
   badgesDetails?: { badge: string; unlockedAt: string }[];
   hasCompletedWrapped2025: boolean;
-  achievements: ProfileAchievement[] | null;
 }
 
 export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: ProfileVisibility;
+  souvenirsVisibility?: SouvenirVisibility;
   profileImageUrl?: string | null;
   backgroundImageUrl?: string | null;
   bio?: string;

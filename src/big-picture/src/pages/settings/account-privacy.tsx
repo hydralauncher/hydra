@@ -24,6 +24,7 @@ import type { FocusOverrides } from "../../services";
 import {
   ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
   ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
+  ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID,
   getAccountPrivacyBlockedUserButtonFocusId,
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
@@ -104,6 +105,8 @@ export function AccountPrivacySettingsSection({
     useUserDetails();
   const [profileVisibility, setProfileVisibility] =
     useState<ProfileVisibility>("PUBLIC");
+  const [souvenirsVisibility, setSouvenirsVisibility] =
+    useState<ProfileVisibility>("PUBLIC");
   const [blockedUsers, setBlockedUsers] = useState<UserFriend[]>([]);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
   const [unblockingUserId, setUnblockingUserId] = useState<string | null>(null);
@@ -113,6 +116,12 @@ export function AccountPrivacySettingsSection({
 
     setProfileVisibility(userDetails.profileVisibility);
   }, [userDetails?.profileVisibility]);
+
+  useEffect(() => {
+    if (!userDetails?.souvenirsVisibility) return;
+
+    setSouvenirsVisibility(userDetails.souvenirsVisibility);
+  }, [userDetails?.souvenirsVisibility]);
 
   const fetchBlockedUsers = useCallback(async () => {
     if (!userDetails) {
@@ -199,6 +208,41 @@ export function AccountPrivacySettingsSection({
     ]
   );
 
+  const handleSouvenirsVisibilityChange = useCallback(
+    async (value: ProfileVisibility) => {
+      if (!userDetails || isSavingVisibility) return;
+
+      const previousValue = souvenirsVisibility;
+
+      setSouvenirsVisibility(value);
+      setIsSavingVisibility(true);
+
+      try {
+        await patchUser({ souvenirsVisibility: value });
+        showSuccessToast("Souvenir visibility updated", {
+          ...SETTINGS_TOAST_OPTIONS,
+          message: `Your souvenirs are now ${getProfileVisibilityLabel(value)}.`,
+        });
+      } catch {
+        setSouvenirsVisibility(previousValue);
+        showErrorToast(
+          "Failed to update souvenir visibility",
+          SETTINGS_TOAST_OPTIONS
+        );
+      } finally {
+        setIsSavingVisibility(false);
+      }
+    },
+    [
+      isSavingVisibility,
+      patchUser,
+      showErrorToast,
+      showSuccessToast,
+      souvenirsVisibility,
+      userDetails,
+    ]
+  );
+
   const handleUnblock = useCallback(
     async (userId: string) => {
       const currentIndex = blockedUsers.findIndex((user) => user.id === userId);
@@ -227,7 +271,7 @@ export function AccountPrivacySettingsSection({
 
   const hydraCloudButtonOverrides = useMemo<FocusOverrides>(
     () => ({
-      up: { type: "item", itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID },
+      up: { type: "item", itemId: ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID },
       down: blockedUserFocusIds[0]
         ? {
             type: "item",
@@ -284,16 +328,39 @@ export function AccountPrivacySettingsSection({
             label="Profile Visibility"
             value={profileVisibility}
             options={visibilityOptions}
+            disabled={isSavingVisibility}
             focusId={ACCOUNT_PRIVACY_PRIVACY_SELECT_ID}
             focusNavigationOverrides={{
               up: SETTINGS_HEADER_RETURN_TARGET,
+              down: {
+                type: "item",
+                itemId: ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID,
+              },
+            }}
+            onValueChange={(value) => {
+              void handleProfileVisibilityChange(value);
+            }}
+          />
+
+          <DropdownSelect
+            className="account-privacy-settings-section__select"
+            label="Souvenirs Visibility"
+            value={souvenirsVisibility}
+            options={visibilityOptions}
+            disabled={isSavingVisibility}
+            focusId={ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID}
+            focusNavigationOverrides={{
+              up: {
+                type: "item",
+                itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
+              },
               down: {
                 type: "item",
                 itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
               },
             }}
             onValueChange={(value) => {
-              void handleProfileVisibilityChange(value);
+              void handleSouvenirsVisibilityChange(value);
             }}
           />
         </div>

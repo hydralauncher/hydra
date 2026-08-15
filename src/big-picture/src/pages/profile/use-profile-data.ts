@@ -2,6 +2,7 @@ import type {
   Badge,
   ComparedAchievements,
   ProfileAchievement,
+  SouvenirsResponse,
   UserAchievement,
   UserFriend,
   UserFriends,
@@ -10,7 +11,12 @@ import type {
   UserProfile,
   UserStats,
 } from "@types";
-import { useCallback, useEffect, useState } from "react";
+import {
+  buildUserSouvenirsPath,
+  getSouvenirKey,
+  SOUVENIRS_PAGE_SIZE,
+} from "@shared";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getGameIdentityKey } from "../../helpers";
 
 const PROFILE_RECENT_ACHIEVEMENT_GROUP_LIMIT = 2;
@@ -587,33 +593,141 @@ export function useRecentAchievements(
 
 export function useProfileSouvenirs(
   targetUserId: string | undefined,
-  hasActiveSubscription: boolean
+  hasActiveSubscription: boolean,
+  isAuthenticated: boolean
 ) {
   const [souvenirs, setSouvenirs] = useState<ProfileAchievement[]>([]);
+  const [total, setTotal] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const isLoadingMoreRef = useRef(false);
+  const requestGenerationRef = useRef(0);
 
   useEffect(() => {
     if (!targetUserId || !hasActiveSubscription) {
+      requestGenerationRef.current += 1;
       setSouvenirs([]);
+      setTotal(0);
+      setIsLoadingMore(false);
+      isLoadingMoreRef.current = false;
       return;
     }
 
+    const requestGeneration = requestGenerationRef.current + 1;
+    requestGenerationRef.current = requestGeneration;
+    isLoadingMoreRef.current = false;
+    setIsLoadingMore(false);
     let isMounted = true;
 
     globalThis.window.electron.hydraApi
-      .get<ProfileAchievement[]>(`/users/${targetUserId}/achievements`, {
-        needsAuth: false,
-      })
+      .get<SouvenirsResponse | null>(
+        buildUserSouvenirsPath({ userId: targetUserId }),
+        { needsAuth: isAuthenticated }
+      )
       .then((response) => {
-        if (isMounted) setSouvenirs(ensureArray(response));
+        if (isMounted && requestGenerationRef.current === requestGeneration) {
+          setSouvenirs(ensureArray(response?.items));
+          setTotal(response?.total ?? 0);
+        }
       })
       .catch(() => {
-        if (isMounted) setSouvenirs([]);
+        if (isMounted && requestGenerationRef.current === requestGeneration) {
+          setSouvenirs([]);
+          setTotal(0);
+        }
       });
 
     return () => {
       isMounted = false;
     };
-  }, [hasActiveSubscription, targetUserId]);
+  }, [hasActiveSubscription, isAuthenticated, targetUserId]);
 
-  return souvenirs;
+  const loadMore = useCallback(async () => {
+    if (
+      !targetUserId ||
+      !hasActiveSubscription ||
+      isLoadingMoreRef.current ||
+      souvenirs.length >= total
+    ) {
+      return;
+    }
+
+    const requestGeneration = requestGenerationRef.current;
+    const skip = souvenirs.length;
+    isLoadingMoreRef.current = true;
+    setIsLoadingMore(true);
+
+    try {
+      const response =
+        await globalThis.window.electron.hydraApi.get<SouvenirsResponse | null>(
+          buildUserSouvenirsPath({
+            userId: targetUserId,
+            skip,
+            take: SOUVENIRS_PAGE_SIZE,
+          }),
+          { needsAuth: isAuthenticated }
+        );
+
+      if (requestGenerationRef.current !== requestGeneration) return;
+
+      setSouvenirs((current) => {
+        const knownKeys = new Set(
+          current.map((souvenir) =>
+            getSouvenirKey(souvenir.gameId, souvenir.name)
+          )
+        );
+        const nextItems = ensureArray(response?.items).filter(
+          (souvenir) =>
+            !knownKeys.has(getSouvenirKey(souvenir.gameId, souvenir.name))
+        );
+
+        return [...current, ...nextItems];
+      });
+      setTotal(response?.total ?? total);
+    } catch {
+      // Keep the already loaded page visible and allow a later retry.
+    } finally {
+      if (requestGenerationRef.current === requestGeneration) {
+        isLoadingMoreRef.current = false;
+        setIsLoadingMore(false);
+      }
+    }
+  }, [
+    hasActiveSubscription,
+    isAuthenticated,
+    souvenirs.length,
+    targetUserId,
+    total,
+  ]);
+
+  const updateSouvenir = useCallback(
+    (gameId: string, name: string, update: Partial<ProfileAchievement>) => {
+      setSouvenirs((current) =>
+        current.map((souvenir) =>
+          souvenir.gameId === gameId && souvenir.name === name
+            ? { ...souvenir, ...update }
+            : souvenir
+        )
+      );
+    },
+    []
+  );
+
+  const removeSouvenir = useCallback((gameId: string, name: string) => {
+    setSouvenirs((current) =>
+      current.filter(
+        (souvenir) => souvenir.gameId !== gameId || souvenir.name !== name
+      )
+    );
+    setTotal((current) => Math.max(0, current - 1));
+  }, []);
+
+  return {
+    souvenirs,
+    total,
+    hasMore: souvenirs.length < total,
+    isLoadingMore,
+    loadMore,
+    updateSouvenir,
+    removeSouvenir,
+  };
 }

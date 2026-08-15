@@ -1,76 +1,150 @@
-import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useState, type SyntheticEvent } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
+  HeartFillIcon,
+  HeartIcon,
   HistoryIcon,
+  ImageIcon,
   SearchIcon,
   StackIcon,
+  TrophyIcon,
 } from "@primer/octicons-react";
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
-import { TrashIcon } from "lucide-react";
-import type { ProfileAchievement } from "@types";
-import { ConfirmationModal } from "@renderer/components";
-import { useDate, useToast } from "@renderer/hooks";
-import { logger } from "@renderer/logger";
+import type { ProfileAchievement, SouvenirSort } from "@types";
+import { useDate } from "@renderer/hooks";
+import { getSouvenirKey, getSouvenirVisualVariant } from "@shared";
+import InfiniteScroll from "react-infinite-scroll-component";
 import "./profile-content.scss";
 
 const souvenirKey = (achievement: ProfileAchievement) =>
-  `${achievement.gameId}:${achievement.name}`;
+  getSouvenirKey(achievement.gameId, achievement.name);
+const LIKE_ANIMATION_DURATION_MS = 400;
+
+const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.style.opacity = "0";
+};
 
 type SouvenirGrouping = "game" | "none";
-type SouvenirSort = "recent" | "oldest";
-
 interface SouvenirCardProps {
   achievement: ProfileAchievement;
-  isMe: boolean;
-  isDeleting: boolean;
+  isLiking: boolean;
+  canLike: boolean;
   showGame: boolean;
   onSouvenirClick: (achievement: ProfileAchievement) => void;
-  onDeleteClick: (achievement: ProfileAchievement) => void;
+  onLikeClick: (achievement: ProfileAchievement) => void;
 }
 
 function SouvenirCard({
   achievement,
-  isMe,
-  isDeleting,
+  isLiking,
+  canLike,
   showGame,
   onSouvenirClick,
-  onDeleteClick,
+  onLikeClick,
 }: Readonly<SouvenirCardProps>) {
   const { t } = useTranslation("user_profile");
   const { formatDistance } = useDate();
+  const visualVariant = getSouvenirVisualVariant(achievement);
+  const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(
+    null
+  );
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const hasThumbnail = Boolean(
+    achievement.imageUrl && achievement.imageUrl !== failedThumbnailUrl
+  );
+
+  useEffect(() => {
+    if (!isLikeAnimating) return;
+
+    const timeoutId = window.setTimeout(
+      () => setIsLikeAnimating(false),
+      LIKE_ANIMATION_DURATION_MS
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isLikeAnimating]);
+
+  const handleLikeClick = () => {
+    if (isLikeAnimating || isLiking) return;
+    setIsLikeAnimating(true);
+    onLikeClick(achievement);
+  };
 
   return (
-    <li className="profile-content__souvenir">
+    <li
+      className={`profile-content__souvenir ${visualVariant ? `profile-content__souvenir--${visualVariant}` : ""}`}
+    >
       <button
         type="button"
         className="profile-content__souvenir-image-button"
         onClick={() => onSouvenirClick(achievement)}
         title={t("view_souvenir")}
       >
-        <img
-          className="profile-content__souvenir-image"
-          src={achievement.imageUrl}
-          alt={achievement.displayName}
-          loading="lazy"
-        />
-
-        <span className="profile-content__souvenir-image-overlay">
-          <SearchIcon size={24} />
+        <span className="profile-content__souvenir-image-placeholder">
+          <ImageIcon size={32} />
         </span>
-      </button>
 
-      <div className="profile-content__souvenir-details">
-        {achievement.achievementIcon && (
+        {hasThumbnail && (
           <img
-            className="profile-content__souvenir-achievement-icon"
-            src={achievement.achievementIcon}
-            alt=""
+            className="profile-content__souvenir-image"
+            src={achievement.imageUrl ?? undefined}
+            alt={achievement.displayName}
             loading="lazy"
+            onError={() => setFailedThumbnailUrl(achievement.imageUrl)}
           />
         )}
+
+        {hasThumbnail && (
+          <span className="profile-content__souvenir-image-overlay">
+            <SearchIcon size={24} />
+          </span>
+        )}
+      </button>
+
+      <motion.button
+        type="button"
+        className={`profile-content__souvenir-action-button ${isLikeAnimating || isLiking ? "profile-content__souvenir-action-button--pending" : ""}`}
+        onClick={handleLikeClick}
+        disabled={isLikeAnimating || isLiking}
+        title={canLike ? t("like_souvenir") : t("sign_in_to_like_souvenir")}
+        aria-pressed={achievement.likedByMe}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        {achievement.likedByMe ? (
+          <HeartFillIcon size={14} />
+        ) : (
+          <HeartIcon size={14} />
+        )}
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={achievement.likeCount}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {achievement.likeCount}
+          </motion.span>
+        </AnimatePresence>
+      </motion.button>
+
+      <div className="profile-content__souvenir-details">
+        <span className="profile-content__souvenir-achievement-icon">
+          <TrophyIcon size={16} />
+          {achievement.achievementIcon && (
+            <img
+              className="profile-content__souvenir-achievement-icon-image"
+              src={achievement.achievementIcon}
+              alt=""
+              loading="lazy"
+              onError={hideBrokenImage}
+            />
+          )}
+        </span>
 
         <div className="profile-content__souvenir-text">
           <span className="profile-content__souvenir-name">
@@ -84,18 +158,6 @@ function SouvenirCard({
                 })}
           </small>
         </div>
-
-        {isMe && (
-          <button
-            type="button"
-            className="profile-content__souvenir-delete-button"
-            onClick={() => onDeleteClick(achievement)}
-            disabled={isDeleting}
-            title={t("delete_souvenir")}
-          >
-            <TrashIcon size={14} />
-          </button>
-        )}
       </div>
     </li>
   );
@@ -103,18 +165,18 @@ function SouvenirCard({
 
 interface SouvenirGameGroupProps {
   achievements: ProfileAchievement[];
-  isMe: boolean;
-  deletingKeys: Set<string>;
+  likingKeys: Set<string>;
+  canLike: boolean;
   onSouvenirClick: (achievement: ProfileAchievement) => void;
-  onDeleteClick: (achievement: ProfileAchievement) => void;
+  onLikeClick: (achievement: ProfileAchievement) => void;
 }
 
 function SouvenirGameGroup({
   achievements,
-  isMe,
-  deletingKeys,
+  likingKeys,
+  canLike,
   onSouvenirClick,
-  onDeleteClick,
+  onLikeClick,
 }: Readonly<SouvenirGameGroupProps>) {
   const { t } = useTranslation("user_profile");
   const [isExpanded, setIsExpanded] = useState(true);
@@ -130,14 +192,18 @@ function SouvenirGameGroup({
       >
         {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
 
-        {gameIconUrl && (
-          <img
-            className="profile-content__souvenirs-group-icon"
-            src={gameIconUrl}
-            alt=""
-            loading="lazy"
-          />
-        )}
+        <span className="profile-content__souvenirs-group-icon">
+          <ImageIcon size={14} />
+          {gameIconUrl && (
+            <img
+              className="profile-content__souvenirs-group-icon-image"
+              src={gameIconUrl}
+              alt=""
+              loading="lazy"
+              onError={hideBrokenImage}
+            />
+          )}
+        </span>
 
         <h3 className="profile-content__souvenirs-group-title">
           {gameTitle ?? t("unknown_game")}
@@ -154,11 +220,11 @@ function SouvenirGameGroup({
             <SouvenirCard
               key={souvenirKey(achievement)}
               achievement={achievement}
-              isMe={isMe}
-              isDeleting={deletingKeys.has(souvenirKey(achievement))}
+              isLiking={likingKeys.has(souvenirKey(achievement))}
+              canLike={canLike}
               showGame={false}
               onSouvenirClick={onSouvenirClick}
-              onDeleteClick={onDeleteClick}
+              onLikeClick={onLikeClick}
             />
           ))}
         </ul>
@@ -169,33 +235,32 @@ function SouvenirGameGroup({
 
 interface SouvenirsTabProps {
   achievements: ProfileAchievement[];
-  isMe: boolean;
+  canLike: boolean;
+  hasMore: boolean;
+  isLoading: boolean;
+  likingKeys: Set<string>;
   onSouvenirClick: (achievement: ProfileAchievement) => void;
-  onSouvenirDeleted: () => void;
+  onLikeClick: (achievement: ProfileAchievement) => void;
+  onReload: (sortBy: SouvenirSort) => Promise<boolean>;
+  onLoadMore: (sortBy: SouvenirSort) => Promise<boolean>;
 }
 
 export function SouvenirsTab({
   achievements,
-  isMe,
+  canLike,
+  hasMore,
+  isLoading,
+  likingKeys,
   onSouvenirClick,
-  onSouvenirDeleted,
+  onLikeClick,
+  onReload,
+  onLoadMore,
 }: Readonly<SouvenirsTabProps>) {
   const { t } = useTranslation("user_profile");
-  const { showErrorToast, showSuccessToast } = useToast();
-
-  const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set());
-  const [souvenirToDelete, setSouvenirToDelete] =
-    useState<ProfileAchievement | null>(null);
   const [grouping, setGrouping] = useState<SouvenirGrouping>("game");
   const [sortBy, setSortBy] = useState<SouvenirSort>("recent");
 
-  const sortedAchievements = useMemo(() => {
-    return achievements.toSorted((a, b) =>
-      sortBy === "recent"
-        ? b.unlockTime - a.unlockTime
-        : a.unlockTime - b.unlockTime
-    );
-  }, [achievements, sortBy]);
+  const sortedAchievements = achievements;
 
   const groupedAchievements = useMemo(() => {
     return sortedAchievements.reduce<Record<string, ProfileAchievement[]>>(
@@ -219,38 +284,8 @@ export function SouvenirsTab({
   const sortOptions: FilterDropdownOption<SouvenirSort>[] = [
     { value: "recent", label: t("most_recent"), icon: HistoryIcon },
     { value: "oldest", label: t("oldest_first"), icon: HistoryIcon },
+    { value: "rare", label: t("rarest_first"), icon: TrophyIcon },
   ];
-
-  const handleDeleteSouvenir = async () => {
-    if (!souvenirToDelete) return;
-
-    const { gameId, name, gameTitle, displayName } = souvenirToDelete;
-    const key = souvenirKey(souvenirToDelete);
-
-    setSouvenirToDelete(null);
-    setDeletingKeys((prev) => new Set(prev).add(key));
-
-    try {
-      await window.electron.deleteAchievementSouvenir({
-        gameId,
-        achievementName: name,
-        gameTitle,
-        achievementDisplayName: displayName,
-      });
-
-      showSuccessToast(t("souvenir_deleted_successfully"));
-      onSouvenirDeleted();
-    } catch (error) {
-      logger.error("Failed to delete souvenir", error);
-      showErrorToast(t("souvenir_deletion_failed"));
-    } finally {
-      setDeletingKeys((prev) => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
-  };
 
   return (
     <motion.div
@@ -262,7 +297,9 @@ export function SouvenirsTab({
       transition={{ duration: 0.2 }}
     >
       {achievements.length === 0 ? (
-        <p className="profile-content__souvenirs-empty">{t("no_souvenirs")}</p>
+        <p className="profile-content__souvenirs-empty">
+          {isLoading ? t("loading_souvenirs") : t("no_souvenirs")}
+        </p>
       ) : (
         <>
           <div className="profile-content__library-filters">
@@ -277,51 +314,57 @@ export function SouvenirsTab({
               placeholder={t("sort_by")}
               value={sortBy}
               options={sortOptions}
-              onChange={setSortBy}
+              onChange={(value) => {
+                setSortBy(value);
+                void onReload(value);
+              }}
             />
           </div>
 
-          {grouping === "game" ? (
-            Object.entries(groupedAchievements).map(
-              ([gameId, groupAchievements]) => (
-                <SouvenirGameGroup
-                  key={gameId}
-                  achievements={groupAchievements}
-                  isMe={isMe}
-                  deletingKeys={deletingKeys}
-                  onSouvenirClick={onSouvenirClick}
-                  onDeleteClick={setSouvenirToDelete}
-                />
+          <InfiniteScroll
+            dataLength={achievements.length}
+            next={() => onLoadMore(sortBy)}
+            hasMore={hasMore}
+            loader={
+              <p className="profile-content__souvenirs-loading">
+                {t("loading_souvenirs")}
+              </p>
+            }
+            scrollThreshold={0.9}
+            style={{ overflow: "visible" }}
+            scrollableTarget="scrollableDiv"
+          >
+            {grouping === "game" ? (
+              Object.entries(groupedAchievements).map(
+                ([gameId, groupAchievements]) => (
+                  <SouvenirGameGroup
+                    key={gameId}
+                    achievements={groupAchievements}
+                    canLike={canLike}
+                    likingKeys={likingKeys}
+                    onSouvenirClick={onSouvenirClick}
+                    onLikeClick={onLikeClick}
+                  />
+                )
               )
-            )
-          ) : (
-            <ul className="profile-content__souvenirs-grid">
-              {sortedAchievements.map((achievement) => (
-                <SouvenirCard
-                  key={souvenirKey(achievement)}
-                  achievement={achievement}
-                  isMe={isMe}
-                  isDeleting={deletingKeys.has(souvenirKey(achievement))}
-                  showGame
-                  onSouvenirClick={onSouvenirClick}
-                  onDeleteClick={setSouvenirToDelete}
-                />
-              ))}
-            </ul>
-          )}
+            ) : (
+              <ul className="profile-content__souvenirs-grid">
+                {sortedAchievements.map((achievement) => (
+                  <SouvenirCard
+                    key={souvenirKey(achievement)}
+                    achievement={achievement}
+                    canLike={canLike}
+                    isLiking={likingKeys.has(souvenirKey(achievement))}
+                    showGame
+                    onSouvenirClick={onSouvenirClick}
+                    onLikeClick={onLikeClick}
+                  />
+                ))}
+              </ul>
+            )}
+          </InfiniteScroll>
         </>
       )}
-
-      <ConfirmationModal
-        visible={souvenirToDelete !== null}
-        title={t("delete_souvenir_modal_title")}
-        descriptionText={t("delete_souvenir_modal_description")}
-        confirmButtonLabel={t("delete_souvenir_modal_delete_button")}
-        cancelButtonLabel={t("delete_souvenir_modal_cancel_button")}
-        confirmButtonTheme="danger"
-        onConfirm={handleDeleteSouvenir}
-        onClose={() => setSouvenirToDelete(null)}
-      />
     </motion.div>
   );
 }

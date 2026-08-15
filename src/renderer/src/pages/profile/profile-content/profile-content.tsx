@@ -4,7 +4,7 @@ import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat, useUserDetails } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import type { GameShop, ProfileAchievement } from "@types";
+import type { GameShop } from "@types";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { BadgesBox } from "./badges-box";
@@ -19,10 +19,11 @@ import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
 import { SouvenirsTab } from "./souvenirs-tab";
+import { SouvenirLightbox } from "./souvenir-lightbox";
+import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
-import { FullscreenMediaModal } from "@renderer/components";
-import { AuthPage } from "@shared";
+import { AuthPage, getSouvenirKey } from "@shared";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
@@ -82,12 +83,19 @@ export function ProfileContent() {
     userStats,
     libraryGames,
     pinnedGames,
-    getUserProfile,
     getUserStats,
     getUserLibraryGames,
     loadMoreLibraryGames,
     hasMoreLibraryGames,
     isLoadingLibraryGames,
+    souvenirs,
+    souvenirsTotal,
+    hasMoreSouvenirs,
+    isLoadingSouvenirs,
+    getUserSouvenirs,
+    loadMoreSouvenirs,
+    updateSouvenir,
+    removeSouvenir,
   } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
   const [statsIndex, setStatsIndex] = useState(0);
@@ -113,12 +121,32 @@ export function ProfileContent() {
   const [votingReviews, setVotingReviews] = useState<Set<string>>(new Set());
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
-  const [souvenir, setSouvenir] = useState<ProfileAchievement | null>(null);
+  const [openSouvenirKey, setOpenSouvenirKey] = useState<string | null>(null);
 
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
+  const {
+    likingKeys,
+    visibilityKeys,
+    deletingKeys,
+    likeSouvenir,
+    changeSouvenirVisibility,
+    deleteSouvenir,
+  } = useSouvenirActions({
+    ownerUserId: userProfile?.id,
+    canLike: Boolean(userDetails),
+    updateSouvenir,
+    removeSouvenir,
+  });
+  const souvenir = useMemo(
+    () =>
+      souvenirs.find(
+        (item) => getSouvenirKey(item.gameId, item.name) === openSouvenirKey
+      ) ?? null,
+    [openSouvenirKey, souvenirs]
+  );
 
   const formatPlayTime = (playTimeInSeconds: number) => {
     const minutes = playTimeInSeconds / 60;
@@ -391,7 +419,7 @@ export function ProfileContent() {
           <ProfileTabs
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
-            souvenirsCount={userProfile.achievements?.length ?? 0}
+            souvenirsCount={souvenirsTotal}
             onTabChange={setActiveTab}
           />
 
@@ -431,10 +459,17 @@ export function ProfileContent() {
 
               {activeTab === "souvenirs" && (
                 <SouvenirsTab
-                  achievements={userProfile.achievements ?? []}
-                  isMe={isMe}
-                  onSouvenirClick={setSouvenir}
-                  onSouvenirDeleted={getUserProfile}
+                  achievements={souvenirs}
+                  canLike={Boolean(userDetails)}
+                  hasMore={hasMoreSouvenirs}
+                  isLoading={isLoadingSouvenirs}
+                  likingKeys={likingKeys}
+                  onSouvenirClick={(item) =>
+                    setOpenSouvenirKey(getSouvenirKey(item.gameId, item.name))
+                  }
+                  onLikeClick={(item) => void likeSouvenir(item)}
+                  onReload={getUserSouvenirs}
+                  onLoadMore={loadMoreSouvenirs}
                 />
               )}
             </AnimatePresence>
@@ -491,11 +526,21 @@ export function ProfileContent() {
 
       {content}
 
-      <FullscreenMediaModal
-        visible={souvenir !== null}
-        src={souvenir?.imageUrl}
-        alt={souvenir?.displayName}
-        onClose={() => setSouvenir(null)}
+      <SouvenirLightbox
+        souvenir={souvenir}
+        isOwner={isMe}
+        canLike={Boolean(userDetails)}
+        isLiking={Boolean(openSouvenirKey && likingKeys.has(openSouvenirKey))}
+        isUpdatingVisibility={Boolean(
+          openSouvenirKey && visibilityKeys.has(openSouvenirKey)
+        )}
+        isDeleting={Boolean(
+          openSouvenirKey && deletingKeys.has(openSouvenirKey)
+        )}
+        onClose={() => setOpenSouvenirKey(null)}
+        onLike={(item) => void likeSouvenir(item)}
+        onVisibilityChange={(item) => void changeSouvenirVisibility(item)}
+        onDelete={deleteSouvenir}
       />
     </div>
   );

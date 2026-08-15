@@ -1,23 +1,18 @@
-import { desktopCapturer, nativeImage, screen } from "electron";
+import { desktopCapturer, nativeImage } from "electron";
+import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 import { logger } from "./logger";
 import { screenshotsPath } from "@main/constants";
+import { resolveAchievementScreenshotPath } from "./achievement-screenshot-path";
 
 const SCREENSHOT_QUALITY = 80;
 const SCREENSHOT_EXTENSION = "jpeg";
 const MAX_WIDTH = 1280;
 const MAX_HEIGHT = 720;
 const MAX_STORED_SCREENSHOTS = 50;
-
-const sanitizePathSegment = (value: string) =>
-  Array.from(value)
-    .filter((character) => (character.codePointAt(0) ?? 0) > 31)
-    .join("")
-    .replaceAll(/[<>:"/\\|?*]/g, "_")
-    .replace(/[. ]+$/, "")
-    .slice(0, 120)
-    .trim() || "unknown";
+const execFileAsync = promisify(execFile);
 
 const resizeToFit = (image: Electron.NativeImage) => {
   const { width, height } = image.getSize();
@@ -32,20 +27,86 @@ const resizeToFit = (image: Electron.NativeImage) => {
   });
 };
 
-const getPrimaryScreenSource = async () => {
+interface ForegroundWindow {
+  processId: number;
+  title: string;
+}
+
+const getForegroundWindow = async (): Promise<ForegroundWindow | null> => {
+  try {
+    if (process.platform === "win32") {
+      const script = [
+        'Add-Type -TypeDefinition \'using System; using System.Runtime.InteropServices; public static class HydraForegroundWindow { [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow(); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId); }\'',
+        "$handle = [HydraForegroundWindow]::GetForegroundWindow()",
+        "$processId = 0",
+        "[void][HydraForegroundWindow]::GetWindowThreadProcessId($handle, [ref]$processId)",
+        "$process = Get-Process -Id $processId -ErrorAction Stop",
+        "Write-Output $processId",
+        "Write-Output $process.MainWindowTitle",
+      ].join("; ");
+      const { stdout } = await execFileAsync("powershell.exe", [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        script,
+      ]);
+      const [processId, ...titleParts] = stdout.trim().split(/\r?\n/);
+
+      return {
+        processId: Number(processId),
+        title: titleParts.join(" ").trim(),
+      };
+    }
+
+    if (process.platform === "darwin") {
+      const { stdout } = await execFileAsync("osascript", [
+        "-e",
+        'tell application "System Events" to tell first application process whose frontmost is true to return (unix id as text) & linefeed & (name of front window as text)',
+      ]);
+      const [processId, ...titleParts] = stdout.trim().split(/\r?\n/);
+
+      return {
+        processId: Number(processId),
+        title: titleParts.join(" ").trim(),
+      };
+    }
+  } catch (error) {
+    logger.error("Failed to identify the foreground game window", error);
+  }
+
+  return null;
+};
+
+const getGameWindowSource = async (expectedProcessId: number) => {
+  const foregroundWindow = await getForegroundWindow();
+
+  if (
+    !foregroundWindow ||
+    !Number.isFinite(foregroundWindow.processId) ||
+    foregroundWindow.processId !== expectedProcessId
+  ) {
+    throw new Error("Tracked game does not own the foreground window");
+  }
+
   const sources = await desktopCapturer.getSources({
-    types: ["screen"],
+    types: ["window"],
     thumbnailSize: { width: 1920, height: 1080 },
   });
 
-  if (!sources.length) return null;
+  const foregroundTitle = foregroundWindow.title.trim().toLowerCase();
 
-  const primaryDisplayId = String(screen.getPrimaryDisplay().id);
+  if (!foregroundTitle) {
+    throw new Error("Could not identify the foreground game window title");
+  }
 
-  return (
-    sources.find((source) => source.display_id === primaryDisplayId) ??
-    sources[0]
-  );
+  const source = sources.find((candidate) => {
+    const sourceTitle = candidate.name.trim().toLowerCase();
+    return sourceTitle === foregroundTitle;
+  });
+
+  if (!source) throw new Error("Could not identify the foreground game window");
+
+  return source;
 };
 
 const listStoredScreenshots = async (directory: string) => {
@@ -69,29 +130,24 @@ const listStoredScreenshots = async (directory: string) => {
   return files.flat();
 };
 
-const resolveScreenshotPath = (
-  gameTitle: string,
-  achievementDisplayName: string
-) =>
-  path.join(
-    screenshotsPath,
-    sanitizePathSegment(gameTitle),
-    `${sanitizePathSegment(achievementDisplayName)}.${SCREENSHOT_EXTENSION}`
-  );
-
 export class ScreenshotService {
   public static async captureGameScreenshot(
     gameTitle: string,
-    achievementDisplayName: string
+    achievementDisplayName: string,
+    gameId: string,
+    achievementId: string,
+    expectedProcessId: number
   ) {
-    const source = await getPrimaryScreenSource();
-
-    if (!source) {
-      throw new Error("No desktop source available for screenshot");
-    }
+    const source = await getGameWindowSource(expectedProcessId);
 
     const image = resizeToFit(source.thumbnail);
-    const filePath = resolveScreenshotPath(gameTitle, achievementDisplayName);
+    const filePath = resolveAchievementScreenshotPath(
+      screenshotsPath,
+      gameTitle,
+      achievementDisplayName,
+      gameId,
+      achievementId
+    );
 
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
     await fs.promises.writeFile(filePath, image.toJPEG(SCREENSHOT_QUALITY));
@@ -102,7 +158,9 @@ export class ScreenshotService {
   public static async importGameScreenshot(
     sourcePath: string,
     gameTitle: string,
-    achievementDisplayName: string
+    achievementDisplayName: string,
+    gameId: string,
+    achievementId: string
   ) {
     const image = resizeToFit(nativeImage.createFromPath(sourcePath));
 
@@ -110,7 +168,13 @@ export class ScreenshotService {
       throw new Error(`Could not read emulator screenshot at ${sourcePath}`);
     }
 
-    const filePath = resolveScreenshotPath(gameTitle, achievementDisplayName);
+    const filePath = resolveAchievementScreenshotPath(
+      screenshotsPath,
+      gameTitle,
+      achievementDisplayName,
+      gameId,
+      achievementId
+    );
 
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
     await fs.promises.writeFile(filePath, image.toJPEG(SCREENSHOT_QUALITY));
@@ -120,9 +184,17 @@ export class ScreenshotService {
 
   public static async deleteGameScreenshot(
     gameTitle: string,
-    achievementDisplayName: string
+    achievementDisplayName: string,
+    gameId: string,
+    achievementId: string
   ) {
-    const filePath = resolveScreenshotPath(gameTitle, achievementDisplayName);
+    const filePath = resolveAchievementScreenshotPath(
+      screenshotsPath,
+      gameTitle,
+      achievementDisplayName,
+      gameId,
+      achievementId
+    );
 
     await fs.promises.rm(filePath, { force: true });
 

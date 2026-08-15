@@ -4,6 +4,8 @@ import {
   CheckCircleIcon,
   ClockIcon,
   GameControllerIcon,
+  HeartIcon,
+  ImageIcon,
   ProhibitIcon,
   SparkleIcon,
   SignOutIcon,
@@ -27,7 +29,9 @@ import type {
 } from "@types";
 import {
   useCallback,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -35,6 +39,7 @@ import {
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AnimatedHeroImage,
   Button,
@@ -56,7 +61,12 @@ import {
 } from "../../helpers";
 import { useHeroBackgroundLayers } from "../../components/pages/library/hero/use-hero-background-layers";
 import { useFocusAnimatedCover } from "../../components/pages/library/card-presentation";
-import { useFormat, useLibrary, useUserDetails } from "../../hooks";
+import {
+  useBigPictureToast,
+  useFormat,
+  useLibrary,
+  useUserDetails,
+} from "../../hooks";
 import { BIG_PICTURE_SIDEBAR_PROFILE_ID } from "../../layout";
 import type { FocusOverrides } from "../../services";
 import { useNavigationIsFocused } from "../../stores";
@@ -88,6 +98,12 @@ import {
   useRecentAchievements,
 } from "./use-profile-data";
 import { SouvenirLightbox } from "../../components/pages/profile/souvenir-lightbox";
+import {
+  buildProfileSouvenirVisibilityPath,
+  buildUserSouvenirLikePath,
+  getSouvenirKey as buildSouvenirKey,
+  getSouvenirVisualVariant,
+} from "@shared";
 
 interface ProfileHeroUser {
   id: string;
@@ -1666,21 +1682,86 @@ function useProfileGames(
 }
 
 const getSouvenirKey = (souvenir: ProfileAchievement) =>
-  `${souvenir.gameId}-${souvenir.name}`;
+  buildSouvenirKey(souvenir.gameId, souvenir.name);
+const LIKE_ANIMATION_DURATION_MS = 400;
 
 interface ProfileSouvenirsProps {
   souvenirs: ProfileAchievement[];
+  total: number;
+  canLike: boolean;
+  updatingLikeKeys: Set<string>;
+  hasMore: boolean;
+  isLoadingMore: boolean;
   upFocusId: string | null;
   downFocusId: string | null;
   onActivate: (souvenir: ProfileAchievement) => void;
+  onLike: (souvenir: ProfileAchievement) => void;
+  onLoadMore: () => void;
 }
 
 function ProfileSouvenirs({
   souvenirs,
+  total,
+  canLike,
+  updatingLikeKeys,
+  hasMore,
+  isLoadingMore,
   upFocusId,
   downFocusId,
   onActivate,
+  onLike,
+  onLoadMore,
 }: Readonly<ProfileSouvenirsProps>) {
+  const [animatingLikeKeys, setAnimatingLikeKeys] = useState<Set<string>>(
+    new Set()
+  );
+  const likeAnimationTimeoutsRef = useRef<Map<string, number>>(new Map());
+  const souvenirsRowRef = useRef<HTMLUListElement | null>(null);
+  const loadMoreSentinelRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    const timeouts = likeAnimationTimeoutsRef.current;
+    return () =>
+      timeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
+  }, []);
+
+  useEffect(() => {
+    const row = souvenirsRowRef.current;
+    const sentinel = loadMoreSentinelRef.current;
+
+    if (!row || !sentinel || !hasMore || isLoadingMore) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) onLoadMore();
+      },
+      { root: row, rootMargin: "0px 640px 0px 0px" }
+    );
+
+    observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, onLoadMore, souvenirs.length]);
+
+  const handleLike = (souvenir: ProfileAchievement) => {
+    const key = getSouvenirKey(souvenir);
+    if (likeAnimationTimeoutsRef.current.has(key)) return;
+
+    setAnimatingLikeKeys((current) => new Set(current).add(key));
+    onLike(souvenir);
+
+    const timeoutId = window.setTimeout(() => {
+      likeAnimationTimeoutsRef.current.delete(key);
+      setAnimatingLikeKeys((current) => {
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
+    }, LIKE_ANIMATION_DURATION_MS);
+
+    likeAnimationTimeoutsRef.current.set(key, timeoutId);
+  };
+
   if (!souvenirs.length) return null;
 
   return (
@@ -1691,7 +1772,7 @@ function ProfileSouvenirs({
         </Typography>
 
         <Typography className="profile-page__souvenirs-count">
-          {souvenirs.length}
+          {total}
         </Typography>
       </header>
 
@@ -1701,67 +1782,138 @@ function ProfileSouvenirs({
           className="profile-page__souvenirs-row"
           asChild
         >
-          <ul className="profile-page__souvenirs-row">
-            {souvenirs.map((souvenir) => (
-              <FocusItem
-                key={getSouvenirKey(souvenir)}
-                id={getProfileSouvenirItemId(getSouvenirKey(souvenir))}
-                actions={{ primary: () => onActivate(souvenir) }}
-                navigationOverrides={{
-                  up: upFocusId
-                    ? { type: "item", itemId: upFocusId }
-                    : { type: "block" },
-                  down: downFocusId
-                    ? { type: "item", itemId: downFocusId }
-                    : { type: "block" },
-                }}
-                asChild
-              >
-                <li className="profile-page__souvenir">
-                  <img
-                    className="profile-page__souvenir-image"
-                    src={souvenir.imageUrl}
-                    alt={souvenir.displayName}
-                    draggable={false}
-                    loading="lazy"
-                  />
+          <ul ref={souvenirsRowRef} className="profile-page__souvenirs-row">
+            {souvenirs.map((souvenir) => {
+              const souvenirKey = getSouvenirKey(souvenir);
+              const isLikePending =
+                animatingLikeKeys.has(souvenirKey) ||
+                updatingLikeKeys.has(souvenirKey);
+              const visualVariant = getSouvenirVisualVariant(souvenir);
 
-                  <div className="profile-page__souvenir-copy">
-                    {souvenir.achievementIcon ? (
-                      <img
-                        className="profile-page__souvenir-achievement-icon"
-                        src={souvenir.achievementIcon}
-                        alt=""
-                        draggable={false}
-                        onError={hideBrokenPreviewImage}
-                      />
-                    ) : null}
+              return (
+                <FocusItem
+                  key={souvenirKey}
+                  id={getProfileSouvenirItemId(souvenirKey)}
+                  actions={{
+                    primary: () => onActivate(souvenir),
+                    secondary:
+                      canLike && !isLikePending
+                        ? () => handleLike(souvenir)
+                        : undefined,
+                  }}
+                  navigationOverrides={{
+                    up: upFocusId
+                      ? { type: "item", itemId: upFocusId }
+                      : { type: "block" },
+                    down: downFocusId
+                      ? { type: "item", itemId: downFocusId }
+                      : { type: "block" },
+                  }}
+                  asChild
+                >
+                  <li
+                    className={`profile-page__souvenir ${visualVariant ? `profile-page__souvenir--${visualVariant}` : ""}`}
+                  >
+                    <div className="profile-page__souvenir-image-frame">
+                      <span className="profile-page__souvenir-image-placeholder">
+                        <ImageIcon size={40} />
+                      </span>
 
-                    <div className="profile-page__souvenir-text">
-                      <Typography className="profile-page__souvenir-name">
-                        {souvenir.displayName}
-                      </Typography>
+                      {souvenir.imageUrl ? (
+                        <img
+                          className="profile-page__souvenir-image"
+                          src={souvenir.imageUrl}
+                          alt={souvenir.displayName}
+                          draggable={false}
+                          loading="lazy"
+                          onError={hideBrokenPreviewImage}
+                        />
+                      ) : null}
 
-                      <div className="profile-page__souvenir-game-line">
-                        {souvenir.gameIconUrl ? (
+                      <div className="profile-page__souvenir-actions">
+                        <motion.button
+                          type="button"
+                          className={`profile-page__souvenir-action ${isLikePending ? "profile-page__souvenir-action--pending" : ""}`}
+                          disabled={!canLike || isLikePending}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleLike(souvenir);
+                          }}
+                          aria-label="Like souvenir"
+                          aria-pressed={souvenir.likedByMe}
+                          tabIndex={-1}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <HeartIcon
+                            size={18}
+                            weight={souvenir.likedByMe ? "fill" : "regular"}
+                          />
+                          <AnimatePresence mode="wait">
+                            <motion.span
+                              key={souvenir.likeCount}
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              {souvenir.likeCount}
+                            </motion.span>
+                          </AnimatePresence>
+                        </motion.button>
+                      </div>
+                    </div>
+
+                    <div className="profile-page__souvenir-copy">
+                      <span className="profile-page__souvenir-achievement-icon">
+                        <TrophyIcon size={22} />
+                        {souvenir.achievementIcon ? (
                           <img
-                            className="profile-page__souvenir-game-icon"
-                            src={souvenir.gameIconUrl}
+                            className="profile-page__souvenir-achievement-icon-image"
+                            src={souvenir.achievementIcon}
                             alt=""
                             draggable={false}
                             onError={hideBrokenPreviewImage}
                           />
                         ) : null}
+                      </span>
 
-                        <Typography className="profile-page__souvenir-game">
-                          {souvenir.gameTitle ?? ""}
+                      <div className="profile-page__souvenir-text">
+                        <Typography className="profile-page__souvenir-name">
+                          {souvenir.displayName}
                         </Typography>
+
+                        <div className="profile-page__souvenir-game-line">
+                          <span className="profile-page__souvenir-game-icon">
+                            <GameControllerIcon size={12} />
+                            {souvenir.gameIconUrl ? (
+                              <img
+                                className="profile-page__souvenir-game-icon-image"
+                                src={souvenir.gameIconUrl}
+                                alt=""
+                                draggable={false}
+                                onError={hideBrokenPreviewImage}
+                              />
+                            ) : null}
+                          </span>
+
+                          <Typography className="profile-page__souvenir-game">
+                            {souvenir.gameTitle ?? ""}
+                          </Typography>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </li>
-              </FocusItem>
-            ))}
+                  </li>
+                </FocusItem>
+              );
+            })}
+            {hasMore ? (
+              <li
+                ref={loadMoreSentinelRef}
+                className="profile-page__souvenirs-load-more-sentinel"
+                aria-hidden
+              />
+            ) : null}
           </ul>
         </HorizontalFocusGroup>
       </div>
@@ -2026,12 +2178,159 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     ]
   );
 
-  const souvenirs = useProfileSouvenirs(
+  const {
+    souvenirs,
+    total: souvenirsTotal,
+    hasMore: hasMoreSouvenirs,
+    isLoadingMore: isLoadingMoreSouvenirs,
+    loadMore: loadMoreSouvenirs,
+    updateSouvenir,
+    removeSouvenir,
+  } = useProfileSouvenirs(
     targetUserId,
-    targetHasActiveSubscription
+    targetHasActiveSubscription,
+    Boolean(userDetails)
   );
-  const [openSouvenir, setOpenSouvenir] = useState<ProfileAchievement | null>(
-    null
+  const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const [updatingLikeKeys, setUpdatingLikeKeys] = useState<Set<string>>(
+    new Set()
+  );
+  const [updatingVisibilityKeys, setUpdatingVisibilityKeys] = useState<
+    Set<string>
+  >(new Set());
+  const [deletingSouvenirKeys, setDeletingSouvenirKeys] = useState<Set<string>>(
+    new Set()
+  );
+  const [openSouvenirKey, setOpenSouvenirKey] = useState<string | null>(null);
+  const openSouvenir = useMemo(
+    () =>
+      souvenirs.find(
+        (souvenir) => getSouvenirKey(souvenir) === openSouvenirKey
+      ) ?? null,
+    [openSouvenirKey, souvenirs]
+  );
+
+  const handleSouvenirLike = useCallback(
+    async (souvenir: ProfileAchievement) => {
+      if (!userDetails || !targetUserId) return;
+
+      const key = getSouvenirKey(souvenir);
+      if (updatingLikeKeys.has(key)) return;
+
+      const previousLike = {
+        likeCount: souvenir.likeCount,
+        likedByMe: souvenir.likedByMe,
+      };
+      const likedByMe = !souvenir.likedByMe;
+
+      setUpdatingLikeKeys((current) => new Set(current).add(key));
+      updateSouvenir(souvenir.gameId, souvenir.name, {
+        likedByMe,
+        likeCount: Math.max(0, souvenir.likeCount + (likedByMe ? 1 : -1)),
+      });
+
+      try {
+        await globalThis.window.electron.hydraApi.put(
+          buildUserSouvenirLikePath(
+            targetUserId,
+            souvenir.gameId,
+            souvenir.name
+          ),
+          { needsAuth: true }
+        );
+      } catch {
+        updateSouvenir(souvenir.gameId, souvenir.name, previousLike);
+        showErrorToast("Failed to update souvenir like", {
+          fallbackVisual: "settings",
+        });
+      } finally {
+        setUpdatingLikeKeys((current) => {
+          const next = new Set(current);
+          next.delete(key);
+          return next;
+        });
+      }
+    },
+    [
+      showErrorToast,
+      targetUserId,
+      updateSouvenir,
+      updatingLikeKeys,
+      userDetails,
+    ]
+  );
+
+  const handleSouvenirVisibilityChange = useCallback(
+    async (souvenir: ProfileAchievement) => {
+      if (!isOwnProfileTarget) return;
+
+      const key = getSouvenirKey(souvenir);
+      if (updatingVisibilityKeys.has(key)) return;
+      const visibility =
+        souvenir.visibility === "PRIVATE" ? "PUBLIC" : "PRIVATE";
+      setUpdatingVisibilityKeys((current) => new Set(current).add(key));
+
+      try {
+        await globalThis.window.electron.hydraApi.patch(
+          buildProfileSouvenirVisibilityPath(souvenir.gameId, souvenir.name),
+          { data: { visibility }, needsAuth: true }
+        );
+        updateSouvenir(souvenir.gameId, souvenir.name, { visibility });
+      } catch {
+        showErrorToast("Failed to update souvenir visibility", {
+          fallbackVisual: "settings",
+        });
+      } finally {
+        setUpdatingVisibilityKeys((current) => {
+          const next = new Set(current);
+          next.delete(key);
+          return next;
+        });
+      }
+    },
+    [isOwnProfileTarget, showErrorToast, updateSouvenir, updatingVisibilityKeys]
+  );
+
+  const handleSouvenirDelete = useCallback(
+    async (souvenir: ProfileAchievement) => {
+      if (!isOwnProfileTarget) return false;
+
+      const key = getSouvenirKey(souvenir);
+      if (deletingSouvenirKeys.has(key)) return false;
+      setDeletingSouvenirKeys((current) => new Set(current).add(key));
+
+      try {
+        await globalThis.window.electron.deleteAchievementSouvenir({
+          gameId: souvenir.gameId,
+          achievementName: souvenir.name,
+          gameTitle: souvenir.gameTitle,
+          achievementDisplayName: souvenir.displayName,
+        });
+        removeSouvenir(souvenir.gameId, souvenir.name);
+        showSuccessToast("Souvenir deleted", {
+          fallbackVisual: "settings",
+        });
+        return true;
+      } catch {
+        showErrorToast("Failed to delete souvenir", {
+          fallbackVisual: "settings",
+        });
+        return false;
+      } finally {
+        setDeletingSouvenirKeys((current) => {
+          const next = new Set(current);
+          next.delete(key);
+          return next;
+        });
+      }
+    },
+    [
+      deletingSouvenirKeys,
+      isOwnProfileTarget,
+      removeSouvenir,
+      showErrorToast,
+      showSuccessToast,
+    ]
   );
 
   const isLoading =
@@ -2138,9 +2437,18 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
 
             <ProfileSouvenirs
               souvenirs={souvenirs}
+              total={souvenirsTotal}
+              canLike={Boolean(userDetails)}
+              updatingLikeKeys={updatingLikeKeys}
+              hasMore={hasMoreSouvenirs}
+              isLoadingMore={isLoadingMoreSouvenirs}
               upFocusId={souvenirUpFocusId}
               downFocusId={souvenirDownFocusId}
-              onActivate={setOpenSouvenir}
+              onActivate={(souvenir) =>
+                setOpenSouvenirKey(getSouvenirKey(souvenir))
+              }
+              onLike={(souvenir) => void handleSouvenirLike(souvenir)}
+              onLoadMore={() => void loadMoreSouvenirs()}
             />
 
             <HorizontalFocusGroup
@@ -2183,7 +2491,23 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
 
         <SouvenirLightbox
           souvenir={openSouvenir}
-          onClose={() => setOpenSouvenir(null)}
+          canLike={Boolean(userDetails)}
+          isOwner={isOwnProfileTarget}
+          isLiking={Boolean(
+            openSouvenirKey && updatingLikeKeys.has(openSouvenirKey)
+          )}
+          isUpdatingVisibility={Boolean(
+            openSouvenirKey && updatingVisibilityKeys.has(openSouvenirKey)
+          )}
+          isDeleting={Boolean(
+            openSouvenirKey && deletingSouvenirKeys.has(openSouvenirKey)
+          )}
+          onClose={() => setOpenSouvenirKey(null)}
+          onLike={(souvenir) => void handleSouvenirLike(souvenir)}
+          onVisibilityChange={(souvenir) =>
+            void handleSouvenirVisibilityChange(souvenir)
+          }
+          onDelete={handleSouvenirDelete}
         />
       </section>
     </VerticalFocusGroup>

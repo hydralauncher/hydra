@@ -51,6 +51,7 @@ export const getUserData = async () => {
             bio: "",
             email: null,
             profileVisibility: "PUBLIC" as ProfileVisibility,
+            souvenirsVisibility: "PUBLIC" as ProfileVisibility,
             quirks: {
               backupsPerGameLimit: 0,
             },

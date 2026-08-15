@@ -7,6 +7,7 @@ import { INTERVALS } from "@main/constants";
 import { db, levelKeys } from "@main/level";
 import { AchievementImageService } from "../achievements/achievement-image-service";
 import { AchievementSouvenirStore } from "../achievements/achievement-souvenir-store";
+import { PendingAchievementSouvenirStore } from "../achievements/pending-achievement-souvenir-store";
 import { HydraApi } from "../hydra-api";
 import { achievementsLogger } from "../logger";
 import { ScreenshotService } from "../screenshot";
@@ -27,7 +28,12 @@ interface UnlockedAchievement {
   title: string;
 }
 
-const watchers = new Map<string, ReturnType<typeof setInterval>>();
+interface WatcherRegistration {
+  token: object;
+  timer: ReturnType<typeof setInterval> | null;
+}
+
+const watchers = new Map<string, WatcherRegistration>();
 
 const isSouvenirCaptureEnabled = async () => {
   if (process.platform === "linux") return false;
@@ -46,13 +52,20 @@ const publishSouvenir = async (
   achievement: UnlockedAchievement,
   screenshotPath: string
 ) => {
+  const gameKey = levelKeys.game(game.shop, game.objectId);
   const imageKey =
     await AchievementImageService.uploadAchievementImage(screenshotPath);
+
+  await PendingAchievementSouvenirStore.set(gameKey, achievement.id, imageKey);
 
   await HydraApi.put("/profile/games/achievements", {
     id: game.remoteId,
     achievements: [{ name: achievement.id, unlockTime: Date.now(), imageKey }],
   });
+
+  await PendingAchievementSouvenirStore.clearSynced(gameKey, [
+    { name: achievement.id, imageKey },
+  ]);
 
   AchievementSouvenirStore.invalidate(game.shop, game.objectId);
 
@@ -103,7 +116,9 @@ const createLogTail = (
 
 const startLogWatcher = (
   gameKey: string,
+  watcherToken: object,
   game: Game,
+  processId: number,
   logPath: string,
   pattern: RegExp,
   titleFirst: boolean
@@ -117,7 +132,10 @@ const startLogWatcher = (
       for (const achievement of await readNewUnlocks()) {
         const screenshotPath = await ScreenshotService.captureGameScreenshot(
           game.title,
-          achievement.title
+          achievement.title,
+          game.remoteId!,
+          achievement.id,
+          processId
         );
 
         await publishSouvenir(game, achievement, screenshotPath);
@@ -132,11 +150,18 @@ const startLogWatcher = (
   }, INTERVALS.emulatorSouvenirWatcher);
 
   watcher.unref?.();
-  watchers.set(gameKey, watcher);
+  const registration = watchers.get(gameKey);
+
+  if (registration?.token === watcherToken) {
+    registration.timer = watcher;
+  } else {
+    clearInterval(watcher);
+  }
 };
 
 const startRetroArchWatcher = (
   gameKey: string,
+  watcherToken: object,
   game: Game,
   screenshotDirectory: string
 ) => {
@@ -156,16 +181,24 @@ const startRetroArchWatcher = (
 
       for (const entry of entries) {
         if (seen.has(entry)) continue;
-        seen.add(entry);
-
         const match = RETROARCH_SOUVENIR.exec(entry);
-        if (!match) continue;
+        if (!match) {
+          seen.add(entry);
+          continue;
+        }
+
+        const sourcePath = path.join(screenshotDirectory, entry);
 
         const screenshotPath = await ScreenshotService.importGameScreenshot(
-          path.join(screenshotDirectory, entry),
+          sourcePath,
           game.title,
+          match[1],
+          game.remoteId!,
           match[1]
         );
+
+        await fs.promises.rm(sourcePath, { force: true });
+        seen.add(entry);
 
         await publishSouvenir(
           game,
@@ -183,7 +216,13 @@ const startRetroArchWatcher = (
   }, INTERVALS.emulatorSouvenirWatcher);
 
   watcher.unref?.();
-  watchers.set(gameKey, watcher);
+  const registration = watchers.get(gameKey);
+
+  if (registration?.token === watcherToken) {
+    registration.timer = watcher;
+  } else {
+    clearInterval(watcher);
+  }
 };
 
 interface StartEmulatorSouvenirWatcherOptions {
@@ -191,6 +230,8 @@ interface StartEmulatorSouvenirWatcherOptions {
   game: Game;
   system: EmulatorSessionSystem;
   executablePath: string;
+  processId: number;
+  watcherToken: object;
 }
 
 export const startEmulatorSouvenirWatcher = async ({
@@ -198,20 +239,44 @@ export const startEmulatorSouvenirWatcher = async ({
   game,
   system,
   executablePath,
+  processId,
+  watcherToken,
 }: StartEmulatorSouvenirWatcherOptions) => {
-  if (watchers.has(gameKey)) return;
-  if (!game.remoteId) return;
-  if (!(await isSouvenirCaptureEnabled())) return;
+  const previousWatcher = watchers.get(gameKey);
+  if (previousWatcher?.timer) clearInterval(previousWatcher.timer);
+  watchers.set(gameKey, { token: watcherToken, timer: null });
 
-  if (system === "ps3") return;
+  if (!game.remoteId) {
+    stopEmulatorSouvenirWatcher(gameKey, watcherToken);
+    return;
+  }
+  if (!(await isSouvenirCaptureEnabled())) {
+    stopEmulatorSouvenirWatcher(gameKey, watcherToken);
+    return;
+  }
+  if (watchers.get(gameKey)?.token !== watcherToken) return;
+
+  if (system === "ps3") {
+    stopEmulatorSouvenirWatcher(gameKey, watcherToken);
+    return;
+  }
 
   if (system === "ps1") {
     const logPath = duckstationLogPath();
 
     if (logPath) {
-      startLogWatcher(gameKey, game, logPath, DUCKSTATION_UNLOCK, false);
+      startLogWatcher(
+        gameKey,
+        watcherToken,
+        game,
+        processId,
+        logPath,
+        DUCKSTATION_UNLOCK,
+        false
+      );
     }
 
+    if (!logPath) stopEmulatorSouvenirWatcher(gameKey, watcherToken);
     return;
   }
 
@@ -219,28 +284,45 @@ export const startEmulatorSouvenirWatcher = async ({
     const logPath = pcsx2LogPath(executablePath);
 
     if (logPath) {
-      startLogWatcher(gameKey, game, logPath, PCSX2_UNLOCK, true);
+      startLogWatcher(
+        gameKey,
+        watcherToken,
+        game,
+        processId,
+        logPath,
+        PCSX2_UNLOCK,
+        true
+      );
     }
 
+    if (!logPath) stopEmulatorSouvenirWatcher(gameKey, watcherToken);
     return;
   }
 
   const configPath = findRetroArchConfig(executablePath);
 
-  if (!configPath) return;
+  if (!configPath) {
+    stopEmulatorSouvenirWatcher(gameKey, watcherToken);
+    return;
+  }
 
   startRetroArchWatcher(
     gameKey,
+    watcherToken,
     game,
     readRetroArchScreenshotDirectory(configPath)
   );
 };
 
-export const stopEmulatorSouvenirWatcher = (gameKey: string) => {
-  const watcher = watchers.get(gameKey);
+export const stopEmulatorSouvenirWatcher = (
+  gameKey: string,
+  watcherToken?: object
+) => {
+  const registration = watchers.get(gameKey);
 
-  if (!watcher) return;
+  if (!registration) return;
+  if (watcherToken && registration.token !== watcherToken) return;
 
-  clearInterval(watcher);
+  if (registration.timer) clearInterval(registration.timer);
   watchers.delete(gameKey);
 };
