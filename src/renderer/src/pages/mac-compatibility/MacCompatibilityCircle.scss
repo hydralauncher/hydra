@@ -25,7 +25,7 @@
   }
 
   &--needs-fix {
-    --status-color: #fc5812;
+    --status-color: #{globals.$needs-fix-color};
   }
 
   &--not-compatible {
