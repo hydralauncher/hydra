@@ -123,12 +123,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 <Route path="/profile/:userId" element={<Profile />} />
                 <Route path="/achievements" element={<Achievements />} />
                 <Route path="/notifications" element={<Notifications />} />
+                <Route
+                  path="/mac-compatibility"
+                  element={<MacCompatibilityPanel />}
+                />
               </Route>
               <Route path="/theme-editor" element={<ThemeEditor />} />
-              <Route
-                path="/mac-compatibility"
-                element={<MacCompatibilityPanel />}
-              />
               <Route
                 path="/achievement-notification"
                 element={<AchievementNotification />}
