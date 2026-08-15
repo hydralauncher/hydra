@@ -12,6 +12,7 @@ import "./friends";
 import "./hardware";
 import "./library";
 import "./leveldb";
+import "./mac-compatibility";
 import "./main-window-controls";
 import "./misc";
 import "./notifications";
