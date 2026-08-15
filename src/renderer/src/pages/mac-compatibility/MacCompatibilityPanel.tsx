@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { Button } from "@renderer/components/button/button";
+import { MacCompatibilityCircle } from "./MacCompatibilityCircle";
+import { toCircleStatus } from "./mac-compatibility-status";
+
+import "./MacCompatibilityPanel.scss";
+
 interface MacCompatibilityPanelProps {
   gameName?: string;
   gameIcon?: ReactNode;
@@ -20,16 +26,6 @@ const STATUS_LABELS: Record<MacCompatibilityStatusValue, string> = {
   needs_repair: "Needs repair",
   unsupported: "Not supported",
   error: "Something went wrong",
-};
-
-const STATUS_COLORS: Record<MacCompatibilityStatusValue, string> = {
-  unknown: "#9ca3af",
-  checking: "#60a5fa",
-  ready: "#4ade80",
-  needs_setup: "#ffc107",
-  needs_repair: "#ffc107",
-  unsupported: "#e11d48",
-  error: "#e11d48",
 };
 
 export function MacCompatibilityPanel({
@@ -190,293 +186,118 @@ export function MacCompatibilityPanel({
     : null;
 
   const actionsDisabled = !bridge || !systemInfo || !hasGame || loading;
+  const busy = loading || runningAction !== null;
 
   const issues = compatibility?.issues ?? [];
 
   return (
-    <div
-      style={{
-        minHeight: "100%",
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#0a0a0a",
-        color: "#ffffff",
-        padding: "32px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "720px",
-          borderRadius: "20px",
-          background: "#111111",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
-          padding: "32px",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Hydra logo */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            marginBottom: "28px",
-          }}
-        >
-          <div
-            aria-label="Hydra logo placeholder"
-            style={{
-              width: "76px",
-              height: "76px",
-              borderRadius: "50%",
-              border: "2px solid rgba(255,255,255,0.9)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "28px",
-              fontWeight: 700,
-              letterSpacing: "-2px",
-            }}
-          >
-            H
-          </div>
+    <div className="mac-compatibility-panel">
+      <div className="mac-compatibility-panel__card">
+        <div className="mac-compatibility-panel__circle">
+          <MacCompatibilityCircle
+            status={toCircleStatus(status)}
+            busy={busy}
+            onActivate={() => void runAction("test")}
+          />
         </div>
 
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "28px" }}>
-          <div
-            style={{
-              fontSize: "13px",
-              fontWeight: 600,
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              opacity: 0.55,
-              marginBottom: "8px",
-            }}
-          >
+        <div className="mac-compatibility-panel__header">
+          <div className="mac-compatibility-panel__eyebrow">
             Mac Compatibility
           </div>
 
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "30px",
-              fontWeight: 700,
-              letterSpacing: "-0.8px",
-            }}
-          >
+          <h1 className="mac-compatibility-panel__title">
             {compatibility?.title ?? title}
           </h1>
 
           {systemLine ? (
-            <div
-              style={{
-                marginTop: "10px",
-                fontSize: "12px",
-                opacity: 0.5,
-              }}
-            >
+            <div className="mac-compatibility-panel__system-line">
               {systemLine}
             </div>
           ) : null}
         </div>
 
-        {/* Game / compatibility status */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            padding: "18px",
-            borderRadius: "14px",
-            background: "#181818",
-            border: "1px solid rgba(255,255,255,0.06)",
-            marginBottom: "20px",
-          }}
-        >
+        <div className="mac-compatibility-panel__status-row">
           {gameIcon ? (
-            <div
-              style={{
-                width: "52px",
-                height: "52px",
-                flexShrink: 0,
-                borderRadius: "10px",
-                overflow: "hidden",
-              }}
-            >
+            <div className="mac-compatibility-panel__game-icon">
               {gameIcon}
             </div>
           ) : (
-            <div
-              style={{
-                width: "52px",
-                height: "52px",
-                flexShrink: 0,
-                borderRadius: "10px",
-                background: "#242424",
-              }}
-            />
+            <div className="mac-compatibility-panel__game-icon mac-compatibility-panel__game-icon--empty" />
           )}
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: "12px",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
-                opacity: 0.5,
-                marginBottom: "4px",
-              }}
-            >
+          <div className="mac-compatibility-panel__status-text">
+            <div className="mac-compatibility-panel__status-label">
               Compatibility Status
             </div>
 
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontSize: "16px",
-                fontWeight: 600,
-              }}
+              className="mac-compatibility-panel__status-value"
+              data-status={status}
             >
-              <span
-                style={{
-                  width: "9px",
-                  height: "9px",
-                  flexShrink: 0,
-                  borderRadius: "50%",
-                  background: STATUS_COLORS[status],
-                  boxShadow: `0 0 10px ${STATUS_COLORS[status]}99`,
-                }}
-              />
-
+              <span className="mac-compatibility-panel__status-dot" />
               {statusLabel}
             </div>
           </div>
         </div>
 
-        {/* Wine information */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "12px",
-            marginBottom: "24px",
-          }}
-        >
+        <div className="mac-compatibility-panel__info-grid">
           <InfoCard label="Wine Version" value={wineValue} />
-
           <InfoCard label="Environment" value={environmentValue} />
         </div>
 
-        {/* Actions */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-          }}
-        >
-          <ActionButton
-            primary
+        <div className="mac-compatibility-panel__actions">
+          <Button
+            theme="primary"
             disabled={actionsDisabled || runningAction !== null}
             onClick={() => void runAction("test")}
           >
             {runningAction === "test" ? "Testing…" : "Test Setup"}
-          </ActionButton>
+          </Button>
 
-          <ActionButton
+          <Button
+            theme="outline"
             disabled={actionsDisabled || runningAction !== null}
             onClick={() => void runAction("fix")}
           >
             {runningAction === "fix" ? "Fixing…" : "Fix Everything"}
-          </ActionButton>
+          </Button>
 
-          <ActionButton
+          <Button
+            theme="outline"
             disabled={actionsDisabled || runningAction !== null}
             onClick={() => void runAction("repair")}
           >
             {runningAction === "repair" ? "Repairing…" : "Repair"}
-          </ActionButton>
+          </Button>
         </div>
 
-        {/* Diagnostics */}
-        <div
-          style={{
-            marginTop: "24px",
-            paddingTop: "20px",
-            borderTop: "1px solid rgba(255,255,255,0.07)",
-            fontSize: "12px",
-            lineHeight: 1.6,
-          }}
-        >
+        <div className="mac-compatibility-panel__diagnostics">
           {message ? (
-            <div
-              style={{
-                marginBottom: issues.length > 0 ? "12px" : 0,
-                padding: "12px 14px",
-                borderRadius: "10px",
-                background: "#151515",
-                border: "1px solid rgba(255,255,255,0.06)",
-                opacity: 0.85,
-                overflowWrap: "anywhere",
-              }}
-            >
-              {message}
-            </div>
+            <div className="mac-compatibility-panel__message">{message}</div>
           ) : null}
 
           {issues.length > 0 ? (
-            <ul
-              style={{
-                margin: 0,
-                padding: 0,
-                listStyle: "none",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-              }}
-            >
+            <ul className="mac-compatibility-panel__issues">
               {issues.map((issue) => (
                 <li
                   key={issue.id}
-                  style={{
-                    padding: "12px 14px",
-                    borderRadius: "10px",
-                    background: "#151515",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    overflowWrap: "anywhere",
-                  }}
+                  className="mac-compatibility-panel__issue"
+                  data-severity={issue.severity}
                 >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      marginBottom: "4px",
-                      color:
-                        issue.severity === "error"
-                          ? "#f87171"
-                          : issue.severity === "warning"
-                            ? "#ffc107"
-                            : "#ffffff",
-                    }}
-                  >
+                  <div className="mac-compatibility-panel__issue-title">
                     {issue.title}
                   </div>
-
-                  <div style={{ opacity: 0.6 }}>{issue.description}</div>
+                  <div className="mac-compatibility-panel__issue-description">
+                    {issue.description}
+                  </div>
                 </li>
               ))}
             </ul>
           ) : null}
 
           {!message && issues.length === 0 ? (
-            <div style={{ opacity: 0.45, textAlign: "center" }}>
+            <div className="mac-compatibility-panel__empty-state">
               {!bridge || (!loading && !systemInfo)
                 ? "This panel only works on macOS."
                 : hasGame
@@ -492,73 +313,9 @@ export function MacCompatibilityPanel({
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      style={{
-        padding: "16px",
-        borderRadius: "12px",
-        background: "#151515",
-        border: "1px solid rgba(255,255,255,0.05)",
-        minWidth: 0,
-      }}
-    >
-      <div
-        style={{
-          fontSize: "11px",
-          textTransform: "uppercase",
-          letterSpacing: "0.8px",
-          opacity: 0.45,
-          marginBottom: "6px",
-        }}
-      >
-        {label}
-      </div>
-
-      <div
-        style={{
-          fontSize: "14px",
-          fontWeight: 600,
-          overflowWrap: "anywhere",
-        }}
-      >
-        {value}
-      </div>
+    <div className="mac-compatibility-panel__info-card">
+      <div className="mac-compatibility-panel__info-label">{label}</div>
+      <div className="mac-compatibility-panel__info-value">{value}</div>
     </div>
-  );
-}
-
-function ActionButton({
-  children,
-  primary = false,
-  disabled = false,
-  onClick,
-}: {
-  children: ReactNode;
-  primary?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      style={{
-        width: "100%",
-        border: primary
-          ? "1px solid rgba(255,255,255,0.25)"
-          : "1px solid rgba(255,255,255,0.08)",
-        borderRadius: "12px",
-        padding: "14px 18px",
-        background: primary ? "#ffffff" : "#181818",
-        color: primary ? "#000000" : "#ffffff",
-        fontSize: "14px",
-        fontWeight: 650,
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.45 : 1,
-        transition: "transform 120ms ease, opacity 120ms ease",
-      }}
-    >
-      {children}
-    </button>
   );
 }
