@@ -6,6 +6,8 @@ export const ACHIEVEMENT_IMAGES_DIR_NAME = "images";
 
 const ALTERNATE_ICON_GRAY_KEY = "icon_gray";
 
+const WINDOWS_DRIVE_PREFIX = /^[a-zA-Z]:/;
+
 const DEFAULT_ICON_EXTENSION = ".jpg";
 
 const ALLOWED_ICON_EXTENSIONS = new Set([
@@ -86,15 +88,32 @@ export const buildAchievementMetadata = (
   return { entries, icons };
 };
 
+export const sanitizeRelativeIconPath = (iconPath: unknown) => {
+  if (typeof iconPath !== "string") return null;
+
+  const normalized = iconPath.trim().replaceAll("\\", "/");
+
+  if (!normalized || normalized.startsWith("/")) return null;
+  if (WINDOWS_DRIVE_PREFIX.test(normalized)) return null;
+
+  const segments = normalized
+    .split("/")
+    .filter((segment) => segment.length > 0 && segment !== ".");
+
+  if (!segments.length || segments.includes("..")) return null;
+
+  return segments.join("/");
+};
+
 export const getExistingEntryIconPaths = (entry: AchievementMetadataEntry) => {
   const icongray =
     entry.icongray ??
     (entry as unknown as Record<string, unknown>)[ALTERNATE_ICON_GRAY_KEY];
 
-  return [entry.icon, icongray].filter(
-    (iconPath): iconPath is string =>
-      typeof iconPath === "string" && iconPath.length > 0
-  );
+  return {
+    icon: sanitizeRelativeIconPath(entry.icon),
+    icongray: sanitizeRelativeIconPath(icongray),
+  };
 };
 
 export const buildIconsForExistingMetadata = (
@@ -119,15 +138,16 @@ export const buildIconsForExistingMetadata = (
 
     if (!urls) continue;
 
-    const [iconPath, icongrayPath] = getExistingEntryIconPaths(entry);
+    const { icon: iconPath, icongray: icongrayPath } =
+      getExistingEntryIconPaths(entry);
 
     for (const [relativePath, url] of [
       [iconPath, urls.icon],
       [icongrayPath, urls.icongray],
-    ]) {
+    ] as const) {
       if (!relativePath || !url) continue;
 
-      icons.push({ relativePath: relativePath.replaceAll("\\", "/"), url });
+      icons.push({ relativePath, url });
     }
   }
 

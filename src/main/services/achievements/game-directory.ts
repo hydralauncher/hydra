@@ -82,6 +82,35 @@ export const resolveContainedDirectory = async (
   return resolved;
 };
 
+export const createContainedDirectory = async (
+  root: string,
+  relativePath: string
+) => {
+  let current = root;
+
+  for (const segment of relativePath.split("/")) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") return null;
+
+    current = path.join(current, segment);
+
+    try {
+      await fs.promises.mkdir(current);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") return null;
+    }
+
+    const resolved = await realPathOrNull(current);
+
+    if (!resolved || !isWithin(root, resolved)) return null;
+    if (!(await isDirectory(resolved))) return null;
+
+    current = resolved;
+  }
+
+  return current;
+};
+
 export const resolveContainmentRoot = async (executablePath: string) => {
   const searchRoot = await resolveGameSearchRoot(executablePath);
 

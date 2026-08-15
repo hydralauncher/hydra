@@ -85,9 +85,11 @@ const readExistingEntries = async (steamSettingsDirectory: string) => {
 };
 
 const getReferencedIconPaths = (entries: AchievementMetadataEntry[]) =>
-  entries
-    .flatMap(getExistingEntryIconPaths)
-    .map((iconPath) => iconPath.replaceAll("\\", "/"));
+  entries.flatMap((entry) => {
+    const { icon, icongray } = getExistingEntryIconPaths(entry);
+
+    return [icon, icongray].filter((iconPath) => iconPath !== null);
+  });
 
 const hasEveryReferencedIcon = async (
   steamSettingsDirectory: string,

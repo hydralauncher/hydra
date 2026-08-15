@@ -4,8 +4,14 @@ import fs from "node:fs";
 import axios from "axios";
 
 import { achievementsLogger } from "../../logger";
-import { resolveContainedDirectory } from "../game-directory.js";
-import type { AchievementIcon } from "./build-achievement-metadata";
+import {
+  createContainedDirectory,
+  resolveContainedDirectory,
+} from "../game-directory.js";
+import {
+  sanitizeRelativeIconPath,
+  type AchievementIcon,
+} from "./build-achievement-metadata";
 import type { AchievementMetadataExportTarget } from "./generate-achievement-metadata";
 
 const CONCURRENCY = 8;
@@ -23,6 +29,29 @@ interface ResolvedIcon {
   filePath: string;
   url: string;
 }
+
+const groupIconsByDirectory = (icons: AchievementIcon[]) => {
+  const iconsByDirectory = new Map<string, AchievementIcon[]>();
+
+  for (const icon of icons) {
+    const relativePath = sanitizeRelativeIconPath(icon.relativePath);
+
+    if (!relativePath) {
+      achievementsLogger.error(
+        `Skipping the achievement icon at ${icon.relativePath}: the path is absolute or escapes its directory`
+      );
+      continue;
+    }
+
+    const directory = path.posix.dirname(relativePath);
+    const directoryIcons = iconsByDirectory.get(directory) ?? [];
+
+    directoryIcons.push({ ...icon, relativePath });
+    iconsByDirectory.set(directory, directoryIcons);
+  }
+
+  return iconsByDirectory;
+};
 
 const resolveIconDirectories = async (
   containmentRoot: string,
@@ -42,31 +71,19 @@ const resolveIconDirectories = async (
     return [];
   }
 
-  const iconsByDirectory = new Map<string, AchievementIcon[]>();
-
-  for (const icon of icons) {
-    const directory = path.posix.dirname(icon.relativePath);
-    const directoryIcons = iconsByDirectory.get(directory) ?? [];
-
-    directoryIcons.push(icon);
-    iconsByDirectory.set(directory, directoryIcons);
-  }
+  const iconsByDirectory = groupIconsByDirectory(icons);
 
   const resolvedIcons: ResolvedIcon[] = [];
 
   for (const [directory, directoryIcons] of iconsByDirectory) {
-    const iconsDirectory = path.join(resolvedParent, directory);
-
-    await fs.promises.mkdir(iconsDirectory, { recursive: true });
-
-    const resolvedIconsDirectory = await resolveContainedDirectory(
-      containmentRoot,
-      iconsDirectory
+    const resolvedIconsDirectory = await createContainedDirectory(
+      resolvedParent,
+      directory
     );
 
     if (!resolvedIconsDirectory) {
       achievementsLogger.error(
-        `Refusing to write achievement icons: ${iconsDirectory} is outside ${containmentRoot}`
+        `Refusing to write achievement icons: ${directory} is outside ${resolvedParent}`
       );
       continue;
     }
