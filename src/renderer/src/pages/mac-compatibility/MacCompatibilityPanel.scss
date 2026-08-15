@@ -1,3 +1,5 @@
+@use "../../scss/globals.scss";
+
 .mac-compatibility-panel {
   width: 100%;
   min-height: 100%;
@@ -5,20 +7,48 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: calc(globals.$spacing-unit * 5);
   box-sizing: border-box;
-  background: #0d0d0f;
-  color: #ffffff;
-  font-family: "Noto Sans", sans-serif;
+  background: globals.$background-color;
+  color: globals.$muted-color;
+}
+
+.mac-compatibility-panel__card {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(globals.$spacing-unit * 6);
+  box-sizing: border-box;
+  border: 1px solid globals.$border-color;
+  border-radius: 16px;
+  background: globals.$dark-background-color;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+}
+
+.mac-compatibility-panel__circle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: calc(globals.$spacing-unit * 4);
 }
 
 .mac-compatibility-panel__header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 32px;
+  gap: globals.$spacing-unit;
+  margin-bottom: calc(globals.$spacing-unit * 4);
   text-align: center;
+}
+
+.mac-compatibility-panel__eyebrow {
+  color: globals.$body-color;
+  font-size: globals.$small-font-size;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  opacity: 0.7;
 }
 
 .mac-compatibility-panel__title {
@@ -26,130 +56,252 @@
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.5px;
+  color: globals.$muted-color;
 }
 
-.mac-compatibility-panel__subtitle {
+.mac-compatibility-panel__system-line {
   margin: 0;
-  color: #999999;
-  font-size: 14px;
+  color: globals.$body-color;
+  font-size: globals.$hint-font-size;
+  opacity: 0.8;
 }
 
-.mac-compatibility-panel__circle {
-  width: 180px;
-  height: 180px;
+.mac-compatibility-panel__status-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit * 2;
+  padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 3);
+  box-sizing: border-box;
+  border: 1px solid globals.$border-color;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  margin-bottom: calc(globals.$spacing-unit * 3);
+}
+
+.mac-compatibility-panel__game-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid #ffffff;
-  border-radius: 50%;
-  background: #050505;
-  box-shadow:
-    0 0 20px rgba(255, 255, 255, 0.12),
-    inset 0 0 25px rgba(255, 255, 255, 0.04);
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+  background: globals.$background-color;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &--empty {
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
-.mac-compatibility-panel__circle:hover {
-  box-shadow:
-    0 0 30px rgba(255, 255, 255, 0.2),
-    inset 0 0 30px rgba(255, 255, 255, 0.06);
-}
-
-.mac-compatibility-panel__circle:active {
-  cursor: grabbing;
-  transform: scale(0.97);
-}
-
-.mac-compatibility-panel__logo {
-  width: 90px;
-  height: 90px;
-  object-fit: contain;
-}
-
-.mac-compatibility-panel__status {
-  margin-top: 30px;
-  text-align: center;
+.mac-compatibility-panel__status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .mac-compatibility-panel__status-label {
-  margin: 0 0 6px;
-  color: #999999;
-  font-size: 12px;
+  color: globals.$body-color;
+  font-size: globals.$small-font-size;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
+  opacity: 0.7;
 }
 
 .mac-compatibility-panel__status-value {
-  margin: 0;
-  color: #ffffff;
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  color: globals.$muted-color;
+  font-size: 17px;
   font-weight: 600;
 }
 
+.mac-compatibility-panel__status-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: globals.$body-color;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.mac-compatibility-panel__status-value[data-status="ready"] {
+  color: globals.$brand-teal;
+
+  .mac-compatibility-panel__status-dot {
+    background: globals.$brand-teal;
+  }
+}
+
+.mac-compatibility-panel__status-value[data-status="needs_setup"] {
+  color: globals.$warning-color;
+
+  .mac-compatibility-panel__status-dot {
+    background: globals.$warning-color;
+  }
+}
+
+.mac-compatibility-panel__status-value[data-status="needs_repair"] {
+  color: globals.$needs-fix-color;
+
+  .mac-compatibility-panel__status-dot {
+    background: globals.$needs-fix-color;
+  }
+}
+
+.mac-compatibility-panel__status-value[data-status="unsupported"],
+.mac-compatibility-panel__status-value[data-status="error"] {
+  color: globals.$error-color;
+
+  .mac-compatibility-panel__status-dot {
+    background: globals.$error-color;
+  }
+}
+
+.mac-compatibility-panel__info-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: globals.$spacing-unit * 2;
+  margin-bottom: calc(globals.$spacing-unit * 3);
+}
+
+.mac-compatibility-panel__info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: globals.$spacing-unit * 2;
+  border: 1px solid globals.$border-color;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mac-compatibility-panel__info-label {
+  color: globals.$body-color;
+  font-size: globals.$small-font-size;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
+
+.mac-compatibility-panel__info-value {
+  color: globals.$muted-color;
+  font-size: globals.$body-font-size;
+  font-weight: 500;
+}
+
 .mac-compatibility-panel__actions {
+  width: 100%;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 12px;
-  margin-top: 30px;
+  gap: globals.$spacing-unit * 2;
+  margin-bottom: calc(globals.$spacing-unit * 2);
 }
 
-.mac-compatibility-panel__button {
-  min-width: 130px;
-  padding: 10px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  background: #19191c;
-  color: #ffffff;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.15s ease;
+.mac-compatibility-panel__diagnostics {
+  width: 100%;
 }
 
-.mac-compatibility-panel__button:hover {
-  background: #242428;
-  border-color: rgba(255, 255, 255, 0.3);
+.mac-compatibility-panel__message {
+  padding: globals.$spacing-unit * 2;
+  border: 1px solid globals.$border-color;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  color: globals.$muted-color;
+  font-size: globals.$body-font-size;
+  line-height: 1.5;
+  margin-bottom: calc(globals.$spacing-unit * 2);
 }
 
-.mac-compatibility-panel__button:active {
-  transform: scale(0.97);
+.mac-compatibility-panel__issues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit * 2;
+}
+
+.mac-compatibility-panel__issue {
+  padding: globals.$spacing-unit * 2;
+  border: 1px solid globals.$border-color;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &[data-severity="error"] {
+    border-color: color-mix(in srgb, globals.$error-color 40%, transparent);
+    background: color-mix(in srgb, globals.$error-color 8%, transparent);
+  }
+
+  &[data-severity="warning"] {
+    border-color: color-mix(in srgb, globals.$warning-color 40%, transparent);
+    background: color-mix(in srgb, globals.$warning-color 8%, transparent);
+  }
+
+  &[data-severity="info"] {
+    border-color: color-mix(in srgb, globals.$brand-teal 35%, transparent);
+    background: color-mix(in srgb, globals.$brand-teal 6%, transparent);
+  }
+}
+
+.mac-compatibility-panel__issue-title {
+  color: globals.$muted-color;
+  font-size: globals.$body-font-size;
+  font-weight: 600;
+}
+
+.mac-compatibility-panel__issue-description {
+  color: globals.$body-color;
+  font-size: globals.$hint-font-size;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.mac-compatibility-panel__empty-state {
+  padding: calc(globals.$spacing-unit * 3);
+  text-align: center;
+  color: globals.$body-color;
+  font-size: globals.$hint-font-size;
+  opacity: 0.75;
 }
 
 @media (max-width: 600px) {
   .mac-compatibility-panel {
-    padding: 24px;
+    padding: globals.$spacing-unit * 3;
+  }
+
+  .mac-compatibility-panel__card {
+    padding: globals.$spacing-unit * 4;
   }
 
   .mac-compatibility-panel__title {
     font-size: 24px;
   }
 
-  .mac-compatibility-panel__circle {
-    width: 150px;
-    height: 150px;
-  }
-
-  .mac-compatibility-panel__logo {
-    width: 75px;
-    height: 75px;
+  .mac-compatibility-panel__info-grid {
+    grid-template-columns: 1fr;
   }
 
   .mac-compatibility-panel__actions {
-    width: 100%;
     flex-direction: column;
-  }
 
-  .mac-compatibility-panel__button {
-    width: 100%;
+    .button {
+      width: 100%;
+    }
   }
 }
