@@ -2,7 +2,12 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { db, gamesSublevel, levelKeys } from "@main/level";
-import { DisplayManager, emulators, logger } from "@main/services";
+import {
+  DisplayManager,
+  emulators,
+  logger,
+  WindowManager,
+} from "@main/services";
 import type {
   EmulatorBinary,
   EmulatorConfig,
@@ -241,6 +246,7 @@ export const launchClassicsGame = async (
   if (launchSource === "big-picture") {
     // Re-assert at launch time because display settings can change while Big Picture stays open.
     await DisplayManager.prepareBigPictureDisplayForLaunch();
+    await WindowManager.reapplyBigPictureUiScalePreference();
   }
 
   const resolvedLaunchCommand = resolveLaunchCommand({

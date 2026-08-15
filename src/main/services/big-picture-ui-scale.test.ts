@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  applyBigPictureZoomFactor,
   DEFAULT_BIG_PICTURE_UI_SCALE,
   getBigPictureZoomFactor,
   resolveBigPictureUiScale,
@@ -28,5 +29,16 @@ describe("Big Picture UI scale", () => {
     assert.equal(getBigPictureZoomFactor(75), 0.75);
     assert.equal(getBigPictureZoomFactor(150), 1.5);
     assert.equal(getBigPictureZoomFactor("invalid"), 1);
+  });
+
+  it("applies the selected zoom factor to a Big Picture window", () => {
+    const zoomFactors: number[] = [];
+
+    applyBigPictureZoomFactor(
+      { setZoomFactor: (factor) => zoomFactors.push(factor) },
+      175
+    );
+
+    assert.deepEqual(zoomFactors, [1.75]);
   });
 });

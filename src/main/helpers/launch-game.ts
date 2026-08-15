@@ -542,6 +542,7 @@ const prepareBigPictureDisplayForLaunchSource = async (
 
   // Re-assert at launch time because display settings can change while Big Picture stays open.
   await DisplayManager.prepareBigPictureDisplayForLaunch();
+  await WindowManager.reapplyBigPictureUiScalePreference();
 };
 
 const launchResolvedGame = async (
@@ -627,7 +628,14 @@ const launchGameWithCloudSaveChecks = async (
   }
 
   const launchDisplay = await getLaunchDisplay(launchSource);
-  await WindowManager.createGameLauncherWindow(shop, objectId, launchDisplay);
+  await WindowManager.createGameLauncherWindow(
+    shop,
+    objectId,
+    launchDisplay,
+    launchSource === "big-picture"
+      ? userPreferences?.bigPictureUiScale
+      : undefined
+  );
 
   const shouldRunV2AutomaticSync = await canRunAutomaticCloudSaveSync(
     objectId,

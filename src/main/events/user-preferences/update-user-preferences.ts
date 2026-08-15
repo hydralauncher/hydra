@@ -123,7 +123,7 @@ const updateUserPreferences = async (
   }
 
   if (Object.hasOwn(preferences, "bigPictureUiScale")) {
-    WindowManager.applyBigPictureUiScalePreference(updatedPreferences);
+    WindowManager.applyBigPictureLaunchUiScalePreference(updatedPreferences);
   }
 
   if (Object.hasOwn(preferences, "torrentNetworkInterface")) {

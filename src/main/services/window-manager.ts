@@ -5,7 +5,10 @@ import icon from "@resources/icon.png?asset";
 import trayIconDark from "@resources/tray-icon-dark.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { AuthPage } from "@shared";
-import { getBigPictureZoomFactor } from "../../types/big-picture-ui-scale";
+import {
+  applyBigPictureZoomFactor,
+  getBigPictureZoomFactor,
+} from "../../types/big-picture-ui-scale";
 import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
@@ -56,6 +59,9 @@ export class WindowManager {
   private static mainWindowInstance: Electron.BrowserWindow | null = null;
   private static gameLauncherWindowInstance: Electron.BrowserWindow | null =
     null;
+  private static gameLauncherBigPictureUiScale: NonNullable<
+    UserPreferences["bigPictureUiScale"]
+  > | null = null;
   private static bigPicture: Electron.BrowserWindow | null = null;
   private static bigPicturePlacementRetryTimers: NodeJS.Timeout[] = [];
   private static friendsWindow: Electron.BrowserWindow | null = null;
@@ -682,15 +688,73 @@ export class WindowManager {
   public static applyBigPictureUiScalePreference(
     userPreferences: UserPreferences | null | undefined
   ) {
-    const bigPicture = this.bigPicture;
+    this.applyBigPictureUiScaleToWindow(
+      this.bigPicture,
+      userPreferences?.bigPictureUiScale
+    );
+  }
 
-    if (!bigPicture || bigPicture.isDestroyed()) {
+  public static applyBigPictureLaunchUiScalePreference(
+    userPreferences: UserPreferences | null | undefined
+  ) {
+    this.applyBigPictureUiScalePreference(userPreferences);
+
+    if (this.gameLauncherBigPictureUiScale !== null) {
+      this.applyBigPictureUiScaleToGameLauncher(
+        userPreferences?.bigPictureUiScale ?? this.gameLauncherBigPictureUiScale
+      );
+    }
+  }
+
+  public static async reapplyBigPictureUiScalePreference() {
+    const userPreferences = await db
+      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      })
+      .catch(() => null);
+
+    this.applyBigPictureLaunchUiScalePreference(userPreferences);
+  }
+
+  private static applyBigPictureUiScaleToWindow(
+    window: Electron.BrowserWindow | null,
+    uiScale: UserPreferences["bigPictureUiScale"] | null | undefined
+  ) {
+    if (!window || window.isDestroyed()) {
       return;
     }
 
-    bigPicture.webContents.setZoomFactor(
-      getBigPictureZoomFactor(userPreferences?.bigPictureUiScale)
+    applyBigPictureZoomFactor(window.webContents, uiScale);
+  }
+
+  private static applyBigPictureUiScaleToGameLauncher(
+    uiScale: NonNullable<UserPreferences["bigPictureUiScale"]>
+  ) {
+    const gameLauncher = this.gameLauncherWindow;
+
+    if (!gameLauncher || gameLauncher.isDestroyed()) {
+      return;
+    }
+
+    const display = screen.getDisplayMatching(gameLauncher.getBounds());
+    const requestedZoomFactor = getBigPictureZoomFactor(uiScale);
+    const maximumZoomFactor = Math.min(
+      display.workArea.width / this.GAME_LAUNCHER_WINDOW_WIDTH,
+      display.workArea.height / this.GAME_LAUNCHER_WINDOW_HEIGHT
     );
+    const zoomFactor = Math.min(requestedZoomFactor, maximumZoomFactor);
+    const width = Math.round(this.GAME_LAUNCHER_WINDOW_WIDTH * zoomFactor);
+    const height = Math.round(this.GAME_LAUNCHER_WINDOW_HEIGHT * zoomFactor);
+    const x = Math.round(
+      display.workArea.x + (display.workArea.width - width) / 2
+    );
+    const y = Math.round(
+      display.workArea.y + (display.workArea.height - height) / 2
+    );
+
+    // Keep the launcher layout at its intended CSS viewport size for every scale.
+    gameLauncher.setBounds({ x, y, width, height });
+    gameLauncher.webContents.setZoomFactor(zoomFactor);
   }
 
   public static openFriendsWindow() {
@@ -1045,7 +1109,8 @@ export class WindowManager {
   public static async createGameLauncherWindow(
     shop: string,
     objectId: string,
-    targetDisplay?: Electron.Display
+    targetDisplay?: Electron.Display,
+    bigPictureUiScale?: UserPreferences["bigPictureUiScale"]
   ) {
     if (this.gameLauncherWindow) {
       this.gameLauncherWindow.close();
@@ -1087,6 +1152,11 @@ export class WindowManager {
       show: false,
     });
     this.gameLauncherWindowInstance = gameLauncherWindow;
+    this.gameLauncherBigPictureUiScale = bigPictureUiScale ?? null;
+
+    if (bigPictureUiScale !== undefined) {
+      this.applyBigPictureUiScaleToGameLauncher(bigPictureUiScale);
+    }
 
     gameLauncherWindow.removeMenu();
 
@@ -1096,7 +1166,10 @@ export class WindowManager {
     );
 
     gameLauncherWindow.on("closed", () => {
-      this.gameLauncherWindowInstance = null;
+      if (this.gameLauncherWindowInstance === gameLauncherWindow) {
+        this.gameLauncherWindowInstance = null;
+        this.gameLauncherBigPictureUiScale = null;
+      }
     });
 
     if (!app.isPackaged || isStaging) {
@@ -1111,9 +1184,12 @@ export class WindowManager {
   }
 
   public static closeGameLauncherWindow() {
-    if (this.gameLauncherWindow) {
-      this.gameLauncherWindow.close();
+    const gameLauncher = this.gameLauncherWindow;
+
+    if (gameLauncher) {
       this.gameLauncherWindowInstance = null;
+      this.gameLauncherBigPictureUiScale = null;
+      gameLauncher.close();
     }
   }
 

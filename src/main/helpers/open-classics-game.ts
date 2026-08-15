@@ -1,7 +1,12 @@
 import { existsSync } from "node:fs";
 
 import { gamesSublevel, levelKeys } from "@main/level";
-import { DisplayManager, logger, NativeAddon } from "@main/services";
+import {
+  DisplayManager,
+  logger,
+  NativeAddon,
+  WindowManager,
+} from "@main/services";
 import type { GameShop, LaunchSource, RetroArchPlatform } from "@types";
 import { launchClassicsGame } from "./launch-classics-game";
 import { launchRetroArchGame } from "./launch-retroarch-game";
@@ -145,6 +150,7 @@ const launchRetroArchWithErrors = async (
   try {
     if (launchSource === "big-picture") {
       await DisplayManager.prepareBigPictureDisplayForLaunch();
+      await WindowManager.reapplyBigPictureUiScalePreference();
     }
 
     await launchRetroArchGame({ shop, objectId, romPath, platform });
