@@ -28,6 +28,7 @@ import {
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { MacGameLaunchManager } from "@main/services/mac-compatibility/launch/MacGameLaunchManager";
+import { getMacCompatibilityManager } from "@main/services/mac-compatibility/mac-compatibility-instance";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
@@ -44,7 +45,9 @@ export interface LaunchGameOptions {
   launchOptions?: string | null;
 }
 
-const macGameLaunchManager = new MacGameLaunchManager();
+const macGameLaunchManager = new MacGameLaunchManager(
+  getMacCompatibilityManager()
+);
 
 const isWindowsExecutable = (executablePath: string) =>
   path.extname(executablePath).toLowerCase() === ".exe";
