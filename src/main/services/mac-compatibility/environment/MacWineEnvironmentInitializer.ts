@@ -6,6 +6,14 @@ import type { MacWineEnvironment } from "../MacCompatibilityTypes";
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * "wineboot --init" had no timeout, so a Wine build that hangs (very
+ * common the first time a prefix is created, or when Wine waits on a
+ * dialog that nobody can see) left Repair and Fix Everything spinning
+ * forever with no way out. Same budget the manager already uses.
+ */
+const WINEBOOT_TIMEOUT_MS = 300_000;
+
 export interface MacWineEnvironmentInitializationResult {
   success: boolean;
   environment: MacWineEnvironment;
@@ -64,16 +72,35 @@ export class MacWineEnvironmentInitializer {
     prefixPath: string,
     wineExecutablePath: string,
   ): Promise<void> {
-    await execFileAsync(
-      wineExecutablePath,
-      ["wineboot", "--init"],
-      {
-        env: {
-          ...process.env,
-          WINEPREFIX: prefixPath,
+    try {
+      await execFileAsync(
+        wineExecutablePath,
+        ["wineboot", "--init"],
+        {
+          env: {
+            ...process.env,
+            WINEPREFIX: prefixPath,
+          },
+          timeout: WINEBOOT_TIMEOUT_MS,
+          killSignal: "SIGKILL",
         },
-      },
-    );
+      );
+    } catch (error) {
+      const killed =
+        typeof error === "object" &&
+        error !== null &&
+        (error as { killed?: boolean }).killed === true;
+
+      if (killed) {
+        throw new Error(
+          `Wine took longer than ${Math.round(
+            WINEBOOT_TIMEOUT_MS / 1000,
+          )} seconds to create the Windows environment and was stopped. Try again, or delete the environment and set it up from scratch.`,
+        );
+      }
+
+      throw error;
+    }
   }
 
   /**
