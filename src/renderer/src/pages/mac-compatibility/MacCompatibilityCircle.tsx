@@ -45,7 +45,7 @@ const STATUS_META: Record<MacCompatibilityStatus, StatusMeta> = {
   "needs-setup": {
     label: "Needs setup",
     description: "Hydra can probably make this work.",
-    defaultProgress: 0.55,
+    defaultProgress: 0.75,
   },
   "needs-fix": {
     label: "Needs fix",
