@@ -1,14 +1,198 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 
 interface MacCompatibilityPanelProps {
   gameName?: string;
   gameIcon?: ReactNode;
+  shop?: string;
+  objectId?: string;
+  isWindowsGame?: boolean;
 }
 
+type PanelAction = "test" | "fix" | "repair";
+
+const STATUS_LABELS: Record<MacCompatibilityStatusValue, string> = {
+  unknown: "Not checked yet",
+  checking: "Checking…",
+  ready: "Ready to play",
+  needs_setup: "Needs setup",
+  needs_repair: "Needs repair",
+  unsupported: "Not supported",
+  error: "Something went wrong",
+};
+
+const STATUS_COLORS: Record<MacCompatibilityStatusValue, string> = {
+  unknown: "#9ca3af",
+  checking: "#60a5fa",
+  ready: "#4ade80",
+  needs_setup: "#ffc107",
+  needs_repair: "#ffc107",
+  unsupported: "#e11d48",
+  error: "#e11d48",
+};
+
 export function MacCompatibilityPanel({
-  gameName = "Game",
+  gameName,
   gameIcon,
+  shop,
+  objectId,
+  isWindowsGame,
 }: MacCompatibilityPanelProps) {
+  const [searchParams] = useSearchParams();
+
+  const bridge = useMemo(
+    () => (typeof window === "undefined" ? undefined : window.macCompatibility),
+    []
+  );
+
+  const gameShop = shop ?? searchParams.get("shop") ?? null;
+  const gameObjectId = objectId ?? searchParams.get("objectId") ?? null;
+  const title = gameName ?? searchParams.get("title") ?? "Game";
+
+  const windowsGame =
+    isWindowsGame ?? searchParams.get("isWindowsGame") !== "false";
+
+  const hasGame = Boolean(gameShop && gameObjectId);
+
+  const [systemInfo, setSystemInfo] = useState<MacSystemInfoView | null>(null);
+  const [compatibility, setCompatibility] =
+    useState<MacGameCompatibilityView | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [runningAction, setRunningAction] = useState<PanelAction | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!bridge) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const info = await bridge.getSystemInfo();
+      setSystemInfo(info);
+
+      if (info && gameShop && gameObjectId) {
+        const result = await bridge.checkGame(
+          gameShop,
+          gameObjectId,
+          title,
+          windowsGame
+        );
+
+        setCompatibility(result);
+      } else {
+        setCompatibility(null);
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not read the compatibility status."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [bridge, gameObjectId, gameShop, title, windowsGame]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const runAction = useCallback(
+    async (action: PanelAction) => {
+      if (!bridge || !gameShop || !gameObjectId || runningAction) return;
+
+      setRunningAction(action);
+      setMessage(null);
+
+      try {
+        let result: MacCompatibilityActionResultView;
+
+        if (action === "test") {
+          result = await bridge.testEnvironment(gameShop, gameObjectId);
+        } else if (action === "repair") {
+          result = await bridge.repairEnvironment(gameShop, gameObjectId);
+        } else {
+          result = await bridge.fixEverything(
+            gameShop,
+            gameObjectId,
+            windowsGame
+          );
+        }
+
+        setMessage(result.message);
+      } catch (error) {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "That did not work. Please try again."
+        );
+      } finally {
+        setRunningAction(null);
+        await refresh();
+      }
+    },
+    [bridge, gameObjectId, gameShop, refresh, runningAction, windowsGame]
+  );
+
+  const status: MacCompatibilityStatusValue = (() => {
+    if (!bridge || (!loading && !systemInfo)) return "unsupported";
+    if (loading || runningAction) return "checking";
+    if (!hasGame) return "unknown";
+    return compatibility?.status ?? "unknown";
+  })();
+
+  const statusLabel = (() => {
+    if (!bridge || (!loading && !systemInfo)) {
+      return "Only available on macOS";
+    }
+    if (runningAction) return "Working…";
+    if (loading) return "Checking…";
+    if (!hasGame) return "No game selected";
+    return STATUS_LABELS[status];
+  })();
+
+  const wineValue = (() => {
+    if (compatibility?.environment?.wineVersionName) {
+      return compatibility.environment.wineVersionName;
+    }
+    if (compatibility?.recommendedWineVersionName) {
+      return `${compatibility.recommendedWineVersionName} (suggested)`;
+    }
+    if (systemInfo && !systemInfo.wineAvailable) return "Not installed";
+    return "Not selected";
+  })();
+
+  const environmentValue = (() => {
+    const environment = compatibility?.environment;
+
+    if (!environment) return "Not created";
+    if (!environment.exists) return "Missing on disk";
+    if (!environment.initialized) return "Not finished";
+    return environment.healthy ? "Tested and working" : "Needs repair";
+  })();
+
+  const systemLine = systemInfo
+    ? [
+        systemInfo.osVersion ? `macOS ${systemInfo.osVersion}` : null,
+        systemInfo.isAppleSilicon ? "Apple Silicon" : "Intel",
+        systemInfo.isAppleSilicon
+          ? systemInfo.rosettaAvailable
+            ? "Rosetta ready"
+            : "Rosetta missing"
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
+
+  const actionsDisabled = !bridge || !systemInfo || !hasGame || loading;
+
+  const issues = compatibility?.issues ?? [];
+
   return (
     <div
       style={{
@@ -86,8 +270,20 @@ export function MacCompatibilityPanel({
               letterSpacing: "-0.8px",
             }}
           >
-            {gameName}
+            {compatibility?.title ?? title}
           </h1>
+
+          {systemLine ? (
+            <div
+              style={{
+                marginTop: "10px",
+                fontSize: "12px",
+                opacity: 0.5,
+              }}
+            >
+              {systemLine}
+            </div>
+          ) : null}
         </div>
 
         {/* Game / compatibility status */}
@@ -127,7 +323,7 @@ export function MacCompatibilityPanel({
             />
           )}
 
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
                 fontSize: "12px",
@@ -153,13 +349,14 @@ export function MacCompatibilityPanel({
                 style={{
                   width: "9px",
                   height: "9px",
+                  flexShrink: 0,
                   borderRadius: "50%",
-                  background: "#4ade80",
-                  boxShadow: "0 0 10px rgba(74,222,128,0.6)",
+                  background: STATUS_COLORS[status],
+                  boxShadow: `0 0 10px ${STATUS_COLORS[status]}99`,
                 }}
               />
 
-              Ready to test
+              {statusLabel}
             </div>
           </div>
         </div>
@@ -173,9 +370,9 @@ export function MacCompatibilityPanel({
             marginBottom: "24px",
           }}
         >
-          <InfoCard label="Wine Version" value="Not selected" />
+          <InfoCard label="Wine Version" value={wineValue} />
 
-          <InfoCard label="Environment" value="Not created" />
+          <InfoCard label="Environment" value={environmentValue} />
         </div>
 
         {/* Actions */}
@@ -186,14 +383,30 @@ export function MacCompatibilityPanel({
             gap: "10px",
           }}
         >
-          <ActionButton primary>Test Setup</ActionButton>
+          <ActionButton
+            primary
+            disabled={actionsDisabled || runningAction !== null}
+            onClick={() => void runAction("test")}
+          >
+            {runningAction === "test" ? "Testing…" : "Test Setup"}
+          </ActionButton>
 
-          <ActionButton>Fix Everything</ActionButton>
+          <ActionButton
+            disabled={actionsDisabled || runningAction !== null}
+            onClick={() => void runAction("fix")}
+          >
+            {runningAction === "fix" ? "Fixing…" : "Fix Everything"}
+          </ActionButton>
 
-          <ActionButton>Repair</ActionButton>
+          <ActionButton
+            disabled={actionsDisabled || runningAction !== null}
+            onClick={() => void runAction("repair")}
+          >
+            {runningAction === "repair" ? "Repairing…" : "Repair"}
+          </ActionButton>
         </div>
 
-        {/* Future diagnostics area */}
+        {/* Diagnostics */}
         <div
           style={{
             marginTop: "24px",
@@ -201,11 +414,76 @@ export function MacCompatibilityPanel({
             borderTop: "1px solid rgba(255,255,255,0.07)",
             fontSize: "12px",
             lineHeight: 1.6,
-            opacity: 0.45,
-            textAlign: "center",
           }}
         >
-          Compatibility diagnostics and environment history will appear here.
+          {message ? (
+            <div
+              style={{
+                marginBottom: issues.length > 0 ? "12px" : 0,
+                padding: "12px 14px",
+                borderRadius: "10px",
+                background: "#151515",
+                border: "1px solid rgba(255,255,255,0.06)",
+                opacity: 0.85,
+                overflowWrap: "anywhere",
+              }}
+            >
+              {message}
+            </div>
+          ) : null}
+
+          {issues.length > 0 ? (
+            <ul
+              style={{
+                margin: 0,
+                padding: 0,
+                listStyle: "none",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              {issues.map((issue) => (
+                <li
+                  key={issue.id}
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: "10px",
+                    background: "#151515",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      marginBottom: "4px",
+                      color:
+                        issue.severity === "error"
+                          ? "#f87171"
+                          : issue.severity === "warning"
+                            ? "#ffc107"
+                            : "#ffffff",
+                    }}
+                  >
+                    {issue.title}
+                  </div>
+
+                  <div style={{ opacity: 0.6 }}>{issue.description}</div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {!message && issues.length === 0 ? (
+            <div style={{ opacity: 0.45, textAlign: "center" }}>
+              {!bridge || (!loading && !systemInfo)
+                ? "This panel only works on macOS."
+                : hasGame
+                  ? "No problems found."
+                  : "Open this panel from a game to check its compatibility."}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -220,6 +498,7 @@ function InfoCard({ label, value }: { label: string; value: string }) {
         borderRadius: "12px",
         background: "#151515",
         border: "1px solid rgba(255,255,255,0.05)",
+        minWidth: 0,
       }}
     >
       <div
@@ -238,6 +517,7 @@ function InfoCard({ label, value }: { label: string; value: string }) {
         style={{
           fontSize: "14px",
           fontWeight: 600,
+          overflowWrap: "anywhere",
         }}
       >
         {value}
@@ -249,13 +529,19 @@ function InfoCard({ label, value }: { label: string; value: string }) {
 function ActionButton({
   children,
   primary = false,
+  disabled = false,
+  onClick,
 }: {
   children: ReactNode;
   primary?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
+      onClick={onClick}
       style={{
         width: "100%",
         border: primary
@@ -267,7 +553,8 @@ function ActionButton({
         color: primary ? "#000000" : "#ffffff",
         fontSize: "14px",
         fontWeight: 650,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.45 : 1,
         transition: "transform 120ms ease, opacity 120ms ease",
       }}
     >
