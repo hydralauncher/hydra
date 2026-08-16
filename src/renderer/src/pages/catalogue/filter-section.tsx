@@ -1,11 +1,10 @@
 import { CheckboxField } from "@renderer/components/checkbox-field/checkbox-field";
-import { TextField } from "@renderer/components/text-field/text-field";
 import { useFormat } from "@renderer/hooks";
-import { ChevronDownIcon } from "@primer/octicons-react";
+import { ChevronDownIcon, SearchIcon, XIcon } from "@primer/octicons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import "./filter.scss";
 import List from "rc-virtual-list";
 import { useTranslation } from "react-i18next";
+import "./filter.scss";
 
 export interface FilterSectionProps {
   title: string;
@@ -15,141 +14,164 @@ export interface FilterSectionProps {
     checked: boolean;
   }[];
   onSelect: (value: string | number) => void;
-  color: string;
+  color?: string;
+  icon?: React.ReactNode;
   onClear: () => void;
 }
 
 export function FilterSection({
   title,
   items,
-  color,
+  icon,
   onSelect,
   onClear,
-}: FilterSectionProps) {
-  const content = useRef<HTMLDivElement>(null);
+}: Readonly<FilterSectionProps>) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
-  const [isOpen, setIsOpen] = useState(true);
-  const [height, setHeight] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
   const { t } = useTranslation("catalogue");
-
-  const filteredItems = useMemo(() => {
-    if (search.length > 0) {
-      return items.filter((item) =>
-        item.label.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    return items;
-  }, [items, search]);
-
-  const selectedItemsCount = useMemo(() => {
-    return items.filter((item) => item.checked).length;
-  }, [items]);
-
-  const onSearch = useCallback((value: string) => {
-    setSearch(value);
-  }, []);
-
   const { formatNumber } = useFormat();
 
-  useEffect(() => {
-    if (content.current && content.current.scrollHeight !== height) {
-      setHeight(isOpen ? content.current.scrollHeight : 0);
-    } else if (!isOpen) {
-      setHeight(0);
-    }
-  }, [isOpen, filteredItems, height, search]);
+  const filteredItems = useMemo(() => {
+    if (!search.trim()) return items;
+    const lower = search.toLowerCase();
+    return items.filter((item) => item.label.toLowerCase().includes(lower));
+  }, [items, search]);
 
-  if (!items.length) {
-    return null;
-  }
+  const selectedCount = useMemo(
+    () => items.filter((item) => item.checked).length,
+    [items]
+  );
+
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (
+      containerRef.current &&
+      !containerRef.current.contains(event.target as Node)
+    ) {
+      setIsOpen(false);
+    }
+  }, []);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      setIsOpen(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, handleClickOutside, handleKeyDown]);
 
   return (
-    <div className="filter-section">
+    <div className="filter-dropdown" ref={containerRef}>
       <button
         type="button"
-        className="filter-section__button"
-        onClick={() => setIsOpen((open) => !open)}
+        className={`filter-dropdown__trigger ${
+          isOpen ? "filter-dropdown__trigger--open" : ""
+        } ${selectedCount > 0 ? "filter-dropdown__trigger--active" : ""}`}
+        onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
+        aria-haspopup="dialog"
       >
-        <ChevronDownIcon
-          className={`filter-section__chevron ${
-            isOpen ? "filter-section__chevron--open" : ""
-          }`}
-        />
-        <div className="filter-section__header">
-          <div
-            className="filter-section__orb"
-            style={{ backgroundColor: color }}
-          />
-          <h3 className="filter-section__title">{title}</h3>
-          <span className="filter-section__header-count">
-            {formatNumber(selectedItemsCount || items.length)}
+        {icon && <span className="filter-dropdown__icon">{icon}</span>}
+        <span className="filter-dropdown__title">{title}</span>
+        {selectedCount > 0 && (
+          <span className="filter-dropdown__badge">
+            {formatNumber(selectedCount)}
           </span>
-        </div>
+        )}
+        <ChevronDownIcon
+          className={`filter-dropdown__chevron ${
+            isOpen ? "filter-dropdown__chevron--open" : ""
+          }`}
+          size={12}
+        />
       </button>
 
-      <div
-        ref={content}
-        className="filter-section__content"
-        style={{ maxHeight: `${height}px` }}
-      >
-        <div className="filter-section__content-inner">
-          {selectedItemsCount > 0 ? (
-            <button
-              type="button"
-              className="filter-section__clear-button"
-              onClick={onClear}
-            >
-              {t("clear_filters", {
-                filterCount: formatNumber(selectedItemsCount),
-              })}
-            </button>
-          ) : (
-            <span className="filter-section__count">
+      {isOpen && (
+        <div className="filter-dropdown__popover">
+          <div className="filter-dropdown__header">
+            <span className="filter-dropdown__count">
               {t("filter_count", {
                 filterCount: formatNumber(items.length),
               })}
             </span>
-          )}
-
-          <TextField
-            placeholder={t("search")}
-            onChange={(e) => onSearch(e.target.value)}
-            value={search}
-            containerProps={{ className: "filter-section__search" }}
-            theme="dark"
-          />
-
-          <List
-            data={filteredItems}
-            height={
-              28 * (filteredItems.length > 10 ? 10 : filteredItems.length)
-            }
-            itemHeight={28}
-            itemKey="value"
-            styles={{
-              verticalScrollBar: {
-                backgroundColor: "rgba(255, 255, 255, 0.03)",
-              },
-              verticalScrollBarThumb: {
-                backgroundColor: "rgba(255, 255, 255, 0.08)",
-                borderRadius: "24px",
-              },
-            }}
-          >
-            {(item) => (
-              <div key={item.value} className="filter-section__item">
-                <CheckboxField
-                  label={item.label}
-                  checked={item.checked}
-                  onChange={() => onSelect(item.value)}
-                />
-              </div>
+            {selectedCount > 0 && (
+              <button
+                type="button"
+                className="filter-dropdown__clear-btn"
+                onClick={onClear}
+              >
+                {t("clear_filters", {
+                  filterCount: formatNumber(selectedCount),
+                })}
+              </button>
             )}
-          </List>
+          </div>
+
+          <div className="filter-dropdown__search-box">
+            <SearchIcon size={12} className="filter-dropdown__search-icon" />
+            <input
+              type="text"
+              className="filter-dropdown__search-input"
+              placeholder={t("search", { defaultValue: "Filtrar..." })}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                type="button"
+                className="filter-dropdown__search-clear"
+                onClick={() => setSearch("")}
+              >
+                <XIcon size={10} />
+              </button>
+            )}
+          </div>
+
+          {filteredItems.length === 0 ? (
+            <div className="filter-dropdown__empty">
+              {t("no_results", { defaultValue: "Nenhum resultado" })}
+            </div>
+          ) : (
+            <List
+              data={filteredItems}
+              height={
+                30 * (filteredItems.length > 7 ? 7 : filteredItems.length)
+              }
+              itemHeight={30}
+              itemKey="value"
+              styles={{
+                verticalScrollBar: {
+                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                  width: 5,
+                },
+                verticalScrollBarThumb: {
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                  borderRadius: "10px",
+                },
+              }}
+            >
+              {(item) => (
+                <div key={item.value} className="filter-dropdown__item">
+                  <CheckboxField
+                    label={item.label}
+                    checked={item.checked}
+                    onChange={() => onSelect(item.value)}
+                  />
+                </div>
+              )}
+            </List>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

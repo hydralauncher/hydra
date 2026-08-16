@@ -45,7 +45,12 @@ const getSteamFeaturedEvent = async (
             libraryImageUrl: `https://shared.steamstatic.com/store_item_assets/steam/apps/${gameIdStr}/library_600x900.jpg`,
             libraryHeroImageUrl: `https://shared.steamstatic.com/store_item_assets/steam/apps/${gameIdStr}/library_hero.jpg`,
             logoImageUrl: `https://shared.steamstatic.com/store_item_assets/steam/apps/${gameIdStr}/logo.png`,
-            iconUrl: null,
+            // The library_600x900 asset above isn't guaranteed to exist for
+            // every app (Steam only renders it once the store page has full
+            // library assets), so give the UI a guaranteed-valid fallback
+            // instead of null — otherwise cards with a missing library image
+            // render blank.
+            iconUrl: game.small_capsule_image || game.header_image || null,
             logoPosition: null,
             downloadSources: [],
           });

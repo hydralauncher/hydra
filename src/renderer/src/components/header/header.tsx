@@ -35,6 +35,7 @@ import { GradualBlur } from "../ui/gradual-blur";
 import { AuthPage } from "@shared";
 import { NotificationsSidebar } from "../notifications-sidebar/notifications-sidebar";
 import Downloads from "../../pages/downloads/downloads";
+import { CatalogueHeader } from "../../pages/catalogue/catalogue-header";
 
 export function Header() {
   const isGamepadConnected = useGamepadConnected();
@@ -336,135 +337,145 @@ export function Header() {
         className={cn("header", {
           "header--dragging-disabled": draggingDisabled,
           "header--search-open": isSearchOpen,
-          "header--transparent": isOnCataloguePage || isOnLibraryPage,
+          "header--catalogue": isOnCataloguePage,
+          "header--transparent": isOnLibraryPage,
         })}
       >
-        <section className="header__section header__section--left">
-          <button
-            type="button"
-            className={cn("header__back-button", {
-              "header__back-button--enabled": showBackButton,
-            })}
-            onClick={handleBackButtonClick}
-            disabled={!showBackButton}
-          >
-            <ArrowLeftIcon />
-          </button>
-        </section>
-
-        <nav className="header__nav" data-gamepad-ignore="true">
-          {isGamepadConnected && <GamepadHint label="LB" position="left" />}
-          {navRoutes.map(({ path, nameKey }) => (
-            <button
-              key={path}
-              type="button"
-              className={cn("header__nav-item", {
-                "header__nav-item--active":
-                  path === "/"
-                    ? location.pathname === "/"
-                    : location.pathname.startsWith(path),
-              })}
-              onClick={() => navigate(path)}
-            >
-              {t(nameKey, { ns: "sidebar" })}
-            </button>
-          ))}
-          {isGamepadConnected && <GamepadHint label="RB" position="right" />}
-        </nav>
-
-        <section className="header__section header__section--right">
-          {isOnLibraryPage && window.electron.platform === "win32" && (
+        <div className="header__row">
+          <section className="header__section header__section--left">
             <button
               type="button"
-              className={cn("header__action-button", {
-                "header__action-button--scanning": isScanning,
+              className={cn("header__back-button", {
+                "header__back-button--enabled": showBackButton,
               })}
-              onClick={() => setShowScanModal(true)}
-              data-tooltip-id={scanButtonTooltipId}
-              data-tooltip-content={t("scan_games_tooltip")}
-              data-tooltip-place="bottom"
+              onClick={handleBackButtonClick}
+              disabled={!showBackButton}
             >
-              <SyncIcon size={16} />
+              <ArrowLeftIcon />
             </button>
-          )}
+          </section>
 
-          {!(isOnLibraryPage || isOnCataloguePage) && (
+          <nav className="header__nav" data-gamepad-ignore="true">
+            {isGamepadConnected && <GamepadHint label="LB" position="left" />}
+            {navRoutes.map(({ path, nameKey }) => (
+              <button
+                key={path}
+                type="button"
+                className={cn("header__nav-item", {
+                  "header__nav-item--active":
+                    path === "/"
+                      ? location.pathname === "/"
+                      : location.pathname.startsWith(path),
+                })}
+                onClick={() => navigate(path)}
+              >
+                {t(nameKey, { ns: "sidebar" })}
+              </button>
+            ))}
+            {isGamepadConnected && <GamepadHint label="RB" position="right" />}
+          </nav>
+
+          <section className="header__section header__section--right">
+            {isOnLibraryPage && window.electron.platform === "win32" && (
+              <button
+                type="button"
+                className={cn("header__action-button", {
+                  "header__action-button--scanning": isScanning,
+                })}
+                onClick={() => setShowScanModal(true)}
+                data-tooltip-id={scanButtonTooltipId}
+                data-tooltip-content={t("scan_games_tooltip")}
+                data-tooltip-place="bottom"
+              >
+                <SyncIcon size={16} />
+              </button>
+            )}
+
+            {!isOnLibraryPage && (
+              <button
+                type="button"
+                className="header__action-button"
+                onClick={handleToggleSearch}
+              >
+                <SearchIcon size={16} />
+              </button>
+            )}
+
+            {hasActiveDownload && (
+              <button
+                type="button"
+                className="header__action-button header__action-button--downloading"
+                onClick={() => setDownloadsModalOpen(true)}
+                title={t("downloads", {
+                  ns: "sidebar",
+                  defaultValue: "Downloads",
+                })}
+              >
+                <DownloadIcon size={16} />
+              </button>
+            )}
+
             <button
               type="button"
               className="header__action-button"
-              onClick={handleToggleSearch}
+              onClick={() =>
+                setNotifSidebarOpen((o) => {
+                  if (!o)
+                    window.dispatchEvent(
+                      new CustomEvent("hydra:close-sidebar")
+                    );
+                  return !o;
+                })
+              }
+              title={t("notifications", { ns: "sidebar" })}
             >
-              <SearchIcon size={16} />
+              <BellIcon size={16} />
             </button>
-          )}
 
-          {hasActiveDownload && (
             <button
               type="button"
-              className="header__action-button header__action-button--downloading"
-              onClick={() => setDownloadsModalOpen(true)}
-              title={t("downloads", {
-                ns: "sidebar",
-                defaultValue: "Downloads",
-              })}
+              className="header__profile-button"
+              onClick={handleProfileClick}
             >
-              <DownloadIcon size={16} />
+              <AnimatedBorder
+                borderWidth={1}
+                containerSize={28}
+                styleName={avatarDecorOptions.border as any}
+                beamSpeed={avatarDecorOptions.speed}
+                beamColor={avatarDecorOptions.color}
+                beamLength={avatarDecorOptions.length}
+                beamChaos={avatarDecorOptions.chaos}
+              >
+                <Avatar
+                  size={28}
+                  src={userDetails?.profileImageUrl}
+                  alt={userDetails?.displayName}
+                />
+              </AnimatedBorder>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  gap: 2,
+                  paddingLeft: 4,
+                }}
+              >
+                <span
+                  className="header__profile-label"
+                  style={{ lineHeight: 1 }}
+                >
+                  {userDetails?.displayName || t("sign_in", { ns: "sidebar" })}
+                </span>
+                {hasActiveSubscription && (
+                  <span className="header__profile-cloud-badge">CLOUD</span>
+                )}
+              </div>
             </button>
-          )}
+          </section>
+        </div>
 
-          <button
-            type="button"
-            className="header__action-button"
-            onClick={() =>
-              setNotifSidebarOpen((o) => {
-                if (!o)
-                  window.dispatchEvent(new CustomEvent("hydra:close-sidebar"));
-                return !o;
-              })
-            }
-            title={t("notifications", { ns: "sidebar" })}
-          >
-            <BellIcon size={16} />
-          </button>
-
-          <button
-            type="button"
-            className="header__profile-button"
-            onClick={handleProfileClick}
-          >
-            <AnimatedBorder
-              borderWidth={1}
-              containerSize={28}
-              styleName={avatarDecorOptions.border as any}
-              beamSpeed={avatarDecorOptions.speed}
-              beamColor={avatarDecorOptions.color}
-              beamLength={avatarDecorOptions.length}
-              beamChaos={avatarDecorOptions.chaos}
-            >
-              <Avatar
-                size={28}
-                src={userDetails?.profileImageUrl}
-                alt={userDetails?.displayName}
-              />
-            </AnimatedBorder>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                gap: 2,
-                paddingLeft: 4,
-              }}
-            >
-              <span className="header__profile-label" style={{ lineHeight: 1 }}>
-                {userDetails?.displayName || t("sign_in", { ns: "sidebar" })}
-              </span>
-              {hasActiveSubscription && (
-                <span className="header__profile-cloud-badge">CLOUD</span>
-              )}
-            </div>
-          </button>
-        </section>
+        {isOnCataloguePage && <CatalogueHeader />}
       </header>
 
       {isOnLibraryPage && window.electron.platform === "win32" && (

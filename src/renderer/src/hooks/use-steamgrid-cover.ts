@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const STEAMGRID_API_KEY =
-  import.meta.env.RENDERER_VITE_STEAMGRID_API_KEY ||
-  "8c53a8c366b96459117a44a68a5d7a60";
+const STEAMGRID_API_KEY = "8c53a8c366b96459117a44a68a5d7a60";
 const cache = new Map<string, string | null>();
 
 interface GridItem {
@@ -49,9 +47,7 @@ async function fetchGridByObjectId(
     const vertical =
       (data.data as GridItem[]).find(
         (g) => g.width === 600 && g.height === 900
-      ) ??
-      (data.data as GridItem[]).find((g) => g.height > g.width) ??
-      (data.data[0] as GridItem);
+      ) ?? (data.data[0] as GridItem);
     return vertical.url;
   }
   return null;
@@ -109,13 +105,7 @@ async function fetchGridByGameId(
       `https://www.steamgriddb.com/api/v2/grids/game/${gameId}`
     );
     if (fallbackData?.success && fallbackData.data?.length > 0) {
-      const vertical =
-        (fallbackData.data as GridItem[]).find(
-          (g) => g.width === 600 && g.height === 900
-        ) ??
-        (fallbackData.data as GridItem[]).find((g) => g.height > g.width) ??
-        (fallbackData.data[0] as GridItem);
-      return vertical.url;
+      return (fallbackData.data[0] as GridItem).url;
     }
   }
 
@@ -127,13 +117,12 @@ export function useSteamGridCover(
   title: string,
   primaryFailed: boolean,
   orientation: "vertical" | "horizontal" = "vertical"
-): string | null | undefined {
-  const [gridUrl, setGridUrl] = useState<string | null | undefined>(undefined);
+): string | null {
+  const [gridUrl, setGridUrl] = useState<string | null>(null);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!primaryFailed) return;
-    if (fetchedRef.current) return;
+    if (!primaryFailed || fetchedRef.current) return;
 
     const cacheKey = `sgdb:${objectId}:${orientation}`;
     if (cache.has(cacheKey)) {
@@ -157,8 +146,8 @@ export function useSteamGridCover(
 }
 
 export interface SteamGridArt {
-  heroUrl: string | null | undefined;
-  logoUrl: string | null | undefined;
+  heroUrl: string | null;
+  logoUrl: string | null;
 }
 
 export function useSteamGridHeroAndLogo(
@@ -166,13 +155,12 @@ export function useSteamGridHeroAndLogo(
   title: string,
   primaryFailed: boolean
 ): SteamGridArt {
-  const [heroUrl, setHeroUrl] = useState<string | null | undefined>(undefined);
-  const [logoUrl, setLogoUrl] = useState<string | null | undefined>(undefined);
+  const [heroUrl, setHeroUrl] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!primaryFailed) return;
-    if (fetchedRef.current) return;
+    if (!primaryFailed || fetchedRef.current) return;
 
     const cacheKeyHero = `sgdb:hero:${objectId}`;
     const cacheKeyLogo = `sgdb:logo:${objectId}`;

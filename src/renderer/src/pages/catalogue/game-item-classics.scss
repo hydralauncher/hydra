@@ -1,29 +1,85 @@
+@use "../../scss/globals.scss";
+
 .game-item-classics {
   position: relative;
-  background: #0d0d0d;
-  border: 1px solid #1c1c1c;
-  border-radius: 8px;
-  overflow: hidden;
-  color: #fafafa;
-  transition:
-    border-color 0.15s ease,
-    transform 0.15s ease;
-
-  &:hover {
-    border-color: rgba(255, 255, 255, 0.16);
-  }
+  background: transparent;
+  border-radius: 6px;
+  overflow: visible;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  transition: transform 0.2s ease;
+  z-index: 1;
 
   &:hover,
   &:focus-within {
+    transform: scale(1.08);
+    z-index: 10;
+
+    .game-item-classics__cover-image {
+      box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.9),
+        0 10px 28px rgba(0, 0, 0, 0.9);
+    }
+
     .game-item-classics__plus-wrapper {
       opacity: 1;
     }
   }
 
+  &__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    background: transparent;
+
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+  &__cover {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  &__cover-image {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    transition: box-shadow 0.2s ease;
+  }
+
+  &__cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+  }
+
   &__plus-wrapper {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 4px;
+    right: 4px;
     z-index: 3;
     opacity: 0;
     transition: opacity 0.2s ease-in-out;
@@ -31,160 +87,26 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(8px);
     color: #fafafa;
-    padding: 4px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
 
     &:focus-visible {
       opacity: 1;
-      outline: 2px solid var(--color-primary);
-      outline-offset: 1px;
+      outline: 2px solid #fff;
     }
 
-    &:disabled {
-      cursor: default;
+    &--added {
+      opacity: 0.6;
     }
-  }
-
-  &__plus-wrapper--added {
-    opacity: 0.5;
-  }
-
-  &__link {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    text-decoration: none;
-    color: inherit;
-
-    &:hover,
-    &:focus-visible {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: -2px;
-    }
-  }
-
-  &__cover {
-    position: relative;
-    height: 151px;
-    width: 100%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #0a0a0a;
-  }
-
-  &__cover-backdrop {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: blur(14px) saturate(1.1);
-    transform: scale(1.25);
-    opacity: 0.65;
-    z-index: 0;
-    pointer-events: none;
-  }
-
-  &__cover-image {
-    position: relative;
-    z-index: 1;
-    height: 135px;
-    width: auto;
-    max-width: 80%;
-    object-fit: contain;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow:
-      0 11px 7px rgba(0, 0, 0, 0.05),
-      0 5px 5px rgba(0, 0, 0, 0.09),
-      0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-
-  &__cover-placeholder {
-    position: relative;
-    z-index: 1;
-    color: rgba(255, 255, 255, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  &__platform-chip {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    z-index: 2;
-    padding: 4px 8px;
-    font-size: 11px;
-    font-weight: 500;
-    color: #fafafa;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 4px;
-    line-height: 1.2;
-    white-space: nowrap;
-    max-width: calc(100% - 16px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__details {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 4px 12px 12px;
-  }
-
-  &__title {
-    font-size: 14px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.8);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__genres {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
-    &--empty {
-      font-style: italic;
-      color: rgba(255, 255, 255, 0.3);
-    }
-  }
-
-  &__repackers {
-    display: flex;
-    gap: 8px;
-    flex-wrap: nowrap;
-    overflow: hidden;
-    margin-top: 4px;
-  }
-
-  &__repackers-measure {
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: flex;
-    gap: 8px;
-    white-space: nowrap;
-    visibility: hidden;
-    pointer-events: none;
   }
 }

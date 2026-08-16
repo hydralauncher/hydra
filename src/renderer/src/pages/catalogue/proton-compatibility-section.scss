@@ -1,22 +1,26 @@
 @use "../../scss/globals.scss";
 
 .proton-compatibility-section {
-  &__content-inner {
+  &__popover {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
+    min-width: 240px;
   }
 
   &__control {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
 
   &__label {
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 600;
     color: globals.$muted-color;
-    line-height: 1.4;
+    line-height: 1.3;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 
     &--deck {
       display: flex;
@@ -35,11 +39,11 @@
   &__option-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 
   &__option-item {
-    min-height: 28px;
+    min-height: 26px;
     width: fit-content;
     touch-action: manipulation;
 
@@ -52,7 +56,6 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--proton-option-color);
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
     flex-shrink: 0;
   }
@@ -60,7 +63,7 @@
   &__option-label {
     color: rgba(255, 255, 255, 0.86);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1.2;
   }
 }

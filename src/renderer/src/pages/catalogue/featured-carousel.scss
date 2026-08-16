@@ -1,0 +1,209 @@
+@use "../../scss/globals.scss";
+
+.featured-carousel {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 8px 0 20px;
+
+  .gamepad-active & {
+    display: none;
+  }
+
+  @media (max-width: 1100px) {
+    padding: 6px 0 16px;
+  }
+  @media (max-width: 800px) {
+    padding: 4px 0 12px;
+  }
+
+  &__track {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  &__slide {
+    background: #0a0a0a;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    flex: 1;
+    max-width: 240px;
+    position: relative;
+    border-radius: 10px;
+    aspect-ratio: 2 / 3;
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
+    opacity: 1;
+
+    @media (max-width: 1100px) {
+      max-width: 200px;
+    }
+    @media (max-width: 800px) {
+      max-width: 160px;
+    }
+
+    @media (max-width: 600px) {
+      &--prev,
+      &--next {
+        display: none;
+      }
+      max-width: 100%;
+      width: 100%;
+    }
+
+    &:hover {
+      transform: scale(1.03);
+      z-index: 5;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
+    }
+
+    &--main {
+      z-index: 2;
+    }
+    &--prev,
+    &--next {
+      z-index: 1;
+      opacity: 1;
+    }
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+    opacity: 1;
+  }
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.9) 0%,
+      rgba(0, 0, 0, 0.4) 45%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  &__info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    pointer-events: none;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    line-height: 1.2;
+  }
+
+  &__genres {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.65);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__sources {
+    display: flex;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  &__source-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+    color: rgba(255, 255, 255, 0.85);
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  &__nav {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 10;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.85);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    &--left {
+      margin-right: -16px;
+    }
+    &--right {
+      margin-left: -16px;
+    }
+  }
+
+  &__dots {
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+  }
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.25s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    &--active {
+      background: #fff;
+      width: 18px;
+      border-radius: 3px;
+    }
+  }
+}

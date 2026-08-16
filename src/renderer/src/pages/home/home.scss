@@ -717,6 +717,10 @@
       flex-direction: column;
       align-items: stretch;
     }
+
+    &--centered {
+      justify-content: center;
+    }
   }
 
   &__carousel-wrapper {

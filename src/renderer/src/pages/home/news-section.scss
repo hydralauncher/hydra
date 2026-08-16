@@ -38,8 +38,8 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    width: 240px;
-    border-radius: 12px;
+    width: 300px;
+    border-radius: 6px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(10px);
@@ -54,7 +54,7 @@
     transform-origin: center;
 
     @media (max-width: 1536px), (max-height: 900px) {
-      width: 190px;
+      width: 240px;
     }
 
     &:hover,

@@ -1,50 +1,41 @@
+@use "../../scss/globals.scss";
+
 .catalogue-mode-toggle {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
   gap: 2px;
-  width: 100%;
-  padding: 3px;
-  background: #0d0d0d;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  padding: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  height: 28px;
+  flex-shrink: 0;
 
   &__option {
-    flex: 1;
-    min-width: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 8px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #a1a1aa;
+    gap: 4px;
+    padding: 0 8px;
+    height: 22px;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.65);
     background: transparent;
-    border: 1px solid transparent;
-    border-radius: 7px;
+    border: none;
+    border-radius: 100px;
     cursor: pointer;
     white-space: nowrap;
-
-    svg {
-      flex-shrink: 0;
-    }
-
-    span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    transition:
-      background-color 0.15s ease,
-      border-color 0.15s ease,
-      color 0.15s ease;
+    transition: all 0.2s ease;
 
     &:hover {
-      color: #fafafa;
+      color: #fff;
     }
 
     &--active {
-      background: rgba(255, 255, 255, 0.04);
-      border-color: rgba(255, 255, 255, 0.08);
-      color: #fafafa;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-weight: 600;
     }
   }
 }

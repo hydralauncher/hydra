@@ -1,0 +1,183 @@
+@use "../../scss/globals.scss";
+
+.cat-explorer {
+  width: 100%;
+
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: globals.$body-color;
+    margin-bottom: 12px;
+  }
+
+  &__wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__track {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    flex: 1;
+    padding: 6px 2px; // extra padding top/bottom so hover scale doesn't clip
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__card {
+    position: relative;
+    flex-shrink: 0;
+    width: 280px;
+    height: 160px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @media (max-width: 1100px) {
+      width: 220px;
+      height: 130px;
+    }
+    @media (max-width: 800px) {
+      width: 180px;
+      height: 110px;
+    }
+    @media (max-width: 600px) {
+      width: 150px;
+      height: 90px;
+    }
+
+    &:hover {
+      transform: scale(1.05);
+      z-index: 5;
+    }
+  }
+
+  // Se não houver imagem, mostramos um padrão CSS ou gradiente melhorado
+  &__bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.7) blur(1px) contrast(1.1);
+    transition:
+      transform 0.4s ease,
+      filter 0.4s ease;
+
+    // Gradiente fallback bonitão caso falte imagem (mesh gradients) transparentes
+    background-color: transparent;
+    background-image:
+      radial-gradient(at 0% 0%, rgba(60, 20, 50, 0.5) 0, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(20, 50, 80, 0.5) 0, transparent 50%);
+  }
+
+  &__card:hover &__bg {
+    transform: scale(1.05);
+    filter: brightness(0.5) blur(2px);
+  }
+
+  // Gradiente fixo colorido conforme o gênero
+  &__gradient {
+    position: absolute;
+    inset: 0;
+    opacity: 0.8;
+    mix-blend-mode: overlay;
+  }
+
+  &__card--action &__gradient {
+    background: linear-gradient(135deg, #e74c3c 0%, transparent 100%);
+  }
+  &__card--adventure &__gradient {
+    background: linear-gradient(135deg, #3498db 0%, transparent 100%);
+  }
+  &__card--rpg &__gradient {
+    background: linear-gradient(135deg, #9b59b6 0%, transparent 100%);
+  }
+  &__card--strategy &__gradient {
+    background: linear-gradient(135deg, #2ecc71 0%, transparent 100%);
+  }
+  &__card--simulation &__gradient {
+    background: linear-gradient(135deg, #34495e 0%, transparent 100%);
+  }
+  &__card--sports &__gradient {
+    background: linear-gradient(135deg, #27ae60 0%, transparent 100%);
+  }
+  &__card--racing &__gradient {
+    background: linear-gradient(135deg, #e67e22 0%, transparent 100%);
+  }
+  &__card--puzzle &__gradient {
+    background: linear-gradient(135deg, #2980b9 0%, transparent 100%);
+  }
+  &__card--horror &__gradient {
+    background: linear-gradient(135deg, #960f0f 0%, transparent 100%);
+  }
+  &__card--openworld &__gradient {
+    background: linear-gradient(135deg, #1abc9c 0%, transparent 100%);
+  }
+  &__card--fighting &__gradient {
+    background: linear-gradient(135deg, #c0392b 0%, transparent 100%);
+  }
+  &__card--city &__gradient {
+    background: linear-gradient(135deg, #f39c12 0%, transparent 100%);
+  }
+
+  &__label {
+    position: relative;
+    z-index: 2;
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.82);
+    transition: transform 0.2s ease;
+  }
+
+  &__card:hover &__label {
+    transform: scale(1.05);
+  }
+
+  &__nav {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+      background 0.2s,
+      transform 0.1s;
+    z-index: 5;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+}

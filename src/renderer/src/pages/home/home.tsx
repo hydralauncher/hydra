@@ -240,26 +240,40 @@ export function HomeGameImage({ game }: { game: ShopAssets }) {
   );
 }
 
-// Same source as the catalogue's GameItem cards (game.libraryImageUrl) —
-// with a fallback to the icon so a missing/broken cover doesn't just show
-// a blank tile.
+// This card's frame is landscape (aspect-ratio: 460/215 below), so it needs
+// a horizontal image — game.libraryImageUrl is the vertical 2:3 box art and
+// looks wrong (badly cropped) forced into this shape. game.coverImageUrl is
+// the store capsule/header art, which is already landscape, so that's the
+// primary source here, with a SteamGridDB "hero" (also landscape) and the
+// icon as fallbacks for when it's missing/broken.
 function LibraryGridCardImage({ game }: { game: ShopAssets }) {
-  const customLibrary = resolveImageSource(game.libraryImageUrl);
+  const customCover = resolveImageSource(game.coverImageUrl);
   const customIcon = resolveImageSource(game.iconUrl);
-
-  const fallbackSources = useMemo(
-    () =>
-      Array.from(
-        new Set([customLibrary, customIcon].filter(Boolean))
-      ) as string[],
-    [customLibrary, customIcon]
-  );
 
   const [fallbackIndex, setFallbackIndex] = useState(0);
   const [finalFailed, setFinalFailed] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  const activeSrc = fallbackSources[fallbackIndex];
+  const steamGridHero = useSteamGridCover(
+    game.objectId,
+    game.title,
+    fallbackIndex > 0,
+    "horizontal"
+  );
+
+  const fallbackSources = useMemo(() => {
+    const sources: (string | null | undefined)[] = [customCover];
+    if (steamGridHero) sources.push(steamGridHero);
+    sources.push(customIcon);
+    return Array.from(new Set(sources.filter(Boolean))) as string[];
+  }, [customCover, steamGridHero, customIcon]);
+
+  const activeSrc =
+    fallbackIndex === 0
+      ? customCover
+      : fallbackIndex > 0 && steamGridHero === undefined
+        ? undefined
+        : fallbackSources[fallbackIndex];
 
   const [imageLoaded, setImageLoaded] = useState(() =>
     activeSrc ? globalImageCache.has(activeSrc) : false
@@ -833,6 +847,20 @@ export default function Home() {
   const selectedIsLibraryButton = selectedItem?.type === "button_library";
   const selectedIsCreateFolderButton =
     selectedItem?.type === "button_create_folder";
+
+  // Drives which "hero row" (news / featured carousel) content shows below
+  // the selected item, without narrowing selectedGame/selectedFolder to
+  // `never` further down (TS's control-flow narrowing chained multiple
+  // truthiness checks on them into an exhausted union otherwise).
+  const heroRowMode = selectedIsWelcomeButton
+    ? "welcome"
+    : selectedIsLibraryButton
+      ? "library"
+      : selectedIsCreateFolderButton || selectedFolder
+        ? "hidden"
+        : selectedGame
+          ? "game"
+          : "default";
 
   // Hero/background art can 404 (missing page_bg asset, no SteamGridDB
   // entry, etc.), so this cycles through candidates on error instead of
@@ -1702,11 +1730,11 @@ export default function Home() {
               !selectedIsCreateFolderButton && <div />}
           </div>
 
-          {selectedIsWelcomeButton ? (
+          {heroRowMode === "welcome" ? (
             <div className="home__hero-row">
               <WelcomeDashboard />
             </div>
-          ) : selectedIsLibraryButton ? (
+          ) : heroRowMode === "library" ? (
             <div className="home__hero-row">
               <div className="home__library-section">
                 <div className="home__library-main">
@@ -1769,6 +1797,13 @@ export default function Home() {
                   </div>
                 )}
               </div>
+            </div>
+          ) : heroRowMode === "hidden" ? null : heroRowMode === "game" ? (
+            <div className="home__hero-row home__hero-row--centered">
+              <NewsSection
+                gameTitle={selectedGame?.title}
+                gameImageUrls={gameImageVariants}
+              />
             </div>
           ) : (
             catalogue[CatalogueCategory.Hot]?.length > 0 && (

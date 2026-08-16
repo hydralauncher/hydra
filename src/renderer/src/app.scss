@@ -121,12 +121,14 @@ progress[value] {
   container-type: inline-size;
 
   &__content {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    align-items: center;
+    align-items: stretch;
     display: flex;
     flex-direction: column;
     position: relative;
-    height: 100%;
+    width: 100%;
     background-color: transparent;
   }
 }
