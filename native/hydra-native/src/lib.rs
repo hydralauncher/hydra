@@ -49,6 +49,15 @@ pub struct NativeProcessPayload {
     pub name: String,
     pub environ: Option<HashMap<String, String>>,
     pub cwd: Option<String>,
+    /// The parent PID, when the OS reports one. Additive: existing
+    /// consumers that only read exe/pid/name/environ/cwd are unaffected.
+    pub parent: Option<u32>,
+    /// Process start time, in seconds since the epoch, as reported by
+    /// sysinfo's `Process::start_time()`. Combined with `pid`, this lets
+    /// a caller tell "the same process I launched" apart from "a
+    /// different process that was later assigned the same PID" once a
+    /// consumer starts comparing it — no consumer does yet.
+    pub start_time: u64,
 }
 
 #[napi]
@@ -175,6 +184,8 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
                     .map(|value| value.to_string_lossy().to_string()),
                 pid: process.pid().as_u32(),
                 name: process.name().to_string_lossy().to_string(),
+                parent: process.parent().map(|parent_pid| parent_pid.as_u32()),
+                start_time: process.start_time(),
                 cwd: if include_linux_extras {
                     process
                         .cwd()
