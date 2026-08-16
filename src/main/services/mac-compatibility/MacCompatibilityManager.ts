@@ -14,6 +14,14 @@ import {
   MacWineEnvironmentRepairer,
 } from "./environment";
 
+export interface MacCompatibilityManagerDependencies {
+  systemDetector?: MacSystemDetector;
+  wineDetector?: MacWineDetector;
+  registry?: MacCompatibilityRegistry;
+  environmentManager?: MacWineEnvironmentManager;
+  environmentRepairer?: MacWineEnvironmentRepairer;
+}
+
 export class MacCompatibilityManager {
   private readonly systemDetector: MacSystemDetector;
   private readonly wineDetector: MacWineDetector;
@@ -21,12 +29,21 @@ export class MacCompatibilityManager {
   private readonly environmentManager: MacWineEnvironmentManager;
   private readonly environmentRepairer: MacWineEnvironmentRepairer;
 
-  constructor() {
-    this.systemDetector = new MacSystemDetector();
-    this.wineDetector = new MacWineDetector();
-    this.registry = new MacCompatibilityRegistry();
-    this.environmentManager = new MacWineEnvironmentManager();
-    this.environmentRepairer = new MacWineEnvironmentRepairer();
+  // Optional-param DI, matching the pattern already used by
+  // MacGameLaunchManager: every dependency defaults to the real
+  // implementation, so `new MacCompatibilityManager()` behaves exactly
+  // as before, while tests can inject deterministic fakes for any
+  // subset of dependencies.
+  constructor(dependencies?: MacCompatibilityManagerDependencies) {
+    this.systemDetector =
+      dependencies?.systemDetector ?? new MacSystemDetector();
+    this.wineDetector = dependencies?.wineDetector ?? new MacWineDetector();
+    this.registry =
+      dependencies?.registry ?? new MacCompatibilityRegistry();
+    this.environmentManager =
+      dependencies?.environmentManager ?? new MacWineEnvironmentManager();
+    this.environmentRepairer =
+      dependencies?.environmentRepairer ?? new MacWineEnvironmentRepairer();
   }
 
   async getSystemInfo(): Promise<MacSystemInfo> {
@@ -147,10 +164,20 @@ export class MacCompatibilityManager {
     let level: MacGameCompatibility["level"] = "poor";
     let score = 25;
 
+    // An existing environment's health always takes precedence over
+    // Wine availability: a healthy environment is ready, and an
+    // unhealthy one needs repair regardless of whether a recommended
+    // Wine version happens to be installed. Only the "no environment
+    // at all" case falls through to needs_setup, and recommendedWine
+    // is only allowed to influence level/score there, never status.
     if (environment?.healthy) {
       status = "ready";
       level = "good";
       score = 85;
+    } else if (environment && !environment.healthy) {
+      status = "needs_repair";
+      level = "poor";
+      score = recommendedWine ? 40 : 25;
     } else if (recommendedWine) {
       level = "good";
       score = 70;
