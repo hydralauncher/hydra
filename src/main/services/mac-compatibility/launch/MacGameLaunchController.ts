@@ -16,24 +16,20 @@ export class MacGameLaunchController {
   }
 
   async checkLaunchCompatibility(
-    request: MacGameLaunchRequest,
+    request: MacGameLaunchRequest
   ): Promise<MacGameCompatibility> {
     const result = await this.launchManager.prepareLaunch(request);
 
     return result.compatibility;
   }
 
-  async canLaunch(
-    request: MacGameLaunchRequest,
-  ): Promise<boolean> {
+  async canLaunch(request: MacGameLaunchRequest): Promise<boolean> {
     const result = await this.launchManager.prepareLaunch(request);
 
     return result.success;
   }
 
-  async launch(
-    request: MacGameLaunchRequest,
-  ): Promise<MacGameLaunchResult> {
+  async launch(request: MacGameLaunchRequest): Promise<MacGameLaunchResult> {
     return this.launchManager.launch(request);
   }
 
@@ -41,7 +37,7 @@ export class MacGameLaunchController {
     game: MacCompatibilityGameKey,
     title: string,
     executablePath: string,
-    args: string[] = [],
+    args: string[] = []
   ): Promise<MacGameLaunchResult> {
     return this.launch({
       game,
@@ -56,7 +52,7 @@ export class MacGameLaunchController {
     game: MacCompatibilityGameKey,
     title: string,
     executablePath: string,
-    args: string[] = [],
+    args: string[] = []
   ): Promise<MacGameLaunchResult> {
     return this.launch({
       game,

@@ -55,7 +55,7 @@ const RECOMMENDED_WINE: MacWineVersion = {
 };
 
 const makeEnvironment = (
-  overrides: Partial<MacWineEnvironment> = {},
+  overrides: Partial<MacWineEnvironment> = {}
 ): MacWineEnvironment => ({
   id: "env-1",
   prefixPath: "/tmp/hydra-mac-env/env-1",
@@ -100,7 +100,7 @@ class FakeRegistry {
 
   setEnvironment(
     game: MacCompatibilityGameKey,
-    environment: MacWineEnvironment | null,
+    environment: MacWineEnvironment | null
   ) {
     this.environmentCalls.push({ game, environment });
   }
@@ -141,7 +141,7 @@ class FakeEnvironmentManager {
       healthy: true,
       initialized: true,
       message: "ok",
-    },
+    }
   ) {}
 
   async getEnvironment(): Promise<MacWineEnvironment | null> {
@@ -154,7 +154,7 @@ class FakeEnvironmentManager {
 
   async createEnvironment(
     _game: MacCompatibilityGameKey,
-    wineVersion: MacWineVersion,
+    wineVersion: MacWineVersion
   ): Promise<MacWineEnvironment> {
     this.createEnvironmentCalls += 1;
     this.environment = makeEnvironment({
@@ -219,20 +219,20 @@ const buildManager = (options: {
   const registry = new FakeRegistry();
   const environmentManager = new FakeEnvironmentManager(
     options.environment ?? null,
-    options.healthOnCheck,
+    options.healthOnCheck
   );
   const environmentRepairer = new FakeEnvironmentRepairer(
     options.repairResult ?? {
       success: true,
       environment: options.environment ?? makeEnvironment(),
       message: "repaired",
-    },
+    }
   );
 
   const manager = new MacCompatibilityManager({
     systemDetector: new FakeSystemDetector() as unknown as MacSystemDetector,
     wineDetector: new FakeWineDetector(
-      options.wineVersions ?? [],
+      options.wineVersions ?? []
     ) as unknown as MacWineDetector,
     registry: registry as unknown as MacCompatibilityRegistry,
     environmentManager:
@@ -325,7 +325,7 @@ describe("MacCompatibilityManager.checkGame status", () => {
     const result = await manager.checkGame(GAME, "Test Game", true);
 
     const unhealthyIssue = result.issues.find(
-      (issue) => issue.code === "ENVIRONMENT_UNHEALTHY",
+      (issue) => issue.code === "ENVIRONMENT_UNHEALTHY"
     );
 
     assert.ok(unhealthyIssue, "expected an ENVIRONMENT_UNHEALTHY issue");
@@ -440,7 +440,7 @@ describe("MacCompatibilityManager lifecycle", () => {
 
     await assert.rejects(
       () => manager.repairGameEnvironment(GAME),
-      /wineboot failed/,
+      /wineboot failed/
     );
     assert.equal(registry.lastStatus, "needs_repair");
   });
@@ -463,7 +463,7 @@ describe("MacCompatibilityManager lifecycle", () => {
 
     await assert.rejects(
       () => manager.repairGameEnvironment(GAME),
-      /still broken after repair/,
+      /still broken after repair/
     );
     assert.equal(registry.lastStatus, "needs_repair");
   });
@@ -517,7 +517,7 @@ describe("MacCompatibilityManager constructor", () => {
       wineDetector: new FakeWineDetector([]) as unknown as MacWineDetector,
       registry: new FakeRegistry() as unknown as MacCompatibilityRegistry,
       environmentManager: new FakeEnvironmentManager(
-        null,
+        null
       ) as unknown as MacWineEnvironmentManager,
       environmentRepairer: new FakeEnvironmentRepairer({
         success: true,

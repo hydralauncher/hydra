@@ -115,10 +115,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 <Route path="/catalogue" element={<Catalogue />} />
                 <Route path="/library" element={<Library />} />
                 <Route path="/downloads" element={<Downloads />} />
-                <Route
-                  path="/game/:shop/:objectId"
-                  element={<GameDetails />}
-                />
+                <Route path="/game/:shop/:objectId" element={<GameDetails />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/profile/:userId" element={<Profile />} />
                 <Route path="/achievements" element={<Achievements />} />
@@ -164,5 +161,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         </HashRouter>
       </ErrorBoundary>
     </Provider>
-  </React.StrictMode>,
+  </React.StrictMode>
 );

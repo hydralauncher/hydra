@@ -36,7 +36,7 @@ export class MacWineEnvironmentManager {
 
   constructor(
     registryPath = DEFAULT_MAC_ENVIRONMENTS_REGISTRY_PATH,
-    environmentsPath = DEFAULT_MAC_ENVIRONMENTS_PATH,
+    environmentsPath = DEFAULT_MAC_ENVIRONMENTS_PATH
   ) {
     this.registry = new MacWineEnvironmentRegistry(registryPath);
     this.healthChecker = new MacWineEnvironmentHealthChecker();
@@ -53,14 +53,14 @@ export class MacWineEnvironmentManager {
   }
 
   async getEnvironment(
-    game: MacCompatibilityGameKey,
+    game: MacCompatibilityGameKey
   ): Promise<MacWineEnvironment | null> {
     return this.registry.get(game);
   }
 
   async createEnvironment(
     game: MacCompatibilityGameKey,
-    wineVersion: MacWineVersion,
+    wineVersion: MacWineVersion
   ): Promise<MacWineEnvironment> {
     const environmentId = this.createEnvironmentId(game);
     const prefixPath = this.getPrefixPathForGame(game);
@@ -72,7 +72,7 @@ export class MacWineEnvironmentManager {
     await MacWineEnvironmentLogger.info(
       prefixPath,
       `Creating environment with ${wineVersion.name}.`,
-      wineVersion.executablePath,
+      wineVersion.executablePath
     );
 
     await this.initializePrefix(prefixPath, wineVersion);
@@ -82,7 +82,7 @@ export class MacWineEnvironmentManager {
     // checking is what produced "ready" games that failed to launch.
     const health = await this.healthChecker.check(
       prefixPath,
-      wineVersion.executablePath,
+      wineVersion.executablePath
     );
 
     const environment: MacWineEnvironment = {
@@ -112,13 +112,13 @@ export class MacWineEnvironmentManager {
     if (health.healthy) {
       await MacWineEnvironmentLogger.info(
         prefixPath,
-        "Environment created successfully.",
+        "Environment created successfully."
       );
     } else {
       await MacWineEnvironmentLogger.warning(
         prefixPath,
         "Environment was created but did not pass its health check.",
-        health.message,
+        health.message
       );
     }
 
@@ -127,7 +127,7 @@ export class MacWineEnvironmentManager {
 
   async ensureEnvironment(
     game: MacCompatibilityGameKey,
-    wineVersion: MacWineVersion,
+    wineVersion: MacWineVersion
   ): Promise<MacWineEnvironment> {
     const existing = await this.getEnvironment(game);
 
@@ -151,7 +151,7 @@ export class MacWineEnvironmentManager {
    */
   async testEnvironment(
     environment: MacWineEnvironment,
-    wineVersion: MacWineVersion,
+    wineVersion: MacWineVersion
   ): Promise<boolean> {
     const health = await this.checkHealth(environment, wineVersion);
 
@@ -165,7 +165,7 @@ export class MacWineEnvironmentManager {
    */
   async checkEnvironmentHealth(
     game: MacCompatibilityGameKey,
-    wineVersion: MacWineVersion | null,
+    wineVersion: MacWineVersion | null
   ): Promise<{
     environment: MacWineEnvironment | null;
     health: MacWineEnvironmentHealthResult;
@@ -217,7 +217,7 @@ export class MacWineEnvironmentManager {
    * that.
    */
   async refreshEnvironmentPresence(
-    game: MacCompatibilityGameKey,
+    game: MacCompatibilityGameKey
   ): Promise<MacWineEnvironment | null> {
     const environment = await this.getEnvironment(game);
 
@@ -226,7 +226,7 @@ export class MacWineEnvironmentManager {
     }
 
     const present = await this.healthChecker.checkPrefixFiles(
-      environment.prefixPath,
+      environment.prefixPath
     );
 
     if (present) {
@@ -262,7 +262,7 @@ export class MacWineEnvironmentManager {
    */
   async recordInstalledComponent(
     game: MacCompatibilityGameKey,
-    componentId: string,
+    componentId: string
   ): Promise<MacWineEnvironment | null> {
     const environment = await this.getEnvironment(game);
 
@@ -276,10 +276,7 @@ export class MacWineEnvironmentManager {
 
     const updated: MacWineEnvironment = {
       ...environment,
-      installedComponents: [
-        ...environment.installedComponents,
-        componentId,
-      ],
+      installedComponents: [...environment.installedComponents, componentId],
       updatedAt: new Date().toISOString(),
     };
 
@@ -287,7 +284,7 @@ export class MacWineEnvironmentManager {
 
     await MacWineEnvironmentLogger.info(
       environment.prefixPath,
-      `Component installed: ${componentId}`,
+      `Component installed: ${componentId}`
     );
 
     return updated;
@@ -301,9 +298,7 @@ export class MacWineEnvironmentManager {
    * rm() runs, and an unsafe value throws instead of deleting anything.
    * When no path is stored, the folder is derived from the game key.
    */
-  async deleteEnvironment(
-    game: MacCompatibilityGameKey,
-  ): Promise<boolean> {
+  async deleteEnvironment(game: MacCompatibilityGameKey): Promise<boolean> {
     const environment = await this.getEnvironment(game);
 
     if (!environment) {
@@ -318,7 +313,7 @@ export class MacWineEnvironmentManager {
 
     const safePrefixPath = await assertManagedPrefixPath(
       this.environmentsPath,
-      candidatePrefixPath,
+      candidatePrefixPath
     );
 
     await rm(safePrefixPath, {
@@ -340,18 +335,18 @@ export class MacWineEnvironmentManager {
 
   private async checkHealth(
     environment: MacWineEnvironment,
-    wineVersion: MacWineVersion | null,
+    wineVersion: MacWineVersion | null
   ): Promise<MacWineEnvironmentHealthResult> {
     const health = await this.healthChecker.check(
       environment.prefixPath,
-      wineVersion?.executablePath ?? "",
+      wineVersion?.executablePath ?? ""
     );
 
     if (!health.healthy) {
       await MacWineEnvironmentLogger.warning(
         environment.prefixPath,
         "Environment test failed.",
-        health.message,
+        health.message
       );
     }
 
@@ -360,28 +355,22 @@ export class MacWineEnvironmentManager {
 
   private async initializePrefix(
     prefixPath: string,
-    wineVersion: MacWineVersion,
+    wineVersion: MacWineVersion
   ): Promise<void> {
-    await execFileAsync(
-      wineVersion.executablePath,
-      ["wineboot", "--init"],
-      {
-        timeout: WINEBOOT_TIMEOUT_MS,
-        env: {
-          ...process.env,
-          WINEPREFIX: prefixPath,
-          WINEDEBUG: "-all",
-          // Stops Wine from opening blocking "install Mono/Gecko?"
-          // dialogs during a headless setup.
-          WINEDLLOVERRIDES: "mscoree=d;mshtml=d",
-        },
+    await execFileAsync(wineVersion.executablePath, ["wineboot", "--init"], {
+      timeout: WINEBOOT_TIMEOUT_MS,
+      env: {
+        ...process.env,
+        WINEPREFIX: prefixPath,
+        WINEDEBUG: "-all",
+        // Stops Wine from opening blocking "install Mono/Gecko?"
+        // dialogs during a headless setup.
+        WINEDLLOVERRIDES: "mscoree=d;mshtml=d",
       },
-    );
+    });
   }
 
-  private createEnvironmentId(
-    game: MacCompatibilityGameKey,
-  ): string {
+  private createEnvironmentId(game: MacCompatibilityGameKey): string {
     return createEnvironmentId(game);
   }
 }

@@ -13,48 +13,36 @@ export class MacGameManager {
   async checkGame(
     game: MacCompatibilityGameKey,
     title: string,
-    isWindowsGame: boolean,
+    isWindowsGame: boolean
   ): Promise<MacGameCompatibility> {
-    return this.compatibilityManager.checkGame(
-      game,
-      title,
-      isWindowsGame,
-    );
+    return this.compatibilityManager.checkGame(game, title, isWindowsGame);
   }
   async getEnvironment(
-    game: MacCompatibilityGameKey,
+    game: MacCompatibilityGameKey
   ): Promise<MacWineEnvironment | null> {
     return this.compatibilityManager.getGameEnvironment(game);
   }
   async isReadyToLaunch(
     game: MacCompatibilityGameKey,
     title: string,
-    isWindowsGame: boolean,
+    isWindowsGame: boolean
   ): Promise<boolean> {
     if (!isWindowsGame) {
       return true;
     }
-    const compatibility = await this.checkGame(
-      game,
-      title,
-      isWindowsGame,
-    );
+    const compatibility = await this.checkGame(game, title, isWindowsGame);
     return compatibility.status === "ready";
   }
   async getLaunchStatus(
     game: MacCompatibilityGameKey,
     title: string,
-    isWindowsGame: boolean,
+    isWindowsGame: boolean
   ): Promise<{
     ready: boolean;
     compatibility: MacGameCompatibility;
     message: string;
   }> {
-    const compatibility = await this.checkGame(
-      game,
-      title,
-      isWindowsGame,
-    );
+    const compatibility = await this.checkGame(game, title, isWindowsGame);
     if (!isWindowsGame) {
       return {
         ready: true,

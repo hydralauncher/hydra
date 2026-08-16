@@ -111,7 +111,7 @@ export class MacWineDetector {
     for (const candidate of this.candidates) {
       // Resolves to a real, runnable absolute path or nothing at all.
       const resolvedPath = await this.resolveExecutable(
-        candidate.executablePath,
+        candidate.executablePath
       );
 
       if (!resolvedPath) {
@@ -166,7 +166,7 @@ export class MacWineDetector {
    * executable file, or null otherwise.
    */
   private async resolveExecutable(
-    executablePath: string,
+    executablePath: string
   ): Promise<string | null> {
     const absolutePath = executablePath.startsWith("/")
       ? executablePath
@@ -213,16 +213,14 @@ export class MacWineDetector {
    * (or CrossOver's Wine). Returns null when it cannot be run, times
    * out, or identifies itself as something else.
    */
-  private async getWineVersion(
-    executablePath: string,
-  ): Promise<string | null> {
+  private async getWineVersion(executablePath: string): Promise<string | null> {
     try {
       const { stdout, stderr } = await execFileAsync(
         executablePath,
         ["--version"],
         {
           timeout: VERSION_TIMEOUT_MS,
-        },
+        }
       );
 
       const output = `${stdout}\n${stderr}`.trim();

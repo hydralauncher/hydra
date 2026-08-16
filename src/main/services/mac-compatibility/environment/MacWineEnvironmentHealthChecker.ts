@@ -34,7 +34,7 @@ export class MacWineEnvironmentHealthChecker {
    */
   async check(
     prefixPath: string,
-    wineExecutablePath: string,
+    wineExecutablePath: string
   ): Promise<MacWineEnvironmentHealthResult> {
     if (typeof prefixPath !== "string" || prefixPath.trim() === "") {
       return {
@@ -122,7 +122,7 @@ export class MacWineEnvironmentHealthChecker {
    */
   private async probePrefix(
     prefixPath: string,
-    wineExecutablePath: string,
+    wineExecutablePath: string
   ): Promise<{ ok: boolean; message: string }> {
     try {
       await execFileAsync(wineExecutablePath, ["cmd", "/c", "exit"], {

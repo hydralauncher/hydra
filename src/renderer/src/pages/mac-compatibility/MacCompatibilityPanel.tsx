@@ -219,9 +219,7 @@ export function MacCompatibilityPanel({
 
         <div className="mac-compatibility-panel__status-row">
           {gameIcon ? (
-            <div className="mac-compatibility-panel__game-icon">
-              {gameIcon}
-            </div>
+            <div className="mac-compatibility-panel__game-icon">{gameIcon}</div>
           ) : (
             <div className="mac-compatibility-panel__game-icon mac-compatibility-panel__game-icon--empty" />
           )}

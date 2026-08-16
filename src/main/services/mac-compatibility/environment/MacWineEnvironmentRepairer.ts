@@ -26,12 +26,12 @@ export class MacWineEnvironmentRepairer {
 
   async repair(
     environment: MacWineEnvironment,
-    wineExecutablePath: string,
+    wineExecutablePath: string
   ): Promise<MacWineEnvironmentRepairResult> {
     try {
       await MacWineEnvironmentLogger.warning(
         environment.prefixPath,
-        "Repair started: removing corrupted Wine prefix contents.",
+        "Repair started: removing corrupted Wine prefix contents."
       );
 
       await this.removeBrokenPrefix(environment.prefixPath);
@@ -43,19 +43,19 @@ export class MacWineEnvironmentRepairer {
           healthy: false,
           updatedAt: new Date().toISOString(),
         },
-        wineExecutablePath,
+        wineExecutablePath
       );
 
       if (result.success) {
         await MacWineEnvironmentLogger.info(
           environment.prefixPath,
-          "Repair completed: Wine environment reinitialized successfully.",
+          "Repair completed: Wine environment reinitialized successfully."
         );
       } else {
         await MacWineEnvironmentLogger.error(
           environment.prefixPath,
           "Repair failed during reinitialization.",
-          result.message,
+          result.message
         );
       }
 
@@ -75,7 +75,7 @@ export class MacWineEnvironmentRepairer {
       await MacWineEnvironmentLogger.error(
         environment.prefixPath,
         "Repair failed unexpectedly.",
-        message,
+        message
       );
 
       return {
@@ -113,7 +113,7 @@ export class MacWineEnvironmentRepairer {
   private async removeBrokenPrefix(prefixPath: string): Promise<void> {
     const safePrefixPath = await assertManagedPrefixPath(
       this.environmentsPath,
-      prefixPath,
+      prefixPath
     );
 
     let entries: string[];
@@ -129,13 +129,10 @@ export class MacWineEnvironmentRepairer {
         .filter((entry) => entry !== "compatibility.log")
         .map((entry) =>
           rm(
-            assertPathInsidePrefix(
-              safePrefixPath,
-              join(safePrefixPath, entry),
-            ),
-            { recursive: true, force: true },
-          ),
-        ),
+            assertPathInsidePrefix(safePrefixPath, join(safePrefixPath, entry)),
+            { recursive: true, force: true }
+          )
+        )
     );
   }
 }

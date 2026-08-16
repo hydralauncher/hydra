@@ -23,13 +23,10 @@ export interface MacWineEnvironmentInitializationResult {
 export class MacWineEnvironmentInitializer {
   async initialize(
     environment: MacWineEnvironment,
-    wineExecutablePath: string,
+    wineExecutablePath: string
   ): Promise<MacWineEnvironmentInitializationResult> {
     try {
-      await this.initializePrefix(
-        environment.prefixPath,
-        wineExecutablePath,
-      );
+      await this.initializePrefix(environment.prefixPath, wineExecutablePath);
 
       const healthy = await this.verifyPrefix(environment.prefixPath);
 
@@ -70,21 +67,17 @@ export class MacWineEnvironmentInitializer {
 
   private async initializePrefix(
     prefixPath: string,
-    wineExecutablePath: string,
+    wineExecutablePath: string
   ): Promise<void> {
     try {
-      await execFileAsync(
-        wineExecutablePath,
-        ["wineboot", "--init"],
-        {
-          env: {
-            ...process.env,
-            WINEPREFIX: prefixPath,
-          },
-          timeout: WINEBOOT_TIMEOUT_MS,
-          killSignal: "SIGKILL",
+      await execFileAsync(wineExecutablePath, ["wineboot", "--init"], {
+        env: {
+          ...process.env,
+          WINEPREFIX: prefixPath,
         },
-      );
+        timeout: WINEBOOT_TIMEOUT_MS,
+        killSignal: "SIGKILL",
+      });
     } catch (error) {
       const killed =
         typeof error === "object" &&
@@ -94,8 +87,8 @@ export class MacWineEnvironmentInitializer {
       if (killed) {
         throw new Error(
           `Wine took longer than ${Math.round(
-            WINEBOOT_TIMEOUT_MS / 1000,
-          )} seconds to create the Windows environment and was stopped. Try again, or delete the environment and set it up from scratch.`,
+            WINEBOOT_TIMEOUT_MS / 1000
+          )} seconds to create the Windows environment and was stopped. Try again, or delete the environment and set it up from scratch.`
         );
       }
 

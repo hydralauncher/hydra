@@ -134,8 +134,10 @@ export function MacCompatibilityCircle({
       const position = positionRef.current;
       const velocity = velocityRef.current;
 
-      velocity.x = (velocity.x - position.x * SPRING_STIFFNESS) * SPRING_DAMPING;
-      velocity.y = (velocity.y - position.y * SPRING_STIFFNESS) * SPRING_DAMPING;
+      velocity.x =
+        (velocity.x - position.x * SPRING_STIFFNESS) * SPRING_DAMPING;
+      velocity.y =
+        (velocity.y - position.y * SPRING_STIFFNESS) * SPRING_DAMPING;
 
       position.x += velocity.x;
       position.y += velocity.y;

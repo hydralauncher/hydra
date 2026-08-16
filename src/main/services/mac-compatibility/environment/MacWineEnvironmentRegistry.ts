@@ -31,9 +31,7 @@ export class MacWineEnvironmentRegistry {
     this.registryPath = registryPath;
   }
 
-  async get(
-    key: MacCompatibilityGameKey,
-  ): Promise<MacWineEnvironment | null> {
+  async get(key: MacCompatibilityGameKey): Promise<MacWineEnvironment | null> {
     await this.ensureLoaded();
 
     return this.entries.get(this.getKey(key))?.environment ?? null;
@@ -41,7 +39,7 @@ export class MacWineEnvironmentRegistry {
 
   async set(
     key: MacCompatibilityGameKey,
-    environment: MacWineEnvironment,
+    environment: MacWineEnvironment
   ): Promise<void> {
     await this.ensureLoaded();
 
@@ -129,11 +127,7 @@ export class MacWineEnvironmentRegistry {
       }
 
       for (const entry of data) {
-        if (
-          entry?.key?.shop &&
-          entry?.key?.objectId &&
-          entry?.environment
-        ) {
+        if (entry?.key?.shop && entry?.key?.objectId && entry?.environment) {
           this.entries.set(this.getKey(entry.key), entry);
         }
       }
@@ -158,22 +152,18 @@ export class MacWineEnvironmentRegistry {
    * never a half-written one.
    */
   private async save(): Promise<void> {
-    const contents = JSON.stringify(
-      Array.from(this.entries.values()),
-      null,
-      2,
-    );
+    const contents = JSON.stringify(Array.from(this.entries.values()), null, 2);
 
     const write = this.saveQueue.then(
       () => this.writeAtomically(contents),
-      () => this.writeAtomically(contents),
+      () => this.writeAtomically(contents)
     );
 
     // The queue itself must never hold a rejection, or every later save
     // would inherit it. The caller still sees the real error below.
     this.saveQueue = write.then(
       () => undefined,
-      () => undefined,
+      () => undefined
     );
 
     await write;

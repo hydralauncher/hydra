@@ -17,7 +17,7 @@ const COMMAND_TIMEOUT_MS = 10_000;
  */
 export type MacCommandRunner = (
   file: string,
-  args: string[],
+  args: string[]
 ) => Promise<string>;
 
 const defaultCommandRunner: MacCommandRunner = async (file, args) => {

@@ -34,12 +34,12 @@ export class MacGameLaunchManager {
   }
 
   async prepareLaunch(
-    request: MacGameLaunchRequest,
+    request: MacGameLaunchRequest
   ): Promise<MacGameLaunchResult> {
     const compatibility = await this.compatibilityManager.checkGame(
       request.game,
       request.title,
-      request.isWindowsGame,
+      request.isWindowsGame
     );
 
     if (!request.isWindowsGame) {
@@ -53,16 +53,15 @@ export class MacGameLaunchManager {
       };
     }
 
-    let environment =
-      await this.compatibilityManager.getGameEnvironment(request.game);
+    let environment = await this.compatibilityManager.getGameEnvironment(
+      request.game
+    );
 
-    let wineVersions =
-      await this.compatibilityManager.getWineVersions();
+    let wineVersions = await this.compatibilityManager.getWineVersions();
 
     let wineVersion = this.findWineVersion(
-      environment?.wineVersionId ??
-        compatibility.recommendedWineVersionId,
-      wineVersions,
+      environment?.wineVersionId ?? compatibility.recommendedWineVersionId,
+      wineVersions
     );
 
     if (!wineVersion) {
@@ -79,17 +78,15 @@ export class MacGameLaunchManager {
 
     if (!environment) {
       try {
-        environment =
-          await this.compatibilityManager.createGameEnvironment(
-            request.game,
-          );
+        environment = await this.compatibilityManager.createGameEnvironment(
+          request.game
+        );
 
-        wineVersions =
-          await this.compatibilityManager.getWineVersions();
+        wineVersions = await this.compatibilityManager.getWineVersions();
 
         wineVersion = this.findWineVersion(
           environment.wineVersionId,
-          wineVersions,
+          wineVersions
         );
       } catch (error) {
         return {
@@ -100,7 +97,7 @@ export class MacGameLaunchManager {
           wineVersion,
           message: this.getErrorMessage(
             error,
-            "Failed to create the game's compatibility environment.",
+            "Failed to create the game's compatibility environment."
           ),
         };
       }
@@ -113,8 +110,7 @@ export class MacGameLaunchManager {
         compatibility,
         environment,
         wineVersion: null,
-        message:
-          "The game's selected Wine version is no longer available.",
+        message: "The game's selected Wine version is no longer available.",
       };
     }
 
@@ -125,7 +121,7 @@ export class MacGameLaunchManager {
     // a broken prefix and fail with no explanation, so the environment
     // is always tested for real immediately before launch.
     const healthy = await this.compatibilityManager.testGameEnvironment(
-      request.game,
+      request.game
     );
 
     // The test writes the corrected flags, so re-read the environment to
@@ -139,10 +135,9 @@ export class MacGameLaunchManager {
         // repairGameEnvironment() re-tests after repairing and throws if
         // the environment is still not usable, so reaching the next line
         // means the prefix really works.
-        environment =
-          await this.compatibilityManager.repairGameEnvironment(
-            request.game,
-          );
+        environment = await this.compatibilityManager.repairGameEnvironment(
+          request.game
+        );
       } catch (error) {
         return {
           success: false,
@@ -152,7 +147,7 @@ export class MacGameLaunchManager {
           wineVersion,
           message: this.getErrorMessage(
             error,
-            "The game's compatibility environment needs repair.",
+            "The game's compatibility environment needs repair."
           ),
         };
       }
@@ -168,9 +163,7 @@ export class MacGameLaunchManager {
     };
   }
 
-  async launch(
-    request: MacGameLaunchRequest,
-  ): Promise<MacGameLaunchResult> {
+  async launch(request: MacGameLaunchRequest): Promise<MacGameLaunchResult> {
     const prepared = await this.prepareLaunch(request);
 
     if (!prepared.success) {
@@ -185,8 +178,7 @@ export class MacGameLaunchManager {
       return {
         ...prepared,
         success: false,
-        message:
-          "The Windows game's Wine environment is not available.",
+        message: "The Windows game's Wine environment is not available.",
       };
     }
 
@@ -194,30 +186,26 @@ export class MacGameLaunchManager {
       request,
       prepared,
       prepared.environment,
-      prepared.wineVersion,
+      prepared.wineVersion
     );
   }
 
   private async launchNative(
     request: MacGameLaunchRequest,
-    prepared: MacGameLaunchResult,
+    prepared: MacGameLaunchResult
   ): Promise<MacGameLaunchResult> {
     try {
       const workingDirectory = path.dirname(request.executablePath);
 
-      const child = spawn(
-        request.executablePath,
-        request.args ?? [],
-        {
-          shell: false,
-          detached: true,
-          stdio: "ignore",
-          cwd: workingDirectory,
-          env: {
-            ...process.env,
-          },
+      const child = spawn(request.executablePath, request.args ?? [], {
+        shell: false,
+        detached: true,
+        stdio: "ignore",
+        cwd: workingDirectory,
+        env: {
+          ...process.env,
         },
-      );
+      });
 
       return await new Promise<MacGameLaunchResult>((resolve) => {
         const onSpawn = () => {
@@ -241,7 +229,7 @@ export class MacGameLaunchManager {
             pid: null,
             message: this.getErrorMessage(
               error,
-              "Failed to launch the native macOS game.",
+              "Failed to launch the native macOS game."
             ),
           });
         };
@@ -256,7 +244,7 @@ export class MacGameLaunchManager {
         pid: null,
         message: this.getErrorMessage(
           error,
-          "Failed to launch the native macOS game.",
+          "Failed to launch the native macOS game."
         ),
       };
     }
@@ -266,7 +254,7 @@ export class MacGameLaunchManager {
     request: MacGameLaunchRequest,
     prepared: MacGameLaunchResult,
     environment: MacWineEnvironment,
-    wineVersion: MacWineVersion,
+    wineVersion: MacWineVersion
   ): Promise<MacGameLaunchResult> {
     try {
       const workingDirectory = path.dirname(request.executablePath);
@@ -283,7 +271,7 @@ export class MacGameLaunchManager {
             ...process.env,
             WINEPREFIX: environment.prefixPath,
           },
-        },
+        }
       );
 
       return await new Promise<MacGameLaunchResult>((resolve) => {
@@ -308,7 +296,7 @@ export class MacGameLaunchManager {
             pid: null,
             message: this.getErrorMessage(
               error,
-              "Failed to launch the Windows game with Wine.",
+              "Failed to launch the Windows game with Wine."
             ),
           });
         };
@@ -323,7 +311,7 @@ export class MacGameLaunchManager {
         pid: null,
         message: this.getErrorMessage(
           error,
-          "Failed to launch the Windows game with Wine.",
+          "Failed to launch the Windows game with Wine."
         ),
       };
     }
@@ -331,7 +319,7 @@ export class MacGameLaunchManager {
 
   private findWineVersion(
     wineVersionId: string | null,
-    wineVersions: MacWineVersion[],
+    wineVersions: MacWineVersion[]
   ): MacWineVersion | null {
     if (!wineVersionId) {
       return (
@@ -341,16 +329,10 @@ export class MacGameLaunchManager {
       );
     }
 
-    return (
-      wineVersions.find((wine) => wine.id === wineVersionId) ??
-      null
-    );
+    return wineVersions.find((wine) => wine.id === wineVersionId) ?? null;
   }
 
-  private getErrorMessage(
-    error: unknown,
-    fallback: string,
-  ): string {
+  private getErrorMessage(error: unknown, fallback: string): string {
     if (error instanceof Error && error.message) {
       return error.message;
     }

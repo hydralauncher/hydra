@@ -1,6 +1,4 @@
-export {
-  MacGameLaunchController,
-} from "./MacGameLaunchController";
+export { MacGameLaunchController } from "./MacGameLaunchController";
 
 export {
   MacGameLaunchManager,

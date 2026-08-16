@@ -27,7 +27,7 @@ export class MacWineEnvironmentLogger {
     prefixPath: string,
     level: MacWineEnvironmentLogLevel,
     message: string,
-    detail?: string,
+    detail?: string
   ): Promise<void> {
     const entry: MacWineEnvironmentLogEntry = {
       timestamp: new Date().toISOString(),
@@ -40,16 +40,12 @@ export class MacWineEnvironmentLogger {
 
     try {
       await mkdir(prefixPath, { recursive: true });
-      await appendFile(
-        logPath,
-        `${JSON.stringify(entry)}\n`,
-        "utf8",
-      );
+      await appendFile(logPath, `${JSON.stringify(entry)}\n`, "utf8");
     } catch (error) {
       // Logging must never break the compatibility operation itself.
       console.error(
         "[MacWineEnvironmentLogger] Failed to write log entry:",
-        error,
+        error
       );
     }
   }
@@ -57,7 +53,7 @@ export class MacWineEnvironmentLogger {
   static async info(
     prefixPath: string,
     message: string,
-    detail?: string,
+    detail?: string
   ): Promise<void> {
     return this.log(prefixPath, "info", message, detail);
   }
@@ -65,7 +61,7 @@ export class MacWineEnvironmentLogger {
   static async warning(
     prefixPath: string,
     message: string,
-    detail?: string,
+    detail?: string
   ): Promise<void> {
     return this.log(prefixPath, "warning", message, detail);
   }
@@ -73,7 +69,7 @@ export class MacWineEnvironmentLogger {
   static async error(
     prefixPath: string,
     message: string,
-    detail?: string,
+    detail?: string
   ): Promise<void> {
     return this.log(prefixPath, "error", message, detail);
   }

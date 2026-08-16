@@ -44,8 +44,8 @@ export class MacCompatibilityRegistry {
       "Application Support",
       "Hydra",
       "mac-compatibility",
-      "registry.json",
-    ),
+      "registry.json"
+    )
   ) {
     this.registryPath = registryPath;
     this.loadFromDisk();
@@ -96,7 +96,7 @@ export class MacCompatibilityRegistry {
 
     this.persistQueue = this.persistQueue.then(
       () => this.writeAtomically(contents),
-      () => this.writeAtomically(contents),
+      () => this.writeAtomically(contents)
     );
 
     // Fire-and-forget by design (see class-level comment), but a failure
@@ -105,7 +105,7 @@ export class MacCompatibilityRegistry {
     this.persistQueue = this.persistQueue.catch((error) => {
       console.error(
         "[MacCompatibilityRegistry] Failed to persist registry:",
-        error,
+        error
       );
     });
   }
@@ -133,14 +133,14 @@ export class MacCompatibilityRegistry {
   }
 
   public get(
-    key: MacCompatibilityGameKey,
+    key: MacCompatibilityGameKey
   ): MacCompatibilityRegistryEntry | null {
     return this.entries.get(this.getKey(key)) ?? null;
   }
 
   public set(
     key: MacCompatibilityGameKey,
-    entry: MacCompatibilityRegistryEntry,
+    entry: MacCompatibilityRegistryEntry
   ): void {
     this.entries.set(this.getKey(key), entry);
     this.persist();
@@ -159,14 +159,14 @@ export class MacCompatibilityRegistry {
   }
 
   public getEnvironment(
-    key: MacCompatibilityGameKey,
+    key: MacCompatibilityGameKey
   ): MacWineEnvironment | null {
     return this.get(key)?.environment ?? null;
   }
 
   public setEnvironment(
     key: MacCompatibilityGameKey,
-    environment: MacWineEnvironment | null,
+    environment: MacWineEnvironment | null
   ): void {
     const existing = this.get(key);
 
@@ -192,7 +192,7 @@ export class MacCompatibilityRegistry {
 
   public setStatus(
     key: MacCompatibilityGameKey,
-    status: MacCompatibilityStatus,
+    status: MacCompatibilityStatus
   ): void {
     const existing = this.get(key);
 
@@ -219,7 +219,7 @@ export class MacCompatibilityRegistry {
 
   public setWineVersion(
     key: MacCompatibilityGameKey,
-    wineVersionId: string | null,
+    wineVersionId: string | null
   ): void {
     const existing = this.get(key);
 

@@ -38,8 +38,7 @@ export class MacCompatibilityManager {
     this.systemDetector =
       dependencies?.systemDetector ?? new MacSystemDetector();
     this.wineDetector = dependencies?.wineDetector ?? new MacWineDetector();
-    this.registry =
-      dependencies?.registry ?? new MacCompatibilityRegistry();
+    this.registry = dependencies?.registry ?? new MacCompatibilityRegistry();
     this.environmentManager =
       dependencies?.environmentManager ?? new MacWineEnvironmentManager();
     this.environmentRepairer =
@@ -59,7 +58,7 @@ export class MacCompatibilityManager {
   }
 
   async getGameEnvironment(
-    game: MacCompatibilityGameKey,
+    game: MacCompatibilityGameKey
   ): Promise<MacWineEnvironment | null> {
     return this.environmentManager.getEnvironment(game);
   }
@@ -67,7 +66,7 @@ export class MacCompatibilityManager {
   async checkGame(
     game: MacCompatibilityGameKey,
     title: string,
-    isWindowsGame: boolean,
+    isWindowsGame: boolean
   ): Promise<MacGameCompatibility> {
     const systemInfo = await this.getSystemInfo();
     const wineVersions = await this.getWineVersions();
@@ -131,8 +130,7 @@ export class MacCompatibilityManager {
       recommendations.push({
         id: "create-game-environment",
         title: "Create a game environment",
-        description:
-          "Create a dedicated Wine environment for this game.",
+        description: "Create a dedicated Wine environment for this game.",
         action: "create-environment",
         priority: "high",
       });
@@ -212,7 +210,7 @@ export class MacCompatibilityManager {
   async checkGameStatus(
     game: MacCompatibilityGameKey,
     title: string,
-    isWindowsGame: boolean,
+    isWindowsGame: boolean
   ): Promise<MacCompatibilityCheckResult> {
     const result = await this.checkGame(game, title, isWindowsGame);
 
@@ -225,7 +223,7 @@ export class MacCompatibilityManager {
   }
 
   async createGameEnvironment(
-    game: MacCompatibilityGameKey,
+    game: MacCompatibilityGameKey
   ): Promise<MacWineEnvironment> {
     const wineVersions = await this.getWineVersions();
 
@@ -238,7 +236,7 @@ export class MacCompatibilityManager {
 
     const environment = await this.environmentManager.createEnvironment(
       game,
-      wineVersion,
+      wineVersion
     );
 
     this.registry.setEnvironment(game, environment);
@@ -252,9 +250,7 @@ export class MacCompatibilityManager {
    * Really tests the game's environment and writes the true result back,
    * so a stale "healthy" flag cannot survive a test.
    */
-  async testGameEnvironment(
-    game: MacCompatibilityGameKey,
-  ): Promise<boolean> {
+  async testGameEnvironment(game: MacCompatibilityGameKey): Promise<boolean> {
     const environment = await this.getGameEnvironment(game);
 
     if (!environment) {
@@ -265,7 +261,7 @@ export class MacCompatibilityManager {
     const wineVersions = await this.getWineVersions();
 
     const wineVersion = wineVersions.find(
-      (wine) => wine.id === environment.wineVersionId,
+      (wine) => wine.id === environment.wineVersionId
     );
 
     if (!wineVersion) {
@@ -274,25 +270,19 @@ export class MacCompatibilityManager {
     }
 
     const { environment: checkedEnvironment, health } =
-      await this.environmentManager.checkEnvironmentHealth(
-        game,
-        wineVersion,
-      );
+      await this.environmentManager.checkEnvironmentHealth(game, wineVersion);
 
     if (checkedEnvironment) {
       this.registry.setEnvironment(game, checkedEnvironment);
     }
 
-    this.registry.setStatus(
-      game,
-      health.healthy ? "ready" : "needs_repair",
-    );
+    this.registry.setStatus(game, health.healthy ? "ready" : "needs_repair");
 
     return health.healthy;
   }
 
   async repairGameEnvironment(
-    game: MacCompatibilityGameKey,
+    game: MacCompatibilityGameKey
   ): Promise<MacWineEnvironment> {
     const environment = await this.getGameEnvironment(game);
 
@@ -303,18 +293,18 @@ export class MacCompatibilityManager {
     const wineVersions = await this.getWineVersions();
 
     const wineVersion = wineVersions.find(
-      (wine) => wine.id === environment.wineVersionId,
+      (wine) => wine.id === environment.wineVersionId
     );
 
     if (!wineVersion) {
       throw new Error(
-        "The Wine version used by this environment is no longer installed.",
+        "The Wine version used by this environment is no longer installed."
       );
     }
 
     const result = await this.environmentRepairer.repair(
       environment,
-      wineVersion.executablePath,
+      wineVersion.executablePath
     );
 
     if (!result.success) {
@@ -325,10 +315,7 @@ export class MacCompatibilityManager {
     // A successful repair is still verified before anything is marked
     // ready, so "repaired" always means "tested and working".
     const { environment: repairedEnvironment, health } =
-      await this.environmentManager.checkEnvironmentHealth(
-        game,
-        wineVersion,
-      );
+      await this.environmentManager.checkEnvironmentHealth(game, wineVersion);
 
     const finalEnvironment = repairedEnvironment ?? result.environment;
 
@@ -346,9 +333,7 @@ export class MacCompatibilityManager {
     return finalEnvironment;
   }
 
-  async deleteGameEnvironment(
-    game: MacCompatibilityGameKey,
-  ): Promise<boolean> {
+  async deleteGameEnvironment(game: MacCompatibilityGameKey): Promise<boolean> {
     const deleted = await this.environmentManager.deleteEnvironment(game);
 
     if (deleted) {
