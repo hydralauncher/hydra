@@ -33,6 +33,13 @@ export interface ProcessPayload {
   name: string;
   environ?: Record<string, string> | null;
   cwd?: string | null;
+  /**
+   * Optional and additive: mirrors the native NativeProcessPayload
+   * fields of the same name. No existing consumer reads these yet, so
+   * their absence on an older native build stays compatible.
+   */
+  parent?: number | null;
+  start_time?: number;
 }
 
 export interface PauseSeedingPayload {
