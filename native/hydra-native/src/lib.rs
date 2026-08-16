@@ -53,11 +53,15 @@ pub struct NativeProcessPayload {
     /// consumers that only read exe/pid/name/environ/cwd are unaffected.
     pub parent: Option<u32>,
     /// Process start time, in seconds since the epoch, as reported by
-    /// sysinfo's `Process::start_time()`. Combined with `pid`, this lets
-    /// a caller tell "the same process I launched" apart from "a
-    /// different process that was later assigned the same PID" once a
-    /// consumer starts comparing it — no consumer does yet.
-    pub start_time: u64,
+    /// sysinfo's `Process::start_time()`. f64 (not u64) because u64 does
+    /// not implement napi's FromNapiValue for #[napi(object)] fields —
+    /// JS numbers are IEEE-754 doubles, exact up to 2^53, which covers
+    /// Unix seconds for millennia, so nothing is lost in practice.
+    /// Combined with `pid`, this lets a caller tell "the same process I
+    /// launched" apart from "a different process that was later
+    /// assigned the same PID" once a consumer starts comparing it — no
+    /// consumer does yet.
+    pub start_time: f64,
 }
 
 #[napi]
@@ -185,7 +189,10 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
                 pid: process.pid().as_u32(),
                 name: process.name().to_string_lossy().to_string(),
                 parent: process.parent().map(|parent_pid| parent_pid.as_u32()),
-                start_time: process.start_time(),
+                // process.start_time() returns u64 seconds since the
+                // epoch; cast to f64 for the napi-safe field type above.
+                // Exact for any realistic timestamp (see field doc).
+                start_time: process.start_time() as f64,
                 cwd: if include_linux_extras {
                     process
                         .cwd()
