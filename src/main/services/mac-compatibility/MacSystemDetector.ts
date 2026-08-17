@@ -1,7 +1,10 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { access, constants } from "node:fs/promises";
-import type { MacArchitecture, MacSystemInfo } from "./MacCompatibilityTypes.js";
+import type {
+  MacArchitecture,
+  MacSystemInfo,
+} from "./MacCompatibilityTypes.js";
 
 const execFileAsync = promisify(execFile);
 
