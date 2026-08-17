@@ -23,6 +23,7 @@ import {
 } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
+import { MacCompatibilityBadge } from "@renderer/pages/mac-compatibility/MacCompatibilityBadge";
 
 interface LibraryGameCardProps {
   game: LibraryGame;
@@ -237,6 +238,13 @@ export const LibraryGameCard = memo(function LibraryGameCard({
               </span>
             </div>
           )}
+
+          <MacCompatibilityBadge
+            shop={game.shop}
+            objectId={game.objectId}
+            title={game.title}
+            isFavorite={game.favorite}
+          />
         </div>
 
         {(game.achievementCount ?? 0) > 0 && (
