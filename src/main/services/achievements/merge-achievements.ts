@@ -54,7 +54,11 @@ const captureAchievementSouvenirs = async (
       const gameKey = levelKeys.game(game.shop, game.objectId);
       const expectedProcessId = launchedGamePids.get(gameKey);
 
-      if (!expectedProcessId && process.platform !== "linux") {
+      if (
+        !expectedProcessId &&
+        process.platform !== "linux" &&
+        process.platform !== "win32"
+      ) {
         throw new Error("No tracked game process available for screenshot");
       }
 

@@ -13,6 +13,7 @@ import {
   captureLinuxGameSessionFrame,
   isWaylandSession,
 } from "./linux-game-capture-session";
+import { isWindowsGameForegroundProcess } from "./windows-game-window-match";
 
 const SCREENSHOT_QUALITY = 80;
 const SCREENSHOT_EXTENSION = "jpeg";
@@ -134,18 +135,27 @@ const getGameWindowSource = async (
     return getX11GameWindowSource(captureTarget);
   }
 
-  const expectedProcessId = captureTarget.processId;
-  if (!expectedProcessId) {
-    throw new Error("No tracked game process available for screenshot");
-  }
-
   const foregroundWindow = await getForegroundWindow();
 
-  if (
-    !foregroundWindow ||
-    !Number.isFinite(foregroundWindow.processId) ||
-    foregroundWindow.processId !== expectedProcessId
-  ) {
+  if (!foregroundWindow || !Number.isFinite(foregroundWindow.processId)) {
+    throw new Error("Tracked game does not own the foreground window");
+  }
+
+  const expectedProcessId = captureTarget.processId;
+  const belongsToGame =
+    process.platform === "win32"
+      ? isWindowsGameForegroundProcess(
+          expectedProcessId !== undefined
+            ? []
+            : await NativeAddon.listProcesses(),
+          foregroundWindow.processId,
+          expectedProcessId,
+          captureTarget.executablePaths ?? []
+        )
+      : expectedProcessId !== undefined &&
+        foregroundWindow.processId === expectedProcessId;
+
+  if (!belongsToGame) {
     throw new Error("Tracked game does not own the foreground window");
   }
 
