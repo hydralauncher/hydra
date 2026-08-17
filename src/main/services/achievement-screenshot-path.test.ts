@@ -41,4 +41,16 @@ describe("achievement screenshot paths", () => {
 
     assert.notEqual(first, second);
   });
+
+  it("removes trailing dots and spaces from path segments", () => {
+    const screenshotPath = resolveAchievementScreenshotPath(
+      "/screenshots",
+      "Game...   ",
+      "Winner...   ",
+      "game-1",
+      "achievement-1"
+    );
+
+    assert.doesNotMatch(screenshotPath, /[. ]+-/);
+  });
 });

@@ -223,7 +223,7 @@
       padding: 4px 8px;
       border-radius: 6px;
       background-color: rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.7);
+      color: globals.$body-color;
       font-size: 12px;
       font-weight: 600;
       text-align: center;
@@ -300,7 +300,7 @@
       align-items: center;
       justify-content: center;
       background: rgba(255, 255, 255, 0.04);
-      color: rgba(255, 255, 255, 0.3);
+      color: globals.$body-color;
     }
 
     &-image-overlay {

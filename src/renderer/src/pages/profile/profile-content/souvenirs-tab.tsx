@@ -31,6 +31,13 @@ const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
   event.currentTarget.style.opacity = "0";
 };
 
+const getSouvenirCardClassName = (
+  visualVariant: ReturnType<typeof getSouvenirVisualVariant>
+) =>
+  visualVariant
+    ? `profile-content__souvenir profile-content__souvenir--${visualVariant}`
+    : "profile-content__souvenir";
+
 type SouvenirGrouping = "game" | "none";
 interface SouvenirCardProps {
   achievement: ProfileAchievement;
@@ -78,9 +85,7 @@ function SouvenirCard({
   };
 
   return (
-    <li
-      className={`profile-content__souvenir ${visualVariant ? `profile-content__souvenir--${visualVariant}` : ""}`}
-    >
+    <li className={getSouvenirCardClassName(visualVariant)}>
       <button
         type="button"
         className="profile-content__souvenir-image-button"
@@ -237,6 +242,73 @@ function SouvenirGameGroup({
   );
 }
 
+interface SouvenirsEmptyStateProps {
+  isLoading: boolean;
+  hasActiveSubscription: boolean;
+  isEnabled: boolean;
+  onOpenSettings: () => void;
+}
+
+function SouvenirsEmptyState({
+  isLoading,
+  hasActiveSubscription,
+  isEnabled,
+  onOpenSettings,
+}: Readonly<SouvenirsEmptyStateProps>) {
+  const { t } = useTranslation("user_profile");
+  const { t: tHydraCloud } = useTranslation("hydra_cloud");
+  const { showHydraCloudModal } = useSubscription();
+
+  if (isLoading) {
+    return (
+      <div className="profile-content__no-games profile-content__souvenirs-empty">
+        <p>{t("loading_souvenirs")}</p>
+      </div>
+    );
+  }
+
+  if (!hasActiveSubscription) {
+    return (
+      <div className="profile-content__no-games profile-content__souvenirs-empty">
+        <span className="profile-content__telescope-icon">
+          <LockIcon size={24} />
+        </span>
+        <h2>{t("souvenirs_cloud_title")}</h2>
+        <p>{t("souvenirs_cloud_description")}</p>
+        <Button
+          theme="outline"
+          className="profile-content__souvenirs-empty-action"
+          onClick={() => showHydraCloudModal("achievements")}
+        >
+          <HydraIcon className="profile-content__souvenirs-empty-hydra-icon" />
+          <span>{tHydraCloud("learn_more")}</span>
+        </Button>
+      </div>
+    );
+  }
+
+  const titleKey = isEnabled ? "no_souvenirs" : "souvenirs_disabled_title";
+  const descriptionKey = isEnabled
+    ? "no_souvenirs_description"
+    : "souvenirs_disabled_description";
+
+  return (
+    <div className="profile-content__no-games profile-content__souvenirs-empty">
+      <h2>{t(titleKey)}</h2>
+      <p>{t(descriptionKey)}</p>
+      {!isEnabled && (
+        <Button
+          theme="outline"
+          className="profile-content__souvenirs-empty-action"
+          onClick={onOpenSettings}
+        >
+          {t("open_souvenir_settings")}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 interface SouvenirsTabProps {
   achievements: ProfileAchievement[];
   canLike: boolean;
@@ -267,8 +339,6 @@ export function SouvenirsTab({
   onOpenSettings,
 }: Readonly<SouvenirsTabProps>) {
   const { t } = useTranslation("user_profile");
-  const { t: tHydraCloud } = useTranslation("hydra_cloud");
-  const { showHydraCloudModal } = useSubscription();
   const [grouping, setGrouping] = useState<SouvenirGrouping>("none");
   const [sortBy, setSortBy] = useState<SouvenirSort>("recent");
 
@@ -309,49 +379,12 @@ export function SouvenirsTab({
       transition={{ duration: 0.2 }}
     >
       {achievements.length === 0 ? (
-        <div className="profile-content__no-games profile-content__souvenirs-empty">
-          {isLoading ? (
-            <p>{t("loading_souvenirs")}</p>
-          ) : !hasActiveSubscription ? (
-            <>
-              <span className="profile-content__telescope-icon">
-                <LockIcon size={24} />
-              </span>
-              <h2>{t("souvenirs_cloud_title")}</h2>
-              <p>{t("souvenirs_cloud_description")}</p>
-              <Button
-                theme="outline"
-                className="profile-content__souvenirs-empty-action"
-                onClick={() => showHydraCloudModal("achievements")}
-              >
-                <HydraIcon className="profile-content__souvenirs-empty-hydra-icon" />
-                <span>{tHydraCloud("learn_more")}</span>
-              </Button>
-            </>
-          ) : (
-            <>
-              <h2>
-                {t(isEnabled ? "no_souvenirs" : "souvenirs_disabled_title")}
-              </h2>
-              <p>
-                {t(
-                  isEnabled
-                    ? "no_souvenirs_description"
-                    : "souvenirs_disabled_description"
-                )}
-              </p>
-              {!isEnabled && (
-                <Button
-                  theme="outline"
-                  className="profile-content__souvenirs-empty-action"
-                  onClick={onOpenSettings}
-                >
-                  {t("open_souvenir_settings")}
-                </Button>
-              )}
-            </>
-          )}
-        </div>
+        <SouvenirsEmptyState
+          isLoading={isLoading}
+          hasActiveSubscription={hasActiveSubscription}
+          isEnabled={isEnabled}
+          onOpenSettings={onOpenSettings}
+        />
       ) : (
         <>
           <div className="profile-content__library-filters">

@@ -234,6 +234,41 @@ interface StartEmulatorSouvenirWatcherOptions {
   watcherToken: object;
 }
 
+interface StartConfiguredLogWatcherOptions {
+  gameKey: string;
+  watcherToken: object;
+  game: Game;
+  processId: number;
+  logPath: string | null;
+  pattern: RegExp;
+  titleFirst: boolean;
+}
+
+const startConfiguredLogWatcher = ({
+  gameKey,
+  watcherToken,
+  game,
+  processId,
+  logPath,
+  pattern,
+  titleFirst,
+}: StartConfiguredLogWatcherOptions) => {
+  if (!logPath) {
+    stopEmulatorSouvenirWatcher(gameKey, watcherToken);
+    return;
+  }
+
+  startLogWatcher(
+    gameKey,
+    watcherToken,
+    game,
+    processId,
+    logPath,
+    pattern,
+    titleFirst
+  );
+};
+
 export const startEmulatorSouvenirWatcher = async ({
   gameKey,
   game,
@@ -262,40 +297,28 @@ export const startEmulatorSouvenirWatcher = async ({
   }
 
   if (system === "ps1") {
-    const logPath = duckstationLogPath();
-
-    if (logPath) {
-      startLogWatcher(
-        gameKey,
-        watcherToken,
-        game,
-        processId,
-        logPath,
-        DUCKSTATION_UNLOCK,
-        false
-      );
-    }
-
-    if (!logPath) stopEmulatorSouvenirWatcher(gameKey, watcherToken);
+    startConfiguredLogWatcher({
+      gameKey,
+      watcherToken,
+      game,
+      processId,
+      logPath: duckstationLogPath(),
+      pattern: DUCKSTATION_UNLOCK,
+      titleFirst: false,
+    });
     return;
   }
 
   if (system === "ps2") {
-    const logPath = pcsx2LogPath(executablePath);
-
-    if (logPath) {
-      startLogWatcher(
-        gameKey,
-        watcherToken,
-        game,
-        processId,
-        logPath,
-        PCSX2_UNLOCK,
-        true
-      );
-    }
-
-    if (!logPath) stopEmulatorSouvenirWatcher(gameKey, watcherToken);
+    startConfiguredLogWatcher({
+      gameKey,
+      watcherToken,
+      game,
+      processId,
+      logPath: pcsx2LogPath(executablePath),
+      pattern: PCSX2_UNLOCK,
+      titleFirst: true,
+    });
     return;
   }
 

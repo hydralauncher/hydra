@@ -224,7 +224,6 @@ export type UserProfileCurrentGame = GameRunning &
   };
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
-export type SouvenirVisibility = ProfileVisibility;
 export type SouvenirSort = "recent" | "oldest" | "rare";
 export type SouvenirsHiddenReason = "FRIENDS_ONLY" | "PRIVATE" | null;
 
@@ -245,7 +244,7 @@ export interface UserDetails {
   profileImageUrl: string | null;
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
-  souvenirsVisibility: SouvenirVisibility;
+  souvenirsVisibility: ProfileVisibility;
   bio: string;
   workwondersJwt: string;
   subscription: Subscription | null;
@@ -267,7 +266,7 @@ export interface ProfileAchievement {
   isPlatinum: boolean;
   gameUnlockedAchievementCount: number;
   gameTotalAchievementCount: number;
-  visibility?: SouvenirVisibility;
+  visibility?: ProfileVisibility;
   gameId: string;
   gameTitle: string | null;
   gameIconUrl: string | null;
@@ -293,7 +292,7 @@ export interface UserProfile {
   email: string | null;
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
-  souvenirsVisibility: SouvenirVisibility;
+  souvenirsVisibility: ProfileVisibility;
   libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriend[];
@@ -314,7 +313,7 @@ export interface UserProfile {
 export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: ProfileVisibility;
-  souvenirsVisibility?: SouvenirVisibility;
+  souvenirsVisibility?: ProfileVisibility;
   profileImageUrl?: string | null;
   backgroundImageUrl?: string | null;
   bio?: string;

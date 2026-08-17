@@ -12,11 +12,11 @@ import {
 import { settingsContext } from "@renderer/context";
 import { AuthPage } from "@shared";
 import "./settings-account.scss";
-import type { ProfileVisibility, SouvenirVisibility } from "@types";
+import type { ProfileVisibility } from "@types";
 
 interface FormValues {
   profileVisibility: ProfileVisibility;
-  souvenirsVisibility: SouvenirVisibility;
+  souvenirsVisibility: ProfileVisibility;
 }
 
 export function SettingsAccount() {

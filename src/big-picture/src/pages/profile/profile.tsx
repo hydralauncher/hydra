@@ -1699,6 +1699,153 @@ interface ProfileSouvenirsProps {
   onLoadMore: () => void;
 }
 
+interface ProfileSouvenirCardProps {
+  souvenir: ProfileAchievement;
+  canLike: boolean;
+  isLikePending: boolean;
+  upFocusId: string | null;
+  downFocusId: string | null;
+  onActivate: (souvenir: ProfileAchievement) => void;
+  onLike: (souvenir: ProfileAchievement) => void;
+}
+
+const getProfileSouvenirClassName = (
+  visualVariant: ReturnType<typeof getSouvenirVisualVariant>
+) =>
+  visualVariant
+    ? `profile-page__souvenir profile-page__souvenir--${visualVariant}`
+    : "profile-page__souvenir";
+
+const getProfileSouvenirNavigationOverrides = (
+  upFocusId: string | null,
+  downFocusId: string | null
+): FocusOverrides => ({
+  up: upFocusId ? { type: "item", itemId: upFocusId } : { type: "block" },
+  down: downFocusId ? { type: "item", itemId: downFocusId } : { type: "block" },
+});
+
+function ProfileSouvenirCard({
+  souvenir,
+  canLike,
+  isLikePending,
+  upFocusId,
+  downFocusId,
+  onActivate,
+  onLike,
+}: Readonly<ProfileSouvenirCardProps>) {
+  const souvenirKey = getSouvenirKey(souvenir);
+  const visualVariant = getSouvenirVisualVariant(souvenir);
+  const secondaryAction =
+    canLike && !isLikePending ? () => onLike(souvenir) : undefined;
+
+  return (
+    <FocusItem
+      id={getProfileSouvenirItemId(souvenirKey)}
+      actions={{
+        primary: () => onActivate(souvenir),
+        secondary: secondaryAction,
+      }}
+      navigationOverrides={getProfileSouvenirNavigationOverrides(
+        upFocusId,
+        downFocusId
+      )}
+      asChild
+    >
+      <li className={getProfileSouvenirClassName(visualVariant)}>
+        <div className="profile-page__souvenir-image-frame">
+          <span className="profile-page__souvenir-image-placeholder">
+            <ImageIcon size={40} />
+          </span>
+
+          {souvenir.imageUrl ? (
+            <img
+              className="profile-page__souvenir-image"
+              src={souvenir.imageUrl}
+              alt={souvenir.displayName}
+              draggable={false}
+              loading="lazy"
+              onError={hideBrokenPreviewImage}
+            />
+          ) : null}
+
+          <div className="profile-page__souvenir-actions">
+            <motion.button
+              type="button"
+              className={`profile-page__souvenir-action ${isLikePending ? "profile-page__souvenir-action--pending" : ""}`}
+              disabled={!canLike || isLikePending}
+              onClick={(event) => {
+                event.stopPropagation();
+                onLike(souvenir);
+              }}
+              aria-label="Like souvenir"
+              aria-pressed={souvenir.likedByMe}
+              tabIndex={-1}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <HeartIcon
+                size={18}
+                weight={souvenir.likedByMe ? "fill" : "regular"}
+              />
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={souvenir.likeCount}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {souvenir.likeCount}
+                </motion.span>
+              </AnimatePresence>
+            </motion.button>
+          </div>
+        </div>
+
+        <div className="profile-page__souvenir-copy">
+          <span className="profile-page__souvenir-achievement-icon">
+            <TrophyIcon size={22} />
+            {souvenir.achievementIcon ? (
+              <img
+                className="profile-page__souvenir-achievement-icon-image"
+                src={souvenir.achievementIcon}
+                alt=""
+                draggable={false}
+                onError={hideBrokenPreviewImage}
+              />
+            ) : null}
+          </span>
+
+          <div className="profile-page__souvenir-text">
+            <Typography className="profile-page__souvenir-name">
+              {souvenir.displayName}
+            </Typography>
+
+            <div className="profile-page__souvenir-game-line">
+              <span className="profile-page__souvenir-game-icon">
+                <GameControllerIcon size={12} />
+                {souvenir.gameIconUrl ? (
+                  <img
+                    className="profile-page__souvenir-game-icon-image"
+                    src={souvenir.gameIconUrl}
+                    alt=""
+                    draggable={false}
+                    onError={hideBrokenPreviewImage}
+                  />
+                ) : null}
+              </span>
+
+              <Typography className="profile-page__souvenir-game">
+                {souvenir.gameTitle ?? ""}
+              </Typography>
+            </div>
+          </div>
+        </div>
+      </li>
+    </FocusItem>
+  );
+}
+
 function ProfileSouvenirs({
   souvenirs,
   total,
@@ -1788,123 +1935,18 @@ function ProfileSouvenirs({
               const isLikePending =
                 animatingLikeKeys.has(souvenirKey) ||
                 updatingLikeKeys.has(souvenirKey);
-              const visualVariant = getSouvenirVisualVariant(souvenir);
 
               return (
-                <FocusItem
+                <ProfileSouvenirCard
                   key={souvenirKey}
-                  id={getProfileSouvenirItemId(souvenirKey)}
-                  actions={{
-                    primary: () => onActivate(souvenir),
-                    secondary:
-                      canLike && !isLikePending
-                        ? () => handleLike(souvenir)
-                        : undefined,
-                  }}
-                  navigationOverrides={{
-                    up: upFocusId
-                      ? { type: "item", itemId: upFocusId }
-                      : { type: "block" },
-                    down: downFocusId
-                      ? { type: "item", itemId: downFocusId }
-                      : { type: "block" },
-                  }}
-                  asChild
-                >
-                  <li
-                    className={`profile-page__souvenir ${visualVariant ? `profile-page__souvenir--${visualVariant}` : ""}`}
-                  >
-                    <div className="profile-page__souvenir-image-frame">
-                      <span className="profile-page__souvenir-image-placeholder">
-                        <ImageIcon size={40} />
-                      </span>
-
-                      {souvenir.imageUrl ? (
-                        <img
-                          className="profile-page__souvenir-image"
-                          src={souvenir.imageUrl}
-                          alt={souvenir.displayName}
-                          draggable={false}
-                          loading="lazy"
-                          onError={hideBrokenPreviewImage}
-                        />
-                      ) : null}
-
-                      <div className="profile-page__souvenir-actions">
-                        <motion.button
-                          type="button"
-                          className={`profile-page__souvenir-action ${isLikePending ? "profile-page__souvenir-action--pending" : ""}`}
-                          disabled={!canLike || isLikePending}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleLike(souvenir);
-                          }}
-                          aria-label="Like souvenir"
-                          aria-pressed={souvenir.likedByMe}
-                          tabIndex={-1}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <HeartIcon
-                            size={18}
-                            weight={souvenir.likedByMe ? "fill" : "regular"}
-                          />
-                          <AnimatePresence mode="wait">
-                            <motion.span
-                              key={souvenir.likeCount}
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 10 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              {souvenir.likeCount}
-                            </motion.span>
-                          </AnimatePresence>
-                        </motion.button>
-                      </div>
-                    </div>
-
-                    <div className="profile-page__souvenir-copy">
-                      <span className="profile-page__souvenir-achievement-icon">
-                        <TrophyIcon size={22} />
-                        {souvenir.achievementIcon ? (
-                          <img
-                            className="profile-page__souvenir-achievement-icon-image"
-                            src={souvenir.achievementIcon}
-                            alt=""
-                            draggable={false}
-                            onError={hideBrokenPreviewImage}
-                          />
-                        ) : null}
-                      </span>
-
-                      <div className="profile-page__souvenir-text">
-                        <Typography className="profile-page__souvenir-name">
-                          {souvenir.displayName}
-                        </Typography>
-
-                        <div className="profile-page__souvenir-game-line">
-                          <span className="profile-page__souvenir-game-icon">
-                            <GameControllerIcon size={12} />
-                            {souvenir.gameIconUrl ? (
-                              <img
-                                className="profile-page__souvenir-game-icon-image"
-                                src={souvenir.gameIconUrl}
-                                alt=""
-                                draggable={false}
-                                onError={hideBrokenPreviewImage}
-                              />
-                            ) : null}
-                          </span>
-
-                          <Typography className="profile-page__souvenir-game">
-                            {souvenir.gameTitle ?? ""}
-                          </Typography>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                </FocusItem>
+                  souvenir={souvenir}
+                  canLike={canLike}
+                  isLikePending={isLikePending}
+                  upFocusId={upFocusId}
+                  downFocusId={downFocusId}
+                  onActivate={onActivate}
+                  onLike={handleLike}
+                />
               );
             })}
             {hasMore ? (

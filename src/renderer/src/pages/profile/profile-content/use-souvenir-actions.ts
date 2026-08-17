@@ -9,7 +9,7 @@ import {
   buildUserSouvenirLikePath,
   getSouvenirKey,
 } from "@shared";
-import type { ProfileAchievement, SouvenirVisibility } from "@types";
+import type { ProfileAchievement, ProfileVisibility } from "@types";
 
 interface UseSouvenirActionsOptions {
   ownerUserId: string | undefined;
@@ -87,7 +87,7 @@ export function useSouvenirActions({
       const key = getSouvenirKey(souvenir.gameId, souvenir.name);
       if (visibilityKeys.has(key)) return;
 
-      const visibility: SouvenirVisibility =
+      const visibility: ProfileVisibility =
         souvenir.visibility === "PRIVATE" ? "PUBLIC" : "PRIVATE";
       setVisibilityKeys((current) => new Set(current).add(key));
 
