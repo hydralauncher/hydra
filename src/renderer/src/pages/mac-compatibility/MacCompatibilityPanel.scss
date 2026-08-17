@@ -1,6 +1,8 @@
 @use "../../scss/globals.scss";
 
 .mac-compatibility-panel {
+  position: fixed;
+  inset: 0;
   width: 100%;
   min-height: 100%;
   display: flex;
@@ -9,11 +11,13 @@
   justify-content: center;
   padding: calc(globals.$spacing-unit * 5);
   box-sizing: border-box;
-  background: globals.$background-color;
+  background: rgba(0, 0, 0, 0.7);
   color: globals.$muted-color;
+  z-index: globals.$modal-z-index;
 }
 
 .mac-compatibility-panel__card {
+  position: relative;
   width: 100%;
   max-width: 560px;
   display: flex;
@@ -25,6 +29,26 @@
   border-radius: 16px;
   background: globals.$dark-background-color;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+}
+
+.mac-compatibility-panel__close {
+  position: absolute;
+  top: calc(globals.$spacing-unit * 3);
+  right: calc(globals.$spacing-unit * 3);
+  width: 32px;
+  height: 32px;
+  border: 1px solid globals.$border-color;
+  border-radius: 50%;
+  background: transparent;
+  color: globals.$muted-color;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    color: globals.$body-color;
+    border-color: globals.$body-color;
+  }
 }
 
 .mac-compatibility-panel__circle {
