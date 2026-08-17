@@ -1294,7 +1294,7 @@
     "autoplay_trailers_on_game_page": "Automatically start playing trailers on the game page",
     "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup",
     "downloads": "Downloads",
-    "create_shortcuts_on_download": "Create desktop and Start Menu shortcuts when a game finishes downloading",
+    "create_shortcuts_on_download": "Create shortcuts when a game finishes downloading",
     "default_wine_prefix": "Default Wine prefix location",
     "default_proton_version": "Default Proton version",
     "default_proton_version_description": "Select the Proton version used by Auto mode when a game has no custom override",
@@ -1867,7 +1867,10 @@
     "preflight_checking": "Checking dependencies",
     "preflight_downloading": "Downloading dependencies",
     "preflight_installing": "Installing dependencies",
-    "preflight_installing_detail": "{{detail}}"
+    "preflight_installing_detail": "{{detail}}",
+    "generating_achievements": "Generating achievements file",
+    "downloading_achievement_icons": "Downloading achievement icons",
+    "downloading_achievement_icons_detail": "Downloading achievement icons ({{detail}})"
   },
   "notifications_page": {
     "title": "Notifications",

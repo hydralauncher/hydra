@@ -52,6 +52,7 @@ export enum Cracker {
   flt = "FLT",
   rle = "RLE",
   razor1911 = "RAZOR1911",
+  ali213 = "ALI213",
 }
 
 export enum AuthPage {

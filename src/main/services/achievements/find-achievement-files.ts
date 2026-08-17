@@ -53,6 +53,12 @@ const getProgramDataPath = () => {
   return path.join("drive_c", "ProgramData");
 };
 
+const GAME_DIRECTORY_ONLY_CRACKERS = new Set([
+  Cracker.userstats,
+  Cracker._3dm,
+  Cracker.ali213,
+]);
+
 //TODO: change to a automatized method
 const publicDocuments = getPublicDocumentsPath();
 const programData = getProgramDataPath();
@@ -124,7 +130,7 @@ const getPathFromCracker = (cracker: Cracker) => {
     ];
   }
 
-  if (cracker === Cracker.userstats) {
+  if (GAME_DIRECTORY_ONLY_CRACKERS.has(cracker)) {
     return [];
   }
 
@@ -202,10 +208,6 @@ const getPathFromCracker = (cracker: Cracker) => {
     ];
   }
 
-  if (cracker === Cracker._3dm) {
-    return [];
-  }
-
   if (cracker === Cracker.flt) {
     return [
       // {
@@ -241,6 +243,11 @@ const getPathFromCracker = (cracker: Cracker) => {
   throw new Error(`Cracker ${cracker} not implemented`);
 };
 
+export const getEmulatorSaveFolders = (winePrefixPath = "") =>
+  getPathFromCracker(Cracker.goldberg).map(({ folderPath }) =>
+    path.join(winePrefixPath, folderPath)
+  );
+
 export const getAlternativeObjectIds = (objectId: string) => {
   // Dishonored
   if (objectId === "205100") {
@@ -274,10 +281,7 @@ export const findAchievementFiles = (game: Game) => {
     }
   }
 
-  const achievementFileInsideDirectory =
-    findAchievementFileInExecutableDirectory(game);
-
-  return achievementFiles.concat(achievementFileInsideDirectory);
+  return achievementFiles;
 };
 
 const steamUserIds = await getSteamUsersIds();
@@ -313,42 +317,6 @@ export const findAchievementFileInSteamPath = (game: Game) => {
   }
 
   return achievementFiles;
-};
-
-export const findAchievementFileInExecutableDirectory = (
-  game: Game
-): AchievementFile[] => {
-  if (!game.executablePath) {
-    return [];
-  }
-
-  const effectiveWinePrefixPath =
-    Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId) ?? "";
-
-  return [
-    {
-      type: Cracker.userstats,
-      filePath: path.join(
-        effectiveWinePrefixPath,
-        game.executablePath,
-        "..",
-        "SteamData",
-        "user_stats.ini"
-      ),
-    },
-    {
-      type: Cracker._3dm,
-      filePath: path.join(
-        effectiveWinePrefixPath,
-        game.executablePath,
-        "..",
-        "3DMGAME",
-        "Player",
-        "stats",
-        "achievements.ini"
-      ),
-    },
-  ].filter((file) => fs.existsSync(file.filePath)) as AchievementFile[];
 };
 
 const mapFileLocationWithObjectId = (
