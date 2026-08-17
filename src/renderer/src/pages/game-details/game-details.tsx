@@ -24,6 +24,7 @@ import { GameOptionsModal, RepacksModal } from "./modals";
 import { Downloader, getDownloadersForUri } from "@shared";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
 import { CloudSaveV2Provider } from "./cloud-save-v2";
+import { MacCompatibilityPanel } from "@renderer/pages/mac-compatibility/MacCompatibilityPanel";
 import "./game-details.scss";
 import "./hero.scss";
 
@@ -161,6 +162,15 @@ export default function GameDetails() {
 
                 <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
                   {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
+
+                  {!isLoading &&
+                    window.electron.platform === "darwin" && (
+                      <MacCompatibilityPanel
+                        gameName={gameTitle}
+                        shop={shop}
+                        objectId={objectId}
+                      />
+                    )}
 
                   <RepacksModal
                     visible={showRepacksModal}
