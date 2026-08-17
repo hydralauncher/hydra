@@ -4,7 +4,8 @@
     "src/main/**/*.test.ts",
     "src/main/**/*",
     "src/shared/**/*",
-    "src/types/**/*"
+    "src/types/**/*",
+    "src/renderer/src/mac-compatibility.d.ts"
   ],
   "compilerOptions": {
     "allowImportingTsExtensions": true,
