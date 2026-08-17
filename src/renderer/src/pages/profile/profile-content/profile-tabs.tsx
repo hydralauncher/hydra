@@ -8,6 +8,7 @@ interface ProfileTabsProps {
   activeTab: ProfileTabType;
   reviewsTotalCount: number;
   souvenirsCount: number;
+  showSouvenirs: boolean;
   onTabChange: (tab: ProfileTabType) => void;
 }
 
@@ -15,6 +16,7 @@ export function ProfileTabs({
   activeTab,
   reviewsTotalCount,
   souvenirsCount,
+  showSouvenirs,
   onTabChange,
 }: Readonly<ProfileTabsProps>) {
   const { t } = useTranslation("user_profile");
@@ -66,7 +68,7 @@ export function ProfileTabs({
           />
         )}
       </div>
-      {souvenirsCount > 0 && (
+      {showSouvenirs && (
         <div className="profile-content__tab-wrapper">
           <button
             type="button"
@@ -74,7 +76,11 @@ export function ProfileTabs({
             onClick={() => onTabChange("souvenirs")}
           >
             {t("souvenirs")}
-            <span className="profile-content__tab-badge">{souvenirsCount}</span>
+            {souvenirsCount > 0 && (
+              <span className="profile-content__tab-badge">
+                {souvenirsCount}
+              </span>
+            )}
           </button>
           {activeTab === "souvenirs" && (
             <motion.div

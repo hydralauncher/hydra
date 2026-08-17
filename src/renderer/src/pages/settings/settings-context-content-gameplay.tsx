@@ -6,6 +6,7 @@ import { settingsContext } from "@renderer/context";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { QuestionIcon } from "@primer/octicons-react";
+import { useLocation } from "react-router-dom";
 
 import "./settings-behavior.scss";
 
@@ -14,6 +15,7 @@ export function SettingsContextContentGameplay() {
   const { updateUserPreferences } = useContext(settingsContext);
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
+  const { hash } = useLocation();
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -47,6 +49,18 @@ export function SettingsContextContentGameplay() {
       classicsUseHeroLayout: userPreferences.classicsUseHeroLayout ?? false,
     });
   }, [userPreferences]);
+
+  useEffect(() => {
+    if (hash !== "#achievement-souvenirs") return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      const souvenirToggle = document.getElementById("achievement-souvenirs");
+      souvenirToggle?.scrollIntoView({ block: "center" });
+      souvenirToggle?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [hash, hasActiveSubscription]);
 
   const handleChange = (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
@@ -114,6 +128,7 @@ export function SettingsContextContentGameplay() {
           <>
             {hasActiveSubscription ? (
               <CheckboxField
+                id="achievement-souvenirs"
                 label={t("enable_achievement_souvenirs")}
                 checked={form.enableAchievementSouvenirs}
                 onChange={() =>
@@ -130,6 +145,7 @@ export function SettingsContextContentGameplay() {
                 onClick={() => showHydraCloudModal("achievements")}
               >
                 <CheckboxField
+                  id="achievement-souvenirs"
                   label={t("enable_achievement_souvenirs")}
                   checked={false}
                   disabled

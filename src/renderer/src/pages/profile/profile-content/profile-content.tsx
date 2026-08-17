@@ -1,7 +1,12 @@
 import { userProfileContext } from "@renderer/context";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
-import { useAppDispatch, useFormat, useUserDetails } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useFormat,
+  useUserDetails,
+} from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
@@ -24,6 +29,7 @@ import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
 import { AuthPage, getSouvenirKey } from "@shared";
+import { useNavigate } from "react-router-dom";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
@@ -98,6 +104,10 @@ export function ProfileContent() {
     removeSouvenir,
   } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
+  const navigate = useNavigate();
+  const souvenirsEnabled = useAppSelector(
+    (state) => state.userPreferences.value?.enableAchievementSouvenirs === true
+  );
   const [statsIndex, setStatsIndex] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
   const [platform, setPlatform] = useState<ProfilePlatform>("all");
@@ -420,6 +430,7 @@ export function ProfileContent() {
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
             souvenirsCount={souvenirsTotal}
+            showSouvenirs={isMe || souvenirsTotal > 0}
             onTabChange={setActiveTab}
           />
 
@@ -463,6 +474,10 @@ export function ProfileContent() {
                   canLike={Boolean(userDetails)}
                   hasMore={hasMoreSouvenirs}
                   isLoading={isLoadingSouvenirs}
+                  isEnabled={souvenirsEnabled}
+                  hasActiveSubscription={Boolean(
+                    userProfile.hasActiveSubscription
+                  )}
                   likingKeys={likingKeys}
                   onSouvenirClick={(item) =>
                     setOpenSouvenirKey(getSouvenirKey(item.gameId, item.name))
@@ -470,6 +485,11 @@ export function ProfileContent() {
                   onLikeClick={(item) => void likeSouvenir(item)}
                   onReload={getUserSouvenirs}
                   onLoadMore={loadMoreSouvenirs}
+                  onOpenSettings={() =>
+                    navigate(
+                      "/settings?tab=content_gameplay#achievement-souvenirs"
+                    )
+                  }
                 />
               )}
             </AnimatePresence>

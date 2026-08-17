@@ -160,9 +160,16 @@
   }
 
   &__souvenirs-empty {
-    padding: calc(globals.$spacing-unit * 2);
-    color: rgba(255, 255, 255, 0.8);
-    text-align: center;
+    margin-top: calc(36px + globals.$spacing-unit * 2);
+
+    &-action {
+      margin-top: globals.$spacing-unit;
+    }
+
+    &-hydra-icon {
+      width: 18px;
+      height: 18px;
+    }
   }
 
   &__souvenirs-group {
