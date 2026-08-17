@@ -14,6 +14,8 @@ interface MacCompatibilityPanelProps {
   shop?: string;
   objectId?: string;
   isWindowsGame?: boolean;
+  /** Shows a close button and calls this when it's clicked. */
+  onClose?: () => void;
 }
 
 type PanelAction = "test" | "fix" | "repair";
@@ -34,6 +36,7 @@ export function MacCompatibilityPanel({
   shop,
   objectId,
   isWindowsGame,
+  onClose,
 }: MacCompatibilityPanelProps) {
   const [searchParams] = useSearchParams();
 
@@ -193,6 +196,17 @@ export function MacCompatibilityPanel({
   return (
     <div className="mac-compatibility-panel">
       <div className="mac-compatibility-panel__card">
+        {onClose && (
+          <button
+            type="button"
+            className="mac-compatibility-panel__close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        )}
+
         <div className="mac-compatibility-panel__circle">
           <MacCompatibilityCircle
             status={toCircleStatus(status)}
