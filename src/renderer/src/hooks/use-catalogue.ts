@@ -5,8 +5,12 @@ import type { DownloadSource } from "@types";
 import { useAppDispatch } from "./redux";
 import { setGenres, setTags } from "@renderer/features";
 
+const EXTERNAL_RESOURCES_BASE_URL =
+  import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL ||
+  "https://assets.hydralauncher.gg";
+
 export const externalResourcesInstance = axios.create({
-  baseURL: import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL,
+  baseURL: EXTERNAL_RESOURCES_BASE_URL,
 });
 
 export function useCatalogue() {
@@ -17,27 +21,51 @@ export function useCatalogue() {
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
 
   const getSteamUserTags = useCallback(() => {
-    externalResourcesInstance.get("/steam-user-tags.json").then((response) => {
-      dispatch(setTags(response.data));
-    });
+    if (!EXTERNAL_RESOURCES_BASE_URL) return;
+    externalResourcesInstance
+      .get("/steam-user-tags.json")
+      .then((response) => {
+        if (response.data && typeof response.data === "object") {
+          dispatch(setTags(response.data));
+        }
+      })
+      .catch(() => {});
   }, [dispatch]);
 
   const getSteamGenres = useCallback(() => {
-    externalResourcesInstance.get("/steam-genres.json").then((response) => {
-      dispatch(setGenres(response.data));
-    });
+    if (!EXTERNAL_RESOURCES_BASE_URL) return;
+    externalResourcesInstance
+      .get("/steam-genres.json")
+      .then((response) => {
+        if (response.data && typeof response.data === "object") {
+          dispatch(setGenres(response.data));
+        }
+      })
+      .catch(() => {});
   }, [dispatch]);
 
   const getSteamPublishers = useCallback(() => {
-    externalResourcesInstance.get("/steam-publishers.json").then((response) => {
-      setSteamPublishers(response.data);
-    });
+    if (!EXTERNAL_RESOURCES_BASE_URL) return;
+    externalResourcesInstance
+      .get("/steam-publishers.json")
+      .then((response) => {
+        if (Array.isArray(response.data)) {
+          setSteamPublishers(response.data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const getSteamDevelopers = useCallback(() => {
-    externalResourcesInstance.get("/steam-developers.json").then((response) => {
-      setSteamDevelopers(response.data);
-    });
+    if (!EXTERNAL_RESOURCES_BASE_URL) return;
+    externalResourcesInstance
+      .get("/steam-developers.json")
+      .then((response) => {
+        if (Array.isArray(response.data)) {
+          setSteamDevelopers(response.data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const getDownloadSources = useCallback(() => {

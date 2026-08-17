@@ -1,0 +1,290 @@
+@use "../../scss/globals.scss";
+
+.add-custom-game {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2.5);
+  width: 100%;
+  min-width: 520px;
+  max-width: 660px;
+
+  // ── Top row: icon + fields ────────────────────────────────────────────────
+  &__top-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  &__icon-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  &__icon-picker {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1.5px dashed rgba(255, 255, 255, 0.15);
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &__icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+  }
+
+  &__icon-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.25);
+    pointer-events: none;
+  }
+
+  &__icon-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__fields {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    min-width: 0;
+  }
+
+  &__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+    margin-bottom: 6px;
+  }
+
+  &__executable {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__executable-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__path-input {
+    flex: 1;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: var(--color-text-primary, rgba(255, 255, 255, 0.9));
+    background: var(--color-input-bg, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    cursor: default;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    outline: none;
+    min-width: 0;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  // ── Assets section ────────────────────────────────────────────────────────
+  &__assets-section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__assets-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__assets-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  &__steamgriddb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+  }
+
+  // Layout: vertical cover (left) + logo/hero stack (right)
+  &__assets-layout {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  &__assets-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  // Shared slot
+  &__asset-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  &__asset-preview {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1.5px dashed rgba(255, 255, 255, 0.12);
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
+    outline: none;
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    // Vertical cover — full height of the column
+    &--cover {
+      aspect-ratio: 2 / 3;
+      width: 100%;
+    }
+  }
+
+  &__asset-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 6px;
+  }
+
+  &__asset-remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    color: rgba(255, 255, 255, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    z-index: 2;
+    border: none;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.9);
+      color: #fff;
+    }
+  }
+
+  &__asset-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+    padding: 12px 0;
+    min-height: 48px;
+  }
+
+  &__asset-ratio {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+  }
+
+  &__asset-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  &__asset-hint {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.32);
+    line-height: 1.3;
+  }
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: calc(globals.$spacing-unit * 0.5);
+  }
+}

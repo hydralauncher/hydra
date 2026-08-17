@@ -1214,6 +1214,8 @@ contextBridge.exposeInMainWorld("electron", {
   /* Hardware */
   getDiskFreeSpace: (path: string) =>
     ipcRenderer.invoke("getDiskFreeSpace", path),
+  checkFileExists: (path: string) =>
+    ipcRenderer.invoke("checkFileExists", path) as Promise<boolean>,
   checkFolderWritePermission: (path: string) =>
     ipcRenderer.invoke("checkFolderWritePermission", path),
   getNetworkInterfaces: () => ipcRenderer.invoke("getNetworkInterfaces"),

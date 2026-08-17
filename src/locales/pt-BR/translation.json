@@ -1017,6 +1017,7 @@
     "firmware_official_link": "Página oficial",
     "current_username": "Nome de usuário:",
     "downloads_path": "Diretório dos downloads",
+    "always_ask_download_location": "Sempre perguntar onde instalar",
     "change": "Explorar...",
     "notifications": "Notificações",
     "enable_download_notifications": "Quando um download for concluído",

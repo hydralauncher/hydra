@@ -1,0 +1,43 @@
+@use "../../scss/globals.scss";
+
+// ── Tab bar ────────────────────────────────────────────
+.downloads-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 1.5);
+
+  &__bar {
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 100px;
+    padding: 4px;
+    width: fit-content;
+  }
+
+  &__tab {
+    padding: 6px 18px;
+    border-radius: 100px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background 0.18s ease,
+      color 0.18s ease;
+    white-space: nowrap;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.95);
+    }
+  }
+}

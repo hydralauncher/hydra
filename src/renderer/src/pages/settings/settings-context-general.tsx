@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { changeLanguage } from "i18next";
 import { orderBy } from "lodash-es";
@@ -9,39 +9,18 @@ import {
   SelectField,
   TextField,
 } from "@renderer/components";
-import type { DownloadDirectoryPreference } from "@types";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import languageResources from "@locales";
-import {
-  prepareDefaultDownloadPathSync,
-  replaceSavedDownloadDirectoryAndSetDefault,
-} from "@shared";
-import { SettingsAppearance } from "./appearance/settings-appearance";
-import { DownloadDirectoryReplacementModal } from "./download-directory-replacement-modal";
+import { UnmuteIcon } from "@primer/octicons-react";
+import "./settings-general.scss";
 
 interface LanguageOption {
   option: string;
   nativeName: string;
 }
 
-interface SettingsContextGeneralProps {
-  appearance: {
-    theme: string | null;
-    authorId: string | null;
-    authorName: string | null;
-  };
-}
-
-interface DownloadDirectoryReplacementState {
-  nextPath: string;
-  replaceableDirectories: DownloadDirectoryPreference[];
-  selectedReplacementPath: string;
-}
-
-export function SettingsContextGeneral({
-  appearance,
-}: Readonly<SettingsContextGeneralProps>) {
+export function SettingsContextGeneral() {
   const { t } = useTranslation("settings");
   const { updateUserPreferences } = useContext(settingsContext);
 
@@ -52,8 +31,8 @@ export function SettingsContextGeneral({
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
   const [showRunAtStartup, setShowRunAtStartup] = useState(false);
-  const [downloadDirectoryReplacement, setDownloadDirectoryReplacement] =
-    useState<DownloadDirectoryReplacementState | null>(null);
+
+  const volumeUpdateTimeoutRef = useRef<NodeJS.Timeout>();
 
   const [form, setForm] = useState({
     downloadsPath: "",
@@ -62,8 +41,10 @@ export function SettingsContextGeneral({
     runAtStartup: false,
     startMinimized: false,
     hideToTrayOnGameStart: false,
-    launchToLibraryPage: false,
     enableAutoInstall: false,
+    backgroundMusicEnabled: false,
+    backgroundMusicVolume: 15,
+    alwaysAskDownloadLocation: false,
   });
 
   useEffect(() => {
@@ -107,10 +88,24 @@ export function SettingsContextGeneral({
       runAtStartup: userPreferences.runAtStartup ?? false,
       startMinimized: userPreferences.startMinimized ?? false,
       hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
-      launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
       enableAutoInstall: userPreferences.enableAutoInstall ?? false,
+      backgroundMusicEnabled: userPreferences.backgroundMusicEnabled ?? false,
+      backgroundMusicVolume: Math.round(
+        (userPreferences.backgroundMusicVolume ?? 0.15) * 100
+      ),
+      alwaysAskDownloadLocation:
+        userPreferences.alwaysAskDownloadLocation ?? false,
     });
   }, [userPreferences, defaultDownloadsPath]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (volumeUpdateTimeoutRef.current) {
+        clearTimeout(volumeUpdateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleChange = (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
@@ -125,65 +120,30 @@ export function SettingsContextGeneral({
     changeLanguage(value);
   };
 
+  const handleMusicVolumeChange = useCallback(
+    (newVolume: number) => {
+      setForm((prev) => ({ ...prev, backgroundMusicVolume: newVolume }));
+
+      if (volumeUpdateTimeoutRef.current) {
+        clearTimeout(volumeUpdateTimeoutRef.current);
+      }
+
+      volumeUpdateTimeoutRef.current = setTimeout(() => {
+        updateUserPreferences({ backgroundMusicVolume: newVolume / 100 });
+      }, 300);
+    },
+    [updateUserPreferences]
+  );
+
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       defaultPath: form.downloadsPath,
       properties: ["openDirectory"],
     });
 
-    const path = filePaths?.[0];
-
-    if (!path || !defaultDownloadsPath) {
-      return;
+    if (filePaths && filePaths.length > 0) {
+      handleChange({ downloadsPath: filePaths[0] });
     }
-
-    const nextAction = prepareDefaultDownloadPathSync(
-      userPreferences,
-      path,
-      defaultDownloadsPath
-    );
-
-    if (nextAction.type === "noop") {
-      return;
-    }
-
-    if (
-      nextAction.type === "set-existing" ||
-      nextAction.type === "add-and-set"
-    ) {
-      setForm((prev) => ({
-        ...prev,
-        downloadsPath: nextAction.nextDefaultPath,
-      }));
-      await updateUserPreferences(nextAction.nextPreferences);
-      return;
-    }
-
-    setDownloadDirectoryReplacement({
-      nextPath: nextAction.nextPath,
-      replaceableDirectories: nextAction.replaceableDirectories,
-      selectedReplacementPath: nextAction.recommendedReplacementPath,
-    });
-  };
-
-  const handleConfirmDownloadDirectoryReplacement = async () => {
-    if (!downloadDirectoryReplacement || !defaultDownloadsPath) {
-      return;
-    }
-
-    const replacement = replaceSavedDownloadDirectoryAndSetDefault(
-      userPreferences,
-      downloadDirectoryReplacement.nextPath,
-      downloadDirectoryReplacement.selectedReplacementPath,
-      defaultDownloadsPath
-    );
-
-    setForm((prev) => ({
-      ...prev,
-      downloadsPath: replacement.nextDefaultPath,
-    }));
-    setDownloadDirectoryReplacement(null);
-    await updateUserPreferences(replacement.nextPreferences);
   };
 
   return (
@@ -191,28 +151,42 @@ export function SettingsContextGeneral({
       <div className="settings-context-panel__group">
         <h3>{t("app_basics")}</h3>
 
-        <TextField
-          label={t("downloads_path")}
-          value={form.downloadsPath}
-          readOnly
-          disabled
-          rightContent={
-            <Button theme="outline" onClick={handleChooseDownloadsPath}>
-              {t("change")}
-            </Button>
-          }
-        />
+        <div className="settings-context-panel__row">
+          <SelectField
+            label={t("language")}
+            value={form.language}
+            onChange={handleLanguageChange}
+            options={languageOptions.map((language) => ({
+              key: language.option,
+              value: language.option,
+              label: language.nativeName,
+            }))}
+          />
 
-        <SelectField
-          label={t("language")}
-          value={form.language}
-          onChange={handleLanguageChange}
-          options={languageOptions.map((language) => ({
-            key: language.option,
-            value: language.option,
-            label: language.nativeName,
-          }))}
-        />
+          <div className="settings-context-panel__row__col">
+            <TextField
+              label={t("downloads_path")}
+              value={form.downloadsPath}
+              readOnly
+              disabled
+              rightContent={
+                <Button theme="outline" onClick={handleChooseDownloadsPath}>
+                  {t("change")}
+                </Button>
+              }
+            />
+
+            <CheckboxField
+              label={t("always_ask_download_location")}
+              checked={form.alwaysAskDownloadLocation}
+              onChange={() =>
+                handleChange({
+                  alwaysAskDownloadLocation: !form.alwaysAskDownloadLocation,
+                })
+              }
+            />
+          </div>
+        </div>
       </div>
 
       <div className="settings-context-panel__group">
@@ -267,16 +241,6 @@ export function SettingsContextGeneral({
             }}
           />
         )}
-
-        <CheckboxField
-          label={t("launch_hydra_in_library_page")}
-          checked={form.launchToLibraryPage}
-          onChange={() =>
-            handleChange({
-              launchToLibraryPage: !form.launchToLibraryPage,
-            })
-          }
-        />
       </div>
 
       {window.electron.platform === "linux" && (
@@ -294,30 +258,55 @@ export function SettingsContextGeneral({
       )}
 
       <div className="settings-context-panel__group">
-        <h3>{t("appearance")}</h3>
-        <SettingsAppearance appearance={appearance} />
-      </div>
+        <h3>{t("audio", { defaultValue: "Áudio" })}</h3>
 
-      <DownloadDirectoryReplacementModal
-        visible={downloadDirectoryReplacement !== null}
-        nextPath={downloadDirectoryReplacement?.nextPath ?? ""}
-        directories={downloadDirectoryReplacement?.replaceableDirectories ?? []}
-        selectedReplacementPath={
-          downloadDirectoryReplacement?.selectedReplacementPath ?? ""
-        }
-        onSelectedReplacementPathChange={(path) => {
-          setDownloadDirectoryReplacement((current) =>
-            current
-              ? {
-                  ...current,
-                  selectedReplacementPath: path,
+        <CheckboxField
+          label={t("background_music_enabled", {
+            defaultValue: "Habilitar Musica de Fundo",
+          })}
+          checked={form.backgroundMusicEnabled}
+          onChange={() =>
+            handleChange({
+              backgroundMusicEnabled: !form.backgroundMusicEnabled,
+            })
+          }
+        />
+
+        {form.backgroundMusicEnabled && (
+          <div className="settings-general__volume-control">
+            <label htmlFor="music-volume">
+              {t("background_music_volume", {
+                defaultValue: "Volume da M\u00fasica",
+              })}
+            </label>
+            <div className="settings-general__volume-slider-wrapper">
+              <UnmuteIcon size={16} className="settings-general__volume-icon" />
+              <input
+                id="music-volume"
+                type="range"
+                min="0"
+                max="100"
+                value={form.backgroundMusicVolume}
+                onChange={(e) => {
+                  const volumePercent = parseInt(e.target.value, 10);
+                  if (!isNaN(volumePercent)) {
+                    handleMusicVolumeChange(volumePercent);
+                  }
+                }}
+                className="settings-general__volume-slider"
+                style={
+                  {
+                    "--volume-percent": `${form.backgroundMusicVolume}%`,
+                  } as React.CSSProperties
                 }
-              : current
-          );
-        }}
-        onClose={() => setDownloadDirectoryReplacement(null)}
-        onConfirm={handleConfirmDownloadDirectoryReplacement}
-      />
+              />
+              <span className="settings-general__volume-value">
+                {form.backgroundMusicVolume}%
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

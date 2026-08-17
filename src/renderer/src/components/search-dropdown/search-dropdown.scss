@@ -5,15 +5,17 @@
   top: 111px;
   left: 0;
   width: 100vw;
-  height: auto;
+  height: calc(100vh - 111px);
   max-height: calc(100vh - 111px);
   background: transparent;
-  z-index: 1000;
+  z-index: 1501;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 16px 0 32px 0;
   -webkit-app-region: no-drag;
+  pointer-events: auto;
+  overflow-y: auto;
 
   &__input-container {
     width: 440px;

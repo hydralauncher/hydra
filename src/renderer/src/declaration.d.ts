@@ -105,6 +105,11 @@ declare global {
     export default content;
   }
 
+  declare module "*.wav" {
+    const src: string;
+    export default src;
+  }
+
   type FileExplorerEntry = {
     name: string;
     path: string;

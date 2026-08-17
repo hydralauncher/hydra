@@ -39,7 +39,12 @@ export function RecentGamesBox() {
       objectId: game.objectId,
     });
 
-  if (!userProfile?.recentGames.length) return null;
+  if (
+    !userProfile ||
+    !userProfile.recentGames ||
+    userProfile.recentGames.length === 0
+  )
+    return null;
 
   return (
     <div className="recent-games__box">

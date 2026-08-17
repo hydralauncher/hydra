@@ -1,0 +1,70 @@
+@use "../../scss/globals.scss";
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+
+  &__track {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease;
+    flex-shrink: 0;
+
+    &--checked {
+      background: globals.$brand-teal;
+      border-color: globals.$brand-teal;
+    }
+  }
+
+  &__thumb {
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transition:
+      left 0.2s ease,
+      background 0.2s ease;
+
+    &--checked {
+      left: calc(100% - 16px);
+      background: #fff;
+    }
+  }
+
+  &__label {
+    font-size: globals.$body-font-size;
+    color: globals.$body-color;
+    transition: color 0.2s ease;
+
+    &--checked {
+      color: globals.$muted-color;
+    }
+  }
+
+  &:hover &__track:not(&__track--checked) {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  // input nativo escondido para acessibilidade
+  &__input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+}

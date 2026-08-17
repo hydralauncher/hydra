@@ -20,7 +20,8 @@ export function useSearchSuggestions(
   query: string,
   isOnLibraryPage: boolean,
   enabled: boolean = true,
-  shop: SuggestionShop = "steam"
+  shop: SuggestionShop = "steam",
+  limit: number = 10
 ) {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,14 +40,14 @@ export function useSearchSuggestions(
   );
 
   const getLibrarySuggestions = useCallback(
-    (searchQuery: string, limit: number = 3): SearchSuggestion[] => {
+    (searchQuery: string, limitCount: number = 10): SearchSuggestion[] => {
       const normalizedQuery = searchQuery.trim().toLowerCase();
       if (normalizedQuery.length < 2) return [];
 
       const matches: SearchSuggestion[] = [];
 
       for (const { game, titleLower } of librarySearchIndex) {
-        if (matches.length >= limit) break;
+        if (matches.length >= limitCount) break;
 
         if (titleLower.includes(normalizedQuery)) {
           matches.push({
@@ -90,7 +91,7 @@ export function useSearchSuggestions(
   const fetchCatalogueSuggestions = useCallback(
     async (
       searchQuery: string,
-      limit: number = 3,
+      limitCount: number = 10,
       shopParam: SuggestionShop = "steam"
     ) => {
       if (!searchQuery.trim() || searchQuery.length < 2) {
@@ -99,7 +100,7 @@ export function useSearchSuggestions(
         return;
       }
 
-      const cacheKey = `${searchQuery.toLowerCase()}_${limit}_${shopParam}`;
+      const cacheKey = `${searchQuery.toLowerCase()}_${limitCount}_${shopParam}`;
       const cachedResults = cacheRef.current.get(cacheKey);
 
       if (cachedResults) {
@@ -125,7 +126,7 @@ export function useSearchSuggestions(
         >("/catalogue/search/suggestions", {
           params: {
             query: searchQuery,
-            limit,
+            limit: limitCount,
             shop: shopParam,
           },
           needsAuth: false,
@@ -170,11 +171,11 @@ export function useSearchSuggestions(
     }
 
     if (isOnLibraryPage) {
-      const librarySuggestions = getLibrarySuggestions(query, 3);
+      const librarySuggestions = getLibrarySuggestions(query, limit);
       setSuggestions(librarySuggestions);
       setIsLoading(false);
     } else {
-      debouncedFetchCatalogue(query, 3, shop);
+      debouncedFetchCatalogue(query, limit, shop);
     }
 
     return () => {
@@ -186,6 +187,7 @@ export function useSearchSuggestions(
     isOnLibraryPage,
     enabled,
     shop,
+    limit,
     getLibrarySuggestions,
     debouncedFetchCatalogue,
   ]);

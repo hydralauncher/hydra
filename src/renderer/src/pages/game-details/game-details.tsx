@@ -5,8 +5,7 @@ import type { GameRepack, GameShop, Steam250Game } from "@types";
 
 import { Button, ConfirmationModal } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
-
-import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
+import { GiftIcon } from "@primer/octicons-react";
 
 import { useTranslation } from "react-i18next";
 import { SkeletonTheme } from "react-loading-skeleton";
@@ -23,7 +22,6 @@ import { useDownload } from "@renderer/hooks";
 import { GameOptionsModal, RepacksModal } from "./modals";
 import { Downloader, getDownloadersForUri } from "@shared";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
-import { CloudSaveV2Provider } from "./cloud-save-v2";
 import "./game-details.scss";
 import "./hero.scss";
 
@@ -109,23 +107,39 @@ export default function GameDetails() {
             automaticallyDeleteArchiveFiles = false,
             signal?: AbortSignal
           ) => {
-            const payload = {
-              objectId: objectId!,
-              title: gameTitle,
-              downloader,
-              shop,
-              downloadPath,
-              uri: selectRepackUri(repack, downloader),
-              automaticallyExtract,
-              automaticallyDeleteArchiveFiles,
-              fileSize: repack.fileSize,
-              fileIndices,
-              selectedFilesSize,
-            };
-
             const response = addToQueueOnly
-              ? await addGameToQueue(payload, signal)
-              : await startDownload(payload, signal);
+              ? await addGameToQueue(
+                  {
+                    objectId: objectId!,
+                    title: gameTitle,
+                    downloader,
+                    shop,
+                    downloadPath,
+                    uri: selectRepackUri(repack, downloader),
+                    automaticallyExtract,
+                    automaticallyDeleteArchiveFiles,
+                    fileSize: repack.fileSize,
+                    fileIndices,
+                    selectedFilesSize,
+                  },
+                  signal
+                )
+              : await startDownload(
+                  {
+                    objectId: objectId!,
+                    title: gameTitle,
+                    downloader,
+                    shop,
+                    downloadPath,
+                    uri: selectRepackUri(repack, downloader),
+                    automaticallyExtract,
+                    automaticallyDeleteArchiveFiles,
+                    fileSize: repack.fileSize,
+                    fileIndices,
+                    selectedFilesSize,
+                  },
+                  signal
+                );
 
             if (response.ok) {
               await updateGame();
@@ -143,77 +157,66 @@ export default function GameDetails() {
           };
 
           return (
-            <CloudSaveV2Provider objectId={objectId!} shop={shop}>
-              <CloudSyncContextProvider objectId={objectId!} shop={shop}>
-                <CloudSyncContextConsumer>
-                  {({
-                    showCloudSyncFilesModal,
-                    setShowCloudSyncFilesModal,
-                  }) => (
-                    <>
-                      <CloudSyncFilesModal
-                        onClose={() => setShowCloudSyncFilesModal(false)}
-                        visible={showCloudSyncFilesModal}
-                      />
-                    </>
-                  )}
-                </CloudSyncContextConsumer>
-
-                <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
-                  {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
-
-                  <RepacksModal
-                    visible={showRepacksModal}
-                    startDownload={handleStartDownload}
-                    onClose={() => setShowRepacksModal(false)}
-                  />
-
-                  <ConfirmationModal
-                    visible={hasNSFWContentBlocked}
-                    onClose={handleNSFWContentRefuse}
-                    title={t("nsfw_content_title")}
-                    descriptionText={t("nsfw_content_description", {
-                      title: gameTitle,
-                    })}
-                    confirmButtonLabel={t("allow_nsfw_content")}
-                    cancelButtonLabel={t("refuse_nsfw_content")}
-                    onConfirm={() => setHasNSFWContentBlocked(false)}
-                    clickOutsideToClose={false}
-                  />
-
-                  {game && (
-                    <GameOptionsModal
-                      visible={showGameOptionsModal}
-                      game={game}
-                      onClose={() => {
-                        setShowGameOptionsModal(false);
-                        setGameOptionsInitialCategory("general");
-                      }}
-                      initialCategory={gameOptionsInitialCategory}
-                      onNavigateHome={() => navigate("/")}
+            <CloudSyncContextProvider objectId={objectId!} shop={shop}>
+              <CloudSyncContextConsumer>
+                {({ showCloudSyncFilesModal, setShowCloudSyncFilesModal }) => (
+                  <>
+                    <CloudSyncFilesModal
+                      onClose={() => setShowCloudSyncFilesModal(false)}
+                      visible={showCloudSyncFilesModal}
                     />
-                  )}
+                  </>
+                )}
+              </CloudSyncContextConsumer>
 
-                  {fromRandomizer && (
-                    <Button
-                      className="game-details__randomizer-button"
-                      onClick={handleRandomizerClick}
-                      theme="outline"
-                      disabled={!randomGame || randomizerLocked}
-                    >
-                      <div className="game-details__stars-icon-container">
-                        <img
-                          src={starsIconAnimated}
-                          alt=""
-                          className="game-details__stars-icon"
-                        />
-                      </div>
-                      {t("next_suggestion")}
-                    </Button>
-                  )}
-                </SkeletonTheme>
-              </CloudSyncContextProvider>
-            </CloudSaveV2Provider>
+              <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
+                {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
+
+                <RepacksModal
+                  visible={showRepacksModal}
+                  startDownload={handleStartDownload}
+                  onClose={() => setShowRepacksModal(false)}
+                />
+
+                <ConfirmationModal
+                  visible={hasNSFWContentBlocked}
+                  onClose={handleNSFWContentRefuse}
+                  title={t("nsfw_content_title")}
+                  descriptionText={t("nsfw_content_description", {
+                    title: gameTitle,
+                  })}
+                  confirmButtonLabel={t("allow_nsfw_content")}
+                  cancelButtonLabel={t("refuse_nsfw_content")}
+                  onConfirm={() => setHasNSFWContentBlocked(false)}
+                  clickOutsideToClose={false}
+                />
+
+                {game && (
+                  <GameOptionsModal
+                    visible={showGameOptionsModal}
+                    game={game}
+                    onClose={() => {
+                      setShowGameOptionsModal(false);
+                      setGameOptionsInitialCategory("general");
+                    }}
+                    initialCategory={gameOptionsInitialCategory}
+                    onNavigateHome={() => navigate("/")}
+                  />
+                )}
+
+                {fromRandomizer && (
+                  <Button
+                    className="game-details__randomizer-button"
+                    onClick={handleRandomizerClick}
+                    theme="primary"
+                    disabled={!randomGame || randomizerLocked}
+                  >
+                    <GiftIcon size={16} />
+                    {t("next_suggestion")}
+                  </Button>
+                )}
+              </SkeletonTheme>
+            </CloudSyncContextProvider>
           );
         }}
       </GameDetailsContextConsumer>

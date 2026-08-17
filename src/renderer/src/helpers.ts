@@ -742,3 +742,6 @@ export const filterLibraryGamesByCategory = (
 
   return games;
 };
+
+export * from "./helpers/download-sources-priority";
+export * from "./helpers/download-version";

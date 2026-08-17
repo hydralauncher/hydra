@@ -157,6 +157,18 @@
     font-size: 13px;
     width: auto;
     flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(28px) !important;
+    -webkit-backdrop-filter: blur(28px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
+      transform: translateY(-1px);
+    }
   }
 
   &__indicators {

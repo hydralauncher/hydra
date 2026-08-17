@@ -1,0 +1,260 @@
+@use "../../scss/globals.scss";
+
+/* ── App-Level Modal Styling ─────────────────────────────── */
+.decoration-picker-modal {
+  width: 960px !important;
+  max-width: 95vw !important;
+
+  .modal__content {
+    overflow: hidden !important;
+  }
+
+  .text-field-container__text-field {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 100px !important;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.25) !important;
+    }
+    &--focused {
+      border-color: rgba(255, 255, 255, 0.45) !important;
+    }
+  }
+
+  .button {
+    border-radius: 100px !important;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+}
+
+.decoration-picker {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  height: 60vh;
+  max-height: 580px;
+  min-height: 400px;
+
+  /* ── Sidebar ─────────────────────────────────────────────── */
+  &__sidebar {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    padding-right: 16px;
+    flex-shrink: 0;
+
+    .text-field-container {
+      flex: none; /* Corrige o espaço gigante causado pelo flex: 1 nativo do componente TextField */
+    }
+  }
+
+  &__categories {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+  }
+
+  &__category-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    border: 1px solid transparent;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: left;
+    padding: 9px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.95);
+    }
+  }
+
+  &__sidebar-footer {
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* ── Main Area ───────────────────────────────────────────── */
+  &__main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__main-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  &__main-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: globals.$body-color;
+    letter-spacing: 0.2px;
+  }
+
+  &__count {
+    font-size: 0.75rem;
+    color: globals.$muted-color;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+  }
+
+  /* ── Grid ─────────────────────────────────────────────────── */
+  &__grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 12px;
+    overflow-y: auto;
+    padding-right: 8px;
+    align-items: start;
+    align-content: start; /* Impede esticar os cards verticalmente se houver poucos itens */
+
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+  }
+
+  &__empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: globals.$muted-color;
+    font-size: 0.875rem;
+    padding: 40px 0;
+  }
+
+  /* ── Item card ─────────────────────────────────────────────── */
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+      transform: translateY(-2px);
+    }
+
+    &--active {
+      border-color: globals.$brand-teal;
+      background: rgba(globals.$brand-teal, 0.08);
+      box-shadow: 0 4px 12px rgba(globals.$brand-teal, 0.1);
+    }
+  }
+
+  &__item-preview {
+    width: 68px; /* Slightly larger to fit the 54 avatar ratio perfectly (54 * 1.25) */
+    height: 68px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+
+    &::before {
+      content: "";
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      z-index: 0;
+      transition: background 0.15s;
+    }
+  }
+
+  &__item:hover &__item-preview::before {
+    background: transparent;
+  }
+
+  &__item-avatar-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  &__item-decoration-img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 2;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+
+  &__item-label {
+    font-size: 0.72rem;
+    color: globals.$muted-color;
+    text-align: center;
+    line-height: 1.3;
+    max-width: 82px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2; /* Allow up to 2 lines instead of aggressive nowrap */
+    -webkit-box-orient: vertical;
+    white-space: normal;
+  }
+}

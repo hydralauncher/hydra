@@ -1,69 +1,106 @@
-import { motion } from "framer-motion";
+import { Button } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import "./profile-content.scss";
 
-export type ProfileTabType = "library" | "reviews";
+export type ProfileTabType =
+  | "library"
+  | "reviews"
+  | "stats"
+  | "friends"
+  | "activity";
 
 interface ProfileTabsProps {
   activeTab: ProfileTabType;
   reviewsTotalCount: number;
   onTabChange: (tab: ProfileTabType) => void;
+  showFriendsTab?: boolean;
+  showActivityTab?: boolean;
+  isBgLight?: boolean;
 }
 
 export function ProfileTabs({
   activeTab,
   reviewsTotalCount,
   onTabChange,
+  showFriendsTab,
+  showActivityTab,
+  isBgLight = false,
 }: Readonly<ProfileTabsProps>) {
   const { t } = useTranslation("user_profile");
 
   return (
-    <div className="profile-content__tabs">
-      <div className="profile-content__tab-wrapper">
-        <button
-          type="button"
-          className={`profile-content__tab ${activeTab === "library" ? "profile-content__tab--active" : ""}`}
+    <ul className="profile-content__home-style-tabs">
+      <li>
+        <Button
+          theme={
+            activeTab === "library"
+              ? isBgLight
+                ? "dark"
+                : "primary"
+              : "outline"
+          }
           onClick={() => onTabChange("library")}
         >
-          {t("library")}
-        </button>
-        {activeTab === "library" && (
-          <motion.div
-            className="profile-content__tab-underline"
-            layoutId="tab-underline"
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-            }}
-          />
-        )}
-      </div>
-      <div className="profile-content__tab-wrapper">
-        <button
-          type="button"
-          className={`profile-content__tab ${activeTab === "reviews" ? "profile-content__tab--active" : ""}`}
+          {t("library", { defaultValue: "Biblioteca" })}
+        </Button>
+      </li>
+      <li>
+        <Button
+          theme={
+            activeTab === "reviews"
+              ? isBgLight
+                ? "dark"
+                : "primary"
+              : "outline"
+          }
           onClick={() => onTabChange("reviews")}
         >
-          {t("user_reviews")}
-          {reviewsTotalCount > 0 && (
-            <span className="profile-content__tab-badge">
-              {reviewsTotalCount}
-            </span>
-          )}
-        </button>
-        {activeTab === "reviews" && (
-          <motion.div
-            className="profile-content__tab-underline"
-            layoutId="tab-underline"
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-            }}
-          />
-        )}
-      </div>
-    </div>
+          {t("user_reviews", { defaultValue: "Avaliações" })}
+          {reviewsTotalCount > 0 && ` (${reviewsTotalCount})`}
+        </Button>
+      </li>
+      <li>
+        <Button
+          theme={
+            activeTab === "stats" ? (isBgLight ? "dark" : "primary") : "outline"
+          }
+          onClick={() => onTabChange("stats")}
+        >
+          {t("stats", { defaultValue: "Estatísticas" })}
+        </Button>
+      </li>
+      {showFriendsTab && (
+        <li>
+          <Button
+            theme={
+              activeTab === "friends"
+                ? isBgLight
+                  ? "dark"
+                  : "primary"
+                : "outline"
+            }
+            onClick={() => onTabChange("friends")}
+          >
+            {t("friends", { defaultValue: "Amigos" })}
+          </Button>
+        </li>
+      )}
+      {showActivityTab && (
+        <li>
+          <Button
+            theme={
+              activeTab === "activity"
+                ? isBgLight
+                  ? "dark"
+                  : "primary"
+                : "outline"
+            }
+            onClick={() => onTabChange("activity")}
+          >
+            {t("activity", { defaultValue: "Atividade" })}
+          </Button>
+        </li>
+      )}
+    </ul>
   );
 }

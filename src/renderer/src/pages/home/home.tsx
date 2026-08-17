@@ -627,6 +627,7 @@ export default function Home() {
       for (const game of installed) {
         if (!isMounted) break;
         try {
+          if (typeof window.electron?.checkFileExists !== "function") break;
           const exists = await window.electron.checkFileExists(
             game.executablePath!
           );
@@ -1459,11 +1460,6 @@ export default function Home() {
                         onClick={() => {
                           if (dragRef.current.hasDragged) return;
                           setSelectedIndex(index);
-                          const widgetBtn =
-                            document.querySelector<HTMLButtonElement>(
-                              "[data-open-workwonders-changelog-mini], [data-open-workwonders-changelog]"
-                            );
-                          if (widgetBtn) widgetBtn.click();
                         }}
                         aria-label={t("bem_vindo", {
                           defaultValue: "Bem-vindo",
@@ -1491,7 +1487,6 @@ export default function Home() {
                         onClick={() => {
                           if (dragRef.current.hasDragged) return;
                           setSelectedIndex(index);
-                          navigate("/library");
                         }}
                         aria-label={t("acessar_biblioteca", {
                           defaultValue: "Acessar Biblioteca",
@@ -1519,7 +1514,6 @@ export default function Home() {
                         onClick={() => {
                           if (dragRef.current.hasDragged) return;
                           setSelectedIndex(index);
-                          navigate("/library?collection=new");
                         }}
                         aria-label={t("criar_pasta", {
                           defaultValue: "Criar pasta",
@@ -1580,15 +1574,6 @@ export default function Home() {
                           return;
                         }
                         setSelectedIndex(index);
-                      }}
-                      onDoubleClick={() => {
-                        if (isSelectingGames) return;
-                        if (isFolder) {
-                          setOpenedGroup(folder);
-                          setSelectedIndex(0);
-                        } else {
-                          navigate(buildGameDetailsPath(game!));
-                        }
                       }}
                       style={
                         index === selectedIndex && !isFolder

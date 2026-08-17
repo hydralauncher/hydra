@@ -1,0 +1,62 @@
+@use "../../scss/globals.scss";
+
+.downloads-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  &__title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+  }
+
+  &__title {
+    font-size: 15px;
+    font-weight: 500;
+    color: #ffffff;
+    margin: 0;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+  }
+
+  &__count {
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 400;
+  }
+
+  &__line {
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &__subtext {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    white-space: nowrap;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+
+  &__empty {
+    padding: 16px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.35);
+  }
+}

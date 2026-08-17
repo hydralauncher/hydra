@@ -1,0 +1,480 @@
+@use "../../../../scss/globals.scss";
+
+.cz {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  // ── Section ────────────────────────────────────────────────────
+  &__section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    position: relative;
+  }
+
+  // ── Opções: sem borda nem preenchimento ─────────────────────────
+  &__options {
+    background: none;
+    border: none;
+    border-radius: 0;
+    position: relative;
+  }
+
+  &__section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.3);
+    padding: 10px 16px 4px;
+    margin: 0;
+  }
+
+  &__section-body {
+    padding: 10px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__section-grid {
+    padding: 10px 16px 14px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
+  }
+
+  // ── Controls ────────────────────────────────────────────────────
+  &__prop {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  &__prop-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: capitalize;
+  }
+
+  &__prop-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__prop-val {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.45);
+    min-width: 36px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    height: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    cursor: pointer;
+    outline: none;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      background: rgba(255, 255, 255, 0.55);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.1s;
+
+      &:hover {
+        transform: scale(1.25);
+      }
+    }
+  }
+
+  &__color-input {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    padding: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+
+    &::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    &::-webkit-color-swatch {
+      border: none;
+      border-radius: 4px;
+    }
+  }
+
+  &__url-input {
+    width: 100%;
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.25);
+    }
+    &:focus {
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+  }
+
+  &__media-or {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.25);
+    text-align: center;
+    display: block;
+  }
+
+  &__prop-toggle {
+    flex-direction: row !important;
+    justify-content: space-between;
+    align-items: center;
+
+    .cz__prop-label {
+      flex: 1;
+    }
+  }
+
+  // ── Options row (linha única: randomize | save) ─────────────────
+  &__options-row {
+    flex-direction: row !important;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  // ── Save inline: empurra para a direita ──────────────────────────
+  &__save-inline {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-left: auto;
+
+    .text-field {
+      flex: 1;
+      min-width: 140px;
+    }
+  }
+
+  // ── Randomizer row (legado – mantido para compatibilidade) ───────
+  &__randomizer-row {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  // ── Background ──────────────────────────────────────────────────
+  &__bg-toggle {
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 100px;
+    padding: 3px;
+    width: fit-content;
+    margin-bottom: 4px;
+  }
+
+  &__bg-tab {
+    padding: 5px 14px;
+    border-radius: 100px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+    &--active {
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.95);
+    }
+  }
+
+  // ── Media picker ─────────────────────────────────────────────────
+  &__media-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__media-preview {
+    position: relative;
+    width: 100%;
+    max-height: 120px;
+    border-radius: 8px;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+  }
+
+  &__media-clear {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 11px;
+    padding: 3px 8px;
+    cursor: pointer;
+  }
+
+  &__media-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 14px;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition:
+      border-color 0.15s,
+      color 0.15s;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  &__media-input {
+    display: none;
+  }
+
+  // ── Save row ─────────────────────────────────────────────────────
+  &__save-row {
+    flex-direction: row !important;
+    align-items: flex-end;
+    gap: 8px !important;
+
+    .text-field {
+      flex: 1;
+    }
+  }
+
+  &__saved-list {
+    padding: 0 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__saved-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 0.12s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &__saved-name {
+    flex: 1;
+    text-align: left;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 12.5px;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover {
+      color: #fff;
+    }
+  }
+
+  &__saved-delete {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    transition: color 0.12s;
+
+    &:hover {
+      color: rgba(200, 60, 60, 0.9);
+    }
+  }
+  // \u2500\u2500 Preview strip \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  &__preview {
+    padding: 8px 16px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__preview-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.25);
+    margin: 0;
+  }
+
+  &__preview-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  // Botão de preview (div para evitar border nativa do browser)
+  &__prev-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 18px;
+    min-height: 36px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: inherit;
+    cursor: default;
+    pointer-events: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+
+  // Input fake de preview
+  &__prev-input {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 12px;
+    height: 36px;
+    min-width: 160px;
+    flex: 1;
+  }
+
+  &__prev-placeholder {
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.3);
+    font-family: inherit;
+    pointer-events: none;
+  }
+
+  // Game card de preview (Cyberpunk 2077)
+  &__prev-game-card {
+    position: relative;
+    width: 130px;
+    height: 180px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  &__prev-game-cover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 0;
+  }
+
+  &__prev-game-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 10px;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.8) 0%,
+      transparent 100%
+    );
+    z-index: 1;
+  }
+
+  &__prev-game-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    display: block;
+    line-height: 1.3;
+  }
+
+  // Library card preview — layout horizontal (header.jpg)
+  &__prev-lib-card {
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    height: 180px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  &__prev-lib-cover {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
+  &__prev-lib-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 10px;
+    flex-shrink: 0;
+  }
+
+  &__prev-lib-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__prev-lib-meta {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+}

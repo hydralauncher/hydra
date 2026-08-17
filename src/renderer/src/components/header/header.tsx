@@ -160,29 +160,19 @@ export function Header() {
     navigate(`/profile/${userDetails.id}`);
   };
 
-  const catalogueSearchValue = useAppSelector(
-    (state) => state.catalogueSearch.filters.title
-  );
-
-  const librarySearchValue = useAppSelector(
-    (state) => state.library.searchQuery
-  );
-
   const isHomePage = location.pathname === "/";
   const isOnLibraryPage = location.pathname.startsWith("/library");
   const isOnCataloguePage = location.pathname.startsWith("/catalogue");
   const isGamePage = location.pathname.startsWith("/game");
   const isSettingsPage = location.pathname.startsWith("/settings");
-
-  const searchValue = isOnLibraryPage
-    ? librarySearchValue
-    : catalogueSearchValue;
+  const isDownloadsPage = location.pathname.startsWith("/downloads");
 
   const openedFolderName = "";
 
   const dispatch = useAppDispatch();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchInputValue, setSearchInputValue] = useState("");
   const [showScanModal, setShowScanModal] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -193,7 +183,7 @@ export function Header() {
     useSearchHistory();
 
   const { suggestions, isLoading: isLoadingSuggestions } = useSearchSuggestions(
-    searchValue,
+    searchInputValue,
     isOnLibraryPage,
     isSearchOpen
   );
@@ -216,12 +206,8 @@ export function Header() {
     }
   };
 
-  const handleSearch = (value: string) => {
-    if (isOnLibraryPage) {
-      dispatch(setLibrarySearchQuery(value.slice(0, 255)));
-    } else {
-      dispatch(setFilters({ title: value.slice(0, 255) }));
-    }
+  const handleSearchChange = (value: string) => {
+    setSearchInputValue(value);
   };
 
   const executeSearch = (query: string) => {
@@ -229,17 +215,19 @@ export function Header() {
     if (query.trim()) {
       addToHistory(query, context);
     }
-    handleSearch(query);
-
-    if (!isOnLibraryPage && !location.pathname.startsWith("/catalogue")) {
-      navigate("/catalogue");
+    if (isOnLibraryPage) {
+      dispatch(setLibrarySearchQuery(query.slice(0, 255)));
+    } else {
+      dispatch(setFilters({ title: query.slice(0, 255) }));
+      if (!location.pathname.startsWith("/catalogue")) {
+        navigate("/catalogue");
+      }
     }
-
     setIsSearchOpen(false);
   };
 
   const handleSelectHistory = (query: string) => {
-    executeSearch(query);
+    setSearchInputValue(query);
   };
 
   const handleSelectSuggestion = (suggestion: {
@@ -313,7 +301,7 @@ export function Header() {
 
   return (
     <>
-      {!(isHomePage || isGamePage || isSettingsPage) && (
+      {!(isHomePage || isGamePage || isSettingsPage || isDownloadsPage) && (
         <GradualBlur
           position="top"
           height="130px"
@@ -338,7 +326,8 @@ export function Header() {
           "header--dragging-disabled": draggingDisabled,
           "header--search-open": isSearchOpen,
           "header--catalogue": isOnCataloguePage,
-          "header--transparent": isOnLibraryPage,
+          "header--transparent": isOnLibraryPage || isDownloadsPage,
+          "header--home": isHomePage,
         })}
       >
         <div className="header__row">
@@ -492,9 +481,11 @@ export function Header() {
         onRemoveHistoryItem={handleRemoveHistoryItem}
         onClearHistory={handleClearHistory}
         onClose={() => setIsSearchOpen(false)}
-        searchValue={searchValue}
-        onSearchChange={handleSearch}
-        onExecuteSearch={() => searchValue.trim() && executeSearch(searchValue)}
+        searchValue={searchInputValue}
+        onSearchChange={handleSearchChange}
+        onExecuteSearch={() =>
+          searchInputValue.trim() && executeSearch(searchInputValue)
+        }
         placeholder={isOnLibraryPage ? t("search_library") : t("search")}
       />
 

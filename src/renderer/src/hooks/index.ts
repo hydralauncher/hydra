@@ -21,3 +21,4 @@ export * from "./use-home-groups";
 export * from "./use-home-gamepad";
 export * from "./useDominantColor";
 export * from "./use-download-source-names";
+export * from "./use-background-music";

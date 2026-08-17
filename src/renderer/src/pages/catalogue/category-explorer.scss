@@ -2,182 +2,130 @@
 
 .cat-explorer {
   width: 100%;
+  margin-top: 8px;
+  margin-bottom: 8px;
 
   &__title {
     font-size: 15px;
     font-weight: 600;
     color: globals.$body-color;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    letter-spacing: -0.2px;
   }
 
   &__wrapper {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    width: 100%;
   }
 
   &__track {
     display: flex;
-    gap: 12px;
+    align-items: flex-start;
+    justify-content: safe center;
+    gap: 16px;
     overflow-x: auto;
     scroll-behavior: smooth;
     scrollbar-width: none;
     flex: 1;
-    padding: 6px 2px; // extra padding top/bottom so hover scale doesn't clip
+    padding: 6px 4px 10px 4px;
 
     &::-webkit-scrollbar {
       display: none;
     }
   }
 
-  &__card {
-    position: relative;
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     flex-shrink: 0;
-    width: 280px;
-    height: 160px;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 6px;
+    width: 72px;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+
+    &:hover .cat-explorer__label {
+      color: #ffffff;
+    }
+
+    &:hover .cat-explorer__circle-btn {
+      transform: translateY(-2px) scale(1.06);
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &__circle-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-
-    @media (max-width: 1100px) {
-      width: 220px;
-      height: 130px;
-    }
-    @media (max-width: 800px) {
-      width: 180px;
-      height: 110px;
-    }
-    @media (max-width: 600px) {
-      width: 150px;
-      height: 90px;
-    }
-
-    &:hover {
-      transform: scale(1.05);
-      z-index: 5;
-    }
-  }
-
-  // Se não houver imagem, mostramos um padrão CSS ou gradiente melhorado
-  &__bg {
-    position: absolute;
-    inset: 0;
-    background-size: cover;
-    background-position: center;
-    filter: brightness(0.7) blur(1px) contrast(1.1);
     transition:
-      transform 0.4s ease,
-      filter 0.4s ease;
+      transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+      background 0.2s ease,
+      box-shadow 0.2s ease;
+    outline: none;
 
-    // Gradiente fallback bonitão caso falte imagem (mesh gradients) transparentes
-    background-color: transparent;
-    background-image:
-      radial-gradient(at 0% 0%, rgba(60, 20, 50, 0.5) 0, transparent 50%),
-      radial-gradient(at 50% 100%, rgba(20, 50, 80, 0.5) 0, transparent 50%);
-  }
-
-  &__card:hover &__bg {
-    transform: scale(1.05);
-    filter: brightness(0.5) blur(2px);
+    &:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
+    }
   }
 
-  // Gradiente fixo colorido conforme o gênero
-  &__gradient {
-    position: absolute;
-    inset: 0;
-    opacity: 0.8;
-    mix-blend-mode: overlay;
-  }
-
-  &__card--action &__gradient {
-    background: linear-gradient(135deg, #e74c3c 0%, transparent 100%);
-  }
-  &__card--adventure &__gradient {
-    background: linear-gradient(135deg, #3498db 0%, transparent 100%);
-  }
-  &__card--rpg &__gradient {
-    background: linear-gradient(135deg, #9b59b6 0%, transparent 100%);
-  }
-  &__card--strategy &__gradient {
-    background: linear-gradient(135deg, #2ecc71 0%, transparent 100%);
-  }
-  &__card--simulation &__gradient {
-    background: linear-gradient(135deg, #34495e 0%, transparent 100%);
-  }
-  &__card--sports &__gradient {
-    background: linear-gradient(135deg, #27ae60 0%, transparent 100%);
-  }
-  &__card--racing &__gradient {
-    background: linear-gradient(135deg, #e67e22 0%, transparent 100%);
-  }
-  &__card--puzzle &__gradient {
-    background: linear-gradient(135deg, #2980b9 0%, transparent 100%);
-  }
-  &__card--horror &__gradient {
-    background: linear-gradient(135deg, #960f0f 0%, transparent 100%);
-  }
-  &__card--openworld &__gradient {
-    background: linear-gradient(135deg, #1abc9c 0%, transparent 100%);
-  }
-  &__card--fighting &__gradient {
-    background: linear-gradient(135deg, #c0392b 0%, transparent 100%);
-  }
-  &__card--city &__gradient {
-    background: linear-gradient(135deg, #f39c12 0%, transparent 100%);
+  &__icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    pointer-events: none;
   }
 
   &__label {
-    position: relative;
-    z-index: 2;
-    color: #fff;
-    padding: 8px 16px;
-    font-size: 16px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.82);
-    transition: transform 0.2s ease;
-  }
-
-  &__card:hover &__label {
-    transform: scale(1.05);
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.75);
+    white-space: nowrap;
+    text-align: center;
+    transition: color 0.2s ease;
+    letter-spacing: 0.1px;
+    pointer-events: none;
   }
 
   &__nav {
     flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition:
-      background 0.2s,
-      transform 0.1s;
+      background 0.2s ease,
+      color 0.2s ease,
+      transform 0.1s ease;
     z-index: 5;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.16);
-      color: #fff;
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
     }
 
     &:active {
-      transform: scale(0.95);
+      transform: scale(0.92);
     }
   }
 }

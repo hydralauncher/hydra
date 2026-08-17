@@ -1050,6 +1050,7 @@
     "firmware_official_link": "Official page",
     "current_username": "Username:",
     "downloads_path": "Downloads path",
+    "always_ask_download_location": "Always ask where to install",
     "change": "Update",
     "notifications": "Notifications",
     "enable_download_notifications": "When a download is complete",

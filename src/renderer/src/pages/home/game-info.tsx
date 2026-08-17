@@ -142,7 +142,9 @@ export function GameInfo({
   useEffect(() => {
     setExecutableExists(null);
     if (!executablePath) return;
-    window.electron.checkFileExists(executablePath).then(setExecutableExists);
+    if (typeof window.electron?.checkFileExists === "function") {
+      window.electron.checkFileExists(executablePath).then(setExecutableExists);
+    }
   }, [executablePath]);
 
   const publisher = details?.publishers?.[0]

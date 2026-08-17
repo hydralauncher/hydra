@@ -2,12 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { NoteIcon } from "@primer/octicons-react";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
 import { useTranslation } from "react-i18next";
 import type { GameReview, Game, GameShop } from "@types";
 
 import { ReviewForm } from "./review-form";
-import { ReviewThread } from "./review-thread";
+import { ReviewItem } from "./review-item";
 import { ReviewSortOptions } from "./review-sort-options";
 import { ReviewPromptBanner } from "./review-prompt-banner";
 import "./game-reviews.scss";
@@ -60,9 +59,6 @@ export function GameReviews({
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [votingReviews, setVotingReviews] = useState<Set<string>>(new Set());
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
-  const [openReplyReviewId, setOpenReplyReviewId] = useState<string | null>(
-    null
-  );
 
   const previousVotesRef = useRef<
     Map<string, { upvotes: number; downvotes: number }>
@@ -74,7 +70,6 @@ export function GameReviews({
       StarterKit.configure({
         link: false,
       }),
-      Underline,
     ],
     content: "",
     editorProps: {
@@ -511,12 +506,11 @@ export function GameReviews({
         }}
       >
         {reviews.map((review) => (
-          <ReviewThread
+          <ReviewItem
             key={review.id}
-            shop={shop}
-            objectId={objectId}
             review={review}
             userDetailsId={userDetailsId}
+            isBlocked={review.isBlocked}
             isVisible={visibleBlockedReviews.has(review.id)}
             isVoting={votingReviews.has(review.id)}
             previousVotes={
@@ -525,14 +519,10 @@ export function GameReviews({
                 downvotes: 0,
               }
             }
-            onVoteReview={handleVoteReview}
-            onDeleteReview={handleDeleteReview}
+            onVote={handleVoteReview}
+            onDelete={handleDeleteReview}
             onToggleVisibility={toggleBlockedReview}
             onAnimationComplete={handleVoteAnimationComplete}
-            composerOpen={openReplyReviewId === review.id}
-            onComposerOpenChange={(open) =>
-              setOpenReplyReviewId(open ? review.id : null)
-            }
           />
         ))}
       </div>

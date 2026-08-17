@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import type {
   CatalogueSearchResult,
@@ -12,19 +12,16 @@ import {
   globalImageCache,
 } from "@renderer/helpers";
 import { useSteamGridHeroAndLogo } from "@renderer/hooks/use-steamgrid-cover";
+import { useCatalogue } from "@renderer/hooks/use-catalogue";
+import { useAppSelector, useLibrary } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import Skeleton from "react-loading-skeleton";
 import "./top-sellers.scss";
-
-// Mapeamento de gêneros Steam por tab (valores en pois o catálogo usa inglês internamente)
-const TAB_GENRES: Record<string, string[]> = {};
 
 const TABS = [
   { key: "new", label: "Novidades populares" },
   { key: "popular", label: "Mais vendidos" },
   { key: "recent", label: "Mais recentes" },
-  { key: "upcoming", label: "Mais aguardados" },
-  { key: "specials", label: "Ofertas" },
 ];
 
 interface TopSellersProps {
@@ -276,6 +273,7 @@ export function TopSellers({
   const { i18n } = useTranslation("catalogue");
   const navigate = useNavigate();
 
+  const { downloadSources } = useCatalogue();
   const [steamTrending, setSteamTrending] = useState<{
     topSellers: ShopAssets[];
     newReleases: ShopAssets[];
@@ -283,6 +281,8 @@ export function TopSellers({
     specials: ShopAssets[];
   } | null>(null);
   const [isSteamLoading, setIsSteamLoading] = useState(true);
+  const [recentGames, setRecentGames] = useState<CatalogueSearchResult[]>([]);
+  const [isRecentLoading, setIsRecentLoading] = useState(false);
 
   useEffect(() => {
     setIsSteamLoading(true);
@@ -301,8 +301,90 @@ export function TopSellers({
     }
   }, [i18n.language]);
 
+  const { library } = useLibrary();
+  const { hideOwned } = useAppSelector((s) => s.catalogueSearch);
+
+  const isOwned = useCallback(
+    (g: { shop?: string; objectId: string | number }) =>
+      library.some(
+        (l) =>
+          (g.shop ? l.shop === g.shop : true) &&
+          String(l.objectId) === String(g.objectId)
+      ),
+    [library]
+  );
+
+  useEffect(() => {
+    setIsRecentLoading(true);
+    let isCancelled = false;
+
+    async function fetchRecent() {
+      try {
+        const collected: CatalogueSearchResult[] = [];
+        let skip = 0;
+        let attempts = 4;
+
+        while (attempts > 0 && !isCancelled) {
+          attempts--;
+          const res = await window.electron.hydraApi.post<{
+            edges: CatalogueSearchResult[];
+            count: number;
+          }>("/catalogue/search", {
+            data: {
+              sortBy: "releaseDate",
+              sortOrder: "desc",
+              take: 25,
+              skip,
+              downloadSourceIds: downloadSources.map((s) => s.id),
+            },
+            needsAuth: false,
+          });
+
+          const edges = res?.edges || [];
+          if (edges.length === 0) break;
+
+          for (const edge of edges) {
+            if (hideOwned && isOwned(edge)) continue;
+            if (
+              !collected.some(
+                (g) => String(g.objectId) === String(edge.objectId)
+              )
+            ) {
+              collected.push(edge);
+            }
+            if (collected.length >= 10) break;
+          }
+
+          if (collected.length >= 10 || edges.length < 25) break;
+          skip += edges.length;
+        }
+
+        if (!isCancelled && collected.length > 0) {
+          setRecentGames(collected);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (!isCancelled) {
+          setIsRecentLoading(false);
+        }
+      }
+    }
+
+    fetchRecent();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [downloadSources, hideOwned, isOwned]);
+
+  const cleanGames = useMemo(() => {
+    if (!hideOwned) return games;
+    return games.filter((g) => !isOwned(g));
+  }, [games, hideOwned, isOwned]);
+
   const tabGames = useMemo(() => {
-    const localPopular = [...games].sort(
+    const localPopular = [...cleanGames].sort(
       (a, b) =>
         (b.downloadSources?.length ?? 0) - (a.downloadSources?.length ?? 0)
     );
@@ -311,8 +393,12 @@ export function TopSellers({
       steamList: ShopAssets[],
       fallbackList: CatalogueSearchResult[]
     ) => {
-      let result = steamList.map((steamGame) => {
-        const localEquiv = games.find(
+      const filteredSteam = hideOwned
+        ? steamList.filter((sg) => !isOwned(sg))
+        : steamList;
+
+      let result = filteredSteam.map((steamGame) => {
+        const localEquiv = cleanGames.find(
           (g) => String(g.objectId) === String(steamGame.objectId)
         );
         if (localEquiv) {
@@ -324,9 +410,18 @@ export function TopSellers({
         }
         return steamGame as unknown as CatalogueSearchResult;
       });
+
+      if (hideOwned) {
+        result = result.filter((g) => !isOwned(g));
+      }
+
       if (result.length < 10 && fallbackList.length > 0) {
-        const remaining = fallbackList.filter(
-          (lg) => !result.some((rg) => rg.objectId === lg.objectId)
+        const cleanFallback = hideOwned
+          ? fallbackList.filter((lg) => !isOwned(lg))
+          : fallbackList;
+        const remaining = cleanFallback.filter(
+          (lg) =>
+            !result.some((rg) => String(rg.objectId) === String(lg.objectId))
         );
         result = [...result, ...remaining];
       }
@@ -346,7 +441,7 @@ export function TopSellers({
       steamTrending?.newReleases &&
       steamTrending.newReleases.length > 0
     ) {
-      const localNew = [...games].sort((a, b) => {
+      const localNew = [...cleanGames].sort((a, b) => {
         const tsA = releaseTimestamps[a.objectId];
         const tsB = releaseTimestamps[b.objectId];
         if (tsA && tsB) return tsB - tsA;
@@ -358,82 +453,58 @@ export function TopSellers({
     }
 
     if (activeTab === "recent") {
-      return [...games]
-        .sort((a, b) => {
-          const tsA = releaseTimestamps[a.objectId];
-          const tsB = releaseTimestamps[b.objectId];
-          if (tsA && tsB) return tsB - tsA;
-          if (tsA) return -1;
-          if (tsB) return 1;
-          return parseInt(b.objectId) - parseInt(a.objectId);
-        })
-        .slice(0, 10);
+      const cleanRecent = hideOwned
+        ? recentGames.filter((g) => !isOwned(g))
+        : recentGames;
+      if (cleanRecent.length >= 10) {
+        return cleanRecent.slice(0, 10);
+      }
+      const sorted = [...cleanGames].sort((a, b) => {
+        const yearA = a.releaseYear ?? 0;
+        const yearB = b.releaseYear ?? 0;
+        if (yearA !== yearB) return yearB - yearA;
+        const tsA = releaseTimestamps[a.objectId];
+        const tsB = releaseTimestamps[b.objectId];
+        if (tsA && tsB) return tsB - tsA;
+        return parseInt(b.objectId) - parseInt(a.objectId);
+      });
+      const combined = [
+        ...cleanRecent,
+        ...sorted.filter(
+          (sg) =>
+            !cleanRecent.some(
+              (rg) => String(rg.objectId) === String(sg.objectId)
+            )
+        ),
+      ];
+      return combined.slice(0, 10);
     }
 
-    if (
-      activeTab === "upcoming" &&
-      steamTrending?.comingSoon &&
-      steamTrending.comingSoon.length > 0
-    ) {
-      return fillToTen(steamTrending.comingSoon, localPopular);
-    }
-
-    if (
-      activeTab === "specials" &&
-      steamTrending?.specials &&
-      steamTrending.specials.length > 0
-    ) {
-      return fillToTen(steamTrending.specials, localPopular);
-    }
-
-    if (!games.length) return [];
+    if (!cleanGames.length) return [];
 
     if (activeTab === "popular") {
       return localPopular.slice(0, 10);
     }
 
-    if (activeTab === "new" || activeTab === "recent") {
-      return [...games]
-        .sort((a, b) => {
-          const tsA = releaseTimestamps[a.objectId];
-          const tsB = releaseTimestamps[b.objectId];
-          if (tsA && tsB) return tsB - tsA;
-          if (tsA) return -1;
-          if (tsB) return 1;
-          return parseInt(b.objectId) - parseInt(a.objectId);
-        })
-        .slice(0, 10);
-    }
-
-    const targetGenres = TAB_GENRES[activeTab] ?? [];
-    const filtered = games.filter((g) =>
-      g.genres?.some((genre) =>
-        targetGenres.some(
-          (t) =>
-            genre.toLowerCase().includes(t.toLowerCase()) ||
-            t.toLowerCase().includes(genre.toLowerCase())
-        )
-      )
-    );
-
-    // Fallback: se não há jogos suficientes do gênero, completa com os mais populares
-    if (filtered.length < 5) {
-      const fallback = [...games]
-        .sort(
-          (a, b) =>
-            (b.downloadSources?.length ?? 0) - (a.downloadSources?.length ?? 0)
-        )
-        .filter((g) => !filtered.find((f) => f.objectId === g.objectId));
-      return [...filtered, ...fallback].slice(0, 10);
-    }
-
-    return filtered
-      .sort(
-        (a, b) =>
-          (b.downloadSources?.length ?? 0) - (a.downloadSources?.length ?? 0)
-      )
+    return [...cleanGames]
+      .sort((a, b) => {
+        const tsA = releaseTimestamps[a.objectId];
+        const tsB = releaseTimestamps[b.objectId];
+        if (tsA && tsB) return tsB - tsA;
+        if (tsA) return -1;
+        if (tsB) return 1;
+        return parseInt(b.objectId) - parseInt(a.objectId);
+      })
       .slice(0, 10);
-  }, [games, activeTab, releaseTimestamps]);
+  }, [
+    activeTab,
+    cleanGames,
+    hideOwned,
+    isOwned,
+    recentGames,
+    releaseTimestamps,
+    steamTrending,
+  ]);
 
   // Pré-busca datas de lançamento em lotes de 5 quando a aba "Lançamentos" está ativa
   useEffect(() => {
@@ -485,6 +556,45 @@ export function TopSellers({
   }, [activeTab, games, i18n.language]);
 
   const activeGame = tabGames[hoveredIndex] ?? tabGames[0];
+  const activeGameRef = useRef<CatalogueSearchResult | null>(null);
+  activeGameRef.current = activeGame ?? null;
+
+  // Pré-carrega detalhes e imagens de todos os 10 jogos da aba ativa em paralelo
+  useEffect(() => {
+    if (!tabGames.length) return;
+
+    const lang = getSteamLanguage(i18n.language);
+    tabGames.forEach((game) => {
+      const key = game.objectId;
+      if (detailsCache.has(key)) return;
+
+      window.electron
+        .getGameShopDetails(key, game.shop, lang)
+        .then((result) => {
+          if (result) {
+            detailsCache.set(key, result);
+
+            // Pré-carrega as imagens das screenshots na memória do navegador
+            result.screenshots?.slice(0, 4).forEach((s) => {
+              if (s.path_thumbnail) {
+                const img = new Image();
+                img.src = s.path_thumbnail;
+              }
+              if (s.path_full) {
+                const fullImg = new Image();
+                fullImg.src = s.path_full;
+              }
+            });
+
+            // Se for o jogo que está sendo visualizado no momento, atualiza instantaneamente
+            if (activeGameRef.current?.objectId === key) {
+              setActiveGameDetails(result);
+            }
+          }
+        })
+        .catch(() => {});
+    });
+  }, [tabGames, i18n.language]);
 
   const mediaItems = useMemo(() => {
     const items: { thumb: string; full: string }[] = [];
@@ -512,8 +622,10 @@ export function TopSellers({
 
   useEffect(() => {
     setSelectedMediaIndex(0);
-    setActiveGameDetails(null);
-    if (!activeGame) return;
+    if (!activeGame) {
+      setActiveGameDetails(null);
+      return;
+    }
 
     const key = activeGame.objectId;
     const cached = detailsCache.get(key);
@@ -522,23 +634,19 @@ export function TopSellers({
       return;
     }
 
-    const timer = setTimeout(() => {
-      window.electron
-        .getGameShopDetails(
-          key,
-          activeGame.shop,
-          getSteamLanguage(i18n.language)
-        )
-        .then((result) => {
-          if (result) {
-            detailsCache.set(key, result);
-            if (activeGame.objectId === key) setActiveGameDetails(result);
+    // Se ainda não estiver em cache, busca imediatamente sem atraso artificial
+    setActiveGameDetails(null);
+    window.electron
+      .getGameShopDetails(key, activeGame.shop, getSteamLanguage(i18n.language))
+      .then((result) => {
+        if (result) {
+          detailsCache.set(key, result);
+          if (activeGameRef.current?.objectId === key) {
+            setActiveGameDetails(result);
           }
-        })
-        .catch(() => {});
-    }, 300);
-
-    return () => clearTimeout(timer);
+        }
+      })
+      .catch(() => {});
   }, [activeGame, i18n.language]);
 
   // Autoplay: avança a imagem a cada 3s, pausa no hover
@@ -593,7 +701,11 @@ export function TopSellers({
 
       <div className="top-sellers__body">
         <div className="top-sellers__list">
-          {isLoading || isSteamLoading
+          {(
+            activeTab === "recent"
+              ? isRecentLoading && recentGames.length === 0
+              : isLoading || isSteamLoading
+          )
             ? Array.from({ length: 10 }).map((_, i) => (
                 <div
                   key={i}
@@ -617,181 +729,204 @@ export function TopSellers({
               ))}
         </div>
 
-        {activeGame && !isLoading && !isSteamLoading && (
-          <div
-            className="top-sellers__panel"
-            onMouseEnter={() => setIsHoveringPanel(true)}
-            onMouseLeave={() => setIsHoveringPanel(false)}
-          >
-            <button
-              type="button"
-              className="top-sellers__detail"
-              onClick={() => navigate(buildGameDetailsPath(activeGame))}
-              aria-label={`Ver detalhes de ${activeGame.title}`}
+        {activeGame &&
+          !(activeTab === "recent"
+            ? isRecentLoading && recentGames.length === 0
+            : isLoading || isSteamLoading) && (
+            <div
+              className="top-sellers__panel"
+              onMouseEnter={() => setIsHoveringPanel(true)}
+              onMouseLeave={() => setIsHoveringPanel(false)}
             >
-              <div className="top-sellers__detail-header">
-                {activeGame.title}
-              </div>
+              <div
+                role="button"
+                tabIndex={0}
+                className="top-sellers__detail"
+                onClick={() => navigate(buildGameDetailsPath(activeGame))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    navigate(buildGameDetailsPath(activeGame));
+                  }
+                }}
+                aria-label={`Ver detalhes de ${activeGame.title}`}
+              >
+                <div className="top-sellers__detail-header">
+                  {activeGame.title}
+                </div>
 
-              <div className="top-sellers__detail-body">
-                <div className="top-sellers__cover-section">
-                  <div
-                    className="top-sellers__detail-cover"
-                    style={{ position: "relative" }}
-                  >
-                    {activeMedia ? (
-                      <>
-                        {!panelImageLoaded && (
-                          <Skeleton
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              zIndex: 2,
-                              height: "100%",
-                              borderRadius: "inherit",
-                            }}
-                          />
-                        )}
-                        <img
-                          ref={panelImgRef}
-                          key={activeMedia.full}
-                          src={activeMedia.full}
-                          alt={activeGame.title}
-                          loading="lazy"
-                          onLoad={(e) => {
-                            if (e.currentTarget.naturalWidth <= 1) {
-                              setPanelImageLoaded(false);
-                            } else {
-                              if (activeMedia)
-                                globalImageCache.add(activeMedia.full);
-                              setPanelImageLoaded(true);
-                            }
-                          }}
-                          style={{
-                            opacity: panelImageLoaded ? 1 : 0,
-                            transition: "opacity 0.3s ease",
-                          }}
-                        />
-                      </>
-                    ) : (
-                      <div className="top-sellers__detail-placeholder">
-                        <QuestionIcon size={40} />
-                      </div>
-                    )}
-                  </div>
-
-                  {mediaItems.length > 1 && (
-                    <div className="top-sellers__media-previews">
-                      {mediaItems.slice(0, 4).map((m, i) => (
-                        <button
-                          key={m.thumb}
-                          type="button"
-                          className={`top-sellers__media-preview${i === selectedMediaIndex ? " top-sellers__media-preview--active" : ""}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMediaIndex(i);
-                          }}
-                        >
-                          <img src={m.thumb} alt="Preview" loading="lazy" />
-                          {i === selectedMediaIndex && (
-                            <span
-                              className="top-sellers__media-progress"
-                              key={`${activeGame.objectId}-${i}`}
+                <div className="top-sellers__detail-body">
+                  <div className="top-sellers__cover-section">
+                    <div
+                      className="top-sellers__detail-cover"
+                      style={{ position: "relative" }}
+                    >
+                      {activeMedia ? (
+                        <>
+                          {!panelImageLoaded && (
+                            <Skeleton
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                zIndex: 2,
+                                height: "100%",
+                                borderRadius: "inherit",
+                              }}
                             />
                           )}
-                        </button>
-                      ))}
+                          <img
+                            ref={panelImgRef}
+                            key={activeMedia.full}
+                            src={activeMedia.full}
+                            alt={activeGame.title}
+                            loading="lazy"
+                            onLoad={(e) => {
+                              if (e.currentTarget.naturalWidth <= 1) {
+                                setPanelImageLoaded(false);
+                              } else {
+                                if (activeMedia)
+                                  globalImageCache.add(activeMedia.full);
+                                setPanelImageLoaded(true);
+                              }
+                            }}
+                            style={{
+                              opacity: panelImageLoaded ? 1 : 0,
+                              transition: "opacity 0.3s ease",
+                            }}
+                          />
+                        </>
+                      ) : (
+                        <div className="top-sellers__detail-placeholder">
+                          <QuestionIcon size={40} />
+                        </div>
+                      )}
                     </div>
-                  )}
 
-                  {activeGame.genres?.length > 0 && (
-                    <div className="top-sellers__detail-tags">
-                      {activeGame.genres.slice(0, 4).map((g) => (
-                        <span key={g} className="top-sellers__detail-tag">
-                          {g}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="top-sellers__detail-info">
-                  {activeGameDetails?.short_description && (
-                    <div className="top-sellers__detail-description">
-                      {activeGameDetails.short_description}
-                    </div>
-                  )}
-
-                  <div className="top-sellers__detail-grid">
-                    {(activeGameDetails as any)?.developers?.length > 0 && (
-                      <div className="top-sellers__detail-block">
-                        <span className="top-sellers__detail-label">
-                          Desenvolvedor:
-                        </span>
-                        <span className="top-sellers__detail-value">
-                          {(activeGameDetails as any).developers[0]}
-                        </span>
+                    {mediaItems.length > 1 && (
+                      <div className="top-sellers__media-previews">
+                        {mediaItems.slice(0, 4).map((m, i) => (
+                          <button
+                            key={m.thumb}
+                            type="button"
+                            className={`top-sellers__media-preview${i === selectedMediaIndex ? " top-sellers__media-preview--active" : ""}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedMediaIndex(i);
+                            }}
+                          >
+                            <img src={m.thumb} alt="Preview" loading="lazy" />
+                            {i === selectedMediaIndex && (
+                              <span
+                                className="top-sellers__media-progress"
+                                key={`${activeGame.objectId}-${i}`}
+                              />
+                            )}
+                          </button>
+                        ))}
                       </div>
                     )}
 
-                    {(activeGameDetails as any)?.publishers?.length > 0 && (
-                      <div className="top-sellers__detail-block">
-                        <span className="top-sellers__detail-label">
-                          Distribuidora:
-                        </span>
-                        <span className="top-sellers__detail-value">
-                          {(activeGameDetails as any).publishers[0]}
-                        </span>
-                      </div>
-                    )}
-
-                    {activeGameDetails?.release_date?.date && (
-                      <div className="top-sellers__detail-block">
-                        <span className="top-sellers__detail-label">
-                          Lançamento:
-                        </span>
-                        <span className="top-sellers__detail-value">
-                          {formatDate(activeGameDetails.release_date.date)}
-                        </span>
-                      </div>
-                    )}
-
-                    {(activeGameDetails as any)?.metacritic?.score && (
-                      <div className="top-sellers__detail-block">
-                        <span className="top-sellers__detail-label">
-                          Metacritic:
-                        </span>
-                        <span
-                          className="top-sellers__detail-value"
-                          style={{ color: "#2ecc71" }}
-                        >
-                          {(activeGameDetails as any).metacritic.score}
-                        </span>
+                    {activeGame.genres?.length > 0 && (
+                      <div className="top-sellers__detail-tags">
+                        {activeGame.genres.slice(0, 4).map((g) => (
+                          <span key={g} className="top-sellers__detail-tag">
+                            {g}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
 
-                  <div
-                    className="top-sellers__detail-block"
-                    style={{ marginTop: "16px" }}
-                  >
-                    <span className="top-sellers__detail-label">Fontes:</span>
-                    <div className="top-sellers__detail-sources">
-                      {activeGame.downloadSources?.map((source) => (
-                        <span
-                          key={source}
-                          className="top-sellers__detail-source-badge"
-                        >
-                          {source}
-                        </span>
-                      ))}
+                  <div className="top-sellers__detail-info">
+                    {activeGameDetails?.short_description && (
+                      <div className="top-sellers__detail-description">
+                        {activeGameDetails.short_description}
+                      </div>
+                    )}
+
+                    <div className="top-sellers__detail-grid">
+                      {((activeGameDetails as any)?.developers?.[0] ||
+                        activeGame.developers?.[0]) && (
+                        <div className="top-sellers__detail-block">
+                          <span className="top-sellers__detail-label">
+                            Desenvolvedor:
+                          </span>
+                          <span className="top-sellers__detail-value">
+                            {(activeGameDetails as any)?.developers?.[0] ??
+                              activeGame.developers?.[0]}
+                          </span>
+                        </div>
+                      )}
+
+                      {((activeGameDetails as any)?.publishers?.[0] ||
+                        activeGame.publishers?.[0]) && (
+                        <div className="top-sellers__detail-block">
+                          <span className="top-sellers__detail-label">
+                            Distribuidora:
+                          </span>
+                          <span className="top-sellers__detail-value">
+                            {(activeGameDetails as any)?.publishers?.[0] ??
+                              activeGame.publishers?.[0]}
+                          </span>
+                        </div>
+                      )}
+
+                      {(activeGameDetails?.release_date?.date ||
+                        activeGame.releaseYear) && (
+                        <div className="top-sellers__detail-block">
+                          <span className="top-sellers__detail-label">
+                            Lançamento:
+                          </span>
+                          <span className="top-sellers__detail-value">
+                            {activeGameDetails?.release_date?.date
+                              ? formatDate(activeGameDetails.release_date.date)
+                              : String(activeGame.releaseYear)}
+                          </span>
+                        </div>
+                      )}
+
+                      {(activeGameDetails as any)?.metacritic?.score && (
+                        <div className="top-sellers__detail-block">
+                          <span className="top-sellers__detail-label">
+                            Metacritic:
+                          </span>
+                          <span
+                            className="top-sellers__detail-value"
+                            style={{ color: "#2ecc71" }}
+                          >
+                            {(activeGameDetails as any).metacritic.score}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div
+                      className="top-sellers__detail-block"
+                      style={{ marginTop: "16px" }}
+                    >
+                      <span className="top-sellers__detail-label">Fontes:</span>
+                      <div className="top-sellers__detail-sources">
+                        {activeGame.downloadSources &&
+                        activeGame.downloadSources.length > 0 ? (
+                          activeGame.downloadSources.map((source) => (
+                            <span
+                              key={source}
+                              className="top-sellers__detail-source-badge"
+                            >
+                              {source}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="top-sellers__detail-source-badge top-sellers__detail-source-badge--none">
+                            Sem fontes de download
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </button>
-          </div>
-        )}
+            </div>
+          )}
       </div>
     </section>
   );

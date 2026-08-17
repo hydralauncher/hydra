@@ -94,7 +94,7 @@ export function Sidebar() {
 
   const { showWarningToast, showSuccessToast, showErrorToast } = useToast();
 
-  const [showInstalledGames, setShowInstalledGames] = useState(false);
+  const [showInstalledGames, setShowInstalledGames] = useState(true);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
   const [onlineFriendsCount, setOnlineFriendsCount] = useState(0);
   const [totalAchievements, setTotalAchievements] = useState(0);

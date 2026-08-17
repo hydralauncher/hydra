@@ -3,34 +3,39 @@ import {
   GearIcon,
   HeartFillIcon,
   HeartIcon,
+  DashIcon,
   PinIcon,
   PinSlashIcon,
   PlayIcon,
   PlusCircleIcon,
+  FileDirectoryIcon,
+  TrashIcon,
 } from "@primer/octicons-react";
 import { Button, ConfirmationModal } from "@renderer/components";
-import { XCircle } from "lucide-react";
 import {
   useDownload,
   useLibrary,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { gameDetailsContext } from "@renderer/context";
-import { handleClassicsLaunchError } from "@renderer/helpers";
-import { DiscSelectionModal } from "../modals/disc-selection-modal";
+
+import { usePriorityDownload } from "./use-priority-download";
+import SteamIcon from "@renderer/assets/launcher-icons/steam.svg?react";
 
 import "./hero-panel-actions.scss";
-import { useEffect } from "react";
 
-export function HeroPanelActions() {
+function useHeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
     useState(false);
+  const [showUninstallModal, setShowUninstallModal] = useState(false);
+  const [executableExists, setExecutableExists] = useState<boolean | null>(
+    null
+  );
 
-  const { isGameDeleting } = useDownload();
+  const { isGameDeleting, removeGameInstaller, pauseSeeding } = useDownload();
   const { userDetails } = useUserDetails();
 
   const {
@@ -40,15 +45,34 @@ export function HeroPanelActions() {
     shop,
     objectId,
     gameTitle,
-    shopDetails,
     setShowGameOptionsModal,
     setGameOptionsInitialCategory,
     setShowRepacksModal,
     updateGame,
     selectGameExecutable,
-    isTransferring,
-    transferProgress,
   } = useContext(gameDetailsContext);
+
+  const {
+    isAutoDownloadEnabled,
+    priorityRepack,
+    buttonLabel: downloadButtonLabel,
+    triggerDownload: handlePriorityDownload,
+  } = usePriorityDownload({
+    shop,
+    objectId,
+    gameTitle,
+    repacks,
+    updateGame,
+    setShowRepacksModal,
+  });
+
+  const onDownloadClick = () => {
+    if (isAutoDownloadEnabled && priorityRepack) {
+      handlePriorityDownload();
+    } else {
+      setShowRepacksModal(true);
+    }
+  };
 
   const { lastPacket } = useDownload();
 
@@ -57,37 +81,9 @@ export function HeroPanelActions() {
 
   const { updateLibrary } = useLibrary();
 
-  const { showSuccessToast, showErrorToast } = useToast();
-
-  const navigate = useNavigate();
-
-  const [showDiscSelectionModal, setShowDiscSelectionModal] = useState(false);
-  const [pendingClassicsLaunch, setPendingClassicsLaunch] = useState<{
-    discPath: string | undefined;
-  } | null>(null);
+  const { showSuccessToast } = useToast();
 
   const { t } = useTranslation("game_details");
-
-  useEffect(() => {
-    const onOpenDiscSelection = (event: Event) => {
-      const detail = (event as CustomEvent<{ objectId?: string }>).detail;
-      if (!detail?.objectId || detail.objectId === game?.objectId) {
-        if (game?.shop === "launchbox" && (game?.discs?.length ?? 0) > 1) {
-          setShowDiscSelectionModal(true);
-        }
-      }
-    };
-    window.addEventListener(
-      "hydra:openDiscSelection",
-      onOpenDiscSelection as EventListener
-    );
-    return () => {
-      window.removeEventListener(
-        "hydra:openDiscSelection",
-        onOpenDiscSelection as EventListener
-      );
-    };
-  }, [game?.objectId, game?.shop, game?.discs?.length]);
 
   useEffect(() => {
     const onFavoriteToggled = () => {
@@ -134,16 +130,27 @@ export function HeroPanelActions() {
     };
   }, [updateLibrary, updateGame]);
 
+  useEffect(() => {
+    setExecutableExists(null);
+    if (!game?.executablePath) return;
+    window.electron
+      .checkFileExists(game.executablePath)
+      .then(setExecutableExists);
+  }, [game?.executablePath]);
+
+  const locateExecutable = async () => {
+    const path = await selectGameExecutable();
+    if (path) {
+      await window.electron.updateExecutablePath(shop, objectId!, path);
+      updateGame();
+    }
+  };
+
   const addGameToLibrary = async () => {
     setToggleLibraryGameDisabled(true);
 
     try {
-      await window.electron.addGameToLibrary(
-        shop,
-        objectId!,
-        gameTitle,
-        shopDetails?.platform ?? null
-      );
+      await window.electron.addGameToLibrary(shop, objectId!, gameTitle);
 
       updateLibrary();
       updateGame();
@@ -200,163 +207,160 @@ export function HeroPanelActions() {
     }
   };
 
-  const launchClassicsWithErrorHandling = async (
-    discPath?: string,
-    force?: boolean
-  ): Promise<void> => {
-    if (!game) return;
-    try {
-      await window.electron.openClassicsGame(
-        game.shop,
-        game.objectId,
-        discPath,
-        force
-      );
-    } catch (error) {
-      handleClassicsLaunchError(error, {
-        t,
-        showErrorToast,
-        showSuccessToast,
-        navigate,
-        onEmulatorAlreadyRunning: () => setPendingClassicsLaunch({ discPath }),
-      });
-    }
-  };
-
-  const openClassicsGame = async () => {
-    if (!game) return;
-
-    const discs = game.discs ?? [];
-
-    if (discs.length <= 1) {
-      await launchClassicsWithErrorHandling();
-      return;
-    }
-
-    if (game.dontAskDiscSelection && game.selectedDiscPath) {
-      await launchClassicsWithErrorHandling(game.selectedDiscPath);
-      return;
-    }
-
-    setShowDiscSelectionModal(true);
-  };
-
-  const handleDiscSelectionConfirm = async (
-    discPath: string,
-    dontAskAgain: boolean
-  ) => {
-    if (!game) return;
-    setShowDiscSelectionModal(false);
-    try {
-      await window.electron.updateClassicsDisc(game.shop, game.objectId, {
-        selectedDiscPath: discPath,
-        dontAskDiscSelection: dontAskAgain,
-      });
-      updateGame();
-    } catch (error) {
-      // non-fatal; still try to launch
-    }
-    await launchClassicsWithErrorHandling(discPath);
-  };
-
   const openGame = async () => {
-    if (!game) return;
+    if (game) {
+      if (game.executablePath) {
+        window.electron.openGame(
+          game.shop,
+          game.objectId,
+          game.executablePath,
+          game.launchOptions
+        );
+        return;
+      }
 
-    if (game.shop === "launchbox") {
-      await openClassicsGame();
-      return;
+      const gameExecutablePath = await selectGameExecutable();
+      if (gameExecutablePath)
+        window.electron.openGame(
+          game.shop,
+          game.objectId,
+          gameExecutablePath,
+          game.launchOptions
+        );
     }
-
-    if (game.executablePath) {
-      window.electron.openGame(
-        game.shop,
-        game.objectId,
-        game.executablePath,
-        game.launchOptions
-      );
-      return;
-    }
-
-    const gameExecutablePath = await selectGameExecutable();
-    if (gameExecutablePath)
-      window.electron.openGame(
-        game.shop,
-        game.objectId,
-        gameExecutablePath,
-        game.launchOptions
-      );
-  };
-
-  const closeGame = () => {
-    if (game) window.electron.closeGame(game.shop, game.objectId);
   };
 
   const deleting = game ? isGameDeleting(game?.id) : false;
 
+  const removeGameFromLibraryButton = game ? (
+    <>
+      <ConfirmationModal
+        visible={showUninstallModal}
+        title={t("uninstall_modal_title", { defaultValue: "Desinstalar jogo" })}
+        descriptionText={t("uninstall_modal_description", {
+          defaultValue:
+            "Tem certeza que deseja desinstalar e remover os arquivos deste jogo?",
+        })}
+        confirmButtonLabel={t("uninstall", { defaultValue: "Desinstalar" })}
+        cancelButtonLabel={t("cancel", { defaultValue: "Cancelar" })}
+        onConfirm={async () => {
+          setShowUninstallModal(false);
+          setToggleLibraryGameDisabled(true);
+          try {
+            await pauseSeeding(game.shop, game.objectId);
+            await removeGameInstaller(game.shop, game.objectId);
+          } finally {
+            setToggleLibraryGameDisabled(false);
+          }
+        }}
+        onClose={() => setShowUninstallModal(false)}
+      />
+      <Button
+        theme="primary"
+        disabled={toggleLibraryGameDisabled}
+        onClick={async () => {
+          const isInstalled = Boolean(
+            (game?.executablePath && executableExists !== false) ||
+              game?.download?.progress === 1
+          );
+
+          if (isInstalled) {
+            setShowUninstallModal(true);
+          } else {
+            setToggleLibraryGameDisabled(true);
+            try {
+              await window.electron.removeGameFromLibrary(
+                game.shop,
+                game.objectId
+              );
+              updateLibrary();
+              updateGame();
+            } finally {
+              setToggleLibraryGameDisabled(false);
+            }
+          }
+        }}
+      >
+        {(game?.executablePath && executableExists !== false) ||
+        game?.download?.progress === 1 ? (
+          <TrashIcon />
+        ) : (
+          <DashIcon />
+        )}
+      </Button>
+    </>
+  ) : null;
+
   const addGameToLibraryButton = (
     <Button
-      theme="outline"
+      theme="primary"
       disabled={toggleLibraryGameDisabled}
       onClick={addGameToLibrary}
-      className="hero-panel-actions__action"
+      title={t("add_to_library")}
     >
       <PlusCircleIcon />
-      {t("add_to_library")}
     </Button>
   );
 
   const showDownloadOptionsButton = (
     <Button
-      onClick={() => setShowRepacksModal(true)}
-      theme="outline"
+      onClick={onDownloadClick}
+      theme="primary"
       disabled={deleting}
-      className="hero-panel-actions__action"
+      style={{ minWidth: 200 }}
     >
-      {t("open_download_options")}
+      <DownloadIcon />
+      {downloadButtonLabel}
+    </Button>
+  );
+
+  const installViaSteamButton =
+    shop === "steam" ? (
+      <Button
+        theme="primary"
+        onClick={() =>
+          window.electron.openExternal(`steam://store/${objectId}`)
+        }
+        disabled={deleting || isGameDownloading}
+        title={t("install_via_steam_tooltip", {
+          defaultValue: "Baixar e instalar via cliente original Steam",
+        })}
+      >
+        <SteamIcon style={{ width: 14, height: 14, fill: "currentColor" }} />
+      </Button>
+    ) : null;
+
+  const locateButton = (
+    <Button
+      theme="primary"
+      onClick={locateExecutable}
+      title={t("locate_executable", { defaultValue: "Localizar executável" })}
+    >
+      <FileDirectoryIcon />
     </Button>
   );
 
   const gameActionButton = () => {
-    if (isTransferring) {
-      const percent = Math.round(transferProgress * 100);
-      return (
-        <Button
-          theme="outline"
-          className="hero-panel-actions__action"
-          onClick={() => {
-            setGameOptionsInitialCategory("locations");
-            setShowGameOptionsModal(true);
-          }}
-        >
-          Transferring {percent}%
-        </Button>
-      );
-    }
-
     if (isGameRunning) {
       return (
         <Button
-          onClick={closeGame}
-          theme="outline"
-          disabled={deleting}
-          className="hero-panel-actions__action"
+          theme="primary"
+          disabled
+          style={{ minWidth: 200, opacity: 0.5, pointerEvents: "none" }}
         >
-          <XCircle size={18} />
-          {t("close")}
+          <PlayIcon />
+          {t("playing", { defaultValue: "Jogando" })}
         </Button>
       );
     }
 
-    const isPlayableClassics =
-      game?.shop === "launchbox" && (game?.discs?.length ?? 0) > 0;
-
-    if (game?.executablePath || isPlayableClassics) {
+    if (game?.executablePath && executableExists === true) {
       return (
         <Button
           onClick={openGame}
-          theme="outline"
+          theme="primary"
           disabled={deleting || isGameRunning}
-          className="hero-panel-actions__action"
+          style={{ minWidth: 200 }}
         >
           <PlayIcon />
           {t("play")}
@@ -365,94 +369,94 @@ export function HeroPanelActions() {
     }
 
     return (
-      <Button
-        onClick={() => setShowRepacksModal(true)}
-        theme="outline"
-        disabled={isGameDownloading}
-        className={`hero-panel-actions__action ${repacks.length === 0 ? "hero-panel-actions__action--disabled" : ""}`}
-      >
-        <DownloadIcon />
-        {t("download")}
-      </Button>
+      <>
+        <Button
+          onClick={onDownloadClick}
+          theme="primary"
+          disabled={isGameDownloading}
+          style={{ minWidth: 200 }}
+        >
+          <DownloadIcon />
+          {downloadButtonLabel}
+        </Button>
+        {game?.executablePath && executableExists === false && locateButton}
+      </>
     );
   };
 
   if (repacks.length && !game) {
-    return (
-      <>
-        {addGameToLibraryButton}
-        {showDownloadOptionsButton}
-      </>
-    );
+    return {
+      primary: (
+        <>
+          {showDownloadOptionsButton}
+          {installViaSteamButton}
+          {addGameToLibraryButton}
+        </>
+      ),
+      secondary: null,
+    };
   }
 
   if (game) {
-    return (
-      <div className="hero-panel-actions__container">
-        {gameActionButton()}
-        <div className="hero-panel-actions__separator" />
-        <Button
-          onClick={toggleGameFavorite}
-          theme="outline"
-          disabled={deleting}
-          className="hero-panel-actions__action"
-        >
-          {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
-        </Button>
-
-        {userDetails && game.shop !== "custom" && (
+    return {
+      primary: (
+        <>
+          {gameActionButton()}
           <Button
-            onClick={toggleGamePinned}
-            theme="outline"
+            onClick={toggleGameFavorite}
+            theme="primary"
             disabled={deleting}
-            className="hero-panel-actions__action"
           >
-            {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
+            {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
           </Button>
-        )}
+          {shop === "steam" && installViaSteamButton}
+          {removeGameFromLibraryButton}
+        </>
+      ),
+      secondary: (
+        <>
+          {userDetails && game.shop !== "custom" && (
+            <Button
+              onClick={toggleGamePinned}
+              theme="primary"
+              disabled={deleting}
+            >
+              {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
+            </Button>
+          )}
 
-        <Button
-          onClick={() => {
-            setGameOptionsInitialCategory("general");
-            setShowGameOptionsModal(true);
-          }}
-          theme="outline"
-          disabled={deleting}
-          className="hero-panel-actions__action"
-        >
-          <GearIcon />
-          {t("options")}
-        </Button>
-
-        {game.shop === "launchbox" && (
-          <DiscSelectionModal
-            visible={showDiscSelectionModal}
-            discs={game.discs ?? []}
-            defaultDiscPath={game.selectedDiscPath ?? null}
-            defaultDontAsk={Boolean(game.dontAskDiscSelection)}
-            onClose={() => setShowDiscSelectionModal(false)}
-            onConfirm={handleDiscSelectionConfirm}
-          />
-        )}
-
-        <ConfirmationModal
-          visible={pendingClassicsLaunch !== null}
-          title={t("rpcs3_already_running_title")}
-          descriptionText={t("rpcs3_already_running_description")}
-          confirmButtonLabel={t("rpcs3_already_running_confirm")}
-          cancelButtonLabel={t("cancel")}
-          onClose={() => setPendingClassicsLaunch(null)}
-          onConfirm={() => {
-            const pending = pendingClassicsLaunch;
-            setPendingClassicsLaunch(null);
-            if (pending) {
-              void launchClassicsWithErrorHandling(pending.discPath, true);
-            }
-          }}
-        />
-      </div>
-    );
+          <Button
+            onClick={() => {
+              setGameOptionsInitialCategory("general");
+              setShowGameOptionsModal(true);
+            }}
+            theme="primary"
+            disabled={deleting}
+          >
+            <GearIcon />
+          </Button>
+        </>
+      ),
+    };
   }
 
-  return addGameToLibraryButton;
+  return {
+    primary: (
+      <>
+        {installViaSteamButton}
+        {addGameToLibraryButton}
+      </>
+    ),
+    secondary: null,
+  };
+}
+
+export function HeroPanelPrimaryActions() {
+  const { primary } = useHeroPanelActions();
+  return <div className="hero-panel-actions__container">{primary}</div>;
+}
+
+export function HeroPanelSecondaryActions() {
+  const { secondary } = useHeroPanelActions();
+  return <>{secondary}</>;
 }

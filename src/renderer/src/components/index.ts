@@ -34,3 +34,5 @@ export * from "./error-boundary/error-fallback";
 export * from "./error-boundary/error-boundary";
 export * from "./download-game-modal/download-game-modal";
 export * from "./splash-screen/splash-screen";
+export * from "./toggle/toggle";
+export * from "./decoration-picker-modal/decoration-picker-modal";

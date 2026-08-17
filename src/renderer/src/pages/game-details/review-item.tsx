@@ -3,7 +3,7 @@ import { ThumbsUp, ThumbsDown, Star, Languages } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import type { GameReview } from "@types";
 
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
@@ -28,7 +28,7 @@ interface ReviewItemProps {
     reviewId: string,
     votes: { upvotes: number; downvotes: number }
   ) => void;
-  replyAction?: ReactNode;
+  replyAction?: React.ReactNode;
 }
 
 const getRatingText = (score: number, t: (key: string) => string): string => {
@@ -63,7 +63,7 @@ export function ReviewItem({
 }: Readonly<ReviewItemProps>) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation("game_details");
-  const { formatDistance, formatDateTime } = useDate();
+  const { formatDistance } = useDate();
   const { numberFormatter } = useFormat();
 
   const [showOriginal, setShowOriginal] = useState(false);
@@ -93,21 +93,15 @@ export function ReviewItem({
     }
   };
 
-  // Format playtime similar to hero panel
   const formatPlayTime = (playTimeInSeconds: number) => {
     const minutes = playTimeInSeconds / 60;
-
     if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
-      return t("amount_minutes", {
-        amount: minutes.toFixed(0),
-      });
+      return t("amount_minutes", { amount: minutes.toFixed(0) });
     }
-
     const hours = minutes / 60;
     return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
-  // Determine which content to show - always show original for own reviews
   const displayContent = needsTranslation
     ? review.translations[reviewTranslationLanguage]
     : review.reviewHtml;
@@ -130,73 +124,64 @@ export function ReviewItem({
 
   return (
     <div className="game-details__review-item">
+      {/* Compact header: small avatar + name + meta inline */}
       <div className="game-details__review-header">
-        <div className="game-details__review-header-top">
-          <div className="game-details__review-user">
-            <button
-              onClick={() => navigate(`/profile/${review.user.id}`)}
-              title={review.user.displayName}
-            >
-              <Avatar
-                src={review.user.profileImageUrl}
-                alt={review.user.displayName || "User"}
-                size={44}
-              />
-            </button>
-            <div className="game-details__review-user-info">
-              <button
-                className="game-details__review-display-name game-details__review-display-name--clickable"
-                onClick={() =>
-                  review.user.id && navigate(`/profile/${review.user.id}`)
-                }
-              >
-                {review.user.displayName || "Anonymous"}
-              </button>
-              <div className="game-details__review-meta-row">
-                <div className="game-details__review-meta-left">
-                  <div
-                    className="game-details__review-score-stars"
-                    title={getRatingText(review.score, t)}
-                  >
-                    <Star
-                      size={12}
-                      className="game-details__review-star game-details__review-star--filled"
-                    />
-                    <span className="game-details__review-score-text">
-                      {review.score}/5
-                    </span>
-                  </div>
-                  {Boolean(
-                    review.playTimeInSeconds && review.playTimeInSeconds > 0
-                  ) && (
-                    <div className="game-details__review-playtime">
-                      <ClockIcon size={12} />
-                      <span>
-                        {formatPlayTime(review.playTimeInSeconds || 0)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div
-            className="game-details__review-date"
-            title={formatDateTime(new Date(review.createdAt))}
+        <button
+          onClick={() => navigate(`/profile/${review.user.id}`)}
+          title={review.user.displayName}
+          className="game-details__review-avatar-btn"
+        >
+          <Avatar
+            src={review.user.profileImageUrl}
+            alt={review.user.displayName || "User"}
+            size={34}
+          />
+        </button>
+
+        <div className="game-details__review-user-info">
+          <button
+            className="game-details__review-display-name game-details__review-display-name--clickable"
+            onClick={() =>
+              review.user.id && navigate(`/profile/${review.user.id}`)
+            }
           >
-            {formatDistance(new Date(review.createdAt), new Date(), {
-              addSuffix: true,
-            })}
+            {review.user.displayName || "Anonymous"}
+          </button>
+
+          <div className="game-details__review-meta-row">
+            <span className="game-details__review-date">
+              {formatDistance(new Date(review.createdAt), new Date(), {
+                addSuffix: true,
+              })}
+            </span>
+
+            <div
+              className="game-details__review-score-stars"
+              title={getRatingText(review.score, t)}
+            >
+              <Star size={11} className="game-details__review-star--filled" />
+              <span>{review.score}/5</span>
+            </div>
+
+            {Boolean(
+              review.playTimeInSeconds && review.playTimeInSeconds > 0
+            ) && (
+              <div className="game-details__review-playtime">
+                <ClockIcon size={11} />
+                <span>{formatPlayTime(review.playTimeInSeconds || 0)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
-      <div>
+
+      {/* Review text */}
+      <div className="game-details__review-main">
         <div
           className="game-details__review-content"
-          dangerouslySetInnerHTML={{
-            __html: sanitizeHtml(displayContent),
-          }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayContent) }}
         />
+
         {needsTranslation && (
           <>
             <button
@@ -213,10 +198,7 @@ export function ReviewItem({
             {showOriginal && (
               <div
                 className="game-details__review-content"
-                style={{
-                  opacity: 0.6,
-                  marginTop: "12px",
-                }}
+                style={{ opacity: 0.6, marginTop: "12px" }}
                 dangerouslySetInnerHTML={{
                   __html: sanitizeHtml(review.reviewHtml),
                 }}
@@ -225,118 +207,102 @@ export function ReviewItem({
           </>
         )}
       </div>
+
+      {/* Vote actions */}
       <div className="game-details__review-actions">
-        <div className="game-details__review-actions-left">
-          <div className="game-details__review-votes">
-            <motion.button
-              className={`game-details__vote-button game-details__vote-button--upvote ${review.hasUpvoted ? "game-details__vote-button--active" : ""}`}
-              onClick={() => onVote(review.id, "upvote")}
-              disabled={isVoting}
-              style={{
-                opacity: isVoting ? 0.5 : 1,
-                cursor: isVoting ? "not-allowed" : "pointer",
-              }}
-              animate={
-                review.hasUpvoted
-                  ? {
-                      scale: [1, 1.2, 1],
-                      transition: { duration: 0.3 },
-                    }
-                  : {}
-              }
-            >
-              <ThumbsUp size={16} />
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={review.upvotes || 0}
-                  custom={(review.upvotes || 0) > previousVotes.upvotes}
-                  variants={{
-                    enter: (isIncreasing: boolean) => ({
-                      y: isIncreasing ? 10 : -10,
-                      opacity: 0,
-                    }),
-                    center: { y: 0, opacity: 1 },
-                    exit: (isIncreasing: boolean) => ({
-                      y: isIncreasing ? -10 : 10,
-                      opacity: 0,
-                    }),
-                  }}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.2 }}
-                  onAnimationComplete={() => {
-                    onAnimationComplete(review.id, {
-                      upvotes: review.upvotes || 0,
-                      downvotes: review.downvotes || 0,
-                    });
-                  }}
-                >
-                  {formatNumber(review.upvotes || 0)}
-                </motion.span>
-              </AnimatePresence>
-            </motion.button>
-            <motion.button
-              className={`game-details__vote-button game-details__vote-button--downvote ${review.hasDownvoted ? "game-details__vote-button--active" : ""}`}
-              onClick={() => onVote(review.id, "downvote")}
-              disabled={isVoting}
-              style={{
-                opacity: isVoting ? 0.5 : 1,
-                cursor: isVoting ? "not-allowed" : "pointer",
-              }}
-              animate={
-                review.hasDownvoted
-                  ? {
-                      scale: [1, 1.2, 1],
-                      transition: { duration: 0.3 },
-                    }
-                  : {}
-              }
-            >
-              <ThumbsDown size={16} />
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={review.downvotes || 0}
-                  custom={(review.downvotes || 0) > previousVotes.downvotes}
-                  variants={{
-                    enter: (isIncreasing: boolean) => ({
-                      y: isIncreasing ? 10 : -10,
-                      opacity: 0,
-                    }),
-                    center: { y: 0, opacity: 1 },
-                    exit: (isIncreasing: boolean) => ({
-                      y: isIncreasing ? -10 : 10,
-                      opacity: 0,
-                    }),
-                  }}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.2 }}
-                  onAnimationComplete={() => {
-                    onAnimationComplete(review.id, {
-                      upvotes: review.upvotes || 0,
-                      downvotes: review.downvotes || 0,
-                    });
-                  }}
-                >
-                  {formatNumber(review.downvotes || 0)}
-                </motion.span>
-              </AnimatePresence>
-            </motion.button>
-          </div>
-          {replyAction}
+        <div className="game-details__review-votes">
+          <motion.button
+            className={`game-details__vote-button game-details__vote-button--upvote ${review.hasUpvoted ? "game-details__vote-button--active" : ""}`}
+            onClick={() => onVote(review.id, "upvote")}
+            disabled={isVoting}
+            style={{
+              opacity: isVoting ? 0.5 : 1,
+              cursor: isVoting ? "not-allowed" : "pointer",
+            }}
+            animate={
+              review.hasUpvoted
+                ? { scale: [1, 1.2, 1], transition: { duration: 0.3 } }
+                : {}
+            }
+          >
+            <ThumbsUp size={14} />
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={review.upvotes || 0}
+                custom={(review.upvotes || 0) > previousVotes.upvotes}
+                variants={{
+                  enter: (up: boolean) => ({ y: up ? 10 : -10, opacity: 0 }),
+                  center: { y: 0, opacity: 1 },
+                  exit: (up: boolean) => ({ y: up ? -10 : 10, opacity: 0 }),
+                }}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.2 }}
+                onAnimationComplete={() =>
+                  onAnimationComplete(review.id, {
+                    upvotes: review.upvotes || 0,
+                    downvotes: review.downvotes || 0,
+                  })
+                }
+              >
+                {formatNumber(review.upvotes || 0)}
+              </motion.span>
+            </AnimatePresence>
+          </motion.button>
+
+          <motion.button
+            className={`game-details__vote-button game-details__vote-button--downvote ${review.hasDownvoted ? "game-details__vote-button--active" : ""}`}
+            onClick={() => onVote(review.id, "downvote")}
+            disabled={isVoting}
+            style={{
+              opacity: isVoting ? 0.5 : 1,
+              cursor: isVoting ? "not-allowed" : "pointer",
+            }}
+            animate={
+              review.hasDownvoted
+                ? { scale: [1, 1.2, 1], transition: { duration: 0.3 } }
+                : {}
+            }
+          >
+            <ThumbsDown size={14} />
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={review.downvotes || 0}
+                custom={(review.downvotes || 0) > previousVotes.downvotes}
+                variants={{
+                  enter: (up: boolean) => ({ y: up ? 10 : -10, opacity: 0 }),
+                  center: { y: 0, opacity: 1 },
+                  exit: (up: boolean) => ({ y: up ? -10 : 10, opacity: 0 }),
+                }}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.2 }}
+                onAnimationComplete={() =>
+                  onAnimationComplete(review.id, {
+                    upvotes: review.upvotes || 0,
+                    downvotes: review.downvotes || 0,
+                  })
+                }
+              >
+                {formatNumber(review.downvotes || 0)}
+              </motion.span>
+            </AnimatePresence>
+          </motion.button>
         </div>
+
         {userDetailsId === review.user.id && (
           <button
             className="game-details__delete-review-button"
             onClick={() => onDelete(review.id)}
             title={t("delete_review")}
           >
-            <TrashIcon size={16} />
+            <TrashIcon size={14} />
             <span>{t("remove_review")}</span>
           </button>
         )}
+
         {isBlocked && isVisible && (
           <button
             className="game-details__blocked-review-hide-link"
@@ -345,6 +311,8 @@ export function ReviewItem({
             {t("hide")}
           </button>
         )}
+
+        {replyAction}
       </div>
     </div>
   );

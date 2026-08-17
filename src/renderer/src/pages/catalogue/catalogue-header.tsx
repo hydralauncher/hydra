@@ -1,7 +1,7 @@
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
-import { setFilters, setViewMode } from "@renderer/features";
+import { setFilters, setViewMode, setHideOwned } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import {
@@ -59,7 +59,7 @@ export function CatalogueHeader() {
   const dispatch = useAppDispatch();
   const { t, i18n } = useTranslation("catalogue");
   const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
-  const { steamGenres, steamUserTags, filters, mode, viewMode } =
+  const { steamGenres, steamUserTags, filters, mode, viewMode, hideOwned } =
     useAppSelector((s) => s.catalogueSearch);
   const launchboxFilters = useLaunchboxFilters(mode === "classics");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -211,6 +211,32 @@ export function CatalogueHeader() {
               ))}
             </div>
           )}
+
+          <div className="catalogue-header__hide-owned">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={hideOwned}
+              className={cn("catalogue-header__switch", {
+                "catalogue-header__switch--active": hideOwned,
+              })}
+              onClick={() => dispatch(setHideOwned(!hideOwned))}
+              title={
+                hideOwned
+                  ? "Exibir jogos da biblioteca"
+                  : "Ocultar jogos da biblioteca"
+              }
+            >
+              <span className="catalogue-header__switch-thumb" />
+            </button>
+            <button
+              type="button"
+              className="catalogue-header__switch-label"
+              onClick={() => dispatch(setHideOwned(!hideOwned))}
+            >
+              Ocultar da biblioteca
+            </button>
+          </div>
 
           <button
             type="button"

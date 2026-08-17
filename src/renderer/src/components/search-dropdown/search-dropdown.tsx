@@ -142,14 +142,16 @@ export function SearchDropdown({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeInOut" }}
+            onClick={onClose}
             style={{
               position: "fixed",
               top: 0,
               left: 0,
               width: "100vw",
               height: "100vh",
-              zIndex: 999,
-              pointerEvents: "none",
+              zIndex: 1500,
+              pointerEvents: "auto",
+              cursor: "default",
             }}
           >
             <div
@@ -158,15 +160,15 @@ export function SearchDropdown({
                 top: 0,
                 left: 0,
                 width: "100%",
-                height: "60vh",
+                height: "50vh",
                 background:
-                  "linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 40%, transparent 100%)",
+                  "linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 70%, transparent 100%)",
                 zIndex: 1,
               }}
             />
             <GradualBlur
               position="top"
-              height="60vh"
+              height="50vh"
               strength={3.5}
               divCount={8}
               curve="ease-out"
@@ -192,8 +194,17 @@ export function SearchDropdown({
             animate={{ opacity: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, filter: "blur(10px)", pointerEvents: "none" }}
             transition={{ duration: 0.15, ease: "easeOut" }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) onClose();
+            }}
           >
-            <div className="search-dropdown__content" ref={containerRef}>
+            <div
+              className="search-dropdown__content"
+              ref={containerRef}
+              role="presentation"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
               <div className="search-dropdown__input-container">
                 <SearchIcon
                   size={16}
@@ -326,7 +337,10 @@ export function SearchDropdown({
                         key={`history-${item.query}-${item.timestamp}`}
                         type="button"
                         className="search-dropdown__tag"
-                        onClick={() => onSelectHistory(item.query)}
+                        onClick={() => {
+                          onSelectHistory(item.query);
+                          inputRef.current?.focus();
+                        }}
                       >
                         <ClockIcon size={14} fill="rgba(255,255,255,0.4)" />
                         <span

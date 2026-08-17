@@ -8,7 +8,7 @@ export function SidebarActiveDownload() {
   const { library } = useLibrary();
   const navigate = useNavigate();
 
-  if (!lastPacket) return null;
+  if (!lastPacket?.gameId) return null;
 
   const [shop, objectId] = lastPacket.gameId.split(":");
   const game = library.find((g) => g.objectId === objectId && g.shop === shop);

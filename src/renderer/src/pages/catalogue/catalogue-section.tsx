@@ -1,7 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useAppSelector, useLibrary } from "@renderer/hooks";
 import { useEffect, useState, useCallback } from "react";
-import { PlusIcon, DashIcon, QuestionIcon } from "@primer/octicons-react";
+import { createPortal } from "react-dom";
+import {
+  PlusIcon,
+  DashIcon,
+  QuestionIcon,
+  CheckIcon,
+} from "@primer/octicons-react";
 import type { CatalogueSearchResult } from "@types";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useSteamGridHeroAndLogo } from "@renderer/hooks/use-steamgrid-cover";
@@ -14,7 +20,9 @@ interface CatalogueSectionProps {
   isLoading?: boolean;
 }
 
-function CatalogueCard({ game }: Readonly<{ game: CatalogueSearchResult }>) {
+export function CatalogueCard({
+  game,
+}: Readonly<{ game: CatalogueSearchResult }>) {
   const navigate = useNavigate();
   const { library, updateLibrary } = useLibrary();
   const { steamGenres } = useAppSelector((s) => s.catalogueSearch);
@@ -94,6 +102,43 @@ function CatalogueCard({ game }: Readonly<{ game: CatalogueSearchResult }>) {
     })
     .slice(0, 3);
 
+  const [sourcesHovered, setSourcesHovered] = useState(false);
+  const [sourcesCoords, setSourcesCoords] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!sourcesHovered) return;
+
+    const handleDismiss = () => {
+      setSourcesHovered(false);
+    };
+
+    window.addEventListener("blur", handleDismiss);
+    window.addEventListener("scroll", handleDismiss, true);
+    document.addEventListener("visibilitychange", handleDismiss);
+
+    return () => {
+      window.removeEventListener("blur", handleDismiss);
+      window.removeEventListener("scroll", handleDismiss, true);
+      document.removeEventListener("visibilitychange", handleDismiss);
+    };
+  }, [sourcesHovered]);
+
+  const handleSourcesMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setSourcesCoords({
+      top: rect.top + rect.height / 2,
+      left: rect.right + 12,
+    });
+    setSourcesHovered(true);
+  };
+
+  const handleSourcesMouseLeave = () => {
+    setSourcesHovered(false);
+  };
+
   return (
     <div
       className="cat-card"
@@ -156,6 +201,15 @@ function CatalogueCard({ game }: Readonly<{ game: CatalogueSearchResult }>) {
           </div>
         )}
 
+        {added && (
+          <div className="cat-card__owned-overlay">
+            <span className="cat-card__owned-text">
+              <CheckIcon size={12} />
+              <span>Já possui</span>
+            </span>
+          </div>
+        )}
+
         <button
           type="button"
           className={cn("cat-card__action-btn", {
@@ -172,17 +226,60 @@ function CatalogueCard({ game }: Readonly<{ game: CatalogueSearchResult }>) {
         </button>
       </div>
 
-      {/* Info strip - fixed height */}
       <div className="cat-card__info">
         <div className="cat-card__top">
           <span className="cat-card__title">{game.title}</span>
-          <div className="cat-card__sources">
+          <div
+            className="cat-card__sources"
+            role="presentation"
+            onMouseEnter={handleSourcesMouseEnter}
+            onMouseLeave={handleSourcesMouseLeave}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             {game.downloadSources?.slice(0, 2).map((s) => (
               <span key={s} className="cat-card__source-badge">
                 {s}
               </span>
             ))}
+            {game.downloadSources && game.downloadSources.length > 2 && (
+              <span className="cat-card__source-badge cat-card__source-badge--more">
+                +{game.downloadSources.length - 2}
+              </span>
+            )}
           </div>
+
+          {sourcesHovered &&
+            sourcesCoords &&
+            game.downloadSources &&
+            game.downloadSources.length > 0 &&
+            createPortal(
+              <div
+                className="cat-card__sources-tooltip-popup"
+                style={{
+                  position: "fixed",
+                  top: sourcesCoords.top,
+                  left: sourcesCoords.left,
+                  transform: "translateY(-50%)",
+                  zIndex: 999999,
+                  pointerEvents: "none",
+                }}
+              >
+                <div className="cat-card__sources-popup">
+                  <span className="cat-card__sources-popup-title">
+                    Fontes disponíveis
+                  </span>
+                  <div className="cat-card__sources-popup-list">
+                    {game.downloadSources.map((s) => (
+                      <span key={s} className="cat-card__sources-popup-badge">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
         </div>
         <span className="cat-card__genres">
           {genres?.length > 0 ? genres.join(", ") : "\u00A0"}
@@ -207,7 +304,7 @@ export function CatalogueSection({
 
       <div className="cat-section__grid">
         {isLoading
-          ? Array.from({ length: 10 }).map((_, i) => (
+          ? Array.from({ length: 15 }).map((_, i) => (
               <div key={i} className="cat-card cat-card--skeleton">
                 <div className="cat-card__cover-wrap cat-card__skeleton-img" />
                 <div className="cat-card__info">

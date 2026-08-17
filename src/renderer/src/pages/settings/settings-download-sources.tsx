@@ -1,318 +1,245 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { Reorder } from "framer-motion";
 
-import {
-  TextField,
-  Button,
-  Badge,
-  ConfirmationModal,
-} from "@renderer/components";
+import { Button, ConfirmationModal } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 
 import type { DownloadSource } from "@types";
-import {
-  NoEntryIcon,
-  PlusCircleIcon,
-  SyncIcon,
-  TrashIcon,
-} from "@primer/octicons-react";
+import { PlusCircleIcon, SyncIcon, TrashIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
-import { useAppDispatch, useToast } from "@renderer/hooks";
-import { useFormat } from "@renderer/hooks/use-format";
-import { DownloadSourceStatus } from "@shared";
+import { useAppDispatch, useAppSelector, useToast } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
-import "./settings-download-sources.scss";
+import { DownloadSourceCard } from "./download-source-card";
+import { SettingsDownloadSourcesAutoOptions } from "./settings-download-sources-auto-options";
+import { getSortedSourcesByPriority } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
+import "./settings-download-sources.scss";
 
 export function SettingsDownloadSources() {
-  const [
-    showConfirmationDeleteAllSourcesModal,
-    setShowConfirmationDeleteAllSourcesModal,
-  ] = useState(false);
-  const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
-    useState(false);
+  const [showConfirmDeleteAll, setShowConfirmDeleteAll] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
-  const [isSyncingDownloadSources, setIsSyncingDownloadSources] =
-    useState(false);
-  const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
-    useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
 
-  const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
-
+  const { sourceUrl, clearSourceUrl, updateUserPreferences } =
+    useContext(settingsContext);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
   const { t } = useTranslation("settings");
   const { showSuccessToast } = useToast();
-  const { numberFormatter } = useFormat();
-
   const dispatch = useAppDispatch();
-
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (sourceUrl) setShowAddDownloadSourceModal(true);
+    if (sourceUrl) setShowAddModal(true);
   }, [sourceUrl]);
 
   useEffect(() => {
-    const fetchDownloadSources = async () => {
+    const fetchSources = async () => {
       const sources = (await levelDBService.values(
         "downloadSources"
       )) as DownloadSource[];
-      const sorted = orderBy(sources, "createdAt", "desc");
-      setDownloadSources(sorted);
+      setDownloadSources(orderBy(sources, "createdAt", "desc"));
     };
-
-    fetchDownloadSources();
+    fetchSources();
   }, []);
 
-  useEffect(() => {
-    const hasPendingOrMatchingSource = downloadSources.some(
-      (source) =>
-        source.status === DownloadSourceStatus.PendingMatching ||
-        source.status === DownloadSourceStatus.Matching
-    );
+  const refreshSources = async () => {
+    const sources = (await levelDBService.values(
+      "downloadSources"
+    )) as DownloadSource[];
+    setDownloadSources(orderBy(sources, "createdAt", "desc"));
+  };
 
-    if (!hasPendingOrMatchingSource || !downloadSources.length) {
-      return;
-    }
-
-    const intervalId = setInterval(async () => {
-      try {
-        await window.electron.syncDownloadSources();
-        const sources = (await levelDBService.values(
-          "downloadSources"
-        )) as DownloadSource[];
-        const sorted = orderBy(sources, "createdAt", "desc");
-        setDownloadSources(sorted);
-      } catch (error) {
-        logger.error("Failed to fetch download sources:", error);
-      }
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [downloadSources]);
-
-  const handleRemoveSource = async (downloadSource: DownloadSource) => {
-    setIsRemovingDownloadSource(true);
-
+  const handleRemoveSource = async (source: DownloadSource) => {
+    setIsRemoving(true);
     try {
-      await window.electron.removeDownloadSource(false, downloadSource.id);
-      const sources = (await levelDBService.values(
-        "downloadSources"
-      )) as DownloadSource[];
-      const sorted = orderBy(sources, "createdAt", "desc");
-      setDownloadSources(sorted);
+      await window.electron.removeDownloadSource(false, source.id);
+      await refreshSources();
       showSuccessToast(t("removed_download_source"));
-    } catch (error) {
-      logger.error("Failed to remove download source:", error);
+    } catch (err) {
+      logger.error("Failed to remove download source:", err);
     } finally {
-      setIsRemovingDownloadSource(false);
+      setIsRemoving(false);
     }
   };
 
-  const handleRemoveAllDownloadSources = async () => {
-    setIsRemovingDownloadSource(true);
-
+  const handleRemoveAll = async () => {
+    setIsRemoving(true);
     try {
       await window.electron.removeDownloadSource(true);
-      const sources = (await levelDBService.values(
-        "downloadSources"
-      )) as DownloadSource[];
-      const sorted = orderBy(sources, "createdAt", "desc");
-      setDownloadSources(sorted);
+      await refreshSources();
       showSuccessToast(t("removed_all_download_sources"));
-    } catch (error) {
-      logger.error("Failed to remove all download sources:", error);
+    } catch (err) {
+      logger.error("Failed to remove all download sources:", err);
     } finally {
-      setIsRemovingDownloadSource(false);
-      setShowConfirmationDeleteAllSourcesModal(false);
+      setIsRemoving(false);
+      setShowConfirmDeleteAll(false);
     }
   };
 
-  const handleAddDownloadSource = async () => {
-    try {
-      const sources = (await levelDBService.values(
-        "downloadSources"
-      )) as DownloadSource[];
-      const sorted = orderBy(sources, "createdAt", "desc");
-      setDownloadSources(sorted);
-    } catch (error) {
-      logger.error("Failed to refresh download sources:", error);
-    }
-  };
-
-  const syncDownloadSources = async () => {
-    setIsSyncingDownloadSources(true);
+  const handleSync = async () => {
+    setIsSyncing(true);
     try {
       await window.electron.syncDownloadSources();
-      const sources = (await levelDBService.values(
-        "downloadSources"
-      )) as DownloadSource[];
-      const sorted = orderBy(sources, "createdAt", "desc");
-      setDownloadSources(sorted);
-
+      await refreshSources();
       showSuccessToast(t("download_sources_synced_successfully"));
     } finally {
-      setIsSyncingDownloadSources(false);
+      setIsSyncing(false);
     }
-  };
-
-  const statusTitle = {
-    [DownloadSourceStatus.PendingMatching]: t(
-      "download_source_pending_matching"
-    ),
-    [DownloadSourceStatus.Matched]: t("download_source_matched"),
-    [DownloadSourceStatus.Matching]: t("download_source_matching"),
-    [DownloadSourceStatus.Failed]: t("download_source_failed"),
-  };
-
-  const handleModalClose = () => {
-    clearSourceUrl();
-    setShowAddDownloadSourceModal(false);
   };
 
   const navigateToCatalogue = (fingerprint?: string) => {
-    if (!fingerprint) {
-      logger.error("Cannot navigate: fingerprint is undefined");
-      return;
-    }
-
+    if (!fingerprint) return;
     dispatch(clearFilters());
     dispatch(setFilters({ downloadSourceFingerprints: [fingerprint] }));
-
     navigate("/catalogue");
+  };
+
+  const isPriorityEnabled = Boolean(
+    userPreferences?.autoDownloadBySourcePriority
+  );
+
+  const displaySources = useMemo(() => {
+    if (!isPriorityEnabled) return downloadSources;
+    return getSortedSourcesByPriority(
+      downloadSources,
+      userPreferences?.downloadSourcesPriority
+    );
+  }, [
+    downloadSources,
+    isPriorityEnabled,
+    userPreferences?.downloadSourcesPriority,
+  ]);
+
+  const handleMovePriority = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= displaySources.length) return;
+
+    const newSources = [...displaySources];
+    const temp = newSources[index];
+    newSources[index] = newSources[targetIndex];
+    newSources[targetIndex] = temp;
+
+    const newPriorityIds = newSources.map((s) => s.id);
+    updateUserPreferences({ downloadSourcesPriority: newPriorityIds });
+  };
+
+  const handleReorder = (newSources: DownloadSource[]) => {
+    const newPriorityIds = newSources.map((s) => s.id);
+    updateUserPreferences({ downloadSourcesPriority: newPriorityIds });
   };
 
   return (
     <>
       <AddDownloadSourceModal
-        visible={showAddDownloadSourceModal}
-        onClose={handleModalClose}
-        onAddDownloadSource={handleAddDownloadSource}
+        visible={showAddModal}
+        onClose={() => {
+          clearSourceUrl();
+          setShowAddModal(false);
+        }}
+        onAddDownloadSource={refreshSources}
       />
+
       <ConfirmationModal
         cancelButtonLabel={t("cancel_button_confirmation_delete_all_sources")}
         confirmButtonLabel={t("confirm_button_confirmation_delete_all_sources")}
         descriptionText={t("description_confirmation_delete_all_sources")}
         clickOutsideToClose={false}
-        onConfirm={handleRemoveAllDownloadSources}
-        visible={showConfirmationDeleteAllSourcesModal}
+        onConfirm={handleRemoveAll}
+        visible={showConfirmDeleteAll}
         title={t("title_confirmation_delete_all_sources")}
-        onClose={() => setShowConfirmationDeleteAllSourcesModal(false)}
-        buttonsIsDisabled={isRemovingDownloadSource}
+        onClose={() => setShowConfirmDeleteAll(false)}
+        buttonsIsDisabled={isRemoving}
       />
 
       <p>{t("download_sources_description")}</p>
 
-      <div className="settings-download-sources__header">
-        <Button
-          type="button"
-          theme="outline"
-          disabled={
-            !downloadSources.length ||
-            isSyncingDownloadSources ||
-            isRemovingDownloadSource
-          }
-          onClick={syncDownloadSources}
-        >
-          <SyncIcon />
-          {t("sync_download_sources")}
-        </Button>
+      <SettingsDownloadSourcesAutoOptions
+        userPreferences={userPreferences}
+        updateUserPreferences={updateUserPreferences}
+      />
 
+      <div className="settings-download-sources__header">
         <div className="settings-download-sources__buttons-container">
+          <Button
+            theme="outline"
+            onClick={handleSync}
+            disabled={isSyncing || downloadSources.length === 0}
+          >
+            <SyncIcon size={16} />
+            {t("sync_download_sources", { defaultValue: "Sincronizar" })}
+          </Button>
+
+          <Button theme="primary" onClick={() => setShowAddModal(true)}>
+            <PlusCircleIcon size={16} />
+            {t("add_download_source", { defaultValue: "Adicionar fonte" })}
+          </Button>
+
           <Button
             type="button"
             theme="danger"
-            onClick={() => setShowConfirmationDeleteAllSourcesModal(true)}
-            disabled={
-              isRemovingDownloadSource ||
-              isSyncingDownloadSources ||
-              !downloadSources.length
-            }
+            onClick={() => setShowConfirmDeleteAll(true)}
+            disabled={isRemoving || isSyncing || !downloadSources.length}
           >
             <TrashIcon />
             {t("button_delete_all_sources")}
           </Button>
-
-          <Button
-            type="button"
-            theme="outline"
-            onClick={() => setShowAddDownloadSourceModal(true)}
-            disabled={isSyncingDownloadSources || isRemovingDownloadSource}
-          >
-            <PlusCircleIcon />
-            {t("add_download_source")}
-          </Button>
         </div>
       </div>
 
-      <ul className="settings-download-sources__list">
-        {downloadSources.map((downloadSource) => {
-          const isPendingOrMatching =
-            downloadSource.status === DownloadSourceStatus.PendingMatching ||
-            downloadSource.status === DownloadSourceStatus.Matching;
-
-          return (
-            <li
-              key={downloadSource.id}
-              className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""} ${isPendingOrMatching ? "settings-download-sources__item--pending" : ""}`}
+      {isPriorityEnabled ? (
+        <Reorder.Group
+          axis="y"
+          values={displaySources}
+          onReorder={handleReorder}
+          className="settings-download-sources__list"
+          as="ul"
+        >
+          {displaySources.map((source, index) => (
+            <Reorder.Item
+              key={source.id}
+              value={source}
+              as="li"
+              style={{ listStyle: "none" }}
             >
-              <div className="settings-download-sources__item-header">
-                <h2>{downloadSource.name}</h2>
-
-                <div style={{ display: "flex" }}>
-                  <Badge>
-                    {isPendingOrMatching && (
-                      <SyncIcon className="settings-download-sources__spinner" />
-                    )}
-                    {statusTitle[downloadSource.status]}
-                  </Badge>
-                </div>
-
-                <button
-                  type="button"
-                  className="settings-download-sources__navigate-button"
-                  disabled={!downloadSource.fingerprint}
-                  onClick={() =>
-                    navigateToCatalogue(downloadSource.fingerprint)
-                  }
-                >
-                  <small>
-                    {isPendingOrMatching
-                      ? t("download_source_no_information")
-                      : t("download_count", {
-                          count: downloadSource.downloadCount,
-                          countFormatted: numberFormatter.format(
-                            downloadSource.downloadCount
-                          ),
-                        })}
-                  </small>
-                </button>
-              </div>
-
-              <TextField
-                label={t("download_source_url")}
-                value={downloadSource.url}
-                readOnly
-                theme="dark"
-                disabled
-                rightContent={
-                  <Button
-                    type="button"
-                    theme="outline"
-                    onClick={() => handleRemoveSource(downloadSource)}
-                    disabled={isRemovingDownloadSource}
-                  >
-                    <NoEntryIcon />
-                    {t("remove_download_source")}
-                  </Button>
-                }
+              <DownloadSourceCard
+                source={source}
+                isSyncing={isSyncing}
+                isRemoving={isRemoving}
+                onRemove={handleRemoveSource}
+                onNavigate={navigateToCatalogue}
+                showPriority={isPriorityEnabled}
+                priorityIndex={index}
+                isFirst={index === 0}
+                isLast={index === displaySources.length - 1}
+                onMoveUp={() => handleMovePriority(index, "up")}
+                onMoveDown={() => handleMovePriority(index, "down")}
+              />
+            </Reorder.Item>
+          ))}
+        </Reorder.Group>
+      ) : (
+        <ul className="settings-download-sources__list">
+          {displaySources.map((source) => (
+            <li key={source.id} style={{ listStyle: "none" }}>
+              <DownloadSourceCard
+                source={source}
+                isSyncing={isSyncing}
+                isRemoving={isRemoving}
+                onRemove={handleRemoveSource}
+                onNavigate={navigateToCatalogue}
               />
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </>
   );
 }

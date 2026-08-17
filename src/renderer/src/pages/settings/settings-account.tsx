@@ -143,7 +143,7 @@ export function SettingsAccount() {
   if (!userDetails) return null;
 
   return (
-    <form className="settings-account__form" onSubmit={handleSubmit(onSubmit)}>
+    <form className="settings-context-panel" onSubmit={handleSubmit(onSubmit)}>
       <Controller
         control={control}
         name="profileVisibility"
@@ -156,7 +156,7 @@ export function SettingsAccount() {
           };
 
           return (
-            <section className="settings-account__section">
+            <section className="settings-context-panel__group">
               <SelectField
                 label={t("profile_visibility")}
                 value={field.value}
@@ -175,11 +175,8 @@ export function SettingsAccount() {
         }}
       />
 
-      <section className="settings-account__section">
-        <h4>{t("current_username")}</h4>
-        <p>{userDetails?.username}</p>
-
-        <h4>{t("current_email")}</h4>
+      <section className="settings-context-panel__group">
+        <h3>{t("current_email")}</h3>
         <p>{userDetails?.email ?? t("no_email_account")}</p>
 
         <div className="settings-account__actions">
@@ -203,7 +200,7 @@ export function SettingsAccount() {
         </div>
       </section>
 
-      <section className="settings-account__section">
+      <section className="settings-context-panel__group">
         <h3>{t("hydra_cloud")}</h3>
         <div className="settings-account__subscription-info">
           {getHydraCloudSectionContent().description}
@@ -219,7 +216,7 @@ export function SettingsAccount() {
         </Button>
       </section>
 
-      <section className="settings-account__section">
+      <section className="settings-context-panel__group">
         <h3>{t("blocked_users")}</h3>
 
         {blockedUsers.length > 0 ? (

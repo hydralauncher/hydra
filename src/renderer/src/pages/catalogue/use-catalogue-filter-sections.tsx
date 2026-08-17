@@ -36,11 +36,16 @@ export function useCatalogueFilterSections({
   const { t } = useTranslation("catalogue");
 
   const steamGenresFilterItems = useMemo(() => {
-    if (!steamGenres[language]) return [];
+    const langKey = steamGenres[language]
+      ? language
+      : steamGenres["en"]
+        ? "en"
+        : Object.keys(steamGenres)[0];
+    if (!langKey || !steamGenres[langKey]) return [];
     return Object.entries(
-      steamGenres[language].reduce(
+      steamGenres[langKey].reduce(
         (acc, genre, i) => {
-          acc[genre] = steamGenres["en"][i];
+          acc[genre] = steamGenres["en"]?.[i] ?? genre;
           return acc;
         },
         {} as Record<string, string>
@@ -55,8 +60,13 @@ export function useCatalogueFilterSections({
   }, [steamGenres, filters.genres, language]);
 
   const steamTagsFilterItems = useMemo(() => {
-    if (!steamUserTags[language]) return [];
-    return Object.entries(steamUserTags[language])
+    const langKey = steamUserTags[language]
+      ? language
+      : steamUserTags["en"]
+        ? "en"
+        : Object.keys(steamUserTags)[0];
+    if (!langKey || !steamUserTags[langKey]) return [];
+    return Object.entries(steamUserTags[langKey])
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([k, v]) => ({
         label: k,
@@ -83,33 +93,39 @@ export function useCatalogueFilterSections({
         key: "downloadSourceFingerprints",
         title: "Fontes",
         icon: <DownloadIcon size={12} />,
-        items: downloadSources.map((s) => ({
-          label: s.name,
-          value: s.fingerprint ?? "",
-          checked:
-            !!s.fingerprint &&
-            filters.downloadSourceFingerprints.includes(s.fingerprint),
-        })),
+        items: (Array.isArray(downloadSources) ? downloadSources : []).map(
+          (s) => ({
+            label: s.name,
+            value: s.fingerprint ?? "",
+            checked:
+              !!s.fingerprint &&
+              filters.downloadSourceFingerprints.includes(s.fingerprint),
+          })
+        ),
       },
       {
         key: "developers",
         title: "Devs",
         icon: <PeopleIcon size={12} />,
-        items: steamDevelopers.map((d) => ({
-          label: d,
-          value: d,
-          checked: filters.developers.includes(d),
-        })),
+        items: (Array.isArray(steamDevelopers) ? steamDevelopers : []).map(
+          (d) => ({
+            label: d,
+            value: d,
+            checked: filters.developers.includes(d),
+          })
+        ),
       },
       {
         key: "publishers",
         title: "Publishers",
         icon: <BriefcaseIcon size={12} />,
-        items: steamPublishers.map((p) => ({
-          label: p,
-          value: p,
-          checked: filters.publishers.includes(p),
-        })),
+        items: (Array.isArray(steamPublishers) ? steamPublishers : []).map(
+          (p) => ({
+            label: p,
+            value: p,
+            checked: filters.publishers.includes(p),
+          })
+        ),
       },
     ],
     [
@@ -131,7 +147,10 @@ export function useCatalogueFilterSections({
         key: "genres",
         title: t("genres"),
         icon: <ProjectIcon size={12} />,
-        items: launchboxFilters.genres.map((g) => ({
+        items: (Array.isArray(launchboxFilters?.genres)
+          ? launchboxFilters.genres
+          : []
+        ).map((g) => ({
           label: g,
           value: g,
           checked: filters.genres.includes(g),
@@ -141,19 +160,24 @@ export function useCatalogueFilterSections({
         key: "downloadSourceFingerprints",
         title: "Fontes",
         icon: <DownloadIcon size={12} />,
-        items: downloadSources.map((s) => ({
-          label: s.name,
-          value: s.fingerprint ?? "",
-          checked:
-            !!s.fingerprint &&
-            filters.downloadSourceFingerprints.includes(s.fingerprint),
-        })),
+        items: (Array.isArray(downloadSources) ? downloadSources : []).map(
+          (s) => ({
+            label: s.name,
+            value: s.fingerprint ?? "",
+            checked:
+              !!s.fingerprint &&
+              filters.downloadSourceFingerprints.includes(s.fingerprint),
+          })
+        ),
       },
       {
         key: "developers",
         title: "Devs",
         icon: <PeopleIcon size={12} />,
-        items: launchboxFilters.developers.map((d) => ({
+        items: (Array.isArray(launchboxFilters?.developers)
+          ? launchboxFilters.developers
+          : []
+        ).map((d) => ({
           label: d,
           value: d,
           checked: filters.developers.includes(d),
@@ -163,7 +187,10 @@ export function useCatalogueFilterSections({
         key: "publishers",
         title: "Publishers",
         icon: <BriefcaseIcon size={12} />,
-        items: launchboxFilters.publishers.map((p) => ({
+        items: (Array.isArray(launchboxFilters?.publishers)
+          ? launchboxFilters.publishers
+          : []
+        ).map((p) => ({
           label: p,
           value: p,
           checked: filters.publishers.includes(p),

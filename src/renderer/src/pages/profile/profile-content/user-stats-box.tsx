@@ -1,4 +1,5 @@
-import { useCallback, useContext } from "react";
+import { motion } from "framer-motion";
+import { useCallback, useContext, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
 import { useFormat, useUserDetails } from "@renderer/hooks";
@@ -7,9 +8,11 @@ import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { ClockIcon, TrophyIcon } from "@primer/octicons-react";
 import { Award } from "lucide-react";
+import { WrappedFullscreenModal } from "./wrapped-tab";
 import "./user-stats-box.scss";
 
 export function UserStatsBox() {
+  const [showWrappedModal, setShowWrappedModal] = useState(false);
   const { showHydraCloudModal } = useSubscription();
   const { userStats, isMe, userProfile } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
@@ -39,8 +42,34 @@ export function UserStatsBox() {
   const hasKarma = karma !== undefined && karma !== null;
 
   return (
-    <div className="user-stats__box">
+    <motion.div
+      key="stats"
+      className="profile-content__tab-panel user-stats__box"
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 10 }}
+      transition={{ duration: 0.2 }}
+      aria-hidden={false}
+    >
+      <div className="profile-content__section-header">
+        <div className="profile-content__section-title-group">
+          <h2>{t("stats", { defaultValue: "Estatísticas" })}</h2>
+        </div>
+      </div>
+
       <ul className="user-stats__list">
+        {userProfile?.hasCompletedWrapped2025 && (
+          <li className="user-stats__list-item user-stats__list-item--wrapped">
+            <button
+              type="button"
+              onClick={() => setShowWrappedModal(true)}
+              className="user-stats__wrapped-link"
+            >
+              Wrapped 2025
+            </button>
+          </li>
+        )}
+
         {(isMe || userStats.unlockedAchievementSum !== undefined) && (
           <li className="user-stats__list-item">
             <h3 className="user-stats__list-title">
@@ -73,12 +102,15 @@ export function UserStatsBox() {
             {userStats.achievementsPointsEarnedSum !== undefined ? (
               <div className="user-stats__stats-row">
                 <p className="user-stats__list-description">
-                  <HydraIcon width={20} height={20} />
+                  <HydraIcon width={24} height={24} />
                   {numberFormatter.format(
                     userStats.achievementsPointsEarnedSum.value
                   )}
                 </p>
-                <p title={t("ranking_updated_weekly")}>
+                <p
+                  className="user-stats__stats-label"
+                  title={t("ranking_updated_weekly")}
+                >
                   {t("top_percentile", {
                     percentile:
                       userStats.achievementsPointsEarnedSum.topPercentile,
@@ -103,10 +135,13 @@ export function UserStatsBox() {
           <h3 className="user-stats__list-title">{t("total_play_time")}</h3>
           <div className="user-stats__stats-row">
             <p className="user-stats__list-description">
-              <ClockIcon />
+              <ClockIcon size={24} />
               {formatPlayTime(userStats.totalPlayTimeInSeconds.value)}
             </p>
-            <p title={t("ranking_updated_weekly")}>
+            <p
+              className="user-stats__stats-label"
+              title={t("ranking_updated_weekly")}
+            >
               {t("top_percentile", {
                 percentile: userStats.totalPlayTimeInSeconds.topPercentile,
               })}
@@ -119,13 +154,20 @@ export function UserStatsBox() {
             <h3 className="user-stats__list-title">{t("karma")}</h3>
             <div className="user-stats__stats-row">
               <p className="user-stats__list-description">
-                <Award size={20} /> {numberFormatter.format(karma)}{" "}
-                {t("karma_count")}
+                <Award size={24} /> {numberFormatter.format(karma)}
               </p>
             </div>
           </li>
         )}
       </ul>
-    </div>
+
+      {userProfile && (
+        <WrappedFullscreenModal
+          userId={userProfile.id}
+          isOpen={showWrappedModal}
+          onClose={() => setShowWrappedModal(false)}
+        />
+      )}
+    </motion.div>
   );
 }

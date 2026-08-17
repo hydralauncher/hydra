@@ -32,6 +32,15 @@
     background: transparent;
     border-bottom: 1px solid transparent;
     z-index: 1001;
+
+    .catalogue-header {
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition:
+        opacity 0.15s ease,
+        visibility 0.15s ease;
+    }
   }
 
   &--catalogue {
@@ -41,6 +50,17 @@
 
   &--transparent {
     background: transparent !important;
+  }
+
+  &--home {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: transparent !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    z-index: 20;
   }
 
   &__logo {

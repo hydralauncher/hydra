@@ -78,46 +78,35 @@ const protonCompatibilityThresholds: CompatibilityThreshold<
 const areSameValues = (a: string[], b: string[]) =>
   a.length === b.length && a.every((i) => b.includes(i));
 
-const SECTION_SIZE = 14;
+const SECTION_SIZE = 15;
 
-let globalCachedResults: CatalogueSearchResult[] | null = null;
-let globalCachedCount: number = 0;
-let globalCachedPage: number = 1;
-let globalCachedKey: string = "";
-
-const getCachedResults = () => {
-  if (globalCachedResults) return globalCachedResults;
-  if ((window as any).__HYDRA_CATALOGUE_CACHE__) {
-    const cache = (window as any).__HYDRA_CATALOGUE_CACHE__;
-    globalCachedResults = cache.results;
-    globalCachedCount = cache.count;
-    globalCachedPage = cache.page;
-    globalCachedKey = cache.key;
-  }
-  return globalCachedResults;
-};
+const catalogueCacheMap = new Map<
+  string,
+  { edges: CatalogueSearchResult[]; count: number }
+>();
 
 export default function Catalogue() {
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestSequenceRef = useRef(0);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
   const { downloadSources } = useCatalogue();
   const { library } = useLibrary();
-  const { steamGenres, steamUserTags, filters, page, mode, viewMode } =
-    useAppSelector((state) => state.catalogueSearch);
+  const {
+    steamGenres,
+    steamUserTags,
+    filters,
+    page,
+    mode,
+    viewMode,
+    hideOwned,
+  } = useAppSelector((state) => state.catalogueSearch);
   const launchboxFilters = useLaunchboxFilters(mode === "classics");
 
-  const [isLoading, setIsLoading] = useState(
-    getCachedResults() === null || globalCachedPage !== page
-  );
-  const [results, setResults] = useState<CatalogueSearchResult[]>(
-    globalCachedPage === page ? getCachedResults() || [] : []
-  );
-  const [itemsCount, setItemsCount] = useState(
-    globalCachedPage === page ? globalCachedCount : 0
-  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [results, setResults] = useState<CatalogueSearchResult[]>([]);
+  const [itemsCount, setItemsCount] = useState(0);
   const [resultsMode, setResultsMode] = useState<CatalogueMode>(mode);
-  const pageSize = mode === "classics" ? 104 : 80;
+  const pageSize = 100;
   const dispatch = useAppDispatch();
   const { t, i18n } = useTranslation("catalogue");
   const shouldShowProtonFeatures = window.electron.platform === "linux";
@@ -139,18 +128,28 @@ export default function Catalogue() {
     [filters, mode, viewMode]
   );
 
+  const isGameOwned = useCallback(
+    (game: CatalogueSearchResult) =>
+      library.some(
+        (l) =>
+          l.shop === game.shop && String(l.objectId) === String(game.objectId)
+      ),
+    [library]
+  );
+
   const searchCatalogue = useCallback(
     async (
       filtersArg: CatalogueSearchPayload,
       sources: DownloadSource[],
       take: number,
       offset: number,
-      activeMode: CatalogueMode
+      activeMode: CatalogueMode,
+      cacheKey: string,
+      requestId: number
     ) => {
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-
       try {
+        const { platforms, ...restFilters } = filtersArg;
+
         const ps2 = launchboxFilters.platforms.find(
           (p) =>
             p.name.toLowerCase().includes("playstation 2") ||
@@ -161,107 +160,146 @@ export default function Catalogue() {
           ? [ps2.key]
           : launchboxFilters.platforms[0]
             ? [launchboxFilters.platforms[0].key]
-            : ["Sony Playstation 2"];
+            : ["ps2"];
 
-        const requestData =
-          activeMode === "classics"
-            ? {
-                title: filtersArg.title ?? "",
-                sortBy: filtersArg.sortBy ?? "popularity",
-                sortOrder: filtersArg.sortOrder ?? "desc",
-                shops: ["launchbox"],
-                platforms:
-                  filtersArg.platforms && filtersArg.platforms.length > 0
-                    ? filtersArg.platforms
-                    : fallbackPlatform,
-                genres: filtersArg.genres ?? [],
-                downloadSourceFingerprints:
-                  filtersArg.downloadSourceFingerprints ?? [],
-                developers: filtersArg.developers ?? [],
-                publishers: filtersArg.publishers ?? [],
-                take,
-                skip: offset,
-                downloadSourceIds: sources.map((s) => s.id),
-              }
-            : {
-                ...filtersArg,
-                take,
-                skip: offset,
-                downloadSourceIds: sources.map((s) => s.id),
-              };
+        const collected: CatalogueSearchResult[] = [];
+        let currentSkip = offset;
+        let totalCount = 0;
+        let loops = 8;
 
-        const response = await window.electron.hydraApi.post<{
-          edges: CatalogueSearchResult[];
-          count: number;
-        }>("/catalogue/search", {
-          data: requestData,
-          needsAuth: false,
-        });
+        while (loops > 0) {
+          loops--;
+          const requestData =
+            activeMode === "classics"
+              ? {
+                  title: restFilters.title ?? "",
+                  sortBy: restFilters.sortBy ?? "popularity",
+                  sortOrder: restFilters.sortOrder ?? "desc",
+                  shops: ["launchbox"],
+                  platforms:
+                    platforms && platforms.length > 0
+                      ? platforms
+                      : fallbackPlatform,
+                  genres: restFilters.genres ?? [],
+                  downloadSourceFingerprints:
+                    restFilters.downloadSourceFingerprints ?? [],
+                  developers: restFilters.developers ?? [],
+                  publishers: restFilters.publishers ?? [],
+                  take: 25,
+                  skip: currentSkip,
+                  downloadSourceIds: sources.map((s) => s.id),
+                }
+              : {
+                  ...restFilters,
+                  take: 25,
+                  skip: currentSkip,
+                  downloadSourceIds: sources.map((s) => s.id),
+                };
 
-        if (abortController.signal.aborted) return;
+          const response = await window.electron.hydraApi.post<{
+            edges: CatalogueSearchResult[];
+            count: number;
+          }>("/catalogue/search", {
+            data: requestData,
+            needsAuth: false,
+          });
 
-        setResults(response.edges || []);
+          if (requestId !== requestSequenceRef.current) return;
+
+          const edges = response?.edges || [];
+          totalCount = response?.count || 0;
+
+          if (edges.length === 0) break;
+
+          for (const edge of edges) {
+            if (hideOwned && isGameOwned(edge)) continue;
+            if (
+              !collected.some(
+                (g) =>
+                  g.id === edge.id ||
+                  (g.shop === edge.shop &&
+                    String(g.objectId) === String(edge.objectId))
+              )
+            ) {
+              collected.push(edge);
+            }
+            if (collected.length >= take) break;
+          }
+
+          if (collected.length >= take || edges.length < 25) {
+            break;
+          }
+
+          currentSkip += edges.length;
+        }
+
+        if (requestId !== requestSequenceRef.current) return;
+
+        setResults(collected);
         setResultsMode(activeMode);
-        setItemsCount(response.count || 0);
-
-        globalCachedResults = response.edges || [];
-        globalCachedCount = response.count || 0;
-        globalCachedPage = page;
-        globalCachedKey = JSON.stringify({
-          filtersArg,
-          sources,
-          take,
-          offset,
-          activeMode,
+        setItemsCount(totalCount);
+        catalogueCacheMap.set(cacheKey, {
+          edges: collected,
+          count: totalCount,
         });
       } catch (err) {
-        if (!abortController.signal.aborted) {
+        if (requestId === requestSequenceRef.current) {
           console.error(err);
         }
       } finally {
-        if (!abortController.signal.aborted) {
+        if (requestId === requestSequenceRef.current) {
           setIsLoading(false);
         }
       }
     },
-    [page, launchboxFilters.platforms]
+    [launchboxFilters.platforms, hideOwned, isGameOwned]
   );
 
   const decodeHTML = (s: string) =>
     s.replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
 
   useEffect(() => {
-    setResults([]);
-    setIsLoading(true);
-  }, [mode]);
+    const requestId = ++requestSequenceRef.current;
+    const takeAmount = hasActiveFilters ? pageSize : 100;
 
-  useEffect(() => {
     const key = JSON.stringify({
       filtersArg: filters,
       sources: downloadSources,
-      take: pageSize,
+      take: takeAmount,
       offset: (page - 1) * pageSize,
       activeMode: mode,
+      hideOwned,
     });
-    if (globalCachedKey === key && globalCachedResults !== null) {
+
+    const cached = catalogueCacheMap.get(key);
+    if (cached) {
+      setResults(cached.edges);
+      setItemsCount(cached.count);
+      setResultsMode(mode);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
-    abortControllerRef.current?.abort();
     searchCatalogue(
       filters,
       downloadSources,
-      pageSize,
+      takeAmount,
       (page - 1) * pageSize,
-      mode
+      mode,
+      key,
+      requestId
     );
-
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, [filters, downloadSources, page, pageSize, mode, searchCatalogue]);
+  }, [
+    filters,
+    downloadSources,
+    page,
+    pageSize,
+    mode,
+    hasActiveFilters,
+    hideOwned,
+    searchCatalogue,
+  ]);
 
   const language = i18n.language.split("-")[0];
 
@@ -398,12 +436,30 @@ export default function Catalogue() {
     return copy;
   }, [results]);
 
-  const sections = useMemo(() => {
+  const displayedResults = useMemo(() => {
+    if (!hideOwned) return results;
+    return results.filter((g) => !isGameOwned(g));
+  }, [results, hideOwned, isGameOwned]);
+
+  const displayedDailyShuffled = useMemo(() => {
+    if (!dailyShuffled.length) return [];
+    if (!hideOwned) return dailyShuffled;
+    return dailyShuffled.filter((g) => !isGameOwned(g));
+  }, [dailyShuffled, hideOwned, isGameOwned]);
+
+  const displayedFeaturedGames = useMemo(
+    () => displayedResults.slice(0, 13),
+    [displayedResults]
+  );
+
+  const displayedSections = useMemo(() => {
     if (hasActiveFilters) return [];
     const inLibraryIds = new Set(library.map((l) => l.objectId));
-    const notInLibrary = results.filter((g) => !inLibraryIds.has(g.objectId));
-    const destaques = dailyShuffled.slice(0, SECTION_SIZE);
-    const populares = results.slice(SECTION_SIZE, SECTION_SIZE * 2);
+    const notInLibrary = displayedResults.filter(
+      (g) => !inLibraryIds.has(g.objectId)
+    );
+    const destaques = displayedDailyShuffled.slice(0, SECTION_SIZE);
+    const populares = displayedResults.slice(SECTION_SIZE, SECTION_SIZE * 2);
     const recomendados = notInLibrary.slice(0, SECTION_SIZE);
 
     return [
@@ -411,9 +467,7 @@ export default function Catalogue() {
       { title: "Mais Populares", games: populares },
       { title: "Recomendados para Você", games: recomendados },
     ].filter((s) => s.games.length > 0);
-  }, [results, hasActiveFilters, dailyShuffled, library]);
-
-  const featuredGames = useMemo(() => results.slice(0, 13), [results]);
+  }, [displayedResults, displayedDailyShuffled, hasActiveFilters, library]);
 
   return (
     <div className="catalogue" ref={cataloguePageRef}>
@@ -465,8 +519,8 @@ export default function Catalogue() {
         {/* Curated Highlights View (Modern mode only) */}
         {!hasActiveFilters && (
           <>
-            <FeaturedCarousel games={isLoading ? [] : featuredGames} />
-            {sections.map((s) => (
+            <FeaturedCarousel games={isLoading ? [] : displayedFeaturedGames} />
+            {displayedSections.map((s) => (
               <CatalogueSection
                 key={s.title}
                 title={s.title}
@@ -485,7 +539,7 @@ export default function Catalogue() {
               </>
             )}
             <CategoryExplorer onSelectGenre={handleGenreClick} />
-            <TopSellers games={results} isLoading={isLoading} />
+            <TopSellers games={displayedResults} isLoading={isLoading} />
           </>
         )}
 
@@ -497,13 +551,7 @@ export default function Catalogue() {
                 resultsMode === "classics" || mode === "classics",
             })}
           >
-            {resultsMode === "classics"
-              ? results.map((game) => (
-                  <GameItemClassics key={game.id} game={game} />
-                ))
-              : results.map((game) => <GameItem key={game.id} game={game} />)}
-
-            {isLoading && results.length === 0 && (
+            {isLoading || resultsMode !== mode ? (
               <div
                 style={{
                   gridColumn: "1 / -1",
@@ -515,6 +563,14 @@ export default function Catalogue() {
               >
                 {t("loading", { defaultValue: "Carregando jogos..." })}
               </div>
+            ) : mode === "classics" ? (
+              displayedResults.map((game) => (
+                <GameItemClassics key={game.id} game={game} />
+              ))
+            ) : (
+              displayedResults.map((game) => (
+                <GameItem key={game.id} game={game} />
+              ))
             )}
 
             <div className="catalogue__pagination-container">
