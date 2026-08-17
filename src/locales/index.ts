@@ -34,7 +34,7 @@ import vi from "./vi/translation.json";
 import ja from "./ja/translation.json";
 import sl from "./sl/translation.json";
 
-const translations = {
+const translations: Record<string, any> = {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
   en,
