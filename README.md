@@ -1,6 +1,6 @@
 <div align="center">
 
-[<img src="https://raw.githubusercontent.com/apxllo123/medusa/refs/heads/main/resources/icon.png?v=2" width="144"/>](https://github.com/apxllo123/medusa)
+[<img src="https://raw.githubusercontent.com/apxllo123/medusa/refs/heads/main/resources/icon.png?v=3" width="144"/>](https://github.com/apxllo123/medusa)
 
   <h1 align="center">Medusa Launcher</h1>
 
