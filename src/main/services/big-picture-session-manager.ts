@@ -21,7 +21,7 @@ const RESTORE_PRIMARY_DISPLAY_POLL_INTERVAL_MS = 100;
 
 export class BigPictureSessionManager {
   private static snapshot: BigPictureRestoreSnapshot | null = null;
-  private static sessionOperationQueue = createSessionOperationQueue(
+  private static readonly sessionOperationQueue = createSessionOperationQueue(
     (error) => {
       logger.warn("Previous Big Picture session operation failed", error);
     }
