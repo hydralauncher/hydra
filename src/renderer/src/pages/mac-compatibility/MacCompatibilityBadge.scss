@@ -1,0 +1,122 @@
+@use "../../scss/globals.scss";
+
+.mac-compatibility-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  z-index: 5;
+
+  .mac-compatibility-circle {
+    gap: 0;
+    width: 28px;
+    height: 28px;
+  }
+
+  .mac-compatibility-circle__disc {
+    width: 28px;
+    height: 28px;
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 3px 8px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .mac-compatibility-circle__ring {
+    inset: 3px;
+  }
+
+  .mac-compatibility-circle__glow {
+    inset: -20%;
+    filter: blur(4px);
+  }
+
+  .mac-compatibility-circle__caption {
+    display: none;
+  }
+}
+
+.mac-compatibility-badge__popover {
+  position: absolute;
+  top: 42px;
+  right: 8px;
+  width: min(260px, calc(100% - 16px));
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  background: rgba(25, 25, 25, 0.97);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  color: globals.$muted-color;
+  text-align: left;
+  pointer-events: auto;
+}
+
+.mac-compatibility-badge__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+  line-height: 1.25;
+
+  strong {
+    color: globals.$muted-color;
+    font-size: 12px;
+  }
+}
+
+.mac-compatibility-badge__label {
+  color: globals.$body-color;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.mac-compatibility-badge__message {
+  margin: 0;
+  color: globals.$body-color;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.mac-compatibility-badge__issues {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mac-compatibility-badge__issue {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 7px;
+  border-left: 2px solid globals.$warning-color;
+
+  &[data-severity="error"] {
+    border-left-color: globals.$error-color;
+  }
+
+  &[data-severity="info"] {
+    border-left-color: globals.$brand-teal;
+  }
+
+  strong {
+    color: globals.$muted-color;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  span {
+    color: globals.$body-color;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+}
