@@ -32,7 +32,8 @@
     "build:mac": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --mac",
     "build:linux": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --linux",
     "dev:big-picture": "vite dev src/big-picture",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:renderer:mac": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_PROJECT=tsconfig.web.json node --import ./scripts/register-ts-node.mjs --test src/renderer/src/pages/mac-compatibility/mac-compatibility-status.test.ts"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.8.1",
