@@ -11,6 +11,19 @@ interface MacCompatibilityBadgeProps {
   title: string;
   isFavorite?: boolean;
   isWindowsGame?: boolean;
+  /**
+   * When provided, activating the circle calls this instead of opening
+   * the small popover — used on the game's own page, where clicking
+   * should open the full compatibility panel with repair actions.
+   */
+  onOpenFullPanel?: () => void;
+  /**
+   * Checks compatibility as soon as the badge mounts, same as
+   * isFavorite does, but without implying the game is actually
+   * favorited. Used on the game's own page, where the badge should
+   * always show real status right away.
+   */
+  autoCheck?: boolean;
 }
 
 const STATUS_LABELS: Record<MacCompatibilityStatusValue, string> = {
@@ -29,6 +42,8 @@ export function MacCompatibilityBadge({
   title,
   isFavorite = false,
   isWindowsGame = true,
+  onOpenFullPanel,
+  autoCheck = false,
 }: MacCompatibilityBadgeProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const autoCheckAttemptedRef = useRef(false);
@@ -91,7 +106,7 @@ export function MacCompatibilityBadge({
   useEffect(() => {
     if (
       window.electron.platform !== "darwin" ||
-      !isFavorite ||
+      (!isFavorite && !autoCheck) ||
       autoCheckAttemptedRef.current
     ) {
       return;
@@ -99,7 +114,7 @@ export function MacCompatibilityBadge({
 
     autoCheckAttemptedRef.current = true;
     void runCheck(false);
-  }, [isFavorite, runCheck]);
+  }, [isFavorite, autoCheck, runCheck]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -143,7 +158,9 @@ export function MacCompatibilityBadge({
         status={toCircleStatus(status)}
         busy={busy}
         stopPropagation
-        onActivate={() => void runCheck(true)}
+        onActivate={
+          onOpenFullPanel ? onOpenFullPanel : () => void runCheck(true)
+        }
       />
 
       {isOpen && (
