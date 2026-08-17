@@ -25,12 +25,14 @@ import { Downloader, getDownloadersForUri } from "@shared";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
 import { CloudSaveV2Provider } from "./cloud-save-v2";
 import { MacCompatibilityPanel } from "@renderer/pages/mac-compatibility/MacCompatibilityPanel";
+import { MacCompatibilityBadge } from "@renderer/pages/mac-compatibility/MacCompatibilityBadge";
 import "./game-details.scss";
 import "./hero.scss";
 
 export default function GameDetails() {
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
   const [randomizerLocked, setRandomizerLocked] = useState(false);
+  const [macCompatibilityOpen, setMacCompatibilityOpen] = useState(false);
 
   const { objectId, shop } = useParams();
   const [searchParams] = useSearchParams();
@@ -165,10 +167,26 @@ export default function GameDetails() {
 
                   {!isLoading &&
                     window.electron.platform === "darwin" && (
+                      <div className="game-details__mac-compatibility-badge">
+                        <MacCompatibilityBadge
+                          shop={shop ?? ""}
+                          objectId={objectId ?? ""}
+                          title={gameTitle ?? ""}
+                          autoCheck
+                          onOpenFullPanel={() =>
+                            setMacCompatibilityOpen(true)
+                          }
+                        />
+                      </div>
+                    )}
+
+                  {macCompatibilityOpen &&
+                    window.electron.platform === "darwin" && (
                       <MacCompatibilityPanel
                         gameName={gameTitle}
                         shop={shop}
                         objectId={objectId}
+                        onClose={() => setMacCompatibilityOpen(false)}
                       />
                     )}
 
