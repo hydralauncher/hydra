@@ -2,7 +2,10 @@ import { db, levelKeys } from "@main/level";
 import type { UserPreferences } from "@types";
 import { AudioDeviceManager } from "./audio-device-manager";
 import type { AudioDeviceDefaults } from "./audio-device-manager-utils";
-import { getBigPictureAudioOperation } from "./big-picture-session-manager-utils";
+import {
+  createSessionOperationQueue,
+  getBigPictureAudioOperation,
+} from "./big-picture-session-manager-utils";
 import { DisplayManager } from "./display-manager";
 import { logger } from "./logger";
 import { NativeAddon } from "./native-addon";
@@ -18,7 +21,11 @@ const RESTORE_PRIMARY_DISPLAY_POLL_INTERVAL_MS = 100;
 
 export class BigPictureSessionManager {
   private static snapshot: BigPictureRestoreSnapshot | null = null;
-  private static sessionOperationQueue: Promise<void> = Promise.resolve();
+  private static sessionOperationQueue = createSessionOperationQueue(
+    (error) => {
+      logger.warn("Previous Big Picture session operation failed", error);
+    }
+  );
   private static isRestoring = false;
 
   private static async waitForPrimaryDisplaySourceName(
@@ -67,19 +74,8 @@ export class BigPictureSessionManager {
     return false;
   }
 
-  private static enqueueSessionOperation(operation: () => Promise<void>) {
-    const operationPromise = this.sessionOperationQueue
-      .catch((error) => {
-        logger.warn("Previous Big Picture session operation failed", error);
-      })
-      .then(operation);
-
-    this.sessionOperationQueue = operationPromise.then(
-      () => undefined,
-      () => undefined
-    );
-
-    return operationPromise;
+  private static enqueueSessionOperation<T>(operation: () => Promise<T>) {
+    return this.sessionOperationQueue.enqueue(operation);
   }
 
   private static async applyInternal() {
@@ -116,20 +112,22 @@ export class BigPictureSessionManager {
     return this.enqueueSessionOperation(() => this.applyInternal());
   }
 
-  public static async applyAudioPreference(userPreferences: UserPreferences) {
-    if (this.snapshot === null || this.isRestoring) {
-      return false;
-    }
+  public static applyAudioPreference(userPreferences: UserPreferences) {
+    return this.enqueueSessionOperation(async () => {
+      if (this.snapshot === null || this.isRestoring) {
+        return false;
+      }
 
-    const operation = getBigPictureAudioOperation(userPreferences);
+      const operation = getBigPictureAudioOperation(userPreferences);
 
-    if (operation.type === "restore") {
-      return AudioDeviceManager.restoreDefaultAudioDevices(
-        this.snapshot.defaultAudioDevices
-      );
-    }
+      if (operation.type === "restore") {
+        return AudioDeviceManager.restoreDefaultAudioDevices(
+          this.snapshot.defaultAudioDevices
+        );
+      }
 
-    return AudioDeviceManager.setDefaultAudioDevice(operation.deviceId);
+      return AudioDeviceManager.setDefaultAudioDevice(operation.deviceId);
+    });
   }
 
   public static applyDisplayPreference() {

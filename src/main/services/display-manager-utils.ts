@@ -54,13 +54,9 @@ export function resolveDisplayId<TDisplay extends ElectronDisplayLike>(
   displays: TDisplay[],
   primaryDisplayId: number
 ): TDisplay {
-  if (displayBounds) {
+  if (displayId && displayId !== DEFAULT_DISPLAY_ID) {
     const selectedDisplay = displays.find(
-      (display) =>
-        display.bounds.x === displayBounds.x &&
-        display.bounds.y === displayBounds.y &&
-        display.bounds.width === displayBounds.width &&
-        display.bounds.height === displayBounds.height
+      (display) => String(display.id) === displayId
     );
 
     if (selectedDisplay) {
@@ -68,9 +64,13 @@ export function resolveDisplayId<TDisplay extends ElectronDisplayLike>(
     }
   }
 
-  if (displayId && displayId !== DEFAULT_DISPLAY_ID) {
+  if (displayBounds) {
     const selectedDisplay = displays.find(
-      (display) => String(display.id) === displayId
+      (display) =>
+        display.bounds.x === displayBounds.x &&
+        display.bounds.y === displayBounds.y &&
+        display.bounds.width === displayBounds.width &&
+        display.bounds.height === displayBounds.height
     );
 
     if (selectedDisplay) {

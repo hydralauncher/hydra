@@ -59,11 +59,11 @@ describe("display manager utilities", () => {
     assert.equal(resolveDisplayId("2", null, displays, 1), displays[1]);
   });
 
-  it("prefers saved Big Picture display bounds over a changed display id", () => {
+  it("keeps the saved Big Picture display when its bounds are stale", () => {
     assert.equal(
       resolveDisplayId(
-        "1",
-        { x: 1920, y: 0, width: 3840, height: 2160 },
+        "2",
+        { x: 0, y: 0, width: 1920, height: 1080 },
         displays,
         1
       ),
