@@ -17,6 +17,7 @@ import {
 } from "./emulator-souvenir-config";
 import { duckstationLogPath, pcsx2LogPath } from "./emulator-log-paths";
 import type { EmulatorSessionSystem } from "./emulator-session-tracker";
+import { prepareLinuxGameCaptureSession } from "../linux-game-capture-session";
 
 const DUCKSTATION_UNLOCK = /Achievement (\d+) \((.*?)\) for game \d+ unlocked/;
 const PCSX2_UNLOCK =
@@ -36,7 +37,6 @@ interface WatcherRegistration {
 const watchers = new Map<string, WatcherRegistration>();
 
 const isSouvenirCaptureEnabled = async () => {
-  if (process.platform === "linux") return false;
   if (!HydraApi.hasActiveSubscription()) return false;
 
   const userPreferences = await db.get<string, UserPreferences | null>(
@@ -135,7 +135,7 @@ const startLogWatcher = (
           achievement.title,
           game.remoteId!,
           achievement.id,
-          processId
+          { processId, gameKey }
         );
 
         await publishSouvenir(game, achievement, screenshotPath);
@@ -297,6 +297,7 @@ export const startEmulatorSouvenirWatcher = async ({
   }
 
   if (system === "ps1") {
+    const capturePreparation = prepareLinuxGameCaptureSession(gameKey);
     startConfiguredLogWatcher({
       gameKey,
       watcherToken,
@@ -306,10 +307,12 @@ export const startEmulatorSouvenirWatcher = async ({
       pattern: DUCKSTATION_UNLOCK,
       titleFirst: false,
     });
+    await capturePreparation;
     return;
   }
 
   if (system === "ps2") {
+    const capturePreparation = prepareLinuxGameCaptureSession(gameKey);
     startConfiguredLogWatcher({
       gameKey,
       watcherToken,
@@ -319,6 +322,7 @@ export const startEmulatorSouvenirWatcher = async ({
       pattern: PCSX2_UNLOCK,
       titleFirst: true,
     });
+    await capturePreparation;
     return;
   }
 

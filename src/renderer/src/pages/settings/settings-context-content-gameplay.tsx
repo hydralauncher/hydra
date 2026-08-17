@@ -124,54 +124,49 @@ export function SettingsContextContentGameplay() {
           </small>
         </div>
 
-        {window.electron.platform !== "linux" && (
-          <>
-            {hasActiveSubscription ? (
-              <CheckboxField
-                id="achievement-souvenirs"
-                label={t("enable_achievement_souvenirs")}
-                checked={form.enableAchievementSouvenirs}
-                onChange={() =>
-                  handleChange({
-                    enableAchievementSouvenirs:
-                      !form.enableAchievementSouvenirs,
-                  })
-                }
-              />
-            ) : (
-              <button
-                type="button"
-                className="settings-behavior__hydra-cloud-row"
-                onClick={() => showHydraCloudModal("achievements")}
-              >
-                <CheckboxField
-                  id="achievement-souvenirs"
-                  label={t("enable_achievement_souvenirs")}
-                  checked={false}
-                  disabled
-                  readOnly
-                />
+        {hasActiveSubscription ? (
+          <CheckboxField
+            id="achievement-souvenirs"
+            label={t("enable_achievement_souvenirs")}
+            checked={form.enableAchievementSouvenirs}
+            onChange={() =>
+              handleChange({
+                enableAchievementSouvenirs: !form.enableAchievementSouvenirs,
+              })
+            }
+          />
+        ) : (
+          <button
+            type="button"
+            className="settings-behavior__hydra-cloud-row"
+            onClick={() => showHydraCloudModal("achievements")}
+          >
+            <CheckboxField
+              id="achievement-souvenirs"
+              label={t("enable_achievement_souvenirs")}
+              checked={false}
+              disabled
+              readOnly
+            />
 
-                <span className="settings-behavior__hydra-cloud-badge">
-                  Hydra Cloud
-                </span>
-              </button>
-            )}
-
-            <Button
-              className="settings-behavior__open-screenshots-button"
-              theme="outline"
-              disabled={!hasActiveSubscription}
-              onClick={async () =>
-                window.electron.openFolder(
-                  await window.electron.getScreenshotsPath()
-                )
-              }
-            >
-              {t("open_screenshots_directory")}
-            </Button>
-          </>
+            <span className="settings-behavior__hydra-cloud-badge">
+              Hydra Cloud
+            </span>
+          </button>
         )}
+
+        <Button
+          className="settings-behavior__open-screenshots-button"
+          theme="outline"
+          disabled={!hasActiveSubscription}
+          onClick={async () =>
+            window.electron.openFolder(
+              await window.electron.getScreenshotsPath()
+            )
+          }
+        >
+          {t("open_screenshots_directory")}
+        </Button>
 
         <CheckboxField
           label={t("enable_new_download_options_badges")}

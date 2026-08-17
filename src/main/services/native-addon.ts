@@ -37,6 +37,13 @@ type NativeProcessFriendImageResponse = NativeProcessProfileImageResponse & {
   is_animated?: boolean;
 };
 
+type NativeActiveWindowResponse = {
+  windowId?: string;
+  window_id?: string;
+  processId?: number;
+  process_id?: number;
+};
+
 type HydraNativeModule = {
   processProfileImage: (
     imagePath: string,
@@ -50,6 +57,7 @@ type HydraNativeModule = {
     preserveAnimation: boolean
   ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
+  getLinuxActiveWindow: () => NativeActiveWindowResponse | null;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -354,6 +362,26 @@ export class NativeAddon {
         resolve([]);
       }
     });
+  }
+
+  public static getLinuxActiveWindow() {
+    if (process.platform !== "linux") return null;
+
+    try {
+      const response = this.load().getLinuxActiveWindow();
+      if (!response) return null;
+
+      const windowId = response.windowId ?? response.window_id;
+      if (!windowId) return null;
+
+      return {
+        windowId,
+        processId: response.processId ?? response.process_id ?? null,
+      };
+    } catch (error) {
+      logger.error("Failed to identify active Linux window", error);
+      return null;
+    }
   }
 
   public static getSystemProcessMap(): Promise<SystemProcessMap | null> {

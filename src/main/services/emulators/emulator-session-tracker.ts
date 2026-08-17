@@ -12,6 +12,7 @@ import {
 } from "./emulator-souvenir-watcher";
 import { WindowManager } from "../window-manager";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
+import { stopLinuxGameCaptureSession } from "../linux-game-capture-session";
 
 export type EmulatorSessionSystem = EmulatorSystem | RetroArchPlatform;
 
@@ -151,6 +152,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   const session = emulatorSessions.get(gameKey);
   if (!session) return;
   emulatorSessions.delete(gameKey);
+  stopLinuxGameCaptureSession(gameKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
   stopEmulatorSouvenirWatcher(gameKey);
 

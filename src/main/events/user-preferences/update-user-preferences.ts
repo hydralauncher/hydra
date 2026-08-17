@@ -14,6 +14,10 @@ import {
   restoreRetroArchAchievementScreenshots,
 } from "@main/services/emulators/emulator-souvenir-config";
 import { getRetroArchConfig } from "@main/services/retroarch/retroarch-repository";
+import {
+  prepareLinuxGameCaptureSession,
+  stopAllLinuxGameCaptureSessions,
+} from "@main/services/linux-game-capture-session";
 
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -89,10 +93,7 @@ const updateUserPreferences = async (
 
   Wine.syncUserPreferences(updatedPreferences);
 
-  if (
-    process.platform !== "linux" &&
-    Object.hasOwn(preferences, "enableAchievementSouvenirs")
-  ) {
+  if (Object.hasOwn(preferences, "enableAchievementSouvenirs")) {
     if (preferences.enableAchievementSouvenirs === true) {
       const retroArchConfig = await getRetroArchConfig();
 
@@ -101,7 +102,27 @@ const updateUserPreferences = async (
           retroArchConfig.executablePath
         );
       }
+
+      if (process.platform === "linux") {
+        const [{ gamesPlaytime }, { emulatorSessions }] = await Promise.all([
+          import("@main/services/game-running-state"),
+          import("@main/services/emulators/emulator-session-tracker"),
+        ]);
+        const runningGameKeys = new Set(gamesPlaytime.keys());
+
+        for (const [gameKey, session] of emulatorSessions) {
+          if (session.system === "ps1" || session.system === "ps2") {
+            runningGameKeys.add(gameKey);
+          }
+        }
+
+        for (const gameKey of runningGameKeys) {
+          const game = await gamesSublevel.get(gameKey).catch(() => null);
+          if (game?.remoteId) void prepareLinuxGameCaptureSession(gameKey);
+        }
+      }
     } else {
+      stopAllLinuxGameCaptureSessions();
       await restoreRetroArchAchievementScreenshots();
     }
   }

@@ -12,7 +12,6 @@ export const prepareEmulatorSouvenirs = async (
   system: EmulatorSessionSystem,
   executablePath: string | null
 ) => {
-  if (process.platform === "linux") return;
   if (!HydraApi.hasActiveSubscription()) return;
 
   const userPreferences = await db.get<string, UserPreferences | null>(

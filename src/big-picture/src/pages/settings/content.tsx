@@ -68,8 +68,7 @@ export function ContentSettingsSection({
     await globalThis.window.electron.updateUserPreferences(values);
   };
 
-  const supportsSouvenirs =
-    hasActiveSubscription && globalThis.window.electron.platform !== "linux";
+  const supportsSouvenirs = hasActiveSubscription;
 
   const items = useMemo<ContentItem[]>(() => {
     return [

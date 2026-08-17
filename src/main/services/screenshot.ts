@@ -7,6 +7,12 @@ import { logger } from "./logger";
 import { screenshotsPath } from "@main/constants";
 import { resolveAchievementScreenshotPath } from "./achievement-screenshot-path";
 import { fitScreenshotTo1080p } from "./screenshot-size";
+import { NativeAddon } from "./native-addon";
+import { isLinuxGameWindowProcess } from "./linux-process-match";
+import {
+  captureLinuxGameSessionFrame,
+  isWaylandSession,
+} from "./linux-game-capture-session";
 
 const SCREENSHOT_QUALITY = 80;
 const SCREENSHOT_EXTENSION = "jpeg";
@@ -31,6 +37,13 @@ const resizeToFit = (image: Electron.NativeImage) => {
 interface ForegroundWindow {
   processId: number;
   title: string;
+}
+
+export interface GameScreenshotCaptureTarget {
+  processId?: number;
+  executablePaths?: string[];
+  winePrefixPath?: string | null;
+  gameKey?: string;
 }
 
 const getForegroundWindow = async (): Promise<ForegroundWindow | null> => {
@@ -78,7 +91,54 @@ const getForegroundWindow = async (): Promise<ForegroundWindow | null> => {
   return null;
 };
 
-const getGameWindowSource = async (expectedProcessId: number) => {
+const getX11GameWindowSource = async (
+  captureTarget: GameScreenshotCaptureTarget
+) => {
+  const activeWindow = NativeAddon.getLinuxActiveWindow();
+
+  if (!activeWindow?.processId) {
+    throw new Error("Could not identify the active X11 window process");
+  }
+
+  const processes = await NativeAddon.listProcesses();
+  const belongsToGame = isLinuxGameWindowProcess(
+    processes,
+    activeWindow.processId,
+    captureTarget.processId,
+    captureTarget.executablePaths ?? [],
+    captureTarget.winePrefixPath
+  );
+
+  if (!belongsToGame) {
+    throw new Error("Tracked game does not own the active X11 window");
+  }
+
+  const sources = await desktopCapturer.getSources({
+    types: ["window"],
+    thumbnailSize: CAPTURE_THUMBNAIL_SIZE,
+  });
+  const source = sources.find((candidate) => {
+    const match = /^window:(\d+):/.exec(candidate.id);
+    return match?.[1] === activeWindow.windowId;
+  });
+
+  if (!source) throw new Error("Could not capture the active X11 game window");
+
+  return source;
+};
+
+const getGameWindowSource = async (
+  captureTarget: GameScreenshotCaptureTarget
+) => {
+  if (process.platform === "linux") {
+    return getX11GameWindowSource(captureTarget);
+  }
+
+  const expectedProcessId = captureTarget.processId;
+  if (!expectedProcessId) {
+    throw new Error("No tracked game process available for screenshot");
+  }
+
   const foregroundWindow = await getForegroundWindow();
 
   if (
@@ -137,11 +197,21 @@ export class ScreenshotService {
     achievementDisplayName: string,
     gameId: string,
     achievementId: string,
-    expectedProcessId: number
+    captureTarget: GameScreenshotCaptureTarget
   ) {
-    const source = await getGameWindowSource(expectedProcessId);
+    let capturedImage: Electron.NativeImage;
 
-    const image = resizeToFit(source.thumbnail);
+    if (isWaylandSession()) {
+      if (!captureTarget.gameKey) {
+        throw new Error("No game session available for Wayland capture");
+      }
+
+      capturedImage = await captureLinuxGameSessionFrame(captureTarget.gameKey);
+    } else {
+      capturedImage = (await getGameWindowSource(captureTarget)).thumbnail;
+    }
+
+    const image = resizeToFit(capturedImage);
     const filePath = resolveAchievementScreenshotPath(
       screenshotsPath,
       gameTitle,

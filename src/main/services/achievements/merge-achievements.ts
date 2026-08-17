@@ -22,6 +22,7 @@ import { AchievementImageService } from "./achievement-image-service";
 import { AchievementSouvenirStore } from "./achievement-souvenir-store";
 import { PendingAchievementSouvenirStore } from "./pending-achievement-souvenir-store";
 import { launchedGamePids } from "../launched-game-pids";
+import { Wine } from "../wine";
 
 const isRareAchievement = (points: number) => {
   const rawPercentage = (50 - Math.sqrt(points)) * 2;
@@ -42,7 +43,6 @@ const captureAchievementSouvenirs = async (
     !newAchievements.length ||
     !publishNotification ||
     !game.remoteId ||
-    process.platform === "linux" ||
     userPreferences.enableAchievementSouvenirs !== true ||
     !HydraApi.hasActiveSubscription()
   ) {
@@ -54,7 +54,7 @@ const captureAchievementSouvenirs = async (
       const gameKey = levelKeys.game(game.shop, game.objectId);
       const expectedProcessId = launchedGamePids.get(gameKey);
 
-      if (!expectedProcessId) {
+      if (!expectedProcessId && process.platform !== "linux") {
         throw new Error("No tracked game process available for screenshot");
       }
 
@@ -65,6 +65,19 @@ const captureAchievementSouvenirs = async (
             achievement.name.toUpperCase()
           );
         })?.displayName ?? achievement.name;
+      const executablePaths = [
+        game.executablePath,
+        ...(game.trackingExecutablePaths ?? []),
+      ].filter((value): value is string => Boolean(value));
+      const effectiveWinePrefixPath =
+        process.platform === "linux" &&
+        executablePaths.some((value) => value.toLowerCase().endsWith(".exe"))
+          ? Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId)
+          : null;
+      const resolvedWinePrefixPath = effectiveWinePrefixPath
+        ? ((await Wine.resolvePrefixPath(effectiveWinePrefixPath)) ??
+          effectiveWinePrefixPath)
+        : null;
 
       screenshotPathsByAchievement.set(
         achievement.name.toUpperCase(),
@@ -73,7 +86,12 @@ const captureAchievementSouvenirs = async (
           displayName,
           game.remoteId,
           achievement.name,
-          expectedProcessId
+          {
+            processId: expectedProcessId,
+            executablePaths,
+            winePrefixPath: resolvedWinePrefixPath,
+            gameKey,
+          }
         )
       );
     } catch (error) {
