@@ -653,13 +653,10 @@ export class GameFilesManager {
 
   private async createDesktopShortcutForGame(gameTitle: string): Promise<void> {
     try {
-      const shortcutName =
-        removeSymbolsFromName(gameTitle).trim() || this.objectId;
-      const deepLink = this.buildRunDeepLink();
-      const shortcutArguments = this.getShortcutArguments(deepLink);
-      const iconPath = await this.downloadGameIcon();
+      const supportsShortcutPref =
+        process.platform === "win32" || process.platform === "linux";
 
-      if (process.platform === "win32") {
+      if (supportsShortcutPref) {
         const userPreferences = await db.get<string, UserPreferences | null>(
           levelKeys.userPreferences,
           { valueEncoding: "json" }
@@ -671,7 +668,15 @@ export class GameFilesManager {
         if (!shouldCreateDownloadShortcuts) {
           return;
         }
+      }
 
+      const shortcutName =
+        removeSymbolsFromName(gameTitle).trim() || this.objectId;
+      const deepLink = this.buildRunDeepLink();
+      const shortcutArguments = this.getShortcutArguments(deepLink);
+      const iconPath = await this.downloadGameIcon();
+
+      if (process.platform === "win32") {
         const desktopSuccess = this.createWindowsShortcut(
           shortcutName,
           SystemPath.getPath("desktop"),

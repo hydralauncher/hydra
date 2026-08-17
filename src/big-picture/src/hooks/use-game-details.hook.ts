@@ -114,7 +114,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
           `/games/${shop}/${objectId}/how-long-to-beat`,
           { needsAuth: false }
         )
-        .then(setHowLongToBeat)
+        .then((data) => setHowLongToBeat(Array.isArray(data) ? data : null))
         .catch(() => setHowLongToBeat(null));
 
       globalThis.window.electron.hydraApi
