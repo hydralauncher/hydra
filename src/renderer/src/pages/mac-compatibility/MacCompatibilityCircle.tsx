@@ -27,6 +27,12 @@ export interface MacCompatibilityCircleProps {
   busy?: boolean;
   /** Fired on click, tap, Enter or Space (not fired after a drag). */
   onActivate?: () => void;
+  /**
+   * Stops click/pointer/keyboard events from bubbling up. Useful when
+   * the circle sits inside something else clickable, like a game card,
+   * so activating the circle doesn't also trigger the card underneath.
+   */
+  stopPropagation?: boolean;
   className?: string;
 }
 
@@ -85,6 +91,7 @@ export function MacCompatibilityCircle({
   size = 208,
   busy = false,
   onActivate,
+  stopPropagation = false,
   className,
 }: MacCompatibilityCircleProps) {
   const elementRef = useRef<HTMLDivElement | null>(null);
@@ -166,6 +173,8 @@ export function MacCompatibilityCircle({
   useEffect(() => stopSpring, [stopSpring]);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (stopPropagation) event.stopPropagation();
+
     stopSpring();
 
     draggingRef.current = true;
@@ -197,6 +206,8 @@ export function MacCompatibilityCircle({
   };
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (stopPropagation) event.stopPropagation();
+
     if (!draggingRef.current) return;
 
     draggingRef.current = false;
@@ -215,6 +226,7 @@ export function MacCompatibilityCircle({
     if (event.key !== "Enter" && event.key !== " ") return;
 
     event.preventDefault();
+    if (stopPropagation) event.stopPropagation();
     onActivate?.();
   };
 
