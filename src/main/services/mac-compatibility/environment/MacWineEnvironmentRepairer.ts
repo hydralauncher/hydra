@@ -1,13 +1,13 @@
 import { rm, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { MacWineEnvironment } from "../MacCompatibilityTypes";
-import { MacWineEnvironmentInitializer } from "./MacWineEnvironmentInitializer";
-import { MacWineEnvironmentLogger } from "./MacWineEnvironmentLogger";
+import type { MacWineEnvironment } from "../MacCompatibilityTypes.js";
+import { MacWineEnvironmentInitializer } from "./MacWineEnvironmentInitializer.js";
+import { MacWineEnvironmentLogger } from "./MacWineEnvironmentLogger.js";
 import {
   DEFAULT_MAC_ENVIRONMENTS_PATH,
   assertManagedPrefixPath,
   assertPathInsidePrefix,
-} from "./MacWineEnvironmentPaths";
+} from "./MacWineEnvironmentPaths.js";
 
 export interface MacWineEnvironmentRepairResult {
   success: boolean;

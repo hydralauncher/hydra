@@ -2,7 +2,7 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import { access, constants } from "node:fs/promises";
 import { join } from "node:path";
-import type { MacWineEnvironment } from "../MacCompatibilityTypes";
+import type { MacWineEnvironment } from "../MacCompatibilityTypes.js";
 
 const execFileAsync = promisify(execFile);
 

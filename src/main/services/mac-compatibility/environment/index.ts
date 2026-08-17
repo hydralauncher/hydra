@@ -1,11 +1,11 @@
-export { MacWineEnvironmentManager } from "./MacWineEnvironmentManager";
-export { MacWineEnvironmentRegistry } from "./MacWineEnvironmentRegistry";
-export { MacWineEnvironmentInitializer } from "./MacWineEnvironmentInitializer";
+export { MacWineEnvironmentManager } from "./MacWineEnvironmentManager.js";
+export { MacWineEnvironmentRegistry } from "./MacWineEnvironmentRegistry.js";
+export { MacWineEnvironmentInitializer } from "./MacWineEnvironmentInitializer.js";
 export {
   MacWineEnvironmentHealthChecker,
   type MacWineEnvironmentHealthResult,
-} from "./MacWineEnvironmentHealthChecker";
-export { MacWineEnvironmentRepairer } from "./MacWineEnvironmentRepairer";
+} from "./MacWineEnvironmentHealthChecker.js";
+export { MacWineEnvironmentRepairer } from "./MacWineEnvironmentRepairer.js";
 export {
   DEFAULT_MAC_ENVIRONMENTS_PATH,
   DEFAULT_MAC_ENVIRONMENTS_REGISTRY_PATH,
@@ -14,4 +14,4 @@ export {
   createEnvironmentId,
   resolveManagedPrefixPath,
   sanitizeEnvironmentIdPart,
-} from "./MacWineEnvironmentPaths";
+} from "./MacWineEnvironmentPaths.js";

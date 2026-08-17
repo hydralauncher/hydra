@@ -1,15 +1,15 @@
-export { MacCompatibilityManager } from "./MacCompatibilityManager";
-export { MacCompatibilityRegistry } from "./MacCompatibilityRegistry";
-export { MacGameManager } from "./MacGameManager";
-export { MacSystemDetector } from "./MacSystemDetector";
-export { MacWineDetector } from "./MacWineDetector";
+export { MacCompatibilityManager } from "./MacCompatibilityManager.js";
+export { MacCompatibilityRegistry } from "./MacCompatibilityRegistry.js";
+export { MacGameManager } from "./MacGameManager.js";
+export { MacSystemDetector } from "./MacSystemDetector.js";
+export { MacWineDetector } from "./MacWineDetector.js";
 
 export {
   MacGameLaunchController,
   MacGameLaunchManager,
   type MacGameLaunchRequest,
   type MacGameLaunchResult,
-} from "./launch";
+} from "./launch/index.js";
 
 export {
   MacWineEnvironmentHealthChecker,
@@ -17,7 +17,7 @@ export {
   MacWineEnvironmentManager,
   MacWineEnvironmentRegistry,
   MacWineEnvironmentRepairer,
-} from "./environment";
+} from "./environment/index.js";
 
 export type {
   MacArchitecture,
@@ -37,4 +37,4 @@ export type {
   MacWineEnvironment,
   MacWineType,
   MacWineVersion,
-} from "./MacCompatibilityTypes";
+} from "./MacCompatibilityTypes.js";

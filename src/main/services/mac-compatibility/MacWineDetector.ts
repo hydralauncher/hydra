@@ -5,7 +5,7 @@ import type {
   MacArchitecture,
   MacWineType,
   MacWineVersion,
-} from "./MacCompatibilityTypes";
+} from "./MacCompatibilityTypes.js";
 
 const execFileAsync = promisify(execFile);
 

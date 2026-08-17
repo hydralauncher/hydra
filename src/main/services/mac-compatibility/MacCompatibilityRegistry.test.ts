@@ -19,7 +19,7 @@ const GAME: MacCompatibilityGameKey = {
 };
 
 const OTHER_GAME: MacCompatibilityGameKey = {
-  shop: "epic",
+  shop: "custom",
   objectId: "123456",
 };
 
@@ -148,10 +148,7 @@ describe("MacCompatibilityRegistry persistence", () => {
 
       const reloadedRegistry = new MacCompatibilityRegistry(registryPath);
 
-      assert.deepEqual(
-        reloadedRegistry.getEnvironment(GAME),
-        ENVIRONMENT,
-      );
+      assert.deepEqual(reloadedRegistry.getEnvironment(GAME), ENVIRONMENT);
     } finally {
       await cleanup(directory);
     }
@@ -195,10 +192,7 @@ describe("MacCompatibilityRegistry persistence", () => {
       assert.equal(entry?.key.shop, GAME.shop);
       assert.equal(entry?.key.objectId, GAME.objectId);
       assert.deepEqual(entry?.environment, ENVIRONMENT);
-      assert.equal(
-        entry?.selectedWineVersionId,
-        ENVIRONMENT.wineVersionId,
-      );
+      assert.equal(entry?.selectedWineVersionId, ENVIRONMENT.wineVersionId);
       assert.equal(entry?.lastStatus, "unknown");
       assert.equal(entry?.lastCheckedAt, null);
       assert.ok(entry?.updatedAt);
@@ -371,11 +365,7 @@ describe("MacCompatibilityRegistry persistence", () => {
     try {
       const { writeFile } = await import("node:fs/promises");
 
-      await writeFile(
-        registryPath,
-        "{ this is not valid JSON",
-        "utf8",
-      );
+      await writeFile(registryPath, "{ this is not valid JSON", "utf8");
 
       const registry = new MacCompatibilityRegistry(registryPath);
 
@@ -395,7 +385,7 @@ describe("MacCompatibilityRegistry persistence", () => {
       await writeFile(
         registryPath,
         JSON.stringify({ not: "an array" }),
-        "utf8",
+        "utf8"
       );
 
       const registry = new MacCompatibilityRegistry(registryPath);

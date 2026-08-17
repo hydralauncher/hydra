@@ -5,20 +5,20 @@ import type {
   MacCompatibilityGameKey,
   MacWineEnvironment,
   MacWineVersion,
-} from "../MacCompatibilityTypes";
-import { MacWineEnvironmentRegistry } from "./MacWineEnvironmentRegistry";
-import { MacWineEnvironmentLogger } from "./MacWineEnvironmentLogger";
+} from "../MacCompatibilityTypes.js";
+import { MacWineEnvironmentRegistry } from "./MacWineEnvironmentRegistry.js";
+import { MacWineEnvironmentLogger } from "./MacWineEnvironmentLogger.js";
 import {
   MacWineEnvironmentHealthChecker,
   type MacWineEnvironmentHealthResult,
-} from "./MacWineEnvironmentHealthChecker";
+} from "./MacWineEnvironmentHealthChecker.js";
 import {
   DEFAULT_MAC_ENVIRONMENTS_PATH,
   DEFAULT_MAC_ENVIRONMENTS_REGISTRY_PATH,
   assertManagedPrefixPath,
   createEnvironmentId,
   resolveManagedPrefixPath,
-} from "./MacWineEnvironmentPaths";
+} from "./MacWineEnvironmentPaths.js";
 
 const execFileAsync = promisify(execFile);
 

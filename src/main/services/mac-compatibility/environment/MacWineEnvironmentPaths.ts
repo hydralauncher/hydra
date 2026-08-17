@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
-import type { MacCompatibilityGameKey } from "../MacCompatibilityTypes";
+import type { MacCompatibilityGameKey } from "../MacCompatibilityTypes.js";
 
 /**
  * Single source of truth for where Hydra keeps its per-game Wine

@@ -1,12 +1,12 @@
 import type {
   MacCompatibilityGameKey,
   MacGameCompatibility,
-} from "../MacCompatibilityTypes";
+} from "../MacCompatibilityTypes.js";
 import {
   MacGameLaunchManager,
   type MacGameLaunchRequest,
   type MacGameLaunchResult,
-} from "./MacGameLaunchManager";
+} from "./MacGameLaunchManager.js";
 
 export class MacGameLaunchController {
   private readonly launchManager: MacGameLaunchManager;

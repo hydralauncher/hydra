@@ -5,14 +5,14 @@ import type {
   MacSystemInfo,
   MacWineEnvironment,
   MacWineVersion,
-} from "./MacCompatibilityTypes";
-import { MacCompatibilityRegistry } from "./MacCompatibilityRegistry";
-import { MacSystemDetector } from "./MacSystemDetector";
-import { MacWineDetector } from "./MacWineDetector";
+} from "./MacCompatibilityTypes.js";
+import { MacCompatibilityRegistry } from "./MacCompatibilityRegistry.js";
+import { MacSystemDetector } from "./MacSystemDetector.js";
+import { MacWineDetector } from "./MacWineDetector.js";
 import {
   MacWineEnvironmentManager,
   MacWineEnvironmentRepairer,
-} from "./environment";
+} from "./environment/index.js";
 
 export interface MacCompatibilityManagerDependencies {
   systemDetector?: MacSystemDetector;

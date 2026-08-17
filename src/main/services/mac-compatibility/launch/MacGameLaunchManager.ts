@@ -5,8 +5,8 @@ import type {
   MacGameCompatibility,
   MacWineEnvironment,
   MacWineVersion,
-} from "../MacCompatibilityTypes";
-import { MacCompatibilityManager } from "../MacCompatibilityManager";
+} from "../MacCompatibilityTypes.js";
+import { MacCompatibilityManager } from "../MacCompatibilityManager.js";
 
 export interface MacGameLaunchRequest {
   game: MacCompatibilityGameKey;

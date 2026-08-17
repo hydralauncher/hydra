@@ -1,4 +1,4 @@
-import { MacCompatibilityManager } from "./MacCompatibilityManager";
+import { MacCompatibilityManager } from "./MacCompatibilityManager.js";
 
 let sharedManager: MacCompatibilityManager | null = null;
 

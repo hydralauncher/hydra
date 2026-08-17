@@ -2,8 +2,8 @@ import type {
   MacCompatibilityGameKey,
   MacGameCompatibility,
   MacWineEnvironment,
-} from "./MacCompatibilityTypes";
-import { MacCompatibilityManager } from "./MacCompatibilityManager";
+} from "./MacCompatibilityTypes.js";
+import { MacCompatibilityManager } from "./MacCompatibilityManager.js";
 export class MacGameManager {
   private readonly compatibilityManager: MacCompatibilityManager;
   constructor(compatibilityManager?: MacCompatibilityManager) {

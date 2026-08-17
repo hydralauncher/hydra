@@ -8,7 +8,7 @@ import type {
   MacCompatibilityRegistryEntry,
   MacCompatibilityStatus,
   MacWineEnvironment,
-} from "./MacCompatibilityTypes";
+} from "./MacCompatibilityTypes.js";
 
 /**
  * Disk-backed, matching the pattern MacWineEnvironmentRegistry already

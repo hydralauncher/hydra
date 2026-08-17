@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import type {
   MacCompatibilityGameKey,
   MacWineEnvironment,
-} from "../MacCompatibilityTypes";
+} from "../MacCompatibilityTypes.js";
 
 interface RegistryEntry {
   key: MacCompatibilityGameKey;
