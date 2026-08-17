@@ -1,6 +1,13 @@
 @use "../../scss/globals.scss";
 
 .game-details {
+  &__mac-compatibility-badge {
+    position: fixed;
+    top: calc(globals.$spacing-unit * 6);
+    right: calc(globals.$spacing-unit * 6);
+    z-index: 100;
+  }
+
   &__wrapper {
     display: flex;
     flex-direction: column;
