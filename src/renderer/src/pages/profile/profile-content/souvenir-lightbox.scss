@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(globals.$spacing-unit * 4);
+  padding: 0;
   background: rgba(0, 0, 0, 0.82);
   backdrop-filter: blur(4px);
 }
@@ -41,8 +41,8 @@
   &__close-button {
     position: absolute;
     z-index: 2;
-    top: calc(globals.$spacing-unit * 3);
-    right: calc(globals.$spacing-unit * 3);
+    top: calc(globals.$spacing-unit * 2);
+    right: calc(globals.$spacing-unit * 2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -57,23 +57,32 @@
   &__content {
     display: flex;
     flex-direction: column;
-    width: min(90vw, 1120px);
+    width: fit-content;
+    max-width: 90vw;
     max-height: 90vh;
-    overflow: auto;
+    overflow: hidden;
     border-radius: 12px;
+    background: globals.$dark-background-color;
     animation: souvenir-lightbox-appear 0.25s ease-out;
   }
 
   &__image-frame {
     position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
+    display: flex;
+    width: fit-content;
+    max-width: 90vw;
+    max-height: calc(90vh - 136px);
     flex-shrink: 0;
+    align-self: center;
     overflow: hidden;
     background: globals.$dark-background-color;
+
+    &--placeholder {
+      width: min(90vw, 1120px);
+      aspect-ratio: 16 / 9;
+    }
   }
 
-  &__image,
   &__image-placeholder {
     position: absolute;
     inset: 0;
@@ -82,6 +91,13 @@
   }
 
   &__image {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 90vw;
+    max-height: calc(90vh - 136px);
     object-fit: contain;
   }
 
@@ -98,7 +114,7 @@
     justify-content: space-between;
     gap: calc(globals.$spacing-unit * 3);
     width: 100%;
-    padding: calc(globals.$spacing-unit * 2.5);
+    padding: calc(globals.$spacing-unit * 3);
     border-top: 1px solid globals.$border-color;
     background: globals.$background-color;
   }
@@ -145,7 +161,7 @@
   &__copy {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: globals.$spacing-unit;
     min-width: 0;
 
     h2,
@@ -183,9 +199,22 @@
 
   &__meta {
     flex-wrap: wrap;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: globals.$spacing-unit;
     color: globals.$body-color;
     font-size: globals.$small-font-size;
+  }
+
+  &__meta-separator {
+    width: 3px;
+    height: 3px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: globals.$body-color;
+    opacity: 0.65;
+  }
+
+  &__unlock-time {
+    opacity: 0.65;
   }
 
   &__game {
@@ -254,13 +283,23 @@
       padding: 0;
     }
 
-    &--delete:hover:not(:disabled) {
+    &--delete {
       border-color: globals.$error-color;
+      background: rgba(225, 29, 72, 0.12);
       color: globals.$error-color;
+
+      &:hover:not(:disabled) {
+        background: rgba(225, 29, 72, 0.22);
+      }
     }
   }
 
   @media (max-width: 900px) {
+    &__image-frame,
+    &__image {
+      max-height: calc(90vh - 200px);
+    }
+
     &__info {
       align-items: stretch;
       flex-direction: column;

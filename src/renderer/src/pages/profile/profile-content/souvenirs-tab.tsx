@@ -257,7 +257,7 @@ export function SouvenirsTab({
   onLoadMore,
 }: Readonly<SouvenirsTabProps>) {
   const { t } = useTranslation("user_profile");
-  const [grouping, setGrouping] = useState<SouvenirGrouping>("game");
+  const [grouping, setGrouping] = useState<SouvenirGrouping>("none");
   const [sortBy, setSortBy] = useState<SouvenirSort>("recent");
 
   const sortedAchievements = achievements;

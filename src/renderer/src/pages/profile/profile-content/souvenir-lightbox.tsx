@@ -52,6 +52,16 @@ export function SouvenirLightbox({
   const { formatDateTime } = useDate();
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
+  const [loadedImage, setLoadedImage] = useState<{
+    imageUrl: string;
+    naturalWidth: number;
+    naturalHeight: number;
+  } | null>(null);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
 
   useEffect(() => {
     if (!souvenir) setIsDeleteConfirmationVisible(false);
@@ -68,9 +78,46 @@ export function SouvenirLightbox({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isDeleteConfirmationVisible, onClose, souvenir]);
 
+  useEffect(() => {
+    const onResize = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   if (!souvenir) return null;
 
   const visualVariant = getSouvenirVisualVariant(souvenir);
+  const hasImage = Boolean(
+    souvenir.imageUrl && souvenir.imageUrl !== failedImageUrl
+  );
+  const showImagePlaceholder =
+    !hasImage || loadedImage?.imageUrl !== souvenir.imageUrl;
+  const imageSize =
+    loadedImage?.imageUrl === souvenir.imageUrl
+      ? (() => {
+          const maxWidth = viewportSize.width * 0.9;
+          const reservedInfoHeight = viewportSize.width <= 900 ? 200 : 136;
+          const maxHeight = Math.max(
+            viewportSize.height * 0.9 - reservedInfoHeight,
+            1
+          );
+          const scale = Math.min(
+            maxWidth / loadedImage.naturalWidth,
+            maxHeight / loadedImage.naturalHeight
+          );
+
+          return {
+            width: loadedImage.naturalWidth * scale,
+            height: loadedImage.naturalHeight * scale,
+          };
+        })()
+      : null;
 
   return createPortal(
     <>
@@ -97,17 +144,31 @@ export function SouvenirLightbox({
           </button>
 
           <div className="profile-souvenir-lightbox__content">
-            <div className="profile-souvenir-lightbox__image-frame">
+            <div
+              className={`profile-souvenir-lightbox__image-frame ${showImagePlaceholder ? "profile-souvenir-lightbox__image-frame--placeholder" : ""}`}
+              style={imageSize ?? undefined}
+            >
               <span className="profile-souvenir-lightbox__image-placeholder">
                 <ImageIcon size={56} />
               </span>
 
-              {souvenir.imageUrl ? (
+              {hasImage ? (
                 <img
                   className="profile-souvenir-lightbox__image"
-                  src={souvenir.imageUrl}
+                  src={souvenir.imageUrl ?? undefined}
                   alt={souvenir.displayName}
-                  onError={hideBrokenImage}
+                  onLoad={(event) => {
+                    const { naturalWidth, naturalHeight } = event.currentTarget;
+
+                    if (souvenir.imageUrl && naturalWidth && naturalHeight) {
+                      setLoadedImage({
+                        imageUrl: souvenir.imageUrl,
+                        naturalWidth,
+                        naturalHeight,
+                      });
+                    }
+                  }}
+                  onError={() => setFailedImageUrl(souvenir.imageUrl)}
                 />
               ) : null}
             </div>
@@ -155,7 +216,12 @@ export function SouvenirLightbox({
                       {souvenir.gameTitle ?? t("unknown_game")}
                     </span>
 
-                    <span>
+                    <span
+                      className="profile-souvenir-lightbox__meta-separator"
+                      aria-hidden="true"
+                    />
+
+                    <span className="profile-souvenir-lightbox__unlock-time">
                       {t("souvenir_unlocked_on", {
                         date: formatDateTime(souvenir.unlockTime),
                       })}

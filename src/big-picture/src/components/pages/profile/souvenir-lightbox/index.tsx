@@ -60,6 +60,16 @@ export function SouvenirLightbox({
   const { t, i18n } = useTranslation("user_profile");
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
+  const [loadedImage, setLoadedImage] = useState<{
+    imageUrl: string;
+    naturalWidth: number;
+    naturalHeight: number;
+  } | null>(null);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: globalThis.window.innerWidth,
+    height: globalThis.window.innerHeight,
+  }));
   useNavigationScreenActions(
     souvenir && !isDeleteConfirmationVisible ? { press: { b: onClose } } : {}
   );
@@ -82,26 +92,75 @@ export function SouvenirLightbox({
     };
   }, [isDeleteConfirmationVisible, onClose, souvenir]);
 
+  useEffect(() => {
+    const onResize = () => {
+      setViewportSize({
+        width: globalThis.window.innerWidth,
+        height: globalThis.window.innerHeight,
+      });
+    };
+
+    globalThis.window.addEventListener("resize", onResize);
+    return () => globalThis.window.removeEventListener("resize", onResize);
+  }, []);
+
   const visualVariant = souvenir ? getSouvenirVisualVariant(souvenir) : null;
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
+  const hasImage = Boolean(
+    souvenir?.imageUrl && souvenir.imageUrl !== failedImageUrl
+  );
+  const showImagePlaceholder =
+    !hasImage || loadedImage?.imageUrl !== souvenir?.imageUrl;
+  const naturalImageWidth = loadedImage?.naturalWidth ?? 1;
+  const naturalImageHeight = loadedImage?.naturalHeight ?? 1;
+  const imageSize =
+    loadedImage?.imageUrl === souvenir?.imageUrl
+      ? (() => {
+          const maxWidth = Math.min(viewportSize.width * 0.9, 1600);
+          const maxHeight = Math.max(viewportSize.height * 0.9 - 152, 1);
+          const scale = Math.min(
+            maxWidth / naturalImageWidth,
+            maxHeight / naturalImageHeight
+          );
+
+          return {
+            width: naturalImageWidth * scale,
+            height: naturalImageHeight * scale,
+          };
+        })()
+      : null;
 
   return (
     <AnimatePresence>
       {souvenir ? (
         <Backdrop>
           <div className="souvenir-lightbox">
-            <div className="souvenir-lightbox__image-frame">
+            <div
+              className={`souvenir-lightbox__image-frame ${showImagePlaceholder ? "souvenir-lightbox__image-frame--placeholder" : ""}`}
+              style={imageSize ?? undefined}
+            >
               <span className="souvenir-lightbox__image-placeholder">
                 <ImageIcon size={64} />
               </span>
 
-              {souvenir.imageUrl ? (
+              {hasImage ? (
                 <img
                   className="souvenir-lightbox__image"
-                  src={souvenir.imageUrl}
+                  src={souvenir.imageUrl ?? undefined}
                   alt={souvenir.displayName}
                   draggable={false}
-                  onError={hideBrokenImage}
+                  onLoad={(event) => {
+                    const { naturalWidth, naturalHeight } = event.currentTarget;
+
+                    if (souvenir.imageUrl && naturalWidth && naturalHeight) {
+                      setLoadedImage({
+                        imageUrl: souvenir.imageUrl,
+                        naturalWidth,
+                        naturalHeight,
+                      });
+                    }
+                  }}
+                  onError={() => setFailedImageUrl(souvenir.imageUrl)}
                 />
               ) : null}
             </div>
@@ -159,7 +218,12 @@ export function SouvenirLightbox({
                       {souvenir.gameTitle ?? t("unknown_game")}
                     </span>
 
-                    <span>
+                    <span
+                      className="souvenir-lightbox__meta-separator"
+                      aria-hidden="true"
+                    />
+
+                    <span className="souvenir-lightbox__unlock-time">
                       {t("souvenir_unlocked_on", {
                         date: formatRelativeDate(souvenir.unlockTime, {
                           locale: language,

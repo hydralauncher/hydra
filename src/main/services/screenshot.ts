@@ -6,25 +6,26 @@ import { promisify } from "node:util";
 import { logger } from "./logger";
 import { screenshotsPath } from "@main/constants";
 import { resolveAchievementScreenshotPath } from "./achievement-screenshot-path";
+import { fitScreenshotTo1080p } from "./screenshot-size";
 
 const SCREENSHOT_QUALITY = 80;
 const SCREENSHOT_EXTENSION = "jpeg";
-const MAX_WIDTH = 1280;
-const MAX_HEIGHT = 720;
+const CAPTURE_THUMBNAIL_SIZE = { width: 3840, height: 2160 };
 const MAX_STORED_SCREENSHOTS = 50;
 const execFileAsync = promisify(execFile);
 
 const resizeToFit = (image: Electron.NativeImage) => {
-  const { width, height } = image.getSize();
+  const currentSize = image.getSize();
+  const outputSize = fitScreenshotTo1080p(currentSize);
 
-  if (width <= MAX_WIDTH && height <= MAX_HEIGHT) return image;
+  if (
+    currentSize.width === outputSize.width &&
+    currentSize.height === outputSize.height
+  ) {
+    return image;
+  }
 
-  const scale = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
-
-  return image.resize({
-    width: Math.round(width * scale),
-    height: Math.round(height * scale),
-  });
+  return image.resize(outputSize);
 };
 
 interface ForegroundWindow {
@@ -90,7 +91,7 @@ const getGameWindowSource = async (expectedProcessId: number) => {
 
   const sources = await desktopCapturer.getSources({
     types: ["window"],
-    thumbnailSize: { width: 1920, height: 1080 },
+    thumbnailSize: CAPTURE_THUMBNAIL_SIZE,
   });
 
   const foregroundTitle = foregroundWindow.title.trim().toLowerCase();
