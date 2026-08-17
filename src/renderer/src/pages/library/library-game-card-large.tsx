@@ -20,6 +20,7 @@ import {
   RETROARCH_EMULATOR_ICON,
 } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card-large.scss";
+import { MacCompatibilityBadge } from "@renderer/pages/mac-compatibility/MacCompatibilityBadge";
 
 interface LibraryGameCardLargeProps {
   game: LibraryGame;
@@ -306,6 +307,13 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                 )}
               </div>
             )}
+
+            <MacCompatibilityBadge
+              shop={game.shop}
+              objectId={game.objectId}
+              title={game.title}
+              isFavorite={game.favorite}
+            />
           </div>
         </div>
 
