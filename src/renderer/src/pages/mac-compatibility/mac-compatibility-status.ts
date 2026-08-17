@@ -1,5 +1,3 @@
-/// <reference path="../../mac-compatibility.d.ts" />
-
 import type { MacCompatibilityStatus } from "./MacCompatibilityCircle";
 
 /**
