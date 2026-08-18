@@ -2272,7 +2272,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
       });
 
       try {
-        await globalThis.window.electron.hydraApi.put(
+        await globalThis.window.electron.hydraApi.post(
           buildUserSouvenirLikePath(
             targetUserId,
             souvenir.gameId,

@@ -59,7 +59,7 @@ export function useSouvenirActions({
       });
 
       try {
-        await window.electron.hydraApi.put(
+        await window.electron.hydraApi.post(
           buildUserSouvenirLikePath(
             ownerUserId,
             souvenir.gameId,

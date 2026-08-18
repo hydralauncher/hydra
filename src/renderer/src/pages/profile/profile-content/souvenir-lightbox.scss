@@ -41,8 +41,8 @@
   &__close-button {
     position: absolute;
     z-index: 2;
-    top: calc(globals.$spacing-unit * 2);
-    right: calc(globals.$spacing-unit * 2);
+    top: calc(globals.$spacing-unit * 1.5);
+    right: calc(globals.$spacing-unit * 1.5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -55,6 +55,7 @@
   }
 
   &__content {
+    position: relative;
     display: flex;
     flex-direction: column;
     width: fit-content;
@@ -118,7 +119,7 @@
 
   &__summary {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: calc(globals.$spacing-unit * 2);
     min-width: 0;
   }
@@ -158,7 +159,7 @@
   &__copy {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 0.75);
     min-width: 0;
 
     h2,
@@ -169,13 +170,14 @@
     h2 {
       overflow: hidden;
       font-size: 20px;
+      line-height: 24px;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     p {
       color: globals.$body-color;
-      line-height: 1.4;
+      line-height: 20px;
     }
   }
 
@@ -197,8 +199,10 @@
   &__meta {
     flex-wrap: wrap;
     gap: globals.$spacing-unit;
+    min-height: 22px;
     color: globals.$body-color;
     font-size: globals.$small-font-size;
+    line-height: 18px;
   }
 
   &__meta-separator {
