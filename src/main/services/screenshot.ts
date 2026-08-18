@@ -14,6 +14,7 @@ import {
   isWaylandSession,
 } from "./linux-game-capture-session";
 import { isWindowsGameForegroundProcess } from "./windows-game-window-match";
+import type { ProcessPayload } from "./download/types";
 
 const SCREENSHOT_QUALITY = 80;
 const SCREENSHOT_EXTENSION = "jpeg";
@@ -142,12 +143,16 @@ const getGameWindowSource = async (
   }
 
   const expectedProcessId = captureTarget.processId;
+  let windowsProcesses: ProcessPayload[] = [];
+
+  if (process.platform === "win32" && expectedProcessId === undefined) {
+    windowsProcesses = await NativeAddon.listProcesses();
+  }
+
   const belongsToGame =
     process.platform === "win32"
       ? isWindowsGameForegroundProcess(
-          expectedProcessId !== undefined
-            ? []
-            : await NativeAddon.listProcesses(),
+          windowsProcesses,
           foregroundWindow.processId,
           expectedProcessId,
           captureTarget.executablePaths ?? []

@@ -118,7 +118,7 @@ export const prepareLinuxGameCaptureSession = async (gameKey: string) => {
     });
     const source = sources.length === 1 ? sources[0] : null;
 
-    if (!source || !source.id.startsWith("window:")) {
+    if (!source?.id.startsWith("window:")) {
       throw new Error("No Wayland window capture source was selected");
     }
 
@@ -199,7 +199,9 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   `);
 
   if (typeof dataUrl !== "string") {
-    throw new Error("Wayland game-window capture returned an invalid frame");
+    throw new TypeError(
+      "Wayland game-window capture returned an invalid frame"
+    );
   }
 
   const image = nativeImage.createFromDataURL(dataUrl);
