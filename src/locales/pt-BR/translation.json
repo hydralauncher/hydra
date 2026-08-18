@@ -1528,7 +1528,11 @@
     "setup_run_in_background": "Executar em segundo plano",
     "scanning_system_label": "Escaneando {{system}}…",
     "open_screenshots_directory": "Abrir a pasta de capturas",
-    "enable_achievement_souvenirs": "Habilitar lembranças para conquistas"
+    "enable_achievement_souvenirs": "Habilitar lembranças para conquistas",
+    "wayland_souvenirs_warning_title": "Lembranças no Wayland",
+    "wayland_souvenirs_warning_description": "Devido à natureza do Wayland, o Hydra precisa perguntar qual janela deve ser capturada quando você desbloquear uma conquista. Sem selecionar uma janela, não é possível capturar lembranças.",
+    "wayland_souvenirs_warning_cancel": "Cancelar",
+    "wayland_souvenirs_warning_confirm": "OK"
   },
   "notifications": {
     "download_complete": "Download concluído",

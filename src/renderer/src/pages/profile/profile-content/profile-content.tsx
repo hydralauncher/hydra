@@ -150,13 +150,14 @@ export function ProfileContent() {
     updateSouvenir,
     removeSouvenir,
   });
-  const souvenir = useMemo(
+  const openSouvenirIndex = useMemo(
     () =>
-      souvenirs.find(
+      souvenirs.findIndex(
         (item) => getSouvenirKey(item.gameId, item.name) === openSouvenirKey
-      ) ?? null,
+      ),
     [openSouvenirKey, souvenirs]
   );
+  const souvenir = souvenirs[openSouvenirIndex] ?? null;
 
   const formatPlayTime = (playTimeInSeconds: number) => {
     const minutes = playTimeInSeconds / 60;
@@ -548,6 +549,8 @@ export function ProfileContent() {
 
       <SouvenirLightbox
         souvenir={souvenir}
+        items={souvenirs}
+        index={openSouvenirIndex}
         isOwner={isMe}
         canLike={Boolean(userDetails)}
         isLiking={Boolean(openSouvenirKey && likingKeys.has(openSouvenirKey))}
@@ -558,6 +561,12 @@ export function ProfileContent() {
           openSouvenirKey && deletingKeys.has(openSouvenirKey)
         )}
         onClose={() => setOpenSouvenirKey(null)}
+        onNavigate={(index) => {
+          const nextSouvenir = souvenirs[index];
+          setOpenSouvenirKey(
+            getSouvenirKey(nextSouvenir.gameId, nextSouvenir.name)
+          );
+        }}
         onLike={(item) => void likeSouvenir(item)}
         onVisibilityChange={(item) => void changeSouvenirVisibility(item)}
         onDelete={deleteSouvenir}

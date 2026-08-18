@@ -1,7 +1,16 @@
-import { useEffect, useState, type SyntheticEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type SyntheticEvent,
+} from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
   EyeClosedIcon,
   EyeIcon,
   HeartFillIcon,
@@ -22,12 +31,15 @@ import "./souvenir-lightbox.scss";
 
 interface SouvenirLightboxProps {
   souvenir: ProfileAchievement | null;
+  items: ProfileAchievement[];
+  index: number;
   isOwner: boolean;
   canLike: boolean;
   isLiking: boolean;
   isUpdatingVisibility: boolean;
   isDeleting: boolean;
   onClose: () => void;
+  onNavigate: (index: number) => void;
   onLike: (souvenir: ProfileAchievement) => void;
   onVisibilityChange: (souvenir: ProfileAchievement) => void;
   onDelete: (souvenir: ProfileAchievement) => Promise<boolean>;
@@ -37,8 +49,16 @@ const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
   event.currentTarget.style.opacity = "0";
 };
 
+const souvenirSlideVariants = {
+  enter: (direction: number) =>
+    direction === 0
+      ? { opacity: 1, x: 0 }
+      : { opacity: 1, x: `${direction * 100}%` },
+  center: { opacity: 1, x: 0 },
+  exit: (direction: number) => ({ opacity: 1, x: `${direction * -100}%` }),
+};
+
 interface LoadedImage {
-  imageUrl: string;
   naturalWidth: number;
   naturalHeight: number;
 }
@@ -50,10 +70,9 @@ interface ViewportSize {
 
 const getLightboxImageSize = (
   loadedImage: LoadedImage | null,
-  imageUrl: string | null,
   viewportSize: ViewportSize
 ) => {
-  if (loadedImage?.imageUrl !== imageUrl) return null;
+  if (!loadedImage) return null;
 
   const maxWidth = viewportSize.width * 0.9;
   const reservedInfoHeight = viewportSize.width <= 900 ? 200 : 136;
@@ -276,40 +295,88 @@ function SouvenirActions({
 
 export function SouvenirLightbox({
   souvenir,
+  items,
+  index,
   isOwner,
   canLike,
   isLiking,
   isUpdatingVisibility,
   isDeleting,
   onClose,
+  onNavigate,
   onLike,
   onVisibilityChange,
   onDelete,
 }: Readonly<SouvenirLightboxProps>) {
-  const { t } = useTranslation(["user_profile", "modal"]);
+  const { t } = useTranslation(["user_profile", "modal", "game_details"]);
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
   const [loadedImage, setLoadedImage] = useState<LoadedImage | null>(null);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const [navigationDirection, setNavigationDirection] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [viewportSize, setViewportSize] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
   }));
+  const pendingLoadedImageRef = useRef<LoadedImage | null>(null);
+  const hasPrevious = index > 0;
+  const hasNext = index < items.length - 1;
+  const handleNavigate = useCallback(
+    (nextIndex: number) => {
+      if (isNavigating) return;
+
+      setIsNavigating(true);
+      setNavigationDirection(nextIndex > index ? 1 : -1);
+      onNavigate(nextIndex);
+    },
+    [index, isNavigating, onNavigate]
+  );
 
   useEffect(() => {
-    if (!souvenir) setIsDeleteConfirmationVisible(false);
+    if (!souvenir) {
+      setIsDeleteConfirmationVisible(false);
+      setNavigationDirection(0);
+      setIsNavigating(false);
+      pendingLoadedImageRef.current = null;
+    }
   }, [souvenir]);
+
+  useEffect(() => {
+    const neighboringSouvenirs = [items[index - 1], items[index + 1]];
+
+    for (const neighboringSouvenir of neighboringSouvenirs) {
+      if (!neighboringSouvenir?.imageUrl) continue;
+
+      const image = new Image();
+      image.src = neighboringSouvenir.imageUrl;
+    }
+  }, [index, items]);
 
   useEffect(() => {
     if (!souvenir || isDeleteConfirmationVisible) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        onClose();
+      } else if (event.key === "ArrowLeft" && hasPrevious) {
+        handleNavigate(index - 1);
+      } else if (event.key === "ArrowRight" && hasNext) {
+        handleNavigate(index + 1);
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isDeleteConfirmationVisible, onClose, souvenir]);
+  }, [
+    hasNext,
+    hasPrevious,
+    handleNavigate,
+    index,
+    isDeleteConfirmationVisible,
+    onClose,
+    souvenir,
+  ]);
 
   useEffect(() => {
     const onResize = () => {
@@ -328,23 +395,33 @@ export function SouvenirLightbox({
   const hasImage = Boolean(
     souvenir.imageUrl && souvenir.imageUrl !== failedImageUrl
   );
-  const showImagePlaceholder =
-    !hasImage || loadedImage?.imageUrl !== souvenir.imageUrl;
-  const imageSize = getLightboxImageSize(
-    loadedImage,
-    souvenir.imageUrl,
-    viewportSize
-  );
+  const showImagePlaceholder = !hasImage || !loadedImage;
+  const imageSize = getLightboxImageSize(loadedImage, viewportSize);
 
   const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = event.currentTarget;
     if (!souvenir.imageUrl || !naturalWidth || !naturalHeight) return;
 
-    setLoadedImage({
-      imageUrl: souvenir.imageUrl,
+    const nextLoadedImage = {
       naturalWidth,
       naturalHeight,
-    });
+    };
+
+    if (isNavigating) {
+      pendingLoadedImageRef.current = nextLoadedImage;
+      return;
+    }
+
+    setLoadedImage(nextLoadedImage);
+  };
+
+  const handleNavigationAnimationComplete = () => {
+    if (pendingLoadedImageRef.current) {
+      setLoadedImage(pendingLoadedImageRef.current);
+      pendingLoadedImageRef.current = null;
+    }
+
+    setIsNavigating(false);
   };
 
   const handleDeleteConfirm = async () => {
@@ -358,18 +435,19 @@ export function SouvenirLightbox({
   return createPortal(
     <>
       <div className="profile-souvenir-lightbox__overlay">
-        <button
-          type="button"
-          className="profile-souvenir-lightbox__backdrop-button"
-          onClick={onClose}
-          aria-label={t("close", { ns: "modal" })}
-        />
-
         <dialog
           className="profile-souvenir-lightbox"
           open
           aria-label={souvenir.displayName}
         >
+          <button
+            type="button"
+            className="profile-souvenir-lightbox__backdrop-button"
+            onClick={onClose}
+            disabled={isNavigating}
+            aria-label={t("close", { ns: "modal" })}
+          />
+
           <button
             type="button"
             className="profile-souvenir-lightbox__close-button"
@@ -379,30 +457,83 @@ export function SouvenirLightbox({
             <XIcon size={24} />
           </button>
 
-          <div className="profile-souvenir-lightbox__content">
-            <SouvenirImage
-              souvenir={souvenir}
-              hasImage={hasImage}
-              showImagePlaceholder={showImagePlaceholder}
-              imageSize={imageSize}
-              onLoad={handleImageLoad}
-              onError={() => setFailedImageUrl(souvenir.imageUrl)}
-            />
+          <button
+            type="button"
+            className={`profile-souvenir-lightbox__nav-button profile-souvenir-lightbox__nav-button--left ${
+              !hasPrevious
+                ? "profile-souvenir-lightbox__nav-button--hidden"
+                : ""
+            }`}
+            onClick={() => handleNavigate(index - 1)}
+            disabled={!hasPrevious || isNavigating}
+            aria-label={t("previous_media", { ns: "game_details" })}
+          >
+            <ChevronLeftIcon size={28} />
+          </button>
 
-            <section className="profile-souvenir-lightbox__info">
-              <SouvenirSummary souvenir={souvenir} onGameClick={onClose} />
-              <SouvenirActions
-                souvenir={souvenir}
-                isOwner={isOwner}
-                canLike={canLike}
-                isLiking={isLiking}
-                isUpdatingVisibility={isUpdatingVisibility}
-                isDeleting={isDeleting}
-                onLike={onLike}
-                onVisibilityChange={onVisibilityChange}
-                onRequestDelete={() => setIsDeleteConfirmationVisible(true)}
-              />
-            </section>
+          <button
+            type="button"
+            className={`profile-souvenir-lightbox__nav-button profile-souvenir-lightbox__nav-button--right ${
+              !hasNext ? "profile-souvenir-lightbox__nav-button--hidden" : ""
+            }`}
+            onClick={() => handleNavigate(index + 1)}
+            disabled={!hasNext || isNavigating}
+            aria-label={t("next_media", { ns: "game_details" })}
+          >
+            <ChevronRightIcon size={28} />
+          </button>
+
+          <div
+            className={`profile-souvenir-lightbox__stage${
+              isNavigating
+                ? " profile-souvenir-lightbox__stage--navigating"
+                : ""
+            }`}
+          >
+            <AnimatePresence initial={false} custom={navigationDirection}>
+              <motion.div
+                key={`${souvenir.gameId}:${souvenir.name}`}
+                className="profile-souvenir-lightbox__slide"
+                custom={navigationDirection}
+                variants={souvenirSlideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
+                onAnimationComplete={handleNavigationAnimationComplete}
+              >
+                <div className="profile-souvenir-lightbox__content">
+                  <SouvenirImage
+                    souvenir={souvenir}
+                    hasImage={hasImage}
+                    showImagePlaceholder={showImagePlaceholder}
+                    imageSize={imageSize}
+                    onLoad={handleImageLoad}
+                    onError={() => setFailedImageUrl(souvenir.imageUrl)}
+                  />
+
+                  <section className="profile-souvenir-lightbox__info">
+                    <SouvenirSummary
+                      souvenir={souvenir}
+                      onGameClick={onClose}
+                    />
+                    <SouvenirActions
+                      souvenir={souvenir}
+                      isOwner={isOwner}
+                      canLike={canLike}
+                      isLiking={isLiking}
+                      isUpdatingVisibility={isUpdatingVisibility}
+                      isDeleting={isDeleting}
+                      onLike={onLike}
+                      onVisibilityChange={onVisibilityChange}
+                      onRequestDelete={() =>
+                        setIsDeleteConfirmationVisible(true)
+                      }
+                    />
+                  </section>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </dialog>
       </div>

@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, CheckboxField } from "@renderer/components";
+import { Button, CheckboxField, ConfirmationModal } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -31,6 +31,8 @@ export function SettingsContextContentGameplay() {
     hideClassicsBookmark: false,
     classicsUseHeroLayout: false,
   });
+  const [showWaylandSouvenirsWarning, setShowWaylandSouvenirsWarning] =
+    useState(false);
 
   useEffect(() => {
     if (!userPreferences) return;
@@ -65,6 +67,25 @@ export function SettingsContextContentGameplay() {
   const handleChange = (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
     updateUserPreferences(values);
+  };
+
+  const handleAchievementSouvenirsChange = () => {
+    if (form.enableAchievementSouvenirs) {
+      handleChange({ enableAchievementSouvenirs: false });
+      return;
+    }
+
+    if (window.electron.isWayland) {
+      setShowWaylandSouvenirsWarning(true);
+      return;
+    }
+
+    handleChange({ enableAchievementSouvenirs: true });
+  };
+
+  const handleWaylandSouvenirsConfirm = () => {
+    setShowWaylandSouvenirsWarning(false);
+    handleChange({ enableAchievementSouvenirs: true });
   };
 
   return (
@@ -129,11 +150,7 @@ export function SettingsContextContentGameplay() {
             id="achievement-souvenirs"
             label={t("enable_achievement_souvenirs")}
             checked={form.enableAchievementSouvenirs}
-            onChange={() =>
-              handleChange({
-                enableAchievementSouvenirs: !form.enableAchievementSouvenirs,
-              })
-            }
+            onChange={handleAchievementSouvenirsChange}
           />
         ) : (
           <button
@@ -203,6 +220,16 @@ export function SettingsContextContentGameplay() {
           }
         />
       </div>
+      <ConfirmationModal
+        visible={showWaylandSouvenirsWarning}
+        title={t("wayland_souvenirs_warning_title")}
+        descriptionText={t("wayland_souvenirs_warning_description")}
+        cancelButtonLabel={t("wayland_souvenirs_warning_cancel")}
+        confirmButtonLabel={t("wayland_souvenirs_warning_confirm")}
+        clickOutsideToClose={false}
+        onConfirm={handleWaylandSouvenirsConfirm}
+        onClose={() => setShowWaylandSouvenirsWarning(false)}
+      />
     </div>
   );
 }

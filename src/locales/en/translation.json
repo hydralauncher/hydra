@@ -1557,7 +1557,11 @@
     "big_picture_enable_diagnostics": "Enable navigation diagnostics",
     "big_picture_diagnostics_position": "Diagnostics position",
     "open_screenshots_directory": "Open screenshots folder",
-    "enable_achievement_souvenirs": "Enable souvenirs for achievements"
+    "enable_achievement_souvenirs": "Enable souvenirs for achievements",
+    "wayland_souvenirs_warning_title": "Souvenirs on Wayland",
+    "wayland_souvenirs_warning_description": "Due to the nature of Wayland, Hydra needs to ask which window it should capture when you unlock an achievement. Without selecting a window, capturing souvenirs is impossible.",
+    "wayland_souvenirs_warning_cancel": "Cancel",
+    "wayland_souvenirs_warning_confirm": "OK"
   },
   "notifications": {
     "download_complete": "Download complete",
