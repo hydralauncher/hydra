@@ -43,24 +43,34 @@ export function RepacksModal({
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
-  const [selectedFingerprints, setSelectedFingerprints] = useState<string[]>([]);
+  const [selectedFingerprints, setSelectedFingerprints] = useState<string[]>(
+    []
+  );
   const [filterTerm, setFilterTerm] = useState("");
-  const [lastCheckTimestamp, setLastCheckTimestamp] = useState<string | null>(null);
+  const [lastCheckTimestamp, setLastCheckTimestamp] = useState<string | null>(
+    null
+  );
   const [isLoadingTimestamp, setIsLoadingTimestamp] = useState(true);
-  const [viewedRepackIds, setViewedRepackIds] = useState<Set<string>>(new Set());
+  const [viewedRepackIds, setViewedRepackIds] = useState<Set<string>>(
+    new Set()
+  );
 
   const { game, repacks } = useContext(gameDetailsContext);
   const { t } = useTranslation("game_details");
   const { formatDate } = useDate();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const userPreferences = useAppSelector((state) => state.userPreferences.value);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   useEffect(() => {
     levelDBService
       .values("downloadSources")
       .then((sources) =>
-        setDownloadSources(orderBy((sources as DownloadSource[]) || [], "createdAt", "desc"))
+        setDownloadSources(
+          orderBy((sources as DownloadSource[]) || [], "createdAt", "desc")
+        )
       )
       .catch(() => setDownloadSources([]));
   }, []);
@@ -79,12 +89,26 @@ export function RepacksModal({
   }, [visible, userPreferences?.enableNewDownloadOptionsBadges]);
 
   useEffect(() => {
-    if (visible && game?.newDownloadOptionsCount && game.newDownloadOptionsCount > 0) {
+    if (
+      visible &&
+      game?.newDownloadOptionsCount &&
+      game.newDownloadOptionsCount > 0
+    ) {
       const gameKey = getGameKey(game.shop, game.objectId);
-      levelDBService.get(gameKey, "games").then((data) => {
-        if (data) levelDBService.put(gameKey, { ...(data as Game), newDownloadOptionsCount: undefined }, "games");
-      }).catch(() => {});
-      dispatch(clearNewDownloadOptions({ gameId: `${game.shop}:${game.objectId}` }));
+      levelDBService
+        .get(gameKey, "games")
+        .then((data) => {
+          if (data)
+            levelDBService.put(
+              gameKey,
+              { ...(data as Game), newDownloadOptionsCount: undefined },
+              "games"
+            );
+        })
+        .catch(() => {});
+      dispatch(
+        clearNewDownloadOptions({ gameId: `${game.shop}:${game.objectId}` })
+      );
     }
   }, [visible, game, dispatch]);
 
@@ -98,7 +122,9 @@ export function RepacksModal({
   ): "online" | "partial" | "offline" => {
     const uris = Array.isArray(r.uris) ? r.uris : [];
     const unavailableSet = new Set(r.unavailableUris ?? []);
-    const availableCount = uris.filter((uri) => !unavailableSet.has(uri)).length;
+    const availableCount = uris.filter(
+      (uri) => !unavailableSet.has(uri)
+    ).length;
     const unavailableCount = uris.length - availableCount;
     if (uris.length === 0 || availableCount === 0) return "offline";
     if (unavailableCount === 0) return "online";
@@ -109,13 +135,19 @@ export function RepacksModal({
     const term = filterTerm.trim().toLowerCase();
     const byTerm = sortedRepacks.filter((r) => {
       if (!term) return true;
-      return r.title.toLowerCase().includes(term) || r.downloadSourceName.toLowerCase().includes(term);
+      return (
+        r.title.toLowerCase().includes(term) ||
+        r.downloadSourceName.toLowerCase().includes(term)
+      );
     });
 
     const bySource = byTerm.filter((r) => {
       if (selectedFingerprints.length === 0) return true;
       return downloadSources.some(
-        (src) => src.fingerprint && selectedFingerprints.includes(src.fingerprint) && src.name === r.downloadSourceName
+        (src) =>
+          src.fingerprint &&
+          selectedFingerprints.includes(src.fingerprint) &&
+          src.name === r.downloadSourceName
       );
     });
 
@@ -129,7 +161,13 @@ export function RepacksModal({
   };
 
   const isNewRepack = (r: GameRepack): boolean => {
-    if (isLoadingTimestamp || viewedRepackIds.has(r.id) || !lastCheckTimestamp || !r.createdAt) return false;
+    if (
+      isLoadingTimestamp ||
+      viewedRepackIds.has(r.id) ||
+      !lastCheckTimestamp ||
+      !r.createdAt
+    )
+      return false;
     try {
       const lastDate = new Date(lastCheckTimestamp);
       return !isNaN(lastDate.getTime()) && r.createdAt > lastDate.toISOString();
@@ -181,7 +219,9 @@ export function RepacksModal({
               {filteredRepacks.length === 0 ? (
                 <div className="repacks-modal__no-results">
                   <div className="repacks-modal__no-results-content">
-                    <p className="repacks-modal__no-results-text">{t("no_repacks_found")}</p>
+                    <p className="repacks-modal__no-results-text">
+                      {t("no_repacks_found")}
+                    </p>
                     <Button
                       type="button"
                       theme="primary"
@@ -198,7 +238,10 @@ export function RepacksModal({
               ) : (
                 filteredRepacks.map((r) => {
                   const availability = getRepackAvailabilityStatus(r);
-                  const isLastDownloaded = game?.download?.uri && Array.isArray(r.uris) && r.uris.some((u) => u.includes(game.download!.uri));
+                  const isLastDownloaded =
+                    game?.download?.uri &&
+                    Array.isArray(r.uris) &&
+                    r.uris.some((u) => u.includes(game.download!.uri));
                   const tooltipId = `orb-${r.id}`;
 
                   return (
@@ -217,20 +260,36 @@ export function RepacksModal({
 
                       <div className="repacks-modal__repack-content">
                         <div className="repacks-modal__repack-header-row">
-                          <span className="repacks-modal__repack-title">{r.title}</span>
-                          {userPreferences?.enableNewDownloadOptionsBadges !== false && isNewRepack(r) && (
-                            <span className="repacks-modal__new-badge">{t("new_download_option")}</span>
+                          <span className="repacks-modal__repack-title">
+                            {r.title}
+                          </span>
+                          {userPreferences?.enableNewDownloadOptionsBadges !==
+                            false &&
+                            isNewRepack(r) && (
+                              <span className="repacks-modal__new-badge">
+                                {t("new_download_option")}
+                              </span>
+                            )}
+                          {isLastDownloaded && (
+                            <Badge>{t("last_downloaded_option")}</Badge>
                           )}
-                          {isLastDownloaded && <Badge>{t("last_downloaded_option")}</Badge>}
                         </div>
 
                         <div className="repacks-modal__repack-meta">
-                          <span className="repacks-modal__repack-size">{r.fileSize}</span>
-                          <span className="repacks-modal__repack-separator">•</span>
-                          <span className="repacks-modal__repack-source">{r.downloadSourceName}</span>
+                          <span className="repacks-modal__repack-size">
+                            {r.fileSize}
+                          </span>
+                          <span className="repacks-modal__repack-separator">
+                            •
+                          </span>
+                          <span className="repacks-modal__repack-source">
+                            {r.downloadSourceName}
+                          </span>
                           {r.uploadDate && (
                             <>
-                              <span className="repacks-modal__repack-separator">•</span>
+                              <span className="repacks-modal__repack-separator">
+                                •
+                              </span>
                               <span>{formatDate(r.uploadDate)}</span>
                             </>
                           )}
