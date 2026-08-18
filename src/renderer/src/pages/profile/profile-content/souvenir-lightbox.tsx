@@ -370,16 +370,16 @@ export function SouvenirLightbox({
           open
           aria-label={souvenir.displayName}
         >
-          <div className="profile-souvenir-lightbox__content">
-            <button
-              type="button"
-              className="profile-souvenir-lightbox__close-button"
-              onClick={onClose}
-              aria-label={t("close", { ns: "modal" })}
-            >
-              <XIcon size={24} />
-            </button>
+          <button
+            type="button"
+            className="profile-souvenir-lightbox__close-button"
+            onClick={onClose}
+            aria-label={t("close", { ns: "modal" })}
+          >
+            <XIcon size={24} />
+          </button>
 
+          <div className="profile-souvenir-lightbox__content">
             <SouvenirImage
               souvenir={souvenir}
               hasImage={hasImage}
