@@ -38,7 +38,7 @@ export function SettingsAccount() {
   } = useForm<FormValues>({
     defaultValues: {
       profileVisibility: "PUBLIC",
-      souvenirsVisibility: "PUBLIC",
+      souvenirsVisibility: "PRIVATE",
     },
   });
 

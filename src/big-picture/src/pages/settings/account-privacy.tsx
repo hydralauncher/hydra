@@ -106,7 +106,7 @@ export function AccountPrivacySettingsSection({
   const [profileVisibility, setProfileVisibility] =
     useState<ProfileVisibility>("PUBLIC");
   const [souvenirsVisibility, setSouvenirsVisibility] =
-    useState<ProfileVisibility>("PUBLIC");
+    useState<ProfileVisibility>("PRIVATE");
   const [blockedUsers, setBlockedUsers] = useState<UserFriend[]>([]);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
   const [unblockingUserId, setUnblockingUserId] = useState<string | null>(null);
