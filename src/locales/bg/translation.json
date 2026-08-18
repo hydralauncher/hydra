@@ -1430,6 +1430,8 @@
     "sort_by": "Сортирай по",
     "sort_title_asc": "Заглавие (A-Я)",
     "sort_title_desc": "Заглавие (Я-A)",
+    "sort_release_date": "Дата на издаване",
+    "sort_new_updates": "Нови актуализации",
     "sort_most_played": "Най-играни",
     "sort_installed_first": "Първо инсталираните",
     "rename_collection": "Преименуване на колекция",

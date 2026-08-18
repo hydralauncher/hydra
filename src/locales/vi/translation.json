@@ -1544,6 +1544,8 @@
     "sort_title": "Tên",
     "sort_title_asc": "Tên (A-Z)",
     "sort_title_desc": "Tên (Z-A)",
+    "sort_release_date": "Ngày phát hành",
+    "sort_new_updates": "Cập nhật mới",
     "sort_most_played": "Chơi nhiều nhất",
     "sort_achievements": "Thành tựu",
     "sort_installed_first": "Đã cài đặt lên trước",

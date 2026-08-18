@@ -967,6 +967,8 @@
     "sort_by": "Sort by",
     "sort_title_asc": "Title (A-Z)",
     "sort_title_desc": "Title (Z-A)",
+    "sort_release_date": "Шығу күні",
+    "sort_new_updates": "Жаңа жаңартулар",
     "sort_most_played": "Most played",
     "sort_installed_first": "Installed first",
     "rename_collection": "Rename collection",

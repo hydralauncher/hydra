@@ -989,6 +989,8 @@
     "sort_by": "Rendezés:",
     "sort_title_asc": "Cím (A-Z)",
     "sort_title_desc": "Cím (Z-A)",
+    "sort_release_date": "Megjelenés dátuma",
+    "sort_new_updates": "Új frissítések",
     "sort_most_played": "Legjátszottabb",
     "sort_installed_first": "Legelőször telepítve",
     "rename_collection": "Gyűjtemény újranevezése",

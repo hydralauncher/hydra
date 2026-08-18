@@ -991,6 +991,8 @@
     "sort_by": "並び替え",
     "sort_title_asc": "タイトル（A-Z）",
     "sort_title_desc": "タイトル（Z-A）",
+    "sort_release_date": "リリース日",
+    "sort_new_updates": "新しいアップデート",
     "sort_most_played": "最もプレイ済み",
     "sort_installed_first": "インストール済みを先頭に",
     "rename_collection": "コレクション名を変更",
