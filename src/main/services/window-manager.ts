@@ -1,9 +1,11 @@
 import { is } from "@electron-toolkit/utils";
-import { isStaging } from "@main/constants";
+import {
+  appIconPath as icon,
+  isStaging,
+  trayIconDarkPath as trayIconDark,
+  trayIconPath as trayIcon,
+} from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
-import icon from "@resources/icon.png?asset";
-import trayIconDark from "@resources/tray-icon-dark.png?asset";
-import trayIcon from "@resources/tray-icon.png?asset";
 import { AuthPage } from "@shared";
 import type {
   AchievementCustomNotificationPosition,
@@ -89,10 +91,10 @@ export class WindowManager {
       height: WindowManager.DEFAULT_WINDOW_HEIGHT,
       minWidth: WindowManager.MIN_WINDOW_WIDTH,
       minHeight: WindowManager.MIN_WINDOW_HEIGHT,
-      icon,
+      icon: nativeImage.createFromPath(icon),
       trafficLightPosition: { x: 16, y: 16 },
       webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
+        preload: path.join(import.meta.dirname, "../preload/index.mjs"),
         sandbox: false,
       },
       show: false,
@@ -135,14 +137,20 @@ export class WindowManager {
           "Failed to load from MAIN_VITE_LAUNCHER_SUBDOMAIN, falling back to local file:",
           error
         );
-        window.loadFile(path.join(__dirname, "../renderer/index.html"), {
-          hash,
-        });
+        window.loadFile(
+          path.join(import.meta.dirname, "../renderer/index.html"),
+          {
+            hash,
+          }
+        );
       }
     } else {
-      window.loadFile(path.join(__dirname, "../renderer/index.html"), {
-        hash,
-      });
+      window.loadFile(
+        path.join(import.meta.dirname, "../renderer/index.html"),
+        {
+          hash,
+        }
+      );
     }
   }
 
@@ -465,7 +473,7 @@ export class WindowManager {
       frame: false,
       show: false,
       webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
+        preload: path.join(import.meta.dirname, "../preload/index.mjs"),
         sandbox: false,
       },
     });
@@ -530,7 +538,7 @@ export class WindowManager {
       frame: false,
       icon,
       webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
+        preload: path.join(import.meta.dirname, "../preload/index.mjs"),
         sandbox: false,
       },
       show: false,
@@ -705,7 +713,7 @@ export class WindowManager {
       icon,
       backgroundColor: "#1c1c1c",
       webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
+        preload: path.join(import.meta.dirname, "../preload/index.mjs"),
         sandbox: false,
       },
     });
@@ -808,7 +816,7 @@ export class WindowManager {
           height: 34,
         },
         webPreferences: {
-          preload: path.join(__dirname, "../preload/index.mjs"),
+          preload: path.join(import.meta.dirname, "../preload/index.mjs"),
           sandbox: false,
         },
         show: false,
@@ -885,7 +893,7 @@ export class WindowManager {
       icon,
       skipTaskbar: false,
       webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
+        preload: path.join(import.meta.dirname, "../preload/index.mjs"),
         sandbox: false,
       },
       show: false,

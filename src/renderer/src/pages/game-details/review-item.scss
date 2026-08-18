@@ -2,58 +2,45 @@
 
 .game-details {
   &__review-item {
-    overflow: hidden;
-    word-wrap: break-word;
-  }
-
-  &__review-header {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1);
-    margin-bottom: calc(globals.$spacing-unit * 1.5);
+    gap: calc(globals.$spacing-unit * 1.5);
+    background: transparent;
+    padding: calc(globals.$spacing-unit * 2.5) 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    &:last-child {
+      border-bottom: none;
+    }
   }
 
-  &__review-header-top {
+  /* ── Compact header ── */
+  &__review-header {
     display: flex;
-    justify-content: space-between;
     align-items: flex-start;
-    gap: calc(globals.$spacing-unit * 1);
+    gap: calc(globals.$spacing-unit * 1.25);
   }
 
-  &__review-user {
-    display: flex;
-    align-items: flex-start;
-    gap: calc(globals.$spacing-unit * 1);
-    flex: 1;
-    min-width: 0;
+  &__review-avatar-btn {
+    flex-shrink: 0;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: scale(1.08);
+    }
   }
 
   &__review-user-info {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.45);
-    flex: 1;
-    min-width: 0;
-  }
-
-  &__review-meta-row {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: calc(globals.$spacing-unit * 0.5);
-  }
-
-  &__review-meta-left {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 0.75);
-    min-height: 22px;
+    gap: 2px;
   }
 
   &__review-display-name {
     color: rgba(255, 255, 255, 0.9);
-    font-size: globals.$small-font-size;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 400;
     display: inline-flex;
 
     &--clickable {
@@ -62,61 +49,122 @@
 
       &:hover {
         text-decoration: underline;
+        color: #fff;
       }
     }
   }
 
+  &__review-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__review-date {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Star rating — no bg, no border, yellow star */
+  &__review-score-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+
+    svg {
+      color: #f5c518;
+      fill: #f5c518;
+    }
+  }
+
+  &__review-star--filled {
+    color: #f5c518;
+    fill: #f5c518;
+  }
+
+  &__review-playtime {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+
+    svg {
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  /* ── Main content ── */
+  &__review-main {
+    padding-left: calc(34px + globals.$spacing-unit * 1.25);
+  }
+
+  &__review-content {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: globals.$body-font-size;
+    line-height: 1.6;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    max-width: 100%;
+  }
+
+  &__review-translation-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
+    margin-top: calc(globals.$spacing-unit * 1.5);
+    padding: 0;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  /* ── Actions (votes / delete) ── */
   &__review-actions {
-    margin-top: 12px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-left: calc(34px + globals.$spacing-unit * 1.25);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
-  &__review-actions-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
   &__review-votes {
     display: flex;
-    gap: 12px;
+    gap: 4px;
   }
 
   &__vote-button {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 6px 12px;
-    color: #ccc;
-    font-size: 14px;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease;
+    border-radius: 4px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-      color: #ffffff;
+      color: rgba(255, 255, 255, 0.9);
     }
 
-    &--active {
-      &.game-details__vote-button--upvote {
-        svg {
-          fill: white;
-        }
-      }
-
-      &.game-details__vote-button--downvote {
-        svg {
-          fill: white;
-        }
-      }
+    &--active svg {
+      fill: white;
+      color: white;
     }
 
     span {
@@ -130,25 +178,23 @@
   &__delete-review-button {
     display: flex;
     align-items: center;
-    justify-content: center;
-    background: rgba(244, 67, 54, 0.1);
-    border: 1px solid rgba(244, 67, 54, 0.3);
-    border-radius: 6px;
-    padding: 6px;
-    color: #f44336;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    color: rgba(220, 50, 50, 0.6);
+    font-size: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    gap: 6px;
+    transition: color 0.2s ease;
+    border-radius: 4px;
 
     &:hover {
-      background: rgba(244, 67, 54, 0.2);
-      border-color: #f44336;
-      color: #ff5722;
+      color: #f44336;
     }
   }
 
   &__blocked-review-simple {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.5);
     font-size: globals.$small-font-size;
     display: flex;
     align-items: center;
@@ -173,7 +219,7 @@
   &__blocked-review-hide-link {
     background: none;
     border: none;
-    color: #ffc107;
+    color: rgba(255, 255, 255, 0.4);
     font-size: globals.$small-font-size;
     cursor: pointer;
     text-decoration: underline;
@@ -181,108 +227,18 @@
     transition: color 0.2s ease;
 
     &:hover {
-      color: #ffeb3b;
-    }
-  }
-
-  &__review-score-stars {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    height: 22px;
-    box-sizing: border-box;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 2px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 11px;
-    font-weight: 500;
-  }
-
-  &__review-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-  }
-
-  &__review-star {
-    color: rgba(255, 255, 255, 0.7);
-    transition: color 0.2s ease;
-    cursor: default;
-
-    &--filled {
       color: rgba(255, 255, 255, 0.7);
     }
-
-    &--empty {
-      color: #666666;
-    }
-
-    svg {
-      fill: currentColor;
-    }
   }
+}
 
-  &__review-date {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-    height: 22px;
-    line-height: 1;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: globals.$small-font-size;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
-
-  &__review-playtime {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    height: 22px;
-    box-sizing: border-box;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 11px;
-    font-weight: 500;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 2px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: 0;
-
-    svg {
-      color: rgba(255, 255, 255, 0.6);
-    }
-  }
-
-  &__review-content {
-    user-select: text;
-    cursor: text;
-    color: globals.$body-color;
-    line-height: 1.5;
-    word-wrap: break-word;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    white-space: pre-wrap;
-    max-width: 100%;
-  }
-
-  &__review-translation-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 1);
-    margin-top: calc(globals.$spacing-unit * 1.5);
-    padding: 0;
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.875rem;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.2s ease;
-
-    &:hover {
-      text-decoration: underline;
-      color: rgba(255, 255, 255, 0.9);
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

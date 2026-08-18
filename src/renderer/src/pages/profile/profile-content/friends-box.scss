@@ -2,7 +2,7 @@
 
 .friends-box {
   &__box {
-    padding: calc(globals.$spacing-unit * 2);
+    padding: 0;
     position: relative;
 
     &--empty {
@@ -24,7 +24,7 @@
     background: none;
     border: none;
     color: globals.$body-color;
-    font-size: globals.$small-font-size;
+    font-size: 0.9rem;
     cursor: pointer;
     text-decoration: underline;
     padding: 0;
@@ -51,48 +51,82 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__list-item {
     display: flex;
     cursor: pointer;
-    transition: all ease 0.1s;
-    color: globals.$muted-color;
+    transition: all ease 0.2s;
+    color: globals.$body-color;
     width: 100%;
     overflow: hidden;
-    border-radius: 4px;
-    padding: globals.$spacing-unit;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 1.5);
     gap: calc(globals.$spacing-unit * 2);
     align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
       text-decoration: none;
     }
   }
 
   &__friend-name {
-    color: globals.$muted-color;
-    font-size: 0.8rem;
+    color: globals.$body-color;
+    font-size: 0.95rem;
     font-weight: 600;
   }
 
-  &__game-info {
-    font-size: 0.75rem;
+  &__playing-container {
     display: flex;
-    gap: globals.$spacing-unit;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  &__playing-text {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__game-info {
+    font-size: 0.85rem;
+    display: flex;
+    gap: 8px;
     align-items: center;
+    color: globals.$muted-color;
+  }
+
+  &__game-title {
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__friend-details {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
+    justify-content: center;
+    gap: 2px;
+    overflow: hidden;
+    flex: 1;
   }
 
   &__game-image {
     border-radius: 4px;
+    width: 20px;
+    height: 20px;
+    object-fit: cover;
   }
 
   &__view-all {

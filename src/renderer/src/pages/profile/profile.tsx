@@ -3,7 +3,6 @@ import { SkeletonTheme } from "react-loading-skeleton";
 import { UserProfileContextProvider } from "@renderer/context";
 import { useParams } from "react-router-dom";
 import "./profile.scss";
-
 export default function Profile() {
   const { userId } = useParams();
 

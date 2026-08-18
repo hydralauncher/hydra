@@ -1,0 +1,328 @@
+@use "../../scss/globals.scss";
+
+.lib-cat-view {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+
+  &__section {
+    width: 100%;
+  }
+
+  &__section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: globals.$body-color;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__section-icon {
+    color: #e05c7a;
+    flex-shrink: 0;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    width: 100%;
+
+    @media (max-width: 1300px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    @media (max-width: 1000px) {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 700px) {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+  }
+}
+
+// ─── Card ───────────────────────────────────────────────
+
+.lib-cat-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+  user-select: none;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-within {
+    transform: translateY(-3px) scale(1.05) !important;
+    background: rgba(255, 255, 255, 0.08);
+    z-index: 10;
+  }
+
+  &--selected {
+    outline: 2px solid rgba(255, 255, 255, 0.85);
+    outline-offset: 3px;
+
+    .lib-cat-card__cover {
+      opacity: 1;
+    }
+  }
+
+  // Cover — landscape ratio like catalogue (215/460 ≈ 46.74%)
+  &__cover-wrap {
+    position: relative;
+    width: 100%;
+    padding-bottom: 46.74%;
+    background: #111;
+    overflow: hidden;
+  }
+
+  &__cover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.35s ease;
+  }
+
+  &:hover &__cover {
+    transform: scale(1.04);
+  }
+
+  &__placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.2);
+  }
+
+  // Favorite + Remove buttons container
+  &__actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    z-index: 3;
+  }
+
+  // Logo overlay
+  &__logo {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    max-width: 65%;
+    max-height: 45%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: right top;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  // Favorite toggle button
+  &__fav-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition:
+      opacity 0.2s ease,
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.75);
+      color: #e05c7a;
+    }
+
+    &--active {
+      opacity: 1;
+      color: #e05c7a;
+      background: rgba(0, 0, 0, 0.55);
+    }
+  }
+
+  &__remove-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition:
+      opacity 0.2s ease,
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.75);
+      color: #e05c7a;
+    }
+  }
+
+  &__folder-remove-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition:
+      opacity 0.2s ease,
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.75);
+      color: #e05c7a;
+    }
+  }
+
+  // ── Checkbox de seleção — canto inf. esquerdo da imagem
+  &__checkbox {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 0;
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 4;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
+    opacity: 0;
+
+    &--checked {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &__checkbox-mark {
+    font-size: 10px;
+    color: #fff;
+    line-height: 1;
+    font-weight: 600;
+  }
+
+  &:hover &__fav-btn,
+  &:hover &__remove-btn,
+  &:hover &__folder-remove-btn,
+  &:hover &__checkbox {
+    opacity: 1;
+  }
+
+  // Info strip
+  &__info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.7) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    border-radius: 0;
+    z-index: 3;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+    pointer-events: none;
+  }
+
+  &:hover &__info,
+  &:focus-within &__info {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: globals.$body-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__meta-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.38);
+    white-space: nowrap;
+
+    &--trophy {
+      color: rgba(255, 200, 80, 0.6);
+    }
+  }
+}

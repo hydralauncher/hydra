@@ -1,17 +1,19 @@
 @use "../../../scss/globals.scss";
 
 .profile-section {
-  background-color: globals.$background-color;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  transition: background 0.2s ease;
 
   &__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: globals.$background-color;
+    background-color: transparent;
     padding-right: calc(globals.$spacing-unit * 2);
 
     &:hover {
@@ -65,7 +67,11 @@
   &__content {
     overflow: hidden;
     transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
-    background-color: globals.$dark-background-color;
+    background-color: transparent;
     position: relative;
+  }
+
+  .button {
+    border-radius: 100px !important;
   }
 }

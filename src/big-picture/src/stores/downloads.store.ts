@@ -28,8 +28,15 @@ export const useBigPictureDownloadsStore =
     peakSpeedByGameId: {},
     setLastPacket: (packet) => {
       set((state) => {
+        if (!packet) {
+          return {
+            ...state,
+            lastPacket: null,
+          };
+        }
+
         if (
-          packet?.progress === 1 &&
+          packet.progress === 1 &&
           !packet.isCheckingFiles &&
           !packet.isDownloadingMetadata
         ) {

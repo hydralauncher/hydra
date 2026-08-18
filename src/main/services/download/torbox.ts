@@ -6,9 +6,11 @@ import type {
   TorBoxTorrentInfoRequest,
   TorBoxAddTorrentRequest,
   TorBoxRequestLinkRequest,
+  UserPreferences,
 } from "@types";
 import { appVersion } from "@main/constants";
 import { DownloadError } from "@shared";
+import { db, levelKeys } from "@main/level";
 import { logger } from "../logger";
 
 const READINESS_POLL_ATTEMPTS = 6;
@@ -17,11 +19,17 @@ const MY_LIST_PAGE_SIZE = 1000;
 const MY_LIST_MAX_PAGES = 10;
 
 export class TorBoxClient {
-  private static instance: AxiosInstance;
+  private static instance: AxiosInstance | null = null;
   private static readonly baseURL = "https://api.torbox.app/v1/api";
-  private static apiToken: string;
+  private static apiToken: string | null = null;
 
   static authorize(apiToken: string) {
+    if (!apiToken) {
+      this.apiToken = null;
+      this.instance = null;
+      return;
+    }
+
     this.apiToken = apiToken;
     this.instance = axios.create({
       baseURL: this.baseURL,
@@ -32,11 +40,31 @@ export class TorBoxClient {
     });
   }
 
+  private static async getInstance(): Promise<AxiosInstance> {
+    if (this.instance) return this.instance;
+
+    try {
+      const userPreferences = await db.get<string, UserPreferences | null>(
+        levelKeys.userPreferences,
+        { valueEncoding: "json" }
+      );
+      if (userPreferences?.torBoxApiToken) {
+        this.authorize(userPreferences.torBoxApiToken);
+        if (this.instance) return this.instance;
+      }
+    } catch {
+      // Ignore leveldb error
+    }
+
+    throw new Error(DownloadError.NotCachedOnTorBox);
+  }
+
   private static async addMagnet(magnet: string) {
+    const instance = await this.getInstance();
     const form = new FormData();
     form.append("magnet", magnet);
 
-    const response = await this.instance.post<TorBoxAddTorrentRequest>(
+    const response = await instance.post<TorBoxAddTorrentRequest>(
       "/torrents/createtorrent",
       form
     );
@@ -49,21 +77,20 @@ export class TorBoxClient {
   }
 
   static async getTorrentInfo(id: number) {
+    const instance = await this.getInstance();
     const searchParams = new URLSearchParams({
       id: id.toString(),
       bypass_cache: "true",
     });
 
-    const response = await this.instance.get<
+    const response = await instance.get<
       Omit<TorBoxTorrentInfoRequest, "data"> & {
         data: TorBoxTorrentInfo | TorBoxTorrentInfo[] | null;
       }
     >("/torrents/mylist?" + searchParams.toString());
 
     const { data } = response.data;
-
     if (!data) return null;
-
     if (Array.isArray(data)) {
       return data.find((item) => item.id === id) ?? null;
     }
@@ -72,18 +99,20 @@ export class TorBoxClient {
   }
 
   static async getUser() {
-    const response = await this.instance.get<TorBoxUserRequest>(`/user/me`);
+    const instance = await this.getInstance();
+    const response = await instance.get<TorBoxUserRequest>(`/user/me`);
     return response.data.data;
   }
 
   static async requestLink(id: number) {
+    const instance = await this.getInstance();
     const searchParams = new URLSearchParams({
-      token: this.apiToken,
+      token: this.apiToken ?? "",
       torrent_id: id.toString(),
       zip_link: "true",
     });
 
-    const response = await this.instance.get<TorBoxRequestLinkRequest>(
+    const response = await instance.get<TorBoxRequestLinkRequest>(
       "/torrents/requestdl?" + searchParams.toString()
     );
 
@@ -93,7 +122,6 @@ export class TorBoxClient {
       logger.error(
         `[TorBox] requestdl did not return a link for torrent ${id}: ${detail}`
       );
-
       throw new Error(DownloadError.TorBoxLinkUnavailable);
     }
 
@@ -101,6 +129,7 @@ export class TorBoxClient {
   }
 
   private static async getAllTorrentsFromUser() {
+    const instance = await this.getInstance();
     const torrents: TorBoxTorrentInfo[] = [];
 
     for (let page = 0; page < MY_LIST_MAX_PAGES; page++) {
@@ -110,7 +139,7 @@ export class TorBoxClient {
         limit: MY_LIST_PAGE_SIZE.toString(),
       });
 
-      const response = await this.instance.get<TorBoxTorrentInfoRequest>(
+      const response = await instance.get<TorBoxTorrentInfoRequest>(
         "/torrents/mylist?" + searchParams.toString()
       );
 
@@ -177,7 +206,6 @@ export class TorBoxClient {
   static async getDownloadInfo(uri: string) {
     const torrentData = await this.getTorrentIdAndName(uri);
     const url = await this.requestLink(torrentData.id);
-
     const name = torrentData.name ? `${torrentData.name}.zip` : undefined;
 
     return { url, name };

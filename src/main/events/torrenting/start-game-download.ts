@@ -95,7 +95,9 @@ const startGameDownload = async (
     if (isKnownDownloadError(err)) {
       logger.warn("Failed to start download with expected download error", err);
     } else {
-      logger.error("Failed to start download", err);
+      const errorMsg =
+        err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      logger.error(`Failed to start download: ${errorMsg}`, err);
     }
     return handleDownloadError(err, downloader);
   }

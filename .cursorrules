@@ -55,3 +55,8 @@
 - Prefer self-explanatory naming and structure over excessive comments.
 - Do not comment every line or obvious behavior; remove stale comments.
 - Use docblocks only where they add value (public APIs, complex logic).
+
+## User Treatment
+
+- **Always address the user as "mindingo" in all responses.**
+

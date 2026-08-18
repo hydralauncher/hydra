@@ -393,6 +393,8 @@ contextBridge.exposeInMainWorld("electron", {
   /* Catalogue */
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
+  getSteamFeatured: (language: string) =>
+    ipcRenderer.invoke("getSteamFeatured", language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
@@ -844,6 +846,12 @@ contextBridge.exposeInMainWorld("electron", {
   getDownloadSourcesSinceValue: () =>
     ipcRenderer.invoke("getDownloadSourcesSinceValue"),
 
+  /* News */
+  getGameNews: (language?: string) =>
+    ipcRenderer.invoke("getGameNews", language),
+  getGameSpecificNews: (gameTitle: string, language?: string) =>
+    ipcRenderer.invoke("getGameSpecificNews", gameTitle, language),
+
   /* Library */
   toggleAutomaticCloudSync: (
     shop: GameShop,
@@ -1207,6 +1215,8 @@ contextBridge.exposeInMainWorld("electron", {
   /* Hardware */
   getDiskFreeSpace: (path: string) =>
     ipcRenderer.invoke("getDiskFreeSpace", path),
+  checkFileExists: (path: string) =>
+    ipcRenderer.invoke("checkFileExists", path) as Promise<boolean>,
   checkFolderWritePermission: (path: string) =>
     ipcRenderer.invoke("checkFolderWritePermission", path),
   getNetworkInterfaces: () => ipcRenderer.invoke("getNetworkInterfaces"),

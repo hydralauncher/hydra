@@ -5,3 +5,4 @@ export { DeleteThemeModal } from "./modals/delete-theme-modal";
 export { ThemeCard } from "./components/theme-card";
 export { ThemePlaceholder } from "./components/theme-placeholder";
 export { ThemeActions } from "./components/theme-actions";
+export { ThemeCustomizer } from "./components/theme-customizer";

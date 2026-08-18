@@ -4,16 +4,18 @@
   &__section {
     display: flex;
     gap: calc(globals.$spacing-unit * 3);
-    padding: calc(globals.$spacing-unit * 3);
-  }
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 48px 48px 56px;
 
-  &__library-filters {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: calc(globals.$spacing-unit);
-    margin-bottom: calc(globals.$spacing-unit * 2);
+    @media (max-width: 1100px) {
+      padding: 32px 24px 48px;
+    }
+
+    @media (max-width: 800px) {
+      padding: 24px 12px 40px;
+    }
   }
 
   &__main {
@@ -105,33 +107,16 @@
     }
   }
 
-  &__tabs {
+  &__home-style-tabs {
     display: flex;
-    gap: calc(globals.$spacing-unit);
-    margin-bottom: calc(globals.$spacing-unit * 2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: relative;
-  }
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: globals.$spacing-unit;
 
-  &__tab-wrapper {
-    position: relative;
-  }
-
-  &__tab {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.6);
-    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 2);
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: color ease 0.2s;
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 0.5);
-
-    &--active {
-      color: white;
+    @media (max-width: 600px) {
+      gap: calc(globals.$spacing-unit * 0.5);
+      flex-wrap: wrap;
     }
   }
 
@@ -150,13 +135,18 @@
     line-height: 1;
   }
 
-  &__tab-underline {
+  &__tab-outline {
     position: absolute;
-    bottom: -1px;
+    top: 50%;
+    transform: translateY(-50%);
     left: 0;
     right: 0;
-    height: 2px;
-    background: white;
+    bottom: 0;
+    height: 100%;
+    border: 1.5px solid rgba(255, 255, 255, 0.85);
+    border-radius: 4px;
+    z-index: 0;
+    pointer-events: none;
   }
 
   &__games-grid {
@@ -164,28 +154,8 @@
     margin: 0;
     padding: 0;
     display: grid;
+    grid-template-columns: repeat(8, 1fr);
     gap: calc(globals.$spacing-unit * 2);
-    grid-template-columns: repeat(2, 1fr);
-
-    @container #{globals.$app-container} (min-width: 900px) {
-      grid-template-columns: repeat(4, 1fr);
-    }
-
-    @container #{globals.$app-container} (min-width: 1300px) {
-      grid-template-columns: repeat(5, 1fr);
-    }
-
-    @container #{globals.$app-container} (min-width: 2000px) {
-      grid-template-columns: repeat(6, 1fr);
-    }
-
-    @container #{globals.$app-container} (min-width: 2600px) {
-      grid-template-columns: repeat(8, 1fr);
-    }
-
-    @container #{globals.$app-container} (min-width: 3000px) {
-      grid-template-columns: repeat(12, 1fr);
-    }
 
     &--drag-over {
       background: rgba(255, 255, 255, 0.05);
@@ -240,7 +210,17 @@
 }
 
 .user-reviews__review-item {
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: calc(globals.$spacing-unit * 2);
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
 }
 
 .user-reviews__review-header {
@@ -324,8 +304,8 @@
   align-items: center;
   gap: 4px;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 2px 6px;
+  border-radius: 100px;
+  padding: 2px 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 11px;
   font-weight: 500;
@@ -356,8 +336,8 @@
   font-size: 11px;
   font-weight: 500;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 2px 6px;
+  border-radius: 100px;
+  padding: 2px 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -413,8 +393,8 @@
   gap: 6px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 6px 12px;
+  border-radius: 100px;
+  padding: 6px 16px;
   color: #ccc;
   font-size: 14px;
   cursor: pointer;
@@ -442,8 +422,8 @@
   gap: 6px;
   background: rgba(244, 67, 54, 0.1);
   border: 1px solid rgba(244, 67, 54, 0.3);
-  border-radius: 6px;
-  padding: 6px 10px;
+  border-radius: 100px;
+  padding: 6px 16px;
   color: #f44336;
   cursor: pointer;
   transition: all 0.2s ease;

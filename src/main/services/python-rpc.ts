@@ -348,7 +348,7 @@ export class PythonRPC {
     } else {
       const pythonExecutable = this.resolvePythonExecutable();
       const scriptPath = path.join(
-        __dirname,
+        import.meta.dirname,
         "..",
         "..",
         "python_rpc",
@@ -399,8 +399,9 @@ export class PythonRPC {
     const candidates = [
       process.env.HYDRA_PYTHON_BIN,
       process.env.PYTHON,
-      "python3",
       "python",
+      "py",
+      "python3",
     ].filter((value): value is string => Boolean(value));
 
     for (const candidate of candidates) {
@@ -408,7 +409,7 @@ export class PythonRPC {
         stdio: "ignore",
       });
 
-      if (!check.error) {
+      if (!check.error && check.status === 0) {
         this.pythonExecutable = candidate;
         return candidate;
       }

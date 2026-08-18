@@ -6,7 +6,7 @@ import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager, Wine } from "@main/services";
+import { DownloadManager, Wine, fetchAndCacheNews } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 
@@ -26,6 +26,7 @@ const updateUserPreferences = async (
 
     i18next.changeLanguage(preferences.language);
     patchUserProfile({ language: preferences.language }).catch(() => {});
+    fetchAndCacheNews(preferences.language).catch(() => {});
   }
 
   const shouldPinExistingWinePrefixes =

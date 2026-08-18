@@ -1,53 +1,37 @@
 import type {
-  CatalogueSearchPayload,
   CatalogueSearchResult,
+  CatalogueSearchPayload,
   DownloadSource,
 } from "@types";
 
-import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
-import {
-  lazy,
-  Suspense,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
-import "./catalogue.scss";
-
-import { Button } from "@renderer/components/button/button";
-import { SelectField } from "@renderer/components/select-field/select-field";
-import { setFilters, setPage } from "@renderer/features";
-import { useCatalogue } from "@renderer/hooks/use-catalogue";
+import { useAppDispatch, useAppSelector } from "@renderer/hooks";
+import { useLibrary } from "@renderer/hooks/use-library";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
-import { debounce } from "lodash-es";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import "./catalogue.scss";
+import { setFilters, setPage, type CatalogueMode } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import cn from "classnames";
-import { CatalogueModeToggle } from "./catalogue-mode-toggle";
+import { Pagination } from "./pagination";
+import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { FilterItem } from "./filter-item";
-import { FilterSection } from "./filter-section";
+import { Button } from "@renderer/components/button/button";
+import {
+  TagIcon,
+  DownloadIcon,
+  PeopleIcon,
+  BriefcaseIcon,
+  ProjectIcon,
+  DeviceDesktopIcon,
+  CalendarIcon,
+} from "@primer/octicons-react";
+import cn from "classnames";
+import { FeaturedCarousel } from "./featured-carousel";
+import { CatalogueSection } from "./catalogue-section";
+import { CategoryExplorer } from "./category-explorer";
+import { TopSellers } from "./top-sellers";
 import { GameItem } from "./game-item";
 import { GameItemClassics } from "./game-item-classics";
-import { Pagination } from "./pagination";
-import {
-  ClassicsOnboardingModal,
-  hasDismissedClassicsOnboarding,
-} from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
-
-const ProtonCompatibilitySection = lazy(async () => {
-  const mod = await import("./proton-compatibility-section");
-  return { default: mod.ProtonCompatibilitySection };
-});
-
-const ReleaseYearSection = lazy(async () => {
-  const mod = await import("./release-year-section");
-  return { default: mod.ReleaseYearSection };
-});
-
-const MIN_RELEASE_YEAR = 1970;
+import { Tooltip } from "react-tooltip";
 
 type CompatibilityThreshold<Value extends string> = {
   value: string;
@@ -55,20 +39,6 @@ type CompatibilityThreshold<Value extends string> = {
   values: Value[];
   color?: string;
 };
-
-const filterCategoryColors = {
-  genres: "hsl(262deg 50% 47%)",
-  tags: "hsl(95deg 50% 20%)",
-  downloadSourceFingerprints: "hsl(27deg 50% 40%)",
-  developers: "hsl(340deg 50% 46%)",
-  publishers: "hsl(200deg 50% 30%)",
-  protondbSupportBadges: "#F50057",
-  deckCompatibility: "#F50057",
-  releaseYear: "hsl(38deg 50% 40%)",
-  platforms: "hsl(170deg 50% 36%)",
-};
-
-const PAGE_SIZE = 30;
 
 const clearAllCategoryFilters = {
   genres: [],
@@ -82,18 +52,6 @@ const clearAllCategoryFilters = {
   platforms: [],
 };
 
-const sortValues = [
-  "popularity:desc",
-  "releaseDate:desc",
-  "releaseDate:asc",
-  "alphabetical:asc",
-  "alphabetical:desc",
-  "hydraScore:desc",
-  "hydraScore:asc",
-] as const;
-
-type CatalogueSortValue = (typeof sortValues)[number];
-
 const protonCompatibilityThresholds: CompatibilityThreshold<
   CatalogueSearchPayload["protondbSupportBadges"][number]
 >[] = [
@@ -101,310 +59,264 @@ const protonCompatibilityThresholds: CompatibilityThreshold<
     value: "silver_plus",
     labelKey: "protondb_silver_plus",
     values: ["silver", "gold", "platinum"],
-    color: "rgb(166, 166, 166)",
+    color: "rgb(166,166,166)",
   },
   {
     value: "gold_plus",
     labelKey: "protondb_gold_plus",
     values: ["gold", "platinum"],
-    color: "rgb(207, 181, 59)",
+    color: "rgb(207,181,59)",
   },
   {
     value: "platinum_only",
     labelKey: "protondb_platinum_only",
     values: ["platinum"],
-    color: "rgb(180, 199, 220)",
+    color: "rgb(180,199,220)",
   },
 ];
 
-const areSameValues = (first: string[], second: string[]) =>
-  first.length === second.length &&
-  first.every((item) => second.includes(item));
+const areSameValues = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((i) => b.includes(i));
+
+const SECTION_SIZE = 15;
+
+const catalogueCacheMap = new Map<
+  string,
+  { edges: CatalogueSearchResult[]; count: number }
+>();
 
 export default function Catalogue() {
   const requestSequenceRef = useRef(0);
-  const hasResultsRef = useRef(false);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
-  const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
-
-  const { steamGenres, steamUserTags, filters, page, mode } = useAppSelector(
-    (state) => state.catalogueSearch
-  );
+  const { downloadSources } = useCatalogue();
+  const { library } = useLibrary();
+  const {
+    steamGenres,
+    steamUserTags,
+    filters,
+    page,
+    mode,
+    viewMode,
+    hideOwned,
+  } = useAppSelector((state) => state.catalogueSearch);
   const launchboxFilters = useLaunchboxFilters(mode === "classics");
-  const deferredTitleFilter = useDeferredValue(filters.title);
-
-  const effectiveFilters = useMemo(() => {
-    return {
-      ...filters,
-      title: deferredTitleFilter,
-    };
-  }, [filters, deferredTitleFilter]);
 
   const [isLoading, setIsLoading] = useState(true);
-
   const [results, setResults] = useState<CatalogueSearchResult[]>([]);
-  const [resultsMode, setResultsMode] = useState(mode);
-
   const [itemsCount, setItemsCount] = useState(0);
-
-  const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
-  const classicsOnboardingTriggeredRef = useRef(false);
-
-  useEffect(() => {
-    if (
-      mode === "classics" &&
-      !classicsOnboardingTriggeredRef.current &&
-      !hasDismissedClassicsOnboarding()
-    ) {
-      classicsOnboardingTriggeredRef.current = true;
-      setShowClassicsOnboarding(true);
-    }
-  }, [mode]);
-
-  const { formatNumber } = useFormat();
-
+  const [resultsMode, setResultsMode] = useState<CatalogueMode>(mode);
+  const pageSize = 100;
   const dispatch = useAppDispatch();
-
   const { t, i18n } = useTranslation("catalogue");
   const shouldShowProtonFeatures = window.electron.platform === "linux";
 
-  const debouncedSearch = useRef(
-    debounce(
-      async (
-        filters: CatalogueSearchPayload,
-        downloadSources: DownloadSource[],
-        pageSize: number,
-        offset: number,
-        requestId: number,
-        mode: "modern" | "classics"
-      ) => {
-        const { platforms, ...restFilters } = filters;
-        const baseRequest = {
-          ...restFilters,
-          take: pageSize,
-          skip: offset,
-          downloadSourceIds: downloadSources.map(
-            (downloadSource) => downloadSource.id
-          ),
-        };
+  const hasActiveFilters = useMemo(
+    () =>
+      mode === "classics" ||
+      viewMode === "all" ||
+      filters.genres.length > 0 ||
+      filters.tags.length > 0 ||
+      filters.downloadSourceFingerprints.length > 0 ||
+      filters.developers.length > 0 ||
+      filters.publishers.length > 0 ||
+      filters.protondbSupportBadges.length > 0 ||
+      filters.deckCompatibility.length > 0 ||
+      filters.releaseYear !== undefined ||
+      (filters.platforms && filters.platforms.length > 0) ||
+      (filters.title?.trim().length ?? 0) > 0,
+    [filters, mode, viewMode]
+  );
 
-        const requestData =
-          mode === "classics"
-            ? {
-                ...baseRequest,
-                shops: ["launchbox"],
-                platforms: platforms ?? [],
-              }
-            : baseRequest;
+  const isGameOwned = useCallback(
+    (game: CatalogueSearchResult) =>
+      library.some(
+        (l) =>
+          l.shop === game.shop && String(l.objectId) === String(game.objectId)
+      ),
+    [library]
+  );
 
-        const response = await window.electron.hydraApi.post<{
-          edges: CatalogueSearchResult[];
-          count: number;
-        }>("/catalogue/search", {
-          data: requestData,
-          needsAuth: false,
-        });
+  const searchCatalogue = useCallback(
+    async (
+      filtersArg: CatalogueSearchPayload,
+      sources: DownloadSource[],
+      take: number,
+      offset: number,
+      activeMode: CatalogueMode,
+      cacheKey: string,
+      requestId: number
+    ) => {
+      try {
+        const { platforms, ...restFilters } = filtersArg;
+
+        const ps2 = launchboxFilters.platforms.find(
+          (p) =>
+            p.name.toLowerCase().includes("playstation 2") ||
+            p.key.toLowerCase().includes("playstation 2") ||
+            p.key.toLowerCase() === "ps2"
+        );
+        const fallbackPlatform = ps2
+          ? [ps2.key]
+          : launchboxFilters.platforms[0]
+            ? [launchboxFilters.platforms[0].key]
+            : ["ps2"];
+
+        const collected: CatalogueSearchResult[] = [];
+        let currentSkip = offset;
+        let totalCount = 0;
+        let loops = 8;
+
+        while (loops > 0) {
+          loops--;
+          const requestData =
+            activeMode === "classics"
+              ? {
+                  title: restFilters.title ?? "",
+                  sortBy: restFilters.sortBy ?? "popularity",
+                  sortOrder: restFilters.sortOrder ?? "desc",
+                  shops: ["launchbox"],
+                  platforms:
+                    platforms && platforms.length > 0
+                      ? platforms
+                      : fallbackPlatform,
+                  genres: restFilters.genres ?? [],
+                  downloadSourceFingerprints:
+                    restFilters.downloadSourceFingerprints ?? [],
+                  developers: restFilters.developers ?? [],
+                  publishers: restFilters.publishers ?? [],
+                  take: 25,
+                  skip: currentSkip,
+                  downloadSourceIds: sources.map((s) => s.id),
+                }
+              : {
+                  ...restFilters,
+                  take: 25,
+                  skip: currentSkip,
+                  downloadSourceIds: sources.map((s) => s.id),
+                };
+
+          const response = await window.electron.hydraApi.post<{
+            edges: CatalogueSearchResult[];
+            count: number;
+          }>("/catalogue/search", {
+            data: requestData,
+            needsAuth: false,
+          });
+
+          if (requestId !== requestSequenceRef.current) return;
+
+          const edges = response?.edges || [];
+          totalCount = response?.count || 0;
+
+          if (edges.length === 0) break;
+
+          for (const edge of edges) {
+            if (hideOwned && isGameOwned(edge)) continue;
+            if (
+              !collected.some(
+                (g) =>
+                  g.id === edge.id ||
+                  (g.shop === edge.shop &&
+                    String(g.objectId) === String(edge.objectId))
+              )
+            ) {
+              collected.push(edge);
+            }
+            if (collected.length >= take) break;
+          }
+
+          if (collected.length >= take || edges.length < 25) {
+            break;
+          }
+
+          currentSkip += edges.length;
+        }
 
         if (requestId !== requestSequenceRef.current) return;
 
-        setResults(response.edges);
-        setResultsMode(mode);
-        setItemsCount(response.count);
-        setIsLoading(false);
-      },
-      500
-    )
-  ).current;
+        setResults(collected);
+        setResultsMode(activeMode);
+        setItemsCount(totalCount);
+        catalogueCacheMap.set(cacheKey, {
+          edges: collected,
+          count: totalCount,
+        });
+      } catch (err) {
+        if (requestId === requestSequenceRef.current) {
+          console.error(err);
+        }
+      } finally {
+        if (requestId === requestSequenceRef.current) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [launchboxFilters.platforms, hideOwned, isGameOwned]
+  );
 
   const decodeHTML = (s: string) =>
     s.replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
 
   useEffect(() => {
-    hasResultsRef.current = results.length > 0;
-  }, [results.length]);
-
-  const isModeTransitioning = resultsMode !== mode;
-  const showSkeleton = isLoading || isModeTransitioning;
-
-  useEffect(() => {
     const requestId = ++requestSequenceRef.current;
+    const takeAmount = hasActiveFilters ? pageSize : 100;
 
-    if (!hasResultsRef.current) {
-      setIsLoading(true);
+    const key = JSON.stringify({
+      filtersArg: filters,
+      sources: downloadSources,
+      take: takeAmount,
+      offset: (page - 1) * pageSize,
+      activeMode: mode,
+      hideOwned,
+    });
+
+    const cached = catalogueCacheMap.get(key);
+    if (cached) {
+      setResults(cached.edges);
+      setItemsCount(cached.count);
+      setResultsMode(mode);
+      setIsLoading(false);
+      return;
     }
 
-    debouncedSearch(
-      effectiveFilters,
+    setIsLoading(true);
+    searchCatalogue(
+      filters,
       downloadSources,
-      PAGE_SIZE,
-      (page - 1) * PAGE_SIZE,
-      requestId,
-      mode
+      takeAmount,
+      (page - 1) * pageSize,
+      mode,
+      key,
+      requestId
     );
-
-    return () => {
-      debouncedSearch.cancel();
-    };
-  }, [effectiveFilters, downloadSources, page, debouncedSearch, mode]);
+  }, [
+    filters,
+    downloadSources,
+    page,
+    pageSize,
+    mode,
+    hasActiveFilters,
+    hideOwned,
+    searchCatalogue,
+  ]);
 
   const language = i18n.language.split("-")[0];
 
   const steamGenresMapping = useMemo<Record<string, string>>(() => {
     if (!steamGenres[language]) return {};
-
-    return steamGenres[language].reduce((prev, genre, index) => {
-      prev[genre] = steamGenres["en"][index];
-      return prev;
-    }, {});
+    return steamGenres[language].reduce(
+      (acc, genre, i) => {
+        acc[genre] = steamGenres["en"][i];
+        return acc;
+      },
+      {} as Record<string, string>
+    );
   }, [steamGenres, language]);
 
-  const steamGenresFilterItems = useMemo(() => {
-    return Object.entries(steamGenresMapping)
-      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-      .map(([key, value]) => ({
-        label: key,
-        value: value,
-        checked: filters.genres.includes(value),
-      }));
-  }, [steamGenresMapping, filters.genres]);
-
-  const steamUserTagsFilterItems = useMemo(() => {
-    if (!steamUserTags[language]) return [];
-
-    return Object.entries(steamUserTags[language])
-      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-      .map(([key, value]) => ({
-        label: key,
-        value: value,
-        checked: filters.tags.includes(value),
-      }));
-  }, [steamUserTags, filters.tags, language]);
-
-  const classicsPlatforms = useMemo(
-    () => filters.platforms ?? [],
-    [filters.platforms]
-  );
-
-  const classicsFilterSections = useMemo(() => {
-    return [
-      {
-        title: t("platforms"),
-        key: "platforms" as const,
-        items: launchboxFilters.platforms.map((platform) => ({
-          label: platform.name,
-          value: platform.key,
-          checked: classicsPlatforms.includes(platform.key),
-        })),
-      },
-      {
-        title: t("genres"),
-        key: "genres" as const,
-        items: launchboxFilters.genres.map((genre) => ({
-          label: genre,
-          value: genre,
-          checked: filters.genres.includes(genre),
-        })),
-      },
-      {
-        title: t("developers"),
-        key: "developers" as const,
-        items: launchboxFilters.developers.map((developer) => ({
-          label: developer,
-          value: developer,
-          checked: filters.developers.includes(developer),
-        })),
-      },
-      {
-        title: t("publishers"),
-        key: "publishers" as const,
-        items: launchboxFilters.publishers.map((publisher) => ({
-          label: decodeHTML(publisher),
-          value: publisher,
-          checked: filters.publishers.includes(publisher),
-        })),
-      },
-      {
-        title: t("download_sources"),
-        key: "downloadSourceFingerprints" as const,
-        items: downloadSources
-          .filter((source) => source.fingerprint)
-          .map((source) => ({
-            label: source.name,
-            value: source.fingerprint!,
-            checked: filters.downloadSourceFingerprints.includes(
-              source.fingerprint!
-            ),
-          })),
-      },
-    ];
-  }, [
-    launchboxFilters,
-    filters.genres,
-    filters.developers,
-    filters.publishers,
-    filters.downloadSourceFingerprints,
-    downloadSources,
-    classicsPlatforms,
-    t,
-  ]);
-
-  const classicsGroupedFilters = useMemo(() => {
-    return [
-      ...classicsPlatforms.map((platform) => ({
-        label:
-          launchboxFilters.platforms.find((p) => p.key === platform)?.name ??
-          platform,
-        filterType: t("platforms"),
-        orbColor: filterCategoryColors.platforms,
-        key: "platforms",
-        value: platform,
-      })),
-      ...filters.genres.map((genre) => ({
-        label: genre,
-        filterType: t("genres"),
-        orbColor: filterCategoryColors.genres,
-        key: "genres",
-        value: genre,
-      })),
-      ...filters.developers.map((developer) => ({
-        label: developer,
-        filterType: t("developers"),
-        orbColor: filterCategoryColors.developers,
-        key: "developers",
-        value: developer,
-      })),
-      ...filters.publishers.map((publisher) => ({
-        label: decodeHTML(publisher),
-        filterType: t("publishers"),
-        orbColor: filterCategoryColors.publishers,
-        key: "publishers",
-        value: publisher,
-      })),
-      ...filters.downloadSourceFingerprints.map((fingerprint) => ({
-        label: downloadSources.find(
-          (source) => source.fingerprint === fingerprint
-        )?.name as string,
-        filterType: t("download_sources"),
-        orbColor: filterCategoryColors.downloadSourceFingerprints,
-        key: "downloadSourceFingerprints",
-        value: fingerprint,
-      })),
-    ];
-  }, [
-    classicsPlatforms,
-    filters.genres,
-    filters.developers,
-    filters.publishers,
-    filters.downloadSourceFingerprints,
-    downloadSources,
-    launchboxFilters.platforms,
-    t,
-  ]);
-
   const groupedFilters = useMemo(() => {
-    const protonThreshold = protonCompatibilityThresholds.find((threshold) =>
-      areSameValues(threshold.values, filters.protondbSupportBadges)
+    const protonThreshold = protonCompatibilityThresholds.find((t) =>
+      areSameValues(t.values, filters.protondbSupportBadges)
     );
     const deckCompatible = areSameValues(filters.deckCompatibility, [
       "playable",
@@ -412,89 +324,77 @@ export default function Catalogue() {
     ]);
 
     return [
+      ...(filters.releaseYear !== undefined
+        ? [
+            {
+              label: `${filters.releaseYear.gte ?? 1970} — ${filters.releaseYear.lte ?? new Date().getFullYear()}`,
+              filterType: t("release_year", { defaultValue: "Ano" }),
+              icon: <CalendarIcon size={14} />,
+              key: "releaseYear",
+              value: "range",
+            },
+          ]
+        : []),
       ...filters.genres.map((genre) => ({
-        label: Object.keys(steamGenresMapping).find(
-          (key) => steamGenresMapping[key] === genre
-        ) as string,
+        label:
+          Object.keys(steamGenresMapping).find(
+            (k) => steamGenresMapping[k] === genre
+          ) || genre,
         filterType: t("genres"),
-        orbColor: filterCategoryColors.genres,
+        icon: <ProjectIcon size={14} />,
         key: "genres",
         value: genre,
       })),
-
-      ...filters.tags.map((tag) => {
-        const tagsForLanguage = steamUserTags[language] ?? {};
-        return {
-          label: Object.keys(tagsForLanguage).find(
-            (key) => tagsForLanguage[key] === tag
-          ),
-          filterType: t("tags"),
-          orbColor: filterCategoryColors.tags,
-          key: "tags",
-          value: tag,
-        };
-      }),
-
-      ...filters.downloadSourceFingerprints.map((fingerprint) => ({
-        label: downloadSources.find(
-          (source) => source.fingerprint === fingerprint
-        )?.name as string,
+      ...filters.tags.map((tag) => ({
+        label: Object.keys(steamUserTags[language] ?? {}).find(
+          (k) => steamUserTags[language][k] === tag
+        ),
+        filterType: t("tags"),
+        icon: <TagIcon size={14} />,
+        key: "tags",
+        value: tag,
+      })),
+      ...filters.downloadSourceFingerprints.map((fp) => ({
+        label: downloadSources.find((s) => s.fingerprint === fp)
+          ?.name as string,
         filterType: t("download_sources"),
-        orbColor: filterCategoryColors.downloadSourceFingerprints,
+        icon: <DownloadIcon size={14} />,
         key: "downloadSourceFingerprints",
-        value: fingerprint,
+        value: fp,
       })),
-
-      ...filters.developers.map((developer) => ({
-        label: developer,
+      ...filters.developers.map((dev) => ({
+        label: dev,
         filterType: t("developers"),
-        orbColor: filterCategoryColors.developers,
+        icon: <PeopleIcon size={14} />,
         key: "developers",
-        value: developer,
+        value: dev,
       })),
-
-      ...filters.publishers.map((publisher) => ({
-        label: decodeHTML(publisher),
+      ...filters.publishers.map((pub) => ({
+        label: decodeHTML(pub),
         filterType: t("publishers"),
-        orbColor: filterCategoryColors.publishers,
+        icon: <BriefcaseIcon size={14} />,
         key: "publishers",
-        value: publisher,
+        value: pub,
       })),
-
-      ...(shouldShowProtonFeatures &&
-      protonThreshold &&
-      protonThreshold.values.length
+      ...(shouldShowProtonFeatures && protonThreshold?.values.length
         ? [
             {
               label: t(protonThreshold.labelKey),
               filterType: t("protondb"),
-              orbColor: filterCategoryColors.protondbSupportBadges,
+              icon: <DeviceDesktopIcon size={14} />,
               key: "protondbSupportBadges",
               value: "threshold",
             },
           ]
         : []),
-
       ...(shouldShowProtonFeatures && deckCompatible
         ? [
             {
               label: t("steam_deck_compatible"),
               filterType: t("steam_deck_minimum"),
-              orbColor: filterCategoryColors.deckCompatibility,
+              icon: <DeviceDesktopIcon size={14} />,
               key: "deckCompatibility",
               value: "threshold",
-            },
-          ]
-        : []),
-
-      ...(filters.releaseYear
-        ? [
-            {
-              label: `${filters.releaseYear.gte ?? MIN_RELEASE_YEAR} – ${filters.releaseYear.lte ?? new Date().getFullYear()}`,
-              filterType: t("release_year"),
-              orbColor: filterCategoryColors.releaseYear,
-              key: "releaseYear",
-              value: "range",
             },
           ]
         : []),
@@ -504,387 +404,204 @@ export default function Catalogue() {
     steamUserTags,
     downloadSources,
     steamGenresMapping,
+    launchboxFilters.platforms,
     language,
     shouldShowProtonFeatures,
     t,
   ]);
 
-  const filterSections = useMemo(() => {
-    return [
-      {
-        title: t("genres"),
-        items: steamGenresFilterItems,
-        key: "genres",
-      },
-      {
-        title: t("tags"),
-        items: steamUserTagsFilterItems,
-        key: "tags",
-      },
-      {
-        title: t("download_sources"),
-        items: downloadSources
-          .filter((source) => source.fingerprint)
-          .map((source) => ({
-            label: source.name,
-            value: source.fingerprint!,
-            checked: filters.downloadSourceFingerprints.includes(
-              source.fingerprint!
-            ),
-          })),
-        key: "downloadSourceFingerprints",
-      },
-      {
-        title: t("developers"),
-        items: steamDevelopers.map((developer) => ({
-          label: developer,
-          value: developer,
-          checked: filters.developers.includes(developer),
-        })),
-        key: "developers",
-      },
-      {
-        title: t("publishers"),
-        items: steamPublishers.map((publisher) => ({
-          label: decodeHTML(publisher),
-          value: publisher,
-          checked: filters.publishers.includes(publisher),
-        })),
-        key: "publishers",
-      },
-    ];
-  }, [
-    downloadSources,
-    filters.developers,
-    filters.downloadSourceFingerprints,
-    filters.publishers,
-    steamDevelopers,
-    steamGenresFilterItems,
-    steamPublishers,
-    steamUserTagsFilterItems,
-    t,
-  ]);
+  const selectedFiltersCount = groupedFilters.length;
 
-  const activeGroupedFilters =
-    mode === "classics" ? classicsGroupedFilters : groupedFilters;
-  const selectedFiltersCount = activeGroupedFilters.length;
-
-  const sortOptions = useMemo(
-    () => [
-      {
-        key: "popularity:desc",
-        value: "popularity:desc",
-        label: t("sort_popularity"),
-      },
-      {
-        key: "releaseDate:desc",
-        value: "releaseDate:desc",
-        label: t("sort_newest"),
-      },
-      {
-        key: "releaseDate:asc",
-        value: "releaseDate:asc",
-        label: t("sort_oldest"),
-      },
-      {
-        key: "alphabetical:asc",
-        value: "alphabetical:asc",
-        label: t("sort_title_asc"),
-      },
-      {
-        key: "alphabetical:desc",
-        value: "alphabetical:desc",
-        label: t("sort_title_desc"),
-      },
-      {
-        key: "hydraScore:desc",
-        value: "hydraScore:desc",
-        label: t("sort_highest_rating"),
-      },
-      {
-        key: "hydraScore:asc",
-        value: "hydraScore:asc",
-        label: t("sort_lowest_rating"),
-      },
-    ],
-    [t]
+  const handleGenreClick = useCallback(
+    (genre: string) => {
+      const enKey = steamGenresMapping[genre];
+      if (enKey) dispatch(setFilters({ genres: [enKey] }));
+    },
+    [steamGenresMapping, dispatch]
   );
 
-  const selectedSortValue = `${filters.sortBy}:${filters.sortOrder}`;
+  const dailyShuffled = useMemo(() => {
+    if (!results.length) return [];
+    const today = new Date();
+    let seed =
+      today.getFullYear() * 10000 +
+      (today.getMonth() + 1) * 100 +
+      today.getDate();
+    const copy = [...results];
+    for (let i = copy.length - 1; i > 0; i--) {
+      seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
+      const j = seed % (i + 1);
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }, [results]);
 
-  const protonThresholdValue =
-    protonCompatibilityThresholds.find((threshold) =>
-      areSameValues(threshold.values, filters.protondbSupportBadges)
-    )?.value ?? "";
-  const isDeckCompatible = areSameValues(filters.deckCompatibility, [
-    "playable",
-    "verified",
-  ]);
+  const displayedResults = useMemo(() => {
+    if (!hideOwned) return results;
+    return results.filter((g) => !isGameOwned(g));
+  }, [results, hideOwned, isGameOwned]);
+
+  const displayedDailyShuffled = useMemo(() => {
+    if (!dailyShuffled.length) return [];
+    if (!hideOwned) return dailyShuffled;
+    return dailyShuffled.filter((g) => !isGameOwned(g));
+  }, [dailyShuffled, hideOwned, isGameOwned]);
+
+  const displayedFeaturedGames = useMemo(
+    () => displayedResults.slice(0, 13),
+    [displayedResults]
+  );
+
+  const displayedSections = useMemo(() => {
+    if (hasActiveFilters) return [];
+    const inLibraryIds = new Set(library.map((l) => l.objectId));
+    const notInLibrary = displayedResults.filter(
+      (g) => !inLibraryIds.has(g.objectId)
+    );
+    const destaques = displayedDailyShuffled.slice(0, SECTION_SIZE);
+    const populares = displayedResults.slice(SECTION_SIZE, SECTION_SIZE * 2);
+    const recomendados = notInLibrary.slice(0, SECTION_SIZE);
+
+    return [
+      { title: "Destaques do Dia", games: destaques },
+      { title: "Mais Populares", games: populares },
+      { title: "Recomendados para Você", games: recomendados },
+    ].filter((s) => s.games.length > 0);
+  }, [displayedResults, displayedDailyShuffled, hasActiveFilters, library]);
 
   return (
     <div className="catalogue" ref={cataloguePageRef}>
-      <ClassicsOnboardingModal
-        visible={showClassicsOnboarding}
-        onClose={() => setShowClassicsOnboarding(false)}
-      />
-      <div className="catalogue__header">
-        <div className="catalogue__header-row">
-          <div className="catalogue__header-summary">
-            <span className="catalogue__result-count">
-              {t("result_count", {
-                resultCount: formatNumber(itemsCount),
-              })}
-            </span>
-            {selectedFiltersCount === 0 && (
-              <span className="catalogue__filters-hint">
-                {t("filters_sidebar_hint")}
-              </span>
-            )}
-          </div>
-
-          <div className="catalogue__sort-inline">
-            <span className="catalogue__sort-label">{t("sort_by")}</span>
-            <SelectField
-              theme="dark"
-              className="catalogue__sort-select"
-              value={
-                sortValues.includes(selectedSortValue as CatalogueSortValue)
-                  ? selectedSortValue
-                  : "popularity:desc"
-              }
-              options={sortOptions}
-              onChange={(event) => {
-                const [sortBy, sortOrder] = event.target.value.split(":") as [
-                  CatalogueSearchPayload["sortBy"],
-                  CatalogueSearchPayload["sortOrder"],
-                ];
-
-                dispatch(setFilters({ sortBy, sortOrder }));
-              }}
-            />
-          </div>
+      {/* Active filter tags */}
+      {selectedFiltersCount > 0 && (
+        <div className="catalogue__active-filters">
+          <ul className="catalogue__filters-list">
+            {groupedFilters.map((filter) => (
+              <li key={`${filter.key}-${filter.value}`}>
+                <FilterItem
+                  filter={filter.label ?? ""}
+                  filterType={filter.filterType}
+                  icon={filter.icon}
+                  onRemove={() => {
+                    if (filter.value === "range") {
+                      dispatch(setFilters({ releaseYear: undefined }));
+                      return;
+                    }
+                    if (filter.value === "threshold") {
+                      dispatch(setFilters({ [filter.key]: [] }));
+                      return;
+                    }
+                    dispatch(
+                      setFilters({
+                        [filter.key]: (
+                          (filters[
+                            filter.key as keyof typeof filters
+                          ] as string[]) || []
+                        ).filter((i) => i !== filter.value),
+                      })
+                    );
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
+          <Button
+            type="button"
+            theme="outline"
+            className="catalogue__clear-btn"
+            onClick={() => dispatch(setFilters(clearAllCategoryFilters))}
+          >
+            {t("clear_filters_button", { defaultValue: "Limpar Filtros" })}
+          </Button>
         </div>
+      )}
 
-        {selectedFiltersCount > 0 && (
-          <div className="catalogue__header-row catalogue__header-row--filters">
-            <span className="catalogue__active-filters-label">
-              {t("active_filters")}
-            </span>
+      <div className="catalogue__content">
+        {/* Curated Highlights View (Modern mode only) */}
+        {!hasActiveFilters && (
+          <>
+            <FeaturedCarousel games={isLoading ? [] : displayedFeaturedGames} />
+            {displayedSections.map((s) => (
+              <CatalogueSection
+                key={s.title}
+                title={s.title}
+                games={s.games}
+                isLoading={isLoading}
+              />
+            ))}
+            {isLoading && (
+              <>
+                <CatalogueSection
+                  title="Destaques do Dia"
+                  games={[]}
+                  isLoading
+                />
+                <CatalogueSection title="Mais Populares" games={[]} isLoading />
+              </>
+            )}
+            <CategoryExplorer onSelectGenre={handleGenreClick} />
+            <TopSellers games={displayedResults} isLoading={isLoading} />
+          </>
+        )}
 
-            <div className="catalogue__filters-wrapper">
-              <ul className="catalogue__filters-list">
-                {activeGroupedFilters.map((filter) => (
-                  <li key={`${filter.key}-${filter.value}`}>
-                    <FilterItem
-                      filter={filter.label ?? ""}
-                      filterType={filter.filterType}
-                      orbColor={filter.orbColor}
-                      onRemove={() => {
-                        if (filter.value === "range") {
-                          dispatch(setFilters({ releaseYear: undefined }));
-                          return;
-                        }
+        {/* Full Catalogue Grid / Filtered Results / Classics View */}
+        {hasActiveFilters && (
+          <div
+            className={cn("catalogue__games-container", {
+              "catalogue__games-container--classics":
+                resultsMode === "classics" || mode === "classics",
+            })}
+          >
+            {isLoading || resultsMode !== mode ? (
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  textAlign: "center",
+                  padding: "60px 0",
+                  color: "rgba(255, 255, 255, 0.4)",
+                  fontSize: "13px",
+                }}
+              >
+                {t("loading", { defaultValue: "Carregando jogos..." })}
+              </div>
+            ) : mode === "classics" ? (
+              displayedResults.map((game) => (
+                <GameItemClassics key={game.id} game={game} />
+              ))
+            ) : (
+              displayedResults.map((game) => (
+                <GameItem key={game.id} game={game} />
+              ))
+            )}
 
-                        if (filter.value === "threshold") {
-                          dispatch(setFilters({ [filter.key]: [] }));
-                          return;
-                        }
-
-                        const currentValues =
-                          (filters[filter.key] as
-                            | (string | number)[]
-                            | undefined) ?? [];
-
-                        dispatch(
-                          setFilters({
-                            [filter.key]: currentValues.filter(
-                              (item) => item !== filter.value
-                            ),
-                          })
-                        );
-                      }}
-                    />
-                  </li>
-                ))}
-              </ul>
+            <div className="catalogue__pagination-container">
+              <Pagination
+                page={page}
+                totalPages={Math.ceil(itemsCount / pageSize)}
+                onPageChange={(p) => {
+                  dispatch(setPage(p));
+                  if (cataloguePageRef.current)
+                    cataloguePageRef.current.scrollTop = 0;
+                }}
+              />
             </div>
-
-            <Button
-              type="button"
-              theme="outline"
-              className="catalogue__clear-all-button"
-              onClick={() => dispatch(setFilters(clearAllCategoryFilters))}
-            >
-              {t("clear_filters", {
-                filterCount: formatNumber(selectedFiltersCount),
-              })}
-            </Button>
           </div>
         )}
       </div>
 
-      <div className="catalogue__content">
-        <div
-          className={cn("catalogue__games-container", {
-            "catalogue__games-container--classics": mode === "classics",
-          })}
-        >
-          {showSkeleton ? (
-            <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
-              {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                <Skeleton
-                  key={i}
-                  className={cn("catalogue__skeleton", {
-                    "catalogue__skeleton--classics": mode === "classics",
-                  })}
-                />
-              ))}
-            </SkeletonTheme>
-          ) : mode === "classics" ? (
-            results.map((game) => (
-              <GameItemClassics key={game.id} game={game} />
-            ))
-          ) : (
-            results.map((game) => <GameItem key={game.id} game={game} />)
-          )}
-
-          <div className="catalogue__pagination-container">
-            <Pagination
-              page={page}
-              totalPages={Math.ceil(itemsCount / PAGE_SIZE)}
-              onPageChange={(page) => {
-                dispatch(setPage(page));
-                if (cataloguePageRef.current) {
-                  cataloguePageRef.current.scrollTop = 0;
-                }
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="catalogue__filters-container">
-          <div className="catalogue__filters-sections">
-            <CatalogueModeToggle />
-
-            {mode === "modern" && shouldShowProtonFeatures && (
-              <Suspense fallback={null}>
-                <ProtonCompatibilitySection
-                  title={t("protondb")}
-                  protonSliderLabel={t("protondb_minimum")}
-                  deckSliderLabel={t("steam_deck_minimum")}
-                  protonOptions={protonCompatibilityThresholds.map(
-                    (threshold) => ({
-                      value: threshold.value,
-                      label: t(threshold.labelKey),
-                      color: threshold.color,
-                    })
-                  )}
-                  protonValue={protonThresholdValue}
-                  deckChecked={isDeckCompatible}
-                  deckLabel={t("steam_deck_compatible")}
-                  color={filterCategoryColors.protondbSupportBadges}
-                  onProtonChange={(value) => {
-                    const nextThreshold = protonCompatibilityThresholds.find(
-                      (threshold) => threshold.value === value
-                    );
-
-                    dispatch(
-                      setFilters({
-                        protondbSupportBadges: nextThreshold
-                          ? [...nextThreshold.values]
-                          : [],
-                      })
-                    );
-                  }}
-                  onDeckChange={(checked) => {
-                    dispatch(
-                      setFilters({
-                        deckCompatibility: checked
-                          ? ["playable", "verified"]
-                          : [],
-                      })
-                    );
-                  }}
-                />
-              </Suspense>
-            )}
-
-            {mode === "modern" && (
-              <Suspense fallback={null}>
-                <ReleaseYearSection
-                  title={t("release_year")}
-                  color={filterCategoryColors.releaseYear}
-                  value={filters.releaseYear}
-                  onChange={(value) =>
-                    dispatch(setFilters({ releaseYear: value }))
-                  }
-                />
-              </Suspense>
-            )}
-
-            {mode === "modern" &&
-              filterSections.map((section) => (
-                <FilterSection
-                  key={section.key}
-                  title={section.title}
-                  onClear={() => dispatch(setFilters({ [section.key]: [] }))}
-                  color={filterCategoryColors[section.key]}
-                  onSelect={(value) => {
-                    if (filters[section.key].includes(value)) {
-                      dispatch(
-                        setFilters({
-                          [section.key]: filters[
-                            section.key as
-                              | "genres"
-                              | "tags"
-                              | "downloadSourceFingerprints"
-                              | "developers"
-                              | "publishers"
-                              | "protondbSupportBadges"
-                              | "deckCompatibility"
-                          ].filter((item) => item !== value),
-                        })
-                      );
-                    } else {
-                      dispatch(
-                        setFilters({
-                          [section.key]: [...filters[section.key], value],
-                        })
-                      );
-                    }
-                  }}
-                  items={section.items}
-                />
-              ))}
-
-            {mode === "classics" &&
-              classicsFilterSections.map((section) => {
-                const currentValues =
-                  section.key === "platforms"
-                    ? classicsPlatforms
-                    : (filters[section.key] as string[]);
-
-                return (
-                  <FilterSection
-                    key={section.key}
-                    title={section.title}
-                    onClear={() => dispatch(setFilters({ [section.key]: [] }))}
-                    color={filterCategoryColors[section.key]}
-                    onSelect={(value) => {
-                      const stringValue = String(value);
-                      const next = currentValues.includes(stringValue)
-                        ? currentValues.filter((item) => item !== stringValue)
-                        : [...currentValues, stringValue];
-
-                      dispatch(setFilters({ [section.key]: next }));
-                    }}
-                    items={section.items}
-                  />
-                );
-              })}
-          </div>
-        </div>
-      </div>
+      <Tooltip
+        id="classics-tooltip"
+        style={{
+          zIndex: 9999,
+          backgroundColor: "#141416",
+          color: "#fff",
+          borderRadius: "8px",
+          fontSize: "12px",
+          fontWeight: 500,
+          padding: "6px 12px",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.8)",
+        }}
+      />
     </div>
   );
 }

@@ -12,7 +12,6 @@ import {
   CheckboxField,
   SelectField,
 } from "@renderer/components";
-import type { DownloadDirectoryPreference } from "@types";
 import { useTranslation } from "react-i18next";
 import { useAppSelector } from "@renderer/hooks";
 import { changeLanguage } from "i18next";
@@ -23,21 +22,10 @@ import "./settings-general.scss";
 import { DesktopDownloadIcon, UnmuteIcon } from "@primer/octicons-react";
 import { logger } from "@renderer/logger";
 import { AchievementCustomNotificationPosition } from "@types";
-import {
-  prepareDefaultDownloadPathSync,
-  replaceSavedDownloadDirectoryAndSetDefault,
-} from "@shared";
-import { DownloadDirectoryReplacementModal } from "./download-directory-replacement-modal";
 
 interface LanguageOption {
   option: string;
   nativeName: string;
-}
-
-interface DownloadDirectoryReplacementState {
-  nextPath: string;
-  replaceableDirectories: DownloadDirectoryPreference[];
-  selectedReplacementPath: string;
 }
 
 export function SettingsGeneral() {
@@ -48,6 +36,12 @@ export function SettingsGeneral() {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+
+  const lastPacket = useAppSelector((state) => state.download.lastPacket);
+  const hasActiveDownload =
+    lastPacket !== null &&
+    lastPacket.progress < 1 &&
+    !lastPacket.isDownloadingMetadata;
 
   const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(false);
   const [installingCommonRedist, setInstallingCommonRedist] = useState(false);
@@ -65,13 +59,15 @@ export function SettingsGeneral() {
     achievementSoundVolume: 15,
     language: "",
     customStyles: window.localStorage.getItem("customStyles") || "",
+    useNativeHttpDownloader: true,
+    backgroundMusicEnabled: false,
+    backgroundMusicVolume: 15,
+    alwaysAskDownloadLocation: false,
   });
 
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
 
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
-  const [downloadDirectoryReplacement, setDownloadDirectoryReplacement] =
-    useState<DownloadDirectoryReplacementState | null>(null);
 
   const volumeUpdateTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -84,7 +80,7 @@ export function SettingsGeneral() {
       setCanInstallCommonRedist(canInstall);
     });
 
-    const redistInterval = setInterval(() => {
+    const interval = setInterval(() => {
       window.electron.canInstallCommonRedist().then((canInstall) => {
         setCanInstallCommonRedist(canInstall);
       });
@@ -104,7 +100,7 @@ export function SettingsGeneral() {
     );
 
     return () => {
-      clearInterval(redistInterval);
+      clearInterval(interval);
       if (volumeUpdateTimeoutRef.current) {
         clearTimeout(volumeUpdateTimeoutRef.current);
       }
@@ -145,6 +141,12 @@ export function SettingsGeneral() {
         friendStartGameNotificationsEnabled:
           userPreferences.friendStartGameNotificationsEnabled ?? true,
         language: language ?? "en",
+        useNativeHttpDownloader:
+          userPreferences.useNativeHttpDownloader ?? true,
+        backgroundMusicEnabled: userPreferences.backgroundMusicEnabled ?? false,
+        backgroundMusicVolume: Math.round(
+          (userPreferences.backgroundMusicVolume ?? 0.15) * 100
+        ),
       }));
     }
   }, [userPreferences, defaultDownloadsPath]);
@@ -193,6 +195,21 @@ export function SettingsGeneral() {
     [updateUserPreferences]
   );
 
+  const handleMusicVolumeChange = useCallback(
+    (newVolume: number) => {
+      setForm((prev) => ({ ...prev, backgroundMusicVolume: newVolume }));
+
+      if (volumeUpdateTimeoutRef.current) {
+        clearTimeout(volumeUpdateTimeoutRef.current);
+      }
+
+      volumeUpdateTimeoutRef.current = setTimeout(() => {
+        updateUserPreferences({ backgroundMusicVolume: newVolume / 100 });
+      }, 300);
+    },
+    [updateUserPreferences]
+  );
+
   const handleChangeAchievementCustomNotificationPosition = async (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
@@ -209,59 +226,10 @@ export function SettingsGeneral() {
       properties: ["openDirectory"],
     });
 
-    const path = filePaths?.[0];
-
-    if (!path || !defaultDownloadsPath) {
-      return;
+    if (filePaths && filePaths.length > 0) {
+      const path = filePaths[0];
+      handleChange({ downloadsPath: path });
     }
-
-    const nextAction = prepareDefaultDownloadPathSync(
-      userPreferences,
-      path,
-      defaultDownloadsPath
-    );
-
-    if (nextAction.type === "noop") {
-      return;
-    }
-
-    if (
-      nextAction.type === "set-existing" ||
-      nextAction.type === "add-and-set"
-    ) {
-      setForm((prev) => ({
-        ...prev,
-        downloadsPath: nextAction.nextDefaultPath,
-      }));
-      await updateUserPreferences(nextAction.nextPreferences);
-      return;
-    }
-
-    setDownloadDirectoryReplacement({
-      nextPath: nextAction.nextPath,
-      replaceableDirectories: nextAction.replaceableDirectories,
-      selectedReplacementPath: nextAction.recommendedReplacementPath,
-    });
-  };
-
-  const handleConfirmDownloadDirectoryReplacement = async () => {
-    if (!downloadDirectoryReplacement || !defaultDownloadsPath) {
-      return;
-    }
-
-    const replacement = replaceSavedDownloadDirectoryAndSetDefault(
-      userPreferences,
-      downloadDirectoryReplacement.nextPath,
-      downloadDirectoryReplacement.selectedReplacementPath,
-      defaultDownloadsPath
-    );
-
-    setForm((prev) => ({
-      ...prev,
-      downloadsPath: replacement.nextDefaultPath,
-    }));
-    setDownloadDirectoryReplacement(null);
-    await updateUserPreferences(replacement.nextPreferences);
   };
 
   useEffect(() => {
@@ -300,6 +268,16 @@ export function SettingsGeneral() {
         }
       />
 
+      <CheckboxField
+        label={t("always_ask_download_location")}
+        checked={form.alwaysAskDownloadLocation}
+        onChange={() =>
+          handleChange({
+            alwaysAskDownloadLocation: !form.alwaysAskDownloadLocation,
+          })
+        }
+      />
+
       <SelectField
         label={t("language")}
         value={form.language}
@@ -312,6 +290,23 @@ export function SettingsGeneral() {
       />
 
       <h2 className="settings-general__section-title">{t("downloads")}</h2>
+
+      <CheckboxField
+        label={t("use_native_http_downloader")}
+        checked={form.useNativeHttpDownloader}
+        disabled={hasActiveDownload}
+        onChange={() =>
+          handleChange({
+            useNativeHttpDownloader: !form.useNativeHttpDownloader,
+          })
+        }
+      />
+
+      {hasActiveDownload && (
+        <p className="settings-general__disabled-hint">
+          {t("cannot_change_downloader_while_downloading")}
+        </p>
+      )}
 
       <h2 className="settings-general__section-title">{t("notifications")}</h2>
 
@@ -438,6 +433,57 @@ export function SettingsGeneral() {
         </div>
       )}
 
+      <h2 className="settings-general__section-title">
+        {t("audio", { defaultValue: "Áudio" })}
+      </h2>
+
+      <CheckboxField
+        label={t("background_music_enabled", {
+          defaultValue: "Habilitar Musica de Fundo",
+        })}
+        checked={form.backgroundMusicEnabled}
+        onChange={() =>
+          handleChange({
+            backgroundMusicEnabled: !form.backgroundMusicEnabled,
+          })
+        }
+      />
+
+      {form.backgroundMusicEnabled && (
+        <div className="settings-general__volume-control">
+          <label htmlFor="music-volume">
+            {t("background_music_volume", {
+              defaultValue: "Volume da M\u00fasica",
+            })}
+          </label>
+          <div className="settings-general__volume-slider-wrapper">
+            <UnmuteIcon size={16} className="settings-general__volume-icon" />
+            <input
+              id="music-volume"
+              type="range"
+              min="0"
+              max="100"
+              value={form.backgroundMusicVolume}
+              onChange={(e) => {
+                const volumePercent = parseInt(e.target.value, 10);
+                if (!isNaN(volumePercent)) {
+                  handleMusicVolumeChange(volumePercent);
+                }
+              }}
+              className="settings-general__volume-slider"
+              style={
+                {
+                  "--volume-percent": `${form.backgroundMusicVolume}%`,
+                } as React.CSSProperties
+              }
+            />
+            <span className="settings-general__volume-value">
+              {form.backgroundMusicVolume}%
+            </span>
+          </div>
+        </div>
+      )}
+
       <h2 className="settings-general__section-title">{t("common_redist")}</h2>
 
       <p className="settings-general__common-redist-description">
@@ -454,27 +500,6 @@ export function SettingsGeneral() {
           ? t("installing_common_redist")
           : t("install_common_redist")}
       </Button>
-
-      <DownloadDirectoryReplacementModal
-        visible={downloadDirectoryReplacement !== null}
-        nextPath={downloadDirectoryReplacement?.nextPath ?? ""}
-        directories={downloadDirectoryReplacement?.replaceableDirectories ?? []}
-        selectedReplacementPath={
-          downloadDirectoryReplacement?.selectedReplacementPath ?? ""
-        }
-        onSelectedReplacementPathChange={(path) => {
-          setDownloadDirectoryReplacement((current) =>
-            current
-              ? {
-                  ...current,
-                  selectedReplacementPath: path,
-                }
-              : current
-          );
-        }}
-        onClose={() => setDownloadDirectoryReplacement(null)}
-        onConfirm={handleConfirmDownloadDirectoryReplacement}
-      />
     </div>
   );
 }

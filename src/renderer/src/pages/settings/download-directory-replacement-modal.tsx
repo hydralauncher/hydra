@@ -1,7 +1,6 @@
 import type { DownloadDirectoryPreference } from "@types";
 import { Button, Modal, SelectField } from "@renderer/components";
 import { getDownloadDirectoryTitle } from "@shared";
-import { useTranslation } from "react-i18next";
 import "./download-directory-replacement-modal.scss";
 
 interface DownloadDirectoryReplacementModalProps {
@@ -23,8 +22,6 @@ export function DownloadDirectoryReplacementModal({
   onClose,
   onConfirm,
 }: Readonly<DownloadDirectoryReplacementModalProps>) {
-  const { t } = useTranslation("settings");
-
   const replacementOptions = directories.map((directory) => ({
     key: directory.path,
     value: directory.path,
@@ -34,14 +31,14 @@ export function DownloadDirectoryReplacementModal({
   return (
     <Modal
       visible={visible}
-      title={t("replace_download_directory")}
-      description={t("replace_download_directory_description")}
+      title="Replace Download Directory"
+      description="Your Big Picture download directory list is full. Choose which saved directory to replace with the new default path."
       onClose={onClose}
     >
       <div className="download-directory-replacement-modal">
         <div className="download-directory-replacement-modal__summary">
           <p className="download-directory-replacement-modal__label">
-            {t("new_default_path")}
+            New default path
           </p>
           <p className="download-directory-replacement-modal__path">
             {nextPath}
@@ -51,7 +48,7 @@ export function DownloadDirectoryReplacementModal({
         <div className="download-directory-replacement-modal__controls">
           <SelectField
             className="download-directory-replacement-modal__select"
-            label={t("replace_saved_big_picture_directory")}
+            label="Replace this saved Big Picture directory"
             value={selectedReplacementPath}
             onChange={(event) =>
               onSelectedReplacementPathChange(event.target.value)
@@ -64,7 +61,7 @@ export function DownloadDirectoryReplacementModal({
             disabled={!selectedReplacementPath}
             onClick={onConfirm}
           >
-            {t("replace_and_use_new_path")}
+            Replace and Use New Path
           </Button>
         </div>
       </div>

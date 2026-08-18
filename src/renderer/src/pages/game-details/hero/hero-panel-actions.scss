@@ -1,17 +1,10 @@
 @use "../../../scss/globals.scss";
 
 .hero-panel-actions {
-  &__action {
-    border: solid 1px globals.$muted-color;
-
-    &--disabled {
-      opacity: 0.5;
-    }
-  }
-
   &__container {
     display: flex;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: 8px;
+    align-items: center;
   }
 
   &__separator {

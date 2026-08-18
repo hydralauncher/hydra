@@ -2,6 +2,7 @@ import type { AuthPage } from "@shared";
 import type {
   AppUpdaterEvent,
   GameShop,
+  NewsArticle,
   Steam250Game,
   DownloadProgress,
   SeedingStatus,
@@ -103,6 +104,11 @@ declare global {
   declare module "*.svg" {
     const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
     export default content;
+  }
+
+  declare module "*.wav" {
+    const src: string;
+    export default src;
   }
 
   type FileExplorerEntry = {
@@ -277,6 +283,7 @@ declare global {
       shop: GameShop,
       cb: (achievements: UserAchievement[]) => void
     ) => () => Electron.IpcRenderer;
+    showVirtualKeyboard?: () => void;
 
     /* Library */
     toggleAutomaticCloudSync: (
@@ -382,6 +389,7 @@ declare global {
       trackingExecutablePaths: string[]
     ) => Promise<void>;
     addGameToFavorites: (shop: GameShop, objectId: string) => Promise<void>;
+    getSteamFeatured: (language: string) => Promise<ShopAssets[]>;
     removeGameFromFavorites: (
       shop: GameShop,
       objectId: string
@@ -895,10 +903,28 @@ declare global {
     getDownloadSourcesCheckBaseline: () => Promise<string | null>;
     getDownloadSourcesSinceValue: () => Promise<string | null>;
 
+    /* News */
+    getGameNews: (language?: string) => Promise<NewsArticle[]>;
+    getGameSpecificNews: (
+      gameTitle: string,
+      language?: string
+    ) => Promise<NewsArticle[]>;
+
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage | null>;
     checkFolderWritePermission: (path: string) => Promise<boolean>;
     getNetworkInterfaces: () => Promise<NetworkInterface[]>;
+
+    /* Custom features */
+    fetchHomeGroups: () => Promise<any[] | null>;
+    syncHomeGroups: (groups: any[]) => Promise<any>;
+    getSteamTrending: (language?: string) => Promise<any>;
+    checkFileExists: (path: string) => Promise<boolean>;
+    importEpicGames: () => Promise<any>;
+    importSteamGames: () => Promise<any>;
+    setLibraryStorageMode: (mode: string) => Promise<any>;
+    connectSupabase: (config: any) => Promise<any>;
+    disconnectSupabase: () => Promise<any>;
 
     /* Cloud save */
     uploadSaveGame: (

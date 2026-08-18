@@ -4,3 +4,4 @@ import "./get-game-stats";
 import "./get-random-game";
 import "./get-game-artwork";
 import "./get-cover-poster";
+import "./get-steam-featured";

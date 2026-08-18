@@ -1,0 +1,284 @@
+@use "../../scss/globals.scss";
+
+// ─── Picker overlay ──────────────────────────────────────────────────────────
+
+.folder-game-picker {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: globals.$background-color;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  // ── Header ────────────────────────────────────────────
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    strong {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+    }
+  }
+
+  &__header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  &__count {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+  }
+
+  &__cancel-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    height: 32px;
+    border-radius: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 13px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  // ── Toolbar ───────────────────────────────────────────
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 32px;
+    flex-shrink: 0;
+  }
+
+  &__search {
+    position: relative;
+    flex: 1;
+    max-width: 360px;
+  }
+
+  &__search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.35);
+    pointer-events: none;
+  }
+
+  &__search-input {
+    width: 100%;
+    height: 34px;
+    padding: 0 12px 0 34px;
+    border-radius: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s ease;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    &:focus {
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+  }
+
+  &__filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    height: 34px;
+    border-radius: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  // ── Game grid ─────────────────────────────────────────
+  &__grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 32px 32px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    align-content: start;
+
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 3px;
+    }
+
+    @media (max-width: 1300px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    @media (max-width: 1000px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    @media (max-width: 700px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+}
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
+
+.folder-picker-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  overflow: hidden;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.03);
+  border: none;
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
+  user-select: none;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &--selected {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  // Cover — landscape ratio
+  &__cover-wrap {
+    position: relative;
+    width: 100%;
+    padding-bottom: 46.74%;
+    background: #111;
+    overflow: hidden;
+  }
+
+  &__cover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition:
+      transform 0.3s ease,
+      opacity 0.2s ease;
+    opacity: 0.75;
+
+    .folder-picker-card--selected & {
+      opacity: 1;
+    }
+  }
+
+  &:hover &__cover {
+    transform: scale(1.04);
+  }
+
+  &__placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.2);
+  }
+
+  // Info strip
+  &__info {
+    padding: 7px 28px 7px 10px;
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+
+    .folder-picker-card--selected & {
+      color: rgba(255, 255, 255, 0.95);
+    }
+  }
+
+  // Checkbox — canto superior direito da info
+  &__checkbox {
+    position: absolute;
+    bottom: 7px;
+    right: 8px;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
+
+    &--checked {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(255, 255, 255, 0.9);
+      color: #111;
+    }
+  }
+}

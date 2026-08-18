@@ -38,18 +38,13 @@ export function AllFriendsModal({
 
       setIsLoading(true);
       try {
-        const params = new URLSearchParams();
-        params.append("take", String(PAGE_SIZE));
-        params.append("skip", String(pageNum * PAGE_SIZE));
-        params.append("shop", "steam");
-        params.append("shop", "launchbox");
-
-        const basePath = isMe ? "/profile/friends" : `/users/${userId}/friends`;
-        const url = `${basePath}?${params.toString()}`;
+        const url = isMe ? "/profile/friends" : `/users/${userId}/friends`;
         const response = await window.electron.hydraApi.get<{
           totalFriends: number;
           friends: UserFriend[];
-        }>(url);
+        }>(url, {
+          params: { take: PAGE_SIZE, skip: pageNum * PAGE_SIZE },
+        });
 
         if (append) {
           setFriends((prev) => [...prev, ...response.friends]);

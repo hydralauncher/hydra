@@ -1,4 +1,5 @@
-import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
+import { Header, Sidebar, SplashScreen, Toast } from "@renderer/components";
+import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { VideoIcon } from "@primer/octicons-react";
 import {
   DashIcon,
@@ -9,6 +10,7 @@ import {
 import {
   useAppDispatch,
   useAppSelector,
+  useBackgroundMusic,
   useDownload,
   useLibrary,
   useToast,
@@ -67,9 +69,14 @@ type WorkWondersWithKnowledge = WorkWonders & {
   };
 };
 
+import { BackgroundEffectRenderer } from "./components/react-bits/BackgroundEffectRenderer";
+
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
+
+  // Background ambient music service
+  useBackgroundMusic();
 
   // Listen for new download options updates
   useDownloadOptionsListener();
@@ -201,14 +208,6 @@ export function App() {
 
         workwonders.changelog.initChangelogWidget();
         workwonders.changelog.initChangelogWidgetMini();
-        const workWondersWithKnowledge =
-          workwonders as WorkWondersWithKnowledge;
-        workWondersWithKnowledge.knowledge?.initKnowledgeWidget?.();
-
-        if (token) {
-          workwonders.feedback.initFeedbackWidget();
-        }
-
         workwondersRef.current = workwonders;
       } catch (error) {
         console.error("Failed to initialize Work Wonders SDK", error);
@@ -309,7 +308,10 @@ export function App() {
 
     setupWorkWonders(userDetails?.workwondersJwt, userPreferences?.language);
 
-    if (!document.getElementById("external-resources")) {
+    if (
+      import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL &&
+      !document.getElementById("external-resources")
+    ) {
       const $script = document.createElement("script");
       $script.id = "external-resources";
       $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
@@ -585,68 +587,102 @@ export function App() {
 
   return (
     <>
+      <SplashScreen />
       {(window.electron.platform === "win32" ||
         window.electron.platform === "linux") && (
         <div
           className={`title-bar${
             window.electron.platform === "win32" ? " title-bar--windows" : ""
           }`}
+          data-gamepad-ignore="true"
         >
-          <h4>
-            Hydra
-            {hasActiveSubscription && (
-              <span className="title-bar__cloud-text"> Cloud</span>
-            )}
-          </h4>
-
-          <button
-            type="button"
-            className="title-bar__big-picture"
-            onClick={() => globalThis.window.electron.openBigPictureWindow()}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              opacity: 0.7,
+            }}
           >
-            <VideoIcon size={14} />
-            {t("big_picture", { ns: "sidebar" })}
-          </button>
+            <HydraIcon className="title-bar__logo" aria-hidden="true" />
+            {hasActiveSubscription && (
+              <span
+                className="title-bar__cloud-text"
+                style={{ fontSize: 11, fontWeight: 600 }}
+              >
+                CLOUD
+              </span>
+            )}
+          </div>
 
-          {window.electron.platform === "linux" && (
-            <div className="title-bar__window-controls">
-              <button
-                type="button"
-                className="title-bar__window-control"
-                onClick={() => window.electron.minimizeMainWindow()}
-                title={t("header:minimize")}
-                aria-label={t("header:minimize")}
-              >
-                <DashIcon size={16} />
-              </button>
-              <button
-                type="button"
-                className="title-bar__window-control"
-                onClick={() => window.electron.toggleMaximizeMainWindow()}
-                title={
-                  isWindowMaximized ? t("header:restore") : t("header:maximize")
-                }
-                aria-label={
-                  isWindowMaximized ? t("header:restore") : t("header:maximize")
-                }
-              >
-                {isWindowMaximized ? (
-                  <ScreenNormalIcon size={16} />
-                ) : (
-                  <ScreenFullIcon size={16} />
-                )}
-              </button>
-              <button
-                type="button"
-                className="title-bar__window-control title-bar__window-control--close"
-                onClick={() => window.electron.closeMainWindow()}
-                title={t("header:close")}
-                aria-label={t("header:close")}
-              >
-                <XIcon size={16} />
-              </button>
-            </div>
-          )}
+          <div
+            className={`title-bar__window-controls${
+              window.electron.platform === "win32"
+                ? " title-bar__window-controls--windows"
+                : ""
+            }`}
+            style={{ marginLeft: "auto" }}
+          >
+            <button
+              type="button"
+              className="title-bar__window-control title-bar__window-control--big-picture"
+              onClick={() => globalThis.window.electron.openBigPictureWindow()}
+              title={t("big_picture", {
+                ns: "sidebar",
+                defaultValue: "Big Picture Mode",
+              })}
+              aria-label={t("big_picture", {
+                ns: "sidebar",
+                defaultValue: "Big Picture Mode",
+              })}
+            >
+              <VideoIcon size={14} />
+            </button>
+
+            {window.electron.platform === "linux" && (
+              <>
+                <button
+                  type="button"
+                  className="title-bar__window-control"
+                  onClick={() => window.electron.minimizeMainWindow()}
+                  title={t("header:minimize")}
+                  aria-label={t("header:minimize")}
+                >
+                  <DashIcon size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="title-bar__window-control"
+                  onClick={() => window.electron.toggleMaximizeMainWindow()}
+                  title={
+                    isWindowMaximized
+                      ? t("header:restore")
+                      : t("header:maximize")
+                  }
+                  aria-label={
+                    isWindowMaximized
+                      ? t("header:restore")
+                      : t("header:maximize")
+                  }
+                >
+                  {isWindowMaximized ? (
+                    <ScreenNormalIcon size={16} />
+                  ) : (
+                    <ScreenFullIcon size={16} />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="title-bar__window-control title-bar__window-control--close"
+                  onClick={() => window.electron.closeMainWindow()}
+                  title={t("header:close")}
+                  aria-label={t("header:close")}
+                >
+                  <XIcon size={16} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -678,8 +714,10 @@ export function App() {
 
       <ClassicsScanModal />
       <RetroArchScanModal />
+      <SplashScreen />
 
       <main>
+        <BackgroundEffectRenderer />
         <Sidebar />
 
         <article className="container">
@@ -694,8 +732,6 @@ export function App() {
           </section>
         </article>
       </main>
-
-      <BottomPanel />
     </>
   );
 }

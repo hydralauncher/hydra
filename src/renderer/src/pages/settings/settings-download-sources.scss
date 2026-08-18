@@ -53,14 +53,10 @@
 
   &__header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
-    flex-wrap: wrap;
     gap: globals.$spacing-unit;
-
-    .button {
-      white-space: nowrap;
-    }
+    flex-wrap: wrap;
   }
 
   &__navigate-button {
@@ -83,6 +79,49 @@
   &__buttons-container {
     display: flex;
     gap: globals.$spacing-unit;
-    flex-wrap: wrap;
+  }
+
+  &__auto-options {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+
+  &__option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &__option-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__option-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  &__option-desc {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.4;
+  }
+
+  &__checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 }

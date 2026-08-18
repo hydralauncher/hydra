@@ -1,197 +1,83 @@
+import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import {
-  TelescopeIcon,
-  TrophyIcon,
-  ClockIcon,
-  HistoryIcon,
-  StackIcon,
-  DeviceDesktopIcon,
-} from "@primer/octicons-react";
-import InfiniteScroll from "react-infinite-scroll-component";
-import { useCallback, useMemo, useState } from "react";
-import { useFormat, useLibrary, useToast } from "@renderer/hooks";
-import { logger } from "@renderer/logger";
-import type { LibraryGame, UserGame } from "@types";
-import { useCollectionContextMenu } from "@renderer/context";
-import { GameContextMenu } from "@renderer/components";
-import type { GameContextMenuGame } from "@renderer/components/game-context-menu/game-context-menu.types";
-import { ClassicsIcon } from "@renderer/pages/library/category-filter";
-import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
+import { TelescopeIcon } from "@primer/octicons-react";
+import { useEffect } from "react";
+import { useFormat } from "@renderer/hooks";
+import type { UserGame } from "@types";
+import { SortOptions } from "./sort-options";
 import { UserLibraryGameCard } from "./user-library-game-card";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
-export type ProfilePlatform = "all" | "pc" | "classics";
 
 interface LibraryTabProps {
   sortBy: SortOption;
   onSortChange: (sortBy: SortOption) => void;
-  platform: ProfilePlatform;
-  onPlatformChange: (platform: ProfilePlatform) => void;
   pinnedGames: UserGame[];
   libraryGames: UserGame[];
   hasMoreLibraryGames: boolean;
+  isLoadingLibraryGames: boolean;
   statsIndex: number;
   userStats: { libraryCount: number } | null;
+  animatedGameIdsRef: React.MutableRefObject<Set<string>>;
   onLoadMore: () => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
   isMe: boolean;
-  hasActiveSubscription: boolean;
-  titleKey?: string;
-  panelKey?: string;
-  count?: number | null;
 }
 
 export function LibraryTab({
   sortBy,
   onSortChange,
-  platform,
-  onPlatformChange,
   pinnedGames,
   libraryGames,
   hasMoreLibraryGames,
+  isLoadingLibraryGames,
   statsIndex,
   userStats,
+  animatedGameIdsRef,
   onLoadMore,
+  onMouseEnter,
+  onMouseLeave,
   isMe,
-  hasActiveSubscription,
-  titleKey = "library",
-  panelKey = "library",
-  count,
 }: Readonly<LibraryTabProps>) {
-  const { t } = useTranslation("user_profile");
-  const { numberFormatter } = useFormat();
-  const { library } = useLibrary();
-  const { openCollectionContextMenu } = useCollectionContextMenu();
-  const { showSuccessToast, showErrorToast } = useToast();
-  const [contextMenu, setContextMenu] = useState<{
-    game: UserGame | null;
-    visible: boolean;
-    position: { x: number; y: number };
-  }>({ game: null, visible: false, position: { x: 0, y: 0 } });
+  useEffect(() => {
+    if (!hasMoreLibraryGames || isLoadingLibraryGames) return;
 
-  const localGameByKey = useMemo(() => {
-    const map = new Map<string, LibraryGame>();
-    for (const localGame of library) {
-      map.set(`${localGame.shop}:${localGame.objectId}`, localGame);
-    }
-    return map;
-  }, [library]);
-
-  const handleOpenContextMenu = useCallback(
-    (game: UserGame, position: { x: number; y: number }) => {
-      setContextMenu({ game, visible: true, position });
-    },
-    []
-  );
-
-  const handleCloseContextMenu = useCallback(() => {
-    setContextMenu((prev) => ({ ...prev, visible: false }));
-  }, []);
-
-  const contextMenuGame = useMemo<GameContextMenuGame | null>(() => {
-    const selectedGame = contextMenu.game;
-    if (!selectedGame) return null;
-
-    const localGame = localGameByKey.get(
-      `${selectedGame.shop}:${selectedGame.objectId}`
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
     );
 
-    return {
-      ...selectedGame,
-      id: localGame?.id,
-      executablePath: localGame?.executablePath ?? null,
-      download: localGame?.download ?? null,
-      collectionIds: localGame?.collectionIds,
-      launchOptions: localGame?.launchOptions,
-      discs: localGame?.discs,
-      selectedDiscPath: localGame?.selectedDiscPath,
-      dontAskDiscSelection: localGame?.dontAskDiscSelection,
-      favorite: localGame?.favorite ?? selectedGame.isFavorite,
-    };
-  }, [contextMenu.game, localGameByKey]);
+    const loaderElement = document.getElementById("library-load-more");
+    if (loaderElement) {
+      observer.observe(loaderElement);
+    }
 
-  const toggleGamePinned = useCallback(
-    async (game: UserGame) => {
-      try {
-        await window.electron.toggleGamePin(
-          game.shop,
-          game.objectId,
-          !game.isPinned
-        );
+    return () => observer.disconnect();
+  }, [hasMoreLibraryGames, isLoadingLibraryGames, onLoadMore]);
 
-        try {
-          window.dispatchEvent(
-            new CustomEvent("hydra:game-pin-toggled", {
-              detail: { shop: game.shop, objectId: game.objectId },
-            })
-          );
-        } catch (error) {
-          logger.error("Failed to dispatch pin toggled event", error);
-        }
-
-        if (game.isPinned) {
-          showSuccessToast(t("game_removed_from_pinned"));
-        } else {
-          showSuccessToast(t("game_added_to_pinned"));
-        }
-      } catch (error) {
-        logger.error("Failed to toggle game pin", error);
-        showErrorToast(t("failed_update_pinned", { ns: "game_details" }));
-      }
-    },
-    [showErrorToast, showSuccessToast, t]
-  );
-
-  const platformOptions: FilterDropdownOption<ProfilePlatform>[] = [
-    { value: "all", label: t("platform_all"), icon: StackIcon },
-    { value: "pc", label: t("platform_pc"), icon: DeviceDesktopIcon },
-    { value: "classics", label: t("platform_classics"), icon: ClassicsIcon },
-  ];
-
-  const sortOptions: FilterDropdownOption<SortOption>[] = [
-    ...(hasActiveSubscription
-      ? [
-          {
-            value: "achievementCount" as const,
-            label: t("achievements_earned"),
-            icon: TrophyIcon,
-          },
-        ]
-      : []),
-    { value: "playedRecently", label: t("played_recently"), icon: HistoryIcon },
-    { value: "playtime", label: t("playtime"), icon: ClockIcon },
-  ];
+  const { t } = useTranslation("user_profile");
+  const { numberFormatter } = useFormat();
 
   const hasGames = libraryGames.length > 0;
   const hasPinnedGames = pinnedGames.length > 0;
   const hasAnyGames = hasGames || hasPinnedGames;
 
-  const resolvedCount =
-    count !== undefined ? count : (userStats?.libraryCount ?? null);
-
   return (
-    <div
-      key={panelKey}
+    <motion.div
+      key="library"
       className="profile-content__tab-panel"
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 10 }}
+      transition={{ duration: 0.2 }}
       aria-hidden={false}
     >
-      <div className="profile-content__library-filters">
-        <FilterDropdown
-          placeholder={t("platform")}
-          value={platform}
-          options={platformOptions}
-          onChange={onPlatformChange}
-        />
-        {hasAnyGames && (
-          <FilterDropdown
-            placeholder={t("sort_by")}
-            value={sortBy}
-            options={sortOptions}
-            onChange={onSortChange}
-          />
-        )}
-      </div>
-
       {!hasAnyGames && (
         <div className="profile-content__no-games">
           <div className="profile-content__telescope-icon">
@@ -221,7 +107,9 @@ export function LibraryTab({
                     <UserLibraryGameCard
                       game={game}
                       statIndex={statsIndex}
-                      onContextMenu={handleOpenContextMenu}
+                      onMouseEnter={onMouseEnter}
+                      onMouseLeave={onMouseLeave}
+                      sortBy={sortBy}
                     />
                   </li>
                 ))}
@@ -233,59 +121,79 @@ export function LibraryTab({
             <div>
               <div className="profile-content__section-header">
                 <div className="profile-content__section-title-group">
-                  <h2>{t(titleKey)}</h2>
-                  {resolvedCount !== null && (
+                  <h2>{t("library")}</h2>
+                  {userStats && (
                     <span className="profile-content__section-badge">
-                      {numberFormatter.format(resolvedCount)}
+                      {numberFormatter.format(userStats.libraryCount)}
                     </span>
                   )}
                 </div>
+                <SortOptions sortBy={sortBy} onSortChange={onSortChange} />
               </div>
 
-              <InfiniteScroll
-                dataLength={libraryGames.length}
-                next={onLoadMore}
-                hasMore={hasMoreLibraryGames}
-                loader={null}
-                scrollThreshold={0.9}
-                style={{ overflow: "visible" }}
-                scrollableTarget="scrollableDiv"
-              >
-                <ul className="profile-content__games-grid">
-                  {libraryGames?.map((game) => {
-                    return (
-                      <li
-                        key={`${sortBy}-${game.objectId}`}
-                        style={{ listStyle: "none" }}
-                      >
-                        <UserLibraryGameCard
-                          game={game}
-                          statIndex={statsIndex}
-                          onContextMenu={handleOpenContextMenu}
-                        />
-                      </li>
-                    );
-                  })}
-                </ul>
-              </InfiniteScroll>
+              <ul className="profile-content__games-grid">
+                {libraryGames?.map((game, index) => {
+                  const hasAnimated = animatedGameIdsRef.current.has(
+                    game.objectId
+                  );
+                  const isNewGame = !hasAnimated && !isLoadingLibraryGames;
+
+                  return (
+                    <motion.li
+                      key={`${sortBy}-${game.objectId}`}
+                      style={{ listStyle: "none" }}
+                      initial={
+                        isNewGame ? { opacity: 0.5, y: 15, scale: 0.96 } : false
+                      }
+                      animate={
+                        isNewGame ? { opacity: 1, y: 0, scale: 1 } : false
+                      }
+                      transition={
+                        isNewGame
+                          ? {
+                              duration: 0.15,
+                              ease: "easeOut",
+                              delay: index * 0.01,
+                            }
+                          : undefined
+                      }
+                      onAnimationComplete={() => {
+                        if (isNewGame) {
+                          animatedGameIdsRef.current.add(game.objectId);
+                        }
+                      }}
+                    >
+                      <UserLibraryGameCard
+                        game={game}
+                        statIndex={statsIndex}
+                        onMouseEnter={onMouseEnter}
+                        onMouseLeave={onMouseLeave}
+                        sortBy={sortBy}
+                      />
+                    </motion.li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+          {hasMoreLibraryGames && (
+            <div
+              id="library-load-more"
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                padding: "24px 0",
+              }}
+            >
+              {isLoadingLibraryGames && (
+                <span className="profile-content__loading-text">
+                  {t("loading")}...
+                </span>
+              )}
             </div>
           )}
         </div>
       )}
-
-      {contextMenuGame && (
-        <GameContextMenu
-          game={contextMenuGame}
-          visible={contextMenu.visible}
-          position={contextMenu.position}
-          onClose={handleCloseContextMenu}
-          onPinToggle={() => {
-            if (contextMenu.game) void toggleGamePinned(contextMenu.game);
-          }}
-          isPinned={contextMenu.game?.isPinned}
-          onCollectionContextMenu={openCollectionContextMenu}
-        />
-      )}
-    </div>
+    </motion.div>
   );
 }

@@ -96,7 +96,7 @@ export const achievementNotificationPresenter =
         x,
         y,
         webPreferences: {
-          preload: path.join(__dirname, "../preload/index.mjs"),
+          preload: path.join(import.meta.dirname, "../preload/index.mjs"),
           sandbox: false,
         },
       });

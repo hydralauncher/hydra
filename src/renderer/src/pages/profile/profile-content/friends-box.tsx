@@ -19,7 +19,9 @@ export function FriendsBox() {
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
 
   const isMe = userDetails?.id === userProfile?.id;
-  const hasFriends = userProfile?.friends && userProfile.friends.length > 0;
+
+  const friendsList = userProfile?.friends || [];
+  const hasFriends = friendsList.length > 0;
 
   const getGameImage = (game: { iconUrl: string | null; title: string }) => {
     if (game.iconUrl) {
@@ -46,8 +48,8 @@ export function FriendsBox() {
     );
   }
 
-  const visibleFriends = userProfile.friends.slice(0, MAX_VISIBLE_FRIENDS);
-  const totalFriends = userProfile.friends.length;
+  const visibleFriends = friendsList.slice(0, MAX_VISIBLE_FRIENDS);
+  const totalFriends = friendsList.length;
   const showViewAllButton = totalFriends > MAX_VISIBLE_FRIENDS;
 
   return (
@@ -78,9 +80,16 @@ export function FriendsBox() {
                     {friend.displayName}
                   </span>
                   {friend.currentGame && (
-                    <div className="friends-box__game-info">
-                      {getGameImage(friend.currentGame)}
-                      <small>{friend.currentGame.title}</small>
+                    <div className="friends-box__playing-container">
+                      <small className="friends-box__playing-text">
+                        {t("playing_now", { defaultValue: "Jogando" })}
+                      </small>
+                      <div className="friends-box__game-info">
+                        {getGameImage(friend.currentGame)}
+                        <span className="friends-box__game-title">
+                          {friend.currentGame.title}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>

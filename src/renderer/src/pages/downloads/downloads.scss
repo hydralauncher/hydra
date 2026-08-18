@@ -1,36 +1,25 @@
 @use "../../scss/globals.scss";
 
-.downloads {
-  &__container {
+.downloads-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  &__body {
     display: flex;
     flex-direction: column;
+    gap: 32px;
     width: 100%;
-  }
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 32px 48px;
 
-  &__groups {
-    display: flex;
-    gap: calc(globals.$spacing-unit * 3);
-    flex-direction: column;
-  }
-
-  &__arrow-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.06);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: calc(globals.$spacing-unit * 2);
-  }
-
-  &__no-downloads {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
+    @media (max-width: 1100px) {
+      padding: 20px 20px 36px;
+    }
   }
 }

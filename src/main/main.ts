@@ -27,6 +27,7 @@ import {
   WindowManager,
   logger,
   migrateCloudSaveAutomaticSyncDefaults,
+  startNewsRefreshLoop,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
@@ -100,6 +101,8 @@ export const loadState = async () => {
 
   Ludusavi.copyConfigFileToUserData();
   Ludusavi.copyBinaryToUserData();
+
+  startNewsRefreshLoop();
 
   if (process.platform === "linux") {
     DeckyPlugin.checkAndUpdateIfOutdated();

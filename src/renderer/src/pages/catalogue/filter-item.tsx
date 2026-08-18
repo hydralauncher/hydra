@@ -8,7 +8,8 @@ import type { CSSProperties } from "react";
 interface FilterItemProps {
   filter: string;
   filterType: string;
-  orbColor: string;
+  orbColor?: string;
+  icon?: React.ReactNode;
   onRemove: () => void;
 }
 

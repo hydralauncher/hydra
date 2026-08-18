@@ -20,3 +20,4 @@ export * from "./cloud-save-sync-anchors";
 export * from "./cloud-save-automatic-sync-settings";
 export * from "./cloud-save-custom-paths";
 export * from "./cloud-save-pending-deletions";
+export * from "./news";

@@ -6,12 +6,16 @@ interface DeleteGameModalProps {
   visible: boolean;
   onClose: () => void;
   deleteGame: () => void;
+  title?: string;
+  description?: string;
 }
 
 export function DeleteGameModal({
   onClose,
   visible,
   deleteGame,
+  title,
+  description,
 }: Readonly<DeleteGameModalProps>) {
   const { t } = useTranslation("downloads");
 
@@ -23,8 +27,8 @@ export function DeleteGameModal({
   return (
     <Modal
       visible={visible}
-      title={t("delete_modal_title")}
-      description={t("delete_modal_description")}
+      title={title ?? t("delete_modal_title")}
+      description={description ?? t("delete_modal_description")}
       onClose={onClose}
     >
       <div className="delete-game-modal__actions">

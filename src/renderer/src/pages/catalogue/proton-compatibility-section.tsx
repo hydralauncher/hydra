@@ -1,20 +1,26 @@
 import { ChevronDownIcon } from "@primer/octicons-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckboxField } from "@renderer/components/checkbox-field/checkbox-field";
 import { RadioField } from "@renderer/components/radio-field/radio-field";
 import SteamDeckLogo from "@renderer/assets/steam-deck-logo.svg?url";
-
 import "./proton-compatibility-section.scss";
+
+interface ProtonOption {
+  value: string;
+  label: string;
+  color?: string;
+}
 
 interface ProtonCompatibilitySectionProps {
   title: string;
   protonSliderLabel: string;
   deckSliderLabel: string;
-  protonOptions: { value: string; label: string; color?: string }[];
+  protonOptions: ProtonOption[];
   protonValue: string;
   deckChecked: boolean;
   deckLabel: string;
-  color: string;
+  color?: string;
+  icon?: React.ReactNode;
   onProtonChange: (value: string) => void;
   onDeckChange: (checked: boolean) => void;
 }
@@ -27,49 +33,67 @@ export function ProtonCompatibilitySection({
   protonValue,
   deckChecked,
   deckLabel,
-  color,
+  icon,
   onProtonChange,
   onDeckChange,
-}: ProtonCompatibilitySectionProps) {
-  const [isOpen, setIsOpen] = useState(true);
-  const [height, setHeight] = useState(0);
-  const content = useRef<HTMLDivElement>(null);
+}: Readonly<ProtonCompatibilitySectionProps>) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const activeCount = useMemo(
+    () => (protonValue ? 1 : 0) + (deckChecked ? 1 : 0),
+    [protonValue, deckChecked]
+  );
+
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (
+      containerRef.current &&
+      !containerRef.current.contains(event.target as Node)
+    ) {
+      setIsOpen(false);
+    }
+  }, []);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === "Escape") setIsOpen(false);
+  }, []);
 
   useEffect(() => {
-    if (content.current) {
-      setHeight(isOpen ? content.current.scrollHeight : 0);
-    }
-  }, [isOpen, protonValue, deckChecked]);
+    if (!isOpen) return;
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, handleClickOutside, handleKeyDown]);
 
   return (
-    <div className="filter-section proton-compatibility-section">
+    <div className="filter-dropdown proton-dropdown" ref={containerRef}>
       <button
         type="button"
-        className="filter-section__button"
-        onClick={() => setIsOpen((open) => !open)}
+        className={`filter-dropdown__trigger ${
+          isOpen ? "filter-dropdown__trigger--open" : ""
+        } ${activeCount > 0 ? "filter-dropdown__trigger--active" : ""}`}
+        onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
+        aria-haspopup="dialog"
       >
+        {icon && <span className="filter-dropdown__icon">{icon}</span>}
+        <span className="filter-dropdown__title">{title}</span>
+        {activeCount > 0 && (
+          <span className="filter-dropdown__badge">{activeCount}</span>
+        )}
         <ChevronDownIcon
-          className={`filter-section__chevron ${
-            isOpen ? "filter-section__chevron--open" : ""
+          className={`filter-dropdown__chevron ${
+            isOpen ? "filter-dropdown__chevron--open" : ""
           }`}
+          size={12}
         />
-
-        <div className="filter-section__header">
-          <div
-            className="filter-section__orb"
-            style={{ backgroundColor: color }}
-          />
-          <h3 className="filter-section__title">{title}</h3>
-        </div>
       </button>
 
-      <div
-        ref={content}
-        className="filter-section__content"
-        style={{ maxHeight: `${height}px` }}
-      >
-        <div className="filter-section__content-inner proton-compatibility-section__content-inner">
+      {isOpen && (
+        <div className="filter-dropdown__popover proton-compatibility-section__popover">
           <div className="proton-compatibility-section__control">
             <span className="proton-compatibility-section__label">
               {protonSliderLabel}
@@ -127,7 +151,7 @@ export function ProtonCompatibilitySection({
             />
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

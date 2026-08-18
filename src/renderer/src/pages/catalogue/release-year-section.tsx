@@ -1,28 +1,28 @@
-import { ChevronDownIcon } from "@primer/octicons-react";
-import { useEffect, useReducer, useRef } from "react";
+import { CalendarIcon, ChevronDownIcon } from "@primer/octicons-react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./release-year-section.scss";
 
 const MIN_YEAR = 1970;
 const MAX_YEAR = new Date().getFullYear();
 
-interface ReleaseYearSectionProps {
-  title: string;
-  color: string;
+export interface ReleaseYearSectionProps {
+  title?: string;
   value: { gte?: number; lte?: number } | undefined;
   onChange: (value: { gte?: number; lte?: number } | undefined) => void;
+  icon?: React.ReactNode;
 }
 
 export function ReleaseYearSection({
   title,
-  color,
   value,
   onChange,
+  icon,
 }: Readonly<ReleaseYearSectionProps>) {
   const { t } = useTranslation("catalogue");
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [isOpen, toggleOpen] = useReducer((s) => !s, true);
-  const [, forceUpdate] = useReducer((x) => x + 1, 0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const popoverId = useId();
 
   const gte = value?.gte ?? MIN_YEAR;
   const lte = value?.lte ?? MAX_YEAR;
@@ -31,25 +31,31 @@ export function ReleaseYearSection({
   const gtePercent = ((gte - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100;
   const ltePercent = ((lte - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100;
 
-  useEffect(() => {
-    forceUpdate();
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (
+      containerRef.current &&
+      !containerRef.current.contains(event.target as Node)
+    ) {
+      setIsOpen(false);
+    }
+  }, []);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      setIsOpen(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (contentRef.current) {
-      forceUpdate();
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
     }
-  }, [isOpen, isActive]);
-
-  const height = isOpen ? (contentRef.current?.scrollHeight ?? 0) : 0;
-
-  const handleGteChange = (newGte: number) => {
-    emit(Math.min(newGte, lte), lte);
-  };
-
-  const handleLteChange = (newLte: number) => {
-    emit(gte, Math.max(newLte, gte));
-  };
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, handleClickOutside, handleKeyDown]);
 
   const emit = (newGte: number, newLte: number) => {
     const nextGte = newGte === MIN_YEAR ? undefined : newGte;
@@ -61,51 +67,56 @@ export function ReleaseYearSection({
     );
   };
 
+  const displayTitle =
+    title || t("release_year", { defaultValue: "Ano de lançamento" });
+
   return (
-    <div className="filter-section release-year-section">
+    <div className="filter-dropdown release-year-dropdown" ref={containerRef}>
       <button
         type="button"
-        className="filter-section__button"
-        onClick={toggleOpen}
+        className={`filter-dropdown__trigger ${
+          isOpen ? "filter-dropdown__trigger--open" : ""
+        } ${isActive ? "filter-dropdown__trigger--active" : ""}`}
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
+        aria-controls={popoverId}
       >
+        <span className="filter-dropdown__icon">
+          {icon ?? <CalendarIcon size={14} />}
+        </span>
+        <span className="filter-dropdown__title">{displayTitle}</span>
+        {isActive && (
+          <span className="filter-dropdown__badge">{`${gte}-${lte}`}</span>
+        )}
         <ChevronDownIcon
-          className={`filter-section__chevron ${
-            isOpen ? "filter-section__chevron--open" : ""
+          className={`filter-dropdown__chevron ${
+            isOpen ? "filter-dropdown__chevron--open" : ""
           }`}
+          size={12}
         />
-        <div className="filter-section__header">
-          <div
-            className="filter-section__orb"
-            style={{ backgroundColor: color }}
-          />
-          <h3 className="filter-section__title">{title}</h3>
-        </div>
       </button>
 
-      <div
-        ref={contentRef}
-        className="filter-section__content"
-        style={{ maxHeight: `${height}px` }}
-      >
-        <div className="filter-section__content-inner">
-          {isActive ? (
-            <button
-              type="button"
-              className="filter-section__clear-button"
-              onClick={() => onChange(undefined)}
-            >
-              {t("clear_filters", { filterCount: 1 })}
-            </button>
-          ) : (
-            <span className="filter-section__count">
-              {t("filter_by_release_year")}
+      {isOpen && (
+        <div
+          id={popoverId}
+          className="filter-dropdown__popover release-year-dropdown__popover"
+          role="dialog"
+          aria-label={displayTitle}
+        >
+          <div className="filter-dropdown__header">
+            <span className="filter-dropdown__count">
+              {isActive ? `${gte} — ${lte}` : `${MIN_YEAR} — ${MAX_YEAR}`}
             </span>
-          )}
-
-          <div className="release-year-section__labels">
-            <span>{gte}</span>
-            <span>{lte}</span>
+            {isActive && (
+              <button
+                type="button"
+                className="filter-dropdown__clear-btn"
+                onClick={() => onChange(undefined)}
+              >
+                {t("clear_filter", { defaultValue: "Limpar" })}
+              </button>
+            )}
           </div>
 
           <div className="release-year-section__slider-container">
@@ -116,8 +127,8 @@ export function ReleaseYearSection({
                   to right,
                   rgba(255,255,255,0.12) 0%,
                   rgba(255,255,255,0.12) ${gtePercent}%,
-                  ${color} ${gtePercent}%,
-                  ${color} ${ltePercent}%,
+                  #ffffff ${gtePercent}%,
+                  #ffffff ${ltePercent}%,
                   rgba(255,255,255,0.12) ${ltePercent}%,
                   rgba(255,255,255,0.12) 100%
                 )`,
@@ -128,24 +139,26 @@ export function ReleaseYearSection({
               min={MIN_YEAR}
               max={MAX_YEAR}
               value={gte}
-              onChange={(e) => handleGteChange(Number(e.target.value))}
+              onChange={(e) => emit(Math.min(Number(e.target.value), lte), lte)}
               className="release-year-section__range"
               style={{ zIndex: gte === MAX_YEAR ? 2 : 1 }}
-              aria-label={t("release_year_gte")}
+              aria-label={t("release_year_gte", {
+                defaultValue: "Ano inicial",
+              })}
             />
             <input
               type="range"
               min={MIN_YEAR}
               max={MAX_YEAR}
               value={lte}
-              onChange={(e) => handleLteChange(Number(e.target.value))}
+              onChange={(e) => emit(gte, Math.max(Number(e.target.value), gte))}
               className="release-year-section__range"
               style={{ zIndex: gte === MAX_YEAR ? 1 : 2 }}
-              aria-label={t("release_year_lte")}
+              aria-label={t("release_year_lte", { defaultValue: "Ano final" })}
             />
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

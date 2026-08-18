@@ -1,0 +1,131 @@
+@use "../../scss/globals.scss";
+
+.cat-explorer {
+  width: 100%;
+  margin-top: 8px;
+  margin-bottom: 8px;
+
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: globals.$body-color;
+    margin-bottom: 14px;
+    letter-spacing: -0.2px;
+  }
+
+  &__wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  &__track {
+    display: flex;
+    align-items: flex-start;
+    justify-content: safe center;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    flex: 1;
+    padding: 6px 4px 10px 4px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 6px;
+    width: 72px;
+    cursor: pointer;
+
+    &:hover .cat-explorer__label {
+      color: #ffffff;
+    }
+
+    &:hover .cat-explorer__circle-btn {
+      transform: translateY(-2px) scale(1.06);
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &__circle-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+      background 0.2s ease,
+      box-shadow 0.2s ease;
+    outline: none;
+
+    &:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
+    }
+  }
+
+  &__icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    pointer-events: none;
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.75);
+    white-space: nowrap;
+    text-align: center;
+    transition: color 0.2s ease;
+    letter-spacing: 0.1px;
+    pointer-events: none;
+  }
+
+  &__nav {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      transform 0.1s ease;
+    z-index: 5;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
+}
