@@ -33,6 +33,7 @@ import {
   launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
+import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
@@ -49,6 +50,8 @@ export interface LaunchGameOptions {
   launchOptions?: string | null;
   launchSource?: LaunchSource;
 }
+
+const LAUNCH_DELAY_IN_MS = 2_000;
 
 const isWindowsExecutable = (executablePath: string) =>
   path.extname(executablePath).toLowerCase() === ".exe";
@@ -620,11 +623,12 @@ const launchGameWithCloudSaveChecks = async (
       game?.autoRunGamemode === true) &&
     isGamemodeAvailable();
 
-  if (game) {
-    await gamesSublevel.put(gameKey, {
-      ...updateGameExecutablePath(game, parsedPath),
-      launchOptions,
-    });
+  const updatedGame = game
+    ? { ...updateGameExecutablePath(game, parsedPath), launchOptions }
+    : null;
+
+  if (updatedGame) {
+    await gamesSublevel.put(gameKey, updatedGame);
   }
 
   const launchDisplay = await getLaunchDisplay(launchSource);
@@ -760,7 +764,11 @@ const launchGameWithCloudSaveChecks = async (
   // Wrapped in try/catch to ensure game launch is never blocked
   await runCommonRedistPreflight(shop, objectId);
 
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  if (updatedGame) {
+    void runAchievementMetadataExport(gameKey, updatedGame);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, LAUNCH_DELAY_IN_MS));
   await prepareBigPictureDisplayForLaunchSource(launchSource);
 
   return launchResolvedGame(
