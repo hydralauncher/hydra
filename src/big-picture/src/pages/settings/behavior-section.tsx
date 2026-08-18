@@ -178,7 +178,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
     ];
 
     return baseItems;
-  }, [form, isLinux, showRunAtStartup]);
+  }, [form, isLinux, showRunAtStartup, updateUserPreferences]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>

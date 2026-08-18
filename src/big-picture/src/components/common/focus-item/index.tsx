@@ -103,7 +103,7 @@ export function FocusItem({
       navigationOverrides: initialNavigationOverridesRef.current,
       getElement: () => ref.current,
     });
-  }, [layerId, navigation, regionId, resolvedId]);
+  }, [isMeasurement, layerId, navigation, regionId, resolvedId]);
 
   useEffect(() => {
     navigation.updateNavigationNode(resolvedId, {
@@ -151,6 +151,7 @@ export function FocusItem({
     currentFocusId,
     effectiveNavigationState,
     isFocused,
+    isMeasurement,
     navigation,
     resolvedId,
     stealFocusOnAppear,
@@ -164,7 +165,7 @@ export function FocusItem({
       actions: resolvedActions,
       getElement: () => ref.current,
     });
-  }, [navigationItemActions, resolvedActions, resolvedId]);
+  }, [isMeasurement, navigationItemActions, resolvedActions, resolvedId]);
 
   useEffect(() => {
     if (!isFocused) return;

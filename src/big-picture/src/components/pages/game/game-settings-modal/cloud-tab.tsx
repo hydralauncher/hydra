@@ -263,9 +263,10 @@ export function GameCloudSettingsTab({
     setLoadingPreview(true);
 
     try {
-      const preview = await (
-        globalThis.window.electron as any
-      ).getGameBackupPreview(game.objectId, game.shop);
+      const preview = await globalThis.window.electron.getGameBackupPreview(
+        game.objectId,
+        game.shop
+      );
       setBackupPreview(preview);
     } catch {
       setBackupPreview(null);
@@ -311,17 +312,16 @@ export function GameCloudSettingsTab({
         }
       );
 
-    const removeBackupDownloadProgressListener = (
-      globalThis.window.electron as any
-    ).onBackupDownloadProgress(
-      game.objectId,
-      game.shop,
-      (progressEvent: any) => {
-        if (progressEvent.progress !== undefined) {
-          setBackupDownloadProgress(progressEvent.progress);
+    const removeBackupDownloadProgressListener =
+      globalThis.window.electron.onBackupDownloadProgress(
+        game.objectId,
+        game.shop,
+        (progressEvent) => {
+          if (progressEvent.progress !== undefined) {
+            setBackupDownloadProgress(progressEvent.progress);
+          }
         }
-      }
-    );
+      );
 
     return () => {
       removeUploadCompleteListener();

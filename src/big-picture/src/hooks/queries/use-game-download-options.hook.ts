@@ -234,7 +234,10 @@ export function useGameDownloadOptions(
     const signal = { cancelled: false };
 
     void fetchDownloadOptions(
-      game,
+      {
+        objectId: game.objectId,
+        shop: game.shop,
+      },
       signal,
       {
         setDownloadOptions,

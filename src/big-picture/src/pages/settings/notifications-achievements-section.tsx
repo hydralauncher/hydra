@@ -126,7 +126,7 @@ export function NotificationsAchievementsSection({
         },
       },
     ];
-  }, [form]);
+  }, [form, updateUserPreferences]);
 
   const focusableItems = useMemo(
     () => items.filter((item) => !item.disabled),

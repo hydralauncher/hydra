@@ -100,7 +100,7 @@ export function ContentSettingsSection({
           void updateUserPreferences({ enableSteamAchievements: checked }),
       },
     ];
-  }, [form]);
+  }, [form, updateUserPreferences]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>

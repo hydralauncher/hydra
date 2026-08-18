@@ -418,13 +418,15 @@ const CatalogueFiltersModalList = forwardRef<
   }, [items]);
 
   useEffect(() => {
+    const scrollAnimationFrameId = scrollAnimationFrameRef.current;
+
     return () => {
       if (pendingFrameIdRef.current !== null) {
         globalThis.cancelAnimationFrame(pendingFrameIdRef.current);
       }
 
-      if (scrollAnimationFrameRef.current !== null) {
-        globalThis.cancelAnimationFrame(scrollAnimationFrameRef.current);
+      if (scrollAnimationFrameId !== null) {
+        globalThis.cancelAnimationFrame(scrollAnimationFrameId);
       }
     };
   }, []);
@@ -1027,6 +1029,7 @@ export function CatalogueFiltersModal({
       displayedFilterType,
       displayedItems,
       filtersSearchTerms,
+      handleSelectedListScroll,
       isMainFading,
       removeSelectedFilter,
       selectedFilterItems,

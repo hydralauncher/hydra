@@ -593,16 +593,19 @@ function DownloadGameModalSession({
     [activeStep, transitionPhase]
   );
 
-  const handleNextStep = (option: GameRepack) => {
-    if (isPreparingOptions) {
-      setPendingSelectedOption(option);
-      return;
-    }
+  const handleNextStep = useCallback(
+    (option: GameRepack) => {
+      if (isPreparingOptions) {
+        setPendingSelectedOption(option);
+        return;
+      }
 
-    setPendingSelectedOption(null);
-    setSelectedOption(option);
-    requestStepChange(DownloadGameStep.Options);
-  };
+      setPendingSelectedOption(null);
+      setSelectedOption(option);
+      requestStepChange(DownloadGameStep.Options);
+    },
+    [isPreparingOptions, requestStepChange]
+  );
 
   const handleOnBack = () => {
     if (isntFirstStep) requestStepChange(DownloadGameStep.SourceList);

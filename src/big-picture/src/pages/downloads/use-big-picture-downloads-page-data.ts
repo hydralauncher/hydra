@@ -208,7 +208,7 @@ export function useBigPictureDownloadsPageData() {
   const { t } = useTranslation("big_picture");
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
-  const [renderTick, setRenderTick] = useState(0);
+  const [, setRenderTick] = useState(0);
   const lastPacket = useBigPictureDownloadsStore((state) => state.lastPacket);
   const seedingStatuses = useBigPictureDownloadsStore(
     (state) => state.seedingStatuses
@@ -401,7 +401,6 @@ export function useBigPictureDownloadsPageData() {
     extractionProgressByGameId,
     formatDistance,
     lastPacket,
-    renderTick,
     userPreferences,
   ]);
 
@@ -543,14 +542,7 @@ export function useBigPictureDownloadsPageData() {
         game,
       };
     });
-  }, [
-    completedGames,
-    formatTime,
-    renderTick,
-    seedingStatuses,
-    t,
-    userPreferences,
-  ]);
+  }, [completedGames, formatTime, seedingStatuses, t, userPreferences]);
 
   const hasDownloads = Boolean(
     activeDownload ||
@@ -652,7 +644,7 @@ export function useBigPictureDownloadsPageData() {
         setLastPacket(null);
       }
     },
-    [lastPacket?.gameId]
+    [lastPacket?.gameId, setLastPacket]
   );
 
   const startNow = useCallback(async (game: LibraryGame) => {
@@ -725,7 +717,7 @@ export function useBigPictureDownloadsPageData() {
         game.objectId
       );
     },
-    [lastPacket?.gameId]
+    [lastPacket?.gameId, setLastPacket]
   );
 
   const removeDownload = useCallback(

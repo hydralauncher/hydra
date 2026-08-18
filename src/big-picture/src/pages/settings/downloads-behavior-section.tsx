@@ -126,7 +126,7 @@ export function DownloadsBehaviorSection({
     }
 
     return baseItems;
-  }, [form, isWindows, isLinux]);
+  }, [form, isWindows, isLinux, updateUserPreferences]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>

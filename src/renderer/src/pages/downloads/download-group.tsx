@@ -950,6 +950,8 @@ export function DownloadGroup({
     [
       library,
       lastPacket?.gameId,
+      getFinalDownloadSize,
+      isGameSeeding,
       lastPacket?.download.fileSize,
       isGameDownloadingMap,
       seedingStatus,

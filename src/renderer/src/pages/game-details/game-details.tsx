@@ -165,20 +165,17 @@ export default function GameDetails() {
                 <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
                   {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
 
-                  {!isLoading &&
-                    window.electron.platform === "darwin" && (
-                      <div className="game-details__mac-compatibility-badge">
-                        <MacCompatibilityBadge
-                          shop={shop ?? ""}
-                          objectId={objectId ?? ""}
-                          title={gameTitle ?? ""}
-                          autoCheck
-                          onOpenFullPanel={() =>
-                            setMacCompatibilityOpen(true)
-                          }
-                        />
-                      </div>
-                    )}
+                  {!isLoading && window.electron.platform === "darwin" && (
+                    <div className="game-details__mac-compatibility-badge">
+                      <MacCompatibilityBadge
+                        shop={shop ?? ""}
+                        objectId={objectId ?? ""}
+                        title={gameTitle ?? ""}
+                        autoCheck
+                        onOpenFullPanel={() => setMacCompatibilityOpen(true)}
+                      />
+                    </div>
+                  )}
 
                   {macCompatibilityOpen &&
                     window.electron.platform === "darwin" && (

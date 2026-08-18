@@ -115,7 +115,7 @@ export function NotificationsLibrarySection({
           }),
       },
     ];
-  }, [form]);
+  }, [form, updateUserPreferences]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
