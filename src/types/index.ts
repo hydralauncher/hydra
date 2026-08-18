@@ -387,6 +387,26 @@ export type GameAchievementFiles = {
   [id: string]: AchievementFile[];
 };
 
+export interface AchievementMetadataEntry {
+  description: string;
+  displayName: string;
+  hidden: 0 | 1;
+  icon: string;
+  icongray: string;
+  name: string;
+}
+
+export type GameLauncherStatus =
+  | "generating_achievements"
+  | "downloading_achievement_icons"
+  | "complete";
+
+export interface GameLauncherStatusPayload {
+  gameKey: string;
+  status: GameLauncherStatus;
+  detail: string | null;
+}
+
 export interface AchievementNotificationInfo {
   title: string;
   description?: string;

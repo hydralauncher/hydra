@@ -207,6 +207,72 @@ export class GofileApi {
     return secret;
   }
 
+  private static async discoverWebsiteTokenScriptUrl() {
+    try {
+      const response = await this.fetchWithTimeout(this.websiteUrl, {
+        method: "GET",
+        headers: {
+          "User-Agent": this.userAgent,
+          Accept: "text/html,application/xhtml+xml",
+        },
+      });
+
+      if (!response.ok) {
+        return undefined;
+      }
+
+      const html = await response.text();
+      const match = html.match(
+        /<script[^>]+src=["']([^"']*wt[^"'/]*\.js)["']/i
+      );
+
+      if (!match) {
+        return undefined;
+      }
+
+      const scriptUrl = new URL(match[1], this.websiteUrl);
+      const websiteHostname = new URL(this.websiteUrl).hostname;
+      const isWebsiteHost =
+        scriptUrl.hostname === websiteHostname ||
+        scriptUrl.hostname.endsWith(`.${websiteHostname}`);
+
+      if (scriptUrl.protocol !== "https:" || !isWebsiteHost) {
+        logger.warn(
+          `[Gofile] Ignoring WT script URL outside the Gofile origin: ${scriptUrl.href}`
+        );
+        return undefined;
+      }
+
+      return scriptUrl.href;
+    } catch (error) {
+      logger.warn("[Gofile] Failed to discover WT script URL", error);
+      return undefined;
+    }
+  }
+
+  private static async fetchWebsiteTokenScript(url: string) {
+    const response = await this.fetchWithTimeout(url, {
+      method: "GET",
+      headers: {
+        "User-Agent": this.userAgent,
+        Accept: "application/javascript, text/javascript, */*;q=0.8",
+        Referer: this.websiteUrl,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to load Gofile WT script: ${response.status}`);
+    }
+
+    const script = await response.text();
+
+    if (script.trimStart().startsWith("<")) {
+      throw new Error(`Gofile WT script URL returned markup: ${url}`);
+    }
+
+    return script;
+  }
+
   private static async getWebsiteTokenSecret() {
     if (this.websiteTokenSecret) {
       return this.websiteTokenSecret;
@@ -217,22 +283,33 @@ export class GofileApi {
     }
 
     this.websiteTokenSecretPromise = (async () => {
-      const response = await this.fetchWithTimeout(this.websiteTokenScriptUrl, {
-        method: "GET",
-        headers: {
-          "User-Agent": this.userAgent,
-          Accept: "application/javascript, text/javascript, */*;q=0.8",
-          Referer: "https://gofile.io/",
-        },
-      });
+      const discoveredUrl = await this.discoverWebsiteTokenScriptUrl();
+      const urls = [
+        ...new Set(
+          discoveredUrl
+            ? [discoveredUrl, ...this.websiteTokenScriptUrls]
+            : this.websiteTokenScriptUrls
+        ),
+      ];
 
-      if (!response.ok) {
-        throw new Error(`Failed to load Gofile WT script: ${response.status}`);
+      let lastError: unknown;
+
+      for (const url of urls) {
+        try {
+          const secret = this.extractWebsiteTokenSecret(
+            await this.fetchWebsiteTokenScript(url)
+          );
+          logger.log(`[Gofile] Loaded website token secret from ${url}`);
+          return secret;
+        } catch (error) {
+          lastError = error;
+          logger.warn(`[Gofile] Failed to load WT script from ${url}`, error);
+        }
       }
 
-      const secret = this.extractWebsiteTokenSecret(await response.text());
-      logger.log("[Gofile] Loaded website token secret");
-      return secret;
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Failed to load Gofile WT script");
     })()
       .then((secret) => {
         this.websiteTokenSecret = secret;

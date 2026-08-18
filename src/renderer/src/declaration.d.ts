@@ -73,6 +73,7 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameLauncherStatusPayload,
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
@@ -910,7 +911,7 @@ declare global {
     ) => Promise<NewsArticle[]>;
 
     /* Hardware */
-    getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
+    getDiskFreeSpace: (path: string) => Promise<DiskUsage | null>;
     checkFolderWritePermission: (path: string) => Promise<boolean>;
     getNetworkInterfaces: () => Promise<NetworkInterface[]>;
 
@@ -1061,6 +1062,9 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onPreflightProgress: (
       cb: (value: { status: string; detail: string | null }) => void
+    ) => () => Electron.IpcRenderer;
+    onGameLauncherStatus: (
+      cb: (value: GameLauncherStatusPayload) => void
     ) => () => Electron.IpcRenderer;
     resetCommonRedistPreflight: () => Promise<void>;
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;

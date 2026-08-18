@@ -119,8 +119,8 @@ interface DownloadGameOptionsProps {
 interface DownloadDirectorySuggestion {
   title: string;
   path: string;
-  freeBytes: number;
-  totalBytes: number;
+  freeBytes: number | null;
+  totalBytes: number | null;
 }
 
 function hasActiveLibraryDownload(
@@ -646,19 +646,19 @@ function DownloadGameModalSession({
 
       const suggestions = await Promise.all(
         resolvedDirectories.allPaths.map(async (path) => {
-          let diskUsage: DiskUsage = { free: 0, total: 0 };
+          let diskUsage: DiskUsage | null = null;
 
           try {
             diskUsage = await globalThis.window.electron.getDiskFreeSpace(path);
           } catch {
-            diskUsage = { free: 0, total: 0 };
+            diskUsage = null;
           }
 
           return {
             title: getDownloadDirectoryTitle(path),
             path,
-            freeBytes: diskUsage.free,
-            totalBytes: diskUsage.total,
+            freeBytes: diskUsage?.free ?? null,
+            totalBytes: diskUsage?.total ?? null,
           };
         })
       );
