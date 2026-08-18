@@ -220,6 +220,18 @@
 
   &__game {
     gap: globals.$spacing-unit;
+    min-width: 0;
+  }
+
+  &__game-link {
+    overflow: hidden;
+    color: globals.$body-color;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
   }
 
   &__rarity {

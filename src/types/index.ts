@@ -268,13 +268,10 @@ export interface ProfileAchievement {
   gameTotalAchievementCount: number;
   visibility?: ProfileVisibility;
   gameId: string;
+  objectId: string;
+  shop: GameShop;
   gameTitle: string | null;
   gameIconUrl: string | null;
-  unlockedOn: {
-    hydra: boolean;
-    steam: boolean;
-    retroachievements: boolean;
-  };
   likeCount: number;
   likedByMe: boolean;
 }

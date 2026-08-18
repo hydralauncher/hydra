@@ -12,7 +12,8 @@ import {
 } from "@primer/octicons-react";
 import { TrashIcon } from "lucide-react";
 
-import { ConfirmationModal } from "@renderer/components";
+import { ConfirmationModal, Link } from "@renderer/components";
+import { buildGameDetailsPath } from "@renderer/helpers";
 import { useDate } from "@renderer/hooks";
 import { getSouvenirVisualVariant } from "@shared";
 import type { ProfileAchievement } from "@types";
@@ -110,10 +111,20 @@ function SouvenirImage({
 
 function SouvenirSummary({
   souvenir,
-}: Readonly<{ souvenir: ProfileAchievement }>) {
+  onGameClick,
+}: Readonly<{
+  souvenir: ProfileAchievement;
+  onGameClick: () => void;
+}>) {
   const { t } = useTranslation("user_profile");
   const { formatDateTime } = useDate();
   const visualVariant = getSouvenirVisualVariant(souvenir);
+  const gameTitle = souvenir.gameTitle ?? t("unknown_game");
+  const gamePath = buildGameDetailsPath({
+    shop: souvenir.shop,
+    objectId: souvenir.objectId,
+    title: gameTitle,
+  });
 
   return (
     <div className="profile-souvenir-lightbox__summary">
@@ -155,7 +166,13 @@ function SouvenirSummary({
                 />
               ) : null}
             </span>
-            {souvenir.gameTitle ?? t("unknown_game")}
+            <Link
+              className="profile-souvenir-lightbox__game-link"
+              to={gamePath}
+              onClick={onGameClick}
+            >
+              {gameTitle}
+            </Link>
           </span>
 
           <span
@@ -373,7 +390,7 @@ export function SouvenirLightbox({
             />
 
             <section className="profile-souvenir-lightbox__info">
-              <SouvenirSummary souvenir={souvenir} />
+              <SouvenirSummary souvenir={souvenir} onGameClick={onClose} />
               <SouvenirActions
                 souvenir={souvenir}
                 isOwner={isOwner}
