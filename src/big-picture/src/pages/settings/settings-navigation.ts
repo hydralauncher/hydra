@@ -51,8 +51,8 @@ export const ACCOUNT_PRIVACY_UPDATE_EMAIL_BUTTON_ID =
   "account-privacy-update-email";
 export const ACCOUNT_PRIVACY_UPDATE_PASSWORD_BUTTON_ID =
   "account-privacy-update-password";
-export const ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID =
-  "account-privacy-hydra-cloud";
+export const ACCOUNT_PRIVACY_MEDUSA_CLOUD_BUTTON_ID =
+  "account-privacy-medusa-cloud";
 export const EMULATION_OVERVIEW_REGION_ID = "emulation-overview-region";
 export const EMULATION_DETAIL_REGION_ID = "emulation-detail-region";
 export const EMULATION_DETAIL_EXECUTABLE_REGION_ID =

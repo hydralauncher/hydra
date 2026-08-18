@@ -27,7 +27,7 @@ export class SystemPath {
         }
 
         dialog.showErrorBox(
-          `Hydra was not able to find path for '${pathName}' system folder`,
+          `Medusa was not able to find path for '${pathName}' system folder`,
           `Some functionalities may not work as expected.\nPlease check your system settings.`
         );
       }

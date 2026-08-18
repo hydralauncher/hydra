@@ -40,7 +40,7 @@ interface AchievementSummaryProps {
 function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   const { t } = useTranslation("achievement");
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { showHydraCloudModal } = useSubscription();
+  const { showMedusaCloudModal } = useSubscription();
 
   const getProfileImage = (
     user: Pick<UserInfo, "profileImageUrl" | "displayName">
@@ -68,7 +68,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
           <h3>
             <button
               className="achievements-content__comparison__container__subscription-required-button"
-              onClick={() => showHydraCloudModal("achievements")}
+              onClick={() => showMedusaCloudModal("achievements")}
             >
               {t("subscription_needed")}
             </button>

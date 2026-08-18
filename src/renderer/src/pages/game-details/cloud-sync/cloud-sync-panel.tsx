@@ -50,7 +50,7 @@ export function CloudSyncPanel({
   );
 
   const { t } = useTranslation("game_details");
-  const { t: tHydraCloud } = useTranslation("hydra_cloud");
+  const { t: tMedusaCloud } = useTranslation("hydra_cloud");
   const { formatDate, formatDateTime } = useDate();
   const { formatNumber } = useFormat();
   const { hasActiveSubscription } = useUserDetails();
@@ -192,9 +192,9 @@ export function CloudSyncPanel({
   if (!hasActiveSubscription) {
     return (
       <div className="cloud-sync-panel__upgrade">
-        <p>{tHydraCloud("hydra_cloud_feature_found")}</p>
+        <p>{tMedusaCloud("hydra_cloud_feature_found")}</p>
         <Button onClick={() => window.electron.openCheckout()}>
-          {tHydraCloud("learn_more")}
+          {tMedusaCloud("learn_more")}
         </Button>
       </div>
     );
@@ -219,7 +219,7 @@ export function CloudSyncPanel({
             <div className="cloud-sync-panel__automatic-sync-label">
               {t("enable_automatic_cloud_sync")}
               <span className="cloud-sync-panel__automatic-sync-badge">
-                Hydra Cloud
+                Medusa Cloud
               </span>
             </div>
           }

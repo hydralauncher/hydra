@@ -88,7 +88,7 @@ export function App() {
     clearUserDetails,
   } = useUserDetails();
 
-  const { hideHydraCloudModal, isHydraCloudModalVisible, hydraCloudFeature } =
+  const { hideMedusaCloudModal, isMedusaCloudModalVisible, medusaCloudFeature } =
     useSubscription();
 
   const dispatch = useAppDispatch();
@@ -660,9 +660,9 @@ export function App() {
       />
 
       <CloudSubscriptionModal
-        visible={isHydraCloudModalVisible}
-        onClose={hideHydraCloudModal}
-        feature={hydraCloudFeature || undefined}
+        visible={isMedusaCloudModalVisible}
+        onClose={hideMedusaCloudModal}
+        feature={medusaCloudFeature || undefined}
       />
 
       <ArchiveDeletionModal

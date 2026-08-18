@@ -3,14 +3,14 @@ import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@renderer/components";
-import type { HydraCloudFeature } from "@types";
+import type { MedusaCloudFeature } from "@types";
 import "./cloud-subscription-modal.scss";
 
 export interface CloudSubscriptionModalProps {
   visible: boolean;
   onClose: () => void;
   // Which card the promo highlights. Forwarded to the iframe.
-  feature?: HydraCloudFeature;
+  feature?: MedusaCloudFeature;
 }
 
 export function CloudSubscriptionModal({
@@ -150,7 +150,7 @@ export function CloudSubscriptionModal({
         ) : (
           <iframe
             ref={iframeRef}
-            title="Hydra Cloud"
+            title="Medusa Cloud"
             className="cloud-subscription-modal__iframe"
             src={
               cloudIframeUrl

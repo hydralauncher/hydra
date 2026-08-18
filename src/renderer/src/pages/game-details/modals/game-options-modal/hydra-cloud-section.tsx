@@ -5,7 +5,7 @@ import { platformToSystem } from "@renderer/helpers";
 import { CloudSyncPanel } from "../../cloud-sync/cloud-sync-panel";
 import { GameEmulationSaves } from "../../cloud-sync/game-emulation-saves";
 
-interface HydraCloudLegacySettingsSectionProps {
+interface MedusaCloudLegacySettingsSectionProps {
   game: LibraryGame;
   automaticCloudSync: boolean;
   onToggleAutomaticCloudSync: (
@@ -13,11 +13,11 @@ interface HydraCloudLegacySettingsSectionProps {
   ) => Promise<void>;
 }
 
-export function HydraCloudLegacySettingsSection({
+export function MedusaCloudLegacySettingsSection({
   game,
   automaticCloudSync,
   onToggleAutomaticCloudSync,
-}: Readonly<HydraCloudLegacySettingsSectionProps>) {
+}: Readonly<MedusaCloudLegacySettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
   if (game.shop === "custom") {

@@ -22,7 +22,7 @@ import {
 } from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
-  ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
+  ACCOUNT_PRIVACY_MEDUSA_CLOUD_BUTTON_ID,
   ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
   getAccountPrivacyBlockedUserButtonFocusId,
   SETTINGS_HEADER_RETURN_TARGET,
@@ -48,7 +48,7 @@ function getProfileVisibilityLabel(value: ProfileVisibility) {
   }
 }
 
-function getHydraCloudSectionContent(
+function getMedusaCloudSectionContent(
   hasActiveSubscription: boolean,
   subscription: Subscription | null,
   formatDate: (date: string | Date | number) => string,
@@ -146,8 +146,8 @@ export function AccountPrivacySettingsSection({
     []
   );
 
-  const hydraCloudContent = useMemo(() => {
-    return getHydraCloudSectionContent(
+  const medusaCloudContent = useMemo(() => {
+    return getMedusaCloudSectionContent(
       hasActiveSubscription,
       userDetails?.subscription ?? null,
       formatDate,
@@ -208,7 +208,7 @@ export function AccountPrivacySettingsSection({
         ? getAccountPrivacyBlockedUserButtonFocusId(nextUser.id)
         : previousUser
           ? getAccountPrivacyBlockedUserButtonFocusId(previousUser.id)
-          : ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID;
+          : ACCOUNT_PRIVACY_MEDUSA_CLOUD_BUTTON_ID;
 
       setUnblockingUserId(userId);
 
@@ -225,7 +225,7 @@ export function AccountPrivacySettingsSection({
     [blockedUsers, fetchBlockedUsers, setFocus, unblockUser]
   );
 
-  const hydraCloudButtonOverrides = useMemo<FocusOverrides>(
+  const medusaCloudButtonOverrides = useMemo<FocusOverrides>(
     () => ({
       up: { type: "item", itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID },
       down: blockedUserFocusIds[0]
@@ -253,7 +253,7 @@ export function AccountPrivacySettingsSection({
               ? { type: "item", itemId: previousItem.focusId }
               : {
                   type: "item",
-                  itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
+                  itemId: ACCOUNT_PRIVACY_MEDUSA_CLOUD_BUTTON_ID,
                 },
             down: nextItem
               ? { type: "item", itemId: nextItem.focusId }
@@ -289,7 +289,7 @@ export function AccountPrivacySettingsSection({
               up: SETTINGS_HEADER_RETURN_TARGET,
               down: {
                 type: "item",
-                itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
+                itemId: ACCOUNT_PRIVACY_MEDUSA_CLOUD_BUTTON_ID,
               },
             }}
             onValueChange={(value) => {
@@ -360,12 +360,12 @@ export function AccountPrivacySettingsSection({
       </SettingsSection> */}
 
       <SettingsSection
-        title="Hydra Cloud"
-        description="Check your subscription status and manage your Hydra Cloud plan."
+        title="Medusa Cloud"
+        description="Check your subscription status and manage your Medusa Cloud plan."
       >
         <div className="account-privacy-settings-section__section-content">
           <div className="account-privacy-settings-section__subscription-copy">
-            {hydraCloudContent.description.map((line) => (
+            {medusaCloudContent.description.map((line) => (
               <p
                 key={line}
                 className="account-privacy-settings-section__subscription-line"
@@ -377,13 +377,13 @@ export function AccountPrivacySettingsSection({
 
           <Button
             className="account-privacy-settings-section__cloud-button"
-            focusId={ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID}
-            focusNavigationOverrides={hydraCloudButtonOverrides}
+            focusId={ACCOUNT_PRIVACY_MEDUSA_CLOUD_BUTTON_ID}
+            focusNavigationOverrides={medusaCloudButtonOverrides}
             onClick={() => {
               void globalThis.window.electron.openCheckout();
             }}
           >
-            {hydraCloudContent.callToAction}
+            {medusaCloudContent.callToAction}
           </Button>
         </div>
       </SettingsSection>

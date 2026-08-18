@@ -131,7 +131,7 @@ export function Sidebar() {
     (state) => state.userPreferences.value
   );
 
-  const { showHydraCloudModal } = useSubscription();
+  const { showMedusaCloudModal } = useSubscription();
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
@@ -247,7 +247,7 @@ export function Sidebar() {
               <button
                 type="button"
                 className="subscription-required-button"
-                onClick={() => showHydraCloudModal("achievements")}
+                onClick={() => showMedusaCloudModal("achievements")}
               >
                 <AlertIcon size={14} />
                 <span>{t("achievements_not_sync")}</span>

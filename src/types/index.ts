@@ -12,7 +12,7 @@ import type { ArtworkAssetType } from "./artwork.types";
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
 
-export type HydraCloudFeature =
+export type MedusaCloudFeature =
   | "achievements"
   | "backup"
   | "achievements-points"

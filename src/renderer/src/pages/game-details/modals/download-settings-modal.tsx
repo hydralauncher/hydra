@@ -314,7 +314,7 @@ export function DownloadSettingsModal({
 
   const { isFeatureEnabled, Feature } = useFeature();
   const { hasActiveSubscription } = useUserDetails();
-  const { showHydraCloudModal } = useSubscription();
+  const { showMedusaCloudModal } = useSubscription();
 
   const selectedUri = useMemo(() => {
     if (!repack || selectedDownloader === null) return null;
@@ -1400,8 +1400,8 @@ export function DownloadSettingsModal({
                   ) {
                     return (
                       <div className="download-settings-modal__recommendation-badge">
-                        <span className="download-settings-modal__hydra-cloud-badge">
-                          Hydra Cloud
+                        <span className="download-settings-modal__medusa-cloud-badge">
+                          Medusa Cloud
                         </span>
                       </div>
                     );
@@ -1441,7 +1441,7 @@ export function DownloadSettingsModal({
                           option.downloader === Downloader.VikingFile &&
                           option.isAvailableButNotConfigured
                         ) {
-                          showHydraCloudModal("vikingfile");
+                          showMedusaCloudModal("vikingfile");
                         } else {
                           setSelectedDownloader(option.downloader);
                         }

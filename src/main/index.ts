@@ -1,3 +1,5 @@
+// Must stay the first import in this file — see legacy-identity.ts for why.
+import "./legacy-identity";
 import {
   app,
   BrowserWindow,

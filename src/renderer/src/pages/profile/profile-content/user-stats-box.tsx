@@ -10,7 +10,7 @@ import { Award } from "lucide-react";
 import "./user-stats-box.scss";
 
 export function UserStatsBox() {
-  const { showHydraCloudModal } = useSubscription();
+  const { showMedusaCloudModal } = useSubscription();
   const { userStats, isMe, userProfile } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
   const { t } = useTranslation("user_profile");
@@ -56,7 +56,7 @@ export function UserStatsBox() {
             ) : (
               <button
                 type="button"
-                onClick={() => showHydraCloudModal("achievements")}
+                onClick={() => showMedusaCloudModal("achievements")}
                 className="user-stats__link"
               >
                 <small style={{ color: "var(--color-warning)" }}>
@@ -88,7 +88,7 @@ export function UserStatsBox() {
             ) : (
               <button
                 type="button"
-                onClick={() => showHydraCloudModal("achievements-points")}
+                onClick={() => showMedusaCloudModal("achievements-points")}
                 className="user-stats__link"
               >
                 <small className="user-stats__link--warning">

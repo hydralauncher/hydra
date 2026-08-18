@@ -1,13 +1,13 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { HydraCloudFeature } from "@types";
+import type { MedusaCloudFeature } from "@types";
 
 export interface SubscriptionState {
-  isHydraCloudModalVisible: boolean;
-  feature: HydraCloudFeature | "";
+  isMedusaCloudModalVisible: boolean;
+  feature: MedusaCloudFeature | "";
 }
 
 const initialState: SubscriptionState = {
-  isHydraCloudModalVisible: false,
+  isMedusaCloudModalVisible: false,
   feature: "",
 };
 
@@ -15,18 +15,18 @@ export const subscriptionSlice = createSlice({
   name: "subscription",
   initialState,
   reducers: {
-    setHydraCloudModalVisible: (
+    setMedusaCloudModalVisible: (
       state,
-      action: PayloadAction<HydraCloudFeature>
+      action: PayloadAction<MedusaCloudFeature>
     ) => {
-      state.isHydraCloudModalVisible = true;
+      state.isMedusaCloudModalVisible = true;
       state.feature = action.payload;
     },
-    setHydraCloudModalHidden: (state) => {
-      state.isHydraCloudModalVisible = false;
+    setMedusaCloudModalHidden: (state) => {
+      state.isMedusaCloudModalVisible = false;
     },
   },
 });
 
-export const { setHydraCloudModalVisible, setHydraCloudModalHidden } =
+export const { setMedusaCloudModalVisible, setMedusaCloudModalHidden } =
   subscriptionSlice.actions;

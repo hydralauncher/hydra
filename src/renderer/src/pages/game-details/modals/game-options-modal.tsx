@@ -60,8 +60,8 @@ import { GeneralSettingsSection } from "./game-options-modal/general-section";
 import { CompatibilitySettingsSection } from "./game-options-modal/compatibility-section";
 import { DownloadsSettingsSection } from "./game-options-modal/downloads-section";
 import { DangerZoneSection } from "./game-options-modal/danger-zone-section";
-import { HydraCloudLegacySettingsSection } from "./game-options-modal/hydra-cloud-section";
-import { HydraCloudV2SettingsSection } from "./game-options-modal/hydra-cloud-v2-section";
+import { MedusaCloudLegacySettingsSection } from "./game-options-modal/hydra-cloud-section";
+import { MedusaCloudV2SettingsSection } from "./game-options-modal/hydra-cloud-v2-section";
 import type { GameSettingsCategoryId } from "./game-options-modal/types";
 import { CreateSteamShortcutModal } from "./create-steam-shortcut-modal";
 import {
@@ -239,7 +239,7 @@ export function GameOptionsModal({
   } = useDownload();
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { artifacts } = useContext(cloudSyncContext);
-  const { showHydraCloudModal } = useSubscription();
+  const { showMedusaCloudModal } = useSubscription();
   const cloudSaveAccessAction = getCloudSaveAccessAction(
     Boolean(userDetails),
     hasActiveSubscription
@@ -946,14 +946,14 @@ export function GameOptionsModal({
       isRequestedCloudCategoryAvailable &&
       cloudSaveAccessAction === "paywall"
     ) {
-      showHydraCloudModal("backup");
+      showMedusaCloudModal("backup");
     }
   }, [
     cloudSaveAccessAction,
     initialCategory,
     showCloudSaveV2Settings,
     showLegacyCloudSaveSettings,
-    showHydraCloudModal,
+    showMedusaCloudModal,
     visible,
   ]);
 
@@ -987,7 +987,7 @@ export function GameOptionsModal({
       cloudSaveAccessAction !== "open"
     ) {
       if (cloudSaveAccessAction === "paywall") {
-        showHydraCloudModal("backup");
+        showMedusaCloudModal("backup");
       }
       return;
     }
@@ -1212,14 +1212,14 @@ export function GameOptionsModal({
               />
             )}
             {selectedCategory === "hydra_cloud" && showCloudSaveV2Settings && (
-              <HydraCloudV2SettingsSection
+              <MedusaCloudV2SettingsSection
                 onSelectExecutable={() => setSelectedCategory("locations")}
               />
             )}
             {selectedCategory === "hydra_cloud_legacy" &&
               showLegacyCloudSaveSettings &&
               legacyPurpose === "active" && (
-                <HydraCloudLegacySettingsSection
+                <MedusaCloudLegacySettingsSection
                   game={game}
                   automaticCloudSync={automaticCloudSync}
                   onToggleAutomaticCloudSync={handleToggleAutomaticCloudSync}

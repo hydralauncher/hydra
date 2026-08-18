@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 import { logger, HydraApi } from "@main/services";
-import { HYDRA_DECKY_PLUGIN_LOCATION } from "@main/constants";
+import { DECKY_PLUGIN_LOCATION } from "@main/constants";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -33,12 +33,12 @@ const getHydraDeckyPluginInfo = async (
     }
 
     // Check if plugin folder exists
-    if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
-      logger.log("Hydra Decky plugin not installed");
+    if (!fs.existsSync(DECKY_PLUGIN_LOCATION)) {
+      logger.log("Medusa Decky plugin not installed");
       return {
         installed: false,
         version: null,
-        path: HYDRA_DECKY_PLUGIN_LOCATION,
+        path: DECKY_PLUGIN_LOCATION,
         outdated: true,
         expectedVersion,
       };
@@ -46,16 +46,16 @@ const getHydraDeckyPluginInfo = async (
 
     // Check if package.json exists
     const packageJsonPath = path.join(
-      HYDRA_DECKY_PLUGIN_LOCATION,
+      DECKY_PLUGIN_LOCATION,
       "package.json"
     );
 
     if (!fs.existsSync(packageJsonPath)) {
-      logger.log("Hydra Decky plugin package.json not found");
+      logger.log("Medusa Decky plugin package.json not found");
       return {
         installed: false,
         version: null,
-        path: HYDRA_DECKY_PLUGIN_LOCATION,
+        path: DECKY_PLUGIN_LOCATION,
         outdated: true,
         expectedVersion,
       };
@@ -69,13 +69,13 @@ const getHydraDeckyPluginInfo = async (
     const outdated = expectedVersion ? version !== expectedVersion : false;
 
     logger.log(
-      `Hydra Decky plugin installed, version: ${version}, expected: ${expectedVersion}, outdated: ${outdated}`
+      `Medusa Decky plugin installed, version: ${version}, expected: ${expectedVersion}, outdated: ${outdated}`
     );
 
     return {
       installed: true,
       version,
-      path: HYDRA_DECKY_PLUGIN_LOCATION,
+      path: DECKY_PLUGIN_LOCATION,
       outdated,
       expectedVersion,
     };
@@ -84,7 +84,7 @@ const getHydraDeckyPluginInfo = async (
     return {
       installed: false,
       version: null,
-      path: HYDRA_DECKY_PLUGIN_LOCATION,
+      path: DECKY_PLUGIN_LOCATION,
       outdated: true,
       expectedVersion: null,
     };

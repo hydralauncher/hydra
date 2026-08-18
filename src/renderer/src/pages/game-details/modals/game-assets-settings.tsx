@@ -216,7 +216,7 @@ export function GameAssetsSettings({
   const { t: tProfile } = useTranslation("user_profile");
   const { showSuccessToast, showErrorToast } = useToast();
   const { hasActiveSubscription } = useUserDetails();
-  const { showHydraCloudModal } = useSubscription();
+  const { showMedusaCloudModal } = useSubscription();
   const navigate = useNavigate();
   const classicsUseHeroLayout =
     useAppSelector(
@@ -1251,7 +1251,7 @@ export function GameAssetsSettings({
           <button
             type="button"
             className="subscription-required-button"
-            onClick={() => showHydraCloudModal("customization")}
+            onClick={() => showMedusaCloudModal("customization")}
           >
             <AlertIcon size={14} />
             <span>{t("custom_assets_not_sync")}</span>

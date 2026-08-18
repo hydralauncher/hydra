@@ -17,7 +17,7 @@ import type {
  * bytes are PUT/GET directly against the short-lived presigned URLs with
  * `axios`. Direct (non-barrel) service imports avoid a services/emulators cycle.
  *
- * Every call requires an active Hydra Cloud subscription.
+ * Every call requires an active Medusa Cloud subscription.
  */
 
 const SUB = { needsAuth: true, needsSubscription: true } as const;

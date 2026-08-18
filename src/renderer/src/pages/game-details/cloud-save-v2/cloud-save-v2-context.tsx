@@ -147,7 +147,7 @@ export function CloudSaveV2Provider({
   const { t } = useTranslation("game_details");
   const [searchParams, setSearchParams] = useSearchParams();
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { showHydraCloudModal } = useSubscription();
+  const { showMedusaCloudModal } = useSubscription();
   const { showErrorToast, showSuccessToast, showWarningToast } = useToast();
   const {
     game,
@@ -282,7 +282,7 @@ export function CloudSaveV2Provider({
       return;
     }
     if (cloudSaveAccessAction === "paywall") {
-      showHydraCloudModal("backup");
+      showMedusaCloudModal("backup");
       return;
     }
 
@@ -294,7 +294,7 @@ export function CloudSaveV2Provider({
     searchParams,
     setSearchParams,
     shop,
-    showHydraCloudModal,
+    showMedusaCloudModal,
   ]);
 
   useEffect(() => {
@@ -450,12 +450,12 @@ export function CloudSaveV2Provider({
       return;
     }
     if (cloudSaveAccessAction === "paywall") {
-      showHydraCloudModal("backup");
+      showMedusaCloudModal("backup");
       return;
     }
     setWasOpenedFromLaunchConflict(false);
     setIsModalVisible(true);
-  }, [cloudSaveAccessAction, showHydraCloudModal]);
+  }, [cloudSaveAccessAction, showMedusaCloudModal]);
 
   const handleSelectExecutable = () => {
     setIsModalVisible(false);
@@ -597,7 +597,7 @@ export function CloudSaveV2Provider({
         if (cloudSaveAccessAction === "sign-in") {
           window.electron.openAuthWindow(AuthPage.SignIn);
         } else {
-          showHydraCloudModal("backup");
+          showMedusaCloudModal("backup");
         }
         throw new Error("Cloud Saves require an active subscription");
       }
@@ -622,7 +622,7 @@ export function CloudSaveV2Provider({
       refresh,
       shop,
       showErrorToast,
-      showHydraCloudModal,
+      showMedusaCloudModal,
       t,
     ]
   );
@@ -856,9 +856,9 @@ export function CloudSaveV2Provider({
     } else if (cloudSaveAccessAction === "sign-in") {
       window.electron.openAuthWindow(AuthPage.SignIn);
     } else {
-      showHydraCloudModal("backup");
+      showMedusaCloudModal("backup");
     }
-  }, [cloudSaveAccessAction, showHydraCloudModal]);
+  }, [cloudSaveAccessAction, showMedusaCloudModal]);
   const value = useMemo<CloudSaveV2ContextValue>(
     () => ({
       overview,

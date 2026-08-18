@@ -1,33 +1,33 @@
 import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "./redux";
 import {
-  setHydraCloudModalVisible,
-  setHydraCloudModalHidden,
+  setMedusaCloudModalVisible,
+  setMedusaCloudModalHidden,
 } from "@renderer/features";
-import { HydraCloudFeature } from "@types";
+import { MedusaCloudFeature } from "@types";
 
 export function useSubscription() {
   const dispatch = useAppDispatch();
 
-  const { isHydraCloudModalVisible, feature } = useAppSelector(
+  const { isMedusaCloudModalVisible, feature } = useAppSelector(
     (state) => state.subscription
   );
 
-  const showHydraCloudModal = useCallback(
-    (feature: HydraCloudFeature) => {
-      dispatch(setHydraCloudModalVisible(feature));
+  const showMedusaCloudModal = useCallback(
+    (feature: MedusaCloudFeature) => {
+      dispatch(setMedusaCloudModalVisible(feature));
     },
     [dispatch]
   );
 
-  const hideHydraCloudModal = useCallback(() => {
-    dispatch(setHydraCloudModalHidden());
+  const hideMedusaCloudModal = useCallback(() => {
+    dispatch(setMedusaCloudModalHidden());
   }, [dispatch]);
 
   return {
-    isHydraCloudModalVisible,
-    hydraCloudFeature: feature,
-    showHydraCloudModal,
-    hideHydraCloudModal,
+    isMedusaCloudModalVisible,
+    medusaCloudFeature: feature,
+    showMedusaCloudModal,
+    hideMedusaCloudModal,
   };
 }

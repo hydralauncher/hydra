@@ -1068,7 +1068,7 @@ export class WindowManager {
       tray.popUpContextMenu(contextMenu);
     };
 
-    tray.setToolTip("Hydra Launcher");
+    tray.setToolTip("Medusa");
 
     if (process.platform === "win32") {
       await updateSystemTray();

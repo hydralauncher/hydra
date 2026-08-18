@@ -12,7 +12,7 @@ export interface AchievementPanelProps {
 export function AchievementPanel({ achievements }: AchievementPanelProps) {
   const { t } = useTranslation("achievement");
   const { hasActiveSubscription } = useUserDetails();
-  const { showHydraCloudModal } = useSubscription();
+  const { showMedusaCloudModal } = useSubscription();
 
   const achievementsPointsTotal = achievements.reduce(
     (acc, achievement) => acc + (achievement.points ?? 0),
@@ -35,7 +35,7 @@ export function AchievementPanel({ achievements }: AchievementPanelProps) {
         </div>
         <button
           type="button"
-          onClick={() => showHydraCloudModal("achievements-points")}
+          onClick={() => showMedusaCloudModal("achievements-points")}
           className="achievement-panel__link"
         >
           <small className="achievement-panel__link--warning">

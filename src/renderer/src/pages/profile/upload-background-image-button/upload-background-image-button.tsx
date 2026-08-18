@@ -17,7 +17,7 @@ export function UploadBackgroundImageButton() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [showRemoveBannerModal, setShowRemoveBannerModal] = useState(false);
-  const { showHydraCloudModal } = useSubscription();
+  const { showMedusaCloudModal } = useSubscription();
   const [bannerImageToCrop, setBannerImageToCrop] = useState<string | null>(
     null
   );
@@ -156,7 +156,7 @@ export function UploadBackgroundImageButton() {
         <Button
           theme="outline"
           className="upload-background-image-button"
-          onClick={() => showHydraCloudModal("customization")}
+          onClick={() => showMedusaCloudModal("customization")}
         >
           <UploadIcon />
           {t("upload_banner")}

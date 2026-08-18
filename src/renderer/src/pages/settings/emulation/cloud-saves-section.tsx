@@ -39,10 +39,10 @@ interface Props {
 
 export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
   const { t } = useTranslation("settings");
-  const { t: tHydraCloud } = useTranslation("hydra_cloud");
+  const { t: tMedusaCloud } = useTranslation("hydra_cloud");
   const { showSuccessToast } = useToast();
   const { hasActiveSubscription } = useUserDetails();
-  const { showHydraCloudModal } = useSubscription();
+  const { showMedusaCloudModal } = useSubscription();
   const platform = config.system as EmulationSavePlatform;
 
   const [saves, setSaves] = useState<EmulationCloudSave[]>([]);
@@ -122,14 +122,14 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
               <LockIcon size={24} />
             </span>
             <p className="emulator-detail__cloud-locked-title">
-              {tHydraCloud("hydra_cloud_feature_found")}
+              {tMedusaCloud("hydra_cloud_feature_found")}
             </p>
             <Button
               theme="outline"
-              onClick={() => showHydraCloudModal("backup")}
+              onClick={() => showMedusaCloudModal("backup")}
             >
               <HydraIcon className="emulator-detail__cloud-locked-hydra" />
-              <span>{tHydraCloud("learn_more")}</span>
+              <span>{tMedusaCloud("learn_more")}</span>
             </Button>
           </div>
         </div>

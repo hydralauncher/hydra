@@ -60,7 +60,18 @@ export const DECKY_PLUGINS_LOCATION = path.join(
   "plugins"
 );
 
-export const HYDRA_DECKY_PLUGIN_LOCATION = path.join(
+export const DECKY_PLUGIN_LOCATION = path.join(
+  DECKY_PLUGINS_LOCATION,
+  "Medusa"
+);
+
+/**
+ * The plugin folder name used before the Hydra -> Medusa rename. Existing
+ * Steam Deck installs have their plugin here; see
+ * DeckyPlugin.migrateLegacyPluginFolder(), which renames this to the new
+ * location in place rather than requiring a fresh download.
+ */
+export const LEGACY_HYDRA_DECKY_PLUGIN_LOCATION = path.join(
   DECKY_PLUGINS_LOCATION,
   "Hydra"
 );

@@ -92,7 +92,7 @@ export function SettingsAccount() {
     [unblockUser, fetchBlockedUsers, t, showSuccessToast]
   );
 
-  const getHydraCloudSectionContent = () => {
+  const getMedusaCloudSectionContent = () => {
     const hasSubscribedBefore = Boolean(userDetails?.subscription?.expiresAt);
     const isRenewalActive = userDetails?.subscription?.status === "active";
 
@@ -206,7 +206,7 @@ export function SettingsAccount() {
       <section className="settings-account__section">
         <h3>{t("hydra_cloud")}</h3>
         <div className="settings-account__subscription-info">
-          {getHydraCloudSectionContent().description}
+          {getMedusaCloudSectionContent().description}
         </div>
 
         <Button
@@ -215,7 +215,7 @@ export function SettingsAccount() {
           onClick={() => window.electron.openCheckout()}
         >
           <CloudIcon />
-          {getHydraCloudSectionContent().callToAction}
+          {getMedusaCloudSectionContent().callToAction}
         </Button>
       </section>
 

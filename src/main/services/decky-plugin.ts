@@ -5,7 +5,8 @@ import axios from "axios";
 import sudo from "sudo-prompt";
 import { app } from "electron";
 import {
-  HYDRA_DECKY_PLUGIN_LOCATION,
+  DECKY_PLUGIN_LOCATION,
+  LEGACY_HYDRA_DECKY_PLUGIN_LOCATION,
   DECKY_PLUGINS_LOCATION,
 } from "@main/constants";
 import { logger } from "./logger";
@@ -20,6 +21,32 @@ interface DeckyReleaseInfo {
 
 export class DeckyPlugin {
   private static releaseInfo: DeckyReleaseInfo | null = null;
+
+  /**
+   * Existing Steam Deck installs have the plugin at the old "Hydra"
+   * folder name. Rather than require a fresh download after the
+   * Medusa rename, this renames that folder in place the first time
+   * it's found. A plain rename (not copy+delete) so it's fast and
+   * atomic on the same filesystem, which this always is since both
+   * paths live under DECKY_PLUGINS_LOCATION.
+   *
+   * Safe to call unconditionally: does nothing if there's no legacy
+   * folder, or if the new folder already exists (migration already
+   * happened, or this is a fresh install).
+   */
+  private static migrateLegacyPluginFolder(): void {
+    if (fs.existsSync(DECKY_PLUGIN_LOCATION)) return;
+    if (!fs.existsSync(LEGACY_HYDRA_DECKY_PLUGIN_LOCATION)) return;
+
+    try {
+      fs.renameSync(LEGACY_HYDRA_DECKY_PLUGIN_LOCATION, DECKY_PLUGIN_LOCATION);
+      logger.log(
+        "Migrated Decky plugin folder from legacy Hydra location to Medusa"
+      );
+    } catch (error) {
+      logger.error("Failed to migrate legacy Decky plugin folder:", error);
+    }
+  }
 
   private static async getDeckyReleaseInfo(): Promise<DeckyReleaseInfo> {
     if (this.releaseInfo) {
@@ -42,15 +69,15 @@ export class DeckyPlugin {
   }
 
   private static getPackageJsonPath(): string {
-    return path.join(HYDRA_DECKY_PLUGIN_LOCATION, "package.json");
+    return path.join(DECKY_PLUGIN_LOCATION, "package.json");
   }
 
   private static async downloadPlugin(): Promise<string> {
-    logger.log("Downloading Hydra Decky plugin...");
+    logger.log("Downloading Medusa Decky plugin...");
 
     const releaseInfo = await this.getDeckyReleaseInfo();
     const tempDir = SystemPath.getPath("temp");
-    const zipPath = path.join(tempDir, "Hydra.zip");
+    const zipPath = path.join(tempDir, "Medusa.zip");
 
     const response = await axios.get(releaseInfo.downloadUrl, {
       responseType: "arraybuffer",
@@ -63,7 +90,7 @@ export class DeckyPlugin {
   }
 
   private static async extractPlugin(zipPath: string): Promise<string> {
-    logger.log("Extracting Hydra Decky plugin...");
+    logger.log("Extracting Medusa Decky plugin...");
 
     const tempDir = SystemPath.getPath("temp");
     const extractPath = path.join(tempDir, "hydra-decky-plugin");
@@ -122,7 +149,7 @@ export class DeckyPlugin {
     const sourcePath = path.join(extractPath, "Hydra");
 
     return new Promise((resolve, reject) => {
-      const command = `mkdir -p "${DECKY_PLUGINS_LOCATION}" && rm -rf "${HYDRA_DECKY_PLUGIN_LOCATION}" && cp -r "${sourcePath}" "${HYDRA_DECKY_PLUGIN_LOCATION}" && chown -R ${username}: "${DECKY_PLUGINS_LOCATION}"`;
+      const command = `mkdir -p "${DECKY_PLUGINS_LOCATION}" && rm -rf "${DECKY_PLUGIN_LOCATION}" && cp -r "${sourcePath}" "${DECKY_PLUGIN_LOCATION}" && chown -R ${username}: "${DECKY_PLUGINS_LOCATION}"`;
 
       sudo.exec(
         command,
@@ -154,14 +181,14 @@ export class DeckyPlugin {
       await fs.promises.mkdir(DECKY_PLUGINS_LOCATION, { recursive: true });
     }
 
-    if (fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
-      await fs.promises.rm(HYDRA_DECKY_PLUGIN_LOCATION, {
+    if (fs.existsSync(DECKY_PLUGIN_LOCATION)) {
+      await fs.promises.rm(DECKY_PLUGIN_LOCATION, {
         recursive: true,
         force: true,
       });
     }
 
-    await fs.promises.cp(sourcePath, HYDRA_DECKY_PLUGIN_LOCATION, {
+    await fs.promises.cp(sourcePath, DECKY_PLUGIN_LOCATION, {
       recursive: true,
     });
 
@@ -214,8 +241,10 @@ export class DeckyPlugin {
   }
 
   public static async checkAndUpdateIfOutdated(): Promise<void> {
-    if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
-      logger.log("Hydra Decky plugin not installed, skipping update check");
+    this.migrateLegacyPluginFolder();
+
+    if (!fs.existsSync(DECKY_PLUGIN_LOCATION)) {
+      logger.log("Medusa Decky plugin not installed, skipping update check");
       return;
     }
 
@@ -224,7 +253,7 @@ export class DeckyPlugin {
     try {
       if (!fs.existsSync(packageJsonPath)) {
         logger.log(
-          "Hydra Decky plugin package.json not found, skipping update"
+          "Medusa Decky plugin package.json not found, skipping update"
         );
         return;
       }
@@ -237,16 +266,16 @@ export class DeckyPlugin {
 
       if (isOutdated) {
         logger.log(
-          `Hydra Decky plugin is outdated. Current: ${currentVersion}, Expected: ${releaseInfo.version}. Updating...`
+          `Medusa Decky plugin is outdated. Current: ${currentVersion}, Expected: ${releaseInfo.version}. Updating...`
         );
 
         await this.updatePlugin();
-        logger.log("Hydra Decky plugin updated successfully");
+        logger.log("Medusa Decky plugin updated successfully");
       } else {
-        logger.log(`Hydra Decky plugin is up to date (${currentVersion})`);
+        logger.log(`Medusa Decky plugin is up to date (${currentVersion})`);
       }
     } catch (error) {
-      logger.error(`Error checking/updating Hydra Decky plugin: ${error}`);
+      logger.error(`Error checking/updating Medusa Decky plugin: ${error}`);
     }
   }
 
@@ -259,8 +288,8 @@ export class DeckyPlugin {
     try {
       const releaseInfo = await this.getDeckyReleaseInfo();
 
-      if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
-        logger.log("Hydra Decky plugin folder not found, installing...");
+      if (!fs.existsSync(DECKY_PLUGIN_LOCATION)) {
+        logger.log("Medusa Decky plugin folder not found, installing...");
 
         try {
           await this.updatePlugin();
@@ -303,7 +332,7 @@ export class DeckyPlugin {
       try {
         if (!fs.existsSync(packageJsonPath)) {
           logger.log(
-            "Hydra Decky plugin package.json not found, installing..."
+            "Medusa Decky plugin package.json not found, installing..."
           );
 
           await this.updatePlugin();
@@ -338,7 +367,7 @@ export class DeckyPlugin {
 
         if (isOutdated) {
           logger.log(
-            `Hydra Decky plugin is outdated. Current: ${currentVersion}, Expected: ${releaseInfo.version}`
+            `Medusa Decky plugin is outdated. Current: ${currentVersion}, Expected: ${releaseInfo.version}`
           );
 
           await this.updatePlugin();
@@ -364,7 +393,7 @@ export class DeckyPlugin {
             expectedVersion: releaseInfo.version,
           };
         } else {
-          logger.log(`Hydra Decky plugin is up to date (${currentVersion})`);
+          logger.log(`Medusa Decky plugin is up to date (${currentVersion})`);
         }
 
         return {
@@ -374,7 +403,7 @@ export class DeckyPlugin {
           expectedVersion: releaseInfo.version,
         };
       } catch (error) {
-        logger.error(`Error checking Hydra Decky plugin version: ${error}`);
+        logger.error(`Error checking Medusa Decky plugin version: ${error}`);
         return {
           exists: false,
           outdated: true,
