@@ -1,5 +1,6 @@
 import { BrowserWindow, desktopCapturer, nativeImage } from "electron";
 import type { UserPreferences } from "@types";
+import capturePagePath from "@resources/linux-game-capture.html?asset";
 
 import { db, levelKeys } from "@main/level";
 import { HydraApi } from "./hydra-api";
@@ -13,10 +14,6 @@ interface CaptureSessionRegistration {
 }
 
 const sessions = new Map<string, CaptureSessionRegistration>();
-
-const CAPTURE_PAGE = `data:text/html;charset=utf-8,${encodeURIComponent(
-  "<!doctype html><html><body><video autoplay muted playsinline></video></body></html>"
-)}`;
 
 export const isWaylandSession = () =>
   process.platform === "linux" &&
@@ -48,11 +45,14 @@ const createCaptureWindow = async (sourceId: string) => {
 
   try {
     captureWindow.setSkipTaskbar(true);
-    await captureWindow.loadURL(CAPTURE_PAGE);
+    await captureWindow.loadFile(capturePagePath);
 
     const serializedSourceId = JSON.stringify(sourceId);
     await captureWindow.webContents.executeJavaScript(`
       (async () => {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("MediaDevices is unavailable in the Wayland capture page");
+        }
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
@@ -132,6 +132,7 @@ export const prepareLinuxGameCaptureSession = async (gameKey: string) => {
     }
 
     registration.window = captureWindow;
+    logger.info("Wayland game-window capture was prepared", { gameKey });
     registration.subscriptionTimer = setInterval(() => {
       if (!HydraApi.hasActiveSubscription()) {
         stopLinuxGameCaptureSession(gameKey);
