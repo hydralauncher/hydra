@@ -14,9 +14,7 @@ export const isWindowsGameForegroundProcess = (
   launchedProcessId: number | undefined,
   executablePaths: string[]
 ) => {
-  if (launchedProcessId !== undefined) {
-    return foregroundProcessId === launchedProcessId;
-  }
+  if (foregroundProcessId === launchedProcessId) return true;
 
   const foregroundProcess = processes.find(
     (candidate) => candidate.pid === foregroundProcessId
@@ -30,5 +28,25 @@ export const isWindowsGameForegroundProcess = (
   return executablePaths.some(
     (executablePath) =>
       normalizeWindowsExecutablePath(executablePath) === foregroundExecutable
+  );
+};
+
+const normalizeWindowsHandle = (value: string) => {
+  try {
+    return BigInt(value).toString();
+  } catch {
+    return null;
+  }
+};
+
+export const isWindowsWindowSource = (
+  sourceId: string,
+  windowHandle: string
+) => {
+  const match = /^window:([^:]+):/.exec(sourceId);
+
+  return (
+    match !== null &&
+    normalizeWindowsHandle(match[1]) === normalizeWindowsHandle(windowHandle)
   );
 };

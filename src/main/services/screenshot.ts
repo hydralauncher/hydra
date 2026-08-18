@@ -13,13 +13,18 @@ import {
   captureLinuxGameSessionFrame,
   isWaylandSession,
 } from "./linux-game-capture-session";
-import { isWindowsGameForegroundProcess } from "./windows-game-window-match";
-import type { ProcessPayload } from "./download/types";
+import {
+  isWindowsGameForegroundProcess,
+  isWindowsWindowSource,
+} from "./windows-game-window-match";
+import { captureWindowsGameWindowFrame } from "./windows-game-capture";
 
 const SCREENSHOT_QUALITY = 80;
 const SCREENSHOT_EXTENSION = "jpeg";
 const CAPTURE_THUMBNAIL_SIZE = { width: 3840, height: 2160 };
 const MAX_STORED_SCREENSHOTS = 50;
+const WINDOWS_SOURCE_RESOLUTION_ATTEMPTS = 3;
+const WINDOWS_SOURCE_RETRY_DELAY_MS = 100;
 const execFileAsync = promisify(execFile);
 
 const resizeToFit = (image: Electron.NativeImage) => {
@@ -39,6 +44,7 @@ const resizeToFit = (image: Electron.NativeImage) => {
 interface ForegroundWindow {
   processId: number;
   title: string;
+  windowHandle?: string;
 }
 
 export interface GameScreenshotCaptureTarget {
@@ -57,6 +63,7 @@ const getForegroundWindow = async (): Promise<ForegroundWindow | null> => {
         "$processId = 0",
         "[void][HydraForegroundWindow]::GetWindowThreadProcessId($handle, [ref]$processId)",
         "$process = Get-Process -Id $processId -ErrorAction Stop",
+        "Write-Output $handle.ToInt64()",
         "Write-Output $processId",
         "Write-Output $process.MainWindowTitle",
       ].join("; ");
@@ -66,11 +73,14 @@ const getForegroundWindow = async (): Promise<ForegroundWindow | null> => {
         "-Command",
         script,
       ]);
-      const [processId, ...titleParts] = stdout.trim().split(/\r?\n/);
+      const [windowHandle, processId, ...titleParts] = stdout
+        .trim()
+        .split(/\r?\n/);
 
       return {
         processId: Number(processId),
         title: titleParts.join(" ").trim(),
+        windowHandle,
       };
     }
 
@@ -129,11 +139,101 @@ const getX11GameWindowSource = async (
   return source;
 };
 
+const resolveWindowsGameWindowSource = async (
+  captureTarget: GameScreenshotCaptureTarget
+) => {
+  const foregroundWindow = await getForegroundWindow();
+
+  if (
+    !foregroundWindow ||
+    !Number.isFinite(foregroundWindow.processId) ||
+    !foregroundWindow.windowHandle
+  ) {
+    throw new Error("Could not identify the foreground game window");
+  }
+
+  const windowHandle = foregroundWindow.windowHandle;
+  const processes = await NativeAddon.listProcesses();
+  const belongsToGame = isWindowsGameForegroundProcess(
+    processes,
+    foregroundWindow.processId,
+    captureTarget.processId,
+    captureTarget.executablePaths ?? []
+  );
+
+  if (!belongsToGame) {
+    logger.warn("Windows game capture rejected the foreground process", {
+      foregroundProcessId: foregroundWindow.processId,
+      launchedProcessId: captureTarget.processId,
+      windowHandle,
+    });
+    throw new Error("Tracked game does not own the foreground window");
+  }
+
+  const sources = await desktopCapturer.getSources({
+    types: ["window"],
+    thumbnailSize: { width: 0, height: 0 },
+  });
+  const source = sources.find((candidate) =>
+    isWindowsWindowSource(candidate.id, windowHandle)
+  );
+
+  if (!source) {
+    logger.warn(
+      "Windows game capture could not resolve the foreground source",
+      {
+        foregroundProcessId: foregroundWindow.processId,
+        windowHandle,
+        sourceCount: sources.length,
+      }
+    );
+    throw new Error("Could not identify the foreground game window");
+  }
+
+  logger.info("Windows game capture source resolved", {
+    foregroundProcessId: foregroundWindow.processId,
+    windowHandle,
+    sourceId: source.id,
+  });
+
+  return source;
+};
+
+const getWindowsGameWindowSource = async (
+  captureTarget: GameScreenshotCaptureTarget
+) => {
+  let lastError: unknown;
+
+  for (
+    let attempt = 1;
+    attempt <= WINDOWS_SOURCE_RESOLUTION_ATTEMPTS;
+    attempt++
+  ) {
+    try {
+      return await resolveWindowsGameWindowSource(captureTarget);
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < WINDOWS_SOURCE_RESOLUTION_ATTEMPTS) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, WINDOWS_SOURCE_RETRY_DELAY_MS);
+        });
+      }
+    }
+  }
+
+  throw lastError;
+};
+
 const getGameWindowSource = async (
   captureTarget: GameScreenshotCaptureTarget
 ) => {
   if (process.platform === "linux") {
     return getX11GameWindowSource(captureTarget);
+  }
+
+  if (process.platform === "win32") {
+    return getWindowsGameWindowSource(captureTarget);
   }
 
   const foregroundWindow = await getForegroundWindow();
@@ -143,22 +243,9 @@ const getGameWindowSource = async (
   }
 
   const expectedProcessId = captureTarget.processId;
-  let windowsProcesses: ProcessPayload[] = [];
-
-  if (process.platform === "win32" && expectedProcessId === undefined) {
-    windowsProcesses = await NativeAddon.listProcesses();
-  }
-
   const belongsToGame =
-    process.platform === "win32"
-      ? isWindowsGameForegroundProcess(
-          windowsProcesses,
-          foregroundWindow.processId,
-          expectedProcessId,
-          captureTarget.executablePaths ?? []
-        )
-      : expectedProcessId !== undefined &&
-        foregroundWindow.processId === expectedProcessId;
+    expectedProcessId !== undefined &&
+    foregroundWindow.processId === expectedProcessId;
 
   if (!belongsToGame) {
     throw new Error("Tracked game does not own the foreground window");
@@ -222,6 +309,9 @@ export class ScreenshotService {
       }
 
       capturedImage = await captureLinuxGameSessionFrame(captureTarget.gameKey);
+    } else if (process.platform === "win32") {
+      const source = await getGameWindowSource(captureTarget);
+      capturedImage = await captureWindowsGameWindowFrame(source.id);
     } else {
       capturedImage = (await getGameWindowSource(captureTarget)).thumbnail;
     }
