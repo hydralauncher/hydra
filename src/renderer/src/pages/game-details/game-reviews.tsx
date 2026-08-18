@@ -11,6 +11,7 @@ import { ReviewSortOptions } from "./review-sort-options";
 import { ReviewPromptBanner } from "./review-prompt-banner";
 import "./game-reviews.scss";
 import { useToast } from "@renderer/hooks";
+import { recordGameReviewedForXp } from "@renderer/hooks/use-user-level";
 
 type ReviewSortOption =
   | "newest"
@@ -333,6 +334,7 @@ export function GameReviews({
       editor?.commands.clearContent();
       setReviewScore(null);
       showSuccessToast(t("review_submitted_successfully"));
+      recordGameReviewedForXp(shop, objectId);
 
       await loadReviews(true);
       setShowReviewForm(false);

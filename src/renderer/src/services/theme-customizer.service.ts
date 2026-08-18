@@ -145,9 +145,10 @@ function buildCSS(c: CustomThemeConfig): string {
     backdrop-filter: ${btnBlur} !important;
     -webkit-backdrop-filter: ${btnBlur} !important;`;
 
-  // Bloco de menu flutuante (blur mínimo 12px para legibilidade)
+  // Bloco de menu flutuante (blur mínimo 12px para legibilidade, raio proporcional a cards/modais máx 14px)
+  const menuRadius = Math.min(Math.max(ca.borderRadius, 6), 14);
   const mp = `
-    border-radius: ${b.borderRadius}px !important;
+    border-radius: ${menuRadius}px !important;
     border: ${btnBorder} !important;
     background: ${btnBg} !important;
     backdrop-filter: blur(${Math.max(b.blur, 12)}px) !important;
@@ -166,8 +167,9 @@ function buildCSS(c: CustomThemeConfig): string {
 
   /* ── Modal ───────────────────────────────────────────── */
   ${r} .modal {
-    border-radius: ${g.borderRadius}px !important;
-    border: ${btnBorder} !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
   }
 
   /* ── Componente Button: shape para todos ────────────────── */
@@ -191,14 +193,16 @@ function buildCSS(c: CustomThemeConfig): string {
   /* ── Header: botão voltar folder ─────────────────────── */
   ${r} .header__folder-back-button { ${np} }
 
-  /* ── Header: tab inativa → só shape ─────────────────── */
-  ${r} .header__nav-item {
-    border-radius: ${b.borderRadius}px !important;
+  /* ── Header: tabs de navegação (sempre sem fundo/borda, apenas texto e linha) ── */
+  ${r} .header__nav-item,
+  ${r} .header__nav-item--active {
+    border-radius: 0 !important;
     border: none !important;
     background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
   }
-  /* Header: tab ATIVA → efeito completo ─────────────────── */
-  ${r} .header__nav-item--active { ${np} }
 
   /* ── Sidebar ajustes: inativa → só shape ───────────────── */
   ${r} .settings__sidebar-button {
@@ -254,7 +258,10 @@ function buildCSS(c: CustomThemeConfig): string {
   ${r} .context-menu,
   ${r} .context-menu__submenu,
   ${r} .dropdown-menu__content,
-  ${r} .select-field__dropdown { ${mp} }
+  ${r} .select-field__dropdown,
+  ${r} .library-filter-options__dropdown,
+  ${r} .profile-sort-options__dropdown,
+  ${r} .filter-dropdown__menu { ${mp} }
 
   /* ── Cards de conteúdo (sem imagem de fundo) ─────────── */
   ${r} .theme-card,
@@ -288,6 +295,8 @@ function buildCSS(c: CustomThemeConfig): string {
   ${r} .home__card,
   ${r} .lib-cat-card,
   ${r} .home__folder-game-card-btn,
+  ${r} .home__folder-game-card,
+  ${r} .home__folder-view-btn,
   ${r} .library-game-card__wrapper,
   ${r} .library-game-card-large {
     border-radius: ${ca.borderRadius}px !important;

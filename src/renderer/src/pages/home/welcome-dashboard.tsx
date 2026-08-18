@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { Tooltip } from "react-tooltip";
 import {
   TrophyIcon,
   DatabaseIcon,
   SparkleIcon,
   CloudIcon,
+  InfoIcon,
 } from "@primer/octicons-react";
 import platinumTrophyPng from "@renderer/assets/trophy/platinum.png";
 import goldTrophyPng from "@renderer/assets/trophy/gold.png";
@@ -13,10 +16,17 @@ import bronzeTrophyPng from "@renderer/assets/trophy/bronze.png";
 import HydraLogoSvg from "@renderer/assets/icons/hydra.svg?react";
 import { useUserDetails } from "@renderer/hooks";
 import { useLibrary } from "@renderer/hooks/use-library";
-import { useSubscription } from "@renderer/hooks/use-subscription";
+import { useUserLevel } from "@renderer/hooks/use-user-level";
+import { formatNumber } from "@renderer/helpers";
 import { AnimatedBorder } from "@renderer/components/animated-border/animated-border";
 
 import "./welcome-dashboard.scss";
+
+interface OnlineFriend {
+  id: string;
+  displayName: string;
+  profileImageUrl: string | null;
+}
 
 interface StorageDrive {
   name: string;
@@ -118,18 +128,8 @@ export function WelcomeDashboard() {
     };
   }, []);
 
-  const [stats] = useState({
-    totalTrophies: 1933,
-    platinum: 13,
-    gold: 89,
-    silver: 297,
-    bronze: 1534,
-    userLevel: 264,
-    levelProgress: 20,
-  });
-
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { showHydraCloudModal } = useSubscription();
+  const navigate = useNavigate();
   const { library } = useLibrary();
 
   const [avatarDecorOptions, setAvatarDecorOptions] = useState({
@@ -163,24 +163,39 @@ export function WelcomeDashboard() {
     };
   }, []);
 
-  const sampleOnlineFriends = useMemo(
-    () => [
-      { id: "1", name: "Alex", avatar: DEFAULT_AVATARS[0] },
-      { id: "2", name: "Gabriel", avatar: DEFAULT_AVATARS[1] },
-      { id: "3", name: "Lucas", avatar: DEFAULT_AVATARS[2] },
-      { id: "4", name: "Sofia", avatar: DEFAULT_AVATARS[3] },
-    ],
-    []
-  );
+  const [onlineFriends, setOnlineFriends] = useState<OnlineFriend[]>([]);
+
+  useEffect(() => {
+    if (!userDetails?.id) {
+      setOnlineFriends([]);
+      return;
+    }
+
+    let isMounted = true;
+    window.electron.hydraApi
+      .get<{ friends?: OnlineFriend[] }>("/profile/friends", {
+        params: { take: 100, skip: 0 },
+      })
+      .then((data) => {
+        if (!isMounted) return;
+        setOnlineFriends(
+          (data?.friends ?? []).filter(
+            (f) => (f as unknown as { currentGame?: unknown }).currentGame
+          )
+        );
+      })
+      .catch(() => {
+        if (isMounted) setOnlineFriends([]);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userDetails?.id]);
+
+  const { trophyStats, totalPlaytimeMs, ...levelStats } = useUserLevel();
 
   const libraryCount = library ? library.length : 0;
-  const totalPlaytimeMs = useMemo(() => {
-    if (!library || library.length === 0) return 0;
-    return library.reduce(
-      (acc, game) => acc + (game.playTimeInMilliseconds || 0),
-      0
-    );
-  }, [library]);
 
   const formattedPlaytime = useMemo(() => {
     return formatTotalPlaytimeDetailed(totalPlaytimeMs);
@@ -219,7 +234,7 @@ export function WelcomeDashboard() {
                 <h3 className="welcome-dashboard__user-nick">
                   {userDetails?.displayName ||
                     userDetails?.username ||
-                    "Walancy"}
+                    t("usuario", { defaultValue: "Usuário" })}
                 </h3>
                 <span className="welcome-dashboard__user-tag">
                   {t("online", { defaultValue: "Online" })}
@@ -230,11 +245,14 @@ export function WelcomeDashboard() {
             {/* Amigos Online: 4 bolinhas sobrepostas na esquerda, texto na direita */}
             <div className="welcome-dashboard__user-friends-row">
               <div className="welcome-dashboard__user-friends-avatars">
-                {sampleOnlineFriends.slice(0, 4).map((friend, idx) => (
+                {onlineFriends.slice(0, 4).map((friend, idx) => (
                   <img
                     key={friend.id}
-                    src={friend.avatar}
-                    alt={friend.name}
+                    src={
+                      friend.profileImageUrl ||
+                      DEFAULT_AVATARS[idx % DEFAULT_AVATARS.length]
+                    }
+                    alt={friend.displayName}
                     className="welcome-dashboard__user-friend-circle"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
@@ -245,8 +263,8 @@ export function WelcomeDashboard() {
               </div>
               <span className="welcome-dashboard__user-friends-text">
                 {t("amigos_online_count", {
-                  count: sampleOnlineFriends.length,
-                  defaultValue: `${sampleOnlineFriends.length} amigos online`,
+                  count: onlineFriends.length,
+                  defaultValue: `${onlineFriends.length} amigos online`,
                 })}
               </span>
             </div>
@@ -283,12 +301,18 @@ export function WelcomeDashboard() {
             </div>
           </div>
 
-          {/* Botão de Assinar Cloud (Caso o usuário não seja assinante) */}
+          {/* Botão de Assinar Cloud (Caso o usuário não seja assinante) — mesmo comportamento do botão "Hydra Cloud" da sidebar */}
           {!hasActiveSubscription && (
             <button
               type="button"
               className="welcome-dashboard__subscribe-btn"
-              onClick={() => showHydraCloudModal("backup")}
+              onClick={() =>
+                hasActiveSubscription
+                  ? navigate("/settings")
+                  : window.electron.openExternal(
+                      "https://checkout.hydralauncher.gg"
+                    )
+              }
             >
               <CloudIcon size={14} />
               <span>
@@ -310,12 +334,12 @@ export function WelcomeDashboard() {
                 <div className="welcome-dashboard__card-title-group">
                   <TrophyIcon size={16} className="welcome-dashboard__icon" />
                   <h3 className="welcome-dashboard__card-title">
-                    {t("trophies", { defaultValue: "Trophies" })}
+                    {t("trofeus", { defaultValue: "Troféus" })}
                   </h3>
                 </div>
                 <span className="welcome-dashboard__meta">
                   {t("total", { defaultValue: "Total" })}:{" "}
-                  {stats.totalTrophies.toLocaleString()}
+                  {trophyStats.total.toLocaleString()}
                 </span>
               </div>
 
@@ -332,7 +356,7 @@ export function WelcomeDashboard() {
                     {t("platina", { defaultValue: "Platina" })}
                   </span>
                   <span className="welcome-dashboard__trophy-count">
-                    {stats.platinum}
+                    {trophyStats.platinum}
                   </span>
                 </div>
                 <div className="welcome-dashboard__trophy-item">
@@ -347,7 +371,7 @@ export function WelcomeDashboard() {
                     {t("ouro", { defaultValue: "Ouro" })}
                   </span>
                   <span className="welcome-dashboard__trophy-count">
-                    {stats.gold}
+                    {formatNumber(trophyStats.gold)}
                   </span>
                 </div>
                 <div className="welcome-dashboard__trophy-item">
@@ -362,7 +386,7 @@ export function WelcomeDashboard() {
                     {t("prata", { defaultValue: "Prata" })}
                   </span>
                   <span className="welcome-dashboard__trophy-count">
-                    {stats.silver}
+                    {formatNumber(trophyStats.silver)}
                   </span>
                 </div>
                 <div className="welcome-dashboard__trophy-item">
@@ -376,19 +400,32 @@ export function WelcomeDashboard() {
                   <span className="welcome-dashboard__trophy-name">
                     {t("bronze", { defaultValue: "Bronze" })}
                   </span>
-                  <span className="welcome-dashboard__trophy-count">1.5K</span>
+                  <span className="welcome-dashboard__trophy-count">
+                    {formatNumber(trophyStats.bronze)}
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* Card Pequeno: Nível e XP do Usuário */}
             <div className="welcome-dashboard__card welcome-dashboard__card--small welcome-dashboard__card--level">
+              <button
+                type="button"
+                className="welcome-dashboard__level-info-btn"
+                data-tooltip-id="welcome-dashboard-xp-info"
+                aria-label={t("como_funciona_xp", {
+                  defaultValue: "Como funciona o XP",
+                })}
+              >
+                <InfoIcon size={12} />
+              </button>
+
               <div className="welcome-dashboard__level-big-group">
                 <span className="welcome-dashboard__level-label">
                   {t("nivel", { defaultValue: "NÍVEL" })}
                 </span>
                 <span className="welcome-dashboard__level-number">
-                  {stats.userLevel}
+                  {levelStats.userLevel}
                 </span>
               </div>
 
@@ -396,26 +433,27 @@ export function WelcomeDashboard() {
                 <div className="welcome-dashboard__xp-header">
                   <span className="welcome-dashboard__xp-title">
                     {t("proximo_nivel", {
-                      level: stats.userLevel + 1,
-                      defaultValue: `Nível ${stats.userLevel + 1}`,
+                      level: levelStats.userLevel + 1,
+                      defaultValue: `Nível ${levelStats.userLevel + 1}`,
                     })}
                   </span>
                   <span className="welcome-dashboard__xp-value">
-                    {stats.levelProgress}%
+                    {levelStats.xpIntoLevel.toLocaleString()} /{" "}
+                    {levelStats.xpNeededForLevel.toLocaleString()} XP
                   </span>
                 </div>
 
                 <div className="welcome-dashboard__xp-bar-bg">
                   <div
                     className="welcome-dashboard__xp-bar-fill"
-                    style={{ width: `${stats.levelProgress}%` }}
+                    style={{ width: `${levelStats.levelProgress}%` }}
                   />
                 </div>
 
                 <span className="welcome-dashboard__xp-remaining">
                   {t("xp_restante", {
-                    percent: 100 - stats.levelProgress,
-                    defaultValue: `Faltam ${100 - stats.levelProgress}% de XP para subir`,
+                    amount: levelStats.xpRemaining,
+                    defaultValue: `Faltam ${levelStats.xpRemaining.toLocaleString()} XP para subir`,
                   })}
                 </span>
               </div>
@@ -561,6 +599,66 @@ export function WelcomeDashboard() {
           </div>
         </div>
       </div>
+
+      <Tooltip
+        id="welcome-dashboard-xp-info"
+        place="bottom"
+        openOnClick
+        clickable
+        className="welcome-dashboard__xp-info-tooltip"
+      >
+        <div className="welcome-dashboard__xp-info-content">
+          <strong>
+            {t("como_ganhar_xp_titulo", {
+              defaultValue: "Como você ganha XP",
+            })}
+          </strong>
+          <ul>
+            <li>
+              {t("xp_regra_platina", {
+                defaultValue: "Platinar um jogo (100% das conquistas): +200 XP",
+              })}
+            </li>
+            <li>
+              {t("xp_regra_ouro", {
+                defaultValue: "Cada troféu de Ouro: +60 XP",
+              })}
+            </li>
+            <li>
+              {t("xp_regra_prata", {
+                defaultValue: "Cada troféu de Prata: +25 XP",
+              })}
+            </li>
+            <li>
+              {t("xp_regra_bronze", {
+                defaultValue: "Cada troféu de Bronze: +10 XP",
+              })}
+            </li>
+            <li>
+              {t("xp_regra_tempo", {
+                defaultValue: "Cada hora jogada: +5 XP",
+              })}
+            </li>
+            <li>
+              {t("xp_regra_avaliacao", {
+                defaultValue: "Avaliar um jogo: +30 XP",
+              })}
+            </li>
+          </ul>
+          <span>
+            {t("xp_regra_cloud", {
+              defaultValue:
+                "Assinantes do Hydra Cloud ganham o triplo de XP por avaliação.",
+            })}
+          </span>
+          <span>
+            {t("xp_regra_nivel", {
+              defaultValue:
+                "Cada nível exige mais XP que o anterior, então o progresso vai ficando mais devagar conforme você sobe.",
+            })}
+          </span>
+        </div>
+      </Tooltip>
     </div>
   );
 }

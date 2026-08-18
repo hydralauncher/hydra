@@ -57,7 +57,12 @@ import {
   DownloadGameModal,
 } from "@renderer/components";
 import { useHomeGroups, type HomeGroup } from "@renderer/hooks/use-home-groups";
-import { PlusCircleIcon, TrashIcon, GiftIcon } from "@primer/octicons-react";
+import {
+  PlusCircleIcon,
+  TrashIcon,
+  GiftIcon,
+  ArrowLeftIcon,
+} from "@primer/octicons-react";
 import { setOpenedFolderName } from "@renderer/features";
 import { useGamepadConnected } from "@renderer/hooks/use-gamepad";
 import { useHomeGamepad } from "@renderer/hooks/use-home-gamepad";
@@ -405,8 +410,6 @@ export default function Home() {
   });
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
   const wheelThrottleRef = useRef(0);
-  const draggedItemKeyRef = useRef<string | null>(null);
-  const [manualOrder, setManualOrder] = useState<string[] | null>(null);
 
   const scrollToCard = useCallback((index: number) => {
     requestAnimationFrame(() => {
@@ -791,37 +794,7 @@ export default function Home() {
 
   const showSkeleton = isLoading || isTransitioning;
 
-  const getItemKey = (item: (typeof homeItems)[number]): string => {
-    if (item.type === "button_welcome") return "btn-welcome";
-    if (item.type === "button_library") return "btn-lib";
-    if (item.type === "button_create_folder") return "btn-folder";
-    if (item.type === "folder") return (item.data as HomeGroup).id;
-    return (item.data as ShopAssets).objectId;
-  };
-
-  const currentGames = useMemo(() => {
-    if (!manualOrder) return homeItems;
-
-    const byKey = new Map(
-      homeItems.map((item) => [getItemKey(item), item] as const)
-    );
-    const used = new Set<string>();
-    const ordered: typeof homeItems = [];
-
-    for (const key of manualOrder) {
-      const item = byKey.get(key);
-      if (item) {
-        ordered.push(item);
-        used.add(key);
-      }
-    }
-
-    for (const item of homeItems) {
-      if (!used.has(getItemKey(item))) ordered.push(item);
-    }
-
-    return ordered;
-  }, [homeItems, manualOrder]);
+  const currentGames = homeItems;
 
   // Decouple the details panel from the raw selectedIndex so it doesn't try
   // to mount/unmount (and animate) for every card while the user is rapidly
@@ -848,6 +821,16 @@ export default function Home() {
   const selectedIsLibraryButton = selectedItem?.type === "button_library";
   const selectedIsCreateFolderButton =
     selectedItem?.type === "button_create_folder";
+
+  const detailsModifier = useMemo(() => {
+    const hasNoActionButtons =
+      currentGames[0]?.type === "game" || currentGames[0]?.type === "folder";
+    if (hasNoActionButtons) {
+      if (settledIndex === 0) return "home__details--action-welcome";
+      if (settledIndex === 1) return "home__details--action-library";
+    }
+    return undefined;
+  }, [currentGames, settledIndex]);
 
   // Drives which "hero row" (news / featured carousel) content shows below
   // the selected item, without narrowing selectedGame/selectedFolder to
@@ -1331,6 +1314,17 @@ export default function Home() {
                   <>
                     <Button
                       theme={isBgLight ? "dark" : "primary"}
+                      title={t("voltar", { defaultValue: "Voltar" })}
+                      className="home__folder-header-action-btn"
+                      onClick={() => {
+                        setOpenedGroup(null);
+                        setSelectedIndex(0);
+                      }}
+                    >
+                      <ArrowLeftIcon size={16} />
+                    </Button>
+                    <Button
+                      theme={isBgLight ? "dark" : "primary"}
                       title={t("add_game", { defaultValue: "Adicionar Jogo" })}
                       className="home__folder-header-action-btn"
                       onClick={() => {
@@ -1398,19 +1392,6 @@ export default function Home() {
               dragRef.current.isDragging = false;
               e.currentTarget.style.scrollBehavior = "";
               e.currentTarget.style.cursor = "";
-
-              const draggedKey = draggedItemKeyRef.current;
-              draggedItemKeyRef.current = null;
-
-              if (dragRef.current.hasDragged && draggedKey) {
-                const baseOrder =
-                  manualOrder ?? currentGames.map((item) => getItemKey(item));
-                const withoutDragged = baseOrder.filter(
-                  (key) => key !== draggedKey
-                );
-                withoutDragged.splice(2, 0, draggedKey);
-                setManualOrder(withoutDragged);
-              }
             }}
             onMouseMove={(e) => {
               if (!dragRef.current.isDragging) return;
@@ -1559,9 +1540,6 @@ export default function Home() {
                       onFocus={() => {
                         setSelectedIndex(index);
                       }}
-                      onMouseDown={() => {
-                        draggedItemKeyRef.current = itemId;
-                      }}
                       onClick={() => {
                         if (dragRef.current.hasDragged) return;
                         if (isSelectingGames && !isFolder) {
@@ -1633,6 +1611,7 @@ export default function Home() {
               <GameInfo
                 game={selectedGame}
                 isBgLight={isBgLight}
+                className={detailsModifier}
                 onInstallClick={(g) => setDownloadGame(g)}
                 onAddToLibrary={
                   !isMyGames
@@ -1673,6 +1652,7 @@ export default function Home() {
               <FolderInfo
                 folder={selectedFolder}
                 libraryAsGames={libraryAsGames}
+                className={detailsModifier}
                 onOpenFolder={() => {
                   setOpenedGroup(selectedFolder);
                   setSelectedIndex(0);

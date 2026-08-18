@@ -34,7 +34,7 @@ export function extractVersion(title?: string | null): string | null {
   }
 
   const parenMatch = title.match(
-    /[[(\s*([0-9]+(?:\.[0-9]+){1,3}[a-zA-Z]?)\s*(?:[+/]|DLC|Online|[)\]])/i
+    /[[(]\s*([0-9]+(?:\.[0-9]+){1,3}[a-zA-Z]?)\s*(?:[+/]|DLC|Online|[)\]])/i
   );
   if (parenMatch?.[1]) {
     return `v${parenMatch[1]}`;

@@ -183,24 +183,21 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  border-radius: 8px;
+  border-radius: 0;
   overflow: hidden;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.03);
-  border: 1.5px solid rgba(255, 255, 255, 0.06);
+  border: none;
   transition:
-    border-color 0.18s ease,
     background 0.18s ease,
     transform 0.18s ease;
   user-select: none;
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.18);
     transform: translateY(-2px);
   }
 
   &--selected {
-    border-color: rgba(255, 255, 255, 0.5);
     background: rgba(255, 255, 255, 0.06);
   }
 

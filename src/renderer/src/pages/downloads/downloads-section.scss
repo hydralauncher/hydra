@@ -41,6 +41,34 @@
     background: rgba(255, 255, 255, 0.08);
   }
 
+  &__action {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  &__clear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 4px;
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease;
+
+    &:hover {
+      color: #ff5c7a;
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+
   &__subtext {
     font-size: 11px;
     color: rgba(255, 255, 255, 0.4);

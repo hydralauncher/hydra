@@ -1,96 +1,230 @@
 @use "../../../scss/globals.scss";
 
+.modal.repacks-modal {
+  max-height: 480px;
+  height: 480px;
+  width: 780px;
+  max-width: 90vw;
+}
+
 .repacks-modal {
-  &__filter-container {
-    transition: all 0.3s ease;
-  }
-
-  &__filter-top {
-    margin-bottom: calc(globals.$spacing-unit * 2);
+  &__container {
     display: flex;
-    flex-direction: row;
-    gap: calc(globals.$spacing-unit * 1);
-    align-items: center;
-  }
-
-  &__filter-toggle {
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 1);
-    font-size: globals.$small-font-size;
-    font-weight: 600;
-    color: var(--color-text-secondary);
-    padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 1.5);
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
-    white-space: nowrap;
-  }
-
-  &__repacks {
-    display: flex;
+    height: 100%;
     gap: calc(globals.$spacing-unit * 2);
-    flex-direction: column;
+    overflow: hidden;
   }
 
-  &__repack-button {
+  /* ── Sidebar de Fontes à esquerda ── */
+  &__sidebar {
+    width: 200px;
+    flex-shrink: 0;
     display: flex;
-    text-align: left;
     flex-direction: column;
-    align-items: flex-start;
-    gap: calc(globals.$spacing-unit * 1);
+    gap: calc(globals.$spacing-unit);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    padding-right: calc(globals.$spacing-unit * 1.5);
+    overflow: hidden;
+  }
+
+  &__sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 4px;
+  }
+
+  &__sidebar-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  &__sidebar-clear-btn {
+    font-size: 11px;
+    color: var(--color-primary, #10b981);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__sidebar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 4px;
+  }
+
+  &__sidebar-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.06);
+      color: #ffffff;
+    }
+
+    &--active {
+      background-color: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      font-weight: 500;
+    }
+  }
+
+  &__sidebar-item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  &__sidebar-item-count {
+    font-size: 11px;
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  /* ── Conteúdo Principal à direita ── */
+  &__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    height: 100%;
+    overflow: hidden;
+  }
+
+  &__search-bar {
+    flex-shrink: 0;
+  }
+
+  &__repacks-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  /* ── Item de Repack com Linha Divisória ── */
+  &__repack-item {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    background: transparent;
     color: globals.$body-color;
-    padding: calc(globals.$spacing-unit * 2);
-    padding-right: calc(globals.$spacing-unit * 4);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background-color 0.15s ease;
     position: relative;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  &__repack-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__repack-header-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__repack-title {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  &__repack-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &__repack-separator {
+    opacity: 0.4;
+  }
+
+  &__repack-size {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+  }
+
+  &__repack-source {
+    color: rgba(255, 255, 255, 0.8);
   }
 
   &__availability-orb {
-    position: absolute;
-    top: calc(globals.$spacing-unit * 1.5);
-    right: calc(globals.$spacing-unit * 1.5);
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
 
     &--online {
       background-color: #22c55e;
-      box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+      box-shadow: 0 0 5px rgba(34, 197, 94, 0.6);
     }
 
     &--partial {
       background-color: #eab308;
-      box-shadow: 0 0 6px rgba(234, 179, 8, 0.5);
+      box-shadow: 0 0 5px rgba(234, 179, 8, 0.6);
     }
 
     &--offline {
       background-color: #ef4444;
       opacity: 0.7;
-      box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
     }
-  }
-
-  &__repack-title {
-    color: globals.$muted-color;
-    word-break: break-word;
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 1);
-  }
-
-  &__repack-info {
-    font-size: globals.$small-font-size;
   }
 
   &__new-badge {
     background-color: rgba(34, 197, 94, 0.15);
     color: rgb(187, 247, 208);
-    padding: 2px 8px;
-    border-radius: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
     font-size: 9px;
-    text-align: center;
     flex-shrink: 0;
-    border: 1px solid rgba(34, 197, 94, 0.5);
   }
 
   &__no-results {
@@ -109,89 +243,11 @@
     flex-direction: column;
     align-items: center;
     gap: calc(globals.$spacing-unit * 1.5);
-    max-width: 480px;
-    width: 100%;
   }
 
   &__no-results-text {
     color: globals.$muted-color;
     font-size: globals.$small-font-size;
     text-align: center;
-  }
-
-  &__no-results-button {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-  }
-
-  &__download-sources {
-    padding: 0;
-    background-color: var(--color-background-light);
-    border-radius: 8px;
-    margin-bottom: calc(globals.$spacing-unit * 2);
-    margin-top: calc(globals.$spacing-unit * 1);
-    max-height: 0;
-    overflow: hidden;
-    transition:
-      max-height 0.3s ease,
-      padding 0.3s ease;
-
-    &--open {
-      max-height: 280px;
-    }
-  }
-
-  &__filter-label {
-    display: none;
-    font-size: globals.$small-font-size;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: var(--color-text-secondary);
-    width: 100%;
-  }
-
-  &__source-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: calc(globals.$spacing-unit * 1);
-    max-height: 200px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    align-items: start;
-    padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 0.5)
-      calc(globals.$spacing-unit * 0.5) 0;
-  }
-
-  &__source-item {
-    padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 1);
-    background: var(--color-surface, rgba(0, 0, 0, 0.03));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    min-height: calc(globals.$spacing-unit * 5);
-    box-sizing: border-box;
-    width: 100%;
-    transition: border-color 0.2s ease;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-  }
-
-  &__source-item :global(.checkbox-field) {
-    width: 100%;
-    min-width: 0;
-  }
-
-  &__source-item :global(.checkbox-field__label) {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
-    display: block;
-    font-size: 0.85rem;
-    width: 100%;
-    word-break: break-word;
   }
 }

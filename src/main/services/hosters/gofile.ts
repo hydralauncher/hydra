@@ -55,7 +55,7 @@ export class GofileApi {
   private static readonly language = "en-US";
   private static readonly timeoutMs = 15000;
   private static readonly websiteTokenScriptUrl =
-    "https://gofile.io/dist/js/wt.obf.js";
+    "https://gofile.io/js/wt.obf.js";
   private static readonly alternateCdnBaseUrl = "https://gofilecdn.eu.cc";
   private static readonly alternateCdnProbeTimeoutMs = 5000;
   private static readonly alternateCdnProbeTtlMs = 15000;
@@ -124,6 +124,19 @@ export class GofileApi {
     }
   }
 
+  // vm.runInContext executes the script in a separate V8 realm, so anything it
+  // throws fails `instanceof Error` here even though `.name`/`.message` are
+  // still readable. Without this, such errors log as an uninformative "{}".
+  private static runVmScript(script: string, context: vm.Context) {
+    try {
+      vm.runInContext(script, context, { timeout: 1000 });
+    } catch (error) {
+      const name = (error as { name?: unknown })?.name ?? "Error";
+      const message = (error as { message?: unknown })?.message ?? error;
+      throw new Error(`Gofile WT script execution failed: ${name}: ${message}`);
+    }
+  }
+
   private static extractWebsiteTokenSecret(script: string) {
     let rawHashInput: string | undefined;
     const probeUserAgent = "HydraGofileUserAgent";
@@ -160,7 +173,7 @@ export class GofileApi {
       }
     ) as vm.Context & Record<string, unknown>;
 
-    vm.runInContext(script, context, { timeout: 1000 });
+    this.runVmScript(script, context);
 
     if (typeof context.generateWT !== "function") {
       throw new Error("Gofile WT generator was not found");
@@ -171,9 +184,7 @@ export class GofileApi {
       return "0".repeat(64);
     };
 
-    vm.runInContext(`generateWT(${JSON.stringify(probeToken)})`, context, {
-      timeout: 1000,
-    });
+    this.runVmScript(`generateWT(${JSON.stringify(probeToken)})`, context);
 
     if (!rawHashInput) {
       throw new Error("Gofile WT generator did not hash any input");

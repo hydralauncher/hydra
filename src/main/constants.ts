@@ -36,8 +36,17 @@ export const achievementSoundPath = app.isPackaged
   : path.join(import.meta.dirname, "..", "..", "resources", "achievement.wav");
 
 export const appIconPath = app.isPackaged
-  ? path.join(process.resourcesPath, "icon.png")
-  : path.join(import.meta.dirname, "..", "..", "resources", "icon.png");
+  ? path.join(
+      process.resourcesPath,
+      process.platform === "win32" ? "icon.ico" : "icon.png"
+    )
+  : path.join(
+      import.meta.dirname,
+      "..",
+      "..",
+      "resources",
+      process.platform === "win32" ? "icon.ico" : "icon.png"
+    );
 
 export const trayIconDarkPath = app.isPackaged
   ? path.join(process.resourcesPath, "tray-icon-dark.png")

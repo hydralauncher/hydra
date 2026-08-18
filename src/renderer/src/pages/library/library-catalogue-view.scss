@@ -54,7 +54,7 @@
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-radius: 8px;
+  border-radius: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -228,7 +228,7 @@
     left: 6px;
     width: 18px;
     height: 18px;
-    border-radius: 4px;
+    border-radius: 0;
     border: 1.5px solid rgba(255, 255, 255, 0.5);
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(6px);
@@ -266,10 +266,35 @@
 
   // Info strip
   &__info {
-    padding: 7px 10px 8px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 10px 8px;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.7) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    border-radius: 0;
+    z-index: 3;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+    pointer-events: none;
+  }
+
+  &:hover &__info,
+  &:focus-within &__info {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
   }
 
   &__title {

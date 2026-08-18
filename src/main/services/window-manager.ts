@@ -91,7 +91,7 @@ export class WindowManager {
       height: WindowManager.DEFAULT_WINDOW_HEIGHT,
       minWidth: WindowManager.MIN_WINDOW_WIDTH,
       minHeight: WindowManager.MIN_WINDOW_HEIGHT,
-      icon,
+      icon: nativeImage.createFromPath(icon),
       trafficLightPosition: { x: 16, y: 16 },
       webPreferences: {
         preload: path.join(import.meta.dirname, "../preload/index.mjs"),

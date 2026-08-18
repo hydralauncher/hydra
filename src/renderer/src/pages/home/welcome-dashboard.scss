@@ -278,6 +278,10 @@
     flex-shrink: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    // A single stretched row so the grid's own (flex-stretched) height
+    // actually reaches the columns below, instead of the row auto-sizing to
+    // the cards' fixed heights and leaving empty space under the last card.
+    grid-template-rows: 1fr;
     gap: 10px;
 
     @media (max-width: 1200px) {
@@ -287,6 +291,7 @@
 
     @media (max-width: 768px) {
       grid-template-columns: 1fr;
+      grid-template-rows: none;
     }
   }
 
@@ -320,22 +325,34 @@
       transform: translateY(-2px);
     }
 
+    // The "big" card grows to absorb whatever vertical space the column's
+    // "small" card (fixed height) doesn't use, so it fills the column
+    // instead of leaving a gap below the small card.
     &--big {
-      height: 200px;
+      flex: 1 1 auto;
+      min-height: 200px;
     }
 
     &--small {
+      flex: 0 0 auto;
       height: 100px;
     }
 
     @media (max-width: 1536px), (max-height: 900px) {
       &--big {
-        height: 190px;
+        min-height: 190px;
       }
       &--small {
         height: 94px;
       }
       padding: 14px 16px;
+    }
+
+    @media (max-width: 768px) {
+      &--big {
+        flex: 0 0 auto;
+        height: 200px;
+      }
     }
   }
 
@@ -378,9 +395,14 @@
   &__trophies-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    align-content: center;
     gap: 6px;
     margin-top: 10px;
     z-index: 2;
+    // Grows into whatever height the (now flexible) big card has beyond its
+    // header, so the trophies stay vertically centered in that space
+    // instead of pinned to the card's bottom edge.
+    flex: 1;
   }
 
   &__trophy-item {
@@ -391,6 +413,10 @@
     padding: 0;
     background: transparent;
     border: none;
+    // Grid items default to a content-based min-width, which kept these from
+    // shrinking below the trophy image's fixed size and clipped the last
+    // (bronze) column whenever the card was narrower than 4 * image width.
+    min-width: 0;
   }
 
   &__trophy-badge {
@@ -398,12 +424,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
     filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
   }
 
   &__trophy-img {
-    width: 110px;
-    height: 110px;
+    width: 100%;
+    max-width: 110px;
+    height: auto;
+    aspect-ratio: 1 / 1;
     object-fit: contain;
     display: block;
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -413,8 +442,7 @@
     }
 
     @media (max-width: 1536px), (max-height: 900px) {
-      width: 92px;
-      height: 92px;
+      max-width: 92px;
     }
   }
 
@@ -528,6 +556,54 @@
     font-size: 10px;
     font-weight: 400;
     color: rgba(255, 255, 255, 0.45);
+  }
+
+  &__level-info-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &__xp-info-tooltip {
+    max-width: 260px;
+    z-index: 9999;
+  }
+
+  &__xp-info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: left;
+
+    ul {
+      margin: 0;
+      padding-left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
   }
 
   // ----------------------------------------------------

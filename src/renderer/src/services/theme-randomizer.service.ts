@@ -222,7 +222,7 @@ function buildRadiusStyleSheet(r: number): string {
     [class*="__modal"], [class*="-modal"] > div, .modal__content { border-radius: ${full} !important; }
     [class*="__tag"], [class*="-badge"], [class*="-chip"] { border-radius: 999px !important; }
     [class*="__panel"], [class*="-panel"], [class*="__box"] { border-radius: ${full} !important; }
-    [class*="__dropdown"], [class*="-dropdown"], [class*="__menu"] { border-radius: ${full} !important; }
+    [class*="__dropdown"], [class*="-dropdown"], [class*="__menu"] { border-radius: ${Math.min(r, 14)}px !important; }
     [class*="__toast"], [class*="-toast"] { border-radius: ${full} !important; }
     [class*="__hero"], [class*="-hero"], [class*="__banner"] { border-radius: ${full} !important; }
     ::-webkit-scrollbar-thumb { border-radius: 999px !important; }

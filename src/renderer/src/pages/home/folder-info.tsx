@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next";
 import type { ShopAssets } from "@types";
-import { Button } from "@renderer/components";
 import type { HomeGroup } from "@renderer/hooks/use-home-groups";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { ArrowRightIcon } from "@primer/octicons-react";
 import { motion, AnimatePresence } from "framer-motion";
+import cn from "classnames";
 import "./home.scss";
 
 interface FolderInfoProps {
@@ -13,13 +13,15 @@ interface FolderInfoProps {
   libraryAsGames: (ShopAssets & { executablePath?: string | null })[];
   onOpenFolder: () => void;
   isBgLight?: boolean;
+  className?: string;
 }
 
 export function FolderInfo({
   folder,
   libraryAsGames,
   onOpenFolder,
-  isBgLight = false,
+  isBgLight: _isBgLight = false,
+  className,
 }: Readonly<FolderInfoProps>) {
   const { t } = useTranslation("home");
   const navigate = useNavigate();
@@ -31,7 +33,7 @@ export function FolderInfo({
   const first5 = games.slice(0, 5);
 
   return (
-    <div className="home__details home__folder-info-container">
+    <div className={cn("home__details home__folder-info-container", className)}>
       <AnimatePresence mode="wait">
         <motion.div
           key={folder.id}
@@ -71,14 +73,14 @@ export function FolderInfo({
                 />
               </button>
             ))}
-            <Button
+            <button
+              type="button"
               className="home__folder-view-btn"
-              theme={isBgLight ? "dark" : "primary"}
               onClick={onOpenFolder}
               aria-label={t("ver_pasta", { defaultValue: "Ver pasta" })}
             >
               <ArrowRightIcon size={24} />
-            </Button>
+            </button>
           </div>
         </motion.div>
       </AnimatePresence>

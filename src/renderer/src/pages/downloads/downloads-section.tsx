@@ -6,6 +6,7 @@ interface DownloadsSectionProps {
   count: number;
   subtext?: string;
   emptyText?: string;
+  action?: ReactNode;
   children?: ReactNode;
 }
 
@@ -14,6 +15,7 @@ export function DownloadsSection({
   count,
   subtext,
   emptyText,
+  action,
   children,
 }: Readonly<DownloadsSectionProps>) {
   return (
@@ -25,6 +27,7 @@ export function DownloadsSection({
           </h2>
           <div className="downloads-section__line" />
         </div>
+        {action && <div className="downloads-section__action">{action}</div>}
         {subtext && (
           <span className="downloads-section__subtext">{subtext}</span>
         )}

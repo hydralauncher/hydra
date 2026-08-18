@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import backgroundMusicPath from "@renderer/assets/audio/hydra-music-theme.wav";
 import { useAppSelector } from "./redux";
+import { logger } from "../logger";
 
 const FADE_TIME = 3;
 const FADE_STEPS = 30;
@@ -26,11 +27,28 @@ export function useBackgroundMusic() {
     if (!audioRef1.current) {
       audioRef1.current = new Audio(backgroundMusicPath);
       audioRef2.current = new Audio(backgroundMusicPath);
+      logger.info("[BackgroundMusic] Created audio elements", {
+        src: backgroundMusicPath,
+      });
     }
 
     const a1 = audioRef1.current;
     const a2 = audioRef2.current;
     if (!a1 || !a2) return;
+
+    const handleError = (label: string) => (event: Event) => {
+      const mediaError = (event.target as HTMLAudioElement).error;
+      logger.error(
+        `[BackgroundMusic] ${label} failed to load/decode`,
+        mediaError
+          ? { code: mediaError.code, message: mediaError.message }
+          : event
+      );
+    };
+    const onError1 = handleError("audio1");
+    const onError2 = handleError("audio2");
+    a1.addEventListener("error", onError1);
+    a2.addEventListener("error", onError2);
 
     let isFading = false;
 
@@ -90,6 +108,8 @@ export function useBackgroundMusic() {
     return () => {
       a1.removeEventListener("timeupdate", onTimeUpdate1);
       a2.removeEventListener("timeupdate", onTimeUpdate2);
+      a1.removeEventListener("error", onError1);
+      a2.removeEventListener("error", onError2);
     };
   }, [enabled, volume]);
 
@@ -107,8 +127,18 @@ export function useBackgroundMusic() {
       const idleAudio = activeIndexRef.current === 1 ? a2 : a1;
 
       activeAudio.volume = volume;
-      if (activeAudio.paused && document.hasFocus()) {
-        activeAudio.play().catch(() => {});
+      if (activeAudio.paused) {
+        if (document.hasFocus()) {
+          activeAudio
+            .play()
+            .catch((err) =>
+              logger.warn("[BackgroundMusic] play() rejected", err)
+            );
+        } else {
+          logger.info(
+            "[BackgroundMusic] Skipped play(): window is not focused"
+          );
+        }
       }
       idleAudio.pause();
     }
@@ -120,7 +150,11 @@ export function useBackgroundMusic() {
       const activeAudio =
         activeIndexRef.current === 1 ? audioRef1.current : audioRef2.current;
       if (activeAudio?.paused) {
-        activeAudio.play().catch(() => {});
+        activeAudio
+          .play()
+          .catch((err) =>
+            logger.warn("[BackgroundMusic] play() rejected on interaction", err)
+          );
       }
     };
 

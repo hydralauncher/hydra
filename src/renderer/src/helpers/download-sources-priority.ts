@@ -31,14 +31,51 @@ export function getSortedSourcesByPriority(
   });
 }
 
-export function getPriorityRepack(
+export interface RepackDownloadCandidate {
+  repack: GameRepack;
+  downloader: Downloader;
+  uri: string;
+}
+
+/**
+ * Returns every usable repack+downloader combination in priority order
+ * (source priority first, then upload date within a source). Used to fall
+ * back to the next candidate when the highest-priority one fails to start.
+ */
+export function getOrderedRepackCandidates(
   repacks: GameRepack[],
   sources: DownloadSource[],
-  priorityIds?: string[]
-): GameRepack | null {
-  if (!repacks.length) return null;
+  priorityIds?: string[],
+  userPreferences?: UserPreferences,
+  hasActiveSubscription = false
+): RepackDownloadCandidate[] {
+  if (!repacks.length) return [];
 
   const sortedSources = getSortedSourcesByPriority(sources, priorityIds);
+  const candidates: RepackDownloadCandidate[] = [];
+  const consumedRepackIds = new Set<string>();
+
+  const collectUsable = (repacksToCheck: GameRepack[]) => {
+    const sorted = orderBy(
+      repacksToCheck,
+      [(r) => new Date(r.uploadDate || r.createdAt || 0).getTime()],
+      ["desc"]
+    );
+
+    for (const repack of sorted) {
+      if (consumedRepackIds.has(repack.id)) continue;
+
+      const best = getBestDownloaderForRepack(
+        repack,
+        userPreferences,
+        hasActiveSubscription
+      );
+      if (best) {
+        consumedRepackIds.add(repack.id);
+        candidates.push({ repack, ...best });
+      }
+    }
+  };
 
   for (const source of sortedSources) {
     const repacksForSource = repacks.filter(
@@ -47,31 +84,54 @@ export function getPriorityRepack(
         (source.name &&
           r.downloadSourceName?.toLowerCase() === source.name.toLowerCase())
     );
-
-    if (repacksForSource.length > 0) {
-      const sorted = orderBy(
-        repacksForSource,
-        [(r) => new Date(r.uploadDate || r.createdAt || 0).getTime()],
-        ["desc"]
-      );
-      return sorted[0];
-    }
+    collectUsable(repacksForSource);
   }
 
-  return (
-    orderBy(
-      repacks,
-      [(r) => new Date(r.uploadDate || r.createdAt || 0).getTime()],
-      ["desc"]
-    )[0] || null
+  collectUsable(repacks);
+
+  return candidates;
+}
+
+export function getPriorityRepack(
+  repacks: GameRepack[],
+  sources: DownloadSource[],
+  priorityIds?: string[],
+  userPreferences?: UserPreferences,
+  hasActiveSubscription = false
+): GameRepack | null {
+  if (!repacks.length) return null;
+
+  const [firstCandidate] = getOrderedRepackCandidates(
+    repacks,
+    sources,
+    priorityIds,
+    userPreferences,
+    hasActiveSubscription
   );
+  if (firstCandidate) return firstCandidate.repack;
+
+  const sortedAll = orderBy(
+    repacks,
+    [(r) => new Date(r.uploadDate || r.createdAt || 0).getTime()],
+    ["desc"]
+  );
+
+  return sortedAll[0] || null;
 }
 
 export function getBestDownloaderForRepack(
   repack: GameRepack,
-  userPreferences?: UserPreferences
+  userPreferences?: UserPreferences,
+  hasActiveSubscription = false
 ): { downloader: Downloader; uri: string } | null {
-  for (const uri of repack.uris) {
+  const unavailableSet = new Set(repack.unavailableUris ?? []);
+  const availableUris = (repack.uris || []).filter(
+    (uri) => !unavailableSet.has(uri)
+  );
+  const candidateUris =
+    availableUris.length > 0 ? availableUris : repack.uris || [];
+
+  for (const uri of candidateUris) {
     const downloaders = getDownloadersForUri(uri);
 
     if (
@@ -117,7 +177,7 @@ export function getBestDownloaderForRepack(
     if (downloaders.includes(Downloader.FuckingFast)) {
       return { downloader: Downloader.FuckingFast, uri };
     }
-    if (downloaders.includes(Downloader.VikingFile)) {
+    if (hasActiveSubscription && downloaders.includes(Downloader.VikingFile)) {
       return { downloader: Downloader.VikingFile, uri };
     }
     if (downloaders.includes(Downloader.Rootz)) {
@@ -135,7 +195,8 @@ export function getBestDownloaderForRepack(
         d !== Downloader.RealDebrid &&
         d !== Downloader.TorBox &&
         d !== Downloader.Premiumize &&
-        d !== Downloader.AllDebrid
+        d !== Downloader.AllDebrid &&
+        (hasActiveSubscription || d !== Downloader.VikingFile)
     );
     if (nonDebridDownloaders.length > 0) {
       return { downloader: nonDebridDownloaders[0], uri };

@@ -18,6 +18,7 @@ import {
   useDownloadSourceNames,
 } from "@renderer/hooks";
 import { motion, AnimatePresence } from "framer-motion";
+import cn from "classnames";
 import "./home.scss";
 
 interface GameInfoProps {
@@ -27,6 +28,7 @@ interface GameInfoProps {
   onAddToLibrary?: (game: ShopAssets) => void;
   isInLibrary?: boolean;
   onLocateExecutable?: (game: ShopAssets) => void;
+  className?: string;
 }
 
 const detailsCache = new Map<string, ShopDetailsWithAssets>();
@@ -93,6 +95,7 @@ export function GameInfo({
   onAddToLibrary,
   isInLibrary = false,
   onLocateExecutable,
+  className,
 }: Readonly<GameInfoProps>) {
   const { i18n, t } = useTranslation("home");
   const navigate = useNavigate();
@@ -186,7 +189,7 @@ export function GameInfo({
   };
 
   return (
-    <div className="home__details">
+    <div className={cn("home__details", className)}>
       <AnimatePresence mode="wait">
         <motion.div
           key={game.objectId}

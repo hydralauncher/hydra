@@ -59,8 +59,12 @@ export function DownloadGameModal({
     fetchDownloadSources();
   }, [visible, game]);
 
-  const selectRepackUri = (repack: GameRepack, downloader: Downloader) =>
-    repack.uris.find((uri) => getDownloadersForUri(uri).includes(downloader))!;
+  const selectRepackUri = (repack: GameRepack, downloader: Downloader) => {
+    const matched = repack.uris.find((uri) =>
+      getDownloadersForUri(uri).includes(downloader)
+    );
+    return matched || repack.uris[0] || "";
+  };
 
   const handleStartDownload = async (
     repack: GameRepack,

@@ -12,6 +12,7 @@ import { DownloadsHero } from "./downloads-hero";
 import { DownloadsSection } from "./downloads-section";
 import { DownloadsQueueItem } from "./downloads-queue-item";
 import { DownloadsCompletedItem } from "./downloads-completed-item";
+import { TrashIcon } from "@primer/octicons-react";
 import {
   getDownloadId,
   getRendererDownloadBucket,
@@ -31,6 +32,7 @@ export default function Downloads() {
 
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
   const [seedingStatus, setSeedingStatus] = useState<SeedingStatus[]>([]);
 
   const [networkHistory, setNetworkHistory] = useState<number[]>(() =>
@@ -160,6 +162,29 @@ export default function Downloads() {
         }}
       />
 
+      <DeleteGameModal
+        visible={showClearHistoryModal}
+        onClose={() => setShowClearHistoryModal(false)}
+        deleteGame={async () => {
+          for (const game of libraryGroup.complete) {
+            try {
+              await pauseSeeding(game.shop, game.objectId);
+              await removeGameInstaller(game.shop, game.objectId);
+            } catch {
+              // ignore
+            }
+          }
+          updateLibrary();
+        }}
+        title={t("clear_history_modal_title", {
+          defaultValue: "Excluir histórico de downloads?",
+        })}
+        description={t("clear_history_modal_description", {
+          defaultValue:
+            "Isso removerá todos os arquivos de instalação e registros dos downloads concluídos e pausados do seu computador.",
+        })}
+      />
+
       <DownloadsHero
         activeGame={activeGame}
         networkHistory={networkHistory}
@@ -200,6 +225,23 @@ export default function Downloads() {
             defaultValue: "Concluídos & Pausados",
           })}
           count={libraryGroup.complete.length}
+          action={
+            libraryGroup.complete.length > 0 ? (
+              <button
+                type="button"
+                className="downloads-section__clear-btn"
+                onClick={() => setShowClearHistoryModal(true)}
+                title={t("clear_history", {
+                  defaultValue: "Excluir histórico",
+                })}
+              >
+                <TrashIcon size={14} />
+                <span>
+                  {t("clear_history", { defaultValue: "Excluir histórico" })}
+                </span>
+              </button>
+            ) : undefined
+          }
         >
           {libraryGroup.complete.map((game) => (
             <DownloadsCompletedItem

@@ -877,6 +877,7 @@ export default function Library() {
             <div style={{ display: "flex" }}>
               <Button
                 theme="outline"
+                className="library__create-folder-btn"
                 onClick={() => {
                   const params = new URLSearchParams(searchParams);
                   params.set("collection", "new");
@@ -956,6 +957,17 @@ export default function Library() {
             )}
           </div>
         )}
+
+        {hasGames &&
+          !selectedCollectionId &&
+          !shouldShowFavoritesEmptyState &&
+          !shouldShowCollectionEmptyState && (
+            <div className="library__all-games-header">
+              <span className="library__all-games-title">
+                Todos: {sortedLibrary.length}
+              </span>
+            </div>
+          )}
 
         {hasGames && selectedCollectionId && (
           <div className="library__folder-back-nav">

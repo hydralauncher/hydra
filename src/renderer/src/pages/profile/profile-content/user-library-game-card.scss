@@ -10,7 +10,7 @@
     border: none;
     background: #111;
     padding: 0;
-    border-radius: 8px;
+    border-radius: 0;
     overflow: hidden;
     display: block;
     transition: transform 0.2s ease;
@@ -68,13 +68,8 @@
     justify-content: space-between;
     align-items: flex-start;
     padding: 8px;
-    background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.85) 0%,
-      rgba(0, 0, 0, 0.45) 28%,
-      rgba(0, 0, 0, 0.1) 55%,
-      transparent 100%
-    );
+    background: transparent;
+    pointer-events: none;
   }
 
   // ── Pin button — top right ───────────────────────
@@ -99,6 +94,7 @@
       background 0.15s ease;
     z-index: 3;
     flex-shrink: 0;
+    pointer-events: auto;
 
     &:hover {
       color: #fff;
@@ -117,10 +113,35 @@
 
   // ── Info — na base da imagem ──────────────────────────
   &__info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 24px 8px 8px;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.7) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
     display: flex;
     flex-direction: column;
     gap: 3px;
     width: 100%;
+    z-index: 3;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+    pointer-events: none;
+  }
+
+  &__wrapper:hover &__info,
+  &__wrapper:focus &__info {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
   }
 
   &__info-title {

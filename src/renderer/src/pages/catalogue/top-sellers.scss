@@ -203,10 +203,10 @@
   &__detail-cover {
     width: 100%;
     aspect-ratio: 460 / 215;
-    border-radius: 6px;
+    border-radius: 0;
     overflow: hidden;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: none;
 
     img {
       width: 100%;

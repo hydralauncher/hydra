@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useGamepad, useGamepadConnected } from "@renderer/hooks/use-gamepad";
 import { GamepadHint } from "@renderer/components/gamepad-hint/gamepad-hint";
@@ -19,7 +19,9 @@ import {
   useSearchSuggestions,
   useUserDetails,
   useDownload,
+  useLibrary,
 } from "@renderer/hooks";
+import { useUserLevel } from "@renderer/hooks/use-user-level";
 
 import "./header.scss";
 import { ScanGamesModal, type ScanResult } from "./scan-games-modal";
@@ -41,8 +43,44 @@ export function Header() {
   const isGamepadConnected = useGamepadConnected();
   const scanButtonTooltipId = useId();
 
+  const { library } = useLibrary();
   const { lastPacket } = useDownload();
   const [downloadsModalOpen, setDownloadsModalOpen] = useState(false);
+
+  const downloadIndicatorState = useMemo<
+    "downloading" | "paused" | "error" | null
+  >(() => {
+    const hasLiveActive = Boolean(
+      lastPacket?.gameId &&
+        (lastPacket.downloadSpeed > 0 ||
+          lastPacket.download?.status === "active")
+    );
+    const anyActive =
+      hasLiveActive ||
+      library.some(
+        (g) =>
+          g.download &&
+          (g.download.status === "active" ||
+            g.download.status === "extracting" ||
+            g.download.extracting)
+      );
+    if (anyActive) return "downloading";
+
+    const anyError = library.some(
+      (g) => g.download && g.download.status === "error"
+    );
+    if (anyError) return "error";
+
+    const anyPaused = library.some(
+      (g) =>
+        g.download &&
+        (g.download.status === "paused" || g.download.queued) &&
+        (g.download.progress ?? 0) < 1
+    );
+    if (anyPaused) return "paused";
+
+    return null;
+  }, [lastPacket, library]);
 
   const hasActiveDownload = !!lastPacket?.gameId;
 
@@ -151,6 +189,7 @@ export function Header() {
 
   const { userDetails } = useUserDetails();
   const { hasActiveSubscription } = useUserDetails();
+  const { userLevel } = useUserLevel();
 
   const handleProfileClick = () => {
     if (!userDetails) {
@@ -166,6 +205,7 @@ export function Header() {
   const isGamePage = location.pathname.startsWith("/game");
   const isSettingsPage = location.pathname.startsWith("/settings");
   const isDownloadsPage = location.pathname.startsWith("/downloads");
+  const isProfilePage = location.pathname.startsWith("/profile");
 
   const openedFolderName = "";
 
@@ -301,7 +341,13 @@ export function Header() {
 
   return (
     <>
-      {!(isHomePage || isGamePage || isSettingsPage || isDownloadsPage) && (
+      {!(
+        isHomePage ||
+        isGamePage ||
+        isSettingsPage ||
+        isDownloadsPage ||
+        isProfilePage
+      ) && (
         <GradualBlur
           position="top"
           height="130px"
@@ -326,7 +372,8 @@ export function Header() {
           "header--dragging-disabled": draggingDisabled,
           "header--search-open": isSearchOpen,
           "header--catalogue": isOnCataloguePage,
-          "header--transparent": isOnLibraryPage || isDownloadsPage,
+          "header--transparent":
+            isOnLibraryPage || isDownloadsPage || isProfilePage,
           "header--home": isHomePage,
         })}
       >
@@ -346,21 +393,34 @@ export function Header() {
 
           <nav className="header__nav" data-gamepad-ignore="true">
             {isGamepadConnected && <GamepadHint label="LB" position="left" />}
-            {navRoutes.map(({ path, nameKey }) => (
-              <button
-                key={path}
-                type="button"
-                className={cn("header__nav-item", {
-                  "header__nav-item--active":
-                    path === "/"
-                      ? location.pathname === "/"
-                      : location.pathname.startsWith(path),
-                })}
-                onClick={() => navigate(path)}
-              >
-                {t(nameKey, { ns: "sidebar" })}
-              </button>
-            ))}
+            {navRoutes.map(({ path, nameKey }) => {
+              const isDownloadsTab = path === "/downloads";
+              return (
+                <button
+                  key={path}
+                  type="button"
+                  className={cn("header__nav-item", {
+                    "header__nav-item--active":
+                      path === "/"
+                        ? location.pathname === "/"
+                        : location.pathname.startsWith(path),
+                  })}
+                  onClick={() => navigate(path)}
+                >
+                  <span className="header__nav-item-content">
+                    {isDownloadsTab && downloadIndicatorState && (
+                      <span
+                        className={cn(
+                          "header__download-dot",
+                          `header__download-dot--${downloadIndicatorState}`
+                        )}
+                      />
+                    )}
+                    {t(nameKey, { ns: "sidebar" })}
+                  </span>
+                </button>
+              );
+            })}
             {isGamepadConnected && <GamepadHint label="RB" position="right" />}
           </nav>
 
@@ -426,6 +486,11 @@ export function Header() {
               className="header__profile-button"
               onClick={handleProfileClick}
             >
+              {userDetails && (
+                <span className="header__profile-level-badge">
+                  nv{userLevel}
+                </span>
+              )}
               <AnimatedBorder
                 borderWidth={1}
                 containerSize={28}

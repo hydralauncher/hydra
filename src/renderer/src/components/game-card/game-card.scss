@@ -5,7 +5,7 @@
   height: 180px;
   box-shadow: 0px 0px 15px 0px #000000;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 0;
   transition: all ease 0.2s;
   border: solid 1px globals.$border-color;
   cursor: pointer;
@@ -16,7 +16,7 @@
   }
 
   &__backdrop {
-    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 50%, transparent 100%);
+    background: transparent;
     width: 100%;
     height: 100%;
     display: flex;
@@ -37,13 +37,27 @@
 
   &__content {
     color: #dadbe1;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    padding: 24px calc(globals.$spacing-unit * 2) globals.$spacing-unit;
     display: flex;
     align-items: flex-start;
     gap: globals.$spacing-unit;
     flex-direction: column;
-    transition: all ease 0.2s;
-    transform: translateY(24px);
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.7) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+    pointer-events: none;
   }
 
   &__title {
@@ -101,6 +115,8 @@
     transform: scale(1.05);
   }
   &:hover &__content {
+    opacity: 1;
     transform: translateY(0px);
+    pointer-events: auto;
   }
 }

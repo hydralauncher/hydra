@@ -46,7 +46,7 @@
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-radius: 8px;
+  border-radius: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -172,13 +172,35 @@
   }
 
   &__info {
-    padding: 8px 10px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 10px 8px;
     display: flex;
     flex-direction: column;
     gap: 2px;
-    height: 52px;
-    justify-content: center;
-    border-radius: 0 0 8px 8px;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.7) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    border-radius: 0;
+    z-index: 3;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+    pointer-events: none;
+  }
+
+  &:hover &__info,
+  &:focus-within &__info {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
   }
 
   &__top {
@@ -268,6 +290,15 @@
   // ---- Skeleton ----
   &--skeleton {
     pointer-events: none;
+
+    .cat-card__info {
+      position: relative;
+      opacity: 1;
+      transform: none;
+      background: transparent;
+      height: 52px;
+      justify-content: center;
+    }
   }
 
   &__skeleton-img {

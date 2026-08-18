@@ -850,7 +850,7 @@
     backdrop-filter: blur(28px) !important;
     -webkit-backdrop-filter: blur(28px) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: none !important;
     transition: all 0.2s ease;
 
     &:hover {
@@ -890,8 +890,7 @@
 
   &__view-game-button,
   &__add-library-button,
-  &__locate-button,
-  &__folder-view-btn {
+  &__locate-button {
     width: 40px;
     min-height: 40px;
     padding: 0;
@@ -901,7 +900,7 @@
     backdrop-filter: blur(28px) !important;
     -webkit-backdrop-filter: blur(28px) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: none !important;
     transition: all 0.2s ease;
 
     &:hover {
@@ -1206,11 +1205,18 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 13px;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  cursor: pointer;
+  box-sizing: border-box;
   transition:
     transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.2s ease,
+    border-color 0.2s ease;
 
   &:hover,
   &:focus-visible,
@@ -1219,13 +1225,14 @@
     outline: 1px solid rgba(255, 255, 255, 0.5);
     outline-offset: 2px;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.25);
     z-index: 10;
   }
 
   @media (max-width: 1300px) {
     width: 60px;
-    height: 60px;
-    font-size: 11px;
+    aspect-ratio: 2 / 3;
   }
 }
 
