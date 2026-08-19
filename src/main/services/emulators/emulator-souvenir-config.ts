@@ -104,6 +104,19 @@ export const getRetroArchAchievementScreenshotDirectory = (
   configPath: string
 ) => path.join(path.dirname(configPath), "hydra-souvenirs");
 
+const resolveRetroArchScreenshotDirectory = (
+  configPath: string,
+  configuredPath: string
+) => {
+  if (configuredPath.startsWith("~")) {
+    return path.join(os.homedir(), configuredPath.slice(1));
+  }
+
+  if (path.isAbsolute(configuredPath)) return configuredPath;
+
+  return path.join(path.dirname(configPath), configuredPath);
+};
+
 export const readRetroArchScreenshotDirectories = (
   configPath: string,
   contentPath: string | null
@@ -116,11 +129,10 @@ export const readRetroArchScreenshotDirectories = (
     const raw = getCfgValue(content, "screenshot_directory");
 
     if (raw && !usesRetroArchContentScreenshotDirectory(raw)) {
-      configuredDirectory = raw.startsWith("~")
-        ? path.join(os.homedir(), raw.slice(1))
-        : path.isAbsolute(raw)
-          ? raw
-          : path.join(path.dirname(configPath), raw);
+      configuredDirectory = resolveRetroArchScreenshotDirectory(
+        configPath,
+        raw
+      );
 
       if (!fs.existsSync(configuredDirectory)) {
         logger.warn(
@@ -131,14 +143,12 @@ export const readRetroArchScreenshotDirectories = (
           }
         );
         configuredDirectory = null;
-        useContentDirectoryFallback = true;
       } else {
         useContentDirectoryFallback = false;
       }
     }
   } catch (error) {
     logger.error("Failed to read RetroArch screenshot directory", error);
-    useContentDirectoryFallback = true;
   }
 
   const contentDirectory =

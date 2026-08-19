@@ -161,6 +161,102 @@ const saveAchievementsInMemory = async (
     .catch(() => {});
 };
 
+interface PublishAchievementUnlockNotificationsOptions {
+  game: Game;
+  newAchievements: UnlockedAchievement[];
+  unlockedAchievements: UnlockedAchievement[];
+  achievementsData: SteamAchievement[];
+  mergedLocalAchievements: UnlockedAchievement[];
+  userPreferences: UserPreferences;
+}
+
+const publishAchievementUnlockNotifications = ({
+  game,
+  newAchievements,
+  unlockedAchievements,
+  achievementsData,
+  mergedLocalAchievements,
+  userPreferences,
+}: PublishAchievementUnlockNotificationsOptions) => {
+  if (
+    !newAchievements.length ||
+    userPreferences.achievementNotificationsEnabled === false
+  ) {
+    return;
+  }
+
+  const filteredAchievements = newAchievements
+    .toSorted((a, b) => {
+      return a.unlockTime - b.unlockTime;
+    })
+    .map((achievement) => {
+      return achievementsData.find((steamAchievement) => {
+        return (
+          achievement.name.toUpperCase() === steamAchievement.name.toUpperCase()
+        );
+      });
+    })
+    .filter((achievement) => !!achievement);
+
+  const achievementsInfo: AchievementNotificationInfo[] =
+    filteredAchievements.map((achievement, index) => {
+      return {
+        title: achievement.displayName,
+        description: achievement.description,
+        points: achievement.points,
+        isHidden: achievement.hidden,
+        isRare: achievement.points
+          ? isRareAchievement(achievement.points)
+          : false,
+        isPlatinum:
+          index === filteredAchievements.length - 1 &&
+          newAchievements.length + unlockedAchievements.length ===
+            achievementsData.length,
+        iconUrl: achievement.icon,
+      };
+    });
+
+  achievementsLogger.log(
+    "Publishing achievement notification",
+    game.objectId,
+    game.title
+  );
+
+  const customEnabled =
+    userPreferences.achievementCustomNotificationsEnabled !== false &&
+    process.platform !== "darwin";
+
+  const position =
+    userPreferences.achievementCustomNotificationPosition ?? "top-left";
+
+  const publishOsNotification = () =>
+    publishNewAchievementNotification({
+      achievements: achievementsInfo,
+      unlockedAchievementCount: mergedLocalAchievements.length,
+      totalAchievementCount: achievementsData.length,
+      gameTitle: game.title,
+      gameIcon: game.iconUrl,
+    });
+
+  if (process.platform === "linux") {
+    const shownInApp =
+      customEnabled &&
+      WindowManager.sendAchievementToFocusedWindow(position, achievementsInfo);
+
+    if (!shownInApp) {
+      publishOsNotification();
+    }
+  } else if (customEnabled) {
+    achievementNotificationPresenter.enqueueAchievements(
+      position,
+      achievementsInfo,
+      publishOsNotification
+    );
+  } else {
+    publishOsNotification();
+  }
+};
+
 export const mergeAchievements = async (
   game: Game,
   achievements: UnlockedAchievement[],
@@ -225,85 +321,15 @@ export const mergeAchievements = async (
     publishNotification
   );
 
-  if (
-    newAchievements.length &&
-    publishNotification &&
-    userPreferences.achievementNotificationsEnabled !== false
-  ) {
-    const filteredAchievements = newAchievements
-      .toSorted((a, b) => {
-        return a.unlockTime - b.unlockTime;
-      })
-      .map((achievement) => {
-        return achievementsData.find((steamAchievement) => {
-          return (
-            achievement.name.toUpperCase() ===
-            steamAchievement.name.toUpperCase()
-          );
-        });
-      })
-      .filter((achievement) => !!achievement);
-
-    const achievementsInfo: AchievementNotificationInfo[] =
-      filteredAchievements.map((achievement, index) => {
-        return {
-          title: achievement.displayName,
-          description: achievement.description,
-          points: achievement.points,
-          isHidden: achievement.hidden,
-          isRare: achievement.points
-            ? isRareAchievement(achievement.points)
-            : false,
-          isPlatinum:
-            index === filteredAchievements.length - 1 &&
-            newAchievements.length + unlockedAchievements.length ===
-              achievementsData.length,
-          iconUrl: achievement.icon,
-        };
-      });
-
-    achievementsLogger.log(
-      "Publishing achievement notification",
-      game.objectId,
-      game.title
-    );
-
-    const customEnabled =
-      userPreferences.achievementCustomNotificationsEnabled !== false &&
-      process.platform !== "darwin";
-
-    const position =
-      userPreferences.achievementCustomNotificationPosition ?? "top-left";
-
-    const publishOsNotification = () =>
-      publishNewAchievementNotification({
-        achievements: achievementsInfo,
-        unlockedAchievementCount: mergedLocalAchievements.length,
-        totalAchievementCount: achievementsData.length,
-        gameTitle: game.title,
-        gameIcon: game.iconUrl,
-      });
-
-    if (process.platform === "linux") {
-      const shownInApp =
-        customEnabled &&
-        WindowManager.sendAchievementToFocusedWindow(
-          position,
-          achievementsInfo
-        );
-
-      if (!shownInApp) {
-        publishOsNotification();
-      }
-    } else if (customEnabled) {
-      achievementNotificationPresenter.enqueueAchievements(
-        position,
-        achievementsInfo,
-        publishOsNotification
-      );
-    } else {
-      publishOsNotification();
-    }
+  if (publishNotification) {
+    publishAchievementUnlockNotifications({
+      game,
+      newAchievements,
+      unlockedAchievements,
+      achievementsData,
+      mergedLocalAchievements,
+      userPreferences,
+    });
   }
 
   const achievementsToSync = mergedLocalAchievements;

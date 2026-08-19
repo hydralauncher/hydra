@@ -18,14 +18,19 @@
 }
 
 .souvenir-lightbox {
+  position: static;
   display: flex;
   flex-direction: column;
   width: fit-content;
   max-width: min(calc(100vw - 144px), 1600px);
   max-height: 90vh;
+  margin: 0;
+  padding: 0;
   overflow: visible;
+  border: 0;
   border-radius: 16px;
   background: var(--surface);
+  color: inherit;
   user-select: none;
 
   &__close-button,

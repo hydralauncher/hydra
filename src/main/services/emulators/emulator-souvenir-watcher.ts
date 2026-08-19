@@ -94,6 +94,76 @@ const uniqueUnlocks = (achievements: UnlockedAchievement[]) =>
     ).values()
   );
 
+interface RetroArchSouvenirFile {
+  directory: string;
+  entry: string;
+  achievement: UnlockedAchievement;
+}
+
+const readRetroArchDirectoryEntries = async (
+  gameObjectId: string,
+  directory: string,
+  unreadableDirectories: Set<string>
+) => {
+  try {
+    const entries = await fs.promises.readdir(directory);
+    unreadableDirectories.delete(directory);
+    return entries;
+  } catch (error) {
+    if (!unreadableDirectories.has(directory)) {
+      achievementsLogger.error(
+        "Failed to read RetroArch screenshot directory",
+        gameObjectId,
+        directory,
+        error
+      );
+      unreadableDirectories.add(directory);
+    }
+
+    return null;
+  }
+};
+
+const getRetroArchSouvenirAchievement = (
+  entry: string
+): UnlockedAchievement | null => {
+  const match = RETROARCH_SOUVENIR.exec(entry);
+  if (!match) return null;
+
+  return { id: match[1], title: match[1] };
+};
+
+const collectNewRetroArchSouvenirs = async (
+  gameObjectId: string,
+  seenByDirectory: Map<string, Set<string>>,
+  unreadableDirectories: Set<string>
+) => {
+  const newSouvenirs: RetroArchSouvenirFile[] = [];
+
+  for (const [directory, seen] of seenByDirectory) {
+    const entries = await readRetroArchDirectoryEntries(
+      gameObjectId,
+      directory,
+      unreadableDirectories
+    );
+    if (!entries) continue;
+
+    for (const entry of entries) {
+      if (seen.has(entry)) continue;
+
+      const achievement = getRetroArchSouvenirAchievement(entry);
+      if (!achievement) {
+        seen.add(entry);
+        continue;
+      }
+
+      newSouvenirs.push({ directory, entry, achievement });
+    }
+  }
+
+  return newSouvenirs;
+};
+
 const createLogTail = (
   logPath: string,
   pattern: RegExp,
@@ -232,46 +302,11 @@ const startRetroArchWatcher = (
     void (async () => {
       if (!(await isSouvenirCaptureEnabled())) return;
 
-      const newSouvenirs: Array<{
-        directory: string;
-        entry: string;
-        achievement: UnlockedAchievement;
-      }> = [];
-
-      for (const [directory, seen] of seenByDirectory) {
-        let entries: string[];
-
-        try {
-          entries = await fs.promises.readdir(directory);
-          unreadableDirectories.delete(directory);
-        } catch (error) {
-          if (!unreadableDirectories.has(directory)) {
-            achievementsLogger.error(
-              "Failed to read RetroArch screenshot directory",
-              game.objectId,
-              directory,
-              error
-            );
-            unreadableDirectories.add(directory);
-          }
-          continue;
-        }
-
-        for (const entry of entries) {
-          if (seen.has(entry)) continue;
-          const match = RETROARCH_SOUVENIR.exec(entry);
-          if (!match) {
-            seen.add(entry);
-            continue;
-          }
-
-          newSouvenirs.push({
-            directory,
-            entry,
-            achievement: { id: match[1], title: match[1] },
-          });
-        }
-      }
+      const newSouvenirs = await collectNewRetroArchSouvenirs(
+        game.objectId,
+        seenByDirectory,
+        unreadableDirectories
+      );
 
       const achievements = uniqueUnlocks(
         newSouvenirs.map(({ achievement }) => achievement)

@@ -117,6 +117,17 @@ const getSouvenirLightboxFocusIds = (
   };
 };
 
+const getLastActionFocusId = (
+  focusIds: SouvenirLightboxFocusIds,
+  isOwner: boolean,
+  canFocusReport: boolean
+) => {
+  if (isOwner) return focusIds.deleteButton;
+  if (canFocusReport) return focusIds.reportButton;
+
+  return focusIds.likeButton;
+};
+
 interface LightboxSize {
   width: number;
   height: number;
@@ -200,11 +211,11 @@ function useSouvenirLightboxNavigation({
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
   const hasPrevious = index > 0;
   const hasNext = index < items.length - 1;
-  const lastActionFocusId = isOwner
-    ? focusIds.deleteButton
-    : canFocusReport
-      ? focusIds.reportButton
-      : focusIds.likeButton;
+  const lastActionFocusId = getLastActionFocusId(
+    focusIds,
+    isOwner,
+    canFocusReport
+  );
   const navigateToIndex = useCallback(
     (nextIndex: number) => {
       if (!items[nextIndex]) return;
@@ -839,14 +850,13 @@ export function SouvenirLightbox({
       onClose,
       onNavigate: handleNavigate,
     });
+  const lastActionFocusId = getLastActionFocusId(
+    focusIds,
+    isOwner,
+    !isReported
+  );
   const initialActionFocusId =
-    navigationDirection > 0
-      ? isOwner
-        ? focusIds.deleteButton
-        : !isReported
-          ? focusIds.reportButton
-          : focusIds.likeButton
-      : focusIds.likeButton;
+    navigationDirection > 0 ? lastActionFocusId : focusIds.likeButton;
   const primaryAchievement = souvenir
     ? getPrimarySouvenirAchievement(souvenir)
     : null;
@@ -984,13 +994,13 @@ export function SouvenirLightbox({
                     }}
                     onAnimationComplete={handleAnimationComplete}
                   >
-                    <div
+                    <dialog
+                      open
                       className="souvenir-lightbox"
                       style={lightboxStyle}
                       data-souvenir-lightbox-key={getSouvenirRenderKey(
                         souvenir
                       )}
-                      role="dialog"
                       aria-modal="true"
                       aria-label={primaryAchievement?.displayName}
                     >
@@ -1032,7 +1042,7 @@ export function SouvenirLightbox({
                           }}
                         />
                       </section>
-                    </div>
+                    </dialog>
                   </motion.div>
                 </AnimatePresence>
               </div>

@@ -1745,6 +1745,153 @@ const getProfileSouvenirNavigationOverrides = (
     : { type: "block" },
 });
 
+interface ProfileSouvenirPreviewProps {
+  souvenir: ProfileSouvenir;
+  primaryAchievement: ReturnType<typeof getPrimarySouvenirAchievement>;
+  canLike: boolean;
+  disableNsfwAlert: boolean;
+  isLikePending: boolean;
+  onLike: (souvenir: ProfileSouvenir) => void;
+}
+
+function ProfileSouvenirPreview({
+  souvenir,
+  primaryAchievement,
+  canLike,
+  disableNsfwAlert,
+  isLikePending,
+  onLike,
+}: Readonly<ProfileSouvenirPreviewProps>) {
+  const { t } = useTranslation("user_profile");
+  const shouldBlurThumbnail = shouldShowSouvenirContentWarning(
+    souvenir,
+    disableNsfwAlert
+  );
+
+  return (
+    <div className="profile-page__souvenir-image-frame">
+      <span className="profile-page__souvenir-image-placeholder">
+        <ImageIcon size={40} />
+      </span>
+
+      {souvenir.imageUrl ? (
+        <img
+          className={`profile-page__souvenir-image${shouldBlurThumbnail ? " profile-page__souvenir-image--content-warning" : ""}`}
+          src={souvenir.imageUrl}
+          alt={primaryAchievement.displayName}
+          draggable={false}
+          loading="lazy"
+          onError={hideBrokenPreviewImage}
+        />
+      ) : null}
+
+      <div className="profile-page__souvenir-actions">
+        {souvenir.visibility === "PRIVATE" ? (
+          <span
+            className="profile-page__souvenir-private-indicator"
+            title={t("private_souvenir")}
+            aria-label={t("private_souvenir")}
+          >
+            <EyeClosedIcon size={18} />
+          </span>
+        ) : null}
+
+        <motion.button
+          type="button"
+          className={`profile-page__souvenir-action ${isLikePending ? "profile-page__souvenir-action--pending" : ""}`}
+          disabled={!canLike || isLikePending}
+          onClick={(event) => {
+            event.stopPropagation();
+            onLike(souvenir);
+          }}
+          aria-label="Like souvenir"
+          aria-pressed={souvenir.likedByMe}
+          tabIndex={-1}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <HeartIcon
+            size={18}
+            weight={souvenir.likedByMe ? "fill" : "regular"}
+          />
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={souvenir.likeCount}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {souvenir.likeCount}
+            </motion.span>
+          </AnimatePresence>
+        </motion.button>
+      </div>
+    </div>
+  );
+}
+
+interface ProfileSouvenirCopyProps {
+  souvenir: ProfileSouvenir;
+  primaryAchievement: ReturnType<typeof getPrimarySouvenirAchievement>;
+}
+
+function ProfileSouvenirCopy({
+  souvenir,
+  primaryAchievement,
+}: Readonly<ProfileSouvenirCopyProps>) {
+  const otherAchievementCount = Math.max(0, souvenir.achievements.length - 1);
+
+  return (
+    <div className="profile-page__souvenir-copy">
+      <span className="profile-page__souvenir-achievement-icon">
+        <TrophyIcon size={22} />
+        {primaryAchievement.achievementIcon ? (
+          <img
+            className="profile-page__souvenir-achievement-icon-image"
+            src={primaryAchievement.achievementIcon}
+            alt=""
+            draggable={false}
+            onError={hideBrokenPreviewImage}
+          />
+        ) : null}
+      </span>
+
+      <div className="profile-page__souvenir-text">
+        <Typography className="profile-page__souvenir-name">
+          <span className="profile-page__souvenir-title">
+            {primaryAchievement.displayName}
+          </span>
+          {otherAchievementCount > 0 ? (
+            <sup className="profile-page__souvenir-other-count">
+              +{otherAchievementCount}
+            </sup>
+          ) : null}
+        </Typography>
+
+        <div className="profile-page__souvenir-game-line">
+          <span className="profile-page__souvenir-game-icon">
+            <GameControllerIcon size={12} />
+            {souvenir.gameIconUrl ? (
+              <img
+                className="profile-page__souvenir-game-icon-image"
+                src={souvenir.gameIconUrl}
+                alt=""
+                draggable={false}
+                onError={hideBrokenPreviewImage}
+              />
+            ) : null}
+          </span>
+
+          <Typography className="profile-page__souvenir-game">
+            {souvenir.gameTitle ?? ""}
+          </Typography>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProfileSouvenirCard({
   souvenir,
   canLike,
@@ -1757,17 +1904,11 @@ function ProfileSouvenirCard({
   onActivate,
   onLike,
 }: Readonly<ProfileSouvenirCardProps>) {
-  const { t } = useTranslation("user_profile");
   const souvenirKey = getSouvenirKey(souvenir);
   const primaryAchievement = getPrimarySouvenirAchievement(souvenir);
   const visualVariant = getSouvenirVisualVariant(primaryAchievement);
-  const otherAchievementCount = Math.max(0, souvenir.achievements.length - 1);
   const secondaryAction =
     canLike && !isLikePending ? () => onLike(souvenir) : undefined;
-  const shouldBlurThumbnail = shouldShowSouvenirContentWarning(
-    souvenir,
-    disableNsfwAlert
-  );
 
   return (
     <FocusItem
@@ -1793,112 +1934,18 @@ function ProfileSouvenirCard({
           tabIndex={-1}
         />
 
-        <div className="profile-page__souvenir-image-frame">
-          <span className="profile-page__souvenir-image-placeholder">
-            <ImageIcon size={40} />
-          </span>
-
-          {souvenir.imageUrl ? (
-            <img
-              className={`profile-page__souvenir-image${shouldBlurThumbnail ? " profile-page__souvenir-image--content-warning" : ""}`}
-              src={souvenir.imageUrl}
-              alt={primaryAchievement.displayName}
-              draggable={false}
-              loading="lazy"
-              onError={hideBrokenPreviewImage}
-            />
-          ) : null}
-
-          <div className="profile-page__souvenir-actions">
-            {souvenir.visibility === "PRIVATE" ? (
-              <span
-                className="profile-page__souvenir-private-indicator"
-                title={t("private_souvenir")}
-                aria-label={t("private_souvenir")}
-              >
-                <EyeClosedIcon size={18} />
-              </span>
-            ) : null}
-
-            <motion.button
-              type="button"
-              className={`profile-page__souvenir-action ${isLikePending ? "profile-page__souvenir-action--pending" : ""}`}
-              disabled={!canLike || isLikePending}
-              onClick={(event) => {
-                event.stopPropagation();
-                onLike(souvenir);
-              }}
-              aria-label="Like souvenir"
-              aria-pressed={souvenir.likedByMe}
-              tabIndex={-1}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <HeartIcon
-                size={18}
-                weight={souvenir.likedByMe ? "fill" : "regular"}
-              />
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={souvenir.likeCount}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {souvenir.likeCount}
-                </motion.span>
-              </AnimatePresence>
-            </motion.button>
-          </div>
-        </div>
-
-        <div className="profile-page__souvenir-copy">
-          <span className="profile-page__souvenir-achievement-icon">
-            <TrophyIcon size={22} />
-            {primaryAchievement.achievementIcon ? (
-              <img
-                className="profile-page__souvenir-achievement-icon-image"
-                src={primaryAchievement.achievementIcon}
-                alt=""
-                draggable={false}
-                onError={hideBrokenPreviewImage}
-              />
-            ) : null}
-          </span>
-
-          <div className="profile-page__souvenir-text">
-            <Typography className="profile-page__souvenir-name">
-              <span className="profile-page__souvenir-title">
-                {primaryAchievement.displayName}
-              </span>
-              {otherAchievementCount > 0 ? (
-                <sup className="profile-page__souvenir-other-count">
-                  +{otherAchievementCount}
-                </sup>
-              ) : null}
-            </Typography>
-
-            <div className="profile-page__souvenir-game-line">
-              <span className="profile-page__souvenir-game-icon">
-                <GameControllerIcon size={12} />
-                {souvenir.gameIconUrl ? (
-                  <img
-                    className="profile-page__souvenir-game-icon-image"
-                    src={souvenir.gameIconUrl}
-                    alt=""
-                    draggable={false}
-                    onError={hideBrokenPreviewImage}
-                  />
-                ) : null}
-              </span>
-
-              <Typography className="profile-page__souvenir-game">
-                {souvenir.gameTitle ?? ""}
-              </Typography>
-            </div>
-          </div>
-        </div>
+        <ProfileSouvenirPreview
+          souvenir={souvenir}
+          primaryAchievement={primaryAchievement}
+          canLike={canLike}
+          disableNsfwAlert={disableNsfwAlert}
+          isLikePending={isLikePending}
+          onLike={onLike}
+        />
+        <ProfileSouvenirCopy
+          souvenir={souvenir}
+          primaryAchievement={primaryAchievement}
+        />
       </li>
     </FocusItem>
   );
