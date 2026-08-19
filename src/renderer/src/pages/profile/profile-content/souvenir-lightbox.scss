@@ -161,7 +161,7 @@
     display: flex;
     width: fit-content;
     max-width: 90vw;
-    max-height: calc(90vh - 136px);
+    max-height: calc(90vh - var(--souvenir-info-height, 196px));
     flex-shrink: 0;
     align-self: center;
     overflow: hidden;
@@ -191,7 +191,7 @@
     width: 100%;
     height: 100%;
     max-width: 90vw;
-    max-height: calc(90vh - 136px);
+    max-height: calc(90vh - var(--souvenir-info-height, 196px));
     object-fit: contain;
   }
 
@@ -208,9 +208,11 @@
 
   &__summary {
     display: flex;
+    flex: 1;
     align-items: flex-start;
     gap: calc(globals.$spacing-unit * 2);
     min-width: 0;
+    overflow: hidden;
   }
 
   &__achievement-icon,
@@ -247,6 +249,7 @@
 
   &__copy {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 0.75);
     min-width: 0;
@@ -257,16 +260,131 @@
     }
 
     h2 {
+      display: -webkit-box;
+      width: fit-content;
+      flex: 0 1 auto;
+      max-width: 100%;
+      min-width: 0;
       overflow: hidden;
       font-size: 20px;
       line-height: 24px;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    p {
+      display: -webkit-box;
+      overflow: hidden;
+      color: globals.$body-color;
+      line-height: 20px;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+  }
+
+  &__other-count {
+    flex-shrink: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: globals.$body-color;
+    cursor: help;
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+    font-family: inherit;
+
+    &:focus-visible {
+      border-radius: 3px;
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 2px;
+    }
+  }
+
+  &__achievement-tooltip {
+    --rt-opacity: 1;
+
+    z-index: 10010 !important;
+    box-sizing: border-box;
+    width: min(440px, calc(100vw - 48px)) !important;
+    min-width: 0 !important;
+    max-width: min(440px, calc(100vw - 48px)) !important;
+    max-height: min(320px, calc(100vh - 48px)) !important;
+    padding: calc(globals.$spacing-unit * 1.5) !important;
+    overflow: hidden;
+    border: solid 1px globals.$border-color;
+    background: globals.$background-color !important;
+  }
+
+  &__achievement-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+    max-height: min(292px, calc(100vh - 76px));
+    margin: 0;
+    padding: 0 calc(globals.$spacing-unit / 2) 0 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  &__achievement-list-item {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-height: 34px;
+    overflow: hidden;
+  }
+
+  &__achievement-list-icon {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: globals.$border-color;
+    color: globals.$body-color;
+
+    img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__achievement-list-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+
+    strong,
+    small {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    p {
+    strong {
+      color: globals.$muted-color;
+      font-size: globals.$small-font-size;
+    }
+
+    small {
       color: globals.$body-color;
-      line-height: 20px;
     }
   }
 
@@ -281,6 +399,7 @@
   }
 
   &__title-row {
+    align-items: flex-start;
     gap: globals.$spacing-unit;
     min-width: 0;
   }
@@ -399,7 +518,7 @@
   @media (max-width: 900px) {
     &__image-frame,
     &__image {
-      max-height: calc(90vh - 200px);
+      max-height: calc(90vh - var(--souvenir-info-height, 260px));
     }
 
     &__info {

@@ -16,6 +16,7 @@ import {
   CaretRightIcon,
   EyeClosedIcon,
   EyeIcon,
+  FlagIcon,
   GameControllerIcon,
   HeartIcon,
   ImageIcon,
@@ -24,45 +25,62 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
-import type { ProfileAchievement } from "@types";
+import type {
+  ProfileSouvenir,
+  ProfileSouvenirAchievement,
+  SouvenirReportValues,
+} from "@types";
 
 import {
   Backdrop,
   Button,
   HorizontalFocusGroup,
   NavigationLayer,
+  Tooltip,
   Typography,
 } from "../../../common";
 import { FocusRegionContext } from "../../../context";
 import { ConfirmationModal } from "../../../modals";
-import { useNavigationScreenActions } from "../../../../hooks";
+import { useGamepad, useNavigationScreenActions } from "../../../../hooks";
 import { formatRelativeDate } from "../../../../helpers";
-import { getSouvenirVisualVariant } from "@shared";
+import {
+  AuthPage,
+  getPrimarySouvenirAchievement,
+  getSouvenirVisualVariant,
+} from "@shared";
 import { NavigationService } from "../../../../services";
 import { useInputModeStore } from "../../../../stores";
+import { GamepadButtonType } from "../../../../types";
+import { SouvenirReportModal } from "./report-modal";
 
 export interface SouvenirLightboxProps {
-  souvenir: ProfileAchievement | null;
-  items: ProfileAchievement[];
+  souvenir: ProfileSouvenir | null;
+  items: ProfileSouvenir[];
   index: number;
   canLike: boolean;
   isOwner: boolean;
   isLiking: boolean;
   isUpdatingVisibility: boolean;
   isDeleting: boolean;
+  isReporting: boolean;
+  isReported: boolean;
   onClose: () => void;
   onNavigate: (index: number) => void;
-  onLike: (souvenir: ProfileAchievement) => void;
-  onVisibilityChange: (souvenir: ProfileAchievement) => void;
-  onDelete: (souvenir: ProfileAchievement) => Promise<boolean>;
+  onLike: (souvenir: ProfileSouvenir) => void;
+  onVisibilityChange: (souvenir: ProfileSouvenir) => void;
+  onDelete: (souvenir: ProfileSouvenir) => Promise<boolean>;
+  onReport: (
+    souvenir: ProfileSouvenir,
+    values: SouvenirReportValues
+  ) => Promise<boolean>;
 }
 
 const navigation = NavigationService.getInstance();
 const shouldRestoreSouvenirFocus = () =>
   useInputModeStore.getState().mode === "gamepad";
 
-const getSouvenirRenderKey = (souvenir: ProfileAchievement | null) =>
-  souvenir ? `${souvenir.gameId}:${souvenir.name}` : "inactive";
+const getSouvenirRenderKey = (souvenir: ProfileSouvenir | null) =>
+  souvenir?.id ?? "inactive";
 
 const souvenirSlideVariants = {
   enter: (direction: number) =>
@@ -81,10 +99,11 @@ interface SouvenirLightboxFocusIds {
   likeButton: string;
   visibilityButton: string;
   deleteButton: string;
+  reportButton: string;
 }
 
 const getSouvenirLightboxFocusIds = (
-  souvenir: ProfileAchievement | null
+  souvenir: ProfileSouvenir | null
 ): SouvenirLightboxFocusIds => {
   const suffix = getSouvenirRenderKey(souvenir);
 
@@ -93,6 +112,7 @@ const getSouvenirLightboxFocusIds = (
     likeButton: `souvenir-lightbox-like:${suffix}`,
     visibilityButton: `souvenir-lightbox-visibility:${suffix}`,
     deleteButton: `souvenir-lightbox-delete:${suffix}`,
+    reportButton: `souvenir-lightbox-report:${suffix}`,
   };
 };
 
@@ -101,7 +121,7 @@ interface LightboxSize {
   height: number;
 }
 
-function useLightboxControlAnchor(souvenir: ProfileAchievement | null) {
+function useLightboxControlAnchor(souvenir: ProfileSouvenir | null) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [lightboxSize, setLightboxSize] = useState<LightboxSize | null>(null);
   const souvenirKey = getSouvenirRenderKey(souvenir);
@@ -152,8 +172,10 @@ function useLightboxControlAnchor(souvenir: ProfileAchievement | null) {
 interface SouvenirLightboxNavigationOptions {
   isOpen: boolean;
   isDeleteConfirmationVisible: boolean;
+  isReportModalVisible: boolean;
   isOwner: boolean;
-  items: ProfileAchievement[];
+  canFocusReport: boolean;
+  items: ProfileSouvenir[];
   index: number;
   focusIds: SouvenirLightboxFocusIds;
   onClose: () => void;
@@ -163,18 +185,23 @@ interface SouvenirLightboxNavigationOptions {
 function useSouvenirLightboxNavigation({
   isOpen,
   isDeleteConfirmationVisible,
+  isReportModalVisible,
   isOwner,
+  canFocusReport,
   items,
   index,
   focusIds,
   onClose,
   onNavigate,
 }: SouvenirLightboxNavigationOptions) {
+  const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
   const hasPrevious = index > 0;
   const hasNext = index < items.length - 1;
   const lastActionFocusId = isOwner
     ? focusIds.deleteButton
-    : focusIds.likeButton;
+    : canFocusReport
+      ? focusIds.reportButton
+      : focusIds.likeButton;
   const navigateToIndex = useCallback(
     (nextIndex: number) => {
       if (!items[nextIndex]) return;
@@ -184,7 +211,7 @@ function useSouvenirLightboxNavigation({
   );
 
   useNavigationScreenActions(
-    isOpen && !isDeleteConfirmationVisible
+    isOpen && !isDeleteConfirmationVisible && !isReportModalVisible
       ? {
           press: { b: onClose },
           direction: {
@@ -208,6 +235,43 @@ function useSouvenirLightboxNavigation({
         }
       : {}
   );
+
+  useEffect(() => {
+    const canNavigate =
+      isOpen && !isDeleteConfirmationVisible && !isReportModalVisible;
+    const removeLeftBumper = onButtonPressed(
+      GamepadButtonType.LEFT_BUMPER,
+      (event) => {
+        if (!canNavigate || !isActiveGamepadEvent(event) || !hasPrevious)
+          return;
+
+        navigateToIndex(index - 1);
+      }
+    );
+    const removeRightBumper = onButtonPressed(
+      GamepadButtonType.RIGHT_BUMPER,
+      (event) => {
+        if (!canNavigate || !isActiveGamepadEvent(event) || !hasNext) return;
+
+        navigateToIndex(index + 1);
+      }
+    );
+
+    return () => {
+      removeLeftBumper();
+      removeRightBumper();
+    };
+  }, [
+    hasNext,
+    hasPrevious,
+    index,
+    isActiveGamepadEvent,
+    isDeleteConfirmationVisible,
+    isOpen,
+    isReportModalVisible,
+    navigateToIndex,
+    onButtonPressed,
+  ]);
 
   return { hasPrevious, hasNext, navigateToIndex };
 }
@@ -235,7 +299,8 @@ const getLightboxImageSize = (
   if (loadedImage?.imageUrl !== imageUrl) return null;
 
   const maxWidth = Math.min(Math.max(viewportSize.width - 144, 1), 1600);
-  const maxHeight = Math.max(viewportSize.height * 0.9 - 152, 1);
+  const reservedInfoHeight = getReservedInfoHeight();
+  const maxHeight = Math.max(viewportSize.height * 0.9 - reservedInfoHeight, 1);
   const scale = Math.min(
     maxWidth / loadedImage.naturalWidth,
     maxHeight / loadedImage.naturalHeight
@@ -246,6 +311,8 @@ const getLightboxImageSize = (
     height: loadedImage.naturalHeight * scale,
   };
 };
+
+const getReservedInfoHeight = () => 200;
 
 function useViewportSize() {
   const [viewportSize, setViewportSize] = useState(() => ({
@@ -269,8 +336,8 @@ function useViewportSize() {
 }
 
 interface SouvenirLightboxMediaOptions {
-  souvenir: ProfileAchievement | null;
-  items: ProfileAchievement[];
+  souvenir: ProfileSouvenir | null;
+  items: ProfileSouvenir[];
   index: number;
   viewportSize: ViewportSize;
 }
@@ -306,7 +373,7 @@ function useSouvenirLightboxMedia({
     }
   }, [index, items]);
 
-  const prepareImage = useCallback((nextSouvenir: ProfileAchievement) => {
+  const prepareImage = useCallback((nextSouvenir: ProfileSouvenir) => {
     const imageUrl = nextSouvenir.imageUrl;
     setLoadedImage(
       imageUrl ? (loadedImagesRef.current.get(imageUrl) ?? null) : null
@@ -352,11 +419,11 @@ function useSouvenirLightboxMedia({
 }
 
 interface SouvenirSlideNavigationOptions {
-  souvenir: ProfileAchievement | null;
-  items: ProfileAchievement[];
+  souvenir: ProfileSouvenir | null;
+  items: ProfileSouvenir[];
   index: number;
   onNavigate: (index: number) => void;
-  prepareImage: (souvenir: ProfileAchievement) => void;
+  prepareImage: (souvenir: ProfileSouvenir) => void;
 }
 
 function useSouvenirSlideNavigation({
@@ -399,7 +466,7 @@ function useSouvenirSlideNavigation({
 }
 
 interface SouvenirImageProps {
-  souvenir: ProfileAchievement;
+  souvenir: ProfileSouvenir;
   hasImage: boolean;
   showImagePlaceholder: boolean;
   imageSize: ReturnType<typeof getLightboxImageSize>;
@@ -415,6 +482,7 @@ function SouvenirImage({
   onLoad,
   onError,
 }: Readonly<SouvenirImageProps>) {
+  const primaryAchievement = getPrimarySouvenirAchievement(souvenir);
   const imageFrameClassName = showImagePlaceholder
     ? "souvenir-lightbox__image-frame souvenir-lightbox__image-frame--placeholder"
     : "souvenir-lightbox__image-frame";
@@ -429,7 +497,7 @@ function SouvenirImage({
         <img
           className="souvenir-lightbox__image"
           src={souvenir.imageUrl ?? undefined}
-          alt={souvenir.displayName}
+          alt={primaryAchievement.displayName}
           draggable={false}
           onLoad={onLoad}
           onError={onError}
@@ -441,19 +509,24 @@ function SouvenirImage({
 
 function SouvenirSummary({
   souvenir,
-}: Readonly<{ souvenir: ProfileAchievement }>) {
+}: Readonly<{ souvenir: ProfileSouvenir }>) {
   const { t, i18n } = useTranslation("user_profile");
-  const visualVariant = getSouvenirVisualVariant(souvenir);
+  const primaryAchievement = getPrimarySouvenirAchievement(souvenir);
+  const additionalAchievements = souvenir.achievements.filter(
+    (achievement) =>
+      achievement.name.toUpperCase() !== primaryAchievement.name.toUpperCase()
+  );
+  const visualVariant = getSouvenirVisualVariant(primaryAchievement);
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
 
   return (
     <div className="souvenir-lightbox__summary">
       <span className="souvenir-lightbox__icon">
         <TrophyIcon size={28} />
-        {souvenir.achievementIcon ? (
+        {primaryAchievement.achievementIcon ? (
           <img
             className="souvenir-lightbox__icon-image"
-            src={souvenir.achievementIcon}
+            src={primaryAchievement.achievementIcon}
             alt=""
             draggable={false}
             onError={hideBrokenImage}
@@ -463,9 +536,35 @@ function SouvenirSummary({
 
       <div className="souvenir-lightbox__copy">
         <div className="souvenir-lightbox__title-row">
-          <Typography className="souvenir-lightbox__title">
-            {souvenir.displayName}
+          <Typography
+            className="souvenir-lightbox__title"
+            title={primaryAchievement.displayName}
+          >
+            {primaryAchievement.displayName}
           </Typography>
+
+          {additionalAchievements.length > 0 ? (
+            <Tooltip
+              content={
+                <ul className="souvenir-lightbox__achievement-list">
+                  {additionalAchievements.map((achievement) => (
+                    <SouvenirAchievementListItem
+                      key={achievement.name}
+                      achievement={achievement}
+                    />
+                  ))}
+                </ul>
+              }
+              className="souvenir-lightbox__achievement-tooltip"
+              position="top"
+            >
+              <button type="button" className="souvenir-lightbox__other-count">
+                {t("souvenir_other_achievements", {
+                  count: additionalAchievements.length,
+                })}
+              </button>
+            </Tooltip>
+          ) : null}
 
           {visualVariant ? (
             <span
@@ -477,9 +576,12 @@ function SouvenirSummary({
           ) : null}
         </div>
 
-        {souvenir.description ? (
-          <Typography className="souvenir-lightbox__description">
-            {souvenir.description}
+        {primaryAchievement.description ? (
+          <Typography
+            className="souvenir-lightbox__description"
+            title={primaryAchievement.description}
+          >
+            {primaryAchievement.description}
           </Typography>
         ) : null}
 
@@ -506,7 +608,7 @@ function SouvenirSummary({
 
           <span className="souvenir-lightbox__unlock-time">
             {t("souvenir_unlocked_on", {
-              date: formatRelativeDate(souvenir.unlockTime, {
+              date: formatRelativeDate(primaryAchievement.unlockTime, {
                 locale: language,
               }),
             })}
@@ -517,17 +619,50 @@ function SouvenirSummary({
   );
 }
 
+function SouvenirAchievementListItem({
+  achievement,
+}: Readonly<{ achievement: ProfileSouvenirAchievement }>) {
+  return (
+    <li className="souvenir-lightbox__achievement-list-item">
+      <span className="souvenir-lightbox__achievement-list-icon">
+        <TrophyIcon size={16} />
+        {achievement.achievementIcon ? (
+          <img
+            src={achievement.achievementIcon}
+            alt=""
+            draggable={false}
+            onError={hideBrokenImage}
+          />
+        ) : null}
+      </span>
+      <span className="souvenir-lightbox__achievement-list-copy">
+        <strong title={achievement.displayName}>
+          {achievement.displayName}
+        </strong>
+        {achievement.description ? (
+          <small title={achievement.description}>
+            {achievement.description}
+          </small>
+        ) : null}
+      </span>
+    </li>
+  );
+}
+
 interface SouvenirActionsProps {
-  souvenir: ProfileAchievement;
+  souvenir: ProfileSouvenir;
   focusIds: SouvenirLightboxFocusIds;
   canLike: boolean;
   isOwner: boolean;
   isLiking: boolean;
   isUpdatingVisibility: boolean;
   isDeleting: boolean;
-  onLike: (souvenir: ProfileAchievement) => void;
-  onVisibilityChange: (souvenir: ProfileAchievement) => void;
+  isReporting: boolean;
+  isReported: boolean;
+  onLike: (souvenir: ProfileSouvenir) => void;
+  onVisibilityChange: (souvenir: ProfileSouvenir) => void;
   onRequestDelete: () => void;
+  onRequestReport: () => void;
 }
 
 function SouvenirActions({
@@ -538,9 +673,12 @@ function SouvenirActions({
   isLiking,
   isUpdatingVisibility,
   isDeleting,
+  isReporting,
+  isReported,
   onLike,
   onVisibilityChange,
   onRequestDelete,
+  onRequestReport,
 }: Readonly<SouvenirActionsProps>) {
   const { t } = useTranslation("user_profile");
   const isPrivate = souvenir.visibility === "PRIVATE";
@@ -600,7 +738,21 @@ function SouvenirActions({
             {null}
           </Button>
         </>
-      ) : null}
+      ) : (
+        <Button
+          variant="secondary"
+          size="small"
+          focusId={focusIds.reportButton}
+          disabled={isReporting || isReported}
+          loading={isReporting}
+          icon={<FlagIcon size={20} />}
+          onClick={onRequestReport}
+          aria-label={t(isReported ? "souvenir_reported" : "report_souvenir")}
+          title={t(isReported ? "souvenir_reported" : "report_souvenir")}
+        >
+          {t(isReported ? "reported" : "report")}
+        </Button>
+      )}
     </HorizontalFocusGroup>
   );
 }
@@ -614,15 +766,19 @@ export function SouvenirLightbox({
   isLiking,
   isUpdatingVisibility,
   isDeleting,
+  isReporting,
+  isReported,
   onClose,
   onNavigate,
   onLike,
   onVisibilityChange,
   onDelete,
+  onReport,
 }: Readonly<SouvenirLightboxProps>) {
   const { t } = useTranslation(["user_profile", "game_details", "modal"]);
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
+  const [isReportModalVisible, setIsReportModalVisible] = useState(false);
   const viewportSize = useViewportSize();
   const focusIds = getSouvenirLightboxFocusIds(souvenir);
   const { stageRef, lightboxSize, controlAnchorStyle } =
@@ -651,7 +807,9 @@ export function SouvenirLightbox({
     useSouvenirLightboxNavigation({
       isOpen: Boolean(souvenir),
       isDeleteConfirmationVisible,
+      isReportModalVisible,
       isOwner,
+      canFocusReport: !isReported,
       items,
       index,
       focusIds,
@@ -659,16 +817,30 @@ export function SouvenirLightbox({
       onNavigate: handleNavigate,
     });
   const initialActionFocusId =
-    navigationDirection > 0 && isOwner
-      ? focusIds.deleteButton
+    navigationDirection > 0
+      ? isOwner
+        ? focusIds.deleteButton
+        : !isReported
+          ? focusIds.reportButton
+          : focusIds.likeButton
       : focusIds.likeButton;
+  const primaryAchievement = souvenir
+    ? getPrimarySouvenirAchievement(souvenir)
+    : null;
+  const lightboxStyle = {
+    "--souvenir-info-height": `${getReservedInfoHeight()}px`,
+  } as CSSProperties;
 
   useEffect(() => {
-    if (!souvenir) setIsDeleteConfirmationVisible(false);
+    if (!souvenir) {
+      setIsDeleteConfirmationVisible(false);
+      setIsReportModalVisible(false);
+    }
   }, [souvenir]);
 
   useEffect(() => {
-    if (!souvenir || isDeleteConfirmationVisible) return;
+    if (!souvenir || isDeleteConfirmationVisible || isReportModalVisible)
+      return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !event.defaultPrevented) onClose();
@@ -679,7 +851,7 @@ export function SouvenirLightbox({
     return () => {
       globalThis.window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isDeleteConfirmationVisible, onClose, souvenir]);
+  }, [isDeleteConfirmationVisible, isReportModalVisible, onClose, souvenir]);
 
   const handleDeleteConfirm = async () => {
     if (!souvenir) return;
@@ -708,6 +880,7 @@ export function SouvenirLightbox({
               if (
                 event.target === event.currentTarget &&
                 !isDeleteConfirmationVisible &&
+                !isReportModalVisible &&
                 !isNavigating
               ) {
                 onClose();
@@ -777,12 +950,13 @@ export function SouvenirLightbox({
                   >
                     <div
                       className="souvenir-lightbox"
+                      style={lightboxStyle}
                       data-souvenir-lightbox-key={getSouvenirRenderKey(
                         souvenir
                       )}
                       role="dialog"
                       aria-modal="true"
-                      aria-label={souvenir.displayName}
+                      aria-label={primaryAchievement?.displayName}
                     >
                       <SouvenirImage
                         souvenir={souvenir}
@@ -803,11 +977,23 @@ export function SouvenirLightbox({
                           isLiking={isLiking}
                           isUpdatingVisibility={isUpdatingVisibility}
                           isDeleting={isDeleting}
+                          isReporting={isReporting}
+                          isReported={isReported}
                           onLike={onLike}
                           onVisibilityChange={onVisibilityChange}
                           onRequestDelete={() =>
                             setIsDeleteConfirmationVisible(true)
                           }
+                          onRequestReport={() => {
+                            if (!canLike) {
+                              void globalThis.window.electron.openAuthWindow(
+                                AuthPage.SignIn
+                              );
+                              return;
+                            }
+
+                            setIsReportModalVisible(true);
+                          }}
                         />
                       </section>
                     </div>
@@ -825,6 +1011,13 @@ export function SouvenirLightbox({
               loading={isDeleting}
               onClose={() => setIsDeleteConfirmationVisible(false)}
               onConfirm={handleDeleteConfirm}
+            />
+
+            <SouvenirReportModal
+              visible={isReportModalVisible}
+              isSubmitting={isReporting}
+              onClose={() => setIsReportModalVisible(false)}
+              onSubmit={(values) => onReport(souvenir, values)}
             />
           </div>
         </Backdrop>

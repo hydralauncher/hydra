@@ -1,7 +1,7 @@
 import type {
   Badge,
   ComparedAchievements,
-  ProfileAchievement,
+  ProfileSouvenir,
   SouvenirsResponse,
   UserAchievement,
   UserFriend,
@@ -14,6 +14,7 @@ import type {
 import {
   buildUserSouvenirsPath,
   getSouvenirKey,
+  normalizeProfileSouvenir,
   SOUVENIRS_PAGE_SIZE,
 } from "@shared";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -596,7 +597,7 @@ export function useProfileSouvenirs(
   hasActiveSubscription: boolean,
   isAuthenticated: boolean
 ) {
-  const [souvenirs, setSouvenirs] = useState<ProfileAchievement[]>([]);
+  const [souvenirs, setSouvenirs] = useState<ProfileSouvenir[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const isLoadingMoreRef = useRef(false);
@@ -625,7 +626,11 @@ export function useProfileSouvenirs(
       )
       .then((response) => {
         if (isMounted && requestGenerationRef.current === requestGeneration) {
-          setSouvenirs(ensureArray(response?.items));
+          setSouvenirs(
+            ensureArray(response?.items).map((item) =>
+              normalizeProfileSouvenir(item)
+            )
+          );
           setTotal(response?.total ?? 0);
         }
       })
@@ -671,14 +676,11 @@ export function useProfileSouvenirs(
 
       setSouvenirs((current) => {
         const knownKeys = new Set(
-          current.map((souvenir) =>
-            getSouvenirKey(souvenir.gameId, souvenir.name)
-          )
+          current.map((souvenir) => getSouvenirKey(souvenir.id))
         );
-        const nextItems = ensureArray(response?.items).filter(
-          (souvenir) =>
-            !knownKeys.has(getSouvenirKey(souvenir.gameId, souvenir.name))
-        );
+        const nextItems = ensureArray(response?.items)
+          .map((item) => normalizeProfileSouvenir(item))
+          .filter((souvenir) => !knownKeys.has(getSouvenirKey(souvenir.id)));
 
         return [...current, ...nextItems];
       });
@@ -700,23 +702,19 @@ export function useProfileSouvenirs(
   ]);
 
   const updateSouvenir = useCallback(
-    (gameId: string, name: string, update: Partial<ProfileAchievement>) => {
+    (souvenirId: string, update: Partial<ProfileSouvenir>) => {
       setSouvenirs((current) =>
         current.map((souvenir) =>
-          souvenir.gameId === gameId && souvenir.name === name
-            ? { ...souvenir, ...update }
-            : souvenir
+          souvenir.id === souvenirId ? { ...souvenir, ...update } : souvenir
         )
       );
     },
     []
   );
 
-  const removeSouvenir = useCallback((gameId: string, name: string) => {
+  const removeSouvenir = useCallback((souvenirId: string) => {
     setSouvenirs((current) =>
-      current.filter(
-        (souvenir) => souvenir.gameId !== gameId || souvenir.name !== name
-      )
+      current.filter((souvenir) => souvenir.id !== souvenirId)
     );
     setTotal((current) => Math.max(0, current - 1));
   }, []);

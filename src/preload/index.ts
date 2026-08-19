@@ -1347,6 +1347,25 @@ contextBridge.exposeInMainWorld("electron", {
           needsSubscription: options?.needsSubscription,
         },
       }),
+    postResponse: <T = unknown>(
+      url: string,
+      options?: {
+        data?: unknown;
+        needsAuth?: boolean;
+        needsSubscription?: boolean;
+        acceptedStatuses?: number[];
+      }
+    ) =>
+      ipcRenderer.invoke("hydraApiCall", {
+        method: "postResponse",
+        url,
+        data: options?.data,
+        options: {
+          needsAuth: options?.needsAuth,
+          needsSubscription: options?.needsSubscription,
+          acceptedStatuses: options?.acceptedStatuses,
+        },
+      }) as Promise<{ status: number; data: T }>,
     put: (
       url: string,
       options?: {
@@ -1502,12 +1521,8 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   getUnlockedAchievements: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getUnlockedAchievements", objectId, shop),
-  deleteAchievementSouvenir: (payload: {
-    gameId: string;
-    achievementName: string;
-    gameTitle: string | null;
-    achievementDisplayName: string;
-  }) => ipcRenderer.invoke("deleteAchievementSouvenir", payload),
+  deleteAchievementSouvenir: (payload: { souvenirId: string }) =>
+    ipcRenderer.invoke("deleteAchievementSouvenir", payload),
   getRetroAchievementsAchievements: (
     objectId: string,
     shop: GameShop,
@@ -1519,8 +1534,11 @@ contextBridge.exposeInMainWorld("electron", {
       shop,
       raGameId
     ),
-  resetRetroAchievementsAchievements: () =>
-    ipcRenderer.invoke("resetRetroAchievementsAchievements"),
+  resetRetroAchievementsAchievements: (pendingSouvenirsOnly = false) =>
+    ipcRenderer.invoke(
+      "resetRetroAchievementsAchievements",
+      pendingSouvenirsOnly
+    ),
 
   /* Auth */
   getAuth: () => ipcRenderer.invoke("getAuth"),

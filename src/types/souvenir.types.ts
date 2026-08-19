@@ -1,0 +1,48 @@
+export interface PendingSouvenirAchievement {
+  name: string;
+  unlockTime: number;
+  hardcore?: boolean;
+}
+
+export interface PendingAchievementSouvenir {
+  clientId: string;
+  ownerId: string;
+  remoteGameId: string;
+  gameKey: string;
+  screenshotPath: string;
+  imageKey?: string;
+  uploadedAt?: number;
+  capturedAt: number;
+  achievements: PendingSouvenirAchievement[];
+  status: "pending" | "terminal";
+  attemptCount: number;
+  lastAttemptAt?: number;
+  lastErrorCode?: string;
+}
+
+export interface LocalSouvenirAsset {
+  souvenirId: string;
+  clientId: string;
+  ownerId: string;
+  gameKey: string;
+  screenshotPath: string;
+}
+
+export interface AchievementSouvenirUploadAuthorization {
+  imageKey: string;
+  presignedUrl: string | null;
+  status: "pending" | "claimed";
+  expiresAt: number | null;
+}
+
+export type SouvenirReportReason =
+  | "hate"
+  | "sexual_content"
+  | "violence"
+  | "spam"
+  | "other";
+
+export interface SouvenirReportValues {
+  reason: SouvenirReportReason;
+  description?: string;
+}

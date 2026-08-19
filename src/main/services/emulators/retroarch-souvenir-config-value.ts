@@ -6,6 +6,16 @@ const isCfgKeyLine = (line: string, key: string) => {
 export const getCfgLine = (content: string, key: string) =>
   content.split(/\r?\n/).find((line) => isCfgKeyLine(line, key)) ?? null;
 
+export const getCfgValue = (content: string, key: string) => {
+  const line = getCfgLine(content, key);
+  if (!line) return null;
+
+  return line
+    .slice(line.indexOf("=") + 1)
+    .trim()
+    .replace(/^"|"$/g, "");
+};
+
 export const setCfgValue = (content: string, key: string, value: string) => {
   const lines = content.split(/\r?\n/);
   const index = lines.findIndex((line) => isCfgKeyLine(line, key));
@@ -35,4 +45,41 @@ export const restoreCfgLine = (
   }
 
   return lines.join("\n");
+};
+
+const AUTO_SCREENSHOT_KEY = "cheevos_auto_screenshot";
+const SCREENSHOT_DIRECTORY_KEY = "screenshot_directory";
+
+export const usesRetroArchContentScreenshotDirectory = (
+  screenshotDirectory: string | null
+) => !screenshotDirectory || screenshotDirectory === "default";
+
+export const setRetroArchSouvenirConfigValues = (
+  content: string,
+  screenshotDirectory: string
+) =>
+  setCfgValue(
+    setCfgValue(content, AUTO_SCREENSHOT_KEY, "true"),
+    SCREENSHOT_DIRECTORY_KEY,
+    screenshotDirectory
+  );
+
+export const restoreRetroArchSouvenirConfigValues = (
+  content: string,
+  originalAutoScreenshotLine: string | null,
+  originalScreenshotDirectoryLine?: string | null
+) => {
+  const restored = restoreCfgLine(
+    content,
+    AUTO_SCREENSHOT_KEY,
+    originalAutoScreenshotLine
+  );
+
+  if (originalScreenshotDirectoryLine === undefined) return restored;
+
+  return restoreCfgLine(
+    restored,
+    SCREENSHOT_DIRECTORY_KEY,
+    originalScreenshotDirectoryLine
+  );
 };

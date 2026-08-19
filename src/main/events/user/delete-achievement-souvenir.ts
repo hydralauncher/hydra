@@ -1,43 +1,26 @@
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services/hydra-api";
-import { ScreenshotService } from "@main/services/screenshot";
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { achievementsLogger } from "@main/services/logger";
+import { deleteLocalSouvenirAsset } from "@main/services/achievements/grouped-souvenir-worker";
+import { buildProfileSouvenirDeletePath } from "@shared";
 
 interface DeleteAchievementSouvenirPayload {
-  gameId: string;
-  achievementName: string;
-  gameTitle: string | null;
-  achievementDisplayName: string;
+  souvenirId: string;
 }
 
 const deleteAchievementSouvenir = async (
   _event: Electron.IpcMainInvokeEvent,
-  {
-    gameId,
-    achievementName,
-    gameTitle,
-    achievementDisplayName,
-  }: DeleteAchievementSouvenirPayload
+  { souvenirId }: DeleteAchievementSouvenirPayload
 ) => {
-  await HydraApi.delete(
-    `/profile/games/achievements/${gameId}/${encodeURIComponent(achievementName)}/image`
-  );
+  await HydraApi.delete(buildProfileSouvenirDeletePath(souvenirId));
 
   AchievementSouvenirStore.clear();
 
-  if (!gameTitle) return;
-
-  await ScreenshotService.deleteGameScreenshot(
-    gameTitle,
-    achievementDisplayName,
-    gameId,
-    achievementName
-  ).catch((error) => {
+  await deleteLocalSouvenirAsset(souvenirId).catch((error) => {
     achievementsLogger.error(
       "Failed to delete local achievement souvenir",
-      gameTitle,
-      achievementDisplayName,
+      souvenirId,
       error
     );
   });

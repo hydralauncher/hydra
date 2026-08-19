@@ -3,10 +3,15 @@ import { describe, it } from "node:test";
 
 import {
   buildProfileSouvenirVisibilityPath,
+  buildProfileSouvenirDeletePath,
   buildUserSouvenirLikePath,
+  buildUserSouvenirReportPath,
   buildUserSouvenirsPath,
+  getPrimarySouvenirAchievement,
   getSouvenirKey,
   getSouvenirVisualVariant,
+  normalizeProfileSouvenir,
+  normalizeSouvenirReportValues,
 } from "./souvenirs.js";
 
 describe("souvenir API helpers", () => {
@@ -29,21 +34,40 @@ describe("souvenir API helpers", () => {
     assert.deepEqual(params.getAll("shop"), ["steam", "launchbox"]);
   });
 
-  it("keeps souvenir identities stable across game and achievement names", () => {
-    assert.notEqual(
-      getSouvenirKey("game:a", "achievement"),
-      getSouvenirKey("game", "a:achievement")
-    );
+  it("uses the opaque souvenir ID as its stable identity", () => {
+    assert.equal(getSouvenirKey("souvenir/id"), "souvenir/id");
   });
 
   it("encodes every mutable souvenir path segment", () => {
     assert.equal(
-      buildUserSouvenirLikePath("owner/id", "game/id", "name/value"),
-      "/users/owner%2Fid/souvenirs/game%2Fid/name%2Fvalue/like"
+      buildUserSouvenirLikePath("owner/id", "souvenir/id"),
+      "/users/owner%2Fid/souvenirs/souvenir%2Fid/like"
     );
     assert.equal(
-      buildProfileSouvenirVisibilityPath("game/id", "name/value"),
-      "/profile/games/achievements/game%2Fid/name%2Fvalue/image/visibility"
+      buildUserSouvenirReportPath("owner/id", "souvenir/id"),
+      "/users/owner%2Fid/souvenirs/souvenir%2Fid/report"
+    );
+    assert.equal(
+      buildProfileSouvenirVisibilityPath("souvenir/id"),
+      "/profile/souvenirs/souvenir%2Fid/visibility"
+    );
+    assert.equal(
+      buildProfileSouvenirDeletePath("souvenir/id"),
+      "/profile/souvenirs/souvenir%2Fid"
+    );
+  });
+
+  it("trims report descriptions and omits empty descriptions", () => {
+    assert.deepEqual(
+      normalizeSouvenirReportValues({
+        reason: "spam",
+        description: "  Repeated promotion  ",
+      }),
+      { reason: "spam", description: "Repeated promotion" }
+    );
+    assert.deepEqual(
+      normalizeSouvenirReportValues({ reason: "other", description: "   " }),
+      { reason: "other" }
     );
   });
 
@@ -59,6 +83,121 @@ describe("souvenir API helpers", () => {
     assert.equal(
       getSouvenirVisualVariant({ isRare: false, isPlatinum: false }),
       null
+    );
+  });
+
+  it("preserves grouped souvenirs returned by the new feed", () => {
+    const grouped = {
+      id: "souvenir-1",
+      imageUrl: "https://example.com/image.jpeg",
+      capturedAt: 12,
+      primaryAchievementName: "SECONDARY",
+      achievements: [
+        {
+          name: "PRIMARY",
+          displayName: "Primary",
+          description: "Primary achievement",
+          achievementIcon: null,
+          unlockTime: 10,
+          points: 10,
+          isRare: false,
+          isPlatinum: false,
+        },
+        {
+          name: "SECONDARY",
+          displayName: "Secondary",
+          description: "Secondary achievement",
+          achievementIcon: null,
+          unlockTime: 11,
+          points: 20,
+          isRare: true,
+          isPlatinum: false,
+        },
+      ],
+      gameId: "game-1",
+      objectId: "10",
+      shop: "steam" as const,
+      gameTitle: "Test Game",
+      gameIconUrl: null,
+      likeCount: 0,
+      likedByMe: false,
+    };
+
+    assert.deepEqual(normalizeProfileSouvenir(grouped), grouped);
+    assert.equal(
+      getPrimarySouvenirAchievement(grouped).name,
+      "SECONDARY",
+      "the server-selected primary must win even when it is not inferred locally"
+    );
+  });
+
+  it("finds the server-selected primary case-insensitively", () => {
+    const souvenir = normalizeProfileSouvenir({
+      id: "souvenir-1",
+      imageUrl: null,
+      capturedAt: 12,
+      primaryAchievementName: "secondary",
+      achievements: [
+        {
+          name: "PRIMARY",
+          displayName: "Primary",
+          description: "",
+          achievementIcon: null,
+          unlockTime: 10,
+          points: null,
+          isRare: false,
+          isPlatinum: false,
+        },
+        {
+          name: "SECONDARY",
+          displayName: "Secondary",
+          description: "",
+          achievementIcon: null,
+          unlockTime: 11,
+          points: null,
+          isRare: true,
+          isPlatinum: false,
+        },
+      ],
+      gameId: "game-1",
+      objectId: "10",
+      shop: "steam",
+      gameTitle: "Test Game",
+      gameIconUrl: null,
+      likeCount: 0,
+      likedByMe: false,
+    });
+
+    assert.equal(getPrimarySouvenirAchievement(souvenir).name, "SECONDARY");
+  });
+
+  it("normalizes legacy single-achievement feed items", () => {
+    const normalized = normalizeProfileSouvenir({
+      name: "LEGACY",
+      displayName: "Legacy",
+      description: "Legacy achievement",
+      imageUrl: null,
+      achievementIcon: null,
+      unlockTime: 10,
+      points: 10,
+      isRare: false,
+      isPlatinum: false,
+      gameUnlockedAchievementCount: 1,
+      gameTotalAchievementCount: 10,
+      gameId: "game-1",
+      objectId: "10",
+      shop: "steam",
+      gameTitle: "Test Game",
+      gameIconUrl: null,
+      likeCount: 0,
+      likedByMe: false,
+    });
+
+    assert.match(normalized.id, /^legacy:/);
+    assert.equal(normalized.primaryAchievementName, "LEGACY");
+    assert.deepEqual(
+      normalized.achievements.map((achievement) => achievement.name),
+      ["LEGACY"]
     );
   });
 });

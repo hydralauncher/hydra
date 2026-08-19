@@ -4,23 +4,32 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
+  EyeClosedIcon,
+  GlobeIcon,
   HeartFillIcon,
   HeartIcon,
   HistoryIcon,
   ImageIcon,
   LockIcon,
+  PeopleIcon,
   SearchIcon,
   StackIcon,
   TrophyIcon,
+  XIcon,
 } from "@primer/octicons-react";
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import type {
-  ProfileAchievement,
+  ProfileSouvenir,
+  ProfileVisibility,
   SouvenirsHiddenReason,
   SouvenirSort,
 } from "@types";
 import { useDate } from "@renderer/hooks";
-import { getSouvenirKey, getSouvenirVisualVariant } from "@shared";
+import {
+  getPrimarySouvenirAchievement,
+  getSouvenirKey,
+  getSouvenirVisualVariant,
+} from "@shared";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { Button } from "@renderer/components";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
@@ -28,9 +37,13 @@ import { useSubscription } from "@renderer/hooks/use-subscription";
 import { LockedProfile } from "./locked-profile";
 import "./profile-content.scss";
 
-const souvenirKey = (achievement: ProfileAchievement) =>
-  getSouvenirKey(achievement.gameId, achievement.name);
+const souvenirKey = (souvenir: ProfileSouvenir) => getSouvenirKey(souvenir.id);
 const LIKE_ANIMATION_DURATION_MS = 400;
+const SOUVENIR_VISIBILITY_ACKNOWLEDGEMENT_KEY =
+  "souvenir-visibility-acknowledged";
+
+const getSouvenirVisibilityAcknowledgementKey = (userId: string) =>
+  `${SOUVENIR_VISIBILITY_ACKNOWLEDGEMENT_KEY}:${userId}`;
 
 const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
   event.currentTarget.style.opacity = "0";
@@ -45,12 +58,12 @@ const getSouvenirCardClassName = (
 
 type SouvenirGrouping = "game" | "none";
 interface SouvenirCardProps {
-  achievement: ProfileAchievement;
+  achievement: ProfileSouvenir;
   isLiking: boolean;
   canLike: boolean;
   showGame: boolean;
-  onSouvenirClick: (achievement: ProfileAchievement) => void;
-  onLikeClick: (achievement: ProfileAchievement) => void;
+  onSouvenirClick: (achievement: ProfileSouvenir) => void;
+  onLikeClick: (achievement: ProfileSouvenir) => void;
 }
 
 function SouvenirCard({
@@ -63,7 +76,12 @@ function SouvenirCard({
 }: Readonly<SouvenirCardProps>) {
   const { t } = useTranslation("user_profile");
   const { formatDistance } = useDate();
-  const visualVariant = getSouvenirVisualVariant(achievement);
+  const primaryAchievement = getPrimarySouvenirAchievement(achievement);
+  const visualVariant = getSouvenirVisualVariant(primaryAchievement);
+  const otherAchievementCount = Math.max(
+    0,
+    achievement.achievements.length - 1
+  );
   const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(
     null
   );
@@ -105,7 +123,7 @@ function SouvenirCard({
           <img
             className="profile-content__souvenir-image"
             src={achievement.imageUrl ?? undefined}
-            alt={achievement.displayName}
+            alt={primaryAchievement.displayName}
             loading="lazy"
             onError={() => setFailedThumbnailUrl(achievement.imageUrl)}
           />
@@ -118,41 +136,53 @@ function SouvenirCard({
         )}
       </button>
 
-      <motion.button
-        type="button"
-        className={`profile-content__souvenir-action-button ${isLikeAnimating || isLiking ? "profile-content__souvenir-action-button--pending" : ""}`}
-        onClick={handleLikeClick}
-        disabled={isLikeAnimating || isLiking}
-        title={canLike ? t("like_souvenir") : t("sign_in_to_like_souvenir")}
-        aria-pressed={achievement.likedByMe}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        {achievement.likedByMe ? (
-          <HeartFillIcon size={14} />
-        ) : (
-          <HeartIcon size={14} />
-        )}
-        <AnimatePresence mode="wait">
-          <motion.span
-            key={achievement.likeCount}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
+      <div className="profile-content__souvenir-actions">
+        {achievement.visibility === "PRIVATE" ? (
+          <span
+            className="profile-content__souvenir-private-indicator"
+            title={t("private_souvenir")}
+            aria-label={t("private_souvenir")}
           >
-            {achievement.likeCount}
-          </motion.span>
-        </AnimatePresence>
-      </motion.button>
+            <EyeClosedIcon size={14} />
+          </span>
+        ) : null}
+
+        <motion.button
+          type="button"
+          className={`profile-content__souvenir-action-button ${isLikeAnimating || isLiking ? "profile-content__souvenir-action-button--pending" : ""}`}
+          onClick={handleLikeClick}
+          disabled={isLikeAnimating || isLiking}
+          title={canLike ? t("like_souvenir") : t("sign_in_to_like_souvenir")}
+          aria-pressed={achievement.likedByMe}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {achievement.likedByMe ? (
+            <HeartFillIcon size={14} />
+          ) : (
+            <HeartIcon size={14} />
+          )}
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={achievement.likeCount}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {achievement.likeCount}
+            </motion.span>
+          </AnimatePresence>
+        </motion.button>
+      </div>
 
       <div className="profile-content__souvenir-details">
         <span className="profile-content__souvenir-achievement-icon">
           <TrophyIcon size={16} />
-          {achievement.achievementIcon && (
+          {primaryAchievement.achievementIcon && (
             <img
               className="profile-content__souvenir-achievement-icon-image"
-              src={achievement.achievementIcon}
+              src={primaryAchievement.achievementIcon}
               alt=""
               loading="lazy"
               onError={hideBrokenImage}
@@ -162,14 +192,25 @@ function SouvenirCard({
 
         <div className="profile-content__souvenir-text">
           <span className="profile-content__souvenir-name">
-            {achievement.displayName}
+            <span className="profile-content__souvenir-title">
+              {primaryAchievement.displayName}
+            </span>
+            {otherAchievementCount > 0 ? (
+              <sup className="profile-content__souvenir-other-count">
+                +{otherAchievementCount}
+              </sup>
+            ) : null}
           </span>
           <small className="profile-content__souvenir-unlock-time">
             {showGame
               ? (achievement.gameTitle ?? t("unknown_game"))
-              : formatDistance(new Date(achievement.unlockTime), new Date(), {
-                  addSuffix: true,
-                })}
+              : formatDistance(
+                  new Date(primaryAchievement.unlockTime),
+                  new Date(),
+                  {
+                    addSuffix: true,
+                  }
+                )}
           </small>
         </div>
       </div>
@@ -178,11 +219,11 @@ function SouvenirCard({
 }
 
 interface SouvenirGameGroupProps {
-  achievements: ProfileAchievement[];
+  achievements: ProfileSouvenir[];
   likingKeys: Set<string>;
   canLike: boolean;
-  onSouvenirClick: (achievement: ProfileAchievement) => void;
-  onLikeClick: (achievement: ProfileAchievement) => void;
+  onSouvenirClick: (achievement: ProfileSouvenir) => void;
+  onLikeClick: (achievement: ProfileSouvenir) => void;
 }
 
 function SouvenirGameGroup({
@@ -336,17 +377,19 @@ function SouvenirsEmptyState({
 }
 
 interface SouvenirsTabProps {
-  achievements: ProfileAchievement[];
+  achievements: ProfileSouvenir[];
   hiddenReason: SouvenirsHiddenReason;
   canLike: boolean;
   hasMore: boolean;
   isLoading: boolean;
   isEnabled: boolean;
   isMe: boolean;
+  userId: string;
+  visibility: ProfileVisibility;
   hasActiveSubscription: boolean;
   likingKeys: Set<string>;
-  onSouvenirClick: (achievement: ProfileAchievement) => void;
-  onLikeClick: (achievement: ProfileAchievement) => void;
+  onSouvenirClick: (achievement: ProfileSouvenir) => void;
+  onLikeClick: (achievement: ProfileSouvenir) => void;
   onReload: (sortBy: SouvenirSort) => Promise<boolean>;
   onLoadMore: (sortBy: SouvenirSort) => Promise<boolean>;
   onOpenSettings: () => void;
@@ -360,6 +403,8 @@ export function SouvenirsTab({
   isLoading,
   isEnabled,
   isMe,
+  userId,
+  visibility,
   hasActiveSubscription,
   likingKeys,
   onSouvenirClick,
@@ -371,11 +416,60 @@ export function SouvenirsTab({
   const { t } = useTranslation("user_profile");
   const [grouping, setGrouping] = useState<SouvenirGrouping>("none");
   const [sortBy, setSortBy] = useState<SouvenirSort>("recent");
+  const [isPrivacyNoticeVisible, setIsPrivacyNoticeVisible] = useState(false);
+  const privacyNotices = {
+    PRIVATE: {
+      icon: LockIcon,
+      title: t("souvenirs_visibility_private_title"),
+      description: t("souvenirs_visibility_private_description"),
+    },
+    FRIENDS: {
+      icon: PeopleIcon,
+      title: t("souvenirs_visibility_friends_title"),
+      description: t("souvenirs_visibility_friends_description"),
+    },
+    PUBLIC: {
+      icon: GlobeIcon,
+      title: t("souvenirs_visibility_public_title"),
+      description: t("souvenirs_visibility_public_description"),
+    },
+  } satisfies Record<
+    ProfileVisibility,
+    { icon: typeof LockIcon; title: string; description: string }
+  >;
+  const privacyNotice = privacyNotices[visibility];
+  const PrivacyIcon = privacyNotice.icon;
+
+  useEffect(() => {
+    if (!isMe) {
+      setIsPrivacyNoticeVisible(false);
+      return;
+    }
+
+    const storageKey = getSouvenirVisibilityAcknowledgementKey(userId);
+    const acknowledgedVisibility = localStorage.getItem(storageKey);
+
+    if (!acknowledgedVisibility) {
+      localStorage.setItem(storageKey, visibility);
+      setIsPrivacyNoticeVisible(false);
+      return;
+    }
+
+    setIsPrivacyNoticeVisible(acknowledgedVisibility !== visibility);
+  }, [isMe, userId, visibility]);
+
+  const dismissPrivacyNotice = () => {
+    localStorage.setItem(
+      getSouvenirVisibilityAcknowledgementKey(userId),
+      visibility
+    );
+    setIsPrivacyNoticeVisible(false);
+  };
 
   const sortedAchievements = achievements;
 
   const groupedAchievements = useMemo(() => {
-    return sortedAchievements.reduce<Record<string, ProfileAchievement[]>>(
+    return sortedAchievements.reduce<Record<string, ProfileSouvenir[]>>(
       (groups, achievement) => {
         groups[achievement.gameId] = [
           ...(groups[achievement.gameId] ?? []),
@@ -408,6 +502,27 @@ export function SouvenirsTab({
       exit={{ opacity: 0, x: 10 }}
       transition={{ duration: 0.2 }}
     >
+      {isMe && isPrivacyNoticeVisible ? (
+        <aside className="profile-content__souvenirs-privacy-notice">
+          <span className="profile-content__souvenirs-privacy-notice-icon">
+            <PrivacyIcon size={18} />
+          </span>
+          <div className="profile-content__souvenirs-privacy-notice-copy">
+            <strong>{privacyNotice.title}</strong>
+            <span>{privacyNotice.description}</span>
+          </div>
+          <button
+            type="button"
+            className="profile-content__souvenirs-privacy-notice-dismiss"
+            onClick={dismissPrivacyNotice}
+            aria-label={t("dismiss_souvenirs_visibility_notice")}
+            title={t("dismiss_souvenirs_visibility_notice")}
+          >
+            <XIcon size={16} />
+          </button>
+        </aside>
+      ) : null}
+
       {achievements.length === 0 ? (
         <SouvenirsEmptyState
           isLoading={isLoading}

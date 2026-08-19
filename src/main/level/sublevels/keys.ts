@@ -27,6 +27,8 @@ export const levelKeys = {
   retroarch: "retroarch",
   retroArchSouvenirConfigBackups: "retroarch-souvenir-config-backups",
   pendingAchievementSouvenirs: "pending-achievement-souvenirs",
+  pendingGroupedAchievementSouvenirs: "pending-grouped-achievement-souvenirs",
+  localSouvenirAssets: "local-souvenir-assets",
   globalTrackersUrlCache: "globalTrackersUrlCache",
   ps2MemoryCardSaves: "ps2MemoryCardSaves",
   ps2MemoryCardSave: (cardFilePath: string, folderName: string) =>

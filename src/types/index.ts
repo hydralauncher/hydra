@@ -276,8 +276,35 @@ export interface ProfileAchievement {
   likedByMe: boolean;
 }
 
+export interface ProfileSouvenirAchievement {
+  name: string;
+  displayName: string;
+  description: string;
+  achievementIcon: string | null;
+  unlockTime: number;
+  points: number | null;
+  isRare: boolean | null;
+  isPlatinum: boolean;
+}
+
+export interface ProfileSouvenir {
+  id: string;
+  imageUrl: string | null;
+  capturedAt: number;
+  primaryAchievementName: string;
+  achievements: ProfileSouvenirAchievement[];
+  visibility?: ProfileVisibility;
+  gameId: string;
+  objectId: string;
+  shop: GameShop;
+  gameTitle: string | null;
+  gameIconUrl: string | null;
+  likeCount: number;
+  likedByMe: boolean;
+}
+
 export interface SouvenirsResponse {
-  items: ProfileAchievement[];
+  items: Array<ProfileSouvenir | ProfileAchievement>;
   total: number;
   hiddenReason: SouvenirsHiddenReason;
 }
@@ -399,6 +426,10 @@ export interface UpdatedUnlockedAchievements {
   objectId: string;
   shop: GameShop;
   achievements: UnlockedAchievement[];
+  souvenirs?: Array<{
+    clientId: string;
+    id: string;
+  }>;
 }
 
 export interface AchievementFile {
@@ -649,3 +680,4 @@ export * from "./emulator.types";
 export * from "./retroarch.types";
 export * from "./artwork.types";
 export * from "./cloud-save.types";
+export * from "./souvenir.types";

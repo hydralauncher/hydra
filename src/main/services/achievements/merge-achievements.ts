@@ -5,8 +5,10 @@ import type {
   SteamAchievement,
   UnlockedAchievement,
   UpdatedUnlockedAchievements,
+  User,
   UserPreferences,
 } from "@types";
+import { randomUUID } from "node:crypto";
 import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
@@ -18,9 +20,9 @@ import { AchievementWatcherManager } from "./achievement-watcher-manager";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 import { ScreenshotService } from "../screenshot";
-import { AchievementImageService } from "./achievement-image-service";
-import { AchievementSouvenirStore } from "./achievement-souvenir-store";
 import { PendingAchievementSouvenirStore } from "./pending-achievement-souvenir-store";
+import { PendingGroupedSouvenirStore } from "./grouped-souvenir-store";
+import { groupedSouvenirWorker } from "./grouped-souvenir-worker";
 import { launchedGamePids } from "../launched-game-pids";
 import { Wine } from "../wine";
 
@@ -37,8 +39,6 @@ const captureAchievementSouvenirs = async (
   userPreferences: UserPreferences,
   publishNotification: boolean
 ) => {
-  const screenshotPathsByAchievement = new Map<string, string>();
-
   if (
     !newAchievements.length ||
     !publishNotification ||
@@ -46,109 +46,93 @@ const captureAchievementSouvenirs = async (
     userPreferences.enableAchievementSouvenirs !== true ||
     !HydraApi.hasActiveSubscription()
   ) {
-    return screenshotPathsByAchievement;
+    return null;
   }
 
-  for (const achievement of newAchievements) {
-    try {
-      const gameKey = levelKeys.game(game.shop, game.objectId);
-      const expectedProcessId = launchedGamePids.get(gameKey);
+  const gameKey = levelKeys.game(game.shop, game.objectId);
+  const clientId = randomUUID();
+  const capturedAt = Date.now();
+  let screenshotPath: string | null = null;
 
-      if (
-        !expectedProcessId &&
-        process.platform !== "linux" &&
-        process.platform !== "win32"
-      ) {
-        throw new Error("No tracked game process available for screenshot");
-      }
+  try {
+    const owner = await db.get<string, User>(levelKeys.user, {
+      valueEncoding: "json",
+    });
+    if (!owner?.id) return null;
 
-      const displayName =
-        achievementsData.find((steamAchievement) => {
-          return (
-            steamAchievement.name.toUpperCase() ===
-            achievement.name.toUpperCase()
-          );
-        })?.displayName ?? achievement.name;
-      const executablePaths = [
-        game.executablePath,
-        ...(game.trackingExecutablePaths ?? []),
-      ].filter((value): value is string => Boolean(value));
-      const effectiveWinePrefixPath =
-        process.platform === "linux" &&
-        executablePaths.some((value) => value.toLowerCase().endsWith(".exe"))
-          ? Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId)
-          : null;
-      const resolvedWinePrefixPath = effectiveWinePrefixPath
-        ? ((await Wine.resolvePrefixPath(effectiveWinePrefixPath)) ??
-          effectiveWinePrefixPath)
+    const primaryAchievement = newAchievements[0];
+    const displayName =
+      achievementsData.find(
+        (achievement) =>
+          achievement.name.toUpperCase() ===
+          primaryAchievement.name.toUpperCase()
+      )?.displayName ?? primaryAchievement.name;
+    const expectedProcessId = launchedGamePids.get(gameKey);
+
+    if (
+      !expectedProcessId &&
+      process.platform !== "linux" &&
+      process.platform !== "win32"
+    ) {
+      throw new Error("No tracked game process available for screenshot");
+    }
+
+    const executablePaths = [
+      game.executablePath,
+      ...(game.trackingExecutablePaths ?? []),
+    ].filter((value): value is string => Boolean(value));
+    const effectiveWinePrefixPath =
+      process.platform === "linux" &&
+      executablePaths.some((value) => value.toLowerCase().endsWith(".exe"))
+        ? Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId)
         : null;
+    const resolvedWinePrefixPath = effectiveWinePrefixPath
+      ? ((await Wine.resolvePrefixPath(effectiveWinePrefixPath)) ??
+        effectiveWinePrefixPath)
+      : null;
 
-      screenshotPathsByAchievement.set(
-        achievement.name.toUpperCase(),
-        await ScreenshotService.captureGameScreenshot(
-          game.title,
-          displayName,
-          game.remoteId,
-          achievement.name,
-          {
-            processId: expectedProcessId,
-            executablePaths,
-            winePrefixPath: resolvedWinePrefixPath,
-            gameKey,
-          }
-        )
-      );
-    } catch (error) {
-      achievementsLogger.error(
-        "Failed to capture achievement souvenir",
-        game.objectId,
-        achievement.name,
-        error
-      );
+    screenshotPath = await ScreenshotService.captureGameScreenshot(
+      game.title,
+      displayName,
+      game.remoteId,
+      clientId,
+      {
+        processId: expectedProcessId,
+        executablePaths,
+        winePrefixPath: resolvedWinePrefixPath,
+        gameKey,
+      }
+    );
+
+    const pending = {
+      clientId,
+      ownerId: owner.id,
+      remoteGameId: game.remoteId,
+      gameKey,
+      screenshotPath,
+      capturedAt,
+      achievements: newAchievements.map((achievement) => ({
+        name: achievement.name,
+        unlockTime: achievement.unlockTime,
+        ...(achievement.hardcoreUnlockTime != null && { hardcore: true }),
+      })),
+      status: "pending" as const,
+      attemptCount: 0,
+    };
+    await PendingGroupedSouvenirStore.put(pending);
+    return pending;
+  } catch (error) {
+    if (screenshotPath) {
+      await ScreenshotService.deleteScreenshot(screenshotPath).catch(() => {});
     }
+    achievementsLogger.error(
+      "Failed to capture grouped achievement souvenir",
+      game.objectId,
+      newAchievements.map((achievement) => achievement.name),
+      error
+    );
+    return null;
   }
-
-  return screenshotPathsByAchievement;
-};
-
-const uploadAchievementSouvenirs = async (
-  game: Game,
-  gameKey: string,
-  screenshotPathsByAchievement: Map<string, string>,
-  mergedLocalAchievements: UnlockedAchievement[]
-) => {
-  if (!screenshotPathsByAchievement.size) return mergedLocalAchievements;
-
-  const imageKeysByAchievement = new Map<string, string>();
-
-  for (const [name, screenshotPath] of screenshotPathsByAchievement) {
-    try {
-      const imageKey =
-        await AchievementImageService.uploadAchievementImage(screenshotPath);
-
-      await PendingAchievementSouvenirStore.set(gameKey, name, imageKey);
-      imageKeysByAchievement.set(name, imageKey);
-    } catch (error) {
-      achievementsLogger.error(
-        "Failed to upload achievement souvenir",
-        game.objectId,
-        name,
-        error
-      );
-    }
-  }
-
-  await ScreenshotService.cleanupOldScreenshots();
-
-  if (!imageKeysByAchievement.size) return mergedLocalAchievements;
-
-  AchievementSouvenirStore.invalidate(game.shop, game.objectId);
-
-  return mergedLocalAchievements.map((achievement) => {
-    const imageKey = imageKeysByAchievement.get(achievement.name.toUpperCase());
-
-    return imageKey ? { ...achievement, imageKey } : achievement;
-  });
 };
 
 const saveAchievementsInMemory = async (
@@ -221,6 +205,7 @@ export const mergeAchievements = async (
       return {
         name: achievement.name.toUpperCase(),
         unlockTime: achievement.unlockTime,
+        hardcoreUnlockTime: achievement.hardcoreUnlockTime,
       };
     });
 
@@ -232,7 +217,7 @@ export const mergeAchievements = async (
       return imageKey ? { ...achievement, imageKey } : achievement;
     });
 
-  const souvenirScreenshots = await captureAchievementSouvenirs(
+  const pendingGroupedSouvenir = await captureAchievementSouvenirs(
     game,
     newAchievements,
     achievementsData,
@@ -321,12 +306,7 @@ export const mergeAchievements = async (
     }
   }
 
-  const achievementsToSync = await uploadAchievementSouvenirs(
-    game,
-    gameKey,
-    souvenirScreenshots,
-    mergedLocalAchievements
-  );
+  const achievementsToSync = mergedLocalAchievements;
 
   const shouldSyncWithRemote =
     Boolean(game.remoteId) && AchievementWatcherManager.hasFinishedPreSearch;
@@ -386,6 +366,8 @@ export const mergeAchievements = async (
       publishNotification
     );
   }
+
+  if (pendingGroupedSouvenir) void groupedSouvenirWorker.trigger();
 
   return newAchievements.length;
 };

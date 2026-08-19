@@ -1,8 +1,10 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
+  type CSSProperties,
   type SyntheticEvent,
 } from "react";
 import { createPortal } from "react-dom";
@@ -16,33 +18,50 @@ import {
   HeartFillIcon,
   HeartIcon,
   ImageIcon,
+  ReportIcon,
   TrophyIcon,
   XIcon,
 } from "@primer/octicons-react";
 import { TrashIcon } from "lucide-react";
+import { Tooltip } from "react-tooltip";
 
 import { ConfirmationModal, Link } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useDate } from "@renderer/hooks";
-import { getSouvenirVisualVariant } from "@shared";
-import type { ProfileAchievement } from "@types";
+import {
+  AuthPage,
+  getPrimarySouvenirAchievement,
+  getSouvenirVisualVariant,
+} from "@shared";
+import type {
+  ProfileSouvenir,
+  ProfileSouvenirAchievement,
+  SouvenirReportValues,
+} from "@types";
+import { SouvenirReportModal } from "./souvenir-report-modal";
 
 import "./souvenir-lightbox.scss";
 
 interface SouvenirLightboxProps {
-  souvenir: ProfileAchievement | null;
-  items: ProfileAchievement[];
+  souvenir: ProfileSouvenir | null;
+  items: ProfileSouvenir[];
   index: number;
   isOwner: boolean;
   canLike: boolean;
   isLiking: boolean;
   isUpdatingVisibility: boolean;
   isDeleting: boolean;
+  isReporting: boolean;
+  isReported: boolean;
   onClose: () => void;
   onNavigate: (index: number) => void;
-  onLike: (souvenir: ProfileAchievement) => void;
-  onVisibilityChange: (souvenir: ProfileAchievement) => void;
-  onDelete: (souvenir: ProfileAchievement) => Promise<boolean>;
+  onLike: (souvenir: ProfileSouvenir) => void;
+  onVisibilityChange: (souvenir: ProfileSouvenir) => void;
+  onDelete: (souvenir: ProfileSouvenir) => Promise<boolean>;
+  onReport: (
+    souvenir: ProfileSouvenir,
+    values: SouvenirReportValues
+  ) => Promise<boolean>;
 }
 
 const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
@@ -77,7 +96,7 @@ const getLightboxImageSize = (
   if (loadedImage?.imageUrl !== imageUrl) return null;
 
   const maxWidth = viewportSize.width * 0.9;
-  const reservedInfoHeight = viewportSize.width <= 900 ? 200 : 136;
+  const reservedInfoHeight = getReservedInfoHeight(viewportSize);
   const maxHeight = Math.max(viewportSize.height * 0.9 - reservedInfoHeight, 1);
   const scale = Math.min(
     maxWidth / loadedImage.naturalWidth,
@@ -90,8 +109,11 @@ const getLightboxImageSize = (
   };
 };
 
+const getReservedInfoHeight = (viewportSize: ViewportSize) =>
+  viewportSize.width <= 900 ? 260 : 196;
+
 interface SouvenirImageProps {
-  souvenir: ProfileAchievement;
+  souvenir: ProfileSouvenir;
   hasImage: boolean;
   showImagePlaceholder: boolean;
   imageSize: ReturnType<typeof getLightboxImageSize>;
@@ -107,6 +129,7 @@ function SouvenirImage({
   onLoad,
   onError,
 }: Readonly<SouvenirImageProps>) {
+  const primaryAchievement = getPrimarySouvenirAchievement(souvenir);
   const imageFrameClassName = showImagePlaceholder
     ? "profile-souvenir-lightbox__image-frame profile-souvenir-lightbox__image-frame--placeholder"
     : "profile-souvenir-lightbox__image-frame";
@@ -121,7 +144,7 @@ function SouvenirImage({
         <img
           className="profile-souvenir-lightbox__image"
           src={souvenir.imageUrl ?? undefined}
-          alt={souvenir.displayName}
+          alt={primaryAchievement.displayName}
           onLoad={onLoad}
           onError={onError}
         />
@@ -134,12 +157,18 @@ function SouvenirSummary({
   souvenir,
   onGameClick,
 }: Readonly<{
-  souvenir: ProfileAchievement;
+  souvenir: ProfileSouvenir;
   onGameClick: () => void;
 }>) {
   const { t } = useTranslation("user_profile");
   const { formatDateTime } = useDate();
-  const visualVariant = getSouvenirVisualVariant(souvenir);
+  const additionalAchievementsTooltipId = useId();
+  const primaryAchievement = getPrimarySouvenirAchievement(souvenir);
+  const additionalAchievements = souvenir.achievements.filter(
+    (achievement) =>
+      achievement.name.toUpperCase() !== primaryAchievement.name.toUpperCase()
+  );
+  const visualVariant = getSouvenirVisualVariant(primaryAchievement);
   const gameTitle = souvenir.gameTitle ?? t("unknown_game");
   const gamePath = buildGameDetailsPath({
     shop: souvenir.shop,
@@ -151,9 +180,9 @@ function SouvenirSummary({
     <div className="profile-souvenir-lightbox__summary">
       <span className="profile-souvenir-lightbox__achievement-icon">
         <TrophyIcon size={24} />
-        {souvenir.achievementIcon ? (
+        {primaryAchievement.achievementIcon ? (
           <img
-            src={souvenir.achievementIcon}
+            src={primaryAchievement.achievementIcon}
             alt=""
             onError={hideBrokenImage}
           />
@@ -162,7 +191,39 @@ function SouvenirSummary({
 
       <div className="profile-souvenir-lightbox__copy">
         <div className="profile-souvenir-lightbox__title-row">
-          <h2>{souvenir.displayName}</h2>
+          <h2 title={primaryAchievement.displayName}>
+            {primaryAchievement.displayName}
+          </h2>
+          {additionalAchievements.length > 0 ? (
+            <>
+              <button
+                type="button"
+                className="profile-souvenir-lightbox__other-count"
+                data-tooltip-id={additionalAchievementsTooltipId}
+              >
+                {t("souvenir_other_achievements", {
+                  count: additionalAchievements.length,
+                })}
+              </button>
+              <Tooltip
+                id={additionalAchievementsTooltipId}
+                place="top"
+                positionStrategy="fixed"
+                clickable
+                delayHide={100}
+                className="profile-souvenir-lightbox__achievement-tooltip"
+              >
+                <ul className="profile-souvenir-lightbox__achievement-list">
+                  {additionalAchievements.map((achievement) => (
+                    <SouvenirAchievementListItem
+                      key={achievement.name}
+                      achievement={achievement}
+                    />
+                  ))}
+                </ul>
+              </Tooltip>
+            </>
+          ) : null}
           {visualVariant ? (
             <span
               className={`profile-souvenir-lightbox__rarity profile-souvenir-lightbox__rarity--${visualVariant}`}
@@ -173,7 +234,11 @@ function SouvenirSummary({
           ) : null}
         </div>
 
-        {souvenir.description ? <p>{souvenir.description}</p> : null}
+        {primaryAchievement.description ? (
+          <p title={primaryAchievement.description}>
+            {primaryAchievement.description}
+          </p>
+        ) : null}
 
         <div className="profile-souvenir-lightbox__meta">
           <span className="profile-souvenir-lightbox__game">
@@ -203,7 +268,7 @@ function SouvenirSummary({
 
           <span className="profile-souvenir-lightbox__unlock-time">
             {t("souvenir_unlocked_on", {
-              date: formatDateTime(souvenir.unlockTime),
+              date: formatDateTime(primaryAchievement.unlockTime),
             })}
           </span>
         </div>
@@ -212,16 +277,48 @@ function SouvenirSummary({
   );
 }
 
+function SouvenirAchievementListItem({
+  achievement,
+}: Readonly<{ achievement: ProfileSouvenirAchievement }>) {
+  return (
+    <li className="profile-souvenir-lightbox__achievement-list-item">
+      <span className="profile-souvenir-lightbox__achievement-list-icon">
+        <TrophyIcon size={14} />
+        {achievement.achievementIcon ? (
+          <img
+            src={achievement.achievementIcon}
+            alt=""
+            onError={hideBrokenImage}
+          />
+        ) : null}
+      </span>
+      <span className="profile-souvenir-lightbox__achievement-list-copy">
+        <strong title={achievement.displayName}>
+          {achievement.displayName}
+        </strong>
+        {achievement.description ? (
+          <small title={achievement.description}>
+            {achievement.description}
+          </small>
+        ) : null}
+      </span>
+    </li>
+  );
+}
+
 interface SouvenirActionsProps {
-  souvenir: ProfileAchievement;
+  souvenir: ProfileSouvenir;
   isOwner: boolean;
   canLike: boolean;
   isLiking: boolean;
   isUpdatingVisibility: boolean;
   isDeleting: boolean;
-  onLike: (souvenir: ProfileAchievement) => void;
-  onVisibilityChange: (souvenir: ProfileAchievement) => void;
+  isReporting: boolean;
+  isReported: boolean;
+  onLike: (souvenir: ProfileSouvenir) => void;
+  onVisibilityChange: (souvenir: ProfileSouvenir) => void;
   onRequestDelete: () => void;
+  onRequestReport: () => void;
 }
 
 function SouvenirActions({
@@ -231,9 +328,12 @@ function SouvenirActions({
   isLiking,
   isUpdatingVisibility,
   isDeleting,
+  isReporting,
+  isReported,
   onLike,
   onVisibilityChange,
   onRequestDelete,
+  onRequestReport,
 }: Readonly<SouvenirActionsProps>) {
   const { t } = useTranslation("user_profile");
   const isPrivate = souvenir.visibility === "PRIVATE";
@@ -290,7 +390,19 @@ function SouvenirActions({
             <TrashIcon size={16} />
           </button>
         </>
-      ) : null}
+      ) : (
+        <button
+          type="button"
+          className="profile-souvenir-lightbox__action"
+          onClick={onRequestReport}
+          disabled={isReporting || isReported}
+          aria-label={t(isReported ? "souvenir_reported" : "report_souvenir")}
+          title={t(isReported ? "souvenir_reported" : "report_souvenir")}
+        >
+          <ReportIcon size={16} />
+          <span>{t(isReported ? "reported" : "report")}</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -304,15 +416,19 @@ export function SouvenirLightbox({
   isLiking,
   isUpdatingVisibility,
   isDeleting,
+  isReporting,
+  isReported,
   onClose,
   onNavigate,
   onLike,
   onVisibilityChange,
   onDelete,
+  onReport,
 }: Readonly<SouvenirLightboxProps>) {
   const { t } = useTranslation(["user_profile", "modal", "game_details"]);
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
+  const [isReportModalVisible, setIsReportModalVisible] = useState(false);
   const [loadedImage, setLoadedImage] = useState<LoadedImage | null>(null);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const [navigationDirection, setNavigationDirection] = useState(0);
@@ -324,6 +440,8 @@ export function SouvenirLightbox({
   const loadedImagesRef = useRef(new Map<string, LoadedImage>());
   const hasPrevious = index > 0;
   const hasNext = index < items.length - 1;
+  const isBlockingModalVisible =
+    isDeleteConfirmationVisible || isReportModalVisible;
   const handleNavigate = useCallback(
     (nextIndex: number) => {
       if (isNavigating) return;
@@ -344,6 +462,7 @@ export function SouvenirLightbox({
   useEffect(() => {
     if (!souvenir) {
       setIsDeleteConfirmationVisible(false);
+      setIsReportModalVisible(false);
       setNavigationDirection(0);
       setIsNavigating(false);
     }
@@ -371,7 +490,7 @@ export function SouvenirLightbox({
   }, [index, items]);
 
   useEffect(() => {
-    if (!souvenir || isDeleteConfirmationVisible) return;
+    if (!souvenir || isBlockingModalVisible) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -390,7 +509,7 @@ export function SouvenirLightbox({
     hasPrevious,
     handleNavigate,
     index,
-    isDeleteConfirmationVisible,
+    isBlockingModalVisible,
     onClose,
     souvenir,
   ]);
@@ -409,6 +528,8 @@ export function SouvenirLightbox({
 
   if (!souvenir) return null;
 
+  const primaryAchievement = getPrimarySouvenirAchievement(souvenir);
+
   const hasImage = Boolean(
     souvenir.imageUrl && souvenir.imageUrl !== failedImageUrl
   );
@@ -419,6 +540,9 @@ export function SouvenirLightbox({
     souvenir.imageUrl,
     viewportSize
   );
+  const contentStyle = {
+    "--souvenir-info-height": `${getReservedInfoHeight(viewportSize)}px`,
+  } as CSSProperties;
 
   const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = event.currentTarget;
@@ -452,13 +576,13 @@ export function SouvenirLightbox({
         <dialog
           className="profile-souvenir-lightbox"
           open
-          aria-label={souvenir.displayName}
+          aria-label={primaryAchievement.displayName}
         >
           <button
             type="button"
             className="profile-souvenir-lightbox__backdrop-button"
             onClick={onClose}
-            disabled={isNavigating}
+            disabled={isNavigating || isBlockingModalVisible}
             aria-label={t("close", { ns: "modal" })}
           />
 
@@ -506,7 +630,7 @@ export function SouvenirLightbox({
           >
             <AnimatePresence initial={false} custom={navigationDirection}>
               <motion.div
-                key={`${souvenir.gameId}:${souvenir.name}`}
+                key={souvenir.id}
                 className="profile-souvenir-lightbox__slide"
                 custom={navigationDirection}
                 variants={souvenirSlideVariants}
@@ -516,7 +640,10 @@ export function SouvenirLightbox({
                 transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
                 onAnimationComplete={handleNavigationAnimationComplete}
               >
-                <div className="profile-souvenir-lightbox__content">
+                <div
+                  className="profile-souvenir-lightbox__content"
+                  style={contentStyle}
+                >
                   <SouvenirImage
                     souvenir={souvenir}
                     hasImage={hasImage}
@@ -538,11 +665,21 @@ export function SouvenirLightbox({
                       isLiking={isLiking}
                       isUpdatingVisibility={isUpdatingVisibility}
                       isDeleting={isDeleting}
+                      isReporting={isReporting}
+                      isReported={isReported}
                       onLike={onLike}
                       onVisibilityChange={onVisibilityChange}
                       onRequestDelete={() =>
                         setIsDeleteConfirmationVisible(true)
                       }
+                      onRequestReport={() => {
+                        if (!canLike) {
+                          window.electron.openAuthWindow(AuthPage.SignIn);
+                          return;
+                        }
+
+                        setIsReportModalVisible(true);
+                      }}
                     />
                   </section>
                 </div>
@@ -561,6 +698,13 @@ export function SouvenirLightbox({
         confirmButtonTheme="danger"
         onConfirm={handleDeleteConfirm}
         onClose={() => setIsDeleteConfirmationVisible(false)}
+      />
+
+      <SouvenirReportModal
+        visible={isReportModalVisible}
+        isSubmitting={isReporting}
+        onClose={() => setIsReportModalVisible(false)}
+        onSubmit={(values) => onReport(souvenir, values)}
       />
     </>,
     document.body

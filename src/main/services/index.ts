@@ -31,6 +31,7 @@ export * from "./power-save-blocker";
 export * from "./native-addon";
 export * from "./cloud-save";
 export * from "./achievement-notification-presenter-electron";
+export * from "./achievements/grouped-souvenir-worker";
 export * from "./game-artwork";
 export * from "./game-artwork-cloud";
 export * as emulators from "./emulators";

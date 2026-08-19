@@ -75,13 +75,15 @@ export const launchRetroArchGame = async (
 
   const wrapperCommands = resolveEmulatorWrappers(userPreferences, game);
 
-  if (game) {
-    await gamesSublevel.put(gameKey, {
-      ...game,
-      selectedDiscPath: romPath,
-      lastTimePlayed: new Date(),
-    });
-  }
+  const sessionGame = game
+    ? {
+        ...game,
+        selectedDiscPath: romPath,
+        lastTimePlayed: new Date(),
+      }
+    : null;
+
+  if (sessionGame) await gamesSublevel.put(gameKey, sessionGame);
 
   const baseArgs = ["-L", core.path, romPath, "-f"];
 
@@ -103,9 +105,9 @@ export const launchRetroArchGame = async (
       () => new RetroArchNotConfiguredError(platform)
     );
 
-    if (game) {
+    if (sessionGame) {
       await emulators.startEmulatorSession({
-        game,
+        game: sessionGame,
         system: platform,
         executablePath: config.executablePath,
         sku: null,

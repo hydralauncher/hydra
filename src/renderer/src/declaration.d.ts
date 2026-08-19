@@ -991,6 +991,15 @@ declare global {
           needsSubscription?: boolean;
         }
       ) => Promise<T>;
+      postResponse: <T = unknown>(
+        url: string,
+        options?: {
+          data?: unknown;
+          needsAuth?: boolean;
+          needsSubscription?: boolean;
+          acceptedStatuses?: number[];
+        }
+      ) => Promise<{ status: number; data: T }>;
       put: <T = unknown>(
         url: string,
         options?: {
@@ -1073,17 +1082,16 @@ declare global {
       shop: GameShop
     ) => Promise<UserAchievement[]>;
     deleteAchievementSouvenir: (payload: {
-      gameId: string;
-      achievementName: string;
-      gameTitle: string | null;
-      achievementDisplayName: string;
+      souvenirId: string;
     }) => Promise<void>;
     getRetroAchievementsAchievements: (
       objectId: string,
       shop: GameShop,
       raGameId?: number
     ) => Promise<UserAchievement[] | null>;
-    resetRetroAchievementsAchievements: () => Promise<void>;
+    resetRetroAchievementsAchievements: (
+      pendingSouvenirsOnly?: boolean
+    ) => Promise<void>;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;

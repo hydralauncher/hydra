@@ -1,4 +1,10 @@
-import type { SouvenirSort } from "@types";
+import type {
+  ProfileAchievement,
+  ProfileSouvenir,
+  ProfileSouvenirAchievement,
+  SouvenirReportValues,
+  SouvenirSort,
+} from "@types";
 
 export const SOUVENIRS_PAGE_SIZE = 24;
 
@@ -47,18 +53,85 @@ export const buildUserSouvenirsPath = ({
   return `/users/${encodeURIComponent(userId)}/souvenirs?${params.toString()}`;
 };
 
-export const getSouvenirKey = (gameId: string, name: string) =>
-  `${encodeURIComponent(gameId)}:${encodeURIComponent(name)}`;
+const getLegacySouvenirId = (gameId: string, name: string) =>
+  `legacy:${encodeURIComponent(gameId)}:${encodeURIComponent(name)}`;
+
+export const getSouvenirKey = (souvenirId: string) => souvenirId;
+
+const toLegacyAchievement = (
+  souvenir: ProfileAchievement
+): ProfileSouvenirAchievement => ({
+  name: souvenir.name,
+  displayName: souvenir.displayName,
+  description: souvenir.description,
+  achievementIcon: souvenir.achievementIcon,
+  unlockTime: souvenir.unlockTime,
+  points: souvenir.points,
+  isRare: souvenir.isRare,
+  isPlatinum: souvenir.isPlatinum,
+});
+
+export const normalizeProfileSouvenir = (
+  souvenir: ProfileSouvenir | ProfileAchievement
+): ProfileSouvenir => {
+  if ("id" in souvenir) {
+    return souvenir;
+  }
+
+  return {
+    ...souvenir,
+    id: getLegacySouvenirId(souvenir.gameId, souvenir.name),
+    capturedAt: souvenir.unlockTime,
+    primaryAchievementName: souvenir.name,
+    achievements: [toLegacyAchievement(souvenir)],
+  };
+};
+
+export const getPrimarySouvenirAchievement = (
+  souvenir: ProfileSouvenir
+): ProfileSouvenirAchievement =>
+  souvenir.achievements.find(
+    (achievement) =>
+      achievement.name.toUpperCase() ===
+      souvenir.primaryAchievementName.toUpperCase()
+  ) ??
+  souvenir.achievements[0] ?? {
+    name: souvenir.primaryAchievementName,
+    displayName: souvenir.primaryAchievementName,
+    description: "",
+    achievementIcon: null,
+    unlockTime: souvenir.capturedAt,
+    points: null,
+    isRare: null,
+    isPlatinum: false,
+  };
 
 export const buildUserSouvenirLikePath = (
   ownerUserId: string,
-  gameId: string,
-  name: string
+  souvenirId: string
 ) =>
-  `/users/${encodeURIComponent(ownerUserId)}/souvenirs/${encodeURIComponent(gameId)}/${encodeURIComponent(name)}/like`;
+  `/users/${encodeURIComponent(ownerUserId)}/souvenirs/${encodeURIComponent(souvenirId)}/like`;
 
-export const buildProfileSouvenirVisibilityPath = (
-  gameId: string,
-  name: string
+export const buildUserSouvenirReportPath = (
+  ownerUserId: string,
+  souvenirId: string
 ) =>
-  `/profile/games/achievements/${encodeURIComponent(gameId)}/${encodeURIComponent(name)}/image/visibility`;
+  `/users/${encodeURIComponent(ownerUserId)}/souvenirs/${encodeURIComponent(souvenirId)}/report`;
+
+export const normalizeSouvenirReportValues = ({
+  reason,
+  description,
+}: SouvenirReportValues): SouvenirReportValues => {
+  const trimmedDescription = description?.trim();
+
+  return {
+    reason,
+    ...(trimmedDescription ? { description: trimmedDescription } : {}),
+  };
+};
+
+export const buildProfileSouvenirVisibilityPath = (souvenirId: string) =>
+  `/profile/souvenirs/${encodeURIComponent(souvenirId)}/visibility`;
+
+export const buildProfileSouvenirDeletePath = (souvenirId: string) =>
+  `/profile/souvenirs/${encodeURIComponent(souvenirId)}`;

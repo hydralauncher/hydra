@@ -18,6 +18,10 @@ import {
   isWindowsWindowSource,
 } from "./windows-game-window-match";
 import { captureWindowsGameWindowFrame } from "./windows-game-capture";
+import {
+  LocalSouvenirAssetStore,
+  PendingGroupedSouvenirStore,
+} from "./achievements/grouped-souvenir-store";
 
 const SCREENSHOT_QUALITY = 80;
 const SCREENSHOT_EXTENSION = "jpeg";
@@ -272,7 +276,14 @@ const getGameWindowSource = async (
   return source;
 };
 
-const listStoredScreenshots = async (directory: string) => {
+interface StoredScreenshot {
+  path: string;
+  modifiedAt: number;
+}
+
+const listStoredScreenshots = async (
+  directory: string
+): Promise<StoredScreenshot[]> => {
   const entries = await fs.promises.readdir(directory, {
     withFileTypes: true,
   });
@@ -391,16 +402,31 @@ export class ScreenshotService {
       if (!fs.existsSync(screenshotsPath)) return;
 
       const screenshots = await listStoredScreenshots(screenshotsPath);
+      const protectedPaths =
+        await PendingGroupedSouvenirStore.getProtectedScreenshotPaths();
 
       const outdated = screenshots
+        .filter((screenshot) => !protectedPaths.has(screenshot.path))
         .toSorted((a, b) => b.modifiedAt - a.modifiedAt)
         .slice(MAX_STORED_SCREENSHOTS);
 
-      await Promise.all(
+      const cleanupResults = await Promise.allSettled(
         outdated.map((screenshot) =>
           fs.promises.rm(screenshot.path, { force: true })
         )
       );
+      const removedPaths = new Set(
+        outdated
+          .filter((_, index) => cleanupResults[index]?.status === "fulfilled")
+          .map((screenshot) => screenshot.path)
+      );
+      await LocalSouvenirAssetStore.deleteByScreenshotPaths(removedPaths);
+
+      for (const result of cleanupResults) {
+        if (result.status === "rejected") {
+          logger.error("Failed to delete an old screenshot", result.reason);
+        }
+      }
 
       const gameDirectories = await fs.promises.readdir(screenshotsPath, {
         withFileTypes: true,

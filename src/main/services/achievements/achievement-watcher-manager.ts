@@ -26,6 +26,25 @@ import { achievementNotificationPresenter } from "../achievement-notification-pr
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
+const processingGameKeys = new Set<string>();
+
+const mergeDetectedAchievements = async (
+  game: Game,
+  achievements: UnlockedAchievement[]
+) => {
+  const uniqueAchievements = Array.from(
+    new Map(
+      achievements.map((achievement) => [
+        achievement.name.toLowerCase(),
+        achievement,
+      ])
+    ).values()
+  );
+
+  if (uniqueAchievements.length === 0) return;
+
+  await mergeAchievements(game, uniqueAchievements, true);
+};
 
 const watchAchievementsWindows = async () => {
   const games = await gamesSublevel
@@ -61,9 +80,7 @@ const watchAchievementsWindows = async () => {
       }
     }
 
-    for (const file of gameAchievementFiles) {
-      await compareFile(game, file);
-    }
+    await processGameAchievementFiles(game, gameAchievementFiles);
   }
 };
 
@@ -97,13 +114,13 @@ const watchAchievementsWithWine = async () => {
       gameAchievementFiles.push(...findAchievementFileInSteamPath(game));
     }
 
-    for (const file of gameAchievementFiles) {
-      await compareFile(game, file);
-    }
+    await processGameAchievementFiles(game, gameAchievementFiles);
   }
 };
 
-const compareFltFolder = async (game: Game, file: AchievementFile) => {
+const compareFltFolder = async (
+  file: AchievementFile
+): Promise<UnlockedAchievement[]> => {
   try {
     const currentAchievements = new Set(readdirSync(file.filePath));
     const previousAchievements = fltFiles.get(file.filePath);
@@ -113,20 +130,23 @@ const compareFltFolder = async (game: Game, file: AchievementFile) => {
       !previousAchievements ||
       currentAchievements.difference(previousAchievements).size === 0
     ) {
-      return;
+      return [];
     }
 
     achievementsLogger.log("Detected change in FLT folder", file.filePath);
-    await processAchievementFileDiff(game, file);
+    return processAchievementFileDiff(file);
   } catch (err) {
     achievementsLogger.error(err);
     fltFiles.set(file.filePath, new Set());
+    return [];
   }
 };
 
-const compareFile = (game: Game, file: AchievementFile) => {
+const compareFile = async (
+  file: AchievementFile
+): Promise<UnlockedAchievement[]> => {
   if (file.type === Cracker.flt) {
-    return compareFltFolder(game, file);
+    return compareFltFolder(file);
   }
 
   try {
@@ -143,12 +163,12 @@ const compareFile = (game: Game, file: AchievementFile) => {
           currentStat.mtimeMs
         );
 
-        return processAchievementFileDiff(game, file);
+        return processAchievementFileDiff(file);
       }
     }
 
     if (previousStat === currentStat.mtimeMs) {
-      return;
+      return [];
     }
 
     achievementsLogger.log(
@@ -157,7 +177,7 @@ const compareFile = (game: Game, file: AchievementFile) => {
       previousStat,
       currentStat.mtimeMs
     );
-    return processAchievementFileDiff(game, file);
+    return processAchievementFileDiff(file);
   } catch (err) {
     achievementsLogger.error(
       "Error reading file",
@@ -165,21 +185,34 @@ const compareFile = (game: Game, file: AchievementFile) => {
       err instanceof Error ? err.message : err
     );
     fileStats.set(file.filePath, -1);
-    return;
+    return [];
   }
 };
 
-const processAchievementFileDiff = async (
+const processAchievementFileDiff = (file: AchievementFile) => {
+  return parseAchievementFile(file.filePath, file.type);
+};
+
+const processGameAchievementFiles = async (
   game: Game,
-  file: AchievementFile
+  files: AchievementFile[]
 ) => {
-  const parsedAchievements = parseAchievementFile(file.filePath, file.type);
+  const gameKey = levelKeys.game(game.shop, game.objectId);
 
-  if (parsedAchievements.length) {
-    return mergeAchievements(game, parsedAchievements, true);
+  if (processingGameKeys.has(gameKey)) return;
+  processingGameKeys.add(gameKey);
+
+  try {
+    const detectedAchievements: UnlockedAchievement[] = [];
+
+    for (const file of files) {
+      detectedAchievements.push(...(await compareFile(file)));
+    }
+
+    await mergeDetectedAchievements(game, detectedAchievements);
+  } finally {
+    processingGameKeys.delete(gameKey);
   }
-
-  return 0;
 };
 
 export class AchievementWatcherManager {

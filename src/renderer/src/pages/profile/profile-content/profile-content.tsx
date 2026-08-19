@@ -142,19 +142,23 @@ export function ProfileContent() {
     likingKeys,
     visibilityKeys,
     deletingKeys,
+    reportingKeys,
+    reportedKeys,
     likeSouvenir,
     changeSouvenirVisibility,
     deleteSouvenir,
+    reportSouvenir,
   } = useSouvenirActions({
     ownerUserId: userProfile?.id,
     canLike: Boolean(userDetails),
+    canReport: Boolean(userDetails) && !isMe,
     updateSouvenir,
     removeSouvenir,
   });
   const openSouvenirIndex = useMemo(
     () =>
       souvenirs.findIndex(
-        (item) => getSouvenirKey(item.gameId, item.name) === openSouvenirKey
+        (item) => getSouvenirKey(item.id) === openSouvenirKey
       ),
     [openSouvenirKey, souvenirs]
   );
@@ -478,12 +482,14 @@ export function ProfileContent() {
                   isLoading={isLoadingSouvenirs}
                   isEnabled={souvenirsEnabled}
                   isMe={isMe}
+                  userId={userProfile.id}
+                  visibility={userProfile.souvenirsVisibility}
                   hasActiveSubscription={Boolean(
                     userProfile.hasActiveSubscription
                   )}
                   likingKeys={likingKeys}
                   onSouvenirClick={(item) =>
-                    setOpenSouvenirKey(getSouvenirKey(item.gameId, item.name))
+                    setOpenSouvenirKey(getSouvenirKey(item.id))
                   }
                   onLikeClick={(item) => void likeSouvenir(item)}
                   onReload={getUserSouvenirs}
@@ -562,16 +568,21 @@ export function ProfileContent() {
         isDeleting={Boolean(
           openSouvenirKey && deletingKeys.has(openSouvenirKey)
         )}
+        isReporting={Boolean(
+          openSouvenirKey && reportingKeys.has(openSouvenirKey)
+        )}
+        isReported={Boolean(
+          openSouvenirKey && reportedKeys.has(openSouvenirKey)
+        )}
         onClose={() => setOpenSouvenirKey(null)}
         onNavigate={(index) => {
           const nextSouvenir = souvenirs[index];
-          setOpenSouvenirKey(
-            getSouvenirKey(nextSouvenir.gameId, nextSouvenir.name)
-          );
+          setOpenSouvenirKey(getSouvenirKey(nextSouvenir.id));
         }}
         onLike={(item) => void likeSouvenir(item)}
         onVisibilityChange={(item) => void changeSouvenirVisibility(item)}
         onDelete={deleteSouvenir}
+        onReport={reportSouvenir}
       />
     </div>
   );

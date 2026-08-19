@@ -2,7 +2,7 @@ import { darkenColor, ensureArray } from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import type {
   Badge,
-  ProfileAchievement,
+  ProfileSouvenir,
   SouvenirsHiddenReason,
   SouvenirsResponse,
   SouvenirSort,
@@ -10,7 +10,11 @@ import type {
   UserStats,
   UserGame,
 } from "@types";
-import { buildUserSouvenirsPath, getSouvenirKey } from "@shared";
+import {
+  buildUserSouvenirsPath,
+  getSouvenirKey,
+  normalizeProfileSouvenir,
+} from "@shared";
 import { average } from "color.js";
 
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
@@ -38,7 +42,7 @@ export interface UserProfileContext {
   pinnedGames: UserGame[];
   hasMoreLibraryGames: boolean;
   isLoadingLibraryGames: boolean;
-  souvenirs: ProfileAchievement[];
+  souvenirs: ProfileSouvenir[];
   souvenirsTotal: number;
   souvenirsHiddenReason: SouvenirsHiddenReason;
   hasMoreSouvenirs: boolean;
@@ -46,11 +50,10 @@ export interface UserProfileContext {
   getUserSouvenirs: (sortBy?: SouvenirSort) => Promise<boolean>;
   loadMoreSouvenirs: (sortBy?: SouvenirSort) => Promise<boolean>;
   updateSouvenir: (
-    gameId: string,
-    name: string,
-    update: Partial<ProfileAchievement>
+    souvenirId: string,
+    update: Partial<ProfileSouvenir>
   ) => void;
-  removeSouvenir: (gameId: string, name: string) => void;
+  removeSouvenir: (souvenirId: string) => void;
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
@@ -114,7 +117,7 @@ export function UserProfileContextProvider({
   const [libraryPage, setLibraryPage] = useState(0);
   const [hasMoreLibraryGames, setHasMoreLibraryGames] = useState(true);
   const [isLoadingLibraryGames, setIsLoadingLibraryGames] = useState(false);
-  const [souvenirs, setSouvenirs] = useState<ProfileAchievement[]>([]);
+  const [souvenirs, setSouvenirs] = useState<ProfileSouvenir[]>([]);
   const [souvenirsTotal, setSouvenirsTotal] = useState(0);
   const [souvenirsHiddenReason, setSouvenirsHiddenReason] =
     useState<SouvenirsHiddenReason>(null);
@@ -281,7 +284,9 @@ export function UserProfileContextProvider({
         const response = await fetchSouvenirsPage(sortBy, 0);
         if (requestId !== souvenirRequestIdRef.current) return false;
 
-        setSouvenirs(response?.items ?? []);
+        setSouvenirs(
+          (response?.items ?? []).map((item) => normalizeProfileSouvenir(item))
+        );
         setSouvenirsTotal(response?.total ?? 0);
         setSouvenirsHiddenReason(response?.hiddenReason ?? null);
         return true;
@@ -318,14 +323,13 @@ export function UserProfileContextProvider({
 
         setSouvenirs((current) => {
           const existingKeys = new Set(
-            current.map((souvenir) =>
-              getSouvenirKey(souvenir.gameId, souvenir.name)
-            )
+            current.map((souvenir) => getSouvenirKey(souvenir.id))
           );
-          const nextItems = response.items.filter(
-            (souvenir) =>
-              !existingKeys.has(getSouvenirKey(souvenir.gameId, souvenir.name))
-          );
+          const nextItems = response.items
+            .map((item) => normalizeProfileSouvenir(item))
+            .filter(
+              (souvenir) => !existingKeys.has(getSouvenirKey(souvenir.id))
+            );
 
           return [...current, ...nextItems];
         });
@@ -344,12 +348,12 @@ export function UserProfileContextProvider({
   );
 
   const updateSouvenir = useCallback(
-    (gameId: string, name: string, update: Partial<ProfileAchievement>) => {
-      const key = getSouvenirKey(gameId, name);
+    (souvenirId: string, update: Partial<ProfileSouvenir>) => {
+      const key = getSouvenirKey(souvenirId);
 
       setSouvenirs((current) =>
         current.map((souvenir) =>
-          getSouvenirKey(souvenir.gameId, souvenir.name) === key
+          getSouvenirKey(souvenir.id) === key
             ? { ...souvenir, ...update }
             : souvenir
         )
@@ -358,13 +362,11 @@ export function UserProfileContextProvider({
     []
   );
 
-  const removeSouvenir = useCallback((gameId: string, name: string) => {
-    const key = getSouvenirKey(gameId, name);
+  const removeSouvenir = useCallback((souvenirId: string) => {
+    const key = getSouvenirKey(souvenirId);
 
     setSouvenirs((current) =>
-      current.filter(
-        (souvenir) => getSouvenirKey(souvenir.gameId, souvenir.name) !== key
-      )
+      current.filter((souvenir) => getSouvenirKey(souvenir.id) !== key)
     );
     setSouvenirsTotal((current) => Math.max(0, current - 1));
   }, []);
