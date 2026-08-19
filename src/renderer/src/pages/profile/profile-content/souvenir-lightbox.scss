@@ -166,9 +166,6 @@
     align-self: center;
     overflow: hidden;
     background: globals.$dark-background-color;
-    transition:
-      width 0.28s ease-in-out,
-      height 0.28s ease-in-out;
 
     &--placeholder {
       width: min(90vw, 1120px);
@@ -237,8 +234,8 @@
   }
 
   &__achievement-icon {
-    width: 56px;
-    height: 56px;
+    width: 80px;
+    height: 80px;
     border-radius: 8px;
   }
 

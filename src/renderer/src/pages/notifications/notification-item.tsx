@@ -4,6 +4,7 @@ import {
   PersonIcon,
   ClockIcon,
   StarFillIcon,
+  HeartFillIcon,
   CommentDiscussionIcon,
 } from "@primer/octicons-react";
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
@@ -179,6 +180,16 @@ export function NotificationItem({
           }),
           showActions: false,
         };
+      case "SOUVENIR_LIKE":
+        return {
+          title: t("souvenir_like_title", {
+            gameTitle: notification.variables.gameTitle,
+          }),
+          description: t("souvenir_like_description", {
+            count: Number(notification.variables.likeCount ?? 1),
+          }),
+          showActions: false,
+        };
       case "RETROACHIEVEMENTS_CREDENTIALS_RESTORED":
         return {
           title: t("retroachievements_credentials_restored_title"),
@@ -214,6 +225,7 @@ export function NotificationItem({
   const isReviewAnswer = notification.type === "REVIEW_ANSWER";
   const isReviewAnswerUpvote = notification.type === "REVIEW_ANSWER_UPVOTE";
   const isReview = isReviewUpvote || isReviewAnswer || isReviewAnswerUpvote;
+  const isSouvenirLike = notification.type === "SOUVENIR_LIKE";
 
   const isRetroAchievements =
     notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED" ||
@@ -232,6 +244,9 @@ export function NotificationItem({
     }
     if (isReviewAnswer) {
       return <CommentDiscussionIcon size={24} />;
+    }
+    if (isSouvenirLike) {
+      return <HeartFillIcon size={24} />;
     }
     return <PersonIcon size={24} />;
   };

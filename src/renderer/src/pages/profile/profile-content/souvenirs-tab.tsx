@@ -14,13 +14,18 @@ import {
   TrophyIcon,
 } from "@primer/octicons-react";
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
-import type { ProfileAchievement, SouvenirSort } from "@types";
+import type {
+  ProfileAchievement,
+  SouvenirsHiddenReason,
+  SouvenirSort,
+} from "@types";
 import { useDate } from "@renderer/hooks";
 import { getSouvenirKey, getSouvenirVisualVariant } from "@shared";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { Button } from "@renderer/components";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { LockedProfile } from "./locked-profile";
 import "./profile-content.scss";
 
 const souvenirKey = (achievement: ProfileAchievement) =>
@@ -244,6 +249,8 @@ function SouvenirGameGroup({
 
 interface SouvenirsEmptyStateProps {
   isLoading: boolean;
+  hiddenReason: SouvenirsHiddenReason;
+  isMe: boolean;
   hasActiveSubscription: boolean;
   isEnabled: boolean;
   onOpenSettings: () => void;
@@ -251,6 +258,8 @@ interface SouvenirsEmptyStateProps {
 
 function SouvenirsEmptyState({
   isLoading,
+  hiddenReason,
+  isMe,
   hasActiveSubscription,
   isEnabled,
   onOpenSettings,
@@ -263,6 +272,23 @@ function SouvenirsEmptyState({
     return (
       <div className="profile-content__no-games profile-content__souvenirs-empty">
         <p>{t("loading_souvenirs")}</p>
+      </div>
+    );
+  }
+
+  if (!isMe && hiddenReason) {
+    return (
+      <div className="profile-content__souvenirs-empty">
+        <LockedProfile title={t("locked_souvenirs")} />
+      </div>
+    );
+  }
+
+  if (!isMe) {
+    return (
+      <div className="profile-content__no-games profile-content__souvenirs-empty">
+        <h2>{t("no_user_souvenirs")}</h2>
+        <p>{t("no_user_souvenirs_description")}</p>
       </div>
     );
   }
@@ -311,10 +337,12 @@ function SouvenirsEmptyState({
 
 interface SouvenirsTabProps {
   achievements: ProfileAchievement[];
+  hiddenReason: SouvenirsHiddenReason;
   canLike: boolean;
   hasMore: boolean;
   isLoading: boolean;
   isEnabled: boolean;
+  isMe: boolean;
   hasActiveSubscription: boolean;
   likingKeys: Set<string>;
   onSouvenirClick: (achievement: ProfileAchievement) => void;
@@ -326,10 +354,12 @@ interface SouvenirsTabProps {
 
 export function SouvenirsTab({
   achievements,
+  hiddenReason,
   canLike,
   hasMore,
   isLoading,
   isEnabled,
+  isMe,
   hasActiveSubscription,
   likingKeys,
   onSouvenirClick,
@@ -381,6 +411,8 @@ export function SouvenirsTab({
       {achievements.length === 0 ? (
         <SouvenirsEmptyState
           isLoading={isLoading}
+          hiddenReason={hiddenReason}
+          isMe={isMe}
           hasActiveSubscription={hasActiveSubscription}
           isEnabled={isEnabled}
           onOpenSettings={onOpenSettings}

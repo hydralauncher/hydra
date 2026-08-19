@@ -139,6 +139,13 @@ function getApiNotificationContent(notification: Notification) {
         title: `Your reply for ${notification.variables.gameTitle ?? "a review"} got an upvote`,
         description: `${notification.variables.upvoteCount ?? "1"} upvotes on your reply.`,
       };
+    case "SOUVENIR_LIKE": {
+      const likeCount = Number(notification.variables.likeCount ?? 1);
+      return {
+        title: `Your souvenir from ${notification.variables.gameTitle ?? "your game"} got a like!`,
+        description: `Your souvenir received ${likeCount} new ${likeCount === 1 ? "like" : "likes"}`,
+      };
+    }
     default:
       return {
         title: "Notification",

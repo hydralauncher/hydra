@@ -1,8 +1,10 @@
 import "./content.scss";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Checkbox, VerticalFocusGroup } from "../../components";
+import { ConfirmationModal } from "../../components/modals";
 import { useUserDetails, useUserPreferences } from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
@@ -43,9 +45,12 @@ const DEFAULT_FORM: ContentForm = {
 export function ContentSettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
+  const { t } = useTranslation("settings");
   const userPreferences = useUserPreferences();
   const { hasActiveSubscription } = useUserDetails();
   const [form, setForm] = useState<ContentForm>(DEFAULT_FORM);
+  const [showWaylandSouvenirsWarning, setShowWaylandSouvenirsWarning] =
+    useState(false);
 
   useEffect(() => {
     if (!userPreferences) return;
@@ -61,12 +66,31 @@ export function ContentSettingsSection({
     });
   }, [userPreferences]);
 
-  const updateUserPreferences = async (values: Partial<ContentForm>) => {
-    const nextForm = { ...form, ...values };
-    setForm(nextForm);
+  const updateUserPreferences = useCallback(
+    async (values: Partial<ContentForm>) => {
+      setForm((currentForm) => ({ ...currentForm, ...values }));
 
-    await globalThis.window.electron.updateUserPreferences(values);
-  };
+      await globalThis.window.electron.updateUserPreferences(values);
+    },
+    []
+  );
+
+  const handleAchievementSouvenirsChange = useCallback(
+    (checked: boolean) => {
+      if (checked && globalThis.window.electron.isWayland) {
+        setShowWaylandSouvenirsWarning(true);
+        return;
+      }
+
+      void updateUserPreferences({ enableAchievementSouvenirs: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleWaylandSouvenirsConfirm = useCallback(() => {
+    setShowWaylandSouvenirsWarning(false);
+    return updateUserPreferences({ enableAchievementSouvenirs: true });
+  }, [updateUserPreferences]);
 
   const supportsSouvenirs = hasActiveSubscription;
 
@@ -113,15 +137,17 @@ export function ContentSettingsSection({
               focusId: CONTENT_ITEM_FOCUS_IDS.enableAchievementSouvenirs,
               label: "Enable souvenirs for achievements",
               checked: form.enableAchievementSouvenirs,
-              onChange: (checked: boolean) =>
-                void updateUserPreferences({
-                  enableAchievementSouvenirs: checked,
-                }),
+              onChange: handleAchievementSouvenirsChange,
             },
           ]
         : []),
     ];
-  }, [form, supportsSouvenirs]);
+  }, [
+    form,
+    handleAchievementSouvenirsChange,
+    supportsSouvenirs,
+    updateUserPreferences,
+  ]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -183,6 +209,15 @@ export function ContentSettingsSection({
           </div>
         </VerticalFocusGroup>
       </SettingsSection>
+
+      <ConfirmationModal
+        visible={showWaylandSouvenirsWarning}
+        title={t("wayland_souvenirs_warning_title")}
+        description={t("wayland_souvenirs_warning_description")}
+        confirmLabel={t("wayland_souvenirs_warning_confirm")}
+        onClose={() => setShowWaylandSouvenirsWarning(false)}
+        onConfirm={handleWaylandSouvenirsConfirm}
+      />
     </div>
   );
 }

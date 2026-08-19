@@ -96,6 +96,7 @@ export function ProfileContent() {
     isLoadingLibraryGames,
     souvenirs,
     souvenirsTotal,
+    souvenirsHiddenReason,
     hasMoreSouvenirs,
     isLoadingSouvenirs,
     getUserSouvenirs,
@@ -431,7 +432,6 @@ export function ProfileContent() {
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
             souvenirsCount={souvenirsTotal}
-            showSouvenirs={isMe || souvenirsTotal > 0}
             onTabChange={setActiveTab}
           />
 
@@ -472,10 +472,12 @@ export function ProfileContent() {
               {activeTab === "souvenirs" && (
                 <SouvenirsTab
                   achievements={souvenirs}
+                  hiddenReason={souvenirsHiddenReason}
                   canLike={Boolean(userDetails)}
                   hasMore={hasMoreSouvenirs}
                   isLoading={isLoadingSouvenirs}
                   isEnabled={souvenirsEnabled}
+                  isMe={isMe}
                   hasActiveSubscription={Boolean(
                     userProfile.hasActiveSubscription
                   )}

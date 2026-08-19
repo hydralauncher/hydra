@@ -59,6 +59,7 @@ const souvenirSlideVariants = {
 };
 
 interface LoadedImage {
+  imageUrl: string;
   naturalWidth: number;
   naturalHeight: number;
 }
@@ -70,9 +71,10 @@ interface ViewportSize {
 
 const getLightboxImageSize = (
   loadedImage: LoadedImage | null,
+  imageUrl: string | null,
   viewportSize: ViewportSize
 ) => {
-  if (!loadedImage) return null;
+  if (loadedImage?.imageUrl !== imageUrl) return null;
 
   const maxWidth = viewportSize.width * 0.9;
   const reservedInfoHeight = viewportSize.width <= 900 ? 200 : 136;
@@ -319,18 +321,24 @@ export function SouvenirLightbox({
     width: window.innerWidth,
     height: window.innerHeight,
   }));
-  const pendingLoadedImageRef = useRef<LoadedImage | null>(null);
+  const loadedImagesRef = useRef(new Map<string, LoadedImage>());
   const hasPrevious = index > 0;
   const hasNext = index < items.length - 1;
   const handleNavigate = useCallback(
     (nextIndex: number) => {
       if (isNavigating) return;
 
+      const nextImageUrl = items[nextIndex]?.imageUrl;
+      setLoadedImage(
+        nextImageUrl
+          ? (loadedImagesRef.current.get(nextImageUrl) ?? null)
+          : null
+      );
       setIsNavigating(true);
       setNavigationDirection(nextIndex > index ? 1 : -1);
       onNavigate(nextIndex);
     },
-    [index, isNavigating, onNavigate]
+    [index, isNavigating, items, onNavigate]
   );
 
   useEffect(() => {
@@ -338,7 +346,6 @@ export function SouvenirLightbox({
       setIsDeleteConfirmationVisible(false);
       setNavigationDirection(0);
       setIsNavigating(false);
-      pendingLoadedImageRef.current = null;
     }
   }, [souvenir]);
 
@@ -346,10 +353,20 @@ export function SouvenirLightbox({
     const neighboringSouvenirs = [items[index - 1], items[index + 1]];
 
     for (const neighboringSouvenir of neighboringSouvenirs) {
-      if (!neighboringSouvenir?.imageUrl) continue;
+      const imageUrl = neighboringSouvenir?.imageUrl;
+      if (!imageUrl || loadedImagesRef.current.has(imageUrl)) continue;
 
       const image = new Image();
-      image.src = neighboringSouvenir.imageUrl;
+      image.onload = () => {
+        if (!image.naturalWidth || !image.naturalHeight) return;
+
+        loadedImagesRef.current.set(imageUrl, {
+          imageUrl,
+          naturalWidth: image.naturalWidth,
+          naturalHeight: image.naturalHeight,
+        });
+      };
+      image.src = imageUrl;
     }
   }, [index, items]);
 
@@ -395,32 +412,29 @@ export function SouvenirLightbox({
   const hasImage = Boolean(
     souvenir.imageUrl && souvenir.imageUrl !== failedImageUrl
   );
-  const showImagePlaceholder = !hasImage || !loadedImage;
-  const imageSize = getLightboxImageSize(loadedImage, viewportSize);
+  const showImagePlaceholder =
+    !hasImage || loadedImage?.imageUrl !== souvenir.imageUrl;
+  const imageSize = getLightboxImageSize(
+    loadedImage,
+    souvenir.imageUrl,
+    viewportSize
+  );
 
   const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = event.currentTarget;
     if (!souvenir.imageUrl || !naturalWidth || !naturalHeight) return;
 
     const nextLoadedImage = {
+      imageUrl: souvenir.imageUrl,
       naturalWidth,
       naturalHeight,
     };
 
-    if (isNavigating) {
-      pendingLoadedImageRef.current = nextLoadedImage;
-      return;
-    }
-
+    loadedImagesRef.current.set(souvenir.imageUrl, nextLoadedImage);
     setLoadedImage(nextLoadedImage);
   };
 
   const handleNavigationAnimationComplete = () => {
-    if (pendingLoadedImageRef.current) {
-      setLoadedImage(pendingLoadedImageRef.current);
-      pendingLoadedImageRef.current = null;
-    }
-
     setIsNavigating(false);
   };
 
