@@ -32,6 +32,7 @@ const addGameToQueue = async (
     fileSize,
     fileIndices,
     selectedFilesSize,
+    qbittorrentServerId,
   } = payload;
 
   const parsedFileSize = parseBytes(fileSize ?? null);
@@ -63,6 +64,7 @@ const addGameToQueue = async (
       fileIndices,
       selectedFilesSize,
       customTrackers: globalTrackers,
+      qbittorrentServerId,
     };
 
     await DownloadManager.validateDownloadUrl(download);

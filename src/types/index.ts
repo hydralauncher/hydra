@@ -161,6 +161,7 @@ export interface StartGameDownloadPayload {
   fileSize?: string | null;
   fileIndices?: number[];
   selectedFilesSize?: number | null;
+  qbittorrentServerId?: string;
 }
 
 export interface UserFriend {

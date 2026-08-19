@@ -38,6 +38,7 @@ export interface RepacksModalProps {
     fileIndices?: number[],
     selectedFilesSize?: number | null,
     automaticallyDeleteArchiveFiles?: boolean,
+    qbittorrentServerId?: string,
     signal?: AbortSignal
   ) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;

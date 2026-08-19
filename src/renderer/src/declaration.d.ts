@@ -44,6 +44,7 @@ import type {
   ProtonVersion,
   CreateSteamShortcutOptions,
   TorrentFilesResponse,
+  QbittorrentServer,
   DownloadLayoutState,
   EmulatorConfig,
   EmulatorConfigMap,
@@ -224,6 +225,9 @@ declare global {
       appendManual: boolean,
       appendUrl: boolean
     ) => Promise<void>;
+    testQbittorrentConnection: (
+      server: QbittorrentServer
+    ) => Promise<{ ok: true; version: string } | { ok: false; error: string }>;
     updateDownloadQueuePosition: (
       shop: GameShop,
       objectId: string,

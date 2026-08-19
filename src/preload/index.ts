@@ -64,6 +64,7 @@ import type {
   LegacySaveExportIpcProgress,
   LegacySaveExportProgress,
   LegacySaveExportResult,
+  QbittorrentServer,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -304,6 +305,10 @@ contextBridge.exposeInMainWorld("electron", {
       appendManual,
       appendUrl
     ) as Promise<void>,
+  testQbittorrentConnection: (server: QbittorrentServer) =>
+    ipcRenderer.invoke("testQbittorrentConnection", server) as Promise<
+      { ok: true; version: string } | { ok: false; error: string }
+    >,
   addGameToQueue: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("addGameToQueue", payload),
   cancelGameDownload: (shop: GameShop, objectId: string) =>
