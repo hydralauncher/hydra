@@ -64,8 +64,9 @@ export interface SouvenirLightboxProps {
   isDeleting: boolean;
   isReporting: boolean;
   isReported: boolean;
+  isContentWarningVisible: boolean;
   onClose: () => void;
-  onNavigate: (index: number) => void;
+  onNavigate: (index: number) => boolean;
   onLike: (souvenir: ProfileSouvenir) => void;
   onVisibilityChange: (souvenir: ProfileSouvenir) => void;
   onDelete: (souvenir: ProfileSouvenir) => Promise<boolean>;
@@ -173,6 +174,7 @@ interface SouvenirLightboxNavigationOptions {
   isOpen: boolean;
   isDeleteConfirmationVisible: boolean;
   isReportModalVisible: boolean;
+  isContentWarningVisible: boolean;
   isOwner: boolean;
   canFocusReport: boolean;
   items: ProfileSouvenir[];
@@ -186,6 +188,7 @@ function useSouvenirLightboxNavigation({
   isOpen,
   isDeleteConfirmationVisible,
   isReportModalVisible,
+  isContentWarningVisible,
   isOwner,
   canFocusReport,
   items,
@@ -211,7 +214,10 @@ function useSouvenirLightboxNavigation({
   );
 
   useNavigationScreenActions(
-    isOpen && !isDeleteConfirmationVisible && !isReportModalVisible
+    isOpen &&
+      !isDeleteConfirmationVisible &&
+      !isReportModalVisible &&
+      !isContentWarningVisible
       ? {
           press: { b: onClose },
           direction: {
@@ -238,7 +244,10 @@ function useSouvenirLightboxNavigation({
 
   useEffect(() => {
     const canNavigate =
-      isOpen && !isDeleteConfirmationVisible && !isReportModalVisible;
+      isOpen &&
+      !isDeleteConfirmationVisible &&
+      !isReportModalVisible &&
+      !isContentWarningVisible;
     const removeLeftBumper = onButtonPressed(
       GamepadButtonType.LEFT_BUMPER,
       (event) => {
@@ -266,6 +275,7 @@ function useSouvenirLightboxNavigation({
     hasPrevious,
     index,
     isActiveGamepadEvent,
+    isContentWarningVisible,
     isDeleteConfirmationVisible,
     isOpen,
     isReportModalVisible,
@@ -422,7 +432,8 @@ interface SouvenirSlideNavigationOptions {
   souvenir: ProfileSouvenir | null;
   items: ProfileSouvenir[];
   index: number;
-  onNavigate: (index: number) => void;
+  isContentWarningVisible: boolean;
+  onNavigate: (index: number) => boolean;
   prepareImage: (souvenir: ProfileSouvenir) => void;
 }
 
@@ -430,6 +441,7 @@ function useSouvenirSlideNavigation({
   souvenir,
   items,
   index,
+  isContentWarningVisible,
   onNavigate,
   prepareImage,
 }: SouvenirSlideNavigationOptions) {
@@ -442,10 +454,11 @@ function useSouvenirSlideNavigation({
       const nextSouvenir = items[nextIndex];
       if (!nextSouvenir) return;
 
+      if (!onNavigate(nextIndex)) return;
+
       prepareImage(nextSouvenir);
       setIsNavigating(true);
       setNavigationDirection(nextIndex > index ? 1 : -1);
-      onNavigate(nextIndex);
     },
     [index, isNavigating, items, onNavigate, prepareImage]
   );
@@ -456,6 +469,13 @@ function useSouvenirSlideNavigation({
     setNavigationDirection(0);
     setIsNavigating(false);
   }, [souvenir]);
+
+  useEffect(() => {
+    if (!isContentWarningVisible) return;
+
+    setNavigationDirection(0);
+    setIsNavigating(false);
+  }, [isContentWarningVisible]);
 
   return {
     navigationDirection,
@@ -768,6 +788,7 @@ export function SouvenirLightbox({
   isDeleting,
   isReporting,
   isReported,
+  isContentWarningVisible,
   onClose,
   onNavigate,
   onLike,
@@ -800,6 +821,7 @@ export function SouvenirLightbox({
     souvenir,
     items,
     index,
+    isContentWarningVisible,
     onNavigate,
     prepareImage,
   });
@@ -808,6 +830,7 @@ export function SouvenirLightbox({
       isOpen: Boolean(souvenir),
       isDeleteConfirmationVisible,
       isReportModalVisible,
+      isContentWarningVisible,
       isOwner,
       canFocusReport: !isReported,
       items,
@@ -839,7 +862,12 @@ export function SouvenirLightbox({
   }, [souvenir]);
 
   useEffect(() => {
-    if (!souvenir || isDeleteConfirmationVisible || isReportModalVisible)
+    if (
+      !souvenir ||
+      isDeleteConfirmationVisible ||
+      isReportModalVisible ||
+      isContentWarningVisible
+    )
       return;
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -851,7 +879,13 @@ export function SouvenirLightbox({
     return () => {
       globalThis.window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isDeleteConfirmationVisible, isReportModalVisible, onClose, souvenir]);
+  }, [
+    isContentWarningVisible,
+    isDeleteConfirmationVisible,
+    isReportModalVisible,
+    onClose,
+    souvenir,
+  ]);
 
   const handleDeleteConfirm = async () => {
     if (!souvenir) return;
@@ -881,6 +915,7 @@ export function SouvenirLightbox({
                 event.target === event.currentTarget &&
                 !isDeleteConfirmationVisible &&
                 !isReportModalVisible &&
+                !isContentWarningVisible &&
                 !isNavigating
               ) {
                 onClose();
@@ -891,6 +926,7 @@ export function SouvenirLightbox({
               type="button"
               className="souvenir-lightbox__close-button"
               onClick={onClose}
+              disabled={isContentWarningVisible}
               aria-label={t("close", { ns: "modal" })}
             >
               <XIcon size={28} />
@@ -901,7 +937,7 @@ export function SouvenirLightbox({
                 type="button"
                 className="souvenir-lightbox__nav-button souvenir-lightbox__nav-button--left"
                 onClick={() => navigateToIndex(index - 1)}
-                disabled={isNavigating}
+                disabled={isNavigating || isContentWarningVisible}
                 aria-label={t("previous_media", { ns: "game_details" })}
               >
                 <CaretLeftIcon size={32} />
@@ -913,7 +949,7 @@ export function SouvenirLightbox({
                 type="button"
                 className="souvenir-lightbox__nav-button souvenir-lightbox__nav-button--right"
                 onClick={() => navigateToIndex(index + 1)}
-                disabled={isNavigating}
+                disabled={isNavigating || isContentWarningVisible}
                 aria-label={t("next_media", { ns: "game_details" })}
               >
                 <CaretRightIcon size={32} />

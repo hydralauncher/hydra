@@ -1198,6 +1198,14 @@
   border-radius: 12px;
   object-fit: cover;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+.profile-page__souvenir-image--content-warning {
+  filter: blur(18px) brightness(0.55);
+  transform: scale(1.12);
 }
 
 .profile-page__souvenir-image-placeholder {

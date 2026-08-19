@@ -8,6 +8,7 @@ import type {
 } from "./level.types";
 import type { GameShop, UnlockedAchievement } from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
+import type { GameContentWarning } from "./souvenir.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
@@ -272,6 +273,7 @@ export interface ProfileAchievement {
   shop: GameShop;
   gameTitle: string | null;
   gameIconUrl: string | null;
+  gameContentWarning?: GameContentWarning;
   likeCount: number;
   likedByMe: boolean;
 }
@@ -299,6 +301,7 @@ export interface ProfileSouvenir {
   shop: GameShop;
   gameTitle: string | null;
   gameIconUrl: string | null;
+  gameContentWarning?: GameContentWarning;
   likeCount: number;
   likedByMe: boolean;
 }

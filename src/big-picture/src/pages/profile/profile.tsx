@@ -53,6 +53,7 @@ import {
   UserProfileAvatar,
   VerticalFocusGroup,
 } from "../../components";
+import { ConfirmationModal } from "../../components/modals";
 import { IS_DESKTOP } from "../../constants";
 import {
   getBigPictureGameDetailsPath,
@@ -68,6 +69,7 @@ import {
   useFormat,
   useLibrary,
   useUserDetails,
+  useUserPreferences,
 } from "../../hooks";
 import { BIG_PICTURE_SIDEBAR_PROFILE_ID } from "../../layout";
 import type { FocusOverrides } from "../../services";
@@ -108,6 +110,8 @@ import {
   getSouvenirKey as buildSouvenirKey,
   getSouvenirVisualVariant,
   normalizeSouvenirReportValues,
+  shouldShowSouvenirContentWarning,
+  useSouvenirContentWarning,
 } from "@shared";
 
 const SOUVENIR_REPORT_RESPONSE_STATUSES = [201, 400, 404, 429];
@@ -1696,6 +1700,7 @@ interface ProfileSouvenirsProps {
   souvenirs: ProfileSouvenir[];
   total: number;
   canLike: boolean;
+  disableNsfwAlert: boolean;
   updatingLikeKeys: Set<string>;
   hasMore: boolean;
   isLoadingMore: boolean;
@@ -1709,6 +1714,7 @@ interface ProfileSouvenirsProps {
 interface ProfileSouvenirCardProps {
   souvenir: ProfileSouvenir;
   canLike: boolean;
+  disableNsfwAlert: boolean;
   isLikePending: boolean;
   upFocusId: string | null;
   downFocusId: string | null;
@@ -1742,6 +1748,7 @@ const getProfileSouvenirNavigationOverrides = (
 function ProfileSouvenirCard({
   souvenir,
   canLike,
+  disableNsfwAlert,
   isLikePending,
   upFocusId,
   downFocusId,
@@ -1757,6 +1764,10 @@ function ProfileSouvenirCard({
   const otherAchievementCount = Math.max(0, souvenir.achievements.length - 1);
   const secondaryAction =
     canLike && !isLikePending ? () => onLike(souvenir) : undefined;
+  const shouldBlurThumbnail = shouldShowSouvenirContentWarning(
+    souvenir,
+    disableNsfwAlert
+  );
 
   return (
     <FocusItem
@@ -1789,7 +1800,7 @@ function ProfileSouvenirCard({
 
           {souvenir.imageUrl ? (
             <img
-              className="profile-page__souvenir-image"
+              className={`profile-page__souvenir-image${shouldBlurThumbnail ? " profile-page__souvenir-image--content-warning" : ""}`}
               src={souvenir.imageUrl}
               alt={primaryAchievement.displayName}
               draggable={false}
@@ -1897,6 +1908,7 @@ function ProfileSouvenirs({
   souvenirs,
   total,
   canLike,
+  disableNsfwAlert,
   updatingLikeKeys,
   hasMore,
   isLoadingMore,
@@ -1991,6 +2003,7 @@ function ProfileSouvenirs({
                   key={souvenirKey}
                   souvenir={souvenir}
                   canLike={canLike}
+                  disableNsfwAlert={disableNsfwAlert}
                   isLikePending={isLikePending}
                   upFocusId={upFocusId}
                   downFocusId={downFocusId}
@@ -2204,6 +2217,8 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     blockUser,
   } = useUserDetails();
   const { library } = useLibrary();
+  const userPreferences = useUserPreferences();
+  const disableNsfwAlert = userPreferences?.disableNsfwAlert === true;
   const [isPerformingProfileAction, setIsPerformingProfileAction] =
     useState(false);
 
@@ -2312,15 +2327,20 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
   const [reportedSouvenirKeys, setReportedSouvenirKeys] = useState<Set<string>>(
     new Set()
   );
-  const [openSouvenirKey, setOpenSouvenirKey] = useState<string | null>(null);
-  const openSouvenirIndex = useMemo(
-    () =>
-      souvenirs.findIndex(
-        (souvenir) => getSouvenirKey(souvenir) === openSouvenirKey
-      ),
-    [openSouvenirKey, souvenirs]
-  );
-  const openSouvenir = souvenirs[openSouvenirIndex] ?? null;
+  const {
+    openSouvenirKey,
+    openSouvenirIndex,
+    openSouvenir,
+    pendingSouvenir,
+    requestOpenSouvenir,
+    confirmContentWarning,
+    dismissContentWarning,
+    closeSouvenir,
+  } = useSouvenirContentWarning({
+    souvenirs,
+    disableNsfwAlert,
+    ownerUserId: targetUserId,
+  });
 
   useEffect(() => {
     setReportingSouvenirKeys(new Set());
@@ -2473,7 +2493,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
 
         if (response.status === 404) {
           removeSouvenir(souvenir.id);
-          setOpenSouvenirKey(null);
+          closeSouvenir();
           showErrorToast(t("souvenir_report_unavailable"), {
             fallbackVisual: "settings",
           });
@@ -2505,6 +2525,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
       }
     },
     [
+      closeSouvenir,
       isOwnProfileTarget,
       removeSouvenir,
       reportedSouvenirKeys,
@@ -2623,14 +2644,13 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
               souvenirs={souvenirs}
               total={souvenirsTotal}
               canLike={Boolean(userDetails)}
+              disableNsfwAlert={disableNsfwAlert}
               updatingLikeKeys={updatingLikeKeys}
               hasMore={hasMoreSouvenirs}
               isLoadingMore={isLoadingMoreSouvenirs}
               upFocusId={souvenirUpFocusId}
               downFocusId={souvenirDownFocusId}
-              onActivate={(souvenir) =>
-                setOpenSouvenirKey(getSouvenirKey(souvenir))
-              }
+              onActivate={requestOpenSouvenir}
               onLike={(souvenir) => void handleSouvenirLike(souvenir)}
               onLoadMore={() => void loadMoreSouvenirs()}
             />
@@ -2694,12 +2714,11 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
           isReported={Boolean(
             openSouvenirKey && reportedSouvenirKeys.has(openSouvenirKey)
           )}
-          onClose={() => setOpenSouvenirKey(null)}
+          isContentWarningVisible={Boolean(pendingSouvenir)}
+          onClose={closeSouvenir}
           onNavigate={(index) => {
             const nextSouvenir = souvenirs[index];
-            if (nextSouvenir) {
-              setOpenSouvenirKey(getSouvenirKey(nextSouvenir));
-            }
+            return nextSouvenir ? requestOpenSouvenir(nextSouvenir) : false;
           }}
           onLike={(souvenir) => void handleSouvenirLike(souvenir)}
           onVisibilityChange={(souvenir) =>
@@ -2707,6 +2726,19 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
           }
           onDelete={handleSouvenirDelete}
           onReport={handleSouvenirReport}
+        />
+
+        <ConfirmationModal
+          visible={Boolean(pendingSouvenir)}
+          title={t("souvenir_content_warning_title")}
+          description={t("souvenir_content_warning_description", {
+            title: pendingSouvenir?.gameTitle ?? t("unknown_game"),
+          })}
+          confirmLabel={t("allow_nsfw_content", { ns: "game_details" })}
+          cancelLabel={t("refuse_nsfw_content", { ns: "game_details" })}
+          closeOnBackdrop={false}
+          onClose={dismissContentWarning}
+          onConfirm={confirmContentWarning}
         />
       </section>
     </VerticalFocusGroup>

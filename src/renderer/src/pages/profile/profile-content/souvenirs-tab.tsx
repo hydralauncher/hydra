@@ -29,6 +29,7 @@ import {
   getPrimarySouvenirAchievement,
   getSouvenirKey,
   getSouvenirVisualVariant,
+  shouldShowSouvenirContentWarning,
 } from "@shared";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { Button } from "@renderer/components";
@@ -61,6 +62,7 @@ interface SouvenirCardProps {
   achievement: ProfileSouvenir;
   isLiking: boolean;
   canLike: boolean;
+  disableNsfwAlert: boolean;
   showGame: boolean;
   onSouvenirClick: (achievement: ProfileSouvenir) => void;
   onLikeClick: (achievement: ProfileSouvenir) => void;
@@ -70,6 +72,7 @@ function SouvenirCard({
   achievement,
   isLiking,
   canLike,
+  disableNsfwAlert,
   showGame,
   onSouvenirClick,
   onLikeClick,
@@ -88,6 +91,10 @@ function SouvenirCard({
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const hasThumbnail = Boolean(
     achievement.imageUrl && achievement.imageUrl !== failedThumbnailUrl
+  );
+  const shouldBlurThumbnail = shouldShowSouvenirContentWarning(
+    achievement,
+    disableNsfwAlert
   );
 
   useEffect(() => {
@@ -111,7 +118,7 @@ function SouvenirCard({
     <li className={getSouvenirCardClassName(visualVariant)}>
       <button
         type="button"
-        className="profile-content__souvenir-image-button"
+        className={`profile-content__souvenir-image-button${shouldBlurThumbnail ? " profile-content__souvenir-image-button--content-warning" : ""}`}
         onClick={() => onSouvenirClick(achievement)}
         title={t("view_souvenir")}
       >
@@ -222,6 +229,7 @@ interface SouvenirGameGroupProps {
   achievements: ProfileSouvenir[];
   likingKeys: Set<string>;
   canLike: boolean;
+  disableNsfwAlert: boolean;
   onSouvenirClick: (achievement: ProfileSouvenir) => void;
   onLikeClick: (achievement: ProfileSouvenir) => void;
 }
@@ -230,6 +238,7 @@ function SouvenirGameGroup({
   achievements,
   likingKeys,
   canLike,
+  disableNsfwAlert,
   onSouvenirClick,
   onLikeClick,
 }: Readonly<SouvenirGameGroupProps>) {
@@ -277,6 +286,7 @@ function SouvenirGameGroup({
               achievement={achievement}
               isLiking={likingKeys.has(souvenirKey(achievement))}
               canLike={canLike}
+              disableNsfwAlert={disableNsfwAlert}
               showGame={false}
               onSouvenirClick={onSouvenirClick}
               onLikeClick={onLikeClick}
@@ -380,6 +390,7 @@ interface SouvenirsTabProps {
   achievements: ProfileSouvenir[];
   hiddenReason: SouvenirsHiddenReason;
   canLike: boolean;
+  disableNsfwAlert: boolean;
   hasMore: boolean;
   isLoading: boolean;
   isEnabled: boolean;
@@ -399,6 +410,7 @@ export function SouvenirsTab({
   achievements,
   hiddenReason,
   canLike,
+  disableNsfwAlert,
   hasMore,
   isLoading,
   isEnabled,
@@ -573,6 +585,7 @@ export function SouvenirsTab({
                     key={gameId}
                     achievements={groupAchievements}
                     canLike={canLike}
+                    disableNsfwAlert={disableNsfwAlert}
                     likingKeys={likingKeys}
                     onSouvenirClick={onSouvenirClick}
                     onLikeClick={onLikeClick}
@@ -586,6 +599,7 @@ export function SouvenirsTab({
                     key={souvenirKey(achievement)}
                     achievement={achievement}
                     canLike={canLike}
+                    disableNsfwAlert={disableNsfwAlert}
                     isLiking={likingKeys.has(souvenirKey(achievement))}
                     showGame
                     onSouvenirClick={onSouvenirClick}

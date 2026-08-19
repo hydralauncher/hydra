@@ -12,6 +12,7 @@ import {
   getSouvenirVisualVariant,
   normalizeProfileSouvenir,
   normalizeSouvenirReportValues,
+  shouldShowSouvenirContentWarning,
 } from "./souvenirs.js";
 
 describe("souvenir API helpers", () => {
@@ -84,6 +85,53 @@ describe("souvenir API helpers", () => {
       getSouvenirVisualVariant({ isRare: false, isPlatinum: false }),
       null
     );
+  });
+
+  it("only treats explicit none metadata as safe when alerts are enabled", () => {
+    const withLevel = (level: "unknown" | "none" | "mature" | "adult") => ({
+      gameContentWarning: {
+        level,
+        minimumAge: level === "adult" ? 18 : null,
+        reasons: [],
+        source: level === "unknown" ? null : ("steam" as const),
+      },
+    });
+
+    assert.equal(
+      shouldShowSouvenirContentWarning(withLevel("none"), false),
+      false
+    );
+    assert.equal(
+      shouldShowSouvenirContentWarning(withLevel("mature"), false),
+      true
+    );
+    assert.equal(
+      shouldShowSouvenirContentWarning(withLevel("adult"), false),
+      true
+    );
+    assert.equal(
+      shouldShowSouvenirContentWarning(withLevel("unknown"), false),
+      true
+    );
+    assert.equal(shouldShowSouvenirContentWarning({}, false), true);
+  });
+
+  it("bypasses souvenir content warnings when the global alert is disabled", () => {
+    assert.equal(
+      shouldShowSouvenirContentWarning(
+        {
+          gameContentWarning: {
+            level: "adult",
+            minimumAge: 18,
+            reasons: ["age_restricted", "nudity", "sexual_content"],
+            source: "steam",
+          },
+        },
+        true
+      ),
+      false
+    );
+    assert.equal(shouldShowSouvenirContentWarning({}, true), false);
   });
 
   it("preserves grouped souvenirs returned by the new feed", () => {

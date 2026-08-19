@@ -24,6 +24,11 @@ export const getSouvenirVisualVariant = ({
   return null;
 };
 
+export const shouldShowSouvenirContentWarning = (
+  souvenir: Pick<ProfileSouvenir, "gameContentWarning">,
+  disableNsfwAlert: boolean
+) => !disableNsfwAlert && souvenir.gameContentWarning?.level !== "none";
+
 interface UserSouvenirsPathOptions {
   userId: string;
   skip?: number;

@@ -28,8 +28,9 @@ import { SouvenirLightbox } from "./souvenir-lightbox";
 import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
-import { AuthPage, getSouvenirKey } from "@shared";
+import { AuthPage, useSouvenirContentWarning } from "@shared";
 import { useNavigate } from "react-router-dom";
+import { ConfirmationModal } from "@renderer/components";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
@@ -109,6 +110,9 @@ export function ProfileContent() {
   const souvenirsEnabled = useAppSelector(
     (state) => state.userPreferences.value?.enableAchievementSouvenirs === true
   );
+  const disableNsfwAlert = useAppSelector(
+    (state) => state.userPreferences.value?.disableNsfwAlert === true
+  );
   const [statsIndex, setStatsIndex] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
   const [platform, setPlatform] = useState<ProfilePlatform>("all");
@@ -132,7 +136,6 @@ export function ProfileContent() {
   const [votingReviews, setVotingReviews] = useState<Set<string>>(new Set());
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
-  const [openSouvenirKey, setOpenSouvenirKey] = useState<string | null>(null);
 
   const dispatch = useAppDispatch();
 
@@ -155,14 +158,20 @@ export function ProfileContent() {
     updateSouvenir,
     removeSouvenir,
   });
-  const openSouvenirIndex = useMemo(
-    () =>
-      souvenirs.findIndex(
-        (item) => getSouvenirKey(item.id) === openSouvenirKey
-      ),
-    [openSouvenirKey, souvenirs]
-  );
-  const souvenir = souvenirs[openSouvenirIndex] ?? null;
+  const {
+    openSouvenirKey,
+    openSouvenirIndex,
+    openSouvenir: souvenir,
+    pendingSouvenir,
+    requestOpenSouvenir,
+    confirmContentWarning,
+    dismissContentWarning,
+    closeSouvenir,
+  } = useSouvenirContentWarning({
+    souvenirs,
+    disableNsfwAlert,
+    ownerUserId: userProfile?.id,
+  });
 
   const formatPlayTime = (playTimeInSeconds: number) => {
     const minutes = playTimeInSeconds / 60;
@@ -487,10 +496,9 @@ export function ProfileContent() {
                   hasActiveSubscription={Boolean(
                     userProfile.hasActiveSubscription
                   )}
+                  disableNsfwAlert={disableNsfwAlert}
                   likingKeys={likingKeys}
-                  onSouvenirClick={(item) =>
-                    setOpenSouvenirKey(getSouvenirKey(item.id))
-                  }
+                  onSouvenirClick={requestOpenSouvenir}
                   onLikeClick={(item) => void likeSouvenir(item)}
                   onReload={getUserSouvenirs}
                   onLoadMore={loadMoreSouvenirs}
@@ -574,15 +582,33 @@ export function ProfileContent() {
         isReported={Boolean(
           openSouvenirKey && reportedKeys.has(openSouvenirKey)
         )}
-        onClose={() => setOpenSouvenirKey(null)}
+        isContentWarningVisible={Boolean(pendingSouvenir)}
+        onClose={closeSouvenir}
         onNavigate={(index) => {
           const nextSouvenir = souvenirs[index];
-          setOpenSouvenirKey(getSouvenirKey(nextSouvenir.id));
+          return nextSouvenir ? requestOpenSouvenir(nextSouvenir) : false;
         }}
         onLike={(item) => void likeSouvenir(item)}
         onVisibilityChange={(item) => void changeSouvenirVisibility(item)}
         onDelete={deleteSouvenir}
         onReport={reportSouvenir}
+      />
+
+      <ConfirmationModal
+        visible={Boolean(pendingSouvenir)}
+        title={t("souvenir_content_warning_title")}
+        descriptionText={t("souvenir_content_warning_description", {
+          title: pendingSouvenir?.gameTitle ?? t("unknown_game"),
+        })}
+        confirmButtonLabel={t("allow_nsfw_content", {
+          ns: "game_details",
+        })}
+        cancelButtonLabel={t("refuse_nsfw_content", {
+          ns: "game_details",
+        })}
+        onConfirm={confirmContentWarning}
+        onClose={dismissContentWarning}
+        clickOutsideToClose={false}
       />
     </div>
   );

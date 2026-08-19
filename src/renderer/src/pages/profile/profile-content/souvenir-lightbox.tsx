@@ -53,8 +53,9 @@ interface SouvenirLightboxProps {
   isDeleting: boolean;
   isReporting: boolean;
   isReported: boolean;
+  isContentWarningVisible: boolean;
   onClose: () => void;
-  onNavigate: (index: number) => void;
+  onNavigate: (index: number) => boolean;
   onLike: (souvenir: ProfileSouvenir) => void;
   onVisibilityChange: (souvenir: ProfileSouvenir) => void;
   onDelete: (souvenir: ProfileSouvenir) => Promise<boolean>;
@@ -418,6 +419,7 @@ export function SouvenirLightbox({
   isDeleting,
   isReporting,
   isReported,
+  isContentWarningVisible,
   onClose,
   onNavigate,
   onLike,
@@ -441,10 +443,14 @@ export function SouvenirLightbox({
   const hasPrevious = index > 0;
   const hasNext = index < items.length - 1;
   const isBlockingModalVisible =
-    isDeleteConfirmationVisible || isReportModalVisible;
+    isDeleteConfirmationVisible ||
+    isReportModalVisible ||
+    isContentWarningVisible;
   const handleNavigate = useCallback(
     (nextIndex: number) => {
       if (isNavigating) return;
+
+      if (!onNavigate(nextIndex)) return;
 
       const nextImageUrl = items[nextIndex]?.imageUrl;
       setLoadedImage(
@@ -454,7 +460,6 @@ export function SouvenirLightbox({
       );
       setIsNavigating(true);
       setNavigationDirection(nextIndex > index ? 1 : -1);
-      onNavigate(nextIndex);
     },
     [index, isNavigating, items, onNavigate]
   );
@@ -467,6 +472,13 @@ export function SouvenirLightbox({
       setIsNavigating(false);
     }
   }, [souvenir]);
+
+  useEffect(() => {
+    if (!isContentWarningVisible) return;
+
+    setNavigationDirection(0);
+    setIsNavigating(false);
+  }, [isContentWarningVisible]);
 
   useEffect(() => {
     const neighboringSouvenirs = [items[index - 1], items[index + 1]];
@@ -590,6 +602,7 @@ export function SouvenirLightbox({
             type="button"
             className="profile-souvenir-lightbox__close-button"
             onClick={onClose}
+            disabled={isContentWarningVisible}
             aria-label={t("close", { ns: "modal" })}
           >
             <XIcon size={24} />
@@ -603,7 +616,7 @@ export function SouvenirLightbox({
                 : ""
             }`}
             onClick={() => handleNavigate(index - 1)}
-            disabled={!hasPrevious || isNavigating}
+            disabled={!hasPrevious || isNavigating || isContentWarningVisible}
             aria-label={t("previous_media", { ns: "game_details" })}
           >
             <ChevronLeftIcon size={28} />
@@ -615,7 +628,7 @@ export function SouvenirLightbox({
               !hasNext ? "profile-souvenir-lightbox__nav-button--hidden" : ""
             }`}
             onClick={() => handleNavigate(index + 1)}
-            disabled={!hasNext || isNavigating}
+            disabled={!hasNext || isNavigating || isContentWarningVisible}
             aria-label={t("next_media", { ns: "game_details" })}
           >
             <ChevronRightIcon size={28} />

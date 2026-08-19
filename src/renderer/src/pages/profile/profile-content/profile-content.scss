@@ -350,6 +350,19 @@
           opacity: 1;
         }
       }
+
+      &--content-warning {
+        overflow: hidden;
+
+        .profile-content__souvenir-image {
+          filter: blur(18px) brightness(0.55);
+          transform: scale(1.12);
+        }
+
+        &:hover .profile-content__souvenir-image {
+          filter: blur(18px) brightness(0.42);
+        }
+      }
     }
 
     &-image {
@@ -359,7 +372,9 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: filter 0.2s ease;
+      transition:
+        filter 0.2s ease,
+        transform 0.2s ease;
     }
 
     &-image-placeholder {

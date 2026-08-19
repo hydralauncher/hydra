@@ -1759,6 +1759,8 @@
     "wrapped_2025": "Wrapped 2025",
     "souvenirs": "Souvenirs",
     "view_souvenir": "View souvenir",
+    "souvenir_content_warning_title": "This souvenir may contain inappropriate content",
+    "souvenir_content_warning_description": "{{title}} may contain content that is not suitable for all ages. Are you sure you want to view this souvenir?",
     "delete_souvenir": "Delete souvenir",
     "report_souvenir": "Report souvenir",
     "report_souvenir_reason_label": "Why are you reporting this souvenir?",

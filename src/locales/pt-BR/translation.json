@@ -1759,6 +1759,8 @@
     "platform_pc": "PC",
     "souvenirs": "Lembranças",
     "view_souvenir": "Ver lembrança",
+    "souvenir_content_warning_title": "Esta lembrança pode conter conteúdo inapropriado",
+    "souvenir_content_warning_description": "{{title}} pode conter conteúdo que não é adequado para todas as idades. Deseja mesmo ver esta lembrança?",
     "delete_souvenir": "Excluir lembrança",
     "report_souvenir": "Reportar lembrança",
     "report_souvenir_reason_label": "Por que você deseja reportar esta lembrança?",
