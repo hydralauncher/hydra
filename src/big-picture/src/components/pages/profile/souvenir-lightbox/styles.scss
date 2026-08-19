@@ -1,19 +1,138 @@
+.souvenir-lightbox__backdrop {
+  z-index: 120;
+}
+
+.souvenir-lightbox__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.souvenir-lightbox__overlay[data-controls-ready="true"]
+  > .souvenir-lightbox__close-button,
+.souvenir-lightbox__overlay[data-controls-ready="true"]
+  > .souvenir-lightbox__nav-button {
+  visibility: visible;
+}
+
 .souvenir-lightbox {
   display: flex;
   flex-direction: column;
   width: fit-content;
-  max-width: 1600px;
+  max-width: min(calc(100vw - 144px), 1600px);
   max-height: 90vh;
   overflow: hidden;
   border-radius: 16px;
   background: var(--surface);
   user-select: none;
 
+  &__close-button,
+  &__nav-button {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--secondary-border);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    color: var(--text);
+    cursor: pointer;
+    visibility: hidden;
+    transition:
+      background-color 0.2s ease,
+      transform 0.2s ease;
+
+    svg {
+      pointer-events: none;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+  }
+
+  &__close-button {
+    top: calc(50% - var(--souvenir-lightbox-half-height));
+    right: max(
+      calc(var(--spacing-unit) * 3),
+      calc(50% - var(--souvenir-lightbox-half-width) - var(--spacing-unit) * 15)
+    );
+  }
+
+  &__nav-button {
+    top: 50%;
+    transform: translateY(-50%);
+
+    &:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.6;
+    }
+
+    &--left {
+      left: max(
+        calc(var(--spacing-unit) * 3),
+        calc(
+          50% - var(--souvenir-lightbox-half-width) - var(--spacing-unit) * 16
+        )
+      );
+    }
+
+    &--right {
+      right: max(
+        calc(var(--spacing-unit) * 3),
+        calc(
+          50% - var(--souvenir-lightbox-half-width) - var(--spacing-unit) * 16
+        )
+      );
+    }
+  }
+
+  &__stage {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  &__slide {
+    grid-area: 1 / 1;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    will-change: transform;
+
+    .souvenir-lightbox {
+      pointer-events: auto;
+    }
+  }
+
+  &__stage--navigating .souvenir-lightbox {
+    pointer-events: none;
+  }
+
   &__image-frame {
     position: relative;
     display: flex;
     width: fit-content;
-    max-width: min(90vw, 1600px);
+    max-width: min(calc(100vw - 144px), 1600px);
     max-height: calc(90vh - 152px);
     overflow: hidden;
     flex-shrink: 0;
@@ -23,7 +142,7 @@
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
 
     &--placeholder {
-      width: min(90vw, 1280px);
+      width: min(calc(100vw - 144px), 1280px);
       aspect-ratio: 16 / 9;
     }
   }
@@ -34,7 +153,7 @@
     display: block;
     width: 100%;
     height: 100%;
-    max-width: min(90vw, 1600px);
+    max-width: min(calc(100vw - 144px), 1600px);
     max-height: calc(90vh - 152px);
     object-fit: contain;
   }
@@ -55,6 +174,7 @@
     justify-content: space-between;
     gap: calc(var(--spacing-unit) * 4);
     width: 100%;
+    min-width: 0;
     padding: calc(var(--spacing-unit) * 3);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 0 0 16px 16px;
@@ -74,8 +194,8 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
+    width: 80px;
+    height: 80px;
     border-radius: 8px;
     overflow: hidden;
     background: var(--surface);
@@ -203,6 +323,11 @@
     flex-shrink: 0;
     justify-content: flex-end;
     gap: var(--spacing-unit);
+
+    .button--icon .button__icon-container::before,
+    .button--icon .button__icon-container::after {
+      display: none;
+    }
   }
 
   &__action--pending.button--disabled {

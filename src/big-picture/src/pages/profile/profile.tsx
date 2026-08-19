@@ -1705,6 +1705,8 @@ interface ProfileSouvenirCardProps {
   isLikePending: boolean;
   upFocusId: string | null;
   downFocusId: string | null;
+  leftFocusId: string | null;
+  rightFocusId: string | null;
   onActivate: (souvenir: ProfileAchievement) => void;
   onLike: (souvenir: ProfileAchievement) => void;
 }
@@ -1718,10 +1720,16 @@ const getProfileSouvenirClassName = (
 
 const getProfileSouvenirNavigationOverrides = (
   upFocusId: string | null,
-  downFocusId: string | null
+  downFocusId: string | null,
+  leftFocusId: string | null,
+  rightFocusId: string | null
 ): FocusOverrides => ({
   up: upFocusId ? { type: "item", itemId: upFocusId } : { type: "block" },
   down: downFocusId ? { type: "item", itemId: downFocusId } : { type: "block" },
+  left: leftFocusId ? { type: "item", itemId: leftFocusId } : { type: "block" },
+  right: rightFocusId
+    ? { type: "item", itemId: rightFocusId }
+    : { type: "block" },
 });
 
 function ProfileSouvenirCard({
@@ -1730,6 +1738,8 @@ function ProfileSouvenirCard({
   isLikePending,
   upFocusId,
   downFocusId,
+  leftFocusId,
+  rightFocusId,
   onActivate,
   onLike,
 }: Readonly<ProfileSouvenirCardProps>) {
@@ -1747,11 +1757,21 @@ function ProfileSouvenirCard({
       }}
       navigationOverrides={getProfileSouvenirNavigationOverrides(
         upFocusId,
-        downFocusId
+        downFocusId,
+        leftFocusId,
+        rightFocusId
       )}
       asChild
     >
       <li className={getProfileSouvenirClassName(visualVariant)}>
+        <button
+          type="button"
+          className="profile-page__souvenir-open-button"
+          onClick={() => onActivate(souvenir)}
+          aria-label={souvenir.displayName}
+          tabIndex={-1}
+        />
+
         <div className="profile-page__souvenir-image-frame">
           <span className="profile-page__souvenir-image-placeholder">
             <ImageIcon size={40} />
@@ -1927,14 +1947,17 @@ function ProfileSouvenirs({
         <HorizontalFocusGroup
           regionId={PROFILE_SOUVENIRS_REGION_ID}
           className="profile-page__souvenirs-row"
+          autoScrollMode="item"
           asChild
         >
           <ul ref={souvenirsRowRef} className="profile-page__souvenirs-row">
-            {souvenirs.map((souvenir) => {
+            {souvenirs.map((souvenir, index) => {
               const souvenirKey = getSouvenirKey(souvenir);
               const isLikePending =
                 animatingLikeKeys.has(souvenirKey) ||
                 updatingLikeKeys.has(souvenirKey);
+              const previousSouvenir = souvenirs[index - 1];
+              const nextSouvenir = souvenirs[index + 1];
 
               return (
                 <ProfileSouvenirCard
@@ -1944,6 +1967,18 @@ function ProfileSouvenirs({
                   isLikePending={isLikePending}
                   upFocusId={upFocusId}
                   downFocusId={downFocusId}
+                  leftFocusId={
+                    previousSouvenir
+                      ? getProfileSouvenirItemId(
+                          getSouvenirKey(previousSouvenir)
+                        )
+                      : null
+                  }
+                  rightFocusId={
+                    nextSouvenir
+                      ? getProfileSouvenirItemId(getSouvenirKey(nextSouvenir))
+                      : null
+                  }
                   onActivate={onActivate}
                   onLike={handleLike}
                 />
@@ -2244,13 +2279,14 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     new Set()
   );
   const [openSouvenirKey, setOpenSouvenirKey] = useState<string | null>(null);
-  const openSouvenir = useMemo(
+  const openSouvenirIndex = useMemo(
     () =>
-      souvenirs.find(
+      souvenirs.findIndex(
         (souvenir) => getSouvenirKey(souvenir) === openSouvenirKey
-      ) ?? null,
+      ),
     [openSouvenirKey, souvenirs]
   );
+  const openSouvenir = souvenirs[openSouvenirIndex] ?? null;
 
   const handleSouvenirLike = useCallback(
     async (souvenir: ProfileAchievement) => {
@@ -2533,6 +2569,8 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
 
         <SouvenirLightbox
           souvenir={openSouvenir}
+          items={souvenirs}
+          index={openSouvenirIndex}
           canLike={Boolean(userDetails)}
           isOwner={isOwnProfileTarget}
           isLiking={Boolean(
@@ -2545,6 +2583,12 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
             openSouvenirKey && deletingSouvenirKeys.has(openSouvenirKey)
           )}
           onClose={() => setOpenSouvenirKey(null)}
+          onNavigate={(index) => {
+            const nextSouvenir = souvenirs[index];
+            if (nextSouvenir) {
+              setOpenSouvenirKey(getSouvenirKey(nextSouvenir));
+            }
+          }}
           onLike={(souvenir) => void handleSouvenirLike(souvenir)}
           onVisibilityChange={(souvenir) =>
             void handleSouvenirVisibilityChange(souvenir)

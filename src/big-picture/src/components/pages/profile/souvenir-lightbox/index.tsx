@@ -1,8 +1,19 @@
 import "./styles.scss";
 
-import { useEffect, useState, type SyntheticEvent } from "react";
-import { AnimatePresence } from "framer-motion";
 import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type SyntheticEvent,
+} from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  CaretLeftIcon,
+  CaretRightIcon,
   EyeClosedIcon,
   EyeIcon,
   GameControllerIcon,
@@ -10,6 +21,7 @@ import {
   ImageIcon,
   TrashIcon,
   TrophyIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import type { ProfileAchievement } from "@types";
@@ -18,28 +30,187 @@ import {
   Backdrop,
   Button,
   HorizontalFocusGroup,
+  NavigationLayer,
   Typography,
 } from "../../../common";
+import { FocusRegionContext } from "../../../context";
 import { ConfirmationModal } from "../../../modals";
 import { useNavigationScreenActions } from "../../../../hooks";
 import { formatRelativeDate } from "../../../../helpers";
 import { getSouvenirVisualVariant } from "@shared";
+import { NavigationService } from "../../../../services";
+import { useInputModeStore } from "../../../../stores";
 
 export interface SouvenirLightboxProps {
   souvenir: ProfileAchievement | null;
+  items: ProfileAchievement[];
+  index: number;
   canLike: boolean;
   isOwner: boolean;
   isLiking: boolean;
   isUpdatingVisibility: boolean;
   isDeleting: boolean;
   onClose: () => void;
+  onNavigate: (index: number) => void;
   onLike: (souvenir: ProfileAchievement) => void;
   onVisibilityChange: (souvenir: ProfileAchievement) => void;
   onDelete: (souvenir: ProfileAchievement) => Promise<boolean>;
 }
 
-const SOUVENIR_LIGHTBOX_ACTIONS_REGION_ID = "souvenir-lightbox-actions";
-const SOUVENIR_LIGHTBOX_LIKE_BUTTON_ID = "souvenir-lightbox-like";
+const navigation = NavigationService.getInstance();
+const shouldRestoreSouvenirFocus = () =>
+  useInputModeStore.getState().mode === "gamepad";
+
+const getSouvenirRenderKey = (souvenir: ProfileAchievement | null) =>
+  souvenir ? `${souvenir.gameId}:${souvenir.name}` : "inactive";
+
+const souvenirSlideVariants = {
+  enter: (direction: number) =>
+    direction === 0
+      ? { opacity: 1, x: 0 }
+      : { opacity: 1, x: `${direction * 100}%` },
+  center: { opacity: 1, x: 0 },
+  exit: (direction: number) => ({
+    opacity: 1,
+    x: `${direction * -100}%`,
+  }),
+};
+
+interface SouvenirLightboxFocusIds {
+  actionsRegion: string;
+  likeButton: string;
+  visibilityButton: string;
+  deleteButton: string;
+}
+
+const getSouvenirLightboxFocusIds = (
+  souvenir: ProfileAchievement | null
+): SouvenirLightboxFocusIds => {
+  const suffix = getSouvenirRenderKey(souvenir);
+
+  return {
+    actionsRegion: `souvenir-lightbox-actions:${suffix}`,
+    likeButton: `souvenir-lightbox-like:${suffix}`,
+    visibilityButton: `souvenir-lightbox-visibility:${suffix}`,
+    deleteButton: `souvenir-lightbox-delete:${suffix}`,
+  };
+};
+
+interface LightboxSize {
+  width: number;
+  height: number;
+}
+
+function useLightboxControlAnchor(souvenir: ProfileAchievement | null) {
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [lightboxSize, setLightboxSize] = useState<LightboxSize | null>(null);
+  const souvenirKey = getSouvenirRenderKey(souvenir);
+
+  useLayoutEffect(() => {
+    setLightboxSize(null);
+
+    const lightbox = Array.from(
+      stageRef.current?.querySelectorAll<HTMLElement>(
+        "[data-souvenir-lightbox-key]"
+      ) ?? []
+    ).find((element) => element.dataset.souvenirLightboxKey === souvenirKey);
+
+    if (!lightbox) return;
+
+    const updateSize = () => {
+      const nextSize = {
+        width: lightbox.offsetWidth,
+        height: lightbox.offsetHeight,
+      };
+
+      setLightboxSize((current) =>
+        current?.width === nextSize.width && current.height === nextSize.height
+          ? current
+          : nextSize
+      );
+    };
+
+    updateSize();
+
+    if (typeof ResizeObserver === "undefined") return;
+
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(lightbox);
+    return () => resizeObserver.disconnect();
+  }, [souvenirKey]);
+
+  const controlAnchorStyle = lightboxSize
+    ? ({
+        "--souvenir-lightbox-half-width": `${lightboxSize.width / 2}px`,
+        "--souvenir-lightbox-half-height": `${lightboxSize.height / 2}px`,
+      } as CSSProperties)
+    : undefined;
+
+  return { stageRef, lightboxSize, controlAnchorStyle };
+}
+
+interface SouvenirLightboxNavigationOptions {
+  isOpen: boolean;
+  isDeleteConfirmationVisible: boolean;
+  isOwner: boolean;
+  items: ProfileAchievement[];
+  index: number;
+  focusIds: SouvenirLightboxFocusIds;
+  onClose: () => void;
+  onNavigate: (index: number) => void;
+}
+
+function useSouvenirLightboxNavigation({
+  isOpen,
+  isDeleteConfirmationVisible,
+  isOwner,
+  items,
+  index,
+  focusIds,
+  onClose,
+  onNavigate,
+}: SouvenirLightboxNavigationOptions) {
+  const hasPrevious = index > 0;
+  const hasNext = index < items.length - 1;
+  const lastActionFocusId = isOwner
+    ? focusIds.deleteButton
+    : focusIds.likeButton;
+  const navigateToIndex = useCallback(
+    (nextIndex: number) => {
+      if (!items[nextIndex]) return;
+      onNavigate(nextIndex);
+    },
+    [items, onNavigate]
+  );
+
+  useNavigationScreenActions(
+    isOpen && !isDeleteConfirmationVisible
+      ? {
+          press: { b: onClose },
+          direction: {
+            left: ({ currentFocusId }) => {
+              if (currentFocusId === focusIds.likeButton && hasPrevious) {
+                navigateToIndex(index - 1);
+                return;
+              }
+
+              navigation.moveFocus("left");
+            },
+            right: ({ currentFocusId }) => {
+              if (currentFocusId === lastActionFocusId && hasNext) {
+                navigateToIndex(index + 1);
+                return;
+              }
+
+              navigation.moveFocus("right");
+            },
+          },
+        }
+      : {}
+  );
+
+  return { hasPrevious, hasNext, navigateToIndex };
+}
 
 const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
   event.currentTarget.style.opacity = "0";
@@ -63,7 +234,7 @@ const getLightboxImageSize = (
 ) => {
   if (loadedImage?.imageUrl !== imageUrl) return null;
 
-  const maxWidth = Math.min(viewportSize.width * 0.9, 1600);
+  const maxWidth = Math.min(Math.max(viewportSize.width - 144, 1), 1600);
   const maxHeight = Math.max(viewportSize.height * 0.9 - 152, 1);
   const scale = Math.min(
     maxWidth / loadedImage.naturalWidth,
@@ -75,6 +246,157 @@ const getLightboxImageSize = (
     height: loadedImage.naturalHeight * scale,
   };
 };
+
+function useViewportSize() {
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: globalThis.window.innerWidth,
+    height: globalThis.window.innerHeight,
+  }));
+
+  useEffect(() => {
+    const onResize = () => {
+      setViewportSize({
+        width: globalThis.window.innerWidth,
+        height: globalThis.window.innerHeight,
+      });
+    };
+
+    globalThis.window.addEventListener("resize", onResize);
+    return () => globalThis.window.removeEventListener("resize", onResize);
+  }, []);
+
+  return viewportSize;
+}
+
+interface SouvenirLightboxMediaOptions {
+  souvenir: ProfileAchievement | null;
+  items: ProfileAchievement[];
+  index: number;
+  viewportSize: ViewportSize;
+}
+
+function useSouvenirLightboxMedia({
+  souvenir,
+  items,
+  index,
+  viewportSize,
+}: SouvenirLightboxMediaOptions) {
+  const [loadedImage, setLoadedImage] = useState<LoadedImage | null>(null);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const loadedImagesRef = useRef(new Map<string, LoadedImage>());
+
+  useEffect(() => {
+    const neighboringSouvenirs = [items[index - 1], items[index + 1]];
+
+    for (const neighboringSouvenir of neighboringSouvenirs) {
+      const imageUrl = neighboringSouvenir?.imageUrl;
+      if (!imageUrl || loadedImagesRef.current.has(imageUrl)) continue;
+
+      const image = new Image();
+      image.onload = () => {
+        if (!image.naturalWidth || !image.naturalHeight) return;
+
+        loadedImagesRef.current.set(imageUrl, {
+          imageUrl,
+          naturalWidth: image.naturalWidth,
+          naturalHeight: image.naturalHeight,
+        });
+      };
+      image.src = imageUrl;
+    }
+  }, [index, items]);
+
+  const prepareImage = useCallback((nextSouvenir: ProfileAchievement) => {
+    const imageUrl = nextSouvenir.imageUrl;
+    setLoadedImage(
+      imageUrl ? (loadedImagesRef.current.get(imageUrl) ?? null) : null
+    );
+  }, []);
+
+  const handleImageLoad = useCallback(
+    (event: SyntheticEvent<HTMLImageElement>) => {
+      const { naturalWidth, naturalHeight } = event.currentTarget;
+      if (!souvenir?.imageUrl || !naturalWidth || !naturalHeight) return;
+
+      const nextLoadedImage = {
+        imageUrl: souvenir.imageUrl,
+        naturalWidth,
+        naturalHeight,
+      };
+
+      loadedImagesRef.current.set(souvenir.imageUrl, nextLoadedImage);
+      setLoadedImage(nextLoadedImage);
+    },
+    [souvenir]
+  );
+
+  const hasImage = Boolean(
+    souvenir?.imageUrl && souvenir.imageUrl !== failedImageUrl
+  );
+  const showImagePlaceholder =
+    !hasImage || loadedImage?.imageUrl !== souvenir?.imageUrl;
+  const imageSize = getLightboxImageSize(
+    loadedImage,
+    souvenir?.imageUrl ?? null,
+    viewportSize
+  );
+
+  return {
+    hasImage,
+    showImagePlaceholder,
+    imageSize,
+    prepareImage,
+    handleImageLoad,
+    markImageFailed: setFailedImageUrl,
+  };
+}
+
+interface SouvenirSlideNavigationOptions {
+  souvenir: ProfileAchievement | null;
+  items: ProfileAchievement[];
+  index: number;
+  onNavigate: (index: number) => void;
+  prepareImage: (souvenir: ProfileAchievement) => void;
+}
+
+function useSouvenirSlideNavigation({
+  souvenir,
+  items,
+  index,
+  onNavigate,
+  prepareImage,
+}: SouvenirSlideNavigationOptions) {
+  const [navigationDirection, setNavigationDirection] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const handleNavigate = useCallback(
+    (nextIndex: number) => {
+      if (isNavigating) return;
+
+      const nextSouvenir = items[nextIndex];
+      if (!nextSouvenir) return;
+
+      prepareImage(nextSouvenir);
+      setIsNavigating(true);
+      setNavigationDirection(nextIndex > index ? 1 : -1);
+      onNavigate(nextIndex);
+    },
+    [index, isNavigating, items, onNavigate, prepareImage]
+  );
+
+  useEffect(() => {
+    if (souvenir) return;
+
+    setNavigationDirection(0);
+    setIsNavigating(false);
+  }, [souvenir]);
+
+  return {
+    navigationDirection,
+    isNavigating,
+    handleNavigate,
+    handleAnimationComplete: () => setIsNavigating(false),
+  };
+}
 
 interface SouvenirImageProps {
   souvenir: ProfileAchievement;
@@ -197,6 +519,7 @@ function SouvenirSummary({
 
 interface SouvenirActionsProps {
   souvenir: ProfileAchievement;
+  focusIds: SouvenirLightboxFocusIds;
   canLike: boolean;
   isOwner: boolean;
   isLiking: boolean;
@@ -209,6 +532,7 @@ interface SouvenirActionsProps {
 
 function SouvenirActions({
   souvenir,
+  focusIds,
   canLike,
   isOwner,
   isLiking,
@@ -228,14 +552,13 @@ function SouvenirActions({
 
   return (
     <HorizontalFocusGroup
-      regionId={SOUVENIR_LIGHTBOX_ACTIONS_REGION_ID}
+      regionId={focusIds.actionsRegion}
       className="souvenir-lightbox__actions"
     >
       <Button
-        variant="tertiary"
+        variant="secondary"
         size="small"
-        focusId={SOUVENIR_LIGHTBOX_LIKE_BUTTON_ID}
-        stealFocusOnAppear
+        focusId={focusIds.likeButton}
         disabled={!canLike || isLiking}
         className={isLiking ? "souvenir-lightbox__action--pending" : undefined}
         icon={
@@ -252,8 +575,9 @@ function SouvenirActions({
       {isOwner ? (
         <>
           <Button
-            variant="tertiary"
+            variant="secondary"
             size="small"
+            focusId={focusIds.visibilityButton}
             loading={isUpdatingVisibility}
             icon={<VisibilityIcon size={20} />}
             onClick={() => onVisibilityChange(souvenir)}
@@ -266,6 +590,7 @@ function SouvenirActions({
           <Button
             variant="danger"
             size="icon"
+            focusId={focusIds.deleteButton}
             disabled={isDeleting}
             icon={<TrashIcon size={20} />}
             onClick={onRequestDelete}
@@ -282,28 +607,61 @@ function SouvenirActions({
 
 export function SouvenirLightbox({
   souvenir,
+  items,
+  index,
   canLike,
   isOwner,
   isLiking,
   isUpdatingVisibility,
   isDeleting,
   onClose,
+  onNavigate,
   onLike,
   onVisibilityChange,
   onDelete,
 }: Readonly<SouvenirLightboxProps>) {
-  const { t } = useTranslation("user_profile");
+  const { t } = useTranslation(["user_profile", "game_details", "modal"]);
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
-  const [loadedImage, setLoadedImage] = useState<LoadedImage | null>(null);
-  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
-  const [viewportSize, setViewportSize] = useState(() => ({
-    width: globalThis.window.innerWidth,
-    height: globalThis.window.innerHeight,
-  }));
-  useNavigationScreenActions(
-    souvenir && !isDeleteConfirmationVisible ? { press: { b: onClose } } : {}
-  );
+  const viewportSize = useViewportSize();
+  const focusIds = getSouvenirLightboxFocusIds(souvenir);
+  const { stageRef, lightboxSize, controlAnchorStyle } =
+    useLightboxControlAnchor(souvenir);
+  const {
+    hasImage,
+    showImagePlaceholder,
+    imageSize,
+    prepareImage,
+    handleImageLoad,
+    markImageFailed,
+  } = useSouvenirLightboxMedia({ souvenir, items, index, viewportSize });
+  const {
+    navigationDirection,
+    isNavigating,
+    handleNavigate,
+    handleAnimationComplete,
+  } = useSouvenirSlideNavigation({
+    souvenir,
+    items,
+    index,
+    onNavigate,
+    prepareImage,
+  });
+  const { hasPrevious, hasNext, navigateToIndex } =
+    useSouvenirLightboxNavigation({
+      isOpen: Boolean(souvenir),
+      isDeleteConfirmationVisible,
+      isOwner,
+      items,
+      index,
+      focusIds,
+      onClose,
+      onNavigate: handleNavigate,
+    });
+  const initialActionFocusId =
+    navigationDirection > 0 && isOwner
+      ? focusIds.deleteButton
+      : focusIds.likeButton;
 
   useEffect(() => {
     if (!souvenir) setIsDeleteConfirmationVisible(false);
@@ -313,7 +671,7 @@ export function SouvenirLightbox({
     if (!souvenir || isDeleteConfirmationVisible) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !event.defaultPrevented) onClose();
     };
 
     globalThis.window.addEventListener("keydown", onKeyDown);
@@ -322,40 +680,6 @@ export function SouvenirLightbox({
       globalThis.window.removeEventListener("keydown", onKeyDown);
     };
   }, [isDeleteConfirmationVisible, onClose, souvenir]);
-
-  useEffect(() => {
-    const onResize = () => {
-      setViewportSize({
-        width: globalThis.window.innerWidth,
-        height: globalThis.window.innerHeight,
-      });
-    };
-
-    globalThis.window.addEventListener("resize", onResize);
-    return () => globalThis.window.removeEventListener("resize", onResize);
-  }, []);
-
-  const hasImage = Boolean(
-    souvenir?.imageUrl && souvenir.imageUrl !== failedImageUrl
-  );
-  const showImagePlaceholder =
-    !hasImage || loadedImage?.imageUrl !== souvenir?.imageUrl;
-  const imageSize = getLightboxImageSize(
-    loadedImage,
-    souvenir?.imageUrl ?? null,
-    viewportSize
-  );
-
-  const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
-    const { naturalWidth, naturalHeight } = event.currentTarget;
-    if (!souvenir?.imageUrl || !naturalWidth || !naturalHeight) return;
-
-    setLoadedImage({
-      imageUrl: souvenir.imageUrl,
-      naturalWidth,
-      naturalHeight,
-    });
-  };
 
   const handleDeleteConfirm = async () => {
     if (!souvenir) return;
@@ -367,48 +691,145 @@ export function SouvenirLightbox({
     onClose();
   };
 
-  return (
-    <AnimatePresence>
+  const portalTarget =
+    document.getElementById("big-picture") ??
+    document.getElementById("root") ??
+    document.body;
+
+  return createPortal(
+    <FocusRegionContext.Provider value={null}>
       {souvenir ? (
-        <Backdrop>
-          <div className="souvenir-lightbox">
-            <SouvenirImage
-              souvenir={souvenir}
-              hasImage={hasImage}
-              showImagePlaceholder={showImagePlaceholder}
-              imageSize={imageSize}
-              onLoad={handleImageLoad}
-              onError={() => setFailedImageUrl(souvenir.imageUrl)}
+        <Backdrop className="souvenir-lightbox__backdrop">
+          <div
+            className="souvenir-lightbox__overlay"
+            data-controls-ready={Boolean(lightboxSize)}
+            style={controlAnchorStyle}
+            onPointerDown={(event) => {
+              if (
+                event.target === event.currentTarget &&
+                !isDeleteConfirmationVisible &&
+                !isNavigating
+              ) {
+                onClose();
+              }
+            }}
+          >
+            <button
+              type="button"
+              className="souvenir-lightbox__close-button"
+              onClick={onClose}
+              aria-label={t("close", { ns: "modal" })}
+            >
+              <XIcon size={28} />
+            </button>
+
+            {hasPrevious ? (
+              <button
+                type="button"
+                className="souvenir-lightbox__nav-button souvenir-lightbox__nav-button--left"
+                onClick={() => navigateToIndex(index - 1)}
+                disabled={isNavigating}
+                aria-label={t("previous_media", { ns: "game_details" })}
+              >
+                <CaretLeftIcon size={32} />
+              </button>
+            ) : null}
+
+            {hasNext ? (
+              <button
+                type="button"
+                className="souvenir-lightbox__nav-button souvenir-lightbox__nav-button--right"
+                onClick={() => navigateToIndex(index + 1)}
+                disabled={isNavigating}
+                aria-label={t("next_media", { ns: "game_details" })}
+              >
+                <CaretRightIcon size={32} />
+              </button>
+            ) : null}
+
+            <NavigationLayer
+              rootRegionId={focusIds.actionsRegion}
+              initialFocusId={initialActionFocusId}
+              restoreFocusOnUnmount={shouldRestoreSouvenirFocus}
+            >
+              <div
+                ref={stageRef}
+                className={
+                  isNavigating
+                    ? "souvenir-lightbox__stage souvenir-lightbox__stage--navigating"
+                    : "souvenir-lightbox__stage"
+                }
+              >
+                <AnimatePresence initial={false} custom={navigationDirection}>
+                  <motion.div
+                    key={getSouvenirRenderKey(souvenir)}
+                    className="souvenir-lightbox__slide"
+                    custom={navigationDirection}
+                    variants={souvenirSlideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{
+                      duration: 0.42,
+                      ease: [0.4, 0, 0.2, 1],
+                    }}
+                    onAnimationComplete={handleAnimationComplete}
+                  >
+                    <div
+                      className="souvenir-lightbox"
+                      data-souvenir-lightbox-key={getSouvenirRenderKey(
+                        souvenir
+                      )}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label={souvenir.displayName}
+                    >
+                      <SouvenirImage
+                        souvenir={souvenir}
+                        hasImage={hasImage}
+                        showImagePlaceholder={showImagePlaceholder}
+                        imageSize={imageSize}
+                        onLoad={handleImageLoad}
+                        onError={() => markImageFailed(souvenir.imageUrl)}
+                      />
+
+                      <section className="souvenir-lightbox__info">
+                        <SouvenirSummary souvenir={souvenir} />
+                        <SouvenirActions
+                          souvenir={souvenir}
+                          focusIds={focusIds}
+                          canLike={canLike}
+                          isOwner={isOwner}
+                          isLiking={isLiking}
+                          isUpdatingVisibility={isUpdatingVisibility}
+                          isDeleting={isDeleting}
+                          onLike={onLike}
+                          onVisibilityChange={onVisibilityChange}
+                          onRequestDelete={() =>
+                            setIsDeleteConfirmationVisible(true)
+                          }
+                        />
+                      </section>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </NavigationLayer>
+
+            <ConfirmationModal
+              visible={isDeleteConfirmationVisible}
+              title={t("delete_souvenir_modal_title")}
+              description={t("delete_souvenir_modal_description")}
+              confirmLabel={t("delete_souvenir_modal_delete_button")}
+              danger
+              loading={isDeleting}
+              onClose={() => setIsDeleteConfirmationVisible(false)}
+              onConfirm={handleDeleteConfirm}
             />
-
-            <section className="souvenir-lightbox__info">
-              <SouvenirSummary souvenir={souvenir} />
-              <SouvenirActions
-                souvenir={souvenir}
-                canLike={canLike}
-                isOwner={isOwner}
-                isLiking={isLiking}
-                isUpdatingVisibility={isUpdatingVisibility}
-                isDeleting={isDeleting}
-                onLike={onLike}
-                onVisibilityChange={onVisibilityChange}
-                onRequestDelete={() => setIsDeleteConfirmationVisible(true)}
-              />
-            </section>
           </div>
-
-          <ConfirmationModal
-            visible={isDeleteConfirmationVisible}
-            title={t("delete_souvenir_modal_title")}
-            description={t("delete_souvenir_modal_description")}
-            confirmLabel={t("delete_souvenir_modal_delete_button")}
-            danger
-            loading={isDeleting}
-            onClose={() => setIsDeleteConfirmationVisible(false)}
-            onConfirm={handleDeleteConfirm}
-          />
         </Backdrop>
       ) : null}
-    </AnimatePresence>
+    </FocusRegionContext.Provider>,
+    portalTarget
   );
 }

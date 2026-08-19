@@ -1141,7 +1141,7 @@
   display: flex;
   gap: calc(var(--spacing-unit) * 3);
   margin: 0;
-  padding: calc(var(--spacing-unit) / 2);
+  padding: calc(var(--spacing-unit) * 2);
   list-style: none;
   overflow-x: auto;
   scrollbar-width: none;
@@ -1157,12 +1157,21 @@
 }
 
 .profile-page__souvenir {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   gap: calc(var(--spacing-unit) * 1.5);
   width: 320px;
   outline: none;
+}
+
+.profile-page__souvenir-open-button {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: 12px;
+  cursor: pointer;
 }
 
 .profile-page__souvenir[data-focused="true"] {
@@ -1200,15 +1209,15 @@
   opacity: 0.55;
 }
 
-.profile-page__souvenir--rare .profile-page__souvenir-image {
-  outline: 1px solid #f4a510;
+.profile-page__souvenir--rare .profile-page__souvenir-image-frame {
+  border: 1px solid #f4a510;
   box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.35),
     0 0 16px rgba(244, 165, 16, 0.28);
 }
 
-.profile-page__souvenir--platinum .profile-page__souvenir-image {
-  outline: 1px solid #0cf1ca;
+.profile-page__souvenir--platinum .profile-page__souvenir-image-frame {
+  border: 1px solid #0cf1ca;
   box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.35),
     0 0 16px rgba(12, 241, 202, 0.28);
