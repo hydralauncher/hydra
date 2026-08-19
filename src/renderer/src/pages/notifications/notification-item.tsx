@@ -5,6 +5,7 @@ import {
   ClockIcon,
   StarFillIcon,
   CommentDiscussionIcon,
+  GiftIcon,
 } from "@primer/octicons-react";
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { useTranslation } from "react-i18next";
@@ -78,6 +79,16 @@ export function NotificationItem({
   const handleClick = useCallback(() => {
     if (!notification.isRead) {
       onMarkAsRead(notification.id);
+    }
+
+    if (
+      notification.type === "CLOUD_GIFT_RECEIVED" &&
+      notification.variables.giftId
+    ) {
+      void window.electron.openCheckout({
+        path: `/gifts/${notification.variables.giftId}`,
+      });
+      return;
     }
 
     if (notification.url) {
@@ -199,6 +210,14 @@ export function NotificationItem({
           }),
           showActions: false,
         };
+      case "CLOUD_GIFT_RECEIVED":
+        return {
+          title: t("cloud_gift_received_title"),
+          description: t("cloud_gift_received_description", {
+            displayName: notification.variables.buyerDisplayName,
+          }),
+          showActions: false,
+        };
       default:
         return {
           title: t("notification"),
@@ -232,6 +251,9 @@ export function NotificationItem({
     }
     if (isReviewAnswer) {
       return <CommentDiscussionIcon size={24} />;
+    }
+    if (notification.type === "CLOUD_GIFT_RECEIVED") {
+      return <GiftIcon size={24} />;
     }
     return <PersonIcon size={24} />;
   };

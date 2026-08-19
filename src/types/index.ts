@@ -242,6 +242,7 @@ export interface UserDetails {
   profileImageUrl: string | null;
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
+  allowCloudGifts: boolean;
   bio: string;
   workwondersJwt: string;
   subscription: Subscription | null;
@@ -266,6 +267,8 @@ export interface UserProfile {
   currentGame: UserProfileCurrentGame | null;
   bio: string;
   hasActiveSubscription: boolean;
+  canReceiveCloudGift: boolean;
+  allowCloudGifts?: boolean;
   karma: number;
   quirks: {
     backupsPerGameLimit: number;
@@ -282,6 +285,12 @@ export interface UpdateProfileRequest {
   backgroundImageUrl?: string | null;
   bio?: string;
   language?: string;
+  allowCloudGifts?: boolean;
+}
+
+export interface OpenCheckoutOptions {
+  path?: "/" | "/gift" | `/gifts/${string}`;
+  recipientId?: string;
 }
 
 export interface DownloadSourceDownload {
@@ -438,7 +447,8 @@ export type NotificationType =
   | "REVIEW_ANSWER_UPVOTE"
   | "RETROACHIEVEMENTS_CREDENTIALS_RESTORED"
   | "RETROACHIEVEMENTS_CREDENTIALS_INVALID"
-  | "RETROACHIEVEMENTS_SYNC_FAILED";
+  | "RETROACHIEVEMENTS_SYNC_FAILED"
+  | "CLOUD_GIFT_RECEIVED";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"

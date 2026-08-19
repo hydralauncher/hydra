@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import {
   Button,
+  Checkbox,
   DropdownSelect,
   type DropdownSelectOption,
 } from "../../components";
@@ -23,6 +24,7 @@ import {
 import type { FocusOverrides } from "../../services";
 import {
   ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
+  ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID,
   ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
   getAccountPrivacyBlockedUserButtonFocusId,
   SETTINGS_HEADER_RETURN_TARGET,
@@ -106,6 +108,7 @@ export function AccountPrivacySettingsSection({
     useState<ProfileVisibility>("PUBLIC");
   const [blockedUsers, setBlockedUsers] = useState<UserFriend[]>([]);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+  const [isSavingCloudGifts, setIsSavingCloudGifts] = useState(false);
   const [unblockingUserId, setUnblockingUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -225,9 +228,37 @@ export function AccountPrivacySettingsSection({
     [blockedUsers, fetchBlockedUsers, setFocus, unblockUser]
   );
 
+  const handleAllowCloudGiftsChange = useCallback(
+    async (allowCloudGifts: boolean) => {
+      if (!userDetails || isSavingCloudGifts) return;
+
+      setIsSavingCloudGifts(true);
+
+      try {
+        await patchUser({ allowCloudGifts });
+        showSuccessToast(t("changes_saved"), SETTINGS_TOAST_OPTIONS);
+      } catch {
+        showErrorToast(t("try_again"), SETTINGS_TOAST_OPTIONS);
+      } finally {
+        setIsSavingCloudGifts(false);
+      }
+    },
+    [
+      isSavingCloudGifts,
+      patchUser,
+      showErrorToast,
+      showSuccessToast,
+      t,
+      userDetails,
+    ]
+  );
+
   const hydraCloudButtonOverrides = useMemo<FocusOverrides>(
     () => ({
-      up: { type: "item", itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID },
+      up: {
+        type: "item",
+        itemId: ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID,
+      },
       down: blockedUserFocusIds[0]
         ? {
             type: "item",
@@ -289,11 +320,33 @@ export function AccountPrivacySettingsSection({
               up: SETTINGS_HEADER_RETURN_TARGET,
               down: {
                 type: "item",
-                itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
+                itemId: ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID,
               },
             }}
             onValueChange={(value) => {
               void handleProfileVisibilityChange(value);
+            }}
+          />
+
+          <Checkbox
+            block
+            checked={userDetails.allowCloudGifts}
+            disabled={isSavingCloudGifts}
+            focusId={ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID}
+            navigationOverrides={{
+              up: {
+                type: "item",
+                itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
+              },
+              down: {
+                type: "item",
+                itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
+              },
+            }}
+            label={t("allow_cloud_gifts")}
+            secondaryText={t("allow_cloud_gifts_description")}
+            onChange={(checked) => {
+              void handleAllowCloudGiftsChange(checked);
             }}
           />
         </div>

@@ -63,6 +63,7 @@ import type {
   LegacySaveExportIpcProgress,
   LegacySaveExportProgress,
   LegacySaveExportResult,
+  OpenCheckoutOptions,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1294,7 +1295,8 @@ contextBridge.exposeInMainWorld("electron", {
   isStaging: () => ipcRenderer.invoke("isStaging"),
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
-  openCheckout: () => ipcRenderer.invoke("openCheckout"),
+  openCheckout: (options?: OpenCheckoutOptions) =>
+    ipcRenderer.invoke("openCheckout", options),
   getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),

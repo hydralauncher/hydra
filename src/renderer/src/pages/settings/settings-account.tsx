@@ -1,4 +1,9 @@
-import { Avatar, Button, SelectField } from "@renderer/components";
+import {
+  Avatar,
+  Button,
+  CheckboxField,
+  SelectField,
+} from "@renderer/components";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useDate, useToast, useUserDetails } from "@renderer/hooks";
@@ -15,6 +20,7 @@ import "./settings-account.scss";
 
 interface FormValues {
   profileVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  allowCloudGifts: boolean;
 }
 
 export function SettingsAccount() {
@@ -47,6 +53,7 @@ export function SettingsAccount() {
   useEffect(() => {
     if (userDetails?.profileVisibility) {
       setValue("profileVisibility", userDetails.profileVisibility);
+      setValue("allowCloudGifts", userDetails.allowCloudGifts);
     }
   }, [userDetails, setValue]);
 
@@ -173,6 +180,25 @@ export function SettingsAccount() {
             </section>
           );
         }}
+      />
+
+      <Controller
+        control={control}
+        name="allowCloudGifts"
+        render={({ field }) => (
+          <section className="settings-account__section">
+            <CheckboxField
+              checked={field.value ?? true}
+              disabled={isSubmitting}
+              label={t("allow_cloud_gifts")}
+              onChange={(event) => {
+                field.onChange(event.target.checked);
+                void handleSubmit(onSubmit)();
+              }}
+            />
+            <small>{t("allow_cloud_gifts_description")}</small>
+          </section>
+        )}
       />
 
       <section className="settings-account__section">

@@ -23,6 +23,7 @@ import {
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ContextMenu,
   FocusItem,
@@ -107,7 +108,10 @@ function resolveBigPicturePath(path: string) {
   return `/big-picture${path}`;
 }
 
-function getApiNotificationContent(notification: Notification) {
+function getApiNotificationContent(
+  notification: Notification,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   switch (notification.type) {
     case "FRIEND_REQUEST_RECEIVED":
       return {
@@ -139,6 +143,13 @@ function getApiNotificationContent(notification: Notification) {
         title: `Your reply for ${notification.variables.gameTitle ?? "a review"} got an upvote`,
         description: `${notification.variables.upvoteCount ?? "1"} upvotes on your reply.`,
       };
+    case "CLOUD_GIFT_RECEIVED":
+      return {
+        title: t("cloud_gift_received_title"),
+        description: t("cloud_gift_received_description", {
+          displayName: notification.variables.buyerDisplayName,
+        }),
+      };
     default:
       return {
         title: "Notification",
@@ -147,7 +158,10 @@ function getApiNotificationContent(notification: Notification) {
   }
 }
 
-function getNotificationContent(notification: MergedNotification) {
+function getNotificationContent(
+  notification: MergedNotification,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   if (notification.source === "local") {
     return {
       title: notification.title,
@@ -155,7 +169,7 @@ function getNotificationContent(notification: MergedNotification) {
     };
   }
 
-  return getApiNotificationContent(notification);
+  return getApiNotificationContent(notification, t);
 }
 
 function isHydraNotification(notification: MergedNotification) {
@@ -244,6 +258,7 @@ export function SidebarNotificationsDropdown({
   restoreFocusId,
 }: Readonly<SidebarNotificationsDropdownProps>) {
   const navigate = useNavigate();
+  const { t } = useTranslation("notifications_page");
   const { formatDistance } = useDate();
   const { library } = useLibrary();
   const { setFocus } = useNavigationActions();
@@ -535,6 +550,18 @@ export function SidebarNotificationsDropdown({
       await markAsRead(notification);
     }
 
+    if (
+      notification.source === "api" &&
+      notification.type === "CLOUD_GIFT_RECEIVED" &&
+      notification.variables.giftId
+    ) {
+      await globalThis.window.electron.openCheckout({
+        path: `/gifts/${notification.variables.giftId}`,
+      });
+      closeAndRestoreFocus();
+      return;
+    }
+
     const url = getNotificationUrl(notification);
     if (url) {
       navigate(resolveBigPicturePath(url));
@@ -781,7 +808,7 @@ export function SidebarNotificationsDropdown({
                   </div>
                 ) : (
                   mergedNotifications.map((notification, index) => {
-                    const content = getNotificationContent(notification);
+                    const content = getNotificationContent(notification, t);
                     const createdAt = new Date(notification.createdAt);
                     const itemFocusId =
                       getNotificationItemFocusId(notification);

@@ -4,10 +4,12 @@ import {
   BlockedIcon,
   CheckCircleFillIcon,
   CopyIcon,
+  GiftIcon,
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
   XCircleFillIcon,
+  XCircleIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import {
@@ -159,9 +161,32 @@ export function ProfileHero() {
       );
     }
 
+    const giftAction = userProfile.canReceiveCloudGift ? (
+      <Button
+        theme="outline"
+        onClick={() => {
+          if (!userDetails) {
+            window.electron.openAuthWindow(AuthPage.SignIn);
+            return;
+          }
+
+          window.electron.openCheckout({
+            path: "/gift",
+            recipientId: userProfile.id,
+          });
+        }}
+        disabled={isPerformingAction}
+        className="profile-hero__button--outline"
+      >
+        <GiftIcon />
+        {t("gift_cloud")}
+      </Button>
+    ) : null;
+
     if (userProfile.relation == null) {
       return (
         <>
+          {giftAction}
           <Button
             theme="outline"
             onClick={() => handleFriendAction(userProfile.id, "SEND")}
@@ -187,23 +212,15 @@ export function ProfileHero() {
     if (userProfile.relation.status === "ACCEPTED") {
       return (
         <>
+          {giftAction}
           <Button
             theme="danger"
-            onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
-            disabled={isPerformingAction}
-          >
-            <BlockedIcon />
-            {t("block_user")}
-          </Button>
-          <Button
-            theme="outline"
             onClick={() =>
               handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")
             }
             disabled={isPerformingAction}
-            className="profile-hero__button--outline"
           >
-            <XCircleFillIcon />
+            <XCircleIcon />
             {t("undo_friendship")}
           </Button>
         </>
@@ -212,21 +229,25 @@ export function ProfileHero() {
 
     if (userProfile.relation.BId === userProfile.id) {
       return (
-        <Button
-          theme="outline"
-          onClick={() =>
-            handleFriendAction(userProfile.relation!.BId, "CANCEL")
-          }
-          disabled={isPerformingAction}
-          className="profile-hero__button--outline"
-        >
-          <XCircleFillIcon /> {t("cancel_request")}
-        </Button>
+        <>
+          {giftAction}
+          <Button
+            theme="outline"
+            onClick={() =>
+              handleFriendAction(userProfile.relation!.BId, "CANCEL")
+            }
+            disabled={isPerformingAction}
+            className="profile-hero__button--outline"
+          >
+            <XCircleFillIcon /> {t("cancel_request")}
+          </Button>
+        </>
       );
     }
 
     return (
       <>
+        {giftAction}
         <Button
           theme="outline"
           onClick={() =>
@@ -254,6 +275,7 @@ export function ProfileHero() {
     isMe,
     t,
     isPerformingAction,
+    userDetails,
     userProfile,
   ]);
 

@@ -1,0 +1,61 @@
+@use "../../scss/globals.scss";
+
+.cloud-gift-notification-modal {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__message-card {
+    position: relative;
+    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 3)
+      calc(globals.$spacing-unit * 3);
+    margin: calc(globals.$spacing-unit * 2.5) 0 0;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$dark-background-color;
+  }
+
+  &__message-avatar {
+    position: absolute;
+    top: 0;
+    left: calc(globals.$spacing-unit * 4);
+    transform: translateY(-50%);
+  }
+
+  &__message {
+    margin: 0;
+    color: globals.$muted-color;
+    font-size: 16px;
+    line-height: 24px;
+    overflow-wrap: anywhere;
+  }
+
+  &__signature {
+    margin-top: globals.$spacing-unit;
+    color: globals.$body-color;
+    text-align: right;
+  }
+
+  &__sender {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    font-weight: 600;
+  }
+
+  &__deadline {
+    margin: 0;
+    color: globals.$body-color;
+    line-height: 20px;
+  }
+
+  &__preference {
+    padding-block: globals.$spacing-unit;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
+  }
+}

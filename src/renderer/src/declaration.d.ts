@@ -12,6 +12,7 @@ import type {
   AllDebridUser,
   UserProfile,
   UpdateProfileRequest,
+  OpenCheckoutOptions,
   GameStats,
   UserDetails,
   FriendRequestSync,
@@ -952,7 +953,7 @@ declare global {
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
-    openCheckout: () => Promise<void>;
+    openCheckout: (options?: OpenCheckoutOptions) => Promise<void>;
     getCloudIframeUrl: () => Promise<string>;
     getVersion: () => Promise<string>;
     isStaging: () => Promise<boolean>;

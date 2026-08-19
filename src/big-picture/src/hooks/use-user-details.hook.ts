@@ -20,6 +20,10 @@ function mergeUserProfileIntoDetails(
     profileImageUrl: updatedProfile.profileImageUrl,
     backgroundImageUrl: updatedProfile.backgroundImageUrl,
     profileVisibility: updatedProfile.profileVisibility,
+    allowCloudGifts:
+      updatedProfile.allowCloudGifts ??
+      currentUserDetails?.allowCloudGifts ??
+      true,
     bio: updatedProfile.bio,
     workwondersJwt: currentUserDetails?.workwondersJwt ?? "",
     subscription: currentUserDetails?.subscription ?? null,

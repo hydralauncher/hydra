@@ -1,0 +1,84 @@
+.big-picture-cloud-gift-notification-modal {
+  &__content {
+    width: 100%;
+  }
+
+  &__message-card {
+    position: relative;
+    padding: calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 4)
+      calc(var(--spacing-unit) * 4);
+    margin: calc(var(--spacing-unit) * 3) 0 0;
+    border: 1px solid var(--secondary-border);
+    border-radius: calc(var(--spacing-unit) * 2);
+    background-color: var(--secondary);
+  }
+
+  &__message-avatar {
+    position: absolute;
+    top: 0;
+    left: 32px;
+    transform: translateY(-50%);
+  }
+
+  &__message {
+    margin: 0;
+    color: var(--text);
+    font-size: 1rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  &__signature {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: calc(var(--spacing-unit) * 2);
+    color: var(--text-secondary);
+  }
+
+  &__sender {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 3);
+    font-weight: 600;
+  }
+
+  &__profile-link {
+    height: auto;
+
+    .button__text {
+      padding: 0;
+    }
+  }
+
+  &__buyer-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: calc(var(--spacing-unit) * 1.5);
+    object-fit: cover;
+    overflow: hidden;
+
+    &--fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      background-color: var(--tertiary);
+    }
+  }
+
+  &__deadline {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  &__preference {
+    padding-block: calc(var(--spacing-unit) * 2);
+  }
+
+  &__actions {
+    justify-content: flex-end;
+    width: 100%;
+  }
+}
