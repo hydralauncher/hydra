@@ -5,3 +5,4 @@ export * from "./pixeldrain";
 export * from "./fuckingfast";
 export * from "./vikingfile";
 export * from "./rootz";
+export * from "./bzzhr";
