@@ -1,13 +1,9 @@
 import { parseAchievementFile } from "./parse-achievement-file";
 import { mergeAchievements } from "./merge-achievements";
 import fs, { readdirSync } from "node:fs";
-import {
-  findAchievementFileInExecutableDirectory,
-  findAchievementFileInSteamPath,
-  findAchievementFiles,
-  findAllAchievementFiles,
-  getAlternativeObjectIds,
-} from "./find-achievement-files";
+import { findAllAchievementFiles } from "./find-achievement-files";
+import { collectGameAchievementFiles } from "./collect-game-achievement-files";
+import { findNestedAchievementFiles } from "./find-nested-achievement-files";
 import type {
   AchievementFile,
   Game,
@@ -41,86 +37,72 @@ const mergeDetectedAchievements = async (
     ).values()
   );
 
-  if (uniqueAchievements.length === 0) return;
+  if (uniqueAchievements.length === 0) return 0;
 
-  await mergeAchievements(game, uniqueAchievements, true);
+  return mergeAchievements(game, uniqueAchievements, true);
 };
 
-const watchAchievementsWindows = async () => {
+const getEnableSteamAchievements = async () => {
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
+
+  return userPreferences?.enableSteamAchievements ?? false;
+};
+
+const getWatchedGames = async (onlyWithWinePrefix = false) => {
   const games = await gamesSublevel
     .values()
     .all()
     .then((games) => games.filter((game) => !game.isDeleted));
 
+  if (!onlyWithWinePrefix) return games;
+
+  return games.filter(
+    (game) => !!Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId)
+  );
+};
+
+const watchAchievementsWindows = async () => {
+  const games = await getWatchedGames();
+
   if (games.length === 0) return;
 
-  const achievementFiles = findAllAchievementFiles();
-
-  const userPreferences = await db.get<string, UserPreferences | null>(
-    levelKeys.userPreferences,
-    {
-      valueEncoding: "json",
-    }
-  );
-  const enableSteamAchievements =
-    userPreferences?.enableSteamAchievements ?? false;
+  const staticFilesByObjectId = findAllAchievementFiles();
+  const nestedFilesByObjectId = await findNestedAchievementFiles();
+  const includeSteamCache = await getEnableSteamAchievements();
 
   for (const game of games) {
-    const gameAchievementFiles: AchievementFile[] = [];
+    const gameAchievementFiles = await collectGameAchievementFiles(game, {
+      includeSteamCache,
+      staticFilesByObjectId,
+      nestedFilesByObjectId,
+    });
 
-    for (const objectId of getAlternativeObjectIds(game.objectId)) {
-      gameAchievementFiles.push(...(achievementFiles.get(objectId) ?? []));
-
-      gameAchievementFiles.push(
-        ...findAchievementFileInExecutableDirectory(game)
-      );
-
-      if (enableSteamAchievements) {
-        gameAchievementFiles.push(...findAchievementFileInSteamPath(game));
-      }
-    }
-
-    await processGameAchievementFiles(game, gameAchievementFiles);
+    await processChangedAchievementFiles(game, gameAchievementFiles);
   }
 };
 
 const watchAchievementsWithWine = async () => {
-  const games = await gamesSublevel
-    .values()
-    .all()
-    .then((games) =>
-      games.filter(
-        (game) =>
-          !game.isDeleted &&
-          !!Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId)
-      )
-    );
+  const games = await getWatchedGames(true);
 
   if (games.length === 0) return;
 
-  const userPreferences = await db.get<string, UserPreferences | null>(
-    levelKeys.userPreferences,
-    {
-      valueEncoding: "json",
-    }
-  );
-  const enableSteamAchievements =
-    userPreferences?.enableSteamAchievements ?? false;
+  const includeSteamCache = await getEnableSteamAchievements();
 
   for (const game of games) {
-    const gameAchievementFiles = findAchievementFiles(game);
+    const gameAchievementFiles = await collectGameAchievementFiles(game, {
+      includeSteamCache,
+    });
 
-    if (enableSteamAchievements) {
-      gameAchievementFiles.push(...findAchievementFileInSteamPath(game));
-    }
-
-    await processGameAchievementFiles(game, gameAchievementFiles);
+    await processChangedAchievementFiles(game, gameAchievementFiles);
   }
 };
 
-const compareFltFolder = async (
-  file: AchievementFile
-): Promise<UnlockedAchievement[]> => {
+const hasFltFolderChanged = (file: AchievementFile) => {
   try {
     const currentAchievements = new Set(readdirSync(file.filePath));
     const previousAchievements = fltFiles.get(file.filePath);
@@ -130,23 +112,21 @@ const compareFltFolder = async (
       !previousAchievements ||
       currentAchievements.difference(previousAchievements).size === 0
     ) {
-      return [];
+      return false;
     }
 
     achievementsLogger.log("Detected change in FLT folder", file.filePath);
-    return processAchievementFileDiff(file);
+    return true;
   } catch (err) {
     achievementsLogger.error(err);
     fltFiles.set(file.filePath, new Set());
-    return [];
+    return false;
   }
 };
 
-const compareFile = async (
-  file: AchievementFile
-): Promise<UnlockedAchievement[]> => {
+const hasAchievementFileChanged = (file: AchievementFile) => {
   if (file.type === Cracker.flt) {
-    return compareFltFolder(file);
+    return hasFltFolderChanged(file);
   }
 
   try {
@@ -154,30 +134,20 @@ const compareFile = async (
     const previousStat = fileStats.get(file.filePath);
     fileStats.set(file.filePath, currentStat.mtimeMs);
 
-    if (!previousStat || previousStat === -1) {
-      if (currentStat.mtimeMs) {
-        achievementsLogger.log(
-          "First change in file",
-          file.filePath,
-          previousStat,
-          currentStat.mtimeMs
-        );
-
-        return processAchievementFileDiff(file);
-      }
-    }
-
     if (previousStat === currentStat.mtimeMs) {
-      return [];
+      return false;
     }
+
+    const isFirstChange = previousStat === undefined || previousStat === -1;
 
     achievementsLogger.log(
-      "Detected change in file",
+      isFirstChange ? "First change in file" : "Detected change in file",
       file.filePath,
       previousStat,
       currentStat.mtimeMs
     );
-    return processAchievementFileDiff(file);
+
+    return true;
   } catch (err) {
     achievementsLogger.error(
       "Error reading file",
@@ -185,31 +155,29 @@ const compareFile = async (
       err instanceof Error ? err.message : err
     );
     fileStats.set(file.filePath, -1);
-    return [];
+    return false;
   }
 };
 
-const processAchievementFileDiff = (file: AchievementFile) => {
-  return parseAchievementFile(file.filePath, file.type);
-};
-
-const processGameAchievementFiles = async (
+const processChangedAchievementFiles = async (
   game: Game,
-  files: AchievementFile[]
+  achievementFiles: AchievementFile[]
 ) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
-  if (processingGameKeys.has(gameKey)) return;
+  if (processingGameKeys.has(gameKey)) return 0;
   processingGameKeys.add(gameKey);
 
   try {
-    const detectedAchievements: UnlockedAchievement[] = [];
+    const changedFiles = achievementFiles.filter(hasAchievementFileChanged);
 
-    for (const file of files) {
-      detectedAchievements.push(...(await compareFile(file)));
-    }
+    if (!changedFiles.length) return 0;
 
-    await mergeDetectedAchievements(game, detectedAchievements);
+    const unlockedAchievements = changedFiles.flatMap((file) =>
+      parseAchievementFile(file.filePath, file.type)
+    );
+
+    return mergeDetectedAchievements(game, unlockedAchievements);
   } finally {
     processingGameKeys.delete(gameKey);
   }
@@ -229,6 +197,24 @@ export class AchievementWatcherManager {
     AchievementMemoryStore.clear();
   }
 
+  public static forgetAchievementFiles(gameKey: string, filePaths: string[]) {
+    this.alreadySyncedGames.delete(gameKey);
+
+    for (const filePath of filePaths) {
+      fileStats.delete(filePath);
+      fltFiles.delete(filePath);
+    }
+  }
+
+  public static async syncGameAchievementFiles(
+    shop: GameShop,
+    objectId: string
+  ) {
+    this.alreadySyncedGames.delete(levelKeys.game(shop, objectId));
+
+    return this.firstSyncWithRemoteIfNeeded(shop, objectId);
+  }
+
   public static async firstSyncWithRemoteIfNeeded(
     shop: GameShop,
     objectId: string
@@ -243,18 +229,10 @@ export class AchievementWatcherManager {
     const game = await gamesSublevel.get(gameKey).catch(() => null);
     if (!game || game.isDeleted) return;
 
-    const gameAchievementFiles = findAchievementFiles(game);
-
-    const userPreferences = await db.get<string, UserPreferences | null>(
-      levelKeys.userPreferences,
-      {
-        valueEncoding: "json",
-      }
-    );
-
-    if (userPreferences?.enableSteamAchievements) {
-      gameAchievementFiles.push(...findAchievementFileInSteamPath(game));
-    }
+    const gameAchievementFiles = await collectGameAchievementFiles(game, {
+      includeSteamCache: await getEnableSteamAchievements(),
+      awaitGameDirectoryLocations: true,
+    });
 
     const unlockedAchievements: UnlockedAchievement[] = [];
 
@@ -285,7 +263,7 @@ export class AchievementWatcherManager {
       this.alreadySyncedGames.delete(gameKey);
     }
 
-    if (newAchievements > 0) {
+    if (newAchievements > 0 && this.hasFinishedPreSearch) {
       this.notifyCombinedAchievementsUnlocked(1, newAchievements);
     }
   }
@@ -300,7 +278,7 @@ export class AchievementWatcherManager {
     return watchAchievementsWithWine();
   }
 
-  private static preProcessGameAchievementFiles(
+  private static async preProcessGameAchievementFiles(
     game: Game,
     gameAchievementFiles: AchievementFile[]
   ) {
@@ -330,78 +308,45 @@ export class AchievementWatcherManager {
       }
     }
 
-    if (unlockedAchievements.length) {
-      return mergeAchievements(game, unlockedAchievements, false);
-    }
+    if (!unlockedAchievements.length) return 0;
 
-    return 0;
-  }
+    await mergeAchievements(game, unlockedAchievements, false);
 
-  private static async getGameAchievementFilesWindows() {
-    const games = await gamesSublevel
-      .values()
-      .all()
-      .then((games) => games.filter((game) => !game.isDeleted));
+    const mergedAchievementCount =
+      AchievementMemoryStore.get(game.shop, game.objectId)?.unlockedAchievements
+        .length ?? 0;
 
-    const gameAchievementFilesMap = findAllAchievementFiles();
-
-    const userPreferences = await db.get<string, UserPreferences | null>(
-      levelKeys.userPreferences,
-      {
-        valueEncoding: "json",
-      }
-    );
-    const enableSteamAchievements =
-      userPreferences?.enableSteamAchievements ?? false;
-
-    return Promise.all(
-      games.map(async (game) => {
-        const achievementFiles: AchievementFile[] = [];
-
-        for (const objectId of getAlternativeObjectIds(game.objectId)) {
-          achievementFiles.push(
-            ...(gameAchievementFilesMap.get(objectId) || [])
-          );
-
-          achievementFiles.push(
-            ...findAchievementFileInExecutableDirectory(game)
-          );
-
-          if (enableSteamAchievements) {
-            achievementFiles.push(...findAchievementFileInSteamPath(game));
-          }
-        }
-
-        return { game, achievementFiles };
-      })
+    return Math.max(
+      0,
+      mergedAchievementCount - (game.unlockedAchievementCount ?? 0)
     );
   }
 
-  private static async getGameAchievementFilesLinux() {
-    const games = await gamesSublevel
-      .values()
-      .all()
-      .then((games) => games.filter((game) => !game.isDeleted));
+  private static async getGameAchievementFiles() {
+    const games = await getWatchedGames();
 
-    const userPreferences = await db.get<string, UserPreferences | null>(
-      levelKeys.userPreferences,
-      {
-        valueEncoding: "json",
-      }
-    );
-    const enableSteamAchievements =
-      userPreferences?.enableSteamAchievements ?? false;
+    const includeSteamCache = await getEnableSteamAchievements();
+
+    const isWindows = process.platform === "win32";
+
+    const staticFilesByObjectId = isWindows
+      ? findAllAchievementFiles()
+      : undefined;
+
+    const nestedFilesByObjectId = isWindows
+      ? await findNestedAchievementFiles()
+      : undefined;
 
     return Promise.all(
-      games.map(async (game) => {
-        const achievementFiles = findAchievementFiles(game);
-
-        if (enableSteamAchievements) {
-          achievementFiles.push(...findAchievementFileInSteamPath(game));
-        }
-
-        return { game, achievementFiles };
-      })
+      games.map(async (game) => ({
+        game,
+        achievementFiles: await collectGameAchievementFiles(game, {
+          includeSteamCache,
+          staticFilesByObjectId,
+          nestedFilesByObjectId,
+          awaitGameDirectoryLocations: true,
+        }),
+      }))
     );
   }
 
@@ -442,10 +387,7 @@ export class AchievementWatcherManager {
 
   public static async preSearchAchievements() {
     try {
-      const gameAchievementFiles =
-        process.platform === "win32"
-          ? await this.getGameAchievementFilesWindows()
-          : await this.getGameAchievementFilesLinux();
+      const gameAchievementFiles = await this.getGameAchievementFiles();
 
       const newAchievementsCount = await Promise.all(
         gameAchievementFiles.map(({ game, achievementFiles }) => {
@@ -453,14 +395,20 @@ export class AchievementWatcherManager {
         })
       );
 
-      const totalNewGamesWithAchievements = newAchievementsCount.filter(
-        (achievements) => achievements
-      ).length;
+      const gamesWithNewAchievements = gameAchievementFiles.filter(
+        (_, index) => newAchievementsCount[index] > 0
+      );
+
+      const totalNewGamesWithAchievements = gamesWithNewAchievements.length;
 
       const totalNewAchievements = newAchievementsCount.reduce(
         (acc, val) => acc + val,
         0
       );
+
+      this._hasFinishedPreSearch = true;
+
+      await this.uploadPreSearchAchievements(gamesWithNewAchievements);
 
       if (totalNewAchievements > 0) {
         await setTimeout(4000);
@@ -474,5 +422,22 @@ export class AchievementWatcherManager {
     }
 
     this._hasFinishedPreSearch = true;
+  }
+
+  private static async uploadPreSearchAchievements(
+    gamesWithNewAchievements: { game: Game }[]
+  ) {
+    for (const { game } of gamesWithNewAchievements) {
+      if (!game.remoteId) continue;
+
+      await mergeAchievements(game, [], false).catch((err) =>
+        achievementsLogger.error(
+          "Failed to upload achievements found on startup",
+          game.objectId,
+          game.title,
+          err
+        )
+      );
+    }
   }
 }

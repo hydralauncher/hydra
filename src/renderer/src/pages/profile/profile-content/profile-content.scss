@@ -731,6 +731,8 @@
 }
 
 .user-reviews__review-content {
+  user-select: text;
+  cursor: text;
   color: rgba(255, 255, 255, 0.85);
   line-height: 1.5;
   word-wrap: break-word;
