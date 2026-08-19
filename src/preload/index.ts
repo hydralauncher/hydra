@@ -45,6 +45,7 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameLauncherStatusPayload,
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
@@ -1438,6 +1439,14 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(value);
     ipcRenderer.on("preflight-progress", listener);
     return () => ipcRenderer.removeListener("preflight-progress", listener);
+  },
+  onGameLauncherStatus: (cb: (value: GameLauncherStatusPayload) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: GameLauncherStatusPayload
+    ) => cb(value);
+    ipcRenderer.on("game-launcher-status", listener);
+    return () => ipcRenderer.removeListener("game-launcher-status", listener);
   },
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),

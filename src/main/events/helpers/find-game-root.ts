@@ -95,7 +95,7 @@ const isNestedExeDir = (dirName: string): boolean => {
   return NESTED_EXECUTABLE_DIRS.has(dirName.toLowerCase());
 };
 
-const isUnsafePath = (dirPath: string): boolean => {
+export const isUnsafePath = (dirPath: string): boolean => {
   const normalized = dirPath.toLowerCase();
   const parts = normalized.split(path.sep);
   const lastPart = parts.at(-1) ?? "";
