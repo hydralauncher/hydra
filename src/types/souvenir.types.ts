@@ -20,6 +20,11 @@ export interface PendingAchievementSouvenir {
   lastErrorCode?: string;
 }
 
+export interface AchievementSouvenirSyncStatus {
+  pendingCount: number;
+  failedCount: number;
+}
+
 export interface LocalSouvenirAsset {
   souvenirId: string;
   clientId: string;

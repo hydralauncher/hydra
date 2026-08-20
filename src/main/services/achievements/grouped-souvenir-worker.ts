@@ -8,6 +8,7 @@ import {
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import type {
+  AchievementSouvenirSyncStatus,
   PendingAchievementSouvenir,
   UpdatedUnlockedAchievements,
   User,
@@ -28,6 +29,10 @@ import {
   getGroupedSouvenirErrorCode,
   isTerminalGroupedSouvenirError,
 } from "./grouped-souvenir-retry-policy";
+import {
+  getAchievementSouvenirSyncStatusForOwner,
+  prepareAchievementSouvenirForRetry,
+} from "./grouped-souvenir-sync-status";
 
 const getRetryDelay = (attemptCount: number) =>
   Math.min(
@@ -37,6 +42,27 @@ const getRetryDelay = (attemptCount: number) =>
 
 const getCurrentUser = () =>
   db.get<string, User>(levelKeys.user, { valueEncoding: "json" });
+
+const EMPTY_SYNC_STATUS: AchievementSouvenirSyncStatus = {
+  pendingCount: 0,
+  failedCount: 0,
+};
+
+export const getAchievementSouvenirSyncStatus = async () => {
+  if (!HydraApi.isLoggedIn()) return EMPTY_SYNC_STATUS;
+
+  const user = await getCurrentUser().catch(() => null);
+  if (!user?.id) return EMPTY_SYNC_STATUS;
+
+  const souvenirs = await PendingGroupedSouvenirStore.list();
+  return getAchievementSouvenirSyncStatusForOwner(souvenirs, user.id);
+};
+
+const publishAchievementSouvenirSyncStatus = async () => {
+  const status = await getAchievementSouvenirSyncStatus();
+  WindowManager.sendToAppWindows("on-achievement-souvenir-sync-status", status);
+  return status;
+};
 
 const isRetryDue = (souvenir: PendingAchievementSouvenir, now: number) => {
   if (souvenir.status === "terminal") return false;
@@ -244,6 +270,8 @@ class GroupedSouvenirWorker {
       if (souvenir.ownerId !== user.id || !isRetryDue(souvenir, now)) continue;
       await processPendingSouvenir(souvenir);
     }
+
+    await publishAchievementSouvenirSyncStatus();
   }
 
   private async scheduleNextRun() {
@@ -286,6 +314,28 @@ class GroupedSouvenirWorker {
 }
 
 export const groupedSouvenirWorker = new GroupedSouvenirWorker();
+
+export const retryAchievementSouvenirSync = async () => {
+  if (!HydraApi.isLoggedIn()) return EMPTY_SYNC_STATUS;
+
+  const user = await getCurrentUser().catch(() => null);
+  if (!user?.id) return EMPTY_SYNC_STATUS;
+
+  await groupedSouvenirWorker.waitForIdle();
+
+  const souvenirs = await PendingGroupedSouvenirStore.list();
+  for (const souvenir of souvenirs) {
+    if (souvenir.ownerId !== user.id) continue;
+
+    await PendingGroupedSouvenirStore.put(
+      prepareAchievementSouvenirForRetry(souvenir)
+    );
+  }
+
+  await publishAchievementSouvenirSyncStatus();
+  await groupedSouvenirWorker.trigger();
+  return getAchievementSouvenirSyncStatus();
+};
 
 export const deleteLocalSouvenirAsset = async (souvenirId: string) => {
   const asset = await LocalSouvenirAssetStore.get(souvenirId).catch(() => null);

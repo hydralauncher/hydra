@@ -1,6 +1,10 @@
 import { appVersion, defaultDownloadsPath, isStaging } from "@main/constants";
 import { ipcMain } from "electron";
 import { ScreenshotService } from "@main/services/screenshot";
+import {
+  getAchievementSouvenirSyncStatus,
+  retryAchievementSouvenirSync,
+} from "@main/services/achievements/grouped-souvenir-worker";
 
 import "./auth";
 import "./autoupdater";
@@ -34,6 +38,12 @@ ipcMain.handle("isPortableVersion", () => isPortableVersion());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);
 ipcMain.handle("getScreenshotsPath", () =>
   ScreenshotService.getScreenshotsPath()
+);
+ipcMain.handle("getAchievementSouvenirSyncStatus", () =>
+  getAchievementSouvenirSyncStatus()
+);
+ipcMain.handle("retryAchievementSouvenirSync", () =>
+  retryAchievementSouvenirSync()
 );
 ipcMain.handle("getCloudIframeUrl", () =>
   new URL("/cloud", import.meta.env.MAIN_VITE_CHECKOUT_URL).toString()

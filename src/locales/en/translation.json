@@ -1559,6 +1559,13 @@
     "screenshots_directory": "Screenshots folder",
     "change_screenshots_directory": "Change folder",
     "open_screenshots_directory": "Open screenshots folder",
+    "reset_screenshots_directory": "Use default screenshots folder",
+    "souvenir_sync_status_title": "Souvenir sync needs attention",
+    "souvenir_sync_pending_one": "{{count}} souvenir is pending.",
+    "souvenir_sync_pending_other": "{{count}} souvenirs are pending.",
+    "souvenir_sync_failed_one": "{{count}} souvenir failed to sync.",
+    "souvenir_sync_failed_other": "{{count}} souvenirs failed to sync.",
+    "retry_souvenir_sync": "Retry",
     "enable_achievement_souvenirs": "Enable souvenirs for achievements",
     "wayland_souvenirs_warning_title": "Souvenirs on Wayland",
     "wayland_souvenirs_warning_description": "Due to the nature of Wayland, Hydra needs to ask which window it should capture every time you open a game. Select the game window so Hydra can capture souvenirs when you unlock achievements. Without selecting a window, capturing souvenirs is impossible.",
@@ -1815,6 +1822,8 @@
     "souvenir_hidden_successfully": "Souvenir hidden from your profile",
     "souvenir_shown_successfully": "Souvenir shown on your profile",
     "souvenir_visibility_failed": "Could not update souvenir visibility",
+    "souvenirs_visibility_updated": "Souvenir visibility updated",
+    "souvenirs_visibility_updated_description": "Your souvenirs are now {{visibility}}.",
     "loading_souvenirs": "Loading souvenirs..."
   },
   "library": {

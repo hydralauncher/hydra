@@ -2,6 +2,7 @@ import type {
   Badge,
   ComparedAchievements,
   ProfileSouvenir,
+  SouvenirsHiddenReason,
   SouvenirsResponse,
   UserAchievement,
   UserFriend,
@@ -594,20 +595,27 @@ export function useRecentAchievements(
 
 export function useProfileSouvenirs(
   targetUserId: string | undefined,
-  hasActiveSubscription: boolean,
   isAuthenticated: boolean
 ) {
   const [souvenirs, setSouvenirs] = useState<ProfileSouvenir[]>([]);
   const [total, setTotal] = useState(0);
+  const [hiddenReason, setHiddenReason] = useState<SouvenirsHiddenReason>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadedTargetUserId, setLoadedTargetUserId] = useState<string | null>(
+    null
+  );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const isLoadingMoreRef = useRef(false);
   const requestGenerationRef = useRef(0);
 
   useEffect(() => {
-    if (!targetUserId || !hasActiveSubscription) {
+    if (!targetUserId) {
       requestGenerationRef.current += 1;
       setSouvenirs([]);
       setTotal(0);
+      setHiddenReason(null);
+      setIsLoading(false);
+      setLoadedTargetUserId(null);
       setIsLoadingMore(false);
       isLoadingMoreRef.current = false;
       return;
@@ -617,6 +625,7 @@ export function useProfileSouvenirs(
     requestGenerationRef.current = requestGeneration;
     isLoadingMoreRef.current = false;
     setIsLoadingMore(false);
+    setIsLoading(true);
     let isMounted = true;
 
     globalThis.window.electron.hydraApi
@@ -632,24 +641,31 @@ export function useProfileSouvenirs(
             )
           );
           setTotal(response?.total ?? 0);
+          setHiddenReason(response?.hiddenReason ?? null);
         }
       })
       .catch(() => {
         if (isMounted && requestGenerationRef.current === requestGeneration) {
           setSouvenirs([]);
           setTotal(0);
+          setHiddenReason(null);
+        }
+      })
+      .finally(() => {
+        if (isMounted && requestGenerationRef.current === requestGeneration) {
+          setIsLoading(false);
+          setLoadedTargetUserId(targetUserId);
         }
       });
 
     return () => {
       isMounted = false;
     };
-  }, [hasActiveSubscription, isAuthenticated, targetUserId]);
+  }, [isAuthenticated, targetUserId]);
 
   const loadMore = useCallback(async () => {
     if (
       !targetUserId ||
-      !hasActiveSubscription ||
       isLoadingMoreRef.current ||
       souvenirs.length >= total
     ) {
@@ -685,6 +701,7 @@ export function useProfileSouvenirs(
         return [...current, ...nextItems];
       });
       setTotal(response?.total ?? total);
+      setHiddenReason(response?.hiddenReason ?? null);
     } catch {
       // Keep the already loaded page visible and allow a later retry.
     } finally {
@@ -693,13 +710,7 @@ export function useProfileSouvenirs(
         setIsLoadingMore(false);
       }
     }
-  }, [
-    hasActiveSubscription,
-    isAuthenticated,
-    souvenirs.length,
-    targetUserId,
-    total,
-  ]);
+  }, [isAuthenticated, souvenirs.length, targetUserId, total]);
 
   const updateSouvenir = useCallback(
     (souvenirId: string, update: Partial<ProfileSouvenir>) => {
@@ -722,6 +733,10 @@ export function useProfileSouvenirs(
   return {
     souvenirs,
     total,
+    hiddenReason,
+    isLoading:
+      Boolean(targetUserId) &&
+      (isLoading || loadedTargetUserId !== targetUserId),
     hasMore: souvenirs.length < total,
     isLoadingMore,
     loadMore,

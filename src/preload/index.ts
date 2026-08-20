@@ -64,6 +64,7 @@ import type {
   LegacySaveExportIpcProgress,
   LegacySaveExportProgress,
   LegacySaveExportResult,
+  AchievementSouvenirSyncStatus,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1293,6 +1294,24 @@ contextBridge.exposeInMainWorld("electron", {
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
+  getAchievementSouvenirSyncStatus: () =>
+    ipcRenderer.invoke("getAchievementSouvenirSyncStatus"),
+  retryAchievementSouvenirSync: () =>
+    ipcRenderer.invoke("retryAchievementSouvenirSync"),
+  onAchievementSouvenirSyncStatus: (
+    cb: (status: AchievementSouvenirSyncStatus) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      status: AchievementSouvenirSyncStatus
+    ) => cb(status);
+    ipcRenderer.on("on-achievement-souvenir-sync-status", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-achievement-souvenir-sync-status",
+        listener
+      );
+  },
   openFolder: (folderPath: string) =>
     ipcRenderer.invoke("openFolder", folderPath),
   isStaging: () => ipcRenderer.invoke("isStaging"),

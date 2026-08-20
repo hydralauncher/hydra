@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
+  AlertIcon,
   EyeClosedIcon,
   GlobeIcon,
   HeartFillIcon,
@@ -14,11 +15,13 @@ import {
   PeopleIcon,
   SearchIcon,
   StackIcon,
+  SyncIcon,
   TrophyIcon,
   XIcon,
 } from "@primer/octicons-react";
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import type {
+  AchievementSouvenirSyncStatus,
   ProfileSouvenir,
   ProfileVisibility,
   SouvenirsHiddenReason,
@@ -426,9 +429,15 @@ export function SouvenirsTab({
   onOpenSettings,
 }: Readonly<SouvenirsTabProps>) {
   const { t } = useTranslation("user_profile");
+  const { t: tSettings } = useTranslation("settings");
   const [grouping, setGrouping] = useState<SouvenirGrouping>("none");
   const [sortBy, setSortBy] = useState<SouvenirSort>("recent");
   const [isPrivacyNoticeVisible, setIsPrivacyNoticeVisible] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<AchievementSouvenirSyncStatus>({
+    pendingCount: 0,
+    failedCount: 0,
+  });
+  const [isRetryingSync, setIsRetryingSync] = useState(false);
   const privacyNotices = {
     PRIVATE: {
       icon: LockIcon,
@@ -469,6 +478,35 @@ export function SouvenirsTab({
 
     setIsPrivacyNoticeVisible(acknowledgedVisibility !== visibility);
   }, [isMe, userId, visibility]);
+
+  useEffect(() => {
+    if (!isMe) {
+      setSyncStatus({ pendingCount: 0, failedCount: 0 });
+      return;
+    }
+
+    void window.electron.getAchievementSouvenirSyncStatus().then(setSyncStatus);
+    return window.electron.onAchievementSouvenirSyncStatus(setSyncStatus);
+  }, [isMe]);
+
+  const handleRetrySync = async () => {
+    if (isRetryingSync) return;
+
+    setIsRetryingSync(true);
+    try {
+      setSyncStatus(await window.electron.retryAchievementSouvenirSync());
+    } catch {
+      const currentStatus = await window.electron
+        .getAchievementSouvenirSyncStatus()
+        .catch(() => null);
+      if (currentStatus) setSyncStatus(currentStatus);
+    } finally {
+      setIsRetryingSync(false);
+    }
+  };
+
+  const hasSyncIssues =
+    syncStatus.pendingCount > 0 || syncStatus.failedCount > 0;
 
   const dismissPrivacyNotice = () => {
     localStorage.setItem(
@@ -532,6 +570,46 @@ export function SouvenirsTab({
           >
             <XIcon size={16} />
           </button>
+        </aside>
+      ) : null}
+
+      {hasSyncIssues ? (
+        <aside className="profile-content__souvenirs-sync-status">
+          <AlertIcon size={20} />
+          <div className="profile-content__souvenirs-sync-status-copy">
+            <strong>{tSettings("souvenir_sync_status_title")}</strong>
+            <span>
+              {[
+                syncStatus.pendingCount > 0
+                  ? tSettings("souvenir_sync_pending", {
+                      count: syncStatus.pendingCount,
+                    })
+                  : null,
+                syncStatus.failedCount > 0
+                  ? tSettings("souvenir_sync_failed", {
+                      count: syncStatus.failedCount,
+                    })
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            </span>
+          </div>
+          <Button
+            theme="outline"
+            disabled={isRetryingSync}
+            onClick={() => void handleRetrySync()}
+          >
+            <SyncIcon
+              size={14}
+              className={
+                isRetryingSync
+                  ? "profile-content__souvenirs-sync-status-icon--spinning"
+                  : undefined
+              }
+            />
+            {tSettings("retry_souvenir_sync")}
+          </Button>
         </aside>
       ) : null}
 

@@ -11,6 +11,7 @@ import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 import {
   enableRetroArchAchievementScreenshots,
+  restoreDuckStationFileLogging,
   restoreRetroArchAchievementScreenshots,
 } from "@main/services/emulators/emulator-souvenir-config";
 import { getRetroArchConfig } from "@main/services/retroarch/retroarch-repository";
@@ -103,7 +104,10 @@ const updateAchievementSouvenirPreference = async (
   }
 
   stopAllLinuxGameCaptureSessions();
-  await restoreRetroArchAchievementScreenshots();
+  await Promise.all([
+    restoreRetroArchAchievementScreenshots(),
+    restoreDuckStationFileLogging(),
+  ]);
 };
 
 const applyDownloadManagerPreferences = async (

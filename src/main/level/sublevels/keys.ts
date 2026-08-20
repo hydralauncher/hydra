@@ -26,6 +26,7 @@ export const levelKeys = {
   emulators: "emulators",
   retroarch: "retroarch",
   retroArchSouvenirConfigBackups: "retroarch-souvenir-config-backups",
+  duckStationSouvenirConfigBackups: "duckstation-souvenir-config-backups",
   pendingAchievementSouvenirs: "pending-achievement-souvenirs",
   pendingGroupedAchievementSouvenirs: "pending-grouped-achievement-souvenirs",
   localSouvenirAssets: "local-souvenir-assets",

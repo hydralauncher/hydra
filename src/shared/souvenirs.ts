@@ -145,3 +145,32 @@ export const buildProfileSouvenirVisibilityPath = (souvenirId: string) =>
 
 export const buildProfileSouvenirDeletePath = (souvenirId: string) =>
   `/profile/souvenirs/${encodeURIComponent(souvenirId)}`;
+
+export const buildSouvenirNotificationTarget = (
+  profileTarget: string,
+  variables: Record<string, string>
+) => {
+  const souvenirTarget = variables.souvenirId ?? variables.souvenirKey;
+  if (!souvenirTarget) return profileTarget;
+
+  const [pathname, query = ""] = profileTarget.split("?");
+  const params = new URLSearchParams(query);
+  params.set("tab", "souvenirs");
+  params.set("souvenir", souvenirTarget);
+  return `${pathname}?${params.toString()}`;
+};
+
+export const findSouvenirByNotificationTarget = (
+  souvenirs: ProfileSouvenir[],
+  target: string
+) => {
+  const normalizedTarget = target.toLowerCase();
+
+  return souvenirs.find((souvenir) => {
+    const legacyKey = `${souvenir.gameId}:${souvenir.primaryAchievementName}`;
+    return (
+      souvenir.id.toLowerCase() === normalizedTarget ||
+      legacyKey.toLowerCase() === normalizedTarget
+    );
+  });
+};

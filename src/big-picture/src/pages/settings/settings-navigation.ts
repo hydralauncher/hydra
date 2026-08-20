@@ -142,6 +142,7 @@ export const CONTENT_ITEM_FOCUS_IDS = {
   enableSteamAchievements: "content-enable-steam-achievements",
   enableAchievementSouvenirs: "content-enable-achievement-souvenirs",
   changeScreenshotsDirectory: "content-change-screenshots-directory",
+  resetScreenshotsDirectory: "content-reset-screenshots-directory",
   openScreenshotsDirectory: "content-open-screenshots-directory",
 } as const;
 

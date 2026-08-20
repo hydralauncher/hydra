@@ -38,14 +38,17 @@ const SETTINGS_TOAST_OPTIONS = {
   fallbackVisual: "settings" as const,
 };
 
-function getProfileVisibilityLabel(value: ProfileVisibility) {
+function getProfileVisibilityLabel(
+  value: ProfileVisibility,
+  t: (key: string) => string
+) {
   switch (value) {
     case "FRIENDS":
-      return "Friends Only";
+      return t("friends_only");
     case "PRIVATE":
-      return "Private";
+      return t("private");
     default:
-      return "Public";
+      return t("public");
   }
 }
 
@@ -148,11 +151,11 @@ export function AccountPrivacySettingsSection({
     Array<DropdownSelectOption<ProfileVisibility>>
   >(
     () => [
-      { value: "PUBLIC", label: "Public" },
-      { value: "FRIENDS", label: "Friends Only" },
-      { value: "PRIVATE", label: "Private" },
+      { value: "PUBLIC", label: t("public") },
+      { value: "FRIENDS", label: t("friends_only") },
+      { value: "PRIVATE", label: t("private") },
     ],
-    []
+    [t]
   );
 
   const hydraCloudContent = useMemo(() => {
@@ -186,7 +189,7 @@ export function AccountPrivacySettingsSection({
         await patchUser({ profileVisibility: value });
         showSuccessToast("Profile visibility updated", {
           ...SETTINGS_TOAST_OPTIONS,
-          message: `Your profile is now ${getProfileVisibilityLabel(value)}.`,
+          message: `Your profile is now ${getProfileVisibilityLabel(value, t)}.`,
         });
       } catch {
         setProfileVisibility(previousValue);
@@ -204,6 +207,7 @@ export function AccountPrivacySettingsSection({
       profileVisibility,
       showErrorToast,
       showSuccessToast,
+      t,
       userDetails,
     ]
   );
@@ -219,16 +223,15 @@ export function AccountPrivacySettingsSection({
 
       try {
         await patchUser({ souvenirsVisibility: value });
-        showSuccessToast("Souvenir visibility updated", {
+        showSuccessToast(t("souvenirs_visibility_updated"), {
           ...SETTINGS_TOAST_OPTIONS,
-          message: `Your souvenirs are now ${getProfileVisibilityLabel(value)}.`,
+          message: t("souvenirs_visibility_updated_description", {
+            visibility: getProfileVisibilityLabel(value, t),
+          }),
         });
       } catch {
         setSouvenirsVisibility(previousValue);
-        showErrorToast(
-          "Failed to update souvenir visibility",
-          SETTINGS_TOAST_OPTIONS
-        );
+        showErrorToast(t("souvenir_visibility_failed"), SETTINGS_TOAST_OPTIONS);
       } finally {
         setIsSavingVisibility(false);
       }
@@ -239,6 +242,7 @@ export function AccountPrivacySettingsSection({
       showErrorToast,
       showSuccessToast,
       souvenirsVisibility,
+      t,
       userDetails,
     ]
   );
@@ -319,13 +323,13 @@ export function AccountPrivacySettingsSection({
       }
     >
       <SettingsSection
-        title="Privacy"
-        description="Choose who can see your profile and library."
+        title={t("privacy")}
+        description={t("profile_visibility_description")}
       >
         <div className="account-privacy-settings-section__section-content">
           <DropdownSelect
             className="account-privacy-settings-section__select"
-            label="Profile Visibility"
+            label={t("profile_visibility")}
             value={profileVisibility}
             options={visibilityOptions}
             disabled={isSavingVisibility}
@@ -344,7 +348,7 @@ export function AccountPrivacySettingsSection({
 
           <DropdownSelect
             className="account-privacy-settings-section__select"
-            label="Souvenirs Visibility"
+            label={t("souvenirs_visibility")}
             value={souvenirsVisibility}
             options={visibilityOptions}
             disabled={isSavingVisibility}

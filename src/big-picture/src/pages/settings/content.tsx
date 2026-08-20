@@ -2,8 +2,18 @@ import "./content.scss";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  ArrowCounterClockwiseIcon,
+  FolderOpenIcon,
+} from "@phosphor-icons/react";
 
-import { Button, Checkbox, VerticalFocusGroup } from "../../components";
+import {
+  Button,
+  Checkbox,
+  FocusItem,
+  HorizontalFocusGroup,
+  VerticalFocusGroup,
+} from "../../components";
 import { ConfirmationModal } from "../../components/modals";
 import { useUserDetails, useUserPreferences } from "../../hooks";
 import type { FocusOverrides } from "../../services";
@@ -100,8 +110,12 @@ export function ContentSettingsSection({
   }, [updateUserPreferences]);
 
   const supportsSouvenirs = hasActiveSubscription;
+  const canManageScreenshots =
+    supportsSouvenirs && form.enableAchievementSouvenirs;
 
   const handleChooseScreenshotsPath = useCallback(async () => {
+    if (!canManageScreenshots) return;
+
     const result = await globalThis.window.electron.showOpenDialog({
       defaultPath: screenshotsPath || undefined,
       properties: ["openDirectory"],
@@ -114,21 +128,32 @@ export function ContentSettingsSection({
     await globalThis.window.electron.updateUserPreferences({
       achievementScreenshotsPath: selectedPath,
     });
-  }, [screenshotsPath]);
+  }, [canManageScreenshots, screenshotsPath]);
 
   const handleOpenScreenshotsPath = useCallback(async () => {
+    if (!canManageScreenshots) return;
+
     const currentPath =
       screenshotsPath ||
       (await globalThis.window.electron.getScreenshotsPath());
     await globalThis.window.electron.openFolder(currentPath);
-  }, [screenshotsPath]);
+  }, [canManageScreenshots, screenshotsPath]);
+
+  const handleResetScreenshotsPath = useCallback(async () => {
+    if (!canManageScreenshots) return;
+
+    await globalThis.window.electron.updateUserPreferences({
+      achievementScreenshotsPath: undefined,
+    });
+    setScreenshotsPath(await globalThis.window.electron.getScreenshotsPath());
+  }, [canManageScreenshots]);
 
   const items = useMemo<ContentItem[]>(() => {
     return [
       {
         id: "autoplay-game-trailers",
         focusId: CONTENT_ITEM_FOCUS_IDS.autoplayGameTrailers,
-        label: "Autoplay trailers on game page",
+        label: t("autoplay_trailers_on_game_page"),
         checked: form.autoplayGameTrailers,
         onChange: (checked: boolean) =>
           void updateUserPreferences({ autoplayGameTrailers: checked }),
@@ -136,7 +161,7 @@ export function ContentSettingsSection({
       {
         id: "disable-nsfw-alert",
         focusId: CONTENT_ITEM_FOCUS_IDS.disableNsfwAlert,
-        label: "Disable NSFW alert",
+        label: t("disable_nsfw_alert"),
         checked: form.disableNsfwAlert,
         onChange: (checked: boolean) =>
           void updateUserPreferences({ disableNsfwAlert: checked }),
@@ -144,7 +169,7 @@ export function ContentSettingsSection({
       {
         id: "show-hidden-achievements-description",
         focusId: CONTENT_ITEM_FOCUS_IDS.showHiddenAchievementsDescription,
-        label: "Show hidden achievement description",
+        label: t("show_hidden_achievement_description"),
         checked: form.showHiddenAchievementsDescription,
         onChange: (checked: boolean) =>
           void updateUserPreferences({
@@ -154,7 +179,7 @@ export function ContentSettingsSection({
       {
         id: "enable-steam-achievements",
         focusId: CONTENT_ITEM_FOCUS_IDS.enableSteamAchievements,
-        label: "Enable search for Steam achievements",
+        label: t("enable_steam_achievements"),
         checked: form.enableSteamAchievements,
         onChange: (checked: boolean) =>
           void updateUserPreferences({ enableSteamAchievements: checked }),
@@ -164,7 +189,7 @@ export function ContentSettingsSection({
             {
               id: "enable-achievement-souvenirs",
               focusId: CONTENT_ITEM_FOCUS_IDS.enableAchievementSouvenirs,
-              label: "Enable souvenirs for achievements",
+              label: t("enable_achievement_souvenirs"),
               checked: form.enableAchievementSouvenirs,
               onChange: handleAchievementSouvenirsChange,
             },
@@ -175,17 +200,22 @@ export function ContentSettingsSection({
     form,
     handleAchievementSouvenirsChange,
     supportsSouvenirs,
+    t,
     updateUserPreferences,
   ]);
+
+  const hasCustomScreenshotsPath = Boolean(
+    userPreferences?.achievementScreenshotsPath
+  );
 
   const navigationFocusIds = useMemo(
     () => [
       ...items.map((item) => item.focusId),
-      ...(supportsSouvenirs
+      ...(canManageScreenshots
         ? [CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory]
         : []),
     ],
-    [items, supportsSouvenirs]
+    [canManageScreenshots, items]
   );
 
   const navigationOverridesByFocusId = useMemo<
@@ -248,59 +278,93 @@ export function ContentSettingsSection({
 
             {supportsSouvenirs && (
               <div className="content-settings-section__screenshots-directory">
-                <div className="content-settings-section__screenshots-copy">
-                  <span className="content-settings-section__screenshots-label">
-                    {t("screenshots_directory")}
-                  </span>
-                  <span
-                    className="content-settings-section__screenshots-path"
-                    title={screenshotsPath}
-                  >
-                    {screenshotsPath}
-                  </span>
-                </div>
+                <span className="content-settings-section__screenshots-label">
+                  {t("screenshots_directory")}
+                </span>
+                <HorizontalFocusGroup
+                  className="content-settings-section__screenshots-path-group"
+                  asChild
+                >
+                  <div>
+                    <FocusItem
+                      id={CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory}
+                      focusable={canManageScreenshots}
+                      actions={{
+                        primary: () => void handleChooseScreenshotsPath(),
+                      }}
+                      navigationOverrides={
+                        navigationOverridesByFocusId[
+                          CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory
+                        ]
+                      }
+                      asChild
+                    >
+                      <button
+                        type="button"
+                        disabled={!canManageScreenshots}
+                        className="content-settings-section__screenshots-path"
+                        title={screenshotsPath}
+                        onClick={() => void handleChooseScreenshotsPath()}
+                      >
+                        {screenshotsPath}
+                      </button>
+                    </FocusItem>
 
-                <div className="content-settings-section__screenshots-actions">
-                  <Button
-                    variant="secondary"
-                    focusId={CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory}
-                    focusNavigationOverrides={{
-                      ...navigationOverridesByFocusId[
-                        CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory
-                      ],
-                      left: { type: "block" },
-                      right: {
-                        type: "item",
-                        itemId: CONTENT_ITEM_FOCUS_IDS.openScreenshotsDirectory,
-                      },
-                    }}
-                    onClick={() => void handleChooseScreenshotsPath()}
-                  >
-                    {t("change_screenshots_directory")}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    focusId={CONTENT_ITEM_FOCUS_IDS.openScreenshotsDirectory}
-                    focusNavigationOverrides={{
-                      left: {
-                        type: "item",
-                        itemId:
-                          CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory,
-                      },
-                      right: { type: "block" },
-                      up: items.at(-1)
-                        ? {
+                    {hasCustomScreenshotsPath && (
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        disabled={!canManageScreenshots}
+                        focusId={
+                          CONTENT_ITEM_FOCUS_IDS.resetScreenshotsDirectory
+                        }
+                        aria-label={t("reset_screenshots_directory")}
+                        title={t("reset_screenshots_directory")}
+                        icon={<ArrowCounterClockwiseIcon size={18} />}
+                        focusNavigationOverrides={{
+                          left: {
                             type: "item",
-                            itemId: items.at(-1)!.focusId,
-                          }
-                        : SETTINGS_HEADER_RETURN_TARGET,
-                      down: { type: "block" },
-                    }}
-                    onClick={() => void handleOpenScreenshotsPath()}
-                  >
-                    {t("open_screenshots_directory")}
-                  </Button>
-                </div>
+                            itemId:
+                              CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory,
+                          },
+                          right: {
+                            type: "item",
+                            itemId:
+                              CONTENT_ITEM_FOCUS_IDS.openScreenshotsDirectory,
+                          },
+                          ...navigationOverridesByFocusId[
+                            CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory
+                          ],
+                        }}
+                        onClick={() => void handleResetScreenshotsPath()}
+                      >
+                        {""}
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="secondary"
+                      disabled={!canManageScreenshots}
+                      focusId={CONTENT_ITEM_FOCUS_IDS.openScreenshotsDirectory}
+                      icon={<FolderOpenIcon size={18} />}
+                      focusNavigationOverrides={{
+                        ...navigationOverridesByFocusId[
+                          CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory
+                        ],
+                        left: {
+                          type: "item",
+                          itemId: hasCustomScreenshotsPath
+                            ? CONTENT_ITEM_FOCUS_IDS.resetScreenshotsDirectory
+                            : CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory,
+                        },
+                        right: { type: "block" },
+                      }}
+                      onClick={() => void handleOpenScreenshotsPath()}
+                    >
+                      {t("open_screenshots_directory")}
+                    </Button>
+                  </div>
+                </HorizontalFocusGroup>
               </div>
             )}
           </div>

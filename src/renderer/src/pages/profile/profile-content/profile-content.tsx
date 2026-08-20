@@ -1,5 +1,12 @@
 import { userProfileContext } from "@renderer/context";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
 import {
   useAppDispatch,
@@ -28,8 +35,12 @@ import { SouvenirLightbox } from "./souvenir-lightbox";
 import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
-import { AuthPage, useSouvenirContentWarning } from "@shared";
-import { useNavigate } from "react-router-dom";
+import {
+  AuthPage,
+  findSouvenirByNotificationTarget,
+  useSouvenirContentWarning,
+} from "@shared";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ConfirmationModal } from "@renderer/components";
 import "./profile-content.scss";
 
@@ -107,6 +118,10 @@ export function ProfileContent() {
   } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const requestedSouvenir = searchParams.get("souvenir");
+  const attemptedDeepLinkPagesRef = useRef(new Set<string>());
   const souvenirsEnabled = useAppSelector(
     (state) => state.userPreferences.value?.enableAchievementSouvenirs === true
   );
@@ -127,7 +142,9 @@ export function ProfileContent() {
     return ["steam", "launchbox"];
   }, [platform]);
 
-  const [activeTab, setActiveTab] = useState<ProfileTabType>("library");
+  const [activeTab, setActiveTab] = useState<ProfileTabType>(
+    requestedTab === "souvenirs" ? "souvenirs" : "library"
+  );
 
   // User reviews state
   const [reviews, setReviews] = useState<UserReview[]>([]);
@@ -172,6 +189,52 @@ export function ProfileContent() {
     disableNsfwAlert,
     ownerUserId: userProfile?.id,
   });
+
+  const clearRequestedSouvenir = useCallback(() => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("souvenir");
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    attemptedDeepLinkPagesRef.current.clear();
+  }, [requestedSouvenir, userProfile?.id]);
+
+  useEffect(() => {
+    if (!requestedSouvenir || !userProfile?.id) return;
+
+    setActiveTab("souvenirs");
+    const normalizedTarget = requestedSouvenir.toLowerCase();
+    const match = findSouvenirByNotificationTarget(
+      souvenirs,
+      requestedSouvenir
+    );
+
+    if (match) {
+      requestOpenSouvenir(match);
+      clearRequestedSouvenir();
+      return;
+    }
+
+    if (isLoadingSouvenirs) return;
+    const pageKey = `${normalizedTarget}:${souvenirs.length}`;
+    if (hasMoreSouvenirs && !attemptedDeepLinkPagesRef.current.has(pageKey)) {
+      attemptedDeepLinkPagesRef.current.add(pageKey);
+      void loadMoreSouvenirs("recent");
+      return;
+    }
+
+    clearRequestedSouvenir();
+  }, [
+    clearRequestedSouvenir,
+    hasMoreSouvenirs,
+    isLoadingSouvenirs,
+    loadMoreSouvenirs,
+    requestOpenSouvenir,
+    requestedSouvenir,
+    souvenirs,
+    userProfile?.id,
+  ]);
 
   const formatPlayTime = (playTimeInSeconds: number) => {
     const minutes = playTimeInSeconds / 60;
@@ -241,9 +304,9 @@ export function ProfileContent() {
     setReviews([]);
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
-    setActiveTab("library");
+    setActiveTab(requestedTab === "souvenirs" ? "souvenirs" : "library");
     setPlatform("all");
-  }, [userProfile?.id]);
+  }, [requestedTab, userProfile?.id]);
 
   const fetchUserReviews = useCallback(async () => {
     if (!userProfile?.id) return;

@@ -49,6 +49,7 @@ import type {
   NotificationCountResponse,
   NotificationsResponse,
 } from "@types";
+import { buildSouvenirNotificationTarget } from "@shared";
 
 const hydraIconUrl = new URL("../../assets/hydra-icon.svg", import.meta.url)
   .href;
@@ -182,9 +183,16 @@ function isAchievementNotification(notification: MergedNotification) {
 
 function getNotificationUrl(notification: MergedNotification) {
   if (!notification.url) return null;
-  return notification.source === "api"
-    ? parseApiNotificationPath(notification.url)
-    : notification.url;
+  const target =
+    notification.source === "api"
+      ? parseApiNotificationPath(notification.url)
+      : notification.url;
+
+  if (notification.source !== "api" || notification.type !== "SOUVENIR_LIKE") {
+    return target;
+  }
+
+  return buildSouvenirNotificationTarget(target, notification.variables);
 }
 
 function getNotificationGameRoute(notification: MergedNotification) {

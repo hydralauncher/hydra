@@ -10,7 +10,11 @@ import {
 import { settingsContext } from "@renderer/context";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import { QuestionIcon } from "@primer/octicons-react";
+import {
+  FileDirectoryIcon,
+  HistoryIcon,
+  QuestionIcon,
+} from "@primer/octicons-react";
 import { useLocation } from "react-router-dom";
 
 import "./settings-behavior.scss";
@@ -39,6 +43,8 @@ export function SettingsContextContentGameplay() {
   const [showWaylandSouvenirsWarning, setShowWaylandSouvenirsWarning] =
     useState(false);
   const [screenshotsPath, setScreenshotsPath] = useState("");
+  const canManageScreenshots =
+    hasActiveSubscription && form.enableAchievementSouvenirs;
 
   useEffect(() => {
     void window.electron.getScreenshotsPath().then(setScreenshotsPath);
@@ -99,6 +105,8 @@ export function SettingsContextContentGameplay() {
   };
 
   const handleChooseScreenshotsPath = async () => {
+    if (!canManageScreenshots) return;
+
     const { canceled, filePaths } = await window.electron.showOpenDialog({
       defaultPath: screenshotsPath || undefined,
       properties: ["openDirectory"],
@@ -114,10 +122,23 @@ export function SettingsContextContentGameplay() {
   };
 
   const handleOpenScreenshotsPath = async () => {
+    if (!canManageScreenshots) return;
+
     const currentPath =
       screenshotsPath || (await window.electron.getScreenshotsPath());
     await window.electron.openFolder(currentPath);
   };
+
+  const handleResetScreenshotsPath = async () => {
+    if (!canManageScreenshots) return;
+
+    await updateUserPreferences({ achievementScreenshotsPath: undefined });
+    setScreenshotsPath(await window.electron.getScreenshotsPath());
+  };
+
+  const hasCustomScreenshotsPath = Boolean(
+    userPreferences?.achievementScreenshotsPath
+  );
 
   return (
     <div className="settings-context-panel">
@@ -210,22 +231,38 @@ export function SettingsContextContentGameplay() {
             readOnly
             disabled
             rightContent={
-              <Button
-                theme="outline"
-                disabled={!hasActiveSubscription}
-                onClick={handleChooseScreenshotsPath}
-              >
-                {t("change_screenshots_directory")}
-              </Button>
+              <>
+                <Button
+                  theme="outline"
+                  disabled={!canManageScreenshots}
+                  onClick={handleChooseScreenshotsPath}
+                >
+                  <FileDirectoryIcon size={14} />
+                  {t("change_screenshots_directory")}
+                </Button>
+                {hasCustomScreenshotsPath && (
+                  <Button
+                    className="settings-behavior__reset-screenshots-button"
+                    theme="outline"
+                    disabled={!canManageScreenshots}
+                    tooltip={t("reset_screenshots_directory")}
+                    aria-label={t("reset_screenshots_directory")}
+                    onClick={handleResetScreenshotsPath}
+                  >
+                    <HistoryIcon size={14} />
+                  </Button>
+                )}
+              </>
             }
           />
 
           <Button
             className="settings-behavior__open-screenshots-button"
             theme="outline"
-            disabled={!hasActiveSubscription}
+            disabled={!canManageScreenshots}
             onClick={handleOpenScreenshotsPath}
           >
+            <FileDirectoryIcon size={14} />
             {t("open_screenshots_directory")}
           </Button>
         </div>

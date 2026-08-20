@@ -1530,6 +1530,13 @@
     "screenshots_directory": "Pasta de capturas",
     "change_screenshots_directory": "Alterar pasta",
     "open_screenshots_directory": "Abrir a pasta de capturas",
+    "reset_screenshots_directory": "Usar a pasta de capturas padrão",
+    "souvenir_sync_status_title": "A sincronização de lembranças precisa de atenção",
+    "souvenir_sync_pending_one": "{{count}} lembrança está pendente.",
+    "souvenir_sync_pending_other": "{{count}} lembranças estão pendentes.",
+    "souvenir_sync_failed_one": "Falha ao sincronizar {{count}} lembrança.",
+    "souvenir_sync_failed_other": "Falha ao sincronizar {{count}} lembranças.",
+    "retry_souvenir_sync": "Tentar novamente",
     "enable_achievement_souvenirs": "Habilitar lembranças para conquistas",
     "wayland_souvenirs_warning_title": "Lembranças no Wayland",
     "wayland_souvenirs_warning_description": "Devido à natureza do Wayland, o Hydra precisa perguntar qual janela deve ser capturada toda vez que você abrir um jogo. Selecione a janela do jogo para que o Hydra possa capturar lembranças quando você desbloquear conquistas. Sem selecionar uma janela, não é possível capturar lembranças.",
@@ -1815,6 +1822,8 @@
     "souvenir_hidden_successfully": "Lembrança ocultada do seu perfil",
     "souvenir_shown_successfully": "Lembrança exibida no seu perfil",
     "souvenir_visibility_failed": "Não foi possível atualizar a visibilidade da lembrança",
+    "souvenirs_visibility_updated": "Visibilidade das lembranças atualizada",
+    "souvenirs_visibility_updated_description": "Suas lembranças agora estão como {{visibility}}.",
     "loading_souvenirs": "Carregando lembranças..."
   },
   "achievement": {

@@ -4,12 +4,14 @@ import { describe, it } from "node:test";
 import {
   buildProfileSouvenirVisibilityPath,
   buildProfileSouvenirDeletePath,
+  buildSouvenirNotificationTarget,
   buildUserSouvenirLikePath,
   buildUserSouvenirReportPath,
   buildUserSouvenirsPath,
   getPrimarySouvenirAchievement,
   getSouvenirKey,
   getSouvenirVisualVariant,
+  findSouvenirByNotificationTarget,
   normalizeProfileSouvenir,
   normalizeSouvenirReportValues,
   shouldShowSouvenirContentWarning,
@@ -55,6 +57,48 @@ describe("souvenir API helpers", () => {
     assert.equal(
       buildProfileSouvenirDeletePath("souvenir/id"),
       "/profile/souvenirs/souvenir%2Fid"
+    );
+  });
+
+  it("builds a notification target for the exact souvenir", () => {
+    assert.equal(
+      buildSouvenirNotificationTarget("/profile/owner", {
+        souvenirKey: "game:id:ACH_WIN",
+      }),
+      "/profile/owner?tab=souvenirs&souvenir=game%3Aid%3AACH_WIN"
+    );
+    assert.equal(
+      buildSouvenirNotificationTarget("/profile/owner", {}),
+      "/profile/owner"
+    );
+  });
+
+  it("finds notification souvenirs by opaque id or legacy key", () => {
+    const grouped = normalizeProfileSouvenir({
+      id: "c3d4e5f6",
+      imageUrl: null,
+      capturedAt: 12,
+      primaryAchievementName: "ACH_WIN",
+      achievements: [],
+      gameId: "game-1",
+      objectId: "10",
+      shop: "steam",
+      gameTitle: "Test Game",
+      gameIconUrl: null,
+      likeCount: 0,
+      likedByMe: false,
+    });
+
+    assert.equal(
+      findSouvenirByNotificationTarget([grouped], "C3D4E5F6"),
+      grouped
+    );
+    assert.equal(
+      findSouvenirByNotificationTarget(
+        [grouped],
+        `${grouped.gameId}:${grouped.primaryAchievementName}`
+      ),
+      grouped
     );
   });
 

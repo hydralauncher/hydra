@@ -8,6 +8,11 @@
     gap: globals.$spacing-unit;
   }
 
+  &__reset-screenshots-button {
+    min-width: 34px;
+    padding-inline: globals.$spacing-unit;
+  }
+
   &__open-screenshots-button {
     align-self: flex-start;
   }
