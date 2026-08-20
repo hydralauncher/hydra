@@ -27,6 +27,7 @@ import { SettingsContextIntegrations } from "./settings-context-integrations";
 import { SettingsContextCompatibility } from "./settings-context-compatibility";
 import { SettingsContextBigPicture } from "./settings-context-big-picture";
 import { SettingsContextEmulation } from "./emulation/settings-context-emulation";
+import { SettingsContextRecommendations } from "./settings-context-recommendations";
 
 export default function Settings() {
   const { t } = useTranslation("settings");
@@ -54,6 +55,11 @@ export default function Settings() {
         id: "notifications" as const,
         label: t("notifications"),
         icon: <BellIcon size={16} />,
+      },
+      {
+        id: "recommendations" as const,
+        label: t("recommendations"),
+        icon: <GearIcon size={16} />,
       },
       {
         id: "content_gameplay" as const,
@@ -122,6 +128,10 @@ export default function Settings() {
 
             if (selectedCategoryId === "content_gameplay") {
               return <SettingsContextContentGameplay />;
+            }
+
+            if (selectedCategoryId === "recommendations") {
+              return <SettingsContextRecommendations />;
             }
 
             if (selectedCategoryId === "integrations") {

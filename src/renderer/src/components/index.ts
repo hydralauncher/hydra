@@ -14,6 +14,7 @@ export * from "./radio-field/radio-field";
 export * from "./link/link";
 export * from "./select-field/select-field";
 export * from "./toast/toast";
+export * from "./vertical-cover-card/vertical-cover-card";
 export * from "./badge/badge";
 export * from "./confirmation-modal/confirmation-modal";
 export * from "./suspense-wrapper/suspense-wrapper";

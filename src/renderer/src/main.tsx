@@ -52,7 +52,25 @@ import BigPictureGame from "../../big-picture/src/pages/game/game";
 import BigPictureGameAchievements from "../../big-picture/src/pages/game-achievements/game-achievements";
 import BigPictureProfile from "../../big-picture/src/pages/profile/profile";
 
-console.log = logger.log;
+const hasElectronRuntime =
+  typeof globalThis.electron?.getVersion === "function";
+
+if (!hasElectronRuntime) {
+  const root = document.getElementById("root");
+  if (root) {
+    root.innerHTML = `
+      <main style="font-family: sans-serif; max-width: 640px; margin: 15vh auto; padding: 24px; color: #e5e7eb; background: #171717; border-radius: 12px;">
+        <h1>Hydra Launcher</h1>
+        <p>This page is the Hydra desktop interface and must be opened by the Hydra Electron app.</p>
+        <p>Start Hydra with <code>yarn dev</code>, or open the installed Hydra application.</p>
+      </main>`;
+  }
+} else {
+  await bootstrapElectronRenderer();
+}
+
+async function bootstrapElectronRenderer() {
+  console.log = logger.log;
 
 Sentry.init({
   dsn: import.meta.env.RENDERER_VITE_SENTRY_DSN,
@@ -120,7 +138,7 @@ globalThis.electron.onUserPreferencesUpdated((preferences) => {
   }
 });
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+  ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
       <ErrorBoundary>
@@ -178,4 +196,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       </ErrorBoundary>
     </Provider>
   </React.StrictMode>
-);
+  );
+}

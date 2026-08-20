@@ -735,6 +735,7 @@
     "download_sources_removed_other": "{{count}} download sources were removed",
     "download_sources_count_one": "{{count}} download source",
     "download_sources_count_other": "{{count}} download sources",
+    "similar_games": "More like this",
     "game_review_played_for": "after playing for {{time}}",
     "game_review_rating_only": "rating",
     "remove_from_library": "Remove from Library",

@@ -721,6 +721,9 @@
     "steamgriddb_artwork_reset": "Illustration réinitialisée par défaut"
   },
   "format": {
+    "similar_games": "Jeux similaires",
+    "previous_media": "Précédent",
+    "next_media": "Suivant",
     "playtime_hours_one": "{{count}} heure",
     "playtime_hours_other": "{{count}} heures",
     "playtime_minutes_one": "{{count}} minute",
