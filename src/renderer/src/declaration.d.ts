@@ -40,6 +40,7 @@ import type {
   DiskUsage,
   NetworkInterface,
   DownloadSource,
+  GameRepack,
   LocalNotification,
   ProtonVersion,
   CreateSteamShortcutOptions,
@@ -886,6 +887,8 @@ declare global {
 
     /* Download sources */
     addDownloadSource: (url: string) => Promise<DownloadSource>;
+    addLocalDownloadSource: () => Promise<DownloadSource | null>;
+    getLocalDownloadOptions: (title: string) => Promise<GameRepack[]>;
     removeDownloadSource: (
       removeAll = false,
       downloadSourceId?: string

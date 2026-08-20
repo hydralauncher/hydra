@@ -81,6 +81,32 @@ export function AddDownloadSourceModal({
     }
   }, [visible, clearErrors, setValue, sourceUrl]);
 
+  const handleImportLocal = async () => {
+    setIsLoading(true);
+
+    try {
+      const source = await window.electron.addLocalDownloadSource();
+
+      if (source) {
+        onClose();
+        onAddDownloadSource();
+      }
+    } catch (error) {
+      logger.error("Failed to add local download source:", error);
+      const errorMessage =
+        error instanceof Error && error.message.includes("already exists")
+          ? t("download_source_already_exists")
+          : t("failed_add_download_source");
+
+      setError("url", {
+        type: "server",
+        message: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleClose = () => {
     if (isLoading) return;
     onClose();
@@ -121,6 +147,23 @@ export function AddDownloadSourceModal({
             </Button>
           </div>
         </form>
+
+        <div className="add-download-source-modal__local">
+          <span className="add-download-source-modal__local-hint">
+            {t("or_import_local_json")}
+          </span>
+          <Button
+            type="button"
+            theme="outline"
+            onClick={handleImportLocal}
+            disabled={isLoading}
+          >
+            {t("import_local_file")}
+          </Button>
+          <small className="add-download-source-modal__local-note">
+            {t("local_source_hint")}
+          </small>
+        </div>
       </div>
     </Modal>
   );

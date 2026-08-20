@@ -21,6 +21,7 @@ import {
   Lock,
   DeckyPlugin,
   DownloadSourcesChecker,
+  LocalDownloadSources,
   DownloadOrchestrator,
   SSEClient,
   Wine,
@@ -104,6 +105,8 @@ export const loadState = async () => {
   if (process.platform === "linux") {
     DeckyPlugin.checkAndUpdateIfOutdated();
   }
+
+  await LocalDownloadSources.buildIndex();
 
   await HydraApi.setupApi().then(async () => {
     uploadGamesBatch();
