@@ -17,17 +17,19 @@ import {
   StackIcon,
   SyncIcon,
   TrophyIcon,
+  TrashIcon,
   XIcon,
 } from "@primer/octicons-react";
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import type {
+  AchievementSouvenirSyncItem,
   AchievementSouvenirSyncStatus,
   ProfileSouvenir,
   ProfileVisibility,
   SouvenirsHiddenReason,
   SouvenirSort,
 } from "@types";
-import { useDate } from "@renderer/hooks";
+import { useDate, useToast } from "@renderer/hooks";
 import {
   getPrimarySouvenirAchievement,
   getSouvenirKey,
@@ -39,6 +41,7 @@ import { Button } from "@renderer/components";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { LockedProfile } from "./locked-profile";
+import { SouvenirSyncCleanupModal } from "./souvenir-sync-cleanup-modal";
 import "./profile-content.scss";
 
 const souvenirKey = (souvenir: ProfileSouvenir) => getSouvenirKey(souvenir.id);
@@ -438,6 +441,13 @@ export function SouvenirsTab({
     failedCount: 0,
   });
   const [isRetryingSync, setIsRetryingSync] = useState(false);
+  const [isLoadingSyncDetails, setIsLoadingSyncDetails] = useState(false);
+  const [isCleaningSync, setIsCleaningSync] = useState(false);
+  const [cleanupItems, setCleanupItems] = useState<
+    AchievementSouvenirSyncItem[]
+  >([]);
+  const [isCleanupModalVisible, setIsCleanupModalVisible] = useState(false);
+  const { showErrorToast, showSuccessToast } = useToast();
   const privacyNotices = {
     PRIVATE: {
       icon: LockIcon,
@@ -486,22 +496,98 @@ export function SouvenirsTab({
     }
 
     void window.electron.getAchievementSouvenirSyncStatus().then(setSyncStatus);
-    return window.electron.onAchievementSouvenirSyncStatus(setSyncStatus);
-  }, [isMe]);
+    const unsubscribeStatus =
+      window.electron.onAchievementSouvenirSyncStatus(setSyncStatus);
+    const unsubscribeMissing =
+      window.electron.onAchievementSouvenirScreenshotsMissing((count) => {
+        showErrorToast(
+          tSettings("souvenir_sync_screenshot_missing", { count })
+        );
+      });
+
+    return () => {
+      unsubscribeStatus();
+      unsubscribeMissing();
+    };
+  }, [isMe, showErrorToast, tSettings]);
 
   const handleRetrySync = async () => {
     if (isRetryingSync) return;
 
     setIsRetryingSync(true);
     try {
-      setSyncStatus(await window.electron.retryAchievementSouvenirSync());
+      const result = await window.electron.retryAchievementSouvenirSync();
+      setSyncStatus(result.status);
+
+      const remainingCount =
+        result.status.pendingCount + result.status.failedCount;
+      if (result.missingScreenshotCount > 0) {
+        return;
+      }
+
+      if (remainingCount === 0) {
+        showSuccessToast(tSettings("souvenir_sync_retry_succeeded"));
+      } else {
+        showErrorToast(
+          tSettings("souvenir_sync_retry_incomplete", {
+            count: remainingCount,
+          })
+        );
+      }
     } catch {
       const currentStatus = await window.electron
         .getAchievementSouvenirSyncStatus()
         .catch(() => null);
       if (currentStatus) setSyncStatus(currentStatus);
+      showErrorToast(tSettings("souvenir_sync_retry_failed"));
     } finally {
       setIsRetryingSync(false);
+    }
+  };
+
+  const handleOpenCleanup = async () => {
+    if (isLoadingSyncDetails) return;
+
+    setIsLoadingSyncDetails(true);
+    try {
+      const details = await window.electron.getAchievementSouvenirSyncDetails();
+      setSyncStatus(details.status);
+      setCleanupItems(details.items);
+      setIsCleanupModalVisible(details.items.length > 0);
+    } catch {
+      showErrorToast(tSettings("souvenir_sync_cleanup_load_failed"));
+    } finally {
+      setIsLoadingSyncDetails(false);
+    }
+  };
+
+  const handleCleanupSync = async () => {
+    if (isCleaningSync) return;
+
+    setIsCleaningSync(true);
+    try {
+      const result = await window.electron.cleanupAchievementSouvenirSync();
+      setSyncStatus(result.status);
+      setIsCleanupModalVisible(false);
+      setCleanupItems([]);
+
+      if (result.failedFilePaths.length > 0) {
+        showErrorToast(
+          tSettings("souvenir_sync_cleanup_files_failed", {
+            count: result.failedFilePaths.length,
+          })
+        );
+      } else {
+        showSuccessToast(
+          tSettings("souvenir_sync_cleanup_succeeded", {
+            count: result.deletedCount,
+          })
+        );
+      }
+    } catch {
+      showErrorToast(tSettings("souvenir_sync_cleanup_failed"));
+    } finally {
+      setIsCleaningSync(false);
     }
   };
 
@@ -595,23 +681,43 @@ export function SouvenirsTab({
                 .join(" ")}
             </span>
           </div>
-          <Button
-            theme="outline"
-            disabled={isRetryingSync}
-            onClick={() => void handleRetrySync()}
-          >
-            <SyncIcon
-              size={14}
-              className={
-                isRetryingSync
-                  ? "profile-content__souvenirs-sync-status-icon--spinning"
-                  : undefined
-              }
-            />
-            {tSettings("retry_souvenir_sync")}
-          </Button>
+          <div className="profile-content__souvenirs-sync-status-actions">
+            <Button
+              theme="outline"
+              disabled={isRetryingSync || isLoadingSyncDetails}
+              onClick={() => void handleRetrySync()}
+            >
+              <SyncIcon
+                size={14}
+                className={
+                  isRetryingSync
+                    ? "profile-content__souvenirs-sync-status-icon--spinning"
+                    : undefined
+                }
+              />
+              {tSettings("retry_souvenir_sync")}
+            </Button>
+            <Button
+              theme="outline"
+              disabled={isRetryingSync || isLoadingSyncDetails}
+              onClick={() => void handleOpenCleanup()}
+            >
+              <TrashIcon size={14} />
+              {tSettings("clean_up_souvenir_sync")}
+            </Button>
+          </div>
         </aside>
       ) : null}
+
+      <SouvenirSyncCleanupModal
+        visible={isCleanupModalVisible}
+        items={cleanupItems}
+        isDeleting={isCleaningSync}
+        onClose={() => {
+          if (!isCleaningSync) setIsCleanupModalVisible(false);
+        }}
+        onConfirm={() => void handleCleanupSync()}
+      />
 
       {achievements.length === 0 ? (
         <SouvenirsEmptyState

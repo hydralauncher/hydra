@@ -1,6 +1,12 @@
 import { isAxiosError } from "axios";
 
 const TERMINAL_HTTP_STATUSES = new Set([400, 404, 409, 422]);
+const SOUVENIR_CONFLICT_CODE = "achievements/souvenir-conflict";
+
+export const isMissingGroupedSouvenirScreenshot = (error: unknown) =>
+  error instanceof Error &&
+  "code" in error &&
+  (error as NodeJS.ErrnoException).code === "ENOENT";
 
 const getResponseData = (error: unknown): Record<string, unknown> | null => {
   if (!isAxiosError(error) || !error.response?.data) return null;
@@ -9,6 +15,10 @@ const getResponseData = (error: unknown): Record<string, unknown> | null => {
 };
 
 export const getGroupedSouvenirErrorCode = (error: unknown) => {
+  if (isMissingGroupedSouvenirScreenshot(error)) {
+    return "souvenir_screenshot_missing";
+  }
+
   const data = getResponseData(error);
   const code = data?.errorCode ?? data?.code ?? data?.message;
 
@@ -27,6 +37,16 @@ export const isTerminalGroupedSouvenirError = (
   if (!isAxiosError(error) || !error.response?.status) return false;
   if (!TERMINAL_HTTP_STATUSES.has(error.response.status)) return false;
 
-  const responseClientId = getResponseData(error)?.clientId;
+  const responseData = getResponseData(error);
+  const responseCode =
+    responseData?.errorCode ?? responseData?.code ?? responseData?.message;
+  if (
+    error.response.status === 409 &&
+    responseCode === SOUVENIR_CONFLICT_CODE
+  ) {
+    return true;
+  }
+
+  const responseClientId = responseData?.clientId;
   return responseClientId === clientId;
 };

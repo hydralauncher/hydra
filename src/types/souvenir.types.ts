@@ -25,6 +25,34 @@ export interface AchievementSouvenirSyncStatus {
   failedCount: number;
 }
 
+export interface AchievementSouvenirSyncItem {
+  clientId: string;
+  status: "pending" | "failed";
+  screenshotPath: string;
+  gameTitle: string | null;
+  achievementNames: string[];
+  capturedAt: number;
+  lastErrorCode?: string;
+}
+
+export interface AchievementSouvenirSyncDetails {
+  status: AchievementSouvenirSyncStatus;
+  items: AchievementSouvenirSyncItem[];
+}
+
+export interface AchievementSouvenirSyncRetryResult {
+  status: AchievementSouvenirSyncStatus;
+  attemptedCount: number;
+  syncedCount: number;
+  missingScreenshotCount: number;
+}
+
+export interface AchievementSouvenirSyncCleanupResult {
+  status: AchievementSouvenirSyncStatus;
+  deletedCount: number;
+  failedFilePaths: string[];
+}
+
 export interface LocalSouvenirAsset {
   souvenirId: string;
   clientId: string;

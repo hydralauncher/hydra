@@ -1296,8 +1296,12 @@ contextBridge.exposeInMainWorld("electron", {
   getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
   getAchievementSouvenirSyncStatus: () =>
     ipcRenderer.invoke("getAchievementSouvenirSyncStatus"),
+  getAchievementSouvenirSyncDetails: () =>
+    ipcRenderer.invoke("getAchievementSouvenirSyncDetails"),
   retryAchievementSouvenirSync: () =>
     ipcRenderer.invoke("retryAchievementSouvenirSync"),
+  cleanupAchievementSouvenirSync: () =>
+    ipcRenderer.invoke("cleanupAchievementSouvenirSync"),
   onAchievementSouvenirSyncStatus: (
     cb: (status: AchievementSouvenirSyncStatus) => void
   ) => {
@@ -1309,6 +1313,16 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener(
         "on-achievement-souvenir-sync-status",
+        listener
+      );
+  },
+  onAchievementSouvenirScreenshotsMissing: (cb: (count: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, count: number) =>
+      cb(count);
+    ipcRenderer.on("on-achievement-souvenir-screenshots-missing", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-achievement-souvenir-screenshots-missing",
         listener
       );
   },

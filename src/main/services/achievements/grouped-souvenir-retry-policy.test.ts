@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   getGroupedSouvenirErrorCode,
+  isMissingGroupedSouvenirScreenshot,
   isTerminalGroupedSouvenirError,
 } from "./grouped-souvenir-retry-policy.js";
 
@@ -26,6 +27,26 @@ describe("grouped souvenir retry policy", () => {
     const error = axiosError(409, { clientId: "client-2" });
 
     assert.equal(isTerminalGroupedSouvenirError(error, "client-1"), false);
+  });
+
+  it("stops retrying an acknowledged souvenir conflict without a client ID", () => {
+    const error = axiosError(409, {
+      message: "achievements/souvenir-conflict",
+    });
+
+    assert.equal(isTerminalGroupedSouvenirError(error, "client-1"), true);
+  });
+
+  it("identifies when the local screenshot no longer exists", () => {
+    const error = Object.assign(new Error("Screenshot not found"), {
+      code: "ENOENT",
+    });
+
+    assert.equal(isMissingGroupedSouvenirScreenshot(error), true);
+    assert.equal(
+      getGroupedSouvenirErrorCode(error),
+      "souvenir_screenshot_missing"
+    );
   });
 
   it("keeps request-level rollout and validation errors retryable", () => {

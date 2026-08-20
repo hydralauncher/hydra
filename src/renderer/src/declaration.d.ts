@@ -78,6 +78,9 @@ import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveV2FileDetails,
+  AchievementSouvenirSyncCleanupResult,
+  AchievementSouvenirSyncDetails,
+  AchievementSouvenirSyncRetryResult,
   AchievementSouvenirSyncStatus,
   CloudSaveSyncProgressPayload,
   SyncCloudSaveOnGamePageResult,
@@ -962,9 +965,14 @@ declare global {
     getDefaultDownloadsPath: () => Promise<string>;
     getScreenshotsPath: () => Promise<string>;
     getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
-    retryAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncStatus>;
+    getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
+    retryAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncRetryResult>;
+    cleanupAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncCleanupResult>;
     onAchievementSouvenirSyncStatus: (
       cb: (status: AchievementSouvenirSyncStatus) => void
+    ) => () => Electron.IpcRenderer;
+    onAchievementSouvenirScreenshotsMissing: (
+      cb: (count: number) => void
     ) => () => Electron.IpcRenderer;
     openFolder: (folderPath: string) => Promise<string>;
     isPortableVersion: () => Promise<boolean>;

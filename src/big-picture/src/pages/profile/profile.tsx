@@ -12,6 +12,7 @@ import {
   SparkleIcon,
   SignOutIcon,
   TrophyIcon,
+  TrashIcon,
   UserCircleIcon,
   UserMinusIcon,
   UserPlusIcon,
@@ -19,6 +20,7 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import type {
+  AchievementSouvenirSyncItem,
   AchievementSouvenirSyncStatus,
   Badge,
   FriendRequestAction,
@@ -106,6 +108,7 @@ import {
   useRecentAchievements,
 } from "./use-profile-data";
 import { SouvenirLightbox } from "../../components/pages/profile/souvenir-lightbox";
+import { SouvenirSyncCleanupModal } from "./souvenir-sync-cleanup-modal";
 import {
   buildProfileSouvenirVisibilityPath,
   buildUserSouvenirLikePath,
@@ -1701,6 +1704,7 @@ const getSouvenirKey = (souvenir: ProfileSouvenir) =>
   buildSouvenirKey(souvenir.id);
 const LIKE_ANIMATION_DURATION_MS = 400;
 const PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID = "profile-souvenir-sync-retry";
+const PROFILE_SOUVENIR_SYNC_CLEANUP_FOCUS_ID = "profile-souvenir-sync-cleanup";
 
 interface ProfileSouvenirsProps {
   souvenirs: ProfileSouvenir[];
@@ -1716,12 +1720,14 @@ interface ProfileSouvenirsProps {
   isLoadingMore: boolean;
   syncStatus: AchievementSouvenirSyncStatus;
   isRetryingSync: boolean;
+  isLoadingSyncDetails: boolean;
   upFocusId: string | null;
   downFocusId: string | null;
   onActivate: (souvenir: ProfileSouvenir) => void;
   onLike: (souvenir: ProfileSouvenir) => void;
   onLoadMore: () => void;
   onRetrySync: () => void;
+  onOpenCleanup: () => void;
 }
 
 interface ProfileSouvenirCardProps {
@@ -1978,12 +1984,14 @@ function ProfileSouvenirs({
   isLoadingMore,
   syncStatus,
   isRetryingSync,
+  isLoadingSyncDetails,
   upFocusId,
   downFocusId,
   onActivate,
   onLike,
   onLoadMore,
   onRetrySync,
+  onOpenCleanup,
 }: Readonly<ProfileSouvenirsProps>) {
   const { t } = useTranslation("user_profile");
   const { t: tSettings } = useTranslation("settings");
@@ -2097,21 +2105,39 @@ function ProfileSouvenirs({
                 .join(" ")}
             </span>
           </div>
-          <Button
-            variant="secondary"
-            focusId={PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID}
-            loading={isRetryingSync}
-            icon={<ArrowsClockwiseIcon size={18} />}
-            focusNavigationOverrides={{
-              up: upFocusId ? { type: "item", itemId: upFocusId } : undefined,
-              down: firstSouvenirFocusId
-                ? { type: "item", itemId: firstSouvenirFocusId }
-                : undefined,
-            }}
-            onClick={onRetrySync}
-          >
-            {tSettings("retry_souvenir_sync")}
-          </Button>
+          <HorizontalFocusGroup className="profile-page__souvenirs-sync-actions">
+            <Button
+              variant="secondary"
+              focusId={PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID}
+              loading={isRetryingSync}
+              disabled={isLoadingSyncDetails}
+              icon={<ArrowsClockwiseIcon size={18} />}
+              focusNavigationOverrides={{
+                up: upFocusId ? { type: "item", itemId: upFocusId } : undefined,
+                down: firstSouvenirFocusId
+                  ? { type: "item", itemId: firstSouvenirFocusId }
+                  : undefined,
+              }}
+              onClick={onRetrySync}
+            >
+              {tSettings("retry_souvenir_sync")}
+            </Button>
+            <Button
+              variant="secondary"
+              focusId={PROFILE_SOUVENIR_SYNC_CLEANUP_FOCUS_ID}
+              disabled={isRetryingSync || isLoadingSyncDetails}
+              icon={<TrashIcon size={18} />}
+              focusNavigationOverrides={{
+                up: upFocusId ? { type: "item", itemId: upFocusId } : undefined,
+                down: firstSouvenirFocusId
+                  ? { type: "item", itemId: firstSouvenirFocusId }
+                  : undefined,
+              }}
+              onClick={onOpenCleanup}
+            >
+              {tSettings("clean_up_souvenir_sync")}
+            </Button>
+          </HorizontalFocusGroup>
         </aside>
       ) : null}
 
@@ -2365,6 +2391,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
   const requestedSouvenir = searchParams.get("souvenir");
   const attemptedDeepLinkPagesRef = useRef(new Set<string>());
   const { t } = useTranslation("user_profile");
+  const { t: tSettings } = useTranslation("settings");
   const {
     userDetails,
     hasActiveSubscription,
@@ -2474,6 +2501,14 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
       failedCount: 0,
     });
   const [isRetryingSouvenirSync, setIsRetryingSouvenirSync] = useState(false);
+  const [isLoadingSouvenirSyncDetails, setIsLoadingSouvenirSyncDetails] =
+    useState(false);
+  const [isCleaningSouvenirSync, setIsCleaningSouvenirSync] = useState(false);
+  const [souvenirSyncCleanupItems, setSouvenirSyncCleanupItems] = useState<
+    AchievementSouvenirSyncItem[]
+  >([]);
+  const [isSouvenirSyncCleanupVisible, setIsSouvenirSyncCleanupVisible] =
+    useState(false);
   const [updatingLikeKeys, setUpdatingLikeKeys] = useState<Set<string>>(
     new Set()
   );
@@ -2513,28 +2548,107 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     void globalThis.window.electron
       .getAchievementSouvenirSyncStatus()
       .then(setSouvenirSyncStatus);
-    return globalThis.window.electron.onAchievementSouvenirSyncStatus(
-      setSouvenirSyncStatus
-    );
-  }, [isOwnProfileTarget]);
+    const unsubscribeStatus =
+      globalThis.window.electron.onAchievementSouvenirSyncStatus(
+        setSouvenirSyncStatus
+      );
+    const unsubscribeMissing =
+      globalThis.window.electron.onAchievementSouvenirScreenshotsMissing(
+        (count) => {
+          showErrorToast(
+            tSettings("souvenir_sync_screenshot_missing", { count })
+          );
+        }
+      );
+
+    return () => {
+      unsubscribeStatus();
+      unsubscribeMissing();
+    };
+  }, [isOwnProfileTarget, showErrorToast, tSettings]);
 
   const handleRetrySouvenirSync = useCallback(async () => {
     if (isRetryingSouvenirSync) return;
 
     setIsRetryingSouvenirSync(true);
     try {
-      setSouvenirSyncStatus(
-        await globalThis.window.electron.retryAchievementSouvenirSync()
-      );
+      const result =
+        await globalThis.window.electron.retryAchievementSouvenirSync();
+      setSouvenirSyncStatus(result.status);
+
+      const remainingCount =
+        result.status.pendingCount + result.status.failedCount;
+      if (result.missingScreenshotCount > 0) {
+        return;
+      }
+
+      if (remainingCount === 0) {
+        showSuccessToast(tSettings("souvenir_sync_retry_succeeded"));
+      } else {
+        showErrorToast(
+          tSettings("souvenir_sync_retry_incomplete", {
+            count: remainingCount,
+          })
+        );
+      }
     } catch {
       const currentStatus = await globalThis.window.electron
         .getAchievementSouvenirSyncStatus()
         .catch(() => null);
       if (currentStatus) setSouvenirSyncStatus(currentStatus);
+      showErrorToast(tSettings("souvenir_sync_retry_failed"));
     } finally {
       setIsRetryingSouvenirSync(false);
     }
-  }, [isRetryingSouvenirSync]);
+  }, [isRetryingSouvenirSync, showErrorToast, showSuccessToast, tSettings]);
+
+  const handleOpenSouvenirSyncCleanup = useCallback(async () => {
+    if (isLoadingSouvenirSyncDetails) return;
+
+    setIsLoadingSouvenirSyncDetails(true);
+    try {
+      const details =
+        await globalThis.window.electron.getAchievementSouvenirSyncDetails();
+      setSouvenirSyncStatus(details.status);
+      setSouvenirSyncCleanupItems(details.items);
+      setIsSouvenirSyncCleanupVisible(details.items.length > 0);
+    } catch {
+      showErrorToast(tSettings("souvenir_sync_cleanup_load_failed"));
+    } finally {
+      setIsLoadingSouvenirSyncDetails(false);
+    }
+  }, [isLoadingSouvenirSyncDetails, showErrorToast, tSettings]);
+
+  const handleSouvenirSyncCleanup = useCallback(async () => {
+    if (isCleaningSouvenirSync) return;
+
+    setIsCleaningSouvenirSync(true);
+    try {
+      const result =
+        await globalThis.window.electron.cleanupAchievementSouvenirSync();
+      setSouvenirSyncStatus(result.status);
+      setIsSouvenirSyncCleanupVisible(false);
+      setSouvenirSyncCleanupItems([]);
+
+      if (result.failedFilePaths.length > 0) {
+        showErrorToast(
+          tSettings("souvenir_sync_cleanup_files_failed", {
+            count: result.failedFilePaths.length,
+          })
+        );
+      } else {
+        showSuccessToast(
+          tSettings("souvenir_sync_cleanup_succeeded", {
+            count: result.deletedCount,
+          })
+        );
+      }
+    } catch {
+      showErrorToast(tSettings("souvenir_sync_cleanup_failed"));
+    } finally {
+      setIsCleaningSouvenirSync(false);
+    }
+  }, [isCleaningSouvenirSync, showErrorToast, showSuccessToast, tSettings]);
 
   const hasSouvenirSyncIssues =
     souvenirSyncStatus.pendingCount > 0 || souvenirSyncStatus.failedCount > 0;
@@ -2883,12 +2997,14 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
               isLoadingMore={isLoadingMoreSouvenirs}
               syncStatus={souvenirSyncStatus}
               isRetryingSync={isRetryingSouvenirSync}
+              isLoadingSyncDetails={isLoadingSouvenirSyncDetails}
               upFocusId={souvenirUpFocusId}
               downFocusId={souvenirDownFocusId}
               onActivate={requestOpenSouvenir}
               onLike={(souvenir) => void handleSouvenirLike(souvenir)}
               onLoadMore={() => void loadMoreSouvenirs()}
               onRetrySync={() => void handleRetrySouvenirSync()}
+              onOpenCleanup={() => void handleOpenSouvenirSyncCleanup()}
             />
 
             <ProfileActivity
@@ -2984,6 +3100,18 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
           }
           onDelete={handleSouvenirDelete}
           onReport={handleSouvenirReport}
+        />
+
+        <SouvenirSyncCleanupModal
+          visible={isSouvenirSyncCleanupVisible}
+          items={souvenirSyncCleanupItems}
+          isDeleting={isCleaningSouvenirSync}
+          onClose={() => {
+            if (!isCleaningSouvenirSync) {
+              setIsSouvenirSyncCleanupVisible(false);
+            }
+          }}
+          onConfirm={() => void handleSouvenirSyncCleanup()}
         />
 
         <ConfirmationModal
