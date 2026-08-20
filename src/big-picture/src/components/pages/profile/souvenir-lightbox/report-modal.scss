@@ -1,6 +1,10 @@
 .big-picture-souvenir-report-modal {
   width: min(560px, calc(100vw - 64px));
 
+  &__backdrop {
+    z-index: 130;
+  }
+
   &__form {
     display: flex;
     flex-direction: column;

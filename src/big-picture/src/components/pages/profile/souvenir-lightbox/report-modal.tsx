@@ -66,6 +66,7 @@ export function SouvenirReportModal({
       closeOnB={!isSubmitting}
       initialFocusId={REPORT_REASON_FOCUS_ID}
       className="big-picture-souvenir-report-modal"
+      backdropClassName="big-picture-souvenir-report-modal__backdrop"
     >
       <VerticalFocusGroup
         regionId={REPORT_MODAL_REGION_ID}
