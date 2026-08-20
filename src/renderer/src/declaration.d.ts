@@ -971,6 +971,9 @@ declare global {
     onAchievementSouvenirSyncStatus: (
       cb: (status: AchievementSouvenirSyncStatus) => void
     ) => () => Electron.IpcRenderer;
+    onAchievementSouvenirSyncCompleted: (
+      cb: (syncedCount: number) => void
+    ) => () => Electron.IpcRenderer;
     onAchievementSouvenirScreenshotsMissing: (
       cb: (count: number) => void
     ) => () => Electron.IpcRenderer;

@@ -2513,6 +2513,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     isLoading: isLoadingSouvenirs,
     hasMore: hasMoreSouvenirs,
     isLoadingMore: isLoadingMoreSouvenirs,
+    refresh: refreshSouvenirs,
     loadMore: loadMoreSouvenirs,
     updateSouvenir,
     removeSouvenir,
@@ -2575,6 +2576,10 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
       globalThis.window.electron.onAchievementSouvenirSyncStatus(
         setSouvenirSyncStatus
       );
+    const unsubscribeCompleted =
+      globalThis.window.electron.onAchievementSouvenirSyncCompleted(
+        refreshSouvenirs
+      );
     const unsubscribeMissing =
       globalThis.window.electron.onAchievementSouvenirScreenshotsMissing(
         (count) => {
@@ -2586,9 +2591,10 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
 
     return () => {
       unsubscribeStatus();
+      unsubscribeCompleted();
       unsubscribeMissing();
     };
-  }, [isOwnProfileTarget, showErrorToast, tSettings]);
+  }, [isOwnProfileTarget, refreshSouvenirs, showErrorToast, tSettings]);
 
   const handleRetrySouvenirSync = useCallback(async () => {
     if (isRetryingSouvenirSync) return;

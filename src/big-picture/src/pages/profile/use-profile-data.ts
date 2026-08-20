@@ -605,6 +605,7 @@ export function useProfileSouvenirs(
     null
   );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const isLoadingMoreRef = useRef(false);
   const requestGenerationRef = useRef(0);
 
@@ -661,7 +662,11 @@ export function useProfileSouvenirs(
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, targetUserId]);
+  }, [isAuthenticated, refreshKey, targetUserId]);
+
+  const refresh = useCallback(() => {
+    setRefreshKey((currentKey) => currentKey + 1);
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (
@@ -739,6 +744,7 @@ export function useProfileSouvenirs(
       (isLoading || loadedTargetUserId !== targetUserId),
     hasMore: souvenirs.length < total,
     isLoadingMore,
+    refresh,
     loadMore,
     updateSouvenir,
     removeSouvenir,

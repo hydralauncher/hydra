@@ -1316,6 +1316,16 @@ contextBridge.exposeInMainWorld("electron", {
         listener
       );
   },
+  onAchievementSouvenirSyncCompleted: (cb: (syncedCount: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, syncedCount: number) =>
+      cb(syncedCount);
+    ipcRenderer.on("on-achievement-souvenir-sync-completed", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-achievement-souvenir-sync-completed",
+        listener
+      );
+  },
   onAchievementSouvenirScreenshotsMissing: (cb: (count: number) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, count: number) =>
       cb(count);

@@ -367,6 +367,12 @@ class GroupedSouvenirWorker {
     }
 
     await publishAchievementSouvenirSyncStatus();
+    if (result.syncedCount > 0) {
+      WindowManager.sendToAppWindows(
+        "on-achievement-souvenir-sync-completed",
+        result.syncedCount
+      );
+    }
     if (result.missingScreenshotCount > 0) {
       WindowManager.sendToAppWindows(
         "on-achievement-souvenir-screenshots-missing",

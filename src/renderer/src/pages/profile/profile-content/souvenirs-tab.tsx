@@ -513,6 +513,10 @@ export function SouvenirsTab({
     void window.electron.getAchievementSouvenirSyncStatus().then(setSyncStatus);
     const unsubscribeStatus =
       window.electron.onAchievementSouvenirSyncStatus(setSyncStatus);
+    const unsubscribeCompleted =
+      window.electron.onAchievementSouvenirSyncCompleted(() => {
+        void onReload(sortBy);
+      });
     const unsubscribeMissing =
       window.electron.onAchievementSouvenirScreenshotsMissing((count) => {
         showErrorToast(
@@ -522,9 +526,10 @@ export function SouvenirsTab({
 
     return () => {
       unsubscribeStatus();
+      unsubscribeCompleted();
       unsubscribeMissing();
     };
-  }, [isMe, showErrorToast, tSettings]);
+  }, [isMe, onReload, showErrorToast, sortBy, tSettings]);
 
   const handleRetrySync = async () => {
     if (isRetryingSync) return;
