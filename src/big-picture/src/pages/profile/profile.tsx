@@ -969,8 +969,6 @@ function ProfileStatPair({
 interface ProfileActivityProps {
   games: ProfileActivityGame[];
   preferCustomArtwork: boolean;
-  firstFocusId: string | null;
-  lastFocusId: string | null;
   upFocusId: string | null;
   downFocusId: string | null;
   onActivate: (game: ProfileActivityGame) => void;
@@ -979,8 +977,6 @@ interface ProfileActivityProps {
 function ProfileActivity({
   games,
   preferCustomArtwork,
-  firstFocusId,
-  lastFocusId,
   upFocusId,
   downFocusId,
   onActivate,
@@ -997,18 +993,27 @@ function ProfileActivity({
           className="profile-page__activity-list"
           style={{ gap: "calc(var(--spacing-unit) * 4)" }}
         >
-          {games.map((game) => (
-            <ProfileActivityItem
-              key={`${game.title}-${game.lastTimePlayed ?? "recent"}`}
-              game={game}
-              preferCustomArtwork={preferCustomArtwork}
-              firstFocusId={firstFocusId}
-              lastFocusId={lastFocusId}
-              upFocusId={upFocusId}
-              downFocusId={downFocusId}
-              onActivate={onActivate}
-            />
-          ))}
+          {games.map((game, index) => {
+            const previousGame = games[index - 1];
+            const nextGame = games[index + 1];
+
+            return (
+              <ProfileActivityItem
+                key={`${game.title}-${game.lastTimePlayed ?? "recent"}`}
+                game={game}
+                preferCustomArtwork={preferCustomArtwork}
+                upFocusId={
+                  previousGame
+                    ? getProfileActivityFocusId(previousGame)
+                    : upFocusId
+                }
+                downFocusId={
+                  nextGame ? getProfileActivityFocusId(nextGame) : downFocusId
+                }
+                onActivate={onActivate}
+              />
+            );
+          })}
         </VerticalFocusGroup>
       ) : (
         <p className="profile-page__activity-empty">No recent activity</p>
@@ -1017,15 +1022,17 @@ function ProfileActivity({
   );
 }
 
-interface ProfileActivityItemProps extends Omit<ProfileActivityProps, "games"> {
+interface ProfileActivityItemProps {
   game: ProfileActivityGame;
+  preferCustomArtwork: boolean;
+  upFocusId: string | null;
+  downFocusId: string | null;
+  onActivate: (game: ProfileActivityGame) => void;
 }
 
 function ProfileActivityItem({
   game,
   preferCustomArtwork,
-  firstFocusId,
-  lastFocusId,
   upFocusId,
   downFocusId,
   onActivate,
@@ -1037,19 +1044,12 @@ function ProfileActivityItem({
   const imageUrl = getActivityHeroImageSource(game, preferCustomArtwork);
   const isFocused = useNavigationIsFocused(focusId);
   const displayHero = useFocusAnimatedCover(imageUrl, isFocused);
-  const navigationOverrides: FocusOverrides = {};
-
-  if (focusId === firstFocusId) {
-    navigationOverrides.up = upFocusId
-      ? { type: "item", itemId: upFocusId }
-      : { type: "block" };
-  }
-
-  if (focusId === lastFocusId) {
-    navigationOverrides.down = downFocusId
+  const navigationOverrides: FocusOverrides = {
+    up: upFocusId ? { type: "item", itemId: upFocusId } : { type: "block" },
+    down: downFocusId
       ? { type: "item", itemId: downFocusId }
-      : { type: "block" };
-  }
+      : { type: "block" },
+  };
 
   return (
     <FocusItem
@@ -2766,6 +2766,14 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
           { data: { visibility }, needsAuth: true }
         );
         updateSouvenir(souvenir.id, { visibility });
+        showSuccessToast(
+          t(
+            visibility === "PRIVATE"
+              ? "souvenir_hidden_successfully"
+              : "souvenir_shown_successfully"
+          ),
+          { fallbackVisual: "settings" }
+        );
       } catch {
         showErrorToast(t("souvenir_visibility_failed"), {
           fallbackVisual: "settings",
@@ -2781,6 +2789,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     [
       isOwnProfileTarget,
       showErrorToast,
+      showSuccessToast,
       t,
       updateSouvenir,
       updatingVisibilityKeys,
@@ -2929,8 +2938,6 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
   const canFocusRecentAchievements =
     canViewRecentAchievements && Boolean(profileUser?.isOwnProfile);
   const {
-    firstActivityFocusId,
-    lastActivityFocusId,
     firstAchievementFocusId,
     lastAchievementFocusId,
     firstFriendFocusId,
@@ -3010,8 +3017,6 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
             <ProfileActivity
               games={recentActivityGames}
               preferCustomArtwork={targetHasActiveSubscription}
-              firstFocusId={firstActivityFocusId}
-              lastFocusId={lastActivityFocusId}
               upFocusId={activityUpFocusId}
               downFocusId={activityDownFocusId}
               onActivate={(game) =>

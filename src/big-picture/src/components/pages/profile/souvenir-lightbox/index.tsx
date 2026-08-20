@@ -728,7 +728,8 @@ function SouvenirActions({
         variant="secondary"
         size="small"
         focusId={focusIds.likeButton}
-        disabled={!canLike || isLiking}
+        disabled={!canLike}
+        loading={isLiking}
         className={isLiking ? "souvenir-lightbox__action--pending" : undefined}
         icon={
           <HeartIcon
@@ -1050,6 +1051,7 @@ export function SouvenirLightbox({
 
             <ConfirmationModal
               visible={isDeleteConfirmationVisible}
+              backdropClassName="souvenir-lightbox__confirmation-backdrop"
               title={t("delete_souvenir_modal_title")}
               description={t("delete_souvenir_modal_description")}
               confirmLabel={t("delete_souvenir_modal_delete_button")}

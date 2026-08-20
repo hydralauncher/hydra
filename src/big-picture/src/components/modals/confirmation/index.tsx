@@ -20,6 +20,7 @@ interface ConfirmationModalProps {
   loading?: boolean;
   danger?: boolean;
   closeOnBackdrop?: boolean;
+  backdropClassName?: string;
 }
 
 const CONFIRMATION_MODAL_CONTENT_REGION_ID = "confirmation-modal-content";
@@ -37,6 +38,7 @@ export function ConfirmationModal({
   loading = false,
   danger = false,
   closeOnBackdrop = true,
+  backdropClassName,
 }: Readonly<ConfirmationModalProps>) {
   const { setFocus } = useNavigation();
 
@@ -62,6 +64,7 @@ export function ConfirmationModal({
       closeOnEscape={!loading}
       closeOnB={!loading}
       className="confirmation-modal"
+      backdropClassName={backdropClassName}
     >
       <VerticalFocusGroup
         regionId={CONFIRMATION_MODAL_CONTENT_REGION_ID}
