@@ -3,6 +3,7 @@ import type { AchievementSouvenirSyncItem } from "@types";
 import { useTranslation } from "react-i18next";
 import {
   Button,
+  FocusItem,
   HorizontalFocusGroup,
   Modal,
   VerticalFocusGroup,
@@ -17,11 +18,9 @@ interface SouvenirSyncCleanupModalProps {
 }
 
 const CLEANUP_MODAL_REGION_ID = "souvenir-sync-cleanup-modal";
+const CLEANUP_MODAL_LIST_REGION_ID = "souvenir-sync-cleanup-list";
 const CLEANUP_MODAL_ACTIONS_REGION_ID = "souvenir-sync-cleanup-actions";
 const CLEANUP_MODAL_CANCEL_FOCUS_ID = "souvenir-sync-cleanup-cancel";
-
-const getFileName = (filePath: string) =>
-  filePath.split(/[\\/]/).at(-1) ?? filePath;
 
 export function SouvenirSyncCleanupModal({
   visible,
@@ -47,28 +46,38 @@ export function SouvenirSyncCleanupModal({
         regionId={CLEANUP_MODAL_REGION_ID}
         className="profile-page__souvenirs-cleanup-content"
       >
-        <p>{t("souvenir_sync_cleanup_description", { count: items.length })}</p>
-
-        <ul className="profile-page__souvenirs-cleanup-list">
-          {items.map((item) => (
-            <li key={item.clientId}>
-              <div className="profile-page__souvenirs-cleanup-item-header">
-                <strong>
-                  {item.gameTitle ?? t("souvenir_sync_unknown_game")}
-                </strong>
-                <span>{t(`souvenir_sync_item_${item.status}`)}</span>
-              </div>
-              <p>{item.achievementNames.join(", ")}</p>
-              <code title={item.screenshotPath}>
-                {getFileName(item.screenshotPath)}
-              </code>
-            </li>
-          ))}
-        </ul>
-
         <p className="profile-page__souvenirs-cleanup-warning">
-          {t("souvenir_sync_cleanup_warning")}
+          {t("souvenir_sync_cleanup_warning", { count: items.length })}
         </p>
+
+        <VerticalFocusGroup
+          regionId={CLEANUP_MODAL_LIST_REGION_ID}
+          autoScrollMode="item"
+          asChild
+        >
+          <ul className="profile-page__souvenirs-cleanup-list">
+            {items.map((item) => {
+              const achievementNames = item.achievementNames.join(", ");
+
+              return (
+                <FocusItem
+                  key={item.clientId}
+                  id={`souvenir-sync-cleanup-item-${item.clientId}`}
+                  asChild
+                >
+                  <li>
+                    <div className="profile-page__souvenirs-cleanup-item-header">
+                      <strong>
+                        {item.gameTitle ?? t("souvenir_sync_unknown_game")}
+                      </strong>
+                    </div>
+                    <p title={achievementNames}>{achievementNames}</p>
+                  </li>
+                </FocusItem>
+              );
+            })}
+          </ul>
+        </VerticalFocusGroup>
 
         <HorizontalFocusGroup
           regionId={CLEANUP_MODAL_ACTIONS_REGION_ID}

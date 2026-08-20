@@ -254,12 +254,14 @@
 
   &__souvenirs-cleanup-list {
     display: flex;
-    max-height: 320px;
+    max-height: min(420px, 50vh);
     margin: 0;
     padding: 0;
     flex-direction: column;
     gap: globals.$spacing-unit;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     list-style: none;
 
     > li {
@@ -270,19 +272,16 @@
       background: rgba(255, 255, 255, 0.03);
       flex-direction: column;
       gap: globals.$spacing-unit;
+      flex-shrink: 0;
 
       p {
+        display: -webkit-box;
+        overflow: hidden;
         color: globals.$body-color;
         font-size: globals.$small-font-size;
         line-height: 1.4;
-      }
-
-      code {
-        overflow: hidden;
-        color: globals.$muted-color;
-        font-size: globals.$small-font-size;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
       }
     }
   }
@@ -290,7 +289,6 @@
   &__souvenirs-cleanup-item-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: globals.$spacing-unit;
 
     strong {
@@ -300,16 +298,10 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-
-    span {
-      flex-shrink: 0;
-      color: globals.$body-color;
-      font-size: globals.$small-font-size;
-    }
   }
 
   &__souvenirs-cleanup-warning {
-    color: globals.$body-color;
+    color: globals.$muted-color;
   }
 
   &__souvenirs-cleanup-actions {

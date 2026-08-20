@@ -1177,6 +1177,8 @@
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 2);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   list-style: none;
 
   > li {
@@ -1187,19 +1189,21 @@
     background: var(--surface);
     flex-direction: column;
     gap: var(--spacing-unit);
+    flex-shrink: 0;
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
 
     p {
+      display: -webkit-box;
+      overflow: hidden;
       color: var(--text-secondary);
       font-size: 14px;
       line-height: 1.4;
-    }
-
-    code {
-      overflow: hidden;
-      color: var(--text-secondary);
-      font-size: 13px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
     }
   }
 }
@@ -1207,7 +1211,6 @@
 .profile-page__souvenirs-cleanup-item-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: calc(var(--spacing-unit) * 2);
 
   strong {
@@ -1216,16 +1219,10 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-
-  span {
-    flex-shrink: 0;
-    color: var(--text-secondary);
-    font-size: 13px;
-  }
 }
 
 .profile-page__souvenirs-cleanup-warning {
-  color: var(--text) !important;
+  color: var(--text-secondary) !important;
 }
 
 .profile-page__souvenirs-cleanup-actions {
