@@ -34,10 +34,12 @@ import type {
 import {
   Backdrop,
   Button,
+  FocusItem,
   HorizontalFocusGroup,
   NavigationLayer,
   Tooltip,
   Typography,
+  VerticalFocusGroup,
 } from "../../../common";
 import { FocusRegionContext } from "../../../context";
 import { ConfirmationModal } from "../../../modals";
@@ -96,7 +98,10 @@ const souvenirSlideVariants = {
 };
 
 interface SouvenirLightboxFocusIds {
+  rootRegion: string;
+  summaryRegion: string;
   actionsRegion: string;
+  otherAchievementsButton: string;
   likeButton: string;
   visibilityButton: string;
   deleteButton: string;
@@ -109,7 +114,10 @@ const getSouvenirLightboxFocusIds = (
   const suffix = getSouvenirRenderKey(souvenir);
 
   return {
+    rootRegion: `souvenir-lightbox:${suffix}`,
+    summaryRegion: `souvenir-lightbox-summary:${suffix}`,
     actionsRegion: `souvenir-lightbox-actions:${suffix}`,
+    otherAchievementsButton: `souvenir-lightbox-other-achievements:${suffix}`,
     likeButton: `souvenir-lightbox-like:${suffix}`,
     visibilityButton: `souvenir-lightbox-visibility:${suffix}`,
     deleteButton: `souvenir-lightbox-delete:${suffix}`,
@@ -540,8 +548,15 @@ function SouvenirImage({
 
 function SouvenirSummary({
   souvenir,
-}: Readonly<{ souvenir: ProfileSouvenir }>) {
+  focusIds,
+}: Readonly<{
+  souvenir: ProfileSouvenir;
+  focusIds: SouvenirLightboxFocusIds;
+}>) {
   const { t, i18n } = useTranslation("user_profile");
+  const [failedGameIconUrl, setFailedGameIconUrl] = useState<string | null>(
+    null
+  );
   const primaryAchievement = getPrimarySouvenirAchievement(souvenir);
   const additionalAchievements = souvenir.achievements.filter(
     (achievement) =>
@@ -549,6 +564,9 @@ function SouvenirSummary({
   );
   const visualVariant = getSouvenirVisualVariant(primaryAchievement);
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
+  const hasGameIcon = Boolean(
+    souvenir.gameIconUrl && souvenir.gameIconUrl !== failedGameIconUrl
+  );
 
   return (
     <div className="souvenir-lightbox__summary">
@@ -566,46 +584,57 @@ function SouvenirSummary({
       </span>
 
       <div className="souvenir-lightbox__copy">
-        <div className="souvenir-lightbox__title-row">
-          <Typography
-            className="souvenir-lightbox__title"
-            title={primaryAchievement.displayName}
-          >
-            {primaryAchievement.displayName}
-          </Typography>
-
-          {additionalAchievements.length > 0 ? (
-            <Tooltip
-              content={
-                <ul className="souvenir-lightbox__achievement-list">
-                  {additionalAchievements.map((achievement) => (
-                    <SouvenirAchievementListItem
-                      key={achievement.name}
-                      achievement={achievement}
-                    />
-                  ))}
-                </ul>
-              }
-              className="souvenir-lightbox__achievement-tooltip"
-              position="top"
+        <HorizontalFocusGroup
+          regionId={focusIds.summaryRegion}
+          className="souvenir-lightbox__title-row"
+          asChild
+        >
+          <div>
+            <Typography
+              className="souvenir-lightbox__title"
+              title={primaryAchievement.displayName}
             >
-              <button type="button" className="souvenir-lightbox__other-count">
-                {t("souvenir_other_achievements", {
-                  count: additionalAchievements.length,
-                })}
-              </button>
-            </Tooltip>
-          ) : null}
+              {primaryAchievement.displayName}
+            </Typography>
 
-          {visualVariant ? (
-            <span
-              className={`souvenir-lightbox__rarity souvenir-lightbox__rarity--${visualVariant}`}
-            >
-              <TrophyIcon size={16} weight="fill" />
-              {t(`${visualVariant}_souvenir`)}
-            </span>
-          ) : null}
-        </div>
+            {additionalAchievements.length > 0 ? (
+              <Tooltip
+                content={
+                  <ul className="souvenir-lightbox__achievement-list">
+                    {additionalAchievements.map((achievement) => (
+                      <SouvenirAchievementListItem
+                        key={achievement.name}
+                        achievement={achievement}
+                      />
+                    ))}
+                  </ul>
+                }
+                className="souvenir-lightbox__achievement-tooltip"
+                position="top"
+              >
+                <FocusItem id={focusIds.otherAchievementsButton} asChild>
+                  <button
+                    type="button"
+                    className="souvenir-lightbox__other-count"
+                  >
+                    {t("souvenir_other_achievements", {
+                      count: additionalAchievements.length,
+                    })}
+                  </button>
+                </FocusItem>
+              </Tooltip>
+            ) : null}
+
+            {visualVariant ? (
+              <span
+                className={`souvenir-lightbox__rarity souvenir-lightbox__rarity--${visualVariant}`}
+              >
+                <TrophyIcon size={16} weight="fill" />
+                {t(`${visualVariant}_souvenir`)}
+              </span>
+            ) : null}
+          </div>
+        </HorizontalFocusGroup>
 
         {primaryAchievement.description ? (
           <Typography
@@ -619,15 +648,16 @@ function SouvenirSummary({
         <div className="souvenir-lightbox__meta">
           <span className="souvenir-lightbox__game">
             <span className="souvenir-lightbox__game-icon">
-              <GameControllerIcon size={16} />
-              {souvenir.gameIconUrl ? (
+              {hasGameIcon ? (
                 <img
-                  src={souvenir.gameIconUrl}
+                  src={souvenir.gameIconUrl ?? undefined}
                   alt=""
                   draggable={false}
-                  onError={hideBrokenImage}
+                  onError={() => setFailedGameIconUrl(souvenir.gameIconUrl)}
                 />
-              ) : null}
+              ) : (
+                <GameControllerIcon size={16} />
+              )}
             </span>
             {souvenir.gameTitle ?? t("unknown_game")}
           </span>
@@ -968,7 +998,7 @@ export function SouvenirLightbox({
             ) : null}
 
             <NavigationLayer
-              rootRegionId={focusIds.actionsRegion}
+              rootRegionId={focusIds.rootRegion}
               initialFocusId={initialActionFocusId}
               restoreFocusOnUnmount={shouldRestoreSouvenirFocus}
             >
@@ -1014,35 +1044,44 @@ export function SouvenirLightbox({
                         onError={() => markImageFailed(souvenir.imageUrl)}
                       />
 
-                      <section className="souvenir-lightbox__info">
-                        <SouvenirSummary souvenir={souvenir} />
-                        <SouvenirActions
-                          souvenir={souvenir}
-                          focusIds={focusIds}
-                          canLike={canLike}
-                          isOwner={isOwner}
-                          isLiking={isLiking}
-                          isUpdatingVisibility={isUpdatingVisibility}
-                          isDeleting={isDeleting}
-                          isReporting={isReporting}
-                          isReported={isReported}
-                          onLike={onLike}
-                          onVisibilityChange={onVisibilityChange}
-                          onRequestDelete={() =>
-                            setIsDeleteConfirmationVisible(true)
-                          }
-                          onRequestReport={() => {
-                            if (!canLike) {
-                              void globalThis.window.electron.openAuthWindow(
-                                AuthPage.SignIn
-                              );
-                              return;
+                      <VerticalFocusGroup
+                        regionId={focusIds.rootRegion}
+                        className="souvenir-lightbox__info"
+                        asChild
+                      >
+                        <section>
+                          <SouvenirSummary
+                            souvenir={souvenir}
+                            focusIds={focusIds}
+                          />
+                          <SouvenirActions
+                            souvenir={souvenir}
+                            focusIds={focusIds}
+                            canLike={canLike}
+                            isOwner={isOwner}
+                            isLiking={isLiking}
+                            isUpdatingVisibility={isUpdatingVisibility}
+                            isDeleting={isDeleting}
+                            isReporting={isReporting}
+                            isReported={isReported}
+                            onLike={onLike}
+                            onVisibilityChange={onVisibilityChange}
+                            onRequestDelete={() =>
+                              setIsDeleteConfirmationVisible(true)
                             }
+                            onRequestReport={() => {
+                              if (!canLike) {
+                                void globalThis.window.electron.openAuthWindow(
+                                  AuthPage.SignIn
+                                );
+                                return;
+                              }
 
-                            setIsReportModalVisible(true);
-                          }}
-                        />
-                      </section>
+                              setIsReportModalVisible(true);
+                            }}
+                          />
+                        </section>
+                      </VerticalFocusGroup>
                     </dialog>
                   </motion.div>
                 </AnimatePresence>

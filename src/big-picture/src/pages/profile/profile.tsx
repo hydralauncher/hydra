@@ -2172,7 +2172,7 @@ function ProfileSouvenirs({
                         ? getProfileSouvenirItemId(
                             getSouvenirKey(previousSouvenir)
                           )
-                        : null
+                        : BIG_PICTURE_SIDEBAR_PROFILE_ID
                     }
                     rightFocusId={
                       nextSouvenir

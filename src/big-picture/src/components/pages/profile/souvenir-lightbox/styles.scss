@@ -276,6 +276,13 @@
     font-size: 14px;
     font-weight: 500;
     font-family: inherit;
+
+    &:focus-visible,
+    &[data-focus-visible="true"] {
+      border-radius: 2px;
+      outline: 1px solid var(--primary);
+      outline-offset: 2px;
+    }
   }
 
   &__achievement-tooltip {
