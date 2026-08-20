@@ -493,13 +493,15 @@ export function SouvenirsTab({
     const storageKey = getSouvenirVisibilityAcknowledgementKey(userId);
     const acknowledgedVisibility = localStorage.getItem(storageKey);
 
-    if (!acknowledgedVisibility) {
+    if (visibility === "PUBLIC") {
       localStorage.setItem(storageKey, visibility);
       setIsPrivacyNoticeVisible(false);
       return;
     }
 
-    setIsPrivacyNoticeVisible(acknowledgedVisibility !== visibility);
+    setIsPrivacyNoticeVisible(
+      !acknowledgedVisibility || acknowledgedVisibility !== visibility
+    );
   }, [isMe, userId, visibility]);
 
   useEffect(() => {
