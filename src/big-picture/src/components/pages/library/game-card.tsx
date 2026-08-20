@@ -15,8 +15,8 @@ import {
   getLibraryFocusListItemId,
 } from "./navigation";
 import {
-  ClassicsCoverBadges,
   ClassicsVerticalCoverMedia,
+  getLibraryCoverOverlay,
   useFocusAnimatedCover,
   useLibraryGameCardPresentation,
 } from "./card-presentation";
@@ -75,6 +75,76 @@ function LibraryGameCardAction({
   );
 }
 
+type OnOpenContextMenu = (
+  game: LibraryGame,
+  position: { x: number; y: number },
+  restoreFocusId: string
+) => void;
+
+// Shared between the vertical (grid) and horizontal (list) library cards --
+// both wrap the same game in a FocusItem and need the same "open the
+// context menu, either from the action button's rect or from a right
+// click" behavior, just rendered through different card components.
+function useGameCardContextMenu(
+  game: LibraryGame,
+  focusId: string,
+  onOpenContextMenu?: OnOpenContextMenu
+) {
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const openContextMenuFromRect = (
+    rect: DOMRect,
+    restoreFocusId: string = focusId
+  ) => {
+    onOpenContextMenu?.(
+      game,
+      {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      },
+      restoreFocusId
+    );
+  };
+
+  const handleContextMenu = (event: ReactMouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onOpenContextMenu?.(
+      game,
+      {
+        x: event.clientX,
+        y: event.clientY,
+      },
+      focusId
+    );
+  };
+
+  const pressAction = onOpenContextMenu
+    ? () => {
+        const buttonRect =
+          menuButtonRef.current?.getBoundingClientRect() ?? null;
+
+        if (buttonRect) {
+          openContextMenuFromRect(buttonRect);
+        }
+      }
+    : undefined;
+
+  const action = (
+    <LibraryGameCardAction
+      gameTitle={game.title}
+      buttonRef={menuButtonRef}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openContextMenuFromRect(event.currentTarget.getBoundingClientRect());
+      }}
+    />
+  );
+
+  return { handleContextMenu, pressAction, action };
+}
+
 export function VerticalLibraryGameCard({
   game,
   navigationOverrides,
@@ -82,7 +152,6 @@ export function VerticalLibraryGameCard({
   onOpenContextMenu,
 }: Readonly<VerticalLibraryGameCardProps>) {
   const navigate = useNavigate();
-  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const {
     activeImageSource,
     isChosenCoverActive,
@@ -105,45 +174,23 @@ export function VerticalLibraryGameCard({
         onImageError={handleCoverImageError}
       />
     ) : null;
-  const coverOverlay =
-    classicsPlatformLabel != null ? (
-      <ClassicsCoverBadges
-        platformLabel={classicsPlatformLabel}
-        emulatorIcon={classicsEmulatorIcon}
-      />
-    ) : null;
-
-  const openContextMenuFromRect = (
-    rect: DOMRect,
-    restoreFocusId: string = focusId
-  ) => {
-    onOpenContextMenu?.(
-      game,
-      {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      },
-      restoreFocusId
-    );
-  };
+  const coverOverlay = getLibraryCoverOverlay(
+    game,
+    classicsPlatformLabel,
+    classicsEmulatorIcon
+  );
+  const { handleContextMenu, pressAction, action } = useGameCardContextMenu(
+    game,
+    focusId,
+    onOpenContextMenu
+  );
 
   return (
     <FocusItem
       id={focusId}
       actions={{
         primary: () => navigate(gameDetailsPath),
-        press: {
-          y: onOpenContextMenu
-            ? () => {
-                const buttonRect =
-                  menuButtonRef.current?.getBoundingClientRect() ?? null;
-
-                if (buttonRect) {
-                  openContextMenuFromRect(buttonRect);
-                }
-              }
-            : undefined,
-        },
+        press: { y: pressAction },
       }}
       navigationOverrides={navigationOverrides}
     >
@@ -163,31 +210,8 @@ export function VerticalLibraryGameCard({
         progressColor={dominantColor ?? undefined}
         forceHovered={contextMenuOpen}
         onClick={() => navigate(gameDetailsPath)}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          onOpenContextMenu?.(
-            game,
-            {
-              x: event.clientX,
-              y: event.clientY,
-            },
-            focusId
-          );
-        }}
-        action={
-          <LibraryGameCardAction
-            gameTitle={game.title}
-            buttonRef={menuButtonRef}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              openContextMenuFromRect(
-                event.currentTarget.getBoundingClientRect()
-              );
-            }}
-          />
-        }
+        onContextMenu={handleContextMenu}
+        action={action}
         onCoverImageError={handleCoverImageError}
       />
     </FocusItem>
@@ -201,7 +225,6 @@ export function HorizontalLibraryGameListCard({
   onOpenContextMenu,
 }: Readonly<HorizontalLibraryGameListCardProps>) {
   const navigate = useNavigate();
-  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const {
     activeImageSource,
     achievementProgress,
@@ -214,45 +237,23 @@ export function HorizontalLibraryGameListCard({
   } = useLibraryGameCardPresentation(game, "horizontal");
   const focusId = getLibraryFocusListItemId(game.id);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
-  const coverOverlay =
-    classicsPlatformLabel != null ? (
-      <ClassicsCoverBadges
-        platformLabel={classicsPlatformLabel}
-        emulatorIcon={classicsEmulatorIcon}
-      />
-    ) : null;
-
-  const openContextMenuFromRect = (
-    rect: DOMRect,
-    restoreFocusId: string = focusId
-  ) => {
-    onOpenContextMenu?.(
-      game,
-      {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      },
-      restoreFocusId
-    );
-  };
+  const coverOverlay = getLibraryCoverOverlay(
+    game,
+    classicsPlatformLabel,
+    classicsEmulatorIcon
+  );
+  const { handleContextMenu, pressAction, action } = useGameCardContextMenu(
+    game,
+    focusId,
+    onOpenContextMenu
+  );
 
   return (
     <FocusItem
       id={focusId}
       actions={{
         primary: () => navigate(gameDetailsPath),
-        press: {
-          y: onOpenContextMenu
-            ? () => {
-                const buttonRect =
-                  menuButtonRef.current?.getBoundingClientRect() ?? null;
-
-                if (buttonRect) {
-                  openContextMenuFromRect(buttonRect);
-                }
-              }
-            : undefined,
-        },
+        press: { y: pressAction },
       }}
       navigationOverrides={navigationOverrides}
     >
@@ -272,31 +273,8 @@ export function HorizontalLibraryGameListCard({
         progressColor={dominantColor ?? undefined}
         forceHovered={contextMenuOpen}
         onClick={() => navigate(gameDetailsPath)}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          onOpenContextMenu?.(
-            game,
-            {
-              x: event.clientX,
-              y: event.clientY,
-            },
-            focusId
-          );
-        }}
-        action={
-          <LibraryGameCardAction
-            gameTitle={game.title}
-            buttonRef={menuButtonRef}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              openContextMenuFromRect(
-                event.currentTarget.getBoundingClientRect()
-              );
-            }}
-          />
-        }
+        onContextMenu={handleContextMenu}
+        action={action}
         onCoverImageError={handleCoverImageError}
       />
     </FocusItem>

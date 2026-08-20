@@ -223,6 +223,17 @@ export const LibraryGameCard = memo(function LibraryGameCard({
             </div>
           )}
 
+          {game.shop === "custom" && (
+            <div
+              className="library-game-card__custom-badge"
+              title={t("custom_game_badge_tooltip")}
+            >
+              <span className="library-game-card__custom-text">
+                {t("custom_game_badge")}
+              </span>
+            </div>
+          )}
+
           {isInstalled && (
             <div
               className="library-game-card__installed-badge"

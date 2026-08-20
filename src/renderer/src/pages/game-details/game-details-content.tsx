@@ -376,6 +376,13 @@ export function GameDetailsContent() {
                 <div className="game-details__hero-standard-meta">
                   <GameLogo game={game} shopDetails={shopDetails} />
                   {classicsChips}
+                  {isCustomGame && (
+                    <div className="game-details__hero-classics-chips">
+                      <span className="game-details__hero-classics-chip">
+                        {t("custom_game_badge")}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -202,7 +202,8 @@
     margin-left: auto;
   }
 
-  &__installed-badge {
+  &__installed-badge,
+  &__custom-badge {
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
