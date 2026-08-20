@@ -614,10 +614,11 @@ export default function Game() {
     };
   }, [activeMediaItemId, hasMedia]);
   const sidebarStatsEntryTarget = useMemo(
-    () => getItemFocusTarget(GAME_SIDEBAR_STATS_ID),
-    []
+    () =>
+      shop === "custom" ? undefined : getItemFocusTarget(GAME_SIDEBAR_STATS_ID),
+    [shop]
   );
-  const bodyRightNavigationTarget = useMemo<FocusOverrideTarget>(
+  const bodyRightNavigationTarget = useMemo<FocusOverrideTarget | undefined>(
     () => sidebarStatsEntryTarget,
     [sidebarStatsEntryTarget]
   );
@@ -1246,7 +1247,7 @@ export default function Game() {
     };
   }, [descriptionBlocks]);
 
-  if (isLoading || !shopDetails) {
+  if (isLoading || (shop !== "custom" && !shopDetails)) {
     return (
       <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
         <div className="game-page">
@@ -1305,8 +1306,8 @@ export default function Game() {
           <div className="game-page__main-layout">
             <div className="game-page__main-column">
               <ScreenshotCarousel
-                videos={shopDetails.movies ?? []}
-                screenshots={shopDetails.screenshots ?? []}
+                videos={shopDetails?.movies ?? []}
+                screenshots={shopDetails?.screenshots ?? []}
                 onActiveItemChange={setActiveMediaItemId}
                 nextContentEntryTarget={
                   descriptionEntryTarget ?? commentsEntryTarget
@@ -1373,215 +1374,233 @@ export default function Game() {
                 </VerticalFocusGroup>
               )}
 
-              <Divider />
+              {shop !== "custom" && (
+                <>
+                  <Divider />
 
-              <GameReviews
-                shop={shop!}
-                objectId={objectId!}
-                topNavigationTarget={commentsTopNavigationTarget}
-                onHasNavigableActionsChange={setHasNavigableComments}
-              />
+                  <GameReviews
+                    shop={shop!}
+                    objectId={objectId!}
+                    topNavigationTarget={commentsTopNavigationTarget}
+                    onHasNavigableActionsChange={setHasNavigableComments}
+                  />
+                </>
+              )}
             </div>
 
-            <VerticalFocusGroup regionId={GAME_SIDEBAR_REGION_ID} asChild>
-              <div className="game-page__sidebar">
-                <FocusItem
-                  id={GAME_SIDEBAR_STATS_ID}
-                  navigationOrder={0}
-                  navigationOverrides={sidebarStatsNavigationOverrides}
-                  asChild
-                >
-                  <section
-                    className="game-page__sidebar-section game-page__stats"
-                    aria-label="Game stats"
+            {shop !== "custom" && (
+              <VerticalFocusGroup regionId={GAME_SIDEBAR_REGION_ID} asChild>
+                <div className="game-page__sidebar">
+                  <FocusItem
+                    id={GAME_SIDEBAR_STATS_ID}
+                    navigationOrder={0}
+                    navigationOverrides={sidebarStatsNavigationOverrides}
+                    asChild
                   >
-                    <div className="game-page__stats-title">
-                      <Typography>Game Stats</Typography>
-                    </div>
-
-                    <div className="game-page__stats-row">
-                      <Typography className="game-page__stats-label">
-                        Rating
-                      </Typography>
-                      <div className="game-page__stats-rating-value">
-                        <StarIcon
-                          size={16}
-                          weight="fill"
-                          aria-hidden="true"
-                          className="game-page__stats-rating-icon"
-                        />
-                        <Typography className="game-page__stats-value">
-                          {formatNumber(stats?.averageScore ?? 0)}
-                        </Typography>
+                    <section
+                      className="game-page__sidebar-section game-page__stats"
+                      aria-label="Game stats"
+                    >
+                      <div className="game-page__stats-title">
+                        <Typography>Game Stats</Typography>
                       </div>
-                    </div>
 
-                    <div className="game-page__stats-row">
-                      <Typography className="game-page__stats-label">
-                        Downloads
-                      </Typography>
-                      <Typography className="game-page__stats-value">
-                        {formatNumber(stats?.downloadCount ?? 0)}
-                      </Typography>
-                    </div>
-
-                    <div className="game-page__stats-row">
-                      <Typography className="game-page__stats-label">
-                        Playing now
-                      </Typography>
-                      <Typography className="game-page__stats-value">
-                        {formatNumber(stats?.playerCount ?? 0)}
-                      </Typography>
-                    </div>
-                  </section>
-                </FocusItem>
-
-                {(howLongToBeat?.length ?? 0) > 0 && (
-                  <HowLongToBeatBox
-                    howLongToBeat={howLongToBeat ?? []}
-                    focusId={GAME_SIDEBAR_HLTB_ID}
-                    focusNavigationOrder={1}
-                    focusNavigationOverrides={
-                      sidebarCarouselNavigationOverrides
-                    }
-                  />
-                )}
-
-                {shouldShowProtonSection && (
-                  <ProtonDBSection
-                    protonDBData={protonDBData}
-                    focusId={GAME_SIDEBAR_PROTONDB_ID}
-                    focusNavigationOrder={2}
-                    focusNavigationOverrides={
-                      sidebarCarouselNavigationOverrides
-                    }
-                  />
-                )}
-
-                <ControllerSupportBox
-                  shop={shop}
-                  shopDetails={shopDetails}
-                  focusId={GAME_SIDEBAR_CONTROLLER_SUPPORT_ID}
-                  focusNavigationOrder={3}
-                  focusNavigationOverrides={sidebarCarouselNavigationOverrides}
-                />
-
-                {achievements.length > 0 && (
-                  <AchievementsBox
-                    achievements={achievements ?? []}
-                    focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
-                    focusNavigationOrder={4}
-                    focusNavigationOverrides={
-                      sidebarCarouselNavigationOverrides
-                    }
-                  />
-                )}
-
-                <FocusItem
-                  id={GAME_SIDEBAR_METADATA_ID}
-                  navigationOrder={5}
-                  navigationOverrides={sidebarCarouselNavigationOverrides}
-                  asChild
-                >
-                  <section
-                    className="game-page__sidebar-section game-page__metadata"
-                    aria-label="Game info"
-                  >
-                    {isLaunchboxGame && shopDetails.platform ? (
-                      <div className="game-page__metadata-row">
-                        <Typography className="game-page__metadata-label">
-                          Platform
+                      <div className="game-page__stats-row">
+                        <Typography className="game-page__stats-label">
+                          Rating
                         </Typography>
-                        <Typography className="game-page__metadata-value">
-                          {shopDetails.platform}
-                        </Typography>
-                      </div>
-                    ) : null}
-
-                    {isLaunchboxGame && launchboxGenres.length > 0 ? (
-                      <div className="game-page__metadata-row">
-                        <Typography className="game-page__metadata-label">
-                          Genres
-                        </Typography>
-                        <Typography className="game-page__metadata-value">
-                          {launchboxGenres.join(", ")}
-                        </Typography>
-                      </div>
-                    ) : null}
-
-                    {isLaunchboxGame && launchboxRegions.length > 0 ? (
-                      <div className="game-page__metadata-row">
-                        <Typography className="game-page__metadata-label">
-                          Regions
-                        </Typography>
-                        <div className="game-page__metadata-flags">
-                          {launchboxRegions.map((region) => (
-                            <img
-                              key={region}
-                              src={getSkuRegionFlag(region)}
-                              alt={REGION_LABELS[region]}
-                              title={REGION_LABELS[region]}
-                              className="game-page__metadata-flag"
-                            />
-                          ))}
+                        <div className="game-page__stats-rating-value">
+                          <StarIcon
+                            size={16}
+                            weight="fill"
+                            aria-hidden="true"
+                            className="game-page__stats-rating-icon"
+                          />
+                          <Typography className="game-page__stats-value">
+                            {formatNumber(stats?.averageScore ?? 0)}
+                          </Typography>
                         </div>
                       </div>
-                    ) : null}
 
-                    {developer && (
-                      <div className="game-page__metadata-row">
-                        <Typography className="game-page__metadata-label">
-                          Developed by
+                      <div className="game-page__stats-row">
+                        <Typography className="game-page__stats-label">
+                          Downloads
                         </Typography>
-                        <Typography className="game-page__metadata-value">
-                          {developer}
+                        <Typography className="game-page__stats-value">
+                          {formatNumber(stats?.downloadCount ?? 0)}
                         </Typography>
                       </div>
-                    )}
 
-                    {publisher && (
-                      <div className="game-page__metadata-row">
-                        <Typography className="game-page__metadata-label">
-                          Published by
+                      <div className="game-page__stats-row">
+                        <Typography className="game-page__stats-label">
+                          Playing now
                         </Typography>
-                        <Typography className="game-page__metadata-value">
-                          {publisher}
+                        <Typography className="game-page__stats-value">
+                          {formatNumber(stats?.playerCount ?? 0)}
                         </Typography>
                       </div>
-                    )}
+                    </section>
+                  </FocusItem>
 
-                    {releaseDate && (
-                      <div className="game-page__metadata-row">
-                        <Typography className="game-page__metadata-label">
-                          Release Date
-                        </Typography>
-                        <Typography className="game-page__metadata-value">
-                          {releaseDate}
-                        </Typography>
-                      </div>
-                    )}
-                  </section>
-                </FocusItem>
+                  {(howLongToBeat?.length ?? 0) > 0 && (
+                    <HowLongToBeatBox
+                      howLongToBeat={howLongToBeat ?? []}
+                      focusId={GAME_SIDEBAR_HLTB_ID}
+                      focusNavigationOrder={1}
+                      focusNavigationOverrides={
+                        sidebarCarouselNavigationOverrides
+                      }
+                    />
+                  )}
 
-                {!isLaunchboxGame ? ( // NOSONAR
-                  <RequirementsToPlay
+                  {shouldShowProtonSection && (
+                    <ProtonDBSection
+                      protonDBData={protonDBData}
+                      focusId={GAME_SIDEBAR_PROTONDB_ID}
+                      focusNavigationOrder={2}
+                      focusNavigationOverrides={
+                        sidebarCarouselNavigationOverrides
+                      }
+                    />
+                  )}
+
+                  <ControllerSupportBox
+                    shop={shop}
                     shopDetails={shopDetails}
-                    focusId={GAME_SIDEBAR_REQUIREMENTS_ID}
-                    focusNavigationOrder={6}
+                    focusId={GAME_SIDEBAR_CONTROLLER_SUPPORT_ID}
+                    focusNavigationOrder={3}
                     focusNavigationOverrides={
                       sidebarCarouselNavigationOverrides
                     }
                   />
-                ) : null}
 
-                <SupportedLanguages
-                  shopDetails={shopDetails}
-                  focusId={GAME_SIDEBAR_LANGUAGES_ID}
-                  focusNavigationOrder={7}
-                  focusNavigationOverrides={sidebarLanguagesNavigationOverrides}
-                />
-              </div>
-            </VerticalFocusGroup>
+                  {achievements.length > 0 && (
+                    <AchievementsBox
+                      achievements={achievements ?? []}
+                      focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
+                      focusNavigationOrder={4}
+                      focusNavigationOverrides={
+                        sidebarCarouselNavigationOverrides
+                      }
+                    />
+                  )}
+
+                  {(developer ||
+                    publisher ||
+                    releaseDate ||
+                    (isLaunchboxGame &&
+                      (shopDetails?.platform ||
+                        launchboxGenres.length > 0 ||
+                        launchboxRegions.length > 0))) && (
+                    <FocusItem
+                      id={GAME_SIDEBAR_METADATA_ID}
+                      navigationOrder={5}
+                      navigationOverrides={sidebarCarouselNavigationOverrides}
+                      asChild
+                    >
+                      <section
+                        className="game-page__sidebar-section game-page__metadata"
+                        aria-label="Game info"
+                      >
+                        {isLaunchboxGame && shopDetails?.platform ? (
+                          <div className="game-page__metadata-row">
+                            <Typography className="game-page__metadata-label">
+                              Platform
+                            </Typography>
+                            <Typography className="game-page__metadata-value">
+                              {shopDetails.platform}
+                            </Typography>
+                          </div>
+                        ) : null}
+
+                        {isLaunchboxGame && launchboxGenres.length > 0 ? (
+                          <div className="game-page__metadata-row">
+                            <Typography className="game-page__metadata-label">
+                              Genres
+                            </Typography>
+                            <Typography className="game-page__metadata-value">
+                              {launchboxGenres.join(", ")}
+                            </Typography>
+                          </div>
+                        ) : null}
+
+                        {isLaunchboxGame && launchboxRegions.length > 0 ? (
+                          <div className="game-page__metadata-row">
+                            <Typography className="game-page__metadata-label">
+                              Regions
+                            </Typography>
+                            <div className="game-page__metadata-flags">
+                              {launchboxRegions.map((region) => (
+                                <img
+                                  key={region}
+                                  src={getSkuRegionFlag(region)}
+                                  alt={REGION_LABELS[region]}
+                                  title={REGION_LABELS[region]}
+                                  className="game-page__metadata-flag"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {developer && (
+                          <div className="game-page__metadata-row">
+                            <Typography className="game-page__metadata-label">
+                              Developed by
+                            </Typography>
+                            <Typography className="game-page__metadata-value">
+                              {developer}
+                            </Typography>
+                          </div>
+                        )}
+
+                        {publisher && (
+                          <div className="game-page__metadata-row">
+                            <Typography className="game-page__metadata-label">
+                              Published by
+                            </Typography>
+                            <Typography className="game-page__metadata-value">
+                              {publisher}
+                            </Typography>
+                          </div>
+                        )}
+
+                        {releaseDate && (
+                          <div className="game-page__metadata-row">
+                            <Typography className="game-page__metadata-label">
+                              Release Date
+                            </Typography>
+                            <Typography className="game-page__metadata-value">
+                              {releaseDate}
+                            </Typography>
+                          </div>
+                        )}
+                      </section>
+                    </FocusItem>
+                  )}
+
+                  {!isLaunchboxGame ? ( // NOSONAR
+                    <RequirementsToPlay
+                      shopDetails={shopDetails}
+                      focusId={GAME_SIDEBAR_REQUIREMENTS_ID}
+                      focusNavigationOrder={6}
+                      focusNavigationOverrides={
+                        sidebarCarouselNavigationOverrides
+                      }
+                    />
+                  ) : null}
+
+                  <SupportedLanguages
+                    shopDetails={shopDetails}
+                    focusId={GAME_SIDEBAR_LANGUAGES_ID}
+                    focusNavigationOrder={7}
+                    focusNavigationOverrides={
+                      sidebarLanguagesNavigationOverrides
+                    }
+                  />
+                </div>
+              </VerticalFocusGroup>
+            )}
           </div>
         </section>
 
