@@ -9,26 +9,40 @@ const normalizeWindowsExecutablePath = (value: string) =>
     .toLowerCase();
 
 export const isWindowsGameForegroundProcess = (
-  processes: Pick<ProcessPayload, "exe" | "pid">[],
+  processes: Pick<ProcessPayload, "exe" | "pid" | "parentPid">[],
   foregroundProcessId: number,
   launchedProcessId: number | undefined,
   executablePaths: string[]
 ) => {
-  if (foregroundProcessId === launchedProcessId) return true;
-
-  const foregroundProcess = processes.find(
-    (candidate) => candidate.pid === foregroundProcessId
+  const processById = new Map(
+    processes.map((candidate) => [candidate.pid, candidate])
   );
-  if (!foregroundProcess?.exe) return false;
-
-  const foregroundExecutable = normalizeWindowsExecutablePath(
-    foregroundProcess.exe
+  const normalizedExecutablePaths = new Set(
+    executablePaths.map(normalizeWindowsExecutablePath)
   );
+  const visited = new Set<number>();
+  let currentProcessId: number | null | undefined = foregroundProcessId;
 
-  return executablePaths.some(
-    (executablePath) =>
-      normalizeWindowsExecutablePath(executablePath) === foregroundExecutable
-  );
+  while (currentProcessId != null && !visited.has(currentProcessId)) {
+    if (currentProcessId === launchedProcessId) return true;
+
+    visited.add(currentProcessId);
+    const currentProcess = processById.get(currentProcessId);
+    if (!currentProcess) return false;
+
+    if (
+      currentProcess.exe &&
+      normalizedExecutablePaths.has(
+        normalizeWindowsExecutablePath(currentProcess.exe)
+      )
+    ) {
+      return true;
+    }
+
+    currentProcessId = currentProcess.parentPid;
+  }
+
+  return false;
 };
 
 const normalizeWindowsHandle = (value: string) => {

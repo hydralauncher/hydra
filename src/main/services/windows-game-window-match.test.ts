@@ -59,10 +59,76 @@ describe("Windows game foreground process matching", () => {
     );
   });
 
+  it("accepts a game window launched by a configured executable", () => {
+    assert.equal(
+      isWindowsGameForegroundProcess(
+        [
+          {
+            pid: 20,
+            parentPid: 10,
+            exe: "C:\\Games\\SHProto\\Binaries\\SHProto-Win64-Shipping.exe",
+          },
+          { pid: 10, parentPid: null, exe: "C:\\Games\\SHProto.exe" },
+        ],
+        20,
+        undefined,
+        ["C:\\Games\\SHProto.exe"]
+      ),
+      true
+    );
+  });
+
+  it("accepts a descendant of the process launched by Hydra", () => {
+    assert.equal(
+      isWindowsGameForegroundProcess(
+        [
+          { pid: 30, parentPid: 20, exe: null },
+          { pid: 20, parentPid: 10, exe: null },
+          { pid: 10, parentPid: null, exe: null },
+        ],
+        30,
+        10,
+        []
+      ),
+      true
+    );
+  });
+
   it("rejects an unrelated foreground executable", () => {
     assert.equal(
       isWindowsGameForegroundProcess(
         [{ pid: 20, exe: "C:\\Windows\\browser.exe" }],
+        20,
+        undefined,
+        ["C:\\Games\\game.exe"]
+      ),
+      false
+    );
+  });
+
+  it("rejects a process whose unrelated sibling matches the game", () => {
+    assert.equal(
+      isWindowsGameForegroundProcess(
+        [
+          { pid: 10, parentPid: 30, exe: "C:\\Games\\game.exe" },
+          { pid: 20, parentPid: 30, exe: "C:\\Windows\\browser.exe" },
+          { pid: 30, parentPid: null, exe: "C:\\Windows\\explorer.exe" },
+        ],
+        20,
+        undefined,
+        ["C:\\Games\\game.exe"]
+      ),
+      false
+    );
+  });
+
+  it("rejects a cyclic process tree without hanging", () => {
+    assert.equal(
+      isWindowsGameForegroundProcess(
+        [
+          { pid: 20, parentPid: 30, exe: "C:\\Windows\\browser.exe" },
+          { pid: 30, parentPid: 20, exe: "C:\\Windows\\explorer.exe" },
+        ],
         20,
         undefined,
         ["C:\\Games\\game.exe"]
