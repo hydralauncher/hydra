@@ -535,6 +535,10 @@ export const startEmulatorSouvenirWatcher = async ({
   watchers.set(gameKey, { token: watcherToken, timer: null });
 
   if (!game.remoteId) {
+    achievementsLogger.warn(
+      "Could not start emulator souvenir watcher because the remote game was not resolved",
+      { objectId: game.objectId, shop: game.shop }
+    );
     stopEmulatorSouvenirWatcher(gameKey, watcherToken);
     return;
   }
