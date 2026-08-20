@@ -65,10 +65,6 @@ interface SouvenirLightboxProps {
   ) => Promise<boolean>;
 }
 
-const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
-  event.currentTarget.style.opacity = "0";
-};
-
 const souvenirSlideVariants = {
   enter: (direction: number) =>
     direction === 0
@@ -137,9 +133,11 @@ function SouvenirImage({
 
   return (
     <div className={imageFrameClassName} style={imageSize ?? undefined}>
-      <span className="profile-souvenir-lightbox__image-placeholder">
-        <ImageIcon size={56} />
-      </span>
+      {showImagePlaceholder ? (
+        <span className="profile-souvenir-lightbox__image-placeholder">
+          <ImageIcon size={56} />
+        </span>
+      ) : null}
 
       {hasImage ? (
         <img
@@ -164,6 +162,12 @@ function SouvenirSummary({
   const { t } = useTranslation("user_profile");
   const { formatDateTime } = useDate();
   const additionalAchievementsTooltipId = useId();
+  const [failedAchievementIconUrl, setFailedAchievementIconUrl] = useState<
+    string | null
+  >(null);
+  const [failedGameIconUrl, setFailedGameIconUrl] = useState<string | null>(
+    null
+  );
   const primaryAchievement = getPrimarySouvenirAchievement(souvenir);
   const additionalAchievements = souvenir.achievements.filter(
     (achievement) =>
@@ -176,18 +180,28 @@ function SouvenirSummary({
     objectId: souvenir.objectId,
     title: gameTitle,
   });
+  const hasAchievementIcon = Boolean(
+    primaryAchievement.achievementIcon &&
+      primaryAchievement.achievementIcon !== failedAchievementIconUrl
+  );
+  const hasGameIcon = Boolean(
+    souvenir.gameIconUrl && souvenir.gameIconUrl !== failedGameIconUrl
+  );
 
   return (
     <div className="profile-souvenir-lightbox__summary">
       <span className="profile-souvenir-lightbox__achievement-icon">
-        <TrophyIcon size={24} />
-        {primaryAchievement.achievementIcon ? (
+        {hasAchievementIcon ? (
           <img
-            src={primaryAchievement.achievementIcon}
+            src={primaryAchievement.achievementIcon ?? undefined}
             alt=""
-            onError={hideBrokenImage}
+            onError={() =>
+              setFailedAchievementIconUrl(primaryAchievement.achievementIcon)
+            }
           />
-        ) : null}
+        ) : (
+          <TrophyIcon size={24} />
+        )}
       </span>
 
       <div className="profile-souvenir-lightbox__copy">
@@ -244,14 +258,15 @@ function SouvenirSummary({
         <div className="profile-souvenir-lightbox__meta">
           <span className="profile-souvenir-lightbox__game">
             <span className="profile-souvenir-lightbox__game-icon">
-              <ImageIcon size={14} />
-              {souvenir.gameIconUrl ? (
+              {hasGameIcon ? (
                 <img
-                  src={souvenir.gameIconUrl}
+                  src={souvenir.gameIconUrl ?? undefined}
                   alt=""
-                  onError={hideBrokenImage}
+                  onError={() => setFailedGameIconUrl(souvenir.gameIconUrl)}
                 />
-              ) : null}
+              ) : (
+                <ImageIcon size={14} />
+              )}
             </span>
             <Link
               className="profile-souvenir-lightbox__game-link"
@@ -281,17 +296,23 @@ function SouvenirSummary({
 function SouvenirAchievementListItem({
   achievement,
 }: Readonly<{ achievement: ProfileSouvenirAchievement }>) {
+  const [failedIconUrl, setFailedIconUrl] = useState<string | null>(null);
+  const hasIcon = Boolean(
+    achievement.achievementIcon && achievement.achievementIcon !== failedIconUrl
+  );
+
   return (
     <li className="profile-souvenir-lightbox__achievement-list-item">
       <span className="profile-souvenir-lightbox__achievement-list-icon">
-        <TrophyIcon size={14} />
-        {achievement.achievementIcon ? (
+        {hasIcon ? (
           <img
-            src={achievement.achievementIcon}
+            src={achievement.achievementIcon ?? undefined}
             alt=""
-            onError={hideBrokenImage}
+            onError={() => setFailedIconUrl(achievement.achievementIcon)}
           />
-        ) : null}
+        ) : (
+          <TrophyIcon size={14} />
+        )}
       </span>
       <span className="profile-souvenir-lightbox__achievement-list-copy">
         <strong title={achievement.displayName}>

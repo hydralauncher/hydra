@@ -1782,6 +1782,10 @@ function ProfileSouvenirPreview({
   onLike,
 }: Readonly<ProfileSouvenirPreviewProps>) {
   const { t } = useTranslation("user_profile");
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const hasImage = Boolean(
+    souvenir.imageUrl && souvenir.imageUrl !== failedImageUrl
+  );
   const shouldBlurThumbnail = shouldShowSouvenirContentWarning(
     souvenir,
     disableNsfwAlert
@@ -1789,18 +1793,20 @@ function ProfileSouvenirPreview({
 
   return (
     <div className="profile-page__souvenir-image-frame">
-      <span className="profile-page__souvenir-image-placeholder">
-        <ImageIcon size={40} />
-      </span>
+      {!hasImage ? (
+        <span className="profile-page__souvenir-image-placeholder">
+          <ImageIcon size={40} />
+        </span>
+      ) : null}
 
-      {souvenir.imageUrl ? (
+      {hasImage ? (
         <img
           className={`profile-page__souvenir-image${shouldBlurThumbnail ? " profile-page__souvenir-image--content-warning" : ""}`}
-          src={souvenir.imageUrl}
+          src={souvenir.imageUrl ?? undefined}
           alt={primaryAchievement.displayName}
           draggable={false}
           loading="lazy"
-          onError={hideBrokenPreviewImage}
+          onError={() => setFailedImageUrl(souvenir.imageUrl)}
         />
       ) : null}
 
@@ -1859,21 +1865,37 @@ function ProfileSouvenirCopy({
   souvenir,
   primaryAchievement,
 }: Readonly<ProfileSouvenirCopyProps>) {
+  const [failedAchievementIconUrl, setFailedAchievementIconUrl] = useState<
+    string | null
+  >(null);
+  const [failedGameIconUrl, setFailedGameIconUrl] = useState<string | null>(
+    null
+  );
   const otherAchievementCount = Math.max(0, souvenir.achievements.length - 1);
+  const hasAchievementIcon = Boolean(
+    primaryAchievement.achievementIcon &&
+      primaryAchievement.achievementIcon !== failedAchievementIconUrl
+  );
+  const hasGameIcon = Boolean(
+    souvenir.gameIconUrl && souvenir.gameIconUrl !== failedGameIconUrl
+  );
 
   return (
     <div className="profile-page__souvenir-copy">
       <span className="profile-page__souvenir-achievement-icon">
-        <TrophyIcon size={22} />
-        {primaryAchievement.achievementIcon ? (
+        {hasAchievementIcon ? (
           <img
             className="profile-page__souvenir-achievement-icon-image"
-            src={primaryAchievement.achievementIcon}
+            src={primaryAchievement.achievementIcon ?? undefined}
             alt=""
             draggable={false}
-            onError={hideBrokenPreviewImage}
+            onError={() =>
+              setFailedAchievementIconUrl(primaryAchievement.achievementIcon)
+            }
           />
-        ) : null}
+        ) : (
+          <TrophyIcon size={22} />
+        )}
       </span>
 
       <div className="profile-page__souvenir-text">
@@ -1890,16 +1912,17 @@ function ProfileSouvenirCopy({
 
         <div className="profile-page__souvenir-game-line">
           <span className="profile-page__souvenir-game-icon">
-            <GameControllerIcon size={12} />
-            {souvenir.gameIconUrl ? (
+            {hasGameIcon ? (
               <img
                 className="profile-page__souvenir-game-icon-image"
-                src={souvenir.gameIconUrl}
+                src={souvenir.gameIconUrl ?? undefined}
                 alt=""
                 draggable={false}
-                onError={hideBrokenPreviewImage}
+                onError={() => setFailedGameIconUrl(souvenir.gameIconUrl)}
               />
-            ) : null}
+            ) : (
+              <GameControllerIcon size={12} />
+            )}
           </span>
 
           <Typography className="profile-page__souvenir-game">

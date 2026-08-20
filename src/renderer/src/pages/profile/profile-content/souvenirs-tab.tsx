@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
@@ -52,10 +52,6 @@ const SOUVENIR_VISIBILITY_ACKNOWLEDGEMENT_KEY =
 const getSouvenirVisibilityAcknowledgementKey = (userId: string) =>
   `${SOUVENIR_VISIBILITY_ACKNOWLEDGEMENT_KEY}:${userId}`;
 
-const hideBrokenImage = (event: SyntheticEvent<HTMLImageElement>) => {
-  event.currentTarget.style.opacity = "0";
-};
-
 const getSouvenirCardClassName = (
   visualVariant: ReturnType<typeof getSouvenirVisualVariant>
 ) =>
@@ -94,9 +90,16 @@ function SouvenirCard({
   const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(
     null
   );
+  const [failedAchievementIconUrl, setFailedAchievementIconUrl] = useState<
+    string | null
+  >(null);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const hasThumbnail = Boolean(
     achievement.imageUrl && achievement.imageUrl !== failedThumbnailUrl
+  );
+  const hasAchievementIcon = Boolean(
+    primaryAchievement.achievementIcon &&
+      primaryAchievement.achievementIcon !== failedAchievementIconUrl
   );
   const shouldBlurThumbnail = shouldShowSouvenirContentWarning(
     achievement,
@@ -128,9 +131,11 @@ function SouvenirCard({
         onClick={() => onSouvenirClick(achievement)}
         title={t("view_souvenir")}
       >
-        <span className="profile-content__souvenir-image-placeholder">
-          <ImageIcon size={32} />
-        </span>
+        {!hasThumbnail ? (
+          <span className="profile-content__souvenir-image-placeholder">
+            <ImageIcon size={32} />
+          </span>
+        ) : null}
 
         {hasThumbnail && (
           <img
@@ -191,15 +196,18 @@ function SouvenirCard({
 
       <div className="profile-content__souvenir-details">
         <span className="profile-content__souvenir-achievement-icon">
-          <TrophyIcon size={16} />
-          {primaryAchievement.achievementIcon && (
+          {hasAchievementIcon ? (
             <img
               className="profile-content__souvenir-achievement-icon-image"
-              src={primaryAchievement.achievementIcon}
+              src={primaryAchievement.achievementIcon ?? undefined}
               alt=""
               loading="lazy"
-              onError={hideBrokenImage}
+              onError={() =>
+                setFailedAchievementIconUrl(primaryAchievement.achievementIcon)
+              }
             />
+          ) : (
+            <TrophyIcon size={16} />
           )}
         </span>
 
@@ -250,8 +258,12 @@ function SouvenirGameGroup({
 }: Readonly<SouvenirGameGroupProps>) {
   const { t } = useTranslation("user_profile");
   const [isExpanded, setIsExpanded] = useState(true);
+  const [failedGameIconUrl, setFailedGameIconUrl] = useState<string | null>(
+    null
+  );
 
   const [{ gameTitle, gameIconUrl }] = achievements;
+  const hasGameIcon = Boolean(gameIconUrl && gameIconUrl !== failedGameIconUrl);
 
   return (
     <div className="profile-content__souvenirs-group">
@@ -263,15 +275,16 @@ function SouvenirGameGroup({
         {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
 
         <span className="profile-content__souvenirs-group-icon">
-          <ImageIcon size={14} />
-          {gameIconUrl && (
+          {hasGameIcon ? (
             <img
               className="profile-content__souvenirs-group-icon-image"
-              src={gameIconUrl}
+              src={gameIconUrl ?? undefined}
               alt=""
               loading="lazy"
-              onError={hideBrokenImage}
+              onError={() => setFailedGameIconUrl(gameIconUrl)}
             />
+          ) : (
+            <ImageIcon size={14} />
           )}
         </span>
 
