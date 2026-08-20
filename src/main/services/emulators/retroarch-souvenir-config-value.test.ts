@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  buildRetroArchSouvenirAppendConfig,
   getCfgLine,
   getCfgValue,
   restoreCfgLine,
@@ -15,6 +16,15 @@ const KEY = "cheevos_auto_screenshot";
 const SCREENSHOT_DIRECTORY_KEY = "screenshot_directory";
 
 describe("RetroArch souvenir configuration", () => {
+  it("builds a session-only append configuration", () => {
+    assert.equal(
+      buildRetroArchSouvenirAppendConfig("/tmp/hydra-souvenirs"),
+      'cheevos_auto_screenshot = "true"\n' +
+        'screenshot_directory = "/tmp/hydra-souvenirs"\n' +
+        'config_save_on_exit = "false"\n'
+    );
+  });
+
   it("uses the content directory for default screenshot configurations", () => {
     assert.equal(
       usesRetroArchContentScreenshotDirectory(

@@ -625,6 +625,10 @@ export function useProfileSouvenirs(
     const requestGeneration = requestGenerationRef.current + 1;
     requestGenerationRef.current = requestGeneration;
     isLoadingMoreRef.current = false;
+    setSouvenirs([]);
+    setTotal(0);
+    setHiddenReason(null);
+    setLoadedTargetUserId(null);
     setIsLoadingMore(false);
     setIsLoading(true);
     let isMounted = true;
@@ -735,14 +739,16 @@ export function useProfileSouvenirs(
     setTotal((current) => Math.max(0, current - 1));
   }, []);
 
+  const hasLoadedTarget = loadedTargetUserId === targetUserId;
+  const visibleSouvenirs = hasLoadedTarget ? souvenirs : [];
+  const visibleTotal = hasLoadedTarget ? total : 0;
+
   return {
-    souvenirs,
-    total,
-    hiddenReason,
-    isLoading:
-      Boolean(targetUserId) &&
-      (isLoading || loadedTargetUserId !== targetUserId),
-    hasMore: souvenirs.length < total,
+    souvenirs: visibleSouvenirs,
+    total: visibleTotal,
+    hiddenReason: hasLoadedTarget ? hiddenReason : null,
+    isLoading: Boolean(targetUserId) && (isLoading || !hasLoadedTarget),
+    hasMore: visibleSouvenirs.length < visibleTotal,
     isLoadingMore,
     refresh,
     loadMore,

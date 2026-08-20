@@ -12,6 +12,7 @@ import { resolveEmulatorWrappers } from "./launch-classics-game";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 import { spawnDetachedEmulator } from "./spawn-detached-emulator";
 import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
+import { cleanupRetroArchSouvenirSession } from "@main/services/emulators/emulator-souvenir-config";
 
 export class RetroArchNotConfiguredError extends Error {
   code = "RETROARCH_NOT_CONFIGURED" as const;
@@ -85,7 +86,18 @@ export const launchRetroArchGame = async (
 
   if (sessionGame) await gamesSublevel.put(gameKey, sessionGame);
 
-  const baseArgs = ["-L", core.path, romPath, "-f"];
+  const souvenirSession = sessionGame
+    ? await prepareEmulatorSouvenirs(platform, config.executablePath)
+    : null;
+  const baseArgs = [
+    ...(souvenirSession
+      ? ["--appendconfig", souvenirSession.appendConfigPath]
+      : []),
+    "-L",
+    core.path,
+    romPath,
+    "-f",
+  ];
 
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executableTarget,
@@ -96,7 +108,7 @@ export const launchRetroArchGame = async (
 
   const workingDirectory = path.dirname(executableTarget);
 
-  await prepareEmulatorSouvenirs(platform, config.executablePath);
+  let sessionStarted = false;
 
   try {
     const processRef = await spawnDetachedEmulator(
@@ -112,11 +124,16 @@ export const launchRetroArchGame = async (
         executablePath: config.executablePath,
         sku: null,
         child: processRef,
+        souvenirSession,
       });
+      sessionStarted = true;
     }
 
     processRef.unref();
   } catch (error) {
+    if (!sessionStarted) {
+      await cleanupRetroArchSouvenirSession(souvenirSession);
+    }
     logger.error("Failed to spawn RetroArch", error);
     throw error;
   }

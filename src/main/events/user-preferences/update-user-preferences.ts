@@ -10,11 +10,9 @@ import { DownloadManager, Wine } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 import {
-  enableRetroArchAchievementScreenshots,
   restoreDuckStationFileLogging,
   restoreRetroArchAchievementScreenshots,
 } from "@main/services/emulators/emulator-souvenir-config";
-import { getRetroArchConfig } from "@main/services/retroarch/retroarch-repository";
 import {
   prepareLinuxGameCaptureSession,
   stopAllLinuxGameCaptureSessions,
@@ -84,12 +82,7 @@ const prepareRunningLinuxCaptureSessions = async () => {
 };
 
 const enableAchievementSouvenirs = async () => {
-  const retroArchConfig = await getRetroArchConfig();
-
-  if (retroArchConfig.executablePath) {
-    await enableRetroArchAchievementScreenshots(retroArchConfig.executablePath);
-  }
-
+  await restoreRetroArchAchievementScreenshots();
   await prepareRunningLinuxCaptureSessions();
 };
 
@@ -104,7 +97,11 @@ const updateAchievementSouvenirPreference = async (
   }
 
   stopAllLinuxGameCaptureSessions();
+  const { stopAllEmulatorSouvenirCaptureSessions } = await import(
+    "@main/services/emulators/emulator-session-tracker"
+  );
   await Promise.all([
+    stopAllEmulatorSouvenirCaptureSessions(),
     restoreRetroArchAchievementScreenshots(),
     restoreDuckStationFileLogging(),
   ]);

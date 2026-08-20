@@ -49,6 +49,7 @@ export const restoreCfgLine = (
 
 const AUTO_SCREENSHOT_KEY = "cheevos_auto_screenshot";
 const SCREENSHOT_DIRECTORY_KEY = "screenshot_directory";
+const CONFIG_SAVE_ON_EXIT_KEY = "config_save_on_exit";
 
 export const usesRetroArchContentScreenshotDirectory = (
   screenshotDirectory: string | null
@@ -63,6 +64,15 @@ export const setRetroArchSouvenirConfigValues = (
     SCREENSHOT_DIRECTORY_KEY,
     screenshotDirectory
   );
+
+export const buildRetroArchSouvenirAppendConfig = (
+  screenshotDirectory: string
+) =>
+  [
+    `${AUTO_SCREENSHOT_KEY} = "true"`,
+    `${SCREENSHOT_DIRECTORY_KEY} = "${screenshotDirectory}"`,
+    `${CONFIG_SAVE_ON_EXIT_KEY} = "false"`,
+  ].join("\n") + "\n";
 
 export const restoreRetroArchSouvenirConfigValues = (
   content: string,

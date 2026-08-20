@@ -1,7 +1,11 @@
 import { isAxiosError } from "axios";
 
 const TERMINAL_HTTP_STATUSES = new Set([400, 404, 409, 422]);
-const SOUVENIR_CONFLICT_CODE = "achievements/souvenir-conflict";
+const TERMINAL_SOUVENIR_CONFLICT_CODES = new Set([
+  "achievements/souvenir-conflict",
+  "achievements/souvenir-upload-deleted",
+  "achievements/souvenir-upload-length-mismatch",
+]);
 
 export const isMissingGroupedSouvenirScreenshot = (error: unknown) =>
   error instanceof Error &&
@@ -42,7 +46,8 @@ export const isTerminalGroupedSouvenirError = (
     responseData?.errorCode ?? responseData?.code ?? responseData?.message;
   if (
     error.response.status === 409 &&
-    responseCode === SOUVENIR_CONFLICT_CODE
+    typeof responseCode === "string" &&
+    TERMINAL_SOUVENIR_CONFLICT_CODES.has(responseCode)
   ) {
     return true;
   }

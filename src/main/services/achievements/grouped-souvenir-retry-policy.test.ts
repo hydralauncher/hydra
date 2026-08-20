@@ -37,6 +37,21 @@ describe("grouped souvenir retry policy", () => {
     assert.equal(isTerminalGroupedSouvenirError(error, "client-1"), true);
   });
 
+  it("stops retrying terminal upload conflicts without a client ID", () => {
+    for (const message of [
+      "achievements/souvenir-upload-deleted",
+      "achievements/souvenir-upload-length-mismatch",
+    ]) {
+      assert.equal(
+        isTerminalGroupedSouvenirError(
+          axiosError(409, { message }),
+          "client-1"
+        ),
+        true
+      );
+    }
+  });
+
   it("identifies when the local screenshot no longer exists", () => {
     const error = Object.assign(new Error("Screenshot not found"), {
       code: "ENOENT",

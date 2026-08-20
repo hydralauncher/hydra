@@ -9,10 +9,9 @@ import {
   findExistingConfig,
 } from "./emulator-config";
 import {
-  getCfgLine,
   getCfgValue,
+  buildRetroArchSouvenirAppendConfig,
   restoreRetroArchSouvenirConfigValues,
-  setRetroArchSouvenirConfigValues,
   usesRetroArchContentScreenshotDirectory,
 } from "./retroarch-souvenir-config-value";
 import {
@@ -30,6 +29,12 @@ interface RetroArchSouvenirConfigBackup {
 interface DuckStationSouvenirConfigBackup {
   configPath: string;
   originalLine: string | null;
+}
+
+export interface RetroArchSouvenirSession {
+  appendConfigPath: string;
+  screenshotDirectory: string;
+  sessionDirectory: string;
 }
 
 const getRetroArchSouvenirConfigBackups = async () =>
@@ -149,77 +154,6 @@ export const readRetroArchScreenshotDirectories = (
   ]);
 };
 
-export const enableRetroArchAchievementScreenshots = async (
-  executablePath: string
-) => {
-  const configPath = findRetroArchConfig(executablePath);
-
-  if (!configPath) {
-    logger.warn("Could not find RetroArch config for achievement screenshots", {
-      executablePath,
-    });
-    return;
-  }
-
-  try {
-    const screenshotDirectory =
-      getRetroArchAchievementScreenshotDirectory(configPath);
-
-    await fs.promises.mkdir(screenshotDirectory, {
-      recursive: true,
-    });
-
-    const content = fs.readFileSync(configPath, "utf8");
-    const backups = await getRetroArchSouvenirConfigBackups();
-    const existingBackupIndex = backups.findIndex(
-      (backup) => backup.configPath === configPath
-    );
-    const updatedBackups = [...backups];
-
-    if (existingBackupIndex === -1) {
-      updatedBackups.push({
-        configPath,
-        originalLine: getCfgLine(content, "cheevos_auto_screenshot"),
-        originalScreenshotDirectoryLine: getCfgLine(
-          content,
-          "screenshot_directory"
-        ),
-      });
-    } else if (
-      updatedBackups[existingBackupIndex].originalScreenshotDirectoryLine ===
-      undefined
-    ) {
-      updatedBackups[existingBackupIndex] = {
-        ...updatedBackups[existingBackupIndex],
-        originalScreenshotDirectoryLine: getCfgLine(
-          content,
-          "screenshot_directory"
-        ),
-      };
-    }
-
-    await db.put<string, RetroArchSouvenirConfigBackup[]>(
-      levelKeys.retroArchSouvenirConfigBackups,
-      updatedBackups,
-      { valueEncoding: "json" }
-    );
-
-    const updated = setRetroArchSouvenirConfigValues(
-      content,
-      screenshotDirectory
-    );
-
-    if (updated !== content) fs.writeFileSync(configPath, updated, "utf8");
-
-    logger.info("Enabled RetroArch achievement screenshots", {
-      configPath,
-      screenshotDirectory,
-    });
-  } catch (error) {
-    logger.error("Failed to enable RetroArch achievement screenshots", error);
-  }
-};
-
 export const restoreRetroArchAchievementScreenshots = async () => {
   let backups: RetroArchSouvenirConfigBackup[];
 
@@ -267,6 +201,64 @@ export const restoreRetroArchAchievementScreenshots = async () => {
     );
   } else {
     await db.del(levelKeys.retroArchSouvenirConfigBackups);
+  }
+};
+
+export const createRetroArchSouvenirSession = async () => {
+  await restoreRetroArchAchievementScreenshots();
+
+  let sessionDirectory: string | null = null;
+
+  try {
+    sessionDirectory = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), "hydra-retroarch-souvenirs-")
+    );
+    const screenshotDirectory = path.join(sessionDirectory, "screenshots");
+    const appendConfigPath = path.join(sessionDirectory, "souvenirs.cfg");
+
+    await fs.promises.mkdir(screenshotDirectory);
+    await fs.promises.writeFile(
+      appendConfigPath,
+      buildRetroArchSouvenirAppendConfig(screenshotDirectory),
+      "utf8"
+    );
+
+    logger.info("Prepared RetroArch souvenir session", {
+      appendConfigPath,
+      screenshotDirectory,
+    });
+
+    return {
+      appendConfigPath,
+      screenshotDirectory,
+      sessionDirectory,
+    } satisfies RetroArchSouvenirSession;
+  } catch (error) {
+    if (sessionDirectory) {
+      await fs.promises
+        .rm(sessionDirectory, { recursive: true, force: true })
+        .catch(() => {});
+    }
+    logger.error("Failed to prepare RetroArch souvenir session", error);
+    return null;
+  }
+};
+
+export const cleanupRetroArchSouvenirSession = async (
+  session: RetroArchSouvenirSession | null | undefined
+) => {
+  if (!session) return;
+
+  try {
+    await fs.promises.rm(session.sessionDirectory, {
+      recursive: true,
+      force: true,
+    });
+    logger.info("Cleaned up RetroArch souvenir session", {
+      sessionDirectory: session.sessionDirectory,
+    });
+  } catch (error) {
+    logger.error("Failed to clean up RetroArch souvenir session", error);
   }
 };
 

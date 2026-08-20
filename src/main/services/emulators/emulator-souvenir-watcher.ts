@@ -9,10 +9,6 @@ import { db, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { achievementsLogger } from "../logger";
 import { BlankScreenshotError, ScreenshotService } from "../screenshot";
-import {
-  findRetroArchConfig,
-  readRetroArchScreenshotDirectories,
-} from "./emulator-souvenir-config";
 import { duckstationLogPath, pcsx2LogPath } from "./emulator-log-paths";
 import type { EmulatorSessionSystem } from "./emulator-session-tracker";
 import { prepareLinuxGameCaptureSession } from "../linux-game-capture-session";
@@ -485,6 +481,7 @@ interface StartEmulatorSouvenirWatcherOptions {
   executablePath: string;
   processId: number;
   watcherToken: object;
+  screenshotDirectories?: string[];
 }
 
 interface StartConfiguredLogWatcherOptions {
@@ -529,6 +526,7 @@ export const startEmulatorSouvenirWatcher = async ({
   executablePath,
   processId,
   watcherToken,
+  screenshotDirectories,
 }: StartEmulatorSouvenirWatcherOptions) => {
   const previousWatcher = watchers.get(gameKey);
   if (previousWatcher?.timer) clearInterval(previousWatcher.timer);
@@ -583,28 +581,14 @@ export const startEmulatorSouvenirWatcher = async ({
     return;
   }
 
-  const configPath = findRetroArchConfig(executablePath);
-
-  if (!configPath) {
+  if (!screenshotDirectories?.length) {
     achievementsLogger.error(
-      "Could not start RetroArch souvenir watcher because config was not found",
-      game.objectId,
-      executablePath
+      "Could not start RetroArch souvenir watcher because the session directory was not prepared",
+      { objectId: game.objectId, executablePath }
     );
     stopEmulatorSouvenirWatcher(gameKey, watcherToken);
     return;
   }
-
-  const screenshotDirectories = readRetroArchScreenshotDirectories(
-    configPath,
-    game.selectedDiscPath ?? null
-  );
-
-  achievementsLogger.info("Resolved RetroArch souvenir configuration", {
-    objectId: game.objectId,
-    configPath,
-    screenshotDirectories,
-  });
 
   startRetroArchWatcher(
     gameKey,

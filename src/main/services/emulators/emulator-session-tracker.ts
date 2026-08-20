@@ -13,6 +13,10 @@ import {
 import { WindowManager } from "../window-manager";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
 import { stopLinuxGameCaptureSession } from "../linux-game-capture-session";
+import {
+  cleanupRetroArchSouvenirSession,
+  type RetroArchSouvenirSession,
+} from "./emulator-souvenir-config";
 
 export type EmulatorSessionSystem = EmulatorSystem | RetroArchPlatform;
 
@@ -31,6 +35,7 @@ export interface EmulatorSession {
   startedAt: number;
   heartbeat: ReturnType<typeof setInterval> | null;
   child: ChildProcess;
+  souvenirSession: RetroArchSouvenirSession | null;
 }
 
 export const emulatorSessions = new Map<string, EmulatorSession>();
@@ -52,6 +57,7 @@ interface StartEmulatorSessionOptions {
   executablePath: string;
   sku: string | null;
   child: ChildProcess;
+  souvenirSession?: RetroArchSouvenirSession | null;
 }
 
 export const startEmulatorSession = async ({
@@ -60,6 +66,7 @@ export const startEmulatorSession = async ({
   executablePath,
   sku,
   child,
+  souvenirSession = null,
 }: StartEmulatorSessionOptions): Promise<void> => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
@@ -78,6 +85,7 @@ export const startEmulatorSession = async ({
     startedAt: performance.now(),
     heartbeat: null,
     child,
+    souvenirSession,
   };
 
   emulatorSessions.set(gameKey, session);
@@ -100,6 +108,9 @@ export const startEmulatorSession = async ({
       executablePath,
       processId: child.pid ?? 0,
       watcherToken: souvenirWatcherToken,
+      screenshotDirectories: souvenirSession
+        ? [souvenirSession.screenshotDirectory]
+        : undefined,
     })
       .then(() => {
         if (emulatorSessions.get(gameKey) !== session) {
@@ -148,6 +159,14 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   return true;
 };
 
+export const stopAllEmulatorSouvenirCaptureSessions = async () => {
+  for (const [gameKey, session] of emulatorSessions) {
+    stopEmulatorSouvenirWatcher(gameKey);
+    await cleanupRetroArchSouvenirSession(session.souvenirSession);
+    session.souvenirSession = null;
+  }
+};
+
 const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   const session = emulatorSessions.get(gameKey);
   if (!session) return;
@@ -155,6 +174,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   stopLinuxGameCaptureSession(gameKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
   stopEmulatorSouvenirWatcher(gameKey);
+  await cleanupRetroArchSouvenirSession(session.souvenirSession);
 
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
