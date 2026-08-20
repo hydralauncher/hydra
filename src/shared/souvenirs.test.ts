@@ -87,48 +87,38 @@ describe("souvenir API helpers", () => {
     );
   });
 
-  it("only treats explicit none metadata as safe when alerts are enabled", () => {
-    const withLevel = (level: "unknown" | "none" | "mature" | "adult") => ({
-      gameContentWarning: {
-        level,
-        minimumAge: level === "adult" ? 18 : null,
-        reasons: [],
-        source: level === "unknown" ? null : ("steam" as const),
-      },
-    });
-
+  it("warns only for Steam's adult-only sexual content descriptor", () => {
     assert.equal(
-      shouldShowSouvenirContentWarning(withLevel("none"), false),
+      shouldShowSouvenirContentWarning(
+        { gameContentDescriptorIds: [3] },
+        false
+      ),
+      true
+    );
+    assert.equal(
+      shouldShowSouvenirContentWarning(
+        { gameContentDescriptorIds: [1, 2, 4, 5] },
+        false
+      ),
       false
     );
     assert.equal(
-      shouldShowSouvenirContentWarning(withLevel("mature"), false),
-      true
+      shouldShowSouvenirContentWarning({ gameContentDescriptorIds: [] }, false),
+      false
     );
     assert.equal(
-      shouldShowSouvenirContentWarning(withLevel("adult"), false),
-      true
+      shouldShowSouvenirContentWarning(
+        { gameContentDescriptorIds: null },
+        false
+      ),
+      false
     );
-    assert.equal(
-      shouldShowSouvenirContentWarning(withLevel("unknown"), false),
-      true
-    );
-    assert.equal(shouldShowSouvenirContentWarning({}, false), true);
+    assert.equal(shouldShowSouvenirContentWarning({}, false), false);
   });
 
   it("bypasses souvenir content warnings when the global alert is disabled", () => {
     assert.equal(
-      shouldShowSouvenirContentWarning(
-        {
-          gameContentWarning: {
-            level: "adult",
-            minimumAge: 18,
-            reasons: ["age_restricted", "nudity", "sexual_content"],
-            source: "steam",
-          },
-        },
-        true
-      ),
+      shouldShowSouvenirContentWarning({ gameContentDescriptorIds: [3] }, true),
       false
     );
     assert.equal(shouldShowSouvenirContentWarning({}, true), false);

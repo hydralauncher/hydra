@@ -5,6 +5,7 @@ import type {
   SouvenirReportValues,
   SouvenirSort,
 } from "@types";
+import { SteamContentDescriptor } from "./constants.js";
 
 export const SOUVENIRS_PAGE_SIZE = 24;
 
@@ -25,9 +26,13 @@ export const getSouvenirVisualVariant = ({
 };
 
 export const shouldShowSouvenirContentWarning = (
-  souvenir: Pick<ProfileSouvenir, "gameContentWarning">,
+  souvenir: Pick<ProfileSouvenir, "gameContentDescriptorIds">,
   disableNsfwAlert: boolean
-) => !disableNsfwAlert && souvenir.gameContentWarning?.level !== "none";
+) =>
+  !disableNsfwAlert &&
+  souvenir.gameContentDescriptorIds?.includes(
+    SteamContentDescriptor.AdultOnlySexualContent
+  ) === true;
 
 interface UserSouvenirsPathOptions {
   userId: string;

@@ -274,6 +274,7 @@ export interface ProfileAchievement {
   gameTitle: string | null;
   gameIconUrl: string | null;
   gameContentWarning?: GameContentWarning;
+  gameContentDescriptorIds?: number[] | null;
   likeCount: number;
   likedByMe: boolean;
 }
@@ -302,6 +303,7 @@ export interface ProfileSouvenir {
   gameTitle: string | null;
   gameIconUrl: string | null;
   gameContentWarning?: GameContentWarning;
+  gameContentDescriptorIds?: number[] | null;
   likeCount: number;
   likedByMe: boolean;
 }
