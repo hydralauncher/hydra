@@ -19,6 +19,10 @@ import {
 } from "./windows-game-window-match";
 import { captureWindowsGameWindowFrame } from "./windows-game-capture";
 import {
+  getBitmapColorRange,
+  isNearlyUniformScreenshot,
+} from "./screenshot-frame-validation";
+import {
   LocalSouvenirAssetStore,
   PendingGroupedSouvenirStore,
 } from "./achievements/grouped-souvenir-store";
@@ -29,6 +33,18 @@ const MAX_STORED_SCREENSHOTS = 50;
 const WINDOWS_SOURCE_RESOLUTION_ATTEMPTS = 3;
 const WINDOWS_SOURCE_RETRY_DELAY_MS = 100;
 const execFileAsync = promisify(execFile);
+
+export class BlankScreenshotError extends Error {
+  constructor(sourcePath: string) {
+    super(`Emulator screenshot is blank: ${sourcePath}`);
+    this.name = "BlankScreenshotError";
+  }
+}
+
+const isBlankImage = (image: Electron.NativeImage) => {
+  const sample = image.resize({ width: 32, height: 32, quality: "good" });
+  return isNearlyUniformScreenshot(getBitmapColorRange(sample.toBitmap()));
+};
 
 const resizeToFit = (image: Electron.NativeImage) => {
   const currentSize = image.getSize();
@@ -329,6 +345,9 @@ export class ScreenshotService {
 
     if (image.isEmpty()) {
       throw new Error(`Could not read emulator screenshot at ${sourcePath}`);
+    }
+    if (isBlankImage(image)) {
+      throw new BlankScreenshotError(sourcePath);
     }
 
     const screenshotsDirectory = await this.getScreenshotsPath();

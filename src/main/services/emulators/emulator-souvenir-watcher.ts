@@ -8,7 +8,7 @@ import { INTERVALS } from "@main/constants";
 import { db, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { achievementsLogger } from "../logger";
-import { ScreenshotService } from "../screenshot";
+import { BlankScreenshotError, ScreenshotService } from "../screenshot";
 import {
   findRetroArchConfig,
   readRetroArchScreenshotDirectories,
@@ -23,6 +23,8 @@ const DUCKSTATION_UNLOCK = /Achievement (\d+) \((.*?)\) for game \d+ unlocked/;
 const PCSX2_UNLOCK =
   /Achievements: Achievement (.*?) \((\d+)\) for game \d+ unlocked/;
 const RETROARCH_SOUVENIR = /-cheevo-(\d+)\.[a-z]+$/i;
+const RETROARCH_SCREENSHOT_STABILITY_ATTEMPTS = 5;
+const RETROARCH_SCREENSHOT_STABILITY_DELAY_MS = 100;
 
 interface UnlockedAchievement {
   id: string;
@@ -99,6 +101,109 @@ interface RetroArchSouvenirFile {
   entry: string;
   achievement: UnlockedAchievement;
 }
+
+const waitForRetroArchScreenshot = async (sourcePath: string) => {
+  let previousSize = -1;
+  let previousModifiedAt = -1;
+
+  for (
+    let attempt = 0;
+    attempt < RETROARCH_SCREENSHOT_STABILITY_ATTEMPTS;
+    attempt++
+  ) {
+    const stats = await fs.promises.stat(sourcePath);
+    if (
+      stats.size > 0 &&
+      stats.size === previousSize &&
+      stats.mtimeMs === previousModifiedAt
+    ) {
+      return;
+    }
+
+    previousSize = stats.size;
+    previousModifiedAt = stats.mtimeMs;
+    await new Promise((resolve) => {
+      setTimeout(resolve, RETROARCH_SCREENSHOT_STABILITY_DELAY_MS);
+    });
+  }
+
+  throw new Error(`RetroArch screenshot did not stabilize: ${sourcePath}`);
+};
+
+const removeRetroArchSourceFiles = async (
+  souvenirs: RetroArchSouvenirFile[],
+  seenByDirectory: Map<string, Set<string>>
+) => {
+  for (const { directory, entry } of souvenirs) {
+    await fs.promises.rm(path.join(directory, entry), { force: true });
+    seenByDirectory.get(directory)?.add(entry);
+  }
+};
+
+interface ImportRetroArchScreenshotOptions {
+  gameKey: string;
+  game: Game;
+  processId: number;
+  achievements: UnlockedAchievement[];
+  souvenirs: RetroArchSouvenirFile[];
+  seenByDirectory: Map<string, Set<string>>;
+  clientId: string;
+}
+
+const importRetroArchScreenshot = async ({
+  gameKey,
+  game,
+  processId,
+  achievements,
+  souvenirs,
+  seenByDirectory,
+  clientId,
+}: ImportRetroArchScreenshotOptions) => {
+  const sourcePath = path.join(souvenirs[0].directory, souvenirs[0].entry);
+  await waitForRetroArchScreenshot(sourcePath);
+
+  try {
+    return await ScreenshotService.importGameScreenshot(
+      sourcePath,
+      game.title,
+      achievements[0].title,
+      game.remoteId!,
+      clientId
+    );
+  } catch (error) {
+    if (!(error instanceof BlankScreenshotError)) throw error;
+
+    achievementsLogger.warn("RetroArch produced a blank souvenir screenshot", {
+      objectId: game.objectId,
+      sourcePath,
+    });
+
+    if (process.platform === "win32") {
+      try {
+        const screenshotPath = await ScreenshotService.captureGameScreenshot(
+          game.title,
+          achievements[0].title,
+          game.remoteId!,
+          clientId,
+          { processId, gameKey }
+        );
+        achievementsLogger.info(
+          "Replaced a blank RetroArch souvenir screenshot",
+          { objectId: game.objectId, sourcePath }
+        );
+        return screenshotPath;
+      } catch (fallbackError) {
+        achievementsLogger.warn(
+          "Failed to replace a blank RetroArch souvenir screenshot",
+          { objectId: game.objectId, sourcePath, error: fallbackError }
+        );
+      }
+    }
+
+    await removeRetroArchSourceFiles(souvenirs, seenByDirectory);
+    return null;
+  }
+};
 
 const readRetroArchDirectoryEntries = async (
   gameObjectId: string,
@@ -279,6 +384,7 @@ const startRetroArchWatcher = (
   gameKey: string,
   watcherToken: object,
   game: Game,
+  processId: number,
   screenshotDirectories: string[]
 ) => {
   const seenByDirectory = new Map(
@@ -322,17 +428,16 @@ const startRetroArchWatcher = (
 
       const capturedAt = Date.now();
       const clientId = randomUUID();
-      const sourcePath = path.join(
-        newSouvenirs[0].directory,
-        newSouvenirs[0].entry
-      );
-      const screenshotPath = await ScreenshotService.importGameScreenshot(
-        sourcePath,
-        game.title,
-        achievements[0].title,
-        game.remoteId!,
-        clientId
-      );
+      const screenshotPath = await importRetroArchScreenshot({
+        gameKey,
+        game,
+        processId,
+        achievements,
+        souvenirs: newSouvenirs,
+        seenByDirectory,
+        clientId,
+      });
+      if (!screenshotPath) return;
 
       try {
         await queueGroupedSouvenir(
@@ -349,12 +454,7 @@ const startRetroArchWatcher = (
         throw error;
       }
 
-      for (const { directory, entry } of newSouvenirs) {
-        await fs.promises.rm(path.join(directory, entry), {
-          force: true,
-        });
-        seenByDirectory.get(directory)?.add(entry);
-      }
+      await removeRetroArchSourceFiles(newSouvenirs, seenByDirectory);
     })()
       .catch((error) => {
         achievementsLogger.error(
@@ -502,7 +602,13 @@ export const startEmulatorSouvenirWatcher = async ({
     screenshotDirectories,
   });
 
-  startRetroArchWatcher(gameKey, watcherToken, game, screenshotDirectories);
+  startRetroArchWatcher(
+    gameKey,
+    watcherToken,
+    game,
+    processId,
+    screenshotDirectories
+  );
 };
 
 export const stopEmulatorSouvenirWatcher = (

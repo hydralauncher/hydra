@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { isNearlyUniformScreenshot } from "./screenshot-frame-validation.js";
+import {
+  getBitmapColorRange,
+  isNearlyUniformScreenshot,
+} from "./screenshot-frame-validation.js";
 
 describe("screenshot frame validation", () => {
   it("rejects an all-white frame", () => {
@@ -35,5 +38,24 @@ describe("screenshot frame validation", () => {
       }),
       false
     );
+  });
+
+  it("reads BGRA bitmap channels for emulator screenshot validation", () => {
+    assert.deepEqual(
+      getBitmapColorRange(
+        Uint8Array.from([10, 20, 30, 255, 200, 150, 100, 255])
+      ),
+      {
+        red: { min: 30, max: 100 },
+        green: { min: 20, max: 150 },
+        blue: { min: 10, max: 200 },
+      }
+    );
+  });
+
+  it("rejects an all-black emulator bitmap", () => {
+    const pixels = Uint8Array.from([0, 0, 0, 255, 0, 0, 0, 255]);
+
+    assert.equal(isNearlyUniformScreenshot(getBitmapColorRange(pixels)), true);
   });
 });
