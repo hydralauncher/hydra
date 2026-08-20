@@ -2,6 +2,12 @@
 @use "../../scss/globals.scss";
 
 .settings-behavior {
+  &__screenshots-directory {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
   &__open-screenshots-button {
     align-self: flex-start;
   }

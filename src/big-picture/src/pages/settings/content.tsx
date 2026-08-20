@@ -3,7 +3,7 @@ import "./content.scss";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Checkbox, VerticalFocusGroup } from "../../components";
+import { Button, Checkbox, VerticalFocusGroup } from "../../components";
 import { ConfirmationModal } from "../../components/modals";
 import { useUserDetails, useUserPreferences } from "../../hooks";
 import type { FocusOverrides } from "../../services";
@@ -51,6 +51,13 @@ export function ContentSettingsSection({
   const [form, setForm] = useState<ContentForm>(DEFAULT_FORM);
   const [showWaylandSouvenirsWarning, setShowWaylandSouvenirsWarning] =
     useState(false);
+  const [screenshotsPath, setScreenshotsPath] = useState("");
+
+  useEffect(() => {
+    void globalThis.window.electron
+      .getScreenshotsPath()
+      .then(setScreenshotsPath);
+  }, []);
 
   useEffect(() => {
     if (!userPreferences) return;
@@ -93,6 +100,28 @@ export function ContentSettingsSection({
   }, [updateUserPreferences]);
 
   const supportsSouvenirs = hasActiveSubscription;
+
+  const handleChooseScreenshotsPath = useCallback(async () => {
+    const result = await globalThis.window.electron.showOpenDialog({
+      defaultPath: screenshotsPath || undefined,
+      properties: ["openDirectory"],
+    });
+    const selectedPath = result.filePaths[0];
+
+    if (result.canceled || !selectedPath) return;
+
+    setScreenshotsPath(selectedPath);
+    await globalThis.window.electron.updateUserPreferences({
+      achievementScreenshotsPath: selectedPath,
+    });
+  }, [screenshotsPath]);
+
+  const handleOpenScreenshotsPath = useCallback(async () => {
+    const currentPath =
+      screenshotsPath ||
+      (await globalThis.window.electron.getScreenshotsPath());
+    await globalThis.window.electron.openFolder(currentPath);
+  }, [screenshotsPath]);
 
   const items = useMemo<ContentItem[]>(() => {
     return [
@@ -149,27 +178,37 @@ export function ContentSettingsSection({
     updateUserPreferences,
   ]);
 
+  const navigationFocusIds = useMemo(
+    () => [
+      ...items.map((item) => item.focusId),
+      ...(supportsSouvenirs
+        ? [CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory]
+        : []),
+    ],
+    [items, supportsSouvenirs]
+  );
+
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
   >(() => {
     return Object.fromEntries(
-      items.map((item, index) => {
-        const previousItem = items[index - 1];
-        const nextItem = items[index + 1];
+      navigationFocusIds.map((focusId, index) => {
+        const previousFocusId = navigationFocusIds[index - 1];
+        const nextFocusId = navigationFocusIds[index + 1];
 
         return [
-          item.focusId,
+          focusId,
           {
-            up: previousItem
+            up: previousFocusId
               ? {
                   type: "item",
-                  itemId: previousItem.focusId,
+                  itemId: previousFocusId,
                 }
               : SETTINGS_HEADER_RETURN_TARGET,
-            down: nextItem
+            down: nextFocusId
               ? {
                   type: "item",
-                  itemId: nextItem.focusId,
+                  itemId: nextFocusId,
                 }
               : {
                   type: "block",
@@ -178,7 +217,7 @@ export function ContentSettingsSection({
         ];
       })
     );
-  }, [items]);
+  }, [navigationFocusIds]);
 
   return (
     <div
@@ -206,6 +245,64 @@ export function ContentSettingsSection({
                 onChange={item.onChange}
               />
             ))}
+
+            {supportsSouvenirs && (
+              <div className="content-settings-section__screenshots-directory">
+                <div className="content-settings-section__screenshots-copy">
+                  <span className="content-settings-section__screenshots-label">
+                    {t("screenshots_directory")}
+                  </span>
+                  <span
+                    className="content-settings-section__screenshots-path"
+                    title={screenshotsPath}
+                  >
+                    {screenshotsPath}
+                  </span>
+                </div>
+
+                <div className="content-settings-section__screenshots-actions">
+                  <Button
+                    variant="secondary"
+                    focusId={CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory}
+                    focusNavigationOverrides={{
+                      ...navigationOverridesByFocusId[
+                        CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory
+                      ],
+                      left: { type: "block" },
+                      right: {
+                        type: "item",
+                        itemId: CONTENT_ITEM_FOCUS_IDS.openScreenshotsDirectory,
+                      },
+                    }}
+                    onClick={() => void handleChooseScreenshotsPath()}
+                  >
+                    {t("change_screenshots_directory")}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    focusId={CONTENT_ITEM_FOCUS_IDS.openScreenshotsDirectory}
+                    focusNavigationOverrides={{
+                      left: {
+                        type: "item",
+                        itemId:
+                          CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory,
+                      },
+                      right: { type: "block" },
+                      up: items.at(-1)
+                        ? {
+                            type: "item",
+                            itemId: items.at(-1)!.focusId,
+                          }
+                        : SETTINGS_HEADER_RETURN_TARGET,
+                      down: { type: "block" },
+                    }}
+                    onClick={() => void handleOpenScreenshotsPath()}
+                  >
+                    {t("open_screenshots_directory")}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </VerticalFocusGroup>
       </SettingsSection>

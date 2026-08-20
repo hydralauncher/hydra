@@ -4,8 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import { logger } from "./logger";
-import { screenshotsPath } from "@main/constants";
 import { resolveAchievementScreenshotPath } from "./achievement-screenshot-path";
+import { getAchievementScreenshotsDirectory } from "./achievement-screenshots-directory";
 import { fitScreenshotTo1080p } from "./screenshot-size";
 import { NativeAddon } from "./native-addon";
 import { isLinuxGameWindowProcess } from "./linux-process-match";
@@ -24,7 +24,6 @@ import {
 } from "./achievements/grouped-souvenir-store";
 
 const SCREENSHOT_QUALITY = 80;
-const SCREENSHOT_EXTENSION = "jpeg";
 const CAPTURE_THUMBNAIL_SIZE = { width: 3840, height: 2160 };
 const MAX_STORED_SCREENSHOTS = 50;
 const WINDOWS_SOURCE_RESOLUTION_ATTEMPTS = 3;
@@ -276,35 +275,11 @@ const getGameWindowSource = async (
   return source;
 };
 
-interface StoredScreenshot {
-  path: string;
-  modifiedAt: number;
-}
-
-const listStoredScreenshots = async (
-  directory: string
-): Promise<StoredScreenshot[]> => {
-  const entries = await fs.promises.readdir(directory, {
-    withFileTypes: true,
-  });
-
-  const files = await Promise.all(
-    entries.map(async (entry) => {
-      const entryPath = path.join(directory, entry.name);
-
-      if (entry.isDirectory()) return listStoredScreenshots(entryPath);
-
-      if (!entry.name.endsWith(`.${SCREENSHOT_EXTENSION}`)) return [];
-
-      const stat = await fs.promises.stat(entryPath);
-      return [{ path: entryPath, modifiedAt: stat.mtimeMs }];
-    })
-  );
-
-  return files.flat();
-};
-
 export class ScreenshotService {
+  public static getScreenshotsPath() {
+    return getAchievementScreenshotsDirectory();
+  }
+
   public static async captureGameScreenshot(
     gameTitle: string,
     achievementDisplayName: string,
@@ -328,8 +303,9 @@ export class ScreenshotService {
     }
 
     const image = resizeToFit(capturedImage);
+    const screenshotsDirectory = await this.getScreenshotsPath();
     const filePath = resolveAchievementScreenshotPath(
-      screenshotsPath,
+      screenshotsDirectory,
       gameTitle,
       achievementDisplayName,
       gameId,
@@ -355,8 +331,9 @@ export class ScreenshotService {
       throw new Error(`Could not read emulator screenshot at ${sourcePath}`);
     }
 
+    const screenshotsDirectory = await this.getScreenshotsPath();
     const filePath = resolveAchievementScreenshotPath(
-      screenshotsPath,
+      screenshotsDirectory,
       gameTitle,
       achievementDisplayName,
       gameId,
@@ -375,8 +352,9 @@ export class ScreenshotService {
     gameId: string,
     achievementId: string
   ) {
+    const screenshotsDirectory = await this.getScreenshotsPath();
     const filePath = resolveAchievementScreenshotPath(
-      screenshotsPath,
+      screenshotsDirectory,
       gameTitle,
       achievementDisplayName,
       gameId,
@@ -399,11 +377,24 @@ export class ScreenshotService {
 
   public static async cleanupOldScreenshots() {
     try {
-      if (!fs.existsSync(screenshotsPath)) return;
-
-      const screenshots = await listStoredScreenshots(screenshotsPath);
       const protectedPaths =
         await PendingGroupedSouvenirStore.getProtectedScreenshotPaths();
+      const assets = await LocalSouvenirAssetStore.list();
+      const screenshots = (
+        await Promise.all(
+          assets.map(async (asset) => {
+            const stat = await fs.promises
+              .stat(asset.screenshotPath)
+              .catch(() => null);
+
+            if (!stat) return null;
+            return {
+              path: asset.screenshotPath,
+              modifiedAt: stat.mtimeMs,
+            };
+          })
+        )
+      ).filter((screenshot) => screenshot !== null);
 
       const outdated = screenshots
         .filter((screenshot) => !protectedPaths.has(screenshot.path))
@@ -428,21 +419,19 @@ export class ScreenshotService {
         }
       }
 
-      const gameDirectories = await fs.promises.readdir(screenshotsPath, {
-        withFileTypes: true,
-      });
+      const affectedDirectories = new Set(
+        Array.from(removedPaths, (screenshotPath) =>
+          path.dirname(screenshotPath)
+        )
+      );
 
       await Promise.all(
-        gameDirectories
-          .filter((entry) => entry.isDirectory())
-          .map(async (entry) => {
-            const directory = path.join(screenshotsPath, entry.name);
-            const remaining = await fs.promises.readdir(directory);
-
-            if (!remaining.length) {
-              await fs.promises.rmdir(directory);
-            }
-          })
+        Array.from(affectedDirectories, async (directory) => {
+          const remaining = await fs.promises
+            .readdir(directory)
+            .catch(() => []);
+          if (!remaining.length) await fs.promises.rmdir(directory);
+        })
       );
     } catch (error) {
       logger.error("Failed to cleanup old screenshots", error);

@@ -1,7 +1,12 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, CheckboxField, ConfirmationModal } from "@renderer/components";
+import {
+  Button,
+  CheckboxField,
+  ConfirmationModal,
+  TextField,
+} from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -33,6 +38,11 @@ export function SettingsContextContentGameplay() {
   });
   const [showWaylandSouvenirsWarning, setShowWaylandSouvenirsWarning] =
     useState(false);
+  const [screenshotsPath, setScreenshotsPath] = useState("");
+
+  useEffect(() => {
+    void window.electron.getScreenshotsPath().then(setScreenshotsPath);
+  }, []);
 
   useEffect(() => {
     if (!userPreferences) return;
@@ -86,6 +96,27 @@ export function SettingsContextContentGameplay() {
   const handleWaylandSouvenirsConfirm = () => {
     setShowWaylandSouvenirsWarning(false);
     handleChange({ enableAchievementSouvenirs: true });
+  };
+
+  const handleChooseScreenshotsPath = async () => {
+    const { canceled, filePaths } = await window.electron.showOpenDialog({
+      defaultPath: screenshotsPath || undefined,
+      properties: ["openDirectory"],
+    });
+    const selectedPath = filePaths[0];
+
+    if (canceled || !selectedPath) return;
+
+    setScreenshotsPath(selectedPath);
+    await updateUserPreferences({
+      achievementScreenshotsPath: selectedPath,
+    });
+  };
+
+  const handleOpenScreenshotsPath = async () => {
+    const currentPath =
+      screenshotsPath || (await window.electron.getScreenshotsPath());
+    await window.electron.openFolder(currentPath);
   };
 
   return (
@@ -172,18 +203,32 @@ export function SettingsContextContentGameplay() {
           </button>
         )}
 
-        <Button
-          className="settings-behavior__open-screenshots-button"
-          theme="outline"
-          disabled={!hasActiveSubscription}
-          onClick={async () =>
-            window.electron.openFolder(
-              await window.electron.getScreenshotsPath()
-            )
-          }
-        >
-          {t("open_screenshots_directory")}
-        </Button>
+        <div className="settings-behavior__screenshots-directory">
+          <TextField
+            label={t("screenshots_directory")}
+            value={screenshotsPath}
+            readOnly
+            disabled
+            rightContent={
+              <Button
+                theme="outline"
+                disabled={!hasActiveSubscription}
+                onClick={handleChooseScreenshotsPath}
+              >
+                {t("change_screenshots_directory")}
+              </Button>
+            }
+          />
+
+          <Button
+            className="settings-behavior__open-screenshots-button"
+            theme="outline"
+            disabled={!hasActiveSubscription}
+            onClick={handleOpenScreenshotsPath}
+          >
+            {t("open_screenshots_directory")}
+          </Button>
+        </div>
 
         <CheckboxField
           label={t("enable_new_download_options_badges")}

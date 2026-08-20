@@ -1556,6 +1556,8 @@
     "big_picture_enable_virtual_keyboard": "Enable Big Picture virtual keyboard",
     "big_picture_enable_diagnostics": "Enable navigation diagnostics",
     "big_picture_diagnostics_position": "Diagnostics position",
+    "screenshots_directory": "Screenshots folder",
+    "change_screenshots_directory": "Change folder",
     "open_screenshots_directory": "Open screenshots folder",
     "enable_achievement_souvenirs": "Enable souvenirs for achievements",
     "wayland_souvenirs_warning_title": "Souvenirs on Wayland",

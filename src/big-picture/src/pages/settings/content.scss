@@ -3,4 +3,37 @@
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 8);
   width: 100%;
+
+  &__screenshots-directory {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing-unit) * 3);
+    padding-top: calc(var(--spacing-unit) * 2);
+  }
+
+  &__screenshots-copy {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) / 2);
+  }
+
+  &__screenshots-label {
+    font-weight: 600;
+  }
+
+  &__screenshots-path {
+    overflow: hidden;
+    color: var(--text-secondary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__screenshots-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: var(--spacing-unit);
+  }
 }

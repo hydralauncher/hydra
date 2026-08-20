@@ -1,10 +1,6 @@
-import {
-  appVersion,
-  defaultDownloadsPath,
-  isStaging,
-  screenshotsPath,
-} from "@main/constants";
+import { appVersion, defaultDownloadsPath, isStaging } from "@main/constants";
 import { ipcMain } from "electron";
+import { ScreenshotService } from "@main/services/screenshot";
 
 import "./auth";
 import "./autoupdater";
@@ -36,7 +32,9 @@ ipcMain.handle("getVersion", () => appVersion);
 ipcMain.handle("isStaging", () => isStaging);
 ipcMain.handle("isPortableVersion", () => isPortableVersion());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);
-ipcMain.handle("getScreenshotsPath", () => screenshotsPath);
+ipcMain.handle("getScreenshotsPath", () =>
+  ScreenshotService.getScreenshotsPath()
+);
 ipcMain.handle("getCloudIframeUrl", () =>
   new URL("/cloud", import.meta.env.MAIN_VITE_CHECKOUT_URL).toString()
 );

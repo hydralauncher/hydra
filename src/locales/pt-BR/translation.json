@@ -1527,6 +1527,8 @@
     "setup_match_wrong_platform": "plataforma errada",
     "setup_run_in_background": "Executar em segundo plano",
     "scanning_system_label": "Escaneando {{system}}…",
+    "screenshots_directory": "Pasta de capturas",
+    "change_screenshots_directory": "Alterar pasta",
     "open_screenshots_directory": "Abrir a pasta de capturas",
     "enable_achievement_souvenirs": "Habilitar lembranças para conquistas",
     "wayland_souvenirs_warning_title": "Lembranças no Wayland",
