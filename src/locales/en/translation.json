@@ -72,6 +72,8 @@
     "custom_game_modal_success": "Custom game added successfully",
     "custom_game_modal_failed": "Failed to add custom game",
     "custom_game_modal_executable": "Executable",
+    "custom_game_modal_drop_hint": "Drop to add as a custom game",
+    "custom_game_modal_unsupported_file": "This file type can't be added as a game executable",
     "edit_game_modal": "Customize Assets",
     "edit_game_modal_description": "Customize game assets and details",
     "edit_game_modal_title": "Title",

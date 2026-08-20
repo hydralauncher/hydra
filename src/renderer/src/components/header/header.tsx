@@ -23,6 +23,7 @@ import {
   useAppSelector,
   useSearchHistory,
   useSearchSuggestions,
+  useToast,
 } from "@renderer/hooks";
 
 import "./header.scss";
@@ -35,6 +36,36 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
 import type { SuggestionShop } from "@renderer/hooks/use-search-suggestions";
 import { debounce } from "lodash-es";
+import {
+  DARWIN_GAME_EXECUTABLE_EXTENSIONS,
+  LINUX_GAME_EXECUTABLE_EXTENSIONS,
+  WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
+} from "@shared";
+
+function getAcceptedExecutableExtensions() {
+  if (window.electron.platform === "linux") {
+    return LINUX_GAME_EXECUTABLE_EXTENSIONS;
+  }
+
+  if (window.electron.platform === "darwin") {
+    return DARWIN_GAME_EXECUTABLE_EXTENSIONS;
+  }
+
+  return WINDOWS_GAME_EXECUTABLE_EXTENSIONS;
+}
+
+function getDroppedFilePath(file: File): string | null {
+  const filePath = window.electron.getPathForFile(file);
+  if (!filePath) return null;
+
+  const extension = filePath.split(".").pop()?.toLowerCase() ?? "";
+
+  return getAcceptedExecutableExtensions()
+    .map((ext) => ext.toLowerCase())
+    .includes(extension)
+    ? filePath
+    : null;
+}
 
 const pathTitle: Record<string, string> = {
   "/": "home",
@@ -50,6 +81,11 @@ export function Header() {
   const scanButtonTooltipId = useId();
   const addCustomGameTooltipId = useId();
   const [showAddGameModal, setShowAddGameModal] = useState(false);
+  const [droppedExecutablePath, setDroppedExecutablePath] = useState<
+    string | undefined
+  >(undefined);
+  const [isDraggingExecutable, setIsDraggingExecutable] = useState(false);
+  const { showErrorToast } = useToast();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -154,6 +190,64 @@ export function Header() {
       debouncedCatalogueSearch.cancel();
     };
   }, [debouncedCatalogueSearch, debouncedLibrarySearch]);
+
+  useEffect(() => {
+    let dragDepth = 0;
+
+    const isFileDrag = (event: DragEvent) =>
+      Array.from(event.dataTransfer?.types ?? []).includes("Files");
+
+    const handleDragEnter = (event: DragEvent) => {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+      dragDepth += 1;
+      setIsDraggingExecutable(true);
+    };
+
+    const handleDragOver = (event: DragEvent) => {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+    };
+
+    const handleDragLeave = (event: DragEvent) => {
+      if (!isFileDrag(event)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) setIsDraggingExecutable(false);
+    };
+
+    const handleDrop = (event: DragEvent) => {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+      dragDepth = 0;
+      setIsDraggingExecutable(false);
+
+      const file = event.dataTransfer?.files[0];
+      if (!file) return;
+
+      const filePath = getDroppedFilePath(file);
+      if (!filePath) {
+        showErrorToast(
+          t("custom_game_modal_unsupported_file", { ns: "sidebar" })
+        );
+        return;
+      }
+
+      setDroppedExecutablePath(filePath);
+      setShowAddGameModal(true);
+    };
+
+    window.addEventListener("dragenter", handleDragEnter);
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("dragleave", handleDragLeave);
+    window.addEventListener("drop", handleDrop);
+
+    return () => {
+      window.removeEventListener("dragenter", handleDragEnter);
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("dragleave", handleDragLeave);
+      window.removeEventListener("drop", handleDrop);
+    };
+  }, [showErrorToast, t]);
 
   const updateDropdownPosition = () => {
     if (searchContainerRef.current) {
@@ -405,7 +499,10 @@ export function Header() {
             <button
               type="button"
               className="header__action-button header__action-button--outlined"
-              onClick={() => setShowAddGameModal(true)}
+              onClick={() => {
+                setDroppedExecutablePath(undefined);
+                setShowAddGameModal(true);
+              }}
               data-tooltip-id={addCustomGameTooltipId}
               data-tooltip-content={t("add_custom_game_tooltip", {
                 ns: "sidebar",
@@ -523,8 +620,21 @@ export function Header() {
 
       <SidebarAddingCustomGameModal
         visible={showAddGameModal}
-        onClose={() => setShowAddGameModal(false)}
+        onClose={() => {
+          setShowAddGameModal(false);
+          setDroppedExecutablePath(undefined);
+        }}
+        initialExecutablePath={droppedExecutablePath}
       />
+
+      {isDraggingExecutable && (
+        <div className="header__drop-overlay">
+          <div className="header__drop-overlay-content">
+            <PlusIcon size={32} />
+            <p>{t("custom_game_modal_drop_hint", { ns: "sidebar" })}</p>
+          </div>
+        </div>
+      )}
     </>
   );
 }
