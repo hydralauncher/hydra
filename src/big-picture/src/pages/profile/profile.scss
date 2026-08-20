@@ -1218,7 +1218,7 @@
   flex-direction: column;
   flex-shrink: 0;
   gap: calc(var(--spacing-unit) * 1.5);
-  width: 320px;
+  width: clamp(360px, 32vw, 440px);
   outline: none;
 }
 

@@ -968,7 +968,7 @@ interface ProfileActivityProps {
   preferCustomArtwork: boolean;
   firstFocusId: string | null;
   lastFocusId: string | null;
-  heroActionsFocusId: string | null;
+  upFocusId: string | null;
   downFocusId: string | null;
   onActivate: (game: ProfileActivityGame) => void;
 }
@@ -978,7 +978,7 @@ function ProfileActivity({
   preferCustomArtwork,
   firstFocusId,
   lastFocusId,
-  heroActionsFocusId,
+  upFocusId,
   downFocusId,
   onActivate,
 }: Readonly<ProfileActivityProps>) {
@@ -1001,7 +1001,7 @@ function ProfileActivity({
               preferCustomArtwork={preferCustomArtwork}
               firstFocusId={firstFocusId}
               lastFocusId={lastFocusId}
-              heroActionsFocusId={heroActionsFocusId}
+              upFocusId={upFocusId}
               downFocusId={downFocusId}
               onActivate={onActivate}
             />
@@ -1023,7 +1023,7 @@ function ProfileActivityItem({
   preferCustomArtwork,
   firstFocusId,
   lastFocusId,
-  heroActionsFocusId,
+  upFocusId,
   downFocusId,
   onActivate,
 }: Readonly<ProfileActivityItemProps>) {
@@ -1037,8 +1037,8 @@ function ProfileActivityItem({
   const navigationOverrides: FocusOverrides = {};
 
   if (focusId === firstFocusId) {
-    navigationOverrides.up = heroActionsFocusId
-      ? { type: "item", itemId: heroActionsFocusId }
+    navigationOverrides.up = upFocusId
+      ? { type: "item", itemId: upFocusId }
       : { type: "block" };
   }
 
@@ -2197,7 +2197,7 @@ interface ProfileNavigation {
   firstContentFocusId: string | null;
   activityDownFocusId: string | null;
   libraryDownFocusId: string | null;
-  heroActionsFocusId: string | null;
+  activityUpFocusId: string | null;
   libraryUpFocusId: string | null;
   souvenirUpFocusId: string | null;
   souvenirDownFocusId: string | null;
@@ -2335,22 +2335,22 @@ function getProfileNavigation({
     firstFriendFocusId,
     lastFriendFocusId,
     firstContentFocusId:
+      firstSouvenirFocusId ??
       firstActivityFocusId ??
       firstLibraryFocusId ??
-      firstSouvenirFocusId ??
       firstSocialFocusId,
-    activityDownFocusId:
-      firstLibraryFocusId ?? firstSouvenirFocusId ?? firstSocialFocusId,
-    libraryDownFocusId: firstSouvenirFocusId ?? firstSocialFocusId,
-    heroActionsFocusId,
-    libraryUpFocusId: lastActivityFocusId ?? heroActionsFocusId,
-    souvenirUpFocusId:
-      firstLibraryFocusId ?? lastActivityFocusId ?? heroActionsFocusId,
-    souvenirDownFocusId: firstSocialFocusId,
+    activityDownFocusId: firstLibraryFocusId ?? firstSocialFocusId,
+    libraryDownFocusId: firstSocialFocusId,
+    activityUpFocusId: firstSouvenirFocusId ?? heroActionsFocusId,
+    libraryUpFocusId:
+      lastActivityFocusId ?? firstSouvenirFocusId ?? heroActionsFocusId,
+    souvenirUpFocusId: heroActionsFocusId,
+    souvenirDownFocusId:
+      firstActivityFocusId ?? firstLibraryFocusId ?? firstSocialFocusId,
     socialUpFocusId:
-      firstSouvenirFocusId ??
       firstLibraryFocusId ??
       lastActivityFocusId ??
+      firstSouvenirFocusId ??
       heroActionsFocusId,
   };
 }
@@ -2824,7 +2824,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     firstContentFocusId,
     activityDownFocusId,
     libraryDownFocusId,
-    heroActionsFocusId,
+    activityUpFocusId,
     libraryUpFocusId,
     souvenirUpFocusId,
     souvenirDownFocusId,
@@ -2869,28 +2869,6 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
           <div className="profile-page__sections">
             <ProfileStats userStats={userStats} favoriteGame={favoriteGame} />
 
-            <ProfileActivity
-              games={recentActivityGames}
-              preferCustomArtwork={targetHasActiveSubscription}
-              firstFocusId={firstActivityFocusId}
-              lastFocusId={lastActivityFocusId}
-              heroActionsFocusId={heroActionsFocusId}
-              downFocusId={activityDownFocusId}
-              onActivate={(game) =>
-                navigate(getBigPictureGameDetailsPath(game))
-              }
-            />
-
-            <ProfileLibrary
-              games={libraryCarouselGames}
-              totalGames={totalLibraryGames}
-              upFocusId={libraryUpFocusId}
-              downFocusId={libraryDownFocusId}
-              onActivate={(game) =>
-                navigate(getBigPictureGameDetailsPath(game))
-              }
-            />
-
             <ProfileSouvenirs
               souvenirs={souvenirs}
               total={souvenirsTotal}
@@ -2911,6 +2889,28 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
               onLike={(souvenir) => void handleSouvenirLike(souvenir)}
               onLoadMore={() => void loadMoreSouvenirs()}
               onRetrySync={() => void handleRetrySouvenirSync()}
+            />
+
+            <ProfileActivity
+              games={recentActivityGames}
+              preferCustomArtwork={targetHasActiveSubscription}
+              firstFocusId={firstActivityFocusId}
+              lastFocusId={lastActivityFocusId}
+              upFocusId={activityUpFocusId}
+              downFocusId={activityDownFocusId}
+              onActivate={(game) =>
+                navigate(getBigPictureGameDetailsPath(game))
+              }
+            />
+
+            <ProfileLibrary
+              games={libraryCarouselGames}
+              totalGames={totalLibraryGames}
+              upFocusId={libraryUpFocusId}
+              downFocusId={libraryDownFocusId}
+              onActivate={(game) =>
+                navigate(getBigPictureGameDetailsPath(game))
+              }
             />
 
             <HorizontalFocusGroup
