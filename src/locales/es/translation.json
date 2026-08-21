@@ -362,6 +362,7 @@
     "download_count": "Descargas",
     "player_count": "Jugadores  activos",
     "download_error": "Esta opción de descarga no está disponible",
+    "invalid_repack": "No hay ningún enlace de descarga disponible para el descargador seleccionado.",
     "download": "Descargar",
     "executable_path_in_use": "El ejecutable ya se está usando por \"{{game}}\"",
     "warning": "Advertencia:",

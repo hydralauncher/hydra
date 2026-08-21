@@ -222,6 +222,8 @@ export const collectHosterAvailabilityUris = (
   const uris = new Set<string>();
 
   for (const repack of repacks) {
+    if (!Array.isArray(repack.uris)) continue;
+
     for (const uri of repack.uris) {
       if (supportsHosterAvailabilityCheck(uri)) uris.add(uri);
     }
@@ -263,7 +265,7 @@ export const applyHosterAvailability = <
   if (unavailable.size === 0) return repacks;
 
   return repacks.map((repack) => {
-    const extra = repack.uris.filter(
+    const extra = (Array.isArray(repack.uris) ? repack.uris : []).filter(
       (uri) => unavailable.has(uri) && !repack.unavailableUris?.includes(uri)
     );
 
