@@ -411,9 +411,12 @@ export class ScreenshotService {
       const protectedPaths =
         await PendingGroupedSouvenirStore.getProtectedScreenshotPaths();
       const assets = await LocalSouvenirAssetStore.list();
+      const uniqueAssets = Array.from(
+        new Map(assets.map((asset) => [asset.screenshotPath, asset])).values()
+      );
       const screenshots = (
         await Promise.all(
-          assets.map(async (asset) => {
+          uniqueAssets.map(async (asset) => {
             const stat = await fs.promises
               .stat(asset.screenshotPath)
               .catch(() => null);

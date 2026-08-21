@@ -12,6 +12,18 @@ export const PendingGroupedSouvenirStore = {
   put: (souvenir: PendingAchievementSouvenir) =>
     pendingGroupedAchievementSouvenirsSublevel.put(souvenir.clientId, souvenir),
 
+  async putMany(souvenirs: PendingAchievementSouvenir[]) {
+    const batch = db.batch();
+
+    for (const souvenir of souvenirs) {
+      batch.put(souvenir.clientId, souvenir, {
+        sublevel: pendingGroupedAchievementSouvenirsSublevel,
+      });
+    }
+
+    await batch.write();
+  },
+
   delete: (clientId: string) =>
     pendingGroupedAchievementSouvenirsSublevel.del(clientId),
 
@@ -36,6 +48,18 @@ export const PendingGroupedSouvenirStore = {
       .values()
       .all();
     return new Set(pending.map((souvenir) => souvenir.screenshotPath));
+  },
+
+  async hasScreenshotPathReference(screenshotPath: string) {
+    const [pending, assets] = await Promise.all([
+      pendingGroupedAchievementSouvenirsSublevel.values().all(),
+      localSouvenirAssetsSublevel.values().all(),
+    ]);
+
+    return (
+      pending.some((souvenir) => souvenir.screenshotPath === screenshotPath) ||
+      assets.some((asset) => asset.screenshotPath === screenshotPath)
+    );
   },
 
   async acknowledge(pending: PendingAchievementSouvenir, souvenirId: string) {

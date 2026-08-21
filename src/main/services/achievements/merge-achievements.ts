@@ -24,6 +24,7 @@ import { ScreenshotService } from "../screenshot";
 import { PendingAchievementSouvenirStore } from "./pending-achievement-souvenir-store";
 import { PendingGroupedSouvenirStore } from "./grouped-souvenir-store";
 import { groupedSouvenirWorker } from "./grouped-souvenir-worker";
+import { chunkGroupedSouvenirAchievements } from "./grouped-souvenir-payload";
 import { launchedGamePids } from "../launched-game-pids";
 import { Wine } from "../wine";
 
@@ -50,11 +51,10 @@ const captureAchievementSouvenirs = async (
     ) ||
     !HydraApi.hasActiveSubscription()
   ) {
-    return null;
+    return [];
   }
 
   const gameKey = levelKeys.game(game.shop, game.objectId);
-  const clientId = randomUUID();
   const capturedAt = Date.now();
   let screenshotPath: string | null = null;
 
@@ -62,7 +62,16 @@ const captureAchievementSouvenirs = async (
     const owner = await db.get<string, User>(levelKeys.user, {
       valueEncoding: "json",
     });
-    if (!owner?.id) return null;
+    if (!owner?.id) return [];
+
+    const achievementChunks = chunkGroupedSouvenirAchievements(
+      newAchievements.map((achievement) => ({
+        name: achievement.name,
+        unlockTime: achievement.unlockTime,
+        ...(achievement.hardcoreUnlockTime != null && { hardcore: true }),
+      }))
+    );
+    const clientIds = achievementChunks.map(() => randomUUID());
 
     const primaryAchievement = newAchievements[0];
     const displayName =
@@ -99,7 +108,7 @@ const captureAchievementSouvenirs = async (
       game.title,
       displayName,
       game.remoteId,
-      clientId,
+      clientIds[0]!,
       {
         processId: expectedProcessId,
         executablePaths,
@@ -108,23 +117,26 @@ const captureAchievementSouvenirs = async (
       }
     );
 
-    const pending = {
-      clientId,
+    const pendingSouvenirs = achievementChunks.map((achievements, index) => ({
+      clientId: clientIds[index]!,
       ownerId: owner.id,
-      remoteGameId: game.remoteId,
+      remoteGameId: game.remoteId!,
       gameKey,
-      screenshotPath,
+      screenshotPath: screenshotPath!,
       capturedAt,
-      achievements: newAchievements.map((achievement) => ({
-        name: achievement.name,
-        unlockTime: achievement.unlockTime,
-        ...(achievement.hardcoreUnlockTime != null && { hardcore: true }),
-      })),
+      achievements,
       status: "pending" as const,
       attemptCount: 0,
-    };
-    await PendingGroupedSouvenirStore.put(pending);
-    return pending;
+    }));
+    await PendingGroupedSouvenirStore.putMany(pendingSouvenirs);
+    achievementsLogger.info("Queued grouped achievement souvenirs", {
+      gameObjectId: game.objectId,
+      souvenirCount: pendingSouvenirs.length,
+      achievementCounts: pendingSouvenirs.map(
+        (souvenir) => souvenir.achievements.length
+      ),
+    });
+    return pendingSouvenirs;
   } catch (error) {
     if (screenshotPath) {
       await ScreenshotService.deleteScreenshot(screenshotPath).catch(() => {});
@@ -135,7 +147,7 @@ const captureAchievementSouvenirs = async (
       newAchievements.map((achievement) => achievement.name),
       error
     );
-    return null;
+    return [];
   }
 };
 
@@ -317,7 +329,7 @@ export const mergeAchievements = async (
       return imageKey ? { ...achievement, imageKey } : achievement;
     });
 
-  const pendingGroupedSouvenir = await captureAchievementSouvenirs(
+  const pendingGroupedSouvenirs = await captureAchievementSouvenirs(
     game,
     newAchievements,
     achievementsData,
@@ -397,7 +409,7 @@ export const mergeAchievements = async (
     );
   }
 
-  if (pendingGroupedSouvenir) void groupedSouvenirWorker.trigger();
+  if (pendingGroupedSouvenirs.length) void groupedSouvenirWorker.trigger();
 
   return newAchievements.length;
 };

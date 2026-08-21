@@ -168,6 +168,13 @@ const cleanupExpiredTerminalRecords = async (
     }
 
     await PendingGroupedSouvenirStore.delete(souvenir.clientId);
+    if (
+      await PendingGroupedSouvenirStore.hasScreenshotPathReference(
+        souvenir.screenshotPath
+      )
+    ) {
+      continue;
+    }
     await fs.promises
       .rm(souvenir.screenshotPath, { force: true })
       .catch((error) => {
@@ -733,6 +740,14 @@ export const cleanupAchievementSouvenirSync =
     const failedFilePaths: string[] = [];
 
     for (const souvenir of ownedSouvenirs) {
+      await PendingGroupedSouvenirStore.delete(souvenir.clientId);
+
+      const isReferenced =
+        await PendingGroupedSouvenirStore.hasScreenshotPathReference(
+          souvenir.screenshotPath
+        );
+      if (isReferenced) continue;
+
       try {
         await fs.promises.rm(souvenir.screenshotPath, { force: true });
       } catch (error) {
@@ -742,8 +757,6 @@ export const cleanupAchievementSouvenirSync =
           { clientId: souvenir.clientId, error }
         );
       }
-
-      await PendingGroupedSouvenirStore.delete(souvenir.clientId);
     }
 
     const status = await publishAchievementSouvenirSyncStatus();
@@ -763,8 +776,14 @@ export const deleteLocalSouvenirAsset = async (souvenirId: string) => {
   const asset = await LocalSouvenirAssetStore.get(souvenirId).catch(() => null);
   if (!asset) return;
 
-  await fs.promises.rm(asset.screenshotPath, { force: true });
   await LocalSouvenirAssetStore.delete(souvenirId);
+  const isReferenced =
+    await PendingGroupedSouvenirStore.hasScreenshotPathReference(
+      asset.screenshotPath
+    );
+  if (!isReferenced) {
+    await fs.promises.rm(asset.screenshotPath, { force: true });
+  }
 };
 
 const deletePendingSouvenirs = async (
@@ -775,6 +794,13 @@ const deletePendingSouvenirs = async (
   for (const souvenir of pending) {
     if (!matches(souvenir)) continue;
     await PendingGroupedSouvenirStore.delete(souvenir.clientId);
+    if (
+      await PendingGroupedSouvenirStore.hasScreenshotPathReference(
+        souvenir.screenshotPath
+      )
+    ) {
+      continue;
+    }
     await fs.promises
       .rm(souvenir.screenshotPath, { force: true })
       .catch((error) => {

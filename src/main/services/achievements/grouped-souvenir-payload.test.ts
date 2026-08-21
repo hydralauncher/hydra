@@ -5,6 +5,7 @@ import type { PendingSouvenirAchievement } from "@types";
 
 import {
   buildGroupedSouvenirSyncPayload,
+  chunkGroupedSouvenirAchievements,
   getGroupedSouvenirAchievementNames,
   MAX_ACHIEVEMENTS_PER_SOUVENIR,
 } from "./grouped-souvenir-payload.js";
@@ -51,5 +52,26 @@ describe("grouped souvenir payload", () => {
       `ACHIEVEMENT_${MAX_ACHIEVEMENTS_PER_SOUVENIR}`
     );
     assert.equal(payload.achievements.length, BULK_UNLOCK_COUNT);
+  });
+
+  it("splits oversized unlock batches without dropping achievements", () => {
+    const achievements = buildAchievements(BULK_UNLOCK_COUNT);
+    const chunks = chunkGroupedSouvenirAchievements(achievements);
+
+    assert.deepEqual(
+      chunks.map((chunk) => chunk.length),
+      [50, 50, 25]
+    );
+    assert.deepEqual(chunks.flat(), achievements);
+  });
+
+  it("starts a new souvenir when the batch exceeds the limit by one", () => {
+    const achievements = buildAchievements(MAX_ACHIEVEMENTS_PER_SOUVENIR + 1);
+    const chunks = chunkGroupedSouvenirAchievements(achievements);
+
+    assert.deepEqual(
+      chunks.map((chunk) => chunk.length),
+      [MAX_ACHIEVEMENTS_PER_SOUVENIR, 1]
+    );
   });
 });
