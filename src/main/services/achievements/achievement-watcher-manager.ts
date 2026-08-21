@@ -22,6 +22,25 @@ import { achievementNotificationPresenter } from "../achievement-notification-pr
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
+const processingGameKeys = new Set<string>();
+
+const mergeDetectedAchievements = async (
+  game: Game,
+  achievements: UnlockedAchievement[]
+) => {
+  const uniqueAchievements = Array.from(
+    new Map(
+      achievements.map((achievement) => [
+        achievement.name.toLowerCase(),
+        achievement,
+      ])
+    ).values()
+  );
+
+  if (uniqueAchievements.length === 0) return 0;
+
+  return mergeAchievements(game, uniqueAchievements, true);
+};
 
 const getEnableSteamAchievements = async () => {
   const userPreferences = await db.get<string, UserPreferences | null>(
@@ -144,17 +163,24 @@ const processChangedAchievementFiles = async (
   game: Game,
   achievementFiles: AchievementFile[]
 ) => {
-  const changedFiles = achievementFiles.filter(hasAchievementFileChanged);
+  const gameKey = levelKeys.game(game.shop, game.objectId);
 
-  if (!changedFiles.length) return 0;
+  if (processingGameKeys.has(gameKey)) return 0;
+  processingGameKeys.add(gameKey);
 
-  const unlockedAchievements = changedFiles.flatMap((file) =>
-    parseAchievementFile(file.filePath, file.type)
-  );
+  try {
+    const changedFiles = achievementFiles.filter(hasAchievementFileChanged);
 
-  if (!unlockedAchievements.length) return 0;
+    if (!changedFiles.length) return 0;
 
-  return mergeAchievements(game, unlockedAchievements, true);
+    const unlockedAchievements = changedFiles.flatMap((file) =>
+      parseAchievementFile(file.filePath, file.type)
+    );
+
+    return mergeDetectedAchievements(game, unlockedAchievements);
+  } finally {
+    processingGameKeys.delete(gameKey);
+  }
 };
 
 export class AchievementWatcherManager {

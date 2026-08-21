@@ -43,6 +43,9 @@ windows = { version = "0.61.3", features = [
   "Win32_UI_Shell_PropertiesSystem",
 ] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = { version = "0.13.2", default-features = false }
+
 [dev-dependencies]
 tempfile = "3.27"
 

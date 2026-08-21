@@ -34,6 +34,10 @@ import {
   gamesPlaytime,
   setGamePlaytime,
 } from "./game-running-state";
+import {
+  prepareLinuxGameCaptureSession,
+  stopLinuxGameCaptureSession,
+} from "./linux-game-capture-session";
 
 export { gamesPlaytime };
 export { isGameRunning } from "./game-running-state";
@@ -369,6 +373,10 @@ function onOpenGame(game: Game) {
   const now = performance.now();
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
+  if (game.remoteId) {
+    void prepareLinuxGameCaptureSession(gameKey);
+  }
+
   setGamePlaytime(gameKey, {
     lastTick: now,
     firstTick: now,
@@ -530,6 +538,7 @@ const onCloseGame = (game: Game) => {
   const gamePlaytime = gamesPlaytime.get(gameKey)!;
   deleteGamePlaytime(gameKey);
   launchedGamePids.delete(gameKey);
+  stopLinuxGameCaptureSession(gameKey);
   PowerSaveBlockerManager.markGameClosed(gameKey);
   abortAchievementMetadataExport(gameKey);
 

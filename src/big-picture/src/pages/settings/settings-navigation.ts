@@ -50,6 +50,8 @@ export const COMPATIBILITY_SECTION_REGION_ID = "compatibility-section-region";
 export const INTEGRATIONS_SECTION_REGION_ID = "integrations-section-region";
 export const ACCOUNT_PRIVACY_PRIVACY_SELECT_ID =
   "account-privacy-profile-visibility";
+export const ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID =
+  "account-privacy-souvenirs-visibility";
 export const COMPATIBILITY_GAMEMODE_FOCUS_ID = "compatibility-gamemode";
 export const COMPATIBILITY_MANGOHUD_FOCUS_ID = "compatibility-mangohud";
 export const COMPATIBILITY_COMMON_REDIST_BUTTON_ID =
@@ -144,6 +146,10 @@ export const CONTENT_ITEM_FOCUS_IDS = {
   showHiddenAchievementsDescription:
     "content-show-hidden-achievements-description",
   enableSteamAchievements: "content-enable-steam-achievements",
+  enableAchievementSouvenirs: "content-enable-achievement-souvenirs",
+  changeScreenshotsDirectory: "content-change-screenshots-directory",
+  resetScreenshotsDirectory: "content-reset-screenshots-directory",
+  openScreenshotsDirectory: "content-open-screenshots-directory",
 } as const;
 
 export const BIG_PICTURE_ITEM_FOCUS_IDS = {
