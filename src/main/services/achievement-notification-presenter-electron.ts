@@ -7,7 +7,7 @@ import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
 
 const NOTIFICATION_WINDOW_WIDTH = 360;
-const NOTIFICATION_WINDOW_HEIGHT = 140;
+const NOTIFICATION_WINDOW_HEIGHT = 180;
 
 const getNotificationWindowPosition = (
   position: AchievementCustomNotificationPosition

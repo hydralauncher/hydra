@@ -605,7 +605,16 @@
     position: relative;
     height: 620px;
     overflow: hidden;
-    background: var(--background);
+    background: linear-gradient(180deg, #101010 0%, #0a0a0a 100%);
+  }
+
+  &__hero-title {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1.1;
+    max-width: 50%;
+    margin: 0;
+    color: var(--text-primary, #fafafa);
   }
 
   &__hero-actions {

@@ -10,11 +10,15 @@ const heroSelection = {
   },
 };
 
+const syncedHeroSelection = {
+  hero: { ...heroSelection.hero, syncedAt: 1 },
+};
+
 describe("reconcileRemoteArtworkSelection", () => {
-  it("removes a stale selection after a remote reset", () => {
+  it("removes a synced selection after a remote reset", () => {
     assert.deepEqual(
       reconcileRemoteArtworkSelection(
-        heroSelection,
+        syncedHeroSelection,
         {},
         {
           customHeroImageUrl: null,
@@ -24,31 +28,60 @@ describe("reconcileRemoteArtworkSelection", () => {
     );
   });
 
-  it("keeps a selection matching the remote URL", () => {
+  it("keeps a selection the remote has never received", () => {
     assert.deepEqual(
       reconcileRemoteArtworkSelection(
         heroSelection,
         {},
         {
-          customHeroImageUrl: "https://cdn2.steamgriddb.com/hero/old.webp",
+          customHeroImageUrl: null,
         }
       ),
       { selected: heroSelection, changed: false }
     );
   });
 
-  it("preserves local files and missing remote fields", () => {
+  it("removes an unsynced selection the remote overrides", () => {
     assert.deepEqual(
       reconcileRemoteArtworkSelection(
         heroSelection,
+        {},
+        {
+          customHeroImageUrl: "https://cdn2.steamgriddb.com/hero/new.webp",
+        }
+      ),
+      { selected: {}, changed: true }
+    );
+  });
+
+  it("keeps a selection matching the remote URL", () => {
+    assert.deepEqual(
+      reconcileRemoteArtworkSelection(
+        syncedHeroSelection,
+        {},
+        {
+          customHeroImageUrl: "https://cdn2.steamgriddb.com/hero/old.webp",
+        }
+      ),
+      { selected: syncedHeroSelection, changed: false }
+    );
+  });
+
+  it("preserves local files and missing remote fields", () => {
+    assert.deepEqual(
+      reconcileRemoteArtworkSelection(
+        syncedHeroSelection,
         { customHeroImageUrl: "local:/tmp/hero.webp" },
         { customHeroImageUrl: null }
       ),
-      { selected: heroSelection, changed: false }
+      { selected: syncedHeroSelection, changed: false }
     );
-    assert.deepEqual(reconcileRemoteArtworkSelection(heroSelection, {}, {}), {
-      selected: heroSelection,
-      changed: false,
-    });
+    assert.deepEqual(
+      reconcileRemoteArtworkSelection(syncedHeroSelection, {}, {}),
+      {
+        selected: syncedHeroSelection,
+        changed: false,
+      }
+    );
   });
 });

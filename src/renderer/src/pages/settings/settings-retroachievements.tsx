@@ -21,6 +21,10 @@ import {
 } from "@primer/octicons-react";
 
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
+import {
+  readStoredSectionCollapsed,
+  storeSectionCollapsed,
+} from "./collapsed-sections";
 
 import "./settings-debrid.scss";
 import "./settings-retroachievements.scss";
@@ -63,13 +67,16 @@ export function SettingsRetroAchievements() {
   const [integration, setIntegration] = useState<RetroAchievementsIntegration>({
     connected: false,
   });
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     username: "",
     password: "",
-    webApiKey: "",
-  });
-  const [isCollapsed, setIsCollapsed] = useState(
-    () => !userPreferences?.retroAchievementsWebApiKey
+    webApiKey: userPreferences?.retroAchievementsWebApiKey ?? "",
+  }));
+  const [isCollapsed, setIsCollapsed] = useState(() =>
+    readStoredSectionCollapsed(
+      "retroachievements",
+      !userPreferences?.retroAchievementsWebApiKey
+    )
   );
   const [avatarError, setAvatarError] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
@@ -237,6 +244,13 @@ export function SettingsRetroAchievements() {
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const toggleCollapsed = () => {
+    const nextCollapsed = !isCollapsed;
+
+    storeSectionCollapsed("retroachievements", nextCollapsed);
+    setIsCollapsed(nextCollapsed);
   };
 
   const isConnectDisabled =
@@ -408,7 +422,7 @@ export function SettingsRetroAchievements() {
           <button
             type="button"
             className="settings-debrid__collapse-button"
-            onClick={() => setIsCollapsed((prev) => !prev)}
+            onClick={toggleCollapsed}
             aria-label={
               isCollapsed
                 ? t("expand_debrid_section", {

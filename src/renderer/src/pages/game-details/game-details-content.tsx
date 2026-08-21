@@ -215,6 +215,10 @@ export function GameDetailsContent() {
       ""
     : "";
 
+  const resolvedHeroImage = isLaunchboxGame
+    ? heroImage || launchboxCover
+    : heroImage;
+
   const launchboxPlatform = isLaunchboxGame
     ? (game?.platform ?? shopDetails?.platform ?? null)
     : null;
@@ -281,12 +285,14 @@ export function GameDetailsContent() {
                 </div>
               </div>
             </>
-          ) : (
+          ) : resolvedHeroImage ? (
             <img
-              src={isLaunchboxGame ? heroImage || launchboxCover : heroImage}
+              src={resolvedHeroImage}
               className="game-details__hero-image"
               alt={game?.title}
             />
+          ) : (
+            <div className="game-details__hero-image game-details__hero-image--placeholder" />
           )}
 
           {isLaunchboxGame && !hideClassicsBookmark && (

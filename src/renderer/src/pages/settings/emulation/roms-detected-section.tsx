@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, ChevronRightIcon } from "@primer/octicons-react";
 
 import { TextField } from "@renderer/components";
-import { getRegionsFromSkus, getSkuRegionFlag } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  getRegionsFromSkus,
+  getSkuRegionFlag,
+  resolveImageSource,
+} from "@renderer/helpers";
 import { formatBytes } from "@shared";
 import type { DetectedRom, EmulatorSystem } from "@types";
 
@@ -25,6 +31,7 @@ export function RomsSection<T extends DetectedRom>({
   renderRowExtra,
 }: Readonly<RomsSectionProps<T>>) {
   const { t } = useTranslation("settings");
+  const navigate = useNavigate();
   const [roms, setRoms] = useState<T[]>([]);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -90,15 +97,29 @@ export function RomsSection<T extends DetectedRom>({
             <>
               <div className="emulator-detail__roms">
                 {pageSlice.map((rom) => {
-                  const cover =
-                    rom.customCoverImageUrl ??
+                  const cover = resolveImageSource(
                     rom.customIconUrl ??
-                    rom.coverImageUrl ??
-                    rom.libraryImageUrl ??
-                    rom.iconUrl;
+                      rom.iconUrl ??
+                      rom.customCoverImageUrl ??
+                      rom.coverImageUrl ??
+                      rom.libraryImageUrl
+                  );
                   return (
                     <div className="emulator-detail__rom" key={rom.objectId}>
-                      <div className="emulator-detail__rom-game">
+                      <button
+                        type="button"
+                        className="emulator-detail__rom-game"
+                        title={rom.title}
+                        onClick={() =>
+                          navigate(
+                            buildGameDetailsPath({
+                              shop: "launchbox",
+                              objectId: rom.objectId,
+                              title: rom.title,
+                            })
+                          )
+                        }
+                      >
                         <div className="emulator-detail__rom-cover">
                           {cover && (
                             <img
@@ -109,13 +130,10 @@ export function RomsSection<T extends DetectedRom>({
                             />
                           )}
                         </div>
-                        <span
-                          className="emulator-detail__rom-title"
-                          title={rom.title}
-                        >
+                        <span className="emulator-detail__rom-title">
                           {rom.title}
                         </span>
-                      </div>
+                      </button>
                       <span
                         className="emulator-detail__rom-leader"
                         aria-hidden="true"

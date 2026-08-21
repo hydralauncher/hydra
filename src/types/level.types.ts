@@ -188,6 +188,10 @@ export interface UserPreferences {
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
+  hideLibraryGameBadges?: boolean;
+  hideLibraryClassicsBadges?: boolean;
+  hideLibraryAchievementProgress?: boolean;
+  autoplayAnimatedArtwork?: boolean;
 }
 
 export interface NetworkInterface {

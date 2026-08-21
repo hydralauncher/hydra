@@ -1,3 +1,5 @@
+@use "../../../scss/globals.scss";
+
 .game-assets-settings {
   display: flex;
   flex-direction: column;
@@ -81,7 +83,7 @@
     border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 6px;
     overflow: hidden;
-    background-color: var(--color-background-secondary);
+    background-color: globals.$dark-background-color;
     background-image:
       linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
       linear-gradient(-45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
@@ -111,7 +113,7 @@
     box-sizing: content-box;
     padding: 8px;
     overflow: hidden;
-    border: 2px dashed var(--color-border);
+    border: 2px dashed rgba(255, 255, 255, 0.5);
     border-radius: 8px;
     background: transparent;
     color: inherit;
@@ -124,9 +126,9 @@
 
     &:not(:disabled):hover,
     &:not(:disabled):focus-visible {
-      border-color: var(--color-primary);
+      border-color: rgba(255, 255, 255, 0.9);
       outline: none;
-      box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.18);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
 
       .game-assets-settings__preview-image {
         filter: blur(0.5px) brightness(0.65);
@@ -143,10 +145,10 @@
   }
 
   &__drop-zone--active {
-    border-color: var(--color-primary) !important;
-    background-color: rgba(var(--color-primary-rgb), 0.1) !important;
+    border-color: globals.$brand-teal !important;
+    background-color: rgba(22, 177, 149, 0.1) !important;
     transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+    box-shadow: 0 4px 12px rgba(22, 177, 149, 0.3);
 
     .game-assets-settings__preview-action-overlay {
       opacity: 0;
@@ -156,7 +158,7 @@
   &__drop-overlay {
     position: absolute;
     inset: 0;
-    background-color: rgba(var(--color-primary-rgb), 0.9);
+    background-color: rgba(22, 177, 149, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -172,9 +174,15 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    color: var(--color-text-secondary);
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    text-wrap: balance;
+    color: rgba(255, 255, 255, 0.6);
     font-size: 14px;
+    line-height: 1.3;
 
     svg {
       width: 24px;

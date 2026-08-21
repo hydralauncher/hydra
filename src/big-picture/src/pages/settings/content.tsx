@@ -35,6 +35,7 @@ interface ContentForm {
   showHiddenAchievementsDescription: boolean;
   enableSteamAchievements: boolean;
   enableAchievementSouvenirs: boolean;
+  autoplayAnimatedArtwork: boolean;
 }
 
 interface ContentItem {
@@ -54,6 +55,7 @@ const DEFAULT_FORM: ContentForm = {
     undefined,
     globalThis.window.electron.platform
   ),
+  autoplayAnimatedArtwork: false,
 };
 
 export function ContentSettingsSection({
@@ -86,6 +88,7 @@ export function ContentSettingsSection({
         userPreferences.enableAchievementSouvenirs,
         globalThis.window.electron.platform
       ),
+      autoplayAnimatedArtwork: userPreferences.autoplayAnimatedArtwork ?? false,
     });
   }, [userPreferences]);
 
@@ -201,6 +204,14 @@ export function ContentSettingsSection({
             },
           ]
         : []),
+      {
+        id: "autoplay-animated-artwork",
+        focusId: CONTENT_ITEM_FOCUS_IDS.autoplayAnimatedArtwork,
+        label: "Always play animated artwork (May affect performance)",
+        checked: form.autoplayAnimatedArtwork,
+        onChange: (checked: boolean) =>
+          void updateUserPreferences({ autoplayAnimatedArtwork: checked }),
+      },
     ];
   }, [
     form,

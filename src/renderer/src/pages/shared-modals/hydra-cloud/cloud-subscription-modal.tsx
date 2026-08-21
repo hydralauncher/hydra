@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
@@ -27,6 +27,19 @@ export function CloudSubscriptionModal({
   const cloudIframeOrigin = cloudIframeUrl
     ? new URL(cloudIframeUrl).origin
     : "";
+
+  const seedRef = useRef({ lang, feature });
+  seedRef.current = { lang, feature };
+
+  const iframeSrc = useMemo(() => {
+    if (!cloudIframeUrl) return undefined;
+
+    const { lang: seedLang, feature: seedFeature } = seedRef.current;
+
+    return `${cloudIframeUrl}?lng=${seedLang}${
+      seedFeature ? `&feature=${seedFeature}` : ""
+    }`;
+  }, [cloudIframeUrl]);
 
   useEffect(() => {
     let isMounted = true;
@@ -99,14 +112,18 @@ export function CloudSubscriptionModal({
 
   // Sync the launcher language + selected feature to the (already loaded)
   // iframe each time it opens, so it can switch cards without reloading.
+  const syncIframeState = useCallback(() => {
+    if (!cloudIframeOrigin) return;
+
+    iframeRef.current?.contentWindow?.postMessage(
+      { source: "hydra", lang, feature },
+      cloudIframeOrigin
+    );
+  }, [cloudIframeOrigin, lang, feature]);
+
   useEffect(() => {
-    if (visible && cloudIframeOrigin) {
-      iframeRef.current?.contentWindow?.postMessage(
-        { source: "hydra", lang, feature },
-        cloudIframeOrigin
-      );
-    }
-  }, [visible, lang, feature, cloudIframeOrigin]);
+    if (visible) syncIframeState();
+  }, [visible, syncIframeState]);
 
   // The overlay (and the iframe inside it) stays mounted for the lifetime of the
   // profile so the frame is preloaded; only its visibility is toggled. A hidden
@@ -152,13 +169,8 @@ export function CloudSubscriptionModal({
             ref={iframeRef}
             title="Hydra Cloud"
             className="cloud-subscription-modal__iframe"
-            src={
-              cloudIframeUrl
-                ? `${cloudIframeUrl}?lng=${lang}${
-                    feature ? `&feature=${feature}` : ""
-                  }`
-                : undefined
-            }
+            src={iframeSrc}
+            onLoad={syncIframeState}
           />
         )}
       </div>

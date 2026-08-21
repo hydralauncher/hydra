@@ -1339,7 +1339,7 @@ contextBridge.exposeInMainWorld("electron", {
   openFolder: (folderPath: string) =>
     ipcRenderer.invoke("openFolder", folderPath),
   isStaging: () => ipcRenderer.invoke("isStaging"),
-  isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
+  isPortableVersion: Boolean(process.env.PORTABLE_EXECUTABLE_FILE),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
   getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),

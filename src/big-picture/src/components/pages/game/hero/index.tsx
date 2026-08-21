@@ -379,11 +379,15 @@ export function Hero({
       })}
 
       <div className="game-page__hero-overlay">
-        <img
-          src={preferredAssets.logoSrc}
-          alt={preferredAssets.title}
-          className="game-page__hero-logo"
-        />
+        {preferredAssets.logoSrc ? (
+          <img
+            src={preferredAssets.logoSrc}
+            alt={preferredAssets.title}
+            className="game-page__hero-logo"
+          />
+        ) : (
+          <h1 className="game-page__hero-title">{preferredAssets.title}</h1>
+        )}
 
         <Typography
           className="game-page__hero-description"

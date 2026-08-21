@@ -45,29 +45,8 @@ const DEFAULT_FORM: BehaviorForm = {
 
 export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
   const userPreferences = useUserPreferences();
-  const [showRunAtStartup, setShowRunAtStartup] = useState(false);
+  const showRunAtStartup = !globalThis.window.electron.isPortableVersion;
   const [form, setForm] = useState<BehaviorForm>(DEFAULT_FORM);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    globalThis.window.electron
-      .isPortableVersion()
-      .then((isPortableVersion) => {
-        if (!isMounted) return;
-
-        setShowRunAtStartup(!isPortableVersion);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-
-        setShowRunAtStartup(true);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (!userPreferences) return;

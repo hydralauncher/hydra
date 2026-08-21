@@ -1,5 +1,10 @@
 import { userProfileContext } from "@renderer/context";
 import {
+  getShopsForProfilePlatform,
+  readStoredProfilePlatform,
+  readStoredProfileSort,
+} from "@renderer/helpers";
+import {
   useCallback,
   useContext,
   useEffect,
@@ -116,6 +121,7 @@ export function ProfileContent() {
     loadMoreSouvenirs,
     updateSouvenir,
     removeSouvenir,
+    loadedLibrarySortBy,
   } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
   const navigate = useNavigate();
@@ -133,18 +139,37 @@ export function ProfileContent() {
     (state) => state.userPreferences.value?.disableNsfwAlert === true
   );
   const [statsIndex, setStatsIndex] = useState(0);
-  const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
-  const [platform, setPlatform] = useState<ProfilePlatform>("all");
+  const [sortBy, setSortBy] = useState<SortOption>(readStoredProfileSort);
+
+  const prefetchedSortBy = useRef(readStoredProfileSort()).current;
+
+  const handleSortChange = useCallback((nextSortBy: SortOption) => {
+    setSortBy(nextSortBy);
+    localStorage.setItem("profile-sort-by", nextSortBy);
+  }, []);
+  const [platform, setPlatform] = useState<ProfilePlatform>(
+    readStoredProfilePlatform
+  );
+
+  const handlePlatformChange = useCallback((nextPlatform: ProfilePlatform) => {
+    setPlatform(nextPlatform);
+    localStorage.setItem("profile-platform", nextPlatform);
+  }, []);
   const effectiveSortBy =
     !userProfile?.hasActiveSubscription && sortBy === "achievementCount"
       ? "playedRecently"
       : sortBy;
 
-  const shops = useMemo<string[]>(() => {
-    if (platform === "pc") return ["steam"];
-    if (platform === "classics") return ["launchbox"];
-    return ["steam", "launchbox"];
-  }, [platform]);
+  const isCorrectingPrefetchedSort =
+    Boolean(userProfile) &&
+    sortBy === prefetchedSortBy &&
+    effectiveSortBy !== prefetchedSortBy &&
+    loadedLibrarySortBy !== effectiveSortBy;
+
+  const shops = useMemo<string[]>(
+    () => getShopsForProfilePlatform(platform),
+    [platform]
+  );
 
   const [activeTab, setActiveTab] = useState<ProfileTabType>(
     requestedTab === "souvenirs" ? "souvenirs" : "library"
@@ -309,7 +334,7 @@ export function ProfileContent() {
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
     setActiveTab(requestedTab === "souvenirs" ? "souvenirs" : "library");
-    setPlatform("all");
+    setPlatform(readStoredProfilePlatform());
   }, [requestedTab, userProfile?.id]);
 
   const fetchUserReviews = useCallback(async () => {
@@ -520,12 +545,13 @@ export function ProfileContent() {
               {activeTab === "library" && (
                 <LibraryTab
                   sortBy={effectiveSortBy}
-                  onSortChange={setSortBy}
+                  onSortChange={handleSortChange}
                   platform={platform}
-                  onPlatformChange={setPlatform}
+                  onPlatformChange={handlePlatformChange}
                   pinnedGames={pinnedGames}
                   libraryGames={libraryGames}
                   hasMoreLibraryGames={hasMoreLibraryGames}
+                  isAwaitingInitialLibrary={isCorrectingPrefetchedSort}
                   statsIndex={statsIndex}
                   userStats={userStats}
                   onLoadMore={handleLoadMore}

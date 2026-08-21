@@ -978,7 +978,7 @@ declare global {
       cb: (count: number) => void
     ) => () => Electron.IpcRenderer;
     openFolder: (folderPath: string) => Promise<string>;
-    isPortableVersion: () => Promise<boolean>;
+    isPortableVersion: boolean;
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;

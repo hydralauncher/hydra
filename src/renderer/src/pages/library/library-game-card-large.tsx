@@ -1,7 +1,14 @@
 import { LibraryGame } from "@types";
-import { useGameCard } from "@renderer/hooks";
+import {
+  isAnimatedCoverCandidate,
+  useAppSelector,
+  useCoverPoster,
+  useGameCard,
+  useAnimatedSourceWarmup,
+} from "@renderer/hooks";
 import {
   CLASSICS_PS_PLATFORM_LABELS,
+  isGameReadyToPlay,
   resolveClassicsBadge,
 } from "@renderer/helpers";
 import { AchievementProgress } from "@renderer/components";
@@ -42,7 +49,20 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
 
-  const isInstalled = Boolean(game.executablePath);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const hideBadges = userPreferences?.hideLibraryGameBadges ?? false;
+  const hideClassicsBadges =
+    userPreferences?.hideLibraryClassicsBadges ?? false;
+  const hideAchievementProgress =
+    userPreferences?.hideLibraryAchievementProgress ?? false;
+  const autoplayAnimatedArtwork =
+    userPreferences?.autoplayAnimatedArtwork ?? false;
+
+  const [isCoverHovered, setIsCoverHovered] = useState(false);
+
+  const isInstalled = isGameReadyToPlay(game);
 
   const sizeBars = useMemo(() => {
     const items: {
@@ -190,20 +210,50 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     };
   }, [heroIndex, heroSources]);
 
-  const backgroundStyle = useMemo(() => {
-    const url = heroSources[heroIndex];
-    return url ? { backgroundImage: `url("${normalizePathForCss(url)}")` } : {};
-  }, [heroIndex, heroSources]);
+  const rawHeroSource = heroSources[heroIndex];
+  const isAnimatedHero = isAnimatedCoverCandidate(rawHeroSource);
+  const heroPoster = useCoverPoster(rawHeroSource, isAnimatedHero);
+  const shouldHoldHeroFrame =
+    isAnimatedHero && !isCoverHovered && !autoplayAnimatedArtwork;
+  const isAwaitingHeroPoster = shouldHoldHeroFrame && heroPoster === undefined;
+
+  useAnimatedSourceWarmup(
+    normalizePathForCss(rawHeroSource),
+    isAnimatedHero && !autoplayAnimatedArtwork && Boolean(heroPoster)
+  );
+
+  let displayHeroSource: string | null | undefined = rawHeroSource;
+  if (isAwaitingHeroPoster) {
+    displayHeroSource = undefined;
+  } else if (shouldHoldHeroFrame && heroPoster) {
+    displayHeroSource = heroPoster;
+  }
 
   const activeHeroCandidate = heroCandidates[heroIndex];
   const isActiveHeroChosen = activeHeroCandidate?.isChosen ?? false;
   const renderClassicsBlurred = isClassics && !isActiveHeroChosen;
 
+  const usesAnimatedHeroLayer = isAnimatedHero && !renderClassicsBlurred;
+
+  const animatedHeroSource = usesAnimatedHeroLayer
+    ? normalizePathForCss(displayHeroSource)
+    : "";
+
+  const backgroundStyle = useMemo(
+    () =>
+      !usesAnimatedHeroLayer && displayHeroSource
+        ? {
+            backgroundImage: `url("${normalizePathForCss(displayHeroSource)}")`,
+          }
+        : {},
+    [usesAnimatedHeroLayer, displayHeroSource]
+  );
+
   const classicsForegroundUrl = useMemo(() => {
     if (!renderClassicsBlurred || !activeHeroCandidate) return null;
 
-    return normalizePathForCss(activeHeroCandidate.url);
-  }, [renderClassicsBlurred, activeHeroCandidate]);
+    return normalizePathForCss(displayHeroSource);
+  }, [renderClassicsBlurred, activeHeroCandidate, displayHeroSource]);
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
@@ -222,6 +272,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     <button
       type="button"
       className={`library-game-card-large ${renderClassicsBlurred ? "library-game-card-large--classics" : ""}`}
+      onMouseEnter={() => setIsCoverHovered(true)}
+      onMouseLeave={() => setIsCoverHovered(false)}
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >
@@ -229,6 +281,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         className="library-game-card-large__background"
         style={backgroundStyle}
       />
+      {usesAnimatedHeroLayer && animatedHeroSource && (
+        <img
+          src={animatedHeroSource}
+          alt=""
+          aria-hidden="true"
+          className="library-game-card-large__animated-hero"
+        />
+      )}
       {classicsForegroundUrl && (
         <img
           src={classicsForegroundUrl}
@@ -237,13 +297,13 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           loading="lazy"
         />
       )}
-      {(game.achievementCount ?? 0) > 0 && (
+      {!hideAchievementProgress && (game.achievementCount ?? 0) > 0 && (
         <div className="library-game-card-large__gradient" />
       )}
 
       <div className="library-game-card-large__overlay">
         <div className="library-game-card-large__top-section">
-          {sizeBars.length > 0 && (
+          {!hideBadges && sizeBars.length > 0 && (
             <div className="library-game-card-large__size-badges">
               {sizeBars.map((bar) => (
                 <div
@@ -265,7 +325,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           )}
 
           <div className="library-game-card-large__top-right">
-            {isInstalled && (
+            {!hideBadges && isInstalled && (
               <div
                 className="library-game-card-large__installed-badge"
                 title={t("installed_tooltip")}
@@ -280,21 +340,23 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
               </div>
             )}
 
-            <div className="library-game-card-large__playtime">
-              {game.hasManuallyUpdatedPlaytime ? (
-                <AlertFillIcon
-                  size={11}
-                  className="library-game-card-large__manual-playtime"
-                />
-              ) : (
-                <ClockIcon size={11} />
-              )}
-              <span className="library-game-card-large__playtime-text">
-                {formatPlayTime(game.playTimeInMilliseconds)}
-              </span>
-            </div>
+            {!hideBadges && (
+              <div className="library-game-card-large__playtime">
+                {game.hasManuallyUpdatedPlaytime ? (
+                  <AlertFillIcon
+                    size={11}
+                    className="library-game-card-large__manual-playtime"
+                  />
+                ) : (
+                  <ClockIcon size={11} />
+                )}
+                <span className="library-game-card-large__playtime-text">
+                  {formatPlayTime(game.playTimeInMilliseconds)}
+                </span>
+              </div>
+            )}
 
-            {classicsPlatformLabel && (
+            {!hideClassicsBadges && classicsPlatformLabel && (
               <div className="library-game-card-large__classics-badges">
                 <span className="library-game-card-large__platform-badge">
                   {classicsPlatformLabel}
@@ -322,7 +384,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         </div>
 
         <div className="library-game-card-large__info-bar">
-          {(game.achievementCount ?? 0) > 0 && (
+          {!hideAchievementProgress && (game.achievementCount ?? 0) > 0 && (
             <AchievementProgress
               achievementCount={game.achievementCount ?? 0}
               unlockedAchievementCount={unlockedAchievementsCount}

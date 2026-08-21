@@ -159,6 +159,13 @@
     background: white;
   }
 
+  &__game-skeleton {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    border-radius: 4px;
+    display: block;
+  }
+
   &__souvenirs-empty {
     margin-top: calc(36px + globals.$spacing-unit * 2);
 

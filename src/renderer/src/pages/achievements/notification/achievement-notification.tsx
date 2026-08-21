@@ -180,9 +180,14 @@ export function AchievementNotification() {
               nextRequest.type === "achievement"
                 ? { ...nextRequest.achievement, iconUrl: resolvedIcon }
                 : {
-                    title: t("new_achievements_unlocked", {
-                      gameCount: nextRequest.gameCount,
-                      achievementCount: nextRequest.achievementCount,
+                    title: t("new_achievements"),
+                    description: t("new_achievements_description", {
+                      achievements: t("new_achievements_achievement_count", {
+                        count: nextRequest.achievementCount,
+                      }),
+                      games: t("new_achievements_game_count", {
+                        count: nextRequest.gameCount,
+                      }),
                     }),
                     isHidden: false,
                     isRare: false,
