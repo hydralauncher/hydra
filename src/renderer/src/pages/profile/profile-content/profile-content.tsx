@@ -17,6 +17,7 @@ import {
 import { setHeaderTitle } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
+import { isAchievementSouvenirsEnabled } from "@shared";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { BadgesBox } from "./badges-box";
@@ -122,8 +123,11 @@ export function ProfileContent() {
   const requestedTab = searchParams.get("tab");
   const requestedSouvenir = searchParams.get("souvenir");
   const attemptedDeepLinkPagesRef = useRef(new Set<string>());
-  const souvenirsEnabled = useAppSelector(
-    (state) => state.userPreferences.value?.enableAchievementSouvenirs !== false
+  const souvenirsEnabled = useAppSelector((state) =>
+    isAchievementSouvenirsEnabled(
+      state.userPreferences.value?.enableAchievementSouvenirs,
+      window.electron.platform
+    )
   );
   const disableNsfwAlert = useAppSelector(
     (state) => state.userPreferences.value?.disableNsfwAlert === true

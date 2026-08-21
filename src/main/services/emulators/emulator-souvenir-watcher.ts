@@ -3,6 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 import type { Game, User, UserPreferences } from "@types";
+import { isAchievementSouvenirsEnabled } from "@shared";
 
 import { INTERVALS } from "@main/constants";
 import { db, levelKeys } from "@main/level";
@@ -47,7 +48,10 @@ const isSouvenirCaptureEnabled = async () => {
     { valueEncoding: "json" }
   );
 
-  return userPreferences?.enableAchievementSouvenirs !== false;
+  return isAchievementSouvenirsEnabled(
+    userPreferences?.enableAchievementSouvenirs,
+    process.platform
+  );
 };
 
 const queueGroupedSouvenir = async (

@@ -16,6 +16,7 @@ import {
   QuestionIcon,
 } from "@primer/octicons-react";
 import { useLocation } from "react-router-dom";
+import { isAchievementSouvenirsEnabled } from "@shared";
 
 import "./settings-behavior.scss";
 
@@ -35,7 +36,10 @@ export function SettingsContextContentGameplay() {
     disableNsfwAlert: false,
     showHiddenAchievementsDescription: false,
     enableSteamAchievements: false,
-    enableAchievementSouvenirs: true,
+    enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
+      undefined,
+      window.electron.platform
+    ),
     enableNewDownloadOptionsBadges: true,
     hideClassicsBookmark: false,
     classicsUseHeroLayout: false,
@@ -59,8 +63,10 @@ export function SettingsContextContentGameplay() {
       showHiddenAchievementsDescription:
         userPreferences.showHiddenAchievementsDescription ?? false,
       enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
-      enableAchievementSouvenirs:
-        userPreferences.enableAchievementSouvenirs ?? true,
+      enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
+        userPreferences.enableAchievementSouvenirs,
+        window.electron.platform
+      ),
       enableNewDownloadOptionsBadges:
         userPreferences.enableNewDownloadOptionsBadges ?? true,
       hideClassicsBookmark: userPreferences.hideClassicsBookmark ?? false,
