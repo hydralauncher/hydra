@@ -14,6 +14,11 @@ import type { EmulatorSessionSystem } from "./emulator-session-tracker";
 import { prepareLinuxGameCaptureSession } from "../linux-game-capture-session";
 import { PendingGroupedSouvenirStore } from "../achievements/grouped-souvenir-store";
 import { groupedSouvenirWorker } from "../achievements/grouped-souvenir-worker";
+import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
+import {
+  groupRetroArchSouvenirAchievements,
+  type RetroArchSouvenirAchievement,
+} from "./retroarch-souvenir-achievement-group";
 
 const DUCKSTATION_UNLOCK = /Achievement (\d+) \((.*?)\) for game \d+ unlocked/;
 const PCSX2_UNLOCK =
@@ -21,11 +26,10 @@ const PCSX2_UNLOCK =
 const RETROARCH_SOUVENIR = /-cheevo-(\d+)\.[a-z]+$/i;
 const RETROARCH_SCREENSHOT_STABILITY_ATTEMPTS = 5;
 const RETROARCH_SCREENSHOT_STABILITY_DELAY_MS = 100;
+const RETROARCH_RECONCILIATION_ATTEMPTS = 2;
+const RETROARCH_RECONCILIATION_DELAY_MS = 1_000;
 
-interface UnlockedAchievement {
-  id: string;
-  title: string;
-}
+type UnlockedAchievement = RetroArchSouvenirAchievement;
 
 interface WatcherRegistration {
   token: object;
@@ -73,7 +77,7 @@ const queueGroupedSouvenir = async (
     capturedAt,
     achievements: achievements.map((achievement) => ({
       name: achievement.id,
-      unlockTime: capturedAt,
+      unlockTime: achievement.unlockTime ?? capturedAt,
     })),
     status: "pending",
     attemptCount: 0,
@@ -91,6 +95,46 @@ const uniqueUnlocks = (achievements: UnlockedAchievement[]) =>
       ])
     ).values()
   );
+
+const waitForRetroAchievementsReconciliation = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, RETROARCH_RECONCILIATION_DELAY_MS);
+  });
+
+const reconcileRetroArchAchievements = async (
+  game: Game,
+  detectedAchievements: UnlockedAchievement[]
+) => {
+  let reconciledAchievements = detectedAchievements;
+
+  for (
+    let attempt = 0;
+    attempt < RETROARCH_RECONCILIATION_ATTEMPTS;
+    attempt++
+  ) {
+    if (attempt > 0) await waitForRetroAchievementsReconciliation();
+
+    const result = await syncRetroAchievements({
+      objectId: game.objectId,
+      shop: game.shop,
+    });
+    if (result.status !== "success") return reconciledAchievements;
+
+    reconciledAchievements = groupRetroArchSouvenirAchievements(
+      detectedAchievements,
+      result.achievements
+    );
+    if (reconciledAchievements.length > detectedAchievements.length) {
+      achievementsLogger.info("Grouped simultaneous RetroArch achievements", {
+        objectId: game.objectId,
+        achievementIds: reconciledAchievements.map(({ id }) => id),
+      });
+      return reconciledAchievements;
+    }
+  }
+
+  return reconciledAchievements;
+};
 
 interface RetroArchSouvenirFile {
   directory: string;
@@ -435,10 +479,23 @@ const startRetroArchWatcher = (
       });
       if (!screenshotPath) return;
 
+      let groupedAchievements = achievements;
+      try {
+        groupedAchievements = await reconcileRetroArchAchievements(
+          game,
+          achievements
+        );
+      } catch (error) {
+        achievementsLogger.warn(
+          "Failed to reconcile simultaneous RetroArch achievements",
+          { objectId: game.objectId, error }
+        );
+      }
+
       try {
         await queueGroupedSouvenir(
           game,
-          achievements,
+          groupedAchievements,
           screenshotPath,
           clientId,
           capturedAt
