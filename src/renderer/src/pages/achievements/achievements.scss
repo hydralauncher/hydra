@@ -117,6 +117,46 @@ $logo-max-width: 200px;
       }
     }
 
+    &-souvenir {
+      position: relative;
+      display: inline-flex;
+      padding: 0;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+
+      &:hover {
+        .achievements__item-souvenir-image {
+          filter: brightness(0.6);
+        }
+
+        .achievements__item-souvenir-overlay {
+          opacity: 1;
+        }
+      }
+
+      &-image {
+        width: 120px;
+        height: 60px;
+        border-radius: 4px;
+        object-fit: cover;
+        transition: filter 0.2s ease;
+      }
+
+      &-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        color: globals.$muted-color;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        pointer-events: none;
+      }
+    }
+
     &-content {
       flex: 1;
     }
@@ -166,6 +206,7 @@ $logo-max-width: 200px;
     &-meta {
       display: flex;
       flex-direction: column;
+      align-items: flex-end;
       gap: 8px;
     }
 
