@@ -712,7 +712,13 @@
     "steamgriddb_sign_in_required": "Войдите в Hydra, чтобы просматривать обложки SteamGridDB.",
     "steamgriddb_fetch_failed": "Не удалось загрузить ресурсы SteamGridDB",
     "steamgriddb_artwork_updated": "Оформление обновлено",
-    "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию"
+    "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию",
+    "Main Story": "Основной сюжет",
+    "Main + Sides": "Основной сюжет + побочные задания",
+    "Completionist": "Полное прохождение",
+    "Try adjusting your search terms or filters.": "Попробуйте изменить поисковый запрос или фильтры.",
+    "Empty collection": "Пустая коллекция",
+    "Add games to this collection to see them here.": "Добавьте игры в эту коллекцию, и они появятся здесь."
   },
   "format": {
     "playtime_hours_one": "{{count}} час",
@@ -781,6 +787,31 @@
     "file_explorer_select_this_directory": "Выбрать эту папку",
     "file_explorer_select_download_directory": "Выбрать папку загрузки",
     "steamgriddb_artwork_updated": "Оформление обновлено",
-    "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию"
+    "steamgriddb_artwork_reset": "Оформление сброшено по умолчанию",
+    "download_options_count_one": "{{formattedCount}} вариант загрузки",
+    "download_options_count_few": "{{formattedCount}} варианта загрузки",
+    "download_options_count_many": "{{formattedCount}} вариантов загрузки",
+    "download_options_count_other": "{{formattedCount}} варианта загрузки",
+    "download_sources_count_one": "{{count}} источник загрузки",
+    "download_sources_count_few": "{{count}} источника загрузки",
+    "download_sources_count_many": "{{count}} источников загрузки",
+    "download_sources_count_other": "{{count}} источника загрузки",
+    "game_review_played_for": "после {{time}} в игре",
+    "game_review_rating_only": "оценка",
+    "reset_achievements_souvenirs_description": "При сбросе всех достижений для {{game}} все связанные с ними сувениры также будут удалены без возможности восстановления.",
+    "downloads_finished_at": "Завершено в {{time}}",
+    "library_tab_all": "Все ({{count}})",
+    "library_tab_moderns": "Современные ({{count}})",
+    "library_tab_classics": "Классика ({{count}})",
+    "library_tab_favorites": "Избранное ({{count}})",
+    "library_tab_completed": "Пройденные ({{count}})",
+    "recently_played_fallback": "недавно",
+    "select_executable_path": "Выбрать путь",
+    "clear_executable_path": "Очистить путь",
+    "clear_launch_args": "Очистить аргументы",
+    "additional_options_description": "Настройте параметры GameMode и MangoHud отдельно для этой игры",
+    "never_played": "Ещё не запускалась",
+    "compact_hours": "{{count}} ч",
+    "compact_minutes": "{{count}} мин"
   }
 }
