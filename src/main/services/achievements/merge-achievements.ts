@@ -43,7 +43,7 @@ const captureAchievementSouvenirs = async (
     !newAchievements.length ||
     !publishNotification ||
     !game.remoteId ||
-    userPreferences.enableAchievementSouvenirs !== true ||
+    userPreferences.enableAchievementSouvenirs === false ||
     !HydraApi.hasActiveSubscription()
   ) {
     return null;
