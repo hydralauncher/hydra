@@ -1,5 +1,6 @@
 import { BrowserWindow, desktopCapturer, nativeImage } from "electron";
 import type { UserPreferences } from "@types";
+import { isAchievementSouvenirsEnabled } from "@shared";
 import capturePagePath from "@resources/linux-game-capture.html?asset";
 
 import { db, levelKeys } from "@main/level";
@@ -103,7 +104,10 @@ export const prepareLinuxGameCaptureSession = async (gameKey: string) => {
     );
 
     if (
-      userPreferences?.enableAchievementSouvenirs === false ||
+      !isAchievementSouvenirsEnabled(
+        userPreferences?.enableAchievementSouvenirs,
+        process.platform
+      ) ||
       !HydraApi.hasActiveSubscription()
     ) {
       if (sessions.get(gameKey)?.token === token) sessions.delete(gameKey);

@@ -23,6 +23,7 @@ import {
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
+import { isAchievementSouvenirsEnabled } from "@shared";
 
 interface SettingsSectionProps {
   className?: string;
@@ -49,7 +50,10 @@ const DEFAULT_FORM: ContentForm = {
   disableNsfwAlert: false,
   showHiddenAchievementsDescription: false,
   enableSteamAchievements: false,
-  enableAchievementSouvenirs: true,
+  enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
+    undefined,
+    globalThis.window.electron.platform
+  ),
 };
 
 export function ContentSettingsSection({
@@ -78,8 +82,10 @@ export function ContentSettingsSection({
       showHiddenAchievementsDescription:
         userPreferences.showHiddenAchievementsDescription ?? false,
       enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
-      enableAchievementSouvenirs:
-        userPreferences.enableAchievementSouvenirs ?? true,
+      enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
+        userPreferences.enableAchievementSouvenirs,
+        globalThis.window.electron.platform
+      ),
     });
   }, [userPreferences]);
 

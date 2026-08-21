@@ -17,6 +17,12 @@ import {
 import { setHeaderTitle } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
+import {
+  AuthPage,
+  findSouvenirByNotificationTarget,
+  isAchievementSouvenirsEnabled,
+  useSouvenirContentWarning,
+} from "@shared";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { BadgesBox } from "./badges-box";
@@ -35,11 +41,6 @@ import { SouvenirLightbox } from "./souvenir-lightbox";
 import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
-import {
-  AuthPage,
-  findSouvenirByNotificationTarget,
-  useSouvenirContentWarning,
-} from "@shared";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ConfirmationModal } from "@renderer/components";
 import "./profile-content.scss";
@@ -122,8 +123,11 @@ export function ProfileContent() {
   const requestedTab = searchParams.get("tab");
   const requestedSouvenir = searchParams.get("souvenir");
   const attemptedDeepLinkPagesRef = useRef(new Set<string>());
-  const souvenirsEnabled = useAppSelector(
-    (state) => state.userPreferences.value?.enableAchievementSouvenirs !== false
+  const souvenirsEnabled = useAppSelector((state) =>
+    isAchievementSouvenirsEnabled(
+      state.userPreferences.value?.enableAchievementSouvenirs,
+      window.electron.platform
+    )
   );
   const disableNsfwAlert = useAppSelector(
     (state) => state.userPreferences.value?.disableNsfwAlert === true

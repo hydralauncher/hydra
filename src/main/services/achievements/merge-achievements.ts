@@ -8,6 +8,7 @@ import type {
   User,
   UserPreferences,
 } from "@types";
+import { isAchievementSouvenirsEnabled } from "@shared";
 import { randomUUID } from "node:crypto";
 import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
@@ -43,7 +44,10 @@ const captureAchievementSouvenirs = async (
     !newAchievements.length ||
     !publishNotification ||
     !game.remoteId ||
-    userPreferences.enableAchievementSouvenirs === false ||
+    !isAchievementSouvenirsEnabled(
+      userPreferences.enableAchievementSouvenirs,
+      process.platform
+    ) ||
     !HydraApi.hasActiveSubscription()
   ) {
     return null;

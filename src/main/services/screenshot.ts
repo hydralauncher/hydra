@@ -14,6 +14,7 @@ import {
   isWaylandSession,
 } from "./linux-game-capture-session";
 import {
+  getWindowsProcessAncestryDiagnostics,
   isWindowsGameForegroundProcess,
   isWindowsWindowSource,
 } from "./windows-game-window-match";
@@ -188,8 +189,13 @@ const resolveWindowsGameWindowSource = async (
 
   if (!belongsToGame) {
     logger.warn("Windows game capture rejected the foreground process", {
+      executablePaths: captureTarget.executablePaths ?? [],
       foregroundProcessId: foregroundWindow.processId,
       launchedProcessId: captureTarget.processId,
+      processAncestry: getWindowsProcessAncestryDiagnostics(
+        processes,
+        foregroundWindow.processId
+      ),
       windowHandle,
     });
     throw new Error("Tracked game does not own the foreground window");

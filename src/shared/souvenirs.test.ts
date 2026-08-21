@@ -11,6 +11,7 @@ import {
   getPrimarySouvenirAchievement,
   getSouvenirKey,
   getSouvenirVisualVariant,
+  isAchievementSouvenirsEnabled,
   findSouvenirByNotificationTarget,
   normalizeProfileSouvenir,
   normalizeSouvenirReportValues,
@@ -18,6 +19,17 @@ import {
 } from "./souvenirs.js";
 
 describe("souvenir API helpers", () => {
+  it("defaults souvenirs off on Linux and on elsewhere", () => {
+    assert.equal(isAchievementSouvenirsEnabled(undefined, "linux"), false);
+    assert.equal(isAchievementSouvenirsEnabled(undefined, "win32"), true);
+    assert.equal(isAchievementSouvenirsEnabled(undefined, "darwin"), true);
+  });
+
+  it("preserves an explicit souvenir preference on every platform", () => {
+    assert.equal(isAchievementSouvenirsEnabled(true, "linux"), true);
+    assert.equal(isAchievementSouvenirsEnabled(false, "win32"), false);
+  });
+
   it("builds an encoded paginated feed path", () => {
     const path = buildUserSouvenirsPath({
       userId: "user/id",
