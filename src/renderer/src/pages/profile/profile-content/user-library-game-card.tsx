@@ -1,12 +1,8 @@
 import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import {
-  useFormat,
-  useCoverPoster,
-  isAnimatedCoverCandidate,
-} from "@renderer/hooks";
+import { useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useState } from "react";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,
@@ -14,16 +10,11 @@ import {
   isGameCompleted,
 } from "@renderer/helpers";
 import { userProfileContext } from "@renderer/context";
-import {
-  ClockIcon,
-  TrophyIcon,
-  AlertFillIcon,
-  ImageIcon,
-} from "@primer/octicons-react";
+import { ClockIcon, TrophyIcon, AlertFillIcon } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
-import { ProgressBar } from "@renderer/components";
+import { ProgressBar, VerticalCoverCard } from "@renderer/components";
 import "./user-library-game-card.scss";
 
 interface UserLibraryGameCardProps {
@@ -42,21 +33,8 @@ export function UserLibraryGameCard({
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
-  const [imageError, setImageError] = useState(false);
 
   const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
-
-  const isAnimatedCover = isAnimatedCoverCandidate(coverImageUrl);
-  const coverPoster = useCoverPoster(coverImageUrl, isAnimatedCover);
-  const [isCoverHovered, setIsCoverHovered] = useState(false);
-  const displayCoverUrl =
-    (isAnimatedCover && !isCoverHovered && coverPoster
-      ? coverPoster
-      : coverImageUrl) ?? undefined;
-
-  useEffect(() => {
-    setImageError(false);
-  }, [coverImageUrl]);
 
   const isCompleted = isGameCompleted(
     game.achievementCount,
@@ -131,64 +109,21 @@ export function UserLibraryGameCard({
     onContextMenu(game, { x: event.clientX, y: event.clientY });
   };
 
-  const renderCoverMedia = () => {
-    if (imageError || !coverImageUrl) {
-      return (
-        <div className="user-library-game__cover-placeholder">
-          <ImageIcon size={48} />
-        </div>
-      );
-    }
-
-    if (game.shop === "launchbox" && !game.customLibraryImageUrl) {
-      return (
-        <div className="user-library-game__classics-cover">
-          <img
-            src={displayCoverUrl}
-            alt=""
-            aria-hidden="true"
-            className="user-library-game__classics-backdrop"
-            loading="lazy"
-            decoding="async"
-            onError={() => setImageError(true)}
-          />
-          <img
-            src={displayCoverUrl}
-            alt={game.title}
-            className="user-library-game__classics-image"
-            loading="lazy"
-            decoding="async"
-            onError={() => setImageError(true)}
-          />
-        </div>
-      );
-    }
-
-    return (
-      <img
-        src={displayCoverUrl}
-        alt={game.title}
-        className="user-library-game__game-image"
-        loading="lazy"
-        decoding="async"
-        onError={() => setImageError(true)}
-      />
-    );
-  };
-
   return (
     <>
       <li
         className="user-library-game__wrapper"
         title={isTooltipHovered ? undefined : game.title}
       >
-        <button
-          type="button"
-          className="user-library-game__cover"
+        <VerticalCoverCard
+          gameTitle={game.title}
+          coverImageUrls={[coverImageUrl]}
+          useClassicsLayout={
+            game.shop === "launchbox" && !game.customLibraryImageUrl
+          }
+          showTitleTooltip={false}
           onClick={() => navigate(buildUserGameDetailsPath(game))}
           onContextMenu={handleContextMenu}
-          onMouseEnter={() => setIsCoverHovered(true)}
-          onMouseLeave={() => setIsCoverHovered(false)}
         >
           <div
             className={`user-library-game__overlay${game.shop === "launchbox" && !game.customLibraryImageUrl ? " user-library-game__overlay--classics" : ""}${hasAchievementProgress ? "" : " user-library-game__overlay--no-fade"}`}
@@ -276,9 +211,7 @@ export function UserLibraryGameCard({
               </div>
             )}
           </div>
-
-          {renderCoverMedia()}
-        </button>
+        </VerticalCoverCard>
       </li>
       <Tooltip
         id={game.objectId}
