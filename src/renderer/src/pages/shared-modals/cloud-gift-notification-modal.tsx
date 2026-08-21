@@ -1,25 +1,31 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
-import {
-  Avatar,
-  Button,
-  CheckboxField,
-  Link,
-  Modal,
-} from "@renderer/components";
-import { useDate, useUserDetails } from "@renderer/hooks";
+import { Avatar, Link } from "@renderer/components";
+import { useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import type { Notification, NotificationsResponse } from "@types";
 
+import logoStroke from "../../assets/cloud-gift/logo-stroke.png";
+import logoStrokeGlow from "../../assets/cloud-gift/logo-stroke-glow.png";
+import logoStrokeHalftone from "../../assets/cloud-gift/logo-stroke-halftone.png";
+import logoVector from "../../assets/cloud-gift/logo-vector.png";
+import logoVectorGlow from "../../assets/cloud-gift/logo-vector-glow.png";
+import logoVectorHalftone from "../../assets/cloud-gift/logo-vector-halftone.png";
+import raysInner from "../../assets/cloud-gift/rays-inner.png";
+import raysOuter from "../../assets/cloud-gift/rays-outer.png";
+
+import {
+  CLOUD_GIFT_MODAL_OPEN_EVENT,
+  type CloudGiftModalOpenDetail,
+} from "./cloud-gift-modal.events";
 import "./cloud-gift-notification-modal.scss";
 
 interface CloudGiftDetails {
-  id: string;
-  durationMonths: number;
   message: string | null;
-  claimExpiresAt: string | null;
   status: string;
   buyer: {
     id: string;
@@ -28,18 +34,76 @@ interface CloudGiftDetails {
   };
 }
 
+const OPEN_ANIMATION_DURATION = 2.912;
+const RING_SCALE_TIMES = [0, 1.0104 / OPEN_ANIMATION_DURATION, 1];
+const RING_MOVE_TIMES = [
+  0,
+  1.008 / OPEN_ANIMATION_DURATION,
+  1.7028 / OPEN_ANIMATION_DURATION,
+  1,
+];
+const PANEL_REVEAL_TIMES = [0, 1.4346 / OPEN_ANIMATION_DURATION, 1];
+const SHINE_MOVE_TIMES = [
+  0,
+  0.5886 / OPEN_ANIMATION_DURATION,
+  2.5512 / OPEN_ANIMATION_DURATION,
+  1,
+];
+
+const figmaFirmSpring = (value: number) =>
+  1 -
+  Math.exp(-value * 11.1803) *
+    (Math.cos(value * 0.1581) + 70.7054 * Math.sin(value * 0.1581));
+
+const figmaSoftSpring = (value: number) =>
+  1 -
+  Math.exp(-value * 7.6657) *
+    (Math.cos(value * 6.7605) + 1.1339 * Math.sin(value * 6.7605));
+
+const figmaLogoSpring = (value: number) =>
+  1 -
+  Math.exp(-value * 8.3046) *
+    (Math.cos(value * 2.7296) + 3.0424 * Math.sin(value * 2.7296));
+
+const createRingTransition = (scaleEase: (value: number) => number) => ({
+  rotate: {
+    duration: OPEN_ANIMATION_DURATION,
+    times: RING_SCALE_TIMES,
+    ease: [figmaFirmSpring, "linear" as const],
+  },
+  scaleX: {
+    duration: OPEN_ANIMATION_DURATION,
+    times: RING_SCALE_TIMES,
+    ease: [scaleEase, "linear" as const],
+  },
+  scaleY: {
+    duration: OPEN_ANIMATION_DURATION,
+    times: RING_SCALE_TIMES,
+    ease: [scaleEase, "linear" as const],
+  },
+  y: {
+    duration: OPEN_ANIMATION_DURATION,
+    times: RING_MOVE_TIMES,
+    ease: ["linear" as const, figmaFirmSpring, "linear" as const],
+  },
+});
+
 const getSuppressionKey = (giftId: string) =>
   `cloudGiftModalSuppressed:${giftId}`;
 
 export function CloudGiftNotificationModal() {
   const { t } = useTranslation("notifications_page");
-  const { formatDate } = useDate();
   const { userDetails } = useUserDetails();
+  const shouldReduceMotion = useReducedMotion();
+  const headingId = useId();
+  const messageId = useId();
   const isCheckingRef = useRef(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const acceptButtonRef = useRef<HTMLButtonElement | null>(null);
   const dismissedGiftIdsRef = useRef(new Set<string>());
   const [notification, setNotification] = useState<Notification | null>(null);
   const [gift, setGift] = useState<CloudGiftDetails | null>(null);
-  const [doNotShowAgain, setDoNotShowAgain] = useState(false);
+  const [isRevealComplete, setIsRevealComplete] = useState(false);
 
   const findPendingGift = useCallback(async () => {
     if (!userDetails || isCheckingRef.current || notification) return;
@@ -72,16 +136,15 @@ export function CloudGiftNotificationModal() {
 
         if (isSuppressed) continue;
 
-        const gift = await window.electron.hydraApi
+        const giftDetails = await window.electron.hydraApi
           .get<CloudGiftDetails>(`/cloud-gifts/${giftId}`, {
             needsAuth: true,
           })
           .catch(() => null);
 
-        if (gift?.status === "PENDING_ACCEPTANCE") {
-          setGift(gift);
+        if (giftDetails?.status === "PENDING_ACCEPTANCE") {
+          setGift(giftDetails);
           setNotification(item);
-          setDoNotShowAgain(false);
           break;
         }
       }
@@ -104,135 +167,350 @@ export function CloudGiftNotificationModal() {
     return () => unsubscribe();
   }, [findPendingGift]);
 
-  const closeModal = useCallback(async () => {
-    if (notification && doNotShowAgain) {
-      await levelDBService
-        .put(
-          getSuppressionKey(notification.variables.giftId),
-          true,
-          null,
-          "json"
-        )
-        .catch((error) => {
-          logger.error("Failed to suppress Cloud Gift modal", error);
-        });
-    }
+  useEffect(() => {
+    const onOpenGiftModal = (event: Event) => {
+      const { notification: requestedNotification } = (
+        event as CustomEvent<CloudGiftModalOpenDetail>
+      ).detail;
+      const giftId = requestedNotification.variables.giftId;
 
+      if (requestedNotification.type !== "CLOUD_GIFT_RECEIVED" || !giftId) {
+        return;
+      }
+
+      setGift(null);
+      setNotification(requestedNotification);
+
+      void window.electron.hydraApi
+        .get<CloudGiftDetails>(`/cloud-gifts/${giftId}`, {
+          needsAuth: true,
+        })
+        .then((giftDetails) => {
+          setGift(giftDetails);
+        })
+        .catch((error) => {
+          logger.error("Failed to open Cloud Gift modal", error);
+          setNotification(null);
+        });
+    };
+
+    window.addEventListener(CLOUD_GIFT_MODAL_OPEN_EVENT, onOpenGiftModal);
+
+    return () => {
+      window.removeEventListener(CLOUD_GIFT_MODAL_OPEN_EVENT, onOpenGiftModal);
+    };
+  }, []);
+
+  const dismissCurrentGift = useCallback(() => {
     if (notification) {
       dismissedGiftIdsRef.current.add(notification.variables.giftId);
     }
 
     setNotification(null);
     setGift(null);
-  }, [doNotShowAgain, notification]);
+  }, [notification]);
 
   const openGift = useCallback(async () => {
     if (!notification) return;
 
-    if (doNotShowAgain) {
-      await levelDBService
-        .put(
-          getSuppressionKey(notification.variables.giftId),
-          true,
-          null,
-          "json"
-        )
-        .catch((error) => {
-          logger.error("Failed to suppress Cloud Gift modal", error);
-        });
-    }
-
     await window.electron.openCheckout({
       path: `/gifts/${notification.variables.giftId}`,
     });
-    dismissedGiftIdsRef.current.add(notification.variables.giftId);
-    setNotification(null);
-    setGift(null);
-  }, [doNotShowAgain, notification]);
+    dismissCurrentGift();
+  }, [dismissCurrentGift, notification]);
 
-  return (
-    <Modal
-      visible={Boolean(notification)}
-      title={t("cloud_gift_modal_title")}
-      description={
-        gift
-          ? t("cloud_gift_modal_description", {
-              displayName: gift.buyer.displayName,
-              count: gift.durationMonths,
-            })
-          : undefined
+  const isVisible = Boolean(notification && gift);
+
+  const isTopMostDialog = useCallback(() => {
+    const openDialogs = document.querySelectorAll<HTMLElement>(
+      '[role="dialog"]:not([aria-hidden="true"])'
+    );
+
+    return (
+      openDialogs.length > 0 &&
+      openDialogs[openDialogs.length - 1] === dialogRef.current
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const previouslyFocusedElement = document.activeElement as HTMLElement;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isTopMostDialog()) {
+        dismissCurrentGift();
       }
-      onClose={() => void closeModal()}
-    >
-      <div className="cloud-gift-notification-modal">
-        {gift && (
-          <>
-            {gift.message ? (
-              <blockquote className="cloud-gift-notification-modal__message-card">
-                <div className="cloud-gift-notification-modal__message-avatar">
-                  <Avatar
-                    size={40}
-                    src={gift.buyer.profileImageUrl}
-                    alt={gift.buyer.displayName}
-                  />
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      previouslyFocusedElement?.focus();
+    };
+  }, [dismissCurrentGift, isTopMostDialog, isVisible]);
+
+  useEffect(() => {
+    setIsRevealComplete(Boolean(isVisible && shouldReduceMotion));
+  }, [isVisible, shouldReduceMotion]);
+
+  useEffect(() => {
+    if (isRevealComplete) {
+      acceptButtonRef.current?.focus();
+    }
+  }, [isRevealComplete]);
+
+  return createPortal(
+    <AnimatePresence>
+      {notification && gift && (
+        <motion.div
+          key={notification.variables.giftId}
+          className="cloud-gift-notification-modal__overlay"
+          initial={shouldReduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget && isTopMostDialog()) {
+              dismissCurrentGift();
+            }
+          }}
+        >
+          <div
+            ref={dialogRef}
+            className="cloud-gift-notification-modal__stage"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={headingId}
+            aria-describedby={gift.message ? messageId : undefined}
+            aria-busy={!isRevealComplete}
+            data-reveal-complete={isRevealComplete}
+            data-hydra-dialog
+          >
+            {[raysOuter, raysInner].map((source, index) => (
+              <motion.div
+                key={source}
+                className={`cloud-gift-notification-modal__rays cloud-gift-notification-modal__rays--${
+                  index === 0 ? "outer" : "inner"
+                }`}
+                initial={
+                  shouldReduceMotion
+                    ? false
+                    : { rotate: -66.482, scaleX: 0.546, scaleY: 0.546, y: 0 }
+                }
+                animate={
+                  shouldReduceMotion
+                    ? { rotate: 0, scaleX: 1, scaleY: 1, y: -120 }
+                    : {
+                        rotate: [-66.482, 0, 0],
+                        scaleX: [0.546, 1, 1],
+                        scaleY: [0.546, 1, 1],
+                        y: [0, 0, -120, -120],
+                      }
+                }
+                transition={
+                  shouldReduceMotion
+                    ? { duration: 0 }
+                    : createRingTransition(
+                        index === 0 ? figmaFirmSpring : figmaSoftSpring
+                      )
+                }
+                aria-hidden="true"
+              >
+                <img src={source} alt="" />
+              </motion.div>
+            ))}
+
+            <motion.section
+              className="cloud-gift-notification-modal__panel"
+              initial={shouldReduceMotion ? false : { height: 1, opacity: 0 }}
+              animate={
+                shouldReduceMotion
+                  ? { height: 419, opacity: 1 }
+                  : {
+                      height: [1, 1, 419],
+                      opacity: [0, 0, 1],
+                    }
+              }
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : {
+                      height: {
+                        duration: OPEN_ANIMATION_DURATION,
+                        times: PANEL_REVEAL_TIMES,
+                        ease: ["linear", figmaFirmSpring],
+                      },
+                      opacity: {
+                        duration: OPEN_ANIMATION_DURATION,
+                        times: PANEL_REVEAL_TIMES,
+                        ease: ["linear", figmaFirmSpring],
+                      },
+                    }
+              }
+              onAnimationComplete={() => setIsRevealComplete(true)}
+            >
+              <div className="cloud-gift-notification-modal__panel-content">
+                <div className="cloud-gift-notification-modal__body">
+                  <h2
+                    id={headingId}
+                    className="cloud-gift-notification-modal__title"
+                  >
+                    {t("cloud_gift_launcher_title")}
+                  </h2>
+
+                  {gift.message && (
+                    <blockquote
+                      id={messageId}
+                      className="cloud-gift-notification-modal__message-card"
+                    >
+                      “{gift.message}”
+                    </blockquote>
+                  )}
+
+                  <Link
+                    className="cloud-gift-notification-modal__sender"
+                    to={`/profile/${gift.buyer.id}`}
+                    onClick={dismissCurrentGift}
+                  >
+                    <Avatar
+                      size={40}
+                      src={gift.buyer.profileImageUrl}
+                      alt={gift.buyer.displayName}
+                    />
+                    <span>{gift.buyer.displayName}</span>
+                  </Link>
                 </div>
 
-                <p className="cloud-gift-notification-modal__message">
-                  “{gift.message}”
-                </p>
-                <footer className="cloud-gift-notification-modal__signature">
-                  —{" "}
-                  <Link
-                    to={`/profile/${gift.buyer.id}`}
-                    onClick={() => void closeModal()}
-                  >
-                    {gift.buyer.displayName}
-                  </Link>
-                </footer>
-              </blockquote>
-            ) : (
-              <div className="cloud-gift-notification-modal__sender">
-                <Avatar
-                  size={40}
-                  src={gift.buyer.profileImageUrl}
-                  alt={gift.buyer.displayName}
-                />
-                <Link
-                  to={`/profile/${gift.buyer.id}`}
-                  onClick={() => void closeModal()}
+                <button
+                  ref={acceptButtonRef}
+                  type="button"
+                  className="cloud-gift-notification-modal__accept"
+                  tabIndex={isRevealComplete ? 0 : -1}
+                  onClick={() => void openGift()}
                 >
-                  {gift.buyer.displayName}
-                </Link>
+                  {t("cloud_gift_launcher_accept")}
+                </button>
               </div>
-            )}
+            </motion.section>
 
-            {gift.claimExpiresAt && (
-              <p className="cloud-gift-notification-modal__deadline">
-                {t("cloud_gift_deadline", {
-                  date: formatDate(gift.claimExpiresAt),
-                })}
-              </p>
-            )}
-          </>
-        )}
+            <motion.div
+              className="cloud-gift-notification-modal__logo"
+              initial={
+                shouldReduceMotion
+                  ? false
+                  : { scaleX: 0.08, scaleY: 0.08, y: 0 }
+              }
+              animate={
+                shouldReduceMotion
+                  ? { scaleX: 1, scaleY: 1, y: -120 }
+                  : {
+                      scaleX: [0.08, 1, 1],
+                      scaleY: [0.08, 1, 1],
+                      y: [0, 0, -120, -120],
+                    }
+              }
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : {
+                      scaleX: {
+                        duration: OPEN_ANIMATION_DURATION,
+                        times: RING_SCALE_TIMES,
+                        ease: [figmaLogoSpring, "linear"],
+                      },
+                      scaleY: {
+                        duration: OPEN_ANIMATION_DURATION,
+                        times: RING_SCALE_TIMES,
+                        ease: [figmaLogoSpring, "linear"],
+                      },
+                      y: {
+                        duration: OPEN_ANIMATION_DURATION,
+                        times: RING_MOVE_TIMES,
+                        ease: ["linear", figmaFirmSpring, "linear"],
+                      },
+                    }
+              }
+              aria-hidden="true"
+            >
+              <div className="cloud-gift-notification-modal__logo-layer cloud-gift-notification-modal__logo-layer--dots">
+                <img
+                  className="cloud-gift-notification-modal__logo-vector"
+                  src={logoVector}
+                  alt=""
+                />
+                <img
+                  className="cloud-gift-notification-modal__logo-stroke"
+                  src={logoStroke}
+                  alt=""
+                />
+              </div>
+              <div className="cloud-gift-notification-modal__logo-layer cloud-gift-notification-modal__logo-layer--glow">
+                <img
+                  className="cloud-gift-notification-modal__logo-vector-glow"
+                  src={logoVectorGlow}
+                  alt=""
+                />
+                <img
+                  className="cloud-gift-notification-modal__logo-stroke-glow"
+                  src={logoStrokeGlow}
+                  alt=""
+                />
+              </div>
+              <div className="cloud-gift-notification-modal__logo-layer cloud-gift-notification-modal__logo-layer--halftone">
+                <img
+                  className="cloud-gift-notification-modal__logo-vector-halftone"
+                  src={logoVectorHalftone}
+                  alt=""
+                />
+                <img
+                  className="cloud-gift-notification-modal__logo-stroke-halftone"
+                  src={logoStrokeHalftone}
+                  alt=""
+                />
+              </div>
 
-        <div className="cloud-gift-notification-modal__preference">
-          <CheckboxField
-            checked={doNotShowAgain}
-            onChange={(event) => setDoNotShowAgain(event.target.checked)}
-            label={t("cloud_gift_do_not_show_again")}
-          />
-        </div>
+              {!shouldReduceMotion && (
+                <div className="cloud-gift-notification-modal__shine-mask">
+                  <motion.div
+                    className="cloud-gift-notification-modal__shine-track"
+                    initial={{ x: 0, y: 0 }}
+                    animate={{
+                      x: [0, 0, 241.037, 241.037],
+                      y: [0, 0, -198.246, -198.246],
+                    }}
+                    transition={{
+                      x: {
+                        duration: OPEN_ANIMATION_DURATION,
+                        times: SHINE_MOVE_TIMES,
+                        ease: ["linear", figmaFirmSpring, "linear"],
+                      },
+                      y: {
+                        duration: OPEN_ANIMATION_DURATION,
+                        times: SHINE_MOVE_TIMES,
+                        ease: ["linear", figmaFirmSpring, "linear"],
+                      },
+                    }}
+                  >
+                    <div className="cloud-gift-notification-modal__shine" />
+                  </motion.div>
+                </div>
+              )}
+            </motion.div>
 
-        <div className="cloud-gift-notification-modal__actions">
-          <Button theme="outline" onClick={() => void closeModal()}>
-            {t("cloud_gift_cancel")}
-          </Button>
-          <Button onClick={() => void openGift()}>
-            {t("cloud_gift_open")}
-          </Button>
-        </div>
-      </div>
-    </Modal>
+            <button
+              type="button"
+              className="cloud-gift-notification-modal__decide-later"
+              data-visible={isRevealComplete}
+              tabIndex={isRevealComplete ? 0 : -1}
+              onClick={dismissCurrentGift}
+            >
+              {t("cloud_gift_launcher_decide_later")}
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
   );
 }

@@ -15,6 +15,7 @@ import { useDate, useUserDetails } from "@renderer/hooks";
 import cn from "classnames";
 
 import type { Notification, Badge } from "@types";
+import { openCloudGiftModal } from "../shared-modals/cloud-gift-modal.events";
 import "./notification-item.scss";
 
 const parseNotificationUrl = (notificationUrl: string): string => {
@@ -85,9 +86,7 @@ export function NotificationItem({
       notification.type === "CLOUD_GIFT_RECEIVED" &&
       notification.variables.giftId
     ) {
-      void window.electron.openCheckout({
-        path: `/gifts/${notification.variables.giftId}`,
-      });
+      openCloudGiftModal(notification);
       return;
     }
 

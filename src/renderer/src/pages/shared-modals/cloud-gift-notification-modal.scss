@@ -1,61 +1,334 @@
 @use "../../scss/globals.scss";
 
 .cloud-gift-notification-modal {
-  display: flex;
-  flex-direction: column;
-  gap: calc(globals.$spacing-unit * 2);
+  &__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: globals.$backdrop-z-index;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.9);
+  }
+
+  &__stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    isolation: isolate;
+  }
+
+  &__rays,
+  &__logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    pointer-events: auto;
+    transform-origin: center;
+    will-change: transform;
+  }
+
+  &__rays {
+    width: 283px;
+    height: 283px;
+    margin-top: -141.5px;
+    margin-left: -141.5px;
+
+    img {
+      position: absolute;
+      max-width: none;
+    }
+
+    &--outer img {
+      inset: -44.5px;
+      width: 372px;
+      height: 372px;
+    }
+
+    &--inner img {
+      inset: -13px;
+      width: 309px;
+      height: 309px;
+    }
+  }
+
+  &__panel {
+    position: absolute;
+    top: calc(50% - 120px);
+    left: 50%;
+    width: min(544px, calc(100vw - 48px));
+    overflow: hidden;
+    pointer-events: auto;
+    color: #c0c1c7;
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 0 0 16px 16px;
+    box-shadow: 0 24px 32px rgba(0, 0, 0, 0.5);
+    transform: translateX(-50%);
+    transform-origin: top center;
+    will-change: height, opacity;
+
+    &::before {
+      position: absolute;
+      z-index: 1;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        rgba(12, 241, 202, 0.15),
+        #0cf1ca 22%,
+        #1dcceb 78%,
+        rgba(29, 204, 235, 0.15)
+      );
+      box-shadow: 0 0 6px rgba(12, 241, 202, 0.65);
+      content: "";
+    }
+  }
+
+  &__panel-content {
+    display: flex;
+    width: 100%;
+    height: 419px;
+    padding: 140px 16px 16px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+  }
+
+  &__body {
+    display: flex;
+    width: 100%;
+    padding-inline: 24px;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  &__title {
+    width: 100%;
+    margin: 0;
+    color: #c0c1c7;
+    font-size: 21px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.21px;
+    text-align: center;
+  }
 
   &__message-card {
-    position: relative;
-    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 3)
-      calc(globals.$spacing-unit * 3);
-    margin: calc(globals.$spacing-unit * 2.5) 0 0;
-    border: solid 1px globals.$border-color;
-    border-radius: 8px;
-    background-color: globals.$dark-background-color;
-  }
-
-  &__message-avatar {
-    position: absolute;
-    top: 0;
-    left: calc(globals.$spacing-unit * 4);
-    transform: translateY(-50%);
-  }
-
-  &__message {
+    width: 100%;
+    max-height: 88px;
+    padding: 16px;
     margin: 0;
-    color: globals.$muted-color;
-    font-size: 16px;
-    line-height: 24px;
+    overflow: auto;
+    color: #8e919b;
+    background-color: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    font-size: 14px;
+    font-style: normal;
+    line-height: 1.35;
+    letter-spacing: 0.14px;
     overflow-wrap: anywhere;
-  }
-
-  &__signature {
-    margin-top: globals.$spacing-unit;
-    color: globals.$body-color;
-    text-align: right;
+    text-align: center;
   }
 
   &__sender {
     display: flex;
+    max-width: 100%;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 1.5);
+    justify-content: center;
+    gap: 8px;
+    color: #c0c1c7;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.14px;
+
+    .profile-avatar {
+      flex: 0 0 auto;
+      cursor: pointer;
+    }
+
+    span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__accept {
+    min-height: 40px;
+    padding: 10px 16px;
+    color: #fff;
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+      linear-gradient(91deg, #0cf1ca 0.13%, #1dcceb 99.87%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-size: 13px;
     font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      filter: brightness(1.12);
+    }
+
+    &:active {
+      filter: brightness(0.9);
+    }
   }
 
-  &__deadline {
-    margin: 0;
-    color: globals.$body-color;
+  &__logo {
+    z-index: 2;
+    width: 189px;
+    height: 189px;
+    margin-top: -94.5px;
+    margin-left: -94.5px;
+
+    img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      max-width: none;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  &__logo-layer {
+    position: absolute;
+    inset: 0;
+
+    &--dots {
+      opacity: 0.3;
+      mix-blend-mode: screen;
+    }
+
+    &--halftone {
+      mix-blend-mode: color-dodge;
+    }
+  }
+
+  &__logo-vector {
+    width: 194.5px;
+    height: 194.5px;
+  }
+
+  &__logo-stroke {
+    width: 191px;
+    height: 191px;
+  }
+
+  &__logo-vector-glow {
+    width: 301px;
+    height: 301px;
+  }
+
+  &__logo-stroke-glow {
+    width: 352px;
+    height: 352px;
+  }
+
+  &__logo-vector-halftone {
+    width: 175px;
+    height: 175px;
+  }
+
+  &__logo-stroke-halftone {
+    width: 171px;
+    height: 171px;
+  }
+
+  &__shine-mask {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    mask-image: url("../../assets/cloud-gift/logo-vector-halftone.png");
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: 172px 172px;
+    mix-blend-mode: plus-lighter;
+  }
+
+  &__shine-track {
+    position: absolute;
+    top: 87px;
+    left: -101px;
+    width: 134px;
+    height: 175px;
+  }
+
+  &__shine {
+    width: 38px;
+    height: 185px;
+    margin-inline: auto;
+    background-color: #fff;
+    filter: blur(24.7px);
+    opacity: 0.5;
+    transform: rotate(-33.69deg);
+  }
+
+  &__decide-later {
+    position: absolute;
+    top: calc(50% + 315px);
+    left: 50%;
+    width: min(544px, calc(100vw - 48px));
+    padding: 0;
+    color: #8e919b;
+    background: transparent;
+    border: 0;
+    font-size: 14px;
     line-height: 20px;
+    letter-spacing: 0.14px;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+
+    &[data-visible="true"] {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: #c0c1c7;
+      text-decoration: underline;
+    }
   }
 
-  &__preference {
-    padding-block: globals.$spacing-unit;
+  &__stage[data-reveal-complete="true"] {
+    .cloud-gift-notification-modal__rays,
+    .cloud-gift-notification-modal__logo,
+    .cloud-gift-notification-modal__panel {
+      will-change: auto;
+    }
   }
+}
 
-  &__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: globals.$spacing-unit;
+@media (max-height: 680px) {
+  .cloud-gift-notification-modal {
+    &__stage {
+      transform: scale(0.88);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud-gift-notification-modal {
+    &__rays,
+    &__logo,
+    &__panel {
+      will-change: auto;
+    }
+
+    &__accept {
+      transition: none;
+    }
   }
 }
