@@ -1,31 +1,21 @@
 @use "../../scss/globals.scss";
 
 .game-details {
-  &__reviews-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: calc(globals.$spacing-unit * 2);
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: calc(globals.$spacing-unit * 1.5);
-    }
-  }
-
-  &__reviews-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: globals.$muted-color;
-    margin: 0;
-  }
-
   &__review-form {
     display: flex;
     flex-direction: column;
     gap: 16px;
     margin-bottom: 24px;
+
+    &--locked {
+      opacity: 0.45;
+      pointer-events: none;
+      user-select: none;
+
+      .game-details__star-rating {
+        filter: grayscale(0.4);
+      }
+    }
   }
 
   &__review-form-bottom {

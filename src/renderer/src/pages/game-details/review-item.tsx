@@ -70,6 +70,8 @@ export function ReviewItem({
 
   const isOwnReview = userDetailsId === review.user.id;
 
+  const bannerImageUrl = review.user.backgroundImageUrl;
+
   const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
 
   const isDifferentLanguage =
@@ -130,7 +132,20 @@ export function ReviewItem({
 
   return (
     <div className="game-details__review-item">
-      <div className="game-details__review-header">
+      <div
+        className={`game-details__review-header${
+          bannerImageUrl ? " game-details__review-header--has-bg" : ""
+        }`}
+      >
+        {bannerImageUrl && (
+          <img
+            src={bannerImageUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="game-details__review-banner"
+          />
+        )}
         <div className="game-details__review-header-top">
           <div className="game-details__review-user">
             <button

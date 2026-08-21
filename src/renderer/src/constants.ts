@@ -19,6 +19,10 @@ export const DOWNLOADER_NAME = {
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
+export const REVIEW_MIN_PLAYTIME_IN_MS = 2 * 60 * 60 * 1000;
+
+export const REVIEW_PROMPT_DISMISS_TTL_IN_MS = 7 * 24 * 60 * 60 * 1000;
+
 export const MAX_DOWNLOAD_SPEED_HISTORY = 300;
 
 export const THEME_WEB_STORE_URL = "https://hydrathemes.shop";

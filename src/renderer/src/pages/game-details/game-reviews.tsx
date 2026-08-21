@@ -7,11 +7,12 @@ import { useTranslation } from "react-i18next";
 import type { GameReview, Game, GameShop } from "@types";
 
 import { ReviewForm } from "./review-form";
+import { ReviewGateNotice } from "./review-gate-notice";
 import { ReviewThread } from "./review-thread";
 import { ReviewSortOptions } from "./review-sort-options";
-import { ReviewPromptBanner } from "./review-prompt-banner";
 import "./game-reviews.scss";
 import { useToast } from "@renderer/hooks";
+import { REVIEW_MIN_PLAYTIME_IN_MS } from "@renderer/constants";
 
 type ReviewSortOption =
   | "newest"
@@ -25,8 +26,8 @@ interface GameReviewsProps {
   objectId: string;
   game: Game | null;
   userDetailsId?: string;
-  isGameInLibrary: boolean;
   hasUserReviewed: boolean;
+  isCheckingUserReview: boolean;
   onUserReviewedChange: (hasReviewed: boolean) => void;
 }
 
@@ -37,8 +38,8 @@ export function GameReviews({
   objectId,
   game,
   userDetailsId,
-  isGameInLibrary,
   hasUserReviewed,
+  isCheckingUserReview,
   onUserReviewedChange,
 }: Readonly<GameReviewsProps>) {
   const { t, i18n } = useTranslation("game_details");
@@ -57,12 +58,14 @@ export function GameReviews({
     Set<string>
   >(new Set());
   const [totalReviewCount, setTotalReviewCount] = useState(0);
-  const [showReviewForm, setShowReviewForm] = useState(false);
   const [votingReviews, setVotingReviews] = useState<Set<string>>(new Set());
-  const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [openReplyReviewId, setOpenReplyReviewId] = useState<string | null>(
     null
   );
+
+  const playTimeInMilliseconds = game?.playTimeInMilliseconds ?? 0;
+  const isReviewLocked =
+    !userDetailsId || playTimeInMilliseconds < REVIEW_MIN_PLAYTIME_IN_MS;
 
   const previousVotesRef = useRef<
     Map<string, { upvotes: number; downvotes: number }>
@@ -120,35 +123,6 @@ export function GameReviews({
       }
     },
   });
-
-  const checkUserReview = useCallback(async () => {
-    if (!objectId || !userDetailsId || shop === "custom") return;
-
-    try {
-      const response = await window.electron.hydraApi.get<{
-        hasReviewed: boolean;
-      }>(`/games/${shop}/${objectId}/reviews/check`, {
-        needsAuth: true,
-      });
-      const hasReviewed = response?.hasReviewed || false;
-      onUserReviewedChange(hasReviewed);
-
-      const twoHoursInMilliseconds = 2 * 60 * 60 * 1000;
-      const hasEnoughPlaytime =
-        game && game.playTimeInMilliseconds >= twoHoursInMilliseconds;
-
-      if (
-        !hasReviewed &&
-        hasEnoughPlaytime &&
-        !sessionStorage.getItem(`reviewPromptDismissed_${objectId}`)
-      ) {
-        setShowReviewPrompt(true);
-        setShowReviewForm(true);
-      }
-    } catch (error) {
-      console.error("Failed to check user review:", error);
-    }
-  }, [objectId, userDetailsId, shop, game, onUserReviewedChange]);
 
   const loadReviews = useCallback(
     async (reset = false) => {
@@ -295,7 +269,6 @@ export function GameReviews({
       );
       loadReviews(true);
       onUserReviewedChange(false);
-      setShowReviewForm(true);
       showSuccessToast(t("review_deleted_successfully"));
     } catch (error) {
       console.error("Failed to delete review:", error);
@@ -307,7 +280,7 @@ export function GameReviews({
     const reviewHtml = editor?.getHTML() || "";
     const reviewText = editor?.getText() || "";
 
-    if (!objectId) return;
+    if (!objectId || isReviewLocked) return;
 
     if (!reviewText.trim()) {
       showErrorToast(t("review_cannot_be_empty"));
@@ -340,38 +313,12 @@ export function GameReviews({
       showSuccessToast(t("review_submitted_successfully"));
 
       await loadReviews(true);
-      setShowReviewForm(false);
-      setShowReviewPrompt(false);
       onUserReviewedChange(true);
     } catch (error) {
       console.error("Failed to submit review:", error);
       showErrorToast(t("review_submission_failed"));
     } finally {
       setSubmittingReview(false);
-    }
-  };
-
-  const handleReviewPromptYes = () => {
-    setShowReviewPrompt(false);
-
-    setTimeout(() => {
-      const reviewFormElement = document.querySelector(
-        ".game-details__review-form"
-      );
-      if (reviewFormElement) {
-        reviewFormElement.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
-    }, 100);
-  };
-
-  const handleReviewPromptLater = () => {
-    setShowReviewPrompt(false);
-    setShowReviewForm(false);
-    if (objectId) {
-      sessionStorage.setItem(`reviewPromptDismissed_${objectId}`, "true");
     }
   };
 
@@ -411,11 +358,12 @@ export function GameReviews({
   };
 
   useEffect(() => {
+    editor?.setEditable(!isReviewLocked);
+  }, [editor, isReviewLocked]);
+
+  useEffect(() => {
     if (objectId) {
       loadReviews(true);
-      if (userDetailsId) {
-        checkUserReview();
-      }
     }
 
     return () => {
@@ -424,7 +372,7 @@ export function GameReviews({
         abortControllerRef.current = null;
       }
     };
-  }, [objectId, userDetailsId, checkUserReview, loadReviews]);
+  }, [objectId, loadReviews]);
 
   useEffect(() => {
     if (reviewsPage > 0) {
@@ -445,24 +393,25 @@ export function GameReviews({
 
   return (
     <div className="game-details__reviews-section">
-      {showReviewPrompt &&
-        userDetailsId &&
-        !hasUserReviewed &&
-        isGameInLibrary && (
-          <ReviewPromptBanner
-            onYesClick={handleReviewPromptYes}
-            onLaterClick={handleReviewPromptLater}
-          />
-        )}
-
-      {showReviewForm && (
+      {!isCheckingUserReview && !hasUserReviewed && (
         <>
+          <div className="game-details__reviews-header">
+            <h3 className="game-details__reviews-title">
+              {t("leave_a_review")}
+            </h3>
+          </div>
+
+          {isReviewLocked && (
+            <ReviewGateNotice isSignedIn={Boolean(userDetailsId)} />
+          )}
+
           <ReviewForm
             editor={editor}
             reviewScore={reviewScore}
             reviewCharCount={reviewCharCount}
             maxReviewChars={MAX_REVIEW_CHARS}
             submittingReview={submittingReview}
+            locked={isReviewLocked}
             onScoreChange={setReviewScore}
             onSubmit={handleSubmitReview}
           />

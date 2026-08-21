@@ -10,6 +10,7 @@ interface ReviewFormProps {
   reviewCharCount: number;
   maxReviewChars: number;
   submittingReview: boolean;
+  locked?: boolean;
   onScoreChange: (score: number) => void;
   onSubmit: () => void;
 }
@@ -46,6 +47,7 @@ export function ReviewForm({
   reviewCharCount,
   maxReviewChars,
   submittingReview,
+  locked = false,
   onScoreChange,
   onSubmit,
 }: Readonly<ReviewFormProps>) {
@@ -53,11 +55,12 @@ export function ReviewForm({
 
   return (
     <>
-      <div className="game-details__reviews-header">
-        <h3 className="game-details__reviews-title">{t("leave_a_review")}</h3>
-      </div>
-
-      <div className="game-details__review-form">
+      <div
+        className={`game-details__review-form${
+          locked ? " game-details__review-form--locked" : ""
+        }`}
+        aria-disabled={locked}
+      >
         <div className="game-details__review-input-container">
           <div className="game-details__review-input-header">
             <div className="game-details__review-editor-toolbar">
@@ -65,7 +68,7 @@ export function ReviewForm({
                 type="button"
                 onClick={() => editor?.chain().focus().toggleBold().run()}
                 className={`game-details__editor-button ${editor?.isActive("bold") ? "is-active" : ""}`}
-                disabled={!editor}
+                disabled={locked || !editor}
               >
                 <strong>B</strong>
               </button>
@@ -73,7 +76,7 @@ export function ReviewForm({
                 type="button"
                 onClick={() => editor?.chain().focus().toggleItalic().run()}
                 className={`game-details__editor-button ${editor?.isActive("italic") ? "is-active" : ""}`}
-                disabled={!editor}
+                disabled={locked || !editor}
               >
                 <em>I</em>
               </button>
@@ -81,7 +84,7 @@ export function ReviewForm({
                 type="button"
                 onClick={() => editor?.chain().focus().toggleUnderline().run()}
                 className={`game-details__editor-button ${editor?.isActive("underline") ? "is-active" : ""}`}
-                disabled={!editor}
+                disabled={locked || !editor}
               >
                 <u>U</u>
               </button>
@@ -116,6 +119,7 @@ export function ReviewForm({
                       : ""
                   }`}
                   onClick={() => onScoreChange(starValue)}
+                  disabled={locked}
                   title={getRatingText(starValue, t)}
                 >
                   <Star
@@ -135,6 +139,7 @@ export function ReviewForm({
             theme="primary"
             onClick={onSubmit}
             disabled={
+              locked ||
               !editor?.getHTML().trim() ||
               reviewScore === null ||
               submittingReview ||
