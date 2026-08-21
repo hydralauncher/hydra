@@ -1706,6 +1706,17 @@ const LIKE_ANIMATION_DURATION_MS = 400;
 const PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID = "profile-souvenir-sync-retry";
 const PROFILE_SOUVENIR_SYNC_CLEANUP_FOCUS_ID = "profile-souvenir-sync-cleanup";
 
+const hasProfileSouvenirSyncIssues = (
+  syncStatus: AchievementSouvenirSyncStatus
+) => syncStatus.pendingCount > 0 || syncStatus.failedCount > 0;
+
+const getProfileSouvenirSyncActionFocusId = (
+  syncStatus: AchievementSouvenirSyncStatus
+) =>
+  syncStatus.pendingCount > 0
+    ? PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID
+    : PROFILE_SOUVENIR_SYNC_CLEANUP_FOCUS_ID;
+
 interface ProfileSouvenirsProps {
   souvenirs: ProfileSouvenir[];
   total: number;
@@ -1993,47 +2004,110 @@ function ProfileSouvenirCard({
   );
 }
 
-function ProfileSouvenirs({
-  souvenirs,
-  total,
-  hiddenReason,
-  isLoading,
-  isOwnProfile,
-  hasActiveSubscription,
-  canLike,
-  disableNsfwAlert,
-  updatingLikeKeys,
-  hasMore,
-  isLoadingMore,
+interface ProfileSouvenirSyncStatusProps {
+  syncStatus: AchievementSouvenirSyncStatus;
+  isRetryingSync: boolean;
+  isLoadingSyncDetails: boolean;
+  upFocusId: string | null;
+  downFocusId: string | null;
+  onRetrySync: () => void;
+  onOpenCleanup: () => void;
+}
+
+function ProfileSouvenirSyncStatus({
   syncStatus,
   isRetryingSync,
   isLoadingSyncDetails,
   upFocusId,
   downFocusId,
+  onRetrySync,
+  onOpenCleanup,
+}: Readonly<ProfileSouvenirSyncStatusProps>) {
+  const { t } = useTranslation("settings");
+  const messages: string[] = [];
+  if (syncStatus.pendingCount > 0) {
+    messages.push(
+      t("souvenir_sync_pending", { count: syncStatus.pendingCount })
+    );
+  }
+  if (syncStatus.failedCount > 0) {
+    messages.push(t("souvenir_sync_failed", { count: syncStatus.failedCount }));
+  }
+
+  const focusNavigationOverrides: FocusOverrides = {
+    up: upFocusId ? { type: "item", itemId: upFocusId } : undefined,
+    down: downFocusId ? { type: "item", itemId: downFocusId } : undefined,
+  };
+
+  return (
+    <aside className="profile-page__souvenirs-sync-status">
+      <WarningCircleIcon size={24} />
+      <div className="profile-page__souvenirs-sync-copy">
+        <strong>{t("souvenir_sync_status_title")}</strong>
+        <span>{messages.join(" ")}</span>
+      </div>
+      <HorizontalFocusGroup className="profile-page__souvenirs-sync-actions">
+        {syncStatus.pendingCount > 0 ? (
+          <Button
+            variant="secondary"
+            focusId={PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID}
+            loading={isRetryingSync}
+            disabled={isLoadingSyncDetails}
+            icon={<ArrowsClockwiseIcon size={18} />}
+            focusNavigationOverrides={focusNavigationOverrides}
+            onClick={onRetrySync}
+          >
+            {t("retry_souvenir_sync")}
+          </Button>
+        ) : null}
+        <Button
+          variant="secondary"
+          focusId={PROFILE_SOUVENIR_SYNC_CLEANUP_FOCUS_ID}
+          disabled={isRetryingSync || isLoadingSyncDetails}
+          icon={<TrashIcon size={18} />}
+          focusNavigationOverrides={focusNavigationOverrides}
+          onClick={onOpenCleanup}
+        >
+          {t("clean_up_souvenir_sync")}
+        </Button>
+      </HorizontalFocusGroup>
+    </aside>
+  );
+}
+
+interface ProfileSouvenirListProps {
+  souvenirs: ProfileSouvenir[];
+  canLike: boolean;
+  disableNsfwAlert: boolean;
+  updatingLikeKeys: Set<string>;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  upFocusId: string | null;
+  downFocusId: string | null;
+  onActivate: (souvenir: ProfileSouvenir) => void;
+  onLike: (souvenir: ProfileSouvenir) => void;
+  onLoadMore: () => void;
+}
+
+function ProfileSouvenirList({
+  souvenirs,
+  canLike,
+  disableNsfwAlert,
+  updatingLikeKeys,
+  hasMore,
+  isLoadingMore,
+  upFocusId,
+  downFocusId,
   onActivate,
   onLike,
   onLoadMore,
-  onRetrySync,
-  onOpenCleanup,
-}: Readonly<ProfileSouvenirsProps>) {
-  const { t } = useTranslation("user_profile");
-  const { t: tSettings } = useTranslation("settings");
+}: Readonly<ProfileSouvenirListProps>) {
   const [animatingLikeKeys, setAnimatingLikeKeys] = useState<Set<string>>(
     new Set()
   );
   const likeAnimationTimeoutsRef = useRef<Map<string, number>>(new Map());
   const souvenirsRowRef = useRef<HTMLUListElement | null>(null);
   const loadMoreSentinelRef = useRef<HTMLLIElement | null>(null);
-  const hasSyncIssues =
-    syncStatus.pendingCount > 0 || syncStatus.failedCount > 0;
-  const firstSouvenirFocusId = souvenirs[0]
-    ? getProfileSouvenirItemId(getSouvenirKey(souvenirs[0]))
-    : downFocusId;
-  const syncActionFocusId =
-    syncStatus.pendingCount > 0
-      ? PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID
-      : PROFILE_SOUVENIR_SYNC_CLEANUP_FOCUS_ID;
-  const souvenirCardUpFocusId = hasSyncIssues ? syncActionFocusId : upFocusId;
 
   useEffect(() => {
     const timeouts = likeAnimationTimeoutsRef.current;
@@ -2078,21 +2152,140 @@ function ProfileSouvenirs({
     likeAnimationTimeoutsRef.current.set(key, timeoutId);
   };
 
-  let emptyTitle = t("no_user_souvenirs");
-  let emptyDescription = t("no_user_souvenirs_description");
+  return (
+    <div className="profile-page__souvenirs-viewport">
+      <HorizontalFocusGroup
+        regionId={PROFILE_SOUVENIRS_REGION_ID}
+        className="profile-page__souvenirs-row"
+        autoScrollMode="item"
+        asChild
+      >
+        <ul ref={souvenirsRowRef} className="profile-page__souvenirs-row">
+          {souvenirs.map((souvenir, index) => {
+            const souvenirKey = getSouvenirKey(souvenir);
+            const previousSouvenir = souvenirs[index - 1];
+            const nextSouvenir = souvenirs[index + 1];
+
+            return (
+              <ProfileSouvenirCard
+                key={souvenirKey}
+                souvenir={souvenir}
+                canLike={canLike}
+                disableNsfwAlert={disableNsfwAlert}
+                isLikePending={
+                  animatingLikeKeys.has(souvenirKey) ||
+                  updatingLikeKeys.has(souvenirKey)
+                }
+                upFocusId={upFocusId}
+                downFocusId={downFocusId}
+                leftFocusId={
+                  previousSouvenir
+                    ? getProfileSouvenirItemId(getSouvenirKey(previousSouvenir))
+                    : BIG_PICTURE_SIDEBAR_PROFILE_ID
+                }
+                rightFocusId={
+                  nextSouvenir
+                    ? getProfileSouvenirItemId(getSouvenirKey(nextSouvenir))
+                    : null
+                }
+                onActivate={onActivate}
+                onLike={handleLike}
+              />
+            );
+          })}
+          {hasMore ? (
+            <li
+              ref={loadMoreSentinelRef}
+              className="profile-page__souvenirs-load-more-sentinel"
+              aria-hidden
+            />
+          ) : null}
+        </ul>
+      </HorizontalFocusGroup>
+    </div>
+  );
+}
+
+interface ProfileSouvenirEmptyStateProps {
+  hiddenReason: SouvenirsHiddenReason;
+  isLoading: boolean;
+  isOwnProfile: boolean;
+  hasActiveSubscription: boolean;
+}
+
+function ProfileSouvenirEmptyState({
+  hiddenReason,
+  isLoading,
+  isOwnProfile,
+  hasActiveSubscription,
+}: Readonly<ProfileSouvenirEmptyStateProps>) {
+  const { t } = useTranslation("user_profile");
+  let title = t("no_user_souvenirs");
+  let description = t("no_user_souvenirs_description");
+
   if (isLoading) {
-    emptyTitle = t("loading_souvenirs");
-    emptyDescription = "";
+    title = t("loading_souvenirs");
+    description = "";
   } else if (hiddenReason) {
-    emptyTitle = t("locked_souvenirs");
-    emptyDescription = "";
+    title = t("locked_souvenirs");
+    description = "";
   } else if (isOwnProfile && !hasActiveSubscription) {
-    emptyTitle = t("souvenirs_cloud_title");
-    emptyDescription = t("souvenirs_cloud_description");
+    title = t("souvenirs_cloud_title");
+    description = t("souvenirs_cloud_description");
   } else if (isOwnProfile) {
-    emptyTitle = t("no_souvenirs");
-    emptyDescription = t("no_souvenirs_description");
+    title = t("no_souvenirs");
+    description = t("no_souvenirs_description");
   }
+
+  return (
+    <div className="profile-page__souvenirs-empty-state">
+      <ProhibitIcon size={36} />
+      <div>
+        <Typography className="profile-page__souvenirs-empty-title">
+          {title}
+        </Typography>
+        {description ? (
+          <Typography className="profile-page__souvenirs-empty-description">
+            {description}
+          </Typography>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ProfileSouvenirs({
+  souvenirs,
+  total,
+  hiddenReason,
+  isLoading,
+  isOwnProfile,
+  hasActiveSubscription,
+  canLike,
+  disableNsfwAlert,
+  updatingLikeKeys,
+  hasMore,
+  isLoadingMore,
+  syncStatus,
+  isRetryingSync,
+  isLoadingSyncDetails,
+  upFocusId,
+  downFocusId,
+  onActivate,
+  onLike,
+  onLoadMore,
+  onRetrySync,
+  onOpenCleanup,
+}: Readonly<ProfileSouvenirsProps>) {
+  const { t } = useTranslation("user_profile");
+  const hasSyncIssues = hasProfileSouvenirSyncIssues(syncStatus);
+  const firstSouvenir = souvenirs[0];
+  const firstSouvenirFocusId = firstSouvenir
+    ? getProfileSouvenirItemId(getSouvenirKey(firstSouvenir))
+    : downFocusId;
+  const souvenirCardUpFocusId = hasSyncIssues
+    ? getProfileSouvenirSyncActionFocusId(syncStatus)
+    : upFocusId;
 
   return (
     <section className="profile-page__souvenirs-section">
@@ -2101,142 +2294,46 @@ function ProfileSouvenirs({
           {t("souvenirs")}
         </Typography>
 
-        {total > 0 && (
+        {total > 0 ? (
           <Typography className="profile-page__souvenirs-count">
             {total}
           </Typography>
-        )}
+        ) : null}
       </header>
 
       {hasSyncIssues ? (
-        <aside className="profile-page__souvenirs-sync-status">
-          <WarningCircleIcon size={24} />
-          <div className="profile-page__souvenirs-sync-copy">
-            <strong>{tSettings("souvenir_sync_status_title")}</strong>
-            <span>
-              {[
-                syncStatus.pendingCount > 0
-                  ? tSettings("souvenir_sync_pending", {
-                      count: syncStatus.pendingCount,
-                    })
-                  : null,
-                syncStatus.failedCount > 0
-                  ? tSettings("souvenir_sync_failed", {
-                      count: syncStatus.failedCount,
-                    })
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            </span>
-          </div>
-          <HorizontalFocusGroup className="profile-page__souvenirs-sync-actions">
-            {syncStatus.pendingCount > 0 ? (
-              <Button
-                variant="secondary"
-                focusId={PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID}
-                loading={isRetryingSync}
-                disabled={isLoadingSyncDetails}
-                icon={<ArrowsClockwiseIcon size={18} />}
-                focusNavigationOverrides={{
-                  up: upFocusId
-                    ? { type: "item", itemId: upFocusId }
-                    : undefined,
-                  down: firstSouvenirFocusId
-                    ? { type: "item", itemId: firstSouvenirFocusId }
-                    : undefined,
-                }}
-                onClick={onRetrySync}
-              >
-                {tSettings("retry_souvenir_sync")}
-              </Button>
-            ) : null}
-            <Button
-              variant="secondary"
-              focusId={PROFILE_SOUVENIR_SYNC_CLEANUP_FOCUS_ID}
-              disabled={isRetryingSync || isLoadingSyncDetails}
-              icon={<TrashIcon size={18} />}
-              focusNavigationOverrides={{
-                up: upFocusId ? { type: "item", itemId: upFocusId } : undefined,
-                down: firstSouvenirFocusId
-                  ? { type: "item", itemId: firstSouvenirFocusId }
-                  : undefined,
-              }}
-              onClick={onOpenCleanup}
-            >
-              {tSettings("clean_up_souvenir_sync")}
-            </Button>
-          </HorizontalFocusGroup>
-        </aside>
+        <ProfileSouvenirSyncStatus
+          syncStatus={syncStatus}
+          isRetryingSync={isRetryingSync}
+          isLoadingSyncDetails={isLoadingSyncDetails}
+          upFocusId={upFocusId}
+          downFocusId={firstSouvenirFocusId}
+          onRetrySync={onRetrySync}
+          onOpenCleanup={onOpenCleanup}
+        />
       ) : null}
 
-      {souvenirs.length ? (
-        <div className="profile-page__souvenirs-viewport">
-          <HorizontalFocusGroup
-            regionId={PROFILE_SOUVENIRS_REGION_ID}
-            className="profile-page__souvenirs-row"
-            autoScrollMode="item"
-            asChild
-          >
-            <ul ref={souvenirsRowRef} className="profile-page__souvenirs-row">
-              {souvenirs.map((souvenir, index) => {
-                const souvenirKey = getSouvenirKey(souvenir);
-                const isLikePending =
-                  animatingLikeKeys.has(souvenirKey) ||
-                  updatingLikeKeys.has(souvenirKey);
-                const previousSouvenir = souvenirs[index - 1];
-                const nextSouvenir = souvenirs[index + 1];
-
-                return (
-                  <ProfileSouvenirCard
-                    key={souvenirKey}
-                    souvenir={souvenir}
-                    canLike={canLike}
-                    disableNsfwAlert={disableNsfwAlert}
-                    isLikePending={isLikePending}
-                    upFocusId={souvenirCardUpFocusId}
-                    downFocusId={downFocusId}
-                    leftFocusId={
-                      previousSouvenir
-                        ? getProfileSouvenirItemId(
-                            getSouvenirKey(previousSouvenir)
-                          )
-                        : BIG_PICTURE_SIDEBAR_PROFILE_ID
-                    }
-                    rightFocusId={
-                      nextSouvenir
-                        ? getProfileSouvenirItemId(getSouvenirKey(nextSouvenir))
-                        : null
-                    }
-                    onActivate={onActivate}
-                    onLike={handleLike}
-                  />
-                );
-              })}
-              {hasMore ? (
-                <li
-                  ref={loadMoreSentinelRef}
-                  className="profile-page__souvenirs-load-more-sentinel"
-                  aria-hidden
-                />
-              ) : null}
-            </ul>
-          </HorizontalFocusGroup>
-        </div>
+      {souvenirs.length > 0 ? (
+        <ProfileSouvenirList
+          souvenirs={souvenirs}
+          canLike={canLike}
+          disableNsfwAlert={disableNsfwAlert}
+          updatingLikeKeys={updatingLikeKeys}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          upFocusId={souvenirCardUpFocusId}
+          downFocusId={downFocusId}
+          onActivate={onActivate}
+          onLike={onLike}
+          onLoadMore={onLoadMore}
+        />
       ) : (
-        <div className="profile-page__souvenirs-empty-state">
-          <ProhibitIcon size={36} />
-          <div>
-            <Typography className="profile-page__souvenirs-empty-title">
-              {emptyTitle}
-            </Typography>
-            {emptyDescription && (
-              <Typography className="profile-page__souvenirs-empty-description">
-                {emptyDescription}
-              </Typography>
-            )}
-          </div>
-        </div>
+        <ProfileSouvenirEmptyState
+          hiddenReason={hiddenReason}
+          isLoading={isLoading}
+          isOwnProfile={isOwnProfile}
+          hasActiveSubscription={hasActiveSubscription}
+        />
       )}
     </section>
   );
@@ -2267,7 +2364,7 @@ interface ProfileNavigationInput {
   souvenirs: ProfileSouvenir[];
   friends: UserFriend[];
   canFocusRecentAchievements: boolean;
-  hasSouvenirSyncIssues: boolean;
+  souvenirSyncStatus: AchievementSouvenirSyncStatus;
 }
 
 type ProfileFocusIds = Pick<
@@ -2291,6 +2388,20 @@ function getLastItem<T>(items: T[]) {
   return items.at(-1) ?? null;
 }
 
+function getFirstProfileSouvenirFocusId(
+  souvenirs: ProfileSouvenir[],
+  syncStatus: AchievementSouvenirSyncStatus
+) {
+  if (hasProfileSouvenirSyncIssues(syncStatus)) {
+    return getProfileSouvenirSyncActionFocusId(syncStatus);
+  }
+
+  const firstSouvenir = getFirstItem(souvenirs);
+  if (!firstSouvenir) return null;
+
+  return getProfileSouvenirItemId(getSouvenirKey(firstSouvenir));
+}
+
 function getHeroActionsFocusId(profileUser: ProfileHeroUser | null) {
   if (!profileUser) return null;
 
@@ -2306,7 +2417,7 @@ function getProfileFocusIds({
   souvenirs,
   friends,
   canFocusRecentAchievements,
-  hasSouvenirSyncIssues,
+  souvenirSyncStatus,
 }: Omit<ProfileNavigationInput, "profileUser">) {
   const firstActivity = getFirstItem(recentActivityGames);
   const lastActivity = getLastItem(recentActivityGames);
@@ -2316,7 +2427,6 @@ function getProfileFocusIds({
     : [];
   const firstAchievement = getFirstItem(focusableAchievements);
   const lastAchievement = getLastItem(focusableAchievements);
-  const firstSouvenir = getFirstItem(souvenirs);
   const firstFriend = getFirstItem(friends);
   const lastFriend = getLastItem(friends);
 
@@ -2330,11 +2440,10 @@ function getProfileFocusIds({
     firstLibraryFocusId: firstLibrary
       ? getProfileLibraryGameItemId(firstLibrary)
       : null,
-    firstSouvenirFocusId: hasSouvenirSyncIssues
-      ? PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID
-      : firstSouvenir
-        ? getProfileSouvenirItemId(getSouvenirKey(firstSouvenir))
-        : null,
+    firstSouvenirFocusId: getFirstProfileSouvenirFocusId(
+      souvenirs,
+      souvenirSyncStatus
+    ),
     firstAchievementFocusId: firstAchievement
       ? getProfileAchievementFocusId(firstAchievement.game)
       : null,
@@ -2358,7 +2467,7 @@ function getProfileNavigation({
   souvenirs,
   friends,
   canFocusRecentAchievements,
-  hasSouvenirSyncIssues,
+  souvenirSyncStatus,
 }: ProfileNavigationInput): ProfileNavigation {
   const focusIds = getProfileFocusIds({
     recentActivityGames,
@@ -2367,7 +2476,7 @@ function getProfileNavigation({
     souvenirs,
     friends,
     canFocusRecentAchievements,
-    hasSouvenirSyncIssues,
+    souvenirSyncStatus,
   });
   const {
     firstActivityFocusId,
@@ -2685,9 +2794,6 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     }
   }, [isCleaningSouvenirSync, showErrorToast, showSuccessToast, tSettings]);
 
-  const hasSouvenirSyncIssues =
-    souvenirSyncStatus.pendingCount > 0 || souvenirSyncStatus.failedCount > 0;
-
   const clearRequestedSouvenir = useCallback(() => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("souvenir");
@@ -2993,7 +3099,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     souvenirs,
     friends,
     canFocusRecentAchievements,
-    hasSouvenirSyncIssues,
+    souvenirSyncStatus,
   });
   const showFriendsViewAll = totalFriends > friends.length;
   const externalProfileActions = useMemo<ProfileHeroAction[]>(() => {
