@@ -2029,9 +2029,11 @@ function ProfileSouvenirs({
   const firstSouvenirFocusId = souvenirs[0]
     ? getProfileSouvenirItemId(getSouvenirKey(souvenirs[0]))
     : downFocusId;
-  const souvenirCardUpFocusId = hasSyncIssues
-    ? PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID
-    : upFocusId;
+  const syncActionFocusId =
+    syncStatus.pendingCount > 0
+      ? PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID
+      : PROFILE_SOUVENIR_SYNC_CLEANUP_FOCUS_ID;
+  const souvenirCardUpFocusId = hasSyncIssues ? syncActionFocusId : upFocusId;
 
   useEffect(() => {
     const timeouts = likeAnimationTimeoutsRef.current;
@@ -2129,22 +2131,26 @@ function ProfileSouvenirs({
             </span>
           </div>
           <HorizontalFocusGroup className="profile-page__souvenirs-sync-actions">
-            <Button
-              variant="secondary"
-              focusId={PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID}
-              loading={isRetryingSync}
-              disabled={isLoadingSyncDetails}
-              icon={<ArrowsClockwiseIcon size={18} />}
-              focusNavigationOverrides={{
-                up: upFocusId ? { type: "item", itemId: upFocusId } : undefined,
-                down: firstSouvenirFocusId
-                  ? { type: "item", itemId: firstSouvenirFocusId }
-                  : undefined,
-              }}
-              onClick={onRetrySync}
-            >
-              {tSettings("retry_souvenir_sync")}
-            </Button>
+            {syncStatus.pendingCount > 0 ? (
+              <Button
+                variant="secondary"
+                focusId={PROFILE_SOUVENIR_SYNC_RETRY_FOCUS_ID}
+                loading={isRetryingSync}
+                disabled={isLoadingSyncDetails}
+                icon={<ArrowsClockwiseIcon size={18} />}
+                focusNavigationOverrides={{
+                  up: upFocusId
+                    ? { type: "item", itemId: upFocusId }
+                    : undefined,
+                  down: firstSouvenirFocusId
+                    ? { type: "item", itemId: firstSouvenirFocusId }
+                    : undefined,
+                }}
+                onClick={onRetrySync}
+              >
+                {tSettings("retry_souvenir_sync")}
+              </Button>
+            ) : null}
             <Button
               variant="secondary"
               focusId={PROFILE_SOUVENIR_SYNC_CLEANUP_FOCUS_ID}

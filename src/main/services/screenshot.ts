@@ -20,6 +20,7 @@ import {
 import { captureWindowsGameWindowFrame } from "./windows-game-capture";
 import {
   getBitmapColorRange,
+  isMostlyBlackScreenshot,
   isNearlyUniformScreenshot,
 } from "./screenshot-frame-validation";
 import {
@@ -43,7 +44,12 @@ export class BlankScreenshotError extends Error {
 
 const isBlankImage = (image: Electron.NativeImage) => {
   const sample = image.resize({ width: 32, height: 32, quality: "good" });
-  return isNearlyUniformScreenshot(getBitmapColorRange(sample.toBitmap()));
+  const pixels = sample.toBitmap();
+
+  return (
+    isNearlyUniformScreenshot(getBitmapColorRange(pixels)) ||
+    isMostlyBlackScreenshot(pixels)
+  );
 };
 
 const resizeToFit = (image: Electron.NativeImage) => {

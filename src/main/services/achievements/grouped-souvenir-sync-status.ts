@@ -19,9 +19,12 @@ export const getAchievementSouvenirSyncStatusForOwner = (
 
 export const prepareAchievementSouvenirForRetry = (
   souvenir: PendingAchievementSouvenir
-): PendingAchievementSouvenir => ({
-  ...souvenir,
-  status: "pending",
-  lastAttemptAt: undefined,
-  lastErrorCode: undefined,
-});
+): PendingAchievementSouvenir => {
+  if (souvenir.status === "terminal") return souvenir;
+
+  return {
+    ...souvenir,
+    lastAttemptAt: undefined,
+    lastErrorCode: undefined,
+  };
+};

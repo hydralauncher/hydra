@@ -702,21 +702,23 @@ export function SouvenirsTab({
             </span>
           </div>
           <div className="profile-content__souvenirs-sync-status-actions">
-            <Button
-              theme="outline"
-              disabled={isRetryingSync || isLoadingSyncDetails}
-              onClick={() => void handleRetrySync()}
-            >
-              <SyncIcon
-                size={14}
-                className={
-                  isRetryingSync
-                    ? "profile-content__souvenirs-sync-status-icon--spinning"
-                    : undefined
-                }
-              />
-              {tSettings("retry_souvenir_sync")}
-            </Button>
+            {syncStatus.pendingCount > 0 ? (
+              <Button
+                theme="outline"
+                disabled={isRetryingSync || isLoadingSyncDetails}
+                onClick={() => void handleRetrySync()}
+              >
+                <SyncIcon
+                  size={14}
+                  className={
+                    isRetryingSync
+                      ? "profile-content__souvenirs-sync-status-icon--spinning"
+                      : undefined
+                  }
+                />
+                {tSettings("retry_souvenir_sync")}
+              </Button>
+            ) : null}
             <Button
               theme="outline"
               disabled={isRetryingSync || isLoadingSyncDetails}

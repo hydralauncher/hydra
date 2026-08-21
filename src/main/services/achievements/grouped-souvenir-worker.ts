@@ -58,9 +58,6 @@ const EMPTY_SYNC_DETAILS: AchievementSouvenirSyncDetails = {
   items: [],
 };
 
-const getSyncItemCount = (status: AchievementSouvenirSyncStatus) =>
-  status.pendingCount + status.failedCount;
-
 interface GroupedSouvenirRunResult {
   syncedCount: number;
   missingScreenshotCount: number;
@@ -446,7 +443,7 @@ export const retryAchievementSouvenirSync =
       souvenirs,
       ownerId
     );
-    const attemptedCount = getSyncItemCount(initialStatus);
+    const attemptedCount = initialStatus.pendingCount;
     achievementsLogger.info(
       "Manual grouped souvenir synchronization retry started",
       initialStatus
@@ -454,7 +451,9 @@ export const retryAchievementSouvenirSync =
 
     try {
       for (const souvenir of souvenirs) {
-        if (souvenir.ownerId !== ownerId) continue;
+        if (souvenir.ownerId !== ownerId || souvenir.status !== "pending") {
+          continue;
+        }
 
         await PendingGroupedSouvenirStore.put(
           prepareAchievementSouvenirForRetry(souvenir)

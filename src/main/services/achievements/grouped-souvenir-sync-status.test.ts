@@ -39,12 +39,17 @@ describe("grouped souvenir sync status", () => {
     );
   });
 
-  it("makes a failed record immediately retryable", () => {
+  it("keeps a terminal record non-retryable", () => {
     const failed = createPending("failed", "owner", "terminal");
 
-    assert.deepEqual(prepareAchievementSouvenirForRetry(failed), {
-      ...failed,
-      status: "pending",
+    assert.deepEqual(prepareAchievementSouvenirForRetry(failed), failed);
+  });
+
+  it("makes a pending record immediately retryable", () => {
+    const pending = createPending("pending", "owner", "pending");
+
+    assert.deepEqual(prepareAchievementSouvenirForRetry(pending), {
+      ...pending,
       lastAttemptAt: undefined,
       lastErrorCode: undefined,
     });

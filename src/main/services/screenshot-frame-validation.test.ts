@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   getBitmapColorRange,
+  isMostlyBlackScreenshot,
   isNearlyUniformScreenshot,
 } from "./screenshot-frame-validation.js";
 
@@ -57,5 +58,28 @@ describe("screenshot frame validation", () => {
     const pixels = Uint8Array.from([0, 0, 0, 255, 0, 0, 0, 255]);
 
     assert.equal(isNearlyUniformScreenshot(getBitmapColorRange(pixels)), true);
+  });
+
+  it("rejects a black bitmap with a sparse bright outlier", () => {
+    const pixels = new Uint8Array(100 * 4);
+    for (let index = 3; index < pixels.length; index += 4) {
+      pixels[index] = 255;
+    }
+    pixels.set([255, 255, 255, 255], 0);
+
+    assert.equal(isNearlyUniformScreenshot(getBitmapColorRange(pixels)), false);
+    assert.equal(isMostlyBlackScreenshot(pixels), true);
+  });
+
+  it("accepts a dark bitmap containing visible detail", () => {
+    const pixels = new Uint8Array(100 * 4);
+    for (let index = 3; index < pixels.length; index += 4) {
+      pixels[index] = 255;
+    }
+    for (let pixel = 0; pixel < 5; pixel += 1) {
+      pixels.set([80, 80, 80, 255], pixel * 4);
+    }
+
+    assert.equal(isMostlyBlackScreenshot(pixels), false);
   });
 });
