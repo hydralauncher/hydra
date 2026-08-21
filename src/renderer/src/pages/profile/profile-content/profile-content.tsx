@@ -123,7 +123,7 @@ export function ProfileContent() {
   const requestedSouvenir = searchParams.get("souvenir");
   const attemptedDeepLinkPagesRef = useRef(new Set<string>());
   const souvenirsEnabled = useAppSelector(
-    (state) => state.userPreferences.value?.enableAchievementSouvenirs === true
+    (state) => state.userPreferences.value?.enableAchievementSouvenirs !== false
   );
   const disableNsfwAlert = useAppSelector(
     (state) => state.userPreferences.value?.disableNsfwAlert === true

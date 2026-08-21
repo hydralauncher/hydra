@@ -19,7 +19,7 @@ export const prepareEmulatorSouvenirs = async (
     { valueEncoding: "json" }
   );
 
-  if (userPreferences?.enableAchievementSouvenirs !== true) return null;
+  if (userPreferences?.enableAchievementSouvenirs === false) return null;
 
   if (system === "ps1") {
     await enableDuckStationFileLogging();

@@ -49,7 +49,7 @@ const DEFAULT_FORM: ContentForm = {
   disableNsfwAlert: false,
   showHiddenAchievementsDescription: false,
   enableSteamAchievements: false,
-  enableAchievementSouvenirs: false,
+  enableAchievementSouvenirs: true,
 };
 
 export function ContentSettingsSection({
@@ -79,7 +79,7 @@ export function ContentSettingsSection({
         userPreferences.showHiddenAchievementsDescription ?? false,
       enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
       enableAchievementSouvenirs:
-        userPreferences.enableAchievementSouvenirs ?? false,
+        userPreferences.enableAchievementSouvenirs ?? true,
     });
   }, [userPreferences]);
 

@@ -103,7 +103,7 @@ export const prepareLinuxGameCaptureSession = async (gameKey: string) => {
     );
 
     if (
-      userPreferences?.enableAchievementSouvenirs !== true ||
+      userPreferences?.enableAchievementSouvenirs === false ||
       !HydraApi.hasActiveSubscription()
     ) {
       if (sessions.get(gameKey)?.token === token) sessions.delete(gameKey);
