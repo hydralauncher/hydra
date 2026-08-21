@@ -44,6 +44,17 @@ const getConflictReason = (
     : null;
 };
 
+const getConflictRecoveryAction = (
+  reason: string | null,
+  stage: GroupedSouvenirRequestStage
+): GroupedSouvenirRecoveryAction => {
+  if (reason === "reservation_mismatch" && stage === "authorization") {
+    return "rotate_id_and_reupload";
+  }
+
+  return reason ? (RECOVERY_BY_REASON[reason] ?? "abandon") : "abandon";
+};
+
 export const isMissingGroupedSouvenirScreenshot = (error: unknown) =>
   error instanceof Error &&
   "code" in error &&
@@ -98,22 +109,7 @@ export const getGroupedSouvenirFailure = (
   const responseCode = getResponseCode(data);
   const reason = getConflictReason(data, responseCode);
   if (responseCode === SOUVENIR_CONFLICT_CODE || reason) {
-    if (reason === "reservation_not_found") {
-      return { code, action: "reauthorize_same_id" };
-    }
-    if (reason === "reservation_mismatch") {
-      return {
-        code,
-        action:
-          stage === "authorization"
-            ? "rotate_id_and_reupload"
-            : "reauthorize_same_id",
-      };
-    }
-    if (reason && RECOVERY_BY_REASON[reason]) {
-      return { code, action: RECOVERY_BY_REASON[reason] };
-    }
-    return { code, action: "abandon" };
+    return { code, action: getConflictRecoveryAction(reason, stage) };
   }
 
   if (responseCode && RECOVERY_BY_ERROR_CODE[responseCode]) {

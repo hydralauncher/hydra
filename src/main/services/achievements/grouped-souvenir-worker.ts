@@ -308,7 +308,7 @@ const authorizePendingSouvenir = async (
 
 const completeAchievementOnlyRecovery = async (
   pending: PendingAchievementSouvenir
-): Promise<"failed"> => {
+) => {
   const recoveryAchievements =
     pending.recoveryAchievements ?? pending.achievements;
 
@@ -329,7 +329,7 @@ const completeAchievementOnlyRecovery = async (
       "Failed to synchronize achievements without an abandoned souvenir",
       { clientId: pending.clientId, error }
     );
-    return "failed";
+    return;
   }
 
   await PendingGroupedSouvenirStore.put({
@@ -352,8 +352,6 @@ const completeAchievementOnlyRecovery = async (
       { clientId: pending.clientId, error }
     );
   }
-
-  return "failed";
 };
 
 const prepareAchievementOnlyRecovery = async (
@@ -369,7 +367,7 @@ const prepareAchievementOnlyRecovery = async (
     recoveryAchievements: achievements,
   };
   await PendingGroupedSouvenirStore.put(recovery);
-  return completeAchievementOnlyRecovery(recovery);
+  await completeAchievementOnlyRecovery(recovery);
 };
 
 const getFailureState = (
@@ -412,7 +410,7 @@ const persistGroupedSouvenirFailure = async (
   pending: PendingAchievementSouvenir,
   error: unknown,
   stage: GroupedSouvenirRequestStage
-): Promise<"failed"> => {
+) => {
   const failure = getGroupedSouvenirFailure(error, pending.clientId, stage);
   const failureState = getFailureState(pending, failure.code);
 
@@ -446,11 +444,12 @@ const persistGroupedSouvenirFailure = async (
         ...failureState,
       });
     } else if (validAchievements.length === 0) {
-      return prepareAchievementOnlyRecovery(
+      await prepareAchievementOnlyRecovery(
         { ...pending, ...failureState },
         failure.code,
         []
       );
+      return;
     } else {
       await PendingGroupedSouvenirStore.put({
         ...pending,
@@ -460,11 +459,12 @@ const persistGroupedSouvenirFailure = async (
       });
     }
   } else if (failure.action === "abandon") {
-    return prepareAchievementOnlyRecovery(
+    await prepareAchievementOnlyRecovery(
       { ...pending, ...failureState },
       failure.code,
       pending.achievements
     );
+    return;
   } else {
     const shouldReauthorizeIncompleteUpload =
       failure.code === "achievements/souvenir-upload-incomplete" &&
@@ -486,7 +486,6 @@ const persistGroupedSouvenirFailure = async (
     errorCode: failure.code,
     error,
   });
-  return "failed";
 };
 
 const processPendingSouvenir = async (
@@ -500,7 +499,8 @@ const processPendingSouvenir = async (
   await PendingGroupedSouvenirStore.put(attempted);
 
   if (attempted.recoveryMode === "sync_achievements_only") {
-    return completeAchievementOnlyRecovery(attempted);
+    await completeAchievementOnlyRecovery(attempted);
+    return "failed";
   }
 
   let requestStage: GroupedSouvenirRequestStage = "authorization";
@@ -552,7 +552,8 @@ const processPendingSouvenir = async (
       return "missing-screenshot";
     }
 
-    return persistGroupedSouvenirFailure(failed, error, requestStage);
+    await persistGroupedSouvenirFailure(failed, error, requestStage);
+    return "failed";
   }
 };
 
