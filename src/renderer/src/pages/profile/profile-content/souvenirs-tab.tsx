@@ -33,6 +33,7 @@ import { useDate, useToast } from "@renderer/hooks";
 import {
   getPrimarySouvenirAchievement,
   getSouvenirKey,
+  getSouvenirSyncErrorTranslationKeys,
   getSouvenirVisualVariant,
   shouldShowSouvenirContentWarning,
 } from "@shared";
@@ -452,6 +453,7 @@ export function SouvenirsTab({
   const [syncStatus, setSyncStatus] = useState<AchievementSouvenirSyncStatus>({
     pendingCount: 0,
     failedCount: 0,
+    errorCodes: [],
   });
   const [isRetryingSync, setIsRetryingSync] = useState(false);
   const [isLoadingSyncDetails, setIsLoadingSyncDetails] = useState(false);
@@ -506,7 +508,7 @@ export function SouvenirsTab({
 
   useEffect(() => {
     if (!isMe) {
-      setSyncStatus({ pendingCount: 0, failedCount: 0 });
+      setSyncStatus({ pendingCount: 0, failedCount: 0, errorCodes: [] });
       return;
     }
 
@@ -613,6 +615,21 @@ export function SouvenirsTab({
 
   const hasSyncIssues =
     syncStatus.pendingCount > 0 || syncStatus.failedCount > 0;
+  const syncMessages = [
+    syncStatus.pendingCount > 0
+      ? tSettings("souvenir_sync_pending", {
+          count: syncStatus.pendingCount,
+        })
+      : null,
+    syncStatus.failedCount > 0
+      ? tSettings("souvenir_sync_failed", {
+          count: syncStatus.failedCount,
+        })
+      : null,
+    ...getSouvenirSyncErrorTranslationKeys(syncStatus.errorCodes).map((key) =>
+      tSettings(key)
+    ),
+  ].filter((message): message is string => Boolean(message));
 
   const dismissPrivacyNotice = () => {
     localStorage.setItem(
@@ -684,22 +701,7 @@ export function SouvenirsTab({
           <AlertIcon size={20} />
           <div className="profile-content__souvenirs-sync-status-copy">
             <strong>{tSettings("souvenir_sync_status_title")}</strong>
-            <span>
-              {[
-                syncStatus.pendingCount > 0
-                  ? tSettings("souvenir_sync_pending", {
-                      count: syncStatus.pendingCount,
-                    })
-                  : null,
-                syncStatus.failedCount > 0
-                  ? tSettings("souvenir_sync_failed", {
-                      count: syncStatus.failedCount,
-                    })
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            </span>
+            <span>{syncMessages.join(" ")}</span>
           </div>
           <div className="profile-content__souvenirs-sync-status-actions">
             {syncStatus.pendingCount > 0 ? (

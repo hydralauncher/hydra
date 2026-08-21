@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   getGroupedSouvenirErrorCode,
+  getGroupedSouvenirFailure,
   isMissingGroupedSouvenirScreenshot,
   isTerminalGroupedSouvenirError,
 } from "./grouped-souvenir-retry-policy.js";
@@ -12,44 +13,120 @@ const axiosError = (status: number, data: Record<string, unknown> = {}) => ({
   response: { status, data },
 });
 
+const souvenirConflict = (reason: string) =>
+  axiosError(409, {
+    message: "achievements/souvenir-conflict",
+    clientId: "client-1",
+    reason,
+  });
+
 describe("grouped souvenir retry policy", () => {
-  it("stops retrying validation conflicts for the matching client", () => {
-    const error = axiosError(409, {
-      clientId: "client-1",
-      code: "souvenir_conflict",
-    });
+  it("maps synchronization conflicts to their recovery actions", () => {
+    const expectations = {
+      reservation_not_found: "reauthorize_same_id",
+      reservation_mismatch: "reauthorize_same_id",
+      image_key_in_use: "rotate_id_and_reupload",
+      achievement_not_found: "rebuild",
+      achievement_already_assigned: "abandon",
+      souvenir_payload_mismatch: "rotate_id_and_reupload",
+      concurrent_update: "retry",
+    } as const;
 
-    assert.equal(isTerminalGroupedSouvenirError(error, "client-1"), true);
-    assert.equal(getGroupedSouvenirErrorCode(error), "souvenir_conflict");
-  });
-
-  it("does not terminate a different pending client", () => {
-    const error = axiosError(409, { clientId: "client-2" });
-
-    assert.equal(isTerminalGroupedSouvenirError(error, "client-1"), false);
-  });
-
-  it("stops retrying an acknowledged souvenir conflict without a client ID", () => {
-    const error = axiosError(409, {
-      message: "achievements/souvenir-conflict",
-    });
-
-    assert.equal(isTerminalGroupedSouvenirError(error, "client-1"), true);
-  });
-
-  it("stops retrying terminal upload conflicts without a client ID", () => {
-    for (const message of [
-      "achievements/souvenir-upload-deleted",
-      "achievements/souvenir-upload-length-mismatch",
-    ]) {
-      assert.equal(
-        isTerminalGroupedSouvenirError(
-          axiosError(409, { message }),
-          "client-1"
+    for (const [reason, action] of Object.entries(expectations)) {
+      assert.deepEqual(
+        getGroupedSouvenirFailure(
+          souvenirConflict(reason),
+          "client-1",
+          "synchronization"
         ),
-        true
+        { code: reason, action }
       );
     }
+  });
+
+  it("rotates the client ID when authorization rejects a reservation", () => {
+    assert.deepEqual(
+      getGroupedSouvenirFailure(
+        souvenirConflict("reservation_mismatch"),
+        "client-1",
+        "authorization"
+      ),
+      {
+        code: "reservation_mismatch",
+        action: "rotate_id_and_reupload",
+      }
+    );
+  });
+
+  it("recognizes a direct reservation mismatch from authorization", () => {
+    assert.deepEqual(
+      getGroupedSouvenirFailure(
+        axiosError(409, {
+          message: "reservation_mismatch",
+          clientId: "client-1",
+        }),
+        "client-1",
+        "authorization"
+      ),
+      {
+        code: "reservation_mismatch",
+        action: "rotate_id_and_reupload",
+      }
+    );
+  });
+
+  it("maps upload lifecycle errors to their recovery actions", () => {
+    const expectations = {
+      "achievements/souvenir-upload-deleted": "rotate_id_and_reupload",
+      "achievements/souvenir-upload-expired": "reauthorize_same_id",
+      "achievements/souvenir-upload-length-mismatch": "rotate_id_and_reupload",
+      "achievements/souvenir-upload-incomplete": "retry",
+    } as const;
+
+    for (const [message, action] of Object.entries(expectations)) {
+      assert.deepEqual(
+        getGroupedSouvenirFailure(
+          axiosError(message.endsWith("incomplete") ? 503 : 409, {
+            message,
+            clientId: "client-1",
+          }),
+          "client-1",
+          "synchronization"
+        ),
+        { code: message, action }
+      );
+    }
+  });
+
+  it("does not apply another client's failure to the pending souvenir", () => {
+    assert.deepEqual(
+      getGroupedSouvenirFailure(
+        axiosError(409, {
+          message: "achievements/souvenir-upload-deleted",
+          clientId: "client-2",
+        }),
+        "client-1",
+        "synchronization"
+      ),
+      {
+        code: "achievements/souvenir-upload-deleted",
+        action: "retry",
+      }
+    );
+  });
+
+  it("abandons unknown conflicts so achievements can sync separately", () => {
+    const error = axiosError(409, {
+      message: "achievements/souvenir-conflict",
+      clientId: "client-1",
+      reason: "future_conflict",
+    });
+
+    assert.equal(isTerminalGroupedSouvenirError(error, "client-1"), true);
+    assert.deepEqual(
+      getGroupedSouvenirFailure(error, "client-1", "synchronization"),
+      { code: "future_conflict", action: "abandon" }
+    );
   });
 
   it("identifies when the local screenshot no longer exists", () => {
@@ -64,25 +141,16 @@ describe("grouped souvenir retry policy", () => {
     );
   });
 
-  it("keeps request-level rollout and validation errors retryable", () => {
-    assert.equal(
-      isTerminalGroupedSouvenirError(axiosError(404), "client-1"),
-      false
-    );
-    assert.equal(
-      isTerminalGroupedSouvenirError(axiosError(422), "client-1"),
-      false
-    );
-  });
-
-  it("keeps transient API failures retryable", () => {
-    assert.equal(
-      isTerminalGroupedSouvenirError(axiosError(429), "client-1"),
-      false
-    );
-    assert.equal(
-      isTerminalGroupedSouvenirError(axiosError(503), "client-1"),
-      false
-    );
+  it("keeps request-level and transient failures retryable", () => {
+    for (const status of [404, 422, 429, 503]) {
+      assert.equal(
+        getGroupedSouvenirFailure(
+          axiosError(status),
+          "client-1",
+          "synchronization"
+        ).action,
+        "retry"
+      );
+    }
   });
 });

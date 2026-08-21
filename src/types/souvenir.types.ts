@@ -18,11 +18,15 @@ export interface PendingAchievementSouvenir {
   attemptCount: number;
   lastAttemptAt?: number;
   lastErrorCode?: string;
+  lastErrorCount?: number;
+  recoveryMode?: "sync_achievements_only";
+  recoveryAchievements?: PendingSouvenirAchievement[];
 }
 
 export interface AchievementSouvenirSyncStatus {
   pendingCount: number;
   failedCount: number;
+  errorCodes: string[];
 }
 
 export interface AchievementSouvenirSyncItem {

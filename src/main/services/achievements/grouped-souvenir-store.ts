@@ -15,6 +15,20 @@ export const PendingGroupedSouvenirStore = {
   delete: (clientId: string) =>
     pendingGroupedAchievementSouvenirsSublevel.del(clientId),
 
+  async replaceClientId(
+    previousClientId: string,
+    souvenir: PendingAchievementSouvenir
+  ) {
+    const batch = db.batch();
+    batch.del(previousClientId, {
+      sublevel: pendingGroupedAchievementSouvenirsSublevel,
+    });
+    batch.put(souvenir.clientId, souvenir, {
+      sublevel: pendingGroupedAchievementSouvenirsSublevel,
+    });
+    await batch.write();
+  },
+
   list: () => pendingGroupedAchievementSouvenirsSublevel.values().all(),
 
   async getProtectedScreenshotPaths() {

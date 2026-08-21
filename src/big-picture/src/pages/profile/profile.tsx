@@ -115,6 +115,7 @@ import {
   buildUserSouvenirReportPath,
   findSouvenirByNotificationTarget,
   getPrimarySouvenirAchievement,
+  getSouvenirSyncErrorTranslationKeys,
   getSouvenirKey as buildSouvenirKey,
   getSouvenirVisualVariant,
   normalizeSouvenirReportValues,
@@ -2033,6 +2034,11 @@ function ProfileSouvenirSyncStatus({
   if (syncStatus.failedCount > 0) {
     messages.push(t("souvenir_sync_failed", { count: syncStatus.failedCount }));
   }
+  messages.push(
+    ...getSouvenirSyncErrorTranslationKeys(syncStatus.errorCodes).map((key) =>
+      t(key)
+    )
+  );
 
   const focusNavigationOverrides: FocusOverrides = {
     up: upFocusId ? { type: "item", itemId: upFocusId } : undefined,
@@ -2638,6 +2644,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     useState<AchievementSouvenirSyncStatus>({
       pendingCount: 0,
       failedCount: 0,
+      errorCodes: [],
     });
   const [isRetryingSouvenirSync, setIsRetryingSouvenirSync] = useState(false);
   const [isLoadingSouvenirSyncDetails, setIsLoadingSouvenirSyncDetails] =
@@ -2680,7 +2687,11 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
 
   useEffect(() => {
     if (!isOwnProfileTarget) {
-      setSouvenirSyncStatus({ pendingCount: 0, failedCount: 0 });
+      setSouvenirSyncStatus({
+        pendingCount: 0,
+        failedCount: 0,
+        errorCodes: [],
+      });
       return;
     }
 

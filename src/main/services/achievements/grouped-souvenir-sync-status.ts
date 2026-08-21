@@ -12,9 +12,15 @@ export const getAchievementSouvenirSyncStatusForOwner = (
       if (souvenir.ownerId !== ownerId) return status;
       if (souvenir.status === "terminal") status.failedCount += 1;
       else status.pendingCount += 1;
+      if (
+        souvenir.lastErrorCode &&
+        !status.errorCodes.includes(souvenir.lastErrorCode)
+      ) {
+        status.errorCodes.push(souvenir.lastErrorCode);
+      }
       return status;
     },
-    { pendingCount: 0, failedCount: 0 }
+    { pendingCount: 0, failedCount: 0, errorCodes: [] }
   );
 
 export const prepareAchievementSouvenirForRetry = (
@@ -25,6 +31,5 @@ export const prepareAchievementSouvenirForRetry = (
   return {
     ...souvenir,
     lastAttemptAt: undefined,
-    lastErrorCode: undefined,
   };
 };

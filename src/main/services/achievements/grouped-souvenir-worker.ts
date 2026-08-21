@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 
 import {
@@ -14,6 +15,7 @@ import type {
   AchievementSouvenirSyncRetryResult,
   AchievementSouvenirSyncStatus,
   PendingAchievementSouvenir,
+  PendingSouvenirAchievement,
   UpdatedUnlockedAchievements,
   User,
 } from "@types";
@@ -30,14 +32,19 @@ import {
   PendingGroupedSouvenirStore,
 } from "./grouped-souvenir-store";
 import {
-  getGroupedSouvenirErrorCode,
+  getGroupedSouvenirFailure,
   isMissingGroupedSouvenirScreenshot,
-  isTerminalGroupedSouvenirError,
+  type GroupedSouvenirRequestStage,
 } from "./grouped-souvenir-retry-policy";
 import {
   getAchievementSouvenirSyncStatusForOwner,
   prepareAchievementSouvenirForRetry,
 } from "./grouped-souvenir-sync-status";
+import { getGameAchievementData } from "./get-game-achievement-data";
+
+const CONCURRENT_UPDATE_ATTEMPTS = 3;
+const CONCURRENT_UPDATE_RETRY_DELAY_MS = 250;
+const INCOMPLETE_UPLOAD_REAUTHORIZE_ATTEMPTS = 3;
 
 const getRetryDelay = (attemptCount: number) =>
   Math.min(
@@ -51,6 +58,7 @@ const getCurrentUser = () =>
 const EMPTY_SYNC_STATUS: AchievementSouvenirSyncStatus = {
   pendingCount: 0,
   failedCount: 0,
+  errorCodes: [],
 };
 
 const EMPTY_SYNC_DETAILS: AchievementSouvenirSyncDetails = {
@@ -195,6 +203,292 @@ const reconcileAchievementMemory = async (
   }
 };
 
+const buildAchievementSyncPayload = (
+  pending: PendingAchievementSouvenir,
+  achievements: PendingSouvenirAchievement[],
+  includeSouvenir: boolean
+) => ({
+  id: pending.remoteGameId,
+  achievements,
+  ...(includeSouvenir && {
+    souvenirs: [
+      {
+        clientId: pending.clientId,
+        imageKey: pending.imageKey!,
+        capturedAt: pending.capturedAt,
+        achievementNames: achievements.map((achievement) => achievement.name),
+      },
+    ],
+  }),
+});
+
+const synchronizeAchievements = (
+  pending: PendingAchievementSouvenir,
+  achievements: PendingSouvenirAchievement[],
+  includeSouvenir: boolean
+) =>
+  HydraApi.put<UpdatedUnlockedAchievements>(
+    "/profile/games/achievements",
+    buildAchievementSyncPayload(pending, achievements, includeSouvenir)
+  );
+
+const waitForConcurrentUpdate = (attempt: number) =>
+  new Promise((resolve) => {
+    setTimeout(
+      resolve,
+      CONCURRENT_UPDATE_RETRY_DELAY_MS * Math.max(1, attempt)
+    );
+  });
+
+const synchronizePendingSouvenir = async (
+  pending: PendingAchievementSouvenir
+) => {
+  for (let attempt = 1; attempt <= CONCURRENT_UPDATE_ATTEMPTS; attempt++) {
+    try {
+      return await synchronizeAchievements(pending, pending.achievements, true);
+    } catch (error) {
+      const failure = getGroupedSouvenirFailure(
+        error,
+        pending.clientId,
+        "synchronization"
+      );
+      if (
+        failure.code !== "concurrent_update" ||
+        attempt === CONCURRENT_UPDATE_ATTEMPTS
+      ) {
+        throw error;
+      }
+
+      achievementsLogger.warn(
+        "Retrying grouped souvenir after a concurrent achievement update",
+        { clientId: pending.clientId, attempt }
+      );
+      await waitForConcurrentUpdate(attempt);
+    }
+  }
+
+  throw new Error("Concurrent souvenir synchronization retry exhausted");
+};
+
+const authorizePendingSouvenir = async (
+  attempted: PendingAchievementSouvenir
+) => {
+  const { authorization, image } =
+    await AchievementImageService.authorizeAchievementImage(
+      attempted.screenshotPath,
+      attempted.remoteGameId,
+      attempted.clientId
+    );
+
+  const imageKeyChanged = authorization.imageKey !== attempted.imageKey;
+  const authorized: PendingAchievementSouvenir = {
+    ...attempted,
+    imageKey: authorization.imageKey,
+    ...(imageKeyChanged && { uploadedAt: undefined }),
+  };
+  await PendingGroupedSouvenirStore.put(authorized);
+
+  if (
+    !authorized.uploadedAt &&
+    authorization.status === "pending" &&
+    authorization.presignedUrl
+  ) {
+    await AchievementImageService.uploadAuthorizedAchievementImage(
+      authorization.presignedUrl,
+      image
+    );
+    authorized.uploadedAt = Date.now();
+    await PendingGroupedSouvenirStore.put(authorized);
+  } else if (!authorized.uploadedAt && authorization.status === "pending") {
+    throw new Error("Souvenir upload authorization has no upload URL");
+  }
+
+  return authorized;
+};
+
+const completeAchievementOnlyRecovery = async (
+  pending: PendingAchievementSouvenir
+): Promise<"failed"> => {
+  const recoveryAchievements =
+    pending.recoveryAchievements ?? pending.achievements;
+
+  let response: UpdatedUnlockedAchievements;
+  try {
+    response = await synchronizeAchievements(
+      pending,
+      recoveryAchievements,
+      false
+    );
+  } catch (error) {
+    await PendingGroupedSouvenirStore.put({
+      ...pending,
+      status: "pending",
+      lastAttemptAt: Date.now(),
+    });
+    achievementsLogger.error(
+      "Failed to synchronize achievements without an abandoned souvenir",
+      { clientId: pending.clientId, error }
+    );
+    return "failed";
+  }
+
+  await PendingGroupedSouvenirStore.put({
+    ...pending,
+    status: "terminal",
+    recoveryMode: undefined,
+    recoveryAchievements: undefined,
+    lastAttemptAt: Date.now(),
+  });
+  achievementsLogger.warn(
+    "Synchronized achievements without an abandoned souvenir",
+    { clientId: pending.clientId, errorCode: pending.lastErrorCode }
+  );
+
+  try {
+    await reconcileAchievementMemory(response);
+  } catch (error) {
+    achievementsLogger.error(
+      "Failed to refresh local achievements after abandoning a souvenir",
+      { clientId: pending.clientId, error }
+    );
+  }
+
+  return "failed";
+};
+
+const prepareAchievementOnlyRecovery = async (
+  pending: PendingAchievementSouvenir,
+  errorCode: string,
+  achievements: PendingSouvenirAchievement[]
+) => {
+  const recovery: PendingAchievementSouvenir = {
+    ...pending,
+    status: "pending",
+    lastErrorCode: errorCode,
+    recoveryMode: "sync_achievements_only",
+    recoveryAchievements: achievements,
+  };
+  await PendingGroupedSouvenirStore.put(recovery);
+  return completeAchievementOnlyRecovery(recovery);
+};
+
+const getFailureState = (
+  pending: PendingAchievementSouvenir,
+  errorCode: string
+) => ({
+  lastErrorCode: errorCode,
+  lastErrorCount:
+    pending.lastErrorCode === errorCode ? (pending.lastErrorCount ?? 0) + 1 : 1,
+});
+
+const getCurrentCatalogueAchievements = async (
+  pending: PendingAchievementSouvenir
+) => {
+  const game = await gamesSublevel.get(pending.gameKey).catch(() => null);
+  if (!game) return null;
+
+  const catalogue = await getGameAchievementData(
+    game.objectId,
+    game.shop,
+    false
+  ).catch((error) => {
+    achievementsLogger.error(
+      "Failed to refresh the achievement catalogue for souvenir recovery",
+      { clientId: pending.clientId, error }
+    );
+    return null;
+  });
+  if (!catalogue) return null;
+
+  const catalogueNames = new Set(
+    catalogue.map((achievement) => achievement.name.toUpperCase())
+  );
+  return pending.achievements.filter((achievement) =>
+    catalogueNames.has(achievement.name.toUpperCase())
+  );
+};
+
+const persistGroupedSouvenirFailure = async (
+  pending: PendingAchievementSouvenir,
+  error: unknown,
+  stage: GroupedSouvenirRequestStage
+): Promise<"failed"> => {
+  const failure = getGroupedSouvenirFailure(error, pending.clientId, stage);
+  const failureState = getFailureState(pending, failure.code);
+
+  if (failure.action === "reauthorize_same_id") {
+    await PendingGroupedSouvenirStore.put({
+      ...pending,
+      imageKey: undefined,
+      uploadedAt: undefined,
+      status: "pending",
+      ...failureState,
+    });
+  } else if (failure.action === "rotate_id_and_reupload") {
+    const rotated = {
+      ...pending,
+      clientId: randomUUID(),
+      imageKey: undefined,
+      uploadedAt: undefined,
+      status: "pending" as const,
+      ...failureState,
+    };
+    await PendingGroupedSouvenirStore.replaceClientId(
+      pending.clientId,
+      rotated
+    );
+  } else if (failure.action === "rebuild") {
+    const validAchievements = await getCurrentCatalogueAchievements(pending);
+    if (validAchievements === null) {
+      await PendingGroupedSouvenirStore.put({
+        ...pending,
+        status: "pending",
+        ...failureState,
+      });
+    } else if (validAchievements.length === 0) {
+      return prepareAchievementOnlyRecovery(
+        { ...pending, ...failureState },
+        failure.code,
+        []
+      );
+    } else {
+      await PendingGroupedSouvenirStore.put({
+        ...pending,
+        achievements: validAchievements,
+        status: "pending",
+        ...failureState,
+      });
+    }
+  } else if (failure.action === "abandon") {
+    return prepareAchievementOnlyRecovery(
+      { ...pending, ...failureState },
+      failure.code,
+      pending.achievements
+    );
+  } else {
+    const shouldReauthorizeIncompleteUpload =
+      failure.code === "achievements/souvenir-upload-incomplete" &&
+      failureState.lastErrorCount >= INCOMPLETE_UPLOAD_REAUTHORIZE_ATTEMPTS;
+    await PendingGroupedSouvenirStore.put({
+      ...pending,
+      ...(shouldReauthorizeIncompleteUpload && {
+        imageKey: undefined,
+        uploadedAt: undefined,
+      }),
+      status: "pending",
+      ...failureState,
+    });
+  }
+
+  achievementsLogger.error("Failed to synchronize grouped souvenir", {
+    clientId: pending.clientId,
+    action: failure.action,
+    errorCode: failure.code,
+    error,
+  });
+  return "failed";
+};
+
 const processPendingSouvenir = async (
   pending: PendingAchievementSouvenir
 ): Promise<"synced" | "missing-screenshot" | "failed"> => {
@@ -202,58 +496,18 @@ const processPendingSouvenir = async (
     ...pending,
     attemptCount: pending.attemptCount + 1,
     lastAttemptAt: Date.now(),
-    lastErrorCode: undefined,
   };
   await PendingGroupedSouvenirStore.put(attempted);
 
+  if (attempted.recoveryMode === "sync_achievements_only") {
+    return completeAchievementOnlyRecovery(attempted);
+  }
+
+  let requestStage: GroupedSouvenirRequestStage = "authorization";
   try {
-    const { authorization, image } =
-      await AchievementImageService.authorizeAchievementImage(
-        attempted.screenshotPath,
-        attempted.remoteGameId,
-        attempted.clientId
-      );
-
-    const imageKeyChanged = authorization.imageKey !== attempted.imageKey;
-    const authorized: PendingAchievementSouvenir = {
-      ...attempted,
-      imageKey: authorization.imageKey,
-      ...(imageKeyChanged && { uploadedAt: undefined }),
-    };
-    await PendingGroupedSouvenirStore.put(authorized);
-
-    if (
-      !authorized.uploadedAt &&
-      authorization.status === "pending" &&
-      authorization.presignedUrl
-    ) {
-      await AchievementImageService.uploadAuthorizedAchievementImage(
-        authorization.presignedUrl,
-        image
-      );
-      authorized.uploadedAt = Date.now();
-      await PendingGroupedSouvenirStore.put(authorized);
-    } else if (!authorized.uploadedAt && authorization.status === "pending") {
-      throw new Error("Souvenir upload authorization has no upload URL");
-    }
-
-    const response = await HydraApi.put<UpdatedUnlockedAchievements>(
-      "/profile/games/achievements",
-      {
-        id: authorized.remoteGameId,
-        achievements: authorized.achievements,
-        souvenirs: [
-          {
-            clientId: authorized.clientId,
-            imageKey: authorized.imageKey,
-            capturedAt: authorized.capturedAt,
-            achievementNames: authorized.achievements.map(
-              (achievement) => achievement.name
-            ),
-          },
-        ],
-      }
-    );
+    const authorized = await authorizePendingSouvenir(attempted);
+    requestStage = "synchronization";
+    const response = await synchronizePendingSouvenir(authorized);
 
     const acknowledgement = response.souvenirs?.find(
       (souvenir) => souvenir.clientId === authorized.clientId
@@ -298,19 +552,7 @@ const processPendingSouvenir = async (
       return "missing-screenshot";
     }
 
-    const terminal = isTerminalGroupedSouvenirError(error, pending.clientId);
-
-    await PendingGroupedSouvenirStore.put({
-      ...failed,
-      status: terminal ? "terminal" : "pending",
-      lastErrorCode: getGroupedSouvenirErrorCode(error),
-    });
-    achievementsLogger.error("Failed to synchronize grouped souvenir", {
-      clientId: pending.clientId,
-      terminal,
-      error,
-    });
-    return "failed";
+    return persistGroupedSouvenirFailure(failed, error, requestStage);
   }
 };
 

@@ -35,7 +35,7 @@ describe("grouped souvenir sync status", () => {
 
     assert.deepEqual(
       getAchievementSouvenirSyncStatusForOwner(records, "owner"),
-      { pendingCount: 1, failedCount: 1 }
+      { pendingCount: 1, failedCount: 1, errorCodes: ["failed"] }
     );
   });
 
@@ -51,7 +51,6 @@ describe("grouped souvenir sync status", () => {
     assert.deepEqual(prepareAchievementSouvenirForRetry(pending), {
       ...pending,
       lastAttemptAt: undefined,
-      lastErrorCode: undefined,
     });
   });
 });
