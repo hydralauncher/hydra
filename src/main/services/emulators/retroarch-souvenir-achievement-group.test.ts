@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { UserAchievement } from "@types";
-import { groupRetroArchSouvenirAchievements } from "./retroarch-souvenir-achievement-group.js";
+import {
+  groupRetroArchSouvenirAchievements,
+  partitionHandledRetroArchSouvenirs,
+} from "./retroarch-souvenir-achievement-group.js";
 
 const createAchievement = (
   name: string,
@@ -61,6 +64,28 @@ describe("RetroArch souvenir achievement grouping", () => {
     assert.deepEqual(
       groupRetroArchSouvenirAchievements(detected, []),
       detected
+    );
+  });
+
+  it("separates delayed screenshots for an achievement already grouped", () => {
+    const primaryScreenshot = {
+      entry: "game-cheevo-9459.png",
+      achievement: { id: "9459" },
+    };
+    const delayedScreenshot = {
+      entry: "game-cheevo-9460.png",
+      achievement: { id: "9460" },
+    };
+
+    assert.deepEqual(
+      partitionHandledRetroArchSouvenirs(
+        [primaryScreenshot, delayedScreenshot],
+        new Set(["9460"])
+      ),
+      {
+        handled: [delayedScreenshot],
+        unhandled: [primaryScreenshot],
+      }
     );
   });
 });

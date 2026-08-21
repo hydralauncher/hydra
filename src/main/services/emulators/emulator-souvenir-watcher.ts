@@ -17,6 +17,7 @@ import { groupedSouvenirWorker } from "../achievements/grouped-souvenir-worker";
 import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
 import {
   groupRetroArchSouvenirAchievements,
+  partitionHandledRetroArchSouvenirs,
   type RetroArchSouvenirAchievement,
 } from "./retroarch-souvenir-achievement-group";
 
@@ -434,6 +435,7 @@ const startRetroArchWatcher = (
     ])
   );
   const unreadableDirectories = new Set<string>();
+  const handledAchievementIds = new Set<string>();
   let isProcessing = false;
 
   achievementsLogger.info("Started RetroArch souvenir watcher", {
@@ -448,11 +450,29 @@ const startRetroArchWatcher = (
     void (async () => {
       if (!(await isSouvenirCaptureEnabled())) return;
 
-      const newSouvenirs = await collectNewRetroArchSouvenirs(
+      const detectedSouvenirs = await collectNewRetroArchSouvenirs(
         game.objectId,
         seenByDirectory,
         unreadableDirectories
       );
+      const { handled: redundantSouvenirs, unhandled: newSouvenirs } =
+        partitionHandledRetroArchSouvenirs(
+          detectedSouvenirs,
+          handledAchievementIds
+        );
+
+      if (redundantSouvenirs.length > 0) {
+        await removeRetroArchSourceFiles(redundantSouvenirs, seenByDirectory);
+        achievementsLogger.info(
+          "Removed delayed screenshots for grouped RetroArch achievements",
+          {
+            objectId: game.objectId,
+            achievementIds: redundantSouvenirs.map(
+              ({ achievement }) => achievement.id
+            ),
+          }
+        );
+      }
 
       const achievements = uniqueUnlocks(
         newSouvenirs.map(({ achievement }) => achievement)
@@ -505,6 +525,10 @@ const startRetroArchWatcher = (
           () => {}
         );
         throw error;
+      }
+
+      for (const achievement of groupedAchievements) {
+        handledAchievementIds.add(achievement.id.toLowerCase());
       }
 
       await removeRetroArchSourceFiles(newSouvenirs, seenByDirectory);

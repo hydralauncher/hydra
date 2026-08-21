@@ -8,6 +8,31 @@ export interface RetroArchSouvenirAchievement {
 
 const achievementKey = (name: string) => name.toLowerCase();
 
+interface RetroArchSouvenirCandidate {
+  achievement: Pick<RetroArchSouvenirAchievement, "id">;
+}
+
+export const partitionHandledRetroArchSouvenirs = <
+  T extends RetroArchSouvenirCandidate,
+>(
+  souvenirs: T[],
+  handledAchievementIds: ReadonlySet<string>
+) => {
+  const handled: T[] = [];
+  const unhandled: T[] = [];
+
+  for (const souvenir of souvenirs) {
+    const target = handledAchievementIds.has(
+      achievementKey(souvenir.achievement.id)
+    )
+      ? handled
+      : unhandled;
+    target.push(souvenir);
+  }
+
+  return { handled, unhandled };
+};
+
 export const groupRetroArchSouvenirAchievements = (
   detectedAchievements: RetroArchSouvenirAchievement[],
   syncedAchievements: UserAchievement[]
