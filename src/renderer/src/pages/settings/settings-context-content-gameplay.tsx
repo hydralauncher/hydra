@@ -35,7 +35,7 @@ export function SettingsContextContentGameplay() {
     disableNsfwAlert: false,
     showHiddenAchievementsDescription: false,
     enableSteamAchievements: false,
-    enableAchievementSouvenirs: false,
+    enableAchievementSouvenirs: true,
     enableNewDownloadOptionsBadges: true,
     hideClassicsBookmark: false,
     classicsUseHeroLayout: false,
@@ -60,7 +60,7 @@ export function SettingsContextContentGameplay() {
         userPreferences.showHiddenAchievementsDescription ?? false,
       enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
       enableAchievementSouvenirs:
-        userPreferences.enableAchievementSouvenirs ?? false,
+        userPreferences.enableAchievementSouvenirs ?? true,
       enableNewDownloadOptionsBadges:
         userPreferences.enableNewDownloadOptionsBadges ?? true,
       hideClassicsBookmark: userPreferences.hideClassicsBookmark ?? false,

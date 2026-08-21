@@ -47,7 +47,7 @@ const isSouvenirCaptureEnabled = async () => {
     { valueEncoding: "json" }
   );
 
-  return userPreferences?.enableAchievementSouvenirs === true;
+  return userPreferences?.enableAchievementSouvenirs !== false;
 };
 
 const queueGroupedSouvenir = async (
