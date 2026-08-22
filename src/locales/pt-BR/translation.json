@@ -793,6 +793,8 @@
     "gamemode_not_available_tooltip": "GameMode não está disponível no seu PATH",
     "mangohud_disabled_due_to_global_setting_tooltip": "Esta opção está desativada porque o MangoHud está ativado globalmente",
     "gamemode_disabled_due_to_global_setting_tooltip": "Esta opção está desativada porque o GameMode está ativado globalmente",
+    "proton_logging": "Registro do Proton",
+    "proton_log_disabled_due_to_global_setting_tooltip": "Esta opção está desativada porque o registro do Proton está ativado globalmente",
     "auto_run_inherit_global": "Usar configuração global",
     "auto_run_enabled": "Ativado",
     "auto_run_disabled": "Desativado",
@@ -1200,6 +1202,10 @@
     "enable_auto_install": "Baixar atualizações automaticamente",
     "run_games_with_gamemode": "Executar jogos com GameMode por padrão",
     "run_games_with_mangohud": "Executar jogos com MangoHud por padrão",
+    "enable_proton_logging": "Ativar registro do Proton",
+    "compatibility_environment_variables": "Variáveis de ambiente de compatibilidade",
+    "compatibility_environment_variables_description": "Aplica estas variáveis de ambiente a cada inicialização de compatibilidade.",
+    "compatibility_environment_variables_placeholder": "PROTON_FSR4_UPGRADE=1\nMANGOHUD=1\n# Uma variável por linha",
     "common_redist": "Componentes recomendados",
     "common_redist_description": "Componentes recomendados são necessários para executar alguns jogos. A instalação deles é recomendada para evitar problemas.",
     "install_common_redist": "Instalar",
@@ -1570,7 +1576,8 @@
     "wayland_souvenirs_warning_title": "Lembranças no Wayland",
     "wayland_souvenirs_warning_description": "Devido à natureza do Wayland, o Hydra precisa perguntar qual janela deve ser capturada toda vez que você abrir um jogo. Selecione a janela do jogo para que o Hydra possa capturar lembranças quando você desbloquear conquistas. Sem selecionar uma janela, não é possível capturar lembranças.",
     "wayland_souvenirs_warning_cancel": "Cancelar",
-    "wayland_souvenirs_warning_confirm": "OK"
+    "wayland_souvenirs_warning_confirm": "OK",
+    "enable_compatibility_environment_variables": "Ativar variáveis de ambiente"
   },
   "notifications": {
     "download_complete": "Download concluído",

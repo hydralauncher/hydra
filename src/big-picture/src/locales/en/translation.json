@@ -624,6 +624,13 @@
     "RPCS3 is already running": "RPCS3 is already running",
     "Run with GameMode": "Run with GameMode",
     "Run with MangoHud": "Run with MangoHud",
+    "Enable Proton logging": "Enable Proton logging",
+    "Write Proton debug logs for compatibility launches.": "Write Proton debug logs for compatibility launches.",
+    "Proton logging": "Proton logging",
+    "Write Proton debug logs for this game.": "Write Proton debug logs for this game.",
+    "This option is disabled because Proton logging is enabled globally": "This option is disabled because Proton logging is enabled globally",
+    "Compatibility environment variables": "Compatibility environment variables",
+    "Applies these variables to every compatibility launch.": "Applies these variables to every compatibility launch.",
     "Save exported": "Save exported",
     "Search catalogue": "Search catalogue",
     "Search language": "Search language",
@@ -718,7 +725,9 @@
     "steamgriddb_sign_in_required": "Sign in to Hydra to browse SteamGridDB artwork.",
     "steamgriddb_fetch_failed": "Failed to load SteamGridDB assets",
     "steamgriddb_artwork_updated": "Artwork updated",
-    "steamgriddb_artwork_reset": "Artwork reset to default"
+    "steamgriddb_artwork_reset": "Artwork reset to default",
+    "Enable environment variables": "Enable environment variables",
+    "Controls whether compatibility environment variables are injected.": "Controls whether compatibility environment variables are injected."
   },
   "format": {
     "playtime_hours_one": "{{count}} hour",

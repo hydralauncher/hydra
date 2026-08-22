@@ -722,6 +722,8 @@
     "run_with_gamemode_prefix": "Автоматически запускать с",
     "gamemode_not_available_tooltip": "GameMode недоступен в вашем PATH",
     "gamemode_disabled_due_to_global_setting_tooltip": "Эта опция отключена, потому что GameMode включён глобально",
+    "proton_logging": "Логирование Proton",
+    "proton_log_disabled_due_to_global_setting_tooltip": "Эта опция отключена, так как логирование Proton включено глобально",
     "auto_run_inherit_global": "Использовать глобальную настройку",
     "auto_run_enabled": "Включено",
     "auto_run_disabled": "Отключено",
@@ -1231,6 +1233,10 @@
     "enable_auto_install": "Загружать обновления автоматически",
     "run_games_with_gamemode": "Запускать игры с GameMode по умолчанию",
     "run_games_with_mangohud": "Запускать игры с MangoHud по умолчанию",
+    "enable_proton_logging": "Включить логирование Proton",
+    "compatibility_environment_variables": "Переменные окружения совместимости",
+    "compatibility_environment_variables_description": "Применяет эти переменные окружения к каждому запуску совместимости.",
+    "compatibility_environment_variables_placeholder": "PROTON_FSR4_UPGRADE=1\nMANGOHUD=1\n# Одна переменная на строку",
     "common_redist": "Библиотеки",
     "common_redist_description": "Для запуска некоторых игр требуются библиотеки. Во избежание проблем рекомендуется установить их.",
     "install_common_redist": "Установить",
@@ -1551,7 +1557,8 @@
     "big_picture_enable_diagnostics": "Включить диагностику",
     "big_picture_diagnostics_position": "Положение диагностики",
     "open_screenshots_directory": "Открыть папку со скриншотами",
-    "enable_achievement_souvenirs": "Включить сувениры для достижений"
+    "enable_achievement_souvenirs": "Включить сувениры для достижений",
+    "enable_compatibility_environment_variables": "Включить переменные окружения"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",

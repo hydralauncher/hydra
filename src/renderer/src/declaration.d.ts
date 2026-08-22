@@ -298,6 +298,11 @@ declare global {
       objectId: string,
       autoRunGamemode: boolean
     ) => Promise<void>;
+    toggleGameProtonLog: (
+      shop: GameShop,
+      objectId: string,
+      protonLogEnabled: boolean
+    ) => Promise<void>;
     isGamemodeAvailable: () => Promise<boolean>;
     isMangohudAvailable: () => Promise<boolean>;
     isWinetricksAvailable: () => Promise<boolean>;

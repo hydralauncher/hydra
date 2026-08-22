@@ -451,6 +451,12 @@
     "RPCS3 is already running": "RPCS3 já está em execução",
     "Run with GameMode": "Executar com GameMode",
     "Run with MangoHud": "Executar com MangoHud",
+    "Enable Proton logging": "Ativar registro do Proton",
+    "Write Proton debug logs for compatibility launches.": "Escrever logs de depuração do Proton para inicializações de compatibilidade.",
+    "Proton logging": "Registro do Proton",
+    "This option is disabled because Proton logging is enabled globally": "Esta opção está desativada porque o registro do Proton está ativado globalmente",
+    "Compatibility environment variables": "Variáveis de ambiente de compatibilidade",
+    "Applies these variables to every compatibility launch.": "Aplica estas variáveis de ambiente a cada inicialização de compatibilidade.",
     "Save": "Salvar",
     "Save exported": "Save exportado",
     "Scroll item": "Item de rolagem",
@@ -718,7 +724,10 @@
     "Completionist": "Completista",
     "Try adjusting your search terms or filters.": "Tente ajustar os termos de busca ou os filtros.",
     "Empty collection": "Coleção vazia",
-    "Add games to this collection to see them here.": "Adicione jogos a esta coleção para vê-los aqui."
+    "Add games to this collection to see them here.": "Adicione jogos a esta coleção para vê-los aqui.",
+    "Enable environment variables": "Ativar variáveis de ambiente",
+    "Controls whether compatibility environment variables are injected.": "Controla se variáveis de ambiente de compatibilidade são injetadas.",
+    "Write Proton debug logs for this game.": "Write Proton debug logs for this game."
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",

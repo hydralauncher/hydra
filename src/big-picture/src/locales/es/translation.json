@@ -451,6 +451,12 @@
     "RPCS3 is already running": "RPCS3 ya está en ejecución",
     "Run with GameMode": "Ejecutar con GameMode",
     "Run with MangoHud": "Ejecutar con MangoHud",
+    "Enable Proton logging": "Habilitar registro de Proton",
+    "Write Proton debug logs for compatibility launches.": "Escribe registros de depuración de Proton para inicios de compatibilidad.",
+    "Proton logging": "Registro de Proton",
+    "This option is disabled because Proton logging is enabled globally": "Esta opción está deshabilitada porque el registro de Proton está habilitado globalmente",
+    "Compatibility environment variables": "Variables de entorno de compatibilidad",
+    "Applies these variables to every compatibility launch.": "Aplica estas variables de entorno a cada inicio de compatibilidad.",
     "Save": "Guardar",
     "Save exported": "Guardado exportado",
     "Scroll item": "Elemento de desplazamiento",
@@ -707,7 +713,10 @@
     "steamgriddb_sign_in_required": "Inicia sesión en Hydra para explorar las ilustraciones de SteamGridDB.",
     "steamgriddb_fetch_failed": "No se pudieron cargar los recursos de SteamGridDB",
     "steamgriddb_artwork_updated": "Arte actualizado",
-    "steamgriddb_artwork_reset": "Arte restablecido al valor predeterminado"
+    "steamgriddb_artwork_reset": "Arte restablecido al valor predeterminado",
+    "Enable environment variables": "Habilitar variables de entorno",
+    "Controls whether compatibility environment variables are injected.": "Controla si se inyectan variables de entorno de compatibilidad.",
+    "Write Proton debug logs for this game.": "Write Proton debug logs for this game."
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",
