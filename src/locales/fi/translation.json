@@ -690,7 +690,7 @@
     "error_importing_theme": "Virhe teemaa tuotaessa",
     "theme_imported": "Teema tuotu onnistuneesti",
     "enable_friend_request_notifications": "Kun kaveripyyntö vastaanotetaan",
-    "enable_auto_install": "Lataa päivitykset automaattisesti",
+    "enable_auto_download": "Lataa päivitykset automaattisesti",
     "common_redist": "Kirjastot",
     "common_redist_description": "Joidenkin pelien käyttö vaatii kirjastoja. Ongelmien välttämiseksi on suositeltavaa asentaa ne.",
     "install_common_redist": "Asenna",

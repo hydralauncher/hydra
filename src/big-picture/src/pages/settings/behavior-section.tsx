@@ -22,7 +22,7 @@ interface BehaviorForm {
   startMinimized: boolean;
   hideToTrayOnGameStart: boolean;
   launchToLibraryPage: boolean;
-  enableAutoInstall: boolean;
+  enableAutoDownload: boolean;
 }
 
 interface BehaviorItem {
@@ -40,7 +40,7 @@ const DEFAULT_FORM: BehaviorForm = {
   startMinimized: false,
   hideToTrayOnGameStart: false,
   launchToLibraryPage: false,
-  enableAutoInstall: false,
+  enableAutoDownload: false,
 };
 
 export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
@@ -58,7 +58,10 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       startMinimized: userPreferences.startMinimized ?? false,
       hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
       launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
-      enableAutoInstall: userPreferences.enableAutoInstall ?? false,
+      enableAutoDownload:
+        userPreferences.enableAutoDownload ??
+        userPreferences.enableAutoInstall ??
+        false,
     });
   }, [userPreferences]);
 
@@ -83,7 +86,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       {
         id: "prefer-quit-instead-of-hiding",
         focusId: BEHAVIOR_ITEM_FOCUS_IDS.preferQuitInsteadOfHiding,
-        label: "Quit app instead of hiding",
+        label: "Don't hide Hydra when closing",
         checked: form.preferQuitInsteadOfHiding,
         disabled: false,
         onChange: (checked: boolean) =>
@@ -92,7 +95,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       {
         id: "hide-to-tray-on-game-start",
         focusId: BEHAVIOR_ITEM_FOCUS_IDS.hideToTrayOnGameStart,
-        label: "Hide to tray on game start",
+        label: "Hide Hydra to tray on game startup",
         checked: form.hideToTrayOnGameStart,
         disabled: false,
         onChange: (checked: boolean) =>
@@ -103,7 +106,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
             {
               id: "launch-with-system",
               focusId: BEHAVIOR_ITEM_FOCUS_IDS.runAtStartup,
-              label: "Launch with system",
+              label: "Launch Hydra on system start-up",
               checked: form.runAtStartup,
               disabled: false,
               onChange: (checked: boolean) =>
@@ -118,7 +121,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
             {
               id: "launch-minimized",
               focusId: BEHAVIOR_ITEM_FOCUS_IDS.startMinimized,
-              label: "Launch minimized",
+              label: "Launch Hydra minimized",
               checked: form.runAtStartup && form.startMinimized,
               disabled: !form.runAtStartup,
               onChange: (checked: boolean) =>
@@ -135,7 +138,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       {
         id: "launch-to-library-page",
         focusId: BEHAVIOR_ITEM_FOCUS_IDS.launchToLibraryPage,
-        label: "Launch Hydra in library page",
+        label: "Launch Hydra in the Library page",
         checked: form.launchToLibraryPage,
         disabled: false,
         onChange: (checked: boolean) =>
@@ -144,13 +147,13 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       ...(isLinux
         ? [
             {
-              id: "enable-auto-install",
-              focusId: BEHAVIOR_ITEM_FOCUS_IDS.enableAutoInstall,
-              label: "Enable auto install",
-              checked: form.enableAutoInstall,
+              id: "enable-auto-download",
+              focusId: BEHAVIOR_ITEM_FOCUS_IDS.enableAutoDownload,
+              label: "Download updates automatically",
+              checked: form.enableAutoDownload,
               disabled: false,
               onChange: (checked: boolean) =>
-                void updateUserPreferences({ enableAutoInstall: checked }),
+                void updateUserPreferences({ enableAutoDownload: checked }),
             },
           ]
         : []),

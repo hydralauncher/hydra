@@ -8,6 +8,10 @@ import type { BigPictureDiagnosticsPosition, UserPreferences } from "@types";
 
 const buildForm = (preferences: UserPreferences | null) => ({
   launchInBigPicture: preferences?.launchInBigPicture ?? false,
+  bigPictureLaunchToLibraryPage:
+    preferences?.bigPictureLaunchToLibraryPage ??
+    preferences?.launchToLibraryPage ??
+    false,
   bigPictureSoundsEnabled: preferences?.bigPictureSoundsEnabled ?? true,
   bigPictureVirtualKeyboardEnabled:
     preferences?.bigPictureVirtualKeyboardEnabled ?? true,
@@ -68,6 +72,17 @@ export function SettingsContextBigPicture() {
           onChange={() =>
             handleChange({
               launchInBigPicture: !form.launchInBigPicture,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("launch_big_picture_in_library_page")}
+          checked={form.bigPictureLaunchToLibraryPage}
+          onChange={() =>
+            handleChange({
+              bigPictureLaunchToLibraryPage:
+                !form.bigPictureLaunchToLibraryPage,
             })
           }
         />

@@ -223,7 +223,6 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: globals.$border-color;
     color: globals.$body-color;
 
     img {
@@ -432,14 +431,21 @@
   }
 
   &__game-link {
-    overflow: hidden;
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: globals.$spacing-unit;
     color: globals.$body-color;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 
     &:hover {
       color: globals.$muted-color;
     }
+  }
+
+  &__game-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__rarity {
@@ -491,12 +497,8 @@
       opacity: globals.$disabled-opacity;
     }
 
-    &--pending:disabled {
-      opacity: 1;
-    }
-
     &--active {
-      color: globals.$error-color;
+      color: #fff;
     }
 
     &--icon {
@@ -511,6 +513,7 @@
 
       &:hover:not(:disabled) {
         background: rgba(225, 29, 72, 0.22);
+        color: globals.$error-color;
       }
     }
   }

@@ -66,6 +66,7 @@ export interface Game {
   isPinned?: boolean;
   achievementCount?: number;
   unlockedAchievementCount?: number;
+  reportedUnlockedAchievementCount?: number;
   pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
@@ -149,8 +150,10 @@ export interface UserPreferences {
   runAtStartup?: boolean;
   startMinimized?: boolean;
   launchToLibraryPage?: boolean;
+  bigPictureLaunchToLibraryPage?: boolean;
   launchInBigPicture?: boolean;
   disableNsfwAlert?: boolean;
+  enableAutoDownload?: boolean;
   enableAutoInstall?: boolean;
   seedAfterDownloadComplete?: boolean;
   showHiddenAchievementsDescription?: boolean;

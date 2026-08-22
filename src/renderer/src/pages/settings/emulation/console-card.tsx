@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRightIcon, GearIcon, AlertIcon } from "@primer/octicons-react";
+import { Tooltip } from "react-tooltip";
 
 import { formatRelativeShort } from "./relative-time";
 
@@ -10,6 +11,7 @@ interface ConsoleCardProps {
   art: string;
   title: string;
   emulatorName: string;
+  emulatorNameTooltip?: string;
   detectedVersion: string | null;
   executablePath: string | null;
   romFoldersCount: number;
@@ -24,6 +26,7 @@ export function ConsoleCard({
   art,
   title,
   emulatorName,
+  emulatorNameTooltip,
   detectedVersion,
   executablePath,
   romFoldersCount,
@@ -34,6 +37,7 @@ export function ConsoleCard({
   onStartSetup,
 }: Readonly<ConsoleCardProps>) {
   const { t, i18n } = useTranslation("settings");
+  const tooltipId = useId();
 
   const [executableExists, setExecutableExists] = useState(true);
 
@@ -73,7 +77,14 @@ export function ConsoleCard({
       <div className="console-card__heading">
         <h3 className="console-card__title">{title}</h3>
         <div className="console-card__subline">
-          <span className="console-card__emulator">{emulatorName}</span>
+          <span
+            className="console-card__emulator"
+            data-tooltip-id={emulatorNameTooltip ? tooltipId : undefined}
+            data-tooltip-content={emulatorNameTooltip}
+            data-tooltip-place="bottom"
+          >
+            {emulatorName}
+          </span>
           {detectedVersion && (
             <>
               <span className="console-card__dot" />
@@ -182,6 +193,10 @@ export function ConsoleCard({
           </button>
         )}
       </div>
+
+      {emulatorNameTooltip && (
+        <Tooltip id={tooltipId} style={{ zIndex: 9999 }} openOnClick={false} />
+      )}
     </div>
   );
 }

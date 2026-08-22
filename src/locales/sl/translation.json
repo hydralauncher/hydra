@@ -703,7 +703,7 @@
     "error_importing_theme": "Napaka pri uvozu teme",
     "theme_imported": "Tema uspešno uvožena",
     "enable_friend_request_notifications": "Ko je prejet prijateljski zahtevek",
-    "enable_auto_install": "Samodejno prenesi posodobitve",
+    "enable_auto_download": "Samodejno prenesi posodobitve",
     "common_redist": "Skupni redistributable-ji",
     "common_redist_description": "Skupni redistributable-ji so potrebni za zagon nekaterih iger. Priporočamo njihovo namestitev, da se izognete težavam.",
     "install_common_redist": "Namesti",

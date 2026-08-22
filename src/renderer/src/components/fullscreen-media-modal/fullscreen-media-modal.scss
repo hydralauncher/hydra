@@ -60,6 +60,12 @@
     align-items: center;
   }
 
+  &__image--upscale {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+  }
+
   &__image {
     max-width: 100%;
     max-height: 60vh;

@@ -687,7 +687,7 @@
     "error_importing_theme": "Nastala chyba při vkládání vzhledu",
     "theme_imported": "Vzhled úspěšně vložen",
     "enable_friend_request_notifications": "Při obdržení žádosti o přátelství",
-    "enable_auto_install": "Automaticky stahovat aktualizace",
+    "enable_auto_download": "Automaticky stahovat aktualizace",
     "common_redist": "Běžné redistribuovatelné komponenty",
     "common_redist_description": "Běžné redistribuovatelné komponenty jsou potřeba pro spuštění určitých her. Je doporučeno je nainstalovat, aby se předešlo problémům.",
     "install_common_redist": "Nainstalovat",

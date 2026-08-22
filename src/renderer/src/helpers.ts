@@ -3,6 +3,7 @@ import type {
   EmulatorSystem,
   GameShop,
   LibraryGame,
+  SouvenirSort,
 } from "@types";
 
 import {
@@ -649,6 +650,20 @@ export const readStoredProfilePlatform = (): ProfilePlatformFilter => {
   return saved === "pc" || saved === "classics" || saved === "all"
     ? saved
     : "all";
+};
+
+export type SouvenirGrouping = "game" | "none";
+
+export const readStoredSouvenirSort = (): SouvenirSort => {
+  const saved = localStorage.getItem("profile-souvenir-sort-by");
+  return saved === "recent" || saved === "oldest" || saved === "rare"
+    ? saved
+    : "recent";
+};
+
+export const readStoredSouvenirGrouping = (): SouvenirGrouping => {
+  const saved = localStorage.getItem("profile-souvenir-grouping");
+  return saved === "game" || saved === "none" ? saved : "none";
 };
 
 export const getShopsForProfilePlatform = (

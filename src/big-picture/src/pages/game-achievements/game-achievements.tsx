@@ -1,5 +1,6 @@
-import type { GameShop } from "@types";
-import { useMemo } from "react";
+import type { GameShop, UserAchievement } from "@types";
+import { AnimatePresence } from "framer-motion";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { VerticalFocusGroup } from "../../components";
 import {
@@ -8,6 +9,7 @@ import {
   GAME_ACHIEVEMENTS_LIST_REGION_ID,
   GAME_ACHIEVEMENTS_PAGE_REGION_ID,
   GameAchievementsHero,
+  GameAchievementsSouvenirViewer,
   UserAchievementsSummary,
 } from "../../components/pages/game-achievements";
 import {
@@ -26,6 +28,7 @@ export default function GameAchievements() {
     shop!
   );
   const { userDetails } = useUserDetails();
+  const [souvenir, setSouvenir] = useState<UserAchievement | null>(null);
 
   const unlockedCount = useMemo(
     () => achievements.filter((a) => a.unlocked).length,
@@ -48,13 +51,28 @@ export default function GameAchievements() {
 
   useHeaderTitle(shopDetails?.assets?.title);
 
-  useNavigationScreenActions({
-    press: {
-      b: () => {
-        navigate(-1);
+  const handleSouvenirActivate = useCallback(
+    (achievement: UserAchievement) => setSouvenir(achievement),
+    []
+  );
+
+  const screenActions = useMemo(
+    () => ({
+      press: {
+        b: () => {
+          if (souvenir) {
+            setSouvenir(null);
+            return;
+          }
+
+          navigate(-1);
+        },
       },
-    },
-  });
+    }),
+    [navigate, souvenir]
+  );
+
+  useNavigationScreenActions(screenActions);
 
   if (isLoading || !shopDetails) {
     return (
@@ -94,12 +112,23 @@ export default function GameAchievements() {
                     key={achievement.name}
                     achievement={achievement}
                     stealFocusOnAppear={index === 0}
+                    onSouvenirActivate={handleSouvenirActivate}
                   />
                 ))}
               </ul>
             </VerticalFocusGroup>
           </section>
         </div>
+
+        <AnimatePresence>
+          {souvenir?.imageUrl ? (
+            <GameAchievementsSouvenirViewer
+              src={souvenir.imageUrl}
+              alt={`${souvenir.displayName} souvenir`}
+              onClose={() => setSouvenir(null)}
+            />
+          ) : null}
+        </AnimatePresence>
       </div>
     </VerticalFocusGroup>
   );

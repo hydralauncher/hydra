@@ -228,6 +228,10 @@
     z-index: 1;
     outline: 2px solid #fff;
     outline-offset: 4px;
+
+    .game-achievements-row__souvenir-overlay {
+      opacity: 1;
+    }
   }
 
   &__icon {
@@ -242,12 +246,45 @@
   }
 
   &__souvenir {
+    position: relative;
+    display: flex;
     flex-shrink: 0;
     width: 128px;
     height: 72px;
     border-radius: 8px;
-    object-fit: cover;
+    overflow: hidden;
     box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+
+    &-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.45);
+      color: #fff;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    &-button {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    &:hover .game-achievements-row__souvenir-overlay {
+      opacity: 1;
+    }
   }
 
   &__info {

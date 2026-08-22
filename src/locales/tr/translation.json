@@ -687,7 +687,7 @@
     "error_importing_theme": "Tema içe aktarılırken hata oluştu",
     "theme_imported": "Tema başarıyla içe aktarıldı",
     "enable_friend_request_notifications": "Bir arkadaşlık isteği alındığında",
-    "enable_auto_install": "Güncellemeleri otomatik indir",
+    "enable_auto_download": "Güncellemeleri otomatik indir",
     "common_redist": "Gereksinim Paketleri",
     "common_redist_description": "Bazı oyunların çalışması için gereksinim paketleri gerekir. Sorun yaşamamak için kurulması önerilir.",
     "install_common_redist": "Kur",

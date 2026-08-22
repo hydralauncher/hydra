@@ -13,7 +13,11 @@ import { EmulatorDetail } from "./emulator-detail";
 import { EmulatorSetupModal } from "./setup/emulator-setup-modal";
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { RETROARCH_EMULATOR_ICON } from "./emulator-icons";
-import { RETROARCH_LABEL, RETROARCH_CORES_TAGLINE } from "./retroarch-meta";
+import {
+  RETROARCH_LABEL,
+  RETROARCH_CORE_LIST,
+  RETROARCH_CORES_LINE,
+} from "./retroarch-meta";
 import { RetroArchDetail } from "./retroarch-detail";
 import { RetroArchSetupModal } from "./setup/retroarch/retroarch-setup-modal";
 import ps1Art from "@renderer/assets/emulation/ps1.png";
@@ -262,7 +266,10 @@ export function SettingsContextEmulation() {
         <ConsoleCard
           art={RETROARCH_EMULATOR_ICON}
           title={RETROARCH_LABEL}
-          emulatorName={RETROARCH_CORES_TAGLINE}
+          emulatorName={t("retroarch_supported_cores", {
+            count: RETROARCH_CORE_LIST.length,
+          })}
+          emulatorNameTooltip={RETROARCH_CORES_LINE}
           detectedVersion={retroArchConfig.detectedVersion}
           executablePath={retroArchConfig.executablePath}
           romFoldersCount={retroArchConfig.romFolders.length}

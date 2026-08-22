@@ -1,4 +1,9 @@
-import { CheckCircleIcon, LockIcon, MedalIcon } from "@phosphor-icons/react";
+import {
+  CheckCircleIcon,
+  LockIcon,
+  MagnifyingGlassIcon,
+  MedalIcon,
+} from "@phosphor-icons/react";
 import type { UserAchievement } from "@types";
 import cn from "classnames";
 import { useDate } from "../../../../hooks";
@@ -8,22 +13,30 @@ import { getAchievementRowId } from "../navigation";
 export interface AchievementRowProps {
   achievement: UserAchievement;
   stealFocusOnAppear?: boolean;
+  onSouvenirActivate?: (achievement: UserAchievement) => void;
 }
 
 export function AchievementRow({
   achievement,
   stealFocusOnAppear = false,
+  onSouvenirActivate,
 }: Readonly<AchievementRowProps>) {
   const { formatDateTime } = useDate();
   const unlockedAt =
     achievement.unlockTime != null
       ? formatDateTime(achievement.unlockTime)
       : undefined;
+  const hasSouvenir = Boolean(achievement.unlocked && achievement.imageUrl);
+  const canViewSouvenir = hasSouvenir && onSouvenirActivate !== undefined;
 
   return (
     <FocusItem
       id={getAchievementRowId(achievement.name)}
-      actions={{ primary: "off" }}
+      actions={
+        canViewSouvenir
+          ? { primary: () => onSouvenirActivate(achievement) }
+          : { primary: "off" }
+      }
       stealFocusOnAppear={stealFocusOnAppear}
       asChild
     >
@@ -56,13 +69,31 @@ export function AchievementRow({
         </div>
 
         <div className="game-achievements-row__meta">
-          {achievement.unlocked && achievement.imageUrl ? (
-            <img
-              src={achievement.imageUrl}
-              alt={`${achievement.displayName} souvenir`}
-              loading="lazy"
-              className="game-achievements-row__souvenir"
-            />
+          {hasSouvenir ? (
+            <span className="game-achievements-row__souvenir">
+              <img
+                src={achievement.imageUrl!}
+                alt={`${achievement.displayName} souvenir`}
+                loading="lazy"
+                className="game-achievements-row__souvenir-image"
+              />
+
+              {canViewSouvenir ? (
+                <>
+                  <span className="game-achievements-row__souvenir-overlay">
+                    <MagnifyingGlassIcon size={20} />
+                  </span>
+
+                  <button
+                    type="button"
+                    className="game-achievements-row__souvenir-button"
+                    onClick={() => onSouvenirActivate(achievement)}
+                    aria-label={`${achievement.displayName} souvenir`}
+                    tabIndex={-1}
+                  />
+                </>
+              ) : null}
+            </span>
           ) : null}
 
           {achievement.points != undefined ? (

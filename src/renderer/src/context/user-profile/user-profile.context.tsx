@@ -4,6 +4,7 @@ import {
   getShopsForProfilePlatform,
   readStoredProfilePlatform,
   readStoredProfileSort,
+  readStoredSouvenirSort,
 } from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import type {
@@ -397,7 +398,7 @@ export function UserProfileContextProvider({
     getUserStats(storedShops);
 
     getUserLibraryGames(readStoredProfileSort(), true, storedShops);
-    void getUserSouvenirs("recent");
+    void getUserSouvenirs(readStoredSouvenirSort());
 
     const profileParams = new URLSearchParams();
     profileParams.append("shop", "steam");

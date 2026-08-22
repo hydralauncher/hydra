@@ -687,7 +687,7 @@
     "error_importing_theme": "Fehler beim Importieren des Themes",
     "theme_imported": "Theme erfolgreich importiert",
     "enable_friend_request_notifications": "Wenn eine Freundschaftsanfrage empfangen wird",
-    "enable_auto_install": "Updates automatisch herunterladen",
+    "enable_auto_download": "Updates automatisch herunterladen",
     "common_redist": "Allgemeine Redistributables",
     "common_redist_description": "Allgemeine Redistributables sind erforderlich, um einige Spiele auszuführen. Es wird empfohlen, sie zu installieren, um Probleme zu vermeiden.",
     "install_common_redist": "Installieren",

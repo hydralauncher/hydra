@@ -748,7 +748,7 @@
     "error_importing_theme": "テーマのインポート中にエラーが発生しました",
     "theme_imported": "テーマをインポートしました",
     "enable_friend_request_notifications": "フレンドリクエストを受け取ったとき",
-    "enable_auto_install": "アップデートを自動的にダウンロード",
+    "enable_auto_download": "アップデートを自動的にダウンロード",
     "run_games_with_gamemode": "デフォルトでGameModeを使用してゲームを実行",
     "run_games_with_mangohud": "デフォルトでMangoHudを使用してゲームを実行",
     "common_redist": "共通再配布パッケージ",

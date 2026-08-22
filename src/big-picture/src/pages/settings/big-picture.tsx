@@ -25,6 +25,7 @@ interface BigPictureSettingsSectionProps {
 
 interface BigPictureForm {
   launchInBigPicture: boolean;
+  bigPictureLaunchToLibraryPage: boolean;
   bigPictureSoundsEnabled: boolean;
   bigPictureVirtualKeyboardEnabled: boolean;
   bigPictureDiagnosticsEnabled: boolean;
@@ -41,6 +42,7 @@ interface BigPictureItem {
 
 const DEFAULT_FORM: BigPictureForm = {
   launchInBigPicture: false,
+  bigPictureLaunchToLibraryPage: false,
   bigPictureSoundsEnabled: true,
   bigPictureVirtualKeyboardEnabled: true,
   bigPictureDiagnosticsEnabled: false,
@@ -66,6 +68,10 @@ export function BigPictureSettingsSection({
 
     setForm({
       launchInBigPicture: userPreferences.launchInBigPicture ?? false,
+      bigPictureLaunchToLibraryPage:
+        userPreferences.bigPictureLaunchToLibraryPage ??
+        userPreferences.launchToLibraryPage ??
+        false,
       bigPictureSoundsEnabled: userPreferences.bigPictureSoundsEnabled ?? true,
       bigPictureVirtualKeyboardEnabled:
         userPreferences.bigPictureVirtualKeyboardEnabled ?? true,
@@ -88,6 +94,13 @@ export function BigPictureSettingsSection({
   const handleLaunchInBigPictureChange = useCallback(
     (checked: boolean) => {
       updateUserPreferences({ launchInBigPicture: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleLaunchToLibraryPageChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ bigPictureLaunchToLibraryPage: checked });
     },
     [updateUserPreferences]
   );
@@ -129,8 +142,20 @@ export function BigPictureSettingsSection({
         checked: form.launchInBigPicture,
         onChange: handleLaunchInBigPictureChange,
       },
+      {
+        id: "launch-to-library-page",
+        focusId: BIG_PICTURE_ITEM_FOCUS_IDS.launchToLibraryPage,
+        label: t("settings_launch_big_picture_in_library_page"),
+        checked: form.bigPictureLaunchToLibraryPage,
+        onChange: handleLaunchToLibraryPageChange,
+      },
     ];
-  }, [form.launchInBigPicture, handleLaunchInBigPictureChange]);
+  }, [
+    form.launchInBigPicture,
+    form.bigPictureLaunchToLibraryPage,
+    handleLaunchInBigPictureChange,
+    handleLaunchToLibraryPageChange,
+  ]);
 
   const inputItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -228,7 +253,7 @@ export function BigPictureSettingsSection({
   >(() => {
     const previousFallback: FocusOverrideTarget = {
       type: "item",
-      itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
+      itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchToLibraryPage,
     };
 
     return Object.fromEntries(

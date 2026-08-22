@@ -3,6 +3,7 @@ import {
   getShopsForProfilePlatform,
   readStoredProfilePlatform,
   readStoredProfileSort,
+  readStoredSouvenirSort,
 } from "@renderer/helpers";
 import {
   useCallback,
@@ -249,7 +250,7 @@ export function ProfileContent() {
     const pageKey = `${normalizedTarget}:${souvenirs.length}`;
     if (hasMoreSouvenirs && !attemptedDeepLinkPagesRef.current.has(pageKey)) {
       attemptedDeepLinkPagesRef.current.add(pageKey);
-      void loadMoreSouvenirs("recent");
+      void loadMoreSouvenirs(readStoredSouvenirSort());
       return;
     }
 

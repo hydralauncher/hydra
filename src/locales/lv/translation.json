@@ -690,7 +690,7 @@
     "error_importing_theme": "Kļūda importējot tēmu",
     "theme_imported": "Tēma veiksmīgi importēta",
     "enable_friend_request_notifications": "Saņemot draudzības pieprasījumu",
-    "enable_auto_install": "Automātiski lejupielādēt atjauninājumus",
+    "enable_auto_download": "Automātiski lejupielādēt atjauninājumus",
     "common_redist": "Bibliotēkas",
     "common_redist_description": "Dažu spēļu palaišanai ir nepieciešamas bibliotēkas. Lai izvairītos no problēmām, ieteicams tās instalēt.",
     "install_common_redist": "Instalēt",

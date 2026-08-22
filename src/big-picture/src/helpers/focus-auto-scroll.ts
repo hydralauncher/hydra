@@ -384,6 +384,30 @@ function resolveScrollTarget(options: {
   };
 }
 
+function resolveAncestorScrollTarget(
+  target: ResolvedScrollTarget,
+  node: FocusNode,
+  regions: FocusRegion[]
+): ResolvedScrollTarget | null {
+  const region = getRegionMap(regions).get(node.regionId) ?? null;
+
+  if (!region) return null;
+
+  const anchor = resolveRegionAnchor(region);
+
+  if (!anchor) return null;
+
+  const container = getScrollContainer(anchor);
+
+  if (container === target.container) return null;
+
+  return {
+    container,
+    rect: anchor.getBoundingClientRect(),
+    key: `region-ancestor:${region.id}`,
+  };
+}
+
 function getScrollBehaviorMode(
   currentTarget: ResolvedScrollTarget,
   previousTarget: ResolvedScrollTarget | null
@@ -439,4 +463,39 @@ export function scrollNavigationIntoView(options: {
       : getKeepVisibleTarget(currentTarget.rect, currentTarget.container);
 
   animateScroll(currentTarget.container, target);
+
+  const currentAncestorTarget = resolveAncestorScrollTarget(
+    currentTarget,
+    currentNode,
+    options.regions
+  );
+
+  if (!currentAncestorTarget) return;
+
+  const previousAncestorTarget =
+    previousNode && previousTarget
+      ? resolveAncestorScrollTarget(
+          previousTarget,
+          previousNode,
+          options.regions
+        )
+      : null;
+
+  const ancestorBehaviorMode = getScrollBehaviorMode(
+    currentAncestorTarget,
+    previousAncestorTarget
+  );
+
+  animateScroll(
+    currentAncestorTarget.container,
+    ancestorBehaviorMode === "prefer-center"
+      ? getPreferCenterTarget(
+          currentAncestorTarget.rect,
+          currentAncestorTarget.container
+        )
+      : getKeepVisibleTarget(
+          currentAncestorTarget.rect,
+          currentAncestorTarget.container
+        )
+  );
 }

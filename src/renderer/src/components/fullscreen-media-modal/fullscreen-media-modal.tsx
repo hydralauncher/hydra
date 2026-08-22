@@ -1,15 +1,40 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
 import "./fullscreen-media-modal.scss";
 
+interface MediaSize {
+  width: number;
+  height: number;
+}
+
+const VIEWPORT_FILL_RATIO = 0.88;
+
+const getUpscaledSize = (
+  naturalSize: MediaSize | null,
+  viewportSize: MediaSize
+): MediaSize | null => {
+  if (!naturalSize?.width || !naturalSize.height) return null;
+
+  const scale = Math.min(
+    (viewportSize.width * VIEWPORT_FILL_RATIO) / naturalSize.width,
+    (viewportSize.height * VIEWPORT_FILL_RATIO) / naturalSize.height
+  );
+
+  return {
+    width: naturalSize.width * scale,
+    height: naturalSize.height * scale,
+  };
+};
+
 export interface FullscreenMediaModalProps {
   visible: boolean;
   onClose: () => void;
   src: string | null | undefined;
   alt?: string;
+  upscale?: boolean;
 }
 
 export function FullscreenMediaModal({
@@ -17,8 +42,32 @@ export function FullscreenMediaModal({
   onClose,
   src,
   alt,
+  upscale = false,
 }: FullscreenMediaModalProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [naturalSize, setNaturalSize] = useState<MediaSize | null>(null);
+  const [viewportSize, setViewportSize] = useState<MediaSize>(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
+
+  useEffect(() => {
+    setNaturalSize(null);
+  }, [src]);
+
+  useEffect(() => {
+    if (!upscale) return;
+
+    const onResize = () =>
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+
+    window.addEventListener("resize", onResize);
+
+    return () => window.removeEventListener("resize", onResize);
+  }, [upscale]);
 
   const { t } = useTranslation("modal");
 
@@ -62,6 +111,10 @@ export function FullscreenMediaModal({
 
   if (!visible || !src) return null;
 
+  const upscaledSize = upscale
+    ? getUpscaledSize(naturalSize, viewportSize)
+    : null;
+
   return createPortal(
     <div className="fullscreen-media-modal__overlay">
       <dialog className="fullscreen-media-modal" open aria-label={alt}>
@@ -78,7 +131,18 @@ export function FullscreenMediaModal({
           ref={containerRef}
           className="fullscreen-media-modal__image-container"
         >
-          <img src={src} alt={alt} className="fullscreen-media-modal__image" />
+          <img
+            src={src}
+            alt={alt}
+            className={`fullscreen-media-modal__image${upscale ? " fullscreen-media-modal__image--upscale" : ""}`}
+            style={upscaledSize ?? undefined}
+            onLoad={(event) =>
+              setNaturalSize({
+                width: event.currentTarget.naturalWidth,
+                height: event.currentTarget.naturalHeight,
+              })
+            }
+          />
         </div>
       </dialog>
     </div>,
