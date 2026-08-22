@@ -8,7 +8,11 @@ import {
   useMemo,
   useState,
 } from "react";
-import { GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
+import {
+  GAMEMODE_SITE_URL,
+  MANGOHUD_SITE_URL,
+  GAMESCOPE_SITE_URL,
+} from "@shared";
 
 import { Button, Checkbox, Radio, VerticalFocusGroup } from "../../components";
 import { useUserPreferences, useBigPictureToast } from "../../hooks";
@@ -17,6 +21,7 @@ import {
   COMPATIBILITY_COMMON_REDIST_BUTTON_ID,
   COMPATIBILITY_GAMEMODE_FOCUS_ID,
   COMPATIBILITY_MANGOHUD_FOCUS_ID,
+  COMPATIBILITY_GAMESCOPE_FOCUS_ID,
   COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID,
   COMPATIBILITY_SECTION_REGION_ID,
   getCompatibilityProtonOptionFocusId,
@@ -32,12 +37,14 @@ interface CompatibilityForm {
   defaultProtonPath: string;
   autoRunGamemode: boolean;
   autoRunMangohud: boolean;
+  autoRunGamescope: boolean;
 }
 
 interface CompatibilityPreferenceValues {
   defaultProtonPath?: string | null;
   autoRunGamemode?: boolean;
   autoRunMangohud?: boolean;
+  autoRunGamescope?: boolean;
 }
 
 interface CompatibilityItem {
@@ -58,6 +65,7 @@ const DEFAULT_FORM: CompatibilityForm = {
   defaultProtonPath: "",
   autoRunGamemode: false,
   autoRunMangohud: false,
+  autoRunGamescope: false,
 };
 
 function getProtonSourceDescription(version: ProtonVersion | null) {
@@ -85,6 +93,7 @@ export function CompatibilitySettingsSection({
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
+  const [gamescopeAvailable, setGamescopeAvailable] = useState(false);
   const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(false);
   const [installingCommonRedist, setInstallingCommonRedist] = useState(false);
 
@@ -105,6 +114,7 @@ export function CompatibilitySettingsSection({
       defaultProtonPath: userPreferences.defaultProtonPath ?? "",
       autoRunGamemode: userPreferences.autoRunGamemode ?? false,
       autoRunMangohud: userPreferences.autoRunMangohud ?? false,
+      autoRunGamescope: userPreferences.autoRunGamescope ?? false,
     });
   }, [userPreferences]);
 
@@ -112,6 +122,7 @@ export function CompatibilitySettingsSection({
     if (!isLinux) {
       setGamemodeAvailable(false);
       setMangohudAvailable(false);
+      setGamescopeAvailable(false);
       return;
     }
 
@@ -124,6 +135,11 @@ export function CompatibilitySettingsSection({
       .isMangohudAvailable()
       .then(setMangohudAvailable)
       .catch(() => setMangohudAvailable(false));
+
+    globalThis.window.electron
+      .isGamescopeAvailable()
+      .then(setGamescopeAvailable)
+      .catch(() => setGamescopeAvailable(false));
   }, [isLinux]);
 
   useEffect(() => {
@@ -387,6 +403,53 @@ export function CompatibilitySettingsSection({
               ) : null}
             </div>
           ),
+        },
+        {
+          focusId: COMPATIBILITY_GAMESCOPE_FOCUS_ID,
+          disabled: !canUseBehaviorSection || !gamescopeAvailable,
+          render: (navigationOverrides: FocusOverrides) => (
+            <div
+              key={COMPATIBILITY_GAMESCOPE_FOCUS_ID}
+              className="compatibility-settings-section__behavior-item"
+            >
+              <Checkbox
+                id={COMPATIBILITY_GAMESCOPE_FOCUS_ID}
+                label="Run with Gamescope"
+                secondaryText={
+                  <>
+                    Run the game through the gamescope micro-compositor.{" "}
+                    <a
+                      className="compatibility-settings-section__helper-link"
+                      href={GAMESCOPE_SITE_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(event) => {
+                        void handleOpenExternalLink(event, GAMESCOPE_SITE_URL);
+                      }}
+                    >
+                      Learn more
+                    </a>
+                    {"."}
+                  </>
+                }
+                checked={form.autoRunGamescope}
+                disabled={!canUseBehaviorSection || !gamescopeAvailable}
+                focusId={COMPATIBILITY_GAMESCOPE_FOCUS_ID}
+                navigationOverrides={navigationOverrides}
+                block
+                onChange={(checked) => {
+                  void updateCompatibilityPreferences({
+                    autoRunGamescope: checked,
+                  });
+                }}
+              />
+              {canUseBehaviorSection && !gamescopeAvailable ? (
+                <p className="compatibility-settings-section__helper-note">
+                  Gamescope is not available in your PATH.
+                </p>
+              ) : null}
+            </div>
+          ),
         }
       );
     }
@@ -422,11 +485,13 @@ export function CompatibilitySettingsSection({
     canUseCommonRedistSection,
     form.autoRunGamemode,
     form.autoRunMangohud,
+    form.autoRunGamescope,
     form.defaultProtonPath,
     gamemodeAvailable,
     handleInstallCommonRedist,
     installingCommonRedist,
     mangohudAvailable,
+    gamescopeAvailable,
     protonOptions,
     shouldRenderCommonRedistSection,
     shouldRenderBehaviorSection,
@@ -506,7 +571,8 @@ export function CompatibilitySettingsSection({
               .filter(
                 (item) =>
                   item.focusId === COMPATIBILITY_GAMEMODE_FOCUS_ID ||
-                  item.focusId === COMPATIBILITY_MANGOHUD_FOCUS_ID
+                  item.focusId === COMPATIBILITY_MANGOHUD_FOCUS_ID ||
+                  item.focusId === COMPATIBILITY_GAMESCOPE_FOCUS_ID
               )
               .map((item) =>
                 item.render(navigationOverridesByFocusId[item.focusId] ?? {})
