@@ -255,6 +255,8 @@
   }
 
   &__review-content {
+    user-select: text;
+    cursor: text;
     color: globals.$body-color;
     line-height: 1.5;
     word-wrap: break-word;

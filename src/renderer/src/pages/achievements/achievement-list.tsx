@@ -2,9 +2,11 @@ import { useDate } from "@renderer/hooks";
 import type { UserAchievement } from "@types";
 import { useTranslation } from "react-i18next";
 import "./achievements.scss";
-import { EyeClosedIcon } from "@primer/octicons-react";
+import { EyeClosedIcon, SearchIcon } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { useState } from "react";
+import { FullscreenMediaModal } from "@renderer/components";
 
 interface AchievementListProps {
   achievements: UserAchievement[];
@@ -16,6 +18,11 @@ export function AchievementList({
   const { t } = useTranslation("achievement");
   const { showHydraCloudModal } = useSubscription();
   const { formatDateTime } = useDate();
+
+  const [souvenir, setSouvenir] = useState<{
+    src: string;
+    alt: string;
+  } | null>(null);
 
   return (
     <ul className="achievements__list">
@@ -54,6 +61,35 @@ export function AchievementList({
           </div>
 
           <div className="achievements__item-meta">
+            {achievement.unlocked && achievement.imageUrl && (
+              <button
+                type="button"
+                className="achievements__item-souvenir"
+                onClick={() =>
+                  setSouvenir({
+                    src: achievement.imageUrl!,
+                    alt: t("souvenir_alt", {
+                      achievement: achievement.displayName,
+                    }),
+                  })
+                }
+                title={t("view_souvenir")}
+              >
+                <img
+                  className="achievements__item-souvenir-image"
+                  src={achievement.imageUrl}
+                  alt={t("souvenir_alt", {
+                    achievement: achievement.displayName,
+                  })}
+                  loading="lazy"
+                />
+
+                <span className="achievements__item-souvenir-overlay">
+                  <SearchIcon size={20} />
+                </span>
+              </button>
+            )}
+
             {achievement.points != undefined ? (
               <div
                 className="achievements__item-points"
@@ -89,6 +125,13 @@ export function AchievementList({
           </div>
         </li>
       ))}
+
+      <FullscreenMediaModal
+        visible={souvenir !== null}
+        src={souvenir?.src}
+        alt={souvenir?.alt}
+        onClose={() => setSouvenir(null)}
+      />
     </ul>
   );
 }

@@ -750,6 +750,7 @@
     "remove_from_library_description": "This will remove {{game}} from your library",
     "reset_achievements": "Reset achievements",
     "reset_achievements_description": "Your achievements for {{game}} will be deleted locally and in the cloud",
+    "reset_achievements_souvenirs_description": "Resetting all achievements for {{game}} will also permanently delete all associated souvenirs.",
     "remove_game_files": "Remove game files",
     "remove_game_files_description": "The downloaded files for {{game}} will be deleted",
     "edit_game_modal_section_title": "Game Title",

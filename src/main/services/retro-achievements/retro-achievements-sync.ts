@@ -60,7 +60,7 @@ const buildAchievementsFromCache = async (
     .sort(sortAchievements);
 };
 
-const resolveRetroAchievementsGameId = async (
+export const resolveRetroAchievementsGameId = async (
   objectId: string,
   shop: GameShop,
   retroAchievementsGameId?: number
