@@ -68,6 +68,9 @@ import type {
   MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
+  HydraAudioDevice,
+  HydraDisplay,
+  LaunchSource,
   ArtworkAssetType,
   ArtworkKind,
   ArtworkPage,
@@ -448,13 +451,15 @@ declare global {
       shop: GameShop,
       objectId: string,
       executablePath: string,
-      launchOptions?: string | null
+      launchOptions?: string | null,
+      launchSource?: LaunchSource
     ) => Promise<void>;
     openClassicsGame: (
       shop: GameShop,
       objectId: string,
       discPath?: string,
-      force?: boolean
+      force?: boolean,
+      launchSource?: LaunchSource
     ) => Promise<void>;
     updateClassicsDisc: (
       shop: GameShop,
@@ -902,6 +907,8 @@ declare global {
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage | null>;
     checkFolderWritePermission: (path: string) => Promise<boolean>;
+    getDisplays: () => Promise<HydraDisplay[]>;
+    getAudioDevices: () => Promise<HydraAudioDevice[]>;
     getNetworkInterfaces: () => Promise<NetworkInterface[]>;
 
     /* Cloud save */

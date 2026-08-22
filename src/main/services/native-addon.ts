@@ -21,8 +21,10 @@ import type {
   VerifyDownloadedRestoreFileResult,
   CheckCloudSaveCustomPathOverlapInput,
   CheckCloudSaveCustomPathOverlapResult,
+  HydraAudioDevice,
 } from "@types";
 
+import type { AudioDeviceDefaults } from "./audio-device-manager-utils";
 import { logger } from "./logger";
 
 type NativeProcessProfileImageResponse = {
@@ -35,6 +37,18 @@ type NativeProcessProfileImageResponse = {
 type NativeProcessFriendImageResponse = NativeProcessProfileImageResponse & {
   isAnimated?: boolean;
   is_animated?: boolean;
+};
+
+type NativeDisplayBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type NativeAudioDeviceDefaults = {
+  consoleId: string | null;
+  multimediaId: string | null;
 };
 
 type NativeActiveWindowResponse = {
@@ -57,6 +71,17 @@ type HydraNativeModule = {
     preserveAnimation: boolean
   ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
+  setPrimaryDisplayByBounds?: (bounds: NativeDisplayBounds) => boolean;
+  getDisplaySourceNameByBounds?: (bounds: NativeDisplayBounds) => string | null;
+  getPrimaryDisplaySourceName?: () => string | null;
+  setPrimaryDisplayBySourceName?: (sourceName: string) => boolean;
+  listAudioRenderDevices?: () => HydraAudioDevice[];
+  getDefaultAudioRenderDeviceId?: () => string | null;
+  setDefaultAudioRenderDeviceId?: (id: string) => boolean;
+  getDefaultAudioRenderDeviceIds?: () => NativeAudioDeviceDefaults;
+  setDefaultAudioRenderDeviceIds?: (
+    defaults: NativeAudioDeviceDefaults
+  ) => boolean;
   getLinuxActiveWindow: () => NativeActiveWindowResponse | null;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
@@ -394,6 +419,97 @@ export class NativeAddon {
         resolve(null);
       }
     });
+  }
+
+  public static setPrimaryDisplayByBounds(
+    bounds: NativeDisplayBounds
+  ): boolean {
+    try {
+      return this.load().setPrimaryDisplayByBounds?.(bounds) ?? false;
+    } catch (error) {
+      logger.error("Failed to set primary display via native addon", error);
+      return false;
+    }
+  }
+
+  public static getDisplaySourceNameByBounds(
+    bounds: NativeDisplayBounds
+  ): string | null {
+    try {
+      return this.load().getDisplaySourceNameByBounds?.(bounds) ?? null;
+    } catch (error) {
+      logger.error("Failed to get display source name via native addon", error);
+      return null;
+    }
+  }
+
+  public static getPrimaryDisplaySourceName(): string | null {
+    try {
+      return this.load().getPrimaryDisplaySourceName?.() ?? null;
+    } catch (error) {
+      logger.error("Failed to get primary display source name", error);
+      return null;
+    }
+  }
+
+  public static setPrimaryDisplayBySourceName(sourceName: string): boolean {
+    try {
+      return this.load().setPrimaryDisplayBySourceName?.(sourceName) ?? false;
+    } catch (error) {
+      logger.error("Failed to set primary display by source name", error);
+      return false;
+    }
+  }
+
+  public static listAudioRenderDevices(): HydraAudioDevice[] {
+    try {
+      return this.load().listAudioRenderDevices?.() ?? [];
+    } catch (error) {
+      logger.error("Failed to list audio render devices", error);
+      return [];
+    }
+  }
+
+  public static getDefaultAudioRenderDeviceId(): string | null {
+    try {
+      return this.load().getDefaultAudioRenderDeviceId?.() ?? null;
+    } catch (error) {
+      logger.error("Failed to get default audio render device", error);
+      return null;
+    }
+  }
+
+  public static setDefaultAudioRenderDeviceId(id: string): boolean {
+    try {
+      return this.load().setDefaultAudioRenderDeviceId?.(id) ?? false;
+    } catch (error) {
+      logger.error("Failed to set default audio render device", error);
+      return false;
+    }
+  }
+
+  public static getDefaultAudioRenderDeviceIds(): AudioDeviceDefaults {
+    try {
+      const defaults = this.load().getDefaultAudioRenderDeviceIds?.();
+      return {
+        consoleId: defaults?.consoleId ?? null,
+        multimediaId: defaults?.multimediaId ?? null,
+      };
+    } catch (error) {
+      logger.error("Failed to get default audio render devices", error);
+      return { consoleId: null, multimediaId: null };
+    }
+  }
+
+  public static setDefaultAudioRenderDeviceIds(
+    defaults: AudioDeviceDefaults
+  ): boolean {
+    try {
+      return this.load().setDefaultAudioRenderDeviceIds?.(defaults) ?? false;
+    } catch (error) {
+      logger.error("Failed to restore default audio render devices", error);
+      return false;
+    }
   }
 
   public static buildLocalGameSnapshotPipeline(
