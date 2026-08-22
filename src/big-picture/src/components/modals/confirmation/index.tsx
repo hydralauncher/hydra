@@ -14,10 +14,13 @@ interface ConfirmationModalProps {
   title: string;
   description: string;
   confirmLabel: string;
+  cancelLabel?: string;
   onClose: () => void;
   onConfirm: () => Promise<void> | void;
   loading?: boolean;
   danger?: boolean;
+  closeOnBackdrop?: boolean;
+  backdropClassName?: string;
 }
 
 const CONFIRMATION_MODAL_CONTENT_REGION_ID = "confirmation-modal-content";
@@ -29,10 +32,13 @@ export function ConfirmationModal({
   title,
   description,
   confirmLabel,
+  cancelLabel = "Cancel",
   onClose,
   onConfirm,
   loading = false,
   danger = false,
+  closeOnBackdrop = true,
+  backdropClassName,
 }: Readonly<ConfirmationModalProps>) {
   const { setFocus } = useNavigation();
 
@@ -54,10 +60,11 @@ export function ConfirmationModal({
       onClose={onClose}
       title={title}
       description={description}
-      closeOnBackdrop={!loading}
+      closeOnBackdrop={closeOnBackdrop && !loading}
       closeOnEscape={!loading}
       closeOnB={!loading}
       className="confirmation-modal"
+      backdropClassName={backdropClassName}
     >
       <VerticalFocusGroup
         regionId={CONFIRMATION_MODAL_CONTENT_REGION_ID}
@@ -73,7 +80,7 @@ export function ConfirmationModal({
             disabled={loading}
             onClick={onClose}
           >
-            Cancel
+            {cancelLabel}
           </Button>
 
           <Button

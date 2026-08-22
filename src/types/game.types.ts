@@ -6,6 +6,7 @@ export interface UnlockedAchievement {
   name: string;
   unlockTime: number;
   hardcoreUnlockTime?: number | null;
+  imageKey?: string | null;
 }
 
 export interface SteamAchievement {
@@ -23,4 +24,5 @@ export interface UserAchievement extends SteamAchievement {
   unlockTime: number | null;
   hardcoreUnlockTime?: number | null;
   source?: "steam" | "retroachievements";
+  imageUrl?: string | null;
 }

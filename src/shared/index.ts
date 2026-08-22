@@ -33,8 +33,11 @@ export * from "./html-sanitizer";
 export * from "./language-flags";
 export * from "./library-date-sorting";
 export * from "./use-hls-video";
+export * from "./use-souvenir-content-warning";
 export * from "./retroarch-platform";
 export * from "./tracker-list";
+export * from "./souvenirs";
+export * from "./souvenir-sync";
 
 export class UserNotLoggedInError extends Error {
   constructor() {

@@ -56,6 +56,15 @@ export function AchievementRow({
         </div>
 
         <div className="game-achievements-row__meta">
+          {achievement.unlocked && achievement.imageUrl ? (
+            <img
+              src={achievement.imageUrl}
+              alt={`${achievement.displayName} souvenir`}
+              loading="lazy"
+              className="game-achievements-row__souvenir"
+            />
+          ) : null}
+
           {achievement.points != undefined ? (
             <div
               className="game-achievements-row__points"

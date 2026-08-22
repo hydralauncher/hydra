@@ -782,6 +782,7 @@
     "remove_from_library_description": "Isso removerá {{game}} da sua biblioteca",
     "reset_achievements": "Redefinir conquistas",
     "reset_achievements_description": "Suas conquistas de {{game}} serão excluídas localmente e na nuvem",
+    "reset_achievements_souvenirs_description": "Redefinir todas as conquistas de {{game}} também excluirá permanentemente todas as lembranças associadas.",
     "remove_game_files": "Remover arquivos do jogo",
     "remove_game_files_description": "Os arquivos baixados de {{game}} serão excluídos",
     "downloads_finished_at": "Concluído às {{time}}",
