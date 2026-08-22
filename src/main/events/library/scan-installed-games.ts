@@ -171,12 +171,27 @@ const isWithin = (child: string, parent: string) => {
   );
 };
 
-const getDefaultScanDirectories = async () => {
+const getSteamLibraryCommonFolders = async () => {
   const libraryFolders = await getSteamLibraryFolders().catch((err) => {
     logger.error("[ScanInstalledGames] Failed to read Steam libraries:", err);
     return [];
   });
 
+  return libraryFolders.map((libraryFolder) =>
+    path.join(libraryFolder, "steamapps", "common")
+  );
+};
+
+// The directories installer-based repacks actually land in, shared with
+// other scans that need to search likely install locations (e.g. the
+// post-installer-exit rescan in open-game-installer.ts) without pulling in
+// unrelated large trees like Program Files or Downloads.
+export const getInstallLocationScanDirectories = async () => [
+  ...SCAN_DIRECTORIES,
+  ...(await getSteamLibraryCommonFolders()),
+];
+
+const getDefaultScanDirectories = async () => {
   const downloadsPath = await getDownloadsPath().catch((err) => {
     logger.error(
       "[ScanInstalledGames] Failed to read the downloads path:",
@@ -186,10 +201,7 @@ const getDefaultScanDirectories = async () => {
   });
 
   return [
-    ...SCAN_DIRECTORIES,
-    ...libraryFolders.map((libraryFolder) =>
-      path.join(libraryFolder, "steamapps", "common")
-    ),
+    ...(await getInstallLocationScanDirectories()),
     ...(downloadsPath ? [downloadsPath] : []),
   ];
 };
