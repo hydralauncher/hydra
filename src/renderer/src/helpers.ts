@@ -8,6 +8,8 @@ import type {
 import {
   platformToRetroArchPlatform,
   RETROARCH_PLATFORM_LABELS,
+  compareNewUpdates,
+  compareReleaseDates,
 } from "@shared";
 
 import Color from "color";
@@ -572,6 +574,18 @@ export const sortLibraryGames = (
 
       case "title_desc": {
         return compareLibraryGamesByTitle(a, b, false);
+      }
+
+      case "new_updates": {
+        const difference = compareNewUpdates(a, b);
+        if (difference !== 0) return difference;
+        break;
+      }
+
+      case "release_date": {
+        const difference = compareReleaseDates(a, b);
+        if (difference !== 0) return difference;
+        break;
       }
 
       case "title_asc":

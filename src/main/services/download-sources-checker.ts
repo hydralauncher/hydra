@@ -10,6 +10,11 @@ import {
 } from "@main/level";
 import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
+import {
+  getDownloadSourcesSignature,
+  shouldAdvanceDownloadSourcesBaseline,
+  shouldRefreshDownloadSources,
+} from "./download-sources-refresh-policy";
 import type { Game, UserPreferences } from "@types";
 
 interface DownloadSourcesChangeResponse {
@@ -20,6 +25,11 @@ interface DownloadSourcesChangeResponse {
 }
 
 export class DownloadSourcesChecker {
+  private static isAutoChecking = false;
+  private static isManualChecking = false;
+  private static lastManualCheckAt: number | null = null;
+  private static lastManualSourceSignature: string | null = null;
+
   private static async clearStaleBadges(
     nonCustomGames: Game[]
   ): Promise<{ gameId: string; count: number }[]> {
@@ -99,7 +109,32 @@ export class DownloadSourcesChecker {
     );
   }
 
-  static async checkForChanges(): Promise<void> {
+  private static acquireCheckLock(isManualRefresh: boolean): boolean {
+    if (isManualRefresh) {
+      if (this.isManualChecking) return false;
+      this.isManualChecking = true;
+      return true;
+    }
+
+    if (this.isAutoChecking) return false;
+    this.isAutoChecking = true;
+    return true;
+  }
+
+  private static releaseCheckLock(isManualRefresh: boolean): void {
+    if (isManualRefresh) {
+      this.isManualChecking = false;
+      return;
+    }
+
+    this.isAutoChecking = false;
+  }
+
+  static async checkForChanges(
+    isManualRefresh: boolean = false
+  ): Promise<void> {
+    if (!this.acquireCheckLock(isManualRefresh)) return;
+
     logger.info("DownloadSourcesChecker.checkForChanges() called");
 
     try {
@@ -120,7 +155,7 @@ export class DownloadSourcesChecker {
       // Get all installed games (excluding custom games)
       const installedGames = await gamesSublevel.values().all();
       const nonCustomGames = installedGames.filter(
-        (game: Game) => game.shop !== "custom"
+        (game: Game) => !game.isDeleted && game.shop !== "custom"
       );
       logger.info(
         `Found ${installedGames.length} total games, ${nonCustomGames.length} non-custom games`
@@ -135,6 +170,7 @@ export class DownloadSourcesChecker {
 
       const downloadSources = await downloadSourcesSublevel.values().all();
       const downloadSourceIds = downloadSources.map((source) => source.id);
+      const sourceSignature = getDownloadSourcesSignature(downloadSourceIds);
       logger.info(
         `Found ${downloadSourceIds.length} download sources: ${downloadSourceIds.join(", ")}`
       );
@@ -146,6 +182,18 @@ export class DownloadSourcesChecker {
         return;
       }
 
+      if (
+        isManualRefresh &&
+        !shouldRefreshDownloadSources({
+          lastCheckedAt: this.lastManualCheckAt,
+          lastSourceSignature: this.lastManualSourceSignature,
+          sourceSignature,
+          now: Date.now(),
+        })
+      ) {
+        return;
+      }
+
       const previousBaseline = await getDownloadSourcesCheckBaseline();
       const since =
         previousBaseline ||
@@ -153,7 +201,9 @@ export class DownloadSourcesChecker {
 
       logger.info(`Using since: ${since} (from last app start)`);
 
-      const clearedPayload = await this.clearStaleBadges(nonCustomGames);
+      const clearedPayload = isManualRefresh
+        ? []
+        : await this.clearStaleBadges(nonCustomGames);
 
       const games = nonCustomGames.map((game: Game) => ({
         shop: game.shop,
@@ -183,11 +233,13 @@ export class DownloadSourcesChecker {
       await updateDownloadSourcesSinceValue(since);
       logger.info(`Saved 'since' value: ${since} (for modal comparison)`);
 
-      const now = new Date().toISOString();
-      await updateDownloadSourcesCheckBaseline(now);
-      logger.info(
-        `Updated baseline to: ${now} (will be 'since' on next app start)`
-      );
+      if (shouldAdvanceDownloadSourcesBaseline(isManualRefresh)) {
+        const now = new Date().toISOString();
+        await updateDownloadSourcesCheckBaseline(now);
+        logger.info(
+          `Updated baseline to: ${now} (will be 'since' on next app start)`
+        );
+      }
 
       const gamesWithNewOptions = await this.processApiResponse(
         response,
@@ -196,9 +248,16 @@ export class DownloadSourcesChecker {
 
       this.sendNewDownloadOptionsEvent(clearedPayload, gamesWithNewOptions);
 
+      if (isManualRefresh) {
+        this.lastManualCheckAt = Date.now();
+        this.lastManualSourceSignature = sourceSignature;
+      }
+
       logger.info("Download sources check completed successfully");
     } catch (error) {
       logger.error("Failed to check download sources changes:", error);
+    } finally {
+      this.releaseCheckLock(isManualRefresh);
     }
   }
 }

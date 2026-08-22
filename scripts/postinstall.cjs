@@ -3,10 +3,13 @@ const tar = require("tar");
 const util = require("node:util");
 const fs = require("node:fs");
 const path = require("node:path");
+const { pipeline } = require("node:stream/promises");
 
 const exec = util.promisify(require("node:child_process").exec);
 
 const ludusaviVersion = "0.29.0";
+const MAX_DOWNLOAD_ATTEMPTS = 3;
+const DOWNLOAD_RETRY_DELAY_MS = 1_000;
 
 const fileName = {
   win32: `ludusavi-v${ludusaviVersion}-win64.zip`,
@@ -18,6 +21,20 @@ const ludusaviBinaryName = {
   win32: "ludusavi.exe",
   linux: "ludusavi",
   darwin: "ludusavi",
+};
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isRetryableDownloadError = (error) => {
+  if (!axios.isAxiosError(error)) return false;
+
+  const status = error.response?.status;
+  return !status || status === 408 || status === 429 || status >= 500;
+};
+
+const downloadFile = async (downloadUrl, file) => {
+  const response = await axios.get(downloadUrl, { responseType: "stream" });
+  await pipeline(response.data, fs.createWriteStream(file));
 };
 
 const downloadLudusavi = async () => {
@@ -35,36 +52,55 @@ const downloadLudusavi = async () => {
 
   console.log(`Downloading ${file}...`);
 
-  const response = await axios.get(downloadUrl, { responseType: "stream" });
+  for (let attempt = 1; attempt <= MAX_DOWNLOAD_ATTEMPTS; attempt++) {
+    try {
+      await downloadFile(downloadUrl, file);
+      break;
+    } catch (error) {
+      await fs.promises.rm(file, { force: true });
 
-  const stream = response.data.pipe(fs.createWriteStream(file));
+      if (
+        !isRetryableDownloadError(error) ||
+        attempt === MAX_DOWNLOAD_ATTEMPTS
+      ) {
+        throw error;
+      }
 
-  stream.on("finish", async () => {
-    console.log(`Downloaded ${file}, extracting...`);
-
-    const pwd = process.cwd();
-    const targetPath = path.join(pwd, "ludusavi");
-
-    await fs.promises.mkdir(targetPath, { recursive: true });
-
-    if (process.platform === "win32") {
-      await exec(`npx extract-zip ${file} ${targetPath}`);
-    } else {
-      await tar.x({
-        file: file,
-        cwd: targetPath,
-      });
+      const retryDelay = DOWNLOAD_RETRY_DELAY_MS * 2 ** (attempt - 1);
+      console.warn(
+        `Failed to download ${file}; retrying (${attempt}/${MAX_DOWNLOAD_ATTEMPTS}) in ${retryDelay}ms...`
+      );
+      await delay(retryDelay);
     }
+  }
 
-    if (process.platform !== "win32") {
-      fs.chmodSync(path.join(targetPath, "ludusavi"), 0o755);
-    }
+  console.log(`Downloaded ${file}, extracting...`);
 
-    console.log("Extracted. Renaming folder...");
+  const pwd = process.cwd();
+  const targetPath = path.join(pwd, "ludusavi");
 
-    console.log(`Extracted ${file}, removing compressed downloaded file...`);
-    fs.rmSync(file);
-  });
+  await fs.promises.mkdir(targetPath, { recursive: true });
+
+  if (process.platform === "win32") {
+    await exec(`npx extract-zip ${file} ${targetPath}`);
+  } else {
+    await tar.x({
+      file: file,
+      cwd: targetPath,
+    });
+  }
+
+  if (process.platform !== "win32") {
+    fs.chmodSync(path.join(targetPath, "ludusavi"), 0o755);
+  }
+
+  console.log("Extracted. Renaming folder...");
+
+  console.log(`Extracted ${file}, removing compressed downloaded file...`);
+  await fs.promises.rm(file, { force: true });
 };
 
-downloadLudusavi();
+downloadLudusavi().catch((error) => {
+  console.error("Failed to download Ludusavi:", error);
+  process.exitCode = 1;
+});

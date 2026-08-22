@@ -1016,6 +1016,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameLaunchProtonVersion", shop, objectId),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
+  refreshLibraryReleaseDates: () =>
+    ipcRenderer.invoke("refreshLibraryReleaseDates"),
+  refreshLibraryUpdateDates: () =>
+    ipcRenderer.invoke("refreshLibraryUpdateDates"),
+  checkForNewUpdates: () => ipcRenderer.invoke("checkForNewUpdates"),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   getClassicsImportStatus: (): Promise<boolean> =>
