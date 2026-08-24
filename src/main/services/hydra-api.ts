@@ -61,6 +61,22 @@ export class HydraApi {
     this.userAuth.subscription = subscription
       ? { expiresAt: subscription.expiresAt }
       : null;
+
+    if (process.platform === "linux" && !this.hasActiveSubscription()) {
+      void import("./linux-game-capture-session").then(
+        ({ stopAllLinuxGameCaptureSessions }) => {
+          if (!this.hasActiveSubscription()) {
+            stopAllLinuxGameCaptureSessions();
+          }
+        }
+      );
+    }
+
+    if (this.isLoggedIn() && this.hasActiveSubscription()) {
+      void import("./achievements/grouped-souvenir-worker").then(
+        ({ groupedSouvenirWorker }) => groupedSouvenirWorker.trigger()
+      );
+    }
   }
 
   static async handleExternalAuth(uri: string) {
@@ -116,6 +132,11 @@ export class HydraApi {
       }
     });
 
+    const { groupedSouvenirWorker } = await import(
+      "./achievements/grouped-souvenir-worker"
+    );
+    void groupedSouvenirWorker.trigger();
+
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
       await clearGamesRemoteIds();
@@ -141,6 +162,14 @@ export class HydraApi {
       "./achievements/achievement-watcher-manager"
     );
     AchievementWatcherManager.resetSessionState();
+    const { stopAllLinuxGameCaptureSessions } = await import(
+      "./linux-game-capture-session"
+    );
+    stopAllLinuxGameCaptureSessions();
+    const { groupedSouvenirWorker } = await import(
+      "./achievements/grouped-souvenir-worker"
+    );
+    groupedSouvenirWorker.stop();
 
     this.sendSignOutEvent();
     this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
@@ -323,6 +352,15 @@ export class HydraApi {
       );
       AchievementWatcherManager.resetSessionState();
 
+      const { stopAllLinuxGameCaptureSessions } = await import(
+        "./linux-game-capture-session"
+      );
+      stopAllLinuxGameCaptureSessions();
+      const { groupedSouvenirWorker } = await import(
+        "./achievements/grouped-souvenir-worker"
+      );
+      groupedSouvenirWorker.stop();
+
       db.batch([
         {
           type: "del",
@@ -437,6 +475,26 @@ export class HydraApi {
         signal: options?.signal,
       })
       .then((response) => response.data)
+      .catch(this.handleUnauthorizedError);
+  }
+
+  static async postResponse<T = unknown>(
+    url: string,
+    data?: unknown,
+    options?: HydraApiOptions
+  ) {
+    await this.validateOptions(options);
+
+    return this.instance
+      .post<T>(url, data, {
+        ...this.getAxiosConfig(),
+        validateStatus: options?.validateStatus,
+        signal: options?.signal,
+      })
+      .then((response) => ({
+        status: response.status,
+        data: response.data,
+      }))
       .catch(this.handleUnauthorizedError);
   }
 

@@ -2,7 +2,11 @@ import { LockIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import "./locked-profile.scss";
 
-export function LockedProfile() {
+interface LockedProfileProps {
+  title?: string;
+}
+
+export function LockedProfile({ title }: Readonly<LockedProfileProps> = {}) {
   const { t } = useTranslation("user_profile");
 
   return (
@@ -11,7 +15,7 @@ export function LockedProfile() {
         <LockIcon size={24} />
       </div>
 
-      <h2>{t("locked_profile")}</h2>
+      <h2>{title ?? t("locked_profile")}</h2>
     </div>
   );
 }
