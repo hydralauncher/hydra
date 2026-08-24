@@ -406,8 +406,14 @@ export function useCatalogueData() {
         externalResourcesInstance.get<SteamTagsResponse>(
           "/steam-user-tags.json"
         ),
-        externalResourcesInstance.get<string[]>("/steam-developers.json"),
-        externalResourcesInstance.get<string[]>("/steam-publishers.json"),
+        globalThis.window.electron.hydraApi.get<string[]>(
+          "/catalogue/steam/developers",
+          { needsAuth: false }
+        ),
+        globalThis.window.electron.hydraApi.get<string[]>(
+          "/catalogue/steam/publishers",
+          { needsAuth: false }
+        ),
         globalThis.window.electron.hydraApi.get<LaunchboxFiltersResponse>(
           "/catalogue/filters?shop=launchbox",
           { needsAuth: false }
@@ -433,11 +439,11 @@ export function useCatalogueData() {
       }
 
       if (developersResponse.status === "fulfilled") {
-        setSteamDevelopers(developersResponse.value.data);
+        setSteamDevelopers(developersResponse.value);
       }
 
       if (publishersResponse.status === "fulfilled") {
-        setSteamPublishers(publishersResponse.value.data);
+        setSteamPublishers(publishersResponse.value);
       }
 
       if (launchboxFiltersResponse.status === "fulfilled") {

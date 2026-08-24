@@ -29,15 +29,15 @@ export function useCatalogue() {
   }, [dispatch]);
 
   const getSteamPublishers = useCallback(() => {
-    externalResourcesInstance.get("/steam-publishers.json").then((response) => {
-      setSteamPublishers(response.data);
-    });
+    window.electron.hydraApi
+      .get<string[]>("/catalogue/steam/publishers", { needsAuth: false })
+      .then(setSteamPublishers);
   }, []);
 
   const getSteamDevelopers = useCallback(() => {
-    externalResourcesInstance.get("/steam-developers.json").then((response) => {
-      setSteamDevelopers(response.data);
-    });
+    window.electron.hydraApi
+      .get<string[]>("/catalogue/steam/developers", { needsAuth: false })
+      .then(setSteamDevelopers);
   }, []);
 
   const getDownloadSources = useCallback(() => {
