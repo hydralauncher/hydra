@@ -1,11 +1,12 @@
 import { CheckIcon, XIcon } from "@phosphor-icons/react";
 import { ShopDetails } from "@types";
+import { parseSupportedLanguages } from "@shared";
 import { useMemo } from "react";
 import type { FocusOverrides } from "../../../../services";
 import { FocusItem, Typography } from "../../../common";
 
 export interface SupportedLanguagesProps {
-  shopDetails: ShopDetails;
+  shopDetails: ShopDetails | null;
   focusId?: string;
   focusNavigationOverrides?: FocusOverrides;
   focusNavigationOrder?: number;
@@ -17,18 +18,10 @@ export function SupportedLanguages({
   focusNavigationOverrides,
   focusNavigationOrder,
 }: Readonly<SupportedLanguagesProps>) {
-  const languages = useMemo(() => {
-    const supportedLanguages = shopDetails.supported_languages;
-    if (!supportedLanguages) return [];
-
-    const languagesString = supportedLanguages.split("<br>")[0];
-    const languageArray = languagesString?.split(",") || [];
-
-    return languageArray.map((lang) => ({
-      language: lang.replace("<strong>*</strong>", "").trim(),
-      hasAudio: lang.includes("*"),
-    }));
-  }, [shopDetails.supported_languages]);
+  const languages = useMemo(
+    () => parseSupportedLanguages(shopDetails?.supported_languages),
+    [shopDetails?.supported_languages]
+  );
 
   if (languages.length === 0) {
     return null;

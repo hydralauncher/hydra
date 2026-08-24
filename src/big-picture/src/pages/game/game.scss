@@ -8,6 +8,13 @@
   overflow-y: auto;
   background: var(--background);
 
+  &--details-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: var(--big-picture-header-height);
+  }
+
   &__how-long-to-beat {
     display: flex;
     flex-direction: column;
