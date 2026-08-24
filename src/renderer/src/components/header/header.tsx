@@ -14,6 +14,7 @@ import {
   SearchIcon,
   SyncIcon,
   XIcon,
+  ThreeBarsIcon,
 } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 import { SidebarAddingCustomGameModal } from "@renderer/components/sidebar/sidebar-adding-custom-game-modal";
@@ -28,7 +29,11 @@ import {
 import "./header.scss";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
 import { ScanGamesModal, type ScanResult } from "./scan-games-modal";
-import { setFilters, setLibrarySearchQuery } from "@renderer/features";
+import {
+  setFilters,
+  setLibrarySearchQuery,
+  setUserPreferences,
+} from "@renderer/features";
 import cn from "classnames";
 import { SearchDropdown } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -66,6 +71,23 @@ export function Header() {
   const librarySearchValue = useAppSelector(
     (state) => state.library.searchQuery
   );
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
+  const handleToggleSidebar = () => {
+    if (userPreferences) {
+      const newPrefs = {
+        ...userPreferences,
+        hideSidebar: !userPreferences.hideSidebar,
+      };
+      dispatch(setUserPreferences(newPrefs));
+      window.electron.updateUserPreferences({
+        hideSidebar: newPrefs.hideSidebar,
+      });
+    }
+  };
 
   const isOnLibraryPage = location.pathname.startsWith("/library");
   const isOnCataloguePage = location.pathname.startsWith("/catalogue");
@@ -382,6 +404,17 @@ export function Header() {
         <section className="header__section header__section--left">
           <button
             type="button"
+            className="header__action-button"
+            onClick={handleToggleSidebar}
+            data-tooltip-id="sidebar-toggle-tooltip"
+            data-tooltip-content={t("toggle_sidebar", { ns: "sidebar" })}
+            data-tooltip-place="bottom"
+          >
+            <ThreeBarsIcon />
+          </button>
+
+          <button
+            type="button"
             className={cn("header__back-button", {
               "header__back-button--enabled": location.key !== "default",
             })}
@@ -475,6 +508,8 @@ export function Header() {
           </div>
         </section>
       </header>
+
+      <Tooltip id="sidebar-toggle-tooltip" style={{ zIndex: 1 }} />
 
       {isOnLibraryPage && (
         <Tooltip id={addCustomGameTooltipId} style={{ zIndex: 1 }} />

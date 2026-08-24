@@ -188,6 +188,7 @@ export interface UserPreferences {
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
+  hideSidebar?: boolean;
 }
 
 export interface NetworkInterface {
