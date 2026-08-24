@@ -41,6 +41,8 @@ import type { GameShop } from "@types";
 import type { SuggestionShop } from "@renderer/hooks/use-search-suggestions";
 import { debounce } from "lodash-es";
 
+const TOOLTIP_Z_INDEX = { zIndex: 1 };
+
 const pathTitle: Record<string, string> = {
   "/": "home",
   "/catalogue": "catalogue",
@@ -405,6 +407,7 @@ export function Header() {
           <button
             type="button"
             className="header__action-button"
+            disabled={!userPreferences}
             onClick={handleToggleSidebar}
             data-tooltip-id="sidebar-toggle-tooltip"
             data-tooltip-content={t("toggle_sidebar", { ns: "sidebar" })}
@@ -509,14 +512,14 @@ export function Header() {
         </section>
       </header>
 
-      <Tooltip id="sidebar-toggle-tooltip" style={{ zIndex: 1 }} />
+      <Tooltip id="sidebar-toggle-tooltip" style={TOOLTIP_Z_INDEX} />
 
       {isOnLibraryPage && (
-        <Tooltip id={addCustomGameTooltipId} style={{ zIndex: 1 }} />
+        <Tooltip id={addCustomGameTooltipId} style={TOOLTIP_Z_INDEX} />
       )}
 
       {isOnLibraryPage && isLibraryScanSupported && (
-        <Tooltip id={scanButtonTooltipId} style={{ zIndex: 1 }} />
+        <Tooltip id={scanButtonTooltipId} style={TOOLTIP_Z_INDEX} />
       )}
 
       <AutoUpdateSubHeader />
