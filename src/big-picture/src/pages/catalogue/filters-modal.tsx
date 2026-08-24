@@ -21,7 +21,6 @@ import {
   type CatalogueFilterListAlignment,
   type CatalogueFilterListItem,
   getCatalogueFilterListItems,
-  getSelectedCatalogueFilterListItems,
 } from "./filter-list";
 import { CatalogueFilterCheckbox } from "./filter-checkbox";
 import {
@@ -628,59 +627,45 @@ export function CatalogueFiltersModal({
     return () => globalThis.cancelAnimationFrame(animationFrameId);
   }, [activeFilterType, displayedFilterType, isMainFading]);
 
-  const activeItems = useMemo(
+  const filteredItems = useMemo(
     () =>
-      visible
-        ? getCatalogueFilterListItems(
-            catalogueData[activeFilterType].data,
-            activeFilterType,
-            filtersSearchTerms[activeFilterType],
+      Object.fromEntries(
+        Object.values(FilterType).map((filterType) => [
+          filterType,
+          getCatalogueFilterListItems(
+            catalogueData[filterType].data,
+            filterType,
+            filtersSearchTerms[filterType],
             CATALOGUE_FILTERS_MODAL_FOCUS_PREFIX
-          )
-        : [],
-    [activeFilterType, catalogueData, filtersSearchTerms, visible]
+          ),
+        ])
+      ) as Record<FilterType, CatalogueFilterListItem[]>,
+    [catalogueData, filtersSearchTerms]
   );
-  const displayedItems = useMemo(
+  const selectedFilterItems = useMemo(
     () =>
-      visible && displayedFilterType !== activeFilterType
-        ? getCatalogueFilterListItems(
-            catalogueData[displayedFilterType].data,
-            displayedFilterType,
-            filtersSearchTerms[displayedFilterType],
-            CATALOGUE_FILTERS_MODAL_FOCUS_PREFIX
-          )
-        : activeItems,
-    [
-      activeFilterType,
-      activeItems,
-      catalogueData,
-      displayedFilterType,
-      filtersSearchTerms,
-      visible,
-    ]
+      filterTypes.flatMap<SelectedCatalogueFilterItem>((filterType) => {
+        const selectedValues = (values[filterType] ?? []) as Array<
+          string | number
+        >;
+
+        if (selectedValues.length === 0) return [];
+
+        return getCatalogueFilterListItems(
+          catalogueData[filterType].data,
+          filterType,
+          "",
+          CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX
+        )
+          .filter((item) => selectedValues.includes(item.value))
+          .map((item) => ({
+            ...item,
+            filterType,
+            color: catalogueData[filterType].color,
+          }));
+      }),
+    [catalogueData, filterTypes, values]
   );
-  const selectedFilterItems = useMemo(() => {
-    if (!visible) return [];
-
-    return filterTypes.flatMap<SelectedCatalogueFilterItem>((filterType) => {
-      const selectedValues = (values[filterType] ?? []) as Array<
-        string | number
-      >;
-
-      if (selectedValues.length === 0) return [];
-
-      return getSelectedCatalogueFilterListItems(
-        catalogueData[filterType].data,
-        filterType,
-        selectedValues,
-        CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX
-      ).map((item) => ({
-        ...item,
-        filterType,
-        color: catalogueData[filterType].color,
-      }));
-    });
-  }, [catalogueData, filterTypes, values, visible]);
 
   useLayoutEffect(() => {
     scheduleSelectedListBottomUpdate();
@@ -702,6 +687,7 @@ export function CatalogueFiltersModal({
 
   const activeSearchFocusId =
     getCatalogueFiltersModalInputFocusId(activeFilterType);
+  const activeItems = filteredItems[activeFilterType];
   const currentItemIndex = activeItems.findIndex(
     (item) => item.focusId === currentFocusId
   );
@@ -906,6 +892,7 @@ export function CatalogueFiltersModal({
     focusLastSelectedItem,
   });
 
+  const displayedItems = filteredItems[displayedFilterType];
   const displayedFilterLabel = catalogueData[displayedFilterType].label;
   const catalogueFiltersModalContent = useMemo(
     () => (

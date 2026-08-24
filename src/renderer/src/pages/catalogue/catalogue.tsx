@@ -296,9 +296,6 @@ export default function Catalogue() {
           value: platform.key,
           checked: classicsPlatforms.includes(platform.key),
         })),
-        itemCount: launchboxFilters.platforms.length,
-        selectedItemCount: classicsPlatforms.length,
-        defaultOpen: true,
       },
       {
         title: t("genres"),
@@ -308,35 +305,24 @@ export default function Catalogue() {
           value: genre,
           checked: filters.genres.includes(genre),
         })),
-        itemCount: launchboxFilters.genres.length,
-        selectedItemCount: filters.genres.length,
-        defaultOpen: true,
       },
       {
         title: t("developers"),
         key: "developers" as const,
-        items: () =>
-          launchboxFilters.developers.map((developer) => ({
-            label: developer,
-            value: developer,
-            checked: filters.developers.includes(developer),
-          })),
-        itemCount: launchboxFilters.developers.length,
-        selectedItemCount: filters.developers.length,
-        defaultOpen: false,
+        items: launchboxFilters.developers.map((developer) => ({
+          label: developer,
+          value: developer,
+          checked: filters.developers.includes(developer),
+        })),
       },
       {
         title: t("publishers"),
         key: "publishers" as const,
-        items: () =>
-          launchboxFilters.publishers.map((publisher) => ({
-            label: decodeHTML(publisher),
-            value: publisher,
-            checked: filters.publishers.includes(publisher),
-          })),
-        itemCount: launchboxFilters.publishers.length,
-        selectedItemCount: filters.publishers.length,
-        defaultOpen: false,
+        items: launchboxFilters.publishers.map((publisher) => ({
+          label: decodeHTML(publisher),
+          value: publisher,
+          checked: filters.publishers.includes(publisher),
+        })),
       },
       {
         title: t("download_sources"),
@@ -350,10 +336,6 @@ export default function Catalogue() {
               source.fingerprint!
             ),
           })),
-        itemCount: downloadSources.filter((source) => source.fingerprint)
-          .length,
-        selectedItemCount: filters.downloadSourceFingerprints.length,
-        defaultOpen: true,
       },
     ];
   }, [
@@ -533,17 +515,11 @@ export default function Catalogue() {
         title: t("genres"),
         items: steamGenresFilterItems,
         key: "genres",
-        itemCount: steamGenresFilterItems.length,
-        selectedItemCount: filters.genres.length,
-        defaultOpen: true,
       },
       {
         title: t("tags"),
         items: steamUserTagsFilterItems,
         key: "tags",
-        itemCount: steamUserTagsFilterItems.length,
-        selectedItemCount: filters.tags.length,
-        defaultOpen: true,
       },
       {
         title: t("download_sources"),
@@ -557,45 +533,31 @@ export default function Catalogue() {
             ),
           })),
         key: "downloadSourceFingerprints",
-        itemCount: downloadSources.filter((source) => source.fingerprint)
-          .length,
-        selectedItemCount: filters.downloadSourceFingerprints.length,
-        defaultOpen: true,
       },
       {
         title: t("developers"),
-        items: () =>
-          steamDevelopers.map((developer) => ({
-            label: developer,
-            value: developer,
-            checked: filters.developers.includes(developer),
-          })),
+        items: steamDevelopers.map((developer) => ({
+          label: developer,
+          value: developer,
+          checked: filters.developers.includes(developer),
+        })),
         key: "developers",
-        itemCount: steamDevelopers.length,
-        selectedItemCount: filters.developers.length,
-        defaultOpen: false,
       },
       {
         title: t("publishers"),
-        items: () =>
-          steamPublishers.map((publisher) => ({
-            label: decodeHTML(publisher),
-            value: publisher,
-            checked: filters.publishers.includes(publisher),
-          })),
+        items: steamPublishers.map((publisher) => ({
+          label: decodeHTML(publisher),
+          value: publisher,
+          checked: filters.publishers.includes(publisher),
+        })),
         key: "publishers",
-        itemCount: steamPublishers.length,
-        selectedItemCount: filters.publishers.length,
-        defaultOpen: false,
       },
     ];
   }, [
     downloadSources,
     filters.developers,
     filters.downloadSourceFingerprints,
-    filters.genres.length,
     filters.publishers,
-    filters.tags.length,
     steamDevelopers,
     steamGenresFilterItems,
     steamPublishers,
@@ -892,9 +854,6 @@ export default function Catalogue() {
                     }
                   }}
                   items={section.items}
-                  itemCount={section.itemCount}
-                  selectedItemCount={section.selectedItemCount}
-                  defaultOpen={section.defaultOpen}
                 />
               ))}
 
@@ -920,9 +879,6 @@ export default function Catalogue() {
                       dispatch(setFilters({ [section.key]: next }));
                     }}
                     items={section.items}
-                    itemCount={section.itemCount}
-                    selectedItemCount={section.selectedItemCount}
-                    defaultOpen={section.defaultOpen}
                   />
                 );
               })}

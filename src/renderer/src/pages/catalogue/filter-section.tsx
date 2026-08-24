@@ -7,18 +7,13 @@ import "./filter.scss";
 import List from "rc-virtual-list";
 import { useTranslation } from "react-i18next";
 
-type FilterSectionItem = {
-  label: string;
-  value: string | number;
-  checked: boolean;
-};
-
 export interface FilterSectionProps {
   title: string;
-  items: FilterSectionItem[] | (() => FilterSectionItem[]);
-  itemCount?: number;
-  selectedItemCount?: number;
-  defaultOpen?: boolean;
+  items: {
+    label: string;
+    value: string | number;
+    checked: boolean;
+  }[];
   onSelect: (value: string | number) => void;
   color: string;
   onClear: () => void;
@@ -30,42 +25,26 @@ export function FilterSection({
   color,
   onSelect,
   onClear,
-  itemCount,
-  selectedItemCount,
-  defaultOpen = true,
 }: FilterSectionProps) {
   const content = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [isOpen, setIsOpen] = useState(true);
   const [height, setHeight] = useState(0);
   const { t } = useTranslation("catalogue");
-  const hasDeferredItems = typeof items === "function";
-
-  const resolvedItems = useMemo<FilterSectionItem[]>(() => {
-    if (typeof items === "function") {
-      return isOpen ? items() : [];
-    }
-
-    return items;
-  }, [isOpen, items]);
-
-  const resolvedItemCount = itemCount ?? resolvedItems.length;
 
   const filteredItems = useMemo(() => {
     if (search.length > 0) {
-      return resolvedItems.filter((item) =>
+      return items.filter((item) =>
         item.label.toLowerCase().includes(search.toLowerCase())
       );
     }
 
-    return resolvedItems;
-  }, [resolvedItems, search]);
+    return items;
+  }, [items, search]);
 
-  const resolvedSelectedItemCount = useMemo(
-    () =>
-      selectedItemCount ?? resolvedItems.filter((item) => item.checked).length,
-    [resolvedItems, selectedItemCount]
-  );
+  const selectedItemsCount = useMemo(() => {
+    return items.filter((item) => item.checked).length;
+  }, [items]);
 
   const onSearch = useCallback((value: string) => {
     setSearch(value);
@@ -81,7 +60,7 @@ export function FilterSection({
     }
   }, [isOpen, filteredItems, height, search]);
 
-  if (!resolvedItemCount) {
+  if (!items.length) {
     return null;
   }
 
@@ -105,7 +84,7 @@ export function FilterSection({
           />
           <h3 className="filter-section__title">{title}</h3>
           <span className="filter-section__header-count">
-            {formatNumber(resolvedSelectedItemCount || resolvedItemCount)}
+            {formatNumber(selectedItemsCount || items.length)}
           </span>
         </div>
       </button>
@@ -115,63 +94,61 @@ export function FilterSection({
         className="filter-section__content"
         style={{ maxHeight: `${height}px` }}
       >
-        {isOpen || !hasDeferredItems ? (
-          <div className="filter-section__content-inner">
-            {resolvedSelectedItemCount > 0 ? (
-              <button
-                type="button"
-                className="filter-section__clear-button"
-                onClick={onClear}
-              >
-                {t("clear_filters", {
-                  filterCount: formatNumber(resolvedSelectedItemCount),
-                })}
-              </button>
-            ) : (
-              <span className="filter-section__count">
-                {t("filter_count", {
-                  filterCount: formatNumber(resolvedItemCount),
-                })}
-              </span>
-            )}
-
-            <TextField
-              placeholder={t("search")}
-              onChange={(e) => onSearch(e.target.value)}
-              value={search}
-              containerProps={{ className: "filter-section__search" }}
-              theme="dark"
-            />
-
-            <List
-              data={filteredItems}
-              height={
-                28 * (filteredItems.length > 10 ? 10 : filteredItems.length)
-              }
-              itemHeight={28}
-              itemKey="value"
-              styles={{
-                verticalScrollBar: {
-                  backgroundColor: "rgba(255, 255, 255, 0.03)",
-                },
-                verticalScrollBarThumb: {
-                  backgroundColor: "rgba(255, 255, 255, 0.08)",
-                  borderRadius: "24px",
-                },
-              }}
+        <div className="filter-section__content-inner">
+          {selectedItemsCount > 0 ? (
+            <button
+              type="button"
+              className="filter-section__clear-button"
+              onClick={onClear}
             >
-              {(item) => (
-                <div key={item.value} className="filter-section__item">
-                  <CheckboxField
-                    label={item.label}
-                    checked={item.checked}
-                    onChange={() => onSelect(item.value)}
-                  />
-                </div>
-              )}
-            </List>
-          </div>
-        ) : null}
+              {t("clear_filters", {
+                filterCount: formatNumber(selectedItemsCount),
+              })}
+            </button>
+          ) : (
+            <span className="filter-section__count">
+              {t("filter_count", {
+                filterCount: formatNumber(items.length),
+              })}
+            </span>
+          )}
+
+          <TextField
+            placeholder={t("search")}
+            onChange={(e) => onSearch(e.target.value)}
+            value={search}
+            containerProps={{ className: "filter-section__search" }}
+            theme="dark"
+          />
+
+          <List
+            data={filteredItems}
+            height={
+              28 * (filteredItems.length > 10 ? 10 : filteredItems.length)
+            }
+            itemHeight={28}
+            itemKey="value"
+            styles={{
+              verticalScrollBar: {
+                backgroundColor: "rgba(255, 255, 255, 0.03)",
+              },
+              verticalScrollBarThumb: {
+                backgroundColor: "rgba(255, 255, 255, 0.08)",
+                borderRadius: "24px",
+              },
+            }}
+          >
+            {(item) => (
+              <div key={item.value} className="filter-section__item">
+                <CheckboxField
+                  label={item.label}
+                  checked={item.checked}
+                  onChange={() => onSelect(item.value)}
+                />
+              </div>
+            )}
+          </List>
+        </div>
       </div>
     </div>
   );
