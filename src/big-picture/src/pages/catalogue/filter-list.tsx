@@ -14,6 +14,24 @@ export interface CatalogueFilterListItem {
 
 export type CatalogueFilterListAlignment = "top" | "bottom" | "auto";
 
+function getCatalogueFilterListItem(
+  label: string,
+  value: string | number,
+  name: FilterType,
+  focusIdPrefix?: string
+): CatalogueFilterListItem {
+  return {
+    label,
+    value,
+    focusId: focusIdPrefix
+      ? `${focusIdPrefix}:${getCatalogueFilterCheckboxFocusId(
+          name,
+          String(value)
+        )}`
+      : getCatalogueFilterCheckboxFocusId(name, String(value)),
+  };
+}
+
 export function getCatalogueFilterListItems(
   listData: CatalogueFilterData,
   name: FilterType,
@@ -30,15 +48,29 @@ export function getCatalogueFilterListItems(
   return filteredLabels.map<CatalogueFilterListItem>((label) => {
     const value = Array.isArray(listData) ? label : listData[label];
 
-    return {
-      label,
-      value,
-      focusId: focusIdPrefix
-        ? `${focusIdPrefix}:${getCatalogueFilterCheckboxFocusId(
-            name,
-            String(value)
-          )}`
-        : getCatalogueFilterCheckboxFocusId(name, String(value)),
-    };
+    return getCatalogueFilterListItem(label, value, name, focusIdPrefix);
   });
+}
+
+export function getSelectedCatalogueFilterListItems(
+  listData: CatalogueFilterData,
+  name: FilterType,
+  selectedValues: Array<string | number>,
+  focusIdPrefix?: string
+) {
+  const selectedValuesSet = new Set(selectedValues);
+
+  if (Array.isArray(listData)) {
+    return listData
+      .filter((label) => selectedValuesSet.has(label))
+      .map((label) =>
+        getCatalogueFilterListItem(label, label, name, focusIdPrefix)
+      );
+  }
+
+  return Object.entries(listData)
+    .filter(([, value]) => selectedValuesSet.has(value))
+    .map(([label, value]) =>
+      getCatalogueFilterListItem(label, value, name, focusIdPrefix)
+    );
 }
