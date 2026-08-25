@@ -452,6 +452,7 @@ function SouvenirsEmptyState({
 
 interface SouvenirsTabProps {
   achievements: ProfileSouvenir[];
+  hasReachedLimit: boolean;
   hiddenReason: SouvenirsHiddenReason;
   canLike: boolean;
   disableNsfwAlert: boolean;
@@ -472,6 +473,7 @@ interface SouvenirsTabProps {
 
 export function SouvenirsTab({
   achievements,
+  hasReachedLimit,
   hiddenReason,
   canLike,
   disableNsfwAlert,
@@ -722,11 +724,11 @@ export function SouvenirsTab({
       transition={{ duration: 0.2 }}
     >
       {isMe && isPrivacyNoticeVisible ? (
-        <aside className="profile-content__souvenirs-privacy-notice">
-          <span className="profile-content__souvenirs-privacy-notice-icon">
+        <aside className="profile-content__souvenirs-notice">
+          <span className="profile-content__souvenirs-notice-icon">
             <PrivacyIcon size={18} />
           </span>
-          <div className="profile-content__souvenirs-privacy-notice-copy">
+          <div className="profile-content__souvenirs-notice-copy">
             <strong>{privacyNotice.title}</strong>
             <span>{privacyNotice.description}</span>
           </div>
@@ -739,6 +741,18 @@ export function SouvenirsTab({
           >
             <XIcon size={16} />
           </button>
+        </aside>
+      ) : null}
+
+      {isMe && hasReachedLimit ? (
+        <aside className="profile-content__souvenirs-notice">
+          <span className="profile-content__souvenirs-notice-icon">
+            <AlertIcon size={18} />
+          </span>
+          <div className="profile-content__souvenirs-notice-copy">
+            <strong>{t("souvenir_limit_reached_title")}</strong>
+            <span>{t("souvenir_limit_reached_description")}</span>
+          </div>
         </aside>
       ) : null}
 

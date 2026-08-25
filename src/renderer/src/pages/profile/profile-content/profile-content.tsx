@@ -115,6 +115,7 @@ export function ProfileContent() {
     isLoadingLibraryGames,
     souvenirs,
     souvenirsTotal,
+    hasReachedSouvenirLimit,
     souvenirsHiddenReason,
     hasMoreSouvenirs,
     isLoadingSouvenirs,
@@ -579,6 +580,7 @@ export function ProfileContent() {
               {activeTab === "souvenirs" && (
                 <SouvenirsTab
                   achievements={souvenirs}
+                  hasReachedLimit={hasReachedSouvenirLimit}
                   hiddenReason={souvenirsHiddenReason}
                   canLike={Boolean(userDetails)}
                   hasMore={hasMoreSouvenirs}

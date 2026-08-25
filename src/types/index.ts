@@ -312,6 +312,7 @@ export interface ProfileSouvenir {
 export interface SouvenirsResponse {
   items: Array<ProfileSouvenir | ProfileAchievement>;
   total: number;
+  hasReachedLimit: boolean;
   hiddenReason: SouvenirsHiddenReason;
 }
 
