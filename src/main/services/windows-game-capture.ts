@@ -9,6 +9,7 @@ import {
 } from "./screenshot-frame-validation";
 
 const MAX_CAPTURE_ATTEMPTS = 3;
+const FRAME_VALIDATION_SAMPLE_SIZE = 32;
 
 interface CapturedFramePayload {
   width: number;
@@ -205,7 +206,11 @@ export const captureWindowsGameWindowFrame = async (sourceId: string) => {
     for (let attempt = 1; attempt <= MAX_CAPTURE_ATTEMPTS; attempt++) {
       const frame = await captureFrame(captureWindow);
       const image = frame.image;
-      const sample = image.resize({ width: 32, height: 32, quality: "good" });
+      const sample = image.resize({
+        width: FRAME_VALIDATION_SAMPLE_SIZE,
+        height: FRAME_VALIDATION_SAMPLE_SIZE,
+        quality: "good",
+      });
       const isBlank =
         image.isEmpty() ||
         isNearlyUniformScreenshot(getBitmapColorRange(sample.toBitmap()));
