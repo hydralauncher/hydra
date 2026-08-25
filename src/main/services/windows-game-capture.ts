@@ -2,26 +2,20 @@ import { BrowserWindow, nativeImage } from "electron";
 import capturePagePath from "@resources/linux-game-capture.html?asset";
 
 import { logger } from "./logger";
+import { fitScreenshotTo1080p } from "./screenshot-size";
 import {
+  getBitmapColorRange,
   isNearlyUniformScreenshot,
-  type ScreenshotColorRange,
 } from "./screenshot-frame-validation";
 
 const MAX_CAPTURE_ATTEMPTS = 3;
 
 interface CapturedFramePayload {
-  dataUrl: string;
   width: number;
   height: number;
-  colorRange: ScreenshotColorRange;
+  supportsSdrDynamicRangeLimit: boolean;
+  fallbackDataUrl: string | null;
 }
-
-const isChannelRange = (value: unknown) => {
-  if (!value || typeof value !== "object") return false;
-
-  const range = value as Record<string, unknown>;
-  return typeof range.min === "number" && typeof range.max === "number";
-};
 
 const isCapturedFramePayload = (
   value: unknown
@@ -29,18 +23,12 @@ const isCapturedFramePayload = (
   if (!value || typeof value !== "object") return false;
 
   const payload = value as Record<string, unknown>;
-  const colorRange = payload.colorRange;
-  if (!colorRange || typeof colorRange !== "object") return false;
-
-  const channels = colorRange as Record<string, unknown>;
-
   return (
-    typeof payload.dataUrl === "string" &&
     typeof payload.width === "number" &&
     typeof payload.height === "number" &&
-    isChannelRange(channels.red) &&
-    isChannelRange(channels.green) &&
-    isChannelRange(channels.blue)
+    typeof payload.supportsSdrDynamicRangeLimit === "boolean" &&
+    (payload.fallbackDataUrl === null ||
+      typeof payload.fallbackDataUrl === "string")
   );
 };
 
@@ -148,44 +136,28 @@ const captureFrame = async (captureWindow: BrowserWindow) => {
       if (!width || !height) {
         throw new Error("Windows game-window stream returned an empty frame");
       }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("Could not create screenshot canvas");
-      context.drawImage(video, 0, 0, width, height);
 
-      const sampleCanvas = document.createElement("canvas");
-      sampleCanvas.width = 32;
-      sampleCanvas.height = 32;
-      const sampleContext = sampleCanvas.getContext("2d", {
-        willReadFrequently: true
-      });
-      if (!sampleContext) throw new Error("Could not validate screenshot frame");
-      sampleContext.drawImage(canvas, 0, 0, 32, 32);
-      const pixels = sampleContext.getImageData(0, 0, 32, 32).data;
-      const colorRange = {
-        red: { min: 255, max: 0 },
-        green: { min: 255, max: 0 },
-        blue: { min: 255, max: 0 }
-      };
-      for (let index = 0; index < pixels.length; index += 4) {
-        const red = pixels[index];
-        const green = pixels[index + 1];
-        const blue = pixels[index + 2];
-        colorRange.red.min = Math.min(colorRange.red.min, red);
-        colorRange.red.max = Math.max(colorRange.red.max, red);
-        colorRange.green.min = Math.min(colorRange.green.min, green);
-        colorRange.green.max = Math.max(colorRange.green.max, green);
-        colorRange.blue.min = Math.min(colorRange.blue.min, blue);
-        colorRange.blue.max = Math.max(colorRange.blue.max, blue);
+      const supportsSdrDynamicRangeLimit = CSS.supports(
+        "dynamic-range-limit",
+        "standard"
+      );
+      let fallbackDataUrl = null;
+
+      if (!supportsSdrDynamicRangeLimit) {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Could not create screenshot canvas");
+        context.drawImage(video, 0, 0, width, height);
+        fallbackDataUrl = canvas.toDataURL("image/png");
       }
 
       return {
-        dataUrl: canvas.toDataURL("image/png"),
         width,
         height,
-        colorRange
+        supportsSdrDynamicRangeLimit,
+        fallbackDataUrl
       };
     })()
   `);
@@ -196,7 +168,34 @@ const captureFrame = async (captureWindow: BrowserWindow) => {
     );
   }
 
-  return result;
+  if (!result.supportsSdrDynamicRangeLimit) {
+    logger.warn(
+      "Chromium does not support SDR dynamic range limiting for screenshots"
+    );
+    if (!result.fallbackDataUrl) {
+      throw new Error("Could not create fallback Windows screenshot frame");
+    }
+
+    return {
+      ...result,
+      image: nativeImage.createFromDataURL(result.fallbackDataUrl),
+    };
+  }
+
+  const captureSize = fitScreenshotTo1080p(result);
+  captureWindow.setContentSize(captureSize.width, captureSize.height);
+  await captureWindow.webContents.executeJavaScript(`
+    new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    })
+  `);
+
+  return {
+    ...result,
+    image: await captureWindow.webContents.capturePage(undefined, {
+      stayHidden: true,
+    }),
+  };
 };
 
 export const captureWindowsGameWindowFrame = async (sourceId: string) => {
@@ -205,9 +204,11 @@ export const captureWindowsGameWindowFrame = async (sourceId: string) => {
   try {
     for (let attempt = 1; attempt <= MAX_CAPTURE_ATTEMPTS; attempt++) {
       const frame = await captureFrame(captureWindow);
-      const image = nativeImage.createFromDataURL(frame.dataUrl);
+      const image = frame.image;
+      const sample = image.resize({ width: 32, height: 32, quality: "good" });
       const isBlank =
-        image.isEmpty() || isNearlyUniformScreenshot(frame.colorRange);
+        image.isEmpty() ||
+        isNearlyUniformScreenshot(getBitmapColorRange(sample.toBitmap()));
 
       if (!isBlank) return image;
 

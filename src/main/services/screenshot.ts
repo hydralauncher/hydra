@@ -7,6 +7,7 @@ import { logger } from "./logger";
 import { resolveAchievementScreenshotPath } from "./achievement-screenshot-path";
 import { getAchievementScreenshotsDirectory } from "./achievement-screenshots-directory";
 import { fitScreenshotTo1080p } from "./screenshot-size";
+import { encodeSdrScreenshotJpeg } from "./screenshot-encoding";
 import { NativeAddon } from "./native-addon";
 import { isLinuxGameWindowProcess } from "./linux-process-match";
 import {
@@ -341,7 +342,10 @@ export class ScreenshotService {
     );
 
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.promises.writeFile(filePath, image.toJPEG(SCREENSHOT_QUALITY));
+    await fs.promises.writeFile(
+      filePath,
+      await encodeSdrScreenshotJpeg(image.toPNG(), SCREENSHOT_QUALITY)
+    );
 
     return filePath;
   }
@@ -372,7 +376,10 @@ export class ScreenshotService {
     );
 
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.promises.writeFile(filePath, image.toJPEG(SCREENSHOT_QUALITY));
+    await fs.promises.writeFile(
+      filePath,
+      await encodeSdrScreenshotJpeg(image.toPNG(), SCREENSHOT_QUALITY)
+    );
 
     return filePath;
   }
