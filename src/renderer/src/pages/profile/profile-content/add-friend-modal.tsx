@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { CopyIcon } from "@primer/octicons-react";
-import { AuthPage } from "@shared";
 import "./add-friend-modal.scss";
 
 interface AddFriendModalProps {
@@ -31,7 +30,7 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
 
   const copyMyFriendCode = () => {
     if (userDetails?.id) {
-      globalThis.window.electron.clipboard.writeText(userDetails.id);
+      navigator.clipboard.writeText(userDetails.id);
       showSuccessToast(t("friend_code_copied"));
     }
   };
@@ -39,12 +38,9 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
   useEffect(() => {
     if (visible) {
       setFriendCode("");
-    }
-
-    if (visible && userDetails) {
       fetchFriendRequests();
     }
-  }, [visible, fetchFriendRequests, userDetails]);
+  }, [visible, fetchFriendRequests]);
 
   const handleChangeFriendCode = (e: React.ChangeEvent<HTMLInputElement>) => {
     const code = e.target.value.trim().slice(0, 8);
@@ -60,11 +56,6 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
   };
 
   const handleClickAddFriend = () => {
-    if (!userDetails) {
-      window.electron.openAuthWindow(AuthPage.SignIn);
-      return;
-    }
-
     setIsAddingFriend(true);
     sendFriendRequest(friendCode)
       .then(() => {
@@ -92,11 +83,6 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
   };
 
   const handleCancelFriendRequest = (userId: string) => {
-    if (!userDetails) {
-      window.electron.openAuthWindow(AuthPage.SignIn);
-      return;
-    }
-
     updateFriendRequestState(userId, "CANCEL").catch(() => {
       showErrorToast(t("try_again"));
     });

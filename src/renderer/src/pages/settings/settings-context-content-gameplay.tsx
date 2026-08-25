@@ -308,6 +308,7 @@ export function SettingsContextContentGameplay() {
           }
         />
       </div>
+
       <ConfirmationModal
         visible={showWaylandSouvenirsWarning}
         title={t("wayland_souvenirs_warning_title")}

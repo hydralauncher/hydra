@@ -1,0 +1,47 @@
+.settings-steam-import {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba(26, 26, 26, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: solid 1px rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  gap: 16px;
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    h3 {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-color);
+      margin: 0;
+    }
+
+    p {
+      color: var(--text-color-muted);
+      font-size: 14px;
+      margin: 0;
+    }
+  }
+
+  &__button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+
+    .settings-steam-import__icon {
+      display: flex;
+      align-items: center;
+
+      svg {
+        fill: var(--text-color);
+      }
+    }
+  }
+}

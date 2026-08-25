@@ -71,35 +71,61 @@
     padding: calc(globals.$spacing-unit * 2);
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 1.5);
+    list-style: none;
   }
 
   &__category {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border: 1px solid globals.$border-color;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+  }
+
+  &__category-header {
+    display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
-    background: linear-gradient(
-      90deg,
-      transparent 20%,
-      rgb(255 255 255 / 2%) 100%
-    );
-    border-radius: 4px;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
-    border: solid 1px globals.$border-color;
+    gap: calc(globals.$spacing-unit * 0.25);
   }
 
   &__category-label {
-    color: globals.$muted-color;
+    color: globals.$body-color;
+    font-size: globals.$body-font-size;
+    margin: 0;
+
+    &--bold {
+      font-weight: 600;
+      color: globals.$muted-color;
+    }
   }
 
-  &__category-label--bold {
-    font-weight: bold;
+  &__category-duration {
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+    color: globals.$muted-color;
+    margin: 0;
+  }
+
+  &__category-accuracy {
+    font-size: globals.$small-font-size;
+    color: rgba(255, 255, 255, 0.45);
   }
 
   &__category-skeleton {
-    border: solid 1px globals.$border-color;
-    border-radius: 4px;
-    height: 76px;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    height: 52px;
   }
 }
 
@@ -202,10 +228,8 @@
     font-weight: 600;
     color: #0a0a0a;
     background: rgb(180, 199, 220);
-    border: 1px solid rgba(0, 0, 0, 0.25);
     line-height: 1.25;
     white-space: nowrap;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.28);
 
     &--platinum {
       background: rgb(180, 199, 220);
@@ -312,93 +336,14 @@
 .subscription-required-button {
   text-decoration: none;
   display: flex;
-  align-items: center;
   justify-content: center;
   width: 100%;
-  gap: globals.$spacing-unit;
+  gap: calc(globals.$spacing-unit / 2);
   color: globals.$warning-color;
   cursor: pointer;
 
-  > svg {
-    flex-shrink: 0;
-    transform: translateY(1px);
-  }
-
   &:hover {
     text-decoration: underline;
-  }
-}
-
-.controller-support {
-  padding: calc(globals.$spacing-unit * 2);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: globals.$spacing-unit;
-  color: globals.$muted-color;
-
-  &__skeleton {
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-  }
-
-  &__icons {
-    display: flex;
-    gap: calc(globals.$spacing-unit * 1.5);
-    justify-content: center;
-    align-items: center;
-    color: globals.$muted-color;
-    margin-bottom: calc(globals.$spacing-unit / 2);
-  }
-
-  &__icon {
-    width: 36px;
-    height: 36px;
-    color: globals.$body-color;
-    display: block;
-    flex-shrink: 0;
-
-    path {
-      fill: currentColor !important;
-    }
-  }
-
-  &__icon--playstation {
-    width: 47px;
-  }
-
-  &__badge {
-    align-self: center;
-    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 2);
-    border-radius: 999px;
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: globals.$small-font-size;
-    line-height: 1.2;
-
-    &--full {
-      background: rgba(154, 205, 50, 0.15);
-      color: #9acd32;
-    }
-
-    &--partial {
-      background: rgba(255, 165, 0, 0.15);
-      color: #ffa500;
-    }
-
-    &--none {
-      background: rgba(255, 255, 255, 0.05);
-    }
-  }
-
-  &__description {
-    margin: 0;
-    margin-top: calc(globals.$spacing-unit / 2);
-    max-width: 280px;
-    text-align: center;
-    line-height: 1.45;
-    color: globals.$body-color;
   }
 }
 

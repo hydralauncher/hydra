@@ -27,7 +27,7 @@ const getUmuLogPath = () => path.join(logsPath, "umu.log");
 const getUmuBinaryPath = () =>
   app.isPackaged
     ? path.join(process.resourcesPath, "umu-run")
-    : path.join(__dirname, "..", "..", "binaries", "umu", "umu-run");
+    : path.join(import.meta.dirname, "..", "..", "binaries", "umu", "umu-run");
 
 const parsePythonVersion = (versionText: string): [number, number] | null => {
   const match = versionText.trim().match(/^(\d+)\.(\d+)$/);

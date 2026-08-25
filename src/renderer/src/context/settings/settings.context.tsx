@@ -8,6 +8,7 @@ import { useSearchParams } from "react-router-dom";
 
 export type SettingsCategoryId =
   | "general"
+  | "appearance"
   | "downloads"
   | "download_sources"
   | "notifications"
@@ -30,6 +31,7 @@ const legacyTabMap: Record<number, SettingsCategoryId> = {
 const isSettingsCategoryId = (value: string): value is SettingsCategoryId => {
   return [
     "general",
+    "appearance",
     "downloads",
     "download_sources",
     "notifications",

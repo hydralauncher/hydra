@@ -4,6 +4,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import type { CatalogueSearchPayload } from "@types";
 
 export type CatalogueMode = "modern" | "classics";
+export type CatalogueViewMode = "curated" | "all";
 
 export interface CatalogueSearchState {
   filters: CatalogueSearchPayload;
@@ -11,6 +12,8 @@ export interface CatalogueSearchState {
   steamUserTags: Record<string, Record<string, number>>;
   steamGenres: Record<string, string[]>;
   mode: CatalogueMode;
+  viewMode: CatalogueViewMode;
+  hideOwned: boolean;
 }
 
 const initialState: CatalogueSearchState = {
@@ -31,6 +34,8 @@ const initialState: CatalogueSearchState = {
   steamGenres: {},
   page: 1,
   mode: "modern",
+  viewMode: "curated",
+  hideOwned: true,
 };
 
 export const catalogueSearchSlice = createSlice({
@@ -63,6 +68,12 @@ export const catalogueSearchSlice = createSlice({
     setGenres: (state, action: PayloadAction<Record<string, string[]>>) => {
       state.steamGenres = action.payload;
     },
+    setViewMode: (state, action: PayloadAction<CatalogueViewMode>) => {
+      state.viewMode = action.payload;
+    },
+    setHideOwned: (state, action: PayloadAction<boolean>) => {
+      state.hideOwned = action.payload;
+    },
     setMode: (state, action: PayloadAction<CatalogueMode>) => {
       state.mode = action.payload;
       state.page = initialState.page;
@@ -76,7 +87,7 @@ export const catalogueSearchSlice = createSlice({
         protondbSupportBadges: [],
         deckCompatibility: [],
         releaseYear: undefined,
-        platforms: [],
+        platforms: action.payload === "classics" ? ["ps2"] : [],
       };
     },
   },
@@ -89,5 +100,7 @@ export const {
   clearPage,
   setTags,
   setGenres,
+  setViewMode,
   setMode,
+  setHideOwned,
 } = catalogueSearchSlice.actions;

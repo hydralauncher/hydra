@@ -21,6 +21,7 @@ import "./library";
 import "./leveldb";
 import "./main-window-controls";
 import "./misc";
+import "./news";
 import "./notifications";
 import "./profile";
 import "./themes";

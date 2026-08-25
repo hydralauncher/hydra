@@ -26,7 +26,7 @@ export class SevenZip {
   private static readonly binaryPath = app.isPackaged
     ? path.join(process.resourcesPath, binaryName[process.platform])
     : path.join(
-        __dirname,
+        import.meta.dirname,
         "..",
         "..",
         "binaries",

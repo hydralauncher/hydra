@@ -8,14 +8,6 @@
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-
-    @media (min-width: 1280px) {
-      width: 60%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
-    }
   }
 
   &__reviews-title {

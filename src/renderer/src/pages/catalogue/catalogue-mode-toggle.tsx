@@ -23,9 +23,10 @@ export function CatalogueModeToggle() {
           "catalogue-mode-toggle__option--active": mode === "modern",
         })}
         onClick={() => dispatch(setMode("modern"))}
+        title="Modernos"
       >
         <DeviceDesktopIcon size={14} />
-        <span>{t("mode_modern_games")}</span>
+        {mode === "modern" && <span>Modernos</span>}
       </button>
       <button
         type="button"
@@ -35,9 +36,12 @@ export function CatalogueModeToggle() {
           "catalogue-mode-toggle__option--active": mode === "classics",
         })}
         onClick={() => dispatch(setMode("classics"))}
+        title={t("mode_classics", { defaultValue: "Clássicos" })}
       >
         <ClassicsIcon size={16} />
-        <span>{t("mode_classics")}</span>
+        {mode === "classics" && (
+          <span>{t("mode_classics", { defaultValue: "Clássicos" })}</span>
+        )}
       </button>
     </div>
   );

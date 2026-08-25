@@ -3,189 +3,248 @@
 .filter-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: globals.$body-color;
-  background-color: color-mix(
-    in srgb,
-    globals.$dark-background-color 84%,
-    var(--filter-item-color) 16%
-  );
-  padding: 4px 6px 4px 10px;
-  border-radius: 8px;
-  border: solid 1px
-    color-mix(in srgb, globals.$border-color 70%, var(--filter-item-color) 30%);
-  font-size: 12px;
-  min-height: 32px;
-  max-width: 100%;
+  background-color: rgba(255, 255, 255, 0.06);
+  padding: 3px 8px;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11.5px;
+  min-height: 28px;
 
   &__label {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 220px;
+    max-width: 180px;
     line-height: 1.2;
-    display: flex;
-    align-items: center;
-  }
-
-  &__orb {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.28);
-    align-self: center;
   }
 
   &__remove-button {
-    color: color-mix(
-      in srgb,
-      globals.$body-color 84%,
-      var(--filter-item-color) 16%
-    );
+    color: rgba(255, 255, 255, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     padding: 0;
     border: none;
-    line-height: 1;
-    align-self: center;
-    border-radius: 0;
-    width: 22px;
-    height: 22px;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    background: transparent;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
 
     &:hover {
-      background-color: transparent;
-      color: globals.$body-color;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--filter-item-color);
-      outline-offset: 1px;
-    }
-
-    svg {
-      display: block;
-      transform: translateY(-0.5px);
+      color: #fff;
+      background-color: rgba(255, 255, 255, 0.15);
     }
   }
 }
 
-.filter-section {
-  background-color: globals.$background-color;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+.filter-dropdown {
+  position: relative;
+  display: inline-flex;
 
-  &__button {
-    padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
-    display: flex;
+  &__trigger {
+    display: inline-flex;
     align-items: center;
-    background-color: globals.$background-color;
-    color: globals.$muted-color;
-    width: 100%;
+    gap: 4px;
+    height: 28px;
+    min-height: 28px;
+    max-height: 28px;
+    padding: 0 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+    font-weight: 500;
     cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
-    gap: globals.$spacing-unit;
-    font-size: globals.$body-font-size;
-    font-weight: bold;
-    border: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.16);
     }
 
-    &:active {
-      opacity: globals.$active-opacity;
+    &--open {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #fff;
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.22);
+      color: #fff;
     }
   }
 
+  &__icon {
+    display: flex;
+    align-items: center;
+    opacity: 0.8;
+  }
+
+  &__title {
+    white-space: nowrap;
+  }
+
+  &__badge {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 100px;
+    padding: 0 5px;
+    margin-left: 2px;
+  }
+
   &__chevron {
-    transition: transform ease 0.2s;
-    flex-shrink: 0;
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+    opacity: 0.6;
 
     &--open {
       transform: rotate(180deg);
+      opacity: 1;
     }
+  }
+
+  &__popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    left: auto;
+    min-width: 280px;
+    max-width: 320px;
+    width: max-content;
+    background: rgba(14, 14, 16, 0.94);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow:
+      0 20px 48px rgba(0, 0, 0, 0.9),
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    z-index: 1000;
+    animation: filter-popover-in 0.18s cubic-bezier(0.2, 0, 0.2, 1);
   }
 
   &__header {
     display: flex;
-    gap: 8px;
     align-items: center;
-    min-width: 0;
-    flex: 1;
-  }
-
-  &__header-count {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    min-width: 24px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-
-  &__orb {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-
-  &__title {
-    font-size: 16px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__content {
-    overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
-    background-color: globals.$dark-background-color;
-    position: relative;
-  }
-
-  &__content-inner {
-    padding: calc(globals.$spacing-unit * 2);
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
   }
 
   &__count {
-    font-size: 12px;
-    margin-bottom: 12px;
-    display: block;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
   }
 
-  &__clear-button {
-    font-size: 12px;
-    margin-bottom: 12px;
-    display: block;
-    color: globals.$body-color;
+  &__clear-btn {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    padding: 2px 8px;
     cursor: pointer;
-    text-decoration: underline;
+    transition: all 0.2s ease;
 
-    &:focus-visible {
-      outline: 2px solid globals.$muted-color;
-      outline-offset: 1px;
+    &:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
     }
   }
 
-  &__search {
-    margin-bottom: 12px;
+  &__search-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 100px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+
+    &:focus-within {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  &__search-icon {
+    color: rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+  }
+
+  &__search-input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 11.5px;
+    font-family: inherit;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.35);
+    }
+  }
+
+  &__search-clear {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    border-radius: 50%;
+
+    &:hover {
+      color: #fff;
+    }
   }
 
   &__item {
-    height: 28px;
-    max-height: 28px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &__empty {
+    padding: 16px 8px;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+}
+
+@keyframes filter-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

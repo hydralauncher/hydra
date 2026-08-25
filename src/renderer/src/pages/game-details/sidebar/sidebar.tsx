@@ -11,28 +11,20 @@ import { Link } from "@renderer/components/link/link";
 import { StarRating } from "@renderer/components/star-rating/star-rating";
 
 import { gameDetailsContext } from "@renderer/context";
+import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
 import {
-  useAppSelector,
-  useDate,
-  useFormat,
-  useUserDetails,
-} from "@renderer/hooks";
-import {
-  AlertIcon,
+  CloudOfflineIcon,
   DownloadIcon,
   LockIcon,
   PeopleIcon,
   StarIcon,
 } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
-import { LaunchboxDetailsSection } from "./launchbox-details-section";
-import { SidebarSection } from "../sidebar-section/sidebar-section";
+
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
-import { ControllerSupportSection } from "./controller-support-section";
 
 const ProtonDBSection = lazy(async () => {
   const mod = await import("./protondb-section");
@@ -108,7 +100,7 @@ const achievementsPlaceholder: UserAchievement[] = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ activeTab }: { activeTab: string }) {
   const shouldShowProtonFeatures = window.electron.platform === "linux";
   const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
@@ -125,20 +117,11 @@ export function Sidebar() {
 
   const { gameTitle, shopDetails, objectId, shop, stats, achievements } =
     useContext(gameDetailsContext);
-  const userPreferences = useAppSelector(
-    (state) => state.userPreferences.value
-  );
 
   const { showHydraCloudModal } = useSubscription();
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
-  const achievementsCount = achievements?.length ?? 0;
-  const shouldRenderAchievementsSection =
-    (!!userDetails && achievementsCount > 0) ||
-    (shop === "launchbox" &&
-      !!shopDetails?.retroAchievementsGameId &&
-      !userPreferences?.retroAchievementsWebApiKey);
 
   useEffect(() => {
     if (objectId) {
@@ -181,20 +164,38 @@ export function Sidebar() {
       });
   }, [shouldShowProtonFeatures, objectId, shop]);
 
+  if (
+    activeTab === "overview" ||
+    activeTab === "gallery" ||
+    activeTab === "reviews"
+  )
+    return null;
+
   return (
-    <aside className="content-sidebar">
-      {shouldShowProtonFeatures && (
+    <div
+      className="tab-content"
+      style={{
+        width: "100%",
+        maxWidth: "1400px",
+        animation: "fade-in 0.2s ease",
+      }}
+    >
+      {shouldShowProtonFeatures && activeTab === "protondb" && (
         <Suspense fallback={null}>
-          <ProtonDBSection
-            protonDBData={protonDB.data}
-            isLoading={protonDB.isLoading}
-            objectId={objectId ?? ""}
-          />
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ marginBottom: 16 }}>ProtonDB</h3>
+            <ProtonDBSection
+              protonDBData={protonDB.data}
+              isLoading={protonDB.isLoading}
+              objectId={objectId ?? ""}
+            />
+          </div>
         </Suspense>
       )}
 
-      {userDetails === null && !shouldRenderAchievementsSection && (
-        <SidebarSection title={t("achievements")}>
+      {activeTab === "achievements" && userDetails === null && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ marginBottom: 16 }}>{t("achievements")}</h3>
           <div className="achievements-placeholder">
             <LockIcon size={36} />
             <h3>{t("sign_in_to_see_achievements")}</h3>
@@ -221,81 +222,90 @@ export function Sidebar() {
               </li>
             ))}
           </ul>
-        </SidebarSection>
+        </div>
       )}
 
-      {shouldRenderAchievementsSection && (
-        <SidebarSection
-          title={
-            achievementsCount > 0
-              ? t("achievements_count", {
-                  unlockedCount:
-                    achievements?.filter((a) => a.unlocked).length ?? 0,
-                  achievementsCount,
-                })
-              : t("achievements")
-          }
-        >
-          <ul className="list">
-            <RetroAchievementsConnectBanner />
+      {activeTab === "achievements" &&
+        userDetails &&
+        achievements &&
+        achievements.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ marginBottom: 16 }}>
+              {t("achievements_count", {
+                unlockedCount: achievements.filter((a) => a.unlocked).length,
+                achievementsCount: achievements.length,
+              })}
+            </h3>
+            <ul className="list">
+              {!hasActiveSubscription && (
+                <button
+                  className="subscription-required-button"
+                  onClick={() => showHydraCloudModal("achievements")}
+                >
+                  <CloudOfflineIcon size={16} />
+                  <span>{t("achievements_not_sync")}</span>
+                </button>
+              )}
 
-            {!hasActiveSubscription && achievementsCount > 0 && (
-              <button
-                type="button"
-                className="subscription-required-button"
-                onClick={() => showHydraCloudModal("achievements")}
-              >
-                <AlertIcon size={14} />
-                <span>{t("achievements_not_sync")}</span>
-              </button>
-            )}
-
-            {(achievements ?? []).slice(0, 4).map((achievement) => (
-              <li key={achievement.displayName}>
+              {achievements.slice(0, 5).map((achievement) => (
+                <li key={achievement.displayName}>
+                  <Link
+                    to={buildGameAchievementPath({
+                      shop: shop,
+                      objectId: objectId!,
+                      title: gameTitle,
+                    })}
+                    className="list__item"
+                    title={achievement.description}
+                  >
+                    <img
+                      className={`list__item-image ${
+                        achievement.unlocked ? "" : "list__item-image--locked"
+                      }`}
+                      src={achievement.icon}
+                      alt={achievement.displayName}
+                    />
+                    <div>
+                      <p>{achievement.displayName}</p>
+                      <small>
+                        {achievement.unlockTime != null &&
+                          formatDateTime(achievement.unlockTime)}
+                      </small>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {achievements.length > 5 && (
+              <div style={{ marginTop: 16 }}>
                 <Link
                   to={buildGameAchievementPath({
                     shop: shop,
                     objectId: objectId!,
                     title: gameTitle,
                   })}
-                  className="list__item"
-                  title={achievement.description}
+                  className="achievements-preview-view-all"
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    color: "rgba(255,255,255,0.7)",
+                    textDecoration: "underline",
+                    fontSize: 14,
+                    cursor: "pointer",
+                  }}
                 >
-                  <img
-                    className={`list__item-image ${
-                      achievement.unlocked ? "" : "list__item-image--locked"
-                    }`}
-                    src={achievement.icon}
-                    alt={achievement.displayName}
-                  />
-                  <div>
-                    <p>{achievement.displayName}</p>
-                    <small>
-                      {achievement.unlockTime != null &&
-                        formatDateTime(achievement.unlockTime)}
-                    </small>
-                  </div>
+                  {t("view_all_results", {
+                    defaultValue: `Ver as outras ${achievements.length - 5} conquistas`,
+                  })}
                 </Link>
-              </li>
-            ))}
-
-            {achievementsCount > 0 && (
-              <Link
-                to={buildGameAchievementPath({
-                  shop: shop,
-                  objectId: objectId!,
-                  title: gameTitle,
-                })}
-              >
-                {t("see_all_achievements")}
-              </Link>
+              </div>
             )}
-          </ul>
-        </SidebarSection>
-      )}
+          </div>
+        )}
 
-      {stats && (
-        <SidebarSection title={t("stats")}>
+      {activeTab === "stats" && stats && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ marginBottom: 16 }}>{t("stats")}</h3>
           <div className="stats__section">
             <div className="stats__category">
               <p className="stats__category-title">
@@ -328,27 +338,25 @@ export function Sidebar() {
               />
             </div>
           </div>
-        </SidebarSection>
+        </div>
       )}
 
-      {shop === "launchbox" && (
-        <LaunchboxDetailsSection
-          platform={shopDetails?.platform}
-          genres={shopDetails?.genres?.map((g) => g.name)}
-          skus={shopDetails?.skus}
-        />
+      {activeTab === "howLongToBeat" && (
+        <div style={{ marginBottom: 24, width: "100%" }}>
+          <HowLongToBeatSection
+            howLongToBeatData={howLongToBeat.data}
+            isLoading={howLongToBeat.isLoading}
+          />
+        </div>
       )}
 
-      <HowLongToBeatSection
-        howLongToBeatData={howLongToBeat.data}
-        isLoading={howLongToBeat.isLoading}
-      />
-
-      <ControllerSupportSection />
-
-      {shop !== "launchbox" && (
-        <SidebarSection title={t("requirements")}>
-          <div className="requirement__button-container">
+      {activeTab === "requirements" && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ marginBottom: 16 }}>{t("requirements")}</h3>
+          <div
+            className="requirement__button-container"
+            style={{ display: "flex", gap: 8, marginBottom: 16 }}
+          >
             <Button
               className="requirement__button"
               onClick={() => setActiveRequirement("minimum")}
@@ -370,6 +378,7 @@ export function Sidebar() {
 
           <div
             className="requirement__details"
+            style={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}
             dangerouslySetInnerHTML={{
               __html:
                 shopDetails?.pc_requirements?.[activeRequirement] ??
@@ -378,10 +387,14 @@ export function Sidebar() {
                 }),
             }}
           />
-        </SidebarSection>
+        </div>
       )}
 
-      <GameLanguageSection />
-    </aside>
+      {activeTab === "language" && (
+        <div style={{ marginBottom: 24, width: "100%" }}>
+          <GameLanguageSection />
+        </div>
+      )}
+    </div>
   );
 }

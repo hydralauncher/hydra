@@ -1,19 +1,19 @@
 @use "../../scss/globals.scss";
 
-.release-year-section {
-  &__labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.86);
-    font-weight: 600;
+.release-year-dropdown {
+  &__popover {
+    min-width: 250px;
   }
+}
 
+.release-year-section {
   &__slider-container {
     position: relative;
     height: 28px;
     display: flex;
     align-items: center;
+    width: 100%;
+    margin-top: 4px;
   }
 
   &__track {
@@ -43,14 +43,14 @@
 
     &::-webkit-slider-thumb {
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: #fff;
       cursor: pointer;
       pointer-events: all;
+      margin-top: -5px;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-      margin-top: -6px;
     }
 
     &::-moz-range-track {
@@ -59,8 +59,8 @@
     }
 
     &::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: #fff;
       cursor: pointer;
@@ -73,12 +73,12 @@
       outline: none;
 
       &::-webkit-slider-thumb {
-        outline: 2px solid rgba(255, 255, 255, 0.5);
+        outline: 2px solid rgba(255, 255, 255, 0.6);
         outline-offset: 2px;
       }
 
       &::-moz-range-thumb {
-        outline: 2px solid rgba(255, 255, 255, 0.5);
+        outline: 2px solid rgba(255, 255, 255, 0.6);
         outline-offset: 2px;
       }
     }

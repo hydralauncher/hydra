@@ -1,21 +1,30 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField, SelectField, TextField } from "@renderer/components";
+import { CheckboxField, TextField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
-import type { NetworkInterface } from "@types";
-import { SettingsGlobalTrackers } from "./settings-global-trackers";
+import { SettingsDownloadSources } from "./settings-download-sources";
 
 import "./settings-general.scss";
+import "./settings-context-downloads.scss";
+
+type DownloadsTab = "settings" | "sources";
 
 export function SettingsContextDownloads() {
   const { t } = useTranslation("settings");
   const { updateUserPreferences } = useContext(settingsContext);
+  const [activeTab, setActiveTab] = useState<DownloadsTab>("settings");
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+
+  const lastPacket = useAppSelector((state) => state.download.lastPacket);
+  const hasActiveDownload =
+    lastPacket !== null &&
+    lastPacket.progress < 1 &&
+    !lastPacket.isDownloadingMetadata;
 
   const formatLimitInputValue = (
     value: number,
@@ -32,43 +41,28 @@ export function SettingsContextDownloads() {
     useMegabytes: boolean
   ): number | null | undefined => {
     const trimmed = value.trim();
-
     if (!trimmed) return null;
-
     const parsed = Number.parseFloat(trimmed);
     if (Number.isNaN(parsed)) return undefined;
     if (parsed <= 0) return null;
-
     return useMegabytes
       ? Math.floor(parsed * 1024 * 1024)
       : Math.floor((parsed * 1e6) / 8);
   };
 
   const [form, setForm] = useState({
+    useNativeHttpDownloader: true,
     seedAfterDownloadComplete: false,
     showDownloadSpeedInMegabytes: false,
     extractFilesByDefault: true,
     createStartMenuShortcut: true,
     maxDownloadSpeedMegabytes: "",
-    deleteArchiveFilesAfterExtractionByDefault: false,
-    torrentNetworkInterface: "",
   });
-
-  const [networkInterfaces, setNetworkInterfaces] = useState<
-    NetworkInterface[]
-  >([]);
-
-  useEffect(() => {
-    globalThis.electron
-      .getNetworkInterfaces()
-      .then(setNetworkInterfaces)
-      .catch(() => setNetworkInterfaces([]));
-  }, []);
 
   useEffect(() => {
     if (!userPreferences) return;
-
     setForm({
+      useNativeHttpDownloader: userPreferences.useNativeHttpDownloader ?? true,
       seedAfterDownloadComplete:
         userPreferences.seedAfterDownloadComplete ?? false,
       showDownloadSpeedInMegabytes:
@@ -83,41 +77,8 @@ export function SettingsContextDownloads() {
               userPreferences.showDownloadSpeedInMegabytes ?? false
             )
           : "",
-      deleteArchiveFilesAfterExtractionByDefault:
-        userPreferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
-      torrentNetworkInterface: userPreferences.torrentNetworkInterface ?? "",
     });
   }, [userPreferences]);
-
-  const networkInterfaceOptions = useMemo(() => {
-    const options = [
-      { key: "default", value: "", label: t("network_interface_default") },
-      ...networkInterfaces.map((networkInterface) => {
-        const ipv4 = networkInterface.addresses.find(
-          (address) => !address.includes(":")
-        );
-
-        return {
-          key: networkInterface.name,
-          value: networkInterface.name,
-          label: ipv4
-            ? `${networkInterface.name} (${ipv4})`
-            : networkInterface.name,
-        };
-      }),
-    ];
-
-    const selected = form.torrentNetworkInterface;
-    if (selected && !options.some((option) => option.value === selected)) {
-      options.push({
-        key: selected,
-        value: selected,
-        label: `${selected} (${t("network_interface_unavailable")})`,
-      });
-    }
-
-    return options;
-  }, [networkInterfaces, form.torrentNetworkInterface, t]);
 
   const handleChange = (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
@@ -130,13 +91,7 @@ export function SettingsContextDownloads() {
       form.showDownloadSpeedInMegabytes
     );
 
-    if (parsedBytesPerSecond === undefined) {
-      setForm((prev) => ({ ...prev, maxDownloadSpeedMegabytes: "" }));
-      updateUserPreferences({ maxDownloadSpeedBytesPerSecond: null });
-      return;
-    }
-
-    if (parsedBytesPerSecond === null) {
+    if (parsedBytesPerSecond === undefined || parsedBytesPerSecond === null) {
       setForm((prev) => ({ ...prev, maxDownloadSpeedMegabytes: "" }));
       updateUserPreferences({ maxDownloadSpeedBytesPerSecond: null });
       return;
@@ -170,108 +125,133 @@ export function SettingsContextDownloads() {
       maxDownloadSpeedMegabytes: nextLimitInput,
     }));
 
-    updateUserPreferences({
-      showDownloadSpeedInMegabytes: nextUseMegabytes,
-    });
+    updateUserPreferences({ showDownloadSpeedInMegabytes: nextUseMegabytes });
   };
 
+  const tabs: { id: DownloadsTab; label: string }[] = [
+    {
+      id: "settings",
+      label: t("download_settings_tab", { defaultValue: "Configurações" }),
+    },
+    {
+      id: "sources",
+      label: t("download_sources_tab", { defaultValue: "Fontes" }),
+    },
+  ];
+
   return (
-    <div className="settings-context-panel">
-      <div className="settings-context-panel__group">
-        <h3>{t("download_behavior")}</h3>
+    <div className="downloads-tabs">
+      {/* Tab bar */}
+      <div className="downloads-tabs__bar" role="tablist">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={`downloads-tabs__tab${activeTab === tab.id ? " downloads-tabs__tab--active" : ""}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        <TextField
-          type="number"
-          min="0"
-          step="0.1"
-          label={t("max_download_speed", {
-            unit: form.showDownloadSpeedInMegabytes ? "MB/s" : "Mbps",
-          })}
-          hint={t("max_download_speed_hint", {
-            unit: form.showDownloadSpeedInMegabytes
-              ? t("max_download_speed_unit_megabytes")
-              : t("max_download_speed_unit_megabits"),
-          })}
-          value={form.maxDownloadSpeedMegabytes}
-          onChange={(event) => {
-            setForm((prev) => ({
-              ...prev,
-              maxDownloadSpeedMegabytes: event.target.value,
-            }));
-          }}
-          onBlur={handleMaxDownloadSpeedBlur}
-          placeholder={t("max_download_speed_unlimited")}
-        />
+      {/* Tab: Configurações */}
+      {activeTab === "settings" && (
+        <div className="settings-context-panel">
+          <div className="settings-context-panel__group">
+            <h3>{t("download_behavior")}</h3>
 
-        <div className="settings-general__network-interface">
-          <SelectField
-            label={t("network_interface")}
-            value={form.torrentNetworkInterface}
-            onChange={(event) =>
-              handleChange({ torrentNetworkInterface: event.target.value })
-            }
-            options={networkInterfaceOptions}
-          />
-          <small className="settings-general__network-interface-hint">
-            {t("network_interface_hint")}
-          </small>
+            <CheckboxField
+              label={t("use_native_http_downloader")}
+              checked={form.useNativeHttpDownloader}
+              disabled={hasActiveDownload}
+              onChange={() =>
+                handleChange({
+                  useNativeHttpDownloader: !form.useNativeHttpDownloader,
+                })
+              }
+            />
+
+            <TextField
+              type="number"
+              min="0"
+              step="0.1"
+              label={t("max_download_speed", {
+                unit: form.showDownloadSpeedInMegabytes ? "MB/s" : "Mbps",
+              })}
+              hint={t("max_download_speed_hint", {
+                unit: form.showDownloadSpeedInMegabytes
+                  ? t("max_download_speed_unit_megabytes")
+                  : t("max_download_speed_unit_megabits"),
+              })}
+              value={form.maxDownloadSpeedMegabytes}
+              onChange={(event) => {
+                setForm((prev) => ({
+                  ...prev,
+                  maxDownloadSpeedMegabytes: event.target.value,
+                }));
+              }}
+              onBlur={handleMaxDownloadSpeedBlur}
+              placeholder={t("max_download_speed_unlimited")}
+            />
+
+            {hasActiveDownload && (
+              <p className="settings-general__disabled-hint">
+                {t("cannot_change_downloader_while_downloading")}
+              </p>
+            )}
+
+            <CheckboxField
+              label={t("seed_after_download_complete")}
+              checked={form.seedAfterDownloadComplete}
+              onChange={() =>
+                handleChange({
+                  seedAfterDownloadComplete: !form.seedAfterDownloadComplete,
+                })
+              }
+            />
+
+            <CheckboxField
+              label={t("extract_files_by_default")}
+              checked={form.extractFilesByDefault}
+              onChange={() =>
+                handleChange({
+                  extractFilesByDefault: !form.extractFilesByDefault,
+                })
+              }
+            />
+
+            <CheckboxField
+              label={t("show_download_speed_in_megabytes")}
+              checked={form.showDownloadSpeedInMegabytes}
+              onChange={handleSpeedUnitChange}
+            />
+
+            {window.electron.platform === "win32" && (
+              <CheckboxField
+                label={t("create_shortcuts_on_download")}
+                checked={form.createStartMenuShortcut}
+                onChange={() =>
+                  handleChange({
+                    createStartMenuShortcut: !form.createStartMenuShortcut,
+                  })
+                }
+              />
+            )}
+          </div>
         </div>
+      )}
 
-        <CheckboxField
-          label={t("seed_after_download_complete")}
-          checked={form.seedAfterDownloadComplete}
-          onChange={() =>
-            handleChange({
-              seedAfterDownloadComplete: !form.seedAfterDownloadComplete,
-            })
-          }
-        />
-
-        <CheckboxField
-          label={t("extract_files_by_default")}
-          checked={form.extractFilesByDefault}
-          onChange={() =>
-            handleChange({
-              extractFilesByDefault: !form.extractFilesByDefault,
-            })
-          }
-        />
-
-        <CheckboxField
-          label={t("show_download_speed_in_megabytes")}
-          checked={form.showDownloadSpeedInMegabytes}
-          onChange={handleSpeedUnitChange}
-        />
-
-        <CheckboxField
-          label={t("delete_archive_files_after_extraction")}
-          checked={form.deleteArchiveFilesAfterExtractionByDefault}
-          onChange={() =>
-            handleChange({
-              deleteArchiveFilesAfterExtractionByDefault:
-                !form.deleteArchiveFilesAfterExtractionByDefault,
-            })
-          }
-        />
-
-        {(window.electron.platform === "win32" ||
-          window.electron.platform === "linux") && (
-          <CheckboxField
-            label={t("create_shortcuts_on_download")}
-            checked={form.createStartMenuShortcut}
-            onChange={() =>
-              handleChange({
-                createStartMenuShortcut: !form.createStartMenuShortcut,
-              })
-            }
-          />
-        )}
-      </div>
-
-      <div className="settings-context-panel__group">
-        <h3>{t("global_trackers")}</h3>
-        <SettingsGlobalTrackers />
-      </div>
+      {/* Tab: Fontes */}
+      {activeTab === "sources" && (
+        <div className="settings-context-panel">
+          <div className="settings-context-panel__group">
+            <SettingsDownloadSources />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,902 @@
+@use "../../scss/globals.scss";
+
+.welcome-dashboard {
+  width: 100%;
+  animation: welcomeDashboardFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &__layout {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 10px;
+    width: 100%;
+
+    @media (max-width: 1200px) {
+      flex-direction: column;
+      align-items: flex-end;
+    }
+  }
+
+  // LADO ESQUERDO: User Panel & Stats
+  &__user-panel {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 12px;
+
+    @media (max-width: 1200px) {
+      width: 100%;
+      max-width: 920px;
+    }
+  }
+
+  &__user-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    flex: initial;
+  }
+
+  &__user-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  &__user-avatar-wrapper {
+    position: relative;
+    width: 84px;
+    height: 84px;
+    flex-shrink: 0;
+
+    .animated-border-wrapper {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+    }
+
+    .welcome-dashboard__green-dot {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 14px;
+      height: 14px;
+      border: 3px solid #141414;
+      z-index: 10;
+    }
+  }
+
+  &__user-avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  &__user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__user-nick {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 400;
+    color: #ffffff;
+    line-height: 1.2;
+  }
+
+  &__user-tag {
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  // 4 Bolinhas sobrepostas de amigos online + texto a esquerda
+  &__user-friends-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding-top: 8px;
+  }
+
+  &__user-friends-avatars {
+    display: flex;
+    align-items: center;
+
+    .welcome-dashboard__user-friend-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #141414;
+      margin-left: -8px;
+
+      &:first-child {
+        margin-left: 0;
+      }
+    }
+  }
+
+  &__user-friends-text {
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  // Card de Estatísticas do Usuário (Jogos e Tempo Total)
+  &__user-stats-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  &__stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__stat-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__stat-icon {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &__stat-label {
+    font-size: 11px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__stat-tag {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 2px;
+    line-height: 1.2;
+  }
+
+  &__stat-value {
+    font-size: 14px;
+    font-weight: 400;
+    color: #ffffff;
+
+    &--playtime {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.9);
+      line-height: 1.4;
+    }
+  }
+
+  &__stat-divider {
+    height: 1px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &__subscribe-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 38px;
+    padding: 7px 16px !important;
+    border: none !important;
+    border-radius: 100px !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    color: #ffffff !important;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.3s ease !important;
+    margin-top: auto !important;
+
+    svg {
+      color: #ffffff;
+      transition: color 0.2s ease;
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      padding: 1px;
+      border-radius: 100px;
+      opacity: 0.5;
+      background: conic-gradient(
+        from var(--border-angle, 0deg),
+        rgba(255, 255, 255, 0.6) 0deg,
+        rgba(255, 255, 255, 0.08) 45deg,
+        rgba(255, 255, 255, 0.7) 90deg,
+        rgba(255, 255, 255, 0.05) 180deg,
+        rgba(255, 255, 255, 0.6) 270deg,
+        rgba(255, 255, 255, 0.08) 315deg,
+        rgba(255, 255, 255, 0.6) 360deg
+      );
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      animation: spinBorderAngle 4s linear infinite;
+      pointer-events: none;
+      z-index: 2;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 0 18px rgba(255, 255, 255, 0.15),
+        0 4px 14px rgba(0, 0, 0, 0.4) !important;
+
+      &::before {
+        opacity: 0.85;
+        animation-duration: 2.5s;
+      }
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  // Bento Grid no Lado Direito
+  &__bento-grid {
+    width: 920px;
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    // A single stretched row so the grid's own (flex-stretched) height
+    // actually reaches the columns below, instead of the row auto-sizing to
+    // the cards' fixed heights and leaving empty space under the last card.
+    grid-template-rows: 1fr;
+    gap: 10px;
+
+    @media (max-width: 1200px) {
+      width: 100%;
+      max-width: 920px;
+    }
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      grid-template-rows: none;
+    }
+  }
+
+  &__column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  // Hydra Home Card Standard Style
+  &__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: none;
+    box-shadow: none;
+    overflow: hidden;
+    transition:
+      transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+    }
+
+    // The "big" card grows to absorb whatever vertical space the column's
+    // "small" card (fixed height) doesn't use, so it fills the column
+    // instead of leaving a gap below the small card.
+    &--big {
+      flex: 1 1 auto;
+      min-height: 200px;
+    }
+
+    &--small {
+      flex: 0 0 auto;
+      height: 100px;
+    }
+
+    @media (max-width: 1536px), (max-height: 900px) {
+      &--big {
+        min-height: 190px;
+      }
+      &--small {
+        height: 94px;
+      }
+      padding: 14px 16px;
+    }
+
+    @media (max-width: 768px) {
+      &--big {
+        flex: 0 0 auto;
+        height: 200px;
+      }
+    }
+  }
+
+  // Header interno dos cards
+  &__card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    z-index: 2;
+  }
+
+  &__card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__icon {
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  &__card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.95);
+    letter-spacing: 0.2px;
+  }
+
+  &__meta {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  // ----------------------------------------------------
+  // CARD 1: TROPHIES
+  // ----------------------------------------------------
+  &__trophies-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-content: center;
+    gap: 6px;
+    margin-top: 10px;
+    z-index: 2;
+    // Grows into whatever height the (now flexible) big card has beyond its
+    // header, so the trophies stay vertically centered in that space
+    // instead of pinned to the card's bottom edge.
+    flex: 1;
+  }
+
+  &__trophy-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    // Grid items default to a content-based min-width, which kept these from
+    // shrinking below the trophy image's fixed size and clipped the last
+    // (bronze) column whenever the card was narrower than 4 * image width.
+    min-width: 0;
+  }
+
+  &__trophy-badge {
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+  }
+
+  &__trophy-img {
+    width: 100%;
+    max-width: 110px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    display: block;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+    .welcome-dashboard__trophy-item:hover & {
+      transform: scale(1.12);
+    }
+
+    @media (max-width: 1536px), (max-height: 900px) {
+      max-width: 92px;
+    }
+  }
+
+  &__trophy-name {
+    font-size: 10px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    margin-top: 1px;
+  }
+
+  &__trophy-count {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.1;
+  }
+
+  // ----------------------------------------------------
+  // CARD 2: LEVEL & XP
+  // ----------------------------------------------------
+  &__card--level {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 20px;
+  }
+
+  &__level-big-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  &__level-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  &__level-number {
+    font-size: 32px;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(
+      180deg,
+      #ffffff 0%,
+      rgba(255, 255, 255, 0.7) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+
+  &__xp-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    justify-content: center;
+  }
+
+  &__xp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+
+  &__xp-title {
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  &__xp-value {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  &__xp-bar-bg {
+    width: 100%;
+    height: 7px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+
+  &__xp-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(
+      90deg,
+      #ffffff 0%,
+      rgba(255, 255, 255, 0.5) 100%
+    );
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+    transition: width 0.4s ease;
+  }
+
+  &__xp-remaining {
+    font-size: 10px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  &__level-info-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &__xp-info-tooltip {
+    max-width: 260px;
+    z-index: 9999;
+  }
+
+  &__xp-info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: left;
+
+    ul {
+      margin: 0;
+      padding-left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+  }
+
+  // ----------------------------------------------------
+  // CARD 3: STORAGE (Armazenamento do PC)
+  // ----------------------------------------------------
+  &__card--storage {
+    height: auto;
+    min-height: 100px;
+  }
+
+  &__storage-total-free {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  &__storage-drives-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+    width: 100%;
+    padding-top: 6px;
+  }
+
+  &__storage-drive-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+  }
+
+  &__storage-drive-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+  }
+
+  &__storage-drive-name {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  &__storage-drive-space {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 11px;
+  }
+
+  &__storage-bar {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+
+  &__storage-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(
+      90deg,
+      #ffffff 0%,
+      rgba(255, 255, 255, 0.5) 100%
+    );
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+    transition: width 0.4s ease;
+  }
+
+  // ----------------------------------------------------
+  // CARD 4: CHANGELOG / NOVIDADES DO HYDRA
+  // ----------------------------------------------------
+  &__card--changelog {
+    padding: 0;
+    justify-content: flex-end;
+    cursor: pointer;
+  }
+
+  &__changelog-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.22) 0px,
+        rgba(0, 0, 0, 0.22) 2px,
+        transparent 2px,
+        transparent 4px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.22) 0px,
+        rgba(0, 0, 0, 0.22) 2px,
+        transparent 2px,
+        transparent 4px
+      ),
+      radial-gradient(
+        circle at 100% 0%,
+        #059669 0%,
+        #064e3b 35%,
+        #022c22 60%,
+        #090d0b 88%,
+        #000000 100%
+      );
+    background-size:
+      4px 4px,
+      4px 4px,
+      100% 100%;
+    transition: filter 0.3s ease;
+
+    .welcome-dashboard__card:hover & {
+      filter: brightness(1.15);
+    }
+  }
+
+  &__changelog-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 15, 12, 0.2) 0%,
+      rgba(10, 15, 12, 0.85) 90%
+    );
+  }
+
+  &__changelog-watermark {
+    position: absolute;
+    right: -30px;
+    bottom: -30px;
+    width: 220px;
+    height: 220px;
+    opacity: 0.14;
+    pointer-events: none;
+    color: #10b981;
+    z-index: 1;
+    transition:
+      transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.3s ease;
+
+    path,
+    circle,
+    rect,
+    polygon {
+      fill: currentColor !important;
+    }
+
+    .welcome-dashboard__card:hover & {
+      transform: scale(1.08) rotate(-4deg);
+      opacity: 0.22;
+    }
+
+    @media (max-width: 1536px), (max-height: 900px) {
+      width: 190px;
+      height: 190px;
+      right: -20px;
+      bottom: -20px;
+    }
+  }
+
+  &__changelog-content {
+    position: relative;
+    z-index: 2;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    width: 100%;
+  }
+
+  &__changelog-badge {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  &__changelog-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__changelog-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 400;
+    color: #ffffff;
+    letter-spacing: 0.2px;
+  }
+
+  &__changelog-desc {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.4;
+  }
+
+  &__changelog-action {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
+    transition: color 0.2s ease;
+
+    .welcome-dashboard__card:hover & {
+      color: #ffffff;
+    }
+  }
+
+  &__changelog-arrow {
+    transition: transform 0.2s ease;
+
+    .welcome-dashboard__card:hover & {
+      transform: translateX(4px);
+    }
+  }
+
+  // ----------------------------------------------------
+  // CARD 6: FRIENDS ONLINE
+  // ----------------------------------------------------
+  &__friends-online-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  &__green-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+  }
+
+  &__friends-avatars-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+  }
+
+  &__avatars-stack {
+    display: flex;
+    align-items: center;
+  }
+
+  &__friend-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(20, 20, 20, 0.9);
+    object-fit: cover;
+    margin-left: -6px;
+
+    &:first-child {
+      margin-left: 0;
+    }
+  }
+
+  &__friends-names {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@keyframes welcomeDashboardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -132,6 +132,13 @@ export interface DownloadDirectoryPreference {
   source: "manual" | "auto";
 }
 
+export interface SupabaseConfig {
+  url: string;
+  anonKey: string;
+}
+
+export type LibraryStorageMode = "local" | "supabase";
+
 export interface UserPreferences {
   downloadsPath?: string | null;
   defaultWinePrefixPath?: string | null;
@@ -188,6 +195,17 @@ export interface UserPreferences {
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
+  useNativeHttpDownloader?: boolean;
+  backgroundMusicEnabled?: boolean;
+  backgroundMusicVolume?: number;
+  customScanDirectories?: string[];
+  supabaseConfig?: SupabaseConfig | null;
+  libraryStorageMode?: LibraryStorageMode;
+  autoDownloadBySourcePriority?: boolean;
+  downloadSourcesPriority?: string[];
+  alwaysAutoExtract?: boolean;
+  alwaysDeleteArchiveAfterExtraction?: boolean;
+  alwaysAskDownloadLocation?: boolean;
 }
 
 export interface NetworkInterface {

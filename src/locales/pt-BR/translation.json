@@ -14,12 +14,18 @@
     "error_boundary_restart": "Reiniciar"
   },
   "home": {
+    "my_games": "Meus Jogos",
     "hot": "Populares",
-    "weekly": "📅 Mais baixados da semana",
-    "achievements": "🏆 Pra platinar",
+    "weekly": "Mais Baixados",
+    "achievements": "Pra Platinar",
     "surprise_me": "Surpreenda-me",
     "no_results": "Nenhum resultado encontrado",
-    "start_typing": "Comece a digitar para pesquisar…"
+    "start_typing": "Comece a digitar para pesquisar…",
+    "bem_vindo": "Bem-vindo",
+    "welcome_subtitle": "Seu ecossistema de jogos completo",
+    "online_friends": "Amigos Online",
+    "subscribe_cloud": "Assinar Hydra Cloud",
+    "patch_notes": "Atualizações do Hydra"
   },
   "sidebar": {
     "catalogue": "Catálogo",
@@ -1012,6 +1018,7 @@
     "firmware_official_link": "Página oficial",
     "current_username": "Nome de usuário:",
     "downloads_path": "Diretório dos downloads",
+    "always_ask_download_location": "Sempre perguntar onde instalar",
     "change": "Explorar...",
     "notifications": "Notificações",
     "enable_download_notifications": "Quando um download for concluído",

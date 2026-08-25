@@ -147,15 +147,21 @@ export const formatName = pipe<string>(
   (str) => str.trim()
 );
 
-const realDebridHosts = ["https://1fichier.com", "https://mediafire.com"];
+const realDebridHosts = ["https://1fichier.com"];
 
 export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
 
   if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
   if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
-  if (uri.startsWith("https://www.mediafire.com"))
+  if (
+    uri.startsWith("https://www.mediafire.com") ||
+    uri.startsWith("https://mediafire.com") ||
+    uri.startsWith("http://www.mediafire.com") ||
+    uri.startsWith("http://mediafire.com")
+  ) {
     return [Downloader.Mediafire];
+  }
   if (uri.startsWith("https://fuckingfast.co")) {
     return [Downloader.FuckingFast];
   }

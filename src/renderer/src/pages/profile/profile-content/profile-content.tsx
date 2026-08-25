@@ -13,34 +13,32 @@ import {
   useAppSelector,
   useFormat,
   useUserDetails,
+  useDominantColor,
 } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
 import {
-  AuthPage,
   findSouvenirByNotificationTarget,
   isAchievementSouvenirsEnabled,
   useSouvenirContentWarning,
 } from "@shared";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
-import { BadgesBox } from "./badges-box";
 import { FriendsBox, FriendsBoxAddButton } from "./friends-box";
+
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
-import { ProfileSection } from "../profile-section/profile-section";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
 import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
+import { AnimatePresence, motion } from "framer-motion";
 import { SouvenirsTab } from "./souvenirs-tab";
 import { SouvenirLightbox } from "./souvenir-lightbox";
 import { useSouvenirActions } from "./use-souvenir-actions";
-import type { ProfilePlatform } from "./library-tab";
-import { AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ConfirmationModal } from "@renderer/components";
 import "./profile-content.scss";
@@ -102,11 +100,11 @@ export function ProfileContent() {
     userStats,
     libraryGames,
     pinnedGames,
-    getUserStats,
     getUserLibraryGames,
     loadMoreLibraryGames,
     hasMoreLibraryGames,
     isLoadingLibraryGames,
+    backgroundImage,
     souvenirs,
     souvenirsTotal,
     souvenirsHiddenReason,
@@ -133,18 +131,9 @@ export function ProfileContent() {
     (state) => state.userPreferences.value?.disableNsfwAlert === true
   );
   const [statsIndex, setStatsIndex] = useState(0);
+  const [isAnimationRunning, setIsAnimationRunning] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
-  const [platform, setPlatform] = useState<ProfilePlatform>("all");
-  const effectiveSortBy =
-    !userProfile?.hasActiveSubscription && sortBy === "achievementCount"
-      ? "playedRecently"
-      : sortBy;
-
-  const shops = useMemo<string[]>(() => {
-    if (platform === "pc") return ["steam"];
-    if (platform === "classics") return ["launchbox"];
-    return ["steam", "launchbox"];
-  }, [platform]);
+  const statsAnimation = useRef(-1);
 
   const [activeTab, setActiveTab] = useState<ProfileTabType>(
     requestedTab === "souvenirs" ? "souvenirs" : "library"
@@ -153,8 +142,12 @@ export function ProfileContent() {
   // User reviews state
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [reviewsTotalCount, setReviewsTotalCount] = useState(0);
-  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [votingReviews, setVotingReviews] = useState<Set<string>>(new Set());
+
+  const { isLight } = useDominantColor(backgroundImage);
+  const isBgLight = isLight ?? false;
+
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
@@ -262,16 +255,18 @@ export function ProfileContent() {
   }, [userProfile, dispatch]);
 
   useEffect(() => {
-    if (userProfile) {
-      getUserLibraryGames(effectiveSortBy, true, shops);
+    if (userProfile?.id) {
+      // When sortBy changes, clear animated games so all games animate in
+      if (currentSortByRef.current !== sortBy) {
+        animatedGameIdsRef.current.clear();
+        currentSortByRef.current = sortBy;
+      }
+      getUserLibraryGames(sortBy, true);
     }
-  }, [effectiveSortBy, shops, getUserLibraryGames, userProfile]);
+  }, [sortBy, getUserLibraryGames, userProfile?.id]);
 
-  useEffect(() => {
-    if (userProfile) {
-      getUserStats(shops);
-    }
-  }, [shops, getUserStats, userProfile]);
+  const animatedGameIdsRef = useRef<Set<string>>(new Set());
+  const currentSortByRef = useRef<SortOption>(sortBy);
 
   const handleLoadMore = useCallback(() => {
     if (
@@ -279,29 +274,15 @@ export function ProfileContent() {
       hasMoreLibraryGames &&
       !isLoadingLibraryGames
     ) {
-      loadMoreLibraryGames(effectiveSortBy, shops);
+      loadMoreLibraryGames(sortBy);
     }
   }, [
     activeTab,
     hasMoreLibraryGames,
     isLoadingLibraryGames,
     loadMoreLibraryGames,
-    effectiveSortBy,
-    shops,
+    sortBy,
   ]);
-
-  useEffect(() => {
-    const handlePinToggled = () => {
-      if (userProfile) {
-        getUserLibraryGames(effectiveSortBy, true, shops);
-      }
-    };
-
-    window.addEventListener("hydra:game-pin-toggled", handlePinToggled);
-    return () => {
-      window.removeEventListener("hydra:game-pin-toggled", handlePinToggled);
-    };
-  }, [getUserLibraryGames, effectiveSortBy, shops, userProfile]);
 
   // Clear reviews state and reset tab when switching users
   useEffect(() => {
@@ -309,28 +290,29 @@ export function ProfileContent() {
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
     setActiveTab(requestedTab === "souvenirs" ? "souvenirs" : "library");
-    setPlatform("all");
   }, [requestedTab, userProfile?.id]);
 
-  const fetchUserReviews = useCallback(async () => {
+  useEffect(() => {
+    if (userProfile?.id) {
+      fetchUserReviews();
+    }
+  }, [userProfile?.id]);
+
+  const fetchUserReviews = async () => {
     if (!userProfile?.id) return;
 
     setIsLoadingReviews(true);
     try {
       const response = await window.electron.hydraApi.get<UserReviewsResponse>(
         `/users/${userProfile.id}/reviews`,
-        { needsAuth: false }
+        { needsAuth: true }
       );
       setReviews(response.reviews);
       setReviewsTotalCount(response.totalCount);
     } finally {
       setIsLoadingReviews(false);
     }
-  }, [userProfile?.id]);
-
-  useEffect(() => {
-    fetchUserReviews();
-  }, [fetchUserReviews, userDetails?.id]);
+  };
 
   const handleDeleteReview = async (reviewId: string) => {
     try {
@@ -368,11 +350,6 @@ export function ProfileContent() {
   };
 
   const handleVoteReview = async (reviewId: string, isUpvote: boolean) => {
-    if (!userDetails) {
-      window.electron.openAuthWindow(AuthPage.SignIn);
-      return;
-    }
-
     if (votingReviews.has(reviewId)) return;
 
     setVotingReviews((prev) => new Set(prev).add(reviewId));
@@ -472,22 +449,40 @@ export function ProfileContent() {
     }
   };
 
+  const handleOnMouseEnterGameCard = () => {
+    setIsAnimationRunning(false);
+  };
+
+  const handleOnMouseLeaveGameCard = () => {
+    setIsAnimationRunning(true);
+  };
+
   useEffect(() => {
-    const interval = window.setInterval(
-      () => setStatsIndex((index) => index + 1),
-      GAME_STATS_ANIMATION_DURATION_IN_MS
+    let zero = performance.now();
+    if (!isAnimationRunning) return;
+
+    statsAnimation.current = requestAnimationFrame(
+      function animateGameStats(time) {
+        if (time - zero <= GAME_STATS_ANIMATION_DURATION_IN_MS) {
+          statsAnimation.current = requestAnimationFrame(animateGameStats);
+        } else {
+          setStatsIndex((index) => index + 1);
+          zero = performance.now();
+          statsAnimation.current = requestAnimationFrame(animateGameStats);
+        }
+      }
     );
 
     return () => {
-      window.clearInterval(interval);
+      cancelAnimationFrame(statsAnimation.current);
     };
-  }, []);
+  }, [setStatsIndex, isAnimationRunning]);
 
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
 
-  const content = (() => {
+  const content = useMemo(() => {
     if (!userProfile) return null;
 
     const shouldLockProfile =
@@ -498,41 +493,29 @@ export function ProfileContent() {
       return <LockedProfile />;
     }
 
-    const hasGames = libraryGames.length > 0;
-    const hasPinnedGames = pinnedGames.length > 0;
-    const hasAnyGames = hasGames || hasPinnedGames;
-
-    const shouldShowRightContent =
-      hasAnyGames || userProfile.friends.length > 0 || isMe;
-
     return (
       <section className="profile-content__section">
-        <div className="profile-content__main">
-          <ProfileTabs
-            activeTab={activeTab}
-            reviewsTotalCount={reviewsTotalCount}
-            souvenirsCount={souvenirsTotal}
-            onTabChange={setActiveTab}
-          />
-
+        <div
+          className="profile-content__main"
+          style={{ gap: 24, display: "flex", flexDirection: "column" }}
+        >
           <div className="profile-content__tab-panels">
             <AnimatePresence mode="wait">
               {activeTab === "library" && (
                 <LibraryTab
-                  sortBy={effectiveSortBy}
+                  sortBy={sortBy}
                   onSortChange={setSortBy}
-                  platform={platform}
-                  onPlatformChange={setPlatform}
                   pinnedGames={pinnedGames}
                   libraryGames={libraryGames}
                   hasMoreLibraryGames={hasMoreLibraryGames}
+                  isLoadingLibraryGames={isLoadingLibraryGames}
                   statsIndex={statsIndex}
                   userStats={userStats}
+                  animatedGameIdsRef={animatedGameIdsRef}
                   onLoadMore={handleLoadMore}
+                  onMouseEnter={handleOnMouseEnterGameCard}
+                  onMouseLeave={handleOnMouseLeaveGameCard}
                   isMe={isMe}
-                  hasActiveSubscription={Boolean(
-                    userProfile.hasActiveSubscription
-                  )}
                 />
               )}
 
@@ -548,6 +531,58 @@ export function ProfileContent() {
                   onDelete={handleDeleteClick}
                 />
               )}
+
+              {activeTab === "stats" && userStats && <UserStatsBox />}
+
+              {activeTab === "friends" &&
+                ((userProfile.friends?.length ?? 0) > 0 || isMe) && (
+                  <motion.div
+                    key="friends"
+                    className="profile-content__tab-panel"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="profile-content__section-header">
+                      <div className="profile-content__section-title-group">
+                        <h2>{t("friends", { defaultValue: "Amigos" })}</h2>
+                        <span className="profile-content__section-badge">
+                          {userProfile.friends?.length || 0}
+                        </span>
+                      </div>
+                    </div>
+                    {isMe && (
+                      <>
+                        <FriendsBoxAddButton />
+                        <div style={{ marginTop: 16 }} />
+                      </>
+                    )}
+                    <FriendsBox />
+                  </motion.div>
+                )}
+
+              {activeTab === "activity" &&
+                (userProfile.recentGames?.length ?? 0) > 0 && (
+                  <motion.div
+                    key="activity"
+                    className="profile-content__tab-panel"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="profile-content__section-header">
+                      <div className="profile-content__section-title-group">
+                        <h2>{t("activity", { defaultValue: "Atividade" })}</h2>
+                        <span className="profile-content__section-badge">
+                          {userProfile.recentGames?.length || 0}
+                        </span>
+                      </div>
+                    </div>
+                    <RecentGamesBox />
+                  </motion.div>
+                )}
 
               {activeTab === "souvenirs" && (
                 <SouvenirsTab
@@ -580,40 +615,7 @@ export function ProfileContent() {
           </div>
         </div>
 
-        {shouldShowRightContent && (
-          <div className="profile-content__right-content">
-            {userStats && (
-              <ProfileSection title={t("stats")} defaultOpen={true}>
-                <UserStatsBox />
-              </ProfileSection>
-            )}
-            {userProfile?.badges.length > 0 && (
-              <ProfileSection
-                title={t("badges")}
-                count={userProfile.badges.length}
-                defaultOpen={true}
-              >
-                <BadgesBox />
-              </ProfileSection>
-            )}
-            {userProfile?.recentGames.length > 0 && (
-              <ProfileSection title={t("activity")} defaultOpen={true}>
-                <RecentGamesBox />
-              </ProfileSection>
-            )}
-            {(userProfile?.friends.length > 0 || isMe) && (
-              <ProfileSection
-                title={t("friends")}
-                count={userStats?.friendsCount || userProfile.friends.length}
-                action={<FriendsBoxAddButton />}
-                defaultOpen={true}
-              >
-                <FriendsBox />
-              </ProfileSection>
-            )}
-            <ReportProfile />
-          </div>
-        )}
+        {isMe && <ReportProfile />}
 
         <DeleteReviewModal
           visible={deleteModalVisible}
@@ -622,12 +624,38 @@ export function ProfileContent() {
         />
       </section>
     );
-  })();
+  }, [
+    userProfile,
+    isMe,
+    usersAreFriends,
+    userStats,
+    numberFormatter,
+    t,
+    statsIndex,
+    libraryGames,
+    pinnedGames,
+    sortBy,
+    activeTab,
+    reviews,
+    reviewsTotalCount,
+    isLoadingReviews,
+    votingReviews,
+    deleteModalVisible,
+  ]);
 
   return (
     <div>
-      <ProfileHero />
-
+      <ProfileHero>
+        <ProfileTabs
+          activeTab={activeTab}
+          reviewsTotalCount={reviewsTotalCount}
+          souvenirsCount={souvenirsTotal}
+          onTabChange={setActiveTab}
+          showFriendsTab={(userProfile?.friends?.length ?? 0) > 0 || isMe}
+          showActivityTab={(userProfile?.recentGames?.length ?? 0) > 0}
+          isBgLight={isBgLight}
+        />
+      </ProfileHero>
       {content}
 
       <SouvenirLightbox

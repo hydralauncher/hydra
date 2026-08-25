@@ -1,14 +1,11 @@
 import { TrashIcon, UploadIcon } from "@primer/octicons-react";
 import { MoreVertical } from "lucide-react";
-import { Button, ConfirmationModal } from "@renderer/components";
+import { ConfirmationModal } from "@renderer/components";
 import { createPortal } from "react-dom";
 import { useContext, useEffect, useRef, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
-import { getProfileImageMetadata } from "../profile-image-metadata";
-import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
-import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./upload-background-image-button.scss";
 
 export function UploadBackgroundImageButton() {
@@ -17,11 +14,6 @@ export function UploadBackgroundImageButton() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [showRemoveBannerModal, setShowRemoveBannerModal] = useState(false);
-  const { showHydraCloudModal } = useSubscription();
-  const [bannerImageToCrop, setBannerImageToCrop] = useState<string | null>(
-    null
-  );
-  const [cropIsAnimated, setCropIsAnimated] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { hasActiveSubscription } = useUserDetails();
@@ -32,7 +24,7 @@ export function UploadBackgroundImageButton() {
     useContext(userProfileContext);
   const { patchUser, fetchUserDetails } = useUserDetails();
 
-  const { showSuccessToast, showErrorToast } = useToast();
+  const { showSuccessToast } = useToast();
 
   const hasBanner = !!userProfile?.backgroundImageUrl;
 
@@ -44,49 +36,33 @@ export function UploadBackgroundImageButton() {
     }, 150);
   };
 
-  const uploadBanner = async (path: string) => {
-    try {
-      setSelectedBackgroundImage(path);
-      setIsUploadingBackgorundImage(true);
-
-      await patchUser({ backgroundImageUrl: path });
-
-      showSuccessToast(t("background_image_updated"));
-      await fetchUserDetails();
-      await getUserProfile();
-    } catch {
-      showErrorToast(t("try_again"));
-    } finally {
-      setIsUploadingBackgorundImage(false);
-    }
-  };
-
   const handleReplaceBanner = async () => {
     closeMenu();
+    try {
+      const { filePaths } = await window.electron.showOpenDialog({
+        properties: ["openFile"],
+        filters: [
+          {
+            name: "Image",
+            extensions: ["jpg", "jpeg", "png", "gif", "webp"],
+          },
+        ],
+      });
 
-    const { filePaths } = await window.electron.showOpenDialog({
-      properties: ["openFile"],
-      filters: [
-        {
-          name: "Image",
-          extensions: ["jpg", "jpeg", "png", "apng", "gif", "webp"],
-        },
-      ],
-    });
+      if (filePaths && filePaths.length > 0) {
+        const path = filePaths[0];
 
-    if (filePaths && filePaths.length > 0) {
-      const path = filePaths[0];
-      const metadata = await getProfileImageMetadata(path);
+        setSelectedBackgroundImage(path);
+        setIsUploadingBackgorundImage(true);
 
-      if (metadata.isAnimated) {
-        // Crop while preserving animation (handled in main/sharp).
-        setCropIsAnimated(true);
-        setBannerImageToCrop(path);
-        return;
+        await patchUser({ backgroundImageUrl: path });
+
+        showSuccessToast(t("background_image_updated"));
+        await fetchUserDetails();
+        await getUserProfile();
       }
-
-      setCropIsAnimated(false);
-      setBannerImageToCrop(path);
+    } finally {
+      setIsUploadingBackgorundImage(false);
     }
   };
 
@@ -146,58 +122,22 @@ export function UploadBackgroundImageButton() {
     };
   }, [isMenuOpen]);
 
-  if (!isMe) return null;
-
-  // Non-subscribers always see the button, but clicking it presents the Hydra
-  // Cloud promo (highlighting profile customization) instead of the file picker.
-  if (!hasActiveSubscription) {
-    return (
-      <div className="upload-background-image-button__wrapper">
-        <Button
-          theme="outline"
-          className="upload-background-image-button"
-          onClick={() => showHydraCloudModal("customization")}
-        >
-          <UploadIcon />
-          {t("upload_banner")}
-        </Button>
-      </div>
-    );
-  }
-
-  const cropModal = (
-    <ProfileImageCropModal
-      visible={!!bannerImageToCrop}
-      imagePath={bannerImageToCrop}
-      variant="banner"
-      isAnimated={cropIsAnimated}
-      onClose={() => setBannerImageToCrop(null)}
-      onApply={(croppedImagePath) => {
-        setBannerImageToCrop(null);
-        uploadBanner(croppedImagePath);
-      }}
-    />
-  );
+  if (!isMe || !hasActiveSubscription) return null;
 
   // If no banner exists, show the original upload button
   if (!hasBanner) {
     return (
-      <>
-        {cropModal}
-        <div className="upload-background-image-button__wrapper">
-          <Button
-            theme="outline"
-            className="upload-background-image-button"
-            onClick={handleReplaceBanner}
-            disabled={isUploadingBackgroundImage}
-          >
-            <UploadIcon />
-            {isUploadingBackgroundImage
-              ? t("uploading_banner")
-              : t("upload_banner")}
-          </Button>
-        </div>
-      </>
+      <button
+        type="button"
+        className="profile-hero__transparent-action-btn"
+        onClick={handleReplaceBanner}
+        disabled={isUploadingBackgroundImage}
+      >
+        <UploadIcon />
+        {isUploadingBackgroundImage
+          ? t("uploading_banner")
+          : t("upload_banner")}
+      </button>
     );
   }
 
@@ -248,18 +188,16 @@ export function UploadBackgroundImageButton() {
 
   return (
     <>
-      {cropModal}
-      <div ref={buttonRef} className="upload-background-image-button__wrapper">
-        <Button
-          theme="outline"
-          className="upload-background-image-button"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          disabled={isUploadingBackgroundImage}
-        >
-          {t("change_banner")}
-          <MoreVertical size={16} />
-        </Button>
-      </div>
+      <button
+        type="button"
+        ref={buttonRef as unknown as React.RefObject<HTMLButtonElement>}
+        className="profile-hero__transparent-action-btn"
+        onClick={() => setIsMenuOpen(!isMenuOpen)}
+        disabled={isUploadingBackgroundImage}
+      >
+        {t("change_banner", { defaultValue: "Capa" })}
+        <MoreVertical size={16} />
+      </button>
       {createPortal(menuContent, document.body)}
       <ConfirmationModal
         visible={showRemoveBannerModal}

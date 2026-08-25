@@ -1,37 +1,54 @@
 @use "../../scss/globals.scss";
 
 .settings {
+  &__bg-effect {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.25;
+  }
+
   &__container {
-    padding: 24px;
+    padding: calc(globals.$spacing-unit * 3) 250px
+      calc(globals.$spacing-unit * 4);
     width: 100%;
     height: 100%;
-    min-height: 0;
     display: flex;
+    align-self: stretch;
+    overflow: hidden;
   }
 
   &__content {
-    background-color: globals.$background-color;
+    background-color: transparent;
     width: 100%;
     height: 100%;
-    border: solid 1px globals.$border-color;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.7);
-    border-radius: 8px;
+    border: none;
     display: flex;
-    overflow: hidden;
+    gap: calc(globals.$spacing-unit * 4);
+    min-height: 0;
   }
 
   &__sidebar {
     width: max-content;
-    min-width: 220px;
-    max-width: 320px;
+    min-width: 200px;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.75);
-    border-right: 1px solid globals.$border-color;
-    background: globals.$dark-background-color;
-    overflow-y: auto;
-    flex-shrink: 0;
+    padding: 12px;
+    margin: -12px;
+    border-right: none;
+    background: transparent;
+    overflow-y: visible;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   &__sidebar-button {
@@ -39,61 +56,39 @@
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
-    border: 0;
+    border: 1px solid transparent;
     background: transparent;
-    color: globals.$muted-color;
+    color: rgba(255, 255, 255, 0.5);
     text-align: left;
-    padding: calc(globals.$spacing-unit * 1.25)
-      calc(globals.$spacing-unit * 1.5);
-    border-radius: 4px;
+    padding: 9px calc(globals.$spacing-unit * 1.5);
+    border-radius: 100px;
     cursor: pointer;
-    font-size: globals.$body-font-size;
+    font-size: 13px;
+    font-weight: 500;
     line-height: 1.2;
     white-space: nowrap;
     transition:
-      color 0.2s ease,
-      background-color 0.1s ease;
+      color 0.15s ease,
+      background-color 0.15s ease,
+      border-color 0.15s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.07);
+      color: rgba(255, 255, 255, 0.85);
     }
 
     &--active {
       background: rgba(255, 255, 255, 0.1);
-      color: globals.$muted-color;
+      border-color: rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.95);
     }
 
     &-icon {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      opacity: 0.9;
+      opacity: 0.8;
     }
-
-    &-label {
-      flex: 1;
-    }
-  }
-
-  &__sidebar-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding-top: 8px;
-  }
-
-  &__sidebar-divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.06);
-    margin-bottom: 4px;
-  }
-
-  &__sidebar-group-label {
-    font-size: 10px;
-    font-weight: 600;
-    color: #71717a;
-    letter-spacing: 0.8px;
-    padding: 0 calc(globals.$spacing-unit * 1.5);
   }
 
   &__panel {
@@ -102,8 +97,12 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2.5);
     min-width: 0;
-    padding: calc(globals.$spacing-unit * 2.5);
-    overflow: auto;
+    padding: 0 16px 24px 0;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
   }
 
   @media (max-width: 860px) {
@@ -120,6 +119,7 @@
       border-bottom: 1px solid globals.$border-color;
       flex-direction: row;
       flex-wrap: wrap;
+      overflow-y: visible;
     }
 
     &__panel {
@@ -131,20 +131,157 @@
 .settings-context-panel {
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 2);
+  gap: calc(globals.$spacing-unit * 1.5);
 
   &__group {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
-    padding-top: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 2);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    transition: background 0.2s ease;
+    position: relative;
+    z-index: 1;
+
+    &:hover,
+    &:focus-within {
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 10;
+    }
+
+    h3 {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin: 0 0 4px;
+    }
   }
 
-  &__divider {
+  &__section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  // Idioma à esquerda + diretório à direita na mesma linha
+  &__row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: calc(globals.$spacing-unit * 2);
+
+    // idioma: largura confortável para exibir o nome do idioma
+    .select-field__container {
+      flex-shrink: 0;
+      width: 220px;
+    }
+
+    // diretório: ocupa o máximo de espaço disponível
+    .text-field-container {
+      flex: 1;
+      min-width: 0;
+    }
+
+    &__col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+  }
+}
+
+// ── Overrides de componentes dentro do painel settings ──
+// Visual: glassmorphism igual header/nav — border-radius vem do customizador.
+.settings__panel {
+  // ── TextField — glassmorphism ─────────────────────────
+  .text-field-container__text-field {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+
+    &:hover,
+    &--focused {
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+  }
+
+  // ── SelectField — glassmorphism ───────────────────────
+  .select-field {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
     width: 100%;
-    height: 0;
-    margin: 0;
-    border: none;
-    border-top: 1px solid globals.$border-color;
+    padding: 0 12px 0 16px;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    // remove aparência nativa e padroniza
+    select,
+    &__option {
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      background-color: transparent !important;
+      border-radius: 0 !important;
+      border: none !important;
+      padding: 0 !important;
+      color: rgba(255, 255, 255, 0.85) !important;
+      font-size: 13px !important;
+      font-family: inherit !important;
+      cursor: pointer !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+  }
+
+  .select-field__container {
+    width: 100%;
+  }
+
+  // ── CheckboxField ─────────────────────────────────────
+  .checkbox-field__checkbox {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    border-radius: 6px !important;
+
+    &.checked {
+      background-color: #fff !important;
+      border-color: #fff !important;
+    }
+
+    &:hover:not(:has(input:disabled)) {
+      border-color: rgba(255, 255, 255, 0.45) !important;
+    }
+  }
+
+  // ── Botões — outline com glassmorphism ────────────────
+  .button--outline {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.07) !important;
+      border-color: rgba(255, 255, 255, 0.28) !important;
+    }
+  }
+
+  .button--primary {
+    background: rgba(255, 255, 255, 0.07) !important;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.13) !important;
+    }
   }
 }

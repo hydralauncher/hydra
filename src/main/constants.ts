@@ -38,7 +38,34 @@ export const screenshotsPath = path.join(
 
 export const achievementSoundPath = app.isPackaged
   ? path.join(process.resourcesPath, "achievement.wav")
-  : path.join(__dirname, "..", "..", "resources", "achievement.wav");
+  : path.join(import.meta.dirname, "..", "..", "resources", "achievement.wav");
+
+export const appIconPath = app.isPackaged
+  ? path.join(
+      process.resourcesPath,
+      process.platform === "win32" ? "icon.ico" : "icon.png"
+    )
+  : path.join(
+      import.meta.dirname,
+      "..",
+      "..",
+      "resources",
+      process.platform === "win32" ? "icon.ico" : "icon.png"
+    );
+
+export const trayIconDarkPath = app.isPackaged
+  ? path.join(process.resourcesPath, "tray-icon-dark.png")
+  : path.join(
+      import.meta.dirname,
+      "..",
+      "..",
+      "resources",
+      "tray-icon-dark.png"
+    );
+
+export const trayIconPath = app.isPackaged
+  ? path.join(process.resourcesPath, "tray-icon.png")
+  : path.join(import.meta.dirname, "..", "..", "resources", "tray-icon.png");
 
 export const backupsPath = path.join(SystemPath.getPath("userData"), "Backups");
 

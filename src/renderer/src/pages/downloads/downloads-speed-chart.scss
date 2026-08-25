@@ -1,0 +1,43 @@
+.downloads-speed-chart {
+  position: relative;
+  width: 140px;
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  opacity: 0.85;
+
+  &__bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    width: 100%;
+    height: 100%;
+  }
+
+  &__bar {
+    flex: 1;
+    min-width: 2px;
+    background: linear-gradient(
+      to top,
+      rgba(14, 165, 233, 0.4) 0%,
+      rgba(56, 189, 248, 0.9) 100%
+    );
+    border-radius: 1px 1px 0 0;
+    transition: height 0.3s ease;
+  }
+
+  &__line-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+
+    path {
+      filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.6));
+    }
+  }
+}

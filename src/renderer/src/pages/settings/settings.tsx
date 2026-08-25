@@ -3,9 +3,7 @@ import {
   SettingsContextConsumer,
   SettingsContextProvider,
 } from "@renderer/context";
-import { SettingsAccount } from "./settings-account";
-import { useUserDetails } from "@renderer/hooks";
-import { Fragment, useMemo } from "react";
+import { useMemo } from "react";
 import "./settings.scss";
 import {
   BellIcon,
@@ -14,8 +12,8 @@ import {
   GearIcon,
   LinkIcon,
   PlayIcon,
+  PersonIcon,
   VideoIcon,
-  ShieldCheckIcon,
 } from "@primer/octicons-react";
 import { Gamepad2, Wrench } from "lucide-react";
 import { SettingsContextGeneral } from "./settings-context-general";
@@ -27,11 +25,12 @@ import { SettingsContextIntegrations } from "./settings-context-integrations";
 import { SettingsContextCompatibility } from "./settings-context-compatibility";
 import { SettingsContextBigPicture } from "./settings-context-big-picture";
 import { SettingsContextEmulation } from "./emulation/settings-context-emulation";
+import { SettingsAppearance } from "./appearance/settings-appearance";
+import { PaintbrushIcon } from "@primer/octicons-react";
+import { SettingsAccount } from "./settings-account";
 
 export default function Settings() {
   const { t } = useTranslation("settings");
-
-  const { userDetails } = useUserDetails();
 
   const categories = useMemo(
     () => [
@@ -39,6 +38,11 @@ export default function Settings() {
         id: "general" as const,
         label: t("general"),
         icon: <GearIcon size={16} />,
+      },
+      {
+        id: "appearance" as const,
+        label: t("appearance"),
+        icon: <PaintbrushIcon size={16} />,
       },
       {
         id: "downloads" as const,
@@ -66,19 +70,15 @@ export default function Settings() {
         icon: <CloudIcon size={16} />,
       },
       {
+        id: "account_privacy" as const,
+        label: t("account_privacy", { defaultValue: "Account & Privacy" }),
+        icon: <PersonIcon size={16} />,
+      },
+      {
         id: "compatibility" as const,
         label: t("compatibility"),
         icon: <Wrench size={16} />,
       },
-      ...(userDetails
-        ? [
-            {
-              id: "account_privacy" as const,
-              label: `${t("account")} & ${t("privacy")}`,
-              icon: <ShieldCheckIcon size={16} />,
-            },
-          ]
-        : []),
       {
         id: "big_picture" as const,
         label: t("big_picture"),
@@ -88,10 +88,9 @@ export default function Settings() {
         id: "emulation" as const,
         label: t("emulation"),
         icon: <Gamepad2 size={16} />,
-        group: "classics" as const,
       },
     ],
-    [t, userDetails]
+    [t]
   );
 
   return (
@@ -105,7 +104,11 @@ export default function Settings() {
 
           const renderCategory = () => {
             if (selectedCategoryId === "general") {
-              return <SettingsContextGeneral appearance={appearance} />;
+              return <SettingsContextGeneral />;
+            }
+
+            if (selectedCategoryId === "appearance") {
+              return <SettingsAppearance appearance={appearance} />;
             }
 
             if (selectedCategoryId === "downloads") {
@@ -128,6 +131,10 @@ export default function Settings() {
               return <SettingsContextIntegrations />;
             }
 
+            if (selectedCategoryId === "account_privacy") {
+              return <SettingsAccount />;
+            }
+
             if (selectedCategoryId === "compatibility") {
               return <SettingsContextCompatibility />;
             }
@@ -140,63 +147,40 @@ export default function Settings() {
               return <SettingsContextEmulation />;
             }
 
-            return <SettingsAccount />;
+            return null;
           };
 
           return (
-            <section className="settings__container">
-              <div className="settings__content">
-                <aside className="settings__sidebar">
-                  {categories.map((category, index) => {
-                    const prevGroup =
-                      index > 0
-                        ? (categories[index - 1] as { group?: string }).group
-                        : undefined;
-                    const currentGroup = (category as { group?: string }).group;
-                    const showGroupHeader =
-                      currentGroup && currentGroup !== prevGroup;
+            <>
+              <section className="settings__container">
+                <div className="settings__content">
+                  <aside className="settings__sidebar">
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        className={`settings__sidebar-button ${
+                          currentCategory.id === category.id
+                            ? "settings__sidebar-button--active"
+                            : ""
+                        }`}
+                        onClick={() => setCurrentCategoryId(category.id)}
+                      >
+                        <span className="settings__sidebar-button-icon">
+                          {category.icon}
+                        </span>
+                        <span>{category.label}</span>
+                      </button>
+                    ))}
+                  </aside>
 
-                    return (
-                      <Fragment key={category.id}>
-                        {showGroupHeader && (
-                          <div className="settings__sidebar-group">
-                            <div className="settings__sidebar-divider" />
-                            <span className="settings__sidebar-group-label">
-                              {currentGroup === "classics"
-                                ? t("classics_group")
-                                : currentGroup}
-                            </span>
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          className={`settings__sidebar-button ${
-                            currentCategory.id === category.id
-                              ? "settings__sidebar-button--active"
-                              : ""
-                          }`}
-                          onClick={() => setCurrentCategoryId(category.id)}
-                        >
-                          <span className="settings__sidebar-button-icon">
-                            {category.icon}
-                          </span>
-                          <span className="settings__sidebar-button-label">
-                            {category.label}
-                          </span>
-                        </button>
-                      </Fragment>
-                    );
-                  })}
-                </aside>
-
-                <div className="settings__panel">
-                  {selectedCategoryId !== "emulation" && (
+                  <div className="settings__panel">
                     <h2>{currentCategory.label}</h2>
-                  )}
-                  {renderCategory()}
+                    {renderCategory()}
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </>
           );
         }}
       </SettingsContextConsumer>

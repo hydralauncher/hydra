@@ -32,9 +32,7 @@ main {
 body {
   overflow: hidden;
   user-select: none;
-  font-family:
-    Noto Sans,
-    sans-serif;
+  font-family: "Poppins", "Noto Sans", sans-serif;
   font-size: globals.$body-font-size;
   color: globals.$body-color;
   margin: 0;
@@ -81,10 +79,16 @@ main {
 
 #root {
   flex-direction: column;
+  height: 100%;
+  width: 100%;
 }
 
 main {
+  flex: 1;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 input::-webkit-outer-spin-button,
@@ -107,7 +111,8 @@ progress[value] {
 }
 
 .container {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   overflow: hidden;
   display: flex;
@@ -116,39 +121,45 @@ progress[value] {
   container-type: inline-size;
 
   &__content {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    align-items: center;
+    align-items: stretch;
     display: flex;
     flex-direction: column;
     position: relative;
-    height: 100%;
-    background: linear-gradient(
-      0deg,
-      globals.$dark-background-color 50%,
-      globals.$background-color 100%
-    );
+    width: 100%;
+    background-color: transparent;
   }
 }
 
 .title-bar {
   display: flex;
-  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 35px;
-  min-height: 35px;
-  background-color: globals.$dark-background-color;
+  background-color: transparent;
   align-items: center;
   padding: 0 calc(globals.$spacing-unit * 2);
   -webkit-app-region: drag;
-  z-index: 4;
-  border-bottom: 1px solid globals.$border-color;
+  z-index: 200;
 
-  &--windows {
-    padding-right: calc(
-      100vw - env(titlebar-area-width, calc(100vw - 140px)) - env(
-          titlebar-area-x,
-          0px
-        )
-    );
+  &__logo {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    opacity: 0.7;
+    margin-right: 8px;
+    -webkit-app-region: no-drag;
+
+    path,
+    circle,
+    rect,
+    polygon {
+      fill: #fff;
+    }
   }
 
   &__cloud-text {
@@ -157,34 +168,17 @@ progress[value] {
     color: transparent;
   }
 
-  &__big-picture {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: globals.$muted-color;
-    opacity: 0.6;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    margin-left: auto;
-    margin-right: globals.$spacing-unit;
-    font-size: 12px;
-    -webkit-app-region: no-drag;
-    transition:
-      opacity ease 0.1s,
-      background-color ease 0.1s;
-
-    &:hover {
-      opacity: 1;
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-
   &__window-controls {
     display: flex;
     align-self: stretch;
+    height: 100%;
+    gap: 0;
     margin-right: calc(globals.$spacing-unit * -2);
     -webkit-app-region: no-drag;
+
+    &--windows {
+      margin-right: calc(138px - globals.$spacing-unit * 2);
+    }
   }
 
   &__window-control {
@@ -192,9 +186,12 @@ progress[value] {
     align-items: center;
     justify-content: center;
     width: 46px;
+    height: 100%;
+    align-self: stretch;
     padding: 0;
     background: none;
     border: none;
+    border-radius: 0;
     color: globals.$muted-color;
     cursor: pointer;
     outline: none;
@@ -203,8 +200,8 @@ progress[value] {
       color 0.2s ease;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.08);
-      color: #dadbe1;
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
     }
 
     &--close:hover {
@@ -217,6 +214,10 @@ progress[value] {
 .woot-widget-bubble,
 .woot--bubble-holder,
 .woot-widget-holder,
-#cw-widget-holder {
-  bottom: 56px !important;
+#cw-widget-holder,
+#ww-feedback-widget,
+.ww-feedback-widget,
+[class*="feedback-widget"],
+iframe[src*="feedback"] {
+  display: none !important;
 }

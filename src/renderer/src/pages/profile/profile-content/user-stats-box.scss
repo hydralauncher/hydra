@@ -2,7 +2,7 @@
 
 .user-stats {
   &__box {
-    padding: calc(globals.$spacing-unit * 2);
+    padding: 0;
   }
 
   &__list {
@@ -11,50 +11,83 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__list-item {
     display: flex;
     flex-direction: column;
-    transition: all ease 0.1s;
-    color: globals.$muted-color;
+    justify-content: center;
+    transition: all ease 0.2s;
+    color: globals.$body-color; // Make text pop
     width: 100%;
-    overflow: hidden;
-    border-radius: 4px;
-    padding: globals.$spacing-unit;
-    gap: globals.$spacing-unit;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 1.5);
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
       text-decoration: none;
     }
 
     &--wrapped {
+      background: linear-gradient(
+        135deg,
+        rgba(88, 101, 242, 0.15),
+        rgba(234, 76, 137, 0.15)
+      );
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      align-items: flex-start;
+      justify-content: center;
       &:hover {
-        background-color: transparent;
+        background: linear-gradient(
+          135deg,
+          rgba(88, 101, 242, 0.25),
+          rgba(234, 76, 137, 0.25)
+        );
       }
     }
   }
 
   &__list-title {
-    font-size: 0.8rem;
-    font-weight: 600;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   &__list-description {
-    font-size: 0.75rem;
+    font-size: 1.2rem;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
+    margin: 0;
+    color: #fff;
   }
 
   &__stats-row {
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__stats-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: globals.$muted-color;
   }
 
   &__link {
@@ -71,20 +104,15 @@
     }
   }
 
-  &__karma-info-text {
-    color: globals.$muted-color;
-    font-size: 0.75rem;
-    line-height: 1.4;
-  }
-
   &__wrapped-link {
     background: none;
     border: none;
     padding: 0;
-    text-align: start;
-    color: globals.$body-color;
-    font-size: 0.875rem;
+    text-align: left;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
     cursor: pointer;
-    text-decoration: underline;
+    text-decoration: none;
   }
 }

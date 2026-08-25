@@ -4,15 +4,12 @@ import { LibraryGame } from "@types";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { ConfirmationModal, GameContextMenu, useGameActions } from "..";
-import { HeartFillIcon } from "@primer/octicons-react";
-import { useAppSelector, useToast } from "@renderer/hooks";
-import { useCollectionContextMenu } from "@renderer/context";
+import { GameContextMenu } from "..";
+import { useAppSelector } from "@renderer/hooks";
 
 interface SidebarGameItemProps {
   game: LibraryGame;
-  handleSidebarGameClick: (game: LibraryGame) => void;
+  handleSidebarGameClick: (event: React.MouseEvent, game: LibraryGame) => void;
   getGameTitle: (game: LibraryGame) => string;
 }
 
@@ -22,19 +19,9 @@ export function SidebarGameItem({
   getGameTitle,
 }: Readonly<SidebarGameItemProps>) {
   const location = useLocation();
-  const { t } = useTranslation("game_details");
-  const { showWarningToast } = useToast();
-  const {
-    canPlay,
-    handlePlayGame,
-    rpcs3ConfirmPending,
-    handleConfirmRpcs3Launch,
-    handleCancelRpcs3Launch,
-  } = useGameActions(game);
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
-  const { openCollectionContextMenu } = useCollectionContextMenu();
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     position: { x: number; y: number };
@@ -80,18 +67,7 @@ export function SidebarGameItem({
         <button
           type="button"
           className="sidebar__menu-item-button"
-          onClick={(event) => {
-            handleSidebarGameClick(game);
-            if (event.detail === 2) {
-              if (canPlay) {
-                void handlePlayGame();
-              } else {
-                showWarningToast(
-                  t("game_has_no_executable", { ns: "translation" })
-                );
-              }
-            }
-          }}
+          onClick={(event) => handleSidebarGameClick(event, game)}
           onContextMenu={handleContextMenu}
         >
           {sidebarIcon ? (
@@ -115,10 +91,6 @@ export function SidebarGameItem({
                 +{game.newDownloadOptionsCount}
               </span>
             )}
-
-          {game.favorite && (
-            <HeartFillIcon size={12} className="sidebar__game-favorite-icon" />
-          )}
         </button>
       </li>
 
@@ -127,17 +99,6 @@ export function SidebarGameItem({
         visible={contextMenu.visible}
         position={contextMenu.position}
         onClose={handleCloseContextMenu}
-        onCollectionContextMenu={openCollectionContextMenu}
-      />
-
-      <ConfirmationModal
-        visible={rpcs3ConfirmPending !== null}
-        title={t("rpcs3_already_running_title")}
-        descriptionText={t("rpcs3_already_running_description")}
-        confirmButtonLabel={t("rpcs3_already_running_confirm")}
-        cancelButtonLabel={t("cancel")}
-        onClose={handleCancelRpcs3Launch}
-        onConfirm={handleConfirmRpcs3Launch}
       />
     </>
   );

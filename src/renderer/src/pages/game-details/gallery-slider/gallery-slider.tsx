@@ -4,13 +4,11 @@ import {
   ChevronRightIcon,
   ChevronLeftIcon,
   PlayIcon,
-  ScreenFullIcon,
 } from "@primer/octicons-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import { VideoPlayer } from "./video-player";
-import { GalleryLightbox } from "./gallery-lightbox";
 import "./gallery-slider.scss";
 
 export interface GalleryMediaItem {
@@ -35,7 +33,6 @@ export function GallerySlider() {
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();
@@ -201,42 +198,24 @@ export function GallerySlider() {
           {mediaItems.map((item, index) => (
             <div key={item.id} className="gallery-slider__slide">
               {item.type === "video" ? (
-                <>
-                  <VideoPlayer
-                    videoSrc={item.videoSrc}
-                    videoType={item.videoType}
-                    poster={item.poster}
-                    autoplay={autoplayEnabled && index === firstVideoIndex}
-                    loadOnDemand={!autoplayEnabled}
-                    loop
-                    muted
-                    controls
-                    className="gallery-slider__media"
-                    tabIndex={-1}
-                  />
-                  <button
-                    type="button"
-                    className="gallery-slider__expand-button"
-                    onClick={() => setLightboxIndex(index)}
-                    aria-label={t("view_fullscreen")}
-                  >
-                    <ScreenFullIcon size={16} />
-                  </button>
-                </>
+                <VideoPlayer
+                  videoSrc={item.videoSrc}
+                  videoType={item.videoType}
+                  poster={item.poster}
+                  autoplay={autoplayEnabled && index === firstVideoIndex}
+                  loop
+                  muted
+                  controls
+                  className="gallery-slider__media"
+                  tabIndex={-1}
+                />
               ) : (
-                <button
-                  type="button"
-                  className="gallery-slider__media-button"
-                  onClick={() => setLightboxIndex(index)}
-                  aria-label={t("view_fullscreen")}
-                >
-                  <img
-                    className="gallery-slider__media"
-                    src={item.src}
-                    alt={item.alt}
-                    loading="lazy"
-                  />
-                </button>
+                <img
+                  className="gallery-slider__media"
+                  src={item.src}
+                  alt={item.alt}
+                  loading="lazy"
+                />
               )}
             </div>
           ))}
@@ -289,14 +268,6 @@ export function GallerySlider() {
           </button>
         ))}
       </div>
-
-      <GalleryLightbox
-        visible={lightboxIndex !== null}
-        items={mediaItems}
-        index={lightboxIndex ?? 0}
-        onClose={() => setLightboxIndex(null)}
-        onNavigate={setLightboxIndex}
-      />
     </div>
   );
 }

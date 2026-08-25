@@ -1,0 +1,77 @@
+@use "../../scss/globals.scss";
+
+.sidebar-favorite-card {
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit * 1.25);
+  width: 100%;
+  padding: 6px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.07);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+  text-align: left;
+  -webkit-app-region: no-drag;
+
+  &:hover,
+  &:focus-within {
+    background-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9) !important;
+  }
+
+  &__cover {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &__placeholder {
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 500;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+
+  &__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__meta-item {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+}

@@ -2,7 +2,7 @@
 
 .recent-games {
   &__box {
-    padding: calc(globals.$spacing-unit * 2);
+    padding: 0;
   }
 
   &__list {
@@ -11,53 +11,62 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__list-item {
     display: flex;
     cursor: pointer;
-    transition: all ease 0.1s;
-    color: globals.$muted-color;
+    transition: all ease 0.2s;
+    color: globals.$body-color;
     width: 100%;
-    overflow: hidden;
-    border-radius: 4px;
-    padding: globals.$spacing-unit;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 1.5);
     gap: calc(globals.$spacing-unit * 2);
     align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
       text-decoration: none;
     }
   }
 
   &__game-image {
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
     object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
 
   &__game-details {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
+    justify-content: center;
+    gap: 4px;
     overflow: hidden;
+    flex: 1;
   }
 
   &__game-title {
-    font-size: 0.8rem;
+    font-size: 0.95rem;
     font-weight: 600;
+    color: #fff;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
 
   &__game-description {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     display: flex;
     align-items: center;
-    gap: globals.$spacing-unit;
+    gap: 6px;
+    color: globals.$muted-color;
   }
 }

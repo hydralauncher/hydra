@@ -63,6 +63,15 @@ export function ReviewsTab({
       transition={{ duration: 0.2 }}
       aria-hidden={false}
     >
+      <div className="profile-content__section-header">
+        <div className="profile-content__section-title-group">
+          <h2>{t("user_reviews", { defaultValue: "Avaliações" })}</h2>
+          <span className="profile-content__section-badge">
+            {reviews.length}
+          </span>
+        </div>
+      </div>
+
       {isLoadingReviews && (
         <div className="user-reviews__loading">{t("loading_reviews")}</div>
       )}
