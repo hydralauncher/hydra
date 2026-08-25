@@ -678,11 +678,11 @@ export function SouvenirsTab({
       transition={{ duration: 0.2 }}
     >
       {isMe && isPrivacyNoticeVisible ? (
-        <aside className="profile-content__souvenirs-privacy-notice">
-          <span className="profile-content__souvenirs-privacy-notice-icon">
+        <aside className="profile-content__souvenirs-notice">
+          <span className="profile-content__souvenirs-notice-icon">
             <PrivacyIcon size={18} />
           </span>
-          <div className="profile-content__souvenirs-privacy-notice-copy">
+          <div className="profile-content__souvenirs-notice-copy">
             <strong>{privacyNotice.title}</strong>
             <span>{privacyNotice.description}</span>
           </div>
@@ -699,11 +699,11 @@ export function SouvenirsTab({
       ) : null}
 
       {isMe && hasReachedLimit ? (
-        <aside className="profile-content__souvenirs-limit-warning">
-          <span className="profile-content__souvenirs-limit-warning-icon">
+        <aside className="profile-content__souvenirs-notice">
+          <span className="profile-content__souvenirs-notice-icon">
             <AlertIcon size={18} />
           </span>
-          <div className="profile-content__souvenirs-limit-warning-copy">
+          <div className="profile-content__souvenirs-notice-copy">
             <strong>{t("souvenir_limit_reached_title")}</strong>
             <span>{t("souvenir_limit_reached_description")}</span>
           </div>

@@ -265,6 +265,22 @@ const publishAchievementUnlockNotifications = ({
   }
 };
 
+const getAchievementsForSouvenirLimitRetry = (
+  error: unknown,
+  achievements: UnlockedAchievement[]
+) => {
+  if (
+    getGroupedSouvenirErrorCode(error) !== SOUVENIR_LIMIT_ERROR_CODE ||
+    !achievements.some((achievement) => achievement.imageKey)
+  ) {
+    throw error;
+  }
+
+  return achievements.map(
+    ({ imageKey: _imageKey, ...achievement }) => achievement
+  );
+};
+
 export const mergeAchievements = async (
   game: Game,
   achievements: UnlockedAchievement[],
@@ -360,15 +376,9 @@ export const mergeAchievements = async (
           }
         );
       } catch (error) {
-        if (
-          getGroupedSouvenirErrorCode(error) !== SOUVENIR_LIMIT_ERROR_CODE ||
-          !syncedAchievements.some((achievement) => achievement.imageKey)
-        ) {
-          throw error;
-        }
-
-        syncedAchievements = syncedAchievements.map(
-          ({ imageKey: _imageKey, ...achievement }) => achievement
+        syncedAchievements = getAchievementsForSouvenirLimitRetry(
+          error,
+          syncedAchievements
         );
         achievementsLogger.warn(
           "Souvenir limit reached, synchronizing achievements without souvenirs",
