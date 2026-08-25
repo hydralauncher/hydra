@@ -20,6 +20,7 @@ function mergeUserProfileIntoDetails(
     profileImageUrl: updatedProfile.profileImageUrl,
     backgroundImageUrl: updatedProfile.backgroundImageUrl,
     profileVisibility: updatedProfile.profileVisibility,
+    souvenirsVisibility: updatedProfile.souvenirsVisibility,
     bio: updatedProfile.bio,
     workwondersJwt: currentUserDetails?.workwondersJwt ?? "",
     subscription: currentUserDetails?.subscription ?? null,

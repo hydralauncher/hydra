@@ -5,6 +5,7 @@ import "./profile-content.scss";
 export type ProfileTabType =
   | "library"
   | "reviews"
+  | "souvenirs"
   | "stats"
   | "friends"
   | "activity";
@@ -12,6 +13,7 @@ export type ProfileTabType =
 interface ProfileTabsProps {
   activeTab: ProfileTabType;
   reviewsTotalCount: number;
+  souvenirsCount: number;
   onTabChange: (tab: ProfileTabType) => void;
   showFriendsTab?: boolean;
   showActivityTab?: boolean;
@@ -21,6 +23,7 @@ interface ProfileTabsProps {
 export function ProfileTabs({
   activeTab,
   reviewsTotalCount,
+  souvenirsCount,
   onTabChange,
   showFriendsTab,
   showActivityTab,
@@ -57,6 +60,21 @@ export function ProfileTabs({
         >
           {t("user_reviews", { defaultValue: "Avaliações" })}
           {reviewsTotalCount > 0 && ` (${reviewsTotalCount})`}
+        </Button>
+      </li>
+      <li>
+        <Button
+          theme={
+            activeTab === "souvenirs"
+              ? isBgLight
+                ? "dark"
+                : "primary"
+              : "outline"
+          }
+          onClick={() => onTabChange("souvenirs")}
+        >
+          {t("souvenirs", { defaultValue: "Souvenirs" })}
+          {souvenirsCount > 0 && ` (${souvenirsCount})`}
         </Button>
       </li>
       <li>

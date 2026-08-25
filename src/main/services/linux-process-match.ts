@@ -27,6 +27,12 @@ interface ProcessLocation {
   appImagePath?: string | null;
 }
 
+interface LinuxWindowProcess extends ProcessLocation {
+  pid: number;
+  parentPid?: number | null;
+  environ?: Record<string, string> | null;
+}
+
 export const processReferencesExecutable = (
   matchedProcess: ProcessLocation,
   executablePath: string
@@ -52,4 +58,60 @@ export const hasLaunchedPidMatch = (
   if (!matchedProcess) return false;
 
   return processReferencesExecutable(matchedProcess, executablePath);
+};
+
+const processMatchesWinePrefix = (
+  process: LinuxWindowProcess,
+  winePrefixPath: string | null | undefined
+) => {
+  if (!winePrefixPath) return false;
+
+  const expectedPrefix = path.normalize(winePrefixPath).toLowerCase();
+  const winePrefix = process.environ?.WINEPREFIX;
+  const steamCompatDataPath = process.environ?.STEAM_COMPAT_DATA_PATH;
+  const candidatePrefixes = [
+    winePrefix,
+    steamCompatDataPath,
+    steamCompatDataPath && path.join(steamCompatDataPath, "pfx"),
+  ];
+
+  return candidatePrefixes.some(
+    (candidate) =>
+      candidate && path.normalize(candidate).toLowerCase() === expectedPrefix
+  );
+};
+
+export const isLinuxGameWindowProcess = (
+  processes: LinuxWindowProcess[],
+  activeProcessId: number,
+  launchedProcessId: number | undefined,
+  executablePaths: string[],
+  winePrefixPath?: string | null
+) => {
+  const processById = new Map(
+    processes.map((process) => [process.pid, process])
+  );
+  const visited = new Set<number>();
+  let currentProcessId: number | null | undefined = activeProcessId;
+
+  while (currentProcessId && !visited.has(currentProcessId)) {
+    if (currentProcessId === launchedProcessId) return true;
+
+    visited.add(currentProcessId);
+    const process = processById.get(currentProcessId);
+    if (!process) return false;
+
+    if (
+      executablePaths.some((executablePath) =>
+        processReferencesExecutable(process, executablePath)
+      ) ||
+      processMatchesWinePrefix(process, winePrefixPath)
+    ) {
+      return true;
+    }
+
+    currentProcessId = process.parentPid;
+  }
+
+  return false;
 };

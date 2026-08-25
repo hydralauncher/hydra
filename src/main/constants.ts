@@ -31,6 +31,11 @@ export const logsPath = path.join(
   `logs${isStaging ? "-staging" : ""}`
 );
 
+export const screenshotsPath = path.join(
+  SystemPath.getPath("userData"),
+  "Screenshots"
+);
+
 export const achievementSoundPath = app.isPackaged
   ? path.join(process.resourcesPath, "achievement.wav")
   : path.join(import.meta.dirname, "..", "..", "resources", "achievement.wav");
@@ -74,12 +79,17 @@ export const INTERVALS = {
   processWatcher: 2_000,
   downloadWatcher: 2_000,
   achievementWatcher: 2_000,
+  emulatorSouvenirWatcher: 2_000,
   seedStatusWatcher: 2_000,
   updateChecker: 60_000 * 50, // 50 minutes
   powerSaveBlockerSync: 20_000,
 };
 
 export const DEFAULT_ACHIEVEMENT_SOUND_VOLUME = 0.15;
+
+export const SOUVENIR_RETRY_BASE_DELAY_MS = 10_000;
+export const SOUVENIR_RETRY_MAX_DELAY_MS = 15 * 60_000;
+export const SOUVENIR_TERMINAL_RETENTION_MS = 7 * 24 * 60 * 60_000;
 
 export const DECKY_PLUGINS_LOCATION = path.join(
   SystemPath.getPath("home"),
