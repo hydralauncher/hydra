@@ -23,6 +23,7 @@ import {
   SETTINGS_SIDEBAR_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
+import type { UserPreferences } from "@types";
 
 interface NotificationsAchievementsSectionProps {
   className?: string;
@@ -49,6 +50,20 @@ const DEFAULT_FORM: NotificationsAchievementsForm = {
   achievementCustomNotificationsEnabled: true,
   achievementCustomNotificationPosition: "top-left",
 };
+
+const buildForm = (
+  preferences: UserPreferences | null
+): NotificationsAchievementsForm =>
+  preferences
+    ? {
+        achievementNotificationsEnabled:
+          preferences.achievementNotificationsEnabled ?? true,
+        achievementCustomNotificationsEnabled:
+          preferences.achievementCustomNotificationsEnabled ?? true,
+        achievementCustomNotificationPosition:
+          preferences.achievementCustomNotificationPosition ?? "top-left",
+      }
+    : DEFAULT_FORM;
 const SETTINGS_TOAST_OPTIONS = {
   fallbackVisual: "settings" as const,
 };
@@ -67,19 +82,14 @@ export function NotificationsAchievementsSection({
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
-  const [form, setForm] = useState<NotificationsAchievementsForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<NotificationsAchievementsForm>(() =>
+    buildForm(userPreferences)
+  );
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      achievementNotificationsEnabled:
-        userPreferences.achievementNotificationsEnabled ?? true,
-      achievementCustomNotificationsEnabled:
-        userPreferences.achievementCustomNotificationsEnabled ?? true,
-      achievementCustomNotificationPosition:
-        userPreferences.achievementCustomNotificationPosition ?? "top-left",
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   const updateUserPreferences = async (

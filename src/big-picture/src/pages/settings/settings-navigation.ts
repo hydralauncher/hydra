@@ -104,7 +104,7 @@ export const BEHAVIOR_ITEM_FOCUS_IDS = {
   startMinimized: "behavior-start-minimized",
   launchToLibraryPage: "behavior-launch-to-library-page",
   launchInBigPicture: "behavior-launch-in-big-picture",
-  enableAutoDownload: "behavior-enable-auto-download",
+  enableAutoInstall: "behavior-enable-auto-install",
 } as const;
 
 export const DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS = {

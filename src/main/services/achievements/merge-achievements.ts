@@ -251,10 +251,11 @@ const publishAchievementUnlockNotifications = ({
       publishOsNotification();
     }
   } else if (customEnabled) {
+    // No OS fallback: the user opted into the custom notification, so a failure
+    // must not surface as a duplicate system toast.
     achievementNotificationPresenter.enqueueAchievements(
       position,
-      achievementsInfo,
-      publishOsNotification
+      achievementsInfo
     );
   } else {
     publishOsNotification();

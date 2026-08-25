@@ -303,7 +303,7 @@ function SouvenirGameGroup({
     null
   );
 
-  const [{ gameTitle, gameIconUrl, shop, objectId }] = achievements;
+  const [{ gameTitle, gameIconUrl }] = achievements;
   const hasGameIcon = Boolean(gameIconUrl && gameIconUrl !== failedGameIconUrl);
   const resolvedGameTitle = gameTitle ?? t("unknown_game");
 
@@ -315,19 +315,9 @@ function SouvenirGameGroup({
           className="profile-content__souvenirs-group-toggle"
           onClick={() => setIsExpanded(!isExpanded)}
           aria-expanded={isExpanded}
-          aria-label={resolvedGameTitle}
         >
           {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
-        </button>
 
-        <Link
-          className="profile-content__souvenirs-group-game"
-          to={buildGameDetailsPath({
-            shop,
-            objectId,
-            title: resolvedGameTitle,
-          })}
-        >
           <span className="profile-content__souvenirs-group-icon">
             {hasGameIcon ? (
               <img
@@ -342,10 +332,10 @@ function SouvenirGameGroup({
             )}
           </span>
 
-          <h3 className="profile-content__souvenirs-group-title">
+          <span className="profile-content__souvenirs-group-title">
             {resolvedGameTitle}
-          </h3>
-        </Link>
+          </span>
+        </button>
 
         <span className="profile-content__souvenirs-group-count">
           {achievements.length}

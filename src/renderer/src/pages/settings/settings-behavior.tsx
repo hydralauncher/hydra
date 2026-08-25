@@ -27,7 +27,7 @@ export function SettingsBehavior() {
     startMinimized: false,
     launchToLibraryPage: false,
     disableNsfwAlert: false,
-    enableAutoDownload: false,
+    enableAutoInstall: false,
     seedAfterDownloadComplete: false,
     showHiddenAchievementsDescription: false,
     showDownloadSpeedInMegabytes: false,
@@ -69,10 +69,7 @@ export function SettingsBehavior() {
         startMinimized: userPreferences.startMinimized ?? false,
         launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
         disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
-        enableAutoDownload:
-          userPreferences.enableAutoDownload ??
-          userPreferences.enableAutoInstall ??
-          false,
+        enableAutoInstall: userPreferences.enableAutoInstall ?? false,
         seedAfterDownloadComplete:
           userPreferences.seedAfterDownloadComplete ?? false,
         showHiddenAchievementsDescription:
@@ -188,10 +185,10 @@ export function SettingsBehavior() {
       {window.electron.platform === "linux" && (
         <>
           <CheckboxField
-            label={t("enable_auto_download")}
-            checked={form.enableAutoDownload}
+            label={t("enable_auto_install")}
+            checked={form.enableAutoInstall}
             onChange={() =>
-              handleChange({ enableAutoDownload: !form.enableAutoDownload })
+              handleChange({ enableAutoInstall: !form.enableAutoInstall })
             }
           />
 

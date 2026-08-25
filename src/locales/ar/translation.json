@@ -727,7 +727,7 @@
     "expand_debrid_section": "Expand {{provider}} section",
     "collapse_debrid_section": "Collapse {{provider}} section",
     "enable_friend_request_notifications": "When a friend request is received",
-    "enable_auto_download": "Download updates automatically",
+    "enable_auto_install": "Download updates automatically",
     "run_games_with_gamemode": "Run games with GameMode by default",
     "run_games_with_mangohud": "Run games with MangoHud by default",
     "common_redist": "Common redistributables",

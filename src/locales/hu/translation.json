@@ -748,7 +748,7 @@
     "error_importing_theme": "Hiba lépett fel a téma importálása közben",
     "theme_imported": "Téma sikeresen importálva",
     "enable_friend_request_notifications": "Amikor ismerősnek jelölnek",
-    "enable_auto_download": "Frissítések letöltése automatikusan",
+    "enable_auto_install": "Frissítések letöltése automatikusan",
     "run_games_with_gamemode": "Játékok GameMode-al való futtatása alapból",
     "run_games_with_mangohud": "Játékok Mangohud-al való futtatása alapból",
     "common_redist": "Alapvető Segédprogramok",

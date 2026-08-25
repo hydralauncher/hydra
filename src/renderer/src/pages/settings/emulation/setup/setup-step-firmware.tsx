@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
   CheckCircleFillIcon,
+  GlobeIcon,
+  LinkExternalIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 
@@ -15,14 +17,12 @@ interface Props {
   config: EmulatorConfig;
   systemLabel: string;
   onFirmwareStatusChange: (installed: boolean) => void;
-  onSkip: () => void;
 }
 
 export function SetupStepFirmware({
   config,
   systemLabel,
   onFirmwareStatusChange,
-  onSkip,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation("settings");
   const [installed, setInstalled] = useState<boolean | null>(null);
@@ -78,19 +78,14 @@ export function SetupStepFirmware({
       <div className="setup-modal__hint">
         <button
           type="button"
-          className="setup-modal__link-button"
+          className="setup-modal__website-link"
           onClick={() =>
             window.electron.openExternal(firmwarePageUrl(i18n.language))
           }
         >
-          {t("setup_firmware_guide")}
-        </button>
-        <button
-          type="button"
-          className="setup-modal__ghost-button"
-          onClick={onSkip}
-        >
-          {t("setup_skip_later")}
+          <GlobeIcon size={14} />
+          <span>{t("setup_firmware_guide")}</span>
+          <LinkExternalIcon size={12} />
         </button>
       </div>
 

@@ -18,6 +18,7 @@ import {
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
+import type { UserPreferences } from "@types";
 
 interface BigPictureSettingsSectionProps {
   className?: string;
@@ -49,6 +50,24 @@ const DEFAULT_FORM: BigPictureForm = {
   bigPictureDiagnosticsPosition: "bottom-center",
 };
 
+const buildForm = (preferences: UserPreferences | null): BigPictureForm =>
+  preferences
+    ? {
+        launchInBigPicture: preferences.launchInBigPicture ?? false,
+        bigPictureLaunchToLibraryPage:
+          preferences.bigPictureLaunchToLibraryPage ??
+          preferences.launchToLibraryPage ??
+          false,
+        bigPictureSoundsEnabled: preferences.bigPictureSoundsEnabled ?? true,
+        bigPictureVirtualKeyboardEnabled:
+          preferences.bigPictureVirtualKeyboardEnabled ?? true,
+        bigPictureDiagnosticsEnabled:
+          preferences.bigPictureDiagnosticsEnabled ?? false,
+        bigPictureDiagnosticsPosition:
+          preferences.bigPictureDiagnosticsPosition ?? "bottom-center",
+      }
+    : DEFAULT_FORM;
+
 function getPositionLabel(
   position: BigPictureDiagnosticsPosition,
   t: (key: string) => string
@@ -61,25 +80,14 @@ export function BigPictureSettingsSection({
 }: Readonly<BigPictureSettingsSectionProps>) {
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
-  const [form, setForm] = useState<BigPictureForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<BigPictureForm>(() =>
+    buildForm(userPreferences)
+  );
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      launchInBigPicture: userPreferences.launchInBigPicture ?? false,
-      bigPictureLaunchToLibraryPage:
-        userPreferences.bigPictureLaunchToLibraryPage ??
-        userPreferences.launchToLibraryPage ??
-        false,
-      bigPictureSoundsEnabled: userPreferences.bigPictureSoundsEnabled ?? true,
-      bigPictureVirtualKeyboardEnabled:
-        userPreferences.bigPictureVirtualKeyboardEnabled ?? true,
-      bigPictureDiagnosticsEnabled:
-        userPreferences.bigPictureDiagnosticsEnabled ?? false,
-      bigPictureDiagnosticsPosition:
-        userPreferences.bigPictureDiagnosticsPosition ?? "bottom-center",
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   const updateUserPreferences = useCallback(

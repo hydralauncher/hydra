@@ -7,6 +7,8 @@ import { formatRelativeShort } from "./relative-time";
 
 import "./console-card.scss";
 
+export type ConsoleCardRequirement = "bios" | "firmware" | "cores";
+
 interface ConsoleCardProps {
   art: string;
   title: string;
@@ -17,7 +19,9 @@ interface ConsoleCardProps {
   romFoldersCount: number;
   totalFiles: number;
   lastScanAt: number | null;
+  requirement?: ConsoleCardRequirement;
   checkExecutable: () => Promise<{ exists: boolean }>;
+  checkRequirement?: () => Promise<boolean>;
   onConfigure: () => void;
   onStartSetup: () => void;
 }
@@ -32,7 +36,9 @@ export function ConsoleCard({
   romFoldersCount,
   totalFiles,
   lastScanAt,
+  requirement,
   checkExecutable,
+  checkRequirement,
   onConfigure,
   onStartSetup,
 }: Readonly<ConsoleCardProps>) {
@@ -40,6 +46,7 @@ export function ConsoleCard({
   const tooltipId = useId();
 
   const [executableExists, setExecutableExists] = useState(true);
+  const [requirementMet, setRequirementMet] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,11 +67,33 @@ export function ConsoleCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [executablePath]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!requirement || !checkRequirement || !executablePath) {
+      setRequirementMet(true);
+      return;
+    }
+
+    checkRequirement()
+      .then((satisfied) => {
+        if (!cancelled) setRequirementMet(satisfied);
+      })
+      .catch(() => {
+        if (!cancelled) setRequirementMet(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [executablePath, requirement]);
+
   const isConfigured = executablePath !== null;
   const pathMissing = isConfigured && !executableExists;
   const hasRomFolders = romFoldersCount > 0;
-  const hasRoms = hasRomFolders && totalFiles > 0;
-  const isReady = isConfigured && executableExists && hasRomFolders;
+  const requirementMissing = Boolean(requirement) && !requirementMet;
+  const isReady = isConfigured && executableExists && !requirementMissing;
   const relative =
     lastScanAt !== null ? formatRelativeShort(lastScanAt, i18n.language) : null;
 
@@ -100,7 +129,7 @@ export function ConsoleCard({
       </div>
 
       <div className="console-card__body">
-        {isConfigured && executableExists && hasRoms && (
+        {isConfigured && executableExists && !requirementMissing && (
           <div className="console-card__stats">
             <div className="console-card__stat-row">
               <span className="console-card__stat-dot" />
@@ -111,22 +140,26 @@ export function ConsoleCard({
                   .trim()}
               </span>
             </div>
-            {relative && (
+            {hasRomFolders && relative ? (
               <p className="console-card__last-scan">
                 {t("last_scan_relative", { value: relative })}
+              </p>
+            ) : (
+              <p className="console-card__last-scan">
+                {t("no_rom_folder_hint", { system: title })}
               </p>
             )}
           </div>
         )}
 
-        {isConfigured && executableExists && !hasRoms && (
+        {isConfigured && executableExists && requirementMissing && (
           <div className="console-card__hint-box">
             <div className="console-card__hint-title">
               <AlertIcon size={14} />
-              <span>{t("not_detected")}</span>
+              <span>{t(`${requirement}_missing`)}</span>
             </div>
             <p className="console-card__hint-text">
-              {t("no_rom_folder_hint", { system: title })}
+              {t(`${requirement}_missing_hint`, { name: emulatorName })}
             </p>
           </div>
         )}
@@ -178,7 +211,7 @@ export function ConsoleCard({
             onClick={onConfigure}
           >
             <GearIcon size={14} />
-            <span>{t("configure_emulator")}</span>
+            <span>{t(isReady ? "manage_emulator" : "configure_emulator")}</span>
             <ChevronRightIcon size={12} />
           </button>
         ) : (

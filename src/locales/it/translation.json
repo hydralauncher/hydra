@@ -890,7 +890,7 @@
     "error_importing_theme": "Errore durante l'importazione del tema",
     "theme_imported": "Tema importato con successo",
     "enable_friend_request_notifications": "Quando arriva una richiesta di amicizia",
-    "enable_auto_download": "Scarica automaticamente gli aggiornamenti",
+    "enable_auto_install": "Scarica automaticamente gli aggiornamenti",
     "common_redist": "Redistribuibili comuni",
     "common_redist_description": "I redistribuibili comuni sono necessari per avviare alcuni giochi. Installarli è consigliato per evitare problemi.",
     "install_common_redist": "Installa",

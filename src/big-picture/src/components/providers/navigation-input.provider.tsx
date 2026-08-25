@@ -31,48 +31,58 @@ type HoldManagedButton = "a" | "b" | "x" | "y" | "start" | "select";
 type HoldSession = {
   isPressed: boolean;
   holdTriggered: boolean;
+  pressDispatched: boolean;
   timerId: number | null;
   releaseTimerId: number | null;
 };
 
+// Y has no hold action anywhere in Big Picture, so its action can fire as soon
+// as the button goes down instead of waiting for the release.
+const PRESS_ON_DOWN_BUTTONS = new Set<HoldManagedButton>(["y"]);
+
 const HOLD_THRESHOLD_MS = 400;
-const HOLD_RELEASE_GRACE_MS = 80;
 
 function createInitialHoldSessions(): Record<HoldManagedButton, HoldSession> {
   return {
     a: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
     b: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
     x: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
     y: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
     start: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
     select: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
@@ -626,10 +636,18 @@ export function NavigationInputProvider({
       if (isPressed && !session.isPressed) {
         session.isPressed = true;
         session.holdTriggered = false;
+        session.pressDispatched = false;
         if (session.releaseTimerId !== null) {
           globalThis.window.clearTimeout(session.releaseTimerId);
           session.releaseTimerId = null;
         }
+
+        if (PRESS_ON_DOWN_BUTTONS.has(button)) {
+          dispatchPress(button);
+          session.pressDispatched = true;
+          return;
+        }
+
         session.timerId = globalThis.window.setTimeout(() => {
           const wasHandled = dispatchHold(button);
 
@@ -655,23 +673,16 @@ export function NavigationInputProvider({
             globalThis.window.clearTimeout(session.timerId);
           }
 
-          if (!session.holdTriggered) {
+          if (!session.holdTriggered && !session.pressDispatched) {
             dispatchPress(button);
           }
 
           session.isPressed = false;
           session.holdTriggered = false;
+          session.pressDispatched = false;
           session.timerId = null;
           session.releaseTimerId = null;
         };
-
-        if (button === "y" && session.releaseTimerId === null) {
-          session.releaseTimerId = globalThis.window.setTimeout(() => {
-            finalizeRelease();
-          }, HOLD_RELEASE_GRACE_MS);
-
-          return;
-        }
 
         finalizeRelease();
       }

@@ -99,7 +99,7 @@ export function GameAchievementsSouvenirViewer({
               <div className="game-achievements-souvenir-viewer__stage">
                 <FocusItem
                   id={SOUVENIR_VIEWER_ITEM_ID}
-                  actions={{ primary: onClose }}
+                  actions={{ primary: "off" }}
                   asChild
                 >
                   <div
@@ -117,14 +117,6 @@ export function GameAchievementsSouvenirViewer({
                           height: event.currentTarget.naturalHeight,
                         })
                       }
-                    />
-
-                    <button
-                      type="button"
-                      className="game-achievements-souvenir-viewer__close-target"
-                      onClick={onClose}
-                      aria-label={alt}
-                      tabIndex={-1}
                     />
                   </div>
                 </FocusItem>

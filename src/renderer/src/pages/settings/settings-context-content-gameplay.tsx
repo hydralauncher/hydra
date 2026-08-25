@@ -175,6 +175,17 @@ export function SettingsContextContentGameplay() {
             })
           }
         />
+
+        <CheckboxField
+          label={t("enable_new_download_options_badges")}
+          checked={form.enableNewDownloadOptionsBadges}
+          onChange={() =>
+            handleChange({
+              enableNewDownloadOptionsBadges:
+                !form.enableNewDownloadOptionsBadges,
+            })
+          }
+        />
       </div>
 
       <div className="settings-context-panel__group">
@@ -268,17 +279,6 @@ export function SettingsContextContentGameplay() {
             {t("open_screenshots_directory")}
           </Button>
         </div>
-
-        <CheckboxField
-          label={t("enable_new_download_options_badges")}
-          checked={form.enableNewDownloadOptionsBadges}
-          onChange={() =>
-            handleChange({
-              enableNewDownloadOptionsBadges:
-                !form.enableNewDownloadOptionsBadges,
-            })
-          }
-        />
       </div>
 
       <div className="settings-context-panel__group">

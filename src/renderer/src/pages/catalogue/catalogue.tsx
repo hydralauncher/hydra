@@ -250,10 +250,14 @@ export default function Catalogue() {
 
   const language = i18n.language.split("-")[0];
 
+  // Not every language ships translated genres/tags. Falling back to English
+  // keeps the filters usable instead of rendering an empty section.
   const steamGenresMapping = useMemo<Record<string, string>>(() => {
-    if (!steamGenres[language]) return {};
+    const localizedGenres = steamGenres[language] ?? steamGenres["en"];
 
-    return steamGenres[language].reduce((prev, genre, index) => {
+    if (!localizedGenres || !steamGenres["en"]) return {};
+
+    return localizedGenres.reduce((prev, genre, index) => {
       prev[genre] = steamGenres["en"][index];
       return prev;
     }, {});
@@ -270,9 +274,11 @@ export default function Catalogue() {
   }, [steamGenresMapping, filters.genres]);
 
   const steamUserTagsFilterItems = useMemo(() => {
-    if (!steamUserTags[language]) return [];
+    const localizedTags = steamUserTags[language] ?? steamUserTags["en"];
 
-    return Object.entries(steamUserTags[language])
+    if (!localizedTags) return [];
+
+    return Object.entries(localizedTags)
       .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
       .map(([key, value]) => ({
         label: key,
@@ -423,7 +429,8 @@ export default function Catalogue() {
       })),
 
       ...filters.tags.map((tag) => {
-        const tagsForLanguage = steamUserTags[language] ?? {};
+        const tagsForLanguage =
+          steamUserTags[language] ?? steamUserTags["en"] ?? {};
         return {
           label: Object.keys(tagsForLanguage).find(
             (key) => tagsForLanguage[key] === tag

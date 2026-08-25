@@ -687,7 +687,7 @@
     "error_importing_theme": "Fel vid import av tema",
     "theme_imported": "Temat har importerats",
     "enable_friend_request_notifications": "När en vänförfrågan tas emot",
-    "enable_auto_download": "Ladda ner uppdateringar automatiskt",
+    "enable_auto_install": "Ladda ner uppdateringar automatiskt",
     "common_redist": "Nödvändiga systemkomponenter",
     "common_redist_description": "Nödvändiga systemkomponenter krävs för att vissa spel ska fungera. Det rekommenderas att installera dem för att undvika problem.",
     "install_common_redist": "Installera",

@@ -1,5 +1,4 @@
 import type { GameShop, UserAchievement } from "@types";
-import { AnimatePresence } from "framer-motion";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { VerticalFocusGroup } from "../../components";
@@ -8,9 +7,11 @@ import {
   AvailablePointsBar,
   GAME_ACHIEVEMENTS_LIST_REGION_ID,
   GAME_ACHIEVEMENTS_PAGE_REGION_ID,
+  GAME_ACHIEVEMENTS_SUMMARY_FOCUS_ID,
   GameAchievementsHero,
   GameAchievementsSouvenirViewer,
   UserAchievementsSummary,
+  getAchievementRowId,
 } from "../../components/pages/game-achievements";
 import {
   useGameDetails,
@@ -39,6 +40,10 @@ export default function GameAchievements() {
     () => achievements.reduce((sum, a) => sum + (a.points ?? 0), 0),
     [achievements]
   );
+
+  const firstAchievementRowId = achievements[0]
+    ? getAchievementRowId(achievements[0].name)
+    : null;
 
   const earnedPoints = useMemo(
     () =>
@@ -94,6 +99,13 @@ export default function GameAchievements() {
             userDetails={userDetails}
             unlockedCount={unlockedCount}
             totalCount={achievements.length}
+            stealFocusOnAppear
+            navigationOverrides={{
+              up: { type: "block" },
+              down: firstAchievementRowId
+                ? { type: "item", itemId: firstAchievementRowId }
+                : { type: "block" },
+            }}
           />
 
           <section className="game-achievements-page__list-section">
@@ -111,7 +123,16 @@ export default function GameAchievements() {
                   <AchievementRow
                     key={achievement.name}
                     achievement={achievement}
-                    stealFocusOnAppear={index === 0}
+                    navigationOverrides={
+                      index === 0
+                        ? {
+                            up: {
+                              type: "item",
+                              itemId: GAME_ACHIEVEMENTS_SUMMARY_FOCUS_ID,
+                            },
+                          }
+                        : undefined
+                    }
                     onSouvenirActivate={handleSouvenirActivate}
                   />
                 ))}
@@ -120,15 +141,13 @@ export default function GameAchievements() {
           </section>
         </div>
 
-        <AnimatePresence>
-          {souvenir?.imageUrl ? (
-            <GameAchievementsSouvenirViewer
-              src={souvenir.imageUrl}
-              alt={`${souvenir.displayName} souvenir`}
-              onClose={() => setSouvenir(null)}
-            />
-          ) : null}
-        </AnimatePresence>
+        {souvenir?.imageUrl ? (
+          <GameAchievementsSouvenirViewer
+            src={souvenir.imageUrl}
+            alt={`${souvenir.displayName} souvenir`}
+            onClose={() => setSouvenir(null)}
+          />
+        ) : null}
       </div>
     </VerticalFocusGroup>
   );

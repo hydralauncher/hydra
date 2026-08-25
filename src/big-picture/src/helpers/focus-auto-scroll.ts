@@ -486,8 +486,7 @@ export function scrollNavigationIntoView(options: {
     previousAncestorTarget
   );
 
-  animateScroll(
-    currentAncestorTarget.container,
+  const ancestorTarget =
     ancestorBehaviorMode === "prefer-center"
       ? getPreferCenterTarget(
           currentAncestorTarget.rect,
@@ -496,6 +495,7 @@ export function scrollNavigationIntoView(options: {
       : getKeepVisibleTarget(
           currentAncestorTarget.rect,
           currentAncestorTarget.container
-        )
-  );
+        );
+
+  animateScroll(currentAncestorTarget.container, ancestorTarget);
 }

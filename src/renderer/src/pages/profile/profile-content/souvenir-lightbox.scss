@@ -437,13 +437,19 @@
     gap: globals.$spacing-unit;
     color: globals.$body-color;
 
-    &:hover {
+    &.link:hover {
       color: globals.$muted-color;
+      text-decoration: none;
+    }
+
+    &:hover .profile-souvenir-lightbox__game-name {
+      border-bottom-color: currentColor;
     }
   }
 
   &__game-name {
     overflow: hidden;
+    border-bottom: 1px solid transparent;
     text-overflow: ellipsis;
     white-space: nowrap;
   }

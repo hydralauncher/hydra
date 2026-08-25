@@ -109,7 +109,6 @@ export function RomsSection<T extends DetectedRom>({
                       <button
                         type="button"
                         className="emulator-detail__rom-game"
-                        title={rom.title}
                         onClick={() =>
                           navigate(
                             buildGameDetailsPath({

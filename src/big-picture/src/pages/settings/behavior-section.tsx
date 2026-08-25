@@ -11,6 +11,7 @@ import {
   LANGUAGE_SECTION_BUTTON_ID,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
+import type { UserPreferences } from "@types";
 
 interface BehaviorSectionProps {
   className?: string;
@@ -22,7 +23,7 @@ interface BehaviorForm {
   startMinimized: boolean;
   hideToTrayOnGameStart: boolean;
   launchToLibraryPage: boolean;
-  enableAutoDownload: boolean;
+  enableAutoInstall: boolean;
 }
 
 interface BehaviorItem {
@@ -40,29 +41,33 @@ const DEFAULT_FORM: BehaviorForm = {
   startMinimized: false,
   hideToTrayOnGameStart: false,
   launchToLibraryPage: false,
-  enableAutoDownload: false,
+  enableAutoInstall: false,
 };
+
+const buildForm = (preferences: UserPreferences | null): BehaviorForm =>
+  preferences
+    ? {
+        preferQuitInsteadOfHiding:
+          preferences.preferQuitInsteadOfHiding ?? false,
+        runAtStartup: preferences.runAtStartup ?? false,
+        startMinimized: preferences.startMinimized ?? false,
+        hideToTrayOnGameStart: preferences.hideToTrayOnGameStart ?? false,
+        launchToLibraryPage: preferences.launchToLibraryPage ?? false,
+        enableAutoInstall: preferences.enableAutoInstall ?? false,
+      }
+    : DEFAULT_FORM;
 
 export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
   const userPreferences = useUserPreferences();
   const showRunAtStartup = !globalThis.window.electron.isPortableVersion;
-  const [form, setForm] = useState<BehaviorForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<BehaviorForm>(() =>
+    buildForm(userPreferences)
+  );
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      preferQuitInsteadOfHiding:
-        userPreferences.preferQuitInsteadOfHiding ?? false,
-      runAtStartup: userPreferences.runAtStartup ?? false,
-      startMinimized: userPreferences.startMinimized ?? false,
-      hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
-      launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
-      enableAutoDownload:
-        userPreferences.enableAutoDownload ??
-        userPreferences.enableAutoInstall ??
-        false,
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   const isLinux = globalThis.window.electron.platform === "linux";
@@ -147,13 +152,13 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       ...(isLinux
         ? [
             {
-              id: "enable-auto-download",
-              focusId: BEHAVIOR_ITEM_FOCUS_IDS.enableAutoDownload,
+              id: "enable-auto-install",
+              focusId: BEHAVIOR_ITEM_FOCUS_IDS.enableAutoInstall,
               label: "Download updates automatically",
-              checked: form.enableAutoDownload,
+              checked: form.enableAutoInstall,
               disabled: false,
               onChange: (checked: boolean) =>
-                void updateUserPreferences({ enableAutoDownload: checked }),
+                void updateUserPreferences({ enableAutoInstall: checked }),
             },
           ]
         : []),

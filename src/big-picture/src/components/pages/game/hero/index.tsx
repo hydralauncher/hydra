@@ -7,14 +7,18 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import type { LibraryGame, ShopDetailsWithAssets } from "@types";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FocusOverrides,
   FocusOverrideTarget,
 } from "src/big-picture/src/services/navigation.service";
-import { resolvePreferredGameAssets } from "../../../../helpers";
+import {
+  animateNavigationScrollForElement,
+  resolvePreferredGameAssets,
+} from "../../../../helpers";
 import { useDominantColor } from "../../../../hooks";
+import { useNavigationStore } from "../../../../stores";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 import {
   AnimatedHeroImage,
@@ -94,6 +98,23 @@ export function Hero({
   sidebarEntryTarget,
 }: Readonly<HeroProps>) {
   const { t } = useTranslation("game_details");
+  const heroRef = useRef<HTMLElement | null>(null);
+  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+
+  // The hero is the top of the page, so focusing any of its actions should show
+  // it whole rather than stopping wherever it first becomes visible.
+  useEffect(() => {
+    const hero = heroRef.current;
+
+    if (!hero || !currentFocusId) return;
+
+    const focusedElement = document.getElementById(currentFocusId);
+
+    if (!focusedElement || !hero.contains(focusedElement)) return;
+
+    animateNavigationScrollForElement(hero, { top: 0 });
+  }, [currentFocusId]);
+
   const preferredAssets = useMemo(
     () => resolvePreferredGameAssets(game, shopDetails.assets),
     [game, shopDetails.assets]
@@ -355,7 +376,11 @@ export function Hero({
     ]);
 
   return (
-    <section className="game-page__hero-shell">
+    <section
+      ref={heroRef}
+      className="game-page__hero-shell"
+      data-suppress-navigation-autoscroll="true"
+    >
       {backgroundLayers.map((layer) => {
         const layerHandlers = getLayerEventHandlers(layer);
 

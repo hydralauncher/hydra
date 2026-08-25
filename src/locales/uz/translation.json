@@ -687,7 +687,7 @@
     "error_importing_theme": "Mavzuni import qilishda xato",
     "theme_imported": "Mavzu muvaffaqiyatli import qilindi",
     "enable_friend_request_notifications": "Do'stlar so'rovi olinganda",
-    "enable_auto_download": "Yangilanishlarni avtomatik yuklab olish",
+    "enable_auto_install": "Yangilanishlarni avtomatik yuklab olish",
     "common_redist": "Kutubxonalar",
     "common_redist_description": "Ba'zi o'yinlarni ishga tushirish uchun kutubxonalar talab qilinadi. Muammolarning oldini olish uchun ularni o'rnatish tavsiya etiladi.",
     "install_common_redist": "O'rnatish",

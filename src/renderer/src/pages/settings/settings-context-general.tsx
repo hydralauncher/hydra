@@ -71,8 +71,7 @@ const buildForm = (
   startMinimized: preferences?.startMinimized ?? false,
   hideToTrayOnGameStart: preferences?.hideToTrayOnGameStart ?? false,
   launchToLibraryPage: preferences?.launchToLibraryPage ?? false,
-  enableAutoDownload:
-    preferences?.enableAutoDownload ?? preferences?.enableAutoInstall ?? false,
+  enableAutoInstall: preferences?.enableAutoInstall ?? false,
 });
 
 export function SettingsContextGeneral({
@@ -276,10 +275,10 @@ export function SettingsContextGeneral({
           <h3>{t("behavior")}</h3>
 
           <CheckboxField
-            label={t("enable_auto_download")}
-            checked={form.enableAutoDownload}
+            label={t("enable_auto_install")}
+            checked={form.enableAutoInstall}
             onChange={() =>
-              handleChange({ enableAutoDownload: !form.enableAutoDownload })
+              handleChange({ enableAutoInstall: !form.enableAutoInstall })
             }
           />
         </div>

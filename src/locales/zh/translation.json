@@ -666,7 +666,7 @@
     "editor_tab_info": "信息",
     "editor_tab_save": "保存",
     "enable_achievement_custom_notifications": "启用成就自定义通知",
-    "enable_auto_download": "自动下载更新",
+    "enable_auto_install": "自动下载更新",
     "enable_friend_request_notifications": "当收到好友请求时",
     "enable_friend_start_game_notifications": "当好友开始游戏时",
     "enable_torbox": "启用TorBox",

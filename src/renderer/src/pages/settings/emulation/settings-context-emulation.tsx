@@ -28,9 +28,33 @@ import {
   hasDismissedClassicsOnboarding,
 } from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
 
+import { SETTINGS_EMULATION_VIEW_STORAGE_KEY } from "@renderer/session-state";
+
 import "./settings-context-emulation.scss";
 
 const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3"];
+
+type EmulationView =
+  | { kind: "grid" }
+  | { kind: "detail"; system: EmulatorSystem }
+  | { kind: "retroarch-detail" };
+
+const readStoredEmulationView = (): EmulationView => {
+  const stored = localStorage.getItem(SETTINGS_EMULATION_VIEW_STORAGE_KEY);
+  if (!stored) return { kind: "grid" };
+
+  try {
+    const parsed = JSON.parse(stored) as EmulationView;
+    if (parsed?.kind === "retroarch-detail") return parsed;
+    if (parsed?.kind === "detail" && SYSTEMS.includes(parsed.system)) {
+      return parsed;
+    }
+  } catch {
+    return { kind: "grid" };
+  }
+
+  return { kind: "grid" };
+};
 
 const SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps1: "PlayStation 1",
@@ -52,11 +76,7 @@ export function SettingsContextEmulation() {
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
   const [retroArchConfig, setRetroArchConfig] =
     useState<RetroArchConfig | null>(null);
-  const [view, setView] = useState<
-    | { kind: "grid" }
-    | { kind: "detail"; system: EmulatorSystem }
-    | { kind: "retroarch-detail" }
-  >({ kind: "grid" });
+  const [view, setView] = useState<EmulationView>(readStoredEmulationView);
   const [setupSystem, setSetupSystem] = useState<EmulatorSystem | null>(null);
   const [retroArchSetupOpen, setRetroArchSetupOpen] = useState(false);
   const deepLinkAppliedRef = useRef(false);
@@ -73,6 +93,13 @@ export function SettingsContextEmulation() {
       setShowClassicsOnboarding(true);
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      SETTINGS_EMULATION_VIEW_STORAGE_KEY,
+      JSON.stringify(view)
+    );
+  }, [view]);
 
   const refresh = useCallback(async () => {
     const next = await window.electron.getEmulatorConfigs();
@@ -259,6 +286,24 @@ export function SettingsContextEmulation() {
             checkExecutable={() =>
               window.electron.checkEmulatorExecutable(system)
             }
+            requirement={system === "ps3" ? "firmware" : "bios"}
+            checkRequirement={async () => {
+              const config = configs[system];
+
+              if (system === "ps3") {
+                const { installed } = await window.electron.checkPs3Firmware(
+                  config.executablePath
+                );
+                return installed;
+              }
+
+              const { installed } = await window.electron.checkEmulatorBios(
+                system,
+                config.executablePath,
+                config.biosPath
+              );
+              return installed;
+            }}
             onConfigure={() => handleConfigure(system)}
             onStartSetup={() => handleStartSetup(system)}
           />
@@ -276,6 +321,10 @@ export function SettingsContextEmulation() {
           totalFiles={retroArchConfig.totalFiles}
           lastScanAt={retroArchConfig.lastScanAt}
           checkExecutable={() => window.electron.checkRetroArchExecutable()}
+          requirement="cores"
+          checkRequirement={async () =>
+            Object.values(retroArchConfig.cores).some((core) => core.installed)
+          }
           onConfigure={() => setView({ kind: "retroarch-detail" })}
           onStartSetup={() => setRetroArchSetupOpen(true)}
         />
@@ -288,6 +337,10 @@ export function SettingsContextEmulation() {
         initialConfig={setupSystem ? configs[setupSystem] : null}
         onClose={handleSetupClose}
         onComplete={handleSetupComplete}
+        onManage={(system) => {
+          handleSetupClose();
+          handleConfigure(system);
+        }}
       />
 
       <RetroArchSetupModal
@@ -295,6 +348,10 @@ export function SettingsContextEmulation() {
         initialConfig={retroArchConfig}
         onClose={handleRetroArchSetupClose}
         onComplete={handleRetroArchSetupComplete}
+        onManage={() => {
+          handleRetroArchSetupClose();
+          setView({ kind: "retroarch-detail" });
+        }}
       />
     </div>
   );

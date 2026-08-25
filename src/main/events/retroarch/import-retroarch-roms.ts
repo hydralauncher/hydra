@@ -160,6 +160,29 @@ const matchRoms = async (
   return { lookup, failed };
 };
 
+const ensureRomFolderRegistered = async (
+  folderPath: string,
+  scanSubfolders: boolean
+) => {
+  await retroarch.updateRetroArchConfig((current) => {
+    if (current.romFolders.some((f) => f.path === folderPath)) return current;
+
+    const folder: RomFolder = {
+      id: randomUUID(),
+      path: folderPath,
+      scanSubfolders,
+      fileCount: 0,
+      sizeBytes: 0,
+      lastScanAt: null,
+    };
+
+    return retroarch.recomputeRetroArchTotals({
+      ...current,
+      romFolders: [...current.romFolders, folder],
+    });
+  });
+};
+
 const persistFolderRollups = async (
   folders: FolderInput[],
   folderRollup: Map<string, { fileCount: number; sizeBytes: number }>
@@ -464,6 +487,13 @@ async function runRetroArchImport(
   signal: CancelSignal,
   onProgress?: ProgressFn
 ): Promise<RetroArchImportResult> {
+  // Register the folders up front with empty counts. A cancelled scan returns
+  // before the rollup is persisted, and the user still expects the folder they
+  // picked to be listed - just with no games detected yet.
+  for (const folder of folders) {
+    await ensureRomFolderRegistered(folder.path, folder.scanSubfolders);
+  }
+
   const collected = await retroarch.scanRetroArchFolders(
     folders,
     signal,

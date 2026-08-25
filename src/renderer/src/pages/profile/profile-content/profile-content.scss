@@ -377,22 +377,15 @@
 
     &-toggle {
       display: flex;
-      flex-shrink: 0;
+      min-width: 0;
       align-items: center;
-      justify-content: center;
+      gap: globals.$spacing-unit;
       padding: 0;
       border: none;
       background: none;
       color: inherit;
       cursor: pointer;
-    }
-
-    &-game {
-      display: flex;
-      min-width: 0;
-      align-items: center;
-      gap: globals.$spacing-unit;
-      color: inherit;
+      text-align: left;
     }
 
     &-icon {
@@ -618,6 +611,17 @@
       color: inherit;
       font-size: inherit;
       vertical-align: bottom;
+
+      // Chromium does not paint text-decoration over the ellipsis glyph, so the
+      // link's own underline is suppressed and the "underline" is drawn as a
+      // border on the truncating element, which spans the ellipsis too.
+      &.link:hover {
+        text-decoration: none;
+      }
+
+      &:hover .profile-content__souvenir-game-name {
+        border-bottom-color: currentColor;
+      }
     }
 
     &-game-icon {
@@ -644,6 +648,7 @@
     &-game-name {
       min-width: 0;
       overflow: hidden;
+      border-bottom: 1px solid transparent;
       text-overflow: ellipsis;
       white-space: nowrap;
     }

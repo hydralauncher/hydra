@@ -8,17 +8,20 @@ import type { UserAchievement } from "@types";
 import cn from "classnames";
 import { useDate } from "../../../../hooks";
 import { FocusItem, Tooltip, Typography } from "../../../common";
+import type { FocusOverrides } from "../../../../services";
 import { getAchievementRowId } from "../navigation";
 
 export interface AchievementRowProps {
   achievement: UserAchievement;
   stealFocusOnAppear?: boolean;
+  navigationOverrides?: FocusOverrides;
   onSouvenirActivate?: (achievement: UserAchievement) => void;
 }
 
 export function AchievementRow({
   achievement,
   stealFocusOnAppear = false,
+  navigationOverrides,
   onSouvenirActivate,
 }: Readonly<AchievementRowProps>) {
   const { formatDateTime } = useDate();
@@ -37,6 +40,7 @@ export function AchievementRow({
           ? { primary: () => onSouvenirActivate(achievement) }
           : { primary: "off" }
       }
+      navigationOverrides={navigationOverrides}
       stealFocusOnAppear={stealFocusOnAppear}
       asChild
     >

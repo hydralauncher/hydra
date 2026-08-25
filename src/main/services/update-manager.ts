@@ -35,11 +35,7 @@ export class UpdateManager {
         }
       );
 
-      return (
-        userPreferences?.enableAutoDownload ??
-        userPreferences?.enableAutoInstall ??
-        false
-      );
+      return userPreferences?.enableAutoInstall === true;
     }
 
     return false;

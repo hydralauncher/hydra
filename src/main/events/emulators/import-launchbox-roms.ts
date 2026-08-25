@@ -297,6 +297,32 @@ const persistRomFolder = async (
   });
 };
 
+// Adds a folder that is not registered yet, leaving an already-known folder's
+// counts alone so a rescan never resets them.
+export const ensureRomFolderRegistered = async (
+  system: EmulatorSystem,
+  folderPath: string,
+  scanSubfolders: boolean
+) => {
+  await emulators.updateEmulatorConfig(system, (current) => {
+    if (current.romFolders.some((f) => f.path === folderPath)) return current;
+
+    const folder: RomFolder = {
+      id: randomUUID(),
+      path: folderPath,
+      scanSubfolders,
+      fileCount: 0,
+      sizeBytes: 0,
+      lastScanAt: null,
+    };
+
+    return emulators.recomputeTotals({
+      ...current,
+      romFolders: [...current.romFolders, folder],
+    });
+  });
+};
+
 export type ProgressPhase = "scanning" | "matching";
 
 export type UnmatchedReason = "wrong_platform" | "unmatched";
@@ -763,6 +789,13 @@ export async function runLaunchboxImport(
   onProgress?: ProgressFn
 ): Promise<LaunchboxImportResult> {
   const folderInputBy = new Map(folders.map((f) => [f.path, f]));
+
+  // Register the folders up front with empty counts. A cancelled scan returns
+  // before the rollup is persisted, and the user still expects the folder they
+  // picked to be listed - just with no games detected yet.
+  for (const folder of folders) {
+    await ensureRomFolderRegistered(system, folder.path, folder.scanSubfolders);
+  }
 
   const collected = await scanFolders(
     system,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
@@ -44,7 +44,17 @@ export function FullscreenMediaModal({
   alt,
   upscale = false,
 }: FullscreenMediaModalProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const captureNaturalSize = useCallback((image: HTMLImageElement | null) => {
+    imageRef.current = image;
+
+    if (!image?.complete || !image.naturalWidth || !image.naturalHeight) return;
+
+    setNaturalSize({
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+    });
+  }, []);
   const [naturalSize, setNaturalSize] = useState<MediaSize | null>(null);
   const [viewportSize, setViewportSize] = useState<MediaSize>(() => ({
     width: window.innerWidth,
@@ -91,8 +101,8 @@ export function FullscreenMediaModal({
 
   useEffect(() => {
     const onMouseDown = (e: MouseEvent) => {
-      if (containerRef.current) {
-        const clickedOnImage = containerRef.current.contains(e.target as Node);
+      if (imageRef.current) {
+        const clickedOnImage = imageRef.current.contains(e.target as Node);
 
         if (!clickedOnImage) {
           onClose();
@@ -117,24 +127,22 @@ export function FullscreenMediaModal({
 
   return createPortal(
     <div className="fullscreen-media-modal__overlay">
-      <dialog className="fullscreen-media-modal" open aria-label={alt}>
-        <button
-          type="button"
-          onClick={onClose}
-          className="fullscreen-media-modal__close-button"
-          aria-label={t("close")}
-        >
-          <XIcon size={24} />
-        </button>
+      <button
+        type="button"
+        onClick={onClose}
+        className="fullscreen-media-modal__close-button"
+        aria-label={t("close")}
+      >
+        <XIcon size={24} />
+      </button>
 
-        <div
-          ref={containerRef}
-          className="fullscreen-media-modal__image-container"
-        >
+      <dialog className="fullscreen-media-modal" open aria-label={alt}>
+        <div className="fullscreen-media-modal__image-container">
           <img
+            ref={captureNaturalSize}
             src={src}
             alt={alt}
-            className={`fullscreen-media-modal__image${upscale ? " fullscreen-media-modal__image--upscale" : ""}`}
+            className={`fullscreen-media-modal__image${upscaledSize ? " fullscreen-media-modal__image--upscale" : ""}`}
             style={upscaledSize ?? undefined}
             onLoad={(event) =>
               setNaturalSize({

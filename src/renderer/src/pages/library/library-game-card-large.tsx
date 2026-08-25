@@ -1,3 +1,5 @@
+import cn from "classnames";
+
 import { LibraryGame } from "@types";
 import {
   isAnimatedCoverCandidate,
@@ -268,6 +270,33 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       }
     );
 
+  const installedBadge =
+    !hideBadges && isInstalled ? (
+      <div
+        className={cn("library-game-card-large__installed-badge", {
+          "library-game-card-large__installed-badge--classics":
+            classicsEmulatorIcon,
+        })}
+        title={t("installed_tooltip")}
+      >
+        {classicsEmulatorIcon ? (
+          <img
+            src={classicsEmulatorIcon}
+            alt=""
+            className="library-game-card-large__installed-emulator-icon"
+          />
+        ) : (
+          <CheckCircleFillIcon
+            size={12}
+            className="library-game-card-large__installed-icon"
+          />
+        )}
+        <span className="library-game-card-large__installed-text">
+          {t("installed")}
+        </span>
+      </div>
+    ) : null;
+
   return (
     <button
       type="button"
@@ -325,20 +354,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           )}
 
           <div className="library-game-card-large__top-right">
-            {!hideBadges && isInstalled && (
-              <div
-                className="library-game-card-large__installed-badge"
-                title={t("installed_tooltip")}
-              >
-                <CheckCircleFillIcon
-                  size={12}
-                  className="library-game-card-large__installed-icon"
-                />
-                <span className="library-game-card-large__installed-text">
-                  {t("installed")}
-                </span>
-              </div>
-            )}
+            {!classicsEmulatorIcon && installedBadge}
 
             {!hideBadges && (
               <div className="library-game-card-large__playtime">
@@ -361,13 +377,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                 <span className="library-game-card-large__platform-badge">
                   {classicsPlatformLabel}
                 </span>
-                {classicsEmulatorIcon && (
-                  <span className="library-game-card-large__emulator-badge">
-                    <img src={classicsEmulatorIcon} alt="" />
-                  </span>
-                )}
               </div>
             )}
+
+            {classicsEmulatorIcon && installedBadge}
           </div>
         </div>
 

@@ -6,6 +6,12 @@ import { Button } from "@renderer/components";
 import type { HydraCloudFeature } from "@types";
 import "./cloud-subscription-modal.scss";
 
+// The remote page is a fixed 1536x836 design: below that width its right-hand
+// column overflows and is clipped mid-word. Render it at its design size and
+// scale the whole frame instead, so the layout never reflows.
+const CLOUD_DESIGN_WIDTH = 1536;
+const CLOUD_DESIGN_HEIGHT = 836;
+
 export interface CloudSubscriptionModalProps {
   visible: boolean;
   onClose: () => void;
@@ -24,6 +30,7 @@ export function CloudSubscriptionModal({
   const [cloudIframeUrl, setCloudIframeUrl] = useState("");
   const [isIframeUnavailable, setIsIframeUnavailable] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const cloudIframeOrigin = cloudIframeUrl
     ? new URL(cloudIframeUrl).origin
     : "";
@@ -62,6 +69,32 @@ export function CloudSubscriptionModal({
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+
+    if (!frame) return;
+
+    const updateScale = () => {
+      const { width } = frame.getBoundingClientRect();
+
+      if (!width) return;
+
+      frame.style.setProperty(
+        "--cloud-iframe-scale",
+        `${width / CLOUD_DESIGN_WIDTH}`
+      );
+    };
+
+    updateScale();
+
+    if (typeof ResizeObserver === "undefined") return;
+
+    const resizeObserver = new ResizeObserver(updateScale);
+    resizeObserver.observe(frame);
+
+    return () => resizeObserver.disconnect();
   }, []);
 
   const handleClose = useCallback(() => {
@@ -146,7 +179,7 @@ export function CloudSubscriptionModal({
         }
       }}
     >
-      <div className="cloud-subscription-modal__frame">
+      <div ref={frameRef} className="cloud-subscription-modal__frame">
         <button
           type="button"
           className="cloud-subscription-modal__close"
@@ -170,6 +203,8 @@ export function CloudSubscriptionModal({
             title="Hydra Cloud"
             className="cloud-subscription-modal__iframe"
             src={iframeSrc}
+            width={CLOUD_DESIGN_WIDTH}
+            height={CLOUD_DESIGN_HEIGHT}
             onLoad={syncIframeState}
           />
         )}
