@@ -16,6 +16,7 @@ export interface GroupedSouvenirFailure {
 
 const TERMINAL_HTTP_STATUSES = new Set([400, 404, 409, 422]);
 const SOUVENIR_CONFLICT_CODE = "achievements/souvenir-conflict";
+export const SOUVENIR_LIMIT_ERROR_CODE = "achievements/souvenir-limit-reached";
 
 const RECOVERY_BY_REASON: Record<string, GroupedSouvenirRecoveryAction> = {
   reservation_not_found: "reauthorize_same_id",
@@ -28,6 +29,7 @@ const RECOVERY_BY_REASON: Record<string, GroupedSouvenirRecoveryAction> = {
 };
 
 const RECOVERY_BY_ERROR_CODE: Record<string, GroupedSouvenirRecoveryAction> = {
+  [SOUVENIR_LIMIT_ERROR_CODE]: "abandon",
   "achievements/souvenir-upload-deleted": "rotate_id_and_reupload",
   "achievements/souvenir-upload-expired": "reauthorize_same_id",
   "achievements/souvenir-upload-length-mismatch": "rotate_id_and_reupload",

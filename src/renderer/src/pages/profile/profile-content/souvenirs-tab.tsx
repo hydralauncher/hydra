@@ -408,6 +408,7 @@ function SouvenirsEmptyState({
 
 interface SouvenirsTabProps {
   achievements: ProfileSouvenir[];
+  hasReachedLimit: boolean;
   hiddenReason: SouvenirsHiddenReason;
   canLike: boolean;
   disableNsfwAlert: boolean;
@@ -428,6 +429,7 @@ interface SouvenirsTabProps {
 
 export function SouvenirsTab({
   achievements,
+  hasReachedLimit,
   hiddenReason,
   canLike,
   disableNsfwAlert,
@@ -693,6 +695,18 @@ export function SouvenirsTab({
           >
             <XIcon size={16} />
           </button>
+        </aside>
+      ) : null}
+
+      {isMe && hasReachedLimit ? (
+        <aside className="profile-content__souvenirs-limit-warning">
+          <span className="profile-content__souvenirs-limit-warning-icon">
+            <AlertIcon size={18} />
+          </span>
+          <div className="profile-content__souvenirs-limit-warning-copy">
+            <strong>{t("souvenir_limit_reached_title")}</strong>
+            <span>{t("souvenir_limit_reached_description")}</span>
+          </div>
         </aside>
       ) : null}
 

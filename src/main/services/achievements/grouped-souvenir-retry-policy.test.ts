@@ -6,6 +6,7 @@ import {
   getGroupedSouvenirFailure,
   isMissingGroupedSouvenirScreenshot,
   isTerminalGroupedSouvenirError,
+  SOUVENIR_LIMIT_ERROR_CODE,
 } from "./grouped-souvenir-retry-policy.js";
 
 const axiosError = (status: number, data: Record<string, unknown> = {}) => ({
@@ -94,6 +95,19 @@ describe("grouped souvenir retry policy", () => {
           "synchronization"
         ),
         { code: message, action }
+      );
+    }
+  });
+
+  it("abandons souvenirs when the collection limit is reached", () => {
+    for (const stage of ["authorization", "synchronization"] as const) {
+      assert.deepEqual(
+        getGroupedSouvenirFailure(
+          axiosError(400, { message: SOUVENIR_LIMIT_ERROR_CODE }),
+          "client-1",
+          stage
+        ),
+        { code: SOUVENIR_LIMIT_ERROR_CODE, action: "abandon" }
       );
     }
   });
