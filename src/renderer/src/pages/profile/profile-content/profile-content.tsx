@@ -19,7 +19,6 @@ import { setHeaderTitle } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
 import {
-  AuthPage,
   findSouvenirByNotificationTarget,
   isAchievementSouvenirsEnabled,
   useSouvenirContentWarning,

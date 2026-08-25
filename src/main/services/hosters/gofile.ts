@@ -54,8 +54,11 @@ export class GofileApi {
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
   private static readonly language = "en-US";
   private static readonly timeoutMs = 15000;
-  private static readonly websiteTokenScriptUrl =
-    "https://gofile.io/js/wt.obf.js";
+  private static readonly websiteUrl = "https://gofile.io/";
+  private static readonly websiteTokenScriptUrls = [
+    "https://gofile.io/js/wt.obf.js",
+    "https://gofile.io/dist/js/wt.obf.js",
+  ];
   private static readonly alternateCdnBaseUrl = "https://gofilecdn.eu.cc";
   private static readonly alternateCdnProbeTimeoutMs = 5000;
   private static readonly alternateCdnProbeTtlMs = 15000;
