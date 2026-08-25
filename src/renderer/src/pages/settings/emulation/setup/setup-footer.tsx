@@ -34,18 +34,19 @@ export function SetupFooter({
 }: Readonly<SetupFooterProps>) {
   const { t } = useTranslation("settings");
 
+  const backAction: FooterEndAction | null = showBack
+    ? { label: t("setup_back"), onClick: onBack }
+    : null;
+  const leadingAction = endAction ?? backAction;
+
   return (
     <div className="setup-modal__footer">
       <div className="setup-modal__footer-side">
-        {endAction ? (
-          <Button theme="outline" onClick={endAction.onClick}>
-            {endAction.label}
+        {leadingAction && (
+          <Button theme="outline" onClick={leadingAction.onClick}>
+            {leadingAction.label}
           </Button>
-        ) : showBack ? (
-          <Button theme="outline" onClick={onBack}>
-            {t("setup_back")}
-          </Button>
-        ) : null}
+        )}
       </div>
 
       <div className="setup-modal__dots">

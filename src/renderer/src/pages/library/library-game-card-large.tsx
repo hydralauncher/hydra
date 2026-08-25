@@ -43,6 +43,39 @@ const normalizePathForCss = (url: string | null | undefined): string => {
   return url.replaceAll("\\", "/");
 };
 
+interface InstalledBadgeProps {
+  emulatorIcon: string | null | undefined;
+}
+
+function InstalledBadge({ emulatorIcon }: Readonly<InstalledBadgeProps>) {
+  const { t } = useTranslation("library");
+
+  return (
+    <div
+      className={cn("library-game-card-large__installed-badge", {
+        "library-game-card-large__installed-badge--classics": emulatorIcon,
+      })}
+      title={t("installed_tooltip")}
+    >
+      {emulatorIcon ? (
+        <img
+          src={emulatorIcon}
+          alt=""
+          className="library-game-card-large__installed-emulator-icon"
+        />
+      ) : (
+        <CheckCircleFillIcon
+          size={12}
+          className="library-game-card-large__installed-icon"
+        />
+      )}
+      <span className="library-game-card-large__installed-text">
+        {t("installed")}
+      </span>
+    </div>
+  );
+}
+
 export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   game,
   onContextMenu,
@@ -272,29 +305,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   const installedBadge =
     !hideBadges && isInstalled ? (
-      <div
-        className={cn("library-game-card-large__installed-badge", {
-          "library-game-card-large__installed-badge--classics":
-            classicsEmulatorIcon,
-        })}
-        title={t("installed_tooltip")}
-      >
-        {classicsEmulatorIcon ? (
-          <img
-            src={classicsEmulatorIcon}
-            alt=""
-            className="library-game-card-large__installed-emulator-icon"
-          />
-        ) : (
-          <CheckCircleFillIcon
-            size={12}
-            className="library-game-card-large__installed-icon"
-          />
-        )}
-        <span className="library-game-card-large__installed-text">
-          {t("installed")}
-        </span>
-      </div>
+      <InstalledBadge emulatorIcon={classicsEmulatorIcon} />
     ) : null;
 
   return (

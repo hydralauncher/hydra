@@ -115,7 +115,7 @@ export function SidebarProfile() {
   const library = useAppSelector((state) => state.library.value);
 
   const isPlayStationGameRunning = useMemo(() => {
-    if (!gameRunning || gameRunning.shop !== "launchbox") return false;
+    if (gameRunning?.shop !== "launchbox") return false;
 
     const runningGame = library.find(
       (game) =>

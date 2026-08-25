@@ -53,6 +53,19 @@ export interface ScanGamesModalProps {
   onClearResult: () => void;
 }
 
+const resolveResultSummary = (
+  addedCount: number,
+  linkedCount: number,
+  addedText: string,
+  linkedText: string,
+  combinedText: string
+) => {
+  if (addedCount === 0) return linkedText;
+  if (linkedCount === 0) return addedText;
+
+  return combinedText;
+};
+
 export function ScanGamesModal({
   visible,
   onClose,
@@ -92,15 +105,13 @@ export function ScanGamesModal({
     count: linkedGames.length,
   });
 
-  const resultSummary =
-    addedGames.length > 0 && linkedGames.length > 0
-      ? t("scan_games_result_summary", {
-          added: addedText,
-          linked: linkedText,
-        })
-      : addedGames.length > 0
-        ? addedText
-        : linkedText;
+  const resultSummary = resolveResultSummary(
+    addedGames.length,
+    linkedGames.length,
+    addedText,
+    linkedText,
+    t("scan_games_result_summary", { added: addedText, linked: linkedText })
+  );
 
   useEffect(() => {
     if (!scanResult) {

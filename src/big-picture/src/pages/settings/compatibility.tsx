@@ -1,6 +1,6 @@
 import "./compatibility.scss";
 
-import type { ProtonVersion } from "@types";
+import type { ProtonVersion, UserPreferences } from "@types";
 import {
   type MouseEvent as ReactMouseEvent,
   useCallback,
@@ -23,7 +23,6 @@ import {
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
-import type { UserPreferences } from "@types";
 
 interface SettingsSectionProps {
   className?: string;

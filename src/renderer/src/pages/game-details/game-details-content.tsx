@@ -253,6 +253,16 @@ export function GameDetailsContent() {
       </div>
     ) : null;
 
+  const heroImageContent = resolvedHeroImage ? (
+    <img
+      src={resolvedHeroImage}
+      className="game-details__hero-image"
+      alt={game?.title}
+    />
+  ) : (
+    <div className="game-details__hero-image game-details__hero-image--placeholder" />
+  );
+
   return (
     <div
       className={`game-details__wrapper ${hasNSFWContentBlocked ? "game-details__wrapper--blurred" : ""}`}
@@ -285,14 +295,8 @@ export function GameDetailsContent() {
                 </div>
               </div>
             </>
-          ) : resolvedHeroImage ? (
-            <img
-              src={resolvedHeroImage}
-              className="game-details__hero-image"
-              alt={game?.title}
-            />
           ) : (
-            <div className="game-details__hero-image game-details__hero-image--placeholder" />
+            heroImageContent
           )}
 
           {isLaunchboxGame && !hideClassicsBookmark && (

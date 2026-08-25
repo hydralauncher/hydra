@@ -22,6 +22,7 @@ interface ConsoleCardProps {
   requirement?: ConsoleCardRequirement;
   checkExecutable: () => Promise<{ exists: boolean }>;
   checkRequirement?: () => Promise<boolean>;
+  requirementKey?: unknown;
   onConfigure: () => void;
   onStartSetup: () => void;
 }
@@ -39,6 +40,7 @@ export function ConsoleCard({
   requirement,
   checkExecutable,
   checkRequirement,
+  requirementKey,
   onConfigure,
   onStartSetup,
 }: Readonly<ConsoleCardProps>) {
@@ -87,7 +89,7 @@ export function ConsoleCard({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [executablePath, requirement]);
+  }, [executablePath, requirement, requirementKey]);
 
   const isConfigured = executablePath !== null;
   const pathMissing = isConfigured && !executableExists;

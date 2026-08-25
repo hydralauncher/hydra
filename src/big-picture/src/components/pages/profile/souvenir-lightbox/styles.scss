@@ -32,6 +32,7 @@
 
   &__nav-button {
     position: absolute;
+    top: 50%;
     z-index: 2;
     display: flex;
     align-items: center;
@@ -43,6 +44,7 @@
     background: rgba(0, 0, 0, 0.65);
     color: var(--text);
     cursor: pointer;
+    transform: translateY(-50%);
     transition:
       background-color 0.2s ease,
       transform 0.2s ease;
@@ -59,11 +61,6 @@
       outline: 2px solid var(--primary);
       outline-offset: 2px;
     }
-  }
-
-  &__nav-button {
-    top: 50%;
-    transform: translateY(-50%);
 
     &:active {
       transform: translateY(-50%) scale(0.95);

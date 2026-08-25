@@ -1,6 +1,6 @@
 import "./big-picture.scss";
 
-import type { BigPictureDiagnosticsPosition } from "@types";
+import type { BigPictureDiagnosticsPosition, UserPreferences } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,7 +18,6 @@ import {
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
-import type { UserPreferences } from "@types";
 
 interface BigPictureSettingsSectionProps {
   className?: string;

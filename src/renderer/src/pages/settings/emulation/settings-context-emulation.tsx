@@ -77,6 +77,7 @@ export function SettingsContextEmulation() {
   const [retroArchConfig, setRetroArchConfig] =
     useState<RetroArchConfig | null>(null);
   const [view, setView] = useState<EmulationView>(readStoredEmulationView);
+  const [configsNonce, setConfigsNonce] = useState(0);
   const [setupSystem, setSetupSystem] = useState<EmulatorSystem | null>(null);
   const [retroArchSetupOpen, setRetroArchSetupOpen] = useState(false);
   const deepLinkAppliedRef = useRef(false);
@@ -104,12 +105,14 @@ export function SettingsContextEmulation() {
   const refresh = useCallback(async () => {
     const next = await window.electron.getEmulatorConfigs();
     setConfigs(next);
+    setConfigsNonce((nonce) => nonce + 1);
     return next;
   }, []);
 
   const refreshRetroArch = useCallback(async () => {
     const next = await window.electron.getRetroArchConfig();
     setRetroArchConfig(next);
+    setConfigsNonce((nonce) => nonce + 1);
     return next;
   }, []);
 
@@ -287,6 +290,7 @@ export function SettingsContextEmulation() {
               window.electron.checkEmulatorExecutable(system)
             }
             requirement={system === "ps3" ? "firmware" : "bios"}
+            requirementKey={configsNonce}
             checkRequirement={async () => {
               const config = configs[system];
 
@@ -322,6 +326,7 @@ export function SettingsContextEmulation() {
           lastScanAt={retroArchConfig.lastScanAt}
           checkExecutable={() => window.electron.checkRetroArchExecutable()}
           requirement="cores"
+          requirementKey={configsNonce}
           checkRequirement={async () =>
             Object.values(retroArchConfig.cores).some((core) => core.installed)
           }

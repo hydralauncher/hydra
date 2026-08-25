@@ -18,7 +18,7 @@ export const markArtworkSelectionSynced = async (
   const selection = await gamesArtworkSelectionSublevel.get(gameKey);
   const selected = selection?.selected[type];
 
-  if (!selection || !selected || selected.url !== url) return;
+  if (!selection || selected?.url !== url) return;
 
   await gamesArtworkSelectionSublevel.put(gameKey, {
     ...selection,

@@ -1,6 +1,9 @@
 import "./notifications-achievements-section.scss";
 
-import type { AchievementCustomNotificationPosition } from "@types";
+import type {
+  AchievementCustomNotificationPosition,
+  UserPreferences,
+} from "@types";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -23,7 +26,6 @@ import {
   SETTINGS_SIDEBAR_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
-import type { UserPreferences } from "@types";
 
 interface NotificationsAchievementsSectionProps {
   className?: string;

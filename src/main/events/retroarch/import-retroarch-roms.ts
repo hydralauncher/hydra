@@ -609,10 +609,23 @@ async function runRetroArchImport(
 
   await persistMatchedTitles(aggregated, language);
   if (matchFailed) {
+    const config = await retroarch.getRetroArchConfig();
+    const foldersWithoutTotals = folders.filter(
+      (folder) =>
+        (config.romFolders.find((known) => known.path === folder.path)
+          ?.fileCount ?? 0) === 0
+    );
+
+    if (foldersWithoutTotals.length > 0) {
+      await persistFolderRollups(foldersWithoutTotals, folderRollup);
+    }
+
     logger.warn(
       "Keeping previous RetroArch folder totals after a failed match",
       {
-        folders: folders.map((folder) => folder.path),
+        folders: folders
+          .filter((folder) => !foldersWithoutTotals.includes(folder))
+          .map((folder) => folder.path),
       }
     );
   } else {
