@@ -1,12 +1,12 @@
 @use "../../../scss/globals.scss";
 
 .game-language-section {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: transparent;
   overflow: hidden;
 
   &__header {
     display: flex;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.04);
     border-bottom: 1px solid globals.$border-color;
   }
 
@@ -17,23 +17,26 @@
     font-size: globals.$small-font-size;
     font-weight: 600;
     flex: 1;
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2.5);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
 
     &--center {
-      justify-content: flex-start;
-      flex: 0 0 60px;
+      justify-content: center;
+      flex: 0 0 70px;
     }
   }
 
   &__content {
     display: flex;
     flex-direction: column;
+    max-height: 480px;
+    overflow-y: auto;
   }
 
   &__row {
     display: flex;
+    align-items: center;
     transition: background-color 0.2s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.03);
@@ -45,7 +48,7 @@
   }
 
   &__cell {
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2.5);
+    padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 2);
     font-size: globals.$body-font-size;
     color: globals.$body-color;
     display: flex;
@@ -60,26 +63,28 @@
     }
 
     &--center {
-      justify-content: flex-start;
-      flex: 0 0 60px;
+      justify-content: center;
+      flex: 0 0 70px;
     }
   }
 
   &__check {
-    color: globals.$body-color;
-    opacity: 0.8;
+    color: globals.$success-color;
   }
 
   &__cross {
-    color: globals.$body-color;
-    opacity: 0.8;
+    color: rgba(255, 255, 255, 0.25);
   }
 
-  @media (max-width: 320px) {
-    &__header,
+  @media (max-width: 480px) {
+    &__header-item,
     &__cell {
-      padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 0.5);
-      font-size: calc(globals.$small-font-size * 0.9);
+      padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 1.5);
+      font-size: globals.$small-font-size;
+
+      &--center {
+        flex: 0 0 55px;
+      }
     }
   }
 }

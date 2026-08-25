@@ -27,17 +27,17 @@ export function GameLanguageSection() {
   }
 
   return (
-    <SidebarSection title={t("language")}>
+    <SidebarSection title={t("language", { defaultValue: "Idioma" })}>
       <div className="game-language-section">
         <div className="game-language-section__header">
           <div className="game-language-section__header-item">
-            <span>{t("language")}</span>
+            <span>{t("language", { defaultValue: "Idioma" })}</span>
           </div>
           <div className="game-language-section__header-item game-language-section__header-item--center">
-            <span>{t("caption")}</span>
+            <span>{t("caption", { defaultValue: "Legendas" })}</span>
           </div>
           <div className="game-language-section__header-item game-language-section__header-item--center">
-            <span>{t("audio")}</span>
+            <span>{t("audio", { defaultValue: "Áudio" })}</span>
           </div>
         </div>
 

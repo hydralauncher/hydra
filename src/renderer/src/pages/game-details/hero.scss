@@ -22,16 +22,16 @@ $hero-height: 350px;
 
   &__hero {
     width: 100%;
-    min-height: calc(100vh + 95px);
+    min-height: calc(100vh + 95px - 65px);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     position: relative;
     transition: all ease 0.2s;
-    padding: calc(globals.$spacing-unit * 6) calc(globals.$spacing-unit * 4);
+    padding: calc(globals.$spacing-unit * 6) calc(globals.$spacing-unit * 4) 0;
 
     @media (max-width: 1100px) {
-      padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 2);
+      padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 2) 0;
     }
   }
 

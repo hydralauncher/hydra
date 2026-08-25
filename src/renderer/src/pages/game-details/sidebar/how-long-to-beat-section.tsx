@@ -1,6 +1,8 @@
+import { useContext } from "react";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 import type { HowLongToBeatCategory } from "@types";
+import { gameDetailsContext } from "@renderer/context";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import "./sidebar.scss";
 
@@ -19,34 +21,44 @@ export function HowLongToBeatSection({
   isLoading,
 }: HowLongToBeatSectionProps) {
   const { t } = useTranslation("game_details");
+  const { gameTitle } = useContext(gameDetailsContext);
 
   const getDuration = (duration: string) => {
     const [value, unit] = duration.split(" ");
-    return `${value} ${t(durationTranslation[unit])}`;
+    return `${value} ${t(durationTranslation[unit] ?? unit)}`;
   };
 
   if (!howLongToBeatData && !isLoading) return null;
 
   return (
     <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
-      <SidebarSection title="HowLongToBeat">
+      <SidebarSection
+        title="HowLongToBeat"
+        subtitle={gameTitle ? "howlongtobeat.com" : undefined}
+        subtitleHref={
+          gameTitle
+            ? `https://howlongtobeat.com/?q=${encodeURIComponent(gameTitle)}`
+            : undefined
+        }
+      >
         <ul className="how-long-to-beat__categories-list">
           {howLongToBeatData
             ? howLongToBeatData.map((category) => (
                 <li key={category.title} className="how-long-to-beat__category">
-                  <p className="how-long-to-beat__category-label how-long-to-beat__category-label--bold">
-                    {category.title}
-                  </p>
+                  <div className="how-long-to-beat__category-header">
+                    <p className="how-long-to-beat__category-label how-long-to-beat__category-label--bold">
+                      {category.title}
+                    </p>
+                    {category.accuracy !== "00" && (
+                      <small className="how-long-to-beat__category-accuracy">
+                        {t("accuracy", { accuracy: category.accuracy })}
+                      </small>
+                    )}
+                  </div>
 
-                  <p className="how-long-to-beat__category-label">
+                  <p className="how-long-to-beat__category-duration">
                     {getDuration(category.duration)}
                   </p>
-
-                  {category.accuracy !== "00" && (
-                    <small>
-                      {t("accuracy", { accuracy: category.accuracy })}
-                    </small>
-                  )}
                 </li>
               ))
             : Array.from({ length: 4 }).map((_, index) => (

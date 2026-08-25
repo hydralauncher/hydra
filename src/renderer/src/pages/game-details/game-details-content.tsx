@@ -71,6 +71,8 @@ export function GameDetailsContent() {
   const { t } = useTranslation("game_details");
   const [searchParams] = useSearchParams();
   const reviewsRef = useRef<HTMLDivElement>(null);
+  const tabsBarRef = useRef<HTMLDivElement>(null);
+  const contentWrapperRef = useRef<HTMLDivElement>(null);
 
   const {
     objectId,
@@ -203,6 +205,19 @@ export function GameDetailsContent() {
     if (heroVideoSrc) startVideoTimer();
   }, [objectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const updateClipPath = useCallback(() => {
+    if (!tabsBarRef.current || !contentWrapperRef.current) return;
+    const tabsRect = tabsBarRef.current.getBoundingClientRect();
+    const contentRect = contentWrapperRef.current.getBoundingClientRect();
+    const clipTop = Math.max(0, Math.ceil(tabsRect.bottom - contentRect.top));
+
+    if (clipTop > 0) {
+      contentWrapperRef.current.style.clipPath = `inset(${clipTop}px 0 0 0)`;
+    } else {
+      contentWrapperRef.current.style.clipPath = "none";
+    }
+  }, []);
+
   useEffect(() => {
     const content = document.getElementById("scrollableDiv");
     if (!content) return;
@@ -227,20 +242,28 @@ export function GameDetailsContent() {
         const rect = reviewsRef.current.getBoundingClientRect();
         setShowScrollTop(rect.top < window.innerHeight);
       }
+
+      updateClipPath();
     };
 
-    content.addEventListener("scroll", handleScroll);
-    return () => content.removeEventListener("scroll", handleScroll);
-  }, [stopVideo, startVideoTimer]);
+    handleScroll();
+    content.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", updateClipPath);
+    return () => {
+      content.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updateClipPath);
+    };
+  }, [stopVideo, startVideoTimer, updateClipPath]);
 
-  // Scroll to reviews section if reviews=true in URL
+  useEffect(() => {
+    updateClipPath();
+  }, [activeTab, updateClipPath]);
+
+  // Switch to reviews tab if reviews=true in URL
   useEffect(() => {
     const shouldScrollToReviews = searchParams.get("reviews") === "true";
-    if (shouldScrollToReviews && reviewsRef.current) {
-      setActiveTab("overview");
-      setTimeout(() => {
-        reviewsRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 500);
+    if (shouldScrollToReviews) {
+      setActiveTab("reviews");
     }
   }, [searchParams, objectId]);
 
@@ -421,101 +444,97 @@ export function GameDetailsContent() {
                 width: "100%",
               }}
             />
+          </div>
+        </div>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                paddingBottom: "8px",
-                width: "100%",
-              }}
-            >
-              <div
-                className="game-details__tabs"
-                style={{ display: "flex", gap: "8px", overflowX: "auto" }}
+        <div ref={tabsBarRef} className="game-details__tabs-bar-container">
+          <div className="game-details__tabs-bar-content">
+            <div className="game-details__tabs">
+              <Button
+                theme={activeTab === "overview" ? "primary" : "outline"}
+                onClick={() => setActiveTab("overview")}
               >
-                <Button
-                  theme={activeTab === "overview" ? "primary" : "outline"}
-                  onClick={() => setActiveTab("overview")}
-                >
-                  {t("overview") || "Visão Geral"}
-                </Button>
-                {shop !== "custom" && (
-                  <>
-                    {(userDetails === null ||
-                      (achievements && achievements.length > 0)) && (
-                      <Button
-                        theme={
-                          activeTab === "achievements" ? "primary" : "outline"
-                        }
-                        onClick={() => setActiveTab("achievements")}
-                      >
-                        Conquistas
-                      </Button>
-                    )}
-
+                {t("overview") || "Visão Geral"}
+              </Button>
+              {shop !== "custom" && (
+                <>
+                  {(userDetails === null ||
+                    (achievements && achievements.length > 0)) && (
                     <Button
                       theme={
-                        activeTab === "howLongToBeat" ? "primary" : "outline"
+                        activeTab === "achievements" ? "primary" : "outline"
                       }
-                      onClick={() => setActiveTab("howLongToBeat")}
+                      onClick={() => setActiveTab("achievements")}
                     >
-                      HowLongToBeat
+                      Conquistas
                     </Button>
+                  )}
 
-                    <Button
-                      theme={activeTab === "language" ? "primary" : "outline"}
-                      onClick={() => setActiveTab("language")}
-                    >
-                      Idioma
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              <div
-                style={{ display: "flex", gap: "8px", alignItems: "center" }}
-              >
-                <HeroPanelSecondaryActions />
-
-                {game && (
                   <Button
-                    onClick={handleEditGameClick}
-                    theme="primary"
-                    title={t("edit_game_modal_button")}
+                    theme={
+                      activeTab === "howLongToBeat" ? "primary" : "outline"
+                    }
+                    onClick={() => setActiveTab("howLongToBeat")}
                   >
-                    <PencilIcon size={16} />
+                    HowLongToBeat
                   </Button>
-                )}
 
-                {game?.shop !== "custom" && (
-                  <Button onClick={handleCloudSaveButtonClick} theme="primary">
-                    <div
-                      className="game-details__cloud-icon-container"
-                      style={{
-                        display: "inline-flex",
-                        width: 20,
-                        height: 20,
-                        marginRight: 8,
-                      }}
-                    >
-                      <img
-                        src={cloudIconAnimated}
-                        alt=""
-                        className="game-details__cloud-icon"
-                        style={{ width: "100%", height: "100%" }}
-                      />
-                    </div>
-                    {t("cloud_save")}
+                  <Button
+                    theme={activeTab === "language" ? "primary" : "outline"}
+                    onClick={() => setActiveTab("language")}
+                  >
+                    Idioma
                   </Button>
-                )}
-              </div>
+
+                  <Button
+                    theme={activeTab === "reviews" ? "primary" : "outline"}
+                    onClick={() => setActiveTab("reviews")}
+                  >
+                    {t("reviews") || "Avaliações"}
+                  </Button>
+                </>
+              )}
+            </div>
+
+            <div className="game-details__tabs-actions">
+              <HeroPanelSecondaryActions />
+
+              {game && (
+                <Button
+                  onClick={handleEditGameClick}
+                  theme="primary"
+                  title={t("edit_game_modal_button")}
+                >
+                  <PencilIcon size={16} />
+                </Button>
+              )}
+
+              {game?.shop !== "custom" && (
+                <Button onClick={handleCloudSaveButtonClick} theme="primary">
+                  <div
+                    className="game-details__cloud-icon-container"
+                    style={{
+                      display: "inline-flex",
+                      width: 20,
+                      height: 20,
+                      marginRight: 8,
+                    }}
+                  >
+                    <img
+                      src={cloudIconAnimated}
+                      alt=""
+                      className="game-details__cloud-icon"
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                  </div>
+                  {t("cloud_save")}
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="game-details__content-wrapper">
+        <div ref={contentWrapperRef} className="game-details__content-wrapper">
           <div className="game-details__description-container">
             <div className="game-details__description-content">
               {activeTab === "overview" && (
@@ -550,14 +569,11 @@ export function GameDetailsContent() {
                 </div>
               )}
 
-              {activeTab === "overview" &&
+              {activeTab === "reviews" &&
                 shop !== "custom" &&
                 shop &&
                 objectId && (
-                  <div
-                    ref={reviewsRef}
-                    style={{ width: "100%", marginTop: "32px" }}
-                  >
+                  <div ref={reviewsRef} style={{ width: "100%" }}>
                     <GameReviews
                       shop={shop}
                       objectId={objectId}
@@ -571,9 +587,9 @@ export function GameDetailsContent() {
                 )}
             </div>
 
-            {shop !== "custom" && activeTab !== "overview" && (
-              <Sidebar activeTab={activeTab} />
-            )}
+            {shop !== "custom" &&
+              activeTab !== "overview" &&
+              activeTab !== "reviews" && <Sidebar activeTab={activeTab} />}
           </div>
         </div>
 

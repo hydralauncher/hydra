@@ -342,8 +342,7 @@ export function Sidebar({ activeTab }: { activeTab: string }) {
       )}
 
       {activeTab === "howLongToBeat" && (
-        <div style={{ marginBottom: 24 }}>
-          <h3 style={{ marginBottom: 16 }}>HowLongToBeat</h3>
+        <div style={{ marginBottom: 24, width: "100%" }}>
           <HowLongToBeatSection
             howLongToBeatData={howLongToBeat.data}
             isLoading={howLongToBeat.isLoading}
@@ -392,10 +391,7 @@ export function Sidebar({ activeTab }: { activeTab: string }) {
       )}
 
       {activeTab === "language" && (
-        <div style={{ marginBottom: 24 }}>
-          <h3 style={{ marginBottom: 16 }}>
-            {t("languages", { defaultValue: "Idioma" })}
-          </h3>
+        <div style={{ marginBottom: 24, width: "100%" }}>
           <GameLanguageSection />
         </div>
       )}
