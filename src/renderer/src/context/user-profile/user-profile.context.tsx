@@ -54,7 +54,7 @@ export interface UserProfileContext {
     souvenirId: string,
     update: Partial<ProfileSouvenir>
   ) => void;
-  removeSouvenir: (souvenirId: string) => void;
+  removeSouvenir: (souvenirId: string) => Promise<void>;
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
@@ -88,7 +88,7 @@ export const userProfileContext = createContext<UserProfileContext>({
   getUserSouvenirs: async () => false,
   loadMoreSouvenirs: async () => false,
   updateSouvenir: () => {},
-  removeSouvenir: () => {},
+  removeSouvenir: async () => {},
 });
 
 const { Provider } = userProfileContext;
@@ -368,15 +368,27 @@ export function UserProfileContextProvider({
     []
   );
 
-  const removeSouvenir = useCallback((souvenirId: string) => {
-    const key = getSouvenirKey(souvenirId);
+  const removeSouvenir = useCallback(
+    async (souvenirId: string) => {
+      const key = getSouvenirKey(souvenirId);
+      const requestId = souvenirRequestIdRef.current;
 
-    setSouvenirs((current) =>
-      current.filter((souvenir) => getSouvenirKey(souvenir.id) !== key)
-    );
-    setSouvenirsTotal((current) => Math.max(0, current - 1));
-    setHasReachedSouvenirLimit(false);
-  }, []);
+      setSouvenirs((current) =>
+        current.filter((souvenir) => getSouvenirKey(souvenir.id) !== key)
+      );
+      setSouvenirsTotal((current) => Math.max(0, current - 1));
+
+      try {
+        const response = await fetchSouvenirsPage("recent", 0);
+        if (requestId !== souvenirRequestIdRef.current || !response) return;
+
+        setHasReachedSouvenirLimit(response.hasReachedLimit);
+      } catch {
+        // Keep the last server-provided value until the next successful refresh.
+      }
+    },
+    [fetchSouvenirsPage]
+  );
 
   const getUserProfile = useCallback(async () => {
     getUserStats();
