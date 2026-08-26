@@ -27,7 +27,7 @@ interface UseSouvenirActionsOptions {
     souvenirId: string,
     update: Partial<ProfileSouvenir>
   ) => void;
-  removeSouvenir: (souvenirId: string) => void;
+  removeSouvenir: (souvenirId: string) => Promise<void>;
 }
 
 export function useSouvenirActions({
@@ -142,7 +142,7 @@ export function useSouvenirActions({
           souvenirId: souvenir.id,
         });
 
-        removeSouvenir(souvenir.id);
+        await removeSouvenir(souvenir.id);
         showSuccessToast(t("souvenir_deleted_successfully"));
         return true;
       } catch (error) {
