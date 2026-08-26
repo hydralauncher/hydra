@@ -89,43 +89,45 @@ export function SetupStepFirmware({
         </button>
       </div>
 
-      <div
-        className="setup-modal__alert setup-modal__alert--neutral"
-        style={{ marginTop: "auto" }}
-      >
+      {installed !== null && (
         <div
-          className={`setup-modal__row-icon ${
-            installed
-              ? "setup-modal__row-icon--found"
-              : "setup-modal__row-icon--neutral"
-          }`}
-          style={{ width: 36, height: 36 }}
+          className="setup-modal__alert setup-modal__alert--neutral"
+          style={{ marginTop: "auto" }}
         >
-          {installed ? (
-            <CheckCircleFillIcon size={16} />
-          ) : (
-            <ClockIcon size={16} />
+          <div
+            className={`setup-modal__row-icon ${
+              installed
+                ? "setup-modal__row-icon--found"
+                : "setup-modal__row-icon--neutral"
+            }`}
+            style={{ width: 36, height: 36 }}
+          >
+            {installed ? (
+              <CheckCircleFillIcon size={16} />
+            ) : (
+              <ClockIcon size={16} />
+            )}
+          </div>
+          <div className="setup-modal__alert-text">
+            <span className="setup-modal__alert-title">
+              {installed
+                ? t("setup_firmware_found")
+                : t("setup_firmware_not_yet")}
+            </span>
+            <span className="setup-modal__alert-note">
+              {installed
+                ? t("setup_firmware_found_note")
+                : t("setup_firmware_recheck_note")}
+            </span>
+          </div>
+          {!installed && (
+            <Button theme="primary" onClick={probe} disabled={checking}>
+              <SyncIcon size={14} />
+              <span>{t("setup_firmware_check_again")}</span>
+            </Button>
           )}
         </div>
-        <div className="setup-modal__alert-text">
-          <span className="setup-modal__alert-title">
-            {installed
-              ? t("setup_firmware_found")
-              : t("setup_firmware_not_yet")}
-          </span>
-          <span className="setup-modal__alert-note">
-            {installed
-              ? t("setup_firmware_found_note")
-              : t("setup_firmware_recheck_note")}
-          </span>
-        </div>
-        {!installed && (
-          <Button theme="primary" onClick={probe} disabled={checking}>
-            <SyncIcon size={14} />
-            <span>{t("setup_firmware_check_again")}</span>
-          </Button>
-        )}
-      </div>
+      )}
     </>
   );
 }

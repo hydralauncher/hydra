@@ -56,6 +56,8 @@ export function EmulatorSetupModal({
   const autoDetectRef = useRef(false);
   const scanStartedRef = useRef(false);
   const persistedExecutableRef = useRef(false);
+  const wasVisibleRef = useRef(false);
+  const openedExecutablePathRef = useRef<string | null>(null);
 
   const previewFolder = useCallback(
     async (folderPath: string, scanSubfolders: boolean) => {
@@ -102,7 +104,14 @@ export function EmulatorSetupModal({
   } = usePendingRomFolders({ previewFolder, onFolderAdded });
 
   useEffect(() => {
-    if (visible) {
+    if (!visible) {
+      wasVisibleRef.current = false;
+      return;
+    }
+
+    if (!wasVisibleRef.current) {
+      wasVisibleRef.current = true;
+      openedExecutablePathRef.current = initialConfig?.executablePath ?? null;
       setConfig(initialConfig);
       setStepIndex(0);
       setFolders([]);
@@ -336,9 +345,9 @@ export function EmulatorSetupModal({
     persistedExecutableRef.current = false;
     await window.electron.setEmulatorExecutablePath(
       system,
-      initialConfig?.executablePath ?? null
+      openedExecutablePathRef.current
     );
-  }, [system, currentStep, initialConfig?.executablePath]);
+  }, [system, currentStep]);
 
   if (!visible || !system) return null;
 

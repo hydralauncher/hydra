@@ -204,7 +204,7 @@ export function ContentSettingsSection({
       {
         id: "autoplay-animated-artwork",
         focusId: CONTENT_ITEM_FOCUS_IDS.autoplayAnimatedArtwork,
-        label: "Always play animated artwork (May affect performance)",
+        label: t("autoplay_animated_artwork"),
         checked: form.autoplayAnimatedArtwork,
         onChange: (checked: boolean) =>
           void updateUserPreferences({ autoplayAnimatedArtwork: checked }),

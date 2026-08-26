@@ -342,8 +342,8 @@ export function SettingsContextEmulation() {
         initialConfig={setupSystem ? configs[setupSystem] : null}
         onClose={handleSetupClose}
         onComplete={handleSetupComplete}
-        onManage={(system) => {
-          handleSetupClose();
+        onManage={async (system) => {
+          await handleSetupClose();
           handleConfigure(system);
         }}
       />
@@ -353,8 +353,8 @@ export function SettingsContextEmulation() {
         initialConfig={retroArchConfig}
         onClose={handleRetroArchSetupClose}
         onComplete={handleRetroArchSetupComplete}
-        onManage={() => {
-          handleRetroArchSetupClose();
+        onManage={async () => {
+          await handleRetroArchSetupClose();
           setView({ kind: "retroarch-detail" });
         }}
       />
