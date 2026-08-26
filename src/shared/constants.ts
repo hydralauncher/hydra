@@ -133,12 +133,18 @@ export const getGameExecutableFilters = (
   platform: string,
   labels: { executable: string; allFiles: string }
 ) => {
-  const extensions: string[] = getGameExecutableExtensions(platform);
-
-  return [
-    { name: labels.executable, extensions },
-    { name: labels.allFiles, extensions: ["*"] },
+  const filters = [
+    {
+      name: labels.executable,
+      extensions: getGameExecutableExtensions(platform),
+    },
   ];
+
+  if (platform === "linux") {
+    filters.push({ name: labels.allFiles, extensions: ["*"] });
+  }
+
+  return filters;
 };
 
 export const isGameExecutable = (filePath: string, platform: string) => {

@@ -32,17 +32,15 @@ describe("isGameExecutable", () => {
 });
 
 describe("getGameExecutableFilters", () => {
-  it("offers an all-files entry on every platform", () => {
-    for (const platform of ["win32", "linux", "darwin"]) {
-      const filters = getGameExecutableFilters(platform, {
-        executable: "Executable",
-        allFiles: "All files",
-      });
+  const offersAllFiles = (platform: string) =>
+    getGameExecutableFilters(platform, {
+      executable: "Executable",
+      allFiles: "All files",
+    }).some((filter) => filter.extensions.includes("*"));
 
-      assert.ok(
-        filters.some((filter) => filter.extensions.includes("*")),
-        `missing all-files filter on ${platform}`
-      );
-    }
+  it("offers an all-files entry only on linux", () => {
+    assert.equal(offersAllFiles("linux"), true);
+    assert.equal(offersAllFiles("win32"), false);
+    assert.equal(offersAllFiles("darwin"), false);
   });
 });

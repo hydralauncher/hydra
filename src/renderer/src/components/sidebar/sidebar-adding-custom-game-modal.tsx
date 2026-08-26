@@ -9,7 +9,7 @@ import {
   buildGameDetailsPath,
   generateRandomGradient,
 } from "@renderer/helpers";
-import { getGameExecutableFilters, isGameExecutable } from "@shared";
+import { getGameExecutableExtensions, isGameExecutable } from "@shared";
 
 import "./sidebar-adding-custom-game-modal.scss";
 
@@ -32,11 +32,13 @@ export function SidebarAddingCustomGameModal({
   const [isAdding, setIsAdding] = useState(false);
   const [romPath, setRomPath] = useState("");
 
-  const executableFilters = () =>
-    getGameExecutableFilters(window.electron.platform, {
-      executable: t("custom_game_modal_executable"),
-      allFiles: t("all_files", { ns: "game_details" }),
-    });
+  const executableFilters = () => [
+    {
+      name: t("custom_game_modal_executable"),
+      extensions: getGameExecutableExtensions(window.electron.platform),
+    },
+    { name: t("all_files", { ns: "game_details" }), extensions: ["*"] },
+  ];
 
   const selectLauncher = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
