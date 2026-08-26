@@ -434,6 +434,8 @@ export function RetroArchDetail({
         onRescan={handleRescan}
       />
 
+      <RetroArchScanIndicator variant="section" />
+
       <DetailTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
       {activeTab === "emulator" && (
@@ -546,8 +548,6 @@ export function RetroArchDetail({
                 <span>{t("rescan")}</span>
               </Button>
             </header>
-
-            <RetroArchScanIndicator variant="section" />
 
             <LibraryStatsGrid
               systemLabel={RETROARCH_LABEL}
