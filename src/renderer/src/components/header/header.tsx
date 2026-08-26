@@ -14,7 +14,8 @@ import {
   SearchIcon,
   SyncIcon,
   XIcon,
-  ThreeBarsIcon,
+  SidebarCollapseIcon,
+  SidebarExpandIcon,
 } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 import { SidebarAddingCustomGameModal } from "@renderer/components/sidebar/sidebar-adding-custom-game-modal";
@@ -413,7 +414,11 @@ export function Header() {
             data-tooltip-content={t("toggle_sidebar", { ns: "sidebar" })}
             data-tooltip-place="bottom"
           >
-            <ThreeBarsIcon />
+            {userPreferences?.hideSidebar ? (
+              <SidebarCollapseIcon />
+            ) : (
+              <SidebarExpandIcon />
+            )}
           </button>
 
           <button
