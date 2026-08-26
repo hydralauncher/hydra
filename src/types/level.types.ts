@@ -133,6 +133,7 @@ export interface DownloadDirectoryPreference {
 }
 
 export interface UserPreferences {
+  similarGamesAlgorithm?: "legacy" | "jaccard" | "balanced";
   downloadsPath?: string | null;
   defaultWinePrefixPath?: string | null;
   downloadDirectories?: DownloadDirectoryPreference[];

@@ -7,6 +7,7 @@ import type {
   PointerEvent as ReactPointerEvent,
   ReactNode,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useDominantColor, useGamepad } from "../../../hooks";
 import type { FocusOverrides } from "../../../services";
 import { useNavigationIsFocused, useNavigationStore } from "../../../stores";
@@ -36,6 +37,7 @@ const PARTIAL_VISIBLE_SLIDE_RATIO = 0.5;
 const SLIDE_MEASUREMENT_EPSILON_PX = 1;
 const LEFT_INPUT_HELD_THRESHOLD = -0.5;
 const CLICK_DRAG_THRESHOLD_PX = 8;
+const CAROUSEL_ICON_SIZE = 20;
 
 type FadeSide = "left" | "right";
 type FocusCarouselCardMode = "store" | "library";
@@ -692,6 +694,7 @@ export function FocusCarousel({
   cardMode = "store",
   cardVariant = "vertical",
 }: Readonly<FocusCarouselProps>) {
+  const { t } = useTranslation("game_details");
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     containScroll: "trimSnaps",
@@ -828,20 +831,20 @@ export function FocusCarousel({
               <button
                 type="button"
                 className="focus-carousel__header-button"
-                aria-label="Previous"
+                aria-label={t("previous_media")}
                 disabled={!canScrollPrev}
                 onClick={() => emblaApi?.scrollPrev()}
               >
-                <CaretLeftIcon size={20} />
+                <CaretLeftIcon size={CAROUSEL_ICON_SIZE} />
               </button>
               <button
                 type="button"
                 className="focus-carousel__header-button"
-                aria-label="Next"
+                aria-label={t("next_media")}
                 disabled={!canScrollNext}
                 onClick={() => emblaApi?.scrollNext()}
               >
-                <CaretRightIcon size={20} />
+                <CaretRightIcon size={CAROUSEL_ICON_SIZE} />
               </button>
             </div>
           )}
