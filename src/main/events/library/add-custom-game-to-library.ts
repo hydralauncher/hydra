@@ -9,7 +9,8 @@ const addCustomGameToLibrary = async (
   executablePath: string,
   iconUrl?: string,
   logoImageUrl?: string,
-  libraryHeroImageUrl?: string
+  libraryHeroImageUrl?: string,
+  launchOptions?: string | null
 ) => {
   const objectId = randomUUID();
   const shop: GameShop = "custom";
@@ -17,7 +18,10 @@ const addCustomGameToLibrary = async (
 
   const existingGames = await gamesSublevel.iterator().all();
   const existingGame = existingGames.find(
-    ([_key, game]) => game.executablePath === executablePath && !game.isDeleted
+    ([_key, game]) =>
+      game.executablePath === executablePath &&
+      (game.launchOptions ?? null) === (launchOptions ?? null) &&
+      !game.isDeleted
   );
 
   if (existingGame) {
@@ -55,7 +59,7 @@ const addCustomGameToLibrary = async (
     addedToLibraryAt: new Date(),
     executablePath,
     executablePathUpdatedAt: new Date(),
-    launchOptions: null,
+    launchOptions: launchOptions ?? null,
     favorite: false,
     automaticCloudSync: false,
     hasManuallyUpdatedPlaytime: false,

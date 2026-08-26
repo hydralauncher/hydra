@@ -883,7 +883,8 @@ contextBridge.exposeInMainWorld("electron", {
     executablePath: string,
     iconUrl?: string,
     logoImageUrl?: string,
-    libraryHeroImageUrl?: string
+    libraryHeroImageUrl?: string,
+    launchOptions?: string | null
   ) =>
     ipcRenderer.invoke(
       "addCustomGameToLibrary",
@@ -891,7 +892,8 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath,
       iconUrl,
       logoImageUrl,
-      libraryHeroImageUrl
+      libraryHeroImageUrl,
+      launchOptions
     ),
   copyCustomGameAsset: (
     sourcePath: string,

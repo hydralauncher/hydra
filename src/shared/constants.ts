@@ -103,7 +103,13 @@ export const MINIMUM_FREE_DISK_SPACE_BYTES = 512 * 1024 * 1024;
 
 export const FILE_EXTENSIONS_TO_EXTRACT = [".rar", ".zip", ".7z"];
 
-export const WINDOWS_GAME_EXECUTABLE_EXTENSIONS = ["exe", "lnk", "bat", "cmd"];
+export const WINDOWS_GAME_EXECUTABLE_EXTENSIONS = [
+  "exe",
+  "lnk",
+  "bat",
+  "cmd",
+  "msi",
+];
 
 export const LINUX_GAME_EXECUTABLE_EXTENSIONS = [
   ...WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
@@ -117,29 +123,40 @@ export const LINUX_GAME_EXECUTABLE_EXTENSIONS = [
 
 export const DARWIN_GAME_EXECUTABLE_EXTENSIONS = ["app"];
 
+export const getGameExecutableExtensions = (platform: string) => {
+  if (platform === "linux") return LINUX_GAME_EXECUTABLE_EXTENSIONS;
+  else if (platform === "darwin") return DARWIN_GAME_EXECUTABLE_EXTENSIONS;
+  else return WINDOWS_GAME_EXECUTABLE_EXTENSIONS;
+};
+
 export const getGameExecutableFilters = (
   platform: string,
   labels: { executable: string; allFiles: string }
 ) => {
-  if (platform === "linux") {
-    return [
-      { name: labels.executable, extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS },
-      { name: labels.allFiles, extensions: ["*"] },
-    ];
-  }
-
-  if (platform === "darwin") {
-    return [
-      {
-        name: labels.executable,
-        extensions: DARWIN_GAME_EXECUTABLE_EXTENSIONS,
-      },
-    ];
-  }
-
-  return [
-    { name: labels.executable, extensions: WINDOWS_GAME_EXECUTABLE_EXTENSIONS },
+  const filters = [
+    {
+      name: labels.executable,
+      extensions: getGameExecutableExtensions(platform),
+    },
   ];
+
+  if (platform === "linux") {
+    filters.push({ name: labels.allFiles, extensions: ["*"] });
+  }
+
+  return filters;
+};
+
+export const isGameExecutable = (filePath: string, platform: string) => {
+  const fileName = filePath.split(/[\\/]/).pop() ?? "";
+
+  const extension = fileName.split(".").slice(1).pop();
+
+  if (!extension) return true;
+
+  return getGameExecutableExtensions(platform).some(
+    (candidate) => candidate.toLowerCase() === extension.toLowerCase()
+  );
 };
 
 export const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";

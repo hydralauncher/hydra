@@ -312,7 +312,8 @@ declare global {
       executablePath: string,
       iconUrl?: string,
       logoImageUrl?: string,
-      libraryHeroImageUrl?: string
+      libraryHeroImageUrl?: string,
+      launchOptions?: string | null
     ) => Promise<Game>;
     updateCustomGame: (params: {
       shop: GameShop;
