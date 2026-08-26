@@ -115,7 +115,8 @@ export function SidebarAddingCustomGameModal({
       const iconUrl = ""; // Don't use gradient for icon
       const logoImageUrl = ""; // Don't use gradient for logo
       const libraryHeroImageUrl = generateRandomGradient(); // Only use gradient for hero
-      const launchOptions = romPath ? `"${romPath}"` : null;
+      const quote = romPath.includes('"') ? "'" : '"';
+      const launchOptions = romPath ? `${quote}${romPath}${quote}` : null;
 
       const newGame = await window.electron.addCustomGameToLibrary(
         gameNameForSeed,
