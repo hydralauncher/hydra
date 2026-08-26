@@ -41,10 +41,23 @@ describe("reconcileRemoteArtworkSelection", () => {
     );
   });
 
-  it("removes an unsynced selection the remote overrides", () => {
+  it("keeps an unsynced selection the remote disagrees with", () => {
     assert.deepEqual(
       reconcileRemoteArtworkSelection(
         heroSelection,
+        {},
+        {
+          customHeroImageUrl: "https://cdn2.steamgriddb.com/hero/new.webp",
+        }
+      ),
+      { selected: heroSelection, changed: false }
+    );
+  });
+
+  it("removes a synced selection the remote overrides", () => {
+    assert.deepEqual(
+      reconcileRemoteArtworkSelection(
+        syncedHeroSelection,
         {},
         {
           customHeroImageUrl: "https://cdn2.steamgriddb.com/hero/new.webp",

@@ -51,7 +51,7 @@ export const reconcileRemoteArtworkSelection = (
       continue;
     }
 
-    if (remoteValue === null && !selection.syncedAt) {
+    if (!selection.syncedAt) {
       continue;
     }
 

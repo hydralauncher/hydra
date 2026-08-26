@@ -72,7 +72,7 @@ const uploadUnsyncedArtworkSelection = async (
 
     const field = CUSTOM_ASSET_FIELD_BY_TYPE[type];
     if (localGame?.[field]?.startsWith("local:")) continue;
-    if (remoteAssets[field] != null) continue;
+    if (remoteAssets[field] === selected.url) continue;
 
     const synced = await saveSteamGridDbArtwork(
       selection.shop,

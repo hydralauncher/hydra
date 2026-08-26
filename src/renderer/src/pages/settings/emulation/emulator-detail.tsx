@@ -6,7 +6,7 @@ import { Button, ClassicsScanIndicator } from "@renderer/components";
 import { showExecutableOpenDialog } from "@renderer/helpers";
 import { useClassicsScan, useToast } from "@renderer/hooks";
 import { formatBytes } from "@shared";
-import type { EmulatorConfig, RomFolder } from "@types";
+import type { EmulatorConfig, EmulatorSystem, RomFolder } from "@types";
 import { SETTINGS_EMULATOR_TAB_STORAGE_KEY } from "@renderer/session-state";
 
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
@@ -46,9 +46,22 @@ const EMULATOR_TABS: EmulatorTab[] = [
   "library",
 ];
 
-const readStoredTab = (): EmulatorTab => {
-  const stored = localStorage.getItem(SETTINGS_EMULATOR_TAB_STORAGE_KEY);
-  return stored && (EMULATOR_TABS as string[]).includes(stored)
+const emulatorTabStorageKey = (system: EmulatorSystem) =>
+  `${SETTINGS_EMULATOR_TAB_STORAGE_KEY}-${system}`;
+
+const availableEmulatorTabs = (supportsMemoryCards: boolean): EmulatorTab[] =>
+  supportsMemoryCards
+    ? EMULATOR_TABS
+    : EMULATOR_TABS.filter((tab) => tab !== "memory-cards");
+
+const readStoredTab = (
+  system: EmulatorSystem,
+  supportsMemoryCards: boolean
+): EmulatorTab => {
+  const stored = localStorage.getItem(emulatorTabStorageKey(system));
+  const available = availableEmulatorTabs(supportsMemoryCards) as string[];
+
+  return stored && available.includes(stored)
     ? (stored as EmulatorTab)
     : "emulator";
 };
@@ -79,11 +92,17 @@ export function EmulatorDetail({
   const supportsBios = supportsMemoryCards;
   const supportsFirmware = config.system === "ps3";
 
-  const [activeTab, setActiveTab] = useState<EmulatorTab>(readStoredTab);
+  const [activeTab, setActiveTab] = useState<EmulatorTab>(() =>
+    readStoredTab(config.system, supportsMemoryCards)
+  );
 
   useEffect(() => {
-    localStorage.setItem(SETTINGS_EMULATOR_TAB_STORAGE_KEY, activeTab);
-  }, [activeTab]);
+    setActiveTab(readStoredTab(config.system, supportsMemoryCards));
+  }, [config.system, supportsMemoryCards]);
+
+  useEffect(() => {
+    localStorage.setItem(emulatorTabStorageKey(config.system), activeTab);
+  }, [config.system, activeTab]);
 
   useEffect(() => {
     let cancelled = false;

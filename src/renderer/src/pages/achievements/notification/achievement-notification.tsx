@@ -80,6 +80,7 @@ export function AchievementNotification() {
   const hostReadyReported = useRef(false);
   const displayTimer = useRef<number | null>(null);
   const closingTimer = useRef<number | null>(null);
+  const hasPlayedSound = useRef(false);
 
   const clearAnimationTimers = useCallback(() => {
     if (displayTimer.current !== null) {
@@ -267,7 +268,10 @@ export function AchievementNotification() {
         if (requestRef.current?.id !== requestId) return;
 
         setPhase("playing");
-        void playAudio();
+        if (!hasPlayedSound.current) {
+          hasPlayedSound.current = true;
+          void playAudio();
+        }
         clearAnimationTimers();
 
         displayTimer.current = window.setTimeout(() => {
