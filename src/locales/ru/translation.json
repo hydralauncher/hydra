@@ -1558,7 +1558,8 @@
     "big_picture_diagnostics_position": "Положение диагностики",
     "open_screenshots_directory": "Открыть папку со скриншотами",
     "enable_achievement_souvenirs": "Включить сувениры для достижений",
-    "enable_compatibility_environment_variables": "Включить переменные окружения"
+    "enable_compatibility_environment_variables": "Включить переменные окружения",
+    "souvenir_sync_error_limit_reached": "В вашей коллекции уже 1 000 сувениров. Hydra синхронизировала достижения, не сохраняя этот сувенир."
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -1760,6 +1761,8 @@
     "open_souvenir_settings": "Открыть настройки сувениров",
     "souvenirs_cloud_title": "Сохраняйте моменты достижений с Hydra Cloud",
     "souvenirs_cloud_description": "Оформите подписку, чтобы сохранять снимки при открытии достижений и показывать их как сувениры в профиле.",
+    "souvenir_limit_reached_title": "Достигнут лимит сувениров",
+    "souvenir_limit_reached_description": "У вас 1 000 сувениров. Удалите один, чтобы сохранять новые моменты достижений.",
     "souvenir_deleted_successfully": "Сувенир удалён",
     "souvenir_deletion_failed": "Не удалось удалить сувенир",
     "delete_souvenir_modal_title": "Удалить сувенир",

@@ -1516,7 +1516,8 @@
     "big_picture_diagnostics_position": "Posición del diagnóstico",
     "open_screenshots_directory": "Abrir la carpeta de capturas",
     "enable_achievement_souvenirs": "Habilitar recuerdos para los logros",
-    "enable_compatibility_environment_variables": "Habilitar variables de entorno"
+    "enable_compatibility_environment_variables": "Habilitar variables de entorno",
+    "souvenir_sync_error_limit_reached": "Tu colección ya tiene 1.000 recuerdos. Hydra sincronizó los logros sin guardar este recuerdo."
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -1706,6 +1707,8 @@
     "open_souvenir_settings": "Abrir ajustes de recuerdos",
     "souvenirs_cloud_title": "Guarda tus momentos de logros con Hydra Cloud",
     "souvenirs_cloud_description": "Suscríbete para capturar pantallas al desbloquear logros y mostrarlas como recuerdos en tu perfil.",
+    "souvenir_limit_reached_title": "Límite de recuerdos alcanzado",
+    "souvenir_limit_reached_description": "Tienes 1.000 recuerdos. Elimina uno para guardar nuevos momentos de logros.",
     "souvenir_deleted_successfully": "Recuerdo eliminado",
     "souvenir_deletion_failed": "No se pudo eliminar el recuerdo",
     "delete_souvenir_modal_title": "Eliminar recuerdo",
