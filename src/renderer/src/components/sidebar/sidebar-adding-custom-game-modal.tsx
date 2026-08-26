@@ -9,7 +9,7 @@ import {
   buildGameDetailsPath,
   generateRandomGradient,
 } from "@renderer/helpers";
-import { LINUX_GAME_EXECUTABLE_EXTENSIONS } from "@shared";
+import { getGameExecutableFilters, isGameExecutable } from "@shared";
 
 import "./sidebar-adding-custom-game-modal.scss";
 
@@ -30,48 +30,69 @@ export function SidebarAddingCustomGameModal({
   const [gameName, setGameName] = useState("");
   const [executablePath, setExecutablePath] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [romPath, setRomPath] = useState("");
 
-  const handleSelectExecutable = async () => {
-    const filters =
-      window.electron.platform === "linux"
-        ? [
-            {
-              name: t("custom_game_modal_executable"),
-              extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS,
-            },
-            { name: t("all_files", { ns: "game_details" }), extensions: ["*"] },
-          ]
-        : [
-            {
-              name: t("custom_game_modal_executable"),
-              extensions: [
-                "exe",
-                "msi",
-                "bat",
-                "cmd",
-                "app",
-                "deb",
-                "rpm",
-                "dmg",
-              ],
-            },
-          ];
-
-    const { filePaths } = await window.electron.showOpenDialog({
-      properties: ["openFile"],
-      filters,
+  const executableFilters = () =>
+    getGameExecutableFilters(window.electron.platform, {
+      executable: t("custom_game_modal_executable"),
+      allFiles: t("all_files", { ns: "game_details" }),
     });
 
-    if (filePaths && filePaths.length > 0) {
-      const selectedPath = filePaths[0];
-      setExecutablePath(selectedPath);
+  const selectLauncher = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      title: t("custom_game_modal_select_launcher"),
+      message: t("custom_game_modal_select_launcher"),
+      filters: executableFilters(),
+    });
 
-      if (!gameName.trim()) {
-        const fileName = selectedPath.split(/[\\/]/).pop() || "";
-        const gameNameFromFile = fileName.replace(/\.[^/.]+$/, "");
-        setGameName(gameNameFromFile);
-      }
+    const launcherPath = filePaths?.[0];
+
+    if (!launcherPath) return "";
+
+    if (!isGameExecutable(launcherPath, window.electron.platform)) {
+      showErrorToast(t("custom_game_modal_launcher_not_executable"));
+      return "";
     }
+
+    return launcherPath;
+  };
+
+  const handleSelectExecutable = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: executableFilters(),
+    });
+
+    const selectedPath = filePaths?.[0];
+
+    if (!selectedPath) return;
+
+    if (isGameExecutable(selectedPath, window.electron.platform)) {
+      setExecutablePath(selectedPath);
+      setRomPath("");
+    } else {
+      const launcherPath = await selectLauncher();
+
+      if (!launcherPath) return;
+
+      setExecutablePath(launcherPath);
+      setRomPath(selectedPath);
+    }
+
+    if (gameName.trim() !== "") return;
+
+    const fileName = selectedPath.split(/[\\/]/).pop() || "";
+
+    setGameName(fileName.replace(/\.[^/.]+$/, ""));
+  };
+
+  const handleChangeLauncher = async () => {
+    const launcherPath = await selectLauncher();
+
+    if (!launcherPath) return;
+
+    setExecutablePath(launcherPath);
   };
 
   const handleGameNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,13 +113,15 @@ export function SidebarAddingCustomGameModal({
       const iconUrl = ""; // Don't use gradient for icon
       const logoImageUrl = ""; // Don't use gradient for logo
       const libraryHeroImageUrl = generateRandomGradient(); // Only use gradient for hero
+      const launchOptions = romPath ? `"${romPath}"` : null;
 
       const newGame = await window.electron.addCustomGameToLibrary(
         gameNameForSeed,
         executablePath,
         iconUrl,
         logoImageUrl,
-        libraryHeroImageUrl
+        libraryHeroImageUrl,
+        launchOptions
       );
 
       showSuccessToast(t("custom_game_modal_success"));
@@ -114,6 +137,7 @@ export function SidebarAddingCustomGameModal({
 
       setGameName("");
       setExecutablePath("");
+      setRomPath("");
       onClose();
     } catch (error) {
       console.error("Failed to add custom game:", error);
@@ -129,6 +153,7 @@ export function SidebarAddingCustomGameModal({
     if (!isAdding) {
       setGameName("");
       setExecutablePath("");
+      setRomPath("");
       onClose();
     }
   };
@@ -147,7 +172,7 @@ export function SidebarAddingCustomGameModal({
           <TextField
             label={t("custom_game_modal_executable_path")}
             placeholder={t("custom_game_modal_select_executable")}
-            value={executablePath}
+            value={romPath || executablePath}
             readOnly
             theme="dark"
             rightContent={
@@ -162,6 +187,25 @@ export function SidebarAddingCustomGameModal({
               </Button>
             }
           />
+          {romPath && (
+            <TextField
+              label={t("custom_game_modal_launcher_path")}
+              value={executablePath}
+              readOnly
+              theme="dark"
+              rightContent={
+                <Button
+                  type="button"
+                  theme="outline"
+                  onClick={handleChangeLauncher}
+                  disabled={isAdding}
+                >
+                  <FileDirectoryIcon />
+                  {t("custom_game_modal_browse")}
+                </Button>
+              }
+            />
+          )}
 
           <TextField
             label={t("custom_game_modal_title")}
