@@ -365,8 +365,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           )}
 
           <div className="library-game-card-large__top-right">
-            {!classicsEmulatorIcon && installedBadge}
-
             {!hideBadges && (
               <div className="library-game-card-large__playtime">
                 {game.hasManuallyUpdatedPlaytime ? (
@@ -391,7 +389,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
               </div>
             )}
 
-            {classicsEmulatorIcon && installedBadge}
+            {installedBadge}
           </div>
         </div>
 
