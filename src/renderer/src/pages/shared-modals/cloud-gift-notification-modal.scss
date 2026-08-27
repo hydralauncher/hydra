@@ -89,8 +89,8 @@
   &__panel-content {
     display: flex;
     width: 100%;
-    height: 419px;
-    padding: 140px 16px 16px;
+    height: 435px;
+    padding: 140px 16px 32px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -120,7 +120,7 @@
   &__message-card {
     width: 100%;
     max-height: 88px;
-    padding: 16px;
+    padding: 16px 28px;
     margin: 0;
     overflow: auto;
     color: #8e919b;
@@ -131,7 +131,37 @@
     line-height: 1.35;
     letter-spacing: 0.14px;
     overflow-wrap: anywhere;
+    position: relative;
     text-align: center;
+
+    &::before,
+    &::after {
+      position: absolute;
+      color: #8e919b;
+    }
+
+    &::before {
+      top: 12px;
+      left: 12px;
+      content: "\201C";
+    }
+
+    &::after {
+      right: 12px;
+      bottom: 12px;
+      content: "\201D";
+    }
+
+    p,
+    blockquote {
+      margin: 0;
+    }
+
+    code {
+      padding: 1px 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+    }
   }
 
   &__sender {
@@ -184,97 +214,24 @@
 
   &__logo {
     z-index: 2;
-    width: 189px;
-    height: 189px;
-    margin-top: -94.5px;
-    margin-left: -94.5px;
-
-    img {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      max-width: none;
-      transform: translate(-50%, -50%);
-    }
-  }
-
-  &__logo-layer {
-    position: absolute;
-    inset: 0;
-
-    &--dots {
-      opacity: 0.3;
-      mix-blend-mode: screen;
-    }
-
-    &--halftone {
-      mix-blend-mode: color-dodge;
-    }
-  }
-
-  &__logo-vector {
-    width: 194.5px;
-    height: 194.5px;
-  }
-
-  &__logo-stroke {
-    width: 191px;
-    height: 191px;
-  }
-
-  &__logo-vector-glow {
-    width: 301px;
-    height: 301px;
-  }
-
-  &__logo-stroke-glow {
     width: 352px;
     height: 352px;
+    margin-top: -176px;
+    margin-left: -176px;
+    overflow: visible;
   }
 
-  &__logo-vector-halftone {
-    width: 175px;
-    height: 175px;
-  }
-
-  &__logo-stroke-halftone {
-    width: 171px;
-    height: 171px;
-  }
-
-  &__shine-mask {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-    mask-image: url("../../assets/cloud-gift/logo-vector-halftone.png");
-    mask-repeat: no-repeat;
-    mask-position: center;
-    mask-size: 172px 172px;
-    mix-blend-mode: plus-lighter;
-  }
-
-  &__shine-track {
-    position: absolute;
-    top: 87px;
-    left: -101px;
-    width: 134px;
-    height: 175px;
-  }
-
-  &__shine {
-    width: 38px;
-    height: 185px;
-    margin-inline: auto;
-    background-color: #fff;
-    filter: blur(24.7px);
-    opacity: 0.5;
-    transform: rotate(-33.69deg);
+  &__logo-art {
+    display: block;
+    width: 352px;
+    height: 352px;
+    overflow: visible;
+    filter: brightness(1.45) saturate(1.25) contrast(1.08);
   }
 
   &__decide-later {
     position: absolute;
-    top: calc(50% + 315px);
+    top: calc(50% + 331px);
     left: 50%;
     width: min(544px, calc(100vw - 48px));
     padding: 0;

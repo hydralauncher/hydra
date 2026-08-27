@@ -209,14 +209,19 @@ export function NotificationItem({
           }),
           showActions: false,
         };
-      case "CLOUD_GIFT_RECEIVED":
+      case "CLOUD_GIFT_RECEIVED": {
+        const durationMonths = Number(notification.variables.durationMonths);
+
         return {
-          title: t("cloud_gift_received_title"),
+          title: Number.isFinite(durationMonths)
+            ? t("cloud_gift_received_title", { count: durationMonths })
+            : t("cloud_gift_received_title"),
           description: t("cloud_gift_received_description", {
             displayName: notification.variables.buyerDisplayName,
           }),
           showActions: false,
         };
+      }
       default:
         return {
           title: t("notification"),

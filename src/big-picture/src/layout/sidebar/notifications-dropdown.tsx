@@ -143,13 +143,18 @@ function getApiNotificationContent(
         title: `Your reply for ${notification.variables.gameTitle ?? "a review"} got an upvote`,
         description: `${notification.variables.upvoteCount ?? "1"} upvotes on your reply.`,
       };
-    case "CLOUD_GIFT_RECEIVED":
+    case "CLOUD_GIFT_RECEIVED": {
+      const durationMonths = Number(notification.variables.durationMonths);
+
       return {
-        title: t("cloud_gift_received_title"),
+        title: Number.isFinite(durationMonths)
+          ? t("cloud_gift_received_title", { count: durationMonths })
+          : t("cloud_gift_received_title"),
         description: t("cloud_gift_received_description", {
           displayName: notification.variables.buyerDisplayName,
         }),
       };
+    }
     default:
       return {
         title: "Notification",

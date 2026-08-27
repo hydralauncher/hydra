@@ -182,25 +182,6 @@ export function SettingsAccount() {
         }}
       />
 
-      <Controller
-        control={control}
-        name="allowCloudGifts"
-        render={({ field }) => (
-          <section className="settings-account__section">
-            <CheckboxField
-              checked={field.value ?? true}
-              disabled={isSubmitting}
-              label={t("allow_cloud_gifts")}
-              onChange={(event) => {
-                field.onChange(event.target.checked);
-                void handleSubmit(onSubmit)();
-              }}
-            />
-            <small>{t("allow_cloud_gifts_description")}</small>
-          </section>
-        )}
-      />
-
       <section className="settings-account__section">
         <h4>{t("current_username")}</h4>
         <p>{userDetails?.username}</p>
@@ -244,6 +225,26 @@ export function SettingsAccount() {
           {getHydraCloudSectionContent().callToAction}
         </Button>
       </section>
+
+      <Controller
+        control={control}
+        name="allowCloudGifts"
+        render={({ field }) => (
+          <section className="settings-account__section">
+            <h3>{t("cloud_gifts")}</h3>
+            <CheckboxField
+              checked={field.value ?? true}
+              disabled={isSubmitting}
+              label={t("allow_cloud_gifts")}
+              onChange={(event) => {
+                field.onChange(event.target.checked);
+                void handleSubmit(onSubmit)();
+              }}
+            />
+            <small>{t("allow_cloud_gifts_description")}</small>
+          </section>
+        )}
+      />
 
       <section className="settings-account__section">
         <h3>{t("blocked_users")}</h3>

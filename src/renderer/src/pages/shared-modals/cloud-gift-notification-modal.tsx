@@ -9,12 +9,7 @@ import { logger } from "@renderer/logger";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import type { Notification, NotificationsResponse } from "@types";
 
-import logoStroke from "../../assets/cloud-gift/logo-stroke.png";
-import logoStrokeGlow from "../../assets/cloud-gift/logo-stroke-glow.png";
-import logoStrokeHalftone from "../../assets/cloud-gift/logo-stroke-halftone.png";
-import logoVector from "../../assets/cloud-gift/logo-vector.png";
-import logoVectorGlow from "../../assets/cloud-gift/logo-vector-glow.png";
-import logoVectorHalftone from "../../assets/cloud-gift/logo-vector-halftone.png";
+import LogoFigma from "../../assets/cloud-gift/logo-figma.svg?react";
 import raysInner from "../../assets/cloud-gift/rays-inner.png";
 import raysOuter from "../../assets/cloud-gift/rays-outer.png";
 
@@ -25,6 +20,7 @@ import {
 import "./cloud-gift-notification-modal.scss";
 
 interface CloudGiftDetails {
+  durationMonths: number;
   message: string | null;
   status: string;
   buyer: {
@@ -35,6 +31,8 @@ interface CloudGiftDetails {
 }
 
 const OPEN_ANIMATION_DURATION = 2.912;
+const LOGO_ANIMATION_DURATION = 6;
+const LOGO_SCALE_TIMES = [0, 0.1684, 1];
 const RING_SCALE_TIMES = [0, 1.0104 / OPEN_ANIMATION_DURATION, 1];
 const RING_MOVE_TIMES = [
   0,
@@ -43,13 +41,6 @@ const RING_MOVE_TIMES = [
   1,
 ];
 const PANEL_REVEAL_TIMES = [0, 1.4346 / OPEN_ANIMATION_DURATION, 1];
-const SHINE_MOVE_TIMES = [
-  0,
-  0.5886 / OPEN_ANIMATION_DURATION,
-  2.5512 / OPEN_ANIMATION_DURATION,
-  1,
-];
-
 const figmaFirmSpring = (value: number) =>
   1 -
   Math.exp(-value * 11.1803) *
@@ -93,7 +84,7 @@ const getSuppressionKey = (giftId: string) =>
 
 export function CloudGiftNotificationModal() {
   const { t } = useTranslation("notifications_page");
-  const { userDetails } = useUserDetails();
+  const { userDetails, fetchUserDetails, updateUserDetails } = useUserDetails();
   const shouldReduceMotion = useReducedMotion();
   const headingId = useId();
   const messageId = useId();
@@ -103,6 +94,7 @@ export function CloudGiftNotificationModal() {
   const dismissedGiftIdsRef = useRef(new Set<string>());
   const [notification, setNotification] = useState<Notification | null>(null);
   const [gift, setGift] = useState<CloudGiftDetails | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
 
   const findPendingGift = useCallback(async () => {
@@ -210,14 +202,44 @@ export function CloudGiftNotificationModal() {
     setGift(null);
   }, [notification]);
 
-  const openGift = useCallback(async () => {
-    if (!notification) return;
+  const acceptGift = useCallback(async () => {
+    if (!notification || isAccepting) return;
 
-    await window.electron.openCheckout({
-      path: `/gifts/${notification.variables.giftId}`,
-    });
-    dismissCurrentGift();
-  }, [dismissCurrentGift, notification]);
+    const giftId = notification.variables.giftId;
+    setIsAccepting(true);
+
+    try {
+      await window.electron.hydraApi.post(`/cloud-gifts/${giftId}/accept`, {
+        needsAuth: true,
+      });
+
+      dismissCurrentGift();
+
+      void fetchUserDetails()
+        .then((details) => {
+          if (details) return updateUserDetails(details);
+          return undefined;
+        })
+        .catch((error) => {
+          logger.error(
+            "Failed to refresh user after accepting Cloud Gift",
+            error
+          );
+        });
+
+      await window.electron.openCheckout({ path: `/gifts/${giftId}` });
+    } catch (error) {
+      logger.error("Failed to accept Cloud Gift", error);
+    } finally {
+      setIsAccepting(false);
+    }
+  }, [
+    dismissCurrentGift,
+    fetchUserDetails,
+    isAccepting,
+    notification,
+    updateUserDetails,
+  ]);
 
   const isVisible = Boolean(notification && gift);
 
@@ -326,9 +348,9 @@ export function CloudGiftNotificationModal() {
               initial={shouldReduceMotion ? false : { height: 1, opacity: 0 }}
               animate={
                 shouldReduceMotion
-                  ? { height: 419, opacity: 1 }
+                  ? { height: 435, opacity: 1 }
                   : {
-                      height: [1, 1, 419],
+                      height: [1, 1, 435],
                       opacity: [0, 0, 1],
                     }
               }
@@ -356,16 +378,17 @@ export function CloudGiftNotificationModal() {
                     id={headingId}
                     className="cloud-gift-notification-modal__title"
                   >
-                    {t("cloud_gift_launcher_title")}
+                    {t("cloud_gift_received_title", {
+                      count: gift.durationMonths,
+                    })}
                   </h2>
 
                   {gift.message && (
-                    <blockquote
+                    <div
                       id={messageId}
                       className="cloud-gift-notification-modal__message-card"
-                    >
-                      “{gift.message}”
-                    </blockquote>
+                      dangerouslySetInnerHTML={{ __html: gift.message }}
+                    />
                   )}
 
                   <Link
@@ -386,8 +409,9 @@ export function CloudGiftNotificationModal() {
                   ref={acceptButtonRef}
                   type="button"
                   className="cloud-gift-notification-modal__accept"
+                  disabled={!isRevealComplete || isAccepting}
                   tabIndex={isRevealComplete ? 0 : -1}
-                  onClick={() => void openGift()}
+                  onClick={() => void acceptGift()}
                 >
                   {t("cloud_gift_launcher_accept")}
                 </button>
@@ -415,13 +439,13 @@ export function CloudGiftNotificationModal() {
                   ? { duration: 0 }
                   : {
                       scaleX: {
-                        duration: OPEN_ANIMATION_DURATION,
-                        times: RING_SCALE_TIMES,
+                        duration: LOGO_ANIMATION_DURATION,
+                        times: LOGO_SCALE_TIMES,
                         ease: [figmaLogoSpring, "linear"],
                       },
                       scaleY: {
-                        duration: OPEN_ANIMATION_DURATION,
-                        times: RING_SCALE_TIMES,
+                        duration: LOGO_ANIMATION_DURATION,
+                        times: LOGO_SCALE_TIMES,
                         ease: [figmaLogoSpring, "linear"],
                       },
                       y: {
@@ -432,70 +456,10 @@ export function CloudGiftNotificationModal() {
                     }
               }
               aria-hidden="true"
+              data-node-id="7087:26039"
+              data-reduced-motion={shouldReduceMotion}
             >
-              <div className="cloud-gift-notification-modal__logo-layer cloud-gift-notification-modal__logo-layer--dots">
-                <img
-                  className="cloud-gift-notification-modal__logo-vector"
-                  src={logoVector}
-                  alt=""
-                />
-                <img
-                  className="cloud-gift-notification-modal__logo-stroke"
-                  src={logoStroke}
-                  alt=""
-                />
-              </div>
-              <div className="cloud-gift-notification-modal__logo-layer cloud-gift-notification-modal__logo-layer--glow">
-                <img
-                  className="cloud-gift-notification-modal__logo-vector-glow"
-                  src={logoVectorGlow}
-                  alt=""
-                />
-                <img
-                  className="cloud-gift-notification-modal__logo-stroke-glow"
-                  src={logoStrokeGlow}
-                  alt=""
-                />
-              </div>
-              <div className="cloud-gift-notification-modal__logo-layer cloud-gift-notification-modal__logo-layer--halftone">
-                <img
-                  className="cloud-gift-notification-modal__logo-vector-halftone"
-                  src={logoVectorHalftone}
-                  alt=""
-                />
-                <img
-                  className="cloud-gift-notification-modal__logo-stroke-halftone"
-                  src={logoStrokeHalftone}
-                  alt=""
-                />
-              </div>
-
-              {!shouldReduceMotion && (
-                <div className="cloud-gift-notification-modal__shine-mask">
-                  <motion.div
-                    className="cloud-gift-notification-modal__shine-track"
-                    initial={{ x: 0, y: 0 }}
-                    animate={{
-                      x: [0, 0, 241.037, 241.037],
-                      y: [0, 0, -198.246, -198.246],
-                    }}
-                    transition={{
-                      x: {
-                        duration: OPEN_ANIMATION_DURATION,
-                        times: SHINE_MOVE_TIMES,
-                        ease: ["linear", figmaFirmSpring, "linear"],
-                      },
-                      y: {
-                        duration: OPEN_ANIMATION_DURATION,
-                        times: SHINE_MOVE_TIMES,
-                        ease: ["linear", figmaFirmSpring, "linear"],
-                      },
-                    }}
-                  >
-                    <div className="cloud-gift-notification-modal__shine" />
-                  </motion.div>
-                </div>
-              )}
+              <LogoFigma className="cloud-gift-notification-modal__logo-art" />
             </motion.div>
 
             <button

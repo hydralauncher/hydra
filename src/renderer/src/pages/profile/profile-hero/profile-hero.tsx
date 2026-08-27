@@ -4,7 +4,6 @@ import {
   BlockedIcon,
   CheckCircleFillIcon,
   CopyIcon,
-  GiftIcon,
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
@@ -29,6 +28,7 @@ import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AuthPage } from "@shared";
+import giftCloudIcon from "@renderer/assets/cloud-gift/gift-clean.png";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
@@ -133,6 +133,31 @@ export function ProfileHero() {
     ]
   );
 
+  const giftAction = useMemo(() => {
+    if (!userProfile || isMe || !userProfile.canReceiveCloudGift) return null;
+
+    return (
+      <Button
+        theme="cloud"
+        onClick={() => {
+          if (!userDetails) {
+            window.electron.openAuthWindow(AuthPage.SignIn);
+            return;
+          }
+
+          window.electron.openCheckout({
+            path: "/gift",
+            recipientId: userProfile.id,
+          });
+        }}
+        disabled={isPerformingAction}
+      >
+        <img src={giftCloudIcon} alt="" className="profile-hero__gift-icon" />
+        {t("gift_cloud")}
+      </Button>
+    );
+  }, [isMe, isPerformingAction, t, userDetails, userProfile]);
+
   const profileActions = useMemo(() => {
     if (!userProfile) return null;
 
@@ -161,32 +186,9 @@ export function ProfileHero() {
       );
     }
 
-    const giftAction = userProfile.canReceiveCloudGift ? (
-      <Button
-        theme="outline"
-        onClick={() => {
-          if (!userDetails) {
-            window.electron.openAuthWindow(AuthPage.SignIn);
-            return;
-          }
-
-          window.electron.openCheckout({
-            path: "/gift",
-            recipientId: userProfile.id,
-          });
-        }}
-        disabled={isPerformingAction}
-        className="profile-hero__button--outline"
-      >
-        <GiftIcon />
-        {t("gift_cloud")}
-      </Button>
-    ) : null;
-
     if (userProfile.relation == null) {
       return (
         <>
-          {giftAction}
           <Button
             theme="outline"
             onClick={() => handleFriendAction(userProfile.id, "SEND")}
@@ -211,43 +213,34 @@ export function ProfileHero() {
 
     if (userProfile.relation.status === "ACCEPTED") {
       return (
-        <>
-          {giftAction}
-          <Button
-            theme="danger"
-            onClick={() =>
-              handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")
-            }
-            disabled={isPerformingAction}
-          >
-            <XCircleIcon />
-            {t("undo_friendship")}
-          </Button>
-        </>
+        <Button
+          theme="danger"
+          onClick={() => handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")}
+          disabled={isPerformingAction}
+        >
+          <XCircleIcon />
+          {t("undo_friendship")}
+        </Button>
       );
     }
 
     if (userProfile.relation.BId === userProfile.id) {
       return (
-        <>
-          {giftAction}
-          <Button
-            theme="outline"
-            onClick={() =>
-              handleFriendAction(userProfile.relation!.BId, "CANCEL")
-            }
-            disabled={isPerformingAction}
-            className="profile-hero__button--outline"
-          >
-            <XCircleFillIcon /> {t("cancel_request")}
-          </Button>
-        </>
+        <Button
+          theme="outline"
+          onClick={() =>
+            handleFriendAction(userProfile.relation!.BId, "CANCEL")
+          }
+          disabled={isPerformingAction}
+          className="profile-hero__button--outline"
+        >
+          <XCircleFillIcon /> {t("cancel_request")}
+        </Button>
       );
     }
 
     return (
       <>
-        {giftAction}
         <Button
           theme="outline"
           onClick={() =>
@@ -275,7 +268,6 @@ export function ProfileHero() {
     isMe,
     t,
     isPerformingAction,
-    userDetails,
     userProfile,
   ]);
 
@@ -340,6 +332,10 @@ export function ProfileHero() {
         className="profile-hero__content-box"
         style={{ background: !backgroundImage ? heroBackground : undefined }}
       >
+        {giftAction && (
+          <div className="profile-hero__gift-action">{giftAction}</div>
+        )}
+
         {backgroundImage && (
           <img
             src={backgroundImage}
