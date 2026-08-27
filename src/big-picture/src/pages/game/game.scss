@@ -1,3 +1,5 @@
+@use "../../styles/globals.scss" as *;
+
 .game-page {
   margin-top: calc(-1 * var(--big-picture-header-height));
   width: 100%;
@@ -664,6 +666,10 @@
       )
       calc(var(--spacing-unit) * 24) calc(var(--spacing-unit) * 12);
     gap: calc(var(--spacing-unit) * 6);
+  }
+
+  &__hero-custom-badge {
+    @include big-picture-floating-text-badge;
   }
 
   &__hero-logo {

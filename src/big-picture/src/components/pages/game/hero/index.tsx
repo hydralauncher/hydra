@@ -379,6 +379,12 @@ export function Hero({
       })}
 
       <div className="game-page__hero-overlay">
+        {game?.shop === "custom" && (
+          <span className="game-page__hero-custom-badge">
+            {t("custom_game_badge")}
+          </span>
+        )}
+
         <img
           src={preferredAssets.logoSrc}
           alt={preferredAssets.title}

@@ -1,3 +1,5 @@
+@use "../../../styles/globals.scss" as *;
+
 .library-focus-grid__card--classics {
   --library-classics-rainbow: conic-gradient(
     from 0deg,
@@ -63,5 +65,17 @@
       object-fit: contain;
       border-radius: 3px;
     }
+  }
+}
+
+.library-custom-badge {
+  position: absolute;
+  top: calc(var(--spacing-unit) * 2);
+  right: calc(var(--spacing-unit) * 2);
+  display: inline-flex;
+  align-items: center;
+
+  &__label {
+    @include big-picture-floating-text-badge;
   }
 }

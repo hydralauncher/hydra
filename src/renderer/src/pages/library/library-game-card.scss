@@ -179,6 +179,7 @@
     }
   }
 
+  &__custom-badge,
   &__installed-badge {
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
@@ -186,11 +187,26 @@
     color: rgba(255, 255, 255, 0.8);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  &__custom-badge {
+    padding: 0 6px;
+    height: 24px;
+    box-sizing: border-box;
+    line-height: 1;
+  }
+
+  &__custom-text {
+    font-size: 12px;
+  }
+
+  &__installed-badge {
+    display: flex;
     gap: 4px;
     padding: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all ease 0.2s;
   }
 
