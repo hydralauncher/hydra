@@ -11,6 +11,7 @@ import {
   LANGUAGE_SECTION_BUTTON_ID,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
+import type { UserPreferences } from "@types";
 
 interface BehaviorSectionProps {
   className?: string;
@@ -43,44 +44,30 @@ const DEFAULT_FORM: BehaviorForm = {
   enableAutoInstall: false,
 };
 
+const buildForm = (preferences: UserPreferences | null): BehaviorForm =>
+  preferences
+    ? {
+        preferQuitInsteadOfHiding:
+          preferences.preferQuitInsteadOfHiding ?? false,
+        runAtStartup: preferences.runAtStartup ?? false,
+        startMinimized: preferences.startMinimized ?? false,
+        hideToTrayOnGameStart: preferences.hideToTrayOnGameStart ?? false,
+        launchToLibraryPage: preferences.launchToLibraryPage ?? false,
+        enableAutoInstall: preferences.enableAutoInstall ?? false,
+      }
+    : DEFAULT_FORM;
+
 export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
   const userPreferences = useUserPreferences();
-  const [showRunAtStartup, setShowRunAtStartup] = useState(false);
-  const [form, setForm] = useState<BehaviorForm>(DEFAULT_FORM);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    globalThis.window.electron
-      .isPortableVersion()
-      .then((isPortableVersion) => {
-        if (!isMounted) return;
-
-        setShowRunAtStartup(!isPortableVersion);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-
-        setShowRunAtStartup(true);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const showRunAtStartup = !globalThis.window.electron.isPortableVersion;
+  const [form, setForm] = useState<BehaviorForm>(() =>
+    buildForm(userPreferences)
+  );
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      preferQuitInsteadOfHiding:
-        userPreferences.preferQuitInsteadOfHiding ?? false,
-      runAtStartup: userPreferences.runAtStartup ?? false,
-      startMinimized: userPreferences.startMinimized ?? false,
-      hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
-      launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
-      enableAutoInstall: userPreferences.enableAutoInstall ?? false,
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   const isLinux = globalThis.window.electron.platform === "linux";
@@ -104,7 +91,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       {
         id: "prefer-quit-instead-of-hiding",
         focusId: BEHAVIOR_ITEM_FOCUS_IDS.preferQuitInsteadOfHiding,
-        label: "Quit app instead of hiding",
+        label: "Don't hide Hydra when closing",
         checked: form.preferQuitInsteadOfHiding,
         disabled: false,
         onChange: (checked: boolean) =>
@@ -113,7 +100,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       {
         id: "hide-to-tray-on-game-start",
         focusId: BEHAVIOR_ITEM_FOCUS_IDS.hideToTrayOnGameStart,
-        label: "Hide to tray on game start",
+        label: "Hide Hydra to tray on game startup",
         checked: form.hideToTrayOnGameStart,
         disabled: false,
         onChange: (checked: boolean) =>
@@ -124,7 +111,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
             {
               id: "launch-with-system",
               focusId: BEHAVIOR_ITEM_FOCUS_IDS.runAtStartup,
-              label: "Launch with system",
+              label: "Launch Hydra on system start-up",
               checked: form.runAtStartup,
               disabled: false,
               onChange: (checked: boolean) =>
@@ -139,7 +126,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
             {
               id: "launch-minimized",
               focusId: BEHAVIOR_ITEM_FOCUS_IDS.startMinimized,
-              label: "Launch minimized",
+              label: "Launch Hydra minimized",
               checked: form.runAtStartup && form.startMinimized,
               disabled: !form.runAtStartup,
               onChange: (checked: boolean) =>
@@ -156,7 +143,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       {
         id: "launch-to-library-page",
         focusId: BEHAVIOR_ITEM_FOCUS_IDS.launchToLibraryPage,
-        label: "Launch Hydra in library page",
+        label: "Launch Hydra in the Library page",
         checked: form.launchToLibraryPage,
         disabled: false,
         onChange: (checked: boolean) =>
@@ -167,7 +154,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
             {
               id: "enable-auto-install",
               focusId: BEHAVIOR_ITEM_FOCUS_IDS.enableAutoInstall,
-              label: "Enable auto install",
+              label: "Download updates automatically",
               checked: form.enableAutoInstall,
               disabled: false,
               onChange: (checked: boolean) =>
