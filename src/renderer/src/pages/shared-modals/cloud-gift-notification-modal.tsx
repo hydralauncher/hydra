@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -31,6 +38,9 @@ interface CloudGiftDetails {
 }
 
 const OPEN_ANIMATION_DURATION = 2.912;
+const PANEL_BASE_HEIGHT = 435;
+const MESSAGE_BASE_HEIGHT = 88;
+const MESSAGE_MAX_EXTRA_HEIGHT = 88;
 const LOGO_ANIMATION_DURATION = 6;
 const LOGO_SCALE_TIMES = [0, 0.1684, 1];
 const RING_SCALE_TIMES = [0, 1.0104 / OPEN_ANIMATION_DURATION, 1];
@@ -90,12 +100,16 @@ export function CloudGiftNotificationModal() {
   const messageId = useId();
   const isCheckingRef = useRef(false);
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const messageRef = useRef<HTMLDivElement | null>(null);
   const acceptButtonRef = useRef<HTMLButtonElement | null>(null);
   const dismissedGiftIdsRef = useRef(new Set<string>());
   const [notification, setNotification] = useState<Notification | null>(null);
   const [gift, setGift] = useState<CloudGiftDetails | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
+  const [messageHeightExtra, setMessageHeightExtra] = useState(0);
+
+  const panelHeight = PANEL_BASE_HEIGHT + messageHeightExtra;
 
   const findPendingGift = useCallback(async () => {
     if (!userDetails || isCheckingRef.current || notification) return;
@@ -282,6 +296,18 @@ export function CloudGiftNotificationModal() {
     }
   }, [isRevealComplete]);
 
+  useLayoutEffect(() => {
+    const messageElement = messageRef.current;
+    const nextHeight = messageElement
+      ? Math.min(
+          MESSAGE_MAX_EXTRA_HEIGHT,
+          Math.max(0, messageElement.scrollHeight - MESSAGE_BASE_HEIGHT)
+        )
+      : 0;
+
+    setMessageHeightExtra(nextHeight);
+  }, [gift?.message]);
+
   return createPortal(
     <AnimatePresence>
       {notification && gift && (
@@ -301,6 +327,7 @@ export function CloudGiftNotificationModal() {
           <div
             ref={dialogRef}
             className="cloud-gift-notification-modal__stage"
+            style={{ top: -messageHeightExtra / 2 }}
             role="dialog"
             aria-modal="true"
             aria-labelledby={headingId}
@@ -348,9 +375,9 @@ export function CloudGiftNotificationModal() {
               initial={shouldReduceMotion ? false : { height: 1, opacity: 0 }}
               animate={
                 shouldReduceMotion
-                  ? { height: 435, opacity: 1 }
+                  ? { height: panelHeight, opacity: 1 }
                   : {
-                      height: [1, 1, 435],
+                      height: [1, 1, panelHeight],
                       opacity: [0, 0, 1],
                     }
               }
@@ -372,7 +399,10 @@ export function CloudGiftNotificationModal() {
               }
               onAnimationComplete={() => setIsRevealComplete(true)}
             >
-              <div className="cloud-gift-notification-modal__panel-content">
+              <div
+                className="cloud-gift-notification-modal__panel-content"
+                style={{ height: panelHeight }}
+              >
                 <div className="cloud-gift-notification-modal__body">
                   <h2
                     id={headingId}
@@ -385,6 +415,7 @@ export function CloudGiftNotificationModal() {
 
                   {gift.message && (
                     <div
+                      ref={messageRef}
                       id={messageId}
                       className="cloud-gift-notification-modal__message-card"
                       dangerouslySetInnerHTML={{ __html: gift.message }}
@@ -468,6 +499,7 @@ export function CloudGiftNotificationModal() {
             <button
               type="button"
               className="cloud-gift-notification-modal__decide-later"
+              style={{ top: `calc(50% + ${331 + messageHeightExtra}px)` }}
               data-visible={isRevealComplete}
               tabIndex={isRevealComplete ? 0 : -1}
               onClick={dismissCurrentGift}

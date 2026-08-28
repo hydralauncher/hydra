@@ -32,6 +32,7 @@ import {
   ScrollArea,
   VerticalFocusGroup,
 } from "../../components";
+import { openBigPictureCloudGiftModal } from "../../components/cloud-gift-modal.events";
 import { FocusRegionContext } from "../../components/context";
 import { IS_DESKTOP } from "../../constants";
 import {
@@ -560,9 +561,7 @@ export function SidebarNotificationsDropdown({
       notification.type === "CLOUD_GIFT_RECEIVED" &&
       notification.variables.giftId
     ) {
-      await globalThis.window.electron.openCheckout({
-        path: `/gifts/${notification.variables.giftId}`,
-      });
+      openBigPictureCloudGiftModal(notification);
       closeAndRestoreFocus();
       return;
     }
