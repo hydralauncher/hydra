@@ -2,6 +2,7 @@ import { userProfileContext } from "@renderer/context";
 import { useContext, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
+import { getTranslatedBadgeDescription } from "@renderer/helpers";
 import { useDate } from "@renderer/hooks";
 import { AllBadgesModal } from "./all-badges-modal";
 import "./badges-box.scss";
@@ -56,7 +57,7 @@ export function BadgesBox() {
                 <div className="badges-box__item-content">
                   <h3 className="badges-box__item-title">{badge.title}</h3>
                   <p className="badges-box__item-description">
-                    {badge.description}
+                    {getTranslatedBadgeDescription(badge)}
                   </p>
                 </div>
               </div>

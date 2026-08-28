@@ -1739,6 +1739,7 @@
     "no_friends_yet": "You haven't added any friends yet",
     "view_all": "View all",
     "badge_unlocked_on": "Unlocked on {{date}}",
+    "badge_first_classic_game_description": "Added their first classic game to Hydra",
     "load_more": "Load more",
     "loading": "Loading",
     "pending": "Pending",

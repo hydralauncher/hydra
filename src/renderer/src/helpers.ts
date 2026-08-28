@@ -1,4 +1,5 @@
 import type {
+  Badge,
   EmulatorBinary,
   EmulatorSystem,
   GameShop,
@@ -44,6 +45,32 @@ export const ensureArray = <T>(value: unknown, source: string): T[] => {
     `Expected an array from ${source}, received (${typeof value}): ${preview}`
   );
   return [];
+};
+
+const BADGE_DESCRIPTION_I18N_KEYS: Record<string, string> = {
+  "Added their first classic game to Hydra":
+    "badge_first_classic_game_description",
+  first_classic_game: "badge_first_classic_game_description",
+  FIRST_CLASSIC_GAME: "badge_first_classic_game_description",
+};
+
+export const getTranslatedBadgeDescription = (
+  badge?: Pick<Badge, "name" | "description"> | null,
+  fallback?: string
+): string => {
+  const apiDescription = badge?.description || fallback || "";
+  const candidates = [badge?.name, badge?.description, fallback].filter(
+    (value): value is string => Boolean(value)
+  );
+
+  for (const candidate of candidates) {
+    const key = BADGE_DESCRIPTION_I18N_KEYS[candidate];
+    if (!key) continue;
+    if (!i18next.exists(key, { ns: "user_profile" })) continue;
+    return i18next.t(key, { ns: "user_profile" });
+  }
+
+  return apiDescription;
 };
 
 export const platformToSystem = (
