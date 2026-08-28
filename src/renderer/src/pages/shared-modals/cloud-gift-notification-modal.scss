@@ -1,5 +1,28 @@
 @use "../../scss/globals.scss";
 
+@keyframes cloud-gift-logo-shine {
+  0% {
+    opacity: 0;
+    transform: translate3d(-200px, 0, 0) rotate(35deg);
+  }
+
+  1% {
+    opacity: 0.2;
+    transform: translate3d(-200px, 0, 0) rotate(35deg);
+  }
+
+  11% {
+    opacity: 0.2;
+    transform: translate3d(280px, 0, 0) rotate(35deg);
+  }
+
+  12%,
+  100% {
+    opacity: 0;
+    transform: translate3d(280px, 0, 0) rotate(35deg);
+  }
+}
+
 .cloud-gift-notification-modal {
   &__overlay {
     position: fixed;
@@ -227,6 +250,44 @@
     height: 352px;
     overflow: visible;
     filter: brightness(1.45) saturate(1.25) contrast(1.08);
+  }
+
+  &__logo-shine {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    mask-image:
+      url("../../assets/cloud-gift/logo-vector.png"),
+      url("../../assets/cloud-gift/logo-stroke.png");
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size:
+      194.5px 194.5px,
+      191px 191px;
+
+    &::after {
+      position: absolute;
+      top: 36px;
+      left: 78px;
+      width: 120px;
+      height: 280px;
+      content: "";
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(29, 235, 225, 0.06) 15%,
+        rgba(29, 235, 225, 0.22) 30%,
+        rgba(210, 255, 250, 0.58) 43%,
+        rgba(255, 255, 255, 0.72) 50%,
+        rgba(210, 255, 250, 0.58) 57%,
+        rgba(29, 235, 225, 0.22) 70%,
+        rgba(29, 235, 225, 0.06) 85%,
+        transparent 100%
+      );
+      filter: blur(5px);
+      animation: cloud-gift-logo-shine 10s ease-out 5s infinite both;
+    }
   }
 
   &__decide-later {

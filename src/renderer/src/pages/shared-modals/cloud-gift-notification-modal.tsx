@@ -460,6 +460,9 @@ export function CloudGiftNotificationModal() {
               data-reduced-motion={shouldReduceMotion}
             >
               <LogoFigma className="cloud-gift-notification-modal__logo-art" />
+              {!shouldReduceMotion && (
+                <span className="cloud-gift-notification-modal__logo-shine" />
+              )}
             </motion.div>
 
             <button
