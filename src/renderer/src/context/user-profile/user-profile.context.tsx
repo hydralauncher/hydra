@@ -1,6 +1,27 @@
-import { darkenColor, ensureArray } from "@renderer/helpers";
+import {
+  darkenColor,
+  ensureArray,
+  getShopsForProfilePlatform,
+  readStoredProfilePlatform,
+  readStoredProfileSort,
+  readStoredSouvenirSort,
+} from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
-import type { Badge, UserProfile, UserStats, UserGame } from "@types";
+import type {
+  Badge,
+  ProfileSouvenir,
+  SouvenirsHiddenReason,
+  SouvenirsResponse,
+  SouvenirSort,
+  UserProfile,
+  UserStats,
+  UserGame,
+} from "@types";
+import {
+  buildUserSouvenirsPath,
+  getSouvenirKey,
+  normalizeProfileSouvenir,
+} from "@shared";
 import { average } from "color.js";
 
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
@@ -28,6 +49,20 @@ export interface UserProfileContext {
   pinnedGames: UserGame[];
   hasMoreLibraryGames: boolean;
   isLoadingLibraryGames: boolean;
+  souvenirs: ProfileSouvenir[];
+  souvenirsTotal: number;
+  hasReachedSouvenirLimit: boolean;
+  souvenirsHiddenReason: SouvenirsHiddenReason;
+  hasMoreSouvenirs: boolean;
+  isLoadingSouvenirs: boolean;
+  getUserSouvenirs: (sortBy?: SouvenirSort) => Promise<boolean>;
+  loadMoreSouvenirs: (sortBy?: SouvenirSort) => Promise<boolean>;
+  updateSouvenir: (
+    souvenirId: string,
+    update: Partial<ProfileSouvenir>
+  ) => void;
+  removeSouvenir: (souvenirId: string) => Promise<void>;
+  loadedLibrarySortBy: string | null;
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
@@ -52,6 +87,17 @@ export const userProfileContext = createContext<UserProfileContext>({
   pinnedGames: [],
   hasMoreLibraryGames: false,
   isLoadingLibraryGames: false,
+  souvenirs: [],
+  souvenirsTotal: 0,
+  hasReachedSouvenirLimit: false,
+  souvenirsHiddenReason: null,
+  hasMoreSouvenirs: false,
+  isLoadingSouvenirs: false,
+  getUserSouvenirs: async () => false,
+  loadMoreSouvenirs: async () => false,
+  updateSouvenir: () => {},
+  removeSouvenir: async () => {},
+  loadedLibrarySortBy: null,
 });
 
 const { Provider } = userProfileContext;
@@ -82,7 +128,18 @@ export function UserProfileContextProvider({
   const [libraryPage, setLibraryPage] = useState(0);
   const [hasMoreLibraryGames, setHasMoreLibraryGames] = useState(true);
   const [isLoadingLibraryGames, setIsLoadingLibraryGames] = useState(false);
+  const [souvenirs, setSouvenirs] = useState<ProfileSouvenir[]>([]);
+  const [souvenirsTotal, setSouvenirsTotal] = useState(0);
+  const [hasReachedSouvenirLimit, setHasReachedSouvenirLimit] = useState(false);
+  const [souvenirsHiddenReason, setSouvenirsHiddenReason] =
+    useState<SouvenirsHiddenReason>(null);
+  const [isLoadingSouvenirs, setIsLoadingSouvenirs] = useState(false);
+  const souvenirRequestIdRef = useRef(0);
+  const [loadedLibrarySortBy, setLoadedLibrarySortBy] = useState<string | null>(
+    null
+  );
   const previousUserIdRef = useRef(userId);
+  const userStatsRequestIdRef = useRef(0);
 
   const isMe = userDetails?.id === userProfile?.id;
 
@@ -110,11 +167,15 @@ export function UserProfileContextProvider({
       const params = new URLSearchParams();
       shops.forEach((shop) => params.append("shop", shop));
 
+      const requestId = ++userStatsRequestIdRef.current;
+
       window.electron.hydraApi
         .get<UserStats>(`/users/${userId}/stats?${params.toString()}`, {
           needsAuth: false,
         })
         .then((stats) => {
+          if (requestId !== userStatsRequestIdRef.current) return;
+
           setUserStats(stats);
         });
     },
@@ -144,6 +205,10 @@ export function UserProfileContextProvider({
           library: UserGame[];
           pinnedGames: UserGame[];
         }>(url, { needsAuth: false });
+
+        if (reset) {
+          setLoadedLibrarySortBy(sortBy ?? null);
+        }
 
         if (response) {
           setLibraryGames(response.library);
@@ -217,9 +282,142 @@ export function UserProfileContextProvider({
     [userId, libraryPage, hasMoreLibraryGames, isLoadingLibraryGames]
   );
 
+  const fetchSouvenirsPage = useCallback(
+    async (sortBy: SouvenirSort, skip: number) => {
+      const language = i18n.language.split("-")[0];
+      const path = buildUserSouvenirsPath({
+        userId,
+        skip,
+        sortBy,
+        language,
+      });
+
+      return window.electron.hydraApi.get<SouvenirsResponse | null>(path, {
+        needsAuth: Boolean(authUserId),
+      });
+    },
+    [authUserId, i18n.language, userId]
+  );
+
+  const getUserSouvenirs = useCallback(
+    async (sortBy: SouvenirSort = "recent") => {
+      const requestId = ++souvenirRequestIdRef.current;
+      setIsLoadingSouvenirs(true);
+
+      try {
+        const response = await fetchSouvenirsPage(sortBy, 0);
+        if (requestId !== souvenirRequestIdRef.current) return false;
+
+        setSouvenirs(
+          (response?.items ?? []).map((item) => normalizeProfileSouvenir(item))
+        );
+        setSouvenirsTotal(response?.total ?? 0);
+        setHasReachedSouvenirLimit(response?.hasReachedLimit ?? false);
+        setSouvenirsHiddenReason(response?.hiddenReason ?? null);
+        return true;
+      } catch {
+        if (requestId !== souvenirRequestIdRef.current) return false;
+
+        setSouvenirs([]);
+        setSouvenirsTotal(0);
+        setHasReachedSouvenirLimit(false);
+        setSouvenirsHiddenReason(null);
+        return false;
+      } finally {
+        if (requestId === souvenirRequestIdRef.current) {
+          setIsLoadingSouvenirs(false);
+        }
+      }
+    },
+    [fetchSouvenirsPage]
+  );
+
+  const loadMoreSouvenirs = useCallback(
+    async (sortBy: SouvenirSort = "recent") => {
+      if (isLoadingSouvenirs || souvenirs.length >= souvenirsTotal) {
+        return false;
+      }
+
+      const requestId = souvenirRequestIdRef.current;
+      setIsLoadingSouvenirs(true);
+
+      try {
+        const response = await fetchSouvenirsPage(sortBy, souvenirs.length);
+        if (requestId !== souvenirRequestIdRef.current || !response) {
+          return false;
+        }
+
+        setSouvenirs((current) => {
+          const existingKeys = new Set(
+            current.map((souvenir) => getSouvenirKey(souvenir.id))
+          );
+          const nextItems = response.items
+            .map((item) => normalizeProfileSouvenir(item))
+            .filter(
+              (souvenir) => !existingKeys.has(getSouvenirKey(souvenir.id))
+            );
+
+          return [...current, ...nextItems];
+        });
+        setSouvenirsTotal(response.total);
+        setHasReachedSouvenirLimit(response.hasReachedLimit);
+        setSouvenirsHiddenReason(response.hiddenReason);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        if (requestId === souvenirRequestIdRef.current) {
+          setIsLoadingSouvenirs(false);
+        }
+      }
+    },
+    [fetchSouvenirsPage, isLoadingSouvenirs, souvenirs, souvenirsTotal]
+  );
+
+  const updateSouvenir = useCallback(
+    (souvenirId: string, update: Partial<ProfileSouvenir>) => {
+      const key = getSouvenirKey(souvenirId);
+
+      setSouvenirs((current) =>
+        current.map((souvenir) =>
+          getSouvenirKey(souvenir.id) === key
+            ? { ...souvenir, ...update }
+            : souvenir
+        )
+      );
+    },
+    []
+  );
+
+  const removeSouvenir = useCallback(
+    async (souvenirId: string) => {
+      const key = getSouvenirKey(souvenirId);
+      const requestId = souvenirRequestIdRef.current;
+
+      setSouvenirs((current) =>
+        current.filter((souvenir) => getSouvenirKey(souvenir.id) !== key)
+      );
+      setSouvenirsTotal((current) => Math.max(0, current - 1));
+
+      try {
+        const response = await fetchSouvenirsPage("recent", 0);
+        if (requestId !== souvenirRequestIdRef.current || !response) return;
+
+        setHasReachedSouvenirLimit(response.hasReachedLimit);
+      } catch {
+        // Keep the last server-provided value until the next successful refresh.
+      }
+    },
+    [fetchSouvenirsPage]
+  );
+
   const getUserProfile = useCallback(async () => {
-    getUserStats();
-    getUserLibraryGames();
+    const storedShops = getShopsForProfilePlatform(readStoredProfilePlatform());
+
+    getUserStats(storedShops);
+
+    getUserLibraryGames(readStoredProfileSort(), true, storedShops);
+    void getUserSouvenirs(readStoredSouvenirSort());
 
     const profileParams = new URLSearchParams();
     profileParams.append("shop", "steam");
@@ -229,7 +427,7 @@ export function UserProfileContextProvider({
       .get<UserProfile>(`/users/${userId}?${profileParams.toString()}`, {
         needsAuth: false,
       })
-      .then((userProfile) => {
+      .then(async (userProfile) => {
         setUserProfile(userProfile);
 
         if (userProfile.profileImageUrl) {
@@ -242,7 +440,15 @@ export function UserProfileContextProvider({
         showErrorToast(t("user_not_found"));
         navigate(-1);
       });
-  }, [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t]);
+  }, [
+    navigate,
+    getUserStats,
+    getUserLibraryGames,
+    getUserSouvenirs,
+    showErrorToast,
+    userId,
+    t,
+  ]);
 
   const getBadges = useCallback(async () => {
     const language = i18n.language.split("-")[0];
@@ -264,6 +470,10 @@ export function UserProfileContextProvider({
       setHeroBackground(DEFAULT_USER_PROFILE_BACKGROUND);
       setLibraryPage(0);
       setHasMoreLibraryGames(true);
+      setSouvenirs([]);
+      setSouvenirsTotal(0);
+      setHasReachedSouvenirLimit(false);
+      setSouvenirsHiddenReason(null);
     }
 
     getUserProfile();
@@ -288,6 +498,17 @@ export function UserProfileContextProvider({
         pinnedGames,
         hasMoreLibraryGames,
         isLoadingLibraryGames,
+        souvenirs,
+        souvenirsTotal,
+        hasReachedSouvenirLimit,
+        souvenirsHiddenReason,
+        hasMoreSouvenirs: souvenirs.length < souvenirsTotal,
+        isLoadingSouvenirs,
+        getUserSouvenirs,
+        loadMoreSouvenirs,
+        updateSouvenir,
+        removeSouvenir,
+        loadedLibrarySortBy,
       }}
     >
       {children}

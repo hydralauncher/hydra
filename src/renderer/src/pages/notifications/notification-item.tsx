@@ -4,14 +4,17 @@ import {
   PersonIcon,
   ClockIcon,
   StarFillIcon,
+  HeartFillIcon,
   CommentDiscussionIcon,
 } from "@primer/octicons-react";
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@renderer/components";
+import { getTranslatedBadgeDescription } from "@renderer/helpers";
 import { useDate, useUserDetails } from "@renderer/hooks";
 import cn from "classnames";
+import { buildSouvenirNotificationTarget } from "@shared";
 
 import type { Notification, Badge } from "@types";
 import "./notification-item.scss";
@@ -48,6 +51,15 @@ const parseNotificationUrl = (notificationUrl: string): string => {
   return notificationUrl;
 };
 
+const getNotificationTarget = (notification: Notification) => {
+  if (!notification.url) return null;
+
+  const target = parseNotificationUrl(notification.url);
+  if (notification.type !== "SOUVENIR_LIKE") return target;
+
+  return buildSouvenirNotificationTarget(target, notification.variables);
+};
+
 interface NotificationItemProps {
   notification: Notification;
   badges: Badge[];
@@ -80,9 +92,8 @@ export function NotificationItem({
       onMarkAsRead(notification.id);
     }
 
-    if (notification.url) {
-      navigate(parseNotificationUrl(notification.url));
-    }
+    const target = getNotificationTarget(notification);
+    if (target) navigate(target);
   }, [notification, onMarkAsRead, navigate]);
 
   const handleAccept = useCallback(
@@ -140,7 +151,10 @@ export function NotificationItem({
       case "BADGE_RECEIVED":
         return {
           title: t("badge_received_title"),
-          description: badge?.description || notification.variables.badgeName,
+          description: getTranslatedBadgeDescription(
+            badge,
+            notification.variables.badgeName
+          ),
           showActions: false,
         };
       case "REVIEW_UPVOTE":
@@ -179,6 +193,16 @@ export function NotificationItem({
           }),
           showActions: false,
         };
+      case "SOUVENIR_LIKE":
+        return {
+          title: t("souvenir_like_title", {
+            gameTitle: notification.variables.gameTitle,
+          }),
+          description: t("souvenir_like_description", {
+            count: Number(notification.variables.likeCount ?? 1),
+          }),
+          showActions: false,
+        };
       case "RETROACHIEVEMENTS_CREDENTIALS_RESTORED":
         return {
           title: t("retroachievements_credentials_restored_title"),
@@ -214,6 +238,7 @@ export function NotificationItem({
   const isReviewAnswer = notification.type === "REVIEW_ANSWER";
   const isReviewAnswerUpvote = notification.type === "REVIEW_ANSWER_UPVOTE";
   const isReview = isReviewUpvote || isReviewAnswer || isReviewAnswerUpvote;
+  const isSouvenirLike = notification.type === "SOUVENIR_LIKE";
 
   const isRetroAchievements =
     notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED" ||
@@ -232,6 +257,9 @@ export function NotificationItem({
     }
     if (isReviewAnswer) {
       return <CommentDiscussionIcon size={24} />;
+    }
+    if (isSouvenirLike) {
+      return <HeartFillIcon size={24} />;
     }
     return <PersonIcon size={24} />;
   };

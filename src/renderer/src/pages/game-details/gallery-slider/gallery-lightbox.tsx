@@ -25,7 +25,7 @@ export function GalleryLightbox({
   onClose,
   onNavigate,
 }: Readonly<GalleryLightboxProps>) {
-  const containerRef = useRef<HTMLDialogElement | null>(null);
+  const mediaContainerRef = useRef<HTMLDivElement | null>(null);
   const { t } = useTranslation("game_details");
 
   const hasPrevious = index > 0;
@@ -55,12 +55,13 @@ export function GalleryLightbox({
     if (!visible) return () => {};
 
     const onMouseDown = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        onClose();
-      }
+      const target = e.target as HTMLElement | null;
+
+      if (!target) return;
+      if (mediaContainerRef.current?.contains(target)) return;
+      if (target.closest("button")) return;
+
+      onClose();
     };
 
     window.addEventListener("mousedown", onMouseDown);
@@ -77,12 +78,7 @@ export function GalleryLightbox({
 
   return createPortal(
     <div className="gallery-lightbox__overlay">
-      <dialog
-        ref={containerRef}
-        className="gallery-lightbox"
-        open
-        aria-label={item.alt}
-      >
+      <dialog className="gallery-lightbox" open aria-label={item.alt}>
         <button
           type="button"
           onClick={onClose}
@@ -116,7 +112,10 @@ export function GalleryLightbox({
           <ChevronRightIcon size={28} />
         </button>
 
-        <div className="gallery-lightbox__media-container">
+        <div
+          ref={mediaContainerRef}
+          className="gallery-lightbox__media-container"
+        >
           {item.type === "video" ? (
             <VideoPlayer
               key={item.id}
