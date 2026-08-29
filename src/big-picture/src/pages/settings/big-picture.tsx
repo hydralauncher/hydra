@@ -9,6 +9,7 @@ import {
   type BigPictureDiagnosticsPosition,
   type HydraAudioDevice,
   type HydraDisplay,
+  type UserPreferences,
 } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -38,6 +39,7 @@ interface BigPictureSettingsSectionProps {
 
 interface BigPictureForm {
   launchInBigPicture: boolean;
+  bigPictureLaunchToLibraryPage: boolean;
   bigPictureDisplayId: string;
   bigPictureAudioDeviceId: string;
   bigPictureUiScale: BigPictureUiScale;
@@ -57,6 +59,7 @@ interface BigPictureItem {
 
 const DEFAULT_FORM: BigPictureForm = {
   launchInBigPicture: false,
+  bigPictureLaunchToLibraryPage: false,
   bigPictureDisplayId: "default",
   bigPictureAudioDeviceId: "default",
   bigPictureUiScale: 100,
@@ -68,6 +71,32 @@ const DEFAULT_FORM: BigPictureForm = {
 
 const DEFAULT_BIG_PICTURE_DISPLAY_ID = "default";
 const DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID = "default";
+
+const buildForm = (preferences: UserPreferences | null): BigPictureForm =>
+  preferences
+    ? {
+        launchInBigPicture: preferences.launchInBigPicture ?? false,
+        bigPictureLaunchToLibraryPage:
+          preferences.bigPictureLaunchToLibraryPage ??
+          preferences.launchToLibraryPage ??
+          false,
+        bigPictureDisplayId:
+          preferences.bigPictureDisplayId ?? DEFAULT_BIG_PICTURE_DISPLAY_ID,
+        bigPictureAudioDeviceId:
+          preferences.bigPictureAudioDeviceId ??
+          DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
+        bigPictureUiScale: resolveBigPictureUiScale(
+          preferences.bigPictureUiScale
+        ),
+        bigPictureSoundsEnabled: preferences.bigPictureSoundsEnabled ?? true,
+        bigPictureVirtualKeyboardEnabled:
+          preferences.bigPictureVirtualKeyboardEnabled ?? true,
+        bigPictureDiagnosticsEnabled:
+          preferences.bigPictureDiagnosticsEnabled ?? false,
+        bigPictureDiagnosticsPosition:
+          preferences.bigPictureDiagnosticsPosition ?? "bottom-center",
+      }
+    : DEFAULT_FORM;
 
 function getPositionLabel(
   position: BigPictureDiagnosticsPosition,
@@ -81,7 +110,9 @@ export function BigPictureSettingsSection({
 }: Readonly<BigPictureSettingsSectionProps>) {
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
-  const [form, setForm] = useState<BigPictureForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<BigPictureForm>(() =>
+    buildForm(userPreferences)
+  );
   const [displays, setDisplays] = useState<HydraDisplay[]>([]);
   const [audioDevices, setAudioDevices] = useState<HydraAudioDevice[]>([]);
 
@@ -122,24 +153,7 @@ export function BigPictureSettingsSection({
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      launchInBigPicture: userPreferences.launchInBigPicture ?? false,
-      bigPictureDisplayId:
-        userPreferences.bigPictureDisplayId ?? DEFAULT_BIG_PICTURE_DISPLAY_ID,
-      bigPictureAudioDeviceId:
-        userPreferences.bigPictureAudioDeviceId ??
-        DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
-      bigPictureUiScale: resolveBigPictureUiScale(
-        userPreferences.bigPictureUiScale
-      ),
-      bigPictureSoundsEnabled: userPreferences.bigPictureSoundsEnabled ?? true,
-      bigPictureVirtualKeyboardEnabled:
-        userPreferences.bigPictureVirtualKeyboardEnabled ?? true,
-      bigPictureDiagnosticsEnabled:
-        userPreferences.bigPictureDiagnosticsEnabled ?? false,
-      bigPictureDiagnosticsPosition:
-        userPreferences.bigPictureDiagnosticsPosition ?? "bottom-center",
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   const updateUserPreferences = useCallback(
@@ -208,6 +222,13 @@ export function BigPictureSettingsSection({
     [updateUserPreferences]
   );
 
+  const handleLaunchToLibraryPageChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ bigPictureLaunchToLibraryPage: checked });
+    },
+    [updateUserPreferences]
+  );
+
   const handleBigPictureSoundsChange = useCallback(
     (checked: boolean) => {
       updateUserPreferences({ bigPictureSoundsEnabled: checked });
@@ -245,8 +266,21 @@ export function BigPictureSettingsSection({
         checked: form.launchInBigPicture,
         onChange: handleLaunchInBigPictureChange,
       },
+      {
+        id: "launch-to-library-page",
+        focusId: BIG_PICTURE_ITEM_FOCUS_IDS.launchToLibraryPage,
+        label: t("settings_launch_big_picture_in_library_page"),
+        checked: form.bigPictureLaunchToLibraryPage,
+        onChange: handleLaunchToLibraryPageChange,
+      },
     ];
-  }, [form.launchInBigPicture, handleLaunchInBigPictureChange, t]);
+  }, [
+    form.launchInBigPicture,
+    form.bigPictureLaunchToLibraryPage,
+    handleLaunchInBigPictureChange,
+    handleLaunchToLibraryPageChange,
+    t,
+  ]);
 
   const inputItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -525,7 +559,7 @@ export function BigPictureSettingsSection({
     () => ({
       up: {
         type: "item",
-        itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
+        itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchToLibraryPage,
       },
       down: {
         type: "item",
@@ -541,7 +575,7 @@ export function BigPictureSettingsSection({
         type: "item",
         itemId: form.launchInBigPicture
           ? BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID
-          : BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
+          : BIG_PICTURE_ITEM_FOCUS_IDS.launchToLibraryPage,
       },
       down: {
         type: "item",

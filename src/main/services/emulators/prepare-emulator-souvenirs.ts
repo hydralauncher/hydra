@@ -1,4 +1,5 @@
 import type { UserPreferences } from "@types";
+import { isAchievementSouvenirsEnabled } from "@shared";
 
 import { db, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
@@ -19,7 +20,14 @@ export const prepareEmulatorSouvenirs = async (
     { valueEncoding: "json" }
   );
 
-  if (userPreferences?.enableAchievementSouvenirs !== true) return null;
+  if (
+    !isAchievementSouvenirsEnabled(
+      userPreferences?.enableAchievementSouvenirs,
+      process.platform
+    )
+  ) {
+    return null;
+  }
 
   if (system === "ps1") {
     await enableDuckStationFileLogging();

@@ -78,9 +78,14 @@
     align-items: center;
     gap: 4px;
     width: 100%;
+
+    @container (max-width: 260px) {
+      align-items: flex-start;
+    }
   }
 
   &__playtime {
+    white-space: nowrap;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -122,6 +127,18 @@
     color: globals.$warning-color;
   }
 
+  &__top-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+
+    @container (max-width: 260px) {
+      flex-direction: column-reverse;
+      align-items: flex-end;
+    }
+  }
+
   &__classics-badges {
     display: flex;
     align-items: center;
@@ -152,33 +169,6 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
   }
 
-  &__emulator-badge {
-    flex-shrink: 0;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    background:
-      linear-gradient(#1c1c1c, #1c1c1c) padding-box,
-      globals.$classics-rainbow border-box;
-    width: 24px;
-    height: 24px;
-    box-sizing: border-box;
-    position: relative;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
-
-    img {
-      position: absolute;
-      inset: 0;
-      margin: auto;
-      width: 15px;
-      height: 15px;
-      object-fit: contain;
-      border-radius: 3px;
-      display: block;
-      transform: translateZ(0);
-      backface-visibility: hidden;
-    }
-  }
-
   &__installed-badge {
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
@@ -197,6 +187,37 @@
   &__installed-icon {
     color: #fff;
     flex-shrink: 0;
+  }
+
+  &__installed-badge--classics {
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background:
+      linear-gradient(#1c1c1c, #1c1c1c) padding-box,
+      globals.$classics-rainbow border-box;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: #fafafa;
+    gap: 6px;
+    padding: 0 8px;
+    height: 24px;
+    box-sizing: border-box;
+    line-height: 1;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+
+    .library-game-card__installed-text {
+      font-size: 11px;
+    }
+  }
+
+  &__installed-emulator-icon {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
+    border-radius: 3px;
+    display: block;
   }
 
   &__installed-text {

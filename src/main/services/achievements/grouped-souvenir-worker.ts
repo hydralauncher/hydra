@@ -41,6 +41,8 @@ import {
   prepareAchievementSouvenirForRetry,
 } from "./grouped-souvenir-sync-status";
 import { getGameAchievementData } from "./get-game-achievement-data";
+import { mergeUnlockedAchievementLists } from "./merge-unlocked-achievements";
+import { buildGroupedSouvenirSyncPayload } from "./grouped-souvenir-payload";
 
 const CONCURRENT_UPDATE_ATTEMPTS = 3;
 const CONCURRENT_UPDATE_RETRY_DELAY_MS = 250;
@@ -184,7 +186,10 @@ const reconcileAchievementMemory = async (
   const current = AchievementMemoryStore.get(response.shop, response.objectId);
   AchievementMemoryStore.set(response.shop, response.objectId, {
     achievements: current?.achievements ?? [],
-    unlockedAchievements: response.achievements,
+    unlockedAchievements: mergeUnlockedAchievementLists(
+      response.achievements,
+      current?.unlockedAchievements ?? []
+    ),
     language: current?.language,
     catalogueValidator: current?.catalogueValidator,
   });
@@ -203,25 +208,6 @@ const reconcileAchievementMemory = async (
   }
 };
 
-const buildAchievementSyncPayload = (
-  pending: PendingAchievementSouvenir,
-  achievements: PendingSouvenirAchievement[],
-  includeSouvenir: boolean
-) => ({
-  id: pending.remoteGameId,
-  achievements,
-  ...(includeSouvenir && {
-    souvenirs: [
-      {
-        clientId: pending.clientId,
-        imageKey: pending.imageKey!,
-        capturedAt: pending.capturedAt,
-        achievementNames: achievements.map((achievement) => achievement.name),
-      },
-    ],
-  }),
-});
-
 const synchronizeAchievements = (
   pending: PendingAchievementSouvenir,
   achievements: PendingSouvenirAchievement[],
@@ -229,7 +215,7 @@ const synchronizeAchievements = (
 ) =>
   HydraApi.put<UpdatedUnlockedAchievements>(
     "/profile/games/achievements",
-    buildAchievementSyncPayload(pending, achievements, includeSouvenir)
+    buildGroupedSouvenirSyncPayload(pending, achievements, includeSouvenir)
   );
 
 const waitForConcurrentUpdate = (attempt: number) =>

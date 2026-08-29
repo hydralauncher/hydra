@@ -128,6 +128,7 @@ export interface GameRunning {
   id: string;
   title: string;
   iconUrl: string | null;
+  customIconUrl?: string | null;
   coverImageUrl?: string | null;
   objectId: string;
   shop: GameShop;
@@ -311,6 +312,7 @@ export interface ProfileSouvenir {
 export interface SouvenirsResponse {
   items: Array<ProfileSouvenir | ProfileAchievement>;
   total: number;
+  hasReachedLimit: boolean;
   hiddenReason: SouvenirsHiddenReason;
 }
 

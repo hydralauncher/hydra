@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  getWindowsProcessAncestryDiagnostics,
   isWindowsGameForegroundProcess,
   isWindowsWindowSource,
 } from "./windows-game-window-match.js";
@@ -153,5 +154,71 @@ describe("Windows game window source matching", () => {
 
   it("rejects malformed source IDs", () => {
     assert.equal(isWindowsWindowSource("screen:12345:0", "12345"), false);
+  });
+});
+
+describe("Windows process ancestry diagnostics", () => {
+  it("describes the foreground process and its parents", () => {
+    assert.deepEqual(
+      getWindowsProcessAncestryDiagnostics(
+        [
+          {
+            pid: 20,
+            parentPid: 10,
+            exe: "C:\\Games\\game.exe",
+            name: "game.exe",
+          },
+          {
+            pid: 10,
+            parentPid: null,
+            exe: "C:\\Games\\launcher.exe",
+            name: "launcher.exe",
+          },
+        ],
+        20
+      ),
+      [
+        {
+          pid: 20,
+          parentPid: 10,
+          exe: "C:\\Games\\game.exe",
+          name: "game.exe",
+          processFound: true,
+        },
+        {
+          pid: 10,
+          parentPid: null,
+          exe: "C:\\Games\\launcher.exe",
+          name: "launcher.exe",
+          processFound: true,
+        },
+      ]
+    );
+  });
+
+  it("records when process enumeration is missing a parent", () => {
+    assert.deepEqual(
+      getWindowsProcessAncestryDiagnostics(
+        [
+          {
+            pid: 20,
+            parentPid: 10,
+            exe: "C:\\Games\\game.exe",
+            name: "game.exe",
+          },
+        ],
+        20
+      ),
+      [
+        {
+          pid: 20,
+          parentPid: 10,
+          exe: "C:\\Games\\game.exe",
+          name: "game.exe",
+          processFound: true,
+        },
+        { pid: 10, processFound: false },
+      ]
+    );
   });
 });

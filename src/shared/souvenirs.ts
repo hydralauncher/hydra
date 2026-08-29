@@ -9,6 +9,11 @@ import { SteamContentDescriptor } from "./constants.js";
 
 export const SOUVENIRS_PAGE_SIZE = 24;
 
+export const isAchievementSouvenirsEnabled = (
+  preference: boolean | undefined,
+  platform: string
+) => preference ?? platform !== "linux";
+
 export type SouvenirVisualVariant = "rare" | "platinum";
 
 interface SouvenirRarity {

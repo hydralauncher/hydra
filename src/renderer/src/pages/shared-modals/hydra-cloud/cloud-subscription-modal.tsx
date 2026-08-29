@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@renderer/components";
 import type { HydraCloudFeature } from "@types";
 import "./cloud-subscription-modal.scss";
+
+// The remote page is a fixed 1536x836 design: below that width its right-hand
+// column overflows and is clipped mid-word. Render it at its design size and
+// scale the whole frame instead, so the layout never reflows.
+const CLOUD_DESIGN_WIDTH = 1536;
+const CLOUD_DESIGN_HEIGHT = 836;
 
 export interface CloudSubscriptionModalProps {
   visible: boolean;
@@ -24,9 +30,23 @@ export function CloudSubscriptionModal({
   const [cloudIframeUrl, setCloudIframeUrl] = useState("");
   const [isIframeUnavailable, setIsIframeUnavailable] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const cloudIframeOrigin = cloudIframeUrl
     ? new URL(cloudIframeUrl).origin
     : "";
+
+  const seedRef = useRef({ lang, feature });
+  seedRef.current = { lang, feature };
+
+  const iframeSrc = useMemo(() => {
+    if (!cloudIframeUrl) return undefined;
+
+    const { lang: seedLang, feature: seedFeature } = seedRef.current;
+
+    return `${cloudIframeUrl}?lng=${seedLang}${
+      seedFeature ? `&feature=${seedFeature}` : ""
+    }`;
+  }, [cloudIframeUrl]);
 
   useEffect(() => {
     let isMounted = true;
@@ -49,6 +69,32 @@ export function CloudSubscriptionModal({
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+
+    if (!frame) return;
+
+    const updateScale = () => {
+      const { width } = frame.getBoundingClientRect();
+
+      if (!width) return;
+
+      frame.style.setProperty(
+        "--cloud-iframe-scale",
+        `${width / CLOUD_DESIGN_WIDTH}`
+      );
+    };
+
+    updateScale();
+
+    if (typeof ResizeObserver === "undefined") return;
+
+    const resizeObserver = new ResizeObserver(updateScale);
+    resizeObserver.observe(frame);
+
+    return () => resizeObserver.disconnect();
   }, []);
 
   const handleClose = useCallback(() => {
@@ -99,14 +145,18 @@ export function CloudSubscriptionModal({
 
   // Sync the launcher language + selected feature to the (already loaded)
   // iframe each time it opens, so it can switch cards without reloading.
+  const syncIframeState = useCallback(() => {
+    if (!cloudIframeOrigin) return;
+
+    iframeRef.current?.contentWindow?.postMessage(
+      { source: "hydra", lang, feature },
+      cloudIframeOrigin
+    );
+  }, [cloudIframeOrigin, lang, feature]);
+
   useEffect(() => {
-    if (visible && cloudIframeOrigin) {
-      iframeRef.current?.contentWindow?.postMessage(
-        { source: "hydra", lang, feature },
-        cloudIframeOrigin
-      );
-    }
-  }, [visible, lang, feature, cloudIframeOrigin]);
+    if (visible) syncIframeState();
+  }, [visible, syncIframeState]);
 
   // The overlay (and the iframe inside it) stays mounted for the lifetime of the
   // profile so the frame is preloaded; only its visibility is toggled. A hidden
@@ -129,7 +179,7 @@ export function CloudSubscriptionModal({
         }
       }}
     >
-      <div className="cloud-subscription-modal__frame">
+      <div ref={frameRef} className="cloud-subscription-modal__frame">
         <button
           type="button"
           className="cloud-subscription-modal__close"
@@ -152,13 +202,10 @@ export function CloudSubscriptionModal({
             ref={iframeRef}
             title="Hydra Cloud"
             className="cloud-subscription-modal__iframe"
-            src={
-              cloudIframeUrl
-                ? `${cloudIframeUrl}?lng=${lang}${
-                    feature ? `&feature=${feature}` : ""
-                  }`
-                : undefined
-            }
+            src={iframeSrc}
+            width={CLOUD_DESIGN_WIDTH}
+            height={CLOUD_DESIGN_HEIGHT}
+            onLoad={syncIframeState}
           />
         )}
       </div>

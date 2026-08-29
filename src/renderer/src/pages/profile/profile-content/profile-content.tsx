@@ -1,5 +1,11 @@
 import { userProfileContext } from "@renderer/context";
 import {
+  getShopsForProfilePlatform,
+  readStoredProfilePlatform,
+  readStoredProfileSort,
+  readStoredSouvenirSort,
+} from "@renderer/helpers";
+import {
   useCallback,
   useContext,
   useEffect,
@@ -17,6 +23,12 @@ import {
 import { setHeaderTitle } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
+import {
+  AuthPage,
+  findSouvenirByNotificationTarget,
+  isAchievementSouvenirsEnabled,
+  useSouvenirContentWarning,
+} from "@shared";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { BadgesBox } from "./badges-box";
@@ -35,11 +47,6 @@ import { SouvenirLightbox } from "./souvenir-lightbox";
 import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
-import {
-  AuthPage,
-  findSouvenirByNotificationTarget,
-  useSouvenirContentWarning,
-} from "@shared";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ConfirmationModal } from "@renderer/components";
 import "./profile-content.scss";
@@ -108,6 +115,7 @@ export function ProfileContent() {
     isLoadingLibraryGames,
     souvenirs,
     souvenirsTotal,
+    hasReachedSouvenirLimit,
     souvenirsHiddenReason,
     hasMoreSouvenirs,
     isLoadingSouvenirs,
@@ -115,6 +123,7 @@ export function ProfileContent() {
     loadMoreSouvenirs,
     updateSouvenir,
     removeSouvenir,
+    loadedLibrarySortBy,
   } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
   const navigate = useNavigate();
@@ -122,25 +131,47 @@ export function ProfileContent() {
   const requestedTab = searchParams.get("tab");
   const requestedSouvenir = searchParams.get("souvenir");
   const attemptedDeepLinkPagesRef = useRef(new Set<string>());
-  const souvenirsEnabled = useAppSelector(
-    (state) => state.userPreferences.value?.enableAchievementSouvenirs === true
+  const souvenirsEnabled = useAppSelector((state) =>
+    isAchievementSouvenirsEnabled(
+      state.userPreferences.value?.enableAchievementSouvenirs,
+      window.electron.platform
+    )
   );
   const disableNsfwAlert = useAppSelector(
     (state) => state.userPreferences.value?.disableNsfwAlert === true
   );
   const [statsIndex, setStatsIndex] = useState(0);
-  const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
-  const [platform, setPlatform] = useState<ProfilePlatform>("all");
+  const [sortBy, setSortBy] = useState<SortOption>(readStoredProfileSort);
+
+  const prefetchedSortBy = useRef(readStoredProfileSort()).current;
+
+  const handleSortChange = useCallback((nextSortBy: SortOption) => {
+    setSortBy(nextSortBy);
+    localStorage.setItem("profile-sort-by", nextSortBy);
+  }, []);
+  const [platform, setPlatform] = useState<ProfilePlatform>(
+    readStoredProfilePlatform
+  );
+
+  const handlePlatformChange = useCallback((nextPlatform: ProfilePlatform) => {
+    setPlatform(nextPlatform);
+    localStorage.setItem("profile-platform", nextPlatform);
+  }, []);
   const effectiveSortBy =
     !userProfile?.hasActiveSubscription && sortBy === "achievementCount"
       ? "playedRecently"
       : sortBy;
 
-  const shops = useMemo<string[]>(() => {
-    if (platform === "pc") return ["steam"];
-    if (platform === "classics") return ["launchbox"];
-    return ["steam", "launchbox"];
-  }, [platform]);
+  const isCorrectingPrefetchedSort =
+    Boolean(userProfile) &&
+    sortBy === prefetchedSortBy &&
+    effectiveSortBy !== prefetchedSortBy &&
+    loadedLibrarySortBy !== effectiveSortBy;
+
+  const shops = useMemo<string[]>(
+    () => getShopsForProfilePlatform(platform),
+    [platform]
+  );
 
   const [activeTab, setActiveTab] = useState<ProfileTabType>(
     requestedTab === "souvenirs" ? "souvenirs" : "library"
@@ -220,7 +251,7 @@ export function ProfileContent() {
     const pageKey = `${normalizedTarget}:${souvenirs.length}`;
     if (hasMoreSouvenirs && !attemptedDeepLinkPagesRef.current.has(pageKey)) {
       attemptedDeepLinkPagesRef.current.add(pageKey);
-      void loadMoreSouvenirs("recent");
+      void loadMoreSouvenirs(readStoredSouvenirSort());
       return;
     }
 
@@ -305,7 +336,7 @@ export function ProfileContent() {
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
     setActiveTab(requestedTab === "souvenirs" ? "souvenirs" : "library");
-    setPlatform("all");
+    setPlatform(readStoredProfilePlatform());
   }, [requestedTab, userProfile?.id]);
 
   const fetchUserReviews = useCallback(async () => {
@@ -516,12 +547,13 @@ export function ProfileContent() {
               {activeTab === "library" && (
                 <LibraryTab
                   sortBy={effectiveSortBy}
-                  onSortChange={setSortBy}
+                  onSortChange={handleSortChange}
                   platform={platform}
-                  onPlatformChange={setPlatform}
+                  onPlatformChange={handlePlatformChange}
                   pinnedGames={pinnedGames}
                   libraryGames={libraryGames}
                   hasMoreLibraryGames={hasMoreLibraryGames}
+                  isAwaitingInitialLibrary={isCorrectingPrefetchedSort}
                   statsIndex={statsIndex}
                   userStats={userStats}
                   onLoadMore={handleLoadMore}
@@ -548,6 +580,7 @@ export function ProfileContent() {
               {activeTab === "souvenirs" && (
                 <SouvenirsTab
                   achievements={souvenirs}
+                  hasReachedLimit={hasReachedSouvenirLimit}
                   hiddenReason={souvenirsHiddenReason}
                   canLike={Boolean(userDetails)}
                   hasMore={hasMoreSouvenirs}

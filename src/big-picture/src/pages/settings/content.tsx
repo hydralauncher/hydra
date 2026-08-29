@@ -23,6 +23,8 @@ import {
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
+import { isAchievementSouvenirsEnabled } from "@shared";
+import type { UserPreferences } from "@types";
 
 interface SettingsSectionProps {
   className?: string;
@@ -34,6 +36,7 @@ interface ContentForm {
   showHiddenAchievementsDescription: boolean;
   enableSteamAchievements: boolean;
   enableAchievementSouvenirs: boolean;
+  autoplayAnimatedArtwork: boolean;
 }
 
 interface ContentItem {
@@ -49,8 +52,28 @@ const DEFAULT_FORM: ContentForm = {
   disableNsfwAlert: false,
   showHiddenAchievementsDescription: false,
   enableSteamAchievements: false,
-  enableAchievementSouvenirs: false,
+  enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
+    undefined,
+    globalThis.window.electron.platform
+  ),
+  autoplayAnimatedArtwork: false,
 };
+
+const buildForm = (preferences: UserPreferences | null): ContentForm =>
+  preferences
+    ? {
+        autoplayGameTrailers: preferences.autoplayGameTrailers ?? true,
+        disableNsfwAlert: preferences.disableNsfwAlert ?? false,
+        showHiddenAchievementsDescription:
+          preferences.showHiddenAchievementsDescription ?? false,
+        enableSteamAchievements: preferences.enableSteamAchievements ?? false,
+        enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
+          preferences.enableAchievementSouvenirs,
+          globalThis.window.electron.platform
+        ),
+        autoplayAnimatedArtwork: preferences.autoplayAnimatedArtwork ?? false,
+      }
+    : DEFAULT_FORM;
 
 export function ContentSettingsSection({
   className,
@@ -58,7 +81,9 @@ export function ContentSettingsSection({
   const { t } = useTranslation("settings");
   const userPreferences = useUserPreferences();
   const { hasActiveSubscription } = useUserDetails();
-  const [form, setForm] = useState<ContentForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<ContentForm>(() =>
+    buildForm(userPreferences)
+  );
   const [showWaylandSouvenirsWarning, setShowWaylandSouvenirsWarning] =
     useState(false);
   const [screenshotsPath, setScreenshotsPath] = useState("");
@@ -72,15 +97,7 @@ export function ContentSettingsSection({
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
-      disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
-      showHiddenAchievementsDescription:
-        userPreferences.showHiddenAchievementsDescription ?? false,
-      enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
-      enableAchievementSouvenirs:
-        userPreferences.enableAchievementSouvenirs ?? false,
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   const updateUserPreferences = useCallback(
@@ -183,6 +200,14 @@ export function ContentSettingsSection({
         checked: form.enableSteamAchievements,
         onChange: (checked: boolean) =>
           void updateUserPreferences({ enableSteamAchievements: checked }),
+      },
+      {
+        id: "autoplay-animated-artwork",
+        focusId: CONTENT_ITEM_FOCUS_IDS.autoplayAnimatedArtwork,
+        label: t("autoplay_animated_artwork"),
+        checked: form.autoplayAnimatedArtwork,
+        onChange: (checked: boolean) =>
+          void updateUserPreferences({ autoplayAnimatedArtwork: checked }),
       },
       ...(supportsSouvenirs
         ? [

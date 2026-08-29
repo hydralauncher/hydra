@@ -22,6 +22,7 @@ import {
 import type {
   AchievementSouvenirSyncItem,
   AchievementSouvenirSyncStatus,
+  ArtworkAssetType,
   Badge,
   FriendRequestAction,
   ProfileSouvenir,
@@ -157,6 +158,7 @@ type ProfileActivityGame = {
   libraryHeroImageUrl?: string | null;
   customHeroImageUrl?: string | null;
   customLibraryHeroImageUrl?: string | null;
+  selectedArtworkTypes?: ArtworkAssetType[];
   lastTimePlayed?: Date | string | null;
   playTimeInSeconds?: number;
   playTimeInMilliseconds?: number;
@@ -376,13 +378,15 @@ function getActivityHeroImageSource(
   game: ProfileActivityGame,
   preferCustomArtwork: boolean
 ): string {
+  const selected = preferCustomArtwork ? [] : (game.selectedArtworkTypes ?? []);
+
   const sources = [
     preferCustomArtwork ? game.customLibraryHeroImageUrl : null,
     preferCustomArtwork ? game.customHeroImageUrl : null,
-    game.libraryHeroImageUrl,
+    selected.includes("hero") ? null : game.libraryHeroImageUrl,
     game.libraryImageUrl,
-    game.coverImageUrl,
-    game.iconUrl,
+    selected.includes("grid") ? null : game.coverImageUrl,
+    selected.includes("icon") ? null : game.iconUrl,
   ];
 
   for (const source of sources) {
@@ -462,11 +466,41 @@ function getLibraryCarouselPlaytimeInMilliseconds(
   return null;
 }
 
+function getDefaultCoverImageUrl(game: LibraryGame | UserGame): string | null {
+  if (game.shop !== "steam") return null;
+
+  return `https://shared.steamstatic.com/store_item_assets/steam/apps/${game.objectId}/library_600x900_2x.jpg`;
+}
+
+function stripSelectedArtwork<T extends LibraryGame | UserGame>(
+  game: T,
+  allowCustomArtwork: boolean
+): T {
+  if (allowCustomArtwork) return game;
+
+  const selected = game.selectedArtworkTypes ?? [];
+  if (selected.length === 0) return game;
+
+  return {
+    ...game,
+    coverImageUrl: selected.includes("grid")
+      ? getDefaultCoverImageUrl(game)
+      : game.coverImageUrl,
+    libraryHeroImageUrl: selected.includes("hero")
+      ? null
+      : game.libraryHeroImageUrl,
+    logoImageUrl: selected.includes("logo") ? null : game.logoImageUrl,
+    iconUrl: selected.includes("icon") ? null : game.iconUrl,
+    selectedArtworkTypes: undefined,
+  };
+}
+
 function toProfileLibraryCarouselGame(
   game: LibraryGame | UserGame,
   preferCustomArtwork = false,
   showAchievementProgress = false
 ): ProfileLibraryCarouselGame {
+  game = stripSelectedArtwork(game, preferCustomArtwork);
   const classicsAssetFields = game as ProfileClassicsAssetFields;
   const customCover = preferCustomArtwork
     ? (classicsAssetFields.customLibraryImageUrl ??
@@ -485,11 +519,18 @@ function toProfileLibraryCarouselGame(
     logoPosition: game.logoPosition ?? null,
     coverImageUrl: customCover ?? game.coverImageUrl ?? null,
     customCoverImageUrl: customCover,
+    selectedArtworkTypes: game.selectedArtworkTypes,
     downloadSources: game.downloadSources ?? [],
     platform: classicsAssetFields.platform ?? null,
-    customIconUrl: classicsAssetFields.customIconUrl ?? null,
-    customHeroImageUrl: classicsAssetFields.customHeroImageUrl ?? null,
-    customLogoImageUrl: classicsAssetFields.customLogoImageUrl ?? null,
+    customIconUrl: preferCustomArtwork
+      ? (classicsAssetFields.customIconUrl ?? null)
+      : null,
+    customHeroImageUrl: preferCustomArtwork
+      ? (classicsAssetFields.customHeroImageUrl ?? null)
+      : null,
+    customLogoImageUrl: preferCustomArtwork
+      ? (classicsAssetFields.customLogoImageUrl ?? null)
+      : null,
     playTimeInMilliseconds: getLibraryCarouselPlaytimeInMilliseconds(game),
     achievementCount: showAchievementProgress
       ? (game.achievementCount ?? null)
@@ -1190,7 +1231,7 @@ function ProfileAchievementsContent({
   firstFriendFocusId,
   onActivate,
 }: Readonly<ProfileAchievementsContentProps>) {
-  if (!canView) return <LockedAchievements />;
+  if (!canView) return <LockedAchievements isOwnProfile={isOwnProfile} />;
 
   if (groups.length === 0) {
     return (
@@ -1341,7 +1382,13 @@ function hideBrokenPreviewImage(event: SyntheticEvent<HTMLImageElement>) {
   event.currentTarget.style.opacity = "0";
 }
 
-function LockedAchievements() {
+interface LockedAchievementsProps {
+  isOwnProfile: boolean;
+}
+
+function LockedAchievements({
+  isOwnProfile,
+}: Readonly<LockedAchievementsProps>) {
   return (
     <div className="profile-page__achievements-lock-frame">
       <div
@@ -1406,8 +1453,9 @@ function LockedAchievements() {
       <div className="profile-page__achievements-lock-overlay">
         <SparkleIcon size={24} weight="fill" />
         <p>
-          This user is required to have Hydra Cloud in order to display
-          achievements in his profile.
+          {isOwnProfile
+            ? "You need Hydra Cloud in order to display achievements in your own profile."
+            : "This user is required to have Hydra Cloud in order to display achievements in his profile."}
         </p>
       </div>
     </div>

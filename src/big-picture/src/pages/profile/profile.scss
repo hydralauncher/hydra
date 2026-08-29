@@ -14,7 +14,7 @@
 .profile-page__hero {
   position: relative;
   width: 100%;
-  height: 500px;
+  height: 540px;
   overflow: visible;
   border: none;
   background: var(--background);
@@ -73,14 +73,15 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background:
-    linear-gradient(
-      90deg,
-      var(--background) 0%,
-      transparent 25% 75%,
-      var(--background) 99.53%
-    ),
-    linear-gradient(transparent 0%, var(--background) 97%);
+  // Only a short fade at the bottom, so the banner stays readable edge to edge
+  // while still blending into the page behind the profile identity row.
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 60%,
+    78%,
+    var(--background) 100%
+  );
 }
 
 .profile-page__hero-content {
@@ -1486,7 +1487,6 @@
   height: 16px;
   border-radius: 4px;
   overflow: hidden;
-  background: var(--surface);
   color: var(--text-secondary);
 }
 
