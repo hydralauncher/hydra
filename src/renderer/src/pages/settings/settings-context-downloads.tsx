@@ -4,10 +4,39 @@ import { useTranslation } from "react-i18next";
 import { CheckboxField, SelectField, TextField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
-import type { NetworkInterface } from "@types";
+import type { NetworkInterface, UserPreferences } from "@types";
 import { SettingsGlobalTrackers } from "./settings-global-trackers";
 
 import "./settings-general.scss";
+
+const formatLimitInputValue = (
+  value: number,
+  useMegabytes: boolean
+): string => {
+  const unitValue = useMegabytes ? value / (1024 * 1024) : (value * 8) / 1e6;
+  return Number.isInteger(unitValue)
+    ? `${unitValue}`
+    : `${Number(unitValue.toFixed(2))}`;
+};
+
+const buildForm = (preferences: UserPreferences | null) => ({
+  seedAfterDownloadComplete: preferences?.seedAfterDownloadComplete ?? false,
+  showDownloadSpeedInMegabytes:
+    preferences?.showDownloadSpeedInMegabytes ?? false,
+  extractFilesByDefault: preferences?.extractFilesByDefault ?? true,
+  createStartMenuShortcut: preferences?.createStartMenuShortcut ?? true,
+  maxDownloadSpeedMegabytes:
+    typeof preferences?.maxDownloadSpeedBytesPerSecond === "number" &&
+    preferences.maxDownloadSpeedBytesPerSecond > 0
+      ? formatLimitInputValue(
+          preferences.maxDownloadSpeedBytesPerSecond,
+          preferences.showDownloadSpeedInMegabytes ?? false
+        )
+      : "",
+  deleteArchiveFilesAfterExtractionByDefault:
+    preferences?.deleteArchiveFilesAfterExtractionByDefault ?? false,
+  torrentNetworkInterface: preferences?.torrentNetworkInterface ?? "",
+});
 
 export function SettingsContextDownloads() {
   const { t } = useTranslation("settings");
@@ -16,16 +45,6 @@ export function SettingsContextDownloads() {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
-
-  const formatLimitInputValue = (
-    value: number,
-    useMegabytes: boolean
-  ): string => {
-    const unitValue = useMegabytes ? value / (1024 * 1024) : (value * 8) / 1e6;
-    return Number.isInteger(unitValue)
-      ? `${unitValue}`
-      : `${Number(unitValue.toFixed(2))}`;
-  };
 
   const parseLimitInputToBytesPerSecond = (
     value: string,
@@ -44,15 +63,7 @@ export function SettingsContextDownloads() {
       : Math.floor((parsed * 1e6) / 8);
   };
 
-  const [form, setForm] = useState({
-    seedAfterDownloadComplete: false,
-    showDownloadSpeedInMegabytes: false,
-    extractFilesByDefault: true,
-    createStartMenuShortcut: true,
-    maxDownloadSpeedMegabytes: "",
-    deleteArchiveFilesAfterExtractionByDefault: false,
-    torrentNetworkInterface: "",
-  });
+  const [form, setForm] = useState(() => buildForm(userPreferences));
 
   const [networkInterfaces, setNetworkInterfaces] = useState<
     NetworkInterface[]
@@ -68,25 +79,7 @@ export function SettingsContextDownloads() {
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      seedAfterDownloadComplete:
-        userPreferences.seedAfterDownloadComplete ?? false,
-      showDownloadSpeedInMegabytes:
-        userPreferences.showDownloadSpeedInMegabytes ?? false,
-      extractFilesByDefault: userPreferences.extractFilesByDefault ?? true,
-      createStartMenuShortcut: userPreferences.createStartMenuShortcut ?? true,
-      maxDownloadSpeedMegabytes:
-        typeof userPreferences.maxDownloadSpeedBytesPerSecond === "number" &&
-        userPreferences.maxDownloadSpeedBytesPerSecond > 0
-          ? formatLimitInputValue(
-              userPreferences.maxDownloadSpeedBytesPerSecond,
-              userPreferences.showDownloadSpeedInMegabytes ?? false
-            )
-          : "",
-      deleteArchiveFilesAfterExtractionByDefault:
-        userPreferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
-      torrentNetworkInterface: userPreferences.torrentNetworkInterface ?? "",
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   const networkInterfaceOptions = useMemo(() => {

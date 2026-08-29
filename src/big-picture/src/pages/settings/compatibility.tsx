@@ -1,6 +1,6 @@
 import "./compatibility.scss";
 
-import type { ProtonVersion } from "@types";
+import type { ProtonVersion, UserPreferences } from "@types";
 import {
   type MouseEvent as ReactMouseEvent,
   useCallback,
@@ -82,6 +82,20 @@ const DEFAULT_FORM: CompatibilityForm = {
   compatibilityEnvironmentVariables: "",
 };
 
+const buildForm = (preferences: UserPreferences | null): CompatibilityForm =>
+  preferences
+    ? {
+        defaultProtonPath: preferences.defaultProtonPath ?? "",
+        autoRunGamemode: preferences.autoRunGamemode ?? false,
+        autoRunMangohud: preferences.autoRunMangohud ?? false,
+        protonLogEnabled: preferences.protonLogEnabled ?? false,
+        compatibilityEnvironmentVariablesEnabled:
+          preferences.compatibilityEnvironmentVariablesEnabled ?? false,
+        compatibilityEnvironmentVariables:
+          preferences.compatibilityEnvironmentVariables ?? "",
+      }
+    : DEFAULT_FORM;
+
 function getProtonSourceDescription(version: ProtonVersion | null) {
   if (!version) {
     return "Uses the default UMU-managed Proton version.";
@@ -102,8 +116,9 @@ export function CompatibilitySettingsSection({
 }: Readonly<SettingsSectionProps>) {
   const userPreferences = useUserPreferences();
   const { showSuccessToast } = useBigPictureToast();
-
-  const [form, setForm] = useState<CompatibilityForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<CompatibilityForm>(() =>
+    buildForm(userPreferences)
+  );
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
@@ -125,16 +140,7 @@ export function CompatibilitySettingsSection({
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      defaultProtonPath: userPreferences.defaultProtonPath ?? "",
-      autoRunGamemode: userPreferences.autoRunGamemode ?? false,
-      autoRunMangohud: userPreferences.autoRunMangohud ?? false,
-      protonLogEnabled: userPreferences.protonLogEnabled ?? false,
-      compatibilityEnvironmentVariablesEnabled:
-        userPreferences.compatibilityEnvironmentVariablesEnabled ?? false,
-      compatibilityEnvironmentVariables:
-        userPreferences.compatibilityEnvironmentVariables ?? "",
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   useEffect(() => {

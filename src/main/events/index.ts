@@ -31,12 +31,9 @@ import "./library/transfer-game-files";
 import "./emulators";
 import "./retroarch";
 
-import { isPortableVersion } from "@main/helpers";
-
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => appVersion);
 ipcMain.handle("isStaging", () => isStaging);
-ipcMain.handle("isPortableVersion", () => isPortableVersion());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);
 ipcMain.handle("getScreenshotsPath", () =>
   ScreenshotService.getScreenshotsPath()

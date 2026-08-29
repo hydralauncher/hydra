@@ -11,10 +11,34 @@ import { useTranslation } from "react-i18next";
 import { Button, CheckboxField, SelectField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
-import type { AchievementCustomNotificationPosition } from "@types";
+import type {
+  AchievementCustomNotificationPosition,
+  UserPreferences,
+} from "@types";
 import { UnmuteIcon } from "@primer/octicons-react";
 
 import "./settings-general.scss";
+
+const buildForm = (preferences: UserPreferences | null) => ({
+  downloadNotificationsEnabled:
+    preferences?.downloadNotificationsEnabled ?? false,
+  repackUpdatesNotificationsEnabled:
+    preferences?.repackUpdatesNotificationsEnabled ?? false,
+  friendRequestNotificationsEnabled:
+    preferences?.friendRequestNotificationsEnabled ?? false,
+  friendStartGameNotificationsEnabled:
+    preferences?.friendStartGameNotificationsEnabled ?? true,
+  achievementNotificationsEnabled:
+    preferences?.achievementNotificationsEnabled ?? true,
+  achievementCustomNotificationsEnabled:
+    preferences?.achievementCustomNotificationsEnabled ?? true,
+  achievementCustomNotificationPosition:
+    (preferences?.achievementCustomNotificationPosition ??
+      "top-left") as AchievementCustomNotificationPosition,
+  achievementSoundVolume: Math.round(
+    (preferences?.achievementSoundVolume ?? 0.15) * 100
+  ),
+});
 
 export function SettingsContextNotifications() {
   const { t } = useTranslation("settings");
@@ -26,41 +50,12 @@ export function SettingsContextNotifications() {
 
   const volumeUpdateTimeoutRef = useRef<NodeJS.Timeout>();
 
-  const [form, setForm] = useState({
-    downloadNotificationsEnabled: false,
-    repackUpdatesNotificationsEnabled: false,
-    friendRequestNotificationsEnabled: false,
-    friendStartGameNotificationsEnabled: true,
-    achievementNotificationsEnabled: true,
-    achievementCustomNotificationsEnabled: true,
-    achievementCustomNotificationPosition:
-      "top-left" as AchievementCustomNotificationPosition,
-    achievementSoundVolume: 15,
-  });
+  const [form, setForm] = useState(() => buildForm(userPreferences));
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm((prev) => ({
-      ...prev,
-      downloadNotificationsEnabled:
-        userPreferences.downloadNotificationsEnabled ?? false,
-      repackUpdatesNotificationsEnabled:
-        userPreferences.repackUpdatesNotificationsEnabled ?? false,
-      achievementNotificationsEnabled:
-        userPreferences.achievementNotificationsEnabled ?? true,
-      achievementCustomNotificationsEnabled:
-        userPreferences.achievementCustomNotificationsEnabled ?? true,
-      achievementCustomNotificationPosition:
-        userPreferences.achievementCustomNotificationPosition ?? "top-left",
-      achievementSoundVolume: Math.round(
-        (userPreferences.achievementSoundVolume ?? 0.15) * 100
-      ),
-      friendRequestNotificationsEnabled:
-        userPreferences.friendRequestNotificationsEnabled ?? false,
-      friendStartGameNotificationsEnabled:
-        userPreferences.friendStartGameNotificationsEnabled ?? true,
-    }));
+    setForm((prev) => ({ ...prev, ...buildForm(userPreferences) }));
   }, [userPreferences]);
 
   useEffect(() => {

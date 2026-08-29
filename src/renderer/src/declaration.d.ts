@@ -589,6 +589,11 @@ declare global {
       scanSubfolders: boolean,
       language?: string
     ) => Promise<EmulatorConfig>;
+    registerRomFolder: (
+      system: EmulatorSystem,
+      folderPath: string,
+      scanSubfolders: boolean
+    ) => Promise<EmulatorConfig>;
     removeRomFolder: (
       system: EmulatorSystem,
       folderId: string
@@ -965,6 +970,7 @@ declare global {
     openCheckout: () => Promise<void>;
     getCloudIframeUrl: () => Promise<string>;
     getVersion: () => Promise<string>;
+    getAppSessionId: () => Promise<string>;
     isStaging: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
@@ -983,7 +989,7 @@ declare global {
       cb: (count: number) => void
     ) => () => Electron.IpcRenderer;
     openFolder: (folderPath: string) => Promise<string>;
-    isPortableVersion: () => Promise<boolean>;
+    isPortableVersion: boolean;
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;

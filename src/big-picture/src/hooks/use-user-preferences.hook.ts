@@ -8,32 +8,31 @@ type ElectronPreferencesBridge = {
   ) => () => void;
 };
 
+let lastKnownPreferences: UserPreferences | null = null;
+
 export function useUserPreferences() {
   const [userPreferences, setUserPreferences] =
-    useState<UserPreferences | null>(null);
+    useState<UserPreferences | null>(() => lastKnownPreferences);
 
   useEffect(() => {
     let isMounted = true;
     const electron = globalThis.window.electron as ElectronPreferencesBridge;
 
+    const apply = (nextPreferences: UserPreferences | null) => {
+      lastKnownPreferences = nextPreferences;
+      if (isMounted) setUserPreferences(nextPreferences);
+    };
+
     const loadUserPreferences = async () => {
       if (typeof electron.getUserPreferences !== "function") {
-        if (!isMounted) return;
-
-        setUserPreferences(null);
+        apply(null);
         return;
       }
 
       try {
-        const nextPreferences = await electron.getUserPreferences();
-
-        if (!isMounted) return;
-
-        setUserPreferences(nextPreferences);
+        apply(await electron.getUserPreferences());
       } catch {
-        if (!isMounted) return;
-
-        setUserPreferences(null);
+        apply(null);
       }
     };
 
@@ -41,9 +40,7 @@ export function useUserPreferences() {
 
     const unsubscribe =
       typeof electron.onUserPreferencesUpdated === "function"
-        ? electron.onUserPreferencesUpdated((nextPreferences) => {
-            setUserPreferences(nextPreferences);
-          })
+        ? electron.onUserPreferencesUpdated(apply)
         : () => {};
 
     return () => {

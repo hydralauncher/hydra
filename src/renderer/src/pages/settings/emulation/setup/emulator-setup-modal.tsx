@@ -27,6 +27,7 @@ interface Props {
   initialConfig: EmulatorConfig | null;
   onClose: () => void;
   onComplete: (system: EmulatorSystem) => void;
+  onManage: (system: EmulatorSystem) => void;
 }
 
 export function EmulatorSetupModal({
@@ -36,6 +37,7 @@ export function EmulatorSetupModal({
   initialConfig,
   onClose,
   onComplete,
+  onManage,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const { showErrorToast } = useToast();
@@ -54,6 +56,8 @@ export function EmulatorSetupModal({
   const autoDetectRef = useRef(false);
   const scanStartedRef = useRef(false);
   const persistedExecutableRef = useRef(false);
+  const wasVisibleRef = useRef(false);
+  const openedExecutablePathRef = useRef<string | null>(null);
 
   const previewFolder = useCallback(
     async (folderPath: string, scanSubfolders: boolean) => {
@@ -100,7 +104,14 @@ export function EmulatorSetupModal({
   } = usePendingRomFolders({ previewFolder, onFolderAdded });
 
   useEffect(() => {
-    if (visible) {
+    if (!visible) {
+      wasVisibleRef.current = false;
+      return;
+    }
+
+    if (!wasVisibleRef.current) {
+      wasVisibleRef.current = true;
+      openedExecutablePathRef.current = initialConfig?.executablePath ?? null;
       setConfig(initialConfig);
       setStepIndex(0);
       setFolders([]);
@@ -334,9 +345,9 @@ export function EmulatorSetupModal({
     persistedExecutableRef.current = false;
     await window.electron.setEmulatorExecutablePath(
       system,
-      initialConfig?.executablePath ?? null
+      openedExecutablePathRef.current
     );
-  }, [system, currentStep, initialConfig?.executablePath]);
+  }, [system, currentStep]);
 
   if (!visible || !system) return null;
 
@@ -350,7 +361,8 @@ export function EmulatorSetupModal({
       goNext();
     } else if (currentStep === "rom_folder") {
       refreshConfig();
-      onComplete(system);
+      const doneIndex = steps.indexOf("done");
+      if (doneIndex >= 0) setStepIndex(doneIndex);
     }
   };
 
@@ -392,7 +404,6 @@ export function EmulatorSetupModal({
               config={config}
               systemLabel={systemShort}
               onFirmwareStatusChange={setFirmwareOk}
-              onSkip={handleSkip}
             />
           )}
           {currentStep === "bios" && config && (
@@ -402,7 +413,6 @@ export function EmulatorSetupModal({
               systemLabel={systemShort}
               onBiosStatusChange={setBiosOk}
               onConfigChange={setConfig}
-              onSkip={handleSkip}
             />
           )}
           {currentStep === "rom_folder" && (
@@ -436,6 +446,7 @@ export function EmulatorSetupModal({
               systemLabel={systemLabel}
               gamesAdded={gamesAdded}
               onBrowse={() => onComplete(system)}
+              onManage={() => onManage(system)}
             />
           )}
         </div>
@@ -443,13 +454,12 @@ export function EmulatorSetupModal({
         {showDownloadHelp ? (
           <div className="setup-modal__footer">
             <div className="setup-modal__footer-side">
-              <button
-                type="button"
-                className="setup-modal__ghost-button"
+              <Button
+                theme="outline"
                 onClick={() => setShowDownloadHelp(false)}
               >
                 {t("setup_back")}
-              </button>
+              </Button>
             </div>
             <div className="setup-modal__dots" />
             <div className="setup-modal__footer-side setup-modal__footer-side--end">
@@ -467,8 +477,11 @@ export function EmulatorSetupModal({
               currentStep !== "scanning" &&
               currentStep !== "done"
             }
-            showCancel={currentStep === "find_emulator"}
-            showSkip={currentStep === "rom_folder"}
+            showSkip={
+              currentStep === "rom_folder" ||
+              (currentStep === "bios" && !biosOk) ||
+              (currentStep === "firmware" && !firmwareOk)
+            }
             continueDisabled={continueDisabled}
             continueHidden={continueHidden}
             endAction={
@@ -483,7 +496,6 @@ export function EmulatorSetupModal({
                 : null
             }
             onBack={goBack}
-            onCancel={handleClose}
             onSkip={handleSkip}
             onContinue={handleContinue}
           />

@@ -849,6 +849,7 @@ export function GameOptionsModal({
   };
 
   const isLaunchbox = game.shop === "launchbox";
+  const showDownloadSettings = game.shop !== "custom";
   const shouldShowWinePrefixConfiguration =
     globalThis.window.electron.platform === "linux";
   const defaultHydraWinePrefixPath = defaultWinePrefixPath
@@ -913,11 +914,15 @@ export function GameOptionsModal({
             },
           ]
         : []),
-      {
-        id: "downloads" as const,
-        label: t("settings_category_downloads"),
-        icon: <DownloadIcon size={16} />,
-      },
+      ...(showDownloadSettings
+        ? [
+            {
+              id: "downloads" as const,
+              label: t("settings_category_downloads"),
+              icon: <DownloadIcon size={16} />,
+            },
+          ]
+        : []),
       {
         id: "danger_zone" as const,
         label: t("settings_category_danger_zone"),
@@ -930,6 +935,7 @@ export function GameOptionsModal({
       legacyPurpose,
       showCloudSaveV2Settings,
       showLegacyCloudSaveSettings,
+      showDownloadSettings,
       shouldShowWinePrefixConfiguration,
       t,
     ]
@@ -950,6 +956,7 @@ export function GameOptionsModal({
       cloudSaveAccessAction,
       showCloudSaveV2Settings,
       showLegacyCloudSaveSettings,
+      showDownloadSettings,
     });
 
     setSelectedCategory(availableCategory);
@@ -967,6 +974,7 @@ export function GameOptionsModal({
   }, [
     cloudSaveAccessAction,
     initialCategory,
+    showDownloadSettings,
     showCloudSaveV2Settings,
     showLegacyCloudSaveSettings,
     showHydraCloudModal,
@@ -981,12 +989,14 @@ export function GameOptionsModal({
         cloudSaveAccessAction,
         showCloudSaveV2Settings,
         showLegacyCloudSaveSettings,
+        showDownloadSettings,
       })
     );
   }, [
     cloudSaveAccessAction,
     showCloudSaveV2Settings,
     showLegacyCloudSaveSettings,
+    showDownloadSettings,
     visible,
   ]);
 
@@ -1277,7 +1287,7 @@ export function GameOptionsModal({
                   onChangeProtonVersion={handleChangeProtonVersion}
                 />
               )}
-            {selectedCategory === "downloads" && (
+            {selectedCategory === "downloads" && showDownloadSettings && (
               <DownloadsSettingsSection
                 game={game}
                 deleting={deleting}
