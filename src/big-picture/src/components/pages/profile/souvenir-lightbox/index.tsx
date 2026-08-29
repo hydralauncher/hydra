@@ -3,7 +3,6 @@ import "./styles.scss";
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -22,7 +21,6 @@ import {
   ImageIcon,
   TrashIcon,
   TrophyIcon,
-  XIcon,
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -135,59 +133,6 @@ const getLastActionFocusId = (
 
   return focusIds.likeButton;
 };
-
-interface LightboxSize {
-  width: number;
-  height: number;
-}
-
-function useLightboxControlAnchor(souvenir: ProfileSouvenir | null) {
-  const stageRef = useRef<HTMLDivElement | null>(null);
-  const [lightboxSize, setLightboxSize] = useState<LightboxSize | null>(null);
-  const souvenirKey = getSouvenirRenderKey(souvenir);
-
-  useLayoutEffect(() => {
-    setLightboxSize(null);
-
-    const lightbox = Array.from(
-      stageRef.current?.querySelectorAll<HTMLElement>(
-        "[data-souvenir-lightbox-key]"
-      ) ?? []
-    ).find((element) => element.dataset.souvenirLightboxKey === souvenirKey);
-
-    if (!lightbox) return;
-
-    const updateSize = () => {
-      const nextSize = {
-        width: lightbox.offsetWidth,
-        height: lightbox.offsetHeight,
-      };
-
-      setLightboxSize((current) =>
-        current?.width === nextSize.width && current.height === nextSize.height
-          ? current
-          : nextSize
-      );
-    };
-
-    updateSize();
-
-    if (typeof ResizeObserver === "undefined") return;
-
-    const resizeObserver = new ResizeObserver(updateSize);
-    resizeObserver.observe(lightbox);
-    return () => resizeObserver.disconnect();
-  }, [souvenirKey]);
-
-  const controlAnchorStyle = lightboxSize
-    ? ({
-        "--souvenir-lightbox-half-width": `${lightboxSize.width / 2}px`,
-        "--souvenir-lightbox-half-height": `${lightboxSize.height / 2}px`,
-      } as CSSProperties)
-    : undefined;
-
-  return { stageRef, lightboxSize, controlAnchorStyle };
-}
 
 interface SouvenirLightboxNavigationOptions {
   isOpen: boolean;
@@ -858,8 +803,7 @@ export function SouvenirLightbox({
   const [isReportModalVisible, setIsReportModalVisible] = useState(false);
   const viewportSize = useViewportSize();
   const focusIds = getSouvenirLightboxFocusIds(souvenir);
-  const { stageRef, lightboxSize, controlAnchorStyle } =
-    useLightboxControlAnchor(souvenir);
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const {
     hasImage,
     showImagePlaceholder,
@@ -963,8 +907,6 @@ export function SouvenirLightbox({
         <Backdrop className="souvenir-lightbox__backdrop">
           <div
             className="souvenir-lightbox__overlay"
-            data-controls-ready={Boolean(lightboxSize)}
-            style={controlAnchorStyle}
             onPointerDown={(event) => {
               if (
                 event.target === event.currentTarget &&
@@ -977,16 +919,6 @@ export function SouvenirLightbox({
               }
             }}
           >
-            <button
-              type="button"
-              className="souvenir-lightbox__close-button"
-              onClick={onClose}
-              disabled={isContentWarningVisible}
-              aria-label={t("close", { ns: "modal" })}
-            >
-              <XIcon size={28} />
-            </button>
-
             {hasPrevious ? (
               <button
                 type="button"

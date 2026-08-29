@@ -215,6 +215,10 @@ export function GameDetailsContent() {
       ""
     : "";
 
+  const resolvedHeroImage = isLaunchboxGame
+    ? heroImage || launchboxCover
+    : heroImage;
+
   const launchboxPlatform = isLaunchboxGame
     ? (game?.platform ?? shopDetails?.platform ?? null)
     : null;
@@ -249,6 +253,16 @@ export function GameDetailsContent() {
       </div>
     ) : null;
 
+  const heroImageContent = resolvedHeroImage ? (
+    <img
+      src={resolvedHeroImage}
+      className="game-details__hero-image"
+      alt={game?.title}
+    />
+  ) : (
+    <div className="game-details__hero-image game-details__hero-image--placeholder" />
+  );
+
   return (
     <div
       className={`game-details__wrapper ${hasNSFWContentBlocked ? "game-details__wrapper--blurred" : ""}`}
@@ -282,11 +296,7 @@ export function GameDetailsContent() {
               </div>
             </>
           ) : (
-            <img
-              src={isLaunchboxGame ? heroImage || launchboxCover : heroImage}
-              className="game-details__hero-image"
-              alt={game?.title}
-            />
+            heroImageContent
           )}
 
           {isLaunchboxGame && !hideClassicsBookmark && (
