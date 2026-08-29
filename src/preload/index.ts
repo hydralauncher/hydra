@@ -875,6 +875,12 @@ contextBridge.exposeInMainWorld("electron", {
     autoRunGamemode: boolean
   ) =>
     ipcRenderer.invoke("toggleGameGamemode", shop, objectId, autoRunGamemode),
+  toggleGameProtonLog: (
+    shop: GameShop,
+    objectId: string,
+    protonLogEnabled: boolean
+  ) =>
+    ipcRenderer.invoke("toggleGameProtonLog", shop, objectId, protonLogEnabled),
   isGamemodeAvailable: () => ipcRenderer.invoke("isGamemodeAvailable"),
   isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
   isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),

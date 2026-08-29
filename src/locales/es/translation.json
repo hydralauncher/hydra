@@ -847,6 +847,8 @@
     "gamemode_disabled_due_to_global_setting_tooltip": "Esta opción está desactivada porque GameMode está activado globalmente",
     "mangohud_not_available_tooltip": "MangoHud no está disponible en tu PATH",
     "mangohud_disabled_due_to_global_setting_tooltip": "Esta opción está desactivada porque MangoHud está activado globalmente",
+    "proton_logging": "Registro de Proton",
+    "proton_log_disabled_due_to_global_setting_tooltip": "Esta opción está deshabilitada porque el registro de Proton está habilitado globalmente",
     "next_step": "Siguiente paso",
     "no_collection": "Sin colección",
     "no_save_folder_found": "No se encontró carpeta de guardado",
@@ -1196,6 +1198,10 @@
     "enable_auto_install": "Descargar actualizaciones automáticamente",
     "run_games_with_gamemode": "Ejecutar juegos con GameMode por defecto",
     "run_games_with_mangohud": "Ejecutar juegos con MangoHud por defecto",
+    "enable_proton_logging": "Habilitar registro de Proton",
+    "compatibility_environment_variables": "Variables de entorno de compatibilidad",
+    "compatibility_environment_variables_description": "Aplica estas variables de entorno a cada inicio de compatibilidad.",
+    "compatibility_environment_variables_placeholder": "PROTON_FSR4_UPGRADE=1\nMANGOHUD=1\n# Una variable por línea",
     "common_redist": "Common redistributables",
     "common_redist_description": "Los common redistributables son requeridos para algunos juegos. Es recomendable instalarlos para evitar algunos problemas.",
     "install_common_redist": "Instalar",
@@ -1525,6 +1531,7 @@
     "big_picture_diagnostics_position": "Posición del diagnóstico",
     "open_screenshots_directory": "Abrir la carpeta de capturas",
     "enable_achievement_souvenirs": "Habilitar recuerdos para los logros",
+    "enable_compatibility_environment_variables": "Habilitar variables de entorno",
     "souvenir_sync_error_limit_reached": "Tu colección ya tiene 1.000 recuerdos. Hydra sincronizó los logros sin guardar este recuerdo."
   },
   "notifications": {
