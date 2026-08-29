@@ -505,15 +505,13 @@ export function BigPictureSettingsSection({
                 }
               : {
                   type: "item",
-                  itemId: form.launchInBigPicture
-                    ? BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID
-                    : BIG_PICTURE_UI_SCALE_SELECT_ID,
+                  itemId: BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID,
                 },
           } satisfies FocusOverrides,
         ];
       })
     );
-  }, [form.launchInBigPicture, startupItems]);
+  }, [startupItems]);
 
   const diagnosticsNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -573,16 +571,14 @@ export function BigPictureSettingsSection({
     () => ({
       up: {
         type: "item",
-        itemId: form.launchInBigPicture
-          ? BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID
-          : BIG_PICTURE_ITEM_FOCUS_IDS.launchToLibraryPage,
+        itemId: BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID,
       },
       down: {
         type: "item",
         itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
       },
     }),
-    [form.launchInBigPicture]
+    []
   );
 
   const audioDeviceSelectNavigationOverrides = useMemo<FocusOverrides>(
@@ -661,7 +657,6 @@ export function BigPictureSettingsSection({
               label={t("settings_big_picture_launching_monitor")}
               value={form.bigPictureDisplayId}
               options={displayOptions}
-              disabled={!form.launchInBigPicture}
               focusId={BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID}
               focusNavigationOverrides={displaySelectNavigationOverrides}
               onValueChange={handleBigPictureDisplayChange}
