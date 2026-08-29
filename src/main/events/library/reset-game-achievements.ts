@@ -6,6 +6,11 @@ import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
 import { gamesSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
+import {
+  cancelPendingSouvenirsForGame,
+  deleteLocalSouvenirAssetsForGame,
+} from "@main/services/achievements/grouped-souvenir-worker";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 
 const resetGameAchievements = async (
@@ -18,6 +23,8 @@ const resetGameAchievements = async (
     const game = await gamesSublevel.get(levelKey);
 
     if (!game) return;
+
+    await cancelPendingSouvenirsForGame(levelKey);
 
     const achievementFiles = await collectGameAchievementFiles(game, {
       includeSteamCache: false,
@@ -46,11 +53,21 @@ const resetGameAchievements = async (
       });
     }
 
+    if (game.reportedUnlockedAchievementCount !== undefined) {
+      await gamesSublevel.put(levelKey, {
+        ...game,
+        reportedUnlockedAchievementCount: undefined,
+      });
+    }
+
     await HydraApi.delete(`/profile/games/achievements/${game.remoteId}`).then(
-      () =>
+      async () => {
+        await deleteLocalSouvenirAssetsForGame(levelKey);
+        AchievementSouvenirStore.invalidate(shop, objectId);
         achievementsLogger.log(
           `Deleted achievements from ${game.remoteId} - ${game.objectId} - ${game.title}`
-        )
+        );
+      }
     );
 
     const updatedAchievements = await getUnlockedAchievements(

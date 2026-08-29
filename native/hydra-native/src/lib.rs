@@ -1,3 +1,4 @@
+mod active_window;
 mod cloud_save;
 mod constants;
 
@@ -46,9 +47,24 @@ pub struct ProcessedFriendImageData {
 pub struct NativeProcessPayload {
     pub exe: Option<String>,
     pub pid: u32,
+    pub parent_pid: Option<u32>,
     pub name: String,
     pub environ: Option<HashMap<String, String>>,
     pub cwd: Option<String>,
+}
+
+#[napi(object)]
+pub struct NativeActiveWindow {
+    pub window_id: String,
+    pub process_id: Option<u32>,
+}
+
+#[napi]
+pub fn get_linux_active_window() -> Option<NativeActiveWindow> {
+    active_window::get_active_window().map(|(window_id, process_id)| NativeActiveWindow {
+        window_id: window_id.to_string(),
+        process_id,
+    })
 }
 
 #[napi]
@@ -174,6 +190,7 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
                     .exe()
                     .map(|value| value.to_string_lossy().to_string()),
                 pid: process.pid().as_u32(),
+                parent_pid: process.parent().map(|pid| pid.as_u32()),
                 name: process.name().to_string_lossy().to_string(),
                 cwd: if include_linux_extras {
                     process

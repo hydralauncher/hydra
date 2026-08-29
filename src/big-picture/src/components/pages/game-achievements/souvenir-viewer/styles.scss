@@ -1,0 +1,43 @@
+.game-achievements-souvenir-viewer__backdrop {
+  z-index: 120;
+}
+
+.game-achievements-souvenir-viewer__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-achievements-souvenir-viewer__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.game-achievements-souvenir-viewer__frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 86vw;
+  max-height: 86vh;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  outline: none;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.game-achievements-souvenir-viewer__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 86vw;
+  max-height: 86vh;
+  object-fit: contain;
+}

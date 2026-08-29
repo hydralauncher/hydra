@@ -1,6 +1,50 @@
+@use "sass:color";
 @use "../../scss/globals.scss";
 
 .settings-behavior {
+  &__screenshots-directory {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__reset-screenshots-button {
+    min-width: 34px;
+    padding-inline: globals.$spacing-unit;
+  }
+
+  &__open-screenshots-button {
+    align-self: flex-start;
+  }
+
+  &__hydra-cloud-row {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    align-self: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font-size: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__hydra-cloud-badge {
+    background: linear-gradient(
+      270deg,
+      color.scale(globals.$brand-teal, $lightness: -30%) 50%,
+      color.scale(globals.$brand-blue, $lightness: -30%) 100%
+    );
+    color: #fff;
+    padding: 0 globals.$spacing-unit;
+    border: none;
+    border-radius: 4px;
+    font-size: globals.$small-font-size;
+    white-space: nowrap;
+  }
+
   &__proton-section {
     display: flex;
     flex-direction: column;

@@ -27,7 +27,9 @@ function getConfirmationConfig(
     case "reset-achievements":
       return {
         title: t("reset_achievements"),
-        description: t("reset_achievements_description", { game: game.title }),
+        description: t("reset_achievements_souvenirs_description", {
+          game: game.title,
+        }),
         confirmLabel: t("reset_achievements"),
         onConfirm: handleResetAchievements,
       };

@@ -80,6 +80,7 @@ export function AchievementNotification() {
   const hostReadyReported = useRef(false);
   const displayTimer = useRef<number | null>(null);
   const closingTimer = useRef<number | null>(null);
+  const hasPlayedSound = useRef(false);
 
   const clearAnimationTimers = useCallback(() => {
     if (displayTimer.current !== null) {
@@ -180,9 +181,14 @@ export function AchievementNotification() {
               nextRequest.type === "achievement"
                 ? { ...nextRequest.achievement, iconUrl: resolvedIcon }
                 : {
-                    title: t("new_achievements_unlocked", {
-                      gameCount: nextRequest.gameCount,
-                      achievementCount: nextRequest.achievementCount,
+                    title: t("new_achievements"),
+                    description: t("new_achievements_description", {
+                      achievements: t("new_achievements_achievement_count", {
+                        count: nextRequest.achievementCount,
+                      }),
+                      games: t("new_achievements_game_count", {
+                        count: nextRequest.gameCount,
+                      }),
                     }),
                     isHidden: false,
                     isRare: false,
@@ -262,7 +268,10 @@ export function AchievementNotification() {
         if (requestRef.current?.id !== requestId) return;
 
         setPhase("playing");
-        void playAudio();
+        if (!hasPlayedSound.current) {
+          hasPlayedSound.current = true;
+          void playAudio();
+        }
         clearAnimationTimers();
 
         displayTimer.current = window.setTimeout(() => {

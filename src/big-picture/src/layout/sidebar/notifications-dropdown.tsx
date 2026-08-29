@@ -49,6 +49,7 @@ import type {
   NotificationCountResponse,
   NotificationsResponse,
 } from "@types";
+import { buildSouvenirNotificationTarget } from "@shared";
 
 const hydraIconUrl = new URL("../../assets/hydra-icon.svg", import.meta.url)
   .href;
@@ -139,6 +140,13 @@ function getApiNotificationContent(notification: Notification) {
         title: `Your reply for ${notification.variables.gameTitle ?? "a review"} got an upvote`,
         description: `${notification.variables.upvoteCount ?? "1"} upvotes on your reply.`,
       };
+    case "SOUVENIR_LIKE": {
+      const likeCount = Number(notification.variables.likeCount ?? 1);
+      return {
+        title: `Your souvenir from ${notification.variables.gameTitle ?? "your game"} got a like!`,
+        description: `Your souvenir received ${likeCount} new ${likeCount === 1 ? "like" : "likes"}`,
+      };
+    }
     default:
       return {
         title: "Notification",
@@ -175,9 +183,16 @@ function isAchievementNotification(notification: MergedNotification) {
 
 function getNotificationUrl(notification: MergedNotification) {
   if (!notification.url) return null;
-  return notification.source === "api"
-    ? parseApiNotificationPath(notification.url)
-    : notification.url;
+  const target =
+    notification.source === "api"
+      ? parseApiNotificationPath(notification.url)
+      : notification.url;
+
+  if (notification.source !== "api" || notification.type !== "SOUVENIR_LIKE") {
+    return target;
+  }
+
+  return buildSouvenirNotificationTarget(target, notification.variables);
 }
 
 function getNotificationGameRoute(notification: MergedNotification) {

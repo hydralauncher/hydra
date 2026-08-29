@@ -64,6 +64,7 @@ import type {
   LegacySaveExportIpcProgress,
   LegacySaveExportProgress,
   LegacySaveExportResult,
+  AchievementSouvenirSyncStatus,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -446,6 +447,12 @@ contextBridge.exposeInMainWorld("electron", {
       scanSubfolders,
       language
     ),
+  registerRomFolder: (
+    system: EmulatorSystem,
+    folderPath: string,
+    scanSubfolders: boolean
+  ) =>
+    ipcRenderer.invoke("registerRomFolder", system, folderPath, scanSubfolders),
   removeRomFolder: (system: EmulatorSystem, folderId: string) =>
     ipcRenderer.invoke("removeRomFolder", system, folderId),
   listEmulatorRoms: (system: EmulatorSystem) =>
@@ -1310,8 +1317,54 @@ contextBridge.exposeInMainWorld("electron", {
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
+  getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
+  getAchievementSouvenirSyncStatus: () =>
+    ipcRenderer.invoke("getAchievementSouvenirSyncStatus"),
+  getAchievementSouvenirSyncDetails: () =>
+    ipcRenderer.invoke("getAchievementSouvenirSyncDetails"),
+  retryAchievementSouvenirSync: () =>
+    ipcRenderer.invoke("retryAchievementSouvenirSync"),
+  cleanupAchievementSouvenirSync: () =>
+    ipcRenderer.invoke("cleanupAchievementSouvenirSync"),
+  onAchievementSouvenirSyncStatus: (
+    cb: (status: AchievementSouvenirSyncStatus) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      status: AchievementSouvenirSyncStatus
+    ) => cb(status);
+    ipcRenderer.on("on-achievement-souvenir-sync-status", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-achievement-souvenir-sync-status",
+        listener
+      );
+  },
+  onAchievementSouvenirSyncCompleted: (cb: (syncedCount: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, syncedCount: number) =>
+      cb(syncedCount);
+    ipcRenderer.on("on-achievement-souvenir-sync-completed", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-achievement-souvenir-sync-completed",
+        listener
+      );
+  },
+  onAchievementSouvenirScreenshotsMissing: (cb: (count: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, count: number) =>
+      cb(count);
+    ipcRenderer.on("on-achievement-souvenir-screenshots-missing", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-achievement-souvenir-screenshots-missing",
+        listener
+      );
+  },
+  openFolder: (folderPath: string) =>
+    ipcRenderer.invoke("openFolder", folderPath),
+  getAppSessionId: () => ipcRenderer.invoke("getAppSessionId"),
   isStaging: () => ipcRenderer.invoke("isStaging"),
-  isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
+  isPortableVersion: Boolean(process.env.PORTABLE_EXECUTABLE_FILE),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
   getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),
@@ -1363,6 +1416,25 @@ contextBridge.exposeInMainWorld("electron", {
           needsSubscription: options?.needsSubscription,
         },
       }),
+    postResponse: <T = unknown>(
+      url: string,
+      options?: {
+        data?: unknown;
+        needsAuth?: boolean;
+        needsSubscription?: boolean;
+        acceptedStatuses?: number[];
+      }
+    ) =>
+      ipcRenderer.invoke("hydraApiCall", {
+        method: "postResponse",
+        url,
+        data: options?.data,
+        options: {
+          needsAuth: options?.needsAuth,
+          needsSubscription: options?.needsSubscription,
+          acceptedStatuses: options?.acceptedStatuses,
+        },
+      }) as Promise<{ status: number; data: T }>,
     put: (
       url: string,
       options?: {
@@ -1422,7 +1494,7 @@ contextBridge.exposeInMainWorld("electron", {
   platform: process.platform,
   isWayland:
     process.platform === "linux" &&
-    (process.env.XDG_SESSION_TYPE === "wayland" ||
+    (process.env.XDG_SESSION_TYPE?.toLowerCase() === "wayland" ||
       Boolean(process.env.WAYLAND_DISPLAY)),
 
   /* Auto update */
@@ -1526,6 +1598,8 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   getUnlockedAchievements: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getUnlockedAchievements", objectId, shop),
+  deleteAchievementSouvenir: (payload: { souvenirId: string }) =>
+    ipcRenderer.invoke("deleteAchievementSouvenir", payload),
   getRetroAchievementsAchievements: (
     objectId: string,
     shop: GameShop,
@@ -1537,8 +1611,11 @@ contextBridge.exposeInMainWorld("electron", {
       shop,
       raGameId
     ),
-  resetRetroAchievementsAchievements: () =>
-    ipcRenderer.invoke("resetRetroAchievementsAchievements"),
+  resetRetroAchievementsAchievements: (pendingSouvenirsOnly = false) =>
+    ipcRenderer.invoke(
+      "resetRetroAchievementsAchievements",
+      pendingSouvenirsOnly
+    ),
 
   /* Auth */
   getAuth: () => ipcRenderer.invoke("getAuth"),

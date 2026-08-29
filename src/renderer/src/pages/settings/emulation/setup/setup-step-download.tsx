@@ -227,26 +227,6 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
           />
         ))}
 
-        <hr className="setup-modal__download-divider" />
-
-        <button
-          type="button"
-          className="setup-modal__download-card setup-modal__download-card--guide"
-          data-open-article={ARTICLE_KEYS[binary]}
-        >
-          <div className="setup-modal__download-card-badge">
-            <BookIcon size={20} />
-          </div>
-          <div className="setup-modal__download-card-main">
-            <span className="setup-modal__download-card-title">
-              {t("setup_install_guide_workwonders")}
-            </span>
-            <span className="setup-modal__download-card-desc">
-              {t("setup_install_guide_desc", { name })}
-            </span>
-          </div>
-        </button>
-
         {binary === "rpcs3" && (
           <button
             type="button"
@@ -275,6 +255,26 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
             </span>
           </button>
         )}
+
+        <hr className="setup-modal__download-divider" />
+
+        <button
+          type="button"
+          className="setup-modal__download-card setup-modal__download-card--guide"
+          data-open-article={ARTICLE_KEYS[binary]}
+        >
+          <div className="setup-modal__download-card-badge">
+            <BookIcon size={20} />
+          </div>
+          <div className="setup-modal__download-card-main">
+            <span className="setup-modal__download-card-title">
+              {t("setup_install_guide_workwonders")}
+            </span>
+            <span className="setup-modal__download-card-desc">
+              {t("setup_install_guide_desc", { name })}
+            </span>
+          </div>
+        </button>
       </div>
     </>
   );

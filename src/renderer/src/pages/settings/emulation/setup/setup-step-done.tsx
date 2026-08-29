@@ -7,12 +7,14 @@ interface Props {
   systemLabel: string;
   gamesAdded: number;
   onBrowse: () => void;
+  onManage: () => void;
 }
 
 export function SetupStepDone({
   systemLabel,
   gamesAdded,
   onBrowse,
+  onManage,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
 
@@ -29,12 +31,14 @@ export function SetupStepDone({
           count: gamesAdded,
         })}
       </p>
-      <Button theme="primary" onClick={onBrowse}>
-        {t("setup_done_browse")}
-      </Button>
-      <p className="setup-modal__done-tip">
-        {t("setup_done_tip", { system: systemLabel })}
-      </p>
+      <div className="setup-modal__done-actions">
+        <Button theme="primary" onClick={onBrowse}>
+          {t("setup_done_browse")}
+        </Button>
+        <Button theme="outline" onClick={onManage}>
+          {t("setup_done_manage")}
+        </Button>
+      </div>
     </div>
   );
 }

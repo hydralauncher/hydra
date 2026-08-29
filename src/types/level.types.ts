@@ -71,6 +71,7 @@ export interface Game {
   isPinned?: boolean;
   achievementCount?: number;
   unlockedAchievementCount?: number;
+  reportedUnlockedAchievementCount?: number;
   pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
@@ -154,6 +155,7 @@ export interface UserPreferences {
   runAtStartup?: boolean;
   startMinimized?: boolean;
   launchToLibraryPage?: boolean;
+  bigPictureLaunchToLibraryPage?: boolean;
   launchInBigPicture?: boolean;
   disableNsfwAlert?: boolean;
   enableAutoInstall?: boolean;
@@ -172,6 +174,8 @@ export interface UserPreferences {
   extractFilesByDefault?: boolean;
   deleteArchiveFilesAfterExtractionByDefault?: boolean;
   enableSteamAchievements?: boolean;
+  enableAchievementSouvenirs?: boolean;
+  achievementScreenshotsPath?: string;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
   enableNewDownloadOptionsBadges?: boolean;
@@ -192,6 +196,10 @@ export interface UserPreferences {
   autoRunGamescope?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
+  hideLibraryGameBadges?: boolean;
+  hideLibraryClassicsBadges?: boolean;
+  hideLibraryAchievementProgress?: boolean;
+  autoplayAnimatedArtwork?: boolean;
 }
 
 export interface NetworkInterface {
