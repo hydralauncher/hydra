@@ -144,3 +144,4 @@ export const getGameExecutableFilters = (
 
 export const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
 export const MANGOHUD_SITE_URL = "https://github.com/flightlessmango/MangoHud";
+export const GAMESCOPE_SITE_URL = "https://github.com/ValveSoftware/gamescope";

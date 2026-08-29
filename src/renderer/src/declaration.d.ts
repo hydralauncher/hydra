@@ -298,8 +298,24 @@ declare global {
       objectId: string,
       autoRunGamemode: boolean
     ) => Promise<void>;
+    toggleGameGamescope: (
+      shop: GameShop,
+      objectId: string,
+      autoRunGamescope: boolean
+    ) => Promise<void>;
+    updateGameGamescopeSettings: (
+      shop: GameShop,
+      objectId: string,
+      settings: {
+        gamescopeResolution?: string | null;
+        gamescopeOutputResolution?: string | null;
+        gamescopeUpscaler?: string | null;
+        gamescopeFramerateLimit?: number | null;
+      }
+    ) => Promise<void>;
     isGamemodeAvailable: () => Promise<boolean>;
     isMangohudAvailable: () => Promise<boolean>;
+    isGamescopeAvailable: () => Promise<boolean>;
     isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
       shop: GameShop,

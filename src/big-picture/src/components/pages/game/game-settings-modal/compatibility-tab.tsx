@@ -5,6 +5,7 @@ import type { LibraryGame, ProtonVersion } from "@types";
 import {
   Button,
   Checkbox,
+  DropdownSelect,
   FileExplorerModal,
   HorizontalFocusGroup,
   Input,
@@ -38,6 +39,21 @@ const GAME_COMPATIBILITY_SETTINGS_GAMEMODE_ID =
 const GAME_COMPATIBILITY_SETTINGS_MANGOHUD_ID =
   "game-compatibility-settings-mangohud";
 
+const GAME_COMPATIBILITY_SETTINGS_GAMESCOPE_ID =
+  "game-compatibility-settings-gamescope";
+
+const GAME_COMPATIBILITY_SETTINGS_GAMESCOPE_RES_ID =
+  "game-compatibility-settings-gamescope-res";
+
+const GAME_COMPATIBILITY_SETTINGS_GAMESCOPE_OUT_RES_ID =
+  "game-compatibility-settings-gamescope-out-res";
+
+const GAME_COMPATIBILITY_SETTINGS_GAMESCOPE_UPSCALER_ID =
+  "game-compatibility-settings-gamescope-upscaler";
+
+const GAME_COMPATIBILITY_SETTINGS_GAMESCOPE_FPS_ID =
+  "game-compatibility-settings-gamescope-fps";
+
 interface GameCompatibilitySettingsProps {
   game: LibraryGame;
 }
@@ -59,6 +75,9 @@ type ElectronCompatibilityBridge = Pick<
   | "selectGameProtonPath"
   | "toggleGameGamemode"
   | "toggleGameMangohud"
+  | "toggleGameGamescope"
+  | "updateGameGamescopeSettings"
+  | "isGamescopeAvailable"
 >;
 
 export function GameCompatibilitySettingsTab({
@@ -72,6 +91,7 @@ export function GameCompatibilitySettingsTab({
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
+  const [gamescopeAvailable, setGamescopeAvailable] = useState(false);
   const [selectedProtonPath, setSelectedProtonPath] = useState(
     game.protonPath ?? ""
   );
@@ -84,30 +104,57 @@ export function GameCompatibilitySettingsTab({
   const [autoRunMangohud, setAutoRunMangohud] = useState(
     game.autoRunMangohud ?? false
   );
+  const [autoRunGamescope, setAutoRunGamescope] = useState(
+    game.autoRunGamescope ?? false
+  );
   const [winePickerOpen, setWinePickerOpen] = useState(false);
   const [winePickerInitialPath, setWinePickerInitialPath] = useState<
     string | undefined
   >();
+
+  const [gamescopeResolution, setGamescopeResolution] = useState(
+    game.gamescopeResolution ?? ""
+  );
+  const [gamescopeOutputResolution, setGamescopeOutputResolution] = useState(
+    game.gamescopeOutputResolution ?? ""
+  );
+  const [gamescopeUpscaler, setGamescopeUpscaler] = useState(
+    game.gamescopeUpscaler ?? ""
+  );
+  const [gamescopeFramerateLimit, setGamescopeFramerateLimit] = useState(
+    game.gamescopeFramerateLimit?.toString() ?? ""
+  );
 
   useEffect(() => {
     setSelectedProtonPath(game.protonPath ?? "");
     setWinePrefixPath(game.winePrefixPath ?? null);
     setAutoRunGamemode(game.autoRunGamemode ?? false);
     setAutoRunMangohud(game.autoRunMangohud ?? false);
+    setAutoRunGamescope(game.autoRunGamescope ?? false);
+    setGamescopeResolution(game.gamescopeResolution ?? "");
+    setGamescopeOutputResolution(game.gamescopeOutputResolution ?? "");
+    setGamescopeUpscaler(game.gamescopeUpscaler ?? "");
+    setGamescopeFramerateLimit(game.gamescopeFramerateLimit?.toString() ?? "");
   }, [game]);
 
   useEffect(() => {
     const loadAvailability = async () => {
-      const [protonVersionsResult, gamemodeResult, mangohudResult] =
-        await Promise.all([
-          electron.getInstalledProtonVersions(),
-          electron.isGamemodeAvailable(),
-          electron.isMangohudAvailable(),
-        ]);
+      const [
+        protonVersionsResult,
+        gamemodeResult,
+        mangohudResult,
+        gamescopeResult,
+      ] = await Promise.all([
+        electron.getInstalledProtonVersions(),
+        electron.isGamemodeAvailable(),
+        electron.isMangohudAvailable(),
+        electron.isGamescopeAvailable(),
+      ]);
 
       setProtonVersions(protonVersionsResult);
       setGamemodeAvailable(gamemodeResult);
       setMangohudAvailable(mangohudResult);
+      setGamescopeAvailable(gamescopeResult);
     };
 
     void loadAvailability();
@@ -202,11 +249,78 @@ export function GameCompatibilitySettingsTab({
     [electron, game.shop, game.objectId]
   );
 
+  const handleToggleGamescope = useCallback(
+    async (checked: boolean) => {
+      setAutoRunGamescope(checked);
+      await electron.toggleGameGamescope(game.shop, game.objectId, checked);
+    },
+    [electron, game.shop, game.objectId]
+  );
+
+  const handleUpdateGamescopeSetting = useCallback(
+    async (
+      key:
+        | "gamescopeResolution"
+        | "gamescopeOutputResolution"
+        | "gamescopeUpscaler"
+        | "gamescopeFramerateLimit",
+      value: string
+    ) => {
+      if (key === "gamescopeResolution") setGamescopeResolution(value);
+      if (key === "gamescopeOutputResolution")
+        setGamescopeOutputResolution(value);
+      if (key === "gamescopeUpscaler") setGamescopeUpscaler(value);
+      if (key === "gamescopeFramerateLimit") setGamescopeFramerateLimit(value);
+
+      let payloadGamescopeFramerateLimit: number | null = null;
+      if (key === "gamescopeFramerateLimit") {
+        payloadGamescopeFramerateLimit = value ? Number(value) : null;
+      } else {
+        payloadGamescopeFramerateLimit = gamescopeFramerateLimit
+          ? Number(gamescopeFramerateLimit)
+          : null;
+      }
+
+      const payload = {
+        gamescopeResolution:
+          key === "gamescopeResolution"
+            ? value || null
+            : gamescopeResolution || null,
+        gamescopeOutputResolution:
+          key === "gamescopeOutputResolution"
+            ? value || null
+            : gamescopeOutputResolution || null,
+        gamescopeUpscaler:
+          key === "gamescopeUpscaler"
+            ? value || null
+            : gamescopeUpscaler || null,
+        gamescopeFramerateLimit: payloadGamescopeFramerateLimit,
+      };
+
+      await electron.updateGameGamescopeSettings(
+        game.shop,
+        game.objectId,
+        payload
+      );
+    },
+    [
+      electron,
+      game.shop,
+      game.objectId,
+      gamescopeResolution,
+      gamescopeOutputResolution,
+      gamescopeUpscaler,
+      gamescopeFramerateLimit,
+    ]
+  );
+
   const globalAutoRunGamemode = userPreferences?.autoRunGamemode ?? false;
   const globalAutoRunMangohud = userPreferences?.autoRunMangohud ?? false;
+  const globalAutoRunGamescope = userPreferences?.autoRunGamescope ?? false;
 
   const gamemodeDisabled = !gamemodeAvailable || globalAutoRunGamemode;
   const mangohudDisabled = !mangohudAvailable || globalAutoRunMangohud;
+  const gamescopeDisabled = !gamescopeAvailable || globalAutoRunGamescope;
 
   let gamemodeSecondaryText: string | undefined;
 
@@ -225,6 +339,16 @@ export function GameCompatibilitySettingsTab({
   } else if (globalAutoRunMangohud) {
     mangohudSecondaryText = t(
       "mangohud_disabled_due_to_global_setting_tooltip"
+    );
+  }
+
+  let gamescopeSecondaryText: string | undefined;
+
+  if (!gamescopeAvailable) {
+    gamescopeSecondaryText = t("gamescope_not_available_tooltip");
+  } else if (globalAutoRunGamescope) {
+    gamescopeSecondaryText = t(
+      "gamescope_disabled_due_to_global_setting_tooltip"
     );
   }
 
@@ -345,6 +469,101 @@ export function GameCompatibilitySettingsTab({
             handleToggleMangohud(checked).catch(() => {});
           }}
         />
+
+        <Checkbox
+          id={GAME_COMPATIBILITY_SETTINGS_GAMESCOPE_ID}
+          label="Gamescope"
+          secondaryText={gamescopeSecondaryText}
+          checked={autoRunGamescope || globalAutoRunGamescope}
+          disabled={gamescopeDisabled}
+          block
+          onChange={(checked) => {
+            handleToggleGamescope(checked).catch(() => {});
+          }}
+        />
+
+        {(autoRunGamescope || globalAutoRunGamescope) && (
+          <div className="game-compatibility-settings-tab__gamescope-settings">
+            <HorizontalFocusGroup
+              className="game-compatibility-settings-tab__gamescope-row"
+              asChild
+            >
+              <div>
+                <Input
+                  focusId={GAME_COMPATIBILITY_SETTINGS_GAMESCOPE_RES_ID}
+                  label={t("gamescope_resolution", {
+                    defaultValue: "Game Resolution",
+                  })}
+                  value={gamescopeResolution}
+                  onChange={(e) => {
+                    handleUpdateGamescopeSetting(
+                      "gamescopeResolution",
+                      e.target.value
+                    ).catch(() => {});
+                  }}
+                  placeholder="e.g. 1280x720"
+                />
+                <Input
+                  focusId={GAME_COMPATIBILITY_SETTINGS_GAMESCOPE_OUT_RES_ID}
+                  label={t("gamescope_output_resolution", {
+                    defaultValue: "Output Resolution",
+                  })}
+                  value={gamescopeOutputResolution}
+                  onChange={(e) => {
+                    handleUpdateGamescopeSetting(
+                      "gamescopeOutputResolution",
+                      e.target.value
+                    ).catch(() => {});
+                  }}
+                  placeholder="e.g. 1920x1080"
+                />
+              </div>
+            </HorizontalFocusGroup>
+            <HorizontalFocusGroup
+              className="game-compatibility-settings-tab__gamescope-row"
+              asChild
+            >
+              <div>
+                <DropdownSelect
+                  focusId={GAME_COMPATIBILITY_SETTINGS_GAMESCOPE_UPSCALER_ID}
+                  label={t("gamescope_upscaler", {
+                    defaultValue: "Upscaling Filter",
+                  })}
+                  value={gamescopeUpscaler}
+                  onValueChange={(value) => {
+                    handleUpdateGamescopeSetting(
+                      "gamescopeUpscaler",
+                      value
+                    ).catch(() => {});
+                  }}
+                  options={[
+                    { label: t("none", { defaultValue: "None" }), value: "" },
+                    { label: "Linear", value: "linear" },
+                    { label: "Nearest", value: "nearest" },
+                    { label: "FSR", value: "fsr" },
+                    { label: "NIS", value: "nis" },
+                    { label: "Pixel", value: "pixel" },
+                  ]}
+                />
+                <Input
+                  focusId={GAME_COMPATIBILITY_SETTINGS_GAMESCOPE_FPS_ID}
+                  label={t("gamescope_framerate_limit", {
+                    defaultValue: "Framerate Limit",
+                  })}
+                  value={gamescopeFramerateLimit}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    handleUpdateGamescopeSetting(
+                      "gamescopeFramerateLimit",
+                      val
+                    ).catch(() => {});
+                  }}
+                  placeholder="e.g. 60"
+                />
+              </div>
+            </HorizontalFocusGroup>
+          </div>
+        )}
       </SettingsSection>
 
       <FileExplorerModal

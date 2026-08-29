@@ -12,6 +12,7 @@ ludusavi/**
 !ludusavi/config.yaml
 hydra-python-rpc/
 /hydra-native/
+target/
 native/hydra-native/target/
 .python-version
 
