@@ -19,6 +19,7 @@ import {
   resolveImageSource,
   resolvePreferredGameAssets,
 } from "../../../../helpers";
+import { NavigationService } from "../../../../services";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 import { GameArtworkPicker } from "./artwork-picker";
 
@@ -294,6 +295,19 @@ export function GameCustomizationSettingsTab({
   const handleAssetTabChange = useCallback((value: AssetTab) => {
     setSelectedAssetTab(value);
     setHasAssetTabsInteracted(true);
+
+    const navigation = NavigationService.getInstance();
+
+    if (
+      navigation.getCurrentFocusId() ===
+      GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID
+    ) {
+      return;
+    }
+
+    navigation.requestFocusWhenAvailable(
+      GAME_CUSTOMIZATION_SETTINGS_ASSET_PREVIEW_ID
+    );
   }, []);
   const assetFrameSize = ASSET_FRAME_SIZES[selectedAssetTab];
   const hasCustomAsset = assetPreviewState[selectedAssetTab].hasCustom;

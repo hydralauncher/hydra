@@ -17,6 +17,7 @@ import { publishNewAchievementNotification } from "../notifications";
 import { achievementsLogger } from "../logger";
 import { db, levelKeys } from "@main/level";
 import { getGameAchievementData } from "./get-game-achievement-data";
+import { mergeUnlockedAchievementLists } from "./merge-unlocked-achievements";
 import { AchievementWatcherManager } from "./achievement-watcher-manager";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
@@ -255,10 +256,11 @@ const publishAchievementUnlockNotifications = ({
       publishOsNotification();
     }
   } else if (customEnabled) {
+    // No OS fallback: the user opted into the custom notification, so a failure
+    // must not surface as a duplicate system toast.
     achievementNotificationPresenter.enqueueAchievements(
       position,
-      achievementsInfo,
-      publishOsNotification
+      achievementsInfo
     );
   } else {
     publishOsNotification();
@@ -404,7 +406,10 @@ export const mergeAchievements = async (
         await saveAchievementsInMemory(
           response.objectId,
           response.shop,
-          response.achievements,
+          mergeUnlockedAchievementLists(
+            response.achievements,
+            syncedAchievements
+          ),
           publishNotification
         );
       } else {

@@ -3,6 +3,7 @@ import type {
   EmulatorSystem,
   GameShop,
   LibraryGame,
+  SouvenirSort,
 } from "@types";
 
 import {
@@ -255,26 +256,6 @@ export const removeCustomCss = (target: HTMLElement = document.head) => {
   target.querySelector("#custom-css")?.remove();
 };
 
-export const generateRandomGradient = (): string => {
-  // Use a single consistent gradient with softer colors for custom games as placeholder
-  const color1 = "#2c3e50"; // Dark blue-gray
-  const color2 = "#34495e"; // Darker slate
-
-  // Create SVG data URL that works in img tags
-  const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-    <defs>
-      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:${color1};stop-opacity:1" />
-        <stop offset="100%" style="stop-color:${color2};stop-opacity:1" />
-      </linearGradient>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#grad)" />
-  </svg>`;
-
-  // Return as data URL that works in img tags
-  return `data:image/svg+xml;base64,${btoa(svgContent)}`;
-};
-
 export const formatNumber = (num: number): string => {
   const locale = i18next.resolvedLanguage || i18next.language || undefined;
 
@@ -489,10 +470,15 @@ const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {
 const getMostPlayedDifference = (a: LibraryGame, b: LibraryGame): number =>
   b.playTimeInMilliseconds - a.playTimeInMilliseconds;
 
-const isGameInstalled = (game: LibraryGame): boolean =>
+export const isGameInstalled = (game: LibraryGame): boolean =>
   Boolean(game.executablePath) ||
   game.installedSizeInBytes != null ||
   (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
+
+export const isGameReadyToPlay = (game: LibraryGame): boolean =>
+  game.shop === "launchbox"
+    ? Boolean(game.selectedDiscPath)
+    : isGameInstalled(game);
 
 const getInstalledFirstDifference = (
   a: LibraryGame,
@@ -623,4 +609,81 @@ export const filterLibraryGamesByCategory = (
   }
 
   return games;
+};
+
+export const resolveImageSource = (
+  imageUrl: string | null | undefined
+): string => {
+  if (!imageUrl) return "";
+
+  const trimmedImageUrl = imageUrl.trim();
+  if (!trimmedImageUrl) return "";
+
+  if (
+    trimmedImageUrl.startsWith("http://") ||
+    trimmedImageUrl.startsWith("https://") ||
+    trimmedImageUrl.startsWith("data:") ||
+    trimmedImageUrl.startsWith("blob:")
+  ) {
+    return trimmedImageUrl;
+  }
+
+  if (trimmedImageUrl.startsWith("local:")) {
+    const normalizedLocalPath = trimmedImageUrl
+      .slice("local:".length)
+      .replaceAll("\\", "/");
+    return `local:${normalizedLocalPath}`;
+  }
+
+  const normalizedPath = trimmedImageUrl.replaceAll("\\", "/");
+  if (/^[A-Za-z]:\//.test(normalizedPath) || normalizedPath.startsWith("/")) {
+    return `local:${normalizedPath}`;
+  }
+
+  return normalizedPath;
+};
+
+export type ProfileSortOption =
+  | "playtime"
+  | "achievementCount"
+  | "playedRecently";
+
+export type ProfilePlatformFilter = "all" | "pc" | "classics";
+
+export const readStoredProfileSort = (): ProfileSortOption => {
+  const saved = localStorage.getItem("profile-sort-by");
+  return saved === "playtime" ||
+    saved === "achievementCount" ||
+    saved === "playedRecently"
+    ? saved
+    : "playedRecently";
+};
+
+export const readStoredProfilePlatform = (): ProfilePlatformFilter => {
+  const saved = localStorage.getItem("profile-platform");
+  return saved === "pc" || saved === "classics" || saved === "all"
+    ? saved
+    : "all";
+};
+
+export type SouvenirGrouping = "game" | "none";
+
+export const readStoredSouvenirSort = (): SouvenirSort => {
+  const saved = localStorage.getItem("profile-souvenir-sort-by");
+  return saved === "recent" || saved === "oldest" || saved === "rare"
+    ? saved
+    : "recent";
+};
+
+export const readStoredSouvenirGrouping = (): SouvenirGrouping => {
+  const saved = localStorage.getItem("profile-souvenir-grouping");
+  return saved === "game" || saved === "none" ? saved : "none";
+};
+
+export const getShopsForProfilePlatform = (
+  platform: ProfilePlatformFilter
+): string[] => {
+  if (platform === "pc") return ["steam"];
+  if (platform === "classics") return ["launchbox"];
+  return ["steam", "launchbox"];
 };

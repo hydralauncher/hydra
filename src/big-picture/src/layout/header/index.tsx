@@ -47,6 +47,7 @@ function Header() {
     normalizeBigPicturePathname(pathname) === "/catalogue";
   const catalogueSearchValue = searchParams.get("title") ?? "";
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSearchInputFocused, setIsSearchInputFocused] = useState(false);
   const [searchValue, setSearchValue] = useState(() =>
     isOnCataloguePage ? catalogueSearchValue : ""
   );
@@ -171,7 +172,14 @@ function Header() {
   }, [isSearchOpen]);
 
   useEffect(() => {
-    if (!isSearchFocused && !isSearchVirtualKeyboardTarget) {
+    const isInputHoldingDomFocus =
+      globalThis.document.activeElement === inputRef.current;
+
+    if (
+      !isSearchFocused &&
+      !isSearchVirtualKeyboardTarget &&
+      !isInputHoldingDomFocus
+    ) {
       if (currentFocusId !== null) {
         canAutoOpenSearchRef.current = true;
       }
@@ -206,6 +214,7 @@ function Header() {
   }, [
     currentFocusId,
     isSearchFocused,
+    isSearchInputFocused,
     isSearchOpen,
     isSearchVirtualKeyboardTarget,
     openSearch,
@@ -363,6 +372,8 @@ function Header() {
               placeholder="Looking for anything in particular?"
               value={searchValue}
               onChange={(event) => handleSearchChange(event.target.value)}
+              onFocus={() => setIsSearchInputFocused(true)}
+              onBlur={() => setIsSearchInputFocused(false)}
             />
           </form>
         </header>

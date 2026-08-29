@@ -128,6 +128,7 @@ export interface GameRunning {
   id: string;
   title: string;
   iconUrl: string | null;
+  customIconUrl?: string | null;
   coverImageUrl?: string | null;
   objectId: string;
   shop: GameShop;
