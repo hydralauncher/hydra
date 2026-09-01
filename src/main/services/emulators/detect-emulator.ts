@@ -211,63 +211,74 @@ export interface DetectionResult {
   detectedVersion: string | null;
 }
 
+const executableNamesForPlatform = (binary: DetectableBinary): string[] =>
+  isWindows ? binary.windowsNames : binary.linuxNames;
+
+const findOnPath = (names: string[]): string | null => {
+  for (const name of names) {
+    const executable = lookupOnPath(name);
+    if (executable) return executable;
+  }
+  return null;
+};
+
+const platformSearchDirs = (): string[] => {
+  if (isWindows) return windowsSearchDirs();
+  if (isMac) return [];
+  return linuxSearchDirs();
+};
+
+const findPlatformInstall = (
+  binary: DetectableBinary,
+  names: string[]
+): string | null => {
+  const installed = searchInDirs(names, platformSearchDirs());
+  if (installed) return installed;
+
+  if (isWindows) {
+    return searchPortableWindows(names, windowsPortableDirs());
+  }
+  if (isMac) return null;
+
+  return findAppImage([binary.binary, binary.displayName], linuxAppImageDirs());
+};
+
+const findMacAppBundle = (binary: DetectableBinary): string | null => {
+  if (!isMac) return null;
+  return searchInDirs(binary.macosBundleNames, [
+    "/Applications",
+    path.join(homedir(), "Applications"),
+  ]);
+};
+
 export const detectEmulator = (
   binary: DetectableBinary,
   options?: { resolveVersion?: boolean }
 ): DetectionResult | null => {
-  const names = isWindows ? binary.windowsNames : binary.linuxNames;
+  const names = executableNamesForPlatform(binary);
   const resolveVersion = options?.resolveVersion ?? false;
   const versionFor = (executablePath: string): string | null =>
     resolveVersion ? getEmulatorVersion(executablePath, binary) : null;
 
-  if (isMac) {
-    const app = searchInDirs(binary.macosBundleNames, [
-      "/Applications",
-      path.join(homedir(), "Applications"),
-    ]);
-    if (app) {
-      return { executablePath: app, detectedVersion: versionFor(app) };
-    }
+  const app = findMacAppBundle(binary);
+  if (app) {
+    return { executablePath: app, detectedVersion: versionFor(app) };
   }
 
-  for (const name of names) {
-    const onPath = lookupOnPath(name);
-    if (onPath) {
-      return {
-        executablePath: onPath,
-        detectedVersion: versionFor(onPath),
-      };
-    }
-  }
-
-  const dirs = isWindows ? windowsSearchDirs() : isMac ? [] : linuxSearchDirs();
-  const found = searchInDirs(names, dirs);
-  if (found) {
+  const onPath = findOnPath(names);
+  if (onPath) {
     return {
-      executablePath: found,
-      detectedVersion: versionFor(found),
+      executablePath: onPath,
+      detectedVersion: versionFor(onPath),
     };
   }
 
-  if (isWindows) {
-    const portable = searchPortableWindows(names, windowsPortableDirs());
-    if (portable) {
-      return {
-        executablePath: portable,
-        detectedVersion: versionFor(portable),
-      };
-    }
-  } else if (!isMac) {
-    const appImage = findAppImage(
-      [binary.binary, binary.displayName],
-      linuxAppImageDirs()
-    );
-    if (appImage) {
-      return {
-        executablePath: appImage,
-        detectedVersion: versionFor(appImage),
-      };
-    }
+  const installed = findPlatformInstall(binary, names);
+  if (installed) {
+    return {
+      executablePath: installed,
+      detectedVersion: versionFor(installed),
+    };
   }
 
   const flatpak = tryFlatpak(binary.flatpakIds);

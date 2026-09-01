@@ -4,7 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, it } from "node:test";
 
-import { findManagedEmulatorExecutable } from "./find-managed-emulator-executable.ts";
+import {
+  findManagedEmulatorExecutable,
+  requireManagedEmulatorExecutable,
+} from "./find-managed-emulator-executable.ts";
 import { KNOWN_BINARIES } from "./known-binaries.ts";
 
 describe("findManagedEmulatorExecutable", () => {
@@ -49,6 +52,16 @@ describe("findManagedEmulatorExecutable", () => {
     assert.equal(
       findManagedEmulatorExecutable(root, KNOWN_BINARIES.dolphin),
       executable
+    );
+  });
+
+  it("rejects an archive without the requested emulator", async () => {
+    const root = await createTemporaryDirectory();
+    await fs.promises.writeFile(path.join(root, "readme.txt"), "missing");
+
+    assert.throws(
+      () => requireManagedEmulatorExecutable(root, KNOWN_BINARIES.dolphin),
+      /No Dolphin executable found/
     );
   });
 });

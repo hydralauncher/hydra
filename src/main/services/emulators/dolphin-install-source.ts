@@ -18,7 +18,7 @@ export const pickLatestDolphinReleaseTag = (
       return {
         tag,
         release: Number(match[1]),
-        hotfix: match[2] ? match[2].toLowerCase().charCodeAt(0) : 0,
+        hotfix: match[2] ? (match[2].toLowerCase().codePointAt(0) ?? 0) : 0,
       };
     })
     .filter((release): release is NonNullable<typeof release> =>

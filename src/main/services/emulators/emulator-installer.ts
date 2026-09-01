@@ -20,7 +20,10 @@ import { WindowManager } from "../window-manager";
 import { downloadToFile, removeFileQuietly } from "../download-to-file";
 import { resolveInstallOptions } from "./emulator-install-sources";
 import { getEmulatorVersion } from "./get-emulator-version";
-import { findManagedEmulatorExecutable } from "./find-managed-emulator-executable";
+import {
+  findManagedEmulatorExecutable,
+  requireManagedEmulatorExecutable,
+} from "./find-managed-emulator-executable";
 import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
 import { updateEmulatorConfig } from "./emulators-repository";
 import { isValidEmulatorExecutable } from "./validate-emulator-executable";
@@ -235,11 +238,11 @@ export const downloadAndInstallEmulator = async (
     await fs.promises.mkdir(extractDir, { recursive: true });
     await SevenZip.extractFile({ filePath: dest, outputPath: extractDir });
     const system = BINARY_TO_SYSTEM[binary];
-    const executable = findManagedEmulatorExecutable(
+    const executable = requireManagedEmulatorExecutable(
       extractDir,
       KNOWN_BINARIES[system]
     );
-    if (executable) await autoConfigureEmulator(system, executable);
+    await autoConfigureEmulator(system, executable);
     await removeTempDownload();
     shell.showItemInFolder(extractDir);
     sendProgress({ binary, optionId, phase: "done", path: extractDir });

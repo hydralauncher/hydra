@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { readDolphinDiscHeader } from "./dolphin-disc-reader.js";
 
 const SNIFF_BYTES = 16 * 1024 * 1024;
 
@@ -15,51 +16,41 @@ const BOOT2_RE = /BOOT2\s*=/;
 const BOOT_RE = /BOOT\s*=/;
 const PS3_MARKERS = ["PS3_GAME", "PS3_DISC.SFB", "PARAM.SFO", "EBOOT.BIN"];
 
+const classifyDolphinHeader = (data: Buffer): DiscPlatform => {
+  if (data.length < 0x20) return "unknown";
+  if (data.readUInt32BE(0x18) === 0x5d1c9ea3) return "wii";
+  if (data.readUInt32BE(0x1c) === 0xc2339f3d) return "gamecube";
+  return "unknown";
+};
+
+const classifyPlayStationData = (data: Buffer): DiscPlatform => {
+  const text = data.toString("latin1");
+  const ps3Hits = PS3_MARKERS.reduce(
+    (hits, marker) => hits + Number(text.includes(marker)),
+    0
+  );
+
+  if (ps3Hits >= 2) return "ps3";
+  if (BOOT2_RE.test(text)) return "ps2";
+  if (BOOT_RE.test(text)) return "ps1";
+  return ps3Hits === 1 ? "ps3" : "unknown";
+};
+
 export const sniffDiscImage = async (
   filePath: string
 ): Promise<DiscPlatform> => {
+  const dolphinHeader = await readDolphinDiscHeader(filePath);
+  const dolphinPlatform = dolphinHeader
+    ? classifyDolphinHeader(dolphinHeader)
+    : "unknown";
+  if (dolphinPlatform !== "unknown") return dolphinPlatform;
+
   let fh: import("node:fs/promises").FileHandle | null = null;
   try {
     fh = await fs.open(filePath, "r");
     const buffer = Buffer.alloc(SNIFF_BYTES);
     const { bytesRead } = await fh.read(buffer, 0, SNIFF_BYTES, 0);
-    const data = buffer.subarray(0, bytesRead);
-
-    const sniffDolphinHeader = (offset: number): DiscPlatform => {
-      if (data.length < offset + 0x20) return "unknown";
-      if (data.readUInt32BE(offset + 0x18) === 0x5d1c9ea3) return "wii";
-      if (data.readUInt32BE(offset + 0x1c) === 0xc2339f3d) return "gamecube";
-      return "unknown";
-    };
-
-    const directDolphin = sniffDolphinHeader(0);
-    if (directDolphin !== "unknown") return directDolphin;
-
-    // WIA and RVZ preserve the original disc header at byte 0x58.
-    const compressedDolphin = sniffDolphinHeader(0x58);
-    if (compressedDolphin !== "unknown") return compressedDolphin;
-
-    // TGC stores the embedded GameCube image offset as a big-endian u32.
-    if (data.length >= 0x0c) {
-      const tgcOffset = data.readUInt32BE(0x08);
-      if (tgcOffset > 0 && tgcOffset < data.length) {
-        const tgcPlatform = sniffDolphinHeader(tgcOffset);
-        if (tgcPlatform !== "unknown") return tgcPlatform;
-      }
-    }
-    const text = data.toString("latin1");
-
-    let ps3Hits = 0;
-    for (const marker of PS3_MARKERS) {
-      if (text.includes(marker)) ps3Hits += 1;
-    }
-    if (ps3Hits >= 2) return "ps3";
-
-    if (BOOT2_RE.test(text)) return "ps2";
-    if (BOOT_RE.test(text)) return "ps1";
-
-    if (ps3Hits >= 1) return "ps3";
-    return "unknown";
+    return classifyPlayStationData(buffer.subarray(0, bytesRead));
   } catch {
     return "unknown";
   } finally {
