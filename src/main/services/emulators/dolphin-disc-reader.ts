@@ -67,8 +67,7 @@ const readTgcDiscHeader = async (file: FileHandle) => {
 const readWbfsDiscHeader = async (file: FileHandle) => {
   const header = await readExact(file, WBFS_HEADER_SIZE, 0);
   if (
-    !header ||
-    header.subarray(0, WBFS_MAGIC.length).toString("ascii") !== WBFS_MAGIC
+    header?.subarray(0, WBFS_MAGIC.length).toString("ascii") !== WBFS_MAGIC
   ) {
     return null;
   }
@@ -89,8 +88,7 @@ const readWbfsDiscHeader = async (file: FileHandle) => {
 const readCisoDiscHeader = async (file: FileHandle) => {
   const header = await readExact(file, CISO_FIRST_BLOCK_MAP_FIELD + 1, 0);
   if (
-    !header ||
-    header.subarray(0, CISO_MAGIC.length).toString("ascii") !== CISO_MAGIC
+    header?.subarray(0, CISO_MAGIC.length).toString("ascii") !== CISO_MAGIC
   ) {
     return null;
   }
@@ -132,7 +130,7 @@ const decodeGczFirstBlock = (
 
 const readGczDiscHeader = async (file: FileHandle) => {
   const header = await readExact(file, GCZ_HEADER_SIZE, 0);
-  if (!header || header.readUInt32LE(0) !== GCZ_MAGIC) return null;
+  if (header?.readUInt32LE(0) !== GCZ_MAGIC) return null;
 
   const compressedSize = header.readBigUInt64LE(GCZ_COMPRESSED_SIZE_FIELD);
   const blockSize = header.readUInt32LE(GCZ_BLOCK_SIZE_FIELD);
