@@ -19,6 +19,14 @@ import { levelDBService } from "./services/leveldb.service";
 import { logger } from "./logger";
 import type { LibraryCategory } from "./pages/library/category-filter";
 import type { SortOption } from "./pages/library/filter-options";
+import type { SkuRegion } from "./helpers/sku-region";
+
+export {
+  getRegionsFromSkus,
+  getSkuRegion,
+  getSkuRegionFromSaveIdentity,
+  type SkuRegion,
+} from "./helpers/sku-region";
 
 // Pixel-art flag icons from R74n PixelFlags (https://r74n.com/pixelflags).
 import flagUS from "./assets/flags/us.png";
@@ -333,51 +341,6 @@ export const isGameCompleted = (
   return (unlockedAchievementCount ?? 0) >= achievementCount;
 };
 
-export type SkuRegion = "US" | "EU" | "JP" | "KR" | "ASIA";
-
-const SKU_REGION_MAP: Record<string, SkuRegion> = {
-  SCUS: "US",
-  SLUS: "US",
-  SCUD: "US",
-  SLUD: "US",
-  BCUS: "US",
-  BLUS: "US",
-  BCUD: "US",
-  NPUA: "US",
-  NPUB: "US",
-  SCES: "EU",
-  SLES: "EU",
-  SCED: "EU",
-  SLED: "EU",
-  BCES: "EU",
-  BLES: "EU",
-  BCED: "EU",
-  NPEA: "EU",
-  NPEB: "EU",
-  SCPS: "JP",
-  SLPS: "JP",
-  SLPM: "JP",
-  SIPS: "JP",
-  PAPX: "JP",
-  PCPX: "JP",
-  SRPM: "JP",
-  BCJS: "JP",
-  BLJS: "JP",
-  BLJM: "JP",
-  NPJA: "JP",
-  NPJB: "JP",
-  NPJD: "JP",
-  SCKA: "KR",
-  SLKA: "KR",
-  BCKS: "KR",
-  BLKS: "KR",
-  BCKD: "KR",
-  BCAS: "ASIA",
-  BLAS: "ASIA",
-  NPHA: "ASIA",
-  NPHB: "ASIA",
-};
-
 const SKU_REGION_FLAGS: Record<SkuRegion, string> = {
   US: flagUS,
   EU: flagEU,
@@ -386,35 +349,8 @@ const SKU_REGION_FLAGS: Record<SkuRegion, string> = {
   ASIA: flagAsia,
 };
 
-const SKU_REGION_ORDER: SkuRegion[] = ["US", "EU", "JP", "KR", "ASIA"];
-
-export const getSkuRegion = (sku: string): SkuRegion | null => {
-  const prefix = sku.slice(0, 4).toUpperCase();
-  return SKU_REGION_MAP[prefix] ?? null;
-};
-
-export const getSkuRegionFromSaveIdentity = (
-  saveIdentity: string | null | undefined
-): SkuRegion | null => {
-  if (!saveIdentity) return null;
-  const cleaned = saveIdentity
-    .trim()
-    .toUpperCase()
-    .replace(/^B[A-Z](?=[A-Z]{4}[-_ .]?\d{5})/, "");
-  return getSkuRegion(cleaned);
-};
-
 export const getSkuRegionFlag = (region: SkuRegion): string =>
   SKU_REGION_FLAGS[region];
-
-export const getRegionsFromSkus = (skus: string[]): SkuRegion[] => {
-  const set = new Set<SkuRegion>();
-  for (const sku of skus) {
-    const region = getSkuRegion(sku);
-    if (region) set.add(region);
-  }
-  return SKU_REGION_ORDER.filter((r) => set.has(r));
-};
 
 const CLASSICS_LAUNCH_ERROR_CODES = [
   "EMULATOR_NOT_CONFIGURED",
