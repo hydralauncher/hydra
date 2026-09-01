@@ -1,6 +1,11 @@
 import type { Game, GameContentWarning } from "@types";
 import { SteamContentDescriptor } from "./constants.js";
 
+// Steam gates "Adults Only" storefront listings at 18; used only as the
+// informational minimumAge on the derived warning, not as a filtering
+// threshold (shouldHideGameForAdultContent keys off `level`, not age).
+const STEAM_ADULT_ONLY_MINIMUM_AGE = 18;
+
 export const getSteamContentWarning = (
   ids: number[] | null | undefined
 ): GameContentWarning => {
@@ -9,7 +14,7 @@ export const getSteamContentWarning = (
   if (descriptorIds.includes(SteamContentDescriptor.AdultOnlySexualContent)) {
     return {
       level: "adult",
-      minimumAge: 18,
+      minimumAge: STEAM_ADULT_ONLY_MINIMUM_AGE,
       reasons: ["sexual_content"],
       source: "steam",
     };
@@ -40,5 +45,9 @@ export const shouldHideGameForAdultContent = (
   hideAdultContent: boolean | undefined
 ): boolean => {
   if (!hideAdultContent) return false;
+  // A game with no contentWarning yet (steam descriptors not classified) is
+  // never treated as adult here - getLibrary backfills classification for
+  // exactly this case (see classifyPendingSteamContentWarnings) so the gap
+  // is transient rather than a permanent bypass.
   return game.contentWarning?.level === "adult";
 };
