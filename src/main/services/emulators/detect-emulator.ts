@@ -13,6 +13,7 @@ export interface DetectableBinary {
   macosBundleNames: string[];
   flatpakIds: string[];
   versionFlags: string[];
+  versionProbeDisabledPlatforms?: NodeJS.Platform[];
 }
 
 const isWindows = process.platform === "win32";

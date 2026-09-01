@@ -9,6 +9,7 @@ export interface KnownBinary {
   macosBundleNames: string[];
   flatpakIds: string[];
   versionFlags: string[];
+  versionProbeDisabledPlatforms?: NodeJS.Platform[];
   romExtensions: string[];
   romDirectoryMarkers: string[];
 }
@@ -95,6 +96,7 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     macosBundleNames: ["PPSSPP.app", "PPSSPPSDL.app"],
     flatpakIds: ["org.ppsspp.PPSSPP"],
     versionFlags: ["--version"],
+    versionProbeDisabledPlatforms: ["win32"],
     romExtensions: [".iso", ".cso", ".chd", ".pbp"],
     romDirectoryMarkers: ["PSP_GAME", "psp_game"],
   },
