@@ -66,9 +66,7 @@ const readTgcDiscHeader = async (file: FileHandle) => {
 
 const readWbfsDiscHeader = async (file: FileHandle) => {
   const header = await readExact(file, WBFS_HEADER_SIZE, 0);
-  if (
-    header?.subarray(0, WBFS_MAGIC.length).toString("ascii") !== WBFS_MAGIC
-  ) {
+  if (header?.subarray(0, WBFS_MAGIC.length).toString("ascii") !== WBFS_MAGIC) {
     return null;
   }
 
@@ -87,9 +85,7 @@ const readWbfsDiscHeader = async (file: FileHandle) => {
 
 const readCisoDiscHeader = async (file: FileHandle) => {
   const header = await readExact(file, CISO_FIRST_BLOCK_MAP_FIELD + 1, 0);
-  if (
-    header?.subarray(0, CISO_MAGIC.length).toString("ascii") !== CISO_MAGIC
-  ) {
+  if (header?.subarray(0, CISO_MAGIC.length).toString("ascii") !== CISO_MAGIC) {
     return null;
   }
 
