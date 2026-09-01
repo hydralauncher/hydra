@@ -173,9 +173,16 @@
       content: "\201D";
     }
 
-    p,
-    blockquote {
+    p {
       margin: 0;
+    }
+
+    blockquote {
+      border-left: 2px solid rgba(255, 255, 255, 0.12);
+      display: block;
+      margin: 0;
+      padding-left: 8px;
+      width: 100%;
     }
 
     code {

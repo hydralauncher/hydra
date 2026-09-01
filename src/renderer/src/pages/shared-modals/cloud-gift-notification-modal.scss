@@ -175,9 +175,16 @@
       content: "\201D";
     }
 
-    p,
-    blockquote {
+    p {
       margin: 0;
+    }
+
+    blockquote {
+      border-left: 2px solid globals.$border-color;
+      display: block;
+      margin: 0;
+      padding-left: globals.$spacing-unit;
+      width: 100%;
     }
 
     code {
