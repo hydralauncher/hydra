@@ -4,6 +4,7 @@ import {
   findMacAppBundleRoot,
   resolveMacAppBundleExecutable,
 } from "./macos-app-bundle";
+import { isExecutableNameExpectedForBinary } from "./is-executable-name-expected";
 
 const NON_EXECUTABLE_EXTENSIONS = new Set([
   ".jpg",
@@ -87,3 +88,10 @@ export const isValidEmulatorExecutable = (executablePath: string): boolean => {
     return false;
   }
 };
+
+export const isValidEmulatorExecutableForBinary = (
+  executablePath: string,
+  binary: { binary: string }
+): boolean =>
+  isValidEmulatorExecutable(executablePath) &&
+  isExecutableNameExpectedForBinary(executablePath, binary);

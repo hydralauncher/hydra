@@ -1,5 +1,4 @@
 import { registerEvent } from "../register-event";
-import { existsSync } from "node:fs";
 import { emulators } from "@main/services";
 import type { EmulatorSystem } from "@types";
 
@@ -21,7 +20,11 @@ const detectEmulatorEvent = async (
     }
 
     const currentStillValid =
-      current.executablePath !== null && existsSync(current.executablePath);
+      current.executablePath !== null &&
+      emulators.isValidEmulatorExecutableForBinary(
+        current.executablePath,
+        binary
+      );
 
     return {
       ...current,

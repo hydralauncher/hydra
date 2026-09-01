@@ -102,7 +102,9 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     system: "dolphin",
     binary: "dolphin",
     displayName: "Dolphin",
-    linuxNames: ["dolphin-emu", "dolphin-emu-qt2", "dolphin"],
+    // `dolphin` is KDE's file manager on Linux. Dolphin Emulator packages use
+    // `dolphin-emu`; keeping the ambiguous name here detects the wrong app.
+    linuxNames: ["dolphin-emu", "dolphin-emu-qt2"],
     windowsNames: ["Dolphin.exe"],
     macosBundleNames: ["Dolphin.app"],
     flatpakIds: ["org.DolphinEmu.dolphin-emu"],

@@ -59,6 +59,23 @@ export function EmulatorSetupModal({
   const wasVisibleRef = useRef(false);
   const openedExecutablePathRef = useRef<string | null>(null);
 
+  const previewAvailableExecutable = useCallback(
+    async (preferredPath?: string | null) => {
+      if (!system) return null;
+
+      if (preferredPath) {
+        const preferred = await window.electron.previewEmulatorExecutable(
+          system,
+          preferredPath
+        );
+        if (preferred) return preferred;
+      }
+
+      return window.electron.previewEmulatorExecutable(system);
+    },
+    [system]
+  );
+
   const previewFolder = useCallback(
     async (folderPath: string, scanSubfolders: boolean) => {
       if (!system) return null;
@@ -130,22 +147,24 @@ export function EmulatorSetupModal({
   useEffect(() => {
     if (!visible || !system) return;
     if (autoDetectRef.current) return;
-    if (initialConfig?.executablePath) return;
     autoDetectRef.current = true;
 
     let cancelled = false;
     setDetecting(true);
     (async () => {
       try {
-        const preview = await window.electron.previewEmulatorExecutable(system);
-        if (cancelled || !preview) return;
+        const preview = await previewAvailableExecutable(
+          initialConfig?.executablePath
+        );
+        if (cancelled) return;
         setConfig((curr) => {
-          if (curr?.executablePath) return curr;
           if (!curr) return curr;
+          if (curr.executablePath !== initialConfig?.executablePath)
+            return curr;
           return {
             ...curr,
-            executablePath: preview.executablePath,
-            detectedVersion: preview.detectedVersion,
+            executablePath: preview?.executablePath ?? null,
+            detectedVersion: preview?.detectedVersion ?? null,
           };
         });
       } finally {
@@ -155,7 +174,12 @@ export function EmulatorSetupModal({
     return () => {
       cancelled = true;
     };
-  }, [visible, system, initialConfig?.executablePath]);
+  }, [
+    visible,
+    system,
+    initialConfig?.executablePath,
+    previewAvailableExecutable,
+  ]);
 
   const prefilledRef = useRef(false);
 
@@ -198,26 +222,23 @@ export function EmulatorSetupModal({
     if (!system) return;
     setDetecting(true);
     try {
-      const refreshed = await refreshConfig();
-      if (refreshed?.executablePath) {
+      const configs = await window.electron.getEmulatorConfigs();
+      const refreshed = configs[system];
+      if (refreshed.executablePath) {
         persistedExecutableRef.current = true;
-        return;
       }
-      const preview = await window.electron.previewEmulatorExecutable(system);
-      if (!preview) return;
-      setConfig((curr) =>
-        curr
-          ? {
-              ...curr,
-              executablePath: preview.executablePath,
-              detectedVersion: preview.detectedVersion,
-            }
-          : curr
+      const preview = await previewAvailableExecutable(
+        refreshed.executablePath
       );
+      setConfig({
+        ...refreshed,
+        executablePath: preview?.executablePath ?? null,
+        detectedVersion: preview?.detectedVersion ?? null,
+      });
     } finally {
       setDetecting(false);
     }
-  }, [system, refreshConfig]);
+  }, [system, previewAvailableExecutable]);
 
   const handleBrowseExecutable = useCallback(async () => {
     if (!system) return;

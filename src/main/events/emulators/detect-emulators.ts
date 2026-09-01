@@ -8,12 +8,32 @@ const detectEmulatorsEvent = async (): Promise<EmulatorConfigMap> => {
     EMULATOR_SYSTEMS.map(async (system) => {
       const binary = emulators.KNOWN_BINARIES[system];
       const result = emulators.detectEmulator(binary);
-      const next = await emulators.updateEmulatorConfig(system, (current) => ({
-        ...current,
-        executablePath: result?.executablePath ?? current.executablePath,
-        detectedVersion: result?.detectedVersion ?? current.detectedVersion,
-        detectedAt: result ? Date.now() : current.detectedAt,
-      }));
+      const next = await emulators.updateEmulatorConfig(system, (current) => {
+        if (result) {
+          return {
+            ...current,
+            executablePath: result.executablePath,
+            detectedVersion: result.detectedVersion ?? current.detectedVersion,
+            detectedAt: Date.now(),
+          };
+        }
+
+        const currentStillValid =
+          current.executablePath !== null &&
+          emulators.isValidEmulatorExecutableForBinary(
+            current.executablePath,
+            binary
+          );
+
+        if (currentStillValid) return current;
+
+        return {
+          ...current,
+          executablePath: null,
+          detectedVersion: null,
+          detectedAt: null,
+        };
+      });
       return [system, next] as const;
     })
   );

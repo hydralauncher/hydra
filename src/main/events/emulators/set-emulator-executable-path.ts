@@ -14,7 +14,10 @@ const setEmulatorExecutablePath = async (
     ? (emulators.findMacAppBundleRoot(normalizedPath) ?? normalizedPath)
     : null;
 
-  if (resolvedPath && !emulators.isValidEmulatorExecutable(resolvedPath)) {
+  if (
+    resolvedPath &&
+    !emulators.isValidEmulatorExecutableForBinary(resolvedPath, binary)
+  ) {
     return null;
   }
 
