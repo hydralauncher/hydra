@@ -27,7 +27,7 @@ export const EMULATION_SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps2: "PlayStation 2",
   ps3: "PlayStation 3",
   psp: "PlayStation Portable",
-  dolphin: "Nintendo GameCube & Wii",
+  dolphin: "GameCube & Wii",
 };
 
 export const EMULATION_SYSTEM_ART: Record<EmulatorSystem, string> = {
