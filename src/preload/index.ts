@@ -448,6 +448,12 @@ contextBridge.exposeInMainWorld("electron", {
       scanSubfolders,
       language
     ),
+  registerRomFolder: (
+    system: EmulatorSystem,
+    folderPath: string,
+    scanSubfolders: boolean
+  ) =>
+    ipcRenderer.invoke("registerRomFolder", system, folderPath, scanSubfolders),
   removeRomFolder: (system: EmulatorSystem, folderId: string) =>
     ipcRenderer.invoke("removeRomFolder", system, folderId),
   listEmulatorRoms: (system: EmulatorSystem) =>
@@ -1341,8 +1347,9 @@ contextBridge.exposeInMainWorld("electron", {
   },
   openFolder: (folderPath: string) =>
     ipcRenderer.invoke("openFolder", folderPath),
+  getAppSessionId: () => ipcRenderer.invoke("getAppSessionId"),
   isStaging: () => ipcRenderer.invoke("isStaging"),
-  isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
+  isPortableVersion: Boolean(process.env.PORTABLE_EXECUTABLE_FILE),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
   getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),

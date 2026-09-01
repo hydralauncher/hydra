@@ -1,4 +1,11 @@
-import { darkenColor, ensureArray } from "@renderer/helpers";
+import {
+  darkenColor,
+  ensureArray,
+  getShopsForProfilePlatform,
+  readStoredProfilePlatform,
+  readStoredProfileSort,
+  readStoredSouvenirSort,
+} from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import type {
   Badge,
@@ -55,6 +62,7 @@ export interface UserProfileContext {
     update: Partial<ProfileSouvenir>
   ) => void;
   removeSouvenir: (souvenirId: string) => Promise<void>;
+  loadedLibrarySortBy: string | null;
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
@@ -89,6 +97,7 @@ export const userProfileContext = createContext<UserProfileContext>({
   loadMoreSouvenirs: async () => false,
   updateSouvenir: () => {},
   removeSouvenir: async () => {},
+  loadedLibrarySortBy: null,
 });
 
 const { Provider } = userProfileContext;
@@ -126,7 +135,11 @@ export function UserProfileContextProvider({
     useState<SouvenirsHiddenReason>(null);
   const [isLoadingSouvenirs, setIsLoadingSouvenirs] = useState(false);
   const souvenirRequestIdRef = useRef(0);
+  const [loadedLibrarySortBy, setLoadedLibrarySortBy] = useState<string | null>(
+    null
+  );
   const previousUserIdRef = useRef(userId);
+  const userStatsRequestIdRef = useRef(0);
 
   const isMe = userDetails?.id === userProfile?.id;
 
@@ -154,11 +167,15 @@ export function UserProfileContextProvider({
       const params = new URLSearchParams();
       shops.forEach((shop) => params.append("shop", shop));
 
+      const requestId = ++userStatsRequestIdRef.current;
+
       window.electron.hydraApi
         .get<UserStats>(`/users/${userId}/stats?${params.toString()}`, {
           needsAuth: false,
         })
         .then((stats) => {
+          if (requestId !== userStatsRequestIdRef.current) return;
+
           setUserStats(stats);
         });
     },
@@ -188,6 +205,10 @@ export function UserProfileContextProvider({
           library: UserGame[];
           pinnedGames: UserGame[];
         }>(url, { needsAuth: false });
+
+        if (reset) {
+          setLoadedLibrarySortBy(sortBy ?? null);
+        }
 
         if (response) {
           setLibraryGames(response.library);
@@ -391,9 +412,12 @@ export function UserProfileContextProvider({
   );
 
   const getUserProfile = useCallback(async () => {
-    getUserStats();
-    getUserLibraryGames();
-    void getUserSouvenirs("recent");
+    const storedShops = getShopsForProfilePlatform(readStoredProfilePlatform());
+
+    getUserStats(storedShops);
+
+    getUserLibraryGames(readStoredProfileSort(), true, storedShops);
+    void getUserSouvenirs(readStoredSouvenirSort());
 
     const profileParams = new URLSearchParams();
     profileParams.append("shop", "steam");
@@ -484,6 +508,7 @@ export function UserProfileContextProvider({
         loadMoreSouvenirs,
         updateSouvenir,
         removeSouvenir,
+        loadedLibrarySortBy,
       }}
     >
       {children}

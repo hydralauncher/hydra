@@ -305,8 +305,7 @@
       var(--sidebar-filter-transition-easing),
     color var(--sidebar-filter-transition-duration)
       var(--sidebar-filter-transition-easing),
-    box-shadow var(--sidebar-filter-transition-duration)
-      var(--sidebar-filter-transition-easing);
+    box-shadow 0ms linear;
 
   &:focus,
   &:focus-visible {
@@ -366,7 +365,10 @@
   outline: none;
   transition:
     background-color 0.2s ease-in-out,
-    box-shadow 0.2s ease-in-out;
+    // The focus outline is an indicator, not decoration: fading it in over
+    // 200ms outlasts the gamepad repeat interval, so a held direction leaves
+    // it invisible on every item it passes through.
+    box-shadow 0ms linear;
   width: 100%;
   color: var(--text);
   user-select: none;
