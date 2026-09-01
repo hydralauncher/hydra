@@ -40,7 +40,7 @@ interface CloudGiftDetails {
 const OPEN_ANIMATION_DURATION = 2.912;
 const PANEL_BASE_HEIGHT = 435;
 const MESSAGE_BASE_HEIGHT = 88;
-const MESSAGE_MAX_EXTRA_HEIGHT = 88;
+const MESSAGE_MAX_EXTRA_HEIGHT = 140;
 const LOGO_ANIMATION_DURATION = 6;
 const LOGO_SCALE_TIMES = [0, 0.1684, 1];
 const RING_SCALE_TIMES = [0, 1.0104 / OPEN_ANIMATION_DURATION, 1];
@@ -301,7 +301,7 @@ export function CloudGiftNotificationModal() {
     const nextHeight = messageElement
       ? Math.min(
           MESSAGE_MAX_EXTRA_HEIGHT,
-          Math.max(0, messageElement.scrollHeight - MESSAGE_BASE_HEIGHT)
+          Math.max(0, messageElement.clientHeight - MESSAGE_BASE_HEIGHT)
         )
       : 0;
 

@@ -178,6 +178,12 @@
       margin: 0;
     }
 
+    &[data-focus-visible="true"] {
+      outline: 1px solid rgba(29, 235, 225, 0.55);
+      outline-offset: 2px;
+      background-color: rgba(29, 235, 225, 0.06);
+    }
+
     blockquote {
       border-left: 2px solid rgba(255, 255, 255, 0.12);
       display: block;

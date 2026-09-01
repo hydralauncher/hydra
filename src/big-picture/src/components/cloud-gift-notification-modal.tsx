@@ -16,13 +16,19 @@ import raysOuter from "@renderer/assets/cloud-gift/rays-outer.png";
 import { logger } from "@renderer/logger";
 import type { Notification, NotificationsResponse } from "@types";
 import { IS_BROWSER, IS_DESKTOP } from "../constants";
-import { useNavigationScreenActions, useUserDetails } from "../hooks";
+import {
+  useNavigationActions,
+  useNavigationScreenActions,
+  useUserDetails,
+} from "../hooks";
 import {
   Button,
+  FocusItem,
   NavigationLayer,
   UserProfileAvatar,
   VerticalFocusGroup,
 } from "./common";
+import { useNavigationStore } from "../stores";
 import {
   BIG_PICTURE_CLOUD_GIFT_MODAL_OPEN_EVENT,
   type BigPictureCloudGiftModalOpenDetail,
@@ -44,12 +50,15 @@ interface CloudGiftDetails {
 const ACCEPT_GIFT_FOCUS_ID = "big-picture-cloud-gift-modal-accept";
 const BUYER_PROFILE_FOCUS_ID = "big-picture-cloud-gift-modal-buyer-profile";
 const DECIDE_LATER_FOCUS_ID = "big-picture-cloud-gift-modal-decide-later";
+const MESSAGE_FOCUS_ID = "big-picture-cloud-gift-modal-message";
 const CONTENT_REGION_ID = "big-picture-cloud-gift-modal-content";
+
+const MESSAGE_SCROLL_STEP = 96;
 
 const OPEN_ANIMATION_DURATION = 2.912;
 const PANEL_BASE_HEIGHT = 435;
 const MESSAGE_BASE_HEIGHT = 88;
-const MESSAGE_MAX_EXTRA_HEIGHT = 88;
+const MESSAGE_MAX_EXTRA_HEIGHT = 140;
 const LOGO_ANIMATION_DURATION = 6;
 const LOGO_SCALE_TIMES = [0, 0.1684, 1];
 const RING_SCALE_TIMES = [0, 1.0104 / OPEN_ANIMATION_DURATION, 1];
@@ -102,9 +111,9 @@ const createRingTransition = (scaleEase: (value: number) => number) => ({
 export function CloudGiftNotificationModal() {
   const { t } = useTranslation("notifications_page");
   const { userDetails, fetchUserDetails } = useUserDetails();
+  const { moveFocus } = useNavigationActions();
   const shouldReduceMotion = useReducedMotion();
   const headingId = useId();
-  const messageId = useId();
   const isCheckingRef = useRef(false);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const messageRef = useRef<HTMLDivElement | null>(null);
@@ -114,9 +123,11 @@ export function CloudGiftNotificationModal() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const [messageHeightExtra, setMessageHeightExtra] = useState(0);
+  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
 
   const panelHeight = PANEL_BASE_HEIGHT + messageHeightExtra;
   const isVisible = Boolean(notification && gift);
+  const messageFocused = isVisible && currentFocusId === MESSAGE_FOCUS_ID;
 
   const findPendingGift = useCallback(async () => {
     if (!userDetails || isCheckingRef.current || notification) return;
@@ -280,8 +291,59 @@ export function CloudGiftNotificationModal() {
     dismissCurrentGift();
   }, [dismissCurrentGift, isTopMostDialog]);
 
+  const scrollMessageStep = useCallback(
+    (direction: "up" | "down") => {
+      const element = messageRef.current;
+
+      if (!element) {
+        moveFocus(direction);
+        return;
+      }
+
+      const previousScrollTop = element.scrollTop;
+      const maxScrollTop = element.scrollHeight - element.clientHeight;
+
+      if (direction === "down") {
+        if (maxScrollTop <= 0) {
+          moveFocus("down");
+          return;
+        }
+
+        element.scrollTop = Math.min(
+          maxScrollTop,
+          previousScrollTop + MESSAGE_SCROLL_STEP
+        );
+      } else {
+        if (previousScrollTop <= 0) {
+          moveFocus("up");
+          return;
+        }
+
+        element.scrollTop = Math.max(
+          0,
+          previousScrollTop - MESSAGE_SCROLL_STEP
+        );
+      }
+
+      if (element.scrollTop === previousScrollTop) {
+        moveFocus(direction);
+      }
+    },
+    [moveFocus]
+  );
+
   useNavigationScreenActions(
-    isVisible ? { press: { b: closeTopMostDialog } } : {}
+    isVisible
+      ? {
+          press: { b: closeTopMostDialog },
+          direction: messageFocused
+            ? {
+                down: () => scrollMessageStep("down"),
+                up: () => scrollMessageStep("up"),
+              }
+            : {},
+        }
+      : {}
   );
 
   useEffect(() => {
@@ -315,7 +377,7 @@ export function CloudGiftNotificationModal() {
     const nextHeight = messageElement
       ? Math.min(
           MESSAGE_MAX_EXTRA_HEIGHT,
-          Math.max(0, messageElement.scrollHeight - MESSAGE_BASE_HEIGHT)
+          Math.max(0, messageElement.clientHeight - MESSAGE_BASE_HEIGHT)
         )
       : 0;
 
@@ -359,7 +421,7 @@ export function CloudGiftNotificationModal() {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={headingId}
-                aria-describedby={gift.message ? messageId : undefined}
+                aria-describedby={gift.message ? MESSAGE_FOCUS_ID : undefined}
                 aria-busy={!isRevealComplete}
                 data-reveal-complete={isRevealComplete}
                 data-hydra-dialog
@@ -449,12 +511,24 @@ export function CloudGiftNotificationModal() {
                       </h2>
 
                       {gift.message && (
-                        <div
-                          ref={messageRef}
-                          id={messageId}
-                          className="big-picture-cloud-gift-notification-modal__message-card"
-                          dangerouslySetInnerHTML={{ __html: gift.message }}
-                        />
+                        <FocusItem
+                          id={MESSAGE_FOCUS_ID}
+                          focusable={isRevealComplete}
+                          navigationOverrides={{
+                            down: {
+                              type: "item",
+                              itemId: BUYER_PROFILE_FOCUS_ID,
+                            },
+                          }}
+                          asChild
+                        >
+                          <div
+                            ref={messageRef}
+                            className="big-picture-cloud-gift-notification-modal__message-card"
+                            data-suppress-navigation-autoscroll="true"
+                            dangerouslySetInnerHTML={{ __html: gift.message }}
+                          />
+                        </FocusItem>
                       )}
 
                       <Button
