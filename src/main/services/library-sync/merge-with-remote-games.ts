@@ -7,7 +7,6 @@ import type {
 } from "@types";
 import { chunk } from "lodash-es";
 import { HydraApi } from "../hydra-api";
-import { logger } from "../logger";
 import { saveSteamGridDbArtwork } from "../game-artwork-cloud";
 import {
   gamesArtworkSelectionSublevel,
@@ -351,22 +350,11 @@ export const mergeImportedProfileGames = async (
           );
 
           if (remoteGame.shop !== shop || remoteGame.objectId !== objectId) {
-            logger.warn("Profile game response did not match import", {
-              expectedShop: shop,
-              expectedObjectId: objectId,
-              receivedShop: remoteGame.shop,
-              receivedObjectId: remoteGame.objectId,
-            });
             return null;
           }
 
           return remoteGame;
-        } catch (error) {
-          logger.error("Failed to fetch imported profile game", {
-            shop,
-            objectId,
-            error,
-          });
+        } catch {
           return null;
         }
       })
