@@ -7,7 +7,9 @@ const detectEmulatorEvent = async (
   system: EmulatorSystem
 ) => {
   const binary = emulators.KNOWN_BINARIES[system];
-  const result = emulators.detectEmulator(binary, { resolveVersion: true });
+  const result = await emulators.detectEmulatorWithDownloads(binary, {
+    resolveVersion: true,
+  });
 
   return emulators.updateEmulatorConfig(system, (current) => {
     if (result) {

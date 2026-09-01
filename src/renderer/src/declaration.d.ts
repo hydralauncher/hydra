@@ -51,7 +51,6 @@ import type {
   EmulationBackupProgress,
   EmulatorBinary,
   EmulatorInstallProgress,
-  EmulatorInstallPreviewPlatform,
   EmulatorInstallResult,
   ResolvedInstallOption,
   DetectedRom,
@@ -611,8 +610,7 @@ declare global {
       manualBiosPath?: string | null
     ) => Promise<{ installed: boolean; detectedPath: string | null }>;
     getEmulatorInstallOptions: (
-      binary: EmulatorBinary,
-      previewPlatform?: EmulatorInstallPreviewPlatform
+      binary: EmulatorBinary
     ) => Promise<ResolvedInstallOption[]>;
     installEmulator: (
       binary: EmulatorBinary,

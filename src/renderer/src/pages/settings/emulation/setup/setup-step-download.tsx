@@ -5,7 +5,6 @@ import { BookIcon, GlobeIcon, LinkExternalIcon } from "@primer/octicons-react";
 import type {
   EmulatorBinary,
   EmulatorInstallProgress,
-  EmulatorInstallPreviewPlatform,
   ResolvedInstallOption,
 } from "@types";
 
@@ -36,18 +35,11 @@ const ARTICLE_KEYS: Partial<Record<EmulatorBinary, string>> = {
   duckstation: "install-duckstation",
   pcsx2: "install-pcsx2",
   rpcs3: "install-rpcs3",
+  ppsspp: "install-ppsspp",
+  dolphin: "install-dolphin",
 };
 
 const SEMVER_RE = /v?\d{1,9}\.\d{1,9}(?:\.\d{1,9})?/;
-
-const PREVIEW_PLATFORMS: Array<{
-  value: EmulatorInstallPreviewPlatform;
-  label: string;
-}> = [
-  { value: "darwin", label: "macOS" },
-  { value: "win32", label: "Windows" },
-  { value: "linux", label: "Linux" },
-];
 
 const extractSemver = (value: string | null): string | undefined =>
   (value && SEMVER_RE.exec(value)?.[0]) || undefined;
@@ -62,25 +54,12 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
     Record<string, EmulatorInstallProgress>
   >({});
   const [installingId, setInstallingId] = useState<string | null>(null);
-  const nativePlatform = window.electron.platform;
-  const [previewPlatform, setPreviewPlatform] =
-    useState<EmulatorInstallPreviewPlatform>(() => {
-      if (
-        nativePlatform === "win32" ||
-        nativePlatform === "linux" ||
-        nativePlatform === "darwin"
-      ) {
-        return nativePlatform;
-      }
-      return "darwin";
-    });
-  const isNativePlatform = previewPlatform === nativePlatform;
 
   useEffect(() => {
     let cancelled = false;
     setOptions(null);
     window.electron
-      .getEmulatorInstallOptions(binary, previewPlatform)
+      .getEmulatorInstallOptions(binary)
       .then((result) => {
         if (!cancelled) setOptions(result);
       })
@@ -90,7 +69,7 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
     return () => {
       cancelled = true;
     };
-  }, [binary, previewPlatform]);
+  }, [binary]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onEmulatorInstallProgress((payload) => {
@@ -105,7 +84,7 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
   };
 
   const handleInstall = async (optionId: string) => {
-    if (installingId || !isNativePlatform) return;
+    if (installingId) return;
     setInstallingId(optionId);
     try {
       await window.electron.installEmulator(binary, optionId);
@@ -185,30 +164,6 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
         <LinkExternalIcon size={12} />
       </button>
 
-      {import.meta.env.DEV && (
-        <div className="setup-modal__platform-preview">
-          <span className="setup-modal__platform-preview-label">
-            Debug preview
-          </span>
-          <div className="setup-modal__platform-preview-options">
-            {PREVIEW_PLATFORMS.map((platform) => (
-              <button
-                key={platform.value}
-                type="button"
-                className={`setup-modal__platform-preview-option ${
-                  previewPlatform === platform.value
-                    ? "setup-modal__platform-preview-option--active"
-                    : ""
-                }`}
-                onClick={() => setPreviewPlatform(platform.value)}
-              >
-                {platform.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="setup-modal__download-grid">
         {options === null && <InstallLoadingCard />}
 
@@ -224,14 +179,7 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
                 type="button"
                 className="setup-modal__download-card-action"
                 onClick={() => handleInstall(option.id)}
-                disabled={
-                  !isNativePlatform || (Boolean(installingId) && !isInstalling)
-                }
-                title={
-                  isNativePlatform
-                    ? undefined
-                    : "Preview only. Switch back to your current OS to install."
-                }
+                disabled={Boolean(installingId) && !isInstalling}
               >
                 <div className="setup-modal__download-card-badge">
                   {binary === "dolphin" ? (
@@ -251,13 +199,7 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
                     )}
                   </span>
                   <span className="setup-modal__download-card-desc">
-                    {isNativePlatform
-                      ? installStatusText(t, name, progress[option.id])
-                      : `Previewing the ${
-                          PREVIEW_PLATFORMS.find(
-                            (platform) => platform.value === previewPlatform
-                          )?.label
-                        } package. Installation is disabled.`}
+                    {installStatusText(t, name, progress[option.id])}
                   </span>
                   <InstallProgressBar progress={progress[option.id]} />
                 </div>

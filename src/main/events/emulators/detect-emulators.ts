@@ -7,7 +7,7 @@ const detectEmulatorsEvent = async (): Promise<EmulatorConfigMap> => {
   const results = await Promise.all(
     EMULATOR_SYSTEMS.map(async (system) => {
       const binary = emulators.KNOWN_BINARIES[system];
-      const result = emulators.detectEmulator(binary);
+      const result = await emulators.detectEmulatorWithDownloads(binary);
       const next = await emulators.updateEmulatorConfig(system, (current) => {
         if (result) {
           return {

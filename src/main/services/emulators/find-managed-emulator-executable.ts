@@ -3,6 +3,11 @@ import path from "node:path";
 
 import type { KnownBinary } from "./known-binaries";
 
+type ManagedExecutableBinary = Pick<
+  KnownBinary,
+  "displayName" | "linuxNames" | "windowsNames" | "macosBundleNames"
+>;
+
 const readDirectory = (directory: string): fs.Dirent[] | null => {
   try {
     return fs.readdirSync(directory, { withFileTypes: true });
@@ -34,7 +39,7 @@ const findExecutableInDirectory = (
 
 export const findManagedEmulatorExecutable = (
   root: string,
-  binary: KnownBinary
+  binary: ManagedExecutableBinary
 ): string | null => {
   const executableNames = new Set(
     [...binary.linuxNames, ...binary.windowsNames].map((name) =>
@@ -68,7 +73,7 @@ export const findManagedEmulatorExecutable = (
 
 export const requireManagedEmulatorExecutable = (
   root: string,
-  binary: KnownBinary
+  binary: ManagedExecutableBinary
 ): string => {
   const executable = findManagedEmulatorExecutable(root, binary);
   if (!executable) {

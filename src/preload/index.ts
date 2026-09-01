@@ -28,7 +28,6 @@ import type {
   EmulatorSystem,
   EmulatorBinary,
   EmulatorInstallProgress,
-  EmulatorInstallPreviewPlatform,
   RetroArchCoreName,
   RetroArchCoreInstallProgress,
   RetroArchInstallProgress,
@@ -484,10 +483,8 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath,
       manualBiosPath ?? null
     ),
-  getEmulatorInstallOptions: (
-    binary: EmulatorBinary,
-    previewPlatform?: EmulatorInstallPreviewPlatform
-  ) => ipcRenderer.invoke("getEmulatorInstallOptions", binary, previewPlatform),
+  getEmulatorInstallOptions: (binary: EmulatorBinary) =>
+    ipcRenderer.invoke("getEmulatorInstallOptions", binary),
   installEmulator: (binary: EmulatorBinary, optionId: string) =>
     ipcRenderer.invoke("installEmulator", binary, optionId),
   onEmulatorInstallProgress: (

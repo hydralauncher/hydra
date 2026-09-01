@@ -3,7 +3,8 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
-import { getEmulatorVersion } from "./get-emulator-version";
+import { findEmulatorInDownloadDirectories } from "./find-emulator-in-download-directories.js";
+import { getEmulatorVersion } from "./get-emulator-version.js";
 
 export interface DetectableBinary {
   binary: string;
@@ -231,10 +232,17 @@ const platformSearchDirs = (): string[] => {
 
 const findPlatformInstall = (
   binary: DetectableBinary,
-  names: string[]
+  names: string[],
+  downloadDirectories: string[]
 ): string | null => {
   const installed = searchInDirs(names, platformSearchDirs());
   if (installed) return installed;
+
+  const downloaded = findEmulatorInDownloadDirectories(
+    binary,
+    downloadDirectories
+  );
+  if (downloaded) return downloaded;
 
   if (isWindows) {
     return searchPortableWindows(names, windowsPortableDirs());
@@ -254,7 +262,10 @@ const findMacAppBundle = (binary: DetectableBinary): string | null => {
 
 export const detectEmulator = (
   binary: DetectableBinary,
-  options?: { resolveVersion?: boolean }
+  options?: {
+    resolveVersion?: boolean;
+    downloadDirectories?: string[];
+  }
 ): DetectionResult | null => {
   const names = executableNamesForPlatform(binary);
   const resolveVersion = options?.resolveVersion ?? false;
@@ -274,7 +285,11 @@ export const detectEmulator = (
     };
   }
 
-  const installed = findPlatformInstall(binary, names);
+  const installed = findPlatformInstall(
+    binary,
+    names,
+    options?.downloadDirectories ?? []
+  );
   if (installed) {
     return {
       executablePath: installed,

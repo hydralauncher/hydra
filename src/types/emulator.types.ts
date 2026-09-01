@@ -186,8 +186,6 @@ export type EmulatorInstallChannel = "release" | "prerelease";
 
 export type EmulatorInstallLinkKind = "aur" | "flatpak" | "release_page";
 
-export type EmulatorInstallPreviewPlatform = "win32" | "linux" | "darwin";
-
 /** A single, IPC-serializable install option offered for an emulator. */
 export interface ResolvedInstallOption {
   id: string;

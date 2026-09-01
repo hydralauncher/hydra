@@ -1,5 +1,6 @@
 export * from "./known-binaries";
 export * from "./detect-emulator";
+export * from "./detect-emulator-with-downloads";
 export * from "./get-emulator-version";
 export * from "./macos-app-bundle";
 export * from "./validate-emulator-executable";

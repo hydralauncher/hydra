@@ -7,11 +7,11 @@ import { promisify } from "node:util";
 import type {
   EmulatorBinary,
   EmulatorInstallProgress,
-  EmulatorInstallPreviewPlatform,
   EmulatorInstallResult,
   EmulatorSystem,
   ResolvedInstallOption,
 } from "@types";
+import { getDownloadsPath } from "@main/events/helpers/get-downloads-path";
 
 import { logger } from "../logger";
 import { SevenZip } from "../7zip";
@@ -28,23 +28,13 @@ import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
 import { updateEmulatorConfig } from "./emulators-repository";
 import { isValidEmulatorExecutable } from "./validate-emulator-executable";
 
-const managedEmulatorsDir = (): string =>
-  path.join(SystemPath.getPath("userData"), "emulators");
-
 const execFileAsync = promisify(execFile);
 
 /** Same shape resolveInstallOptions returns, scoped to the current platform. */
 export const resolveEmulatorInstallOptions = (
-  binary: EmulatorBinary,
-  previewPlatform?: EmulatorInstallPreviewPlatform
+  binary: EmulatorBinary
 ): Promise<ResolvedInstallOption[]> =>
-  resolveInstallOptions(
-    binary,
-    previewPlatform ?? process.platform,
-    previewPlatform && previewPlatform !== process.platform
-      ? "x64"
-      : process.arch
-  );
+  resolveInstallOptions(binary, process.platform, process.arch);
 
 const sendProgress = (progress: EmulatorInstallProgress): void => {
   WindowManager.mainWindow?.webContents.send(
@@ -84,9 +74,18 @@ const BINARY_TO_SYSTEM: Record<EmulatorBinary, EmulatorSystem> = {
   dolphin: "dolphin",
 };
 
+const emulatorInstallDirectory = async (
+  binary: EmulatorBinary
+): Promise<string> => {
+  const downloadsRoot = await getDownloadsPath();
+  const system = BINARY_TO_SYSTEM[binary];
+  return path.join(downloadsRoot, KNOWN_BINARIES[system].displayName);
+};
+
 const installMacosDmg = async (
   dmgPath: string,
-  binary: EmulatorBinary
+  binary: EmulatorBinary,
+  installDirectory: string
 ): Promise<string> => {
   const system = BINARY_TO_SYSTEM[binary];
   const mountDirectory = await fs.promises.mkdtemp(
@@ -117,7 +116,6 @@ const installMacosDmg = async (
       throw new Error(`No ${binary} app bundle found in disk image`);
     }
 
-    const installDirectory = path.join(managedEmulatorsDir(), binary);
     const destinationBundle = path.join(
       installDirectory,
       path.basename(sourceBundle)
@@ -179,8 +177,9 @@ export const downloadAndInstallEmulator = async (
 
   const fileName = path.basename(option.fileName ?? option.downloadUrl);
   const isAppImage = option.kind === "linux-appimage";
+  const installDirectory = await emulatorInstallDirectory(binary);
   const dest = isAppImage
-    ? path.join(managedEmulatorsDir(), fileName)
+    ? path.join(installDirectory, fileName)
     : path.join(SystemPath.getPath("temp"), fileName);
 
   const removeTempDownload = async () => {
@@ -188,6 +187,9 @@ export const downloadAndInstallEmulator = async (
   };
 
   try {
+    if (isAppImage) {
+      await fs.promises.mkdir(installDirectory, { recursive: true });
+    }
     sendProgress({ binary, optionId, phase: "downloading", loaded: 0 });
     await downloadToFile(option.downloadUrl, dest, (loaded, total) => {
       sendProgress({
@@ -226,7 +228,7 @@ export const downloadAndInstallEmulator = async (
 
     if (option.kind === "macos-dmg") {
       sendProgress({ binary, optionId, phase: "extracting" });
-      const appBundle = await installMacosDmg(dest, binary);
+      const appBundle = await installMacosDmg(dest, binary, installDirectory);
       await removeTempDownload();
       shell.showItemInFolder(appBundle);
       sendProgress({ binary, optionId, phase: "done", path: appBundle });
@@ -234,7 +236,7 @@ export const downloadAndInstallEmulator = async (
     }
 
     sendProgress({ binary, optionId, phase: "extracting" });
-    const extractDir = path.join(managedEmulatorsDir(), binary);
+    const extractDir = installDirectory;
     await fs.promises.mkdir(extractDir, { recursive: true });
     await SevenZip.extractFile({ filePath: dest, outputPath: extractDir });
     const system = BINARY_TO_SYSTEM[binary];
