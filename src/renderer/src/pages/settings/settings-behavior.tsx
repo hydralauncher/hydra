@@ -27,6 +27,7 @@ export function SettingsBehavior() {
     startMinimized: false,
     launchToLibraryPage: false,
     disableNsfwAlert: false,
+    hideAdultContent: false,
     enableAutoInstall: false,
     seedAfterDownloadComplete: false,
     showHiddenAchievementsDescription: false,
@@ -69,6 +70,7 @@ export function SettingsBehavior() {
         startMinimized: userPreferences.startMinimized ?? false,
         launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
         disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
+        hideAdultContent: userPreferences.hideAdultContent ?? false,
         enableAutoInstall: userPreferences.enableAutoInstall ?? false,
         seedAfterDownloadComplete:
           userPreferences.seedAfterDownloadComplete ?? false,
@@ -232,6 +234,14 @@ export function SettingsBehavior() {
         checked={form.disableNsfwAlert}
         onChange={() =>
           handleChange({ disableNsfwAlert: !form.disableNsfwAlert })
+        }
+      />
+
+      <CheckboxField
+        label={t("hide_adult_content")}
+        checked={form.hideAdultContent}
+        onChange={() =>
+          handleChange({ hideAdultContent: !form.hideAdultContent })
         }
       />
 

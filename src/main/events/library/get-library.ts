@@ -10,7 +10,7 @@ import {
   gamesShopCacheSublevel,
   gamesSublevel,
 } from "@main/level";
-import { composeAssetsWithArtwork } from "@shared";
+import { composeAssetsWithArtwork, getSteamContentWarning } from "@shared";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 
 export const lookupCachedPlatform = async (
@@ -26,6 +26,30 @@ export const lookupCachedPlatform = async (
         value?.platform
       ) {
         return value.platform;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+// Steam content_descriptors only get fetched (and cached) when the user opens
+// Game Details for a specific game. This surfaces that cached data for games
+// the library already has on disk, without making a fresh Steam API call.
+export const lookupCachedContentDescriptorIds = async (
+  gameKey: string
+): Promise<number[] | null> => {
+  const prefix = `${gameKey}:`;
+  try {
+    const entries = await gamesShopCacheSublevel.iterator().all();
+    for (const [key, value] of entries) {
+      if (
+        typeof key === "string" &&
+        key.startsWith(prefix) &&
+        value?.content_descriptors?.ids
+      ) {
+        return value.content_descriptors.ids;
       }
     }
   } catch {
@@ -93,6 +117,16 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               const cachedPlatform = await lookupCachedPlatform(key);
               if (cachedPlatform) {
                 game.platform = cachedPlatform;
+                gamesSublevel.put(key, game).catch(() => {});
+              }
+            }
+
+            if (game.shop === "steam" && !game.contentWarning) {
+              const cachedDescriptorIds =
+                await lookupCachedContentDescriptorIds(key);
+              if (cachedDescriptorIds) {
+                game.contentWarning =
+                  getSteamContentWarning(cachedDescriptorIds);
                 gamesSublevel.put(key, game).catch(() => {});
               }
             }

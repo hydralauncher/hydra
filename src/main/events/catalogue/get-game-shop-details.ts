@@ -17,9 +17,10 @@ import {
   gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
+  gamesSublevel,
   levelKeys,
 } from "@main/level";
-import { composeAssetsWithArtwork } from "@shared";
+import { composeAssetsWithArtwork, getSteamContentWarning } from "@shared";
 
 const applyArtworkToAssets = async (
   shop: GameShop,
@@ -33,6 +34,19 @@ const applyArtworkToAssets = async (
   );
 
   return composeAssetsWithArtwork(assets, selection);
+};
+
+const persistContentWarning = async (
+  shop: GameShop,
+  objectId: string,
+  contentDescriptorIds: number[]
+) => {
+  const key = levelKeys.game(shop, objectId);
+  const game = await gamesSublevel.get(key);
+  if (!game) return;
+
+  const contentWarning = getSteamContentWarning(contentDescriptorIds);
+  await gamesSublevel.put(key, { ...game, contentWarning });
 };
 
 interface LaunchboxBasic {
@@ -261,6 +275,16 @@ const getGameShopDetails = async (
           .catch((err) => {
             logger.error("Could not cache game details", err);
           });
+
+        if (result.content_descriptors?.ids?.length) {
+          persistContentWarning(
+            shop,
+            objectId,
+            result.content_descriptors.ids
+          ).catch((err) => {
+            logger.error("Could not persist game content warning", err);
+          });
+        }
 
         return {
           ...result,
