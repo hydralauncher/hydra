@@ -5,8 +5,8 @@ import { KNOWN_BINARY_LABELS } from "@renderer/pages/settings/emulation/known-bi
 import ps1Art from "@renderer/assets/emulation/ps1.png";
 import ps2Art from "@renderer/assets/emulation/ps2.png";
 import ps3Art from "@renderer/assets/emulation/ps3.png";
-import pspArt from "@renderer/assets/emulation/psp.svg?url";
-import dolphinArt from "@renderer/assets/emulation/dolphin.svg?url";
+import pspArt from "@renderer/assets/emulation/icons/ppsspp.png";
+import dolphinArt from "@renderer/assets/emulation/icons/dolphin.png";
 
 export { EMULATOR_ICONS, KNOWN_BINARY_LABELS };
 
