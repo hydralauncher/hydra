@@ -15,7 +15,7 @@ import {
   WindowManager,
   emulators,
   logger,
-  mergeWithRemoteGames,
+  mergeImportedProfileGames,
 } from "@main/services";
 import { clearFinishedDownload, platformToSystem } from "@main/helpers";
 import {
@@ -250,7 +250,7 @@ export const syncProfileBatch = async (objectIds: string[]) => {
   if (objectIds.length === 0) return;
 
   const chunks = chunk(objectIds, PROFILE_BATCH_CHUNK_SIZE);
-  let syncedAtLeastOneChunk = false;
+  const syncedObjectIds: string[] = [];
 
   for (const objectIdChunk of chunks) {
     const payload = objectIdChunk.map((objectId) => ({
@@ -261,13 +261,13 @@ export const syncProfileBatch = async (objectIds: string[]) => {
     }));
     try {
       await HydraApi.post("/profile/games/batch", payload);
-      syncedAtLeastOneChunk = true;
+      syncedObjectIds.push(...objectIdChunk);
     } catch (err) {
       logger.error("Failed to batch-sync launchbox games to profile", err);
     }
   }
 
-  if (syncedAtLeastOneChunk) await mergeWithRemoteGames();
+  await mergeImportedProfileGames("launchbox", syncedObjectIds);
 };
 
 const persistRomFolder = async (
