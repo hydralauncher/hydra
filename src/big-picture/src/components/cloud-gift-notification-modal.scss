@@ -157,20 +157,21 @@
 
     &::before,
     &::after {
-      position: absolute;
       color: #8e919b;
     }
 
     &::before {
+      position: absolute;
       top: 12px;
       left: 12px;
       content: "\201C";
     }
 
     &::after {
-      right: 12px;
-      bottom: 12px;
       content: "\201D";
+      display: block;
+      padding-right: 12px;
+      text-align: right;
     }
 
     p {
