@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 import { db, levelKeys } from "@main/level";
 import { logger } from "../logger";
@@ -8,6 +9,7 @@ import {
   duckstationConfigCandidates,
   findExistingConfig,
 } from "./emulator-config";
+import { dolphinLogPath } from "./emulator-log-paths";
 import {
   getCfgValue,
   buildRetroArchSouvenirAppendConfig,
@@ -19,6 +21,7 @@ import {
   restoreIniValue,
   setIniValue,
 } from "./duckstation-souvenir-config-value";
+import { enablePPSSPPAchievementLog } from "./ppsspp-souvenir-config-value";
 
 interface RetroArchSouvenirConfigBackup {
   configPath: string;
@@ -31,10 +34,14 @@ interface DuckStationSouvenirConfigBackup {
   originalLine: string | null;
 }
 
-export interface RetroArchSouvenirSession {
-  appendConfigPath: string;
-  screenshotDirectory: string;
-  sessionDirectory: string;
+export interface EmulatorSouvenirSession {
+  kind: "retroarch" | "ppsspp" | "dolphin";
+  launchArguments: string[];
+  logPath: string | null;
+  logOffset: number | null;
+  screenshotDirectory: string | null;
+  sessionDirectory: string | null;
+  cleanupFilePaths: string[];
 }
 
 const getRetroArchSouvenirConfigBackups = async () =>
@@ -229,10 +236,14 @@ export const createRetroArchSouvenirSession = async () => {
     });
 
     return {
-      appendConfigPath,
+      kind: "retroarch",
+      launchArguments: ["--appendconfig", appendConfigPath],
+      logPath: null,
+      logOffset: null,
       screenshotDirectory,
       sessionDirectory,
-    } satisfies RetroArchSouvenirSession;
+      cleanupFilePaths: [],
+    } satisfies EmulatorSouvenirSession;
   } catch (error) {
     if (sessionDirectory) {
       await fs.promises
@@ -244,21 +255,33 @@ export const createRetroArchSouvenirSession = async () => {
   }
 };
 
-export const cleanupRetroArchSouvenirSession = async (
-  session: RetroArchSouvenirSession | null | undefined
+export const cleanupEmulatorSouvenirSession = async (
+  session: EmulatorSouvenirSession | null | undefined
 ) => {
   if (!session) return;
 
-  try {
-    await fs.promises.rm(session.sessionDirectory, {
-      recursive: true,
-      force: true,
+  for (const filePath of session.cleanupFilePaths) {
+    await fs.promises.rm(filePath, { force: true }).catch((error) => {
+      logger.error("Failed to clean up emulator souvenir file", {
+        filePath,
+        error,
+      });
     });
-    logger.info("Cleaned up RetroArch souvenir session", {
-      sessionDirectory: session.sessionDirectory,
-    });
-  } catch (error) {
-    logger.error("Failed to clean up RetroArch souvenir session", error);
+  }
+
+  if (session.sessionDirectory) {
+    try {
+      await fs.promises.rm(session.sessionDirectory, {
+        recursive: true,
+        force: true,
+      });
+      logger.info("Cleaned up emulator souvenir session", {
+        kind: session.kind,
+        sessionDirectory: session.sessionDirectory,
+      });
+    } catch (error) {
+      logger.error("Failed to clean up emulator souvenir session", error);
+    }
   }
 };
 
@@ -338,4 +361,148 @@ export const restoreDuckStationFileLogging = async () => {
   } else {
     await db.del(levelKeys.duckStationSouvenirConfigBackups);
   }
+};
+
+const ppssppConfigCandidates = (executablePath: string): string[] => {
+  const home = os.homedir();
+  const executableDirectory = path.dirname(executablePath);
+  const portableCandidates = [
+    path.join(executableDirectory, "memstick", "PSP", "SYSTEM", "ppsspp.ini"),
+    path.join(executableDirectory, "PSP", "SYSTEM", "ppsspp.ini"),
+  ];
+
+  if (process.platform === "win32") {
+    const documentDirectories = [
+      path.join(home, "Documents"),
+      ...["OneDrive", "OneDriveConsumer", "OneDriveCommercial"]
+        .map((key) => process.env[key])
+        .filter((root): root is string => !!root)
+        .map((root) => path.join(root, "Documents")),
+    ];
+
+    return [
+      ...portableCandidates,
+      ...Array.from(new Set(documentDirectories)).map((directory) =>
+        path.join(directory, "PPSSPP", "PSP", "SYSTEM", "ppsspp.ini")
+      ),
+    ];
+  }
+
+  if (process.platform === "darwin") {
+    return [
+      ...portableCandidates,
+      path.join(home, ".config", "ppsspp", "PSP", "SYSTEM", "ppsspp.ini"),
+      path.join(
+        home,
+        "Library",
+        "Application Support",
+        "PPSSPP",
+        "PSP",
+        "SYSTEM",
+        "ppsspp.ini"
+      ),
+    ];
+  }
+
+  const flatpakConfig = path.join(
+    home,
+    ".var",
+    "app",
+    "org.ppsspp.PPSSPP",
+    "config",
+    "ppsspp",
+    "PSP",
+    "SYSTEM",
+    "ppsspp.ini"
+  );
+  const standardConfig = path.join(
+    process.env.XDG_CONFIG_HOME ?? path.join(home, ".config"),
+    "ppsspp",
+    "PSP",
+    "SYSTEM",
+    "ppsspp.ini"
+  );
+
+  return [
+    ...portableCandidates,
+    ...(executablePath.includes("org.ppsspp.PPSSPP")
+      ? [flatpakConfig, standardConfig]
+      : [standardConfig, flatpakConfig]),
+  ];
+};
+
+export const createPPSSPPSouvenirSession = async (
+  executablePath: string
+): Promise<EmulatorSouvenirSession | null> => {
+  const configPath = findExistingConfig(ppssppConfigCandidates(executablePath));
+  if (!configPath) {
+    logger.warn("Could not prepare PPSSPP souvenirs without ppsspp.ini", {
+      executablePath,
+    });
+    return null;
+  }
+
+  let sessionConfigPath: string | null = null;
+  let sessionDirectory: string | null = null;
+
+  try {
+    const sessionRoot = executablePath.includes("org.ppsspp.PPSSPP")
+      ? path.join(os.homedir(), ".var", "app", "org.ppsspp.PPSSPP", "cache")
+      : os.tmpdir();
+    await fs.promises.mkdir(sessionRoot, { recursive: true });
+    sessionDirectory = await fs.promises.mkdtemp(
+      path.join(sessionRoot, "hydra-ppsspp-souvenirs-")
+    );
+    const logPath = path.join(sessionDirectory, "ppsspp.log");
+    const sessionConfigName = `hydra-souvenirs-${randomUUID()}.ini`;
+    sessionConfigPath = path.join(path.dirname(configPath), sessionConfigName);
+    const config = await fs.promises.readFile(configPath, "utf8");
+    await fs.promises.writeFile(
+      sessionConfigPath,
+      enablePPSSPPAchievementLog(config),
+      "utf8"
+    );
+
+    return {
+      kind: "ppsspp",
+      launchArguments: [`--config=${sessionConfigName}`, `--log=${logPath}`],
+      logPath,
+      logOffset: 0,
+      screenshotDirectory: null,
+      sessionDirectory,
+      cleanupFilePaths: [sessionConfigPath],
+    };
+  } catch (error) {
+    if (sessionConfigPath) {
+      await fs.promises.rm(sessionConfigPath, { force: true }).catch(() => {});
+    }
+    if (sessionDirectory) {
+      await fs.promises
+        .rm(sessionDirectory, { recursive: true, force: true })
+        .catch(() => {});
+    }
+    logger.error("Failed to prepare PPSSPP souvenir session", error);
+    return null;
+  }
+};
+
+export const createDolphinSouvenirSession = (
+  executablePath: string
+): EmulatorSouvenirSession | null => {
+  const logPath = dolphinLogPath(executablePath);
+  if (!logPath) return null;
+
+  return {
+    kind: "dolphin",
+    launchArguments: [
+      "--config=Logger.Options.WriteToFile=True",
+      "--config=Logger.Options.Verbosity=4",
+      "--config=Logger.Logs.RetroAchievements=True",
+    ],
+    logPath,
+    logOffset: fs.existsSync(logPath) ? fs.statSync(logPath).size : 0,
+    screenshotDirectory: null,
+    sessionDirectory: null,
+    cleanupFilePaths: [],
+  };
 };
