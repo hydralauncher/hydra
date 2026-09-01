@@ -274,7 +274,7 @@ export function EmulatorDetail({
         onRescan={handleRescan}
       />
 
-      {!supportsFirmware && (
+      {supportsBios && (
         <p className="emulator-detail__bios-note">
           <InfoIcon size={14} />
           <span>{t("bios_note", { name: binaryName })}</span>

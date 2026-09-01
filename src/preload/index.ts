@@ -28,6 +28,7 @@ import type {
   EmulatorSystem,
   EmulatorBinary,
   EmulatorInstallProgress,
+  EmulatorInstallPreviewPlatform,
   RetroArchCoreName,
   RetroArchCoreInstallProgress,
   RetroArchInstallProgress,
@@ -477,8 +478,10 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath,
       manualBiosPath ?? null
     ),
-  getEmulatorInstallOptions: (binary: EmulatorBinary) =>
-    ipcRenderer.invoke("getEmulatorInstallOptions", binary),
+  getEmulatorInstallOptions: (
+    binary: EmulatorBinary,
+    previewPlatform?: EmulatorInstallPreviewPlatform
+  ) => ipcRenderer.invoke("getEmulatorInstallOptions", binary, previewPlatform),
   installEmulator: (binary: EmulatorBinary, optionId: string) =>
     ipcRenderer.invoke("installEmulator", binary, optionId),
   onEmulatorInstallProgress: (
@@ -1080,7 +1083,7 @@ contextBridge.exposeInMainWorld("electron", {
       removeDiscPath?: string;
     }
   ) => ipcRenderer.invoke("updateClassicsDisc", shop, objectId, patch),
-  getEmulatorRomExtensions: (system: "ps1" | "ps2" | "ps3") =>
+  getEmulatorRomExtensions: (system: EmulatorSystem) =>
     ipcRenderer.invoke("getEmulatorRomExtensions", system),
   closeGame: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("closeGame", shop, objectId),

@@ -119,7 +119,7 @@ export interface LaunchClassicsGameOptions {
   system: EmulatorSystem;
 }
 
-const buildEmulatorArgs = (
+export const buildEmulatorArgs = (
   binary: EmulatorBinary,
   discPath: string
 ): string[] => {
@@ -130,6 +130,10 @@ const buildEmulatorArgs = (
       return ["-batch", "-fullscreen", "--", discPath];
     case "rpcs3":
       return ["--no-gui", discPath];
+    case "ppsspp":
+      return ["--pause-menu-exit", "--fullscreen", discPath];
+    case "dolphin":
+      return ["--batch", "--exec", discPath];
   }
 };
 

@@ -170,7 +170,10 @@ const findKeyOffset = (
   return { key: data.subarray(start, end).toString("ascii"), nextNull: end };
 };
 
-export const parseParamSfo = (data: Buffer): string | null => {
+export const parseParamSfoValue = (
+  data: Buffer,
+  requestedKey: string
+): string | null => {
   if (data.length < 20) return null;
   if (data.readUInt32LE(0) !== 0x46535000) return null;
 
@@ -188,7 +191,7 @@ export const parseParamSfo = (data: Buffer): string | null => {
     const dataOffset = data.readUInt32LE(off + 12);
 
     const { key } = findKeyOffset(data, keyTableStart, keyOffset);
-    if (key === "TITLE_ID") {
+    if (key === requestedKey) {
       const valueStart = dataTableStart + dataOffset;
       const valueEnd = valueStart + dataUsedSize;
       if (valueEnd > data.length) return null;
@@ -202,6 +205,9 @@ export const parseParamSfo = (data: Buffer): string | null => {
   }
   return null;
 };
+
+export const parseParamSfo = (data: Buffer): string | null =>
+  parseParamSfoValue(data, "TITLE_ID");
 
 const ISO_SECTOR = 2048;
 const ISO_DIR_READ_CAP = 256 * 1024;
@@ -414,10 +420,154 @@ const extractPs3TitleId = async (
   }
 };
 
+const PSP_DISC_ID_RE = /[A-Z]{4}[-_ ]?\d{5}/;
+
+const scanChunksForPspDiscId = (chunks: Buffer[]): string | null => {
+  let tail = "";
+  for (const chunk of chunks) {
+    const text = tail + chunk.toString("latin1");
+    const match = PSP_DISC_ID_RE.exec(text);
+    if (match) return normalize(match[0]);
+    tail = text.slice(-16);
+  }
+  return null;
+};
+
+const extractPspDiscId = async (
+  primaryPath: string
+): Promise<string | null> => {
+  const stat = await fs.stat(primaryPath).catch(() => null);
+  if (!stat) return null;
+
+  const lower = primaryPath.toLowerCase();
+
+  if (stat.isDirectory()) {
+    for (const candidate of [
+      path.join(primaryPath, "PSP_GAME", "PARAM.SFO"),
+      path.join(primaryPath, "PARAM.SFO"),
+    ]) {
+      const data = await fs.readFile(candidate).catch(() => null);
+      const id = data ? parseParamSfoValue(data, "DISC_ID") : null;
+      if (id) return id;
+    }
+  }
+
+  if (lower.endsWith(".pbp")) {
+    const fh = await fs.open(primaryPath, "r").catch(() => null);
+    if (fh) {
+      try {
+        const header = Buffer.alloc(0x28);
+        const { bytesRead } = await fh.read(header, 0, header.length, 0);
+        if (
+          bytesRead === header.length &&
+          header.subarray(0, 4).equals(Buffer.from([0, 0x50, 0x42, 0x50]))
+        ) {
+          const start = header.readUInt32LE(0x08);
+          const end = Math.min(
+            header.readUInt32LE(0x0c),
+            start + ISO_SFO_READ_CAP
+          );
+          if (start < end && end <= stat.size) {
+            const data = Buffer.alloc(end - start);
+            await fh.read(data, 0, data.length, start);
+            const id = parseParamSfoValue(data, "DISC_ID");
+            if (id) return id;
+          }
+        }
+      } finally {
+        await fh.close();
+      }
+    }
+  }
+
+  if (lower.endsWith(".cso") || lower.endsWith(".chd")) {
+    const data = lower.endsWith(".cso")
+      ? await readCsoLeadingData(primaryPath)
+      : await readChdLeadingData(primaryPath);
+    const id = data ? scanChunksForPspDiscId(data.chunks) : null;
+    if (id) return id;
+  }
+
+  // A bounded fallback covers raw ISOs and many CSO/CHD layouts without
+  // relying on filenames. Full compressed-container readers can be added later.
+  if (stat.isFile()) {
+    const fh = await fs.open(primaryPath, "r").catch(() => null);
+    if (fh) {
+      try {
+        const data = Buffer.alloc(Math.min(stat.size, 16 * 1024 * 1024));
+        const { bytesRead } = await fh.read(data, 0, data.length, 0);
+        const match = PSP_DISC_ID_RE.exec(
+          data.subarray(0, bytesRead).toString("latin1")
+        );
+        if (match) return normalize(match[0]);
+      } finally {
+        await fh.close();
+      }
+    }
+  }
+
+  const fallback = PSP_DISC_ID_RE.exec(path.basename(primaryPath));
+  return fallback ? normalize(fallback[0]) : null;
+};
+
+const extractDolphinGameId = async (
+  primaryPath: string
+): Promise<string | null> => {
+  const lower = primaryPath.toLowerCase();
+  if (lower.endsWith(".wad")) return null;
+  const fh = await fs.open(primaryPath, "r").catch(() => null);
+  if (!fh) return null;
+  try {
+    const head = Buffer.alloc(0x100);
+    const { bytesRead } = await fh.read(head, 0, head.length, 0);
+    if (bytesRead < 6) return null;
+    let offset = 0;
+    if (lower.endsWith(".wbfs")) {
+      if (
+        bytesRead < 0x0d ||
+        head.subarray(0, 4).toString("ascii") !== "WBFS"
+      ) {
+        return null;
+      }
+      const wbfsSectorShift = head[9];
+      const firstDiscSector = head[0x0c];
+      if (
+        wbfsSectorShift < 9 ||
+        wbfsSectorShift > 31 ||
+        firstDiscSector === 0
+      ) {
+        return null;
+      }
+      offset = firstDiscSector * 2 ** wbfsSectorShift;
+    } else if (lower.endsWith(".rvz") || lower.endsWith(".wia")) {
+      offset = 0x58;
+    }
+    if (lower.endsWith(".tgc") && bytesRead >= 0x0c) {
+      offset = head.readUInt32BE(0x08);
+    }
+    const idBytes = Buffer.alloc(6);
+    const idRead = await fh.read(idBytes, 0, idBytes.length, offset);
+    if (idRead.bytesRead !== idBytes.length) return null;
+    const gameId = idBytes.toString("ascii");
+    return /^[A-Za-z0-9]{6}$/.test(gameId) ? gameId.toUpperCase() : null;
+  } finally {
+    await fh.close();
+  }
+};
+
 export const extractDiscSku = async (
   primaryPath: string,
   system: EmulatorSystem
 ): Promise<string | null> => {
-  if (system === "ps3") return extractPs3TitleId(primaryPath);
-  return extractPs12Sku(primaryPath);
+  switch (system) {
+    case "ps1":
+    case "ps2":
+      return extractPs12Sku(primaryPath);
+    case "ps3":
+      return extractPs3TitleId(primaryPath);
+    case "psp":
+      return extractPspDiscId(primaryPath);
+    case "dolphin":
+      return extractDolphinGameId(primaryPath);
+  }
 };

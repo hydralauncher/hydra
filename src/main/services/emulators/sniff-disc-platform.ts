@@ -3,7 +3,13 @@ import path from "node:path";
 
 const SNIFF_BYTES = 16 * 1024 * 1024;
 
-export type DiscPlatform = "ps1" | "ps2" | "ps3" | "unknown";
+export type DiscPlatform =
+  | "ps1"
+  | "ps2"
+  | "ps3"
+  | "gamecube"
+  | "wii"
+  | "unknown";
 
 const BOOT2_RE = /BOOT2\s*=/;
 const BOOT_RE = /BOOT\s*=/;
@@ -17,7 +23,31 @@ export const sniffDiscImage = async (
     fh = await fs.open(filePath, "r");
     const buffer = Buffer.alloc(SNIFF_BYTES);
     const { bytesRead } = await fh.read(buffer, 0, SNIFF_BYTES, 0);
-    const text = buffer.subarray(0, bytesRead).toString("latin1");
+    const data = buffer.subarray(0, bytesRead);
+
+    const sniffDolphinHeader = (offset: number): DiscPlatform => {
+      if (data.length < offset + 0x20) return "unknown";
+      if (data.readUInt32BE(offset + 0x18) === 0x5d1c9ea3) return "wii";
+      if (data.readUInt32BE(offset + 0x1c) === 0xc2339f3d) return "gamecube";
+      return "unknown";
+    };
+
+    const directDolphin = sniffDolphinHeader(0);
+    if (directDolphin !== "unknown") return directDolphin;
+
+    // WIA and RVZ preserve the original disc header at byte 0x58.
+    const compressedDolphin = sniffDolphinHeader(0x58);
+    if (compressedDolphin !== "unknown") return compressedDolphin;
+
+    // TGC stores the embedded GameCube image offset as a big-endian u32.
+    if (data.length >= 0x0c) {
+      const tgcOffset = data.readUInt32BE(0x08);
+      if (tgcOffset > 0 && tgcOffset < data.length) {
+        const tgcPlatform = sniffDolphinHeader(tgcOffset);
+        if (tgcPlatform !== "unknown") return tgcPlatform;
+      }
+    }
+    const text = data.toString("latin1");
 
     let ps3Hits = 0;
     for (const marker of PS3_MARKERS) {
@@ -112,7 +142,11 @@ export const resolveSniffTarget = async (
     lower.endsWith(".iso") ||
     lower.endsWith(".img") ||
     lower.endsWith(".bin") ||
-    lower.endsWith(".mdf")
+    lower.endsWith(".mdf") ||
+    lower.endsWith(".gcm") ||
+    lower.endsWith(".rvz") ||
+    lower.endsWith(".wia") ||
+    lower.endsWith(".tgc")
   ) {
     return filePath;
   }

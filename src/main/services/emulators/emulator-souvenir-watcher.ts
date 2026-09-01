@@ -631,7 +631,11 @@ export const startEmulatorSouvenirWatcher = async ({
   }
   if (watchers.get(gameKey)?.token !== watcherToken) return;
 
-  if (system === "ps3") {
+  if (
+    system === "ps3" ||
+    system === "psp" ||
+    system === "dolphin"
+  ) {
     stopEmulatorSouvenirWatcher(gameKey, watcherToken);
     return;
   }

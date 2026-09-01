@@ -173,6 +173,19 @@ const classifyForSystem = async (
     return ext === ".pkg" || ext === ".elf" || ext === ".self" ? "ok" : "skip";
   }
 
+  if (system === "psp") return "ok";
+
+  if (system === "dolphin") {
+    if (ext === ".wad" || ext === ".wbfs") return "ok";
+    const target = await resolveSniffTarget(candidate.fullPath);
+    if (!target) return "ok";
+    const detected = await sniffDiscImage(target);
+    if (detected === "unknown") return "ok";
+    return detected === "gamecube" || detected === "wii"
+      ? "ok"
+      : "wrong-platform";
+  }
+
   if (!SNIFFABLE_EXTS.has(ext)) return "ok";
   const target = await resolveSniffTarget(candidate.fullPath);
   if (!target) return "ok";
@@ -248,6 +261,9 @@ const applyPs3Rules = (group: Candidate[]): GameGroup[] =>
     .filter((f) => PS3_LAUNCHABLE_EXTS.has(extOf(f.name)))
     .map((primary) => ({ primary, sidecars: [] }));
 
+const applySimpleRules = (group: Candidate[]): GameGroup[] =>
+  group.map((primary) => ({ primary, sidecars: [] }));
+
 const dedupGames = (binary: KnownBinary, files: Candidate[]): GameGroup[] => {
   const markerDirs = files.filter((f) => f.isMarkerDir);
   const regular = files.filter((f) => !f.isMarkerDir);
@@ -265,12 +281,24 @@ const dedupGames = (binary: KnownBinary, files: Candidate[]): GameGroup[] => {
     sidecars: [],
   }));
   for (const [, group] of byDir) {
-    if (binary.system === "ps3") {
-      games.push(...applyPs3Rules(group));
-    } else if (binary.system === "ps2") {
-      games.push(...applyPairedRules(group, PS2_PRIMARY_EXTS, PS2_PAIR_RULES));
-    } else {
-      games.push(...applyPairedRules(group, PS1_PRIMARY_EXTS, PS1_PAIR_RULES));
+    switch (binary.system) {
+      case "ps1":
+        games.push(
+          ...applyPairedRules(group, PS1_PRIMARY_EXTS, PS1_PAIR_RULES)
+        );
+        break;
+      case "ps2":
+        games.push(
+          ...applyPairedRules(group, PS2_PRIMARY_EXTS, PS2_PAIR_RULES)
+        );
+        break;
+      case "ps3":
+        games.push(...applyPs3Rules(group));
+        break;
+      case "psp":
+      case "dolphin":
+        games.push(...applySimpleRules(group));
+        break;
     }
   }
   return games;
@@ -287,7 +315,12 @@ const collectEntry = (
   const full = path.join(dir, entry.name);
   if (entry.isDirectory()) {
     if (isDirectoryMarker(entry.name, binary.romDirectoryMarkers)) {
-      candidates.push({ fullPath: full, name: entry.name, isMarkerDir: true });
+      const launchPath = binary.system === "psp" ? dir : full;
+      candidates.push({
+        fullPath: launchPath,
+        name: path.basename(launchPath),
+        isMarkerDir: true,
+      });
     } else if (scanSubfolders) {
       queue.push(full);
     }

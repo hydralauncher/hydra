@@ -10,11 +10,13 @@ export interface DetectableBinary {
   displayName: string;
   linuxNames: string[];
   windowsNames: string[];
+  macosBundleNames: string[];
   flatpakIds: string[];
   versionFlags: string[];
 }
 
 const isWindows = process.platform === "win32";
+const isMac = process.platform === "darwin";
 
 const lookupOnPath = (name: string): string | null => {
   const cmd = isWindows ? "where" : "which";
@@ -218,6 +220,16 @@ export const detectEmulator = (
   const versionFor = (executablePath: string): string | null =>
     resolveVersion ? getEmulatorVersion(executablePath, binary) : null;
 
+  if (isMac) {
+    const app = searchInDirs(binary.macosBundleNames, [
+      "/Applications",
+      path.join(homedir(), "Applications"),
+    ]);
+    if (app) {
+      return { executablePath: app, detectedVersion: versionFor(app) };
+    }
+  }
+
   for (const name of names) {
     const onPath = lookupOnPath(name);
     if (onPath) {
@@ -228,7 +240,7 @@ export const detectEmulator = (
     }
   }
 
-  const dirs = isWindows ? windowsSearchDirs() : linuxSearchDirs();
+  const dirs = isWindows ? windowsSearchDirs() : isMac ? [] : linuxSearchDirs();
   const found = searchInDirs(names, dirs);
   if (found) {
     return {
@@ -245,7 +257,7 @@ export const detectEmulator = (
         detectedVersion: versionFor(portable),
       };
     }
-  } else {
+  } else if (!isMac) {
     const appImage = findAppImage(
       [binary.binary, binary.displayName],
       linuxAppImageDirs()

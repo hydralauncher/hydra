@@ -328,10 +328,12 @@ export function EmulationDetail({
         onRemove={() => setRemoveEmulatorOpen(true)}
       />
 
-      <p className="emulator-detail__bios-note">
-        <InfoIcon size={14} />
-        <span>{t("bios_note", { name: binaryName })}</span>
-      </p>
+      {(config.system === "ps1" || config.system === "ps2") && (
+        <p className="emulator-detail__bios-note">
+          <InfoIcon size={14} />
+          <span>{t("bios_note", { name: binaryName })}</span>
+        </p>
+      )}
 
       <ExecSection
         icon={binaryIcon ?? null}

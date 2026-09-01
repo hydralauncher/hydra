@@ -157,10 +157,12 @@ const buildDiscList = (
   });
 };
 
-const SYSTEM_DEFAULT_PLATFORM: Record<EmulatorSystem, string> = {
+const SYSTEM_DEFAULT_PLATFORM: Record<EmulatorSystem, string | null> = {
   ps1: "PlayStation",
   ps2: "PlayStation 2",
   ps3: "PlayStation 3",
+  psp: "PlayStation Portable",
+  dolphin: null,
 };
 
 export const persistEntryLocally = async (
@@ -322,10 +324,12 @@ export type LaunchboxImportProgress = {
 const SCAN_BAND = 15;
 const EXTRACT_BAND = 70;
 
-const SYSTEM_CATALOGUE_PLATFORM: Record<EmulatorSystem, string> = {
-  ps1: "Sony Playstation",
-  ps2: "Sony Playstation 2",
-  ps3: "Sony Playstation 3",
+const SYSTEM_CATALOGUE_PLATFORMS: Record<EmulatorSystem, string[]> = {
+  ps1: ["Sony Playstation"],
+  ps2: ["Sony Playstation 2"],
+  ps3: ["Sony Playstation 3"],
+  psp: ["Sony PSP"],
+  dolphin: ["Nintendo GameCube", "Nintendo Wii"],
 };
 
 const normalizePlatformName = (value: string): string =>
@@ -337,9 +341,9 @@ const entryMatchesSystemPlatform = (
 ): boolean => {
   const raw = entry.platform ?? entry.data?.platform ?? "";
   if (!raw) return true;
-  return (
-    normalizePlatformName(raw) ===
-    normalizePlatformName(SYSTEM_CATALOGUE_PLATFORM[system])
+  const normalized = normalizePlatformName(raw);
+  return SYSTEM_CATALOGUE_PLATFORMS[system].some(
+    (platform) => normalizePlatformName(platform) === normalized
   );
 };
 

@@ -34,7 +34,14 @@ export const prepareEmulatorSouvenirs = async (
     return null;
   }
 
-  if (system === "ps2" || system === "ps3") return null;
+  if (
+    system === "ps2" ||
+    system === "ps3" ||
+    system === "psp" ||
+    system === "dolphin"
+  ) {
+    return null;
+  }
 
   if (executablePath) {
     return createRetroArchSouvenirSession();

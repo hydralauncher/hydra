@@ -19,6 +19,8 @@ import { RetroArchSetupModal } from "./setup/retroarch/retroarch-setup-modal";
 import ps1Art from "@renderer/assets/emulation/ps1.png";
 import ps2Art from "@renderer/assets/emulation/ps2.png";
 import ps3Art from "@renderer/assets/emulation/ps3.png";
+import pspArt from "@renderer/assets/emulation/psp.svg?url";
+import dolphinArt from "@renderer/assets/emulation/dolphin.svg?url";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -26,18 +28,22 @@ import {
 
 import "./settings-context-emulation.scss";
 
-const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3"];
+const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3", "psp", "dolphin"];
 
 const SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps1: "PlayStation 1",
   ps2: "PlayStation 2",
   ps3: "PlayStation 3",
+  psp: "PlayStation Portable",
+  dolphin: "Nintendo GameCube & Wii",
 };
 
 const SYSTEM_ART: Record<EmulatorSystem, string> = {
   ps1: ps1Art,
   ps2: ps2Art,
   ps3: ps3Art,
+  psp: pspArt,
+  dolphin: dolphinArt,
 };
 
 export function SettingsContextEmulation() {

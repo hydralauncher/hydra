@@ -1,6 +1,7 @@
 import type { ChildProcess } from "node:child_process";
 
 import { gamesSublevel, levelKeys } from "@main/level";
+import { EMULATOR_SYSTEMS } from "@shared";
 import type { EmulatorSystem, Game, GameShop, RetroArchPlatform } from "@types";
 
 import { trackGamePlaytime } from "../library-sync";
@@ -23,7 +24,7 @@ export type EmulatorSessionSystem = EmulatorSystem | RetroArchPlatform;
 const isEmulatorSystem = (
   system: EmulatorSessionSystem
 ): system is EmulatorSystem =>
-  system === "ps1" || system === "ps2" || system === "ps3";
+  EMULATOR_SYSTEMS.includes(system as EmulatorSystem);
 
 export interface EmulatorSession {
   shop: GameShop;

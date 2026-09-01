@@ -1,11 +1,13 @@
 import { shell } from "electron";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import type {
   EmulatorBinary,
   EmulatorInstallProgress,
+  EmulatorInstallPreviewPlatform,
   EmulatorInstallResult,
   EmulatorSystem,
   ResolvedInstallOption,
@@ -18,6 +20,7 @@ import { WindowManager } from "../window-manager";
 import { downloadToFile, removeFileQuietly } from "../download-to-file";
 import { resolveInstallOptions } from "./emulator-install-sources";
 import { getEmulatorVersion } from "./get-emulator-version";
+import { findManagedEmulatorExecutable } from "./find-managed-emulator-executable";
 import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
 import { updateEmulatorConfig } from "./emulators-repository";
 import { isValidEmulatorExecutable } from "./validate-emulator-executable";
@@ -25,11 +28,20 @@ import { isValidEmulatorExecutable } from "./validate-emulator-executable";
 const managedEmulatorsDir = (): string =>
   path.join(SystemPath.getPath("userData"), "emulators");
 
+const execFileAsync = promisify(execFile);
+
 /** Same shape resolveInstallOptions returns, scoped to the current platform. */
 export const resolveEmulatorInstallOptions = (
-  binary: EmulatorBinary
+  binary: EmulatorBinary,
+  previewPlatform?: EmulatorInstallPreviewPlatform
 ): Promise<ResolvedInstallOption[]> =>
-  resolveInstallOptions(binary, process.platform, process.arch);
+  resolveInstallOptions(
+    binary,
+    previewPlatform ?? process.platform,
+    previewPlatform && previewPlatform !== process.platform
+      ? "x64"
+      : process.arch
+  );
 
 const sendProgress = (progress: EmulatorInstallProgress): void => {
   WindowManager.mainWindow?.webContents.send(
@@ -61,33 +73,71 @@ const runWindowsInstaller = async (filePath: string): Promise<boolean> => {
   return openError.length === 0;
 };
 
-const findRpcs3Executable = (root: string): string | null => {
-  const stack = [root];
-  while (stack.length > 0) {
-    const dir = stack.pop();
-    if (!dir) continue;
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(full);
-      } else if (entry.name.toLowerCase() === "rpcs3.exe") {
-        return full;
-      }
-    }
-  }
-  return null;
-};
-
 const BINARY_TO_SYSTEM: Record<EmulatorBinary, EmulatorSystem> = {
   duckstation: "ps1",
   pcsx2: "ps2",
   rpcs3: "ps3",
+  ppsspp: "psp",
+  dolphin: "dolphin",
+};
+
+const installMacosDmg = async (
+  dmgPath: string,
+  binary: EmulatorBinary
+): Promise<string> => {
+  const system = BINARY_TO_SYSTEM[binary];
+  const mountDirectory = await fs.promises.mkdtemp(
+    path.join(SystemPath.getPath("temp"), "hydra-emulator-dmg-")
+  );
+  let mounted = false;
+
+  try {
+    await execFileAsync(
+      "/usr/bin/hdiutil",
+      [
+        "attach",
+        dmgPath,
+        "-nobrowse",
+        "-readonly",
+        "-mountpoint",
+        mountDirectory,
+      ],
+      { timeout: 60_000 }
+    );
+    mounted = true;
+
+    const sourceBundle = findManagedEmulatorExecutable(
+      mountDirectory,
+      KNOWN_BINARIES[system]
+    );
+    if (!sourceBundle || path.extname(sourceBundle).toLowerCase() !== ".app") {
+      throw new Error(`No ${binary} app bundle found in disk image`);
+    }
+
+    const installDirectory = path.join(managedEmulatorsDir(), binary);
+    const destinationBundle = path.join(
+      installDirectory,
+      path.basename(sourceBundle)
+    );
+    await fs.promises.mkdir(installDirectory, { recursive: true });
+    await fs.promises.rm(destinationBundle, { recursive: true, force: true });
+    await fs.promises.cp(sourceBundle, destinationBundle, {
+      recursive: true,
+      preserveTimestamps: true,
+    });
+    await autoConfigureEmulator(system, destinationBundle);
+
+    return destinationBundle;
+  } finally {
+    if (mounted) {
+      await execFileAsync("/usr/bin/hdiutil", ["detach", mountDirectory], {
+        timeout: 30_000,
+      }).catch((error) => {
+        logger.warn("Failed to detach emulator disk image", error);
+      });
+    }
+    await fs.promises.rm(mountDirectory, { recursive: true, force: true });
+  }
 };
 
 const autoConfigureEmulator = async (
@@ -171,12 +221,25 @@ export const downloadAndInstallEmulator = async (
       return { ok: true, path: dest };
     }
 
+    if (option.kind === "macos-dmg") {
+      sendProgress({ binary, optionId, phase: "extracting" });
+      const appBundle = await installMacosDmg(dest, binary);
+      await removeTempDownload();
+      shell.showItemInFolder(appBundle);
+      sendProgress({ binary, optionId, phase: "done", path: appBundle });
+      return { ok: true, path: appBundle };
+    }
+
     sendProgress({ binary, optionId, phase: "extracting" });
     const extractDir = path.join(managedEmulatorsDir(), binary);
     await fs.promises.mkdir(extractDir, { recursive: true });
     await SevenZip.extractFile({ filePath: dest, outputPath: extractDir });
-    const rpcs3Exe = findRpcs3Executable(extractDir);
-    if (rpcs3Exe) await autoConfigureEmulator("ps3", rpcs3Exe);
+    const system = BINARY_TO_SYSTEM[binary];
+    const executable = findManagedEmulatorExecutable(
+      extractDir,
+      KNOWN_BINARIES[system]
+    );
+    if (executable) await autoConfigureEmulator(system, executable);
     await removeTempDownload();
     shell.showItemInFolder(extractDir);
     sendProgress({ binary, optionId, phase: "done", path: extractDir });

@@ -1,12 +1,11 @@
 import { registerEvent } from "../register-event";
 import { emulators } from "@main/services";
-import type { EmulatorConfigMap, EmulatorSystem } from "@types";
-
-const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3"];
+import { EMULATOR_SYSTEMS } from "@shared";
+import type { EmulatorConfigMap } from "@types";
 
 const detectEmulatorsEvent = async (): Promise<EmulatorConfigMap> => {
   const results = await Promise.all(
-    SYSTEMS.map(async (system) => {
+    EMULATOR_SYSTEMS.map(async (system) => {
       const binary = emulators.KNOWN_BINARIES[system];
       const result = emulators.detectEmulator(binary);
       const next = await emulators.updateEmulatorConfig(system, (current) => ({

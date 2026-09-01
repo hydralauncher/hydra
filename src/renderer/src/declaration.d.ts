@@ -51,6 +51,7 @@ import type {
   EmulationBackupProgress,
   EmulatorBinary,
   EmulatorInstallProgress,
+  EmulatorInstallPreviewPlatform,
   EmulatorInstallResult,
   ResolvedInstallOption,
   DetectedRom,
@@ -467,9 +468,7 @@ declare global {
         removeDiscPath?: string;
       }
     ) => Promise<LibraryGame>;
-    getEmulatorRomExtensions: (
-      system: "ps1" | "ps2" | "ps3"
-    ) => Promise<string[]>;
+    getEmulatorRomExtensions: (system: EmulatorSystem) => Promise<string[]>;
     closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
     removeGame: (shop: GameShop, objectId: string) => Promise<void>;
@@ -607,7 +606,8 @@ declare global {
       manualBiosPath?: string | null
     ) => Promise<{ installed: boolean; detectedPath: string | null }>;
     getEmulatorInstallOptions: (
-      binary: EmulatorBinary
+      binary: EmulatorBinary,
+      previewPlatform?: EmulatorInstallPreviewPlatform
     ) => Promise<ResolvedInstallOption[]>;
     installEmulator: (
       binary: EmulatorBinary,

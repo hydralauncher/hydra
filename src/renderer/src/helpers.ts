@@ -50,9 +50,12 @@ export const platformToSystem = (
 ): EmulatorSystem | null => {
   if (!platform) return null;
   const p = platform.toLowerCase();
+  if (/playstation\s*portable|\bpsp\b/.test(p)) return "psp";
   if (/playstation\s*3|\bps3\b/.test(p)) return "ps3";
   if (/playstation\s*2|\bps2\b/.test(p)) return "ps2";
   if (/playstation|\bps1\b|\bpsx\b/.test(p)) return "ps1";
+  if (/game\s*cube/.test(p)) return "dolphin";
+  if (/^(nintendo\s+)?wii$/.test(p.trim())) return "dolphin";
   return null;
 };
 
@@ -60,6 +63,8 @@ export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
   ps1: "duckstation",
   ps2: "pcsx2",
   ps3: "rpcs3",
+  psp: "ppsspp",
+  dolphin: "dolphin",
 };
 
 export {
@@ -105,6 +110,8 @@ export const CLASSICS_PS_PLATFORM_LABELS: Partial<
   ps1: "PS",
   ps2: "PS2",
   ps3: "PS3",
+  psp: "PSP",
+  dolphin: "GC/Wii",
 };
 
 export const resolveClassicsBadge = (
@@ -120,8 +127,9 @@ export const resolveClassicsBadge = (
 
   const system = platformToSystem(platform);
   if (system) {
+    const dolphinLabel = /game\s*cube/i.test(platform ?? "") ? "GC" : "Wii";
     return {
-      label: psLabels[system] ?? null,
+      label: system === "dolphin" ? dolphinLabel : (psLabels[system] ?? null),
       icon: icons.emulatorIcons[SYSTEM_TO_BINARY[system]],
     };
   }
@@ -455,16 +463,16 @@ export const getClassicsLaunchErrorCode = (
 
 export const getClassicsLaunchErrorSystem = (
   error: unknown
-): "ps1" | "ps2" | "ps3" | undefined => {
+): EmulatorSystem | undefined => {
   const direct = (error as { system?: string })?.system;
-  if (direct === "ps1" || direct === "ps2" || direct === "ps3") return direct;
+  const systems: EmulatorSystem[] = ["ps1", "ps2", "ps3", "psp", "dolphin"];
+  if (systems.includes(direct as EmulatorSystem))
+    return direct as EmulatorSystem;
 
   let message = "";
   if (error instanceof Error) message = error.message;
   else if (typeof error === "string") message = error;
-  return (["ps1", "ps2", "ps3"] as const).find((system) =>
-    message.includes(system)
-  );
+  return systems.find((system) => message.includes(system));
 };
 
 const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {

@@ -1,6 +1,11 @@
-export type EmulatorSystem = "ps1" | "ps2" | "ps3";
+export type EmulatorSystem = "ps1" | "ps2" | "ps3" | "psp" | "dolphin";
 
-export type EmulatorBinary = "duckstation" | "pcsx2" | "rpcs3";
+export type EmulatorBinary =
+  | "duckstation"
+  | "pcsx2"
+  | "rpcs3"
+  | "ppsspp"
+  | "dolphin";
 
 export interface RomFolder {
   id: string;
@@ -173,11 +178,15 @@ export type EmulatorInstallKind =
   | "windows-installer"
   | "linux-appimage"
   | "windows-archive"
+  | "portable-archive"
+  | "macos-dmg"
   | "link";
 
 export type EmulatorInstallChannel = "release" | "prerelease";
 
 export type EmulatorInstallLinkKind = "aur" | "flatpak" | "release_page";
+
+export type EmulatorInstallPreviewPlatform = "win32" | "linux" | "darwin";
 
 /** A single, IPC-serializable install option offered for an emulator. */
 export interface ResolvedInstallOption {
