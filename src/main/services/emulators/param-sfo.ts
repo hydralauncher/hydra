@@ -11,6 +11,21 @@ const findKeyOffset = (
   return { key: data.subarray(start, end).toString("ascii"), nextNull: end };
 };
 
+const readStringValue = (
+  data: Buffer,
+  valueStart: number,
+  dataUsedSize: number
+): string | null => {
+  const valueEnd = valueStart + dataUsedSize;
+  if (valueEnd > data.length) return null;
+
+  const decoded = data.subarray(valueStart, valueEnd).toString("ascii");
+  const nullOffset = decoded.indexOf("\0");
+  const rawValue = nullOffset === -1 ? decoded : decoded.slice(0, nullOffset);
+  const normalizedValue = rawValue.trim();
+  return normalizedValue ? normalize(normalizedValue) : null;
+};
+
 export const parseParamSfoValue = (
   data: Buffer,
   requestedKey: string
@@ -34,14 +49,7 @@ export const parseParamSfoValue = (
     const { key } = findKeyOffset(data, keyTableStart, keyOffset);
     if (key === requestedKey) {
       const valueStart = dataTableStart + dataOffset;
-      const valueEnd = valueStart + dataUsedSize;
-      if (valueEnd > data.length) return null;
-      const decoded = data.subarray(valueStart, valueEnd).toString("ascii");
-      const nullOffset = decoded.indexOf("\0");
-      const raw = (
-        nullOffset === -1 ? decoded : decoded.slice(0, nullOffset)
-      ).trim();
-      return raw.length > 0 ? normalize(raw) : null;
+      return readStringValue(data, valueStart, dataUsedSize);
     }
   }
   return null;
