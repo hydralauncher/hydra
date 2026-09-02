@@ -444,15 +444,18 @@ const scanFolders = async (
 
   const folderTotals: number[] = [];
   let scanTotal = 0;
-  for (const folder of folders) {
-    if (signal.cancelled) break;
-    const count = await emulators.countRomGroups(
-      folder.path,
-      binary,
-      folder.scanSubfolders
-    );
-    folderTotals.push(count);
-    scanTotal += count;
+  const hasMultipleFolders = folders.length > 1;
+  if (hasMultipleFolders) {
+    for (const folder of folders) {
+      if (signal.cancelled) break;
+      const count = await emulators.countRomGroups(
+        folder.path,
+        binary,
+        folder.scanSubfolders
+      );
+      folderTotals.push(count);
+      scanTotal += count;
+    }
   }
 
   let scanBase = 0;
@@ -472,7 +475,7 @@ const scanFolders = async (
         onProgress: (p) => {
           onScan?.(
             scanBase + p.processed,
-            scanTotal,
+            hasMultipleFolders ? scanTotal : p.total,
             p.currentFile,
             keptTotal + p.kept
           );

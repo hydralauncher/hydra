@@ -125,6 +125,10 @@ export function EmulationDetail({
         config.system,
         result.filePaths[0]
       );
+      if (!next) {
+        showErrorToast("Invalid emulator executable", SETTINGS_TOAST_OPTIONS);
+        return;
+      }
       onChange(next);
       showSuccessToast("Executable path updated", SETTINGS_TOAST_OPTIONS);
     } catch {

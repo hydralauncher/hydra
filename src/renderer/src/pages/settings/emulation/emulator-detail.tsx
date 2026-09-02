@@ -177,6 +177,10 @@ export function EmulatorDetail({
         config.system,
         result.filePaths[0]
       );
+      if (!next) {
+        showErrorToast(t("emulator_invalid_executable"));
+        return;
+      }
       onChange(next);
     } finally {
       setBusy(false);
