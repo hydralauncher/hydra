@@ -37,6 +37,7 @@ import type {
   Ps2ExportResult,
   EmulationBackupProgress,
   EmulationCloudSave,
+  EmulationSaveMetadata,
   EmulationSavePlatform,
   MemcardFormatState,
   MemcardRestoreResult,
@@ -720,6 +721,11 @@ contextBridge.exposeInMainWorld("electron", {
       cardFilePath,
       folderName
     ),
+  uploadWiiEmulationSave: (
+    dataBinPath: string,
+    objectId: string
+  ): Promise<EmulationCloudSave> =>
+    ipcRenderer.invoke("uploadWiiEmulationSave", dataBinPath, objectId),
   uploadEmulationSavesForCard: (
     platform: EmulationSavePlatform,
     cardFilePath: string
@@ -741,10 +747,15 @@ contextBridge.exposeInMainWorld("electron", {
     objectId?: string | null
   ): Promise<EmulationCloudSave[]> =>
     ipcRenderer.invoke("listEmulationSaves", platform, objectId),
-  getMemcardRestoreTargets: (
+  listLocalEmulationSaves: (
     platform: EmulationSavePlatform
+  ): Promise<Ps2MemoryCardSaveRecord[]> =>
+    ipcRenderer.invoke("listLocalEmulationSaves", platform),
+  getMemcardRestoreTargets: (
+    platform: EmulationSavePlatform,
+    metadata?: EmulationSaveMetadata | Record<string, unknown> | null
   ): Promise<MemcardRestoreTarget[]> =>
-    ipcRenderer.invoke("getMemcardRestoreTargets", platform),
+    ipcRenderer.invoke("getMemcardRestoreTargets", platform, metadata),
   inspectMemcard: (
     platform: EmulationSavePlatform,
     cardFilePath: string
@@ -753,13 +764,17 @@ contextBridge.exposeInMainWorld("electron", {
   restoreEmulationSave: (
     platform: EmulationSavePlatform,
     saveId: string,
-    targetCardFilePath: string
+    targetCardFilePath: string,
+    metadata?: EmulationSaveMetadata | Record<string, unknown> | null,
+    sourceFileName?: string
   ): Promise<MemcardRestoreResult> =>
     ipcRenderer.invoke(
       "restoreEmulationSave",
       platform,
       saveId,
-      targetCardFilePath
+      targetCardFilePath,
+      metadata,
+      sourceFileName
     ),
   deleteEmulationSave: (saveId: string): Promise<void> =>
     ipcRenderer.invoke("deleteEmulationSave", saveId),

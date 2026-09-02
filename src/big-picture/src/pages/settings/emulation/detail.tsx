@@ -391,7 +391,9 @@ export function EmulationDetail({
         }}
       />
 
-      {hasMemoryCardsSection ? (
+      {hasMemoryCardsSection ||
+      config.system === "psp" ||
+      config.system === "dolphin" ? (
         <CloudSavesSection
           config={config}
           refreshKey={cloudRefreshKey}

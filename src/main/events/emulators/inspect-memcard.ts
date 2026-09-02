@@ -9,6 +9,8 @@ const inspectMemcard = async (
 ): Promise<MemcardFormatState> =>
   platform === "ps2"
     ? emulators.inspectPs2Card(cardFilePath)
-    : emulators.inspectPs1Card(cardFilePath);
+    : platform === "ps1"
+      ? emulators.inspectPs1Card(cardFilePath)
+      : "formatted";
 
 registerEvent("inspectMemcard", inspectMemcard);

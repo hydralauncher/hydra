@@ -34,7 +34,7 @@ interface DolphinLogPathEnvironment {
   environment?: NodeJS.ProcessEnv;
 }
 
-export const dolphinLogCandidates = (
+export const dolphinUserDirectoryCandidates = (
   executablePath: string,
   options: DolphinLogPathEnvironment = {}
 ): string[] => {
@@ -85,8 +85,15 @@ export const dolphinLogCandidates = (
     );
   }
 
-  return Array.from(new Set(userDirectories)).map((userDirectory) =>
-    path.join(userDirectory, "Logs", "dolphin.log")
+  return Array.from(new Set(userDirectories));
+};
+
+export const dolphinLogCandidates = (
+  executablePath: string,
+  options: DolphinLogPathEnvironment = {}
+): string[] => {
+  return dolphinUserDirectoryCandidates(executablePath, options).map(
+    (userDirectory) => path.join(userDirectory, "Logs", "dolphin.log")
   );
 };
 

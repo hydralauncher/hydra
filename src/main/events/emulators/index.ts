@@ -32,3 +32,4 @@ import "./upload-emulation-save";
 import "./restore-emulation-save";
 import "./inspect-memcard";
 import "./emulation-saves";
+import "./list-local-emulation-saves";

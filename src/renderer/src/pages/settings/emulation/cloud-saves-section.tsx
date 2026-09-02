@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
+  CpuIcon,
   DeviceDesktopIcon,
   HistoryIcon,
   KebabHorizontalIcon,
@@ -14,6 +15,7 @@ import {
 import { Button, ConfirmationModal } from "@renderer/components";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import {
+  getSkuRegion,
   getSkuRegionFlag,
   getSkuRegionFromSaveIdentity,
 } from "@renderer/helpers";
@@ -37,13 +39,27 @@ interface Props {
   refreshKey: number;
 }
 
+const getDolphinSavePlatformLabel = (
+  platform: EmulationSavePlatform
+): string | null => {
+  if (platform === "gamecube") return "GameCube";
+  if (platform === "wii") return "Wii";
+  return null;
+};
+
 export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const { t: tHydraCloud } = useTranslation("hydra_cloud");
   const { showSuccessToast } = useToast();
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
-  const platform = config.system as EmulationSavePlatform;
+  const platforms = useMemo<EmulationSavePlatform[]>(
+    () =>
+      config.system === "dolphin"
+        ? ["gamecube", "wii"]
+        : [config.system as EmulationSavePlatform],
+    [config.system]
+  );
 
   const [saves, setSaves] = useState<EmulationCloudSave[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,11 +76,16 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
     }
     setRefreshing(true);
     try {
-      setSaves(await window.electron.listEmulationSaves(platform));
+      const groups = await Promise.all(
+        platforms.map((platform) =>
+          window.electron.listEmulationSaves(platform)
+        )
+      );
+      setSaves(groups.flat());
     } finally {
       setRefreshing(false);
     }
-  }, [hasActiveSubscription, platform]);
+  }, [hasActiveSubscription, platforms]);
 
   useEffect(() => {
     load();
@@ -188,9 +209,29 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
           <div className="emulator-detail__cloud-grid" ref={gridRef}>
             {saves.map((save) => {
               const name = save.label ?? save.fileName;
-              const region = getSkuRegionFromSaveIdentity(save.saveIdentity);
+              const platformLabel =
+                config.system === "dolphin"
+                  ? getDolphinSavePlatformLabel(save.platform)
+                  : null;
+              const metadataSku =
+                save.metadata && "discId" in save.metadata
+                  ? save.metadata.discId
+                  : save.metadata && "gameId" in save.metadata
+                    ? save.metadata.gameId
+                    : null;
+              const region =
+                typeof metadataSku === "string"
+                  ? getSkuRegion(metadataSku)
+                  : getSkuRegionFromSaveIdentity(save.saveIdentity);
               return (
-                <div key={save.id} className="emulator-detail__cloud-card">
+                <div
+                  key={save.id}
+                  className={`emulator-detail__cloud-card${
+                    platformLabel
+                      ? " emulator-detail__cloud-card--with-platform"
+                      : ""
+                  }`}
+                >
                   <div className="emulator-detail__cloud-card-top">
                     <img
                       className="emulator-detail__cloud-card-art"
@@ -252,6 +293,12 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
                       <DeviceDesktopIcon size={16} />
                       {save.hostname ?? "—"}
                     </span>
+                    {platformLabel && (
+                      <span>
+                        <CpuIcon size={16} />
+                        {platformLabel}
+                      </span>
+                    )}
                     <span>
                       <ClockIcon size={16} />
                       {formatDate(save.localLastModifiedAt)}
@@ -266,7 +313,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
 
       <RestoreModal
         save={restoreFor}
-        platform={platform}
+        platform={restoreFor?.platform ?? platforms[0]}
         onClose={() => setRestoreFor(null)}
         onRestored={load}
       />

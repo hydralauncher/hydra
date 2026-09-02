@@ -25,6 +25,12 @@
     flex-direction: column;
   }
 
+  &__header-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
   &__empty {
     color: #8e919b;
     font-size: 13px;

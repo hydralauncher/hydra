@@ -1,6 +1,7 @@
 import type {
   EmulatorBinary,
   EmulatorSystem,
+  EmulationSavePlatform,
   GameShop,
   LibraryGame,
   SouvenirSort,
@@ -65,6 +66,20 @@ export const platformToSystem = (
   if (/playstation|\bps1\b|\bpsx\b/.test(p)) return "ps1";
   if (/game\s*cube/.test(p)) return "dolphin";
   if (/^(nintendo\s+)?wii$/.test(p.trim())) return "dolphin";
+  return null;
+};
+
+export const platformToEmulationSavePlatform = (
+  platform?: string | null
+): EmulationSavePlatform | null => {
+  if (!platform) return null;
+  const normalized = platform.toLowerCase().trim();
+  if (/playstation\s*portable|\bpsp\b/.test(normalized)) return "psp";
+  if (/playstation\s*3|\bps3\b/.test(normalized)) return null;
+  if (/playstation\s*2|\bps2\b/.test(normalized)) return "ps2";
+  if (/playstation|\bps1\b|\bpsx\b/.test(normalized)) return "ps1";
+  if (/game\s*cube/.test(normalized)) return "gamecube";
+  if (/^(nintendo\s+)?wii$/.test(normalized)) return "wii";
   return null;
 };
 

@@ -369,6 +369,10 @@ export function EmulatorDetail({
               <span>{t("remove_emulator")}</span>
             </button>
           )}
+
+          {(config.system === "psp" || config.system === "dolphin") && (
+            <CloudSavesSection config={config} refreshKey={cloudNonce} />
+          )}
         </>
       )}
 
