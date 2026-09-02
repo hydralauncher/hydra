@@ -20,6 +20,7 @@ import {
   CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE,
   NOTIFICATIONS_FETCH_FILTER,
   NOTIFICATIONS_FETCH_TAKE,
+  sanitizeHtml,
 } from "@shared";
 import type { Notification, NotificationsResponse } from "@types";
 import { IS_BROWSER, IS_DESKTOP } from "../constants";
@@ -203,12 +204,28 @@ export function CloudGiftNotificationModal() {
   }, [findPendingGift]);
 
   useEffect(() => {
+    const unsubscribe = globalThis.window.electron.onCloudGiftResolved(
+      (resolvedGiftId) => {
+        if (
+          notification &&
+          notification.variables[CLOUD_GIFT_ID_VARIABLE] === resolvedGiftId
+        ) {
+          activeGiftIdRef.current = null;
+          setNotification(null);
+          setGift(null);
+        }
+      }
+    );
+
+    return () => unsubscribe();
+  }, [notification]);
+
+  useEffect(() => {
     const onOpenGiftModal = (event: Event) => {
       const { notification: requestedNotification } = (
         event as CustomEvent<BigPictureCloudGiftModalOpenDetail>
       ).detail;
-      const giftId =
-        requestedNotification.variables[CLOUD_GIFT_ID_VARIABLE];
+      const giftId = requestedNotification.variables[CLOUD_GIFT_ID_VARIABLE];
 
       if (
         requestedNotification.type !== CLOUD_GIFT_RECEIVED_NOTIFICATION ||
@@ -228,9 +245,7 @@ export function CloudGiftNotificationModal() {
         .then((giftDetails) => {
           if (activeGiftIdRef.current !== giftId) return;
 
-          if (
-            giftDetails.status === CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE
-          ) {
+          if (giftDetails.status === CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE) {
             setGift(giftDetails);
             return;
           }
@@ -285,6 +300,8 @@ export function CloudGiftNotificationModal() {
         `/cloud-gifts/${giftId}/accept`,
         { needsAuth: true }
       );
+
+      void globalThis.window.electron.notifyCloudGiftResolved(giftId);
 
       dismissCurrentGift();
       void fetchUserDetails().catch((error) => {
@@ -399,7 +416,11 @@ export function CloudGiftNotificationModal() {
     }
 
     setIsRevealComplete(Boolean(shouldReduceMotion));
-  }, [isVisible, notification?.variables[CLOUD_GIFT_ID_VARIABLE], shouldReduceMotion]);
+  }, [
+    isVisible,
+    notification?.variables[CLOUD_GIFT_ID_VARIABLE],
+    shouldReduceMotion,
+  ]);
 
   useLayoutEffect(() => {
     const messageElement = messageRef.current;
@@ -555,7 +576,9 @@ export function CloudGiftNotificationModal() {
                             ref={messageRef}
                             className="big-picture-cloud-gift-notification-modal__message-card"
                             data-suppress-navigation-autoscroll="true"
-                            dangerouslySetInnerHTML={{ __html: gift.message }}
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeHtml(gift.message),
+                            }}
                           />
                         </FocusItem>
                       )}

@@ -11,6 +11,7 @@ import "./hydra-api-call";
 import "./install-common-redist";
 import "./install-hydra-decky-plugin";
 import "./is-main-window-open";
+import "./notify-cloud-gift-resolved";
 import "./open-checkout";
 import "./open-external";
 import "./open-folder";
