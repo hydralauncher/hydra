@@ -6,16 +6,6 @@
     flex-direction: column;
     gap: 16px;
     margin-bottom: 24px;
-
-    &--locked {
-      opacity: 0.45;
-      pointer-events: none;
-      user-select: none;
-
-      .game-details__star-rating {
-        filter: grayscale(0.4);
-      }
-    }
   }
 
   &__review-submit {

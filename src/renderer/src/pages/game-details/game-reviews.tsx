@@ -403,20 +403,19 @@ export function GameReviews({
             </h3>
           </div>
 
-          {isReviewLocked && (
+          {isReviewLocked ? (
             <ReviewGateNotice isSignedIn={Boolean(userDetailsId)} />
+          ) : (
+            <ReviewForm
+              editor={editor}
+              reviewScore={reviewScore}
+              reviewCharCount={reviewCharCount}
+              maxReviewChars={MAX_REVIEW_CHARS}
+              submittingReview={submittingReview}
+              onScoreChange={setReviewScore}
+              onSubmit={handleSubmitReview}
+            />
           )}
-
-          <ReviewForm
-            editor={editor}
-            reviewScore={reviewScore}
-            reviewCharCount={reviewCharCount}
-            maxReviewChars={MAX_REVIEW_CHARS}
-            submittingReview={submittingReview}
-            locked={isReviewLocked}
-            onScoreChange={setReviewScore}
-            onSubmit={handleSubmitReview}
-          />
           <div className="game-details__reviews-separator"></div>
         </>
       )}

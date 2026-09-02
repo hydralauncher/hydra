@@ -12,7 +12,6 @@ interface ReviewFormProps {
   reviewCharCount: number;
   maxReviewChars: number;
   submittingReview: boolean;
-  locked?: boolean;
   onScoreChange: (score: number) => void;
   onSubmit: () => void;
 }
@@ -49,7 +48,6 @@ export function ReviewForm({
   reviewCharCount,
   maxReviewChars,
   submittingReview,
-  locked = false,
   onScoreChange,
   onSubmit,
 }: Readonly<ReviewFormProps>) {
@@ -57,22 +55,16 @@ export function ReviewForm({
   const tooltipId = useId();
 
   const isSubmitDisabled =
-    locked ||
     !editor?.getHTML().trim() ||
     reviewScore === null ||
     submittingReview ||
     reviewCharCount > maxReviewChars;
 
-  const showSubmitTooltip = !locked && !submittingReview && isSubmitDisabled;
+  const showSubmitTooltip = !submittingReview && isSubmitDisabled;
 
   return (
     <>
-      <div
-        className={`game-details__review-form${
-          locked ? " game-details__review-form--locked" : ""
-        }`}
-        aria-disabled={locked}
-      >
+      <div className="game-details__review-form">
         <div className="game-details__review-input-container">
           <div className="game-details__review-input-header">
             <div className="game-details__review-editor-toolbar">
@@ -80,7 +72,7 @@ export function ReviewForm({
                 type="button"
                 onClick={() => editor?.chain().focus().toggleBold().run()}
                 className={`game-details__editor-button ${editor?.isActive("bold") ? "is-active" : ""}`}
-                disabled={locked || !editor}
+                disabled={!editor}
                 data-tooltip-id={tooltipId}
                 data-tooltip-content={t("editor_bold")}
                 data-tooltip-place="top"
@@ -91,7 +83,7 @@ export function ReviewForm({
                 type="button"
                 onClick={() => editor?.chain().focus().toggleItalic().run()}
                 className={`game-details__editor-button ${editor?.isActive("italic") ? "is-active" : ""}`}
-                disabled={locked || !editor}
+                disabled={!editor}
                 data-tooltip-id={tooltipId}
                 data-tooltip-content={t("editor_italic")}
                 data-tooltip-place="top"
@@ -102,7 +94,7 @@ export function ReviewForm({
                 type="button"
                 onClick={() => editor?.chain().focus().toggleUnderline().run()}
                 className={`game-details__editor-button ${editor?.isActive("underline") ? "is-active" : ""}`}
-                disabled={locked || !editor}
+                disabled={!editor}
                 data-tooltip-id={tooltipId}
                 data-tooltip-content={t("editor_underline")}
                 data-tooltip-place="top"
@@ -140,7 +132,6 @@ export function ReviewForm({
                       : ""
                   }`}
                   onClick={() => onScoreChange(starValue)}
-                  disabled={locked}
                   data-tooltip-id={tooltipId}
                   data-tooltip-content={getRatingText(starValue, t)}
                   data-tooltip-place="top"
