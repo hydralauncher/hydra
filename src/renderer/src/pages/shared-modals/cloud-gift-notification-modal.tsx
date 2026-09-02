@@ -163,7 +163,10 @@ export function CloudGiftNotificationModal() {
           })
           .catch(() => null);
 
-        if (giftDetails?.status === CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE) {
+        if (
+          giftDetails?.status === CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE &&
+          !activeGiftIdRef.current
+        ) {
           setGift(giftDetails);
           setNotification(item);
           break;
@@ -235,6 +238,7 @@ export function CloudGiftNotificationModal() {
             return;
           }
 
+          activeGiftIdRef.current = null;
           setNotification(null);
           void window.electron.openCheckout({
             path: `/gifts/${giftId}`,
@@ -244,6 +248,7 @@ export function CloudGiftNotificationModal() {
           if (activeGiftIdRef.current !== giftId) return;
 
           logger.error("Failed to open Cloud Gift modal", error);
+          activeGiftIdRef.current = null;
           setNotification(null);
         });
     };
