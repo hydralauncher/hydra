@@ -16,6 +16,7 @@ describe("assertValidEmulatorExecutable", () => {
 
 describe("isExecutableNameExpectedForBinary", () => {
   const dolphin = { binary: "dolphin" };
+  const ppsspp = { binary: "ppsspp" };
 
   it("rejects KDE Dolphin as Dolphin Emulator on Linux", () => {
     assert.equal(KNOWN_BINARIES.dolphin.linuxNames.includes("dolphin"), false);
@@ -52,6 +53,47 @@ describe("isExecutableNameExpectedForBinary", () => {
         "win32"
       ),
       true
+    );
+  });
+
+  it("rejects another emulator selected as PPSSPP", () => {
+    assert.equal(
+      isExecutableNameExpectedForBinary(
+        "/mnt/games/DuckStation-x64.AppImage",
+        ppsspp,
+        "linux"
+      ),
+      false
+    );
+  });
+
+  it("accepts PPSSPP executable variants", () => {
+    assert.equal(
+      isExecutableNameExpectedForBinary(
+        "/home/user/Applications/PPSSPP-v1.20.4.AppImage",
+        ppsspp,
+        "linux"
+      ),
+      true
+    );
+    assert.equal(
+      isExecutableNameExpectedForBinary(
+        String.raw`C:\Emulators\PPSSPPWindows64.exe`,
+        ppsspp,
+        "win32"
+      ),
+      true
+    );
+  });
+
+  it("rejects another emulator selected as Dolphin", () => {
+    assert.equal(
+      isExecutableNameExpectedForBinary(
+        "/home/user/Applications/PPSSPP.AppImage",
+        dolphin,
+        "linux"
+      ),
+      false
     );
   });
 });

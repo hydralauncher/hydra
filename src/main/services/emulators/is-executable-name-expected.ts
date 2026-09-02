@@ -5,7 +5,21 @@ export const isExecutableNameExpectedForBinary = (
   binary: { binary: string },
   platform: NodeJS.Platform = process.platform
 ): boolean => {
-  if (platform !== "linux" || binary.binary !== "dolphin") return true;
+  if (binary.binary !== "ppsspp" && binary.binary !== "dolphin") {
+    return true;
+  }
 
-  return path.basename(executablePath).toLowerCase() !== "dolphin";
+  const basename =
+    platform === "win32"
+      ? path.win32.basename(executablePath)
+      : path.posix.basename(executablePath);
+  const normalizedName = basename.toLowerCase();
+
+  if (!normalizedName.includes(binary.binary)) return false;
+
+  return !(
+    platform === "linux" &&
+    binary.binary === "dolphin" &&
+    normalizedName === "dolphin"
+  );
 };

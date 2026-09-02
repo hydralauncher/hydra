@@ -59,10 +59,15 @@ describe("findEmulatorInDownloadDirectories", () => {
     );
   });
 
-  it("finds a portable emulator in an immediate download subfolder", async () => {
+  it("finds a portable emulator in a nested download subfolder", async () => {
     const downloads = await createTemporaryDirectory();
-    const portableDirectory = path.join(downloads, "manually-extracted");
-    await fs.promises.mkdir(portableDirectory);
+    const portableDirectory = path.join(
+      downloads,
+      "manually-extracted",
+      "emulators",
+      "dolphin"
+    );
+    await fs.promises.mkdir(portableDirectory, { recursive: true });
 
     let executablePath: string;
     if (process.platform === "win32") {
@@ -78,6 +83,26 @@ describe("findEmulatorInDownloadDirectories", () => {
 
     assert.equal(
       findEmulatorInDownloadDirectories(KNOWN_BINARIES.dolphin, [downloads]),
+      executablePath
+    );
+  });
+
+  it("finds a PPSSPP AppImage in a nested download subfolder", async () => {
+    const downloads = await createTemporaryDirectory();
+    const portableDirectory = path.join(downloads, "portable", "sony", "psp");
+    await fs.promises.mkdir(portableDirectory, { recursive: true });
+    const executablePath = path.join(
+      portableDirectory,
+      "PPSSPP-v1.20.4-x86_64.AppImage"
+    );
+    await fs.promises.writeFile(executablePath, "");
+
+    assert.equal(
+      findEmulatorInDownloadDirectories(
+        KNOWN_BINARIES.psp,
+        [downloads],
+        "linux"
+      ),
       executablePath
     );
   });

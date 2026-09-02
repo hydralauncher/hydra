@@ -11,6 +11,9 @@ interface DownloadDetectableBinary {
   macosBundleNames: string[];
 }
 
+const MAX_SEARCH_DEPTH = 4;
+const MAX_SEARCHED_DIRECTORIES = 2_000;
+
 const findDirect = (directory: string, names: string[]): string | null => {
   for (const name of names) {
     const candidate = path.join(directory, name);
@@ -44,48 +47,55 @@ const findAppImage = (
   return appImage ? path.join(directory, appImage) : null;
 };
 
-const findInImmediateSubdirectories = (
+const findInNestedDirectories = (
   directory: string,
-  names: string[]
+  names: string[],
+  binary: DownloadDetectableBinary,
+  platform: NodeJS.Platform
 ): string | null => {
-  let entries: Dirent[];
-  try {
-    entries = readdirSync(directory, { withFileTypes: true });
-  } catch {
-    return null;
-  }
+  const pending: { directory: string; depth: number }[] = [
+    { directory, depth: 0 },
+  ];
+  let searchedDirectories = 0;
 
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const executable = findDirect(path.join(directory, entry.name), names);
+  for (let index = 0; index < pending.length; index++) {
+    if (searchedDirectories >= MAX_SEARCHED_DIRECTORIES) break;
+    searchedDirectories += 1;
+
+    const current = pending[index];
+    if (!current) continue;
+
+    const executable = findDirect(current.directory, names);
     if (executable) return executable;
-  }
-
-  return null;
-};
-
-const findAppImageInImmediateSubdirectories = (
-  directory: string,
-  binary: DownloadDetectableBinary
-): string | null => {
-  let entries: Dirent[];
-  try {
-    entries = readdirSync(directory, { withFileTypes: true });
-  } catch {
-    return null;
-  }
-
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const appImage = findAppImage(path.join(directory, entry.name), binary);
+    const appImage =
+      platform === "linux" ? findAppImage(current.directory, binary) : null;
     if (appImage) return appImage;
+
+    if (current.depth >= MAX_SEARCH_DEPTH) continue;
+
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(current.directory, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      pending.push({
+        directory: path.join(current.directory, entry.name),
+        depth: current.depth + 1,
+      });
+    }
   }
+
   return null;
 };
 
 const findInNamedEmulatorDirectories = (
   downloadDirectory: string,
-  binary: DownloadDetectableBinary
+  binary: DownloadDetectableBinary,
+  platform: NodeJS.Platform
 ): string | null => {
   const emulatorDirectories = new Set([
     path.join(downloadDirectory, binary.displayName),
@@ -96,13 +106,12 @@ const findInNamedEmulatorDirectories = (
     const managed = findManagedEmulatorExecutable(emulatorDirectory, binary);
     if (managed) return managed;
 
-    if (process.platform === "linux") {
-      const directAppImage = findAppImage(emulatorDirectory, binary);
-      if (directAppImage) return directAppImage;
-
-      const nestedAppImage = findAppImageInImmediateSubdirectories(
+    if (platform === "linux") {
+      const nestedAppImage = findInNestedDirectories(
         emulatorDirectory,
-        binary
+        [],
+        binary,
+        platform
       );
       if (nestedAppImage) return nestedAppImage;
     }
@@ -113,7 +122,8 @@ const findInNamedEmulatorDirectories = (
 const findInDownloadDirectory = (
   downloadDirectory: string,
   binary: DownloadDetectableBinary,
-  executableNames: string[]
+  executableNames: string[],
+  platform: NodeJS.Platform
 ): string | null => {
   const direct = findDirect(downloadDirectory, [
     ...executableNames,
@@ -121,32 +131,37 @@ const findInDownloadDirectory = (
   ]);
   if (direct) return direct;
 
-  const managed = findInNamedEmulatorDirectories(downloadDirectory, binary);
+  const managed = findInNamedEmulatorDirectories(
+    downloadDirectory,
+    binary,
+    platform
+  );
   if (managed) return managed;
 
-  const portable = findInImmediateSubdirectories(downloadDirectory, [
-    ...executableNames,
-    ...binary.macosBundleNames,
-  ]);
+  const portable = findInNestedDirectories(
+    downloadDirectory,
+    [...executableNames, ...binary.macosBundleNames],
+    binary,
+    platform
+  );
   if (portable) return portable;
-
-  return process.platform === "linux"
-    ? findAppImage(downloadDirectory, binary)
-    : null;
+  return null;
 };
 
 export const findEmulatorInDownloadDirectories = (
   binary: DownloadDetectableBinary,
-  downloadDirectories: string[]
+  downloadDirectories: string[],
+  platform: NodeJS.Platform = process.platform
 ): string | null => {
   const executableNames =
-    process.platform === "win32" ? binary.windowsNames : binary.linuxNames;
+    platform === "win32" ? binary.windowsNames : binary.linuxNames;
 
   for (const downloadDirectory of downloadDirectories) {
     const executable = findInDownloadDirectory(
       downloadDirectory,
       binary,
-      executableNames
+      executableNames,
+      platform
     );
     if (executable) return executable;
   }
