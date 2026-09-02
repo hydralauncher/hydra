@@ -26,7 +26,7 @@ import {
 } from "./find-managed-emulator-executable";
 import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
 import { updateEmulatorConfig } from "./emulators-repository";
-import { isValidEmulatorExecutable } from "./validate-emulator-executable";
+import { assertValidEmulatorExecutable } from "./validate-emulator-executable";
 
 const execFileAsync = promisify(execFile);
 
@@ -145,7 +145,7 @@ const autoConfigureEmulator = async (
   system: EmulatorSystem,
   executablePath: string
 ): Promise<void> => {
-  if (!isValidEmulatorExecutable(executablePath)) return;
+  assertValidEmulatorExecutable(executablePath);
 
   const version = getEmulatorVersion(executablePath, KNOWN_BINARIES[system]);
   await updateEmulatorConfig(system, (current) => ({

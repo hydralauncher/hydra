@@ -3,6 +3,16 @@ import { describe, it } from "node:test";
 
 import { isExecutableNameExpectedForBinary } from "./is-executable-name-expected.ts";
 import { KNOWN_BINARIES } from "./known-binaries.ts";
+import { assertValidEmulatorExecutable } from "./validate-emulator-executable.ts";
+
+describe("assertValidEmulatorExecutable", () => {
+  it("throws instead of allowing installation to report success", () => {
+    assert.throws(
+      () => assertValidEmulatorExecutable("/missing/Dolphin.AppImage"),
+      /Invalid emulator executable/
+    );
+  });
+});
 
 describe("isExecutableNameExpectedForBinary", () => {
   const dolphin = { binary: "dolphin" };

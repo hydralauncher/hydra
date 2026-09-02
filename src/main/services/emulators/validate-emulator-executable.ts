@@ -3,8 +3,8 @@ import path from "node:path";
 import {
   findMacAppBundleRoot,
   resolveMacAppBundleExecutable,
-} from "./macos-app-bundle";
-import { isExecutableNameExpectedForBinary } from "./is-executable-name-expected";
+} from "./macos-app-bundle.js";
+import { isExecutableNameExpectedForBinary } from "./is-executable-name-expected.js";
 
 const NON_EXECUTABLE_EXTENSIONS = new Set([
   ".jpg",
@@ -86,6 +86,12 @@ export const isValidEmulatorExecutable = (executablePath: string): boolean => {
     return true;
   } catch {
     return false;
+  }
+};
+
+export const assertValidEmulatorExecutable = (executablePath: string): void => {
+  if (!isValidEmulatorExecutable(executablePath)) {
+    throw new Error(`Invalid emulator executable: ${executablePath}`);
   }
 };
 
