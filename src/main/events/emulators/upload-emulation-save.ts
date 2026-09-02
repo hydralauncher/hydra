@@ -27,6 +27,11 @@ import {
 const BACKUP_PROGRESS_CHANNEL = "on-emulation-backup-progress";
 const MIN_WII_DATA_BIN_SIZE = 0xf140;
 
+type FileSavePlatform = Extract<
+  EmulationSavePlatform,
+  "psp" | "gamecube" | "wii"
+>;
+
 const activeBackups = new Map<string, EmulationBackupProgress>();
 const backupKey = (platform: EmulationSavePlatform, cardFilePath: string) =>
   `${platform}:${cardFilePath}`;
@@ -50,7 +55,7 @@ const getRecord = (
 };
 
 const getFileSaveRecord = async (
-  platform: Extract<EmulationSavePlatform, "psp" | "gamecube" | "wii">,
+  platform: FileSavePlatform,
   sourcePath: string,
   saveIdentity: string
 ) => {
@@ -90,7 +95,7 @@ const buildArtifact = async (
 };
 
 const buildFileSaveArtifact = async (
-  platform: Extract<EmulationSavePlatform, "psp" | "gamecube" | "wii">,
+  platform: FileSavePlatform,
   discovered: DiscoveredEmulationFileSave
 ): Promise<{ buffer: Buffer; fileName: string }> => {
   if (platform === "gamecube") {
@@ -141,7 +146,7 @@ const buildFileSaveArtifact = async (
 };
 
 const uploadFileSave = async (
-  platform: Extract<EmulationSavePlatform, "psp" | "gamecube" | "wii">,
+  platform: FileSavePlatform,
   sourcePath: string,
   saveIdentity: string
 ): Promise<EmulationCloudSave> => {

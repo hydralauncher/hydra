@@ -140,11 +140,12 @@ const resolveDolphinNandRoot = (
   userDirectory: string,
   configuredPath: string
 ): string => {
-  const expanded = configuredPath.startsWith("~/")
-    ? path.join(os.homedir(), configuredPath.slice(2))
-    : configuredPath === "~"
-      ? os.homedir()
-      : configuredPath;
+  let expanded = configuredPath;
+  if (configuredPath.startsWith("~/")) {
+    expanded = path.join(os.homedir(), configuredPath.slice(2));
+  } else if (configuredPath === "~") {
+    expanded = os.homedir();
+  }
   return path.isAbsolute(expanded)
     ? expanded
     : path.resolve(userDirectory, expanded);
@@ -414,47 +415,59 @@ const readDolphinWiiGameId = async (
     : identity.gameCode;
 };
 
+const discoverDolphinWiiSavesInRoot = async (
+  wiiRoot: string
+): Promise<DiscoveredEmulationFileSave[]> => {
+  const discovered: DiscoveredEmulationFileSave[] = [];
+  const titleRoot = path.join(wiiRoot, "title", "00010000");
+  const entries = await fs
+    .readdir(titleRoot, { withFileTypes: true })
+    .catch(() => []);
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const identity = parseWiiTitleDirectory(entry.name);
+    if (!identity) continue;
+
+    const titlePath = path.join(titleRoot, entry.name);
+    const sourcePath = path.join(titlePath, "data");
+    const banner = await fs
+      .stat(path.join(sourcePath, "banner.bin"))
+      .catch(() => null);
+    if (!banner?.isFile()) continue;
+
+    const stats = await readDirectoryStats(sourcePath);
+    const gameId = await readDolphinWiiGameId(titlePath, identity);
+    discovered.push({
+      platform: "wii",
+      sourcePath,
+      sourceLabel: "Wii NAND",
+      saveIdentity: identity.titleId,
+      sku: gameId,
+      ...stats,
+      metadata: {
+        schemaVersion: 1,
+        artifactFormat: "dolphin-wii-data-bin",
+        titleId: identity.titleId,
+        gameId,
+      },
+    });
+  }
+
+  return discovered;
+};
+
 export const discoverDolphinWiiSaves = async (
   executablePath: string
 ): Promise<DiscoveredEmulationFileSave[]> => {
   const discovered: DiscoveredEmulationFileSave[] = [];
   for (const userDirectory of dolphinUserDirectoryCandidates(executablePath)) {
-    for (const wiiRoot of await dolphinWiiRootCandidates(userDirectory)) {
-      const titleRoot = path.join(wiiRoot, "title", "00010000");
-      const entries = await fs
-        .readdir(titleRoot, { withFileTypes: true })
-        .catch(() => []);
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-        const identity = parseWiiTitleDirectory(entry.name);
-        if (!identity) continue;
-
-        const titlePath = path.join(titleRoot, entry.name);
-        const sourcePath = path.join(titlePath, "data");
-        const banner = await fs
-          .stat(path.join(sourcePath, "banner.bin"))
-          .catch(() => null);
-        if (!banner?.isFile()) continue;
-
-        const stats = await readDirectoryStats(sourcePath);
-        const gameId = await readDolphinWiiGameId(titlePath, identity);
-        discovered.push({
-          platform: "wii",
-          sourcePath,
-          sourceLabel: "Wii NAND",
-          saveIdentity: identity.titleId,
-          sku: gameId,
-          ...stats,
-          metadata: {
-            schemaVersion: 1,
-            artifactFormat: "dolphin-wii-data-bin",
-            titleId: identity.titleId,
-            gameId,
-          },
-        });
-      }
+    const wiiRoots = await dolphinWiiRootCandidates(userDirectory);
+    for (const wiiRoot of wiiRoots) {
+      discovered.push(...(await discoverDolphinWiiSavesInRoot(wiiRoot)));
     }
   }
+
   return Array.from(
     new Map(discovered.map((save) => [save.sourcePath, save])).values()
   );
@@ -510,7 +523,9 @@ const alignWiiSaveBlock = (size: number): number =>
   Math.ceil(size / WII_SAVE_BLOCK_SIZE) * WII_SAVE_BLOCK_SIZE;
 
 const encryptWiiSaveData = (data: Buffer, iv: Buffer): Buffer => {
-  const cipher = createCipheriv("aes-128-cbc", WII_SAVE_SD_KEY, iv);
+  // The Wii data.bin format mandates AES-128-CBC without padding. This is
+  // container compatibility, not encryption used to protect Hydra data.
+  const cipher = createCipheriv("aes-128-cbc", WII_SAVE_SD_KEY, iv); // NOSONAR
   cipher.setAutoPadding(false);
   return Buffer.concat([cipher.update(data), cipher.final()]);
 };
@@ -546,7 +561,12 @@ export const buildDolphinWiiDataBin = async (
   WII_SAVE_MD5_BLANKER.copy(plainHeader, 0x0e);
   banner.copy(plainHeader, 0x20);
   plainHeader[0x27] &= ~1;
-  createHash("md5").update(plainHeader).digest().copy(plainHeader, 0x0e);
+  // The Wii data.bin header mandates this MD5 integrity field. It is not used
+  // for password hashing, signatures, or any security decision.
+  createHash("md5") // NOSONAR
+    .update(plainHeader)
+    .digest()
+    .copy(plainHeader, 0x0e);
   const encryptedHeader = encryptWiiSaveData(plainHeader, WII_SAVE_INITIAL_IV);
 
   const entries = await collectWiiSaveEntries(dataDirectory);

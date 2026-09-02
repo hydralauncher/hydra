@@ -97,6 +97,9 @@ const readCisoDiscHeader = async (file: FileHandle) => {
     return null;
   }
 
+  // Dolphin CISO is sparse, not compressed: 0 means an omitted zero block and
+  // 1 means the block is stored verbatim. Logical block zero is therefore the
+  // first payload block at the fixed end of the sparse map.
   return readRawDiscHeader(file, CISO_HEADER_SIZE);
 };
 

@@ -30,11 +30,11 @@ const createDiscBlock = (
   return block;
 };
 
-const createCiso = (discBlock: Buffer): Buffer => {
+const createCiso = (discBlock: Buffer, firstBlockUsed = true): Buffer => {
   const header = Buffer.alloc(CISO_HEADER_SIZE);
   header.write("CISO", 0, "ascii");
   header.writeUInt32LE(DOLPHIN_BLOCK_SIZE, 0x04);
-  header[0x08] = 1;
+  header[0x08] = firstBlockUsed ? 1 : 0;
   return Buffer.concat([header, discBlock]);
 };
 
@@ -64,12 +64,23 @@ describe("Dolphin identifier extraction", () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
-  it("extracts and classifies a CISO game", async () => {
+  it("extracts a verbatim block from Dolphin's sparse CISO format", async () => {
     const filePath = path.join(tempDir, "game.ciso");
     await fs.writeFile(filePath, createCiso(createDiscBlock("RMGE01", "wii")));
 
     assert.equal(await extractDolphinGameId(filePath), "RMGE01");
     assert.equal(await sniffDiscImage(filePath), "wii");
+  });
+
+  it("rejects a Dolphin CISO whose disc-header block is omitted", async () => {
+    const filePath = path.join(tempDir, "missing-header.ciso");
+    await fs.writeFile(
+      filePath,
+      createCiso(createDiscBlock("RMGE01", "wii"), false)
+    );
+
+    assert.equal(await extractDolphinGameId(filePath), null);
+    assert.equal(await sniffDiscImage(filePath), "unknown");
   });
 
   it("extracts and classifies a compressed GCZ game", async () => {
