@@ -14,6 +14,13 @@ import { Avatar, Link } from "@renderer/components";
 import { useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import {
+  CLOUD_GIFT_ID_VARIABLE,
+  CLOUD_GIFT_RECEIVED_NOTIFICATION,
+  CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE,
+  NOTIFICATIONS_FETCH_FILTER,
+  NOTIFICATIONS_FETCH_TAKE,
+} from "@shared";
 import type { Notification, NotificationsResponse } from "@types";
 
 import LogoFigma from "../../assets/cloud-gift/logo-figma.svg?react";
@@ -103,6 +110,7 @@ export function CloudGiftNotificationModal() {
   const messageRef = useRef<HTMLDivElement | null>(null);
   const acceptButtonRef = useRef<HTMLButtonElement | null>(null);
   const dismissedGiftIdsRef = useRef(new Set<string>());
+  const activeGiftIdRef = useRef<string | null>(null);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [gift, setGift] = useState<CloudGiftDetails | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
@@ -121,17 +129,23 @@ export function CloudGiftNotificationModal() {
         await window.electron.hydraApi.get<NotificationsResponse>(
           "/profile/notifications",
           {
-            params: { filter: "all", take: 20, skip: 0 },
+            params: {
+              filter: NOTIFICATIONS_FETCH_FILTER,
+              take: NOTIFICATIONS_FETCH_TAKE,
+              skip: 0,
+            },
             needsAuth: true,
           }
         );
 
       const giftNotifications = response.notifications.filter(
-        (item) => item.type === "CLOUD_GIFT_RECEIVED" && item.variables.giftId
+        (item) =>
+          item.type === CLOUD_GIFT_RECEIVED_NOTIFICATION &&
+          item.variables[CLOUD_GIFT_ID_VARIABLE]
       );
 
       for (const item of giftNotifications) {
-        const giftId = item.variables.giftId;
+        const giftId = item.variables[CLOUD_GIFT_ID_VARIABLE];
         if (dismissedGiftIdsRef.current.has(giftId)) continue;
 
         const isSuppressed = await levelDBService.get(
@@ -148,7 +162,7 @@ export function CloudGiftNotificationModal() {
           })
           .catch(() => null);
 
-        if (giftDetails?.status === "PENDING_ACCEPTANCE") {
+        if (giftDetails?.status === CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE) {
           setGift(giftDetails);
           setNotification(item);
           break;
@@ -178,12 +192,16 @@ export function CloudGiftNotificationModal() {
       const { notification: requestedNotification } = (
         event as CustomEvent<CloudGiftModalOpenDetail>
       ).detail;
-      const giftId = requestedNotification.variables.giftId;
+      const giftId = requestedNotification.variables[CLOUD_GIFT_ID_VARIABLE];
 
-      if (requestedNotification.type !== "CLOUD_GIFT_RECEIVED" || !giftId) {
+      if (
+        requestedNotification.type !== CLOUD_GIFT_RECEIVED_NOTIFICATION ||
+        !giftId
+      ) {
         return;
       }
 
+      activeGiftIdRef.current = giftId;
       setGift(null);
       setNotification(requestedNotification);
 
@@ -192,7 +210,11 @@ export function CloudGiftNotificationModal() {
           needsAuth: true,
         })
         .then((giftDetails) => {
-          if (giftDetails.status === "PENDING_ACCEPTANCE") {
+          if (activeGiftIdRef.current !== giftId) return;
+
+          if (
+            giftDetails.status === CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE
+          ) {
             setGift(giftDetails);
             return;
           }
@@ -203,6 +225,8 @@ export function CloudGiftNotificationModal() {
           });
         })
         .catch((error) => {
+          if (activeGiftIdRef.current !== giftId) return;
+
           logger.error("Failed to open Cloud Gift modal", error);
           setNotification(null);
         });
@@ -216,8 +240,12 @@ export function CloudGiftNotificationModal() {
   }, []);
 
   const dismissCurrentGift = useCallback(() => {
+    activeGiftIdRef.current = null;
+
     if (notification) {
-      dismissedGiftIdsRef.current.add(notification.variables.giftId);
+      dismissedGiftIdsRef.current.add(
+        notification.variables[CLOUD_GIFT_ID_VARIABLE]
+      );
     }
 
     setNotification(null);
@@ -227,7 +255,7 @@ export function CloudGiftNotificationModal() {
   const acceptGift = useCallback(async () => {
     if (!notification || isAccepting) return;
 
-    const giftId = notification.variables.giftId;
+    const giftId = notification.variables[CLOUD_GIFT_ID_VARIABLE];
     setIsAccepting(true);
 
     try {
@@ -320,7 +348,7 @@ export function CloudGiftNotificationModal() {
     <AnimatePresence>
       {notification && gift && (
         <motion.div
-          key={notification.variables.giftId}
+          key={notification.variables[CLOUD_GIFT_ID_VARIABLE]}
           className="cloud-gift-notification-modal__overlay"
           initial={shouldReduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}

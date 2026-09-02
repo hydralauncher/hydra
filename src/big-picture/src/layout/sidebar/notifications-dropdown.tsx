@@ -51,7 +51,13 @@ import type {
   NotificationCountResponse,
   NotificationsResponse,
 } from "@types";
-import { buildSouvenirNotificationTarget } from "@shared";
+import {
+  buildSouvenirNotificationTarget,
+  CLOUD_GIFT_ID_VARIABLE,
+  CLOUD_GIFT_RECEIVED_NOTIFICATION,
+  NOTIFICATIONS_FETCH_FILTER,
+  NOTIFICATIONS_FETCH_TAKE,
+} from "@shared";
 
 const hydraIconUrl = new URL("../../assets/hydra-icon.svg", import.meta.url)
   .href;
@@ -145,7 +151,7 @@ function getApiNotificationContent(
         title: `Your reply for ${notification.variables.gameTitle ?? "a review"} got an upvote`,
         description: `${notification.variables.upvoteCount ?? "1"} upvotes on your reply.`,
       };
-    case "CLOUD_GIFT_RECEIVED": {
+    case CLOUD_GIFT_RECEIVED_NOTIFICATION: {
       const durationMonths = Number(notification.variables.durationMonths);
 
       return {
@@ -315,7 +321,11 @@ export function SidebarNotificationsDropdown({
         globalThis.window.electron.hydraApi.get<NotificationsResponse>(
           "/profile/notifications",
           {
-            params: { filter: "all", take: 20, skip: 0 },
+            params: {
+              filter: NOTIFICATIONS_FETCH_FILTER,
+              take: NOTIFICATIONS_FETCH_TAKE,
+              skip: 0,
+            },
             needsAuth: true,
           }
         ),
@@ -582,8 +592,8 @@ export function SidebarNotificationsDropdown({
 
     if (
       notification.source === "api" &&
-      notification.type === "CLOUD_GIFT_RECEIVED" &&
-      notification.variables.giftId
+      notification.type === CLOUD_GIFT_RECEIVED_NOTIFICATION &&
+      notification.variables[CLOUD_GIFT_ID_VARIABLE]
     ) {
       openBigPictureCloudGiftModal(notification);
       closeAndRestoreFocus();
