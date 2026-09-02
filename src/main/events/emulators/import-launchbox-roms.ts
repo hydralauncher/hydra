@@ -10,7 +10,13 @@ import {
 } from "./classics-import-state";
 import { isWithin } from "./rom-path-utils";
 import { bandPercent, baseNameWithoutExt } from "./import-progress-utils";
-import { HydraApi, WindowManager, emulators, logger } from "@main/services";
+import {
+  HydraApi,
+  WindowManager,
+  emulators,
+  logger,
+  mergeWithRemoteGames,
+} from "@main/services";
 import { clearFinishedDownload, platformToSystem } from "@main/helpers";
 import {
   fetchShopDetailsForSkus,
@@ -242,6 +248,8 @@ export const syncProfileBatch = async (objectIds: string[]) => {
   if (objectIds.length === 0) return;
 
   const chunks = chunk(objectIds, PROFILE_BATCH_CHUNK_SIZE);
+  let syncedAtLeastOneChunk = false;
+
   for (const objectIdChunk of chunks) {
     const payload = objectIdChunk.map((objectId) => ({
       objectId,
@@ -251,10 +259,13 @@ export const syncProfileBatch = async (objectIds: string[]) => {
     }));
     try {
       await HydraApi.post("/profile/games/batch", payload);
+      syncedAtLeastOneChunk = true;
     } catch (err) {
       logger.error("Failed to batch-sync launchbox games to profile", err);
     }
   }
+
+  if (syncedAtLeastOneChunk) await mergeWithRemoteGames();
 };
 
 const persistRomFolder = async (
@@ -282,6 +293,32 @@ const persistRomFolder = async (
     return emulators.recomputeTotals({
       ...current,
       romFolders: nextFolders,
+    });
+  });
+};
+
+// Adds a folder that is not registered yet, leaving an already-known folder's
+// counts alone so a rescan never resets them.
+export const ensureRomFolderRegistered = async (
+  system: EmulatorSystem,
+  folderPath: string,
+  scanSubfolders: boolean
+) => {
+  await emulators.updateEmulatorConfig(system, (current) => {
+    if (current.romFolders.some((f) => f.path === folderPath)) return current;
+
+    const folder: RomFolder = {
+      id: randomUUID(),
+      path: folderPath,
+      scanSubfolders,
+      fileCount: 0,
+      sizeBytes: 0,
+      lastScanAt: null,
+    };
+
+    return emulators.recomputeTotals({
+      ...current,
+      romFolders: [...current.romFolders, folder],
     });
   });
 };
@@ -752,6 +789,13 @@ export async function runLaunchboxImport(
   onProgress?: ProgressFn
 ): Promise<LaunchboxImportResult> {
   const folderInputBy = new Map(folders.map((f) => [f.path, f]));
+
+  // Register the folders up front with empty counts. A cancelled scan returns
+  // before the rollup is persisted, and the user still expects the folder they
+  // picked to be listed - just with no games detected yet.
+  for (const folder of folders) {
+    await ensureRomFolderRegistered(system, folder.path, folder.scanSubfolders);
+  }
 
   const collected = await scanFolders(
     system,

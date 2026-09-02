@@ -13,6 +13,8 @@ import {
   da,
   el,
   vi,
+  ja,
+  sl,
 } from "date-fns/locale";
 
 import { isArchiveOrgFileUri } from "./archive-org";
@@ -30,8 +32,11 @@ export * from "./download-directories";
 export * from "./html-sanitizer";
 export * from "./language-flags";
 export * from "./use-hls-video";
+export * from "./use-souvenir-content-warning";
 export * from "./retroarch-platform";
 export * from "./tracker-list";
+export * from "./souvenirs";
+export * from "./souvenir-sync";
 
 export class UserNotLoggedInError extends Error {
   constructor() {
@@ -285,6 +290,8 @@ export const getDateLocale = (language: string) => {
   if (language.startsWith("da")) return da;
   if (language.startsWith("el")) return el;
   if (language.startsWith("vi")) return vi;
+  if (language.startsWith("ja")) return ja;
+  if (language.startsWith("sl")) return sl;
 
   return enUS;
 };

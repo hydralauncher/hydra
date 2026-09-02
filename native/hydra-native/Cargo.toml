@@ -25,7 +25,7 @@ serde_json = "1.0.150"
 serde_yaml_ng = "0.10"
 sha2 = "0.10"
 sysinfo = "0.37.2"
-time = { version = "=0.3.44", features = ["parsing"] }
+time = { version = "=0.3.47", features = ["parsing"] }
 tokio = { version = "1.52", features = ["fs", "rt", "sync", "macros"] }
 unicode-normalization = "0.1.25"
 uuid = { version = "1.11.0", features = ["v4"] }
@@ -34,6 +34,9 @@ walkdir = "=2.5.0"
 [target.'cfg(windows)'.dependencies]
 known-folders = "=1.2.0"
 windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = { version = "0.13.2", default-features = false }
 
 [dev-dependencies]
 tempfile = "3.27"

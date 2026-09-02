@@ -4,6 +4,7 @@ import {
   PersonIcon,
   ClockIcon,
   StarFillIcon,
+  HeartFillIcon,
   CommentDiscussionIcon,
   GiftIcon,
 } from "@primer/octicons-react";
@@ -13,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@renderer/components";
 import { useDate, useUserDetails } from "@renderer/hooks";
 import cn from "classnames";
+import { buildSouvenirNotificationTarget } from "@shared";
 
 import type { Notification, Badge } from "@types";
 import { openCloudGiftModal } from "../shared-modals/cloud-gift-modal.events";
@@ -48,6 +50,15 @@ const parseNotificationUrl = (notificationUrl: string): string => {
   }
 
   return notificationUrl;
+};
+
+const getNotificationTarget = (notification: Notification) => {
+  if (!notification.url) return null;
+
+  const target = parseNotificationUrl(notification.url);
+  if (notification.type !== "SOUVENIR_LIKE") return target;
+
+  return buildSouvenirNotificationTarget(target, notification.variables);
 };
 
 interface NotificationItemProps {
@@ -90,9 +101,8 @@ export function NotificationItem({
       return;
     }
 
-    if (notification.url) {
-      navigate(parseNotificationUrl(notification.url));
-    }
+    const target = getNotificationTarget(notification);
+    if (target) navigate(target);
   }, [notification, onMarkAsRead, navigate]);
 
   const handleAccept = useCallback(
@@ -189,6 +199,16 @@ export function NotificationItem({
           }),
           showActions: false,
         };
+      case "SOUVENIR_LIKE":
+        return {
+          title: t("souvenir_like_title", {
+            gameTitle: notification.variables.gameTitle,
+          }),
+          description: t("souvenir_like_description", {
+            count: Number(notification.variables.likeCount ?? 1),
+          }),
+          showActions: false,
+        };
       case "RETROACHIEVEMENTS_CREDENTIALS_RESTORED":
         return {
           title: t("retroachievements_credentials_restored_title"),
@@ -237,6 +257,7 @@ export function NotificationItem({
   const isReviewAnswer = notification.type === "REVIEW_ANSWER";
   const isReviewAnswerUpvote = notification.type === "REVIEW_ANSWER_UPVOTE";
   const isReview = isReviewUpvote || isReviewAnswer || isReviewAnswerUpvote;
+  const isSouvenirLike = notification.type === "SOUVENIR_LIKE";
 
   const isRetroAchievements =
     notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED" ||
@@ -258,6 +279,9 @@ export function NotificationItem({
     }
     if (notification.type === "CLOUD_GIFT_RECEIVED") {
       return <GiftIcon size={24} />;
+    }
+    if (isSouvenirLike) {
+      return <HeartFillIcon size={24} />;
     }
     return <PersonIcon size={24} />;
   };

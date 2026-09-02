@@ -45,6 +45,8 @@ export const ACCOUNT_PRIVACY_PRIVACY_SELECT_ID =
   "account-privacy-profile-visibility";
 export const ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID =
   "account-privacy-cloud-gifts";
+export const ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID =
+  "account-privacy-souvenirs-visibility";
 export const COMPATIBILITY_GAMEMODE_FOCUS_ID = "compatibility-gamemode";
 export const COMPATIBILITY_MANGOHUD_FOCUS_ID = "compatibility-mangohud";
 export const COMPATIBILITY_COMMON_REDIST_BUTTON_ID =
@@ -140,10 +142,16 @@ export const CONTENT_ITEM_FOCUS_IDS = {
   showHiddenAchievementsDescription:
     "content-show-hidden-achievements-description",
   enableSteamAchievements: "content-enable-steam-achievements",
+  enableAchievementSouvenirs: "content-enable-achievement-souvenirs",
+  changeScreenshotsDirectory: "content-change-screenshots-directory",
+  resetScreenshotsDirectory: "content-reset-screenshots-directory",
+  openScreenshotsDirectory: "content-open-screenshots-directory",
+  autoplayAnimatedArtwork: "content-autoplay-animated-artwork",
 } as const;
 
 export const BIG_PICTURE_ITEM_FOCUS_IDS = {
   launchInBigPicture: "big-picture-launch-in-big-picture",
+  launchToLibraryPage: "big-picture-launch-to-library-page",
   enableSounds: "big-picture-enable-sounds",
   enableVirtualKeyboard: "big-picture-enable-virtual-keyboard",
   enableDiagnostics: "big-picture-enable-diagnostics",
@@ -192,8 +200,10 @@ export function getIntegrationProviderSaveButtonFocusId(
   return `integrations-${providerId}-save`;
 }
 
-export function getLastDownloadsBehaviorItemFocusId(isWindows: boolean) {
-  return isWindows
+export function getLastDownloadsBehaviorItemFocusId(
+  showsShortcutItem: boolean
+) {
+  return showsShortcutItem
     ? DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.createStartMenuShortcut
     : DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.deleteArchiveFilesAfterExtractionByDefault;
 }

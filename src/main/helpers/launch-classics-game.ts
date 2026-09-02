@@ -15,6 +15,7 @@ import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 import { spawnDetachedEmulator } from "./spawn-detached-emulator";
+import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
 
 export class EmulatorNotConfiguredError extends Error {
   code = "EMULATOR_NOT_CONFIGURED" as const;
@@ -244,6 +245,8 @@ export const launchClassicsGame = async (
   });
 
   const workingDirectory = path.dirname(executableTarget);
+
+  await prepareEmulatorSouvenirs(system, config.executablePath);
 
   try {
     const processRef = await spawnDetachedEmulator(

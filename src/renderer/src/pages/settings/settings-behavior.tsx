@@ -13,7 +13,7 @@ export function SettingsBehavior() {
     (state) => state.userPreferences.value
   );
 
-  const [showRunAtStartup, setShowRunAtStartup] = useState(false);
+  const showRunAtStartup = !window.electron.isPortableVersion;
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
   const [selectedDefaultProtonPath, setSelectedDefaultProtonPath] =
@@ -112,12 +112,6 @@ export function SettingsBehavior() {
       setSelectedDefaultProtonPath("");
     }
   }, [protonVersions, protonVersionsLoaded, selectedDefaultProtonPath]);
-
-  useEffect(() => {
-    window.electron.isPortableVersion().then((isPortableVersion) => {
-      setShowRunAtStartup(!isPortableVersion);
-    });
-  }, []);
 
   const handleChange = (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
@@ -312,7 +306,8 @@ export function SettingsBehavior() {
         }
       />
 
-      {window.electron.platform === "win32" && (
+      {(window.electron.platform === "win32" ||
+        window.electron.platform === "linux") && (
         <CheckboxField
           label={t("create_shortcuts_on_download")}
           checked={form.createStartMenuShortcut}

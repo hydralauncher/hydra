@@ -4,7 +4,7 @@ import type {
   DownloadSource,
 } from "@types";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import axios from "axios";
+import { logger } from "@renderer/logger";
 import {
   useCallback,
   useDeferredValue,
@@ -172,14 +172,6 @@ export interface SearchGamesResponseData {
   count: number;
 }
 
-interface SteamGenresResponse {
-  en: string[];
-}
-
-interface SteamTagsResponse {
-  en: Record<string, number>;
-}
-
 interface LaunchboxFiltersResponse {
   platforms?: Array<string | LaunchboxPlatform>;
   genres?: string[];
@@ -187,9 +179,14 @@ interface LaunchboxFiltersResponse {
   publishers?: string[];
 }
 
-const externalResourcesInstance = axios.create({
-  baseURL: import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL,
-});
+const logRejectedMetadataRequest = (
+  resource: string,
+  result: PromiseSettledResult<unknown>
+) => {
+  if (result.status === "rejected") {
+    logger.warn(`[catalogue] failed to load ${resource}:`, result.reason);
+  }
+};
 
 function parseJsonParam(value: string | null): unknown {
   if (!value) return undefined;
@@ -390,14 +387,22 @@ export function useCatalogueData() {
         launchboxFiltersResponse,
         rawDownloadSources,
       ] = await Promise.allSettled([
-        externalResourcesInstance.get<SteamGenresResponse>(
-          "/steam-genres.json"
+        globalThis.window.electron.hydraApi.get<string[]>(
+          "/catalogue/steam/genres",
+          { params: { language: "en" }, needsAuth: false }
         ),
-        externalResourcesInstance.get<SteamTagsResponse>(
-          "/steam-user-tags.json"
+        globalThis.window.electron.hydraApi.get<Record<string, number>>(
+          "/catalogue/steam/tags",
+          { params: { language: "en" }, needsAuth: false }
         ),
-        externalResourcesInstance.get<string[]>("/steam-developers.json"),
-        externalResourcesInstance.get<string[]>("/steam-publishers.json"),
+        globalThis.window.electron.hydraApi.get<string[]>(
+          "/catalogue/steam/developers",
+          { needsAuth: false }
+        ),
+        globalThis.window.electron.hydraApi.get<string[]>(
+          "/catalogue/steam/publishers",
+          { needsAuth: false }
+        ),
         globalThis.window.electron.hydraApi.get<LaunchboxFiltersResponse>(
           "/catalogue/filters?shop=launchbox",
           { needsAuth: false }
@@ -407,20 +412,27 @@ export function useCatalogueData() {
 
       if (cancelled) return;
 
+      logRejectedMetadataRequest("steam-genres", genresResponse);
+      logRejectedMetadataRequest("steam-user-tags", tagsResponse);
+      logRejectedMetadataRequest("steam-developers", developersResponse);
+      logRejectedMetadataRequest("steam-publishers", publishersResponse);
+      logRejectedMetadataRequest("launchbox-filters", launchboxFiltersResponse);
+      logRejectedMetadataRequest("download-sources", rawDownloadSources);
+
       if (genresResponse.status === "fulfilled") {
-        setSteamGenres(genresResponse.value.data.en);
+        setSteamGenres(genresResponse.value);
       }
 
       if (tagsResponse.status === "fulfilled") {
-        setSteamTags(tagsResponse.value.data.en);
+        setSteamTags(tagsResponse.value);
       }
 
       if (developersResponse.status === "fulfilled") {
-        setSteamDevelopers(developersResponse.value.data);
+        setSteamDevelopers(developersResponse.value);
       }
 
       if (publishersResponse.status === "fulfilled") {
-        setSteamPublishers(publishersResponse.value.data);
+        setSteamPublishers(publishersResponse.value);
       }
 
       if (launchboxFiltersResponse.status === "fulfilled") {

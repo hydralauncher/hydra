@@ -16,7 +16,6 @@ interface Props {
   config: EmulatorConfig;
   onBiosStatusChange: (installed: boolean) => void;
   onConfigChange?: (config: EmulatorConfig) => void;
-  onSkip: () => void;
 }
 
 export function SetupStepBios({
@@ -25,7 +24,6 @@ export function SetupStepBios({
   config,
   onBiosStatusChange,
   onConfigChange,
-  onSkip,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const [installed, setInstalled] = useState<boolean | null>(null);
@@ -125,53 +123,42 @@ export function SetupStepBios({
           <span>{t("setup_bios_select_folder")}</span>
         </Button>
       </div>
-      <p className="setup-modal__bios-hint">{t("setup_bios_folder_hint")}</p>
+      {installed === false && (
+        <p className="setup-modal__bios-hint">{t("setup_bios_recheck_note")}</p>
+      )}
 
-      <div className="setup-modal__hint" style={{ justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          className="setup-modal__ghost-button"
-          onClick={onSkip}
-        >
-          {t("setup_skip_later")}
-        </button>
-      </div>
-
-      <div
-        className="setup-modal__alert setup-modal__alert--neutral"
-        style={{ marginTop: "auto" }}
-      >
+      {installed !== null && (
         <div
-          className={`setup-modal__row-icon ${
-            installed
-              ? "setup-modal__row-icon--found"
-              : "setup-modal__row-icon--neutral"
-          }`}
-          style={{ width: 36, height: 36 }}
+          className="setup-modal__alert setup-modal__alert--neutral"
+          style={{ marginTop: "auto" }}
         >
-          {installed ? (
-            <CheckCircleFillIcon size={16} />
-          ) : (
-            <ClockIcon size={16} />
+          <div
+            className={`setup-modal__row-icon ${
+              installed
+                ? "setup-modal__row-icon--found"
+                : "setup-modal__row-icon--neutral"
+            }`}
+            style={{ width: 36, height: 36 }}
+          >
+            {installed ? (
+              <CheckCircleFillIcon size={16} />
+            ) : (
+              <ClockIcon size={16} />
+            )}
+          </div>
+          <div className="setup-modal__alert-text">
+            <span className="setup-modal__alert-title">
+              {installed ? t("setup_bios_found") : t("setup_bios_not_yet")}
+            </span>
+          </div>
+          {!installed && (
+            <Button theme="primary" onClick={() => probe()} disabled={checking}>
+              <SyncIcon size={14} />
+              <span>{t("setup_bios_check_again")}</span>
+            </Button>
           )}
         </div>
-        <div className="setup-modal__alert-text">
-          <span className="setup-modal__alert-title">
-            {installed ? t("setup_bios_found") : t("setup_bios_not_yet")}
-          </span>
-          <span className="setup-modal__alert-note">
-            {installed
-              ? t("setup_bios_found_note")
-              : t("setup_bios_recheck_note")}
-          </span>
-        </div>
-        {!installed && (
-          <Button theme="primary" onClick={() => probe()} disabled={checking}>
-            <SyncIcon size={14} />
-            <span>{t("setup_bios_check_again")}</span>
-          </Button>
-        )}
-      </div>
+      )}
     </>
   );
 }

@@ -162,12 +162,9 @@ export function AnimatedHeroImage({
     );
 
     const bottomLayer = createLayer(width, height, devicePixelRatio);
-    const leftLayer = createLayer(width, height, devicePixelRatio);
-    const rightLayer = createLayer(width, height, devicePixelRatio);
-    if (!bottomLayer || !leftLayer || !rightLayer) return;
+    if (!bottomLayer) return;
 
     const bottomSourceHeight = sourceHeight * 0.34;
-    const sideSourceWidth = sourceWidth * 0.075;
 
     bottomLayer.context.save();
     bottomLayer.context.filter = `blur(${Math.max(32, height * 0.08)}px) saturate(1.08)`;
@@ -229,69 +226,7 @@ export function AnimatedHeroImage({
     bottomLayer.context.fillRect(0, height * 0.2, width, height * 0.38);
     bottomLayer.context.globalCompositeOperation = "source-over";
 
-    leftLayer.context.save();
-    leftLayer.context.filter = `blur(${Math.max(28, width * 0.035)}px) saturate(1.02)`;
-    leftLayer.context.globalAlpha = 0.78;
-    leftLayer.context.drawImage(
-      image,
-      sourceX,
-      sourceY,
-      sideSourceWidth,
-      sourceHeight,
-      0,
-      -height * 0.02,
-      width * 0.16,
-      height * 1.04
-    );
-    leftLayer.context.restore();
-
-    leftLayer.context.globalCompositeOperation = "destination-in";
-    const leftMask = leftLayer.context.createLinearGradient(
-      0,
-      0,
-      width * 0.2,
-      0
-    );
-    leftMask.addColorStop(0, "rgba(0, 0, 0, 1)");
-    leftMask.addColorStop(0.52, "rgba(0, 0, 0, 0.9)");
-    leftMask.addColorStop(1, "rgba(0, 0, 0, 0)");
-    leftLayer.context.fillStyle = leftMask;
-    leftLayer.context.fillRect(0, 0, width * 0.2, height);
-    leftLayer.context.globalCompositeOperation = "source-over";
-
-    rightLayer.context.save();
-    rightLayer.context.filter = `blur(${Math.max(28, width * 0.035)}px) saturate(1.02)`;
-    rightLayer.context.globalAlpha = 0.78;
-    rightLayer.context.drawImage(
-      image,
-      sourceX + sourceWidth - sideSourceWidth,
-      sourceY,
-      sideSourceWidth,
-      sourceHeight,
-      width * 0.84,
-      -height * 0.02,
-      width * 0.16,
-      height * 1.04
-    );
-    rightLayer.context.restore();
-
-    rightLayer.context.globalCompositeOperation = "destination-in";
-    const rightMask = rightLayer.context.createLinearGradient(
-      width,
-      0,
-      width * 0.8,
-      0
-    );
-    rightMask.addColorStop(0, "rgba(0, 0, 0, 1)");
-    rightMask.addColorStop(0.52, "rgba(0, 0, 0, 0.9)");
-    rightMask.addColorStop(1, "rgba(0, 0, 0, 0)");
-    rightLayer.context.fillStyle = rightMask;
-    rightLayer.context.fillRect(width * 0.8, 0, width * 0.2, height);
-    rightLayer.context.globalCompositeOperation = "source-over";
-
     context.drawImage(bottomLayer.canvas, 0, 0, width, height);
-    context.drawImage(leftLayer.canvas, 0, 0, width, height);
-    context.drawImage(rightLayer.canvas, 0, 0, width, height);
 
     const verticalFade = context.createLinearGradient(
       0,
@@ -300,29 +235,15 @@ export function AnimatedHeroImage({
       height
     );
     verticalFade.addColorStop(0, withAlpha(backgroundColor, 0));
-    verticalFade.addColorStop(0.14, withAlpha(backgroundColor, 0.02));
-    verticalFade.addColorStop(0.32, withAlpha(backgroundColor, 0.08));
-    verticalFade.addColorStop(0.54, withAlpha(backgroundColor, 0.18));
-    verticalFade.addColorStop(0.72, withAlpha(backgroundColor, 0.38));
-    verticalFade.addColorStop(0.86, withAlpha(backgroundColor, 0.68));
-    verticalFade.addColorStop(0.94, withAlpha(backgroundColor, 0.9));
+    verticalFade.addColorStop(0.14, withAlpha(backgroundColor, 0.022));
+    verticalFade.addColorStop(0.32, withAlpha(backgroundColor, 0.088));
+    verticalFade.addColorStop(0.54, withAlpha(backgroundColor, 0.198));
+    verticalFade.addColorStop(0.72, withAlpha(backgroundColor, 0.418));
+    verticalFade.addColorStop(0.86, withAlpha(backgroundColor, 0.748));
+    verticalFade.addColorStop(0.94, withAlpha(backgroundColor, 0.99));
     verticalFade.addColorStop(1, backgroundColor);
     context.fillStyle = verticalFade;
     context.fillRect(0, height * 0.32, width, height * 0.68);
-
-    const leftFade = context.createLinearGradient(0, 0, width * 0.12, 0);
-    leftFade.addColorStop(0, backgroundColor);
-    leftFade.addColorStop(0.26, withAlpha(backgroundColor, 0.58));
-    leftFade.addColorStop(1, withAlpha(backgroundColor, 0));
-    context.fillStyle = leftFade;
-    context.fillRect(0, 0, width * 0.12, height);
-
-    const rightFade = context.createLinearGradient(width, 0, width * 0.88, 0);
-    rightFade.addColorStop(0, backgroundColor);
-    rightFade.addColorStop(0.26, withAlpha(backgroundColor, 0.58));
-    rightFade.addColorStop(1, withAlpha(backgroundColor, 0));
-    context.fillStyle = rightFade;
-    context.fillRect(width * 0.88, 0, width * 0.12, height);
   }, [clearBlendCanvas]);
 
   const scheduleRender = useCallback(() => {
