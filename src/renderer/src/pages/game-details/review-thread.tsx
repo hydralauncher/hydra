@@ -82,7 +82,17 @@ const mergeReplies = (
   incoming: GameReviewAnswer[]
 ) => {
   const seen = new Set(existing.map((reply) => reply.id));
-  return [...existing, ...incoming.filter((reply) => !seen.has(reply.id))];
+  const merged = [
+    ...existing,
+    ...incoming.filter((reply) => !seen.has(reply.id)),
+  ];
+
+  return merged.toSorted((a, b) => {
+    const difference =
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+
+    return difference !== 0 ? difference : a.id.localeCompare(b.id);
+  });
 };
 
 export function ReviewThread({
