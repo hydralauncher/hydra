@@ -50,6 +50,18 @@ const RESTORE_MODAL_CONFIRM_BUTTON_ID = "emu-saves-restore-confirm";
 const recordKey = (record: MemoryCardSaveRecord): string =>
   `${record.cardFilePath}::${record.folderName}`;
 
+const listLocalSaves = (
+  platform: EmulationSavePlatform
+): Promise<MemoryCardSaveRecord[]> => {
+  if (platform === "ps2") {
+    return globalThis.window.electron.listPs2MemcardSaves();
+  }
+  if (platform === "ps1") {
+    return globalThis.window.electron.listPs1MemcardSaves();
+  }
+  return globalThis.window.electron.listLocalEmulationSaves(platform);
+};
+
 function emulationSaveToArtifact(save: EmulationCloudSave): GameArtifact {
   return {
     id: save.id,
@@ -234,17 +246,11 @@ export function GameCloudSettingsTab({
     if (isEmulationGame) {
       const platform = emulationPlatform;
       if (!platform) return;
-      const localPromise =
-        platform === "ps2"
-          ? globalThis.window.electron.listPs2MemcardSaves()
-          : platform === "ps1"
-            ? globalThis.window.electron.listPs1MemcardSaves()
-            : globalThis.window.electron.listLocalEmulationSaves(platform);
       const [saves, local] = await Promise.all([
         globalThis.window.electron
           .listEmulationSaves(platform, game.objectId)
           .catch(() => [] as EmulationCloudSave[]),
-        localPromise,
+        listLocalSaves(platform),
       ]);
       const filtered = saves.filter((s) => s.objectId === game.objectId);
       setEmulationSaves(filtered);

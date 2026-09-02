@@ -356,16 +356,27 @@ const createLogTail = (
   };
 };
 
-const startLogWatcher = (
-  gameKey: string,
-  watcherToken: object,
-  game: Game,
-  processId: number,
-  logPath: string,
-  pattern: RegExp,
-  titleFirst: boolean,
-  initialOffset?: number
-) => {
+interface StartLogWatcherOptions {
+  gameKey: string;
+  watcherToken: object;
+  game: Game;
+  processId: number;
+  logPath: string;
+  pattern: RegExp;
+  titleFirst: boolean;
+  initialOffset?: number;
+}
+
+const startLogWatcher = ({
+  gameKey,
+  watcherToken,
+  game,
+  processId,
+  logPath,
+  pattern,
+  titleFirst,
+  initialOffset,
+}: StartLogWatcherOptions) => {
   const readNewUnlocks = createLogTail(
     logPath,
     pattern,
@@ -577,15 +588,9 @@ interface StartEmulatorSouvenirWatcherOptions {
   screenshotDirectories?: string[];
 }
 
-interface StartConfiguredLogWatcherOptions {
-  gameKey: string;
-  watcherToken: object;
-  game: Game;
-  processId: number;
+interface StartConfiguredLogWatcherOptions
+  extends Omit<StartLogWatcherOptions, "logPath"> {
   logPath: string | null;
-  pattern: RegExp;
-  titleFirst: boolean;
-  initialOffset?: number;
 }
 
 const startConfiguredLogWatcher = ({
@@ -603,7 +608,7 @@ const startConfiguredLogWatcher = ({
     return;
   }
 
-  startLogWatcher(
+  startLogWatcher({
     gameKey,
     watcherToken,
     game,
@@ -611,8 +616,17 @@ const startConfiguredLogWatcher = ({
     logPath,
     pattern,
     titleFirst,
-    initialOffset
-  );
+    initialOffset,
+  });
+};
+
+const configuredLogPathForSystem = (
+  system: EmulatorSessionSystem,
+  executablePath: string
+): string | null => {
+  if (system === "ps1") return duckstationLogPath();
+  if (system === "ps2") return pcsx2LogPath(executablePath);
+  return null;
 };
 
 export const startEmulatorSouvenirWatcher = async ({
@@ -652,12 +666,7 @@ export const startEmulatorSouvenirWatcher = async ({
   const logFormat = getEmulatorAchievementLogFormat(system);
   if (logFormat) {
     const configuredLogPath =
-      sessionLogPath ??
-      (system === "ps1"
-        ? duckstationLogPath()
-        : system === "ps2"
-          ? pcsx2LogPath(executablePath)
-          : null);
+      sessionLogPath ?? configuredLogPathForSystem(system, executablePath);
     const capturePreparation = prepareLinuxGameCaptureSession(gameKey);
     startConfiguredLogWatcher({
       gameKey,

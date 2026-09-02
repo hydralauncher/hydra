@@ -14,8 +14,13 @@ import type {
 } from "@types";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 
+type EmulationSaveMetadataInput =
+  | EmulationSaveMetadata
+  | Record<string, unknown>
+  | null;
+
 const isPspMetadata = (
-  metadata: EmulationSaveMetadata | Record<string, unknown> | null
+  metadata: EmulationSaveMetadataInput
 ): metadata is Extract<
   EmulationSaveMetadata,
   { artifactFormat: "ppsspp-savedata-zip" }
@@ -30,7 +35,7 @@ const isPspMetadata = (
   /^[^/\\]+$/.test(metadata.savedataDirectory);
 
 const isGamecubeMetadata = (
-  metadata: EmulationSaveMetadata | Record<string, unknown> | null
+  metadata: EmulationSaveMetadataInput
 ): metadata is Extract<
   EmulationSaveMetadata,
   { artifactFormat: "dolphin-gci" }
@@ -50,7 +55,7 @@ const isGamecubeMetadata = (
   );
 
 const isWiiMetadata = (
-  metadata: EmulationSaveMetadata | Record<string, unknown> | null
+  metadata: EmulationSaveMetadataInput
 ): metadata is Extract<
   EmulationSaveMetadata,
   { artifactFormat: "dolphin-wii-data-bin" }
@@ -75,7 +80,7 @@ const preferExistingDirectories = (directories: string[]): string[] => {
 
 const restoreTargets = async (
   platform: EmulationSavePlatform,
-  metadata: EmulationSaveMetadata | Record<string, unknown> | null = null
+  metadata: EmulationSaveMetadataInput = null
 ): Promise<MemcardRestoreTarget[]> => {
   const config = await emulators.getEmulatorConfig(
     emulators.emulationSavePlatformToSystem(platform)
@@ -128,7 +133,7 @@ const restoreTargets = async (
 const getMemcardRestoreTargets = async (
   _event: Electron.IpcMainInvokeEvent,
   platform: EmulationSavePlatform,
-  metadata?: EmulationSaveMetadata | Record<string, unknown> | null
+  metadata?: EmulationSaveMetadataInput
 ): Promise<MemcardRestoreTarget[]> => restoreTargets(platform, metadata);
 
 const restorePpssppSave = async (
@@ -283,70 +288,111 @@ const restoreWiiSaveExport = async (
   return outputPath;
 };
 
+const FILE_SAVE_PLATFORMS = new Set<EmulationSavePlatform>([
+  "psp",
+  "gamecube",
+  "wii",
+]);
+
+const assertValidRestoreDestination = async (
+  platform: EmulationSavePlatform,
+  metadata: EmulationSaveMetadataInput,
+  targetCardFilePath: string
+): Promise<void> => {
+  if (!FILE_SAVE_PLATFORMS.has(platform)) return;
+  const allowedTargets = await restoreTargets(platform, metadata);
+  const isAllowed = allowedTargets.some(
+    (target) => target.cardFilePath === targetCardFilePath
+  );
+  if (!isAllowed) {
+    throw new Error("Invalid emulator save restore destination");
+  }
+};
+
+const restoreFileSave = async (
+  platform: EmulationSavePlatform,
+  bytes: Buffer,
+  targetCardFilePath: string,
+  metadata: EmulationSaveMetadataInput,
+  sourceFileName?: string
+): Promise<MemcardRestoreResult | null> => {
+  if (platform === "psp") {
+    if (!isPspMetadata(metadata)) {
+      throw new Error("Invalid PPSSPP save metadata");
+    }
+    await restorePpssppSave(bytes, targetCardFilePath, metadata);
+    return { ok: true };
+  }
+
+  if (platform === "gamecube") {
+    if (!isGamecubeMetadata(metadata)) {
+      throw new Error("Invalid GameCube save metadata");
+    }
+    await restoreGamecubeSave(
+      bytes,
+      targetCardFilePath,
+      metadata,
+      sourceFileName
+    );
+    return { ok: true };
+  }
+
+  if (platform === "wii") {
+    if (!isWiiMetadata(metadata)) {
+      throw new Error("Invalid Wii save metadata");
+    }
+    const location = await restoreWiiSaveExport(
+      bytes,
+      targetCardFilePath,
+      metadata
+    );
+    return { ok: true, reason: "manual-import-required", location };
+  }
+
+  return null;
+};
+
+const restoreMemoryCardSave = async (
+  platform: EmulationSavePlatform,
+  bytes: Buffer,
+  targetCardFilePath: string,
+  saveId: string
+): Promise<MemcardRestoreResult> => {
+  const result =
+    platform === "ps2"
+      ? await emulators.importPsuIntoCard(targetCardFilePath, bytes)
+      : await emulators.importMcsIntoCard(targetCardFilePath, bytes);
+  if (!result.ok) {
+    logger.error(
+      "Failed to restore emulation save",
+      { platform, saveId, targetCardFilePath, reason: result.reason },
+      result.error
+    );
+  }
+  return { ok: result.ok, error: result.error, reason: result.reason };
+};
+
 // Download the cloud save and write it back into the chosen local card.
 const restoreEmulationSave = async (
   _event: Electron.IpcMainInvokeEvent,
   platform: EmulationSavePlatform,
   saveId: string,
   targetCardFilePath: string,
-  metadata: EmulationSaveMetadata | Record<string, unknown> | null = null,
+  metadata: EmulationSaveMetadataInput = null,
   sourceFileName?: string
 ): Promise<MemcardRestoreResult> => {
   try {
-    const allowedTargets = await restoreTargets(platform, metadata);
-    if (
-      (platform === "psp" || platform === "gamecube" || platform === "wii") &&
-      !allowedTargets.some(
-        (target) => target.cardFilePath === targetCardFilePath
-      )
-    ) {
-      throw new Error("Invalid emulator save restore destination");
-    }
-
+    await assertValidRestoreDestination(platform, metadata, targetCardFilePath);
     const bytes = await emulators.downloadEmulationSaveBytes(saveId);
-    if (platform === "psp") {
-      if (!isPspMetadata(metadata)) {
-        throw new Error("Invalid PPSSPP save metadata");
-      }
-      await restorePpssppSave(bytes, targetCardFilePath, metadata);
-      return { ok: true };
-    }
-    if (platform === "gamecube") {
-      if (!isGamecubeMetadata(metadata)) {
-        throw new Error("Invalid GameCube save metadata");
-      }
-      await restoreGamecubeSave(
-        bytes,
-        targetCardFilePath,
-        metadata,
-        sourceFileName
-      );
-      return { ok: true };
-    }
-    if (platform === "wii") {
-      if (!isWiiMetadata(metadata)) {
-        throw new Error("Invalid Wii save metadata");
-      }
-      const location = await restoreWiiSaveExport(
-        bytes,
-        targetCardFilePath,
-        metadata
-      );
-      return { ok: true, reason: "manual-import-required", location };
-    }
-
-    const result =
-      platform === "ps2"
-        ? await emulators.importPsuIntoCard(targetCardFilePath, bytes)
-        : await emulators.importMcsIntoCard(targetCardFilePath, bytes);
-    if (!result.ok) {
-      logger.error(
-        "Failed to restore emulation save",
-        { platform, saveId, targetCardFilePath, reason: result.reason },
-        result.error
-      );
-    }
-    return { ok: result.ok, error: result.error, reason: result.reason };
+    const fileSaveResult = await restoreFileSave(
+      platform,
+      bytes,
+      targetCardFilePath,
+      metadata,
+      sourceFileName
+    );
+    if (fileSaveResult) return fileSaveResult;
+    return restoreMemoryCardSave(platform, bytes, targetCardFilePath, saveId);
   } catch (err) {
     logger.error("Failed to restore emulation save", err);
     return {

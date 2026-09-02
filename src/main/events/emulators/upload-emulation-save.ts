@@ -18,6 +18,7 @@ import type {
   EmulationSaveMetadata,
   MemoryCardSaveRecord,
 } from "@types";
+import type { DiscoveredEmulationFileSave } from "@main/services/emulators/emulation-file-saves";
 import { buildLocalLaunchboxAssetIndex } from "./memcard-local-assets";
 
 const BACKUP_PROGRESS_CHANNEL = "on-emulation-backup-progress";
@@ -85,6 +86,88 @@ const buildArtifact = async (
   return { buffer: emulators.buildMcsBuffer(contents), ext: "mcs" };
 };
 
+const buildFileSaveArtifact = async (
+  platform: Extract<EmulationSavePlatform, "psp" | "gamecube">,
+  discovered: DiscoveredEmulationFileSave
+): Promise<{ buffer: Buffer; fileName: string }> => {
+  if (platform === "gamecube") {
+    return {
+      buffer: await fs.readFile(discovered.sourcePath),
+      fileName: path.basename(discovered.sourcePath),
+    };
+  }
+
+  if (discovered.metadata.artifactFormat !== "ppsspp-savedata-zip") {
+    throw new Error("Invalid PPSSPP save metadata");
+  }
+
+  const temporaryDirectory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "hydra-ppsspp-save-")
+  );
+  try {
+    const fileName = `${sanitize(discovered.metadata.savedataDirectory)}.zip`;
+    const archivePath = path.join(temporaryDirectory, fileName);
+    const stagingPath = path.join(temporaryDirectory, "staging");
+    await fs.mkdir(stagingPath);
+    await fs.cp(
+      discovered.sourcePath,
+      path.join(stagingPath, discovered.metadata.savedataDirectory),
+      { recursive: true }
+    );
+    await SevenZip.createZip({
+      sourcePath: stagingPath,
+      destinationPath: archivePath,
+    });
+    return { buffer: await fs.readFile(archivePath), fileName };
+  } finally {
+    await fs.rm(temporaryDirectory, { recursive: true, force: true });
+  }
+};
+
+const uploadFileSave = async (
+  platform: Extract<EmulationSavePlatform, "psp" | "gamecube">,
+  sourcePath: string,
+  saveIdentity: string
+): Promise<EmulationCloudSave> => {
+  const discovered = await getFileSaveRecord(
+    platform,
+    sourcePath,
+    saveIdentity
+  );
+  if (!discovered) throw new Error(`Could not find save "${saveIdentity}"`);
+
+  const localAssets = await buildLocalLaunchboxAssetIndex();
+  const normalizedSku = emulators.normalizeSku(discovered.sku);
+  const remoteAssets = localAssets.has(normalizedSku)
+    ? null
+    : await emulators.fetchShopDetailsForSkus([discovered.sku]);
+  const remoteEntry = remoteAssets?.get(normalizedSku);
+  let assets = localAssets.get(normalizedSku);
+  if (!assets && remoteEntry) {
+    assets = emulators.mapEntryToAssets(remoteEntry);
+  }
+  if (!assets) {
+    throw new Error(`Could not map save "${saveIdentity}" to a catalogue game`);
+  }
+
+  const config = await emulators.getEmulatorConfig(
+    emulators.emulationSavePlatformToSystem(platform)
+  );
+  const artifact = await buildFileSaveArtifact(platform, discovered);
+  return emulators.uploadEmulationSave({
+    platform,
+    emulator: emulators.toEmulationSaveEmulator(config.binary),
+    shop: "launchbox",
+    objectId: assets.objectId,
+    saveIdentity: discovered.saveIdentity,
+    fileName: artifact.fileName,
+    label: assets.title || discovered.saveIdentity,
+    localLastModifiedAt: new Date(discovered.modifiedAt).toISOString(),
+    buffer: artifact.buffer,
+    metadata: discovered.metadata as EmulationSaveMetadata,
+  });
+};
+
 const uploadOne = async (
   platform: EmulationSavePlatform,
   cardFilePath: string,
@@ -94,79 +177,11 @@ const uploadOne = async (
     throw new Error("Wii cloud saves require a native Dolphin data.bin export");
   }
 
-  const config = await emulators.getEmulatorConfig(
-    emulators.emulationSavePlatformToSystem(platform)
-  );
   if (platform === "psp" || platform === "gamecube") {
-    const discovered = await getFileSaveRecord(
-      platform,
-      cardFilePath,
-      folderName
-    );
-    if (!discovered) throw new Error(`Could not find save "${folderName}"`);
-
-    const localAssets = await buildLocalLaunchboxAssetIndex();
-    const normalizedSku = emulators.normalizeSku(discovered.sku);
-    const remoteAssets = localAssets.has(normalizedSku)
-      ? null
-      : await emulators.fetchShopDetailsForSkus([discovered.sku]);
-    const remoteEntry = remoteAssets?.get(normalizedSku);
-    const assets =
-      localAssets.get(normalizedSku) ??
-      (remoteEntry ? emulators.mapEntryToAssets(remoteEntry) : null);
-    if (!assets) {
-      throw new Error(`Could not map save "${folderName}" to a catalogue game`);
-    }
-
-    let buffer: Buffer;
-    let fileName: string;
-    let temporaryDirectory: string | null = null;
-    try {
-      if (platform === "psp") {
-        if (discovered.metadata.artifactFormat !== "ppsspp-savedata-zip") {
-          throw new Error("Invalid PPSSPP save metadata");
-        }
-        temporaryDirectory = await fs.mkdtemp(
-          path.join(os.tmpdir(), "hydra-ppsspp-save-")
-        );
-        fileName = `${sanitize(discovered.metadata.savedataDirectory)}.zip`;
-        const archivePath = path.join(temporaryDirectory, fileName);
-        const stagingPath = path.join(temporaryDirectory, "staging");
-        await fs.mkdir(stagingPath);
-        await fs.cp(
-          discovered.sourcePath,
-          path.join(stagingPath, discovered.metadata.savedataDirectory),
-          { recursive: true }
-        );
-        await SevenZip.createZip({
-          sourcePath: stagingPath,
-          destinationPath: archivePath,
-        });
-        buffer = await fs.readFile(archivePath);
-      } else {
-        fileName = path.basename(discovered.sourcePath);
-        buffer = await fs.readFile(discovered.sourcePath);
-      }
-
-      return await emulators.uploadEmulationSave({
-        platform,
-        emulator: emulators.toEmulationSaveEmulator(config.binary),
-        shop: "launchbox",
-        objectId: assets.objectId,
-        saveIdentity: discovered.saveIdentity,
-        fileName,
-        label: assets.title || discovered.saveIdentity,
-        localLastModifiedAt: new Date(discovered.modifiedAt).toISOString(),
-        buffer,
-        metadata: discovered.metadata as EmulationSaveMetadata,
-      });
-    } finally {
-      if (temporaryDirectory) {
-        await fs.rm(temporaryDirectory, { recursive: true, force: true });
-      }
-    }
+    return uploadFileSave(platform, cardFilePath, folderName);
   }
 
+  const config = await emulators.getEmulatorConfig(platform);
   const record = await getRecord(platform, cardFilePath, folderName);
   const artifact = await buildArtifact(platform, cardFilePath, folderName);
   if (!artifact) throw new Error(`Could not read save "${folderName}"`);

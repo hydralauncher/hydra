@@ -1,4 +1,5 @@
 import type {
+  EmulationCloudSave,
   EmulatorBinary,
   EmulatorSystem,
   EmulationSavePlatform,
@@ -80,6 +81,20 @@ export const platformToEmulationSavePlatform = (
   if (/playstation|\bps1\b|\bpsx\b/.test(normalized)) return "ps1";
   if (/game\s*cube/.test(normalized)) return "gamecube";
   if (/^(nintendo\s+)?wii$/.test(normalized)) return "wii";
+  return null;
+};
+
+export const getEmulationSaveMetadataSku = (
+  save: Pick<EmulationCloudSave, "metadata">
+): string | null => {
+  const metadata = save.metadata;
+  if (!metadata) return null;
+  if ("discId" in metadata && typeof metadata.discId === "string") {
+    return metadata.discId;
+  }
+  if ("gameId" in metadata && typeof metadata.gameId === "string") {
+    return metadata.gameId;
+  }
   return null;
 };
 

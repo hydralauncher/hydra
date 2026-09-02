@@ -79,12 +79,22 @@ const readDirectoryStats = async (
 };
 
 const parseIniValue = (content: string, key: string): string | null => {
-  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = content.match(
-    new RegExp(`^\\s*${escaped}\\s*=\\s*(.*?)\\s*$`, "im")
-  );
-  const value = match?.[1]?.trim().replace(/^['"]|['"]$/g, "");
-  return value || null;
+  const normalizedKey = key.toLowerCase();
+  for (const line of content.split(/\r?\n/)) {
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex < 0) continue;
+    if (line.slice(0, separatorIndex).trim().toLowerCase() !== normalizedKey) {
+      continue;
+    }
+
+    const rawValue = line.slice(separatorIndex + 1).trim();
+    const isQuoted =
+      (rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+      (rawValue.startsWith("'") && rawValue.endsWith("'"));
+    const value = isQuoted ? rawValue.slice(1, -1).trim() : rawValue;
+    return value || null;
+  }
+  return null;
 };
 
 const resolveConfiguredMemstick = (
@@ -192,13 +202,15 @@ export const parseGciInternalFileName = (header: Buffer): string | null => {
     .split("\0", 1)[0]
     .trim();
   if (!value) return null;
-  return Array.from(value, (character) =>
-    character.charCodeAt(0) < 0x20 || character === "/" || character === "\\"
-      ? "_"
-      : character
-  )
-    .join("")
-    .slice(0, 32);
+  let sanitized = "";
+  for (const character of value) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    sanitized +=
+      codePoint < 0x20 || character === "/" || character === "\\"
+        ? "_"
+        : character;
+  }
+  return sanitized.slice(0, 32);
 };
 
 const regionFromPath = (
@@ -207,12 +219,12 @@ const regionFromPath = (
   EmulationSaveMetadata,
   { artifactFormat: "dolphin-gci" }
 >["region"] => {
-  const normalized = parts.map((part) => part.toUpperCase());
-  if (normalized.includes("USA")) return "USA";
-  if (normalized.includes("JAP") || normalized.includes("JPN")) return "JPN";
-  if (normalized.includes("EUR")) return "EUR";
-  if (normalized.includes("KOR")) return "KOR";
-  if (normalized.includes("DEV")) return "DEV";
+  const normalized = new Set(parts.map((part) => part.toUpperCase()));
+  if (normalized.has("USA")) return "USA";
+  if (normalized.has("JAP") || normalized.has("JPN")) return "JPN";
+  if (normalized.has("EUR")) return "EUR";
+  if (normalized.has("KOR")) return "KOR";
+  if (normalized.has("DEV")) return "DEV";
   return "unknown";
 };
 
@@ -241,6 +253,53 @@ const walkGciFiles = async (root: string): Promise<string[]> => {
   return files;
 };
 
+const inspectGciSave = async (
+  sourcePath: string,
+  gcRoot: string
+): Promise<DiscoveredEmulationFileSave | null> => {
+  const file = await fs.open(sourcePath, "r").catch(() => null);
+  if (!file) return null;
+
+  let header: Buffer;
+  try {
+    header = Buffer.alloc(0x40);
+    const { bytesRead } = await file.read(header, 0, header.length, 0);
+    if (bytesRead !== header.length) return null;
+  } finally {
+    await file.close();
+  }
+
+  const gameId = parseGciGameId(header);
+  const internalFileName = parseGciInternalFileName(header);
+  if (!gameId || !internalFileName) return null;
+
+  const stat = await fs.stat(sourcePath).catch(() => null);
+  if (!stat) return null;
+
+  const relativeParts = path.relative(gcRoot, sourcePath).split(path.sep);
+  const slot = slotFromPath(relativeParts);
+  const region = regionFromPath(relativeParts);
+  return {
+    platform: "gamecube",
+    sourcePath,
+    sourceLabel: `${region} · Card ${slot}`,
+    saveIdentity: `${slot}:${region}:${gameId}:${internalFileName}`,
+    sku: gameId,
+    fileCount: 1,
+    sizeBytes: stat.size,
+    createdAt: stat.birthtimeMs || stat.ctimeMs,
+    modifiedAt: stat.mtimeMs,
+    metadata: {
+      schemaVersion: 1,
+      artifactFormat: "dolphin-gci",
+      gameId,
+      slot,
+      region,
+      internalFileName,
+    },
+  };
+};
+
 export const discoverDolphinGamecubeSaves = async (
   executablePath: string
 ): Promise<DiscoveredEmulationFileSave[]> => {
@@ -248,46 +307,8 @@ export const discoverDolphinGamecubeSaves = async (
   for (const userDirectory of dolphinUserDirectoryCandidates(executablePath)) {
     const gcRoot = path.join(userDirectory, "GC");
     for (const sourcePath of await walkGciFiles(gcRoot)) {
-      const file = await fs.open(sourcePath, "r").catch(() => null);
-      if (!file) continue;
-      let gameId: string | null = null;
-      let internalFileName: string | null = null;
-      try {
-        const header = Buffer.alloc(0x40);
-        const { bytesRead } = await file.read(header, 0, header.length, 0);
-        gameId = bytesRead === header.length ? parseGciGameId(header) : null;
-        if (gameId) {
-          internalFileName = parseGciInternalFileName(header);
-          if (!internalFileName) gameId = null;
-        }
-      } finally {
-        await file.close();
-      }
-      if (!gameId) continue;
-      const stat = await fs.stat(sourcePath).catch(() => null);
-      if (!stat || !internalFileName) continue;
-      const relativeParts = path.relative(gcRoot, sourcePath).split(path.sep);
-      const slot = slotFromPath(relativeParts);
-      const region = regionFromPath(relativeParts);
-      discovered.push({
-        platform: "gamecube",
-        sourcePath,
-        sourceLabel: `${region} · Card ${slot}`,
-        saveIdentity: `${slot}:${region}:${gameId}:${internalFileName}`,
-        sku: gameId,
-        fileCount: 1,
-        sizeBytes: stat.size,
-        createdAt: stat.birthtimeMs || stat.ctimeMs,
-        modifiedAt: stat.mtimeMs,
-        metadata: {
-          schemaVersion: 1,
-          artifactFormat: "dolphin-gci",
-          gameId,
-          slot,
-          region,
-          internalFileName,
-        },
-      });
+      const save = await inspectGciSave(sourcePath, gcRoot);
+      if (save) discovered.push(save);
     }
   }
   return Array.from(
@@ -304,7 +325,7 @@ export const discoverEmulationFileSaves = (
     : discoverDolphinGamecubeSaves(executablePath);
 
 export const isSafeEmulationSaveArchiveEntry = (entry: string): boolean => {
-  const normalized = entry.replace(/\\/g, "/");
+  const normalized = entry.replaceAll("\\", "/");
   return (
     normalized.length > 0 &&
     !normalized.startsWith("/") &&
@@ -319,7 +340,10 @@ export const archiveEntriesBelongToDirectory = (
 ): boolean =>
   entries.length > 0 &&
   entries.every((entry) => {
-    const normalized = entry.replace(/\\/g, "/").replace(/\/$/, "");
+    const normalizedEntry = entry.replaceAll("\\", "/");
+    const normalized = normalizedEntry.endsWith("/")
+      ? normalizedEntry.slice(0, -1)
+      : normalizedEntry;
     return (
       isSafeEmulationSaveArchiveEntry(normalized) &&
       (normalized === directoryName ||
@@ -330,9 +354,9 @@ export const archiveEntriesBelongToDirectory = (
 export const parseDolphinWiiExportPath = (
   filePath: string
 ): { titleId: string; gameCode: string } | null => {
-  const normalized = filePath.replace(/\\/g, "/");
-  const match = normalized.match(
-    /\/private\/wii\/title\/([A-Za-z0-9]{4})\/data\.bin$/i
+  const normalized = filePath.replaceAll("\\", "/");
+  const match = /\/private\/wii\/title\/([a-z\d]{4})\/data\.bin$/i.exec(
+    normalized
   );
   if (!match) return null;
   const gameCode = match[1].toUpperCase();

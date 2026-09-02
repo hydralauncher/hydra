@@ -64,6 +64,77 @@ const findInImmediateSubdirectories = (
   return null;
 };
 
+const findAppImageInImmediateSubdirectories = (
+  directory: string,
+  binary: DownloadDetectableBinary
+): string | null => {
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(directory, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const appImage = findAppImage(path.join(directory, entry.name), binary);
+    if (appImage) return appImage;
+  }
+  return null;
+};
+
+const findInNamedEmulatorDirectories = (
+  downloadDirectory: string,
+  binary: DownloadDetectableBinary
+): string | null => {
+  const emulatorDirectories = new Set([
+    path.join(downloadDirectory, binary.displayName),
+    path.join(downloadDirectory, binary.binary),
+  ]);
+
+  for (const emulatorDirectory of emulatorDirectories) {
+    const managed = findManagedEmulatorExecutable(emulatorDirectory, binary);
+    if (managed) return managed;
+
+    if (process.platform === "linux") {
+      const directAppImage = findAppImage(emulatorDirectory, binary);
+      if (directAppImage) return directAppImage;
+
+      const nestedAppImage = findAppImageInImmediateSubdirectories(
+        emulatorDirectory,
+        binary
+      );
+      if (nestedAppImage) return nestedAppImage;
+    }
+  }
+  return null;
+};
+
+const findInDownloadDirectory = (
+  downloadDirectory: string,
+  binary: DownloadDetectableBinary,
+  executableNames: string[]
+): string | null => {
+  const direct = findDirect(downloadDirectory, [
+    ...executableNames,
+    ...binary.macosBundleNames,
+  ]);
+  if (direct) return direct;
+
+  const managed = findInNamedEmulatorDirectories(downloadDirectory, binary);
+  if (managed) return managed;
+
+  const portable = findInImmediateSubdirectories(downloadDirectory, [
+    ...executableNames,
+    ...binary.macosBundleNames,
+  ]);
+  if (portable) return portable;
+
+  return process.platform === "linux"
+    ? findAppImage(downloadDirectory, binary)
+    : null;
+};
+
 export const findEmulatorInDownloadDirectories = (
   binary: DownloadDetectableBinary,
   downloadDirectories: string[]
@@ -72,37 +143,12 @@ export const findEmulatorInDownloadDirectories = (
     process.platform === "win32" ? binary.windowsNames : binary.linuxNames;
 
   for (const downloadDirectory of downloadDirectories) {
-    const direct = findDirect(downloadDirectory, [
-      ...executableNames,
-      ...binary.macosBundleNames,
-    ]);
-    if (direct) return direct;
-
-    const emulatorDirectories = new Set([
-      path.join(downloadDirectory, binary.displayName),
-      path.join(downloadDirectory, binary.binary),
-    ]);
-
-    for (const emulatorDirectory of emulatorDirectories) {
-      const managed = findManagedEmulatorExecutable(emulatorDirectory, binary);
-      if (managed) return managed;
-
-      if (process.platform === "linux") {
-        const appImage = findAppImage(emulatorDirectory, binary);
-        if (appImage) return appImage;
-      }
-    }
-
-    const portable = findInImmediateSubdirectories(downloadDirectory, [
-      ...executableNames,
-      ...binary.macosBundleNames,
-    ]);
-    if (portable) return portable;
-
-    if (process.platform === "linux") {
-      const appImage = findAppImage(downloadDirectory, binary);
-      if (appImage) return appImage;
-    }
+    const executable = findInDownloadDirectory(
+      downloadDirectory,
+      binary,
+      executableNames
+    );
+    if (executable) return executable;
   }
 
   return null;

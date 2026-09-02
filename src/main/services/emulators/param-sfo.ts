@@ -36,11 +36,11 @@ export const parseParamSfoValue = (
       const valueStart = dataTableStart + dataOffset;
       const valueEnd = valueStart + dataUsedSize;
       if (valueEnd > data.length) return null;
-      const raw = data
-        .subarray(valueStart, valueEnd)
-        .toString("ascii")
-        .replace(/\0+$/, "")
-        .trim();
+      const decoded = data.subarray(valueStart, valueEnd).toString("ascii");
+      const nullOffset = decoded.indexOf("\0");
+      const raw = (
+        nullOffset === -1 ? decoded : decoded.slice(0, nullOffset)
+      ).trim();
       return raw.length > 0 ? normalize(raw) : null;
     }
   }

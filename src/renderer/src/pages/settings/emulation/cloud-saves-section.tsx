@@ -15,6 +15,7 @@ import {
 import { Button, ConfirmationModal } from "@renderer/components";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import {
+  getEmulationSaveMetadataSku,
   getSkuRegion,
   getSkuRegionFlag,
   getSkuRegionFromSaveIdentity,
@@ -213,12 +214,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
                 config.system === "dolphin"
                   ? getDolphinSavePlatformLabel(save.platform)
                   : null;
-              const metadataSku =
-                save.metadata && "discId" in save.metadata
-                  ? save.metadata.discId
-                  : save.metadata && "gameId" in save.metadata
-                    ? save.metadata.gameId
-                    : null;
+              const metadataSku = getEmulationSaveMetadataSku(save);
               const region =
                 typeof metadataSku === "string"
                   ? getSkuRegion(metadataSku)

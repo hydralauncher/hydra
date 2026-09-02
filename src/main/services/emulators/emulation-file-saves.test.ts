@@ -98,7 +98,15 @@ describe("emulator file saves", () => {
   it("reads GameCube identity and discovers a portable Dolphin GCI folder", async () => {
     const root = await makeTemporaryDirectory();
     const executablePath = path.join(root, "Dolphin.exe");
-    const cardPath = path.join(root, "User", "GC", "USA", "Card A");
+    const portableUserDirectory =
+      process.platform === "linux" ? "user" : "User";
+    const cardPath = path.join(
+      root,
+      portableUserDirectory,
+      "GC",
+      "USA",
+      "Card A"
+    );
     await fs.writeFile(path.join(root, "portable.txt"), "");
     await fs.mkdir(cardPath, { recursive: true });
     const header = Buffer.alloc(0x40);

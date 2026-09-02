@@ -16,6 +16,7 @@ import {
 
 import { Button, ConfirmationModal } from "@renderer/components";
 import {
+  getEmulationSaveMetadataSku,
   getSkuRegion,
   getSkuRegionFlag,
   getSkuRegionFromSaveIdentity,
@@ -46,6 +47,14 @@ interface GameEmulationSavesProps {
 const recordKey = (record: MemoryCardSaveRecord): string =>
   `${record.cardFilePath}::${record.folderName}`;
 
+const listLocalSaves = (
+  platform: EmulationSavePlatform
+): Promise<MemoryCardSaveRecord[]> => {
+  if (platform === "ps2") return window.electron.listPs2MemcardSaves();
+  if (platform === "ps1") return window.electron.listPs1MemcardSaves();
+  return window.electron.listLocalEmulationSaves(platform);
+};
+
 export function GameEmulationSaves({
   platform,
   objectId,
@@ -73,21 +82,16 @@ export function GameEmulationSaves({
     }
     setLoading(true);
     try {
-      const localPromise = isMemoryCardPlatform
-        ? platform === "ps2"
-          ? window.electron.listPs2MemcardSaves()
-          : window.electron.listPs1MemcardSaves()
-        : window.electron.listLocalEmulationSaves(platform);
       const [cloud, local] = await Promise.all([
         window.electron.listEmulationSaves(platform, objectId),
-        localPromise,
+        listLocalSaves(platform),
       ]);
       setCloudSaves(cloud.filter((save) => save.objectId === objectId));
       setRecords(local);
     } finally {
       setLoading(false);
     }
-  }, [hasActiveSubscription, isMemoryCardPlatform, platform, objectId]);
+  }, [hasActiveSubscription, platform, objectId]);
 
   useEffect(() => {
     load();
@@ -329,12 +333,7 @@ export function GameEmulationSaves({
               </h3>
               <ul className="game-emulation-saves__list">
                 {cloudSaves.map((save) => {
-                  const metadataSku =
-                    save.metadata && "discId" in save.metadata
-                      ? save.metadata.discId
-                      : save.metadata && "gameId" in save.metadata
-                        ? save.metadata.gameId
-                        : null;
+                  const metadataSku = getEmulationSaveMetadataSku(save);
                   const region =
                     typeof metadataSku === "string"
                       ? getSkuRegion(metadataSku)

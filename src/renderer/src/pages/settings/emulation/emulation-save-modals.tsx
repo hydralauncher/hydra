@@ -108,6 +108,9 @@ export function RestoreModal({
     platform === "ps2"
       ? "cloud_restore_unformatted_ps2"
       : "cloud_restore_unformatted";
+  const restoreButtonLabel = isMemoryCardPlatform
+    ? "cloud_restore_confirm"
+    : "cloud_restore_emulator_confirm";
 
   const handlePickFile = useCallback(async () => {
     if (!isMemoryCardPlatform) return;
@@ -239,13 +242,7 @@ export function RestoreModal({
               selectedFormat === "unformatted"
             }
           >
-            {busy
-              ? t("cloud_restoring")
-              : t(
-                  isMemoryCardPlatform
-                    ? "cloud_restore_confirm"
-                    : "cloud_restore_emulator_confirm"
-                )}
+            {busy ? t("cloud_restoring") : t(restoreButtonLabel)}
           </Button>
         </div>
       </div>
