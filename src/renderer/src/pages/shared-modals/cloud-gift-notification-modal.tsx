@@ -165,7 +165,8 @@ export function CloudGiftNotificationModal() {
 
         if (
           giftDetails?.status === CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE &&
-          !activeGiftIdRef.current
+          !activeGiftIdRef.current &&
+          !dismissedGiftIdsRef.current.has(giftId)
         ) {
           setGift(giftDetails);
           setNotification(item);
@@ -194,6 +195,8 @@ export function CloudGiftNotificationModal() {
   useEffect(() => {
     const unsubscribe = window.electron.onCloudGiftResolved(
       (resolvedGiftId) => {
+        dismissedGiftIdsRef.current.add(resolvedGiftId);
+
         if (
           notification &&
           notification.variables[CLOUD_GIFT_ID_VARIABLE] === resolvedGiftId
@@ -264,9 +267,9 @@ export function CloudGiftNotificationModal() {
     activeGiftIdRef.current = null;
 
     if (notification) {
-      dismissedGiftIdsRef.current.add(
-        notification.variables[CLOUD_GIFT_ID_VARIABLE]
-      );
+      const giftId = notification.variables[CLOUD_GIFT_ID_VARIABLE];
+      dismissedGiftIdsRef.current.add(giftId);
+      void window.electron.notifyCloudGiftResolved(giftId);
     }
 
     setNotification(null);
@@ -283,8 +286,6 @@ export function CloudGiftNotificationModal() {
       await window.electron.hydraApi.post(`/cloud-gifts/${giftId}/accept`, {
         needsAuth: true,
       });
-
-      void window.electron.notifyCloudGiftResolved(giftId);
 
       dismissCurrentGift();
 
