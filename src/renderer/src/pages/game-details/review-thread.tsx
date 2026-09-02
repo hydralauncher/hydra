@@ -5,7 +5,10 @@ import { useTranslation } from "react-i18next";
 import type { GameReview, GameReviewAnswer, GameShop } from "@types";
 
 import { useToast } from "@renderer/hooks";
-import { REVIEW_MIN_PLAYTIME_IN_MS } from "@renderer/constants";
+import {
+  MILLISECONDS_IN_HOUR,
+  REVIEW_MIN_PLAYTIME_IN_MS,
+} from "@renderer/constants";
 
 import { ReviewItem } from "./review-item";
 import { ReviewReplyItem } from "./review-reply-item";
@@ -32,7 +35,8 @@ interface ReviewThreadProps {
   onComposerOpenChange: (open: boolean) => void;
 }
 
-const REPLY_MIN_PLAYTIME_IN_HOURS = REVIEW_MIN_PLAYTIME_IN_MS / 3600000;
+const REPLY_MIN_PLAYTIME_IN_HOURS =
+  REVIEW_MIN_PLAYTIME_IN_MS / MILLISECONDS_IN_HOUR;
 const REPLIES_TAKE = 10;
 const PREVIEW_LIMIT = 5;
 const VOTE_FEEDBACK_MS = 500;

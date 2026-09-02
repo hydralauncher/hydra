@@ -21,7 +21,7 @@ const requestProcessedImage = (imageUrl: string, size: ProcessedImageSize) => {
   if (cached) return Promise.resolve(cached);
 
   const inFlight = inFlightRequests.get(cacheKey);
-  if (inFlight) return inFlight;
+  if (inFlight !== undefined) return inFlight;
 
   const request = window.electron
     .getProcessedImage(imageUrl, {

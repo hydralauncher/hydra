@@ -1,7 +1,10 @@
 import { LockIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
-import { REVIEW_MIN_PLAYTIME_IN_MS } from "@renderer/constants";
+import {
+  MILLISECONDS_IN_HOUR,
+  REVIEW_MIN_PLAYTIME_IN_MS,
+} from "@renderer/constants";
 
 import "./review-gate-notice.scss";
 
@@ -9,7 +12,8 @@ interface ReviewGateNoticeProps {
   isSignedIn: boolean;
 }
 
-const REVIEW_MIN_PLAYTIME_IN_HOURS = REVIEW_MIN_PLAYTIME_IN_MS / 3600000;
+const REVIEW_MIN_PLAYTIME_IN_HOURS =
+  REVIEW_MIN_PLAYTIME_IN_MS / MILLISECONDS_IN_HOUR;
 
 export function ReviewGateNotice({
   isSignedIn,

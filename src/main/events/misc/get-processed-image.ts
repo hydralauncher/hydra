@@ -165,7 +165,7 @@ const getProcessedImage = async (
   try {
     const existingRequest = inFlight.get(inFlightKey);
 
-    if (existingRequest) return await existingRequest;
+    if (existingRequest !== undefined) return await existingRequest;
 
     const request = processAndCacheImage(sourceUrl, normalizedOptions);
     inFlight.set(inFlightKey, request);
