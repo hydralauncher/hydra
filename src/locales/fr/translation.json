@@ -1468,6 +1468,7 @@
     "tab_emulator": "Émulateur",
     "tab_rom_folders": "Dossiers ROM",
     "tab_memory_card_backups": "Sauvegardes de cartes mémoire",
+    "tab_saves": "Sauvegardes",
     "tab_library": "Bibliothèque",
     "supported_emulators_title": "Émulateurs pris en charge",
     "supported_emulators_description": "Hydra prend actuellement en charge {{name}} pour ce système. Nous continuons à travailler sur l'ajout d'autres émulateurs.",

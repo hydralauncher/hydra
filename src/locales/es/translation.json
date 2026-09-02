@@ -1290,6 +1290,7 @@
     "tab_emulator": "Emulador",
     "tab_rom_folders": "Carpetas de ROM",
     "tab_memory_card_backups": "Copias de tarjeta de memoria",
+    "tab_saves": "Partidas guardadas",
     "tab_library": "Biblioteca",
     "supported_emulators_title": "Emuladores compatibles",
     "supported_emulators_description": "Hydra actualmente admite {{name}} para este sistema. Seguiremos trabajando para añadir más emuladores.",

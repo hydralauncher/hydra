@@ -1105,6 +1105,7 @@
     "tab_emulator": "Trình giả lập",
     "tab_rom_folders": "Thư mục ROM",
     "tab_memory_card_backups": "Sao lưu thẻ nhớ",
+    "tab_saves": "Bản lưu",
     "tab_library": "Thư viện",
     "supported_emulators_title": "Trình giả lập được hỗ trợ",
     "supported_emulators_description": "Hydra hiện hỗ trợ {{name}} cho hệ máy này. Chúng tôi sẽ tiếp tục bổ sung thêm trình giả lập.",

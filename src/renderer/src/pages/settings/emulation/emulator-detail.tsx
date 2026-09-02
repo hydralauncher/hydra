@@ -27,6 +27,12 @@ import { CloudSavesSection } from "./cloud-saves-section";
 import { LocalEmulatorSavesSection } from "./local-emulator-saves-section";
 import { RomsDetectedSection } from "./roms-detected-section";
 import { formatRelativeShort } from "./relative-time";
+import {
+  availableEmulatorTabs,
+  supportsEmulatorSaves,
+  supportsMemoryCards,
+  type EmulatorTab,
+} from "./emulator-detail-tabs";
 
 import "./emulator-detail.scss";
 
@@ -38,29 +44,12 @@ interface EmulatorDetailProps {
   refresh: () => Promise<EmulatorConfig | unknown>;
 }
 
-type EmulatorTab = "emulator" | "rom-folders" | "memory-cards" | "library";
-
-const EMULATOR_TABS: EmulatorTab[] = [
-  "emulator",
-  "rom-folders",
-  "memory-cards",
-  "library",
-];
-
 const emulatorTabStorageKey = (system: EmulatorSystem) =>
   `${SETTINGS_EMULATOR_TAB_STORAGE_KEY}-${system}`;
 
-const availableEmulatorTabs = (supportsMemoryCards: boolean): EmulatorTab[] =>
-  supportsMemoryCards
-    ? EMULATOR_TABS
-    : EMULATOR_TABS.filter((tab) => tab !== "memory-cards");
-
-const readStoredTab = (
-  system: EmulatorSystem,
-  supportsMemoryCards: boolean
-): EmulatorTab => {
+const readStoredTab = (system: EmulatorSystem): EmulatorTab => {
   const stored = localStorage.getItem(emulatorTabStorageKey(system));
-  const available = availableEmulatorTabs(supportsMemoryCards) as string[];
+  const available = availableEmulatorTabs(system) as string[];
 
   return stored && available.includes(stored)
     ? (stored as EmulatorTab)
@@ -88,18 +77,18 @@ export function EmulatorDetail({
   const [removeOpen, setRemoveOpen] = useState(false);
   const [executableExists, setExecutableExists] = useState<boolean>(true);
 
-  const supportsMemoryCards =
-    config.system === "ps2" || config.system === "ps1";
-  const supportsBios = supportsMemoryCards;
+  const hasMemoryCards = supportsMemoryCards(config.system);
+  const hasEmulatorSaves = supportsEmulatorSaves(config.system);
+  const supportsBios = hasMemoryCards;
   const supportsFirmware = config.system === "ps3";
 
   const [activeTab, setActiveTab] = useState<EmulatorTab>(() =>
-    readStoredTab(config.system, supportsMemoryCards)
+    readStoredTab(config.system)
   );
 
   useEffect(() => {
-    setActiveTab(readStoredTab(config.system, supportsMemoryCards));
-  }, [config.system, supportsMemoryCards]);
+    setActiveTab(readStoredTab(config.system));
+  }, [config.system]);
 
   useEffect(() => {
     localStorage.setItem(emulatorTabStorageKey(config.system), activeTab);
@@ -309,8 +298,11 @@ export function EmulatorDetail({
   const tabs: { id: EmulatorTab; label: string }[] = [
     { id: "emulator", label: t("tab_emulator") },
     { id: "rom-folders", label: t("tab_rom_folders") },
-    ...(supportsMemoryCards
+    ...(hasMemoryCards
       ? [{ id: "memory-cards" as const, label: t("tab_memory_card_backups") }]
+      : []),
+    ...(hasEmulatorSaves
+      ? [{ id: "saves" as const, label: t("tab_saves") }]
       : []),
     { id: "library", label: t("tab_library") },
   ];
@@ -370,16 +362,6 @@ export function EmulatorDetail({
               <span>{t("remove_emulator")}</span>
             </button>
           )}
-
-          {(config.system === "psp" || config.system === "dolphin") && (
-            <>
-              <LocalEmulatorSavesSection
-                config={config}
-                onUploaded={() => setCloudNonce((nonce) => nonce + 1)}
-              />
-              <CloudSavesSection config={config} refreshKey={cloudNonce} />
-            </>
-          )}
         </>
       )}
 
@@ -394,11 +376,21 @@ export function EmulatorDetail({
         />
       )}
 
-      {activeTab === "memory-cards" && supportsMemoryCards && (
+      {activeTab === "memory-cards" && hasMemoryCards && (
         <>
           <MemoryCardsSection
             config={config}
             onUploaded={() => setCloudNonce((n) => n + 1)}
+          />
+          <CloudSavesSection config={config} refreshKey={cloudNonce} />
+        </>
+      )}
+
+      {activeTab === "saves" && hasEmulatorSaves && (
+        <>
+          <LocalEmulatorSavesSection
+            config={config}
+            onUploaded={() => setCloudNonce((nonce) => nonce + 1)}
           />
           <CloudSavesSection config={config} refreshKey={cloudNonce} />
         </>

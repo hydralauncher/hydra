@@ -1000,6 +1000,7 @@
     "tab_emulator": "Емулатор",
     "tab_rom_folders": "Папки на ROM",
     "tab_memory_card_backups": "Архиви на картата на паметта",
+    "tab_saves": "Запазени игри",
     "tab_library": "Библиотека",
     "supported_emulators_title": "Поддържани емулатори",
     "supported_emulators_description": "Hydra в момента поддържа {{name}} за тази система. Ще продължим да добавяме още емулатори.",

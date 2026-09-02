@@ -1336,6 +1336,7 @@
     "tab_emulator": "Emulator",
     "tab_rom_folders": "ROM Folders",
     "tab_memory_card_backups": "Memory Card Backups",
+    "tab_saves": "Saves",
     "tab_library": "Library",
     "supported_emulators_title": "Supported Emulators",
     "supported_emulators_description": "Hydra currently supports {{name}} for this system. We'll keep working on adding more emulators.",

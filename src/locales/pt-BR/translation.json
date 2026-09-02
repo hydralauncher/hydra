@@ -1307,6 +1307,7 @@
     "tab_emulator": "Emulador",
     "tab_rom_folders": "Pastas de ROM",
     "tab_memory_card_backups": "Backups de Cartão de Memória",
+    "tab_saves": "Salvamentos",
     "tab_library": "Biblioteca",
     "supported_emulators_title": "Emuladores Suportados",
     "supported_emulators_description": "O Hydra atualmente suporta {{name}} para este sistema. Continuaremos trabalhando para adicionar mais emuladores.",

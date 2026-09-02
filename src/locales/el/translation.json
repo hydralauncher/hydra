@@ -1096,6 +1096,7 @@
     "tab_emulator": "Εξομοιωτής",
     "tab_rom_folders": "Φάκελοι ROM",
     "tab_memory_card_backups": "Αντίγραφα ασφαλείας σε κάρτες μνήμης",
+    "tab_saves": "Αποθηκεύσεις",
     "tab_library": "Βιβλιοθήκη",
     "supported_emulators_title": "Υποστηριζόμενοι εξομοιωτές",
     "supported_emulators_description": "Το Hydra υποστηρίζει προς το παρόν το {{name}} για αυτό το σύστημα. Θα συνεχίσουμε να εργαζόμαστε για την προσθήκη περισσότερων εξομοιωτών.",

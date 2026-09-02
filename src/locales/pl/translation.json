@@ -1105,6 +1105,7 @@
     "tab_emulator": "Emulator",
     "tab_rom_folders": "Foldery ROM-ów",
     "tab_memory_card_backups": "Kopie zapasowe kart pamięci",
+    "tab_saves": "Zapisy",
     "tab_library": "Biblioteka",
     "supported_emulators_title": "Obsługiwane emulatory",
     "supported_emulators_description": "Hydra obsługuje obecnie {{name}} dla tego systemu. Nadal pracujemy nad dodaniem kolejnych emulatorów.",

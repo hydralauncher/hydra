@@ -1058,6 +1058,7 @@
     "tab_emulator": "Emulator",
     "tab_rom_folders": "Folder ROM",
     "tab_memory_card_backups": "Cadangan Kartu Memori",
+    "tab_saves": "Simpanan",
     "tab_library": "Pustaka",
     "supported_emulators_title": "Emulator yang Didukung",
     "supported_emulators_description": "Hydra saat ini mendukung {{name}} untuk sistem ini. Kami akan terus bekerja untuk menambahkan lebih banyak emulator.",
