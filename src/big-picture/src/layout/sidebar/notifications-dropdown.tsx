@@ -379,10 +379,19 @@ export function SidebarNotificationsDropdown({
       source: "local" as const,
     }));
 
-    return [...apiWithSource, ...localWithSource].sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    const sortByDate = (a: MergedNotification, b: MergedNotification) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+
+    const highPriority: MergedNotification[] = apiWithSource.filter(
+      (notification) => notification.priority === 1
     );
+
+    const lowPriority: MergedNotification[] = [
+      ...apiWithSource.filter((notification) => notification.priority !== 1),
+      ...localWithSource,
+    ].sort(sortByDate);
+
+    return [...highPriority, ...lowPriority];
   }, [apiNotifications, apiUnreadOverrides, localNotifications]);
 
   const unreadCount = useMemo(() => {
