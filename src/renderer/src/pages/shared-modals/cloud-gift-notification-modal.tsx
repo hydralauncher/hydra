@@ -192,7 +192,15 @@ export function CloudGiftNotificationModal() {
           needsAuth: true,
         })
         .then((giftDetails) => {
-          setGift(giftDetails);
+          if (giftDetails.status === "PENDING_ACCEPTANCE") {
+            setGift(giftDetails);
+            return;
+          }
+
+          setNotification(null);
+          void window.electron.openCheckout({
+            path: `/gifts/${giftId}`,
+          });
         })
         .catch((error) => {
           logger.error("Failed to open Cloud Gift modal", error);
