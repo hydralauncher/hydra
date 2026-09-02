@@ -269,7 +269,21 @@ export function ReviewThread({
       await electron.hydraApi.post(`${baseUrl}`, {
         data: { answerHtml },
       });
+    } catch (error) {
+      console.error("Failed to submit reply:", error);
+      showErrorToast(t("reply_submission_failed"));
+      setSubmitting(false);
+      return;
+    }
 
+    onComposerOpenChange(false);
+    setPrefill("");
+    setTotalCount((prev) => prev + 1);
+    setHidden(false);
+    setExpanded(true);
+    showSuccessToast(t("reply_submitted_successfully"));
+
+    try {
       const params = new URLSearchParams({
         take: REPLIES_TAKE.toString(),
         skip: totalCount.toString(),
@@ -279,17 +293,12 @@ export function ReviewThread({
         { answers: GameReviewAnswer[]; totalCount: number } | undefined
       >(`${baseUrl}?${params.toString()}`, { needsAuth: false });
 
-      setTotalCount(response?.totalCount ?? totalCount + 1);
-      setReplies((prev) => mergeReplies(prev, response?.answers ?? []));
-      setHidden(false);
-      setExpanded(true);
-
-      onComposerOpenChange(false);
-      setPrefill("");
-      showSuccessToast(t("reply_submitted_successfully"));
+      if (response) {
+        setTotalCount(response.totalCount);
+        setReplies((prev) => mergeReplies(prev, response.answers));
+      }
     } catch (error) {
-      console.error("Failed to submit reply:", error);
-      showErrorToast(t("reply_submission_failed"));
+      console.error("Failed to refresh replies after posting:", error);
     } finally {
       setSubmitting(false);
     }
