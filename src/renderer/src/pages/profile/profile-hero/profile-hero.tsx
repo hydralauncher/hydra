@@ -4,6 +4,7 @@ import {
   BlockedIcon,
   CheckCircleFillIcon,
   CopyIcon,
+  GiftIcon,
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
@@ -28,7 +29,6 @@ import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AuthPage } from "@shared";
-import giftCloudIcon from "@renderer/assets/cloud-gift/gift-clean.png";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
@@ -152,7 +152,7 @@ export function ProfileHero() {
         }}
         disabled={isPerformingAction}
       >
-        <img src={giftCloudIcon} alt="" className="profile-hero__gift-icon" />
+        <GiftIcon size={16} className="profile-hero__gift-icon" />
         {t("gift_cloud")}
       </Button>
     );
