@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ReplyIcon } from "@primer/octicons-react";
+import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
 import type { GameReview, GameReviewAnswer, GameShop } from "@types";
 
 import { useToast } from "@renderer/hooks";
+import { REVIEW_MIN_PLAYTIME_IN_MS } from "@renderer/constants";
 
 import { ReviewItem } from "./review-item";
 import { ReviewReplyItem } from "./review-reply-item";
@@ -15,6 +17,7 @@ interface ReviewThreadProps {
   objectId: string;
   review: GameReview;
   userDetailsId?: string;
+  canReply: boolean;
   isVisible: boolean;
   isVoting: boolean;
   previousVotes: { upvotes: number; downvotes: number };
@@ -29,6 +32,7 @@ interface ReviewThreadProps {
   onComposerOpenChange: (open: boolean) => void;
 }
 
+const REPLY_MIN_PLAYTIME_IN_HOURS = REVIEW_MIN_PLAYTIME_IN_MS / 3600000;
 const REPLIES_TAKE = 10;
 const PREVIEW_LIMIT = 5;
 const VOTE_FEEDBACK_MS = 500;
@@ -82,6 +86,7 @@ export function ReviewThread({
   objectId,
   review,
   userDetailsId,
+  canReply,
   isVisible,
   isVoting,
   previousVotes,
@@ -105,6 +110,7 @@ export function ReviewThread({
   const [serverLoaded, setServerLoaded] = useState(0);
   const [votingAnswers, setVotingAnswers] = useState<Set<string>>(new Set());
   const [prefill, setPrefill] = useState("");
+  const replyTooltipId = useId();
   const [submitting, setSubmitting] = useState(false);
 
   const baseUrl = `/games/${shop}/${objectId}/reviews/${review.id}/answers`;
@@ -169,6 +175,8 @@ export function ReviewThread({
   };
 
   const handleReplyTo = (displayName: string) => {
+    if (!canReply) return;
+
     setPrefill(displayName ? `@${displayName} ` : "");
     onComposerOpenChange(true);
   };
@@ -249,23 +257,17 @@ export function ReviewThread({
       return;
     }
 
-    if (submitting) return;
+    if (submitting || !canReply) return;
 
     setSubmitting(true);
 
     try {
-      const response = await electron.hydraApi.post<
-        GameReviewAnswer | undefined
-      >(`${baseUrl}`, {
+      await electron.hydraApi.post(`${baseUrl}`, {
         data: { answerHtml },
       });
 
-      if (response) {
-        setReplies((prev) => mergeReplies(prev, [response]));
-        setTotalCount((prev) => prev + 1);
-        setHidden(false);
-        setExpanded(true);
-      }
+      setHidden(false);
+      await fetchReplies(0, true);
 
       onComposerOpenChange(false);
       setPrefill("");
@@ -309,14 +311,23 @@ export function ReviewThread({
         onAnimationComplete={onAnimationComplete}
         replyAction={
           showInlineReply ? (
-            <button
-              className="game-details__reply-action-link"
-              onClick={() => handleReplyTo("")}
-              title={t("reply")}
-            >
-              <ReplyIcon size={14} />
-              <span>{t("reply")}</span>
-            </button>
+            <>
+              <button
+                className="game-details__reply-action-link"
+                onClick={() => handleReplyTo("")}
+                aria-disabled={!canReply}
+                data-tooltip-id={canReply ? undefined : replyTooltipId}
+                data-tooltip-place="top"
+                data-tooltip-content={t("reply_requires_playtime", {
+                  count: REPLY_MIN_PLAYTIME_IN_HOURS,
+                })}
+              >
+                <ReplyIcon size={14} />
+                <span>{t("reply")}</span>
+              </button>
+
+              {!canReply && <Tooltip id={replyTooltipId} place="top" />}
+            </>
           ) : undefined
         }
       />

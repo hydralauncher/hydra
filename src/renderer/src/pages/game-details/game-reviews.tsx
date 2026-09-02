@@ -64,8 +64,10 @@ export function GameReviews({
   );
 
   const playTimeInMilliseconds = game?.playTimeInMilliseconds ?? 0;
-  const isReviewLocked =
-    !userDetailsId || playTimeInMilliseconds < REVIEW_MIN_PLAYTIME_IN_MS;
+  const hasEnoughPlaytime = playTimeInMilliseconds >= REVIEW_MIN_PLAYTIME_IN_MS;
+  const isReviewLocked = !userDetailsId || !hasEnoughPlaytime;
+  const canReply =
+    Boolean(userDetailsId) && (hasEnoughPlaytime || hasUserReviewed);
 
   const previousVotesRef = useRef<
     Map<string, { upvotes: number; downvotes: number }>
@@ -466,6 +468,7 @@ export function GameReviews({
             objectId={objectId}
             review={review}
             userDetailsId={userDetailsId}
+            canReply={canReply}
             isVisible={visibleBlockedReviews.has(review.id)}
             isVoting={votingReviews.has(review.id)}
             previousVotes={

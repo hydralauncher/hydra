@@ -16,16 +16,13 @@ export interface UseReviewPromptParams {
   isCheckingUserReview: boolean;
 }
 
-const getStorageKey = (shop: GameShop, objectId: string) =>
-  `reviewPromptDismissed_${shop}_${objectId}`;
+const REVIEW_PROMPT_DISMISSED_STORAGE_KEY = "reviewPromptDismissedAt";
 
-const readDismissal = (shop?: GameShop, objectId?: string) => {
-  if (!shop || !objectId) return false;
-
-  const key = getStorageKey(shop, objectId);
-
+const readDismissal = () => {
   try {
-    const storedValue = localStorage.getItem(key);
+    const storedValue = localStorage.getItem(
+      REVIEW_PROMPT_DISMISSED_STORAGE_KEY
+    );
     if (!storedValue) return false;
 
     const dismissedAt = Number(storedValue);
@@ -37,7 +34,7 @@ const readDismissal = (shop?: GameShop, objectId?: string) => {
       return true;
     }
 
-    localStorage.removeItem(key);
+    localStorage.removeItem(REVIEW_PROMPT_DISMISSED_STORAGE_KEY);
     return false;
   } catch (error) {
     console.error("Failed to read review prompt dismissal:", error);
@@ -54,31 +51,26 @@ export function useReviewPrompt({
   hasUserReviewed,
   isCheckingUserReview,
 }: Readonly<UseReviewPromptParams>) {
-  const [isDismissed, setIsDismissed] = useState(() =>
-    readDismissal(shop, objectId)
-  );
+  const [isDismissed, setIsDismissed] = useState(readDismissal);
 
   useEffect(() => {
-    setIsDismissed(readDismissal(shop, objectId));
+    setIsDismissed(readDismissal());
   }, [shop, objectId]);
 
-  const dismissPrompt = useCallback(
-    ({ persist }: { persist: boolean }) => {
-      setIsDismissed(true);
+  const dismissPrompt = useCallback(({ persist }: { persist: boolean }) => {
+    setIsDismissed(true);
 
-      if (!persist || !shop || !objectId) return;
+    if (!persist) return;
 
-      try {
-        localStorage.setItem(
-          getStorageKey(shop, objectId),
-          Date.now().toString()
-        );
-      } catch (error) {
-        console.error("Failed to persist review prompt dismissal:", error);
-      }
-    },
-    [shop, objectId]
-  );
+    try {
+      localStorage.setItem(
+        REVIEW_PROMPT_DISMISSED_STORAGE_KEY,
+        Date.now().toString()
+      );
+    } catch (error) {
+      console.error("Failed to persist review prompt dismissal:", error);
+    }
+  }, []);
 
   const showPrompt =
     Boolean(shop) &&

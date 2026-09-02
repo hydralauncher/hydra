@@ -1,5 +1,7 @@
+import { useId } from "react";
 import { Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Tooltip } from "react-tooltip";
 import { EditorContent, Editor } from "@tiptap/react";
 import { Button } from "@renderer/components";
 import "./review-form.scss";
@@ -52,6 +54,16 @@ export function ReviewForm({
   onSubmit,
 }: Readonly<ReviewFormProps>) {
   const { t } = useTranslation("game_details");
+  const tooltipId = useId();
+
+  const isSubmitDisabled =
+    locked ||
+    !editor?.getHTML().trim() ||
+    reviewScore === null ||
+    submittingReview ||
+    reviewCharCount > maxReviewChars;
+
+  const showSubmitTooltip = !locked && !submittingReview && isSubmitDisabled;
 
   return (
     <>
@@ -69,6 +81,9 @@ export function ReviewForm({
                 onClick={() => editor?.chain().focus().toggleBold().run()}
                 className={`game-details__editor-button ${editor?.isActive("bold") ? "is-active" : ""}`}
                 disabled={locked || !editor}
+                data-tooltip-id={tooltipId}
+                data-tooltip-content={t("editor_bold")}
+                data-tooltip-place="top"
               >
                 <strong>B</strong>
               </button>
@@ -77,6 +92,9 @@ export function ReviewForm({
                 onClick={() => editor?.chain().focus().toggleItalic().run()}
                 className={`game-details__editor-button ${editor?.isActive("italic") ? "is-active" : ""}`}
                 disabled={locked || !editor}
+                data-tooltip-id={tooltipId}
+                data-tooltip-content={t("editor_italic")}
+                data-tooltip-place="top"
               >
                 <em>I</em>
               </button>
@@ -85,6 +103,9 @@ export function ReviewForm({
                 onClick={() => editor?.chain().focus().toggleUnderline().run()}
                 className={`game-details__editor-button ${editor?.isActive("underline") ? "is-active" : ""}`}
                 disabled={locked || !editor}
+                data-tooltip-id={tooltipId}
+                data-tooltip-content={t("editor_underline")}
+                data-tooltip-place="top"
               >
                 <u>U</u>
               </button>
@@ -120,7 +141,9 @@ export function ReviewForm({
                   }`}
                   onClick={() => onScoreChange(starValue)}
                   disabled={locked}
-                  title={getRatingText(starValue, t)}
+                  data-tooltip-id={tooltipId}
+                  data-tooltip-content={getRatingText(starValue, t)}
+                  data-tooltip-place="top"
                 >
                   <Star
                     size={18}
@@ -135,21 +158,24 @@ export function ReviewForm({
             </div>
           </div>
 
-          <Button
-            theme="primary"
-            onClick={onSubmit}
-            disabled={
-              locked ||
-              !editor?.getHTML().trim() ||
-              reviewScore === null ||
-              submittingReview ||
-              reviewCharCount > maxReviewChars
-            }
+          <span
+            className="game-details__review-submit"
+            data-tooltip-id={showSubmitTooltip ? tooltipId : undefined}
+            data-tooltip-content={t("review_submit_requirements")}
+            data-tooltip-place="top"
           >
-            {submittingReview ? t("submitting") : t("submit_review")}
-          </Button>
+            <Button
+              theme="primary"
+              onClick={onSubmit}
+              disabled={isSubmitDisabled}
+            >
+              {submittingReview ? t("submitting") : t("submit_review")}
+            </Button>
+          </span>
         </div>
       </div>
+
+      <Tooltip id={tooltipId} place="top" />
     </>
   );
 }

@@ -18,6 +18,10 @@
     }
   }
 
+  &__review-submit {
+    display: inline-flex;
+  }
+
   &__review-form-bottom {
     display: flex;
     justify-content: space-between;

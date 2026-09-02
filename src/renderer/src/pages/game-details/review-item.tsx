@@ -7,10 +7,13 @@ import { useState, type ReactNode } from "react";
 import type { GameReview } from "@types";
 
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
-import { useDate, useFormat } from "@renderer/hooks";
+import { useDate, useFormat, useProcessedImage } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
 import { Avatar } from "@renderer/components";
-import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import {
+  MAX_MINUTES_TO_SHOW_IN_PLAYTIME,
+  REVIEW_BANNER_IMAGE_SIZE,
+} from "@renderer/constants";
 
 import "./review-item.scss";
 
@@ -70,7 +73,10 @@ export function ReviewItem({
 
   const isOwnReview = userDetailsId === review.user.id;
 
-  const bannerImageUrl = review.user.backgroundImageUrl;
+  const bannerImageUrl = useProcessedImage(
+    review.user.backgroundImageUrl,
+    REVIEW_BANNER_IMAGE_SIZE
+  );
 
   const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
 
@@ -155,18 +161,20 @@ export function ReviewItem({
               <Avatar
                 src={review.user.profileImageUrl}
                 alt={review.user.displayName || "User"}
-                size={44}
+                size={56}
               />
             </button>
             <div className="game-details__review-user-info">
-              <button
-                className="game-details__review-display-name game-details__review-display-name--clickable"
-                onClick={() =>
-                  review.user.id && navigate(`/profile/${review.user.id}`)
-                }
-              >
-                {review.user.displayName || "Anonymous"}
-              </button>
+              <div className="game-details__review-name-row">
+                <button
+                  className="game-details__review-display-name game-details__review-display-name--clickable"
+                  onClick={() =>
+                    review.user.id && navigate(`/profile/${review.user.id}`)
+                  }
+                >
+                  {review.user.displayName || "Anonymous"}
+                </button>
+              </div>
               <div className="game-details__review-meta-row">
                 <div className="game-details__review-meta-left">
                   <div
@@ -195,6 +203,7 @@ export function ReviewItem({
               </div>
             </div>
           </div>
+
           <div
             className="game-details__review-date"
             title={formatDateTime(new Date(review.createdAt))}
