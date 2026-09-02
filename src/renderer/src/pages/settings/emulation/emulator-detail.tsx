@@ -24,6 +24,7 @@ import {
 } from "./emulation-detail-sections";
 import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
+import { LocalEmulatorSavesSection } from "./local-emulator-saves-section";
 import { RomsDetectedSection } from "./roms-detected-section";
 import { formatRelativeShort } from "./relative-time";
 
@@ -371,7 +372,13 @@ export function EmulatorDetail({
           )}
 
           {(config.system === "psp" || config.system === "dolphin") && (
-            <CloudSavesSection config={config} refreshKey={cloudNonce} />
+            <>
+              <LocalEmulatorSavesSection
+                config={config}
+                onUploaded={() => setCloudNonce((nonce) => nonce + 1)}
+              />
+              <CloudSavesSection config={config} refreshKey={cloudNonce} />
+            </>
           )}
         </>
       )}

@@ -19,7 +19,10 @@ import type {
   MemoryCardSaveRecord,
 } from "@types";
 import type { DiscoveredEmulationFileSave } from "@main/services/emulators/emulation-file-saves";
-import { buildLocalLaunchboxAssetIndex } from "./memcard-local-assets";
+import {
+  buildLocalLaunchboxAssetIndex,
+  findUniqueLocalAssetBySkuPrefix,
+} from "./memcard-local-assets";
 
 const BACKUP_PROGRESS_CHANNEL = "on-emulation-backup-progress";
 const MIN_WII_DATA_BIN_SIZE = 0xf140;
@@ -47,7 +50,7 @@ const getRecord = (
 };
 
 const getFileSaveRecord = async (
-  platform: Extract<EmulationSavePlatform, "psp" | "gamecube">,
+  platform: Extract<EmulationSavePlatform, "psp" | "gamecube" | "wii">,
   sourcePath: string,
   saveIdentity: string
 ) => {
@@ -87,13 +90,26 @@ const buildArtifact = async (
 };
 
 const buildFileSaveArtifact = async (
-  platform: Extract<EmulationSavePlatform, "psp" | "gamecube">,
+  platform: Extract<EmulationSavePlatform, "psp" | "gamecube" | "wii">,
   discovered: DiscoveredEmulationFileSave
 ): Promise<{ buffer: Buffer; fileName: string }> => {
   if (platform === "gamecube") {
     return {
       buffer: await fs.readFile(discovered.sourcePath),
       fileName: path.basename(discovered.sourcePath),
+    };
+  }
+
+  if (platform === "wii") {
+    if (discovered.metadata.artifactFormat !== "dolphin-wii-data-bin") {
+      throw new Error("Invalid Dolphin Wii save metadata");
+    }
+    return {
+      buffer: await emulators.buildDolphinWiiDataBin(
+        discovered.sourcePath,
+        discovered.metadata.titleId
+      ),
+      fileName: "data.bin",
     };
   }
 
@@ -125,7 +141,7 @@ const buildFileSaveArtifact = async (
 };
 
 const uploadFileSave = async (
-  platform: Extract<EmulationSavePlatform, "psp" | "gamecube">,
+  platform: Extract<EmulationSavePlatform, "psp" | "gamecube" | "wii">,
   sourcePath: string,
   saveIdentity: string
 ): Promise<EmulationCloudSave> => {
@@ -143,6 +159,18 @@ const uploadFileSave = async (
     : await emulators.fetchShopDetailsForSkus([discovered.sku]);
   const remoteEntry = remoteAssets?.get(normalizedSku);
   let assets = localAssets.get(normalizedSku);
+  let matchedSku = normalizedSku;
+  if (!assets && platform === "wii") {
+    const candidate = findUniqueLocalAssetBySkuPrefix(
+      localAssets,
+      normalizedSku,
+      6
+    );
+    if (candidate) {
+      assets = candidate.assets;
+      matchedSku = candidate.sku;
+    }
+  }
   if (!assets && remoteEntry) {
     assets = emulators.mapEntryToAssets(remoteEntry);
   }
@@ -154,6 +182,12 @@ const uploadFileSave = async (
     emulators.emulationSavePlatformToSystem(platform)
   );
   const artifact = await buildFileSaveArtifact(platform, discovered);
+  const metadata =
+    platform === "wii" &&
+    discovered.metadata.artifactFormat === "dolphin-wii-data-bin" &&
+    matchedSku.length === 6
+      ? { ...discovered.metadata, gameId: matchedSku }
+      : discovered.metadata;
   return emulators.uploadEmulationSave({
     platform,
     emulator: emulators.toEmulationSaveEmulator(config.binary),
@@ -164,7 +198,7 @@ const uploadFileSave = async (
     label: assets.title || discovered.saveIdentity,
     localLastModifiedAt: new Date(discovered.modifiedAt).toISOString(),
     buffer: artifact.buffer,
-    metadata: discovered.metadata as EmulationSaveMetadata,
+    metadata: metadata as EmulationSaveMetadata,
   });
 };
 
@@ -173,11 +207,7 @@ const uploadOne = async (
   cardFilePath: string,
   folderName: string
 ): Promise<EmulationCloudSave> => {
-  if (platform === "wii") {
-    throw new Error("Wii cloud saves require a native Dolphin data.bin export");
-  }
-
-  if (platform === "psp" || platform === "gamecube") {
+  if (platform === "psp" || platform === "gamecube" || platform === "wii") {
     return uploadFileSave(platform, cardFilePath, folderName);
   }
 

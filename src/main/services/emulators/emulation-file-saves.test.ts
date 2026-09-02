@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createDecipheriv, createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -6,7 +7,9 @@ import { afterEach, describe, it } from "node:test";
 
 import {
   archiveEntriesBelongToDirectory,
+  buildDolphinWiiDataBin,
   discoverDolphinGamecubeSaves,
+  discoverDolphinWiiSaves,
   discoverPpssppSaves,
   emulationSavePlatformToSystem,
   isSafeEmulationSaveArchiveEntry,
@@ -129,6 +132,131 @@ describe("emulator file saves", () => {
       region: "USA",
       internalFileName: "gczelda",
     });
+  });
+
+  it("discovers a Wii NAND save and exports a Dolphin-importable data.bin", async () => {
+    const root = await makeTemporaryDirectory();
+    const executablePath = path.join(root, "Dolphin.exe");
+    const portableUserDirectory =
+      process.platform === "linux" ? "user" : "User";
+    const dataPath = path.join(
+      root,
+      portableUserDirectory,
+      "Wii",
+      "title",
+      "00010000",
+      "524d4345",
+      "data"
+    );
+    await fs.writeFile(path.join(root, "portable.txt"), "");
+    await fs.mkdir(dataPath, { recursive: true });
+    const tmd = Buffer.alloc(0x19a);
+    Buffer.from("00010000524d4345", "hex").copy(tmd, 0x18c);
+    tmd.write("01", 0x198, "ascii");
+    await fs.mkdir(path.join(path.dirname(dataPath), "content"));
+    await fs.writeFile(
+      path.join(path.dirname(dataPath), "content", "title.tmd"),
+      tmd
+    );
+    const banner = Buffer.alloc(0x72a0);
+    banner[7] = 1;
+    await fs.writeFile(path.join(dataPath, "banner.bin"), banner);
+    await fs.writeFile(path.join(dataPath, "rksys.dat"), "save-data");
+
+    const saves = await discoverDolphinWiiSaves(executablePath);
+    assert.equal(saves.length, 1);
+    assert.equal(saves[0]?.sku, "RMCE01");
+    assert.equal(saves[0]?.saveIdentity, "00010000524d4345");
+    assert.equal(saves[0]?.fileCount, 2);
+    assert.deepEqual(saves[0]?.metadata, {
+      schemaVersion: 1,
+      artifactFormat: "dolphin-wii-data-bin",
+      titleId: "00010000524d4345",
+      gameId: "RMCE01",
+    });
+
+    const dataBin = await buildDolphinWiiDataBin(dataPath, "00010000524d4345");
+    const decipher = createDecipheriv(
+      "aes-128-cbc",
+      Buffer.from("ab01b9d8e1622b08afbad84dbfc2a55d", "hex"),
+      Buffer.from("216712e6aa1f689f95c5a22324dc6a98", "hex")
+    );
+    decipher.setAutoPadding(false);
+    const header = Buffer.concat([
+      decipher.update(dataBin.subarray(0, 0xf0c0)),
+      decipher.final(),
+    ]);
+    assert.equal(header.readBigUInt64BE(0), 0x00010000524d4345n);
+    assert.equal(header.readUInt32BE(8), 0x72a0);
+    assert.equal(header[0x27] & 1, 0);
+    const storedMd5 = Buffer.from(header.subarray(0x0e, 0x1e));
+    Buffer.from("0e65378199be4517ab06ec22451a5793", "hex").copy(header, 0x0e);
+    assert.deepEqual(createHash("md5").update(header).digest(), storedMd5);
+
+    const backupHeaderOffset = 0xf0c0;
+    assert.equal(dataBin.readUInt32BE(backupHeaderOffset), 0x70);
+    assert.equal(dataBin.readUInt32BE(backupHeaderOffset + 4), 0x426b0001);
+    assert.equal(dataBin.readUInt32BE(backupHeaderOffset + 0x0c), 1);
+    assert.equal(
+      dataBin.readBigUInt64BE(backupHeaderOffset + 0x60),
+      0x00010000524d4345n
+    );
+
+    const fileHeaderOffset = backupHeaderOffset + 0x80;
+    assert.equal(dataBin.readUInt32BE(fileHeaderOffset), 0x03adf17e);
+    assert.equal(dataBin.readUInt32BE(fileHeaderOffset + 4), 9);
+    assert.equal(dataBin[fileHeaderOffset + 0x0a], 1);
+    assert.equal(
+      dataBin
+        .subarray(fileHeaderOffset + 0x0b, fileHeaderOffset + 0x4b)
+        .toString("utf8")
+        .replaceAll("\0", ""),
+      "rksys.dat"
+    );
+    const fileDecipher = createDecipheriv(
+      "aes-128-cbc",
+      Buffer.from("ab01b9d8e1622b08afbad84dbfc2a55d", "hex"),
+      Buffer.alloc(16)
+    );
+    fileDecipher.setAutoPadding(false);
+    const fileDataOffset = fileHeaderOffset + 0x80;
+    const fileData = Buffer.concat([
+      fileDecipher.update(
+        dataBin.subarray(fileDataOffset, fileDataOffset + 0x40)
+      ),
+      fileDecipher.final(),
+    ]);
+    assert.equal(fileData.subarray(0, 9).toString("utf8"), "save-data");
+  });
+
+  it("discovers Wii saves from Dolphin's configured NAND root", async () => {
+    const root = await makeTemporaryDirectory();
+    const executablePath = path.join(root, "Dolphin.exe");
+    const portableUserDirectory =
+      process.platform === "linux" ? "user" : "User";
+    const userDirectory = path.join(root, portableUserDirectory);
+    const customNandRoot = path.join(root, "custom-nand");
+    const dataPath = path.join(
+      customNandRoot,
+      "title",
+      "00010000",
+      "524d4745",
+      "data"
+    );
+    await fs.writeFile(path.join(root, "portable.txt"), "");
+    await fs.mkdir(path.join(userDirectory, "Config"), { recursive: true });
+    await fs.writeFile(
+      path.join(userDirectory, "Config", "Dolphin.ini"),
+      `[General]\nNANDRootPath = ${customNandRoot}\n`
+    );
+    await fs.mkdir(dataPath, { recursive: true });
+    await fs.writeFile(path.join(dataPath, "banner.bin"), Buffer.alloc(0x72a0));
+
+    const saves = await discoverDolphinWiiSaves(executablePath);
+
+    assert.equal(saves.length, 1);
+    assert.equal(saves[0]?.sku, "RMGE");
+    assert.equal(saves[0]?.sourcePath, dataPath);
   });
 
   it("rejects absolute and parent paths in PPSSPP save archives", () => {
