@@ -270,8 +270,19 @@ export function ReviewThread({
         data: { answerHtml },
       });
 
+      const params = new URLSearchParams({
+        take: REPLIES_TAKE.toString(),
+        skip: totalCount.toString(),
+      });
+
+      const response = await electron.hydraApi.get<
+        { answers: GameReviewAnswer[]; totalCount: number } | undefined
+      >(`${baseUrl}?${params.toString()}`, { needsAuth: false });
+
+      setTotalCount(response?.totalCount ?? totalCount + 1);
+      setReplies((prev) => mergeReplies(prev, response?.answers ?? []));
       setHidden(false);
-      await fetchReplies(0, true);
+      setExpanded(true);
 
       onComposerOpenChange(false);
       setPrefill("");

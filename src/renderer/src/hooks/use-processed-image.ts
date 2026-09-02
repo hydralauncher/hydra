@@ -5,8 +5,34 @@ export interface ProcessedImageSize {
   height: number;
 }
 
+const MAX_CONCURRENT_REQUESTS = 4;
+
 const processedImageCache = new Map<string, string>();
 const inFlightRequests = new Map<string, Promise<string>>();
+const pendingQueue: (() => void)[] = [];
+
+let activeRequests = 0;
+
+const releaseSlot = () => {
+  activeRequests -= 1;
+
+  const next = pendingQueue.shift();
+  if (next) next();
+};
+
+const acquireSlot = () => {
+  if (activeRequests < MAX_CONCURRENT_REQUESTS) {
+    activeRequests += 1;
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    pendingQueue.push(() => {
+      activeRequests += 1;
+      resolve();
+    });
+  });
+};
 
 const getCacheKey = (imageUrl: string, size: ProcessedImageSize) =>
   `${size.width}x${size.height}:${imageUrl}`;
@@ -23,13 +49,17 @@ const requestProcessedImage = (imageUrl: string, size: ProcessedImageSize) => {
   const inFlight = inFlightRequests.get(cacheKey);
   if (inFlight !== undefined) return inFlight;
 
-  const request = window.electron
-    .getProcessedImage(imageUrl, {
-      width: size.width,
-      height: size.height,
-      preserveAnimation: true,
-    })
-    .catch(() => imageUrl)
+  const request = acquireSlot()
+    .then(() =>
+      window.electron
+        .getProcessedImage(imageUrl, {
+          width: size.width,
+          height: size.height,
+          preserveAnimation: true,
+        })
+        .catch(() => imageUrl)
+        .finally(releaseSlot)
+    )
     .then((processedImageUrl) => {
       const resolved = processedImageUrl ?? imageUrl;
       processedImageCache.set(cacheKey, resolved);
