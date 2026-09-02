@@ -12,9 +12,6 @@ import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { formatBytes } from "@shared";
-import pspArtwork from "@renderer/assets/emulation/psp.png";
-import gamecubeArtwork from "@renderer/assets/emulation/gamecube.png";
-import wiiArtwork from "@renderer/assets/emulation/wii.png";
 import type {
   EmulationSavePlatform,
   EmulatorConfig,
@@ -38,94 +35,6 @@ interface LocalSaveItem {
   platform: Extract<EmulationSavePlatform, "psp" | "gamecube" | "wii">;
   save: MemoryCardSaveRecord;
 }
-
-const mockSave = (
-  platform: LocalSaveItem["platform"],
-  values: Pick<
-    MemoryCardSaveRecord,
-    | "folderName"
-    | "sku"
-    | "title"
-    | "cardLabel"
-    | "libraryImageUrl"
-    | "fileCount"
-    | "sizeBytes"
-  >
-): LocalSaveItem => {
-  const timestamp = new Date("2026-09-01T18:30:00Z").getTime();
-  return {
-    platform,
-    save: {
-      cardFilePath: `mock://${platform}/${values.folderName}`,
-      objectId: `mock-${platform}-${values.sku}`,
-      shop: "launchbox",
-      iconUrl: null,
-      libraryHeroImageUrl: null,
-      logoImageUrl: null,
-      createdAt: timestamp - 7 * 24 * 60 * 60 * 1_000,
-      modifiedAt: timestamp,
-      detectedAt: timestamp,
-      ...values,
-    },
-  };
-};
-
-const MOCK_LOCAL_SAVES: LocalSaveItem[] = [
-  mockSave("psp", {
-    folderName: "ULUS105670000",
-    sku: "ULUS10567",
-    title: "God of War: Ghost of Sparta",
-    cardLabel: "PPSSPP savedata",
-    libraryImageUrl: pspArtwork,
-    fileCount: 5,
-    sizeBytes: 3_840_512,
-  }),
-  mockSave("psp", {
-    folderName: "ULUS105120001",
-    sku: "ULUS10512",
-    title: "Persona 3 Portable",
-    cardLabel: "PPSSPP savedata",
-    libraryImageUrl: pspArtwork,
-    fileCount: 8,
-    sizeBytes: 6_291_456,
-  }),
-  mockSave("gamecube", {
-    folderName: "A:USA:GM8E01:gczelda",
-    sku: "GM8E01",
-    title: "Metroid Prime",
-    cardLabel: "GameCube · USA · Card A",
-    libraryImageUrl: gamecubeArtwork,
-    fileCount: 1,
-    sizeBytes: 73_728,
-  }),
-  mockSave("gamecube", {
-    folderName: "B:EUR:GZLP01:zelda",
-    sku: "GZLP01",
-    title: "The Legend of Zelda: The Wind Waker",
-    cardLabel: "GameCube · EUR · Card B",
-    libraryImageUrl: gamecubeArtwork,
-    fileCount: 1,
-    sizeBytes: 147_456,
-  }),
-  mockSave("wii", {
-    folderName: "00010000524d4345",
-    sku: "RMCE01",
-    title: "Mario Kart Wii",
-    cardLabel: "Wii · NAND",
-    libraryImageUrl: wiiArtwork,
-    fileCount: 3,
-    sizeBytes: 8_912_896,
-  }),
-  mockSave("wii", {
-    folderName: "00010000525a4445",
-    sku: "RZDE01",
-    title: "The Legend of Zelda: Twilight Princess",
-    cardLabel: "Wii · NAND",
-    libraryImageUrl: wiiArtwork,
-    fileCount: 4,
-    sizeBytes: 11_534_336,
-  }),
-];
 
 const localSaveKey = ({ platform, save }: LocalSaveItem): string =>
   `${platform}::${saveKey(save)}`;
@@ -156,11 +65,7 @@ export function LocalEmulatorSavesSection({
           )
         )
       );
-      const discovered = groups.flat();
-      const previews = import.meta.env.DEV
-        ? MOCK_LOCAL_SAVES.filter((save) => platforms.includes(save.platform))
-        : [];
-      setSaves([...previews, ...discovered]);
+      setSaves(groups.flat());
     } finally {
       setLoading(false);
     }
@@ -175,10 +80,6 @@ export function LocalEmulatorSavesSection({
       const key = `${platform}::${saveKey(save)}`;
       setBackingUpKey(key);
       try {
-        if (import.meta.env.DEV && save.cardFilePath.startsWith("mock://")) {
-          showSuccessToast(t("cloud_backup_success"));
-          return;
-        }
         await window.electron.uploadEmulationSave(
           platform,
           save.cardFilePath,

@@ -246,7 +246,7 @@ export const downloadAndInstallEmulator = async (
     );
     await autoConfigureEmulator(system, executable);
     await removeTempDownload();
-    shell.showItemInFolder(extractDir);
+    shell.showItemInFolder(executable);
     sendProgress({ binary, optionId, phase: "done", path: extractDir });
     return { ok: true, path: extractDir };
   } catch (error) {
