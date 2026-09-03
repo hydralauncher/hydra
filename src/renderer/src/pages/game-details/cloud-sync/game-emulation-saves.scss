@@ -25,6 +25,12 @@
     flex-direction: column;
   }
 
+  &__header-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   &__header-actions {
     display: flex;
     gap: 8px;

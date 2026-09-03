@@ -237,6 +237,7 @@ export function App() {
           "install-retroarch": 7108,
           "install-ppsspp": 7315,
           "install-dolphin": 7268,
+          "wii-saves": 7384,
           "retroachievements-emulators": 6629,
         },
         en: {
@@ -250,6 +251,7 @@ export function App() {
           "install-retroarch": 7120,
           "install-ppsspp": 7328,
           "install-dolphin": 7281,
+          "wii-saves": 7406,
           "retroachievements-emulators": 6692,
         },
         ru: {
@@ -259,6 +261,7 @@ export function App() {
           "install-retroarch": 7135,
           "install-ppsspp": 7338,
           "install-dolphin": 7292,
+          "wii-saves": 7422,
           "retroachievements-emulators": 6717,
         },
         es: {
@@ -268,6 +271,7 @@ export function App() {
           "install-retroarch": 7142,
           "install-ppsspp": 7375,
           "install-dolphin": 7303,
+          "wii-saves": 7431,
           "retroachievements-emulators": 6743,
         },
       };

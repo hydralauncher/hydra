@@ -17,6 +17,7 @@ import type {
   EmulatorConfig,
   MemoryCardSaveRecord,
 } from "@types";
+import { WiiSavesGuideButton } from "./wii-saves-guide-button";
 
 interface Props {
   config: EmulatorConfig;
@@ -100,7 +101,10 @@ export function LocalEmulatorSavesSection({
     <section className="emulator-detail__section">
       <header className="emulator-detail__section-header">
         <div className="emulator-detail__section-text">
-          <h3>{t("local_emulator_saves_section_title")}</h3>
+          <div className="emulator-detail__section-title-row">
+            <h3>{t("local_emulator_saves_section_title")}</h3>
+            {config.system === "dolphin" && <WiiSavesGuideButton />}
+          </div>
           <p>{t("local_emulator_saves_section_description")}</p>
         </div>
         <div className="emulator-detail__section-actions">

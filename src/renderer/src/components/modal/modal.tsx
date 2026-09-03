@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 
@@ -11,7 +11,7 @@ import cn from "classnames";
 export interface ModalProps {
   visible: boolean;
   title: React.ReactNode;
-  description?: string;
+  description?: React.ReactNode;
   onClose: () => void;
   onCloseStart?: () => void;
   large?: boolean;
@@ -35,6 +35,7 @@ export function Modal({
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
+  const descriptionId = useId();
 
   const { t } = useTranslation("modal");
 
@@ -135,14 +136,14 @@ export function Modal({
           className
         )}
         role="dialog"
-        aria-describedby={description}
+        aria-describedby={description ? descriptionId : undefined}
         ref={modalContentRef}
         data-hydra-dialog
       >
         <div className="modal__header">
           <div className="modal__header-title">
             <h3>{title}</h3>
-            {description && <p>{description}</p>}
+            {description && <p id={descriptionId}>{description}</p>}
           </div>
 
           <button

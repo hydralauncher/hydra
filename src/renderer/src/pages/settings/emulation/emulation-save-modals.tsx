@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 import { Button, Modal, TextField } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
@@ -65,6 +65,25 @@ export function RestoreModal({
   const [busy, setBusy] = useState(false);
   const isMemoryCardPlatform = platform === "ps1" || platform === "ps2";
   const copyKeys = getRestoreModalCopyKeys(platform);
+  const description =
+    platform === "wii" ? (
+      <Trans
+        t={t}
+        i18nKey={copyKeys.description}
+        components={{
+          guide: (
+            <button
+              type="button"
+              className="emu-save-modal__guide-link"
+              data-open-article="wii-saves"
+              title={t("wii_saves_guide")}
+            />
+          ),
+        }}
+      />
+    ) : (
+      t(copyKeys.description)
+    );
 
   useEffect(() => {
     if (!save) return;
@@ -176,7 +195,7 @@ export function RestoreModal({
     <Modal
       visible={save !== null}
       title={t(copyKeys.title)}
-      description={t(copyKeys.description)}
+      description={description}
       onClose={onClose}
     >
       <div className="emu-save-modal__restore">
