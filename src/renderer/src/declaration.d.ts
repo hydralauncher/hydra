@@ -987,7 +987,7 @@ declare global {
     listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
-    getProcessedFriendImage: (
+    getProcessedImage: (
       imageUrl: string | null,
       options: { width: number; height: number; preserveAnimation?: boolean }
     ) => Promise<string | null>;
